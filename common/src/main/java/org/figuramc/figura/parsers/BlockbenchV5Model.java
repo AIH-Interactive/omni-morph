@@ -113,9 +113,6 @@ public class BlockbenchV5Model extends ModelFormat {
         }
         target.referents.putAll(getAllReferences());
 
-        // Process armature bone vertex weights and attach to mesh elements
-        processVertexWeights(target);
-
         CompoundTag tag = new CompoundTag();
 
         tag.putString("name", target.name);
@@ -132,98 +129,6 @@ public class BlockbenchV5Model extends ModelFormat {
         tag.put("chld", chld);
 
         return tag;
-    }
-
-    /**
-     * Processes vertex_weights from all ArmatureBoneElements and attaches
-     * per-vertex bone weight data to the corresponding MeshElements.
-     * Vertex weight keys in BBModel are formatted as "meshUUID:vertexKey".
-     * Note: BBModel vertex_weights use a SHORTENED UUID prefix (first N chars)
-     * as the mesh identifier, NOT the full UUID. We do prefix matching to find
-     * the correct MeshElement.
-     */
-    private void processVertexWeights(BlockbenchParser2.Intermediary target) {
-        for (Element element : elements) {
-            if (!(element instanceof ArmatureBoneElement bone))
-                continue;
-            if (bone.vertex_weights == null || bone.vertex_weights.isEmpty())
-                continue;
-
-            String boneName = bone.name;
-
-            for (Map.Entry<String, Float> entry : bone.vertex_weights.entrySet()) {
-                String key = entry.getKey();
-                float weight = entry.getValue();
-                if (weight <= 0f)
-                    continue;
-
-                // Key format: "meshUUID_prefix:vertexKey"
-                // BBModel uses a shortened UUID prefix (e.g. first 6 chars) to reference
-                // the mesh element. We need to find the full UUID by prefix matching.
-                int lastColon = key.lastIndexOf(':');
-                if (lastColon < 0 || lastColon >= key.length() - 1)
-                    continue;
-
-                String meshUUIDPrefix = key.substring(0, lastColon);
-                String vertexKey = key.substring(lastColon + 1);
-
-                // Find mesh element by UUID prefix match
-                MeshElement mesh = null;
-                Map<String, Vector3f> meshVerts = null;
-                for (Element candidate : elements) {
-                    if (candidate instanceof MeshElement m && candidate.uuid != null
-                            && candidate.uuid.startsWith(meshUUIDPrefix)) {
-                        mesh = m;
-                        meshVerts = m.vertices;
-                        break;
-                    }
-                }
-                if (mesh == null || meshVerts == null || !meshVerts.containsKey(vertexKey))
-                    continue;
-
-                // Build vertex index mapping
-                int vertexIndex = 0;
-                for (String vk : meshVerts.keySet()) {
-                    if (vk.equals(vertexKey))
-                        break;
-                    vertexIndex++;
-                }
-
-                // Initialize skinData on the mesh if needed
-                if (mesh.skinData == null) {
-                    mesh.skinData = new HashMap<>();
-                }
-
-                mesh.skinData.compute(vertexIndex, (vi, list) -> {
-                    if (list == null)
-                        list = new ArrayList<>();
-                    list.add(Map.entry(boneName, weight));
-                    return list;
-                });
-            }
-        }
-
-        // Normalize weights per vertex (ensure they sum to at most 1)
-        for (Element element : elements) {
-            if (!(element instanceof MeshElement mesh))
-                continue;
-            if (mesh.skinData == null)
-                continue;
-
-            for (Map.Entry<Integer, List<Map.Entry<String, Float>>> entry : mesh.skinData.entrySet()) {
-                List<Map.Entry<String, Float>> weights = entry.getValue();
-                float sum = 0f;
-                for (Map.Entry<String, Float> w : weights) {
-                    sum += w.getValue();
-                }
-                if (sum > 1f) {
-                    for (int i = 0; i < weights.size(); i++) {
-                        Map.Entry<String, Float> w = weights.get(i);
-                        weights.set(i, Map.entry(w.getKey(), w.getValue() / sum));
-                    }
-                }
-            }
-        }
     }
 
     public static class Group implements UUIDReferable {
@@ -288,61 +193,30 @@ public class BlockbenchV5Model extends ModelFormat {
 
             @Override
             public @Nullable CompoundTag toNBT(BlockbenchParser2.Intermediary context) {
-                UUIDReferable referent = context.referents.get(uuid);
-                if (referent == null) {
+                UUIDReferable groupProbably = context.referents.get(uuid);
+                if (!(groupProbably instanceof Group group)) {
                     FiguraMod.LOGGER.warn(
-                            "Broken reference (in model '{}'): no element with UUID {}",
-                            context.name,
-                            uuid
-                    );
-                    return null;
-                }
-
-                // Extract common properties from either Group or Element (for armatures/armature_bones)
-                String name;
-                Boolean export;
-                Boolean visibility;
-                Vector3f origin;
-                Vector3f rotation;
-
-                if (referent instanceof Group group) {
-                    name = group.name;
-                    export = group.export;
-                    visibility = group.visibility;
-                    origin = group.origin;
-                    rotation = group.rotation;
-                } else if (referent instanceof BlockbenchCommonTypes.Element element) {
-                    // Supports ArmatureElement, ArmatureBoneElement, and any other
-                    // element types that appear as container nodes in the outliner
-                    name = element.name;
-                    export = element.export;
-                    visibility = element.visibility;
-                    origin = element.origin;
-                    rotation = element.rotation;
-                } else {
-                    FiguraMod.LOGGER.warn(
-                            "Broken reference (in model '{}'): expected a group or container element at UUID {} but found {} instead",
+                            "Broken reference (in model '{}'): expected a group at UUID {} but found {} instead",
                             context.name,
                             uuid,
-                            referent.getClass().getSimpleName()
+                            groupProbably == null ? "(nothing with that UUID!)" : groupProbably.getClass().getSimpleName()
                     );
                     return null;
                 }
-
-                if (Boolean.FALSE.equals(export)) return null;
+                if (Boolean.FALSE.equals(group.export)) return null;
 
                 CompoundTag tag = new CompoundTag();
-                tag.putString("name", name);
+                tag.putString("name", group.name);
 
-                if (Boolean.FALSE.equals(visibility))
+                if (Boolean.FALSE.equals(group.visibility))
                     tag.putBoolean("vsb", false);
 
-                if (origin != null && !origin.equals(0, 0, 0))
-                    tag.put("piv", BlockbenchCommonTypes.vecToList(origin));
-                if (rotation != null && !rotation.equals(0, 0, 0))
-                    tag.put("rot", BlockbenchCommonTypes.vecToList(rotation));
+                if (group.origin != null && !group.origin.equals(0, 0, 0))
+                    tag.put("piv", BlockbenchCommonTypes.vecToList(group.origin));
+                if (group.rotation != null && !group.rotation.equals(0, 0, 0))
+                    tag.put("rot", BlockbenchCommonTypes.vecToList(group.rotation));
 
-                BlockbenchCommonTypes.parseParent(name, tag);
+                BlockbenchCommonTypes.parseParent(group.name, tag);
 
                 // TODO: collections?!
 

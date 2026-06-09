@@ -151,7 +151,12 @@ public class RenderUtils {
 
     @ExpectPlatform
     public static Identifier getPlayerSkinTexture(WingsLayer<?, ?> wingsLayer, HumanoidRenderState renderState) {
-        throw new AssertionError();
+        try {
+            return (Identifier) Class.forName("org.figuramc.figura.utils.fabric.RenderUtilsImpl")
+                .getMethod("getPlayerSkinTexture", WingsLayer.class, HumanoidRenderState.class).invoke(null, wingsLayer, renderState);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     static final ItemStackRenderState itemStackRenderState = new ItemStackRenderState();

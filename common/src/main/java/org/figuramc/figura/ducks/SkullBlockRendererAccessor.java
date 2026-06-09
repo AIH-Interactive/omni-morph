@@ -1,6 +1,7 @@
 package org.figuramc.figura.ducks;
 
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 
 public abstract class SkullBlockRendererAccessor {
@@ -8,6 +9,7 @@ public abstract class SkullBlockRendererAccessor {
     private static ItemStack stack = null;
     private static Entity entity = null;
     private static SkullRenderMode renderMode = SkullRenderMode.OTHER;
+    private static ItemDisplayContext displayContext = null;
 
     public static void setItem(ItemStack item) {
         stack = item;
@@ -31,6 +33,14 @@ public abstract class SkullBlockRendererAccessor {
 
     public static SkullRenderMode getRenderMode() {
         return renderMode;
+    }
+
+    public static void setDisplayContext(ItemDisplayContext ctx) {
+        displayContext = ctx;
+    }
+
+    public static ItemDisplayContext getDisplayContext() {
+        return displayContext;
     }
 
     public enum SkullRenderMode {

@@ -36,5 +36,12 @@ public class ConfigKeyBind extends KeyMapping {
     }
 
     @ExpectPlatform
-    public static void addKeyBind(ConfigKeyBind keyBind) {}
+    public static void addKeyBind(ConfigKeyBind keyBind) {
+        try {
+            Class.forName("org.figuramc.figura.config.fabric.ConfigKeyBindImpl")
+                .getMethod("addKeyBind", ConfigKeyBind.class).invoke(null, keyBind);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

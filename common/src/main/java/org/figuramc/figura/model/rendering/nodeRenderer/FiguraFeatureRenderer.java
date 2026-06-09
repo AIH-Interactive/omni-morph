@@ -7,13 +7,14 @@ import net.minecraft.client.renderer.SubmitNodeCollection;
 import net.minecraft.client.renderer.SubmitNodeStorage;
 import net.minecraft.client.renderer.feature.CustomFeatureRenderer;
 import org.figuramc.figura.ducks.NodeCollectorExtension;
+import org.figuramc.figura.utils.ui.UIHelper;
 
 import java.util.List;
 import java.util.Map;
 
 public class FiguraFeatureRenderer {
     public void render(SubmitNodeCollection submitNodeCollection, MultiBufferSource.BufferSource bufferSource) {
-        List<FiguraSubmission> figuraSubmissions = ((NodeCollectorExtension) submitNodeCollection).getFiguraSubmissions();
+        List<FiguraSubmission> figuraSubmissions = new java.util.ArrayList<>(((NodeCollectorExtension) submitNodeCollection).getFiguraSubmissions());
 
         for (FiguraSubmission figuraSubmission : figuraSubmissions) {
             if (figuraSubmission.avatar() == null)
@@ -24,6 +25,10 @@ public class FiguraFeatureRenderer {
                     figuraSubmission.renderState(),
                     bufferSource
             );
+        }
+
+        if (UIHelper.paperdoll) {
+            bufferSource.endBatch();
         }
     }
 }

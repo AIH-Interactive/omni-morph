@@ -1,7 +1,5 @@
 package org.figuramc.figura.compat;
 
-import net.raphimc.immediatelyfast.ImmediatelyFast;
-import net.raphimc.immediatelyfast.feature.core.ImmediatelyFastConfig;
 import org.figuramc.figura.utils.PlatformUtils;
 
 import java.lang.reflect.Field;

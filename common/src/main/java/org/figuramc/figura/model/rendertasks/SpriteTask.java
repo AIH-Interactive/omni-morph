@@ -62,15 +62,18 @@ public class SpriteTask extends RenderTask {
 
         // setup texture render
         VertexConsumer consumer = buffer.getBuffer(renderType.get(texture));
+        boolean needsLineWidth = renderType == FiguraRenderTypes.LINES || renderType == FiguraRenderTypes.LINES_STRIP;
 
         // create vertices
         for (Vertex v : vertices) {
-            consumer.addVertex(pose, v.x, v.y, v.z)
+            VertexConsumer vertex = consumer.addVertex(pose, v.x, v.y, v.z)
                     .setColor(r, g, b, a)
                     .setUv(v.u, v.v)
                     .setOverlay(newOverlay)
                     .setLight(newLight)
                     .setNormal(poseStack.last(), v.nx, v.ny, v.nz);
+            if (needsLineWidth)
+                vertex.setLineWidth(1.0f);
         }
     }
 

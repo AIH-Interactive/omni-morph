@@ -18,6 +18,7 @@ import org.figuramc.figura.permissions.Permissions;
 import org.figuramc.figura.resources.FiguraRuntimeResources;
 import org.figuramc.figura.utils.ColorUtils;
 import org.figuramc.figura.utils.FiguraText;
+import org.figuramc.figura.utils.PlatformUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -140,7 +141,7 @@ public class Configs {
             }};
     public static final ConfigType.BoolConfig
             ALLOW_FP_HANDS = new ConfigType.BoolConfig("allow_fp_hands", RENDERING, false),
-            FIRST_PERSON_MATRICES = new ConfigType.BoolConfig("first_person_matrices", RENDERING, false),
+            FIRST_PERSON_MATRICES = new ConfigType.BoolConfig("first_person_matrices", RENDERING, !PlatformUtils.isModLoaded("yes_steve_model")),
             INVENTORY_SCISSOR = new ConfigType.BoolConfig("inventory_scissor", RENDERING, true),
             RENDER_STATS = new ConfigType.BoolConfig("render_stats", RENDERING, true, false);
 
@@ -188,13 +189,13 @@ public class Configs {
 
     public static final ConfigType.BoolConfig
             HAS_PAPERDOLL = new ConfigType.BoolConfig("has_paperdoll", PAPERDOLL, false),
-            PAPERDOLL_ALWAYS_ON = new ConfigType.BoolConfig("paperdoll_always_on", PAPERDOLL, true),
+            PAPERDOLL_ALWAYS_ON = new ConfigType.BoolConfig("paperdoll_always_on", PAPERDOLL, false),
             FIRST_PERSON_PAPERDOLL = new ConfigType.BoolConfig("first_person_paperdoll", PAPERDOLL, true),
             PAPERDOLL_INVISIBLE = new ConfigType.BoolConfig("paperdoll_invisible", PAPERDOLL, false);
     public static final ConfigType.FloatConfig
             PAPERDOLL_SCALE = new ConfigType.FloatConfig("paperdoll_scale", PAPERDOLL, 1f),
-            PAPERDOLL_X = new ConfigType.FloatConfig("paperdoll_x", PAPERDOLL, 80),
-            PAPERDOLL_Y = new ConfigType.FloatConfig("paperdoll_y", PAPERDOLL, 65),
+            PAPERDOLL_X = new ConfigType.FloatConfig("paperdoll_x", PAPERDOLL, 0f),
+            PAPERDOLL_Y = new ConfigType.FloatConfig("paperdoll_y", PAPERDOLL, 0f),
             PAPERDOLL_PITCH = new ConfigType.FloatConfig("paperdoll_pitch", PAPERDOLL, 0f),
             PAPERDOLL_YAW = new ConfigType.FloatConfig("paperdoll_yaw", PAPERDOLL, 20);
 

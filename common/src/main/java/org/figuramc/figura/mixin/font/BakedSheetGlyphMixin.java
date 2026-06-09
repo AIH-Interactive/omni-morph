@@ -2,12 +2,11 @@ package org.figuramc.figura.mixin.font;
 
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.gui.font.glyphs.BakedSheetGlyph;
-import org.figuramc.figura.compat.ImmediatelyFastCompat;
 import org.figuramc.figura.ducks.BakedGlyphAccessor;
 import org.figuramc.figura.font.EmojiContainer;
 import org.figuramc.figura.font.EmojiMetadata;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Matrix4f;
+import org.joml.Matrix4fc;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -38,16 +37,19 @@ public abstract class BakedSheetGlyphMixin implements BakedGlyphAccessor {
     @Shadow @Final private float u1;
     @Unique
     EmojiMetadata figura$metadata;
+    @Unique
+    int figura$glyphPixelWidth;
 
     @Override
-    public void figura$setupEmoji(@Nullable EmojiContainer container, int codepoint) {
+    public void figura$setupEmoji(@Nullable EmojiContainer container, int codepoint, int glyphPixelWidth) {
         if (container != null) {
             figura$metadata = container.getLookup().getMetadata(codepoint);
+            figura$glyphPixelWidth = glyphPixelWidth;
         }
     }
 
-    @Inject(method = "render(ZFFFLorg/joml/Matrix4f;Lcom/mojang/blaze3d/vertex/VertexConsumer;IZI)V", at = @At("HEAD"), cancellable = true)
-    public void render(boolean italic, float x, float y, float z, Matrix4f matrix, VertexConsumer vertexConsumer, int color, boolean bold, int light, CallbackInfo ci) {
+    @Inject(method = "render(ZFFFLorg/joml/Matrix4fc;Lcom/mojang/blaze3d/vertex/VertexConsumer;IZI)V", at = @At("HEAD"), cancellable = true)
+    private void render(boolean italic, float x, float y, float z, Matrix4fc matrix, VertexConsumer vertexConsumer, int color, boolean bold, int light, CallbackInfo ci) {
         if (figura$metadata == null) return;
 
         float h = this.up;
@@ -57,8 +59,7 @@ public abstract class BakedSheetGlyphMixin implements BakedGlyphAccessor {
         float m = italic ? 1.0f - 0.25f * h : 0f;
         float n = italic ? 1.0f - 0.25f * j : 0f;
         float q = bold ? 0.1F : 0.0F;
-
-        final float singleWidth = 8f / ImmediatelyFastCompat.getFontWidthIMF();
+        float singleWidth = (u1 - u0) * 8f / figura$glyphPixelWidth;
         float shift = singleWidth * figura$metadata.getCurrentFrame();
 
         float u = u0 + shift;

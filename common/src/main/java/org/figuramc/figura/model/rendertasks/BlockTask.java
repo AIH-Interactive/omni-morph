@@ -1,9 +1,15 @@
 package org.figuramc.figura.model.rendertasks;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.QuadInstance;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.block.model.BlockStateModel;
+import net.minecraft.client.renderer.block.BlockStateModelSet;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.state.BlockState;
@@ -15,6 +21,9 @@ import org.figuramc.figura.lua.docs.LuaMethodOverload;
 import org.figuramc.figura.lua.docs.LuaTypeDoc;
 import org.figuramc.figura.model.FiguraModelPart;
 import org.figuramc.figura.utils.LuaUtils;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @LuaWhitelist
 @LuaTypeDoc(
@@ -30,6 +39,8 @@ public class BlockTask extends RenderTask {
         super(name, owner, parent);
     }
 
+    private final QuadInstance quadInstance = new QuadInstance();
+
     @Override
     public void render(PoseStack poseStack, MultiBufferSource buffer, int light, int overlay) {
         poseStack.scale(16, 16, 16);
@@ -37,7 +48,42 @@ public class BlockTask extends RenderTask {
         int newLight = this.customization.light != null ? this.customization.light : light;
         int newOverlay = this.customization.overlay != null ? this.customization.overlay : overlay;
 
-        Minecraft.getInstance().getBlockRenderer().renderSingleBlock(block, poseStack, buffer, newLight, newOverlay);
+        quadInstance.setLightCoords(newLight);
+        quadInstance.setOverlayCoords(newOverlay);
+        quadInstance.setColor(-1);
+
+        BlockStateModelSet modelSet = Minecraft.getInstance().getModelManager().getBlockStateModelSet();
+        BlockStateModel model = modelSet.get(block);
+        RandomSource random = RandomSource.create(42L);
+        List<BlockStateModelPart> parts = new ArrayList<>();
+        model.collectParts(random, parts);
+
+        for (BlockStateModelPart part : parts) {
+            RenderType renderType = part.getQuads(null).isEmpty() ? null :
+                    part.getQuads(null).getFirst().materialInfo().itemRenderType();
+            if (renderType == null) {
+                for (Direction dir : Direction.values()) {
+                    List<BakedQuad> quads = part.getQuads(dir);
+                    if (!quads.isEmpty()) {
+                        renderType = quads.getFirst().materialInfo().itemRenderType();
+                        break;
+                    }
+                }
+            }
+            if (renderType == null) continue;
+
+            VertexConsumer consumer = buffer.getBuffer(renderType);
+            PoseStack.Pose pose = poseStack.last();
+
+            for (BakedQuad quad : part.getQuads(null)) {
+                consumer.putBakedQuad(pose, quad, quadInstance);
+            }
+            for (Direction dir : Direction.values()) {
+                for (BakedQuad quad : part.getQuads(dir)) {
+                    consumer.putBakedQuad(pose, quad, quadInstance);
+                }
+            }
+        }
     }
 
     @Override
@@ -71,12 +117,17 @@ public class BlockTask extends RenderTask {
     public BlockTask setBlock(Object block) {
         this.block = LuaUtils.parseBlockState("block", block);
         Minecraft client = Minecraft.getInstance();
-        RandomSource random = client.level != null ? client.level.random : RandomSource.create();
+        RandomSource random = client.level != null ? client.level.getRandom() : RandomSource.create();
 
-        BlockStateModel blockModel = client.getBlockRenderer().getBlockModel(this.block);
-        cachedComplexity = blockModel.collectParts(random).stream().mapToInt(p -> p.getQuads(null).size()).sum();
-        for (Direction dir : Direction.values())
-            cachedComplexity += blockModel.collectParts(random).stream().mapToInt(p -> p.getQuads(dir).size()).sum();
+        BlockStateModel blockModel = client.getModelManager().getBlockStateModelSet().get(this.block);
+        List<BlockStateModelPart> parts = new ArrayList<>();
+        blockModel.collectParts(random, parts);
+        cachedComplexity = parts.stream().mapToInt(p -> p.getQuads(null).size()).sum();
+        for (Direction dir : Direction.values()) {
+            parts.clear();
+            blockModel.collectParts(random, parts);
+            cachedComplexity += parts.stream().mapToInt(p -> p.getQuads(dir).size()).sum();
+        }
 
         return this;
     }

@@ -19,8 +19,8 @@ public class FeatureRendererDispatcherMixin {
     private MultiBufferSource.BufferSource bufferSource;
     final FiguraFeatureRenderer figuraFeatureRenderer = new FiguraFeatureRenderer();
 
-    @Inject(method = "renderAllFeatures",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/feature/ShadowFeatureRenderer;render(Lnet/minecraft/client/renderer/SubmitNodeCollection;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;)V"))
+    @Inject(method = "renderSolidFeatures",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/feature/ItemFeatureRenderer;renderSolid(Lnet/minecraft/client/renderer/SubmitNodeCollection;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;Lnet/minecraft/client/renderer/OutlineBufferSource;)V"))
     private void figura$renderFiguraFeatures(CallbackInfo ci, @Local SubmitNodeCollection submitNodeCollection) {
         figuraFeatureRenderer.render(submitNodeCollection, this.bufferSource);
     }

@@ -19,10 +19,6 @@ public class Vertex {
     public float u, v;
     public float nx, ny, nz;
 
-    /// Original vertex index in the mesh's vertex array, used for vertex skinning lookup.
-    /// -1 means no skinning data is associated with this vertex position.
-    public int origIdx = -1;
-
     public Vertex(float x, float y, float z, float u, float v, float nx, float ny, float nz) {
         this.x = x; this.y = y; this.z = z;
         this.u = u; this.v = v;
@@ -30,9 +26,7 @@ public class Vertex {
     }
 
     public Vertex copy() {
-        Vertex copy = new Vertex(x, y, z, u, v, nx, ny, nz);
-        copy.origIdx = this.origIdx;
-        return copy;
+        return new Vertex(x, y, z, u, v, nx, ny, nz);
     }
 
     @LuaWhitelist

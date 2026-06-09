@@ -30,7 +30,13 @@ public class EntryPointManager {
     }
 
     @ExpectPlatform
+    @SuppressWarnings("unchecked")
     private static <T> Set<T> load(String name, Class<T> clazz) {
-        throw new AssertionError();
+        try {
+            return (Set<T>) Class.forName("org.figuramc.figura.entries.fabric.EntryPointManagerImpl")
+                .getMethod("load", String.class, Class.class).invoke(null, name, clazz);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

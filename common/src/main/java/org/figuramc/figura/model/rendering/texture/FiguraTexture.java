@@ -64,7 +64,7 @@ public class FiguraTexture extends SimpleTexture {
      */
     private final NativeImage nativeImageTexture;
     private NativeImage backup;
-    private boolean isClosed = false;
+    private volatile boolean isClosed = false;
 
     public FiguraTexture(Avatar owner, String name, byte[] data) {
         super(new FiguraIdentifier("avatar_tex/" + owner.owner + "/" + UUID.randomUUID()));
@@ -102,6 +102,10 @@ public class FiguraTexture extends SimpleTexture {
 
     @Override
     public @NotNull TextureContents loadContents(ResourceManager resourceManager) throws IOException {
+        if (isClosed) {
+            NativeImage dummy = new NativeImage(1, 1, true);
+            return new TextureContents(dummy, new TextureMetadataSection(false, false, MipmapStrategy.AUTO, 0));
+        }
         return new TextureContents(copy(), new TextureMetadataSection(false, false, MipmapStrategy.AUTO, 0));
     }
 
@@ -119,6 +123,11 @@ public class FiguraTexture extends SimpleTexture {
         // Make sure it doesn't close twice (minecraft tries to close the texture when reloading textures
         if (isClosed) return;
 
+        if (!RenderSystem.isOnRenderThread()) {
+            Minecraft.getInstance().execute(this::close);
+            return;
+        }
+
         isClosed = true;
 
         // Close native images
@@ -128,7 +137,12 @@ public class FiguraTexture extends SimpleTexture {
             backup.close();
 
         super.close();
-        ((TextureManagerAccessor) Minecraft.getInstance().getTextureManager()).getByPath().remove(this.getLocation());
+        // Sched removal from TextureManager to avoid ConcurrentModificationException
+        // when TextureManager.close() iterates byPath and FiguraTexture.close() tries to remove during iteration
+        Identifier location = this.getLocation();
+        Minecraft.getInstance().execute(() ->
+            ((TextureManagerAccessor) Minecraft.getInstance().getTextureManager()).getByPath().remove(location)
+        );
     }
 
     public void uploadIfDirty(boolean clamp, boolean blur) {

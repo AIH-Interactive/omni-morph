@@ -82,8 +82,9 @@ public class FiguraRuntimeResources {
             for (Map.Entry<String, JsonElement> entry : hashes.entrySet()) {
                 String key = entry.getKey();
                 JsonElement oldHash = oldHashes.get(key);
+                Path target = getAssetsDirectory().resolve(key);
                 try {
-                    if (oldHash == null || !oldHash.getAsString().equals(entry.getValue().getAsString())) {
+                    if (oldHash == null || !oldHash.getAsString().equals(entry.getValue().getAsString()) || !Files.exists(target)) {
                         getAndSaveResource(key);
                     }
                 } catch (Exception e) {

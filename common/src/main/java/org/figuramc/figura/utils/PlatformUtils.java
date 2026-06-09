@@ -12,27 +12,52 @@ public class PlatformUtils {
 
     @ExpectPlatform
     public static Path getGameDir() {
-        throw new AssertionError();
+        try {
+            return (Path) Class.forName("org.figuramc.figura.utils.fabric.PlatformUtilsImpl")
+                .getMethod("getGameDir").invoke(null);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @ExpectPlatform
     public static String getFiguraModVersionString(){
-        throw new AssertionError();
+        try {
+            return (String) Class.forName("org.figuramc.figura.utils.fabric.PlatformUtilsImpl")
+                .getMethod("getFiguraModVersionString").invoke(null);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @ExpectPlatform
     public static Path getConfigDir() {
-        throw new AssertionError();
+        try {
+            return (Path) Class.forName("org.figuramc.figura.utils.fabric.PlatformUtilsImpl")
+                .getMethod("getConfigDir").invoke(null);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @ExpectPlatform
     public static boolean isModLoaded(String modId) {
-        throw new AssertionError();
+        try {
+            return (boolean) Class.forName("org.figuramc.figura.utils.fabric.PlatformUtilsImpl")
+                .getMethod("isModLoaded", String.class).invoke(null, modId);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @ExpectPlatform
     public static String getModVersion(String modId) {
-        throw new AssertionError();
+        try {
+            return (String) Class.forName("org.figuramc.figura.utils.fabric.PlatformUtilsImpl")
+                .getMethod("getModVersion", String.class).invoke(null, modId);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static int compareVersionTo(String v1, String v2) {
@@ -61,11 +86,24 @@ public class PlatformUtils {
 
     @ExpectPlatform
     public static ModLoader getModLoader(){
-        throw new AssertionError();
+        try {
+            return (ModLoader) Class.forName("org.figuramc.figura.utils.fabric.PlatformUtilsImpl")
+                .getMethod("getModLoader").invoke(null);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @ExpectPlatform
     public static InputStream loadFileFromRoot(String file) throws FileNotFoundException {
-        throw new AssertionError();
+        try {
+            return (InputStream) Class.forName("org.figuramc.figura.utils.fabric.PlatformUtilsImpl")
+                .getMethod("loadFileFromRoot", String.class).invoke(null, file);
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            if (e.getCause() instanceof FileNotFoundException fnfe) throw fnfe;
+            throw new RuntimeException(e);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

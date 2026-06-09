@@ -4,7 +4,6 @@ import com.google.gson.*;
 import net.minecraft.nbt.*;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.math.vector.FiguraVec3;
-import org.figuramc.figura.model.ParentType;
 import org.figuramc.figura.utils.IOUtils;
 
 import java.io.IOException;
@@ -124,7 +123,8 @@ public class BlockbenchModelParser {
             byte[] source;
             try {
                 // Check the file to load
-                Path p = sourceFile.getParent().resolve(texture.relative_path);
+                // Use resolveSibling to handle ZIP filesystems where getParent() returns null
+                Path p = sourceFile.resolveSibling(texture.relative_path);
                 if (p.getFileSystem() == FileSystems.getDefault())
                     p = p.toFile().getCanonicalFile().toPath();
 
@@ -154,9 +154,16 @@ public class BlockbenchModelParser {
                 FiguraMod.debug("path is {}", p.toString());
                 //load texture
                 source = IOUtils.readFileBytes(p);
-                path = avatar.relativize(p)
-                        .toString()
-                        .replace(p.getFileSystem().getSeparator(), ".");
+                // When avatar root is empty (ZIP filesystem), use toString directly
+                // since relativize against an empty path produces broken shit
+                String avatarStr = avatar.toString();
+                if (avatarStr.isEmpty()) {
+                    path = p.toString().replace(p.getFileSystem().getSeparator(), ".");
+                } else {
+                    path = avatar.relativize(p)
+                            .toString()
+                            .replace(p.getFileSystem().getSeparator(), ".");
+                }
                 path = path.substring(0, path.length() - 4);
 
                 //fix name

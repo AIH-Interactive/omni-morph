@@ -9,6 +9,7 @@ import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LightLayer;
 import org.figuramc.figura.FiguraMod;
@@ -26,7 +27,6 @@ import org.figuramc.figura.model.rendering.texture.FiguraTextureSet;
 import org.figuramc.figura.model.rendertasks.RenderTask;
 import org.figuramc.figura.utils.ColorUtils;
 import org.figuramc.figura.utils.ui.UIHelper;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -69,6 +69,10 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
     public void updateMatrices() {
         // flag rendering state
         this.isRendering = true;
+
+        // clear old pivot customizations so calculatePartMatrices can populate fresh ones
+        for (var queue : pivotCustomizations.values())
+            queue.clear();
 
         // setup root customizations
         PartCustomization customization = setupRootCustomization(1.5d);
@@ -311,7 +315,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
                 FiguraVec3 pos = part.savedPartToWorldMat.apply(0d, 0d, 0d);
                 int block = l.getBrightness(LightLayer.BLOCK, pos.asBlockPos());
                 int sky = l.getBrightness(LightLayer.SKY, pos.asBlockPos());
-                customizationStack.peek().light = LightTexture.pack(block, sky);
+                customizationStack.peek().light = LightCoordsUtil.pack(block, sky);
             }
 
             if (custom.alpha != null)
@@ -480,30 +484,23 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         float j = (float)x2;
         float k = (float)y2;
         float l = (float)z2;
-        vertices.addVertex(pose, f, h, i).setColor(r, g, b, a).setNormal(pose, 1.0F, 0.0F, 0.0F);
-        vertices.addVertex(pose, j, h, i).setColor(r, g, b, a).setNormal(pose, 1.0F, 0.0F, 0.0F);
-        vertices.addVertex(pose, f, h, i).setColor(r, g, b, a).setNormal(pose, 0.0F, 1.0F, 0.0F);
-        vertices.addVertex(pose, f, k, i).setColor(r, g, b, a).setNormal(pose, 0.0F, 1.0F, 0.0F);
-        vertices.addVertex(pose, f, h, i).setColor(r, g, b, a).setNormal(pose, 0.0F, 0.0F, 1.0F);
-        vertices.addVertex(pose, f, h, l).setColor(r, g, b, a).setNormal(pose, 0.0F, 0.0F, 1.0F);
-        vertices.addVertex(pose, j, h, i).setColor(r, g, b, a).setNormal(pose, 0.0F, 1.0F, 0.0F);
-        vertices.addVertex(pose, j, k, i).setColor(r, g, b, a).setNormal(pose, 0.0F, 1.0F, 0.0F);
-        vertices.addVertex(pose, j, k, i).setColor(r, g, b, a).setNormal(pose, -1.0F, 0.0F, 0.0F);
-        vertices.addVertex(pose, f, k, i).setColor(r, g, b, a).setNormal(pose, -1.0F, 0.0F, 0.0F);
-        vertices.addVertex(pose, f, k, i).setColor(r, g, b, a).setNormal(pose, 0.0F, 0.0F, 1.0F);
-        vertices.addVertex(pose, f, k, l).setColor(r, g, b, a).setNormal(pose, 0.0F, 0.0F, 1.0F);
-        vertices.addVertex(pose, f, k, l).setColor(r, g, b, a).setNormal(pose, 0.0F, -1.0F, 0.0F);
-        vertices.addVertex(pose, f, h, l).setColor(r, g, b, a).setNormal(pose, 0.0F, -1.0F, 0.0F);
-        vertices.addVertex(pose, f, h, l).setColor(r, g, b, a).setNormal(pose, 1.0F, 0.0F, 0.0F);
-        vertices.addVertex(pose, j, h, l).setColor(r, g, b, a).setNormal(pose, 1.0F, 0.0F, 0.0F);
-        vertices.addVertex(pose, j, h, l).setColor(r, g, b, a).setNormal(pose, 0.0F, 0.0F, -1.0F);
-        vertices.addVertex(pose, j, h, i).setColor(r, g, b, a).setNormal(pose, 0.0F, 0.0F, -1.0F);
-        vertices.addVertex(pose, f, k, l).setColor(r, g, b, a).setNormal(pose, 1.0F, 0.0F, 0.0F);
-        vertices.addVertex(pose, j, k, l).setColor(r, g, b, a).setNormal(pose, 1.0F, 0.0F, 0.0F);
-        vertices.addVertex(pose, j, h, l).setColor(r, g, b, a).setNormal(pose, 0.0F, 1.0F, 0.0F);
-        vertices.addVertex(pose, j, k, l).setColor(r, g, b, a).setNormal(pose, 0.0F, 1.0F, 0.0F);
-        vertices.addVertex(pose, j, k, i).setColor(r, g, b, a).setNormal(pose, 0.0F, 0.0F, 1.0F);
-        vertices.addVertex(pose, j, k, l).setColor(r, g, b, a).setNormal(pose, 0.0F, 0.0F, 1.0F);
+        line(vertices, pose, f, h, i, j, h, i, r, g, b, a, 1, 0, 0);
+        line(vertices, pose, f, h, i, f, k, i, r, g, b, a, 0, 1, 0);
+        line(vertices, pose, f, h, i, f, h, l, r, g, b, a, 0, 0, 1);
+        line(vertices, pose, j, h, i, j, k, i, r, g, b, a, 0, 1, 0);
+        line(vertices, pose, j, k, i, f, k, i, r, g, b, a, -1, 0, 0);
+        line(vertices, pose, f, k, i, f, k, l, r, g, b, a, 0, 0, 1);
+        line(vertices, pose, f, k, l, f, h, l, r, g, b, a, 0, -1, 0);
+        line(vertices, pose, f, h, l, j, h, l, r, g, b, a, 1, 0, 0);
+        line(vertices, pose, j, h, l, j, h, i, r, g, b, a, 0, 0, -1);
+        line(vertices, pose, f, k, l, j, k, l, r, g, b, a, 1, 0, 0);
+        line(vertices, pose, j, h, l, j, k, l, r, g, b, a, 0, 1, 0);
+        line(vertices, pose, j, k, i, j, k, l, r, g, b, a, 0, 0, 1);
+    }
+
+    private static void line(VertexConsumer v, PoseStack.Pose pose, float x1, float y1, float z1, float x2, float y2, float z2, float r, float g, float b, float a, float nx, float ny, float nz) {
+        v.addVertex(pose, x1, y1, z1).setColor(r, g, b, a).setNormal(pose, nx, ny, nz).setLineWidth(1.0f);
+        v.addVertex(pose, x2, y2, z2).setColor(r, g, b, a).setNormal(pose, nx, ny, nz).setLineWidth(1.0f);
     }
 
     protected void savePivotTransform(ParentType parentType, PartCustomization customization) {
@@ -558,6 +555,17 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
             FiguraMod.popPushProfiler("worldMatrices");
             FiguraMat4 mat = partToWorldMatrices(custom);
             part.savedPartToWorldMat.set(mat);
+
+            // save pivot transforms so they are available during the layers loop
+            if (part.parentType.isPivot && allowPivotParts) {
+                FiguraMod.popPushProfiler("savePivotParts");
+                FiguraVec3 pivot = custom.getPivot().copy().add(custom.getOffsetPivot());
+                pivotOffsetter.setPos(pivot);
+                pivotOffsetter.recalculate();
+                customizationStack.push(pivotOffsetter);
+                savePivotTransform(part.parentType, customizationStack.peek());
+                customizationStack.pop();
+            }
         }
 
         // render children
@@ -573,7 +581,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         FiguraMod.popProfiler(2);
     }
 
-    public void pushFaces(int faceCount, int[] remainingComplexity, FiguraTextureSet textureSet, List<Vertex> vertices, FiguraModelPart part) {
+    public void pushFaces(int faceCount, int[] remainingComplexity, FiguraTextureSet textureSet, List<Vertex> vertices) {
         // Handle cases that we can quickly
         if (faceCount == 0 || vertices.isEmpty())
             return;
@@ -588,130 +596,10 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
             return;
         }
 
-        // Collect bone animation delta matrices for skinning
-        FiguraMat4[] boneDeltas = null;
-        if (part.skinBoneNames != null && part.skinBoneNames.length > 0 && part.parent != null) {
-            boneDeltas = collectBoneSkinningDeltas(part);
-        }
-
         if (primary.renderType != null)
-            pushToBuffer(faceCount, primary, customization, textureSet, vertices, part, boneDeltas);
+            pushToBuffer(faceCount, primary, customization, textureSet, vertices);
         if (secondary.renderType != null)
-            pushToBuffer(faceCount, secondary, customization, textureSet, vertices, part, boneDeltas);
-    }
-
-    /**
-     * Collects animation delta matrices from bone parts in the hierarchy.
-     * Supports nested bone hierarchies: a child bone's delta is composed with
-     * its ancestor bones' deltas so that the accumulated delta correctly
-     * represents the full animation chain from root to that bone.
-     *
-     * The delta matrix represents ONLY the animation change (rotation/position/scale around pivot),
-     * WITHOUT the bone's rest pose transform.
-     *
-     * For a nested bone B (child of A), the combined delta is:
-     *   delta_B * delta_A  (in standard matrix notation)
-     * which means V' = delta_B * (delta_A * V).
-     * This is accumulated via left-multiply (multiply()) from root to leaf.
-     *
-     * Delta formula: T(-pivot) * S(animScale) * R_ZYX(animRot) * T(pivot + animPos)
-     */
-    private FiguraMat4[] collectBoneSkinningDeltas(FiguraModelPart skinnedPart) {
-        String[] boneNames = skinnedPart.skinBoneNames;
-        FiguraMat4[] deltas = new FiguraMat4[boneNames.length];
-
-        if (skinnedPart.parent != null) {
-            for (FiguraModelPart sibling : skinnedPart.parent.children) {
-                if (sibling == skinnedPart)
-                    continue;
-                // Recursively search this subtree for bones, accumulating ancestor deltas
-                searchBoneHierarchy(sibling, boneNames, deltas, FiguraMat4.of());
-            }
-        }
-
-        // Fall back to identity for missing bones (no deformation)
-        for (int i = 0; i < boneNames.length; i++) {
-            if (deltas[i] == null) {
-                deltas[i] = FiguraMat4.of();
-            }
-        }
-
-        return deltas;
-    }
-
-    /**
-     * Recursively searches a part's subtree for bones that match skinBoneNames.
-     * For each bone found, computes the combined world-space animation delta
-     * by accumulating local deltas from the root of the search down to that bone.
-     *
-     * Accumulation uses left-multiply (multiply() = other * this):
-     *   accum.multiply(localDelta) → accum = localDelta * parentAccum
-     * This ensures V' = localDelta_leaf * ... * localDelta_root * V,
-     * i.e. root animation applied first, then each child's animation.
-     *
-     * @param part        The current part to check (and recurse into its children)
-     * @param boneNames   The array of bone names to match against
-     * @param deltas      Output array; deltas[i] is set when boneNames[i] matches
-     * @param parentAccum The accumulated delta from all ancestors above this part
-     */
-    private void searchBoneHierarchy(FiguraModelPart part, String[] boneNames, FiguraMat4[] deltas, FiguraMat4 parentAccum) {
-        // Compute this part's local animation delta
-        FiguraMat4 localDelta = buildBoneAnimDelta(part.customization);
-
-        // Accumulate: combined = localDelta * parentAccum
-        // multiply(other) = other * this, so combined.multiply(localDelta) = localDelta * parentAccum
-        FiguraMat4 combined = parentAccum.copy();
-        combined.multiply(localDelta);
-        // combined is now: localDelta * parentAccum (standard notation)
-
-        // Check if this part matches any bone name
-        for (int i = 0; i < boneNames.length; i++) {
-            if (deltas[i] == null && boneNames[i].equals(part.name)) {
-                deltas[i] = combined.copy();
-            }
-        }
-
-        // Recurse into children, passing down the accumulated delta
-        for (FiguraModelPart child : part.children) {
-            searchBoneHierarchy(child, boneNames, deltas, combined);
-        }
-    }
-
-    /**
-     * Builds an animation delta matrix from a bone's customization.
-     * This is the transform from the bone's rest pose to its animated pose,
-     * applied around the bone's pivot point.
-     *
-     * Resulting transform: V' = R(S(V - pivot)) + pivot + animPos
-     * (rotate and scale around pivot, then translate by animPos)
-     */
-    private static FiguraMat4 buildBoneAnimDelta(PartCustomization boneCust) {
-        FiguraVec3 pivot = boneCust.getPivot();
-        FiguraVec3 animRot = boneCust.getAnimRot();
-        FiguraVec3 animPos = boneCust.getAnimPos();
-        FiguraVec3 animScale = boneCust.getAnimScale();
-
-        FiguraMat4 delta = FiguraMat4.of();
-
-        // Step 1: Translate so pivot is at origin (rotation/scaling center)
-        delta.translate(-pivot.x, -pivot.y, -pivot.z);
-
-        // Step 2: Apply animation scale
-        delta.scale(animScale.x, animScale.y, animScale.z);
-
-        // Step 3: Apply animation rotation (ZYX order, same as armature bones/groups)
-        if (animRot.x != 0 || animRot.y != 0 || animRot.z != 0) {
-            delta.rotateZYX(animRot.x, animRot.y, animRot.z);
-        }
-
-        // Step 4: Translate back to pivot, then add animation position offset
-        delta.translate(
-                pivot.x + animPos.x,
-                pivot.y + animPos.y,
-                pivot.z + animPos.z
-        );
-
-        return delta;
+            pushToBuffer(faceCount, secondary, customization, textureSet, vertices);
     }
 
     private VertexData getTexture(PartCustomization customization, FiguraTextureSet textureSet, boolean primary) {
@@ -734,7 +622,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         // get render type
         if (id != null) {
             if (translucent) {
-                ret.renderType = RenderTypes.itemEntityTranslucentCull(id);
+                ret.renderType = RenderTypes.entityTranslucentCullItemTarget(id);
                 return ret;
             }
             if (glowing) {
@@ -763,35 +651,26 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
     private static final FiguraVec4 pos = FiguraVec4.of();
     private static final FiguraVec3 normal = FiguraVec3.of();
     private static final FiguraVec3 uv = FiguraVec3.of(0, 0, 1);
-    private void pushToBuffer(int faceCount, VertexData vertexData, PartCustomization customization, FiguraTextureSet textureSet, List<Vertex> vertices,
-                               FiguraModelPart part, @Nullable FiguraMat4[] boneDeltas) {
+    private void pushToBuffer(int faceCount, VertexData vertexData, PartCustomization customization, FiguraTextureSet textureSet, List<Vertex> vertices) {
         int vertCount = faceCount * 4;
+
+        RenderType rt = vertexData.renderType;
+        if (rt == RenderTypes.lines()) {
+            return;
+        }
 
         FiguraVec3 uvFixer = FiguraVec3.of();
         uvFixer.set(textureSet.getWidth(), textureSet.getHeight(), 1); // Dividing by this makes uv 0 to 1
 
         int overlay = customization.overlay;
-        int light = vertexData.fullBright ? LightTexture.FULL_BRIGHT : customization.light;
-
-        // Determine if we should use skinning
-        boolean useSkinning = boneDeltas != null && boneDeltas.length > 0
-                && part.skinBoneIndices != null && part.skinBoneWeights != null;
+        int light = vertexData.fullBright ? LightCoordsUtil.FULL_BRIGHT : customization.light;
 
         VERTEX_BUFFER.getBufferFor(vertexData.renderType, vertexData.primary, vertexConsumer -> {
             for (int i = 0; i < vertCount; i++) {
                 Vertex vertex = vertices.get(i);
 
                 pos.set(vertex.x, vertex.y, vertex.z, 1);
-
-                // Step 1: Apply bone skinning DELTA in local space (before mesh transform)
-                // The delta rotates/translates around the bone's pivot WITHOUT the bone's rest position
-                if (useSkinning && vertex.origIdx >= 0 && vertex.origIdx < part.skinBoneIndices.length && part.skinBoneIndices[vertex.origIdx] != null) {
-                    applySkinningDelta(pos, vertex.origIdx, part, boneDeltas);
-                }
-
-                // Step 2: Apply mesh's own transform (parent chain + mesh local) for ALL vertices
                 pos.transform(customization.positionMatrix);
-
                 pos.add(pos.normalized().scale(vertexData.vertexOffset));
                 normal.set(vertex.nx, vertex.ny, vertex.nz);
                 normal.transform(customization.normalMatrix);
@@ -808,51 +687,6 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
                         .setNormal((float) normal.x, (float) normal.y, (float) normal.z);
             }
         });
-    }
-
-    /// Thread-local reuse for skinning calculation
-    private static final FiguraVec4 skinTempPos = FiguraVec4.of();
-
-    /**
-     * Applies per-vertex bone skinning delta to the given position in local space.
-     * Blends multiple bone delta matrices weighted by the vertex's bone weights.
-     * The delta matrices represent ONLY the animation change (rotation around pivot),
-     * so the blended result is a deformed local-space position.
-     */
-    private void applySkinningDelta(FiguraVec4 pos, int vertexIndex, FiguraModelPart part, FiguraMat4[] boneDeltas) {
-        int[] boneIndices = part.skinBoneIndices[vertexIndex];
-        float[] boneWeights = part.skinBoneWeights[vertexIndex];
-
-        if (boneIndices == null || boneWeights == null || boneIndices.length == 0) {
-            return;
-        }
-
-        float totalWeight = 0f;
-        float sx = 0f, sy = 0f, sz = 0f;
-
-        for (int bi = 0; bi < boneIndices.length; bi++) {
-            int boneIdx = boneIndices[bi];
-            float weight = boneWeights[bi];
-
-            if (weight <= 0f || boneIdx < 0 || boneIdx >= boneDeltas.length)
-                continue;
-
-            // Transform vertex by this bone's animation delta
-            skinTempPos.set(pos.x, pos.y, pos.z, 1);
-            skinTempPos.transform(boneDeltas[boneIdx]);
-
-            sx += (float) skinTempPos.x * weight;
-            sy += (float) skinTempPos.y * weight;
-            sz += (float) skinTempPos.z * weight;
-            totalWeight += weight;
-        }
-
-        if (totalWeight > 0f) {
-            float invTotal = 1f / totalWeight;
-            pos.x = sx * invTotal;
-            pos.y = sy * invTotal;
-            pos.z = sz * invTotal;
-        }
     }
 
     private static class VertexData {

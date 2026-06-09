@@ -1,6 +1,8 @@
 package org.figuramc.figura.model.rendering.texture;
 
 import com.mojang.blaze3d.pipeline.BlendFunction;
+import com.mojang.blaze3d.pipeline.ColorTargetState;
+import com.mojang.blaze3d.pipeline.DepthStencilState;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -26,12 +28,12 @@ import java.util.function.Function;
 public enum FiguraRenderTypes {
     NONE(null),
 
-    CUTOUT(RenderTypes::entityCutoutNoCull),
-    CUTOUT_CULL(RenderTypes::entityCutout),
+    CUTOUT(RenderTypes::entityCutout),
+    CUTOUT_CULL(RenderTypes::entityCutoutCull),
     CUTOUT_EMISSIVE_SOLID(resourceLocation -> FiguraRenderType.CUTOUT_EMISSIVE_SOLID.apply(resourceLocation, true)),
 
     TRANSLUCENT(RenderTypes::entityTranslucent),
-    TRANSLUCENT_CULL(RenderTypes::itemEntityTranslucentCull),
+    TRANSLUCENT_CULL(RenderTypes::entityTranslucentCullItemTarget),
 
     EMISSIVE(RenderTypes::eyes),
     EMISSIVE_SOLID(resourceLocation -> RenderTypes.beaconBeam(resourceLocation, false)),
@@ -84,7 +86,7 @@ public enum FiguraRenderTypes {
             super(name, setup);
         }
 
-        public static final RenderType SOLID = create(
+        public static final RenderType SOLID = new RenderType(
                 "figura_solid",
                 RenderSetup.builder(FiguraRenderPipelines.FIGURA_SOLID).bufferSize(256)
                         .setLayeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING)
@@ -95,7 +97,7 @@ public enum FiguraRenderTypes {
 
         private static final BiFunction<Identifier, Boolean, RenderType> CUTOUT_EMISSIVE_SOLID = Util.memoize(
                 (texture, affectsOutline) ->
-                        create("figura_cutout_emissive_solid",
+                        new RenderType("figura_cutout_emissive_solid",
                                 RenderSetup.builder(RenderPipelines.BEACON_BEAM_TRANSLUCENT)
                                         .bufferSize(256)
                                         .withTexture("Sampler0", texture)
@@ -109,7 +111,7 @@ public enum FiguraRenderTypes {
 
 
         public static final Function<Identifier, RenderType> TEXTURED_PORTAL = Util.memoize(
-                texture -> create(
+                texture -> new RenderType(
                         "figura_textured_portal",
                         RenderSetup.builder(RenderPipelines.END_GATEWAY)
                                 .bufferSize(256)
@@ -121,7 +123,7 @@ public enum FiguraRenderTypes {
         );
 
         public static final Function<Identifier, RenderType> BLURRY = Util.memoize(
-                texture -> create(
+                texture -> new RenderType(
                         "figura_blurry",
                         RenderSetup.builder(RenderPipelines.ENTITY_TRANSLUCENT)
                                 .bufferSize(256)
@@ -142,7 +144,7 @@ public enum FiguraRenderTypes {
         );
 
         public static final Function<Identifier, RenderType> TEXTURED_GLINT = Util.memoize(
-                texture -> create(
+                texture -> new RenderType(
                         "figura_textured_glint_direct",
                         RenderSetup.builder(RenderPipelines.GLINT)
                                 .bufferSize(256)
@@ -154,7 +156,7 @@ public enum FiguraRenderTypes {
     }
 
     public static class FiguraRenderPipelines extends RenderPipelines {
-        protected static RenderPipeline.Snippet FIGURA_SOLID_SNIPPET = RenderPipeline.builder(MATRICES_FOG_SNIPPET, GLOBALS_SNIPPET).withVertexShader("core/rendertype_lines").withFragmentShader("core/rendertype_lines").withColorWrite(true).withDepthWrite(true).withBlend(BlendFunction.TRANSLUCENT).withCull(false).withVertexFormat(DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.QUADS).buildSnippet();
+        protected static RenderPipeline.Snippet FIGURA_SOLID_SNIPPET = RenderPipeline.builder(MATRICES_FOG_SNIPPET, GLOBALS_SNIPPET).withVertexShader("core/rendertype_lines").withFragmentShader("core/rendertype_lines").withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT)).withDepthStencilState(DepthStencilState.DEFAULT).withCull(false).withVertexFormat(DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.QUADS).buildSnippet();
 
         public static RenderPipeline FIGURA_SOLID = register(RenderPipeline.builder(FIGURA_SOLID_SNIPPET).withLocation(new FiguraIdentifier("pipeline/solid")).build());
     }

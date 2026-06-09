@@ -98,21 +98,7 @@ public class TextUtils {
             
             // this is to account for click and hover events being reworked in 1.21.5, they say every mod devolves into
             // some form of via version eventually, the rumors were true...
-            if (object.isJsonObject()) {
-                JsonObject obj = object.getAsJsonObject();
-                if (obj.has("clickEvent")) {
-                    JsonElement clickEvent = obj.get("clickEvent");
-                    JsonObject replacement = convertClickEvent(clickEvent);
-                    obj.remove("clickEvent");
-                    obj.add("click_event", replacement);
-                }
-                if (obj.has("hoverEvent")) {
-                    JsonElement hoverEvent = obj.get("hoverEvent");
-                    JsonObject replacement = convertHoverEvent(hoverEvent);
-                    obj.remove("hoverEvent");
-                    obj.add("hover_event", replacement);
-                }
-            }
+            convertLegacyEvents(object);
             
             // attempt to parse json
             finalText = ComponentSerialization.CODEC.decode(OPS, object).getOrThrow().getFirst();
@@ -129,6 +115,34 @@ public class TextUtils {
         return finalText;
     }
 
+    private static void convertLegacyEvents(JsonElement element) {
+        if (element.isJsonObject()) {
+            JsonObject obj = element.getAsJsonObject();
+            if (obj.has("clickEvent")) {
+                JsonElement clickEvent = obj.get("clickEvent");
+                JsonObject replacement = convertClickEvent(clickEvent);
+                obj.remove("clickEvent");
+                obj.add("click_event", replacement);
+            }
+            if (obj.has("hoverEvent")) {
+                JsonElement hoverEvent = obj.get("hoverEvent");
+                JsonObject replacement = convertHoverEvent(hoverEvent);
+                obj.remove("hoverEvent");
+                obj.add("hover_event", replacement);
+            }
+            // recurse into "extra" array if present
+            if (obj.has("extra") && obj.get("extra").isJsonArray()) {
+                for (JsonElement child : obj.get("extra").getAsJsonArray()) {
+                    convertLegacyEvents(child);
+                }
+            }
+        } else if (element.isJsonArray()) {
+            for (JsonElement child : element.getAsJsonArray()) {
+                convertLegacyEvents(child);
+            }
+        }
+    }
+
     private static @NotNull JsonObject convertHoverEvent(JsonElement hoverEvent) {
         JsonObject replacement = new JsonObject();
         if (hoverEvent.isJsonObject()) {
@@ -139,11 +153,9 @@ public class TextUtils {
                     case "show_text": {
                         replacement.addProperty("action", "show_text");
                         if (event.has("value")) {
-                            String value = event.get("value").getAsString();
-                            replacement.addProperty("value", value);
+                            replacement.add("value", event.get("value"));
                         } else if (event.has("contents")) {
-                            String content = event.get("contents").getAsString();
-                            replacement.addProperty("value", content);
+                            replacement.add("value", event.get("contents"));
                         }
                         break;
                     }

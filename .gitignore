@@ -20,6 +20,8 @@ classes/
 run/
 runV2/
 
+logs/
+
 # VScode
 
 .settings/

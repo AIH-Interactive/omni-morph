@@ -171,8 +171,6 @@ public class BlockbenchCommonTypes {
                         .bind("mesh", MeshElement.class)
                         .bind("locator", PointElement.class)
                         .bind("null_object", PointElement.class)
-                        .bind("armature", ArmatureElement.class)
-                        .bind("armature_bone", ArmatureBoneElement.class)
                         .withFallback(UnknownElement.class);
 
         String name;
@@ -220,61 +218,6 @@ public class BlockbenchCommonTypes {
 
     public static class UnknownElement extends Element {
         /* idk */
-    }
-
-    /**
-     * Represents an Armature in Blockbench 5.0+ BBModel format.
-     * Armatures are container nodes that hold ArmatureBones, Meshes, and NullObjects.
-     * They function similarly to Groups but are specifically for skeletal rigging.
-     * The armature itself typically has origin at [0,0,0] and is not movable/rotatable.
-     */
-    public static class ArmatureElement extends Element {
-        // type = "armature"
-        // Armatures act as containers in the outliner tree, holding:
-        // - ArmatureBone children (the actual bones)
-        // - Mesh children (meshes bound to the armature for skinning)
-        // - NullObject children
-        // Base Element fields (name, origin, rotation, visibility, export) cover all needed properties
-    }
-
-    /**
-     * Represents an ArmatureBone in Blockbench 5.0+ BBModel format.
-     * ArmatureBones are transformable bones that can have children and vertex weights
-     * for mesh skinning. They can be animated with position, rotation, and scale keyframes.
-     */
-    public static class ArmatureBoneElement extends Element {
-        // type = "armature_bone"
-        // ArmatureBones have the base Element fields (name, origin=pivot, rotation, visibility)
-        // plus bone-specific data:
-
-        /// Vertex weights for mesh skinning: key is "meshUUID:vertexKey", value is weight 0-1
-        @Nullable Map<String, Float> vertex_weights;
-
-        /// Visual length of the bone in the editor (default 8 in Blockbench)
-        @Nullable Float length;
-
-        /// Visual width of the bone in the editor (default 2 in Blockbench)
-        @Nullable Float width;
-
-        /// Whether the bone visually connects to its parent (default true)
-        @Nullable Boolean connected;
-
-        @Override
-        public @Nullable CompoundTag toNBT(BlockbenchParser2.Intermediary context) {
-            CompoundTag tag = super.toNBT(context);
-            if (tag == null) return null;
-
-            // Store vertex weights for potential future mesh skinning support
-            if (vertex_weights != null && !vertex_weights.isEmpty()) {
-                CompoundTag weightsTag = new CompoundTag();
-                for (Map.Entry<String, Float> entry : vertex_weights.entrySet()) {
-                    weightsTag.putFloat(entry.getKey(), entry.getValue());
-                }
-                tag.put("bone_weights", weightsTag);
-            }
-
-            return tag;
-        }
     }
 
     public static class CubeElement extends Element {
@@ -350,10 +293,6 @@ public class BlockbenchCommonTypes {
         // smooth: set 'smo' to true (note: since meshes aren't groups, only setting it if true is fine)
         String shading;
 
-        /// Per-vertex bone weight data populated during convert() from ArmatureBone vertex_weights.
-        /// vertexIndex -> list of [boneName, weight] pairs. Null if no skinning.
-        @Nullable transient Map<Integer, List<Map.Entry<String, Float>>> skinData;
-
         @Override
         public @Nullable CompoundTag toNBT(BlockbenchParser2.Intermediary context) {
             CompoundTag tag = super.toNBT(context);
@@ -377,11 +316,6 @@ public class BlockbenchCommonTypes {
                 vtx.add(FloatTag.valueOf(combined.x));
                 vtx.add(FloatTag.valueOf(combined.y));
                 vtx.add(FloatTag.valueOf(combined.z));
-            }
-
-            // Serialize skinning data if present
-            if (skinData != null && !skinData.isEmpty()) {
-                serializeSkinData(meshData, vert2idx);
             }
 
             // textures _and_ vertex counts, despite the name
@@ -432,47 +366,6 @@ public class BlockbenchCommonTypes {
 
             tag.put("mesh_data", meshData);
             return tag;
-        }
-
-        /**
-         * Serializes per-vertex bone weight data into the mesh_data NBT.
-         * Format:
-         *   bone_names: ListTag<StringTag> - ordered bone names
-         *   vtx_weights: ListTag<ListTag<FloatTag>> - per-vertex, alternating [boneIdx, weight, ...]
-         */
-        private void serializeSkinData(CompoundTag meshData, Map<String, Integer> vert2idx) {
-            // Collect unique bone names and assign indices
-            LinkedHashMap<String, Integer> boneNameToIdx = new LinkedHashMap<>();
-            for (List<Map.Entry<String, Float>> entries : skinData.values()) {
-                for (Map.Entry<String, Float> entry : entries) {
-                    boneNameToIdx.putIfAbsent(entry.getKey(), boneNameToIdx.size());
-                }
-            }
-
-            ListTag boneNames = new ListTag();
-            for (String name : boneNameToIdx.keySet()) {
-                boneNames.add(StringTag.valueOf(name));
-            }
-            meshData.put("bone_names", boneNames);
-
-            // Build per-vertex weight data
-            ListTag vtxWeights = new ListTag();
-            int totalVerts = vert2idx.size();
-            for (int vi = 0; vi < totalVerts; vi++) {
-                ListTag weightList = new ListTag();
-                List<Map.Entry<String, Float>> boneWeights = skinData.get(vi);
-                if (boneWeights != null) {
-                    for (Map.Entry<String, Float> bw : boneWeights) {
-                        Integer boneIdx = boneNameToIdx.get(bw.getKey());
-                        if (boneIdx != null) {
-                            weightList.add(FloatTag.valueOf((float) boneIdx));
-                            weightList.add(FloatTag.valueOf(bw.getValue()));
-                        }
-                    }
-                }
-                vtxWeights.add(weightList);
-            }
-            meshData.put("vtx_weights", vtxWeights);
         }
     }
 

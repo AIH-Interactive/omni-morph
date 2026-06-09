@@ -8,7 +8,7 @@ import com.mojang.datafixers.util.Pair;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.network.chat.Component;
@@ -78,7 +78,7 @@ public class PopupMenu {
     private static Entity entity;
     private static UUID id;
 
-    public static void render(GuiGraphics gui) {
+    public static void render(GuiGraphicsExtractor gui) {
         if (!isEnabled()) return;
 
         if (entity == null) {
@@ -158,7 +158,7 @@ public class PopupMenu {
         pose.translate(0f, 0f);
 
         UIHelper.renderOutlineText(gui, font, permissionName, -font.width(permissionName) / 2, -54, 0xFFFFFF, 0x202020);
-        gui.drawString(font, title, -width + 4, -12, UIHelper.adjustColor(0xFFFFFF));
+        gui.text(font, title, -width + 4, -12, UIHelper.adjustColor(0xFFFFFF));
 
         if (error)
             UIHelper.renderOutlineText(gui, font, ERROR_WARN, -font.width(ERROR_WARN) / 2, 0, 0xFFFFFF, 0x202020);

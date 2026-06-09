@@ -274,7 +274,7 @@ public class LocalAvatarLoader {
                         children.add(subfolder);
                     }
                 } else if (file.toString().toLowerCase(Locale.US).endsWith(".bbmodel")) {
-                    ModelParseResult data = parser.parseModel(avatarFolder, file, IOUtils.readFile(file), name.substring(0, name.length() - 8), folders);
+                   ModelParseResult data = parser.parseModel(avatarFolder, file, IOUtils.readFile(file), name.substring(0, name.length() - 8), folders);;
                     children.add(data.modelNbt());
                     animations.addAll(data.animationList());
 

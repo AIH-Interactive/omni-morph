@@ -38,7 +38,7 @@ public class UserData {
         Avatar avatar = new Avatar(id);
         this.avatars.add(avatar);
         avatar.load(nbt);
-         FiguraMod.debug("--- loaded " + id + " ---");
+        FiguraMod.debug("--- loaded " + id + " ---");
     }
 
     public void loadBadges(Pair<BitSet, BitSet> pair) {

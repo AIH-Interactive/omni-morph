@@ -6,6 +6,16 @@ loom {
     accessWidenerPath = file("src/main/resources/figura.accesswidener")
 }
 
+sourceSets {
+    main {
+        java {
+            exclude 'org/figuramc/figura/mixin/compat/GeckolibGeoArmorRendererMixin.java'
+            exclude 'org/figuramc/figura/mixin/compat/GeckolibGeoRendererMixin.java'
+            exclude 'org/figuramc/figura/ducks/GeckolibGeoArmorAccessor.java'
+        }
+    }
+}
+
 repositories {
     flatDir {
         dirs "$rootProject.projectDir/libs"
@@ -13,20 +23,16 @@ repositories {
 }
 
 dependencies {
-    mappings loom.layered {
-        //mappings("org.quiltmc:quilt-mappings:$minecraft_version+build.$mappings:intermediary-v2")
-        officialMojangMappings()
-    }
+    mappings loom.layered {}
 
     // Libraries
     implementation("com.github.FiguraMC.luaj:luaj-core:$luaj-figura")
     implementation("com.github.FiguraMC.luaj:luaj-jse:$luaj-figura")
     implementation("com.neovisionaries:nv-websocket-client:$nv_websocket")
 
-    // Mods
-    modCompileOnly ("software.bernie.geckolib:geckolib-fabric-$geckolib_version") {
-        exclude group: "net.fabricmc"
-    }
+    //modCompileOnly ("com.geckolib:geckolib-fabric-$geckolib_version") {
+    //    exclude group: "net.fabricmc"
+    //}
 
     implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:0.3.6"))
 
@@ -45,7 +51,7 @@ dependencies {
 publishing {
     publications {
         maven(MavenPublication) {
-            artifactId = "${project.archivesBaseName}-common-intermediary"
+            artifactId = "${base.archivesName.get()}-common-intermediary"
             version = project.version
             artifact(remapJar) {
                 builtBy remapJar
@@ -71,5 +77,9 @@ void setupRepositories(RepositoryHandler repositories) {
             }
         }
     }
+}
+
+tasks.matching { it.name.startsWith("transformProduction") }.configureEach {
+    enabled = false
 }
 

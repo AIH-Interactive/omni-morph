@@ -9,11 +9,11 @@ import com.mojang.datafixers.util.Pair;
 import com.mojang.math.Axis;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
-import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
@@ -461,6 +461,33 @@ public class Avatar {
         return rendered;
     }
 
+    public boolean itemRenderEventDirect(ItemStackAPI item, String mode, FiguraVec3 pos, FiguraVec3 rot, FiguraVec3 scale, boolean leftHanded, PoseStack stack, MultiBufferSource bufferSource, int light, int overlay) {
+        if (!loaded || renderer == null || !renderer.interceptRendersIntoFigura) {
+            return false;
+        }
+        Varargs result = run("ITEM_RENDER", render, item, mode, pos, rot, scale, leftHanded);
+
+        if(result == null)
+            return false;
+        PoseStack copy = new PoseStack();
+        copy.pushPose();
+        copy.last().set(stack.last());
+
+        boolean rendered = false;
+        for (int i = 1; i <= result.narg(); i++) {
+            if (result.arg(i).isuserdata(FiguraModelPart.class)) {
+                FiguraModelPart modelPart = (FiguraModelPart) result.arg(i).checkuserdata(FiguraModelPart.class);
+
+                boolean renderedPart = figuraItemRendered(modelPart);
+                rendered |= renderedPart;
+                if (renderedPart) {
+                    renderItem(copy, bufferSource, modelPart, light, overlay);
+                }
+            }
+        }
+        return rendered;
+    }
+
     public boolean playSoundEvent(String id, FiguraVec3 pos, float vol, float pitch, boolean loop, String category, String file) {
         Varargs result = null;
         if (loaded) result = run("ON_PLAY_SOUND", tick, id, pos, vol, pitch, loop, category, file);
@@ -700,7 +727,7 @@ public class Avatar {
 
         renderer.setupRenderer(
                 PartFilterScheme.HUD, bufferSource, stack,
-                tickDelta, LightTexture.FULL_BRIGHT, 1f, OverlayTexture.NO_OVERLAY,
+                tickDelta, LightCoordsUtil.FULL_BRIGHT, 1f, OverlayTexture.NO_OVERLAY,
                 false, false
         );
 
@@ -717,17 +744,6 @@ public class Avatar {
     public boolean skullRender(PoseStack stack, MultiBufferSource bufferSource, int light, Direction direction, float yaw) {
         if (renderer == null || !loaded || !renderer.interceptRendersIntoFigura)
             return false;
-
-        stack.pushPose();
-
-        if (direction == null)
-            stack.translate(0.5d, 0d, 0.5d);
-        else
-            stack.translate((0.5d - direction.getStepX() * 0.25d), 0.25d, (0.5d - direction.getStepZ() * 0.25d));
-
-        stack.scale(-1f, -1f, 1f);
-        stack.mulPose(Axis.YP.rotationDegrees(yaw));
-
         renderer.allowPivotParts = false;
 
         renderer.setupRenderer(
@@ -743,7 +759,6 @@ public class Avatar {
         boolean bool = comp > 0 || headRender(stack, bufferSource, light, true);
 
         renderer.allowPivotParts = true;
-        stack.popPose();
         return bool;
     }
 
@@ -777,7 +792,7 @@ public class Avatar {
         return comp > 0 && luaRuntime != null && !luaRuntime.vanilla_model.HEAD.checkVisible();
     }
 
-    public boolean submitPortraitDraw(GuiGraphics gui, Identifier fallback, int x, int y, int size, float modelScale, boolean upsideDown) {
+    public boolean submitPortraitDraw(GuiGraphicsExtractor gui, Identifier fallback, int x, int y, int size, float modelScale, boolean upsideDown) {
         if (!Configs.AVATAR_PORTRAIT.value || renderer == null || !loaded)
             return false;
 
@@ -808,7 +823,7 @@ public class Avatar {
 
         FiguraPortraitRenderState state = new FiguraPortraitRenderState(this, fallback, modelScale, upsideDown, x1, y1, x2, y2, size, ((GuiGraphicsAccessor)gui).figura$getScissorStack().peek());
         gui.fill(x1, y1, x2, y2, -1);
-        ((GuiGraphicsAccessor)gui).figura$getRenderState().submitPicturesInPictureState(state);
+        ((GuiGraphicsAccessor)gui).figura$getRenderState().addPicturesInPictureState(state);
         gui.pose().popMatrix();
 
         gui.disableScissor();

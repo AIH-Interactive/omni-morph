@@ -19,6 +19,7 @@ import org.figuramc.figura.gui.PopupMenu;
 import org.figuramc.figura.gui.screens.WardrobeScreen;
 import org.figuramc.figura.lua.FiguraLuaPrinter;
 import org.figuramc.figura.utils.FiguraText;
+import org.figuramc.figura.utils.EntityUtils;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -35,7 +36,8 @@ public abstract class MinecraftMixin {
     @Shadow @Final public MouseHandler mouseHandler;
     @Shadow @Final public Options options;
     @Shadow public LocalPlayer player;
-    @Shadow public Entity cameraEntity;
+
+    @Shadow public abstract Entity getCameraEntity();
 
     @Shadow public abstract void setScreen(@Nullable Screen screen);
 
@@ -89,7 +91,7 @@ public abstract class MinecraftMixin {
                 if (this.player != null && target instanceof Player && !target.isInvisibleTo(this.player)) {
                     PopupMenu.setEntity(target);
                 } else if (!this.options.getCameraType().isFirstPerson()) {
-                    PopupMenu.setEntity(this.cameraEntity);
+                    PopupMenu.setEntity(this.getCameraEntity());
                 }
             }
         } else if (PopupMenu.isEnabled()) {
@@ -144,6 +146,14 @@ public abstract class MinecraftMixin {
     @Inject(at = @At("RETURN"), method = "runTick")
     private void afterTick(boolean tick, CallbackInfo ci) {
         AvatarManager.executeAll("clearBBAnimations", Avatar::clearAnimations);
+    }
+
+    @Inject(at = @At("RETURN"), method = "pick(F)V")
+    private void pick(float tickDelta, CallbackInfo ci) {
+        FiguraMod.pushProfiler(FiguraMod.MOD_ID);
+        FiguraMod.pushProfiler("extendedPick");
+        FiguraMod.extendedPickEntity = EntityUtils.getViewedEntity(32);
+        FiguraMod.popProfiler(2);
     }
 
     @Inject(at = @At("RETURN"), method = "tick")

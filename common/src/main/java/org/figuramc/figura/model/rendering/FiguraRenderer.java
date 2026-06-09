@@ -24,6 +24,10 @@ import org.joml.Matrix3f;
 import org.joml.Matrix4d;
 import org.joml.Quaternionf;
 
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -75,6 +79,10 @@ public abstract class FiguraRenderer {
     public boolean offsetRenderLayers = false;
     public boolean ignoreVanillaVisibility = false;
     public FiguraModelPart itemToRender;
+
+    // using fresh pivot transforms from commonRender() instead of pre-computed ones
+    public record DeferredItemData(ItemStackRenderState renderState, SubmitNodeCollector submitNodeCollector, int light, int outlineColor, ParentType pivotType) {}
+    public final List<DeferredItemData> deferredItems = new ArrayList<>();
 
     public FiguraRenderer(Avatar avatar) {
         this.avatar = avatar;
