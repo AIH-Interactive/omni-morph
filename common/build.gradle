@@ -6,16 +6,6 @@ loom {
     accessWidenerPath = file("src/main/resources/figura.accesswidener")
 }
 
-sourceSets {
-    main {
-        java {
-            exclude 'org/figuramc/figura/mixin/compat/GeckolibGeoArmorRendererMixin.java'
-            exclude 'org/figuramc/figura/mixin/compat/GeckolibGeoRendererMixin.java'
-            exclude 'org/figuramc/figura/ducks/GeckolibGeoArmorAccessor.java'
-        }
-    }
-}
-
 repositories {
     flatDir {
         dirs "$rootProject.projectDir/libs"
@@ -30,15 +20,16 @@ dependencies {
     implementation("com.github.FiguraMC.luaj:luaj-jse:$luaj-figura")
     implementation("com.neovisionaries:nv-websocket-client:$nv_websocket")
 
-    //modCompileOnly ("com.geckolib:geckolib-fabric-$geckolib_version") {
-    //    exclude group: "net.fabricmc"
-    //}
+    modCompileOnly ("com.geckolib:geckolib-fabric-$geckolib_version") {
+        exclude group: "net.fabricmc"
+    }
 
     implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:0.3.6"))
 
     // We depend on fabric loader here to use the fabric @Environment annotations and get the mixin dependencies
     // Do NOT use other classes from fabric loader
     modImplementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
+    modCompileOnly "net.fabricmc.fabric-api:fabric-api:$fabric_api"
 
     // Test compile only is used to mount sources on an IDE without overriding vanilla classes with Optifine's
     testCompileOnly fileTree(dir: "$rootProject.projectDir/libs", include: '*.jar')
