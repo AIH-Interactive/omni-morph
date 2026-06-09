@@ -95,6 +95,9 @@ public class FiguraModelPartReader {
         for (FiguraModelPart child : children)
             child.parent = result;
 
+        if (hasMeshData(partCompound))
+            readSkinData(result, partCompound.getCompoundOrEmpty("mesh_data"));
+
         result.facesByTexture = facesByTexture;
         storeTextures(result, textureSets);
         if (partCompound.contains("pt")) {
@@ -443,6 +446,7 @@ public class FiguraModelPartReader {
             facesByTexture.set(texId, facesByTexture.get(texId) + 1);
 
             // Extract the vertex and UV data for the current texture
+            int[] origIdxForFace = new int[4];
             for (int j = 0; j < numVerts; j++) {
                 // Get the vertex ID based on the determined data type
                 int vid = switch (bestType) {
@@ -450,6 +454,7 @@ public class FiguraModelPartReader {
                     case 1 -> fac.getShortOr(vi + j, (short) 0) & 0xffff;
                     default -> fac.getIntOr(vi + j, 0);
                 };
+                origIdxForFace[j] = vid;
                 // Get the vertex position and UV data from the lists
                 posArr[3 * j] = verts.getFloatOr(3 * vid, 0.0f);
                 posArr[3 * j + 1] = verts.getFloatOr(3 * vid + 1, 0.0f);
@@ -472,27 +477,72 @@ public class FiguraModelPartReader {
             // Add the vertex data to the appropriate builder
             for (int j = 0; j < numVerts; j++) {
                 List<Vertex> list = vertices.getOrDefault(texId, new ArrayList<>());
-                list.add(new Vertex(
+                Vertex v = new Vertex(
                         posArr[3 * j], posArr[3 * j + 1], posArr[3 * j + 2],
                         uvArr[2 * j], uvArr[2 * j + 1],
                         (float) p3.x, (float) p3.y, (float) p3.z
-                ));
+                );
+                v.origIdx = origIdxForFace[j];
+                list.add(v);
                 vertices.put(texId, list);
             }
             // Add a vertex if necessary
             if (numVerts == 3) {
                 List<Vertex> list = vertices.getOrDefault(texId, new ArrayList<>());
-                list.add(new Vertex(
+                Vertex v = new Vertex(
                         posArr[6], posArr[7], posArr[8],
                         uvArr[4], uvArr[5],
                         (float) p3.x, (float) p3.y, (float) p3.z
-                ));
+                );
+                v.origIdx = origIdxForFace[2];
+                list.add(v);
                 vertices.put(texId, list);
             }
 
             // Increment the counters for the vertex and UV lists
             vi += numVerts;
             uvi += 2 * numVerts;
+        }
+    }
+
+    private static void readSkinData(FiguraModelPart part, CompoundTag meshData) {
+        if (!meshData.contains("bone_names") || !meshData.contains("vtx_weights"))
+            return;
+
+        ListTag boneNamesTag = meshData.getListOrEmpty("bone_names");
+        int boneCount = boneNamesTag.size();
+        if (boneCount == 0) return;
+
+        part.skinBoneNames = new String[boneCount];
+        for (int i = 0; i < boneCount; i++)
+            part.skinBoneNames[i] = boneNamesTag.getStringOr(i, "");
+
+        ListTag vtxWeightsTag = meshData.getListOrEmpty("vtx_weights");
+        int vertCount = vtxWeightsTag.size();
+        if (vertCount == 0) return;
+
+        part.skinBoneIndices = new int[vertCount][];
+        part.skinBoneWeights = new float[vertCount][];
+
+        for (int vi = 0; vi < vertCount; vi++) {
+            ListTag weightList = (ListTag) vtxWeightsTag.get(vi);
+            if (weightList == null || weightList.isEmpty()) {
+                part.skinBoneIndices[vi] = null;
+                part.skinBoneWeights[vi] = null;
+                continue;
+            }
+
+            int pairCount = weightList.size() / 2;
+            int[] indices = new int[pairCount];
+            float[] weights = new float[pairCount];
+
+            for (int pi = 0; pi < pairCount; pi++) {
+                indices[pi] = (int) weightList.getFloatOr(pi * 2, -1f);
+                weights[pi] = weightList.getFloatOr(pi * 2 + 1, 0f);
+            }
+
+            part.skinBoneIndices[vi] = indices;
+            part.skinBoneWeights[vi] = weights;
         }
     }
 

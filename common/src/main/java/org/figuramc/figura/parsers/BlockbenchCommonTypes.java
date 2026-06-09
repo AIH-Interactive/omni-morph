@@ -171,6 +171,8 @@ public class BlockbenchCommonTypes {
                         .bind("mesh", MeshElement.class)
                         .bind("locator", PointElement.class)
                         .bind("null_object", PointElement.class)
+                        .bind("armature", ArmatureElement.class)
+                        .bind("armature_bone", ArmatureBoneElement.class)
                         .withFallback(UnknownElement.class);
 
         String name;
@@ -218,6 +220,31 @@ public class BlockbenchCommonTypes {
 
     public static class UnknownElement extends Element {
         /* idk */
+    }
+
+    public static class ArmatureElement extends Element {
+    }
+
+    public static class ArmatureBoneElement extends Element {
+        @Nullable Map<String, Float> vertex_weights;
+        @Nullable Float length;
+        @Nullable Float width;
+        @Nullable Boolean connected;
+
+        @Override
+        public @Nullable CompoundTag toNBT(BlockbenchParser2.Intermediary context) {
+            CompoundTag tag = super.toNBT(context);
+            if (tag == null) return null;
+
+            if (vertex_weights != null && !vertex_weights.isEmpty()) {
+                CompoundTag weightsTag = new CompoundTag();
+                for (Map.Entry<String, Float> entry : vertex_weights.entrySet())
+                    weightsTag.putFloat(entry.getKey(), entry.getValue());
+                tag.put("bone_weights", weightsTag);
+            }
+
+            return tag;
+        }
     }
 
     public static class CubeElement extends Element {
@@ -293,6 +320,8 @@ public class BlockbenchCommonTypes {
         // smooth: set 'smo' to true (note: since meshes aren't groups, only setting it if true is fine)
         String shading;
 
+        @Nullable transient Map<Integer, List<Map.Entry<String, Float>>> skinData;
+
         @Override
         public @Nullable CompoundTag toNBT(BlockbenchParser2.Intermediary context) {
             CompoundTag tag = super.toNBT(context);
@@ -317,6 +346,9 @@ public class BlockbenchCommonTypes {
                 vtx.add(FloatTag.valueOf(combined.y));
                 vtx.add(FloatTag.valueOf(combined.z));
             }
+
+            if (skinData != null && !skinData.isEmpty())
+                serializeSkinData(meshData, vert2idx);
 
             // textures _and_ vertex counts, despite the name
             ListTag tex = new ListTag();
@@ -366,6 +398,37 @@ public class BlockbenchCommonTypes {
 
             tag.put("mesh_data", meshData);
             return tag;
+        }
+
+        private void serializeSkinData(CompoundTag meshData, Map<String, Integer> vert2idx) {
+            LinkedHashMap<String, Integer> boneNameToIdx = new LinkedHashMap<>();
+            for (List<Map.Entry<String, Float>> entries : skinData.values()) {
+                for (Map.Entry<String, Float> entry : entries)
+                    boneNameToIdx.putIfAbsent(entry.getKey(), boneNameToIdx.size());
+            }
+
+            ListTag boneNames = new ListTag();
+            for (String name : boneNameToIdx.keySet())
+                boneNames.add(StringTag.valueOf(name));
+            meshData.put("bone_names", boneNames);
+
+            ListTag vtxWeights = new ListTag();
+            int totalVerts = vert2idx.size();
+            for (int vi = 0; vi < totalVerts; vi++) {
+                ListTag weightList = new ListTag();
+                List<Map.Entry<String, Float>> boneWeights = skinData.get(vi);
+                if (boneWeights != null) {
+                    for (Map.Entry<String, Float> bw : boneWeights) {
+                        Integer boneIdx = boneNameToIdx.get(bw.getKey());
+                        if (boneIdx != null) {
+                            weightList.add(FloatTag.valueOf((float) boneIdx));
+                            weightList.add(FloatTag.valueOf(bw.getValue()));
+                        }
+                    }
+                }
+                vtxWeights.add(weightList);
+            }
+            meshData.put("vtx_weights", vtxWeights);
         }
     }
 

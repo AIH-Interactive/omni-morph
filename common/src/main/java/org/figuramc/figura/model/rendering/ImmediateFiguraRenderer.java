@@ -27,6 +27,7 @@ import org.figuramc.figura.model.rendering.texture.FiguraTextureSet;
 import org.figuramc.figura.model.rendertasks.RenderTask;
 import org.figuramc.figura.utils.ColorUtils;
 import org.figuramc.figura.utils.ui.UIHelper;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -581,7 +582,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         FiguraMod.popProfiler(2);
     }
 
-    public void pushFaces(int faceCount, int[] remainingComplexity, FiguraTextureSet textureSet, List<Vertex> vertices) {
+    public void pushFaces(int faceCount, int[] remainingComplexity, FiguraTextureSet textureSet, List<Vertex> vertices, FiguraModelPart part) {
         // Handle cases that we can quickly
         if (faceCount == 0 || vertices.isEmpty())
             return;
@@ -596,10 +597,62 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
             return;
         }
 
+        FiguraMat4[] boneDeltas = null;
+        if (part.skinBoneNames != null && part.skinBoneNames.length > 0 && part.parent != null)
+            boneDeltas = collectBoneSkinningDeltas(part);
+
         if (primary.renderType != null)
-            pushToBuffer(faceCount, primary, customization, textureSet, vertices);
+            pushToBuffer(faceCount, primary, customization, textureSet, vertices, part, boneDeltas);
         if (secondary.renderType != null)
-            pushToBuffer(faceCount, secondary, customization, textureSet, vertices);
+            pushToBuffer(faceCount, secondary, customization, textureSet, vertices, part, boneDeltas);
+    }
+
+    private FiguraMat4[] collectBoneSkinningDeltas(FiguraModelPart skinnedPart) {
+        String[] boneNames = skinnedPart.skinBoneNames;
+        FiguraMat4[] deltas = new FiguraMat4[boneNames.length];
+
+        if (skinnedPart.parent != null) {
+            for (FiguraModelPart sibling : skinnedPart.parent.children) {
+                if (sibling != skinnedPart)
+                    searchBoneHierarchy(sibling, boneNames, deltas, FiguraMat4.of());
+            }
+        }
+
+        for (int i = 0; i < boneNames.length; i++) {
+            if (deltas[i] == null)
+                deltas[i] = FiguraMat4.of();
+        }
+
+        return deltas;
+    }
+
+    private void searchBoneHierarchy(FiguraModelPart part, String[] boneNames, FiguraMat4[] deltas, FiguraMat4 parentAccum) {
+        FiguraMat4 localDelta = buildBoneAnimDelta(part.customization);
+        FiguraMat4 combined = parentAccum.copy();
+        combined.multiply(localDelta);
+
+        for (int i = 0; i < boneNames.length; i++) {
+            if (deltas[i] == null && boneNames[i].equals(part.name))
+                deltas[i] = combined.copy();
+        }
+
+        for (FiguraModelPart child : part.children)
+            searchBoneHierarchy(child, boneNames, deltas, combined);
+    }
+
+    private static FiguraMat4 buildBoneAnimDelta(PartCustomization boneCust) {
+        FiguraVec3 pivot = boneCust.getPivot();
+        FiguraVec3 animRot = boneCust.getAnimRot();
+        FiguraVec3 animPos = boneCust.getAnimPos();
+        FiguraVec3 animScale = boneCust.getAnimScale();
+
+        FiguraMat4 delta = FiguraMat4.of();
+        delta.translate(-pivot.x, -pivot.y, -pivot.z);
+        delta.scale(animScale.x, animScale.y, animScale.z);
+        if (animRot.x != 0 || animRot.y != 0 || animRot.z != 0)
+            delta.rotateZYX(animRot.x, animRot.y, animRot.z);
+        delta.translate(pivot.x + animPos.x, pivot.y + animPos.y, pivot.z + animPos.z);
+        return delta;
     }
 
     private VertexData getTexture(PartCustomization customization, FiguraTextureSet textureSet, boolean primary) {
@@ -651,7 +704,8 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
     private static final FiguraVec4 pos = FiguraVec4.of();
     private static final FiguraVec3 normal = FiguraVec3.of();
     private static final FiguraVec3 uv = FiguraVec3.of(0, 0, 1);
-    private void pushToBuffer(int faceCount, VertexData vertexData, PartCustomization customization, FiguraTextureSet textureSet, List<Vertex> vertices) {
+    private void pushToBuffer(int faceCount, VertexData vertexData, PartCustomization customization, FiguraTextureSet textureSet, List<Vertex> vertices,
+                              FiguraModelPart part, @Nullable FiguraMat4[] boneDeltas) {
         int vertCount = faceCount * 4;
 
         RenderType rt = vertexData.renderType;
@@ -665,11 +719,15 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         int overlay = customization.overlay;
         int light = vertexData.fullBright ? LightCoordsUtil.FULL_BRIGHT : customization.light;
 
+        boolean useSkinning = boneDeltas != null && boneDeltas.length > 0 && part.skinBoneIndices != null && part.skinBoneWeights != null;
+
         VERTEX_BUFFER.getBufferFor(vertexData.renderType, vertexData.primary, vertexConsumer -> {
             for (int i = 0; i < vertCount; i++) {
                 Vertex vertex = vertices.get(i);
 
                 pos.set(vertex.x, vertex.y, vertex.z, 1);
+                if (useSkinning && vertex.origIdx >= 0 && vertex.origIdx < part.skinBoneIndices.length && part.skinBoneIndices[vertex.origIdx] != null)
+                    applySkinningDelta(pos, vertex.origIdx, part, boneDeltas);
                 pos.transform(customization.positionMatrix);
                 pos.add(pos.normalized().scale(vertexData.vertexOffset));
                 normal.set(vertex.nx, vertex.ny, vertex.nz);
@@ -687,6 +745,42 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
                         .setNormal((float) normal.x, (float) normal.y, (float) normal.z);
             }
         });
+    }
+
+    private static final FiguraVec4 skinTempPos = FiguraVec4.of();
+
+    private void applySkinningDelta(FiguraVec4 pos, int vertexIndex, FiguraModelPart part, FiguraMat4[] boneDeltas) {
+        int[] boneIndices = part.skinBoneIndices[vertexIndex];
+        float[] boneWeights = part.skinBoneWeights[vertexIndex];
+
+        if (boneIndices == null || boneWeights == null || boneIndices.length == 0)
+            return;
+
+        float totalWeight = 0f;
+        float sx = 0f, sy = 0f, sz = 0f;
+
+        for (int bi = 0; bi < boneIndices.length; bi++) {
+            int boneIdx = boneIndices[bi];
+            float weight = boneWeights[bi];
+
+            if (weight <= 0f || boneIdx < 0 || boneIdx >= boneDeltas.length)
+                continue;
+
+            skinTempPos.set(pos.x, pos.y, pos.z, 1);
+            skinTempPos.transform(boneDeltas[boneIdx]);
+
+            sx += (float) skinTempPos.x * weight;
+            sy += (float) skinTempPos.y * weight;
+            sz += (float) skinTempPos.z * weight;
+            totalWeight += weight;
+        }
+
+        if (totalWeight > 0f) {
+            float invTotal = 1f / totalWeight;
+            pos.x = sx * invTotal;
+            pos.y = sy * invTotal;
+            pos.z = sz * invTotal;
+        }
     }
 
     private static class VertexData {

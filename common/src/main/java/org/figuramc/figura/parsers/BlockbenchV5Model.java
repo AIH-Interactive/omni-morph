@@ -113,6 +113,8 @@ public class BlockbenchV5Model extends ModelFormat {
         }
         target.referents.putAll(getAllReferences());
 
+        processVertexWeights();
+
         CompoundTag tag = new CompoundTag();
 
         tag.putString("name", target.name);
@@ -129,6 +131,78 @@ public class BlockbenchV5Model extends ModelFormat {
         tag.put("chld", chld);
 
         return tag;
+    }
+
+    private void processVertexWeights() {
+        for (Element element : elements) {
+            if (!(element instanceof ArmatureBoneElement bone))
+                continue;
+            if (bone.vertex_weights == null || bone.vertex_weights.isEmpty())
+                continue;
+
+            String boneName = bone.name;
+
+            for (Map.Entry<String, Float> entry : bone.vertex_weights.entrySet()) {
+                String key = entry.getKey();
+                float weight = entry.getValue();
+                if (weight <= 0f)
+                    continue;
+
+                int lastColon = key.lastIndexOf(':');
+                if (lastColon < 0 || lastColon >= key.length() - 1)
+                    continue;
+
+                String meshUUIDPrefix = key.substring(0, lastColon);
+                String vertexKey = key.substring(lastColon + 1);
+
+                MeshElement mesh = null;
+                Map<String, Vector3f> meshVerts = null;
+                for (Element candidate : elements) {
+                    if (candidate instanceof MeshElement m && candidate.uuid != null && candidate.uuid.startsWith(meshUUIDPrefix)) {
+                        mesh = m;
+                        meshVerts = m.vertices;
+                        break;
+                    }
+                }
+                if (mesh == null || meshVerts == null || !meshVerts.containsKey(vertexKey))
+                    continue;
+
+                int vertexIndex = 0;
+                for (String vk : meshVerts.keySet()) {
+                    if (vk.equals(vertexKey))
+                        break;
+                    vertexIndex++;
+                }
+
+                if (mesh.skinData == null)
+                    mesh.skinData = new HashMap<>();
+
+                mesh.skinData.compute(vertexIndex, (vi, list) -> {
+                    if (list == null)
+                        list = new ArrayList<>();
+                    list.add(Map.entry(boneName, weight));
+                    return list;
+                });
+            }
+        }
+
+        for (Element element : elements) {
+            if (!(element instanceof MeshElement mesh) || mesh.skinData == null)
+                continue;
+
+            for (Map.Entry<Integer, List<Map.Entry<String, Float>>> entry : mesh.skinData.entrySet()) {
+                List<Map.Entry<String, Float>> weights = entry.getValue();
+                float sum = 0f;
+                for (Map.Entry<String, Float> w : weights)
+                    sum += w.getValue();
+                if (sum > 1f) {
+                    for (int i = 0; i < weights.size(); i++) {
+                        Map.Entry<String, Float> w = weights.get(i);
+                        weights.set(i, Map.entry(w.getKey(), w.getValue() / sum));
+                    }
+                }
+            }
+        }
     }
 
     public static class Group implements UUIDReferable {
@@ -193,30 +267,58 @@ public class BlockbenchV5Model extends ModelFormat {
 
             @Override
             public @Nullable CompoundTag toNBT(BlockbenchParser2.Intermediary context) {
-                UUIDReferable groupProbably = context.referents.get(uuid);
-                if (!(groupProbably instanceof Group group)) {
+                UUIDReferable referent = context.referents.get(uuid);
+                if (referent == null) {
                     FiguraMod.LOGGER.warn(
-                            "Broken reference (in model '{}'): expected a group at UUID {} but found {} instead",
+                            "Broken reference (in model '{}'): no element with UUID {}",
                             context.name,
-                            uuid,
-                            groupProbably == null ? "(nothing with that UUID!)" : groupProbably.getClass().getSimpleName()
+                            uuid
                     );
                     return null;
                 }
-                if (Boolean.FALSE.equals(group.export)) return null;
+
+                String name;
+                Boolean export;
+                Boolean visibility;
+                Vector3f origin;
+                Vector3f rotation;
+
+                if (referent instanceof Group group) {
+                    name = group.name;
+                    export = group.export;
+                    visibility = group.visibility;
+                    origin = group.origin;
+                    rotation = group.rotation;
+                } else if (referent instanceof BlockbenchCommonTypes.Element element) {
+                    name = element.name;
+                    export = element.export;
+                    visibility = element.visibility;
+                    origin = element.origin;
+                    rotation = element.rotation;
+                } else {
+                    FiguraMod.LOGGER.warn(
+                            "Broken reference (in model '{}'): expected a group or container element at UUID {} but found {} instead",
+                            context.name,
+                            uuid,
+                            referent.getClass().getSimpleName()
+                    );
+                    return null;
+                }
+
+                if (Boolean.FALSE.equals(export)) return null;
 
                 CompoundTag tag = new CompoundTag();
-                tag.putString("name", group.name);
+                tag.putString("name", name);
 
-                if (Boolean.FALSE.equals(group.visibility))
+                if (Boolean.FALSE.equals(visibility))
                     tag.putBoolean("vsb", false);
 
-                if (group.origin != null && !group.origin.equals(0, 0, 0))
-                    tag.put("piv", BlockbenchCommonTypes.vecToList(group.origin));
-                if (group.rotation != null && !group.rotation.equals(0, 0, 0))
-                    tag.put("rot", BlockbenchCommonTypes.vecToList(group.rotation));
+                if (origin != null && !origin.equals(0, 0, 0))
+                    tag.put("piv", BlockbenchCommonTypes.vecToList(origin));
+                if (rotation != null && !rotation.equals(0, 0, 0))
+                    tag.put("rot", BlockbenchCommonTypes.vecToList(rotation));
 
-                BlockbenchCommonTypes.parseParent(group.name, tag);
+                BlockbenchCommonTypes.parseParent(name, tag);
 
                 // TODO: collections?!
 

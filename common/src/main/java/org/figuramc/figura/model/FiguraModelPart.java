@@ -22,6 +22,7 @@ import org.figuramc.figura.model.rendering.texture.FiguraTextureSet;
 import org.figuramc.figura.model.rendertasks.*;
 import org.figuramc.figura.utils.LuaUtils;
 import org.figuramc.figura.utils.ui.UIHelper;
+import org.jetbrains.annotations.Nullable;
 import org.luaj.vm2.*;
 
 import java.util.*;
@@ -62,6 +63,13 @@ public class FiguraModelPart implements Comparable<FiguraModelPart> {
 
     public final Map<Integer, List<Vertex>> vertices;
 
+    @Nullable
+    public String[] skinBoneNames;
+    @Nullable
+    public int[][] skinBoneIndices;
+    @Nullable
+    public float[][] skinBoneWeights;
+
     @LuaWhitelist
     @LuaFieldDoc("model_part.pre_render")
     public LuaFunction preRender; // before calculations
@@ -85,7 +93,7 @@ public class FiguraModelPart implements Comparable<FiguraModelPart> {
             if (remainingComplexity[0] <= 0)
                 return false;
             remainingComplexity[0] -= facesByTexture.get(i);
-            avatarRenderer.pushFaces(facesByTexture.get(i) + Math.min(remainingComplexity[0], 0), remainingComplexity, textures.get(i), vertices.get(i));
+            avatarRenderer.pushFaces(facesByTexture.get(i) + Math.min(remainingComplexity[0], 0), remainingComplexity, textures.get(i), vertices.get(i), this);
         }
         return true;
     }
