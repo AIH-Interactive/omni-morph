@@ -155,6 +155,30 @@ public class BlockbenchCommonTypes {
         }
     }
 
+    /**
+     * Detects whether a string is a Molang expression (rather than a plain number or Lua code).
+     * Used to distinguish Molang expressions from plain values during parsing.
+     */
+    public static boolean isMolang(@Nullable String expr) {
+        if (expr == null || expr.isEmpty()) return false;
+        // Pure number → not Molang
+        try { Float.parseFloat(expr); return false; } catch (Exception ignored) {}
+        // Molang-specific syntax markers
+        return expr.contains("Math.")
+            || expr.contains("math.")
+            || expr.contains("query.")
+            || expr.contains("q.")
+            || expr.contains("variable.")
+            || expr.contains("v.")
+            || expr.contains("??")
+            || expr.contains("->")
+            || expr.contains("&&")
+            || expr.contains("||")
+            || expr.contains("!")
+            || expr.contains("return ")
+            || expr.matches(".*[^=]\\?.*:.*");  // ternary (excluding ?=)
+    }
+
     public interface UUIDReferable {
         String getUUID();
     }

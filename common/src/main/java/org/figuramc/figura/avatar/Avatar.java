@@ -60,6 +60,14 @@ import org.figuramc.figura.mixin.gui.GuiGraphicsAccessor;
 import org.figuramc.figura.model.FiguraModelPart;
 import org.figuramc.figura.model.ParentType;
 import org.figuramc.figura.model.PartCustomization;
+import net.minecraft.world.attribute.EnvironmentAttributes;
+import org.figuramc.figura.molang.MolangEngine;
+import org.figuramc.figura.molang.parser.ast.Expression;
+import org.figuramc.figura.molang.runtime.ExpressionEvaluator;
+import org.figuramc.figura.mixin.ClientAvatarStateAccessor;
+import org.figuramc.figura.molang.runtime.binding.QueryVariables;
+import org.figuramc.figura.molang.runtime.binding.MolangBindings;
+import org.figuramc.figura.molang.storage.VariableStorage;
 import org.figuramc.figura.model.rendering.FiguraRenderer;
 import org.figuramc.figura.model.rendering.EntityRenderMode;
 import org.figuramc.figura.model.rendering.ImmediateFiguraRenderer;
@@ -132,6 +140,390 @@ public class Avatar {
 
     public final Map<String, SoundBuffer> customSounds = new HashMap<>();
     public final Map<Integer, Animation> animations = new HashMap<>();
+
+    // -- Molang engine -- //
+    /** Shared Molang engine instance (lazily initialized) for stateless parsing */
+    private static MolangEngine molangEngine;
+    /** Per-avatar bindings that include this avatar's v/c/t storage */
+    private MolangBindings avatarBindings;
+    /** Molang context for this avatar (dynamic variables, evaluator) */
+    private MolangContext molangContext;
+
+    /**
+     * Returns the shared Molang engine instance.
+     * Created on first access with default query/math bindings (no v/c/t).
+     * Used for parsing Molang strings that don't reference per-avatar storage.
+     */
+    public static MolangEngine getMolangEngine() {
+        if (molangEngine == null) {
+            MolangBindings bindings = new MolangBindings();
+            registerDefaultQueryBindings(bindings);
+            molangEngine = MolangEngine.fromCustomBinding(bindings);
+        }
+        return molangEngine;
+    }
+
+    /**
+     * Creates or returns per-avatar MolangBindings that include this avatar's
+     * v&#47;c&#47;t variable storages, enabling per-avatar variable isolation.
+     */
+    public MolangBindings getAvatarBindings() {
+        if (avatarBindings == null) {
+            avatarBindings = new MolangBindings();
+            registerDefaultQueryBindings(avatarBindings);
+
+            // Bind this avatar's variable storages for v.*/c.*/t.* access
+            if (molangContext != null) {
+                avatarBindings.register("v", molangContext.variables);
+                avatarBindings.register("variable", molangContext.variables);
+                avatarBindings.register("c", molangContext.controller);
+                avatarBindings.register("context", molangContext.controller);
+                avatarBindings.register("t", molangContext.temp);
+                avatarBindings.register("temp", molangContext.temp);
+            }
+        }
+        return avatarBindings;
+    }
+
+    /**
+     * Registers default query.* variables into the given bindings.
+     * These are stateless Variables that read from the EvaluationContext's entity
+     * (which is the MolangContext) at evaluation time.
+     */
+    private static void registerDefaultQueryBindings(MolangBindings bindings) {
+        // ===== Time =====
+        bindings.registerQuery("anim_time",            QueryVariables.ANIM_TIME);
+        bindings.registerQuery("life_time",            QueryVariables.LIFE_TIME);
+        bindings.registerQuery("delta_time",           QueryVariables.DELTA_TIME);
+        bindings.registerQuery("time_of_day",          QueryVariables.TIME_OF_DAY);
+        bindings.registerQuery("time_stamp",           QueryVariables.TIME_STAMP);
+        bindings.registerQuery("moon_phase",           QueryVariables.MOON_PHASE);
+        bindings.registerQuery("frame_count",          QueryVariables.FRAME_COUNT);
+
+        // ===== Actor =====
+        bindings.registerQuery("actor_count",          QueryVariables.ACTOR_COUNT);
+
+        // ===== Health =====
+        bindings.registerQuery("health",               QueryVariables.HEALTH);
+        bindings.registerQuery("max_health",           QueryVariables.MAX_HEALTH);
+        bindings.registerQuery("hurt_time",            QueryVariables.HURT_TIME);
+
+        // ===== Position =====
+        bindings.registerQuery("position",             QueryVariables.POSITION_FUNC);
+        bindings.registerQuery("position_x",           QueryVariables.POSITION_X);
+        bindings.registerQuery("position_y",           QueryVariables.POSITION_Y);
+        bindings.registerQuery("position_z",           QueryVariables.POSITION_Z);
+        bindings.registerQuery("position_delta",       QueryVariables.POSITION_DELTA_FUNC);
+        bindings.registerQuery("position_delta_x",     QueryVariables.POSITION_DELTA_X);
+        bindings.registerQuery("position_delta_y",     QueryVariables.POSITION_DELTA_Y);
+        bindings.registerQuery("position_delta_z",     QueryVariables.POSITION_DELTA_Z);
+        bindings.registerQuery("distance_from_camera", QueryVariables.DISTANCE_FROM_CAMERA);
+        bindings.registerQuery("rotation_to_camera",   QueryVariables.ROTATION_TO_CAMERA_FUNC);
+
+        // ===== Movement =====
+        bindings.registerQuery("ground_speed",         QueryVariables.GROUND_SPEED);
+        bindings.registerQuery("vertical_speed",       QueryVariables.VERTICAL_SPEED);
+        bindings.registerQuery("yaw_speed",            QueryVariables.YAW_SPEED);
+        bindings.registerQuery("walk_distance",        QueryVariables.WALK_DISTANCE);
+        bindings.registerQuery("modified_distance_moved", QueryVariables.MODIFIED_DISTANCE_MOVED);
+
+        // ===== Rotation =====
+        bindings.registerQuery("body_x_rotation",      QueryVariables.BODY_X_ROTATION);
+        bindings.registerQuery("body_y_rotation",      QueryVariables.BODY_Y_ROTATION);
+        bindings.registerQuery("head_x_rotation",      QueryVariables.HEAD_X_ROTATION);
+        bindings.registerQuery("head_y_rotation",      QueryVariables.HEAD_Y_ROTATION);
+        bindings.registerQuery("eye_target_x_rotation", QueryVariables.EYE_TARGET_X_ROTATION);
+        bindings.registerQuery("eye_target_y_rotation", QueryVariables.EYE_TARGET_Y_ROTATION);
+        bindings.registerQuery("cardinal_facing_2d",   QueryVariables.CARDINAL_FACING_2D);
+
+        // ===== Boolean states =====
+        bindings.registerQuery("is_on_ground",         QueryVariables.IS_ON_GROUND);
+        bindings.registerQuery("is_jumping",           QueryVariables.IS_JUMPING);
+        bindings.registerQuery("is_sneaking",          QueryVariables.IS_SNEAKING);
+        bindings.registerQuery("is_sprinting",         QueryVariables.IS_SPRINTING);
+        bindings.registerQuery("is_swimming",          QueryVariables.IS_SWIMMING);
+        bindings.registerQuery("is_in_water",          QueryVariables.IS_IN_WATER);
+        bindings.registerQuery("is_in_water_or_rain",  QueryVariables.IS_IN_WATER_OR_RAIN);
+        bindings.registerQuery("is_on_fire",           QueryVariables.IS_ON_FIRE);
+        bindings.registerQuery("is_riding",            QueryVariables.IS_RIDING);
+        bindings.registerQuery("has_rider",            QueryVariables.HAS_RIDER);
+        bindings.registerQuery("is_sleeping",          QueryVariables.IS_SLEEPING);
+        bindings.registerQuery("is_spectator",         QueryVariables.IS_SPECTATOR);
+        bindings.registerQuery("is_first_person",      QueryVariables.IS_FIRST_PERSON);
+        bindings.registerQuery("is_using_item",        QueryVariables.IS_USING_ITEM);
+        bindings.registerQuery("is_swinging",          QueryVariables.IS_SWINGING);
+        bindings.registerQuery("is_eating",            QueryVariables.IS_EATING);
+        bindings.registerQuery("is_playing_dead",      QueryVariables.IS_PLAYING_DEAD);
+        bindings.registerQuery("has_cape",             QueryVariables.HAS_CAPE);
+
+        // ===== Animation state =====
+        bindings.registerQuery("all_animations_finished", QueryVariables.ALL_ANIMATIONS_FINISHED);
+        bindings.registerQuery("any_animation_finished", QueryVariables.ANY_ANIMATION_FINISHED);
+        bindings.registerQuery("swing_time",           QueryVariables.SWING_TIME);
+        bindings.registerQuery("attack_time",          QueryVariables.ATTACK_TIME);
+
+        // ===== Item =====
+        bindings.registerQuery("item_in_use_duration", QueryVariables.ITEM_IN_USE_DURATION);
+        bindings.registerQuery("item_max_use_duration", QueryVariables.ITEM_MAX_USE_DURATION);
+        bindings.registerQuery("item_remaining_use_duration", QueryVariables.ITEM_REMAINING_USE_DURATION);
+        bindings.registerQuery("equipment_count",      QueryVariables.EQUIPMENT_COUNT);
+        bindings.registerQuery("max_durability",       QueryVariables.MAX_DURABILITY);
+        bindings.registerQuery("remaining_durability", QueryVariables.REMAINING_DURABILITY);
+
+        // ===== Biome / Tag queries =====
+        bindings.registerQuery("biome_has_all_tags",   QueryVariables.BIOME_HAS_ALL_TAGS);
+        bindings.registerQuery("biome_has_any_tag",    QueryVariables.BIOME_HAS_ANY_TAG);
+        bindings.registerQuery("relative_block_has_all_tags", QueryVariables.RELATIVE_BLOCK_HAS_ALL_TAGS);
+        bindings.registerQuery("relative_block_has_any_tag", QueryVariables.RELATIVE_BLOCK_HAS_ANY_TAG);
+        bindings.registerQuery("is_item_name_any",     QueryVariables.IS_ITEM_NAME_ANY);
+        bindings.registerQuery("equipped_item_all_tags", QueryVariables.EQUIPPED_ITEM_ALL_TAGS);
+        bindings.registerQuery("equipped_item_any_tag", QueryVariables.EQUIPPED_ITEM_ANY_TAG);
+
+        // ===== Misc =====
+        bindings.registerQuery("cape_flap_amount",     QueryVariables.CAPE_FLAP_AMOUNT);
+        bindings.registerQuery("player_level",         QueryVariables.PLAYER_LEVEL);
+
+        // ===== Geometry =====
+        bindings.registerQuery("geometry_is_model",    QueryVariables.GEOMETRY_IS_MODEL);
+        bindings.registerQuery("geometry_is_block",    QueryVariables.GEOMETRY_IS_BLOCK);
+        bindings.registerQuery("geometry_is_entity",   QueryVariables.GEOMETRY_IS_ENTITY);
+        bindings.registerQuery("geometry_is_flat",     QueryVariables.GEOMETRY_IS_FLAT);
+
+        // ===== Functions =====
+        bindings.registerQuery("debug_output",         QueryVariables.DEBUG_OUTPUT_FUNC);
+    }
+
+    /**
+     * Returns the Molang context for this avatar.
+     */
+    public MolangContext getMolangContext() {
+        return molangContext;
+    }
+
+    /**
+     * Represents the Molang evaluation context for a single avatar.
+     * Contains variable storages and per-frame state populated from Minecraft.
+     * Passed as the {@code entity} to {@link org.figuramc.figura.molang.runtime.ExpressionEvaluator}.
+     *
+     * <p>All query.* fields are updated each frame by {@link #populateQueryContext(Entity)}.
+     * Molang variables ({@code query.anim_time}, etc.) read these fields via {@link QueryVariables}.</p>
+     */
+    public static class MolangContext {
+        public final VariableStorage variables = new VariableStorage();  // v.* / variable.*
+        public final VariableStorage controller = new VariableStorage(); // c.* / context.*
+        public final org.figuramc.figura.molang.storage.TempVariableStorage temp =
+                new org.figuramc.figura.molang.storage.TempVariableStorage(); // t.* / temp.*
+
+        // ===== Time fields =====
+        public float anim_time;
+        public float life_time;
+        public float delta_time;
+        public float time_of_day;
+        public int moon_phase;
+        public long frame_count;
+
+        // ===== Health fields =====
+        public float health;
+        public float max_health;
+        public float hurt_time;
+
+        // ===== Position & movement =====
+        public double pos_x, pos_y, pos_z;
+        public double pos_delta_x, pos_delta_y, pos_delta_z;
+        public float ground_speed;
+        public float vertical_speed;
+        public float yaw_speed;
+        public float walk_distance;
+        public float modified_distance_moved;
+
+        // ===== Rotation =====
+        public float body_x_rot, body_y_rot;
+        public float head_x_rot, head_y_rot;
+
+        // ===== Boolean states (0 or 1) =====
+        public float is_on_ground;
+        public float is_jumping;
+        public float is_sneaking;
+        public float is_sprinting;
+        public float is_swimming;
+        public float is_in_water;
+        public float is_in_water_or_rain;
+        public float is_on_fire;
+        public float is_riding;
+        public float is_sleeping;
+        public float is_spectator;
+        public float is_first_person;
+        public float is_using_item;
+        public float is_swinging;
+        public float has_rider;
+        public float is_eating;
+        public float is_playing_dead;
+        public float has_cape;
+
+        // ===== Misc =====
+        public float distance_from_camera;
+        public int cardinal_facing_2d;
+        public float swing_time;
+        public float attack_time;
+        public float item_in_use_duration;
+        public float item_max_use_duration;
+        public float item_remaining_use_duration;
+        public float cape_flap_amount;
+        public int equipment_count;
+        public int player_level;
+        public float time_stamp;
+        public float eye_target_x_rot, eye_target_y_rot;
+
+        // ===== Entity reference (for query functions that need it) =====
+        /** The Minecraft Entity for this context, set each frame by populateQueryContext */
+        public net.minecraft.world.entity.Entity entity;
+
+        // ===== Previous frame data (for delta calculations) =====
+        private double prev_pos_x, prev_pos_y, prev_pos_z;
+        private float prev_body_y_rot;
+
+        /**
+         * Populates all query fields from a Minecraft Entity and the game state.
+         * Called every frame before Molang evaluation.
+         */
+        public void populateQueryContext(Entity entity) {
+            if (entity == null) return;
+            this.entity = entity;
+
+            // Store previous position for delta calculation
+            prev_pos_x = pos_x;
+            prev_pos_y = pos_y;
+            prev_pos_z = pos_z;
+            prev_body_y_rot = body_y_rot;
+
+            // Entity position
+            pos_x = entity.getX();
+            pos_y = entity.getY();
+            pos_z = entity.getZ();
+
+            // Position delta
+            pos_delta_x = pos_x - prev_pos_x;
+            pos_delta_y = pos_y - prev_pos_y;
+            pos_delta_z = pos_z - prev_pos_z;
+
+            // Speed
+            float dx = (float) pos_delta_x;
+            float dz = (float) pos_delta_z;
+            float dy = (float) pos_delta_y;
+            ground_speed = (float) Math.sqrt(dx * dx + dz * dz);
+            vertical_speed = Math.abs(dy);
+
+            // Rotation
+            body_y_rot = entity.getYRot();
+            body_x_rot = entity.getXRot();
+            yaw_speed = body_y_rot - prev_body_y_rot;
+
+            // Entity state booleans
+            is_on_ground = entity.onGround() ? 1f : 0f;
+            is_in_water = entity.isInWater() ? 1f : 0f;
+            is_in_water_or_rain = (entity.isInWater() || entity.isInWaterOrRain()) ? 1f : 0f;
+            is_on_fire = entity.isOnFire() ? 1f : 0f;
+            is_riding = entity.isPassenger() ? 1f : 0f;
+            is_sprinting = entity.isSprinting() ? 1f : 0f;
+            is_swimming = entity.isSwimming() ? 1f : 0f;
+            is_spectator = entity.isSpectator() ? 1f : 0f;
+            has_rider = entity.isVehicle() ? 1f : 0f;
+
+            // Player-specific fields
+            if (entity instanceof Player player) {
+                health = player.getHealth();
+                max_health = player.getMaxHealth();
+                hurt_time = player.hurtTime;
+                is_sneaking = player.isShiftKeyDown() ? 1f : 0f;
+                is_sleeping = player.isSleeping() ? 1f : 0f;
+                player_level = player.experienceLevel;
+
+                // Walk distance from ClientAvatarState (via AbstractClientPlayer)
+                if (player instanceof net.minecraft.client.player.AbstractClientPlayer acp) {
+                    walk_distance = ((ClientAvatarStateAccessor) acp.avatarState()).figura$walkDist();
+                }
+
+                // Jump detection via local player input
+                var mc2 = Minecraft.getInstance();
+                if (mc2.player == player) {
+                    is_jumping = (player.getDeltaMovement().y > 0.1 && !entity.onGround()) ? 1f : 0f;
+                    is_eating = player.isUsingItem() && (player.getUsedItemHand() != null) ? 1f : 0f;
+                    has_cape = 0f; // Cape detection requires skin data access
+                }
+
+                // Equipment count
+                equipment_count = 0;
+                for (var slot : net.minecraft.world.entity.EquipmentSlot.values()) {
+                    var item = player.getItemBySlot(slot);
+                    if (!item.isEmpty()) equipment_count++;
+                }
+                if (!player.getMainHandItem().isEmpty()) equipment_count++;
+                if (!player.getOffhandItem().isEmpty()) equipment_count++;
+            }
+
+            // Frame counter
+            frame_count++;
+
+            // Level / world data
+            var mc = Minecraft.getInstance();
+            if (mc.level != null) {
+                long dayTime = mc.level.getDefaultClockTime();
+                time_of_day = dayTime % 24000L / 24000.0f;
+                time_stamp = dayTime;
+                moon_phase = mc.level.environmentAttributes().getDimensionValue(EnvironmentAttributes.MOON_PHASE).index();
+                // Cardinal facing (0=South, 1=West, 2=North, 3=East)
+                cardinal_facing_2d = entity.getDirection().get2DDataValue();
+            }
+
+            // Camera distance
+            if (mc.gameRenderer != null && mc.gameRenderer.getMainCamera() != null) {
+                var camera = mc.gameRenderer.getMainCamera();
+                float dxc = (float) (pos_x - camera.position().x);
+                float dyc = (float) (pos_y - camera.position().y);
+                float dzc = (float) (pos_z - camera.position().z);
+                distance_from_camera = (float) Math.sqrt(dxc * dxc + dyc * dyc + dzc * dzc);
+            }
+
+            // First person
+            is_first_person = mc.options.getCameraType().isFirstPerson() ? 1f : 0f;
+        }
+
+        /**
+         * Resets all fields to defaults.
+         */
+        public void reset() {
+            anim_time = 0;
+            life_time = 0;
+            delta_time = 0;
+            time_of_day = 0;
+            moon_phase = 0;
+            frame_count = 0;
+            health = 20f;
+            max_health = 20f;
+            hurt_time = 0;
+            pos_x = pos_y = pos_z = 0;
+            pos_delta_x = pos_delta_y = pos_delta_z = 0;
+            ground_speed = vertical_speed = yaw_speed = 0;
+            walk_distance = modified_distance_moved = 0;
+            body_x_rot = body_y_rot = 0;
+            head_x_rot = head_y_rot = 0;
+            is_on_ground = is_jumping = is_sneaking = is_sprinting = 0;
+            is_swimming = is_in_water = is_in_water_or_rain = is_on_fire = 0;
+            is_riding = is_sleeping = is_spectator = is_first_person = 0;
+            is_using_item = is_swinging = has_rider = is_eating = is_playing_dead = has_cape = 0;
+            distance_from_camera = 0;
+            cardinal_facing_2d = 0;
+            swing_time = attack_time = 0;
+            time_stamp = eye_target_x_rot = eye_target_y_rot = 0;
+            item_in_use_duration = item_max_use_duration = item_remaining_use_duration = 0;
+            cape_flap_amount = 0;
+            equipment_count = 0;
+            player_level = 0;
+            entity = null;
+            prev_pos_x = prev_pos_y = prev_pos_z = 0;
+            prev_body_y_rot = 0;
+        }
+    }
 
     // runtime status
     public boolean hasTexture, scriptError;
@@ -994,6 +1386,14 @@ public class Avatar {
 
         animation.reset(permissions.get(Permissions.ANIMATION_INST));
 
+        // Populate Molang query context from the current game state
+        if (molangContext != null) {
+            Entity entity = getEntity();
+            if (entity != null) {
+                molangContext.populateQueryContext(entity);
+            }
+        }
+
         int animationsLimit = permissions.get(Permissions.BB_ANIMATIONS);
         int limit = animationsLimit;
         for (Animation animation : animations.values())
@@ -1005,6 +1405,21 @@ public class Avatar {
         } else {
             noPermissions.remove(Permissions.BB_ANIMATIONS);
         }
+    }
+
+    /**
+     * Gets the Minecraft Entity associated with this avatar.
+     * Tries to find the entity by owner UUID, falls back to the local player.
+     */
+    private Entity getEntity() {
+        if (owner != null) {
+            var mc = Minecraft.getInstance();
+            if (mc.level != null) {
+                Entity entity = mc.level.getPlayerByUUID(owner);
+                if (entity != null) return entity;
+            }
+        }
+        return null;
     }
 
     public void clearAnimations() {
@@ -1133,6 +1548,9 @@ public class Avatar {
         if (!nbt.contains("animations"))
             return;
 
+        // Initialize Molang context
+        this.molangContext = new MolangContext();
+
         ArrayList<String> autoAnims = new ArrayList<>();
         CompoundTag metadata = nbt.getCompoundOrEmpty("metadata");
         if (metadata.contains("autoAnims")) {
@@ -1166,6 +1584,46 @@ public class Avatar {
                         animNbt.contains("sdel") ? animNbt.getFloatOr("sdel", 0.0f) : 0f,
                         animNbt.contains("ldel") ? animNbt.getFloatOr("ldel", 0.0f) : 0f
                 );
+
+                // Parse Molang expression strings from NBT (keys: mau, mbw, msd, mld)
+                Expression molangOffsetAst = null;
+                Expression molangBlendAst = null;
+                Expression molangStartDelayAst = null;
+                Expression molangLoopDelayAst = null;
+
+                // Use per-avatar bindings for parsing to enable v/c/t variable resolution
+                MolangBindings bindings = getAvatarBindings();
+                if (animNbt.contains("mau")) {
+                    try {
+                        java.util.List<Expression> parsed = MolangEngine.fromCustomBinding(bindings).parse(animNbt.getStringOr("mau", ""));
+                        if (!parsed.isEmpty()) molangOffsetAst = parsed.get(0);
+                    } catch (Exception ignored) {}
+                }
+                if (animNbt.contains("mbw")) {
+                    try {
+                        java.util.List<Expression> parsed = MolangEngine.fromCustomBinding(bindings).parse(animNbt.getStringOr("mbw", ""));
+                        if (!parsed.isEmpty()) molangBlendAst = parsed.get(0);
+                    } catch (Exception ignored) {}
+                }
+                if (animNbt.contains("msd")) {
+                    try {
+                        java.util.List<Expression> parsed = MolangEngine.fromCustomBinding(bindings).parse(animNbt.getStringOr("msd", ""));
+                        if (!parsed.isEmpty()) molangStartDelayAst = parsed.get(0);
+                    } catch (Exception ignored) {}
+                }
+                if (animNbt.contains("mld")) {
+                    try {
+                        java.util.List<Expression> parsed = MolangEngine.fromCustomBinding(bindings).parse(animNbt.getStringOr("mld", ""));
+                        if (!parsed.isEmpty()) molangLoopDelayAst = parsed.get(0);
+                    } catch (Exception ignored) {}
+                }
+
+                if (molangOffsetAst != null || molangBlendAst != null
+                        || molangStartDelayAst != null || molangLoopDelayAst != null) {
+                    animation.setMolangAst(molangOffsetAst, molangBlendAst,
+                            molangStartDelayAst, molangLoopDelayAst);
+                    animation.setMolangEvaluator(ExpressionEvaluator.evaluator(molangContext));
+                }
 
                 if (animNbt.contains("code")) {
                     for (Tag code : animNbt.getListOrEmpty("code")) {
