@@ -2,15 +2,20 @@ package org.figuramc.figura.lua.api;
 
 import org.figuramc.figura.animation.Animation;
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.lua.LuaNotNil;
 import org.figuramc.figura.lua.LuaWhitelist;
 import org.figuramc.figura.lua.docs.LuaMethodDoc;
 import org.figuramc.figura.lua.docs.LuaMethodOverload;
 import org.figuramc.figura.lua.docs.LuaTypeDoc;
+import org.figuramc.figura.molang.MolangEngine;
+import org.figuramc.figura.molang.parser.ast.Expression;
+import org.figuramc.figura.molang.runtime.ExpressionEvaluator;
+import org.figuramc.figura.molang.runtime.binding.MolangBindings;
+import org.figuramc.figura.molang.storage.StringPool;
+import org.figuramc.figura.molang.storage.VariableStorage;
+import org.luaj.vm2.LuaValue;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @LuaWhitelist
 @LuaTypeDoc(
@@ -81,6 +86,85 @@ public class AnimationAPI {
     @LuaWhitelist
     public Map<String, Animation> __index(String val) {
         return val == null ? null : animTable.get(val);
+    }
+
+
+    // -- Molang Lua API -- //
+
+
+    @LuaWhitelist
+    @LuaMethodDoc("animations.eval_molang")
+    public float evalMolang(@LuaNotNil String expression) {
+        try {
+            List<Expression> ast = Avatar.getMolangEngine().parse(expression);
+            if (ast.isEmpty()) return 0f;
+
+            Avatar.MolangContext ctx = avatar.getMolangContext();
+            if (ctx == null) return 0f;
+
+            ExpressionEvaluator<?> evaluator = ExpressionEvaluator.evaluator(ctx);
+            return evaluator.evalAsFloat(ast.get(0));
+        } catch (Exception e) {
+            return 0f;
+        }
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("animations.get_molang_var")
+    public Float getMolangVar(@LuaNotNil String name) {
+        Avatar.MolangContext ctx = avatar.getMolangContext();
+        if (ctx == null) return null;
+
+        String varName = name.contains(".") ? name.substring(name.indexOf('.') + 1) : name;
+        Object val = ctx.variables.getScoped(StringPool.computeIfAbsent(varName));
+        return val instanceof Number ? ((Number) val).floatValue() : null;
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("animations.set_molang_var")
+    public AnimationAPI setMolangVar(@LuaNotNil String name, float value) {
+        Avatar.MolangContext ctx = avatar.getMolangContext();
+        if (ctx == null) return this;
+
+        String varName = name.contains(".") ? name.substring(name.indexOf('.') + 1) : name;
+        ctx.variables.setScoped(StringPool.computeIfAbsent(varName), value);
+        return this;
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("animations.set_molang_vars")
+    public AnimationAPI setMolangVars(@LuaNotNil LuaValue table) {
+        if (!table.istable()) return this;
+        Avatar.MolangContext ctx = avatar.getMolangContext();
+        if (ctx == null) return this;
+
+        LuaValue[] keys = table.checktable().keys();
+        for (LuaValue key : keys) {
+            LuaValue val = table.get(key);
+            if (val.isnumber()) {
+                ctx.variables.setScoped(
+                    StringPool.computeIfAbsent(key.checkjstring()),
+                    val.tofloat()
+                );
+            }
+        }
+        return this;
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("animations.get_molang_vars")
+    public Map<String, Float> getMolangVars() {
+        Avatar.MolangContext ctx = avatar.getMolangContext();
+        if (ctx == null) return Collections.emptyMap();
+
+        Map<String, Float> result = new HashMap<>();
+        ctx.variables.forEachPropertyName(name -> {
+            Object val = ctx.variables.getScoped(StringPool.computeIfAbsent(name));
+            if (val instanceof Number) {
+                result.put(name, ((Number) val).floatValue());
+            }
+        });
+        return result;
     }
 
     @Override

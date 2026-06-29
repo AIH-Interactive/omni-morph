@@ -8,6 +8,8 @@ import org.figuramc.figura.lua.docs.LuaMethodDoc;
 import org.figuramc.figura.lua.docs.LuaMethodOverload;
 import org.figuramc.figura.lua.docs.LuaTypeDoc;
 import org.figuramc.figura.model.FiguraModelPart;
+import org.figuramc.figura.molang.parser.ast.Expression;
+import org.figuramc.figura.molang.runtime.ExpressionEvaluator;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaValue;
 
@@ -50,6 +52,27 @@ public class Animation {
     protected int priority = 0;
     protected LoopMode loop;
 
+    // -- Molang support -- //
+
+    /** Pre-compiled Molang AST for dynamic anim_time_update evaluation */
+    private Expression molangOffsetAst;
+    /** Pre-compiled Molang AST for dynamic blend_weight evaluation */
+    private Expression molangBlendAst;
+    /** Pre-compiled Molang AST for dynamic start_delay evaluation */
+    private Expression molangStartDelayAst;
+    /** Pre-compiled Molang AST for dynamic loop_delay evaluation */
+    private Expression molangLoopDelayAst;
+    /** Whether this animation has dynamic Molang-driven offset */
+    private boolean hasMolangOffset = false;
+    /** Whether this animation has dynamic Molang-driven blend */
+    private boolean hasMolangBlend = false;
+    /** Whether this animation has dynamic Molang-driven start delay */
+    private boolean hasMolangStartDelay = false;
+    /** Whether this animation has dynamic Molang-driven loop delay */
+    private boolean hasMolangLoopDelay = false;
+    /** Cached Molang evaluator for this animation's context */
+    private ExpressionEvaluator<?> molangEvaluator;
+
     // -- java methods -- // 
 
     public Animation(Avatar owner, String modelName, String name, LoopMode loop, boolean override, float length, float offset, float blend, float startDelay, float loopDelay) {
@@ -63,6 +86,40 @@ public class Animation {
         this.blend = blend;
         this.startDelay = startDelay;
         this.loopDelay = loopDelay;
+    }
+
+    /**
+     * Sets the Molang AST for dynamic evaluation of animation-level fields.
+     * Called by Avatar during animation loading.
+     */
+    public void setMolangAst(Expression offsetAst, Expression blendAst,
+                              Expression startDelayAst, Expression loopDelayAst) {
+        this.molangOffsetAst = offsetAst;
+        this.molangBlendAst = blendAst;
+        this.molangStartDelayAst = startDelayAst;
+        this.molangLoopDelayAst = loopDelayAst;
+        this.hasMolangOffset = offsetAst != null;
+        this.hasMolangBlend = blendAst != null;
+        this.hasMolangStartDelay = startDelayAst != null;
+        this.hasMolangLoopDelay = loopDelayAst != null;
+    }
+
+    /**
+     * Sets the Molang evaluator for this animation.
+     * Called by Avatar during animation loading.
+     */
+    public void setMolangEvaluator(ExpressionEvaluator<?> evaluator) {
+        this.molangEvaluator = evaluator;
+    }
+
+    /**
+     * Returns the Molang evaluator, creating one if needed.
+     */
+    public ExpressionEvaluator<?> getMolangEvaluator() {
+        if (molangEvaluator == null && owner != null) {
+            molangEvaluator = ExpressionEvaluator.evaluator(owner);
+        }
+        return molangEvaluator;
     }
 
     public void addAnimation(FiguraModelPart part, AnimationChannel anim) {
@@ -86,6 +143,23 @@ public class Animation {
     public void tick() {
         // tick time
         this.controller.tick();
+
+        // Evaluate Molang-driven fields dynamically
+        ExpressionEvaluator<?> evaluator = getMolangEvaluator();
+        if (evaluator != null) {
+            if (hasMolangOffset && molangOffsetAst != null) {
+                this.offset = evaluator.evalAsFloat(molangOffsetAst);
+            }
+            if (hasMolangBlend && molangBlendAst != null) {
+                this.blend = evaluator.evalAsFloat(molangBlendAst);
+            }
+            if (hasMolangStartDelay && molangStartDelayAst != null) {
+                this.startDelay = evaluator.evalAsFloat(molangStartDelayAst);
+            }
+            if (hasMolangLoopDelay && molangLoopDelayAst != null) {
+                this.loopDelay = evaluator.evalAsFloat(molangLoopDelayAst);
+            }
+        }
 
         this.time += controller.getDiff() * speed;
 
@@ -602,6 +676,71 @@ public class Animation {
         if (arg.equals("name"))
             return name;
         return null;
+    }
+
+
+    // -- Molang Lua API -- //
+
+
+    @LuaWhitelist
+    @LuaMethodDoc("animation.eval_molang")
+    public float evalMolang(@LuaNotNil String expr) {
+        try {
+            List<org.figuramc.figura.molang.parser.ast.Expression> ast = Avatar.getMolangEngine().parse(expr);
+            if (ast.isEmpty()) return 0f;
+            ExpressionEvaluator<?> evaluator = getMolangEvaluator();
+            if (evaluator == null) return 0f;
+            return evaluator.evalAsFloat(ast.get(0));
+        } catch (Exception e) {
+            return 0f;
+        }
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("animation.get_molang_var")
+    public Float getMolangVar(@LuaNotNil String name) {
+        if (owner == null || owner.getMolangContext() == null) return null;
+        // Check scope prefixes
+        if (name.startsWith("v.") || name.startsWith("variable.")) {
+            String varName = name.contains(".") ? name.substring(name.indexOf('.') + 1) : name;
+            org.figuramc.figura.molang.storage.VariableStorage vs = owner.getMolangContext().variables;
+            if (vs != null) {
+                Object val = vs.getScoped(org.figuramc.figura.molang.storage.StringPool.computeIfAbsent(varName));
+                return val instanceof Number ? ((Number) val).floatValue() : null;
+            }
+        }
+        return null;
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("animation.set_molang_var")
+    public Animation setMolangVar(@LuaNotNil String name, float value) {
+        if (owner == null || owner.getMolangContext() == null) return this;
+        String varName = name.contains(".") ? name.substring(name.indexOf('.') + 1) : name;
+        org.figuramc.figura.molang.storage.VariableStorage vs = owner.getMolangContext().variables;
+        if (vs != null) {
+            vs.setScoped(org.figuramc.figura.molang.storage.StringPool.computeIfAbsent(varName), value);
+        }
+        return this;
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("animation.set_molang_vars")
+    public Animation setMolangVars(@LuaNotNil LuaValue table) {
+        if (!table.istable() || owner == null || owner.getMolangContext() == null) return this;
+        org.figuramc.figura.molang.storage.VariableStorage vs = owner.getMolangContext().variables;
+        if (vs == null) return this;
+        LuaValue[] keys = table.checktable().keys();
+        for (LuaValue key : keys) {
+            LuaValue val = table.get(key);
+            if (val.isnumber()) {
+                vs.setScoped(
+                    org.figuramc.figura.molang.storage.StringPool.computeIfAbsent(key.checkjstring()),
+                    val.tofloat()
+                );
+            }
+        }
+        return this;
     }
 
     @Override

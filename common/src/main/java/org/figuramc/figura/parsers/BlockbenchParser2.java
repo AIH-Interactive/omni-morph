@@ -276,6 +276,12 @@ public class BlockbenchParser2 {
             float startDelay;
             float loopDelay;
 
+            // Raw Molang expression strings (preserved from .bbmodel)
+            public @Nullable String molangAnimTimeUpdate;
+            public @Nullable String molangBlendWeight;
+            public @Nullable String molangStartDelay;
+            public @Nullable String molangLoopDelay;
+
             public Map<String, BlockbenchCommonTypes.Animator> partAnimators;
             public @Nullable BlockbenchCommonTypes.Animator fxAnimator;
 
@@ -284,10 +290,22 @@ public class BlockbenchParser2 {
                 loop = animation.loop == null ? "once" : animation.loop;
                 override = Boolean.TRUE.equals(animation.override);
                 length = animation.length;
+
+                // Store parsed float values (backwards compatible)
                 offset = parseFloatOr(animation.anim_time_update, 0f);
                 blend = parseFloatOr(animation.blend_weight, 1f);
                 startDelay = parseFloatOr(animation.start_delay, 0f);
                 loopDelay = parseFloatOr(animation.loop_delay, 0f);
+
+                // Preserve raw Molang strings for dynamic evaluation
+                if (BlockbenchCommonTypes.isMolang(animation.anim_time_update))
+                    molangAnimTimeUpdate = animation.anim_time_update;
+                if (BlockbenchCommonTypes.isMolang(animation.blend_weight))
+                    molangBlendWeight = animation.blend_weight;
+                if (BlockbenchCommonTypes.isMolang(animation.start_delay))
+                    molangStartDelay = animation.start_delay;
+                if (BlockbenchCommonTypes.isMolang(animation.loop_delay))
+                    molangLoopDelay = animation.loop_delay;
 
                 if (animation.animators != null) {
                     Map<String, BlockbenchCommonTypes.Animator> filtered = new HashMap<>(animation.animators);
@@ -322,6 +340,12 @@ public class BlockbenchParser2 {
                 if (blend != 1f) tag.putFloat("bld", blend);
                 if (startDelay != 0f) tag.putFloat("sdel", startDelay);
                 if (loopDelay != 0f) tag.putFloat("ldel", loopDelay);
+
+                // Serialize Molang expression strings with special NBT keys
+                if (molangAnimTimeUpdate != null) tag.putString("mau", molangAnimTimeUpdate);
+                if (molangBlendWeight != null) tag.putString("mbw", molangBlendWeight);
+                if (molangStartDelay != null) tag.putString("msd", molangStartDelay);
+                if (molangLoopDelay != null) tag.putString("mld", molangLoopDelay);
 
                 // We also need to attach the instruction keyframe animator here
                 // (it's not bound to any parts.)
