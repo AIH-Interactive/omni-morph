@@ -9,7 +9,12 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FontDescription;
 import net.minecraft.network.chat.Style;
 import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.avatar.local.LocalAvatarFetcher;
+import org.figuramc.figura.avatar.ysm.YsmManifest;
+import org.figuramc.figura.avatar.ysm.YsmManifestReader;
+import org.figuramc.figura.avatar.ysm.YsmTextureOption;
+import org.figuramc.figura.avatar.ysm.YsmTextureSelectionStore;
 import org.figuramc.figura.gui.FiguraToast;
 import org.figuramc.figura.gui.widgets.AbstractContainerElement;
 import org.figuramc.figura.gui.widgets.Button;
@@ -52,6 +57,7 @@ public abstract class AbstractAvatarWidget extends AbstractContainerElement impl
             button.setMessage(favourite ? REMOVE_FAVOURITE : ADD_FAVOURITE);
             context.updateDimensions();
         });
+        addYsmTextureMenu();
         context.addAction(FiguraText.of("gui.context.open_folder"), null, button -> {
             try {
                 Util.getPlatform().openUri(avatar.getFSPath().toUri());
@@ -64,6 +70,30 @@ public abstract class AbstractAvatarWidget extends AbstractContainerElement impl
             Minecraft.getInstance().keyboardHandler.setClipboard(avatar.getFSPath().toString());
             FiguraToast.sendToast(FiguraText.of("toast.clipboard"));
         });
+    }
+
+    private void addYsmTextureMenu() {
+        if (!avatar.isYsm())
+            return;
+        try {
+            YsmManifest manifest = YsmManifestReader.read(avatar.getPath());
+            if (!manifest.hasTextures())
+                return;
+            ContextMenu textures = new ContextMenu(context);
+            String selected = YsmTextureSelectionStore.get(avatar.getPath());
+            for (YsmTextureOption option : manifest.textures()) {
+                Component name = Component.literal((option.id().equals(selected) ? "* " : "") + option.displayName());
+                textures.addAction(name, Component.literal(option.path()), button -> {
+                    YsmTextureSelectionStore.set(avatar.getPath(), option.id());
+                    if (isOf(AvatarList.selectedEntry))
+                        AvatarManager.loadLocalAvatar(avatar.getPath());
+                    context.setVisible(false);
+                });
+            }
+            context.addTab(Component.literal("YSM Textures"), null, textures);
+        } catch (Exception e) {
+            FiguraMod.LOGGER.warn("Failed to build YSM texture menu for " + avatar.getPath(), e);
+        }
     }
 
     @Override

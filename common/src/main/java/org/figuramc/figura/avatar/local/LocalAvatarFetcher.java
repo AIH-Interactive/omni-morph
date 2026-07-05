@@ -5,6 +5,10 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.util.Util;
 import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.avatar.ysm.YsmAvatarDetector;
+import org.figuramc.figura.avatar.ysm.YsmAvatarKind;
+import org.figuramc.figura.avatar.ysm.YsmManifest;
+import org.figuramc.figura.avatar.ysm.YsmManifestReader;
 import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.gui.cards.CardBackground;
 import org.figuramc.figura.parsers.AvatarMetadataParser;
@@ -170,6 +174,10 @@ public class LocalAvatarFetcher {
         return Files.exists(metadata) && !Files.isDirectory(metadata);
     }
 
+    public static boolean isLoadableAvatar(Path path) {
+        return isAvatar(path) || YsmAvatarDetector.isYsmAvatar(path);
+    }
+
     public static void loadExternal(List<Path> paths) throws IOException {
         for (Path path : paths) {
             Path dest = getLocalAvatarDirectory();
@@ -197,6 +205,7 @@ public class LocalAvatarFetcher {
         // im going insane... or better saying, crazy, speaking of which, I was crazy once
         protected final Path path, folder, theActualPathForThis; // murder, why does everything needs to be protected/private :sob:
         protected final String name, description;
+        protected final YsmAvatarKind ysmKind;
         protected final CardBackground background;
         protected Properties properties;
         // icon
@@ -210,6 +219,7 @@ public class LocalAvatarFetcher {
             this.theActualPathForThis = theActualPathForThis;
             this.name = name;
             this.description = "";
+            this.ysmKind = YsmAvatarKind.NONE;
             this.background = CardBackground.DEFAULT;
             this.iconPath = null;
             this.properties = SAVED_DATA.computeIfAbsent(path.toAbsolutePath().toString(), __ -> new Properties());
@@ -232,10 +242,19 @@ public class LocalAvatarFetcher {
             String description = "";
             CardBackground bg = CardBackground.DEFAULT;
             Path iconPath = null;
+            YsmAvatarKind ysmKind = YsmAvatarDetector.kind(path);
 
             if (!(this instanceof FolderPath)) {
                 // metadata
-                try {
+                if (ysmKind != YsmAvatarKind.NONE) {
+                    try {
+                        YsmManifest manifest = YsmManifestReader.read(path);
+                        name = manifest.name();
+                        description = manifest.description();
+                    } catch (Exception e) {
+                        FiguraMod.LOGGER.error("Failed to load YSM metadata for \"" + path + "\"", e);
+                    }
+                } else try {
                     String str = IOUtils.readFile(path.resolve("avatar.json"));
                     AvatarMetadataParser.Metadata metadata = AvatarMetadataParser.read(str);
 
@@ -254,6 +273,7 @@ public class LocalAvatarFetcher {
 
             this.name = name;
             this.description = description;
+            this.ysmKind = ysmKind;
             this.background = bg;
             this.iconPath = iconPath;
         }
@@ -304,6 +324,14 @@ public class LocalAvatarFetcher {
                 }
             }
             return iconTexture;
+        }
+
+        public boolean isYsm() {
+            return ysmKind != YsmAvatarKind.NONE;
+        }
+
+        public YsmAvatarKind getYsmKind() {
+            return ysmKind;
         }
 
         public boolean isExpanded() {
@@ -371,7 +399,7 @@ public class LocalAvatarFetcher {
             // iterate over all files on this path
             // but skip non-folders
             for (Path path : files) {
-                if (isAvatar(path)) {
+                if (isLoadableAvatar(path)) {
                     children.add(new AvatarPath(path, folderPath));
                     found = true;
                 } else if (Files.isDirectory(path)) {
@@ -385,7 +413,7 @@ public class LocalAvatarFetcher {
                         FileSystem opened = FileSystems.newFileSystem(path);
                         if ("jar".equalsIgnoreCase(opened.provider().getScheme())) {
                             Path newPath = opened.getPath("");
-                            if (isAvatar(newPath)) {
+                            if (isLoadableAvatar(newPath)) {
                                 children.add(new AvatarPath(newPath, folderPath, path));
                                 found = true;
                             } else {

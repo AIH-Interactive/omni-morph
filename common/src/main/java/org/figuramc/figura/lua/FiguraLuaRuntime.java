@@ -18,6 +18,7 @@ import org.figuramc.figura.lua.api.keybind.KeybindAPI;
 import org.figuramc.figura.lua.api.nameplate.NameplateAPI;
 import org.figuramc.figura.lua.api.ping.PingAPI;
 import org.figuramc.figura.lua.api.vanilla_model.VanillaModelAPI;
+import org.figuramc.figura.lua.api.ysm_model.YsmModelAPI;
 import org.figuramc.figura.permissions.Permissions;
 import org.figuramc.figura.utils.PathUtils;
 import org.luaj.vm2.*;
@@ -55,6 +56,7 @@ public class FiguraLuaRuntime {
     public AvatarAPI avatar_meta;
     public PingAPI ping;
     public TextureAPI texture;
+    public YsmModelAPI ysm_model;
 
     //---------------------------------
 
