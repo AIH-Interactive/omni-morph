@@ -12,12 +12,16 @@ import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.client.renderer.item.ItemModelResolver;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.resources.model.cuboid.ItemTransform;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
@@ -79,11 +83,31 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
     @Unique
     private Matrix4f lastPose;
 
-    @Inject(at = @At("HEAD"), method = "submit(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V")
+    @Inject(at = @At("HEAD"), method = "submit(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V", cancellable = true)
     private void onRender(S livingEntityRenderState, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState cameraRenderState, CallbackInfo ci) {
         currentAvatar = AvatarManager.getAvatar(livingEntityRenderState);
         if (currentAvatar == null)
             return;
+
+        if (currentAvatar.isYsmNative()) {
+            Avatar localAvatar = currentAvatar;
+            Entity entity = AvatarManager.getEntity(livingEntityRenderState);
+            PoseStack ysmStack = new PoseStack();
+            ysmStack.pushPose();
+            ysmStack.last().set(poseStack.last());
+            ((NodeCollectorExtension) submitNodeCollector).submitFiguraModel(localAvatar, livingEntityRenderState, (avatar, state, bufferSource) -> {
+                if (avatar.getYsmRuntime() != null) {
+                    avatar.getYsmRuntime().renderer().render(ysmStack, bufferSource, state.lightCoords);
+                    if (entity instanceof LivingEntity livingEntity)
+                        figura$submitYsmHandItems(avatar, livingEntity, ysmStack, submitNodeCollector, state.lightCoords, state.outlineColor);
+                }
+                return null;
+            });
+            currentAvatar = null;
+            lastPose = null;
+            ci.cancel();
+            return;
+        }
 
         lastPose = poseStack.last().pose();
     }
@@ -286,6 +310,32 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
         // this is responsible for visibility stuff
         if (currentAvatar.luaRuntime != null && currentAvatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1)
             currentAvatar.luaRuntime.vanilla_model.PLAYER.posTransform(model);
+    }
+
+    @Unique
+    void figura$submitYsmHandItems(Avatar avatar, LivingEntity entity, PoseStack baseStack, SubmitNodeCollector submitNodeCollector, int light, int outlineColor) {
+        HumanoidArm mainArm = entity.getMainArm();
+        figura$submitYsmHandItem(avatar, entity, entity.getMainHandItem(), mainArm, baseStack, submitNodeCollector, light, outlineColor);
+        figura$submitYsmHandItem(avatar, entity, entity.getOffhandItem(), mainArm.getOpposite(), baseStack, submitNodeCollector, light, outlineColor);
+    }
+
+    @Unique
+    void figura$submitYsmHandItem(Avatar avatar, LivingEntity entity, ItemStack itemStack, HumanoidArm arm, PoseStack baseStack, SubmitNodeCollector submitNodeCollector, int light, int outlineColor) {
+        if (itemStack.isEmpty() || avatar.getYsmRuntime() == null)
+            return;
+
+        boolean left = arm == HumanoidArm.LEFT;
+        ItemDisplayContext context = left ? ItemDisplayContext.THIRD_PERSON_LEFT_HAND : ItemDisplayContext.THIRD_PERSON_RIGHT_HAND;
+        ItemStackRenderState itemState = new ItemStackRenderState();
+        itemModelResolver.updateForLiving(itemState, itemStack, context, entity);
+        if (itemState.isEmpty())
+            return;
+
+        PoseStack itemStackPose = new PoseStack();
+        itemStackPose.pushPose();
+        itemStackPose.last().set(baseStack.last());
+        avatar.getYsmRuntime().applyHandItemTransform(itemStackPose, left);
+        itemState.submit(itemStackPose, submitNodeCollector, light, OverlayTexture.NO_OVERLAY, outlineColor);
     }
 
     // Add the skull item back in after it being cleared

@@ -32,6 +32,7 @@ import org.figuramc.figura.lua.api.vanilla_model.VanillaGroupPart;
 import org.figuramc.figura.lua.api.vanilla_model.VanillaModelAPI;
 import org.figuramc.figura.lua.api.vanilla_model.VanillaModelPart;
 import org.figuramc.figura.lua.api.vanilla_model.VanillaPart;
+import org.figuramc.figura.lua.api.ysm_model.YsmModelAPI;
 import org.figuramc.figura.lua.api.world.BiomeAPI;
 import org.figuramc.figura.lua.api.world.BlockStateAPI;
 import org.figuramc.figura.lua.api.world.ItemStackAPI;
@@ -45,6 +46,7 @@ import org.figuramc.figura.math.vector.FiguraVec4;
 import org.figuramc.figura.model.FiguraModelPart;
 import org.figuramc.figura.model.rendering.Vertex;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.model.ysm.YsmModelPart;
 
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -99,6 +101,8 @@ public class FiguraAPIManager {
         add(VanillaPart.class);
         add(VanillaGroupPart.class);
         add(VanillaModelPart.class);
+        add(YsmModelAPI.class);
+        add(YsmModelPart.class);
 
         add(KeybindAPI.class);
         add(FiguraKeybind.class);
@@ -173,6 +177,7 @@ public class FiguraAPIManager {
         put("events", r -> r.events = new EventsAPI());
         put("sounds", r -> new SoundAPI(r.owner));
         put("vanilla_model", r -> r.vanilla_model = new VanillaModelAPI(r.owner));
+        put("ysm_model", r -> r.ysm_model = new YsmModelAPI(r.owner));
         put("keybinds", r -> r.keybinds = new KeybindAPI(r.owner));
         put("host", r -> r.host = new HostAPI(r.owner));
         put("nameplate", r -> r.nameplate = new NameplateAPI());

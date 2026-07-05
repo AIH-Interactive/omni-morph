@@ -8,6 +8,8 @@ import net.minecraft.util.Util;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.avatar.UserData;
+import org.figuramc.figura.avatar.ysm.YsmAvatarDetector;
+import org.figuramc.figura.avatar.ysm.YsmAvatarLoader;
 import org.figuramc.figura.gui.FiguraToast;
 import org.figuramc.figura.parsers.*;
 import org.figuramc.figura.utils.FiguraResourceListener;
@@ -110,6 +112,11 @@ public class LocalAvatarLoader {
         addWatchKey(path, KEYS::put);
 
         Path finalPath = path;
+        if (YsmAvatarDetector.isYsmAvatar(finalPath)) {
+            YsmAvatarLoader.loadAvatar(finalPath, target);
+            return;
+        }
+
         async(() -> {
             try {
                 FiguraMod.debug("--- avatar compiling: " + target.id + " ---");
@@ -319,7 +326,7 @@ public class LocalAvatarLoader {
                 Path path = entry.getKey().resolve((Path) event.context());
                 String name = IOUtils.getFileNameOrEmpty(path);
 
-                if (IOUtils.isHiddenAvatarResource(path) || !(Files.isDirectory(path) || name.matches("(.*(\\.lua|\\.bbmodel|\\.ogg|\\.png)$|avatar\\.json)")))
+                if (IOUtils.isHiddenAvatarResource(path) || !(Files.isDirectory(path) || name.matches("(.*(\\.lua|\\.bbmodel|\\.ogg|\\.png|\\.json)$|avatar\\.json|ysm\\.json)")))
                     continue;
 
                 if (kind == StandardWatchEventKinds.ENTRY_CREATE && !IS_WINDOWS)

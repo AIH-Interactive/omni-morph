@@ -73,6 +73,7 @@ import org.figuramc.figura.model.rendering.EntityRenderMode;
 import org.figuramc.figura.model.rendering.ImmediateFiguraRenderer;
 import org.figuramc.figura.model.rendering.PartFilterScheme;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.model.ysm.YsmModelRuntime;
 import org.figuramc.figura.permissions.PermissionManager;
 import org.figuramc.figura.permissions.PermissionPack;
 import org.figuramc.figura.permissions.Permissions;
@@ -133,6 +134,7 @@ public class Avatar {
     public final ArrayList<FiguraOutputStream> openOutputStreams = new ArrayList<>();
 
     public FiguraRenderer renderer;
+    private YsmModelRuntime ysmRuntime;
     public FiguraLuaRuntime luaRuntime;
     public EntityRenderMode renderMode = EntityRenderMode.OTHER;
 
@@ -623,9 +625,15 @@ public class Avatar {
                 if (entityName.isBlank())
                     entityName = name;
 
-                // animations and models
-                loadAnimations();
-                renderer = new ImmediateFiguraRenderer(this);
+                if (metadata.getStringOr("format", "").equals("ysm-native") && nbt.contains("ysm")) {
+                    ysmRuntime = YsmModelRuntime.fromNbt(this, nbt.getCompoundOrEmpty("ysm"));
+                    renderer = null;
+                    hasTexture = true;
+                } else {
+                    // animations and models
+                    loadAnimations();
+                    renderer = new ImmediateFiguraRenderer(this);
+                }
 
                 // sounds and script
                 loadCustomSounds();
@@ -1441,6 +1449,10 @@ public class Avatar {
     public void clean() {
         if (renderer != null)
             renderer.invalidate();
+        if (ysmRuntime != null) {
+            ysmRuntime.close();
+            ysmRuntime = null;
+        }
 
         clearSounds();
         clearParticles();
@@ -1448,6 +1460,14 @@ public class Avatar {
         closeStreams();
 
         events.clear();
+    }
+
+    public boolean isYsmNative() {
+        return ysmRuntime != null;
+    }
+
+    public YsmModelRuntime getYsmRuntime() {
+        return ysmRuntime;
     }
 
     public void clearSounds() {
