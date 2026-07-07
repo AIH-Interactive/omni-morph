@@ -293,6 +293,7 @@ public class Avatar {
 
         // ===== Functions =====
         bindings.registerQuery("debug_output",         QueryVariables.DEBUG_OUTPUT_FUNC);
+
     }
 
     /**

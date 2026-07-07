@@ -1,6 +1,7 @@
 package org.figuramc.figura.mixin.render.renderers;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.renderer.SubmitNodeCollector;
@@ -22,6 +23,7 @@ import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.util.Mth;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
@@ -92,13 +94,16 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
         if (currentAvatar.isYsmNative()) {
             Avatar localAvatar = currentAvatar;
             Entity entity = AvatarManager.getEntity(livingEntityRenderState);
+            LivingEntity livingEntity = entity instanceof LivingEntity value ? value : null;
             PoseStack ysmStack = new PoseStack();
             ysmStack.pushPose();
             ysmStack.last().set(poseStack.last());
+            ysmStack.mulPose(Axis.YP.rotationDegrees(figura$getYsmBodyRotation(livingEntityRenderState, livingEntity)));
             ((NodeCollectorExtension) submitNodeCollector).submitFiguraModel(localAvatar, livingEntityRenderState, (avatar, state, bufferSource) -> {
                 if (avatar.getYsmRuntime() != null) {
+                    avatar.getYsmRuntime().updateAnimations(state, livingEntity);
                     avatar.getYsmRuntime().renderer().render(ysmStack, bufferSource, state.lightCoords);
-                    if (entity instanceof LivingEntity livingEntity)
+                    if (livingEntity != null)
                         figura$submitYsmHandItems(avatar, livingEntity, ysmStack, submitNodeCollector, state.lightCoords, state.outlineColor);
                 }
                 return null;
@@ -310,6 +315,13 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
         // this is responsible for visibility stuff
         if (currentAvatar.luaRuntime != null && currentAvatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1)
             currentAvatar.luaRuntime.vanilla_model.PLAYER.posTransform(model);
+    }
+
+    @Unique
+    float figura$getYsmBodyRotation(S livingEntityRenderState, LivingEntity livingEntity) {
+        float tickDelta = ((FiguraEntityRenderStateExtension) livingEntityRenderState).figura$getTickDelta();
+        float bodyYaw = livingEntity != null ? Mth.rotLerp(tickDelta, livingEntity.yBodyRotO, livingEntity.yBodyRot) : livingEntityRenderState.yRot;
+        return 180.0f - bodyYaw;
     }
 
     @Unique

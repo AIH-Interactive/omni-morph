@@ -2,13 +2,21 @@ package org.figuramc.figura.model.ysm;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
+import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.world.entity.LivingEntity;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.model.ysm.animation.YsmAnimationClip;
+import org.figuramc.figura.model.ysm.animation.YsmAnimationParser;
+import org.figuramc.figura.model.ysm.animation.YsmAnimationPlayer;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +27,7 @@ public class YsmModelRuntime implements AutoCloseable {
     private final FiguraTexture texture;
     private final Map<String, YsmModelPart> parts = new LinkedHashMap<>();
     private final YsmRenderer renderer;
+    private final YsmAnimationPlayer animationPlayer;
     private final String textureId;
 
     private YsmModelRuntime(Avatar owner, YsmGeometry geometry, FiguraTexture texture, String textureId) {
@@ -28,6 +37,7 @@ public class YsmModelRuntime implements AutoCloseable {
         this.textureId = textureId;
         buildParts();
         this.renderer = new YsmRenderer(this);
+        this.animationPlayer = new YsmAnimationPlayer(this);
     }
 
     public static YsmModelRuntime fromNbt(Avatar owner, CompoundTag tag) throws java.io.IOException {
@@ -37,7 +47,22 @@ public class YsmModelRuntime implements AutoCloseable {
         YsmGeometry geometry = YsmGeometryParser.parse(mainJson);
         byte[] textureBytes = tag.getByteArray("texture").orElse(new byte[0]);
         FiguraTexture texture = new FiguraTexture(owner, tag.getStringOr("texture_id", "ysm_texture"), textureBytes.length == 0 ? onePixelPng() : textureBytes);
-        return new YsmModelRuntime(owner, geometry, texture, tag.getStringOr("texture_id", ""));
+        YsmModelRuntime runtime = new YsmModelRuntime(owner, geometry, texture, tag.getStringOr("texture_id", ""));
+        runtime.animationPlayer.registerAnimations(readAnimations(tag));
+        return runtime;
+    }
+
+    private static Map<String, YsmAnimationClip> readAnimations(CompoundTag tag) {
+        Map<String, YsmAnimationClip> result = new HashMap<>();
+        for (Tag animationTag : tag.getListOrEmpty("animations")) {
+            if (!(animationTag instanceof CompoundTag animation))
+                continue;
+            String json = new String(animation.getByteArray("data").orElse(new byte[0]), StandardCharsets.UTF_8);
+            if (json.isBlank())
+                continue;
+            result.putAll(YsmAnimationParser.parse(json));
+        }
+        return result;
     }
 
     private void buildParts() {
@@ -53,6 +78,8 @@ public class YsmModelRuntime implements AutoCloseable {
         YsmGeometry.Bone parentBone = bone.parentName == null || bone.parentName.isBlank() ? null : geometry.bones.get(bone.parentName);
         YsmModelPart parent = parentBone == null ? null : buildPart(parentBone);
         YsmModelPart part = new YsmModelPart(bone.name, parent, bone.pivot, bone.rotation);
+        if (YsmBoneClassifier.isNonBodyBranch(bone))
+            part.setVisible(false);
         parts.put(bone.name, part);
         parts.putIfAbsent(bone.name.toLowerCase(java.util.Locale.US), part);
         return part;
@@ -78,6 +105,10 @@ public class YsmModelRuntime implements AutoCloseable {
         return renderer;
     }
 
+    public YsmAnimationPlayer animations() {
+        return animationPlayer;
+    }
+
     public YsmModelPart getPart(String name) {
         if (name == null)
             return null;
@@ -87,6 +118,14 @@ public class YsmModelRuntime implements AutoCloseable {
 
     public Map<String, YsmModelPart> parts() {
         return parts;
+    }
+
+    public Iterable<YsmModelPart> uniqueParts() {
+        return new LinkedHashSet<>(parts.values());
+    }
+
+    public void updateAnimations(LivingEntityRenderState state, LivingEntity entity) {
+        animationPlayer.update(state, entity);
     }
 
     public boolean applyHandItemTransform(PoseStack stack, boolean left) {
@@ -154,6 +193,13 @@ public class YsmModelRuntime implements AutoCloseable {
         stack.translate(px, py, pz);
         rotate(stack, bone.rotation[0], bone.rotation[1], bone.rotation[2]);
         if (part != null) {
+            FiguraVec3 animPos = part.animPosRaw();
+            FiguraVec3 animRot = part.animRotRaw();
+            FiguraVec3 animScale = part.animScaleRaw();
+            stack.translate(-animPos.x / 16d, animPos.y / 16d, animPos.z / 16d);
+            rotate(stack, (float) -animRot.x, (float) -animRot.y, (float) animRot.z);
+            stack.scale((float) animScale.x, (float) animScale.y, (float) animScale.z);
+
             FiguraVec3 pos = part.posRaw();
             FiguraVec3 rot = part.rotRaw();
             FiguraVec3 scale = part.scaleRaw();

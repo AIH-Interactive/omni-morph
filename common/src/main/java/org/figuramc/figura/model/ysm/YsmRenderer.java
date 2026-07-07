@@ -36,8 +36,6 @@ public class YsmRenderer {
         YsmModelPart part = runtime.getPart(bone.name);
         if (part != null && !part.visibleRaw())
             return;
-        if (isStaticHiddenBranch(bone))
-            return;
 
         stack.pushPose();
         applyBoneTransform(bone, part, stack);
@@ -55,6 +53,13 @@ public class YsmRenderer {
         stack.translate(px, py, pz);
         rotateBone(stack, bone.rotation[0], bone.rotation[1], bone.rotation[2]);
         if (part != null) {
+            FiguraVec3 animPos = part.animPosRaw();
+            FiguraVec3 animRot = part.animRotRaw();
+            FiguraVec3 animScale = part.animScaleRaw();
+            stack.translate(-animPos.x / 16d, animPos.y / 16d, animPos.z / 16d);
+            rotateBone(stack, (float) -animRot.x, (float) -animRot.y, (float) animRot.z);
+            stack.scale((float) animScale.x, (float) animScale.y, (float) animScale.z);
+
             FiguraVec3 pos = part.posRaw();
             FiguraVec3 rot = part.rotRaw();
             FiguraVec3 scale = part.scaleRaw();
@@ -88,11 +93,6 @@ public class YsmRenderer {
             int uv = i * 2;
             vertex(vertices, stack, positions[pos], positions[pos + 1], positions[pos + 2], uvs[uv], uvs[uv + 1], normal[0], normal[1], normal[2], light);
         }
-    }
-
-    private boolean isStaticHiddenBranch(YsmGeometry.Bone bone) {
-        String name = bone.name.toLowerCase(java.util.Locale.US);
-        return name.startsWith("background") || name.equals("gui");
     }
 
     private void vertex(VertexConsumer vertices, PoseStack stack, float x, float y, float z, float u, float v, float nx, float ny, float nz, int light) {

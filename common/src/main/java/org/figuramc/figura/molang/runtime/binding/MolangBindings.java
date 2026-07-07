@@ -31,9 +31,6 @@ public class MolangBindings implements ObjectBinding {
 
         // Register query.* namespace (initially empty, populated by Avatar)
         bindings.put("query", new QueryBinding());
-
-        // Register q.* as alias for query.*
-        bindings.put("q", new QueryBinding());
     }
 
     /**

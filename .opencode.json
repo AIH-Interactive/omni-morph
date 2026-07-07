@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "code-review-graph": {
+      "command": "D:\\UserData\\Conda\\envs\\api\\python.exe",
+      "args": [
+        "-m",
+        "code_review_graph",
+        "serve"
+      ],
+      "cwd": "D:\\UserData\\Desktop\\Project\\Figura",
+      "type": "stdio",
+      "env": []
+    }
+  }
+}
