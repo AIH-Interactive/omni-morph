@@ -36,7 +36,7 @@ public final class YsmManifestReader {
         List<YsmTextureOption> textures = readNewTextures(player);
         String defaultTexture = YsmJson.string(properties, "default_texture", "");
 
-        return new YsmManifest(YsmAvatarKind.NEW, name, description, readAuthors(metadata), mainModel, armModel, textures, defaultTexture);
+        return new YsmManifest(YsmAvatarKind.NEW, name, description, readAuthors(metadata), mainModel, armModel, readNewAnimations(path, player), textures, defaultTexture);
     }
 
     public static YsmManifest readOld(Path path) throws java.io.IOException {
@@ -52,7 +52,59 @@ public final class YsmManifestReader {
         String armModel = Files.exists(path.resolve("arm.json")) ? "arm.json" : "";
         List<YsmTextureOption> textures = readOldTextures(path);
 
-        return new YsmManifest(YsmAvatarKind.OLD, name, tips, readAuthors(extra), "main.json", armModel, textures, "");
+        return new YsmManifest(YsmAvatarKind.OLD, name, tips, readAuthors(extra), "main.json", armModel, readOldAnimations(path), textures, "");
+    }
+
+    private static List<String> readNewAnimations(Path path, JsonObject player) {
+        List<String> result = new ArrayList<>();
+        JsonElement element = player.get("animation");
+        if (element != null) {
+            if (element.isJsonPrimitive()) {
+                addExisting(result, path, element.getAsString());
+            } else if (element.isJsonArray()) {
+                for (JsonElement animationElement : element.getAsJsonArray()) {
+                    if (animationElement.isJsonPrimitive()) {
+                        addExisting(result, path, animationElement.getAsString());
+                    } else if (animationElement.isJsonObject()) {
+                        JsonObject object = animationElement.getAsJsonObject();
+                        String animationPath = YsmJson.string(object, "path", YsmJson.string(object, "file", ""));
+                        if (animationPath.isBlank()) {
+                            for (String key : object.keySet()) {
+                                JsonElement value = object.get(key);
+                                if (value != null && value.isJsonPrimitive()) {
+                                    animationPath = value.getAsString();
+                                    break;
+                                }
+                            }
+                        }
+                        addExisting(result, path, animationPath);
+                    }
+                }
+            } else if (element.isJsonObject()) {
+                JsonObject object = element.getAsJsonObject();
+                for (String key : object.keySet()) {
+                    JsonElement value = object.get(key);
+                    if (value != null && value.isJsonPrimitive())
+                        addExisting(result, path, value.getAsString());
+                }
+            }
+        }
+        addExisting(result, path, "animations/main.animation.json");
+        return result;
+    }
+
+    private static List<String> readOldAnimations(Path path) {
+        List<String> result = new ArrayList<>();
+        addExisting(result, path, "main.animation.json");
+        return result;
+    }
+
+    private static void addExisting(List<String> result, Path root, String animationPath) {
+        if (animationPath == null || animationPath.isBlank())
+            return;
+        String normalized = animationPath.replace('\\', '/');
+        if (!result.contains(normalized) && Files.exists(root.resolve(normalized)))
+            result.add(normalized);
     }
 
     private static List<YsmTextureOption> readNewTextures(JsonObject player) {

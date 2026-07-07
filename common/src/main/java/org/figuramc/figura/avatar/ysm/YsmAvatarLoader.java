@@ -1,6 +1,7 @@
 package org.figuramc.figura.avatar.ysm;
 
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.UserData;
 import org.figuramc.figura.gui.FiguraToast;
@@ -38,6 +39,17 @@ public final class YsmAvatarLoader {
                 CompoundTag ysm = new CompoundTag();
                 ysm.putString("kind", manifest.kind().name());
                 ysm.putByteArray("main_model", IOUtils.readFile(path.resolve(manifest.mainModelPath())).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                ListTag animations = new ListTag();
+                for (String animationPath : manifest.animationPaths()) {
+                    Path resolved = path.resolve(animationPath);
+                    if (!java.nio.file.Files.exists(resolved))
+                        continue;
+                    CompoundTag animation = new CompoundTag();
+                    animation.putString("path", animationPath);
+                    animation.putByteArray("data", IOUtils.readFile(resolved).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    animations.add(animation);
+                }
+                ysm.put("animations", animations);
                 if (texture != null) {
                     Path texturePath = path.resolve(texture.path());
                     ysm.putString("texture_id", texture.id());

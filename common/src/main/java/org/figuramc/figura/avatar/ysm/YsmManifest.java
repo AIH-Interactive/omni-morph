@@ -9,6 +9,7 @@ public record YsmManifest(
         String[] authors,
         String mainModelPath,
         String armModelPath,
+        List<String> animationPaths,
         List<YsmTextureOption> textures,
         String defaultTexture
 ) {

@@ -23,6 +23,9 @@ public class YsmModelPart {
     private FiguraVec3 pos = FiguraVec3.of();
     private FiguraVec3 rot = FiguraVec3.of();
     private FiguraVec3 scale = FiguraVec3.of(1, 1, 1);
+    private FiguraVec3 animPos = FiguraVec3.of();
+    private FiguraVec3 animRot = FiguraVec3.of();
+    private FiguraVec3 animScale = FiguraVec3.of(1, 1, 1);
     private boolean visible = true;
 
     public YsmModelPart(String name, YsmModelPart parent, float[] pivot, float[] rotation) {
@@ -157,16 +160,46 @@ public class YsmModelPart {
         return FiguraMat4.of();
     }
 
+    public void resetAnimPose() {
+        animPos = FiguraVec3.of();
+        animRot = FiguraVec3.of();
+        animScale = FiguraVec3.of(1, 1, 1);
+    }
+
+    public void addAnimPos(double x, double y, double z) {
+        animPos = animPos.copy().add(x, y, z);
+    }
+
+    public void addAnimRot(double x, double y, double z) {
+        animRot = animRot.copy().add(x, y, z);
+    }
+
+    public void mulAnimScale(double x, double y, double z) {
+        animScale = FiguraVec3.of(animScale.x * x, animScale.y * y, animScale.z * z);
+    }
+
     public FiguraVec3 posRaw() {
         return pos;
+    }
+
+    public FiguraVec3 animPosRaw() {
+        return animPos;
     }
 
     public FiguraVec3 rotRaw() {
         return rot;
     }
 
+    public FiguraVec3 animRotRaw() {
+        return animRot;
+    }
+
     public FiguraVec3 scaleRaw() {
         return scale;
+    }
+
+    public FiguraVec3 animScaleRaw() {
+        return animScale;
     }
 
     public boolean visibleRaw() {
