@@ -2,6 +2,7 @@ package org.figuramc.figura.avatar.ysm;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.UserData;
 import org.figuramc.figura.gui.FiguraToast;
@@ -21,6 +22,7 @@ public final class YsmAvatarLoader {
         CompletableFuture.runAsync(() -> {
             try {
                 YsmManifest manifest = YsmManifestReader.read(path);
+                YsmResourceIndex index = manifest.resourceIndex();
                 YsmTextureOption texture = selectTexture(path, manifest.textures(), manifest.defaultTexture());
                 CompoundTag nbt = new CompoundTag();
 
@@ -38,24 +40,34 @@ public final class YsmAvatarLoader {
 
                 CompoundTag ysm = new CompoundTag();
                 ysm.putString("kind", manifest.kind().name());
-                ysm.putByteArray("main_model", IOUtils.readFile(path.resolve(manifest.mainModelPath())).getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                ListTag animations = new ListTag();
-                for (String animationPath : manifest.animationPaths()) {
-                    Path resolved = path.resolve(animationPath);
-                    if (!java.nio.file.Files.exists(resolved))
-                        continue;
-                    CompoundTag animation = new CompoundTag();
-                    animation.putString("path", animationPath);
-                    animation.putByteArray("data", IOUtils.readFile(resolved).getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                    animations.add(animation);
+                try (YsmPackage ysmPackage = YsmPackage.open(path)) {
+                    String mainModelPath = index.hasMainModel() ? index.mainModelPath() : manifest.mainModelPath();
+                    ysm.putString("main_model_path", mainModelPath);
+                    ysm.putByteArray("main_model", ysmPackage.readString(mainModelPath).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+                    if (index.hasArmModel()) {
+                        ysm.putString("arm_model_path", index.armModelPath());
+                        ysm.putByteArray("arm_model", ysmPackage.readString(index.armModelPath()).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    }
+
+                    ListTag animations = new ListTag();
+                    for (String animationPath : index.animationPaths()) {
+                        if (!ysmPackage.exists(animationPath))
+                            continue;
+                        CompoundTag animation = new CompoundTag();
+                        animation.putString("path", animationPath);
+                        animation.putByteArray("data", ysmPackage.readString(animationPath).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                        animations.add(animation);
+                    }
+                    ysm.put("animations", animations);
+
+                    if (texture != null) {
+                        ysm.putString("texture_id", texture.id());
+                        if (ysmPackage.exists(texture.path()))
+                            ysm.putByteArray("texture", ysmPackage.readBytes(texture.path()));
+                    }
                 }
-                ysm.put("animations", animations);
-                if (texture != null) {
-                    Path texturePath = path.resolve(texture.path());
-                    ysm.putString("texture_id", texture.id());
-                    if (java.nio.file.Files.exists(texturePath))
-                        ysm.putByteArray("texture", IOUtils.readFileBytes(texturePath));
-                }
+                ysm.put("resource_index", toNbt(index));
                 nbt.put("ysm", ysm);
 
                 target.loadAvatar(nbt);
@@ -81,5 +93,25 @@ public final class YsmAvatarLoader {
                     return texture;
         }
         return textures.get(0);
+    }
+
+    private static CompoundTag toNbt(YsmResourceIndex index) {
+        CompoundTag tag = new CompoundTag();
+        tag.putString("main_model", index.mainModelPath());
+        tag.putString("arm_model", index.armModelPath());
+        tag.put("animations", strings(index.animationPaths()));
+        tag.put("textures", strings(index.texturePaths()));
+        tag.put("sounds", strings(index.soundPaths()));
+        tag.putString("icon", index.iconPath());
+        tag.putString("background", index.backgroundPath());
+        tag.put("metadata", strings(index.metadataPaths()));
+        return tag;
+    }
+
+    private static ListTag strings(List<String> values) {
+        ListTag tag = new ListTag();
+        for (String value : values)
+            tag.add(StringTag.valueOf(value));
+        return tag;
     }
 }

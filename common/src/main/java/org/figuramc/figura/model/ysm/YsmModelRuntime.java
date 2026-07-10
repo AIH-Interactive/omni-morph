@@ -7,6 +7,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.LivingEntity;
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.math.matrix.FiguraMat4;
 import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import org.figuramc.figura.model.ysm.animation.YsmAnimationClip;
@@ -26,6 +27,8 @@ public class YsmModelRuntime implements AutoCloseable {
     private final YsmGeometry geometry;
     private final FiguraTexture texture;
     private final Map<String, YsmModelPart> parts = new LinkedHashMap<>();
+    private final Map<String, YsmBoneRole> boneRoles = new LinkedHashMap<>();
+    private final Map<String, YsmLocator> locators = new LinkedHashMap<>();
     private final YsmRenderer renderer;
     private final YsmAnimationPlayer animationPlayer;
     private final String textureId;
@@ -78,7 +81,15 @@ public class YsmModelRuntime implements AutoCloseable {
         YsmGeometry.Bone parentBone = bone.parentName == null || bone.parentName.isBlank() ? null : geometry.bones.get(bone.parentName);
         YsmModelPart parent = parentBone == null ? null : buildPart(parentBone);
         YsmModelPart part = new YsmModelPart(bone.name, parent, bone.pivot, bone.rotation);
-        if (YsmBoneClassifier.isNonBodyBranch(bone))
+        YsmBoneRole role = YsmBoneMapper.roleOf(bone);
+        boneRoles.put(bone.name, role);
+        boneRoles.putIfAbsent(bone.name.toLowerCase(java.util.Locale.US), role);
+        YsmLocator locator = YsmBoneMapper.locatorOf(bone);
+        if (locator != null) {
+            locators.put(locator.name(), locator);
+            locators.putIfAbsent(locator.name().toLowerCase(java.util.Locale.US), locator);
+        }
+        if (!YsmBoneMapper.isBodyVisibleByDefault(bone))
             part.setVisible(false);
         parts.put(bone.name, part);
         parts.putIfAbsent(bone.name.toLowerCase(java.util.Locale.US), part);
@@ -124,8 +135,33 @@ public class YsmModelRuntime implements AutoCloseable {
         return new LinkedHashSet<>(parts.values());
     }
 
+    public YsmBoneRole roleOf(String boneName) {
+        if (boneName == null)
+            return YsmBoneRole.UNKNOWN;
+        YsmBoneRole role = boneRoles.get(boneName);
+        return role != null ? role : boneRoles.getOrDefault(boneName.toLowerCase(java.util.Locale.US), YsmBoneRole.UNKNOWN);
+    }
+
+    public YsmLocator getLocator(String name) {
+        if (name == null)
+            return null;
+        YsmLocator locator = locators.get(name);
+        return locator != null ? locator : locators.get(name.toLowerCase(java.util.Locale.US));
+    }
+
+    public Iterable<YsmLocator> locators() {
+        return new LinkedHashSet<>(locators.values());
+    }
+
     public void updateAnimations(LivingEntityRenderState state, LivingEntity entity) {
         animationPlayer.update(state, entity);
+    }
+
+    public void updateWorldMatrices(PoseStack stack) {
+        if (stack == null)
+            return;
+        for (YsmGeometry.Bone root : geometry.roots)
+            updateWorldMatrix(root, stack);
     }
 
     public boolean applyHandItemTransform(PoseStack stack, boolean left) {
@@ -149,11 +185,27 @@ public class YsmModelRuntime implements AutoCloseable {
     }
 
     private YsmGeometry.Bone findHandBone(boolean left) {
+        YsmGeometry.Bone locator = findHandLocator(left);
+        if (locator != null)
+            return locator;
+
         String side = left ? "Left" : "Right";
         for (String name : List.of(side + "HandLocator", side + "Item", side + "Hand", side + "Palm", side + "Wrist", side + "ForeArm", side + "LowerArm", side + "Arm")) {
             YsmGeometry.Bone bone = getBoneIgnoreCase(name);
             if (bone != null)
                 return bone;
+        }
+        return null;
+    }
+
+    private YsmGeometry.Bone findHandLocator(boolean left) {
+        YsmBoneRole role = left ? YsmBoneRole.LEFT_HAND : YsmBoneRole.RIGHT_HAND;
+        for (YsmLocator locator : new LinkedHashSet<>(locators.values())) {
+            if (locator.role() == role && locator.leftSide() == left) {
+                YsmGeometry.Bone bone = geometry.bones.get(locator.boneName());
+                if (bone != null)
+                    return bone;
+            }
         }
         return null;
     }
@@ -171,6 +223,17 @@ public class YsmModelRuntime implements AutoCloseable {
 
     private void applyBoneChain(PoseStack stack, YsmGeometry.Bone bone) {
         applyBoneChain(stack, bone, false);
+    }
+
+    private void updateWorldMatrix(YsmGeometry.Bone bone, PoseStack stack) {
+        YsmModelPart part = getPart(bone.name);
+        stack.pushPose();
+        applyBoneTransform(stack, bone);
+        if (part != null)
+            part.setWorldMatrix(FiguraMat4.of().set(stack.last().pose()));
+        for (YsmGeometry.Bone child : bone.children)
+            updateWorldMatrix(child, stack);
+        stack.popPose();
     }
 
     private void applyBoneChain(PoseStack stack, YsmGeometry.Bone bone, boolean locatorMode) {
