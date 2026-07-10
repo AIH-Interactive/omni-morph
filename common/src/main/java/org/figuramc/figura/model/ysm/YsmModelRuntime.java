@@ -7,6 +7,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.LivingEntity;
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.math.matrix.FiguraMat4;
 import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import org.figuramc.figura.model.ysm.animation.YsmAnimationClip;
@@ -156,6 +157,13 @@ public class YsmModelRuntime implements AutoCloseable {
         animationPlayer.update(state, entity);
     }
 
+    public void updateWorldMatrices(PoseStack stack) {
+        if (stack == null)
+            return;
+        for (YsmGeometry.Bone root : geometry.roots)
+            updateWorldMatrix(root, stack);
+    }
+
     public boolean applyHandItemTransform(PoseStack stack, boolean left) {
         YsmGeometry.Bone bone = findHandBone(left);
         stack.scale(0.9375f, 0.9375f, 0.9375f);
@@ -215,6 +223,17 @@ public class YsmModelRuntime implements AutoCloseable {
 
     private void applyBoneChain(PoseStack stack, YsmGeometry.Bone bone) {
         applyBoneChain(stack, bone, false);
+    }
+
+    private void updateWorldMatrix(YsmGeometry.Bone bone, PoseStack stack) {
+        YsmModelPart part = getPart(bone.name);
+        stack.pushPose();
+        applyBoneTransform(stack, bone);
+        if (part != null)
+            part.setWorldMatrix(FiguraMat4.of().set(stack.last().pose()));
+        for (YsmGeometry.Bone child : bone.children)
+            updateWorldMatrix(child, stack);
+        stack.popPose();
     }
 
     private void applyBoneChain(PoseStack stack, YsmGeometry.Bone bone, boolean locatorMode) {

@@ -26,6 +26,7 @@ public class YsmModelPart {
     private FiguraVec3 animPos = FiguraVec3.of();
     private FiguraVec3 animRot = FiguraVec3.of();
     private FiguraVec3 animScale = FiguraVec3.of(1, 1, 1);
+    private FiguraMat4 worldMatrix = FiguraMat4.of();
     private boolean visible = true;
 
     public YsmModelPart(String name, YsmModelPart parent, float[] pivot, float[] rotation) {
@@ -157,7 +158,13 @@ public class YsmModelPart {
     @LuaWhitelist
     @LuaMethodDoc("ysm_model_part.get_world_matrix")
     public FiguraMat4 getWorldMatrix() {
-        return FiguraMat4.of();
+        return worldMatrix.copy();
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_model_part.get_world_pos")
+    public FiguraVec3 getWorldPos() {
+        return worldMatrix.apply(0d, 0d, 0d);
     }
 
     public void resetAnimPose() {
@@ -204,6 +211,10 @@ public class YsmModelPart {
 
     public boolean visibleRaw() {
         return visible;
+    }
+
+    public void setWorldMatrix(FiguraMat4 worldMatrix) {
+        this.worldMatrix = worldMatrix == null ? FiguraMat4.of() : worldMatrix.copy();
     }
 
     @Override

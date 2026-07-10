@@ -30,6 +30,7 @@ public class YsmRenderer {
 
         stack.pushPose();
         stack.scale(0.9375f, 0.9375f, 0.9375f);
+        runtime.updateWorldMatrices(stack);
         for (YsmGeometry.Bone root : runtime.geometry().roots)
             renderBone(root, stack, vertices, light, mask);
         stack.popPose();
