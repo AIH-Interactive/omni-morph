@@ -1,9 +1,11 @@
 package org.figuramc.figura.mixin.render.renderers;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.ItemInHandRenderer;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.HumanoidArm;
@@ -20,6 +22,7 @@ import org.figuramc.figura.ducks.SkullBlockRendererAccessor;
 import org.figuramc.figura.lua.api.vanilla_model.VanillaModelPart;
 import org.figuramc.figura.math.matrix.FiguraMat4;
 import org.figuramc.figura.model.rendering.EntityRenderMode;
+import org.figuramc.figura.model.ysm.YsmModelRuntime;
 import org.figuramc.figura.utils.RenderUtils;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -27,8 +30,6 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import java.util.BitSet;
 
 @Mixin(ItemInHandRenderer.class)
 public abstract class ItemInHandRendererMixin {
@@ -40,7 +41,6 @@ public abstract class ItemInHandRendererMixin {
 
     @Unique Avatar avatar;
 
-    // apparently hands are basically still immediate mode, wow thanks game...
     @Inject(method = "renderHandsWithItems", at = @At("HEAD"))
     private void onRenderHandsWithItems(float tickDelta, PoseStack matrices, SubmitNodeCollector submitNodeCollector, LocalPlayer player, int light, CallbackInfo ci) {
         avatar = AvatarManager.getAvatarForPlayer(player.getUUID());
@@ -66,15 +66,58 @@ public abstract class ItemInHandRendererMixin {
         avatar.postRenderEvent(tickDelta, new FiguraMat4().set(matrices.last().pose()));
         avatar = null;
         FiguraMod.popProfiler(3);
-
     }
 
     @Inject(method = "renderArmWithItem", at = @At("HEAD"), cancellable = true)
     private void renderArmWithItem(AbstractClientPlayer player, float tickDelta, float pitch, InteractionHand hand, float swingProgress, ItemStack item, float equipProgress, PoseStack matrices, SubmitNodeCollector submitNodeCollector, int light, CallbackInfo ci) {
-        if (player.isScoping() || avatar == null || avatar.luaRuntime == null)
+        if (player.isScoping())
             return;
 
-        boolean main = hand ==InteractionHand.MAIN_HAND;
+        // YSM first-person: block vanilla arm and item rendering, submit YSM arm directly.
+        // submitFiguraModel doesn't work here because FiguraFeatureRenderer only
+        // processes submissions during entity (third-person) rendering, not first-person.
+        if (avatar != null && avatar.isYsmNative()) {
+            YsmModelRuntime ysm = avatar.getYsmRuntime();
+            if (ysm != null) {
+                boolean main = hand == InteractionHand.MAIN_HAND;
+                HumanoidArm arm = main ? player.getMainArm() : player.getMainArm().getOpposite();
+                boolean left = arm == HumanoidArm.LEFT;
+
+                // Let vanilla handle the item rendering when the player holds an item.
+                // We only replace the ARM geometry.
+                if (!player.isInvisible()) {
+                    final PoseStack fpStack = new PoseStack();
+                    fpStack.pushPose();
+                    fpStack.last().set(matrices.last());
+
+                    try {
+                        MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
+                        ysm.renderFirstPersonArm(fpStack, bufferSource, light, left);
+                        bufferSource.endBatch();
+                    } catch (Exception e) {
+                        FiguraMod.LOGGER.error("Failed to render YSM first-person arm", e);
+                    }
+                }
+
+                if (!item.isEmpty()) {
+                    // Player is holding an item — let vanilla render the item.
+                    // Don't cancel; vanilla will render the item (but not the arm,
+                    // because the player model's arm visibility is already hidden).
+                    // We need to prevent vanilla from rendering its own arm though.
+                    // Pass through: vanilla renderArmWithItem renders both arm+item,
+                    // but if we already rendered the YSM arm above, the item will
+                    // still render over it.
+                    return;
+                }
+                ci.cancel();
+                return;
+            }
+        }
+
+        if (avatar == null || avatar.luaRuntime == null)
+            return;
+
+        boolean main = hand == InteractionHand.MAIN_HAND;
         HumanoidArm arm = main ? player.getMainArm() : player.getMainArm().getOpposite();
         Boolean armVisible = arm == HumanoidArm.LEFT ? avatar.luaRuntime.renderer.renderLeftArm : avatar.luaRuntime.renderer.renderRightArm;
 
@@ -109,8 +152,8 @@ public abstract class ItemInHandRendererMixin {
                 case FIRST_PERSON_RIGHT_HAND -> SkullBlockRendererAccessor.SkullRenderMode.FIRST_PERSON_RIGHT_HAND;
                 case THIRD_PERSON_LEFT_HAND -> SkullBlockRendererAccessor.SkullRenderMode.THIRD_PERSON_LEFT_HAND;
                 case THIRD_PERSON_RIGHT_HAND -> SkullBlockRendererAccessor.SkullRenderMode.THIRD_PERSON_RIGHT_HAND;
-                default -> itemDisplayContext.leftHand() ? SkullBlockRendererAccessor.SkullRenderMode.THIRD_PERSON_LEFT_HAND // should never happen
-                        : SkullBlockRendererAccessor.SkullRenderMode.THIRD_PERSON_RIGHT_HAND; 
+                default -> itemDisplayContext.leftHand() ? SkullBlockRendererAccessor.SkullRenderMode.THIRD_PERSON_LEFT_HAND
+                        : SkullBlockRendererAccessor.SkullRenderMode.THIRD_PERSON_RIGHT_HAND;
             });
         }
     }

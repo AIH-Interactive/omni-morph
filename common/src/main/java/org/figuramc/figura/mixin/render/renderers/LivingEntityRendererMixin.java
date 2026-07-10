@@ -103,6 +103,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
                 if (avatar.getYsmRuntime() != null) {
                     avatar.getYsmRuntime().updateAnimations(state, livingEntity);
                     avatar.getYsmRuntime().renderer().render(ysmStack, bufferSource, state.lightCoords);
+                    avatar.getYsmRuntime().renderer().renderAttachments(ysmStack, bufferSource, state.lightCoords);
                     if (livingEntity != null)
                         figura$submitYsmHandItems(avatar, livingEntity, ysmStack, submitNodeCollector, state.lightCoords, state.outlineColor);
                 }
