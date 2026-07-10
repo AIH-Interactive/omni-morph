@@ -4,11 +4,14 @@ import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.lua.LuaWhitelist;
 import org.figuramc.figura.lua.docs.LuaMethodDoc;
 import org.figuramc.figura.lua.docs.LuaTypeDoc;
+import org.figuramc.figura.model.ysm.YsmLocator;
 import org.figuramc.figura.model.ysm.YsmModelPart;
 import org.figuramc.figura.model.ysm.YsmModelRuntime;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.List;
 
 @LuaWhitelist
 @LuaTypeDoc(name = "YsmModelAPI", value = "ysm_model")
@@ -31,6 +34,51 @@ public class YsmModelAPI {
     public Collection<YsmModelPart> getParts() {
         YsmModelRuntime runtime = owner.getYsmRuntime();
         return runtime == null ? java.util.List.of() : new LinkedHashSet<>(runtime.parts().values());
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_model.get_root_parts")
+    public List<YsmModelPart> getRootParts() {
+        YsmModelRuntime runtime = owner.getYsmRuntime();
+        return runtime == null ? java.util.List.of() : runtime.rootParts();
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_model.get_locator")
+    public YsmLocator getLocator(String name) {
+        YsmModelRuntime runtime = owner.getYsmRuntime();
+        return runtime == null ? null : runtime.getLocator(name);
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_model.get_locators")
+    public List<YsmLocator> getLocators() {
+        YsmModelRuntime runtime = owner.getYsmRuntime();
+        if (runtime == null)
+            return java.util.List.of();
+        List<YsmLocator> result = new ArrayList<>();
+        runtime.locators().forEach(result::add);
+        return result;
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_model.get_texture")
+    public String getTexture() {
+        YsmModelRuntime runtime = owner.getYsmRuntime();
+        return runtime == null ? "" : runtime.textureId();
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_model.is_ysm")
+    public boolean isYsm() {
+        return owner.isYsmNative();
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_model.get_kind")
+    public String getKind() {
+        YsmModelRuntime runtime = owner.getYsmRuntime();
+        return runtime == null ? "none" : runtime.getKind().toLowerCase(java.util.Locale.US);
     }
 
     @LuaWhitelist

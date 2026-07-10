@@ -25,6 +25,17 @@ public class YsmPartMask {
             YsmBoneRole.FIRST_PERSON_ARM
     ));
 
+    public static final YsmPartMask ATTACHMENTS = new YsmPartMask(EnumSet.of(
+            YsmBoneRole.BACKPACK,
+            YsmBoneRole.BLADE,
+            YsmBoneRole.SHEATH,
+            YsmBoneRole.ELYTRA,
+            YsmBoneRole.HEAD,
+            YsmBoneRole.HELMET,
+            YsmBoneRole.LEFT_HAND,
+            YsmBoneRole.RIGHT_HAND
+    ));
+
     public static final YsmPartMask DEBUG_ALL = new YsmPartMask(EnumSet.allOf(YsmBoneRole.class));
 
     private final Set<YsmBoneRole> roles;
@@ -37,6 +48,7 @@ public class YsmPartMask {
         return switch (pass) {
             case HELD_ITEM -> HELD_ITEM;
             case FIRST_PERSON_ARM -> FIRST_PERSON_ARM;
+            case ATTACHMENTS -> ATTACHMENTS;
             case DEBUG_ALL, WARDROBE_PREVIEW -> DEBUG_ALL;
             case PLAYER_BODY -> PLAYER_BODY;
         };

@@ -167,6 +167,16 @@ public class YsmModelPart {
         return worldMatrix.apply(0d, 0d, 0d);
     }
 
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_model_part.reset_pose")
+    public YsmModelPart resetPose() {
+        this.pos = FiguraVec3.of();
+        this.rot = FiguraVec3.of();
+        this.scale = FiguraVec3.of(1, 1, 1);
+        resetAnimPose();
+        return this;
+    }
+
     public void resetAnimPose() {
         animPos = FiguraVec3.of();
         animRot = FiguraVec3.of();
