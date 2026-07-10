@@ -17,6 +17,10 @@ public class YsmRenderer {
     }
 
     public boolean render(PoseStack stack, MultiBufferSource bufferSource, int light) {
+        return render(stack, bufferSource, light, YsmPartMask.forPass(YsmRenderPass.PLAYER_BODY));
+    }
+
+    public boolean render(PoseStack stack, MultiBufferSource bufferSource, int light, YsmPartMask mask) {
         if (runtime.geometry().roots.isEmpty())
             return false;
 
@@ -27,14 +31,16 @@ public class YsmRenderer {
         stack.pushPose();
         stack.scale(0.9375f, 0.9375f, 0.9375f);
         for (YsmGeometry.Bone root : runtime.geometry().roots)
-            renderBone(root, stack, vertices, light);
+            renderBone(root, stack, vertices, light, mask);
         stack.popPose();
         return true;
     }
 
-    private void renderBone(YsmGeometry.Bone bone, PoseStack stack, VertexConsumer vertices, int light) {
+    private void renderBone(YsmGeometry.Bone bone, PoseStack stack, VertexConsumer vertices, int light, YsmPartMask mask) {
         YsmModelPart part = runtime.getPart(bone.name);
         if (part != null && !part.visibleRaw())
+            return;
+        if (mask != null && !mask.allows(runtime.roleOf(bone.name)))
             return;
 
         stack.pushPose();
@@ -42,7 +48,7 @@ public class YsmRenderer {
         for (YsmGeometry.Cube cube : bone.cubes)
             renderCube(cube, stack, vertices, light);
         for (YsmGeometry.Bone child : bone.children)
-            renderBone(child, stack, vertices, light);
+            renderBone(child, stack, vertices, light, mask);
         stack.popPose();
     }
 
