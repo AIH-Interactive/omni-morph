@@ -14,16 +14,19 @@ public final class YsmAvatarDetector {
     public static YsmAvatarKind kind(Path path) {
         if (path == null || !Files.exists(path))
             return YsmAvatarKind.NONE;
-        Path manifest = path.resolve("ysm.json");
-        if (Files.exists(manifest) && !Files.isDirectory(manifest))
-            return YsmAvatarKind.NEW;
-        Path main = path.resolve("main.json");
-        if (Files.exists(main) && !Files.isDirectory(main)) {
-            try {
-                if (org.figuramc.figura.utils.IOUtils.readFile(main).contains("minecraft:geometry"))
-                    return YsmAvatarKind.OLD;
-            } catch (Exception ignored) {
+        try (YsmPackage ysmPackage = YsmPackage.open(path)) {
+            Path manifest = ysmPackage.resolve("ysm.json");
+            if (Files.exists(manifest) && !Files.isDirectory(manifest))
+                return YsmAvatarKind.NEW;
+            Path main = ysmPackage.resolve("main.json");
+            if (Files.exists(main) && !Files.isDirectory(main)) {
+                try {
+                    if (org.figuramc.figura.utils.IOUtils.readFile(main).contains("minecraft:geometry"))
+                        return YsmAvatarKind.OLD;
+                } catch (Exception ignored) {
+                }
             }
+        } catch (Exception ignored) {
         }
         return YsmAvatarKind.NONE;
     }

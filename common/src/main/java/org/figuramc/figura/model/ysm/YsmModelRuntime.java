@@ -7,6 +7,7 @@ import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.LivingEntity;
+import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.ysm.YsmAvatarKind;
 import org.figuramc.figura.math.matrix.FiguraMat4;
@@ -28,23 +29,31 @@ public class YsmModelRuntime implements AutoCloseable {
     private final Avatar owner;
     private final YsmGeometry geometry;
     private YsmGeometry armGeometry;
-    private final FiguraTexture texture;
+    private FiguraTexture texture;
+    private String textureId;
+    private final Map<String, byte[]> textureData;
     private final Map<String, YsmModelPart> parts = new LinkedHashMap<>();
+    private final Map<String, YsmModelPart> armParts = new LinkedHashMap<>();
     private final Map<String, YsmBoneRole> boneRoles = new LinkedHashMap<>();
+    private final Map<String, YsmBoneRole> armBoneRoles = new LinkedHashMap<>();
     private final Map<String, YsmLocator> locators = new LinkedHashMap<>();
+    private final Map<String, YsmAttachmentPoint> attachmentPoints = new LinkedHashMap<>();
+    private final Map<String, FiguraMat4> locatorWorldMatrices = new LinkedHashMap<>();
     private final YsmRenderer renderer;
     private final YsmAnimationPlayer animationPlayer;
-    private final String textureId;
     private final String kind;
 
-    private YsmModelRuntime(Avatar owner, YsmGeometry geometry, YsmGeometry armGeometry, FiguraTexture texture, String textureId, String kind) {
+    private YsmModelRuntime(Avatar owner, YsmGeometry geometry, YsmGeometry armGeometry, FiguraTexture texture, String textureId, String kind, Map<String, byte[]> textureData) {
         this.owner = owner;
         this.geometry = geometry;
         this.armGeometry = armGeometry;
         this.texture = texture;
         this.textureId = textureId;
+        this.textureData = textureData == null ? Map.of() : Map.copyOf(textureData);
         this.kind = kind != null ? kind : YsmAvatarKind.NONE.name();
         buildParts();
+        buildAttachmentPoints();
+        dumpDebugInfo();
         this.renderer = new YsmRenderer(this);
         this.animationPlayer = new YsmAnimationPlayer(this);
     }
@@ -54,22 +63,64 @@ public class YsmModelRuntime implements AutoCloseable {
         if (mainJson.isBlank())
             throw new java.io.IOException("YSM main model is empty");
         YsmGeometry geometry = YsmGeometryParser.parse(mainJson);
+        YsmModelValidator.validateAndLog(tag.getStringOr("main_model_path", "main_model"), geometry);
 
         YsmGeometry armGeometry = null;
         String armJson = new String(tag.getByteArray("arm_model").orElse(new byte[0]), StandardCharsets.UTF_8);
         if (!armJson.isBlank()) {
             try {
                 armGeometry = YsmGeometryParser.parse(armJson);
+                YsmModelValidator.validateAndLog(tag.getStringOr("arm_model_path", "arm_model"), armGeometry);
             } catch (Exception ignored) {
             }
         }
 
         byte[] textureBytes = tag.getByteArray("texture").orElse(new byte[0]);
-        FiguraTexture texture = new FiguraTexture(owner, tag.getStringOr("texture_id", "ysm_texture"), textureBytes.length == 0 ? onePixelPng() : textureBytes);
+        Map<String, byte[]> textureData = readTextureEntries(tag);
+        String textureId = tag.getStringOr("texture_id", "ysm_texture");
+        byte[] selectedTexture = textureData.getOrDefault(textureId, textureBytes);
+        FiguraTexture texture = new FiguraTexture(owner, textureId, selectedTexture.length == 0 ? onePixelPng() : selectedTexture);
         String kind = tag.getStringOr("kind", YsmAvatarKind.NONE.name());
-        YsmModelRuntime runtime = new YsmModelRuntime(owner, geometry, armGeometry, texture, tag.getStringOr("texture_id", ""), kind);
+        YsmModelRuntime runtime = new YsmModelRuntime(owner, geometry, armGeometry, texture, textureId, kind, textureData);
         runtime.animationPlayer.registerAnimations(readAnimations(tag));
         return runtime;
+    }
+
+    private static Map<String, byte[]> readTextureEntries(CompoundTag tag) {
+        Map<String, byte[]> result = new LinkedHashMap<>();
+        for (Tag textureTag : tag.getListOrEmpty("texture_entries")) {
+            if (!(textureTag instanceof CompoundTag texture))
+                continue;
+            byte[] data = texture.getByteArray("data").orElse(new byte[0]);
+            if (data.length == 0)
+                continue;
+            registerTextureKey(result, texture.getStringOr("id", ""), data);
+            registerTextureKey(result, texture.getStringOr("path", ""), data);
+        }
+        byte[] fallback = tag.getByteArray("texture").orElse(new byte[0]);
+        if (fallback.length > 0)
+            registerTextureKey(result, tag.getStringOr("texture_id", "ysm_texture"), fallback);
+        return result;
+    }
+
+    private static void registerTextureKey(Map<String, byte[]> result, String key, byte[] data) {
+        if (key == null || key.isBlank())
+            return;
+        result.putIfAbsent(key, data);
+        result.putIfAbsent(key.toLowerCase(java.util.Locale.US), data);
+        String normalized = key.replace('\\', '/');
+        result.putIfAbsent(normalized, data);
+        result.putIfAbsent(normalized.toLowerCase(java.util.Locale.US), data);
+        int slash = normalized.lastIndexOf('/');
+        String fileName = slash >= 0 ? normalized.substring(slash + 1) : normalized;
+        result.putIfAbsent(fileName, data);
+        result.putIfAbsent(fileName.toLowerCase(java.util.Locale.US), data);
+        int dot = fileName.lastIndexOf('.');
+        if (dot > 0) {
+            String stem = fileName.substring(0, dot);
+            result.putIfAbsent(stem, data);
+            result.putIfAbsent(stem.toLowerCase(java.util.Locale.US), data);
+        }
     }
 
     private static Map<String, YsmAnimationClip> readAnimations(CompoundTag tag) {
@@ -87,29 +138,31 @@ public class YsmModelRuntime implements AutoCloseable {
 
     private void buildParts() {
         for (YsmGeometry.Bone bone : geometry.bones.values())
-            buildPart(bone);
+            buildPart(bone, geometry, parts, boneRoles, locators);
+        if (armGeometry != null) {
+            for (YsmGeometry.Bone bone : armGeometry.bones.values())
+                buildPart(bone, armGeometry, armParts, armBoneRoles, null);
+        }
     }
 
-    private YsmModelPart buildPart(YsmGeometry.Bone bone) {
-        YsmModelPart existing = parts.get(bone.name);
+    private YsmModelPart buildPart(YsmGeometry.Bone bone, YsmGeometry sourceGeometry, Map<String, YsmModelPart> targetParts, Map<String, YsmBoneRole> targetRoles, Map<String, YsmLocator> targetLocators) {
+        YsmModelPart existing = targetParts.get(bone.name);
         if (existing != null)
             return existing;
 
-        YsmGeometry.Bone parentBone = bone.parentName == null || bone.parentName.isBlank() ? null : geometry.bones.get(bone.parentName);
-        YsmModelPart parent = parentBone == null ? null : buildPart(parentBone);
+        YsmGeometry.Bone parentBone = bone.parentName == null || bone.parentName.isBlank() ? null : sourceGeometry.bones.get(bone.parentName);
+        YsmModelPart parent = parentBone == null ? null : buildPart(parentBone, sourceGeometry, targetParts, targetRoles, targetLocators);
         YsmModelPart part = new YsmModelPart(bone.name, parent, bone.pivot, bone.rotation);
         YsmBoneRole role = YsmBoneMapper.roleOf(bone);
-        boneRoles.put(bone.name, role);
-        boneRoles.putIfAbsent(bone.name.toLowerCase(java.util.Locale.US), role);
+        targetRoles.put(bone.name, role);
+        targetRoles.putIfAbsent(bone.name.toLowerCase(java.util.Locale.US), role);
         YsmLocator locator = YsmBoneMapper.locatorOf(bone);
-        if (locator != null) {
-            locators.put(locator.name(), locator);
-            locators.putIfAbsent(locator.name().toLowerCase(java.util.Locale.US), locator);
+        if (targetLocators != null && locator != null) {
+            targetLocators.put(locator.name(), locator);
+            targetLocators.putIfAbsent(locator.name().toLowerCase(java.util.Locale.US), locator);
         }
-        if (!YsmBoneMapper.isBodyVisibleByDefault(bone))
-            part.setVisible(false);
-        parts.put(bone.name, part);
-        parts.putIfAbsent(bone.name.toLowerCase(java.util.Locale.US), part);
+        targetParts.put(bone.name, part);
+        targetParts.putIfAbsent(bone.name.toLowerCase(java.util.Locale.US), part);
         return part;
     }
 
@@ -137,6 +190,23 @@ public class YsmModelRuntime implements AutoCloseable {
         return textureId;
     }
 
+    public boolean setTexture(String id) {
+        if (id == null || id.isBlank())
+            return false;
+        byte[] data = textureData.get(id);
+        if (data == null)
+            data = textureData.get(id.toLowerCase(java.util.Locale.US));
+        if (data == null)
+            return false;
+        if (id.equals(textureId))
+            return true;
+        FiguraTexture previous = texture;
+        texture = new FiguraTexture(owner, id, data);
+        textureId = id;
+        previous.close();
+        return true;
+    }
+
     public String getKind() {
         return kind;
     }
@@ -156,12 +226,40 @@ public class YsmModelRuntime implements AutoCloseable {
         return part != null ? part : parts.get(name.toLowerCase(java.util.Locale.US));
     }
 
+    public YsmModelPart getArmPart(String name) {
+        if (name == null)
+            return null;
+        YsmModelPart part = armParts.get(name);
+        if (part == null)
+            part = armParts.get(name.toLowerCase(java.util.Locale.US));
+        return part != null ? part : getPart(name);
+    }
+
+    public List<YsmModelPart> getAnimationParts(String name) {
+        List<YsmModelPart> result = new ArrayList<>();
+        addPart(result, parts, name);
+        addPart(result, armParts, name);
+        return result;
+    }
+
+    private static void addPart(List<YsmModelPart> result, Map<String, YsmModelPart> source, String name) {
+        if (name == null)
+            return;
+        YsmModelPart part = source.get(name);
+        if (part == null)
+            part = source.get(name.toLowerCase(java.util.Locale.US));
+        if (part != null && !result.contains(part))
+            result.add(part);
+    }
+
     public Map<String, YsmModelPart> parts() {
         return parts;
     }
 
     public Iterable<YsmModelPart> uniqueParts() {
-        return new LinkedHashSet<>(parts.values());
+        LinkedHashSet<YsmModelPart> result = new LinkedHashSet<>(parts.values());
+        result.addAll(armParts.values());
+        return result;
     }
 
     public List<YsmModelPart> rootParts() {
@@ -178,7 +276,20 @@ public class YsmModelRuntime implements AutoCloseable {
         if (boneName == null)
             return YsmBoneRole.UNKNOWN;
         YsmBoneRole role = boneRoles.get(boneName);
-        return role != null ? role : boneRoles.getOrDefault(boneName.toLowerCase(java.util.Locale.US), YsmBoneRole.UNKNOWN);
+        if (role != null)
+            return role;
+        role = boneRoles.get(boneName.toLowerCase(java.util.Locale.US));
+        return role != null ? role : YsmBoneMapper.roleOfName(boneName);
+    }
+
+    public YsmBoneRole armRoleOf(String boneName) {
+        if (boneName == null)
+            return YsmBoneRole.UNKNOWN;
+        YsmBoneRole role = armBoneRoles.get(boneName);
+        if (role != null)
+            return role;
+        role = armBoneRoles.get(boneName.toLowerCase(java.util.Locale.US));
+        return role != null ? role : roleOf(boneName);
     }
 
     public YsmLocator getLocator(String name) {
@@ -192,6 +303,49 @@ public class YsmModelRuntime implements AutoCloseable {
         return new LinkedHashSet<>(locators.values());
     }
 
+    public FiguraMat4 getBoneWorldMatrix(String boneName) {
+        YsmModelPart part = getPart(boneName);
+        return part == null ? FiguraMat4.of() : part.getWorldMatrix();
+    }
+
+    public FiguraVec3 getBoneWorldPos(String boneName) {
+        YsmModelPart part = getPart(boneName);
+        return part == null ? FiguraVec3.of() : part.getWorldPos();
+    }
+
+    public FiguraMat4 getLocatorWorldMatrix(String name) {
+        YsmLocator locator = getLocator(name);
+        return locator == null ? FiguraMat4.of() : getLocatorBoneWorldMatrix(locator.boneName());
+    }
+
+    public FiguraVec3 getLocatorWorldPos(String name) {
+        YsmLocator locator = getLocator(name);
+        return locator == null ? FiguraVec3.of() : getLocatorWorldMatrix(name).apply(0d, 0d, 0d);
+    }
+
+    public YsmAttachmentPoint getAttachmentPoint(String name) {
+        if (name == null)
+            return null;
+        YsmAttachmentPoint point = attachmentPoints.get(name);
+        return point != null ? point : attachmentPoints.get(name.toLowerCase(java.util.Locale.US));
+    }
+
+    public Iterable<YsmAttachmentPoint> attachmentPoints() {
+        return new LinkedHashSet<>(attachmentPoints.values());
+    }
+
+    public FiguraMat4 getAttachmentWorldMatrix(String name) {
+        YsmAttachmentPoint point = getAttachmentPoint(name);
+        if (point == null)
+            return FiguraMat4.of();
+        return point.locator() == null ? getBoneWorldMatrix(point.boneName()) : getLocatorBoneWorldMatrix(point.boneName());
+    }
+
+    public FiguraVec3 getAttachmentWorldPos(String name) {
+        YsmAttachmentPoint point = getAttachmentPoint(name);
+        return point == null ? FiguraVec3.of() : getAttachmentWorldMatrix(name).apply(0d, 0d, 0d);
+    }
+
     public void updateAnimations(LivingEntityRenderState state, LivingEntity entity) {
         animationPlayer.update(state, entity);
     }
@@ -199,6 +353,7 @@ public class YsmModelRuntime implements AutoCloseable {
     public void updateWorldMatrices(PoseStack stack) {
         if (stack == null)
             return;
+        locatorWorldMatrices.clear();
         for (YsmGeometry.Bone root : geometry.roots)
             updateWorldMatrix(root, stack);
     }
@@ -207,14 +362,30 @@ public class YsmModelRuntime implements AutoCloseable {
         return renderer.renderFirstPersonArm(stack, bufferSource, light, left);
     }
 
-    public boolean applyHandItemTransform(PoseStack stack, boolean left) {
-        YsmGeometry.Bone bone = findHandBone(left);
+    public boolean applyAttachmentTransform(PoseStack stack, String attachmentName) {
+        YsmAttachmentPoint point = getAttachmentPoint(attachmentName);
+        YsmGeometry.Bone bone = findAttachmentBone(point);
+        if (bone == null)
+            return false;
         stack.scale(0.9375f, 0.9375f, 0.9375f);
+        applyBoneChain(stack, bone, point.locator() != null);
+        return true;
+    }
+
+    public boolean applyHandItemTransform(PoseStack stack, boolean left) {
+        YsmAttachmentPoint point = getAttachmentPoint(left ? "left_hand" : "right_hand");
+        YsmGeometry.Bone bone = findAttachmentBone(point);
+        stack.scale(0.9375f, 0.9375f, 0.9375f);
+        if (bone == null) {
+            bone = findHandBone(left);
+        }
         if (bone == null) {
             stack.translate(left ? -0.42d : 0.42d, 0.78d, 0d);
             stack.mulPose(Axis.XP.rotationDegrees(-90f));
         } else {
-            boolean locator = bone.name.toLowerCase(java.util.Locale.US).contains("locator");
+            boolean locator = point != null && point.locator() != null;
+            if (!locator)
+                locator = bone.name.toLowerCase(java.util.Locale.US).contains("locator");
             applyBoneChain(stack, bone, locator);
             stack.translate(0d, -0.0625d, -0.1d);
             stack.mulPose(Axis.XP.rotationDegrees(-90f));
@@ -253,6 +424,111 @@ public class YsmModelRuntime implements AutoCloseable {
         return null;
     }
 
+    private YsmGeometry.Bone findAttachmentBone(YsmAttachmentPoint point) {
+        if (point == null || point.boneName() == null || point.boneName().isBlank())
+            return null;
+        YsmGeometry.Bone bone = geometry.bones.get(point.boneName());
+        if (bone != null)
+            return bone;
+        return getBoneIgnoreCase(point.boneName());
+    }
+
+    private void buildAttachmentPoints() {
+        for (YsmLocator locator : new LinkedHashSet<>(locators.values())) {
+            YsmModelPart part = getPart(locator.boneName());
+            YsmAttachmentType type = YsmAttachmentType.fromRole(locator.role(), locator.leftSide());
+            addAttachmentPoint(new YsmAttachmentPoint(
+                    locator.name(),
+                    locator.boneName(),
+                    type,
+                    locator.role(),
+                    locator.leftSide(),
+                    locator.defaultItemTransform(),
+                    locator,
+                    part
+            ));
+        }
+
+        for (YsmGeometry.Bone bone : geometry.bones.values()) {
+            YsmBoneRole role = roleOf(bone.name);
+            YsmAttachmentType type = attachmentTypeForFallback(role);
+            if (type == YsmAttachmentType.UNKNOWN || hasAttachmentFor(type, role))
+                continue;
+            boolean left = role == YsmBoneRole.LEFT_HAND;
+            addAttachmentPoint(new YsmAttachmentPoint(
+                    bone.name,
+                    bone.name,
+                    type,
+                    role,
+                    left,
+                    defaultItemTransform(type),
+                    null,
+                    getPart(bone.name)
+            ));
+        }
+    }
+
+    private void addAttachmentPoint(YsmAttachmentPoint point) {
+        if (point == null || point.name() == null || point.name().isBlank())
+            return;
+        attachmentPoints.put(point.name(), point);
+        attachmentPoints.putIfAbsent(point.name().toLowerCase(java.util.Locale.US), point);
+        attachmentPoints.putIfAbsent(point.type().name().toLowerCase(java.util.Locale.US), point);
+        attachmentPoints.putIfAbsent(point.role().name().toLowerCase(java.util.Locale.US), point);
+    }
+
+    private void dumpDebugInfo() {
+        if (!FiguraMod.debugModeEnabled())
+            return;
+        YsmModelValidator.ModelStats mainStats = YsmModelValidator.validate("runtime/main", geometry).stats();
+        YsmModelValidator.ModelStats armStats = armGeometry == null ? YsmModelValidator.ModelStats.empty() : YsmModelValidator.validate("runtime/arm", armGeometry).stats();
+        FiguraMod.debug("YSM runtime kind={} texture={} main={} bones/{} cubes/{} quads, arm={} bones/{} cubes, locators={}, attachments={}",
+                kind,
+                textureId,
+                mainStats.boneCount(),
+                mainStats.cubeCount(),
+                mainStats.quadCount(),
+                armStats.boneCount(),
+                armStats.cubeCount(),
+                new LinkedHashSet<>(locators.values()).size(),
+                new LinkedHashSet<>(attachmentPoints.values()).size());
+    }
+
+    private boolean hasAttachmentFor(YsmAttachmentType type, YsmBoneRole role) {
+        for (YsmAttachmentPoint point : new LinkedHashSet<>(attachmentPoints.values())) {
+            if (point.type() == type || point.role() == role)
+                return true;
+        }
+        return false;
+    }
+
+    private static YsmAttachmentType attachmentTypeForFallback(YsmBoneRole role) {
+        return switch (role) {
+            case LEFT_HAND -> YsmAttachmentType.LEFT_HAND;
+            case RIGHT_HAND -> YsmAttachmentType.RIGHT_HAND;
+            case BACKPACK -> YsmAttachmentType.BACKPACK;
+            case BLADE -> YsmAttachmentType.BLADE;
+            case SHEATH -> YsmAttachmentType.SHEATH;
+            case ELYTRA -> YsmAttachmentType.ELYTRA;
+            case HEAD -> YsmAttachmentType.HEAD;
+            case HELMET -> YsmAttachmentType.HELMET;
+            default -> YsmAttachmentType.UNKNOWN;
+        };
+    }
+
+    private static String defaultItemTransform(YsmAttachmentType type) {
+        return switch (type) {
+            case LEFT_HAND -> "third_person_left_hand";
+            case RIGHT_HAND -> "third_person_right_hand";
+            case BACKPACK -> "backpack";
+            case BLADE -> "blade";
+            case SHEATH -> "sheath";
+            case ELYTRA -> "elytra";
+            case HEAD, HELMET -> "head";
+            default -> "";
+        };
+    }
+
     private YsmGeometry.Bone getBoneIgnoreCase(String name) {
         YsmGeometry.Bone exact = geometry.bones.get(name);
         if (exact != null)
@@ -271,12 +547,27 @@ public class YsmModelRuntime implements AutoCloseable {
     private void updateWorldMatrix(YsmGeometry.Bone bone, PoseStack stack) {
         YsmModelPart part = getPart(bone.name);
         stack.pushPose();
+        applyBoneTransform(stack, bone, true);
+        locatorWorldMatrices.put(bone.name, FiguraMat4.of().set(stack.last().pose()));
+        locatorWorldMatrices.putIfAbsent(bone.name.toLowerCase(java.util.Locale.US), locatorWorldMatrices.get(bone.name));
+        stack.popPose();
+
+        stack.pushPose();
         applyBoneTransform(stack, bone);
         if (part != null)
             part.setWorldMatrix(FiguraMat4.of().set(stack.last().pose()));
         for (YsmGeometry.Bone child : bone.children)
             updateWorldMatrix(child, stack);
         stack.popPose();
+    }
+
+    private FiguraMat4 getLocatorBoneWorldMatrix(String boneName) {
+        if (boneName == null)
+            return FiguraMat4.of();
+        FiguraMat4 matrix = locatorWorldMatrices.get(boneName);
+        if (matrix == null)
+            matrix = locatorWorldMatrices.get(boneName.toLowerCase(java.util.Locale.US));
+        return matrix == null ? getBoneWorldMatrix(boneName) : matrix.copy();
     }
 
     private void applyBoneChain(PoseStack stack, YsmGeometry.Bone bone, boolean locatorMode) {

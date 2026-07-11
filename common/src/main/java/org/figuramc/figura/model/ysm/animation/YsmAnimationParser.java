@@ -25,6 +25,10 @@ public class YsmAnimationParser {
     }
 
     public static Map<String, YsmAnimationClip> parse(String jsonContent) {
+        return parse(jsonContent, true);
+    }
+
+    public static Map<String, YsmAnimationClip> parse(String jsonContent, boolean compileExpressions) {
         Map<String, YsmAnimationClip> clips = new HashMap<>();
         try {
             JsonObject root = JsonParser.parseString(jsonContent).getAsJsonObject();
@@ -59,9 +63,9 @@ public class YsmAnimationParser {
                         JsonObject boneObj = boneElement.getAsJsonObject();
 
                         YsmBoneAnimation boneAnim = new YsmBoneAnimation(boneName);
-                        boneAnim.position = parseChannel(boneObj.get("position"), "position");
-                        boneAnim.rotation = parseChannel(boneObj.get("rotation"), "rotation");
-                        boneAnim.scale = parseChannel(boneObj.get("scale"), "scale");
+                        boneAnim.position = parseChannel(boneObj.get("position"), "position", compileExpressions);
+                        boneAnim.rotation = parseChannel(boneObj.get("rotation"), "rotation", compileExpressions);
+                        boneAnim.scale = parseChannel(boneObj.get("scale"), "scale", compileExpressions);
 
                         clip.boneAnimations.put(boneName, boneAnim);
                     }
@@ -75,11 +79,11 @@ public class YsmAnimationParser {
         return clips;
     }
 
-    private static YsmAnimationChannel parseChannel(JsonElement element, String type) {
+    private static YsmAnimationChannel parseChannel(JsonElement element, String type, boolean compileExpressions) {
         if (element == null) return null;
 
         if (element.isJsonPrimitive() || element.isJsonArray()) {
-            ParseResult res = parseValueOrExpression(element, type);
+            ParseResult res = parseValueOrExpression(element, type, compileExpressions);
             float[] def = "scale".equals(type) ? new float[]{1f, 1f, 1f} : new float[]{0f, 0f, 0f};
             float[] val = res.value != null ? res.value : def;
             return new YsmAnimationChannel(type, val, res.expressions);
@@ -109,7 +113,7 @@ public class YsmAnimationParser {
                             interpolation = kfObj.get("easing").getAsString();
                         }
                     }
-                    ParseResult res = parseValueOrExpression(actualVal, type);
+                    ParseResult res = parseValueOrExpression(actualVal, type, compileExpressions);
                     float[] val = res.value != null ? res.value : def;
                     YsmKeyframe kf = new YsmKeyframe(time, val, res.expressions);
                     kf.interpolation = interpolation;
@@ -123,7 +127,7 @@ public class YsmAnimationParser {
         return null;
     }
 
-    private static ParseResult parseValueOrExpression(JsonElement element, String type) {
+    private static ParseResult parseValueOrExpression(JsonElement element, String type, boolean compileExpressions) {
         if (element.isJsonPrimitive()) {
             String str = element.getAsString();
             try {
@@ -132,6 +136,8 @@ public class YsmAnimationParser {
                 return new ParseResult(new float[]{finalVal, finalVal, finalVal}, null);
             } catch (NumberFormatException ignored) {}
 
+            if (!compileExpressions)
+                return new ParseResult(new float[]{0f, 0f, 0f}, null);
             Expression expr = compileExpression(transformExpr(type, 0, str));
             return new ParseResult(null, new Expression[]{expr, expr, expr});
         }
@@ -155,8 +161,10 @@ public class YsmAnimationParser {
                         float val = Float.parseFloat(str);
                         value[i] = transformConst(type, i, val);
                     } catch (NumberFormatException ignored) {
-                        expressions[i] = compileExpression(transformExpr(type, i, str));
-                        hasExpr = true;
+                        if (compileExpressions) {
+                            expressions[i] = compileExpression(transformExpr(type, i, str));
+                            hasExpr = true;
+                        }
                     }
                 }
             }

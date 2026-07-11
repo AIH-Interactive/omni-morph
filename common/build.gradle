@@ -74,3 +74,14 @@ tasks.matching { it.name.startsWith("transformProduction") }.configureEach {
     enabled = false
 }
 
+tasks.register("scanYsmModels", JavaExec) {
+    group = "verification"
+    description = "Scans YSM model packages and validates geometry, resources, and animation JSON."
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmModelScanner"
+    if ((project.findProperty("ysmScanDump") ?: "false").toString().toBoolean()) {
+        args "--dump"
+    }
+    def scanPath = project.findProperty("ysmScanPath")
+    args scanPath == null ? "${rootProject.projectDir}/refs" : rootProject.file(scanPath).path
+}

@@ -67,6 +67,9 @@ public class LevelRendererMixinFabric {
         if (avatar == null || !(e instanceof LivingEntity livingEntity))
             return;
 
+        if (avatar.isYsmNative())
+            return;
+
         EntityRenderer<LivingEntity, LivingEntityRenderState> entityRenderer = (EntityRenderer<LivingEntity, LivingEntityRenderState>) this.entityRenderDispatcher.getRenderer(livingEntity);
 
         LivingEntityRenderState state = entityRenderer.createRenderState(livingEntity, deltaTracker.getGameTimeDeltaPartialTick(Minecraft.getInstance().level.tickRateManager().isEntityFrozen(e)));

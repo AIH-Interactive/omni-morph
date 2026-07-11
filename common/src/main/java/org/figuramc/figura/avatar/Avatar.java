@@ -252,6 +252,8 @@ public class Avatar {
         bindings.registerQuery("is_sleeping",          QueryVariables.IS_SLEEPING);
         bindings.registerQuery("is_spectator",         QueryVariables.IS_SPECTATOR);
         bindings.registerQuery("is_first_person",      QueryVariables.IS_FIRST_PERSON);
+        bindings.registerQuery("rendering_in_paperdoll", QueryVariables.RENDERING_IN_PAPERDOLL);
+        bindings.registerQuery("rendering_in_inventory", QueryVariables.RENDERING_IN_INVENTORY);
         bindings.registerQuery("is_using_item",        QueryVariables.IS_USING_ITEM);
         bindings.registerQuery("is_swinging",          QueryVariables.IS_SWINGING);
         bindings.registerQuery("is_eating",            QueryVariables.IS_EATING);
@@ -356,6 +358,8 @@ public class Avatar {
         public float is_sleeping;
         public float is_spectator;
         public float is_first_person;
+        public float rendering_in_paperdoll;
+        public float rendering_in_inventory;
         public float is_using_item;
         public float is_swinging;
         public float has_rider;
@@ -487,8 +491,11 @@ public class Avatar {
                 distance_from_camera = (float) Math.sqrt(dxc * dxc + dyc * dyc + dzc * dzc);
             }
 
-            // First person
-            is_first_person = mc.options.getCameraType().isFirstPerson() ? 1f : 0f;
+            // View context
+            boolean firstPerson = mc.options.getCameraType().isFirstPerson();
+            is_first_person = firstPerson ? 1f : 0f;
+            rendering_in_inventory = firstPerson ? 0f : 1f;
+            rendering_in_paperdoll = mc.screen != null ? 1f : 0f;
         }
 
         /**
@@ -513,6 +520,7 @@ public class Avatar {
             is_on_ground = is_jumping = is_sneaking = is_sprinting = 0;
             is_swimming = is_in_water = is_in_water_or_rain = is_on_fire = 0;
             is_riding = is_sleeping = is_spectator = is_first_person = 0;
+            rendering_in_paperdoll = rendering_in_inventory = 0;
             is_using_item = is_swinging = has_rider = is_eating = is_playing_dead = has_cape = 0;
             distance_from_camera = 0;
             cardinal_facing_2d = 0;
