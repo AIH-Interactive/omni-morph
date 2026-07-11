@@ -74,7 +74,12 @@ public class YsmAnimationPlayer {
         if (newClips != null) {
             for (Map.Entry<String, YsmAnimationClip> entry : newClips.entrySet()) {
                 this.clips.put(entry.getKey(), entry.getValue());
-                this.clips.putIfAbsent(normalizeName(entry.getKey()), entry.getValue());
+                String normalized = normalizeName(entry.getKey());
+                this.clips.putIfAbsent(normalized, entry.getValue());
+            }
+            for (Map.Entry<String, YsmAnimationClip> entry : newClips.entrySet()) {
+                String normalized = normalizeName(entry.getKey());
+                this.clips.putIfAbsent(simpleName(normalized), entry.getValue());
             }
         }
     }
@@ -165,29 +170,25 @@ public class YsmAnimationPlayer {
 
             float t = anim.time;
             for (YsmBoneAnimation boneAnim : anim.clip.boneAnimations.values()) {
-                YsmModelPart part = runtime.getPart(boneAnim.boneName);
-                if (part == null) continue;
+                List<YsmModelPart> targetParts = runtime.getAnimationParts(boneAnim.boneName);
+                if (targetParts.isEmpty()) continue;
 
-                // Evaluate translation
-                if (boneAnim.position != null) {
-                    float[] posVal = evaluateChannel(boneAnim.position, t, evaluator, new float[]{0f, 0f, 0f});
-                    part.addAnimPos(posVal[0] * anim.weight, posVal[1] * anim.weight, posVal[2] * anim.weight);
-                }
+                float[] posVal = boneAnim.position == null ? null : evaluateChannel(boneAnim.position, t, evaluator, new float[]{0f, 0f, 0f});
+                float[] rotVal = boneAnim.rotation == null ? null : evaluateChannel(boneAnim.rotation, t, evaluator, new float[]{0f, 0f, 0f});
+                float[] scaleVal = boneAnim.scale == null ? null : evaluateChannel(boneAnim.scale, t, evaluator, new float[]{1f, 1f, 1f});
 
-                // Evaluate rotation
-                if (boneAnim.rotation != null) {
-                    float[] rotVal = evaluateChannel(boneAnim.rotation, t, evaluator, new float[]{0f, 0f, 0f});
-                    part.addAnimRot(rotVal[0] * anim.weight, rotVal[1] * anim.weight, rotVal[2] * anim.weight);
-                }
-
-                // Evaluate scale
-                if (boneAnim.scale != null) {
-                    float[] scaleVal = evaluateChannel(boneAnim.scale, t, evaluator, new float[]{1f, 1f, 1f});
-                    // Scale lerps with weight: final_scale = 1 + (scale_val - 1) * weight
-                    double sx = 1.0 + (scaleVal[0] - 1.0) * anim.weight;
-                    double sy = 1.0 + (scaleVal[1] - 1.0) * anim.weight;
-                    double sz = 1.0 + (scaleVal[2] - 1.0) * anim.weight;
-                    part.mulAnimScale(sx, sy, sz);
+                for (YsmModelPart part : targetParts) {
+                    if (posVal != null)
+                        part.addAnimPos(posVal[0] * anim.weight, posVal[1] * anim.weight, posVal[2] * anim.weight);
+                    if (rotVal != null)
+                        part.addAnimRot(rotVal[0] * anim.weight, rotVal[1] * anim.weight, rotVal[2] * anim.weight);
+                    if (scaleVal != null) {
+                        // Scale lerps with weight: final_scale = 1 + (scale_val - 1) * weight
+                        double sx = 1.0 + (scaleVal[0] - 1.0) * anim.weight;
+                        double sy = 1.0 + (scaleVal[1] - 1.0) * anim.weight;
+                        double sz = 1.0 + (scaleVal[2] - 1.0) * anim.weight;
+                        part.mulAnimScale(sx, sy, sz);
+                    }
                 }
             }
         }
@@ -259,7 +260,7 @@ public class YsmAnimationPlayer {
         if (isInWater && !isOnGround)
             return firstEnabled("swim_stand", "swim");
         if (!isOnGround)
-            return firstEnabled("jump", "fly");
+            return firstEnabled("fall", "jump", "fly");
         if (isSneaking)
             return firstEnabled(speed > minSpeed ? "sneak" : "sneaking", "sneaking", "sneak");
         if (isSprinting && speed > minSpeed)
@@ -384,5 +385,18 @@ public class YsmAnimationPlayer {
         if (colon >= 0 && colon + 1 < normalized.length())
             normalized = normalized.substring(colon + 1);
         return normalized.toLowerCase(Locale.US);
+    }
+
+    private String simpleName(String name) {
+        if (name == null)
+            return "";
+        String normalized = name.toLowerCase(Locale.US);
+        int slash = Math.max(normalized.lastIndexOf('/'), normalized.lastIndexOf('\\'));
+        if (slash >= 0 && slash + 1 < normalized.length())
+            normalized = normalized.substring(slash + 1);
+        int dot = normalized.lastIndexOf('.');
+        if (dot >= 0 && dot + 1 < normalized.length())
+            normalized = normalized.substring(dot + 1);
+        return normalized;
     }
 }

@@ -1,11 +1,9 @@
 package org.figuramc.figura.mixin.render.renderers;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.ItemInHandRenderer;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.HumanoidArm;
@@ -23,7 +21,6 @@ import org.figuramc.figura.lua.api.vanilla_model.VanillaModelPart;
 import org.figuramc.figura.math.matrix.FiguraMat4;
 import org.figuramc.figura.model.rendering.EntityRenderMode;
 import org.figuramc.figura.model.ysm.YsmModelRuntime;
-import org.figuramc.figura.utils.RenderUtils;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -73,43 +70,14 @@ public abstract class ItemInHandRendererMixin {
         if (player.isScoping())
             return;
 
-        // YSM first-person: block vanilla arm and item rendering, submit YSM arm directly.
+        // YSM first-person: replace vanilla arm geometry while preserving vanilla item animations.
         // submitFiguraModel doesn't work here because FiguraFeatureRenderer only
         // processes submissions during entity (third-person) rendering, not first-person.
         if (avatar != null && avatar.isYsmNative()) {
             YsmModelRuntime ysm = avatar.getYsmRuntime();
             if (ysm != null) {
-                boolean main = hand == InteractionHand.MAIN_HAND;
-                HumanoidArm arm = main ? player.getMainArm() : player.getMainArm().getOpposite();
-                boolean left = arm == HumanoidArm.LEFT;
-
-                // Let vanilla handle the item rendering when the player holds an item.
-                // We only replace the ARM geometry.
-                if (!player.isInvisible()) {
-                    final PoseStack fpStack = new PoseStack();
-                    fpStack.pushPose();
-                    fpStack.last().set(matrices.last());
-
-                    try {
-                        MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
-                        ysm.renderFirstPersonArm(fpStack, bufferSource, light, left);
-                        bufferSource.endBatch();
-                    } catch (Exception e) {
-                        FiguraMod.LOGGER.error("Failed to render YSM first-person arm", e);
-                    }
-                }
-
-                if (!item.isEmpty()) {
-                    // Player is holding an item — let vanilla render the item.
-                    // Don't cancel; vanilla will render the item (but not the arm,
-                    // because the player model's arm visibility is already hidden).
-                    // We need to prevent vanilla from rendering its own arm though.
-                    // Pass through: vanilla renderArmWithItem renders both arm+item,
-                    // but if we already rendered the YSM arm above, the item will
-                    // still render over it.
-                    return;
-                }
-                ci.cancel();
+                // Keep vanilla first-person arm call order. PlayerRendererMixin
+                // replaces AvatarRenderer.renderHand with YSM geometry.
                 return;
             }
         }

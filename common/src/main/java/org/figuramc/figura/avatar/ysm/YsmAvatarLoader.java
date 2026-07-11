@@ -66,6 +66,7 @@ public final class YsmAvatarLoader {
                         if (ysmPackage.exists(texture.path()))
                             ysm.putByteArray("texture", ysmPackage.readBytes(texture.path()));
                     }
+                    ysm.put("texture_entries", textureEntries(ysmPackage, manifest.textures()));
                 }
                 ysm.put("resource_index", toNbt(index));
                 nbt.put("ysm", ysm);
@@ -112,6 +113,22 @@ public final class YsmAvatarLoader {
         ListTag tag = new ListTag();
         for (String value : values)
             tag.add(StringTag.valueOf(value));
+        return tag;
+    }
+
+    private static ListTag textureEntries(YsmPackage ysmPackage, List<YsmTextureOption> textures) throws java.io.IOException {
+        ListTag tag = new ListTag();
+        if (textures == null)
+            return tag;
+        for (YsmTextureOption texture : textures) {
+            if (texture == null || texture.path() == null || texture.path().isBlank() || !ysmPackage.exists(texture.path()))
+                continue;
+            CompoundTag entry = new CompoundTag();
+            entry.putString("id", texture.id());
+            entry.putString("path", texture.path());
+            entry.putByteArray("data", ysmPackage.readBytes(texture.path()));
+            tag.add(entry);
+        }
         return tag;
     }
 }

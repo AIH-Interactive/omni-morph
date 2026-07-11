@@ -266,6 +266,14 @@ public final class QueryVariables {
         var m = mc(ctx); return m != null ? m.is_first_person : 0f;
     };
 
+    public static final Variable RENDERING_IN_PAPERDOLL = ctx -> {
+        var m = mc(ctx); return m != null ? m.rendering_in_paperdoll : 0f;
+    };
+
+    public static final Variable RENDERING_IN_INVENTORY = ctx -> {
+        var m = mc(ctx); return m != null ? m.rendering_in_inventory : 0f;
+    };
+
     public static final Variable IS_USING_ITEM = ctx -> {
         var m = mc(ctx); return m != null ? m.is_using_item : 0f;
     };

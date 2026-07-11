@@ -138,7 +138,8 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
         if (Avatar.firstPerson) {
             M model = getModel();
             model.setupAnim(livingEntityRenderState);
-            currentAvatar.updateMatrices(model, poseStack);
+            if (!currentAvatar.isYsmNative())
+                currentAvatar.updateMatrices(model, poseStack);
             currentAvatar = null;
             lastPose = null;
             poseStack.popPose();
@@ -177,7 +178,8 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
         M model = getModel();
         
         if (Avatar.firstPerson) {
-            localAvatar.updateMatrices(model, poseStack);
+            if (!localAvatar.isYsmNative())
+                localAvatar.updateMatrices(model, poseStack);
             currentAvatar = null;
             lastPose = null;
             poseStack.popPose();

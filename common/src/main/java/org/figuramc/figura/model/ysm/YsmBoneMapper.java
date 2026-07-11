@@ -9,8 +9,11 @@ public final class YsmBoneMapper {
     public static YsmBoneRole roleOf(YsmGeometry.Bone bone) {
         if (bone == null)
             return YsmBoneRole.UNKNOWN;
+        return roleOfName(bone.name);
+    }
 
-        String name = normalize(bone.name);
+    public static YsmBoneRole roleOfName(String boneName) {
+        String name = normalize(boneName);
         if (name.isBlank())
             return YsmBoneRole.UNKNOWN;
 
@@ -72,15 +75,24 @@ public final class YsmBoneMapper {
     }
 
     private static boolean isLeftHandName(String name) {
+        name = stripTrailingDigits(name);
         return name.equals("lefthand") || name.equals("leftitem") || name.equals("leftpalm") || name.equals("leftwrist")
                 || name.equals("leftforearm") || name.equals("leftlowerarm") || name.equals("leftarm")
                 || name.equals("lhand") || name.equals("larm") || name.startsWith("lefthandlocator");
     }
 
     private static boolean isRightHandName(String name) {
+        name = stripTrailingDigits(name);
         return name.equals("righthand") || name.equals("rightitem") || name.equals("rightpalm") || name.equals("rightwrist")
                 || name.equals("rightforearm") || name.equals("rightlowerarm") || name.equals("rightarm")
                 || name.equals("rhand") || name.equals("rarm") || name.startsWith("righthandlocator");
+    }
+
+    private static String stripTrailingDigits(String name) {
+        int end = name.length();
+        while (end > 0 && Character.isDigit(name.charAt(end - 1)))
+            end--;
+        return end == name.length() ? name : name.substring(0, end);
     }
 
     private static String defaultItemTransform(YsmBoneRole role) {

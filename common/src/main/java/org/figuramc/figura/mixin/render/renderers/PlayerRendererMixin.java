@@ -27,6 +27,7 @@ import org.figuramc.figura.ducks.FiguraSubmitCallBackExtension;
 import org.figuramc.figura.ducks.NodeCollectorExtension;
 import org.figuramc.figura.lua.api.nameplate.EntityNameplateCustomization;
 import org.figuramc.figura.lua.api.vanilla_model.VanillaPart;
+import org.figuramc.figura.model.ysm.YsmModelRuntime;
 import org.figuramc.figura.permissions.Permissions;
 import org.figuramc.figura.utils.RenderUtils;
 import org.figuramc.figura.utils.TextUtils;
@@ -173,6 +174,33 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
     }
 
 
+
+    @Inject(at = @At("HEAD"), method = "renderHand", cancellable = true)
+    private void ysm$renderHand(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int light, Identifier resourceLocation, ModelPart arm, boolean renderSleeve, CallbackInfo ci) {
+        if (Minecraft.getInstance().player == null)
+            return;
+
+        Avatar localAvatar = AvatarManager.getAvatarForPlayer(Minecraft.getInstance().player.getUUID());
+        if (localAvatar == null || !localAvatar.isYsmNative())
+            return;
+
+        YsmModelRuntime ysm = localAvatar.getYsmRuntime();
+        if (ysm == null)
+            return;
+
+        PlayerModel playerModel = getModel();
+        boolean left = arm == playerModel.leftArm;
+        PoseStack copy = new PoseStack();
+        copy.pushPose();
+        copy.last().set(poseStack.last());
+
+        ((NodeCollectorExtension) submitNodeCollector).submitFiguraModel(localAvatar, null, (avatar, state, bufferSource) -> {
+            ysm.renderFirstPersonArm(copy, bufferSource, light, left);
+            return null;
+        });
+
+        ci.cancel();
+    }
 
     @Inject(at = @At(value = "INVOKE", shift = At.Shift.BEFORE, target = "Lnet/minecraft/client/renderer/SubmitNodeCollector;submitModelPart(Lnet/minecraft/client/model/geom/ModelPart;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/rendertype/RenderType;IILnet/minecraft/client/renderer/texture/TextureAtlasSprite;)V"), method = "renderHand")
     private void onRenderHand(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int i, Identifier resourceLocation, ModelPart modelPart, boolean bl, CallbackInfo ci) {

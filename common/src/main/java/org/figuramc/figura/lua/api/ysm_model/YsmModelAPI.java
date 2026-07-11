@@ -4,6 +4,9 @@ import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.lua.LuaWhitelist;
 import org.figuramc.figura.lua.docs.LuaMethodDoc;
 import org.figuramc.figura.lua.docs.LuaTypeDoc;
+import org.figuramc.figura.math.matrix.FiguraMat4;
+import org.figuramc.figura.math.vector.FiguraVec3;
+import org.figuramc.figura.model.ysm.YsmAttachmentPoint;
 import org.figuramc.figura.model.ysm.YsmLocator;
 import org.figuramc.figura.model.ysm.YsmModelPart;
 import org.figuramc.figura.model.ysm.YsmModelRuntime;
@@ -62,10 +65,84 @@ public class YsmModelAPI {
     }
 
     @LuaWhitelist
+    @LuaMethodDoc("ysm_model.get_bone_world_matrix")
+    public FiguraMat4 getBoneWorldMatrix(String name) {
+        YsmModelRuntime runtime = owner.getYsmRuntime();
+        return runtime == null ? FiguraMat4.of() : runtime.getBoneWorldMatrix(name);
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_model.get_bone_world_pos")
+    public FiguraVec3 getBoneWorldPos(String name) {
+        YsmModelRuntime runtime = owner.getYsmRuntime();
+        return runtime == null ? FiguraVec3.of() : runtime.getBoneWorldPos(name);
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_model.get_locator_world_matrix")
+    public FiguraMat4 getLocatorWorldMatrix(String name) {
+        YsmModelRuntime runtime = owner.getYsmRuntime();
+        return runtime == null ? FiguraMat4.of() : runtime.getLocatorWorldMatrix(name);
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_model.get_locator_world_pos")
+    public FiguraVec3 getLocatorWorldPos(String name) {
+        YsmModelRuntime runtime = owner.getYsmRuntime();
+        return runtime == null ? FiguraVec3.of() : runtime.getLocatorWorldPos(name);
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_model.get_attachment")
+    public YsmAttachmentPoint getAttachment(String name) {
+        YsmModelRuntime runtime = owner.getYsmRuntime();
+        return runtime == null ? null : runtime.getAttachmentPoint(name);
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_model.get_attachments")
+    public List<YsmAttachmentPoint> getAttachments() {
+        YsmModelRuntime runtime = owner.getYsmRuntime();
+        if (runtime == null)
+            return java.util.List.of();
+        List<YsmAttachmentPoint> result = new ArrayList<>();
+        runtime.attachmentPoints().forEach(result::add);
+        return result;
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_model.get_attachment_world_matrix")
+    public FiguraMat4 getAttachmentWorldMatrix(String name) {
+        YsmModelRuntime runtime = owner.getYsmRuntime();
+        return runtime == null ? FiguraMat4.of() : runtime.getAttachmentWorldMatrix(name);
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_model.get_attachment_world_pos")
+    public FiguraVec3 getAttachmentWorldPos(String name) {
+        YsmModelRuntime runtime = owner.getYsmRuntime();
+        return runtime == null ? FiguraVec3.of() : runtime.getAttachmentWorldPos(name);
+    }
+
+    @LuaWhitelist
     @LuaMethodDoc("ysm_model.get_texture")
     public String getTexture() {
         YsmModelRuntime runtime = owner.getYsmRuntime();
         return runtime == null ? "" : runtime.textureId();
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_model.set_texture")
+    public YsmModelAPI setTexture(String id) {
+        YsmModelRuntime runtime = owner.getYsmRuntime();
+        if (runtime != null)
+            runtime.setTexture(id);
+        return this;
+    }
+
+    @LuaWhitelist
+    public YsmModelAPI texture(String id) {
+        return setTexture(id);
     }
 
     @LuaWhitelist
