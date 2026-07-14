@@ -35,6 +35,7 @@ import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.animation.Animation;
 import org.figuramc.figura.animation.AnimationPlayer;
 import org.figuramc.figura.backend2.NetworkStuff;
+import org.figuramc.figura.avatar.control.AvatarControlRuntime;
 import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.ducks.FiguraEntityRenderStateExtension;
 import org.figuramc.figura.ducks.NodeCollectorExtension;
@@ -136,6 +137,7 @@ public class Avatar {
     public FiguraRenderer renderer;
     private YsmModelRuntime ysmRuntime;
     public FiguraLuaRuntime luaRuntime;
+    public final AvatarControlRuntime controls = new AvatarControlRuntime();
     public EntityRenderMode renderMode = EntityRenderMode.OTHER;
 
     public final PermissionPack.PlayerPermissionPack permissions;
@@ -265,6 +267,9 @@ public class Avatar {
         bindings.registerQuery("any_animation_finished", QueryVariables.ANY_ANIMATION_FINISHED);
         bindings.registerQuery("swing_time",           QueryVariables.SWING_TIME);
         bindings.registerQuery("attack_time",          QueryVariables.ATTACK_TIME);
+        bindings.registerQuery("control",              QueryVariables.CONTROL_VALUE);
+        bindings.registerQuery("ysm_action_active",    QueryVariables.YSM_ACTION_ACTIVE);
+        bindings.registerQuery("ysm_action_time",      QueryVariables.YSM_ACTION_TIME);
 
         // ===== Item =====
         bindings.registerQuery("item_in_use_duration", QueryVariables.ITEM_IN_USE_DURATION);
@@ -314,6 +319,7 @@ public class Avatar {
      * Molang variables ({@code query.anim_time}, etc.) read these fields via {@link QueryVariables}.</p>
      */
     public static class MolangContext {
+        public final Avatar owner;
         public final VariableStorage variables = new VariableStorage();  // v.* / variable.*
         public final VariableStorage controller = new VariableStorage(); // c.* / context.*
         public final org.figuramc.figura.molang.storage.TempVariableStorage temp =
@@ -388,6 +394,10 @@ public class Avatar {
         // ===== Previous frame data (for delta calculations) =====
         private double prev_pos_x, prev_pos_y, prev_pos_z;
         private float prev_body_y_rot;
+
+        public MolangContext(Avatar owner) {
+            this.owner = owner;
+        }
 
         /**
          * Populates all query fields from a Minecraft Entity and the game state.
@@ -635,6 +645,7 @@ public class Avatar {
                     entityName = name;
 
                 if (metadata.getStringOr("format", "").equals("ysm-native") && nbt.contains("ysm")) {
+                    this.molangContext = new MolangContext(this);
                     ysmRuntime = YsmModelRuntime.fromNbt(this, nbt.getCompoundOrEmpty("ysm"));
                     renderer = null;
                     hasTexture = true;
@@ -1544,9 +1555,6 @@ public class Avatar {
     // -- loading -- // 
 
     private void createLuaRuntime() {
-        if (!nbt.contains("scripts"))
-            return;
-
         Map<String, String> scripts = new HashMap<>();
         CompoundTag scriptsNbt = nbt.getCompoundOrEmpty("scripts");
         for (String s : scriptsNbt.keySet())
@@ -1570,6 +1578,8 @@ public class Avatar {
         events.offer(() -> {
             if (runtime.init(autoScripts))
                 init.use(runtime.getInstructions());
+            if (ysmRuntime != null && runtime.action_wheel != null)
+                ysmRuntime.installDefaultActionWheel(runtime.action_wheel);
         });
     }
 
@@ -1578,7 +1588,7 @@ public class Avatar {
             return;
 
         // Initialize Molang context
-        this.molangContext = new MolangContext();
+        this.molangContext = new MolangContext(this);
 
         ArrayList<String> autoAnims = new ArrayList<>();
         CompoundTag metadata = nbt.getCompoundOrEmpty("metadata");

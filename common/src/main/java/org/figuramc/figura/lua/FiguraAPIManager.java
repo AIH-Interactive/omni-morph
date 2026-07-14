@@ -3,6 +3,8 @@ package org.figuramc.figura.lua;
 import org.figuramc.figura.animation.Animation;
 import org.figuramc.figura.entries.FiguraAPI;
 import org.figuramc.figura.lua.api.*;
+import org.figuramc.figura.avatar.control.AvatarControlDefinition;
+import org.figuramc.figura.avatar.control.AvatarControlType;
 import org.figuramc.figura.lua.api.data.*;
 import org.figuramc.figura.lua.api.json.*;
 import org.figuramc.figura.lua.api.entity.*;
@@ -12,6 +14,7 @@ import org.figuramc.figura.model.rendertasks.*;
 import org.figuramc.figura.lua.api.action_wheel.Action;
 import org.figuramc.figura.lua.api.action_wheel.ActionWheelAPI;
 import org.figuramc.figura.lua.api.action_wheel.Page;
+import org.figuramc.figura.lua.api.avatar_controls.AvatarControlsAPI;
 import org.figuramc.figura.lua.api.event.EventsAPI;
 import org.figuramc.figura.lua.api.event.LuaEvent;
 import org.figuramc.figura.lua.api.keybind.FiguraKeybind;
@@ -33,6 +36,7 @@ import org.figuramc.figura.lua.api.vanilla_model.VanillaModelAPI;
 import org.figuramc.figura.lua.api.vanilla_model.VanillaModelPart;
 import org.figuramc.figura.lua.api.vanilla_model.VanillaPart;
 import org.figuramc.figura.lua.api.ysm_model.YsmModelAPI;
+import org.figuramc.figura.lua.api.ysm_actions.YsmActionsAPI;
 import org.figuramc.figura.lua.api.world.BiomeAPI;
 import org.figuramc.figura.lua.api.world.BlockStateAPI;
 import org.figuramc.figura.lua.api.world.ItemStackAPI;
@@ -47,6 +51,7 @@ import org.figuramc.figura.model.FiguraModelPart;
 import org.figuramc.figura.model.rendering.Vertex;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import org.figuramc.figura.model.ysm.YsmModelPart;
+import org.figuramc.figura.model.ysm.action.YsmActionDefinition;
 
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -103,6 +108,8 @@ public class FiguraAPIManager {
         add(VanillaModelPart.class);
         add(YsmModelAPI.class);
         add(YsmModelPart.class);
+        add(YsmActionsAPI.class);
+        add(YsmActionDefinition.class);
 
         add(KeybindAPI.class);
         add(FiguraKeybind.class);
@@ -115,6 +122,9 @@ public class FiguraAPIManager {
         add(ActionWheelAPI.class);
         add(Page.class);
         add(Action.class);
+        add(AvatarControlsAPI.class);
+        add(AvatarControlDefinition.class);
+        add(AvatarControlType.class);
 
         add(VectorsAPI.class);
         add(MatricesAPI.class);
@@ -178,11 +188,13 @@ public class FiguraAPIManager {
         put("sounds", r -> new SoundAPI(r.owner));
         put("vanilla_model", r -> r.vanilla_model = new VanillaModelAPI(r.owner));
         put("ysm_model", r -> r.ysm_model = new YsmModelAPI(r.owner));
+        put("ysm_actions", r -> new YsmActionsAPI(r.owner));
         put("keybinds", r -> r.keybinds = new KeybindAPI(r.owner));
         put("host", r -> r.host = new HostAPI(r.owner));
         put("nameplate", r -> r.nameplate = new NameplateAPI());
         put("renderer", r -> r.renderer = new RendererAPI(r.owner));
         put("action_wheel", r -> r.action_wheel = new ActionWheelAPI(r.owner));
+        put("avatar_controls", r -> r.avatar_controls = new AvatarControlsAPI(r.owner));
         put("animations", r -> new AnimationAPI(r.owner));
         put("client", r -> ClientAPI.INSTANCE);
         put("particles", r -> new ParticleAPI(r.owner));

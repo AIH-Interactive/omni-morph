@@ -111,6 +111,100 @@ public final class YsmGeneratedScriptBuilder {
         return script.toString();
     }
 
+    public static String buildWheelBootstrap() {
+        return """
+                pcall(function()
+                local root = action_wheel:newPage('YSM')
+                local pages = { root = root }
+                local slots = { root = 1 }
+                local linked_pages = {}
+
+                local function normalize_page(name)
+                    if name == nil or name == '' then return 'root' end
+                    return tostring(name)
+                end
+
+                local function normalize_key(value)
+                    if value == nil then return '' end
+                    return string.lower(tostring(value)):gsub('[%s%-]+', '_')
+                end
+
+                local function is_extra_animation(id, action)
+                    local id_key = normalize_key(id)
+                    local page_key = normalize_key(action:getPage())
+                    local animation_key = normalize_key(action:getAnimation())
+                    return id_key:find('extra_animation', 1, true) ~= nil
+                        or page_key:find('extra_animation', 1, true) ~= nil
+                        or animation_key:find('extra_animation', 1, true) ~= nil
+                end
+
+                local function next_slot(name)
+                    name = normalize_page(name)
+                    local slot = slots[name] or 1
+                    slots[name] = slot + 1
+                    return slot
+                end
+
+                local function page_for(name)
+                    name = normalize_page(name)
+                    local page = pages[name]
+                    if page ~= nil then return page end
+
+                    page = action_wheel:newPage('YSM: ' .. name)
+                    pages[name] = page
+                    slots[name] = 2
+                    page:newAction(1)
+                        :title('Back')
+                        :item('minecraft:arrow')
+                        :onLeftClick(function()
+                            action_wheel:setPage(root)
+                        end)
+                    return page
+                end
+
+                root:newAction(next_slot('root'))
+                    :title('Settings')
+                    :item('minecraft:comparator')
+                    :controlsPage('root')
+
+                for id, action in pairs(ysm_actions:getActions()) do
+                    if is_extra_animation(id, action) then
+                        local action_page = normalize_page(action:getPage())
+                        if normalize_key(action_page):find('extra_animation', 1, true) == nil then
+                            action_page = 'extra_animation'
+                        end
+
+                        if action_page ~= 'root' and not linked_pages[action_page] then
+                            linked_pages[action_page] = true
+                            local target_page = action_page
+                            root:newAction(next_slot('root'))
+                                :title('Extra Animation')
+                                :item('minecraft:book')
+                                :onLeftClick(function()
+                                    action_wheel:setPage(page_for(target_page))
+                                end)
+                        end
+
+                        local animation = action:getAnimation()
+                        if animation ~= nil and string.sub(tostring(animation), 1, 1) == '#' then
+                            page_for(action_page):newAction(next_slot(action_page))
+                                :title(action:getTitle())
+                                :item('minecraft:comparator')
+                                :controlsPage(string.sub(tostring(animation), 2))
+                        else
+                            page_for(action_page):newAction(next_slot(action_page))
+                                :title(action:getTitle())
+                                :item('minecraft:armor_stand')
+                                :ysmAction(id)
+                        end
+                    end
+                end
+
+                action_wheel:setPage(root)
+                end)
+                """;
+    }
+
     private static void appendStateTable(StringBuilder script, Map<String, String> states) {
         script.append("local STATES = {\n");
         for (Map.Entry<String, String> entry : states.entrySet())

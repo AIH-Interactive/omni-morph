@@ -1,11 +1,15 @@
 package org.figuramc.figura.model.ysm.animation;
 
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
+import net.minecraft.world.item.ItemStack;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.molang.parser.ast.Expression;
 import org.figuramc.figura.molang.runtime.ExpressionEvaluator;
+import org.figuramc.figura.model.ysm.YsmBoneRole;
 import org.figuramc.figura.model.ysm.YsmModelPart;
 import org.figuramc.figura.model.ysm.YsmModelRuntime;
 
@@ -16,6 +20,7 @@ public class YsmAnimationPlayer {
     private final Map<String, YsmAnimationClip> clips = new HashMap<>();
     private final Map<String, PlayingAnimation> activeAnimations = new LinkedHashMap<>();
     private final Set<String> disabledNativeAnimations = new HashSet<>();
+    private final Set<String> baseHiddenBones = new HashSet<>();
     private float lastAgeInTicks = Float.NaN;
 
     public static class PlayingAnimation {
@@ -92,6 +97,25 @@ public class YsmAnimationPlayer {
         return activeAnimations;
     }
 
+    public void startBaseAnimations() {
+        baseHiddenBones.clear();
+        for (Map.Entry<String, YsmAnimationClip> entry : clips.entrySet()) {
+            String normalized = normalizeName(entry.getKey());
+            if (!isBaseAnimation(normalized))
+                continue;
+            collectBaseHiddenBones(entry.getValue());
+            if (activeAnimations.containsKey(normalized))
+                continue;
+            PlayingAnimation playing = new PlayingAnimation(entry.getValue(), false);
+            playing.loop = true;
+            playing.speed = 1f;
+            playing.targetWeight = 1f;
+            playing.weight = 1f;
+            activeAnimations.put(normalized, playing);
+        }
+        applyBaseHiddenDefaults();
+    }
+
     public PlayingAnimation play(String name, boolean loop, float speed) {
         String normalized = normalizeName(name);
         YsmAnimationClip clip = clips.get(normalized);
@@ -162,6 +186,7 @@ public class YsmAnimationPlayer {
         for (YsmModelPart part : runtime.uniqueParts()) {
             part.resetAnimPose();
         }
+        applyBaseHiddenDefaults();
 
         ExpressionEvaluator<?> evaluator = molangContext != null ? ExpressionEvaluator.evaluator(molangContext) : ExpressionEvaluator.evaluator(runtime.owner());
 
@@ -169,6 +194,7 @@ public class YsmAnimationPlayer {
             if (anim.weight <= 0f) continue;
 
             float t = anim.time;
+            boolean baseAnimation = isBaseAnimation(anim.clip.name);
             for (YsmBoneAnimation boneAnim : anim.clip.boneAnimations.values()) {
                 List<YsmModelPart> targetParts = runtime.getAnimationParts(boneAnim.boneName);
                 if (targetParts.isEmpty()) continue;
@@ -183,6 +209,11 @@ public class YsmAnimationPlayer {
                     if (rotVal != null)
                         part.addAnimRot(rotVal[0] * anim.weight, rotVal[1] * anim.weight, rotVal[2] * anim.weight);
                     if (scaleVal != null) {
+                        boolean baseHidden = isBaseHiddenBone(boneAnim.boneName);
+                        if (baseHidden && !baseAnimation && scaleMagnitude(scaleVal) > 0.0001f)
+                            part.setVisible(true);
+                        if (baseHidden && baseAnimation && scaleMagnitude(scaleVal) < 0.0001f)
+                            continue;
                         // Scale lerps with weight: final_scale = 1 + (scale_val - 1) * weight
                         double sx = 1.0 + (scaleVal[0] - 1.0) * anim.weight;
                         double sy = 1.0 + (scaleVal[1] - 1.0) * anim.weight;
@@ -193,6 +224,116 @@ public class YsmAnimationPlayer {
             }
         }
 
+        applyNativeHandPose(state, entity);
+
+    }
+
+    private void collectBaseHiddenBones(YsmAnimationClip clip) {
+        if (clip == null)
+            return;
+        for (YsmBoneAnimation animation : clip.boneAnimations.values()) {
+            if (animation.scale != null && isZeroScaleChannel(animation.scale))
+                baseHiddenBones.add(normalizeBone(animation.boneName));
+        }
+    }
+
+    private void applyBaseHiddenDefaults() {
+        for (String boneName : baseHiddenBones) {
+            for (YsmModelPart part : runtime.getAnimationParts(boneName))
+                part.setVisible(false);
+        }
+    }
+
+    private boolean isBaseHiddenBone(String boneName) {
+        return baseHiddenBones.contains(normalizeBone(boneName));
+    }
+
+    private static boolean isZeroScaleChannel(YsmAnimationChannel channel) {
+        if (channel == null)
+            return false;
+        if (channel.staticExpressions != null)
+            return false;
+        if (channel.keyframes.isEmpty())
+            return channel.staticValue != null && scaleMagnitude(channel.staticValue) < 0.0001f;
+        for (YsmKeyframe keyframe : channel.keyframes) {
+            if (keyframe.expressions != null || keyframe.value == null || scaleMagnitude(keyframe.value) >= 0.0001f)
+                return false;
+        }
+        return true;
+    }
+
+    private static float scaleMagnitude(float[] value) {
+        if (value == null)
+            return 0f;
+        float max = 0f;
+        for (float v : value)
+            max = Math.max(max, Math.abs(v));
+        return max;
+    }
+
+    private boolean isBaseAnimation(String name) {
+        String normalized = normalizeName(name);
+        return normalized.startsWith("pre_parallel") || simpleName(normalized).startsWith("pre_parallel");
+    }
+
+    private String normalizeBone(String boneName) {
+        return boneName == null ? "" : boneName.toLowerCase(Locale.US);
+    }
+
+    private void applyNativeHandPose(LivingEntityRenderState state, LivingEntity entity) {
+        if (entity == null || entity.getPose() == Pose.SLEEPING)
+            return;
+
+        HumanoidArm mainArm = entity.getMainArm();
+        boolean mainLeft = mainArm == HumanoidArm.LEFT;
+        boolean usingItem = entity.isUsingItem();
+        InteractionHand usedHand = usingItem ? entity.getUsedItemHand() : null;
+        InteractionHand swingingHand = entity.swinging ? entity.swingingArm : InteractionHand.MAIN_HAND;
+        float attackProgress = Math.max(readFloat(state, "attackAnim", 0f), entity.getAttackAnim(0f));
+        float swingAmount = attackProgress > 0f ? (float) Math.sin(Math.sqrt(attackProgress) * Math.PI) : 0f;
+
+        applyNativeArmPose(false, itemForArm(entity, false, mainLeft), usingItem && isHandForArm(usedHand, false, mainLeft), isHandForArm(swingingHand, false, mainLeft), swingAmount);
+        applyNativeArmPose(true, itemForArm(entity, true, mainLeft), usingItem && isHandForArm(usedHand, true, mainLeft), isHandForArm(swingingHand, true, mainLeft), swingAmount);
+    }
+
+    private void applyNativeArmPose(boolean left, ItemStack item, boolean using, boolean swinging, float swingAmount) {
+        if ((item == null || item.isEmpty()) && !using && !(swinging && swingAmount > 0f))
+            return;
+
+        double side = left ? 1d : -1d;
+        double x = item != null && !item.isEmpty() ? -12d : 0d;
+        double y = 0d;
+        double z = item != null && !item.isEmpty() ? side * 4d : 0d;
+
+        if (using) {
+            x -= 52d;
+            y += side * 8d;
+            z += side * 8d;
+        }
+
+        if (swinging && swingAmount > 0f) {
+            x -= 65d * swingAmount;
+            y += side * 12d * swingAmount;
+            z += side * 18d * swingAmount;
+        }
+
+        YsmBoneRole role = left ? YsmBoneRole.LEFT_HAND : YsmBoneRole.RIGHT_HAND;
+        for (YsmModelPart part : runtime.uniqueParts()) {
+            if (runtime.roleOf(part.getName()) == role || runtime.armRoleOf(part.getName()) == role)
+                part.addAnimRot(x, y, z);
+        }
+    }
+
+    private static ItemStack itemForArm(LivingEntity entity, boolean left, boolean mainLeft) {
+        boolean main = left == mainLeft;
+        return main ? entity.getMainHandItem() : entity.getOffhandItem();
+    }
+
+    private static boolean isHandForArm(InteractionHand hand, boolean left, boolean mainLeft) {
+        if (hand == null)
+            return false;
+        boolean main = left == mainLeft;
+        return main ? hand == InteractionHand.MAIN_HAND : hand == InteractionHand.OFF_HAND;
     }
 
     private void updateNativeStateMachine(LivingEntityRenderState state, LivingEntity entity) {

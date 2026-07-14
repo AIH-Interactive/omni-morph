@@ -2,6 +2,7 @@ package org.figuramc.figura.lua.api.action_wheel;
 
 import net.minecraft.world.item.ItemStack;
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.gui.screens.AvatarControlsScreen;
 import org.figuramc.figura.lua.LuaNotNil;
 import org.figuramc.figura.lua.LuaWhitelist;
 import org.figuramc.figura.lua.api.world.ItemStackAPI;
@@ -29,6 +30,8 @@ public class Action {
     protected ItemStack item, hoverItem, toggleItem;
     protected FiguraVec3 color, hoverColor, toggleColor;
     protected TextureData texture, hoverTexture, toggleTexture;
+    protected String controlsPage;
+    protected String ysmAction;
     protected boolean toggled = false;
 
 
@@ -62,6 +65,12 @@ public class Action {
         LuaFunction function = left ? leftClick : rightClick;
         if (function != null)
             avatar.run(function, avatar.tick, this);
+
+        if (left && controlsPage != null)
+            AvatarControlsScreen.open(avatar, controlsPage);
+
+        if (left && ysmAction != null && avatar.getYsmRuntime() != null)
+            avatar.getYsmRuntime().actions().trigger(ysmAction);
 
         if (!left)
             return;
@@ -109,6 +118,66 @@ public class Action {
         if (ret == null)
             ret = texture;
         return ret;
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("wheel_action.get_controls_page")
+    public String getControlsPage() {
+        return controlsPage;
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc(
+            overloads = @LuaMethodOverload(
+                    argumentTypes = String.class,
+                    argumentNames = "page"
+            ),
+            aliases = "controlsPage",
+            value = "wheel_action.set_controls_page"
+    )
+    public Action setControlsPage(String page) {
+        this.controlsPage = page == null || page.isBlank() ? "root" : page;
+        return this;
+    }
+
+    @LuaWhitelist
+    public Action controlsPage(String page) {
+        return setControlsPage(page);
+    }
+
+    @LuaWhitelist
+    public Action controls_page(String page) {
+        return setControlsPage(page);
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("wheel_action.get_ysm_action")
+    public String getYsmAction() {
+        return ysmAction;
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc(
+            overloads = @LuaMethodOverload(
+                    argumentTypes = String.class,
+                    argumentNames = "id"
+            ),
+            aliases = "ysmAction",
+            value = "wheel_action.set_ysm_action"
+    )
+    public Action setYsmAction(String id) {
+        this.ysmAction = id;
+        return this;
+    }
+
+    @LuaWhitelist
+    public Action ysmAction(String id) {
+        return setYsmAction(id);
+    }
+
+    @LuaWhitelist
+    public Action ysm_action(String id) {
+        return setYsmAction(id);
     }
 
 

@@ -29,7 +29,7 @@ public class YsmRenderer {
         VertexConsumer vertices = bufferSource.getBuffer(renderType);
 
         stack.pushPose();
-        stack.scale(0.9375f, 0.9375f, 0.9375f);
+        stack.scale(0.9375f * runtime.widthScale(), 0.9375f * runtime.heightScale(), 0.9375f * runtime.widthScale());
         runtime.updateWorldMatrices(stack);
         for (YsmGeometry.Bone root : runtime.geometry().roots)
             renderBone(root, stack, vertices, light, mask);
@@ -71,7 +71,7 @@ public class YsmRenderer {
         VertexConsumer vertices = bufferSource.getBuffer(renderType);
 
         stack.pushPose();
-        stack.scale(0.9375f, 0.9375f, 0.9375f);
+        stack.scale(0.9375f * runtime.widthScale(), 0.9375f * runtime.heightScale(), 0.9375f * runtime.widthScale());
         renderBone(bone, stack, vertices, light, null);
         stack.popPose();
         return true;
@@ -103,7 +103,6 @@ public class YsmRenderer {
         YsmPartMask mask = YsmPartMask.forPass(YsmRenderPass.FIRST_PERSON_ARM);
 
         stack.pushPose();
-        stack.scale(1f / 16f, 1f / 16f, 1f / 16f);
         boolean useArmParts = runtime.hasArmModel();
         for (YsmGeometry.Bone root : armGeo.roots) {
             if (shouldRenderArmBone(root, left, useArmParts))

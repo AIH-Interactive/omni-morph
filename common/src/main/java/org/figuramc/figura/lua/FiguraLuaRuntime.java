@@ -9,6 +9,7 @@ import org.figuramc.figura.lua.api.AvatarAPI;
 import org.figuramc.figura.lua.api.HostAPI;
 import org.figuramc.figura.lua.api.RendererAPI;
 import org.figuramc.figura.lua.api.TextureAPI;
+import org.figuramc.figura.lua.api.avatar_controls.AvatarControlsAPI;
 import org.figuramc.figura.lua.api.action_wheel.ActionWheelAPI;
 import org.figuramc.figura.lua.api.entity.EntityAPI;
 import org.figuramc.figura.lua.api.entity.NullEntity;
@@ -53,6 +54,7 @@ public class FiguraLuaRuntime {
     public NameplateAPI nameplate;
     public RendererAPI renderer;
     public ActionWheelAPI action_wheel;
+    public AvatarControlsAPI avatar_controls;
     public AvatarAPI avatar_meta;
     public PingAPI ping;
     public TextureAPI texture;
@@ -379,9 +381,6 @@ public class FiguraLuaRuntime {
     };
 
     public boolean init(ListTag autoScripts) {
-        if (scripts.isEmpty())
-            return false;
-
         owner.luaRuntime = this;
 
         try {

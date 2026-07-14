@@ -67,6 +67,7 @@ public final class YsmAvatarLoader {
                             ysm.putByteArray("texture", ysmPackage.readBytes(texture.path()));
                     }
                     ysm.put("texture_entries", textureEntries(ysmPackage, manifest.textures()));
+                    ysm.put("action_schemas", actionSchemas(ysmPackage));
                 }
                 ysm.put("resource_index", toNbt(index));
                 nbt.put("ysm", ysm);
@@ -131,4 +132,18 @@ public final class YsmAvatarLoader {
         }
         return tag;
     }
+
+    private static ListTag actionSchemas(YsmPackage ysmPackage) throws java.io.IOException {
+        ListTag tag = new ListTag();
+        for (String path : List.of("ysm.json", "ysm.actions.json", "action_wheel.json", "ysm.controls.json", "ysm_controls.json", "controls.json")) {
+            if (!ysmPackage.exists(path))
+                continue;
+            CompoundTag entry = new CompoundTag();
+            entry.putString("path", path);
+            entry.putByteArray("data", ysmPackage.readString(path).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            tag.add(entry);
+        }
+        return tag;
+    }
+
 }
