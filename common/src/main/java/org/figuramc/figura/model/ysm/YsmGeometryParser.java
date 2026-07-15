@@ -47,6 +47,7 @@ public final class YsmGeometryParser {
                     new float[]{-pivot[0], pivot[1], pivot[2]},
                     new float[]{-rotation[0], -rotation[1], rotation[2]}
             );
+            bone.visible = bool(boneJson, "visible", bool(boneJson, "default_visible", !bool(boneJson, "hidden", bool(boneJson, "neverRender", false))));
             boolean boneMirror = bool(boneJson, "mirror", false);
             float boneInflate = floatValue(boneJson, "inflate", 0f);
             for (JsonElement cubeElement : array(boneJson, "cubes")) {

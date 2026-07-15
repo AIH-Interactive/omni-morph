@@ -312,6 +312,47 @@ public final class QueryVariables {
         var m = mc(ctx); return m != null ? m.attack_time : 0f;
     };
 
+    public static final Function CONTROL_VALUE = (ctx, args) -> {
+        var m = mc(ctx);
+        if (m == null || m.owner == null || args.size() < 1)
+            return 0f;
+        return valueAsFloat(m.owner.controls.getValue(args.getAsString(ctx, 0)));
+    };
+
+    public static final Function YSM_CONTROL_VALUE = CONTROL_VALUE;
+    public static final Function AVATAR_CONTROL_VALUE = CONTROL_VALUE;
+
+    public static final Function YSM_CONTROL_BOOL = (ctx, args) -> valueAsFloat(CONTROL_VALUE.evaluate(ctx, args)) != 0f ? 1f : 0f;
+    public static final Function YSM_CONTROL_NUMBER = CONTROL_VALUE;
+
+    public static final Function YSM_CONTROL_ENUM = (ctx, args) -> {
+        var m = mc(ctx);
+        if (m == null || m.owner == null || args.size() < 1)
+            return 0f;
+        var control = m.owner.controls.get(args.getAsString(ctx, 0));
+        if (control == null)
+            return 0f;
+        Object value = control.getValue();
+        if (value == null)
+            return 0f;
+        int index = control.options().indexOf(value.toString());
+        return index < 0 ? valueAsFloat(value) : (float) index;
+    };
+
+    public static final Function YSM_ACTION_ACTIVE = (ctx, args) -> {
+        var m = mc(ctx);
+        if (m == null || m.owner == null || m.owner.getYsmRuntime() == null || args.size() < 1)
+            return 0f;
+        return m.owner.getYsmRuntime().actions().isActive(args.getAsString(ctx, 0)) ? 1f : 0f;
+    };
+
+    public static final Function YSM_ACTION_TIME = (ctx, args) -> {
+        var m = mc(ctx);
+        if (m == null || m.owner == null || m.owner.getYsmRuntime() == null || args.size() < 1)
+            return 0f;
+        return m.owner.getYsmRuntime().actions().time(args.getAsString(ctx, 0));
+    };
+
     // ===== Item =====
 
     public static final Variable ITEM_IN_USE_DURATION = ctx -> {
@@ -519,6 +560,21 @@ public final class QueryVariables {
             Avatar.MolangContext m = mc(ctx);
             return m != null ? (float) getter.applyAsDouble(m) : 0f;
         };
+    }
+
+    private static float valueAsFloat(Object value) {
+        if (value instanceof Boolean bool)
+            return bool ? 1f : 0f;
+        if (value instanceof Number number)
+            return number.floatValue();
+        if (value instanceof String string) {
+            try {
+                return Float.parseFloat(string);
+            } catch (NumberFormatException ignored) {
+                return 0f;
+            }
+        }
+        return 0f;
     }
 
     // ===== Helper methods =====

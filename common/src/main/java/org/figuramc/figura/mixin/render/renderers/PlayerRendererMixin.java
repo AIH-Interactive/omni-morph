@@ -1,6 +1,7 @@
 package org.figuramc.figura.mixin.render.renderers;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
@@ -12,6 +13,8 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.client.renderer.entity.player.AvatarRenderer;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -56,6 +59,11 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
 
     @Unique
     private Component originalNameTag;
+
+    @Unique
+    private static MultiBufferSource figura$singleBuffer(VertexConsumer consumer) {
+        return type -> consumer;
+    }
 
     @Inject(method = "submitNameDisplay(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/entity/player/AvatarRenderer;submitNameDisplay(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;I)V"))
     private void enableModifyPlayerName(AvatarRenderState avatarRenderState, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState cameraRenderState, CallbackInfo ci) {
@@ -191,13 +199,14 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
         PlayerModel playerModel = getModel();
         boolean left = arm == playerModel.leftArm;
         PoseStack copy = new PoseStack();
-        copy.pushPose();
         copy.last().set(poseStack.last());
+        copy.translate(left ? 0.25d : -0.25d, 1.8d, 0.0d);
+        copy.scale(-1.0f, -1.0f, 1.0f);
 
-        ((NodeCollectorExtension) submitNodeCollector).submitFiguraModel(localAvatar, null, (avatar, state, bufferSource) -> {
-            ysm.renderFirstPersonArm(copy, bufferSource, light, left);
-            return null;
-        });
+        ysm.texture().uploadIfDirty(false, false);
+        RenderType renderType = RenderTypes.entityCutout(ysm.texture().getLocation());
+        submitNodeCollector.submitCustomGeometry(copy, renderType, (pose, buffer) ->
+                ysm.renderFirstPersonArm(copy, figura$singleBuffer(buffer), light, left));
 
         ci.cancel();
     }

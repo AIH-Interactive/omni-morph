@@ -9,13 +9,22 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.LivingEntity;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.avatar.control.AvatarControlDefinition;
+import org.figuramc.figura.avatar.control.AvatarControlType;
 import org.figuramc.figura.avatar.ysm.YsmAvatarKind;
+import org.figuramc.figura.lua.api.action_wheel.Action;
+import org.figuramc.figura.lua.api.action_wheel.ActionWheelAPI;
+import org.figuramc.figura.lua.api.action_wheel.Page;
 import org.figuramc.figura.math.matrix.FiguraMat4;
 import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import org.figuramc.figura.model.ysm.animation.YsmAnimationClip;
 import org.figuramc.figura.model.ysm.animation.YsmAnimationParser;
 import org.figuramc.figura.model.ysm.animation.YsmAnimationPlayer;
+import org.figuramc.figura.model.ysm.action.YsmActionDefinition;
+import org.figuramc.figura.model.ysm.action.YsmActionRuntime;
+import org.figuramc.figura.model.ysm.action.YsmActionSchemaParser;
+import org.figuramc.figura.model.ysm.action.YsmActionWheelLayoutStore;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -24,6 +33,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class YsmModelRuntime implements AutoCloseable {
     private final Avatar owner;
@@ -41,9 +51,11 @@ public class YsmModelRuntime implements AutoCloseable {
     private final Map<String, FiguraMat4> locatorWorldMatrices = new LinkedHashMap<>();
     private final YsmRenderer renderer;
     private final YsmAnimationPlayer animationPlayer;
+    private final YsmActionRuntime actions;
     private final String kind;
+    private final String modelKey;
 
-    private YsmModelRuntime(Avatar owner, YsmGeometry geometry, YsmGeometry armGeometry, FiguraTexture texture, String textureId, String kind, Map<String, byte[]> textureData) {
+    private YsmModelRuntime(Avatar owner, YsmGeometry geometry, YsmGeometry armGeometry, FiguraTexture texture, String textureId, String kind, String modelKey, Map<String, byte[]> textureData) {
         this.owner = owner;
         this.geometry = geometry;
         this.armGeometry = armGeometry;
@@ -51,11 +63,13 @@ public class YsmModelRuntime implements AutoCloseable {
         this.textureId = textureId;
         this.textureData = textureData == null ? Map.of() : Map.copyOf(textureData);
         this.kind = kind != null ? kind : YsmAvatarKind.NONE.name();
+        this.modelKey = modelKey == null || modelKey.isBlank() ? this.kind + ":" + textureId : modelKey;
         buildParts();
         buildAttachmentPoints();
         dumpDebugInfo();
         this.renderer = new YsmRenderer(this);
         this.animationPlayer = new YsmAnimationPlayer(this);
+        this.actions = new YsmActionRuntime(this);
     }
 
     public static YsmModelRuntime fromNbt(Avatar owner, CompoundTag tag) throws java.io.IOException {
@@ -81,8 +95,15 @@ public class YsmModelRuntime implements AutoCloseable {
         byte[] selectedTexture = textureData.getOrDefault(textureId, textureBytes);
         FiguraTexture texture = new FiguraTexture(owner, textureId, selectedTexture.length == 0 ? onePixelPng() : selectedTexture);
         String kind = tag.getStringOr("kind", YsmAvatarKind.NONE.name());
-        YsmModelRuntime runtime = new YsmModelRuntime(owner, geometry, armGeometry, texture, textureId, kind, textureData);
+        String modelKey = tag.getStringOr("source_path", tag.getStringOr("main_model_path", "ysm"));
+        YsmModelRuntime runtime = new YsmModelRuntime(owner, geometry, armGeometry, texture, textureId, kind, modelKey, textureData);
         runtime.animationPlayer.registerAnimations(readAnimations(tag));
+        runtime.animationPlayer.startBaseAnimations();
+        runtime.actions.buildDefaultsFromAnimations();
+        runtime.registerDefaultControls();
+        runtime.readActionSchemas(tag);
+        owner.controls.loadSavedValues(owner);
+        owner.controls.syncAll(owner);
         return runtime;
     }
 
@@ -153,6 +174,7 @@ public class YsmModelRuntime implements AutoCloseable {
         YsmGeometry.Bone parentBone = bone.parentName == null || bone.parentName.isBlank() ? null : sourceGeometry.bones.get(bone.parentName);
         YsmModelPart parent = parentBone == null ? null : buildPart(parentBone, sourceGeometry, targetParts, targetRoles, targetLocators);
         YsmModelPart part = new YsmModelPart(bone.name, parent, bone.pivot, bone.rotation);
+        part.setDefaultVisible(bone.visible);
         YsmBoneRole role = YsmBoneMapper.roleOf(bone);
         targetRoles.put(bone.name, role);
         targetRoles.putIfAbsent(bone.name.toLowerCase(java.util.Locale.US), role);
@@ -211,12 +233,143 @@ public class YsmModelRuntime implements AutoCloseable {
         return kind;
     }
 
+    public String getModelKey() {
+        return modelKey;
+    }
+
+    public float widthScale() {
+        Object value = owner.controls.getValue("ysm.width_scale");
+        return value instanceof Number number ? number.floatValue() : 1f;
+    }
+
+    public float heightScale() {
+        Object value = owner.controls.getValue("ysm.height_scale");
+        return value instanceof Number number ? number.floatValue() : 1f;
+    }
+
     public YsmRenderer renderer() {
         return renderer;
     }
 
     public YsmAnimationPlayer animations() {
         return animationPlayer;
+    }
+
+    public YsmActionRuntime actions() {
+        return actions;
+    }
+
+    public void installDefaultActionWheel(ActionWheelAPI wheel) {
+        if (wheel == null || wheel.getCurrentPage() != null)
+            return;
+
+        Page root = wheel.newPage("YSM");
+        root.newAction(1)
+                .setTitle("Settings")
+                .setItem("minecraft:comparator")
+                .setControlsPage("root");
+
+        Map<String, Page> pages = new LinkedHashMap<>();
+        Map<String, Integer> slots = new LinkedHashMap<>();
+        Map<String, Set<Integer>> occupied = new LinkedHashMap<>();
+        pages.put("root", root);
+        slots.put("root", 2);
+        occupied.computeIfAbsent("root", ignored -> new LinkedHashSet<>()).add(1);
+
+        for (YsmActionDefinition action : actions.all()) {
+            if (!isExtraAnimation(action))
+                continue;
+            String pageId = action.getPage();
+            if (pageId == null || pageId.isBlank() || "root".equals(normalize(pageId)))
+                pageId = "extra_animation";
+            YsmActionWheelLayoutStore.Entry layout = YsmActionWheelLayoutStore.get(modelKey, action.getId());
+            if (layout != null && layout.page() != null && !layout.page().isBlank())
+                pageId = layout.page();
+            Page page = pageFor(root, pages, slots, occupied, pageId);
+            int slot = nextSlot(slots, occupied, pageId, layout == null ? -1 : layout.slot());
+            String animation = action.getAnimation();
+            Action wheelAction = page.newAction(slot).setTitle(action.getTitle());
+            if (animation != null && animation.startsWith("#")) {
+                wheelAction.setItem("minecraft:comparator").setControlsPage(animation.substring(1));
+            } else {
+                wheelAction.setItem("minecraft:armor_stand").setYsmAction(action.getId());
+            }
+        }
+        wheel.setPage(root);
+    }
+
+    private static Page pageFor(Page root, Map<String, Page> pages, Map<String, Integer> slots, Map<String, Set<Integer>> occupied, String id) {
+        String pageId = id == null || id.isBlank() ? "root" : id;
+        Page existing = pages.get(pageId);
+        if (existing != null)
+            return existing;
+        Page page = new Page("YSM: " + pageId);
+        pages.put(pageId, page);
+        slots.put(pageId, 2);
+        occupied.computeIfAbsent(pageId, ignored -> new LinkedHashSet<>()).add(1);
+        root.setAction(nextSlot(slots, occupied, "root", -1), new OpenPageAction(page, pageId));
+        page.setAction(1, new BackAction(root));
+        return page;
+    }
+
+    private static int nextSlot(Map<String, Integer> slots, Map<String, Set<Integer>> occupied, String page, int preferred) {
+        String key = page == null || page.isBlank() ? "root" : page;
+        Set<Integer> used = occupied.computeIfAbsent(key, ignored -> new LinkedHashSet<>());
+        if (preferred > 0 && !used.contains(preferred)) {
+            used.add(preferred);
+            slots.put(key, Math.max(slots.getOrDefault(key, 1), preferred + 1));
+            return preferred;
+        }
+        int slot = slots.getOrDefault(key, 1);
+        while (used.contains(slot))
+            slot++;
+        used.add(slot);
+        slots.put(key, slot + 1);
+        return slot;
+    }
+
+    private static boolean isExtraAnimation(YsmActionDefinition action) {
+        if (action == null)
+            return false;
+        return normalize(action.getId()).contains("extra_animation")
+                || normalize(action.getPage()).contains("extra_animation")
+                || normalize(action.getAnimation()).contains("extra_animation");
+    }
+
+    private static String normalize(String value) {
+        return value == null ? "" : value.toLowerCase(java.util.Locale.US).replace('-', '_').replace(' ', '_');
+    }
+
+    private static class BackAction extends Action {
+        private final Page root;
+
+        private BackAction(Page root) {
+            this.root = root;
+            setTitle("Back");
+            setItem("minecraft:arrow");
+        }
+
+        @Override
+        public void execute(Avatar avatar, boolean left) {
+            if (left && avatar != null && avatar.luaRuntime != null)
+                avatar.luaRuntime.action_wheel.setPage(root);
+        }
+    }
+
+    private static class OpenPageAction extends Action {
+        private final Page page;
+
+        private OpenPageAction(Page page, String title) {
+            this.page = page;
+            setTitle(title == null || title.isBlank() ? "Extra Animation" : title);
+            setItem("minecraft:book");
+        }
+
+        @Override
+        public void execute(Avatar avatar, boolean left) {
+            if (left && avatar != null && avatar.luaRuntime != null)
+                avatar.luaRuntime.action_wheel.setPage(page);
+        }
     }
 
     public YsmModelPart getPart(String name) {
@@ -240,6 +393,16 @@ public class YsmModelRuntime implements AutoCloseable {
         addPart(result, parts, name);
         addPart(result, armParts, name);
         return result;
+    }
+
+    private void readActionSchemas(CompoundTag tag) {
+        for (Tag schemaTag : tag.getListOrEmpty("action_schemas")) {
+            if (!(schemaTag instanceof CompoundTag schema))
+                continue;
+            String path = schema.getStringOr("path", "schema");
+            String json = new String(schema.getByteArray("data").orElse(new byte[0]), StandardCharsets.UTF_8);
+            YsmActionSchemaParser.apply(this, path, json);
+        }
     }
 
     private static void addPart(List<YsmModelPart> result, Map<String, YsmModelPart> source, String name) {
@@ -347,7 +510,29 @@ public class YsmModelRuntime implements AutoCloseable {
     }
 
     public void updateAnimations(LivingEntityRenderState state, LivingEntity entity) {
+        Object nativeState = owner.controls.getValue("ysm.native_state_machine");
+        if (nativeState instanceof Boolean enabled)
+            animationPlayer.setNativeStateMachineEnabled(enabled);
         animationPlayer.update(state, entity);
+    }
+
+    private void registerDefaultControls() {
+        owner.controls.register(new AvatarControlDefinition("ysm.header", AvatarControlType.LABEL)
+                .setTitle("YSM Runtime")
+                .setPage("root"));
+        owner.controls.register(new AvatarControlDefinition("ysm.native_state_machine", AvatarControlType.TOGGLE)
+                .setTitle("Native state machine")
+                .setDefault(true)
+                .setPage("root"));
+        owner.controls.register(new AvatarControlDefinition("ysm.action_loop", AvatarControlType.TOGGLE)
+                .setTitle("Loop wheel actions")
+                .setDefault(false)
+                .setPage("root"));
+        owner.controls.register(new AvatarControlDefinition("ysm.action_speed", AvatarControlType.SLIDER)
+                .setTitle("Action speed")
+                .setRange(0.1d, 3.0d, 0.1d)
+                .setDefault(1.0d)
+                .setPage("root"));
     }
 
     public void updateWorldMatrices(PoseStack stack) {

@@ -13,11 +13,11 @@ public class StringPool {
 
     public static final int NONE = Integer.MIN_VALUE;
     public static final String EMPTY = "";
-    public static final int EMPTY_ID = computeIfAbsent(EMPTY);
 
     private static final AtomicInteger COUNTER = new AtomicInteger(0);
     private static final ConcurrentHashMap<String, Integer> POOL = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<Integer, String> MAP = new ConcurrentHashMap<>();
+    public static final int EMPTY_ID = computeIfAbsent(EMPTY);
 
     /**
      * Returns the integer ID for the given string, creating one if it doesn't exist.

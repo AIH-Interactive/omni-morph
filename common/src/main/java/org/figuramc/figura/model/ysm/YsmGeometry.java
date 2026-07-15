@@ -18,6 +18,7 @@ public class YsmGeometry {
         public final float[] rotation;
         public final List<Cube> cubes = new ArrayList<>();
         public final List<Bone> children = new ArrayList<>();
+        public boolean visible = true;
 
         public Bone(String name, String parentName, float[] pivot, float[] rotation) {
             this.name = name;
