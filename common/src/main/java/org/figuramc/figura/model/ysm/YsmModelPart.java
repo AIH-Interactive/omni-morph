@@ -28,6 +28,7 @@ public class YsmModelPart {
     private FiguraVec3 animScale = FiguraVec3.of(1, 1, 1);
     private FiguraMat4 worldMatrix = FiguraMat4.of();
     private boolean visible = true;
+    private boolean defaultVisible = true;
 
     public YsmModelPart(String name, YsmModelPart parent, float[] pivot, float[] rotation) {
         this.name = name;
@@ -132,6 +133,12 @@ public class YsmModelPart {
         return this;
     }
 
+    public YsmModelPart setDefaultVisible(boolean visible) {
+        this.defaultVisible = visible;
+        this.visible = visible;
+        return this;
+    }
+
     @LuaWhitelist
     public YsmModelPart visible(boolean visible) {
         return setVisible(visible);
@@ -221,6 +228,10 @@ public class YsmModelPart {
 
     public boolean visibleRaw() {
         return visible;
+    }
+
+    public boolean defaultVisibleRaw() {
+        return defaultVisible;
     }
 
     public void setWorldMatrix(FiguraMat4 worldMatrix) {

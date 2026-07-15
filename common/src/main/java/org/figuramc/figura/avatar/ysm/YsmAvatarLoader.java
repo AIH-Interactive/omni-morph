@@ -40,6 +40,7 @@ public final class YsmAvatarLoader {
 
                 CompoundTag ysm = new CompoundTag();
                 ysm.putString("kind", manifest.kind().name());
+                ysm.putString("source_path", path.toAbsolutePath().normalize().toString());
                 try (YsmPackage ysmPackage = YsmPackage.open(path)) {
                     String mainModelPath = index.hasMainModel() ? index.mainModelPath() : manifest.mainModelPath();
                     ysm.putString("main_model_path", mainModelPath);

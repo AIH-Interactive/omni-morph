@@ -1,9 +1,11 @@
 package org.figuramc.figura.model.ysm.action;
 
+import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.model.ysm.YsmModelRuntime;
 import org.figuramc.figura.model.ysm.animation.YsmAnimationClip;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -18,6 +20,7 @@ public class YsmActionRuntime {
 
     private final YsmModelRuntime runtime;
     private final LinkedHashMap<String, YsmActionDefinition> actions = new LinkedHashMap<>();
+    private final Map<String, Integer> cooldownUntil = new HashMap<>();
 
     public YsmActionRuntime(YsmModelRuntime runtime) {
         this.runtime = runtime;
@@ -58,10 +61,25 @@ public class YsmActionRuntime {
         YsmActionDefinition action = get(id);
         if (action == null || action.getAnimation() == null)
             return false;
-        boolean loop = action.isLoop() || Boolean.TRUE.equals(runtime.owner().controls.getValue("ysm.action_loop"));
+        String normalized = normalize(action.getId());
+        int tick = FiguraMod.ticks;
+        int availableAt = cooldownUntil.getOrDefault(normalized, 0);
+        if (tick < availableAt)
+            return false;
+        String mode = action.getMode();
+        if ("toggle".equals(mode) && isActive(id)) {
+            stop(id);
+            if (action.getCooldownTicks() > 0)
+                cooldownUntil.put(normalized, tick + action.getCooldownTicks());
+            return true;
+        }
+        boolean loop = action.isLoop() || "toggle".equals(mode) || "hold".equals(mode) || Boolean.TRUE.equals(runtime.owner().controls.getValue("ysm.action_loop"));
         Object speedValue = runtime.owner().controls.getValue("ysm.action_speed");
-        float speed = speedValue instanceof Number number ? number.floatValue() : 1f;
-        return runtime.animations().play(action.getAnimation(), loop, speed) != null;
+        float speed = action.getSpeed() > 0f ? action.getSpeed() : speedValue instanceof Number number ? number.floatValue() : 1f;
+        boolean played = runtime.animations().play(action.getAnimation(), loop, speed) != null;
+        if (played && action.getCooldownTicks() > 0)
+            cooldownUntil.put(normalized, tick + action.getCooldownTicks());
+        return played;
     }
 
     public void stop(String id) {

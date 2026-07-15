@@ -329,6 +329,25 @@ public class AvatarControlsAPI {
     }
 
     @LuaWhitelist
+    @LuaMethodDoc("avatar_controls.reset")
+    public AvatarControlsAPI reset(@LuaNotNil String id) {
+        owner.controls.reset(owner, id);
+        return this;
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("avatar_controls.reset_all")
+    public AvatarControlsAPI resetAll() {
+        owner.controls.resetAll(owner);
+        return this;
+    }
+
+    @LuaWhitelist
+    public AvatarControlsAPI reset_all() {
+        return resetAll();
+    }
+
+    @LuaWhitelist
     @LuaMethodDoc(
             overloads = @LuaMethodOverload(
                     argumentTypes = LuaFunction.class,
@@ -392,7 +411,7 @@ public class AvatarControlsAPI {
             default -> {
             }
         }
-        return owner.controls.register(control);
+        return owner.controls.register(owner, control);
     }
 
     private static AvatarControlType parseType(String type) {

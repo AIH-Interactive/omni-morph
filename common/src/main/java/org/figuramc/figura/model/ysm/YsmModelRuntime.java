@@ -24,6 +24,7 @@ import org.figuramc.figura.model.ysm.animation.YsmAnimationPlayer;
 import org.figuramc.figura.model.ysm.action.YsmActionDefinition;
 import org.figuramc.figura.model.ysm.action.YsmActionRuntime;
 import org.figuramc.figura.model.ysm.action.YsmActionSchemaParser;
+import org.figuramc.figura.model.ysm.action.YsmActionWheelLayoutStore;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class YsmModelRuntime implements AutoCloseable {
     private final Avatar owner;
@@ -51,8 +53,9 @@ public class YsmModelRuntime implements AutoCloseable {
     private final YsmAnimationPlayer animationPlayer;
     private final YsmActionRuntime actions;
     private final String kind;
+    private final String modelKey;
 
-    private YsmModelRuntime(Avatar owner, YsmGeometry geometry, YsmGeometry armGeometry, FiguraTexture texture, String textureId, String kind, Map<String, byte[]> textureData) {
+    private YsmModelRuntime(Avatar owner, YsmGeometry geometry, YsmGeometry armGeometry, FiguraTexture texture, String textureId, String kind, String modelKey, Map<String, byte[]> textureData) {
         this.owner = owner;
         this.geometry = geometry;
         this.armGeometry = armGeometry;
@@ -60,6 +63,7 @@ public class YsmModelRuntime implements AutoCloseable {
         this.textureId = textureId;
         this.textureData = textureData == null ? Map.of() : Map.copyOf(textureData);
         this.kind = kind != null ? kind : YsmAvatarKind.NONE.name();
+        this.modelKey = modelKey == null || modelKey.isBlank() ? this.kind + ":" + textureId : modelKey;
         buildParts();
         buildAttachmentPoints();
         dumpDebugInfo();
@@ -91,12 +95,14 @@ public class YsmModelRuntime implements AutoCloseable {
         byte[] selectedTexture = textureData.getOrDefault(textureId, textureBytes);
         FiguraTexture texture = new FiguraTexture(owner, textureId, selectedTexture.length == 0 ? onePixelPng() : selectedTexture);
         String kind = tag.getStringOr("kind", YsmAvatarKind.NONE.name());
-        YsmModelRuntime runtime = new YsmModelRuntime(owner, geometry, armGeometry, texture, textureId, kind, textureData);
+        String modelKey = tag.getStringOr("source_path", tag.getStringOr("main_model_path", "ysm"));
+        YsmModelRuntime runtime = new YsmModelRuntime(owner, geometry, armGeometry, texture, textureId, kind, modelKey, textureData);
         runtime.animationPlayer.registerAnimations(readAnimations(tag));
         runtime.animationPlayer.startBaseAnimations();
         runtime.actions.buildDefaultsFromAnimations();
         runtime.registerDefaultControls();
         runtime.readActionSchemas(tag);
+        owner.controls.loadSavedValues(owner);
         owner.controls.syncAll(owner);
         return runtime;
     }
@@ -168,7 +174,7 @@ public class YsmModelRuntime implements AutoCloseable {
         YsmGeometry.Bone parentBone = bone.parentName == null || bone.parentName.isBlank() ? null : sourceGeometry.bones.get(bone.parentName);
         YsmModelPart parent = parentBone == null ? null : buildPart(parentBone, sourceGeometry, targetParts, targetRoles, targetLocators);
         YsmModelPart part = new YsmModelPart(bone.name, parent, bone.pivot, bone.rotation);
-        part.setVisible(bone.visible);
+        part.setDefaultVisible(bone.visible);
         YsmBoneRole role = YsmBoneMapper.roleOf(bone);
         targetRoles.put(bone.name, role);
         targetRoles.putIfAbsent(bone.name.toLowerCase(java.util.Locale.US), role);
@@ -227,6 +233,10 @@ public class YsmModelRuntime implements AutoCloseable {
         return kind;
     }
 
+    public String getModelKey() {
+        return modelKey;
+    }
+
     public float widthScale() {
         Object value = owner.controls.getValue("ysm.width_scale");
         return value instanceof Number number ? number.floatValue() : 1f;
@@ -261,17 +271,22 @@ public class YsmModelRuntime implements AutoCloseable {
 
         Map<String, Page> pages = new LinkedHashMap<>();
         Map<String, Integer> slots = new LinkedHashMap<>();
+        Map<String, Set<Integer>> occupied = new LinkedHashMap<>();
         pages.put("root", root);
         slots.put("root", 2);
+        occupied.computeIfAbsent("root", ignored -> new LinkedHashSet<>()).add(1);
 
         for (YsmActionDefinition action : actions.all()) {
             if (!isExtraAnimation(action))
                 continue;
             String pageId = action.getPage();
-            if (!normalize(pageId).contains("extra_animation"))
+            if (pageId == null || pageId.isBlank() || "root".equals(normalize(pageId)))
                 pageId = "extra_animation";
-            Page page = pageFor(root, pages, slots, pageId);
-            int slot = nextSlot(slots, pageId);
+            YsmActionWheelLayoutStore.Entry layout = YsmActionWheelLayoutStore.get(modelKey, action.getId());
+            if (layout != null && layout.page() != null && !layout.page().isBlank())
+                pageId = layout.page();
+            Page page = pageFor(root, pages, slots, occupied, pageId);
+            int slot = nextSlot(slots, occupied, pageId, layout == null ? -1 : layout.slot());
             String animation = action.getAnimation();
             Action wheelAction = page.newAction(slot).setTitle(action.getTitle());
             if (animation != null && animation.startsWith("#")) {
@@ -283,7 +298,7 @@ public class YsmModelRuntime implements AutoCloseable {
         wheel.setPage(root);
     }
 
-    private static Page pageFor(Page root, Map<String, Page> pages, Map<String, Integer> slots, String id) {
+    private static Page pageFor(Page root, Map<String, Page> pages, Map<String, Integer> slots, Map<String, Set<Integer>> occupied, String id) {
         String pageId = id == null || id.isBlank() ? "root" : id;
         Page existing = pages.get(pageId);
         if (existing != null)
@@ -291,14 +306,24 @@ public class YsmModelRuntime implements AutoCloseable {
         Page page = new Page("YSM: " + pageId);
         pages.put(pageId, page);
         slots.put(pageId, 2);
-        root.setAction(nextSlot(slots, "root"), new OpenPageAction(page));
+        occupied.computeIfAbsent(pageId, ignored -> new LinkedHashSet<>()).add(1);
+        root.setAction(nextSlot(slots, occupied, "root", -1), new OpenPageAction(page, pageId));
         page.setAction(1, new BackAction(root));
         return page;
     }
 
-    private static int nextSlot(Map<String, Integer> slots, String page) {
+    private static int nextSlot(Map<String, Integer> slots, Map<String, Set<Integer>> occupied, String page, int preferred) {
         String key = page == null || page.isBlank() ? "root" : page;
+        Set<Integer> used = occupied.computeIfAbsent(key, ignored -> new LinkedHashSet<>());
+        if (preferred > 0 && !used.contains(preferred)) {
+            used.add(preferred);
+            slots.put(key, Math.max(slots.getOrDefault(key, 1), preferred + 1));
+            return preferred;
+        }
         int slot = slots.getOrDefault(key, 1);
+        while (used.contains(slot))
+            slot++;
+        used.add(slot);
         slots.put(key, slot + 1);
         return slot;
     }
@@ -334,9 +359,9 @@ public class YsmModelRuntime implements AutoCloseable {
     private static class OpenPageAction extends Action {
         private final Page page;
 
-        private OpenPageAction(Page page) {
+        private OpenPageAction(Page page, String title) {
             this.page = page;
-            setTitle("Extra Animation");
+            setTitle(title == null || title.isBlank() ? "Extra Animation" : title);
             setItem("minecraft:book");
         }
 

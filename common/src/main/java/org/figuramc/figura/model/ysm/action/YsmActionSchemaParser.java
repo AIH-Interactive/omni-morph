@@ -44,6 +44,8 @@ public final class YsmActionSchemaParser {
         readScaleProperty(runtime, properties, "width_scale", "YSM Width Scale");
         readScaleProperty(runtime, properties, "height_scale", "YSM Height Scale");
         readExtraAnimations(runtime, object(properties, "extra_animation"));
+        readExtraAnimationClassify(runtime, array(properties, "extra_animation_classify"));
+        readExtraAnimationClassify(runtime, object(properties, "extra_animation_classify"));
         readExtraAnimationButtons(runtime, array(properties, "extra_animation_buttons"));
     }
 
@@ -61,6 +63,12 @@ public final class YsmActionSchemaParser {
     private static void readExtraAnimations(YsmModelRuntime runtime, JsonObject object) {
         if (object == null)
             return;
+        readExtraAnimations(runtime, object, "extra_animation");
+    }
+
+    private static void readExtraAnimations(YsmModelRuntime runtime, JsonObject object, String page) {
+        if (object == null)
+            return;
         for (java.util.Map.Entry<String, JsonElement> entry : object.entrySet()) {
             String id = entry.getKey();
             String target = string(entry.getValue(), id);
@@ -69,8 +77,43 @@ public final class YsmActionSchemaParser {
             runtime.actions().register(new YsmActionDefinition("extra_animation." + id)
                     .setTitle(id)
                     .setAnimation(target)
-                    .setPage("extra_animation")
+                    .setPage(page)
                     .setLoop(false));
+        }
+    }
+
+    private static void readExtraAnimationClassify(YsmModelRuntime runtime, JsonArray array) {
+        if (array == null)
+            return;
+        for (JsonElement element : array) {
+            if (element == null || !element.isJsonObject())
+                continue;
+            JsonObject object = element.getAsJsonObject();
+            String id = string(object, "id", string(object, "name", ""));
+            if (id.isBlank())
+                continue;
+            JsonObject extras = object(object, "extra_animation");
+            if (extras == null)
+                extras = object(object, "extras");
+            readExtraAnimations(runtime, extras, id);
+        }
+    }
+
+    private static void readExtraAnimationClassify(YsmModelRuntime runtime, JsonObject object) {
+        if (object == null)
+            return;
+        for (java.util.Map.Entry<String, JsonElement> entry : object.entrySet()) {
+            String id = entry.getKey();
+            JsonElement value = entry.getValue();
+            if (id == null || id.isBlank() || value == null)
+                continue;
+            if (value.isJsonObject()) {
+                JsonObject child = value.getAsJsonObject();
+                JsonObject extras = object(child, "extra_animation");
+                if (extras == null)
+                    extras = object(child, "extras");
+                readExtraAnimations(runtime, extras == null ? child : extras, id);
+            }
         }
     }
 
@@ -120,11 +163,15 @@ public final class YsmActionSchemaParser {
         if (labels != null) {
             for (java.util.Map.Entry<String, JsonElement> label : labels.entrySet()) {
                 String option = label.getKey();
+                control.addOption(option);
                 control.addOptionCommand(option, string(label.getValue(), ""));
             }
         }
-        if (form.has("default"))
-            control.setDefault(value(form.get("default"), type));
+        JsonElement defaultValue = first(form, "default", "default_value", "defaultValue");
+        if (defaultValue != null)
+            control.setDefault(value(defaultValue, type));
+        else
+            applyImplicitDefault(control, type);
         runtime.owner().controls.register(control);
     }
 
@@ -154,6 +201,10 @@ public final class YsmActionSchemaParser {
             }
             if (object.has("default")) {
                 control.setDefault(value(object.get("default"), type));
+            } else if (object.has("default_value")) {
+                control.setDefault(value(object.get("default_value"), type));
+            } else if (object.has("defaultValue")) {
+                control.setDefault(value(object.get("defaultValue"), type));
             } else if (object.has("value")) {
                 control.setDefault(value(object.get("value"), type));
             } else {
@@ -174,11 +225,17 @@ public final class YsmActionSchemaParser {
             if (id.isBlank())
                 continue;
             String animation = string(object, "animation", string(object, "anim", id));
+            String controlsPage = string(first(object, "controls_page", "target_page", "page_ref", "open_page"), "");
+            if (!controlsPage.isBlank())
+                animation = controlsPage.startsWith("#") ? controlsPage : "#" + controlsPage;
             YsmActionDefinition action = new YsmActionDefinition(id)
                     .setTitle(string(object, "title", string(object, "name", id)))
                     .setAnimation(animation)
                     .setPage(string(object, "page", "root"))
-                    .setLoop(bool(object, "loop", bool(object, "repeat", false)));
+                    .setLoop(bool(object, "loop", bool(object, "repeat", false)))
+                    .setMode(string(object, "mode", string(object, "trigger", "press")))
+                    .setCooldownTicks((int) number(object, "cooldown", number(object, "cooldown_ticks", 0d)))
+                    .setSpeed((float) number(object, "speed", 1d));
             runtime.actions().register(action);
         }
     }
@@ -278,5 +335,16 @@ public final class YsmActionSchemaParser {
         } catch (Exception ignored) {
             return fallback;
         }
+    }
+
+    private static JsonElement first(JsonObject object, String... keys) {
+        if (object == null)
+            return null;
+        for (String key : keys) {
+            JsonElement element = object.get(key);
+            if (element != null && !element.isJsonNull())
+                return element;
+        }
+        return null;
     }
 }

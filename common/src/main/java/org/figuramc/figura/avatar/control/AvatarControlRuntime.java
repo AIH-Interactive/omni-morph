@@ -18,6 +18,11 @@ public class AvatarControlRuntime {
         return control;
     }
 
+    public AvatarControlDefinition register(Avatar avatar, AvatarControlDefinition control) {
+        AvatarControlValueStore.apply(avatar, control);
+        return register(control);
+    }
+
     public AvatarControlDefinition get(String id) {
         return controls.get(id);
     }
@@ -51,6 +56,11 @@ public class AvatarControlRuntime {
             syncMolangValue(avatar, control);
     }
 
+    public void loadSavedValues(Avatar avatar) {
+        for (AvatarControlDefinition control : controls.values())
+            AvatarControlValueStore.apply(avatar, control);
+    }
+
     public Object getValue(String id) {
         AvatarControlDefinition control = controls.get(id);
         return control == null ? null : control.getValue();
@@ -68,6 +78,7 @@ public class AvatarControlRuntime {
                 return true;
         }
         syncMolangValue(avatar, control);
+        AvatarControlValueStore.save(avatar, control);
         LuaFunction onChange = control.onChange();
         if (avatar != null && onChange != null)
             avatar.run(onChange, avatar.tick, control.getValue(), control);
@@ -82,6 +93,20 @@ public class AvatarControlRuntime {
         if (avatar != null && onPress != null)
             avatar.run(onPress, avatar.tick, control);
         return true;
+    }
+
+    public boolean reset(Avatar avatar, String id) {
+        AvatarControlDefinition control = controls.get(id);
+        if (control == null)
+            return false;
+        return setValue(avatar, id, control.getDefault());
+    }
+
+    public void resetAll(Avatar avatar) {
+        for (AvatarControlDefinition control : controls.values()) {
+            if (control.type() != AvatarControlType.LABEL && control.type() != AvatarControlType.SEPARATOR && control.type() != AvatarControlType.BUTTON)
+                setValue(avatar, control.id(), control.getDefault());
+        }
     }
 
     private static void syncMolangValue(Avatar avatar, AvatarControlDefinition control) {

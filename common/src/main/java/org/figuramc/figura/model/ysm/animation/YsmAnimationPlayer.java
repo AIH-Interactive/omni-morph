@@ -210,6 +210,14 @@ public class YsmAnimationPlayer {
                         part.addAnimRot(rotVal[0] * anim.weight, rotVal[1] * anim.weight, rotVal[2] * anim.weight);
                     if (scaleVal != null) {
                         boolean baseHidden = isBaseHiddenBone(boneAnim.boneName);
+                        if (baseAnimation) {
+                            if (scaleMagnitude(scaleVal) < 0.0001f) {
+                                part.setVisible(false);
+                                continue;
+                            } else if (part.defaultVisibleRaw()) {
+                                part.setVisible(true);
+                            }
+                        }
                         if (baseHidden && !baseAnimation && scaleMagnitude(scaleVal) > 0.0001f)
                             part.setVisible(true);
                         if (baseHidden && baseAnimation && scaleMagnitude(scaleVal) < 0.0001f)

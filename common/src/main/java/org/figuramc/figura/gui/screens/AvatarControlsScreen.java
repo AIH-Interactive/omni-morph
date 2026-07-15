@@ -86,7 +86,14 @@ public class AvatarControlsScreen extends Screen {
         int controlsX = controlsX();
         int y = contentTop() - scroll;
         for (AvatarControlDefinition control : controls) {
-            addControlWidget(controlsX + controlsWidth - 190, y + 3, 180, control);
+            int widgetX = controlsX + controlsWidth - 238;
+            int widgetWidth = 180;
+            addControlWidget(widgetX, y + 3, widgetWidth, control);
+            if (canReset(control))
+                this.addRenderableWidget(new Button(widgetX + widgetWidth + 8, y + 3, 42, 20, Component.literal("Reset"), null, button -> {
+                    avatar.controls.reset(avatar, control.id());
+                    rebuild();
+                }));
             y += rowHeight(control);
         }
 
@@ -95,7 +102,14 @@ public class AvatarControlsScreen extends Screen {
             this.addRenderableWidget(preview);
         }
 
-        this.addRenderableWidget(new Button(panelX(), height - 32, panelWidth(), 20, Component.translatable("gui.done"), null, button -> onClose()));
+        int footerWidth = panelWidth();
+        Button resetAll = new Button(panelX(), height - 32, footerWidth / 2 - 4, 20, Component.literal("Reset All"), null, button -> {
+            avatar.controls.resetAll(avatar);
+            rebuild();
+        });
+        resetAll.setActive(hasResettableControls());
+        this.addRenderableWidget(resetAll);
+        this.addRenderableWidget(new Button(panelX() + footerWidth / 2 + 4, height - 32, footerWidth / 2 - 4, 20, Component.translatable("gui.done"), null, button -> onClose()));
     }
 
     @Override
@@ -163,6 +177,21 @@ public class AvatarControlsScreen extends Screen {
             focusedKeybind = control;
             button.setMessage(Component.literal("> press key <"));
         }));
+    }
+
+    private boolean canReset(AvatarControlDefinition control) {
+        return switch (control.type()) {
+            case LABEL, SEPARATOR, BUTTON -> false;
+            default -> control.hasStoredValue();
+        };
+    }
+
+    private boolean hasResettableControls() {
+        for (AvatarControlDefinition control : avatar.controls.all()) {
+            if (canReset(control))
+                return true;
+        }
+        return false;
     }
 
     @Override

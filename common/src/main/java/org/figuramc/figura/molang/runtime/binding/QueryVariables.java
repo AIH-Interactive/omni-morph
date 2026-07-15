@@ -319,6 +319,26 @@ public final class QueryVariables {
         return valueAsFloat(m.owner.controls.getValue(args.getAsString(ctx, 0)));
     };
 
+    public static final Function YSM_CONTROL_VALUE = CONTROL_VALUE;
+    public static final Function AVATAR_CONTROL_VALUE = CONTROL_VALUE;
+
+    public static final Function YSM_CONTROL_BOOL = (ctx, args) -> valueAsFloat(CONTROL_VALUE.evaluate(ctx, args)) != 0f ? 1f : 0f;
+    public static final Function YSM_CONTROL_NUMBER = CONTROL_VALUE;
+
+    public static final Function YSM_CONTROL_ENUM = (ctx, args) -> {
+        var m = mc(ctx);
+        if (m == null || m.owner == null || args.size() < 1)
+            return 0f;
+        var control = m.owner.controls.get(args.getAsString(ctx, 0));
+        if (control == null)
+            return 0f;
+        Object value = control.getValue();
+        if (value == null)
+            return 0f;
+        int index = control.options().indexOf(value.toString());
+        return index < 0 ? valueAsFloat(value) : (float) index;
+    };
+
     public static final Function YSM_ACTION_ACTIVE = (ctx, args) -> {
         var m = mc(ctx);
         if (m == null || m.owner == null || m.owner.getYsmRuntime() == null || args.size() < 1)

@@ -268,6 +268,11 @@ public class Avatar {
         bindings.registerQuery("swing_time",           QueryVariables.SWING_TIME);
         bindings.registerQuery("attack_time",          QueryVariables.ATTACK_TIME);
         bindings.registerQuery("control",              QueryVariables.CONTROL_VALUE);
+        bindings.registerQuery("avatar_control",       QueryVariables.AVATAR_CONTROL_VALUE);
+        bindings.registerQuery("ysm_control",          QueryVariables.YSM_CONTROL_VALUE);
+        bindings.registerQuery("ysm_control_bool",     QueryVariables.YSM_CONTROL_BOOL);
+        bindings.registerQuery("ysm_control_number",   QueryVariables.YSM_CONTROL_NUMBER);
+        bindings.registerQuery("ysm_control_enum",     QueryVariables.YSM_CONTROL_ENUM);
         bindings.registerQuery("ysm_action_active",    QueryVariables.YSM_ACTION_ACTIVE);
         bindings.registerQuery("ysm_action_time",      QueryVariables.YSM_ACTION_TIME);
 
