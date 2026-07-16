@@ -12,20 +12,28 @@ import org.figuramc.figura.molang.runtime.ExpressionEvaluator;
 import org.figuramc.figura.model.ysm.YsmBoneRole;
 import org.figuramc.figura.model.ysm.YsmModelPart;
 import org.figuramc.figura.model.ysm.YsmModelRuntime;
+import org.figuramc.figura.model.ysm.controller.YsmAnimationController;
+import org.figuramc.figura.model.ysm.controller.YsmControllerAnimationRef;
+import org.figuramc.figura.model.ysm.controller.YsmControllerRuntime;
+import org.figuramc.figura.model.ysm.controller.YsmControllerState;
 
 import java.util.*;
 
 public class YsmAnimationPlayer {
     private final YsmModelRuntime runtime;
     private final Map<String, YsmAnimationClip> clips = new HashMap<>();
+    private final Map<String, YsmAnimationController> controllers = new LinkedHashMap<>();
+    private final YsmControllerRuntime controllerRuntime;
     private final Map<String, PlayingAnimation> activeAnimations = new LinkedHashMap<>();
     private final Set<String> disabledNativeAnimations = new HashSet<>();
     private final Set<String> baseHiddenBones = new HashSet<>();
     private float lastAgeInTicks = Float.NaN;
+    private boolean controllerInitialHiddenResolved;
 
     public static class PlayingAnimation {
         public final YsmAnimationClip clip;
         public float time;
+        public float previousTime;
         public float speed = 1f;
         public float weight = 1f;
         public boolean loop;
@@ -33,6 +41,7 @@ public class YsmAnimationPlayer {
 
         // For smooth transitions in native state machine
         public float targetWeight = 0f;
+        public float fadeSpeed = 0f;
 
         public PlayingAnimation(YsmAnimationClip clip, boolean isNative) {
             this.clip = clip;
@@ -47,6 +56,7 @@ public class YsmAnimationPlayer {
 
     public YsmAnimationPlayer(YsmModelRuntime runtime) {
         this.runtime = runtime;
+        this.controllerRuntime = new YsmControllerRuntime(this);
     }
 
     public boolean isNativeStateMachineEnabled() {
@@ -93,6 +103,21 @@ public class YsmAnimationPlayer {
         return clips;
     }
 
+    public void registerControllers(Map<String, YsmAnimationController> newControllers) {
+        if (newControllers != null) {
+            controllers.putAll(newControllers);
+            controllerRuntime.register(newControllers);
+        }
+    }
+
+    public Map<String, YsmAnimationController> getControllers() {
+        return controllers;
+    }
+
+    public YsmControllerRuntime controllerRuntime() {
+        return controllerRuntime;
+    }
+
     public Map<String, PlayingAnimation> getActiveAnimations() {
         return activeAnimations;
     }
@@ -113,24 +138,49 @@ public class YsmAnimationPlayer {
             playing.weight = 1f;
             activeAnimations.put(normalized, playing);
         }
+        collectControllerInitialHiddenBones(null);
         applyBaseHiddenDefaults();
     }
 
     public PlayingAnimation play(String name, boolean loop, float speed) {
+        return play(name, loop, speed, 0f);
+    }
+
+    public PlayingAnimation play(String name, boolean loop, float speed, float fadeSeconds) {
         String normalized = normalizeName(name);
         YsmAnimationClip clip = clips.get(normalized);
         if (clip == null) return null;
 
+        boolean created = !activeAnimations.containsKey(normalized);
         PlayingAnimation playing = activeAnimations.computeIfAbsent(normalized, k -> new PlayingAnimation(clip, false));
         playing.loop = loop;
         playing.speed = speed;
         playing.targetWeight = 1f;
-        playing.weight = 1f;
+        if (fadeSeconds > 0f) {
+            if (created)
+                playing.weight = 0f;
+            playing.fadeSpeed = 1f / fadeSeconds;
+        } else {
+            playing.weight = 1f;
+            playing.fadeSpeed = 0f;
+        }
         return playing;
     }
 
     public void stop(String name) {
         activeAnimations.remove(normalizeName(name));
+    }
+
+    public void fadeOut(String name, float fadeSeconds) {
+        PlayingAnimation animation = activeAnimations.get(normalizeName(name));
+        if (animation == null)
+            return;
+        if (fadeSeconds <= 0f) {
+            stop(name);
+            return;
+        }
+        animation.targetWeight = 0f;
+        animation.fadeSpeed = 1f / fadeSeconds;
     }
 
     public void update(LivingEntityRenderState state, LivingEntity entity) {
@@ -155,14 +205,15 @@ public class YsmAnimationPlayer {
             PlayingAnimation anim = entry.getValue();
 
             // Handle transition weight
-            if (anim.isNative) {
+            if (anim.isNative || anim.fadeSpeed > 0f) {
+                float fadeSpeed = anim.fadeSpeed > 0f ? anim.fadeSpeed : 5f;
                 if (anim.weight < anim.targetWeight) {
-                    anim.weight = Math.min(anim.targetWeight, anim.weight + deltaTime * 5f); // 0.2s transition
+                    anim.weight = Math.min(anim.targetWeight, anim.weight + deltaTime * fadeSpeed);
                 } else if (anim.weight > anim.targetWeight) {
-                    anim.weight = Math.max(anim.targetWeight, anim.weight - deltaTime * 5f);
+                    anim.weight = Math.max(anim.targetWeight, anim.weight - deltaTime * fadeSpeed);
                 }
 
-                // If native animation faded out, remove it to save CPU
+                // If animation faded out, remove it to save CPU
                 if (anim.weight <= 0f && anim.targetWeight <= 0f) {
                     it.remove();
                     continue;
@@ -170,25 +221,26 @@ public class YsmAnimationPlayer {
             }
 
             // Advance time
+            anim.previousTime = anim.time;
             anim.time += deltaTime * anim.speed;
-            if (anim.clip.length > 0) {
-                if (anim.loop) {
-                    anim.time = anim.time % anim.clip.length;
-                } else {
-                    anim.time = Math.min(anim.time, anim.clip.length);
-                }
-            }
+            if (anim.clip.length > 0)
+                advanceAnimationTime(anim);
+            dispatchEvents(anim, evaluatorForEvents());
         }
 
         Avatar.MolangContext molangContext = runtime.owner().getMolangContext();
+        ExpressionEvaluator<?> evaluator = molangContext != null ? ExpressionEvaluator.evaluator(molangContext) : ExpressionEvaluator.evaluator(runtime.owner());
+        if (!controllerInitialHiddenResolved) {
+            collectControllerInitialHiddenBones(evaluator);
+            controllerInitialHiddenResolved = true;
+        }
+        controllerRuntime.update(evaluator, deltaTime);
 
         // 3. Reset and apply animations to parts
         for (YsmModelPart part : runtime.uniqueParts()) {
             part.resetAnimPose();
         }
         applyBaseHiddenDefaults();
-
-        ExpressionEvaluator<?> evaluator = molangContext != null ? ExpressionEvaluator.evaluator(molangContext) : ExpressionEvaluator.evaluator(runtime.owner());
 
         for (PlayingAnimation anim : activeAnimations.values()) {
             if (anim.weight <= 0f) continue;
@@ -242,6 +294,67 @@ public class YsmAnimationPlayer {
         for (YsmBoneAnimation animation : clip.boneAnimations.values()) {
             if (animation.scale != null && isZeroScaleChannel(animation.scale))
                 baseHiddenBones.add(normalizeBone(animation.boneName));
+        }
+    }
+
+    private ExpressionEvaluator<?> evaluatorForEvents() {
+        Avatar.MolangContext molangContext = runtime.owner().getMolangContext();
+        return molangContext != null ? ExpressionEvaluator.evaluator(molangContext) : ExpressionEvaluator.evaluator(runtime.owner());
+    }
+
+    private void dispatchEvents(PlayingAnimation animation, ExpressionEvaluator<?> evaluator) {
+        if (animation.clip.events.isEmpty() || animation.weight <= 0f)
+            return;
+        float from = animation.previousTime;
+        float to = animation.time;
+        for (YsmAnimationEvent event : animation.clip.events) {
+            boolean crossed = from <= to
+                    ? event.time() > from && event.time() <= to
+                    : event.time() > from || event.time() <= to;
+            if (crossed)
+                handleEvent(event, evaluator);
+        }
+    }
+
+    private void advanceAnimationTime(PlayingAnimation animation) {
+        if (animation.loop) {
+            animation.time = animation.time % animation.clip.length;
+            return;
+        }
+        animation.time = Math.min(animation.time, animation.clip.length);
+    }
+
+    private void handleEvent(YsmAnimationEvent event, ExpressionEvaluator<?> evaluator) {
+        if (!"timeline".equals(event.type()) || event.expressions().isEmpty() || evaluator == null)
+            return;
+        for (Expression expression : event.expressions()) {
+            try {
+                evaluator.eval(expression);
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    private void collectControllerInitialHiddenBones(ExpressionEvaluator<?> evaluator) {
+        for (YsmAnimationController controller : controllers.values()) {
+            YsmControllerState state = controller.initialStateDefinition();
+            if (state == null)
+                continue;
+            for (YsmControllerAnimationRef ref : state.animations()) {
+                if (ref.animation() == null || ref.animation().isBlank())
+                    continue;
+                if (ref.condition() != null) {
+                    if (evaluator == null)
+                        continue;
+                    try {
+                        if (!evaluator.evalAsBoolean(ref.condition()))
+                            continue;
+                    } catch (Exception ignored) {
+                        continue;
+                    }
+                }
+                collectBaseHiddenBones(clips.get(normalizeName(ref.animation())));
+            }
         }
     }
 
@@ -380,6 +493,8 @@ public class YsmAnimationPlayer {
         }
 
         String idealState = selectState(isPassenger, isSleeping, isFallFlying, isSwimming, isSneaking, isSprinting, isOnGround, isInWater, speed);
+        if (shouldInterruptActions(idealState))
+            runtime.actions().stopAll();
         for (Map.Entry<String, PlayingAnimation> entry : activeAnimations.entrySet()) {
             PlayingAnimation anim = entry.getValue();
             if (anim.isNative && !entry.getKey().equals(idealState))
@@ -417,6 +532,10 @@ public class YsmAnimationPlayer {
         if (speed > minSpeed)
             return firstEnabled("walk");
         return firstEnabled("idle");
+    }
+
+    private static boolean shouldInterruptActions(String state) {
+        return state != null && !state.isBlank() && !"idle".equals(state);
     }
 
     private String firstEnabled(String... names) {

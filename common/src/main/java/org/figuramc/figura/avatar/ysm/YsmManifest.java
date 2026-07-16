@@ -10,6 +10,7 @@ public record YsmManifest(
         String mainModelPath,
         String armModelPath,
         List<String> animationPaths,
+        List<String> animationControllerPaths,
         List<YsmTextureOption> textures,
         String defaultTexture,
         YsmResourceIndex resourceIndex
@@ -17,7 +18,7 @@ public record YsmManifest(
     public YsmManifest(YsmAvatarKind kind, String name, String description, String[] authors, String mainModelPath,
                        String armModelPath, List<String> animationPaths, List<YsmTextureOption> textures,
                        String defaultTexture) {
-        this(kind, name, description, authors, mainModelPath, armModelPath, animationPaths, textures, defaultTexture,
+        this(kind, name, description, authors, mainModelPath, armModelPath, animationPaths, List.of(), textures, defaultTexture,
                 YsmResourceIndex.fromManifest(mainModelPath, armModelPath, animationPaths, textures, kind));
     }
 
@@ -31,5 +32,9 @@ public record YsmManifest(
 
     public boolean hasAnimations() {
         return animationPaths != null && !animationPaths.isEmpty();
+    }
+
+    public boolean hasAnimationControllers() {
+        return animationControllerPaths != null && !animationControllerPaths.isEmpty();
     }
 }

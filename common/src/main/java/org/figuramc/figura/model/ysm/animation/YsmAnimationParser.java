@@ -40,20 +40,20 @@ public class YsmAnimationParser {
                 JsonObject animObj = animElement.getAsJsonObject();
 
                 float length = animObj.has("animation_length") ? animObj.get("animation_length").getAsFloat() : 0f;
-                boolean loop = false;
+                YsmAnimationClip.LoopMode loopMode = YsmAnimationClip.LoopMode.ONCE;
                 if (animObj.has("loop")) {
                     JsonElement loopElem = animObj.get("loop");
                     if (loopElem.isJsonPrimitive()) {
                         if (loopElem.getAsJsonPrimitive().isBoolean()) {
-                            loop = loopElem.getAsBoolean();
+                            loopMode = loopElem.getAsBoolean() ? YsmAnimationClip.LoopMode.LOOP : YsmAnimationClip.LoopMode.ONCE;
                         } else {
                             String loopStr = loopElem.getAsString();
-                            loop = "true".equalsIgnoreCase(loopStr) || "loop".equalsIgnoreCase(loopStr);
+                            loopMode = parseLoopMode(loopStr);
                         }
                     }
                 }
 
-                YsmAnimationClip clip = new YsmAnimationClip(animName, length, loop);
+                YsmAnimationClip clip = new YsmAnimationClip(animName, length, loopMode);
 
                 if (animObj.has("bones")) {
                     JsonObject bonesObj = animObj.getAsJsonObject("bones");
@@ -71,12 +71,71 @@ public class YsmAnimationParser {
                     }
                 }
 
+                parseEvents(animObj.get("timeline"), "timeline", clip, compileExpressions);
+                parseEvents(animObj.get("sound_effects"), "sound", clip, false);
+                parseEvents(animObj.get("particle_effects"), "particle", clip, false);
+
                 clips.put(animName, clip);
             }
         } catch (Exception e) {
             // Ignore parse errors, downgrade gracefully
         }
         return clips;
+    }
+
+    private static YsmAnimationClip.LoopMode parseLoopMode(String value) {
+        if (value == null)
+            return YsmAnimationClip.LoopMode.ONCE;
+        return switch (value.toLowerCase(java.util.Locale.US)) {
+            case "true", "loop" -> YsmAnimationClip.LoopMode.LOOP;
+            case "hold", "hold_on_last_frame" -> YsmAnimationClip.LoopMode.HOLD_ON_LAST_FRAME;
+            default -> YsmAnimationClip.LoopMode.ONCE;
+        };
+    }
+
+    private static void parseEvents(JsonElement element, String type, YsmAnimationClip clip, boolean compileExpressions) {
+        if (element == null || !element.isJsonObject())
+            return;
+        JsonObject object = element.getAsJsonObject();
+        for (String timeString : object.keySet()) {
+            float time;
+            try {
+                time = Float.parseFloat(timeString);
+            } catch (NumberFormatException ignored) {
+                continue;
+            }
+            JsonElement value = object.get(timeString);
+            if (value == null || value.isJsonNull())
+                continue;
+            if (value.isJsonArray()) {
+                for (JsonElement child : value.getAsJsonArray())
+                    addEvent(clip, time, type, child, compileExpressions);
+            } else {
+                addEvent(clip, time, type, value, compileExpressions);
+            }
+        }
+        clip.events.sort((a, b) -> Float.compare(a.time(), b.time()));
+    }
+
+    private static void addEvent(YsmAnimationClip clip, float time, String type, JsonElement value, boolean compileExpressions) {
+        if (value == null || value.isJsonNull())
+            return;
+        String text;
+        if (value.isJsonPrimitive()) {
+            text = value.getAsString();
+        } else if (value.isJsonObject()) {
+            JsonObject object = value.getAsJsonObject();
+            if (object.has("effect"))
+                text = object.get("effect").getAsString();
+            else if (object.has("particle"))
+                text = object.get("particle").getAsString();
+            else
+                text = object.toString();
+        } else {
+            text = value.toString();
+        }
+        if (text != null && !text.isBlank())
+            clip.events.add(new YsmAnimationEvent(time, type, text, compileExpressions && "timeline".equals(type) ? compileAll(text) : List.of()));
     }
 
     private static YsmAnimationChannel parseChannel(JsonElement element, String type, boolean compileExpressions) {
@@ -189,6 +248,16 @@ public class YsmAnimationParser {
             return parsed.isEmpty() ? null : parsed.get(0);
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    private static List<Expression> compileAll(String str) {
+        if (str == null || str.isBlank())
+            return List.of();
+        try {
+            return Avatar.getMolangEngine().parse(str);
+        } catch (Exception e) {
+            return List.of();
         }
     }
 }

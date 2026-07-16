@@ -18,6 +18,7 @@ public class YsmActionDefinition {
     private boolean loop;
     private int cooldownTicks;
     private float speed = 1f;
+    private String item;
 
     public YsmActionDefinition(String id) {
         this.id = id;
@@ -225,6 +226,34 @@ public class YsmActionDefinition {
     @LuaWhitelist
     public YsmActionDefinition speed(float speed) {
         return setSpeed(speed);
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_action.get_item")
+    public String getItem() {
+        return item;
+    }
+
+    @LuaWhitelist
+    public String get_item() {
+        return getItem();
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_action.set_item")
+    public YsmActionDefinition setItem(String item) {
+        this.item = item == null || item.isBlank() ? null : item;
+        return this;
+    }
+
+    @LuaWhitelist
+    public YsmActionDefinition set_item(String item) {
+        return setItem(item);
+    }
+
+    @LuaWhitelist
+    public YsmActionDefinition item(String item) {
+        return setItem(item);
     }
 
     @Override

@@ -46,8 +46,9 @@ public final class YsmManifestReader {
         String defaultTexture = YsmJson.string(properties, "default_texture", "");
 
         List<String> animations = readNewAnimations(ysmPackage, player);
-        YsmResourceIndex index = buildIndex(ysmPackage, YsmAvatarKind.NEW, mainModel, armModel, animations, textures);
-        return new YsmManifest(YsmAvatarKind.NEW, name, description, readAuthors(metadata), mainModel, armModel, animations, textures, defaultTexture, index);
+        List<String> controllers = readNewAnimationControllers(ysmPackage, player);
+        YsmResourceIndex index = buildIndex(ysmPackage, YsmAvatarKind.NEW, mainModel, armModel, animations, controllers, textures);
+        return new YsmManifest(YsmAvatarKind.NEW, name, description, readAuthors(metadata), mainModel, armModel, animations, controllers, textures, defaultTexture, index);
     }
 
     public static YsmManifest readOld(Path path) throws java.io.IOException {
@@ -69,9 +70,10 @@ public final class YsmManifestReader {
         String armModel = ysmPackage.exists("arm.json") ? "arm.json" : "";
         List<YsmTextureOption> textures = readOldTextures(ysmPackage);
         List<String> animations = readOldAnimations(ysmPackage);
+        List<String> controllers = readOldAnimationControllers(ysmPackage);
 
-        YsmResourceIndex index = buildIndex(ysmPackage, YsmAvatarKind.OLD, "main.json", armModel, animations, textures);
-        return new YsmManifest(YsmAvatarKind.OLD, name, tips, readAuthors(extra), "main.json", armModel, animations, textures, "", index);
+        YsmResourceIndex index = buildIndex(ysmPackage, YsmAvatarKind.OLD, "main.json", armModel, animations, controllers, textures);
+        return new YsmManifest(YsmAvatarKind.OLD, name, tips, readAuthors(extra), "main.json", armModel, animations, controllers, textures, "", index);
     }
 
     private static List<String> readNewAnimations(YsmPackage ysmPackage, JsonObject player) {
@@ -88,6 +90,24 @@ public final class YsmManifestReader {
         List<String> result = new ArrayList<>();
         addExisting(result, ysmPackage, "main.animation.json");
         addExisting(result, ysmPackage, "extra.animation.json");
+        return result;
+    }
+
+    private static List<String> readNewAnimationControllers(YsmPackage ysmPackage, JsonObject player) {
+        List<String> result = new ArrayList<>();
+        readPathField(result, ysmPackage, player.get("animation_controllers"));
+        readPathField(result, ysmPackage, player.get("animation_controller"));
+        collectDirectoryJson(result, ysmPackage, "controller/");
+        collectDirectoryJson(result, ysmPackage, "controllers/");
+        return result;
+    }
+
+    private static List<String> readOldAnimationControllers(YsmPackage ysmPackage) {
+        List<String> result = new ArrayList<>();
+        addExisting(result, ysmPackage, "controller.animation.json");
+        addExisting(result, ysmPackage, "animation_controllers.json");
+        collectDirectoryJson(result, ysmPackage, "controller/");
+        collectDirectoryJson(result, ysmPackage, "controllers/");
         return result;
     }
 
@@ -120,6 +140,18 @@ public final class YsmManifestReader {
         String normalized = YsmPackage.normalize(animationPath);
         if (!result.contains(normalized) && ysmPackage.exists(normalized))
             result.add(normalized);
+    }
+
+    private static void collectDirectoryJson(List<String> result, YsmPackage ysmPackage, String directory) {
+        String prefix = YsmPackage.normalize(directory);
+        for (Path path : ysmPackage.listPaths()) {
+            if (Files.isDirectory(path))
+                continue;
+            String relative = ysmPackage.relativize(path);
+            String normalized = YsmPackage.normalize(relative);
+            if (normalized.startsWith(prefix) && normalized.toLowerCase(Locale.US).endsWith(".json") && !result.contains(normalized))
+                result.add(normalized);
+        }
     }
 
     private static List<YsmTextureOption> readNewTextures(JsonObject player) {
@@ -169,11 +201,12 @@ public final class YsmManifestReader {
     }
 
     private static YsmResourceIndex buildIndex(YsmPackage ysmPackage, YsmAvatarKind kind, String mainModel, String armModel,
-                                               List<String> animations, List<YsmTextureOption> textures) {
+                                               List<String> animations, List<String> controllers, List<YsmTextureOption> textures) {
         return new YsmResourceIndex(
                 ysmPackage.exists(mainModel) ? mainModel : "",
                 existingOrBlank(ysmPackage, armModel),
                 animations,
+                controllers,
                 textures == null ? List.of() : textures.stream()
                         .map(YsmTextureOption::path)
                         .map(YsmPackage::normalize)
