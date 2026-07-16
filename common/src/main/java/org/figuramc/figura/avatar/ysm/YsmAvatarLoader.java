@@ -62,6 +62,17 @@ public final class YsmAvatarLoader {
                     }
                     ysm.put("animations", animations);
 
+                    ListTag controllers = new ListTag();
+                    for (String controllerPath : index.animationControllerPaths()) {
+                        if (!ysmPackage.exists(controllerPath))
+                            continue;
+                        CompoundTag controller = new CompoundTag();
+                        controller.putString("path", controllerPath);
+                        controller.putByteArray("data", ysmPackage.readString(controllerPath).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                        controllers.add(controller);
+                    }
+                    ysm.put("animation_controllers", controllers);
+
                     if (texture != null) {
                         ysm.putString("texture_id", texture.id());
                         if (ysmPackage.exists(texture.path()))
@@ -103,6 +114,7 @@ public final class YsmAvatarLoader {
         tag.putString("main_model", index.mainModelPath());
         tag.putString("arm_model", index.armModelPath());
         tag.put("animations", strings(index.animationPaths()));
+        tag.put("animation_controllers", strings(index.animationControllerPaths()));
         tag.put("textures", strings(index.texturePaths()));
         tag.put("sounds", strings(index.soundPaths()));
         tag.putString("icon", index.iconPath());

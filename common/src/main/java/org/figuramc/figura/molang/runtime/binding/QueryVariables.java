@@ -297,11 +297,11 @@ public final class QueryVariables {
     // ===== Animation state =====
 
     public static final Variable ALL_ANIMATIONS_FINISHED = ctx -> {
-        var m = mc(ctx); return m != null ? (m.anim_time >= m.life_time ? 1f : 0f) : 0f;
+        var m = mc(ctx); return m != null ? (m.all_animations_finished != 0f ? m.all_animations_finished : m.anim_time >= m.life_time ? 1f : 0f) : 0f;
     };
 
     public static final Variable ANY_ANIMATION_FINISHED = ctx -> {
-        var m = mc(ctx); return m != null ? (m.anim_time >= m.life_time ? 1f : 0f) : 0f;
+        var m = mc(ctx); return m != null ? (m.any_animation_finished != 0f ? m.any_animation_finished : m.anim_time >= m.life_time ? 1f : 0f) : 0f;
     };
 
     public static final Variable SWING_TIME = ctx -> {

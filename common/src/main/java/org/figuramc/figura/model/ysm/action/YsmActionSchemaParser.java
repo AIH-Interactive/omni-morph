@@ -235,7 +235,8 @@ public final class YsmActionSchemaParser {
                     .setLoop(bool(object, "loop", bool(object, "repeat", false)))
                     .setMode(string(object, "mode", string(object, "trigger", "press")))
                     .setCooldownTicks((int) number(object, "cooldown", number(object, "cooldown_ticks", 0d)))
-                    .setSpeed((float) number(object, "speed", 1d));
+                    .setSpeed((float) number(object, "speed", 1d))
+                    .setItem(string(first(object, "item", "icon"), ""));
             runtime.actions().register(action);
         }
     }

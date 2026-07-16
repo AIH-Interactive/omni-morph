@@ -21,6 +21,8 @@ import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import org.figuramc.figura.model.ysm.animation.YsmAnimationClip;
 import org.figuramc.figura.model.ysm.animation.YsmAnimationParser;
 import org.figuramc.figura.model.ysm.animation.YsmAnimationPlayer;
+import org.figuramc.figura.model.ysm.controller.YsmAnimationController;
+import org.figuramc.figura.model.ysm.controller.YsmAnimationControllerParser;
 import org.figuramc.figura.model.ysm.action.YsmActionDefinition;
 import org.figuramc.figura.model.ysm.action.YsmActionRuntime;
 import org.figuramc.figura.model.ysm.action.YsmActionSchemaParser;
@@ -98,6 +100,7 @@ public class YsmModelRuntime implements AutoCloseable {
         String modelKey = tag.getStringOr("source_path", tag.getStringOr("main_model_path", "ysm"));
         YsmModelRuntime runtime = new YsmModelRuntime(owner, geometry, armGeometry, texture, textureId, kind, modelKey, textureData);
         runtime.animationPlayer.registerAnimations(readAnimations(tag));
+        runtime.animationPlayer.registerControllers(readAnimationControllers(tag));
         runtime.animationPlayer.startBaseAnimations();
         runtime.actions.buildDefaultsFromAnimations();
         runtime.registerDefaultControls();
@@ -153,6 +156,19 @@ public class YsmModelRuntime implements AutoCloseable {
             if (json.isBlank())
                 continue;
             result.putAll(YsmAnimationParser.parse(json));
+        }
+        return result;
+    }
+
+    private static Map<String, YsmAnimationController> readAnimationControllers(CompoundTag tag) {
+        Map<String, YsmAnimationController> result = new LinkedHashMap<>();
+        for (Tag controllerTag : tag.getListOrEmpty("animation_controllers")) {
+            if (!(controllerTag instanceof CompoundTag controller))
+                continue;
+            String json = new String(controller.getByteArray("data").orElse(new byte[0]), StandardCharsets.UTF_8);
+            if (json.isBlank())
+                continue;
+            result.putAll(YsmAnimationControllerParser.parse(json));
         }
         return result;
     }
@@ -275,6 +291,10 @@ public class YsmModelRuntime implements AutoCloseable {
         pages.put("root", root);
         slots.put("root", 2);
         occupied.computeIfAbsent("root", ignored -> new LinkedHashSet<>()).add(1);
+        for (String pageId : YsmActionWheelLayoutStore.pages(modelKey)) {
+            if (pageId != null && !pageId.isBlank())
+                pageFor(root, pages, slots, occupied, pageId);
+        }
 
         for (YsmActionDefinition action : actions.all()) {
             if (!isExtraAnimation(action))
@@ -290,9 +310,9 @@ public class YsmModelRuntime implements AutoCloseable {
             String animation = action.getAnimation();
             Action wheelAction = page.newAction(slot).setTitle(action.getTitle());
             if (animation != null && animation.startsWith("#")) {
-                wheelAction.setItem("minecraft:comparator").setControlsPage(animation.substring(1));
+                wheelAction.setItem(action.getItem() == null ? "minecraft:comparator" : action.getItem()).setControlsPage(animation.substring(1));
             } else {
-                wheelAction.setItem("minecraft:armor_stand").setYsmAction(action.getId());
+                wheelAction.setItem(action.getItem() == null ? "minecraft:armor_stand" : action.getItem()).setYsmAction(action.getId());
             }
         }
         wheel.setPage(root);

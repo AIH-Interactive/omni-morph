@@ -2,6 +2,8 @@ package org.figuramc.figura.molang.storage;
 
 import org.figuramc.figura.molang.runtime.AssignableVariable;
 import org.figuramc.figura.molang.runtime.ExecutionContext;
+import org.figuramc.figura.molang.runtime.HashMapStruct;
+import org.figuramc.figura.molang.runtime.Struct;
 import org.figuramc.figura.molang.runtime.Variable;
 import org.figuramc.figura.molang.runtime.binding.ObjectBinding;
 import org.figuramc.figura.molang.runtime.binding.ValueConversions;
@@ -75,9 +77,21 @@ public class VariableStorage implements AssignableVariable, ObjectBinding {
     @Override
     public Object getProperty(String name) {
         int id = StringPool.computeIfAbsent(name.toLowerCase());
+        if ("roaming".equals(name.toLowerCase()))
+            return variableViewCache.computeIfAbsent(id, key -> (Variable) ctx -> struct(key));
         return variableViewCache.computeIfAbsent(id, key ->
             (Variable) ctx -> scopedMap.getOrDefault(key, fallbackValue)
         );
+    }
+
+    private Struct struct(int key) {
+        Object value = scopedMap.get(key);
+        if (value instanceof Struct struct)
+            return struct;
+        Struct struct = new HashMapStruct();
+        scopedMap.put(key, struct);
+        publicVariableNames.add(key);
+        return struct;
     }
 
     /**

@@ -333,6 +333,8 @@ public class Avatar {
         // ===== Time fields =====
         public float anim_time;
         public float life_time;
+        public float any_animation_finished;
+        public float all_animations_finished;
         public float delta_time;
         public float time_of_day;
         public int moon_phase;

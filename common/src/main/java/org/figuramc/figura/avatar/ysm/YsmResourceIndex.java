@@ -6,6 +6,7 @@ public record YsmResourceIndex(
         String mainModelPath,
         String armModelPath,
         List<String> animationPaths,
+        List<String> animationControllerPaths,
         List<String> texturePaths,
         List<String> soundPaths,
         String iconPath,
@@ -16,6 +17,7 @@ public record YsmResourceIndex(
         mainModelPath = normalizeNullable(mainModelPath);
         armModelPath = normalizeNullable(armModelPath);
         animationPaths = copyNormalized(animationPaths);
+        animationControllerPaths = copyNormalized(animationControllerPaths);
         texturePaths = copyNormalized(texturePaths);
         soundPaths = copyNormalized(soundPaths);
         iconPath = normalizeNullable(iconPath);
@@ -35,6 +37,10 @@ public record YsmResourceIndex(
         return !animationPaths.isEmpty();
     }
 
+    public boolean hasAnimationControllers() {
+        return !animationControllerPaths.isEmpty();
+    }
+
     public boolean hasTextures() {
         return !texturePaths.isEmpty();
     }
@@ -49,6 +55,7 @@ public record YsmResourceIndex(
                 mainModelPath,
                 armModelPath,
                 animationPaths,
+                List.of(),
                 textures == null ? List.of() : textures.stream().map(YsmTextureOption::path).toList(),
                 List.of(),
                 "",

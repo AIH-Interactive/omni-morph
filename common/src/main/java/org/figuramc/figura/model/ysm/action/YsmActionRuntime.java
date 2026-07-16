@@ -1,6 +1,7 @@
 package org.figuramc.figura.model.ysm.action;
 
 import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.molang.storage.StringPool;
 import org.figuramc.figura.model.ysm.YsmModelRuntime;
 import org.figuramc.figura.model.ysm.animation.YsmAnimationClip;
 
@@ -76,7 +77,10 @@ public class YsmActionRuntime {
         boolean loop = action.isLoop() || "toggle".equals(mode) || "hold".equals(mode) || Boolean.TRUE.equals(runtime.owner().controls.getValue("ysm.action_loop"));
         Object speedValue = runtime.owner().controls.getValue("ysm.action_speed");
         float speed = action.getSpeed() > 0f ? action.getSpeed() : speedValue instanceof Number number ? number.floatValue() : 1f;
+        stopOthers(normalized);
         boolean played = runtime.animations().play(action.getAnimation(), loop, speed) != null;
+        if (played)
+            pulseActionVariables(action);
         if (played && action.getCooldownTicks() > 0)
             cooldownUntil.put(normalized, tick + action.getCooldownTicks());
         return played;
@@ -86,6 +90,20 @@ public class YsmActionRuntime {
         YsmActionDefinition action = get(id);
         if (action != null && action.getAnimation() != null)
             runtime.animations().stop(action.getAnimation());
+    }
+
+    public void stopAll() {
+        for (YsmActionDefinition action : actions.values()) {
+            if (action.getAnimation() != null)
+                runtime.animations().stop(action.getAnimation());
+        }
+    }
+
+    private void stopOthers(String currentId) {
+        for (YsmActionDefinition action : actions.values()) {
+            if (action.getAnimation() != null && !normalize(action.getId()).equals(currentId))
+                runtime.animations().stop(action.getAnimation());
+        }
     }
 
     public boolean isActive(String id) {
@@ -113,6 +131,23 @@ public class YsmActionRuntime {
         if (colon >= 0 && colon + 1 < value.length())
             value = value.substring(colon + 1);
         return value.toLowerCase(Locale.US);
+    }
+
+    private void pulseActionVariables(YsmActionDefinition action) {
+        if (runtime.owner().getMolangContext() == null)
+            return;
+        setVariable(action.getId(), 1f);
+        setVariable(action.getAnimation(), 1f);
+        String merged = (normalize(action.getId()) + "_" + normalize(action.getAnimation())).toLowerCase(Locale.US);
+        if (merged.contains("attack") || merged.contains("swing") || merged.contains("sword"))
+            setVariable("swing_sword", 1f);
+    }
+
+    private void setVariable(String name, Object value) {
+        String normalized = normalize(name).replace('-', '_').replace(' ', '_');
+        if (normalized.isBlank())
+            return;
+        runtime.owner().getMolangContext().variables.setScoped(StringPool.computeIfAbsent(normalized), value);
     }
 
     private static String prettyTitle(String id) {
