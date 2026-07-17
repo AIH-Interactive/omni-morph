@@ -7,15 +7,18 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
 
 public class YsmPackage implements AutoCloseable {
     private final Path root;
+    private Path effectiveRoot;
     private FileSystem zipFileSystem;
 
     private YsmPackage(Path root) {
         this.root = root;
+        this.effectiveRoot = root;
     }
 
     public static YsmPackage open(Path root) {
@@ -32,18 +35,39 @@ public class YsmPackage implements AutoCloseable {
             return;
         try {
             zipFileSystem = FileSystems.newFileSystem(root, (ClassLoader) null);
+            effectiveRoot = resolveArchiveModelRoot(zipFileSystem.getPath("/"));
         } catch (IOException ignored) {
         }
     }
 
     public Path root() {
-        return zipFileSystem != null ? zipFileSystem.getPath("/") : root;
+        return effectiveRoot;
     }
 
     public Path resolve(String relativePath) {
         if (relativePath == null || relativePath.isBlank())
             return root();
-        return root().resolve(normalize(relativePath));
+        String normalized = normalize(relativePath);
+        Path direct = root().resolve(normalized).normalize();
+        if (Files.exists(direct))
+            return direct;
+        Path current = root();
+        for (String segment : normalized.split("/")) {
+            if (segment.isBlank() || !Files.isDirectory(current))
+                return direct;
+            try (Stream<Path> children = Files.list(current)) {
+                Path matched = children
+                        .filter(child -> child.getFileName().toString().equalsIgnoreCase(segment))
+                        .findFirst()
+                        .orElse(null);
+                if (matched == null)
+                    return direct;
+                current = matched;
+            } catch (IOException ignored) {
+                return direct;
+            }
+        }
+        return current;
     }
 
     public boolean exists(String relativePath) {
@@ -80,7 +104,31 @@ public class YsmPackage implements AutoCloseable {
     }
 
     public static String normalize(String relativePath) {
-        return relativePath == null ? "" : relativePath.replace('\\', '/');
+        return relativePath == null ? "" : relativePath.replace('\\', '/').replaceAll("^/+|/+$", "").replaceAll("/+", "/");
+    }
+
+    private static Path resolveArchiveModelRoot(Path archiveRoot) throws IOException {
+        if (isModelFolder(archiveRoot))
+            return archiveRoot;
+        Path detectedRoot = null;
+        try (Stream<Path> stream = Files.list(archiveRoot)) {
+            Iterator<Path> iterator = stream.iterator();
+            while (iterator.hasNext()) {
+                Path child = iterator.next();
+                if (!Files.isDirectory(child) || !isModelFolder(child))
+                    continue;
+                if (detectedRoot != null)
+                    return archiveRoot;
+                detectedRoot = child;
+            }
+        }
+        return detectedRoot == null ? archiveRoot : detectedRoot;
+    }
+
+    private static boolean isModelFolder(Path dir) {
+        return Files.isRegularFile(dir.resolve("ysm.json"))
+                || Files.isRegularFile(dir.resolve("main.json"))
+                || Files.isRegularFile(dir.resolve("arm.json"));
     }
 
     @Override

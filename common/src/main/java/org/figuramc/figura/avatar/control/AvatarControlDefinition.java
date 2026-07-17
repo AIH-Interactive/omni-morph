@@ -33,6 +33,7 @@ public class AvatarControlDefinition {
     private String description;
     private String binding;
     private String targetPage;
+    private boolean persistent = true;
     private LuaFunction onChange;
     private LuaFunction onPress;
 
@@ -75,6 +76,10 @@ public class AvatarControlDefinition {
 
     public String description() {
         return description;
+    }
+
+    public boolean persistent() {
+        return persistent;
     }
 
     public Map<String, String> optionCommands() {
@@ -261,6 +266,36 @@ public class AvatarControlDefinition {
     @LuaWhitelist
     public AvatarControlDefinition binding(String binding) {
         return setBinding(binding);
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("avatar_control.get_persistent")
+    public boolean isPersistent() {
+        return persistent;
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc(
+            overloads = @LuaMethodOverload(
+                    argumentTypes = Boolean.class,
+                    argumentNames = "persistent"
+            ),
+            aliases = "persistent",
+            value = "avatar_control.set_persistent"
+    )
+    public AvatarControlDefinition setPersistent(boolean persistent) {
+        this.persistent = persistent;
+        return this;
+    }
+
+    @LuaWhitelist
+    public AvatarControlDefinition set_persistent(boolean persistent) {
+        return setPersistent(persistent);
+    }
+
+    @LuaWhitelist
+    public AvatarControlDefinition persistent(boolean persistent) {
+        return setPersistent(persistent);
     }
 
     @LuaWhitelist
@@ -474,7 +509,7 @@ public class AvatarControlDefinition {
             value = "avatar_control.add_option"
     )
     public AvatarControlDefinition addOption(String option) {
-        if (option != null)
+        if (option != null && !options.contains(option))
             options.add(option);
         return this;
     }
@@ -536,7 +571,7 @@ public class AvatarControlDefinition {
         if (values != null) {
             for (Object value : values) {
                 if (value != null)
-                    options.add(value.toString());
+                    addOption(value.toString());
             }
         }
         return this;

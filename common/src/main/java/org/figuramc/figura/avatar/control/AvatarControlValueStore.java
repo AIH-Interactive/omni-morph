@@ -34,6 +34,8 @@ public final class AvatarControlValueStore {
     }
 
     private static boolean isPersistent(AvatarControlDefinition control) {
+        if (!control.persistent())
+            return false;
         return switch (control.type()) {
             case LABEL, SEPARATOR, BUTTON -> false;
             default -> true;

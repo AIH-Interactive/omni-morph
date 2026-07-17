@@ -1,0 +1,110 @@
+plugins {
+    id 'com.gradleup.shadow'
+}
+
+apply from: rootProject.file('gradle/verify-native-abi.gradle')
+
+configurations {
+    shadowBundle {
+        canBeResolved = true
+        canBeConsumed = false
+    }
+}
+
+def releaseArchiveName = "${rootProject.archives_name}-${project.version}-fa26.1.x"
+
+sourceSets {
+    main {
+        java {
+            srcDir rootProject.file('common/src/main/java')
+        }
+        resources {
+            srcDir rootProject.file('common/src/main/resources')
+            exclude 'native/**'
+        }
+    }
+}
+
+if (rootProject.ext.isCurseForgeDist) {
+    tasks.named('compileJava', JavaCompile) {
+        source = files(
+                fileTree('src/main/java'),
+                fileTree(rootProject.file('common/src/main/java')) {
+                    exclude 'com/micaftic/morpher/RuntimeAccelerationLoader.java'
+                    exclude 'com/micaftic/morpher/client/gui/resource/ResourceStationConfig.java'
+                    exclude 'com/elfmcys/yesstevemodel/geckolib3/geo/render/built/ModelAccelerationBridge.java'
+                    exclude 'com/micaftic/morpher/util/ClientUiUtil.java'
+                    exclude 'com/micaftic/morpher/util/PlatformUtil.java'
+                    exclude 'com/ysm/parser/YSMParser.java'
+                    exclude 'com/ysm/parser/YSMNative.java'
+                    exclude 'com/micaftic/morpher/core/algorithms/YsmAlgorithmBridge.java'
+                },
+                fileTree(rootProject.file('common/src/curseforge/java'))
+        )
+    }
+}
+
+dependencies {
+    modImplementation "net.fabricmc:fabric-loader:$rootProject.fabric_loader_version"
+
+    modImplementation "net.fabricmc.fabric-api:fabric-api:$rootProject.fabric_api_version"
+
+
+    modImplementation "maven.modrinth:forge-config-api-port:$rootProject.forge_config_api_port_version"
+    include "maven.modrinth:forge-config-api-port:$rootProject.forge_config_api_port_version"
+
+    modImplementation "org.ladysnake.cardinal-components-api:cardinal-components-base:$rootProject.cardinal_components_version"
+    modImplementation "org.ladysnake.cardinal-components-api:cardinal-components-entity:$rootProject.cardinal_components_version"
+    include "org.ladysnake.cardinal-components-api:cardinal-components-base:$rootProject.cardinal_components_version"
+    include "org.ladysnake.cardinal-components-api:cardinal-components-entity:$rootProject.cardinal_components_version"
+
+    implementation "com.electronwill.night-config:core:3.9.0"
+    implementation "com.electronwill.night-config:toml:3.9.0"
+
+    modCompileOnly "com.terraformersmc:modmenu:$rootProject.modmenu_version"
+
+    implementation "com.github.TartaricAlkaline:ImageStream:-SNAPSHOT"
+    include "com.github.TartaricAlkaline:ImageStream:-SNAPSHOT"
+
+    // zstd-jni dependency removed: project now uses YSM native �?pure-Java ZstdUtil �?raw-frame fallback chain.
+}
+
+processResources {
+    inputs.property 'version', project.version
+
+    filesMatching('fabric.mod.json') {
+        expand version: project.version
+    }
+
+    from(rootProject.file('LICENSE')) {
+        rename { 'LICENSE' }
+    }
+
+    if (rootProject.ext.isCurseForgeDist) {
+        exclude 'natives/**'
+        exclude '**/*.dll'
+        exclude '**/*.so'
+        exclude '**/*.dylib'
+        exclude '**/*.jnilib'
+        exclude '**/*.exe'
+    }
+}
+
+shadowJar {
+    configurations = [project.configurations.shadowBundle]
+    archiveClassifier = 'dev-shadow'
+    archiveFileName = "${releaseArchiveName}-dev-shadow.jar"
+    exclude 'net/minecraft/**'
+}
+
+remapJar {
+    input.set shadowJar.archiveFile
+    archiveFileName = rootProject.ext.isCurseForgeDist
+            ? "${releaseArchiveName}-curseforge.jar"
+            : "${releaseArchiveName}.jar"
+}
+
+tasks.named('remapSourcesJar') {
+    archiveFileName = "${releaseArchiveName}-sources.jar"
+}
+

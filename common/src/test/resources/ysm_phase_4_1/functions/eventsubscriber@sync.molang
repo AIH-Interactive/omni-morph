@@ -1,0 +1,2 @@
+v.phase_4_1_sync_id = args[0];
+v.phase_4_1_sync_value = args[1];

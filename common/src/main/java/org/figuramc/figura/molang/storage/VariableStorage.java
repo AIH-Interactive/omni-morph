@@ -4,7 +4,6 @@ import org.figuramc.figura.molang.runtime.AssignableVariable;
 import org.figuramc.figura.molang.runtime.ExecutionContext;
 import org.figuramc.figura.molang.runtime.HashMapStruct;
 import org.figuramc.figura.molang.runtime.Struct;
-import org.figuramc.figura.molang.runtime.Variable;
 import org.figuramc.figura.molang.runtime.binding.ObjectBinding;
 import org.figuramc.figura.molang.runtime.binding.ValueConversions;
 
@@ -27,15 +26,17 @@ import java.util.function.Consumer;
  * Reference: YSM VariableStorage
  */
 public class VariableStorage implements AssignableVariable, ObjectBinding {
+    private static final int ROAMING_ID = StringPool.computeIfAbsent("roaming");
 
     private final Map<Integer, Object> scopedMap = new HashMap<>();
     private final Set<Integer> publicVariableNames = new HashSet<>();
-    private Object fallbackValue = 0.0f;
+    private Object fallbackValue = null;
 
-    /** Cache of Variable wrappers for dot-access, indexed by StringPool ID */
-    private final Map<Integer, Variable> variableViewCache = new HashMap<>();
+    /** Cache of scoped variable wrappers for dot-access, indexed by StringPool ID */
+    private final Map<Integer, AssignableVariable> variableViewCache = new HashMap<>();
 
     public VariableStorage() {
+        initRoamingStruct();
     }
 
     /**
@@ -53,6 +54,56 @@ public class VariableStorage implements AssignableVariable, ObjectBinding {
         publicVariableNames.add(name);
     }
 
+    public void setPath(String path, Object value) {
+        String normalized = normalizePath(path);
+        if (normalized.isBlank())
+            return;
+        String[] parts = normalized.split("\\.");
+        if (parts.length == 1) {
+            setScoped(StringPool.computeIfAbsent(parts[0]), value);
+            return;
+        }
+        Struct current = struct(StringPool.computeIfAbsent(parts[0]));
+        for (int i = 1; i < parts.length - 1; i++) {
+            int id = StringPool.computeIfAbsent(parts[i]);
+            Object child = current.getProperty(id);
+            Struct next;
+            if (child instanceof Struct struct) {
+                next = struct;
+            } else {
+                next = new HashMapStruct();
+                current.putProperty(id, next);
+            }
+            current = next;
+        }
+        current.putProperty(StringPool.computeIfAbsent(parts[parts.length - 1]), value);
+    }
+
+    public Object getPath(String path) {
+        String normalized = normalizePath(path);
+        if (normalized.isBlank())
+            return null;
+        String[] parts = normalized.split("\\.");
+        Object current = scopedMap.get(StringPool.computeIfAbsent(parts[0]));
+        for (int i = 1; i < parts.length; i++) {
+            if (!(current instanceof Struct struct))
+                return null;
+            current = struct.getProperty(StringPool.computeIfAbsent(parts[i]));
+        }
+        return current;
+    }
+
+    private static String normalizePath(String path) {
+        if (path == null)
+            return "";
+        String value = path.trim().toLowerCase();
+        if (value.startsWith("v."))
+            return value.substring(2);
+        if (value.startsWith("variable."))
+            return value.substring("variable.".length());
+        return value;
+    }
+
     /**
      * Gets a public variable value.
      */
@@ -68,7 +119,7 @@ public class VariableStorage implements AssignableVariable, ObjectBinding {
     }
 
     /**
-     * ObjectBinding implementation: returns a {@link Variable} that dynamically reads
+     * ObjectBinding implementation: returns an {@link AssignableVariable} that dynamically reads
      * the stored value at evaluation time. This prevents values from being frozen
      * as constants during parsing.
      *
@@ -77,11 +128,25 @@ public class VariableStorage implements AssignableVariable, ObjectBinding {
     @Override
     public Object getProperty(String name) {
         int id = StringPool.computeIfAbsent(name.toLowerCase());
-        if ("roaming".equals(name.toLowerCase()))
-            return variableViewCache.computeIfAbsent(id, key -> (Variable) ctx -> struct(key));
-        return variableViewCache.computeIfAbsent(id, key ->
-            (Variable) ctx -> scopedMap.getOrDefault(key, fallbackValue)
-        );
+        return variableViewCache.computeIfAbsent(id, ScopedVariable::new);
+    }
+
+    private final class ScopedVariable implements AssignableVariable {
+        private final int name;
+
+        private ScopedVariable(int name) {
+            this.name = name;
+        }
+
+        @Override
+        public Object evaluate(ExecutionContext<?> context) {
+            return scopedMap.getOrDefault(name, fallbackValue);
+        }
+
+        @Override
+        public void assign(ExecutionContext<?> context, Object value) {
+            setScoped(name, value);
+        }
     }
 
     private Struct struct(int key) {
@@ -110,6 +175,12 @@ public class VariableStorage implements AssignableVariable, ObjectBinding {
         scopedMap.clear();
         publicVariableNames.clear();
         variableViewCache.clear();
+        initRoamingStruct();
+    }
+
+    private void initRoamingStruct() {
+        scopedMap.put(ROAMING_ID, new RoamingStruct());
+        publicVariableNames.add(ROAMING_ID);
     }
 
     @Override
@@ -131,6 +202,9 @@ public class VariableStorage implements AssignableVariable, ObjectBinding {
     public class VariableStorageStruct implements org.figuramc.figura.molang.runtime.Struct {
         @Override
         public Object getProperty(int name) {
+            Object value = scopedMap.get(name);
+            if (value != null)
+                return value;
             return scopedMap.getOrDefault(name, fallbackValue);
         }
 
@@ -146,6 +220,28 @@ public class VariableStorage implements AssignableVariable, ObjectBinding {
             copyStorage.scopedMap.putAll(VariableStorage.this.scopedMap);
             copyStorage.fallbackValue = VariableStorage.this.fallbackValue;
             return copyStorage.new VariableStorageStruct();
+        }
+    }
+
+    private static final class RoamingStruct implements Struct {
+        private final Map<Integer, Float> values = new HashMap<>();
+
+        @Override
+        public Object getProperty(int name) {
+            return values.getOrDefault(name, 0f);
+        }
+
+        @Override
+        public void putProperty(int name, Object value) {
+            values.put(name, ValueConversions.asFloat(value));
+        }
+
+        @Override
+        public Struct copy() {
+            HashMapStruct copy = new HashMapStruct(true);
+            for (Map.Entry<Integer, Float> entry : values.entrySet())
+                copy.putProperty(entry.getKey(), entry.getValue());
+            return copy;
         }
     }
 }

@@ -7,6 +7,7 @@ import org.figuramc.figura.molang.storage.StringPool;
 import org.figuramc.figura.model.ysm.animation.YsmAnimationClip;
 import org.figuramc.figura.model.ysm.animation.YsmAnimationPlayer;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -20,6 +21,8 @@ public class YsmControllerRuntime {
     private final Map<String, String> currentStates = new HashMap<>();
     private final Map<String, Float> stateTimes = new HashMap<>();
     private final Map<String, Set<String>> activeByController = new HashMap<>();
+    private final Map<String, Set<String>> completedOnceByController = new HashMap<>();
+    private final Set<String> enteredInitialStates = new HashSet<>();
 
     public YsmControllerRuntime(YsmAnimationPlayer player) {
         this.player = player;
@@ -34,6 +37,7 @@ public class YsmControllerRuntime {
             if (state != null) {
                 currentStates.put(controller.name(), state.name());
                 stateTimes.put(controller.name(), 0f);
+                enteredInitialStates.remove(controller.name());
             }
         }
     }
@@ -51,8 +55,11 @@ public class YsmControllerRuntime {
     }
 
     public void update(ExpressionEvaluator<?> evaluator, float deltaTime) {
-        for (YsmAnimationController controller : controllers.values())
-            update(controller, evaluator, deltaTime);
+        controllers.values().stream()
+                .sorted(Comparator
+                        .comparing(YsmAnimationController::slot)
+                        .thenComparing(YsmAnimationController::name))
+                .forEach(controller -> update(controller, evaluator, deltaTime));
     }
 
     private void update(YsmAnimationController controller, ExpressionEvaluator<?> evaluator, float deltaTime) {
@@ -69,6 +76,12 @@ public class YsmControllerRuntime {
         try {
             applyControllerClock(controller, context);
             applyControllerContext(controller, context);
+            player.runFunctionEventsForController(controller, evaluator);
+            applyControllerContext(controller, context);
+            if (enteredInitialStates.add(controller.name())) {
+                execute(state.onEntry(), evaluator);
+                applyControllerContext(controller, context);
+            }
             YsmControllerTransition transition = firstTransition(state, evaluator);
             if (transition != null) {
                 transition(controller, state, transition.targetState(), evaluator);
@@ -78,6 +91,11 @@ public class YsmControllerRuntime {
             }
 
             Set<String> desired = new HashSet<>();
+            Set<String> completed = completedOnceByController.computeIfAbsent(controller.name(), ignored -> new HashSet<>());
+            for (String animation : Set.copyOf(activeByController.computeIfAbsent(controller.name(), ignored -> new HashSet<>()))) {
+                if (player.isFinishedOnce(animation))
+                    completed.add(normalize(animation));
+            }
             for (YsmControllerAnimationRef ref : state.animations()) {
                 if (ref.animation() == null || ref.animation().isBlank() || "empty".equals(ref.animation()))
                     continue;
@@ -86,14 +104,20 @@ public class YsmControllerRuntime {
                 YsmAnimationClip clip = clip(ref.animation());
                 if (clip == null)
                     continue;
+                if (clip.loopMode == YsmAnimationClip.LoopMode.ONCE && completed.contains(normalize(ref.animation())))
+                    continue;
                 desired.add(ref.animation());
-                player.play(ref.animation(), clip.loop, 1f, state.blendTransition());
+                player.play(ref.animation(), clip.loopMode, 1f, state.blendTransition());
             }
 
             Set<String> previous = activeByController.computeIfAbsent(controller.name(), ignored -> new HashSet<>());
             for (String animation : Set.copyOf(previous)) {
-                if (!desired.contains(animation))
-                    player.stop(animation);
+                if (!desired.contains(animation)) {
+                    boolean finishedOnce = player.isFinishedOnce(animation);
+                    player.fadeOut(animation, state.blendTransition());
+                    if (!finishedOnce)
+                        completed.remove(normalize(animation));
+                }
             }
             previous.clear();
             previous.addAll(desired);
@@ -137,6 +161,7 @@ public class YsmControllerRuntime {
         for (String animation : activeByController.computeIfAbsent(controller.name(), ignored -> new HashSet<>()))
             player.fadeOut(animation, fadeSeconds);
         activeByController.get(controller.name()).clear();
+        completedOnceByController.computeIfAbsent(controller.name(), ignored -> new HashSet<>()).clear();
         execute(target.onEntry(), evaluator);
     }
 
@@ -194,15 +219,27 @@ public class YsmControllerRuntime {
     private void applyControllerContext(YsmAnimationController controller, Avatar.MolangContext context) {
         if (context == null)
             return;
+        String stateName = currentStates.getOrDefault(controller.name(), "");
+        setControllerValue(context, "controller", controller.name());
+        setControllerValue(context, "slot", controller.slot().name().toLowerCase(Locale.US));
+        setControllerValue(context, "current_state", stateName);
         setControllerValue(context, "state_time", stateTimes.getOrDefault(controller.name(), 0f));
         setControllerValue(context, "anim_time", context.anim_time);
         setControllerValue(context, "life_time", context.life_time);
         setControllerValue(context, "any_animation_finished", context.any_animation_finished);
         setControllerValue(context, "all_animations_finished", context.all_animations_finished);
+        for (String knownState : controller.states().keySet())
+            setControllerValue(context, normalizeStateFlag(knownState), knownState.equals(stateName) ? 1f : 0f);
     }
 
     private static void setControllerValue(Avatar.MolangContext context, String name, Object value) {
         context.controller.setScoped(StringPool.computeIfAbsent(name), value);
+    }
+
+    private static String normalizeStateFlag(String name) {
+        if (name == null || name.isBlank())
+            return "state";
+        return name.toLowerCase(Locale.US).replace('-', '_').replace(' ', '_').replace('.', '_');
     }
 
     private static String normalize(String name) {

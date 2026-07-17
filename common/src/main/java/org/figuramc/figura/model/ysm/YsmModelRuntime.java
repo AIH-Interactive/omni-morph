@@ -17,6 +17,7 @@ import org.figuramc.figura.lua.api.action_wheel.ActionWheelAPI;
 import org.figuramc.figura.lua.api.action_wheel.Page;
 import org.figuramc.figura.math.matrix.FiguraMat4;
 import org.figuramc.figura.math.vector.FiguraVec3;
+import org.figuramc.figura.molang.MolangEngine;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import org.figuramc.figura.model.ysm.animation.YsmAnimationClip;
 import org.figuramc.figura.model.ysm.animation.YsmAnimationParser;
@@ -36,6 +37,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class YsmModelRuntime implements AutoCloseable {
     private final Avatar owner;
@@ -51,9 +54,11 @@ public class YsmModelRuntime implements AutoCloseable {
     private final Map<String, YsmLocator> locators = new LinkedHashMap<>();
     private final Map<String, YsmAttachmentPoint> attachmentPoints = new LinkedHashMap<>();
     private final Map<String, FiguraMat4> locatorWorldMatrices = new LinkedHashMap<>();
+    private final Map<String, YsmSubEntity> subEntities = new LinkedHashMap<>();
     private final YsmRenderer renderer;
     private final YsmAnimationPlayer animationPlayer;
     private final YsmActionRuntime actions;
+    private final YsmMolangFunctionRuntime functions;
     private final String kind;
     private final String modelKey;
 
@@ -72,6 +77,7 @@ public class YsmModelRuntime implements AutoCloseable {
         this.renderer = new YsmRenderer(this);
         this.animationPlayer = new YsmAnimationPlayer(this);
         this.actions = new YsmActionRuntime(this);
+        this.functions = new YsmMolangFunctionRuntime(this);
     }
 
     public static YsmModelRuntime fromNbt(Avatar owner, CompoundTag tag) throws java.io.IOException {
@@ -99,12 +105,17 @@ public class YsmModelRuntime implements AutoCloseable {
         String kind = tag.getStringOr("kind", YsmAvatarKind.NONE.name());
         String modelKey = tag.getStringOr("source_path", tag.getStringOr("main_model_path", "ysm"));
         YsmModelRuntime runtime = new YsmModelRuntime(owner, geometry, armGeometry, texture, textureId, kind, modelKey, textureData);
-        runtime.animationPlayer.registerAnimations(readAnimations(tag));
-        runtime.animationPlayer.registerControllers(readAnimationControllers(tag));
+        runtime.readSubEntities(tag, selectedTexture);
+        MolangEngine ysmMolangEngine = MolangEngine.fromCustomBinding(owner.getAvatarBindings());
+        runtime.animationPlayer.registerAnimations(readAnimations(tag, ysmMolangEngine));
+        runtime.animationPlayer.registerControllers(readAnimationControllers(tag, ysmMolangEngine));
+        runtime.functions.load(tag.getListOrEmpty("functions"));
         runtime.animationPlayer.startBaseAnimations();
-        runtime.actions.buildDefaultsFromAnimations();
         runtime.registerDefaultControls();
         runtime.readActionSchemas(tag);
+        if (runtime.actions.all().isEmpty())
+            runtime.actions.buildDefaultsFromAnimations();
+        runtime.registerDiscoveredControls(tag);
         owner.controls.loadSavedValues(owner);
         owner.controls.syncAll(owner);
         return runtime;
@@ -148,6 +159,10 @@ public class YsmModelRuntime implements AutoCloseable {
     }
 
     private static Map<String, YsmAnimationClip> readAnimations(CompoundTag tag) {
+        return readAnimations(tag, Avatar.getMolangEngine());
+    }
+
+    private static Map<String, YsmAnimationClip> readAnimations(CompoundTag tag, MolangEngine engine) {
         Map<String, YsmAnimationClip> result = new HashMap<>();
         for (Tag animationTag : tag.getListOrEmpty("animations")) {
             if (!(animationTag instanceof CompoundTag animation))
@@ -155,12 +170,48 @@ public class YsmModelRuntime implements AutoCloseable {
             String json = new String(animation.getByteArray("data").orElse(new byte[0]), StandardCharsets.UTF_8);
             if (json.isBlank())
                 continue;
-            result.putAll(YsmAnimationParser.parse(json));
+            mergeAnimations(result, YsmAnimationParser.parse(json, engine));
         }
         return result;
     }
 
+    private static void mergeAnimations(Map<String, YsmAnimationClip> target, Map<String, YsmAnimationClip> source) {
+        if (source == null || source.isEmpty())
+            return;
+        for (Map.Entry<String, YsmAnimationClip> entry : source.entrySet()) {
+            String name = entry.getKey();
+            YsmAnimationClip incoming = entry.getValue();
+            if (name == null || incoming == null)
+                continue;
+            YsmAnimationClip existing = target.get(name);
+            if (existing == null || shouldReplaceAnimation(existing, incoming))
+                target.put(name, incoming);
+        }
+    }
+
+    private static boolean shouldReplaceAnimation(YsmAnimationClip existing, YsmAnimationClip incoming) {
+        if (isEmptyAnimation(existing))
+            return !isEmptyAnimation(incoming);
+        if (isEmptyAnimation(incoming))
+            return false;
+        return animationWeight(incoming) > animationWeight(existing);
+    }
+
+    private static boolean isEmptyAnimation(YsmAnimationClip clip) {
+        return clip == null || clip.boneAnimations.isEmpty() && clip.events.isEmpty();
+    }
+
+    private static int animationWeight(YsmAnimationClip clip) {
+        if (clip == null)
+            return 0;
+        return clip.boneAnimations.size() * 2 + clip.events.size();
+    }
+
     private static Map<String, YsmAnimationController> readAnimationControllers(CompoundTag tag) {
+        return readAnimationControllers(tag, Avatar.getMolangEngine());
+    }
+
+    private static Map<String, YsmAnimationController> readAnimationControllers(CompoundTag tag, MolangEngine engine) {
         Map<String, YsmAnimationController> result = new LinkedHashMap<>();
         for (Tag controllerTag : tag.getListOrEmpty("animation_controllers")) {
             if (!(controllerTag instanceof CompoundTag controller))
@@ -168,7 +219,7 @@ public class YsmModelRuntime implements AutoCloseable {
             String json = new String(controller.getByteArray("data").orElse(new byte[0]), StandardCharsets.UTF_8);
             if (json.isBlank())
                 continue;
-            result.putAll(YsmAnimationControllerParser.parse(json));
+            result.putAll(YsmAnimationControllerParser.parse(json, engine));
         }
         return result;
     }
@@ -267,12 +318,46 @@ public class YsmModelRuntime implements AutoCloseable {
         return renderer;
     }
 
+    public Iterable<YsmSubEntity> subEntities() {
+        return new LinkedHashSet<>(subEntities.values());
+    }
+
+    public YsmSubEntity getSubEntity(String id) {
+        if (id == null)
+            return null;
+        YsmSubEntity entity = subEntities.get(id);
+        return entity != null ? entity : subEntities.get(id.toLowerCase(java.util.Locale.US));
+    }
+
+    public YsmSubEntity getSubEntity(String kind, String entityId) {
+        if (entityId != null && !entityId.isBlank()) {
+            YsmSubEntity direct = getSubEntity(kind + ":" + entityId);
+            if (direct == null)
+                direct = getSubEntity(entityId);
+            if (direct != null && direct.matches(kind, entityId))
+                return direct;
+        }
+        for (YsmSubEntity entity : new LinkedHashSet<>(subEntities.values())) {
+            if (entity.matches(kind, entityId))
+                return entity;
+        }
+        return null;
+    }
+
+    public boolean renderSubEntity(PoseStack stack, MultiBufferSource bufferSource, int light, String kind, String entityId) {
+        return renderer.renderSubEntity(stack, bufferSource, light, getSubEntity(kind, entityId));
+    }
+
     public YsmAnimationPlayer animations() {
         return animationPlayer;
     }
 
     public YsmActionRuntime actions() {
         return actions;
+    }
+
+    public YsmMolangFunctionRuntime functions() {
+        return functions;
     }
 
     public void installDefaultActionWheel(ActionWheelAPI wheel) {
@@ -425,6 +510,103 @@ public class YsmModelRuntime implements AutoCloseable {
         }
     }
 
+    private static final Pattern MOLANG_VARIABLE = Pattern.compile("(?<![A-Za-z0-9_])(?:v|variable)\\.([A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*)");
+    private static final Pattern MOLANG_ASSIGNMENT = Pattern.compile("(?<![A-Za-z0-9_])(?:v|variable)\\.([A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*)\\s*(?<![!<>=])=(?!=)");
+
+    private void registerDiscoveredControls(CompoundTag tag) {
+        Set<String> reads = new LinkedHashSet<>();
+        Set<String> writes = new LinkedHashSet<>();
+        collectMolangVariables(tag.getListOrEmpty("action_schemas"), reads, writes);
+        collectMolangVariables(tag.getListOrEmpty("animation_controllers"), reads, writes);
+        collectMolangVariables(tag.getListOrEmpty("animations"), reads, writes);
+
+        Set<String> existingBindings = new LinkedHashSet<>();
+        for (AvatarControlDefinition control : owner.controls.all()) {
+            String binding = control.binding();
+            if (binding != null && !binding.isBlank())
+                existingBindings.add(normalizeMolangBinding(binding));
+        }
+
+        boolean headerAdded = false;
+        for (String variable : reads) {
+            if (!isDiscoverableControlVariable(variable, writes))
+                continue;
+            String binding = "v." + variable;
+            if (existingBindings.contains(normalizeMolangBinding(binding)))
+                continue;
+            if (!headerAdded) {
+                owner.controls.register(new AvatarControlDefinition("ysm.discovered.header", AvatarControlType.LABEL)
+                        .setTitle("YSM Discovered Controls")
+                        .setPage("ysm_discovered"));
+                headerAdded = true;
+            }
+            owner.controls.register(new AvatarControlDefinition("ysm.discovered." + controlId(variable), AvatarControlType.TOGGLE)
+                    .setTitle(titleFromVariable(variable))
+                    .setPage("ysm_discovered")
+                    .setBinding(binding));
+            existingBindings.add(normalizeMolangBinding(binding));
+        }
+    }
+
+    private static void collectMolangVariables(Iterable<Tag> tags, Set<String> reads, Set<String> writes) {
+        for (Tag entryTag : tags) {
+            if (!(entryTag instanceof CompoundTag entry))
+                continue;
+            String json = new String(entry.getByteArray("data").orElse(new byte[0]), StandardCharsets.UTF_8);
+            if (json.isBlank())
+                continue;
+            Matcher readMatcher = MOLANG_VARIABLE.matcher(json);
+            while (readMatcher.find())
+                reads.add(readMatcher.group(1));
+            Matcher writeMatcher = MOLANG_ASSIGNMENT.matcher(json);
+            while (writeMatcher.find())
+                writes.add(writeMatcher.group(1));
+        }
+    }
+
+    private static boolean isDiscoverableControlVariable(String variable, Set<String> writes) {
+        if (variable == null || variable.isBlank())
+            return false;
+        String lower = variable.toLowerCase(java.util.Locale.US);
+        if (!lower.startsWith("roaming."))
+            return false;
+        if (lower.endsWith("_state") || lower.contains("_state."))
+            return false;
+        return !writes.contains(variable);
+    }
+
+    private static String normalizeMolangBinding(String binding) {
+        String normalized = binding.trim();
+        if (normalized.startsWith("variable."))
+            normalized = "v." + normalized.substring("variable.".length());
+        return normalized.toLowerCase(java.util.Locale.US);
+    }
+
+    private static String controlId(String variable) {
+        return variable.replaceAll("[^A-Za-z0-9_]+", "_").replaceAll("_+", "_");
+    }
+
+    private static String titleFromVariable(String variable) {
+        String value = variable;
+        if (value.startsWith("roaming."))
+            value = value.substring("roaming.".length());
+        StringBuilder builder = new StringBuilder(value.length());
+        boolean nextUpper = true;
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c == '_' || c == '.' || c == '-') {
+                builder.append(' ');
+                nextUpper = true;
+            } else if (nextUpper) {
+                builder.append(Character.toUpperCase(c));
+                nextUpper = false;
+            } else {
+                builder.append(c);
+            }
+        }
+        return builder.toString().trim();
+    }
+
     private static void addPart(List<YsmModelPart> result, Map<String, YsmModelPart> source, String name) {
         if (name == null)
             return;
@@ -529,6 +711,21 @@ public class YsmModelRuntime implements AutoCloseable {
         return point == null ? FiguraVec3.of() : getAttachmentWorldMatrix(name).apply(0d, 0d, 0d);
     }
 
+    public boolean isBoneVisibleInHierarchy(String boneName) {
+        if (boneName == null || boneName.isBlank())
+            return false;
+        YsmGeometry.Bone bone = getBoneIgnoreCase(boneName);
+        while (bone != null) {
+            YsmModelPart part = getPart(bone.name);
+            if (part != null && !part.visibleRaw())
+                return false;
+            if (bone.parentName == null || bone.parentName.isBlank())
+                return true;
+            bone = getBoneIgnoreCase(bone.parentName);
+        }
+        return true;
+    }
+
     public void updateAnimations(LivingEntityRenderState state, LivingEntity entity) {
         Object nativeState = owner.controls.getValue("ysm.native_state_machine");
         if (nativeState instanceof Boolean enabled)
@@ -553,6 +750,29 @@ public class YsmModelRuntime implements AutoCloseable {
                 .setRange(0.1d, 3.0d, 0.1d)
                 .setDefault(1.0d)
                 .setPage("root"));
+        owner.controls.register(new AvatarControlDefinition("ysm.debug.header", AvatarControlType.LABEL)
+                .setTitle("YSM Debug")
+                .setPage("ysm_debug"));
+        owner.controls.register(new AvatarControlDefinition("ysm.debug.functions", AvatarControlType.LABEL)
+                .setTitle("Functions: " + functions.functionCount() + "  Events: " + functions.eventCount())
+                .setPage("ysm_debug"));
+        owner.controls.register(new AvatarControlDefinition("ysm.debug.function_names", AvatarControlType.LABEL)
+                .setTitle("fn: " + debugPreview(functions.functionDebugNames()))
+                .setPage("ysm_debug"));
+        owner.controls.register(new AvatarControlDefinition("ysm.debug.event_names", AvatarControlType.LABEL)
+                .setTitle("events: " + debugPreview(new ArrayList<>(functions.eventDebugNames().keySet())))
+                .setPage("ysm_debug"));
+        owner.controls.register(new AvatarControlDefinition("ysm.debug.recent_events", AvatarControlType.LABEL)
+                .setTitle("recent: " + debugPreview(functions.recentEvents()))
+                .setPage("ysm_debug"));
+    }
+
+    private static String debugPreview(List<String> values) {
+        if (values == null || values.isEmpty())
+            return "-";
+        int limit = Math.min(4, values.size());
+        String joined = String.join(", ", values.subList(0, limit));
+        return values.size() > limit ? joined + ", +" + (values.size() - limit) : joined;
     }
 
     public void updateWorldMatrices(PoseStack stack) {
@@ -571,6 +791,8 @@ public class YsmModelRuntime implements AutoCloseable {
         YsmAttachmentPoint point = getAttachmentPoint(attachmentName);
         YsmGeometry.Bone bone = findAttachmentBone(point);
         if (bone == null)
+            return false;
+        if (!isBoneVisibleInHierarchy(bone.name))
             return false;
         stack.scale(0.9375f, 0.9375f, 0.9375f);
         applyBoneChain(stack, bone, point.locator() != null);
@@ -601,6 +823,40 @@ public class YsmModelRuntime implements AutoCloseable {
     @Override
     public void close() {
         texture.close();
+        for (YsmSubEntity entity : new LinkedHashSet<>(subEntities.values()))
+            entity.close();
+    }
+
+    private void readSubEntities(CompoundTag tag, byte[] fallbackTexture) {
+        for (Tag entityTag : tag.getListOrEmpty("sub_entities")) {
+            if (!(entityTag instanceof CompoundTag subTag))
+                continue;
+            try {
+                addSubEntity(YsmSubEntity.fromNbt(owner, subTag, fallbackTexture));
+            } catch (Exception e) {
+                FiguraMod.LOGGER.warn("Failed to load YSM sub entity {} from {}", subTag.getStringOr("id", "sub_entity"), modelKey, e);
+            }
+        }
+    }
+
+    private void addSubEntity(YsmSubEntity entity) {
+        if (entity == null)
+            return;
+        registerSubEntityKey(entity.id(), entity);
+        registerSubEntityKey(entity.kind() + ":" + entity.id(), entity);
+        for (String matchId : entity.matchIds()) {
+            registerSubEntityKey(matchId, entity);
+            registerSubEntityKey(entity.kind() + ":" + matchId, entity);
+        }
+    }
+
+    private void registerSubEntityKey(String key, YsmSubEntity entity) {
+        if (key == null || key.isBlank())
+            return;
+        subEntities.putIfAbsent(key, entity);
+        subEntities.putIfAbsent(key.toLowerCase(java.util.Locale.US), entity);
+        if (!key.startsWith("minecraft:"))
+            subEntities.putIfAbsent("minecraft:" + key.toLowerCase(java.util.Locale.US), entity);
     }
 
     private YsmGeometry.Bone findHandBone(boolean left) {

@@ -1,11 +1,14 @@
 package org.figuramc.figura.avatar.control;
 
 import org.figuramc.figura.avatar.Avatar;
-import org.figuramc.figura.molang.storage.StringPool;
+import org.figuramc.figura.molang.MolangEngine;
+import org.figuramc.figura.molang.parser.ast.Expression;
+import org.figuramc.figura.molang.runtime.ExpressionEvaluator;
 import org.luaj.vm2.LuaFunction;
 import org.luaj.vm2.Varargs;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -52,8 +55,21 @@ public class AvatarControlRuntime {
     }
 
     public void syncAll(Avatar avatar) {
-        for (AvatarControlDefinition control : controls.values())
+        for (AvatarControlDefinition control : controls.values()) {
+            if (!control.persistent()) {
+                if (!hydrateMolangValue(avatar, control) && control.hasStoredValue())
+                    syncMolangValue(avatar, control);
+                continue;
+            }
             syncMolangValue(avatar, control);
+        }
+    }
+
+    public void hydrateLiveValues(Avatar avatar) {
+        for (AvatarControlDefinition control : controls.values()) {
+            if (!control.persistent())
+                hydrateMolangValue(avatar, control);
+        }
     }
 
     public void loadSavedValues(Avatar avatar) {
@@ -104,21 +120,79 @@ public class AvatarControlRuntime {
 
     public void resetAll(Avatar avatar) {
         for (AvatarControlDefinition control : controls.values()) {
-            if (control.type() != AvatarControlType.LABEL && control.type() != AvatarControlType.SEPARATOR && control.type() != AvatarControlType.BUTTON)
+            if (control.persistent() && control.type() != AvatarControlType.LABEL && control.type() != AvatarControlType.SEPARATOR && control.type() != AvatarControlType.BUTTON)
                 setValue(avatar, control.id(), control.getDefault());
         }
+    }
+
+    private static boolean hydrateMolangValue(Avatar avatar, AvatarControlDefinition control) {
+        if (avatar == null || avatar.getMolangContext() == null || control == null || control.binding() == null || control.binding().isBlank())
+            return false;
+        Object value = evalMolangValue(avatar, control.binding());
+        if (value == null)
+            return false;
+        switch (control.type()) {
+            case TOGGLE -> {
+                if (value instanceof Boolean bool)
+                    control.setValue(bool);
+                else if (value instanceof Number number)
+                    control.setValue(number.floatValue() != 0f);
+                else
+                    return false;
+            }
+            case SLIDER, NUMBER -> {
+                if (value instanceof Number number)
+                    control.setValue(number.doubleValue());
+                else
+                    return false;
+            }
+            case ENUM -> {
+                if (value instanceof Number number)
+                    control.setValue(Math.round(number.floatValue()));
+                else
+                    control.setValue(value.toString());
+            }
+            case TEXT, COLOR, KEYBIND -> control.setValue(value.toString());
+            default -> {
+            }
+        }
+        return true;
     }
 
     private static void syncMolangValue(Avatar avatar, AvatarControlDefinition control) {
         if (avatar == null || avatar.getMolangContext() == null || control == null)
             return;
         Object value = control.getValue();
-        String command = value == null ? null : control.optionCommands().get(value.toString());
+        String command = commandForValue(control, value);
         if (command != null) {
             applyMolangAssignments(avatar, command);
             return;
         }
         setMolangVariable(avatar, control.binding(), value);
+    }
+
+    private static String commandForValue(AvatarControlDefinition control, Object value) {
+        if (control == null || value == null || control.optionCommands().isEmpty())
+            return null;
+        String direct = control.optionCommands().get(value.toString());
+        if (direct != null)
+            return direct;
+        Integer index = optionIndex(value);
+        if (index == null || index < 0 || index >= control.options().size())
+            return null;
+        return control.optionCommands().get(control.options().get(index));
+    }
+
+    private static Integer optionIndex(Object value) {
+        if (value instanceof Number number)
+            return Math.round(number.floatValue());
+        if (value instanceof String string) {
+            try {
+                return Math.round(Float.parseFloat(string));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return null;
     }
 
     private static void applyMolangAssignments(Avatar avatar, String command) {
@@ -128,6 +202,11 @@ public class AvatarControlRuntime {
                 continue;
             String name = statement.substring(0, equals).trim();
             String rawValue = statement.substring(equals + 1).trim();
+            Object evaluated = evalMolangValue(avatar, rawValue);
+            if (evaluated != null) {
+                setMolangVariable(avatar, name, evaluated);
+                continue;
+            }
             try {
                 setMolangVariable(avatar, name, Double.parseDouble(rawValue));
             } catch (NumberFormatException ignored) {
@@ -139,10 +218,22 @@ public class AvatarControlRuntime {
         }
     }
 
+    private static Object evalMolangValue(Avatar avatar, String expression) {
+        if (avatar == null || avatar.getMolangContext() == null || expression == null || expression.isBlank())
+            return null;
+        try {
+            List<Expression> parsed = MolangEngine.fromCustomBinding(avatar.getAvatarBindings()).parse(expression);
+            if (parsed.isEmpty())
+                return null;
+            return ExpressionEvaluator.evaluator(avatar.getMolangContext()).eval(parsed.get(0));
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
     private static void setMolangVariable(Avatar avatar, String name, Object value) {
         if (name == null || name.isBlank() || value == null || avatar.getMolangContext() == null)
             return;
-        String varName = name.contains(".") ? name.substring(name.indexOf('.') + 1) : name;
         float number;
         if (value instanceof Number n)
             number = n.floatValue();
@@ -150,6 +241,27 @@ public class AvatarControlRuntime {
             number = b ? 1f : 0f;
         else
             return;
-        avatar.getMolangContext().variables.setScoped(StringPool.computeIfAbsent(varName), number);
+        avatar.getMolangContext().variables.setPath(name, number);
+        syncRoamingAlias(avatar, name, number);
+    }
+
+    private static String normalizeBindingPath(String name) {
+        String value = name == null ? "" : name.trim().toLowerCase(java.util.Locale.US);
+        if (value.startsWith("v."))
+            return value.substring(2);
+        if (value.startsWith("variable."))
+            return value.substring("variable.".length());
+        return value;
+    }
+
+    private static void syncRoamingAlias(Avatar avatar, String name, float value) {
+        String normalized = normalizeBindingPath(name);
+        if (!normalized.startsWith("roaming."))
+            return;
+        String roamingName = normalized.substring("roaming.".length()).replace('.', '_');
+        if (roamingName.isBlank())
+            return;
+        avatar.getMolangContext().variables.setPath(roamingName, value);
+        avatar.getMolangContext().variables.setPath("show_" + roamingName, value);
     }
 }

@@ -31,13 +31,29 @@ public class YsmActionRuntime {
         LinkedHashSet<YsmAnimationClip> seen = new LinkedHashSet<>();
         for (Map.Entry<String, YsmAnimationClip> entry : runtime.animations().getClips().entrySet()) {
             String id = normalize(entry.getKey());
-            if (id.isBlank() || NATIVE_STATES.contains(id) || !seen.add(entry.getValue()))
+            if (id.isBlank() || NATIVE_STATES.contains(id) || isInternalAnimation(id) || !seen.add(entry.getValue()))
                 continue;
-            actions.putIfAbsent(id, new YsmActionDefinition(id)
+            boolean legacyExtra = id.matches("extra\\d+");
+            String actionId = legacyExtra ? "extra_animation." + id : id;
+            actions.putIfAbsent(actionId, new YsmActionDefinition(actionId)
                     .setTitle(prettyTitle(id))
                     .setAnimation(id)
+                    .setPage(legacyExtra ? "extra_animation" : "root")
                     .setLoop(entry.getValue().loop));
         }
+    }
+
+    private static boolean isInternalAnimation(String id) {
+        if (id == null || id.isBlank())
+            return true;
+        String normalized = normalize(id);
+        return normalized.equals("empty")
+                || normalized.equals("attack_empty")
+                || normalized.startsWith("pre_main")
+                || normalized.startsWith("pre_parallel")
+                || normalized.startsWith("player_ctrl")
+                || normalized.contains("@player_ctrl")
+                || normalized.contains("locator");
     }
 
     public Collection<YsmActionDefinition> all() {
@@ -110,14 +126,14 @@ public class YsmActionRuntime {
         YsmActionDefinition action = get(id);
         if (action == null || action.getAnimation() == null)
             return false;
-        return runtime.animations().getActiveAnimations().containsKey(normalize(action.getAnimation()));
+        return runtime.animations().isActive(action.getAnimation());
     }
 
     public float time(String id) {
         YsmActionDefinition action = get(id);
         if (action == null || action.getAnimation() == null)
             return 0f;
-        var playing = runtime.animations().getActiveAnimations().get(normalize(action.getAnimation()));
+        var playing = runtime.animations().getActiveAnimation(action.getAnimation());
         return playing == null ? 0f : playing.time;
     }
 

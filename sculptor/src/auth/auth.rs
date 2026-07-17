@@ -1,0 +1,318 @@
+use std::sync::Arc;
+
+use anyhow::{anyhow, Context};
+use axum::{
+    async_trait, extract::{FromRequestParts, State}, http::{request::Parts, StatusCode}
+};
+use dashmap::DashMap;
+use thiserror::Error;
+use tracing::{debug, error, trace, warn};
+use uuid::Uuid;
+
+use crate::{ApiError, ApiResult, AppState, TIMEOUT, USER_AGENT};
+use super::types::*;
+
+// It's an extractor that pulls a token from the Header.
+#[derive(PartialEq, Debug)]
+pub struct Token(pub String);
+
+impl Token {
+    pub async fn check_auth(self, state: &AppState) -> ApiResult<()> {
+        if let Some(user) = state.user_manager.get(&self.0) {
+            if !user.banned {
+                Ok(())
+            } else {
+                Err(ApiError::Unauthorized)
+            }
+        } else {
+            Err(ApiError::Unauthorized)
+        }
+    }
+}
+
+#[async_trait]
+impl<S> FromRequestParts<S> for Token
+where
+    S: Send + Sync,
+{
+    type Rejection = StatusCode;
+
+    async fn from_request_parts(parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
+        let token = parts
+            .headers
+            .get("token")
+            .and_then(|value| value.to_str().ok());
+        trace!(token = ?token);
+        match token {
+            Some(token) => Ok(Self(token.to_string())),
+            None => Err(StatusCode::UNAUTHORIZED),
+        }
+    }
+}
+// End Extractor
+
+// Work with external APIs
+/// Get UUID from JSON response
+fn get_id_json(json: &serde_json::Value) -> Result<Uuid, uuid::Error> {
+    trace!("json: {json:#?}"); // For debugging, we'll get to this later!
+    let uuid = Uuid::parse_str(json.get("id").unwrap().as_str().unwrap())?;
+    Ok(uuid)
+}
+
+#[derive(Debug, Error)]
+enum FetchError {
+    #[error("invalid response code (expected 200), found {0}.\n    Response: {1:#?}")]
+    WrongResponse(u16, Result<String, reqwest::Error>),
+    #[error(transparent)]
+    SendError(#[from] reqwest::Error),
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+
+}
+
+async fn fetch_json(
+    State(state): State<AppState>,
+    auth_provider: &AuthProvider,
+    server_id: &str,
+    username: &str,
+    ip: String,
+) -> Result<(Uuid, AuthProvider), FetchError> {
+    let client = reqwest::Client::builder().timeout(TIMEOUT).user_agent(USER_AGENT).build().unwrap();
+    let url = auth_provider.url.clone();
+
+    let mut query = vec![
+        ("serverId", server_id.to_string()),
+        ("username", username.to_string()),
+    ];
+
+    if auth_provider.name == "Offline" {
+        query.push(("ip", ip));
+    }
+
+    let res = client
+        .get(url)
+        .query(&query)
+        .send()
+        .await?;
+    trace!("{res:?}");
+    match res.status().as_u16() {
+        200 => {
+            let json = serde_json::from_str::<serde_json::Value>(&res.text().await?).with_context(|| "Cant deserialize".to_string())?;
+            let uuid = get_id_json(&json).with_context(|| "Cant get UUID".to_string())?;
+            let def_can_upload = state.config.read().await.limitations.can_upload;
+            let can_upload = json.get("can_upload")
+                .map(|s| s.as_bool().unwrap_or(def_can_upload))
+                .unwrap_or(def_can_upload);
+            state.user_manager.put_upload_state(uuid, can_upload);
+            Ok((uuid, auth_provider.clone()))
+        }
+        _ => Err(FetchError::WrongResponse(res.status().as_u16(), res.text().await)),
+    }
+}
+
+pub async fn has_joined(
+    State(state): State<AppState>,
+    server_id: &str,
+    username: &str,
+    ip: String,
+) -> anyhow::Result<Option<(Uuid, AuthProvider)>> {
+    let (tx, mut rx) = tokio::sync::mpsc::channel(1);
+    let AuthProviders(auth_providers) = state.config.read().await.auth_providers.clone();
+
+    for provider in &auth_providers {
+        tokio::spawn(fetch_and_send(
+            State(state.clone()),
+            provider.clone(),
+            server_id.to_string(),
+            username.to_string(),
+            ip.clone(),
+            tx.clone()
+        ));
+    } 
+    let mut errors = Vec::new(); // Counting fetches what returns errors
+    let mut misses = Vec::new(); // Counting non OK results
+    let mut prov_count: usize = auth_providers.len();
+    while prov_count > 0 {
+        if let Some(fetch_res) = rx.recv().await {
+            match fetch_res {
+                Ok(data) => return Ok(Some(data)),
+                Err(err) => {
+                    match err {
+                        FetchError::WrongResponse(code, data) => misses.push((code, data)),
+                        FetchError::SendError(err) => errors.push(err.to_string()),
+                        FetchError::Other(err) => errors.push(err.to_string()),
+                    }
+                },
+            }
+        } else {
+            error!("Unexpected behavior!");
+            return Err(anyhow!("Something went wrong..."))
+        }
+        prov_count -= 1;
+    }
+
+    // Choosing what error return
+
+    // Returns if some internals errors occured
+    if !errors.is_empty() {
+        error!("Something wrong with your authentification providers!\nMisses: {misses:?}\nErrors: {errors:?}");
+        Err(anyhow::anyhow!("{:?}", errors))
+        
+    } else {
+        // Returning if user can't be authenticated
+        debug!("Misses: {misses:?}");
+        Ok(None)
+    }
+}
+
+async fn fetch_and_send(
+    State(state): State<AppState>,
+    provider: AuthProvider,
+    server_id: String,
+    username: String,
+    ip: String,
+    tx: tokio::sync::mpsc::Sender<Result<(Uuid, AuthProvider), FetchError>>
+) {
+    let _ = tx.send(fetch_json(State(state), &provider, &server_id, &username, ip).await)
+        .await.map_err( |err| trace!("fetch_and_send error [note: ok res returned and mpsc clossed]: {err:?}"));
+}
+
+// User manager
+#[derive(Debug, Clone)]
+pub struct UManager {
+    /// Users with incomplete authentication
+    pending: Arc<DashMap<String, String>>, // <SHA1 serverId, USERNAME> TODO: Add automatic purge
+    /// Authenticated users TODO: Change name to sessions
+    authenticated: Arc<DashMap<String, Uuid>>, // <SHA1 serverId, Userinfo>
+    /// Registered users
+    registered: Arc<DashMap<Uuid, Userinfo>>,
+    /// uploadState
+    can_upload: Arc<DashMap<Uuid, bool>>,
+    /// temp state
+    requested_temp: Arc<DashMap<Uuid, bool>>,
+}
+
+impl UManager {
+    pub fn new() -> Self {
+        Self {
+            pending: Arc::new(DashMap::new()),
+            registered: Arc::new(DashMap::new()),
+            authenticated: Arc::new(DashMap::new()),
+            can_upload: Arc::new(DashMap::new()),
+            requested_temp: Arc::new(DashMap::new()),
+        }
+    }
+    pub fn get_all_registered(&self) -> DashMap<Uuid, Userinfo> {
+        self.registered.as_ref().clone()
+    }
+    pub fn get_all_authenticated(&self) -> DashMap<String, Uuid> {
+        self.authenticated.as_ref().clone()
+    }
+    pub fn pending_insert(&self, server_id: String, username: String) {
+        self.pending.insert(server_id, username);
+    }
+    pub fn pending_remove(&self, server_id: &str) -> Option<(String, String)> {
+        self.pending.remove(server_id)
+    }
+    pub fn insert(&self, uuid: Uuid, token: String, userinfo: Userinfo) -> Result<(), ()> {
+        // Check for the presence of an active session.
+        if let Some(userinfo) = self.registered.get(&uuid) {
+            if let Some(token) = &userinfo.token {
+                if self.authenticated.contains_key(token) {
+                    warn!("Rejected attempt to create a second session for the same user!");
+                    return Err(())
+                }
+                debug!("`{}` already have token in registered profile (old token already removed from 'authenticated')", userinfo.nickname);
+            }
+        }
+
+        // Adding a user
+        self.authenticated.insert(token, uuid);
+        self.insert_user(uuid, userinfo);
+        Ok(())
+    }
+    pub fn insert_user(&self, uuid: Uuid, userinfo: Userinfo) {
+        // self.registered.insert(uuid, userinfo)
+        let usercopy = userinfo.clone();
+        self.registered.entry(uuid)
+            .and_modify(|exist| {
+                if !userinfo.nickname.is_empty() { exist.nickname = userinfo.nickname };
+                if !userinfo.auth_provider.is_empty() { exist.auth_provider = userinfo.auth_provider };
+                if userinfo.rank != Userinfo::default().rank { exist.rank = userinfo.rank };
+                if userinfo.token.is_some() { exist.token = userinfo.token };
+                if userinfo.version != Userinfo::default().version { exist.version = userinfo.version };
+            }).or_insert(usercopy);
+    }
+    pub fn get(
+        &self,
+        token: &String,
+    ) -> Option<dashmap::mapref::one::Ref<'_, Uuid, Userinfo>> {
+        let uuid = self.authenticated.get(token)?;
+        self.registered.get(uuid.value())
+    }
+    pub fn get_by_uuid(
+        &self,
+        uuid: &Uuid,
+    ) -> Option<dashmap::mapref::one::Ref<'_, Uuid, Userinfo>> {
+        self.registered.get(uuid)
+    }
+    pub fn ban(&self, banned_user: &Userinfo) {
+        self.registered.entry(banned_user.uuid)
+            .and_modify(|exist| {
+                exist.banned = true;
+            }).or_insert(banned_user.clone());
+    }
+    pub fn unban(&self, uuid: &Uuid) {
+        if let Some(mut user) = self.registered.get_mut(uuid) {
+            user.banned = false;
+        };
+    }
+    pub fn _is_authenticated(&self, token: &String) -> bool {
+        self.authenticated.contains_key(token)
+    }
+    pub fn _is_registered(&self, uuid: &Uuid) -> bool {
+        self.registered.contains_key(uuid)
+    }
+    pub fn is_banned(&self, uuid: &Uuid) -> bool {
+        if let Some(user) = self.registered.get(uuid) { user.banned } else { false }
+    }
+    pub fn count_authenticated(&self) -> usize {
+        self.authenticated.len()
+    }
+    pub fn put_upload_state(&self, uuid: Uuid, upload_state: bool) {
+        self.can_upload.insert(uuid, upload_state);
+    }
+    pub fn upload_state(&self, uuid: Uuid, def: bool) -> bool {
+        self.can_upload.get(&uuid)
+            .map(|upload_state| { *upload_state.value() })
+            .unwrap_or(def)
+    }
+    pub fn put_request_temp_state(&self, uuid: Uuid, temp_state: bool) {
+        self.requested_temp.insert(uuid, temp_state);
+    }
+    pub fn request_temp_state(&self, uuid: Uuid, def: bool) -> bool {
+        self.requested_temp.get(&uuid)
+            .map(|temp_state| { *temp_state.value() })
+            .unwrap_or(def)
+    }
+
+    pub fn remove(&self, uuid: &Uuid) {
+        let token = self.registered.get(uuid).unwrap().token.clone().unwrap();
+        self.authenticated.remove(&token);
+    }
+}
+// End of User manager
+
+pub async fn check_auth(
+    token: Option<Token>,
+    State(state): State<AppState>,
+) -> ApiResult<&'static str> {
+    debug!("Checking auth actuality...");
+    match token {
+        Some(token) => {
+            token.check_auth(&state).await?;
+            Ok("ok")
+        },
+        None => Err(ApiError::BadRequest), 
+    }
+}

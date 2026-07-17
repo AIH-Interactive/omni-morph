@@ -37,6 +37,22 @@ public class YsmRenderer {
         return true;
     }
 
+    public boolean renderSubEntity(PoseStack stack, MultiBufferSource bufferSource, int light, YsmSubEntity entity) {
+        if (entity == null || entity.geometry().roots.isEmpty())
+            return false;
+
+        entity.texture().uploadIfDirty(false, false);
+        RenderType renderType = RenderTypes.entityCutout(entity.texture().getLocation());
+        VertexConsumer vertices = bufferSource.getBuffer(renderType);
+
+        stack.pushPose();
+        stack.scale(0.9375f, 0.9375f, 0.9375f);
+        for (YsmGeometry.Bone root : entity.geometry().roots)
+            renderStaticBone(root, stack, vertices, light);
+        stack.popPose();
+        return true;
+    }
+
     public boolean renderAttachments(PoseStack stack, MultiBufferSource bufferSource, int light) {
         boolean rendered = false;
         rendered |= renderAttachmentType(stack, bufferSource, light, YsmAttachmentType.BACKPACK);
@@ -64,6 +80,8 @@ public class YsmRenderer {
             return false;
         YsmGeometry.Bone bone = findAttachmentBone(point.boneName());
         if (bone == null)
+            return false;
+        if (!runtime.isBoneVisibleInHierarchy(bone.name))
             return false;
 
         runtime.texture().uploadIfDirty(false, false);
@@ -135,7 +153,9 @@ public class YsmRenderer {
     private void renderBone(YsmGeometry.Bone bone, PoseStack stack, VertexConsumer vertices, int light, YsmPartMask mask, boolean useArmParts) {
         YsmModelPart part = useArmParts ? runtime.getArmPart(bone.name) : runtime.getPart(bone.name);
         YsmBoneRole role = useArmParts ? runtime.armRoleOf(bone.name) : runtime.roleOf(bone.name);
-        boolean renderSelf = (part == null || part.visibleRaw()) && (mask == null || mask.allows(role));
+        if (part != null && !part.visibleRaw())
+            return;
+        boolean renderSelf = mask == null || mask.allows(role);
 
         stack.pushPose();
         applyBoneTransform(bone, part, stack);
@@ -145,6 +165,18 @@ public class YsmRenderer {
         }
         for (YsmGeometry.Bone child : bone.children)
             renderBone(child, stack, vertices, light, mask, useArmParts);
+        stack.popPose();
+    }
+
+    private void renderStaticBone(YsmGeometry.Bone bone, PoseStack stack, VertexConsumer vertices, int light) {
+        if (!bone.visible)
+            return;
+        stack.pushPose();
+        applyBoneTransform(bone, null, stack);
+        for (YsmGeometry.Cube cube : bone.cubes)
+            renderCube(cube, stack, vertices, light);
+        for (YsmGeometry.Bone child : bone.children)
+            renderStaticBone(child, stack, vertices, light);
         stack.popPose();
     }
 

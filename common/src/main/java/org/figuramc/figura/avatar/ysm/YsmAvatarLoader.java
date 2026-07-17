@@ -1,5 +1,8 @@
 package org.figuramc.figura.avatar.ysm;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
@@ -11,6 +14,9 @@ import org.figuramc.figura.utils.FiguraText;
 import org.figuramc.figura.utils.IOUtils;
 
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -73,13 +79,28 @@ public final class YsmAvatarLoader {
                     }
                     ysm.put("animation_controllers", controllers);
 
+                    ListTag functions = new ListTag();
+                    for (String functionPath : index.functionPaths()) {
+                        if (!ysmPackage.exists(functionPath))
+                            continue;
+                        byte[] data = ysmPackage.readString(functionPath).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                        CompoundTag function = new CompoundTag();
+                        function.putString("path", functionPath);
+                        function.putString("name", fileName(functionPath));
+                        function.putString("hash", sha1(data));
+                        function.putByteArray("data", data);
+                        functions.add(function);
+                    }
+                    ysm.put("functions", functions);
+
                     if (texture != null) {
                         ysm.putString("texture_id", texture.id());
                         if (ysmPackage.exists(texture.path()))
                             ysm.putByteArray("texture", ysmPackage.readBytes(texture.path()));
                     }
                     ysm.put("texture_entries", textureEntries(ysmPackage, manifest.textures()));
-                    ysm.put("action_schemas", actionSchemas(ysmPackage));
+                    ysm.put("action_schemas", actionSchemas(ysmPackage, index));
+                    ysm.put("sub_entities", subEntities(ysmPackage));
                 }
                 ysm.put("resource_index", toNbt(index));
                 nbt.put("ysm", ysm);
@@ -115,6 +136,7 @@ public final class YsmAvatarLoader {
         tag.putString("arm_model", index.armModelPath());
         tag.put("animations", strings(index.animationPaths()));
         tag.put("animation_controllers", strings(index.animationControllerPaths()));
+        tag.put("functions", strings(index.functionPaths()));
         tag.put("textures", strings(index.texturePaths()));
         tag.put("sounds", strings(index.soundPaths()));
         tag.putString("icon", index.iconPath());
@@ -128,6 +150,26 @@ public final class YsmAvatarLoader {
         for (String value : values)
             tag.add(StringTag.valueOf(value));
         return tag;
+    }
+
+    private static String fileName(String path) {
+        if (path == null || path.isBlank())
+            return "";
+        String normalized = path.replace('\\', '/');
+        int slash = normalized.lastIndexOf('/');
+        return slash >= 0 ? normalized.substring(slash + 1) : normalized;
+    }
+
+    private static String sha1(byte[] data) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-1").digest(data == null ? new byte[0] : data);
+            StringBuilder builder = new StringBuilder(digest.length * 2);
+            for (byte value : digest)
+                builder.append(String.format("%02x", value & 0xff));
+            return builder.toString();
+        } catch (NoSuchAlgorithmException e) {
+            return "";
+        }
     }
 
     private static ListTag textureEntries(YsmPackage ysmPackage, List<YsmTextureOption> textures) throws java.io.IOException {
@@ -146,17 +188,168 @@ public final class YsmAvatarLoader {
         return tag;
     }
 
-    private static ListTag actionSchemas(YsmPackage ysmPackage) throws java.io.IOException {
+    private static ListTag actionSchemas(YsmPackage ysmPackage, YsmResourceIndex index) throws java.io.IOException {
         ListTag tag = new ListTag();
-        for (String path : List.of("ysm.json", "ysm.actions.json", "action_wheel.json", "ysm.controls.json", "ysm_controls.json", "controls.json")) {
-            if (!ysmPackage.exists(path))
-                continue;
-            CompoundTag entry = new CompoundTag();
-            entry.putString("path", path);
-            entry.putByteArray("data", ysmPackage.readString(path).getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            tag.add(entry);
-        }
+        java.util.LinkedHashSet<String> paths = new java.util.LinkedHashSet<>();
+        paths.addAll(List.of("ysm.json", "ysm.actions.json", "action_wheel.json", "ysm.controls.json", "ysm_controls.json", "controls.json"));
+        if (index != null)
+            paths.addAll(index.metadataPaths());
+        for (String path : paths)
+            addActionSchema(tag, ysmPackage, path);
         return tag;
+    }
+
+    private static void addActionSchema(ListTag tag, YsmPackage ysmPackage, String path) throws java.io.IOException {
+        if (path == null || path.isBlank() || !ysmPackage.exists(path))
+            return;
+        CompoundTag entry = new CompoundTag();
+        entry.putString("path", path);
+        entry.putByteArray("data", ysmPackage.readString(path).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        tag.add(entry);
+    }
+
+    private static ListTag subEntities(YsmPackage ysmPackage) throws java.io.IOException {
+        ListTag tag = new ListTag();
+        if (ysmPackage.exists("ysm.json")) {
+            JsonObject root = YsmJson.parseObject(ysmPackage.readString("ysm.json"));
+            JsonObject files = YsmJson.obj(root, "files");
+            addSubEntitySection(tag, ysmPackage, "projectile", files.get("projectiles"));
+            addSubEntitySection(tag, ysmPackage, "vehicle", files.get("vehicles"));
+        }
+        addLegacySubEntity(tag, ysmPackage, "projectile", "arrow", "arrow.json", "arrow.png", "arrow.animation.json");
+        return tag;
+    }
+
+    private static void addSubEntitySection(ListTag tag, YsmPackage ysmPackage, String kind, JsonElement section) throws java.io.IOException {
+        if (section == null || section.isJsonNull())
+            return;
+        if (section.isJsonObject()) {
+            for (var entry : section.getAsJsonObject().entrySet())
+                addSubEntity(tag, ysmPackage, kind, entry.getKey(), entry.getValue());
+        } else if (section.isJsonArray()) {
+            int index = 0;
+            for (JsonElement element : section.getAsJsonArray())
+                addSubEntity(tag, ysmPackage, kind, kind + index++, element);
+        }
+    }
+
+    private static void addSubEntity(ListTag tag, YsmPackage ysmPackage, String kind, String fallbackId, JsonElement element) throws java.io.IOException {
+        if (element == null || element.isJsonNull())
+            return;
+        JsonObject object = element.isJsonObject() ? element.getAsJsonObject() : new JsonObject();
+        String id = firstString(object, fallbackId, "identifier", "id", "name");
+        String model = element.isJsonPrimitive() ? element.getAsString() : firstString(object, "", "model", "model_path");
+        if (model.isBlank() || !ysmPackage.exists(model))
+            return;
+        String texture = texturePath(object);
+        String animation = firstString(object, "", "animation", "animations", "animation_path");
+        String controller = firstString(object, "", "controller", "animation_controller", "controller_path");
+
+        CompoundTag entry = new CompoundTag();
+        entry.putString("kind", kind);
+        entry.putString("id", id == null || id.isBlank() ? fallbackId : id);
+        entry.put("match_ids", strings(matchIds(object)));
+        entry.putString("model_path", model);
+        entry.putByteArray("model", ysmPackage.readString(model).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        if (!texture.isBlank() && ysmPackage.exists(texture)) {
+            entry.putString("texture_path", texture);
+            entry.putByteArray("texture", ysmPackage.readBytes(texture));
+        }
+        if (!animation.isBlank() && ysmPackage.exists(animation)) {
+            entry.putString("animation_path", animation);
+            entry.putByteArray("animation", ysmPackage.readString(animation).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        }
+        if (!controller.isBlank() && ysmPackage.exists(controller)) {
+            entry.putString("controller_path", controller);
+            entry.putByteArray("controller", ysmPackage.readString(controller).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        }
+        tag.add(entry);
+    }
+
+    private static void addLegacySubEntity(ListTag tag, YsmPackage ysmPackage, String kind, String id, String model, String texture, String animation) throws java.io.IOException {
+        if (!ysmPackage.exists(model))
+            return;
+        CompoundTag entry = new CompoundTag();
+        entry.putString("kind", kind);
+        entry.putString("id", id);
+        entry.put("match_ids", strings(List.of(id, "minecraft:" + id)));
+        entry.putString("model_path", model);
+        entry.putByteArray("model", ysmPackage.readString(model).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        if (ysmPackage.exists(texture)) {
+            entry.putString("texture_path", texture);
+            entry.putByteArray("texture", ysmPackage.readBytes(texture));
+        }
+        if (ysmPackage.exists(animation)) {
+            entry.putString("animation_path", animation);
+            entry.putByteArray("animation", ysmPackage.readString(animation).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        }
+        tag.add(entry);
+    }
+
+    private static String texturePath(JsonObject object) {
+        if (object == null)
+            return "";
+        JsonElement texture = object.get("texture");
+        if (texture == null)
+            texture = object.get("textures");
+        if (texture == null)
+            return "";
+        if (texture.isJsonPrimitive())
+            return texture.getAsString();
+        if (texture.isJsonObject())
+            return firstString(texture.getAsJsonObject(), "", "uv", "path", "default", "normal");
+        return "";
+    }
+
+    private static String firstString(JsonObject object, String fallback, String... keys) {
+        if (object == null)
+            return fallback == null ? "" : fallback;
+        for (String key : keys) {
+            JsonElement element = object.get(key);
+            String value = stringValue(element);
+            if (!value.isBlank())
+                return value;
+        }
+        return fallback == null ? "" : fallback;
+    }
+
+    private static String stringValue(JsonElement element) {
+        if (element == null || element.isJsonNull())
+            return "";
+        if (element.isJsonPrimitive())
+            return element.getAsString();
+        if (element.isJsonArray()) {
+            for (JsonElement item : element.getAsJsonArray()) {
+                String value = stringValue(item);
+                if (!value.isBlank())
+                    return value;
+            }
+        }
+        return "";
+    }
+
+    private static List<String> matchIds(JsonObject object) {
+        List<String> result = new ArrayList<>();
+        addMatches(result, object.get("match"));
+        addMatches(result, object.get("matches"));
+        addMatches(result, object.get("match_ids"));
+        addMatches(result, object.get("entities"));
+        addMatches(result, object.get("items"));
+        return result;
+    }
+
+    private static void addMatches(List<String> result, JsonElement element) {
+        if (element == null || element.isJsonNull())
+            return;
+        if (element.isJsonArray()) {
+            JsonArray array = element.getAsJsonArray();
+            for (JsonElement item : array)
+                addMatches(result, item);
+            return;
+        }
+        String value = stringValue(element);
+        if (!value.isBlank() && !result.contains(value))
+            result.add(value);
     }
 
 }
