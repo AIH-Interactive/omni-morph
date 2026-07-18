@@ -13,7 +13,6 @@ import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.client.renderer.item.ItemModelResolver;
-import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.resources.model.cuboid.ItemTransform;
@@ -341,16 +340,12 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
 
         boolean left = arm == HumanoidArm.LEFT;
         ItemDisplayContext context = left ? ItemDisplayContext.THIRD_PERSON_LEFT_HAND : ItemDisplayContext.THIRD_PERSON_RIGHT_HAND;
-        ItemStackRenderState itemState = new ItemStackRenderState();
-        itemModelResolver.updateForLiving(itemState, itemStack, context, entity);
-        if (itemState.isEmpty())
-            return;
-
         PoseStack itemStackPose = new PoseStack();
         itemStackPose.pushPose();
         itemStackPose.last().set(baseStack.last());
-        avatar.getYsmRuntime().applyHandItemTransform(itemStackPose, left);
-        itemState.submit(itemStackPose, submitNodeCollector, light, OverlayTexture.NO_OVERLAY, outlineColor);
+        if (!avatar.getYsmRuntime().applyHandItemTransform(itemStackPose, left))
+            return;
+        Minecraft.getInstance().gameRenderer.itemInHandRenderer.renderItem(entity, itemStack, context, itemStackPose, submitNodeCollector, light);
     }
 
     // Add the skull item back in after it being cleared

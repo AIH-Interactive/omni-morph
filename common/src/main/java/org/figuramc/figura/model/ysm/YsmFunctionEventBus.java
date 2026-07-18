@@ -21,6 +21,15 @@ public class YsmFunctionEventBus {
         return YsmControllerSlotBinder.eventNamesForController(controllerName, slot);
     }
 
+    public List<String> eventsForController(String controllerName, YsmControllerSlot slot, Collection<String> events) {
+        if (events == null || events.isEmpty())
+            return List.of();
+        return YsmControllerSlotBinder.eventNamesForController(controllerName, slot).stream()
+                .filter(events::contains)
+                .filter(event -> !executedEventsThisFrame.contains(event))
+                .toList();
+    }
+
     public List<String> unboundEvents(Collection<String> events) {
         return YsmControllerSlotBinder.unboundEvents(events, executedEventsThisFrame);
     }

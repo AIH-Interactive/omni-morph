@@ -251,6 +251,9 @@ public class YsmControllerRuntime {
         int colon = value.indexOf(':');
         if (colon >= 0 && colon + 1 < value.length())
             value = value.substring(colon + 1);
+        int suffix = value.indexOf('#');
+        if (suffix >= 0)
+            value = value.substring(0, suffix);
         return value.toLowerCase(Locale.US);
     }
 

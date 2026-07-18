@@ -905,6 +905,7 @@ public class YsmAnimationPlayer {
         int colon = normalized.indexOf(':');
         if (colon >= 0 && colon + 1 < normalized.length())
             normalized = normalized.substring(colon + 1);
+        normalized = stripReferenceSuffix(normalized);
         return normalized.toLowerCase(Locale.US);
     }
 
@@ -970,5 +971,12 @@ public class YsmAnimationPlayer {
         if (dot >= 0 && dot + 1 < normalized.length())
             normalized = normalized.substring(dot + 1);
         return normalized;
+    }
+
+    private String stripReferenceSuffix(String name) {
+        if (name == null || name.isBlank())
+            return "";
+        int suffix = name.indexOf('#');
+        return suffix >= 0 ? name.substring(0, suffix) : name;
     }
 }

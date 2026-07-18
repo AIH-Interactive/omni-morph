@@ -33,6 +33,8 @@ public class YsmMolangFunctionRuntime {
     private final ArrayDeque<ArgsValue> argumentStack = new ArrayDeque<>();
     private final ArrayDeque<CallFrame> callStack = new ArrayDeque<>();
     private final YsmFunctionEventBus eventBus = new YsmFunctionEventBus();
+    private final Map<String, Object> syncValues = new LinkedHashMap<>();
+    private final ArrayDeque<String> recentSyncKeys = new ArrayDeque<>();
 
     public YsmMolangFunctionRuntime(YsmModelRuntime runtime) {
         this.runtime = runtime;
@@ -93,6 +95,40 @@ public class YsmMolangFunctionRuntime {
         return eventBus.recentEvents();
     }
 
+    public List<String> recentSyncKeys() {
+        return List.copyOf(recentSyncKeys);
+    }
+
+    public List<String> callStackDebugNames() {
+        return callStack.stream()
+                .map(frame -> {
+                    String name = frame.functionName() == null || frame.functionName().isBlank() ? "<event>" : frame.functionName();
+                    String event = frame.eventName() == null || frame.eventName().isBlank() ? "" : " event=" + frame.eventName();
+                    String slot = frame.slot() == null || frame.slot().isBlank() ? "" : " slot=" + frame.slot();
+                    return name + event + slot;
+                })
+                .toList();
+    }
+
+    public Object recordSync(ExecutionContext<?> context, Function.ArgumentCollection args) {
+        if (args == null || args.size() == 0)
+            return 0f;
+        String key = args.getAsString(context, 0);
+        if (key == null || key.isBlank())
+            return 0f;
+        String normalized = normalizeName(key);
+        if (args.size() == 1)
+            return syncValues.getOrDefault(normalized, 0f);
+        Object value = args.size() > 1 ? args.getValue(context, 1) : 1f;
+        syncValues.put(normalized, value);
+        String display = key + "=" + value;
+        recentSyncKeys.removeIf(entry -> entry.equals(key) || entry.startsWith(key + "="));
+        recentSyncKeys.addFirst(display);
+        while (recentSyncKeys.size() > 16)
+            recentSyncKeys.removeLast();
+        return value;
+    }
+
     public Object call(String name, ExecutionContext<?> context, Function.ArgumentCollection args) {
         String normalized = normalizeName(name);
         YsmFunction function = functions.get(normalized);
@@ -115,7 +151,7 @@ public class YsmMolangFunctionRuntime {
     }
 
     public void runControllerSlotEvents(String controllerName, YsmControllerSlot slot, ExpressionEvaluator<?> evaluator) {
-        for (String event : eventBus.eventsForController(controllerName, slot))
+        for (String event : eventBus.eventsForController(controllerName, slot, events.keySet()))
             runEvent(evaluator, event, controllerName);
     }
 

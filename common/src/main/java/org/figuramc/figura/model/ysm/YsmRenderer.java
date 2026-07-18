@@ -153,7 +153,7 @@ public class YsmRenderer {
     private void renderBone(YsmGeometry.Bone bone, PoseStack stack, VertexConsumer vertices, int light, YsmPartMask mask, boolean useArmParts) {
         YsmModelPart part = useArmParts ? runtime.getArmPart(bone.name) : runtime.getPart(bone.name);
         YsmBoneRole role = useArmParts ? runtime.armRoleOf(bone.name) : runtime.roleOf(bone.name);
-        if (part != null && !part.visibleRaw())
+        if (part != null && (!part.visibleRaw() || part.hiddenScaleRaw()))
             return;
         boolean renderSelf = mask == null || mask.allows(role);
 

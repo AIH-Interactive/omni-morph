@@ -281,7 +281,7 @@ public class MolangBindings implements ObjectBinding {
             Object state = states.get(key);
             if (state != null)
                 return state;
-            return (Variable) ctx -> controllerValue(ctx, key);
+            return new FallbackBinding(ctx -> controllerValue(ctx, key));
         }
 
         private static float bool(ExecutionContext<?> ctx, ContextPredicate predicate) {
@@ -447,9 +447,26 @@ public class MolangBindings implements ObjectBinding {
             values.put("is_first_person", (Variable) ctx -> context(ctx).is_first_person);
             values.put("first_person", (Variable) ctx -> context(ctx).is_first_person);
             values.put("weather", (Variable) YsmBinding::weather);
+            values.put("dimension_name", (Variable) YsmBinding::dimensionName);
+            values.put("fps", (Variable) ctx -> (float) Minecraft.getInstance().getFps());
+            values.put("time_delta", (Variable) ctx -> context(ctx).delta_time);
+            values.put("head_yaw", (Variable) ctx -> context(ctx).head_y_rot);
+            values.put("head_pitch", (Variable) ctx -> context(ctx).head_x_rot);
+            values.put("ground_speed2", (Variable) YsmBinding::groundSpeed2);
             values.put("is_open_air", (Variable) YsmBinding::isOpenAir);
+            values.put("block_light", (Variable) YsmBinding::blockLight);
+            values.put("sky_light", (Variable) YsmBinding::skyLight);
+            values.put("is_passenger", (Variable) ctx -> context(ctx).is_riding);
+            values.put("is_sleep", (Variable) ctx -> context(ctx).is_sleeping);
+            values.put("is_sneak", (Variable) ctx -> context(ctx).is_sneaking);
+            values.put("eye_in_water", (Variable) ctx -> context(ctx).entity != null && context(ctx).entity.isUnderWater() ? 1f : 0f);
+            values.put("frozen_ticks", (Variable) ctx -> context(ctx).entity == null ? 0f : (float) context(ctx).entity.getTicksFrozen());
+            values.put("air_supply", (Variable) ctx -> context(ctx).entity == null ? 0f : (float) context(ctx).entity.getAirSupply());
             values.put("input_vertical", (Variable) ctx -> input(ctx, "zza"));
             values.put("input_horizontal", (Variable) ctx -> input(ctx, "xxa"));
+            values.put("xxa", (Variable) ctx -> input(ctx, "xxa"));
+            values.put("yya", (Variable) ctx -> input(ctx, "yya"));
+            values.put("zza", (Variable) ctx -> input(ctx, "zza"));
             values.put("keyboard", (Function) (ctx, args) -> {
                 if (args.size() == 0)
                     return 0f;
@@ -464,7 +481,7 @@ public class MolangBindings implements ObjectBinding {
                 Avatar.MolangContext context = context(ctx);
                 if (context.owner == null || context.owner.getYsmRuntime() == null)
                     return 0f;
-                return context.owner.getYsmRuntime().functions().runEvent("sync", ctx, args);
+                return context.owner.getYsmRuntime().functions().recordSync(ctx, args);
             });
             values.put("play_sound", (Function) (ctx, args) -> {
                 Avatar.MolangContext context = context(ctx);
@@ -509,17 +526,46 @@ public class MolangBindings implements ObjectBinding {
             values.put("food_level", (Variable) YsmBinding::foodLevel);
             values.put("is_local_player", (Variable) YsmBinding::isLocalPlayer);
             values.put("local_player", (Variable) YsmBinding::isLocalPlayer);
+            values.put("person_view", (Variable) ctx -> {
+                Minecraft minecraft = Minecraft.getInstance();
+                return minecraft.options.getCameraType().isFirstPerson() ? 0f : 1f;
+            });
             values.put("main_hand", (Function) (ctx, args) -> itemQuery(mainHand(context(ctx)), ctx, args, 0));
             values.put("off_hand", (Function) (ctx, args) -> itemQuery(offHand(context(ctx)), ctx, args, 0));
             values.put("equipped_item", (Function) (ctx, args) -> itemQuery(equippedItem(context(ctx), args.size() > 0 ? args.getAsString(ctx, 0) : ""), ctx, args, 1));
             values.put("has_mainhand", (Variable) ctx -> mainHand(context(ctx)).isEmpty() ? 0f : 1f);
             values.put("has_offhand", (Variable) ctx -> offHand(context(ctx)).isEmpty() ? 0f : 1f);
+            values.put("has_helmet", (Variable) ctx -> equippedItem(context(ctx), "head").isEmpty() ? 0f : 1f);
+            values.put("has_chest_plate", (Variable) ctx -> equippedItem(context(ctx), "chest").isEmpty() ? 0f : 1f);
+            values.put("has_leggings", (Variable) ctx -> equippedItem(context(ctx), "legs").isEmpty() ? 0f : 1f);
+            values.put("has_boots", (Variable) ctx -> equippedItem(context(ctx), "feet").isEmpty() ? 0f : 1f);
+            values.put("armor_value", (Variable) ctx -> context(ctx).entity instanceof LivingEntity living ? (float) living.getArmorValue() : 0f);
+            values.put("hurt_time", (Variable) ctx -> context(ctx).hurt_time);
+            values.put("swinging", (Variable) ctx -> context(ctx).is_swinging);
+            values.put("swing_time", (Variable) ctx -> context(ctx).swing_time);
+            values.put("attack_time", (Variable) ctx -> context(ctx).attack_time);
+            values.put("entity_type", (Variable) YsmBinding::entityType);
+            values.put("is_player", (Variable) ctx -> context(ctx).entity instanceof Player ? 1f : 0f);
+            values.put("dump_mods", (Function) (ctx, args) -> 0f);
+            values.put("dump_effects", (Function) (ctx, args) -> 0f);
+            values.put("dump_biome", (Function) (ctx, args) -> 0f);
+            values.put("has_any_curios", (Function) (ctx, args) -> 0f);
+            values.put("has_any_curios_with_any_tag", (Function) (ctx, args) -> 0f);
+            values.put("has_any_curios_with_all_tags", (Function) (ctx, args) -> 0f);
+            values.put("particle", (Function) (ctx, args) -> 0f);
+            values.put("abs_particle", (Function) (ctx, args) -> 0f);
+            values.put("perlin_noise", (Function) (ctx, args) -> 0f);
+            values.put("bone_param", (Function) (ctx, args) -> 0f);
+            values.put("bone_rot", (Function) (ctx, args) -> 0f);
+            values.put("bone_pos", (Function) (ctx, args) -> 0f);
+            values.put("bone_scale", (Function) (ctx, args) -> 0f);
+            values.put("bone_pivot_abs", (Function) (ctx, args) -> 0f);
         }
 
         @Override
         public Object getProperty(String name) {
             Object value = values.get(name.toLowerCase());
-            return value != null ? value : (Variable) ctx -> 0f;
+            return value != null ? value : FallbackBinding.ZERO;
         }
 
         private static Avatar.MolangContext context(ExecutionContext<?> ctx) {
@@ -531,7 +577,26 @@ public class MolangBindings implements ObjectBinding {
             Entity entity = context.entity;
             if (entity == null || entity.level() == null)
                 return 0f;
+            if (entity.level().isThundering())
+                return 2f;
             return entity.level().isRainingAt(entity.blockPosition()) ? 1f : 0f;
+        }
+
+        private static String dimensionName(ExecutionContext<?> ctx) {
+            Entity entity = context(ctx).entity;
+            return entity == null || entity.level() == null ? "" : entity.level().dimension().toString();
+        }
+
+        private static float groundSpeed2(ExecutionContext<?> ctx) {
+            Avatar.MolangContext context = context(ctx);
+            Entity entity = context.entity;
+            if (entity != null) {
+                var velocity = entity.getDeltaMovement();
+                float speed = (float) Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z) * 20f;
+                if (Float.isFinite(speed) && speed > 0.001f)
+                    return speed;
+            }
+            return context.ground_speed;
         }
 
         private static float isOpenAir(ExecutionContext<?> ctx) {
@@ -541,6 +606,20 @@ public class MolangBindings implements ObjectBinding {
                 return 0f;
             BlockPos pos = entity.blockPosition();
             return entity.level().canSeeSky(pos) ? 1f : 0f;
+        }
+
+        private static float blockLight(ExecutionContext<?> ctx) {
+            Entity entity = context(ctx).entity;
+            if (entity == null || entity.level() == null)
+                return 0f;
+            return entity.level().getBrightness(net.minecraft.world.level.LightLayer.BLOCK, entity.blockPosition());
+        }
+
+        private static float skyLight(ExecutionContext<?> ctx) {
+            Entity entity = context(ctx).entity;
+            if (entity == null || entity.level() == null)
+                return 0f;
+            return entity.level().getBrightness(net.minecraft.world.level.LightLayer.SKY, entity.blockPosition());
         }
 
         private static float foodLevel(ExecutionContext<?> ctx) {
@@ -576,6 +655,13 @@ public class MolangBindings implements ObjectBinding {
                     return 1f;
             }
             return 0f;
+        }
+
+        private static String entityType(ExecutionContext<?> ctx) {
+            Entity entity = context(ctx).entity;
+            if (entity == null || entity.getType() == null)
+                return "";
+            return BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString();
         }
 
         private static ItemStack mainHand(Avatar.MolangContext context) {
@@ -627,6 +713,26 @@ public class MolangBindings implements ObjectBinding {
                     return 0f;
                 return context.owner.getYsmRuntime().functions().call(name, ctx, args);
             };
+        }
+    }
+
+    private static class FallbackBinding implements Variable, Function {
+        private static final FallbackBinding ZERO = new FallbackBinding(ctx -> 0f);
+
+        private final Variable variable;
+
+        private FallbackBinding(Variable variable) {
+            this.variable = variable;
+        }
+
+        @Override
+        public Object evaluate(ExecutionContext<?> context) {
+            return variable == null ? 0f : variable.evaluate(context);
+        }
+
+        @Override
+        public Object evaluate(ExecutionContext<?> context, ArgumentCollection arguments) {
+            return 0f;
         }
     }
 }

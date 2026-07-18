@@ -717,7 +717,7 @@ public class YsmModelRuntime implements AutoCloseable {
         YsmGeometry.Bone bone = getBoneIgnoreCase(boneName);
         while (bone != null) {
             YsmModelPart part = getPart(bone.name);
-            if (part != null && !part.visibleRaw())
+            if (part != null && (!part.visibleRaw() || part.hiddenScaleRaw()))
                 return false;
             if (bone.parentName == null || bone.parentName.isBlank())
                 return true;
@@ -765,6 +765,12 @@ public class YsmModelRuntime implements AutoCloseable {
         owner.controls.register(new AvatarControlDefinition("ysm.debug.recent_events", AvatarControlType.LABEL)
                 .setTitle("recent: " + debugPreview(functions.recentEvents()))
                 .setPage("ysm_debug"));
+        owner.controls.register(new AvatarControlDefinition("ysm.debug.sync_keys", AvatarControlType.LABEL)
+                .setTitle("sync: " + debugPreview(functions.recentSyncKeys()))
+                .setPage("ysm_debug"));
+        owner.controls.register(new AvatarControlDefinition("ysm.debug.call_stack", AvatarControlType.LABEL)
+                .setTitle("stack: " + debugPreview(functions.callStackDebugNames()))
+                .setPage("ysm_debug"));
     }
 
     private static String debugPreview(List<String> values) {
@@ -810,6 +816,8 @@ public class YsmModelRuntime implements AutoCloseable {
             stack.translate(left ? -0.42d : 0.42d, 0.78d, 0d);
             stack.mulPose(Axis.XP.rotationDegrees(-90f));
         } else {
+            if (!isBoneVisibleInHierarchy(bone.name))
+                return false;
             boolean locator = point != null && point.locator() != null;
             if (!locator)
                 locator = bone.name.toLowerCase(java.util.Locale.US).contains("locator");
@@ -817,7 +825,7 @@ public class YsmModelRuntime implements AutoCloseable {
             stack.translate(0d, -0.0625d, -0.1d);
             stack.mulPose(Axis.XP.rotationDegrees(-90f));
         }
-        return bone != null;
+        return true;
     }
 
     @Override
