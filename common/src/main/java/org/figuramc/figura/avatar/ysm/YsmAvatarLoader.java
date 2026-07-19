@@ -48,6 +48,8 @@ public final class YsmAvatarLoader {
                 ysm.putString("kind", manifest.kind().name());
                 ysm.putString("source_path", path.toAbsolutePath().normalize().toString());
                 try (YsmPackage ysmPackage = YsmPackage.open(path)) {
+                    addYsmProperties(ysm, ysmPackage);
+
                     String mainModelPath = index.hasMainModel() ? index.mainModelPath() : manifest.mainModelPath();
                     ysm.putString("main_model_path", mainModelPath);
                     ysm.putByteArray("main_model", ysmPackage.readString(mainModelPath).getBytes(java.nio.charset.StandardCharsets.UTF_8));
@@ -128,6 +130,20 @@ public final class YsmAvatarLoader {
                     return texture;
         }
         return textures.get(0);
+    }
+
+    private static void addYsmProperties(CompoundTag ysm, YsmPackage ysmPackage) throws java.io.IOException {
+        if (!ysmPackage.exists("ysm.json"))
+            return;
+        JsonObject root = YsmJson.parseObject(ysmPackage.readString("ysm.json"));
+        JsonObject properties = YsmJson.obj(root, "properties");
+        putPositiveFloat(ysm, "width_scale", YsmJson.number(properties, "width_scale", 1f));
+        putPositiveFloat(ysm, "height_scale", YsmJson.number(properties, "height_scale", 1f));
+    }
+
+    private static void putPositiveFloat(CompoundTag tag, String key, float value) {
+        if (Float.isFinite(value) && value > 0f)
+            tag.putFloat(key, value);
     }
 
     private static CompoundTag toNbt(YsmResourceIndex index) {

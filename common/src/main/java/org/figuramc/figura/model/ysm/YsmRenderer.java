@@ -211,8 +211,11 @@ public class YsmRenderer {
     }
 
     private void renderCube(YsmGeometry.Cube cube, PoseStack stack, VertexConsumer vertices, int light) {
-        for (YsmGeometry.Quad quad : cube.quads)
+        for (YsmGeometry.Quad quad : cube.quads) {
+            if (!quad.visible())
+                continue;
             quad(vertices, stack, quad, light);
+        }
     }
 
     private void quad(VertexConsumer vertices, PoseStack stack, YsmGeometry.Quad quad, int light) {

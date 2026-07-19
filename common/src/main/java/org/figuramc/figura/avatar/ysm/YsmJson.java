@@ -37,4 +37,17 @@ final class YsmJson {
         JsonElement element = parent.get(key);
         return element != null && element.isJsonPrimitive() ? element.getAsString() : fallback;
     }
+
+    static float number(JsonObject parent, String key, float fallback) {
+        if (parent == null)
+            return fallback;
+        JsonElement element = parent.get(key);
+        if (element == null || !element.isJsonPrimitive())
+            return fallback;
+        try {
+            return element.getAsFloat();
+        } catch (RuntimeException ignored) {
+            return fallback;
+        }
+    }
 }

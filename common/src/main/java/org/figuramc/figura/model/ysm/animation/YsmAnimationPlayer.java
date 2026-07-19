@@ -580,7 +580,9 @@ public class YsmAnimationPlayer {
         if (channel.keyframes.isEmpty())
             return scaleMagnitude(evaluateStatic(channel.staticValue, channel.staticExpressions, evaluator, new float[]{1f, 1f, 1f})) < 0.0001f;
         for (YsmKeyframe keyframe : channel.keyframes) {
-            if (scaleMagnitude(evaluateStatic(keyframe.value, keyframe.expressions, evaluator, new float[]{1f, 1f, 1f})) >= 0.0001f)
+            if (scaleMagnitude(evaluateKeyframePost(keyframe, evaluator, new float[]{1f, 1f, 1f})) >= 0.0001f)
+                return false;
+            if (scaleMagnitude(evaluateKeyframePre(keyframe, evaluator, new float[]{1f, 1f, 1f})) >= 0.0001f)
                 return false;
         }
         return true;
@@ -591,6 +593,8 @@ public class YsmAnimationPlayer {
             return true;
         for (YsmKeyframe keyframe : channel.keyframes) {
             if (hasExpression(keyframe.expressions))
+                return true;
+            if (hasExpression(keyframe.preExpressions))
                 return true;
         }
         return false;
@@ -804,12 +808,14 @@ public class YsmAnimationPlayer {
         // If time before first keyframe
         if (time <= kfs.get(0).time) {
             YsmKeyframe first = kfs.get(0);
-            return evaluateStatic(first.value, first.expressions, evaluator, defaultValue);
+            if (time < first.time)
+                return evaluateKeyframePre(first, evaluator, defaultValue);
+            return evaluateKeyframePost(first, evaluator, defaultValue);
         }
         // If time after last keyframe
         if (time >= kfs.get(kfs.size() - 1).time) {
             YsmKeyframe last = kfs.get(kfs.size() - 1);
-            return evaluateStatic(last.value, last.expressions, evaluator, defaultValue);
+            return evaluateKeyframePost(last, evaluator, defaultValue);
         }
 
         // Find correct interval
@@ -825,11 +831,10 @@ public class YsmAnimationPlayer {
         }
 
         if (k2 == null) {
-            return evaluateStatic(k1.value, k1.expressions, evaluator, defaultValue);
+            return evaluateKeyframePost(k1, evaluator, defaultValue);
         }
 
-        float[] v1 = evaluateStatic(k1.value, k1.expressions, evaluator, defaultValue);
-        float[] v2 = evaluateStatic(k2.value, k2.expressions, evaluator, defaultValue);
+        float[] v1 = evaluateKeyframePost(k1, evaluator, defaultValue);
 
         float ratio = (time - k1.time) / (k2.time - k1.time);
         if (ratio < 0) ratio = 0;
@@ -837,17 +842,29 @@ public class YsmAnimationPlayer {
 
         if ("step".equalsIgnoreCase(k1.interpolation))
             return v1;
-        if ("catmullrom".equalsIgnoreCase(k1.interpolation)) {
-            float[] p0 = evaluateStatic(kfs.get(Math.max(0, kfs.indexOf(k1) - 1)).value, kfs.get(Math.max(0, kfs.indexOf(k1) - 1)).expressions, evaluator, defaultValue);
-            float[] p3 = evaluateStatic(kfs.get(Math.min(kfs.size() - 1, kfs.indexOf(k2) + 1)).value, kfs.get(Math.min(kfs.size() - 1, kfs.indexOf(k2) + 1)).expressions, evaluator, defaultValue);
+        if ("catmullrom".equalsIgnoreCase(k2.interpolation)) {
+            int k1Index = kfs.indexOf(k1);
+            int k2Index = kfs.indexOf(k2);
+            float[] p0 = evaluateKeyframePost(kfs.get(Math.max(0, k1Index - 1)), evaluator, defaultValue);
+            float[] p3 = evaluateKeyframePre(kfs.get(Math.min(kfs.size() - 1, k2Index + 1)), evaluator, defaultValue);
+            float[] v2 = evaluateKeyframePre(k2, evaluator, defaultValue);
             return YsmEasing.catmullRomVec(p0, v1, v2, p3, ratio);
         }
         ratio = YsmEasing.apply(k1.interpolation, ratio);
+        float[] v2 = evaluateKeyframePre(k2, evaluator, defaultValue);
         float[] res = new float[3];
         res[0] = v1[0] + (v2[0] - v1[0]) * ratio;
         res[1] = v1[1] + (v2[1] - v1[1]) * ratio;
         res[2] = v1[2] + (v2[2] - v1[2]) * ratio;
         return res;
+    }
+
+    private float[] evaluateKeyframePost(YsmKeyframe keyframe, ExpressionEvaluator<?> evaluator, float[] defaultValue) {
+        return evaluateStatic(keyframe.value, keyframe.expressions, evaluator, defaultValue);
+    }
+
+    private float[] evaluateKeyframePre(YsmKeyframe keyframe, ExpressionEvaluator<?> evaluator, float[] defaultValue) {
+        return evaluateStatic(keyframe.preValue, keyframe.preExpressions, evaluator, defaultValue);
     }
 
     private float[] evaluateStatic(float[] staticVal, Expression[] staticExprs, ExpressionEvaluator<?> evaluator, float[] defaultValue) {

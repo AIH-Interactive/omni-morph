@@ -190,11 +190,15 @@ public class YsmAnimationParser {
                     float time = Float.parseFloat(timeStr);
                     JsonElement kfVal = obj.get(timeStr);
                     JsonElement actualVal = kfVal;
+                    JsonElement preVal = null;
                     String interpolation = "linear";
                     if (kfVal.isJsonObject()) {
                         JsonObject kfObj = kfVal.getAsJsonObject();
                         interpolation = "step";
-                        if (kfObj.has("vector")) {
+                        if (kfObj.has("pre") && kfObj.has("post")) {
+                            preVal = kfObj.get("pre");
+                            actualVal = kfObj.get("post");
+                        } else if (kfObj.has("vector")) {
                             actualVal = kfObj.get("vector");
                         } else if (kfObj.has("post")) {
                             actualVal = kfObj.get("post");
@@ -208,7 +212,9 @@ public class YsmAnimationParser {
                     }
                     ParseResult res = parseValueOrExpression(actualVal, type, compileExpressions, engine);
                     float[] val = res.value != null ? res.value : def;
-                    YsmKeyframe kf = new YsmKeyframe(time, val, res.expressions);
+                    ParseResult preRes = preVal == null ? res : parseValueOrExpression(preVal, type, compileExpressions, engine);
+                    float[] pre = preRes.value != null ? preRes.value : def;
+                    YsmKeyframe kf = new YsmKeyframe(time, val, res.expressions, pre, preRes.expressions);
                     kf.interpolation = interpolation;
                     channel.keyframes.add(kf);
                 } catch (NumberFormatException ignored) {}
