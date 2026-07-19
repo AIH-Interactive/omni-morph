@@ -29,7 +29,7 @@ public final class YsmBoneMapper {
             return YsmBoneRole.ELYTRA;
         if (name.contains("sheath") || name.contains("scabbard"))
             return YsmBoneRole.SHEATH;
-        if (name.contains("blade") || name.contains("sword") || name.contains("katana"))
+        if (name.contains("blade") || name.contains("sword") || name.contains("katana") || name.contains("pistol") || name.contains("rifle"))
             return YsmBoneRole.BLADE;
         if (name.contains("helmet") || name.contains("hat"))
             return YsmBoneRole.HELMET;
@@ -39,7 +39,7 @@ public final class YsmBoneMapper {
             return YsmBoneRole.LEFT_HAND;
         if (isRightHandName(name))
             return YsmBoneRole.RIGHT_HAND;
-        if (name.equals("camera") || name.equals("hitbox") || name.equals("item"))
+        if (name.equals("camera") || name.equals("hitbox") || name.equals("item") || name.contains("passenger") || name.contains("waist") || name.contains("shoulderlocator"))
             return YsmBoneRole.BACKGROUND;
         if (name.equals("fox") || name.equals("car") || name.equals("vehicle") || name.equals("mount") || name.equals("boat") || name.equals("doll"))
             return YsmBoneRole.BACKGROUND;
@@ -58,7 +58,7 @@ public final class YsmBoneMapper {
             return null;
 
         YsmBoneRole role = roleOf(bone);
-        boolean left = role == YsmBoneRole.LEFT_HAND || normalize(bone.name).startsWith("left");
+        boolean left = role == YsmBoneRole.LEFT_HAND || isLeftSideName(bone.name);
         return new YsmLocator(bone.name, bone.name, role, left, defaultItemTransform(role));
     }
 
@@ -72,6 +72,30 @@ public final class YsmBoneMapper {
 
     public static String normalize(String value) {
         return value == null ? "" : value.toLowerCase(Locale.US).replace("_", "").replace("-", "");
+    }
+
+    public static boolean isLeftSideName(String boneName) {
+        String name = normalize(boneName);
+        return name.startsWith("left") || name.startsWith("lhand") || name.startsWith("larm");
+    }
+
+    public static boolean isRightSideName(String boneName) {
+        String name = normalize(boneName);
+        return name.startsWith("right") || name.startsWith("rhand") || name.startsWith("rarm");
+    }
+
+    public static boolean isFirstPersonArmCandidate(String boneName, YsmBoneRole role, boolean left) {
+        if (role == YsmBoneRole.LEFT_HAND)
+            return left;
+        if (role == YsmBoneRole.RIGHT_HAND)
+            return !left;
+        if (role == YsmBoneRole.FIRST_PERSON_ARM)
+            return true;
+        if (isLeftSideName(boneName))
+            return left;
+        if (isRightSideName(boneName))
+            return !left;
+        return role == YsmBoneRole.BODY || role == YsmBoneRole.UNKNOWN;
     }
 
     private static boolean isLeftHandName(String name) {

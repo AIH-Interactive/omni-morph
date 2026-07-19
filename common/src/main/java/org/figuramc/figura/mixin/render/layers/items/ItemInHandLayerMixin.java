@@ -29,6 +29,7 @@ import org.figuramc.figura.ducks.SkullBlockRendererAccessor;
 import org.figuramc.figura.lua.api.world.ItemStackAPI;
 import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.model.ParentType;
+import org.figuramc.figura.model.ysm.YsmModelRuntime;
 import org.figuramc.figura.utils.RenderUtils;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -54,6 +55,20 @@ public abstract class ItemInHandLayerMixin<S extends ArmedEntityRenderState, M e
             return;
 
         boolean left = humanoidArm == HumanoidArm.LEFT;
+
+        if (av != null && av.isYsmNative()) {
+            YsmModelRuntime ysm = av.getYsmRuntime();
+            if (ysm != null) {
+                poseStack.pushPose();
+                boolean transformed = ysm.applyHandItemTransform(poseStack, left);
+                if (transformed) {
+                    figura$submitItemWithEvents(state, itemStackRenderState, itemStack, left, poseStack, submitNodeCollector, light, OverlayTexture.NO_OVERLAY);
+                }
+                poseStack.popPose();
+                ci.cancel();
+                return;
+            }
+        }
 
         if (!RenderUtils.renderArmItem(av, left, ci))
             return;
@@ -101,6 +116,30 @@ public abstract class ItemInHandLayerMixin<S extends ArmedEntityRenderState, M e
                 itemStackRenderState.submit(stack, submitNodeCollector, light, OverlayTexture.NO_OVERLAY, state.outlineColor);
         })) {
             ci.cancel();
+        }
+    }
+
+    @Unique
+    private void figura$submitItemWithEvents(S state, ItemStackRenderState itemStackRenderState, ItemStack itemStack, boolean left, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int light, int overlay) {
+        FiguraItemStackRenderStateExtension extension = (FiguraItemStackRenderStateExtension) itemStackRenderState;
+        if (itemStack.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof AbstractSkullBlock) {
+            Entity entity = AvatarManager.getEntity(state);
+            if (entity != null)
+                SkullBlockRendererAccessor.setEntity(entity);
+            SkullBlockRendererAccessor.setRenderMode(switch (extension.figura$getDisplayContext()) {
+                case FIRST_PERSON_LEFT_HAND -> SkullBlockRendererAccessor.SkullRenderMode.FIRST_PERSON_LEFT_HAND;
+                case FIRST_PERSON_RIGHT_HAND -> SkullBlockRendererAccessor.SkullRenderMode.FIRST_PERSON_RIGHT_HAND;
+                case THIRD_PERSON_LEFT_HAND -> SkullBlockRendererAccessor.SkullRenderMode.THIRD_PERSON_LEFT_HAND;
+                case THIRD_PERSON_RIGHT_HAND -> SkullBlockRendererAccessor.SkullRenderMode.THIRD_PERSON_RIGHT_HAND;
+                default -> left ? SkullBlockRendererAccessor.SkullRenderMode.THIRD_PERSON_LEFT_HAND : SkullBlockRendererAccessor.SkullRenderMode.THIRD_PERSON_RIGHT_HAND;
+            });
+        }
+
+        ItemTransform transform = extension.figura$getItemTransform();
+        if (av == null || !av.itemRenderEvent(ItemStackAPI.verify(itemStack), extension.figura$getDisplayContext().name(),
+                FiguraVec3.fromVec3f(transform.translation()), FiguraVec3.of(transform.rotation().z(), transform.rotation().y(), transform.rotation().x()),
+                FiguraVec3.fromVec3f(transform.scale()), extension.figura$isLeftHanded(), poseStack, submitNodeCollector, light, overlay)) {
+            itemStackRenderState.submit(poseStack, submitNodeCollector, light, overlay, state.outlineColor);
         }
     }
 

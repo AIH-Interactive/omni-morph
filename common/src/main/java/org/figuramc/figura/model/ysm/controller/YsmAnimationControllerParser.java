@@ -202,6 +202,15 @@ public final class YsmAnimationControllerParser {
                 return Float.parseFloat(element.getAsString());
             if (element.isJsonObject()) {
                 JsonObject object = element.getAsJsonObject();
+                float maxKeyTime = -1f;
+                for (String key : object.keySet()) {
+                    try {
+                        maxKeyTime = Math.max(maxKeyTime, Float.parseFloat(key));
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+                if (maxKeyTime >= 0f)
+                    return maxKeyTime;
                 for (String key : List.of("duration", "time", "value", "blend_transition")) {
                     JsonElement child = object.get(key);
                     if (child != null && child.isJsonPrimitive() && child.getAsJsonPrimitive().isNumber())

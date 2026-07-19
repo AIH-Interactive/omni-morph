@@ -1,24 +1,42 @@
 package org.figuramc.figura.model.ysm;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.figuramc.figura.avatar.ysm.YsmAvatarDetector;
 import org.figuramc.figura.avatar.ysm.YsmAvatarKind;
 import org.figuramc.figura.avatar.ysm.YsmManifest;
 import org.figuramc.figura.avatar.ysm.YsmManifestReader;
 import org.figuramc.figura.avatar.ysm.YsmPackage;
 import org.figuramc.figura.avatar.ysm.YsmResourceIndex;
+import org.figuramc.figura.model.ysm.controller.YsmAnimationController;
+import org.figuramc.figura.model.ysm.controller.YsmAnimationControllerParser;
+import org.figuramc.figura.model.ysm.controller.YsmControllerAnimationRef;
+import org.figuramc.figura.model.ysm.controller.YsmControllerState;
+import org.figuramc.figura.model.ysm.controller.YsmControllerTransition;
 import org.figuramc.figura.model.ysm.animation.YsmAnimationParser;
+import org.figuramc.figura.molang.MolangEngine;
+import org.figuramc.figura.molang.runtime.binding.MolangBindings;
 
 import java.io.IOException;
+import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public final class YsmModelScanner {
+    private static MolangEngine scannerMolangEngine;
+
     private YsmModelScanner() {
     }
 
@@ -26,7 +44,10 @@ public final class YsmModelScanner {
                              YsmModelValidator.ValidationResult mainValidation,
                              YsmModelValidator.ValidationResult armValidation,
                              int animationClipCount, List<String> animationNames, List<String> nativeStateHits,
-                             List<String> bones, List<String> locators, List<String> attachments, List<String> firstPersonArmBones, List<String> errors) {
+                             List<String> controllerNames, List<String> functionNames, List<String> eventNames,
+                             List<String> actionNames, List<String> controlNames, List<String> subEntities,
+                             List<String> unsupportedBindings, List<String> bones, List<String> locators,
+                             List<String> attachments, List<String> firstPersonArmBones, List<String> errors) {
         public boolean valid() {
             return errors.isEmpty()
                     && mainValidation != null && mainValidation.valid()
@@ -54,7 +75,7 @@ public final class YsmModelScanner {
             return new ScanSummary(reports);
         }
 
-        try (Stream<Path> stream = Files.walk(root)) {
+        try (Stream<Path> stream = Files.walk(root, FileVisitOption.FOLLOW_LINKS)) {
             List<Path> candidates = stream
                     .filter(YsmModelScanner::couldBeYsmAvatar)
                     .sorted(Comparator.comparingInt(Path::getNameCount).thenComparing(Path::toString))
@@ -83,6 +104,13 @@ public final class YsmModelScanner {
         List<String> attachments = List.of();
         List<String> firstPersonArmBones = List.of();
         List<String> animationNames = new ArrayList<>();
+        List<String> controllerNames = new ArrayList<>();
+        List<String> functionNames = new ArrayList<>();
+        List<String> eventNames = new ArrayList<>();
+        List<String> actionNames = new ArrayList<>();
+        List<String> controlNames = new ArrayList<>();
+        List<String> subEntities = new ArrayList<>();
+        LinkedHashSet<String> unsupportedBindings = new LinkedHashSet<>();
         int animationClipCount = 0;
 
         try {
@@ -104,31 +132,72 @@ public final class YsmModelScanner {
                         YsmGeometry armGeometry = YsmGeometryParser.parse(ysmPackage.readString(index.armModelPath()));
                         armValidation = YsmModelValidator.validate(index.armModelPath(), armGeometry);
                         firstPersonArmBones = describeFirstPersonArmBones(armGeometry);
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         errors.add("failed to parse arm model '" + index.armModelPath() + "': " + e.getMessage());
                     }
                 }
 
                 for (String animationPath : index.animationPaths()) {
                     try {
-                        Map<String, ?> clips = YsmAnimationParser.parse(ysmPackage.readString(animationPath), false);
+                        String animationJson = ysmPackage.readString(animationPath);
+                        Map<String, ?> clips = YsmAnimationParser.parse(animationJson, false, null);
                         animationClipCount += clips.size();
                         for (String clipName : clips.keySet())
                             animationNames.add(clipName);
-                    } catch (Exception e) {
+                        collectUnsupportedBindings(unsupportedBindings, animationJson);
+                    } catch (Throwable e) {
                         errors.add("failed to parse animation '" + animationPath + "': " + e.getMessage());
                     }
                 }
+
+                for (String controllerPath : index.animationControllerPaths()) {
+                    try {
+                        String controllerJson = ysmPackage.readString(controllerPath);
+                        Map<String, YsmAnimationController> controllers = YsmAnimationControllerParser.parse(controllerJson, scannerMolangEngine());
+                        for (YsmAnimationController controller : controllers.values()) {
+                            controllerNames.add(describeController(controller));
+                            validateControllerReferences(controller, animationNames, controllerPath, errors);
+                        }
+                        collectUnsupportedBindings(unsupportedBindings, controllerJson);
+                    } catch (Throwable e) {
+                        errors.add("failed to parse controller '" + controllerPath + "': " + e.getMessage());
+                    }
+                }
+
+                for (String functionPath : index.functionPaths()) {
+                    try {
+                        String functionJson = ysmPackage.readString(functionPath);
+                        YsmMolangFunctionName function = YsmMolangFunctionName.parse(functionPath);
+                        if (!function.functionName().isBlank())
+                            functionNames.add(function.functionName() + " path=" + functionPath);
+                        if (!function.eventName().isBlank())
+                            eventNames.add(function.eventName() + " path=" + functionPath);
+                        collectUnsupportedBindings(unsupportedBindings, functionJson);
+                    } catch (Throwable e) {
+                        errors.add("failed to parse function '" + functionPath + "': " + e.getMessage());
+                    }
+                }
+
+                scanActionSchemas(ysmPackage, index, actionNames, controlNames, unsupportedBindings, errors);
+                scanSubEntities(ysmPackage, subEntities, unsupportedBindings, errors);
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
             errors.add(e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
         }
 
         YsmResourceIndex resources = manifest == null ? YsmResourceIndex.fromManifest("", "", List.of(), List.of(), kind) : manifest.resourceIndex();
         String name = manifest == null ? "" : manifest.name();
         animationNames.sort(String::compareToIgnoreCase);
+        controllerNames.sort(String::compareToIgnoreCase);
+        functionNames.sort(String::compareToIgnoreCase);
+        eventNames.sort(String::compareToIgnoreCase);
+        actionNames.sort(String::compareToIgnoreCase);
+        controlNames.sort(String::compareToIgnoreCase);
+        subEntities.sort(String::compareToIgnoreCase);
         return new ScanReport(path, kind, name, resources, mainValidation, armValidation, animationClipCount,
-                List.copyOf(animationNames), describeNativeStateHits(animationNames), bones, locators, attachments, firstPersonArmBones, List.copyOf(errors));
+                List.copyOf(animationNames), describeNativeStateHits(animationNames), List.copyOf(controllerNames),
+                List.copyOf(functionNames), List.copyOf(eventNames), List.copyOf(actionNames), List.copyOf(controlNames),
+                List.copyOf(subEntities), List.copyOf(unsupportedBindings), bones, locators, attachments, firstPersonArmBones, List.copyOf(errors));
     }
 
     public static void main(String[] args) throws Exception {
@@ -171,6 +240,12 @@ public final class YsmModelScanner {
             return Files.exists(path.resolve("ysm.json")) || Files.exists(path.resolve("main.json"));
         String name = path.getFileName() == null ? "" : path.getFileName().toString().toLowerCase(java.util.Locale.US);
         return name.endsWith(".zip") || name.endsWith(".ysm");
+    }
+
+    private static MolangEngine scannerMolangEngine() {
+        if (scannerMolangEngine == null)
+            scannerMolangEngine = MolangEngine.fromCustomBinding(new MolangBindings());
+        return scannerMolangEngine;
     }
 
     private static List<String> describeLocators(YsmGeometry geometry) {
@@ -232,7 +307,7 @@ public final class YsmModelScanner {
         }
         for (YsmGeometry.Bone bone : geometry.bones.values()) {
             YsmBoneRole role = YsmBoneMapper.roleOf(bone);
-            boolean left = role == YsmBoneRole.LEFT_HAND || YsmBoneMapper.normalize(bone.name).startsWith("left");
+            boolean left = role == YsmBoneRole.LEFT_HAND || YsmBoneMapper.isLeftSideName(bone.name);
             YsmAttachmentType type = YsmAttachmentType.fromRole(role, left);
             if (type == YsmAttachmentType.UNKNOWN || seenTypes.contains(type) || seenRoles.contains(role))
                 continue;
@@ -279,6 +354,456 @@ public final class YsmModelScanner {
             for (String name : report.animationNames())
                 System.out.println("    " + name);
         }
+        if (!report.controllerNames().isEmpty()) {
+            System.out.println("  controllers:");
+            for (String name : report.controllerNames())
+                System.out.println("    " + name);
+        }
+        if (!report.functionNames().isEmpty()) {
+            System.out.println("  functions:");
+            for (String name : report.functionNames())
+                System.out.println("    " + name);
+        }
+        if (!report.eventNames().isEmpty()) {
+            System.out.println("  function events:");
+            for (String name : report.eventNames())
+                System.out.println("    " + name);
+        }
+        if (!report.actionNames().isEmpty()) {
+            System.out.println("  actions:");
+            for (String name : report.actionNames())
+                System.out.println("    " + name);
+        }
+        if (!report.controlNames().isEmpty()) {
+            System.out.println("  controls:");
+            for (String name : report.controlNames())
+                System.out.println("    " + name);
+        }
+        if (!report.subEntities().isEmpty()) {
+            System.out.println("  sub entities:");
+            for (String name : report.subEntities())
+                System.out.println("    " + name);
+        }
+        if (!report.unsupportedBindings().isEmpty()) {
+            System.out.println("  unsupported bindings:");
+            for (String name : report.unsupportedBindings())
+                System.out.println("    " + name);
+        }
+    }
+
+    private static String describeController(YsmAnimationController controller) {
+        int animationRefs = 0;
+        int transitions = 0;
+        for (YsmControllerState state : controller.states().values()) {
+            animationRefs += state.animations().size();
+            transitions += state.transitions().size();
+        }
+        return controller.name()
+                + " slot=" + controller.slot()
+                + " initial=" + controller.initialState()
+                + " states=" + controller.states().size()
+                + " animations=" + animationRefs
+                + " transitions=" + transitions;
+    }
+
+    private static void validateControllerReferences(YsmAnimationController controller, List<String> animationNames, String source, List<String> errors) {
+        Set<String> normalizedAnimations = new LinkedHashSet<>();
+        for (String name : animationNames)
+            normalizedAnimations.add(simpleAnimationName(name));
+        for (YsmControllerState state : controller.states().values()) {
+            for (YsmControllerAnimationRef ref : state.animations()) {
+                String animation = ref.animation();
+                if (animation == null || animation.isBlank() || "empty".equals(animation))
+                    continue;
+                if (!normalizedAnimations.contains(simpleAnimationName(animation)))
+                    errors.add("controller '" + controller.name() + "' in '" + source + "' references missing animation '" + animation + "'");
+            }
+            for (YsmControllerTransition transition : state.transitions()) {
+                if (!controller.states().containsKey(transition.targetState()))
+                    errors.add("controller '" + controller.name() + "' in '" + source + "' state '" + state.name() + "' references missing transition target '" + transition.targetState() + "'");
+            }
+        }
+    }
+
+    private static void scanActionSchemas(YsmPackage ysmPackage, YsmResourceIndex index, List<String> actions, List<String> controls,
+                                          Set<String> unsupportedBindings, List<String> errors) {
+        LinkedHashSet<String> paths = new LinkedHashSet<>();
+        paths.addAll(List.of("ysm.json", "ysm.actions.json", "action_wheel.json", "ysm.controls.json", "ysm_controls.json", "controls.json"));
+        if (index != null)
+            paths.addAll(index.metadataPaths());
+        for (String path : paths) {
+            if (path == null || path.isBlank() || !ysmPackage.exists(path))
+                continue;
+            try {
+                String json = ysmPackage.readString(path);
+                collectUnsupportedBindings(unsupportedBindings, json);
+                JsonElement root = parseJson(json);
+                if (root == null || root.isJsonNull())
+                    continue;
+                if (root.isJsonArray()) {
+                    scanControls(path, root.getAsJsonArray(), controls);
+                    continue;
+                }
+                if (!root.isJsonObject())
+                    continue;
+                JsonObject object = root.getAsJsonObject();
+                scanControls(path, array(object, "controls"), controls);
+                scanControls(path, array(object, "control"), controls);
+                scanActions(path, array(object, "actions"), actions);
+                scanActions(path, array(object, "action"), actions);
+                scanYsmProperties(path, object, actions, controls);
+                scanLegacyExtraInfo(path, object, actions);
+            } catch (Throwable e) {
+                errors.add("failed to scan action schema '" + path + "': " + e.getMessage());
+            }
+        }
+    }
+
+    private static void scanYsmProperties(String path, JsonObject root, List<String> actions, List<String> controls) {
+        JsonObject properties = object(root, "properties");
+        if (properties == null)
+            return;
+        if (properties.has("width_scale"))
+            controls.add("ysm.width_scale type=slider path=" + path);
+        if (properties.has("height_scale"))
+            controls.add("ysm.height_scale type=slider path=" + path);
+        scanExtraAnimations(path, object(properties, "extra_animation"), "extra_animation", actions);
+        scanExtraAnimationClassify(path, array(properties, "extra_animation_classify"), actions);
+        scanExtraAnimationClassify(path, object(properties, "extra_animation_classify"), actions);
+        scanExtraAnimationButtons(path, array(properties, "extra_animation_buttons"), controls);
+    }
+
+    private static void scanLegacyExtraInfo(String path, JsonObject root, List<String> actions) {
+        JsonArray geometries = array(root, "minecraft:geometry");
+        if (geometries == null)
+            return;
+        for (JsonElement geometryElement : geometries) {
+            if (geometryElement == null || !geometryElement.isJsonObject())
+                continue;
+            JsonObject description = object(geometryElement.getAsJsonObject(), "description");
+            JsonObject extra = object(description, "ysm_extra_info");
+            JsonArray names = array(extra, "extra_animation_names");
+            if (names == null)
+                continue;
+            for (int i = 0; i < names.size(); i++) {
+                String title = string(names.get(i), "");
+                if (!title.isBlank())
+                    actions.add("extra_animation.extra" + i + " title=" + title + " page=extra_animation path=" + path);
+            }
+        }
+    }
+
+    private static void scanExtraAnimations(String path, JsonObject object, String page, List<String> actions) {
+        if (object == null)
+            return;
+        for (Map.Entry<String, JsonElement> entry : object.entrySet()) {
+            String id = entry.getKey();
+            String label = string(entry.getValue(), id);
+            if (id == null || id.isBlank() || label == null || label.isBlank() || id.startsWith("#"))
+                continue;
+            String animation = label.startsWith("#") ? label : id;
+            String title = label.startsWith("#") ? id : label;
+            actions.add("extra_animation." + id + " title=" + title + " animation=" + animation + " page=" + page + " path=" + path);
+        }
+    }
+
+    private static void scanExtraAnimationClassify(String path, JsonArray array, List<String> actions) {
+        if (array == null)
+            return;
+        for (JsonElement element : array) {
+            if (element == null || !element.isJsonObject())
+                continue;
+            JsonObject object = element.getAsJsonObject();
+            String id = string(object, "id", string(object, "name", ""));
+            if (id.isBlank())
+                continue;
+            JsonObject extras = object(object, "extra_animation");
+            if (extras == null)
+                extras = object(object, "extras");
+            scanExtraAnimations(path, extras, id, actions);
+        }
+    }
+
+    private static void scanExtraAnimationClassify(String path, JsonObject object, List<String> actions) {
+        if (object == null)
+            return;
+        for (Map.Entry<String, JsonElement> entry : object.entrySet()) {
+            String id = entry.getKey();
+            JsonElement value = entry.getValue();
+            if (id == null || id.isBlank() || value == null || !value.isJsonObject())
+                continue;
+            JsonObject child = value.getAsJsonObject();
+            JsonObject extras = object(child, "extra_animation");
+            if (extras == null)
+                extras = object(child, "extras");
+            scanExtraAnimations(path, extras == null ? child : extras, id, actions);
+        }
+    }
+
+    private static void scanExtraAnimationButtons(String path, JsonArray array, List<String> controls) {
+        if (array == null)
+            return;
+        for (JsonElement element : array) {
+            if (element == null || !element.isJsonObject())
+                continue;
+            JsonObject button = element.getAsJsonObject();
+            String page = string(button, "id", "");
+            if (page.isBlank())
+                continue;
+            controls.add("ysm.page_link." + page + " type=button target=" + page + " path=" + path);
+            JsonArray forms = array(button, "config_forms");
+            if (forms == null)
+                continue;
+            int index = 0;
+            for (JsonElement formElement : forms) {
+                if (formElement != null && formElement.isJsonObject()) {
+                    JsonObject form = formElement.getAsJsonObject();
+                    String binding = string(form, "value", "");
+                    String id = !binding.isBlank() ? "ysm." + binding.replace('.', '_') : "ysm." + page + "." + index;
+                    controls.add(id + " type=" + string(form, "type", "toggle") + " binding=" + binding + " page=" + page + " path=" + path);
+                }
+                index++;
+            }
+        }
+    }
+
+    private static void scanActions(String path, JsonArray array, List<String> actions) {
+        if (array == null)
+            return;
+        for (JsonElement element : array) {
+            if (element == null || !element.isJsonObject())
+                continue;
+            JsonObject object = element.getAsJsonObject();
+            String id = string(object, "id", "");
+            if (id.isBlank())
+                continue;
+            String animation = string(object, "animation", string(object, "anim", id));
+            actions.add(id + " animation=" + animation + " page=" + string(object, "page", "root") + " path=" + path);
+        }
+    }
+
+    private static void scanControls(String path, JsonArray array, List<String> controls) {
+        if (array == null)
+            return;
+        for (JsonElement element : array) {
+            if (element == null || !element.isJsonObject())
+                continue;
+            JsonObject object = element.getAsJsonObject();
+            String id = string(object, "id", "");
+            if (id.isBlank())
+                continue;
+            controls.add(id + " type=" + string(object, "type", "toggle")
+                    + " binding=" + string(first(object, "binding", "variable", "value"), id)
+                    + " page=" + string(object, "page", "root") + " path=" + path);
+        }
+    }
+
+    private static void scanSubEntities(YsmPackage ysmPackage, List<String> subEntities, Set<String> unsupportedBindings, List<String> errors) {
+        try {
+            if (ysmPackage.exists("ysm.json")) {
+                JsonElement rootElement = parseJson(ysmPackage.readString("ysm.json"));
+                JsonObject root = rootElement != null && rootElement.isJsonObject() ? rootElement.getAsJsonObject() : new JsonObject();
+                JsonObject files = object(root, "files");
+                scanSubEntitySection(ysmPackage, subEntities, unsupportedBindings, "projectile", files.get("projectiles"));
+                scanSubEntitySection(ysmPackage, subEntities, unsupportedBindings, "vehicle", files.get("vehicles"));
+            }
+            if (ysmPackage.exists("arrow.json"))
+                subEntities.add("projectile:arrow model=arrow.json texture=" + (ysmPackage.exists("arrow.png") ? "arrow.png" : "<fallback>")
+                        + " animation=" + (ysmPackage.exists("arrow.animation.json") ? "arrow.animation.json" : "<none>"));
+        } catch (Throwable e) {
+            errors.add("failed to scan sub entities: " + e.getMessage());
+        }
+    }
+
+    private static void scanSubEntitySection(YsmPackage ysmPackage, List<String> subEntities, Set<String> unsupportedBindings, String kind, JsonElement section) throws IOException {
+        if (section == null || section.isJsonNull())
+            return;
+        if (section.isJsonObject()) {
+            for (Map.Entry<String, JsonElement> entry : section.getAsJsonObject().entrySet())
+                scanSubEntity(ysmPackage, subEntities, unsupportedBindings, kind, entry.getKey(), entry.getValue());
+        } else if (section.isJsonArray()) {
+            int index = 0;
+            for (JsonElement element : section.getAsJsonArray())
+                scanSubEntity(ysmPackage, subEntities, unsupportedBindings, kind, kind + index++, element);
+        }
+    }
+
+    private static void scanSubEntity(YsmPackage ysmPackage, List<String> subEntities, Set<String> unsupportedBindings, String kind, String fallbackId, JsonElement element) throws IOException {
+        if (element == null || element.isJsonNull())
+            return;
+        JsonObject object = element.isJsonObject() ? element.getAsJsonObject() : new JsonObject();
+        String id = firstString(object, fallbackId, "identifier", "id", "name");
+        String model = element.isJsonPrimitive() ? element.getAsString() : firstString(object, "", "model", "model_path");
+        String texture = texturePath(object);
+        String animation = firstString(object, "", "animation", "animations", "animation_path");
+        String controller = firstString(object, "", "controller", "animation_controller", "controller_path");
+        subEntities.add(kind + ":" + (id == null || id.isBlank() ? fallbackId : id)
+                + " model=" + valueOrMissing(ysmPackage, model)
+                + " texture=" + valueOrMissing(ysmPackage, texture)
+                + " animation=" + valueOrMissing(ysmPackage, animation)
+                + " controller=" + valueOrMissing(ysmPackage, controller));
+        if (!animation.isBlank() && ysmPackage.exists(animation))
+            collectUnsupportedBindings(unsupportedBindings, ysmPackage.readString(animation));
+        if (!controller.isBlank() && ysmPackage.exists(controller))
+            collectUnsupportedBindings(unsupportedBindings, ysmPackage.readString(controller));
+    }
+
+    private static String valueOrMissing(YsmPackage ysmPackage, String path) {
+        if (path == null || path.isBlank())
+            return "<none>";
+        return ysmPackage.exists(path) ? YsmPackage.normalize(path) : "<missing:" + YsmPackage.normalize(path) + ">";
+    }
+
+    private static final Pattern BINDING_PATTERN = Pattern.compile("\\b(ctrl|ysm|q|query)\\.([A-Za-z_][A-Za-z0-9_]*)");
+    private static final Set<String> SUPPORTED_CTRL = Set.of(
+            "death", "sleep", "swim", "swim_stand", "jump", "fall", "fly", "elytra_fly",
+            "sneak", "sneaking", "run", "walk", "idle", "attacked", "ride", "riding",
+            "hold", "use", "swing", "armor", "attack", "playing_extra_animation",
+            "state_continue", "state_break", "state_stop", "state_pause", "state_bypass",
+            "loop", "play_once", "hold_on_last_frame", "set_beginning_transition_length",
+            "set_animation", "reset", "indicate_reload", "im_delta", "im_pitch", "im_time"
+    );
+    private static final Set<String> SUPPORTED_YSM = Set.of(
+            "rendering_in_inventory", "rendering_in_paperdoll", "is_first_person", "first_person",
+            "weather", "dimension_name", "fps", "time_delta", "head_yaw", "head_pitch",
+            "ground_speed2", "is_open_air", "block_light", "sky_light", "is_passenger",
+            "is_sleep", "is_sneak", "eye_in_water", "frozen_ticks", "air_supply",
+            "input_vertical", "input_horizontal", "xxa", "yya", "zza", "keyboard", "mouse",
+            "sync", "event", "run_event", "trigger_event", "play_sound", "stop_sound", "stop_all_sounds", "first_order", "second_order",
+            "food_level", "is_local_player", "local_player", "person_view", "main_hand",
+            "off_hand", "equipped_item", "has_mainhand", "has_offhand", "has_helmet",
+            "has_chest_plate", "has_leggings", "has_boots", "armor_value", "hurt_time",
+            "swinging", "swing_time", "attack_time", "entity_type", "is_player",
+            "elytra_rot_z", "boat_left_paddle", "boat_right_paddle", "boat_left_rowing_time",
+            "boat_right_rowing_time", "boat_paddle_scale", "boat_body_offset_y",
+            "boat_body_offset_z", "shoot_item_id",
+            "dump_mods", "dump_effects", "dump_biome", "has_any_curios",
+            "has_any_curios_with_any_tag", "has_any_curios_with_all_tags", "particle",
+            "abs_particle", "perlin_noise", "bone_param", "bone_rot", "bone_pos",
+            "bone_scale", "bone_pivot_abs"
+    );
+    private static final Set<String> SUPPORTED_QUERY = Set.of(
+            "anim_time", "life_time", "delta_time", "time_of_day", "time_stamp", "moon_phase",
+            "frame_count", "actor_count", "health", "max_health", "hurt_time", "position",
+            "position_x", "position_y", "position_z", "position_delta", "position_delta_x",
+            "position_delta_y", "position_delta_z", "distance_from_camera", "rotation_to_camera",
+            "ground_speed", "vertical_speed", "yaw_speed", "walk_distance",
+            "modified_distance_moved", "body_x_rotation", "body_y_rotation", "head_x_rotation",
+            "head_y_rotation", "eye_target_x_rotation", "eye_target_y_rotation", "cardinal_facing_2d",
+            "is_on_ground", "is_jumping", "is_sneaking", "is_sprinting", "is_swimming",
+            "is_in_water", "is_in_water_or_rain", "is_on_fire", "is_riding", "has_rider",
+            "is_sleeping", "is_spectator", "is_first_person", "rendering_in_paperdoll",
+            "rendering_in_inventory", "is_using_item", "is_swinging", "is_eating",
+            "is_playing_dead", "has_cape", "all_animations_finished", "any_animation_finished",
+            "swing_time", "attack_time", "control", "avatar_control", "ysm_control",
+            "ysm_control_bool", "ysm_control_number", "ysm_control_enum", "ysm_action_active",
+            "ysm_action_time", "item_in_use_duration", "item_max_use_duration",
+            "item_remaining_use_duration", "equipment_count", "max_durability",
+            "remaining_durability", "biome_has_all_tags", "biome_has_any_tag",
+            "relative_block_has_all_tags", "relative_block_has_any_tag", "is_item_name_any",
+            "equipped_item_all_tags", "equipped_item_any_tag", "cape_flap_amount",
+            "player_level", "geometry_is_model", "geometry_is_block", "geometry_is_entity",
+            "geometry_is_flat", "debug_output"
+    );
+
+    private static void collectUnsupportedBindings(Set<String> unsupported, String source) {
+        if (source == null || source.isBlank())
+            return;
+        Matcher matcher = BINDING_PATTERN.matcher(source);
+        while (matcher.find()) {
+            String namespace = matcher.group(1).toLowerCase(java.util.Locale.US);
+            String name = matcher.group(2).toLowerCase(java.util.Locale.US);
+            Set<String> supported = switch (namespace) {
+                case "ctrl" -> SUPPORTED_CTRL;
+                case "ysm" -> SUPPORTED_YSM;
+                default -> SUPPORTED_QUERY;
+            };
+            if (!supported.contains(name))
+                unsupported.add(namespace + "." + name);
+        }
+    }
+
+    private static JsonElement parseJson(String json) {
+        try {
+            return JsonParser.parseString(json);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static JsonArray array(JsonObject object, String key) {
+        JsonElement element = object == null ? null : object.get(key);
+        return element != null && element.isJsonArray() ? element.getAsJsonArray() : null;
+    }
+
+    private static JsonObject object(JsonObject object, String key) {
+        JsonElement element = object == null ? null : object.get(key);
+        return element != null && element.isJsonObject() ? element.getAsJsonObject() : null;
+    }
+
+    private static JsonElement first(JsonObject object, String... keys) {
+        if (object == null)
+            return null;
+        for (String key : keys) {
+            JsonElement element = object.get(key);
+            if (element != null && !element.isJsonNull())
+                return element;
+        }
+        return null;
+    }
+
+    private static String string(JsonObject object, String key, String fallback) {
+        JsonElement element = object == null ? null : object.get(key);
+        return string(element, fallback);
+    }
+
+    private static String string(JsonElement element, String fallback) {
+        try {
+            return element != null && !element.isJsonNull() ? element.getAsString() : fallback;
+        } catch (Throwable ignored) {
+            return fallback;
+        }
+    }
+
+    private static String texturePath(JsonObject object) {
+        if (object == null)
+            return "";
+        JsonElement texture = object.get("texture");
+        if (texture == null)
+            texture = object.get("textures");
+        if (texture == null)
+            return "";
+        if (texture.isJsonPrimitive())
+            return texture.getAsString();
+        if (texture.isJsonObject())
+            return firstString(texture.getAsJsonObject(), "", "uv", "path", "default", "normal");
+        return "";
+    }
+
+    private static String firstString(JsonObject object, String fallback, String... keys) {
+        if (object == null)
+            return fallback == null ? "" : fallback;
+        for (String key : keys) {
+            String value = stringValue(object.get(key));
+            if (!value.isBlank())
+                return value;
+        }
+        return fallback == null ? "" : fallback;
+    }
+
+    private static String stringValue(JsonElement element) {
+        if (element == null || element.isJsonNull())
+            return "";
+        if (element.isJsonPrimitive())
+            return element.getAsString();
+        if (element.isJsonArray()) {
+            for (JsonElement item : element.getAsJsonArray()) {
+                String value = stringValue(item);
+                if (!value.isBlank())
+                    return value;
+            }
+        }
+        return "";
     }
 
     private static List<String> describeNativeStateHits(List<String> animationNames) {

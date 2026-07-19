@@ -161,12 +161,17 @@ public class YsmMolangFunctionRuntime {
     }
 
     public Object runEvent(String event, ExecutionContext<?> context, Function.ArgumentCollection args) {
+        return runEvent(event, context, args, 0);
+    }
+
+    public Object runEvent(String event, ExecutionContext<?> context, Function.ArgumentCollection args, int argumentOffset) {
         String normalized = normalizeName(event);
         List<YsmFunction> values = events.get(normalized);
         if (values == null || values.isEmpty())
             return 0f;
         List<Object> arguments = new ArrayList<>();
-        for (int i = 0; i < args.size(); i++)
+        int start = Math.max(0, argumentOffset);
+        for (int i = start; i < args.size(); i++)
             arguments.add(args.getValue(context, i));
         eventBus.markExecuted(normalized, "manual", values.size());
         Object result = 0f;

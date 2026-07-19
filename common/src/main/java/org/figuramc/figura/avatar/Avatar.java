@@ -31,6 +31,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.animation.Animation;
@@ -420,6 +421,14 @@ public class Avatar {
             prev_pos_y = pos_y;
             prev_pos_z = pos_z;
             prev_body_y_rot = body_y_rot;
+            delta_time = 0.05f;
+            var mc = Minecraft.getInstance();
+            try {
+                delta_time = mc.getDeltaTracker().getGameTimeDeltaTicks() / 20.0f;
+            } catch (Throwable ignored) {
+            }
+            life_time += delta_time;
+            anim_time = life_time;
 
             // Entity position
             pos_x = entity.getX();
@@ -455,6 +464,26 @@ public class Avatar {
             body_y_rot = entity.getYRot();
             body_x_rot = entity.getXRot();
             yaw_speed = body_y_rot - prev_body_y_rot;
+            eye_target_x_rot = entity.getViewXRot(1.0f);
+            eye_target_y_rot = entity.getViewYRot(1.0f);
+            if (entity instanceof LivingEntity living) {
+                head_x_rot = living.getXRot();
+                head_y_rot = living.yHeadRot;
+                health = living.getHealth();
+                max_health = living.getMaxHealth();
+                hurt_time = living.hurtTime;
+                is_sleeping = living.isSleeping() ? 1f : 0f;
+                is_using_item = living.isUsingItem() ? 1f : 0f;
+                is_eating = living.isUsingItem() && living.getUseItem().getUseAnimation() == net.minecraft.world.item.ItemUseAnimation.EAT ? 1f : 0f;
+                item_in_use_duration = living.isUsingItem() ? (float) living.getTicksUsingItem() / 20.0f : 0f;
+                ItemStack useItem = living.getUseItem();
+                item_max_use_duration = useItem.isEmpty() ? 0f : (float) useItem.getUseDuration(living) / 20.0f;
+                item_remaining_use_duration = living.isUsingItem() ? (float) living.getUseItemRemainingTicks() / 20.0f : 0f;
+                swing_time = living.swinging ? Math.max(1f, living.swingTime) / 20.0f : 0f;
+                is_swinging = swing_time > 0f ? 1f : 0f;
+                attack_time = Math.min(1f, swing_time * 20.0f / 6.0f);
+                is_playing_dead = living.isDeadOrDying() ? 1f : 0f;
+            }
 
             // Entity state booleans
             is_on_ground = entity.onGround() ? 1f : 0f;
@@ -469,11 +498,7 @@ public class Avatar {
 
             // Player-specific fields
             if (entity instanceof Player player) {
-                health = player.getHealth();
-                max_health = player.getMaxHealth();
-                hurt_time = player.hurtTime;
                 is_sneaking = player.isShiftKeyDown() ? 1f : 0f;
-                is_sleeping = player.isSleeping() ? 1f : 0f;
                 player_level = player.experienceLevel;
 
                 // Walk distance from ClientAvatarState (via AbstractClientPlayer)
@@ -482,10 +507,8 @@ public class Avatar {
                 }
 
                 // Jump detection via local player input
-                var mc2 = Minecraft.getInstance();
-                if (mc2.player == player) {
+                if (mc.player == player) {
                     is_jumping = (player.getDeltaMovement().y > 0.1 && !entity.onGround()) ? 1f : 0f;
-                    is_eating = player.isUsingItem() && (player.getUsedItemHand() != null) ? 1f : 0f;
                     has_cape = 0f; // Cape detection requires skin data access
                 }
 
@@ -503,7 +526,6 @@ public class Avatar {
             frame_count++;
 
             // Level / world data
-            var mc = Minecraft.getInstance();
             if (mc.level != null) {
                 long dayTime = mc.level.getDefaultClockTime();
                 time_of_day = dayTime % 24000L / 24000.0f;

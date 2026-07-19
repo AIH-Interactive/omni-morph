@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.Set;
 
 public final class YsmActionWheelLayoutStore {
+    public static final int MIN_SLOT = 1;
+    public static final int MAX_SLOT = 8;
     private static final Map<String, Map<String, Entry>> LAYOUTS = new HashMap<>();
     private static final Map<String, Set<String>> PAGES = new HashMap<>();
     private static boolean loaded;
@@ -75,10 +77,12 @@ public final class YsmActionWheelLayoutStore {
         if (modelKey == null || modelKey.isBlank() || actionId == null || actionId.isBlank())
             return;
         load();
-        if (slot < 1) {
+        if (slot < MIN_SLOT) {
             Map<String, Entry> entries = LAYOUTS.get(modelKey);
             if (entries != null)
                 entries.remove(normalize(actionId));
+        } else if (!isValidSlot(slot)) {
+            return;
         } else {
             String action = normalize(actionId);
             String targetPage = page == null || page.isBlank() ? "extra_animation" : page;
@@ -103,7 +107,7 @@ public final class YsmActionWheelLayoutStore {
     }
 
     public static void clearSlot(String modelKey, String page, int slot) {
-        if (modelKey == null || modelKey.isBlank() || page == null || page.isBlank() || slot < 1)
+        if (modelKey == null || modelKey.isBlank() || page == null || page.isBlank() || !isValidSlot(slot))
             return;
         load();
         Map<String, Entry> entries = LAYOUTS.get(modelKey);
@@ -114,7 +118,7 @@ public final class YsmActionWheelLayoutStore {
     }
 
     public static void swapSlots(String modelKey, String page, int firstSlot, int secondSlot) {
-        if (modelKey == null || modelKey.isBlank() || page == null || page.isBlank() || firstSlot < 1 || secondSlot < 1 || firstSlot == secondSlot)
+        if (modelKey == null || modelKey.isBlank() || page == null || page.isBlank() || !isValidSlot(firstSlot) || !isValidSlot(secondSlot) || firstSlot == secondSlot)
             return;
         load();
         Map<String, Entry> entries = LAYOUTS.get(modelKey);
@@ -150,8 +154,12 @@ public final class YsmActionWheelLayoutStore {
                 .filter(entry -> page.equals(entry.getValue().page()))
                 .sorted(Map.Entry.comparingByValue(java.util.Comparator.comparingInt(Entry::slot)))
                 .toList()) {
-            entry.setValue(new Entry(page, slot++));
+            if (slot > MAX_SLOT)
+                entry.setValue(new Entry(page, -1));
+            else
+                entry.setValue(new Entry(page, slot++));
         }
+        entries.values().removeIf(entry -> !isValidSlot(entry.slot()));
         save();
     }
 
@@ -179,8 +187,9 @@ public final class YsmActionWheelLayoutStore {
                     if (!(entryTag instanceof CompoundTag entryNbt))
                         continue;
                     String action = normalize(entryNbt.getStringOr("action", ""));
-                    if (!action.isBlank())
-                        entries.put(action, new Entry(entryNbt.getStringOr("page", "extra_animation"), entryNbt.getIntOr("slot", 1)));
+                    int slot = entryNbt.getIntOr("slot", MIN_SLOT);
+                    if (!action.isBlank() && isValidSlot(slot))
+                        entries.put(action, new Entry(entryNbt.getStringOr("page", "extra_animation"), slot));
                 }
             }
         });
@@ -206,6 +215,8 @@ public final class YsmActionWheelLayoutStore {
                 for (Map.Entry<String, Entry> actionEntry : LAYOUTS.getOrDefault(modelKey, Map.of()).entrySet()) {
                     CompoundTag entryNbt = new CompoundTag();
                     Entry entry = actionEntry.getValue();
+                    if (!isValidSlot(entry.slot()))
+                        continue;
                     entryNbt.putString("action", actionEntry.getKey());
                     entryNbt.putString("page", entry.page());
                     entryNbt.putInt("slot", entry.slot());
@@ -220,6 +231,10 @@ public final class YsmActionWheelLayoutStore {
 
     private static String normalize(String value) {
         return value == null ? "" : value.toLowerCase(java.util.Locale.US);
+    }
+
+    private static boolean isValidSlot(int slot) {
+        return slot >= MIN_SLOT && slot <= MAX_SLOT;
     }
 
     public record Entry(String page, int slot) {
