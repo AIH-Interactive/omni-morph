@@ -1,0 +1,3 @@
+v.phase_4_1_parallel = fn.calc_flag(1);
+v.phase_4_1_args_size = args.size;
+return ctrl.state_continue;

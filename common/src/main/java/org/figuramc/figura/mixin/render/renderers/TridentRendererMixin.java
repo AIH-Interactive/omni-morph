@@ -10,6 +10,7 @@ import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.state.ThrownTridentRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.projectile.arrow.ThrownTrident;
@@ -20,6 +21,7 @@ import org.figuramc.figura.ducks.FiguraEntityRenderStateExtension;
 import org.figuramc.figura.ducks.FiguraProjectileRenderStateExtension;
 import org.figuramc.figura.ducks.FiguraSubmitCallBackExtension;
 import org.figuramc.figura.lua.api.entity.EntityAPI;
+import org.figuramc.figura.model.ysm.YsmModelRuntime;
 import org.figuramc.figura.permissions.Permissions;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -62,6 +64,13 @@ public abstract class TridentRendererMixin<T extends ThrownTrident, S extends Th
         FiguraSubmitCallBackExtension figura$submitCallback = (FiguraSubmitCallBackExtension) model;
 
         figura$submitCallback.figura$addPreRenderingCallback((bufferSource, poseStack) -> {
+            YsmModelRuntime ysm = avatar.getYsmRuntime();
+            String projectileId = BuiltInRegistries.ENTITY_TYPE.getKey(trident.getType()).toString();
+            if (ysm != null && ysm.renderSubEntity(poseStack, bufferSource, thrownTridentRenderState.lightCoords, "projectile", projectileId)) {
+                poseStack.popPose();
+                return false;
+            }
+
             FiguraMod.pushProfiler(FiguraMod.MOD_ID);
             FiguraMod.pushProfiler(avatar);
             FiguraMod.pushProfiler("tridentRender");

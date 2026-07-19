@@ -29,6 +29,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import org.figuramc.figura.FiguraMod;
@@ -430,12 +431,25 @@ public class Avatar {
             pos_delta_y = pos_y - prev_pos_y;
             pos_delta_z = pos_z - prev_pos_z;
 
-            // Speed
+            // Speed. Prefer Minecraft's living-entity walk animation state; render-frame
+            // position deltas can be zero when the same tick is sampled more than once.
             float dx = (float) pos_delta_x;
             float dz = (float) pos_delta_z;
             float dy = (float) pos_delta_y;
-            ground_speed = (float) Math.sqrt(dx * dx + dz * dz);
-            vertical_speed = Math.abs(dy);
+            ground_speed = horizontalSpeed(dx, dz);
+            if (entity instanceof LivingEntity living) {
+                float walkSpeed = Math.abs(living.walkAnimation.speed(1.0f));
+                if (isUsableSpeed(walkSpeed))
+                    ground_speed = walkSpeed;
+            }
+            Vec3 velocity = entity.getDeltaMovement();
+            float velocitySpeed = horizontalSpeed((float) velocity.x, (float) velocity.z) * 20.0f;
+            if (!isUsableSpeed(ground_speed) && isUsableSpeed(velocitySpeed))
+                ground_speed = velocitySpeed;
+            float tickSpeed = horizontalSpeed((float) (entity.getX() - entity.xo), (float) (entity.getZ() - entity.zo)) * 20.0f;
+            if (!isUsableSpeed(ground_speed) && isUsableSpeed(tickSpeed))
+                ground_speed = tickSpeed;
+            vertical_speed = isUsableSpeed((float) velocity.y) ? (float) velocity.y * 20.0f : dy * 20.0f;
 
             // Rotation
             body_y_rot = entity.getYRot();
@@ -550,6 +564,15 @@ public class Avatar {
             entity = null;
             prev_pos_x = prev_pos_y = prev_pos_z = 0;
             prev_body_y_rot = 0;
+        }
+
+        private static float horizontalSpeed(float x, float z) {
+            float value = (float) Math.sqrt(x * x + z * z);
+            return Float.isFinite(value) ? value : 0f;
+        }
+
+        private static boolean isUsableSpeed(float value) {
+            return Float.isFinite(value) && Math.abs(value) > 1.0E-4f;
         }
     }
 

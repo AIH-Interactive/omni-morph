@@ -7,6 +7,7 @@ import net.minecraft.client.renderer.entity.ArrowRenderer;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.state.ArrowRenderState;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
@@ -17,6 +18,7 @@ import org.figuramc.figura.ducks.FiguraEntityRenderStateExtension;
 import org.figuramc.figura.ducks.FiguraProjectileRenderStateExtension;
 import org.figuramc.figura.ducks.FiguraSubmitCallBackExtension;
 import org.figuramc.figura.lua.api.entity.EntityAPI;
+import org.figuramc.figura.model.ysm.YsmModelRuntime;
 import org.figuramc.figura.permissions.Permissions;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -49,6 +51,13 @@ public abstract class ArrowRendererMixin<T extends AbstractArrow, S extends Arro
             return par1;
 
         ((FiguraSubmitCallBackExtension)par1).figura$addPreRenderingCallback((multiBufferSource, poseStack) -> {
+            YsmModelRuntime ysm = avatar.getYsmRuntime();
+            String projectileId = BuiltInRegistries.ENTITY_TYPE.getKey(arrow.getType()).toString();
+            if (ysm != null && ysm.renderSubEntity(poseStack, multiBufferSource, arrowRenderState.lightCoords, "projectile", projectileId)) {
+                poseStack.popPose();
+                return false;
+            }
+
             FiguraMod.pushProfiler(FiguraMod.MOD_ID);
             FiguraMod.pushProfiler(avatar);
             FiguraMod.pushProfiler("arrowRender");

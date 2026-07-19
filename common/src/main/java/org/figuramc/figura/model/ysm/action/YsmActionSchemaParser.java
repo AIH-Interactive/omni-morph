@@ -4,10 +4,14 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonReader;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.control.AvatarControlDefinition;
 import org.figuramc.figura.avatar.control.AvatarControlType;
 import org.figuramc.figura.model.ysm.YsmModelRuntime;
+import org.figuramc.figura.model.ysm.animation.YsmAnimationClip;
+
+import java.io.StringReader;
 
 public final class YsmActionSchemaParser {
     private YsmActionSchemaParser() {
@@ -17,7 +21,7 @@ public final class YsmActionSchemaParser {
         if (runtime == null || json == null || json.isBlank())
             return;
         try {
-            JsonElement root = JsonParser.parseString(json);
+            JsonElement root = parseLenient(json);
             if (root == null || root.isJsonNull())
                 return;
             if (root.isJsonArray()) {
@@ -32,9 +36,16 @@ public final class YsmActionSchemaParser {
             readActions(runtime, array(object, "actions"));
             readActions(runtime, array(object, "action"));
             readYsmProperties(runtime, object);
+            readLegacyExtraInfo(runtime, object);
         } catch (Exception e) {
             FiguraMod.LOGGER.warn("Failed to parse YSM action/control schema {}", path, e);
         }
+    }
+
+    private static JsonElement parseLenient(String json) {
+        JsonReader reader = new JsonReader(new StringReader(json));
+        reader.setLenient(true);
+        return JsonParser.parseReader(reader);
     }
 
     private static void readYsmProperties(YsmModelRuntime runtime, JsonObject root) {
@@ -47,6 +58,35 @@ public final class YsmActionSchemaParser {
         readExtraAnimationClassify(runtime, array(properties, "extra_animation_classify"));
         readExtraAnimationClassify(runtime, object(properties, "extra_animation_classify"));
         readExtraAnimationButtons(runtime, array(properties, "extra_animation_buttons"));
+    }
+
+    private static void readLegacyExtraInfo(YsmModelRuntime runtime, JsonObject root) {
+        JsonArray geometries = array(root, "minecraft:geometry");
+        if (geometries == null)
+            return;
+        for (JsonElement geometryElement : geometries) {
+            if (geometryElement == null || !geometryElement.isJsonObject())
+                continue;
+            JsonObject description = object(geometryElement.getAsJsonObject(), "description");
+            JsonObject extra = object(description, "ysm_extra_info");
+            readLegacyExtraAnimationNames(runtime, array(extra, "extra_animation_names"));
+        }
+    }
+
+    private static void readLegacyExtraAnimationNames(YsmModelRuntime runtime, JsonArray names) {
+        if (names == null)
+            return;
+        for (int i = 0; i < names.size(); i++) {
+            String title = string(names.get(i), "");
+            if (title == null || title.isBlank())
+                continue;
+            String id = "extra" + i;
+            runtime.actions().register(new YsmActionDefinition("extra_animation." + id)
+                    .setTitle(title)
+                    .setAnimation(id)
+                    .setPage("extra_animation")
+                    .setLoop(runtime.animations().loopModeFor(id, YsmAnimationClip.LoopMode.ONCE) == YsmAnimationClip.LoopMode.LOOP));
+        }
     }
 
     private static void readScaleProperty(YsmModelRuntime runtime, JsonObject properties, String key, String title) {
@@ -71,14 +111,19 @@ public final class YsmActionSchemaParser {
             return;
         for (java.util.Map.Entry<String, JsonElement> entry : object.entrySet()) {
             String id = entry.getKey();
-            String target = string(entry.getValue(), id);
-            if (id == null || id.isBlank() || target == null || target.isBlank())
+            String label = string(entry.getValue(), id);
+            if (id == null || id.isBlank() || label == null || label.isBlank())
                 continue;
+            if (id.startsWith("#"))
+                continue;
+            String animation = label.startsWith("#") ? label : id;
+            String title = label.startsWith("#") ? id : label;
             runtime.actions().register(new YsmActionDefinition("extra_animation." + id)
-                    .setTitle(id)
-                    .setAnimation(target)
+                    .setTitle(title)
+                    .setAnimation(animation)
                     .setPage(page)
-                    .setLoop(false));
+                    .setLoop(!animation.startsWith("#")
+                            && runtime.animations().loopModeFor(animation, YsmAnimationClip.LoopMode.ONCE) == YsmAnimationClip.LoopMode.LOOP));
         }
     }
 
@@ -155,7 +200,8 @@ public final class YsmActionSchemaParser {
                 .setTitle(string(form, "title", id))
                 .setPage(page)
                 .setCategory(string(form, "description", ""))
-                .setBinding(binding);
+                .setBinding(binding)
+                .setPersistent(false);
         if (form.has("min") || form.has("max") || form.has("step"))
             control.setRange(number(form, "min", 0d), number(form, "max", 1d), number(form, "step", 0.05d));
 
@@ -189,7 +235,8 @@ public final class YsmActionSchemaParser {
             AvatarControlDefinition control = new AvatarControlDefinition(id, type)
                     .setTitle(string(object, "title", string(object, "name", id)))
                     .setPage(string(object, "page", "root"))
-                    .setCategory(string(object, "category", ""));
+                    .setCategory(string(object, "category", ""))
+                    .setBinding(string(first(object, "binding", "variable", "value"), id));
             if (object.has("min") || object.has("max") || object.has("step"))
                 control.setRange(number(object, "min", 0d), number(object, "max", 1d), number(object, "step", 0.05d));
             JsonArray options = array(object, "options");
@@ -244,7 +291,6 @@ public final class YsmActionSchemaParser {
     private static void applyImplicitDefault(AvatarControlDefinition control, AvatarControlType type) {
         switch (type) {
             case TOGGLE -> control.setDefault(false);
-            case SLIDER, NUMBER -> control.setDefault(0d);
             case TEXT, COLOR, KEYBIND -> control.setDefault("");
             case ENUM -> {
                 if (!control.options().isEmpty())

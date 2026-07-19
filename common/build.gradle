@@ -74,6 +74,10 @@ tasks.matching { it.name.startsWith("transformProduction") }.configureEach {
     enabled = false
 }
 
+tasks.withType(Test).configureEach {
+    failOnNoDiscoveredTests = false
+}
+
 tasks.register("scanYsmModels", JavaExec) {
     group = "verification"
     description = "Scans YSM model packages and validates geometry, resources, and animation JSON."
@@ -84,4 +88,12 @@ tasks.register("scanYsmModels", JavaExec) {
     }
     def scanPath = project.findProperty("ysmScanPath")
     args scanPath == null ? "${rootProject.projectDir}/refs" : rootProject.file(scanPath).path
+}
+
+tasks.register("ysmPhase41SmokeTest", JavaExec) {
+    group = "verification"
+    description = "Runs YSM phase 4.1 function package parser and controller-slot smoke checks."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmPhase41SmokeTest"
 }

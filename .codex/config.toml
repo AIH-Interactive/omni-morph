@@ -1,7 +1,0 @@
-[mcp_servers.code-review-graph]
-command = 'D:\UserData\Conda\envs\api\python.exe'
-args = [
-    "-m",
-    "code_review_graph",
-    "serve",
-]

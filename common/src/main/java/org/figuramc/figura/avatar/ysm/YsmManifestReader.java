@@ -83,13 +83,20 @@ public final class YsmManifestReader {
         readPathField(result, ysmPackage, player.get("animation_extra"));
         addExisting(result, ysmPackage, "animations/main.animation.json");
         addExisting(result, ysmPackage, "animations/extra.animation.json");
+        collectAnimationFiles(result, ysmPackage);
         return result;
     }
 
     private static List<String> readOldAnimations(YsmPackage ysmPackage) {
         List<String> result = new ArrayList<>();
         addExisting(result, ysmPackage, "main.animation.json");
+        addExisting(result, ysmPackage, "arm.animation.json");
         addExisting(result, ysmPackage, "extra.animation.json");
+        addExisting(result, ysmPackage, "tac.animation.json");
+        addExisting(result, ysmPackage, "carryon.animation.json");
+        addExisting(result, ysmPackage, "slashblade.animation.json");
+        addExisting(result, ysmPackage, "tlm.animation.json");
+        collectAnimationFiles(result, ysmPackage);
         return result;
     }
 
@@ -99,6 +106,7 @@ public final class YsmManifestReader {
         readPathField(result, ysmPackage, player.get("animation_controller"));
         collectDirectoryJson(result, ysmPackage, "controller/");
         collectDirectoryJson(result, ysmPackage, "controllers/");
+        collectAnimationControllerFiles(result, ysmPackage);
         return result;
     }
 
@@ -108,6 +116,7 @@ public final class YsmManifestReader {
         addExisting(result, ysmPackage, "animation_controllers.json");
         collectDirectoryJson(result, ysmPackage, "controller/");
         collectDirectoryJson(result, ysmPackage, "controllers/");
+        collectAnimationControllerFiles(result, ysmPackage);
         return result;
     }
 
@@ -154,36 +163,72 @@ public final class YsmManifestReader {
         }
     }
 
+    private static void collectAnimationFiles(List<String> result, YsmPackage ysmPackage) {
+        for (Path path : ysmPackage.listPaths()) {
+            if (Files.isDirectory(path))
+                continue;
+            String normalized = YsmPackage.normalize(ysmPackage.relativize(path));
+            if (normalized.toLowerCase(Locale.US).endsWith(".animation.json") && !result.contains(normalized))
+                result.add(normalized);
+        }
+    }
+
+    private static void collectAnimationControllerFiles(List<String> result, YsmPackage ysmPackage) {
+        for (Path path : ysmPackage.listPaths()) {
+            if (Files.isDirectory(path))
+                continue;
+            String normalized = YsmPackage.normalize(ysmPackage.relativize(path));
+            String lower = normalized.toLowerCase(Locale.US);
+            if (!lower.endsWith(".json") || result.contains(normalized))
+                continue;
+            if (lower.endsWith(".animation.json"))
+                continue;
+            if (lower.contains("animation_controller") || lower.contains("animation.controllers") || lower.endsWith("controller.animation.json"))
+                result.add(normalized);
+        }
+    }
+
     private static List<YsmTextureOption> readNewTextures(JsonObject player) {
         List<YsmTextureOption> result = new ArrayList<>();
         JsonElement element = player.get("texture");
-        if (element == null || !element.isJsonArray())
+        if (element == null)
             return result;
 
-        for (JsonElement textureElement : element.getAsJsonArray()) {
-            if (textureElement.isJsonPrimitive()) {
-                String texturePath = textureElement.getAsString();
-                result.add(new YsmTextureOption(idFromPath(texturePath), displayFromPath(texturePath), texturePath));
-            } else if (textureElement.isJsonObject()) {
-                JsonObject object = textureElement.getAsJsonObject();
-                String path = YsmJson.string(object, "path", YsmJson.string(object, "uv", ""));
-                if (path.isBlank()) {
-                    for (String key : object.keySet()) {
-                        JsonElement value = object.get(key);
-                        if (value != null && value.isJsonPrimitive()) {
-                            path = value.getAsString();
-                            break;
-                        }
-                    }
-                }
-                if (!path.isBlank()) {
-                    String id = YsmJson.string(object, "id", idFromPath(path));
-                    String name = YsmJson.string(object, "name", displayFromPath(path));
-                    result.add(new YsmTextureOption(id, name, path));
+        if (element.isJsonArray()) {
+            for (JsonElement textureElement : element.getAsJsonArray())
+                addNewTexture(result, textureElement);
+        } else {
+            addNewTexture(result, element);
+        }
+        return result;
+    }
+
+    private static void addNewTexture(List<YsmTextureOption> result, JsonElement textureElement) {
+        if (textureElement == null || textureElement.isJsonNull())
+            return;
+        if (textureElement.isJsonPrimitive()) {
+            String texturePath = textureElement.getAsString();
+            result.add(new YsmTextureOption(idFromPath(texturePath), displayFromPath(texturePath), YsmPackage.normalize(texturePath)));
+            return;
+        }
+        if (!textureElement.isJsonObject())
+            return;
+        JsonObject object = textureElement.getAsJsonObject();
+        String path = YsmJson.string(object, "path", YsmJson.string(object, "uv", ""));
+        if (path.isBlank()) {
+            for (String key : object.keySet()) {
+                JsonElement value = object.get(key);
+                if (value != null && value.isJsonPrimitive()) {
+                    path = value.getAsString();
+                    break;
                 }
             }
         }
-        return result;
+        if (!path.isBlank()) {
+            String id = YsmJson.string(object, "id", idFromPath(path));
+            String name = YsmJson.string(object, "name", displayFromPath(path));
+            result.add(new YsmTextureOption(id, name, YsmPackage.normalize(path)));
+        }
     }
 
     private static List<YsmTextureOption> readOldTextures(YsmPackage ysmPackage) {
@@ -207,6 +252,7 @@ public final class YsmManifestReader {
                 existingOrBlank(ysmPackage, armModel),
                 animations,
                 controllers,
+                collectFunctions(ysmPackage),
                 textures == null ? List.of() : textures.stream()
                         .map(YsmTextureOption::path)
                         .map(YsmPackage::normalize)
@@ -224,6 +270,16 @@ public final class YsmManifestReader {
                 .filter(path -> !Files.isDirectory(path))
                 .map(ysmPackage::relativize)
                 .filter(path -> path.toLowerCase(Locale.US).endsWith(extension))
+                .toList();
+    }
+
+    private static List<String> collectFunctions(YsmPackage ysmPackage) {
+        return ysmPackage.listPaths().stream()
+                .filter(path -> !Files.isDirectory(path))
+                .map(ysmPackage::relativize)
+                .map(YsmPackage::normalize)
+                .filter(path -> path.startsWith("functions/"))
+                .filter(path -> path.toLowerCase(Locale.US).endsWith(".molang"))
                 .toList();
     }
 

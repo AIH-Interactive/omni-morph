@@ -85,6 +85,7 @@ public class AvatarControlsScreen extends Screen {
     }
 
     private void rebuild() {
+        avatar.controls.hydrateLiveValues(avatar);
         this.clearWidgets();
         sliders.clear();
         controls.clear();
@@ -266,7 +267,7 @@ public class AvatarControlsScreen extends Screen {
         if (super.mouseScrolled(mouseX, mouseY, amount, horizontalAmount))
             return true;
         int max = maxScroll();
-        int next = Mth.clamp(scroll + (int) Math.signum(-amount - horizontalAmount) * ROW_HEIGHT, 0, max);
+        int next = Mth.clamp(scroll + (int) Math.signum(-amount - horizontalAmount) * scrollStep(), 0, max);
         if (next == scroll)
             return false;
         scroll = next;
@@ -394,11 +395,15 @@ public class AvatarControlsScreen extends Screen {
 
     private int maxScroll() {
         if (isWheelPage())
-            return Math.max(0, wheelEditorListTop() - contentTop() + wheelActions().size() * WHEEL_ROW_HEIGHT - Math.max(0, height - contentTop() - FOOTER_HEIGHT));
+            return Math.max(0, wheelActions().size() * WHEEL_ROW_HEIGHT - Math.max(0, height - wheelEditorListTop() - FOOTER_HEIGHT));
         int content = 0;
         for (AvatarControlDefinition control : controls)
             content += rowHeight(control);
         return Math.max(0, content - Math.max(0, height - contentTop() - FOOTER_HEIGHT));
+    }
+
+    private int scrollStep() {
+        return isWheelPage() ? WHEEL_ROW_HEIGHT : ROW_HEIGHT;
     }
 
     private int contentTop() {
@@ -564,9 +569,11 @@ public class AvatarControlsScreen extends Screen {
         int stopButtonX = runButtonX - 46;
         int putButtonX = stopButtonX - 50;
         int selectButtonX = controlsX + 64;
-        int y = wheelEditorListTop() - scroll;
+        int listTop = wheelEditorListTop();
+        int listBottom = height - FOOTER_HEIGHT;
+        int y = listTop - scroll;
         for (YsmActionDefinition action : wheelActions()) {
-            if (y > contentTop() - WHEEL_ROW_HEIGHT && y < height - FOOTER_HEIGHT) {
+            if (isWheelRowVisible(y, listTop, listBottom)) {
                 int buttonY = y + 6;
                 Button putButton = new Button(putButtonX, buttonY, 42, 20, Component.literal("Put"), null, ignored -> assignToWheelEditorPage(runtime, action));
                 putButton.setActive(nextAvailableWheelSlot(runtime, wheelEditorPage, currentWheelSlot(runtime, action), action) > 0);
@@ -645,7 +652,9 @@ public class AvatarControlsScreen extends Screen {
                 renderActionItem(gui, owner, x + overviewSlotWidth / 2 - 8, overviewY - 23);
         }
 
-        int y = wheelEditorListTop() - scroll;
+        int listTop = wheelEditorListTop();
+        int listBottom = height - FOOTER_HEIGHT;
+        int y = listTop - scroll;
         int rightX = controlsX + controlsWidth - 10;
         int buttonWidth = Math.max(20, Math.min(30, (controlsWidth - 420) / 10));
         int clearWidth = 58;
@@ -655,7 +664,7 @@ public class AvatarControlsScreen extends Screen {
         int titleX = controlsX + 126;
         int metaRight = Math.max(titleX + 80, putButtonX - 10);
         for (YsmActionDefinition action : actions) {
-            if (y > contentTop() - WHEEL_ROW_HEIGHT && y < height - FOOTER_HEIGHT) {
+            if (isWheelRowVisible(y, listTop, listBottom)) {
                 renderActionItem(gui, action, controlsX + 10, y + 10);
                 int titleColor = action.getId().equals(selectedWheelAction) ? 0xFF66AAFF : 0xFFFFFFFF;
                 UIHelper.renderOutlineText(gui, minecraft.font, Component.literal(action.getTitle()), titleX, y + 5, titleColor, 0);
@@ -670,6 +679,10 @@ public class AvatarControlsScreen extends Screen {
             }
             y += WHEEL_ROW_HEIGHT;
         }
+    }
+
+    private boolean isWheelRowVisible(int y, int listTop, int listBottom) {
+        return y >= listTop && y + WHEEL_ROW_HEIGHT <= listBottom;
     }
 
     private void setWheelSlot(YsmModelRuntime runtime, YsmActionDefinition action, int slot) {
@@ -1015,7 +1028,36 @@ public class AvatarControlsScreen extends Screen {
 
     private String valueText(AvatarControlDefinition control) {
         Object value = control.getValue();
+        if (control != null && control.type() == AvatarControlType.ENUM) {
+            String option = optionText(control, value);
+            if (option != null)
+                return option;
+        }
         return value == null ? "" : value.toString();
+    }
+
+    private static String optionText(AvatarControlDefinition control, Object value) {
+        if (control == null || value == null)
+            return null;
+        String text = value.toString();
+        if (control.options().contains(text))
+            return text;
+        Integer index = optionIndex(value);
+        if (index == null || index < 0 || index >= control.options().size())
+            return null;
+        return control.options().get(index);
+    }
+
+    private static Integer optionIndex(Object value) {
+        if (value instanceof Number number)
+            return Math.round(number.floatValue());
+        if (value instanceof String string) {
+            try {
+                return Math.round(Float.parseFloat(string));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return null;
     }
 
     private static String numberText(double value) {
@@ -1187,8 +1229,7 @@ public class AvatarControlsScreen extends Screen {
         private void updateContextText() {
             List<? extends net.minecraft.client.gui.components.AbstractWidget> entries = context.getEntries();
             List<String> options = control.options();
-            Object value = control.getValue();
-            String selected = value == null ? "" : value.toString();
+            String selected = valueText(control);
             for (int i = 0; i < options.size() && i < entries.size(); i++) {
                 Component text = Component.literal(options.get(i));
                 if (options.get(i).equals(selected))

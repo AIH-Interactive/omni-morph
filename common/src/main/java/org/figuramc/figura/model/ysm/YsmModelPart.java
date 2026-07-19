@@ -226,6 +226,10 @@ public class YsmModelPart {
         return animScale;
     }
 
+    public boolean hiddenScaleRaw() {
+        return isZero(scale.x * animScale.x) && isZero(scale.y * animScale.y) && isZero(scale.z * animScale.z);
+    }
+
     public boolean visibleRaw() {
         return visible;
     }
@@ -236,6 +240,10 @@ public class YsmModelPart {
 
     public void setWorldMatrix(FiguraMat4 worldMatrix) {
         this.worldMatrix = worldMatrix == null ? FiguraMat4.of() : worldMatrix.copy();
+    }
+
+    private static boolean isZero(double value) {
+        return Math.abs(value) < 0.0001d;
     }
 
     @Override
