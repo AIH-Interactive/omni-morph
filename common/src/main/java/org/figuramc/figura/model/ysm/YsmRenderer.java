@@ -25,7 +25,7 @@ public class YsmRenderer {
             return false;
 
         runtime.texture().uploadIfDirty(false, false);
-        RenderType renderType = RenderTypes.entityCutout(runtime.texture().getLocation());
+        RenderType renderType = renderType();
         VertexConsumer vertices = bufferSource.getBuffer(renderType);
 
         stack.pushPose();
@@ -42,7 +42,9 @@ public class YsmRenderer {
             return false;
 
         entity.texture().uploadIfDirty(false, false);
-        RenderType renderType = RenderTypes.entityCutout(entity.texture().getLocation());
+        RenderType renderType = entity.isTextureTranslucent()
+                ? RenderTypes.entityTranslucent(entity.texture().getLocation())
+                : RenderTypes.entityCutout(entity.texture().getLocation());
         VertexConsumer vertices = bufferSource.getBuffer(renderType);
 
         stack.pushPose();
@@ -85,7 +87,7 @@ public class YsmRenderer {
             return false;
 
         runtime.texture().uploadIfDirty(false, false);
-        RenderType renderType = RenderTypes.entityCutout(runtime.texture().getLocation());
+        RenderType renderType = renderType();
         VertexConsumer vertices = bufferSource.getBuffer(renderType);
 
         stack.pushPose();
@@ -115,7 +117,7 @@ public class YsmRenderer {
         }
 
         runtime.texture().uploadIfDirty(false, false);
-        RenderType renderType = RenderTypes.entityCutout(runtime.texture().getLocation());
+        RenderType renderType = renderType();
         VertexConsumer vertices = bufferSource.getBuffer(renderType);
 
         YsmPartMask mask = YsmPartMask.forPass(YsmRenderPass.FIRST_PERSON_ARM);
@@ -132,18 +134,13 @@ public class YsmRenderer {
 
     private boolean shouldRenderArmBone(YsmGeometry.Bone bone, boolean left, boolean useArmParts) {
         YsmBoneRole role = useArmParts ? runtime.armRoleOf(bone.name) : runtime.roleOf(bone.name);
-        if (role == YsmBoneRole.LEFT_HAND)
-            return left;
-        if (role == YsmBoneRole.RIGHT_HAND)
-            return !left;
-        if (role == YsmBoneRole.UNKNOWN || role == YsmBoneRole.FIRST_PERSON_ARM || role == YsmBoneRole.BODY)
-            return true;
-        String lower = bone.name.toLowerCase(java.util.Locale.US);
-        if (lower.contains("left"))
-            return left;
-        if (lower.contains("right"))
-            return !left;
-        return role == YsmBoneRole.BODY || role == YsmBoneRole.UNKNOWN;
+        return YsmBoneMapper.isFirstPersonArmCandidate(bone.name, role, left);
+    }
+
+    private RenderType renderType() {
+        return runtime.isTextureTranslucent()
+                ? RenderTypes.entityTranslucent(runtime.texture().getLocation())
+                : RenderTypes.entityCutout(runtime.texture().getLocation());
     }
 
     private void renderBone(YsmGeometry.Bone bone, PoseStack stack, VertexConsumer vertices, int light, YsmPartMask mask) {

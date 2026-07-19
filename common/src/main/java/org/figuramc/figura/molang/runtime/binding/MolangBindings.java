@@ -273,6 +273,9 @@ public class MolangBindings implements ObjectBinding {
                 return 1f;
             });
             states.put("indicate_reload", (Function) (ctx, args) -> 0f);
+            states.put("im_delta", (Variable) ctx -> 0f);
+            states.put("im_pitch", (Variable) ctx -> 0f);
+            states.put("im_time", (Variable) ctx -> 0f);
         }
 
         @Override
@@ -483,6 +486,18 @@ public class MolangBindings implements ObjectBinding {
                     return 0f;
                 return context.owner.getYsmRuntime().functions().recordSync(ctx, args);
             });
+            Function eventFunction = (ctx, args) -> {
+                Avatar.MolangContext context = context(ctx);
+                if (context.owner == null || context.owner.getYsmRuntime() == null || args.size() == 0)
+                    return 0f;
+                String event = args.getAsString(ctx, 0);
+                if (event == null || event.isBlank())
+                    return 0f;
+                return context.owner.getYsmRuntime().functions().runEvent(event, ctx, args, 1);
+            };
+            values.put("event", eventFunction);
+            values.put("run_event", eventFunction);
+            values.put("trigger_event", eventFunction);
             values.put("play_sound", (Function) (ctx, args) -> {
                 Avatar.MolangContext context = context(ctx);
                 if (context.owner == null || args.size() == 0)
@@ -545,6 +560,15 @@ public class MolangBindings implements ObjectBinding {
             values.put("swing_time", (Variable) ctx -> context(ctx).swing_time);
             values.put("attack_time", (Variable) ctx -> context(ctx).attack_time);
             values.put("entity_type", (Variable) YsmBinding::entityType);
+            values.put("elytra_rot_z", (Variable) YsmBinding::elytraRotZ);
+            values.put("boat_left_paddle", (Variable) ctx -> boatPaddle(ctx, true));
+            values.put("boat_right_paddle", (Variable) ctx -> boatPaddle(ctx, false));
+            values.put("boat_left_rowing_time", (Variable) ctx -> boatRowingTime(ctx, true));
+            values.put("boat_right_rowing_time", (Variable) ctx -> boatRowingTime(ctx, false));
+            values.put("boat_paddle_scale", (Variable) ctx -> boat(ctx) != null ? 1f : 0f);
+            values.put("boat_body_offset_y", (Variable) ctx -> 0f);
+            values.put("boat_body_offset_z", (Variable) ctx -> 0f);
+            values.put("shoot_item_id", (Variable) YsmBinding::shootItemId);
             values.put("is_player", (Variable) ctx -> context(ctx).entity instanceof Player ? 1f : 0f);
             values.put("dump_mods", (Function) (ctx, args) -> 0f);
             values.put("dump_effects", (Function) (ctx, args) -> 0f);
@@ -643,6 +667,75 @@ public class MolangBindings implements ObjectBinding {
             Avatar.MolangContext context = context(ctx);
             Minecraft minecraft = Minecraft.getInstance();
             return context.entity != null && minecraft.player != null && context.entity.getUUID().equals(minecraft.player.getUUID()) ? 1f : 0f;
+        }
+
+        private static float elytraRotZ(ExecutionContext<?> ctx) {
+            Entity entity = context(ctx).entity;
+            if (!(entity instanceof LivingEntity living) || !living.isFallFlying())
+                return 0f;
+            var velocity = living.getDeltaMovement();
+            double horizontal = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
+            if (horizontal <= 0.0001d)
+                return 0f;
+            return (float) Math.toDegrees(Math.atan2(velocity.x, velocity.z));
+        }
+
+        private static float boatPaddle(ExecutionContext<?> ctx, boolean left) {
+            Entity boat = boat(ctx);
+            if (boat == null)
+                return 0f;
+            Object value = invokeBoatMethod(boat, left ? "getPaddleState" : "getPaddleState", left ? 0 : 1);
+            if (value instanceof Boolean bool)
+                return bool ? 1f : 0f;
+            return boatRowingTime(ctx, left) > 0f ? 1f : 0f;
+        }
+
+        private static float boatRowingTime(ExecutionContext<?> ctx, boolean left) {
+            Entity boat = boat(ctx);
+            if (boat == null)
+                return 0f;
+            Object value = invokeBoatMethod(boat, "getRowingTime", left ? 0 : 1, 0f);
+            return value instanceof Number number ? number.floatValue() : 0f;
+        }
+
+        private static Entity boat(ExecutionContext<?> ctx) {
+            Entity entity = context(ctx).entity;
+            Entity vehicle = entity == null ? null : entity.getVehicle();
+            if (vehicle == null)
+                return null;
+            String className = vehicle.getClass().getName().toLowerCase(java.util.Locale.US);
+            String entityId = vehicle.getType() == null ? "" : BuiltInRegistries.ENTITY_TYPE.getKey(vehicle.getType()).toString();
+            return className.contains("boat") || entityId.contains("boat") || entityId.contains("raft") ? vehicle : null;
+        }
+
+        private static Object invokeBoatMethod(Entity boat, String name, Object... args) {
+            for (java.lang.reflect.Method method : boat.getClass().getMethods()) {
+                if (!method.getName().equals(name) || method.getParameterCount() != args.length)
+                    continue;
+                try {
+                    return method.invoke(boat, args);
+                } catch (Throwable ignored) {
+                }
+            }
+            return null;
+        }
+
+        private static String shootItemId(ExecutionContext<?> ctx) {
+            Avatar.MolangContext context = context(ctx);
+            ItemStack used = ItemStack.EMPTY;
+            if (context.entity instanceof LivingEntity living && living.isUsingItem())
+                used = living.getUseItem();
+            if (used == null || used.isEmpty()) {
+                ItemStack main = mainHand(context);
+                ItemStack off = offHand(context);
+                String mainUse = main.isEmpty() ? "" : main.getUseAnimation().name().toLowerCase(java.util.Locale.US);
+                String offUse = off.isEmpty() ? "" : off.getUseAnimation().name().toLowerCase(java.util.Locale.US);
+                if ("bow".equals(mainUse) || "crossbow".equals(mainUse) || "spear".equals(mainUse))
+                    used = main;
+                else if ("bow".equals(offUse) || "crossbow".equals(offUse) || "spear".equals(offUse))
+                    used = off;
+            }
+            return itemId(used);
         }
 
         private static Object itemQuery(ItemStack stack, ExecutionContext<?> ctx, Function.ArgumentCollection args, int compareStart) {

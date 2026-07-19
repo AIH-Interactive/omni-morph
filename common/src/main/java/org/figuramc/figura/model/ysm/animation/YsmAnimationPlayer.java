@@ -194,6 +194,8 @@ public class YsmAnimationPlayer {
             playing.weight = 1f;
             playing.fadeSpeed = 0f;
         }
+        if (created)
+            dispatchInitialEvents(playing, evaluatorForEvents());
         return playing;
     }
 
@@ -417,7 +419,7 @@ public class YsmAnimationPlayer {
     }
 
     private void dispatchInitialEvents(PlayingAnimation animation, ExpressionEvaluator<?> evaluator) {
-        if (animation == null || animation.clip.events.isEmpty() || evaluator == null)
+        if (animation == null || animation.initialEventsDispatched || animation.clip.events.isEmpty() || evaluator == null)
             return;
         for (YsmAnimationEvent event : animation.clip.events) {
             if (event.time() == 0f)

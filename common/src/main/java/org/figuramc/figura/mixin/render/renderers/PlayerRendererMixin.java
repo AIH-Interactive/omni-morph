@@ -204,7 +204,9 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
         copy.scale(-1.0f, -1.0f, 1.0f);
 
         ysm.texture().uploadIfDirty(false, false);
-        RenderType renderType = RenderTypes.entityCutout(ysm.texture().getLocation());
+        RenderType renderType = ysm.isTextureTranslucent()
+                ? RenderTypes.entityTranslucent(ysm.texture().getLocation())
+                : RenderTypes.entityCutout(ysm.texture().getLocation());
         submitNodeCollector.submitCustomGeometry(copy, renderType, (pose, buffer) ->
                 ysm.renderFirstPersonArm(copy, figura$singleBuffer(buffer), light, left));
 

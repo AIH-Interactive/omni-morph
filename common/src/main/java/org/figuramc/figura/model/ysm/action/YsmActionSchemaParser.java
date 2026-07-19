@@ -182,17 +182,19 @@ public final class YsmActionSchemaParser {
                     .setPage(page));
             JsonArray forms = array(button, "config_forms");
             if (forms == null)
+                forms = array(button, "forms");
+            if (forms == null)
                 continue;
             int index = 0;
             for (JsonElement formElement : forms) {
                 if (formElement != null && formElement.isJsonObject())
-                    readConfigForm(runtime, page, index, formElement.getAsJsonObject());
+                    runtime.owner().controls.register(readConfigForm(page, index, formElement.getAsJsonObject()));
                 index++;
             }
         }
     }
 
-    private static void readConfigForm(YsmModelRuntime runtime, String page, int index, JsonObject form) {
+    public static AvatarControlDefinition readConfigForm(String page, int index, JsonObject form) {
         String binding = string(form, "value", "");
         String id = !binding.isBlank() ? "ysm." + binding.replace('.', '_') : "ysm." + page + "." + index;
         AvatarControlType type = controlType(string(form, "type", "toggle"));
@@ -218,7 +220,7 @@ public final class YsmActionSchemaParser {
             control.setDefault(value(defaultValue, type));
         else
             applyImplicitDefault(control, type);
-        runtime.owner().controls.register(control);
+        return control;
     }
 
     private static void readControls(YsmModelRuntime runtime, JsonArray array) {
@@ -296,6 +298,7 @@ public final class YsmActionSchemaParser {
                 if (!control.options().isEmpty())
                     control.setDefault(control.options().get(0));
             }
+            case SLIDER, NUMBER -> control.setDefault(control.min());
             default -> {
             }
         }

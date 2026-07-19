@@ -29,6 +29,7 @@ import org.figuramc.figura.model.ysm.action.YsmActionRuntime;
 import org.figuramc.figura.model.ysm.action.YsmActionSchemaParser;
 import org.figuramc.figura.model.ysm.action.YsmActionWheelLayoutStore;
 
+import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,6 +47,7 @@ public class YsmModelRuntime implements AutoCloseable {
     private YsmGeometry armGeometry;
     private FiguraTexture texture;
     private String textureId;
+    private boolean textureTranslucent;
     private final Map<String, byte[]> textureData;
     private final Map<String, YsmModelPart> parts = new LinkedHashMap<>();
     private final Map<String, YsmModelPart> armParts = new LinkedHashMap<>();
@@ -62,12 +64,13 @@ public class YsmModelRuntime implements AutoCloseable {
     private final String kind;
     private final String modelKey;
 
-    private YsmModelRuntime(Avatar owner, YsmGeometry geometry, YsmGeometry armGeometry, FiguraTexture texture, String textureId, String kind, String modelKey, Map<String, byte[]> textureData) {
+    private YsmModelRuntime(Avatar owner, YsmGeometry geometry, YsmGeometry armGeometry, FiguraTexture texture, String textureId, boolean textureTranslucent, String kind, String modelKey, Map<String, byte[]> textureData) {
         this.owner = owner;
         this.geometry = geometry;
         this.armGeometry = armGeometry;
         this.texture = texture;
         this.textureId = textureId;
+        this.textureTranslucent = textureTranslucent;
         this.textureData = textureData == null ? Map.of() : Map.copyOf(textureData);
         this.kind = kind != null ? kind : YsmAvatarKind.NONE.name();
         this.modelKey = modelKey == null || modelKey.isBlank() ? this.kind + ":" + textureId : modelKey;
@@ -104,7 +107,7 @@ public class YsmModelRuntime implements AutoCloseable {
         FiguraTexture texture = new FiguraTexture(owner, textureId, selectedTexture.length == 0 ? onePixelPng() : selectedTexture);
         String kind = tag.getStringOr("kind", YsmAvatarKind.NONE.name());
         String modelKey = tag.getStringOr("source_path", tag.getStringOr("main_model_path", "ysm"));
-        YsmModelRuntime runtime = new YsmModelRuntime(owner, geometry, armGeometry, texture, textureId, kind, modelKey, textureData);
+        YsmModelRuntime runtime = new YsmModelRuntime(owner, geometry, armGeometry, texture, textureId, hasPartialAlpha(selectedTexture), kind, modelKey, textureData);
         runtime.readSubEntities(tag, selectedTexture);
         MolangEngine ysmMolangEngine = MolangEngine.fromCustomBinding(owner.getAvatarBindings());
         runtime.animationPlayer.registerAnimations(readAnimations(tag, ysmMolangEngine));
@@ -279,6 +282,10 @@ public class YsmModelRuntime implements AutoCloseable {
         return textureId;
     }
 
+    public boolean isTextureTranslucent() {
+        return textureTranslucent;
+    }
+
     public boolean setTexture(String id) {
         if (id == null || id.isBlank())
             return false;
@@ -292,6 +299,7 @@ public class YsmModelRuntime implements AutoCloseable {
         FiguraTexture previous = texture;
         texture = new FiguraTexture(owner, id, data);
         textureId = id;
+        textureTranslucent = hasPartialAlpha(data);
         previous.close();
         return true;
     }
@@ -1088,5 +1096,26 @@ public class YsmModelRuntime implements AutoCloseable {
 
     private static byte[] onePixelPng() {
         return java.util.Base64.getDecoder().decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/atX7pQAAAAASUVORK5CYII=");
+    }
+
+    private static boolean hasPartialAlpha(byte[] textureBytes) {
+        if (textureBytes == null || textureBytes.length == 0)
+            return false;
+        try {
+            java.awt.image.BufferedImage image = javax.imageio.ImageIO.read(new ByteArrayInputStream(textureBytes));
+            if (image == null || !image.getColorModel().hasAlpha())
+                return false;
+            int width = image.getWidth();
+            int height = image.getHeight();
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    int alpha = (image.getRGB(x, y) >>> 24) & 0xFF;
+                    if (alpha > 0 && alpha < 255)
+                        return true;
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        return false;
     }
 }

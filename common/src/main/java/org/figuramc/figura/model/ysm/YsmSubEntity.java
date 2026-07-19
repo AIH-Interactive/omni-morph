@@ -5,7 +5,10 @@ import net.minecraft.nbt.Tag;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 
+import javax.imageio.ImageIO;
+import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,12 +20,13 @@ public class YsmSubEntity implements AutoCloseable {
     private final String texturePath;
     private final YsmGeometry geometry;
     private final FiguraTexture texture;
+    private final boolean textureTranslucent;
     private final String animationPath;
     private final String animationJson;
     private final String controllerPath;
     private final String controllerJson;
 
-    private YsmSubEntity(String kind, String id, List<String> matchIds, String modelPath, String texturePath, YsmGeometry geometry, FiguraTexture texture, String animationPath, String animationJson, String controllerPath, String controllerJson) {
+    private YsmSubEntity(String kind, String id, List<String> matchIds, String modelPath, String texturePath, YsmGeometry geometry, FiguraTexture texture, boolean textureTranslucent, String animationPath, String animationJson, String controllerPath, String controllerJson) {
         this.kind = kind == null || kind.isBlank() ? "sub_entity" : kind;
         this.id = id == null || id.isBlank() ? this.kind : id;
         this.matchIds = List.copyOf(matchIds == null ? List.of() : matchIds);
@@ -30,6 +34,7 @@ public class YsmSubEntity implements AutoCloseable {
         this.texturePath = texturePath == null ? "" : texturePath;
         this.geometry = geometry;
         this.texture = texture;
+        this.textureTranslucent = textureTranslucent;
         this.animationPath = animationPath == null ? "" : animationPath;
         this.animationJson = animationJson == null ? "" : animationJson;
         this.controllerPath = controllerPath == null ? "" : controllerPath;
@@ -52,6 +57,7 @@ public class YsmSubEntity implements AutoCloseable {
                 texturePath,
                 geometry,
                 texture,
+                hasPartialAlpha(textureBytes),
                 tag.getStringOr("animation_path", ""),
                 new String(tag.getByteArray("animation").orElse(new byte[0]), StandardCharsets.UTF_8),
                 tag.getStringOr("controller_path", ""),
@@ -104,6 +110,10 @@ public class YsmSubEntity implements AutoCloseable {
         return texture;
     }
 
+    public boolean isTextureTranslucent() {
+        return textureTranslucent;
+    }
+
     public String animationPath() {
         return animationPath;
     }
@@ -127,5 +137,26 @@ public class YsmSubEntity implements AutoCloseable {
 
     private static byte[] onePixelPng() {
         return java.util.Base64.getDecoder().decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/atX7pQAAAAASUVORK5CYII=");
+    }
+
+    private static boolean hasPartialAlpha(byte[] textureBytes) {
+        if (textureBytes == null || textureBytes.length == 0)
+            return false;
+        try {
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(textureBytes));
+            if (image == null || !image.getColorModel().hasAlpha())
+                return false;
+            int width = image.getWidth();
+            int height = image.getHeight();
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    int alpha = (image.getRGB(x, y) >>> 24) & 0xff;
+                    if (alpha > 0 && alpha < 255)
+                        return true;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return false;
     }
 }
