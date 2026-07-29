@@ -359,6 +359,7 @@ public class Avatar {
         // ===== Rotation =====
         public float body_x_rot, body_y_rot;
         public float head_x_rot, head_y_rot;
+        public float ysm_head_yaw, ysm_head_pitch;
 
         // ===== Boolean states (0 or 1) =====
         public float is_on_ground;

@@ -6,6 +6,7 @@ import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.util.Mth;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.molang.parser.ast.Expression;
 import org.figuramc.figura.molang.runtime.ExpressionEvaluator;
@@ -253,6 +254,7 @@ public class YsmAnimationPlayer {
     public void update(LivingEntityRenderState state, LivingEntity entity) {
         currentEntity = entity;
         float deltaTime = getDeltaTime(state);
+        updateYsmHeadRotation(state, entity);
 
         // 1. Run Native State Machine if enabled
         if (nativeStateMachineEnabled) {
@@ -384,6 +386,23 @@ public class YsmAnimationPlayer {
 
         applyNativeHandPose(state, entity);
 
+    }
+
+    private void updateYsmHeadRotation(LivingEntityRenderState state, LivingEntity entity) {
+        Avatar.MolangContext context = runtime.owner().getMolangContext();
+        if (context == null)
+            return;
+
+        float relativeYaw = entity == null
+                ? 0f
+                : Mth.wrapDegrees(entity.yHeadRot - entity.yBodyRot);
+        float rawPitch = entity == null ? 0f : entity.getXRot();
+        relativeYaw = readFloat(state, "yRot", relativeYaw);
+        rawPitch = readFloat(state, "xRot", rawPitch);
+
+        // YSM exposes the clamped relative head angles with GeckoLib's inverted axes.
+        context.ysm_head_yaw = -Mth.clamp(Mth.wrapDegrees(relativeYaw), -85f, 85f);
+        context.ysm_head_pitch = -rawPitch;
     }
 
     private void collectBaseHiddenBones(YsmAnimationClip clip, ExpressionEvaluator<?> evaluator) {

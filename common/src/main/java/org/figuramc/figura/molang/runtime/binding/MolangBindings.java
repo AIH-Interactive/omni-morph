@@ -453,8 +453,8 @@ public class MolangBindings implements ObjectBinding {
             values.put("dimension_name", (Variable) YsmBinding::dimensionName);
             values.put("fps", (Variable) ctx -> (float) Minecraft.getInstance().getFps());
             values.put("time_delta", (Variable) ctx -> context(ctx).delta_time);
-            values.put("head_yaw", (Variable) ctx -> context(ctx).head_y_rot);
-            values.put("head_pitch", (Variable) ctx -> context(ctx).head_x_rot);
+            values.put("head_yaw", (Variable) ctx -> context(ctx).ysm_head_yaw);
+            values.put("head_pitch", (Variable) ctx -> context(ctx).ysm_head_pitch);
             values.put("ground_speed2", (Variable) YsmBinding::groundSpeed2);
             values.put("is_open_air", (Variable) YsmBinding::isOpenAir);
             values.put("block_light", (Variable) YsmBinding::blockLight);

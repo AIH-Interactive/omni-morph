@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public final class YsmAvatarLoader {
+    private static final float DEFAULT_YSM_SCALE = 0.7f;
+
     private YsmAvatarLoader() {
     }
 
@@ -137,8 +139,8 @@ public final class YsmAvatarLoader {
             return;
         JsonObject root = YsmJson.parseObject(ysmPackage.readString("ysm.json"));
         JsonObject properties = YsmJson.obj(root, "properties");
-        putPositiveFloat(ysm, "width_scale", YsmJson.number(properties, "width_scale", 1f));
-        putPositiveFloat(ysm, "height_scale", YsmJson.number(properties, "height_scale", 1f));
+        putPositiveFloat(ysm, "width_scale", YsmJson.number(properties, "width_scale", DEFAULT_YSM_SCALE));
+        putPositiveFloat(ysm, "height_scale", YsmJson.number(properties, "height_scale", DEFAULT_YSM_SCALE));
     }
 
     private static void putPositiveFloat(CompoundTag tag, String key, float value) {

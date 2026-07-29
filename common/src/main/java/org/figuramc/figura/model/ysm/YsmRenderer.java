@@ -29,7 +29,7 @@ public class YsmRenderer {
         VertexConsumer vertices = bufferSource.getBuffer(renderType);
 
         stack.pushPose();
-        stack.scale(0.9375f * runtime.widthScale(), 0.9375f * runtime.heightScale(), 0.9375f * runtime.widthScale());
+        runtime.applyModelScale(stack);
         runtime.updateWorldMatrices(stack);
         for (YsmGeometry.Bone root : runtime.geometry().roots)
             renderBone(root, stack, vertices, light, mask);
@@ -91,7 +91,7 @@ public class YsmRenderer {
         VertexConsumer vertices = bufferSource.getBuffer(renderType);
 
         stack.pushPose();
-        stack.scale(0.9375f * runtime.widthScale(), 0.9375f * runtime.heightScale(), 0.9375f * runtime.widthScale());
+        runtime.applyModelScale(stack);
         renderBone(bone, stack, vertices, light, null);
         stack.popPose();
         return true;

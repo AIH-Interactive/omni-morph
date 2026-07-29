@@ -41,6 +41,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class YsmModelRuntime implements AutoCloseable {
+    private static final float DEFAULT_YSM_SCALE = 0.7f;
+
     private final Avatar owner;
     private final YsmGeometry geometry;
     private YsmGeometry armGeometry;
@@ -113,8 +115,8 @@ public class YsmModelRuntime implements AutoCloseable {
         FiguraTexture texture = new FiguraTexture(owner, textureId, selectedTexture.length == 0 ? onePixelPng() : selectedTexture);
         String kind = tag.getStringOr("kind", YsmAvatarKind.NONE.name());
         String modelKey = tag.getStringOr("source_path", tag.getStringOr("main_model_path", "ysm"));
-        float defaultWidthScale = tag.getFloatOr("width_scale", 1f);
-        float defaultHeightScale = tag.getFloatOr("height_scale", 1f);
+        float defaultWidthScale = tag.getFloatOr("width_scale", DEFAULT_YSM_SCALE);
+        float defaultHeightScale = tag.getFloatOr("height_scale", DEFAULT_YSM_SCALE);
         YsmModelRuntime runtime = new YsmModelRuntime(owner, geometry, armGeometry, texture, textureId, textureTranslucent, kind, modelKey, textureData, defaultWidthScale, defaultHeightScale);
         runtime.readSubEntities(tag, selectedTexture);
         MolangEngine ysmMolangEngine = MolangEngine.fromCustomBinding(owner.getAvatarBindings());
@@ -331,6 +333,14 @@ public class YsmModelRuntime implements AutoCloseable {
     public float heightScale() {
         Object value = owner.controls.getValue("ysm.height_scale");
         return value instanceof Number number ? sanitizeScale(number.floatValue()) : defaultHeightScale;
+    }
+
+    public void applyModelScale(PoseStack stack) {
+        stack.scale(
+                0.9375f * widthScale(),
+                0.9375f * heightScale(),
+                0.9375f * widthScale()
+        );
     }
 
     public YsmRenderer renderer() {
@@ -841,7 +851,7 @@ public class YsmModelRuntime implements AutoCloseable {
     public boolean applyHandItemTransform(PoseStack stack, boolean left) {
         YsmAttachmentPoint point = getAttachmentPoint(left ? "left_hand" : "right_hand");
         YsmGeometry.Bone bone = findAttachmentBone(point);
-        stack.scale(0.9375f, 0.9375f, 0.9375f);
+        applyModelScale(stack);
         if (bone == null) {
             bone = findHandBone(left);
         }
