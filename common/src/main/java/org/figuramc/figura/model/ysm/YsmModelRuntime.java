@@ -29,7 +29,6 @@ import org.figuramc.figura.model.ysm.action.YsmActionRuntime;
 import org.figuramc.figura.model.ysm.action.YsmActionSchemaParser;
 import org.figuramc.figura.model.ysm.action.YsmActionWheelLayoutStore;
 
-import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,6 +41,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class YsmModelRuntime implements AutoCloseable {
+    private static final float DEFAULT_YSM_SCALE = 0.7f;
+
     private final Avatar owner;
     private final YsmGeometry geometry;
     private YsmGeometry armGeometry;
@@ -63,8 +64,10 @@ public class YsmModelRuntime implements AutoCloseable {
     private final YsmMolangFunctionRuntime functions;
     private final String kind;
     private final String modelKey;
+    private final float defaultWidthScale;
+    private final float defaultHeightScale;
 
-    private YsmModelRuntime(Avatar owner, YsmGeometry geometry, YsmGeometry armGeometry, FiguraTexture texture, String textureId, boolean textureTranslucent, String kind, String modelKey, Map<String, byte[]> textureData) {
+    private YsmModelRuntime(Avatar owner, YsmGeometry geometry, YsmGeometry armGeometry, FiguraTexture texture, String textureId, boolean textureTranslucent, String kind, String modelKey, Map<String, byte[]> textureData, float defaultWidthScale, float defaultHeightScale) {
         this.owner = owner;
         this.geometry = geometry;
         this.armGeometry = armGeometry;
@@ -74,6 +77,8 @@ public class YsmModelRuntime implements AutoCloseable {
         this.textureData = textureData == null ? Map.of() : Map.copyOf(textureData);
         this.kind = kind != null ? kind : YsmAvatarKind.NONE.name();
         this.modelKey = modelKey == null || modelKey.isBlank() ? this.kind + ":" + textureId : modelKey;
+        this.defaultWidthScale = sanitizeScale(defaultWidthScale);
+        this.defaultHeightScale = sanitizeScale(defaultHeightScale);
         buildParts();
         buildAttachmentPoints();
         dumpDebugInfo();
@@ -104,10 +109,15 @@ public class YsmModelRuntime implements AutoCloseable {
         Map<String, byte[]> textureData = readTextureEntries(tag);
         String textureId = tag.getStringOr("texture_id", "ysm_texture");
         byte[] selectedTexture = textureData.getOrDefault(textureId, textureBytes);
+        boolean textureTranslucent = geometry.applyTextureAlpha(selectedTexture);
+        if (armGeometry != null)
+            textureTranslucent |= armGeometry.applyTextureAlpha(selectedTexture);
         FiguraTexture texture = new FiguraTexture(owner, textureId, selectedTexture.length == 0 ? onePixelPng() : selectedTexture);
         String kind = tag.getStringOr("kind", YsmAvatarKind.NONE.name());
         String modelKey = tag.getStringOr("source_path", tag.getStringOr("main_model_path", "ysm"));
-        YsmModelRuntime runtime = new YsmModelRuntime(owner, geometry, armGeometry, texture, textureId, hasPartialAlpha(selectedTexture), kind, modelKey, textureData);
+        float defaultWidthScale = tag.getFloatOr("width_scale", DEFAULT_YSM_SCALE);
+        float defaultHeightScale = tag.getFloatOr("height_scale", DEFAULT_YSM_SCALE);
+        YsmModelRuntime runtime = new YsmModelRuntime(owner, geometry, armGeometry, texture, textureId, textureTranslucent, kind, modelKey, textureData, defaultWidthScale, defaultHeightScale);
         runtime.readSubEntities(tag, selectedTexture);
         MolangEngine ysmMolangEngine = MolangEngine.fromCustomBinding(owner.getAvatarBindings());
         runtime.animationPlayer.registerAnimations(readAnimations(tag, ysmMolangEngine));
@@ -297,9 +307,12 @@ public class YsmModelRuntime implements AutoCloseable {
         if (id.equals(textureId))
             return true;
         FiguraTexture previous = texture;
+        boolean newTextureTranslucent = geometry.applyTextureAlpha(data);
+        if (armGeometry != null)
+            newTextureTranslucent |= armGeometry.applyTextureAlpha(data);
         texture = new FiguraTexture(owner, id, data);
         textureId = id;
-        textureTranslucent = hasPartialAlpha(data);
+        textureTranslucent = newTextureTranslucent;
         previous.close();
         return true;
     }
@@ -314,12 +327,20 @@ public class YsmModelRuntime implements AutoCloseable {
 
     public float widthScale() {
         Object value = owner.controls.getValue("ysm.width_scale");
-        return value instanceof Number number ? number.floatValue() : 1f;
+        return value instanceof Number number ? sanitizeScale(number.floatValue()) : defaultWidthScale;
     }
 
     public float heightScale() {
         Object value = owner.controls.getValue("ysm.height_scale");
-        return value instanceof Number number ? number.floatValue() : 1f;
+        return value instanceof Number number ? sanitizeScale(number.floatValue()) : defaultHeightScale;
+    }
+
+    public void applyModelScale(PoseStack stack) {
+        stack.scale(
+                0.9375f * widthScale(),
+                0.9375f * heightScale(),
+                0.9375f * widthScale()
+        );
     }
 
     public YsmRenderer renderer() {
@@ -758,6 +779,16 @@ public class YsmModelRuntime implements AutoCloseable {
                 .setRange(0.1d, 3.0d, 0.1d)
                 .setDefault(1.0d)
                 .setPage("root"));
+        owner.controls.register(new AvatarControlDefinition("ysm.width_scale", AvatarControlType.SLIDER)
+                .setTitle("Width scale")
+                .setRange(0.1d, 5.0d, 0.05d)
+                .setDefault((double) defaultWidthScale)
+                .setPage("root"));
+        owner.controls.register(new AvatarControlDefinition("ysm.height_scale", AvatarControlType.SLIDER)
+                .setTitle("Height scale")
+                .setRange(0.1d, 5.0d, 0.05d)
+                .setDefault((double) defaultHeightScale)
+                .setPage("root"));
         owner.controls.register(new AvatarControlDefinition("ysm.debug.header", AvatarControlType.LABEL)
                 .setTitle("YSM Debug")
                 .setPage("ysm_debug"));
@@ -789,6 +820,10 @@ public class YsmModelRuntime implements AutoCloseable {
         return values.size() > limit ? joined + ", +" + (values.size() - limit) : joined;
     }
 
+    private static float sanitizeScale(float value) {
+        return Float.isFinite(value) && value > 0f ? value : 1f;
+    }
+
     public void updateWorldMatrices(PoseStack stack) {
         if (stack == null)
             return;
@@ -816,7 +851,7 @@ public class YsmModelRuntime implements AutoCloseable {
     public boolean applyHandItemTransform(PoseStack stack, boolean left) {
         YsmAttachmentPoint point = getAttachmentPoint(left ? "left_hand" : "right_hand");
         YsmGeometry.Bone bone = findAttachmentBone(point);
-        stack.scale(0.9375f, 0.9375f, 0.9375f);
+        applyModelScale(stack);
         if (bone == null) {
             bone = findHandBone(left);
         }
@@ -1098,24 +1133,4 @@ public class YsmModelRuntime implements AutoCloseable {
         return java.util.Base64.getDecoder().decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/atX7pQAAAAASUVORK5CYII=");
     }
 
-    private static boolean hasPartialAlpha(byte[] textureBytes) {
-        if (textureBytes == null || textureBytes.length == 0)
-            return false;
-        try {
-            java.awt.image.BufferedImage image = javax.imageio.ImageIO.read(new ByteArrayInputStream(textureBytes));
-            if (image == null || !image.getColorModel().hasAlpha())
-                return false;
-            int width = image.getWidth();
-            int height = image.getHeight();
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    int alpha = (image.getRGB(x, y) >>> 24) & 0xFF;
-                    if (alpha > 0 && alpha < 255)
-                        return true;
-                }
-            }
-        } catch (Throwable ignored) {
-        }
-        return false;
-    }
 }

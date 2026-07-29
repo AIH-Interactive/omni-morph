@@ -298,7 +298,7 @@ public final class YsmActionSchemaParser {
                 if (!control.options().isEmpty())
                     control.setDefault(control.options().get(0));
             }
-            case SLIDER, NUMBER -> control.setDefault(control.min());
+            case SLIDER, NUMBER -> control.setDefault(control.min() <= 1d && control.max() >= 1d ? 1d : control.min());
             default -> {
             }
         }

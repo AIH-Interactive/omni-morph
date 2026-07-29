@@ -5,10 +5,7 @@ import net.minecraft.nbt.Tag;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 
-import javax.imageio.ImageIO;
-import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,6 +45,7 @@ public class YsmSubEntity implements AutoCloseable {
         YsmGeometry geometry = YsmGeometryParser.parse(modelJson);
         String texturePath = tag.getStringOr("texture_path", "");
         byte[] textureBytes = tag.getByteArray("texture").orElse(fallbackTexture == null ? new byte[0] : fallbackTexture);
+        boolean textureTranslucent = geometry.applyTextureAlpha(textureBytes);
         FiguraTexture texture = new FiguraTexture(owner, "ysm_sub_entity/" + tag.getStringOr("id", "sub_entity"), textureBytes.length == 0 ? onePixelPng() : textureBytes);
         return new YsmSubEntity(
                 tag.getStringOr("kind", "sub_entity"),
@@ -57,7 +55,7 @@ public class YsmSubEntity implements AutoCloseable {
                 texturePath,
                 geometry,
                 texture,
-                hasPartialAlpha(textureBytes),
+                textureTranslucent,
                 tag.getStringOr("animation_path", ""),
                 new String(tag.getByteArray("animation").orElse(new byte[0]), StandardCharsets.UTF_8),
                 tag.getStringOr("controller_path", ""),
@@ -139,24 +137,4 @@ public class YsmSubEntity implements AutoCloseable {
         return java.util.Base64.getDecoder().decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/atX7pQAAAAASUVORK5CYII=");
     }
 
-    private static boolean hasPartialAlpha(byte[] textureBytes) {
-        if (textureBytes == null || textureBytes.length == 0)
-            return false;
-        try {
-            BufferedImage image = ImageIO.read(new ByteArrayInputStream(textureBytes));
-            if (image == null || !image.getColorModel().hasAlpha())
-                return false;
-            int width = image.getWidth();
-            int height = image.getHeight();
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    int alpha = (image.getRGB(x, y) >>> 24) & 0xff;
-                    if (alpha > 0 && alpha < 255)
-                        return true;
-                }
-            }
-        } catch (Exception ignored) {
-        }
-        return false;
-    }
 }
