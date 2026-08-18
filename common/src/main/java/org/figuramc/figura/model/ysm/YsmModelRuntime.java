@@ -7,6 +7,7 @@ import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.control.AvatarControlDefinition;
@@ -724,6 +725,21 @@ public class YsmModelRuntime implements AutoCloseable {
         return point != null ? point : attachmentPoints.get(name.toLowerCase(java.util.Locale.US));
     }
 
+    /**
+     * Selects the canonical YSM hand locator before falling back to the
+     * role-derived attachment point. Exporters often append numeric suffixes
+     * to alternate/parallel hand rigs; their JSON order is not a hand-anchor
+     * priority signal.
+     */
+    public YsmAttachmentPoint getHandAttachmentPoint(boolean left) {
+        String canonicalName = left ? "LeftHandLocator" : "RightHandLocator";
+        for (YsmLocator locator : new LinkedHashSet<>(locators.values())) {
+            if (canonicalName.equalsIgnoreCase(locator.name()))
+                return getAttachmentPoint(locator.name());
+        }
+        return getAttachmentPoint(left ? "left_hand" : "right_hand");
+    }
+
     public Iterable<YsmAttachmentPoint> attachmentPoints() {
         return new LinkedHashSet<>(attachmentPoints.values());
     }
@@ -849,26 +865,30 @@ public class YsmModelRuntime implements AutoCloseable {
     }
 
     public boolean applyHandItemTransform(PoseStack stack, boolean left) {
-        YsmAttachmentPoint point = getAttachmentPoint(left ? "left_hand" : "right_hand");
+        return applyHandItemTransform(stack, null, ItemStack.EMPTY, left);
+    }
+
+    public boolean applyHandItemTransform(PoseStack stack, LivingEntity entity, ItemStack itemStack, boolean left) {
+        YsmAttachmentPoint point = handAttachment(itemStack, left);
         YsmGeometry.Bone bone = findAttachmentBone(point);
+        boolean locator = point != null && point.locator() != null;
         applyModelScale(stack);
         if (bone == null) {
             bone = findHandBone(left);
         }
         if (bone == null) {
             stack.translate(left ? -0.42d : 0.42d, 0.78d, 0d);
-            stack.mulPose(Axis.XP.rotationDegrees(-90f));
         } else {
-            if (!isBoneVisibleInHierarchy(bone.name))
-                return false;
-            boolean locator = point != null && point.locator() != null;
             if (!locator)
                 locator = bone.name.toLowerCase(java.util.Locale.US).contains("locator");
             applyBoneChain(stack, bone, locator);
-            stack.translate(0d, -0.0625d, -0.1d);
-            stack.mulPose(Axis.XP.rotationDegrees(-90f));
         }
+        YsmHeldItemTransforms.apply(stack, entity, itemStack, left, !locator);
         return true;
+    }
+
+    private YsmAttachmentPoint handAttachment(ItemStack itemStack, boolean left) {
+        return getHandAttachmentPoint(left);
     }
 
     @Override

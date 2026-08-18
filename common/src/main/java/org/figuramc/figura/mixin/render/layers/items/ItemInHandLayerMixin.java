@@ -18,6 +18,7 @@ import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.HumanoidArm;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.AbstractSkullBlock;
@@ -60,7 +61,9 @@ public abstract class ItemInHandLayerMixin<S extends ArmedEntityRenderState, M e
             YsmModelRuntime ysm = av.getYsmRuntime();
             if (ysm != null) {
                 poseStack.pushPose();
-                boolean transformed = ysm.applyHandItemTransform(poseStack, left);
+                Entity entity = AvatarManager.getEntity(state);
+                LivingEntity livingEntity = entity instanceof LivingEntity value ? value : null;
+                boolean transformed = ysm.applyHandItemTransform(poseStack, livingEntity, itemStack, left);
                 if (transformed) {
                     figura$submitItemWithEvents(state, itemStackRenderState, itemStack, left, poseStack, submitNodeCollector, light, OverlayTexture.NO_OVERLAY);
                 }
