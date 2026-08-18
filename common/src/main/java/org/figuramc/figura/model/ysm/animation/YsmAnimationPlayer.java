@@ -1,11 +1,22 @@
 package org.figuramc.figura.model.ysm.animation;
 
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.CrossbowItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemUseAnimation;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.KineticWeapon;
 import net.minecraft.util.Mth;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.molang.parser.ast.Expression;
@@ -31,11 +42,13 @@ public class YsmAnimationPlayer {
     private final YsmControllerRuntime controllerRuntime;
     private final Map<String, PlayingAnimation> activeAnimations = new LinkedHashMap<>();
     private final Map<String, String> controllerFunctionAnimations = new HashMap<>();
+    private final Map<String, String> nativeHandAnimations = new HashMap<>();
     private final Set<String> disabledNativeAnimations = new HashSet<>();
     private final Set<String> baseHiddenBones = new HashSet<>();
     private float lastAgeInTicks = Float.NaN;
     private boolean controllerInitialHiddenResolved;
     private LivingEntity currentEntity;
+    private boolean wasSwinging;
 
     public static class PlayingAnimation {
         public final YsmAnimationClip clip;
@@ -51,6 +64,7 @@ public class YsmAnimationPlayer {
         // For smooth transitions in native state machine
         public float targetWeight = 0f;
         public float fadeSpeed = 0f;
+        public float sampledTime = Float.NaN;
 
         public PlayingAnimation(YsmAnimationClip clip, boolean isNative) {
             this.clip = clip;
@@ -99,6 +113,7 @@ public class YsmAnimationPlayer {
         if (newClips != null) {
             for (Map.Entry<String, YsmAnimationClip> entry : newClips.entrySet()) {
                 this.clips.put(entry.getKey(), entry.getValue());
+                this.clips.putIfAbsent(literalAnimationName(entry.getKey()), entry.getValue());
                 String normalized = normalizeName(entry.getKey());
                 this.clips.putIfAbsent(normalized, entry.getValue());
             }
@@ -202,7 +217,7 @@ public class YsmAnimationPlayer {
 
     public PlayingAnimation playControllerFunctionAnimation(String controllerName, String animationName, YsmAnimationClip.LoopMode loopMode, float speed, float fadeSeconds) {
         String controller = normalizeControllerName(controllerName);
-        String normalizedAnimation = normalizeName(animationName);
+        String normalizedAnimation = resolveAnimationName(animationName);
         String previous = controllerFunctionAnimations.get(controller);
         if (previous != null && !previous.equals(normalizedAnimation))
             fadeOut(previous, fadeSeconds);
@@ -219,7 +234,7 @@ public class YsmAnimationPlayer {
     }
 
     public YsmAnimationClip.LoopMode loopModeFor(String animationName, YsmAnimationClip.LoopMode fallback) {
-        YsmAnimationClip clip = clips.get(normalizeName(animationName));
+        YsmAnimationClip clip = clips.get(resolveAnimationName(animationName));
         if (clip == null || clip.loopMode == null)
             return fallback;
         return clip.loopMode;
@@ -268,6 +283,8 @@ public class YsmAnimationPlayer {
             }
         }
 
+        updateNativeHandAnimations(entity);
+
         // 2. Advance time and update weights for active animations
         Iterator<Map.Entry<String, PlayingAnimation>> it = activeAnimations.entrySet().iterator();
         while (it.hasNext()) {
@@ -292,7 +309,12 @@ public class YsmAnimationPlayer {
 
             // Advance time
             anim.previousTime = anim.time;
-            anim.time += deltaTime * anim.speed;
+            if (Float.isFinite(anim.sampledTime)) {
+                anim.time = anim.sampledTime;
+                anim.sampledTime = Float.NaN;
+            } else {
+                anim.time += deltaTime * anim.speed;
+            }
             if (anim.clip.length > 0)
                 advanceAnimationTime(anim);
             if (anim.loopMode == YsmAnimationClip.LoopMode.ONCE && anim.clip.length > 0f && anim.time >= anim.clip.length) {
@@ -684,8 +706,299 @@ public class YsmAnimationPlayer {
         float attackProgress = Math.max(readFloat(state, "attackAnim", 0f), entity.getAttackAnim(0f));
         float swingAmount = attackProgress > 0f ? (float) Math.sin(Math.sqrt(attackProgress) * Math.PI) : 0f;
 
-        applyNativeArmPose(false, itemForArm(entity, false, mainLeft), usingItem && isHandForArm(usedHand, false, mainLeft), isHandForArm(swingingHand, false, mainLeft), swingAmount);
-        applyNativeArmPose(true, itemForArm(entity, true, mainLeft), usingItem && isHandForArm(usedHand, true, mainLeft), isHandForArm(swingingHand, true, mainLeft), swingAmount);
+        // Native YSM locators already encode their own authored hand pose.
+        // Only use the vanilla-like fallback when that side has no locator.
+        if (!nativeHandAnimations.containsKey("right") && !hasHandLocator(false))
+            applyNativeArmPose(false, itemForArm(entity, false, mainLeft), usingItem && isHandForArm(usedHand, false, mainLeft), isHandForArm(swingingHand, false, mainLeft), swingAmount);
+        if (!nativeHandAnimations.containsKey("left") && !hasHandLocator(true))
+            applyNativeArmPose(true, itemForArm(entity, true, mainLeft), usingItem && isHandForArm(usedHand, true, mainLeft), isHandForArm(swingingHand, true, mainLeft), swingAmount);
+    }
+
+    private boolean hasHandLocator(boolean left) {
+        // Fallback hand bones are registered as attachment points too. They
+        // still require the vanilla-like pose when the model has no authored
+        // locator; only an actual YSM locator suppresses that fallback.
+        var point = runtime.getHandAttachmentPoint(left);
+        return point != null && point.locator() != null;
+    }
+
+    private void updateNativeHandAnimations(LivingEntity entity) {
+        if (entity == null || entity.getPose() == Pose.SLEEPING) {
+            clearNativeHandAnimations();
+            wasSwinging = false;
+            return;
+        }
+
+        HumanoidArm mainArm = entity.getMainArm();
+        if (entity.isUsingItem()) {
+            boolean left = entity.getUsedItemHand() == InteractionHand.MAIN_HAND
+                    ? mainArm == HumanoidArm.LEFT
+                    : mainArm != HumanoidArm.LEFT;
+            syncNativeHandAnimation(left ? "left" : "right", true,
+                    useAnimationNames(entity, left, entity.getUseItem()));
+            sampleKineticChargeAnimation(left ? "left" : "right", entity, entity.getUseItem());
+            syncNativeHandAnimation(left ? "right" : "left", false);
+        } else {
+            syncHoldingAnimation(entity, InteractionHand.MAIN_HAND, mainArm == HumanoidArm.LEFT);
+            syncHoldingAnimation(entity, InteractionHand.OFF_HAND, mainArm != HumanoidArm.LEFT);
+        }
+
+        if (entity.swinging && !wasSwinging) {
+            boolean left = entity.swingingArm == InteractionHand.MAIN_HAND
+                    ? mainArm == HumanoidArm.LEFT
+                    : mainArm != HumanoidArm.LEFT;
+            ItemStack item = entity.getItemInHand(entity.swingingArm);
+            String[] names = swingAnimationNames(entity.swingingArm, item);
+            playNativeHandOnce(left ? "left" : "right", names);
+            sampleKineticSwingAnimation(left ? "left" : "right", entity, item);
+        }
+        wasSwinging = entity.swinging;
+    }
+
+    private void syncHoldingAnimation(LivingEntity entity, InteractionHand hand, boolean left) {
+        if (entity.swinging && entity.swingingArm == hand)
+            return;
+        ItemStack item = entity.getItemInHand(hand);
+        String slot = left ? "left" : "right";
+        String prefix = hand == InteractionHand.MAIN_HAND ? "hold_mainhand" : "hold_offhand";
+        if (item.isEmpty()) {
+            syncNativeHandAnimation(slot, true, prefix + ":empty");
+            return;
+        }
+        if (item.is(Items.CROSSBOW) && CrossbowItem.isCharged(item)) {
+            syncNativeHandAnimation(slot, true, prefix + ":charged_crossbow", prefix);
+            return;
+        }
+        if (hand == InteractionHand.MAIN_HAND && item.is(Items.FISHING_ROD)
+                && entity instanceof Player player && player.fishing != null && !player.fishing.isRemoved()) {
+            syncNativeHandAnimation(slot, true, prefix + ":fishing", prefix);
+            return;
+        }
+        if (isKineticSpear(item)) {
+            List<String> names = new ArrayList<>();
+            if (entity.isPassenger())
+                names.add("lance_riding_idle");
+            names.add("lance_stand");
+            names.add(prefix + ":lance");
+            names.addAll(Arrays.asList(conditionalAnimationNames(prefix, item, false)));
+            syncNativeHandAnimation(slot, true, names.toArray(String[]::new));
+            return;
+        }
+        syncNativeHandAnimation(slot, true, conditionalAnimationNames(prefix, item, false));
+    }
+
+    private String[] useAnimationNames(LivingEntity entity, boolean left, ItemStack item) {
+        String prefix = left ? "use_offhand" : "use_mainhand";
+        List<String> names = new ArrayList<>();
+        if (isKineticSpear(item)) {
+            if (entity.isPassenger())
+                names.add("lance_riding_charge");
+            if (entity.isFallFlying())
+                names.add("lance_fall_flying_charge");
+            names.add("lance_charge");
+        }
+        names.addAll(Arrays.asList(conditionalAnimationNames(prefix, item, true)));
+        // Sparkle falls back to the generic use clip only after all declared
+        // id/tag/use-animation conditions have been considered.
+        names.add(prefix);
+        return names.toArray(String[]::new);
+    }
+
+    private void sampleKineticChargeAnimation(String slot, LivingEntity entity, ItemStack item) {
+        if (!isKineticSpear(item))
+            return;
+        String name = nativeHandAnimations.get(slot);
+        PlayingAnimation animation = name == null ? null : activeAnimations.get(name);
+        KineticWeapon weapon = item.get(DataComponents.KINETIC_WEAPON);
+        if (animation == null || weapon == null || animation.clip.length <= 0f)
+            return;
+        float duration = Math.max(1f, weapon.computeDamageUseDuration());
+        animation.sampledTime = Math.clamp(entity.getTicksUsingItem() / duration, 0f, 1f) * animation.clip.length;
+    }
+
+    private void sampleKineticSwingAnimation(String slot, LivingEntity entity, ItemStack item) {
+        if (!isKineticSpear(item))
+            return;
+        String name = nativeHandAnimations.get(slot);
+        PlayingAnimation animation = name == null ? null : activeAnimations.get(name);
+        if (animation != null && animation.clip.length > 0f)
+            animation.sampledTime = Math.clamp(entity.getAttackAnim(0f), 0f, 1f) * animation.clip.length;
+    }
+
+    private static boolean isKineticSpear(ItemStack item) {
+        return item != null && !item.isEmpty()
+                && item.getUseAnimation() == ItemUseAnimation.SPEAR
+                && item.get(DataComponents.KINETIC_WEAPON) != null;
+    }
+
+    private String[] swingAnimationNames(InteractionHand hand, ItemStack item) {
+        String prefix = hand == InteractionHand.MAIN_HAND ? "swing" : "swing_offhand";
+        List<String> names = new ArrayList<>();
+        if (hand == InteractionHand.MAIN_HAND && isKineticSpear(item)) {
+            if (currentEntity != null && currentEntity.isFallFlying())
+                names.add("lance_lunge");
+            names.add("lance_jab");
+            names.add("swing:lance");
+        }
+        names.addAll(Arrays.asList(conditionalAnimationNames(prefix, item, false)));
+        if (hand == InteractionHand.MAIN_HAND && item.isEmpty())
+            names.add("attack_empty");
+        names.add(hand == InteractionHand.MAIN_HAND ? "swing_hand" : "swing_offhand");
+        if (hand == InteractionHand.MAIN_HAND)
+            names.add("attack_empty");
+        return names.toArray(String[]::new);
+    }
+
+    /**
+     * Resolves the same declarative item-condition names accepted by Sparkle's
+     * hold, use and swing predicates. The model selects behavior by declaring
+     * clips, never by Figura knowing a model or item mod in advance.
+     */
+    private String[] conditionalAnimationNames(String prefix, ItemStack item, boolean use) {
+        List<String> names = new ArrayList<>();
+        if (item == null || item.isEmpty()) {
+            names.add(prefix + ":empty");
+            names.add(prefix);
+            return names.toArray(String[]::new);
+        }
+
+        String id = BuiltInRegistries.ITEM.getKey(item.getItem()).toString();
+        List<String> itemTypes = itemTypes(item, use);
+        if (!use && isWeaponItem(item))
+            addTypeCandidates(names, prefix, itemTypes);
+        names.add(prefix + "$" + id);
+        addMatchingTagCandidates(names, prefix, item);
+        addTypeCandidates(names, prefix, itemTypes);
+        return names.toArray(String[]::new);
+    }
+
+    private void addMatchingTagCandidates(List<String> names, String prefix, ItemStack item) {
+        String start = literalAnimationName(prefix + "#");
+        for (String animation : clips.keySet()) {
+            String normalized = literalAnimationName(animation);
+            if (!normalized.startsWith(start))
+                continue;
+            Identifier tagId = identifier(normalized.substring(start.length()));
+            if (tagId != null && item.is(TagKey.create(Registries.ITEM, tagId)))
+                names.add(animation);
+        }
+    }
+
+    private static Identifier identifier(String value) {
+        try {
+            return Identifier.parse(value);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private static void addTypeCandidates(List<String> names, String prefix, List<String> itemTypes) {
+        for (String itemType : itemTypes)
+            names.add(prefix + ":" + itemType);
+    }
+
+    private static boolean isWeaponItem(ItemStack item) {
+        return item.is(Items.TRIDENT) || item.is(Items.MACE)
+                || item.getUseAnimation() == ItemUseAnimation.SPEAR;
+    }
+
+    private static List<String> itemTypes(ItemStack item, boolean use) {
+        List<String> result = new ArrayList<>();
+        if (item.is(Items.TRIDENT)) {
+            result.add(use ? "trident" : "spear");
+            if (use)
+                result.add("spear");
+        } else if (item.getUseAnimation() == ItemUseAnimation.SPEAR) {
+            result.add(use ? "lance" : "spear");
+            if (use)
+                result.add("spear");
+        } else if (item.is(Items.MACE)) {
+            result.add("mace");
+        } else {
+            String kind = itemKind(item);
+            if (!kind.equals("item") && !result.contains(kind))
+                result.add(kind);
+            if (kind.equals("shovel"))
+                result.add("spade");
+        }
+        String useAnimation = item.getUseAnimation().name().toLowerCase(Locale.US);
+        if (!result.contains(useAnimation) && !useAnimation.equals("none"))
+            result.add(useAnimation);
+        return result;
+    }
+
+    private void syncNativeHandAnimation(String slot, boolean active, String... names) {
+        String previous = nativeHandAnimations.get(slot);
+        String selected = active ? firstHandAnimation(names) : null;
+        if (Objects.equals(previous, selected))
+            return;
+        if (previous != null)
+            fadeOut(previous, 0.1f);
+        if (selected == null) {
+            nativeHandAnimations.remove(slot);
+        } else {
+            YsmAnimationClip clip = clips.get(selected);
+            play(selected, clip == null ? YsmAnimationClip.LoopMode.ONCE : clip.loopMode, 1f, 0.1f);
+            nativeHandAnimations.put(slot, selected);
+        }
+    }
+
+    private void playNativeHandOnce(String slot, String... names) {
+        String selected = firstHandAnimation(names);
+        if (selected == null)
+            return;
+        String previous = nativeHandAnimations.put(slot, selected);
+        if (previous != null && !previous.equals(selected))
+            fadeOut(previous, 0.05f);
+        play(selected, YsmAnimationClip.LoopMode.ONCE, 1f, 0f);
+    }
+
+    private String firstHandAnimation(String... names) {
+        for (String name : names) {
+            String normalized = resolveAnimationName(name);
+            YsmAnimationClip clip = clips.get(normalized);
+            if (!isEmptyClip(clip))
+                return normalized;
+        }
+        return null;
+    }
+
+    private void clearNativeHandAnimations() {
+        for (String animation : nativeHandAnimations.values())
+            fadeOut(animation, 0.1f);
+        nativeHandAnimations.clear();
+    }
+
+    private static String itemKind(ItemStack item) {
+        if (item == null || item.isEmpty())
+            return "empty";
+        if (item.is(Items.TRIDENT))
+            return "trident";
+        if (item.is(Items.MACE))
+            return "mace";
+        if (item.getUseAnimation() == ItemUseAnimation.SPEAR)
+            return "spear";
+        if (item.is(Items.SHIELD))
+            return "shield";
+        if (item.is(Items.CROSSBOW))
+            return "crossbow";
+        if (item.is(Items.BOW))
+            return "bow";
+        if (item.is(Items.FISHING_ROD))
+            return "fishing_rod";
+        if (item.is(Items.SPLASH_POTION) || item.is(Items.LINGERING_POTION))
+            return "throwable_potion";
+        if (item.is(ItemTags.SWORDS))
+            return "sword";
+        if (item.is(ItemTags.AXES))
+            return "axe";
+        if (item.is(ItemTags.PICKAXES))
+            return "pickaxe";
+        if (item.is(ItemTags.SHOVELS))
+            return "shovel";
+        if (item.is(ItemTags.HOES))
+            return "hoe";
+        return "item";
     }
 
     private void applyNativeArmPose(boolean left, ItemStack item, boolean using, boolean swinging, float swingAmount) {
@@ -947,7 +1260,19 @@ public class YsmAnimationPlayer {
         return normalized.toLowerCase(Locale.US);
     }
 
+    private String literalAnimationName(String name) {
+        if (name == null)
+            return "";
+        String normalized = name;
+        if (normalized.startsWith("animation."))
+            normalized = normalized.substring("animation.".length());
+        return stripReferenceSuffix(normalized).toLowerCase(Locale.US);
+    }
+
     private String resolveAnimationName(String name) {
+        String literal = literalAnimationName(name);
+        if (clips.containsKey(literal))
+            return literal;
         String normalized = normalizeName(name);
         if (clips.containsKey(normalized))
             return normalized;

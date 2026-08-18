@@ -13,6 +13,7 @@ import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.client.renderer.item.ItemModelResolver;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.resources.model.cuboid.ItemTransform;
@@ -98,13 +99,20 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
             ysmStack.pushPose();
             ysmStack.last().set(poseStack.last());
             ysmStack.mulPose(Axis.YP.rotationDegrees(figura$getYsmBodyRotation(livingEntityRenderState, livingEntity)));
+            var runtime = localAvatar.getYsmRuntime();
+            if (runtime != null) {
+                runtime.updateAnimations(livingEntityRenderState, livingEntity);
+
+                // ItemStackRenderState may submit either a regular item or a
+                // special model part. The latter is consumed before Figura's
+                // deferred feature callback, so collect both hand items here.
+                if (livingEntity != null)
+                    figura$submitYsmHandItems(localAvatar, livingEntity, ysmStack, submitNodeCollector, livingEntityRenderState.lightCoords, livingEntityRenderState.outlineColor);
+            }
             ((NodeCollectorExtension) submitNodeCollector).submitFiguraModel(localAvatar, livingEntityRenderState, (avatar, state, bufferSource) -> {
                 if (avatar.getYsmRuntime() != null) {
-                    avatar.getYsmRuntime().updateAnimations(state, livingEntity);
                     avatar.getYsmRuntime().renderer().render(ysmStack, bufferSource, state.lightCoords);
                     avatar.getYsmRuntime().renderer().renderAttachments(ysmStack, bufferSource, state.lightCoords);
-                    if (livingEntity != null)
-                        figura$submitYsmHandItems(avatar, livingEntity, ysmStack, submitNodeCollector, state.lightCoords, state.outlineColor);
                 }
                 return null;
             });
@@ -343,9 +351,22 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
         PoseStack itemStackPose = new PoseStack();
         itemStackPose.pushPose();
         itemStackPose.last().set(baseStack.last());
-        if (!avatar.getYsmRuntime().applyHandItemTransform(itemStackPose, left))
+        if (!avatar.getYsmRuntime().applyHandItemTransform(itemStackPose, entity, itemStack, left))
             return;
-        Minecraft.getInstance().gameRenderer.itemInHandRenderer.renderItem(entity, itemStack, context, itemStackPose, submitNodeCollector, light);
+        // Resolve an ItemStackRenderState for every native YSM hand item
+        // before submitting it. Simple items also work through
+        // ItemInHandRenderer, but special-rendered items such as tridents
+        // require the resolved state to retain their renderer data.
+        ItemStackRenderState renderState = new ItemStackRenderState();
+        Minecraft.getInstance().getItemModelResolver().updateForTopItem(
+                renderState,
+                itemStack,
+                context,
+                entity.level(),
+                entity,
+                entity.getId() + context.ordinal()
+        );
+        renderState.submit(itemStackPose, submitNodeCollector, light, OverlayTexture.NO_OVERLAY, outlineColor);
     }
 
     // Add the skull item back in after it being cleared
