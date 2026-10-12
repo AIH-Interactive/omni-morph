@@ -1,0 +1,154 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+
+> Configure project :
+Architect Plugin: 3.4.164
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :common:compileJava UP-TO-DATE
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes UP-TO-DATE
+
+> Task :common:scanYsmModels
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.joml.MemUtil$MemUtilUnsafe (file:/C:/Users/eryth/.gradle/caches/modules-2/files-2.1/org.joml/joml/1.10.8/fc0a71dad90a2cf41d82a76156a0e700af8e4f8d/joml-1.10.8.jar)
+WARNING: Please consider reporting this to the maintainers of class org.joml.MemUtil$MemUtilUnsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[22:18:11] [main/INFO]: [YSM Validation] models/main.json: 195 bones, 5 roots, 490 cubes, 2940 quads, 14 locators - OK
+[22:18:11] [main/INFO]: [YSM Validation] models/arm.json: 16 bones, 1 roots, 36 cubes, 216 quads, 5 locators - OK
+[22:18:11] [main/INFO]: [YSM Validation] models/main.json: 138 bones, 5 roots, 342 cubes, 2052 quads, 14 locators - OK
+[22:18:11] [main/INFO]: [YSM Validation] models/arm.json: 11 bones, 5 roots, 14 cubes, 84 quads, 2 locators - OK
+[22:18:11] [main/INFO]: [YSM Validation] models/main.json: 149 bones, 3 roots, 552 cubes, 3312 quads, 13 locators - OK
+[22:18:11] [main/INFO]: [YSM Validation] models/arm.json: 11 bones, 2 roots, 20 cubes, 120 quads, 5 locators - OK
+[22:18:11] [main/INFO]: [YSM Validation] models/main.json: 154 bones, 5 roots, 456 cubes, 2736 quads, 14 locators - OK
+[22:18:11] [main/INFO]: [YSM Validation] models/arm.json: 13 bones, 2 roots, 19 cubes, 114 quads, 5 locators - OK
+[22:18:11] [main/WARN]: [YSM Validation] models/main.json: 344 bones (high count may impact performance)
+[22:18:11] [main/INFO]: [YSM Validation] models/main.json: 344 bones, 8 roots, 1544 cubes, 9255 quads, 13 locators - OK
+[22:18:11] [main/INFO]: [YSM Validation] models/arm.json: 13 bones, 1 roots, 34 cubes, 204 quads, 6 locators - OK
+[22:18:11] [main/INFO]: [YSM Validation] models/main.json: 117 bones, 1 roots, 471 cubes, 2826 quads, 11 locators - OK
+[22:18:11] [main/INFO]: [YSM Validation] models/arm.json: 15 bones, 2 roots, 22 cubes, 132 quads, 2 locators - OK
+[22:18:11] [main/INFO]: [YSM Validation] models/main.json: 113 bones, 4 roots, 335 cubes, 2010 quads, 10 locators - OK
+[22:18:11] [main/INFO]: [YSM Validation] models/arm.json: 8 bones, 2 roots, 12 cubes, 72 quads, 2 locators - OK
+[22:18:12] [main/WARN]: [YSM Validation] models/main.json: 526 bones (high count may impact performance)
+[22:18:12] [main/WARN]: [YSM Validation] models/main.json: 26564 quads (high poly count may impact performance)
+[22:18:12] [main/INFO]: [YSM Validation] models/main.json: 526 bones, 4 roots, 4533 cubes, 26564 quads, 5 locators - OK
+[22:18:12] [main/INFO]: [YSM Validation] models/arm.json: 8 bones, 2 roots, 26 cubes, 156 quads, 2 locators - OK
+[22:18:12] [main/INFO]: [YSM Validation] models/main.json: 153 bones, 1 roots, 705 cubes, 4151 quads, 11 locators - OK
+[22:18:12] [main/INFO]: [YSM Validation] models/arm.json: 13 bones, 3 roots, 31 cubes, 181 quads, 2 locators - OK
+[22:18:12] [main/INFO]: [YSM Validation] models/main.json: 227 bones, 3 roots, 976 cubes, 5794 quads, 6 locators - OK
+[22:18:12] [main/INFO]: [YSM Validation] models/arm.json: 19 bones, 2 roots, 32 cubes, 192 quads, 2 locators - OK
+[22:18:12] [main/INFO]: [YSM Validation] models/main.json: 101 bones, 4 roots, 276 cubes, 1656 quads, 10 locators - OK
+[22:18:12] [main/INFO]: [YSM Validation] models/arm.json: 12 bones, 2 roots, 26 cubes, 156 quads, 4 locators - OK
+[22:18:12] [main/INFO]: [YSM Validation] models/main.json: 153 bones, 5 roots, 407 cubes, 2442 quads, 15 locators - OK
+[22:18:12] [main/INFO]: [YSM Validation] models/arm.json: 15 bones, 1 roots, 34 cubes, 204 quads, 6 locators - OK
+[22:18:12] [main/WARN]: [YSM Validation] models/main.json: 260 bones (high count may impact performance)
+[22:18:12] [main/INFO]: [YSM Validation] models/main.json: 260 bones, 5 roots, 634 cubes, 3776 quads, 17 locators - OK
+[22:18:12] [main/INFO]: [YSM Validation] models/arm.json: 12 bones, 2 roots, 34 cubes, 204 quads, 3 locators - OK
+[22:18:12] [main/WARN]: [YSM Validation] models/main.json: 300 bones (high count may impact performance)
+[22:18:12] [main/INFO]: [YSM Validation] models/main.json: 300 bones, 7 roots, 523 cubes, 3138 quads, 16 locators - OK
+[22:18:12] [main/INFO]: [YSM Validation] models/arm.json: 13 bones, 1 roots, 34 cubes, 204 quads, 6 locators - OK
+[22:18:12] [main/WARN]: [YSM Validation] models/main.json: 262 bones (high count may impact performance)
+[22:18:12] [main/INFO]: [YSM Validation] models/main.json: 262 bones, 1 roots, 1148 cubes, 5685 quads, 10 locators - OK
+[22:18:12] [main/INFO]: [YSM Validation] models/arm.json: 21 bones, 2 roots, 48 cubes, 195 quads, 5 locators - OK
+[22:18:12] [main/INFO]: [YSM Validation] models/main.json: 101 bones, 5 roots, 648 cubes, 3772 quads, 13 locators - OK
+[22:18:12] [main/INFO]: [YSM Validation] models/arm.json: 12 bones, 1 roots, 16 cubes, 96 quads, 5 locators - OK
+[22:18:13] [main/INFO]: [YSM Validation] models/main.json: 194 bones, 1 roots, 513 cubes, 3078 quads, 11 locators - OK
+[22:18:13] [main/INFO]: [YSM Validation] models/arm.json: 11 bones, 1 roots, 26 cubes, 156 quads, 4 locators - OK
+[22:18:13] [main/WARN]: [YSM Validation] models/main.json: 317 bones (high count may impact performance)
+[22:18:13] [main/INFO]: [YSM Validation] models/main.json: 317 bones, 6 roots, 1554 cubes, 6817 quads, 12 locators - OK
+[22:18:13] [main/INFO]: [YSM Validation] models/arm.json: 42 bones, 1 roots, 326 cubes, 1226 quads, 5 locators - OK
+[22:18:13] [main/WARN]: [YSM Validation] models/main.json: 347 bones (high count may impact performance)
+[22:18:13] [main/INFO]: [YSM Validation] models/main.json: 347 bones, 5 roots, 793 cubes, 4758 quads, 14 locators - OK
+[22:18:13] [main/INFO]: [YSM Validation] models/arm.json: 16 bones, 1 roots, 36 cubes, 216 quads, 5 locators - OK
+[22:18:13] [main/INFO]: [YSM Validation] models/main.json: 204 bones, 5 roots, 1321 cubes, 7232 quads, 12 locators - OK
+[22:18:13] [main/INFO]: [YSM Validation] models/arm.json: 2 bones, 2 roots, 32 cubes, 192 quads, 0 locators - OK
+[22:18:13] [main/INFO]: [YSM Validation] models/main.json: 185 bones, 5 roots, 750 cubes, 4035 quads, 11 locators - OK
+[22:18:13] [main/INFO]: [YSM Validation] models/arm.json: 12 bones, 1 roots, 34 cubes, 204 quads, 5 locators - OK
+[22:18:13] [main/INFO]: [YSM Validation] models/main.json: 226 bones, 5 roots, 513 cubes, 3078 quads, 13 locators - OK
+[22:18:13] [main/INFO]: [YSM Validation] models/arm.json: 16 bones, 1 roots, 36 cubes, 216 quads, 5 locators - OK
+[22:18:13] [main/INFO]: [YSM Validation] models/main.json: 158 bones, 6 roots, 1024 cubes, 6144 quads, 4 locators - OK
+[22:18:13] [main/INFO]: [YSM Validation] models/arm.json: 8 bones, 2 roots, 54 cubes, 324 quads, 2 locators - OK
+[22:18:13] [main/INFO]: [YSM Validation] models/main.json: 199 bones, 8 roots, 2242 cubes, 13427 quads, 2 locators - OK
+[22:18:13] [main/INFO]: [YSM Validation] models/arm.json: 12 bones, 2 roots, 38 cubes, 228 quads, 2 locators - OK
+[22:18:13] [main/INFO]: [YSM Validation] models/main.json: 64 bones, 1 roots, 172 cubes, 1032 quads, 12 locators - OK
+[22:18:13] [main/INFO]: [YSM Validation] models/arm.json: 6 bones, 2 roots, 10 cubes, 60 quads, 2 locators - OK
+[22:18:13] [main/INFO]: [YSM Validation] main.json: 118 bones, 1 roots, 1076 cubes, 6456 quads, 2 locators - OK
+[22:18:13] [main/INFO]: [YSM Validation] arm.json: 12 bones, 2 roots, 86 cubes, 516 quads, 2 locators - OK
+[22:18:14] [main/INFO]: [YSM Validation] models/main.json: 134 bones, 1 roots, 2125 cubes, 12746 quads, 2 locators - OK
+[22:18:14] [main/INFO]: [YSM Validation] models/arm.json: 24 bones, 2 roots, 214 cubes, 1284 quads, 2 locators - OK
+[22:18:14] [main/INFO]: [YSM Validation] models/main.json: 64 bones, 1 roots, 172 cubes, 1032 quads, 12 locators - OK
+[22:18:14] [main/INFO]: [YSM Validation] models/arm.json: 6 bones, 2 roots, 10 cubes, 60 quads, 2 locators - OK
+[22:18:14] [main/WARN]: [YSM Validation] models/main.json: 445 bones (high count may impact performance)
+[22:18:14] [main/WARN]: [YSM Validation] models/main.json: 17346 quads (high poly count may impact performance)
+[22:18:14] [main/INFO]: [YSM Validation] models/main.json: 445 bones, 9 roots, 2891 cubes, 17346 quads, 4 locators - OK
+[22:18:14] [main/INFO]: [YSM Validation] models/arm.json: 16 bones, 2 roots, 142 cubes, 852 quads, 2 locators - OK
+[22:18:14] [main/WARN]: [YSM Validation] models/main.json: 582 bones (high count may impact performance)
+[22:18:14] [main/WARN]: [YSM Validation] models/main.json: 16794 quads (high poly count may impact performance)
+[22:18:14] [main/INFO]: [YSM Validation] models/main.json: 582 bones, 9 roots, 2799 cubes, 16794 quads, 10 locators - OK
+[22:18:14] [main/INFO]: [YSM Validation] models/arm.json: 13 bones, 2 roots, 92 cubes, 552 quads, 5 locators - OK
+[22:18:14] [main/INFO]: [YSM Validation] main.json: 93 bones, 1 roots, 903 cubes, 5418 quads, 3 locators - OK
+[22:18:14] [main/INFO]: [YSM Validation] arm.json: 9 bones, 2 roots, 144 cubes, 864 quads, 2 locators - OK
+[22:18:14] [main/INFO]: [YSM Validation] models/main.json: 115 bones, 4 roots, 429 cubes, 2574 quads, 2 locators - OK
+[22:18:14] [main/INFO]: [YSM Validation] models/arm.json: 10 bones, 2 roots, 24 cubes, 144 quads, 2 locators - OK
+[22:18:14] [main/INFO]: [YSM Validation] main.json: 206 bones, 1 roots, 2413 cubes, 14478 quads, 5 locators - OK
+[22:18:14] [main/INFO]: [YSM Validation] arm.json: 10 bones, 2 roots, 84 cubes, 504 quads, 2 locators - OK
+[22:18:14] [main/INFO]: [YSM Validation] models/main.json: 86 bones, 1 roots, 1166 cubes, 6996 quads, 6 locators - OK
+[22:18:14] [main/INFO]: [YSM Validation] models/arm.json: 10 bones, 2 roots, 64 cubes, 384 quads, 2 locators - OK
+[22:18:15] [main/INFO]: [YSM Validation] models/main.json: 220 bones, 1 roots, 1617 cubes, 8905 quads, 10 locators - OK
+[22:18:15] [main/INFO]: [YSM Validation] models/arm.json: 11 bones, 2 roots, 52 cubes, 308 quads, 5 locators - OK
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\01_taisho_maid kind=NEW bones=195 roots=5 cubes=490 quads=2940 locators=14 animations=114 textures=2 languages=2 projectiles=5 vehicles=9
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\02_new_year kind=NEW bones=138 roots=5 cubes=342 quads=2052 locators=14 animations=87 textures=1 languages=2 projectiles=0 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\03_astronaut kind=NEW bones=149 roots=3 cubes=552 quads=3312 locators=13 animations=146 textures=1 languages=2 projectiles=0 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\04_kongfu kind=NEW bones=154 roots=5 cubes=456 quads=2736 locators=14 animations=94 textures=6 languages=2 projectiles=0 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\05_magical kind=NEW bones=344 roots=8 cubes=1544 quads=9255 locators=13 animations=164 textures=6 languages=2 projectiles=0 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\06_hanfu kind=NEW bones=117 roots=1 cubes=471 quads=2826 locators=11 animations=93 textures=1 languages=2 projectiles=0 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\07_jk kind=NEW bones=113 roots=4 cubes=335 quads=2010 locators=10 animations=98 textures=1 languages=2 projectiles=0 vehicles=0
+FAIL D:\UserData\Desktop\Project\Figura\refs\avatars\08_sta kind=NEW bones=526 roots=4 cubes=4533 quads=26564 locators=5 animations=300 textures=1 languages=2 projectiles=0 vehicles=0
+  error: controller 'player.parallel_7' in 'controller/main.animation_controllers.json' state '��ѡ' references missing transition target 'missing_state'
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\09_hailuo kind=NEW bones=153 roots=1 cubes=705 quads=4151 locators=11 animations=49 textures=1 languages=2 projectiles=0 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\10_zhiban kind=NEW bones=227 roots=3 cubes=976 quads=5794 locators=6 animations=63 textures=1 languages=2 projectiles=0 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\11_salesperson kind=NEW bones=101 roots=4 cubes=276 quads=1656 locators=10 animations=89 textures=2 languages=2 projectiles=0 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\12_little kind=NEW bones=153 roots=5 cubes=407 quads=2442 locators=15 animations=99 textures=1 languages=2 projectiles=3 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\13_matured kind=NEW bones=260 roots=5 cubes=634 quads=3776 locators=17 animations=160 textures=1 languages=2 projectiles=0 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\14_momo kind=NEW bones=300 roots=7 cubes=523 quads=3138 locators=16 animations=125 textures=2 languages=2 projectiles=0 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\15_kluonoa kind=NEW bones=262 roots=1 cubes=1148 quads=5685 locators=10 animations=271 textures=1 languages=2 projectiles=0 vehicles=0
+FAIL D:\UserData\Desktop\Project\Figura\refs\avatars\16_tactics kind=NEW bones=101 roots=5 cubes=648 quads=3772 locators=13 animations=116 textures=1 languages=2 projectiles=5 vehicles=7
+  error: controller 'controller.animation.player.parallel_0' in 'controller/animation_controllers.json' references missing animation 'your_backpack_animation'
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\17_mini kind=NEW bones=194 roots=1 cubes=513 quads=3078 locators=11 animations=123 textures=1 languages=2 projectiles=2 vehicles=3
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\18_wedding kind=NEW bones=317 roots=6 cubes=1554 quads=6817 locators=12 animations=173 textures=1 languages=2 projectiles=3 vehicles=3
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\19_nine_tailed kind=NEW bones=347 roots=5 cubes=793 quads=4758 locators=14 animations=126 textures=2 languages=2 projectiles=5 vehicles=7
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\20_survivor kind=NEW bones=204 roots=5 cubes=1321 quads=7232 locators=12 animations=101 textures=1 languages=2 projectiles=3 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\21_saint kind=NEW bones=185 roots=5 cubes=750 quads=4035 locators=11 animations=192 textures=2 languages=2 projectiles=6 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\22_elf kind=NEW bones=226 roots=5 cubes=513 quads=3078 locators=13 animations=184 textures=1 languages=2 projectiles=3 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\Elaina kind=NEW bones=158 roots=6 cubes=1024 quads=6144 locators=4 animations=110 textures=1 languages=0 projectiles=0 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\GI_Furina kind=NEW bones=199 roots=8 cubes=2242 quads=13427 locators=2 animations=97 textures=1 languages=0 projectiles=2 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\YSM_NEW_Model kind=NEW bones=64 roots=1 cubes=172 quads=1032 locators=12 animations=384 textures=2 languages=2 projectiles=9 vehicles=8
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\YSM_OLD_Model kind=OLD bones=118 roots=1 cubes=1076 quads=6456 locators=2 animations=267 textures=2 languages=0 projectiles=0 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\ZZZ_Ellen_1 kind=NEW bones=134 roots=1 cubes=2125 quads=12746 locators=2 animations=96 textures=1 languages=0 projectiles=2 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\default kind=NEW bones=64 roots=1 cubes=172 quads=1032 locators=12 animations=384 textures=2 languages=2 projectiles=9 vehicles=6
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\hsr_fuxuan_1 kind=NEW bones=445 roots=9 cubes=2891 quads=17346 locators=4 animations=132 textures=1 languages=0 projectiles=0 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\����v1.1 kind=NEW bones=582 roots=9 cubes=2799 quads=16794 locators=10 animations=117 textures=1 languages=0 projectiles=2 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\�����1 kind=OLD bones=93 roots=1 cubes=903 quads=5418 locators=3 animations=127 textures=1 languages=0 projectiles=0 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\�շ�ԭ���ﻯ ���������� kind=NEW bones=115 roots=4 cubes=429 quads=2574 locators=2 animations=142 textures=1 languages=0 projectiles=3 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\ܽ����1 kind=OLD bones=206 roots=1 cubes=2413 quads=14478 locators=5 animations=273 textures=3 languages=0 projectiles=0 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\����1 kind=NEW bones=86 roots=1 cubes=1166 quads=6996 locators=6 animations=304 textures=1 languages=0 projectiles=3 vehicles=0
+OK D:\UserData\Desktop\Project\Figura\refs\avatars\����-�����1.2 kind=NEW bones=220 roots=1 cubes=1617 quads=8905 locators=10 animations=176 textures=1 languages=0 projectiles=0 vehicles=0
+YSM scan complete: 35 total, 33 valid, 2 invalid
+YSM scan report written to D:\UserData\Desktop\Project\Figura\build\ysm-plan-scan.txt
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/Figura/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 9s
+3 actionable tasks: 1 executed, 2 up-to-date

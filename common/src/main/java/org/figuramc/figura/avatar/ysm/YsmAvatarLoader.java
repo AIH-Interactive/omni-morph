@@ -160,6 +160,10 @@ public final class YsmAvatarLoader {
         tag.putString("icon", index.iconPath());
         tag.putString("background", index.backgroundPath());
         tag.put("metadata", strings(index.metadataPaths()));
+        tag.put("languages", strings(index.languagePaths()));
+        tag.put("projectiles", strings(index.projectilePaths()));
+        tag.put("vehicles", strings(index.vehiclePaths()));
+        tag.put("warnings", strings(index.warnings()));
         return tag;
     }
 

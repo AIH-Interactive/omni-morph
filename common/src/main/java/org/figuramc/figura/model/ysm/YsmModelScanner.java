@@ -20,6 +20,7 @@ import org.figuramc.figura.molang.MolangEngine;
 import org.figuramc.figura.molang.runtime.binding.MolangBindings;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -46,7 +47,7 @@ public final class YsmModelScanner {
                              int animationClipCount, List<String> animationNames, List<String> nativeStateHits,
                              List<String> controllerNames, List<String> functionNames, List<String> eventNames,
                              List<String> actionNames, List<String> controlNames, List<String> subEntities,
-                             List<String> unsupportedBindings, List<String> bones, List<String> locators,
+                             List<String> unsupportedBindings, List<String> warnings, List<String> bones, List<String> locators,
                              List<String> attachments, List<String> firstPersonArmBones, List<String> errors) {
         public boolean valid() {
             return errors.isEmpty()
@@ -197,15 +198,20 @@ public final class YsmModelScanner {
         return new ScanReport(path, kind, name, resources, mainValidation, armValidation, animationClipCount,
                 List.copyOf(animationNames), describeNativeStateHits(animationNames), List.copyOf(controllerNames),
                 List.copyOf(functionNames), List.copyOf(eventNames), List.copyOf(actionNames), List.copyOf(controlNames),
-                List.copyOf(subEntities), List.copyOf(unsupportedBindings), bones, locators, attachments, firstPersonArmBones, List.copyOf(errors));
+            List.copyOf(subEntities), List.copyOf(unsupportedBindings), resources.warnings(), bones, locators,
+            attachments, firstPersonArmBones, List.copyOf(errors));
     }
 
     public static void main(String[] args) throws Exception {
         boolean dump = false;
-        String rootArg = "refs";
-        for (String arg : args) {
+        String rootArg = "refs/avatars";
+        Path reportPath = null;
+        for (int index = 0; index < args.length; index++) {
+            String arg = args[index];
             if ("--dump".equalsIgnoreCase(arg)) {
                 dump = true;
+            } else if ("--report".equalsIgnoreCase(arg) && index + 1 < args.length) {
+                reportPath = Path.of(args[++index]);
             } else {
                 rootArg = arg;
             }
@@ -215,7 +221,7 @@ public final class YsmModelScanner {
         for (ScanReport report : summary.reports()) {
             String status = report.valid() ? "OK" : "FAIL";
             YsmModelValidator.ModelStats stats = report.mainValidation() == null ? YsmModelValidator.ModelStats.empty() : report.mainValidation().stats();
-            System.out.printf("%s %s kind=%s bones=%d roots=%d cubes=%d quads=%d locators=%d animations=%d textures=%d%n",
+            System.out.printf("%s %s kind=%s bones=%d roots=%d cubes=%d quads=%d locators=%d animations=%d textures=%d languages=%d projectiles=%d vehicles=%d%n",
                     status,
                     report.path(),
                     report.kind(),
@@ -225,14 +231,70 @@ public final class YsmModelScanner {
                     stats.quadCount(),
                     stats.locatorCount(),
                     report.animationClipCount(),
-                    report.resources().texturePaths().size());
+                    report.resources().texturePaths().size(),
+                    report.resources().languagePaths().size(),
+                    report.resources().projectilePaths().size(),
+                    report.resources().vehiclePaths().size());
             if (dump)
                 dumpReport(report, stats);
             for (String error : report.errors())
                 System.out.println("  error: " + error);
+            for (String warning : report.warnings())
+                System.out.println("  warning: " + warning);
         }
         System.out.printf("YSM scan complete: %d total, %d valid, %d invalid%n",
                 summary.reports().size(), summary.validCount(), summary.invalidCount());
+        if (reportPath != null)
+            writeReport(reportPath, root, summary);
+    }
+
+    private static void writeReport(Path reportPath, Path root, ScanSummary summary) throws IOException {
+        Path parent = reportPath.toAbsolutePath().getParent();
+        if (parent != null)
+            Files.createDirectories(parent);
+
+        StringBuilder output = new StringBuilder();
+        output.append("YSM scan report\n");
+        output.append("root=").append(root.toAbsolutePath().normalize()).append('\n');
+        output.append("total=").append(summary.reports().size())
+                .append(" valid=").append(summary.validCount())
+                .append(" invalid=").append(summary.invalidCount()).append('\n');
+        output.append('\n');
+        for (ScanReport report : summary.reports()) {
+            YsmModelValidator.ModelStats stats = report.mainValidation() == null
+                    ? YsmModelValidator.ModelStats.empty()
+                    : report.mainValidation().stats();
+            output.append(report.valid() ? "OK" : "FAIL")
+                    .append("\tpath=").append(report.path())
+                    .append("\tkind=").append(report.kind())
+                    .append("\tbones=").append(stats.boneCount())
+                    .append("\troots=").append(stats.rootCount())
+                    .append("\tcubes=").append(stats.cubeCount())
+                    .append("\tquads=").append(stats.quadCount())
+                    .append("\tlocators=").append(stats.locatorCount())
+                    .append("\tanimations=").append(report.animationClipCount())
+                    .append("\ttextures=").append(report.resources().texturePaths().size())
+                    .append("\tlanguages=").append(report.resources().languagePaths().size())
+                    .append("\tprojectiles=").append(report.resources().projectilePaths().size())
+                    .append("\tvehicles=").append(report.resources().vehiclePaths().size())
+                    .append("\tcontrollers=").append(report.controllerNames().size())
+                    .append("\tfunctions=").append(report.functionNames().size())
+                    .append("\tevents=").append(report.eventNames().size())
+                    .append("\tactions=").append(report.actionNames().size())
+                    .append("\tcontrols=").append(report.controlNames().size())
+                    .append("\tsub_entities=").append(report.subEntities().size())
+                    .append("\tunsupported=").append(report.unsupportedBindings().size())
+                    .append("\twarnings=").append(report.warnings().size())
+                    .append('\n');
+            for (String error : report.errors())
+                output.append("  error=").append(error).append('\n');
+            for (String warning : report.warnings())
+                output.append("  warning=").append(warning).append('\n');
+            for (String binding : report.unsupportedBindings())
+                output.append("  unsupported=").append(binding).append('\n');
+        }
+        Files.writeString(reportPath, output, StandardCharsets.UTF_8);
+        System.out.println("YSM scan report written to " + reportPath.toAbsolutePath().normalize());
     }
 
     private static boolean couldBeYsmAvatar(Path path) {
