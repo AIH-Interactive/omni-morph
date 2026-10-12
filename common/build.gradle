@@ -87,7 +87,11 @@ tasks.register("scanYsmModels", JavaExec) {
         args "--dump"
     }
     def scanPath = project.findProperty("ysmScanPath")
-    args scanPath == null ? "${rootProject.projectDir}/refs" : rootProject.file(scanPath).path
+    args scanPath == null ? "${rootProject.projectDir}/refs/avatars" : rootProject.file(scanPath).path
+    def scanReport = project.findProperty("ysmScanReport")
+    if (scanReport != null) {
+        args "--report", rootProject.file(scanReport).path
+    }
 }
 
 tasks.register("ysmPhase41SmokeTest", JavaExec) {
@@ -96,4 +100,12 @@ tasks.register("ysmPhase41SmokeTest", JavaExec) {
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "org.figuramc.figura.model.ysm.YsmPhase41SmokeTest"
+}
+
+tasks.register("ysmPackageSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Runs YSM folder and zip resource package smoke checks."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "org.figuramc.figura.avatar.ysm.YsmPackageSmokeTest"
 }

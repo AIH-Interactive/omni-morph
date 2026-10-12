@@ -37,17 +37,24 @@ public final class YsmManifestReader {
         JsonObject properties = YsmJson.obj(root, "properties");
         JsonObject player = YsmJson.obj(YsmJson.obj(root, "files"), "player");
         JsonObject model = YsmJson.obj(player, "model");
+        List<String> warnings = new ArrayList<>();
 
         String name = YsmJson.string(metadata, "name", IOUtils.getFileNameOrEmpty(ysmPackage.root()));
         String description = YsmJson.string(metadata, "tips", YsmJson.string(metadata, "description", ""));
-        String mainModel = YsmPackage.normalize(YsmJson.string(model, "main", "models/main.json"));
-        String armModel = existingOrBlank(ysmPackage, YsmJson.string(model, "arm", ""));
-        List<YsmTextureOption> textures = readNewTextures(player);
+        String configuredMainModel = YsmJson.string(model, "main", "models/main.json");
+        String mainModel = existingOrBlank(ysmPackage, configuredMainModel);
+        if (mainModel.isBlank())
+            warnings.add("missing required resource: " + displayPath(configuredMainModel));
+        String configuredArmModel = YsmJson.string(model, "arm", "");
+        String armModel = existingOrBlank(ysmPackage, configuredArmModel);
+        if (!configuredArmModel.isBlank() && armModel.isBlank())
+            warnings.add("missing optional resource: " + displayPath(configuredArmModel));
+        List<YsmTextureOption> textures = readNewTextures(ysmPackage, player, warnings);
         String defaultTexture = YsmJson.string(properties, "default_texture", "");
 
-        List<String> animations = readNewAnimations(ysmPackage, player);
-        List<String> controllers = readNewAnimationControllers(ysmPackage, player);
-        YsmResourceIndex index = buildIndex(ysmPackage, YsmAvatarKind.NEW, mainModel, armModel, animations, controllers, textures);
+        List<String> animations = readNewAnimations(ysmPackage, player, warnings);
+        List<String> controllers = readNewAnimationControllers(ysmPackage, player, warnings);
+        YsmResourceIndex index = buildIndex(ysmPackage, YsmAvatarKind.NEW, mainModel, armModel, animations, controllers, textures, root, warnings);
         return new YsmManifest(YsmAvatarKind.NEW, name, description, readAuthors(metadata), mainModel, armModel, animations, controllers, textures, defaultTexture, index);
     }
 
@@ -64,23 +71,27 @@ public final class YsmManifestReader {
         if (geometries != null && !geometries.isEmpty() && geometries.get(0).isJsonObject())
             description = YsmJson.obj(geometries.get(0).getAsJsonObject(), "description");
         JsonObject extra = YsmJson.obj(description, "ysm_extra_info");
+        List<String> warnings = new ArrayList<>();
 
         String name = YsmJson.string(extra, "name", IOUtils.getFileNameOrEmpty(ysmPackage.root()));
         String tips = YsmJson.string(extra, "tips", "");
+        String mainModel = existingOrBlank(ysmPackage, "main.json");
+        if (mainModel.isBlank())
+            warnings.add("missing required resource: main.json");
         String armModel = ysmPackage.exists("arm.json") ? "arm.json" : "";
         List<YsmTextureOption> textures = readOldTextures(ysmPackage);
         List<String> animations = readOldAnimations(ysmPackage);
         List<String> controllers = readOldAnimationControllers(ysmPackage);
 
-        YsmResourceIndex index = buildIndex(ysmPackage, YsmAvatarKind.OLD, "main.json", armModel, animations, controllers, textures);
-        return new YsmManifest(YsmAvatarKind.OLD, name, tips, readAuthors(extra), "main.json", armModel, animations, controllers, textures, "", index);
+        YsmResourceIndex index = buildIndex(ysmPackage, YsmAvatarKind.OLD, mainModel, armModel, animations, controllers, textures, null, warnings);
+        return new YsmManifest(YsmAvatarKind.OLD, name, tips, readAuthors(extra), mainModel, armModel, animations, controllers, textures, "", index);
     }
 
-    private static List<String> readNewAnimations(YsmPackage ysmPackage, JsonObject player) {
+    private static List<String> readNewAnimations(YsmPackage ysmPackage, JsonObject player, List<String> warnings) {
         List<String> result = new ArrayList<>();
-        readPathField(result, ysmPackage, player.get("animation"));
-        readPathField(result, ysmPackage, player.get("extra_animation"));
-        readPathField(result, ysmPackage, player.get("animation_extra"));
+        readPathField(result, ysmPackage, player.get("animation"), warnings);
+        readPathField(result, ysmPackage, player.get("extra_animation"), warnings);
+        readPathField(result, ysmPackage, player.get("animation_extra"), warnings);
         addExisting(result, ysmPackage, "animations/main.animation.json");
         addExisting(result, ysmPackage, "animations/extra.animation.json");
         collectAnimationFiles(result, ysmPackage);
@@ -100,10 +111,10 @@ public final class YsmManifestReader {
         return result;
     }
 
-    private static List<String> readNewAnimationControllers(YsmPackage ysmPackage, JsonObject player) {
+    private static List<String> readNewAnimationControllers(YsmPackage ysmPackage, JsonObject player, List<String> warnings) {
         List<String> result = new ArrayList<>();
-        readPathField(result, ysmPackage, player.get("animation_controllers"));
-        readPathField(result, ysmPackage, player.get("animation_controller"));
+        readPathField(result, ysmPackage, player.get("animation_controllers"), warnings);
+        readPathField(result, ysmPackage, player.get("animation_controller"), warnings);
         collectDirectoryJson(result, ysmPackage, "controller/");
         collectDirectoryJson(result, ysmPackage, "controllers/");
         collectAnimationControllerFiles(result, ysmPackage);
@@ -120,35 +131,45 @@ public final class YsmManifestReader {
         return result;
     }
 
-    private static void readPathField(List<String> result, YsmPackage ysmPackage, JsonElement element) {
+    private static void readPathField(List<String> result, YsmPackage ysmPackage, JsonElement element, List<String> warnings) {
         if (element == null)
             return;
         if (element.isJsonPrimitive()) {
-            addExisting(result, ysmPackage, element.getAsString());
+            addExisting(result, ysmPackage, element.getAsString(), warnings, "optional");
         } else if (element.isJsonArray()) {
             for (JsonElement child : element.getAsJsonArray())
-                readPathField(result, ysmPackage, child);
+                readPathField(result, ysmPackage, child, warnings);
         } else if (element.isJsonObject()) {
             JsonObject object = element.getAsJsonObject();
             String path = YsmJson.string(object, "path", YsmJson.string(object, "file", ""));
             if (!path.isBlank()) {
-                addExisting(result, ysmPackage, path);
+                addExisting(result, ysmPackage, path, warnings, "optional");
                 return;
             }
             for (String key : object.keySet()) {
                 JsonElement value = object.get(key);
                 if (value != null && value.isJsonPrimitive())
-                    addExisting(result, ysmPackage, value.getAsString());
+                    addExisting(result, ysmPackage, value.getAsString(), warnings, "optional");
             }
         }
     }
 
     private static void addExisting(List<String> result, YsmPackage ysmPackage, String animationPath) {
+        addExisting(result, ysmPackage, animationPath, null, "optional");
+    }
+
+    private static void addExisting(List<String> result, YsmPackage ysmPackage, String animationPath,
+                                    List<String> warnings, String resourceKind) {
         if (animationPath == null || animationPath.isBlank())
             return;
         String normalized = YsmPackage.normalize(animationPath);
-        if (!result.contains(normalized) && ysmPackage.exists(normalized))
+        if (normalized.isBlank()) {
+            addWarning(warnings, "invalid " + resourceKind + " resource path: " + animationPath);
+        } else if (ysmPackage.exists(normalized) && !result.contains(normalized)) {
             result.add(normalized);
+        } else if (!ysmPackage.exists(normalized)) {
+            addWarning(warnings, "missing " + resourceKind + " resource: " + normalized);
+        }
     }
 
     private static void collectDirectoryJson(List<String> result, YsmPackage ysmPackage, String directory) {
@@ -188,7 +209,7 @@ public final class YsmManifestReader {
         }
     }
 
-    private static List<YsmTextureOption> readNewTextures(JsonObject player) {
+    private static List<YsmTextureOption> readNewTextures(YsmPackage ysmPackage, JsonObject player, List<String> warnings) {
         List<YsmTextureOption> result = new ArrayList<>();
         JsonElement element = player.get("texture");
         if (element == null)
@@ -196,19 +217,25 @@ public final class YsmManifestReader {
 
         if (element.isJsonArray()) {
             for (JsonElement textureElement : element.getAsJsonArray())
-                addNewTexture(result, textureElement);
+                addNewTexture(result, textureElement, ysmPackage, warnings);
         } else {
-            addNewTexture(result, element);
+            addNewTexture(result, element, ysmPackage, warnings);
         }
         return result;
     }
 
-    private static void addNewTexture(List<YsmTextureOption> result, JsonElement textureElement) {
+    private static void addNewTexture(List<YsmTextureOption> result, JsonElement textureElement,
+                                      YsmPackage ysmPackage, List<String> warnings) {
         if (textureElement == null || textureElement.isJsonNull())
             return;
         if (textureElement.isJsonPrimitive()) {
             String texturePath = textureElement.getAsString();
-            result.add(new YsmTextureOption(idFromPath(texturePath), displayFromPath(texturePath), YsmPackage.normalize(texturePath)));
+            String normalized = YsmPackage.normalize(texturePath);
+            result.add(new YsmTextureOption(idFromPath(texturePath), displayFromPath(texturePath), normalized));
+            if (normalized.isBlank())
+                addWarning(warnings, "invalid optional texture: " + displayPath(texturePath));
+            else if (!ysmPackage.exists(normalized))
+                addWarning(warnings, "missing optional texture: " + normalized);
             return;
         }
         if (!textureElement.isJsonObject())
@@ -227,7 +254,12 @@ public final class YsmManifestReader {
         if (!path.isBlank()) {
             String id = YsmJson.string(object, "id", idFromPath(path));
             String name = YsmJson.string(object, "name", displayFromPath(path));
-            result.add(new YsmTextureOption(id, name, YsmPackage.normalize(path)));
+            String normalized = YsmPackage.normalize(path);
+            result.add(new YsmTextureOption(id, name, normalized));
+            if (normalized.isBlank())
+                addWarning(warnings, "invalid optional texture: " + displayPath(path));
+            else if (!ysmPackage.exists(normalized))
+                addWarning(warnings, "missing optional texture: " + normalized);
         }
     }
 
@@ -237,16 +269,32 @@ public final class YsmManifestReader {
         if (files == null)
             return result;
         for (Path file : files) {
-            String name = IOUtils.getFileNameOrEmpty(file);
+            String relative = ysmPackage.relativize(file);
+            if (relative.contains("/"))
+                continue;
+            String name = IOUtils.getFileNameOrEmpty(Path.of(relative));
             String lower = name.toLowerCase(Locale.US);
             if (!Files.isDirectory(file) && lower.endsWith(".png") && !lower.contains("foreground") && !lower.contains("background"))
-                result.add(new YsmTextureOption(idFromPath(name), displayFromPath(name), name));
+                result.add(new YsmTextureOption(idFromPath(name), displayFromPath(name), relative));
         }
         return result;
     }
 
     private static YsmResourceIndex buildIndex(YsmPackage ysmPackage, YsmAvatarKind kind, String mainModel, String armModel,
-                                               List<String> animations, List<String> controllers, List<YsmTextureOption> textures) {
+                                               List<String> animations, List<String> controllers, List<YsmTextureOption> textures,
+                                               JsonObject manifestRoot, List<String> warnings) {
+        List<String> languagePaths = collectDirectoryFiles(ysmPackage, "lang/", "language/");
+        List<String> projectilePaths = new ArrayList<>();
+        List<String> vehiclePaths = new ArrayList<>();
+        if (manifestRoot != null) {
+            JsonObject files = YsmJson.obj(manifestRoot, "files");
+            addResourcePaths(languagePaths, ysmPackage, files.get("language"), warnings, "language");
+            addResourcePaths(languagePaths, ysmPackage, files.get("lang"), warnings, "language");
+            collectSubEntityResourcePaths(projectilePaths, ysmPackage, files.get("projectiles"), warnings, "projectile");
+            collectSubEntityResourcePaths(vehiclePaths, ysmPackage, files.get("vehicles"), warnings, "vehicle");
+        }
+        collectDirectoryFilesInto(projectilePaths, ysmPackage, "projectile/", "projectiles/");
+        collectDirectoryFilesInto(vehiclePaths, ysmPackage, "vehicle/", "vehicles/");
         return new YsmResourceIndex(
                 ysmPackage.exists(mainModel) ? mainModel : "",
                 existingOrBlank(ysmPackage, armModel),
@@ -261,7 +309,11 @@ public final class YsmManifestReader {
                 collectByExtension(ysmPackage, ".ogg"),
                 firstExisting(ysmPackage, "avatar.png", "icon.png", "textures/avatar.png", "textures/icon.png"),
                 firstExisting(ysmPackage, "background.png", "textures/background.png", "gui/background.png"),
-                kind == YsmAvatarKind.NEW ? List.of("ysm.json") : List.of("main.json")
+                kind == YsmAvatarKind.NEW ? List.of("ysm.json") : List.of("main.json"),
+                languagePaths,
+                projectilePaths,
+                vehiclePaths,
+                warnings
         );
     }
 
@@ -271,6 +323,83 @@ public final class YsmManifestReader {
                 .map(ysmPackage::relativize)
                 .filter(path -> path.toLowerCase(Locale.US).endsWith(extension))
                 .toList();
+    }
+
+    private static List<String> collectDirectoryFiles(YsmPackage ysmPackage, String... directories) {
+        List<String> result = new ArrayList<>();
+        collectDirectoryFilesInto(result, ysmPackage, directories);
+        return result;
+    }
+
+    private static void collectDirectoryFilesInto(List<String> result, YsmPackage ysmPackage, String... directories) {
+        for (Path path : ysmPackage.listPaths()) {
+            if (Files.isDirectory(path))
+                continue;
+            String normalized = YsmPackage.normalize(ysmPackage.relativize(path));
+            String lower = normalized.toLowerCase(Locale.US);
+            for (String directory : directories) {
+                String prefix = YsmPackage.normalize(directory).toLowerCase(Locale.US);
+                if (lower.startsWith(prefix) && !result.contains(normalized)) {
+                    result.add(normalized);
+                    break;
+                }
+            }
+        }
+    }
+
+    private static void addResourcePaths(List<String> result, YsmPackage ysmPackage, JsonElement element,
+                                         List<String> warnings, String resourceKind) {
+        if (element == null || element.isJsonNull())
+            return;
+        if (element.isJsonPrimitive()) {
+            addExisting(result, ysmPackage, element.getAsString(), warnings, resourceKind);
+            return;
+        }
+        if (element.isJsonArray()) {
+            for (JsonElement child : element.getAsJsonArray())
+                addResourcePaths(result, ysmPackage, child, warnings, resourceKind);
+            return;
+        }
+        if (!element.isJsonObject())
+            return;
+        JsonObject object = element.getAsJsonObject();
+        String path = YsmJson.string(object, "path", YsmJson.string(object, "file", ""));
+        if (!path.isBlank()) {
+            addExisting(result, ysmPackage, path, warnings, resourceKind);
+            return;
+        }
+        for (java.util.Map.Entry<String, JsonElement> entry : object.entrySet())
+            addResourcePaths(result, ysmPackage, entry.getValue(), warnings, resourceKind);
+    }
+
+    private static void collectSubEntityResourcePaths(List<String> result, YsmPackage ysmPackage, JsonElement section,
+                                                      List<String> warnings, String resourceKind) {
+        if (section == null || section.isJsonNull())
+            return;
+        if (section.isJsonArray()) {
+            for (JsonElement element : section.getAsJsonArray())
+                collectSubEntityResourcePaths(result, ysmPackage, element, warnings, resourceKind);
+            return;
+        }
+        if (section.isJsonObject()) {
+            JsonObject object = section.getAsJsonObject();
+            String directModel = YsmJson.string(object, "model", YsmJson.string(object, "model_path", ""));
+            if (!directModel.isBlank()) {
+                addExisting(result, ysmPackage, directModel, warnings, resourceKind + " model");
+                addResourcePaths(result, ysmPackage, object.get("texture"), warnings, resourceKind + " texture");
+                addResourcePaths(result, ysmPackage, object.get("textures"), warnings, resourceKind + " texture");
+                addResourcePaths(result, ysmPackage, object.get("animation"), warnings, resourceKind + " animation");
+                addResourcePaths(result, ysmPackage, object.get("animations"), warnings, resourceKind + " animation");
+                addResourcePaths(result, ysmPackage, object.get("controller"), warnings, resourceKind + " controller");
+                addResourcePaths(result, ysmPackage, object.get("animation_controller"), warnings, resourceKind + " controller");
+                addResourcePaths(result, ysmPackage, object.get("controller_path"), warnings, resourceKind + " controller");
+                return;
+            }
+            for (java.util.Map.Entry<String, JsonElement> entry : object.entrySet())
+                collectSubEntityResourcePaths(result, ysmPackage, entry.getValue(), warnings, resourceKind);
+            return;
+        }
+        addResourcePaths(result, ysmPackage, section, warnings, resourceKind + " model");
     }
 
     private static List<String> collectFunctions(YsmPackage ysmPackage) {
@@ -296,6 +425,15 @@ public final class YsmManifestReader {
             return "";
         String normalized = YsmPackage.normalize(path);
         return ysmPackage.exists(normalized) ? normalized : "";
+    }
+
+    private static void addWarning(List<String> warnings, String warning) {
+        if (warnings != null && warning != null && !warning.isBlank() && !warnings.contains(warning))
+            warnings.add(warning);
+    }
+
+    private static String displayPath(String path) {
+        return path == null || path.isBlank() ? "<blank>" : path.replace('\\', '/');
     }
 
     private static String[] readAuthors(JsonObject object) {
