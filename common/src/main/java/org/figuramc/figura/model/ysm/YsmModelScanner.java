@@ -384,6 +384,18 @@ public final class YsmModelScanner {
         if (Files.isDirectory(path))
             return Files.exists(path.resolve("ysm.json")) || Files.exists(path.resolve("main.json"));
         String name = path.getFileName() == null ? "" : path.getFileName().toString().toLowerCase(java.util.Locale.US);
+        if (name.endsWith(".zip")) {
+            try (YsmPackage source = YsmPackage.open(path)) {
+                List<String> resources = source.resourcePaths();
+                boolean figuraMetadata = resources.stream().anyMatch(resource -> resource.equals("avatar.json")
+                        || resource.endsWith("/avatar.json"));
+                if (figuraMetadata && !source.exists("ysm.json") && !source.exists("main.json")) {
+                    return false;
+                }
+            } catch (IOException ignored) {
+                // Bad archives remain candidates and receive a diagnostic from scanOne.
+            }
+        }
         return name.endsWith(".zip") || name.endsWith(".ysm");
     }
 

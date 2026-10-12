@@ -26,95 +26,125 @@ public final class YsmAvatarLoader {
     private YsmAvatarLoader() {
     }
 
-    public static void loadAvatar(Path path, UserData target) {
-        CompletableFuture.runAsync(() -> {
-            try {
-                YsmManifest manifest = YsmManifestReader.read(path);
-                YsmResourceIndex index = manifest.resourceIndex();
-                YsmTextureOption texture = selectTexture(path, manifest.textures(), manifest.defaultTexture());
-                CompoundTag nbt = new CompoundTag();
-
-                String avatarJson = YsmAvatarMetadataParser.toFiguraAvatarJson(new YsmAvatarMetadata(manifest.name(), manifest.description(), manifest.authors(), manifest.textures()));
-                AvatarMetadataParser.Metadata figuraMetadata = AvatarMetadataParser.read(avatarJson);
-                CompoundTag metaNBT = AvatarMetadataParser.parse(figuraMetadata, avatarJson, IOUtils.getFileNameOrEmpty(path));
-                metaNBT.putString("uuid", target.id.toString());
-                metaNBT.putString("format", "ysm-native");
-                metaNBT.putString("ysm_kind", manifest.kind().name().toLowerCase(java.util.Locale.US));
-                if (texture != null) {
-                    metaNBT.putString("ysm_texture", texture.id());
-                    metaNBT.putString("ysm_texture_path", texture.path());
+    public static CompletableFuture<YsmLoadResult> loadAvatar(Path path, UserData target) {
+        long generation = target.ysmLoads.begin();
+        return CompletableFuture.supplyAsync(() -> {
+            try (YsmPackage source = YsmPackage.open(path);
+                 YsmModelData data = YsmModelData.read(source,
+                         java.nio.file.Files.isDirectory(path) ? YsmSourceIdentity.ContainerKind.DIRECTORY
+                                 : YsmSourceIdentity.ContainerKind.ZIP,
+                         () -> !target.ysmLoads.current(generation))) {
+                YsmTextureOption texture = selectTexture(path, data.manifest().textures(), data.manifest().defaultTexture());
+                CompoundTag nbt = toAvatarNbt(data, texture, target.id, path);
+                boolean published = target.loadYsmAvatar(nbt, data, generation);
+                return new YsmLoadResult(published ? YsmLoadResult.Status.PUBLISHED : YsmLoadResult.Status.CANCELLED,
+                        data.identity(), data.diagnostics());
+            } catch (java.io.InterruptedIOException e) {
+                return new YsmLoadResult(YsmLoadResult.Status.CANCELLED, null, List.of("CANCELLED"));
+            } catch (Exception e) {
+                if (!target.ysmLoads.current(generation)) {
+                    return new YsmLoadResult(YsmLoadResult.Status.CANCELLED, null, List.of("CANCELLED"));
                 }
-                nbt.put("metadata", metaNBT);
-
-                CompoundTag ysm = new CompoundTag();
-                ysm.putString("kind", manifest.kind().name());
-                ysm.putString("source_path", path.toAbsolutePath().normalize().toString());
-                try (YsmPackage ysmPackage = YsmPackage.open(path)) {
-                    addYsmProperties(ysm, ysmPackage);
-
-                    String mainModelPath = index.hasMainModel() ? index.mainModelPath() : manifest.mainModelPath();
-                    ysm.putString("main_model_path", mainModelPath);
-                    ysm.putByteArray("main_model", ysmPackage.readString(mainModelPath).getBytes(java.nio.charset.StandardCharsets.UTF_8));
-
-                    if (index.hasArmModel()) {
-                        ysm.putString("arm_model_path", index.armModelPath());
-                        ysm.putByteArray("arm_model", ysmPackage.readString(index.armModelPath()).getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                    }
-
-                    ListTag animations = new ListTag();
-                    for (String animationPath : index.animationPaths()) {
-                        if (!ysmPackage.exists(animationPath))
-                            continue;
-                        CompoundTag animation = new CompoundTag();
-                        animation.putString("path", animationPath);
-                        animation.putByteArray("data", ysmPackage.readString(animationPath).getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                        animations.add(animation);
-                    }
-                    ysm.put("animations", animations);
-
-                    ListTag controllers = new ListTag();
-                    for (String controllerPath : index.animationControllerPaths()) {
-                        if (!ysmPackage.exists(controllerPath))
-                            continue;
-                        CompoundTag controller = new CompoundTag();
-                        controller.putString("path", controllerPath);
-                        controller.putByteArray("data", ysmPackage.readString(controllerPath).getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                        controllers.add(controller);
-                    }
-                    ysm.put("animation_controllers", controllers);
-
-                    ListTag functions = new ListTag();
-                    for (String functionPath : index.functionPaths()) {
-                        if (!ysmPackage.exists(functionPath))
-                            continue;
-                        byte[] data = ysmPackage.readString(functionPath).getBytes(java.nio.charset.StandardCharsets.UTF_8);
-                        CompoundTag function = new CompoundTag();
-                        function.putString("path", functionPath);
-                        function.putString("name", fileName(functionPath));
-                        function.putString("hash", sha1(data));
-                        function.putByteArray("data", data);
-                        functions.add(function);
-                    }
-                    ysm.put("functions", functions);
-
-                    if (texture != null) {
-                        ysm.putString("texture_id", texture.id());
-                        if (ysmPackage.exists(texture.path()))
-                            ysm.putByteArray("texture", ysmPackage.readBytes(texture.path()));
-                    }
-                    ysm.put("texture_entries", textureEntries(ysmPackage, manifest.textures()));
-                    ysm.put("action_schemas", actionSchemas(ysmPackage, index));
-                    ysm.put("sub_entities", subEntities(ysmPackage));
-                }
-                ysm.put("resource_index", toNbt(index));
-                nbt.put("ysm", ysm);
-
-                target.loadAvatar(nbt);
-            } catch (Throwable e) {
                 FiguraMod.LOGGER.error("Failed to load YSM avatar from " + path, e);
                 FiguraToast.sendToast(FiguraText.of("toast.load_error"), FiguraText.of("gui.load_error.models"), FiguraToast.ToastType.ERROR);
+                return new YsmLoadResult(YsmLoadResult.Status.FAILED, null, List.of(e.getMessage() == null
+                        ? e.getClass().getSimpleName() : e.getMessage()));
             }
         });
+    }
+
+    public static CompoundTag toAvatarNbt(YsmModelData data, YsmTextureOption texture,
+                                          java.util.UUID owner, Path localPath) throws java.io.IOException {
+        YsmManifest manifest = data.manifest();
+        String avatarJson = YsmAvatarMetadataParser.toFiguraAvatarJson(new YsmAvatarMetadata(
+                manifest.name(), manifest.description(), manifest.authors(), manifest.textures()));
+        AvatarMetadataParser.Metadata figuraMetadata = AvatarMetadataParser.read(avatarJson);
+        CompoundTag metadata = AvatarMetadataParser.parse(figuraMetadata, avatarJson, data.resources().displayName());
+        metadata.putString("uuid", owner.toString());
+        metadata.putString("format", "ysm-native");
+        metadata.putString("ysm_kind", manifest.kind().name().toLowerCase(java.util.Locale.US));
+        if (texture != null) {
+            metadata.putString("ysm_texture", texture.id());
+            metadata.putString("ysm_texture_path", texture.path());
+        }
+        CompoundTag tag = new CompoundTag();
+        tag.put("metadata", metadata);
+        CompoundTag runtimeTag = toRuntimeTag(data, texture);
+        if (localPath != null) {
+            runtimeTag.putString("source_path", localPath.toAbsolutePath().normalize().toString());
+        }
+        tag.put("ysm", runtimeTag);
+        return tag;
+    }
+
+    public static CompoundTag toRuntimeTag(YsmModelData data, YsmTextureOption texture) throws java.io.IOException {
+        YsmManifest manifest = data.manifest();
+        YsmResourceIndex index = manifest.resourceIndex();
+        YsmResourceSource ysmPackage = data.resources();
+        CompoundTag ysm = new CompoundTag();
+        ysm.putString("kind", manifest.kind().name());
+        ysm.putString("content_sha256", data.identity().contentSha256());
+        ysm.putInt("engine_schema_version", data.identity().engineSchemaVersion());
+        ysm.putString("container_kind", data.identity().containerKind().name());
+        addYsmProperties(ysm, ysmPackage);
+
+        String mainModelPath = index.hasMainModel() ? index.mainModelPath() : manifest.mainModelPath();
+        ysm.putString("main_model_path", mainModelPath);
+        if (ysmPackage.exists(mainModelPath)) {
+            ysm.putByteArray("main_model", ysmPackage.readBytes(mainModelPath));
+        }
+
+        if (index.hasArmModel()) {
+            ysm.putString("arm_model_path", index.armModelPath());
+            ysm.putByteArray("arm_model", ysmPackage.readString(index.armModelPath()).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        }
+
+        ListTag animations = new ListTag();
+        for (String animationPath : index.animationPaths()) {
+            if (!ysmPackage.exists(animationPath))
+                continue;
+            CompoundTag animation = new CompoundTag();
+            animation.putString("path", animationPath);
+            animation.putByteArray("data", ysmPackage.readString(animationPath).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            animations.add(animation);
+        }
+        ysm.put("animations", animations);
+
+        ListTag controllers = new ListTag();
+        for (String controllerPath : index.animationControllerPaths()) {
+            if (!ysmPackage.exists(controllerPath))
+                continue;
+            CompoundTag controller = new CompoundTag();
+            controller.putString("path", controllerPath);
+            controller.putByteArray("data", ysmPackage.readString(controllerPath).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            controllers.add(controller);
+        }
+        ysm.put("animation_controllers", controllers);
+
+        ListTag functions = new ListTag();
+        for (String functionPath : index.functionPaths()) {
+            if (!ysmPackage.exists(functionPath))
+                continue;
+            byte[] functionData = ysmPackage.readString(functionPath).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            CompoundTag function = new CompoundTag();
+            function.putString("path", functionPath);
+            function.putString("name", fileName(functionPath));
+            function.putString("hash", sha1(functionData));
+            function.putByteArray("data", functionData);
+            functions.add(function);
+        }
+        ysm.put("functions", functions);
+
+        if (texture != null) {
+            ysm.putString("texture_id", texture.id());
+            if (ysmPackage.exists(texture.path()))
+                ysm.putByteArray("texture", ysmPackage.readBytes(texture.path()));
+        }
+        ysm.put("texture_entries", textureEntries(ysmPackage, manifest.textures()));
+        ysm.put("action_schemas", actionSchemas(ysmPackage, index));
+        ysm.put("sub_entities", subEntities(ysmPackage));
+        ysm.put("resource_index", toNbt(index));
+        return ysm;
     }
 
     private static YsmTextureOption selectTexture(Path path, List<YsmTextureOption> textures, String defaultTexture) {
@@ -134,7 +164,7 @@ public final class YsmAvatarLoader {
         return textures.get(0);
     }
 
-    private static void addYsmProperties(CompoundTag ysm, YsmPackage ysmPackage) throws java.io.IOException {
+    private static void addYsmProperties(CompoundTag ysm, YsmResourceSource ysmPackage) throws java.io.IOException {
         if (!ysmPackage.exists("ysm.json"))
             return;
         JsonObject root = YsmJson.parseObject(ysmPackage.readString("ysm.json"));
@@ -194,7 +224,7 @@ public final class YsmAvatarLoader {
         }
     }
 
-    private static ListTag textureEntries(YsmPackage ysmPackage, List<YsmTextureOption> textures) throws java.io.IOException {
+    private static ListTag textureEntries(YsmResourceSource ysmPackage, List<YsmTextureOption> textures) throws java.io.IOException {
         ListTag tag = new ListTag();
         if (textures == null)
             return tag;
@@ -210,7 +240,7 @@ public final class YsmAvatarLoader {
         return tag;
     }
 
-    private static ListTag actionSchemas(YsmPackage ysmPackage, YsmResourceIndex index) throws java.io.IOException {
+    private static ListTag actionSchemas(YsmResourceSource ysmPackage, YsmResourceIndex index) throws java.io.IOException {
         ListTag tag = new ListTag();
         java.util.LinkedHashSet<String> paths = new java.util.LinkedHashSet<>();
         paths.addAll(List.of("ysm.json", "ysm.actions.json", "action_wheel.json", "ysm.controls.json", "ysm_controls.json", "controls.json"));
@@ -221,7 +251,7 @@ public final class YsmAvatarLoader {
         return tag;
     }
 
-    private static void addActionSchema(ListTag tag, YsmPackage ysmPackage, String path) throws java.io.IOException {
+    private static void addActionSchema(ListTag tag, YsmResourceSource ysmPackage, String path) throws java.io.IOException {
         if (path == null || path.isBlank() || !ysmPackage.exists(path))
             return;
         CompoundTag entry = new CompoundTag();
@@ -230,7 +260,7 @@ public final class YsmAvatarLoader {
         tag.add(entry);
     }
 
-    private static ListTag subEntities(YsmPackage ysmPackage) throws java.io.IOException {
+    private static ListTag subEntities(YsmResourceSource ysmPackage) throws java.io.IOException {
         ListTag tag = new ListTag();
         if (ysmPackage.exists("ysm.json")) {
             JsonObject root = YsmJson.parseObject(ysmPackage.readString("ysm.json"));
@@ -242,7 +272,7 @@ public final class YsmAvatarLoader {
         return tag;
     }
 
-    private static void addSubEntitySection(ListTag tag, YsmPackage ysmPackage, String kind, JsonElement section) throws java.io.IOException {
+    private static void addSubEntitySection(ListTag tag, YsmResourceSource ysmPackage, String kind, JsonElement section) throws java.io.IOException {
         if (section == null || section.isJsonNull())
             return;
         if (section.isJsonObject()) {
@@ -255,7 +285,7 @@ public final class YsmAvatarLoader {
         }
     }
 
-    private static void addSubEntity(ListTag tag, YsmPackage ysmPackage, String kind, String fallbackId, JsonElement element) throws java.io.IOException {
+    private static void addSubEntity(ListTag tag, YsmResourceSource ysmPackage, String kind, String fallbackId, JsonElement element) throws java.io.IOException {
         if (element == null || element.isJsonNull())
             return;
         JsonObject object = element.isJsonObject() ? element.getAsJsonObject() : new JsonObject();
@@ -288,7 +318,7 @@ public final class YsmAvatarLoader {
         tag.add(entry);
     }
 
-    private static void addLegacySubEntity(ListTag tag, YsmPackage ysmPackage, String kind, String id, String model, String texture, String animation) throws java.io.IOException {
+    private static void addLegacySubEntity(ListTag tag, YsmResourceSource ysmPackage, String kind, String id, String model, String texture, String animation) throws java.io.IOException {
         if (!ysmPackage.exists(model))
             return;
         CompoundTag entry = new CompoundTag();

@@ -109,6 +109,7 @@ public class LocalAvatarLoader {
         if (path == null || target == null)
             return;
 
+        long generation = target.ysmLoads.begin();
         addWatchKey(path, KEYS::put);
 
         Path finalPath = path;
@@ -120,53 +121,10 @@ public class LocalAvatarLoader {
         async(() -> {
             try {
                 FiguraMod.debug("--- avatar compiling: " + target.id + " ---");
-                // load as folder
-                CompoundTag nbt = new CompoundTag();
-
-                // scripts
-                loadState = LoadState.SCRIPTS;
-                loadScripts(finalPath, nbt);
-
-                // custom sounds
-                loadState = LoadState.SOUNDS;
-                loadSounds(finalPath, nbt);
-
-                // models
-                CompoundTag textures = new CompoundTag();
-                ListTag animations = new ListTag();
-                BlockbenchParser2 modelParser = new BlockbenchParser2();
-
-                loadState = LoadState.MODELS;
-                CompoundTag models = loadModels(finalPath, finalPath, modelParser, textures, animations, "");
-                models.putString("name", "models");
-
-                // metadata
-                loadState = LoadState.METADATA;
-                String _meta = IOUtils.readFile(finalPath.resolve("avatar.json"));
-				var metadata = AvatarMetadataParser.read(_meta);
-
-				CompoundTag metaNBT = AvatarMetadataParser.parse(metadata,_meta, IOUtils.getFileNameOrEmpty(finalPath));
-				nbt.put("metadata", metaNBT);
-				metaNBT.putString("uuid",target.id.toString());
-
-				AvatarMetadataParser.injectToModels(metadata, models);
-				AvatarMetadataParser.injectToTextures(metadata, textures);
-
-                // return :3
-                if (!models.isEmpty())
-                    nbt.put("models", models);
-                if (!textures.isEmpty())
-                    nbt.put("textures", textures);
-                if (!animations.isEmpty())
-                    nbt.put("animations", animations);
-                CompoundTag metadataTag = nbt.getCompoundOrEmpty("metadata");
-                if (metadataTag.contains("resources_paths")) {
-                    loadResources(nbt, metadataTag.getListOrEmpty("resources_paths"), finalPath);
-                    metadataTag.remove("resource_paths");
-                }
+                CompoundTag nbt = compileFiguraAvatar(finalPath, target.id);
 
                 // load
-                target.loadAvatar(nbt);
+                target.ysmLoads.publish(generation, () -> target.loadAvatar(nbt));
             } catch (Throwable e) {
                 loadError = e.getMessage();
                 FiguraMod.LOGGER.error("Failed to load avatar from " + finalPath, e);
@@ -174,6 +132,55 @@ public class LocalAvatarLoader {
             }
         });
     }
+
+    public static CompoundTag compileFiguraAvatar(Path path, UUID owner) throws Exception {
+        // load as folder
+        CompoundTag nbt = new CompoundTag();
+
+        // scripts
+        loadState = LoadState.SCRIPTS;
+        loadScripts(path, nbt);
+
+        // custom sounds
+        loadState = LoadState.SOUNDS;
+        loadSounds(path, nbt);
+
+        // models
+        CompoundTag textures = new CompoundTag();
+        ListTag animations = new ListTag();
+        BlockbenchParser2 modelParser = new BlockbenchParser2();
+
+        loadState = LoadState.MODELS;
+        CompoundTag models = loadModels(path, path, modelParser, textures, animations, "");
+        models.putString("name", "models");
+
+        // metadata
+        loadState = LoadState.METADATA;
+        String avatarJson = IOUtils.readFile(path.resolve("avatar.json"));
+        var metadata = AvatarMetadataParser.read(avatarJson);
+        CompoundTag metadataNbt = AvatarMetadataParser.parse(metadata, avatarJson, IOUtils.getFileNameOrEmpty(path));
+        nbt.put("metadata", metadataNbt);
+        metadataNbt.putString("uuid", owner.toString());
+
+        AvatarMetadataParser.injectToModels(metadata, models);
+        AvatarMetadataParser.injectToTextures(metadata, textures);
+
+        // return :3
+        if (!models.isEmpty())
+            nbt.put("models", models);
+        if (!textures.isEmpty())
+            nbt.put("textures", textures);
+        if (!animations.isEmpty())
+            nbt.put("animations", animations);
+        CompoundTag metadataTag = nbt.getCompoundOrEmpty("metadata");
+        if (metadataTag.contains("resources_paths")) {
+            loadResources(nbt, metadataTag.getListOrEmpty("resources_paths"), path);
+            metadataTag.remove("resource_paths");
+        }
+
+        return nbt;
+    }
+
     private static void loadResources(CompoundTag nbt, ListTag pathsTag, Path parentPath) {
         ArrayList<PathMatcher> pathMatchers = new ArrayList<>();
         FileSystem fs = FileSystems.getDefault();

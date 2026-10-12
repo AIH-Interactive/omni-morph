@@ -15,6 +15,18 @@ public record YsmManifest(
         String defaultTexture,
         YsmResourceIndex resourceIndex
 ) {
+    public YsmManifest {
+        authors = authors == null ? new String[0] : authors.clone();
+        animationPaths = List.copyOf(animationPaths);
+        animationControllerPaths = List.copyOf(animationControllerPaths);
+        textures = List.copyOf(textures);
+    }
+
+    @Override
+    public String[] authors() {
+        return authors.clone();
+    }
+
     public YsmManifest(YsmAvatarKind kind, String name, String description, String[] authors, String mainModelPath,
                        String armModelPath, List<String> animationPaths, List<YsmTextureOption> textures,
                        String defaultTexture) {

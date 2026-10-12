@@ -1,7 +1,7 @@
 # 完善 YSM 引擎计划书
 
 > 编制日期：2026-10-12（Asia/Seoul）。
-> 状态：M0 自动化验收完成；M1～M8 尚未实施。阶段提交与推送按 6.1 节执行。
+> 状态：M0、M1 自动化验收完成；M2～M8 尚未实施。阶段提交与推送按 6.1 节执行；人工项按用户要求注明并跳过。
 > 本文独立制定需求、实施顺序与验收标准。旧版计划书全部视为已废弃，不作为本文依据。
 
 ## 1. 目标、边界与完成定义
@@ -26,6 +26,7 @@
 ### 1.2 范围控制
 
 - 2026-10-12 实施期间用户补充：以单人完整加载、使用 YSM 为首要交付目标；配套后端为 `omnm-cloud`，另外两个参考后端可作只读对照。凡确需后端修改的内容，当前计划期间记录影响、原因和后续要求后跳过，不实施后端变更。M7 先验证现有协议，继续能独立完成的客户端 DTO/codec/回放；依赖后端变更的联网验收记 `SKIPPED/BACKEND_REQUIRED`。M8 分别报告单人完成度及多人跳过项，不把跳过称为多人通过。
+- 用户随后明确授权：需要人工验收的项目直接注明并跳过，不阻塞。本文 M1～M8 的人工/真实窗口/多客户端人工场景统一记 `SKIPPED/MANUAL_BY_USER`；自动化验收仍须完成并通过，跳过不等于验证通过。此前“最终必须补齐必验人工项”的约束由本条用户指令覆盖，最终交付需列明跳过项及证据边界。
 - 本计划包含引擎兼容性和客户端只读解密，不包含加密导出器、明文资源导出工具、YSM 服务端实现、公模库、账号/审核/商业平台。
 - Sparkle 的游戏服务器缓存/网络加密协议与本地 `.ysm` 文件解密是不同能力。本文记录差异，但不因参考代码同时存在这些模块就引入整套协议。
 - glTF、通用 bbmodel 导入、云端资源商城和参考项目特有的界面设计不属于 YSM 核心兼容需求。
@@ -486,7 +487,8 @@ if ($buildExitCode -ne 0) {
 | 源码差距分析与新计划编制 | 完成 | 已核对当前工作区及固定参考提交；没有以废弃计划作为依据 |
 | 基线验证 | 已执行，有失败 | 包 smoke 通过；函数/controller smoke 一项断言失败；扫描 35/33/2；真实窗口待验 |
 | M0 | 完成 | 三个 smoke、37 候选精确基线 gate、Fabric build 通过；详见 9.1；窗口验收归后续阶段 |
-| M1–M2 | 未开始实施 | 数据边界、客户端只读解密和 binary 映射优先 |
+| M1 | 完成 | 统一读取/内容身份/内存数据/直接面片入口；五个 smoke、40 候选 gate、Fabric build 通过，详见 9.2 |
+| M2 | 未开始实施 | 客户端只读解密和 binary 映射；五个本地加密文件已进入候选清单 |
 | M3–M6 | 未开始实施 | 动画/controller、Molang、附属资源和动态子实体 |
 | M7 | 未开始实施 | 内容边界与动态多人一致性 |
 | M8 | 未开始实施 | 完整语料、真实窗口、多客户端、资源与性能验收 |
@@ -519,3 +521,29 @@ if ($buildExitCode -ne 0) {
 ```
 
 结果：三个 smoke、精确语料 gate 与 Fabric build 通过（退出码 0）；无 baseline 的严格扫描已验证返回非零。构建仍报告既有映射目标/Gradle 废弃 API 警告，未扩展 M0 去改渲染 Mixin。M0 无必需新增视觉功能，真实游戏窗口/普通 Avatar 共存及多人验收保持 `MANUAL/PENDING`，在后续对应里程碑及 M8 完成。未使用 Qt offscreen 或隐藏窗口作为 GUI 验收。
+
+### 9.2 M1 统一读取与数据边界（2026-10-12）
+
+基线为 M0 已推送提交 `3932b40`。正式入口现在经 `YsmResourceSource` 读取目录/ZIP/内存集合，`YsmModelData` 保存有界资源快照、完整原始资源和独立几何；`Avatar.load` 的 YSM 重载及 `YsmModelRuntime.fromData` 直接消费面片输入。面片仅复制顶点/UV/法线，使用现有 Cube 类作为面片分组容器，无需生成 cube 参数或模型 JSON。JSON 和旧 NBT 路径继续保留。
+
+- 资源大小、数量、累计大小在文件索引/读取/内存复制前检查；统一禁止绝对路径、drive-relative、`..`、大小写重名及目录链接逃逸。目录根本身的链接可作为选定源使用；读取文件再次检查真实路径。关闭/失败释放 ZIP 句柄，内存源清理自有缓冲区。模型数据和不同运行实例的几何、资源数组均不共享可写输入。
+- 来源以独立的 `containerKind/cryptoVersion/binaryFormatVersion/engineSchemaVersion/contentSha256` 表示。JSON 源的 crypto/format 为 0；内容摘要按规范化资源名、长度、字节计算，不依赖绝对目录或 ZIP 包装根。运行时键包含内容摘要与 engine schema；保持现有本地 source_path 展示字段及纹理选择元数据。加密密文持久化载荷及所有输出边界过滤归 M2，本阶段不宣称已实现加密边界。
+- `YsmLoadGeneration` 阻止过期 A→B→A 发布，`YsmLoadResult` 区分 published/cancelled/failed；YSM 替换完成装配后才发布，失败保留旧 Avatar，取消/失败清理候选实例。`AvatarManager` 不再先清理待替换的 YSM Avatar。普通 Figura 仍走原模型、脚本、声音与元数据编译路径，仅将原编译主体提取为同一正式调用的 `compileFiguraAvatar`，以便直接回归。
+- `ysmDataBoundarySmokeTest` 验证目录/嵌套 ZIP/内存资源、内容摘要、几何、层级姿态输入、顶点/UV/法线等价；直接非立方体面片和隔离；元数据/原路径兼容；大小/累计/数量边界、路径与大小写冲突、关闭及取消 ZIP 可删除、内容变化与 generation 失效；真实 Figura 编译与发现分流。新增 JVM 测试适配仅提供配置目录、模组元数据、监听器和键注册边界，不模拟渲染，未进入生产包。
+- 本机 JVM 无创建符号链接权限，合成链接逃逸用例记 `SKIPPED/MANUAL_BY_USER`，其余合成检查通过；源码执行真实路径检查。Avatar 的真实窗口/渲染资源发布与普通 Avatar 共存验证按用户指令记 `SKIPPED/MANUAL_BY_USER`，不宣称自动化证明 GPU 或真实画面正确。
+
+用户补充语料后，`ysmLocalCorpusSmokeTest` 只读 `refs/avatars` 并经过正式编译/装配接口：35 个 YSM 目录装配成功，5 个 Figura 模型包（4 目录 + 1 ZIP）发现/模型/脚本/贴图编译通过，5 个加密 `.ysm` 明确报告 M2 待实现。普通 Figura 回归逐模型检查 NBT 模型存在与实际贴图字节保留；两个箭模型虽记录外部 arrow 路径缺失日志，已成功采用包内 base64 PNG，属于既有资源回退，不能据此判定贴图丢失。
+
+新 scanner 清单为 40 个 YSM 候选（35 目录 + 5 加密文件），33 结构有效、7 无效（2 个既有引用负例 + 5 个加密未支持），普通 Figura ZIP 不作为无效 YSM。M1 审查基线在 `common/src/test/resources/ysm/m1-corpus-baseline.json`；原 M0 基线不覆盖新样本也不覆盖本文件。基线变化来自用户新增三个加密样本及普通 Figura ZIP 分类，其余已知问题保持不变。后续阶段不能把此基线门禁当作所有模型运行语义完成。
+
+通过的前台 Gradle 参数（JDK 25 / Tee / 立即检查退出码，记录 build.log）：
+
+```text
+:common:ysmDataBoundarySmokeTest :common:ysmPackageSmokeTest :common:ysmPhase41SmokeTest
+:common:ysmBaselineSmokeTest :common:ysmLocalCorpusSmokeTest :common:scanYsmModels
+-PysmScanReport=build/ysm-m1-scan.txt
+-PysmScanBaseline=common/src/test/resources/ysm/m1-corpus-baseline.json
+:fabric:build --console=plain
+```
+
+结果：自动化全部通过、Fabric 构建成功；符号链接创建和真实窗口项明确跳过。现有 Fabric 映射目标和废弃 API 警告仍保留，未扩展范围修改无关渲染 Mixin。`refs/`、`omnm-cloud/`、build.log 与本地模型资源不进入提交。

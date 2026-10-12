@@ -3,6 +3,7 @@ package org.figuramc.figura.avatar.ysm;
 import org.figuramc.figura.utils.IOUtils;
 
 import java.io.IOException;
+import java.io.ByteArrayOutputStream;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -14,19 +15,39 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Stream;
 
-public class YsmPackage implements AutoCloseable {
+public class YsmPackage implements YsmResourceSource {
     private final Path root;
+    private final YsmResourceLimits limits;
+    private Path directoryRoot;
+    private IOException sourceFailure;
+    private boolean closed;
     private FileSystem zipFileSystem;
     private final Map<String, Path> archiveFiles = new LinkedHashMap<>();
     private final Map<String, String> archiveLowerIndex = new LinkedHashMap<>();
     private final List<String> warnings = new ArrayList<>();
 
-    private YsmPackage(Path root) {
+    private YsmPackage(Path root, YsmResourceLimits limits) {
         this.root = root;
+        this.limits = limits;
     }
 
     public static YsmPackage open(Path root) {
-        YsmPackage pkg = new YsmPackage(root);
+        return open(root, YsmResourceLimits.DEFAULT);
+    }
+
+    public static YsmPackage open(Path root, YsmResourceLimits limits) {
+        YsmPackage pkg = new YsmPackage(root, limits);
+        if (root != null && Files.isDirectory(root)) {
+            try {
+                pkg.directoryRoot = root.toRealPath();
+                pkg.indexDirectory();
+            } catch (IOException e) {
+                pkg.sourceFailure = e;
+                pkg.archiveFiles.clear();
+                pkg.archiveLowerIndex.clear();
+            }
+            return pkg;
+        }
         pkg.tryOpenZip();
         return pkg;
     }
@@ -38,9 +59,13 @@ public class YsmPackage implements AutoCloseable {
         if (!name.endsWith(".zip") && !name.endsWith(".ysm"))
             return;
         try {
+            if (Files.size(root) > limits.fileBytes()) {
+                throw new IOException("RESOURCE_LIMIT: source file exceeds budget");
+            }
             zipFileSystem = FileSystems.newFileSystem(root, (ClassLoader) null);
             indexArchive(zipFileSystem.getPath("/"));
         } catch (IOException | RuntimeException e) {
+            sourceFailure = new IOException("SOURCE_OPEN_FAILED: " + message(e), e);
             warnings.add("failed to open archive: " + message(e));
             if (zipFileSystem != null) {
                 try {
@@ -49,6 +74,8 @@ public class YsmPackage implements AutoCloseable {
                 }
                 zipFileSystem = null;
             }
+            archiveFiles.clear();
+            archiveLowerIndex.clear();
         }
     }
 
@@ -70,7 +97,8 @@ public class YsmPackage implements AutoCloseable {
                 archivePath = matched == null ? null : archiveFiles.get(matched);
             }
             return archivePath == null
-                    ? zipFileSystem.getPath("/__missing_ysm_resource__").resolve(normalized)
+                    ? (zipFileSystem == null ? root() : zipFileSystem.getPath("/"))
+                            .resolve("__missing_ysm_resource__").resolve(normalized)
                     : archivePath;
         }
 
@@ -97,6 +125,8 @@ public class YsmPackage implements AutoCloseable {
     }
 
     public boolean exists(String relativePath) {
+        if (closed || sourceFailure != null)
+            return false;
         String normalized = normalizeRelative(relativePath);
         if (normalized == null || normalized.isBlank())
             return false;
@@ -109,13 +139,81 @@ public class YsmPackage implements AutoCloseable {
     }
 
     public String readString(String relativePath) throws IOException {
-        requireResourcePath(relativePath);
-        return IOUtils.readFile(resolve(relativePath));
+        return YsmResourceSource.super.readString(relativePath);
     }
 
     public byte[] readBytes(String relativePath) throws IOException {
+        ensureReadable();
         requireResourcePath(relativePath);
-        return IOUtils.readFileBytes(resolve(relativePath));
+        Path file = resolve(relativePath);
+        if (directoryRoot != null && !file.toRealPath().startsWith(directoryRoot)) {
+            throw new IOException("INVALID_PATH: resource escapes YSM source");
+        }
+        limits.checkResource(Files.size(file), 0, 1, relativePath);
+        try (var input = Files.newInputStream(file);
+             var output = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[8192];
+            int read;
+            long total = 0;
+            while ((read = input.read(buffer)) != -1) {
+                YsmResourceLimits.checkCancelled(() -> false);
+                total += read;
+                limits.checkResource(total, 0, 1, relativePath);
+                output.write(buffer, 0, read);
+            }
+            return output.toByteArray();
+        }
+    }
+
+    @Override
+    public String displayName() {
+        return root == null ? "ysm" : IOUtils.getFileNameOrEmpty(root);
+    }
+
+    @Override
+    public List<String> resourcePaths() throws IOException {
+        ensureReadable();
+        return archiveFiles.keySet().stream().sorted().toList();
+    }
+
+    private void ensureReadable() throws IOException {
+        if (closed) {
+            throw new IOException("CLOSED_SOURCE: YSM package is closed");
+        }
+        if (sourceFailure != null) {
+            throw sourceFailure;
+        }
+    }
+
+    private void indexDirectory() throws IOException {
+        long total = 0;
+        try (Stream<Path> paths = Files.walk(directoryRoot)) {
+            var iterator = paths.iterator();
+            while (iterator.hasNext()) {
+                YsmResourceLimits.checkCancelled(() -> false);
+                Path file = iterator.next();
+                if (!file.toRealPath().startsWith(directoryRoot)) {
+                    throw new IOException("INVALID_PATH: symbolic link escapes YSM source");
+                }
+                if (!Files.isRegularFile(file)) {
+                    continue;
+                }
+                String name = normalize(directoryRoot.relativize(file).toString());
+                long bytes = Files.size(file);
+                total += bytes;
+                limits.checkResource(bytes, total, archiveFiles.size() + 1, name);
+                addIndexedResource(name, file);
+            }
+        }
+    }
+
+    private void addIndexedResource(String name, Path path) throws IOException {
+        String lower = name.toLowerCase(Locale.ROOT);
+        if (name.isBlank() || archiveLowerIndex.containsKey(lower)) {
+            throw new IOException("PATH_CONFLICT: invalid or duplicate YSM resource " + name);
+        }
+        archiveFiles.put(name, path);
+        archiveLowerIndex.put(lower, name);
     }
 
     public List<Path> listRootPaths() {
@@ -160,29 +258,31 @@ public class YsmPackage implements AutoCloseable {
 
     private void indexArchive(Path archiveRoot) throws IOException {
         Map<String, Path> rawFiles = new LinkedHashMap<>();
+        long total = 0;
         try (Stream<Path> stream = Files.walk(archiveRoot)) {
-            for (Path path : stream.filter(Files::isRegularFile).toList()) {
+            var iterator = stream.filter(Files::isRegularFile).iterator();
+            while (iterator.hasNext()) {
+                YsmResourceLimits.checkCancelled(() -> false);
+                Path path = iterator.next();
                 String normalized = normalize(archiveRoot.relativize(path).toString());
-                if (!normalized.isBlank())
-                    rawFiles.putIfAbsent(normalized, path);
+                long bytes = Files.size(path);
+                total += bytes;
+                limits.checkResource(bytes, total, rawFiles.size() + 1, normalized);
+                if (normalized.isBlank() || rawFiles.putIfAbsent(normalized, path) != null) {
+                    throw new IOException("PATH_CONFLICT: invalid or duplicate archive resource");
+                }
             }
         }
 
         String rootPrefix = detectArchiveModelRoot(rawFiles.keySet());
         String lowerPrefix = rootPrefix.toLowerCase(Locale.ROOT);
-        rawFiles.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
+        for (var entry : rawFiles.entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
             String normalized = entry.getKey();
             if (!lowerPrefix.isEmpty() && normalized.toLowerCase(Locale.ROOT).startsWith(lowerPrefix))
                 normalized = normalized.substring(rootPrefix.length());
             normalized = normalize(normalized);
-            if (normalized.isBlank())
-                return;
-            String lower = normalized.toLowerCase(Locale.ROOT);
-            if (archiveFiles.containsKey(normalized) || archiveLowerIndex.containsKey(lower))
-                return;
-            archiveFiles.put(normalized, entry.getValue());
-            archiveLowerIndex.put(lower, normalized);
-        });
+            addIndexedResource(normalized, entry.getValue());
+        }
     }
 
     private static String detectArchiveModelRoot(Iterable<String> names) {
@@ -224,7 +324,7 @@ public class YsmPackage implements AutoCloseable {
         for (String segment : path.split("/+")) {
             if (segment.isBlank() || segment.equals("."))
                 continue;
-            if (segment.equals(".."))
+            if (segment.equals("..") || segment.contains(":") || segment.indexOf('\0') >= 0)
                 return null;
             segments.add(segment);
         }
@@ -239,6 +339,7 @@ public class YsmPackage implements AutoCloseable {
 
     @Override
     public void close() {
+        closed = true;
         if (zipFileSystem != null) {
             try {
                 zipFileSystem.close();

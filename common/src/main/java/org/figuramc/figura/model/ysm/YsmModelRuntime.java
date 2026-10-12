@@ -13,6 +13,7 @@ import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.control.AvatarControlDefinition;
 import org.figuramc.figura.avatar.control.AvatarControlType;
 import org.figuramc.figura.avatar.ysm.YsmAvatarKind;
+import org.figuramc.figura.avatar.ysm.YsmModelData;
 import org.figuramc.figura.lua.api.action_wheel.Action;
 import org.figuramc.figura.lua.api.action_wheel.ActionWheelAPI;
 import org.figuramc.figura.lua.api.action_wheel.Page;
@@ -106,6 +107,16 @@ public class YsmModelRuntime implements AutoCloseable {
             }
         }
 
+        return assemble(owner, tag, geometry, armGeometry);
+    }
+
+    public static YsmModelRuntime fromData(Avatar owner, YsmModelData data,
+                                           CompoundTag tag) throws java.io.IOException {
+        return assemble(owner, tag, data.mainGeometry(), data.armGeometry());
+    }
+
+    private static YsmModelRuntime assemble(Avatar owner, CompoundTag tag, YsmGeometry geometry,
+                                             YsmGeometry armGeometry) throws java.io.IOException {
         byte[] textureBytes = tag.getByteArray("texture").orElse(new byte[0]);
         Map<String, byte[]> textureData = readTextureEntries(tag);
         String textureId = tag.getStringOr("texture_id", "ysm_texture");
@@ -116,23 +127,37 @@ public class YsmModelRuntime implements AutoCloseable {
         FiguraTexture texture = new FiguraTexture(owner, textureId, selectedTexture.length == 0 ? onePixelPng() : selectedTexture);
         String kind = tag.getStringOr("kind", YsmAvatarKind.NONE.name());
         String modelKey = tag.getStringOr("source_path", tag.getStringOr("main_model_path", "ysm"));
+        if (tag.contains("content_sha256")) {
+            modelKey = "ysm:" + tag.getIntOr("engine_schema_version", 1) + ":" + tag.getStringOr("content_sha256", "");
+        }
         float defaultWidthScale = tag.getFloatOr("width_scale", DEFAULT_YSM_SCALE);
         float defaultHeightScale = tag.getFloatOr("height_scale", DEFAULT_YSM_SCALE);
-        YsmModelRuntime runtime = new YsmModelRuntime(owner, geometry, armGeometry, texture, textureId, textureTranslucent, kind, modelKey, textureData, defaultWidthScale, defaultHeightScale);
-        runtime.readSubEntities(tag, selectedTexture);
-        MolangEngine ysmMolangEngine = MolangEngine.fromCustomBinding(owner.getAvatarBindings());
-        runtime.animationPlayer.registerAnimations(readAnimations(tag, ysmMolangEngine));
-        runtime.animationPlayer.registerControllers(readAnimationControllers(tag, ysmMolangEngine));
-        runtime.functions.load(tag.getListOrEmpty("functions"));
-        runtime.animationPlayer.startBaseAnimations();
-        runtime.registerDefaultControls();
-        runtime.readActionSchemas(tag);
-        if (runtime.actions.all().isEmpty())
-            runtime.actions.buildDefaultsFromAnimations();
-        runtime.registerDiscoveredControls(tag);
-        owner.controls.loadSavedValues(owner);
-        owner.controls.syncAll(owner);
-        return runtime;
+        YsmModelRuntime runtime = null;
+        try {
+            runtime = new YsmModelRuntime(owner, geometry, armGeometry, texture, textureId,
+                    textureTranslucent, kind, modelKey, textureData, defaultWidthScale, defaultHeightScale);
+            runtime.readSubEntities(tag, selectedTexture);
+            MolangEngine ysmMolangEngine = MolangEngine.fromCustomBinding(owner.getAvatarBindings());
+            runtime.animationPlayer.registerAnimations(readAnimations(tag, ysmMolangEngine));
+            runtime.animationPlayer.registerControllers(readAnimationControllers(tag, ysmMolangEngine));
+            runtime.functions.load(tag.getListOrEmpty("functions"));
+            runtime.animationPlayer.startBaseAnimations();
+            runtime.registerDefaultControls();
+            runtime.readActionSchemas(tag);
+            if (runtime.actions.all().isEmpty())
+                runtime.actions.buildDefaultsFromAnimations();
+            runtime.registerDiscoveredControls(tag);
+            owner.controls.loadSavedValues(owner);
+            owner.controls.syncAll(owner);
+            return runtime;
+        } catch (Exception e) {
+            if (runtime == null) {
+                texture.close();
+            } else {
+                runtime.close();
+            }
+            throw e;
+        }
     }
 
     private static Map<String, byte[]> readTextureEntries(CompoundTag tag) {
