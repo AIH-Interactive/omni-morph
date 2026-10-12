@@ -39,7 +39,37 @@
 
 这些排除项之外，Sparkle-Morpher 对 YSM 单人体验有价值的行为都需要在本计划中给出对齐方式或差异处理。
 
+> **完成度计算口径（2026-08-19 更新）：** 完成度只统计代码实现和可执行的自动检查，包括编译、单元/smoke test、scanner、validator、报告生成和可自动判定的资源/JSON 引用错误。需要手动进入游戏或客户端观察、操作才能确认的内容，不进入完成度分母，统一记录为“实机验证”，不因尚未手测而扣分。A-M 工作包及其未实现的代码、缺失的自动诊断仍按缺口计入。
+>
+> **不计入完成度的实机验证示例：** 第三人称实际画面、切换回普通 Figura 后的画面、透明材质遮挡、附件是否误显示、第一人称手臂、手持物品是否漂移、轮盘/控件实际操作、controller 动作视觉表现、extra animation 的游戏内显隐和动作手感。这些项目仍是最终交付验收项，但不再作为源码完成度的扣分项。
+
 ## 3. 当前完成进度基线
+
+### 3.1 状态快照（2026-08-19）
+
+- **阶段完成度：约 70%-72%**。这是基于 A-M 13 个工作包的等权代码实现和自动诊断完成度粗估，不是最终验收通过率；手动进入游戏的实机验证不计入该百分比。
+- **已经形成的主链：** 未加密 YSM 文件夹/zip 识别、逻辑资源索引、文件夹/zip 一致读取、主模型几何解析、Figura 原生第三人称渲染、基础动画、functions、controller 基础状态机、轮盘/controls、Lua/debug API。
+- **最大功能缺口：** projectile/vehicle 独立 runtime、复杂 controller 语义、per-bone 动画叠加队列、Molang 完整兼容、第一人称复杂动作实现，以及 function 编译和完整引用诊断。
+- **已完成的基础验证：** `:common:compileJava`、`:common:compileTestJava`、`:fabric:compileJava`、`:common:test`、`:common:ysmPackageSmokeTest` 均通过；`refs/avatars` 全量 scanner 已发现 35 个模型，其中 33 个有效、2 个因模型资源引用错误失败。进游戏验证不属于上述完成度。
+- **不纳入计算的内容：** 模型加密、SIMD/native/GPU 加速、模型和动作同步，以及所有必须手动进入游戏/客户端才能确认的实机表现；这些内容保持独立验收状态。
+
+### 3.2 全量模型诊断入口
+
+当前 `YsmModelScanner` 和 Gradle 任务默认扫描 `refs/avatars`，后续无需手动指定模型目录：
+
+```powershell
+.\gradlew.bat :common:scanYsmModels
+```
+
+需要保存可复用的汇总报告时：
+
+```powershell
+.\gradlew.bat :common:scanYsmModels "-PysmScanReport=build/reports/ysm/avatars-report"
+```
+
+需要展开骨骼、locator、animation、controller、function、action、control、subentity 和 unsupported binding 明细时，可追加 `-PysmScanDump=true`。也可以用 `-PysmScanPath=<相对仓库根目录的路径>` 临时覆盖扫描根目录；默认全量范围仍为 `refs/avatars`。
+
+2026-08-19 的全量结果为 **35 个模型、33 个有效、2 个发现资源引用错误**；报告已额外输出 `languages`、`projectiles`、`vehicles` 和 `warnings` 计数。失败项为 `08_sta` 的缺失 controller transition target 和 `16_tactics` 的缺失 animation 引用。该结果属于自动诊断，计入 M 工作包；进入游戏验证不计入完成度。
 
 结合前序计划和当前代码结构，第一大阶段已有基础如下：
 
@@ -94,7 +124,7 @@
   - `lua/api/ysm_model/YsmModelAPI`
   - YSM 骨骼访问和部分运行时调试入口。
 
-当前状态已经超过原始第一阶段静态闭环，进入了 Sparkle-Morpher 运行时语义对齐阶段。但仍需要系统化补齐 slot、binding、transition、第一人称、子实体动画、诊断工具和回归测试，避免后续继续靠单模型硬编码修复。
+当前状态已经超过原始第一阶段静态闭环，进入了 Sparkle-Morpher 运行时语义对齐阶段。按当前源码证据，基础加载和渲染链已成型，但还不能宣称第一大阶段完成；仍需要系统化补齐 slot/binding/transition、第一人称、子实体动画、诊断工具和回归测试，避免后续继续靠单模型硬编码修复。
 
 ## 4. Sparkle-Morpher 对齐原则
 
@@ -142,33 +172,83 @@
 
 ## 5. 能力矩阵
 
-| 能力 | Sparkle-Morpher 行为 | Figura 第一大阶段目标 | 当前状态 | 优先级 |
-| --- | --- | --- | --- | --- |
-| 未加密文件夹模型 | 自动识别 YSM 文件夹 | 衣柜直接加载 | 已有 | P0 |
-| zip 模型 | 嗅探 zip 内容 | 文件夹/zip 表现一致 | 已有 | P0 |
-| 加密 `.ysm` | YSMParser/native 链路 | 排除，仅预留接口 | 不做 | 排除 |
-| 主模型几何 | RawYsmModel -> GeoModel | `YsmGeometry` -> `YsmRenderer` | 已有 | P0 |
-| 手臂模型 | arm model 独立处理 | `armGeometry` + first-person renderer | 部分 | P0 |
-| 贴图选择 | texture/subTexture 管理 | 衣柜右键 + 持久化 | 已有 | P0 |
-| PartMask | 角色/渲染 pass 控制 | `YsmBoneRole` / `YsmPartMask` | 部分 | P0 |
-| Locator | 手、背包、刀鞘等挂点 | `YsmLocator` / attachment point | 部分 | P0 |
-| 静态第三人称 | 替换原版玩家 | YSM submit 后 cancel 原管线 | 已有 | P0 |
-| 第三人称物品 | Locator/手骨矩阵 | 不依赖原版 `ArmedModel` | 部分 | P0 |
-| 第一人称手臂 | 自定义手臂替换 | 不显示 Steve/Alex 手臂 | 部分 | P0 |
-| 基础动画 | idle/walk/run 等 | native state machine + clip 播放 | 已有/需回归 | P0 |
-| extra animation | 轮盘触发 | Figura action wheel/control 适配 | 已有/需完善 | P0 |
-| 默认隐藏 | base/pre_parallel 零 scale | base hidden mask + 非零 scale 恢复 | 已有/需回归 | P0 |
-| controller | 完整 slot/state runtime | JSON controller + slot binder | 部分 | P0 |
-| functions | function/event 双语义 | `YsmMolangFunctionRuntime` 完整化 | 部分 | P0 |
-| Molang binding | 大量 `ctrl.*` / `ysm.*` | 分 P0/P1/P2 补齐 | 部分 | P0/P1 |
-| sound/particle | timeline executor | 本地播放基础支持 | 部分 | P1 |
-| projectile | 子模型 + controller | 本地 projectile 模型和动画 | 部分 | P1 |
-| vehicle | 子模型 + origin/ride/move | 本地 vehicle 模型和基础 controller | 缺口较大 | P1 |
-| Geckolib transition | bone queue + begin/end transition | 可维护的简化队列，逐步逼近 | 缺口较大 | P1 |
-| 模型/动作同步 | 服务器 Mod packet | 排除，不迁移 | 不做 | 排除 |
-| native/SIMD | 原生加速 | 排除，不迁移 | 不做 | 排除 |
+> 表中百分比是代码实现和可执行自动诊断完成度的粗估，不代表真实模型的游戏内表现通过率。需要手动进入游戏确认的项目单独记录为“实机验证”，不计入百分比。标记为“排除”的项目也不计入第一大阶段完成度。
+
+| 能力 | Sparkle-Morpher 行为 | Figura 第一大阶段目标 | 完成度 | 当前状态与主要缺口 | 优先级 |
+| --- | --- | --- | ---: | --- | --- |
+| 未加密文件夹模型 | 自动识别 YSM 文件夹 | 衣柜直接加载 | 80% | 主链已形成；`refs/avatars` 全量 scanner 已覆盖 35 个模型，衣柜内实际显示/切换属于实机验证。 | P0 |
+| zip 模型 | 嗅探 zip 内容 | 文件夹/zip 表现一致 | 90% | `YsmPackage` 已支持根目录/包装目录、Windows 反斜杠条目、大小写回退和关闭释放；`YsmPackageSmokeTest` 已锁定目录/zip 一致性。 | P0 |
+| 加密 `.ysm` | YSMParser/native 链路 | 排除，仅预留接口 | 排除 | 不参与计算。 | 排除 |
+| 主模型几何 | RawYsmModel -> GeoModel | `YsmGeometry` -> `YsmRenderer` | 80% | 原生解析和提交已接通；视觉是否正确属于实机验证，不计入百分比。 | P0 |
+| 手臂模型 | arm model 独立处理 | `armGeometry` + first-person renderer | 65% | arm 模型和主模型 fallback 已有；复杂第一人称动作尚未证明。 | P0 |
+| 贴图选择 | texture/subTexture 管理 | 衣柜右键 + 持久化 | 80% | 选择、切换、持久化代码已有；附属纹理和透明材质组合属于实机验证。 | P0 |
+| PartMask | 角色/渲染 pass 控制 | `YsmBoneRole` / `YsmPartMask` | 65% | 角色和 pass 已有；完整背景/GUI/附件误显示回归不足。 | P0 |
+| Locator | 手、背包、刀鞘等挂点 | `YsmLocator` / attachment point | 65% | locator、attachment、world matrix 已有；语义映射仍主要依赖名称启发式。 | P0 |
+| 静态第三人称 | 替换原版玩家 | YSM submit 后 cancel 原管线 | 85% | 主渲染接管和原版取消代码路径已确认；实际画面和切换/卸载属于实机验证。 | P0 |
+| 第三人称物品 | Locator/手骨矩阵 | 不依赖原版 `ArmedModel` | 65% | 手骨/locator transform 已有；不同模型坐标和复杂物品姿态未全覆盖。 | P0 |
+| 第一人称手臂 | 自定义手臂替换 | 不显示 Steve/Alex 手臂 | 65% | arm model、主模型裁剪和左右手筛选已有；复杂使用动作缺口明显。 | P0 |
+| 基础动画 | idle/walk/run 等 | native state machine + clip 播放 | 75% | clip 采样、native state、基础动作已有；动作视觉表现属于实机验证。 | P0 |
+| extra animation | 轮盘触发 | Figura action wheel/control 适配 | 80% | action runtime、互斥、速度、冷却、布局已有；轮盘操作和停止后显隐属于实机验证。 | P0 |
+| 默认隐藏 | base/pre_parallel 零 scale | base hidden mask + 非零 scale 恢复 | 75% | 运行时逻辑已有；loop/transition 边界和多 controller 组合未充分验证。 | P0 |
+| controller | 完整 slot/state runtime | JSON controller + slot binder | 60% | initial/state/transition/entry/exit/blend 已有；shortest path、nested controller、controller sound 未闭环。 | P0 |
+| functions | function/event 双语义 | `YsmMolangFunctionRuntime` 完整化 | 80% | `fn.*`、事件、args、递归保护和 slot event 已有；真实模型函数链、错误诊断仍不足。 | P0 |
+| Molang binding | 大量 `ctrl.*` / `ysm.*` | 分 P0/P1/P2 补齐 | P0 75%；P1 45% | 常见 P0 已覆盖；particle、bone function、perlin、mouse、mod compat、子实体 query 仍有 fallback/no-op。 | P0/P1 |
+| sound/particle | timeline executor | 本地播放基础支持 | 55% | 动画事件可解析和触发；controller sound、loop 边界去重、完整参数语义未完成。 | P1 |
+| projectile | 子模型 + controller | 本地 projectile 模型和动画 | 40% | arrow/trident 资源和静态 hook 已有；独立 animation/controller/Molang context 未运行。 | P1 |
+| vehicle | 子模型 + origin/ride/move | 本地 vehicle 模型和基础 controller | 15% | 资源旁路结构已有；vehicle renderer hook、slot 和 ride 联动基本缺失。 | P1 |
+| Geckolib transition | bone queue + begin/end transition | 可维护的简化队列，逐步逼近 | 45% | fade/weight 基础叠加已有；per-bone queue、嵌套 controller、优先级和边界事件仍是主要缺口。 | P1 |
+| 模型/动作同步 | 服务器 Mod packet | 排除，不迁移 | 排除 | 不参与计算。 | 排除 |
+| native/SIMD | 原生加速 | 排除，不迁移 | 排除 | 不参与计算。 | 排除 |
+
+## 5.1 完成状态标记
+
+- **已形成主链：** 资源/几何/基础渲染、基础 clip 播放、functions、action/control、Lua/debug 已能在 Figura 架构内运行。
+- **部分完成：** PartMask/Locator、controller、Molang binding、第一人称、sound/particle、projectile 仍有可用路径，但不能按 Sparkle-Morpher 完整语义宣称完成。
+- **主要缺口：** vehicle 本地 runtime、独立子实体动画/controller、per-bone 动画队列、复杂 transition、完整 P1/P2 binding、function 编译和 render-pass/引用分类诊断。
+- **排除：** 加密 `.ysm`、SIMD/native/GPU 加速、模型和动作同步不参与完成度计算。
 
 ## 6. 第一大阶段工作包
+
+### 6.0 A-M 工作包状态总表（2026-08-19）
+
+| 工作包 | 完成度 | 当前状态 | 主要缺口 |
+| --- | ---: | --- | --- |
+| A 资源索引与包格式闭环 | 90% | 新旧 manifest、文件夹/zip 逻辑索引、包装目录、反斜杠条目、大小写回退、可选资源 warning、language/projectile/vehicle 路径和 debug resource index 已接通；全量 scanner 已发现 35 个模型。 | 更广泛的异常压缩包和极端资源边界仍可补充；衣柜显示/切换属于实机验证，不计分。 |
+| B 原生几何、坐标与渲染提交 | 80% | `YsmGeometryParser`、`YsmRenderer` 和原版渲染取消路径已接通。 | 自动测试尚未覆盖全部坐标/透明材质/render pass 组合；实际画面和切换/卸载属于实机验证，不计分。 |
+| C PartMask、Locator 与附件语义 | 60%-65% | Bone role、PartMask、locator、attachment 和 world matrix 已有。 | 语义骨骼映射仍偏名称启发式；背景/GUI/附件 pass 和 locator 矩阵自动回归不足。游戏内误显示属于实机验证，不计分。 |
+| D 动画 clip 与默认隐藏 | 70%-80% | position/rotation/scale、插值、loop/once/hold、timeline 和隐藏恢复逻辑已实现。 | 多层动画优先级、loop/transition 边界和停止后 pose 的自动测试不足；动作视觉表现属于实机验证，不计分。 |
+| E Animation Controller 运行时 | 55%-65% | initial state、state、transition、entry/exit、blend 和 slot event 已有。 | `blend_via_shortest_path` 未实际使用，nested controller、controller sound、完整 slot 语义未闭环。 |
+| F Functions Molang 包完整化 | 75%-85% | `fn.*`、事件文件、args、多语句、return、递归保护和 slot 绑定已实现。 | 真实模型 functions 全量执行证据、vehicle/projectile event、上下文错误诊断不足。 |
+| G Molang Binding 对齐 | P0 65%-80%；P1 35%-55% | 常用 ctrl/ysm/q 基础 binding 已覆盖。 | placeholder/no-op binding、unsupported query 的用户可见反馈、P1/P2 和子实体 query。 |
+| H 轮盘、控件与 Figura UI 适配 | 75%-85% | extra animation、分类、controls、8 槽布局和 per-model 持久化已有。 | schema/control binding 的自动一致性检查仍不足；轮盘操作和控件实际驱动效果属于实机验证，不计分。 |
+| I 第一人称与手持物品 | 60%-70% | arm model、主副手 locator/bone transform 和基础物品类型已有。 | 复杂攻击/使用/拉弓/举盾动作的实现仍不完整，模型差异下的矩阵自动回归也不足；进入游戏观察不计分。 |
+| J Projectile 与 Vehicle 本地支持 | projectile 35%-45%；vehicle 10%-20% | projectile/vehicle 资源已进入基础结构，arrow/trident 有静态 hook。 | projectile 独立 animation/controller；vehicle renderer hook、slot、ride 联动和安全回退。 |
+| K 动画过渡与事件执行器 | 40%-50% | 基础 fade、权重、once/hold、sound/particle 事件执行已有。 | per-bone queue、beginning/ending transition、loop 边界去重、action/controller/native 优先级。 |
+| L Lua API 与调试 | 75%-90% | part、locator、attachment、world matrix、animation、controller、function、action、control、subentity API 已有。 | unsupported query 专门 API、Lua 写入优先级的自动回归和调试报告完整性仍不足；游戏内 Lua 行为验证不计分。 |
+| M 测试、扫描器与回归模型集 | 70%-75% | scanner/validator 已覆盖 `refs/avatars` 35 个模型，33 个有效、2 个发现资源引用错误。 | function 编译检查、render pass 分类、完整资源引用报告仍需补齐；真实渲染测试属于实机验证，不计分。 |
+
+**阶段判断：未完成。** 以 A-M 的代码实现和自动诊断覆盖粗估，当前约为 **70%-72%**；排除项和手动实机验证不在分母内。J、K、M 是代码/自动诊断完整交付的主要阻断项，E、G、I 是复杂模型可用性的主要风险项。
+
+### 6.0.1 主要缺口排序
+
+1. **M：自动诊断完整性。** `refs/avatars` 全量 scanner 已运行，共 35 个模型、33 个有效、2 个发现资源引用错误（`08_sta`、`16_tactics`）；仍缺 function 编译检查、render pass 分类和更完整的引用语义报告。真实渲染/行为回归单独列为实机验证，不计入完成度。
+2. **J：子实体独立 runtime。** `YsmSubEntity` 已保存 projectile/vehicle 的模型、贴图、animation/controller 资源，但当前 subentity 渲染仍是静态路径；需要独立 animation player、controller、Molang context，以及 vehicle renderer hook。
+3. **K：动画叠加和过渡。** 当前是 active animation 按 weight 叠加到 part；相较 Sparkle 的 per-bone queue 和 nested controller，仍缺 beginning/ending transition、优先级、loop 边界事件去重和复杂状态切换稳定性。
+4. **E/G：controller 与 binding 语义。** `blend_via_shortest_path` 已解析但 runtime 未使用；controller sound、部分 P1/P2 binding、placeholder/no-op query 和 unsupported binding 的可见反馈仍需补齐。
+5. **I/C：第一人称和挂点兼容性。** 基础 arm/hand locator 路径存在，但复杂攻击、使用、拉弓、举盾动作，以及不同骨骼命名和坐标布局下的矩阵稳定性尚未完成回归。
+
+> **计算提醒：** J、K、M 虽然部分任务标为 P1 或测试任务，但它们属于第一大阶段目标，仍计入完成度；第 2 节明确列出的加密、native/SIMD/GPU、模型和动作同步，以及本节列出的手动实机验证，不计入完成度。
+
+### 6.0.2 实机验证清单（不计入完成度）
+
+以下项目需要启动 Minecraft/客户端，通过画面或交互确认；它们保留在计划中作为发布验收，不作为代码完成度扣分项：
+
+- 衣柜中模型的显示、加载、切换、卸载，以及切回普通 Figura Avatar 后的画面恢复。
+- 第三人称身体是否叠加原版模型、透明材质是否遮挡、背景/GUI/附件是否误显示。
+- 第一人称是否隐藏原版手臂，剑、镐、盾、弓、弩、三叉戟等物品是否漂移或倒置。
+- idle/walk/run、extra animation、controller transition、默认隐藏和动作互斥的实际视觉表现。
+- action wheel 操作、controls 修改后模型表现是否在同帧或下一帧生效。
+- Lua 读取/修改骨骼后的实际画面，以及 projectile/vehicle 的实际显示和安全回退。
 
 ### 工作包 A：资源索引与包格式闭环
 
@@ -206,9 +286,11 @@
 
 验收：
 
-- `refs/YSM_NEW_Model`、`refs/YSM_OLD_Model`、`refs/01_taisho_maid`、`refs/15_kluonoa` 均能扫描出资源报告。
-- 缺少可选资源只 warning，不阻断主模型加载。
-- 文件夹和 zip 扫描结果一致。
+- `refs/avatars/YSM_NEW_Model`、`refs/avatars/YSM_OLD_Model`、`refs/avatars/01_taisho_maid`、`refs/avatars/15_kluonoa` 均能扫描出资源报告；`refs/avatars` 全量扫描结果为 35 个模型、33 个有效、2 个资源引用错误。
+- `YsmPackageSmokeTest` 已自动验证新版/旧版目录和 zip、第一层包装目录、Windows 反斜杠条目、大小写回退、路径越界拒绝和关闭后文件移动。
+- 缺少可选资源进入 resource index warnings，并写入 scanner 报告和 Avatar debug NBT，不阻断主模型；缺少主模型仍按错误处理。
+- resource index 已覆盖 main/arm、animation/controller/function、texture/sound、language、projectile/vehicle、icon/background 和 metadata；文件夹和 zip 的逻辑索引结果一致。
+- 可执行入口：`.\gradlew.bat :common:ysmPackageSmokeTest`、`.\gradlew.bat :common:scanYsmModels "-PysmScanReport=build/reports/ysm/workpackage-a-report"`。
 
 ### 工作包 B：原生几何、坐标与渲染提交
 
@@ -641,6 +723,32 @@ P2 绑定：
 
 ## 9. 第一大阶段最终验收清单
 
+### 9.1 当前验收状态（2026-08-19）
+
+> 本表是第一大阶段的发布验收清单，不等同于上面的代码/自动诊断完成度。标记为“实机验证”的内容需要进入游戏确认，但不进入完成度分母；标记为“代码缺口”的内容仍然计入完成度。
+
+| 验收项 | 当前状态 | 说明 |
+| --- | --- | --- |
+| 未加密 YSM 文件夹和 zip 在衣柜中显示、加载、卸载 | 实机验证 | 识别和主加载链已有；衣柜显示、切换、卸载需要进入游戏确认，不计入完成度。 |
+| 新版和旧版 YSM 模型结构可用 | 自动部分已验证；实机验证 | `YSM_NEW_Model`、`YSM_OLD_Model` 已被 scanner 识别；实际游戏行为不计入完成度。 |
+| 贴图选择、热切换、持久化 | 实机验证 | 选择存储和纹理切换路径已有；透明/附属纹理组合需要进入游戏确认，不计分。 |
+| YSM 不叠加原版玩家身体和 Figura 身体 | 实机验证 | render mixin 接管和取消原管线代码路径已确认；实际画面不计入完成度。 |
+| 主/手臂/贴图/animation/controller/functions/actions/controls/projectile/vehicle 可扫描诊断 | 自动部分已验证；代码缺口 | `refs/avatars` 已扫描 35 个模型，33 个有效、2 个发现资源引用错误；子实体独立 runtime 仍不完整。 |
+| PartMask 阻止背景、GUI、展示附件进入身体 pass | 代码部分完成；实机验证 | role/mask 代码已有；误显示的游戏内观察不计入完成度，自动 pass 覆盖仍可补充。 |
+| Locator 驱动手持物品和 Lua world matrix | 代码部分完成；实机验证 | locator/bone chain 和 Lua API 已有；复杂坐标表现需要进入游戏确认，不计分。 |
+| idle/walk/run/sneak/jump/fall/swim/ride/sleep | 代码部分完成；实机验证 | native state 和 clip 播放已有；ride 等复杂状态的游戏内表现不计入完成度。 |
+| extra animation 触发、停止、互斥、恢复隐藏 | 代码部分完成；实机验证 | action runtime 已有；边界状态的实际视觉表现不计入完成度，运行时缺口仍计分。 |
+| controller initial/state/transition/entry/exit | 代码部分完成 | 基础 runtime 已有；shortest path、nested controller、sound 未完成，属于代码缺口。 |
+| functions `fn.*` 和 `@player_ctrl_*` 接入 slot | 代码部分完成 | parser/runtime/slot binder 已有；function 编译和完整自动诊断仍需补齐。 |
+| controls 变量驱动 functions/controller/animation | 代码部分完成；实机验证 | binding 写入链已实现；实际同帧/下一帧表现需要进入游戏确认，不计分。 |
+| 第一人称不显示原版手臂、常见物品不明显错位 | 代码部分完成；实机验证 | arm 和基础物品变换已有；复杂使用动作实现缺口计分，实际错位观察不计分。 |
+| projectile/vehicle 本地显示或安全回退 | 代码缺口；实机验证 | projectile 有静态 hook；独立动画/controller 和 vehicle hook 尚缺，游戏内显示结果不计分。 |
+| `ysm_model` Lua API 读写骨骼和 world matrix | 代码部分完成；实机验证 | API 覆盖较广；unsupported query 和自动写入优先级测试仍需补齐，实际画面不计分。 |
+| scanner/debug 定位 resource/geometry/animation/controller/function/binding/render pass | 自动部分已验证；代码缺口 | scanner/validator 已完成全量基础扫描；function 编译、render pass 分类和完整引用报告尚未完整。 |
+| `:common:compileJava`、`:fabric:compileJava` | 已验证 | 本轮 Gradle 编译通过。 |
+
+以下最终清单仍是发布门槛，但其中需要进入游戏确认的条目不参与上面的完成度计算：
+
 第一大阶段完成时，必须满足：
 
 - 未加密 YSM 文件夹和 zip 能在衣柜中显示、加载、卸载。
@@ -665,6 +773,25 @@ P2 绑定：
 
 ## 10. 最小可交付版本
 
+### 10.1 当前判断
+
+**代码/自动诊断口径：约 70%-72%，尚未完成；发布口径：仍需完成实机验证。**
+
+编译基线和基础运行主链已经具备。按不计算手动进游戏测试的口径，当前最小版本仍缺少以下代码或自动诊断能力：
+
+- function 文件编译和错误定位；
+- controller/animation 全量引用、slot 和 unsupported binding 的自动诊断；
+- projectile 独立 animation/controller/Molang runtime；
+- vehicle renderer hook、slot、ride 联动和安全回退代码；
+- per-bone 动画队列、复杂 transition 和 loop 边界事件执行器。
+
+以下内容仍需实机确认，但不再作为完成度缺口：
+
+- 第一人称手臂和基础手持物品的实际画面；
+- controls -> functions/controller/animation 的同帧或下一帧游戏内表现；
+- controller 复杂过渡、默认隐藏恢复和动作互斥的视觉表现；
+- `projectile/vehicle` 资源存在时的实际显示和安全回退画面。
+
 若需要先收敛范围，第一大阶段最小可交付版本定义为：
 
 - 文件夹/zip 未加密 YSM 加载。
@@ -677,10 +804,10 @@ P2 绑定：
 - functions `fn.*` + `player_ctrl_parallel_*`。
 - controls 写入变量并驱动模型显隐。
 - 第一人称手臂和基础手持物品。
-- scanner 能覆盖 `refs/YSM_NEW_Model`、`refs/YSM_OLD_Model`、`refs/01_taisho_maid`、`refs/15_kluonoa`。
+- scanner 已覆盖 `refs/avatars` 下的 35 个模型，其中包含 `YSM_NEW_Model`、`YSM_OLD_Model`、`01_taisho_maid`、`15_kluonoa`；当前结果为 33 个有效、2 个资源引用错误。
 - common/fabric 编译通过。
 
-这个版本可以先宣告“单人未加密 YSM 可用”，后续再把 projectile/vehicle 完整动画、Geckolib 队列、更多 binding、sound/particle executor 作为增强项推进。
+达到上面列出的代码/自动诊断项并完成独立的实机验证后，才可以宣告“单人未加密 YSM 可用”；projectile/vehicle 完整动画、Geckolib 队列、更多 binding、sound/particle executor 仍可作为后续增强项，但当前尚未达到该宣告条件。
 
 ## 11. 风险与控制
 
