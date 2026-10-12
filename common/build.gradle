@@ -92,6 +92,10 @@ tasks.register("scanYsmModels", JavaExec) {
     if (scanReport != null) {
         args "--report", rootProject.file(scanReport).path
     }
+    def scanBaseline = project.findProperty("ysmScanBaseline")
+    if (scanBaseline != null) {
+        args "--baseline", rootProject.file(scanBaseline).path
+    }
 }
 
 tasks.register("ysmPhase41SmokeTest", JavaExec) {
@@ -108,4 +112,12 @@ tasks.register("ysmPackageSmokeTest", JavaExec) {
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "org.figuramc.figura.avatar.ysm.YsmPackageSmokeTest"
+}
+
+tasks.register("ysmBaselineSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks YSM candidate discovery, diagnostics, and strict scan gates using synthetic fixtures."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmBaselineSmokeTest"
 }
