@@ -5,7 +5,10 @@ import net.minecraft.nbt.CompoundTag;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.local.CacheAvatarLoader;
 import org.figuramc.figura.backend2.NetworkStuff;
+import org.figuramc.figura.avatar.ysm.YsmLoadGeneration;
+import org.figuramc.figura.avatar.ysm.YsmModelData;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Queue;
@@ -15,6 +18,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class UserData {
 
     public final UUID id;
+    public final YsmLoadGeneration ysmLoads = new YsmLoadGeneration();
     private final Queue<Avatar> avatars = new ConcurrentLinkedQueue<>();
     private Pair<BitSet, BitSet> badges;
 
@@ -34,11 +38,43 @@ public class UserData {
     }
 
     public void loadAvatar(CompoundTag nbt) {
+        ysmLoads.begin();
         FiguraMod.debug("--- avatar loading: " + id + " ---");
         Avatar avatar = new Avatar(id);
         this.avatars.add(avatar);
         avatar.load(nbt);
         FiguraMod.debug("--- loaded " + id + " ---");
+    }
+
+    public boolean loadYsmAvatar(CompoundTag nbt, YsmModelData data,
+                                  long generation) throws IOException {
+        if (!ysmLoads.current(generation)) {
+            return false;
+        }
+        Avatar prepared = new Avatar(id);
+        try {
+            prepared.load(nbt, data);
+            if (!prepared.loaded || prepared.getYsmRuntime() == null) {
+                throw new IOException("RUNTIME_ASSEMBLY_FAILED: YSM avatar was not prepared");
+            }
+            if (!ysmLoads.publish(generation, () -> {
+                for (Avatar previous : avatars) {
+                    previous.clean();
+                }
+                avatars.clear();
+                avatars.add(prepared);
+            })) {
+                prepared.clean();
+                return false;
+            }
+            return true;
+        } catch (Exception e) {
+            prepared.clean();
+            if (e instanceof IOException io) {
+                throw io;
+            }
+            throw new IOException("RUNTIME_ASSEMBLY_FAILED: YSM avatar preparation failed", e);
+        }
     }
 
     public void loadBadges(Pair<BitSet, BitSet> pair) {
@@ -58,8 +94,12 @@ public class UserData {
     }
 
     public void clear() {
-        for (Avatar avatar : avatars)
-            avatar.clean();
-        avatars.clear();
+        long generation = ysmLoads.begin();
+        ysmLoads.publish(generation, () -> {
+            for (Avatar avatar : avatars) {
+                avatar.clean();
+            }
+            avatars.clear();
+        });
     }
 }

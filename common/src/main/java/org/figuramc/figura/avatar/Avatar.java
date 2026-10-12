@@ -38,6 +38,7 @@ import org.figuramc.figura.animation.Animation;
 import org.figuramc.figura.animation.AnimationPlayer;
 import org.figuramc.figura.backend2.NetworkStuff;
 import org.figuramc.figura.avatar.control.AvatarControlRuntime;
+import org.figuramc.figura.avatar.ysm.YsmModelData;
 import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.ducks.FiguraEntityRenderStateExtension;
 import org.figuramc.figura.ducks.NodeCollectorExtension;
@@ -649,6 +650,10 @@ public class Avatar {
     }
 
     public void load(CompoundTag nbt) {
+        load(nbt, null);
+    }
+
+    public void load(CompoundTag nbt, YsmModelData ysmData) {
         Runnable toRun = () -> {
             this.nbt = nbt;
             loaded = false;
@@ -699,7 +704,9 @@ public class Avatar {
 
                 if (metadata.getStringOr("format", "").equals("ysm-native") && nbt.contains("ysm")) {
                     this.molangContext = new MolangContext(this);
-                    ysmRuntime = YsmModelRuntime.fromNbt(this, nbt.getCompoundOrEmpty("ysm"));
+                    ysmRuntime = ysmData == null
+                            ? YsmModelRuntime.fromNbt(this, nbt.getCompoundOrEmpty("ysm"))
+                            : YsmModelRuntime.fromData(this, ysmData, nbt.getCompoundOrEmpty("ysm"));
                     renderer = null;
                     hasTexture = true;
                 } else {

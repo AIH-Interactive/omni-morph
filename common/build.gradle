@@ -121,3 +121,20 @@ tasks.register("ysmBaselineSmokeTest", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "org.figuramc.figura.model.ysm.YsmBaselineSmokeTest"
 }
+
+tasks.register("ysmDataBoundarySmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks YSM source/data equivalence, limits, cancellation, and ordinary Figura compilation."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.avatar.ysm.YsmDataBoundarySmokeTest"
+}
+
+tasks.register("ysmLocalCorpusSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Loads local YSM data and compiles ordinary Figura folder/ZIP assets through their formal loader."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.avatar.ysm.YsmLocalCorpusSmokeTest"
+    args rootProject.file(project.findProperty("ysmScanPath") ?: "refs/avatars").path
+}

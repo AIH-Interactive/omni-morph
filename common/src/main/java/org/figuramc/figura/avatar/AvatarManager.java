@@ -15,6 +15,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.avatar.ysm.YsmAvatarDetector;
 import org.figuramc.figura.avatar.local.LocalAvatarLoader;
 import org.figuramc.figura.backend2.NetworkStuff;
 import org.figuramc.figura.ducks.FiguraEntityRenderStateExtension;
@@ -265,8 +266,10 @@ public class AvatarManager {
     public static void loadLocalAvatar(Path path) {
         UUID id = FiguraMod.getLocalPlayerUUID();
 
-        // clear
-        clearAvatars(id);
+        // Keep the previous avatar until a YSM replacement has been assembled successfully.
+        if (path == null || !YsmAvatarDetector.isYsmAvatar(path)) {
+            clearAvatars(id);
+        }
         FETCHED_USERS.add(id);
 
         // load
