@@ -1,7 +1,7 @@
 # 完善 YSM 引擎计划书
 
 > 编制日期：2026-10-12（Asia/Seoul）。
-> 状态：源码对照与基线验证已完成；本文所列实现里程碑尚未执行。
+> 状态：M0 自动化验收完成；M1～M8 尚未实施。阶段提交与推送按 6.1 节执行。
 > 本文独立制定需求、实施顺序与验收标准。旧版计划书全部视为已废弃，不作为本文依据。
 
 ## 1. 目标、边界与完成定义
@@ -10,7 +10,7 @@
 
 这里的“原生支持”指 YSM 数据直接进入专用运行时，不要求用户先转换为 Blockbench/Figura 模型或手写 Lua。它不等于必须用 C++、JNI 或 GPU 蒙皮；当前 Java 原生运行时是可以继续完善的基础。
 
-本次交付为分析与计划书，提交并推送文档，不实施下述引擎变更。后续实施时按本文里程碑依次推进。
+初次交付为分析与计划书。2026-10-12 用户已授权按本文实施 M0～M8，并逐阶段编译测试、提交和推送。
 
 ### 1.1 必须完成的能力
 
@@ -25,6 +25,7 @@
 
 ### 1.2 范围控制
 
+- 2026-10-12 实施期间用户补充：以单人完整加载、使用 YSM 为首要交付目标；配套后端为 `omnm-cloud`，另外两个参考后端可作只读对照。凡确需后端修改的内容，当前计划期间记录影响、原因和后续要求后跳过，不实施后端变更。M7 先验证现有协议，继续能独立完成的客户端 DTO/codec/回放；依赖后端变更的联网验收记 `SKIPPED/BACKEND_REQUIRED`。M8 分别报告单人完成度及多人跳过项，不把跳过称为多人通过。
 - 本计划包含引擎兼容性和客户端只读解密，不包含加密导出器、明文资源导出工具、YSM 服务端实现、公模库、账号/审核/商业平台。
 - Sparkle 的游戏服务器缓存/网络加密协议与本地 `.ysm` 文件解密是不同能力。本文记录差异，但不因参考代码同时存在这些模块就引入整套协议。
 - glTF、通用 bbmodel 导入、云端资源商城和参考项目特有的界面设计不属于 YSM 核心兼容需求。
@@ -484,10 +485,37 @@ if ($buildExitCode -ne 0) {
 | --- | --- | --- |
 | 源码差距分析与新计划编制 | 完成 | 已核对当前工作区及固定参考提交；没有以废弃计划作为依据 |
 | 基线验证 | 已执行，有失败 | 包 smoke 通过；函数/controller smoke 一项断言失败；扫描 35/33/2；真实窗口待验 |
-| M0 | 未开始实施 | 首先确认默认值、样本引用与可重复 gate |
+| M0 | 完成 | 三个 smoke、37 候选精确基线 gate、Fabric build 通过；详见 9.1；窗口验收归后续阶段 |
 | M1–M2 | 未开始实施 | 数据边界、客户端只读解密和 binary 映射优先 |
 | M3–M6 | 未开始实施 | 动画/controller、Molang、附属资源和动态子实体 |
 | M7 | 未开始实施 | 内容边界与动态多人一致性 |
 | M8 | 未开始实施 | 完整语料、真实窗口、多客户端、资源与性能验收 |
 
 发布时逐项核对第 1.1 节目标及第 7 节矩阵，记录每项对应的提交、fixture、测试结果和人工证据。只读解密可作为一个独立可交付检查点，但不能用“已经能打开加密模型”替代整个 YSM 引擎的完成条件。
+
+### 9.1 M0 冻结记录（2026-10-12）
+
+- 实施基线：当前 `main` 的 `2293eed`；参考仍为 `fbee58d985cb730d19dd65ea796d5f8ac6f003dc`。原先计划记录的源码修改已进入现有提交，开始时仅 `refs/` 未跟踪。测试修改的已跟踪 `build.log` 不纳入阶段提交；第三方资源也不提交。
+- 工具链：JDK 25.0.2；Gradle 9.4.1；Windows，物理内存 16,385,531,904 字节。`refs/avatars` 是本机 Minecraft 头像目录的符号链接，扫描保持既有的链接遍历行为。
+- 默认值依据：参考 `YSMFolderDeserializer` 保存 `value` 为表达式；`ModelSettingsScreen.buildItem` 调用 `MolangOption.ofDouble`，其初值为零。YSM 数值控件缺省采用零经范围限制后的值，明确 default 优先；表单反向 min/max 按参考 SliderOptionRow 排序。当前变量读取/保存恢复的完整语义仍归 M5，M0 不将 schema 默认值等同于实时表达式结果。
+- 可分发合成 fixture 由 `YsmBaselineSmokeTest` 在临时目录生成并清理，覆盖正常几何、加密头、坏源、坏动画/controller、缺失 clip/state、核心占位及未知绑定；`YsmPhase41SmokeTest` 覆盖显式/隐式默认值、越界、正负/反向/相等范围。
+- `08_sta` 的 `missing_state` 确实不存在于该控制器；该 controller 文件 SHA-256 为 `51451F32C71B2F8AC524AA86FADD2BAE515278E8648811D4FFE26CFE7143FC5A`，作为缺失状态负例保留。
+- `16_tactics/controller/animation_controllers.json` 的 `your_backpack_animation` 未在包中定义；文件 SHA-256 为 `0562251179A8CF5BF8DEE915D6A4B55E42A2AC2F63B72D61F9396CE9D59C76DF`。该文件并非 manifest 明列的主控制器，属于全资源库存扫描发现的残留模板缺陷；不删除、不伪造动画，也不据此宣称加载主控制器失败。
+- `old.ysm` / `new.ysm` 摘要与第 2.3 节一致，扫描明确报告 `UNSUPPORTED_VERSION`。候选 37、结构有效 33、无效 4；加密候选不再漏计。结构有效不代表运行时兼容。
+- 精确基线在 `common/src/test/resources/ysm/m0-corpus-baseline.json`，逐模型保存 errors 和 unsupported 集合。默认 scanner 遇到无效、未知/已识别占位绑定或空语料返回失败；指定已审查 baseline 后只允许完全相同的已知问题和候选计数，任何改善或回归均要求解释后更新对应阶段基线。此门禁通过表示基线一致，不表示已知问题消失。
+- scanner 显式登记尚未实现的核心 `mouse/particle/abs_particle/perlin_noise/bone_param/bone_rot/bone_pos/bone_scale/bone_pivot_abs/first_order/second_order`；这只是已核实占位集合，完整绑定签名与能力表由 M4 补齐，不能将其余注册名称自动视为语义通过。
+
+冻结矩阵：第 7 节的输入/格式、几何、动画/controller、Molang、资源/UI、子实体、多人、持久化和稳定性行保持原范围；M0 只关闭发现、基线和负例 gate。crypto 1/2/3 与内部 `<4`、`4..15`、`>15` 分支均须 M2 独立 fixture；本地两个加密文件只提供 crypto 2/3 的候选证据。其余运行时/视觉/多人行逐阶段验证，不以扫描代替。
+
+语料高水位：745 个文件、合计 101,065,199 字节；最大单文件 3,166,847 字节，最大包 6,957,431 字节，最多 45 个文件/包；PNG 最大 2048×2048（4,194,304 像素）；主模型最大 582 骨骼、26,564 面片。冻结的后续边界测试预算位于 `common/src/test/resources/ysm/m0-limits.json`：文件 64 MiB、单资源 32 MiB、总资源 256 MiB、4096 资源、64 KiB 头、1 MiB 字符串、5 字节 VarInt、单贴图 16M/累计 64M 像素、4096 骨骼、262144 面片、128 嵌套层、10 秒解码预算、浮点绝对容差 1e-5。M1/M2 在分配前落实并添加边界断言；M0 的预算记录本身不代表限制已在生产读取器执行。M8 切换测试冻结为 100 次、每批 10 次，测量冷/热加载与帧时间、释放后资源趋势。
+
+前台执行 `usejdk 25` 后，以下参数用于同一条 Gradle 命令，完整输出经 `2>&1 | Tee-Object -FilePath 'build.log'` 记录并立即检查退出码：
+
+```text
+:common:ysmBaselineSmokeTest :common:ysmPackageSmokeTest :common:ysmPhase41SmokeTest
+:common:scanYsmModels -PysmScanPath=refs/avatars -PysmScanReport=build/ysm-m0-scan.txt
+-PysmScanBaseline=common/src/test/resources/ysm/m0-corpus-baseline.json
+:fabric:build --console=plain
+```
+
+结果：三个 smoke、精确语料 gate 与 Fabric build 通过（退出码 0）；无 baseline 的严格扫描已验证返回非零。构建仍报告既有映射目标/Gradle 废弃 API 警告，未扩展 M0 去改渲染 Mixin。M0 无必需新增视觉功能，真实游戏窗口/普通 Avatar 共存及多人验收保持 `MANUAL/PENDING`，在后续对应里程碑及 M8 完成。未使用 Qt offscreen 或隐藏窗口作为 GUI 验收。

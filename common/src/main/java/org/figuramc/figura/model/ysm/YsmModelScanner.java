@@ -71,7 +71,7 @@ public final class YsmModelScanner {
         if (root == null || !Files.exists(root))
             return new ScanSummary(reports);
 
-        if (YsmAvatarDetector.isYsmAvatar(root)) {
+        if (couldBeYsmAvatar(root)) {
             reports.add(scanOne(root));
             return new ScanSummary(reports);
         }
@@ -85,10 +85,8 @@ public final class YsmModelScanner {
             for (Path candidate : candidates) {
                 if (isInsideAcceptedPackage(candidate, accepted))
                     continue;
-                if (YsmAvatarDetector.isYsmAvatar(candidate)) {
-                    reports.add(scanOne(candidate));
-                    accepted.add(candidate);
-                }
+                reports.add(scanOne(candidate));
+                accepted.add(candidate);
             }
         }
         return new ScanSummary(reports);
@@ -115,6 +113,9 @@ public final class YsmModelScanner {
         int animationClipCount = 0;
 
         try {
+            if (kind == YsmAvatarKind.NONE) {
+                throw new IOException(unrecognizedSource(path));
+            }
             manifest = YsmManifestReader.read(path);
             YsmResourceIndex index = manifest.resourceIndex();
             try (YsmPackage ysmPackage = YsmPackage.open(path)) {
@@ -141,7 +142,15 @@ public final class YsmModelScanner {
                 for (String animationPath : index.animationPaths()) {
                     try {
                         String animationJson = ysmPackage.readString(animationPath);
+                        JsonObject animationRoot = JsonParser.parseString(animationJson).getAsJsonObject();
+                        JsonObject declaredClips = animationRoot.getAsJsonObject("animations");
+                        if (declaredClips == null) {
+                            throw new IOException("missing animations object");
+                        }
                         Map<String, ?> clips = YsmAnimationParser.parse(animationJson, false, null);
+                        if (clips.size() != declaredClips.size()) {
+                            throw new IOException("animation parser did not consume all declared clips");
+                        }
                         animationClipCount += clips.size();
                         for (String clipName : clips.keySet())
                             animationNames.add(clipName);
@@ -154,7 +163,18 @@ public final class YsmModelScanner {
                 for (String controllerPath : index.animationControllerPaths()) {
                     try {
                         String controllerJson = ysmPackage.readString(controllerPath);
+                        JsonElement declaredControllers = JsonParser.parseString(controllerJson)
+                                .getAsJsonObject().get("animation_controllers");
+                        if (declaredControllers == null
+                                || (!declaredControllers.isJsonObject() && !declaredControllers.isJsonArray())) {
+                            throw new IOException("missing animation_controllers object or array");
+                        }
                         Map<String, YsmAnimationController> controllers = YsmAnimationControllerParser.parse(controllerJson, scannerMolangEngine());
+                        int declaredCount = declaredControllers.isJsonObject()
+                                ? declaredControllers.getAsJsonObject().size() : declaredControllers.getAsJsonArray().size();
+                        if (controllers.size() != declaredCount) {
+                            throw new IOException("controller parser did not consume all declared controllers");
+                        }
                         for (YsmAnimationController controller : controllers.values()) {
                             controllerNames.add(describeController(controller));
                             validateControllerReferences(controller, animationNames, controllerPath, errors);
@@ -206,12 +226,15 @@ public final class YsmModelScanner {
         boolean dump = false;
         String rootArg = "refs/avatars";
         Path reportPath = null;
+        Path baselinePath = null;
         for (int index = 0; index < args.length; index++) {
             String arg = args[index];
             if ("--dump".equalsIgnoreCase(arg)) {
                 dump = true;
             } else if ("--report".equalsIgnoreCase(arg) && index + 1 < args.length) {
                 reportPath = Path.of(args[++index]);
+            } else if ("--baseline".equalsIgnoreCase(arg) && index + 1 < args.length) {
+                baselinePath = Path.of(args[++index]);
             } else {
                 rootArg = arg;
             }
@@ -246,6 +269,66 @@ public final class YsmModelScanner {
                 summary.reports().size(), summary.validCount(), summary.invalidCount());
         if (reportPath != null)
             writeReport(reportPath, root, summary);
+        validateGate(root, summary, baselinePath);
+    }
+
+    private static String unrecognizedSource(Path path) throws IOException {
+        if (Files.isRegularFile(path)) {
+            byte[] header;
+            try (var input = Files.newInputStream(path)) {
+                header = input.readNBytes(8);
+            }
+            int offset = header.length >= 3 && (header[0] & 255) == 239
+                    && (header[1] & 255) == 187 && (header[2] & 255) == 191 ? 3 : 0;
+            if (header.length >= offset + 4 && header[offset] == 'Y' && header[offset + 1] == 'S'
+                    && header[offset + 2] == 'G' && header[offset + 3] == 'P') {
+                return "UNSUPPORTED_VERSION: encrypted YSGP decoding is not implemented";
+            }
+        }
+        return "UNRECOGNIZED_SOURCE: candidate is not a readable YSM package";
+    }
+
+    public static void validateGate(Path root, ScanSummary summary, Path baselinePath) throws IOException {
+        if (summary.reports().isEmpty()) {
+            throw new IOException("YSM scan gate failed: no candidates found");
+        }
+        JsonObject actual = new JsonObject();
+        actual.addProperty("total", summary.reports().size());
+        JsonObject issues = new JsonObject();
+        for (ScanReport report : summary.reports()) {
+            List<String> errors = new ArrayList<>(report.errors());
+            if (report.mainValidation() != null) {
+                errors.addAll(report.mainValidation().errors());
+            }
+            if (report.armValidation() != null) {
+                errors.addAll(report.armValidation().errors());
+            }
+            if (!report.valid() && errors.isEmpty()) {
+                errors.add("INVALID_MODEL: no validated main geometry");
+            }
+            if (errors.isEmpty() && report.unsupportedBindings().isEmpty()) {
+                continue;
+            }
+            JsonObject issue = new JsonObject();
+            JsonArray errorArray = new JsonArray();
+            errors.stream().sorted().forEach(errorArray::add);
+            JsonArray bindingArray = new JsonArray();
+            report.unsupportedBindings().stream().sorted().forEach(bindingArray::add);
+            issue.add("errors", errorArray);
+            issue.add("unsupported", bindingArray);
+            String relative = root.toAbsolutePath().normalize()
+                    .relativize(report.path().toAbsolutePath().normalize()).toString().replace('\\', '/');
+            issues.add(relative.isEmpty() ? "." : relative, issue);
+        }
+        actual.add("issues", issues);
+        if (baselinePath != null) {
+            JsonElement expected = JsonParser.parseString(Files.readString(baselinePath, StandardCharsets.UTF_8));
+            if (!actual.equals(expected)) {
+                throw new IOException("YSM scan gate differs from the reviewed baseline: " + actual);
+            }
+        } else if (!issues.isEmpty()) {
+            throw new IOException("YSM scan gate failed: " + actual);
+        }
     }
 
     private static void writeReport(Path reportPath, Path root, ScanSummary summary) throws IOException {
@@ -717,6 +800,10 @@ public final class YsmModelScanner {
     }
 
     private static final Pattern BINDING_PATTERN = Pattern.compile("\\b(ctrl|ysm|q|query)\\.([A-Za-z_][A-Za-z0-9_]*)");
+    private static final Set<String> PENDING_CORE_YSM = Set.of(
+            "mouse", "particle", "abs_particle", "perlin_noise", "bone_param", "bone_rot",
+            "bone_pos", "bone_scale", "bone_pivot_abs", "first_order", "second_order"
+    );
     private static final Set<String> SUPPORTED_CTRL = Set.of(
             "death", "sleep", "swim", "swim_stand", "jump", "fall", "fly", "elytra_fly",
             "sneak", "sneaking", "run", "walk", "idle", "attacked", "ride", "riding",
@@ -780,17 +867,13 @@ public final class YsmModelScanner {
                 case "ysm" -> SUPPORTED_YSM;
                 default -> SUPPORTED_QUERY;
             };
-            if (!supported.contains(name))
+            if (!supported.contains(name) || ("ysm".equals(namespace) && PENDING_CORE_YSM.contains(name)))
                 unsupported.add(namespace + "." + name);
         }
     }
 
     private static JsonElement parseJson(String json) {
-        try {
-            return JsonParser.parseString(json);
-        } catch (Throwable ignored) {
-            return null;
-        }
+        return JsonParser.parseString(json);
     }
 
     private static JsonArray array(JsonObject object, String key) {

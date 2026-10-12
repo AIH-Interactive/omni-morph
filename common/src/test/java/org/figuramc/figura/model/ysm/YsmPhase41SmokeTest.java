@@ -99,6 +99,20 @@ public final class YsmPhase41SmokeTest {
                 """).getAsJsonObject());
         equals(AvatarControlType.SLIDER, height.type(), "config slider type");
         equals(0.1d, height.getDefault(), "config slider implicit default");
+        numericDefault("{\"type\":\"range\",\"min\":-2,\"max\":2}", 0d);
+        numericDefault("{\"type\":\"slider\",\"min\":-4,\"max\":-2}", -2d);
+        numericDefault("{\"type\":\"range\",\"min\":2,\"max\":4}", 2d);
+        numericDefault("{\"type\":\"range\",\"min\":4,\"max\":2}", 2d);
+        numericDefault("{\"type\":\"range\",\"min\":2,\"max\":2}", 2d);
+        numericDefault("{\"type\":\"range\",\"min\":-2,\"max\":2,\"default\":1.5}", 1.5d);
+        numericDefault("{\"type\":\"range\",\"min\":-2,\"max\":2,\"default_value\":9}", 2d);
+        numericDefault("{\"type\":\"range\",\"min\":-2,\"max\":2,\"defaultValue\":-9}", -2d);
+    }
+
+    private static void numericDefault(String json, double expected) {
+        AvatarControlDefinition control = YsmActionSchemaParser.readConfigForm(
+                "defaults", 0, JsonParser.parseString(json).getAsJsonObject());
+        equals(expected, control.getDefault(), "numeric default " + json);
     }
 
     private static void functionName(String path, String fileName, String functionName, String eventName, boolean malformed) {

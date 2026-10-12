@@ -204,8 +204,11 @@ public final class YsmActionSchemaParser {
                 .setCategory(string(form, "description", ""))
                 .setBinding(binding)
                 .setPersistent(false);
-        if (form.has("min") || form.has("max") || form.has("step"))
-            control.setRange(number(form, "min", 0d), number(form, "max", 1d), number(form, "step", 0.05d));
+        if (form.has("min") || form.has("max") || form.has("step")) {
+            double min = number(form, "min", 0d);
+            double max = number(form, "max", 1d);
+            control.setRange(Math.min(min, max), Math.max(min, max), number(form, "step", 0.05d));
+        }
 
         JsonObject labels = object(form, "labels");
         if (labels != null) {
@@ -298,7 +301,8 @@ public final class YsmActionSchemaParser {
                 if (!control.options().isEmpty())
                     control.setDefault(control.options().get(0));
             }
-            case SLIDER, NUMBER -> control.setDefault(control.min() <= 1d && control.max() >= 1d ? 1d : control.min());
+            // Uninitialized Molang numeric variables start at zero; setDefault clamps to the range.
+            case SLIDER, NUMBER -> control.setDefault(0d);
             default -> {
             }
         }
