@@ -545,6 +545,16 @@ public final class QueryVariables {
     public static final Function DEBUG_OUTPUT_FUNC = (ctx, args) -> {
         if (args.size() > 0) {
             String msg = args.getAsString(ctx, 0);
+            Avatar sourceOwner = null;
+            if (ctx.entity() instanceof Avatar.MolangContext context) {
+                sourceOwner = context.owner;
+            } else if (ctx.entity() instanceof Avatar avatar) {
+                sourceOwner = avatar;
+            }
+            if (sourceOwner != null && sourceOwner.nbt != null
+                    && org.figuramc.figura.avatar.ysm.YsmSourcePayload.isEncrypted(sourceOwner.nbt.getCompoundOrEmpty("ysm"))) {
+                return 0f;
+            }
             if (msg != null) {
                 org.figuramc.figura.FiguraMod.LOGGER.debug("[Molang Debug] {}", msg);
             }

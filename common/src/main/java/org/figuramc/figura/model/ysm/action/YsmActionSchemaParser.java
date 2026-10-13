@@ -38,7 +38,11 @@ public final class YsmActionSchemaParser {
             readYsmProperties(runtime, object);
             readLegacyExtraInfo(runtime, object);
         } catch (Exception e) {
-            FiguraMod.LOGGER.warn("Failed to parse YSM action/control schema {}", path, e);
+            if (runtime.encryptedSource()) {
+                FiguraMod.LOGGER.warn("Encrypted YSM operation failed: runtime/action-schema");
+            } else {
+                FiguraMod.LOGGER.warn("Failed to parse YSM action/control schema {}", path, e);
+            }
         }
     }
 

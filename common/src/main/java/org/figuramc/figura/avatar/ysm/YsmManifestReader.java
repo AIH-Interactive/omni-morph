@@ -16,6 +16,11 @@ public final class YsmManifestReader {
     }
 
     public static YsmManifest read(Path path) throws java.io.IOException {
+        if (YsmEncryptedSource.hasMagic(path)) {
+            try (YsmModelData data = YsmModelData.read(path, () -> false)) {
+                return data.manifest();
+            }
+        }
         try (YsmResourceSource ysmPackage = YsmPackage.open(path)) {
             return read(ysmPackage);
         }

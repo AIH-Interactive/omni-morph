@@ -488,7 +488,7 @@ if ($buildExitCode -ne 0) {
 | 基线验证 | 已执行，有失败 | 包 smoke 通过；函数/controller smoke 一项断言失败；扫描 35/33/2；真实窗口待验 |
 | M0 | 完成 | 三个 smoke、37 候选精确基线 gate、Fabric build 通过；详见 9.1；窗口验收归后续阶段 |
 | M1 | 完成 | 统一读取/内容身份/内存数据/直接面片入口；五个 smoke、40 候选 gate、Fabric build 通过，详见 9.2 |
-| M2 | 未开始实施 | 客户端只读解密和 binary 映射；五个本地加密文件已进入候选清单 |
+| M2 | 完成（自动化通过；人工跳过） | 解密/全资源数据映射/正式密文加载/输出/日志边界、16 个格式 fixture、无 DWORD 等价及 scanner 通过；真实窗口 SKIPPED/MANUAL_BY_USER，AVIF metadata 显示归 M5；执行独立提交推送检查点 |
 | M3–M6 | 未开始实施 | 动画/controller、Molang、附属资源和动态子实体 |
 | M7 | 未开始实施 | 内容边界与动态多人一致性 |
 | M8 | 未开始实施 | 完整语料、真实窗口、多客户端、资源与性能验收 |
@@ -547,3 +547,75 @@ if ($buildExitCode -ne 0) {
 ```
 
 结果：自动化全部通过、Fabric 构建成功；符号链接创建和真实窗口项明确跳过。现有 Fabric 映射目标和废弃 API 警告仍保留，未扩展范围修改无关渲染 Mixin。`refs/`、`omnm-cloud/`、build.log 与本地模型资源不进入提交。
+
+### 9.3 用户补充的预览要求与执行边界（2026-10-12）
+
+- 单人完整加载和使用 YSM 模型优先；配套后端为 `omnm-cloud`，两个参考后端只用于核对。当前计划中确需后端修改的项目记录原因及对应阶段，标为 `SKIPPED/BACKEND_BY_USER` 后继续，不修改后端。
+- `refs/avatars` 是测试语料来源，覆盖目录 YSM、原生 Figura 目录/ZIP 和加密 `.ysm`；继续保留原生 Figura 正式发现、编译及贴图识别回归。
+- 所有需要人工验收的项目注明 `SKIPPED/MANUAL_BY_USER` 并继续，不阻塞编译、自动化测试及阶段提交；跳过不等于 PASS。Qt GUI 如需验证只允许真实 Windows 窗口，禁止 offscreen。
+- 阶段完成后不关闭计算机；仅在用户后续再次明确要求关机时执行。阶段检查点继续按更新记录、检查 diff/status、提交、推送并确认成功执行。
+- 用户授权额外用 Three.js 做静态几何、贴图及骨骼默认姿态预览，并分别从加密 YSM、非加密 YSM 和原生 Figura 中随机抽取一个模型，各留一张浏览器实际渲染截图。记录抽样种子、文件名、解析路径、截图位置及结果；不得在抽中失败后静默换样。
+- Three.js 预览作为辅助画面证据，不替代游戏内动画、controller、Molang、Lua、附属实体或 GUI 验收，也不据此增加生产 UI 功能。涉及加密模型的额外预览仅在本地任务输出中保存用户要求的预览数据和截图；不写入持久化 Avatar/NBT、缓存、网络载荷或 Git 提交。
+- 本次抽样种子 `20261012`：按名称排序后，以同一 .NET Random 实例依次抽取加密、目录 YSM、目录 Figura 各一个；本次 Figura 抽样池为 4 个目录，ZIP 另由自动化加载回归覆盖。抽中加密 `芙宁娜v3.14中文配音.ysm`、非加密 `YSM_OLD_Model`、原生 Figura `AI Hobbyist Founder Public Server`。未因异常换样；此辅助工作不改变 M0→M8 顺序及每阶段测试、提交、推送检查点。
+
+三张截图已在真实浏览器页面中完成捕获，中文标题可正常显示，贴图加载完成，旋转按钮已验证有效。状态仅为 `CAPTURED/STATIC_ONLY`，不记为游戏内视觉 PASS。任务输出根为 `C:/Users/eryth/.codex/visualizations/2026/10/12/01a13050-2449-7c72-891e-c916eb097a1a/`：
+
+| 分类 / 样本 | 解析及静态输出证据 | 截图 |
+| --- | --- | --- |
+| 加密 / `芙宁娜v3.14中文配音.ysm` | 正式 V3 只读解密及 format 26 二进制读取；573 骨骼、65,866 三角形；使用原始 WebP 贴图由浏览器解码；binary 默认旋转为弧度，预览适配转换为现有 YsmGeometry 的角度 | `ysm-encrypted.jpg` |
+| 非加密 / `YSM_OLD_Model` | 正式 YsmPackage→YsmModelData→JSON 几何；主模型 118 骨骼、12,912 三角形，原贴图 | `ysm-folder.jpg` |
+| 原生 Figura / `AI Hobbyist Founder Public Server` | 正式 compileFiguraAvatar→NBT；预览使用原 Figura 顶点展开及 PartCustomization 默认变换；5 个贴图 mesh、9,476 三角形 | `ysm-figura.jpg` |
+
+预览差异及后续事项：YSM 截图展示全部默认可见几何，效果/装饰骨骼同时叠加，未执行 gui 动画和 Molang 显隐逻辑，因此不能从截图判断游戏最终外观。原生 Figura 抽中样本的 Blockbench `format_version=5.0` 将分组元数据放在独立 `groups` 中；当前 BlockbenchModelParser 仅解析 `outliner`，未读取独立 groups，静态画面显示异常。M1 的“发现/编译/贴图字节保留”通过不能据此扩大成“层级/脚本骨骼寻址/最终姿态完全兼容”；记录为 `FOLLOW_UP/FIGURA_BB5_GROUPS`，待对应 Figura 兼容工作处理，不在 M2 解密里顺带重构原生解析器，也不要求人工验收阻塞本计划。
+
+M2 当前新增证据：crypto 1/2/3 合成固定向量、跨段 V3 解密、真实 compressed Zstd block、损坏输入和大小边界 smoke 通过，五个本地加密文件只读解密通过。随机加密样本 binary 全量读取通过；其子实体动画存在正无穷时长，与固定参考中省略 animation_length 的编码一致，已专门允许此时长哨兵，几何/其他 float 仍拒绝非有限值。`ysmBinaryInputSmokeTest` 验证有限/零/正无穷时长、拒绝负时长/NaN，以及几何非有限值拒绝，前台 Gradle 两个 smoke 退出码 0。完整 format fixture、正式运行数据映射、密文持久化出口与 Fabric 阶段构建仍待完成，M2 尚未提交或推送。
+
+### 9.4 M2 实施记录（2026-10-13，尚未到阶段检查点）
+
+- `YsmBinaryGeometryMapper` 直接复制烘焙面片、UV 和法线，默认旋转由参考弧度转换为当前几何角度，检查重名、父级缺失/环路和 128 层上限。合成 JSON 与独立构造的 raw 面片/pivot/rotation/层级在 1e-5 容差内一致，复制后修改原数组不影响映射几何。
+- `YsmBinaryReader` 在分配前累计限制整份 binary 的 4096 几何骨骼、262144 面片及独立的 1048576 动画关键帧；后者是 M2 实测补充预算，不是将 M0 面片预算改大。芙宁娜样本有 412317 关键帧，其余三份有 8464/10686/45000；上限与溢出均用仅含 count 的输入断言，无需巨量分配。新增预算在 `m2-limits.json`，M0 原记录不改。读取失败和关闭清理所有注册的 byte buffers，包含尚未挂入完整 DTO 的临时资源。
+- `YsmTextureDecoder` 走有界内存 RGBA/PNG/JPEG/GIF/WebP→PNG 路径，先核对声明/实际尺寸及单张/累计像素，再解码、检查输出字节预算并清理自有图像。WebP 使用 [TwelveMonkeys 3.15.0](https://github.com/haraldk/TwelveMonkeys/releases/tag/twelvemonkeys-3.15.0) 的 Java reader，未引入 native 解码路径；固定 WebP 与合成 RGBA/PNG 像素/alpha、错误尺寸、预算溢出均通过。AVIF 编码仍完整留在 raw DTO，当前明确报告 `UNSUPPORTED_VERSION: image/encoding`，其基础材质解码仍待完成，不能记编码贴图全覆盖。
+- 四个本地 crypto 3 样本的主/arm/子实体几何、基础及子纹理转换通过：`new.ysm`（format 9，158 主骨骼，1 纹理）、`ZZZ_Ellen_1.ysm`（format 4，134，2）、`_创伤小组_霜狐.ysm`（format 26，91，8）、`芙宁娜v3.14中文配音.ysm`（format 26，573，4）。共 17 个纹理/子纹理通过，不含本条未宣称验证的作者头像及 GUI 图片。
+- `YsmBinaryAnimationMapper` 保留 clip 类型/hash、loop 缺省编码 2、无界时长哨兵、blend_weight 数值/表达式、pre/post、插值、timeline/声音、controller 的状态顺序/表达式/entry/exit/声音/混合曲线；拒绝未知值类型及重名覆盖。合成 JSON 与 binary 动画经现有 parser 的时长、loop、关键帧和 timeline 相等；四份语料全部 clip 映射通过。此为数据映射证据，不代替 M3 的运行语义验收。
+- `YsmEncryptedSource` 将原始密文与已解码资源分别持有，crypto/format 分离，身份使用密文 SHA-256；读取、解密、binary 解析共用同一取消/10 秒预算。关闭不修改调用者或输出拷贝，关闭的 legacy 源不可再读。
+- `YsmSourcePayload` 为加密输出只保留原始密文、摘要、版本、纹理选择及有界展示元数据，移除本机绝对源路径和所有解密 runtime 字段。已接入客户端 `NetworkStuff.uploadAvatar`、`CacheAvatarLoader.save` 和 `/figura export avatar` 的输出边界；未修改服务端。缓存输出流按实际关闭，普通 Figura 输出保留，普通 YSM 仅过滤本机 source_path。自动化植入明文 marker，检查输出 NBT 及写入磁盘再解压后的内容无 marker；原密文字节与输入相等；缺密文/hash/版本错误均拒绝输出。
+- crypto 合成 fixture 的独立生成方式及摘要已写入 `crypto-vectors/README.md`；V3 任意字节向量不是有效 binary 模型，不作为 format 分支 fixture。第三方许可保留并随生产 Jar 发布，用户模型/后端/reference 未提交。
+
+前台 JDK 25 / Tee / 立即退出码检查执行：`ysmCryptoSmokeTest`、`ysmBinaryInputSmokeTest`、`ysmBinaryResourcesSmokeTest -PysmCryptoCorpus=refs/avatars`、`ysmPayloadSmokeTest` 与 `:fabric:build` 全部通过。成品 Jar 检查确认 aircompressor 及 WebP 六个依赖嵌入，MIT 参考许可存在。现有映射目标/废弃 API 警告和 aircompressor `3.10` 的非 semver 提示仍记录，不扩展修复范围。
+
+M2 剩余必需工作：各内部 format 分支/边界及无 DWORD 布局的有效固定 fixture；binary metadata/properties/functions/语言/图片/材质/子实体到共享数据的完整装配；密文 source 与内存 runtime 正式分离并接通衣柜/缓存接收加载；scanner 及全语料基线更新；最终自动化与 Fabric 编译复验后再提交、推送。真实游戏窗口按用户要求 `SKIPPED/MANUAL_BY_USER`。本记录是实施证据，M2 保持“实施中”，未开始 M3。
+
+M2 追加进展（2026-10-13）：
+
+- binary 资源映射现已接入 `YsmModelData.read(Path)`；主/arm/子实体仍直接保存几何，动画按 clip 拆分有界资源，并保留 metadata、properties、functions、语言、声音、材质描述和未知字段。加密输出 NBT 只保存密文描述；`YsmSourcePayload.openData` 可从该描述重新解码共享数据，`YsmModelRuntime.fromNbt/fromData` 用临时 runtime NBT 装配，不把解密字段写回 Avatar 持久化 NBT。
+- 衣柜检测通过最多 7 字节的魔数识别加密文件，走既有 `LocalAvatarFetcher.isLoadableAvatar` 路径；manifest 读取使用同一正式共享数据入口并关闭资源。检测只表明候选来源，实际 kind/crypto/format 以正式解析结果为准，不把识别成功等同于模型可用。
+- `ysmLocalCorpusSmokeTest` 的加密待实现断言已替换为正式装配/重新加载验证。前台 JDK 25 / Tee 执行成功（退出码 0）：35 个目录 YSM、5 个 Figura 包和 5 个加密 YSM 均通过；每个加密样本验证衣柜发现、展示 metadata、原密文字节、输出字段白名单、临时 runtime 纹理及全部 player 动画条目、重新加载后的来源身份/几何数量/全部资源逐字节相等，并拒绝已取消的重新加载。这是数据层证据，未验证 GPU、游戏内动画或真实窗口发布。
+- 本地 AVIF 作者头像现按原始编码字节保留在 `metadata/images/*.avif`，并明确记录 `CAPABILITY_PENDING`。基础 WebP/RGBA 贴图已转换；AVIF 图像显示仍须 M5 完成，不记为全编码显示兼容，也未增加 native 依赖。
+
+当前剩余阶段 gate：有效 format 固定 fixture 和无 DWORD 布局覆盖、scanner 对共享数据的接入及审查基线、剩余安全/取消/输出回归、最终 Fabric 构建与差异检查。通过这些 gate 后才提交并推送 M2；M3 尚未开始。
+
+本次追加实现后已复验 `ysmCryptoSmokeTest`、`ysmBinaryInputSmokeTest`、`ysmBinaryResourcesSmokeTest -PysmCryptoCorpus=refs/avatars`、`ysmPayloadSmokeTest` 和 `:fabric:build`，前台完整输出记录于 build.log，退出码 0。四份 binary 样本的全资源映射通过（118/110/396/488 个资源，110/96/303/394 个 player clip）；现有 remap/废弃 API 警告仍保留。已检查本次 diff 和 `git diff --check`，并单独检查本次修改的未跟踪 binary reader/test 文件，无新增空白错误。此复验不关闭尚未完成的 format/scanner gate，仍不提交 M2。
+
+M2 scanner 追加记录（2026-10-13）：
+
+- 扫描加密来源时使用 `YsmModelData` 的资源快照和直接几何；crypto 2 的 manifest kind 为 OLD，crypto 3 的 mapped schema 为 NEW，均不再用文件名推断真实格式。非加密路径继续保留既有扫描错误/引用诊断，不因强制数据装配提前失败而丢失负例。
+- 40 个候选中 38 个结构有效、2 个无效；5 个加密样本全部结构有效。`new.ysm`、`ZZZ_Ellen_1.ysm`、霜狐、芙宁娜分别有 110/96/303/394 个 player clip；`old.ysm` 有 273 个。本指标只证明正式读取和已有 parser 消费完成，不是动画运行、子实体动画执行或绑定语义 PASS。
+- 新基线为 `common/src/test/resources/ysm/m2-corpus-baseline.json`。逐项比对 UTF-8 扫描报告确认所有非加密 errors/unsupported 与 M1 相同；仅移除加密未解码错误，并登记其当前能力缺口。霜狐保留 second_order，old 保留 elytra_rot_x/has_elytra，芙宁娜保留 18 个待实现/外部绑定，不以 baseline 通过宣称这些能力已完成。两个引用负例仍保留。
+- 对加密来源禁用 `--dump` 的详细几何/动画/表达式输出；scanner 异常文本以 SHA-256 指纹记录，避免把解析器可能携带的解密内容写入输出，指纹变化仍使精确 gate 失败。统计、能力名及生成的 AVIF capability warning 保留；未导出原始解密资源。
+- 前台 JDK 25 / Tee 执行 `ysmBaselineSmokeTest`、`scanYsmModels -PysmScanReport=build/ysm-m2-scan.txt -PysmScanBaseline=common/src/test/resources/ysm/m2-corpus-baseline.json` 和 `:fabric:build` 成功（退出码 0）。未带 baseline 的严格扫描已验证返回非零；baseline smoke 的截断加密输入断言已改为真实解码失败指纹，仍保留坏输入计数与负门禁。
+
+scanner gate 已完成；M2 当前仍需有效 format/边界固定 fixture、无 DWORD 布局验证、最终安全/取消/输出全回归和检查点。仍未提交或推送 M2，未开始 M3。
+
+M2 format fixture 追加记录（2026-10-13）：独立 Python 字节打包器按两份参考解析器核对字段顺序，生成并冻结 16 个合成有效模型：1/3/4/5/9/10/14/15/16/23/24/25/26/27/31/32。来源文件摘要、生成方式和 fixture SHA-256 在 `binary-vectors/README.md` 与 `manifest.json`；测试读取固定文件，不现场用生产 reader/writer 生成期望值。模型包含非空面片、骨骼变换、RGBA、pre/post 关键帧和 timeline；>9 另含 controller/声音事件，modern 含语言/functions/sounds、两份子实体动画及非空 vehicle，>=26 含 projectile，>26 验证 matchIds/controller 声音，>=32 验证 merge_multiline_expr，footer 验证 9/24/27 边界。所有文件及剥离四字节 DWORD 的显式布局都通过独立字段断言与 mapped 全资源字节相等；截断、追加垃圾、格式 0/33 均拒绝。前台 `ysmBinaryFormatSmokeTest` 退出码 0。此用例不宣称运行时缓存协议互通，不增加生产写出器。格式 fixture gate 已完成，剩余最终安全审查/全回归和阶段检查点。
+
+本次完整回归前台执行 data boundary/package/phase41/baseline/crypto/binary input/binary format/binary resources/payload/local corpus/scanner 共 11 个检查任务及 Fabric build，退出码 0（48 秒）；新增 fixture 文件及 tracked diff 空白检查通过。日志安全审查发现 `YsmModelValidator.validate` 仍会直接记录错误中的骨骼名称，encrypted runtime 的底层 parser 异常也需要检查其日志出口；这是 M2 明文日志边界的必需修复，不是阶段外工作。完成加密来源诊断脱敏及相应负例后，再执行相关回归并完成提交/推送；当前不将全回归绿色等同于此日志要求已实现，M2 尚未完成。
+
+### 9.5 M2 检查点（2026-10-13）
+
+加密日志边界已修复：共享数据和 scanner 的私有几何校验不写详细日志，失败仅含固定分类/阶段/偏移，警告保留固定代码；runtime 装配异常移除底层 cause，子实体/action schema/function 失败与递归上限记录固定阶段，debug 不输出解密名称，Molang 显式 debug_output 在加密 Avatar 上不写内容。普通来源保持原有详细诊断。新增 `ysmPrivateDiagnosticsSmokeTest` 捕获真实 Log4j 后端，以私有骨骼 marker 验证错误、警告和抛出异常不泄漏，同时验证普通模型诊断仍可捕获。
+
+日志修改后前台 JDK 25 / Tee 复验 private diagnostics、全语料正式加载、M2 scanner 基线和 Fabric build 成功（40 秒）；最后针对 runtime/debug 修改再复验 private diagnostics、payload、data boundary、binary format 和 Fabric build，退出码 0（23 秒）。前述 11 项完整回归与本次相关回归共同覆盖 M2 自动化验收；未通过跳过人工项目推断真实游戏画面正确。上传/缓存/导出三个生产出口再次检查，均经过 ciphertext-only filter；用户模型、refs、后端和 build.log 不纳入提交。
+
+M2 自动化 gate 已关闭：固定 crypto 1/2/3、三个内部分支及格式边界、文件 DWORD/显式无 DWORD、坏头/长度/hash/padding/压缩块/像素预算、JSON/binary 几何/资源/动画等价、来源身份/取消/关闭、原生 Figura 回归、密文重新加载、序列化磁盘内容和日志负例。真实窗口直接加载/纹理/动作/切换/卸载依用户指令为 `SKIPPED/MANUAL_BY_USER`；不记 PASS。解密资源完整保留，AVIF 作者头像显示仍为 M5 明确待办，不宣称全编码显示能力；本阶段无后端变更。
+
+执行此阶段单独的 git diff/status 检查、提交、推送并验证远端后才开始 M3。M0/M1 已推送检查点保持不变，M2 不与后续阶段合并提交。

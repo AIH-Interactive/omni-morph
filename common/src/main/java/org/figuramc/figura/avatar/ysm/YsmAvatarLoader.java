@@ -29,11 +29,7 @@ public final class YsmAvatarLoader {
     public static CompletableFuture<YsmLoadResult> loadAvatar(Path path, UserData target) {
         long generation = target.ysmLoads.begin();
         return CompletableFuture.supplyAsync(() -> {
-            try (YsmPackage source = YsmPackage.open(path);
-                 YsmModelData data = YsmModelData.read(source,
-                         java.nio.file.Files.isDirectory(path) ? YsmSourceIdentity.ContainerKind.DIRECTORY
-                                 : YsmSourceIdentity.ContainerKind.ZIP,
-                         () -> !target.ysmLoads.current(generation))) {
+            try (YsmModelData data = YsmModelData.read(path, () -> !target.ysmLoads.current(generation))) {
                 YsmTextureOption texture = selectTexture(path, data.manifest().textures(), data.manifest().defaultTexture());
                 CompoundTag nbt = toAvatarNbt(data, texture, target.id, path);
                 boolean published = target.loadYsmAvatar(nbt, data, generation);
@@ -69,12 +65,13 @@ public final class YsmAvatarLoader {
         }
         CompoundTag tag = new CompoundTag();
         tag.put("metadata", metadata);
-        CompoundTag runtimeTag = toRuntimeTag(data, texture);
-        if (localPath != null) {
+        CompoundTag runtimeTag = data.encrypted() ? YsmSourcePayload.fromData(data, texture == null ? null : texture.id())
+                : toRuntimeTag(data, texture);
+        if (!data.encrypted() && localPath != null) {
             runtimeTag.putString("source_path", localPath.toAbsolutePath().normalize().toString());
         }
         tag.put("ysm", runtimeTag);
-        return tag;
+        return data.encrypted() ? YsmSourcePayload.forOutput(tag) : tag;
     }
 
     public static CompoundTag toRuntimeTag(YsmModelData data, YsmTextureOption texture) throws java.io.IOException {
@@ -94,7 +91,7 @@ public final class YsmAvatarLoader {
             ysm.putByteArray("main_model", ysmPackage.readBytes(mainModelPath));
         }
 
-        if (index.hasArmModel()) {
+        if (index.hasArmModel() && ysmPackage.exists(index.armModelPath())) {
             ysm.putString("arm_model_path", index.armModelPath());
             ysm.putByteArray("arm_model", ysmPackage.readString(index.armModelPath()).getBytes(java.nio.charset.StandardCharsets.UTF_8));
         }
@@ -142,7 +139,7 @@ public final class YsmAvatarLoader {
         }
         ysm.put("texture_entries", textureEntries(ysmPackage, manifest.textures()));
         ysm.put("action_schemas", actionSchemas(ysmPackage, index));
-        ysm.put("sub_entities", subEntities(ysmPackage));
+        ysm.put("sub_entities", subEntities(data));
         ysm.put("resource_index", toNbt(index));
         return ysm;
     }
@@ -260,38 +257,40 @@ public final class YsmAvatarLoader {
         tag.add(entry);
     }
 
-    private static ListTag subEntities(YsmResourceSource ysmPackage) throws java.io.IOException {
+    private static ListTag subEntities(YsmModelData data) throws java.io.IOException {
+        YsmResourceSource ysmPackage = data.resources();
         ListTag tag = new ListTag();
         if (ysmPackage.exists("ysm.json")) {
             JsonObject root = YsmJson.parseObject(ysmPackage.readString("ysm.json"));
             JsonObject files = YsmJson.obj(root, "files");
-            addSubEntitySection(tag, ysmPackage, "projectile", files.get("projectiles"));
-            addSubEntitySection(tag, ysmPackage, "vehicle", files.get("vehicles"));
+            addSubEntitySection(tag, data, "projectile", files.get("projectiles"));
+            addSubEntitySection(tag, data, "vehicle", files.get("vehicles"));
         }
         addLegacySubEntity(tag, ysmPackage, "projectile", "arrow", "arrow.json", "arrow.png", "arrow.animation.json");
         return tag;
     }
 
-    private static void addSubEntitySection(ListTag tag, YsmResourceSource ysmPackage, String kind, JsonElement section) throws java.io.IOException {
+    private static void addSubEntitySection(ListTag tag, YsmModelData data, String kind, JsonElement section) throws java.io.IOException {
         if (section == null || section.isJsonNull())
             return;
         if (section.isJsonObject()) {
             for (var entry : section.getAsJsonObject().entrySet())
-                addSubEntity(tag, ysmPackage, kind, entry.getKey(), entry.getValue());
+                addSubEntity(tag, data, kind, entry.getKey(), entry.getValue());
         } else if (section.isJsonArray()) {
             int index = 0;
             for (JsonElement element : section.getAsJsonArray())
-                addSubEntity(tag, ysmPackage, kind, kind + index++, element);
+                addSubEntity(tag, data, kind, kind + index++, element);
         }
     }
 
-    private static void addSubEntity(ListTag tag, YsmResourceSource ysmPackage, String kind, String fallbackId, JsonElement element) throws java.io.IOException {
+    private static void addSubEntity(ListTag tag, YsmModelData data, String kind, String fallbackId, JsonElement element) throws java.io.IOException {
+        YsmResourceSource ysmPackage = data.resources();
         if (element == null || element.isJsonNull())
             return;
         JsonObject object = element.isJsonObject() ? element.getAsJsonObject() : new JsonObject();
         String id = firstString(object, fallbackId, "identifier", "id", "name");
         String model = element.isJsonPrimitive() ? element.getAsString() : firstString(object, "", "model", "model_path");
-        if (model.isBlank() || !ysmPackage.exists(model))
+        if (model.isBlank() || !ysmPackage.exists(model) && !data.hasGeometry(model))
             return;
         String texture = texturePath(object);
         String animation = firstString(object, "", "animation", "animations", "animation_path");
@@ -302,7 +301,11 @@ public final class YsmAvatarLoader {
         entry.putString("id", id == null || id.isBlank() ? fallbackId : id);
         entry.put("match_ids", strings(matchIds(object)));
         entry.putString("model_path", model);
-        entry.putByteArray("model", ysmPackage.readString(model).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        if (ysmPackage.exists(model)) {
+            entry.putByteArray("model", ysmPackage.readBytes(model));
+        }
+        entry.put("animation_entries", resourceEntries(ysmPackage, object.get("animation")));
+        entry.put("controller_entries", resourceEntries(ysmPackage, object.get("animation_controllers")));
         if (!texture.isBlank() && ysmPackage.exists(texture)) {
             entry.putString("texture_path", texture);
             entry.putByteArray("texture", ysmPackage.readBytes(texture));
@@ -316,6 +319,27 @@ public final class YsmAvatarLoader {
             entry.putByteArray("controller", ysmPackage.readString(controller).getBytes(java.nio.charset.StandardCharsets.UTF_8));
         }
         tag.add(entry);
+    }
+
+    private static ListTag resourceEntries(YsmResourceSource source, JsonElement element) throws java.io.IOException {
+        ListTag entries = new ListTag();
+        if (element == null || element.isJsonNull()) {
+            return entries;
+        }
+        if (element.isJsonArray()) {
+            for (JsonElement child : element.getAsJsonArray()) {
+                entries.addAll(resourceEntries(source, child));
+            }
+        } else if (element.isJsonPrimitive()) {
+            String path = element.getAsString();
+            if (source.exists(path)) {
+                CompoundTag entry = new CompoundTag();
+                entry.putString("path", path);
+                entry.putByteArray("data", source.readBytes(path));
+                entries.add(entry);
+            }
+        }
+        return entries;
     }
 
     private static void addLegacySubEntity(ListTag tag, YsmResourceSource ysmPackage, String kind, String id, String model, String texture, String animation) throws java.io.IOException {
@@ -348,6 +372,9 @@ public final class YsmAvatarLoader {
             return "";
         if (texture.isJsonPrimitive())
             return texture.getAsString();
+        if (texture.isJsonArray()) {
+            return stringValue(texture);
+        }
         if (texture.isJsonObject())
             return firstString(texture.getAsJsonObject(), "", "uv", "path", "default", "normal");
         return "";
