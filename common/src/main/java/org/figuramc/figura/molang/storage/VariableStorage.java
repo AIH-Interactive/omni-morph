@@ -54,6 +54,50 @@ public class VariableStorage implements AssignableVariable, ObjectBinding {
         publicVariableNames.add(name);
     }
 
+    /** Saves only the supplied engine fields, leaving model variables in the same storage intact. */
+    public Scope preserveScopedValues(Set<Integer> names) {
+        return new Scope(names);
+    }
+
+    public final class Scope implements AutoCloseable {
+        private final Map<Integer, Object> values = new HashMap<>();
+        private final Set<Integer> presentNames = new HashSet<>();
+        private final Set<Integer> publicNames = new HashSet<>();
+        private boolean closed;
+
+        private Scope(Set<Integer> names) {
+            for (int name : names) {
+                values.put(name, scopedMap.get(name));
+                if (scopedMap.containsKey(name)) {
+                    presentNames.add(name);
+                }
+                if (publicVariableNames.contains(name)) {
+                    publicNames.add(name);
+                }
+            }
+        }
+
+        @Override
+        public void close() {
+            if (closed) {
+                return;
+            }
+            closed = true;
+            values.forEach((name, value) -> {
+                if (presentNames.contains(name)) {
+                    scopedMap.put(name, value);
+                } else {
+                    scopedMap.remove(name);
+                }
+                if (publicNames.contains(name)) {
+                    publicVariableNames.add(name);
+                } else {
+                    publicVariableNames.remove(name);
+                }
+            });
+        }
+    }
+
     public void setPath(String path, Object value) {
         String normalized = normalizePath(path);
         if (normalized.isBlank())

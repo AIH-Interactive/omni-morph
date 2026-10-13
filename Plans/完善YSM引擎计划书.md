@@ -489,7 +489,8 @@ if ($buildExitCode -ne 0) {
 | M0 | 完成 | 三个 smoke、37 候选精确基线 gate、Fabric build 通过；详见 9.1；窗口验收归后续阶段 |
 | M1 | 完成 | 统一读取/内容身份/内存数据/直接面片入口；五个 smoke、40 候选 gate、Fabric build 通过，详见 9.2 |
 | M2 | 完成（自动化通过；人工跳过） | 解密/全资源数据映射/正式密文加载/输出/日志边界、16 个格式 fixture、无 DWORD 等价及 scanner 通过；真实窗口 SKIPPED/MANUAL_BY_USER，AVIF metadata 显示归 M5；执行独立提交推送检查点 |
-| M3–M6 | 未开始实施 | 动画/controller、Molang、附属资源和动态子实体 |
+| M3 | 自动验收完成；人工已按用户要求跳过 | 动态权重、实例/上下文、过渡/声音/子控制器、阶段/第一人称、多 pass 与延迟姿态已接通；16 项 M3 smoke、既有回归/45 模型语料/扫描基线、Fabric build 通过；见 9.7 |
+| M4–M6 | 未开始实施 | Molang、附属资源和动态子实体 |
 | M7 | 未开始实施 | 内容边界与动态多人一致性 |
 | M8 | 未开始实施 | 完整语料、真实窗口、多客户端、资源与性能验收 |
 
@@ -619,3 +620,158 @@ M2 format fixture 追加记录（2026-10-13）：独立 Python 字节打包器�
 M2 自动化 gate 已关闭：固定 crypto 1/2/3、三个内部分支及格式边界、文件 DWORD/显式无 DWORD、坏头/长度/hash/padding/压缩块/像素预算、JSON/binary 几何/资源/动画等价、来源身份/取消/关闭、原生 Figura 回归、密文重新加载、序列化磁盘内容和日志负例。真实窗口直接加载/纹理/动作/切换/卸载依用户指令为 `SKIPPED/MANUAL_BY_USER`；不记 PASS。解密资源完整保留，AVIF 作者头像显示仍为 M5 明确待办，不宣称全编码显示能力；本阶段无后端变更。
 
 执行此阶段单独的 git diff/status 检查、提交、推送并验证远端后才开始 M3。M0/M1 已推送检查点保持不变，M2 不与后续阶段合并提交。
+
+M2 已完成独立提交推送：`34dcd1424bf53156c66d0cfde233a1c0e04a11b2`；当前 main 与 `git ls-remote origin refs/heads/main` 相同。提交后仅保留 build.log、用户 refs 和 omnm-cloud 的本地变动，未提交用户语料或后端。以下 M3 工作在确认远端检查点之后开始。
+
+### 9.6 M3 实施记录（2026-10-13）
+
+当前补齐动态 clip `blend_weight`：parser 读取数值/表达式，播放器每次姿态采样在当前 animation time 上求值，贡献使用已有 playing weight 与 clip weight 的乘积；零权重跳过姿态及显隐写入，位置/旋转/缩放继续遵循当前累计规则。采样使用 finally 恢复 `q.anim_time` 和临时 anim_ctrl，避免不同动画采样污染后续上下文；不把动态结果写入共享 clip。参考 `AnimationControllerInstance` 每次求当前权重，`BoneAnimationQueue.setBlendWeight` 保留正值，不把 >1 统一截断；非有限值、负值、无 evaluator 或非法表达式按零贡献处理，缺省仍为 1。
+
+新增 `ysmAnimationWeightSmokeTest` 经过正式 parser/Molang evaluator，验证 0/0.2/1、查询变化、同一 clip 的独立 evaluator、数值 0.2、正值 2、负/NaN、无 evaluator、非法表达式和缺省权重。前台 JDK 25 / Tee 执行该任务、`ysmBinaryResourcesSmokeTest` 与 Fabric build，退出码 0（24 秒）。diff 及新增测试空白检查通过。此 smoke 验证权重求值，不宣称完整骨骼矩阵或游戏内画面差分通过。
+
+M3 剩余：完整固定时间轴姿态/事件轨迹差分、控制器同名实例隔离、过渡曲线/最短旋转、controller 声音与子控制器、循环端点/空状态/环路、主状态机/并行/post/第一人称/函数顺序、同帧多 pass 防重复推进/事件；真实窗口项目按用户要求 `SKIPPED/MANUAL_BY_USER`。M3 未提交或推送，不开始 M4。
+
+M3 控制器播放槽追加进展：状态引用动画改为独立 `controller + resolved clip` 槽，普通动作播放和 controller function 播放各自使用独立槽；控制器完成状态、时间查询和 fade-out 均通过所属槽访问，停止一个控制器不会修改另一个同名 clip 实例。状态动画引用的表达式以数值权重每次求值，0.2 不再当作 true 后用权重 1 播放，零/负/非有限结果按无贡献处理；过渡条件仍为布尔语义。无事件 clip 无需创建事件 evaluator，时间和初始事件标记依然属于 PlayingAnimation。
+
+`ysmControllerIsolationSmokeTest` 经过真实 controller parser/runtime 和 player 槽管理：同名 clip 的两个 controller、普通播放和 controller function 分别持有独立实例；验证 0.2→0.7 权重更新、时间不重置、清理一侧不影响另一侧、零权重移除所属槽、独立 ONCE 完成及每次显式 update 的 callback 数量。测试只替换 function callback 为记录器，不创建 renderer/GPU，也不宣称函数执行或真实窗口通过。前台 JDK 25 / Tee 执行该任务、动态 clip weight smoke 和 Fabric build 成功（退出码 0，23 秒）；tracked diff 与新增测试空白检查通过。控制器槽隔离的管理层 gate 已有证据；下一步仍需姿态/事件差分、状态切换重启与过渡曲线、controller query/Lua 访问兼容、controller 声音/嵌套/环路和同帧多 pass。M3 保持实施中，未提交或推送。
+
+M3 时钟/状态重启追加进展：controller 时钟现在同时统计所属状态播放槽和 function 播放槽，避免仅由 ctrl.set_animation 播放时报告零时间/错误完成状态。扩展隔离 smoke，用真实 Avatar.MolangContext 验证两个 function 槽分别为 0.4/1 秒、各自 any/all-finished，以及外层 anim_time/life_time/完成标志的 finally 恢复；lookup 和 clear 的槽所有权相同。Molang ctrl.set_animation/reset 已使用专用 player 接口，Lua 普通 play/stop 入口保持原签名；完整 Lua 行为兼容仍待后续轨迹回归，不宣称此管理测试覆盖 Lua VM。
+
+状态转换时，原状态实例从所属查询槽移出，非零 fade 的旧实例保留在独立 retiring 槽，新状态的同名 clip 重新创建并从零计时；测试验证实例不同、incoming 时间零、outgoing 时间/贡献实例保留、targetWeight 零及实际状态改变。此用例尚未证明过渡姿态曲线和 outgoing 事件所有权，须随过渡/事件轨迹 gate 完成，不将现有线性 fade 当作完整 reference 过渡实现。前台两次相关验证分别因时钟和重启改动执行，隔离/动态权重 smoke + Fabric build 均退出码 0（21/18 秒），diff/新增测试空白检查通过。M3 仍未到提交检查点，M4 未开始。
+
+M3 曲线数据追加进展：核对参考 `LinearKeyframeInterpolator`、`TicksInterpolator` 和 controller parser，确认曲线值代表 outgoing 保留比例，incoming progress 为 `1-value`；数值参数表示秒时长。新增不可变 `YsmBlendTransition` 保留排序控制点并按秒分段插值，状态 DTO 的 `blendCurve` 由正式 parser 读取，原七参数构造及 float duration 保留兼容。旧 parser 仅将曲线折叠为最大时间键，现不再丢失实际曲线值；legacy duration wrapper 仍按既有数值路径读取。
+
+`ysmBlendTransitionSmokeTest` 对参考示例的乱序键验证 0.01→0.104、0.015→0.228、0.02→0.352 和端点；覆盖数值 0.2 秒、立即过渡、输入 Map 后续修改隔离、非法 duration/time/point 拒绝。前台曲线/控制器隔离/baseline smoke + Fabric build 通过（21 秒）；随后全语料 scanner 的 M2 精确基线仍通过（17 秒，40 候选/38 结构有效/2 既有无效）。diff 和新增文件空白检查通过。
+
+该追加仅关闭曲线解析/插值数据层测试，播放器尚未使用 blendCurve 替换线性 fade，不能宣称过渡姿态已正确。下一步按参考的姿态快照语义接通 outgoing/incoming、最短旋转路径和事件所有权，并完成矩阵/事件轨迹与同帧多 pass gate；M3 保持实施中，未提交或推送。
+
+M3 姿态采样/退出快照追加进展：将播放器原有 channel 采样原样提取到 `YsmAnimationSampler`，live player 通过同一 `sampleBone` 入口采样；pre/post、step、easing、Catmull-Rom 和隐藏骨骼静态检查继续使用同一算法。新增 `YsmBonePose` 对输入/输出向量独立持有，提供 position/scale 插值及 degree rotation 的可选最短路径。播放器每实例缓存上一份骨骼采样和 clip weight；退出状态标记 retired 后仅淡出缓存姿态，不再推进时间、重新求表达式或派发动画事件。未经过 live sample 的退出实例没有可伪造的缓存姿态。
+
+新增 `ysmPoseSamplingSmokeTest`：正式 parser→同一 sampler 验证 0.5 秒插值到 next pre 为 5、1 秒跳到 post 为 20；170→-170 和反向最短路径中点分别为 ±180，普通路径中点为 0；reference-shaped curve 在 0.015 秒得到 position 2.28、rotation 174.56、scale 1.456；验证 borrowed/returned arrays 修改隔离，Molang 0.2→4 后 snapshot 保持旧值而 live sample 更新。四个 M3 smoke 与 Fabric build 前台通过（退出码 0，31 秒）；新代码可读性和 diff 空白检查通过。
+
+此处采样/快照数值与退出分支已有证据；`YsmBonePose.blend` 尚未接入 controller 整层过渡合成，不能从组件测试推出完整矩阵/过渡/事件轨迹通过。剩余 gate 包括整层 snapshot blend、curve/最短路径实际采样、retired 事件完整轨迹、controller 声音/嵌套/环路、同帧多 pass 和所有权顺序；M3 尚未完成，不提交或推送。
+
+M3 整层过渡接入进展：新增每控制器独立的 `YsmControllerPoseLayer` 保存上一份最终层输出，状态转换截取该快照；live clip 的 position/rotation 加权累计、scale 从单位值加权后相乘，先合成该控制器新层，再以曲线混合 outgoing/incoming，每层仅应用一次。播放器已经调用此 compose 路径及 `YsmBonePose.blend`，不再仅保留一个未使用的 curve DTO；旧 clip 不再额外写姿态，退出事件/时间仍停止。逐 clip 的重复缓存已由层快照替代，避免两个输出路径重复贡献。
+
+参考 `AnimationControllerRuntime` 为 slot 设置 **nextState** 的 transition interpolator；现已修正旧的 old/target 最大时长选择，进入/转换使用目标状态曲线和最短旋转标志。中断过渡从最后一次层输出重新截取快照；missing bone 按 identity 混合，完成后释放旧 bone。普通动作/native 的原姿态路径保留，controller function 贡献进入所属层；完整 function/state 执行所有权仍须轨迹验收。
+
+新增 `ysmControllerPoseLayerSmokeTest` 使用同一生产 compose/accumulate：两份 clip 合成的 incoming position 为 9，只混合一次后为 9.8；测试短路径 rotation 201.2、scale 1.88、old-only/new-only bone、输入仍 live 而 outgoing 固定、独立控制器、中断后从 18→9→0、释放旧 bone 和立即转换。修正状态重启 fixture 令 target 自身有 0.2 秒曲线，以验证正确的 target 语义。五个 M3 smoke + Fabric build 前台通过（26 秒）；移除重复 clip snapshot 缓存后复验层/采样/隔离 smoke + Fabric build 通过（18 秒）。diff 与新文件空白检查通过。
+
+该追加证明层数值合成和正式调用路径已接通，尚不等于完整骨骼矩阵/事件轨迹差分通过。M3 剩余矩阵/事件、声音/子控制器/环路、同帧多 pass、主/并行/post/第一人称/function 顺序和发布前全回归；真实窗口仍按用户要求 `SKIPPED/MANUAL_BY_USER`。M3 保持实施中，未提交或推送。
+
+M3 事件窗口追加进展：播放器在 loop wrap 之前保存本次未回绕的 cursor end，`YsmAnimationEventWindow` 按实际越过的循环次数选取事件，再按 occurrence time/cycle/原索引排序。循环尾事件先于下一轮零点事件，同轮已显式派发的 initial event 不重复；跨越多个循环不再只比较 wrapped from/to 而漏事件。反向区间按反向时间顺序派发，负 loop cursor 归一化到正常采样域。非有限事件时间/window 拒绝；为避免极短周期/极大 speed 导致无界循环，单实例窗口最多 1048576 次 crossing，采用与 M2 关键帧上限同量级的有限预算，溢出抛固定诊断，不记录事件内容或静默截断。
+
+新增 `ysmAnimationEventWindowSmokeTest` 验证 start/middle、显式 initial 不重发、end→next start、0.75→2.75 的两轮完整顺序、零 delta、反向 middle→start→end、ONCE endpoint 一次及已完成不重复、NaN 和预算溢出。前台事件窗口/控制器隔离 smoke 与 Fabric build 成功（退出码 0，20 秒）。此事件选择测试经过生产 helper，播放器已使用该 helper；不宣称声音/粒子/Lua 副作用、完整模型轨迹或同帧多 pass 已通过。
+
+另确认 `getDeltaTime` 当前会把相同 age 的重复更新补成一 tick，不能继续把其当作防重复推进证据。下一步需确定真实 frame identity，将 timeline/controller/function 副作用推进与每个 render pass 的姿态采样分离，并验证循环/退出完整轨迹和矩阵；M3 仍未完成，不提交或推送。
+
+M3 同帧推进分离追加进展：本地 Minecraft 26.1.2 映射 Jar 的 javap 验证 `getFrameTimeNs()` 返回耗时字段 frameTimeNs，而非唯一帧标识，因此未将其当作 identity。现有 GameRendererMixin 在真实 `render` HEAD 调用 `YsmRenderFrameClock.beginFrame`；每个 player 的 `YsmAnimationFrameClock` 按同一 frame id 只接受一次推进，重复 pass 即使传入不同 age 也不会改变其 clock。不同 player 的推进状态独立，first/缺 age 保留一 tick 缺省，年龄回退或大间隔有界回退，同 age 的新帧允许逻辑评估但 delta 为零，不凭空加 tick。
+
+播放器实际 update 路径已分离：native 状态/手部时序、播放权重/时间/事件、controller layer 时间、controller/function 事件在 advance 分支；head/context-aware pose sample、part reset、层姿态合成和手部姿态仍每个 pass 执行。未用 early return 跳过后续视角采样。实际新帧 Hook 的游戏内窗口验收为 `SKIPPED/MANUAL_BY_USER`，未通过 JVM 证明真实多视角画面正确。
+
+`ysmAnimationFrameClockSmokeTest` 使用生产 clock 与事件窗口，在三个 frame identity 下各调用三次 pass，验证 advances=3、sample opportunity=9、middle/end/start 事件轨迹不重复、暂停 age 不新增 timeline 时间、不同 player 独立、NaN/回退/大间隔/小数 delta。此为 cadence/component 证据，sample counter 本身不等同于实际骨骼矩阵验证。前台 clock/event window/controller isolation/controller layer smoke 与 Fabric build 通过（退出码 0，14 秒），编译验证新 Hook 签名；diff 空白检查通过。
+
+M3 下一步仍需完整实际姿态矩阵/退出事件/副作用轨迹、controller 声音/子控制器/环路、主/并行/post/第一人称/function 上下文所有权及全回归。frame id 入口和推进分离已有实现与组件证据，不将上述其余 gate 改为 PASS。M3 仍未提交或推送。
+
+M3 controller 声音追加进展：状态 DTO/parser 保留 string 和 `{effect:...}` 的 sound_effects 数组，兼容原七/八参数状态构造；初始进入和状态转换在 on_entry 后调用现有 sound 播放入口，持续停留不重复调用。参考的 SoundTransitionGate 对带声音的目标状态使用 source/target 条件去重；当前 gate 以 controller/source/target 精确键隔离，条件保持 true 时不重复进入，观察 false 后重新允许。带声音也包括目标 clip 中的 sound timeline，注册更新对应 controller 时释放旧 gate。
+
+`ysmControllerSoundSmokeTest` 通过真实 controller parser/runtime，用音频请求记录器验证初始 string/object 两个 effect、持续状态不重发、target entry 一次、A↔B 的 held-true 不抖动、条件 false 后重触发。另修复 target on_entry 执行前仍暴露旧 c.current_state 的问题；正式 Molang callback 轨迹现为 initial:default→exit:default→entry:next，target 的 clock/context 在入口表达式前更新。音频设备/实际听感依用户要求 `SKIPPED/MANUAL_BY_USER`，资源 codec/自定义声源装配按 M5 资源阶段继续验证，不能从请求记录推断实际音频已正确播放。
+
+前台声音/隔离/frame clock/baseline smoke + Fabric build 成功（21 秒）；entry 上下文修复后声音/隔离 smoke + Fabric build 再次退出码 0（19 秒）。diff 和新增测试空白检查通过。M3 声音生命周期仍需补所属 controller 的停止/切换/卸载处理，避免旧声源继续播放；其余剩余矩阵/完整事件、子控制器/环路和上下文顺序 gate 保持未完成，未提交或推送。
+
+M3 声音生命周期追加进展：每个播放器持有独立 YsmControllerSoundBank；状态 sound_effects 和 controller clip timeline 的音频句柄按所属 controller 保存。controller slot 在零时刻初始事件之前即设置所有者，避免首个声音脱离生命周期。状态转换在旧 on_exit 前停止本控制器的声音；定义重新注册停止对应旧所有者，模型 close 停止剩余所属句柄。普通动画现有声音路径保持原行为。
+
+清理以 LuaSound ChannelHandle 的已释放状态为准，不以异步 isPlaying=false 判定结束，避免缓冲加载期间误移除仍需停止的句柄。每个推进帧和添加句柄时清理已结束项。生产 sound bank 的 fake-handle 轨迹覆盖等待缓冲、已完成清理、main/parallel 所有权隔离、重复 stop/close 幂等和不同模型实例隔离；真实 controller runtime 的轨迹验证 initial:default → stop:fixture → exit:default → entry:next。实际听感保持 SKIPPED/MANUAL_BY_USER。
+
+前台声音/控制器隔离/frame clock smoke 与 Fabric build 成功（退出码 0，22 秒）；M3 的完整矩阵/副作用轨迹、子控制器环路和各阶段上下文顺序仍待完成，尚未提交或推送。
+
+M3 子控制器参考核对：Sparkle-Morpher AnimationState 使用状态名 ysm-entry- 前缀得到 subName；AnimationControllerRuntime 以根 controller 名和点分层级路径查找子定义，并限制 MAX_DEPTH=5。它不是把任意 animations 引用直接当作 child controller。当前 Figura runtime 对所有定义平铺 update，尚未实现该入口规则，下一步将按此明确参考语义补实现与有界循环测试；本记录为定位证据，非验收 PASS。
+
+M3 子控制器追加进展：按参考 ysm-entry- 状态前缀和点分 controller 路径驱动嵌套定义；被任何父状态引用的子定义不再作为独立根执行，只有父入口活动时递归更新，深度上限为 5。父状态退出先递归退出子状态，停止子所属声音并释放 state/function/retired 动画和姿态层，重置子状态/时间/完成标志；再执行父 on_exit。重新进入创建独立新播放实例，时间从零开始。
+
+空状态可在同次 update 连续跳转，visitedStates 保证每个状态最多访问一次。新回归暴露环路拒绝边过早消耗声音 gate，已改为环路检查先于成功声音 gate 消耗，避免影响下一帧正常返回转换。ysmChildControllerSmokeTest 使用真实 parser/runtime 断言未活动子定义不触发事件、父激活、持续状态入口一次、child.exit→parent.exit、重进入新对象/time=0、子状态 default→a→b→a 环路有界，以及六级定义仅前五级进入且不重复触发。
+
+前台子控制器/声音/隔离 smoke + Fabric build 成功（退出码 0，27 秒）；追加真正子控制器内的空状态环路断言后，10 项 M3/原 phase41 smoke 与 Fabric build 全部通过（退出码 0，12 秒）。代码和新增测试 diff 空白检查通过。本轮为运行时/事件生命周期证据，子层与父层过渡的完整矩阵差分仍须后续验证。
+
+M3 上下文定位：YsmControllerRuntime finally 当前仅恢复 q 的四个 clock/finished 字段，没有恢复 c.controller/current_state/state flags；播放器骨骼表达式与 timeline 也未重新安装所属 controller 的 c 环境。因此完整 c 所有权、视角/pass 顺序与实际矩阵/事件差分仍为下一步要求，不能用本轮组件 PASS 关闭 M3；M3 尚未提交/推送。
+
+M3 controller 上下文追加进展：VariableStorage 增加最小 selected-field scope 保存/恢复机制，保留 explicit null 与 absent 的差异及属性枚举集合。YsmControllerRuntime.ContextScope 保护引擎所有的 c.controller/slot/current_state/state_time/clock/finished 与已知状态 flags；进入时清零其他定义的 flags，再安装本 controller。支持 child 嵌套及异常退出恢复，model 自行写入的其他 c 字段不被全表回滚。controller update 和 child on_exit 使用该正式作用域。
+
+播放器实际骨骼采样/动态 clip weight、初始事件和 timeline 分派使用所属 controller 的正式 scope，动画自身 time/length 同时安装到 q 和 c 时钟，结束后恢复调用环境。规范化的播放器槽名能够映射回原大小写 controller 定义。未使用隐藏/离屏窗口证明 GUI，真实窗口仍按用户要求 SKIPPED/MANUAL_BY_USER。
+
+ysmControllerContextSmokeTest 通过真实 parser/runtime/sampler 验证同一 clip 的 First/second 状态 flags、权重与动态骨骼表达式不同，嵌套恢复父环境、exception cleanup、outer q 四个 clock/finished 字段恢复、explicit null/不存在字段与属性集合恢复、模型 user_value 写入保留。使用反射仅调用生产 private dispatchInitialEvents/dispatchEvents 并设置其跨越窗口，实际 Molang callback 轨迹为 First:alpha:0.0 → First:alpha:0.3 → second:beta:0.0 → second:beta:0.5，无设备或 fake dispatcher；这证明事件 owner scope，不宣称已覆盖完整 player.update/骨骼矩阵。
+
+前台 context/child/sound/isolation/原 phase41 smoke + Fabric build 成功（退出码 0，25 秒）；追加第二 controller 的实际事件轨迹后 context/child/isolation/phase41 + Fabric build 再次通过（退出码 0，7 秒）。diff 和新增测试空白检查通过。主/并行/post/第一人称/function 的明确阶段顺序与所有权、完整矩阵/事件差分及全语料回归仍待完成；M3 尚未提交或推送。
+
+M3 阶段顺序追加进展：核对 Sparkle-Morpher PlayerAnimationController.registerControllers 的注册序列后，以显式 executionOrder 取代 enum ordinal：pre_parallel → pre_main → main → post_main → post_swing → parallel → fp.arm（misc 先于 parallel）。现有 vehicle/projectile 分类保留独立顺序，不在本阶段添加对应动态功能。YsmControllerSlot 首先识别参考 fp.arm.* 名称，避免 fp.arm.parallel 误归到 body PARALLEL。
+
+函数绑定修复：pre_main 和 main 分别只绑定自己的 player_ctrl 事件；首次回归仍发现旧 endsWith(_main) 在 pre_main 内提前加入 main 事件，已补排除 pre/post 名称。第一人称分类仅绑定 player_ctrl_fp_arm，避免 body parallel 函数被 fp.arm 消费。unbound controller events 的排序同步采用相应序列。
+
+ysmControllerPhaseSmokeTest 使用真实 controller parser/runtime、frame clock、event bus 与 binder，将定义按反序注册，在三个同 frame pass 下断言确切 controller owner 顺序、function-before-entry trace、parallel_1/2 的独立事件和共享 generic 事件仅一次、fp.arm 优先分类、pre/main 不串事件；原 phase41 命名/绑定回归仍通过。callback 使用记录器而非完整 YsmMolangFunctionRuntime，因此仅为控制器/binder/event bus 集成证据。前台 phase/context/child/phase41 smoke + Fabric build 通过（退出码 0，17 秒）；diff 与新测试空白检查通过。
+
+第一人称实际接点定位：PlayerRendererMixin.ysm$renderHand 仅提交 YSM arm geometry，没有调用 updateAnimations；LivingEntityRendererMixin 的主体 submit 才调用 update。YsmModelRuntime.getAnimationParts 同时返回 body 和 armParts，尚未按 pass 隔离。Minecraft 映射 Jar javap 已证实 EntityRenderer.createRenderState(entity,float) 是正式可用入口，DeltaTracker.getGameTimeDeltaPartialTick(boolean) 可取 render tick delta。下一步接通真实手臂动画入口，保证 body/arm 同帧推进和事件不重复，隔离 fp controller 的姿态目标及上下文。仅 fp.arm 分类 PASS 不代表第一人称运行时 PASS。
+
+M3 仍需第一人称实际接点/姿态所有权、无对应 controller 定义时函数事件的阶段归属、完整 player 时间轴矩阵/事件差分及全语料回归；尚未提交或推送，M4 未开始。
+
+M3 第一人称接点追加进展：ItemInHandRendererMixin 的 YSM renderArmWithItem 路径通过正式 EntityRenderer.createRenderState(player,tickDelta) 取得当前状态，调用 updateAnimations(...,true)。因此第一人称没有主体 submit、或持物时 vanilla 不画裸手臂，仍会进入正式动画更新；左右手重复调用共用既有 frame identity gate，不另加隐藏渲染路径。
+
+YsmModelRuntime/Player 保留原 body update API 并增加 firstPerson 参数。生产动画与 controller layer 的采样目标按 pass 选择：body 仅 body parts；有独立 arm model 时第一人称仅 armParts，无独立 arm model 时沿用 body parts 作为手臂几何。fp.arm controller/layer 不再在 body pass 采样或写入。普通共享动画仍在实际 hand pass 采样，并可读取其实际第一人称 view query。
+
+fp controller 是否更新由本地玩家与真实 camera mode（或正式 hand pass）决定，第三人称/其他实体不创建 fp 播放实例。退出第一人称先释放已活动 fp controller/child、声音、clip 与 pose layer，再推进动画，避免旧 arm timeline 多触发一帧。controller 阶段的 q.is_first_person 随 body/fp 所有者安装，sample 阶段随实际 pass 安装，ContextScope 恢复原值。
+
+ysmFirstPersonControllerSmokeTest 使用真实 parser/runtime，覆盖第三人称无 arm 初始事件、body/fp 同名 clip 独立实例、body 动画用于 hand pass 的 query、camera exit 的 arm.exit 只一次且处于 own view、body 实例不受影响、camera re-entry 的 arm 新实例/time=0 和外层 query 恢复。前台 firstPerson/phase/context/frame clock/child smoke 与 Fabric build 全部通过（退出码 0，25 秒）；新 Hook 的 mapped API/签名通过编译，实际窗口验收仍 SKIPPED/MANUAL_BY_USER，不能从组件测试推断真实双手画面正确。
+
+本轮 diff 和新增测试空白检查通过。M3 剩余：无对应定义时 function 事件阶段及 fp fallback 归属、实际 body/arm 姿态矩阵及同帧不同 pass/延迟提交的隔离、native hand pose 目标一致性、完整时间轴事件/退场差分与全语料回归。未关闭 M3，未提交或推送。
+
+M3 缺失定义的函数阶段追加进展：正式模型装配在 functions.load 后安装缺失的标准 function event controller 槽。已有 state-machine JSON 的 owner 保持原定义；pre_parallel/pre_main/main/post_main/post_swing/parallel/fp-arm 等标准事件得到与正式 controller 相同的阶段顺序、c 上下文、function animation clock 和第一人称生命周期。索引后缀按现有 binder 支持的 pre_parallel/parallel/post_main 接通，没有将任意自定义事件自动宣称为核心标准。
+
+YsmMolangFunctionRuntime 的 unbound fallback 排除已有 controller/binder 所有者，即使其本帧未执行（例如 camera 第三人称的 fp.arm 槽），也不会绕过 gate 触发。没有标准归属的原自定义 controller event 仍走现有尾部 fallback。runEvent 使用 selected-field scope 精确恢复 c.controller 的 absent/null 状态，替代原先 absent 被改为 0 的泄漏。
+
+ysmFunctionStageSmokeTest 使用真实函数 parser 生成 AST，通过反射仅向私有 event DTO 表装配这些已解析函数，随后调用正式 YsmMolangFunctionRuntime + controller runtime + event bus，不用 fake dispatcher。固定轨迹覆盖缺失 JSON 的 pre_parallel_2/pre_main/post_main_1/post_swing/parallel_2 的正式 owner；已有 main 的 function→state entry 顺序和原定义对象保持；第三人称 fp 不执行/不 fallback、第一人称只执行一次；同帧重复 update/fallback 不重复，外层 absent c 字段与 view query 恢复；未知自定义事件保留旧 fallback。此 fixture 未证明正式 Avatar binding registry/全模型装配，后续 M4 与完整语料回归继续覆盖。
+
+前台 functionStage/phase/context/firstPerson/原 phase41 smoke + Fabric build 全部通过（退出码 0，24 秒）；diff 与新增测试空白检查通过。M3 剩余完整实际姿态矩阵与事件差分、body/arm 多 pass/延迟提交隔离、native hand pose 目标一致性和全语料回归，尚未提交或推送。
+
+M3 原生手部与矩阵追加进展：原 applyNativeArmPose 遍历 runtime.uniqueParts()，会同时写 body/arm 两套骨骼；改为 uniqueParts(firstPerson) 当前 pass 的目标集合，并使用该目标集合对应的 body 或 arm role 映射。保留现有 item/use/swing 计算、原生 clip 与 locator 优先规则，不扩展手持物功能。
+
+ysmBoneMatrixSmokeTest 首次直接验证生产渲染骨骼矩阵：真实 animation parser/sampler → weighted bone pose/controller layer → 生产 applyControllerPose → YsmRenderer.applyBoneTransform/PoseStack。以独立三角系数和约定坐标计算断言全部 16 个矩阵系数（tolerance 2e-5），覆盖 weight=0/.2/1、pivot=(16,16,0) 的位移/旋转/缩放、+170→-170 普通路径/shortest 过渡中点和结束矩阵。反射仅调用现有 private 生产计算方法，没有 mock renderer、没有 Qt offscreen 或 GUI 结论。
+
+前台 boneMatrix/firstPerson/controllerLayer/functionStage smoke 与 Fabric build 通过（退出码 0，25 秒）；diff 和新测试空白检查通过。CPU 矩阵 PASS 的范围是正式采样/层合成/部件写入/渲染 transform，不等同完整 player.update 状态时间轴、父子控制器层过渡与延迟绘制的全部验收。本阶段真实窗口仍 SKIPPED/MANUAL_BY_USER。
+
+延迟渲染取值定位：YsmRenderer.renderBone 在真正绘制时读取 runtime 的可变 part anim/user pose；手臂和主体提交后的回调之间若发生另一 pass reset/sample，仍可能读到后一次状态。下一步必须保存提交时姿态或在正式延迟路径保证对应 pass 状态，并用实际矩阵/事件轨迹验证；不能以本轮矩阵 fixture 代替此 gate。M3 剩余完整 player 时间轴/多 pass/退出事件差分、延迟提交隔离与全语料回归，尚未提交或推送。
+
+M3 延迟渲染隔离追加进展：新增不可变 YsmRenderPose，提交时将每个 part 的 animation/model position/rotation/scale 与 visible 复制为独立 scalar records，复制整体 model scale 矩阵。渲染取 detached part view，不再引用后续 pass 或 Lua 可改写的原 part/vector；返回的 view 也不能改写保存数据。
+
+主体 submitFiguraModel 回调与手臂 submitCustomGeometry 回调捕获各自的提交姿态；body、附件、arm 的 renderBone 使用该快照，附件祖先可见性也按快照检查。body world/locator matrix 更新使用同一保存姿态，避免查询矩阵与实际绘制姿态不一致。保留原 render overload 的即时行为。回调检查 Avatar 当前 runtime 与提交时实例一致，换模型/卸载后不把旧快照画到新实例。
+
+ysmDeferredPoseSmokeTest 使用生产快照与 YsmRenderer 正式骨骼 transform，先保存同名 body/arm 两份不同姿态，随后重置/改写动画、Lua model 变换、可见性及输入 scale 矩阵，逆序执行延迟绘制 callback，断言全部 16 个实际矩阵系数仍对应各自原提交值。另断言大小写 part lookup、返回 view 独立、隐藏祖先与后续隐藏的隔离。此为保存/延迟取值的 CPU 矩阵集成证据；实际 Minecraft SubmitNodeCollector/GPU/窗口时序仍 SKIPPED/MANUAL_BY_USER，不据此宣称真实画面验收 PASS。
+
+生产修改后的 boneMatrix/firstPerson smoke + Fabric build 通过（退出码 0，20 秒）；新增 deferredPose + boneMatrix/firstPerson 与 Fabric build 全部通过（退出码 0，9 秒）。diff 与新 source/test 空白检查通过。M3 剩余完整 player 状态时间轴、重复 pass 和退场事件矩阵差分、controller 过渡采样上下文一致性及全语料回归；尚未提交或推送。
+
+M3 播放器时间轴追加进展：从正式 update 中整理出 private advanceAnimationTimeline / advanceControllerPoseLayers / sampleAnimations 内部步骤，主更新仍调用同一份生产实现；没有增加测试专用绘制/时间路径。controller 创建 clip 的初始事件使用本次 controller evaluator，避免另取 Avatar context 而偏离所属执行环境。body/arm controller pose layers 分别保存输出/过渡快照，并在逻辑帧统一推进、在对应 pass 合成，防止后采样的视角改写另一视角的过渡来源。positive loop wrap 改为余数仅负值加 length，消除原先加再减 length 的小数精度损失。
+
+ysmPlayerTimelineSmokeTest 通过反射构造真实 CPU model runtime（真实 body/arm geometry、part、player、controller 与 function runtime；无 GPU texture/game entity），用正式 parser/evaluator 和私有生产步骤驱动五帧，每帧 body→arm→body 三 pass。对全部 16 个实际渲染矩阵系数作差分，覆盖两 controller 同 clip 的 1/.2 权重、循环 initial/half/end/next-zero 的准确 owner 轨迹、同帧不重复、退出表达式→incoming zero 事件顺序、retired clip 不推进/不触发、body/arm 不同 view 的独立 outgoing snapshots、transition 中点矩阵及完成后 live blend_weight=0/.2/1。另用 Float bits 断言正向 0.1 秒循环值未损失精度。
+
+内部步骤与矩阵使用生产 CPU 算法，但 native/entity 查询与真实 GameRenderer/SubmitNodeCollector/GPU 外壳未在 JVM fixture 中执行；该部分按用户要求 SKIPPED/MANUAL_BY_USER，不能宣称真实画面 PASS。前台 timeline/layer/event window smoke + Fabric build 通过（退出码 0，22 秒）。随后 16 项 M3 smokes、原 phase41/baseline、全 local corpus 与 Fabric build 全通过（退出码 0，31 秒），语料保持 Figura compiled=5、plaintext YSM assembled=35、encrypted assembled/rehydrated=5。
+
+M3 最后审计仍需子控制器进出时整体过渡来源的实际矩阵验证：现有生命周期/深度/环路测试及本轮 main/parallel 时间轴矩阵已通过，但 child 自己的姿态层被退出清理后，parent 新状态的 outgoing layer 是否保留 child 贡献尚未由矩阵 fixture 证明。下一步以该正式路径补断言并修复实际差异，再做最终 gate/提交推送；不以当前 green smokes 直接关闭 M3。
+
+### 9.7 M3 完成验收（2026-10-13）
+
+最后的子控制器矩阵 fixture 确认原实现的实际差异：root→child→grand 的最后输出在清理子层后丢失，parent 接管时变成单位矩阵。现于转换前递归保存/合并 child 最后输出，body/arm 分别继承，随后按原生命周期退出/释放 child，再开始目标 parent 曲线。生产 CPU 时间轴验证嵌套 child 的 body=-1/arm=-2 起点、过渡中点 body=-2.5/arm=-3 与 45° 旋转、parent 终点=-4/90°；grand.exit→child.exit→root.exit 精确 owner/order、退场 child 不发后续事件、重新进入新实例/initial event 均通过。
+
+M3 验收映射：
+
+- 动态权重：ysmAnimationWeightSmokeTest、ysmPlayerTimelineSmokeTest 的实时 0/.2/1 与实际矩阵；非法/非有限权重与 evaluator 隔离由前者覆盖。
+- 实例、function clip、完成/退出隔离：ysmControllerIsolationSmokeTest、ysmPlayerTimelineSmokeTest；同一 clip 在 main/parallel 的 clock、权重、事件与 body/arm 来源分别验证。
+- 曲线/最短路径/中断：ysmBlendTransitionSmokeTest、ysmPoseSamplingSmokeTest、ysmControllerPoseLayerSmokeTest、ysmBoneMatrixSmokeTest；±180° 普通/shortest、曲线控制点、中断 snapshot 与全部 16 个矩阵系数通过。
+- 声音：ysmControllerSoundSmokeTest 的状态 string/object、held condition gate、stop-before-exit 和 owned handle 生命周期；实际音频设备/资源播放依用户要求 SKIPPED/MANUAL_BY_USER，自定义声音装配/codec 仍属 M5。
+- child/空状态：ysmChildControllerSmokeTest 的父驱动/重进入、子状态环路、depth=5；ysmPlayerTimelineSmokeTest 的多级退出/接管矩阵与事件。
+- 阶段、c/q 所有权与第一人称：ysmControllerPhaseSmokeTest、ysmControllerContextSmokeTest、ysmFirstPersonControllerSmokeTest、ysmFunctionStageSmokeTest；正式 hand 更新 Hook 已编译，缺失定义的标准函数阶段、禁用 fp fallback、查询 scope 与异常恢复通过。
+- 循环与重复 pass：ysmAnimationEventWindowSmokeTest、ysmAnimationFrameClockSmokeTest、ysmPlayerTimelineSmokeTest；end→next-zero、多个循环/逆向边界、预算负例、五帧各三 pass 的矩阵与事件轨迹通过，retired clip 不推进/不触发。
+- 提交/延迟绘制：ysmDeferredPoseSmokeTest 的不可变 body/arm 姿态、model scale、可见性/祖先隐藏和后续修改隔离；正式主体/附件/arm 回调已消费保存姿态，换 runtime 后旧回调跳过。
+
+最终前台自动 gate：16 项 M3 smoke + 原 ysmPhase41SmokeTest/ysmBaselineSmokeTest + ysmLocalCorpusSmokeTest + scanYsmModels（-PysmScanBaseline=common/src/test/resources/ysm/m2-corpus-baseline.json）+ :fabric:build，退出码 0，40 秒。语料仍为 Figura compiled=5、plaintext YSM data assembled=35、encrypted assembled/rehydrated=5，原扫描基线的已知负例保持明确，不将其计为有效模型。代码 readability/diff 与 git diff --check（排除工作日志）完成。
+
+计划中真实窗口的行走/跑跳/游泳/睡眠/骑乘/攻击/持物切换、第一人称双手与实际音频，按用户“人工验收注明并跳过，不阻塞”记为 SKIPPED/MANUAL_BY_USER；JVM/CPU 矩阵不替代 real Windows/game GPU 画面 PASS，未使用 Qt offscreen。M3 无后端修改，不触碰 omnm-cloud/参考后端。继续保留“不关闭计算机”的用户要求。
+
+结论：M3 自动验收 DONE，允许按用户豁免的人工条目执行阶段提交/推送。M4 必须在此检查点推送确认成功后开始；尚未关闭整个 M0~M8 目标。提交 hash/远端确认由下一阶段记录补充，避免在当前提交内自引用 hash。

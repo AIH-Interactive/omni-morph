@@ -63,6 +63,17 @@ public class YsmAnimationParser {
                 }
 
                 YsmAnimationClip clip = new YsmAnimationClip(animName, length, loopMode);
+                JsonElement blendWeight = animObj.get("blend_weight");
+                if (blendWeight != null && blendWeight.isJsonPrimitive()) {
+                    if (blendWeight.getAsJsonPrimitive().isNumber()) {
+                        clip.blendWeight = blendWeight.getAsFloat();
+                    } else {
+                        clip.blendWeight = 0f;
+                        if (compileExpressions) {
+                            clip.blendWeightExpressions = List.copyOf(compileAll(blendWeight.getAsString(), engine));
+                        }
+                    }
+                }
 
                 if (animObj.has("bones")) {
                     JsonObject bonesObj = animObj.getAsJsonObject("bones");

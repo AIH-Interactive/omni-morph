@@ -26,6 +26,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.util.Mth;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.model.ysm.YsmPartMask;
+import org.figuramc.figura.model.ysm.YsmRenderPass;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.ducks.FiguraEntityRenderStateExtension;
@@ -109,10 +111,12 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
                 if (livingEntity != null)
                     figura$submitYsmHandItems(localAvatar, livingEntity, ysmStack, submitNodeCollector, livingEntityRenderState.lightCoords, livingEntityRenderState.outlineColor);
             }
+            var submittedPose = runtime == null ? null : runtime.captureRenderPose(false);
             ((NodeCollectorExtension) submitNodeCollector).submitFiguraModel(localAvatar, livingEntityRenderState, (avatar, state, bufferSource) -> {
-                if (avatar.getYsmRuntime() != null) {
-                    avatar.getYsmRuntime().renderer().render(ysmStack, bufferSource, state.lightCoords);
-                    avatar.getYsmRuntime().renderer().renderAttachments(ysmStack, bufferSource, state.lightCoords);
+                if (runtime != null && avatar.getYsmRuntime() == runtime) {
+                    runtime.renderer().render(ysmStack, bufferSource, state.lightCoords,
+                            YsmPartMask.forPass(YsmRenderPass.PLAYER_BODY), submittedPose);
+                    runtime.renderer().renderAttachments(ysmStack, bufferSource, state.lightCoords, submittedPose);
                 }
                 return null;
             });

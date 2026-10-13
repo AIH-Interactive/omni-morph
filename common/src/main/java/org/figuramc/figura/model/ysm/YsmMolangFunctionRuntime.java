@@ -12,12 +12,17 @@ import org.figuramc.figura.molang.runtime.Function;
 import org.figuramc.figura.molang.runtime.Struct;
 import org.figuramc.figura.molang.storage.StringPool;
 import org.figuramc.figura.model.ysm.controller.YsmControllerSlot;
+import org.figuramc.figura.model.ysm.controller.YsmAnimationController;
+import org.figuramc.figura.model.ysm.controller.YsmControllerSlotBinder;
 
 import java.nio.charset.StandardCharsets;
 import java.util.AbstractList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -162,8 +167,20 @@ public class YsmMolangFunctionRuntime {
     }
 
     public void runUnboundControllerEvents(ExpressionEvaluator<?> evaluator) {
-        for (String event : eventBus.unboundEvents(events.keySet()))
-            runEvent(evaluator, event, event);
+        runUnboundControllerEvents(evaluator, List.of());
+    }
+
+    public void runUnboundControllerEvents(ExpressionEvaluator<?> evaluator,
+                                           Collection<YsmAnimationController> controllers) {
+        Set<String> owned = new HashSet<>();
+        for (YsmAnimationController controller : controllers) {
+            owned.addAll(YsmControllerSlotBinder.eventNamesForController(controller.name(), controller.slot()));
+        }
+        for (String event : eventBus.unboundEvents(events.keySet())) {
+            if (!owned.contains(event)) {
+                runEvent(evaluator, event, event);
+            }
+        }
     }
 
     public Object runEvent(String event, ExecutionContext<?> context, Function.ArgumentCollection args) {
@@ -195,20 +212,14 @@ public class YsmMolangFunctionRuntime {
             return;
         eventBus.markExecuted(normalized, slot, values.size());
         Avatar.MolangContext context = evaluator != null && evaluator.entity() instanceof Avatar.MolangContext molangContext ? molangContext : null;
-        Object previousController = context == null ? null : context.controller.getPath("controller");
         boolean changedController = context != null && slot != null && !slot.isBlank();
-        if (changedController)
-            context.controller.setPath("controller", slot);
-        try {
+        var controllerScope = changedController
+                ? context.controller.preserveScopedValues(Set.of(StringPool.computeIfAbsent("controller"))) : null;
+        try (controllerScope) {
+            if (changedController)
+                context.controller.setPath("controller", slot);
             for (YsmFunction function : values)
                 execute(function, evaluator, ArgsValue.EMPTY, slot);
-        } finally {
-            if (changedController) {
-                if (previousController == null)
-                    context.controller.setPath("controller", 0f);
-                else
-                    context.controller.setPath("controller", previousController);
-            }
         }
     }
 

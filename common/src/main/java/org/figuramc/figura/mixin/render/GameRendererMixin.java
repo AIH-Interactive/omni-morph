@@ -30,6 +30,7 @@ import org.figuramc.figura.gui.FiguraPortraitRenderer;
 import org.figuramc.figura.lua.api.ClientAPI;
 import org.figuramc.figura.math.matrix.FiguraMat4;
 import org.figuramc.figura.math.vector.FiguraVec3;
+import org.figuramc.figura.model.ysm.animation.YsmRenderFrameClock;
 import org.figuramc.figura.utils.EntityUtils;
 import org.figuramc.figura.utils.RenderUtils;
 import org.jetbrains.annotations.Nullable;
@@ -71,6 +72,11 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
     private boolean avatarPostShader = false;
     @Unique
     private boolean hasShaders;
+
+    @Inject(method = "render", at = @At("HEAD"))
+    private void figura$beginYsmRenderFrame(DeltaTracker deltaTracker, boolean tick, CallbackInfo ci) {
+        YsmRenderFrameClock.beginFrame();
+    }
 
     @Inject(method = "renderLevel", at = @At("HEAD"))
     private void onRenderLevel(DeltaTracker deltaTracker, CallbackInfo ci) {

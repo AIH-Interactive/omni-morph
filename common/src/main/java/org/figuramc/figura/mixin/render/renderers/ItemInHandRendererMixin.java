@@ -1,6 +1,7 @@
 package org.figuramc.figura.mixin.render.renderers;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.ItemInHandRenderer;
@@ -76,6 +77,11 @@ public abstract class ItemInHandRendererMixin {
         if (avatar != null && avatar.isYsmNative()) {
             YsmModelRuntime ysm = avatar.getYsmRuntime();
             if (ysm != null) {
+                var renderer = Minecraft.getInstance().getEntityRenderDispatcher().getRenderer(player);
+                var state = renderer.createRenderState(player, tickDelta);
+                if (state instanceof net.minecraft.client.renderer.entity.state.LivingEntityRenderState livingState) {
+                    ysm.updateAnimations(livingState, player, true);
+                }
                 // Keep vanilla first-person arm call order. PlayerRendererMixin
                 // replaces AvatarRenderer.renderHand with YSM geometry.
                 return;

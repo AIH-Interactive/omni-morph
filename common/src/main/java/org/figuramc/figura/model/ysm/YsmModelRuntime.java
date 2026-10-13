@@ -171,6 +171,7 @@ public class YsmModelRuntime implements AutoCloseable {
             runtime.animationPlayer.registerAnimations(readAnimations(tag, ysmMolangEngine));
             runtime.animationPlayer.registerControllers(readAnimationControllers(tag, ysmMolangEngine));
             runtime.functions.load(tag.getListOrEmpty("functions"));
+            runtime.animationPlayer.registerFunctionEventControllers(runtime.functions.eventDebugNames().keySet());
             runtime.animationPlayer.startBaseAnimations();
             runtime.registerDefaultControls();
             runtime.readActionSchemas(tag);
@@ -585,6 +586,12 @@ public class YsmModelRuntime implements AutoCloseable {
         return result;
     }
 
+    public List<YsmModelPart> getAnimationParts(String name, boolean firstPerson) {
+        List<YsmModelPart> result = new ArrayList<>();
+        addPart(result, firstPerson && hasArmModel() ? armParts : parts, name);
+        return result;
+    }
+
     private void readActionSchemas(CompoundTag tag) {
         for (Tag schemaTag : tag.getListOrEmpty("action_schemas")) {
             if (!(schemaTag instanceof CompoundTag schema))
@@ -712,6 +719,10 @@ public class YsmModelRuntime implements AutoCloseable {
         return result;
     }
 
+    public Iterable<YsmModelPart> uniqueParts(boolean firstPerson) {
+        return new LinkedHashSet<>((firstPerson && hasArmModel() ? armParts : parts).values());
+    }
+
     public List<YsmModelPart> rootParts() {
         List<YsmModelPart> result = new ArrayList<>();
         for (YsmGeometry.Bone root : geometry.roots) {
@@ -827,10 +838,14 @@ public class YsmModelRuntime implements AutoCloseable {
     }
 
     public void updateAnimations(LivingEntityRenderState state, LivingEntity entity) {
+        updateAnimations(state, entity, false);
+    }
+
+    public void updateAnimations(LivingEntityRenderState state, LivingEntity entity, boolean firstPerson) {
         Object nativeState = owner.controls.getValue("ysm.native_state_machine");
         if (nativeState instanceof Boolean enabled)
             animationPlayer.setNativeStateMachineEnabled(enabled);
-        animationPlayer.update(state, entity);
+        animationPlayer.update(state, entity, firstPerson);
     }
 
     private void registerDefaultControls() {
@@ -896,15 +911,32 @@ public class YsmModelRuntime implements AutoCloseable {
     }
 
     public void updateWorldMatrices(PoseStack stack) {
+        updateWorldMatrices(stack, null);
+    }
+
+    public void updateWorldMatrices(PoseStack stack, YsmRenderPose pose) {
         if (stack == null)
             return;
         locatorWorldMatrices.clear();
         for (YsmGeometry.Bone root : geometry.roots)
-            updateWorldMatrix(root, stack);
+            updateWorldMatrix(root, stack, pose);
+    }
+
+    public YsmRenderPose captureRenderPose(boolean firstPerson) {
+        PoseStack scale = new PoseStack();
+        if (!firstPerson) {
+            applyModelScale(scale);
+        }
+        return YsmRenderPose.capture(uniqueParts(firstPerson), scale.last().pose());
     }
 
     public boolean renderFirstPersonArm(PoseStack stack, MultiBufferSource bufferSource, int light, boolean left) {
         return renderer.renderFirstPersonArm(stack, bufferSource, light, left);
+    }
+
+    public boolean renderFirstPersonArm(PoseStack stack, MultiBufferSource bufferSource, int light,
+                                        boolean left, YsmRenderPose pose) {
+        return renderer.renderFirstPersonArm(stack, bufferSource, light, left, pose);
     }
 
     public boolean applyAttachmentTransform(PoseStack stack, String attachmentName) {
@@ -948,6 +980,7 @@ public class YsmModelRuntime implements AutoCloseable {
 
     @Override
     public void close() {
+        animationPlayer.closeSounds();
         texture.close();
         for (YsmSubEntity entity : new LinkedHashSet<>(subEntities.values()))
             entity.close();
@@ -1141,20 +1174,21 @@ public class YsmModelRuntime implements AutoCloseable {
         applyBoneChain(stack, bone, false);
     }
 
-    private void updateWorldMatrix(YsmGeometry.Bone bone, PoseStack stack) {
+    private void updateWorldMatrix(YsmGeometry.Bone bone, PoseStack stack, YsmRenderPose pose) {
         YsmModelPart part = getPart(bone.name);
+        YsmModelPart transformPart = pose == null ? part : pose.part(bone.name);
         stack.pushPose();
-        applyBoneTransform(stack, bone, true);
+        applyBoneTransform(stack, bone, true, transformPart);
         locatorWorldMatrices.put(bone.name, FiguraMat4.of().set(stack.last().pose()));
         locatorWorldMatrices.putIfAbsent(bone.name.toLowerCase(java.util.Locale.US), locatorWorldMatrices.get(bone.name));
         stack.popPose();
 
         stack.pushPose();
-        applyBoneTransform(stack, bone);
+        applyBoneTransform(stack, bone, false, transformPart);
         if (part != null)
             part.setWorldMatrix(FiguraMat4.of().set(stack.last().pose()));
         for (YsmGeometry.Bone child : bone.children)
-            updateWorldMatrix(child, stack);
+            updateWorldMatrix(child, stack, pose);
         stack.popPose();
     }
 
@@ -1181,6 +1215,10 @@ public class YsmModelRuntime implements AutoCloseable {
 
     private void applyBoneTransform(PoseStack stack, YsmGeometry.Bone bone, boolean stopAtPivot) {
         YsmModelPart part = getPart(bone.name);
+        applyBoneTransform(stack, bone, stopAtPivot, part);
+    }
+
+    private void applyBoneTransform(PoseStack stack, YsmGeometry.Bone bone, boolean stopAtPivot, YsmModelPart part) {
         double px = bone.pivot[0] / 16d;
         double py = bone.pivot[1] / 16d;
         double pz = bone.pivot[2] / 16d;

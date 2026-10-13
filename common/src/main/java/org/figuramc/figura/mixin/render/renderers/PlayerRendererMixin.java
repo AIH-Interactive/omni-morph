@@ -207,8 +207,12 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
         RenderType renderType = ysm.isTextureTranslucent()
                 ? RenderTypes.entityTranslucent(ysm.texture().getLocation())
                 : RenderTypes.entityCutout(ysm.texture().getLocation());
-        submitNodeCollector.submitCustomGeometry(copy, renderType, (pose, buffer) ->
-                ysm.renderFirstPersonArm(copy, figura$singleBuffer(buffer), light, left));
+        var submittedPose = ysm.captureRenderPose(true);
+        submitNodeCollector.submitCustomGeometry(copy, renderType, (pose, buffer) -> {
+            if (localAvatar.getYsmRuntime() == ysm) {
+                ysm.renderFirstPersonArm(copy, figura$singleBuffer(buffer), light, left, submittedPose);
+            }
+        });
 
         ci.cancel();
     }
