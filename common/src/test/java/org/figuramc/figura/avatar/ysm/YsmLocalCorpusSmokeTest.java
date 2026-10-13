@@ -6,7 +6,9 @@ import org.figuramc.figura.avatar.local.LocalAvatarLoader;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Set;
 import java.util.UUID;
 
 /** Optional local corpus; user model files are read only and never committed. */
@@ -47,14 +49,12 @@ public final class YsmLocalCorpusSmokeTest {
                         }
                     }
                 } else if (path.getFileName().toString().toLowerCase(java.util.Locale.ROOT).endsWith(".ysm")) {
-                    var report = org.figuramc.figura.model.ysm.YsmModelScanner.scanOne(path);
-                    require(report.errors().stream().anyMatch(error -> error.startsWith("UNSUPPORTED_VERSION:")),
-                            "M1 encrypted input must be explicit unsupported rather than silently loaded");
+                    compileEncrypted(path);
                     encrypted++;
                 }
             }
             require(figura > 0 && ysm > 0 && encrypted > 0, "all user-requested corpus categories are present");
-            System.out.printf("Local corpus: Figura compiled=%d YSM data assembled=%d encrypted pending M2=%d%n",
+            System.out.printf("Local corpus: Figura compiled=%d YSM data assembled=%d encrypted assembled/rehydrated=%d%n",
                     figura, ysm, encrypted);
         } finally {
             try (var files = Files.walk(environment)) {
@@ -62,6 +62,44 @@ public final class YsmLocalCorpusSmokeTest {
                     Files.delete(path);
                 }
             }
+        }
+    }
+
+    private static void compileEncrypted(Path path) throws Exception {
+        require(YsmEncryptedSource.hasMagic(path), "encrypted corpus header");
+        require(LocalAvatarFetcher.isLoadableAvatar(path), "encrypted wardrobe discovery");
+        var manifest = YsmManifestReader.read(path);
+        try (YsmModelData data = YsmModelData.read(path, () -> false)) {
+            require(data.encrypted() && !data.mainGeometry().bones.isEmpty(), "encrypted formal geometry");
+            require(data.manifest().name().equals(manifest.name()), "wardrobe metadata agrees with formal data");
+            var texture = data.manifest().textures().getFirst();
+            var nbt = YsmAvatarLoader.toAvatarNbt(data, texture, new UUID(0, 1), path);
+            require(nbt.keySet().equals(Set.of("metadata", "ysm")), "encrypted avatar root whitelist");
+            var payload = nbt.getCompoundOrEmpty("ysm");
+            require(!payload.contains("main_model") && !payload.contains("animations")
+                    && !payload.contains("texture") && !payload.contains("source_path"), "ciphertext storage boundary");
+            require(Arrays.equals(Files.readAllBytes(path), payload.getByteArray("source_ciphertext").orElseThrow()),
+                    "original ciphertext retained");
+            var runtime = YsmAvatarLoader.toRuntimeTag(data, texture);
+            require(!runtime.contains("source_ciphertext") && runtime.contains("texture"), "ephemeral runtime resources");
+            require(runtime.getListOrEmpty("animations").size() == data.manifest().animationPaths().size(),
+                    "all player animation resources retained");
+            try (YsmModelData restored = YsmSourcePayload.openData(payload, () -> false)) {
+                require(restored.identity().equals(data.identity()), "portable source identity");
+                require(restored.mainGeometry().bones.size() == data.mainGeometry().bones.size(), "rehydrated geometry");
+                require(restored.resources().resourcePaths().equals(data.resources().resourcePaths()), "rehydrated inventory");
+                for (String resource : data.resources().resourcePaths()) {
+                    require(Arrays.equals(data.resources().readBytes(resource), restored.resources().readBytes(resource)),
+                            "rehydrated resource equivalence: " + resource);
+                }
+            }
+            try {
+                YsmSourcePayload.openData(payload, () -> true).close();
+                throw new AssertionError("Cancelled portable load accepted");
+            } catch (java.io.InterruptedIOException expected) {
+                // Cancellation must propagate instead of publishing a partial model.
+            }
+            System.out.println("ENCRYPTED_DATA_REHYDRATE_OK " + path.getFileName());
         }
     }
 

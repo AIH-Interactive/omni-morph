@@ -1,0 +1,66 @@
+{
+  "format-1.bin": {
+    "bytes": 374,
+    "sha256": "ffbca520f23eab37404f9f2382129fcb15c53296da9cfe451a93c66db3de3423"
+  },
+  "format-3.bin": {
+    "bytes": 374,
+    "sha256": "8f8cde8ec59efab0ba328dc5abb2dd78141eabee78dbe697d54b61f769b3ec14"
+  },
+  "format-4.bin": {
+    "bytes": 488,
+    "sha256": "219d43db8685efe5c3aa76e2dc1634ceea22410331afbb566010f64c043eba46"
+  },
+  "format-5.bin": {
+    "bytes": 489,
+    "sha256": "2aa25b8aafefce8c29de839c5b4cff2fe11514a03893eb47917268435542e446"
+  },
+  "format-9.bin": {
+    "bytes": 523,
+    "sha256": "5ac7239098ec75fbc21cc3b2046e8b77ffe523844c43c4518240d504dea10edb"
+  },
+  "format-10.bin": {
+    "bytes": 665,
+    "sha256": "0886914084d0e58b6d8572ad63e8b0e4b83781e8f7622e1679fa6ef40a0c992f"
+  },
+  "format-14.bin": {
+    "bytes": 665,
+    "sha256": "f0afc5a91acb83861578b124ca1c995c952f44b48aeab535ab13a2d6df1bb91d"
+  },
+  "format-15.bin": {
+    "bytes": 667,
+    "sha256": "7b24a9710ca9acb9f64882910c98a670c2f5512b23533bd4c5fad7407dceb7c0"
+  },
+  "format-16.bin": {
+    "bytes": 1483,
+    "sha256": "7c631ffc3dfdf05af99358fa7640c00e998f26856070a8a038ab7e523ee895eb"
+  },
+  "format-23.bin": {
+    "bytes": 1483,
+    "sha256": "21eabf8da19a60dd0c9862de76142ec8d587bbb86a55e615a761ed7a80002435"
+  },
+  "format-24.bin": {
+    "bytes": 1484,
+    "sha256": "c26a79cc4db9d7822335ccb1b49c4e78644f364a15d00439b97e9b765ebb6cf1"
+  },
+  "format-25.bin": {
+    "bytes": 1484,
+    "sha256": "2bdbbf10ba6ed468026265dafb65f91d4b15fcb73861f1ba240cbc169c1aad1c"
+  },
+  "format-26.bin": {
+    "bytes": 2138,
+    "sha256": "287953e4cc1b6df0fc7025dd9b1a72798c8d7aed0d85adc9e58c537e9b2e6001"
+  },
+  "format-27.bin": {
+    "bytes": 2229,
+    "sha256": "100ecedd8cc64409276f633802a4a74e1aa79c0f085e9d36b0b25070b164cf85"
+  },
+  "format-31.bin": {
+    "bytes": 2229,
+    "sha256": "35028977be9698ce61e4be62bf4759fe4bfe686cae431cb1471324d56280bd89"
+  },
+  "format-32.bin": {
+    "bytes": 2230,
+    "sha256": "6ae55dd8c0616cbed8bb302579326e7a9bcb1083885da417e7735f9c13389bf8"
+  }
+}

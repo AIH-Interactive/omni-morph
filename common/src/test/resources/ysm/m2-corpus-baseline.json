@@ -1,0 +1,256 @@
+{
+  "total": 40,
+  "issues": {
+    "01_taisho_maid": {
+      "errors": [],
+      "unsupported": [
+        "ysm.particle"
+      ]
+    },
+    "03_astronaut": {
+      "errors": [],
+      "unsupported": [
+        "ctrl.carryon_is_princess",
+        "ctrl.ladder_down",
+        "ctrl.ladder_stillness",
+        "ctrl.ladder_up",
+        "ctrl.parcool_state",
+        "ctrl.slashblade_animation",
+        "ctrl.tac_hold_gun",
+        "ysm.bone_rot",
+        "ysm.particle",
+        "ysm.second_order"
+      ]
+    },
+    "04_kongfu": {
+      "errors": [],
+      "unsupported": [
+        "ysm.particle"
+      ]
+    },
+    "05_magical": {
+      "errors": [],
+      "unsupported": [
+        "ysm.particle",
+        "ysm.second_order"
+      ]
+    },
+    "06_hanfu": {
+      "errors": [],
+      "unsupported": [
+        "ysm.bone_rot",
+        "ysm.is_close_eyes",
+        "ysm.particle"
+      ]
+    },
+    "07_jk": {
+      "errors": [],
+      "unsupported": [
+        "ysm.particle"
+      ]
+    },
+    "08_sta": {
+      "errors": [
+        "controller 'player.parallel_7' in 'controller/main.animation_controllers.json' state '自选' references missing transition target 'missing_state'"
+      ],
+      "unsupported": [
+        "ctrl.has_sophisticated_backpack",
+        "ysm.second_order"
+      ]
+    },
+    "09_hailuo": {
+      "errors": [],
+      "unsupported": [
+        "ysm.second_order"
+      ]
+    },
+    "10_zhiban": {
+      "errors": [],
+      "unsupported": [
+        "ysm.bone_rot"
+      ]
+    },
+    "11_salesperson": {
+      "errors": [],
+      "unsupported": [
+        "ysm.particle"
+      ]
+    },
+    "12_little": {
+      "errors": [],
+      "unsupported": [
+        "ysm.particle"
+      ]
+    },
+    "13_matured": {
+      "errors": [],
+      "unsupported": [
+        "ysm.is_close_eyes",
+        "ysm.particle"
+      ]
+    },
+    "14_momo": {
+      "errors": [],
+      "unsupported": [
+        "ysm.particle",
+        "ysm.texture_name"
+      ]
+    },
+    "15_kluonoa": {
+      "errors": [],
+      "unsupported": [
+        "ctrl.carryon_is_princess",
+        "ctrl.tac_hold_gun",
+        "ysm.bone_rot",
+        "ysm.second_order"
+      ]
+    },
+    "16_tactics": {
+      "errors": [
+        "controller 'controller.animation.player.parallel_0' in 'controller/animation_controllers.json' references missing animation 'your_backpack_animation'"
+      ],
+      "unsupported": [
+        "ysm.particle"
+      ]
+    },
+    "17_mini": {
+      "errors": [],
+      "unsupported": [
+        "ysm.second_order"
+      ]
+    },
+    "18_wedding": {
+      "errors": [],
+      "unsupported": [
+        "ctrl.bcombat_attack_animation",
+        "ysm.bone_pivot_abs",
+        "ysm.in_shield_block_cooldown",
+        "ysm.mod_version",
+        "ysm.particle",
+        "ysm.second_order"
+      ]
+    },
+    "19_nine_tailed": {
+      "errors": [],
+      "unsupported": [
+        "ysm.particle",
+        "ysm.second_order"
+      ]
+    },
+    "20_survivor": {
+      "errors": [],
+      "unsupported": [
+        "ysm.second_order"
+      ]
+    },
+    "21_saint": {
+      "errors": [],
+      "unsupported": [
+        "ysm.has_elytra",
+        "ysm.particle",
+        "ysm.second_order"
+      ]
+    },
+    "22_elf": {
+      "errors": [],
+      "unsupported": [
+        "ysm.particle",
+        "ysm.second_order"
+      ]
+    },
+    "YSM_NEW_Model": {
+      "errors": [],
+      "unsupported": [
+        "ysm.second_order"
+      ]
+    },
+    "_创伤小组_霜狐.ysm": {
+      "errors": [],
+      "unsupported": [
+        "ysm.second_order"
+      ]
+    },
+    "default": {
+      "errors": [],
+      "unsupported": [
+        "ysm.second_order"
+      ]
+    },
+    "hsr_fuxuan_1": {
+      "errors": [],
+      "unsupported": [
+        "ysm.bone_rot",
+        "ysm.first_person_mod_hide",
+        "ysm.second_order"
+      ]
+    },
+    "old.ysm": {
+      "errors": [],
+      "unsupported": [
+        "ysm.elytra_rot_x",
+        "ysm.has_elytra"
+      ]
+    },
+    "昔涟v1.1": {
+      "errors": [],
+      "unsupported": [
+        "ysm.second_order"
+      ]
+    },
+    "纳西妲1": {
+      "errors": [],
+      "unsupported": [
+        "ysm.is_close_eyes"
+      ]
+    },
+    "艺方原版娘化 发光鱿鱼娘": {
+      "errors": [],
+      "unsupported": [
+        "ysm.second_order"
+      ]
+    },
+    "芙宁娜1": {
+      "errors": [],
+      "unsupported": [
+        "ysm.elytra_rot_x",
+        "ysm.has_elytra"
+      ]
+    },
+    "芙宁娜v3.14中文配音.ysm": {
+      "errors": [],
+      "unsupported": [
+        "ctrl.climb",
+        "ctrl.climbing",
+        "ctrl.parcool_state",
+        "ctrl.tac_gun_type",
+        "ctrl.tac_hold_gun",
+        "ctrl.tac_is_aim",
+        "ctrl.tac_is_fire",
+        "ctrl.tac_is_melee",
+        "ctrl.tac_is_reload",
+        "ysm.bone_pivot_abs",
+        "ysm.bone_rot",
+        "ysm.elytra_rot_x",
+        "ysm.equipped_enchantment_level",
+        "ysm.first_person_mod_hide",
+        "ysm.has_elytra",
+        "ysm.particle",
+        "ysm.relative_block_name",
+        "ysm.second_order"
+      ]
+    },
+    "青衣1": {
+      "errors": [],
+      "unsupported": [
+        "ysm.bone_rot",
+        "ysm.second_order"
+      ]
+    },
+    "鸣潮-达妮娅1.2": {
+      "errors": [],
+      "unsupported": [
+        "ysm.second_order"
+      ]
+    }
+  }
+}

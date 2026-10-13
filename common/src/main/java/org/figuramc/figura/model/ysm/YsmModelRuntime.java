@@ -13,7 +13,10 @@ import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.control.AvatarControlDefinition;
 import org.figuramc.figura.avatar.control.AvatarControlType;
 import org.figuramc.figura.avatar.ysm.YsmAvatarKind;
+import org.figuramc.figura.avatar.ysm.YsmAvatarLoader;
 import org.figuramc.figura.avatar.ysm.YsmModelData;
+import org.figuramc.figura.avatar.ysm.YsmSourcePayload;
+import org.figuramc.figura.avatar.ysm.crypto.YsmDecodeException;
 import org.figuramc.figura.lua.api.action_wheel.Action;
 import org.figuramc.figura.lua.api.action_wheel.ActionWheelAPI;
 import org.figuramc.figura.lua.api.action_wheel.Page;
@@ -65,12 +68,14 @@ public class YsmModelRuntime implements AutoCloseable {
     private final YsmActionRuntime actions;
     private final YsmMolangFunctionRuntime functions;
     private final String kind;
+    private final boolean encryptedSource;
     private final String modelKey;
     private final float defaultWidthScale;
     private final float defaultHeightScale;
 
-    private YsmModelRuntime(Avatar owner, YsmGeometry geometry, YsmGeometry armGeometry, FiguraTexture texture, String textureId, boolean textureTranslucent, String kind, String modelKey, Map<String, byte[]> textureData, float defaultWidthScale, float defaultHeightScale) {
+    private YsmModelRuntime(Avatar owner, YsmGeometry geometry, YsmGeometry armGeometry, FiguraTexture texture, String textureId, boolean textureTranslucent, String kind, String modelKey, Map<String, byte[]> textureData, float defaultWidthScale, float defaultHeightScale, boolean encryptedSource) {
         this.owner = owner;
+        this.encryptedSource = encryptedSource;
         this.geometry = geometry;
         this.armGeometry = armGeometry;
         this.texture = texture;
@@ -91,6 +96,11 @@ public class YsmModelRuntime implements AutoCloseable {
     }
 
     public static YsmModelRuntime fromNbt(Avatar owner, CompoundTag tag) throws java.io.IOException {
+        if (YsmSourcePayload.isEncrypted(tag)) {
+            try (YsmModelData data = YsmSourcePayload.openData(tag, () -> false)) {
+                return fromData(owner, data, tag);
+            }
+        }
         String mainJson = new String(tag.getByteArray("main_model").orElse(new byte[0]), StandardCharsets.UTF_8);
         if (mainJson.isBlank())
             throw new java.io.IOException("YSM main model is empty");
@@ -112,11 +122,31 @@ public class YsmModelRuntime implements AutoCloseable {
 
     public static YsmModelRuntime fromData(Avatar owner, YsmModelData data,
                                            CompoundTag tag) throws java.io.IOException {
-        return assemble(owner, tag, data.mainGeometry(), data.armGeometry());
+        try {
+            if (data.encrypted()) {
+                String requested = tag.getStringOr("texture_id", data.manifest().defaultTexture());
+                var textures = data.manifest().textures();
+                var selected = textures.stream().filter(texture -> texture.id().equals(requested)).findFirst()
+                        .orElse(textures.isEmpty() ? null : textures.getFirst());
+                tag = YsmAvatarLoader.toRuntimeTag(data, selected);
+            }
+            return assemble(owner, tag, data.mainGeometry(), data.armGeometry(), data);
+        } catch (java.io.IOException | RuntimeException e) {
+            if (data.encrypted()) {
+                throw new YsmDecodeException(YsmDecodeException.Code.INVALID_DATA,
+                        "runtime/assembly", 0);
+            }
+            throw e;
+        }
     }
 
     private static YsmModelRuntime assemble(Avatar owner, CompoundTag tag, YsmGeometry geometry,
                                              YsmGeometry armGeometry) throws java.io.IOException {
+        return assemble(owner, tag, geometry, armGeometry, null);
+    }
+
+    private static YsmModelRuntime assemble(Avatar owner, CompoundTag tag, YsmGeometry geometry,
+                                             YsmGeometry armGeometry, YsmModelData data) throws java.io.IOException {
         byte[] textureBytes = tag.getByteArray("texture").orElse(new byte[0]);
         Map<String, byte[]> textureData = readTextureEntries(tag);
         String textureId = tag.getStringOr("texture_id", "ysm_texture");
@@ -135,8 +165,8 @@ public class YsmModelRuntime implements AutoCloseable {
         YsmModelRuntime runtime = null;
         try {
             runtime = new YsmModelRuntime(owner, geometry, armGeometry, texture, textureId,
-                    textureTranslucent, kind, modelKey, textureData, defaultWidthScale, defaultHeightScale);
-            runtime.readSubEntities(tag, selectedTexture);
+                    textureTranslucent, kind, modelKey, textureData, defaultWidthScale, defaultHeightScale, data != null && data.encrypted());
+            runtime.readSubEntities(tag, selectedTexture, data);
             MolangEngine ysmMolangEngine = MolangEngine.fromCustomBinding(owner.getAvatarBindings());
             runtime.animationPlayer.registerAnimations(readAnimations(tag, ysmMolangEngine));
             runtime.animationPlayer.registerControllers(readAnimationControllers(tag, ysmMolangEngine));
@@ -923,14 +953,20 @@ public class YsmModelRuntime implements AutoCloseable {
             entity.close();
     }
 
-    private void readSubEntities(CompoundTag tag, byte[] fallbackTexture) {
+    private void readSubEntities(CompoundTag tag, byte[] fallbackTexture, YsmModelData data) {
         for (Tag entityTag : tag.getListOrEmpty("sub_entities")) {
             if (!(entityTag instanceof CompoundTag subTag))
                 continue;
             try {
-                addSubEntity(YsmSubEntity.fromNbt(owner, subTag, fallbackTexture));
+                YsmGeometry direct = data == null ? null : data.geometry(subTag.getStringOr("model_path", ""));
+                addSubEntity(direct == null ? YsmSubEntity.fromNbt(owner, subTag, fallbackTexture)
+                        : YsmSubEntity.fromGeometry(owner, subTag, fallbackTexture, direct));
             } catch (Exception e) {
-                FiguraMod.LOGGER.warn("Failed to load YSM sub entity {} from {}", subTag.getStringOr("id", "sub_entity"), modelKey, e);
+                if (encryptedSource) {
+                    FiguraMod.LOGGER.warn("Encrypted YSM operation failed: runtime/subentity");
+                } else {
+                    FiguraMod.LOGGER.warn("Failed to load YSM sub entity {} from {}", subTag.getStringOr("id", "sub_entity"), modelKey, e);
+                }
             }
         }
     }
@@ -1034,8 +1070,12 @@ public class YsmModelRuntime implements AutoCloseable {
         attachmentPoints.putIfAbsent(point.role().name().toLowerCase(java.util.Locale.US), point);
     }
 
+    public boolean encryptedSource() {
+        return encryptedSource;
+    }
+
     private void dumpDebugInfo() {
-        if (!FiguraMod.debugModeEnabled())
+        if (encryptedSource || !FiguraMod.debugModeEnabled())
             return;
         YsmModelValidator.ModelStats mainStats = YsmModelValidator.validate("runtime/main", geometry).stats();
         YsmModelValidator.ModelStats armStats = armGeometry == null ? YsmModelValidator.ModelStats.empty() : YsmModelValidator.validate("runtime/arm", armGeometry).stats();

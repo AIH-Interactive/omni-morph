@@ -5,6 +5,7 @@ import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.UserData;
+import org.figuramc.figura.avatar.ysm.YsmSourcePayload;
 import org.figuramc.figura.utils.IOUtils;
 
 import java.nio.file.Files;
@@ -72,7 +73,10 @@ public class CacheAvatarLoader {
         LocalAvatarLoader.async(() -> {
             Path file = getAvatarCacheDirectory().resolve(hash + ".nbt");
             try {
-                NbtIo.writeCompressed(nbt, Files.newOutputStream(file));
+                CompoundTag portable = YsmSourcePayload.forOutput(nbt);
+                try (var output = Files.newOutputStream(file)) {
+                    NbtIo.writeCompressed(portable, output);
+                }
                 FiguraMod.debug("Saved avatar \"{}\" on cache", hash);
             } catch (Exception e) {
                 FiguraMod.LOGGER.error("Failed to save avatar on cache: " + hash, e);

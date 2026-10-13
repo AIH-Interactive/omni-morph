@@ -56,7 +56,7 @@ public class YsmMolangFunctionRuntime {
             values.sort(Comparator.comparingInt(YsmFunction::order));
         FiguraMod.debug("YSM functions loaded for {}: functions={}, events={}, files={}",
                 runtime.getModelKey(), functions.size(), events.size(), loaded);
-        if (FiguraMod.debugModeEnabled()) {
+        if (!runtime.encryptedSource() && FiguraMod.debugModeEnabled()) {
             FiguraMod.debug("YSM function names for {}: {}", runtime.getModelKey(), functionDebugNames());
             FiguraMod.debug("YSM event bindings for {}: {}", runtime.getModelKey(), eventDebugNames());
         }
@@ -133,11 +133,17 @@ public class YsmMolangFunctionRuntime {
         String normalized = normalizeName(name);
         YsmFunction function = functions.get(normalized);
         if (function == null) {
-            FiguraMod.debug("Unknown YSM Molang function {} in {}", name, runtime.getModelKey());
+            if (!runtime.encryptedSource()) {
+                FiguraMod.debug("Unknown YSM Molang function {} in {}", name, runtime.getModelKey());
+            }
             return 0f;
         }
         if (callStack.size() >= MAX_CALL_DEPTH) {
-            FiguraMod.LOGGER.warn("YSM Molang function recursion limit reached in {} while calling {}", runtime.getModelKey(), function.displayName());
+            if (runtime.encryptedSource()) {
+                FiguraMod.LOGGER.warn("Encrypted YSM operation failed: runtime/function-recursion-limit");
+            } else {
+                FiguraMod.LOGGER.warn("YSM Molang function recursion limit reached in {} while calling {}", runtime.getModelKey(), function.displayName());
+            }
             return 0f;
         }
         List<Object> values = new ArrayList<>();
@@ -221,8 +227,12 @@ public class YsmMolangFunctionRuntime {
                 result = evaluator.eval(expression);
             return result;
         } catch (Exception e) {
-            FiguraMod.LOGGER.debug("Failed to execute YSM Molang function {} path={} event={} model={}",
-                    function.displayName(), function.path(), function.eventName(), runtime.getModelKey(), e);
+            if (runtime.encryptedSource()) {
+                FiguraMod.LOGGER.debug("Encrypted YSM operation failed: runtime/function-execution");
+            } else {
+                FiguraMod.LOGGER.debug("Failed to execute YSM Molang function {} path={} event={} model={}",
+                        function.displayName(), function.path(), function.eventName(), runtime.getModelKey(), e);
+            }
             return 0f;
         } finally {
             callStack.pop();
@@ -241,7 +251,9 @@ public class YsmMolangFunctionRuntime {
 
     private boolean register(String path, String source) {
         if (source == null || source.isBlank()) {
-            FiguraMod.LOGGER.debug("Skipping empty YSM Molang function {}", path);
+            if (!runtime.encryptedSource()) {
+                FiguraMod.LOGGER.debug("Skipping empty YSM Molang function {}", path);
+            }
             return false;
         }
         YsmMolangFunctionName name = YsmMolangFunctionName.parse(path);
@@ -253,17 +265,21 @@ public class YsmMolangFunctionRuntime {
                     name.eventName(), normalizeName(name.eventName()), expressions, functions.size() + events.values().stream().mapToInt(List::size).sum());
             if (!function.name().isBlank()) {
                 YsmFunction previous = functions.put(function.name(), function);
-                if (previous != null)
+                if (previous != null && !runtime.encryptedSource())
                     FiguraMod.LOGGER.debug("YSM Molang function {} from {} overrides {}", function.displayName(), path, previous.path());
             }
             if (!function.event().isBlank())
                 events.computeIfAbsent(function.event(), ignored -> new ArrayList<>()).add(function);
-            if (name.malformed())
+            if (name.malformed() && !runtime.encryptedSource())
                 FiguraMod.LOGGER.debug("Loaded malformed YSM Molang function name {} as function={} event={}", path, name.functionName(), name.eventName());
             return true;
         } catch (Exception e) {
-            FiguraMod.LOGGER.warn("Failed to parse YSM Molang function {} function={} event={} model={}",
-                    path, name.functionName(), name.eventName(), runtime.getModelKey(), e);
+            if (runtime.encryptedSource()) {
+                FiguraMod.LOGGER.warn("Encrypted YSM operation failed: runtime/function-parse");
+            } else {
+                FiguraMod.LOGGER.warn("Failed to parse YSM Molang function {} function={} event={} model={}",
+                        path, name.functionName(), name.eventName(), runtime.getModelKey(), e);
+            }
             return false;
         }
     }

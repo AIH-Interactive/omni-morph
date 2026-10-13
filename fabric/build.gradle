@@ -27,6 +27,14 @@ dependencies {
     include(implementation("com.github.FiguraMC.luaj:luaj-core:$luaj-figura"))
     include(implementation("com.github.FiguraMC.luaj:luaj-jse:$luaj-figura"))
     include(implementation("com.neovisionaries:nv-websocket-client:$nv_websocket"))
+    include(implementation("io.airlift:aircompressor-v3:3.10"))
+    // Loom's include does not package transitive dependencies automatically.
+    ["imageio-webp", "imageio-core", "imageio-metadata"].each { module ->
+        include(implementation("com.twelvemonkeys.imageio:${module}:3.15.0"))
+    }
+    ["common-lang", "common-io", "common-image"].each { module ->
+        include(implementation("com.twelvemonkeys.common:${module}:3.15.0"))
+    }
     include(implementation(annotationProcessor("io.github.llamalad7:mixinextras-fabric:0.3.6")))
 
     if(rootProject.run_on_quilt == "false") {

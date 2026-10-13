@@ -22,6 +22,8 @@ public class YsmSubEntity implements AutoCloseable {
     private final String animationJson;
     private final String controllerPath;
     private final String controllerJson;
+    private List<String> animationResources = List.of();
+    private List<String> controllerResources = List.of();
 
     private YsmSubEntity(String kind, String id, List<String> matchIds, String modelPath, String texturePath, YsmGeometry geometry, FiguraTexture texture, boolean textureTranslucent, String animationPath, String animationJson, String controllerPath, String controllerJson) {
         this.kind = kind == null || kind.isBlank() ? "sub_entity" : kind;
@@ -43,11 +45,16 @@ public class YsmSubEntity implements AutoCloseable {
         if (modelJson.isBlank())
             throw new java.io.IOException("YSM sub entity model is empty");
         YsmGeometry geometry = YsmGeometryParser.parse(modelJson);
+        return fromGeometry(owner, tag, fallbackTexture, geometry);
+    }
+
+    public static YsmSubEntity fromGeometry(Avatar owner, CompoundTag tag, byte[] fallbackTexture,
+                                           YsmGeometry geometry) throws java.io.IOException {
         String texturePath = tag.getStringOr("texture_path", "");
         byte[] textureBytes = tag.getByteArray("texture").orElse(fallbackTexture == null ? new byte[0] : fallbackTexture);
         boolean textureTranslucent = geometry.applyTextureAlpha(textureBytes);
         FiguraTexture texture = new FiguraTexture(owner, "ysm_sub_entity/" + tag.getStringOr("id", "sub_entity"), textureBytes.length == 0 ? onePixelPng() : textureBytes);
-        return new YsmSubEntity(
+        YsmSubEntity entity = new YsmSubEntity(
                 tag.getStringOr("kind", "sub_entity"),
                 tag.getStringOr("id", "sub_entity"),
                 readStrings(tag),
@@ -61,6 +68,30 @@ public class YsmSubEntity implements AutoCloseable {
                 tag.getStringOr("controller_path", ""),
                 new String(tag.getByteArray("controller").orElse(new byte[0]), StandardCharsets.UTF_8)
         );
+        entity.animationResources = resourceStrings(tag, "animation_entries", entity.animationJson);
+        entity.controllerResources = resourceStrings(tag, "controller_entries", entity.controllerJson);
+        return entity;
+    }
+
+    private static List<String> resourceStrings(CompoundTag tag, String key, String fallback) {
+        List<String> resources = new ArrayList<>();
+        for (Tag entry : tag.getListOrEmpty(key)) {
+            if (entry instanceof CompoundTag resource) {
+                resources.add(new String(resource.getByteArray("data").orElse(new byte[0]), StandardCharsets.UTF_8));
+            }
+        }
+        if (resources.isEmpty() && !fallback.isBlank()) {
+            resources.add(fallback);
+        }
+        return List.copyOf(resources);
+    }
+
+    public List<String> animationResources() {
+        return animationResources;
+    }
+
+    public List<String> controllerResources() {
+        return controllerResources;
     }
 
     private static List<String> readStrings(CompoundTag tag) {

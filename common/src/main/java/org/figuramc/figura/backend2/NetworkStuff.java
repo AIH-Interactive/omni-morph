@@ -17,6 +17,7 @@ import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.avatar.Badges;
 import org.figuramc.figura.avatar.UserData;
 import org.figuramc.figura.avatar.local.CacheAvatarLoader;
+import org.figuramc.figura.avatar.ysm.YsmSourcePayload;
 import org.figuramc.figura.backend2.trust.KeyStoreHelper;
 import org.figuramc.figura.backend2.websocket.C2SMessageHandler;
 import org.figuramc.figura.config.Configs;
@@ -348,7 +349,7 @@ public class NetworkStuff {
 
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            NbtIo.writeCompressed(avatar.nbt, baos);
+            NbtIo.writeCompressed(YsmSourcePayload.forOutput(avatar.nbt), baos);
             queueString(Util.NIL_UUID, api -> api.uploadAvatar(id, baos.toByteArray()), (code, data) -> {
                 responseDebug("uploadAvatar", code, data);
 

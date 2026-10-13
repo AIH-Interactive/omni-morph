@@ -9,6 +9,9 @@ import org.figuramc.figura.avatar.ysm.YsmAvatarKind;
 import org.figuramc.figura.avatar.ysm.YsmManifest;
 import org.figuramc.figura.avatar.ysm.YsmManifestReader;
 import org.figuramc.figura.avatar.ysm.YsmPackage;
+import org.figuramc.figura.avatar.ysm.YsmEncryptedSource;
+import org.figuramc.figura.avatar.ysm.YsmModelData;
+import org.figuramc.figura.avatar.ysm.YsmResourceSource;
 import org.figuramc.figura.avatar.ysm.YsmResourceIndex;
 import org.figuramc.figura.model.ysm.controller.YsmAnimationController;
 import org.figuramc.figura.model.ysm.controller.YsmAnimationControllerParser;
@@ -111,19 +114,22 @@ public final class YsmModelScanner {
         List<String> subEntities = new ArrayList<>();
         LinkedHashSet<String> unsupportedBindings = new LinkedHashSet<>();
         int animationClipCount = 0;
+        boolean encrypted = YsmEncryptedSource.hasMagic(path);
 
-        try {
+        try (YsmModelData data = encrypted ? YsmModelData.read(path, () -> false) : null) {
             if (kind == YsmAvatarKind.NONE) {
                 throw new IOException(unrecognizedSource(path));
             }
-            manifest = YsmManifestReader.read(path);
+            manifest = data == null ? YsmManifestReader.read(path) : data.manifest();
+            kind = manifest.kind();
             YsmResourceIndex index = manifest.resourceIndex();
-            try (YsmPackage ysmPackage = YsmPackage.open(path)) {
+            try (YsmResourceSource ysmPackage = data == null ? YsmPackage.open(path) : data.resources()) {
                 if (!index.hasMainModel()) {
                     errors.add("missing main model");
                 } else {
-                    YsmGeometry mainGeometry = YsmGeometryParser.parse(ysmPackage.readString(index.mainModelPath()));
-                    mainValidation = YsmModelValidator.validate(index.mainModelPath(), mainGeometry);
+                    YsmGeometry mainGeometry = data == null
+                            ? YsmGeometryParser.parse(ysmPackage.readString(index.mainModelPath())) : data.mainGeometry();
+                    mainValidation = YsmModelValidator.validate(index.mainModelPath(), mainGeometry, !encrypted);
                     bones = describeBones(mainGeometry);
                     locators = describeLocators(mainGeometry);
                     attachments = describeAttachments(mainGeometry);
@@ -131,8 +137,9 @@ public final class YsmModelScanner {
 
                 if (index.hasArmModel()) {
                     try {
-                        YsmGeometry armGeometry = YsmGeometryParser.parse(ysmPackage.readString(index.armModelPath()));
-                        armValidation = YsmModelValidator.validate(index.armModelPath(), armGeometry);
+                        YsmGeometry armGeometry = data == null
+                                ? YsmGeometryParser.parse(ysmPackage.readString(index.armModelPath())) : data.armGeometry();
+                        armValidation = YsmModelValidator.validate(index.armModelPath(), armGeometry, !encrypted);
                         firstPersonArmBones = describeFirstPersonArmBones(armGeometry);
                     } catch (Throwable e) {
                         errors.add("failed to parse arm model '" + index.armModelPath() + "': " + e.getMessage());
@@ -206,6 +213,10 @@ public final class YsmModelScanner {
             errors.add(e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
         }
 
+        if (encrypted) {
+            errors.replaceAll(YsmModelScanner::privateDiagnostic);
+        }
+
         YsmResourceIndex resources = manifest == null ? YsmResourceIndex.fromManifest("", "", List.of(), List.of(), kind) : manifest.resourceIndex();
         String name = manifest == null ? "" : manifest.name();
         animationNames.sort(String::compareToIgnoreCase);
@@ -258,7 +269,7 @@ public final class YsmModelScanner {
                     report.resources().languagePaths().size(),
                     report.resources().projectilePaths().size(),
                     report.resources().vehiclePaths().size());
-            if (dump)
+            if (dump && !YsmEncryptedSource.hasMagic(report.path()))
                 dumpReport(report, stats);
             for (String error : report.errors())
                 System.out.println("  error: " + error);
@@ -270,6 +281,16 @@ public final class YsmModelScanner {
         if (reportPath != null)
             writeReport(reportPath, root, summary);
         validateGate(root, summary, baselinePath);
+    }
+
+    private static String privateDiagnostic(String diagnostic) {
+        try {
+            byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(diagnostic.getBytes(StandardCharsets.UTF_8));
+            return "INVALID_DATA: encrypted scan diagnostic sha256=" + java.util.HexFormat.of().formatHex(digest);
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
     }
 
     private static String unrecognizedSource(Path path) throws IOException {
@@ -582,7 +603,7 @@ public final class YsmModelScanner {
         }
     }
 
-    private static void scanActionSchemas(YsmPackage ysmPackage, YsmResourceIndex index, List<String> actions, List<String> controls,
+    private static void scanActionSchemas(YsmResourceSource ysmPackage, YsmResourceIndex index, List<String> actions, List<String> controls,
                                           Set<String> unsupportedBindings, List<String> errors) {
         LinkedHashSet<String> paths = new LinkedHashSet<>();
         paths.addAll(List.of("ysm.json", "ysm.actions.json", "action_wheel.json", "ysm.controls.json", "ysm_controls.json", "controls.json"));
@@ -755,7 +776,7 @@ public final class YsmModelScanner {
         }
     }
 
-    private static void scanSubEntities(YsmPackage ysmPackage, List<String> subEntities, Set<String> unsupportedBindings, List<String> errors) {
+    private static void scanSubEntities(YsmResourceSource ysmPackage, List<String> subEntities, Set<String> unsupportedBindings, List<String> errors) {
         try {
             if (ysmPackage.exists("ysm.json")) {
                 JsonElement rootElement = parseJson(ysmPackage.readString("ysm.json"));
@@ -772,7 +793,7 @@ public final class YsmModelScanner {
         }
     }
 
-    private static void scanSubEntitySection(YsmPackage ysmPackage, List<String> subEntities, Set<String> unsupportedBindings, String kind, JsonElement section) throws IOException {
+    private static void scanSubEntitySection(YsmResourceSource ysmPackage, List<String> subEntities, Set<String> unsupportedBindings, String kind, JsonElement section) throws IOException {
         if (section == null || section.isJsonNull())
             return;
         if (section.isJsonObject()) {
@@ -785,7 +806,7 @@ public final class YsmModelScanner {
         }
     }
 
-    private static void scanSubEntity(YsmPackage ysmPackage, List<String> subEntities, Set<String> unsupportedBindings, String kind, String fallbackId, JsonElement element) throws IOException {
+    private static void scanSubEntity(YsmResourceSource ysmPackage, List<String> subEntities, Set<String> unsupportedBindings, String kind, String fallbackId, JsonElement element) throws IOException {
         if (element == null || element.isJsonNull())
             return;
         JsonObject object = element.isJsonObject() ? element.getAsJsonObject() : new JsonObject();
@@ -805,7 +826,7 @@ public final class YsmModelScanner {
             collectUnsupportedBindings(unsupportedBindings, ysmPackage.readString(controller));
     }
 
-    private static String valueOrMissing(YsmPackage ysmPackage, String path) {
+    private static String valueOrMissing(YsmResourceSource ysmPackage, String path) {
         if (path == null || path.isBlank())
             return "<none>";
         return ysmPackage.exists(path) ? YsmPackage.normalize(path) : "<missing:" + YsmPackage.normalize(path) + ">";

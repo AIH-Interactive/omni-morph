@@ -30,6 +30,11 @@ public final class YsmModelValidator {
     }
 
     public static ValidationResult validate(String sourceName, YsmGeometry geometry) {
+        return validate(sourceName, geometry, true);
+    }
+
+    /** Private source validation keeps detailed diagnostics in memory without logging them. */
+    public static ValidationResult validate(String sourceName, YsmGeometry geometry, boolean logDetails) {
         List<String> warnings = new ArrayList<>();
         List<String> errors = new ArrayList<>();
         int boneCount = geometry.bones.size();
@@ -93,11 +98,15 @@ public final class YsmModelValidator {
         ModelStats stats = new ModelStats(boneCount, rootCount, totalCubes, totalQuads, locatorCount, Map.copyOf(roles));
         boolean valid = errors.isEmpty();
 
-        for (String warning : warnings)
-            LOGGER.warn("[YSM Validation] " + warning);
-        for (String error : errors)
-            LOGGER.error("[YSM Validation] " + error);
-        if (valid) {
+        if (logDetails) {
+            for (String warning : warnings) {
+                LOGGER.warn("[YSM Validation] " + warning);
+            }
+            for (String error : errors) {
+                LOGGER.error("[YSM Validation] " + error);
+            }
+        }
+        if (valid && logDetails) {
             LOGGER.info("[YSM Validation] {}: {} bones, {} roots, {} cubes, {} quads, {} locators - OK",
                     sourceName, boneCount, rootCount, totalCubes, totalQuads, locatorCount);
         }

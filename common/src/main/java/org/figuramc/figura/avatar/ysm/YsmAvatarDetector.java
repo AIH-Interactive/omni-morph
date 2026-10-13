@@ -14,6 +14,9 @@ public final class YsmAvatarDetector {
     public static YsmAvatarKind kind(Path path) {
         if (path == null || !Files.exists(path))
             return YsmAvatarKind.NONE;
+        if (YsmEncryptedSource.hasMagic(path)) {
+            return YsmAvatarKind.NEW;
+        }
         try (YsmPackage ysmPackage = YsmPackage.open(path)) {
             Path manifest = ysmPackage.resolve("ysm.json");
             if (Files.exists(manifest) && !Files.isDirectory(manifest))

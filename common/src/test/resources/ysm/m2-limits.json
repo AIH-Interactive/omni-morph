@@ -1,0 +1,11 @@
+{
+  "geometryBonesAcrossBinaryPayload": 4096,
+  "geometryQuadsAcrossBinaryPayload": 262144,
+  "animationKeyframesAcrossBinaryPayload": 1048576,
+  "observedLargestAnimationKeyframeCount": 412317,
+  "parentDepth": 128,
+  "texturePixels": 16777216,
+  "totalTexturePixels": 67108864,
+  "decodeMilliseconds": 10000,
+  "floatTolerance": 0.00001
+}

@@ -19,6 +19,8 @@ dependencies {
     implementation("com.github.FiguraMC.luaj:luaj-core:$luaj-figura")
     implementation("com.github.FiguraMC.luaj:luaj-jse:$luaj-figura")
     implementation("com.neovisionaries:nv-websocket-client:$nv_websocket")
+    implementation("io.airlift:aircompressor-v3:3.10")
+    implementation("com.twelvemonkeys.imageio:imageio-webp:3.15.0")
 
     modCompileOnly ("com.geckolib:geckolib-fabric-$geckolib_version") {
         exclude group: "net.fabricmc"
@@ -137,4 +139,60 @@ tasks.register("ysmLocalCorpusSmokeTest", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = "org.figuramc.figura.avatar.ysm.YsmLocalCorpusSmokeTest"
     args rootProject.file(project.findProperty("ysmScanPath") ?: "refs/avatars").path
+}
+
+tasks.register("ysmCryptoSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Verifies fixed crypto 1/2/3 vectors, malformed inputs, and optional local encrypted files."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "org.figuramc.figura.avatar.ysm.crypto.YsmCryptoSmokeTest"
+    def corpus = project.findProperty("ysmCryptoCorpus")
+    if (corpus != null) {
+        args rootProject.file(corpus).path
+    }
+}
+
+tasks.register("ysmBinaryInputSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks binary animation-duration sentinels and strict geometry float boundaries."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "org.figuramc.figura.avatar.ysm.binary.YsmBinaryInputSmokeTest"
+}
+
+tasks.register("ysmBinaryFormatSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks fixed binary format vectors and explicit no-DWORD layout equivalence."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "org.figuramc.figura.avatar.ysm.binary.YsmBinaryFormatSmokeTest"
+}
+
+tasks.register("ysmBinaryResourcesSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks direct binary geometry mapping, bounded image decoding, and optional encrypted corpus resources."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "org.figuramc.figura.avatar.ysm.binary.YsmBinaryResourcesSmokeTest"
+    def corpus = project.findProperty("ysmCryptoCorpus")
+    if (corpus != null) {
+        args rootProject.file(corpus).path
+    }
+}
+
+tasks.register("ysmPayloadSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks ciphertext-only YSM output and serialized disk contents without decrypted resources."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.avatar.ysm.YsmPayloadSmokeTest"
+}
+
+tasks.register("ysmPrivateDiagnosticsSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Captures logs to check private geometry diagnostics and ordinary logging compatibility."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.avatar.ysm.YsmPrivateDiagnosticsSmokeTest"
 }
