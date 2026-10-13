@@ -1,6 +1,7 @@
 package org.figuramc.figura.model.ysm.animation;
 
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -24,6 +25,7 @@ import org.figuramc.figura.molang.runtime.ExpressionEvaluator;
 import org.figuramc.figura.molang.storage.StringPool;
 import org.figuramc.figura.lua.api.particle.ParticleAPI;
 import org.figuramc.figura.lua.api.sound.SoundAPI;
+import org.figuramc.figura.lua.api.sound.LuaSound;
 import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.model.ysm.YsmBoneRole;
 import org.figuramc.figura.model.ysm.YsmModelPart;
@@ -32,6 +34,10 @@ import org.figuramc.figura.model.ysm.controller.YsmAnimationController;
 import org.figuramc.figura.model.ysm.controller.YsmControllerAnimationRef;
 import org.figuramc.figura.model.ysm.controller.YsmControllerRuntime;
 import org.figuramc.figura.model.ysm.controller.YsmControllerState;
+import org.figuramc.figura.model.ysm.controller.YsmControllerSlot;
+import org.figuramc.figura.model.ysm.controller.YsmControllerSlotBinder;
+import org.figuramc.figura.model.ysm.controller.YsmControllerPoseLayer;
+import org.figuramc.figura.model.ysm.controller.YsmBlendTransition;
 
 import java.util.*;
 
@@ -42,10 +48,13 @@ public class YsmAnimationPlayer {
     private final YsmControllerRuntime controllerRuntime;
     private final Map<String, PlayingAnimation> activeAnimations = new LinkedHashMap<>();
     private final Map<String, String> controllerFunctionAnimations = new HashMap<>();
+    private final Map<String, YsmControllerPoseLayer> controllerPoseLayers = new LinkedHashMap<>();
+    private final Map<String, YsmControllerPoseLayer> armControllerPoseLayers = new LinkedHashMap<>();
     private final Map<String, String> nativeHandAnimations = new HashMap<>();
     private final Set<String> disabledNativeAnimations = new HashSet<>();
     private final Set<String> baseHiddenBones = new HashSet<>();
-    private float lastAgeInTicks = Float.NaN;
+    private final YsmAnimationFrameClock frameClock = new YsmAnimationFrameClock();
+    private final YsmControllerSoundBank controllerSounds = new YsmControllerSoundBank();
     private boolean controllerInitialHiddenResolved;
     private LivingEntity currentEntity;
     private boolean wasSwinging;
@@ -54,6 +63,7 @@ public class YsmAnimationPlayer {
         public final YsmAnimationClip clip;
         public float time;
         public float previousTime;
+        private double eventWindowEnd;
         public float speed = 1f;
         public float weight = 1f;
         public boolean loop;
@@ -65,6 +75,8 @@ public class YsmAnimationPlayer {
         public float targetWeight = 0f;
         public float fadeSpeed = 0f;
         public float sampledTime = Float.NaN;
+        private boolean retired;
+        private String controllerName;
 
         public PlayingAnimation(YsmAnimationClip clip, boolean isNative) {
             this.clip = clip;
@@ -77,6 +89,7 @@ public class YsmAnimationPlayer {
     }
 
     private boolean nativeStateMachineEnabled = true;
+    private long retiredControllerSequence;
 
     public YsmAnimationPlayer(YsmModelRuntime runtime) {
         this.runtime = runtime;
@@ -139,6 +152,10 @@ public class YsmAnimationPlayer {
         return controllers;
     }
 
+    public void registerFunctionEventControllers(Collection<String> events) {
+        registerControllers(YsmControllerSlotBinder.missingEventControllers(events, controllers.values()));
+    }
+
     public YsmControllerRuntime controllerRuntime() {
         return controllerRuntime;
     }
@@ -146,6 +163,28 @@ public class YsmAnimationPlayer {
     public void runFunctionEventsForController(YsmAnimationController controller, ExpressionEvaluator<?> evaluator) {
         if (controller != null)
             runtime.functions().runControllerSlotEvents(controller.name(), controller.slot(), evaluator);
+    }
+
+    public void playControllerSounds(String controllerName, YsmControllerState state) {
+        for (String sound : state.soundEffects()) {
+            playOwnedSound(controllerName, new YsmAnimationEvent(0f, "sound", sound));
+        }
+    }
+
+    public void stopControllerSounds(String controllerName) {
+        controllerSounds.stop(normalizeControllerName(controllerName));
+    }
+
+    public void closeSounds() {
+        controllerSounds.close();
+    }
+
+    public void resetControllerAnimations(String controllerName) {
+        String controller = normalizeControllerName(controllerName);
+        activeAnimations.values().removeIf(animation -> controller.equals(animation.controllerName));
+        controllerFunctionAnimations.remove(controller);
+        controllerPoseLayers.remove(controller);
+        armControllerPoseLayers.remove(controller);
     }
 
     public Map<String, PlayingAnimation> getActiveAnimations() {
@@ -192,12 +231,24 @@ public class YsmAnimationPlayer {
     }
 
     public PlayingAnimation play(String name, YsmAnimationClip.LoopMode loopMode, float speed, float fadeSeconds) {
+        return playInSlot(resolveAnimationName(name), name, loopMode, speed, fadeSeconds, null);
+    }
+
+    private PlayingAnimation playInSlot(String slot, String name, YsmAnimationClip.LoopMode loopMode,
+                                         float speed, float fadeSeconds, String controllerName) {
+        return playInSlot(slot, name, loopMode, speed, fadeSeconds, controllerName, null);
+    }
+
+    private PlayingAnimation playInSlot(String slot, String name, YsmAnimationClip.LoopMode loopMode,
+                                         float speed, float fadeSeconds, String controllerName,
+                                         ExpressionEvaluator<?> initialEvaluator) {
         String normalized = resolveAnimationName(name);
         YsmAnimationClip clip = clips.get(normalized);
         if (clip == null) return null;
 
-        boolean created = !activeAnimations.containsKey(normalized);
-        PlayingAnimation playing = activeAnimations.computeIfAbsent(normalized, k -> new PlayingAnimation(clip, false));
+        boolean created = !activeAnimations.containsKey(slot);
+        PlayingAnimation playing = activeAnimations.computeIfAbsent(slot, k -> new PlayingAnimation(clip, false));
+        playing.controllerName = controllerName;
         playing.loopMode = loopMode == null ? clip.loopMode : loopMode;
         playing.loop = playing.loopMode == YsmAnimationClip.LoopMode.LOOP;
         playing.speed = speed;
@@ -210,27 +261,109 @@ public class YsmAnimationPlayer {
             playing.weight = 1f;
             playing.fadeSpeed = 0f;
         }
-        if (created)
-            dispatchInitialEvents(playing, evaluatorForEvents());
+        if (created && !clip.events.isEmpty())
+            dispatchInitialEvents(playing, initialEvaluator == null ? evaluatorForEvents() : initialEvaluator);
         return playing;
+    }
+
+    public PlayingAnimation playControllerAnimation(String controllerName, String animationName,
+                                                     YsmAnimationClip.LoopMode loopMode, float weight,
+                                                     float fadeSeconds) {
+        return playControllerAnimation(controllerName, animationName, loopMode, weight, fadeSeconds, null);
+    }
+
+    public PlayingAnimation playControllerAnimation(String controllerName, String animationName,
+                                                     YsmAnimationClip.LoopMode loopMode, float weight,
+                                                     float fadeSeconds, ExpressionEvaluator<?> evaluator) {
+        PlayingAnimation playing = playInSlot(controllerSlotKey(controllerName, animationName),
+                animationName, loopMode, 1f, 0f, normalizeControllerName(controllerName), evaluator);
+        if (playing != null) {
+            playing.controllerName = normalizeControllerName(controllerName);
+            controllerPoseLayers.computeIfAbsent(playing.controllerName, ignored -> new YsmControllerPoseLayer());
+            armControllerPoseLayers.computeIfAbsent(playing.controllerName, ignored -> new YsmControllerPoseLayer());
+            playing.targetWeight = Float.isFinite(weight) ? Math.max(0f, weight) : 0f;
+            playing.weight = playing.targetWeight;
+        }
+        return playing;
+    }
+
+    public void beginControllerPoseTransition(String controllerName, YsmBlendTransition curve, boolean shortestRotation) {
+        controllerPoseLayers.computeIfAbsent(normalizeControllerName(controllerName), ignored -> new YsmControllerPoseLayer())
+                .beginTransition(curve, shortestRotation);
+        armControllerPoseLayers.computeIfAbsent(normalizeControllerName(controllerName), ignored -> new YsmControllerPoseLayer())
+                .beginTransition(curve, shortestRotation);
+    }
+
+    public void inheritControllerPose(String parentName, String childName) {
+        String parent = normalizeControllerName(parentName);
+        String child = normalizeControllerName(childName);
+        inheritControllerPose(controllerPoseLayers, parent, child);
+        inheritControllerPose(armControllerPoseLayers, parent, child);
+    }
+
+    private static void inheritControllerPose(Map<String, YsmControllerPoseLayer> layers, String parent, String child) {
+        YsmControllerPoseLayer source = layers.get(child);
+        if (source != null) {
+            layers.computeIfAbsent(parent, ignored -> new YsmControllerPoseLayer()).inheritOutput(source);
+        }
+    }
+
+    public PlayingAnimation getControllerAnimation(String controllerName, String animationName) {
+        return activeAnimations.get(controllerSlotKey(controllerName, animationName));
+    }
+
+    public boolean isControllerAnimationFinished(String controllerName, String animationName) {
+        PlayingAnimation playing = getControllerAnimation(controllerName, animationName);
+        return playing != null && playing.loopMode == YsmAnimationClip.LoopMode.ONCE
+                && playing.clip.length > 0f && playing.time >= playing.clip.length;
+    }
+
+    public void fadeOutControllerAnimation(String controllerName, String animationName, float fadeSeconds) {
+        fadeOutSlot(controllerSlotKey(controllerName, animationName), fadeSeconds);
+    }
+
+    public void retireControllerAnimation(String controllerName, String animationName, float fadeSeconds) {
+        PlayingAnimation playing = activeAnimations.remove(controllerSlotKey(controllerName, animationName));
+        if (playing == null || fadeSeconds <= 0f) {
+            return;
+        }
+        playing.targetWeight = 0f;
+        playing.fadeSpeed = 1f / fadeSeconds;
+        playing.retired = true;
+        activeAnimations.put("controller-retired/" + ++retiredControllerSequence, playing);
+    }
+
+    private String controllerSlotKey(String controllerName, String animationName) {
+        String controller = normalizeControllerName(controllerName);
+        return "controller/" + controller.length() + "/" + controller + "/" + resolveAnimationName(animationName);
     }
 
     public PlayingAnimation playControllerFunctionAnimation(String controllerName, String animationName, YsmAnimationClip.LoopMode loopMode, float speed, float fadeSeconds) {
         String controller = normalizeControllerName(controllerName);
-        String normalizedAnimation = resolveAnimationName(animationName);
+        String slot = "controller-function/" + controller.length() + "/" + controller + "/" + resolveAnimationName(animationName);
         String previous = controllerFunctionAnimations.get(controller);
-        if (previous != null && !previous.equals(normalizedAnimation))
-            fadeOut(previous, fadeSeconds);
-        PlayingAnimation playing = play(animationName, loopMode, speed, fadeSeconds);
+        if (previous != null && !previous.equals(slot))
+            fadeOutSlot(previous, fadeSeconds);
+        PlayingAnimation playing = playInSlot(slot, animationName, loopMode, speed, fadeSeconds, controller);
         if (playing != null)
-            controllerFunctionAnimations.put(controller, normalizedAnimation);
+            controllerFunctionAnimations.put(controller, slot);
+        if (playing != null) {
+            playing.controllerName = controller;
+            controllerPoseLayers.computeIfAbsent(controller, ignored -> new YsmControllerPoseLayer());
+            armControllerPoseLayers.computeIfAbsent(controller, ignored -> new YsmControllerPoseLayer());
+        }
         return playing;
     }
 
     public void clearControllerFunctionAnimation(String controllerName, float fadeSeconds) {
         String previous = controllerFunctionAnimations.remove(normalizeControllerName(controllerName));
         if (previous != null)
-            fadeOut(previous, fadeSeconds);
+            fadeOutSlot(previous, fadeSeconds);
+    }
+
+    public PlayingAnimation getControllerFunctionAnimation(String controllerName) {
+        String slot = controllerFunctionAnimations.get(normalizeControllerName(controllerName));
+        return slot == null ? null : activeAnimations.get(slot);
     }
 
     public YsmAnimationClip.LoopMode loopModeFor(String animationName, YsmAnimationClip.LoopMode fallback) {
@@ -247,11 +380,16 @@ public class YsmAnimationPlayer {
     }
 
     public void fadeOut(String name, float fadeSeconds) {
-        PlayingAnimation animation = activeAnimations.get(resolveAnimationName(name));
+        fadeOutSlot(resolveAnimationName(name), fadeSeconds);
+    }
+
+    private void fadeOutSlot(String slot, float fadeSeconds) {
+        PlayingAnimation animation = activeAnimations.get(slot);
         if (animation == null)
             return;
         if (fadeSeconds <= 0f) {
-            stop(name);
+            activeAnimations.remove(slot);
+            controllerFunctionAnimations.values().removeIf(slot::equals);
             return;
         }
         animation.targetWeight = 0f;
@@ -267,25 +405,72 @@ public class YsmAnimationPlayer {
     }
 
     public void update(LivingEntityRenderState state, LivingEntity entity) {
+        update(state, entity, false);
+    }
+
+    public void update(LivingEntityRenderState state, LivingEntity entity, boolean firstPerson) {
         currentEntity = entity;
-        float deltaTime = getDeltaTime(state);
+        Minecraft minecraft = Minecraft.getInstance();
+        boolean firstPersonActive = firstPerson || (entity != null && entity == minecraft.player
+                && minecraft.options.getCameraType().isFirstPerson());
+        YsmAnimationFrameClock.Step step = frameClock.step(YsmRenderFrameClock.currentFrame(),
+                state == null ? Float.NaN : state.ageInTicks);
+        float deltaTime = step.deltaSeconds();
         updateYsmHeadRotation(state, entity);
 
-        // 1. Run Native State Machine if enabled
-        if (nativeStateMachineEnabled) {
-            updateNativeStateMachine(state, entity);
-        } else {
-            // Smoothly fade out any running native animations
-            for (PlayingAnimation anim : activeAnimations.values()) {
-                if (anim.isNative) {
-                    anim.targetWeight = 0f;
+        if (step.advance()) {
+            if (!firstPersonActive) {
+                controllerRuntime.deactivateFirstPersonControllers(evaluatorForEvents());
+            }
+            controllerSounds.prune();
+            // 1. Run Native State Machine if enabled
+            if (nativeStateMachineEnabled) {
+                updateNativeStateMachine(state, entity);
+            } else {
+                // Smoothly fade out any running native animations
+                for (PlayingAnimation anim : activeAnimations.values()) {
+                    if (anim.isNative) {
+                        anim.targetWeight = 0f;
+                    }
                 }
             }
+
+            updateNativeHandAnimations(entity);
+
+            advanceAnimationTimeline(deltaTime, evaluatorForEvents());
         }
 
-        updateNativeHandAnimations(entity);
+        Avatar.MolangContext molangContext = runtime.owner().getMolangContext();
+        ExpressionEvaluator<?> evaluator = molangContext != null ? ExpressionEvaluator.evaluator(molangContext) : ExpressionEvaluator.evaluator(runtime.owner());
+        if (!controllerInitialHiddenResolved) {
+            collectControllerBaseHiddenBones(evaluator);
+            collectControllerInitialHiddenBones(evaluator);
+            controllerInitialHiddenResolved = true;
+        }
+        if (step.advance()) {
+            runtime.functions().beginControllerFrame();
+            advanceControllerPoseLayers(deltaTime);
+            controllerRuntime.update(evaluator, deltaTime, firstPersonActive);
+            runtime.functions().runUnboundControllerEvents(evaluator, controllers.values());
 
-        // 2. Advance time and update weights for active animations
+        }
+
+        sampleAnimations(evaluator, firstPerson);
+
+        applyNativeHandPose(state, entity, firstPerson);
+
+    }
+
+    private void advanceControllerPoseLayers(float deltaTime) {
+        for (YsmControllerPoseLayer layer : controllerPoseLayers.values()) {
+            layer.advance(Math.max(0f, deltaTime));
+        }
+        for (YsmControllerPoseLayer layer : armControllerPoseLayers.values()) {
+            layer.advance(Math.max(0f, deltaTime));
+        }
+    }
+
+    private void advanceAnimationTimeline(float deltaTime, ExpressionEvaluator<?> evaluator) {
         Iterator<Map.Entry<String, PlayingAnimation>> it = activeAnimations.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, PlayingAnimation> entry = it.next();
@@ -307,6 +492,11 @@ public class YsmAnimationPlayer {
                 }
             }
 
+            // Retired states keep their last sampled pose and never advance or emit events.
+            if (anim.retired) {
+                continue;
+            }
+
             // Advance time
             anim.previousTime = anim.time;
             if (Float.isFinite(anim.sampledTime)) {
@@ -315,6 +505,7 @@ public class YsmAnimationPlayer {
             } else {
                 anim.time += deltaTime * anim.speed;
             }
+            anim.eventWindowEnd = anim.time;
             if (anim.clip.length > 0)
                 advanceAnimationTime(anim);
             if (anim.loopMode == YsmAnimationClip.LoopMode.ONCE && anim.clip.length > 0f && anim.time >= anim.clip.length) {
@@ -322,20 +513,13 @@ public class YsmAnimationPlayer {
                 if (anim.fadeSpeed <= 0f)
                     anim.fadeSpeed = 5f;
             }
-            dispatchEvents(anim, evaluatorForEvents());
+            dispatchEvents(anim, evaluator);
         }
+    }
 
-        Avatar.MolangContext molangContext = runtime.owner().getMolangContext();
-        ExpressionEvaluator<?> evaluator = molangContext != null ? ExpressionEvaluator.evaluator(molangContext) : ExpressionEvaluator.evaluator(runtime.owner());
-        if (!controllerInitialHiddenResolved) {
-            collectControllerBaseHiddenBones(evaluator);
-            collectControllerInitialHiddenBones(evaluator);
-            controllerInitialHiddenResolved = true;
-        }
-        runtime.functions().beginControllerFrame();
-        controllerRuntime.update(evaluator, deltaTime);
-        runtime.functions().runUnboundControllerEvents(evaluator);
-
+    private void sampleAnimations(ExpressionEvaluator<?> evaluator, boolean firstPerson) {
+        Avatar.MolangContext molangContext = evaluator != null && evaluator.entity() instanceof Avatar.MolangContext context
+                ? context : null;
         // 3. Reset and apply animations to parts
         for (YsmModelPart part : runtime.uniqueParts()) {
             part.resetAnimPose();
@@ -343,7 +527,14 @@ public class YsmAnimationPlayer {
         }
         applyBaseHiddenDefaults();
 
+        Map<String, Map<String, YsmBonePose>> controllerPoses = new LinkedHashMap<>();
         for (PlayingAnimation anim : activeAnimations.values()) {
+            if (anim.retired) {
+                continue;
+            }
+            if (!firstPerson && isFirstPersonController(anim.controllerName)) {
+                continue;
+            }
             if (anim.weight <= 0f) continue;
 
             float t = anim.time;
@@ -356,58 +547,117 @@ public class YsmAnimationPlayer {
                 molangContext.variables.setScoped(animCtrl, 1f);
                 touchedAnimCtrl = true;
             }
-            for (YsmBoneAnimation boneAnim : anim.clip.boneAnimations.values()) {
-                List<YsmModelPart> targetParts = runtime.getAnimationParts(boneAnim.boneName);
-                if (targetParts.isEmpty()) continue;
+            float previousAnimTime = molangContext == null ? 0f : molangContext.anim_time;
+            if (molangContext != null) {
+                molangContext.anim_time = t;
+            }
+            try (YsmControllerRuntime.ContextScope contextScope = controllerRuntime.openAnimationContext(
+                    anim.controllerName, evaluator, t, anim.clip.length, firstPerson)) {
+                float clipWeight = anim.clip.evaluateBlendWeight(evaluator);
+                float effectiveWeight = anim.weight * clipWeight;
+                if (!Float.isFinite(effectiveWeight) || effectiveWeight <= 0f) {
+                    continue;
+                }
+                for (YsmBoneAnimation boneAnim : anim.clip.boneAnimations.values()) {
+                    List<YsmModelPart> targetParts = runtime.getAnimationParts(boneAnim.boneName, firstPerson);
+                    if (targetParts.isEmpty()) continue;
 
-                float[] posVal = boneAnim.position == null ? null : evaluateChannel(boneAnim.position, t, evaluator, new float[]{0f, 0f, 0f});
-                float[] rotVal = boneAnim.rotation == null ? null : evaluateChannel(boneAnim.rotation, t, evaluator, new float[]{0f, 0f, 0f});
-                float[] scaleVal = boneAnim.scale == null ? null : evaluateChannel(boneAnim.scale, t, evaluator, new float[]{1f, 1f, 1f});
+                    YsmBonePose pose = YsmAnimationSampler.sampleBone(boneAnim, t, evaluator);
+                    float[] posVal = pose.position();
+                    float[] rotVal = pose.rotation();
+                    float[] scaleVal = pose.scale();
 
-                for (YsmModelPart part : targetParts) {
-                    if (posVal != null)
-                        part.addAnimPos(posVal[0] * anim.weight, posVal[1] * anim.weight, posVal[2] * anim.weight);
-                    if (rotVal != null)
-                        part.addAnimRot(rotVal[0] * anim.weight, rotVal[1] * anim.weight, rotVal[2] * anim.weight);
-                    if (scaleVal != null) {
-                        boolean baseHidden = isBaseHiddenBone(boneAnim.boneName);
-                        float scaleMagnitude = scaleMagnitude(scaleVal);
-                        if (baseHidden && baseAnimation && scaleMagnitude < 0.0001f)
-                            continue;
-                        if (scaleMagnitude < 0.0001f) {
-                            part.setVisible(false);
-                            part.mulAnimScale(
-                                    1.0 + (scaleVal[0] - 1.0) * anim.weight,
-                                    1.0 + (scaleVal[1] - 1.0) * anim.weight,
-                                    1.0 + (scaleVal[2] - 1.0) * anim.weight
-                            );
-                            continue;
+                    if (anim.controllerName != null) {
+                        if (baseAnimation && isBaseHiddenBone(boneAnim.boneName)
+                                && scaleVal != null && scaleMagnitude(scaleVal) < 0.0001f) {
+                            pose = new YsmBonePose(posVal, rotVal, null);
                         }
-                        if (baseAnimation && part.defaultVisibleRaw()) {
-                            part.setVisible(true);
+                        Map<String, YsmBonePose> layer = controllerPoses.computeIfAbsent(anim.controllerName,
+                                ignored -> new LinkedHashMap<>());
+                        layer.put(boneAnim.boneName, YsmBonePose.accumulate(layer.get(boneAnim.boneName), pose, effectiveWeight));
+                        continue;
+                    }
+
+                    for (YsmModelPart part : targetParts) {
+                        if (posVal != null)
+                            part.addAnimPos(posVal[0] * effectiveWeight, posVal[1] * effectiveWeight, posVal[2] * effectiveWeight);
+                        if (rotVal != null)
+                            part.addAnimRot(rotVal[0] * effectiveWeight, rotVal[1] * effectiveWeight, rotVal[2] * effectiveWeight);
+                        if (scaleVal != null) {
+                            boolean baseHidden = isBaseHiddenBone(boneAnim.boneName);
+                            float scaleMagnitude = scaleMagnitude(scaleVal);
+                            if (baseHidden && baseAnimation && scaleMagnitude < 0.0001f)
+                                continue;
+                            if (scaleMagnitude < 0.0001f) {
+                                part.setVisible(false);
+                                part.mulAnimScale(
+                                        1.0 + (scaleVal[0] - 1.0) * effectiveWeight,
+                                        1.0 + (scaleVal[1] - 1.0) * effectiveWeight,
+                                        1.0 + (scaleVal[2] - 1.0) * effectiveWeight
+                                );
+                                continue;
+                            }
+                            if (baseAnimation && part.defaultVisibleRaw()) {
+                                part.setVisible(true);
+                            }
+                            if (!baseAnimation && scaleMagnitude > 0.0001f)
+                                part.setVisible(true);
+                            // Scale lerps with weight: final_scale = 1 + (scale_val - 1) * weight
+                            double sx = 1.0 + (scaleVal[0] - 1.0) * effectiveWeight;
+                            double sy = 1.0 + (scaleVal[1] - 1.0) * effectiveWeight;
+                            double sz = 1.0 + (scaleVal[2] - 1.0) * effectiveWeight;
+                            part.mulAnimScale(sx, sy, sz);
                         }
-                        if (!baseAnimation && scaleMagnitude > 0.0001f)
-                            part.setVisible(true);
-                        // Scale lerps with weight: final_scale = 1 + (scale_val - 1) * weight
-                        double sx = 1.0 + (scaleVal[0] - 1.0) * anim.weight;
-                        double sy = 1.0 + (scaleVal[1] - 1.0) * anim.weight;
-                        double sz = 1.0 + (scaleVal[2] - 1.0) * anim.weight;
-                        part.mulAnimScale(sx, sy, sz);
                     }
                 }
-            }
-            if (touchedAnimCtrl) {
-                int animCtrl = StringPool.computeIfAbsent("anim_ctrl");
-                if (previousAnimCtrl == null) {
-                    molangContext.variables.setScoped(animCtrl, 0f);
-                } else {
-                    molangContext.variables.setScoped(animCtrl, previousAnimCtrl);
+            } finally {
+                if (molangContext != null) {
+                    molangContext.anim_time = previousAnimTime;
+                }
+                if (touchedAnimCtrl) {
+                    int animCtrl = StringPool.computeIfAbsent("anim_ctrl");
+                    if (previousAnimCtrl == null) {
+                        molangContext.variables.setScoped(animCtrl, 0f);
+                    } else {
+                        molangContext.variables.setScoped(animCtrl, previousAnimCtrl);
+                    }
                 }
             }
         }
 
-        applyNativeHandPose(state, entity);
+        Map<String, YsmControllerPoseLayer> poseLayers = firstPerson ? armControllerPoseLayers : controllerPoseLayers;
+        for (var entry : poseLayers.entrySet()) {
+            if (!firstPerson && isFirstPersonController(entry.getKey())) {
+                continue;
+            }
+            Map<String, YsmBonePose> pose = entry.getValue().compose(controllerPoses.getOrDefault(entry.getKey(), Map.of()));
+            for (var bone : pose.entrySet()) {
+                for (YsmModelPart part : runtime.getAnimationParts(bone.getKey(), firstPerson)) {
+                    applyControllerPose(part, bone.getValue());
+                }
+            }
+        }
+    }
 
+    private boolean isFirstPersonController(String controllerName) {
+        return controllerName != null && YsmControllerSlot.fromName(controllerName) == YsmControllerSlot.FIRST_PERSON_ARM;
+    }
+
+    private static void applyControllerPose(YsmModelPart part, YsmBonePose pose) {
+        float[] position = pose.position();
+        float[] rotation = pose.rotation();
+        float[] scale = pose.scale();
+        if (position != null) {
+            part.addAnimPos(position[0], position[1], position[2]);
+        }
+        if (rotation != null) {
+            part.addAnimRot(rotation[0], rotation[1], rotation[2]);
+        }
+        if (scale != null) {
+            float magnitude = Math.max(Math.abs(scale[0]), Math.max(Math.abs(scale[1]), Math.abs(scale[2])));
+            part.setVisible(magnitude >= 0.0001f);
+            part.mulAnimScale(scale[0], scale[1], scale[2]);
+        }
     }
 
     private void updateYsmHeadRotation(LivingEntityRenderState state, LivingEntity entity) {
@@ -444,42 +694,44 @@ public class YsmAnimationPlayer {
     private void dispatchEvents(PlayingAnimation animation, ExpressionEvaluator<?> evaluator) {
         if (animation.clip.events.isEmpty() || animation.weight <= 0f)
             return;
-        float from = animation.previousTime;
-        float to = animation.time;
-        for (YsmAnimationEvent event : animation.clip.events) {
-            boolean crossed = from <= to
-                    ? event.time() > from && event.time() <= to
-                    : event.time() > from || event.time() <= to;
-            if (!crossed && from == 0f && to > 0f && event.time() == 0f)
-                crossed = true;
-            if (crossed && animation.initialEventsDispatched && from == 0f && to > 0f && event.time() == 0f)
-                continue;
-            if (crossed)
-                handleEvent(event, evaluator);
+        try (YsmControllerRuntime.ContextScope contextScope = controllerRuntime.openAnimationContext(
+                animation.controllerName, evaluator, animation.time, animation.clip.length)) {
+            for (YsmAnimationEvent event : YsmAnimationEventWindow.crossed(animation.clip,
+                    animation.previousTime, animation.eventWindowEnd, animation.loop,
+                    animation.initialEventsDispatched)) {
+                handleEvent(event, evaluator, animation.controllerName);
+            }
         }
+        animation.initialEventsDispatched = true;
     }
 
     private void dispatchInitialEvents(PlayingAnimation animation, ExpressionEvaluator<?> evaluator) {
         if (animation == null || animation.initialEventsDispatched || animation.clip.events.isEmpty() || evaluator == null)
             return;
-        for (YsmAnimationEvent event : animation.clip.events) {
-            if (event.time() == 0f)
-                handleEvent(event, evaluator);
+        try (YsmControllerRuntime.ContextScope contextScope = controllerRuntime.openAnimationContext(
+                animation.controllerName, evaluator, animation.time, animation.clip.length)) {
+            for (YsmAnimationEvent event : animation.clip.events) {
+                if (event.time() == 0f)
+                    handleEvent(event, evaluator, animation.controllerName);
+            }
         }
         animation.initialEventsDispatched = true;
     }
 
     private void advanceAnimationTime(PlayingAnimation animation) {
         if (animation.loopMode == YsmAnimationClip.LoopMode.LOOP || animation.loop) {
-            animation.time = animation.time % animation.clip.length;
+            animation.time %= animation.clip.length;
+            if (animation.time < 0f) {
+                animation.time += animation.clip.length;
+            }
             return;
         }
         animation.time = Math.min(animation.time, animation.clip.length);
     }
 
-    private void handleEvent(YsmAnimationEvent event, ExpressionEvaluator<?> evaluator) {
+    private void handleEvent(YsmAnimationEvent event, ExpressionEvaluator<?> evaluator, String controllerName) {
         if ("sound".equals(event.type())) {
-            playEventSound(event);
+            playOwnedSound(controllerName, event);
             return;
         }
         if ("particle".equals(event.type())) {
@@ -496,10 +748,19 @@ public class YsmAnimationPlayer {
         }
     }
 
-    private void playEventSound(YsmAnimationEvent event) {
+    private void playOwnedSound(String controllerName, YsmAnimationEvent event) {
+        LuaSound sound = playEventSound(event);
+        if (controllerName != null && sound != null && sound.getHandle() != null) {
+            // A channel may still be loading its buffer; isPlaying() is not a completion signal.
+            controllerSounds.add(normalizeControllerName(controllerName),
+                    () -> sound.getHandle() == null || sound.getHandle().isStopped(), sound::stop);
+        }
+    }
+
+    private LuaSound playEventSound(YsmAnimationEvent event) {
         String id = event.value();
         if (id == null || id.isBlank() || currentEntity == null)
-            return;
+            return null;
         try {
             Map<String, String> params = event.params();
             double x = currentEntity.getX() + param(params, "offset_x", "offsetX", "x");
@@ -509,8 +770,9 @@ public class YsmAnimationPlayer {
             double pitch = param(params, 1d, "pitch");
             boolean loop = boolParam(params, "loop", "looping");
             FiguraVec3 pos = FiguraVec3.of(x, y, z);
-            new SoundAPI(runtime.owner()).playSound(id, pos, volume, pitch, loop, null, false);
+            return new SoundAPI(runtime.owner()).playSound(id, pos, volume, pitch, loop, null, false);
         } catch (Exception ignored) {
+            return null;
         }
     }
 
@@ -619,11 +881,11 @@ public class YsmAnimationPlayer {
         if (hasDynamicScaleExpression(channel))
             return false;
         if (channel.keyframes.isEmpty())
-            return scaleMagnitude(evaluateStatic(channel.staticValue, channel.staticExpressions, evaluator, new float[]{1f, 1f, 1f})) < 0.0001f;
+            return scaleMagnitude(YsmAnimationSampler.sampleStatic(channel.staticValue, channel.staticExpressions, evaluator, new float[]{1f, 1f, 1f})) < 0.0001f;
         for (YsmKeyframe keyframe : channel.keyframes) {
-            if (scaleMagnitude(evaluateKeyframePost(keyframe, evaluator, new float[]{1f, 1f, 1f})) >= 0.0001f)
+            if (scaleMagnitude(YsmAnimationSampler.samplePost(keyframe, evaluator, new float[]{1f, 1f, 1f})) >= 0.0001f)
                 return false;
-            if (scaleMagnitude(evaluateKeyframePre(keyframe, evaluator, new float[]{1f, 1f, 1f})) >= 0.0001f)
+            if (scaleMagnitude(YsmAnimationSampler.samplePre(keyframe, evaluator, new float[]{1f, 1f, 1f})) >= 0.0001f)
                 return false;
         }
         return true;
@@ -694,7 +956,7 @@ public class YsmAnimationPlayer {
         return boneName == null ? "" : boneName.toLowerCase(Locale.US);
     }
 
-    private void applyNativeHandPose(LivingEntityRenderState state, LivingEntity entity) {
+    private void applyNativeHandPose(LivingEntityRenderState state, LivingEntity entity, boolean firstPerson) {
         if (entity == null || entity.getPose() == Pose.SLEEPING)
             return;
 
@@ -708,10 +970,16 @@ public class YsmAnimationPlayer {
 
         // Native YSM locators already encode their own authored hand pose.
         // Only use the vanilla-like fallback when that side has no locator.
-        if (!nativeHandAnimations.containsKey("right") && !hasHandLocator(false))
-            applyNativeArmPose(false, itemForArm(entity, false, mainLeft), usingItem && isHandForArm(usedHand, false, mainLeft), isHandForArm(swingingHand, false, mainLeft), swingAmount);
-        if (!nativeHandAnimations.containsKey("left") && !hasHandLocator(true))
-            applyNativeArmPose(true, itemForArm(entity, true, mainLeft), usingItem && isHandForArm(usedHand, true, mainLeft), isHandForArm(swingingHand, true, mainLeft), swingAmount);
+        if (!nativeHandAnimations.containsKey("right") && !hasHandLocator(false)) {
+            applyNativeArmPose(false, itemForArm(entity, false, mainLeft),
+                    usingItem && isHandForArm(usedHand, false, mainLeft),
+                    isHandForArm(swingingHand, false, mainLeft), swingAmount, firstPerson);
+        }
+        if (!nativeHandAnimations.containsKey("left") && !hasHandLocator(true)) {
+            applyNativeArmPose(true, itemForArm(entity, true, mainLeft),
+                    usingItem && isHandForArm(usedHand, true, mainLeft),
+                    isHandForArm(swingingHand, true, mainLeft), swingAmount, firstPerson);
+        }
     }
 
     private boolean hasHandLocator(boolean left) {
@@ -1001,7 +1269,8 @@ public class YsmAnimationPlayer {
         return "item";
     }
 
-    private void applyNativeArmPose(boolean left, ItemStack item, boolean using, boolean swinging, float swingAmount) {
+    private void applyNativeArmPose(boolean left, ItemStack item, boolean using, boolean swinging,
+                                   float swingAmount, boolean firstPerson) {
         if ((item == null || item.isEmpty()) && !using && !(swinging && swingAmount > 0f))
             return;
 
@@ -1023,8 +1292,10 @@ public class YsmAnimationPlayer {
         }
 
         YsmBoneRole role = left ? YsmBoneRole.LEFT_HAND : YsmBoneRole.RIGHT_HAND;
-        for (YsmModelPart part : runtime.uniqueParts()) {
-            if (runtime.roleOf(part.getName()) == role || runtime.armRoleOf(part.getName()) == role)
+        for (YsmModelPart part : runtime.uniqueParts(firstPerson)) {
+            YsmBoneRole partRole = firstPerson && runtime.hasArmModel()
+                    ? runtime.armRoleOf(part.getName()) : runtime.roleOf(part.getName());
+            if (partRole == role)
                 part.addAnimRot(x, y, z);
         }
     }
@@ -1129,104 +1400,6 @@ public class YsmAnimationPlayer {
                 return normalized;
         }
         return "";
-    }
-
-    private float[] evaluateChannel(YsmAnimationChannel channel, float time, ExpressionEvaluator<?> evaluator, float[] defaultValue) {
-        if (channel.keyframes.isEmpty()) {
-            return evaluateStatic(channel.staticValue, channel.staticExpressions, evaluator, defaultValue);
-        }
-
-        List<YsmKeyframe> kfs = channel.keyframes;
-        // If time before first keyframe
-        if (time <= kfs.get(0).time) {
-            YsmKeyframe first = kfs.get(0);
-            if (time < first.time)
-                return evaluateKeyframePre(first, evaluator, defaultValue);
-            return evaluateKeyframePost(first, evaluator, defaultValue);
-        }
-        // If time after last keyframe
-        if (time >= kfs.get(kfs.size() - 1).time) {
-            YsmKeyframe last = kfs.get(kfs.size() - 1);
-            return evaluateKeyframePost(last, evaluator, defaultValue);
-        }
-
-        // Find correct interval
-        YsmKeyframe k1 = kfs.get(0);
-        YsmKeyframe k2 = null;
-        for (int i = 1; i < kfs.size(); i++) {
-            YsmKeyframe curr = kfs.get(i);
-            if (time < curr.time) {
-                k1 = kfs.get(i - 1);
-                k2 = curr;
-                break;
-            }
-        }
-
-        if (k2 == null) {
-            return evaluateKeyframePost(k1, evaluator, defaultValue);
-        }
-
-        float[] v1 = evaluateKeyframePost(k1, evaluator, defaultValue);
-
-        float ratio = (time - k1.time) / (k2.time - k1.time);
-        if (ratio < 0) ratio = 0;
-        if (ratio > 1) ratio = 1;
-
-        if ("step".equalsIgnoreCase(k1.interpolation))
-            return v1;
-        if ("catmullrom".equalsIgnoreCase(k2.interpolation)) {
-            int k1Index = kfs.indexOf(k1);
-            int k2Index = kfs.indexOf(k2);
-            float[] p0 = evaluateKeyframePost(kfs.get(Math.max(0, k1Index - 1)), evaluator, defaultValue);
-            float[] p3 = evaluateKeyframePre(kfs.get(Math.min(kfs.size() - 1, k2Index + 1)), evaluator, defaultValue);
-            float[] v2 = evaluateKeyframePre(k2, evaluator, defaultValue);
-            return YsmEasing.catmullRomVec(p0, v1, v2, p3, ratio);
-        }
-        ratio = YsmEasing.apply(k1.interpolation, ratio);
-        float[] v2 = evaluateKeyframePre(k2, evaluator, defaultValue);
-        float[] res = new float[3];
-        res[0] = v1[0] + (v2[0] - v1[0]) * ratio;
-        res[1] = v1[1] + (v2[1] - v1[1]) * ratio;
-        res[2] = v1[2] + (v2[2] - v1[2]) * ratio;
-        return res;
-    }
-
-    private float[] evaluateKeyframePost(YsmKeyframe keyframe, ExpressionEvaluator<?> evaluator, float[] defaultValue) {
-        return evaluateStatic(keyframe.value, keyframe.expressions, evaluator, defaultValue);
-    }
-
-    private float[] evaluateKeyframePre(YsmKeyframe keyframe, ExpressionEvaluator<?> evaluator, float[] defaultValue) {
-        return evaluateStatic(keyframe.preValue, keyframe.preExpressions, evaluator, defaultValue);
-    }
-
-    private float[] evaluateStatic(float[] staticVal, Expression[] staticExprs, ExpressionEvaluator<?> evaluator, float[] defaultValue) {
-        float[] result = new float[3];
-        System.arraycopy(staticVal != null ? staticVal : defaultValue, 0, result, 0, 3);
-        if (staticExprs != null && evaluator != null) {
-            for (int i = 0; i < 3; i++) {
-                if (staticExprs[i] != null) {
-                    try {
-                        result[i] = evaluator.evalAsFloat(staticExprs[i]);
-                    } catch (Exception ignored) {}
-                }
-            }
-        }
-        return result;
-    }
-
-    private float getDeltaTime(LivingEntityRenderState state) {
-        float age = Float.NaN;
-        if (state != null) {
-            try {
-                age = state.ageInTicks;
-            } catch (Throwable ignored) {
-            }
-        }
-        float deltaTicks = Float.isNaN(lastAgeInTicks) || Float.isNaN(age) ? 1f : age - lastAgeInTicks;
-        lastAgeInTicks = age;
-        if (deltaTicks <= 0f || deltaTicks > 5f)
-            deltaTicks = 1f;
-        return deltaTicks / 20f;
     }
 
     private boolean readBoolean(LivingEntityRenderState state, String name, boolean fallback) {

@@ -5,7 +5,7 @@ package org.figuramc.figura.model.ysm.animation;
  * <p>
  * The Bedrock animation format supports per-keyframe easing types.
  * This class provides the easing implementations used by
- * {@link YsmAnimationPlayer#evaluateChannel}.
+ * {@link YsmAnimationSampler#sampleChannel}.
  * </p>
  */
 public final class YsmEasing {

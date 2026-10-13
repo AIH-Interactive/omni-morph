@@ -21,6 +21,10 @@ public class YsmRenderer {
     }
 
     public boolean render(PoseStack stack, MultiBufferSource bufferSource, int light, YsmPartMask mask) {
+        return render(stack, bufferSource, light, mask, null);
+    }
+
+    public boolean render(PoseStack stack, MultiBufferSource bufferSource, int light, YsmPartMask mask, YsmRenderPose pose) {
         if (runtime.geometry().roots.isEmpty())
             return false;
 
@@ -29,10 +33,10 @@ public class YsmRenderer {
         VertexConsumer vertices = bufferSource.getBuffer(renderType);
 
         stack.pushPose();
-        runtime.applyModelScale(stack);
-        runtime.updateWorldMatrices(stack);
+        applyModelScale(stack, pose);
+        runtime.updateWorldMatrices(stack, pose);
         for (YsmGeometry.Bone root : runtime.geometry().roots)
-            renderBone(root, stack, vertices, light, mask);
+            renderBone(root, stack, vertices, light, mask, false, pose);
         stack.popPose();
         return true;
     }
@@ -56,19 +60,28 @@ public class YsmRenderer {
     }
 
     public boolean renderAttachments(PoseStack stack, MultiBufferSource bufferSource, int light) {
+        return renderAttachments(stack, bufferSource, light, null);
+    }
+
+    public boolean renderAttachments(PoseStack stack, MultiBufferSource bufferSource, int light, YsmRenderPose pose) {
         boolean rendered = false;
-        rendered |= renderAttachmentType(stack, bufferSource, light, YsmAttachmentType.BACKPACK);
-        rendered |= renderAttachmentType(stack, bufferSource, light, YsmAttachmentType.BLADE);
-        rendered |= renderAttachmentType(stack, bufferSource, light, YsmAttachmentType.SHEATH);
-        rendered |= renderAttachmentType(stack, bufferSource, light, YsmAttachmentType.ELYTRA);
+        rendered |= renderAttachmentType(stack, bufferSource, light, YsmAttachmentType.BACKPACK, pose);
+        rendered |= renderAttachmentType(stack, bufferSource, light, YsmAttachmentType.BLADE, pose);
+        rendered |= renderAttachmentType(stack, bufferSource, light, YsmAttachmentType.SHEATH, pose);
+        rendered |= renderAttachmentType(stack, bufferSource, light, YsmAttachmentType.ELYTRA, pose);
         return rendered;
     }
 
     public boolean renderAttachmentType(PoseStack stack, MultiBufferSource bufferSource, int light, YsmAttachmentType type) {
+        return renderAttachmentType(stack, bufferSource, light, type, null);
+    }
+
+    private boolean renderAttachmentType(PoseStack stack, MultiBufferSource bufferSource, int light,
+                                          YsmAttachmentType type, YsmRenderPose pose) {
         boolean rendered = false;
         for (YsmAttachmentPoint point : runtime.attachmentPoints()) {
             if (point.type() == type)
-                rendered |= renderAttachment(stack, bufferSource, light, point);
+                rendered |= renderAttachment(stack, bufferSource, light, point, pose);
         }
         return rendered;
     }
@@ -78,12 +91,18 @@ public class YsmRenderer {
     }
 
     public boolean renderAttachment(PoseStack stack, MultiBufferSource bufferSource, int light, YsmAttachmentPoint point) {
+        return renderAttachment(stack, bufferSource, light, point, null);
+    }
+
+    private boolean renderAttachment(PoseStack stack, MultiBufferSource bufferSource, int light,
+                                      YsmAttachmentPoint point, YsmRenderPose pose) {
         if (point == null)
             return false;
         YsmGeometry.Bone bone = findAttachmentBone(point.boneName());
         if (bone == null)
             return false;
-        if (!runtime.isBoneVisibleInHierarchy(bone.name))
+        if (!(pose == null ? runtime.isBoneVisibleInHierarchy(bone.name)
+                : pose.visibleInHierarchy(bone.name, runtime.geometry())))
             return false;
 
         runtime.texture().uploadIfDirty(false, false);
@@ -91,8 +110,8 @@ public class YsmRenderer {
         VertexConsumer vertices = bufferSource.getBuffer(renderType);
 
         stack.pushPose();
-        runtime.applyModelScale(stack);
-        renderBone(bone, stack, vertices, light, null);
+        applyModelScale(stack, pose);
+        renderBone(bone, stack, vertices, light, null, false, pose);
         stack.popPose();
         return true;
     }
@@ -111,6 +130,11 @@ public class YsmRenderer {
     }
 
     public boolean renderFirstPersonArm(PoseStack stack, MultiBufferSource bufferSource, int light, boolean left) {
+        return renderFirstPersonArm(stack, bufferSource, light, left, null);
+    }
+
+    public boolean renderFirstPersonArm(PoseStack stack, MultiBufferSource bufferSource, int light,
+                                         boolean left, YsmRenderPose pose) {
         YsmGeometry armGeo = runtime.getArmGeometry();
         if (armGeo == null) {
             armGeo = runtime.geometry();
@@ -126,7 +150,7 @@ public class YsmRenderer {
         boolean useArmParts = runtime.hasArmModel();
         for (YsmGeometry.Bone root : armGeo.roots) {
             if (shouldRenderArmBone(root, left, useArmParts))
-                renderBone(root, stack, vertices, light, mask, useArmParts);
+                renderBone(root, stack, vertices, light, mask, useArmParts, pose);
         }
         stack.popPose();
         return true;
@@ -148,7 +172,13 @@ public class YsmRenderer {
     }
 
     private void renderBone(YsmGeometry.Bone bone, PoseStack stack, VertexConsumer vertices, int light, YsmPartMask mask, boolean useArmParts) {
-        YsmModelPart part = useArmParts ? runtime.getArmPart(bone.name) : runtime.getPart(bone.name);
+        renderBone(bone, stack, vertices, light, mask, useArmParts, null);
+    }
+
+    private void renderBone(YsmGeometry.Bone bone, PoseStack stack, VertexConsumer vertices, int light,
+                             YsmPartMask mask, boolean useArmParts, YsmRenderPose pose) {
+        YsmModelPart part = pose == null
+                ? (useArmParts ? runtime.getArmPart(bone.name) : runtime.getPart(bone.name)) : pose.part(bone.name);
         YsmBoneRole role = useArmParts ? runtime.armRoleOf(bone.name) : runtime.roleOf(bone.name);
         if (part != null && (!part.visibleRaw() || part.hiddenScaleRaw()))
             return;
@@ -161,7 +191,7 @@ public class YsmRenderer {
                 renderCube(cube, stack, vertices, light);
         }
         for (YsmGeometry.Bone child : bone.children)
-            renderBone(child, stack, vertices, light, mask, useArmParts);
+            renderBone(child, stack, vertices, light, mask, useArmParts, pose);
         stack.popPose();
     }
 
@@ -175,6 +205,14 @@ public class YsmRenderer {
         for (YsmGeometry.Bone child : bone.children)
             renderStaticBone(child, stack, vertices, light);
         stack.popPose();
+    }
+
+    private void applyModelScale(PoseStack stack, YsmRenderPose pose) {
+        if (pose == null) {
+            runtime.applyModelScale(stack);
+        } else {
+            pose.applyModelScale(stack);
+        }
     }
 
     private void applyBoneTransform(YsmGeometry.Bone bone, YsmModelPart part, PoseStack stack) {

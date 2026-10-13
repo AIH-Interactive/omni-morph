@@ -196,3 +196,131 @@ tasks.register("ysmPrivateDiagnosticsSmokeTest", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = "org.figuramc.figura.avatar.ysm.YsmPrivateDiagnosticsSmokeTest"
 }
+
+tasks.register("ysmAnimationWeightSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks dynamic animation clip weights and per-evaluator isolation for M3."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmAnimationWeightSmokeTest"
+}
+
+tasks.register("ysmControllerIsolationSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks independent controller playback slots and numeric reference weights for M3."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmControllerIsolationSmokeTest"
+}
+
+tasks.register("ysmBlendTransitionSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks reference-shaped transition curve parsing and immutable interpolation for M3."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmBlendTransitionSmokeTest"
+}
+
+tasks.register("ysmPoseSamplingSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks shared pose sampling, owned snapshots and shortest rotation blending for M3."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmPoseSamplingSmokeTest"
+}
+
+tasks.register("ysmControllerPoseLayerSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks controller-layer snapshot transitions and multi-clip pose composition for M3."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmControllerPoseLayerSmokeTest"
+}
+
+tasks.register("ysmAnimationEventWindowSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks chronological animation event crossings before loop wrapping for M3."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmAnimationEventWindowSmokeTest"
+}
+
+tasks.register("ysmAnimationFrameClockSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks frame identity gating and repeated-pass animation/event cadence for M3."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmAnimationFrameClockSmokeTest"
+}
+
+tasks.register("ysmControllerSoundSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks controller entry audio requests and held-condition sound transition gating for M3."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmControllerSoundSmokeTest"
+}
+
+tasks.register("ysmChildControllerSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks parent-driven child controllers, exit/re-entry, empty-state cycles and bounded depth for M3."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmChildControllerSmokeTest"
+}
+
+tasks.register("ysmControllerContextSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks owned controller context for nested evaluation, animation sampling and timeline dispatch."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmControllerContextSmokeTest"
+}
+
+tasks.register("ysmControllerPhaseSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks reference controller phase order, fp.arm classification and per-frame event ownership."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmControllerPhaseSmokeTest"
+}
+
+tasks.register("ysmFirstPersonControllerSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks first-person controller lifetime and scoped view queries across camera changes."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmFirstPersonControllerSmokeTest"
+}
+
+tasks.register("ysmFunctionStageSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks real Molang event execution in implicit stages and inactive first-person fallback exclusion."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmFunctionStageSmokeTest"
+}
+
+tasks.register("ysmBoneMatrixSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks actual bone rendering matrices against independent weight, pivot and rotation-transition coefficients."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmBoneMatrixSmokeTest"
+}
+
+tasks.register("ysmDeferredPoseSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks immutable submission-time body/arm matrices, model scale and attachment visibility."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmDeferredPoseSmokeTest"
+}
+
+tasks.register("ysmPlayerTimelineSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks production player CPU steps against fixed timeline body/arm matrices and owned event traces."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmPlayerTimelineSmokeTest"
+}

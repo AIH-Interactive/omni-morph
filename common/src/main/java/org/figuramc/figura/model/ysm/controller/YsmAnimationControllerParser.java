@@ -91,8 +91,43 @@ public final class YsmAnimationControllerParser {
                 parseExpressions(object.get("on_entry"), engine),
                 parseExpressions(object.get("on_exit"), engine),
                 floatValue(object.get("blend_transition"), 0f),
-                object.has("blend_via_shortest_path") && object.get("blend_via_shortest_path").isJsonPrimitive() && object.get("blend_via_shortest_path").getAsBoolean()
+                object.has("blend_via_shortest_path") && object.get("blend_via_shortest_path").isJsonPrimitive() && object.get("blend_via_shortest_path").getAsBoolean(),
+                blendCurve(object.get("blend_transition")),
+                soundEffects(object.get("sound_effects"))
         );
+    }
+
+    private static List<String> soundEffects(JsonElement element) {
+        List<String> sounds = new ArrayList<>();
+        if (element == null || !element.isJsonArray()) {
+            return sounds;
+        }
+        for (JsonElement sound : element.getAsJsonArray()) {
+            String effect = sound.isJsonObject() ? string(sound.getAsJsonObject().get("effect"), "") : string(sound, "");
+            if (!effect.isBlank()) {
+                sounds.add(effect);
+            }
+        }
+        return sounds;
+    }
+
+    private static YsmBlendTransition blendCurve(JsonElement element) {
+        if (element != null && element.isJsonObject()) {
+            Map<Float, Float> points = new LinkedHashMap<>();
+            for (var entry : element.getAsJsonObject().entrySet()) {
+                try {
+                    float time = Float.parseFloat(entry.getKey());
+                    if (points.put(time, entry.getValue().getAsFloat()) != null) {
+                        throw new IllegalArgumentException("Duplicate transition time");
+                    }
+                } catch (NumberFormatException e) {
+                    // Legacy duration wrapper objects remain on their existing numeric path.
+                    return YsmBlendTransition.linear(floatValue(element, 0f));
+                }
+            }
+            return YsmBlendTransition.curve(points);
+        }
+        return YsmBlendTransition.linear(floatValue(element, 0f));
     }
 
     private static List<YsmControllerAnimationRef> parseAnimations(JsonElement element, MolangEngine engine) {
