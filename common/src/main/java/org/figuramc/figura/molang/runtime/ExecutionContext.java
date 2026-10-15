@@ -36,6 +36,8 @@ public interface ExecutionContext<TEntity> {
     default Object evalSafe(Expression expression) {
         try {
             return eval(expression);
+        } catch (MolangExecutionBudget.Exceeded exhausted) {
+            throw exhausted;
         } catch (Exception e) {
             return null;
         }
@@ -47,6 +49,8 @@ public interface ExecutionContext<TEntity> {
     default Object evalAllSafe(Iterable<Expression> iterable, boolean z) {
         try {
             return evalAll(iterable, z);
+        } catch (MolangExecutionBudget.Exceeded exhausted) {
+            throw exhausted;
         } catch (Exception e) {
             return null;
         }

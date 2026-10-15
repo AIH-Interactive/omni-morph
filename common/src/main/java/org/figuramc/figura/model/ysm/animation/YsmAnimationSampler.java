@@ -2,6 +2,8 @@ package org.figuramc.figura.model.ysm.animation;
 
 import org.figuramc.figura.molang.parser.ast.Expression;
 import org.figuramc.figura.molang.runtime.ExpressionEvaluator;
+import org.figuramc.figura.molang.runtime.MolangExecutionBudget;
+import org.figuramc.figura.avatar.Avatar;
 
 import java.util.List;
 
@@ -11,10 +13,13 @@ public final class YsmAnimationSampler {
     }
 
     public static YsmBonePose sampleBone(YsmBoneAnimation bone, float time, ExpressionEvaluator<?> evaluator) {
-        return new YsmBonePose(
-                bone.position == null ? null : sampleChannel(bone.position, time, evaluator, new float[3]),
-                bone.rotation == null ? null : sampleChannel(bone.rotation, time, evaluator, new float[3]),
-                bone.scale == null ? null : sampleChannel(bone.scale, time, evaluator, new float[]{1f, 1f, 1f}));
+        Avatar.MolangContext context = evaluator != null && evaluator.entity() instanceof Avatar.MolangContext value ? value : null;
+        try (var boneScope = context == null ? null : context.filters.beginBone(bone.boneName)) {
+            return new YsmBonePose(
+                    bone.position == null ? null : sampleChannel(bone.position, time, evaluator, new float[3]),
+                    bone.rotation == null ? null : sampleChannel(bone.rotation, time, evaluator, new float[3]),
+                    bone.scale == null ? null : sampleChannel(bone.scale, time, evaluator, new float[]{1f, 1f, 1f}));
+        }
     }
 
     public static float[] sampleChannel(YsmAnimationChannel channel, float time, ExpressionEvaluator<?> evaluator, float[] defaultValue) {
@@ -99,6 +104,8 @@ public final class YsmAnimationSampler {
                 if (staticExprs[i] != null) {
                     try {
                         result[i] = evaluator.evalAsFloat(staticExprs[i]);
+                    } catch (MolangExecutionBudget.Exceeded exhausted) {
+                        throw exhausted;
                     } catch (Exception ignored) {
                         // Preserve the sampled numeric fallback when expression evaluation fails.
                     }

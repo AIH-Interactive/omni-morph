@@ -1,7 +1,7 @@
 # 完善 YSM 引擎计划书
 
 > 编制日期：2026-10-12（Asia/Seoul）。
-> 状态：M0、M1 自动化验收完成；M2～M8 尚未实施。阶段提交与推送按 6.1 节执行；人工项按用户要求注明并跳过。
+> 状态：M0～M4 自动化验收完成；M5～M8 尚未实施。阶段提交与推送按 6.1 节执行；人工项按用户要求注明并跳过。
 > 本文独立制定需求、实施顺序与验收标准。旧版计划书全部视为已废弃，不作为本文依据。
 
 ## 1. 目标、边界与完成定义
@@ -490,7 +490,8 @@ if ($buildExitCode -ne 0) {
 | M1 | 完成 | 统一读取/内容身份/内存数据/直接面片入口；五个 smoke、40 候选 gate、Fabric build 通过，详见 9.2 |
 | M2 | 完成（自动化通过；人工跳过） | 解密/全资源数据映射/正式密文加载/输出/日志边界、16 个格式 fixture、无 DWORD 等价及 scanner 通过；真实窗口 SKIPPED/MANUAL_BY_USER，AVIF metadata 显示归 M5；执行独立提交推送检查点 |
 | M3 | 自动验收完成；人工已按用户要求跳过 | 动态权重、实例/上下文、过渡/声音/子控制器、阶段/第一人称、多 pass 与延迟姿态已接通；16 项 M3 smoke、既有回归/45 模型语料/扫描基线、Fabric build 通过；见 9.7 |
-| M4–M6 | 未开始实施 | Molang、附属资源和动态子实体 |
+| M4 | 自动验收完成；人工已按用户要求跳过 | 函数/绑定/事件、预算恢复、滤波/实体适配与诊断已补；233名称逐项分级，41 smoke/绑定审计/独立M4扫描baseline/Fabric build通过；声音最小执行适配已获本轮明确授权，实际包音频装配归M5；见9.8最终记录 |
+| M5–M6 | 未开始实施 | 附属资源和动态子实体 |
 | M7 | 未开始实施 | 内容边界与动态多人一致性 |
 | M8 | 未开始实施 | 完整语料、真实窗口、多客户端、资源与性能验收 |
 
@@ -775,3 +776,529 @@ M3 验收映射：
 计划中真实窗口的行走/跑跳/游泳/睡眠/骑乘/攻击/持物切换、第一人称双手与实际音频，按用户“人工验收注明并跳过，不阻塞”记为 SKIPPED/MANUAL_BY_USER；JVM/CPU 矩阵不替代 real Windows/game GPU 画面 PASS，未使用 Qt offscreen。M3 无后端修改，不触碰 omnm-cloud/参考后端。继续保留“不关闭计算机”的用户要求。
 
 结论：M3 自动验收 DONE，允许按用户豁免的人工条目执行阶段提交/推送。M4 必须在此检查点推送确认成功后开始；尚未关闭整个 M0~M8 目标。提交 hash/远端确认由下一阶段记录补充，避免在当前提交内自引用 hash。
+
+### 9.8 M4 启动检查点（2026-10-13）
+
+M3 提交 d7b2f5195e72303dabd59ffef16ea00609454e91（feat(ysm): complete M3 animation and controller semantics），44 files / 3594 insertions / 301 deletions；git push origin main 成功，git ls-remote origin refs/heads/main 与本地 HEAD 完全一致。检查点后仅 build.log 修改、omnm-cloud/ 与 refs/ 未跟踪，阶段提交未包含日志、用户模型或参考后端。
+
+在该远端检查点确认后开始 M4。范围仍按计划：核心 binding 参数/返回/状态行为、defer 与本地 sync、函数参数/返回/临时变量/字符串/总预算、两个 Avatar 隔离与未知绑定定位。先从本地正式/参考绑定与函数实现收集证据，不改 omnm-cloud；涉及服务端者 SKIPPED/BACKEND_BY_USER，人工步骤 SKIPPED/MANUAL_BY_USER。
+
+M4 sync/defer 追加进展：已核对参考 Defer、Sync、AnimationControllerContext、CustomPlayerEntity 与 MolangEventDispatcher。sync 不是 string key/value 储存：client side 将最多 16 个数值参数立即交给 @sync handler，返回 null。defer 首参数须为非空 string 标识，参考只以其有效性作入口判断，实际目标始终是 @defer；有 animation controller context 时保存后续已求值的 typed arguments，executeRenderLayers 按 capture 的逆序 replay，并清掉 replay 内再次 capture 的内容。未将 defer 改成任意命名函数或任意下一帧队列。
+
+正式函数 runtime 已替换旧 syncValues getter/setter 契约，新增 per-runtime / animation-owner identity 的 deferred queue、client-effect scope 与逆序一次性 replay。正式 controller entry/exit/绑定函数事件建立 client scope（没有 animation owner 时 defer 忽略）；clip initial/timeline 使用该 clip 的 owner scope 并在处理后 flush，普通骨骼采样不产生 client 事件。MolangBindings 注册 defer，并以真实 Function.validateArgumentSize 对 sync 限 16。
+
+事件生命周期：unload clearEventState 清空参数/诊断状态并增加 generation，旧 scope 或旧 replay 不得恢复已卸载 owner。defer 设置每 runtime 最大 4096 captures、每 capture 最大 64 payload arguments 的安全预算（这是本实现的有界保护，不能说成参考本来有 64 参数限制）；所有函数 execute 入口受既有 32 call-depth 约束，防止 @sync 递归绕过普通 call 的保护。总指令/循环预算尚待 M4 后续完成。
+
+ysmSyncDeferSmokeTest 使用真实 parser、CPU model/function runtime 和 parser-generated event DTO，验证 client-only、立即 @sync 数值传参、typed value 捕获后不随字符串变量改变、reverse @defer、一遍消费、replay 内捕获丢弃、两个 owner/两个 model runtime 的隔离、argument/call scope 清理、4096 边界/超限、unload generation、递归失败后下一事件恢复、sync 0/16/17 signature 以及 defer binding 注册。首参数非 string/空 string 的负例通过。Fixture 利用既有 figura.test.directory 独立 JVM harness 处理错误日志初始化，并清理临时目录；不初始化真实/离屏 GUI，不据此宣称游戏画面 PASS。
+
+前台 syncDefer + M3 playerTimeline/functionStage/controllerSound 与 Fabric build 通过（退出码 0，28 秒）；新增非法 defer address 断言后 syncDefer + Fabric build 再次通过（退出码 0，6 秒）。diff/readability/new-test 空白检查通过。
+
+M4 尚需正式 Avatar binding registry/标准模型调用链更完整的参数与状态测试、旧 sync key/value 扩展依赖库存/迁移说明、核心 binding zero placeholders 消除和完整能力清单、函数返回/临时变量/string 与总执行预算、未知绑定定位与两 Avatar filter 隔离、M4 扫描基线及全回归。当前未对后端/多人传输修改；reference Sync 的云事件发送在 M7 根据用户后端豁免记录处理，当前仅对齐单人事件语义。M4 尚未提交或推送。
+
+M4 总执行预算追加进展：新增 MolangExecutionBudget，缺省 100000 counted steps（本实现执行保护，不称为参考原阈值；可通过构造参数指定小预算用于确定性负例）。visitor dispatch、优化 float/bool 分支、loop/for_each 迭代都消耗额度，空循环和空 for_each 也有界。保留既有单 loop 1024 round 上限。嵌套 eval/evalAll、函数和 createChild 的 context switch 共享同一 budget，不因另建 evaluator 或切换 entity 获得新额度。
+
+每 Avatar.MolangContext 持有独立 budget。正式 YSM player update 按 GameRenderer frame identity 开外层 frame scope，同帧 body/arm/重复 pass 共用剩余额度；独立的非 render evaluation 不得补满已消耗的 frame allowance，下一 frame identity 才恢复。budget 异常退出后 frame scope、函数 argument/temp/call scope 和循环计数器均清理；修复 buildExecutionScope 原先在普通路径/break 路径与 finally 重复 cnt-- 的问题。
+
+预算异常是专用 Exceeded，evalSafe/evalAllSafe、clip blendWeight/channel 数值 fallback、controller 条件/权重/表达式、timeline、function execute 和有 Throwable fallback 的 binding 都必须将其向外传递，不能吞成 0 后继续做大量工作。正式 player 在外层捕获，弃掉失败帧未 replay 的 deferred arguments；同 frame 只报告一次。加密模型日志固定 runtime/molang-budget，不包含 source/function/骨骼明文；普通模型报告 model key。尚不从 JVM fixture 声称真实 GameRenderer 窗口时序 PASS。
+
+ysmMolangBudgetSmokeTest 使用真实 parser/evaluator，验证嵌套 loops、空 loop、无限 iterable 的 for_each、fast float path、safe API 传播、child 不重置总额度、loop continue/return 与 budget 失败后恢复、同 frame 四个 pass 耗尽、独立 evaluation 无法补 frame 额度、下一 frame 恢复，以及两个真实 Avatar.MolangContext 的相同 frame 隔离。同步补 syncDefer 的 failed-frame discard 断言。
+
+前台 budget/syncDefer/playerTimeline + Fabric build 通过（退出码 0，7 秒）；追加 failed-frame deferred 清理后 budget/syncDefer/playerTimeline/controllerContext/functionStage + Fabric build 全通过（退出码 0，22 秒）。diff/readability 与新增 budget source/test 空白检查通过。
+
+M4 仍待核心 binding 清单、zero placeholders/滤波状态/参数类型行为、完整函数返回/参数/temp/string 与异常诊断、旧 sync 扩展依赖库存和正式 Avatar registry/标准模型路径、M4 scanner baseline 与全回归。100000 的真实模型运行高水位/性能边界还需结合后续 CPU corpus/最终 M8 性能记录，不能以小预算 fixtures 推断任意复杂模型均在预算内。M4 未提交或推送，后端和人工豁免保持原授权。
+
+M4 滤波绑定追加进展：已核对参考 FirstOrder、SecondOrder、PhysicsManager 及函数入口，替换 first_order/second_order 原有直接返回输入的占位实现。每 Avatar.MolangContext 持有独立 YsmFilterRuntime，body/first-person 分域；正式 player 在逻辑帧推进时、当前参数采样前更新上一次捕获的输入，以 render ticks / 20 换算秒。同 tick 重复更新不推进。一阶按名称共享（即使处于不同骨骼）；二阶在骨骼采样期间按名称+bone 区分，采样 scope 支持嵌套恢复，clear 后旧 scope 不得恢复已释放的 bone。
+
+数值计算保留参考的一阶 response 插值和二阶 frequency/damping/response、0.1 秒最大步长、稳定子步及非有限系数保护。函数至少两个参数，首参数须非空 string；省略参数为 1。首次创建按参考返回输入，而内部模拟值仍从 0 开始，因此不能据此宣称首次创建的同帧每次调用都返回同值；参考的渲染缓存与当前首次多 pass 行为仍需结合后续正式模型路径核查。预览/extra-player 的独立 domain 尚未接通，不把 body/first-person 测试外推为全部场景完成。每 domain 16384 个 filter 为本实现新增状态保护，积分子步消耗既有共享执行预算。
+
+ysmFilterSmokeTest 通过真实 MolangBindings/parser/evaluator 和正式 bone sampler 验证独立数值向量、上帧参数、重复 tick、hitch/zero response、second-order 默认参数、非法 ID、body/arm 与两个 Avatar 隔离、一阶跨 bone 名称共享、二阶独立骨骼和嵌套/清理 scope。追加验证后前台 filter/budget/playerTimeline smoke 与 Fabric build 全通过（退出码 0，17 秒）。这些是 CPU 语义证据，实际游戏画面仍 SKIPPED/MANUAL_BY_USER。M4 其余 binding、函数/诊断、语料与扫描 gate 尚未完成，未提交/推送。
+
+用户再次明确阶段后关机策略：每个阶段完成后均不关闭计算机；仅在用户后续再次明确要求时执行。该策略适用于余下 M4~M8，阶段提交和推送规则照常执行。
+
+M4 perlin_noise 追加进展：参考 PerlinNoise 调用 STBPerlin.stb_perlin_noise3_seed，参数为 seed,x[,y[,z]]，y/z 默认为 0，至少两个参数、多余参数不读取。新增纯 Java YsmPerlinNoise，使用 STB v0.5 的 permutation/gradient、float 插值顺序和 seed 低 8 位规则；没有用 Minecraft 不同的噪声算法替代，也没有新增生产原生依赖。实现从 [stb_perlin.h 官方源码](https://github.com/nothings/stb/blob/master/stb_perlin.h) 的 public-domain 许可选项适配并保留作者/来源说明。原 C 对非有限或 int 范围外坐标转换没有可移植定义，本实现明确返回 0 作为异常输入保护，不宣称该负例与原 C 行为等价。
+
+YsmPerlinNativeOracle 以 Minecraft 已有 LWJGL 3.4.1 + Windows native jars 作独立数值 oracle，前台 java 命令输出/退出码均记录；45 固定点（9 seed × 5 coordinate，含负 seed/int 边界/负坐标/256 周期）与 Random(20261013) 的 20000 个随机点全部与生产 Java 算法一致，tolerance 2e-6。此 native 仅用于 CPU 对照，不进入新生产依赖，不涉及 Qt/GUI。保留 oracle 源码，运行时 classpath 为编译后的 main/test 与缓存中的 lwjgl/lwjgl-stb 3.4.1 主 jar、对应 Windows native jar。
+
+ysmPerlinSmokeTest 冻结其中 20 个 native vectors，经过真实 MolangBindings/parser/evaluator 检查 1D/2D 默认值、int seed 转换、忽略额外参数、低 seed byte/坐标周期及非法输入。前台 perlin/filter/budget/playerTimeline smokes 与 Fabric build 全通过（退出码 0，6 秒）。scanner 不再将 perlin_noise 列为 pending core；M2 冻结扫描基线保留历史，M4 完整基线尚待核心库存审计后更新。
+
+下一项定位证据：bone_rot/pos/scale/pivot_abs 的参考返回值为只读、随骨骼状态变化的 x/y/z Struct（copy 返回自身），缺失骨骼返回 null，参数严格 1 个；不能将其替换为一个数值或一次性 vector 拷贝。当前尚保留占位，下一步需核对 reference position/rotation 坐标与正式 body/arm 目标选择，再实现和测试。M4 仍未完成、未提交或推送，不开始 M5。
+
+M4 骨骼向量追加进展：已替换 bone_rot/bone_pos/bone_scale 的数值 0 占位。YsmBoneQuery 返回只读、live 的 x/y/z Struct，copy 返回自身、写入忽略、未知属性 null；仅接受一个非空 string 骨骼名，缺失/非法名称返回 null。查询按当前 body/first-person 选择正式 getAnimationParts 目标，有独立 arm model 时不偷用同名 body；没有 arm model 时使用既有主体回退。bone_rot 按参考 -degrees(X/Y)、degrees(Z) 的约定还原初始角度并加动画角度，bone_pos 不把镜像 X 的渲染平移误当成输入，bone_scale 返回实际乘积；另外保留本项目 Lua 用户 pose 的附加位移/角度/缩放贡献。
+
+接通查询后进一步发现正式 player 先 reset 部件再采样，查询会读零或前一个同帧 pass 的输出，与参考 AnimationProcessor 在所有 controller 采样结束后才 BoneTopLevelSnapshot.reset 的时点不符。新增模型实例拥有的 YsmBoneQueryRuntime：按真实 frame identity 冻结上一份完整 body/arm 输入；当前帧 timeline/controller/骨骼计算在有界 evaluation scope 内读取该输入，完成采样后保存输出供下一帧使用。body/arm 输出分别保存，即使共享主体几何回退也不互相当作上一帧输入。采样只 reset 当前 pass 部件，unload 清空输入/输出并使旧 scope 失效。scope 外的 Struct 仍读实时骨骼，变量中保存的 view 仍绑定创建时的骨骼对象，不被后来第一人称切换改指到另一 part。
+
+ysmBoneQuerySmokeTest 使用正式 Avatar.getAvatarBindings 的 v/c/t 注册表和真实 parser/evaluator、geometry parser、model/part/player；CPU fixture 通过 Unsafe 仅分配 Avatar owner 外壳，再装配 context 与 runtime，未执行游戏 registry/权限/GPU 启动，不能称为完整 Avatar.load 窗口验收。断言初始/动画/Lua 三种来源的独立坐标值、live/read-only/copy、缺失与非法名称、strict 参数数目、两个 Avatar 变量/骨骼隔离、body/arm 选择。再调用生产 private sampleAnimations 驱动两帧 body→arm→body，验证每帧仅加一次而非同帧反馈累加，分别覆盖独立 arm model 和主体回退；clear/旧 scope/新帧恢复亦通过。
+
+最初新增 fixture 的 evalAll 参数和动画 player accessor 编译错误已按日志修正，未改生产行为规避测试。最终前台 boneQuery/playerTimeline/firstPerson/budget/deferredPose smokes 与 Fabric build 全通过（退出码 0，13 秒）。scanner 移除已验证的 bone_rot/pos/scale pending 标记；M2 历史 baseline 不改，M4 最终 baseline 待库存完成。真实窗口仍 SKIPPED/MANUAL_BY_USER，不使用 Qt offscreen。
+
+M4 余项仍包括 bone_pivot_abs（参考是 render 后保存的模型局部 pre-inner-pivot 坐标，mirror X × 16；不是实体世界坐标）、bone_param 的来源/契约、mouse/particle 与核心绑定完整签名/能力/诊断表、完整函数参数/返回/temp/string/错误恢复、旧 sync 扩展依赖审计、正式模型语料和扫描最终 gate。参考 ModelRendererBridge 的 stateBuffer 仅在 tracking 且 visible 时更新，不能将已有 world/locator matrix 直接改名作为等价实现。M4 未提交或推送。
+
+M4 bone_pivot_abs 追加进展：接通同一 strict 单 string 参数/只读 live Struct 入口。查询成功才给所选模型实例、body/arm 视角的骨骼开启 tracking，初值为 0；绘制接点以提交快照或当前 pose 计算模型局部 pre-inner-pivot 矩阵，缓存 (-m30,m31,m32) × 16。缓存不含实体位置、camera 变换或模型整体 scale，不复用现有世界矩阵。隐藏、隐藏祖先或任一轴 scale 精确为 0 时保留上次缓存；仅对 queried 骨骼写入。未 tracking 时不增加计算，tracking 后一次树遍历包含必要祖先变换，避免每个骨骼重走整条父链。主体、第一人称和附件正式绘制入口已调用相同缓存步骤；延迟绘制读取 M3 保存的 pose，写回原运行实例的缓存。clear/unload 清空缓存。
+
+核查中发现静态旋转+动画位移的参考差异：既有 YsmRenderer/YsmModelRuntime 在静态旋转之后才平移，并把静态/动画 Euler 分两次旋转；参考先按 pivot+动画位移平移，再以合成后的 Euler 参数旋转。这会令 90° 初始旋转的 2 像素动画位移被错误转到另一轴，直接影响当前里程碑的枢轴返回值。为使该查询对应参考模型坐标，最小修复两处共享的正式 bone transform 顺序和初始+动画角度合成，保留本项目 Lua 附加变换及其他渲染逻辑，不进行其他绘制重构。
+
+扩充 ysmBoneQuerySmokeTest：root 初始 Z=90°/X 位移=2 的缓存为 (18,0,0)，child 经父级缩放和旋转为 (34,-6,0)，使用独立系数而非复用生产计算生成预期。覆盖首次零值、未查询骨骼不预写、隐藏祖先/单轴零 scale 保留、saved submission pose 抵抗后续 mutable 改写、arm 独立 (24,0,0)、scope 内读取刚更新的 cache（避免把它当上一帧动画输入）和 clear 后 saved view 归零。另独立断言 T(-18/16,0,0) Rz(90) Rx(-90) S(2,1,1) T(1,0,0) 的全部 16 系数，验证正式绘制与 locator/world transform 两条实现均匹配。
+
+新增 snapshot fixture 初次因 CPU Avatar 外壳缺少 controls 失败，按日志装配真实 AvatarControlRuntime 后通过；没有为测试改生产缺省值。前台 boneQuery/boneMatrix/playerTimeline/deferredPose 与 Fabric build 全通过（退出码 0，14 秒）；追加 16 系数断言后同组全通过（退出码 0，6 秒）。CPU 测试调用与正式绘制相同的 private 缓存/transform 步骤，未执行 texture/GPU/window 入口，不宣称真实绘制 PASS；该项依用户授权 SKIPPED/MANUAL_BY_USER。scanner 移除 bone_pivot_abs pending 标记，最终 M4 scanner baseline 仍待余项库存完成；M4 未提交或推送。
+
+M4 键鼠输入追加进展：已核对参考 InputKeyDetectionFunction、InputStateKey 和 InputUtil。keyboard 至少一个参数，按参数顺序读取 GLFW 32~348 键码、遇到任意按下键立即返回 true；原实现只读第一个参数，现已修正。mouse 严格一个参数，按钮范围 0~7；两者按参考返回 Boolean，不再保留 mouse 的固定 0 占位。YsmInputState 从既有 KeyboardHandler/MouseHandler 的真实窗口回调记录 action=1/0，repeat 不创建新按下。接点位于原 Lua/keybind/panic 回调处理之前，未改变这些事件的取消/执行顺序，也没有另造测试窗口输入路径。
+
+readiness 按参考要求 overlay=null、screen=null、mouse grabbed、window active，并明确要求客户端 player/level 存在。客户端 tick、真实事件和 owner 查询处更新状态；失去 readiness 时清空持有的键/按钮，防止 GUI/失焦期间忽略 release 后在恢复时粘键。这项清理是本实现的明确保护，不称为参考原本已清理。只有 Avatar.isHost 且 context.entity 与当前 Minecraft.player 同实例才可读取；observer、其他实体、缺 owner/entity、缺 client 均返回 false，且不求值输入参数。远端输入状态传输仍属于 M7，未假称已同步，也未改后端。
+
+ysmInputSmokeTest 使用真实 parser/evaluator/ArgumentCollection 调用生产 state/参数读取方法，验证 press/release/repeat、键/按钮上下界、any-key 顺序与短路参数副作用、int 转换、observer 与 unready 的参数不求值、observer 不清空 owner 持有键、readiness/缺 client 清理。owner/entity identity 规则有独立正/负例；正式 ysm.keyboard/mouse 注册入口的无 owner 拒绝、Boolean 类型与参数签名也通过。正向 state reader fixture 明确注入 owner 标志，未运行真实 Minecraft 窗口/GLFW callback，不能将此当作实际键鼠控制模型画面 PASS；该项 SKIPPED/MANUAL_BY_USER，mapped callbacks 由 Fabric 编译验证。
+
+前台 input/boneQuery/budget/syncDefer smokes 与 Fabric build 全通过（退出码 0，23 秒）；追加 Boolean 类型和 missing-client 清理后 input/budget 与 Fabric build 全通过（退出码 0，15 秒）。diff/readability 与新增 input source/test 空白检查通过。scanner 移除 mouse pending 标记，M2 历史基线保留、M4 最终基线仍待核心库存完成。M4 剩余 particle/abs_particle、bone_param 契约、完整 binding 能力/签名/诊断、完整函数/旧 sync 依赖审计及语料最终 gate，尚未提交/推送。
+
+M4 粒子参数层追加进展：已核对参考 Particle、Fabric ParticleEffectUtil、IContext 和已有 ParticleAPI/LuaParticle。参考的 particle/abs_particle 至少一个参数，id 后依次为 offset x/y/z、delta x/y/z、speed、count、lifetime；缺省 0/0/20，负 count 归 0、lifetime 至少 1，超出第 10 个参数不读取。count=0 是一个精确粒子（velocity=speed×delta），不是不生成；count>0 每粒子按 spread x/y/z→velocity x/y/z 顺序抽取六个 Gaussian。relative 单个 player 使用 body yaw，batch 使用 entity yaw；abs 只取消朝向旋转，仍在 entity position 上加 offset/spread，不能误当世界绝对坐标。
+
+新增不可变 YsmParticleRequest 捕获已求值参数，并以流式 emission planner 复用正式 Minecraft Vec3.yRot 的数值约定；不先分配 count 大小的列表。每粒子消耗共享 Molang budget，限制单调用最多 1024（本实现安全保护，不称为参考原有上限）；拒绝非有限参数/生成坐标。ysmParticleRequestSmokeTest 通过真实 parser/evaluator/ArgumentCollection 注入捕获入口，固定检查默认值、clamp、blank/non-string ID 与多余参数不求值、count=0 不消耗随机数、player/body vs entity yaw、abs 的 entity 基准、两粒子的 12 次 Gaussian 顺序、velocity 与 lifetime、超 count 限制、budget 耗尽在下一 emission 前停止。
+
+前台 particleRequest/input/budget 与 Fabric build 全通过（退出码 0，15 秒），diff 和新增 source/test 空白检查通过。该进展只证明参数/数值规划，正式 ysm.particle/abs_particle 仍为 pending：尚需接通 client-side event gate、预览抑制、per-Avatar random、ParticleAPI/权限/正确 lifetime 与 unload/排队失败清理，不能用纯 request test 将发射或真实画面记 PASS。参考 hasCustomTexture 的 true 来自 PlayerPreviewEntity，不能按“模型使用自定义纹理”去禁用普通模型粒子。真实窗口按用户授权 SKIPPED/MANUAL_BY_USER，M4 未完成、未提交/推送。
+
+M4 粒子发射接点追加进展：正式 particle/abs_particle 注册入口已改用 YsmParticleRuntime，不再返回固定数值 0。只在当前 model 的 client-side effects scope 执行，拒绝无 owner/entity、其他 owner、已关闭实例、非当前 client world 和 GUI preview；普通骨骼表达式的 pure sample 不触发粒子。无效/空 ID 返回 false，未允许的上下文返回 null，参数数目按参考至少 1。每模型持有独立 RandomSource，在请求捕获时完成随机 emission 计算，再交 Minecraft client executor 执行。
+
+原生发射复用现有 ParticleEngineAccessor/ParticleAPI 入口和 LuaParticle.spawn 的 Avatar quota/permission/owner UUID 归属；生成对象前先 check 额度，设置精确 YSM lifetime 后 spawn，不通过 LuaParticle.setLifetime 的 WakeParticle 60 tick 额外 clamp，也不更改原 Figura Lua API。客户端 task 执行时再次检查 world、entity removal 和 Avatar 当前 runtime；队列按模型 generation 失效，close 后拒绝新任务，失败/预算耗尽弃掉未执行的本模型任务。每实例最多 4096 pending（本实现保护），不以此冒称参考原阈值。粒子 options 每请求按当前 world registry 解析，不跨世界缓存。加密 parser/engine 错误只给固定 runtime/particle，不挂原 cause；专用 MolangExecutionBudget.Exceeded 必须保留类型/对象向上恢复。
+
+预览判断核对：当前 rendering_in_inventory 在第三人称为 1，rendering_in_paperdoll 也会随任意 screen 打开变化，均不能直接当作“实际 preview”。现使用 GuiEntityRenderer 已保存的 FIGURA_GUI/PAPERDOLL/MINECRAFT_GUI renderMode。现有 GUI wrap 将 mode 写入 Avatar 后没有恢复，可能影响紧接着的 YSM 世界 pass；为使当前预览抑制只覆盖正确调用，最小增加仅 YSM 的 finally 恢复旧 mode，保留普通 Figura 原逻辑。真实 preview animation/filter 独立 context/domain 仍是后续未关闭项目，不能用这项 side-effect 抑制冒称全部预览场景完成。
+
+ysmParticleDispatchSmokeTest 直接验证生产 DispatchQueue 的卸载/两个模型隔离、world/model validity 在执行时检查、generation discard 后恢复、FIFO、pending 上限、executor reject、inline executor、task 异常后的 allowance 回收；核对 GUI/普通 view 分类，正式 ysm 绑定的签名与无 owner 早拒绝。通过真实 CPU model runtime 验证两个同资源实例的 RandomSource 不共用/不相互推进、client effects scope 独立/恢复，以及 encrypted error 的固定 message/no cause 与预算异常保留。world/model predicate fixture 使用显式布尔证据模拟状态变更，未创建真实 ClientLevel/ParticleEngine，不当作原生效果画面或完整正向 GPU binding 测试。
+
+前台 request/syncDefer/boneQuery 与 Fabric build 初次接点通过（退出码 0，30 秒）；dispatch/request/syncDefer/budget 与 Fabric build 通过（27 秒），追加随机/隐私负例后同组通过（6 秒），GUI mode scope 改动后同组与 Fabric build 通过（15 秒），全部退出码 0。diff/readability 和新 source/test 空白检查通过。尚需正式正向绑定/额度/lifetime 的更完整自动证据及完整 binding/函数/诊断/语料 gate；scanner 的 particle/abs_particle pending 暂保留，不能把 narrow queue/reader 证据直接当全核心验收。真实窗口粒子效果 SKIPPED/MANUAL_BY_USER；M4 未提交/推送。
+
+M4 参考契约审计（2026-10-14）：CodeGraph 和参考 Java/JSON/Lua 搜索均未找到 bone_param 的注册或函数契约；仅本项目保留该名称的固定 0 实现与 scanner 登记。明文语料搜索亦无调用，但不能以此排除加密语料，因此新增 ysmBindingReferenceAudit，直接调用正式共享 scanner 解码/验证全部候选资源，再审查 unsupported bindings。结果为 candidates=40、valid=38、knownNegative=2、encryptedValidated=5、boneParamUsers=0；覆盖现有全部五个加密候选，而非只对原始密文字节 grep。候选或加密验证数变化、出现 bone_param 依赖都会让审计失败，要求重新检查覆盖与契约。
+
+该证据只支持把 bone_param 登记为 REFERENCE_UNRESOLVED，不支持根据名称发明通用骨骼 API 或声称兼容完成。现在其函数和 value 访问均明确抛出 UnsupportedOperationException，普通上下文报告 binding 名称与 reference contract unavailable；加密模型固定为 runtime/unsupported-binding，不暴露解密名称或 cause。拒绝时不求值猜测的参数。scanner 仍保留 unsupported 登记，完整能力清单须写明该例外；未来出现依赖时取得实际契约再实现，而不是恢复假支持的 0 值。
+
+前台 referenceAudit 与 Fabric build 通过（退出码 0，26 秒）；ysmUnavailableBindingSmokeTest 验证 function/value 明确拒绝、参数无副作用与后续 return/变量求值恢复，连同 budget/syncDefer 与 Fabric build 全通过（退出码 0，29 秒）。diff 和新增审计/测试空白检查通过。本轮未修改后端、未进行 GUI/offscreen 验收。M4 仍待完整绑定能力/签名/定位诊断、函数与旧 sync 扩展依赖审计、粒子正向路径更完整自动证据及最终语料/扫描 gate，未提交/推送。
+
+M4 正式函数契约追加进展（2026-10-14）：新增 ysmFunctionContractSmokeTest，以正式 functions/*.molang NBT path/data 加载 13 个函数，并通过 Avatar.getAvatarBindings 的真实 parser/evaluator 调用。覆盖数字、Boolean、Unicode StringExpression 参数/返回，缺失参数返回参考零值，空值参数与后续参数同时捕获，嵌套函数与提前 return，独立 Avatar 的变量和 query/controller context，以及函数异常、共享预算耗尽后的下一帧恢复。fixture 仅用 CPU Avatar owner 外壳装配真实 context/runtime；没有执行完整游戏/GPU 启动，不能代替窗口验收。
+
+测试揭示并修复三个正式路径缺陷：t.* 的 ObjectBinding 原本只读，赋值不生效，现返回 AssignableVariable；TempVariableStorage.popScope 原本将父层 currentSize 清零，现按参考恢复父层有效范围，并释放退出子层的参数/临时值；ArgsValue 的 List.copyOf 拒绝合法 null 参数，现用允许 null 的自有不可变列表捕获。另在临时作用域达到 32 层时明确拒绝函数，避免 pushScope 失败后函数写入调用者作用域；测试验证拒绝不覆盖父临时变量、不压入参数栈，以及释放已有作用域后正常调用恢复。字符串与比较断言按实际参考值类型校正，没有为测试另改返回值契约。
+
+前台 functionContract/syncDefer/budget 与 Fabric build 通过（26 秒）；增加作用域上限保护后同组再次通过（退出码 0，24 秒）。保留现有编译/映射警告，不将它们称为本轮已修复。此项完成函数基础契约的自动证据，尚待核心绑定完整能力/签名/定位诊断、旧 sync 扩展依赖审计、粒子正向路径证据与最终语料/扫描 gate。M4 仍未完成、未提交/推送；后端和人工窗口验收按用户授权注明跳过，阶段完成后不关闭计算机。
+
+M4 sync 迁移依赖审计追加进展（2026-10-14）：ysmBindingReferenceAudit 在共享 scanner 的 40 个候选/38 个有效/2 个已知负例基础上，重新通过 YsmModelData 读取全部 38 个有效模型的资源，包含五个加密候选。检查全部 JSON/Molang/Lua 文本中的 ysm.sync 访问，严格识别最多 16 个数值常量的调用；非数值、动态参数、字符串键或标量读取均使审计失败，要求逐项重新审查，不能自动判为兼容。审计不输出解密函数/资源正文或名称，只报告数量。
+
+第一次“现有语料无 sync 调用”的假设被测试否定，按失败日志复核而非豁免：最终 syncModelsAudited=38、syncResources=1、numericSyncCalls=2、unresolvedSyncAccesses=0。明文来源是 15_kluonoa/functions/car_stuff@player_ctrl_parallel_6.molang 的 ysm.sync(0,0) 与 ysm.sync(0,1)，用于 Tab 鸣笛状态事件；两者符合参考数值事件参数，现有语料没有旧 string key/value 储存或标量读取依赖。资源/调用库存变化也使 gate 失败。文本审计是当前语料的保守依赖检查，不声明可分析任意未来动态调用或字符串拼接。
+
+迁移规则明确如下：ysm.sync 统一按参考接收 0~16 个数值参数，在 client effects scope 中立即执行 @sync，并返回 null；普通 pose 求值不触发事件。旧扩展若将 sync 当 string key/value 字典，模型作者应把本地存取改成 v.*，需事件共享的值则使用数值事件 ID/payload，在 @sync handler 中赋给 v.*；禁止用 sync 返回值读取状态。不保留与参考冲突的隐式字符串重载，也不把本地事件记为已经联网。现有 recentSyncKeys Lua 调试入口保留名称，内容为近期数值事件摘要，不是键值储存。网络传播仍属 M7，需要后端修改的部分按 SKIPPED/BACKEND_BY_USER 记录。
+
+扩展 ysmFunctionContractSmokeTest，通过正式 NBT 加载 @sync/@defer 事件文件和 Avatar 注册绑定，验证上述两次数值事件即时更新、无 effects 抑制、两个 Avatar 隔离、defer 逆序/仅一次、合法 null payload 保留后续参数及事件后调用者临时值恢复，不再仅依赖反射装配 DTO 的 narrow fixture。前台 referenceAudit/functionContract/syncDefer 与 Fabric build 全通过（退出码 0，20 秒）；扩展正式事件断言后 functionContract/syncDefer/budget 与 Fabric build 全通过（退出码 0，4 秒）。M4 仍待核心绑定清单/签名/定位诊断、滤波多场景及粒子正向路径证据与最终全语料 gate，未提交或推送。
+
+M4 未知绑定诊断追加进展（2026-10-14）：YsmBinding 原先对任何未知名称返回固定零，现对 unknown ysm.* 的函数和值访问均明确抛出 UnsupportedOperationException，包含实际 binding 名称与 unknown binding 原因，并在参数求值之前拒绝。已声明但无参考契约的 bone_param 保持 reference contract unavailable 分类，与拼错/未注册名称区分。只移除该 namespace 的假零 fallback，未改 ctrl 的动态状态查询。
+
+函数 runtime 的真实 CallFrame 现在保存函数资源路径；bindingDiagnosticContext 对明文给出 model/resource/function/controller/current_state，函数错误日志仍沿用既有有界执行恢复。加密上下文和异常分别只返回固定 runtime/unsupported-binding 类别和固定错误消息，无 cause，不附加资源、函数、模型或状态名称。正式函数测试新增一个诊断函数，以 test-only inspect binding 在真实执行栈内采样生产诊断入口；同时测试明文 owner/state 的 unknown exception、加密 owner 的固定消息/no cause、参数无副作用和下一函数恢复。该 test-only binding 不进入生产注册表。
+
+前台 unavailableBinding/functionContract/syncDefer 与 Fabric build 通过（退出码 0，19 秒）。追加真实 CallFrame 路径和明文/加密断言后，unavailableBinding/functionContract/phase41/baseline/localCorpus 与 Fabric build 全通过（退出码 0，34 秒）；语料结果仍为 Figura compiled=5、YSM data assembled=35、encrypted assembled/rehydrated=5。原 Figura 两个语料的 arrow 纹理缺失日志仍是先前记录的非阻塞问题，不声称已修复；此次测试仅证明现有编译/数据装配 gates，未证明全部模型逐帧 GPU 使用。diff/readability 与新增测试空白检查通过。
+
+诊断验收尚未全部关闭：controller parser 的 compile/compileAll 仍静默吞掉解析失败，尚需资源/状态对应定位及其他 namespace 的 unknown 分类；完整核心 binding 参数/类型/状态与可选 mod 能力表、滤波多场景和粒子正向路径、最终扫描 baseline 亦待完成。不得将以上函数 runtime 证据扩称为完整控制器解析诊断。M4 保持实施中，未提交/推送；人工验收/后端修改按用户授权记录跳过，不关闭计算机。
+
+M4 控制器诊断追加进展（2026-10-14）：parser 新增可选 Diagnostic receiver，保持既有 parse overload/表达式失败 fallback 行为，逐状态包装真实 MolangEngine 的 Reader parse 入口；compile 与 compileAll 的失败都在被处理前报告 controller/state/原解析原因。对象和数组形式的 controller/state 均保留名称；JSON 文档解析失败单独报告空 controller/state 的文档级错误。正式 runtime NBT controller reader 将 path 与诊断一起交给模型实例，明文日志给出 model/resource/controller/state/reason；加密日志仅给固定 runtime/controller-parse，不传异常 cause 或正文。
+
+执行端也不再静默吞掉非预算异常：on_entry/on_exit、transition 条件和动画权重的既有 catch 在维持后续语句/false/zero 恢复之前，将错误交给当前 owner runtime。正式读取时保存 controller 到资源 path 的实例映射；无函数栈时 bindingDiagnosticContext 使用该映射定位资源，并附当前 controller/state。明文未知 ysm.* 能给出完整模型/资源/状态/名称，加密只给固定 runtime/controller-execution。每模型使用最多 16 个唯一诊断的有界集合，同一错误跨帧不重复输出；close 清空资源和诊断集合。专用预算异常仍原样上抛，不被普通诊断吞掉。
+
+新增 ysmControllerDiagnosticSmokeTest 验证真实 parser 的 weight/transition/entry 三条错误、合法 exit 后续编译、正式 NBT 资源定位、对象/数组名称、坏 JSON 及加密格式器。扩展正式函数 fixture：从真实 NBT reader 装配 controller 并驱动三个 production controller update，验证 entry/condition/weight 三类未知绑定各报告一次、后续 v.* 赋值执行、实际资源/状态信息、加密固定消息去重和 16 条容量上限。fixture 的 CPU Avatar 外壳限制保持，不把它记为 real window/GPU 验收。
+
+前台 controllerDiagnostic/functionContract/controllerIsolation/blendTransition 与 Fabric build 全通过（退出码 0，21 秒）；加入执行链路后 controllerDiagnostic/functionContract/controllerIsolation/budget 与 Fabric build 全通过（退出码 0，18 秒）；测试 import 可读性整理后两项诊断测试再次通过（退出码 0，4 秒）。diff 与新测试空白检查通过。本轮未修改后端、未关闭计算机，M4 未提交/推送。
+
+M4 尚需关闭核心绑定完整清单/签名/类型/状态和可选 mod 能力、滤波 preview/多 pass 细节、粒子正式正向额度/lifetime 证据及最终语料/扫描 gate。核查发现 scannerMolangEngine 目前只创建裸 MolangBindings，没有正式 Avatar 的 query/v/c/t 注册，旧 scanner 的 controller 编译失败也因此可能被吞掉；最终扫描诊断必须先接真实注册表，不能直接把该裸 engine 的未知 query 全记为模型错误，亦不能以先前候选/valid 数量证明表达式均已编译。该项属于 M4 验收，继续处理，历史 M2 baseline 保留。
+
+M4 扫描注册表与正文编译追加进展（2026-10-14）：最小提取 Avatar.createMolangBindings(MolangContext)，getAvatarBindings 与 scanner 共用同一份正式 query/v/c/t 注册；保留原 per-Avatar 延迟创建/缓存和 aliases 行为。scanner 的独立 context 无 owner，仅用于解析，不执行模型表达式。controller scanner 接收实际 parser 的状态诊断，最多保留 64 条错误；加密错误继续使用既有私有 SHA-256 诊断格式，不输出解密正文。函数扫描现在对每个 functionPath 实际 engine.parse 正文，不能仅用文件名登记冒称可加载。
+
+首次 synthetic baseline 失败时补充其断言错误列表，定位为 net/fabricmc/fabric/api/attachment/v1/AttachmentTarget 缺失：正式 Avatar 注册入口需要已有 Fabric compile-only API 出现在独立 JavaExec classpath。scanYsmModels 与 ysmBaselineSmokeTest 现加入 sourceSets.main.compileClasspath，使用项目既有依赖，无新增库/native dependency，也不修改游戏运行时逻辑。修正后 baseline 与正式函数测试通过；全语料 controller 扫描报告 build/reports/ysm/m4-controller-scan.txt 为 total=40、valid=38、invalid=2，没有新增 controller expression 错误，仍仅两项既有 missing-state/missing-animation 负例。
+
+该全扫描命令未提供最终 M4 baseline，因此 strict gate 按设计因未关闭的 binding unsupported 项失败，不登记整体 scan gate PASS，也不修改 M2 历史基线绕过。随后扩展 synthetic baseline：实际 q.anim_time/v/c/t 函数及 controller 可编译；未知 query 的函数正文标出资源文件，controller 标出资源/controller/state/binding，合法恢复保留原负例断言。完整 scanner 驱动 referenceAudit 在追加函数正文编译后仍为 40/38/2，五个加密候选全部验证，sync 审计仍 38 模型/1 资源/2 数值调用/0 未判定访问。
+
+最终前台 baseline/referenceAudit/controllerDiagnostic/functionContract 与 Fabric build 全通过（退出码 0，37 秒）；diff/readability 与空白检查通过。此项证明当前主 controller/function 资源的正式语法注册和解析，不证明未知 ysm.* 的运行语义已全部实现，也不替代动画采样/真实 GPU 验收。M4 后续仍需核心 binding 完整能力/签名/状态测试与标准语料缺失项、可选 mod 分类、滤波多场景及粒子正向额度/lifetime、最终扫描 baseline。M4 未完成、未提交或推送，不关闭计算机。
+
+M4 原版状态绑定追加进展（2026-10-14）：核对参考 YSMBinding、Fabric CosmeticArmorHelperImpl、LivingEntityVariable/ContextVariable 和当前 Minecraft ElytraAnimationState。新增 ysm.has_elytra、elytra_rot_x、elytra_rot_y、is_close_eyes，并修复已有 elytra_rot_z：此前 Z 返回飞行速度方向 atan2，既非鞘翅角度且非飞行时被强制零；现三轴均读取 LivingEntity.elytraAnimationState 的实际 partial-tick 插值并 Math.toDegrees，按参考返回 Double。has_elytra 检查胸部非空 ItemStack 的 GLIDER 组件，不能只按 Items.ELYTRA 名称识别，也不把零数量装备判为有鞘翅；返回 Boolean。
+
+闭眼规则按参考：sleeping 为 true，或 (render ticks + abs(UUID least bits) % 10) % 90 严格在 (85,90) 之间；不使用 controller-scoped anim_time 作为眨眼时钟。player 的正式 updateFrame 在求值前保存当前 render-state ageInTicks 和 entity tickCount 的 partial tick；非有限 age 回退实体 tick，partial 限制在 [0,1]，这是本实现输入保护。context.reset 清空新增时间字段。所有五个查询均为 Variable 而非 Function，非 LivingEntity context 返回 null，遵循参考 entity gate；数值消费者仍按既有 ValueConversions 处理。scanner 将已验证名称加入支持清单，不改 M2 历史 baseline。
+
+新增 ysmVanillaStateSmokeTest 使用正式 Avatar 注册、parser/evaluator、实际 Minecraft ItemStack/DataComponents 与 ElytraAnimationState。CPU typed entity 外壳明确注入 inventory/sleep/UUID，原生旋转状态以独立固定角度赋值并调用其真实 getRotX/Y/Z，验证 quarter/endpoints、负角度、Double 类型、非飞行也能读取原生状态；检查 empty/zero-count/ordinary armor/自定义 GLIDER 组件、Boolean/null、Variable 签名、85/85.25/89.75/90 眨眼边界、负 UUID offset、sleep 与 context 隔离/reset。
+
+首次物品夹具失败为 Minecraft 26.1 Bootstrap 后 Holder components 尚未由数据包绑定（Components not bound yet）。测试现只给 Elytra/胸甲 holder 绑定明确的 fixture DataComponentMap，再构造真实 ItemStack；不修改生产组件加载，不称为原版数据包加载已验证。此测试未运行 ClientLevel/完整原版实体 tick 或 GPU render，也不证明装备窗口画面 PASS。原“变量后接括号必须语法报错”的测试假设也被 parser 行为否定，改为核查真实注册类型 Variable 且非 Function，没有为该假设改 parser。
+
+前台 vanillaState/functionContract/playerTimeline 与 Fabric build 全通过（退出码 0，17 秒）；加入时间 reset/签名断言并校正测试假设后同组通过（15 秒）；补零数量 glider 检查后 vanillaState/playerTimeline 与 Fabric build 通过（20 秒），均退出码 0。diff/readability/新增 source 空白检查通过。M4 尚需其他实际语料核心缺失项及完整绑定能力/参数/状态表、可选 mod 分类、滤波多场景、粒子正式正向证据及最终扫描 gate，未提交/推送。人工画面验收 SKIPPED/MANUAL_BY_USER，后端需求 SKIPPED/BACKEND_BY_USER，不关闭计算机。
+
+M4 纹理名称/版本与字符串比较追加进展（2026-10-14）：核对参考 TextureName 与 ModVersion。新增 ysm.texture_name：仅 Player context 且有 owner YSM runtime 时返回当前 textureId 的原始 Java String，缺 Player/owner/runtime 返回 null，不冻结解析时的纹理名称。新增 ysm.mod_version：严格一个参数，非 string 或未安装 mod 返回 null，已安装时复用项目既有 PlatformUtils 返回完整 friendly version string；不将版本转成浮点数，也不假报参考 YSM 模组存在。scanner 支持表加入两项，最终 M4 baseline 仍待全部库存完成。
+
+实际语料 14_momo 的眼睛动画直接使用 ysm.texture_name=='skin_pink'。正式接通 raw String 后发现 evaluator 的 EQ/NEQ 原本仅调用 left.equals(right)，String 在左、StringExpression 字面量在右会错误判不等，而反向正确。按参考两边 StringExpression 均可参与 equals 的规则，最小修复右侧 StringExpression 分支；保留原数字/null/其他对象比较，不扩展无关表达式行为。新增八个真实 raw/literal Unicode 双向相等/不等正负断言，直接通过实际 parser/evaluator 验证。
+
+正式函数 fixture 增加 Player 类型的 CPU RemotePlayer 外壳，使用真实 Avatar binding 检查缺 Player null、raw string 返回、语料原顺序/逆顺序的比较、不等与同实体两个 Avatar 纹理独立。反射仅改 CPU runtime 的 textureId 输入以验证 binding 实时读取；没有调用 GPU texture upload/setTexture，不冒称 M5 纹理切换已完成。首次 Player 外壳分配因 Minecraft registry 未 Bootstrap 失败，测试按日志在该 fixture 加入 SharedConstants/Bootstrap；未修改生产启动或加入渲染测试替代路径。
+
+mod_version 自动证据使用现有 standalone JVM PlatformUtilsImpl test shadow 的唯一 figura-test-version sentinel（其余 mod 仍未加载），返回 1.2.3-test+cpu，验证严格 arity 0/1/2、实际 parser 拒绝错误参数数目、非 string/unknown null、完整版本字符串。生产 Fabric 实现继续读取真实 FabricLoader metadata；该测试不是实际游戏安装列表验收。前台 unavailableBinding/functionContract/vanillaState/budget 与 Fabric build 全通过（退出码 0，19 秒），diff/readability/新增测试空白检查通过。
+
+另核对 FirstPersonModHide/CameraUtil：first_person_mod_hide 虽名称含 mod，参考实际上按本地 camera entity、camera mode 与 world/first-person render context 决定，不能直接归类为可选模组缺失或复用 arm pass flag；尚未实现，继续列入核心库存。M4 仍待其他核心绑定/可选 mod 能力和完整参数/类型/状态表、滤波多场景、粒子正向额度/lifetime 及最终扫描 gate，未提交/推送，不关闭计算机。
+
+M4 相机查询追加进展（2026-10-14）：新增 ysm.first_person_mod_hide，并对齐与其共用相机契约的 person_view。参考 CameraUtil.getCameraType 仅在 subject 同时是本地 player 和 camera entity、且位于 world/first-person context 时返回真实 CameraType.ordinal；其他实体/脱离相机/预览回退 THIRD_PERSON_FRONT（2）。first_person_mod_hide 为 Player Variable，返回相机 ordinal 是否 FIRST_PERSON（0）的 Boolean，非 Player null；person_view 为 Entity Variable，返回 Integer ordinal 0/1/2，缺 entity null。原 person_view 只读全局 camera 并把两个第三人称压为 1，现已修正，不将 observer 当本地第一人称。
+
+正式 player updateFrame 在 native body/arm 调用入口捕获 subject、本地 player、camera entity、相机选项和实际 preview mode。FIGURA_GUI/PAPERDOLL/MINECRAFT_GUI 排除 camera context，沿用此前已接通的 GUI mode scope；其余该入口调用对应 world/first-person 渲染。查询不读取 controller 的 is_first_person arm-pass 标志，因此全身第一人称兼容渲染也能得到正确 true，而其他玩家即使误带 arm flag 也为 false。update 的 finally 恢复进入前 camera ordinal，包含异常/预算耗尽路径，避免渲染信息残留到无 camera context 的外部求值。context.reset 恢复默认 2。
+
+扩展正式 Avatar/function fixture 的 CPU Player inputs：全部三种 CameraType 的 Integer/Boolean 返回、本地 full-body 且 arm flag=0、observer 且 arm flag=1、detached camera、每种 EntityRenderMode 的独立 preview 预期、缺 entity/null 和 reset。参数捕获方法/正式 bindings/parser/evaluator 均实际执行；Minecraft client 取值接点与 finally 由 Fabric 编译和源代码检查验证，该 fixture 未创建真实客户端相机或运行完整 update 的 GPU/world 路径，不将这些接点的窗口效果记为 PASS。
+
+前台 functionContract/firstPerson/playerTimeline/particleDispatch 与 Fabric build 全通过（退出码 0，28 秒）；补 camera scope finally 后 functionContract/firstPerson/playerTimeline/budget 与 Fabric build 全通过（退出码 0，22 秒）。diff/readability 与新增测试空白检查通过。scanner 支持表加入 first_person_mod_hide，最终 M4 baseline 尚未冻结。M4 仍待其他实际语料核心项、完整参数/类型/状态与可选 mod 能力表、滤波多场景、粒子正式正向证据和最终扫描 gate，未完成、未提交/推送。真实窗口 SKIPPED/MANUAL_BY_USER，后端需求 SKIPPED/BACKEND_BY_USER，不关闭计算机。
+
+M4 相对方块查询追加进展（2026-10-14）：核对参考 RelativeBlockName/RelativeBlockNameAny、MolangUtils 和 EntityFunction。新增 relative_block_name（严格 3 参数）与 relative_block_name_any（至少 4 参数）。缺 entity/world 时返回 null 且不求值参数；按顺序捕获三个 double offset 后检查每轴 abs<=5，再以 Math.round(entity coordinate + offset - 0.5) 转为 BlockPos，读取该实体 level 的真实 BlockState 和 BLOCK registry key。坐标按世界轴，不额外按 body yaw 旋转。name 返回 raw String ID；any 从第 4 参数开始按 Identifier.tryParse 比较，默认 minecraft namespace，命中立即返回 Boolean true，未命中 false，越界/缺状态 key 返回 null。没有改成任意远距离世界探测。
+
+扩展 vanillaState fixture，通过正式 Avatar 注册与实际 parser/evaluator 调用 binding，使用 CPU Entity 的真实 position/level getter、原生 BlockState/Blocks registry 和 ClientLevel 类型夹具。仅 getBlockState 被夹具覆盖以提供可重复的 block 输入和读取次数，不创建实际世界、chunk 或窗口。验证 (-0.25,64.75,2.5) 对应 (-1,64,2)、边界 ±5 与 world-axis 偏移、STONE/AIR raw 字符串及字面量比较、any 的默认 namespace/无效 ID/非 string、匹配后不求值后续表达式、越界不查世界/不读 match 参数、三个 offset 在越界判断前按参考顺序全部求值、entity gate 前拒绝副作用及正式 3/4 参数签名。
+
+初次编译发现新 helper 误调用了位于另一 namespace 的 identifier 方法；按日志修正为本函数中的原生 Identifier.tryParse，没有扩大既有 namespace helper 范围。最终前台 vanillaState/functionContract/budget 与 Fabric build 全通过（退出码 0，49 秒），diff/readability/新增测试空白检查通过。scanner 支持表加入两项；真实附近方块与模型动作画面 SKIPPED/MANUAL_BY_USER，不能以 CPU ClientLevel 夹具记为真实世界 PASS。M4 仍待装备附魔/盾牌等其他语料核心项、完整参数/类型/状态与可选 mod 能力、滤波多场景/粒子正向证据及最终扫描 gate，未完成、未提交/推送，不关闭计算机。
+
+M4 装备附魔查询追加进展（2026-10-14）：新增 equipped_enchantment_level，参考契约为至少两个参数：六个 canonical slot（chest/feet/head/legs/mainhand/offhand，大小写无关）后跟一个或多个附魔 ID。非 LivingEntity 在参数之前拒绝；非法/非 string slot 返回 null；空装备返回 Integer 0 且不求值后续 ID。非空装备从实体当前 level 的 ENCHANTMENT registry 解析 ID，累加原生 EnchantmentHelper.getItemEnchantmentLevel 的等级，重复 ID 按调用顺序再次累加。非法或未注册 ID 跳过，不遮挡后面的有效 ID；不增加其他 slot alias，也不假称已支持独立 cosmetic armor 模组。参考 Fabric helper 本身也是直接 getItemBySlot，本项目使用同一原版入口。
+
+核对当前 Minecraft 原生字节码与实际组件测试发现参考中的 Holder.direct(raw) 会丢失 ItemEnchantments 使用的 registry holder 身份，查到 0。这里保留 registry lookup 返回的 canonical holder，避免复制该参考缺陷。fixture 独立断言同一个原生 ItemStack 对 registry holder 有实际等级、对临时 direct holder 为 0，再验证正式绑定返回 3+2=5，而不是靠修改预期接受假零值。此偏差是完成该核心查询所必需的最小适配，不修改参考仓库。
+
+扩展 vanillaState 的 CPU ClientLevel 夹具：使用实际 MappedRegistry、合法 Enchantment definition、注册/冻结的两个 holder、RegistryAccess 与 ItemEnchantments.Mutable/原生 ItemStack，正式绑定经真实 entity.level/registryAccess 和 EnchantmentHelper 读取。验证 Integer 类型、空装备短路、canonical slot 大小写、两个 ID 总和、重复 ID=6、非法/缺失 ID 后仍读有效值、非法 slot 不求值 ID、组件从等级 3 改为 1 后实时更新、entity gate 与至少两个参数签名。夹具注入 registryAccess 输入，未加载真实客户端世界/原版数据包或装备窗口，不将其记为完整游戏/GPU 验收。
+
+前台 vanillaState/functionContract/budget 与 Fabric build 全通过（退出码 0，29 秒），diff/readability/新增测试空白检查通过。scanner 支持表加入 equipped_enchantment_level，M2 历史 baseline 不变、M4 最终 baseline 待余项关闭。M4 仍待盾牌/其他核心绑定及完整能力/参数/类型/状态与可选 mod 表、滤波多场景、粒子正式正向证据及最终扫描 gate，未完成、未提交或推送。不关闭计算机。
+
+M4 盾牌查询追加进展（2026-10-14）：核对当前参考 YSMBinding.isInShieldBlockCooldown → PlayerCapability.getPositionTracker → PlayerEntityFrameState.isShieldBlocking。名称虽含 cooldown，当前本地实现实际返回 entity.isBlocking()，没有独立计时器；observer 使用参考 displayState 的 shieldBlocking 位。新增 in_shield_block_cooldown，按实际当前参考契约读取 Player.isBlocking()，不根据名字发明计时/延迟释放。查询为 Variable，返回 Boolean，非 Player null；缺 owner YSM runtime 的 player-model capability fallback 为 false。
+
+本地正式 binding 使用原版 Player 的实时格挡状态即可支持单人。此项没有接通参考自定义 observer displayState 协议，也不声明额外盾牌动态状态已联网；跨客户端/后端同步继续属于 M7，涉及 omnm-cloud 修改按 SKIPPED/BACKEND_BY_USER 记录，不改参考或配套后端。
+
+正式 Avatar/function fixture 使用两个 CPU RemotePlayer 子类型外壳，明确注入 isBlocking() getter 输入，验证 false→true→false 的 Boolean/即时释放、两个 Player/Avatar 隔离、缺 Player null 与缺 model capability false；vanillaState fixture 增加 Variable 非 Function 签名检查和非 Player 的 LivingEntity 早拒绝。测试调用生产 binding/parser/evaluator，未构造真实盾牌使用/冷却组件或真实客户端输入，因此不能将 getter 输入夹具记为实际举盾画面 PASS。人工该项 SKIPPED/MANUAL_BY_USER。
+
+前台 functionContract/vanillaState/controllerIsolation 与 Fabric build 全通过（退出码 0，36 秒）；补 Player gate/Variable 签名后 functionContract/vanillaState 与 Fabric build 全通过（18 秒），均退出码 0。diff/readability/新增测试空白检查通过。scanner 支持表加入该名称，最终 M4 baseline 仍待完整绑定库存、可选 mod 能力/参数/类型/状态表、滤波多场景、粒子正向证据及最终扫描 gate。M4 未完成、未提交/推送，不关闭计算机。
+
+M4 剩余语料绑定库存刷新（2026-10-14）：referenceAudit 现在汇总正式 scanner 对全部 40 候选的 unsupported binding/model 数；只输出已核对的公开 API 名称。未审查名称使 gate 失败，明文资源可打印名称定位，加密资源不打印未知名称。此前预估清单遗漏 ladder 三项及两个可选模块名称，严格审计及时失败；按参考源码核查后登记其真实类别，并未将它们标为已实现或删除 unsupported。candidate/valid/knownNegative 仍为 40/38/2，五个加密候选全部验证，sync 审计仍 38 模型/1 资源/2 数值调用/0 未判定。
+
+| 当前 pending 名称 | 涉及候选模型数 | 已核查类别与下一步 |
+| --- | ---: | --- |
+| ctrl.climb / ctrl.climbing | 各 1 | 核心动作状态。参考是 swimming pose 中移动/静止的爬行状态，不是可选模组，也不能直接等同梯子。待补正式查询和状态测试。 |
+| ctrl.ladder_up / ctrl.ladder_stillness / ctrl.ladder_down | 各 1 | 核心动作状态。参考 onClimbable 后按 vertical speed 的 ±0.01 阈值区分。待补查询和状态测试。 |
+| ctrl.bcombat_attack_animation | 1 | Better Combat 兼容能力，待说明当前桥接能力与签名/返回类型。 |
+| ctrl.carryon_is_princess | 2 | Carry On 兼容能力，待核查并说明缺失原因/中性返回。 |
+| ctrl.parcool_state | 2 | Parcool 兼容能力，待核查并说明缺失原因/中性返回。 |
+| ctrl.tac_gun_type / ctrl.tac_hold_gun | 1 / 3 | TAC 兼容能力，待核查其不同类型和参数；不能都用通用数字 0 假支持。 |
+| ctrl.tac_is_aim / ctrl.tac_is_fire / ctrl.tac_is_melee / ctrl.tac_is_reload | 各 1 | TAC 兼容能力，待核查并说明中性返回与 API bridge 缺失。 |
+| ctrl.slashblade_animation | 1 | 参考 Fabric adapter 本身返回空 String，hasNewApi=false；真实 SlashBlade 能力不可据此称已接通。当前本项目通用 fallback 的数字 0 类型仍待修正/登记。 |
+| ctrl.has_sophisticated_backpack | 1 | 参考 Fabric adapter 本身返回 false，背包入口返回 ItemStack.EMPTY；真实 Sophisticated Backpacks 桥接不可据此称已接通。当前本项目 fallback 的类型/说明待修正。 |
+| ysm.particle | 16 | 已接生产发射/队列，正式正向 quota/lifetime 证据仍待完成；不移除 pending。 |
+| ysm.second_order | 20 | 已接 body/arm 基础状态，preview/同帧多 pass 细节仍待关闭；不移除 pending。 |
+
+当前语料没有 first_order/abs_particle/bone_param 的 unsupported 使用；这不等于其余契约/验收可省略，pending 保护保持。该表是当前语料差距库存，尚非所有已声明核心绑定的完整参数/类型/状态验收表。climb/ladder 不准以 optional mod 或人工跳过为由豁免其自动语义实现。
+
+另修正 scanner SUPPORTED_YSM 漏登已实现的 defer，新增 synthetic timeline fixture 验证 scanner 不再将其误标 unknown；继续保留 second_order/unknown_core 的 negative gate。前台 referenceAudit/baseline/syncDefer 与 Fabric build 全通过（退出码 0，31 秒），diff/readability/空白检查通过。M4 仍待以上实现与能力说明、完整 binding 测试表、滤波/粒子余项及最终扫描 baseline，未完成、未提交/推送，不关闭计算机。
+
+M4 爬行/梯子查询追加进展（2026-10-14）：新增 ctrl.climb、climbing、ladder_up、ladder_stillness、ladder_down 的真实 Variable/Boolean 查询，非 LivingEntity null。五项共用最小 traversal 判定：preview、活 vehicle 骑乘、dead/dying、auto-spin、sleeping pose 或真正 swimming 都压制它们；剩余 SWIMMING pose 按 ground_speed>0.05 区分移动爬行/静止爬行，优先于梯子；非 crawling 且 onClimbable 时按 vertical_speed>0.01、<-0.01 或包含两端的静止区间分别判上下/静止。世界姿态/攀爬状态来自实际 LivingEntity getter，速度使用当前 per-Avatar MolangContext 输入；未把 climb 当作 ladder alias。
+
+扩展 vanillaState 正式 parser/Avatar registry fixture，五个查询在每个固定输入下逐项断言 Boolean 且互斥。覆盖缺 entity、Variable 非 Function 类型、0.05 移动边界、真正 swimming 与 crawling 区分、死亡/auto-spin/睡眠优先级、梯子 -0.011/-0.01/0/0.01/0.011 边界、非 climbable、活 vehicle 压制/非活 vehicle 不压制、两个 context 的速度隔离、实际 owner renderMode 的 GUI→world 切换。entity getter 与 owner 仍是明确 CPU 夹具输入，未执行真实 crawling/ladder 运动或窗口场景；该人工项 SKIPPED/MANUAL_BY_USER。
+
+前台 vanillaState/functionContract/controllerIsolation 与 Fabric build 全通过（退出码 0，29 秒）；追加 signature/preview 后 vanillaState/functionContract/referenceAudit 与 Fabric build 全通过（退出码 0，30 秒）。scanner 五项移出 unknown，刷新库存已无 climb/climbing/ladder 三项；仍为 40/38/2、encryptedValidated=5，余项为兼容模块以及 particle/second_order 等既有 pending。diff/readability/新测试空白检查通过，M2 历史 baseline 保持。
+
+此实现只关闭新增五项之间及其高优先级压制，尚不证明旧 ctrl.walk/run/idle/fly 等所有谓词与参考统一动作状态完全一致。源码核对发现既有旧谓词独立读取 context flags，可能与 crawling 同时为 true；完整 M4 核心 binding 状态验收仍需核对并最小修正这类冲突，不能凭 scanner 名称库存归零声称全部语义通过。可选 mod 能力说明/类型、滤波多场景、粒子正向证据与完整绑定/最终扫描 gate 亦未完成。M4 未提交/推送，不关闭计算机。
+
+M4 核心动作查询追加进展（2026-10-14）：旧 ctrl.death/sleep/swim/swim_stand/jump/fly/elytra_fly/sneak/sneaking/run/walk/idle/attacked 与新增 crawling/ladder 查询现在共用 ActionState 判定，并加入 riptide。优先级为 preview 无动作、活 vehicle 骑乘、死亡、auto-spin、睡眠、真正游泳、爬行、梯子、鞘翅、玩家 flying ability、水中悬浮、受击、空中 jump、潜行、奔跑、行走、静止。查询是 Variable/Boolean，非 LivingEntity null；ctrl.riding 接同一骑乘状态，既有 ctrl.ride 参数查询保持原接口。项目扩展 ctrl.fall 是下降中的 jump 子集，因此允许 jump/fall 同时 true，不冒充参考独立状态。
+
+vanillaState 正式 parser/Avatar bindings 对 20 个核心动作查询逐项断言互斥，覆盖速度边界、爬行压制旧移动谓词、优先级冲突、受击/水中悬浮/空中跳落、鞘翅与梯子冲突及非有限速度输入。functionContract 增加 CPU RemotePlayer 子类型夹具，使用原版 Abilities 对 flying=false/true、飞行压制 idle/walk/run/jump/attacked/swim_stand、爬行与鞘翅优先于 flying ability 作真实 binding 类型断言。getter 输入为明确夹具，不是实际游戏运动或画面证据；人工 SKIPPED/MANUAL_BY_USER。未改动其他 native 动画消费端为统一状态机，也尚未接可选 Parcool 优先级桥接，不能据此宣称完整兼容模块状态已通过。
+
+前台 vanillaState/functionContract/phase41/controllerIsolation 与 Fabric build 全通过（31 秒）；补 flying 正向夹具后 functionContract/vanillaState 与 Fabric build 全通过（16 秒，退出码 0）。M4 可选模组能力/类型说明、滤波多场景、粒子正向证据与最终完整扫描 gate 仍待完成，未完成、未提交/推送。
+
+执行约束更新（2026-10-14）：用户取消之前的关闭计算机要求，并明确后续每个阶段完成后不需要关闭计算机。M0～M8 的构建、测试、提交及推送检查点均不附加关机动作；只有用户后续再次明确要求时才执行关闭计算机。
+
+M4 可选模组契约追加进展（2026-10-14）：核对 Sparkle-Morpher Fabric 的 BetterCombatCompatImpl、CarryOnCompatImpl、ParcoolCompatImpl、TacCompatImpl、SlashBladeCompatImpl、SBackpackCompatImpl；这些 adapter 的 isLoaded 本身为 false，仅注册中性查询。本项目新增 15 个正式 Variable 默认值，替代不区分类型的通用数字 0。该实现支持模组缺失时的模型表达式，不提供实际第三方模组 API、动作、物品变换或声音桥接，即使加载了同名第三方模组也不会伪造其状态。
+
+| 名称（均为 ctrl.*） | 参数 / 实体限制 | 返回类型 / 当前默认值 | 能力等级 |
+| --- | --- | --- | --- |
+| bcombat_attack_animation | 无参数；AbstractClientPlayer | String / 空串 | CAPABILITY_UNAVAILABLE；Better Combat 桥接未实现 |
+| carryon_type / carryon_is_princess | 无参数；LivingEntity | String 空串 / Boolean false | CAPABILITY_UNAVAILABLE；Carry On 桥接未实现 |
+| parcool_state | 无参数；LivingEntity | String / 空串 | CAPABILITY_UNAVAILABLE；Parcool 桥接未实现 |
+| slashblade_animation | 无参数；LivingEntity | String / 空串 | CAPABILITY_UNAVAILABLE；SlashBlade 桥接未实现 |
+| has_sophisticated_backpack | 无参数；LivingEntity | Boolean / false | CAPABILITY_UNAVAILABLE；Sophisticated Backpacks 桥接未实现 |
+| tac_gun_type / tac_gun_id / tac_fire_mode | 无参数；LivingEntity | String / 空串 | CAPABILITY_UNAVAILABLE；TAC 桥接未实现 |
+| tac_hold_gun / tac_is_fire / tac_is_aim / tac_is_reload / tac_is_melee / tac_is_draw | 无参数；LivingEntity | Boolean / false | CAPABILITY_UNAVAILABLE；TAC 桥接未实现 |
+
+缺少符合限制的实体统一返回 null；每 Avatar 查询按自身 context 判断，无全局可变模组状态。CtrlBinding.optionalBindingUnavailableReason(name) 提供独立能力原因查询，核心/未知名称不归入此类别；scanner ScanReport.unavailableOptionalBindings() 返回本模型公开可选 API 的原因映射，文本报告使用 optional_unavailable 标记，referenceAudit 分别统计核心 pending 与 optional unavailable。兼容旧 gate 的 unsupportedBindings 原始集合及 M2 冻结 baseline 保留可选能力缺口，不会通过支持表静默移除或把缺桥接标为完整支持；加密报告沿用既有私有名称处理，不新泄露内部绑定名称。
+
+functionContract 对全部 15 名称验证真实 Variable 签名、无实体 null、CPU RemotePlayer 上 String/Boolean 的精确 Java 类型/值、两个 Avatar 隔离、控制器变量不能伪造可选状态、原始字符串双向比较和明确原因；vanillaState 验证 Better Combat 的 client player 限制与其余 LivingEntity 限制。synthetic baseline 验证可选能力与 unknown_core 分类独立、未提供 baseline 的严格 gate 仍拒绝可选能力缺口。这些 CPU 测试不证明真实第三方模组联动；真实联动保持上述 CAPABILITY_UNAVAILABLE，不作为单人标准模型核心验收的无限前置条件。
+
+前台 functionContract/vanillaState/controllerIsolation 与 Fabric build 通过（31 秒）；追加 scanner 分类后 functionContract/vanillaState/referenceAudit/baseline 与 Fabric build 通过（44 秒），均退出码 0；补分类 negative gate 后 baseline 通过（3 秒），最后 scanner 输出说明编译及 baseline/Fabric build 通过（12 秒）。语料依旧 40/38/2，encryptedValidated=5；核心 pending 库存现在为 particle 16 模型、second_order 20 模型，可选项单列。完整核心 binding 验收表、滤波 preview/重复 pass、粒子 native 正向证据及最终 M4 扫描 gate 仍待完成。M4 未完成、未提交/推送，不关闭计算机。
+
+M4 滤波渲染域追加进展（2026-10-14）：核对参考 GeoEntity.getPhysicsManager 的 PREVIEW/FIRST_PERSON/world manager 隔离。原本本项目只有 BODY/FIRST_PERSON，GUI 预览复用主体状态；新增 PREVIEW manager，并由 MolangContext.ysmFilterDomain() 根据 owner 实际 renderMode 优先选预览，之后才看当前 arm 标记。正式 first_order/second_order 绑定共同采用该选择，GUI 中残留 first_person 标记也不污染 arm 状态。参考 EXTRA_PLAYER 对应的额外角色功能本项目当前没有入口，不在本轮新增。
+
+YsmAnimationPlayer 的 filter 更新移至全局动画 step.advance 条件之前：preview 只更新 PREVIEW，真实 world 更新 BODY 及当前需要的 FIRST_PERSON。新增 update(domain, ticks, renderFrame, budget)，每个 manager 持有自己的真实渲染帧编号，同帧即使 ageInTicks 不同也不重复积分；同帧稍后首次出现的 preview/arm 域仍可独立更新，不再被前一个 body pass 的全局动画 step 阻止。重复 pass 不改写其模拟时钟，clear 同时重置所有域及帧 guard。原有无 frame 参数入口仅用于数值/参考算法测试，生产更新使用实际 YsmRenderFrameClock 编号。
+
+filterSmoke 对 BODY/FIRST_PERSON/PREVIEW 使用同名 first/second-order 状态，逐项验证创建、重复 pass 不推进、同帧交错更新、独立固定数值向量、下一帧时钟及 clear；functionContract 调用正式 Avatar 绑定，使用 owner.renderMode 的 world→arm→FIGURA_GUI→world 切换验证真实域选择、预览优先于 arm flag、body/arm 原状态保留。测试直接使用正式 manager/parser/evaluator 和 CPU owner，不代表真实窗口画面通过；人工 SKIPPED/MANUAL_BY_USER。YsmAnimationPlayer 的真实客户端调度编译通过，其 GLFW/游戏窗口执行本轮未运行，不将 CPU 直接调用 manager 冒充完整客户端多 pass 场景证据。
+
+首次新建 filter 返回原始 input，但内部模拟从零开始，随后在创建帧读取该名字会返回内部零；参考 FirstOrderFunction/SecondOrderFunction 也如此。本轮明确加断言并保留契约，没有为了截图稳定而改成创建帧恒定 input。动画后续帧积分仍按上一帧采样参数更新。滤波实体 gate、完整绑定参数/类型/状态清单与客户端调度证据仍需在最终 M4 验收中核查，scanner 的 second_order pending 暂不删除。
+
+前台 filter/functionContract/controllerIsolation/boneQuery 与 Fabric build 全通过（24 秒，退出码 0）；补三域 second-order 独立数值向量后 filterSmoke 再通过（3 秒，退出码 0）。diff/readability/空白检查通过。M4 仍待滤波最终契约核查、粒子 native 正向证据及完整核心表/最终扫描 gate，未完成、未提交/推送，不关闭计算机。
+
+M4 粒子 native 配额/生命周期追加进展（2026-10-14）：新增 ysmParticleNativeSmokeTest，反射调用实际 YsmParticleRuntime.spawn，不新增生产测试入口或修改原 Figura LuaParticle 行为。测试用 CPU Minecraft/Avatar 外壳及 RecordingEngine 实现现有 ParticleEngineAccessor，只记录 factory/submission；配额使用实际 RefilledNumber，发射使用实际 LuaParticle.spawn，生命周期调用原版 Particle.setLifetime/getLifetime，包含原版 WakeParticle 实例。测试环境设置并恢复 Minecraft.instance 与 figura.test.directory，临时目录有绝对路径边界检查及 finally 清理，无真实客户端/GPU/Qt offscreen。
+
+自动断言：原版生命周期在提交前设置为 120 tick；YSM WakeParticle 也保持 120，不调用会钳制为 60 的 LuaParticle.setLifetime；捕获位置/速度不变；提交携带实际 owner UUID；每次成功发射恰好消耗 owner 配额 1，清除 PARTICLES denial；耗尽后不创建/提交，设置 denial；另一 Avatar 的配额独立；实际计数器 20 次 tick 补满；provider 返回 null 不消耗配额；实际 Minecraft.isPaused 状态为 true 时不创建、提交或消费配额。另一 owner 的检查在私有 spawn 层验证计数器隔离，公开 execute 的 owner/model guard 仍由既有 dispatch smoke 验证，不据此宣称跨 owner 执行被允许。
+
+证据边界：已证明生产 spawn→LuaParticle→实际配额/原版生命周期 API 的 CPU 正向路径；RecordingEngine 不执行原版 provider、粒子 tick/移除、Mixin 的真实渲染提交或游戏画面。实际 GLFW 游戏窗口发射和持续到期画面 SKIPPED/MANUAL_BY_USER；未将原版 setter/getter 断言写成实际渲染/120 帧存活 PASS。公开 execute 的完整正向实体/world/参数解析与队列组合尚需在最终 M4 核心表核查，scanner 的 particle pending 暂保留。
+
+前台 nativeParticle/requestParticle/dispatchParticle 与 Fabric build 全通过（14 秒，退出码 0），diff/readability/新增文件空白检查通过。M4 仍待完整核心 binding 契约/测试表、滤波实体 gate、粒子公开正向组合路径与最终扫描 gate，未完成、未提交/推送，不关闭计算机。
+
+M4 滤波实体/返回契约关闭（2026-10-14）：参考 EntityFunction.validateContext 要求实际 Entity，ContextFunction 在实体不匹配时返回 null 且不求值参数。本项目正式 filterFunction 改为要求 MolangContext.entity 非 null（字段本身是 Entity 类型），不再在缺实体时创建滤波状态；空名称维持参考 Integer 0，正常采样返回 Float。functionContract 使用正式 Avatar registry 验证缺实体和空名称均不求值带副作用 input，正常 Float 类型，以及一阶第 4 项/二阶第 6 项多余参数不求值。数值 smoke 明确提供 CPU ArmorStand 类型外壳作为实体输入，不再以缺实体夹具冒充正式成功路径；临时测试目录有 finally 恢复与边界清理。
+
+| 名称 | 参数签名 | 返回类型 | 状态作用域 / 实体 | 对照及自动证据 | 等级 |
+| --- | --- | --- | --- | --- | --- |
+| ysm.first_order | name:string, input:number, response:number=1；至少 2 项，更多项忽略且不求值 | 缺实体 null；空/非法名称 Integer 0；正常 Float | 每 Avatar、BODY/FIRST_PERSON/PREVIEW；名字全骨骼共享；要求 Entity | FirstOrderFunction/FirstOrder/PhysicsManager；filterSmoke 固定 recurrence、hitch/zero response、同帧域 guard、Avatar/清理；functionContract raw types/gates/多余参数 | 自动核心契约 PASS；实际画面 SKIPPED/MANUAL_BY_USER |
+| ysm.second_order | name:string, input:number, frequency:number=1, damping:number=1, response:number=1；至少 2 项，更多项忽略且不求值 | 缺实体 null；空/非法名称 Integer 0；正常 Float | 每 Avatar、渲染域和当前 bone scope；要求 Entity | SecondOrderFunction/SecondOrder；filterSmoke 默认参数、固定位置/速度 recurrence、稳定 substep、非有限值、三域/骨骼/清理；functionContract types/gates | 自动核心契约 PASS；实际画面 SKIPPED/MANUAL_BY_USER |
+
+first_order/second_order 移出 scanner PENDING_CORE_YSM；synthetic baseline 正向断言正式支持，两项的旧 placeholder negative 改用确实尚无参考契约的 bone_param，unknown_core negative 保留。没有修改 M2 冻结语料 baseline。前台 filter/functionContract/controllerIsolation 与 Fabric build 通过（27 秒），追加 raw Float/extra 参数后 filter/functionContract 通过（16 秒），随后 baseline/referenceAudit/Fabric build 通过（37 秒），均退出码 0。40/38/2 与 encryptedValidated=5 保持；当前语料核心 pending 仅 particle（16 模型），可选能力仍独立列出。滤波自动契约项已关闭，完整 M4 核心表/粒子公开正向路径/最终扫描仍未完成，未提交/推送。
+
+用户授权追加范围（2026-10-14）：允许补齐值得与 YSM 模型联动的 Lua 函数。纳入 M5 的现有模型交互接点，优先核查动作播放/停止、纹理选择与模型状态查询三类；复用现有 Lua API 与 YsmActionRuntime/纹理/动画状态，已有接口只补 YSM 接通与行为测试，不重复创建同义 API。确有缺口时增加最小 Lua 接口和必要文档/测试，保留普通 Figura 兼容性。具体名称在 M5 读取现有接口后确定；不绕过 M4 检查点提前实施，不扩展为第三方模组或后端移植。M8 回归包含这些获授权的联动接口。
+
+M4 粒子公开路径自动验收关闭（2026-10-14）：nativeParticle smoke 扩展为正式 Avatar registry/parser/evaluator→ysm.particle/abs_particle→YsmParticleRuntime.execute→ParticleArgument.readParticle（实际 BuiltInRegistries）→实际 owned DispatchQueue→生产 spawn→LuaParticle 的完整 CPU 正向链。RecordingClient 仅将 execute(Runnable) 收集后显式 drain，FixtureLevel 仅提供原版 registryAccess；实体使用 CPU ArmorStand 的实际 Entity level/position 字段，effect scope 由正式函数 runtime 开启。没有增加生产特殊路径，也不改变真实 Minecraft 调度。
+
+正向输入固定为单发 offset=(1,2,3)、delta=(4,5,6)、speed=2、count=0、life=120，实体位置=(10,20,30)。自动证明排队前不创建粒子/消费配额，执行后原版 FLAME 参数、位置=(11,22,33)、速度=(8,10,12)、life=120 和配额 -1；abs batch 的 count=2、life=37、zero spread/speed 排队两项，执行后每项消耗 1。覆盖公开调用排队后 world 改变、model 替换、unload 取消请求；preview 不求值副作用参数；未知原版粒子 ID 的加密错误不泄漏 ID/cause，下一次合法请求可恢复，默认 lifetime=20。既有 request/dispatch/native 配额与随机/坐标/生命周期测试仍保留。
+
+首轮新 batch 断言曾失败：原版 Vec3.equals 使用 Double.compare 区分 +0 与 -0，Gaussian*0 可产生合法 -0 速度。核对原版字节码后改为三个分量各自数值 ==0 的精确零速度断言，并加入失败值输出；没有改发射公式或放宽位置、count、life、quota 检查。重跑正向链通过。
+
+| 名称 | 参数签名 / 返回 | 状态作用域 / 实体 | 自动对照证据 | 等级 |
+| --- | --- | --- | --- | --- |
+| ysm.particle / abs_particle | id:string；offset x/y/z、delta x/y/z、speed 默认 0；count 默认 0（单发）、life 默认 20；至少 1 项；有效接受 Boolean true，无效空 id false，缺 owner/实体/当前 world/effect scope 或 preview null；非法原版 ID 抛明确错误 | 每 model 随机源/队列、owner 实际配额；要求当前 client world 的 Entity；排队后再次检查 world/entity/model/lifecycle | 参考 Particle/ParticleEffectUtil；requestSmoke 参数、参考 body/entity yaw 与 Gaussian 顺序、单发/batch/default/caps；dispatchSmoke 生命周期/预算/错误恢复；nativeSmoke 正式公开链与实际 registry/原版 lifetime/LuaParticle quota | 自动核心契约 PASS；真实 provider/GPU/窗口效果及粒子 tick 到期画面 SKIPPED/MANUAL_BY_USER |
+
+particle/abs_particle 移出 scanner PENDING_CORE_YSM，synthetic 正向扫描断言正式支持；bone_param 未知参考契约继续作为 unsupported negative，不静默当作零。M2 冻结 baseline 未改。当前语料核心 pending={}，可选模组缺口继续单列，候选/有效/负例 40/38/2、encryptedValidated=5、sync 两个纯数值调用不变；语料未引用 unresolved bone_param。
+
+公开链修正零速度测试后 native/request/dispatch/Fabric build 通过（10 秒），追加未知 ID 隐私/恢复及 unload 后 native 通过（8 秒），baseline/referenceAudit/Fabric build 通过（27 秒），均退出码 0。diff/readability/新文件空白检查通过。完整“已声明核心 binding”清单及最终 M4 回归/扫描 gate 仍待完成，不能将当前语料 pending 归零等同完整 M4 DONE；未提交/推送，不关闭计算机。
+
+M4 显式名称与别名清单（2026-10-14）：新增 Plans/YSM-M4绑定验收清单.md，按当前显式注册、ActionState 和 optional defaults 全量列出 ctrl 58、query 84、ysm 91，合计 233 个名称；命名空间、动态 fn/args/controls 和标准 math/loop 另列。每行独立记载当前注册类别、已有测试/契约证据或 PENDING_REVIEW；可选中性值为 CAPABILITY_UNAVAILABLE，bone_param 为 REFERENCE_UNRESOLVED。此计数是当前源码名称库存，不能代替运行语义证据；部分旧字段/世界查询/装备与船接口仍有具体行为核查缺口，没有因为语料不调用而省略。
+
+新增正式 functionContract 的 namespace alias 验收：v/variable、t/temp、c/context、q/query 在同一 Avatar 指向同一 storage/registry，而两个 Avatar 的各对应实例不同；Unicode 字符串、numeric、Boolean 通过长别名写入、短别名读取，变量/controller 不跨 Avatar 写漏，query.anim_time/q.anim_time 分别读取两个 context 的 3/9。字符串字面量由既有 evaluator.visitString 返回 StringExpression，保留此 typed literal representation 并通过 ValueConversions 取其 Unicode 值；并非 Java String 也不转 float。布尔写入使用实际 (1==1) Boolean 表达式结果。新测试最初误把字面量要求为 Java String、把 true 常量要求为 Java Boolean，核对现有 evaluator 契约后修正测试，没有改变生产字符串或布尔表达式行为。
+
+修正上述夹具预期后前台 functionContract/Fabric build 全通过（10 秒，退出码 0），diff/readability/清单与新测试空白检查通过。下一步按完整清单关闭 per-context scalar、装备、世界/船绑定的具体自动验收缺口，完成 M4 最终扫描 baseline 和全回归，然后才提交/推送；未完成、未提交/推送，不关闭计算机。
+
+M4 Perlin 实体契约及时间 query 清单进展（2026-10-14）：清单复核发现参考 PerlinNoise extends EntityFunction，而现有生产 binding 未检查 Entity。补齐 MolangContext.entity 非 null gate，缺实体 raw 返回 null 且不求值 seed/coordinate；正常 Float、至少两个参数、y/z 默认 0、多余参数不求值保持参考。perlinSmoke 的 20 个 native 固定向量继续通过正式 binding，数值夹具改为明确的 CPU ArmorStand 类型外壳，临时环境 finally 恢复/清理。functionContract 验证缺实体不修改带副作用变量、raw Float oracle、第五个参数不求值、两个 Avatar/domain 的相同输入结果一致。纯 Java 噪声算法未改；既有 seed byte/coordinate 周期与非有限输入安全测试保留。
+
+新增 query.anim_time/life_time/delta_time/time_of_day/time_stamp/moon_phase/frame_count 七项逐项固定输入：Variable 非 Function、raw Float、q/query 别名相等、两个 context 隔离、无需重建 registry 的字段变更，以及 reset 后全部零值。context 字段以明确 CPU 输入注入，不将此测试声称真实游戏昼夜/world tick 已推进；真实每帧时钟接点沿用 M3 管线证据和人工跳过说明。更新独立绑定清单的八个现有证据行，233 名称总数未变，其余 pending 不机械归零。
+
+前台 perlin/functionContract/controllerIsolation 与 Fabric build 全通过（32 秒，退出码 0）；添加时间 query 后 functionContract 通过（10 秒），添加全部 reset 断言后再通过（9 秒），均退出码 0。diff/readability/新增测试空白检查通过。M4 其余 scalar/装备/世界/船/可选占位分类与完整最终 gate 仍待完成，未完成、未提交/推送，不关闭计算机。
+
+M4 装备 presence 与项目扩展验收（2026-10-14）：对照参考 YSMBinding 的 livingEntityVar(has_helmet/has_chest_plate/has_leggings/has_boots/has_mainhand/has_offhand) 与 hasEquipment，六项应返回 Boolean，缺 LivingEntity 返回 null。本项目原先六项返回 Float 0/1 且缺实体当空装备；改为真实 LivingEntity.getItemBySlot 的 Boolean 查询，统一精确六个原版 slot。参考 CosmeticArmorHelper 的额外 cosmetic armor 桥接本轮未移植，不把原版 inventory 路径宣称第三方 cosmetic API 完整支持；可选模组桥接仍按计划边界独立记录。
+
+vanillaState 的 CPU LivingEntity 夹具用明确 slot→原版 ItemStack 输入，逐项检查六个名称真实 Variable 非 Function、无实体与非 LivingEntity 的 ItemEntity 都返回 null、一次只装备一个槽的 raw Boolean、其他槽 false、count=0 后 false、清空后变化与另一 context 隔离。测试用 STONE/DIRT 的 26.1 原版 item holder components 明确绑定为 CPU 数据，未加载实际 data pack/world 装备场景；真实穿戴画面 SKIPPED/MANUAL_BY_USER。首次编译缺 Map import、随后夹具未绑定物品组件失败，均已据 build.log 定位并修复测试输入；生产加载/组件路径未作绕过。
+
+ysm.main_hand/off_hand/equipped_item 为本项目既有便利扩展，参考 YSMBinding 没有这三个同名 API，不能声称它们等同参考 ctrl.hold/armor 或 get_equipped_item_name。保留现有契约：不传匹配 ID 时 raw String（空槽/非法 slot 为空串），传匹配列表时 raw Float 1/0，native 完整/短 ID 比较；equipped slot 接现有 aliases。新增正式 parser/Avatar bindings 测试 main/off 两槽独立、多候选匹配与不匹配、大小写 slot、helmet alias、非法槽、无实体/另一 context 及清空即时读取。没有扩大为新装备导入或第三方匹配系统。ctrl.hold/use/swing/armor/ride 仍按其自己的参考契约留在完整清单待核查。
+
+独立绑定清单更新上述九项证据行，233 名称数量未变；其余项目不自动标 PASS。前台 vanillaState/functionContract/controllerIsolation 与 Fabric build 全通过（29 秒，退出码 0），diff/readability/新测试空白检查通过。M4 其余 scalar、世界/船、ctrl 手部与可选占位类别及最终回归/扫描 gate 仍待完成，未提交/推送，不关闭计算机。
+
+M4 ctrl 装备公共契约/armor 追加进展（2026-10-14）：核对 HandRenderFunction/Armor 的 validateArgumentSize，hold/use/swing/armor 均只接受 2 或 3 项，第三项当前参考不求值；新增统一显式 Function 实现声明该签名。缺 LivingEntity 在求值 slot/item 前 raw 返回 null，匹配结果改为参考 Integer 1/0。armor 的非法 slot 或非 armor slot 为 null，且不求值 item；仅支持 empty、$精确原版 ID 和 #原版 item tag，不借用 hand 的 :type 分类。共享 ID 匹配保留空 ItemStack 的原版 AIR 身份，因此 $minecraft:air 可匹配空槽；不是把空栈 ID 虚构为无名称。
+
+vanillaState 自动覆盖四个函数的 0/1/2/3/4 参数声明及缺实体的 input 副作用拒绝；armor 正向空槽/Integer、AIR ID、native STONE ID、第三项不求值，negative mainhand/非法slot、短 ID、不支持 :stone；用实际 Holder.Reference tag membership 验证 #fixture 正/负例并在 finally 恢复此前 tags；count=0 后匹配 empty。原版 bindTags 为 package-private，初次测试编译因此失败，据 build.log 改为测试夹具反射调用，不改生产可见性。实际物品与 tag 状态是 CPU 明确输入，不代表真实 data pack/穿戴画面，人工 SKIPPED/MANUAL_BY_USER。
+
+前台 vanillaState/functionContract/controllerIsolation 与 Fabric build 全通过（24 秒，退出码 0）；随后仅展开本轮触及的 if 分支以满足可读性要求，不改变控制流，diff/readability/空白检查通过。清单 armor 记录上述证据，hold/use/swing 保留 PENDING_REVIEW：context flag 与真实 per-hand/pulse 的完整对齐，以及现有 :type 名称包含判断与参考 InnerClassify/WeaponKind 的分类差异仍必须处理，不能因公共签名通过就称三项完全兼容。M4 其余绑定清单及最终 gate 仍待完成，未提交/推送，不关闭计算机。
+
+M4 手部物品类型分类进展（2026-10-14）：对照 InnerClassify、WeaponKind、HandRenderFunction 与 ItemTagsConstants，新增最小 YsmHandItemType 供 ctrl.hold/use/swing 共享，删除 :type 的 item ID endsWith/contains 猜测。类型名称按参考区分大小写。优先识别武器：原版/兼容 tag trident 支持 spear/trident；原版 minecraft:*_spear 且 Native SPEAR use animation 或 pike tag 为 lance；原版/tag mace 为 mace。武器分支不继续落入工具或 use-animation 回退。剩余顺序为 sword、axe、pickaxe、shovel（兼容 spade）、hoe、shield、crossbow、bow、fishing_rod、throwable_potion；按原版物品/原版 tag/参考兼容 tag 判断，最后使用实际 ItemStack.getUseAnimation 的 lower-case enum 回退。
+
+参考当前 Fabric YesSteveModel.MOD_ID 已改为 sparkle_morpher，ItemTagsConstants 由该 ID 生成兼容 tag；本实现按这个已核查来源使用 sparkle_morpher:*，不假定它是本项目自己的 figura namespace 或旧 YSM namespace。读取既有世界/tag membership，不新增 data pack。参考 optional SlashBlade/Touhou Little Maid 的外部 item adapter 本项目没有桥接，slashblade/gohei 分类仍属于 CAPABILITY_UNAVAILABLE；不根据名字包含这些词冒充联动，也不移植第三方 API。本轮未改 native animation consumer 的其他既有分类入口，范围仅正式 ctrl matcher。
+
+正式 parser/Avatar vanillaState 夹具验证八种原版物品身份、trident 两个别名、类型大小写 negative、武器优先于通用 none、STONE 的 :stone negative/真实 use none positive；五个原版工具 tag 与 spade alias、13 个参考兼容 tag、trident+剑 tag 冲突优先级、Native KineticWeapon 组件使原版 WOODEN_SPEAR 产生 SPEAR use animation 并匹配 lance 而非 spear、空栈没有类型。额外验证 hold 的主/副手 native ID 隔离、第三项不求值和真实 #tag membership。tag 夹具 finally 恢复原 membership；组件/装备为明确 CPU 输入，不冒充实际 data pack、第三方安装或持物画面。人工 SKIPPED/MANUAL_BY_USER。
+
+前台 vanillaState/functionContract/controllerIsolation 与 Fabric build 通过（34 秒，退出码 0）；补 hold ID/双手/tag 断言后 vanillaState 再通过（10 秒，退出码 0）。diff/readability/新增 matcher 与测试空白检查通过。清单 hold 记录已验收前缀/类型；use/swing 的真实 per-hand/pulse 组合判定仍保留 PENDING_REVIEW，其余 scalar/世界/船/可选占位类别及 M4 最终 gate 未完成；未提交/推送，不关闭计算机。
+
+M4 use/swing 按手与本机输入脉冲进展（2026-10-14）：新增 YsmHandActionState，正式 ctrl.use/swing 不再仅依赖 context 聚合旗标。use 按原版 isUsingItem/getUsedItemHand，swing 按 swinging/swingingArm；非本机实体才用 main-hand getAttackAnim fallback。两者共享上一轮已验证的 matcher，继续返回 Integer。当前参考 InputStateKey 的原始/键位攻击去重为 2 tick、挥动 pulse 为 10 tick、连续使用 pending 为 2 tick，本轮按这三个实际常量实现，不自定时长；use pending 记录所选 hand/item，原版接管、物品换掉、release、ready/玩家身份变化使 pending 清理。
+
+沿既有 MouseHandlerMixin→YsmInputState.mouseEvent 接入 raw pulse，并在 MinecraftMixin.tick RETURN→FiguraMod.tick→YsmInputState.tick 执行一次 client-tick 更新与攻击 key edge 捕获；使用既有窗口/overlay/screen/grabbed/player/world readiness，不新增 GUI 渲染路径或更改输入取消逻辑。缺 readiness 清理脉冲，但保留传入本机实体身份用于原版 local/observer 判定，防止失焦时把本机误当 observer 攻击回退。ctrl 本机 pulse 额外要求 owner.isHost、当前 Entity 与 Minecraft.player 身份相同、非 preview，observer 不读取本机 pulse；原版实体状态仍可按实际实体查询。
+
+保留参考 HandRenderFunction 的两个层次：原版 predicate 在睡眠/本机副手盾牌时可拒绝，原有 local-model swing pulse 仍可作为额外 fallback（matchesLocalModelPulse）；本机当前正用副手盾牌时不会新录入 raw attack pulse。use 不绕过 sleeping 条件。将 pulse 状态放在本机设备输入边界，不当作每 model 的可变 Molang v/c/t 数据，也不新增网络协议；跨端状态/后端仍属于 M7。
+
+vanillaState 正式绑定 CPU 夹具覆盖主/副 swingArm 切换、isUsingItem/usedHand 切换、陈旧 is_swinging/is_using_item 不生效、非本机 attack progress 只回退主手、睡眠原版 predicate；独立实际 hand-state 对象验证 host/observer gate、十 tick 挥动、raw/key 去重不延长、键位新 edge、失焦清理、两 tick use pending、release 即清、原版接管后不复活旧 pending、换 item 失效、主手空时选择副手、本机副手盾牌压制录入/原版主手挥动、参考 local-model pulse fallback 与 ready loss、失焦不改变 local 身份。实体 getters/装备/输入为明确 CPU 数据，正常 GLFW 回调/真实操作画面仅编译接点证明，人工 SKIPPED/MANUAL_BY_USER，未记为真实输入窗口 PASS。
+
+前台 vanillaState/input/functionContract/Fabric build 通过（38 秒）；追加 release/handoff/盾牌边界后 vanillaState/input 通过（19 秒）；补 focus/local 身份后 vanillaState/input/functionContract/Fabric build 再通过（33 秒），均退出码 0。diff/readability/新 hand-state 与测试空白检查通过。清单 use/swing 记录上述自动契约与手动边界；其余 scalar/世界/船/可选占位类别和 M4 最终回归/扫描 gate 仍未完成，未提交/推送，不关闭计算机。
+
+M4 ctrl.ride 契约进展（2026-10-14）：对照参考 Ride，补齐仅 2/3 参数声明，缺 LivingEntity 在参数求值前 raw 返回 null；有实体先按参考顺序读取 selector/id，再处理空 id、目标选择和存活条件。selector 仅接受 case-sensitive vehicle/passenger，修复此前任意未知字符串默认当作 vehicle 的错误；匹配改为参考 Integer 1/0，第三项仍不求值。$ID 通过原版 Identifier/default namespace 解析后匹配真实 ENTITY_TYPE registry，修复 $armor_stand 不能匹配的旧实现；#tag 使用目标 EntityType holder membership。未知/非法 ID、无前缀、无目标/不 alive 均为 Integer 0。
+
+正式 vanillaState parser/Avatar bindings 夹具覆盖参数声明、缺实体不求值 selector、vehicle/passenger 两个独立目标、完整/短 ID、Integer 原始类型、第三项副作用拒绝、未知 selector 不退化成 vehicle、参考 id 参数求值顺序、选择器大小写/非法 ID/unprefixed negative、真实 EntityType 原版 tag positive/negative 与 finally 恢复、dead vehicle 和 passenger 移除即时变化。Actor type/alive/关系是 CPU 明确 getter 输入，tag/registry 为原版对象；未创建真实猪/盔甲架骑乘关系或窗口动画，不把类型夹具记为真实骑乘画面 PASS。人工 SKIPPED/MANUAL_BY_USER。
+
+前台 vanillaState/functionContract/controllerIsolation 与 Fabric build 全通过（39 秒，退出码 0），diff/readability/新增测试空白检查通过。独立清单 ride 更新证据，233 名称总数不变；其余 scalar、世界/船、可选占位类别及 M4 最终回归/扫描 gate 仍待完成，未完成、未提交/推送，不关闭计算机。
+
+M4 控制器常量契约进展（2026-10-14）：核对参考 CtrlBinding 的七项 constValue 调用以及 ContextBinding.constValue(Object) 实现，Number 会统一变为 Float，不能因为源调用传入 int 就把本项目常量改成 Integer。保留现有正确 Float；state_continue=2、state_stop=3、state_pause=4、state_bypass=5、loop=10、play_once=11、hold_on_last_frame=12；state_break=3 为本项目已存在的 state_stop 兼容别名，未新增 API。
+
+正式 functionContract 逐项验证八个名称为 Variable 非 Function、raw Float 与固定值、无实体依赖、v/c 同名写入不能 shadow 枚举、两个 Avatar 不受彼此变量影响；三个循环常量还通过正式 ctrl.set_animation 进入真实 YsmAnimationPlayer 的 controller function slot，逐项检查实际 loopMode 为 LOOP/ONCE/HOLD_ON_LAST_FRAME。此项关闭枚举数据与其播放模式消费路径，不把该局部测试当作 set_animation/reset 全部签名/返回契约已完成；对应函数清单仍独立待核查。纯 CPU slot 测试不证明窗口动画，人工 SKIPPED/MANUAL_BY_USER。
+
+前台 functionContract/controllerIsolation/Fabric build 全通过（17 秒，退出码 0）；随后仅用 import 缩短本轮新增测试的重复类名，可读性/差异/空白检查通过。独立清单八项证据行更新，总名称数 233 未变。M4 其余 scalar/函数/世界/船/可选占位类别及最终回归/扫描 gate 仍待完成，未完成、未提交/推送，不关闭计算机。
+
+M4 控制器函数契约验收（2026-10-14）：对照参考 SetAnimation、Reset、SetTransitionSpeed 与 TicksInterpolator，ctrl.set_animation/reset/set_beginning_transition_length 原始返回值统一为 null，严格接受 1/2、0、1 项参数。参考通过当前控制器对象限制执行；本项目用已隔离的 c.controller 名称与所属 Avatar/runtime 进行对应作用域检查，缺作用域在求值参数前返回。空动画名称不求值 loop 参数；loop 整数转换为截断，10/11/12 分别 LOOP/ONCE/HOLD，未知值或省略采用 clip 默认模式。此前未知值强制 ONCE 的行为已修正。
+
+参考 TicksInterpolator 内部把传入值乘 20，因此过渡参数实际为秒，保持秒输入。删除全局 c.beginning_transition_length 保存方式，改为每个 Avatar 的 AnimationPlayer 按 controller 名称保存，两个 controller 和两个 Avatar 不串值；负值忽略，非有限值不写入。reset 使用该 controller 的配置淡出其 function slot，并保留配置；ModelRuntime.close 显式清理配置。没有改其他动画入口或跨阶段 Lua API。
+
+functionContract 通过正式解析器/Avatar bindings 检查三个原始 null 返回、参数声明、无 controller 参数副作用拒绝、空名称短路、10.9/11.9 截断及未知 selector fallback、实际 PlayingAnimation.fadeSpeed=4 与 0.5 对应 0.25/2 秒、reset 只影响自身 slot、淡出与配置保留、跨 Avatar 隔离和清理。首次测试发现新增 fallback 后遗漏 case 11，据 build.log 定位并补齐明确 ONCE 分支后重跑。前台 functionContract/controllerContext/controllerPoseLayer/controllerIsolation 与 Fabric build 全通过（28 秒，退出码 0）。这些是 CPU 状态与构建证据，真实窗口过渡画面仍 SKIPPED/MANUAL_BY_USER；独立清单三项更新为 EVIDENCE_RECORDED。M4 其余绑定验收和最终整体验证仍未完成，未提交/推送，不关闭计算机。
+
+M4 位置轴函数追加验收（2026-10-14）：参考 Position/PositionDelta 严格接受一个轴参数，缺 Entity 在求值前返回 null，轴按 int 截断，非法轴 null；有效值原始类型为 Double。原实现宽松参数、Float 和非法轴 0 均不符。改为显式 Function，共享必要的实体/参数契约；position 使用实体 xo/yo/zo 与实际 getX/Y/Z 按已捕获 ysm_partial_tick 插值，position_delta 保留捕获位置差的 double 精度。六个原有 position_x/y/z 和 position_delta_x/y/z 项目扩展仍保留原接口，未声称它们是参考同名函数。
+
+正式 functionContract 用原版 Entity 的真实 position 字段/坐标 getter 和显式 old 坐标输入检查三轴固定向量、0.25 插值与改为 1 后的即时变化、raw Double、0.5000000001 精度、1.9 轴截断、非法轴 null、无实体参数副作用拒绝、另一 Avatar 未污染与 reset 清理。测试未调用 live populateQueryContext；现有 delta 采集的首次样本与同 tick 多 pass 是否等同参考 PositionTracker 仍需单独核查，不能因 getter 验证就称 tracker 全通过。前台 functionContract/controllerContext 与 Fabric build 通过（31 秒，退出码 0）。窗口表现 SKIPPED/MANUAL_BY_USER；清单两行更新上述有限证据。M4 仍在进行，未提交/推送，不关闭计算机。
+
+M4 位置采样入口与 tracker 修复（2026-10-14）：实际核查参考 EntityFrameStateTracker.updateState/updatePosition：仅 seekTime 严格增加时更新，坐标为原版 old/current 插值，lastPosition 首次为 null，所以首次 positionDelta=ZERO，同时间与时间回退不覆盖结果。当前项目只有 Avatar.applyAnimations 调用 populateQueryContext，但全仓库源码没有 applyAnimations 的调用点；YSM updateFrame 仅更新渲染时间、头部/摄像机，未设置 query 实体与位置。不能把此前手动填 context 的测试当作实际采样入口已正确。
+
+在 MolangContext 加入最小 updateYsmPositionContext，由真实 YsmAnimationPlayer.updateFrame 在捕获渲染时间后调用。设置当前 Entity/原始坐标，按递增 render seek 采样插值位置差；首次为 0，同时间多 pass 保持，回退保持到后续时间超过上一样本。每 Avatar 单独保存上次实体/时间/插值坐标，换实体时丢弃旧样本避免跨实体位移，null scope 清理；reset 与 ModelRuntime.close 清理采样。原 populateQueryContext 只在无 YSM runtime 时继续原位置差算法，防止它覆盖 YSM tracker，也保留原 Figura 采样接口。其他 scalar query 的 live populate/typed/entity 契约仍待继续核查，本轮未声称整体 query 初始化已完成。
+
+functionContract 通过原版 Entity getter +正式 parser/Avatar bindings 验证首样本 0、0.25→0.5 固定三轴 delta(1,2,2)、重复同时间/回退保留、0.75 恢复、坐标远离原点的实体更换无跳变、移除与 reset 后首样本清理；实际 render/close 调用接入通过编译，CPU 测试未伪称启动游戏窗口。前台 functionContract/playerTimeline/animationFrameClock/controllerContext 与 Fabric build 通过（47 秒）；补关闭清理后 functionContract/localCorpus/phase41 与 Fabric build 通过（56 秒），均退出码 0。localCorpus 共 45：Figura 正式编译 5（含 ZIP）、明文 YSM 数据装配 35、加密解密/重建 5；旧 Figura 两个 arrow texture 缺失日志是已有素材问题，未将它们标为全材质画面 PASS。窗口验收 SKIPPED/MANUAL_BY_USER，未用 offscreen。绑定清单位置两项已更新当前证据。M4 剩余 scalar/world/boat/optional 分类和最终全部 gate 仍未完成，未提交/推送，不关闭计算机。
+
+M4 基础实体 scalar query 验收（2026-10-14）：确认 health/max_health/hurt_time、body_x/y_rotation 原来只读 populateQueryContext 的缓存，而该入口没有当前渲染调用。按参考 QueryBinding 的 livingEntityVar 契约改成直接读取当前 LivingEntity，缺实体/非 LivingEntity 为 null；health/max_health 原始 Float，hurtTime 原始 Integer。身体 pitch 按本帧 ysm_partial_tick 插值 xRotO→getXRot；body yaw 插值 yBodyRotO→yBodyRot 并 wrapDegrees。参考非本地 PlayerCapability 走额外远端 frame tracker 协议，当前保留原版 entity 路径，网络 display/capability 一致性归 M7 与后端跳过记录，不宣称实现了该协议。
+
+同步核对 walk_distance/modified_distance_moved、eye_target_x/y_rotation、cardinal_facing_2d：前两项参考均为 native entity.moveDist/Float；视线项为 Entity.getViewXRot/YRot(partial tick)/Float（LivingEntity 的 view yaw 读取 yHeadRot，不能用 body yaw 替代）；朝向为 Direction.get3DDataValue/Integer，不能沿用旧缓存的 Float/2D ordinal。五项改为直接实体读取，Entity gate/null（允许非 LivingEntity）。Molang 解析器对 Boolean/null/numeric 的既有转换保持，不修改原字段便利接口。参考 RenderContext.OLD_HUD 是独有渲染 pass，本项目 EntityRenderMode 没有对应枚举；未把所有 GUI/paperdoll 强行当作 OLD_HUD 添加无依据的归零逻辑，此外部 pass 不宣称支持，项目真实预览画面仍人工跳过。
+
+vanillaState 正式 parser/bindings 逐项验证十个 Variable 非 Function、原始 Float/Integer、缺实体；前三类检查非 LivingEntity 拒绝与另一 context 隔离。LivingEntity 夹具明确 health 输入并安装原版 AttributeMap(createLivingAttributes)验证真实 getMaxHealth 与 attribute 改动，hurtTime=6→0；缓存字段设 -100 不可覆盖实际 getter。body pitch 0.25 为 15、yaw 插值355→wrap -5，partial=1 后 30/10。视线 living head yaw 170→190 在 .25 为175、endpoint190；native moveDist 7.25→2，方向南3→西4；非 LivingEntity 输入可读 moveDist3、pitch20、北2；reset 与移除无残留。未以 CPU 输入替代真实窗口/远端协议证明。
+
+前台 vanillaState/functionContract/controllerIsolation 与 Fabric build 首次五项通过（37 秒）；追加五项测试首次编译发现 fixture 对 int cardinal_facing_2d 链式赋 Float，按 build.log 拆开正确类型赋值后重跑全通过（22 秒），退出码0。独立绑定清单十项更新为有限 EVIDENCE_RECORDED，未把其余 query 自动标 PASS；格式检查仅修改本轮代码。M4 其他 state/speed/world/equipment/boat/optional 分类与完整最终 gate 仍未完成，未提交/推送，不关闭计算机。
+
+M4 实体 Boolean 状态 query 验收（2026-10-14）：对照参考 QueryBinding 的 entityVar/livingEntityVar，is_on_ground/is_sneaking/is_sprinting/is_swimming/is_in_water/is_on_fire/is_riding/has_rider/is_sleeping/is_spectator/is_playing_dead 共11项原始返回应为 Boolean，缺实体为 null，其中 sleeping/playing_dead 限 LivingEntity。原实现只读 Float 0/1 的 populate 缓存，不能满足实际渲染入口与原始类型。改为既有 entityVariable/livingVariable 读取当前实体 native getter；is_sneaking 严格为 onGround && Pose.CROUCHING，不能把空中 crouch 当作 sneak；is_riding 使用 isPassenger，has_rider 使用 isVehicle，二者独立。query arithmetic 仍按既有解释器把 Boolean 转 Float，不修改解释器。
+
+vanillaState 正式 parser/registry 检查11项 Variable 非 Function、缺实体 null，三轮 false→true→false raw Boolean；每轮缓存设置相反值证明不再受陈旧 context flags 支配。ground/pose/sprint/swim/water/fire/sleep/spectator/dead 为 CPU 实体明确输入；riding 经过原版 isPassenger→getVehicle，has_rider 通过原版私有 passengers ImmutableList 实际 isVehicle/getPassengers 判定，并在 finally 恢复原 list。覆盖 grounded-standing/airborne-crouch 反例、仅 riding/仅 passengers 正例、Boolean 的 +0 得到 Float 1、另一 context/移除后 null、非 LivingEntity 原版 onGround false 正例与 sleeping/dead 拒绝。没有启动真实游戏/GUI，也未把 fixture 状态当作全窗口视觉 PASS。
+
+首次测试使用既有只接受 Double 的 elytra number helper 检查算术 Float 导致失败；据 build.log 确认结果实际为正确 Float 1，改为专用 Float 断言，未改生产算术行为。前台 vanillaState/functionContract/controllerIsolation/phase41 与 Fabric build 全通过（31 秒，退出码0）。绑定清单11项更新有限行为证据，窗口 SKIPPED/MANUAL_BY_USER。M4 rain/world、输入/手部 query、speed、equipment/boat/optional 与最终完整 gate 仍待继续，未提交/推送，不关闭计算机。
+
+M4 玩家跳跃与第一人称 query 验收（2026-10-14）：重新核对 M4 原验收“已声明核心绑定全部有参数/类型/状态变化测试”，未缩小为仅 corpus 出现名称。对照参考 QueryBinding.is_jumping 为 playerEntityVar 的 Boolean，条件 !isFlying && !isPassenger && !onGround && !isInWater；没有正向速度阈值。改为直接读取 Player abilities/vehicle/ground/water，缺实体/非 Player 返回 null。保留 ctrl.jump 独立动作状态优先级，不以其 JUMP 枚举替代这个一般状态 query。参考远端 PlayerCapability.display flying 属 M7/后端协议，当前原版实体路径不宣称实现该桥接。
+
+is_first_person 对照参考 Entity gate+CameraUtil ordinal 比较，应为 Boolean。旧实现 Float arm-pass/context flag 可能把旁观者手部误判为本地第一人称；改为读取实际入口已捕获的 ysm_camera_type，沿用之前验证的本地玩家/摄像机同主体与 preview fallback，不重复读取设备，也不改 M3 body/arm context scope。
+
+正式 functionContract 玩家夹具明确 Abilities 与 native isPassenger→getVehicle 输入，检验缺实体/非玩家 ArmorStand、离地 dry nonflying 正例、飞行/骑乘/落地/水中四项各自排除、解除即时恢复、反向缓存标志不起作用、第二 Avatar/reset 清理。相机用例追加 q.is_first_person raw Boolean，覆盖全部三个 native ordinal、body-pass 标志0仍local true、observer arm标志1仍false、world/GUI/paperdoll 模式及移除。前台 functionContract/vanillaState/firstPersonController/playerTimeline/phase41 与 Fabric build 全通过（40 秒，退出码0）；窗口仍 SKIPPED/MANUAL_BY_USER。清单两项更新有限证据，未把其他绑定随之标PASS；M4 rain/world、输入/手部 query、speed、equipment/boat/optional 与最终完整 gate 仍未完成，未提交/推送，不关闭计算机。
+
+M4 世界/天气标量绑定验收（2026-10-14）：核对参考 query.is_in_water_or_rain 直接 entity.isInWater() || entity.level().isRainingAt(entity.blockPosition())，原始 Boolean。删除旧 context Float 缓存读取，使用当前实体所属世界/位置，不改为全局 client.level。缺 Entity 返回 null；水中短路不访问天气/世界；干燥且缺世界的无效 scope 返回 null，不虚构天气值。
+
+对照参考 YSMBinding，block_light/sky_light 是 native LightLayer brightness 原始 Integer，原本方法签名 float 导致强制 Float 以及缺实体0；修正为原始 Integer/缺 Entity 或 world null。is_open_air 参考除了 canSeeSky，还要求 MOTION_BLOCKING 高度图位置 Y <= 主体 blockPosition Y；原实现漏高度图且 Float 0/1。补齐 Boolean 谓词、sky false 时短路高度图、正确高度图类型与主体坐标，缺上下文 null。
+
+vanillaState 正式 parser/registry 通过明确的 CPU ClientLevel API 输入检查 dry/rain变化与反向旧cache，水中true不增加weatherReads，light BLOCK=7/SKY=13独立读与0/15边界原始Integer；closed sky 不读heightmap，sky可见但height65>主体64为false、64/63为true，检查MOTION_BLOCKING及subject位置；缺实体/world、water即使无world也true、另一context不读该世界。Fixture 在 finally 恢复实体原 level/blockPosition，未加载真实 chunk/weather，不据此声称Minecraft天气渲染全PASS。
+
+前台 vanillaState/functionContract/phase41 与 Fabric build 全通过（53秒，退出码0）。独立清单四项更新有限语义证据；真实游戏世界/画面按用户授权 SKIPPED/MANUAL_BY_USER，无 offscreen。M4 其他 query speed/手部/装备/world tag、boat/optional分类和最终完整 gate仍待完成，未提交/推送，不关闭计算机。
+
+M4 YSM 实体状态别名/空气冰冻验收（2026-10-14）：对照参考 YSMBinding，is_passenger/is_sleep/is_sneak/eye_in_water 为 Entity Variable/raw Boolean，frozen_ticks/air_supply 为原版 getter/raw Integer，缺实体null。原实现部分用 Float context缓存、部分把 native int 转 Float 且缺实体0。改用同一最小 Entity gate 读取 native getter/谓词；sleep 严格 Pose.SLEEPING，不能直接复用 query.is_sleeping 的 LivingEntity.isSleeping；sneak严格 grounded+CROUCHING；eye用isUnderWater独立于isInWater；air保留native负数。
+
+vanillaState正式parser/registry检查六项Variable非Function、缺Entitynull与原始类型、反向陈旧cache无效、vehicle状态、sleep Pose/getter相反输入的双向差异、airborne/grounded crouch边界、body water true/eyes false及反向正例、frozen0→140、air300→-20不clamp、移除与另一context隔离。CPU实体将原版方法输入显式化，不声称实际游戏冻结/呼吸窗口PASS。首次阶段回归中新增 Entity method reference 使phase41初始化加载Entity类，旧task仅test.runtimeClasspath缺Fabric AttachmentTarget，按build.log诊断后只补该task的main.compileClasspath，与现有native测试一致；未改变生产绑定或过滤失败断言。重跑vanillaState/functionContract/phase41与Fabric build全通过（54秒，退出码0）。
+
+绑定清单六项更新有限行为证据，窗口SKIPPED/MANUAL_BY_USER。diff/readability/新增测试空白检查通过。M4剩余speed/手部query/装备/world tag、boat与optional分类和完整最终gate仍待完成，未提交/推送，不关闭计算机。
+
+M4 原始输入轴、移动投影与饥饿值验收（2026-10-15）：实际工作区 git rev-parse 仍确认为 D:/UserData/Desktop/Project/Figura，继续原 M4 修改。核对参考 getXxa/Yya/Zza 为 livingEntityVar/raw Float。当前实现对任意 Entity 反射字段并吞异常为0，缺实体0；改为LivingEntity gate/null与对应公开native字段直接读取。三个内部固定axis字符串明确switch，未知内部值显式拒绝；不引入公开新API。
+
+参考 input_vertical/input_horizontal 实为 MathInterpolation.getYawInterpolation/getPitchInterpolation：按 position tracker x/z 位移相对 entity.getViewYRot(frameTime) 方向计算 cos/sin，raw Double，水平位移长度<1e-4为Double0。原项目错误映射成 zza/xxa。改用已接入真实 YSM frame 的 context.pos_delta_x/z 与 ysm_partial_tick，使用与参考 MathUtil 相同 Mth.RAD_TO_DEG/DEG_TO_RAD、wrapDegrees/atan2/cos/sin，保留 Entity gate（非Living也可计算）。它们不是原始按键轴，不能用相同名称误导模型。
+
+food_level 对照参考为 LivingEntity gate/raw Integer，Player走原版FoodData，其他Living固定Integer20。原实现无实体/非Living也20且全转Float；现修正类型和scope。参考远端PlayerCapability的输入轴/food display state桥接仍按M7与后端跳过政策记录，本地/native entity路径不声称实现网络display协议。
+
+vanillaState正式parser验证三个native轴-.75/.5/.25及0/-1/1的raw Float与即时变化、nonLiving拒绝、context/reset隔离；方向输入固定前/后/侧移、yaw90、partial0/subthreshold与rawDouble、原始轴不同值不会影响投影、静止nonLiving合法。functionContract向实际RemotePlayer.foodData字段装配原版FoodData，验证20→6→0→17原始Integer、实体scope移除；vanillaState另测非Player Living20与非法scope。首次新增测试断言括号错误导致compileTestJava失败，按build.log修正后前台vanillaState/functionContract/phase41与Fabric build全通过（44秒，退出码0）。窗口/真实输入交互SKIPPED/MANUAL_BY_USER，未用offscreen。
+
+独立绑定清单六项更新有限证据，diff/readability/新增测试空白检查通过。M4剩余speed/手部query/装备/world tag、boat与optional分类及最终完整gate仍待完成，未提交/推送，不关闭计算机。
+
+M4 移动速度/采样间隔验收（2026-10-15）：对照参考 MovementQuery，ground_speed 与 ground_speed2 是同一算法：tracker插值位移除以seek tick差并乘20优先，然后event limb amplitude、原版Living.walkAnimation、native velocity*20、tick position delta*20；不能使用陈旧context值或只查velocity。vertical_speed优先同一tracker signed y/time，再native y velocity（绝对值>0.1以过滤地面微小重力），最后tick y差*20。新增最小YsmMovementQuery共享这两项算法/有限数值规则，三个已声明名称统一原始Float、Entity gate/null；没有新增未声明的query/API或修改相邻动画状态机逻辑。
+
+MolangContext的既有position tracker追加捕获ysm_position_delta_ticks，换算delta_time秒；同时间保留interval、换实体/reset清理，<=1e-4或非有限间隔为0，与参考getTimeDeltaSeconds一致。真实AnimationPlayer.updateFrame在position采样后通过updateYsmMovementContext捕获本帧walkAnimationSpeed，并发布ground_speed/vertical_speed供已有controller读取，避免query更新而ctrl消费者仍用旧速度。owner/native实体路径按已核查顺序；参考远端PlayerEntityFrameState抑制synthetic walk的display-motion桥接仍归M7/后端跳过记录，本轮不宣称该网络能力实现。
+
+vanillaState正式parser用明确tracker(.3,-.1,.4)/.5tick得ground20、vertical-4，证明优先于event2/velocity9；事件-.8取abs、原版WalkAnimationState.setSpeed(.6)、原版Entity.setDeltaMovement(.3,-.07,.4)得ground10/vertical0；velocity y=-.2得-4；tick .2/.1得4/2；非有限tracker/time/velocity先sanitize并回退，最终invalid tick得到有限0。检查Float、无entity、reset/另一context隔离；render用的capture方法也检查将20/-4发布给controller字段。functionContract通过正式query/ysm.time_delta验证.25tick=.0125s、重复同时间保持与tiny间隔0。
+
+前台vanillaState/functionContract/playerTimeline/animationFrameClock/phase41与Fabric build通过（53秒）；追加最小间隔规则后functionContract/vanillaState与Fabric build通过（48秒）；补controller字段实际发布后vanillaState/functionContract/controllerIsolation/playerTimeline与Fabric build通过（54秒），均退出码0。窗口/实际设备行走画面SKIPPED/MANUAL_BY_USER，未用offscreen。绑定清单速度三项及两个时间名称更新有限证据，新增helper/readability/空白检查通过；M4其他yaw/手部query/装备/world tag、boat与optional分类和完整最终gate仍待完成，未提交/推送，不关闭计算机。
+
+M4 头部查询与既有项目扩展分类（2026-10-15）：参考QueryBinding.head_x_rotation/head_y_rotation分别读取animation data.netHeadYaw/headPitch，与YSMBinding.head_yaw/head_pitch数据相同。项目ysm头部字段已由M3生产updateYsmHeadRotation按clamped relative yaw/反向pitch采集，但query两项仍读legacy head_x/head_y字段而不随该入口更新。YSM runtime路径改成同一数据；非YSM/Figura仍保留原head_x/head_y接口，未把普通Figura角度语义改成YSM反向轴。reset追加清理ysm_head_yaw/pitch，避免重新初始化保留上次采集值。
+
+functionContract调用生产private updateYsmHeadRotation，输入原版LivingEntityRenderState.yRot/xRot：30/20得到四名查询-30/-20，120/-10得到yaw钳制-85/pitch10；legacy缓存999不得替代，另一Avatar为0、reset四项归0；非YSM context legacy11/-22保留，即使ysm字段99也不覆盖。未声称启动实际MC窗口。
+
+六个query.position_x/y/z与position_delta_x/y/z在参考只有带axis的函数，没有同名标量；按项目既有扩展记录rawFloat/current坐标与捕获delta，保留接口。正式position采样后检查14.5/28.5/-2.5、delta1/2/2与Float/Avatar隔离/reset0。四个query.geometry_is_*当前参考无同名，按固定项目常量验证rawFloat、v/c不可shadow、两Avatar无实体一致，常量不虚构动态状态测试或参考兼容。ysm.first_person/is_first_person也无同名参考，按项目既有Float arm-pass别名保留，正式binding验证0→1→0/同值/Avatar/reset；不与query.is_first_person的camera Boolean混淆。
+
+前台functionContract/playerTimeline/firstPersonController/phase41与Fabric build通过（24秒）；追加头部reset清理后functionContract/playerTimeline/firstPersonController与Fabric build通过（27秒），均退出码0。清单16项更新有限证据并显式标项目扩展，真实窗口SKIPPED/MANUAL_BY_USER。M4其余render-preview/手部query/装备/world tag、boat与optional分类及完整gate仍待完成，未提交/推送，不关闭计算机。
+
+M4 action/control项目扩展与动态ctrl修复（2026-10-15）：核对query.control/ysm_control/avatar_control/ysm_control_number/ysm_control_bool/ysm_control_enum为既有项目扩展，当前参考无同名；保留宽松Function签名，缺参数/unknown/无owner Float0，读取首个control ID，忽略未用额外参数。valueAsFloat处理Number/Boolean/可解析String，enum返回options index或numeric fallback。没有把现有接口重设计成严格单参数，也未新增Lua API或移植第三方控件。
+
+functionContract使用实际AvatarControlDefinition与AvatarControlRuntime注册NUMBER/TOGGLE/TEXT/ENUM，检查默认1.25/true/2.75/blue与改为-2.5/false/中文选项index2，numeric aliases、bool/enum转换、non-numeric text0、缺参/unknown0、所有六函数0/1/2签名、额外参数副作用不执行、两Avatar隔离和无owner早期gate。只检查定义值读取，未宣称持久化、Lua回调或UI流程通过，这些仍属M5。
+
+ctrl.*此前清单称dynamic controls但实际设计是context.controller/c字段回退，而非直接读AvatarControlRuntime。正式parser测试发现读取已设c值3仍得到0：FallbackBinding同时实现Variable/Function，IdentifierExpression优先Function，bare表达式变零参Call，而function入口固定0。局部修复Fallback零参调用转入已有Variable读取；bare和显式零参都获得当前c值，非空调用仍保留原no-op0与参数不求值，不改变全局parser优先级。测试c3→7、零参7、Boolean/String、v同名-99不能shadow、另一Avatar0与非空参数副作用拒绝，消除真实零值占位。
+
+两个query.ysm_action_active/time同为项目扩展；注册真实YsmActionDefinition/clip，经actions.trigger和生产private advanceAnimationTimeline推进.375秒，再stop，验证active0→1→0/time0→.375→0、第二Avatar相同ID仍0、缺参/unknown0。没有以直接改playing.time代替生产推进，也不据此将M5完整extra forms/持久化标PASS。
+
+首次新用例揭示上述Fallback零值缺陷，按build.log与IdentifierExpression路径修复后，前台functionContract/playerTimeline/controllerContext/controllerPhase与Fabric build全通过（37秒）；补六函数签名与typed动态ctrl后functionContract通过（11秒），均退出码0。清单9项更新有限证据，窗口/交互SKIPPED/MANUAL_BY_USER。M4其余render-preview/手部query/装备/world tag、boat/optional分类与完整最终gate仍待完成，未提交/推送，不关闭计算机。
+
+M4 手部使用/挥动查询统一（2026-10-15）：核对参考QueryBinding、YSMBinding与InputStateKey，十二项仍读取旧Float缓存，缺实体0，时间单位混用。新增最小YsmHandQuery共享读取既有YsmHandActionState与native实体；十二项统一LivingEntity gate/null。using/eating/swinging原始Boolean，attack progress原始Float、hurtTime原始Integer；query.swing_time及三种use duration为Double秒，ysm.swing_time为Float tick（不能映射成query的秒）。is_eating按原版use item的EAT animation判断，不额外强加isUsingItem条件；max duration读实际ItemStack.getUseDuration，empty为Double0。
+
+手部state增加swing/use age，保留之前已核对的10tick swing、2tick pending use和2tick raw/key dedup；按参考记录年龄+partial，pulse起始至少1tick，main-hand pulse attack为min(1,time/6)，pending use至少1tick，remaining为max(1,6-useTicks)。native sleep与local offhand-shield抑制在对应native路径生效，owned-model pulse优先覆盖参考query的native swing谓词。NaN native attack progress按reference >0判断回退0。设备pulse只供isHost且entity==实际client.player、非preview的模型读取，不能沿参考全局Player分支把主人pulse泄漏到其他Avatar。没有改普通观察者可见的原版手部状态。
+
+真实AnimationPlayer.updateFrame追加YsmHandQuery.capture，将当前use/swing/attack发布到既有Float缓存供ctrl.attack等消费者用；ctrl.attack在参考CtrlBinding无同名，为现有项目聚合Float接口，不将其伪称参考Boolean。ModelRuntime.close清空position后同步清空movement/hand缓存，防止旧聚合状态残留；测试验证无entity capture后的ctrl.attack为0，实际GPU texture close未由CPU壳执行，仍不宣称真实窗口卸载通过。
+
+vanillaState通过正式parser检查十二个Variable非Function、缺entity/nonliving gate、各原始类型与固定向量：native swing4+.25=4.25tick/query .2125s，attack .6；原版Consumable组件2秒、use7tick=.35s、remaining33tick=1.65s，hurt3 Integer；native sleep/observer attack fallback、NaN progress0、empty/停止时间0、reset/另一context。capture将状态发布后ctrl.attack 1→0。首次新用例把shared fixture.hurtTime留3，使后续idle验收失败，按build.log清理测试输入后恢复，未改变生产动作优先级。
+
+functionContract构造真实LocalPlayer子类与Minecraft CPU身份壳（不创建窗口），经正式Avatar bindings检查host pulse可读、另一Avatar不能借用、preview拒绝，pulse初始1tick、age1+.25得到1.25tick/.0625s、normalized attack、sleep前pulse覆盖、focus清理；pending右键use .05s/remaining .25s、两tick过期、release立即取消、十tick swing过期。全局Minecraft singleton与device hands在finally恢复。没有以纯helper调用替代主人绑定入口证明，也未把CPU壳当GUI验证。
+
+前台vanillaState/functionContract/input/playerTimeline与Fabric build全通过（39秒）；整理新增fixture限定名后compileTestJava/phase41通过（6秒）；补close缓存清理后vanillaState/functionContract/budget/syncDefer与Fabric build通过（44秒）；补齐十二项Variable签名检查后vanillaState通过（13秒），均退出码0。绑定清单13项更新有限证据，真实鼠标/窗口表现SKIPPED/MANUAL_BY_USER，未用offscreen。M4其余render-preview、装备/world tag、boat/optional分类与完整最终gate仍待完成，未提交/推送，不关闭计算机。
+
+M4 装备数量/耐久/物品与tag匹配验收（2026-10-15）：对照参考MaxDurability/RemainingDurability/IsItemNameAny/EquippedItemAllTags/EquipmentItemAnyTag及MolangUtils.slot map，durability严格一个slot参数、原始Integer；其余至少slot+一个ID/tag、原始Boolean。参考六个canonical命名槽位head/chest/legs/feet/mainhand/offhand按Locale.ENGLISH不区分大小写。原实现durability只有Player数字槽位且Float，is_item_name_any不读slot只看Player.mainHand，tag函数还错误依赖全局client.level并返回Float。改为统一LivingEntity gate/原版getItemBySlot，保留项目已有numeric0..5映射（明确项目兼容，非参考新增名称）；非法slot返回null并在match参数前拒绝，invalid/non-string ID返回null并停止，default namespace原版Identifier处理，空栈匹配false不求值候选；all/any按参考短路，不跳过非法ID。
+
+当前参考Fabric CosmeticArmorHelperImpl.getArmorItem就是entity.getItemBySlot，因此本次实现同一native路径；不将其他平台/第三方cosmetic桥接宣称已实现。tag匹配改为原版ItemStack.is(TagKey) holder membership，不为了数据查询要求global client world。query.equipment_count按当前SDK EquipmentSlot.isArmor（HUMANOID_ARMOR或ANIMAL_ARMOR）统计，不能按所有槽或固定仅四槽；ysm.armor_value原版getArmorValue/Integer、缺LivingEntity null。
+
+vanillaState正式parser验证五Function的0..4参数声明、null/nonliving entity/参数副作用gate、六命名槽位含uppercase、原版ItemStack MAX_DAMAGE100/DAMAGE25对应Integer100/75，改变damage70后30，空槽0与原numeric mainhand0。item匹配full/default namespace、失败/非法slot与ID（含非String）、首匹配后不执行额外表达式。实际Holder.Reference.bindTags测试双tag all/any、missing/invalid、短路、count0空栈不求值，并finally恢复原tag列表。当前SDK全8槽给非空输入时armor计5（四humanoid+BODY），移除BODY计4，清空0；原版Living AttributeMap ARMOR9→3得到原始Integer，另一context/无entity无泄漏。
+
+首次CPU夹具在新用例顺序中尚未绑定STONE组件，new ItemStack按原版抛Components not bound yet，按build.log在fixture显式绑定空基础组件再设置stack patch；未改生产或吞掉原版错误。前台vanillaState/functionContract/phase41与Fabric build全通过（41秒，退出码0）。绑定清单7项更新有限证据，真实装备/材质显示SKIPPED/MANUAL_BY_USER；未用offscreen。M4其余render-preview、biome/block tag、boat/optional分类及完整最终gate仍未完成，未提交/推送，不关闭计算机。
+
+M4 biome/block tag查询验收（2026-10-15）：对照参考BiomeHasAllTags/Any及RelativeBlockHasAllTags/Any，修正全局client world、整数offset和Float返回，改为Entity所在world、raw Boolean与原版holder/state tag membership。biome至少1个tag，block至少3个offset+1个tag；缺entity/world在参数前返回null，typed String ID非法返回null，all/any短路。三个offset先求值，再检查finite/每轴±5，按round(entity+offset-.5)定位，越界不读世界或tag表达式。
+
+vanillaState正式parser使用原版MappedRegistry/Biome holder与Block holder绑定tag，覆盖默认namespace、tag状态变化、invalid/nonString ID、短路副作用、nonliving Entity、另context/无world隔离，负坐标/分数舍入与±5边界。Biome值为CPU身份壳，仅验证注册holder/tag查询，不代表气候生成或真实世界渲染；finally恢复block tags与实体状态。前台vanillaState/functionContract/phase41和Fabric build通过（39秒，build.log确认BUILD SUCCESSFUL）；真实窗口验收SKIPPED/MANUAL_BY_USER，未用offscreen。M4尚未完成，未提交/推送，不关闭计算机。
+
+M4 实体身份/原版玩家与世界scalar验收（2026-10-15）：ysm.entity_type按参考要求LivingEntity，Player返回原始String player，普通实体返回原版registry ID，touhou_little_maid:maid按参考映射maid（未安装其第三方行为桥，不能称桥接PASS）；ysm.is_player改raw Boolean，缺LivingEntity null。原实现Player返回minecraft:player且is_player为Float；已修正。两个local_player项目别名保持Float UUID识别，不混同本地输入主人权限，增加无Minecraft保护。vanillaState覆盖missing/nonliving/ARMOR_STAND→ZOMBIE/另一context，functionContract真实LocalPlayer身份壳验证player/Boolean、UUID匹配与不匹配、另一Avatar相同actor仍local、断开player为0。
+
+query.actor_count从常量1改subject ClientLevel.getEntityCount原始Integer，CPU world 8→0/missingworld/另一context证明当前计数读取；实际世界实体生成渲染仍人工项。query.player_level从context缓存改Player.experienceLevel原始Integer，17→3且context=-1不影响；其他Living/nonliving/null拒绝，远端display状态归M7。query.has_cape从占位缓存改原版AbstractClientPlayer.getSkin().cape非空且!invisible且CAPE model-part shown；测试原版PlayerSkin/ResourceTexture元数据的缺纹理false/有效true/invisible false/关闭false/重开true与client-player gate，不证明真实披风材质渲染。
+
+ysm.weather对照参考getWeather，返回原始Integer 2/1/0，优先世界isThundering再isRaining，不能用位置isRainingAt替代世界雨天；正式parser覆盖局部wet但世界clear0、局部dry但世界rain1、thunder有/无rain2，验证未调用局部rain getter。ysm.dimension_name严格参考dimension().registry().toString()，OVERWORLD/NETHER均minecraft:dimension（参考本身如此，不能把该值说明为维度ID）；自定义key registry返回fixture:worlds，不再输出ResourceKey debug文本。两项缺subject world null、另一context隔离。
+
+实体身份前台vanillaState/functionContract/phase41与Fabric build通过43秒；玩家/world count组首次test compile发现SDK Texture不是函数接口，按build.log改原版ResourceTexture后通过29秒；weather/dimension组首次新增test helper漏throws Exception，补声明后同组与Fabric build通过31秒，均以最终退出码0确认。新证据更新绑定清单9项；diff --check通过。真实窗口/披风渲染SKIPPED/MANUAL_BY_USER，未用offscreen。M4尚余绑定及最终全量gate，未提交/推送，不关闭计算机。
+
+M4 Curios三项能力分类验收（2026-10-15）：参考Fabric CuriosCompatImpl.registerCuriosItems将has_any_curios/has_any_curios_with_any_tag/has_any_curios_with_all_tags注册为Function.NOOP；参考NOOP返回raw null、接受任意参数且不求值。当前三个Float0占位改为同一参考null行为，并公开CAPABILITY_UNAVAILABLE原因（Curios bridge未实现/仅参考Fabric no-op）；scanner不再把三个名字列为完整supported，optional reason与report统一识别。未修改参考后端或加入第三方桥，不能称真实饰品识别PASS。
+
+unavailableBinding正式parser覆盖裸引用/空调用/带副作用与invalid ID参数均null、0..4参声明、参数不执行、scanner收集gap与原因、native weather不被错分类。首次编译缺Set import按build.log补齐；前台unavailableBinding/phase41与Fabric build通过22秒，退出码0。新增Curios能力分类后独立bindingReferenceAudit通过23秒：40候选/38有效/2既有负例、5加密验证、38模型sync审计/1resource/2numeric calls/0unresolved；reviewed core pending={}，optional类别由11增为12，ysm.has_any_curios实际出现1模型且明确不支持Curios桥，不能隐去。其余两Curios名称当前无语料不代表行为通过，只有no-op/capability证据。清单3项标CAPABILITY_UNAVAILABLE，人工联动SKIPPED/MANUAL_BY_USER。M4尚余34项PENDING_REVIEW及最终全量gate，未提交/推送，不关闭计算机。
+
+M4 船七项query验收（2026-10-15）：对照参考getBoat/getBoatPaddleState/getBoatRowingTime与offset常量，移除类名猜测和反射吞错，使用原版AbstractBoat自身或Entity直接vehicle。paddle原始Boolean且原版PADDLE_LEFT/RIGHT索引；rowing原始Float，为负native getRowingTime(index,captured partial tick)，无船0；raft/chest raft的Y偏移按参考表达式=-6，箱船/chest raft Z=-0.15*16=-2.4，scale对所有有效Entity均Float1，缺Entity均null。原实现只能识别vehicle，Float paddle、固定partial0、正rowing与offset0均已修正。
+
+vanillaState经正式parser使用真实Boat/ChestBoat/Raft/ChestRaft CPU壳，原版SynchedEntityData及原版setPaddleState/getPaddleState/getRowingTime/getControllingPassenger，显式乘客与paddlePositions输入；覆盖缺entity、非船/无船、船自身主体、左右切换、partial .25/1/另一context0，固定数值-1.7054757/-2/-4/-3.6073008与全部offset/scale，移除controller passenger后paddle false。首次builder失败缺base data value0，按build.log与SDK constructor补齐Entity的8项原版基础data，再调用AbstractBoat的defineSynchedData；没有改生产规避原版校验。前台vanillaState/functionContract/phase41与Fabric build通过30秒，退出码0。真实船/竹筏姿势与划桨渲染SKIPPED/MANUAL_BY_USER，未用offscreen。
+
+M4 Immersive Melodies三项分类验收（2026-10-15）：参考fabric ImmersiveMelodiesCompatImpl明确isLoaded=false，im_pitch返回Float0，im_delta/im_time返回Long0，三者均livingEntityVar。将原来的无gate Float0占位合入已有optional defaults路径，补齐类型/gate；从scanner supported列表移出，统一CAPABILITY_UNAVAILABLE原因，audit reviewed名单记录，不添加乐器桥或未要求的新变量。functionContract原有逐项raw class/值、缺entity/nonliving/Living gate、另一Avatar隔离和reason检查覆盖这三项，前台functionContract/vanillaState/phase41与Fabric build通过42秒，退出码0。
+
+M4 debug_output契约/加密隐私验收（2026-10-15）：参考DebugOut至少1参数、raw null、debug关闭在参数前返回、开启逐项原始对象拼接并logWarning。改原实现任意参/只读取首项/Float0为此契约，使用项目既有Figura debug开关与warning logger；加密runtime标记或source NBT任一标识都在参数前抑制，保留legacy直接Avatar识别。正式parser测试空参ParseException、0/1/4参metadata、debug关闭无副作用/日志，真实log4j appender确认开启拼接prefix3.0模型null与赋值；runtime encrypted但无NBT、独立NBT crypto_version以及直接Avatar三条路径均不输出PRIVATE marker、不执行参数。config/logger level/appender在finally恢复。
+
+调试夹具首次缺ArrayList import与把SLF4J facade误转core Logger，分别按build.log修正import与通过同名LogManager取得真实logger；随后证据messages=[]/value=null定位所谓plain fixture实际默认encrypted=true，改显式Fixture(false)后明文/加密测试均通过，未放松生产隐私gate。前台functionContract/vanillaState/phase41和Fabric build最终通过27秒，退出码0。清单本轮11项更新，剩23项PENDING_REVIEW；M4完整最终gate与提交/推送未完成，不关闭计算机。
+
+M4待继续核对的动画完成query证据：参考QueryBinding两项读取PlaybackFlags原始Boolean，缺flags=false，不按全局anim_time>=life_time回退；AnimationControllerRuntime activeCount==0将stopped/paused均true，运行slot完成时any/all分别聚合。参考AnimationControllerInstance以runningTick>length设完成且循环后保留该标志直到重置。当前QueryVariables仍Float+time fallback，applyControllerClock空slot any=false，且completedOnce退役后与混合时长的聚合需验证；这两行继续PENDING_REVIEW，不以船测试或语料缺失冒充完成。
+
+M4 本轮独立bindingReferenceAudit最终通过（22秒，退出码0）：40候选/38有效/2既有负例、5加密验证、38模型sync审计/1resource/2numeric calls/0unresolved，reviewed core pending={}；optional类别15项，新增ctrl.im_delta/im_pitch/im_time各出现2模型，均明确CAPABILITY_UNAVAILABLE，不能宣称乐器状态支持。M2冻结baseline未修改，M4独立最终baseline与全量gate仍待完成。
+
+M4 动画完成query验收（2026-10-15）：两项改raw Boolean，不再把false回退成anim_time>=life_time；无controller flags为false，controller空活动slot时参考stopped/paused均true。PlayingAnimation新增实例自己的完成cycle标志，在native时间推进、回绕或hold clamp之前按time>length置位，随后保持到新播放实例。控制器once完成判断及退役使用此严格参考边界，完成once从活动集合移出后仍以已有completedOnce集合参与any/all聚合；关闭reference权重时清理已完成标记，重启产生新实例；函数slot一并聚合。未改普通非controller动作的既有退役时间边界。
+
+functionContract正式bindings/真实controller update与native advanceAnimationTimeline验证：两Avatar各自mixed(short ONCE1秒+long LOOP2秒)、other与empty，精确1秒未完成，1.01秒any=true/all=false；真实update退役short后any保留，禁用条件清除、重开创建新实例；长loop回绕到小于1秒时完成标志仍true，后续cycle保持；新function slot不继承完成、清理后恢复；scope结束恢复外层false且无关100/0时间不产生完成。M3 controllerIsolation旧夹具second.time=1被新版严格参考边界正确判未完成，按build.log将完成样本改为1.001并增加精确1秒未完成断言；不是放松完成标准。前台functionContract/controllerIsolation/playerTimeline/phase41和Fabric build最终通过23秒、退出码0。
+
+M4 Camera/FPS验收（2026-10-15）：distance_from_camera从stale context改Entity当前原版distanceToSqr(Camera.position)的Float sqrt；rotation_to_camera严格1参数、axis int0/1读取原版pitch/yaw、非法null；缺Minecraft/renderer/camera边界为null。vanillaState使用真实Camera（正常构造，无窗口/GPU）及Minecraft/GameRenderer CPU身份壳，经正式parser验证13/0距离、相机/实体实时移动、nonliving独立坐标距离5、角度-20/135、1.9整数截断、0/2参ParseException与缺初始化；全局singleton与主体位置finally恢复。ysm.fps从Float改原版getFps Integer，native static fps144→27与无client null，finally恢复。Camera组前台vanillaState/functionContract/phase41和Fabric build通过27秒、退出码0；真实相机窗口验收SKIPPED/MANUAL_BY_USER。
+
+M4 cape_flap_amount验收（2026-10-15）：参考QueryBinding.getCapeFlapAmount在MC26.x已把移除的旧cloak字段置零，frameTime=partialTick；本次严格复现该端口公式，不自行补另一套披风物理。Player gate/raw Float，负native插值位置按当前bodyYaw投影，vertical[-6,32]/forward[0,150]、crouch+25、最后[0,1]。functionContract真实LocalPlayer身份壳经正式bindings验证6/108、31/108、fractional/current插值、反向yaw、.75、最大1与最小0、stale scalar和双Avatar；vanillaState无entity/nonliving/其他Living拒绝。披风与FPS组同前台gate和Fabric build通过40秒、退出码0；只证明CPU标量公式，不证明真实披风材质/物理渲染。
+
+M4 yaw_speed验收（2026-10-15）：普通Entity改直接20*wrap(native yRot-yRotO) Float。LocalPlayer按参考PlayerEntityFrameState.updateHeadYaw使用native tick跨距采样，重复渲染同tick保留值，previousTick>0才计算；在已有每帧updateYsmPositionContext入口采样，按Avatar保持前tick/yaw，替换主体/倒退tick/reset/close清理。正式parser普通实体双向wrap±400，LocalPlayer tick10→12的跨tick200、同tick不覆盖、tick13=-600、另一Avatar独立初始0、倒退/previous0/恢复200、reset/null验证；同组playerTimeline与Fabric build通过44秒、退出码0。
+
+M4 preview四项验收（2026-10-15）：参考CameraUtil.isThirdPerson实际上是IPreviewAnimatable或ModelPreviewRenderer.isPreview，不是摄像机third-person；ysm.rendering_in_paperdoll实际是RenderContext GUI_PREVIEW/OLD_HUD。对照项目EntityPreview(FIGURA_GUI)、原版GUI(MINECRAFT_GUI)和HUD PaperDoll(PAPERDOLL)入口：模型预览三者均true，GUI/HUD预览仅后两者true；世界/arm/other均false。ysm两项保留参考Entity gate/raw Boolean，query两项是项目扩展，native YSM按相同mode转Float1/0，非YSM原Figura保留已有context scalar；populateQueryContext对native也发布同一状态，不再将所有第三人称当inventory或任意打开screen当paperdoll。HUD小人对应参考PaperDollRenderer.OLD_HUD，rotation_to_camera合法双轴在此返回Float0，非法axis仍null；FIGURA_GUI模型选择器不被混为HUD。
+
+functionContract遍历全部8个mode验证原始类型/状态/stale scalar忽略、三类preview区分、共享actor的双Avatar隔离、返回世界立即false、无Entity的ysm null及原Figura .25/.75字段行为；GUI实际入口已有finally恢复renderMode，但未运行窗口，SKIPPED/MANUAL_BY_USER，未用offscreen。前台functionContract/vanillaState/playerTimeline/phase41与Fabric build最终通过52秒、退出码0。本轮11项写入清单，M4剩12项PENDING_REVIEW及完整最终gate，尚未提交/推送，不关闭计算机。
+
+M4 项目manual event三alias验收（2026-10-15）：ysm.event/run_event/trigger_event在参考YSMBinding无同名项，明确保留项目扩展语义，不制造参考契约。现有生产实现首String选择事件，payload从第二项开始，unknown/invalid/no-owner返回Float0，未知事件和非法名称不执行payload、无owner不执行名称。functionContract用正式NBT loader加载@probe/@child/@recursive并经三alias调用：逐次计数验证exactly once、Unicode StringExpression/raw String round trip、Boolean/Float结果、额外参数提前求值、nested event参数作用域、caller controller保持、t.saved=7在子event改99后恢复；两个Avatar的registry/persistent变量隔离。递归事件在现有32层call-depth限制内返回0，随后普通event恢复成功且临时scope不破坏。
+
+首轮夹具误用TempVariableStorage不存在的getPath/setPath，按build.log改用正式t.saved表达式读写；随后诊断显示event返回内容、counter与nested全正确，但Java String.equals(StringExpression)为false，按现有参考表达式值约定使用ValueConversions.asString验证，不修改生产值类型或绕开正式调用。前台functionContract/syncDefer/budget及Fabric build通过18秒、退出码0。本轮合计14项清单证据补齐，剩9项PENDING_REVIEW；完整M4最终gate与独立M4 baseline、提交/推送仍待完成，不关闭计算机。
+
+M4 extra-animation与firing-item验收（2026-10-15）：ctrl.playing_extra_animation对照参考CustomPlayerEntity轮盘额外动作播放谓词，映射项目YsmActionRuntime实际活动动作，将原Float0/1修正raw Boolean，缺owner/runtime false。复用正式action register/trigger/native timeline advance/stop链测试false→true→false和双Avatar隔离，不把普通base/controller clip算extra；UI触发映射留M5人工项。ysm.shoot_item_id参考要求AbstractArrow，原实现错误读取LivingEntity手中使用/持有物品，已改箭主体gate与原版getWeaponItem；native firing stack存在时返回String registry ID，null/empty空串，其他Entity/null返回null。真实Arrow和SpectralArrow CPU壳经正式bindings及native firedFromWeapon字段/getter验证BOW→CROSSBOW、空值、其他Living/Entity拒绝、双context独立。
+
+参考ysm$getOwnerItemId来自CloudProjectileModelSync写入displayFiringItem，不是原版客户端始终带有的字段；本次只读取可用native stack，不宣称所有客户端箭都有发射物品或远端显示桥已完成。缺native stack保持空串；配套后端/远端display bridge按用户要求列M7 SKIPPED/BACKEND_BY_USER，不修改refs或omnm-cloud。前台vanillaState/functionContract/phase41与Fabric build通过53秒、退出码0。清单2项更新，M4剩7项PENDING_REVIEW。
+
+用户询问当前是否仍可读取模型，立即执行当前代码完整本地加载回归（2026-10-15）：refs/avatars可读，39个目录/6个文件，共45项；前台:common:ysmLocalCorpusSmokeTest通过23秒、退出码0，原始输出Local corpus: Figura compiled=5 YSM data assembled=35 encrypted assembled/rehydrated=5。此证据覆盖原Figura文件夹/ZIP识别与编译、35个YSM数据装配、5个加密模型解密装配及cipher-only NBT重建；不是45项真实游戏窗口渲染PASS。既有缺箭纹理/旧Blockbench组等后续项不因此消失，手工渲染验收仍SKIPPED/MANUAL_BY_USER。M4剩余binding、全量最终gate/独立baseline与提交推送尚未完成，不关闭计算机。
+
+M4 诊断三项验收（2026-10-15）：对照参考 dump_mods/dump_effects/dump_biome，均由旧无效 Function 改为 Variable/raw null。共用 debug 与来源隐私 gate；DEBUG_MODE=false、encrypted runtime 或 encrypted NBT 均在读取日志内容/平台列表/世界之前返回。dump_mods 使用平台实际 ID/displayName 并按 displayName 排序；Fabric/Forge/NeoForge 补相应平台实现，本轮只编译 Fabric，不声明其他平台构建通过。dump_effects 使用 LivingEntity 原版效果和 Arrow pickup PotionContents，等级为 amplifier+1；dump_biome 按主体 blockPosition 读取原版 Holder 并复现参考 registry 字段输出（不将其误记为实际 biome/tag ID）。日志内容验证不等于真实聊天点击复制界面验收。
+
+vanillaState 正式 parser/bindings 验证 raw null/Variable 类型、平台排序、SPEED lv3、Arrow POISON lv2、Holder key/tags 与坐标、debug 关闭无枚举、缺 Entity/不支持主体和加密 NBT 隐私；functionContract 验证已有 encrypted runtime 对全部 dump 的日志/枚举抑制。实际窗口 SKIPPED/MANUAL_BY_USER。
+
+M4 ctrl.indicate_reload 验收（2026-10-15）：参考只清 lastRequestedAnimation，当前姿态持续到下一次动画请求；新增每 controller 一次性 reload 标记，下次请求将旧播放实例移入独立淡出 slot，新同名实例从零开始，reset/清理/close 丢弃标记。修正 clearControllerFunctionAnimation 的 slot 清理，避免带淡出 reset 后重播同名 clip 复用旧时间。functionContract 验证严格0参/raw null、缺 context、立即姿态不变、下一次重载/淡入、旧实例淡出、一次消费、reset 后新实例 time0、其他 controller 与 Avatar 不变。
+
+本轮前台 :common:ysmFunctionContractSmokeTest :common:ysmVanillaStateSmokeTest :common:ysmControllerIsolationSmokeTest :common:ysmPlayerTimelineSmokeTest :fabric:build 通过52秒、退出码0；以上4项清单更新 EVIDENCE_RECORDED，M4 尚余3项声音 PENDING_REVIEW。声音参考契约已经确认：play_sound 2..5参、stop_sound 1..2参、stop_all_sounds 0..1参，原始 Boolean，numeric/string 播放实例 ID、替换/全局/循环 flags 和当前 controller 播放作用域仍需实现及验证，不以旧 Float 包装器可调用当作兼容。
+
+本轮再次完整本地模型加载回归通过28秒、退出码0：Figura compiled=5、YSM data assembled=35、encrypted assembled/rehydrated=5，共45项。两个 Figura 样本仍有 arrow 纹理缺失诊断；加载 gate 通过不替代完整材质/真实窗口验收。M4 完整 gate、独立 baseline、提交与推送尚未完成；不启动 M5，不关闭计算机。
+
+M4/M5 范围纠偏（2026-10-15，用户指出）：声音三项的参考参数/原始返回/实例 ID/flags 属于 M4 绑定契约核查；模型音频播放管理器、资源消费、逐 tick 跟随、停止/卸载接线及底层音量适配属于 M5 音频消费链。本轮曾提前新增 YsmSoundRuntime/原生声音夹具及 tick/close/音量接线，用户提醒后已全部撤回，未提交、未推送，未宣称测试通过。首轮夹具字段名错误、次轮权限包类型错误均为失败证据，不记 PASS。当前保留此前已通过的 M4 诊断/reload 修改，声音三项继续 PENDING_REVIEW；不得以此记录视为获准提前实施 M5，也不得为了关闭 M4 清单扩张后续阶段的实现或验收标准。M4 绑定契约与 M5 实际音频消费的交接边界需明确记录后按阶段执行。
+撤回后验证：正式 functionContract、controllerIsolation 与 Fabric build 前台通过49秒、退出码0；LuaSound 相对 HEAD 无差异，新增声音 runtime/夹具/Gradle 任务及其调用均已移除。此验证只确认撤回后的构建和对应回归，不代表 M4 最终验收完成。
+
+M4 范围确认（2026-10-15）：在指出声音执行与 M5 交叉后，已向用户列明两种边界选择，用户明确选择“M4 内允许最小声音执行适配”。本次授权仅用于三个声音绑定的 ID、参数/返回、flags、当前 controller/全局与 Avatar 隔离、停止和必要生命周期验证；模型包音频装配/解码、语言、材质及 UI 消费继续严格留 M5，不因此提前启动 M5。此前撤回记录仍如实保留。
+
+声音适配前的整体验证：前台执行 common/build.gradle 中全部40项既有 ysm*SmokeTest、ysmBindingReferenceAudit 和 Fabric build，通过2分42秒、退出码0（56 actionable tasks，41 executed）；日志保留 build/reports/ysm/m4-before-sound-full-gate.log。包括 Figura5/YSM35/加密5 的45项加载、M3全部回归与当前M4测试。声音适配后的影响项仍需重测，未将此轮视作 M4 DONE。
+
+M4 最小声音适配验收（2026-10-15，按用户本轮明确授权）：三个绑定改严格2..5/1..2/0..1参和raw Boolean，缺Entity raw null，未开启client-effect时在求值参数前false；ID使用参考numeric负编码与StringPool编码，0匿名，flags替换1/全局2/循环4，音量/音调[.001,1000]。YsmSoundRuntime只适配既有 SoundAPI/LuaSound 与实际native handle，按runtime、当前controller/无controller时animation effect owner、global分组。停止按实例handle执行，不调用Avatar UUID整组停止；controller退出、model close清理，tick跟随主体及回收结束handle。LuaSound仅补不标LuaWhitelist的内部音量入口，原Lua setVolume仍上限1，保留owner权限/quota。模型包音频解码/装配及额外资源消费未实施，仍归M5。
+
+soundNative 使用正式Avatar bindings/parser与真实LuaSound.play，RecordingClient/Manager/Engine/ChannelHandle仅为原版CPU身份/提交记录，未执行OpenAL consumer；验证实际custom buffer分支、UUID/quota、重复ID拒绝、替换、String与numeric分离、negative/flags拒绝、匿名、global、双controller/Avatar与animation context、真实Entity坐标跟随、关闭释放及重启拒绝、原Lua音量兼容。首轮因fixture未实现MinecraftAccesor导致原版profiler cast失败，按build.log在夹具补标准InactiveMetricsRecorder后重跑，不修改生产profiler。前台soundNative/controllerSound/functionContract及Fabric build通过33秒、退出码0。清单三项补证据，包内音频和可听播放仍未验收，后者SKIPPED/MANUAL_BY_USER。
+
+M4 独立扫描baseline：先执行无baseline严格扫描，确认40/38/2且退出1；错误源为既有缺transition target与缺animation，不放宽为成功。新m4-corpus-baseline.json从冻结M2期望独立推导：仅删除已逐项验收的18类旧binding缺口，新增已审计的16_tactics Curios及default/YSM_NEW_Model的im_*不可用能力。逐模型errors与M2完全一致，独立期望与当前UTF-8报告精确相等；M2文件未改。PowerShell native控制台对中文可能转码，审阅使用Java直接UTF-8写出的m4-final-scan.txt，不从终端乱码生成baseline。此文件只冻结扫描候选/错误/不支持名单，不证明所有binding行为或M5音频/材质已完成。
+
+M4 最终自动验收完成（2026-10-15）：完成本阶段既定 binding/function/event、sync/defer、总执行预算、异常恢复、滤波状态隔离与诊断要求，并包含本轮用户明确授权的最小声音执行适配。233个显式名称逐项分级为211 EVIDENCE_RECORDED、21 CAPABILITY_UNAVAILABLE、1 REFERENCE_UNRESOLVED，无PENDING_REVIEW行。后两类不计为参考功能完整支持：可选模组桥不存在，bone_param无核实契约且当前全部38有效YSM无调用；已用显式拒绝/中性值、能力报告及恢复测试记录限制。
+
+最终前台运行41个已注册ysm*SmokeTest、ysmBindingReferenceAudit、使用common/src/test/resources/ysm/m4-corpus-baseline.json的scanYsmModels及fabric:build，通过2分42秒、退出码0，58 actionable tasks（44 executed、14 up-to-date）。逐项核对Gradle实际执行任务集合包含全部42个smoke/audit名称及scan；完整日志build/reports/ysm/m4-final-gate.log、UTF-8扫描报告build/reports/ysm/m4-final-scan.txt。包括M3全部回归、Figura5/明文YSM35/加密YSM5本地45项加载，扫描40/38/2、encryptedValidated5、syncModelsAudited38/资源1/numericCalls2/unresolved0。已知两模型负例未隐藏；两个Figura缺arrow纹理仍为原有素材限制。
+
+真实窗口、可听音频、第三方可选模组实机行为继续SKIPPED/MANUAL_BY_USER；后端需求SKIPPED/BACKEND_BY_USER，不修改refs或omnm-cloud。Forge/NeoForge诊断枚举实现未执行其平台构建，不声明通过。源码与新增文件已进行可读性/范围和空白检查，仓库无独立Java格式化配置，未全文件重排旧代码。M2冻结baseline未改。M4按6.1执行独立commit/push及远端SHA核对后，才允许进入M5；本记录不宣称M5音频资源、语言、材质或M6～M8已完成，不关闭计算机。

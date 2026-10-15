@@ -31,6 +31,12 @@ public class PlatformUtilsImpl {
         return FabricLoader.getInstance().getModContainer(modId).get().getMetadata().getVersion().getFriendlyString();
     }
 
+    public static java.util.Map<String, String> getLoadedMods() {
+        return FabricLoader.getInstance().getAllMods().stream()
+                .map(container -> container.getMetadata())
+                .collect(java.util.stream.Collectors.toUnmodifiableMap(metadata -> metadata.getId(), metadata -> metadata.getName()));
+    }
+
     public static PlatformUtils.ModLoader getModLoader() {
         return PlatformUtils.ModLoader.FABRIC;
     }

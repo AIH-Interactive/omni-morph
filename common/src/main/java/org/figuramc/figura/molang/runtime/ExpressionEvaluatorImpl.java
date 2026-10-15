@@ -121,6 +121,9 @@ public final class ExpressionEvaluatorImpl<TEntity>
                     return ValueConversions.asFloat(left) == ValueConversions.asFloat(right)
                             ? Boolean.TRUE : Boolean.FALSE;
                 if (left == null || right == null) return Boolean.FALSE;
+                if (right instanceof StringExpression) {
+                    return right.equals(left) ? Boolean.TRUE : Boolean.FALSE;
+                }
                 return left.equals(right) ? Boolean.TRUE : Boolean.FALSE;
             },
             // NEQ (15) - a != b
@@ -132,18 +135,28 @@ public final class ExpressionEvaluatorImpl<TEntity>
                     return ValueConversions.asFloat(left) != ValueConversions.asFloat(right)
                             ? Boolean.TRUE : Boolean.FALSE;
                 if (left == null || right == null) return Boolean.TRUE;
+                if (right instanceof StringExpression) {
+                    return !right.equals(left) ? Boolean.TRUE : Boolean.FALSE;
+                }
                 return !left.equals(right) ? Boolean.TRUE : Boolean.FALSE;
             }
     };
 
     private final TEntity entity;
+    private final MolangExecutionBudget budget;
     private Object returnValue;
     private StatementExpression.Op op;
     private int cnt = 0;
     private int working = 0;
 
     public ExpressionEvaluatorImpl(TEntity entity) {
+        this(entity, entity instanceof MolangExecutionBudget.Owner owner
+                ? owner.executionBudget() : new MolangExecutionBudget());
+    }
+
+    private ExpressionEvaluatorImpl(TEntity entity, MolangExecutionBudget budget) {
         this.entity = entity;
+        this.budget = budget;
     }
 
     @Override
@@ -153,7 +166,7 @@ public final class ExpressionEvaluatorImpl<TEntity>
 
     @Override
     public Object eval(Expression expression) {
-        try {
+        try (var budgetScope = budget.begin()) {
             return expression.visit(this);
         } finally {
             this.returnValue = null;
@@ -163,7 +176,7 @@ public final class ExpressionEvaluatorImpl<TEntity>
 
     @Override
     public float evalAsFloat(Expression expression) {
-        try {
+        try (var budgetScope = budget.begin()) {
             return evalFloat(expression);
         } finally {
             this.returnValue = null;
@@ -173,7 +186,7 @@ public final class ExpressionEvaluatorImpl<TEntity>
 
     @Override
     public boolean evalAsBoolean(Expression expression) {
-        try {
+        try (var budgetScope = budget.begin()) {
             return evalBool(expression);
         } finally {
             this.returnValue = null;
@@ -185,7 +198,7 @@ public final class ExpressionEvaluatorImpl<TEntity>
     public Object evalAll(Iterable<Expression> iterable, boolean z) {
         if (z) this.working++;
         Object result = DOUBLE_ZERO;
-        try {
+        try (var budgetScope = budget.begin()) {
             if (iterable instanceof List) {
                 List<Expression> list = (List<Expression>) iterable;
                 for (int i = 0; i < list.size(); i++) {
@@ -219,6 +232,7 @@ public final class ExpressionEvaluatorImpl<TEntity>
      * Falls back to visit() for non-arithmetic nodes.
      */
     private float evalFloat(Expression expr) {
+        budget.consume();
         if (expr instanceof FloatExpression fe) {
             return fe.value();
         }
@@ -262,6 +276,7 @@ public final class ExpressionEvaluatorImpl<TEntity>
      * Native boolean evaluation path - avoids boxing.
      */
     private boolean evalBool(Expression expr) {
+        budget.consume();
         if (expr instanceof FloatExpression fe) {
             return fe.value() != 0.0f;
         }
@@ -306,7 +321,7 @@ public final class ExpressionEvaluatorImpl<TEntity>
     }
 
     public <TNewEntity> ExpressionEvaluatorImpl<TNewEntity> createChild(TNewEntity entity) {
-        return new ExpressionEvaluatorImpl<>(entity);
+        return new ExpressionEvaluatorImpl<>(entity, budget);
     }
 
     private Object popReturnValue() {
@@ -321,16 +336,19 @@ public final class ExpressionEvaluatorImpl<TEntity>
 
     @Override
     public Object visitCall(CallExpression expression) {
+        budget.consume();
         return expression.function().evaluate(this, expression.arguments());
     }
 
     @Override
     public Object visitFloat(FloatExpression floatExpression) {
+        budget.consume();
         return floatExpression.boxed();
     }
 
     @Override
     public Object visitExecutionScope(ExecutionScopeExpression executionScope) {
+        budget.consume();
         Object result = null;
         final List<Expression> expressions = executionScope.expressions();
         for (int i = 0; i < expressions.size(); i++) {
@@ -353,11 +371,9 @@ public final class ExpressionEvaluatorImpl<TEntity>
                 this.op = null;
                 if (op == StatementExpression.Op.CONTINUE) break;
                 if (op == StatementExpression.Op.BREAK) {
-                    this.cnt--;
                     return true;
                 }
             }
-            this.cnt--;
             return false;
         } finally {
             this.cnt--;
@@ -365,7 +381,11 @@ public final class ExpressionEvaluatorImpl<TEntity>
     }
 
     public void loopFunction(ExecutionScopeExpression executionScope, int n) {
-        for (int i = 0; i < n && !buildExecutionScope(executionScope); i++) {
+        for (int i = 0; i < n; i++) {
+            budget.consume();
+            if (buildExecutionScope(executionScope)) {
+                break;
+            }
         }
     }
 
@@ -374,6 +394,7 @@ public final class ExpressionEvaluatorImpl<TEntity>
                                  Iterable<?> iterable) {
         Iterator<?> it = iterable.iterator();
         while (it.hasNext()) {
+            budget.consume();
             variableAccess.assign(this, it.next());
             if (buildExecutionScope(executionScope)) return;
         }
@@ -381,21 +402,25 @@ public final class ExpressionEvaluatorImpl<TEntity>
 
     @Override
     public Object visitIdentifier(IdentifierExpression identifierExpression) {
+        budget.consume();
         throw new RuntimeException("Unknown identifier type: " + identifierExpression.name());
     }
 
     @Override
     public Object visitVariable(VariableExpression expression) {
+        budget.consume();
         return expression.target().evaluate(this);
     }
 
     @Override
     public Object visitAssignableVariable(AssignableVariableExpression expression) {
+        budget.consume();
         return expression.target().evaluate(this);
     }
 
     @Override
     public Object visitStruct(StructAccessExpression expression) {
+        budget.consume();
         Object value = expression.left().visit(this);
         if (value instanceof Struct) {
             return ((Struct) value).getProperty(expression.path());
@@ -405,6 +430,7 @@ public final class ExpressionEvaluatorImpl<TEntity>
 
     @Override
     public Object visitBinary(BinaryExpression expression) {
+        budget.consume();
         return BINARY_EVALUATORS[expression.op().index()].eval(
                 this,
                 expression.left(),
@@ -414,6 +440,7 @@ public final class ExpressionEvaluatorImpl<TEntity>
 
     @Override
     public Object visitBinaryOperation(BinaryOperationExpression expression) {
+        budget.consume();
         Object left = expression.getLeft().visit(this);
         Object right = expression.getRight().visit(this);
         if (right instanceof Number) {
@@ -430,6 +457,7 @@ public final class ExpressionEvaluatorImpl<TEntity>
 
     @Override
     public Object visitUnary(UnaryExpression expression) {
+        budget.consume();
         Object value = expression.expression().visit(this);
         switch (expression.op()) {
             case LOGICAL_NEGATION:
@@ -447,17 +475,20 @@ public final class ExpressionEvaluatorImpl<TEntity>
 
     @Override
     public Object visitStatement(StatementExpression expression) {
+        budget.consume();
         this.op = expression.op();
         return null;
     }
 
     @Override
     public Object visitString(StringExpression expression) {
+        budget.consume();
         return expression;
     }
 
     @Override
     public Object visitTernaryConditional(TernaryConditionalExpression expression) {
+        budget.consume();
         Object condition = expression.condition().visit(this);
         return ValueConversions.asBoolean(condition)
                 ? expression.trueExpression().visit(this)
@@ -466,6 +497,7 @@ public final class ExpressionEvaluatorImpl<TEntity>
 
     @Override
     public Object visit(Expression expression) {
+        budget.consume();
         throw new UnsupportedOperationException("Unsupported expression type: " + expression.getClass().getName());
     }
 

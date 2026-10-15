@@ -9,6 +9,7 @@ import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.gui.ActionWheel;
 import org.figuramc.figura.gui.PopupMenu;
+import org.figuramc.figura.model.ysm.YsmInputState;
 import org.figuramc.figura.lua.api.keybind.FiguraKeybind;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -30,6 +31,9 @@ public class MouseHandlerMixin {
     private void onPress(long window, MouseButtonInfo mouseButtonInfo, int action, CallbackInfo ci) {
         if (window != this.minecraft.getWindow().handle())
             return;
+
+        YsmInputState.device().updateReadiness(this.minecraft);
+        YsmInputState.device().mouseEvent(mouseButtonInfo.button(), action);
 
         Avatar avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
         if (avatar == null || avatar.luaRuntime == null)

@@ -4,6 +4,13 @@ import java.nio.file.Path;
 
 /** Standalone JVM test environment only; never included in production artifacts. */
 public final class PlatformUtilsImpl {
+    public static int loadedModReads;
+
+    public static java.util.Map<String, String> getLoadedMods() {
+        loadedModReads++;
+        return java.util.Map.of("fixture-z", "Alpha Mod", "fixture-a", "Zulu Mod");
+    }
+
     private PlatformUtilsImpl() {
     }
 
@@ -20,6 +27,13 @@ public final class PlatformUtilsImpl {
     }
 
     public static boolean isModLoaded(String modId) {
-        return false;
+        return "figura-test-version".equals(modId);
+    }
+
+    public static String getModVersion(String modId) {
+        if (!isModLoaded(modId)) {
+            throw new IllegalArgumentException("Unknown test mod");
+        }
+        return "1.2.3-test+cpu";
     }
 }

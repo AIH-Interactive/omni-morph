@@ -32,6 +32,7 @@ public class YsmRenderer {
         RenderType renderType = renderType();
         VertexConsumer vertices = bufferSource.getBuffer(renderType);
 
+        updateTrackedPivots(false, pose);
         stack.pushPose();
         applyModelScale(stack, pose);
         runtime.updateWorldMatrices(stack, pose);
@@ -109,6 +110,7 @@ public class YsmRenderer {
         RenderType renderType = renderType();
         VertexConsumer vertices = bufferSource.getBuffer(renderType);
 
+        updateTrackedPivots(false, pose);
         stack.pushPose();
         applyModelScale(stack, pose);
         renderBone(bone, stack, vertices, light, null, false, pose);
@@ -146,6 +148,7 @@ public class YsmRenderer {
 
         YsmPartMask mask = YsmPartMask.forPass(YsmRenderPass.FIRST_PERSON_ARM);
 
+        updateTrackedPivots(true, pose);
         stack.pushPose();
         boolean useArmParts = runtime.hasArmModel();
         for (YsmGeometry.Bone root : armGeo.roots) {
@@ -216,17 +219,21 @@ public class YsmRenderer {
     }
 
     private void applyBoneTransform(YsmGeometry.Bone bone, YsmModelPart part, PoseStack stack) {
+        applyBoneTransform(bone, part, stack, false);
+    }
+
+    private void applyBoneTransform(YsmGeometry.Bone bone, YsmModelPart part, PoseStack stack, boolean stopAtPivot) {
         double px = bone.pivot[0] / 16d;
         double py = bone.pivot[1] / 16d;
         double pz = bone.pivot[2] / 16d;
         stack.translate(px, py, pz);
-        rotateBone(stack, bone.rotation[0], bone.rotation[1], bone.rotation[2]);
         if (part != null) {
             FiguraVec3 animPos = part.animPosRaw();
             FiguraVec3 animRot = part.animRotRaw();
             FiguraVec3 animScale = part.animScaleRaw();
             stack.translate(-animPos.x / 16d, animPos.y / 16d, animPos.z / 16d);
-            rotateBone(stack, (float) -animRot.x, (float) -animRot.y, (float) animRot.z);
+            rotateBone(stack, bone.rotation[0] - (float) animRot.x,
+                    bone.rotation[1] - (float) animRot.y, bone.rotation[2] + (float) animRot.z);
             stack.scale((float) animScale.x, (float) animScale.y, (float) animScale.z);
 
             FiguraVec3 pos = part.posRaw();
@@ -235,8 +242,46 @@ public class YsmRenderer {
             stack.translate(-pos.x / 16d, pos.y / 16d, pos.z / 16d);
             rotateBone(stack, (float) -rot.x, (float) -rot.y, (float) rot.z);
             stack.scale((float) scale.x, (float) scale.y, (float) scale.z);
+        } else {
+            rotateBone(stack, bone.rotation[0], bone.rotation[1], bone.rotation[2]);
         }
-        stack.translate(-px, -py, -pz);
+        if (!stopAtPivot) {
+            stack.translate(-px, -py, -pz);
+        }
+    }
+
+    private void updateTrackedPivots(boolean firstPerson, YsmRenderPose pose) {
+        if (!runtime.boneQueries().hasTrackedPivots(firstPerson)) {
+            return;
+        }
+        boolean armParts = firstPerson && runtime.hasArmModel();
+        YsmGeometry geometry = armParts ? runtime.getArmGeometry() : runtime.geometry();
+        PoseStack local = new PoseStack();
+        for (YsmGeometry.Bone root : geometry.roots) {
+            updateTrackedPivot(root, local, firstPerson, armParts, pose);
+        }
+    }
+
+    private void updateTrackedPivot(YsmGeometry.Bone bone, PoseStack local, boolean firstPerson,
+                                    boolean armParts, YsmRenderPose pose) {
+        YsmModelPart original = armParts ? runtime.getArmPart(bone.name) : runtime.getPart(bone.name);
+        YsmModelPart part = pose == null ? original : pose.part(bone.name);
+        if (part == null || !part.visibleRaw()
+                || part.animScaleRaw().x * part.scaleRaw().x == 0d
+                || part.animScaleRaw().y * part.scaleRaw().y == 0d
+                || part.animScaleRaw().z * part.scaleRaw().z == 0d) {
+            return;
+        }
+        local.pushPose();
+        applyBoneTransform(bone, part, local, true);
+        var matrix = local.last().pose();
+        runtime.boneQueries().recordPivot(original, firstPerson,
+                -matrix.m30() * 16f, matrix.m31() * 16f, matrix.m32() * 16f);
+        local.translate(-bone.pivot[0] / 16d, -bone.pivot[1] / 16d, -bone.pivot[2] / 16d);
+        for (YsmGeometry.Bone child : bone.children) {
+            updateTrackedPivot(child, local, firstPerson, armParts, pose);
+        }
+        local.popPose();
     }
 
     private void rotateBone(PoseStack stack, float x, float y, float z) {

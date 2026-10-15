@@ -22,6 +22,8 @@ import net.minecraft.util.Mth;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.molang.parser.ast.Expression;
 import org.figuramc.figura.molang.runtime.ExpressionEvaluator;
+import org.figuramc.figura.molang.runtime.MolangExecutionBudget;
+import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.molang.storage.StringPool;
 import org.figuramc.figura.lua.api.particle.ParticleAPI;
 import org.figuramc.figura.lua.api.sound.SoundAPI;
@@ -30,6 +32,9 @@ import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.model.ysm.YsmBoneRole;
 import org.figuramc.figura.model.ysm.YsmModelPart;
 import org.figuramc.figura.model.ysm.YsmModelRuntime;
+import org.figuramc.figura.model.ysm.YsmParticleRuntime;
+import org.figuramc.figura.model.ysm.YsmMolangFunctionRuntime;
+import org.figuramc.figura.model.ysm.YsmFilterRuntime;
 import org.figuramc.figura.model.ysm.controller.YsmAnimationController;
 import org.figuramc.figura.model.ysm.controller.YsmControllerAnimationRef;
 import org.figuramc.figura.model.ysm.controller.YsmControllerRuntime;
@@ -48,6 +53,8 @@ public class YsmAnimationPlayer {
     private final YsmControllerRuntime controllerRuntime;
     private final Map<String, PlayingAnimation> activeAnimations = new LinkedHashMap<>();
     private final Map<String, String> controllerFunctionAnimations = new HashMap<>();
+    private final Map<String, Float> controllerFunctionTransitionLengths = new HashMap<>();
+    private final Set<String> controllerFunctionReloads = new HashSet<>();
     private final Map<String, YsmControllerPoseLayer> controllerPoseLayers = new LinkedHashMap<>();
     private final Map<String, YsmControllerPoseLayer> armControllerPoseLayers = new LinkedHashMap<>();
     private final Map<String, String> nativeHandAnimations = new HashMap<>();
@@ -58,12 +65,14 @@ public class YsmAnimationPlayer {
     private boolean controllerInitialHiddenResolved;
     private LivingEntity currentEntity;
     private boolean wasSwinging;
+    private long lastBudgetFailureFrame = Long.MIN_VALUE;
 
     public static class PlayingAnimation {
         public final YsmAnimationClip clip;
         public float time;
         public float previousTime;
         private double eventWindowEnd;
+        private boolean completedCycle;
         public float speed = 1f;
         public float weight = 1f;
         public boolean loop;
@@ -85,6 +94,10 @@ public class YsmAnimationPlayer {
             this.loopMode = clip.loopMode;
             this.targetWeight = isNative ? 0f : 1f;
             this.weight = isNative ? 0f : 1f;
+        }
+
+        public boolean hasCompletedCycle() {
+            return completedCycle || time > Math.max(0f, clip.length);
         }
     }
 
@@ -161,8 +174,15 @@ public class YsmAnimationPlayer {
     }
 
     public void runFunctionEventsForController(YsmAnimationController controller, ExpressionEvaluator<?> evaluator) {
-        if (controller != null)
-            runtime.functions().runControllerSlotEvents(controller.name(), controller.slot(), evaluator);
+        if (controller != null) {
+            try (var effectScope = beginControllerEffects()) {
+                runtime.functions().runControllerSlotEvents(controller.name(), controller.slot(), evaluator);
+            }
+        }
+    }
+
+    public YsmMolangFunctionRuntime.EffectScope beginControllerEffects() {
+        return runtime == null ? null : runtime.functions().beginClientEffects(null);
     }
 
     public void playControllerSounds(String controllerName, YsmControllerState state) {
@@ -173,6 +193,9 @@ public class YsmAnimationPlayer {
 
     public void stopControllerSounds(String controllerName) {
         controllerSounds.stop(normalizeControllerName(controllerName));
+        if (runtime != null) {
+            runtime.sounds().stopController(normalizeControllerName(controllerName));
+        }
     }
 
     public void closeSounds() {
@@ -183,6 +206,7 @@ public class YsmAnimationPlayer {
         String controller = normalizeControllerName(controllerName);
         activeAnimations.values().removeIf(animation -> controller.equals(animation.controllerName));
         controllerFunctionAnimations.remove(controller);
+        controllerFunctionReloads.remove(controller);
         controllerPoseLayers.remove(controller);
         armControllerPoseLayers.remove(controller);
     }
@@ -315,7 +339,7 @@ public class YsmAnimationPlayer {
     public boolean isControllerAnimationFinished(String controllerName, String animationName) {
         PlayingAnimation playing = getControllerAnimation(controllerName, animationName);
         return playing != null && playing.loopMode == YsmAnimationClip.LoopMode.ONCE
-                && playing.clip.length > 0f && playing.time >= playing.clip.length;
+                && playing.hasCompletedCycle();
     }
 
     public void fadeOutControllerAnimation(String controllerName, String animationName, float fadeSeconds) {
@@ -323,7 +347,11 @@ public class YsmAnimationPlayer {
     }
 
     public void retireControllerAnimation(String controllerName, String animationName, float fadeSeconds) {
-        PlayingAnimation playing = activeAnimations.remove(controllerSlotKey(controllerName, animationName));
+        retireSlot(controllerSlotKey(controllerName, animationName), fadeSeconds);
+    }
+
+    private void retireSlot(String slot, float fadeSeconds) {
+        PlayingAnimation playing = activeAnimations.remove(slot);
         if (playing == null || fadeSeconds <= 0f) {
             return;
         }
@@ -342,6 +370,12 @@ public class YsmAnimationPlayer {
         String controller = normalizeControllerName(controllerName);
         String slot = "controller-function/" + controller.length() + "/" + controller + "/" + resolveAnimationName(animationName);
         String previous = controllerFunctionAnimations.get(controller);
+        if (controllerFunctionReloads.remove(controller)) {
+            if (previous != null) {
+                retireSlot(previous, fadeSeconds);
+            }
+            previous = null;
+        }
         if (previous != null && !previous.equals(slot))
             fadeOutSlot(previous, fadeSeconds);
         PlayingAnimation playing = playInSlot(slot, animationName, loopMode, speed, fadeSeconds, controller);
@@ -356,14 +390,35 @@ public class YsmAnimationPlayer {
     }
 
     public void clearControllerFunctionAnimation(String controllerName, float fadeSeconds) {
-        String previous = controllerFunctionAnimations.remove(normalizeControllerName(controllerName));
+        String controller = normalizeControllerName(controllerName);
+        controllerFunctionReloads.remove(controller);
+        String previous = controllerFunctionAnimations.remove(controller);
         if (previous != null)
-            fadeOutSlot(previous, fadeSeconds);
+            retireSlot(previous, fadeSeconds);
     }
 
     public PlayingAnimation getControllerFunctionAnimation(String controllerName) {
         String slot = controllerFunctionAnimations.get(normalizeControllerName(controllerName));
         return slot == null ? null : activeAnimations.get(slot);
+    }
+
+    public void setControllerFunctionTransitionLength(String controllerName, float seconds) {
+        if (Float.isFinite(seconds) && seconds >= 0f) {
+            controllerFunctionTransitionLengths.put(normalizeControllerName(controllerName), seconds);
+        }
+    }
+
+    public float controllerFunctionTransitionLength(String controllerName) {
+        return controllerFunctionTransitionLengths.getOrDefault(normalizeControllerName(controllerName), 0f);
+    }
+
+    public void clearControllerFunctionTransitions() {
+        controllerFunctionTransitionLengths.clear();
+        controllerFunctionReloads.clear();
+    }
+
+    public void requestControllerFunctionReload(String controllerName) {
+        controllerFunctionReloads.add(normalizeControllerName(controllerName));
     }
 
     public YsmAnimationClip.LoopMode loopModeFor(String animationName, YsmAnimationClip.LoopMode fallback) {
@@ -409,14 +464,68 @@ public class YsmAnimationPlayer {
     }
 
     public void update(LivingEntityRenderState state, LivingEntity entity, boolean firstPerson) {
+        Avatar.MolangContext context = runtime.owner().getMolangContext();
+        int previousCameraType = context == null ? 2 : context.ysm_camera_type;
+        runtime.boneQueries().beginFrame(YsmRenderFrameClock.currentFrame());
+        try (var frameBudget = context == null ? null
+                : context.executionBudget().beginFrame(YsmRenderFrameClock.currentFrame());
+             var boneQueries = runtime.boneQueries().beginEvaluation()) {
+            updateFrame(state, entity, firstPerson);
+            runtime.boneQueries().captureOutput(firstPerson);
+        } catch (MolangExecutionBudget.Exceeded exhausted) {
+            runtime.particles().discardPending();
+            runtime.functions().discardDeferredCalls();
+            long frame = YsmRenderFrameClock.currentFrame();
+            if (lastBudgetFailureFrame != frame) {
+                lastBudgetFailureFrame = frame;
+                if (runtime.encryptedSource()) {
+                    FiguraMod.LOGGER.warn("Encrypted YSM operation failed: runtime/molang-budget");
+                } else {
+                    FiguraMod.LOGGER.warn("YSM execution budget exceeded in {}", runtime.getModelKey());
+                }
+            }
+        } finally {
+            if (context != null) {
+                context.ysm_camera_type = previousCameraType;
+            }
+        }
+    }
+
+    private void updateFrame(LivingEntityRenderState state, LivingEntity entity, boolean firstPerson) {
         currentEntity = entity;
+        Avatar.MolangContext renderContext = runtime.owner().getMolangContext();
+        if (renderContext != null) {
+            renderContext.setYsmRenderTime(state == null ? Float.NaN : state.ageInTicks,
+                    entity == null ? 0 : entity.tickCount);
+            renderContext.updateYsmPositionContext(entity);
+            renderContext.updateYsmMovementContext(state == null ? Float.NaN : state.walkAnimationSpeed);
+            org.figuramc.figura.model.ysm.YsmHandQuery.capture(renderContext);
+        }
         Minecraft minecraft = Minecraft.getInstance();
+        if (renderContext != null) {
+            renderContext.setYsmCameraContext(entity, minecraft.player, minecraft.getCameraEntity(),
+                    minecraft.options.getCameraType(), !YsmParticleRuntime.isPreview(runtime.owner().renderMode));
+        }
         boolean firstPersonActive = firstPerson || (entity != null && entity == minecraft.player
                 && minecraft.options.getCameraType().isFirstPerson());
         YsmAnimationFrameClock.Step step = frameClock.step(YsmRenderFrameClock.currentFrame(),
                 state == null ? Float.NaN : state.ageInTicks);
         float deltaTime = step.deltaSeconds();
         updateYsmHeadRotation(state, entity);
+        if (renderContext != null && state != null) {
+            long renderFrame = YsmRenderFrameClock.currentFrame();
+            if (YsmParticleRuntime.isPreview(runtime.owner().renderMode)) {
+                renderContext.filters.update(YsmFilterRuntime.Domain.PREVIEW, state.ageInTicks,
+                        renderFrame, renderContext.executionBudget());
+            } else {
+                renderContext.filters.update(YsmFilterRuntime.Domain.BODY, state.ageInTicks,
+                        renderFrame, renderContext.executionBudget());
+                if (firstPersonActive) {
+                    renderContext.filters.update(YsmFilterRuntime.Domain.FIRST_PERSON, state.ageInTicks,
+                            renderFrame, renderContext.executionBudget());
+                }
+            }
+        }
 
         if (step.advance()) {
             if (!firstPersonActive) {
@@ -506,9 +615,12 @@ public class YsmAnimationPlayer {
                 anim.time += deltaTime * anim.speed;
             }
             anim.eventWindowEnd = anim.time;
+            // The reference keeps this flag after loop wrapping or hold-time clamping, until playback resets.
+            anim.completedCycle |= anim.time > Math.max(0f, anim.clip.length);
             if (anim.clip.length > 0)
                 advanceAnimationTime(anim);
-            if (anim.loopMode == YsmAnimationClip.LoopMode.ONCE && anim.clip.length > 0f && anim.time >= anim.clip.length) {
+            if (anim.loopMode == YsmAnimationClip.LoopMode.ONCE && anim.clip.length > 0f
+                    && (anim.controllerName != null ? anim.hasCompletedCycle() : anim.time >= anim.clip.length)) {
                 anim.targetWeight = 0f;
                 if (anim.fadeSpeed <= 0f)
                     anim.fadeSpeed = 5f;
@@ -518,10 +630,17 @@ public class YsmAnimationPlayer {
     }
 
     private void sampleAnimations(ExpressionEvaluator<?> evaluator, boolean firstPerson) {
+        try (var queries = runtime.boneQueries().beginEvaluation()) {
+            sampleAnimationPoses(evaluator, firstPerson);
+            runtime.boneQueries().captureOutput(firstPerson);
+        }
+    }
+
+    private void sampleAnimationPoses(ExpressionEvaluator<?> evaluator, boolean firstPerson) {
         Avatar.MolangContext molangContext = evaluator != null && evaluator.entity() instanceof Avatar.MolangContext context
                 ? context : null;
         // 3. Reset and apply animations to parts
-        for (YsmModelPart part : runtime.uniqueParts()) {
+        for (YsmModelPart part : runtime.uniqueParts(firstPerson)) {
             part.resetAnimPose();
             part.setVisible(part.defaultVisibleRaw());
         }
@@ -695,11 +814,15 @@ public class YsmAnimationPlayer {
         if (animation.clip.events.isEmpty() || animation.weight <= 0f)
             return;
         try (YsmControllerRuntime.ContextScope contextScope = controllerRuntime.openAnimationContext(
-                animation.controllerName, evaluator, animation.time, animation.clip.length)) {
+                animation.controllerName, evaluator, animation.time, animation.clip.length);
+             var effectScope = runtime == null ? null : runtime.functions().beginClientEffects(animation)) {
             for (YsmAnimationEvent event : YsmAnimationEventWindow.crossed(animation.clip,
                     animation.previousTime, animation.eventWindowEnd, animation.loop,
                     animation.initialEventsDispatched)) {
                 handleEvent(event, evaluator, animation.controllerName);
+            }
+            if (runtime != null) {
+                runtime.functions().flushDeferred(animation, evaluator);
             }
         }
         animation.initialEventsDispatched = true;
@@ -709,10 +832,14 @@ public class YsmAnimationPlayer {
         if (animation == null || animation.initialEventsDispatched || animation.clip.events.isEmpty() || evaluator == null)
             return;
         try (YsmControllerRuntime.ContextScope contextScope = controllerRuntime.openAnimationContext(
-                animation.controllerName, evaluator, animation.time, animation.clip.length)) {
+                animation.controllerName, evaluator, animation.time, animation.clip.length);
+             var effectScope = runtime == null ? null : runtime.functions().beginClientEffects(animation)) {
             for (YsmAnimationEvent event : animation.clip.events) {
                 if (event.time() == 0f)
                     handleEvent(event, evaluator, animation.controllerName);
+            }
+            if (runtime != null) {
+                runtime.functions().flushDeferred(animation, evaluator);
             }
         }
         animation.initialEventsDispatched = true;
@@ -743,6 +870,8 @@ public class YsmAnimationPlayer {
         for (Expression expression : event.expressions()) {
             try {
                 evaluator.eval(expression);
+            } catch (MolangExecutionBudget.Exceeded exhausted) {
+                throw exhausted;
             } catch (Exception ignored) {
             }
         }
@@ -845,6 +974,8 @@ public class YsmAnimationPlayer {
                     try {
                         if (!evaluator.evalAsBoolean(ref.condition()))
                             continue;
+                    } catch (MolangExecutionBudget.Exceeded exhausted) {
+                        throw exhausted;
                     } catch (Exception ignored) {
                         continue;
                     }

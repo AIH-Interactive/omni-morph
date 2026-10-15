@@ -3,6 +3,7 @@ package org.figuramc.figura.model.ysm.controller;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.molang.parser.ast.Expression;
 import org.figuramc.figura.molang.runtime.ExpressionEvaluator;
+import org.figuramc.figura.molang.runtime.MolangExecutionBudget;
 import org.figuramc.figura.molang.storage.StringPool;
 import org.figuramc.figura.molang.storage.VariableStorage;
 import org.figuramc.figura.model.ysm.animation.YsmAnimationClip;
@@ -144,8 +145,10 @@ public class YsmControllerRuntime {
                 if (ref.animation() == null || ref.animation().isBlank() || "empty".equals(ref.animation()))
                     continue;
                 float weight = animationWeight(ref.condition(), evaluator);
-                if (weight <= 0f)
+                if (weight <= 0f) {
+                    completed.remove(normalize(ref.animation()));
                     continue;
+                }
                 YsmAnimationClip clip = clip(ref.animation());
                 if (clip == null)
                     continue;
@@ -304,10 +307,15 @@ public class YsmControllerRuntime {
     private void execute(Iterable<Expression> expressions, ExpressionEvaluator<?> evaluator) {
         if (evaluator == null || expressions == null)
             return;
-        for (Expression expression : expressions) {
-            try {
-                evaluator.eval(expression);
-            } catch (Exception ignored) {
+        try (var effectScope = player.beginControllerEffects()) {
+            for (Expression expression : expressions) {
+                try {
+                    evaluator.eval(expression);
+                } catch (MolangExecutionBudget.Exceeded exhausted) {
+                    throw exhausted;
+                } catch (Exception failure) {
+                    reportFailure(evaluator, failure);
+                }
             }
         }
     }
@@ -319,7 +327,10 @@ public class YsmControllerRuntime {
             return false;
         try {
             return evaluator.evalAsBoolean(expression);
-        } catch (Exception ignored) {
+        } catch (MolangExecutionBudget.Exceeded exhausted) {
+            throw exhausted;
+        } catch (Exception failure) {
+            reportFailure(evaluator, failure);
             return false;
         }
     }
@@ -334,8 +345,18 @@ public class YsmControllerRuntime {
         try {
             float value = evaluator.evalAsFloat(expression);
             return Float.isFinite(value) && value > 0f ? value : 0f;
+        } catch (MolangExecutionBudget.Exceeded exhausted) {
+            throw exhausted;
         } catch (RuntimeException e) {
+            reportFailure(evaluator, e);
             return 0f;
+        }
+    }
+
+    private static void reportFailure(ExpressionEvaluator<?> evaluator, Exception failure) {
+        if (evaluator.entity() instanceof Avatar.MolangContext context && context.owner != null
+                && context.owner.getYsmRuntime() != null) {
+            context.owner.getYsmRuntime().reportControllerExecutionFailure(failure);
         }
     }
 
@@ -344,9 +365,10 @@ public class YsmControllerRuntime {
             return;
         float maxTime = 0f;
         float maxLength = 0f;
-        boolean any = false;
+        Set<String> completed = completedOnceByController.getOrDefault(controller.name(), Set.of());
+        boolean any = !completed.isEmpty();
         boolean all = true;
-        boolean hasAnimation = false;
+        boolean hasAnimation = !completed.isEmpty();
         java.util.List<YsmAnimationPlayer.PlayingAnimation> instances = new java.util.ArrayList<>();
         Set<String> animations = activeByController.get(controller.name());
         if (animations != null) {
@@ -365,13 +387,13 @@ public class YsmControllerRuntime {
             hasAnimation = true;
             maxTime = Math.max(maxTime, playing.time);
             maxLength = Math.max(maxLength, playing.clip.length);
-            boolean finished = playing.clip.length <= 0f || playing.time >= playing.clip.length;
+            boolean finished = playing.hasCompletedCycle();
             any |= finished;
             all &= finished;
         }
         context.anim_time = maxTime;
         context.life_time = maxLength;
-        context.any_animation_finished = any ? 1f : 0f;
+        context.any_animation_finished = !hasAnimation || any ? 1f : 0f;
         context.all_animations_finished = !hasAnimation || all ? 1f : 0f;
     }
 

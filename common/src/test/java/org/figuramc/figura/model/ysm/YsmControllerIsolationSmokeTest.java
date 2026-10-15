@@ -67,6 +67,8 @@ public final class YsmControllerIsolationSmokeTest {
         require(player.getControllerAnimation("second", clip.name) == second, "zero weight preserves other controller");
         require(player.getActiveAnimations().containsValue(ordinary), "controller changes preserve ordinary playback");
         second.time = 1f;
+        require(!player.isControllerAnimationFinished("second", clip.name), "reference exact-length boundary is not finished yet");
+        second.time = 1.001f;
         require(player.isControllerAnimationFinished("second", clip.name), "completion belongs to the controller slot");
         require(!player.isFinishedOnce(clip.name), "ordinary completion remains independent");
         require(callbacks.size() == 6, "each controller callback runs once per explicit update");
@@ -96,7 +98,7 @@ public final class YsmControllerIsolationSmokeTest {
         var first = player.playControllerFunctionAnimation("first", clip.name, clip.loopMode, 1f, 0f);
         var second = player.playControllerFunctionAnimation("second", clip.name, clip.loopMode, 1f, 0f);
         first.time = 0.4f;
-        second.time = 1f;
+        second.time = 1.001f;
         Avatar.MolangContext context = new Avatar.MolangContext(null);
         context.anim_time = 7f;
         context.life_time = 9f;
@@ -107,7 +109,7 @@ public final class YsmControllerIsolationSmokeTest {
         equal(1f, clocks.get("first")[1], "function duration clock");
         equal(0f, clocks.get("first")[2], "first function not finished");
         equal(0f, clocks.get("first")[3], "first function all-finished false");
-        equal(1f, clocks.get("second")[0], "independent second function clock");
+        equal(1.001f, clocks.get("second")[0], "independent second function clock");
         equal(1f, clocks.get("second")[2], "second function finished");
         equal(1f, clocks.get("second")[3], "second function all-finished true");
         equal(7f, context.anim_time, "outer animation time restored");

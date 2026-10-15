@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.Map;
 
 public class PlatformUtils {
 
@@ -57,6 +58,17 @@ public class PlatformUtils {
                 .getMethod("getModVersion", String.class).invoke(null, modId);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    @ExpectPlatform
+    @SuppressWarnings("unchecked")
+    public static Map<String, String> getLoadedMods() {
+        try {
+            return (Map<String, String>) Class.forName("org.figuramc.figura.utils.fabric.PlatformUtilsImpl")
+                    .getMethod("getLoadedMods").invoke(null);
+        } catch (ReflectiveOperationException error) {
+            throw new RuntimeException(error);
         }
     }
 

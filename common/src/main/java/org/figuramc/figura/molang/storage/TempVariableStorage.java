@@ -38,7 +38,7 @@ public class TempVariableStorage implements AssignableVariable, ObjectBinding {
     }
 
     public Object getElement(int index) {
-        if (index < currentSize) {
+        if (index >= 0 && index < currentSize) {
             return elements[baseOffset + index];
         }
         return null;
@@ -76,11 +76,14 @@ public class TempVariableStorage implements AssignableVariable, ObjectBinding {
     public void popScope() {
         if (scopeStack.isEmpty()) return;
 
+        int discardedStart = scopeStart;
+        int discardedEnd = baseOffset + currentSize;
         long packed = scopeStack.pop();
         scopeStart = (int) (packed & 0xFFFFFFFFL);
         scopeSize = (int) (packed >> 32);
         baseOffset = scopeStart + scopeSize;
-        currentSize = 0;
+        currentSize = discardedStart - baseOffset;
+        Arrays.fill(elements, discardedStart, discardedEnd, null);
     }
 
     public List<Object> asList() {
@@ -88,14 +91,23 @@ public class TempVariableStorage implements AssignableVariable, ObjectBinding {
     }
 
     /**
-     * ObjectBinding implementation: returns a {@link org.figuramc.figura.molang.runtime.Variable}
-     * that reads the indexed temp variable at evaluation time.
+     * ObjectBinding implementation: returns a writable indexed temp variable.
      * This prevents values from being frozen as constants during parsing.
      */
     @Override
     public Object getProperty(String name) {
         int index = StringPool.computeIfAbsent(name.toLowerCase());
-        return (org.figuramc.figura.molang.runtime.Variable) ctx -> getElement(index);
+        return new AssignableVariable() {
+            @Override
+            public Object evaluate(ExecutionContext<?> context) {
+                return getElement(index);
+            }
+
+            @Override
+            public void assign(ExecutionContext<?> context, Object value) {
+                setElement(index, value);
+            }
+        };
     }
 
     @Override

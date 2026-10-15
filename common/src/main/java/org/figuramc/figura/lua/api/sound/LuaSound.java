@@ -274,7 +274,12 @@ public class LuaSound {
             aliases = "volume",
             value = "sound.set_volume")
     public LuaSound setVolume(float volume) {
-        this.volume = Math.min(volume, 1);
+        return setEngineVolume(Math.min(volume, 1));
+    }
+
+    /** Internal adapter for YSM's wider volume range; Lua setVolume remains capped at one. */
+    public LuaSound setEngineVolume(float volume) {
+        this.volume = volume;
         if (handle != null)
             handle.execute(channel -> {
                 float f = calculateVolume();
