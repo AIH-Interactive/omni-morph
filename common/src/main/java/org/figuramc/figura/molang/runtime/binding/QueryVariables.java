@@ -9,6 +9,8 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -77,47 +79,82 @@ public final class QueryVariables {
 
     // ===== Actor =====
 
-    public static final Variable ACTOR_COUNT = ctx -> 1f;
+    public static final Variable ACTOR_COUNT = ctx -> {
+        Avatar.MolangContext context = mc(ctx);
+        return context != null && context.entity != null
+                && context.entity.level() instanceof net.minecraft.client.multiplayer.ClientLevel level
+                ? level.getEntityCount() : null;
+    };
 
     // ===== Health =====
 
-    public static final Variable HEALTH = ctx -> {
-        var m = mc(ctx); return m != null ? m.health : 20f;
-    };
+    public static final Variable HEALTH = livingVariable((context, entity) -> entity.getHealth());
+    public static final Variable MAX_HEALTH = livingVariable((context, entity) -> entity.getMaxHealth());
+    public static final Variable HURT_TIME = livingVariable((context, entity) -> entity.hurtTime);
 
-    public static final Variable MAX_HEALTH = ctx -> {
-        var m = mc(ctx); return m != null ? m.max_health : 20f;
-    };
+    private static Variable livingVariable(
+            java.util.function.BiFunction<Avatar.MolangContext, LivingEntity, Object> getter) {
+        return execution -> {
+            Avatar.MolangContext context = mc(execution);
+            if (context == null || !(context.entity instanceof LivingEntity entity)) {
+                return null;
+            }
+            return getter.apply(context, entity);
+        };
+    }
 
-    public static final Variable HURT_TIME = ctx -> {
-        var m = mc(ctx); return m != null ? m.hurt_time : 0f;
-    };
+    private static Variable entityVariable(
+            java.util.function.BiFunction<Avatar.MolangContext, Entity, Object> getter) {
+        return execution -> {
+            Avatar.MolangContext context = mc(execution);
+            if (context == null || context.entity == null) {
+                return null;
+            }
+            return getter.apply(context, context.entity);
+        };
+    }
 
     // ===== Position =====
 
     /** query.position(0/1/2) — returns x/y/z coordinate as a function with axis argument */
-    public static final Function POSITION_FUNC = (ctx, args) -> {
-        var m = mc(ctx); if (m == null) return 0f;
-        int axis = args.getAsInt(ctx, 0);
-        return switch (axis) {
-            case 0 -> (float) m.pos_x;
-            case 1 -> (float) m.pos_y;
-            case 2 -> (float) m.pos_z;
-            default -> 0f;
-        };
-    };
+    public static final Function POSITION_FUNC = positionFunction(false);
 
     /** query.position_delta(0/1/2) — returns x/y/z position delta as a function with axis argument */
-    public static final Function POSITION_DELTA_FUNC = (ctx, args) -> {
-        var m = mc(ctx); if (m == null) return 0f;
-        int axis = args.getAsInt(ctx, 0);
-        return switch (axis) {
-            case 0 -> (float) m.pos_delta_x;
-            case 1 -> (float) m.pos_delta_y;
-            case 2 -> (float) m.pos_delta_z;
-            default -> 0f;
+    public static final Function POSITION_DELTA_FUNC = positionFunction(true);
+
+    private static Function positionFunction(boolean delta) {
+        return new Function() {
+            @Override
+            public Object evaluate(ExecutionContext<?> execution, ArgumentCollection arguments) {
+                Avatar.MolangContext context = mc(execution);
+                if (context == null || context.entity == null) {
+                    return null;
+                }
+                int axis = arguments.getAsInt(execution, 0);
+                if (delta) {
+                    return switch (axis) {
+                        case 0 -> context.pos_delta_x;
+                        case 1 -> context.pos_delta_y;
+                        case 2 -> context.pos_delta_z;
+                        default -> null;
+                    };
+                }
+                var entity = context.entity;
+                float partialTick = context.ysm_partial_tick;
+                return switch (axis) {
+                    case 0 -> net.minecraft.util.Mth.lerp(partialTick, entity.xo, entity.getX());
+                    case 1 -> net.minecraft.util.Mth.lerp(partialTick, entity.yo, entity.getY());
+                    case 2 -> net.minecraft.util.Mth.lerp(partialTick, entity.zo, entity.getZ());
+                    default -> null;
+                };
+            }
+
+            @Override
+            public boolean validateArgumentSize(int size) {
+                return size == 1;
+            }
         };
-    };
+    }
 
     public static final Variable POSITION_X = ctx -> {
         var m = mc(ctx); return m != null ? (float) m.pos_x : 0f;
@@ -143,174 +180,183 @@ public final class QueryVariables {
         var m = mc(ctx); return m != null ? (float) m.pos_delta_z : 0f;
     };
 
-    public static final Variable DISTANCE_FROM_CAMERA = ctx -> {
-        var m = mc(ctx); return m != null ? m.distance_from_camera : 0f;
-    };
+    public static final Variable DISTANCE_FROM_CAMERA = entityVariable((context, entity) -> {
+        net.minecraft.client.Camera camera = activeCamera();
+        return camera == null ? null : net.minecraft.util.Mth.sqrt((float) entity.distanceToSqr(camera.position()));
+    });
 
     /** query.rotation_to_camera(0/1) — 0 = xRot, 1 = yRot of the active camera */
-    public static final Function ROTATION_TO_CAMERA_FUNC = (ctx, args) -> {
-        var mc2 = Minecraft.getInstance();
-        if (mc2.gameRenderer == null || mc2.gameRenderer.getMainCamera() == null) return 0f;
-        var cam = mc2.gameRenderer.getMainCamera();
-        int axis = args.getAsInt(ctx, 0);
-        return switch (axis) {
-            case 0 -> cam.xRot();
-            case 1 -> cam.yRot();
-            default -> 0f;
-        };
+    public static final Function ROTATION_TO_CAMERA_FUNC = new Function() {
+        @Override
+        public Object evaluate(ExecutionContext<?> execution, ArgumentCollection arguments) {
+            int axis = arguments.getAsInt(execution, 0);
+            if (axis < 0 || axis > 1) {
+                return null;
+            }
+            Avatar.MolangContext context = mc(execution);
+            if (context != null && context.owner != null
+                    && context.owner.renderMode == org.figuramc.figura.model.rendering.EntityRenderMode.PAPERDOLL) {
+                return 0f;
+            }
+            net.minecraft.client.Camera camera = activeCamera();
+            return camera == null ? null : axis == 0 ? camera.xRot() : camera.yRot();
+        }
+
+        @Override
+        public boolean validateArgumentSize(int size) {
+            return size == 1;
+        }
     };
+
+    private static net.minecraft.client.Camera activeCamera() {
+        Minecraft client = Minecraft.getInstance();
+        return client == null || client.gameRenderer == null ? null : client.gameRenderer.getMainCamera();
+    }
 
     // ===== Movement =====
 
-    public static final Variable GROUND_SPEED = ctx -> {
-        var m = mc(ctx); return m != null ? m.ground_speed : 0f;
-    };
+    public static final Variable GROUND_SPEED = entityVariable((context, entity) ->
+            org.figuramc.figura.model.ysm.YsmMovementQuery.groundSpeed(context));
 
-    public static final Variable VERTICAL_SPEED = ctx -> {
-        var m = mc(ctx); return m != null ? m.vertical_speed : 0f;
-    };
+    public static final Variable VERTICAL_SPEED = entityVariable((context, entity) ->
+            org.figuramc.figura.model.ysm.YsmMovementQuery.verticalSpeed(context));
 
-    public static final Variable YAW_SPEED = ctx -> {
-        var m = mc(ctx); return m != null ? m.yaw_speed : 0f;
-    };
+    public static final Variable YAW_SPEED = entityVariable((context, entity) ->
+            entity instanceof net.minecraft.client.player.LocalPlayer ? context.ysm_local_yaw_speed
+                    : 20f * net.minecraft.util.Mth.wrapDegrees(entity.getYRot() - entity.yRotO));
 
-    public static final Variable WALK_DISTANCE = ctx -> {
-        var m = mc(ctx); return m != null ? m.walk_distance : 0f;
-    };
-
-    public static final Variable MODIFIED_DISTANCE_MOVED = ctx -> {
-        var m = mc(ctx); return m != null ? m.modified_distance_moved : 0f;
-    };
+    public static final Variable WALK_DISTANCE = entityVariable((context, entity) -> entity.moveDist);
+    public static final Variable MODIFIED_DISTANCE_MOVED = entityVariable((context, entity) -> entity.moveDist);
 
     // ===== Rotation =====
 
-    public static final Variable BODY_X_ROTATION = ctx -> {
-        var m = mc(ctx); return m != null ? m.body_x_rot : 0f;
-    };
+    public static final Variable BODY_X_ROTATION = livingVariable((context, entity) ->
+            net.minecraft.util.Mth.lerp(context.ysm_partial_tick, entity.xRotO, entity.getXRot()));
 
-    public static final Variable BODY_Y_ROTATION = ctx -> {
-        var m = mc(ctx); return m != null ? m.body_y_rot : 0f;
-    };
+    public static final Variable BODY_Y_ROTATION = livingVariable((context, entity) ->
+            net.minecraft.util.Mth.wrapDegrees(
+                    net.minecraft.util.Mth.lerp(context.ysm_partial_tick, entity.yBodyRotO, entity.yBodyRot)));
 
     public static final Variable HEAD_X_ROTATION = ctx -> {
-        var m = mc(ctx); return m != null ? m.head_x_rot : 0f;
+        var m = mc(ctx);
+        if (m == null) {
+            return 0f;
+        }
+        return m.owner != null && m.owner.isYsmNative() ? m.ysm_head_yaw : m.head_x_rot;
     };
 
     public static final Variable HEAD_Y_ROTATION = ctx -> {
-        var m = mc(ctx); return m != null ? m.head_y_rot : 0f;
+        var m = mc(ctx);
+        if (m == null) {
+            return 0f;
+        }
+        return m.owner != null && m.owner.isYsmNative() ? m.ysm_head_pitch : m.head_y_rot;
     };
 
-    public static final Variable EYE_TARGET_X_ROTATION = ctx -> {
-        var m = mc(ctx); return m != null ? m.eye_target_x_rot : 0f;
-    };
+    public static final Variable EYE_TARGET_X_ROTATION = entityVariable((context, entity) ->
+            entity.getViewXRot(context.ysm_partial_tick));
 
-    public static final Variable EYE_TARGET_Y_ROTATION = ctx -> {
-        var m = mc(ctx); return m != null ? m.eye_target_y_rot : 0f;
-    };
+    public static final Variable EYE_TARGET_Y_ROTATION = entityVariable((context, entity) ->
+            entity.getViewYRot(context.ysm_partial_tick));
 
-    public static final Variable CARDINAL_FACING_2D = ctx -> {
-        var m = mc(ctx); return m != null ? m.cardinal_facing_2d : 0f;
-    };
+    public static final Variable CARDINAL_FACING_2D = entityVariable((context, entity) ->
+            entity.getDirection().get3DDataValue());
 
     // ===== Boolean states =====
 
-    public static final Variable IS_ON_GROUND = ctx -> {
-        var m = mc(ctx); return m != null ? m.is_on_ground : 0f;
-    };
+    public static final Variable IS_ON_GROUND = entityVariable((context, entity) -> entity.onGround());
 
     public static final Variable IS_JUMPING = ctx -> {
-        var m = mc(ctx); return m != null ? m.is_jumping : 0f;
+        Avatar.MolangContext context = mc(ctx);
+        if (context == null || !(context.entity instanceof Player player)) {
+            return null;
+        }
+        return !player.getAbilities().flying && !player.isPassenger() && !player.onGround() && !player.isInWater();
     };
 
-    public static final Variable IS_SNEAKING = ctx -> {
-        var m = mc(ctx); return m != null ? m.is_sneaking : 0f;
-    };
+    public static final Variable IS_SNEAKING = entityVariable((context, entity) ->
+            entity.onGround() && entity.getPose() == net.minecraft.world.entity.Pose.CROUCHING);
 
-    public static final Variable IS_SPRINTING = ctx -> {
-        var m = mc(ctx); return m != null ? m.is_sprinting : 0f;
-    };
+    public static final Variable IS_SPRINTING = entityVariable((context, entity) -> entity.isSprinting());
+    public static final Variable IS_SWIMMING = entityVariable((context, entity) -> entity.isSwimming());
+    public static final Variable IS_IN_WATER = entityVariable((context, entity) -> entity.isInWater());
 
-    public static final Variable IS_SWIMMING = ctx -> {
-        var m = mc(ctx); return m != null ? m.is_swimming : 0f;
-    };
+    public static final Variable IS_IN_WATER_OR_RAIN = entityVariable((context, entity) -> {
+        if (entity.isInWater()) {
+            return true;
+        }
+        Level level = entity.level();
+        return level == null ? null : level.isRainingAt(entity.blockPosition());
+    });
 
-    public static final Variable IS_IN_WATER = ctx -> {
-        var m = mc(ctx); return m != null ? m.is_in_water : 0f;
-    };
+    public static final Variable IS_ON_FIRE = entityVariable((context, entity) -> entity.isOnFire());
+    public static final Variable IS_RIDING = entityVariable((context, entity) -> entity.isPassenger());
+    public static final Variable HAS_RIDER = entityVariable((context, entity) -> entity.isVehicle());
+    public static final Variable IS_SLEEPING = livingVariable((context, entity) -> entity.isSleeping());
+    public static final Variable IS_SPECTATOR = entityVariable((context, entity) -> entity.isSpectator());
 
-    public static final Variable IS_IN_WATER_OR_RAIN = ctx -> {
-        var m = mc(ctx); return m != null ? m.is_in_water_or_rain : 0f;
-    };
-
-    public static final Variable IS_ON_FIRE = ctx -> {
-        var m = mc(ctx); return m != null ? m.is_on_fire : 0f;
-    };
-
-    public static final Variable IS_RIDING = ctx -> {
-        var m = mc(ctx); return m != null ? m.is_riding : 0f;
-    };
-
-    public static final Variable HAS_RIDER = ctx -> {
-        var m = mc(ctx); return m != null ? m.has_rider : 0f;
-    };
-
-    public static final Variable IS_SLEEPING = ctx -> {
-        var m = mc(ctx); return m != null ? m.is_sleeping : 0f;
-    };
-
-    public static final Variable IS_SPECTATOR = ctx -> {
-        var m = mc(ctx); return m != null ? m.is_spectator : 0f;
-    };
-
-    public static final Variable IS_FIRST_PERSON = ctx -> {
-        var m = mc(ctx); return m != null ? m.is_first_person : 0f;
-    };
+    public static final Variable IS_FIRST_PERSON = entityVariable((context, entity) ->
+            context.ysm_camera_type == net.minecraft.client.CameraType.FIRST_PERSON.ordinal());
 
     public static final Variable RENDERING_IN_PAPERDOLL = ctx -> {
-        var m = mc(ctx); return m != null ? m.rendering_in_paperdoll : 0f;
+        Avatar.MolangContext context = mc(ctx);
+        if (context == null) {
+            return 0f;
+        }
+        if (context.owner != null && context.owner.getYsmRuntime() != null) {
+            return context.isYsmGuiPreview() ? 1f : 0f;
+        }
+        return context.rendering_in_paperdoll;
     };
 
     public static final Variable RENDERING_IN_INVENTORY = ctx -> {
-        var m = mc(ctx); return m != null ? m.rendering_in_inventory : 0f;
+        Avatar.MolangContext context = mc(ctx);
+        if (context == null) {
+            return 0f;
+        }
+        if (context.owner != null && context.owner.getYsmRuntime() != null) {
+            return context.isYsmModelPreview() ? 1f : 0f;
+        }
+        return context.rendering_in_inventory;
     };
 
-    public static final Variable IS_USING_ITEM = ctx -> {
-        var m = mc(ctx); return m != null ? m.is_using_item : 0f;
-    };
+    public static final Variable IS_USING_ITEM = livingVariable((context, entity) ->
+            org.figuramc.figura.model.ysm.YsmHandQuery.using(context));
 
-    public static final Variable IS_SWINGING = ctx -> {
-        var m = mc(ctx); return m != null ? m.is_swinging : 0f;
-    };
+    public static final Variable IS_SWINGING = livingVariable((context, entity) ->
+            org.figuramc.figura.model.ysm.YsmHandQuery.swinging(context));
 
-    public static final Variable IS_EATING = ctx -> {
-        var m = mc(ctx); return m != null ? m.is_eating : 0f;
-    };
+    public static final Variable IS_EATING = livingVariable((context, entity) ->
+            entity.getUseItem().getUseAnimation() == net.minecraft.world.item.ItemUseAnimation.EAT);
 
-    public static final Variable IS_PLAYING_DEAD = ctx -> {
-        var m = mc(ctx); return m != null ? m.is_playing_dead : 0f;
-    };
+    public static final Variable IS_PLAYING_DEAD = livingVariable((context, entity) -> entity.isDeadOrDying());
 
     public static final Variable HAS_CAPE = ctx -> {
-        var m = mc(ctx); return m != null ? m.has_cape : 0f;
+        Avatar.MolangContext context = mc(ctx);
+        if (context == null || !(context.entity instanceof net.minecraft.client.player.AbstractClientPlayer player)) {
+            return null;
+        }
+        return player.getSkin().cape() != null && !player.isInvisible()
+                && player.isModelPartShown(net.minecraft.world.entity.player.PlayerModelPart.CAPE);
     };
 
     // ===== Animation state =====
 
     public static final Variable ALL_ANIMATIONS_FINISHED = ctx -> {
-        var m = mc(ctx); return m != null ? (m.all_animations_finished != 0f ? m.all_animations_finished : m.anim_time >= m.life_time ? 1f : 0f) : 0f;
+        Avatar.MolangContext context = mc(ctx);
+        return context != null && context.all_animations_finished != 0f;
     };
 
     public static final Variable ANY_ANIMATION_FINISHED = ctx -> {
-        var m = mc(ctx); return m != null ? (m.any_animation_finished != 0f ? m.any_animation_finished : m.anim_time >= m.life_time ? 1f : 0f) : 0f;
+        Avatar.MolangContext context = mc(ctx);
+        return context != null && context.any_animation_finished != 0f;
     };
 
-    public static final Variable SWING_TIME = ctx -> {
-        var m = mc(ctx); return m != null ? m.swing_time : 0f;
-    };
+    public static final Variable SWING_TIME = livingVariable((context, entity) ->
+            org.figuramc.figura.model.ysm.YsmHandQuery.swingTicks(context) / 20d);
 
-    public static final Variable ATTACK_TIME = ctx -> {
-        var m = mc(ctx); return m != null ? m.attack_time : 0f;
-    };
+    public static final Variable ATTACK_TIME = livingVariable((context, entity) ->
+            org.figuramc.figura.model.ysm.YsmHandQuery.attackProgress(context));
 
     public static final Function CONTROL_VALUE = (ctx, args) -> {
         var m = mc(ctx);
@@ -355,117 +401,130 @@ public final class QueryVariables {
 
     // ===== Item =====
 
-    public static final Variable ITEM_IN_USE_DURATION = ctx -> {
-        var m = mc(ctx); return m != null ? m.item_in_use_duration : 0f;
-    };
+    public static final Variable ITEM_IN_USE_DURATION = livingVariable((context, entity) ->
+            org.figuramc.figura.model.ysm.YsmHandQuery.useTicks(context) / 20d);
 
-    public static final Variable ITEM_MAX_USE_DURATION = ctx -> {
-        var m = mc(ctx); return m != null ? m.item_max_use_duration : 0f;
-    };
+    public static final Variable ITEM_MAX_USE_DURATION = livingVariable((context, entity) -> {
+        ItemStack stack = entity.getUseItem();
+        return stack.isEmpty() ? 0d : stack.getUseDuration(entity) / 20d;
+    });
 
-    public static final Variable ITEM_REMAINING_USE_DURATION = ctx -> {
-        var m = mc(ctx); return m != null ? m.item_remaining_use_duration : 0f;
-    };
+    public static final Variable ITEM_REMAINING_USE_DURATION = livingVariable((context, entity) ->
+            org.figuramc.figura.model.ysm.YsmHandQuery.remainingUseTicks(context) / 20d);
 
-    public static final Variable EQUIPMENT_COUNT = ctx -> {
-        var m = mc(ctx); return m != null ? m.equipment_count : 0f;
-    };
+    public static final Variable EQUIPMENT_COUNT = livingVariable((context, entity) -> {
+        int count = 0;
+        for (EquipmentSlot slot : EquipmentSlot.values()) {
+            if (slot.isArmor() && !entity.getItemBySlot(slot).isEmpty()) {
+                count++;
+            }
+        }
+        return count;
+    });
 
     // ===== Durability queries =====
 
     /**
      * query.max_durability(slot) — returns max damage of item in the given equipment slot.
-     * Slot: 0=main hand, 1=offhand, 2=feet, 3=legs, 4=chest, 5=head
+     * Reference slots: mainhand/offhand/feet/legs/chest/head; legacy project indices 0..5 are retained.
      */
-    public static final Function MAX_DURABILITY = (ctx, args) -> {
-        if (args.size() < 1) return 0f;
-        ItemStack stack = getItemInSlot(ctx, args.getAsInt(ctx, 0));
-        return stack != null ? (float) stack.getMaxDamage() : 0f;
-    };
+    public static final Function MAX_DURABILITY = equipmentFunction(EquipmentQuery.MAX_DURABILITY);
 
     /**
      * query.remaining_durability(slot) — returns remaining durability (max - damage).
-     * Slot: 0=main hand, 1=offhand, 2=feet, 3=legs, 4=chest, 5=head
+     * Reference slots: mainhand/offhand/feet/legs/chest/head; legacy project indices 0..5 are retained.
      */
-    public static final Function REMAINING_DURABILITY = (ctx, args) -> {
-        if (args.size() < 1) return 0f;
-        ItemStack stack = getItemInSlot(ctx, args.getAsInt(ctx, 0));
-        return stack != null ? (float) (stack.getMaxDamage() - stack.getDamageValue()) : 0f;
-    };
+    public static final Function REMAINING_DURABILITY = equipmentFunction(EquipmentQuery.REMAINING_DURABILITY);
 
     // ===== Biome tag queries =====
 
     /**
-     * query.biome_has_all_tags(tag1, tag2, ...) — 1 if the entity's current biome has ALL given tags.
+     * query.biome_has_all_tags(tag1, tag2, ...) — whether the entity's current biome has ALL given tags.
      * Tags are resource location strings like "minecraft:is_ocean" or "is_ocean".
      */
-    public static final Function BIOME_HAS_ALL_TAGS = (ctx, args) -> {
-        var mc = mc(ctx);
-        if (mc == null || mc.entity == null) return 0f;
-        Level level = Minecraft.getInstance().level;
-        if (level == null) return 0f;
-        Biome biome = level.getBiome(mc.entity.blockPosition()).value();
-        for (int i = 0; i < args.size(); i++) {
-            if (!biomeHasTag(level, biome, args.getAsString(ctx, i)))
-                return 0f;
-        }
-        return 1f;
-    };
+    public static final Function BIOME_HAS_ALL_TAGS = worldTagFunction(false, true);
 
     /**
-     * query.biome_has_any_tag(tag1, tag2, ...) — 1 if the entity's current biome has ANY given tag.
+     * query.biome_has_any_tag(tag1, tag2, ...) — whether the entity's current biome has ANY given tag.
      */
-    public static final Function BIOME_HAS_ANY_TAG = (ctx, args) -> {
-        var mc = mc(ctx);
-        if (mc == null || mc.entity == null) return 0f;
-        Level level = Minecraft.getInstance().level;
-        if (level == null) return 0f;
-        Biome biome = level.getBiome(mc.entity.blockPosition()).value();
-        for (int i = 0; i < args.size(); i++) {
-            if (biomeHasTag(level, biome, args.getAsString(ctx, i)))
-                return 1f;
-        }
-        return 0f;
-    };
+    public static final Function BIOME_HAS_ANY_TAG = worldTagFunction(false, false);
 
     // ===== Block tag queries =====
 
     /**
-     * query.relative_block_has_all_tags(x, y, z, tag1, tag2, ...) — 1 if block at entity + offset has ALL tags.
-     * First 3 args are offset integers, rest are tag resource location strings.
+     * query.relative_block_has_all_tags(x, y, z, tag1, tag2, ...) — whether the relative block has ALL tags.
+     * First 3 args are numeric offsets within five blocks, rest are tag resource location strings.
      */
-    public static final Function RELATIVE_BLOCK_HAS_ALL_TAGS = (ctx, args) -> {
-        var mc = mc(ctx);
-        if (mc == null || mc.entity == null || args.size() < 4) return 0f;
-        Level level = Minecraft.getInstance().level;
-        if (level == null) return 0f;
-        BlockPos pos = mc.entity.blockPosition().offset(args.getAsInt(ctx, 0), args.getAsInt(ctx, 1), args.getAsInt(ctx, 2));
-        if (!level.hasChunkAt(pos)) return 0f;
-        BlockState state = level.getBlockState(pos);
-        for (int i = 3; i < args.size(); i++) {
-            if (!blockHasTag(level, state, args.getAsString(ctx, i)))
-                return 0f;
-        }
-        return 1f;
-    };
+    public static final Function RELATIVE_BLOCK_HAS_ALL_TAGS = worldTagFunction(true, true);
 
     /**
-     * query.relative_block_has_any_tag(x, y, z, tag1, tag2, ...) — 1 if block at offset has ANY tag.
+     * query.relative_block_has_any_tag(x, y, z, tag1, tag2, ...) — whether the relative block has ANY tag.
      */
-    public static final Function RELATIVE_BLOCK_HAS_ANY_TAG = (ctx, args) -> {
-        var mc = mc(ctx);
-        if (mc == null || mc.entity == null || args.size() < 4) return 0f;
-        Level level = Minecraft.getInstance().level;
-        if (level == null) return 0f;
-        BlockPos pos = mc.entity.blockPosition().offset(args.getAsInt(ctx, 0), args.getAsInt(ctx, 1), args.getAsInt(ctx, 2));
-        if (!level.hasChunkAt(pos)) return 0f;
-        BlockState state = level.getBlockState(pos);
-        for (int i = 3; i < args.size(); i++) {
-            if (blockHasTag(level, state, args.getAsString(ctx, i)))
-                return 1f;
+    public static final Function RELATIVE_BLOCK_HAS_ANY_TAG = worldTagFunction(true, false);
+
+    private static Function worldTagFunction(boolean relativeBlock, boolean requireAll) {
+        return new Function() {
+            @Override
+            public Object evaluate(ExecutionContext<?> execution, ArgumentCollection arguments) {
+                Avatar.MolangContext context = mc(execution);
+                if (context == null || context.entity == null || context.entity.level() == null
+                        || !validateArgumentSize(arguments.size())) {
+                    return null;
+                }
+                Entity entity = context.entity;
+                Level level = entity.level();
+                java.util.function.Predicate<Identifier> matches;
+                int firstTag;
+                if (relativeBlock) {
+                    BlockPos position = relativeQueryPosition(entity, execution, arguments);
+                    if (position == null) {
+                        return null;
+                    }
+                    BlockState state = level.getBlockState(position);
+                    matches = id -> state.is(TagKey.create(Registries.BLOCK, id));
+                    firstTag = 3;
+                } else {
+                    var biome = level.getBiome(entity.blockPosition());
+                    matches = id -> biome.is(TagKey.create(Registries.BIOME, id));
+                    firstTag = 0;
+                }
+                for (int index = firstTag; index < arguments.size(); index++) {
+                    String name = arguments.getAsString(execution, index);
+                    Identifier id = name == null ? null : Identifier.tryParse(name);
+                    if (id == null) {
+                        return null;
+                    }
+                    boolean matched = matches.test(id);
+                    if (requireAll && !matched) {
+                        return false;
+                    }
+                    if (!requireAll && matched) {
+                        return true;
+                    }
+                }
+                return requireAll;
+            }
+
+            @Override
+            public boolean validateArgumentSize(int size) {
+                return size >= (relativeBlock ? 4 : 1);
+            }
+        };
+    }
+
+    private static BlockPos relativeQueryPosition(Entity entity, ExecutionContext<?> execution,
+                                                   Function.ArgumentCollection arguments) {
+        double x = arguments.getAsDouble(execution, 0);
+        double y = arguments.getAsDouble(execution, 1);
+        double z = arguments.getAsDouble(execution, 2);
+        if (!Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z)
+                || Math.abs(x) > 5d || Math.abs(y) > 5d || Math.abs(z) > 5d) {
+            return null;
         }
-        return 0f;
-    };
+        return new BlockPos((int) Math.round(entity.getX() + x - 0.5d),
+                (int) Math.round(entity.getY() + y - 0.5d),
+                (int) Math.round(entity.getZ() + z - 0.5d));
+    }
 
     // ===== Item name query =====
 
@@ -473,64 +532,103 @@ public final class QueryVariables {
      * query.is_item_name_any("minecraft:stick", "minecraft:diamond", ...) — 1 if main hand item
      * matches any of the given registry names.
      */
-    public static final Function IS_ITEM_NAME_ANY = (ctx, args) -> {
-        var mc = mc(ctx);
-        if (mc == null || mc.entity == null) return 0f;
-        if (!(mc.entity instanceof Player player)) return 0f;
-        ItemStack held = player.getMainHandItem();
-        if (held.isEmpty()) return 0f;
-        String heldId = BuiltInRegistries.ITEM.getKey(held.getItem()).toString();
-        for (int i = 0; i < args.size(); i++) {
-            String candidate = args.getAsString(ctx, i);
-            if (candidate != null && heldId.equals(candidate))
-                return 1f;
-        }
-        return 0f;
-    };
+    public static final Function IS_ITEM_NAME_ANY = equipmentFunction(EquipmentQuery.NAME_ANY);
 
     // ===== Equipment tag queries =====
 
     /**
-     * query.equipped_item_all_tags(slot, tag1, tag2, ...) — 1 if item in slot has ALL given tags.
-     * First arg is slot index, rest are tag resource locations.
+     * query.equipped_item_all_tags(slot, tag1, tag2, ...) returns a Boolean for native item tags.
+     * Named slots and legacy numeric slots are accepted; remaining arguments are identifiers.
      */
-    public static final Function EQUIPPED_ITEM_ALL_TAGS = (ctx, args) -> {
-        if (args.size() < 2) return 0f;
-        ItemStack stack = getItemInSlot(ctx, args.getAsInt(ctx, 0));
-        if (stack == null || stack.isEmpty()) return 0f;
-        Level level = Minecraft.getInstance().level;
-        if (level == null) return 0f;
-        for (int i = 1; i < args.size(); i++) {
-            if (!itemHasTag(level, stack, args.getAsString(ctx, i)))
-                return 0f;
-        }
-        return 1f;
-    };
+    public static final Function EQUIPPED_ITEM_ALL_TAGS = equipmentFunction(EquipmentQuery.TAGS_ALL);
 
     /**
-     * query.equipped_item_any_tag(slot, tag1, tag2, ...) — 1 if item in slot has ANY given tag.
+     * query.equipped_item_any_tag(slot, tag1, tag2, ...) returns a Boolean for native item tags.
      */
-    public static final Function EQUIPPED_ITEM_ANY_TAG = (ctx, args) -> {
-        if (args.size() < 2) return 0f;
-        ItemStack stack = getItemInSlot(ctx, args.getAsInt(ctx, 0));
-        if (stack == null || stack.isEmpty()) return 0f;
-        Level level = Minecraft.getInstance().level;
-        if (level == null) return 0f;
-        for (int i = 1; i < args.size(); i++) {
-            if (itemHasTag(level, stack, args.getAsString(ctx, i)))
-                return 1f;
-        }
-        return 0f;
-    };
+    public static final Function EQUIPPED_ITEM_ANY_TAG = equipmentFunction(EquipmentQuery.TAGS_ANY);
+
+    private enum EquipmentQuery {
+        MAX_DURABILITY, REMAINING_DURABILITY, NAME_ANY, TAGS_ALL, TAGS_ANY
+    }
+
+    private static Function equipmentFunction(EquipmentQuery query) {
+        return new Function() {
+            @Override
+            public Object evaluate(ExecutionContext<?> execution, ArgumentCollection arguments) {
+                Avatar.MolangContext context = mc(execution);
+                if (context == null || !(context.entity instanceof LivingEntity entity)
+                        || !validateArgumentSize(arguments.size())) {
+                    return null;
+                }
+                EquipmentSlot slot = querySlot(arguments.getValue(execution, 0));
+                if (slot == null) {
+                    return null;
+                }
+                ItemStack stack = entity.getItemBySlot(slot);
+                if (query == EquipmentQuery.MAX_DURABILITY) {
+                    return stack.getMaxDamage();
+                }
+                if (query == EquipmentQuery.REMAINING_DURABILITY) {
+                    return stack.getMaxDamage() - stack.getDamageValue();
+                }
+                if (stack.isEmpty()) {
+                    return false;
+                }
+                Identifier itemId = query == EquipmentQuery.NAME_ANY ? BuiltInRegistries.ITEM.getKey(stack.getItem()) : null;
+                if (query == EquipmentQuery.NAME_ANY && itemId == null) {
+                    return false;
+                }
+                for (int index = 1; index < arguments.size(); index++) {
+                    String name = arguments.getAsString(execution, index);
+                    Identifier expected = name == null ? null : Identifier.tryParse(name);
+                    if (expected == null) {
+                        return null;
+                    }
+                    boolean matches = query == EquipmentQuery.NAME_ANY ? expected.equals(itemId)
+                            : stack.is(TagKey.create(Registries.ITEM, expected));
+                    if (query == EquipmentQuery.TAGS_ALL && !matches) {
+                        return false;
+                    }
+                    if (query != EquipmentQuery.TAGS_ALL && matches) {
+                        return true;
+                    }
+                }
+                return query == EquipmentQuery.TAGS_ALL;
+            }
+
+            @Override
+            public boolean validateArgumentSize(int size) {
+                return query == EquipmentQuery.MAX_DURABILITY || query == EquipmentQuery.REMAINING_DURABILITY
+                        ? size == 1 : size >= 2;
+            }
+        };
+    }
 
     // ===== Misc =====
 
     public static final Variable CAPE_FLAP_AMOUNT = ctx -> {
-        var m = mc(ctx); return m != null ? m.cape_flap_amount : 0f;
+        Avatar.MolangContext context = mc(ctx);
+        if (context == null || !(context.entity instanceof Player player)) {
+            return null;
+        }
+        float partial = context.ysm_partial_tick;
+        // MC 26.x removed the old cloak-position fields; these zero terms match the reference port.
+        float deltaX = (float) -net.minecraft.util.Mth.lerp(partial, player.xo, player.getX());
+        float deltaY = (float) -net.minecraft.util.Mth.lerp(partial, player.yo, player.getY());
+        float deltaZ = (float) -net.minecraft.util.Mth.lerp(partial, player.zo, player.getZ());
+        float radians = player.yBodyRot * 0.017453292f;
+        float vertical = net.minecraft.util.Mth.clamp(deltaY * 10f, -6f, 32f);
+        float forward = net.minecraft.util.Mth.clamp((deltaX * net.minecraft.util.Mth.sin(radians)
+                - deltaZ * net.minecraft.util.Mth.cos(radians)) * 100f, 0f, 150f);
+        if (player.isCrouching()) {
+            vertical += 25f;
+        }
+        return net.minecraft.util.Mth.clamp((6f + forward / 2f + vertical) / 108f, 0f, 1f);
     };
 
     public static final Variable PLAYER_LEVEL = ctx -> {
-        var m = mc(ctx); return m != null ? m.player_level : 0f;
+        Avatar.MolangContext context = mc(ctx);
+        return context != null && context.entity instanceof Player player ? player.experienceLevel : null;
     };
 
     // ===== Geometry =====
@@ -542,24 +640,38 @@ public final class QueryVariables {
 
     // ===== Functions =====
 
-    public static final Function DEBUG_OUTPUT_FUNC = (ctx, args) -> {
-        if (args.size() > 0) {
-            String msg = args.getAsString(ctx, 0);
-            Avatar sourceOwner = null;
-            if (ctx.entity() instanceof Avatar.MolangContext context) {
-                sourceOwner = context.owner;
-            } else if (ctx.entity() instanceof Avatar avatar) {
-                sourceOwner = avatar;
-            }
-            if (sourceOwner != null && sourceOwner.nbt != null
-                    && org.figuramc.figura.avatar.ysm.YsmSourcePayload.isEncrypted(sourceOwner.nbt.getCompoundOrEmpty("ysm"))) {
-                return 0f;
-            }
-            if (msg != null) {
-                org.figuramc.figura.FiguraMod.LOGGER.debug("[Molang Debug] {}", msg);
-            }
+    static boolean canEmitDebugOutput(ExecutionContext<?> execution) {
+        if (!org.figuramc.figura.FiguraMod.debugModeEnabled()) {
+            return false;
         }
-        return 0f;
+        Avatar.MolangContext context = mc(execution);
+        Avatar owner = context == null ? null : context.owner;
+        if (owner == null && execution.entity() instanceof Avatar avatar) {
+            owner = avatar;
+        }
+        return owner == null || !((owner.getYsmRuntime() != null && owner.getYsmRuntime().encryptedSource())
+                || (owner.nbt != null && org.figuramc.figura.avatar.ysm.YsmSourcePayload
+                        .isEncrypted(owner.nbt.getCompoundOrEmpty("ysm"))));
+    }
+
+    public static final Function DEBUG_OUTPUT_FUNC = new Function() {
+        @Override
+        public Object evaluate(ExecutionContext<?> execution, ArgumentCollection arguments) {
+            if (!canEmitDebugOutput(execution)) {
+                return null;
+            }
+            StringBuilder message = new StringBuilder();
+            for (int index = 0; index < arguments.size(); index++) {
+                message.append(arguments.getValue(execution, index));
+            }
+            org.figuramc.figura.FiguraMod.LOGGER.warn("[Molang Debug] {}", message);
+            return null;
+        }
+
+        @Override
+        public boolean validateArgumentSize(int size) {
+            return size > 0;
+        }
     };
 
     /**
@@ -593,17 +705,31 @@ public final class QueryVariables {
      * Gets the ItemStack in the given equipment slot for the context's player entity.
      * Slot: 0=main hand, 1=offhand, 2=feet, 3=legs, 4=chest, 5=head
      */
-    private static ItemStack getItemInSlot(ExecutionContext<?> ctx, int slot) {
-        var m = mc(ctx);
-        if (m == null || !(m.entity instanceof Player player)) return null;
-        return switch (slot) {
-            case 0 -> player.getMainHandItem();
-            case 1 -> player.getOffhandItem();
-            case 2 -> player.getItemBySlot(EquipmentSlot.FEET);
-            case 3 -> player.getItemBySlot(EquipmentSlot.LEGS);
-            case 4 -> player.getItemBySlot(EquipmentSlot.CHEST);
-            case 5 -> player.getItemBySlot(EquipmentSlot.HEAD);
-            default -> ItemStack.EMPTY;
+    private static EquipmentSlot querySlot(Object value) {
+        // Retain the existing project numeric-slot interface alongside reference named slots.
+        if (value instanceof Number number) {
+            return switch (number.intValue()) {
+                case 0 -> EquipmentSlot.MAINHAND;
+                case 1 -> EquipmentSlot.OFFHAND;
+                case 2 -> EquipmentSlot.FEET;
+                case 3 -> EquipmentSlot.LEGS;
+                case 4 -> EquipmentSlot.CHEST;
+                case 5 -> EquipmentSlot.HEAD;
+                default -> null;
+            };
+        }
+        String name = ValueConversions.asString(value);
+        if (name == null) {
+            return null;
+        }
+        return switch (name.toLowerCase(java.util.Locale.ENGLISH)) {
+            case "mainhand" -> EquipmentSlot.MAINHAND;
+            case "offhand" -> EquipmentSlot.OFFHAND;
+            case "feet" -> EquipmentSlot.FEET;
+            case "legs" -> EquipmentSlot.LEGS;
+            case "chest" -> EquipmentSlot.CHEST;
+            case "head" -> EquipmentSlot.HEAD;
+            default -> null;
         };
     }
 

@@ -35,6 +35,11 @@ public class PlatformUtilsImpl {
         return ModList.get().getModContainerById(modId).get().getModInfo().getVersion().getQualifier();
     }
 
+    public static java.util.Map<String, String> getLoadedMods() {
+        return ModList.get().getMods().stream()
+                .collect(java.util.stream.Collectors.toUnmodifiableMap(mod -> mod.getModId(), mod -> mod.getDisplayName()));
+    }
+
     public static PlatformUtils.ModLoader getModLoader() {
         return PlatformUtils.ModLoader.FORGE;
     }

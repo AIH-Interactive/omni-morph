@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import org.figuramc.figura.molang.parser.ast.Expression;
 import org.figuramc.figura.molang.runtime.ExpressionEvaluator;
+import org.figuramc.figura.molang.runtime.MolangExecutionBudget;
 
 public class YsmAnimationClip {
     public final String name;
@@ -45,6 +46,8 @@ public class YsmAnimationClip {
                     value = evaluator.evalAsFloat(expression);
                 }
             }
+        } catch (MolangExecutionBudget.Exceeded exhausted) {
+            throw exhausted;
         } catch (RuntimeException e) {
             return 0f;
         }

@@ -83,7 +83,7 @@ tasks.withType(Test).configureEach {
 tasks.register("scanYsmModels", JavaExec) {
     group = "verification"
     description = "Scans YSM model packages and validates geometry, resources, and animation JSON."
-    classpath = sourceSets.main.runtimeClasspath
+    classpath = sourceSets.main.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = "org.figuramc.figura.model.ysm.YsmModelScanner"
     if ((project.findProperty("ysmScanDump") ?: "false").toString().toBoolean()) {
         args "--dump"
@@ -104,7 +104,7 @@ tasks.register("ysmPhase41SmokeTest", JavaExec) {
     group = "verification"
     description = "Runs YSM phase 4.1 function package parser and controller-slot smoke checks."
     dependsOn testClasses
-    classpath = sourceSets.test.runtimeClasspath
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = "org.figuramc.figura.model.ysm.YsmPhase41SmokeTest"
 }
 
@@ -120,7 +120,7 @@ tasks.register("ysmBaselineSmokeTest", JavaExec) {
     group = "verification"
     description = "Checks YSM candidate discovery, diagnostics, and strict scan gates using synthetic fixtures."
     dependsOn testClasses
-    classpath = sourceSets.test.runtimeClasspath
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = "org.figuramc.figura.model.ysm.YsmBaselineSmokeTest"
 }
 
@@ -323,4 +323,125 @@ tasks.register("ysmPlayerTimelineSmokeTest", JavaExec) {
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = "org.figuramc.figura.model.ysm.YsmPlayerTimelineSmokeTest"
+}
+
+tasks.register("ysmSyncDeferSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks reference local sync/defer event ordering, captured arguments and lifecycle budgets for M4."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmSyncDeferSmokeTest"
+}
+
+tasks.register("ysmMolangBudgetSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks shared total Molang execution budgets, repeated-frame limits and recovery after exhaustion."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmMolangBudgetSmokeTest"
+}
+
+tasks.register("ysmFilterSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks real first/second-order binding signatures, reference recurrence and per-bone/view/model state."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmFilterSmokeTest"
+}
+
+tasks.register("ysmPerlinSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks pure Java seeded Perlin against frozen native STB vectors and actual Molang bindings."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmPerlinSmokeTest"
+}
+
+tasks.register("ysmBoneQuerySmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks live read-only bone vectors through actual Avatar bindings, including body/arm and Avatar isolation."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmBoneQuerySmokeTest"
+}
+
+tasks.register("ysmInputSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks YSM input event state, owner gating, reference argument semantics and focus cleanup."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmInputSmokeTest"
+}
+
+tasks.register("ysmParticleRequestSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks captured particle parameters and reference emission planning without a game particle engine."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmParticleRequestSmokeTest"
+}
+
+tasks.register("ysmParticleDispatchSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks owned particle dispatch lifecycle, queue budgets, model/world guards and formal binding gates."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmParticleDispatchSmokeTest"
+}
+
+tasks.register("ysmBindingReferenceAudit", JavaExec) {
+    group = "verification"
+    description = "Audits corpus binding dependencies with all encrypted candidates decoded by the shared scanner."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmBindingReferenceAudit"
+    args rootProject.file("refs/avatars").path
+}
+
+tasks.register("ysmUnavailableBindingSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks explicit rejection and recovery for a reserved binding without a verified reference contract."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmUnavailableBindingSmokeTest"
+}
+
+tasks.register("ysmFunctionContractSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks formal function loading, typed arguments/returns and per-Avatar temp/string/error contracts."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmFunctionContractSmokeTest"
+}
+
+tasks.register("ysmControllerDiagnosticSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks formal controller resource/state parse diagnostics and encrypted privacy."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmControllerDiagnosticSmokeTest"
+}
+
+tasks.register("ysmVanillaStateSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks native glider/elytra state and reference blink timing through formal bindings."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmVanillaStateSmokeTest"
+}
+
+tasks.register("ysmParticleNativeSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks production particle submission with native lifetime APIs and real owner quotas using a CPU recording engine."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmParticleNativeSmokeTest"
+}
+
+tasks.register("ysmSoundNativeSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks formal sound binding execution with real LuaSound and a CPU recording engine."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmSoundNativeSmokeTest"
 }

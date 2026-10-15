@@ -32,6 +32,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.client.CameraType;
 import net.minecraft.world.phys.Vec3;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.animation.Animation;
@@ -68,6 +69,8 @@ import net.minecraft.world.attribute.EnvironmentAttributes;
 import org.figuramc.figura.molang.MolangEngine;
 import org.figuramc.figura.molang.parser.ast.Expression;
 import org.figuramc.figura.molang.runtime.ExpressionEvaluator;
+import org.figuramc.figura.molang.runtime.MolangExecutionBudget;
+import org.figuramc.figura.model.ysm.YsmFilterRuntime;
 import org.figuramc.figura.mixin.ClientAvatarStateAccessor;
 import org.figuramc.figura.molang.runtime.binding.QueryVariables;
 import org.figuramc.figura.molang.runtime.binding.MolangBindings;
@@ -176,20 +179,24 @@ public class Avatar {
      */
     public MolangBindings getAvatarBindings() {
         if (avatarBindings == null) {
-            avatarBindings = new MolangBindings();
-            registerDefaultQueryBindings(avatarBindings);
-
-            // Bind this avatar's variable storages for v.*/c.*/t.* access
-            if (molangContext != null) {
-                avatarBindings.register("v", molangContext.variables);
-                avatarBindings.register("variable", molangContext.variables);
-                avatarBindings.register("c", molangContext.controller);
-                avatarBindings.register("context", molangContext.controller);
-                avatarBindings.register("t", molangContext.temp);
-                avatarBindings.register("temp", molangContext.temp);
-            }
+            avatarBindings = createMolangBindings(molangContext);
         }
         return avatarBindings;
+    }
+
+    /** Shared binding registration for an Avatar or a non-executing resource scanner. */
+    public static MolangBindings createMolangBindings(MolangContext context) {
+        MolangBindings bindings = new MolangBindings();
+        registerDefaultQueryBindings(bindings);
+        if (context != null) {
+            bindings.register("v", context.variables);
+            bindings.register("variable", context.variables);
+            bindings.register("c", context.controller);
+            bindings.register("context", context.controller);
+            bindings.register("t", context.temp);
+            bindings.register("temp", context.temp);
+        }
+        return bindings;
     }
 
     /**
@@ -326,8 +333,22 @@ public class Avatar {
      * <p>All query.* fields are updated each frame by {@link #populateQueryContext(Entity)}.
      * Molang variables ({@code query.anim_time}, etc.) read these fields via {@link QueryVariables}.</p>
      */
-    public static class MolangContext {
+    public static class MolangContext implements MolangExecutionBudget.Owner {
+        private final MolangExecutionBudget executionBudget = new MolangExecutionBudget();
+        public final YsmFilterRuntime filters = new YsmFilterRuntime();
+
+        @Override
+        public MolangExecutionBudget executionBudget() {
+            return executionBudget;
+        }
         public final Avatar owner;
+        public YsmFilterRuntime.Domain ysmFilterDomain() {
+            if (owner != null && org.figuramc.figura.model.ysm.YsmParticleRuntime.isPreview(owner.renderMode)) {
+                return YsmFilterRuntime.Domain.PREVIEW;
+            }
+            return is_first_person != 0f ? YsmFilterRuntime.Domain.FIRST_PERSON : YsmFilterRuntime.Domain.BODY;
+        }
+
         public final VariableStorage variables = new VariableStorage();  // v.* / variable.*
         public final VariableStorage controller = new VariableStorage(); // c.* / context.*
         public final org.figuramc.figura.molang.storage.TempVariableStorage temp =
@@ -342,6 +363,111 @@ public class Avatar {
         public float time_of_day;
         public int moon_phase;
         public long frame_count;
+        public float ysm_render_ticks;
+        public float ysm_partial_tick;
+        public int ysm_camera_type = CameraType.THIRD_PERSON_FRONT.ordinal();
+        private Entity ysm_position_entity;
+        private Vec3 ysm_last_position;
+        private float ysm_position_time;
+        public float ysm_position_delta_ticks;
+        public float ysm_limb_swing_amount = Float.NaN;
+        public float ysm_local_yaw_speed;
+        private Entity ysm_yaw_entity;
+        private int ysm_yaw_tick;
+        private float ysm_last_yaw;
+
+        private void updateYsmYawContext(Entity subject) {
+            if (!(subject instanceof net.minecraft.client.player.LocalPlayer)) {
+                ysm_yaw_entity = null;
+                ysm_yaw_tick = 0;
+                ysm_last_yaw = ysm_local_yaw_speed = 0f;
+                return;
+            }
+            int tick = subject.tickCount;
+            float yaw = subject.getYRot();
+            if (ysm_yaw_entity != subject || tick < ysm_yaw_tick) {
+                ysm_yaw_entity = subject;
+                ysm_yaw_tick = tick;
+                ysm_last_yaw = yaw;
+                ysm_local_yaw_speed = 0f;
+            } else if (tick > ysm_yaw_tick) {
+                if (ysm_yaw_tick > 0) {
+                    ysm_local_yaw_speed = net.minecraft.util.Mth.wrapDegrees(yaw - ysm_last_yaw)
+                            * 20f / Math.max(1, tick - ysm_yaw_tick);
+                }
+                ysm_yaw_tick = tick;
+                ysm_last_yaw = yaw;
+            }
+        }
+
+        public void setYsmCameraContext(Entity subject, Entity localPlayer, Entity cameraEntity,
+                                        CameraType cameraType, boolean hasCameraContext) {
+            ysm_camera_type = subject != null && subject == localPlayer && subject == cameraEntity
+                    && hasCameraContext && cameraType != null
+                    ? cameraType.ordinal() : CameraType.THIRD_PERSON_FRONT.ordinal();
+        }
+
+        public boolean isYsmModelPreview() {
+            return owner != null && org.figuramc.figura.model.ysm.YsmParticleRuntime.isPreview(owner.renderMode);
+        }
+
+        public boolean isYsmGuiPreview() {
+            // Figura's HUD doll corresponds to OLD_HUD; vanilla GUI entities correspond to GUI_PREVIEW.
+            return owner != null && (owner.renderMode == EntityRenderMode.PAPERDOLL
+                    || owner.renderMode == EntityRenderMode.MINECRAFT_GUI);
+        }
+
+        public void setYsmRenderTime(float renderTicks, int entityTicks) {
+            ysm_render_ticks = Float.isFinite(renderTicks) ? renderTicks : entityTicks;
+            ysm_partial_tick = Math.max(0f, Math.min(1f, ysm_render_ticks - entityTicks));
+        }
+
+        /** Samples once per advancing YSM seek time, matching the reference position tracker. */
+        public void updateYsmPositionContext(Entity subject) {
+            entity = subject;
+            updateYsmYawContext(subject);
+            if (ysm_position_entity != subject) {
+                ysm_position_entity = subject;
+                ysm_last_position = null;
+                ysm_position_time = 0f;
+                ysm_position_delta_ticks = 0f;
+                delta_time = 0f;
+                pos_delta_x = pos_delta_y = pos_delta_z = 0d;
+            }
+            if (subject == null) {
+                pos_x = pos_y = pos_z = 0d;
+                return;
+            }
+            pos_x = subject.getX();
+            pos_y = subject.getY();
+            pos_z = subject.getZ();
+            if (ysm_render_ticks <= ysm_position_time) {
+                return;
+            }
+            Vec3 position = new Vec3(
+                    net.minecraft.util.Mth.lerp(ysm_partial_tick, subject.xo, pos_x),
+                    net.minecraft.util.Mth.lerp(ysm_partial_tick, subject.yo, pos_y),
+                    net.minecraft.util.Mth.lerp(ysm_partial_tick, subject.zo, pos_z));
+            if (ysm_last_position != null) {
+                Vec3 delta = position.subtract(ysm_last_position);
+                pos_delta_x = delta.x;
+                pos_delta_y = delta.y;
+                pos_delta_z = delta.z;
+            }
+            ysm_last_position = position;
+            ysm_position_delta_ticks = ysm_render_ticks - ysm_position_time;
+            delta_time = Float.isFinite(ysm_position_delta_ticks) && ysm_position_delta_ticks > 1.0E-4f
+                    ? ysm_position_delta_ticks / 20f : 0f;
+            ysm_position_time = ysm_render_ticks;
+        }
+
+        public void updateYsmMovementContext(float limbSwingAmount) {
+            ysm_limb_swing_amount = limbSwingAmount;
+            ground_speed = entity == null ? 0f
+                    : org.figuramc.figura.model.ysm.YsmMovementQuery.groundSpeed(this);
+            vertical_speed = entity == null ? 0f
+                    : org.figuramc.figura.model.ysm.YsmMovementQuery.verticalSpeed(this);
+        }
 
         // ===== Health fields =====
         public float health;
@@ -438,9 +564,11 @@ public class Avatar {
             pos_z = entity.getZ();
 
             // Position delta
-            pos_delta_x = pos_x - prev_pos_x;
-            pos_delta_y = pos_y - prev_pos_y;
-            pos_delta_z = pos_z - prev_pos_z;
+            if (owner == null || owner.getYsmRuntime() == null) {
+                pos_delta_x = pos_x - prev_pos_x;
+                pos_delta_y = pos_y - prev_pos_y;
+                pos_delta_z = pos_z - prev_pos_z;
+            }
 
             // Speed. Prefer Minecraft's living-entity walk animation state; render-frame
             // position deltas can be zero when the same tick is sampled more than once.
@@ -549,8 +677,13 @@ public class Avatar {
             // View context
             boolean firstPerson = mc.options.getCameraType().isFirstPerson();
             is_first_person = firstPerson ? 1f : 0f;
-            rendering_in_inventory = firstPerson ? 0f : 1f;
-            rendering_in_paperdoll = mc.screen != null ? 1f : 0f;
+            if (owner != null && owner.getYsmRuntime() != null) {
+                rendering_in_inventory = isYsmModelPreview() ? 1f : 0f;
+                rendering_in_paperdoll = isYsmGuiPreview() ? 1f : 0f;
+            } else {
+                rendering_in_inventory = firstPerson ? 0f : 1f;
+                rendering_in_paperdoll = mc.screen != null ? 1f : 0f;
+            }
         }
 
         /**
@@ -563,6 +696,8 @@ public class Avatar {
             time_of_day = 0;
             moon_phase = 0;
             frame_count = 0;
+            ysm_render_ticks = ysm_partial_tick = 0;
+            ysm_camera_type = CameraType.THIRD_PERSON_FRONT.ordinal();
             health = 20f;
             max_health = 20f;
             hurt_time = 0;
@@ -572,6 +707,7 @@ public class Avatar {
             walk_distance = modified_distance_moved = 0;
             body_x_rot = body_y_rot = 0;
             head_x_rot = head_y_rot = 0;
+            ysm_head_yaw = ysm_head_pitch = 0f;
             is_on_ground = is_jumping = is_sneaking = is_sprinting = 0;
             is_swimming = is_in_water = is_in_water_or_rain = is_on_fire = 0;
             is_riding = is_sleeping = is_spectator = is_first_person = 0;
@@ -586,6 +722,12 @@ public class Avatar {
             equipment_count = 0;
             player_level = 0;
             entity = null;
+            updateYsmYawContext(null);
+            ysm_position_entity = null;
+            ysm_last_position = null;
+            ysm_position_time = 0f;
+            ysm_position_delta_ticks = 0f;
+            ysm_limb_swing_amount = Float.NaN;
             prev_pos_x = prev_pos_y = prev_pos_z = 0;
             prev_body_y_rot = 0;
         }
@@ -731,6 +873,9 @@ public class Avatar {
     }
 
     public void tick() {
+        if (ysmRuntime != null) {
+            ysmRuntime.sounds().tick();
+        }
         if (scriptError || luaRuntime == null || !loaded)
             return;
 
@@ -1527,6 +1672,9 @@ public class Avatar {
      * also closes and stops this avatar sounds
      */
     public void clean() {
+        if (molangContext != null) {
+            molangContext.filters.clear();
+        }
         if (renderer != null)
             renderer.invalidate();
         if (ysmRuntime != null) {

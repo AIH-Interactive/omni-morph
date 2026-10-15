@@ -10,6 +10,7 @@ import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.config.Configs;
+import org.figuramc.figura.model.ysm.YsmInputState;
 import org.figuramc.figura.lua.api.keybind.FiguraKeybind;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -27,6 +28,9 @@ public class KeyboardHandlerMixin {
     private void keyPress(long window, int action, KeyEvent event, CallbackInfo ci) {
         if (window != this.minecraft.getWindow().handle())
             return;
+
+        YsmInputState.device().updateReadiness(this.minecraft);
+        YsmInputState.device().keyEvent(event.key(), action);
 
         if (action == 1 && Configs.PANIC_BUTTON.keyBind.matches(event)) {
             AvatarManager.togglePanic();

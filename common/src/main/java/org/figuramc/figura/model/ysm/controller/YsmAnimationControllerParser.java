@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public final class YsmAnimationControllerParser {
     private YsmAnimationControllerParser() {
@@ -22,6 +23,14 @@ public final class YsmAnimationControllerParser {
     }
 
     public static Map<String, YsmAnimationController> parse(String json, MolangEngine engine) {
+        return parse(json, engine, null);
+    }
+
+    public record Diagnostic(String controller, String state, String message) {
+    }
+
+    public static Map<String, YsmAnimationController> parse(String json, MolangEngine engine,
+                                                           Consumer<Diagnostic> diagnostics) {
         Map<String, YsmAnimationController> controllers = new LinkedHashMap<>();
         if (json == null || json.isBlank())
             return controllers;
@@ -35,7 +44,7 @@ public final class YsmAnimationControllerParser {
                 for (Map.Entry<String, JsonElement> entry : object.entrySet()) {
                     if (!entry.getValue().isJsonObject())
                         continue;
-                    YsmAnimationController controller = parseController(entry.getKey(), entry.getValue().getAsJsonObject(), engine);
+                    YsmAnimationController controller = parseController(entry.getKey(), entry.getValue().getAsJsonObject(), engine, diagnostics);
                     controllers.put(controller.name(), controller);
                 }
             } else if (controllerElement.isJsonArray()) {
@@ -46,16 +55,20 @@ public final class YsmAnimationControllerParser {
                     String name = string(first(object, "name", "id", "controller", "animation"), "");
                     if (name.isBlank())
                         name = "controller_" + controllers.size();
-                    YsmAnimationController controller = parseController(name, object, engine);
+                    YsmAnimationController controller = parseController(name, object, engine, diagnostics);
                     controllers.put(controller.name(), controller);
                 }
             }
-        } catch (Exception ignored) {
+        } catch (Exception failure) {
+            if (diagnostics != null) {
+                diagnostics.accept(new Diagnostic("", "", failure.getMessage()));
+            }
         }
         return controllers;
     }
 
-    private static YsmAnimationController parseController(String name, JsonObject object, MolangEngine engine) {
+    private static YsmAnimationController parseController(String name, JsonObject object, MolangEngine engine,
+                                                          Consumer<Diagnostic> diagnostics) {
         String initialState = string(first(object, "initial_state", "initialState"), "default");
         LinkedHashMap<String, YsmControllerState> states = new LinkedHashMap<>();
         if (object.has("states")) {
@@ -64,7 +77,8 @@ public final class YsmAnimationControllerParser {
                 for (Map.Entry<String, JsonElement> entry : stateElement.getAsJsonObject().entrySet()) {
                     if (!entry.getValue().isJsonObject())
                         continue;
-                    states.put(entry.getKey(), parseState(entry.getKey(), entry.getValue().getAsJsonObject(), engine));
+                    states.put(entry.getKey(), parseState(entry.getKey(), entry.getValue().getAsJsonObject(),
+                            diagnosticEngine(engine, name, entry.getKey(), diagnostics)));
                 }
             } else if (stateElement.isJsonArray()) {
                 for (JsonElement element : stateElement.getAsJsonArray()) {
@@ -74,13 +88,29 @@ public final class YsmAnimationControllerParser {
                     String stateName = string(first(state, "name", "id", "state"), "");
                     if (stateName.isBlank())
                         stateName = "state_" + states.size();
-                    states.put(stateName, parseState(stateName, state, engine));
+                    states.put(stateName, parseState(stateName, state, diagnosticEngine(engine, name, stateName, diagnostics)));
                 }
             }
         }
         if (!states.containsKey(initialState) && !states.isEmpty())
             initialState = states.keySet().iterator().next();
         return new YsmAnimationController(name, initialState, YsmControllerSlot.fromName(name), states);
+    }
+
+    private static MolangEngine diagnosticEngine(MolangEngine engine, String controller, String state,
+                                                 Consumer<Diagnostic> diagnostics) {
+        if (diagnostics == null) {
+            return engine;
+        }
+        MolangEngine delegate = engine == null ? Avatar.getMolangEngine() : engine;
+        return reader -> {
+            try {
+                return delegate.parse(reader);
+            } catch (java.io.IOException | RuntimeException failure) {
+                diagnostics.accept(new Diagnostic(controller, state, failure.getMessage()));
+                throw failure;
+            }
+        };
     }
 
     private static YsmControllerState parseState(String name, JsonObject object, MolangEngine engine) {

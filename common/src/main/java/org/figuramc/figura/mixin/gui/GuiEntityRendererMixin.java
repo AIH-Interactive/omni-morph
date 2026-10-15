@@ -14,6 +14,7 @@ import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import org.figuramc.figura.avatar.AvatarManager;
+import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.ducks.GuiEntityRenderStateExtension;
 import org.figuramc.figura.model.rendering.EntityRenderMode;
 import org.figuramc.figura.utils.ui.UIHelper;
@@ -38,10 +39,19 @@ public abstract class GuiEntityRendererMixin extends PictureInPictureRenderer<Gu
     @WrapOperation(method = "renderToTexture(Lnet/minecraft/client/renderer/state/gui/pip/GuiEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/entity/EntityRenderDispatcher;submit(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lnet/minecraft/client/renderer/state/level/CameraRenderState;DDDLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;)V"))
     private <S extends EntityRenderState> void setFiguraRenderProperties(EntityRenderDispatcher instance, S entityRenderState, CameraRenderState cameraRenderState, double d, double e, double f, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, Operation<Void> original, @Local(argsOnly = true) GuiEntityRenderState guiEntityRenderState) {
         GuiEntityRenderStateExtension extended = (GuiEntityRenderStateExtension) (Object) guiEntityRenderState;
-        if (AvatarManager.getAvatar(entityRenderState) != null && extended.getRenderMode() != null) {
-            AvatarManager.getAvatar(entityRenderState).renderMode = extended.getRenderMode();
+        Avatar avatar = AvatarManager.getAvatar(entityRenderState);
+        EntityRenderMode previousMode = avatar == null ? null : avatar.renderMode;
+        boolean restoreYsmMode = avatar != null && avatar.isYsmNative();
+        if (avatar != null && extended.getRenderMode() != null) {
+            avatar.renderMode = extended.getRenderMode();
         }
-        original.call(instance, entityRenderState, cameraRenderState, d+extended.getXPos(), e+extended.getYPos(), f, poseStack, submitNodeCollector);
+        try {
+            original.call(instance, entityRenderState, cameraRenderState, d+extended.getXPos(), e+extended.getYPos(), f, poseStack, submitNodeCollector);
+        } finally {
+            if (restoreYsmMode) {
+                avatar.renderMode = previousMode;
+            }
+        }
     }
 
     @WrapOperation(method = "renderToTexture(Lnet/minecraft/client/renderer/state/gui/pip/GuiEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;)V", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/platform/Lighting;setupFor(Lcom/mojang/blaze3d/platform/Lighting$Entry;)V"))

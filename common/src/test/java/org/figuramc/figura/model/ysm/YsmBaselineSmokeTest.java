@@ -22,6 +22,31 @@ public final class YsmBaselineSmokeTest {
             require(valid.reports().size() == 1 && valid.validCount() == 1, "valid minimal model");
             YsmModelScanner.validateGate(root, valid, null);
 
+            Path functions = model.resolve("functions");
+            Files.createDirectories(functions);
+            Files.writeString(functions.resolve("known.molang"),
+                    "v.counter=q.anim_time; t.local=c.weight; return v.counter+t.local;");
+            Files.writeString(model.resolve("main.animation_controllers.json"), """
+                    {"animation_controllers":{"fixture":{"states":{"default":{
+                      "on_entry":["v.counter=q.anim_time; t.local=c.weight;"],
+                      "transitions":[{"default":"q.anim_time>0"}]}}}}}
+                    """);
+            require(YsmModelScanner.scanOne(model).valid(), "scanner uses formal query/v/c/t registration");
+            Files.writeString(functions.resolve("unknown.molang"), "return q.not_registered;");
+            require(YsmModelScanner.scanOne(model).errors().stream().anyMatch(error ->
+                            error.contains("unknown.molang") && error.contains("not_registered")),
+                    "function body is compiled and unknown binding identifies its resource");
+            Files.delete(functions.resolve("unknown.molang"));
+            Files.writeString(model.resolve("main.animation_controllers.json"), """
+                    {"animation_controllers":{"fixture":{"states":{"default":{
+                      "on_entry":["q.not_registered;"]}}}}}
+                    """);
+            require(YsmModelScanner.scanOne(model).errors().stream().anyMatch(error ->
+                            error.contains("main.animation_controllers.json") && error.contains("fixture")
+                                    && error.contains("default") && error.contains("not_registered")),
+                    "controller compile failure identifies resource/controller/state/binding");
+            Files.delete(model.resolve("main.animation_controllers.json"));
+
             Path baseline = root.resolve("baseline.json");
             Files.writeString(baseline, "{\"total\":1,\"issues\":{}}");
             YsmModelScanner.validateGate(root, valid, baseline);
@@ -48,11 +73,34 @@ public final class YsmBaselineSmokeTest {
 
             Files.writeString(model.resolve("main.animation.json"), """
                     {"animations":{"animation.fixture":{"animation_length":1,
-                      "timeline":{"0":"ysm.second_order(1,2,3); ysm.unknown_core();"}}}}
+                      "timeline":{"0":"ysm.bone_param('root'); ysm.unknown_core();"}}}}
                     """);
             YsmModelScanner.ScanReport bindings = YsmModelScanner.scanOne(model);
-            require(bindings.unsupportedBindings().contains("ysm.second_order"), "placeholder is unsupported");
+            require(bindings.unsupportedBindings().contains("ysm.bone_param"), "unresolved reference contract is unsupported");
             require(bindings.unsupportedBindings().contains("ysm.unknown_core"), "unknown binding is unsupported");
+            Files.writeString(model.resolve("main.animation.json"), """
+                    {"animations":{"animation.fixture":{"animation_length":1,
+                      "timeline":{"0":"ctrl.tac_gun_type; ysm.unknown_core();"}}}}
+                    """);
+            YsmModelScanner.ScanReport optional = YsmModelScanner.scanOne(model);
+            require(optional.unavailableOptionalBindings().keySet().equals(java.util.Set.of("ctrl.tac_gun_type")),
+                    "optional unavailable capabilities are classified separately from unknown core bindings");
+            require(optional.unavailableOptionalBindings().get("ctrl.tac_gun_type").startsWith("CAPABILITY_UNAVAILABLE:"),
+                    "optional capability report provides its unavailable reason");
+            expectFailure(() -> YsmModelScanner.validateGate(model, YsmModelScanner.scan(model), null),
+                    "optional unavailable is not silently accepted as full bridge support");
+            Files.writeString(model.resolve("main.animation.json"), """
+                    {"animations":{"animation.fixture":{"animation_length":1,
+                      "timeline":{"0":"ysm.defer('layer',1); ysm.first_order('a',1); ysm.second_order('b',2); ysm.particle('minecraft:flame'); ysm.abs_particle('minecraft:flame');"}}}}
+                    """);
+            require(!YsmModelScanner.scanOne(model).unsupportedBindings().contains("ysm.defer"),
+                    "scanner recognizes the formally implemented defer binding");
+            require(YsmModelScanner.scanOne(model).unsupportedBindings().isEmpty(),
+                    "scanner recognizes verified filter and particle bindings");
+            Files.writeString(model.resolve("main.animation.json"), """
+                    {"animations":{"animation.fixture":{"animation_length":1,
+                      "timeline":{"0":"ysm.bone_param('root'); ysm.unknown_core();"}}}}
+                    """);
             expectFailure(() -> YsmModelScanner.validateGate(model,
                     YsmModelScanner.scan(model), null), "unsupported binding gate");
 
@@ -67,7 +115,7 @@ public final class YsmBaselineSmokeTest {
                     """);
             YsmModelScanner.ScanReport references = YsmModelScanner.scanOne(model);
             require(references.errors().stream().anyMatch(error -> error.contains("missing animation 'missing_clip'")),
-                    "missing animation negative fixture");
+                    "missing animation negative fixture: " + references.errors());
             require(references.errors().stream().anyMatch(error -> error.contains("missing transition target 'missing_state'")),
                     "missing state negative fixture");
             Files.writeString(model.resolve("main.animation_controllers.json"), "{");

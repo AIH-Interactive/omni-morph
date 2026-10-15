@@ -25,6 +25,7 @@ import org.figuramc.figura.mixin.MinecraftAccesor;
 import org.figuramc.figura.gui.widgets.DebugEntryFigura;
 import org.figuramc.figura.permissions.PermissionManager;
 import org.figuramc.figura.resources.FiguraRuntimeResources;
+import org.figuramc.figura.model.ysm.YsmInputState;
 import org.figuramc.figura.utils.*;
 import org.figuramc.figura.wizards.AvatarWizard;
 import org.slf4j.Logger;
@@ -87,6 +88,7 @@ public class FiguraMod {
 
 
     public static void tick() {
+        YsmInputState.device().tick(Minecraft.getInstance());
         pushProfiler("network");
         NetworkStuff.tick();
         popPushProfiler("files");

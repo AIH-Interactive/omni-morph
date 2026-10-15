@@ -1,0 +1,71 @@
+{
+  "total": 40,
+  "issues": {
+    "03_astronaut": {
+      "errors": [],
+      "unsupported": [
+        "ctrl.carryon_is_princess",
+        "ctrl.parcool_state",
+        "ctrl.slashblade_animation",
+        "ctrl.tac_hold_gun"
+      ]
+    },
+    "08_sta": {
+      "errors": [
+        "controller 'player.parallel_7' in 'controller/main.animation_controllers.json' state '自选' references missing transition target 'missing_state'"
+      ],
+      "unsupported": [
+        "ctrl.has_sophisticated_backpack"
+      ]
+    },
+    "15_kluonoa": {
+      "errors": [],
+      "unsupported": [
+        "ctrl.carryon_is_princess",
+        "ctrl.tac_hold_gun"
+      ]
+    },
+    "16_tactics": {
+      "errors": [
+        "controller 'controller.animation.player.parallel_0' in 'controller/animation_controllers.json' references missing animation 'your_backpack_animation'"
+      ],
+      "unsupported": [
+        "ysm.has_any_curios"
+      ]
+    },
+    "18_wedding": {
+      "errors": [],
+      "unsupported": [
+        "ctrl.bcombat_attack_animation"
+      ]
+    },
+    "芙宁娜v3.14中文配音.ysm": {
+      "errors": [],
+      "unsupported": [
+        "ctrl.parcool_state",
+        "ctrl.tac_gun_type",
+        "ctrl.tac_hold_gun",
+        "ctrl.tac_is_aim",
+        "ctrl.tac_is_fire",
+        "ctrl.tac_is_melee",
+        "ctrl.tac_is_reload"
+      ]
+    },
+    "YSM_NEW_Model": {
+      "errors": [],
+      "unsupported": [
+        "ctrl.im_delta",
+        "ctrl.im_pitch",
+        "ctrl.im_time"
+      ]
+    },
+    "default": {
+      "errors": [],
+      "unsupported": [
+        "ctrl.im_delta",
+        "ctrl.im_pitch",
+        "ctrl.im_time"
+      ]
+    }
+  }
+}

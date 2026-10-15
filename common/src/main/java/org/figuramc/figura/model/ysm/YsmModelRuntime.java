@@ -63,7 +63,12 @@ public class YsmModelRuntime implements AutoCloseable {
     private final Map<String, YsmAttachmentPoint> attachmentPoints = new LinkedHashMap<>();
     private final Map<String, FiguraMat4> locatorWorldMatrices = new LinkedHashMap<>();
     private final Map<String, YsmSubEntity> subEntities = new LinkedHashMap<>();
+    private final Map<String, String> controllerSources = new LinkedHashMap<>();
+    private final Set<String> controllerDiagnostics = new LinkedHashSet<>();
     private final YsmRenderer renderer;
+    private final YsmBoneQueryRuntime boneQueries = new YsmBoneQueryRuntime(this);
+    private final YsmParticleRuntime particles = new YsmParticleRuntime(this);
+    private final YsmSoundRuntime sounds = new YsmSoundRuntime(this);
     private final YsmAnimationPlayer animationPlayer;
     private final YsmActionRuntime actions;
     private final YsmMolangFunctionRuntime functions;
@@ -169,7 +174,11 @@ public class YsmModelRuntime implements AutoCloseable {
             runtime.readSubEntities(tag, selectedTexture, data);
             MolangEngine ysmMolangEngine = MolangEngine.fromCustomBinding(owner.getAvatarBindings());
             runtime.animationPlayer.registerAnimations(readAnimations(tag, ysmMolangEngine));
-            runtime.animationPlayer.registerControllers(readAnimationControllers(tag, ysmMolangEngine));
+            YsmModelRuntime loadedRuntime = runtime;
+            runtime.animationPlayer.registerControllers(readAnimationControllers(tag, ysmMolangEngine, (path, diagnostic) -> {
+                loadedRuntime.recordControllerDiagnostic(controllerDiagnostic(loadedRuntime.modelKey,
+                        loadedRuntime.encryptedSource, path, diagnostic));
+            }, runtime.controllerSources));
             runtime.functions.load(tag.getListOrEmpty("functions"));
             runtime.animationPlayer.registerFunctionEventControllers(runtime.functions.eventDebugNames().keySet());
             runtime.animationPlayer.startBaseAnimations();
@@ -282,6 +291,17 @@ public class YsmModelRuntime implements AutoCloseable {
     }
 
     private static Map<String, YsmAnimationController> readAnimationControllers(CompoundTag tag, MolangEngine engine) {
+        return readAnimationControllers(tag, engine, null);
+    }
+
+    private static Map<String, YsmAnimationController> readAnimationControllers(CompoundTag tag, MolangEngine engine,
+            java.util.function.BiConsumer<String, YsmAnimationControllerParser.Diagnostic> diagnostics) {
+        return readAnimationControllers(tag, engine, diagnostics, null);
+    }
+
+    private static Map<String, YsmAnimationController> readAnimationControllers(CompoundTag tag, MolangEngine engine,
+            java.util.function.BiConsumer<String, YsmAnimationControllerParser.Diagnostic> diagnostics,
+            Map<String, String> sources) {
         Map<String, YsmAnimationController> result = new LinkedHashMap<>();
         for (Tag controllerTag : tag.getListOrEmpty("animation_controllers")) {
             if (!(controllerTag instanceof CompoundTag controller))
@@ -289,9 +309,46 @@ public class YsmModelRuntime implements AutoCloseable {
             String json = new String(controller.getByteArray("data").orElse(new byte[0]), StandardCharsets.UTF_8);
             if (json.isBlank())
                 continue;
-            result.putAll(YsmAnimationControllerParser.parse(json, engine));
+            String path = controller.getStringOr("path", "animation_controllers");
+            Map<String, YsmAnimationController> parsed = YsmAnimationControllerParser.parse(json, engine,
+                    diagnostics == null ? null : diagnostic -> diagnostics.accept(path, diagnostic));
+            result.putAll(parsed);
+            if (sources != null) {
+                parsed.keySet().forEach(name -> sources.put(name, path));
+            }
         }
         return result;
+    }
+
+    static String controllerDiagnostic(String model, boolean encrypted, String path,
+                                       YsmAnimationControllerParser.Diagnostic diagnostic) {
+        if (encrypted) {
+            return "Encrypted YSM operation failed: runtime/controller-parse";
+        }
+        return "YSM controller parse failed: model=" + model + " resource=" + path
+                + " controller=" + diagnostic.controller() + " state=" + diagnostic.state()
+                + " reason=" + diagnostic.message();
+    }
+
+    public String controllerSource(String controller) {
+        return encryptedSource ? "" : controllerSources.getOrDefault(controller, "<runtime-controller>");
+    }
+
+    public void reportControllerExecutionFailure(Exception failure) {
+        String message = encryptedSource ? "Encrypted YSM operation failed: runtime/controller-execution"
+                : "YSM controller execution failed: " + functions.bindingDiagnosticContext()
+                        + " reason=" + failure.getMessage();
+        recordControllerDiagnostic(message);
+    }
+
+    private void recordControllerDiagnostic(String message) {
+        if (controllerDiagnostics.size() < 16 && controllerDiagnostics.add(message)) {
+            FiguraMod.LOGGER.warn(message);
+        }
+    }
+
+    List<String> controllerDiagnosticMessages() {
+        return List.copyOf(controllerDiagnostics);
     }
 
     private void buildParts() {
@@ -402,6 +459,18 @@ public class YsmModelRuntime implements AutoCloseable {
 
     public YsmRenderer renderer() {
         return renderer;
+    }
+
+    public YsmBoneQueryRuntime boneQueries() {
+        return boneQueries;
+    }
+
+    public YsmSoundRuntime sounds() {
+        return sounds;
+    }
+
+    public YsmParticleRuntime particles() {
+        return particles;
     }
 
     public Iterable<YsmSubEntity> subEntities() {
@@ -980,7 +1049,20 @@ public class YsmModelRuntime implements AutoCloseable {
 
     @Override
     public void close() {
+        controllerSources.clear();
+        controllerDiagnostics.clear();
+        particles.close();
+        sounds.close();
+        boneQueries.clear();
         animationPlayer.closeSounds();
+        animationPlayer.clearControllerFunctionTransitions();
+        functions.clearEventState();
+        Avatar.MolangContext context = owner.getMolangContext();
+        if (context != null) {
+            context.updateYsmPositionContext(null);
+            context.updateYsmMovementContext(Float.NaN);
+            YsmHandQuery.capture(context);
+        }
         texture.close();
         for (YsmSubEntity entity : new LinkedHashSet<>(subEntities.values()))
             entity.close();
@@ -1223,13 +1305,13 @@ public class YsmModelRuntime implements AutoCloseable {
         double py = bone.pivot[1] / 16d;
         double pz = bone.pivot[2] / 16d;
         stack.translate(px, py, pz);
-        rotate(stack, bone.rotation[0], bone.rotation[1], bone.rotation[2]);
         if (part != null) {
             FiguraVec3 animPos = part.animPosRaw();
             FiguraVec3 animRot = part.animRotRaw();
             FiguraVec3 animScale = part.animScaleRaw();
             stack.translate(-animPos.x / 16d, animPos.y / 16d, animPos.z / 16d);
-            rotate(stack, (float) -animRot.x, (float) -animRot.y, (float) animRot.z);
+            rotate(stack, bone.rotation[0] - (float) animRot.x,
+                    bone.rotation[1] - (float) animRot.y, bone.rotation[2] + (float) animRot.z);
             stack.scale((float) animScale.x, (float) animScale.y, (float) animScale.z);
 
             FiguraVec3 pos = part.posRaw();
@@ -1238,6 +1320,8 @@ public class YsmModelRuntime implements AutoCloseable {
             stack.translate(-pos.x / 16d, pos.y / 16d, pos.z / 16d);
             rotate(stack, (float) -rot.x, (float) -rot.y, (float) rot.z);
             stack.scale((float) scale.x, (float) scale.y, (float) scale.z);
+        } else {
+            rotate(stack, bone.rotation[0], bone.rotation[1], bone.rotation[2]);
         }
         if (!stopAtPivot)
             stack.translate(-px, -py, -pz);

@@ -20,6 +20,7 @@ import org.figuramc.figura.model.ysm.controller.YsmControllerState;
 import org.figuramc.figura.model.ysm.controller.YsmControllerTransition;
 import org.figuramc.figura.model.ysm.animation.YsmAnimationParser;
 import org.figuramc.figura.molang.MolangEngine;
+import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.molang.runtime.binding.MolangBindings;
 
 import java.io.IOException;
@@ -52,6 +53,17 @@ public final class YsmModelScanner {
                              List<String> actionNames, List<String> controlNames, List<String> subEntities,
                              List<String> unsupportedBindings, List<String> warnings, List<String> bones, List<String> locators,
                              List<String> attachments, List<String> firstPersonArmBones, List<String> errors) {
+        public Map<String, String> unavailableOptionalBindings() {
+            Map<String, String> result = new java.util.TreeMap<>();
+            for (String binding : unsupportedBindings) {
+                String reason = optionalBindingReason(binding);
+                if (reason != null) {
+                    result.put(binding, reason);
+                }
+            }
+            return Map.copyOf(result);
+        }
+
         public boolean valid() {
             return errors.isEmpty()
                     && mainValidation != null && mainValidation.valid()
@@ -176,7 +188,14 @@ public final class YsmModelScanner {
                                 || (!declaredControllers.isJsonObject() && !declaredControllers.isJsonArray())) {
                             throw new IOException("missing animation_controllers object or array");
                         }
-                        Map<String, YsmAnimationController> controllers = YsmAnimationControllerParser.parse(controllerJson, scannerMolangEngine());
+                        Map<String, YsmAnimationController> controllers = YsmAnimationControllerParser.parse(controllerJson,
+                                scannerMolangEngine(), diagnostic -> {
+                                    if (errors.size() < 64) {
+                                        errors.add("controller expression in '" + controllerPath + "' controller='"
+                                                + diagnostic.controller() + "' state='" + diagnostic.state()
+                                                + "': " + diagnostic.message());
+                                    }
+                                });
                         int declaredCount = declaredControllers.isJsonObject()
                                 ? declaredControllers.getAsJsonObject().size() : declaredControllers.getAsJsonArray().size();
                         if (controllers.size() != declaredCount) {
@@ -196,6 +215,7 @@ public final class YsmModelScanner {
                     try {
                         String functionJson = ysmPackage.readString(functionPath);
                         YsmMolangFunctionName function = YsmMolangFunctionName.parse(functionPath);
+                        scannerMolangEngine().parse(functionJson);
                         if (!function.functionName().isBlank())
                             functionNames.add(function.functionName() + " path=" + functionPath);
                         if (!function.eventName().isBlank())
@@ -394,8 +414,14 @@ public final class YsmModelScanner {
                 output.append("  error=").append(error).append('\n');
             for (String warning : report.warnings())
                 output.append("  warning=").append(warning).append('\n');
-            for (String binding : report.unsupportedBindings())
-                output.append("  unsupported=").append(binding).append('\n');
+            for (String binding : report.unsupportedBindings()) {
+                String reason = optionalBindingReason(binding);
+                if (reason == null) {
+                    output.append("  unsupported=").append(binding).append('\n');
+                } else {
+                    output.append("  optional_unavailable=").append(binding).append(" reason=").append(reason).append('\n');
+                }
+            }
         }
         Files.writeString(reportPath, output, StandardCharsets.UTF_8);
         System.out.println("YSM scan report written to " + reportPath.toAbsolutePath().normalize());
@@ -422,7 +448,7 @@ public final class YsmModelScanner {
 
     private static MolangEngine scannerMolangEngine() {
         if (scannerMolangEngine == null)
-            scannerMolangEngine = MolangEngine.fromCustomBinding(new MolangBindings());
+            scannerMolangEngine = MolangEngine.fromCustomBinding(Avatar.createMolangBindings(new Avatar.MolangContext(null)));
         return scannerMolangEngine;
     }
 
@@ -563,10 +589,20 @@ public final class YsmModelScanner {
                 System.out.println("    " + name);
         }
         if (!report.unsupportedBindings().isEmpty()) {
-            System.out.println("  unsupported bindings:");
-            for (String name : report.unsupportedBindings())
-                System.out.println("    " + name);
+            System.out.println("  binding capability gaps:");
+            for (String name : report.unsupportedBindings()) {
+                String reason = optionalBindingReason(name);
+                System.out.println("    " + name + (reason == null ? "" : " [" + reason + "]"));
+            }
         }
+    }
+
+    private static String optionalBindingReason(String binding) {
+        if (binding.startsWith("ctrl.")) {
+            return MolangBindings.CtrlBinding.optionalBindingUnavailableReason(binding.substring(5));
+        }
+        return binding.startsWith("ysm.")
+                ? MolangBindings.YsmBinding.optionalBindingUnavailableReason(binding.substring(4)) : null;
     }
 
     private static String describeController(YsmAnimationController controller) {
@@ -834,16 +870,17 @@ public final class YsmModelScanner {
 
     private static final Pattern BINDING_PATTERN = Pattern.compile("\\b(ctrl|ysm|q|query)\\.([A-Za-z_][A-Za-z0-9_]*)");
     private static final Set<String> PENDING_CORE_YSM = Set.of(
-            "mouse", "particle", "abs_particle", "perlin_noise", "bone_param", "bone_rot",
-            "bone_pos", "bone_scale", "bone_pivot_abs", "first_order", "second_order"
+            "bone_param"
     );
     private static final Set<String> SUPPORTED_CTRL = Set.of(
             "death", "sleep", "swim", "swim_stand", "jump", "fall", "fly", "elytra_fly",
+            "climb", "climbing", "ladder_up", "ladder_stillness", "ladder_down",
+            "riptide",
             "sneak", "sneaking", "run", "walk", "idle", "attacked", "ride", "riding",
             "hold", "use", "swing", "armor", "attack", "playing_extra_animation",
             "state_continue", "state_break", "state_stop", "state_pause", "state_bypass",
             "loop", "play_once", "hold_on_last_frame", "set_beginning_transition_length",
-            "set_animation", "reset", "indicate_reload", "im_delta", "im_pitch", "im_time"
+            "set_animation", "reset", "indicate_reload"
     );
     private static final Set<String> SUPPORTED_YSM = Set.of(
             "rendering_in_inventory", "rendering_in_paperdoll", "is_first_person", "first_person",
@@ -851,16 +888,21 @@ public final class YsmModelScanner {
             "ground_speed2", "is_open_air", "block_light", "sky_light", "is_passenger",
             "is_sleep", "is_sneak", "eye_in_water", "frozen_ticks", "air_supply",
             "input_vertical", "input_horizontal", "xxa", "yya", "zza", "keyboard", "mouse",
-            "sync", "event", "run_event", "trigger_event", "play_sound", "stop_sound", "stop_all_sounds", "first_order", "second_order",
+            "sync", "defer", "event", "run_event", "trigger_event", "play_sound", "stop_sound", "stop_all_sounds", "first_order", "second_order",
             "food_level", "is_local_player", "local_player", "person_view", "main_hand",
             "off_hand", "equipped_item", "has_mainhand", "has_offhand", "has_helmet",
             "has_chest_plate", "has_leggings", "has_boots", "armor_value", "hurt_time",
             "swinging", "swing_time", "attack_time", "entity_type", "is_player",
-            "elytra_rot_z", "boat_left_paddle", "boat_right_paddle", "boat_left_rowing_time",
+            "elytra_rot_x", "elytra_rot_y", "elytra_rot_z", "has_elytra", "is_close_eyes",
+            "texture_name", "mod_version",
+            "first_person_mod_hide",
+            "relative_block_name", "relative_block_name_any",
+            "equipped_enchantment_level",
+            "in_shield_block_cooldown",
+            "boat_left_paddle", "boat_right_paddle", "boat_left_rowing_time",
             "boat_right_rowing_time", "boat_paddle_scale", "boat_body_offset_y",
             "boat_body_offset_z", "shoot_item_id",
-            "dump_mods", "dump_effects", "dump_biome", "has_any_curios",
-            "has_any_curios_with_any_tag", "has_any_curios_with_all_tags", "particle",
+            "dump_mods", "dump_effects", "dump_biome", "particle",
             "abs_particle", "perlin_noise", "bone_param", "bone_rot", "bone_pos",
             "bone_scale", "bone_pivot_abs"
     );

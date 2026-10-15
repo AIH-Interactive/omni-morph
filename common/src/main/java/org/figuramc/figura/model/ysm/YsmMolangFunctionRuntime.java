@@ -8,6 +8,7 @@ import org.figuramc.figura.molang.parser.ast.Expression;
 import org.figuramc.figura.molang.runtime.ExecutionContext;
 import org.figuramc.figura.molang.runtime.ExpressionEvaluator;
 import org.figuramc.figura.molang.runtime.ExpressionEvaluatorImpl;
+import org.figuramc.figura.molang.runtime.MolangExecutionBudget;
 import org.figuramc.figura.molang.runtime.Function;
 import org.figuramc.figura.molang.runtime.Struct;
 import org.figuramc.figura.molang.storage.StringPool;
@@ -21,7 +22,9 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Set;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -38,8 +41,14 @@ public class YsmMolangFunctionRuntime {
     private final ArrayDeque<ArgsValue> argumentStack = new ArrayDeque<>();
     private final ArrayDeque<CallFrame> callStack = new ArrayDeque<>();
     private final YsmFunctionEventBus eventBus = new YsmFunctionEventBus();
-    private final Map<String, Object> syncValues = new LinkedHashMap<>();
     private final ArrayDeque<String> recentSyncKeys = new ArrayDeque<>();
+    private final Map<Object, List<ArgsValue>> deferredCalls = new IdentityHashMap<>();
+    private Object eventOwner;
+    private boolean clientEffects;
+    private int deferredCount;
+    private long eventGeneration;
+    private static final int MAX_DEFERRED_CALLS = 4096;
+    private static final int MAX_DEFERRED_ARGUMENTS = 64;
 
     public YsmMolangFunctionRuntime(YsmModelRuntime runtime) {
         this.runtime = runtime;
@@ -104,6 +113,26 @@ public class YsmMolangFunctionRuntime {
         return List.copyOf(recentSyncKeys);
     }
 
+    public String bindingDiagnosticContext() {
+        if (runtime.encryptedSource()) {
+            return "runtime/unsupported-binding";
+        }
+        CallFrame frame = callStack.peek();
+        Avatar.MolangContext context = runtime.owner().getMolangContext();
+        String location = "model=" + runtime.getModelKey();
+        if (frame != null) {
+            location += " resource=" + frame.path() + " function=" + frame.functionName();
+        }
+        if (context != null) {
+            if (frame == null) {
+                location += " resource=" + runtime.controllerSource(String.valueOf(context.controller.getPath("controller")));
+            }
+            location += " controller=" + context.controller.getPath("controller")
+                    + " state=" + context.controller.getPath("current_state");
+        }
+        return location;
+    }
+
     public List<String> callStackDebugNames() {
         return callStack.stream()
                 .map(frame -> {
@@ -116,22 +145,121 @@ public class YsmMolangFunctionRuntime {
     }
 
     public Object recordSync(ExecutionContext<?> context, Function.ArgumentCollection args) {
-        if (args == null || args.size() == 0)
-            return 0f;
-        String key = args.getAsString(context, 0);
-        if (key == null || key.isBlank())
-            return 0f;
-        String normalized = normalizeName(key);
-        if (args.size() == 1)
-            return syncValues.getOrDefault(normalized, 0f);
-        Object value = args.size() > 1 ? args.getValue(context, 1) : 1f;
-        syncValues.put(normalized, value);
-        String display = key + "=" + value;
-        recentSyncKeys.removeIf(entry -> entry.equals(key) || entry.startsWith(key + "="));
-        recentSyncKeys.addFirst(display);
-        while (recentSyncKeys.size() > 16)
+        if (!clientEffects || args == null || args.size() > 16) {
+            return null;
+        }
+        List<Object> values = new ArrayList<>(args.size());
+        for (int index = 0; index < args.size(); index++) {
+            values.add(args.getAsFloat(context, index));
+        }
+        recentSyncKeys.addFirst("sync " + values);
+        while (recentSyncKeys.size() > 16) {
             recentSyncKeys.removeLast();
-        return value;
+        }
+        executeSpecialEvent("sync", evaluator(context), new ArgsValue(values));
+        return null;
+    }
+
+    public Object captureDefer(ExecutionContext<?> context, Function.ArgumentCollection args) {
+        if (!clientEffects || eventOwner == null || args == null || args.size() == 0) {
+            return null;
+        }
+        String address = args.getAsString(context, 0);
+        if (address == null || address.isBlank()) {
+            return null;
+        }
+        if (args.size() - 1 > MAX_DEFERRED_ARGUMENTS || deferredCount >= MAX_DEFERRED_CALLS) {
+            throw new IllegalStateException("YSM deferred event budget exceeded");
+        }
+        List<Object> values = new ArrayList<>(args.size() - 1);
+        for (int index = 1; index < args.size(); index++) {
+            values.add(args.getValue(context, index));
+        }
+        deferredCalls.computeIfAbsent(eventOwner, ignored -> new ArrayList<>()).add(new ArgsValue(values));
+        deferredCount++;
+        return null;
+    }
+
+    public void flushDeferred(Object owner, ExpressionEvaluator<?> evaluator) {
+        List<ArgsValue> calls = deferredCalls.remove(owner);
+        if (calls == null) {
+            return;
+        }
+        deferredCount -= calls.size();
+        long generation = eventGeneration;
+        try (EffectScope scope = beginClientEffects(owner)) {
+            for (int index = calls.size() - 1; index >= 0; index--) {
+                if (generation != eventGeneration) {
+                    break;
+                }
+                executeSpecialEvent("defer", evaluator, calls.get(index));
+            }
+        } finally {
+            // The reference resets captureCount after replay, including captures made by @defer itself.
+            List<ArgsValue> capturedDuringReplay = deferredCalls.remove(owner);
+            if (capturedDuringReplay != null) {
+                deferredCount -= capturedDuringReplay.size();
+            }
+        }
+    }
+
+    private void executeSpecialEvent(String event, ExpressionEvaluator<?> evaluator, ArgsValue args) {
+        List<YsmFunction> handlers = events.get(event);
+        if (handlers == null || evaluator == null) {
+            return;
+        }
+        for (YsmFunction function : handlers) {
+            execute(function, evaluator, args, event);
+        }
+    }
+
+    public EffectScope beginClientEffects(Object owner) {
+        return new EffectScope(owner);
+    }
+
+    public Object clientEffectOwner() {
+        return eventOwner;
+    }
+
+    public boolean clientEffectsEnabled() {
+        return clientEffects;
+    }
+
+    public final class EffectScope implements AutoCloseable {
+        private final Object previousOwner;
+        private final boolean previousClientEffects;
+        private final long generation;
+        private boolean closed;
+
+        private EffectScope(Object owner) {
+            previousOwner = eventOwner;
+            previousClientEffects = clientEffects;
+            generation = eventGeneration;
+            eventOwner = owner;
+            clientEffects = true;
+        }
+
+        @Override
+        public void close() {
+            if (!closed && generation == eventGeneration) {
+                closed = true;
+                eventOwner = previousOwner;
+                clientEffects = previousClientEffects;
+            }
+        }
+    }
+
+    public void clearEventState() {
+        eventGeneration++;
+        discardDeferredCalls();
+        recentSyncKeys.clear();
+        eventOwner = null;
+        clientEffects = false;
+    }
+
+    public void discardDeferredCalls() {
+        deferredCalls.clear();
+        deferredCount = 0;
     }
 
     public Object call(String name, ExecutionContext<?> context, Function.ArgumentCollection args) {
@@ -224,12 +352,18 @@ public class YsmMolangFunctionRuntime {
     }
 
     private Object execute(YsmFunction function, ExpressionEvaluator<?> evaluator, ArgsValue args, String slot) {
+        if (callStack.size() >= MAX_CALL_DEPTH) {
+            throw new IllegalStateException("YSM event recursion limit exceeded");
+        }
         if (function.expressions().isEmpty() || evaluator == null)
             return 0f;
         Avatar.MolangContext molangContext = evaluator.entity() instanceof Avatar.MolangContext context ? context : null;
         boolean tempScope = molangContext != null && molangContext.temp.pushScope(args == null ? ArgsValue.EMPTY : args);
+        if (molangContext != null && !tempScope) {
+            throw new IllegalStateException("YSM temporary scope limit exceeded");
+        }
         argumentStack.push(args == null ? ArgsValue.EMPTY : args);
-        callStack.push(new CallFrame(function.displayName(), function.eventName(), slot));
+        callStack.push(new CallFrame(function.displayName(), function.eventName(), slot, function.path()));
         try {
             if (evaluator instanceof ExpressionEvaluatorImpl<?> impl)
                 return impl.evalAll(function.expressions(), true);
@@ -237,6 +371,8 @@ public class YsmMolangFunctionRuntime {
             for (Expression expression : function.expressions())
                 result = evaluator.eval(expression);
             return result;
+        } catch (MolangExecutionBudget.Exceeded exhausted) {
+            throw exhausted;
         } catch (Exception e) {
             if (runtime.encryptedSource()) {
                 FiguraMod.LOGGER.debug("Encrypted YSM operation failed: runtime/function-execution");
@@ -311,7 +447,7 @@ public class YsmMolangFunctionRuntime {
     ) {
     }
 
-    private record CallFrame(String functionName, String eventName, String slot) {
+    private record CallFrame(String functionName, String eventName, String slot, String path) {
     }
 
     private static class ArgsValue extends AbstractList<Object> implements Struct {
@@ -319,7 +455,7 @@ public class YsmMolangFunctionRuntime {
         private final List<Object> values;
 
         private ArgsValue(List<Object> values) {
-            this.values = values == null ? List.of() : List.copyOf(values);
+            this.values = values == null ? List.of() : Collections.unmodifiableList(new ArrayList<>(values));
         }
 
         @Override
