@@ -62,6 +62,12 @@ public final class YsmMaterialNativeSmokeTest {
         clientOptions.set(client, options);
         client.manager = (RecordingTextures) unsafe.allocateInstance(RecordingTextures.class);
         client.manager.textures = new HashMap<>();
+        Field byPath = TextureManager.class.getDeclaredField("byPath");
+        byPath.setAccessible(true);
+        byPath.set(client.manager, client.manager.textures);
+        Field tickableTextures = TextureManager.class.getDeclaredField("tickableTextures");
+        tickableTextures.setAccessible(true);
+        tickableTextures.set(client.manager, new java.util.HashSet<>());
         try {
             SharedConstants.tryDetectVersion();
             Bootstrap.bootStrap();
@@ -81,7 +87,26 @@ public final class YsmMaterialNativeSmokeTest {
             }
             testControlledBasePlayback(unsafe, client);
             testControllerChannelOwnership(unsafe, client);
-            testTexturePublication(unsafe, client);
+            Field device = RenderSystem.class.getDeclaredField("DEVICE");
+            device.setAccessible(true);
+            Object previousDevice = device.get(null);
+            Field samplersField = com.mojang.blaze3d.systems.SamplerCache.class.getDeclaredField("samplers");
+            samplersField.setAccessible(true);
+            var samplers = (com.mojang.blaze3d.textures.GpuSampler[]) samplersField.get(RenderSystem.getSamplerCache());
+            var previousSamplers = samplers.clone();
+            var publicationDevice = new PublicationDevice();
+            try {
+                device.set(null, publicationDevice);
+                RenderSystem.getSamplerCache().initialize();
+                testTexturePublication(unsafe, client);
+                testLateTextureBindings(unsafe, client);
+                testTextureUploadLifetime(unsafe, client, publicationDevice);
+            } finally {
+                client.drain();
+                RenderSystem.getSamplerCache().close();
+                System.arraycopy(previousSamplers, 0, samplers, 0, samplers.length);
+                device.set(null, previousDevice);
+            }
             testScaleAndDefaultTexture(unsafe, client);
             testPreviewDefaultPose(unsafe, client);
             testPreviewLighting(unsafe, client);
@@ -353,6 +378,7 @@ public final class YsmMaterialNativeSmokeTest {
                     "a retired view is recreated before the registered texture is reused");
             texture.close();
             texture.uploadIfDirty(false, false);
+            client.drain();
             require(!client.manager.textures.containsKey(texture.getLocation()),
                     "late render requests cannot republish a closed texture without a view");
 
@@ -380,6 +406,113 @@ public final class YsmMaterialNativeSmokeTest {
         }
     }
 
+    private static void testLateTextureBindings(Unsafe unsafe, RecordingClient client) throws Exception {
+        var fallback = new PublicationTexture(owner(unsafe, 64));
+        var texture = new PublicationTexture(owner(unsafe, 65));
+        var missing = net.minecraft.client.renderer.texture.MissingTextureAtlasSprite.getLocation();
+        try {
+            fallback.uploadIfDirty(false, false);
+            client.manager.textures.put(missing, fallback);
+            texture.uploadIfDirty(false, false);
+            var setup = net.minecraft.client.renderer.rendertype.RenderSetup.builder(
+                            net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED)
+                    .withTexture("Sampler0", texture.getLocation()).createRenderSetup();
+            texture.getTextureView().close();
+            texture.clearView();
+            require(!setup.getTextures().get("Sampler0").textureView().isClosed(),
+                    "the vanilla delayed read repairs a missing live view without an upload call at the consumer");
+            int liveLoads = texture.loads;
+            var pending = texture.loadContents(null);
+            texture.apply(pending);
+            require(pending.image().isClosed(), "resource reload copies are released after apply");
+            texture.close();
+            require(setup.getTextures().get("Sampler0").textureView() == fallback.getTextureView(),
+                    "a batch can resolve a retired binding before queued removal runs");
+            // The vanilla registration entry point can finish after the model has been retired.
+            client.manager.registerAndLoad(texture.getLocation(), texture);
+            require(setup.getTextures().get("Sampler0").textureView() == fallback.getTextureView(),
+                    "late registration of a retired texture resolves to the initialized missing texture");
+            require(texture.getTexture() == fallback.getTexture() && texture.getSampler() == fallback.getSampler(),
+                    "all retired GPU accessors use the same live fallback binding");
+            require(texture.loads == liveLoads, "retired textures never upload their released source again");
+            client.drain();
+            require(!client.manager.textures.containsKey(texture.getLocation()), "late publication is removed on the queue");
+
+            for (int iteration = 0; iteration < 64; iteration++) {
+                var old = new PublicationTexture(owner(unsafe, 66));
+                var replacement = new PublicationTexture(owner(unsafe, 67));
+                try {
+                    old.uploadIfDirty(false, false);
+                    replacement.uploadIfDirty(false, false);
+                    client.manager.register(old.getLocation(), replacement);
+                    client.drain();
+                    require(client.manager.getTexture(old.getLocation()) == replacement,
+                            "old cleanup cannot remove a replacement registered under the same location");
+                } finally {
+                    old.close();
+                    replacement.close();
+                    client.manager.textures.remove(old.getLocation(), replacement);
+                    client.drain();
+                }
+            }
+            client.manager.close();
+            client.drain();
+            require(client.manager.textures.isEmpty(), "manager shutdown does not mutate a map during its iteration");
+        } finally {
+            texture.close();
+            client.manager.textures.remove(texture.getLocation());
+            client.manager.textures.remove(missing, fallback);
+            fallback.close();
+            client.drain();
+        }
+    }
+
+    private static void testTextureUploadLifetime(Unsafe unsafe, RecordingClient client, PublicationDevice device) throws Exception {
+        var texture = new PublicationTexture(owner(unsafe, 68));
+        try {
+            for (boolean failView : new boolean[] {true, false}) {
+                device.failView = failView;
+                device.failWrite = !failView;
+                int start = device.created.size();
+                try {
+                    texture.uploadIfDirty(false, false);
+                    throw new AssertionError("fixture GPU operation must fail");
+                } catch (IllegalStateException expected) {
+                    require(device.created.size() == start + 1 && device.created.getLast().isClosed(),
+                            "failed allocation/upload releases the unpublished GPU texture");
+                    require(!client.manager.textures.containsKey(texture.getLocation()),
+                            "failed allocation/upload does not publish a partial binding");
+                }
+            }
+            device.failView = false;
+            device.failWrite = false;
+            texture.uploadIfDirty(true, true);
+            var binding = texture.getTextureView();
+            var gpuTexture = texture.getTexture();
+            var sampler = texture.getSampler();
+            require(sampler != null && sampler.getAddressModeU() == com.mojang.blaze3d.textures.AddressMode.CLAMP_TO_EDGE
+                            && sampler.getMinFilter() == com.mojang.blaze3d.textures.FilterMode.LINEAR,
+                    "the fixture uses the selected clamp/blur sampler");
+            int allocated = device.created.size();
+            for (int iteration = 0; iteration < 64; iteration++) {
+                texture.update();
+                require(texture.getTextureView() == binding && texture.getTexture() == gpuTexture,
+                        "dirty pixel updates preserve the existing GPU binding for queued consumers");
+                require(texture.getSampler() == sampler, "late reads preserve the selected clamp/blur sampler");
+            }
+            require(device.created.size() == allocated, "dirty updates do not allocate or leak replacement GPU textures");
+        } finally {
+            device.failView = false;
+            device.failWrite = false;
+            texture.close();
+            client.drain();
+        }
+        require(device.created.stream().allMatch(PublicationGpuTexture::isClosed),
+                "all GPU texture allocations from the lifetime checks are released");
+        require(device.views.stream().allMatch(PublicationView::isClosed),
+                "all GPU views from the lifetime checks are released");
+    }
+
     /** Replaces GPU allocation only; publication and the vanilla view lookup remain real. */
     private static final class PublicationTexture extends org.figuramc.figura.model.rendering.texture.FiguraTexture {
         private int loads;
@@ -395,15 +528,123 @@ public final class YsmMaterialNativeSmokeTest {
             if (failUpload) {
                 throw new IllegalStateException("fixture GPU upload failure");
             }
-            textureView = new PublicationView();
+            super.doLoad(image);
+        }
+
+        private void clearView() {
+            textureView = null;
         }
     }
 
     private static final class PublicationView extends com.mojang.blaze3d.textures.GpuTextureView {
         private boolean closed;
 
-        private PublicationView() {
-            super(null, 0, 1);
+        private PublicationView(com.mojang.blaze3d.textures.GpuTexture texture) {
+            super(texture, 0, 1);
+        }
+
+        @Override
+        public void close() {
+            closed = true;
+        }
+
+        @Override
+        public boolean isClosed() {
+            return closed;
+        }
+    }
+
+    /** Records GPU ownership and failure ordering; no graphics backend or window is created. */
+    private static final class PublicationDevice extends com.mojang.blaze3d.systems.GpuDevice {
+        private final List<PublicationGpuTexture> created = new ArrayList<>();
+        private final List<PublicationView> views = new ArrayList<>();
+        private boolean failView;
+        private boolean failWrite;
+
+        private PublicationDevice() {
+            super(null);
+        }
+
+        @Override
+        public com.mojang.blaze3d.textures.GpuSampler createSampler(
+                com.mojang.blaze3d.textures.AddressMode u, com.mojang.blaze3d.textures.AddressMode v,
+                com.mojang.blaze3d.textures.FilterMode min, com.mojang.blaze3d.textures.FilterMode mag,
+                int anisotropy, java.util.OptionalDouble maxLod) {
+            return new com.mojang.blaze3d.textures.GpuSampler() {
+                @Override
+                public com.mojang.blaze3d.textures.AddressMode getAddressModeU() {
+                    return u;
+                }
+
+                @Override
+                public com.mojang.blaze3d.textures.AddressMode getAddressModeV() {
+                    return v;
+                }
+
+                @Override
+                public com.mojang.blaze3d.textures.FilterMode getMinFilter() {
+                    return min;
+                }
+
+                @Override
+                public com.mojang.blaze3d.textures.FilterMode getMagFilter() {
+                    return mag;
+                }
+
+                @Override
+                public int getMaxAnisotropy() {
+                    return anisotropy;
+                }
+
+                @Override
+                public java.util.OptionalDouble getMaxLod() {
+                    return maxLod;
+                }
+
+                @Override
+                public void close() {
+                }
+            };
+        }
+
+        @Override
+        public com.mojang.blaze3d.textures.GpuTexture createTexture(java.util.function.Supplier<String> label, int usage,
+                com.mojang.blaze3d.textures.TextureFormat format, int width, int height, int layers, int levels) {
+            var texture = new PublicationGpuTexture(usage, label.get(), format, width, height, layers, levels);
+            created.add(texture);
+            return texture;
+        }
+
+        @Override
+        public com.mojang.blaze3d.textures.GpuTextureView createTextureView(com.mojang.blaze3d.textures.GpuTexture texture) {
+            if (failView) {
+                throw new IllegalStateException("fixture view creation failure");
+            }
+            var view = new PublicationView(texture);
+            views.add(view);
+            return view;
+        }
+
+        @Override
+        public com.mojang.blaze3d.systems.CommandEncoder createCommandEncoder() {
+            return new com.mojang.blaze3d.systems.CommandEncoder(null, null) {
+                @Override
+                public void writeToTexture(com.mojang.blaze3d.textures.GpuTexture texture, NativeImage image) {
+                    require(!texture.isClosed() && !image.isClosed(), "uploads require live source and destination");
+                    if (failWrite) {
+                        throw new IllegalStateException("fixture pixel upload failure");
+                    }
+                }
+            };
+        }
+    }
+
+    private static final class PublicationGpuTexture extends com.mojang.blaze3d.textures.GpuTexture {
+        private boolean closed;
+
+        private PublicationGpuTexture(int usage, String label, com.mojang.blaze3d.textures.TextureFormat format,
+                                      int width, int height, int layers, int levels) {
+            super(usage, label, format, width, height, layers, levels);
         }
 
         @Override
@@ -1078,6 +1319,11 @@ public final class YsmMaterialNativeSmokeTest {
             }
         }
 
+        @Override
+        public void schedule(Runnable task) {
+            queue.add(task);
+        }
+
         private void drain() {
             Runnable task;
             while ((task = queue.poll()) != null) {
@@ -1096,7 +1342,7 @@ public final class YsmMaterialNativeSmokeTest {
 
         @Override
         public void register(Identifier location, AbstractTexture texture) {
-            textures.put(location, texture);
+            super.register(location, texture);
             if (inspectRegistration) {
                 net.minecraft.client.renderer.rendertype.RenderSetup.builder(
                                 net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED)
@@ -1106,7 +1352,7 @@ public final class YsmMaterialNativeSmokeTest {
 
         @Override
         public AbstractTexture getTexture(Identifier location) {
-            return textures.get(location);
+            return super.getTexture(location);
         }
 
         @Override
