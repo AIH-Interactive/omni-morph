@@ -85,6 +85,7 @@ public class YsmAnimationPlayer {
         public final boolean isNative;
         public boolean initialEventsDispatched;
         private final java.util.List<YsmAnimationEvent> pendingInitialSounds = new java.util.ArrayList<>();
+        private final List<LuaSound> sounds = new java.util.ArrayList<>();
 
         // For smooth transitions in native state machine
         public float targetWeight = 0f;
@@ -208,13 +209,20 @@ public class YsmAnimationPlayer {
     }
 
     public void closeSounds() {
+        activeAnimations.values().forEach(this::stopPlaybackSounds);
         controllerSounds.close();
         currentEntity = null;
     }
 
     public void resetControllerAnimations(String controllerName) {
         String controller = normalizeControllerName(controllerName);
-        activeAnimations.values().removeIf(animation -> controller.equals(animation.controllerName));
+        activeAnimations.values().removeIf(animation -> {
+            if (!controller.equals(animation.controllerName)) {
+                return false;
+            }
+            stopPlaybackSounds(animation);
+            return true;
+        });
         controllerFunctionAnimations.remove(controller);
         controllerFunctionReloads.remove(controller);
         controllerPoseLayers.remove(controller);
@@ -264,6 +272,16 @@ public class YsmAnimationPlayer {
             controllerSounds.close();
             runtime.sounds().stopAll();
         }
+        activeAnimations.forEach((slot, previous) -> {
+            PlayingAnimation next = restored.get(slot);
+            if (observerControlled && next != null && previous.clip == next.clip) {
+                next.sounds.addAll(previous.sounds);
+                previous.sounds.clear();
+                runtime.sounds().transferPlayback(previous, next);
+            } else {
+                stopPlaybackSounds(previous);
+            }
+        });
         activeAnimations.clear();
         activeAnimations.putAll(restored);
         controllerFunctionAnimations.clear();
@@ -393,6 +411,7 @@ public class YsmAnimationPlayer {
 
         boolean created = !activeAnimations.containsKey(slot);
         PlayingAnimation playing = activeAnimations.computeIfAbsent(slot, k -> new PlayingAnimation(clip, false));
+        stopPlaybackSounds(playing);
         playing.playbackGeneration++;
         playing.controllerName = controllerName;
         playing.loopMode = loopMode == null ? clip.loopMode : loopMode;
@@ -474,6 +493,9 @@ public class YsmAnimationPlayer {
 
     private void retireSlot(String slot, float fadeSeconds) {
         PlayingAnimation playing = activeAnimations.remove(slot);
+        if (playing != null) {
+            stopPlaybackSounds(playing);
+        }
         if (playing == null || fadeSeconds <= 0f) {
             return;
         }
@@ -553,6 +575,7 @@ public class YsmAnimationPlayer {
     public void stop(String name) {
         String normalized = resolveAnimationName(name);
         PlayingAnimation removed = activeAnimations.remove(normalized);
+        stopPlaybackSounds(removed);
         if (removed != null && runtime != null && runtime.owner() != null && runtime.owner().isHost
                 && !runtime.isPreviewRuntime() && !runtime.isSubEntityRuntime()) {
             runtime.functions().recordOwnerEvent(YsmSyncMessage.EventKind.STOP, List.of((float) syncClipIndex(removed.clip)));
@@ -570,6 +593,7 @@ public class YsmAnimationPlayer {
             return;
         if (fadeSeconds <= 0f) {
             activeAnimations.remove(slot);
+            stopPlaybackSounds(animation);
             controllerFunctionAnimations.values().removeIf(slot::equals);
             return;
         }
@@ -738,6 +762,7 @@ public class YsmAnimationPlayer {
 
                 // If animation faded out, remove it to save CPU
                 if (anim.weight <= 0f && anim.targetWeight <= 0f) {
+                    stopPlaybackSounds(anim);
                     it.remove();
                     continue;
                 }
@@ -1033,11 +1058,28 @@ public class YsmAnimationPlayer {
         }
     }
 
+    private void stopPlaybackSounds(PlayingAnimation animation) {
+        if (animation == null) {
+            return;
+        }
+        animation.pendingInitialSounds.clear();
+        animation.sounds.forEach(LuaSound::stop);
+        animation.sounds.clear();
+        if (runtime != null) {
+            runtime.sounds().stopPlayback(animation);
+        }
+    }
+
     private void playOwnedSound(String controllerName, YsmAnimationEvent event) {
         if (runtime.isPreviewRuntime()) {
             return;
         }
         LuaSound sound = playEventSound(event);
+        if (sound != null && sound.getHandle() != null
+                && runtime.functions().clientEffectOwner() instanceof PlayingAnimation animation) {
+            animation.sounds.removeIf(voice -> voice.getHandle() == null || voice.getHandle().isStopped());
+            animation.sounds.add(sound);
+        }
         if (controllerName != null && sound != null && sound.getHandle() != null) {
             // A channel may still be loading its buffer; isPlaying() is not a completion signal.
             controllerSounds.add(normalizeControllerName(controllerName),

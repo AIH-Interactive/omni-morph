@@ -8,7 +8,7 @@ import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.AvatarTranslations;
 import org.figuramc.figura.avatar.ysm.YsmAvatarDetector;
 import org.figuramc.figura.avatar.ysm.YsmAvatarKind;
-import org.figuramc.figura.avatar.ysm.YsmManifest;
+import org.figuramc.figura.avatar.ysm.YsmEncryptedSource;
 import org.figuramc.figura.avatar.ysm.YsmManifestReader;
 import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.gui.cards.CardBackground;
@@ -207,6 +207,7 @@ public class LocalAvatarFetcher {
         protected final Path path, folder, theActualPathForThis; // murder, why does everything needs to be protected/private :sob:
         protected final String name, description;
         protected final YsmAvatarKind ysmKind;
+        private final boolean encryptedYsm;
         protected final CardBackground background;
         protected Properties properties;
         // icon
@@ -222,6 +223,7 @@ public class LocalAvatarFetcher {
             this.name = name;
             this.description = "";
             this.ysmKind = YsmAvatarKind.NONE;
+            this.encryptedYsm = false;
             this.background = CardBackground.DEFAULT;
             this.iconPath = null;
             this.properties = SAVED_DATA.computeIfAbsent(path.toAbsolutePath().toString(), __ -> new Properties());
@@ -250,16 +252,10 @@ public class LocalAvatarFetcher {
                 // metadata
                 if (ysmKind != YsmAvatarKind.NONE) {
                     try {
-                        try (var data = org.figuramc.figura.avatar.ysm.YsmModelData.read(path, () -> false)) {
-                            YsmManifest manifest = data.manifest();
-                            name = manifest.name();
-                            description = manifest.description();
-                            Map<String, byte[]> dictionaries = new LinkedHashMap<>();
-                            for (String language : manifest.resourceIndex().languagePaths()) {
-                                dictionaries.put(language, data.resources().readBytes(language));
-                            }
-                            ysmTranslations.load(dictionaries);
-                        }
+                        var listing = YsmManifestReader.readListMetadata(path);
+                        name = listing.metadata().name();
+                        description = listing.metadata().description();
+                        ysmTranslations.load(listing.languages());
                     } catch (Exception e) {
                         FiguraMod.LOGGER.error("Failed to load YSM metadata for \"" + path + "\"", e);
                     }
@@ -283,6 +279,7 @@ public class LocalAvatarFetcher {
             this.name = name;
             this.description = description;
             this.ysmKind = ysmKind;
+            this.encryptedYsm = ysmKind != YsmAvatarKind.NONE && YsmEncryptedSource.hasMagic(path);
             this.background = bg;
             this.iconPath = iconPath;
         }
@@ -337,6 +334,10 @@ public class LocalAvatarFetcher {
 
         public boolean isYsm() {
             return ysmKind != YsmAvatarKind.NONE;
+        }
+
+        public boolean isEncryptedYsm() {
+            return encryptedYsm;
         }
 
         public YsmAvatarKind getYsmKind() {

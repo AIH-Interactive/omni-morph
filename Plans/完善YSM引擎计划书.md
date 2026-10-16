@@ -1558,3 +1558,20 @@ M8最终核心门禁通过4分18秒/退出0，67 actionable tasks（56 executed�
 最终前台执行 :common:ysmMaterialNativeSmokeTest :fabric:build --console=plain，通过 31 秒/退出 0，16 tasks（9 executed、7 up-to-date）；日志 build/reports/ysm/default-pose-preview-gate.log。中间一次缺少 Minecraft import 的编译失败已补齐并重跑，通过日志为最终证据。git diff --check 通过；仅提交本次源码、测试和说明，不提交 build.log、refs 或 omnm-cloud。
 
 本次正式 JAR：fabric/build/libs/figura-0.1.5+26.1.2-fabric-mc.jar；SHA-256：1B953ED0A4F89B4CC17028714278BC4134B81EE5DEB7020CFCFC80858718AAB0。此为追加调整后的新产物，M8原验收中的哈希保留为历史记录。
+
+
+### 9.14 用户追加：BGM 生命周期、全局音量与列表加载/筛选（2026-10-16）
+
+本次为用户明确追加的四项调整，不重新开启 M0～M8，也不扩展后端或新增 YSM 独立 GUI。
+
+声音问题通过 :common:ysmSoundNativeSmokeTest 稳定复现：movement/switch/restart 分别保留 3 个旧 BGM 句柄（普通及全局 ysm.play_sound、sound_effects），日志 build/reports/ysm/bgm-lifetime-repro.log。根因为动画停止/重播时仅删除或重置播放槽，声音银行缺少播放实例归属，非 controller 的 sound_effects 也没有拥有者。现在为声音记录播放实例，stop/restart/reset/retire/淡出移除及卸载均清理其声音和待派发初始声音；普通 controller 与 global 编号语义保留，实例结束仍回收它启动的全局编号声音。观察者同 clip 状态更新转交声音归属，不因替换状态对象打断 BGM，也不会失去后续停止的句柄。回归覆盖移动取消、切换、重播、显式停止、淡出、自然结束和观察者状态刷新后停止，同时验证同 Avatar 无关声音继续播放。
+
+全局 Avatar 音量增益加入现有 Configs.MISC，复用 PositiveFloatConfig 输入，默认 1、范围 0～10，拒绝非有限值。LuaSound 的共用音量计算同时覆盖 Figura/YSM，乘上原有玩家分类音量和模型权限；SoundEngineMixin 在增益变化时刷新现有通道。测试验证配置注册/默认值/暂存取消/范围、现有声音更新命令、权限相乘、0 增益禁止新播放；原 Figura Lua 单声音音量上限不改。中英文标签复用 Figura 翻译资源。
+
+列表扫描原来在 AvatarPath 元数据和 AbstractAvatarWidget 换肤菜单构建中触发完整 YsmModelData/加密 Manifest 读取。改为 readListMetadata：明文只读取声明元数据、皮肤列表及字典，不构造几何运行时或计算源摘要；加密只读魔数并以文件名展示。目录识别不再为每个分组目录递归构建完整资源索引。换肤菜单延后到打开时构建；加密模型必须先启用，之后只从已加载 runtime 获取纹理编号。完整校验继续保留在启用模型的加载路径，基本目录/ZIP 枚举与路径/读取预算不绕过。无后台预解密或明文落盘缓存。
+
+AvatarList 增加现有 Figura Button 样式的循环筛选：全部/Figura/非加密YSM/加密YSM，配合现有搜索并递归应用到文件夹子项；不重读模型来判断加密类型。YsmLanguageSmokeTest 以损坏明文几何、截断加密载荷和原 Figura 创建列表夹具，确认三者可被列出、三类准确筛选、搜索与类型必须命中同一个后代，而启用损坏模型仍被原校验拒绝。语料回归保留 40 个 YSM/5 个加密、55 个字典/2160 键；明文列表语言切换继续通过，加密列表按新要求检查文件名回退。测试中的 refs/avatars 是符号链接，夹具发现已改为 Files.list，避免 Files.walk 默认不跟随链接；未修改用户模型。
+
+最终自动验收：前台执行 :common:ysmSoundNativeSmokeTest :common:ysmLanguageSmokeTest :common:ysmActionRuntimeSmokeTest :common:ysmControllerSoundSmokeTest :common:ysmControllerIsolationSmokeTest :common:ysmMaterialNativeSmokeTest :fabric:build --console=plain，BUILD SUCCESSFUL 59 秒/退出 0，21 tasks（15 executed、6 up-to-date）。日志 build/reports/ysm/audio-discovery-filter-gate.log；含 M6 子实例资源及 M7 模型/连接 CPU 子用例。过程中一个测试 Channel 私有构造器编译错误已改用既有命令记录 seam 验证，未创建 OpenAL/假装听感通过。未添加全文件格式化或无关重构。
+
+真实游戏窗口的筛选布局/CJK/点击体验、设置界面输入以及 BGM 听感依授权记为 SKIPPED/MANUAL_BY_USER；不使用 offscreen，不修改后端，不关闭计算机。正式产物仍为 fabric/build/libs/figura-0.1.5+26.1.2-fabric-mc.jar，SHA-256：378EEEAE5094F40DF97F79CC3D3D3A227DB2452AE18EE33B7C75153E30604F87。此哈希更新追加调整后的产物，前文里程碑哈希保留历史意义。完成差异/空白检查后独立提交推送，并核对远端 SHA。

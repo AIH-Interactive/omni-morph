@@ -102,7 +102,7 @@ public class AvatarFolderWidget extends AbstractAvatarWidget {
             String str = child.getPath() + child.getName();
 
             // skip unfiltered
-            if (!child.search(filter))
+            if (!parent.matches(child, filter))
                 continue;
 
             // update children

@@ -203,6 +203,18 @@ public class Configs {
     // -- MISC -- // 
 
 
+    public static final ConfigType.PositiveFloatConfig
+            AVATAR_VOLUME_GAIN = new ConfigType.PositiveFloatConfig("avatar_volume_gain", MISC, 1f) {
+                @Override
+                public Float parseValue(String newVal) {
+                    float gain = super.parseValue(newVal);
+                    if (!Float.isFinite(gain)) {
+                        throw new NumberFormatException("Avatar volume gain must be finite");
+                    }
+                    return Math.max(0f, Math.min(10f, gain));
+                }
+            };
+
     public static final ConfigType.KeybindConfig
             POPUP_BUTTON = new ConfigType.KeybindConfig("popup_button", MISC, "key.keyboard.r"),
             RELOAD_BUTTON = new ConfigType.KeybindConfig("reload_button", MISC, "key.keyboard.unknown"),

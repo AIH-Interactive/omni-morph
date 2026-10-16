@@ -10,6 +10,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundSource;
 
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.lua.LuaWhitelist;
 import org.figuramc.figura.lua.docs.LuaMethodDoc;
@@ -90,7 +91,8 @@ public class LuaSound {
     }
 
     public float calculateVolume() {
-        return SoundAPI.getSoundEngine().figura$getVolume(SoundSource.PLAYERS) * (owner.permissions.get(Permissions.VOLUME) / 100f);
+        return SoundAPI.getSoundEngine().figura$getVolume(SoundSource.PLAYERS)
+                * (owner.permissions.get(Permissions.VOLUME) / 100f) * Configs.AVATAR_VOLUME_GAIN.value;
     }
 
     @LuaWhitelist

@@ -55,6 +55,7 @@ public final class YsmLanguageSmokeTest {
             if (args.length != 1) {
                 throw new IllegalArgumentException("Provide the model corpus directory");
             }
+            testListDiscovery(temporary, Path.of(args[0]));
             testCorpus(Path.of(args[0]), client);
             System.out.println("M5 model language: shared Figura/YSM text consumers, live locale, fallback, raw values and isolation PASS; GUI pending.");
         } finally {
@@ -181,6 +182,52 @@ public final class YsmLanguageSmokeTest {
         }
     }
 
+    private static void testListDiscovery(Path temporary, Path corpus) throws Exception {
+        Path root = Files.createDirectory(temporary.resolve("listing"));
+        Path plain = Files.createDirectory(root.resolve("plain-model"));
+        Files.writeString(plain.resolve("ysm.json"),
+                "{\"metadata\":{\"name\":\"Deferred Plain\"},\"files\":{\"player\":{\"model\":{\"main\":\"broken.json\"}}}}");
+        Files.writeString(plain.resolve("broken.json"), "invalid geometry");
+        Path figura = Files.createDirectory(root.resolve("figura-model"));
+        Files.writeString(figura.resolve("avatar.json"), "{\"name\":\"Figura Fixture\"}");
+        Path encrypted = root.resolve("encrypted-model.ysm");
+        try (var sources = Files.list(corpus)) {
+            Path original = sources.filter(org.figuramc.figura.avatar.ysm.YsmEncryptedSource::hasMagic)
+                    .findFirst().orElseThrow();
+            try (var input = Files.newInputStream(original)) {
+                Files.write(encrypted, input.readNBytes(7));
+            }
+        }
+        var folder = new LocalAvatarFetcher.FolderPath(root);
+        require(folder.fetch() && folder.getChildren().size() == 3,
+                "list discovery includes plain invalid geometry, encrypted truncated payload and original Figura without validating models");
+        var plainCard = folder.getChildren().stream().filter(card -> card.getPath().equals(plain)).findFirst().orElseThrow();
+        var encryptedCard = folder.getChildren().stream().filter(card -> card.getPath().equals(encrypted)).findFirst().orElseThrow();
+        equal("Deferred Plain", plainCard.getName(), "plain metadata survives deferred model validation");
+        require(encryptedCard.isEncryptedYsm(), "encrypted filter uses the header rather than filename guesses");
+        var all = org.figuramc.figura.avatar.local.AvatarTypeFilter.ALL;
+        for (var filter : org.figuramc.figura.avatar.local.AvatarTypeFilter.values()) {
+            long count = folder.getChildren().stream().filter(card -> filter.matches(card, "")).count();
+            require(count == (filter == all ? 3 : 1), "avatar type filter partitions discovered sources");
+            require(filter.matches(folder, ""), "matching descendants keep grouping folders visible");
+        }
+        require(!org.figuramc.figura.avatar.local.AvatarTypeFilter.YSM_ENCRYPTED.matches(folder, "Deferred Plain"),
+                "nested type and text filters must match the same descendant");
+        require(org.figuramc.figura.avatar.local.AvatarTypeFilter.YSM_PLAIN.matches(folder, "Deferred"),
+                "nested plain model is searchable");
+        require(all.next().next().next().next() == all, "filter cycles back to all formats");
+        for (Path invalid : List.of(plain, encrypted)) {
+            boolean rejected = false;
+            try (var ignored = YsmModelData.read(invalid, () -> false)) {
+                // Activating an invalid list entry must retain the existing validation gate.
+            } catch (java.io.IOException | RuntimeException expected) {
+                rejected = true;
+            }
+            require(rejected, "activation still rejects the invalid model that discovery deferred");
+        }
+        System.out.println("Deferred wardrobe discovery and recursive Figura/plain/encrypted filters PASS; activation validation retained.");
+    }
+
     private static void testCorpus(Path root, LanguageClient client) throws Exception {
         int models = 0;
         int encrypted = 0;
@@ -233,10 +280,12 @@ public final class YsmLanguageSmokeTest {
                         var card = new LocalAvatarFetcher.AvatarPath(path, path.getParent());
                         for (String locale : List.of("zh_cn", "en_us", "fr_fr")) {
                             client.languages.setSelected(locale);
-                            equal(translations.get(locale, "metadata.name", data.manifest().name()),
-                                    card.getName(), "wardrobe name follows current language without reload");
-                            equal(translations.get(locale, "metadata.tips", data.manifest().description()),
-                                    card.getDescription(), "wardrobe description follows current language without reload");
+                            equal(data.encrypted() ? path.getFileName().toString()
+                                            : translations.get(locale, "metadata.name", data.manifest().name()),
+                                    card.getName(), "plain wardrobe names follow language; encrypted lists retain filenames without decrypting");
+                            equal(data.encrypted() ? ""
+                                            : translations.get(locale, "metadata.tips", data.manifest().description()),
+                                    card.getDescription(), "encrypted private descriptions are deferred until activation");
                         }
                         if (data.encrypted()) {
                             encryptedCard = true;
