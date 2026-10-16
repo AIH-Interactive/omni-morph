@@ -1546,3 +1546,15 @@ M8最终核心门禁通过4分18秒/退出0，67 actionable tasks（56 executed�
 交付审计：本阶段生产源码/GUI/冻结资源无diff；EntityPreview与M5开始前版本fee8ba0相同。历史抽样三张jpg仍在9.3的本地输出根，状态保留CAPTURED/STATIC_ONLY。正式Fabric jar存在，SHA-256=A5CD362757701B3C3546887947E2D75E1718C52287A07E16E5E86335F07EFB4B，含第一方AVIF适配、固定独立AVIF jar及licenses/YSM-Sparkle-Morpher.txt。Plans/YSM-M8稳定性摘要.json保存无模型字节的聚合数据/机器信息，精确统计与复现命令在M8矩阵；用户兼容说明、已知源问题、可选/未解绑定及各授权跳过项齐全。
 
 第1.1节八项目标、第7节各层矩阵与M0～M8逐阶段提交历史已对照当前源码、固定fixture、最终日志和产物逐项审计。真实帧时间/显存/听感/GUI/多人及后端扩展仍按1.2用户覆盖条款跳过，不将计划自动部分完成扩大为这些项目PASS。现有源缺引用/原FiguraBB5跟进不是新增未解释缺陷，不借本阶段扩展修复。完成本次独立commit→push→远端SHA核对后，关闭此计划目标；不追加新验收要求，不关闭计算机。
+
+### 9.13 用户追加调整：默认姿势与设置页实时预览（2026-10-16）
+
+普通 Figura GUI 预览改用独立运行时的默认静态姿势，不启动 preview_animation、idle 或世界中的当前动作；取消对 preview_animation 是否存在或别名有效的依赖。沿用原有 Figura EntityPreview、材质借用/独立换肤、控件变化重建和卸载清理。世界动画播放路径不改。
+
+按用户补充要求，AvatarControlsScreen 模型设置页及其放大 AvatarScreen 使用当前模型运行时，控件设置、当前动作与动画实时进入预览；不套用静态预览或模型声明的 preview_animation。设置页 EntityPreview 初始 yaw 从 180 改为 0，修正默认背面朝向。未新增 GUI、控件或预览器，原 Figura 模型加载路径不改。
+
+自动验收：ysmMaterialNativeSmokeTest 覆盖多帧默认姿势、忽略已声明/缺省/无效预览动画、不执行预览函数/时间线、世界时钟隔离、材质切换/重建/卸载，以及设置页实时运行时、控件缩放变化、实际 idle 骨骼采样和放大预览路由。测试仅使用 CPU/NativeImage 和 Screen 对象，不声称真实窗口视觉通过。真实朝向、交互和动画观感为 SKIPPED/MANUAL_BY_USER。
+
+最终前台执行 :common:ysmMaterialNativeSmokeTest :fabric:build --console=plain，通过 31 秒/退出 0，16 tasks（9 executed、7 up-to-date）；日志 build/reports/ysm/default-pose-preview-gate.log。中间一次缺少 Minecraft import 的编译失败已补齐并重跑，通过日志为最终证据。git diff --check 通过；仅提交本次源码、测试和说明，不提交 build.log、refs 或 omnm-cloud。
+
+本次正式 JAR：fabric/build/libs/figura-0.1.5+26.1.2-fabric-mc.jar；SHA-256：1B953ED0A4F89B4CC17028714278BC4134B81EE5DEB7020CFCFC80858718AAB0。此为追加调整后的新产物，M8原验收中的哈希保留为历史记录。

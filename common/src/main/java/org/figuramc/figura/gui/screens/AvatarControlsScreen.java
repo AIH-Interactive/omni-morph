@@ -121,7 +121,7 @@ public class AvatarControlsScreen extends Screen {
         }
 
         if (previewWidth() > 0) {
-            preview = new EntityPreview(previewX(), previewY(), previewWidth(), previewHeight(), previewScale(), 0f, 180f, minecraft == null ? null : minecraft.player, this);
+            preview = new EntityPreview(previewX(), previewY(), previewWidth(), previewHeight(), previewScale(), 0f, 0f, minecraft == null ? null : minecraft.player, this);
             this.addRenderableWidget(preview);
         }
 

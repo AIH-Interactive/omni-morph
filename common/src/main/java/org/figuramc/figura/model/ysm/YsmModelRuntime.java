@@ -2,6 +2,7 @@ package org.figuramc.figura.model.ysm;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.nbt.CompoundTag;
@@ -97,7 +98,6 @@ public class YsmModelRuntime implements AutoCloseable {
     private final YsmSubEntityInstances subEntityInstances = new YsmSubEntityInstances(this);
     private boolean ownsTexture = true;
     private volatile boolean closed;
-    private String previewAnimation = "";
     private CompoundTag previewInput;
     private YsmModelRuntime preview;
     private FiguraTexture previewSourceTexture;
@@ -207,19 +207,16 @@ public class YsmModelRuntime implements AutoCloseable {
             runtime = new YsmModelRuntime(owner, geometry, armGeometry, texture, textureId,
                     textureTranslucent, kind, modelKey, textureData, defaultWidthScale, defaultHeightScale, data != null && data.encrypted());
             runtime.contentHash = tag.getStringOr("content_sha256", "");
-            runtime.previewAnimation = tag.getStringOr("preview_animation", "");
-            if (!runtime.previewAnimation.isBlank()) {
-                runtime.previewInput = new CompoundTag();
-                for (String key : List.of("animations", "functions", "action_schemas")) {
-                    runtime.previewInput.put(key, tag.getListOrEmpty(key).copy());
-                }
-                for (String key : List.of("main_model", "arm_model")) {
-                    if (tag.contains(key)) {
-                        runtime.previewInput.putByteArray(key, tag.getByteArray(key).orElseThrow().clone());
-                    }
-                }
-                runtime.previewInput.putBoolean("merge_multiline_expr", tag.getBooleanOr("merge_multiline_expr", false));
+            runtime.previewInput = new CompoundTag();
+            for (String key : List.of("animations", "functions", "action_schemas")) {
+                runtime.previewInput.put(key, tag.getListOrEmpty(key).copy());
             }
+            for (String key : List.of("main_model", "arm_model")) {
+                if (tag.contains(key)) {
+                    runtime.previewInput.putByteArray(key, tag.getByteArray(key).orElseThrow().clone());
+                }
+            }
+            runtime.previewInput.putBoolean("merge_multiline_expr", tag.getBooleanOr("merge_multiline_expr", false));
             runtime.functionInput = tag.getListOrEmpty("functions").copy();
             runtime.mergeMultilineExpressions = tag.getBooleanOr("merge_multiline_expr", false);
             runtime.guiNoLighting = tag.getBooleanOr("gui_no_lighting", false);
@@ -1175,10 +1172,17 @@ public class YsmModelRuntime implements AutoCloseable {
         return previewRuntime;
     }
 
-    /** Selects an independent evaluator for the declared GUI animation, leaving world playback untouched. */
+    /** Selects a detached default-pose preview, leaving world playback untouched. */
     public synchronized YsmModelRuntime forRenderPass() {
         if (closed || previewRuntime || previewInput == null
                 || owner.renderMode != org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI) {
+            return this;
+        }
+        // Settings show the live model so control changes and action playback are visible immediately.
+        var screen = Minecraft.getInstance().screen;
+        if (screen instanceof org.figuramc.figura.gui.screens.AvatarControlsScreen
+                || screen instanceof org.figuramc.figura.gui.screens.AvatarScreen expanded
+                && expanded.getSelectedPanel() == org.figuramc.figura.gui.screens.AvatarControlsScreen.class) {
             return this;
         }
         Map<String, Object> controls = new LinkedHashMap<>();
@@ -1195,11 +1199,6 @@ public class YsmModelRuntime implements AutoCloseable {
             previewAttempted = true;
             try {
                 preview = createPreview(controls);
-                if (preview.animationPlayer.play(previewAnimation, (YsmAnimationClip.LoopMode) null, 1f, 0f) == null) {
-                    preview.close();
-                    preview = null;
-                    FiguraMod.LOGGER.warn("YSM operation failed: runtime/preview-animation-missing");
-                }
                 previewSourceTexture = texture;
             } catch (java.io.IOException | RuntimeException failure) {
                 if (preview != null) {
@@ -1207,9 +1206,9 @@ public class YsmModelRuntime implements AutoCloseable {
                     preview = null;
                 }
                 if (encryptedSource) {
-                    FiguraMod.LOGGER.warn("Encrypted YSM operation failed: runtime/preview-animation");
+                    FiguraMod.LOGGER.warn("Encrypted YSM operation failed: runtime/preview-default-pose");
                 } else {
-                    FiguraMod.LOGGER.warn("YSM preview animation could not be initialized", failure);
+                    FiguraMod.LOGGER.warn("YSM default-pose preview could not be initialized", failure);
                 }
             }
         }
@@ -1275,14 +1274,12 @@ public class YsmModelRuntime implements AutoCloseable {
     }
 
     public void updateAnimations(LivingEntityRenderState state, LivingEntity entity, boolean firstPerson) {
-        if (closed) {
+        // GUI previews keep the authored default pose and never execute animation events.
+        if (closed || previewRuntime) {
             return;
         }
         Object nativeState = owner.controls.getValue("ysm.native_state_machine");
-        if (previewRuntime) {
-            owner.getMolangContext().populateQueryContext(entity);
-            animationPlayer.setNativeStateMachineEnabled(false);
-        } else if (nativeState instanceof Boolean enabled) {
+        if (nativeState instanceof Boolean enabled) {
             animationPlayer.setNativeStateMachineEnabled(enabled);
         }
         animationPlayer.update(state, entity, firstPerson);
