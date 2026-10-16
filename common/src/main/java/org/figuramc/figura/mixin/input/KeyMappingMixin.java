@@ -6,6 +6,7 @@ import net.minecraft.client.input.KeyEvent;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
+import org.figuramc.figura.gui.ActionWheel;
 import org.figuramc.figura.lua.api.keybind.FiguraKeybind;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -29,6 +30,7 @@ public class KeyMappingMixin {
 
     @Inject(method = "releaseAll", at = @At("HEAD"))
     private static void releaseAll(CallbackInfo ci) {
+        ActionWheel.releaseYsmPress();
         Avatar avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
         if (avatar != null && avatar.luaRuntime != null)
             FiguraKeybind.releaseAll(avatar.luaRuntime.keybinds.keyBindings);

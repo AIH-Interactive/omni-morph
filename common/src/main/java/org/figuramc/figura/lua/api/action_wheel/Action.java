@@ -2,6 +2,7 @@ package org.figuramc.figura.lua.api.action_wheel;
 
 import net.minecraft.world.item.ItemStack;
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.model.ysm.action.YsmActionRuntime;
 import org.figuramc.figura.gui.screens.AvatarControlsScreen;
 import org.figuramc.figura.lua.LuaNotNil;
 import org.figuramc.figura.lua.LuaWhitelist;
@@ -15,6 +16,7 @@ import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import org.figuramc.figura.utils.LuaUtils;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaFunction;
+import java.util.function.Supplier;
 
 @LuaWhitelist
 @LuaTypeDoc(
@@ -27,6 +29,8 @@ public class Action {
     public static final FiguraVec3 TOGGLE_COLOR = FiguraVec3.of(0, 1, 0);
 
     protected String title, toggleTitle;
+    private Supplier<String> titleSupplier;
+    private YsmActionRuntime.Press executionInput;
     protected ItemStack item, hoverItem, toggleItem;
     protected FiguraVec3 color, hoverColor, toggleColor;
     protected TextureData texture, hoverTexture, toggleTexture;
@@ -69,8 +73,13 @@ public class Action {
         if (left && controlsPage != null)
             AvatarControlsScreen.open(avatar, controlsPage);
 
-        if (left && ysmAction != null && avatar.getYsmRuntime() != null)
-            avatar.getYsmRuntime().actions().trigger(ysmAction);
+        if (left && ysmAction != null && avatar.getYsmRuntime() != null) {
+            if (executionInput == null) {
+                avatar.getYsmRuntime().actions().trigger(ysmAction);
+            } else {
+                executionInput.press(avatar.getYsmRuntime().actions(), ysmAction);
+            }
+        }
 
         if (!left)
             return;
@@ -80,6 +89,17 @@ public class Action {
         if (function != null) {
             toggled = !toggled;
             avatar.run(function, avatar.tick, toggled, this);
+        }
+    }
+
+    public void execute(Avatar avatar, boolean left, YsmActionRuntime.Press input) {
+        YsmActionRuntime.Press previous = executionInput;
+        executionInput = input;
+        try {
+            // Keep virtual dispatch to the existing page/back action overrides.
+            execute(avatar, left);
+        } finally {
+            executionInput = previous;
         }
     }
 
@@ -118,6 +138,11 @@ public class Action {
         if (ret == null)
             ret = texture;
         return ret;
+    }
+
+    public Action setTitleSupplier(Supplier<String> supplier) {
+        titleSupplier = supplier;
+        return this;
     }
 
     @LuaWhitelist
@@ -187,7 +212,10 @@ public class Action {
     @LuaWhitelist
     @LuaMethodDoc("wheel_action.get_title")
     public String getTitle() {
-        return toggled ? toggleTitle == null ? title : toggleTitle : title;
+        if (toggled && toggleTitle != null) {
+            return toggleTitle;
+        }
+        return titleSupplier == null ? title : titleSupplier.get();
     }
 
     @LuaWhitelist
@@ -204,6 +232,7 @@ public class Action {
     )
     public Action setTitle(String title) {
         this.title = title;
+        titleSupplier = null;
         return this;
     }
 

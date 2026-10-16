@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.molang.MolangEngine;
 import org.figuramc.figura.molang.parser.ast.Expression;
@@ -38,6 +39,11 @@ public class YsmAnimationParser {
     }
 
     public static Map<String, YsmAnimationClip> parse(String jsonContent, boolean compileExpressions, MolangEngine engine) {
+        return parse(jsonContent, compileExpressions, engine, false);
+    }
+
+    public static Map<String, YsmAnimationClip> parse(String jsonContent, boolean compileExpressions,
+                                                    MolangEngine engine, boolean mergeMultilineExpressions) {
         Map<String, YsmAnimationClip> clips = new HashMap<>();
         try {
             JsonObject root = JsonParser.parseString(jsonContent).getAsJsonObject();
@@ -91,9 +97,9 @@ public class YsmAnimationParser {
                     }
                 }
 
-                parseEvents(animObj.get("timeline"), "timeline", clip, compileExpressions, engine);
-                parseEvents(animObj.get("sound_effects"), "sound", clip, false, engine);
-                parseEvents(animObj.get("particle_effects"), "particle", clip, false, engine);
+                parseEvents(animObj.get("timeline"), "timeline", clip, compileExpressions, engine, mergeMultilineExpressions);
+                parseEvents(animObj.get("sound_effects"), "sound", clip, false, engine, false);
+                parseEvents(animObj.get("particle_effects"), "particle", clip, false, engine, false);
 
                 clips.put(animName, clip);
             }
@@ -113,7 +119,9 @@ public class YsmAnimationParser {
         };
     }
 
-    private static void parseEvents(JsonElement element, String type, YsmAnimationClip clip, boolean compileExpressions, MolangEngine engine) {
+    private static void parseEvents(JsonElement element, String type, YsmAnimationClip clip,
+                                    boolean compileExpressions, MolangEngine engine,
+                                    boolean mergeMultilineExpressions) {
         if (element == null || !element.isJsonObject())
             return;
         JsonObject object = element.getAsJsonObject();
@@ -127,7 +135,17 @@ public class YsmAnimationParser {
             JsonElement value = object.get(timeString);
             if (value == null || value.isJsonNull())
                 continue;
-            if (value.isJsonArray()) {
+            if (value.isJsonArray() && mergeMultilineExpressions && "timeline".equals(type)) {
+                StringBuilder text = new StringBuilder();
+                for (JsonElement line : value.getAsJsonArray()) {
+                    if (!text.isEmpty()) {
+                        text.append('\n');
+                    }
+                    text.append(line.getAsString());
+                }
+                addEvent(clip, time, type, new JsonPrimitive(text.toString()),
+                        compileExpressions, engine);
+            } else if (value.isJsonArray()) {
                 for (JsonElement child : value.getAsJsonArray())
                     addEvent(clip, time, type, child, compileExpressions, engine);
             } else {

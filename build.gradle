@@ -57,6 +57,22 @@ allprojects {
 		// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
 		// See https://docs.gradle.org/current/userguide/declaring_repositories.html
 		// for more information about repositories.
+		// This immutable build alias has an upstream POM incorrectly labelled master-SNAPSHOT.
+		// The jar is self-contained; restrict artifact-only metadata to this one module.
+		exclusiveContent {
+			forRepository {
+				maven {
+					name = 'pinnedAvifReader'
+					url = 'https://jitpack.io'
+					metadataSources {
+						artifact()
+					}
+				}
+			}
+			filter {
+				includeModule('com.github.ustc-zzzz', 'avif-imageio-native-reader')
+			}
+		}
 		maven { url 'https://jitpack.io' }
 	}
 

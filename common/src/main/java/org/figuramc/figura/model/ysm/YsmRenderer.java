@@ -4,13 +4,20 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.rendertype.RenderSetup;
+import net.minecraft.resources.Identifier;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import org.figuramc.figura.math.vector.FiguraVec3;
+import org.figuramc.figura.model.rendering.EntityRenderMode;
 
 public class YsmRenderer {
     private final YsmModelRuntime runtime;
+    private Identifier culledTranslucentTexture;
+    private RenderType culledTranslucentType;
+    private YsmPreviewRenderTypes previewTypes;
 
     public YsmRenderer(YsmModelRuntime runtime) {
         this.runtime = runtime;
@@ -29,7 +36,7 @@ public class YsmRenderer {
             return false;
 
         runtime.texture().uploadIfDirty(false, false);
-        RenderType renderType = renderType();
+        RenderType renderType = renderType(pose);
         VertexConsumer vertices = bufferSource.getBuffer(renderType);
 
         updateTrackedPivots(false, pose);
@@ -40,6 +47,24 @@ public class YsmRenderer {
             renderBone(root, stack, vertices, light, mask, false, pose);
         stack.popPose();
         return true;
+    }
+
+    /** Native item/model-part features use order zero, including special-rendered hand items. */
+    public int bodySubmitOrder() {
+        return runtime.isRenderLayersFirst() ? 1 : -1;
+    }
+
+    public boolean renderWithAttachments(PoseStack stack, MultiBufferSource bufferSource, int light,
+                                         YsmRenderPose pose) {
+        boolean rendered = false;
+        if (runtime.isRenderLayersFirst()) {
+            rendered |= renderAttachments(stack, bufferSource, light, pose);
+        }
+        rendered |= render(stack, bufferSource, light, YsmPartMask.forPass(YsmRenderPass.PLAYER_BODY), pose);
+        if (!runtime.isRenderLayersFirst()) {
+            rendered |= renderAttachments(stack, bufferSource, light, pose);
+        }
+        return rendered;
     }
 
     public boolean renderSubEntity(PoseStack stack, MultiBufferSource bufferSource, int light, YsmSubEntity entity) {
@@ -107,7 +132,7 @@ public class YsmRenderer {
             return false;
 
         runtime.texture().uploadIfDirty(false, false);
-        RenderType renderType = renderType();
+        RenderType renderType = renderType(pose);
         VertexConsumer vertices = bufferSource.getBuffer(renderType);
 
         updateTrackedPivots(false, pose);
@@ -143,7 +168,7 @@ public class YsmRenderer {
         }
 
         runtime.texture().uploadIfDirty(false, false);
-        RenderType renderType = renderType();
+        RenderType renderType = renderType(pose);
         VertexConsumer vertices = bufferSource.getBuffer(renderType);
 
         YsmPartMask mask = YsmPartMask.forPass(YsmRenderPass.FIRST_PERSON_ARM);
@@ -165,9 +190,44 @@ public class YsmRenderer {
     }
 
     private RenderType renderType() {
-        return runtime.isTextureTranslucent()
-                ? RenderTypes.entityTranslucent(runtime.texture().getLocation())
-                : RenderTypes.entityCutout(runtime.texture().getLocation());
+        return renderType(null);
+    }
+
+    private RenderType renderType(YsmRenderPose pose) {
+        Identifier texture = runtime.texture().getLocation();
+        boolean unlit = pose == null
+                ? runtime.isGuiNoLighting() && runtime.owner().renderMode == EntityRenderMode.FIGURA_GUI
+                : pose.unlit();
+        if (unlit) {
+            if (previewTypes == null) {
+                previewTypes = new YsmPreviewRenderTypes();
+            }
+            return previewTypes.get(texture, runtime.isAllCutout(), runtime.isTextureTranslucent());
+        }
+        if (!runtime.isAllCutout()) {
+            return runtime.isTextureTranslucent()
+                    ? RenderTypes.entityTranslucent(texture) : RenderTypes.entityCutout(texture);
+        }
+        if (!runtime.isTextureTranslucent()) {
+            return RenderTypes.entityCutoutCull(texture);
+        }
+        if (!texture.equals(culledTranslucentTexture)) {
+            // all_cutout forces back-face culling, while retaining alpha blending and the world target.
+            // The vanilla translucent-cull helper uses the item target, so it cannot serve this pass.
+            RenderType base = RenderTypes.entityTranslucent(texture);
+            culledTranslucentType = new RenderType("ysm_entity_translucent_cull",
+                    RenderSetup.builder(RenderPipelines.ENTITY_TRANSLUCENT_CULL)
+                            .withTexture("Sampler0", texture)
+                            .setOutputTarget(base.outputTarget())
+                            .useLightmap()
+                            .useOverlay()
+                            .affectsCrumbling()
+                            .sortOnUpload()
+                            .setOutline(RenderSetup.OutlineProperty.AFFECTS_OUTLINE)
+                            .createRenderSetup());
+            culledTranslucentTexture = texture;
+        }
+        return culledTranslucentType;
     }
 
     private void renderBone(YsmGeometry.Bone bone, PoseStack stack, VertexConsumer vertices, int light, YsmPartMask mask) {

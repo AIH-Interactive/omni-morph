@@ -31,6 +31,12 @@ public final class YsmAnimationControllerParser {
 
     public static Map<String, YsmAnimationController> parse(String json, MolangEngine engine,
                                                            Consumer<Diagnostic> diagnostics) {
+        return parse(json, engine, diagnostics, false);
+    }
+
+    public static Map<String, YsmAnimationController> parse(String json, MolangEngine engine,
+                                                           Consumer<Diagnostic> diagnostics,
+                                                           boolean mergeMultilineExpressions) {
         Map<String, YsmAnimationController> controllers = new LinkedHashMap<>();
         if (json == null || json.isBlank())
             return controllers;
@@ -44,7 +50,8 @@ public final class YsmAnimationControllerParser {
                 for (Map.Entry<String, JsonElement> entry : object.entrySet()) {
                     if (!entry.getValue().isJsonObject())
                         continue;
-                    YsmAnimationController controller = parseController(entry.getKey(), entry.getValue().getAsJsonObject(), engine, diagnostics);
+                    YsmAnimationController controller = parseController(entry.getKey(), entry.getValue().getAsJsonObject(),
+                            engine, diagnostics, mergeMultilineExpressions);
                     controllers.put(controller.name(), controller);
                 }
             } else if (controllerElement.isJsonArray()) {
@@ -55,7 +62,8 @@ public final class YsmAnimationControllerParser {
                     String name = string(first(object, "name", "id", "controller", "animation"), "");
                     if (name.isBlank())
                         name = "controller_" + controllers.size();
-                    YsmAnimationController controller = parseController(name, object, engine, diagnostics);
+                    YsmAnimationController controller = parseController(name, object, engine, diagnostics,
+                            mergeMultilineExpressions);
                     controllers.put(controller.name(), controller);
                 }
             }
@@ -68,7 +76,8 @@ public final class YsmAnimationControllerParser {
     }
 
     private static YsmAnimationController parseController(String name, JsonObject object, MolangEngine engine,
-                                                          Consumer<Diagnostic> diagnostics) {
+                                                          Consumer<Diagnostic> diagnostics,
+                                                          boolean mergeMultilineExpressions) {
         String initialState = string(first(object, "initial_state", "initialState"), "default");
         LinkedHashMap<String, YsmControllerState> states = new LinkedHashMap<>();
         if (object.has("states")) {
@@ -78,7 +87,7 @@ public final class YsmAnimationControllerParser {
                     if (!entry.getValue().isJsonObject())
                         continue;
                     states.put(entry.getKey(), parseState(entry.getKey(), entry.getValue().getAsJsonObject(),
-                            diagnosticEngine(engine, name, entry.getKey(), diagnostics)));
+                            diagnosticEngine(engine, name, entry.getKey(), diagnostics), mergeMultilineExpressions));
                 }
             } else if (stateElement.isJsonArray()) {
                 for (JsonElement element : stateElement.getAsJsonArray()) {
@@ -88,7 +97,8 @@ public final class YsmAnimationControllerParser {
                     String stateName = string(first(state, "name", "id", "state"), "");
                     if (stateName.isBlank())
                         stateName = "state_" + states.size();
-                    states.put(stateName, parseState(stateName, state, diagnosticEngine(engine, name, stateName, diagnostics)));
+                    states.put(stateName, parseState(stateName, state,
+                            diagnosticEngine(engine, name, stateName, diagnostics), mergeMultilineExpressions));
                 }
             }
         }
@@ -113,13 +123,14 @@ public final class YsmAnimationControllerParser {
         };
     }
 
-    private static YsmControllerState parseState(String name, JsonObject object, MolangEngine engine) {
+    private static YsmControllerState parseState(String name, JsonObject object, MolangEngine engine,
+                                                boolean mergeMultilineExpressions) {
         return new YsmControllerState(
                 name,
                 parseAnimations(object.get("animations"), engine),
                 parseTransitions(object.get("transitions"), engine),
-                parseExpressions(object.get("on_entry"), engine),
-                parseExpressions(object.get("on_exit"), engine),
+                parseExpressions(object.get("on_entry"), engine, mergeMultilineExpressions),
+                parseExpressions(object.get("on_exit"), engine, mergeMultilineExpressions),
                 floatValue(object.get("blend_transition"), 0f),
                 object.has("blend_via_shortest_path") && object.get("blend_via_shortest_path").isJsonPrimitive() && object.get("blend_via_shortest_path").getAsBoolean(),
                 blendCurve(object.get("blend_transition")),
@@ -202,11 +213,21 @@ public final class YsmAnimationControllerParser {
         return result;
     }
 
-    private static List<Expression> parseExpressions(JsonElement element, MolangEngine engine) {
+    private static List<Expression> parseExpressions(JsonElement element, MolangEngine engine,
+                                                     boolean mergeMultilineExpressions) {
         List<Expression> result = new ArrayList<>();
         if (element == null)
             return result;
-        if (element.isJsonArray()) {
+        if (element.isJsonArray() && mergeMultilineExpressions) {
+            StringBuilder text = new StringBuilder();
+            for (JsonElement line : element.getAsJsonArray()) {
+                if (!text.isEmpty()) {
+                    text.append('\n');
+                }
+                text.append(string(line, ""));
+            }
+            result.addAll(compileAll(text.toString(), engine));
+        } else if (element.isJsonArray()) {
             for (JsonElement child : element.getAsJsonArray())
                 addExpression(result, child, engine);
         } else {

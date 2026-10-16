@@ -9,6 +9,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.avatar.AvatarTranslations;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.control.AvatarControlDefinition;
 import org.figuramc.figura.avatar.control.AvatarControlType;
@@ -55,6 +56,7 @@ public class YsmModelRuntime implements AutoCloseable {
     private String textureId;
     private boolean textureTranslucent;
     private final Map<String, byte[]> textureData;
+    private Map<String, MaterialData> materialData = Map.of();
     private final Map<String, YsmModelPart> parts = new LinkedHashMap<>();
     private final Map<String, YsmModelPart> armParts = new LinkedHashMap<>();
     private final Map<String, YsmBoneRole> boneRoles = new LinkedHashMap<>();
@@ -69,11 +71,27 @@ public class YsmModelRuntime implements AutoCloseable {
     private final YsmBoneQueryRuntime boneQueries = new YsmBoneQueryRuntime(this);
     private final YsmParticleRuntime particles = new YsmParticleRuntime(this);
     private final YsmSoundRuntime sounds = new YsmSoundRuntime(this);
+    private final YsmAudioResources audio = new YsmAudioResources(this);
+    private final AvatarTranslations translations = new AvatarTranslations();
+    private final YsmGuiResources guiResources;
     private final YsmAnimationPlayer animationPlayer;
     private final YsmActionRuntime actions;
     private final YsmMolangFunctionRuntime functions;
     private final String kind;
     private final boolean encryptedSource;
+    private boolean allCutout;
+    private boolean renderLayersFirst;
+    private boolean previewRotationDisabled;
+    private boolean guiNoLighting;
+    private boolean previewRuntime;
+    private boolean ownsTexture = true;
+    private volatile boolean closed;
+    private String previewAnimation = "";
+    private CompoundTag previewInput;
+    private YsmModelRuntime preview;
+    private FiguraTexture previewSourceTexture;
+    private Map<String, Object> previewControls;
+    private boolean previewAttempted;
     private final String modelKey;
     private final float defaultWidthScale;
     private final float defaultHeightScale;
@@ -95,6 +113,7 @@ public class YsmModelRuntime implements AutoCloseable {
         buildAttachmentPoints();
         dumpDebugInfo();
         this.renderer = new YsmRenderer(this);
+        this.guiResources = new YsmGuiResources(owner);
         this.animationPlayer = new YsmAnimationPlayer(this);
         this.actions = new YsmActionRuntime(this);
         this.functions = new YsmMolangFunctionRuntime(this);
@@ -154,12 +173,14 @@ public class YsmModelRuntime implements AutoCloseable {
                                              YsmGeometry armGeometry, YsmModelData data) throws java.io.IOException {
         byte[] textureBytes = tag.getByteArray("texture").orElse(new byte[0]);
         Map<String, byte[]> textureData = readTextureEntries(tag);
+        Map<String, MaterialData> materials = readMaterialEntries(tag);
         String textureId = tag.getStringOr("texture_id", "ysm_texture");
         byte[] selectedTexture = textureData.getOrDefault(textureId, textureBytes);
         boolean textureTranslucent = geometry.applyTextureAlpha(selectedTexture);
         if (armGeometry != null)
             textureTranslucent |= armGeometry.applyTextureAlpha(selectedTexture);
-        FiguraTexture texture = new FiguraTexture(owner, textureId, selectedTexture.length == 0 ? onePixelPng() : selectedTexture);
+        FiguraTexture texture = materialTexture(owner, textureId,
+                selectedTexture.length == 0 ? onePixelPng() : selectedTexture, materials.get(textureId));
         String kind = tag.getStringOr("kind", YsmAvatarKind.NONE.name());
         String modelKey = tag.getStringOr("source_path", tag.getStringOr("main_model_path", "ysm"));
         if (tag.contains("content_sha256")) {
@@ -171,6 +192,27 @@ public class YsmModelRuntime implements AutoCloseable {
         try {
             runtime = new YsmModelRuntime(owner, geometry, armGeometry, texture, textureId,
                     textureTranslucent, kind, modelKey, textureData, defaultWidthScale, defaultHeightScale, data != null && data.encrypted());
+            runtime.previewAnimation = tag.getStringOr("preview_animation", "");
+            if (!runtime.previewAnimation.isBlank()) {
+                runtime.previewInput = new CompoundTag();
+                for (String key : List.of("animations", "functions", "action_schemas")) {
+                    runtime.previewInput.put(key, tag.getListOrEmpty(key).copy());
+                }
+                for (String key : List.of("main_model", "arm_model")) {
+                    if (tag.contains(key)) {
+                        runtime.previewInput.putByteArray(key, tag.getByteArray(key).orElseThrow().clone());
+                    }
+                }
+                runtime.previewInput.putBoolean("merge_multiline_expr", tag.getBooleanOr("merge_multiline_expr", false));
+            }
+            runtime.guiNoLighting = tag.getBooleanOr("gui_no_lighting", false);
+            runtime.previewRotationDisabled = tag.getBooleanOr("disable_preview_rotation", false);
+            runtime.renderLayersFirst = tag.getBooleanOr("render_layers_first", false);
+            runtime.allCutout = tag.getBooleanOr("all_cutout", false);
+            runtime.materialData = Map.copyOf(materials);
+            runtime.audio.load(tag.getListOrEmpty("sound_entries"));
+            runtime.translations.load(tag.getListOrEmpty("language_entries"));
+            runtime.guiResources.load(tag);
             runtime.readSubEntities(tag, selectedTexture, data);
             MolangEngine ysmMolangEngine = MolangEngine.fromCustomBinding(owner.getAvatarBindings());
             runtime.animationPlayer.registerAnimations(readAnimations(tag, ysmMolangEngine));
@@ -187,8 +229,6 @@ public class YsmModelRuntime implements AutoCloseable {
             if (runtime.actions.all().isEmpty())
                 runtime.actions.buildDefaultsFromAnimations();
             runtime.registerDiscoveredControls(tag);
-            owner.controls.loadSavedValues(owner);
-            owner.controls.syncAll(owner);
             return runtime;
         } catch (Exception e) {
             if (runtime == null) {
@@ -217,7 +257,29 @@ public class YsmModelRuntime implements AutoCloseable {
         return result;
     }
 
-    private static void registerTextureKey(Map<String, byte[]> result, String key, byte[] data) {
+    private static Map<String, MaterialData> readMaterialEntries(CompoundTag tag) {
+        Map<String, MaterialData> result = new LinkedHashMap<>();
+        for (Tag value : tag.getListOrEmpty("texture_entries")) {
+            if (!(value instanceof CompoundTag texture)) {
+                continue;
+            }
+            MaterialData material = new MaterialData(texture.getByteArray("normal_data").orElse(new byte[0]),
+                    texture.getByteArray("specular_data").orElse(new byte[0]));
+            registerTextureKey(result, texture.getStringOr("id", ""), material);
+            registerTextureKey(result, texture.getStringOr("path", ""), material);
+        }
+        return result;
+    }
+
+    private record MaterialData(byte[] normal, byte[] specular) {
+    }
+
+    private static YsmMaterialTexture materialTexture(Avatar owner, String id, byte[] base, MaterialData material) {
+        return new YsmMaterialTexture(owner, id, base, material == null ? new byte[0] : material.normal(),
+                material == null ? new byte[0] : material.specular());
+    }
+
+    private static <T> void registerTextureKey(Map<String, T> result, String key, T data) {
         if (key == null || key.isBlank())
             return;
         result.putIfAbsent(key, data);
@@ -249,7 +311,8 @@ public class YsmModelRuntime implements AutoCloseable {
             String json = new String(animation.getByteArray("data").orElse(new byte[0]), StandardCharsets.UTF_8);
             if (json.isBlank())
                 continue;
-            mergeAnimations(result, YsmAnimationParser.parse(json, engine));
+            mergeAnimations(result, YsmAnimationParser.parse(json, true, engine,
+                    tag.getBooleanOr("merge_multiline_expr", false)));
         }
         return result;
     }
@@ -311,7 +374,8 @@ public class YsmModelRuntime implements AutoCloseable {
                 continue;
             String path = controller.getStringOr("path", "animation_controllers");
             Map<String, YsmAnimationController> parsed = YsmAnimationControllerParser.parse(json, engine,
-                    diagnostics == null ? null : diagnostic -> diagnostics.accept(path, diagnostic));
+                    diagnostics == null ? null : diagnostic -> diagnostics.accept(path, diagnostic),
+                    tag.getBooleanOr("merge_multiline_expr", false));
             result.putAll(parsed);
             if (sources != null) {
                 parsed.keySet().forEach(name -> sources.put(name, path));
@@ -406,6 +470,22 @@ public class YsmModelRuntime implements AutoCloseable {
         return textureId;
     }
 
+    public boolean isGuiNoLighting() {
+        return guiNoLighting;
+    }
+
+    public boolean isPreviewRotationDisabled() {
+        return previewRotationDisabled;
+    }
+
+    public boolean isRenderLayersFirst() {
+        return renderLayersFirst;
+    }
+
+    public boolean isAllCutout() {
+        return allCutout;
+    }
+
     public boolean isTextureTranslucent() {
         return textureTranslucent;
     }
@@ -420,14 +500,22 @@ public class YsmModelRuntime implements AutoCloseable {
             return false;
         if (id.equals(textureId))
             return true;
+        MaterialData material = materialData.get(id);
+        if (material == null) {
+            material = materialData.get(id.toLowerCase(java.util.Locale.US));
+        }
+        FiguraTexture replacement = materialTexture(owner, id, data, material);
         FiguraTexture previous = texture;
         boolean newTextureTranslucent = geometry.applyTextureAlpha(data);
         if (armGeometry != null)
             newTextureTranslucent |= armGeometry.applyTextureAlpha(data);
-        texture = new FiguraTexture(owner, id, data);
+        texture = replacement;
         textureId = id;
         textureTranslucent = newTextureTranslucent;
-        previous.close();
+        if (ownsTexture) {
+            previous.close();
+        }
+        ownsTexture = true;
         return true;
     }
 
@@ -463,6 +551,18 @@ public class YsmModelRuntime implements AutoCloseable {
 
     public YsmBoneQueryRuntime boneQueries() {
         return boneQueries;
+    }
+
+    public YsmGuiResources guiResources() {
+        return guiResources;
+    }
+
+    public AvatarTranslations translations() {
+        return translations;
+    }
+
+    public YsmAudioResources audio() {
+        return audio;
     }
 
     public YsmSoundRuntime sounds() {
@@ -511,6 +611,15 @@ public class YsmModelRuntime implements AutoCloseable {
         return actions;
     }
 
+    /** Replays model controls after publication, so restored commands can resolve fn/ysm bindings. */
+    public void restoreControls() {
+        if (owner.getYsmRuntime() != this) {
+            throw new IllegalStateException("YSM controls require an attached model runtime");
+        }
+        owner.controls.loadSavedValues(owner, modelKey);
+        owner.controls.syncAll(owner);
+    }
+
     public YsmMolangFunctionRuntime functions() {
         return functions;
     }
@@ -548,7 +657,7 @@ public class YsmModelRuntime implements AutoCloseable {
             Page page = pageFor(root, pages, slots, occupied, pageId);
             int slot = nextSlot(slots, occupied, pageId, layout == null ? -1 : layout.slot());
             String animation = action.getAnimation();
-            Action wheelAction = page.newAction(slot).setTitle(action.getTitle());
+            Action wheelAction = page.newAction(slot).setTitle(action.getTitle()).setTitleSupplier(action::getTitle);
             if (animation != null && animation.startsWith("#")) {
                 wheelAction.setItem(action.getItem() == null ? "minecraft:comparator" : action.getItem()).setControlsPage(animation.substring(1));
             } else {
@@ -906,14 +1015,124 @@ public class YsmModelRuntime implements AutoCloseable {
         return true;
     }
 
+    public boolean isClosed() {
+        return closed;
+    }
+
+    public boolean isPreviewRuntime() {
+        return previewRuntime;
+    }
+
+    /** Selects an independent evaluator for the declared GUI animation, leaving world playback untouched. */
+    public synchronized YsmModelRuntime forRenderPass() {
+        if (closed || previewRuntime || previewInput == null
+                || owner.renderMode != org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI) {
+            return this;
+        }
+        Map<String, Object> controls = new LinkedHashMap<>();
+        owner.controls.all().forEach(control -> controls.put(control.id(), control.getValue()));
+        if (!java.util.Objects.equals(controls, previewControls)) {
+            if (preview != null) {
+                preview.close();
+                preview = null;
+            }
+            previewControls = controls;
+            previewAttempted = false;
+        }
+        if (!previewAttempted) {
+            previewAttempted = true;
+            try {
+                preview = createPreview(controls);
+                if (preview.animationPlayer.play(previewAnimation, (YsmAnimationClip.LoopMode) null, 1f, 0f) == null) {
+                    preview.close();
+                    preview = null;
+                    FiguraMod.LOGGER.warn("YSM operation failed: runtime/preview-animation-missing");
+                }
+                previewSourceTexture = texture;
+            } catch (java.io.IOException | RuntimeException failure) {
+                if (preview != null) {
+                    preview.close();
+                    preview = null;
+                }
+                if (encryptedSource) {
+                    FiguraMod.LOGGER.warn("Encrypted YSM operation failed: runtime/preview-animation");
+                } else {
+                    FiguraMod.LOGGER.warn("YSM preview animation could not be initialized", failure);
+                }
+            }
+        }
+        if (preview != null && previewSourceTexture != texture) {
+            if (preview.ownsTexture) {
+                preview.texture.close();
+            }
+            preview.texture = texture;
+            preview.textureId = textureId;
+            preview.textureTranslucent = textureTranslucent;
+            preview.ownsTexture = false;
+            preview.materialData = materialData;
+            byte[] pixels = textureData.get(textureId);
+            if (pixels != null) {
+                preview.geometry.applyTextureAlpha(pixels);
+                if (preview.armGeometry != null) {
+                    preview.armGeometry.applyTextureAlpha(pixels);
+                }
+            }
+            previewSourceTexture = texture;
+        }
+        return preview == null ? this : preview;
+    }
+
+    private YsmModelRuntime createPreview(Map<String, Object> controls) throws java.io.IOException {
+        YsmGeometry previewGeometry = YsmGeometryParser.parse(new String(
+                previewInput.getByteArray("main_model").orElseThrow(), StandardCharsets.UTF_8));
+        YsmGeometry previewArms = previewInput.contains("arm_model") ? YsmGeometryParser.parse(new String(
+                previewInput.getByteArray("arm_model").orElseThrow(), StandardCharsets.UTF_8)) : null;
+        byte[] pixels = textureData.get(textureId);
+        if (pixels != null) {
+            previewGeometry.applyTextureAlpha(pixels);
+            if (previewArms != null) {
+                previewArms.applyTextureAlpha(pixels);
+            }
+        }
+        return owner.createYsmPreviewRuntime(previewOwner -> {
+            var result = new YsmModelRuntime(previewOwner, previewGeometry, previewArms, texture, textureId,
+                    textureTranslucent, kind, modelKey, textureData, defaultWidthScale, defaultHeightScale, encryptedSource);
+            result.previewRuntime = true;
+            result.ownsTexture = false;
+            result.materialData = materialData;
+            result.guiNoLighting = guiNoLighting;
+            result.allCutout = allCutout;
+            result.renderLayersFirst = renderLayersFirst;
+            result.previewRotationDisabled = previewRotationDisabled;
+            result.animationPlayer.registerAnimations(readAnimations(previewInput,
+                    MolangEngine.fromCustomBinding(previewOwner.getAvatarBindings())));
+            result.functions.load(previewInput.getListOrEmpty("functions"));
+            result.registerDefaultControls();
+            result.readActionSchemas(previewInput);
+            for (var control : previewOwner.controls.all()) {
+                if (controls.containsKey(control.id())) {
+                    control.setValue(controls.get(control.id()));
+                }
+            }
+            return result;
+        });
+    }
+
     public void updateAnimations(LivingEntityRenderState state, LivingEntity entity) {
         updateAnimations(state, entity, false);
     }
 
     public void updateAnimations(LivingEntityRenderState state, LivingEntity entity, boolean firstPerson) {
+        if (closed) {
+            return;
+        }
         Object nativeState = owner.controls.getValue("ysm.native_state_machine");
-        if (nativeState instanceof Boolean enabled)
+        if (previewRuntime) {
+            owner.getMolangContext().populateQueryContext(entity);
+            animationPlayer.setNativeStateMachineEnabled(false);
+        } else if (nativeState instanceof Boolean enabled) {
             animationPlayer.setNativeStateMachineEnabled(enabled);
+        }
         animationPlayer.update(state, entity, firstPerson);
     }
 
@@ -996,7 +1215,8 @@ public class YsmModelRuntime implements AutoCloseable {
         if (!firstPerson) {
             applyModelScale(scale);
         }
-        return YsmRenderPose.capture(uniqueParts(firstPerson), scale.last().pose());
+        boolean unlit = guiNoLighting && owner.renderMode == org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
+        return YsmRenderPose.capture(uniqueParts(firstPerson), scale.last().pose(), unlit);
     }
 
     public boolean renderFirstPersonArm(PoseStack stack, MultiBufferSource bufferSource, int light, boolean left) {
@@ -1028,10 +1248,13 @@ public class YsmModelRuntime implements AutoCloseable {
         YsmAttachmentPoint point = handAttachment(itemStack, left);
         YsmGeometry.Bone bone = findAttachmentBone(point);
         boolean locator = point != null && point.locator() != null;
-        applyModelScale(stack);
         if (bone == null) {
             bone = findHandBone(left);
         }
+        if (bone != null && !isBoneVisibleInHierarchy(bone.name)) {
+            return false;
+        }
+        applyModelScale(stack);
         if (bone == null) {
             stack.translate(left ? -0.42d : 0.42d, 0.78d, 0d);
         } else {
@@ -1048,13 +1271,38 @@ public class YsmModelRuntime implements AutoCloseable {
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
+        closed = true;
+        if (preview != null) {
+            preview.close();
+            preview = null;
+        }
+        if (previewInput != null) {
+            for (String key : List.of("main_model", "arm_model")) {
+                previewInput.getByteArray(key).ifPresent(bytes -> java.util.Arrays.fill(bytes, (byte) 0));
+            }
+            for (String key : List.of("animations", "functions", "action_schemas")) {
+                for (Tag value : previewInput.getListOrEmpty(key)) {
+                    if (value instanceof CompoundTag entry) {
+                        entry.getByteArray("data").ifPresent(bytes -> java.util.Arrays.fill(bytes, (byte) 0));
+                    }
+                }
+            }
+            previewInput = null;
+        }
+        previewControls = null;
+        previewSourceTexture = null;
+        actions.close();
         controllerSources.clear();
         controllerDiagnostics.clear();
         particles.close();
         sounds.close();
         boneQueries.clear();
         animationPlayer.closeSounds();
+        audio.close();
+        translations.close();
+        guiResources.close();
+        materialData = Map.of();
         animationPlayer.clearControllerFunctionTransitions();
         functions.clearEventState();
         Avatar.MolangContext context = owner.getMolangContext();
@@ -1063,7 +1311,9 @@ public class YsmModelRuntime implements AutoCloseable {
             context.updateYsmMovementContext(Float.NaN);
             YsmHandQuery.capture(context);
         }
-        texture.close();
+        if (ownsTexture) {
+            texture.close();
+        }
         for (YsmSubEntity entity : new LinkedHashSet<>(subEntities.values()))
             entity.close();
     }

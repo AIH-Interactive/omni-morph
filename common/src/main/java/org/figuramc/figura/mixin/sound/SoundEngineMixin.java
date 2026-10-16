@@ -97,7 +97,7 @@ public abstract class SoundEngineMixin implements SoundEngineAccessor {
             return;
 
         for (LuaSound sound : figuraHandlers)
-            sound.volume(sound.getVolume());
+            sound.setEngineVolume(sound.getVolume());
     }
 
     @Inject(at = @At("RETURN"), method = "stop(Lnet/minecraft/resources/Identifier;Lnet/minecraft/sounds/SoundSource;)V")
@@ -172,6 +172,12 @@ public abstract class SoundEngineMixin implements SoundEngineAccessor {
             figuraHandlers.clear();
             figuraChannel.clear();
         }
+    }
+
+    @Override
+    public void figura$releaseBuffer(com.mojang.blaze3d.audio.SoundBuffer buffer) {
+        // Stop requests and buffer disposal run in order on the same sound executor.
+        executor.execute(buffer::discardAlBuffer);
     }
 
     @Override @Intrinsic

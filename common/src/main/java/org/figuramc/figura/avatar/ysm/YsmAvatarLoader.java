@@ -138,6 +138,9 @@ public final class YsmAvatarLoader {
                 ysm.putByteArray("texture", ysmPackage.readBytes(texture.path()));
         }
         ysm.put("texture_entries", textureEntries(ysmPackage, manifest.textures()));
+        ysm.put("sound_entries", binaryResourceEntries(ysmPackage, index.soundPaths()));
+        ysm.put("language_entries", binaryResourceEntries(ysmPackage, index.languagePaths()));
+        addGuiResources(ysm, ysmPackage);
         ysm.put("action_schemas", actionSchemas(ysmPackage, index));
         ysm.put("sub_entities", subEntities(data));
         ysm.put("resource_index", toNbt(index));
@@ -166,8 +169,48 @@ public final class YsmAvatarLoader {
             return;
         JsonObject root = YsmJson.parseObject(ysmPackage.readString("ysm.json"));
         JsonObject properties = YsmJson.obj(root, "properties");
+        ysm.putString("preview_animation", YsmJson.string(properties, "preview_animation", ""));
+        ysm.putBoolean("gui_no_lighting", Boolean.parseBoolean(
+                YsmJson.string(properties, "gui_no_lighting", "false")));
+        ysm.putBoolean("disable_preview_rotation", Boolean.parseBoolean(
+                YsmJson.string(properties, "disable_preview_rotation", "false")));
+        ysm.putBoolean("render_layers_first", Boolean.parseBoolean(
+                YsmJson.string(properties, "render_layers_first", "false")));
+        ysm.putBoolean("all_cutout", Boolean.parseBoolean(YsmJson.string(properties, "all_cutout", "false")));
+        ysm.putBoolean("merge_multiline_expr", Boolean.parseBoolean(
+                YsmJson.string(properties, "merge_multiline_expr", "false")));
         putPositiveFloat(ysm, "width_scale", YsmJson.number(properties, "width_scale", DEFAULT_YSM_SCALE));
         putPositiveFloat(ysm, "height_scale", YsmJson.number(properties, "height_scale", DEFAULT_YSM_SCALE));
+    }
+
+    private static void addGuiResources(CompoundTag tag, YsmResourceSource source) throws java.io.IOException {
+        if (!source.exists("ysm.json")) {
+            return;
+        }
+        JsonObject manifest = YsmJson.parseObject(source.readString("ysm.json"));
+        JsonObject properties = YsmJson.obj(manifest, "properties");
+        JsonObject images = YsmJson.obj(properties, "ysm_background_images");
+        CompoundTag names = new CompoundTag();
+        java.util.LinkedHashSet<String> paths = new java.util.LinkedHashSet<>();
+        for (var entry : images.entrySet()) {
+            if (entry.getValue().isJsonPrimitive()) {
+                String path = YsmPackage.normalize(entry.getValue().getAsString());
+                if (source.exists(path)) {
+                    names.putString(entry.getKey(), path);
+                    paths.add(path);
+                }
+            }
+        }
+        for (String key : List.of("gui_foreground", "gui_background")) {
+            String value = YsmJson.string(properties, key, "");
+            String path = names.getStringOr(value, YsmPackage.normalize(value));
+            if (!path.isBlank() && source.exists(path)) {
+                tag.putString(key, path);
+                paths.add(path);
+            }
+        }
+        tag.put("gui_image_names", names);
+        tag.put("gui_entries", binaryResourceEntries(source, new ArrayList<>(paths)));
     }
 
     private static void putPositiveFloat(CompoundTag tag, String key, float value) {
@@ -232,9 +275,32 @@ public final class YsmAvatarLoader {
             entry.putString("id", texture.id());
             entry.putString("path", texture.path());
             entry.putByteArray("data", ysmPackage.readBytes(texture.path()));
+            if (!texture.normalPath().isBlank()) {
+                entry.putString("normal_path", texture.normalPath());
+                entry.putByteArray("normal_data", ysmPackage.readBytes(texture.normalPath()));
+            }
+            if (!texture.specularPath().isBlank()) {
+                entry.putString("specular_path", texture.specularPath());
+                entry.putByteArray("specular_data", ysmPackage.readBytes(texture.specularPath()));
+            }
             tag.add(entry);
         }
         return tag;
+    }
+
+    private static ListTag binaryResourceEntries(YsmResourceSource source, List<String> paths)
+            throws java.io.IOException {
+        ListTag entries = new ListTag();
+        for (String path : paths) {
+            if (!source.exists(path)) {
+                continue;
+            }
+            CompoundTag entry = new CompoundTag();
+            entry.putString("path", path);
+            entry.putByteArray("data", source.readBytes(path));
+            entries.add(entry);
+        }
+        return entries;
     }
 
     private static ListTag actionSchemas(YsmResourceSource ysmPackage, YsmResourceIndex index) throws java.io.IOException {

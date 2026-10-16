@@ -30,7 +30,7 @@ public final class YsmSoundRuntime implements AutoCloseable {
         if (context.entity == null) {
             return null;
         }
-        if (closed || context.owner != runtime.owner() || !runtime.functions().clientEffectsEnabled()) {
+        if (closed || runtime.isPreviewRuntime() || context.owner != runtime.owner() || !runtime.functions().clientEffectsEnabled()) {
             return false;
         }
         if (operation.equals("stop_all_sounds")) {
@@ -60,11 +60,10 @@ public final class YsmSoundRuntime implements AutoCloseable {
         if (flags < 0 || flags > 7) {
             return false;
         }
-        SoundAPI api = new SoundAPI(context.owner);
-        if (!api.isPresent(name)) {
+        LuaSound sound = createSound(name);
+        if (sound == null) {
             return false;
         }
-        LuaSound sound = api.__index(name);
         sound.setLoop((flags & 4) != 0);
         if (arguments.size() >= 4) {
             sound.setEngineVolume(clamp(arguments.getAsFloat(execution, 3)));
@@ -74,6 +73,17 @@ public final class YsmSoundRuntime implements AutoCloseable {
         }
         return bank(context, (flags & 2) != 0).play(id, (flags & 1) != 0,
                 new Playback(sound, context.entity));
+    }
+
+    public LuaSound createSound(String name) {
+        if (closed) {
+            return null;
+        }
+        if (runtime.audio().get(name) != null) {
+            return runtime.audio().createSound(name);
+        }
+        SoundAPI api = new SoundAPI(runtime.owner());
+        return api.isPresent(name) ? api.__index(name) : null;
     }
 
     private static float clamp(float value) {

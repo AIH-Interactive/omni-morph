@@ -101,22 +101,24 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
             ysmStack.pushPose();
             ysmStack.last().set(poseStack.last());
             ysmStack.mulPose(Axis.YP.rotationDegrees(figura$getYsmBodyRotation(livingEntityRenderState, livingEntity)));
-            var runtime = localAvatar.getYsmRuntime();
+            var attachedRuntime = localAvatar.getYsmRuntime();
+            var runtime = attachedRuntime == null ? null : attachedRuntime.forRenderPass();
             if (runtime != null) {
                 runtime.updateAnimations(livingEntityRenderState, livingEntity);
 
-                // ItemStackRenderState may submit either a regular item or a
-                // special model part. The latter is consumed before Figura's
-                // deferred feature callback, so collect both hand items here.
-                if (livingEntity != null)
-                    figura$submitYsmHandItems(localAvatar, livingEntity, ysmStack, submitNodeCollector, livingEntityRenderState.lightCoords, livingEntityRenderState.outlineColor);
+                // Resolve both ordinary and special-rendered items before deferred
+                // consumption. The body uses a separate native order bucket so
+                // render_layers_first applies to both item feature paths.
+                if (livingEntity != null) {
+                    figura$submitYsmHandItems(runtime.owner(), livingEntity, ysmStack, submitNodeCollector,
+                            livingEntityRenderState.lightCoords, livingEntityRenderState.outlineColor);
+                }
             }
             var submittedPose = runtime == null ? null : runtime.captureRenderPose(false);
-            ((NodeCollectorExtension) submitNodeCollector).submitFiguraModel(localAvatar, livingEntityRenderState, (avatar, state, bufferSource) -> {
-                if (runtime != null && avatar.getYsmRuntime() == runtime) {
-                    runtime.renderer().render(ysmStack, bufferSource, state.lightCoords,
-                            YsmPartMask.forPass(YsmRenderPass.PLAYER_BODY), submittedPose);
-                    runtime.renderer().renderAttachments(ysmStack, bufferSource, state.lightCoords, submittedPose);
+            int bodyOrder = runtime == null ? 0 : runtime.renderer().bodySubmitOrder();
+            ((NodeCollectorExtension) submitNodeCollector.order(bodyOrder)).submitFiguraModel(localAvatar, livingEntityRenderState, (avatar, state, bufferSource) -> {
+                if (runtime != null && !runtime.isClosed() && avatar.getYsmRuntime() == attachedRuntime) {
+                    runtime.renderer().renderWithAttachments(ysmStack, bufferSource, state.lightCoords, submittedPose);
                 }
                 return null;
             });

@@ -48,6 +48,15 @@ public class HashMapStruct implements Struct {
         }
     }
 
+    public boolean isRightValue() {
+        return isRightValue;
+    }
+
+    /** Visits stored fields without exposing the mutable backing map. */
+    public void forEachProperty(java.util.function.BiConsumer<Integer, Object> consumer) {
+        properties.forEach(consumer);
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();

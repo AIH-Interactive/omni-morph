@@ -82,6 +82,7 @@ public final class YsmSoundNativeSmokeTest {
         RecordingEngine engine = allocate(RecordingEngine.class);
         engine.submitted = new ArrayList<>();
         engine.handles = new ArrayList<>();
+        engine.released = new ArrayList<>();
         client.manager.engine = engine;
         instance.set(null, client);
         Fixture first = new Fixture();
@@ -175,7 +176,78 @@ public final class YsmSoundNativeSmokeTest {
         LuaSound lua = new LuaSound((SoundBuffer) null, "lua-volume", first.owner);
         lua.setVolume(12);
         require(lua.getVolume() == 1, "original Figura Lua volume limit preserved");
+        testModelAudio(engine);
         System.out.println("M4 sound binding native dispatch, ID/flags, scopes, real owner quota, stop and close passed; audible playback manual.");
+    }
+
+    private static void testModelAudio(RecordingEngine engine) throws Exception {
+        Fixture first = new Fixture();
+        Fixture second = new Fixture();
+        var files = new HashMap<String, byte[]>();
+        files.put("main.json", "{\"minecraft:geometry\":[{\"bones\":[{\"name\":\"root\"}]}]}"
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        files.put("sounds/model_tone.ogg", YsmAudioDecodeSmokeTest.opus(1));
+        try (var source = new org.figuramc.figura.avatar.ysm.YsmMemoryResourceSource("audio-fixture", files);
+             var data = org.figuramc.figura.avatar.ysm.YsmModelData.read(source,
+                     org.figuramc.figura.avatar.ysm.YsmSourceIdentity.ContainerKind.MEMORY, () -> false)) {
+            var tag = org.figuramc.figura.avatar.ysm.YsmAvatarLoader.toRuntimeTag(data, null);
+            first.runtime.audio().load(tag.getListOrEmpty("sound_entries"));
+            second.runtime.audio().load(tag.getListOrEmpty("sound_entries"));
+        }
+        var firstBuffer = first.runtime.audio().get("model_tone");
+        var secondBuffer = second.runtime.audio().get("model_tone");
+        require(firstBuffer != null && secondBuffer != null && firstBuffer != secondBuffer
+                        && firstBuffer.size() == 5360, "models own independent decoded native buffers");
+        var api = new org.figuramc.figura.lua.api.sound.SoundAPI(first.owner);
+        require(api.isPresent("model_tone") && api.getCustomSounds().contains("model_tone")
+                        && !first.owner.customSounds.containsKey("model_tone"), "Lua sound API consumes model resources separately");
+        var player = first.runtime.animations();
+        var clip = new org.figuramc.figura.model.ysm.animation.YsmAnimationClip("animation.parallel0", 1f, true);
+        clip.events.add(new org.figuramc.figura.model.ysm.animation.YsmAnimationEvent(0f, "sound", "model_tone"));
+        player.registerAnimations(Map.of(clip.name, clip));
+        int beforeInitial = engine.submitted.size();
+        player.startBaseAnimations();
+        require(engine.submitted.size() == beforeInitial, "base sound waits until the render subject exists");
+        set(org.figuramc.figura.model.ysm.animation.YsmAnimationPlayer.class, player, "currentEntity", first.context.entity);
+        var advance = org.figuramc.figura.model.ysm.animation.YsmAnimationPlayer.class.getDeclaredMethod(
+                "advanceAnimationTimeline", float.class, org.figuramc.figura.molang.runtime.ExpressionEvaluator.class);
+        advance.setAccessible(true);
+        var evaluator = ExpressionEvaluator.evaluator(first.context);
+        advance.invoke(player, 0.1f, evaluator);
+        require(engine.submitted.size() == beforeInitial + 1, "base zero-time sound reaches the first real entity update");
+        advance.invoke(player, 0.1f, evaluator);
+        require(engine.submitted.size() == beforeInitial + 1, "base zero-time sound does not repeat next frame");
+        LuaSound retained = api.__index("model_tone");
+        retained.play();
+        require(retained.getHandle() != null, "Lua can play a real decoded model sound");
+        try (var firstEffects = first.runtime.functions().beginClientEffects(null);
+             var secondEffects = second.runtime.functions().beginClientEffects(null)) {
+            require(Boolean.TRUE.equals(first.eval("ysm.play_sound('voice','model_tone',4);")), "decoded first-model playback");
+            LuaSound firstSound = engine.submitted.getLast();
+            require(Boolean.TRUE.equals(second.eval("ysm.play_sound('voice','model_tone',4);")), "same-name second-model playback");
+            LuaSound secondSound = engine.submitted.getLast();
+            Field buffer = LuaSound.class.getDeclaredField("buffer");
+            buffer.setAccessible(true);
+            require(buffer.get(firstSound) == firstBuffer && buffer.get(secondSound) == secondBuffer,
+                    "actual native playback receives its own model buffer");
+            first.runtime.sounds().close();
+            first.runtime.audio().close();
+            require(firstSound.getHandle() == null && secondSound.getHandle() != null
+                            && engine.released.contains(firstBuffer) && !engine.released.contains(secondBuffer),
+                    "closing one model stops and disposes only its own audio");
+            require(retained.getHandle() == null && buffer.get(retained) == null && buffer.get(firstSound) == null,
+                    "closing model stops Lua playback and releases retained PCM references");
+            int submissions = engine.submitted.size();
+            retained.play();
+            require(retained.getHandle() == null && engine.submitted.size() == submissions,
+                    "retained Lua sound cannot revive a closed model buffer");
+            int releases = engine.released.size();
+            first.runtime.audio().close();
+            require(engine.released.size() == releases && first.runtime.audio().names().isEmpty(), "resource close is idempotent");
+            second.runtime.sounds().close();
+            second.runtime.audio().close();
+        }
+        System.out.println("M5 runtime audio assembly/Opus decode/SoundAPI/native playback and same-name model cleanup passed (CPU engine).");
     }
 
     private static final class Fixture {
@@ -253,6 +325,7 @@ public final class YsmSoundNativeSmokeTest {
     private static final class RecordingEngine extends SoundEngine implements SoundEngineAccessor {
         List<LuaSound> submitted;
         List<RecordingHandle> handles;
+        List<SoundBuffer> released;
         UUID owner;
 
         private RecordingEngine() {
@@ -274,6 +347,12 @@ public final class YsmSoundNativeSmokeTest {
             } catch (Exception failure) {
                 throw new IllegalStateException(failure);
             }
+        }
+
+        @Override
+        public void figura$releaseBuffer(SoundBuffer buffer) {
+            released.add(buffer);
+            buffer.discardAlBuffer();
         }
 
         @Override

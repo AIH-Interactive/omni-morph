@@ -260,12 +260,28 @@ public final class YsmManifestReader {
             String id = YsmJson.string(object, "id", idFromPath(path));
             String name = YsmJson.string(object, "name", displayFromPath(path));
             String normalized = YsmPackage.normalize(path);
-            result.add(new YsmTextureOption(id, name, normalized));
+            result.add(new YsmTextureOption(id, name, normalized,
+                    readTextureChannel(ysmPackage, object, "normal", warnings),
+                    readTextureChannel(ysmPackage, object, "specular", warnings)));
             if (normalized.isBlank())
                 addWarning(warnings, "invalid optional texture: " + displayPath(path));
             else if (!ysmPackage.exists(normalized))
                 addWarning(warnings, "missing optional texture: " + normalized);
         }
+    }
+
+    private static String readTextureChannel(YsmResourceSource source, JsonObject texture, String key,
+                                            List<String> warnings) {
+        String configured = YsmJson.string(texture, key, "");
+        if (configured.isBlank()) {
+            return "";
+        }
+        String path = YsmPackage.normalize(configured);
+        if (path.isBlank() || !source.exists(path)) {
+            addWarning(warnings, "missing optional " + key + " texture: " + displayPath(configured));
+            return "";
+        }
+        return path;
     }
 
     private static List<YsmTextureOption> readOldTextures(YsmResourceSource ysmPackage) throws IOException {
@@ -306,9 +322,11 @@ public final class YsmManifestReader {
                 controllers,
                 collectFunctions(ysmPackage),
                 textures == null ? List.of() : textures.stream()
-                        .map(YsmTextureOption::path)
+                        .flatMap(texture -> java.util.stream.Stream.of(texture.path(), texture.normalPath(), texture.specularPath()))
+                        .filter(path -> path != null && !path.isBlank())
                         .map(YsmPackage::normalize)
                         .filter(ysmPackage::exists)
+                        .distinct()
                         .toList(),
                 collectByExtension(ysmPackage, ".ogg"),
                 firstExisting(ysmPackage, "avatar.png", "icon.png", "textures/avatar.png", "textures/icon.png"),

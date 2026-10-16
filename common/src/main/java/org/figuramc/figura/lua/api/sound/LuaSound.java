@@ -30,11 +30,12 @@ public class LuaSound {
 
     private final Avatar owner;
     private final String id;
-    private final SoundBuffer buffer;
+    private SoundBuffer buffer;
     private final Sound sound;
 
     private ChannelAccess.ChannelHandle handle;
     private boolean playing = false;
+    private java.util.function.BooleanSupplier sourceValid;
 
     private FiguraVec3 pos = FiguraVec3.of();
     private float pitch = 1f;
@@ -48,6 +49,12 @@ public class LuaSound {
         this(null, buffer, id, Component.literal(id), owner);
     }
 
+    /** Model-owned audio refuses replay after its resource container is closed. */
+    public LuaSound(SoundBuffer buffer, String id, Avatar owner, java.util.function.BooleanSupplier sourceValid) {
+        this(buffer, id, owner);
+        this.sourceValid = sourceValid;
+    }
+
     public LuaSound(Sound sound, String id, Component subtitle, Avatar owner) {
         this(sound, null, id, subtitle, owner);
     }
@@ -59,6 +66,15 @@ public class LuaSound {
         this.sound = sound;
         this.subtitleText = subtitle;
         this.subtitle = subtitle == null ? null : subtitle.getString();
+    }
+
+    /** Internal model cleanup also drops PCM references held by retained Lua objects. */
+    public void invalidateModelSource() {
+        if (sourceValid != null) {
+            stop();
+            buffer = null;
+            sourceValid = () -> false;
+        }
     }
 
     public ChannelAccess.ChannelHandle getHandle() {
@@ -80,6 +96,9 @@ public class LuaSound {
     @LuaWhitelist
     @LuaMethodDoc("sound.play")
     public LuaSound play() {
+        if (sourceValid != null && !sourceValid.getAsBoolean()) {
+            return this;
+        }
         // Only skip logic when we truely know the sound is currently playing
         if (this.playing && this.handle != null && !this.handle.isStopped())
             return this;

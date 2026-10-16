@@ -122,8 +122,11 @@ public final class YsmActionSchemaParser {
                 continue;
             String animation = label.startsWith("#") ? label : id;
             String title = label.startsWith("#") ? id : label;
+            String titleKey = "extra_animation".equals(page) ? "properties.extra_animation." + id
+                    : "properties.extra_animation_classify." + page + "." + id;
             runtime.actions().register(new YsmActionDefinition("extra_animation." + id)
                     .setTitle(title)
+                    .setTitleSupplier(() -> runtime.translations().get(titleKey, title))
                     .setAnimation(animation)
                     .setPage(page)
                     .setLoop(!animation.startsWith("#")
@@ -179,10 +182,12 @@ public final class YsmActionSchemaParser {
             String name = string(button, "name", page);
             runtime.owner().controls.register(new AvatarControlDefinition("ysm.page_link." + page, AvatarControlType.BUTTON)
                     .setTitle(name)
+                    .setTitleSupplier(() -> runtime.translations().get("properties.extra_animation_buttons." + page + ".name", name))
                     .setPage("root")
                     .setTargetPage(page));
             runtime.owner().controls.register(new AvatarControlDefinition("ysm.page." + page, AvatarControlType.LABEL)
                     .setTitle(name)
+                    .setTitleSupplier(() -> runtime.translations().get("properties.extra_animation_buttons." + page + ".name", name))
                     .setPage(page));
             JsonArray forms = array(button, "config_forms");
             if (forms == null)
@@ -191,8 +196,17 @@ public final class YsmActionSchemaParser {
                 continue;
             int index = 0;
             for (JsonElement formElement : forms) {
-                if (formElement != null && formElement.isJsonObject())
-                    runtime.owner().controls.register(readConfigForm(page, index, formElement.getAsJsonObject()));
+                if (formElement != null && formElement.isJsonObject()) {
+                    AvatarControlDefinition control = readConfigForm(page, index, formElement.getAsJsonObject());
+                    String prefix = "properties.extra_animation_buttons." + page + ".config_forms." + index;
+                    String title = control.getTitle();
+                    String description = control.getDescription();
+                    control.setTitleSupplier(() -> runtime.translations().get(prefix + ".title", title));
+                    control.setDescriptionSupplier(() -> runtime.translations().get(prefix + ".description", description));
+                    control.setOptionLabelResolver((option, fallback) ->
+                            runtime.translations().get(prefix + ".labels." + option, fallback));
+                    runtime.owner().controls.register(control);
+                }
                 index++;
             }
         }
@@ -206,8 +220,9 @@ public final class YsmActionSchemaParser {
                 .setTitle(string(form, "title", id))
                 .setPage(page)
                 .setCategory(string(form, "description", ""))
+                .setDescription(string(form, "description", ""))
                 .setBinding(binding)
-                .setPersistent(false);
+                .setPersistent(true);
         if (form.has("min") || form.has("max") || form.has("step")) {
             double min = number(form, "min", 0d);
             double max = number(form, "max", 1d);
@@ -227,6 +242,7 @@ public final class YsmActionSchemaParser {
             control.setDefault(value(defaultValue, type));
         else
             applyImplicitDefault(control, type);
+        control.useLiveBinding(defaultValue == null);
         return control;
     }
 

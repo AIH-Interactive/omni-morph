@@ -26,7 +26,6 @@ import org.figuramc.figura.molang.runtime.MolangExecutionBudget;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.molang.storage.StringPool;
 import org.figuramc.figura.lua.api.particle.ParticleAPI;
-import org.figuramc.figura.lua.api.sound.SoundAPI;
 import org.figuramc.figura.lua.api.sound.LuaSound;
 import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.model.ysm.YsmBoneRole;
@@ -69,6 +68,7 @@ public class YsmAnimationPlayer {
 
     public static class PlayingAnimation {
         public final YsmAnimationClip clip;
+        public long playbackGeneration;
         public float time;
         public float previousTime;
         private double eventWindowEnd;
@@ -79,6 +79,7 @@ public class YsmAnimationPlayer {
         public YsmAnimationClip.LoopMode loopMode;
         public final boolean isNative;
         public boolean initialEventsDispatched;
+        private final java.util.List<YsmAnimationEvent> pendingInitialSounds = new java.util.ArrayList<>();
 
         // For smooth transitions in native state machine
         public float targetWeight = 0f;
@@ -272,6 +273,7 @@ public class YsmAnimationPlayer {
 
         boolean created = !activeAnimations.containsKey(slot);
         PlayingAnimation playing = activeAnimations.computeIfAbsent(slot, k -> new PlayingAnimation(clip, false));
+        playing.playbackGeneration++;
         playing.controllerName = controllerName;
         playing.loopMode = loopMode == null ? clip.loopMode : loopMode;
         playing.loop = playing.loopMode == YsmAnimationClip.LoopMode.LOOP;
@@ -506,8 +508,8 @@ public class YsmAnimationPlayer {
             renderContext.setYsmCameraContext(entity, minecraft.player, minecraft.getCameraEntity(),
                     minecraft.options.getCameraType(), !YsmParticleRuntime.isPreview(runtime.owner().renderMode));
         }
-        boolean firstPersonActive = firstPerson || (entity != null && entity == minecraft.player
-                && minecraft.options.getCameraType().isFirstPerson());
+        boolean firstPersonActive = !runtime.isPreviewRuntime() && (firstPerson || (entity != null && entity == minecraft.player
+                && minecraft.options.getCameraType().isFirstPerson()));
         YsmAnimationFrameClock.Step step = frameClock.step(YsmRenderFrameClock.currentFrame(),
                 state == null ? Float.NaN : state.ageInTicks);
         float deltaTime = step.deltaSeconds();
@@ -544,7 +546,9 @@ public class YsmAnimationPlayer {
                 }
             }
 
-            updateNativeHandAnimations(entity);
+            if (!runtime.isPreviewRuntime()) {
+                updateNativeHandAnimations(entity);
+            }
 
             advanceAnimationTimeline(deltaTime, evaluatorForEvents());
         }
@@ -566,7 +570,9 @@ public class YsmAnimationPlayer {
 
         sampleAnimations(evaluator, firstPerson);
 
-        applyNativeHandPose(state, entity, firstPerson);
+        if (!runtime.isPreviewRuntime()) {
+            applyNativeHandPose(state, entity, firstPerson);
+        }
 
     }
 
@@ -816,6 +822,12 @@ public class YsmAnimationPlayer {
         try (YsmControllerRuntime.ContextScope contextScope = controllerRuntime.openAnimationContext(
                 animation.controllerName, evaluator, animation.time, animation.clip.length);
              var effectScope = runtime == null ? null : runtime.functions().beginClientEffects(animation)) {
+            if (currentEntity != null && !animation.pendingInitialSounds.isEmpty()) {
+                for (YsmAnimationEvent event : animation.pendingInitialSounds) {
+                    handleEvent(event, evaluator, animation.controllerName);
+                }
+                animation.pendingInitialSounds.clear();
+            }
             for (YsmAnimationEvent event : YsmAnimationEventWindow.crossed(animation.clip,
                     animation.previousTime, animation.eventWindowEnd, animation.loop,
                     animation.initialEventsDispatched)) {
@@ -835,8 +847,14 @@ public class YsmAnimationPlayer {
                 animation.controllerName, evaluator, animation.time, animation.clip.length);
              var effectScope = runtime == null ? null : runtime.functions().beginClientEffects(animation)) {
             for (YsmAnimationEvent event : animation.clip.events) {
-                if (event.time() == 0f)
-                    handleEvent(event, evaluator, animation.controllerName);
+                if (event.time() == 0f) {
+                    if (currentEntity == null && "sound".equals(event.type())) {
+                        // Assembly precedes entity binding; retain only audio for the first live update.
+                        animation.pendingInitialSounds.add(event);
+                    } else {
+                        handleEvent(event, evaluator, animation.controllerName);
+                    }
+                }
             }
             if (runtime != null) {
                 runtime.functions().flushDeferred(animation, evaluator);
@@ -878,6 +896,9 @@ public class YsmAnimationPlayer {
     }
 
     private void playOwnedSound(String controllerName, YsmAnimationEvent event) {
+        if (runtime.isPreviewRuntime()) {
+            return;
+        }
         LuaSound sound = playEventSound(event);
         if (controllerName != null && sound != null && sound.getHandle() != null) {
             // A channel may still be loading its buffer; isPlaying() is not a completion signal.
@@ -899,7 +920,15 @@ public class YsmAnimationPlayer {
             double pitch = param(params, 1d, "pitch");
             boolean loop = boolParam(params, "loop", "looping");
             FiguraVec3 pos = FiguraVec3.of(x, y, z);
-            return new SoundAPI(runtime.owner()).playSound(id, pos, volume, pitch, loop, null, false);
+            LuaSound sound = runtime.sounds().createSound(id);
+            if (sound == null) {
+                return null;
+            }
+            sound.setPos(pos, null, null);
+            sound.setEngineVolume((float) Math.max(0.001d, Math.min(1000d, volume)));
+            sound.setPitch((float) Math.max(0.001d, Math.min(1000d, pitch)));
+            sound.setLoop(loop);
+            return sound.play();
         } catch (Exception ignored) {
             return null;
         }

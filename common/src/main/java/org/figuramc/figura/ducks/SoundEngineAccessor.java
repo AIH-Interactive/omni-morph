@@ -11,6 +11,7 @@ import java.util.UUID;
 public interface SoundEngineAccessor {
 
     void figura$addSound(LuaSound sound);
+    void figura$releaseBuffer(com.mojang.blaze3d.audio.SoundBuffer buffer);
     void figura$stopSound(UUID owner, String name);
     void figura$stopAllSounds();
     ChannelAccess.ChannelHandle figura$createHandle(UUID owner, String name, Library.Pool pool);

@@ -1,7 +1,7 @@
 # 完善 YSM 引擎计划书
 
 > 编制日期：2026-10-12（Asia/Seoul）。
-> 状态：M0～M4 自动化验收完成；M5～M8 尚未实施。阶段提交与推送按 6.1 节执行；人工项按用户要求注明并跳过。
+> 状态：M0～M4 自动化验收完成并提交推送；M5 自动化验收完成，执行提交推送检查点；M6～M8 尚未实施。阶段提交与推送按 6.1 节执行；人工项按用户要求注明并跳过。
 > 本文独立制定需求、实施顺序与验收标准。旧版计划书全部视为已废弃，不作为本文依据。
 
 ## 1. 目标、边界与完成定义
@@ -24,6 +24,8 @@
 8. 具备确定性自动化测试、真实游戏窗口验收、加载/卸载及异常输入验证，并保留可重跑的证据。
 
 ### 1.2 范围控制
+
+- 2026-10-16 用户最终界面约束：保持 Figura 原有界面风格、布局和交互，不加入 YSM 专属 GUI；控件只复用 Figura 已定义的类型与样式。YSM 配置、语言和动作接入既有信息栏、控件页与动作轮，不新增 YSM 页面、面板、头像控件或预览装饰绘制。此前 M2 延期的作者头像显示及 M5 前/背景 GUI 装饰显示按新要求记 `SKIPPED/USER_UI_SCOPE`，仍保留格式读取、内存解码与资源边界验证；不将跳过记为显示通过。
 
 - 2026-10-12 实施期间用户补充：以单人完整加载、使用 YSM 为首要交付目标；配套后端为 `omnm-cloud`，另外两个参考后端可作只读对照。凡确需后端修改的内容，当前计划期间记录影响、原因和后续要求后跳过，不实施后端变更。M7 先验证现有协议，继续能独立完成的客户端 DTO/codec/回放；依赖后端变更的联网验收记 `SKIPPED/BACKEND_REQUIRED`。M8 分别报告单人完成度及多人跳过项，不把跳过称为多人通过。
 - 用户随后明确授权：需要人工验收的项目直接注明并跳过，不阻塞。本文 M1～M8 的人工/真实窗口/多客户端人工场景统一记 `SKIPPED/MANUAL_BY_USER`；自动化验收仍须完成并通过，跳过不等于验证通过。此前“最终必须补齐必验人工项”的约束由本条用户指令覆盖，最终交付需列明跳过项及证据边界。
@@ -491,7 +493,8 @@ if ($buildExitCode -ne 0) {
 | M2 | 完成（自动化通过；人工跳过） | 解密/全资源数据映射/正式密文加载/输出/日志边界、16 个格式 fixture、无 DWORD 等价及 scanner 通过；真实窗口 SKIPPED/MANUAL_BY_USER，AVIF metadata 显示归 M5；执行独立提交推送检查点 |
 | M3 | 自动验收完成；人工已按用户要求跳过 | 动态权重、实例/上下文、过渡/声音/子控制器、阶段/第一人称、多 pass 与延迟姿态已接通；16 项 M3 smoke、既有回归/45 模型语料/扫描基线、Fabric build 通过；见 9.7 |
 | M4 | 自动验收完成；人工已按用户要求跳过 | 函数/绑定/事件、预算恢复、滤波/实体适配与诊断已补；233名称逐项分级，41 smoke/绑定审计/独立M4扫描baseline/Fabric build通过；声音最小执行适配已获本轮明确授权，实际包音频装配归M5；见9.8最终记录 |
-| M5–M6 | 未开始实施 | 附属资源和动态子实体 |
+| M5 | 自动验收完成；人工与指定 GUI 项按用户要求跳过 | 49 smoke+绑定审计、冻结M4扫描baseline与Fabric build通过3分3秒；附属资源/动作/控件/材质/预览引擎和层顺序接通；UI复用Figura原组件；详见9.9最终记录 |
+| M6 | 未开始实施 | 动态子实体 |
 | M7 | 未开始实施 | 内容边界与动态多人一致性 |
 | M8 | 未开始实施 | 完整语料、真实窗口、多客户端、资源与性能验收 |
 
@@ -1302,3 +1305,148 @@ M4 最终自动验收完成（2026-10-15）：完成本阶段既定 binding/func
 最终前台运行41个已注册ysm*SmokeTest、ysmBindingReferenceAudit、使用common/src/test/resources/ysm/m4-corpus-baseline.json的scanYsmModels及fabric:build，通过2分42秒、退出码0，58 actionable tasks（44 executed、14 up-to-date）。逐项核对Gradle实际执行任务集合包含全部42个smoke/audit名称及scan；完整日志build/reports/ysm/m4-final-gate.log、UTF-8扫描报告build/reports/ysm/m4-final-scan.txt。包括M3全部回归、Figura5/明文YSM35/加密YSM5本地45项加载，扫描40/38/2、encryptedValidated5、syncModelsAudited38/资源1/numericCalls2/unresolved0。已知两模型负例未隐藏；两个Figura缺arrow纹理仍为原有素材限制。
 
 真实窗口、可听音频、第三方可选模组实机行为继续SKIPPED/MANUAL_BY_USER；后端需求SKIPPED/BACKEND_BY_USER，不修改refs或omnm-cloud。Forge/NeoForge诊断枚举实现未执行其平台构建，不声明通过。源码与新增文件已进行可读性/范围和空白检查，仓库无独立Java格式化配置，未全文件重排旧代码。M2冻结baseline未改。M4按6.1执行独立commit/push及远端SHA核对后，才允许进入M5；本记录不宣称M5音频资源、语言、材质或M6～M8已完成，不关闭计算机。
+
+### 9.9 M5 执行记录（自动验收完成，执行提交推送检查点）
+
+进入条件已完成：M4独立提交fee8ba0087e9e466c8208a08c6cf5ebb081ae037已推送origin/main，并用git ls-remote核对远端与本地SHA精确一致；M4后工作区仅保留未提交build.log及用户refs/omnm-cloud。未在M4检查点之前开始M5实现。
+
+M5严格沿5.3与M5原验收范围推进：包内声音/语言消费→extra animation表单/动作与保存恢复→材质/子纹理/properties输入到使用表及附件/挂点。复用现有Lua YSM动作、停止、纹理和状态API，只有与上述模型行为直接相关且有必要的接口才补齐；不提前做M6动态子实体生命周期或M7后端修改。真实窗口/听觉依用户要求SKIPPED/MANUAL_BY_USER，不替代自动资源消费证据。
+
+首个缺口定位：toRuntimeTag此前只在resource_index记录声音/语言路径，未将这些字节送入runtime。现新增sound_entries/language_entries的path+原始byte[]装配，复用M1统一有界资源源，密文模型仍仅在瞬时runtime tag含解密字节，portable NBT保持密文白名单。此项仅是消费链输入，尚未声称音频解码/注册/可听播放、语言翻译或M5完成；后续接通实际消费者及作用域清理。
+M5 首轮输入装配验证：dataBoundary既有目录/ZIP/内存源资源等价回归及新增目录runtime原始声音/中文语言字节断言通过；localCorpus逐个检查35个明文及5个加密YSM的全部sound/language条目数量、路径顺序与字节精确一致，并确认密文portable payload不包含sound_entries/language_entries；原Figura5编译保持。前台dataBoundary/localCorpus/payload与Fabric build通过39秒、退出码0，日志build/reports/ysm/m5-attached-resource-gate.log。M5消费者尚未接通，不宣称完成，不进行本阶段commit/push。
+
+M5 声音解码与消费进展（2026-10-15）：按参考AudioResourceMapper/ClientModelBundleAssembler/YSMFolderDeserializer核对，模型声音名取文件basename去扩展名，参考支持Vorbis与Opus，定位音频使用mono PCM。本次新增YsmAudioDecoder：复用Minecraft JOrbis解Vorbis，Concentus解Opus，Gagravarr读Ogg容器；有界PCM扩张、单/双声道转mono、Opus48k/pre-skip/output gain/尾granule裁剪、取消检查与坏输入拒绝。依赖固定io.github.jaredmdobson:concentus:1.0.2、org.gagravarr:vorbis-java-core:0.8，并在Fabric显式include；包说明参考 https://central.sonatype.com/artifact/io.github.jaredmdobson/concentus/1.0.1 与官方源码 https://github.com/lostromb/concentus 。实际包的命名空间已用下载JAR的javap核对为io.github.jaredmdobson.concentus，未复制参考后端源码。
+
+新增audioDecode通过真实模型资源逐项解码：40个YSM（含5加密）的94音频，VORBIS=90/OPUS=4，合计输出206444682 PCM字节，仅在内存处理。合成单/双声道Opus经实际编码器/Ogg writer生成3包，独立期望preSkip120/endTrim80后2680 mono帧=5360字节；坏头/截断和PCM预算16字节拒绝通过。前台audioDecode/Fabric build通过33秒、退出码0，日志build/reports/ysm/m5-audio-decode-gate.log。此处94项是PCM解码证明，未声明94项全部实际可听播放。
+
+YsmAudioResources在assemble内读取sound_entries并持有每runtime独立SoundBuffer，保留已有owner权限；Molang声音、动画/控制器声音事件及既有Lua sounds API通过同一模型资源解析。isPresent/getCustomSounds/__index接通模型声音，模型资源不写入Avatar.customSounds，不与普通Figura自定义音频混管。总PCM沿用既有资源预算，失败诊断按encryptedSource隐藏路径；关闭先停止本模型创建的声音，再经SoundEngineExecutor排队discardAlBuffer。普通Figura旧clearSounds的releaseAlBuffer所有权语义另列后续核查，本阶段未修改普通Figura清理行为。分类音量刷新保留YSM已配置音量，不经Lua的上限1重设。
+
+soundNative新增链路使用MemoryResourceSource→YsmModelData→toRuntimeTag→真实decoder→SoundBuffer→正式Molang/SoundAPI→实际LuaSound.play→CPU记录ChannelHandle；验证两个模型同名声音持有不同buffer、播放拿到所属buffer、关闭只停止/释放所属模型。模型声音用弱集合跟踪Lua对象，关闭令保留Lua对象停止、失效且清除其PCM buffer引用，防止模型卸载后重播或保留解码内存；普通Lua声音仍走原构造路径。Native记录器不执行OpenAL consumer，声音设备和真实声音线程行为属于SKIPPED/MANUAL_BY_USER，未以CPU记录器宣称真实听感PASS。
+
+发现并以失败测试证明一个直接影响M5声音消费的边界：startBaseAnimations在装配期尚无currentEntity时标记0秒声音已分派，首个真实实体帧永久漏声。失败日志build/reports/ysm/m5-zero-time-audio-failure.log。最小修正仅让当前PlayingAnimation暂存尚无主体的初始sound事件，在首个实体可用的既有dispatchEvents中执行并清空；不改变其他initial timeline/function事件的顺序，不引入另一套动画推进。新增正式生产时间轴断言0秒音效首实体帧一次、次帧不重发。soundNative/controllerSound/playerTimeline/functionStage/eventWindow/controllerPhase与Fabric build通过36秒；补PCM引用失效断言后soundNative/controllerSound/playerTimeline/Fabric build通过47秒、退出码0，日志build/reports/ysm/m5-audio-runtime-gate.log。此前52秒gate还包含原Figura/YSM45项加载及payload隐私回归，均通过。
+
+本轮编辑脚本曾因定位注解字符串不匹配提前停止，造成新增duck方法而夹具实现未更新的编译失败；依build.log修正定位后完整补齐实现，再运行上述gate，未将失败算成功。当前M5仍实施中：语言实际消费、材质/normal/specular、完整properties表与使用、action/control/保存恢复和附件/挂点原验收仍待完成；模型音频坏输入/加密失败诊断的独立资源容器负例可随本阶段最终gate核查。尚未执行M5提交推送，不启动M6，不关闭计算机。
+
+M5 多语言共用边界（2026-10-15，用户补充授权）：Figura 与 YSM 可共用多语言等通用能力。本次将 UTF-8 JSON 字典、Minecraft 当前语言选择、语言规范化/回退、模型隔离和清理放入通用 AvatarTranslations，不依赖 YSM 类型；YSM 仅负责从统一资源源或瞬时 language_entries 提供字节。AvatarControlDefinition 的动态标题/说明/选项显示接口及 Action 动态标题接口为通用接口，普通 Figura 与 YSM 可复用；显式 Lua setTitle/setDescription 仍覆盖动态文本。未新增未经约定的 Figura 模型文件格式、Lua 多语言 API 或全局共享字典，不将此授权作为扩张后续阶段的依据。
+
+按参考 ModelMetadataPresenter/ModelSettingsScreen/CustomRouletteEditorScreen 核对语言键与回退：选中语言整本缺失才回退 en_us；选中语言存在但该键缺失保留模型原文。metadata.name/tips/authors.<i>.name、extra_animation/classify 动作标题、extra_animation_buttons 页面名、config_forms 数字索引标题/说明/labels 数字索引接通已有卡片/信息栏/控件/轮盘消费。翻译不改原始 metadata、控件 options/default/value、Molang binding 或 optionCommands；下拉项显示译文但选择/下划线比较使用原始值，两个选项同译文时仍可区分。
+
+新增 languageSmoke 使用原版 LanguageManager 配合 CPU 客户端身份验证实时切换、zh-CN 规范化、整本与缺键回退、空串/数值/布尔值、坏 JSON 隔离、重载/关闭、两模型同键隔离；普通 Figura 通用控件和 Action 的动态文本、显式 setter/toggle title 兼容，以及正式 YSM schema→动作/页面/表单→翻译链均通过。逐个读取40个YSM（含5加密）的55本语言文件、2160个 primitive key，资源字节与瞬时NBT两条装配路径所得译文精确一致。语言测试/Fabric build 前台通过47秒、退出码0，日志 build/reports/ysm/m5-language-gate.log；首轮失败是 CPU fixture 未分配纹理却调用完整 runtime.close，已仅修正夹具清理其自有字典，生产卸载路径未绕过。该测试不证明真实窗口中文渲染，GUI 项继续 SKIPPED/MANUAL_BY_USER。M5仍在实施，尚未提交推送，不进入M6。
+
+多语言补充验证：正式 LocalAvatarFetcher.AvatarPath 对一个含语言资源的明文模型及一个加密模型，连续切换 zh_cn/en_us/fr_fr 后，名称与说明逐次等于所属模型字典/原文预期，无需重新读取模型；共享接口测试同时验证普通 Figura 选项值/轮盘 toggle title 与显式 Lua 标题覆盖兼容。languageSmoke/localCorpus/Fabric build 前台通过57秒、退出码0（17 actionable tasks，10 executed），日志 build/reports/ysm/m5-language-corpus-gate.log。加载仍为Figura5/明文YSM35/加密YSM5，两个Figura既有arrow纹理缺失诊断保留，不记完整材质通过。此后仅整理新增Java函数式接口import位置，并进行已有diff及新增文件空白检查；未修改行为，不因此重复扩充测试。本阶段剩余材质/properties/action-control验收仍按原计划推进，M5尚未DONE或提交推送。
+
+M5 表单实际执行与持久化（2026-10-15）：按参考 core/gui/molang/MolangOption 与 ModelSettingsScreen 核对，checkbox/range 的 value 是读表达式/写目标，radio 的 value 是读表达式、labels 的值是完整写命令，两者不能混用。已有 AvatarControlRuntime 把选项命令按分号/等号拆分，正式失败用例证明 loop 命令无法完整执行，日志 build/reports/ysm/m5-control-expression-failure.log。现复用正式 parser/evaluator.evalAll，一次运行完整 AST，保留条件、相等比较、嵌套 loop、return 和 fn 调用的语义及既有总执行预算；交互写命令在临时 client-effects scope 内执行，离开后恢复，读表达式不额外开放效果。错误仅输出通用 debug 消息，避免加密模型表达式或解析错误文本泄漏。
+
+表单现在独立标识实时 binding 与持久化：首次无缓存且无显式 default 时读取模型初始表达式，不因读取单选项而执行其写命令；显式 default 优先，范围仍按原 schema 规范夹取；已保存值恢复后回放对应完整写命令。之后打开控件仍读取模型最新变量，持久化只保存用户更改，未把脚本每帧状态当配置。Reset All 包含可恢复的实时表单，单项 Reset 保留 schema 原始 default。YSM checkbox 按参考数值>0判断，普通 Figura 原有数值非零判断保留。新增 runtime.restoreControls 在 Avatar 发布 ysmRuntime 后调用，避免缓存命令中的 fn/ysm 绑定因 owner 尚未挂载而失效；不是提前发布半装配运行时。Avatar.load/clean 清除旧控件定义、模型保存作用域和旧 Lua 控件回调，保证同一 Avatar 重载也不继承前一个模型的控件。
+
+缓存仍使用既有 avatar_controls.nbt，但 YSM 键为玩家+模型身份，普通 Figura 继续玩家键。YSM 控件ID可能含读表达式，故落盘为 control:SHA256；单选项保存数字索引而非模型原始标签，恢复时通过内存定义查回命令。没有保存控件命令、语言词典或解密资源。既有公开 AvatarControlValueStore.apply(Avatar,control) 保持 void 签名，新内部 applySavedValue 仅给初始化路径返回是否命中缓存，不破坏旧调用约定。
+
+新增 ysmControlRuntimeSmokeTest 通过真实 schema→控制器→正式 Molang→实际压缩NBT磁盘写读，验证 checkbox/radio/range/slider、隐式与显式默认值、实时表达式（含布尔radio读值）、完整命令/模型函数、早返回、预算截断后恢复、client-effect scope恢复、单项及全部重置、同玩家双模型同ID隔离、清空内存缓存后实际磁盘恢复、模型卸载后恢复普通 Figura 作用域及旧 Figura 保存格式。直接读取实际 NBT 检查 YSM 控件摘要和数值选项，未用内存 Map 代替磁盘证据。测试初轮另外暴露夹具将既有 enum 字符串值误当数字、将未定义变量误当0及复用前例普通 Figura 缓存的假设，均修正夹具并重跑；未把这些失败算 PASS，未因此改变既有 enum 存储类型。
+
+自动 gate：controlRuntime/phase41/language/Fabric build 通过1分3秒，日志 build/reports/ysm/m5-control-runtime-gate.log；补实际缓存内容检查后 controlRuntime/functionContract/phase41/Fabric build 通过46秒，日志 m5-control-private-cache-gate.log。补模型卸载作用域后 controlRuntime/localCorpus/functionContract/Fabric build 通过1分3秒，退出码0（18 actionable tasks，11 executed），日志 m5-control-corpus-gate.log；加载仍 Figura5/明文YSM35/加密YSM5，两个原Figura的arrow素材缺失诊断保留。保持既有apply签名并限制YSM checkbox规则后，最终 controlRuntime/Fabric build 通过32秒、退出码0（16 actionable tasks，9 executed），日志 build/reports/ysm/m5-control-final-gate.log。代码已审阅并按修改范围整理，git diff --check 与新增测试空白检查通过；真实GUI交互仍 SKIPPED/MANUAL_BY_USER，不以 CPU夹具宣称 UI 通过。
+
+M5 下一项已定位但尚未实施/验收：YsmActionRuntime 支持 hold 模式循环，却缺输入松开的生命周期接线；现有 bindAction/bindWheelPageSlot 只有 press 回调。还需核对 toggle/cooldown、全局 action_speed 实际消费及轮盘布局磁盘恢复，完成材质/normal-specular、properties完整输入→存储→使用表、AVIF相关GUI资源与附件/挂点验收。装配期初始事件是否依赖 owner 挂载的其他情况列入后续本计划整体验收核查，本轮仅修复本阶段控件恢复时机。上述未完成项没有删除或降级为已支持；M5尚未DONE/commit/push，不进入M6，不改refs/omnm-cloud，不关闭计算机。
+
+M5 动作输入与轮盘恢复（2026-10-15）：为现有 hold 模式接通松开，不新增另一套轮盘。YsmActionRuntime.Press 按输入来源记录弱引用、实际 PlayingAnimation 与 playbackGeneration，重复按下不重启/不重复消耗冷却；松开只停止它启动的那代播放。Player 仅增加每次 playInSlot 的代数标识，不改变时间轴/事件推进；同一动画对象被重播时，旧输入也不能停止新播放。鼠标主键松开、轮盘关闭、KeyMapping.releaseAll/焦点释放均走既有输入接点；绑定动作/轮盘格子的 release 回调及解绑清理使用同一拥有者。格子在按下后被换成别的动作，松开不重新解析新格子。四个现有绑定方法在创建时固定所属 runtime，旧模型绑定不能启动新模型的同名动作。模型关闭停止并关闭动作服务，保留的输入请求不能重新播放。
+
+修正两个已暴露的消费问题：原 trigger 在冷却检查前没有允许 toggle 关闭，现允许关停、仍禁止冷却内重新开启；action_speed 原被每个动作缺省 speed=1 永久盖过，现为动作自身速度×用户速度倍率，非有限/非正值退回稳定倍率1。hold/toggle/用户明确开启 action_loop 的循环语义与 press 缺省单次保留。Action 的旧双参 execute 与子类虚调用保留，新输入入口只临时携带输入拥有者；OpenPageAction/BackAction 仍执行原逻辑，未为测试改生产 UI 结构或图标加载路径。
+
+新增 actionRuntimeSmoke 通过正式 schema→实际动作/PlayingAnimation、现有 Lua API 创建的 press/release 回调、Action 执行路径与 ActionWheel.setEnabled(false)，验证 hold重复/松开/冷却、切换/关停、3倍速度、异常速度、旧对象/同对象重播的代数隔离、两模型同ID隔离、解绑、格子重排和旧模型回调拒绝。真实 ysm_action_wheel.nbt 写盘后清空 LAYOUTS/PAGES/loaded 再读取，检查页面/格子及双模型隔离，并通过 installDefaultActionWheel 实际消费恢复位置，验证开页和返回虚调用。未以直接改 playing.time 冒充实际推进，也没有调用真实鼠标/键盘或渲染窗口。
+
+夹具失败如实保留于本轮构建历史：首轮在设置临时目录前读取 FiguraMod，导致平台配置目录空值；调整测试初始化顺序。之后轮盘安装因 CPU 世界缺失，再定位到 Minecraft26 的物品 holder 尚未绑定 components；测试补原版 typed ClientLevel 的 registry/features 与四个图标物品的最小 components，仅满足 CPU 命令/图标对象构造，不修改 LuaUtils/ItemStackAPI 或生产 UI 规避失败，不代表图标显示验收。动作的模式/回调断言此前已通过，失败集中在轮盘夹具。补齐后 actionRuntime/functionContract/playerTimeline/Fabric build 前台通过52秒、退出码0（18 actionable tasks，11 executed），日志 build/reports/ysm/m5-action-runtime-gate.log。新增代码已作可读性审查，git diff --check 及新增测试空白检查通过；真实输入、焦点/GUI和可听效果继续 SKIPPED/MANUAL_BY_USER。
+
+M5仍未完成：#表单引用动作在实际轮盘走 controls_page 开页，但现有 Lua trigger/快捷键路径仍需核对其路由归属；材质/normal-specular/纹理选择、properties完整消费表、预览及AVIF相关GUI资源、附件/locator/手持物验收也待完成。不得把上述动作子项通过视作整个M5 DONE；尚未提交推送，不进入M6～M8，不修改参考后端，不关闭计算机。
+
+M5 表单引用路由补齐（2026-10-15）：YsmActionsAPI 的现有 trigger、triggerWheelPageSlot、动作/格子快捷键及 toggle 快捷键共用 triggerAction；以#开头的 animation 作为 controls_page 引用，复用 AvatarControlsScreen.open，不交给动画播放器创建伪动画。仅本地 host 模型可请求打开控件，缺客户端/空页返回false，普通动画仍走原动作服务。ActionRuntimeSmoke 通过真实 schema 注册引用，验证非host拒绝、目标style页、Lua直接/格子与两种按压快捷键路由、不产生#style动画槽。ScreenClient只记录既有Screen对象及页面参数，不初始化/渲染窗口，不冒充GUI通过。actionRuntime/controlRuntime/Fabric build前台通过41秒、退出码0（17 actionable tasks，10 executed），日志 build/reports/ysm/m5-form-routing-gate.log。原#表单路由待核项已由此关闭，界面人工项继续跳过。
+
+M5 normal/specular输入与API接线（2026-10-15）：参考 YSMFolderDeserializer/ClientModelBundleAssembler 明确普通对象纹理的uv/normal/specular以及binary子通道type1=normal/type2=specular；未知type仍保留编码、PNG及material描述，不冒称已支持其渲染语义。YsmTextureOption保留三参构造兼容并增加配对路径，资源索引包含主/normal/specular；runtime texture_entries 每个主选项附各自path和原字节。binary映射保留id/name/uv/两通道到内存manifest，避免重读变成无关的数字文件名；这是配对输入链的修复，不生成明文工程或导出文件。
+
+YsmMaterialTexture承载主贴图与其专属通道；普通renderer仍使用同一主贴图路径，未启用shader不额外上传未使用的PBR通道。runtime初始选择与setTexture按同一选项/路径别名取整组通道，切换创建新组并关闭旧组，关闭清理通道数据与已创建贴图。检查本项目已配置的Iris1.10.8+26.1-fabric实际JAR，确认 PBRTextureLoaderRegistry.register(Class,loader) 与 acceptNormalTexture/acceptSpecularTexture 当前签名；IrisCompat仅为YsmMaterialTexture注册加载器，不改普通FiguraTexture的装载和渲染行为。Iris PBRTextureManager.clear/closeHolder 的实际字节码会关闭其接收的通道，故通道按需创建并标记released，下次PBR加载重建，避免shader重载复用已关闭对象；未新增通用渲染框架或额外shader实现。
+
+新增 ysmMaterialInputSmokeTest 的独立JSON与binary fixture验证主皮肤和通道数量、可选normal缺失诊断/基础材质保留、type1/type2独立预期像素、未知type9保留、manifest材质身份/链接重读、runtime字节无损及无通道皮肤不继承前项。首轮真实失败暴露binary内存manifest遗漏displayName，已补name并保留失败日志 build/reports/ysm/m5-material-identity-failure.log，未放宽断言。遍历实际40个YSM（含5加密），62套主体材质、normal2/specular6全部按选项核对字节及配对；加密portable NBT不含texture_entries/normal_data/specular_data。materialInput/binaryResources/dataBoundary/Fabric build前台通过23秒、退出码0（18 actionable tasks，12 executed），日志 build/reports/ysm/m5-material-input-gate.log。
+
+补Iris通道重载生命周期接线后，materialInput/localCorpus/actionRuntime/Fabric build前台通过42秒、退出码0（18 actionable tasks，10 executed），日志 build/reports/ysm/m5-material-corpus-gate.log；原Figura5/明文YSM35/加密YSM5加载回归保持，两个Figura既有arrow素材缺失诊断未隐藏。git diff --check与新增材质类/输入测试空白检查通过。当前证明的是输入/映射/装配、路由及编译/API签名，尚未用此声称原生贴图对象切换/释放、真实GPU上传或shader外观通过；前者仍需本阶段适当生命周期验证，真实窗口/shader人工项SKIPPED/MANUAL_BY_USER。
+
+后续仍属M5：完成材质原生对象生命周期与选择恢复证据，再补properties完整输入→存储→使用表及使用、all_cutout/层顺序、预览动画/旋转/光照、AVIF与相关GUI资源、主体/手臂/附件/locator/手持物验收。已核对RawProperties包含width_scale/height_scale/default_texture/preview_animation/free（RawProperties.isFree）/render_layers_first/all_cutout/disable_preview_rotation/gui_no_lighting/merge_multiline_expr/gui_foreground/gui_background/background_images及extra-animation三类；不可仅保留JSON便标PASS。动态投射物/载具及其材质生命周期仍按M6处理，不提前实现。M5尚未DONE/提交推送，不修改refs/omnm-cloud，不关闭计算机。
+
+M5 原生材质生命周期证据（2026-10-15）：新增 ysmMaterialNativeSmokeTest，使用正式 MemoryResourceSource→YsmModelData→toRuntimeTag→YsmModelRuntime.fromData/restoreControls，与实际 LWJGL NativeImage PNG解码。源关闭后独立检查主/normal/specular的1×1 ARGB像素；选择c后旧图isClosed且pointer=0，c持有自己的通道，路径别名选择plain后通道为空，缺失选择保留当前对象，另一个模型同名资源仍存活。模拟Iris释放单个通道后重新请求，检查生成新原生对象且像素不变；模型关闭释放所有已观察图像，重复关闭安全。材质访问/关闭用同步保护，released跨线程可见，防止延迟卸载时新建通道或清空字节与解码竞态。
+
+此夹具只指定RenderSystem的线程身份用于执行正式close保护，不创建GpuDevice、OpenGL上下文、framebuffer、窗口或截图。RecordingClient/TextureManager只承接既有清理排队与map移除接口，不改NativeImage分配/像素/close逻辑。后台线程关闭时原生图像仍待清理，排队回指定线程后全部关闭，关闭期间getter不能重建。未使用Qt offscreen，也未把线程身份当真实GUI渲染证据。nativeMaterial/Fabric build前台通过41秒、退出码0（16 actionable tasks，9 executed），日志 build/reports/ysm/m5-material-native-gate.log。
+
+材质选择恢复：调用既有YsmTextureSelectionStore实际写ysm_textures.nbt，清空内存SELECTIONS/loaded，再调用生产selectTexture选择路径所存皮肤，经正式装配重建原生材质；第一个模型恢复c并核对其normal/specular像素，第二个模型恢复plain且无通道。未复制选择算法或增加仅供测试的生产入口；反射调用现有私有loader helper。nativeMaterial/materialInput/Fabric build前台通过18秒、退出码0（17 actionable tasks，3 executed、其余up-to-date），日志 build/reports/ysm/m5-material-selection-restore-gate.log。原生对象、来源所有权及选择恢复子项由此补证，真实GPU/shader/GUI项继续按用户要求跳过。
+
+已新增 Plans/YSM-M5属性消费表.md 作为完整字段台账，覆盖参考properties与binary映射字段，明确实际消费者、已验收与尚未接入。核实all_cutout控制面剔除，不能误实现为丢弃半透明像素；merge_multiline_expr实际影响动画timeline与controller多行解析，仍须接通，不能按导出专属字段忽略。M5后续继续完成表中未完成项、AVIF/GUI资源及主体/手臂/附件/挂点验收，再运行阶段完整gate、提交与推送；当前不宣称M5完成，不进入M6，不关闭计算机。
+
+
+M5 多行表达式与 all_cutout 属性消费（2026-10-15）：`merge_multiline_expr` 从 ysm.json 经 loader/runtime tag 接入时间线与控制器 entry/exit 编译，扫描器按相同属性解析。默认 false 与已有 parse 重载保持逐条语义；true 按参考实现用换行合成完整文本后交给现有 Molang parser，不手工切语句。声音与粒子数组保持多条事件。新增 ysmMultilineExpressionSmokeTest，实际执行跨行 loop 块、entry/exit，验证 enabled/disabled 的 loader→tag→runtime 私有装配路径。首次夹具未注册 loop 内建导致断言失败，已改用正式 MolangBindings 并注册测试 mark；生产解析器未为夹具放宽。multiline/playerTimeline/controllerDiagnostic/Fabric build 通过21秒、退出码0，日志 build/reports/ysm/m5-multiline-runtime-gate.log；失败日志 m5-multiline-fixture-failure.log 留存。
+
+`all_cutout` 从属性进入 runtime flag，主体/手臂/附件共用的 renderType 在 true 时选择背面剔除。半透明材质保留原生 ENTITY_TRANSLUCENT_CULL pipeline 的 alpha blending，并沿用普通实体世界 outputTarget、lightmap、overlay、排序及轮廓设置；没有改用原版 item-target helper，也没有强制不透明。渲染类型缓存局限单个模型的当前纹理，换肤更新绑定，false 保留已有原生路径。nativeMaterial 测试检查 pipeline.isCull/hasBlending/outputTarget/sortOnUpload 与纹理切换缓存；输入透明性分支由夹具显式设置，不冒充 GPU 像素验证。首次换肤夹具忽略正式 setTexture 会重新计算透明性，断言失败；修正夹具在换肤后明确设置分支输入，未修改生产透明性判定。失败日志 m5-culling-fixture-failure.log。nativeMaterial/multiline/Fabric build 通过24秒、退出码0（17 tasks，10 executed），日志 build/reports/ysm/m5-culling-multiline-gate.log。随后仅整理新增代码换行与 import，需最终 gate 覆盖。
+
+属性消费表同步两项证据；预览动画/旋转/光照、层顺序、AVIF/GUI资源及剩余 M5 验收仍未完成。真实窗口与 shader 外观为 SKIPPED/MANUAL_BY_USER。M5 继续实施，尚未提交推送，不进入 M6；不关闭计算机。
+
+
+M5 层与预览旋转属性消费（2026-10-15）：新增 runtime `render_layers_first`，Mixin 调用 `YsmRenderer.renderWithAttachments`，按标志改变主体与模型附件调用顺序。nativeMaterial fixture 经正式源/模型装配验证属性保留；通过覆写两项绘制方法记录调用轨迹，true=attachments→body，false=body→attachments，组合返回值保留主体成功。该顺序测试不创建窗口，不证明 GPU 遮挡或原版独立 feature 阶段的顺序。原版手持物保持既有 ItemStackRenderState 预提交路径，避免普通/特殊手持物因错误延期而丢失；native layer 与模型的完整合成次序尚需 M5 核对，不把附件调用顺序扩大声称为全部层已通过。曾尝试按标志移动手持物收集条件，审阅时发现未形成完整 false 分支且 collector 的特殊物品阶段独立，已在最终回归前恢复原有无条件提交；未提交该中间状态。
+
+当前修订 nativeMaterial/multiline/localCorpus/deferredPose/baselineSmoke/Fabric build 通过33秒、退出码0（20 tasks，12 executed），日志 build/reports/ysm/m5-layer-corpus-gate.log。原 Figura5 编译、明文YSM35装配、加密YSM5装配/恢复保持，两个Figura既有arrow纹理缺失警告保留，不冒称素材齐全。
+
+`disable_preview_rotation` 从 loader/runtime tag 进入 runtime，由共用 EntityPreview 仅在对应 YSM 标志为 true 时固定构造时 pitch/yaw 并拒绝左键旋转，拖动期间切模型也停止旧旋转；其他模型沿用既有交互。属性保留有 CPU 断言与编译证据，真实 GUI 交互/字形显示按用户要求 SKIPPED/MANUAL_BY_USER，不使用 offscreen。nativeMaterial/multiline/严格scanner对M4冻结基线/Fabric build 通过34秒、退出码0（18 tasks，12 executed），日志 build/reports/ysm/m5-property-scan-gate.log，报告 m5-property-scan.txt；冻结基线未改动。
+
+AVIF 后续实现准备：参考后端 TextureDecoder 使用 ImageStream 的 AvifDecoder，参考依赖为浮动 -SNAPSHOT。已只读查询其上游 https://github.com/TartaricAlkaline/ImageStream ，当前 master SHA=b543665ea567479fba1570cb20258ba87d4c36c4，POM为Java17、仅JUnit测试依赖；尚未引入该依赖或复制第三方代码，仍需核实可重现产物及授权。该调查不是 AVIF 解码完成证据。
+
+本轮属性与渲染接点仍属于 M5；预览动画/光照/AVIF与GUI资源、完整层合成及剩余挂点验收继续实施。M5未DONE，不提交未完成阶段，不开始M6，不关闭计算机。
+
+
+M5 AVIF 依赖调查续记（尚未改依赖/实现）：当前仓库 LICENSE.md 为 PolyForm Noncommercial，ImageStream 上游及 fork 的 GitHub license 返回空、固定SHA树未发现LICENSE/COPYING/NOTICE。未因参考后端使用而直接复制或打包。备选上游只读核实：NightMonkeys（https://github.com/gotson/NightMonkeys ）依赖外部libheif/native path，不是直接随jar可用；Tim0x0/avif-imageio 为 GPL-3.0，未引入；ustc-zzzz/avif-imageio-native-reader（https://github.com/ustc-zzzz/avif-imageio-native-reader ）为 LGPL-3.0、固定SHA=6af2f277a8749a742f6b408458df63df1c66fcc4，jdk模块把现成Windows amd64/arm64、Linux amd64、macOS amd64/arm64 native与LICENSE/libavif/dav1d声明装入jar，Java17；其完整SHA坐标JitPack POM只读请求返回404。后续可核实短SHA发布坐标或其他可重现发布产物，未把404当作实现无法完成，也未新增浮动SNAPSHOT依赖/系统库安装要求。未把AVIF列为人工跳过，仍是M5待实现项。此调查未修改refs/omnm-cloud，亦未在仓库复制第三方源或库。
+
+
+M5 AVIF 与 GUI 资源消费（2026-10-16）：上一目标轮已完成 all_cutout/多行解析及部分层/旋转属性，本轮继续推进 M5，未开始 M6。只读确认 Git 工作区仍在原目录；系统环境消息中的“Not a git repo, skipping”不作为仓库失效证据，git rev-parse/status 有效。
+
+AVIF 产物已落地：ustc-zzzz/avif-imageio-native-reader 固定提交 6af2f277a8749a742f6b408458df63df1c66fcc4 有已发布 alias master-6af2f277a8-1（该名称指向固定构建，不使用浮动 master-SNAPSHOT）。首次Gradle解析失败证实其POM错误标master-SNAPSHOT，日志 build/reports/ysm/m5-avif-dependency-metadata-failure.log；root Gradle 仅对此单一模块使用 exclusive artifact-only repository，其他依赖元数据策略保留。common implementation / Fabric include 使用同一坐标。
+
+新增第一方 com.github.ustc_zzzz.imageio.avif.FiguraAvifDecoder 包内适配固定JNI接口。上游 ImageReader 在 getWidth 时已解码，且仅注册GC cleaner，不能直接用于当前的预解码尺寸预算与确定性释放要求；本适配不注册Cleaner，直接 Native.create（avifDecoderParse）→预算/声明尺寸→Native.next→ARGB，finally 清理Java临时像素及ICC/EXIF/XMP数组并 Native.destroy。源码未复制上游实现，jar内容未修改。YsmTextureDecoder通过AVIF magic路由该适配，沿用受限PNG输出/匿名错误诊断。独立16×16红绿蓝/四级alpha测试向量494字节，验证通道顺序、alpha与取消；另遍历40个YSM实际27张AVIF/536960像素，重复解码PNG一致、声明尺寸不符/截断拒绝、来源字节不变。首轮AVIF/native支持及Fabric build通过30秒，日志 m5-avif-native-gate.log。
+
+GUI资源：loader 从 properties 解析 gui_foreground/gui_background 的名称或路径，ysm_background_images 名称表与去重字节进入仅运行时 gui_image_names/gui_entries；加密portable whitelist未扩大。新增 YsmGuiResources 加载时受限解码、按需创建已有 FiguraTexture，名称与路径共用同一模型图像，close/reload 释放已创建原生图像并清除拥有字节。坏的可选图像计数而不让整个模型失败，不输出解密名称或codec详情。解码前复制NBT数组，临时清理不擦除调用方runtime tag。共用 EntityPreview 在实体前画背景，实体后nextStratum画前景，沿用现有scissor/上传/texture类型，无额外预览界面。
+
+原生材料夹具增加GUI单像素精确ARGB/alpha、名称/路径去重、同名跨模型隔离、原NBT字节不变、旧图重载释放、坏图降级及关闭后不能复活；图像原生对象路径通过，未创建GPU/window。nativeMaterial/AVIF/localCorpus/Fabric build通过51秒，日志 m5-gui-native-corpus-gate.log。扩展AVIF测试使用toAvatarNbt核对私密边界时，因未设置figura.test.directory导致测试夹具ConfigManager失败，已补测试前临时目录及有界清理，生产代码未加环境替代路径；失败日志 m5-avif-config-fixture-failure.log。随后独立向量/40模型/17个实际GUI输入与portable边界/nativeMaterial/binaryResources/Fabric gate通过21秒，日志 m5-avif-gui-final-gate.log。
+
+预览光照属性：gui_no_lighting经tag进入runtime，仅FIGURA_GUI使用原版entity emissive shaders；YsmPreviewRenderTypes通过公开Snippet复用uniform/sampler/数值defines，保留选定材质的混合/排序/cull和普通深度写策略。直接检查原版entity.vsh/fsh发现EMISSIVE只取消lightmap且PER_FACE_LIGHTING优先于NO_CARDINAL_LIGHTING，因此移除PER_FACE_LIGHTING并加入NO_CARDINAL_LIGHTING后才计入关闭光照证据。没有复制shader文件或修改全局光照。GuiEntityRenderer在提交后恢复avatar.renderMode，故YsmRenderPose同时捕获unlit值；绘制主体/手臂/附件时使用该不可变值，延迟GUI与世界双向切换不能串管线。nativeMaterial/既有deferredPose/AVIF/原Figura5+明文YSM35+加密YSM5/Fabric build通过41秒（19 tasks，12 executed），日志 m5-preview-lighting-final-gate.log；之前pipeline/snapshot分项31/32秒日志亦保留。不把这些CPU/native对象与源码检查冒称GPU shader编译或真实窗口外观PASS，相关项SKIPPED/MANUAL_BY_USER。
+
+随包审计：正式 fabric/build/libs/figura-0.1.5+26.1.2-fabric-mc.jar 内有独立AVIF jar、第一方适配class；逐项比对原jar所有条目内容未改变，三个许可证声明及五种原生平台文件保留。jar SHA256=8182f5d9d8e052273e17a53981bc126430eaba2c82736e1d30e5c790d4054d41；仅Windows amd64实际执行，其余系统未测试。审计前台退出码0，日志 m5-avif-package-audit.log。上游来源 https://github.com/ustc-zzzz/avif-imageio-native-reader ，无需用户安装系统libheif或改java.library.path。
+
+属性消费表同步GUI/AVIF/光照证据。M5剩余：preview_animation、metadata衣柜图标的内存资源显示（binary mapper现有AVIF metadata pending警告暂未移除）、宽高/默认纹理字段级组合验收、free分类、完整native层顺序/挂点验收及阶段完整gate。真实人工项按用户要求注明跳过；不得将GUI资源子项视作整个M5完成。M5尚未DONE/提交推送，M6～M8未开始，不改refs/omnm-cloud，不关闭计算机。
+
+
+本轮最终检查：新增代码按现有缩进/import整理，git diff --check及新增Java/fixture说明的no-index空白检查通过。nativeMaterial/严格scanner对M4冻结基线/Fabric build再次前台通过30秒、退出码0（17 tasks，9 executed），日志 build/reports/ysm/m5-gui-lighting-scan-gate.log，报告 m5-gui-lighting-scan.txt；该次包含最后的imports/条件分支格式修改。M4冻结基线未改。
+
+下一步native层顺序的已查证接点：SubmitNodeStorageMixin.submitFiguraModel固定写order(0)的SubmitNodeCollection；FeatureRendererDispatcherMixin在每个collection的ItemFeatureRenderer.renderSolid调用前执行FiguraFeatureRenderer。原版SubmitNodeCollector继承OrderedSubmitNodeCollector，order(int)返回OrderedSubmitNodeCollector；SubmitNodeCollection仅实现OrderedSubmitNodeCollector，而ItemStackRenderState.submit接收SubmitNodeCollector。后续可据此核查有序bucket路由/最小适配，不能直接把ordered collection当作SubmitNodeCollector传给手持物，也不能把Java调用先后当作全native阶段绘制先后。当前仅研究这些M5接点，尚未改动native订单路由。
+
+
+M5 指定预览动画消费（2026-10-16）：`preview_animation` 已从 loader 进入运行时。模型仅在带该声明且进入 FIGURA_GUI 时建立独立 Avatar owner/context、函数与动画播放器；该 owner 不注册 AvatarManager。AST 对新的 v/c/t 存储编译；直接沿用世界 AST 即使换 evaluator，也会因 VariableStorage 的编译期绑定写回世界，故为本字段接入增加了受限模型值导入（struct/list、存储view循环/别名、roaming typed-zero保留），HashMapStruct只增加必要的只读遍历/语义查询，既有Struct.copy未改变。这是指定预览隔离所需接点，没有顺带重构全局变量系统。
+
+预览使用原 YsmAnimationPlayer 的完整 update/sample/函数与时间线，按声明名称/已有别名选择clip并保留其loop mode，不以idle替代。世界播放器/控制器保持，预览关闭原生移动/手持动作覆盖并按实际entity填充自己的查询状态。函数和零时刻事件属于独立存储；预览不播放场景声音、不向世界粒子消费端发请求。主体/手臂几何重解析到自己的对象，避免透明图更新修改世界Quad。初始借用主材质不拥有其释放权；预览自身setTexture得到的图像由预览关闭，世界换肤则刷新借用材质与预览alpha。控件变化重建预览并导入当前模型输入/控件值，未执行保存恢复/写盘回调。延迟绘制仍用提交快照，并同时检查预览退役标志；模型卸载清理私有输入并禁止重新建立预览。普通世界与无声明模型保留既有入口，M6子实体未扩展。
+
+原生材料夹具增加实际预览验收：世界先显式播放idle、时间0.25；GUI另启gui，fn返回当前v.pose=32，独立q.anim_time=0.5得到位置40。世界槽/时间/函数计数/零事件状态不变；嵌套struct、v.self循环存储view可写且不串世界，roaming缺键仍返回Float0。调用完整update入口从0.5推进到0.65，同帧重复绘制不再推进，世界时间仍0.25。预览改透明皮肤只隐藏自己的6个面；独立材质关闭不损世界，世界换肤刷新借用alpha但不重启预览；控件变化关闭旧实例，卸载后不复活。只使用实际CPU/native对象，没有MC/Qt窗口或offscreen证据。
+
+实施失败与纠正已保留：首轮私有factory lambda未处理geometry parser的checked IOException，改为lambda外解析（m5-preview-checked-exception-failure.log）；初始夹具未执行PermissionManager.init导致分类空，按实际启动初始化（m5-preview-evaluator-failure.log、m5-preview-permission-fixture-failure.log）；误以为idle会自动作为base启动，改为夹具显式play，未修改生产base判断（m5-preview-idle-fixture-failure.log）；完整update需要相机入口，CPU客户端提供明确null camera与Options，未引入生产图形替代路径（m5-preview-camera-fixture-failure.log）。解密来源的预览失败只输出匿名阶段，普通模型保留异常栈便于诊断。
+
+preview/nativeMaterial/playerTimeline/Fabric首次隔离gate通过19秒（m5-preview-isolation-gate.log）；完整update/controlRuntime回归通过18秒（m5-preview-update-gate.log）。加入模型值语义/生命周期后，nativeMaterial/deferredPose/functionContract/MolangBudget/localCorpus/Fabric通过39秒、退出码0（20 tasks，14 executed），日志 build/reports/ysm/m5-preview-core-corpus-gate.log；原Figura5、明文YSM35、加密YSM5装配/恢复保持，两个既有Figura arrow素材缺失警告保留。宽/高字段组合输入0.6/1.2经装配、控件恢复与提交矩阵得到0.5625/1.125/0.5625；生产selectTexture覆盖非首项默认c、缺失默认/空默认回退a，已有磁盘恢复继续证明缓存优先。nativeMaterial/soundNative/deferredPose/controlRuntime/严格scanner对M4冻结基线/Fabric通过30秒、退出码0（20 tasks，6 executed），日志 m5-preview-properties-scan-gate.log，报告 m5-preview-scan.txt，冻结基线未改。
+
+语料声明核对：AVIF资源gate遍历40个YSM的正式runtime tag，使用生产动画注册与私有别名解析核对全部33个非空preview_animation声明，都可定位clip；这只证明语料名称/输入消费，完整逐帧/函数行为证据来自上述原生夹具，不能扩大宣称逐一实测了33个GUI外观。该gate连同既有27张AVIF、17个GUI输入与Fabric build通过9秒、退出码0，日志 build/reports/ysm/m5-preview-declaration-corpus-gate.log。最后补退役回调保护后，nativeMaterial/deferredPose/Fabric通过17秒、退出码0（17 tasks，11 executed），日志 m5-preview-retirement-gate.log。
+
+free分类：参考生产ModelProperties仅保留private boolean free及isFree getter，整个参考Java客户端的isFree调用只见导入golden打印/断言；当前按信息元数据保留，不从字段名编造客户端限制或平台授权行为，表中标METADATA_ONLY_BY_REFERENCE。如后续发现必须新增后端语义，按用户要求记录SKIPPED/BACKEND_BY_USER。本轮未改参考或后端。
+
+属性表已同步preview_animation、width/height/default_texture证据及free分类。M5尚余metadata衣柜图标内存资源显示、完整native层顺序/主体附件locator手持物验收与阶段完整gate；真实窗口验收按用户要求注明跳过。尚未完成M5检查点，不提交未完成阶段，不进入M6，不关闭计算机。
+
+M5 界面范围修正（2026-10-16，用户明确要求）：Figura 与 YSM 共用现有控件、样式、信息栏和动作轮。撤回本轮新增作者头像以及预览前/背景装饰绘制，不增加 YSM 专属 GUI。保留模型预览动画/旋转/光照语义与通用翻译、现有控件的说明 tooltip。原计划的作者头像显示与前/背景 GUI 装饰显示由用户范围覆盖，记 SKIPPED/USER_UI_SCOPE；原生图片解码/资源所有权 gate 仅证明资源数据能力。此前 m5-author-images-gate/m5-native-layer-order-gate 的作者显示接线已撤回，不作为最终 UI 证据。
+
+M5 预览范围补充（2026-10-16，用户要求“预览也只用figura的”）：EntityPreview.java 已完整恢复阶段开始时版本，保留 Figura 原有窗口、布局、旋转/移动/缩放操作，不增加 YSM 预览器或额外交互。YSM 的指定预览动画及材质在既有模型渲染入口内消费；disable_preview_rotation 对 Figura 通用控件的限制不再应用，记 SKIPPED/USER_UI_SCOPE。模型内部字段保留，不能据此声称控件已限制旋转。作者头像/预览前背景的显示同为用户范围跳过，图像格式与资源边界自动验证保留。
+
+M5 层顺序与挂点收尾：Minecraft 26.1.2 FeatureRenderDispatcher 按原生 order 桶依次消费，普通 item 与特殊 model-part 分属不同 feature；YSM 主体现在按 render_layers_first 选择 -1/1 桶，原生手持物保留0桶，附件也按字段在主体前后绘制，不改变普通 Figura 提交路径。nativeMaterial 实际原生排序容器验证两种顺序。新增双手多级父旋转/平移、转换后的locator pivot、宽高缩放及原生item basis矩阵断言；隐藏父骨骼原来未拒绝手持物提交，已用失败 gate 证明并补齐提交前检查，失败时不修改调用方矩阵。夹具先有Double签名、pivot X翻转及单轴零缩放预期错误，按正式解析器坐标和既有三轴为零隐藏契约修正，不改变生产坐标或隐藏定义。失败日志与最终成功 gate 分开保留。
+
+M5 最终自动化验收（2026-10-16）：按 common/build.gradle 注册列表前台运行全部49个 ysm*SmokeTest 与 ysmBindingReferenceAudit（共50项），再运行冻结 M4 baseline 的 scanYsmModels 和 fabric:build，退出码0，BUILD SUCCESSFUL in 3m 3s，66 actionable tasks（59 executed、7 up-to-date）。逐项核对完整日志包含全部50个smoke/audit任务及Fabric build；日志 build/reports/ysm/m5-final-gate.log，UTF-8扫描报告 build/reports/ysm/m5-final-scan.txt。M2/M4冻结baseline均未修改。
+
+本次证据：原Figura编译5、明文YSM装配35、密文装配/重载5；扫描40/38/2保留已知缺transition/animation的两个负例；40模型94音频（Vorbis90/Opus4）解出206444682 PCM字节；55语言字典2160键；62材质含normal2/specular6保持配对；27 AVIF/536960像素、17 GUI资源及33个声明预览动画别名通过各自自动检查。nativeMaterial包括双手多级父矩阵与隐藏/三轴零缩放、原生排序桶、材质换肤和延迟关闭、原预览入口内独立采样/变量/几何/时钟/控件及卸载隔离。数量或别名解析不代替实际GUI外观、可听播放、所有真实模型动作的完整运行验收。
+
+M5 验收边界：真实窗口中文/左右手/背包/刀鞘/鞘翅/透明面、Iris shader外观与可听音频为 SKIPPED/MANUAL_BY_USER；后端需求为 SKIPPED/BACKEND_BY_USER。用户最终要求统一Figura风格、控件仅用既有定义、预览也只用Figura：EntityPreview.java与阶段开始版本源码无diff，不增加YSM GUI或专属控件；作者头像、预览前背景和额外旋转限制显示为 SKIPPED/USER_UI_SCOPE，覆盖此前显示接线记录。资源解码能力保留，不能将这些显示项报PASS。没有修改refs/omnm-cloud，没有开始M6～M8，没有关闭计算机。
+
+已检查生产/测试新增代码及差异的可读性；仓库未发现独立Java格式器配置，不整文件重排旧代码；git diff --check通过。M5按6.1执行独立commit、push及远端SHA核对，完成后才开始M6。

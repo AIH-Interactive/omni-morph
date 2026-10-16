@@ -21,6 +21,7 @@ import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.font.Emojis;
 import org.figuramc.figura.lua.api.action_wheel.Action;
 import org.figuramc.figura.lua.api.action_wheel.Page;
+import org.figuramc.figura.model.ysm.action.YsmActionRuntime;
 import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.math.vector.FiguraVec4;
 import org.figuramc.figura.utils.ColorUtils;
@@ -42,6 +43,8 @@ public class ActionWheel {
 
     private static boolean enabled = false;
     private static int selected = -1;
+    private static final YsmActionRuntime.Press YSM_PRESS =
+            new YsmActionRuntime.Press();
 
     // rendering data
     private static Minecraft minecraft;
@@ -364,7 +367,7 @@ public class ActionWheel {
         }
 
         Action action = currentPage.slots()[index];
-        if (action != null) action.execute(avatar, left);
+        if (action != null) action.execute(avatar, left, YSM_PRESS);
 
         selected = -1;
     }
@@ -400,7 +403,14 @@ public class ActionWheel {
     }
 
     public static void setEnabled(boolean enabled) {
+        if (!enabled) {
+            releaseYsmPress();
+        }
         ActionWheel.enabled = enabled;
+    }
+
+    public static void releaseYsmPress() {
+        YSM_PRESS.release();
     }
 
     public static boolean isEnabled() {

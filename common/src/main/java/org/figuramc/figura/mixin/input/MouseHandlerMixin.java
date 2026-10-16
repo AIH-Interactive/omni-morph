@@ -32,6 +32,10 @@ public class MouseHandlerMixin {
         if (window != this.minecraft.getWindow().handle())
             return;
 
+        if (mouseButtonInfo.button() == 0 && action == 0) {
+            ActionWheel.releaseYsmPress();
+        }
+
         YsmInputState.device().updateReadiness(this.minecraft);
         YsmInputState.device().mouseEvent(mouseButtonInfo.button(), action);
 

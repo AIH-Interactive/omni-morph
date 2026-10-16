@@ -1,5 +1,6 @@
 package org.figuramc.figura.avatar.control;
 
+import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.molang.MolangEngine;
 import org.figuramc.figura.molang.parser.ast.Expression;
@@ -8,12 +9,16 @@ import org.luaj.vm2.LuaFunction;
 import org.luaj.vm2.Varargs;
 
 import java.util.Collection;
-import java.util.List;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class AvatarControlRuntime {
     private final LinkedHashMap<String, AvatarControlDefinition> controls = new LinkedHashMap<>();
+    private final Set<String> initialBoundValues = new HashSet<>();
+    private String modelKey;
     private LuaFunction onChange;
 
     public AvatarControlDefinition register(AvatarControlDefinition control) {
@@ -31,11 +36,14 @@ public class AvatarControlRuntime {
     }
 
     public AvatarControlDefinition remove(String id) {
+        initialBoundValues.remove(id);
         return controls.remove(id);
     }
 
     public void clear() {
         controls.clear();
+        initialBoundValues.clear();
+        modelKey = null;
     }
 
     public Collection<AvatarControlDefinition> all() {
@@ -56,6 +64,9 @@ public class AvatarControlRuntime {
 
     public void syncAll(Avatar avatar) {
         for (AvatarControlDefinition control : controls.values()) {
+            if (initialBoundValues.remove(control.id())) {
+                continue;
+            }
             if (!control.persistent()) {
                 if (!hydrateMolangValue(avatar, control) && control.hasStoredValue())
                     syncMolangValue(avatar, control);
@@ -67,14 +78,30 @@ public class AvatarControlRuntime {
 
     public void hydrateLiveValues(Avatar avatar) {
         for (AvatarControlDefinition control : controls.values()) {
-            if (!control.persistent())
+            if (!control.persistent() || control.liveBinding())
                 hydrateMolangValue(avatar, control);
         }
     }
 
     public void loadSavedValues(Avatar avatar) {
-        for (AvatarControlDefinition control : controls.values())
-            AvatarControlValueStore.apply(avatar, control);
+        initialBoundValues.clear();
+        for (AvatarControlDefinition control : controls.values()) {
+            boolean restored = AvatarControlValueStore.applySavedValue(avatar, control);
+            if (!restored && control.initialValueFromBinding()) {
+                hydrateMolangValue(avatar, control);
+                // Reading an unsaved live form must not replay its option command during model load.
+                initialBoundValues.add(control.id());
+            }
+        }
+    }
+
+    public void loadSavedValues(Avatar avatar, String modelKey) {
+        this.modelKey = modelKey;
+        loadSavedValues(avatar);
+    }
+
+    String modelKey() {
+        return modelKey;
     }
 
     public Object getValue(String id) {
@@ -120,7 +147,8 @@ public class AvatarControlRuntime {
 
     public void resetAll(Avatar avatar) {
         for (AvatarControlDefinition control : controls.values()) {
-            if (control.persistent() && control.type() != AvatarControlType.LABEL && control.type() != AvatarControlType.SEPARATOR && control.type() != AvatarControlType.BUTTON)
+            if (control.hasStoredValue() && control.type() != AvatarControlType.LABEL
+                    && control.type() != AvatarControlType.SEPARATOR && control.type() != AvatarControlType.BUTTON)
                 setValue(avatar, control.id(), control.getDefault());
         }
     }
@@ -135,8 +163,11 @@ public class AvatarControlRuntime {
             case TOGGLE -> {
                 if (value instanceof Boolean bool)
                     control.setValue(bool);
-                else if (value instanceof Number number)
-                    control.setValue(number.floatValue() != 0f);
+                else if (value instanceof Number number) {
+                    boolean enabled = avatar.getYsmRuntime() == null
+                            ? number.floatValue() != 0f : number.floatValue() > 0f;
+                    control.setValue(enabled);
+                }
                 else
                     return false;
             }
@@ -149,6 +180,8 @@ public class AvatarControlRuntime {
             case ENUM -> {
                 if (value instanceof Number number)
                     control.setValue(Math.round(number.floatValue()));
+                else if (value instanceof Boolean bool)
+                    control.setValue(bool ? 1 : 0);
                 else
                     control.setValue(value.toString());
             }
@@ -165,7 +198,10 @@ public class AvatarControlRuntime {
         Object value = control.getValue();
         String command = commandForValue(control, value);
         if (command != null) {
-            applyMolangAssignments(avatar, command);
+            var runtime = avatar.getYsmRuntime();
+            try (var effects = runtime == null ? null : runtime.functions().beginClientEffects(null)) {
+                evalMolangValue(avatar, command);
+            }
             return;
         }
         setMolangVariable(avatar, control.binding(), value);
@@ -183,7 +219,7 @@ public class AvatarControlRuntime {
         return control.optionCommands().get(control.options().get(index));
     }
 
-    private static Integer optionIndex(Object value) {
+    static Integer optionIndex(Object value) {
         if (value instanceof Number number)
             return Math.round(number.floatValue());
         if (value instanceof String string) {
@@ -195,29 +231,6 @@ public class AvatarControlRuntime {
         return null;
     }
 
-    private static void applyMolangAssignments(Avatar avatar, String command) {
-        for (String statement : command.split(";")) {
-            int equals = statement.indexOf('=');
-            if (equals <= 0)
-                continue;
-            String name = statement.substring(0, equals).trim();
-            String rawValue = statement.substring(equals + 1).trim();
-            Object evaluated = evalMolangValue(avatar, rawValue);
-            if (evaluated != null) {
-                setMolangVariable(avatar, name, evaluated);
-                continue;
-            }
-            try {
-                setMolangVariable(avatar, name, Double.parseDouble(rawValue));
-            } catch (NumberFormatException ignored) {
-                if ("true".equalsIgnoreCase(rawValue))
-                    setMolangVariable(avatar, name, true);
-                else if ("false".equalsIgnoreCase(rawValue))
-                    setMolangVariable(avatar, name, false);
-            }
-        }
-    }
-
     private static Object evalMolangValue(Avatar avatar, String expression) {
         if (avatar == null || avatar.getMolangContext() == null || expression == null || expression.isBlank())
             return null;
@@ -225,8 +238,10 @@ public class AvatarControlRuntime {
             List<Expression> parsed = MolangEngine.fromCustomBinding(avatar.getAvatarBindings()).parse(expression);
             if (parsed.isEmpty())
                 return null;
-            return ExpressionEvaluator.evaluator(avatar.getMolangContext()).eval(parsed.get(0));
+            return ExpressionEvaluator.evaluator(avatar.getMolangContext()).evalAll(parsed, true);
         } catch (Exception ignored) {
+            // Expressions may originate in encrypted models; never log their source or parse error text.
+            FiguraMod.LOGGER.debug("Failed to evaluate avatar control expression");
             return null;
         }
     }

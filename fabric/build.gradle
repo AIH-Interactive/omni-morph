@@ -28,6 +28,9 @@ dependencies {
     include(implementation("com.github.FiguraMC.luaj:luaj-jse:$luaj-figura"))
     include(implementation("com.neovisionaries:nv-websocket-client:$nv_websocket"))
     include(implementation("io.airlift:aircompressor-v3:3.10"))
+    include(implementation("io.github.jaredmdobson:concentus:1.0.2"))
+    include(implementation("org.gagravarr:vorbis-java-core:0.8"))
+    include(implementation("com.github.ustc-zzzz:avif-imageio-native-reader:master-6af2f277a8-1@jar"))
     // Loom's include does not package transitive dependencies automatically.
     ["imageio-webp", "imageio-core", "imageio-metadata"].each { module ->
         include(implementation("com.twelvemonkeys.imageio:${module}:3.15.0"))

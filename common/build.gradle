@@ -20,6 +20,10 @@ dependencies {
     implementation("com.github.FiguraMC.luaj:luaj-jse:$luaj-figura")
     implementation("com.neovisionaries:nv-websocket-client:$nv_websocket")
     implementation("io.airlift:aircompressor-v3:3.10")
+    implementation("io.github.jaredmdobson:concentus:1.0.2")
+    implementation("org.gagravarr:vorbis-java-core:0.8")
+    // Fixed upstream commit 6af2f277a8749a742f6b408458df63df1c66fcc4, including its native libraries/licenses.
+    implementation("com.github.ustc-zzzz:avif-imageio-native-reader:master-6af2f277a8-1@jar")
     implementation("com.twelvemonkeys.imageio:imageio-webp:3.15.0")
 
     modCompileOnly ("com.geckolib:geckolib-fabric-$geckolib_version") {
@@ -444,4 +448,79 @@ tasks.register("ysmSoundNativeSmokeTest", JavaExec) {
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = "org.figuramc.figura.model.ysm.YsmSoundNativeSmokeTest"
+}
+
+tasks.register("ysmAudioDecodeSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Decodes all plain/encrypted corpus sounds to bounded PCM and checks Opus trimming."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmAudioDecodeSmokeTest"
+    args rootProject.file("refs/avatars").path
+}
+
+
+tasks.register("ysmLanguageSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks shared model dictionaries, native locale switching, schema labels and plain/encrypted corpus translations."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmLanguageSmokeTest"
+    args rootProject.file("refs/avatars").path
+}
+
+
+tasks.register("ysmControlRuntimeSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks live YSM forms, complete Molang commands, reset and model-scoped disk restore."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmControlRuntimeSmokeTest"
+}
+
+
+tasks.register("ysmActionRuntimeSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks native action modes, held input ownership, callbacks and disk-restored wheel layout without GUI rendering."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmActionRuntimeSmokeTest"
+}
+
+
+tasks.register("ysmMaterialInputSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks material-channel pairing through plain/binary mapping and all encrypted/plain runtime inputs."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.avatar.ysm.YsmMaterialInputSmokeTest"
+    args rootProject.file("refs/avatars").path
+}
+
+
+tasks.register("ysmMaterialNativeSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks real NativeImage material ownership, skin switching and deferred release without GPU rendering."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmMaterialNativeSmokeTest"
+}
+
+
+tasks.register("ysmMultilineExpressionSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks merged timeline and controller expression blocks and loader/runtime propagation."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmMultilineExpressionSmokeTest"
+}
+
+
+tasks.register("ysmAvifSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Decodes actual AVIF model resources with bounded, deterministic native ownership."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.avatar.ysm.YsmAvifSmokeTest"
+    args rootProject.file("refs/avatars").path
 }

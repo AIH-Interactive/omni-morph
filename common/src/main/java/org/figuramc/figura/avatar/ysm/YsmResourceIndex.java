@@ -91,7 +91,10 @@ public record YsmResourceIndex(
                 animationPaths,
                 List.of(),
                 List.of(),
-                textures == null ? List.of() : textures.stream().map(YsmTextureOption::path).toList(),
+                textures == null ? List.of() : textures.stream()
+                        .flatMap(texture -> java.util.stream.Stream.of(texture.path(), texture.normalPath(), texture.specularPath()))
+                        .filter(path -> path != null && !path.isBlank())
+                        .distinct().toList(),
                 List.of(),
                 "",
                 "",

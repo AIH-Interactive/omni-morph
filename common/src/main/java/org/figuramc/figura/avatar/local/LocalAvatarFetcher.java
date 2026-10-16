@@ -5,6 +5,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.util.Util;
 import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.avatar.AvatarTranslations;
 import org.figuramc.figura.avatar.ysm.YsmAvatarDetector;
 import org.figuramc.figura.avatar.ysm.YsmAvatarKind;
 import org.figuramc.figura.avatar.ysm.YsmManifest;
@@ -212,6 +213,7 @@ public class LocalAvatarFetcher {
         protected final Path iconPath;
         protected boolean iconLoaded;
         protected FileTexture iconTexture;
+        private final AvatarTranslations ysmTranslations = new AvatarTranslations();
 
         protected AvatarPath(Path path, Path folder, Path theActualPathForThis, String name) {
             this.path = path;
@@ -248,9 +250,16 @@ public class LocalAvatarFetcher {
                 // metadata
                 if (ysmKind != YsmAvatarKind.NONE) {
                     try {
-                        YsmManifest manifest = YsmManifestReader.read(path);
-                        name = manifest.name();
-                        description = manifest.description();
+                        try (var data = org.figuramc.figura.avatar.ysm.YsmModelData.read(path, () -> false)) {
+                            YsmManifest manifest = data.manifest();
+                            name = manifest.name();
+                            description = manifest.description();
+                            Map<String, byte[]> dictionaries = new LinkedHashMap<>();
+                            for (String language : manifest.resourceIndex().languagePaths()) {
+                                dictionaries.put(language, data.resources().readBytes(language));
+                            }
+                            ysmTranslations.load(dictionaries);
+                        }
                     } catch (Exception e) {
                         FiguraMod.LOGGER.error("Failed to load YSM metadata for \"" + path + "\"", e);
                     }
@@ -302,11 +311,11 @@ public class LocalAvatarFetcher {
         }
 
         public String getName() {
-            return name;
+            return ysmKind == YsmAvatarKind.NONE ? name : ysmTranslations.get("metadata.name", name);
         }
 
         public String getDescription() {
-            return description;
+            return ysmKind == YsmAvatarKind.NONE ? description : ysmTranslations.get("metadata.tips", description);
         }
 
         public CardBackground getBackground() {
