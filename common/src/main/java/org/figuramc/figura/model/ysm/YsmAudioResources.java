@@ -16,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 
 /** Owns decoded model sounds independently from ordinary Figura custom sounds. */
 public final class YsmAudioResources implements AutoCloseable {
@@ -89,6 +90,11 @@ public final class YsmAudioResources implements AutoCloseable {
     }
 
     public synchronized LuaSound createSound(String name) {
+        return createSound(name, () -> true);
+    }
+
+    /** Shared PCM may outlive an individual consumer; both lifetimes guard retained Lua sound objects. */
+    public synchronized LuaSound createSound(String name, BooleanSupplier consumerActive) {
         SoundBuffer buffer = get(name);
         if (buffer == null) {
             return null;
@@ -98,7 +104,7 @@ public final class YsmAudioResources implements AutoCloseable {
             owner.noPermissions.add(Permissions.CUSTOM_SOUNDS);
             return null;
         }
-        LuaSound sound = new LuaSound(buffer, name, owner, () -> !closed);
+        LuaSound sound = new LuaSound(buffer, name, owner, () -> !closed && consumerActive.getAsBoolean());
         sounds.add(sound);
         return sound;
     }

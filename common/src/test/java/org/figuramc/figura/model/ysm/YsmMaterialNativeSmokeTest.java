@@ -73,6 +73,7 @@ public final class YsmMaterialNativeSmokeTest {
             testGuiResources(unsafe, client);
             testLayerOrder(unsafe, client);
             testHandLocators(unsafe, client);
+            testSubEntityInstances(unsafe, client);
             testCullingProperty(unsafe, client);
             testModelSelection(unsafe, client);
             testSelectionRestore(unsafe, client, directory);
@@ -395,6 +396,16 @@ public final class YsmMaterialNativeSmokeTest {
                     "hiding the left locator preserves the independent right-hand item");
         } finally {
             runtime.close();
+            client.drain();
+        }
+    }
+
+    private static void testSubEntityInstances(Unsafe unsafe, RecordingClient client) throws Exception {
+        Fixture fixture = new Fixture(unsafe, 36);
+        try {
+            YsmSubEntitySmokeTest.run(unsafe, fixture.runtime, fixture.runtimeTag.getByteArray("texture").orElseThrow());
+        } finally {
+            fixture.runtime.close();
             client.drain();
         }
     }

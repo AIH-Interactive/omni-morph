@@ -80,7 +80,7 @@ public final class YsmSoundRuntime implements AutoCloseable {
             return null;
         }
         if (runtime.audio().get(name) != null) {
-            return runtime.audio().createSound(name);
+            return runtime.audio().createSound(name, () -> !closed && !runtime.isClosed());
         }
         SoundAPI api = new SoundAPI(runtime.owner());
         return api.isPresent(name) ? api.__index(name) : null;

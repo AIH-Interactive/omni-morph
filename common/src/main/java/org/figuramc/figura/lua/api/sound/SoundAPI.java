@@ -187,8 +187,9 @@ public class SoundAPI {
 
     @LuaWhitelist
     public LuaSound __index(String id) {
-        if (modelBuffer(id) != null) {
-            LuaSound modelSound = owner.getYsmRuntime().audio().createSound(id);
+        var model = owner.getYsmRuntime();
+        if (model != null && model.audio().get(id) != null) {
+            LuaSound modelSound = model.audio().createSound(id, () -> !model.isClosed());
             if (modelSound != null) {
                 return modelSound;
             }

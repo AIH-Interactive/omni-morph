@@ -376,6 +376,18 @@ public final class YsmAvatarLoader {
             entry.putString("texture_path", texture);
             entry.putByteArray("texture", ysmPackage.readBytes(texture));
         }
+        JsonElement configuredTexture = object.has("texture") ? object.get("texture") : object.get("textures");
+        JsonElement selectedTexture = firstTexture(configuredTexture);
+        if (selectedTexture != null && selectedTexture.isJsonObject()) {
+            JsonObject material = selectedTexture.getAsJsonObject();
+            for (String channel : List.of("normal", "specular")) {
+                String path = YsmPackage.normalize(YsmJson.string(material, channel, ""));
+                if (!path.isBlank() && ysmPackage.exists(path)) {
+                    entry.putString(channel + "_path", path);
+                    entry.putByteArray(channel + "_texture", ysmPackage.readBytes(path));
+                }
+            }
+        }
         if (!animation.isBlank() && ysmPackage.exists(animation)) {
             entry.putString("animation_path", animation);
             entry.putByteArray("animation", ysmPackage.readString(animation).getBytes(java.nio.charset.StandardCharsets.UTF_8));
@@ -431,19 +443,34 @@ public final class YsmAvatarLoader {
     private static String texturePath(JsonObject object) {
         if (object == null)
             return "";
-        JsonElement texture = object.get("texture");
-        if (texture == null)
-            texture = object.get("textures");
-        if (texture == null)
+        JsonElement configured = object.has("texture") ? object.get("texture") : object.get("textures");
+        JsonElement texture = firstTexture(configured);
+        if (texture == null) {
             return "";
-        if (texture.isJsonPrimitive())
-            return texture.getAsString();
-        if (texture.isJsonArray()) {
-            return stringValue(texture);
         }
-        if (texture.isJsonObject())
-            return firstString(texture.getAsJsonObject(), "", "uv", "path", "default", "normal");
+        if (texture.isJsonPrimitive()) {
+            return texture.getAsString();
+        }
+        if (texture.isJsonObject()) {
+            return firstString(texture.getAsJsonObject(), "", "uv", "path", "default");
+        }
         return "";
+    }
+
+    private static JsonElement firstTexture(JsonElement configured) {
+        if (configured == null || configured.isJsonNull()) {
+            return null;
+        }
+        if (configured.isJsonArray()) {
+            for (JsonElement candidate : configured.getAsJsonArray()) {
+                JsonElement texture = firstTexture(candidate);
+                if (texture != null) {
+                    return texture;
+                }
+            }
+            return null;
+        }
+        return configured;
     }
 
     private static String firstString(JsonObject object, String fallback, String... keys) {

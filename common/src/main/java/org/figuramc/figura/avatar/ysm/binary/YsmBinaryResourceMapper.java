@@ -65,21 +65,7 @@ public final class YsmBinaryResourceMapper {
         player.add("model", models);
         player.add("animation", strings(animations));
         player.add("animation_controllers", strings(controllers));
-        JsonArray textureDefinitions = new JsonArray();
-        for (YsmTextureOption texture : textures) {
-            JsonObject definition = new JsonObject();
-            definition.addProperty("id", texture.id());
-            definition.addProperty("name", texture.displayName());
-            definition.addProperty("uv", texture.path());
-            if (!texture.normalPath().isBlank()) {
-                definition.addProperty("normal", texture.normalPath());
-            }
-            if (!texture.specularPath().isBlank()) {
-                definition.addProperty("specular", texture.specularPath());
-            }
-            textureDefinitions.add(definition);
-        }
-        player.add("texture", textureDefinitions);
+        player.add("texture", textureDefinitions(textures));
         JsonObject definitions = new JsonObject();
         definitions.add("player", player);
         JsonArray projectiles = entities(raw.projectiles, "projectile");
@@ -266,6 +252,24 @@ public final class YsmBinaryResourceMapper {
         return paths;
     }
 
+    private static JsonArray textureDefinitions(List<YsmTextureOption> textures) {
+        JsonArray textureDefinitions = new JsonArray();
+        for (YsmTextureOption texture : textures) {
+            JsonObject definition = new JsonObject();
+            definition.addProperty("id", texture.id());
+            definition.addProperty("name", texture.displayName());
+            definition.addProperty("uv", texture.path());
+            if (!texture.normalPath().isBlank()) {
+                definition.addProperty("normal", texture.normalPath());
+            }
+            if (!texture.specularPath().isBlank()) {
+                definition.addProperty("specular", texture.specularPath());
+            }
+            textureDefinitions.add(definition);
+        }
+        return textureDefinitions;
+    }
+
     private JsonArray entities(Map<String, YsmBinaryModel.RawSubEntity> entities, String kind) throws IOException {
         JsonArray definitions = new JsonArray();
         int index = 0;
@@ -276,7 +280,7 @@ public final class YsmBinaryResourceMapper {
             definition.addProperty("model", geometry(entity.model, stem + "/model.geometry"));
             definition.add("match", strings(entity.matchIds == null ? List.of(entity.identifier) : Arrays.asList(entity.matchIds)));
             List<YsmTextureOption> textures = textures(entity.textures, "textures/" + stem);
-            definition.add("texture", strings(textures.stream().map(YsmTextureOption::path).toList()));
+            definition.add("texture", textureDefinitions(textures));
             definition.add("animation", strings(animations(entity.animationFiles, "animations/" + stem)));
             definition.add("animation_controllers", strings(controllers(entity.animationControllerFiles, "controllers/" + stem)));
             definitions.add(definition);
