@@ -67,12 +67,18 @@ public final class YsmMaterialNativeSmokeTest {
             RenderSystem.initRenderThread();
             instance.set(null, client);
             org.figuramc.figura.permissions.PermissionManager.init();
+            if (args.length == 2 && args[0].equals("--controlled-base-geometry")) {
+                client.sounds = YsmStabilitySmokeTest.soundManager(unsafe);
+                testControlledBaseGeometry(unsafe, client, Path.of(args[1]));
+                return;
+            }
             if (args.length > 0) {
                 require(args.length == 4 && args[0].equals("--stability"), "explicit stability mode arguments");
                 client.sounds = YsmStabilitySmokeTest.soundManager(unsafe);
                 YsmStabilitySmokeTest.run(unsafe, client::drain, Path.of(args[1]), Path.of(args[2]), Path.of(args[3]));
                 return;
             }
+            testControlledBasePlayback(unsafe, client);
             testTexturePublication(unsafe, client);
             testScaleAndDefaultTexture(unsafe, client);
             testPreviewDefaultPose(unsafe, client);
@@ -108,6 +114,138 @@ public final class YsmMaterialNativeSmokeTest {
                 }
             }
         }
+    }
+
+    private static void testControlledBasePlayback(Unsafe unsafe, RecordingClient client) throws Exception {
+        Fixture fixture = new Fixture(unsafe, 59);
+        try {
+            for (boolean controlled : new boolean[] {false, true}) {
+                var input = fixture.runtimeTag.copy();
+                var animations = new net.minecraft.nbt.ListTag();
+                var clip = new net.minecraft.nbt.CompoundTag();
+                clip.putByteArray("data", bytes("""
+                        {"animations":{"parallel_0":{"loop":true,"animation_length":1,
+                          "bones":{"root":{"rotation":[0,0,45]}}}}}
+                        """));
+                animations.add(clip);
+                input.put("animations", animations);
+                var controllers = new net.minecraft.nbt.ListTag();
+                if (controlled) {
+                    var controller = new net.minecraft.nbt.CompoundTag();
+                    controller.putByteArray("data", bytes("""
+                            {"animation_controllers":{"parallel0":{"states":{"default":{
+                              "animations":[{"parallel_0":"v.weight"}]}}}}}
+                            """));
+                    controllers.add(controller);
+                }
+                input.put("animation_controllers", controllers);
+                Avatar avatar = owner(unsafe, controlled ? 61 : 60);
+                try (var runtime = YsmModelRuntime.fromNbt(avatar, input)) {
+                    install(avatar, "ysmRuntime", runtime);
+                    var context = avatar.getMolangContext();
+                    context.variables.setPath("weight", 1f);
+                    var evaluator = org.figuramc.figura.molang.runtime.ExpressionEvaluator.evaluator(context);
+                    runtime.animations().controllerRuntime().update(evaluator, 0f, false);
+                    var sample = org.figuramc.figura.model.ysm.animation.YsmAnimationPlayer.class.getDeclaredMethod(
+                            "sampleAnimations", org.figuramc.figura.molang.runtime.ExpressionEvaluator.class, boolean.class);
+                    sample.setAccessible(true);
+                    sample.invoke(runtime.animations(), evaluator, false);
+                    require(Math.abs(runtime.getPart("root").animRotRaw().z - 45d) < 0.0001,
+                            "a 45 degree parallel clip must apply once, controlled=" + controlled
+                                    + " actual=" + runtime.getPart("root").animRotRaw().z);
+                    if (controlled) {
+                        context.variables.setPath("weight", 0f);
+                        runtime.animations().controllerRuntime().update(evaluator, 0f, false);
+                        sample.invoke(runtime.animations(), evaluator, false);
+                        require(runtime.getPart("root").animRotRaw().z == 0d,
+                                "a controller's zero weight cannot be bypassed by legacy base autoplay");
+                    }
+                }
+            }
+        } finally {
+            fixture.runtime.close();
+            client.drain();
+        }
+    }
+
+    private static void testControlledBaseGeometry(Unsafe unsafe, RecordingClient client, Path path) throws Exception {
+        Avatar avatar = owner(unsafe, 58);
+        try (var data = org.figuramc.figura.avatar.ysm.YsmModelData.read(path, () -> false)) {
+            var tag = YsmAvatarLoader.toRuntimeTag(data, data.manifest().textures().getFirst());
+            try (var runtime = YsmModelRuntime.fromData(avatar, data, tag)) {
+                install(avatar, "ysmRuntime", runtime);
+                System.out.println("Controlled base geometry: encrypted=" + data.encrypted() + " bones=" + runtime.geometry().bones.size()
+                        + " clips=" + runtime.animations().getClips().values().stream().distinct().count());
+                reportGeometryBounds(runtime, "bind");
+                for (float time : new float[] {0f, 1f, 20f, 60f, 200f}) {
+                    var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
+                    state.ageInTicks = time;
+                    org.figuramc.figura.model.ysm.animation.YsmRenderFrameClock.beginFrame();
+                    runtime.updateAnimations(state, null);
+                    reportGeometryBounds(runtime, "frame=" + time + " active=" + runtime.animations().getActiveAnimations().size());
+                }
+            }
+        } finally {
+            client.drain();
+        }
+    }
+
+    private static void reportGeometryBounds(YsmModelRuntime runtime, String phase) throws Exception {
+        var transform = YsmRenderer.class.getDeclaredMethod("applyBoneTransform",
+                YsmGeometry.Bone.class, YsmModelPart.class, com.mojang.blaze3d.vertex.PoseStack.class);
+        transform.setAccessible(true);
+        double[] bounds = {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY,
+                Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY};
+        for (var root : runtime.geometry().roots) {
+            collectGeometryBounds(runtime, root, new com.mojang.blaze3d.vertex.PoseStack(), transform, bounds);
+        }
+        for (int axis = 0; axis < 3; axis++) {
+            require(Double.isFinite(bounds[axis]) && Double.isFinite(bounds[axis + 3])
+                            && bounds[axis] <= bounds[axis + 3],
+                    "the reported model must have finite rendered vertex bounds at " + phase);
+        }
+        var active = runtime.animations().getActiveAnimations().values();
+        var counts = active.stream().collect(java.util.stream.Collectors.groupingBy(
+                animation -> animation.clip, java.util.stream.Collectors.counting()));
+        require(counts.values().stream().noneMatch(count -> count > 1),
+                "the reported model must not play its controller-owned parallel clips twice");
+        System.out.println("Geometry bounds " + phase + ": " + java.util.Arrays.toString(bounds)
+                + " distinctActiveClips=" + counts.size() + " duplicated="
+                + counts.values().stream().filter(count -> count > 1).count()
+                + " maxCopies=" + counts.values().stream().mapToLong(Long::longValue).max().orElse(0));
+    }
+
+    private static void collectGeometryBounds(YsmModelRuntime runtime, YsmGeometry.Bone bone,
+                                              com.mojang.blaze3d.vertex.PoseStack stack,
+                                              java.lang.reflect.Method transform, double[] bounds) throws Exception {
+        var part = runtime.getPart(bone.name);
+        if (part != null && (!part.visibleRaw() || part.hiddenScaleRaw())) {
+            return;
+        }
+        stack.pushPose();
+        transform.invoke(runtime.renderer(), bone, part, stack);
+        for (var cube : bone.cubes) {
+            for (var quad : cube.quads) {
+                if (!quad.visible()) {
+                    continue;
+                }
+                var points = quad.positions();
+                for (int index = 0; index < points.length; index += 3) {
+                    var point = new org.joml.Vector3f(points[index], points[index + 1], points[index + 2])
+                            .mulPosition(stack.last().pose());
+                    bounds[0] = Math.min(bounds[0], point.x);
+                    bounds[1] = Math.min(bounds[1], point.y);
+                    bounds[2] = Math.min(bounds[2], point.z);
+                    bounds[3] = Math.max(bounds[3], point.x);
+                    bounds[4] = Math.max(bounds[4], point.y);
+                    bounds[5] = Math.max(bounds[5], point.z);
+                }
+            }
+        }
+        for (var child : bone.children) {
+            collectGeometryBounds(runtime, child, stack, transform, bounds);
+        }
+        stack.popPose();
     }
 
     private static void testTexturePublication(Unsafe unsafe, RecordingClient client) throws Exception {

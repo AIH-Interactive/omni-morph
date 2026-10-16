@@ -544,3 +544,11 @@ tasks.register("ysmStabilitySmokeTest", JavaExec) {
             rootProject.file("build/reports/ysm/m8-stability.json").path,
             rootProject.file("common/src/test/resources/ysm/m0-limits.json").path
 }
+tasks.register("ysmControlledBaseGeometrySmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks controller-owned parallel playback and rendered vertex bounds on the reported model."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmMaterialNativeSmokeTest"
+    args "--controlled-base-geometry", rootProject.file("refs/avatars/末影龙娘.ysm").path
+}

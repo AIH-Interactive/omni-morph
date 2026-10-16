@@ -353,10 +353,22 @@ public class YsmAnimationPlayer {
     public void startBaseAnimations() {
         baseHiddenBones.clear();
         ExpressionEvaluator<?> evaluator = evaluatorForEvents();
+        Set<YsmAnimationClip> controlledClips = new HashSet<>();
+        for (YsmAnimationController controller : controllers.values()) {
+            for (YsmControllerState state : controller.states().values()) {
+                for (var reference : state.animations()) {
+                    YsmAnimationClip controlled = clips.get(resolveAnimationName(reference.animation()));
+                    if (controlled != null) {
+                        controlledClips.add(controlled);
+                    }
+                }
+            }
+        }
         for (Map.Entry<String, YsmAnimationClip> entry : clips.entrySet()) {
             String normalized = normalizeName(entry.getKey());
-            if (!isBaseAnimation(normalized, entry.getValue()))
+            if (!isBaseAnimation(normalized, entry.getValue()) || controlledClips.contains(entry.getValue()))
                 continue;
+            // Explicit controller references own playback and gating; legacy autoplay is only a fallback.
             String activeKey = baseSlotKey(normalized);
             collectBaseHiddenBones(entry.getValue(), null);
             if (activeAnimations.containsKey(activeKey))

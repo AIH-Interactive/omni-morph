@@ -1590,3 +1590,17 @@ AvatarList 增加现有 Figura Button 样式的循环筛选：全部/Figura/非�
 最终前台命令 :common:ysmMaterialNativeSmokeTest :common:ysmActionRuntimeSmokeTest :fabric:build --console=plain，通过 30 秒/退出 0，17 tasks（12 executed、5 up-to-date）；日志 build/reports/ysm/texture-view-tab-scroll-gate.log，包含既有 M6 子实例与 M7 CPU 同步子用例。检查新修改代码可读性、差异及 git diff --check，无整文件格式化。真实标签滚动/CJK/视觉及用户原崩溃场景按授权保留 SKIPPED/MANUAL_BY_USER；不使用 offscreen、不修改 refs/omnm-cloud、不关闭计算机。
 
 正式 JAR：fabric/build/libs/figura-0.1.5+26.1.2-fabric-mc.jar，SHA-256：47C5590C9965585D500606A9DC6EDFB5594B342FC106C464548723F3E94005B8。本次两项追加修改一起提交推送并核对远端 SHA；此前记录的产物哈希保留为历史证据。
+
+### 9.16 用户追加：末影龙娘及同类模型的并行动画重复叠加（2026-10-17）
+
+用户报告末影龙娘的翼、尾等部位变形。使用 refs/avatars/末影龙娘.ysm 原文件在内存中加载，得到 409 个骨骼、328 段不同动画；未改写模型或导出解密资源。实际运行时在控制器首次更新后有 25 个播放实例，但只有 18 段不同动画，其中 7 段各播放两份，0/1/20/60/200 tick 均存在重复。最小回归保留一个骨骼和一段 parallel_0：声明 Z 旋转 45°，无控制器时为 45°，加入引用它的控制器后错误变成 90°。修改前 :common:ysmMaterialNativeSmokeTest 断言失败，日志 build/reports/ysm/controlled-base-repro.log。
+
+根因是 YsmAnimationPlayer.startBaseAnimations 无条件启动旧式 parallel/pre_parallel 动画，与控制器显式引用的同一动画叠加。现在先解析所有控制器状态引用的动画对象，将这些动画的播放与权重交给控制器；没有控制器引用的旧模型仍保留自动播放。没有全局去重显式控制器的播放槽，也没有修改几何、模型原数据、UI 或后端。
+
+修复后最小回归验证 45° 只应用一次、控制器权重为 0 时恢复 0°、无控制器时仍自动播放。新增 :common:ysmControlledBaseGeometrySmokeTest 使用用户报告的加密模型，运行真实动画更新并递归调用生产骨骼变换计算顶点范围；五个采样时刻均为 18 段/18 个播放实例、重复数 0，且可见顶点范围有限。日志 build/reports/ysm/controlled-base-geometry-fixed.log 和 build/reports/ysm/controlled-base-final-gate.log。顶点范围是 CPU 数值证据，不等同于最终外观截图验收。
+
+真实游戏中与用户参考图的外观对照按授权保留 SKIPPED/MANUAL_BY_USER，不阻塞提交；没有使用 offscreen 或新增预览器，不修改 refs/omnm-cloud，不关闭计算机。
+
+自动验收：:common:ysmMaterialNativeSmokeTest 与真实模型回归先通过（1 分 8 秒/退出 0）；最终前台执行 :common:ysmControlledBaseGeometrySmokeTest :common:ysmAnimationWeightSmokeTest :common:ysmControllerIsolationSmokeTest :common:ysmControllerPhaseSmokeTest :common:ysmChildControllerSmokeTest :common:ysmBoneMatrixSmokeTest :common:ysmDeferredPoseSmokeTest :common:ysmControllerContextSmokeTest :common:ysmControllerSoundSmokeTest :fabric:build --console=plain，BUILD SUCCESSFUL 1 分 18 秒/退出 0，24 tasks（18 executed、6 up-to-date）。既有 JDK Unsafe/native-access、Gradle 弃用及 remap 警告仍在，不作为实机渲染通过证据。差异及 git diff --check 检查后独立提交推送，核对远端 SHA。
+
+正式 JAR：fabric/build/libs/figura-0.1.5+26.1.2-fabric-mc.jar，12,819,306 字节，SHA-256：6231A9233588787C2A22AAABDC0A35EA5678E89710954A023506C6810A7B01D3。此前哈希保留为历史证据。
