@@ -1,10 +1,13 @@
 package org.figuramc.figura.backend2.websocket;
 
+import com.neovisionaries.ws.client.WebSocket;
+
 import net.minecraft.network.chat.Component;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.backend2.NetworkStuff;
+import org.figuramc.figura.model.ysm.sync.YsmSyncPackets;
 import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.gui.FiguraToast;
 import org.figuramc.figura.utils.ColorUtils;
@@ -26,6 +29,10 @@ public class S2CMessageHandler {
         NOTICE = 5;
 
     public static void handle(ByteBuffer bytes) {
+        handle(bytes, null);
+    }
+
+    public static void handle(ByteBuffer bytes, WebSocket source) {
         if (!bytes.hasRemaining())
             return;
 
@@ -35,7 +42,7 @@ public class S2CMessageHandler {
 
         switch (b) {
             case AUTH -> auth();
-            case PING -> ping(bytes);
+            case PING -> ping(bytes, source);
             case EVENT -> event(bytes);
             case TOAST -> toast(bytes);
             case CHAT -> chat(bytes);
@@ -51,20 +58,27 @@ public class S2CMessageHandler {
             FiguraToast.sendToast(FiguraText.of("backend.connected"));
     }
 
-    private static void ping(ByteBuffer bytes) {
-        UUID uuid = new UUID(bytes.getLong(), bytes.getLong());
-
-        Avatar avatar = AvatarManager.getLoadedAvatar(uuid);
-        if (avatar == null)
+    private static void ping(ByteBuffer bytes, WebSocket source) {
+        if (bytes.remaining() < 21) {
             return;
+        }
+        UUID uuid = new UUID(bytes.getLong(), bytes.getLong());
 
         int id = bytes.getInt();
         bytes.get(); // sync value is ignored
 
+        boolean ysmPacket = YsmSyncPackets.recognizes(id, bytes);
+        Avatar avatar = ysmPacket ? null : AvatarManager.getLoadedAvatar(uuid);
+        if (ysmPacket ? bytes.remaining() > YsmSyncPackets.MAX_PACKET_BYTES : avatar == null) {
+            return;
+        }
+
         byte[] data = new byte[bytes.remaining()];
         bytes.get(data);
 
-        avatar.runPing(id, data);
+        if (!NetworkStuff.receiveYsmPing(source, uuid, id, data)) {
+            avatar.runPing(id, data);
+        }
         NetworkStuff.pingsReceived++;
         if (NetworkStuff.lastPing == 0) NetworkStuff.lastPing = FiguraMod.ticks;
     }

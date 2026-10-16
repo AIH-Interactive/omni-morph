@@ -63,6 +63,43 @@ public class YsmControllerRuntime {
         return currentStates.get(controller);
     }
 
+    public float stateTime(String controller) {
+        return stateTimes.getOrDefault(controller, 0f);
+    }
+
+    /** Imported state does not replay entry/exit effects or infer transitions from observer input. */
+    public void applyRemoteState(Map<String, String> states, Map<String, Float> times) {
+        for (var entry : states.entrySet()) {
+            YsmAnimationController controller = controllers.get(entry.getKey());
+            Float time = times.get(entry.getKey());
+            if (controller == null || !controller.states().containsKey(entry.getValue())
+                    || time == null || !Float.isFinite(time) || time < 0) {
+                throw new IllegalArgumentException("Invalid remote controller state");
+            }
+        }
+        currentStates.clear();
+        currentStates.putAll(states);
+        stateTimes.clear();
+        stateTimes.putAll(times);
+        enteredInitialStates.clear();
+        enteredInitialStates.addAll(states.keySet());
+        activeByController.clear();
+        completedOnceByController.clear();
+        activeChildren.clear();
+        heldSoundTransitions.clear();
+    }
+
+    public void addRemotePlayback(String controller, String clip) {
+        String name = controllers.keySet().stream().filter(key -> key.equalsIgnoreCase(controller)).findFirst().orElse(controller);
+        activeByController.computeIfAbsent(name, ignored -> new HashSet<>()).add(clip);
+    }
+
+    public void advanceRemoteTime(float deltaSeconds) {
+        if (Float.isFinite(deltaSeconds) && deltaSeconds > 0) {
+            stateTimes.replaceAll((name, time) -> (float) Math.min(Float.MAX_VALUE, (double) time + deltaSeconds));
+        }
+    }
+
     public void update(ExpressionEvaluator<?> evaluator) {
         update(evaluator, 0f);
     }

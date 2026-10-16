@@ -5,6 +5,7 @@ import org.figuramc.figura.model.ysm.animation.YsmAnimationPlayer;
 import org.figuramc.figura.molang.storage.StringPool;
 import org.figuramc.figura.model.ysm.YsmModelRuntime;
 import org.figuramc.figura.model.ysm.animation.YsmAnimationClip;
+import org.figuramc.figura.model.ysm.sync.YsmSyncMessage;
 
 import java.lang.ref.WeakReference;
 import java.util.Collection;
@@ -12,6 +13,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Locale;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -79,7 +81,7 @@ public class YsmActionRuntime implements AutoCloseable {
 
     public boolean trigger(String id) {
         YsmActionDefinition action = get(id);
-        if (closed || action == null || action.getAnimation() == null)
+        if (closed || runtime.animations().observerControlled() || action == null || action.getAnimation() == null)
             return false;
         String normalized = normalize(action.getId());
         int tick = FiguraMod.ticks;
@@ -102,11 +104,21 @@ public class YsmActionRuntime implements AutoCloseable {
         speed = positiveSpeed(speed);
         stopOthers(normalized);
         boolean played = runtime.animations().play(action.getAnimation(), loop, speed) != null;
-        if (played)
+        if (played) {
             pulseActionVariables(action);
+            int index = actions.keySet().stream().sorted().toList().indexOf(normalized);
+            runtime.functions().recordOwnerEvent(YsmSyncMessage.EventKind.ACTION, List.of((float) index));
+        }
         if (played && action.getCooldownTicks() > 0)
             cooldownUntil.put(normalized, tick + action.getCooldownTicks());
         return played;
+    }
+
+    public void applyRemotePulse(String id) {
+        YsmActionDefinition action = get(id);
+        if (action != null) {
+            pulseActionVariables(action);
+        }
     }
 
     private static float positiveSpeed(float speed) {

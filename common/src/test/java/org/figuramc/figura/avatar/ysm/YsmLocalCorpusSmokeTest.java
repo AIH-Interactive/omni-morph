@@ -1,8 +1,13 @@
 package org.figuramc.figura.avatar.ysm;
 
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtAccounter;
+import net.minecraft.nbt.NbtIo;
 import org.figuramc.figura.avatar.local.LocalAvatarFetcher;
 import org.figuramc.figura.avatar.local.LocalAvatarLoader;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,6 +41,10 @@ public final class YsmLocalCorpusSmokeTest {
                             var nbt = YsmAvatarLoader.toAvatarNbt(data, null, new UUID(0, 1), path);
                             require(nbt.contains("ysm") && !data.mainGeometry().bones.isEmpty(), "YSM formal data assembly");
                             verifyAttachedResources(data, nbt.getCompoundOrEmpty("ysm"));
+                            var transferred = transfer(nbt);
+                            verifyAttachedResources(data, transferred.getCompoundOrEmpty("ysm"));
+                            require(transferred.getCompoundOrEmpty("ysm").getStringOr("content_sha256", "")
+                                    .equals(data.identity().contentSha256()), "plain model content identity retained through transfer");
                         }
                         ysm++;
                         System.out.println("YSM_DATA_OK " + path.getFileName());
@@ -107,7 +116,8 @@ public final class YsmLocalCorpusSmokeTest {
             require(!runtime.contains("source_ciphertext") && runtime.contains("texture"), "ephemeral runtime resources");
             require(runtime.getListOrEmpty("animations").size() == data.manifest().animationPaths().size(),
                     "all player animation resources retained");
-            try (YsmModelData restored = YsmSourcePayload.openData(payload, () -> false)) {
+            CompoundTag transferred = transfer(nbt).getCompoundOrEmpty("ysm");
+            try (YsmModelData restored = YsmSourcePayload.openData(transferred, () -> false)) {
                 require(restored.identity().equals(data.identity()), "portable source identity");
                 require(restored.mainGeometry().bones.size() == data.mainGeometry().bones.size(), "rehydrated geometry");
                 require(restored.resources().resourcePaths().equals(data.resources().resourcePaths()), "rehydrated inventory");
@@ -144,7 +154,23 @@ public final class YsmLocalCorpusSmokeTest {
             require(textureSources.getByteArray(texture).orElse(new byte[0]).length > 0,
                     "Figura compiled texture bytes retained, including embedded fallback");
         }
+        require(transfer(nbt).equals(nbt), "ordinary Figura keeps the identical existing static payload");
         System.out.println("FIGURA_COMPILE_OK " + path.getFileName());
+    }
+
+    private static CompoundTag transfer(CompoundTag avatar) throws Exception {
+        CompoundTag original = avatar.copy();
+        CompoundTag portable = YsmSourcePayload.forOutput(avatar);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        NbtIo.writeCompressed(portable, output);
+        CompoundTag received;
+        try (var input = new ByteArrayInputStream(output.toByteArray())) {
+            received = NbtIo.readCompressed(input, NbtAccounter.create(256L * 1024 * 1024));
+        }
+        require(received.equals(portable), "every supported static resource survives the existing compressed NBT transport");
+        require(avatar.equals(original), "portable transport does not mutate caller-owned model content");
+        require(YsmSourcePayload.forOutput(received).equals(received), "cache filtering remains idempotent after transfer");
+        return received;
     }
 
     private static boolean hasModel(net.minecraft.nbt.CompoundTag model, String name) {

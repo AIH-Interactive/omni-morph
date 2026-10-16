@@ -110,6 +110,9 @@ public class AvatarControlRuntime {
     }
 
     public boolean setValue(Avatar avatar, String id, Object value) {
+        if (avatar != null && avatar.getYsmRuntime() != null && avatar.getYsmRuntime().animations().observerControlled()) {
+            return false;
+        }
         AvatarControlDefinition control = controls.get(id);
         if (control == null)
             return false;
@@ -128,7 +131,21 @@ public class AvatarControlRuntime {
         return true;
     }
 
+    /** Applies owner state without observer disk persistence or Lua change callbacks. */
+    public boolean applyRemoteValue(Avatar avatar, String id, Object value) {
+        AvatarControlDefinition control = controls.get(id);
+        if (control == null) {
+            return false;
+        }
+        control.setValue(value);
+        syncMolangValue(avatar, control);
+        return true;
+    }
+
     public boolean press(Avatar avatar, String id) {
+        if (avatar != null && avatar.getYsmRuntime() != null && avatar.getYsmRuntime().animations().observerControlled()) {
+            return false;
+        }
         AvatarControlDefinition control = controls.get(id);
         if (control == null)
             return false;

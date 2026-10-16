@@ -119,6 +119,10 @@ public final class YsmSoundRuntime implements AutoCloseable {
     @Override
     public void close() {
         closed = true;
+        stopAll();
+    }
+
+    public void stopAll() {
         banks.values().forEach(Bank::stopAll);
         banks.clear();
     }

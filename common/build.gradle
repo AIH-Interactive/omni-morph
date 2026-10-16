@@ -524,3 +524,11 @@ tasks.register("ysmAvifSmokeTest", JavaExec) {
     mainClass = "org.figuramc.figura.avatar.ysm.YsmAvifSmokeTest"
     args rootProject.file("refs/avatars").path
 }
+
+tasks.register("ysmSyncSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks bounded YSM state codec and deterministic observer replay without a live backend."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmSyncSmokeTest"
+}

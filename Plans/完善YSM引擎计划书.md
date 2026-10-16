@@ -1,7 +1,7 @@
 # 完善 YSM 引擎计划书
 
 > 编制日期：2026-10-12（Asia/Seoul）。
-> 状态：M0～M5 自动化验收完成并提交推送；M6 自动化验收完成，执行提交推送检查点；M7～M8 尚未实施。阶段提交与推送按 6.1 节执行；人工项按用户要求注明并跳过。
+> 状态：M0～M6 自动化验收完成并提交推送；M7 自动化验收完成，执行提交推送检查点；M8 尚未实施。阶段提交与推送按 6.1 节执行；人工项按用户要求注明并跳过。
 > 本文独立制定需求、实施顺序与验收标准。旧版计划书全部视为已废弃，不作为本文依据。
 
 ## 1. 目标、边界与完成定义
@@ -1490,3 +1490,39 @@ M6 最终验收与检查点（2026-10-16）：自动函数阶段域隔离的nati
 GUI未修改；原有静态定义渲染重载保留API兼容，实际箭/三叉戟回调及载具提交接点使用物理实体动态runtime。Mixin目标签名已用当前原版classfile核对，自动证据为CPU原生对象/动作/资源生命周期及编译打包；真实游戏注入、挂点/朝向/视觉、可听音频与第三方可选模组实机为SKIPPED/MANUAL_BY_USER，不将CPU记录engine称为实机PASS。后端仍SKIPPED/BACKEND_BY_USER，refs/omnm-cloud只读。
 
 已复核所有新增/修改代码可读性、分支和所有权顺序；未发现独立Java格式器配置，未整文件重排旧代码。git diff --check通过；按6.1检查status/diff，M6独立commit→push→核对远端SHA后，才开始M7。此前过程记录中的待办由本最终gate关闭，不增加新Definition of Done，不关闭计算机。
+
+### 9.11 M7 执行记录（自动验收完成，执行提交推送检查点）
+
+进入条件：M6 提交 be38c3146aa66385a8f11a75babd7b59a9d9007a 已推送 origin/main，本地与远端 SHA 核对相同。M7 先只读核查 omnm-cloud 的认证 Ping 转发、订阅广播及公告限制，形成 Plans/YSM-M7协议决策记录.md；需要服务端持久状态的内容记 SKIPPED/BACKEND_BY_USER，不修改后端。
+
+首轮增加独立应用层 DTO、32 KiB 有界 codec 与 observer 状态归并器，以及截断/非法值、乱序/重复/旧代、晚加入事件水位及重连会话的双端回放用例。当前尚未接入生产 WebSocket 与实际模型状态，不能将协议子项视为 M7 完成；仍需完成记录中列明的客户端接线。界面、控件和预览继续只使用 Figura 原有组件，M8 未开始，不关闭计算机。
+
+M7 协议子项自动验证（2026-10-16）：新增 ysmSyncSmokeTest 与 fabric:build 首轮前台通过16秒/退出码0，日志 build/reports/ysm/m7-codec-replay-gate.log。补齐 wire 非法 bool/未知版本与分区/非法枚举/NaN/重复索引、解码前计数限制，以及合法分区组合超出总预算的编码拒绝后，同一组合再次通过15秒/退出码0（16 tasks，9 executed、7 up-to-date），日志 build/reports/ysm/m7-codec-budget-gate.log。测试包含每个截断前缀、不可变 DTO、完整快照与分区增量、认证 owner/内容摘要约束、乱序缓冲上限、快照恢复缺失增量、一次性事件去重、晚加入与已退役会话拒绝。证据仅为应用层语义回放与编译，不是 WebSocket/两个真实客户端或运行时动作同步 PASS。
+
+已检查新增源码可读性与作用域，tracked diff --check 及新增文件 no-index 空白检查均无输出；no-index 的普通新增返回1不视作构建失败。此次改动不含 GUI、refs 或 omnm-cloud，M7 尚未达到完整验收，因此不提前提交/推送本阶段、不进入 M8。
+
+M7 分片与额度子项（2026-10-16）：增加 YsmSyncPackets，保留 Ping ID 与 magic 共同识别，每片480字节；认证 owner 隔离重组，16包全局/2包单owner/32 KiB单包上限，第一片后1200 tick过期，冲突片与CRC失败受控拒绝。新增最大消息反序重组、重复片、跨owner不能拼包、缺片过期、并发内存边界、截断/超长/非法总长与片数、disconnect clear用例。ysmSyncSmokeTest+Fabric前台通过12秒/退出0，日志build/reports/ysm/m7-packet-gate.log。
+
+另补 YsmSyncPingBudget：滚动20 tick内1024字节/32条，包含C2S头，普通Figura Ping计入共享额度但其既有发送策略不改变；超额普通流量保守阻塞YSM完整窗口，内部记录有界。滚动边界、普通流量竞争、饱和后过期、消息数与时钟复位用例连同前述codec/replay/分片和Fabric build再次前台通过12秒/退出0（16 tasks，9 executed、7 up-to-date），日志build/reports/ysm/m7-packet-budget-gate.log。协议记录补齐具体预算及传输时限边界。这些组件仍未接入生产WebSocket/模型状态，M7继续实施，不能据此标完整多人PASS；M8未开始，没有改GUI/后端/参考模型，没有关闭计算机。
+
+M7 实际模型状态适配（2026-10-16）：YsmSyncModel 从 loader content_sha256 取得模型身份，稳定排序纹理/控件/动作/controller-state/clip 索引并对模型内索引表取SHA-256；捕获实际值和播放角色，不发送私有资源名。应用完整状态前校验全部索引与控件范围，拒绝导入host。控件只恢复值与持久Molang命令，不写盘、不触发Lua change、不开启瞬时效果；同值不重执行命令。controller状态/时间导入不重放entry/exit与初始timeline事件；observer按已导入播放采样/插值，不依赖本地输入转换状态。本地控件/动作操作在接收到owner状态后被拒绝；普通Figura及尚未接收同步的运行时保持原路径。声音stopAll提取为明确的非关闭操作，首次转交远端权威时停止旧本地预测声音，父资源生命周期不变。
+
+原生材料CPU夹具内新增独立 YsmSyncModelSmokeTest：两个单独装配的实际运行时验证同内容/索引摘要、纹理c与width=.8、真实动作gui在time=.5、大小写controller Player.Main的状态b与时间、实际采样root姿态一致、输入矛盾的observer仍按owner状态采样、状态/动作时钟继续推进、快照不回放入场/零时刻事件、radio持久命令只执行一次、错误模型索引先拒绝后不变更。复用现有可清理NativeImage/记录客户端环境，未创建窗口/GPU/声音设备。
+
+同步事件接点：host非preview/child的ysm.sync参数进入最大64项序号队列，每项最多16有限float，overflow计数；receiver去重后的事件进入真实@sync函数，嵌套ysm.sync不重捕获、不回传。夹具验证owner显式/嵌套事件次序、observer实际函数计数、重复delta不重执行、快照期间的radio命令不触发sync、70事件留64且drop计数6。播放DTO增加fadeSpeed及native/function/retired角色，codec总预算继续生效。
+
+验证：sync/nativeMaterial/controlRuntime/playerTimeline/Fabric先通过40秒/退出0，日志m7-runtime-state-gate.log；加事件捕获及输入权威后的sync/nativeMaterial/controlRuntime/functionContract/soundNative/Fabric通过49秒/退出0，日志m7-runtime-sync-event-gate.log；将新模型测试抽为独立可读文件并补插值时钟与队列溢出后，同一组合通过38秒/退出0（20 tasks，14 executed、6 up-to-date），日志build/reports/ysm/m7-runtime-owner-boundary-gate.log。图形/听感/实机多人仍SKIPPED/MANUAL_BY_USER。生产WebSocket发送/接收和连接生命周期尚未接通，静态上传链及短动作/子实体同步继续按协议记录收尾；M7不能标DONE、不提交推送，M8未开始，不改GUI、refs或omnm-cloud，不关闭计算机。
+
+M7 正式连接接线：NetworkStuff.tick调用YsmSyncConnection，复用C2SMessageHandler.ping发送；S2CMessageHandler在Lua Ping之前按保留ID+magic路由，FiguraWebSocketAdapter传入并验证实际socket身份。纯YSM不要求LuaRuntime，普通Figura消息继续原路径。只在host已上传/在线时发送；输入与控制器选择由owner决定。模型内容与索引摘要、认证UUID、runtime owner共同匹配；socket/world epoch切换清理队列和peer，回调线程只入128片有界队列，模型应用在客户端tick完成。64个peer及短期无资源历史有界，同内容observer重载复用序号历史，拒绝旧代/旧会话/重复完整消息而不倒退插值时钟。正式发送记入普通Ping流量，YSM仅使用剩余额度；接收复制载荷前先校验YSM分片480字节上限，保留普通Figura对未加载Avatar的早退路径。
+
+动作与快照事件：owner显式PLAY/STOP及ACTION pulse进入同一序号队列，包含clip/action索引、速度/循环/过渡值；开始与停止之间没有状态采样的短动作也保留事件轨迹。PLAY先排队再执行owner初始timeline，避免其产生的sync事件反序。应用先恢复控件输入，再按序执行事件，最后导入owner播放/控制器时间；同一事件不回传。接线时将初稿“快照事件必须为空”修正为有界事件尾部：已有基线的live observer执行新尾部，首次/新代基线只接受水位而不播放历史。连续事件不再阻止周期快照。静态自定义选择通过已有ysm.sync/@sync数值参数共享，协议不导出任意私有struct/函数/解密字符串。
+
+YsmSyncConnectionSmokeTest在原生材料CPU夹具内用同owner UUID的四个独立runtime执行生产连接状态机、实际C2S Ping封装与共享额度：初始历史动作不重放；短动作start/effect/stop与最终inactive状态同时保留；完整包重复不重复效果；周期snapshot尾部只对live执行，late join只收状态；observer同内容重载拒绝旧包且接收新delta；owner换runtime新generation、owner重连新session、observer换socket epoch拒绝旧callback、周期基线恢复；队列超限及world exit清理不关闭借用runtime。首轮接线基础sync/nativeMaterial/Fabric通过28秒；新增连接夹具遗漏C2S.ping的checked IOException导致编译失败，日志m7-connection-replay-checked-exception-failure.log保留，修正测试包装后组合通过15秒/退出0，日志m7-connection-replay-gate.log。未运行真实WebSocket或游戏窗口，不将CPU连接回放称为双客户端实机PASS。
+
+静态内容链：读取生产upload/cache/fromNbt入口，确认输出与缓存均经YsmSourcePayload.forOutput再压缩，加密重建经过原密文SHA-256/版本校验；M7扩展现有语料gate，让Figura5/明文35/密文5逐个经历正式过滤→压缩→有界解压，验证全部NBT字段/支持资源字节等值和调用方不被修改，密文5从解压载荷重建全部资源逐字节相等。plain/密文content_sha256保持。localCorpus/payload/actionRuntime/playerTimeline/functionContract/Fabric前台通过32秒/退出0，日志m7-static-content-transfer-gate.log；两个既有Figura arrow素材缺失记录保持，不改源语料。账户上传/下载与服务器容量没有实测，不能从载荷回放推断上传已成功。
+
+M7 后端与人工边界：omnm-cloud当前只实时广播，离线owner/服务端持久快照为SKIPPED/BACKEND_BY_USER；未观察过乘坐历史、加入时已经空载的载具没有权威历史模型归属可重放，也记同项，后续需服务端实体UUID→模型owner/内容/代次赋值与撤销。当前projectile owner/实体物理状态及当前乘客继续由原版数据包与M6实例路径消费，不新增实体管理协议，不把客户端自报历史当服务器事实。两个真实客户端的加入、动作/控件/换肤、子实体、重连和视觉/听感均SKIPPED/MANUAL_BY_USER。服务端限制单位/部署容量及真实账号链不能冒称PASS。后端和refs只读。
+
+完整门禁首轮在无Avatar的既有SyncDefer夹具暴露新网络捕获的owner空值访问；仅为可选网络捕获增加null owner保护，本地sync/defer契约不改，日志m7-pre-null-owner-full-gate-failure.log保留。修正后完整gate通过2分51秒，随后复核并补齐S2C分配前大小检查；该次日志保留m7-pre-s2c-budget-full-gate.log。最终在全部最终源码上重新前台运行50个ysm*SmokeTest+ysmBindingReferenceAudit（51任务）+冻结M4 baseline的scanYsmModels+fabric:build，退出0，BUILD SUCCESSFUL in 2m 59s，67 actionable tasks（61 executed、6 up-to-date）。逐一核对日志包含51个smoke/audit、两个新原生模型/连接子用例及Fabric build；日志build/reports/ysm/m7-final-gate.log、UTF-8报告m7-final-scan.txt。扫描40/38/2、encryptedValidated5保持；M0/M2/M4冻结资源与GUI目录无diff。
+
+M7自动部分按原范围验收完成；上述人工/后端跳过不等于实机多人通过。此前过程记录中的待接线由本最终记录更新。已检查可读性、错误处理、预算和资源所有权，未整文件格式化旧代码；tracked及新增文件空白检查无输出。按6.1检查status/diff后独立提交、推送并核对远端SHA；确认完成前不开始M8，不追加新Definition of Done，不关闭计算机。

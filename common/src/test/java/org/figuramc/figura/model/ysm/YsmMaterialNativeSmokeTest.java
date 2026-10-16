@@ -74,6 +74,8 @@ public final class YsmMaterialNativeSmokeTest {
             testLayerOrder(unsafe, client);
             testHandLocators(unsafe, client);
             testSubEntityInstances(unsafe, client);
+            testSyncModel(unsafe, client);
+            testSyncConnection(unsafe, client);
             testCullingProperty(unsafe, client);
             testModelSelection(unsafe, client);
             testSelectionRestore(unsafe, client, directory);
@@ -406,6 +408,37 @@ public final class YsmMaterialNativeSmokeTest {
             YsmSubEntitySmokeTest.run(unsafe, fixture.runtime, fixture.runtimeTag.getByteArray("texture").orElseThrow());
         } finally {
             fixture.runtime.close();
+            client.drain();
+        }
+    }
+
+    private static void testSyncModel(Unsafe unsafe, RecordingClient client) throws Exception {
+        Fixture source = new Fixture(unsafe, 47);
+        Fixture observer = new Fixture(unsafe, 48);
+        try {
+            install(source.runtime.owner(), "isHost", true);
+            YsmSyncModelSmokeTest.run(source.runtime, observer.runtime);
+        } finally {
+            source.runtime.close();
+            observer.runtime.close();
+            client.drain();
+        }
+    }
+
+    private static void testSyncConnection(Unsafe unsafe, RecordingClient client) throws Exception {
+        Fixture source = new Fixture(unsafe, 49);
+        Fixture observer = new Fixture(unsafe, 49);
+        Fixture reloadedObserver = new Fixture(unsafe, 49);
+        Fixture reloadedSource = new Fixture(unsafe, 49);
+        try {
+            install(source.runtime.owner(), "isHost", true);
+            install(reloadedSource.runtime.owner(), "isHost", true);
+            YsmSyncConnectionSmokeTest.run(source.runtime, observer.runtime, reloadedObserver.runtime, reloadedSource.runtime);
+        } finally {
+            source.runtime.close();
+            observer.runtime.close();
+            reloadedObserver.runtime.close();
+            reloadedSource.runtime.close();
             client.drain();
         }
     }
