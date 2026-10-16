@@ -1604,3 +1604,19 @@ AvatarList 增加现有 Figura Button 样式的循环筛选：全部/Figura/非�
 自动验收：:common:ysmMaterialNativeSmokeTest 与真实模型回归先通过（1 分 8 秒/退出 0）；最终前台执行 :common:ysmControlledBaseGeometrySmokeTest :common:ysmAnimationWeightSmokeTest :common:ysmControllerIsolationSmokeTest :common:ysmControllerPhaseSmokeTest :common:ysmChildControllerSmokeTest :common:ysmBoneMatrixSmokeTest :common:ysmDeferredPoseSmokeTest :common:ysmControllerContextSmokeTest :common:ysmControllerSoundSmokeTest :fabric:build --console=plain，BUILD SUCCESSFUL 1 分 18 秒/退出 0，24 tasks（18 executed、6 up-to-date）。既有 JDK Unsafe/native-access、Gradle 弃用及 remap 警告仍在，不作为实机渲染通过证据。差异及 git diff --check 检查后独立提交推送，核对远端 SHA。
 
 正式 JAR：fabric/build/libs/figura-0.1.5+26.1.2-fabric-mc.jar，12,819,306 字节，SHA-256：6231A9233588787C2A22AAABDC0A35EA5678E89710954A023506C6810A7B01D3。此前哈希保留为历史证据。
+
+### 9.17 用户反馈继续修复：控制器之间的骨骼通道覆盖（2026-10-17）
+
+用户更换上一版后提供新截图，翼尾仍与参考图不一致。9.16 的重复播放缺陷确实存在且已消除，但重复数为 0 和顶点范围有限不足以证明最终姿势正确；本次补充实际姿势通道断言，不将上一轮自动测试解释为截图一致。
+
+第二个共用缺陷位于 YsmAnimationPlayer.applyControllerPose：将不同控制器的输出旋转/位置相加、缩放相乘。只读对照参考 Sparkle-Morpher 的 AnimationControllerRuntime.BoneBlendState、AnimationProcessor.applyTransform 和 TransitionVector3f：同一控制器内部先混合多段 clip，控制器输出再接管其写入的骨骼通道。当前实现把这两层都当作累加，导致不同动画仍能重复扭曲同一骨骼。
+
+最小夹具使用一个骨骼、两段不同动画及 pre_parallel0/parallel0 控制器。前者旋转 (10,20,30)，后者旋转 (40,50,60)；修改前最终为 (50,70,90)，断言失败。原加密末影龙娘首帧按控制器输出顺序检查位置/旋转/缩放，有 211 个通道偏离最后写入值。两项测试同时失败，证据保留 build/reports/ysm/controller-channel-ownership-red.log；测试初次缺少 FiguraVec3 import 的编译错误已修正后重新运行。
+
+修复仅让模型声明的控制器覆盖其非空通道；未写入的通道保留已有结果，同一控制器内部 clip 混合及状态过渡仍走原有路径。回归发现直接把全部内部播放槽改成覆盖会破坏既有载具 idle/ride 合成，因此将覆盖限定于已声明控制器，自动生成的原生回退槽保留原行为。没有修改参考代码、模型、后端、控件或预览入口。
+
+实际游戏截图与参考图的最终外观对照仍为 SKIPPED/MANUAL_BY_USER，不声称 CPU 姿势断言等同于实机外观通过；不使用 offscreen，不关闭计算机。
+
+最终自动验收：前台执行 :common:ysmMaterialNativeSmokeTest :common:ysmControlledBaseGeometrySmokeTest :common:ysmControllerPoseLayerSmokeTest :common:ysmBoneMatrixSmokeTest :common:ysmDeferredPoseSmokeTest :common:ysmControllerIsolationSmokeTest :common:ysmChildControllerSmokeTest :common:ysmControllerContextSmokeTest :common:ysmControllerPhaseSmokeTest :common:ysmActionRuntimeSmokeTest :fabric:build --console=plain，BUILD SUCCESSFUL 1 分 33 秒/退出 0，25 tasks（19 executed、6 up-to-date）。原模型在 0/1/20/60/200 tick 的通道偏差均为 0，18 段动画没有重复播放；既有 M6 子实例/载具及 M7 CPU 同步子用例通过。日志 build/reports/ysm/controller-channel-ownership-gate.log。检查修改可读性、完整差异及 git diff --check，通过后独立提交推送并核对远端 SHA。
+
+正式 JAR：fabric/build/libs/figura-0.1.5+26.1.2-fabric-mc.jar，12,819,621 字节，SHA-256：40B5C29BFBAD71BC9D29FA5426EE83B89B80067C01917770A054C5E27D3FCCE6。前文产物哈希保留为历史记录。

@@ -17,6 +17,7 @@ import org.figuramc.figura.avatar.ysm.YsmSourceIdentity;
 import org.figuramc.figura.avatar.ysm.YsmTextureOption;
 import org.figuramc.figura.avatar.ysm.YsmTextureSelectionStore;
 import org.figuramc.figura.mixin.render.TextureManagerAccessor;
+import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import sun.misc.Unsafe;
 
@@ -79,6 +80,7 @@ public final class YsmMaterialNativeSmokeTest {
                 return;
             }
             testControlledBasePlayback(unsafe, client);
+            testControllerChannelOwnership(unsafe, client);
             testTexturePublication(unsafe, client);
             testScaleAndDefaultTexture(unsafe, client);
             testPreviewDefaultPose(unsafe, client);
@@ -168,6 +170,55 @@ public final class YsmMaterialNativeSmokeTest {
         }
     }
 
+    private static void testControllerChannelOwnership(Unsafe unsafe, RecordingClient client) throws Exception {
+        Fixture fixture = new Fixture(unsafe, 62);
+        try {
+            var input = fixture.runtimeTag.copy();
+            var animations = new net.minecraft.nbt.ListTag();
+            var clip = new net.minecraft.nbt.CompoundTag();
+            clip.putByteArray("data", bytes("""
+                    {"animations":{
+                      "earlier":{"loop":true,"bones":{"root":{
+                        "rotation":[10,20,30],"position":[1,2,3],"scale":[2,3,4]}}},
+                      "later":{"loop":true,"bones":{"root":{
+                        "rotation":[40,50,60],"position":[4,5,6],"scale":[1,1,1]}}}
+                    }}
+                    """));
+            animations.add(clip);
+            input.put("animations", animations);
+            var controllers = new net.minecraft.nbt.ListTag();
+            var controller = new net.minecraft.nbt.CompoundTag();
+            controller.putByteArray("data", bytes("""
+                    {"animation_controllers":{
+                      "pre_parallel0":{"states":{"default":{"animations":["earlier"]}}},
+                      "parallel0":{"states":{"default":{"animations":["later"]}}}
+                    }}
+                    """));
+            controllers.add(controller);
+            input.put("animation_controllers", controllers);
+            Avatar avatar = owner(unsafe, 63);
+            try (var runtime = YsmModelRuntime.fromNbt(avatar, input)) {
+                install(avatar, "ysmRuntime", runtime);
+                var evaluator = org.figuramc.figura.molang.runtime.ExpressionEvaluator.evaluator(avatar.getMolangContext());
+                runtime.animations().controllerRuntime().update(evaluator, 0f, false);
+                var sample = org.figuramc.figura.model.ysm.animation.YsmAnimationPlayer.class.getDeclaredMethod(
+                        "sampleAnimations", org.figuramc.figura.molang.runtime.ExpressionEvaluator.class, boolean.class);
+                sample.setAccessible(true);
+                sample.invoke(runtime.animations(), evaluator, false);
+                var root = runtime.getPart("root");
+                require(root.animRotRaw().x == 40d && root.animRotRaw().y == 50d && root.animRotRaw().z == 60d,
+                        "later controller owns rotation instead of adding earlier pose: " + root.animRotRaw());
+                require(root.animPosRaw().x == 4d && root.animPosRaw().y == 5d && root.animPosRaw().z == 6d,
+                        "later controller owns position");
+                require(root.animScaleRaw().x == 1d && root.animScaleRaw().y == 1d && root.animScaleRaw().z == 1d,
+                        "later controller owns scale instead of multiplying earlier pose");
+            }
+        } finally {
+            fixture.runtime.close();
+            client.drain();
+        }
+    }
+
     private static void testControlledBaseGeometry(Unsafe unsafe, RecordingClient client, Path path) throws Exception {
         Avatar avatar = owner(unsafe, 58);
         try (var data = org.figuramc.figura.avatar.ysm.YsmModelData.read(path, () -> false)) {
@@ -182,12 +233,51 @@ public final class YsmMaterialNativeSmokeTest {
                     state.ageInTicks = time;
                     org.figuramc.figura.model.ysm.animation.YsmRenderFrameClock.beginFrame();
                     runtime.updateAnimations(state, null);
+                    assertControllerChannelOwnership(runtime);
                     reportGeometryBounds(runtime, "frame=" + time + " active=" + runtime.animations().getActiveAnimations().size());
                 }
             }
         } finally {
             client.drain();
         }
+    }
+
+    private static void assertControllerChannelOwnership(YsmModelRuntime runtime) throws Exception {
+        var layersField = org.figuramc.figura.model.ysm.animation.YsmAnimationPlayer.class
+                .getDeclaredField("controllerPoseLayers");
+        layersField.setAccessible(true);
+        var poseField = org.figuramc.figura.model.ysm.controller.YsmControllerPoseLayer.class.getDeclaredField("lastPose");
+        poseField.setAccessible(true);
+        var expected = new java.util.LinkedHashMap<String, float[][]>();
+        for (var layer : ((Map<?, ?>) layersField.get(runtime.animations())).values()) {
+            for (var entry : ((Map<?, ?>) poseField.get(layer)).entrySet()) {
+                var pose = (org.figuramc.figura.model.ysm.animation.YsmBonePose) entry.getValue();
+                float[][] channels = expected.computeIfAbsent((String) entry.getKey(), ignored -> new float[3][]);
+                float[][] output = {pose.position(), pose.rotation(), pose.scale()};
+                for (int channel = 0; channel < 3; channel++) {
+                    if (output[channel] != null) {
+                        channels[channel] = output[channel];
+                    }
+                }
+            }
+        }
+        int mismatches = 0;
+        for (var entry : expected.entrySet()) {
+            var part = runtime.getPart(entry.getKey());
+            if (part == null) {
+                continue;
+            }
+            FiguraVec3[] actual = {part.animPosRaw(), part.animRotRaw(), part.animScaleRaw()};
+            for (int channel = 0; channel < 3; channel++) {
+                float[] value = entry.getValue()[channel];
+                if (value != null && (Math.abs(value[0] - actual[channel].x) > 0.0001
+                        || Math.abs(value[1] - actual[channel].y) > 0.0001
+                        || Math.abs(value[2] - actual[channel].z) > 0.0001)) {
+                    mismatches++;
+                }
+            }
+        }
+        require(mismatches == 0, "controller channel ownership mismatches on the reported model: " + mismatches);
     }
 
     private static void reportGeometryBounds(YsmModelRuntime runtime, String phase) throws Exception {
