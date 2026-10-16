@@ -72,7 +72,7 @@ public final class YsmSoundRuntime implements AutoCloseable {
             sound.setPitch(clamp(arguments.getAsFloat(execution, 4)));
         }
         return bank(context, (flags & 2) != 0).play(id, (flags & 1) != 0,
-                new Playback(sound, context.entity));
+                new Playback(sound, context.entity, runtime.functions().clientEffectOwner()));
     }
 
     public LuaSound createSound(String name) {
@@ -111,6 +111,24 @@ public final class YsmSoundRuntime implements AutoCloseable {
         }
     }
 
+    /** Retires only voices started by this playback, including globally indexed voices. */
+    public void stopPlayback(Object owner) {
+        if (owner == null) {
+            return;
+        }
+        banks.values().forEach(bank -> bank.stopPlayback(owner));
+        banks.values().removeIf(Bank::empty);
+    }
+
+    /** A remote snapshot may replace the playback object while the same clip keeps playing. */
+    public void transferPlayback(Object previous, Object next) {
+        banks.values().forEach(bank -> bank.transferPlayback(previous, next));
+        Bank local = banks.remove(previous);
+        if (local != null) {
+            banks.put(next, local);
+        }
+    }
+
     public void tick() {
         banks.values().forEach(Bank::tick);
         banks.values().removeIf(Bank::empty);
@@ -127,7 +145,7 @@ public final class YsmSoundRuntime implements AutoCloseable {
         banks.clear();
     }
 
-    private record Playback(LuaSound sound, Entity entity) {
+    private record Playback(LuaSound sound, Entity entity, Object owner) {
         boolean stopped() {
             return sound.getHandle() == null || sound.getHandle().isStopped();
         }
@@ -170,6 +188,28 @@ public final class YsmSoundRuntime implements AutoCloseable {
             } else {
                 indexed.put(id, next);
             }
+            return true;
+        }
+
+        void transferPlayback(Object previous, Object next) {
+            indexed.replaceAll((id, playback) -> transfer(playback, previous, next));
+            anonymous.replaceAll(playback -> transfer(playback, previous, next));
+        }
+
+        private static Playback transfer(Playback playback, Object previous, Object next) {
+            return playback.owner() == previous ? new Playback(playback.sound(), playback.entity(), next) : playback;
+        }
+
+        void stopPlayback(Object owner) {
+            indexed.values().removeIf(playback -> stopIfOwned(playback, owner));
+            anonymous.removeIf(playback -> stopIfOwned(playback, owner));
+        }
+
+        private static boolean stopIfOwned(Playback playback, Object owner) {
+            if (playback.owner() != owner) {
+                return false;
+            }
+            playback.stop();
             return true;
         }
 

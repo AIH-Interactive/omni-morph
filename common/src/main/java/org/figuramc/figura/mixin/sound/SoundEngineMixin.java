@@ -15,6 +15,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.phys.Vec3;
 
 import org.figuramc.figura.avatar.AvatarManager;
+import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.ducks.ChannelHandleAccessor;
 import org.figuramc.figura.ducks.SoundEngineAccessor;
 import org.figuramc.figura.ducks.SubtitleOverlayAccessor;
@@ -47,6 +48,8 @@ public abstract class SoundEngineMixin implements SoundEngineAccessor {
     @Unique
     private ChannelAccess figuraChannel;
     @Unique
+    private float figura$avatarVolumeGain = 1f;
+    @Unique
     private final List<LuaSound> figuraHandlers = Collections.synchronizedList(new ArrayList<>());
 
     @Inject(at = @At("RETURN"), method = "<init>")
@@ -61,6 +64,9 @@ public abstract class SoundEngineMixin implements SoundEngineAccessor {
 
     @Inject(at = @At("RETURN"), method = "tickInGameSound")
     private void tickNonPaused(CallbackInfo ci) {
+        float gain = Configs.AVATAR_VOLUME_GAIN.value;
+        boolean gainChanged = Float.compare(figura$avatarVolumeGain, gain) != 0;
+        figura$avatarVolumeGain = gain;
         Iterator<LuaSound> iterator = figuraHandlers.iterator();
         while (iterator.hasNext()) {
             LuaSound sound = iterator.next();
@@ -72,6 +78,8 @@ public abstract class SoundEngineMixin implements SoundEngineAccessor {
                 iterator.remove();
             } else if (handle.isStopped()) {
                 iterator.remove();
+            } else if (gainChanged) {
+                sound.setEngineVolume(sound.getVolume());
             }
         }
     }

@@ -1,0 +1,9 @@
+{
+    "figura.config.avatar_volume_gain": "Avatar 音量增益",
+    "figura.config.avatar_volume_gain.tooltip": "统一调整 Figura 和 YSM 模型声音的音量倍率\n0 为静音，1 为原音量，2 为两倍，最大为 10\n与游戏玩家音量和模型音量权限叠加，对正在播放的声音生效",
+    "figura.gui.wardrobe.filter.all": "全部模型",
+    "figura.gui.wardrobe.filter.figura": "Figura",
+    "figura.gui.wardrobe.filter.ysm_plain": "非加密 YSM",
+    "figura.gui.wardrobe.filter.ysm_encrypted": "加密 YSM",
+    "figura.gui.wardrobe.filter.tooltip": "点击切换：全部 / Figura / 非加密 YSM / 加密 YSM\n可与搜索组合使用，文件夹内部同样适用"
+}

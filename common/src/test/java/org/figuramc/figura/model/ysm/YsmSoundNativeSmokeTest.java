@@ -176,8 +176,147 @@ public final class YsmSoundNativeSmokeTest {
         LuaSound lua = new LuaSound((SoundBuffer) null, "lua-volume", first.owner);
         lua.setVolume(12);
         require(lua.getVolume() == 1, "original Figura Lua volume limit preserved");
+        testAvatarVolumeGain(engine);
+        testAnimationBgmLifetime(engine);
         testModelAudio(engine);
         System.out.println("M4 sound binding native dispatch, ID/flags, scopes, real owner quota, stop and close passed; audible playback manual.");
+    }
+
+    private static void testAvatarVolumeGain(RecordingEngine engine) throws Exception {
+        var config = org.figuramc.figura.config.Configs.AVATAR_VOLUME_GAIN;
+        float previousValue = config.value;
+        float previousTemp = config.tempValue;
+        Fixture fixture = new Fixture();
+        LuaSound sound = new LuaSound(fixture.owner.customSounds.get("tone"), "gain", fixture.owner);
+        try {
+            require(config.defaultValue == 1f && org.figuramc.figura.config.ConfigManager.REGISTRY.contains(config),
+                    "shared gain defaults to unchanged volume and participates in ordinary config persistence");
+            config.setTempValue("2");
+            require(config.value == previousValue && config.tempValue == 2f, "editing gain waits for config apply");
+            config.discardConfig();
+            require(config.tempValue == config.value, "config cancel discards the staged gain");
+            require(config.parseValue("-1") == 0f && config.parseValue("20") == 10f,
+                    "gain is bounded to 0..10");
+            for (String invalid : List.of("NaN", "Infinity")) {
+                try {
+                    config.parseValue(invalid);
+                    throw new AssertionError("non-finite gain accepted");
+                } catch (NumberFormatException expected) {
+                    // Config/UI reject non-finite input rather than send it to the sound engine.
+                }
+            }
+            config.value = 1f;
+            sound.setVolume(0.5f).play();
+            RecordingHandle handle = (RecordingHandle) sound.getHandle();
+            int commands = handle.commands;
+            var volumeEngine = new VolumeEngine();
+            Field handlers = org.figuramc.figura.mixin.sound.SoundEngineMixin.class.getDeclaredField("figuraHandlers");
+            handlers.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            List<LuaSound> active = (List<LuaSound>) handlers.get(volumeEngine);
+            active.add(sound);
+            var tick = org.figuramc.figura.mixin.sound.SoundEngineMixin.class.getDeclaredMethod(
+                    "tickNonPaused", org.spongepowered.asm.mixin.injection.callback.CallbackInfo.class);
+            tick.setAccessible(true);
+            config.value = 2f;
+            tick.invoke(volumeEngine, new Object[] {null});
+            require(sound.calculateVolume() == 2f && handle.commands == commands + 1,
+                    "changing the shared gain updates an already playing Figura voice on the real mixin tick path");
+            fixture.owner.permissions.getPermissions().put(Permissions.VOLUME, 50);
+            require(sound.calculateVolume() == 1f, "gain multiplies the existing avatar permission volume");
+            config.value = 0f;
+            tick.invoke(volumeEngine, new Object[] {null});
+            require(sound.calculateVolume() == 0f && handle.commands == commands + 2,
+                    "zero gain dispatches an update to the active native channel");
+            int submitted = engine.submitted.size();
+            sound.stop().play();
+            require(sound.getHandle() == null && engine.submitted.size() == submitted,
+                    "zero gain suppresses new avatar playback");
+        } finally {
+            sound.stop();
+            config.value = previousValue;
+            config.tempValue = previousTemp;
+            fixture.runtime.sounds().close();
+        }
+    }
+
+    private static final class VolumeEngine extends org.figuramc.figura.mixin.sound.SoundEngineMixin {
+        @Override
+        public void addEventListener(net.minecraft.client.sounds.SoundEventListener listener) {
+        }
+
+        @Override
+        public float figura$getVolume(SoundSource source) {
+            return 1f;
+        }
+    }
+
+    private static void testAnimationBgmLifetime(RecordingEngine engine) throws Exception {
+        List<String> failures = new ArrayList<>();
+        for (String interruption : List.of("movement", "switch", "restart", "stop", "fade", "finish", "remote")) {
+            Fixture fixture = new Fixture();
+            var player = fixture.runtime.animations();
+            player.registerAnimations(org.figuramc.figura.model.ysm.animation.YsmAnimationParser.parse("""
+                    {"animations":{
+                      "dance":{"loop":true,"animation_length":10,
+                        "timeline":{"0":"ysm.play_sound('bgm','tone',4); ysm.play_sound('global_bgm','tone',6);"},
+                        "sound_effects":{"0":{"effect":"tone","loop":true}}},
+                      "other":{"loop":true,"animation_length":10},
+                      "walk":{"loop":true,"animation_length":1}}}
+                    """, fixture.engine));
+            fixture.runtime.actions().buildDefaultsFromAnimations();
+            set(player.getClass(), player, "currentEntity", fixture.context.entity);
+            LuaSound ambient = new LuaSound(fixture.owner.customSounds.get("tone"), "unrelated", fixture.owner).play();
+            try {
+                require(fixture.runtime.actions().trigger("dance"), "BGM action starts");
+                List<LuaSound> bgm = List.copyOf(engine.submitted.subList(engine.submitted.size() - 3, engine.submitted.size()));
+                require(bgm.stream().allMatch(sound -> sound.getHandle() != null), "timeline and sound_effects BGM really start");
+                if (interruption.equals("movement")) {
+                    var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
+                    state.walkAnimationSpeed = 0.5f;
+                    var update = player.getClass().getDeclaredMethod("updateNativeStateMachine",
+                            state.getClass(), net.minecraft.world.entity.LivingEntity.class);
+                    update.setAccessible(true);
+                    update.invoke(player, state, null);
+                    require(!fixture.runtime.actions().isActive("dance"), "movement cancels the action");
+                } else if (interruption.equals("remote")) {
+                    set(player.getClass(), player, "observerControlled", true);
+                    var clips = player.getClips().values().stream().distinct()
+                            .sorted(java.util.Comparator.comparing(clip -> clip.name)).toList();
+                    player.applyRemotePlaybacks(player.captureRemotePlaybacks(clips, List.of()), clips, List.of());
+                    require(bgm.stream().allMatch(sound -> sound.getHandle() != null),
+                            "ordinary observer state refresh keeps the current BGM playing");
+                    player.stop("dance");
+                } else if (interruption.equals("stop")) {
+                    fixture.runtime.actions().stop("dance");
+                } else if (interruption.equals("fade") || interruption.equals("finish")) {
+                    if (interruption.equals("fade")) {
+                        player.fadeOut("dance", 0.1f);
+                    } else {
+                        player.getActiveAnimation("dance").loop = false;
+                        player.getActiveAnimation("dance").loopMode =
+                                org.figuramc.figura.model.ysm.animation.YsmAnimationClip.LoopMode.ONCE;
+                    }
+                    var advance = player.getClass().getDeclaredMethod("advanceAnimationTimeline", float.class, ExpressionEvaluator.class);
+                    advance.setAccessible(true);
+                    advance.invoke(player, 11f, ExpressionEvaluator.evaluator(fixture.context));
+                    advance.invoke(player, 1f, ExpressionEvaluator.evaluator(fixture.context));
+                } else {
+                    require(fixture.runtime.actions().trigger(interruption.equals("switch") ? "other" : "dance"),
+                            "replacement action starts");
+                }
+                require(ambient.getHandle() != null, "action cleanup preserves unrelated sound from the same Avatar");
+                long remaining = bgm.stream().filter(sound -> sound.getHandle() != null).count();
+                if (remaining != 0) {
+                    failures.add(interruption + " leaves " + remaining + " old BGM handles playing");
+                }
+            } finally {
+                ambient.stop();
+                player.closeSounds();
+                fixture.runtime.sounds().close();
+            }
+        }
+        require(failures.isEmpty(), String.join("; ", failures));
     }
 
     private static void testModelAudio(RecordingEngine engine) throws Exception {

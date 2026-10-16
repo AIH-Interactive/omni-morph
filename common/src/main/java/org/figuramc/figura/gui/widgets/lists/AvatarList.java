@@ -7,6 +7,7 @@ import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.util.Mth;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.avatar.local.LocalAvatarFetcher;
+import org.figuramc.figura.avatar.local.AvatarTypeFilter;
 import org.figuramc.figura.gui.screens.AbstractPanelScreen;
 import org.figuramc.figura.gui.screens.AvatarWizardScreen;
 import org.figuramc.figura.gui.widgets.Button;
@@ -32,6 +33,7 @@ public class AvatarList extends AbstractList {
 
     private int totalHeight = 0;
     private String filter = "";
+    private static AvatarTypeFilter typeFilter = AvatarTypeFilter.ALL;
 
     public static Path selectedEntry;
 
@@ -80,12 +82,21 @@ public class AvatarList extends AbstractList {
                 button -> Util.getPlatform().openUri(LocalAvatarFetcher.getLocalAvatarDirectory().toUri()))
         );
 
+        // Shared Figura button cycles the visible avatar formats without reloading sources.
+        children.add(new Button(x + 4, y + 52, width - 8, 20,
+                FiguraText.of(typeFilter.translationKey()), FiguraText.of("gui.wardrobe.filter.tooltip"), button -> {
+                    typeFilter = typeFilter.next();
+                    button.setMessage(FiguraText.of(typeFilter.translationKey()));
+                    scrollBar.setScrollProgress(0f);
+                    loadContents();
+                }));
+
         // scrollbar
-        this.scrollBar.setY(y + 48);
-        this.scrollBar.setHeight(height - 52);
+        this.scrollBar.setY(y + 72);
+        this.scrollBar.setHeight(height - 76);
 
         // scissors
-        this.updateScissors(1, 49, -2, -50);
+        this.updateScissors(1, 73, -2, -74);
 
         // initial load
         loadContents();
@@ -117,12 +128,12 @@ public class AvatarList extends AbstractList {
             totalHeight += avatar.getHeight() + 2;
         int entryHeight = avatarList.isEmpty() ? 0 : totalHeight / avatarList.size();
 
-        scrollBar.setVisible(totalHeight > height - 49);
-        scrollBar.setScrollRatio(entryHeight, totalHeight - (height - 49));
+        scrollBar.setVisible(totalHeight > height - 73);
+        scrollBar.setScrollRatio(entryHeight, totalHeight - (height - 73));
 
         // render list
         int xOffset = scrollBar.isVisible() ? 4 : 11;
-        int yOffset = scrollBar.isVisible() ? (int) -(Mth.lerp(scrollBar.getScrollProgress(), -49, totalHeight - height)) : 49;
+        int yOffset = scrollBar.isVisible() ? (int) -(Mth.lerp(scrollBar.getScrollProgress(), -73, totalHeight - height)) : 73;
         boolean hidden = false;
 
         for (AbstractAvatarWidget avatar : avatarList) {
@@ -159,7 +170,7 @@ public class AvatarList extends AbstractList {
             Path path = avatar.getTheActualPathForThis();
 
             // filter
-            if (!avatar.search(filter))
+            if (!matches(avatar, filter))
                 continue;
 
             // update current
@@ -196,6 +207,10 @@ public class AvatarList extends AbstractList {
                 return avatar1.compareTo(avatar2);
             return 0;
         });
+    }
+
+    public boolean matches(LocalAvatarFetcher.AvatarPath avatar, String query) {
+        return typeFilter.matches(avatar, query);
     }
 
     public void updateScroll() {

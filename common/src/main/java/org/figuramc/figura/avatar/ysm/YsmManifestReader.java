@@ -15,6 +15,46 @@ public final class YsmManifestReader {
     private YsmManifestReader() {
     }
 
+    /** List-only metadata: no decryption, model parsing, hashing or runtime validation. */
+    public record ListMetadata(YsmAvatarMetadata metadata, java.util.Map<String, byte[]> languages) {
+    }
+
+    public static ListMetadata readListMetadata(Path path) throws IOException {
+        String fallback = IOUtils.getFileNameOrEmpty(path);
+        if (YsmEncryptedSource.hasMagic(path)) {
+            return new ListMetadata(new YsmAvatarMetadata(fallback, "", new String[0], List.of()), java.util.Map.of());
+        }
+        try (YsmResourceSource source = YsmPackage.open(path)) {
+            JsonObject metadata;
+            JsonObject files = new JsonObject();
+            List<YsmTextureOption> textures;
+            if (source.exists("ysm.json")) {
+                JsonObject root = YsmJson.parseObject(source.readString("ysm.json"));
+                metadata = YsmJson.obj(root, "metadata");
+                files = YsmJson.obj(root, "files");
+                textures = readNewTextures(source, YsmJson.obj(YsmJson.obj(root, "files"), "player"), new ArrayList<>());
+            } else {
+                JsonObject root = YsmJson.parseObject(source.readString("main.json"));
+                JsonArray geometries = root.getAsJsonArray("minecraft:geometry");
+                JsonObject description = geometries != null && !geometries.isEmpty()
+                        ? YsmJson.obj(geometries.get(0).getAsJsonObject(), "description") : new JsonObject();
+                metadata = YsmJson.obj(description, "ysm_extra_info");
+                textures = readOldTextures(source);
+            }
+            List<String> languagePaths = collectDirectoryFiles(source, "lang/", "language/");
+            List<String> warnings = new ArrayList<>();
+            addResourcePaths(languagePaths, source, files.get("language"), warnings, "language");
+            addResourcePaths(languagePaths, source, files.get("lang"), warnings, "language");
+            var languages = new java.util.LinkedHashMap<String, byte[]>();
+            for (String resource : languagePaths) {
+                languages.put(resource, source.readBytes(resource));
+            }
+            return new ListMetadata(new YsmAvatarMetadata(YsmJson.string(metadata, "name", fallback),
+                    YsmJson.string(metadata, "tips", YsmJson.string(metadata, "description", "")),
+                    readAuthors(metadata), textures), languages);
+        }
+    }
+
     public static YsmManifest read(Path path) throws java.io.IOException {
         if (YsmEncryptedSource.hasMagic(path)) {
             try (YsmModelData data = YsmModelData.read(path, () -> false)) {

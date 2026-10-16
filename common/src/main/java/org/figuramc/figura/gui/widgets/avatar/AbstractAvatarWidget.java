@@ -11,7 +11,6 @@ import net.minecraft.network.chat.Style;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.avatar.local.LocalAvatarFetcher;
-import org.figuramc.figura.avatar.ysm.YsmManifest;
 import org.figuramc.figura.avatar.ysm.YsmManifestReader;
 import org.figuramc.figura.avatar.ysm.YsmTextureOption;
 import org.figuramc.figura.avatar.ysm.YsmTextureSelectionStore;
@@ -42,6 +41,7 @@ public abstract class AbstractAvatarWidget extends AbstractContainerElement impl
     protected Button button;
     protected String filter = "";
     protected boolean favourite;
+    private boolean textureMenuAdded;
 
     public AbstractAvatarWidget(int depth, int width, int height, LocalAvatarFetcher.AvatarPath avatar, AvatarList parent) {
         super(0, 0, width, height);
@@ -57,7 +57,6 @@ public abstract class AbstractAvatarWidget extends AbstractContainerElement impl
             button.setMessage(favourite ? REMOVE_FAVOURITE : ADD_FAVOURITE);
             context.updateDimensions();
         });
-        addYsmTextureMenu();
         context.addAction(FiguraText.of("gui.context.open_folder"), null, button -> {
             try {
                 Util.getPlatform().openUri(avatar.getFSPath().toUri());
@@ -73,15 +72,24 @@ public abstract class AbstractAvatarWidget extends AbstractContainerElement impl
     }
 
     private void addYsmTextureMenu() {
-        if (!avatar.isYsm())
+        if (!avatar.isYsm() || textureMenuAdded)
             return;
         try {
-            YsmManifest manifest = YsmManifestReader.read(avatar.getPath());
-            if (!manifest.hasTextures())
+            java.util.List<YsmTextureOption> options;
+            if (avatar.isEncryptedYsm()) {
+                var active = isOf(AvatarList.selectedEntry)
+                        ? AvatarManager.getLoadedAvatar(FiguraMod.getLocalPlayerUUID()) : null;
+                var runtime = active == null ? null : active.getYsmRuntime();
+                options = runtime == null ? java.util.List.of() : runtime.textureIds().stream()
+                        .map(id -> new YsmTextureOption(id, id, "")).toList();
+            } else {
+                options = YsmManifestReader.readListMetadata(avatar.getPath()).metadata().textures();
+            }
+            if (options.isEmpty())
                 return;
             ContextMenu textures = new ContextMenu(context);
             String selected = YsmTextureSelectionStore.get(avatar.getPath());
-            for (YsmTextureOption option : manifest.textures()) {
+            for (YsmTextureOption option : options) {
                 Component name = Component.literal((option.id().equals(selected) ? "* " : "") + option.displayName());
                 textures.addAction(name, Component.literal(option.path()), button -> {
                     YsmTextureSelectionStore.set(avatar.getPath(), option.id());
@@ -91,6 +99,7 @@ public abstract class AbstractAvatarWidget extends AbstractContainerElement impl
                 });
             }
             context.addTab(Component.literal("YSM Textures"), null, textures);
+            textureMenuAdded = true;
         } catch (Exception e) {
             FiguraMod.LOGGER.warn("Failed to build YSM texture menu for " + avatar.getPath(), e);
         }
@@ -129,6 +138,7 @@ public abstract class AbstractAvatarWidget extends AbstractContainerElement impl
 
         // context menu on right click
         if (button == 1) {
+            addYsmTextureMenu();
             context.setX((int) mouseX);
             context.setY((int) mouseY);
             context.setVisible(true);
