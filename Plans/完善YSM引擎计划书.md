@@ -1620,3 +1620,25 @@ AvatarList 增加现有 Figura Button 样式的循环筛选：全部/Figura/非�
 最终自动验收：前台执行 :common:ysmMaterialNativeSmokeTest :common:ysmControlledBaseGeometrySmokeTest :common:ysmControllerPoseLayerSmokeTest :common:ysmBoneMatrixSmokeTest :common:ysmDeferredPoseSmokeTest :common:ysmControllerIsolationSmokeTest :common:ysmChildControllerSmokeTest :common:ysmControllerContextSmokeTest :common:ysmControllerPhaseSmokeTest :common:ysmActionRuntimeSmokeTest :fabric:build --console=plain，BUILD SUCCESSFUL 1 分 33 秒/退出 0，25 tasks（19 executed、6 up-to-date）。原模型在 0/1/20/60/200 tick 的通道偏差均为 0，18 段动画没有重复播放；既有 M6 子实例/载具及 M7 CPU 同步子用例通过。日志 build/reports/ysm/controller-channel-ownership-gate.log。检查修改可读性、完整差异及 git diff --check，通过后独立提交推送并核对远端 SHA。
 
 正式 JAR：fabric/build/libs/figura-0.1.5+26.1.2-fabric-mc.jar，12,819,621 字节，SHA-256：40B5C29BFBAD71BC9D29FA5426EE83B89B80067C01917770A054C5E27D3FCCE6。前文产物哈希保留为历史记录。
+
+### 9.18 用户反馈继续修复：切换模型/皮肤后的纹理生命周期（2026-10-17）
+
+用户再次报告 00:53:43 世界绘制 endBatch 的 Texture view does not exist，并确认发生于切换模型或皮肤之后，要求尽量彻底修复。只读核对实例中已安装 JAR 的 SHA-256 与 9.17 一致，排除仍在使用旧包这一解释。9.15 只覆盖首次上传后发布，未覆盖关闭后的迟到注册和待绘制批次的延迟读取。
+
+新增最小反馈环：纹理成功上传、关闭，再通过原版 TextureManager.registerAndLoad 完成迟到注册，最后通过原版 RenderSetup.getTextures 查询。同一异常及 AbstractTexture.getTextureView → RenderSetup.getTextures 前两层栈稳定复现，:common:ysmMaterialNativeSmokeTest 修改前失败；日志 build/reports/ysm/late-texture-binding-red.log。该夹具锁住一个确定存在的共用生命周期缺陷，不将它声称为已经重演用户崩溃当时的全部游戏帧和 GPU 状态。
+
+FiguraTexture 的共用修复覆盖 Figura/YSM：
+
+- 纹理/视图/采样器读取入口确保存活纹理已上传，视图为空、已关闭或底层纹理失效时重建；保留调用方选择的 clamp/blur。上传准备与注册分离，避免注册回调中的读取再次递归注册。
+- 已释放纹理的迟到读取返回原版已初始化缺失贴图的对应绑定，并排队清理旧注册；不重新解码或上传已释放模型，不吞掉存活纹理的真实上传异常。
+- 清理使用 Minecraft.schedule 真正延后执行，避免 TextureManager.close 遍历期间修改映射；通过 remove(location, this) 校验归属，不误删同位置的新对象。apply/迟到读取也安排清理，防止关闭对象被迟到注册后永久残留。
+- 资源重载 apply 消费并关闭其 TextureContents 副本；loadContents 与 close 同步，避免读取副本时释放源 NativeImage。
+- 固定尺寸纹理的脏像素更新原位写入，保留已有 GPU 纹理/视图。需要重建时在新视图创建和像素上传成功后再替换旧绑定；失败释放新分配并保留失败状态供重试，成功重建释放旧分配。
+
+回归实际执行生产 doLoad 和原版注册/关闭/查找，仅用记录 GPU 设备、纹理、视图和采样器替代驱动分配；NativeImage、TextureContents、SamplerCache 和 TextureManager 路径保持真实。覆盖缺失视图的延迟读取、关闭后批次读取、关闭后的 registerAndLoad、三种 GPU 访问器一致回退、重载副本释放、64 次同位置替换及归属清理、管理器遍历关闭、视图创建/像素上传失败清理及重试、64 次脏更新保持绑定和采样器，并断言所有测试纹理/视图释放。原有模型换肤、PBR 通道重建、预览、M6 子实例和 M7 CPU 同步子用例继续运行。无 GL/图形设备窗口，因此不声称真实驱动、GPU 输出或听感已通过。
+
+补充的 :common:ysmMaterialInputSmokeTest 逐模型材质断言执行后，在末尾写死 models == 40 && encrypted == 5 的旧数量断言失败；记录 FOLLOW_UP/CORPUS_COUNT_BASELINE，不修改 refs 或临时放宽计数来获取 PASS。完整失败日志 build/reports/ysm/texture-lifetime-corpus-count-followup.log，不能将该测试报告为通过；当前纹理生命周期针对性回归已通过。真实游戏中连续切换模型/皮肤及 F3+T 的窗口验收按授权保留 SKIPPED/MANUAL_BY_USER，不阻塞本次提交；不使用 offscreen、不改后端、不关闭计算机。
+
+自动结果：:common:ysmMaterialNativeSmokeTest 独立运行 BUILD SUCCESSFUL 58 秒/退出 0（5 tasks，3 executed、2 up-to-date），日志 build/reports/ysm/texture-lifetime-gate.log；补全实际非空采样器夹具后，该任务再次通过，随后同一命令的材质输入任务因上述旧计数失败。最终前台执行 :common:ysmControlledBaseGeometrySmokeTest :fabric:build --console=plain，BUILD SUCCESSFUL 42 秒/退出 0，16 tasks（10 executed、6 up-to-date），日志 build/reports/ysm/texture-lifetime-final-gate.log；保留末影龙娘既有五时刻姿势回归。未修改源代码后重复扩大测试范围；可读性、完整 diff 及 git diff --check 通过，按追加修复独立提交推送并核对远端 SHA。
+
+正式 JAR：fabric/build/libs/figura-0.1.5+26.1.2-fabric-mc.jar，12,820,483 字节，SHA-256：E76AD3655505297689987DC31DEAB4745966A189AE29A8FC6D8BDFB52C3EAD1C。前文产物哈希保留为历史记录。
