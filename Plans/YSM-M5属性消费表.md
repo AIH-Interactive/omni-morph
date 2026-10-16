@@ -1,6 +1,6 @@
 # M5 properties 输入、存储与消费表
 
-状态：实施中。此表用于保持原 M5 验收范围；未接入的行仍须在本阶段完成。仅保存到 JSON 或 DTO 不算消费通过。
+状态：M5 自动化验收已完成并提交推送（74a3a32），M8继续回归；真实窗口与用户取消的GUI显示按各自授权跳过。下文补充段保留实施时的历史记录，“尚需/下一步”以末节及主计划9.9最终记录为准。仅保存到JSON或DTO不算消费通过。
 
 输入为普通模型的 `ysm.json.properties`，以及 binary 的 `RawProperties` 经 `YsmBinaryMetadataMapper` 映射出的同名字段。`action_schemas` 是瞬时运行时输入；加密模型的 portable Avatar NBT 继续只保留源描述、密文与允许元数据。
 

@@ -1,0 +1,44 @@
+# YSM 兼容与使用说明
+
+本说明对应 Minecraft 26.1.2、Fabric Loader 0.18.6、Fabric API 0.145.4+26.1.2、Java 25，当前模组版本为 0.1.5。自动化在 Windows 11 amd64 / JDK 25.0.2 执行；其他操作系统尚未实测，不能从随包原生库推断跨平台已通过。
+
+## 加载与操作
+
+使用 Figura 原有模型目录、衣柜、模型控件页、动作轮和预览。原 Figura 目录/ZIP 仍走原来的加载路径；旧/新目录 YSM、ZIP 容器与加密 `.ysm` 直接识别，不需要导出明文模型、转换成 Figura 或添加辅助 Lua。模型缺少必要资源时会失败或报告缺引用，不会改写 `refs/avatars` 中的素材。
+
+控件复用 Figura 已有类型与样式。模型的 checkbox/radio/slider、动作分类、按住/松开与切换动作进入现有控件和动作轮；语言字典按当前语言、默认语言及原文回退。预览只使用 Figura 原有入口与操作。没有 YSM 独立页面、预览器、作者头像控件、预览背景/前景装饰或额外旋转限制；这些取消的 UI 项为 `SKIPPED/USER_UI_SCOPE`。
+
+加密源只在内存中单向解密。上传、缓存和普通导出中的加密模型保留原密文、摘要及允许元数据；解密资源不进入这些出口。Java 字符串及 GC 不能保证即时物理擦除，不能把清理拥有的字节缓冲理解为整个 JVM 的安全擦除。不要把本地辅助预览输出目录作为可分发模型包。
+
+## 格式与资源
+
+支持 crypto 1/2/3 的读取；内部 binary format 与 crypto 版本分开验证。固定非空向量覆盖 format 1/3/4/5/9/10/14/15/16/23/24/25/26/27/31/32 和显式无 DWORD 布局，未知版本受控拒绝。这不是对所有历史加密文件或未来版本的兼容承诺。
+
+几何、手臂、挂点、附件、动画/controller/functions、投射物/载具定义及资源走原生 YSM 运行时；包内 Vorbis/Opus、PNG/WebP/AVIF、normal/specular、语言与材质选择有实际消费者及清理路径。Iris 对应当前固定依赖 1.10.8+26.1-fabric；基础材质可以独立使用，PBR 的真实 shader 外观未验收。AVIF 依赖随包附带，不要求用户额外安装系统 libheif。
+
+普通 Figura 与 YSM 共享原有 Lua 环境；已经注册 `ysm_model`、`ysm_actions`。可用接口包括 `ysm_model:getPart(name)`、`getLocatorWorldMatrix(name)`、`setTexture(id)`、`playAnimation(name)`、`stopAnimation(name)` 和 `ysm_actions:getActions()`。使用前可用 `ysm_model:isYsm()` 判断当前模型；纯 YSM 加载和运行不要求 Lua。自定义跨观察者的数值选择通过模型已有的 `ysm.sync` / `@sync` 传递，不自动导出任意私有变量结构或解密字符串。
+
+## 联网与可选依赖
+
+M7 复用 Figura 上传及 Ping 通道。模型已经上传且 host 在线时才发送动态状态；owner 负责控件/动作及选择，observer 消费状态与有序事件。完整快照恢复晚加入和重连，旧代、旧模型与重复事件被拒绝。当前保守预算为滚动20 tick内1024字节/32条，含C2S头，YSM只使用普通Ping之外的剩余额度；每片480字节、整包32 KiB、待发事件最多64项，拥塞/超限不保证事件无损或实时到达。
+
+`omnm-cloud` 没有持久状态/历史重放接口。离线 owner 快照，以及观察者未见过乘坐、加入时已经空载的载具历史模型归属，为 `SKIPPED/BACKEND_BY_USER`；需要后端后续支持，当前没有修改后端。真实账号上传/下载、两个真实客户端与真实窗口验收为 `SKIPPED/MANUAL_BY_USER`，不能把 CPU 状态机回放理解为这些场景已通过。
+
+依赖特定第三方模组的 TAC、SlashBlade、ParCool、Carry On、Sophisticated Backpacks、Curios 等绑定当前按 M4 清单标记 `CAPABILITY_UNAVAILABLE`，沿已核对的参考中性值和类型契约返回；这不表示已实现那些模组的桥接。未解决的参考行为不伪造实现，精确逐项状态见 [M4绑定验收清单](YSM-M4绑定验收清单.md)。
+
+## 错误与已知限制
+
+| 分类 | 含义与处理 |
+| --- | --- |
+| `BAD_HEADER` / `TRUNCATED` | 检查文件是否完整、是否真为支持的容器，重新取得原包 |
+| `CHECKSUM_FAILED` / `DECRYPT_FAILED` / `DECOMPRESS_FAILED` | 源内容、加密或压缩校验失败，不把失败结果当作模型加载 |
+| `UNSUPPORTED_VERSION` | 未支持的版本；保留原包和版本信息用于后续定位 |
+| `RESOURCE_LIMIT` | 资源数、字节、像素、几何或解码预算超限；不要绕过预算加载 |
+| `INVALID_PATH` / `PATH_CONFLICT` | 绝对路径、逃逸或大小写冲突等不安全/含糊资源路径 |
+| `INVALID_DATA` / runtime阶段诊断 | 必需字段或资源错误；加密来源只给匿名阶段，不输出解密正文/key |
+
+当前语料45个来源（Figura5、明文YSM35、加密YSM5）均有加载/编译回归；严格YSM扫描是40/38/2，两个既有负例为 `08_sta` 的 `missing_state`、`16_tactics` 的 `your_backpack_animation` 缺引用。完整资源装配不等于这些缺引用动作可用。
+
+原 Figura 的部分 bbmodel 5 独立 groups 层级兼容问题记 `FOLLOW_UP/FIGURA_BB5_GROUPS`，两个原 Figura `arrow` 素材缺失诊断也保留；本计划没有扩展去修复这些源素材或原生解析器。原 Figura 发现、编译、贴图保留通过，不能扩大为所有脚本/最终外观完全兼容。
+
+真实 CJK 界面、挂点/朝向、透明/PBR、听感、游戏 p50/p95/p99 帧时间、显存、第三方模组实机均未据此声称通过。当前自动证据及性能统计的精确边界见 [M8验收矩阵](YSM-M8验收矩阵.md)。
