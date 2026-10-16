@@ -74,7 +74,7 @@ public final class YsmMaterialNativeSmokeTest {
                 return;
             }
             testScaleAndDefaultTexture(unsafe, client);
-            testPreviewAnimation(unsafe, client);
+            testPreviewDefaultPose(unsafe, client);
             testPreviewLighting(unsafe, client);
             testGuiResources(unsafe, client);
             testLayerOrder(unsafe, client);
@@ -136,7 +136,7 @@ public final class YsmMaterialNativeSmokeTest {
         }
     }
 
-    private static void testPreviewAnimation(Unsafe unsafe, RecordingClient client) throws Exception {
+    private static void testPreviewDefaultPose(Unsafe unsafe, RecordingClient client) throws Exception {
         Fixture fixture = new Fixture(unsafe, 35);
         var runtime = fixture.runtime;
         var world = runtime.owner().getMolangContext();
@@ -149,10 +149,10 @@ public final class YsmMaterialNativeSmokeTest {
             require(runtime.forRenderPass() == runtime, "world drawing keeps its original evaluator");
             runtime.owner().renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
             var preview = runtime.forRenderPass();
-            require(preview != runtime && preview.isPreviewRuntime(), "declared GUI clip gets a detached evaluator");
+            require(preview != runtime && preview.isPreviewRuntime(), "GUI default pose gets a detached evaluator");
             require(preview.owner().getYsmRuntime() == preview, "preview fn/ysm bindings resolve the detached runtime");
-            require(preview.animations().isActive("gui") && !preview.animations().isActive("idle"),
-                    "preview selects the declared clip instead of the world's base idle clip");
+            require(!preview.animations().isActive("gui") && !preview.animations().isActive("idle"),
+                    "preview ignores the declared GUI clip and world idle animation");
             require(runtime.animations().isActive("idle") && !runtime.animations().isActive("gui"),
                     "preview selection never changes world playback slots");
             require(runtime.animations().getActiveAnimation("idle").time == 0.25f,
@@ -166,32 +166,24 @@ public final class YsmMaterialNativeSmokeTest {
             require(((Number) world.variables.getPath("nested.child.value")).floatValue() == 3f
                             && world.variables.getPath("only_preview") == null,
                     "nested values and cyclic storage views cannot write into world variables");
-            var sample = org.figuramc.figura.model.ysm.animation.YsmAnimationPlayer.class
-                    .getDeclaredMethod("sampleAnimations", org.figuramc.figura.molang.runtime.ExpressionEvaluator.class, boolean.class);
-            sample.setAccessible(true);
-            var evaluator = org.figuramc.figura.molang.runtime.ExpressionEvaluator.evaluator(context);
-            preview.animations().getActiveAnimation("gui").time = 0.5f;
-            sample.invoke(preview.animations(), evaluator, false);
-            var pose = preview.captureRenderPose(false);
-            require(Math.abs(pose.part("root").animPosRaw().x - 40d) < 0.0001,
-                    "actual preview player samples the selected clip with its own function and animation time");
-            require(world.variables.getPath("preview_calls") == null && world.variables.getPath("preview_events") == null,
-                    "preview functions and zero-time events stay in the preview variable store");
             require(preview.geometry() != runtime.geometry(), "alpha/geometry state is independent");
             var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
-            state.ageInTicks = 20f;
-            org.figuramc.figura.model.ysm.animation.YsmRenderFrameClock.beginFrame();
-            preview.updateAnimations(state, null);
-            state.ageInTicks = 22f;
-            org.figuramc.figura.model.ysm.animation.YsmRenderFrameClock.beginFrame();
-            preview.updateAnimations(state, null);
-            float previewTime = preview.animations().getActiveAnimation("gui").time;
-            require(Math.abs(previewTime - 0.65f) < 0.0001,
-                    "the complete production update advances the preview's independent frame clock");
-            preview.updateAnimations(state, null);
-            require(preview.animations().getActiveAnimation("gui").time == previewTime
+            for (float age : new float[] {20f, 22f, 40f}) {
+                state.ageInTicks = age;
+                org.figuramc.figura.model.ysm.animation.YsmRenderFrameClock.beginFrame();
+                preview.updateAnimations(state, null);
+                var pose = preview.captureRenderPose(false);
+                require(pose.part("root").animPosRaw().lengthSquared() == 0d,
+                        "GUI rendering retains the default pose across animation frames");
+            }
+            require(!preview.animations().isActive("gui") && !preview.animations().isActive("idle")
                             && runtime.animations().getActiveAnimation("idle").time == 0.25f,
-                    "repeated GUI passes neither double-advance preview time nor advance world time");
+                    "GUI passes do not start preview clips or advance world playback");
+            require(context.variables.getPath("preview_calls") == null
+                            && context.variables.getPath("preview_events") == null
+                            && world.variables.getPath("preview_calls") == null
+                            && world.variables.getPath("preview_events") == null,
+                    "default-pose preview never executes animation functions or timeline events");
             require(preview.setTexture("clear"), "preview accepts a transparent private skin");
             require(preview.geometry().bones.get("root").cubes.getFirst().quads.stream().noneMatch(YsmGeometry.Quad::visible)
                             && runtime.geometry().bones.get("root").cubes.getFirst().quads.stream().anyMatch(YsmGeometry.Quad::visible),
@@ -208,9 +200,49 @@ public final class YsmMaterialNativeSmokeTest {
             require(recreated.texture() == runtime.texture(), "new preview borrows the current selected material");
             require(runtime.setTexture("clear"), "world material may change while preview remains open");
             require(runtime.forRenderPass() == recreated && recreated.texture() == runtime.texture(),
-                    "world skin changes update the borrowed preview material without restarting playback");
+                    "world skin changes update the borrowed preview material without changing the default pose");
             require(recreated.geometry().bones.get("root").cubes.getFirst().quads.stream().noneMatch(YsmGeometry.Quad::visible),
                     "borrowed material changes refresh the preview's own alpha metadata");
+            var previousScreen = client.screen;
+            try {
+                var settings = (org.figuramc.figura.gui.screens.AvatarControlsScreen) unsafe.allocateInstance(
+                        org.figuramc.figura.gui.screens.AvatarControlsScreen.class);
+                client.screen = settings;
+                require(runtime.forRenderPass() == runtime,
+                        "model settings preview renders the live runtime and its current action playback");
+                runtime.owner().controls.get("ysm.width_scale").setValue(1.1d);
+                require(Math.abs(runtime.forRenderPass().widthScale() - 1.1f) < 0.0001,
+                        "settings preview consumes changed controls immediately");
+                var sample = org.figuramc.figura.model.ysm.animation.YsmAnimationPlayer.class.getDeclaredMethod(
+                        "sampleAnimations", org.figuramc.figura.molang.runtime.ExpressionEvaluator.class, boolean.class);
+                sample.setAccessible(true);
+                sample.invoke(runtime.animations(),
+                        org.figuramc.figura.molang.runtime.ExpressionEvaluator.evaluator(world), false);
+                require(runtime.forRenderPass().captureRenderPose(false).part("root").animPosRaw().y == 16d,
+                        "settings preview reflects the live idle animation rather than the default or GUI clip");
+                client.screen = new org.figuramc.figura.gui.screens.AvatarScreen(1f, 0f, 0f, null, settings);
+                require(runtime.forRenderPass() == runtime,
+                        "expanded settings preview keeps the live runtime");
+            } finally {
+                client.screen = previousScreen;
+            }
+            for (String declaration : List.of("", "missing_preview_clip")) {
+                var input = fixture.runtimeTag.copy();
+                if (declaration.isEmpty()) {
+                    input.remove("preview_animation");
+                } else {
+                    input.putString("preview_animation", declaration);
+                }
+                try (var alternative = YsmModelRuntime.fromNbt(owner(unsafe, 55), input)) {
+                    alternative.owner().renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
+                    var alternativePreview = alternative.forRenderPass();
+                    require(alternativePreview != alternative && alternativePreview.isPreviewRuntime(),
+                            "omitted or invalid preview declarations still select the detached default pose");
+                    alternativePreview.updateAnimations(state, null);
+                    require(alternativePreview.captureRenderPose(false).part("root").animPosRaw().lengthSquared() == 0d,
+                            "default pose does not depend on an available preview animation");
+                }
+            }
             runtime.close();
             require(image(borrowed).isClosed() && runtime.forRenderPass() == runtime,
                     "model unload closes its preview and cannot recreate a retained preview evaluator");

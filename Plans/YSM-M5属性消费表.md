@@ -9,7 +9,7 @@
 | `width_scale` / 0.7 | `addYsmProperties` → runtime tag float；原 JSON 同时保留 | 默认控件 → `widthScale` → `applyModelScale`，主体/附件/手持物共用 | 正式装配/控件恢复及提交矩阵端到端通过：width=0.6、height=1.2，既有0.9375系数产生对角0.5625/1.125/0.5625 |
 | `height_scale` / 0.7 | 同上 | 默认控件 → `heightScale` → `applyModelScale` | 正式装配/控件恢复及提交矩阵端到端通过：width=0.6、height=1.2，既有0.9375系数产生对角0.5625/1.125/0.5625 |
 | `default_texture` / 首个可用纹理 | manifest；选择缓存优先于模型默认 | `YsmAvatarLoader.selectTexture` → runtime 整组材质 | 原生配对及磁盘恢复已通过；正式selectTexture验收非首项默认、缺失默认与空默认回退，缓存优先路径由原有磁盘恢复 gate 覆盖 |
-| `preview_animation` / 空 | loader string → 私有预览输入；不扩大加密portable字段 | FIGURA_GUI 通过独立Avatar/context/播放器/函数/几何求值所声明clip；借用当前主材质且独立换肤不关闭世界图像；控件变更重建预览 | 实际播放器/函数/零时刻事件/逐帧时钟、变量与alpha隔离、重建/卸载 gate 通过；40模型中33个声明均通过生产别名解析。真实预览外观 `SKIPPED/MANUAL_BY_USER` |
+| `preview_animation` / 空（历史实现，已由下述用户调整覆盖） | loader string → 私有预览输入；不扩大加密portable字段 | FIGURA_GUI 通过独立Avatar/context/播放器/函数/几何求值所声明clip；借用当前主材质且独立换肤不关闭世界图像；控件变更重建预览 | 实际播放器/函数/零时刻事件/逐帧时钟、变量与alpha隔离、重建/卸载 gate 通过；40模型中33个声明均通过生产别名解析。真实预览外观 `SKIPPED/MANUAL_BY_USER` |
 | `render_layers_first` / false | loader/runtime boolean | 主体使用原生提交桶 -1/1，相对 order0 的普通/特殊手持物先/后消费；附件按同字段排序 | nativeMaterial 验证原生排序桶与主体/附件调用顺序；GPU 遮挡外观 `SKIPPED/MANUAL_BY_USER` |
 | `all_cutout` / false | `addYsmProperties` → runtime tag boolean → runtime flag | 主体、手臂、附件共用 `YsmRenderer.renderType`，启用背面剔除；透明图仍保留 alpha blending、世界 output target 和排序 | nativeMaterial gate 检查原生 pipeline.isCull/hasBlending/target、开关兼容路径及换肤缓存；GPU 外观 `SKIPPED/MANUAL_BY_USER` |
 | `disable_preview_rotation` / false | loader/runtime 保留字段 | 按用户要求沿用 Figura 原预览操作，不向通用预览控件加入旋转限制 | `SKIPPED/USER_UI_SCOPE`；原 EntityPreview 恢复，字段装配不等于交互消费通过 |
@@ -53,3 +53,7 @@ Native material 夹具验证真正的生产逐帧 update、sample 与 fn 调用�
 最终 UI 约束覆盖此前接线记录：控件只复用 Figura 已定义的控件、页面和动作轮；预览使用恢复后的原 EntityPreview。作者图像、前/背景装饰、旋转限制不增加到 UI，记 SKIPPED/USER_UI_SCOPE。
 
 M5完整gate最终通过：49 smoke+绑定审计+冻结M4扫描baseline+Fabric build，2026-10-16，3分3秒/退出0；见主计划9.9。自动资源/引擎证据不覆盖人工实机项和用户取消的GUI显示项。
+
+## 2026-10-16 用户调整：默认姿势预览
+
+用户要求预览不再使用 preview-animation，而是默认姿势。此前声明 clip 的播放/时钟验收为历史记录；当前 Figura GUI 使用独立几何与材质生命周期的静态默认姿势，不启动动画、不更新动画时间或执行时间线事件。无 preview_animation 的模型也使用相同默认姿势路径。模型设置页及其放大预览按用户补充要求使用当前运行时，实时反映控件设置和动作/动画；设置页默认 yaw 从 180 改为 0，正面朝向镜头。世界播放、既有 Figura 控件及预览入口保持原有行为。自动回归与构建结果见主计划 9.13；真实游戏外观仍为 SKIPPED/MANUAL_BY_USER。
