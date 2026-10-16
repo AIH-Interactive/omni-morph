@@ -779,6 +779,18 @@ public class Avatar {
         }
     }
 
+    /** Creates a detached evaluator owner for a model preview; it is never registered with AvatarManager. */
+    public YsmModelRuntime createYsmPreviewRuntime(java.util.function.Function<Avatar, YsmModelRuntime> factory) {
+        Avatar preview = new Avatar(owner, entityType == null ? EntityType.PLAYER : entityType, entityName);
+        preview.renderMode = EntityRenderMode.FIGURA_GUI;
+        preview.molangContext = new MolangContext(preview);
+        if (molangContext != null) {
+            preview.molangContext.variables.copyValuesFrom(molangContext.variables);
+        }
+        preview.ysmRuntime = factory.apply(preview);
+        return preview.ysmRuntime;
+    }
+
     public Avatar(UUID owner) {
         this(owner, EntityType.PLAYER, EntityUtils.getNameForUUID(owner));
     }
@@ -799,6 +811,8 @@ public class Avatar {
         Runnable toRun = () -> {
             this.nbt = nbt;
             loaded = false;
+            controls.clear();
+            controls.setOnChange(null);
         };
 
         if (tasks == null || tasks.isDone()) {
@@ -849,6 +863,7 @@ public class Avatar {
                     ysmRuntime = ysmData == null
                             ? YsmModelRuntime.fromNbt(this, nbt.getCompoundOrEmpty("ysm"))
                             : YsmModelRuntime.fromData(this, ysmData, nbt.getCompoundOrEmpty("ysm"));
+                    ysmRuntime.restoreControls();
                     renderer = null;
                     hasTexture = true;
                 } else {
@@ -1681,6 +1696,8 @@ public class Avatar {
             ysmRuntime.close();
             ysmRuntime = null;
         }
+        controls.clear();
+        controls.setOnChange(null);
 
         clearSounds();
         clearParticles();

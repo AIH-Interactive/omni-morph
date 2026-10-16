@@ -12,6 +12,7 @@ import java.util.Map;
 public final class YsmRenderPose {
     private final Map<String, PartPose> parts;
     private final Matrix4f modelScale;
+    private final boolean unlit;
 
     private record Vector(double x, double y, double z) {
         private static Vector capture(FiguraVec3 value) {
@@ -42,18 +43,27 @@ public final class YsmRenderPose {
     }
 
     public static YsmRenderPose capture(Iterable<YsmModelPart> source, Matrix4f modelScale) {
+        return capture(source, modelScale, false);
+    }
+
+    public static YsmRenderPose capture(Iterable<YsmModelPart> source, Matrix4f modelScale, boolean unlit) {
         Map<String, PartPose> parts = new LinkedHashMap<>();
         for (YsmModelPart part : source) {
             PartPose pose = PartPose.capture(part);
             parts.put(part.getName(), pose);
             parts.putIfAbsent(part.getName().toLowerCase(Locale.US), pose);
         }
-        return new YsmRenderPose(parts, modelScale);
+        return new YsmRenderPose(parts, modelScale, unlit);
     }
 
-    private YsmRenderPose(Map<String, PartPose> parts, Matrix4f modelScale) {
+    private YsmRenderPose(Map<String, PartPose> parts, Matrix4f modelScale, boolean unlit) {
+        this.unlit = unlit;
         this.parts = Map.copyOf(parts);
         this.modelScale = new Matrix4f(modelScale);
+    }
+
+    boolean unlit() {
+        return unlit;
     }
 
     YsmModelPart part(String name) {

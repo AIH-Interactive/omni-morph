@@ -63,6 +63,15 @@ public final class YsmDataBoundarySmokeTest {
                         .equals(directory.identity().contentSha256()), "content identity reaches formal payload");
                 require(directory.resources().readString("lang/zh_cn.json").contains("测试"),
                         "language and other raw resources retained");
+                var runtimeTag = YsmAvatarLoader.toRuntimeTag(directory, null);
+                var sound = runtimeTag.getListOrEmpty("sound_entries").getCompoundOrEmpty(0);
+                require(sound.getStringOr("path", "").equals("sounds/example.ogg")
+                                && Arrays.equals(sound.getByteArray("data").orElseThrow(), files.get("sounds/example.ogg")),
+                        "runtime sound assembly preserves binary bytes and path");
+                var language = runtimeTag.getListOrEmpty("language_entries").getCompoundOrEmpty(0);
+                require(language.getStringOr("path", "").equals("lang/zh_cn.json")
+                                && Arrays.equals(language.getByteArray("data").orElseThrow(), files.get("lang/zh_cn.json")),
+                        "runtime language assembly preserves original UTF-8 bytes");
                 testDirectFaces(directory);
             }
             Files.move(zip, root.resolve("closed.ysm"));

@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
 
 @LuaWhitelist
 @LuaTypeDoc(
@@ -21,6 +23,9 @@ public class AvatarControlDefinition {
     private final String id;
     private final AvatarControlType type;
     private String title;
+    private Supplier<String> titleSupplier;
+    private Supplier<String> descriptionSupplier;
+    private BiFunction<Integer, String, String> optionLabelResolver;
     private String page = "root";
     private String category;
     private Object defaultValue;
@@ -34,12 +39,35 @@ public class AvatarControlDefinition {
     private String binding;
     private String targetPage;
     private boolean persistent = true;
+    private boolean liveBinding;
+    private boolean initialValueFromBinding;
     private LuaFunction onChange;
     private LuaFunction onPress;
 
     public AvatarControlDefinition(@LuaNotNil String id, @LuaNotNil AvatarControlType type) {
         this.id = id;
         this.type = type;
+    }
+
+    public AvatarControlDefinition setTitleSupplier(Supplier<String> supplier) {
+        titleSupplier = supplier;
+        return this;
+    }
+
+    public AvatarControlDefinition setDescriptionSupplier(Supplier<String> supplier) {
+        descriptionSupplier = supplier;
+        return this;
+    }
+
+    public AvatarControlDefinition setOptionLabelResolver(
+            BiFunction<Integer, String, String> resolver) {
+        optionLabelResolver = resolver;
+        return this;
+    }
+
+    public String optionLabel(String option) {
+        int index = options.indexOf(option);
+        return optionLabelResolver == null || index < 0 ? option : optionLabelResolver.apply(index, option);
     }
 
     public String id() {
@@ -75,11 +103,25 @@ public class AvatarControlDefinition {
     }
 
     public String description() {
-        return description;
+        return getDescription();
     }
 
     public boolean persistent() {
         return persistent;
+    }
+
+    public AvatarControlDefinition useLiveBinding(boolean readInitialValue) {
+        liveBinding = true;
+        initialValueFromBinding = readInitialValue;
+        return this;
+    }
+
+    public boolean liveBinding() {
+        return liveBinding;
+    }
+
+    public boolean initialValueFromBinding() {
+        return initialValueFromBinding;
     }
 
     public Map<String, String> optionCommands() {
@@ -121,6 +163,9 @@ public class AvatarControlDefinition {
     @LuaWhitelist
     @LuaMethodDoc("avatar_control.get_title")
     public String getTitle() {
+        if (titleSupplier != null) {
+            return titleSupplier.get();
+        }
         return title == null ? id : title;
     }
 
@@ -135,6 +180,7 @@ public class AvatarControlDefinition {
     )
     public AvatarControlDefinition setTitle(String title) {
         this.title = title;
+        titleSupplier = null;
         return this;
     }
 
@@ -151,7 +197,7 @@ public class AvatarControlDefinition {
     @LuaWhitelist
     @LuaMethodDoc("avatar_control.get_description")
     public String getDescription() {
-        return description;
+        return descriptionSupplier == null ? description : descriptionSupplier.get();
     }
 
     @LuaWhitelist
@@ -165,6 +211,7 @@ public class AvatarControlDefinition {
     )
     public AvatarControlDefinition setDescription(String description) {
         this.description = description;
+        descriptionSupplier = null;
         return this;
     }
 

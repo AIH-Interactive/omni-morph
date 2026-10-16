@@ -161,7 +161,7 @@ public class SoundAPI {
     public boolean isPresent(String id) {
         if (id == null)
             return false;
-        if (owner.customSounds.get(id) != null)
+        if (modelBuffer(id) != null || owner.customSounds.get(id) != null)
             return true;
         try {
             return Minecraft.getInstance().getSoundManager().getSoundEvent(Identifier.parse(id)) != null;
@@ -173,11 +173,26 @@ public class SoundAPI {
     @LuaWhitelist
     @LuaMethodDoc("sounds.get_custom_sounds")
     public Set<String> getCustomSounds() {
-        return owner.customSounds.keySet();
+        if (owner.getYsmRuntime() == null) {
+            return owner.customSounds.keySet();
+        }
+        Set<String> names = new java.util.HashSet<>(owner.customSounds.keySet());
+        names.addAll(owner.getYsmRuntime().audio().names());
+        return names;
+    }
+
+    private SoundBuffer modelBuffer(String id) {
+        return owner.getYsmRuntime() == null ? null : owner.getYsmRuntime().audio().get(id);
     }
 
     @LuaWhitelist
     public LuaSound __index(String id) {
+        if (modelBuffer(id) != null) {
+            LuaSound modelSound = owner.getYsmRuntime().audio().createSound(id);
+            if (modelSound != null) {
+                return modelSound;
+            }
+        }
         SoundBuffer buffer = owner.customSounds.get(id);
         if (buffer != null) {
             if (owner.permissions.get(Permissions.CUSTOM_SOUNDS) == 1) {

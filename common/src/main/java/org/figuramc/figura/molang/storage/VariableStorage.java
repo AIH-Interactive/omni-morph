@@ -7,8 +7,11 @@ import org.figuramc.figura.molang.runtime.Struct;
 import org.figuramc.figura.molang.runtime.binding.ObjectBinding;
 import org.figuramc.figura.molang.runtime.binding.ValueConversions;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -37,6 +40,71 @@ public class VariableStorage implements AssignableVariable, ObjectBinding {
 
     public VariableStorage() {
         initRoamingStruct();
+    }
+
+    /** Imports detached model variables without retaining the source evaluator's mutable storage. */
+    public void copyValuesFrom(VariableStorage source) {
+        if (source == this) {
+            return;
+        }
+        clear();
+        IdentityHashMap<Object, Object> copies = new IdentityHashMap<>();
+        copies.put(source, new VariableStorageStruct());
+        copyValues(source, copies, 0);
+    }
+
+    private void copyValues(VariableStorage source, IdentityHashMap<Object, Object> copies, int depth) {
+        source.scopedMap.forEach((name, value) -> scopedMap.put(name, detachedValue(value, copies, depth + 1)));
+        publicVariableNames.addAll(source.publicVariableNames);
+        fallbackValue = detachedValue(source.fallbackValue, copies, depth + 1);
+    }
+
+    private static Object detachedValue(Object value, IdentityHashMap<Object, Object> copies, int depth) {
+        if (value == null) {
+            return null;
+        }
+        if (copies.containsKey(value)) {
+            return copies.get(value);
+        }
+        if (depth > 64 || copies.size() > 16384) {
+            throw new IllegalArgumentException("Model value copy limit exceeded");
+        }
+        if (value instanceof HashMapStruct source) {
+            HashMapStruct copy = new HashMapStruct(source.isRightValue());
+            copies.put(value, copy);
+            source.forEachProperty((name, child) -> copy.putProperty(name, detachedValue(child, copies, depth + 1)));
+            return copy;
+        }
+        if (value instanceof VariableStorage.VariableStorageStruct source) {
+            VariableStorage storage = source.storage();
+            if (copies.containsKey(storage)) {
+                return copies.get(storage);
+            }
+            VariableStorage copy = new VariableStorage();
+            Struct view = copy.new VariableStorageStruct();
+            copies.put(value, view);
+            copies.put(storage, view);
+            copy.copyValues(storage, copies, depth + 1);
+            return view;
+        }
+        if (value instanceof RoamingStruct source) {
+            RoamingStruct copy = new RoamingStruct();
+            copy.values.putAll(source.values);
+            copies.put(value, copy);
+            return copy;
+        }
+        if (value instanceof Struct source) {
+            Struct copy = source.copy();
+            copies.put(value, copy);
+            return copy;
+        }
+        if (value instanceof List<?> source) {
+            List<Object> copy = new ArrayList<>();
+            copies.put(value, copy);
+            source.forEach(child -> copy.add(detachedValue(child, copies, depth + 1)));
+            return copy;
+        }
+        return value;
     }
 
     /**
@@ -244,6 +312,10 @@ public class VariableStorage implements AssignableVariable, ObjectBinding {
      * Struct wrapper that allows property access via StringPool IDs.
      */
     public class VariableStorageStruct implements org.figuramc.figura.molang.runtime.Struct {
+        private VariableStorage storage() {
+            return VariableStorage.this;
+        }
+
         @Override
         public Object getProperty(int name) {
             Object value = scopedMap.get(name);

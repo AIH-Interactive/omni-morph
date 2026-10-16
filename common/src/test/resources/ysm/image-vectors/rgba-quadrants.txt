@@ -1,0 +1,12 @@
+Independent synthetic AVIF fixture, created for this repository (no model assets).
+
+Generated with Pillow 12.3.0 using a 16x16 RGBA image and AVIF quality=100,
+alpha_quality=100, subsampling=4:4:4. The quadrants are:
+- top-left: red (255, 0, 0, 255)
+- top-right: green (0, 255, 0, 128)
+- bottom-left: blue (0, 0, 255, 64)
+- bottom-right: white (255, 255, 255, 0)
+
+Tests sample pixels inside each quadrant, allow two RGB/alpha code values for
+8-bit YUV conversion, and ignore hidden RGB values in the fully transparent area.
+The committed fixture is read directly; Pillow is not a build/test dependency.

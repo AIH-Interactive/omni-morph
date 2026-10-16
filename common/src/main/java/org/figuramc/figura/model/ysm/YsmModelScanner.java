@@ -136,6 +136,11 @@ public final class YsmModelScanner {
             kind = manifest.kind();
             YsmResourceIndex index = manifest.resourceIndex();
             try (YsmResourceSource ysmPackage = data == null ? YsmPackage.open(path) : data.resources()) {
+                JsonObject properties = ysmPackage.exists("ysm.json")
+                        ? JsonParser.parseString(ysmPackage.readString("ysm.json")).getAsJsonObject()
+                                .getAsJsonObject("properties") : null;
+                boolean mergeMultilineExpressions = properties != null && properties.has("merge_multiline_expr")
+                        && properties.get("merge_multiline_expr").getAsBoolean();
                 if (!index.hasMainModel()) {
                     errors.add("missing main model");
                 } else {
@@ -166,7 +171,7 @@ public final class YsmModelScanner {
                         if (declaredClips == null) {
                             throw new IOException("missing animations object");
                         }
-                        Map<String, ?> clips = YsmAnimationParser.parse(animationJson, false, null);
+                        Map<String, ?> clips = YsmAnimationParser.parse(animationJson, false, null, mergeMultilineExpressions);
                         if (clips.size() != declaredClips.size()) {
                             throw new IOException("animation parser did not consume all declared clips");
                         }
@@ -195,7 +200,7 @@ public final class YsmModelScanner {
                                                 + diagnostic.controller() + "' state='" + diagnostic.state()
                                                 + "': " + diagnostic.message());
                                     }
-                                });
+                                }, mergeMultilineExpressions);
                         int declaredCount = declaredControllers.isJsonObject()
                                 ? declaredControllers.getAsJsonObject().size() : declaredControllers.getAsJsonArray().size();
                         if (controllers.size() != declaredCount) {

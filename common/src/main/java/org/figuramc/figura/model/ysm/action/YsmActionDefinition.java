@@ -3,6 +3,7 @@ package org.figuramc.figura.model.ysm.action;
 import org.figuramc.figura.lua.LuaWhitelist;
 import org.figuramc.figura.lua.docs.LuaMethodDoc;
 import org.figuramc.figura.lua.docs.LuaTypeDoc;
+import java.util.function.Supplier;
 
 @LuaWhitelist
 @LuaTypeDoc(
@@ -12,6 +13,7 @@ import org.figuramc.figura.lua.docs.LuaTypeDoc;
 public class YsmActionDefinition {
     private final String id;
     private String title;
+    private Supplier<String> titleSupplier;
     private String animation;
     private String page = "root";
     private String mode = "press";
@@ -24,6 +26,11 @@ public class YsmActionDefinition {
         this.id = id;
         this.title = id;
         this.animation = id;
+    }
+
+    public YsmActionDefinition setTitleSupplier(Supplier<String> supplier) {
+        titleSupplier = supplier;
+        return this;
     }
 
     @LuaWhitelist
@@ -40,6 +47,9 @@ public class YsmActionDefinition {
     @LuaWhitelist
     @LuaMethodDoc("ysm_action.get_title")
     public String getTitle() {
+        if (titleSupplier != null) {
+            return titleSupplier.get();
+        }
         return title == null ? id : title;
     }
 
@@ -52,6 +62,7 @@ public class YsmActionDefinition {
     @LuaMethodDoc("ysm_action.set_title")
     public YsmActionDefinition setTitle(String title) {
         this.title = title;
+        titleSupplier = null;
         return this;
     }
 

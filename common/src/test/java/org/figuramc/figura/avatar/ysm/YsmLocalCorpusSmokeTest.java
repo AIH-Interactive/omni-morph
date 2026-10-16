@@ -35,6 +35,7 @@ public final class YsmLocalCorpusSmokeTest {
                                      YsmSourceIdentity.ContainerKind.DIRECTORY, () -> false)) {
                             var nbt = YsmAvatarLoader.toAvatarNbt(data, null, new UUID(0, 1), path);
                             require(nbt.contains("ysm") && !data.mainGeometry().bones.isEmpty(), "YSM formal data assembly");
+                            verifyAttachedResources(data, nbt.getCompoundOrEmpty("ysm"));
                         }
                         ysm++;
                         System.out.println("YSM_DATA_OK " + path.getFileName());
@@ -65,6 +66,25 @@ public final class YsmLocalCorpusSmokeTest {
         }
     }
 
+    private static void verifyAttachedResources(YsmModelData data, net.minecraft.nbt.CompoundTag runtime)
+            throws Exception {
+        verifyAttachedResources(data, runtime, "sound_entries", data.manifest().resourceIndex().soundPaths());
+        verifyAttachedResources(data, runtime, "language_entries", data.manifest().resourceIndex().languagePaths());
+    }
+
+    private static void verifyAttachedResources(YsmModelData data, net.minecraft.nbt.CompoundTag runtime,
+                                                String key, java.util.List<String> paths) throws Exception {
+        var entries = runtime.getListOrEmpty(key);
+        require(entries.size() == paths.size(), "all indexed attached resources assembled: " + key);
+        for (int index = 0; index < entries.size(); index++) {
+            var entry = entries.getCompoundOrEmpty(index);
+            String path = entry.getStringOr("path", "");
+            require(path.equals(paths.get(index)), "attached resource path order retained: " + key);
+            require(Arrays.equals(entry.getByteArray("data").orElseThrow(), data.resources().readBytes(path)),
+                    "attached resource bytes retained: " + key);
+        }
+    }
+
     private static void compileEncrypted(Path path) throws Exception {
         require(YsmEncryptedSource.hasMagic(path), "encrypted corpus header");
         require(LocalAvatarFetcher.isLoadableAvatar(path), "encrypted wardrobe discovery");
@@ -81,6 +101,9 @@ public final class YsmLocalCorpusSmokeTest {
             require(Arrays.equals(Files.readAllBytes(path), payload.getByteArray("source_ciphertext").orElseThrow()),
                     "original ciphertext retained");
             var runtime = YsmAvatarLoader.toRuntimeTag(data, texture);
+            verifyAttachedResources(data, runtime);
+            require(!payload.contains("sound_entries") && !payload.contains("language_entries"),
+                    "decrypted sound/language bytes remain outside the portable payload");
             require(!runtime.contains("source_ciphertext") && runtime.contains("texture"), "ephemeral runtime resources");
             require(runtime.getListOrEmpty("animations").size() == data.manifest().animationPaths().size(),
                     "all player animation resources retained");

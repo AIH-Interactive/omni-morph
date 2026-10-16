@@ -65,7 +65,21 @@ public final class YsmBinaryResourceMapper {
         player.add("model", models);
         player.add("animation", strings(animations));
         player.add("animation_controllers", strings(controllers));
-        player.add("texture", strings(textures.stream().map(YsmTextureOption::path).toList()));
+        JsonArray textureDefinitions = new JsonArray();
+        for (YsmTextureOption texture : textures) {
+            JsonObject definition = new JsonObject();
+            definition.addProperty("id", texture.id());
+            definition.addProperty("name", texture.displayName());
+            definition.addProperty("uv", texture.path());
+            if (!texture.normalPath().isBlank()) {
+                definition.addProperty("normal", texture.normalPath());
+            }
+            if (!texture.specularPath().isBlank()) {
+                definition.addProperty("specular", texture.specularPath());
+            }
+            textureDefinitions.add(definition);
+        }
+        player.add("texture", textureDefinitions);
         JsonObject definitions = new JsonObject();
         definitions.add("player", player);
         JsonArray projectiles = entities(raw.projectiles, "projectile");
@@ -148,7 +162,6 @@ public final class YsmBinaryResourceMapper {
             String path = stem + ".png";
             addOwned(path, YsmTextureDecoder.toPng(texture.data, texture.imageFormat,
                     texture.width, texture.height, budget));
-            options.add(new YsmTextureOption(texture.name, texture.name, path));
             JsonObject material = new JsonObject();
             material.addProperty("id", texture.name);
             material.addProperty("path", path);
@@ -158,12 +171,19 @@ public final class YsmBinaryResourceMapper {
             material.addProperty("height", texture.height);
             material.addProperty("unknown_flag", texture.unknownFlag);
             JsonArray subtextures = new JsonArray();
+            String normalPath = "";
+            String specularPath = "";
             int subIndex = 0;
             for (var sub : texture.subTextures) {
                 String subStem = stem + "_sub_" + subIndex++;
                 add(subStem + ".encoded", sub.data);
                 hashes.addProperty(subStem + ".encoded", sub.hash);
                 addOwned(subStem + ".png", YsmTextureDecoder.toPng(sub.data, sub.imageFormat, sub.width, sub.height, budget));
+                if (sub.specularType == 1) {
+                    normalPath = subStem + ".png";
+                } else if (sub.specularType == 2) {
+                    specularPath = subStem + ".png";
+                }
                 JsonObject descriptor = new JsonObject();
                 descriptor.addProperty("type", sub.specularType);
                 descriptor.addProperty("path", subStem + ".png");
@@ -176,6 +196,7 @@ public final class YsmBinaryResourceMapper {
             }
             material.add("sub_textures", subtextures);
             json(stem + ".material.json", material);
+            options.add(new YsmTextureOption(texture.name, texture.name, path, normalPath, specularPath));
         }
         return options;
     }
@@ -183,11 +204,11 @@ public final class YsmBinaryResourceMapper {
     private String metadataImage(YsmBinaryModel.RawImage image) throws IOException {
         String stem = "metadata/images/" + imageIndex++;
         if (image.format == 5 && isAvif(image.data)) {
-            // M2 preserves encoded metadata assets. M5 must supply their image codec before display is supported.
+            // Preserve encoded author images. User scope retains Figura UI without additional image widgets.
             budget.pixels(image.width, image.height, "mapping/encoded-metadata-pixels", 0);
             String path = stem + ".avif";
             add(path, image.data);
-            warnings.add("CAPABILITY_PENDING: AVIF metadata image " + path);
+            warnings.add("UI_SKIPPED_BY_USER: AVIF metadata author image " + path);
             return path;
         }
         add(stem + ".encoded", image.data);

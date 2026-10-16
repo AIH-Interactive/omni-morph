@@ -1,10 +1,12 @@
 package org.figuramc.figura.model.ysm.action;
 
 import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.model.ysm.animation.YsmAnimationPlayer;
 import org.figuramc.figura.molang.storage.StringPool;
 import org.figuramc.figura.model.ysm.YsmModelRuntime;
 import org.figuramc.figura.model.ysm.animation.YsmAnimationClip;
 
+import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -13,7 +15,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-public class YsmActionRuntime {
+public class YsmActionRuntime implements AutoCloseable {
     private static final Set<String> NATIVE_STATES = Set.of(
             "idle", "walk", "run", "sneak", "sneaking", "jump", "fall", "fly", "elytra_fly",
             "swim", "swim_stand", "sit", "ride", "sleep", "death", "die"
@@ -22,6 +24,7 @@ public class YsmActionRuntime {
     private final YsmModelRuntime runtime;
     private final LinkedHashMap<String, YsmActionDefinition> actions = new LinkedHashMap<>();
     private final Map<String, Integer> cooldownUntil = new HashMap<>();
+    private boolean closed;
 
     public YsmActionRuntime(YsmModelRuntime runtime) {
         this.runtime = runtime;
@@ -76,13 +79,10 @@ public class YsmActionRuntime {
 
     public boolean trigger(String id) {
         YsmActionDefinition action = get(id);
-        if (action == null || action.getAnimation() == null)
+        if (closed || action == null || action.getAnimation() == null)
             return false;
         String normalized = normalize(action.getId());
         int tick = FiguraMod.ticks;
-        int availableAt = cooldownUntil.getOrDefault(normalized, 0);
-        if (tick < availableAt)
-            return false;
         String mode = action.getMode();
         if ("toggle".equals(mode) && isActive(id)) {
             stop(id);
@@ -90,9 +90,16 @@ public class YsmActionRuntime {
                 cooldownUntil.put(normalized, tick + action.getCooldownTicks());
             return true;
         }
+        int availableAt = cooldownUntil.getOrDefault(normalized, 0);
+        if (tick < availableAt)
+            return false;
         boolean loop = action.isLoop() || "toggle".equals(mode) || "hold".equals(mode) || Boolean.TRUE.equals(runtime.owner().controls.getValue("ysm.action_loop"));
         Object speedValue = runtime.owner().controls.getValue("ysm.action_speed");
-        float speed = action.getSpeed() > 0f ? action.getSpeed() : speedValue instanceof Number number ? number.floatValue() : 1f;
+        float speed = positiveSpeed(action.getSpeed());
+        if (speedValue instanceof Number number) {
+            speed *= positiveSpeed(number.floatValue());
+        }
+        speed = positiveSpeed(speed);
         stopOthers(normalized);
         boolean played = runtime.animations().play(action.getAnimation(), loop, speed) != null;
         if (played)
@@ -100,6 +107,70 @@ public class YsmActionRuntime {
         if (played && action.getCooldownTicks() > 0)
             cooldownUntil.put(normalized, tick + action.getCooldownTicks());
         return played;
+    }
+
+    private static float positiveSpeed(float speed) {
+        return Float.isFinite(speed) && speed > 0f ? speed : 1f;
+    }
+
+    @Override
+    public void close() {
+        closed = true;
+        stopAll();
+        cooldownUntil.clear();
+        actions.clear();
+    }
+
+    /** One input source owns only the hold instance it started; it never owns a toggle or press action. */
+    public static final class Press {
+        private WeakReference<YsmActionRuntime> heldRuntime = new WeakReference<>(null);
+        private WeakReference<YsmAnimationPlayer.PlayingAnimation> heldAnimation =
+                new WeakReference<>(null);
+        private String animationName;
+        private long playbackGeneration;
+
+        public boolean press(YsmActionRuntime actions, String id) {
+            YsmActionDefinition action = actions == null ? null : actions.get(id);
+            if (action == null || action.getAnimation() == null) {
+                return false;
+            }
+            YsmAnimationPlayer.PlayingAnimation held = heldAnimation.get();
+            if (heldRuntime.get() == actions && action.getAnimation().equals(animationName)
+                    && held != null && held.playbackGeneration == playbackGeneration
+                    && actions.runtime.animations().getActiveAnimation(animationName) == held) {
+                return true;
+            }
+            release();
+            if (!actions.trigger(id)) {
+                return false;
+            }
+            if ("hold".equals(action.getMode())) {
+                YsmAnimationPlayer.PlayingAnimation playing =
+                        actions.runtime.animations().getActiveAnimation(action.getAnimation());
+                if (playing != null) {
+                    animationName = action.getAnimation();
+                    heldRuntime = new WeakReference<>(actions);
+                    heldAnimation = new WeakReference<>(playing);
+                    playbackGeneration = playing.playbackGeneration;
+                }
+            }
+            return true;
+        }
+
+        public boolean release() {
+            YsmActionRuntime actions = heldRuntime.get();
+            YsmAnimationPlayer.PlayingAnimation animation = heldAnimation.get();
+            String name = animationName;
+            heldRuntime.clear();
+            heldAnimation.clear();
+            animationName = null;
+            if (actions == null || animation == null || animation.playbackGeneration != playbackGeneration
+                    || actions.runtime.animations().getActiveAnimation(name) != animation) {
+                return false;
+            }
+            actions.runtime.animations().stop(name);
+            return true;
+        }
     }
 
     public void stop(String id) {

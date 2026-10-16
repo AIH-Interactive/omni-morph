@@ -1,11 +1,13 @@
 package org.figuramc.figura.avatar.control;
 
+import com.google.common.hash.Hashing;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.utils.IOUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,19 +19,37 @@ public final class AvatarControlValueStore {
     }
 
     public static void apply(Avatar avatar, AvatarControlDefinition control) {
+        applySavedValue(avatar, control);
+    }
+
+    static boolean applySavedValue(Avatar avatar, AvatarControlDefinition control) {
         if (avatar == null || control == null || !isPersistent(control))
-            return;
+            return false;
         load();
-        StoredValue value = VALUES.getOrDefault(key(avatar), Map.of()).get(control.id());
-        if (value != null)
+        StoredValue value = VALUES.getOrDefault(key(avatar), Map.of()).get(controlKey(avatar, control));
+        if (value != null) {
             control.setValue(value.value());
+            return true;
+        }
+        return false;
     }
 
     public static void save(Avatar avatar, AvatarControlDefinition control) {
         if (avatar == null || control == null || !isPersistent(control))
             return;
+        Object value = control.getValue();
+        if (hasModelKey(avatar) && control.type() == AvatarControlType.ENUM) {
+            int labelIndex = control.options().indexOf(String.valueOf(value));
+            Integer index = labelIndex >= 0 ? labelIndex : AvatarControlRuntime.optionIndex(value);
+            if (index == null || index < 0 || index >= control.options().size()) {
+                return;
+            }
+            // Persist the user's choice, not a potentially private model label.
+            value = index;
+        }
         load();
-        VALUES.computeIfAbsent(key(avatar), ignored -> new HashMap<>()).put(control.id(), StoredValue.from(control.getValue()));
+        VALUES.computeIfAbsent(key(avatar), ignored -> new HashMap<>())
+                .put(controlKey(avatar, control), StoredValue.from(value));
         save();
     }
 
@@ -86,10 +106,25 @@ public final class AvatarControlValueStore {
     }
 
     private static String key(Avatar avatar) {
-        return avatar.owner == null ? "" : avatar.owner.toString();
+        String owner = avatar.owner == null ? "" : avatar.owner.toString();
+        String model = avatar.controls == null ? null : avatar.controls.modelKey();
+        return model == null || model.isBlank() ? owner : owner + ":ysm:" + model;
     }
 
-        private record StoredValue(String type, String stringValue, float numberValue, boolean booleanValue) {
+    private static boolean hasModelKey(Avatar avatar) {
+        return avatar.controls != null && avatar.controls.modelKey() != null
+                && !avatar.controls.modelKey().isBlank();
+    }
+
+    private static String controlKey(Avatar avatar, AvatarControlDefinition control) {
+        if (!hasModelKey(avatar)) {
+            return control.id();
+        }
+        // YSM form IDs may contain their read expression; only persist an opaque stable identity.
+        return "control:" + Hashing.sha256().hashString(control.id(), StandardCharsets.UTF_8);
+    }
+
+    private record StoredValue(String type, String stringValue, float numberValue, boolean booleanValue) {
         static StoredValue from(Object value) {
             if (value instanceof Boolean bool)
                 return new StoredValue("boolean", "", 0f, bool);

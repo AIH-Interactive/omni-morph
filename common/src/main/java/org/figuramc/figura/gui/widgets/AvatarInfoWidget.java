@@ -65,8 +65,11 @@ public class AvatarInfoWidget implements FiguraWidget, FiguraTickable, GuiEventL
         // update values
         Avatar avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
         if (avatar != null && avatar.nbt != null) {
-            values.set(0, avatar.name == null || avatar.name.isBlank() ? UNKNOWN : Emojis.applyEmojis(Component.literal(avatar.name).setStyle(accent))); // name
-            values.set(1, avatar.authors == null || avatar.authors.isBlank() ? UNKNOWN : Emojis.applyEmojis(Component.literal(avatar.authors).setStyle(accent))); // authors
+            var runtime = avatar.getYsmRuntime();
+            String name = runtime == null ? avatar.name : runtime.translations().get("metadata.name", avatar.name);
+            String authors = runtime == null ? avatar.authors : runtime.translations().authors(avatar.authors);
+            values.set(0, name == null || name.isBlank() ? UNKNOWN : Emojis.applyEmojis(Component.literal(name).setStyle(accent)));
+            values.set(1, authors == null || authors.isBlank() ? UNKNOWN : Emojis.applyEmojis(Component.literal(authors).setStyle(accent)));
             values.set(2, Component.literal(MathUtils.asFileSize(avatar.fileSize)).setStyle(accent)); // size
             values.set(3, Component.literal(String.valueOf(avatar.complexity.pre)).setStyle(accent)); // complexity
         } else {

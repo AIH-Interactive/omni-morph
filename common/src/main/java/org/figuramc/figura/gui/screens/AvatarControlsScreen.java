@@ -303,6 +303,11 @@ public class AvatarControlsScreen extends Screen {
         for (AvatarControlDefinition control : controls) {
             if (y > contentTop() - ROW_HEIGHT && y < height - FOOTER_HEIGHT) {
                 renderControlLabel(gui, control, controlsX + 10, y);
+                String description = control.getDescription();
+                if (description != null && !description.isBlank() && mouseX >= controlsX
+                        && mouseX < controlsX + controlsWidth && mouseY >= y && mouseY < y + rowHeight(control)) {
+                    gui.setTooltipForNextFrame(minecraft.font, Component.literal(description), mouseX, mouseY);
+                }
                 if (control.type() == AvatarControlType.COLOR)
                     renderColorPreview(gui, controlsX + controlsWidth - 214, y + 5, valueText(control));
             }
@@ -1037,6 +1042,11 @@ public class AvatarControlsScreen extends Screen {
     }
 
     private static String optionText(AvatarControlDefinition control, Object value) {
+        String raw = rawOptionText(control, value);
+        return raw == null ? null : control.optionLabel(raw);
+    }
+
+    private static String rawOptionText(AvatarControlDefinition control, Object value) {
         if (control == null || value == null)
             return null;
         String text = value.toString();
@@ -1183,9 +1193,9 @@ public class AvatarControlsScreen extends Screen {
             this.control = control;
             this.context = new ContextMenu(this, width);
             for (String option : control.options()) {
-                this.context.addAction(Component.literal(option), null, button -> {
+                this.context.addAction(Component.literal(control.optionLabel(option)), null, button -> {
                     avatar.controls.setValue(avatar, control.id(), option);
-                    this.setMessage(Component.literal(option));
+                    this.setMessage(Component.literal(control.optionLabel(option)));
                     this.context.setVisible(false);
                     openDropdown = null;
                 });
@@ -1229,9 +1239,9 @@ public class AvatarControlsScreen extends Screen {
         private void updateContextText() {
             List<? extends net.minecraft.client.gui.components.AbstractWidget> entries = context.getEntries();
             List<String> options = control.options();
-            String selected = valueText(control);
+            String selected = rawOptionText(control, control.getValue());
             for (int i = 0; i < options.size() && i < entries.size(); i++) {
-                Component text = Component.literal(options.get(i));
+                Component text = Component.literal(control.optionLabel(options.get(i)));
                 if (options.get(i).equals(selected))
                     text = Component.empty().setStyle(FiguraMod.getAccentColor()).withStyle(ChatFormatting.UNDERLINE).append(text);
                 entries.get(i).setMessage(text);

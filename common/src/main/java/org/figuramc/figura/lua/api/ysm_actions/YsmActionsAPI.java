@@ -1,7 +1,9 @@
 package org.figuramc.figura.lua.api.ysm_actions;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.Minecraft;
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.gui.screens.AvatarControlsScreen;
 import org.figuramc.figura.lua.LuaNotNil;
 import org.figuramc.figura.lua.LuaWhitelist;
 import org.figuramc.figura.lua.api.keybind.FiguraKeybind;
@@ -9,6 +11,7 @@ import org.figuramc.figura.lua.docs.LuaMethodDoc;
 import org.figuramc.figura.lua.docs.LuaTypeDoc;
 import org.figuramc.figura.model.ysm.YsmModelRuntime;
 import org.figuramc.figura.model.ysm.action.YsmActionDefinition;
+import org.figuramc.figura.model.ysm.action.YsmActionRuntime;
 import org.figuramc.figura.model.ysm.action.YsmActionWheelLayoutStore;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.Varargs;
@@ -143,7 +146,7 @@ public class YsmActionsAPI {
     public boolean triggerWheelPageSlot(@LuaNotNil String page, int slot) {
         YsmModelRuntime runtime = owner.getYsmRuntime();
         YsmActionDefinition action = wheelSlotOwner(runtime, page, slot);
-        return runtime != null && action != null && runtime.actions().trigger(action.getId());
+        return triggerAction(runtime, action, null);
     }
 
     @LuaWhitelist
@@ -169,8 +172,10 @@ public class YsmActionsAPI {
     @LuaWhitelist
     @LuaMethodDoc("ysm_actions.bind_wheel_page_slot")
     public FiguraKeybind bindWheelPageSlot(String name, @LuaNotNil String page, int slot, String key, boolean gui) {
-        if (owner.luaRuntime == null)
+        YsmModelRuntime boundRuntime = owner.getYsmRuntime();
+        if (owner.luaRuntime == null || boundRuntime == null)
             return null;
+        YsmActionRuntime.Press input = new YsmActionRuntime.Press();
         String bindingName = name == null || name.isBlank() ? "YSM " + page + " " + slot : name;
         InputConstants.Key parsedKey = FiguraKeybind.parseStringKey(key == null || key.isBlank() ? "key.keyboard.unknown" : key);
         FiguraKeybind binding = new FiguraKeybind(owner, bindingName, parsedKey).gui(gui);
@@ -178,9 +183,14 @@ public class YsmActionsAPI {
         binding.press = new VarArgFunction() {
             @Override
             public Varargs invoke(Varargs args) {
-                return LuaValue.valueOf(triggerWheelPageSlot(page, slot));
+                if (owner.getYsmRuntime() != boundRuntime) {
+                    return LuaValue.FALSE;
+                }
+                YsmActionDefinition action = wheelSlotOwner(boundRuntime, page, slot);
+                return LuaValue.valueOf(triggerAction(boundRuntime, action, input));
             }
         };
+        binding.release = new HoldRelease(input);
         owner.luaRuntime.keybinds.keyBindings.add(binding);
         return binding;
     }
@@ -193,7 +203,8 @@ public class YsmActionsAPI {
     @LuaWhitelist
     @LuaMethodDoc("ysm_actions.bind_toggle_wheel_page_slot")
     public FiguraKeybind bindToggleWheelPageSlot(String name, @LuaNotNil String page, int slot, String key, boolean gui) {
-        if (owner.luaRuntime == null)
+        YsmModelRuntime boundRuntime = owner.getYsmRuntime();
+        if (owner.luaRuntime == null || boundRuntime == null)
             return null;
         String bindingName = name == null || name.isBlank() ? "YSM Toggle " + page + " " + slot : name;
         InputConstants.Key parsedKey = FiguraKeybind.parseStringKey(key == null || key.isBlank() ? "key.keyboard.unknown" : key);
@@ -204,13 +215,13 @@ public class YsmActionsAPI {
             public Varargs invoke(Varargs args) {
                 YsmModelRuntime runtime = owner.getYsmRuntime();
                 YsmActionDefinition action = wheelSlotOwner(runtime, page, slot);
-                if (runtime == null || action == null)
+                if (runtime != boundRuntime || action == null)
                     return LuaValue.FALSE;
                 if (runtime.actions().isActive(action.getId())) {
                     runtime.actions().stop(action.getId());
                     return LuaValue.TRUE;
                 }
-                return LuaValue.valueOf(runtime.actions().trigger(action.getId()));
+                return LuaValue.valueOf(triggerAction(runtime, action, null));
             }
         };
         owner.luaRuntime.keybinds.keyBindings.add(binding);
@@ -236,8 +247,10 @@ public class YsmActionsAPI {
     @LuaWhitelist
     @LuaMethodDoc("ysm_actions.bind_action")
     public FiguraKeybind bindAction(String name, @LuaNotNil String id, String key, boolean gui) {
-        if (owner.luaRuntime == null)
+        YsmModelRuntime boundRuntime = owner.getYsmRuntime();
+        if (owner.luaRuntime == null || boundRuntime == null)
             return null;
+        YsmActionRuntime.Press input = new YsmActionRuntime.Press();
         String bindingName = name == null || name.isBlank() ? "YSM Action " + id : name;
         InputConstants.Key parsedKey = FiguraKeybind.parseStringKey(key == null || key.isBlank() ? "key.keyboard.unknown" : key);
         FiguraKeybind binding = new FiguraKeybind(owner, bindingName, parsedKey).gui(gui);
@@ -245,9 +258,11 @@ public class YsmActionsAPI {
         binding.press = new VarArgFunction() {
             @Override
             public Varargs invoke(Varargs args) {
-                return LuaValue.valueOf(trigger(id));
+                return LuaValue.valueOf(owner.getYsmRuntime() == boundRuntime
+                        && triggerAction(boundRuntime, boundRuntime.actions().get(id), input));
             }
         };
+        binding.release = new HoldRelease(input);
         owner.luaRuntime.keybinds.keyBindings.add(binding);
         return binding;
     }
@@ -260,7 +275,8 @@ public class YsmActionsAPI {
     @LuaWhitelist
     @LuaMethodDoc("ysm_actions.bind_toggle_action")
     public FiguraKeybind bindToggleAction(String name, @LuaNotNil String id, String key, boolean gui) {
-        if (owner.luaRuntime == null)
+        YsmModelRuntime boundRuntime = owner.getYsmRuntime();
+        if (owner.luaRuntime == null || boundRuntime == null)
             return null;
         String bindingName = name == null || name.isBlank() ? "YSM Toggle Action " + id : name;
         InputConstants.Key parsedKey = FiguraKeybind.parseStringKey(key == null || key.isBlank() ? "key.keyboard.unknown" : key);
@@ -270,13 +286,13 @@ public class YsmActionsAPI {
             @Override
             public Varargs invoke(Varargs args) {
                 YsmModelRuntime runtime = owner.getYsmRuntime();
-                if (runtime == null)
+                if (runtime != boundRuntime)
                     return LuaValue.FALSE;
                 if (runtime.actions().isActive(id)) {
                     runtime.actions().stop(id);
                     return LuaValue.TRUE;
                 }
-                return LuaValue.valueOf(runtime.actions().trigger(id));
+                return LuaValue.valueOf(triggerAction(runtime, runtime.actions().get(id), null));
             }
         };
         owner.luaRuntime.keybinds.keyBindings.add(binding);
@@ -369,7 +385,26 @@ public class YsmActionsAPI {
     @LuaMethodDoc("ysm_actions.trigger")
     public boolean trigger(@LuaNotNil String id) {
         YsmModelRuntime runtime = owner.getYsmRuntime();
-        return runtime != null && runtime.actions().trigger(id);
+        return triggerAction(runtime, runtime == null ? null : runtime.actions().get(id), null);
+    }
+
+    private boolean triggerAction(YsmModelRuntime runtime, YsmActionDefinition action, YsmActionRuntime.Press input) {
+        if (runtime == null || action == null) {
+            return false;
+        }
+        String animation = action.getAnimation();
+        if (animation != null && animation.startsWith("#")) {
+            String page = animation.substring(1);
+            if (page.isBlank() || !owner.isHost || Minecraft.getInstance() == null) {
+                return false;
+            }
+            if (input != null) {
+                input.release();
+            }
+            AvatarControlsScreen.open(owner, page);
+            return true;
+        }
+        return input == null ? runtime.actions().trigger(action.getId()) : input.press(runtime.actions(), action.getId());
     }
 
     @LuaWhitelist
@@ -600,8 +635,29 @@ public class YsmActionsAPI {
         if (owner.luaRuntime == null || name == null || name.isBlank())
             return 0;
         int before = owner.luaRuntime.keybinds.keyBindings.size();
-        owner.luaRuntime.keybinds.keyBindings.removeIf(binding -> name.equals(binding.getName()));
+        owner.luaRuntime.keybinds.keyBindings.removeIf(binding -> {
+            if (!name.equals(binding.getName())) {
+                return false;
+            }
+            if (binding.release instanceof HoldRelease release) {
+                release.input.release();
+            }
+            return true;
+        });
         return before - owner.luaRuntime.keybinds.keyBindings.size();
+    }
+
+    private static final class HoldRelease extends VarArgFunction {
+        private final YsmActionRuntime.Press input;
+
+        private HoldRelease(YsmActionRuntime.Press input) {
+            this.input = input;
+        }
+
+        @Override
+        public Varargs invoke(Varargs args) {
+            return LuaValue.valueOf(input.release());
+        }
     }
 
     private static String normalize(String value) {

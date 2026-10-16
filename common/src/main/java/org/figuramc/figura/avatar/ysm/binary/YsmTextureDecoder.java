@@ -1,5 +1,6 @@
 package org.figuramc.figura.avatar.ysm.binary;
 
+import com.github.ustc_zzzz.imageio.avif.FiguraAvifDecoder;
 import com.twelvemonkeys.imageio.plugins.webp.WebPImageReaderSpi;
 import org.figuramc.figura.avatar.ysm.crypto.YsmDecodeBudget;
 import org.figuramc.figura.avatar.ysm.crypto.YsmDecodeException;
@@ -78,6 +79,9 @@ public final class YsmTextureDecoder {
 
     private static BufferedImage encoded(byte[] data, int declaredWidth, int declaredHeight,
                                          YsmDecodeBudget budget) throws IOException {
+        if (isAvif(data)) {
+            return FiguraAvifDecoder.read(data, declaredWidth, declaredHeight, budget);
+        }
         try (MemoryCacheImageInputStream stream = new MemoryCacheImageInputStream(new ByteArrayInputStream(data))) {
             ImageReader reader;
             if (isWebp(data)) {
@@ -129,8 +133,20 @@ public final class YsmTextureDecoder {
         if (bytes.length >= 6 && bytes[0] == 'G' && bytes[1] == 'I' && bytes[2] == 'F') {
             return "GIF";
         }
-        // AVIF is retained as encoded input by the binary DTO. No native codec is loaded implicitly.
         throw new YsmDecodeException(YsmDecodeException.Code.UNSUPPORTED_VERSION, "image/encoding", 0);
+    }
+
+    private static boolean isAvif(byte[] bytes) {
+        if (bytes.length < 16 || bytes[4] != 'f' || bytes[5] != 't' || bytes[6] != 'y' || bytes[7] != 'p') {
+            return false;
+        }
+        for (int offset = 8; offset <= Math.min(bytes.length - 4, 60); offset += 4) {
+            if (bytes[offset] == 'a' && bytes[offset + 1] == 'v' && bytes[offset + 2] == 'i'
+                    && (bytes[offset + 3] == 'f' || bytes[offset + 3] == 's')) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isWebp(byte[] bytes) {
