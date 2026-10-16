@@ -146,19 +146,24 @@ public class FiguraTexture extends SimpleTexture {
     }
 
     public void uploadIfDirty(boolean clamp, boolean blur) {
-        if (!registered) {
-            Minecraft.getInstance().getTextureManager().register(this.getLocation(), this);
-            registered = true;
+        if (isClosed || nativeImageTexture == null) {
+            return;
         }
 
-        if (dirty && !isClosed && nativeImageTexture != null) {
-            dirty = false;
-
+        if (dirty || textureView == null || textureView.isClosed()) {
             AddressMode addressMode = clamp ? AddressMode.CLAMP_TO_EDGE : AddressMode.REPEAT;
             FilterMode filterMode = blur ? FilterMode.LINEAR : FilterMode.NEAREST;
             this.sampler = RenderSystem.getSamplerCache().getSampler(addressMode, addressMode, filterMode, filterMode, false);
 
             this.doLoad(nativeImageTexture);
+            dirty = false;
+        }
+
+        // Registration may immediately expose the texture to rendering/PBR consumers.
+        // Publish only after a successful upload, and retain dirty state on failure for retry.
+        if (!registered) {
+            Minecraft.getInstance().getTextureManager().register(this.getLocation(), this);
+            registered = true;
         }
     }
 

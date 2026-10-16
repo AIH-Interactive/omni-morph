@@ -1575,3 +1575,18 @@ AvatarList 增加现有 Figura Button 样式的循环筛选：全部/Figura/非�
 最终自动验收：前台执行 :common:ysmSoundNativeSmokeTest :common:ysmLanguageSmokeTest :common:ysmActionRuntimeSmokeTest :common:ysmControllerSoundSmokeTest :common:ysmControllerIsolationSmokeTest :common:ysmMaterialNativeSmokeTest :fabric:build --console=plain，BUILD SUCCESSFUL 59 秒/退出 0，21 tasks（15 executed、6 up-to-date）。日志 build/reports/ysm/audio-discovery-filter-gate.log；含 M6 子实例资源及 M7 模型/连接 CPU 子用例。过程中一个测试 Channel 私有构造器编译错误已改用既有命令记录 seam 验证，未创建 OpenAL/假装听感通过。未添加全文件格式化或无关重构。
 
 真实游戏窗口的筛选布局/CJK/点击体验、设置界面输入以及 BGM 听感依授权记为 SKIPPED/MANUAL_BY_USER；不使用 offscreen，不修改后端，不关闭计算机。正式产物仍为 fabric/build/libs/figura-0.1.5+26.1.2-fabric-mc.jar，SHA-256：378EEEAE5094F40DF97F79CC3D3D3A227DB2452AE18EE33B7C75153E30604F87。此哈希更新追加调整后的产物，前文里程碑哈希保留历史意义。完成差异/空白检查后独立提交推送，并核对远端 SHA。
+
+
+### 9.15 用户追加：页面标签横向滚动与共用纹理视图初始化（2026-10-17）
+
+用户截图所示模型控件页标签溢出时，旧 addPageTabs 会直接 break，未创建后面的页面入口。现保留全部 Figura Button 标签；仅在总宽度超出可用宽度时增加横向 ScrollBarWidget，下移内容区以免遮挡，拖动或标签区域滚轮可横向移动，进入页面时保证当前标签可见。标签绘制与鼠标命中均裁剪到控件区，避免遮挡/误点相邻预览。未溢出时沿用原标签宽度和高度。ScrollBarWidget 增加保留旧构造器的横向构造重载，旋转复用原 Figura 滚动条纹理，并按水平滑块尺寸处理输入；不引入 YSM 专属控件或页面。
+
+用户另附 2026-10-17 00:05:43 的 Render thread 崩溃：IllegalStateException: Texture view does not exist，栈为 AbstractTexture.getTextureView → RenderSetup.getTextures → RenderType.draw/endBatch。用户不记得具体模型/触发步骤，因此按共用纹理入口定位，未推断某个 refs 模型损坏。新增测试让纹理管理器注册时通过原版 RenderSetup.getTextures 读取视图；修改前 :common:ysmMaterialNativeSmokeTest 稳定产生同一异常/前两层栈，日志 build/reports/ysm/texture-view-repro.log。
+
+确认 FiguraTexture.uploadIfDirty 的共用时序缺陷：先 register 暴露尚未初始化的纹理，之后才 doLoad；而且上传前提前清除 dirty。修复为先检查已关闭状态，成功上传后清除 dirty，最后注册；视图缺失或失效时重新初始化。这样注册消费者只会得到已初始化视图，上传失败可重试，已关闭对象不会被迟到请求重新注册。适用于 Figura/YSM 共享路径，不修改模型、格式识别或后端。此为已复现通用缺陷的修复，不将注册回调夹具等同于完整复现用户当时的 GPU/驱动/Iris 场景。
+
+自动验收：YsmActionRuntimeSmokeTest 实际创建 2/12 页标签，检查未溢出无滚动条及原布局、全部标签保留、末页自动显示、滚轮及既有水平拖动路径、端点夹紧和越界命中屏蔽。该测试仅创建 Screen/控件对象，不创建窗口；初次测试缺少 Minecraft 单例已接入原有测试客户端上下文修正，未改变生产 UI 来迎合测试。YsmMaterialNativeSmokeTest 覆盖注册取视图、干净纹理不重复上传、失效视图恢复、关闭后拒绝重新发布、上传失败不发布并重试。使用真实 NativeImage/原版查找及测试替代 GPU 分配，不创建 GL/图形设备或声称实际 GPU 渲染通过。
+
+最终前台命令 :common:ysmMaterialNativeSmokeTest :common:ysmActionRuntimeSmokeTest :fabric:build --console=plain，通过 30 秒/退出 0，17 tasks（12 executed、5 up-to-date）；日志 build/reports/ysm/texture-view-tab-scroll-gate.log，包含既有 M6 子实例与 M7 CPU 同步子用例。检查新修改代码可读性、差异及 git diff --check，无整文件格式化。真实标签滚动/CJK/视觉及用户原崩溃场景按授权保留 SKIPPED/MANUAL_BY_USER；不使用 offscreen、不修改 refs/omnm-cloud、不关闭计算机。
+
+正式 JAR：fabric/build/libs/figura-0.1.5+26.1.2-fabric-mc.jar，SHA-256：47C5590C9965585D500606A9DC6EDFB5594B342FC106C464548723F3E94005B8。本次两项追加修改一起提交推送并核对远端 SHA；此前记录的产物哈希保留为历史证据。
