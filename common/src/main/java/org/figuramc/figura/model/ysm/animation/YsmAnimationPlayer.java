@@ -44,6 +44,7 @@ import org.figuramc.figura.model.ysm.controller.YsmControllerSlot;
 import org.figuramc.figura.model.ysm.controller.YsmControllerSlotBinder;
 import org.figuramc.figura.model.ysm.controller.YsmControllerPoseLayer;
 import org.figuramc.figura.model.ysm.controller.YsmBlendTransition;
+import org.figuramc.figura.model.ysm.sync.YsmSyncMessage;
 
 import java.util.*;
 
@@ -107,6 +108,7 @@ public class YsmAnimationPlayer {
     }
 
     private boolean nativeStateMachineEnabled = true;
+    private boolean observerControlled;
     private long retiredControllerSequence;
 
     public YsmAnimationPlayer(YsmModelRuntime runtime) {
@@ -223,6 +225,105 @@ public class YsmAnimationPlayer {
         return activeAnimations;
     }
 
+    public boolean observerControlled() {
+        return observerControlled;
+    }
+
+    public List<YsmSyncMessage.Playback> captureRemotePlaybacks(List<YsmAnimationClip> clipIndex, List<String> controllerIndex) {
+        List<YsmSyncMessage.Playback> result = new ArrayList<>();
+        for (var entry : activeAnimations.entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
+            PlayingAnimation playing = entry.getValue();
+            int flags = (playing.isNative ? 1 : 0) | (entry.getKey().startsWith("controller-function/") ? 2 : 0)
+                    | (playing.retired ? 4 : 0);
+            int controller = -1;
+            if (playing.controllerName != null) {
+                for (int index = 0; index < controllerIndex.size(); index++) {
+                    if (controllerIndex.get(index).equalsIgnoreCase(playing.controllerName)) {
+                        controller = index;
+                        break;
+                    }
+                }
+            }
+            if (playing.controllerName != null && controller < 0) {
+                throw new IllegalArgumentException("Unindexed YSM controller");
+            }
+            result.add(new YsmSyncMessage.Playback(result.size(), clipIndex.indexOf(playing.clip), controller,
+                    playing.time, playing.speed, playing.weight, playing.targetWeight, playing.loopMode.ordinal(),
+                    playing.fadeSpeed, flags));
+        }
+        return List.copyOf(result);
+    }
+
+    public void validateRemotePlaybacks(List<YsmSyncMessage.Playback> values, List<YsmAnimationClip> clips, List<String> controllers) {
+        buildRemotePlaybacks(values, clips, controllers);
+    }
+
+    public void applyRemotePlaybacks(List<YsmSyncMessage.Playback> values, List<YsmAnimationClip> clips, List<String> controllers) {
+        Map<String, PlayingAnimation> restored = buildRemotePlaybacks(values, clips, controllers);
+        if (!observerControlled) {
+            controllerSounds.close();
+            runtime.sounds().stopAll();
+        }
+        activeAnimations.clear();
+        activeAnimations.putAll(restored);
+        controllerFunctionAnimations.clear();
+        controllerPoseLayers.clear();
+        armControllerPoseLayers.clear();
+        for (var entry : restored.entrySet()) {
+            PlayingAnimation playing = entry.getValue();
+            if (playing.controllerName != null) {
+                controllerPoseLayers.computeIfAbsent(playing.controllerName, ignored -> new YsmControllerPoseLayer());
+                armControllerPoseLayers.computeIfAbsent(playing.controllerName, ignored -> new YsmControllerPoseLayer());
+                if (entry.getKey().startsWith("controller-function/")) {
+                    controllerFunctionAnimations.put(playing.controllerName, entry.getKey());
+                } else if (!playing.retired) {
+                    controllerRuntime.addRemotePlayback(playing.controllerName, playing.clip.name);
+                }
+            }
+        }
+        observerControlled = true;
+    }
+
+    private Map<String, PlayingAnimation> buildRemotePlaybacks(List<YsmSyncMessage.Playback> values,
+                                                               List<YsmAnimationClip> clips, List<String> controllers) {
+        Map<String, PlayingAnimation> result = new LinkedHashMap<>();
+        for (var value : values) {
+            if (value.clip() >= clips.size() || value.controller() >= controllers.size()
+                    || (value.flags() & 2) != 0 && value.controller() < 0) {
+                throw new IllegalArgumentException("Invalid remote playback index");
+            }
+            YsmAnimationClip clip = clips.get(value.clip());
+            PlayingAnimation playing = new PlayingAnimation(clip, (value.flags() & 1) != 0);
+            playing.controllerName = value.controller() < 0 ? null : normalizeControllerName(controllers.get(value.controller()));
+            playing.time = value.time();
+            playing.previousTime = value.time();
+            playing.eventWindowEnd = value.time();
+            playing.initialEventsDispatched = true;
+            playing.speed = value.speed();
+            playing.weight = value.weight();
+            playing.targetWeight = value.targetWeight();
+            playing.fadeSpeed = value.fadeSpeed();
+            playing.retired = (value.flags() & 4) != 0;
+            playing.loopMode = YsmAnimationClip.LoopMode.values()[value.loopMode()];
+            playing.loop = playing.loopMode == YsmAnimationClip.LoopMode.LOOP;
+            String key;
+            if (playing.retired) {
+                key = "controller-retired/remote/" + value.slot();
+            } else if ((value.flags() & 2) != 0) {
+                key = "controller-function/" + playing.controllerName.length() + "/" + playing.controllerName
+                        + "/" + resolveAnimationName(clip.name);
+            } else if (playing.controllerName != null) {
+                key = controllerSlotKey(playing.controllerName, clip.name);
+            } else {
+                key = resolveAnimationName(clip.name);
+            }
+            if (result.putIfAbsent(key, playing) != null) {
+                throw new IllegalArgumentException("Duplicate remote playback role");
+            }
+        }
+        return result;
+    }
+
     public boolean isActive(String name) {
         return activeAnimations.containsKey(resolveAnimationName(name));
     }
@@ -263,7 +364,19 @@ public class YsmAnimationPlayer {
     }
 
     public PlayingAnimation play(String name, YsmAnimationClip.LoopMode loopMode, float speed, float fadeSeconds) {
+        YsmAnimationClip clip = clips.get(resolveAnimationName(name));
+        if (clip != null && runtime != null && runtime.owner() != null && runtime.owner().isHost
+                && !runtime.isPreviewRuntime() && !runtime.isSubEntityRuntime()) {
+            YsmAnimationClip.LoopMode selectedLoop = loopMode == null ? clip.loopMode : loopMode;
+            runtime.functions().recordOwnerEvent(YsmSyncMessage.EventKind.PLAY,
+                    List.of((float) syncClipIndex(clip), (float) selectedLoop.ordinal(), speed,
+                            Math.max(0, fadeSeconds)));
+        }
         return playInSlot(resolveAnimationName(name), name, loopMode, speed, fadeSeconds, null);
+    }
+
+    private int syncClipIndex(YsmAnimationClip clip) {
+        return clips.values().stream().distinct().sorted(Comparator.comparing(value -> value.name)).toList().indexOf(clip);
     }
 
     private PlayingAnimation playInSlot(String slot, String name, YsmAnimationClip.LoopMode loopMode,
@@ -439,7 +552,11 @@ public class YsmAnimationPlayer {
 
     public void stop(String name) {
         String normalized = resolveAnimationName(name);
-        activeAnimations.remove(normalized);
+        PlayingAnimation removed = activeAnimations.remove(normalized);
+        if (removed != null && runtime != null && runtime.owner() != null && runtime.owner().isHost
+                && !runtime.isPreviewRuntime() && !runtime.isSubEntityRuntime()) {
+            runtime.functions().recordOwnerEvent(YsmSyncMessage.EventKind.STOP, List.of((float) syncClipIndex(removed.clip)));
+        }
         controllerFunctionAnimations.values().removeIf(normalized::equals);
     }
 
@@ -521,6 +638,16 @@ public class YsmAnimationPlayer {
                 state == null ? Float.NaN : state.ageInTicks);
         float deltaTime = step.deltaSeconds();
         updateYsmHeadRotation(state, entity);
+        if (observerControlled) {
+            ExpressionEvaluator<?> observerEvaluator = evaluatorForEvents();
+            if (step.advance()) {
+                advanceAnimationTimeline(deltaTime, observerEvaluator);
+                advanceControllerPoseLayers(deltaTime);
+                controllerRuntime.advanceRemoteTime(deltaTime);
+            }
+            sampleAnimations(observerEvaluator, firstPerson);
+            return;
+        }
         if (renderContext != null && state != null) {
             long renderFrame = YsmRenderFrameClock.currentFrame();
             if (YsmParticleRuntime.isPreview(runtime.owner().renderMode)) {
@@ -640,7 +767,9 @@ public class YsmAnimationPlayer {
                 if (anim.fadeSpeed <= 0f)
                     anim.fadeSpeed = 5f;
             }
-            dispatchEvents(anim, evaluator);
+            if (!observerControlled) {
+                dispatchEvents(anim, evaluator);
+            }
         }
     }
 

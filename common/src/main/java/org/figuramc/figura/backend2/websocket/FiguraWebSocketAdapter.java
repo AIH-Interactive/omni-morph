@@ -72,10 +72,13 @@ public class FiguraWebSocketAdapter extends WebSocketAdapter {
     @Override
     public void onBinaryMessage(WebSocket websocket, byte[] binary) throws Exception {
         super.onBinaryMessage(websocket, binary);
+        if (!NetworkStuff.isCurrentWebSocket(websocket)) {
+            return;
+        }
         if (NetworkStuff.debug)
             FiguraMod.debug("Received raw ws message of " + binary.length + "b");
         try {
-            S2CMessageHandler.handle(ByteBuffer.wrap(binary));
+            S2CMessageHandler.handle(ByteBuffer.wrap(binary), websocket);
         } catch (Exception e) {
             FiguraMod.LOGGER.error("Failed to handle ws message", e);
         }

@@ -104,6 +104,7 @@ public class YsmModelRuntime implements AutoCloseable {
     private Map<String, Object> previewControls;
     private boolean previewAttempted;
     private final String modelKey;
+    private String contentHash = "";
     private final float defaultWidthScale;
     private final float defaultHeightScale;
 
@@ -205,6 +206,7 @@ public class YsmModelRuntime implements AutoCloseable {
         try {
             runtime = new YsmModelRuntime(owner, geometry, armGeometry, texture, textureId,
                     textureTranslucent, kind, modelKey, textureData, defaultWidthScale, defaultHeightScale, data != null && data.encrypted());
+            runtime.contentHash = tag.getStringOr("content_sha256", "");
             runtime.previewAnimation = tag.getStringOr("preview_animation", "");
             if (!runtime.previewAnimation.isBlank()) {
                 runtime.previewInput = new CompoundTag();
@@ -485,6 +487,10 @@ public class YsmModelRuntime implements AutoCloseable {
         return textureId;
     }
 
+    public List<String> textureIds() {
+        return textureData.keySet().stream().sorted().toList();
+    }
+
     public boolean isGuiNoLighting() {
         return guiNoLighting;
     }
@@ -540,6 +546,10 @@ public class YsmModelRuntime implements AutoCloseable {
 
     public String getModelKey() {
         return modelKey;
+    }
+
+    public String contentHash() {
+        return contentHash;
     }
 
     public float widthScale() {

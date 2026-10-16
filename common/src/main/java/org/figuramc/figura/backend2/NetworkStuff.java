@@ -18,6 +18,10 @@ import org.figuramc.figura.avatar.Badges;
 import org.figuramc.figura.avatar.UserData;
 import org.figuramc.figura.avatar.local.CacheAvatarLoader;
 import org.figuramc.figura.avatar.ysm.YsmSourcePayload;
+import org.figuramc.figura.model.ysm.YsmModelRuntime;
+import org.figuramc.figura.model.ysm.sync.YsmSyncConnection;
+import org.figuramc.figura.model.ysm.sync.YsmSyncPackets;
+import org.figuramc.figura.model.ysm.sync.YsmSyncPingBudget;
 import org.figuramc.figura.backend2.trust.KeyStoreHelper;
 import org.figuramc.figura.backend2.websocket.C2SMessageHandler;
 import org.figuramc.figura.config.Configs;
@@ -64,7 +68,12 @@ public class NetworkStuff {
     private static int authCheck = RECONNECT;
 
     protected static HttpAPI api;
-    protected static WebSocket ws;
+    protected static volatile WebSocket ws;
+    private static final YsmSyncConnection YSM_SYNC = new YsmSyncConnection();
+    private static final YsmSyncPingBudget YSM_PING_BUDGET = new YsmSyncPingBudget();
+    private static Object ysmWorld;
+    private static WebSocket ysmSocket;
+    private static volatile Object ysmEpoch;
 
     public static int backendStatus = 1;
     public static String disconnectedReason;
@@ -107,9 +116,49 @@ public class NetworkStuff {
         if (isConnected())
             processRequests();
 
+        tickYsmSync();
+
         //pings counter
         if (lastPing > 0 && FiguraMod.ticks - lastPing >= 20)
             lastPing = pingsSent = pingsReceived = 0;
+    }
+
+    private static void tickYsmSync() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (!checkWS() || minecraft.level == null) {
+            ysmWorld = null;
+            ysmSocket = null;
+            ysmEpoch = null;
+            YSM_PING_BUDGET.clear();
+        } else if (ysmWorld != minecraft.level || ysmSocket != ws) {
+            ysmWorld = minecraft.level;
+            ysmSocket = ws;
+            ysmEpoch = new Object();
+            YSM_PING_BUDGET.clear();
+        }
+        YsmModelRuntime local = minecraft.player == null || !AvatarManager.localUploaded
+                ? null : loadedYsmModel(minecraft.player.getUUID());
+        YSM_SYNC.tick(ysmEpoch, Integer.toUnsignedLong(FiguraMod.ticks), local,
+                NetworkStuff::loadedYsmModel, NetworkStuff::sendYsmSyncPing);
+    }
+
+    private static YsmModelRuntime loadedYsmModel(UUID owner) {
+        Avatar avatar = AvatarManager.getLoadedAvatar(owner);
+        return avatar == null ? null : avatar.getYsmRuntime();
+    }
+
+    public static boolean isCurrentWebSocket(WebSocket source) {
+        return source != null && source == ws;
+    }
+
+    public static boolean receiveYsmPing(WebSocket source, UUID owner, int id, byte[] data) {
+        if (!YsmSyncPackets.recognizes(id, data)) {
+            return false;
+        }
+        if (isCurrentWebSocket(source)) {
+            YSM_SYNC.enqueue(ysmEpoch, owner, id, data);
+        }
+        return true;
     }
 
     private static void tickSubscriptions() {
@@ -460,14 +509,29 @@ public class NetworkStuff {
         if (!AvatarManager.localUploaded || !isConnected())
             return;
 
+        dispatchPing(id, sync, data);
+    }
+
+    private static boolean sendYsmSyncPing(byte[] data) {
+        long tick = Integer.toUnsignedLong(FiguraMod.ticks);
+        if (!AvatarManager.localUploaded || !checkWS() || !YSM_PING_BUDGET.canSend(tick, data.length)) {
+            return false;
+        }
+        return dispatchPing(YsmSyncPackets.PING_ID, false, data);
+    }
+
+    private static boolean dispatchPing(int id, boolean sync, byte[] data) {
         try {
             ByteBuffer buffer = C2SMessageHandler.ping(id, sync, data);
             ws.sendBinary(buffer.array());
+            YSM_PING_BUDGET.recordSent(Integer.toUnsignedLong(FiguraMod.ticks), data.length);
 
             pingsSent++;
             if (lastPing == 0) lastPing = FiguraMod.ticks;
+            return true;
         } catch (Exception e) {
             FiguraMod.LOGGER.error("Failed to send ping", e);
+            return false;
         }
     }
 

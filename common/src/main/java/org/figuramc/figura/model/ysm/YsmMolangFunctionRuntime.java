@@ -15,6 +15,7 @@ import org.figuramc.figura.molang.storage.StringPool;
 import org.figuramc.figura.model.ysm.controller.YsmControllerSlot;
 import org.figuramc.figura.model.ysm.controller.YsmAnimationController;
 import org.figuramc.figura.model.ysm.controller.YsmControllerSlotBinder;
+import org.figuramc.figura.model.ysm.sync.YsmSyncMessage;
 
 import java.nio.charset.StandardCharsets;
 import java.util.AbstractList;
@@ -46,6 +47,11 @@ public class YsmMolangFunctionRuntime {
     private final Map<Object, List<ArgsValue>> deferredCalls = new IdentityHashMap<>();
     private Object eventOwner;
     private boolean clientEffects;
+    private int remoteStateDepth;
+    private final ArrayDeque<YsmSyncMessage.Event> outgoingSync = new ArrayDeque<>();
+    private long syncSequence;
+    private long droppedSyncEvents;
+    private boolean replayingSync;
     private int deferredCount;
     private long eventGeneration;
     private static final int MAX_DEFERRED_CALLS = 4096;
@@ -162,13 +168,20 @@ public class YsmMolangFunctionRuntime {
     }
 
     public Object recordSync(ExecutionContext<?> context, Function.ArgumentCollection args) {
-        if (!clientEffects || args == null || args.size() > 16) {
+        if (!clientEffectsEnabled() || replayingSync || args == null || args.size() > 16) {
             return null;
         }
         List<Object> values = new ArrayList<>(args.size());
+        List<Float> wireValues = new ArrayList<>(args.size());
         for (int index = 0; index < args.size(); index++) {
-            values.add(args.getAsFloat(context, index));
+            float value = args.getAsFloat(context, index);
+            if (!Float.isFinite(value)) {
+                return null;
+            }
+            values.add(value);
+            wireValues.add(value);
         }
+        recordOwnerEvent(YsmSyncMessage.EventKind.SYNC, wireValues);
         recentSyncKeys.addFirst("sync " + values);
         while (recentSyncKeys.size() > 16) {
             recentSyncKeys.removeLast();
@@ -177,8 +190,53 @@ public class YsmMolangFunctionRuntime {
         return null;
     }
 
+    public long syncWatermark() {
+        return syncSequence;
+    }
+
+    public void recordOwnerEvent(YsmSyncMessage.EventKind kind, List<Float> arguments) {
+        if (runtime.owner() == null || !runtime.owner().isHost || runtime.isClosed()
+                || runtime.isPreviewRuntime() || runtime.isSubEntityRuntime()) {
+            return;
+        }
+        if (arguments.size() > 16 || arguments.stream().anyMatch(value -> value == null || !Float.isFinite(value))
+                || syncSequence == Long.MAX_VALUE) {
+            droppedSyncEvents++;
+            return;
+        }
+        if (outgoingSync.size() == YsmSyncMessage.MAX_EVENTS) {
+            outgoingSync.removeFirst();
+            droppedSyncEvents++;
+        }
+        outgoingSync.addLast(new YsmSyncMessage.Event(++syncSequence, kind, arguments));
+    }
+
+    public long droppedSyncEvents() {
+        return droppedSyncEvents;
+    }
+
+    public List<YsmSyncMessage.Event> drainSyncEvents() {
+        List<YsmSyncMessage.Event> result = List.copyOf(outgoingSync);
+        outgoingSync.clear();
+        return result;
+    }
+
+    /** Applies one event after receiver deduplication, without recapturing nested ysm.sync calls. */
+    public void replaySync(YsmSyncMessage.Event event) {
+        if (runtime.isClosed() || runtime.owner().isHost || replayingSync) {
+            return;
+        }
+        replayingSync = true;
+        try (var effects = beginClientEffects(event)) {
+            executeSpecialEvent("sync", ExpressionEvaluator.evaluator(runtime.owner().getMolangContext()),
+                    new ArgsValue(new ArrayList<Object>(event.arguments())));
+        } finally {
+            replayingSync = false;
+        }
+    }
+
     public Object captureDefer(ExecutionContext<?> context, Function.ArgumentCollection args) {
-        if (!clientEffects || eventOwner == null || args == null || args.size() == 0) {
+        if (!clientEffectsEnabled() || eventOwner == null || args == null || args.size() == 0) {
             return null;
         }
         String address = args.getAsString(context, 0);
@@ -239,7 +297,28 @@ public class YsmMolangFunctionRuntime {
     }
 
     public boolean clientEffectsEnabled() {
-        return clientEffects;
+        return clientEffects && remoteStateDepth == 0;
+    }
+
+    public RemoteStateScope beginRemoteState() {
+        return new RemoteStateScope();
+    }
+
+    /** Restoring controls may execute their value commands, but must not replay transient effects. */
+    public final class RemoteStateScope implements AutoCloseable {
+        private boolean closed;
+
+        private RemoteStateScope() {
+            remoteStateDepth++;
+        }
+
+        @Override
+        public void close() {
+            if (!closed) {
+                closed = true;
+                remoteStateDepth--;
+            }
+        }
     }
 
     public final class EffectScope implements AutoCloseable {
@@ -270,6 +349,7 @@ public class YsmMolangFunctionRuntime {
         eventGeneration++;
         discardDeferredCalls();
         recentSyncKeys.clear();
+        outgoingSync.clear();
         eventOwner = null;
         clientEffects = false;
     }
