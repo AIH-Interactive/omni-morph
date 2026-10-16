@@ -20,6 +20,8 @@
 
 控制器显式引用的 parallel/pre_parallel 动画只由控制器驱动，避免旧式自动播放再次叠加造成旋转翻倍、翼尾变形或绕过权重条件；无控制器引用的旧式并行动画仍自动播放。末影龙娘已增加原文件的动画及骨骼变换回归，实际游戏外观对照仍为 SKIPPED/MANUAL_BY_USER。
 
+同一控制器内的多段动画按权重混合；不同已声明控制器依次接管它们写入的位置、旋转和缩放通道，避免在上一控制器结果上再次累加。没有写入的通道保留已有结果，自动生成的原生回退槽沿用既有合成行为。末影龙娘的回归同时检查实际通道值，不仅检查加载成功、重复播放数或顶点范围。
+
 普通 Figura 与 YSM 共享原有 Lua 环境；已经注册 `ysm_model`、`ysm_actions`。可用接口包括 `ysm_model:getPart(name)`、`getLocatorWorldMatrix(name)`、`setTexture(id)`、`playAnimation(name)`、`stopAnimation(name)` 和 `ysm_actions:getActions()`。使用前可用 `ysm_model:isYsm()` 判断当前模型；纯 YSM 加载和运行不要求 Lua。自定义跨观察者的数值选择通过模型已有的 `ysm.sync` / `@sync` 传递，不自动导出任意私有变量结构或解密字符串。
 
 ## 声音与音量

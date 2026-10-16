@@ -931,9 +931,11 @@ public class YsmAnimationPlayer {
                 continue;
             }
             Map<String, YsmBonePose> pose = entry.getValue().compose(controllerPoses.getOrDefault(entry.getKey(), Map.of()));
+            boolean declaredController = controllers.keySet().stream()
+                    .anyMatch(name -> normalizeControllerName(name).equals(entry.getKey()));
             for (var bone : pose.entrySet()) {
                 for (YsmModelPart part : runtime.getAnimationParts(bone.getKey(), firstPerson)) {
-                    applyControllerPose(part, bone.getValue());
+                    applyControllerPose(part, bone.getValue(), declaredController);
                 }
             }
         }
@@ -944,19 +946,37 @@ public class YsmAnimationPlayer {
     }
 
     private static void applyControllerPose(YsmModelPart part, YsmBonePose pose) {
+        applyControllerPose(part, pose, true);
+    }
+
+    private static void applyControllerPose(YsmModelPart part, YsmBonePose pose, boolean replaceChannels) {
+        // A controller replaces the channels it writes; only clips within that controller accumulate.
+        // Synthesized native fallback slots retain their existing additive composition.
         float[] position = pose.position();
         float[] rotation = pose.rotation();
         float[] scale = pose.scale();
         if (position != null) {
-            part.addAnimPos(position[0], position[1], position[2]);
+            if (replaceChannels) {
+                part.animPosRaw().set(position[0], position[1], position[2]);
+            } else {
+                part.addAnimPos(position[0], position[1], position[2]);
+            }
         }
         if (rotation != null) {
-            part.addAnimRot(rotation[0], rotation[1], rotation[2]);
+            if (replaceChannels) {
+                part.animRotRaw().set(rotation[0], rotation[1], rotation[2]);
+            } else {
+                part.addAnimRot(rotation[0], rotation[1], rotation[2]);
+            }
         }
         if (scale != null) {
             float magnitude = Math.max(Math.abs(scale[0]), Math.max(Math.abs(scale[1]), Math.abs(scale[2])));
             part.setVisible(magnitude >= 0.0001f);
-            part.mulAnimScale(scale[0], scale[1], scale[2]);
+            if (replaceChannels) {
+                part.animScaleRaw().set(scale[0], scale[1], scale[2]);
+            } else {
+                part.mulAnimScale(scale[0], scale[1], scale[2]);
+            }
         }
     }
 
