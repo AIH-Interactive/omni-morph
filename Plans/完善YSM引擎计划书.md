@@ -1,7 +1,7 @@
 # 完善 YSM 引擎计划书
 
 > 编制日期：2026-10-12（Asia/Seoul）。
-> 状态：M0～M6 自动化验收完成并提交推送；M7 自动化验收完成，执行提交推送检查点；M8 尚未实施。阶段提交与推送按 6.1 节执行；人工项按用户要求注明并跳过。
+> 状态：M0～M8 自动化验收与交付审计完成，按6.1节逐阶段独立提交、推送并核对远端；M8为本次最终检查点。人工/后端/指定GUI项按用户授权明确跳过，不计为实机通过。各阶段证据及保留限制见第9节与M8验收矩阵。
 > 本文独立制定需求、实施顺序与验收标准。旧版计划书全部视为已废弃，不作为本文依据。
 
 ## 1. 目标、边界与完成定义
@@ -495,8 +495,8 @@ if ($buildExitCode -ne 0) {
 | M4 | 自动验收完成；人工已按用户要求跳过 | 函数/绑定/事件、预算恢复、滤波/实体适配与诊断已补；233名称逐项分级，41 smoke/绑定审计/独立M4扫描baseline/Fabric build通过；声音最小执行适配已获本轮明确授权，实际包音频装配归M5；见9.8最终记录 |
 | M5 | 自动验收完成；人工与指定 GUI 项按用户要求跳过 | 49 smoke+绑定审计、冻结M4扫描baseline与Fabric build通过3分3秒；附属资源/动作/控件/材质/预览引擎和层顺序接通；UI复用Figura原组件；详见9.9最终记录 |
 | M6 | 自动验收完成；人工已按用户要求跳过 | 物理实体独立动画/controller/query/函数事件、箭/三叉戟/载具匹配与所有权、材质/音效释放接通；49 smoke+绑定审计+冻结扫描+Fabric build通过2分41秒；详见9.10最终记录 |
-| M7 | 未开始实施 | 内容边界与动态多人一致性 |
-| M8 | 未开始实施 | 完整语料、真实窗口、多客户端、资源与性能验收 |
+| M7 | 自动验收完成并提交推送；人工/后端依赖已按用户要求跳过 | 51 smoke/audit、冻结扫描和Fabric构建通过；内容/状态/连接/重放见9.11，提交9c48cea |
+| M8 | 自动验收与交付审计完成；本次最终检查点 | 冻结100次/10批、45来源、240图像与188PCM释放；新增稳定性及51核心任务、冻结扫描、Fabric构建通过；真实窗口/帧时间/多人按授权跳过，详见9.12及M8矩阵 |
 
 发布时逐项核对第 1.1 节目标及第 7 节矩阵，记录每项对应的提交、fixture、测试结果和人工证据。只读解密可作为一个独立可交付检查点，但不能用“已经能打开加密模型”替代整个 YSM 引擎的完成条件。
 
@@ -1526,3 +1526,23 @@ M7 后端与人工边界：omnm-cloud当前只实时广播，离线owner/服务�
 完整门禁首轮在无Avatar的既有SyncDefer夹具暴露新网络捕获的owner空值访问；仅为可选网络捕获增加null owner保护，本地sync/defer契约不改，日志m7-pre-null-owner-full-gate-failure.log保留。修正后完整gate通过2分51秒，随后复核并补齐S2C分配前大小检查；该次日志保留m7-pre-s2c-budget-full-gate.log。最终在全部最终源码上重新前台运行50个ysm*SmokeTest+ysmBindingReferenceAudit（51任务）+冻结M4 baseline的scanYsmModels+fabric:build，退出0，BUILD SUCCESSFUL in 2m 59s，67 actionable tasks（61 executed、6 up-to-date）。逐一核对日志包含51个smoke/audit、两个新原生模型/连接子用例及Fabric build；日志build/reports/ysm/m7-final-gate.log、UTF-8报告m7-final-scan.txt。扫描40/38/2、encryptedValidated5保持；M0/M2/M4冻结资源与GUI目录无diff。
 
 M7自动部分按原范围验收完成；上述人工/后端跳过不等于实机多人通过。此前过程记录中的待接线由本最终记录更新。已检查可读性、错误处理、预算和资源所有权，未整文件格式化旧代码；tracked及新增文件空白检查无输出。按6.1检查status/diff后独立提交、推送并核对远端SHA；确认完成前不开始M8，不追加新Definition of Done，不关闭计算机。
+
+### 9.12 M8 执行记录（自动验收与交付审计完成）
+
+进入条件：M7独立提交9c48cea03b26ac52d9f540f637318bcb873041a1已推送origin/main，重新读取本地HEAD与ls-remote核对相同；工作区仅build.log及用户refs/omnm-cloud。M8不增加引擎能力或GUI，不修改后端/用户模型，按M0冻结100次、每批10次预算实施。
+
+新增ysmStabilitySmokeTest复用既有CPU/NativeImage测试环境，另提供只记录真实SoundBuffer释放、不创建OpenAL设备的engine；测试mode是测试入口，生产代码没有测试专用渲染路径。100次交替为80次YSM运行时装配（40来源各两次，覆盖data与portable NBT恢复）和20次原Figura编译（5来源各四次）；每个YSM选择一个可用clip实际采样5次并验证骨骼值有限。根/子实体/PBR/已声明GUI资源的观测NativeImage全部关闭，PCM释放数/字节与资源池一致，运行时/实例/音频清空，每批有界GC后旧runtime弱引用全部清除。
+
+首轮稳定性通过1分23秒，保留m8-stability-first-pass.log/json。汇总发现首次data路线与重复portable路线准备工作不同，为同一路径YsmModelData.read另记sourceReadMilliseconds，避免误报冷热加速比；最终测试源码再次前台执行100次，通过1分43秒/退出0（5 tasks，2 executed、3 up-to-date），日志build/reports/ysm/m8-stability-gate.log、逐次数据m8-stability.json、统计m8-stability-summary.json、机器m8-machine.json。冻结预算未改，不把两个验证run相加冒称一次200次测试。
+
+机器：Ryzen7 260（8核16线程）、16,385,531,904字节内存、Windows11 26200、JDK25.0.2，测试JVM最大堆2GiB。“冷”仅本JVM首次来源，不驱逐OS缓存。相同源读取/解析首次/重复p50=124.7459/107.0773ms，p95=510.8703/205.1226ms；400次CPU采样p50/p95/p99=.2905/1.3195/1.8233ms。240张观测原生图像关闭、188个PCM缓冲412,889,364字节释放；10批保留runtime均0，GC后堆第1/5/10批65,558,280/66,301,664/66,334,728字节，direct pool十批65,536字节。未观察到旧runtime持续保留；不是整个native/GPU内存或真实帧时间结论。完整路径尾延迟与不同路线准备开销详见Plans/YSM-M8验收矩阵.md，没有自动引入GPU/native重写。
+
+交付文档：Plans/YSM-M8验收矩阵.md按输入→解析/装配→更新/消费→清理逐层标注证据与限制；Plans/YSM兼容与使用说明.md记录支持版本、原衣柜/控件/动作轮/预览、资源/加密/可选依赖、Lua接口、错误分类及已知语料问题。真实窗口/CJK/挂点/PBR/听感/游戏帧时间/显存/两个客户端均SKIPPED/MANUAL_BY_USER；后端持久快照/空载载具历史权威赋值SKIPPED/BACKEND_BY_USER；用户取消的额外GUI显示SKIPPED/USER_UI_SCOPE。既有原Figura BB5 groups跟进和arrow缺素材不扩张到本阶段。
+
+最终核心门禁在相同最终测试源码上运行原有51个smoke/audit、冻结M4扫描及Fabric构建；stability已单独通过不无故重复100次，两份日志共同覆盖52个注册smoke/audit。待该门禁完成、计划记录及diff/status检查后，独立提交推送M8并核对远端；此前不宣称整个目标已完成。没有关闭计算机。
+
+M8最终核心门禁通过4分18秒/退出0，67 actionable tasks（56 executed、11 up-to-date），日志build/reports/ysm/m8-final-core-gate.log、UTF-8报告m8-final-scan.txt。逐一核对51个核心smoke/audit及已单独通过的stability任务，共52个注册任务证据齐全；包含M7实际模型/连接子用例、M6子实体与资源生命周期。45来源加载/载荷回归保持Figura5/明文35/密文5，严格扫描40/38/2与冻结M4基线相符。最终测试源码未在两项gate之间更改，不为了合并日志重复100次。
+
+交付审计：本阶段生产源码/GUI/冻结资源无diff；EntityPreview与M5开始前版本fee8ba0相同。历史抽样三张jpg仍在9.3的本地输出根，状态保留CAPTURED/STATIC_ONLY。正式Fabric jar存在，SHA-256=A5CD362757701B3C3546887947E2D75E1718C52287A07E16E5E86335F07EFB4B，含第一方AVIF适配、固定独立AVIF jar及licenses/YSM-Sparkle-Morpher.txt。Plans/YSM-M8稳定性摘要.json保存无模型字节的聚合数据/机器信息，精确统计与复现命令在M8矩阵；用户兼容说明、已知源问题、可选/未解绑定及各授权跳过项齐全。
+
+第1.1节八项目标、第7节各层矩阵与M0～M8逐阶段提交历史已对照当前源码、固定fixture、最终日志和产物逐项审计。真实帧时间/显存/听感/GUI/多人及后端扩展仍按1.2用户覆盖条款跳过，不将计划自动部分完成扩大为这些项目PASS。现有源缺引用/原FiguraBB5跟进不是新增未解释缺陷，不借本阶段扩展修复。完成本次独立commit→push→远端SHA核对后，关闭此计划目标；不追加新验收要求，不关闭计算机。

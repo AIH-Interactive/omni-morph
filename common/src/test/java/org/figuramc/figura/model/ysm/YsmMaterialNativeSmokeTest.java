@@ -67,6 +67,12 @@ public final class YsmMaterialNativeSmokeTest {
             RenderSystem.initRenderThread();
             instance.set(null, client);
             org.figuramc.figura.permissions.PermissionManager.init();
+            if (args.length > 0) {
+                require(args.length == 4 && args[0].equals("--stability"), "explicit stability mode arguments");
+                client.sounds = YsmStabilitySmokeTest.soundManager(unsafe);
+                YsmStabilitySmokeTest.run(unsafe, client::drain, Path.of(args[1]), Path.of(args[2]), Path.of(args[3]));
+                return;
+            }
             testScaleAndDefaultTexture(unsafe, client);
             testPreviewAnimation(unsafe, client);
             testPreviewLighting(unsafe, client);
@@ -695,6 +701,7 @@ public final class YsmMaterialNativeSmokeTest {
 
     private static final class RecordingClient extends Minecraft {
         private RecordingTextures manager;
+        private net.minecraft.client.sounds.SoundManager sounds;
         private ConcurrentLinkedQueue<Runnable> queue;
 
         private RecordingClient() {
@@ -715,6 +722,11 @@ public final class YsmMaterialNativeSmokeTest {
         @Override
         public TextureManager getTextureManager() {
             return manager;
+        }
+
+        @Override
+        public net.minecraft.client.sounds.SoundManager getSoundManager() {
+            return sounds;
         }
 
         @Override

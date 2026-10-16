@@ -3,6 +3,8 @@
 核对日期：2026-10-16。客户端基线：M6 提交 `be38c3146aa66385a8f11a75babd7b59a9d9007a`。
 配套后端只读基线：`omnm-cloud` 提交 `28fb81ed177bf24ae616eb68e9c6220f0bd60a4a`。
 
+检查点已完成：M7提交 `9c48cea03b26ac52d9f540f637318bcb873041a1` 已推送origin/main并核对远端；下文“进入检查点”为当时门禁记录，M8不扩大本协议范围。
+
 ## 现有通道
 
 `omnm-cloud/src/api/figura/websocket/handler.rs` 的 Ping 分支把认证 session 的用户 UUID 写入 S2C 消息，再转发客户端提供的函数 ID、echo 和原始数据。可在现有 Ping 内承载客户端状态消息，接收端必须用外层认证 UUID 验证消息 owner，不能信任载荷自报的身份。

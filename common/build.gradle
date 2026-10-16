@@ -532,3 +532,15 @@ tasks.register("ysmSyncSmokeTest", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = "org.figuramc.figura.model.ysm.YsmSyncSmokeTest"
 }
+
+tasks.register("ysmStabilitySmokeTest", JavaExec) {
+    group = "verification"
+    description = "Runs the frozen 100-switch corpus budget with native image/PCM ownership checks and CPU timing."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "org.figuramc.figura.model.ysm.YsmMaterialNativeSmokeTest"
+    maxHeapSize = "2g"
+    args "--stability", rootProject.file("refs/avatars").path,
+            rootProject.file("build/reports/ysm/m8-stability.json").path,
+            rootProject.file("common/src/test/resources/ysm/m0-limits.json").path
+}
