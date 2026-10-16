@@ -18,6 +18,8 @@
 
 几何、手臂、挂点、附件、动画/controller/functions、投射物/载具定义及资源走原生 YSM 运行时；包内 Vorbis/Opus、PNG/WebP/AVIF、normal/specular、语言与材质选择有实际消费者及清理路径。Iris 对应当前固定依赖 1.10.8+26.1-fabric；基础材质可以独立使用，PBR 的真实 shader 外观未验收。AVIF 依赖随包附带，不要求用户额外安装系统 libheif。
 
+控制器显式引用的 parallel/pre_parallel 动画只由控制器驱动，避免旧式自动播放再次叠加造成旋转翻倍、翼尾变形或绕过权重条件；无控制器引用的旧式并行动画仍自动播放。末影龙娘已增加原文件的动画及骨骼变换回归，实际游戏外观对照仍为 SKIPPED/MANUAL_BY_USER。
+
 普通 Figura 与 YSM 共享原有 Lua 环境；已经注册 `ysm_model`、`ysm_actions`。可用接口包括 `ysm_model:getPart(name)`、`getLocatorWorldMatrix(name)`、`setTexture(id)`、`playAnimation(name)`、`stopAnimation(name)` 和 `ysm_actions:getActions()`。使用前可用 `ysm_model:isYsm()` 判断当前模型；纯 YSM 加载和运行不要求 Lua。自定义跨观察者的数值选择通过模型已有的 `ysm.sync` / `@sync` 传递，不自动导出任意私有变量结构或解密字符串。
 
 ## 声音与音量
