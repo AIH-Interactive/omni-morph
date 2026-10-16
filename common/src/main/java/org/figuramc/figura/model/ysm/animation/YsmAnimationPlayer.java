@@ -828,6 +828,8 @@ public class YsmAnimationPlayer {
         applyBaseHiddenDefaults();
 
         Map<String, Map<String, YsmBonePose>> controllerPoses = new LinkedHashMap<>();
+        Map<String, YsmBonePose> nativePoses = new LinkedHashMap<>();
+        List<DirectPose> directPoses = new ArrayList<>();
         for (PlayingAnimation anim : activeAnimations.values()) {
             if (anim.retired) {
                 continue;
@@ -878,36 +880,12 @@ public class YsmAnimationPlayer {
                         continue;
                     }
 
-                    for (YsmModelPart part : targetParts) {
-                        if (posVal != null)
-                            part.addAnimPos(posVal[0] * effectiveWeight, posVal[1] * effectiveWeight, posVal[2] * effectiveWeight);
-                        if (rotVal != null)
-                            part.addAnimRot(rotVal[0] * effectiveWeight, rotVal[1] * effectiveWeight, rotVal[2] * effectiveWeight);
-                        if (scaleVal != null) {
-                            boolean baseHidden = isBaseHiddenBone(boneAnim.boneName);
-                            float scaleMagnitude = scaleMagnitude(scaleVal);
-                            if (baseHidden && baseAnimation && scaleMagnitude < 0.0001f)
-                                continue;
-                            if (scaleMagnitude < 0.0001f) {
-                                part.setVisible(false);
-                                part.mulAnimScale(
-                                        1.0 + (scaleVal[0] - 1.0) * effectiveWeight,
-                                        1.0 + (scaleVal[1] - 1.0) * effectiveWeight,
-                                        1.0 + (scaleVal[2] - 1.0) * effectiveWeight
-                                );
-                                continue;
-                            }
-                            if (baseAnimation && part.defaultVisibleRaw()) {
-                                part.setVisible(true);
-                            }
-                            if (!baseAnimation && scaleMagnitude > 0.0001f)
-                                part.setVisible(true);
-                            // Scale lerps with weight: final_scale = 1 + (scale_val - 1) * weight
-                            double sx = 1.0 + (scaleVal[0] - 1.0) * effectiveWeight;
-                            double sy = 1.0 + (scaleVal[1] - 1.0) * effectiveWeight;
-                            double sz = 1.0 + (scaleVal[2] - 1.0) * effectiveWeight;
-                            part.mulAnimScale(sx, sy, sz);
-                        }
+                    if (anim.isNative) {
+                        nativePoses.put(boneAnim.boneName,
+                                YsmBonePose.accumulate(nativePoses.get(boneAnim.boneName), pose, effectiveWeight));
+                    } else {
+                        directPoses.add(new DirectPose(targetParts, pose, effectiveWeight, baseAnimation,
+                                baseAnimation && normalizeName(anim.clip.name).contains("pre_parallel")));
                     }
                 }
             } finally {
@@ -925,8 +903,76 @@ public class YsmAnimationPlayer {
             }
         }
 
+        // Match the reference: setup controllers precede the native movement slot.
+        for (DirectPose pose : directPoses) {
+            if (pose.beforeMain()) {
+                applyDirectPose(pose);
+            }
+        }
+        applyControllerLayers(controllerPoses, firstPerson, true);
+        for (var bone : nativePoses.entrySet()) {
+            for (YsmModelPart part : runtime.getAnimationParts(bone.getKey(), firstPerson)) {
+                applyControllerPose(part, bone.getValue());
+            }
+        }
+        for (DirectPose pose : directPoses) {
+            if (!pose.beforeMain()) {
+                applyDirectPose(pose);
+            }
+        }
+        applyControllerLayers(controllerPoses, firstPerson, false);
+    }
+
+    private record DirectPose(List<YsmModelPart> parts, YsmBonePose pose, float weight,
+                              boolean baseAnimation, boolean beforeMain) {
+    }
+
+    private void applyDirectPose(DirectPose contribution) {
+        float[] posVal = contribution.pose().position();
+        float[] rotVal = contribution.pose().rotation();
+        float[] scaleVal = contribution.pose().scale();
+        float effectiveWeight = contribution.weight();
+        boolean baseAnimation = contribution.baseAnimation();
+        for (YsmModelPart part : contribution.parts()) {
+            if (posVal != null)
+                part.addAnimPos(posVal[0] * effectiveWeight, posVal[1] * effectiveWeight, posVal[2] * effectiveWeight);
+            if (rotVal != null)
+                part.addAnimRot(rotVal[0] * effectiveWeight, rotVal[1] * effectiveWeight, rotVal[2] * effectiveWeight);
+            if (scaleVal != null) {
+                boolean baseHidden = isBaseHiddenBone(part.getName());
+                float scaleMagnitude = scaleMagnitude(scaleVal);
+                if (baseHidden && baseAnimation && scaleMagnitude < 0.0001f)
+                    continue;
+                if (scaleMagnitude < 0.0001f) {
+                    part.setVisible(false);
+                    part.mulAnimScale(
+                            1.0 + (scaleVal[0] - 1.0) * effectiveWeight,
+                            1.0 + (scaleVal[1] - 1.0) * effectiveWeight,
+                            1.0 + (scaleVal[2] - 1.0) * effectiveWeight
+                    );
+                    continue;
+                }
+                if (baseAnimation && part.defaultVisibleRaw()) {
+                    part.setVisible(true);
+                }
+                if (!baseAnimation && scaleMagnitude > 0.0001f)
+                    part.setVisible(true);
+                // Scale lerps with weight: final_scale = 1 + (scale_val - 1) * weight
+                double sx = 1.0 + (scaleVal[0] - 1.0) * effectiveWeight;
+                double sy = 1.0 + (scaleVal[1] - 1.0) * effectiveWeight;
+                double sz = 1.0 + (scaleVal[2] - 1.0) * effectiveWeight;
+                part.mulAnimScale(sx, sy, sz);
+            }
+        }
+    }
+
+    private void applyControllerLayers(Map<String, Map<String, YsmBonePose>> controllerPoses,
+                                       boolean firstPerson, boolean beforeMain) {
         Map<String, YsmControllerPoseLayer> poseLayers = firstPerson ? armControllerPoseLayers : controllerPoseLayers;
         for (var entry : poseLayers.entrySet()) {
+            if ((YsmControllerSlot.executionOrder(entry.getKey()) < 20) != beforeMain) {
+                continue;
+            }
             if (!firstPerson && isFirstPersonController(entry.getKey())) {
                 continue;
             }

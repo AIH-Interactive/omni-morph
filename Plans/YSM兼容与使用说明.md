@@ -22,6 +22,8 @@
 
 同一控制器内的多段动画按权重混合；不同已声明控制器依次接管它们写入的位置、旋转和缩放通道，避免在上一控制器结果上再次累加。没有写入的通道保留已有结果，自动生成的原生回退槽沿用既有合成行为。末影龙娘的回归同时检查实际通道值，不仅检查加载成功、重复播放数或顶点范围。
 
+原生 walk/run/idle 主移动姿势在 pre_parallel/pre_main 初始化之后、后置控制器之前应用，避免已选中的奔跑动作被前置初始化覆盖。末影龙娘已核查 31 种公开绑定及 793 处通道表达式语法，未发现未解析绑定或通道语法错误；这不代表所有模型的表达式数值语义或实际奔跑外观都已验收。
+
 普通 Figura 与 YSM 共享原有 Lua 环境；已经注册 `ysm_model`、`ysm_actions`。可用接口包括 `ysm_model:getPart(name)`、`getLocatorWorldMatrix(name)`、`setTexture(id)`、`playAnimation(name)`、`stopAnimation(name)` 和 `ysm_actions:getActions()`。使用前可用 `ysm_model:isYsm()` 判断当前模型；纯 YSM 加载和运行不要求 Lua。自定义跨观察者的数值选择通过模型已有的 `ysm.sync` / `@sync` 传递，不自动导出任意私有变量结构或解密字符串。
 
 ## 声音与音量

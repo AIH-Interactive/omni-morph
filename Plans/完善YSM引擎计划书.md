@@ -1642,3 +1642,17 @@ FiguraTexture 的共用修复覆盖 Figura/YSM：
 自动结果：:common:ysmMaterialNativeSmokeTest 独立运行 BUILD SUCCESSFUL 58 秒/退出 0（5 tasks，3 executed、2 up-to-date），日志 build/reports/ysm/texture-lifetime-gate.log；补全实际非空采样器夹具后，该任务再次通过，随后同一命令的材质输入任务因上述旧计数失败。最终前台执行 :common:ysmControlledBaseGeometrySmokeTest :fabric:build --console=plain，BUILD SUCCESSFUL 42 秒/退出 0，16 tasks（10 executed、6 up-to-date），日志 build/reports/ysm/texture-lifetime-final-gate.log；保留末影龙娘既有五时刻姿势回归。未修改源代码后重复扩大测试范围；可读性、完整 diff 及 git diff --check 通过，按追加修复独立提交推送并核对远端 SHA。
 
 正式 JAR：fabric/build/libs/figura-0.1.5+26.1.2-fabric-mc.jar，12,820,483 字节，SHA-256：E76AD3655505297689987DC31DEAB4745966A189AE29A8FC6D8BDFB52C3EAD1C。前文产物哈希保留为历史记录。
+
+### 9.19 用户反馈：奔跑姿势与 Molang 支持核查（2026-10-17）
+
+用户提供末影龙娘网页奔跑参考和游戏截图，要求检查奔跑状态、Molang 函数/表达式缺失。以原加密文件在内存中核查：实际动画/controller/functions 文本引用的 31 种 query/math/ysm/ctrl 绑定均能通过当前绑定表解析；骨骼通道中的 793 处非空字符串表达式使用真实 MolangEngine 逐项解析成功，插值模式为已有 linear/catmullrom。只输出聚合数量和公开绑定名，不输出解密表达式或资源正文。此检查覆盖绑定存在与通道语法，不扩大为所有函数数值语义、所有模型或最终外观均已通过。
+
+定位到共用播放阶段缺陷：native walk/run/idle 在采样过程中直接写入骨骼，而 pre_parallel/pre_main 等控制器在循环末尾统一覆盖，导致主移动动作被本应先执行的初始化控制器盖掉。末影龙娘的 run 与前置控制器有 176 个重叠骨骼。最小夹具中，run 已选中但 45° 的旋转被前置 0° 覆盖成 0°；修改前 :common:ysmMaterialNativeSmokeTest 失败，日志 build/reports/ysm/running-phase-red.log。此前只检查控制器间覆盖，未把原生主移动槽放入阶段对照，9.17 的自动证据不足以证明移动姿势正确。
+
+修复将采样与应用分开：保留前置旧式动画，然后应用前置控制器，按权重合并当前原生移动动画并写入主移动槽，再应用其余直接播放和后置控制器。同一主槽内的淡入淡出贡献先混合，写入时接管其非空通道，不在前置初始化姿势上继续相加；同一控制器内部混合及原生子实体回退保持原逻辑。只为执行该阶段顺序提取直接姿势应用方法，没有改动模型、后端、GUI、预览入口或新增未使用的函数桩。
+
+最小回归使用前置 10°，依次输入行走/疾跑/停止，验证 walk/run/idle 的选择及稳定后的 15°/45°/5°；原文件保留五个站立采样时刻，新增 40 tick 疾跑采样，检查 run 选中、真实通道按前置/主槽/后置组合以及顶点有限、重复播放为 0。通道对照纳入原生主槽，不再以“所有控制器都在主槽之后覆盖”为预期。原版状态查询、控制器阶段/混合、骨骼矩阵、延迟提交、纹理生命周期、M6 子实例及 M7 CPU 同步继续回归。测试夹具只使用 CPU 状态输入，不等同于真实玩家输入/世界运行或与网页逐像素一致；实机奔跑外观为 SKIPPED/MANUAL_BY_USER，不阻塞提交。不使用 offscreen、不修改 refs/omnm-cloud、不关闭计算机。
+
+自动验收：:common:ysmMaterialNativeSmokeTest :common:ysmControlledBaseGeometrySmokeTest :common:ysmControllerPhaseSmokeTest :common:ysmControllerPoseLayerSmokeTest :common:ysmBoneMatrixSmokeTest :common:ysmVanillaStateSmokeTest 先通过 58 秒/退出 0（10 tasks，8 executed、2 up-to-date），日志 build/reports/ysm/running-phase-fixed.log。补充通道语法检查时测试的 ParseException checked-exception 声明错误已修正后重新运行。最终前台 :common:ysmMaterialNativeSmokeTest :common:ysmControlledBaseGeometrySmokeTest :common:ysmDeferredPoseSmokeTest :fabric:build --console=plain，BUILD SUCCESSFUL 49 秒/退出 0，18 tasks（12 executed、6 up-to-date），日志 build/reports/ysm/running-phase-final-gate.log。检查新修改可读性、完整差异及 git diff --check，独立提交推送并核对远端 SHA。此前过期语料数量断言的 FOLLOW_UP 仍保留，本次未修改其基线或声称重跑通过。
+
+正式 JAR：fabric/build/libs/figura-0.1.5+26.1.2-fabric-mc.jar，12,822,505 字节，SHA-256：20A184A4C77257E7062E41099AEAF692DA10D78126AAECEF73A421782FD42169。此前产物哈希保留为历史证据。

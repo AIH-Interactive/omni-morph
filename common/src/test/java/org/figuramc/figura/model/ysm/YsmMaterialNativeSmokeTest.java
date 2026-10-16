@@ -87,6 +87,7 @@ public final class YsmMaterialNativeSmokeTest {
             }
             testControlledBasePlayback(unsafe, client);
             testControllerChannelOwnership(unsafe, client);
+            testRunningControllerPhase(unsafe, client);
             Field device = RenderSystem.class.getDeclaredField("DEVICE");
             device.setAccessible(true);
             Object previousDevice = device.get(null);
@@ -244,12 +245,145 @@ public final class YsmMaterialNativeSmokeTest {
         }
     }
 
+    public static final class RunningRenderState extends net.minecraft.client.renderer.entity.state.LivingEntityRenderState {
+        public boolean isSprinting = true;
+    }
+
+    private static void testRunningControllerPhase(Unsafe unsafe, RecordingClient client) throws Exception {
+        Fixture fixture = new Fixture(unsafe, 70);
+        try {
+            var input = fixture.runtimeTag.copy();
+            var animations = new net.minecraft.nbt.ListTag();
+            var clip = new net.minecraft.nbt.CompoundTag();
+            clip.putByteArray("data", bytes("""
+                    {"animations":{
+                      "run":{"loop":true,"bones":{"root":{"rotation":[0,0,45]}}},
+                      "setup":{"loop":true,"bones":{"root":{"rotation":[0,0,10]}}},
+                      "walk":{"loop":true,"bones":{"root":{"rotation":[0,0,15]}}},
+                      "idle":{"loop":true,"bones":{"root":{"rotation":[0,0,5]}}}
+                    }}
+                    """));
+            animations.add(clip);
+            input.put("animations", animations);
+            var controllers = new net.minecraft.nbt.ListTag();
+            var controller = new net.minecraft.nbt.CompoundTag();
+            controller.putByteArray("data", bytes("""
+                    {"animation_controllers":{"player.pre_parallel0":{
+                      "states":{"default":{"animations":["setup"]}}}}}
+                    """));
+            controllers.add(controller);
+            input.put("animation_controllers", controllers);
+            Avatar avatar = owner(unsafe, 71);
+            try (var runtime = YsmModelRuntime.fromNbt(avatar, input)) {
+                install(avatar, "ysmRuntime", runtime);
+                var state = new RunningRenderState();
+                String[] expectedClips = {"walk", "run", "idle"};
+                double[] expectedAngles = {15d, 45d, 5d};
+                for (int mode = 0; mode < expectedClips.length; mode++) {
+                    state.isSprinting = mode == 1;
+                    state.walkAnimationSpeed = mode == 2 ? 0f : 1f;
+                    for (int tick = 0; tick <= 20; tick++) {
+                        state.ageInTicks = mode * 21 + tick;
+                        org.figuramc.figura.model.ysm.animation.YsmRenderFrameClock.beginFrame();
+                        runtime.updateAnimations(state, null);
+                    }
+                    require(runtime.animations().getActiveAnimation(expectedClips[mode]) != null,
+                            "movement input selects " + expectedClips[mode]);
+                    require(Math.abs(runtime.getPart("root").animRotRaw().z - expectedAngles[mode]) < 0.0001,
+                            "pre_parallel setup must precede " + expectedClips[mode] + ": " + runtime.getPart("root").animRotRaw());
+                }
+            }
+        } finally {
+            fixture.runtime.close();
+            client.drain();
+        }
+    }
+
+    private static void auditMovementBindings(net.minecraft.nbt.CompoundTag tag, Avatar avatar) {
+        var bindings = Avatar.createMolangBindings(avatar.getMolangContext());
+        var engine = org.figuramc.figura.molang.MolangEngine.fromCustomBinding(bindings);
+        int expressionCount = 0;
+        var interpolationModes = new java.util.TreeSet<String>();
+        var used = new java.util.TreeSet<String>();
+        var missing = new java.util.TreeSet<String>();
+        var pattern = java.util.regex.Pattern.compile("\\b(q|query|math|ysm|ctrl)\\.([a-zA-Z_][a-zA-Z_0-9]*)");
+        for (String kind : List.of("animations", "animation_controllers", "functions")) {
+            for (var value : tag.getListOrEmpty(kind)) {
+                if (!(value instanceof net.minecraft.nbt.CompoundTag entry)) {
+                    continue;
+                }
+                String source = new String(entry.getByteArray("data").orElse(new byte[0]), StandardCharsets.UTF_8);
+                if ("animations".equals(kind)) {
+                    var animations = com.google.gson.JsonParser.parseString(source).getAsJsonObject().getAsJsonObject("animations");
+                    for (var animation : animations.entrySet()) {
+                        var bones = animation.getValue().getAsJsonObject().getAsJsonObject("bones");
+                        if (bones != null) {
+                            expressionCount += auditChannelExpressions(bones, engine, interpolationModes);
+                        }
+                    }
+                }
+                var matcher = pattern.matcher(source);
+                while (matcher.find()) {
+                    String namespace = matcher.group(1);
+                    String name = matcher.group(2);
+                    used.add(namespace + "." + name);
+                    Object binding = bindings.getProperty(namespace);
+                    if (!(binding instanceof org.figuramc.figura.molang.runtime.binding.ObjectBinding object)
+                            || object.getProperty(name) == null) {
+                        missing.add(namespace + "." + name);
+                    }
+                }
+            }
+        }
+        require(missing.isEmpty(), "reported model uses no unresolved query/math/ysm/ctrl bindings: " + missing);
+        System.out.println("Movement binding audit: used=" + used.size() + " unresolved=" + missing
+                + " channelExpressionsParsed=" + expressionCount + " interpolationModes=" + interpolationModes);
+    }
+
+    private static int auditChannelExpressions(com.google.gson.JsonElement value,
+            org.figuramc.figura.molang.MolangEngine engine, java.util.Set<String> interpolationModes) {
+        int count = 0;
+        if (value.isJsonObject()) {
+            for (var entry : value.getAsJsonObject().entrySet()) {
+                if ("lerp_mode".equals(entry.getKey()) || "easing".equals(entry.getKey())) {
+                    interpolationModes.add(entry.getValue().getAsString());
+                } else {
+                    count += auditChannelExpressions(entry.getValue(), engine, interpolationModes);
+                }
+            }
+        } else if (value.isJsonArray()) {
+            for (var component : value.getAsJsonArray()) {
+                count += auditChannelExpressions(component, engine, interpolationModes);
+            }
+        } else if (value.isJsonPrimitive() && value.getAsJsonPrimitive().isString() && !value.getAsString().isBlank()) {
+            try {
+                require(!engine.parse(value.getAsString()).isEmpty(), "model channel expression must parse");
+            } catch (Exception failure) {
+                // Do not include decrypted expression text in errors or logs.
+                throw new AssertionError("reported model contains an unparseable channel expression");
+            }
+            count++;
+        }
+        return count;
+    }
+
     private static void testControlledBaseGeometry(Unsafe unsafe, RecordingClient client, Path path) throws Exception {
         Avatar avatar = owner(unsafe, 58);
         try (var data = org.figuramc.figura.avatar.ysm.YsmModelData.read(path, () -> false)) {
             var tag = YsmAvatarLoader.toRuntimeTag(data, data.manifest().textures().getFirst());
             try (var runtime = YsmModelRuntime.fromData(avatar, data, tag)) {
                 install(avatar, "ysmRuntime", runtime);
+                auditMovementBindings(tag, avatar);
+                var run = runtime.animations().getClips().get("run");
+                long setupBones = run == null ? 0 : runtime.animations().getControllers().values().stream()
+                        .filter(controller -> org.figuramc.figura.model.ysm.controller.YsmControllerSlot.executionOrder(controller.name()) < 20)
+                        .flatMap(controller -> controller.states().values().stream())
+                        .flatMap(state -> state.animations().stream())
+                        .map(reference -> runtime.animations().getClips().get(reference.animation()))
+                        .filter(java.util.Objects::nonNull)
+                        .flatMap(clip -> clip.boneAnimations.keySet().stream())
+                        .filter(run.boneAnimations::containsKey).distinct().count();
+                System.out.println("Movement overlap audit: nativeRun=" + (run != null) + " preMainRunBones=" + setupBones);
                 System.out.println("Controlled base geometry: encrypted=" + data.encrypted() + " bones=" + runtime.geometry().bones.size()
                         + " clips=" + runtime.animations().getClips().values().stream().distinct().count());
                 reportGeometryBounds(runtime, "bind");
@@ -261,6 +395,16 @@ public final class YsmMaterialNativeSmokeTest {
                     assertControllerChannelOwnership(runtime);
                     reportGeometryBounds(runtime, "frame=" + time + " active=" + runtime.animations().getActiveAnimations().size());
                 }
+                var running = new RunningRenderState();
+                running.walkAnimationSpeed = 1f;
+                for (int tick = 201; tick <= 240; tick++) {
+                    running.ageInTicks = tick;
+                    org.figuramc.figura.model.ysm.animation.YsmRenderFrameClock.beginFrame();
+                    runtime.updateAnimations(running, null);
+                }
+                require(runtime.animations().getActiveAnimation("run") != null, "reported model selects run while sprinting");
+                assertControllerChannelOwnership(runtime);
+                reportGeometryBounds(runtime, "running");
             }
         } finally {
             client.drain();
@@ -274,16 +418,40 @@ public final class YsmMaterialNativeSmokeTest {
         var poseField = org.figuramc.figura.model.ysm.controller.YsmControllerPoseLayer.class.getDeclaredField("lastPose");
         poseField.setAccessible(true);
         var expected = new java.util.LinkedHashMap<String, float[][]>();
-        for (var layer : ((Map<?, ?>) layersField.get(runtime.animations())).values()) {
-            for (var entry : ((Map<?, ?>) poseField.get(layer)).entrySet()) {
-                var pose = (org.figuramc.figura.model.ysm.animation.YsmBonePose) entry.getValue();
-                float[][] channels = expected.computeIfAbsent((String) entry.getKey(), ignored -> new float[3][]);
-                float[][] output = {pose.position(), pose.rotation(), pose.scale()};
-                for (int channel = 0; channel < 3; channel++) {
-                    if (output[channel] != null) {
-                        channels[channel] = output[channel];
-                    }
+        Map<?, ?> layers = (Map<?, ?>) layersField.get(runtime.animations());
+        for (boolean beforeMain : new boolean[] {true, false}) {
+            for (var layer : layers.entrySet()) {
+                if ((org.figuramc.figura.model.ysm.controller.YsmControllerSlot.executionOrder((String) layer.getKey()) < 20)
+                        != beforeMain) {
+                    continue;
                 }
+                for (var entry : ((Map<?, ?>) poseField.get(layer.getValue())).entrySet()) {
+                    recordExpectedChannels(expected, (String) entry.getKey(),
+                            (org.figuramc.figura.model.ysm.animation.YsmBonePose) entry.getValue());
+                }
+            }
+            if (beforeMain) {
+                var nativePoses = new java.util.LinkedHashMap<String, org.figuramc.figura.model.ysm.animation.YsmBonePose>();
+                var context = runtime.owner().getMolangContext();
+                var evaluator = org.figuramc.figura.molang.runtime.ExpressionEvaluator.evaluator(context);
+                float previousTime = context.anim_time;
+                try {
+                    for (var animation : runtime.animations().getActiveAnimations().values()) {
+                        if (!animation.isNative || animation.weight <= 0f) {
+                            continue;
+                        }
+                        context.anim_time = animation.time;
+                        float weight = animation.weight * animation.clip.evaluateBlendWeight(evaluator);
+                        for (var bone : animation.clip.boneAnimations.values()) {
+                            var pose = org.figuramc.figura.model.ysm.animation.YsmAnimationSampler.sampleBone(bone, animation.time, evaluator);
+                            nativePoses.put(bone.boneName, org.figuramc.figura.model.ysm.animation.YsmBonePose.accumulate(
+                                    nativePoses.get(bone.boneName), pose, weight));
+                        }
+                    }
+                } finally {
+                    context.anim_time = previousTime;
+                }
+                nativePoses.forEach((bone, pose) -> recordExpectedChannels(expected, bone, pose));
             }
         }
         int mismatches = 0;
@@ -303,6 +471,17 @@ public final class YsmMaterialNativeSmokeTest {
             }
         }
         require(mismatches == 0, "controller channel ownership mismatches on the reported model: " + mismatches);
+    }
+
+    private static void recordExpectedChannels(Map<String, float[][]> expected, String bone,
+            org.figuramc.figura.model.ysm.animation.YsmBonePose pose) {
+        float[][] channels = expected.computeIfAbsent(bone, ignored -> new float[3][]);
+        float[][] output = {pose.position(), pose.rotation(), pose.scale()};
+        for (int channel = 0; channel < 3; channel++) {
+            if (output[channel] != null) {
+                channels[channel] = output[channel];
+            }
+        }
     }
 
     private static void reportGeometryBounds(YsmModelRuntime runtime, String phase) throws Exception {
