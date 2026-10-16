@@ -22,6 +22,7 @@ import org.figuramc.figura.gui.widgets.Button;
 import org.figuramc.figura.gui.widgets.ContextMenu;
 import org.figuramc.figura.gui.widgets.EntityPreview;
 import org.figuramc.figura.gui.widgets.SliderWidget;
+import org.figuramc.figura.gui.widgets.ScrollBarWidget;
 import org.figuramc.figura.gui.widgets.SwitchButton;
 import org.figuramc.figura.gui.widgets.TextField;
 import org.figuramc.figura.lua.api.ysm_actions.YsmActionsAPI;
@@ -44,6 +45,7 @@ public class AvatarControlsScreen extends Screen {
     private static final int WHEEL_ROW_HEIGHT = 42;
     private static final int HEADER_HEIGHT = 52;
     private static final int TAB_HEIGHT = 28;
+    private static final int TAB_SCROLLBAR_SPACE = 14;
     private static final int FOOTER_HEIGHT = 42;
     private static final String YSM_WHEEL_PAGE = "__ysm_wheel";
 
@@ -57,6 +59,10 @@ public class AvatarControlsScreen extends Screen {
     private EntityPreview preview;
     private ContextMenu openDropdown;
     private int scroll;
+    private final List<Button> pageTabs = new ArrayList<>();
+    private ScrollBarWidget pageTabScrollbar;
+    private int pageTabScroll;
+    private int pageTabOverflow;
     private String wheelEditorPage = "extra_animation";
     private String wheelPageNameDraft = "";
     private String selectedWheelAction;
@@ -87,6 +93,8 @@ public class AvatarControlsScreen extends Screen {
     private void rebuild() {
         avatar.controls.hydrateLiveValues(avatar);
         this.clearWidgets();
+        pageTabs.clear();
+        pageTabScrollbar = null;
         sliders.clear();
         controls.clear();
         pages.clear();
@@ -264,6 +272,13 @@ public class AvatarControlsScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double amount, double horizontalAmount) {
+        if (pageTabScrollbar != null && mouseX >= controlsX() + 8
+                && mouseX < controlsX() + controlsWidth() - 8
+                && mouseY >= HEADER_HEIGHT && mouseY < contentTop()) {
+            pageTabScrollbar.setScrollProgress(pageTabScrollbar.getScrollProgress()
+                    - (amount + horizontalAmount) * 72d / pageTabOverflow);
+            return true;
+        }
         if (super.mouseScrolled(mouseX, mouseY, amount, horizontalAmount))
             return true;
         int max = maxScroll();
@@ -412,7 +427,8 @@ public class AvatarControlsScreen extends Screen {
     }
 
     private int contentTop() {
-        return HEADER_HEIGHT + (pages.size() > 1 ? TAB_HEIGHT : 0);
+        return HEADER_HEIGHT + (pages.size() > 1 ? TAB_HEIGHT : 0)
+                + (pageTabScrollbar == null ? 0 : TAB_SCROLLBAR_SPACE);
     }
 
     private void collectPages() {
@@ -429,23 +445,63 @@ public class AvatarControlsScreen extends Screen {
     }
 
     private void addPageTabs() {
-        if (pages.size() <= 1)
+        if (pages.size() <= 1) {
+            pageTabScroll = 0;
+            pageTabOverflow = 0;
             return;
-        int x = controlsX() + 8;
-        int y = HEADER_HEIGHT;
-        int available = controlsWidth() - 16;
+        }
+        int left = controlsX() + 8;
+        int right = controlsX() + controlsWidth() - 8;
+        int available = Math.max(1, right - left);
         int tabWidth = Math.max(72, Math.min(132, available / pages.size()));
+        pageTabOverflow = Math.max(0, pages.size() * tabWidth - 4 - available);
+        pageTabScroll = Mth.clamp(pageTabScroll, 0, pageTabOverflow);
+        int selected = Math.max(0, pages.indexOf(page)) * tabWidth;
+        if (selected < pageTabScroll) {
+            pageTabScroll = selected;
+        } else if (selected + tabWidth - 4 > pageTabScroll + available) {
+            pageTabScroll = Math.min(pageTabOverflow, selected + tabWidth - 4 - available);
+        }
         for (String target : pages) {
-            if (x + tabWidth > controlsX() + controlsWidth() - 8)
-                break;
-            Button tab = new Button(x, y, tabWidth - 4, 20, Component.literal(pageTitle(target)), null, button -> {
-                page = target;
-                scroll = 0;
-                rebuild();
-            });
+            Button tab = new Button(left, HEADER_HEIGHT, tabWidth - 4, 20,
+                    Component.literal(pageTitle(target)), null, button -> {
+                        page = target;
+                        scroll = 0;
+                        rebuild();
+                    }) {
+                @Override
+                public boolean isMouseOver(double mouseX, double mouseY) {
+                    return mouseX >= left && mouseX < right && super.isMouseOver(mouseX, mouseY);
+                }
+
+                @Override
+                public void extractContents(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+                    gui.enableScissor(left, HEADER_HEIGHT, right, HEADER_HEIGHT + 20);
+                    super.extractContents(gui, mouseX, mouseY, delta);
+                    gui.disableScissor();
+                }
+            };
             tab.setActive(!target.equals(page));
+            pageTabs.add(tab);
             this.addRenderableWidget(tab);
-            x += tabWidth;
+        }
+        updatePageTabPositions();
+        if (pageTabOverflow > 0) {
+            pageTabScrollbar = new ScrollBarWidget(left, HEADER_HEIGHT + 24, available, 10,
+                    (double) pageTabScroll / pageTabOverflow, false);
+            pageTabScrollbar.setAction(bar -> {
+                pageTabScroll = (int) Math.round(bar.getScrollProgress() * pageTabOverflow);
+                updatePageTabPositions();
+            });
+            this.addRenderableWidget(pageTabScrollbar);
+        }
+    }
+
+    private void updatePageTabPositions() {
+        int x = controlsX() + 8 - pageTabScroll;
+        for (Button tab : pageTabs) {
+            tab.setX(x);
+            x += tab.getWidth() + 4;
         }
     }
 

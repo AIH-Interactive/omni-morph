@@ -73,6 +73,7 @@ public final class YsmMaterialNativeSmokeTest {
                 YsmStabilitySmokeTest.run(unsafe, client::drain, Path.of(args[1]), Path.of(args[2]), Path.of(args[3]));
                 return;
             }
+            testTexturePublication(unsafe, client);
             testScaleAndDefaultTexture(unsafe, client);
             testPreviewDefaultPose(unsafe, client);
             testPreviewLighting(unsafe, client);
@@ -106,6 +107,85 @@ public final class YsmMaterialNativeSmokeTest {
                     Files.delete(path);
                 }
             }
+        }
+    }
+
+    private static void testTexturePublication(Unsafe unsafe, RecordingClient client) throws Exception {
+        var texture = new PublicationTexture(owner(unsafe, 56));
+        client.manager.inspectRegistration = true;
+        try {
+            texture.uploadIfDirty(false, false);
+            require(texture.loads == 1 && texture.getTextureView() != null,
+                    "texture registration consumers receive an initialized view");
+            texture.uploadIfDirty(false, false);
+            require(texture.loads == 1, "clean registered textures do not upload again");
+            texture.getTextureView().close();
+            texture.uploadIfDirty(false, false);
+            require(texture.loads == 2 && !texture.getTextureView().isClosed(),
+                    "a retired view is recreated before the registered texture is reused");
+            texture.close();
+            texture.uploadIfDirty(false, false);
+            require(!client.manager.textures.containsKey(texture.getLocation()),
+                    "late render requests cannot republish a closed texture without a view");
+
+            var retry = new PublicationTexture(owner(unsafe, 57));
+            try {
+                retry.failUpload = true;
+                try {
+                    retry.uploadIfDirty(false, false);
+                    throw new AssertionError("fixture upload should fail");
+                } catch (IllegalStateException expected) {
+                    require(!client.manager.textures.containsKey(retry.getLocation()),
+                            "failed initialization never publishes a broken texture");
+                }
+                retry.failUpload = false;
+                retry.uploadIfDirty(false, false);
+                require(retry.loads == 2 && retry.getTextureView() != null,
+                        "a failed upload is retried instead of being incorrectly marked clean");
+            } finally {
+                retry.close();
+            }
+        } finally {
+            client.manager.inspectRegistration = false;
+            texture.close();
+            client.drain();
+        }
+    }
+
+    /** Replaces GPU allocation only; publication and the vanilla view lookup remain real. */
+    private static final class PublicationTexture extends org.figuramc.figura.model.rendering.texture.FiguraTexture {
+        private int loads;
+        private boolean failUpload;
+
+        private PublicationTexture(Avatar owner) {
+            super(owner, "publication", new NativeImage(1, 1, true));
+        }
+
+        @Override
+        protected void doLoad(NativeImage image) {
+            loads++;
+            if (failUpload) {
+                throw new IllegalStateException("fixture GPU upload failure");
+            }
+            textureView = new PublicationView();
+        }
+    }
+
+    private static final class PublicationView extends com.mojang.blaze3d.textures.GpuTextureView {
+        private boolean closed;
+
+        private PublicationView() {
+            super(null, 0, 1);
+        }
+
+        @Override
+        public void close() {
+            closed = true;
+        }
+
+        @Override
+        public boolean isClosed() {
+            return closed;
         }
     }
 
@@ -780,9 +860,25 @@ public final class YsmMaterialNativeSmokeTest {
 
     private static final class RecordingTextures extends TextureManager implements TextureManagerAccessor {
         private Map<Identifier, AbstractTexture> textures;
+        private boolean inspectRegistration;
 
         private RecordingTextures() {
             super(null);
+        }
+
+        @Override
+        public void register(Identifier location, AbstractTexture texture) {
+            textures.put(location, texture);
+            if (inspectRegistration) {
+                net.minecraft.client.renderer.rendertype.RenderSetup.builder(
+                                net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED)
+                        .withTexture("Sampler0", location).createRenderSetup().getTextures();
+            }
+        }
+
+        @Override
+        public AbstractTexture getTexture(Identifier location) {
+            return textures.get(location);
         }
 
         @Override

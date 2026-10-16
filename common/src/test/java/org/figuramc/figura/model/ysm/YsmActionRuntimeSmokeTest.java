@@ -195,6 +195,7 @@ public final class YsmActionRuntimeSmokeTest {
                     .parse(new com.mojang.brigadier.StringReader("minecraft:comparator")).createItemStack(1);
             new org.figuramc.figura.lua.api.world.ItemStackAPI(item);
             testInstalledLayout();
+            testPageTabOverflow();
         } finally {
             instance.set(null, previousClient);
             cached.set(null, previousWorld);
@@ -228,6 +229,73 @@ public final class YsmActionRuntimeSmokeTest {
         require(wheel.getCurrentPage() == root, "existing back action dispatch remains intact");
         testFormRouting(fixture);
         fixture.runtime.actions().close();
+    }
+
+    private static void testPageTabOverflow() throws Exception {
+        Fixture fixture = new Fixture("tabs");
+        var addTabs = AvatarControlsScreen.class.getDeclaredMethod("addPageTabs");
+        addTabs.setAccessible(true);
+        var contentTop = AvatarControlsScreen.class.getDeclaredMethod("contentTop");
+        contentTop.setAccessible(true);
+        Field pagesField = AvatarControlsScreen.class.getDeclaredField("pages");
+        pagesField.setAccessible(true);
+        Field tabsField = AvatarControlsScreen.class.getDeclaredField("pageTabs");
+        tabsField.setAccessible(true);
+        Field barField = AvatarControlsScreen.class.getDeclaredField("pageTabScrollbar");
+        barField.setAccessible(true);
+        try {
+            for (int count : List.of(2, 12)) {
+                var screen = new AvatarControlsScreen(null, fixture.owner, "page" + (count - 1));
+                screen.width = 600;
+                screen.height = 360;
+                @SuppressWarnings("unchecked")
+                List<String> pages = (List<String>) pagesField.get(screen);
+                for (int index = 0; index < count; index++) {
+                    pages.add("page" + index);
+                }
+                addTabs.invoke(screen);
+                @SuppressWarnings("unchecked")
+                List<org.figuramc.figura.gui.widgets.Button> tabs =
+                        (List<org.figuramc.figura.gui.widgets.Button>) tabsField.get(screen);
+                require(tabs.size() == count, "all page tabs are retained, including overflowing pages");
+                var bar = (org.figuramc.figura.gui.widgets.ScrollBarWidget) barField.get(screen);
+                if (count == 2) {
+                    require(bar == null && (int) contentTop.invoke(screen) == 80,
+                            "fitting tabs keep the original layout without a scrollbar");
+                    continue;
+                }
+                require(bar != null && bar.getWidth() > bar.getHeight(), "overflow creates the existing scrollbar in horizontal orientation");
+                require((int) contentTop.invoke(screen) > bar.getY() + bar.getHeight(),
+                        "controls begin below the horizontal scrollbar");
+                var last = tabs.getLast();
+                int left = bar.getX();
+                int right = left + bar.getWidth();
+                require(last.getX() >= left && last.getX() + last.getWidth() <= right,
+                        "opening the last page automatically reveals its selected tab");
+                bar.setScrollProgressNoAnim(0);
+                require(tabs.getFirst().getX() == left && !last.isMouseOver(last.getX() + 1, last.getY() + 1),
+                        "left endpoint reveals the first tab and clips hit testing for hidden tabs");
+                require(screen.mouseScrolled(left + 1, last.getY() + 1, -1, 0)
+                                && bar.getScrollProgress() > 0,
+                        "wheel input over tabs scrolls horizontally");
+                bar.setScrollProgressNoAnim(1);
+                require(last.getX() + last.getWidth() == right && last.isMouseOver(right - 1, last.getY() + 1),
+                        "right endpoint exposes the final tab and permits hits only inside the viewport");
+                require(!last.isMouseOver(right, last.getY() + 1), "clipped tabs cannot capture clicks beyond the preview boundary");
+                bar.setScrollProgressNoAnim(0.5);
+                Field dragging = org.figuramc.figura.gui.widgets.ScrollBarWidget.class.getDeclaredField("isScrolling");
+                dragging.setAccessible(true);
+                dragging.setBoolean(bar, true);
+                require(bar.mouseDragged(new net.minecraft.client.input.MouseButtonEvent(right - 1, bar.getY() + 1, null), 20, 0)
+                                && bar.getScrollProgress() > 0.5,
+                        "the existing scrollbar drag path uses the horizontal axis");
+                bar.setScrollProgressNoAnim(2);
+                require(bar.getScrollProgress() == 1, "tab scrolling clamps at the final page");
+            }
+        } finally {
+            fixture.runtime.actions().close();
+        }
+        System.out.println("Controls page tab overflow: all tabs, horizontal wheel/drag, bounds and selected-page visibility PASS; real GUI pending.");
     }
 
     private static void testFormRouting(Fixture fixture) throws Exception {
