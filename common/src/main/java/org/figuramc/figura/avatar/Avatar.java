@@ -791,6 +791,16 @@ public class Avatar {
         return preview.ysmRuntime;
     }
 
+    /** Detached execution owner for a physical sub-entity; no AvatarManager registration or GUI. */
+    public YsmModelRuntime createYsmEntityRuntime(Entity entity,
+            java.util.function.Function<Avatar, YsmModelRuntime> factory) {
+        Avatar child = new Avatar(owner, entity.getType(), entityName);
+        child.renderMode = EntityRenderMode.RENDER;
+        child.molangContext = new MolangContext(child);
+        child.ysmRuntime = factory.apply(child);
+        return child.ysmRuntime;
+    }
+
     public Avatar(UUID owner) {
         this(owner, EntityType.PLAYER, EntityUtils.getNameForUUID(owner));
     }
@@ -890,6 +900,7 @@ public class Avatar {
     public void tick() {
         if (ysmRuntime != null) {
             ysmRuntime.sounds().tick();
+            ysmRuntime.subEntityInstances().tick(Minecraft.getInstance().level);
         }
         if (scriptError || luaRuntime == null || !loaded)
             return;

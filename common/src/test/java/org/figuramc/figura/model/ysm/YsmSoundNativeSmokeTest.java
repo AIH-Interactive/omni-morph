@@ -198,6 +198,7 @@ public final class YsmSoundNativeSmokeTest {
         var secondBuffer = second.runtime.audio().get("model_tone");
         require(firstBuffer != null && secondBuffer != null && firstBuffer != secondBuffer
                         && firstBuffer.size() == 5360, "models own independent decoded native buffers");
+        testSubEntityAudio(engine, first, firstBuffer);
         var api = new org.figuramc.figura.lua.api.sound.SoundAPI(first.owner);
         require(api.isPresent("model_tone") && api.getCustomSounds().contains("model_tone")
                         && !first.owner.customSounds.containsKey("model_tone"), "Lua sound API consumes model resources separately");
@@ -250,6 +251,82 @@ public final class YsmSoundNativeSmokeTest {
         System.out.println("M5 runtime audio assembly/Opus decode/SoundAPI/native playback and same-name model cleanup passed (CPU engine).");
     }
 
+    private static void testSubEntityAudio(RecordingEngine engine, Fixture parent, SoundBuffer shared) throws Exception {
+        org.figuramc.figura.permissions.PermissionManager.init();
+        var geometry = YsmGeometryParser.parse("{\"minecraft:geometry\":[{\"bones\":[{\"name\":\"root\"}]}]}");
+        var constructor = YsmSubEntity.class.getDeclaredConstructor(String.class, String.class, List.class,
+                String.class, String.class, YsmGeometry.class, FiguraTexture.class, boolean.class,
+                String.class, String.class, String.class, String.class);
+        constructor.setAccessible(true);
+        // This audio-only fixture never renders a texture; native image ownership has its own real-object gate.
+        var definition = constructor.newInstance("projectile", "minecraft:arrow", List.of("minecraft:arrow"),
+                "", "", geometry, null, false, "", "", "", "");
+        var add = YsmModelRuntime.class.getDeclaredMethod("addSubEntity", YsmSubEntity.class);
+        add.setAccessible(true);
+        add.invoke(parent.runtime, definition);
+        parent.context.entity.setUUID(parent.owner.owner);
+        AudioArrow first = audioArrow(parent.context.entity, 71);
+        AudioArrow second = audioArrow(parent.context.entity, 72);
+        YsmModelRuntime a = parent.runtime.subEntityInstances().acquire(first, "projectile", "minecraft:arrow");
+        YsmModelRuntime b = parent.runtime.subEntityInstances().acquire(second, "projectile", "minecraft:arrow");
+        a.owner().getMolangContext().entity = first;
+        b.owner().getMolangContext().entity = second;
+        require(a.audio() == parent.runtime.audio() && b.audio() == parent.runtime.audio(),
+                "child voices borrow one decoded model PCM pool");
+        try (var firstEffects = a.functions().beginClientEffects(null);
+             var secondEffects = b.functions().beginClientEffects(null)) {
+            require(Boolean.TRUE.equals(eval(a, "ysm.play_sound('voice','model_tone',4);")), "first physical instance loops its own voice");
+            LuaSound firstSound = engine.submitted.getLast();
+            require(Boolean.TRUE.equals(eval(b, "ysm.play_sound('voice','model_tone',4);")), "second physical instance loops the same sound name independently");
+            LuaSound secondSound = engine.submitted.getLast();
+            Field buffer = LuaSound.class.getDeclaredField("buffer");
+            buffer.setAccessible(true);
+            require(buffer.get(firstSound) == shared && buffer.get(secondSound) == shared,
+                    "separate voices reuse immutable PCM without duplicate native allocations");
+            set(Entity.class, first, "removalReason", Entity.RemovalReason.DISCARDED);
+            parent.runtime.subEntityInstances().tick(null);
+            require(a.isClosed() && firstSound.getHandle() == null && secondSound.getHandle() != null
+                            && !engine.released.contains(shared),
+                    "physical removal stops only that instance and preserves shared PCM and the other voice");
+            int submissions = engine.submitted.size();
+            firstSound.play();
+            require(firstSound.getHandle() == null && engine.submitted.size() == submissions,
+                    "retained sound cannot revive a removed instance while the parent PCM remains live");
+            parent.runtime.subEntityInstances().close();
+            require(b.isClosed() && secondSound.getHandle() == null && !engine.released.contains(shared),
+                    "closing the instance container stops all voices before parent PCM disposal");
+        }
+        System.out.println("M6 native child audio: shared PCM, independent same-name loops, physical removal, retained-object guard and container cleanup PASS; no audible claim.");
+    }
+
+    private static AudioArrow audioArrow(Entity owner, int id) throws Exception {
+        AudioArrow arrow = allocate(AudioArrow.class);
+        arrow.sourceOwner = owner;
+        arrow.setId(id);
+        set(Entity.class, arrow, "type", net.minecraft.world.entity.EntityType.ARROW);
+        set(Entity.class, arrow, "position", new Vec3(id, 2, 3));
+        return arrow;
+    }
+
+    private static Object eval(YsmModelRuntime runtime, String source) throws Exception {
+        var context = runtime.owner().getMolangContext();
+        var engine = MolangEngine.fromCustomBinding(runtime.owner().getAvatarBindings());
+        return ExpressionEvaluator.evaluator(context).eval(engine.parse(source).getFirst());
+    }
+
+    private static final class AudioArrow extends net.minecraft.world.entity.projectile.arrow.Arrow {
+        private Entity sourceOwner;
+
+        private AudioArrow() {
+            super(net.minecraft.world.entity.EntityType.ARROW, null);
+        }
+
+        @Override
+        public Entity getOwner() {
+            return sourceOwner;
+        }
+    }
+
     private static final class Fixture {
         final Avatar owner;
         final Avatar.MolangContext context;
@@ -291,6 +368,12 @@ public final class YsmSoundNativeSmokeTest {
 
         private RecordingClient() {
             super(null);
+        }
+
+        @Override
+        public net.minecraft.client.User getUser() {
+            return new net.minecraft.client.User("CPU child audio", new UUID(0, 999), "",
+                    java.util.Optional.empty(), java.util.Optional.empty());
         }
 
         @Override

@@ -1,7 +1,7 @@
 # 完善 YSM 引擎计划书
 
 > 编制日期：2026-10-12（Asia/Seoul）。
-> 状态：M0～M4 自动化验收完成并提交推送；M5 自动化验收完成，执行提交推送检查点；M6～M8 尚未实施。阶段提交与推送按 6.1 节执行；人工项按用户要求注明并跳过。
+> 状态：M0～M5 自动化验收完成并提交推送；M6 自动化验收完成，执行提交推送检查点；M7～M8 尚未实施。阶段提交与推送按 6.1 节执行；人工项按用户要求注明并跳过。
 > 本文独立制定需求、实施顺序与验收标准。旧版计划书全部视为已废弃，不作为本文依据。
 
 ## 1. 目标、边界与完成定义
@@ -494,7 +494,7 @@ if ($buildExitCode -ne 0) {
 | M3 | 自动验收完成；人工已按用户要求跳过 | 动态权重、实例/上下文、过渡/声音/子控制器、阶段/第一人称、多 pass 与延迟姿态已接通；16 项 M3 smoke、既有回归/45 模型语料/扫描基线、Fabric build 通过；见 9.7 |
 | M4 | 自动验收完成；人工已按用户要求跳过 | 函数/绑定/事件、预算恢复、滤波/实体适配与诊断已补；233名称逐项分级，41 smoke/绑定审计/独立M4扫描baseline/Fabric build通过；声音最小执行适配已获本轮明确授权，实际包音频装配归M5；见9.8最终记录 |
 | M5 | 自动验收完成；人工与指定 GUI 项按用户要求跳过 | 49 smoke+绑定审计、冻结M4扫描baseline与Fabric build通过3分3秒；附属资源/动作/控件/材质/预览引擎和层顺序接通；UI复用Figura原组件；详见9.9最终记录 |
-| M6 | 未开始实施 | 动态子实体 |
+| M6 | 自动验收完成；人工已按用户要求跳过 | 物理实体独立动画/controller/query/函数事件、箭/三叉戟/载具匹配与所有权、材质/音效释放接通；49 smoke+绑定审计+冻结扫描+Fabric build通过2分41秒；详见9.10最终记录 |
 | M7 | 未开始实施 | 内容边界与动态多人一致性 |
 | M8 | 未开始实施 | 完整语料、真实窗口、多客户端、资源与性能验收 |
 
@@ -1450,3 +1450,43 @@ M5 最终自动化验收（2026-10-16）：按 common/build.gradle 注册列表�
 M5 验收边界：真实窗口中文/左右手/背包/刀鞘/鞘翅/透明面、Iris shader外观与可听音频为 SKIPPED/MANUAL_BY_USER；后端需求为 SKIPPED/BACKEND_BY_USER。用户最终要求统一Figura风格、控件仅用既有定义、预览也只用Figura：EntityPreview.java与阶段开始版本源码无diff，不增加YSM GUI或专属控件；作者头像、预览前背景和额外旋转限制显示为 SKIPPED/USER_UI_SCOPE，覆盖此前显示接线记录。资源解码能力保留，不能将这些显示项报PASS。没有修改refs/omnm-cloud，没有开始M6～M8，没有关闭计算机。
 
 已检查生产/测试新增代码及差异的可读性；仓库未发现独立Java格式器配置，不整文件重排旧代码；git diff --check通过。M5按6.1执行独立commit、push及远端SHA核对，完成后才开始M6。
+
+### 9.10 M6 执行记录（自动验收完成，执行提交推送检查点）
+
+进入条件：M5独立提交74a3a327bfbbd8d9928d14fc8b2d4bdd317684d2已推送origin/main，git ls-remote核对本地/远端SHA完全相同；检查点后工作区仅build.log及用户refs/omnm-cloud。本阶段不增加GUI，继续使用Figura原组件；不修改后端。
+
+首轮实施：增加实体级实例容器，按world/entity ID隔离并以实际Entity对象拒绝ID复用；实例复用YsmModelRuntime/YsmAnimationPlayer与Molang绑定，独立编译AST、变量、controller和音效句柄。静态几何/定义图像及模型音频资源可共享，实例借用资源不重复关闭，卸载顺序先实例后定义。物理Entity query及时间输入接入已有播放器，禁用玩家原生手部状态；Avatar tick清理移除/换世界实例并跟随声音。此时尚未接通箭/三叉戟/载具动态渲染消费，也未完成owner/乘客状态、语料与生命周期验证，不能标M6完成。
+
+M6 实例基础验证（2026-10-16）：复用现有 nativeMaterial 的CPU/NativeImage环境，新增独立 YsmSubEntitySmokeTest 子用例，实际调用实例工厂、播放器逐帧update、query与controller执行。两个不同world同entity ID的Arrow CPU对象分别以不同age推进，实际time=.15/.25、骨骼位置3.4/13、air/land状态独立；父变量保持77且不收到子timeline事件；同帧多pass不重复推进query lifetime；ID复用只关闭旧对象，实体移除/换世界由tick清理，父卸载先关闭实例再释放共享图像且旧manager不能复活。前台nativeMaterial通过18秒/退出0，日志build/reports/ysm/m6-independent-instances-gate.log。先前生产基础改动的material/playerTimeline/controllerContext/soundNative与Fabric build通过40秒，日志m6-instance-foundation-gate.log；诊断类型和clock import编译失败独立保留，不记PASS。
+
+现已将Arrow/Trident既有渲染回调切到携带实际Entity与partialTick的动态重载，借用原生提交姿态并使用实例骨骼/提交快照；原静态定义渲染重载保留既有API兼容。载具接点、tag类型匹配、参考投射物/载具自动动作选择、owner/乘客状态、材质子通道及实际实例音效释放仍待完成，M6不提交、不推送、不启动M7。
+
+M6 动态投射物接线后的组合 gate 已通过37秒/退出0：nativeMaterial（包含新的双实例M6子用例）、playerTimeline、soundNative与Fabric build，日志build/reports/ysm/m6-projectile-instance-gate.log。git diff --check通过；无真实窗口/GPU/可听音频结论。当前修改仅M6实例/必要执行入口与测试，未修改GUI、refs或omnm-cloud。M6仍实施中，待上述载具/匹配/自动状态/材质与声音生命周期验收后才执行本阶段检查点。
+
+M6 载具消费接线（实施中）：EntityRenderDispatcher在原生EntityRenderer.submit调用处用WrapOperation处理已匹配的载具，借用现有平移和影子/火焰路径，按首位乘客Avatar及权限选择YSM定义；准备独立实例/提交快照，并以实体yaw（LivingEntity使用body yaw）建立参考180-yaw朝向，延迟消费检查模型和乘客仍有效。未匹配载具及普通Figura继续原调用。子实体匹配新增真实EntityType holder tag支持，精确ID优先。实例tick新增所有者/首位乘客租用检查，易主/下车后关闭旧实例。首轮nativeMaterial+Fabric build通过34秒，日志m6-vehicle-hook-gate.log；渲染接点编译不等于真实窗口朝向PASS。
+
+M6 所有权语义纠正：进一步核对参考fabric VehicleCapability.setOwnerModelId及RideStateAnimationPredicate，载具模型赋值独立于是否有人乘坐，且有明确not_ride动作。先前“下车立即清理”的实现/测试不足以表达这一语义，已修正为本地观察到的载具模型赋值：空载时保留原owner以运行not_ride，换不同乘客owner、实体移除、换世界和模型卸载才清理。索引使用弱实体键/弱runtime值且显式释放，避免静态索引延长模型寿命；多人远端赋值同步继续归M7协议/后端边界。此项属于M6既定owner/乘客语义，不引入后端或GUI。
+
+M6 原生Boat/tag/owner自动检查前一轮通过13秒，日志m6-native-vehicle-ownership-gate.log；投射物默认air/ground/fire/water及切换事件、既有时间轴与Fabric build通过38秒，日志m6-default-animation-gate.log。原生Accessor用于实际AbstractArrow.isInGround，不用onGround替代嵌入状态；参考环境声明有fly而实际predicate选择air，本实现沿实际predicate而不按声明数组推断。默认动作使用既有controller pose transition/owned playback；声明控制器优先，原生默认只补缺slot。当前继续验证空载赋值、移动和乘坐动作组合；尚未完成整个M6验收。
+
+M6 载具默认动作组合通过37秒/退出0（nativeMaterial/playerTimeline/Fabric），日志m6-vehicle-default-animation-gate.log：静止idle、速度>0.05的forward、has_ride与空载not_ride实际骨骼分量均断言，显式vehicle.main控制器继续优先。随后核对MC 26.1.2 Entity.equals/hashCode字节码，确认仅比较数字ID；因此赋值缓存不使用Entity相等作为身份，改为弱UUID键加弱Entity/runtime值并强制实际对象identity检查。跨世界相同ID及复用UUID的另一个实体不能借用赋值，且不破坏原实体赋值；模型/乘客变更清理后索引不可再查。nativeMaterial/playerTimeline/controllerContext/Fabric组合通过32秒，日志m6-vehicle-identity-gate.log。WeakHashMap相等键替换时另先移除旧键，确保实际保留的是当前实体持有的UUID对象，不让早期同值UUID的GC错误撤销新赋值。
+
+当前M6未完成项：子实体材质normal/specular输入与共享释放、实际实例音效/事件退出清理组合验证、代表性三叉戟/语料输入及阶段完整gate。真实窗口朝向/挂点按SKIPPED/MANUAL_BY_USER，不引入GUI或后端，不提前M7；M6尚不提交推送。
+
+M6 载具赋值收尾 gate 通过30秒/退出0：nativeMaterial（含原生Boat、tag、弱赋值身份、空载/移动/乘客动作、跨实体查询和清理用例）与Fabric build，日志build/reports/ysm/m6-vehicle-assignment-final-gate.log。git diff --check通过。本轮无GUI、后端或参考目录修改；M6剩余项按上列清单继续，未进行本阶段commit/push。
+
+M6 子实体材质与音效完成项（2026-10-16）：复用YsmMaterialTexture装配子实体base/normal/specular，loader支持材质对象数组，binary mapper与主材质共用完整材质描述映射，保留通道而非扁平化成base路径。plain/binary输入字节/配对及真实NativeImage共享、单实例退役不关闭共享通道、父卸载关闭全部图像通过；materialInput/nativeMaterial/binaryResources/Fabric组合45秒/退出0，日志m6-sub-entity-material-gate.log。参考Projectile/VehicleModelBundle本身持有单个texture，本次沿既有首项选取契约，未新增子实体换肤GUI。
+
+M6 实例音效组合通过37秒/退出0（soundNative/controllerSound/nativeMaterial/Fabric），日志m6-child-audio-gate.log。真实LuaSound/记录native engine证明两实例同名循环音效各有handle并共享同一解码PCM；移除A只关闭A声音，B及parent PCM保持；关闭容器停止B，之后由父资源容器释放PCM。共享PCM的source guard增加consumer生命周期，避免保留的LuaSound在child关闭而parent仍存活时重新播放。声音夹具无图像/GPU；图像生命周期由nativeMaterial独立验证，不将记录engine声称为可听验收。新增Native ThrownTrident CPU对象的air→embedded ground与移除用例，与箭、Boat及显式controller/多实例组合共同进入完整阶段gate。
+
+M6 首轮完整gate通过3分24秒/退出0（49 smoke+绑定审计+冻结M4扫描+Fabric build）。在门禁运行期间的关闭引用审查发现：已退役child仍经query context与player.currentEntity保留物理Entity，违反本阶段“无悬挂实例引用”的既定要求。补上关闭时清空这两处引用，并直接断言保留的退役runtime不再指向物理实体；不是增加新验收范围。首轮日志保留为m6-pre-reference-release-full-gate.log，修正后的最终完整gate重新执行。
+
+M6 自动函数阶段隔离复核：共享命名函数模板也含玩家/投射物/载具控制器回调，若直接沿用全事件fallback，child会自动执行玩家回调，违背本阶段主体/子实体事件隔离要求。增加automatic controller-event domain筛选，命名函数与显式手动事件仍可共用；为过滤后的阶段建立既有synthetic controller，并区分synthetic函数阶段与真正JSON controller，避免有回调便错误覆盖默认动作。新增正式parent/双projectile/Boat update验证各域计数及其他域无写入。此前引用释放后的完整gate3分33秒/退出0保留为m6-pre-event-domain-full-gate.log，域隔离组合验证与最终完整gate继续执行；不将此前绿灯冒称覆盖此边界。
+
+M6 最终验收与检查点（2026-10-16）：自动函数阶段域隔离的nativeMaterial/functionStage/controllerPhase/soundNative/Fabric组合先通过32秒；随后完成最终完整gate，全部49个注册ysm*SmokeTest与ysmBindingReferenceAudit（50任务）+冻结M4 baseline scanYsmModels+fabric:build通过2分41秒/退出码0，66 actionable tasks（51 executed、15 up-to-date）。已逐项检查最终日志包含全部50个smoke/audit任务；nativeMaterial任务包含新增YsmSubEntitySmokeTest的正式执行。日志build/reports/ysm/m6-final-gate.log，UTF-8报告build/reports/ysm/m6-final-scan.txt。冻结M2/M4 baseline未改，扫描40/38/2、encryptedValidated5保留；原Figura5、明文YSM35、加密YSM5加载/重载全部保持。
+
+按M6原验收逐项关闭自动部分：Arrow/SpectralArrow及Native ThrownTrident的独立实例和环境clip转换；Native Boat的tag/乘客query、idle/forward/has_ride/not_ride；同资源双实例不同time/variables/controller状态；自动玩家/投射物/载具函数回调域隔离而命名函数共用；world/entity-ID加实际对象身份防复用；源owner/载具赋值与换乘客、tag移除、实体移除/换世界、parent模型卸载清理；退役runtime查询和播放器Entity引用置空；共享基础/PBR NativeImage单实例不提前关闭、parent卸载释放；同名独立循环handle借用PCM、实例退出停止及保留LuaSound不得复活。材质plain/binary输入链含normal/specular对象数组与资源配对。
+
+GUI未修改；原有静态定义渲染重载保留API兼容，实际箭/三叉戟回调及载具提交接点使用物理实体动态runtime。Mixin目标签名已用当前原版classfile核对，自动证据为CPU原生对象/动作/资源生命周期及编译打包；真实游戏注入、挂点/朝向/视觉、可听音频与第三方可选模组实机为SKIPPED/MANUAL_BY_USER，不将CPU记录engine称为实机PASS。后端仍SKIPPED/BACKEND_BY_USER，refs/omnm-cloud只读。
+
+已复核所有新增/修改代码可读性、分支和所有权顺序；未发现独立Java格式器配置，未整文件重排旧代码。git diff --check通过；按6.1检查status/diff，M6独立commit→push→核对远端SHA后，才开始M7。此前过程记录中的待办由本最终gate关闭，不增加新Definition of Done，不关闭计算机。

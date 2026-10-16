@@ -6,6 +6,10 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import org.figuramc.figura.FiguraMod;
@@ -28,6 +32,7 @@ import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import org.figuramc.figura.model.ysm.animation.YsmAnimationClip;
 import org.figuramc.figura.model.ysm.animation.YsmAnimationParser;
 import org.figuramc.figura.model.ysm.animation.YsmAnimationPlayer;
+import org.figuramc.figura.model.ysm.animation.YsmRenderFrameClock;
 import org.figuramc.figura.model.ysm.controller.YsmAnimationController;
 import org.figuramc.figura.model.ysm.controller.YsmAnimationControllerParser;
 import org.figuramc.figura.model.ysm.action.YsmActionDefinition;
@@ -84,6 +89,12 @@ public class YsmModelRuntime implements AutoCloseable {
     private boolean previewRotationDisabled;
     private boolean guiNoLighting;
     private boolean previewRuntime;
+    private boolean subEntityRuntime;
+    private long subEntityQueryFrame = Long.MIN_VALUE;
+    private boolean mergeMultilineExpressions;
+    private ListTag functionInput = new ListTag();
+    private YsmAudioResources sharedAudio;
+    private final YsmSubEntityInstances subEntityInstances = new YsmSubEntityInstances(this);
     private boolean ownsTexture = true;
     private volatile boolean closed;
     private String previewAnimation = "";
@@ -117,6 +128,8 @@ public class YsmModelRuntime implements AutoCloseable {
         this.animationPlayer = new YsmAnimationPlayer(this);
         this.actions = new YsmActionRuntime(this);
         this.functions = new YsmMolangFunctionRuntime(this);
+        this.functions.setControllerEventDomain("projectile".equals(this.kind) || "vehicle".equals(this.kind)
+                ? this.kind : "player");
     }
 
     public static YsmModelRuntime fromNbt(Avatar owner, CompoundTag tag) throws java.io.IOException {
@@ -205,6 +218,8 @@ public class YsmModelRuntime implements AutoCloseable {
                 }
                 runtime.previewInput.putBoolean("merge_multiline_expr", tag.getBooleanOr("merge_multiline_expr", false));
             }
+            runtime.functionInput = tag.getListOrEmpty("functions").copy();
+            runtime.mergeMultilineExpressions = tag.getBooleanOr("merge_multiline_expr", false);
             runtime.guiNoLighting = tag.getBooleanOr("gui_no_lighting", false);
             runtime.previewRotationDisabled = tag.getBooleanOr("disable_preview_rotation", false);
             runtime.renderLayersFirst = tag.getBooleanOr("render_layers_first", false);
@@ -222,7 +237,7 @@ public class YsmModelRuntime implements AutoCloseable {
                         loadedRuntime.encryptedSource, path, diagnostic));
             }, runtime.controllerSources));
             runtime.functions.load(tag.getListOrEmpty("functions"));
-            runtime.animationPlayer.registerFunctionEventControllers(runtime.functions.eventDebugNames().keySet());
+            runtime.animationPlayer.registerFunctionEventControllers(runtime.functions.controllerEventNames());
             runtime.animationPlayer.startBaseAnimations();
             runtime.registerDefaultControls();
             runtime.readActionSchemas(tag);
@@ -562,7 +577,7 @@ public class YsmModelRuntime implements AutoCloseable {
     }
 
     public YsmAudioResources audio() {
-        return audio;
+        return sharedAudio == null ? audio : sharedAudio;
     }
 
     public YsmSoundRuntime sounds() {
@@ -599,8 +614,135 @@ public class YsmModelRuntime implements AutoCloseable {
         return null;
     }
 
+    public YsmSubEntity getSubEntityForEntity(String kind, Entity entity) {
+        if (entity == null) {
+            return null;
+        }
+        String typeId = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString();
+        YsmSubEntity direct = getSubEntity(kind, typeId);
+        if (direct != null) {
+            return direct;
+        }
+        return new LinkedHashSet<>(subEntities.values()).stream()
+                .filter(definition -> definition.matches(kind, entity)).findFirst().orElse(null);
+    }
+
+    public boolean ownsSubEntity(Entity entity, String kind) {
+        Entity controller = "projectile".equals(kind) && entity instanceof Projectile projectile
+                ? projectile.getOwner() : entity.getFirstPassenger();
+        if (controller != null) {
+            return owner.owner.equals(controller.getUUID());
+        }
+        return "vehicle".equals(kind) && YsmSubEntityInstances.vehicleOwner(entity) == this;
+    }
+
+    public YsmModelRuntime prepareSubEntity(Entity entity, String kind, String typeId, float partialTick) {
+        if (closed || entity == null || entity.isRemoved() || !ownsSubEntity(entity, kind)) {
+            return null;
+        }
+        try {
+            YsmModelRuntime instance = subEntityInstances.acquire(entity, kind, typeId);
+            if (instance != null) {
+                instance.owner().renderMode = owner.renderMode;
+                instance.updateSubEntity(entity, partialTick);
+            }
+            return instance;
+        } catch (RuntimeException failure) {
+            recordControllerDiagnostic(encryptedSource ? "Encrypted YSM operation failed: runtime/sub-entity"
+                    : "YSM sub-entity runtime failed: " + kind + "/" + typeId + "/" + failure.getClass().getSimpleName());
+            return null;
+        }
+    }
+
     public boolean renderSubEntity(PoseStack stack, MultiBufferSource bufferSource, int light, String kind, String entityId) {
         return renderer.renderSubEntity(stack, bufferSource, light, getSubEntity(kind, entityId));
+    }
+
+    public boolean renderSubEntity(PoseStack stack, MultiBufferSource bufferSource, int light,
+                                   String kind, String typeId, Entity entity, float partialTick) {
+        if (closed || entity == null || entity.isRemoved()) {
+            return false;
+        }
+        try {
+            YsmModelRuntime instance = prepareSubEntity(entity, kind, typeId, partialTick);
+            if (instance == null) {
+                return false;
+            }
+            return instance.renderer().render(stack, bufferSource, light, YsmPartMask.DEBUG_ALL,
+                    instance.captureRenderPose(false));
+        } catch (RuntimeException failure) {
+            recordControllerDiagnostic(encryptedSource ? "Encrypted YSM operation failed: runtime/sub-entity"
+                    : "YSM sub-entity runtime failed: " + kind + "/" + typeId + "/" + failure.getClass().getSimpleName());
+            return false;
+        }
+    }
+
+    public YsmSubEntityInstances subEntityInstances() {
+        return subEntityInstances;
+    }
+
+    public boolean isSubEntityRuntime() {
+        return subEntityRuntime;
+    }
+
+    /** Compiles instance-bound ASTs while borrowing the definition's immutable geometry and image. */
+    public YsmModelRuntime createSubEntityRuntime(YsmSubEntity definition, Entity entity) {
+        if (closed || definition == null || entity == null || entity.isRemoved()) {
+            throw new IllegalStateException("Sub-entity requires a live model and entity");
+        }
+        YsmModelRuntime child = owner.createYsmEntityRuntime(entity, childOwner -> {
+            YsmModelRuntime instance = new YsmModelRuntime(childOwner, definition.geometry(), null,
+                    definition.texture(), definition.id(), definition.isTextureTranslucent(), definition.kind(),
+                    modelKey, Map.of(), 1f, 1f, encryptedSource);
+            instance.ownsTexture = false;
+            instance.subEntityRuntime = true;
+            instance.sharedAudio = audio();
+            instance.allCutout = allCutout;
+            instance.mergeMultilineExpressions = mergeMultilineExpressions;
+            try {
+                MolangEngine engine = MolangEngine.fromCustomBinding(childOwner.getAvatarBindings());
+                for (String json : definition.animationResources()) {
+                    instance.animationPlayer.registerAnimations(
+                            YsmAnimationParser.parse(json, true, engine, mergeMultilineExpressions));
+                }
+                for (String json : definition.controllerResources()) {
+                    instance.animationPlayer.registerControllers(YsmAnimationControllerParser.parse(json, engine,
+                            diagnostic -> instance.recordControllerDiagnostic(controllerDiagnostic(modelKey,
+                                    encryptedSource, definition.controllerPath(), diagnostic)),
+                            mergeMultilineExpressions));
+                }
+                instance.functions.load(functionInput);
+                instance.animationPlayer.registerFunctionEventControllers(instance.functions.controllerEventNames());
+                instance.animationPlayer.setNativeStateMachineEnabled(false);
+                return instance;
+            } catch (RuntimeException failure) {
+                instance.close();
+                throw failure;
+            }
+        });
+        try {
+            // Initial events must see the already attached detached execution owner.
+            child.animationPlayer.startBaseAnimations();
+            return child;
+        } catch (RuntimeException failure) {
+            child.close();
+            throw failure;
+        }
+    }
+
+    public void updateSubEntity(Entity entity, float partialTick) {
+        if (closed || !subEntityRuntime || entity == null || entity.isRemoved()) {
+            return;
+        }
+        long frame = YsmRenderFrameClock.currentFrame();
+        if (subEntityQueryFrame != frame) {
+            owner.getMolangContext().populateQueryContext(entity);
+            subEntityQueryFrame = frame;
+        }
+        LivingEntityRenderState state = new LivingEntityRenderState();
+        state.ageInTicks = entity.tickCount + partialTick;
+        state.walkAnimationSpeed = (float) entity.getDeltaMovement().horizontalDistance();
+        animationPlayer.update(state, entity instanceof LivingEntity living ? living : null, false);
     }
 
     public YsmAnimationPlayer animations() {
@@ -1273,6 +1415,14 @@ public class YsmModelRuntime implements AutoCloseable {
     @Override
     public synchronized void close() {
         closed = true;
+        subEntityInstances.close();
+        for (Tag value : functionInput) {
+            if (value instanceof CompoundTag entry) {
+                entry.getByteArray("data").ifPresent(bytes -> java.util.Arrays.fill(bytes, (byte) 0));
+            }
+        }
+        functionInput.clear();
+        sharedAudio = null;
         if (preview != null) {
             preview.close();
             preview = null;
@@ -1307,6 +1457,9 @@ public class YsmModelRuntime implements AutoCloseable {
         functions.clearEventState();
         Avatar.MolangContext context = owner.getMolangContext();
         if (context != null) {
+            if (subEntityRuntime) {
+                context.entity = null;
+            }
             context.updateYsmPositionContext(null);
             context.updateYsmMovementContext(Float.NaN);
             YsmHandQuery.capture(context);
@@ -1314,8 +1467,10 @@ public class YsmModelRuntime implements AutoCloseable {
         if (ownsTexture) {
             texture.close();
         }
-        for (YsmSubEntity entity : new LinkedHashSet<>(subEntities.values()))
+        for (YsmSubEntity entity : new LinkedHashSet<>(subEntities.values())) {
             entity.close();
+        }
+        subEntities.clear();
     }
 
     private void readSubEntities(CompoundTag tag, byte[] fallbackTexture, YsmModelData data) {

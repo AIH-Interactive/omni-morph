@@ -2,6 +2,11 @@ package org.figuramc.figura.model.ysm;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.Entity;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 
@@ -53,7 +58,13 @@ public class YsmSubEntity implements AutoCloseable {
         String texturePath = tag.getStringOr("texture_path", "");
         byte[] textureBytes = tag.getByteArray("texture").orElse(fallbackTexture == null ? new byte[0] : fallbackTexture);
         boolean textureTranslucent = geometry.applyTextureAlpha(textureBytes);
-        FiguraTexture texture = new FiguraTexture(owner, "ysm_sub_entity/" + tag.getStringOr("id", "sub_entity"), textureBytes.length == 0 ? onePixelPng() : textureBytes);
+        byte[] base = textureBytes.length == 0 ? onePixelPng() : textureBytes;
+        byte[] normal = tag.getByteArray("normal_texture").orElse(new byte[0]);
+        byte[] specular = tag.getByteArray("specular_texture").orElse(new byte[0]);
+        String textureName = "ysm_sub_entity/" + tag.getStringOr("id", "sub_entity");
+        FiguraTexture texture = normal.length == 0 && specular.length == 0
+                ? new FiguraTexture(owner, textureName, base)
+                : new YsmMaterialTexture(owner, textureName, base, normal, specular);
         YsmSubEntity entity = new YsmSubEntity(
                 tag.getStringOr("kind", "sub_entity"),
                 tag.getStringOr("id", "sub_entity"),
@@ -117,6 +128,25 @@ public class YsmSubEntity implements AutoCloseable {
                 return true;
         }
         return false;
+    }
+
+    public boolean matches(String requestedKind, Entity entity) {
+        if (entity == null || !matches(requestedKind, (String) null)) {
+            return false;
+        }
+        String typeId = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString();
+        if (matches(requestedKind, typeId) || matchesTag(id, entity)) {
+            return true;
+        }
+        return matchIds.stream().anyMatch(match -> matchesTag(match, entity));
+    }
+
+    private static boolean matchesTag(String match, Entity entity) {
+        if (!match.startsWith("#")) {
+            return false;
+        }
+        Identifier id = Identifier.tryParse(match.substring(1));
+        return id != null && entity.getType().builtInRegistryHolder().is(TagKey.create(Registries.ENTITY_TYPE, id));
     }
 
     public String kind() {

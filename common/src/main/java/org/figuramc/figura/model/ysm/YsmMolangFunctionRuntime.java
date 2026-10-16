@@ -36,6 +36,7 @@ public class YsmMolangFunctionRuntime {
     private static final int MAX_CALL_DEPTH = 32;
 
     private final YsmModelRuntime runtime;
+    private String controllerEventDomain;
     private final Map<String, YsmFunction> functions = new LinkedHashMap<>();
     private final Map<String, List<YsmFunction>> events = new LinkedHashMap<>();
     private final ArrayDeque<ArgsValue> argumentStack = new ArrayDeque<>();
@@ -101,6 +102,22 @@ public class YsmMolangFunctionRuntime {
             result.put(entry.getKey(), entry.getValue().stream()
                     .map(function -> function.displayName().isBlank() ? function.fileName() : function.displayName())
                     .toList());
+        }
+        return result;
+    }
+
+    public void setControllerEventDomain(String domain) {
+        controllerEventDomain = domain;
+    }
+
+    /** Named functions remain shared; automatic controller callbacks belong to one physical model domain. */
+    public Set<String> controllerEventNames() {
+        Set<String> result = new java.util.LinkedHashSet<>();
+        for (String event : events.keySet()) {
+            if (controllerEventDomain == null || !YsmControllerSlotBinder.isControllerEvent(event)
+                    || event.startsWith(controllerEventDomain + "_ctrl_")) {
+                result.add(event);
+            }
         }
         return result;
     }
@@ -290,7 +307,7 @@ public class YsmMolangFunctionRuntime {
     }
 
     public void runControllerSlotEvents(String controllerName, YsmControllerSlot slot, ExpressionEvaluator<?> evaluator) {
-        for (String event : eventBus.eventsForController(controllerName, slot, events.keySet()))
+        for (String event : eventBus.eventsForController(controllerName, slot, controllerEventNames()))
             runEvent(evaluator, event, controllerName);
     }
 
@@ -304,7 +321,7 @@ public class YsmMolangFunctionRuntime {
         for (YsmAnimationController controller : controllers) {
             owned.addAll(YsmControllerSlotBinder.eventNamesForController(controller.name(), controller.slot()));
         }
-        for (String event : eventBus.unboundEvents(events.keySet())) {
+        for (String event : eventBus.unboundEvents(controllerEventNames())) {
             if (!owned.contains(event)) {
                 runEvent(evaluator, event, event);
             }

@@ -53,7 +53,7 @@ public abstract class ArrowRendererMixin<T extends AbstractArrow, S extends Arro
         ((FiguraSubmitCallBackExtension)par1).figura$addPreRenderingCallback((multiBufferSource, poseStack) -> {
             YsmModelRuntime ysm = avatar.getYsmRuntime();
             String projectileId = BuiltInRegistries.ENTITY_TYPE.getKey(arrow.getType()).toString();
-            if (ysm != null && ysm.renderSubEntity(poseStack, multiBufferSource, arrowRenderState.lightCoords, "projectile", projectileId)) {
+            if (ysm != null && ysm.renderSubEntity(poseStack, multiBufferSource, arrowRenderState.lightCoords, "projectile", projectileId, arrow, tickDelta)) {
                 poseStack.popPose();
                 return false;
             }

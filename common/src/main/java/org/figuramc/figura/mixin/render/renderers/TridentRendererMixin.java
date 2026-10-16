@@ -66,7 +66,7 @@ public abstract class TridentRendererMixin<T extends ThrownTrident, S extends Th
         figura$submitCallback.figura$addPreRenderingCallback((bufferSource, poseStack) -> {
             YsmModelRuntime ysm = avatar.getYsmRuntime();
             String projectileId = BuiltInRegistries.ENTITY_TYPE.getKey(trident.getType()).toString();
-            if (ysm != null && ysm.renderSubEntity(poseStack, bufferSource, thrownTridentRenderState.lightCoords, "projectile", projectileId)) {
+            if (ysm != null && ysm.renderSubEntity(poseStack, bufferSource, thrownTridentRenderState.lightCoords, "projectile", projectileId, trident, tickDelta)) {
                 poseStack.popPose();
                 return false;
             }

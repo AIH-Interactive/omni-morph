@@ -55,7 +55,9 @@ public final class YsmMaterialInputSmokeTest {
         resources.put("ysm.json", bytes("""
                 {"metadata":{"name":"Material fixture"},"files":{"player":{"model":{"main":"main.json"},
                  "texture":[{"id":"paired","uv":"textures/base.png","normal":"textures/normal.png","specular":"textures/specular.png"},
-                            {"id":"plain","uv":"textures/plain.png","normal":"missing.png"}]}},
+                            {"id":"plain","uv":"textures/plain.png","normal":"missing.png"}]},
+                 "vehicles":{"minecraft:minecart":{"model":"main.json","texture":[
+                   {"uv":"textures/base.png","normal":"textures/normal.png","specular":"textures/specular.png"}]}}},
                  "properties":{"default_texture":"paired"}}
                 """));
         resources.put("main.json", bytes("""
@@ -84,6 +86,11 @@ public final class YsmMaterialInputSmokeTest {
             require(Arrays.equals(normal, first.getByteArray("normal_data").orElseThrow()), "normal bytes assembled without conversion or loss");
             require(Arrays.equals(specular, first.getByteArray("specular_data").orElseThrow()), "specular bytes assembled without conversion or loss");
             require(!tag.getListOrEmpty("texture_entries").getCompoundOrEmpty(1).contains("normal_data"), "plain skin does not inherit a prior skin's channel");
+            var child = tag.getListOrEmpty("sub_entities").getCompoundOrEmpty(0);
+            require(Arrays.equals(base, child.getByteArray("texture").orElseThrow())
+                            && Arrays.equals(normal, child.getByteArray("normal_texture").orElseThrow())
+                            && Arrays.equals(specular, child.getByteArray("specular_texture").orElseThrow()),
+                    "sub-entity material array preserves selected base/normal/specular bytes through the formal loader");
         }
     }
 
@@ -108,6 +115,11 @@ public final class YsmMaterialInputSmokeTest {
                 texture.subTextures.add(channel);
             }
             raw.mainEntity.textures.put("paired", texture);
+            var projectile = new YsmBinaryModel.RawSubEntity();
+            projectile.identifier = "minecraft:arrow";
+            projectile.model = raw.mainEntity.mainModel;
+            projectile.textures.put("paired", texture);
+            raw.projectiles.put(projectile.identifier, projectile);
             try (var mapping = YsmBinaryResourceMapper.map(raw, "binary fixture", new YsmDecodeBudget())) {
                 YsmTextureOption paired = mapping.manifest().textures().getFirst();
                 require(paired.normalPath().equals("textures/player/0_sub_0.png")
@@ -120,6 +132,12 @@ public final class YsmMaterialInputSmokeTest {
                         && mapping.resources().exists("textures/player/0_sub_2.png"), "unknown subtype data remains preserved without pretending it is a supported channel");
                 var reread = YsmManifestReader.read(mapping.resources()).textures().getFirst();
                 require(reread.equals(paired), "mapped manifest preserves the same material identity and channel links");
+                var manifest = com.google.gson.JsonParser.parseString(mapping.resources().readString("ysm.json")).getAsJsonObject();
+                var childMaterial = manifest.getAsJsonObject("files").getAsJsonArray("projectiles")
+                        .get(0).getAsJsonObject().getAsJsonArray("texture").get(0).getAsJsonObject();
+                require(childMaterial.get("normal").getAsString().endsWith("0_sub_0.png")
+                                && childMaterial.get("specular").getAsString().endsWith("0_sub_1.png"),
+                        "binary sub-entity material mapping retains channel associations instead of flattening to base paths");
             }
         }
     }

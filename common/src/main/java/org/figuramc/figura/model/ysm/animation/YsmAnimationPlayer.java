@@ -11,6 +11,7 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.CrossbowItem;
@@ -20,6 +21,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.KineticWeapon;
 import net.minecraft.util.Mth;
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.mixin.AbstractArrowAccessor;
 import org.figuramc.figura.molang.parser.ast.Expression;
 import org.figuramc.figura.molang.runtime.ExpressionEvaluator;
 import org.figuramc.figura.molang.runtime.MolangExecutionBudget;
@@ -62,7 +64,9 @@ public class YsmAnimationPlayer {
     private final YsmAnimationFrameClock frameClock = new YsmAnimationFrameClock();
     private final YsmControllerSoundBank controllerSounds = new YsmControllerSoundBank();
     private boolean controllerInitialHiddenResolved;
-    private LivingEntity currentEntity;
+    private Entity currentEntity;
+    private final Map<String, String> subEntityAnimations = new LinkedHashMap<>();
+    private final Set<String> functionEventControllers = new HashSet<>();
     private boolean wasSwinging;
     private long lastBudgetFailureFrame = Long.MIN_VALUE;
 
@@ -167,7 +171,9 @@ public class YsmAnimationPlayer {
     }
 
     public void registerFunctionEventControllers(Collection<String> events) {
-        registerControllers(YsmControllerSlotBinder.missingEventControllers(events, controllers.values()));
+        Map<String, YsmAnimationController> missing = YsmControllerSlotBinder.missingEventControllers(events, controllers.values());
+        functionEventControllers.addAll(missing.keySet());
+        registerControllers(missing);
     }
 
     public YsmControllerRuntime controllerRuntime() {
@@ -201,6 +207,7 @@ public class YsmAnimationPlayer {
 
     public void closeSounds() {
         controllerSounds.close();
+        currentEntity = null;
     }
 
     public void resetControllerAnimations(String controllerName) {
@@ -494,21 +501,21 @@ public class YsmAnimationPlayer {
     }
 
     private void updateFrame(LivingEntityRenderState state, LivingEntity entity, boolean firstPerson) {
-        currentEntity = entity;
         Avatar.MolangContext renderContext = runtime.owner().getMolangContext();
+        currentEntity = runtime.isSubEntityRuntime() && renderContext != null ? renderContext.entity : entity;
         if (renderContext != null) {
             renderContext.setYsmRenderTime(state == null ? Float.NaN : state.ageInTicks,
-                    entity == null ? 0 : entity.tickCount);
-            renderContext.updateYsmPositionContext(entity);
+                    currentEntity == null ? 0 : currentEntity.tickCount);
+            renderContext.updateYsmPositionContext(currentEntity);
             renderContext.updateYsmMovementContext(state == null ? Float.NaN : state.walkAnimationSpeed);
             org.figuramc.figura.model.ysm.YsmHandQuery.capture(renderContext);
         }
         Minecraft minecraft = Minecraft.getInstance();
         if (renderContext != null) {
-            renderContext.setYsmCameraContext(entity, minecraft.player, minecraft.getCameraEntity(),
+            renderContext.setYsmCameraContext(currentEntity, minecraft.player, minecraft.getCameraEntity(),
                     minecraft.options.getCameraType(), !YsmParticleRuntime.isPreview(runtime.owner().renderMode));
         }
-        boolean firstPersonActive = !runtime.isPreviewRuntime() && (firstPerson || (entity != null && entity == minecraft.player
+        boolean firstPersonActive = !runtime.isPreviewRuntime() && !runtime.isSubEntityRuntime() && (firstPerson || (entity != null && entity == minecraft.player
                 && minecraft.options.getCameraType().isFirstPerson()));
         YsmAnimationFrameClock.Step step = frameClock.step(YsmRenderFrameClock.currentFrame(),
                 state == null ? Float.NaN : state.ageInTicks);
@@ -535,7 +542,9 @@ public class YsmAnimationPlayer {
             }
             controllerSounds.prune();
             // 1. Run Native State Machine if enabled
-            if (nativeStateMachineEnabled) {
+            if (runtime.isSubEntityRuntime()) {
+                updateSubEntityAnimations(currentEntity);
+            } else if (nativeStateMachineEnabled) {
                 updateNativeStateMachine(state, entity);
             } else {
                 // Smoothly fade out any running native animations
@@ -546,7 +555,7 @@ public class YsmAnimationPlayer {
                 }
             }
 
-            if (!runtime.isPreviewRuntime()) {
+            if (!runtime.isPreviewRuntime() && !runtime.isSubEntityRuntime()) {
                 updateNativeHandAnimations(entity);
             }
 
@@ -570,7 +579,7 @@ public class YsmAnimationPlayer {
 
         sampleAnimations(evaluator, firstPerson);
 
-        if (!runtime.isPreviewRuntime()) {
+        if (!runtime.isPreviewRuntime() && !runtime.isSubEntityRuntime()) {
             applyNativeHandPose(state, entity, firstPerson);
         }
 
@@ -1263,7 +1272,7 @@ public class YsmAnimationPlayer {
         String prefix = hand == InteractionHand.MAIN_HAND ? "swing" : "swing_offhand";
         List<String> names = new ArrayList<>();
         if (hand == InteractionHand.MAIN_HAND && isKineticSpear(item)) {
-            if (currentEntity != null && currentEntity.isFallFlying())
+            if (currentEntity instanceof LivingEntity living && living.isFallFlying())
                 names.add("lance_lunge");
             names.add("lance_jab");
             names.add("swing:lance");
@@ -1470,6 +1479,62 @@ public class YsmAnimationPlayer {
             return false;
         boolean main = left == mainLeft;
         return main ? hand == InteractionHand.MAIN_HAND : hand == InteractionHand.OFF_HAND;
+    }
+
+    private void updateSubEntityAnimations(Entity entity) {
+        if (entity == null) {
+            return;
+        }
+        if ("projectile".equals(runtime.getKind())) {
+            syncSubEntityAnimation("main", projectileEnvironment(entity));
+        } else if ("vehicle".equals(runtime.getKind())) {
+            String environment = "fly";
+            if (entity.isInWater()) {
+                environment = "water";
+            } else if (entity.onGround()) {
+                environment = "ground";
+            }
+            syncSubEntityAnimation("main", environment);
+            syncSubEntityAnimation("move", entity.getDeltaMovement().horizontalDistance() > 0.05d ? "forward" : "idle");
+            syncSubEntityAnimation("ride", entity.getPassengers().isEmpty() ? "not_ride" : "has_ride");
+        }
+    }
+
+    private static String projectileEnvironment(Entity entity) {
+        if (entity.isInWater()) {
+            return "water";
+        }
+        if (entity.isOnFire()) {
+            return "fire";
+        }
+        if (entity instanceof AbstractArrowAccessor arrow && arrow.figura$isInGround()) {
+            return "ground";
+        }
+        return "air";
+    }
+
+    private void syncSubEntityAnimation(String slot, String animationName) {
+        String controller = runtime.getKind() + "." + slot;
+        // An explicitly declared controller owns this slot; native defaults only fill missing slots.
+        boolean explicit = controllers.keySet().stream()
+                .filter(name -> !functionEventControllers.contains(name)).map(this::normalizeControllerName)
+                .anyMatch(name -> name.equals(controller) || name.endsWith("." + controller));
+        String selected = explicit ? null : firstHandAnimation(animationName);
+        String previous = subEntityAnimations.get(controller);
+        if (Objects.equals(previous, selected)) {
+            return;
+        }
+        if (previous != null) {
+            stopControllerSounds(controller);
+            beginControllerPoseTransition(controller, YsmBlendTransition.linear(0.1f), false);
+            retireControllerAnimation(controller, previous, 0f);
+        }
+        if (selected == null) {
+            subEntityAnimations.remove(controller);
+        } else {
+            subEntityAnimations.put(controller, selected);
+            playControllerAnimation(controller, selected, null, 1f, 0f, evaluatorForEvents());
+        }
     }
 
     private void updateNativeStateMachine(LivingEntityRenderState state, LivingEntity entity) {
