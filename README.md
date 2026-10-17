@@ -98,4 +98,4 @@ Figura 原有贡献者名单保留于 [CREDITS](CREDITS)。本次改写前的主
 
 ## 许可证
 
-本仓库许可证见 [LICENSE.md](LICENSE.md)。第三方代码、依赖及参考实现的许可证和署名信息，见各自随附文件与项目来源。
+`omni-morph` 遵循 [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0)。协议全文同时保存在 [LICENSE.md](LICENSE.md)。第三方代码、依赖及参考实现的许可证和署名信息，见各自随附文件与项目来源。
