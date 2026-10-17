@@ -220,13 +220,16 @@ public final class YsmBinaryResourceMapper {
                                      String prefix) throws IOException {
         List<String> paths = new ArrayList<>();
         for (var entry : animations.entrySet()) {
-            JsonObject mapped = YsmBinaryAnimationMapper.animations(entry.getValue(), budget);
             int index = 0;
+            var names = new java.util.HashSet<String>();
             // Separate clips keep a large binary animation file within the per-resource byte budget.
-            for (var clip : mapped.getAsJsonObject("animations").entrySet()) {
+            for (var clip : entry.getValue().animations.values()) {
+                if (clip.name == null || clip.name.isBlank() || !names.add(clip.name)) {
+                    throw invalid("mapping/duplicate-or-empty-name");
+                }
                 JsonObject resource = new JsonObject();
                 JsonObject clips = new JsonObject();
-                clips.add(clip.getKey(), clip.getValue());
+                clips.add(clip.name, YsmBinaryAnimationMapper.animation(clip, budget));
                 resource.add("animations", clips);
                 resource.addProperty("ysm_animation_type", entry.getValue().animType);
                 resource.addProperty("ysm_resource_hash", entry.getValue().fileHash);
@@ -306,6 +309,12 @@ public final class YsmBinaryResourceMapper {
                 JSON.toJson(value, writer);
             }
             addOwned(path, output.bytes.toByteArray());
+        } catch (com.google.gson.JsonIOException failure) {
+            // Gson wraps checked writer failures; keep our bounded diagnostics and cancellation.
+            if (failure.getCause() instanceof IOException io) {
+                throw io;
+            }
+            throw failure;
         } finally {
             output.bytes.clear();
         }

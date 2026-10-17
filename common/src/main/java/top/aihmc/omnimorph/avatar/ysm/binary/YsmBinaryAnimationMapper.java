@@ -20,61 +20,65 @@ public final class YsmBinaryAnimationMapper {
                                         YsmDecodeBudget budget) throws IOException {
         JsonObject animations = new JsonObject();
         for (var raw : file.animations.values()) {
-            budget.check("mapping/animation", 0);
-            JsonObject animation = new JsonObject();
-            if (Float.isFinite(raw.length)) {
-                animation.addProperty("animation_length", raw.length);
-            } else {
-                animation.addProperty("ysm_duration_unbounded", true);
-            }
-            switch (raw.loopMode) {
-                case 0 -> animation.addProperty("loop", false);
-                case 1 -> animation.addProperty("loop", true);
-                case 2 -> {
-                    // The reference encodes an absent JSON loop property as 2.
-                }
-                case 3 -> animation.addProperty("loop", "hold_on_last_frame");
-                default -> throw invalid("mapping/loop-mode");
-            }
-            if (raw.blendWeight != null) {
-                animation.add("blend_weight", value(raw.blendWeight));
-            }
-            JsonObject bones = new JsonObject();
-            for (var rawBone : raw.boneAnimations) {
-                JsonObject bone = new JsonObject();
-                channel(bone, "rotation", rawBone.rotation, budget);
-                channel(bone, "position", rawBone.position, budget);
-                channel(bone, "scale", rawBone.scale, budget);
-                unique(bones, rawBone.boneName, bone);
-            }
-            animation.add("bones", bones);
-            JsonObject timeline = new JsonObject();
-            for (var event : raw.timelineEvents) {
-                JsonArray events = eventsAt(timeline, event.timestamp);
-                for (String expression : event.events) {
-                    events.add(expression);
-                }
-            }
-            animation.add("timeline", timeline);
-            JsonObject sounds = new JsonObject();
-            for (var sound : raw.soundEffects) {
-                JsonObject effect = new JsonObject();
-                effect.addProperty("effect", sound.effectName);
-                eventsAt(sounds, sound.timestamp).add(effect);
-            }
-            animation.add("sound_effects", sounds);
-            JsonArray unknownFields = new JsonArray();
-            unknownFields.add(raw.unkInt1);
-            unknownFields.add(raw.unkInt2);
-            unknownFields.add(raw.unkInt4);
-            animation.add("ysm_binary_fields", unknownFields);
-            unique(animations, raw.name, animation);
+            unique(animations, raw.name, animation(raw, budget));
         }
         JsonObject result = new JsonObject();
         result.add("animations", animations);
         result.addProperty("ysm_animation_type", file.animType);
         result.addProperty("ysm_resource_hash", file.fileHash);
         return result;
+    }
+
+    static JsonObject animation(YsmBinaryModel.RawAnimation raw, YsmDecodeBudget budget) throws IOException {
+        budget.check("mapping/animation", 0);
+        JsonObject animation = new JsonObject();
+        if (Float.isFinite(raw.length)) {
+            animation.addProperty("animation_length", raw.length);
+        } else {
+            animation.addProperty("ysm_duration_unbounded", true);
+        }
+        switch (raw.loopMode) {
+            case 0 -> animation.addProperty("loop", false);
+            case 1 -> animation.addProperty("loop", true);
+            case 2 -> {
+                // The reference encodes an absent JSON loop property as 2.
+            }
+            case 3 -> animation.addProperty("loop", "hold_on_last_frame");
+            default -> throw invalid("mapping/loop-mode");
+        }
+        if (raw.blendWeight != null) {
+            animation.add("blend_weight", value(raw.blendWeight));
+        }
+        JsonObject bones = new JsonObject();
+        for (var rawBone : raw.boneAnimations) {
+            JsonObject bone = new JsonObject();
+            channel(bone, "rotation", rawBone.rotation, budget);
+            channel(bone, "position", rawBone.position, budget);
+            channel(bone, "scale", rawBone.scale, budget);
+            unique(bones, rawBone.boneName, bone);
+        }
+        animation.add("bones", bones);
+        JsonObject timeline = new JsonObject();
+        for (var event : raw.timelineEvents) {
+            JsonArray events = eventsAt(timeline, event.timestamp);
+            for (String expression : event.events) {
+                events.add(expression);
+            }
+        }
+        animation.add("timeline", timeline);
+        JsonObject sounds = new JsonObject();
+        for (var sound : raw.soundEffects) {
+            JsonObject effect = new JsonObject();
+            effect.addProperty("effect", sound.effectName);
+            eventsAt(sounds, sound.timestamp).add(effect);
+        }
+        animation.add("sound_effects", sounds);
+        JsonArray unknownFields = new JsonArray();
+        unknownFields.add(raw.unkInt1);
+        unknownFields.add(raw.unkInt2);
+        unknownFields.add(raw.unkInt4);
+        animation.add("ysm_binary_fields", unknownFields);
+        return animation;
     }
 
     public static JsonObject controllers(YsmBinaryModel.RawAnimationControllerFile file,
