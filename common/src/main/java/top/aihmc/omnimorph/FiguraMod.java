@@ -25,6 +25,7 @@ import top.aihmc.omnimorph.mixin.MinecraftAccesor;
 import top.aihmc.omnimorph.gui.widgets.DebugEntryFigura;
 import top.aihmc.omnimorph.permissions.PermissionManager;
 import top.aihmc.omnimorph.resources.FiguraRuntimeResources;
+import top.aihmc.omnimorph.render.acceleration.HardwareAcceleration;
 import top.aihmc.omnimorph.model.ysm.YsmInputState;
 import top.aihmc.omnimorph.utils.*;
 import top.aihmc.omnimorph.wizards.AvatarWizard;
@@ -89,6 +90,7 @@ public class FiguraMod {
 
 
     public static void tick() {
+        HardwareAcceleration.flushChat();
         YsmInputState.device().tick(Minecraft.getInstance());
         pushProfiler("network");
         NetworkStuff.tick();

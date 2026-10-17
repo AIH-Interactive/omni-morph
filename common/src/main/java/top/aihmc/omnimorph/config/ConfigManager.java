@@ -3,6 +3,7 @@ package top.aihmc.omnimorph.config;
 import com.google.gson.*;
 import com.mojang.blaze3d.platform.InputConstants;
 import top.aihmc.omnimorph.FiguraMod;
+import top.aihmc.omnimorph.render.acceleration.HardwareAcceleration;
 import top.aihmc.omnimorph.utils.PlatformUtils;
 
 import java.io.BufferedReader;
@@ -31,6 +32,7 @@ public final class ConfigManager {
     }
 
     public static void loadConfig() {
+        Configs.prepareAccelerationLoad();
         for (ConfigType<?> config : REGISTRY) {
             if (config instanceof CloudProtocolConfig protocol) {
                 protocol.prepareLoad();
@@ -80,6 +82,7 @@ public final class ConfigManager {
         }
 
         initializing = false;
+        HardwareAcceleration.applySettings();
     }
 
     public static void saveConfig() {
@@ -121,6 +124,7 @@ public final class ConfigManager {
     public static void applyConfig() {
         for (ConfigType<?> config : REGISTRY)
             config.setValue(String.valueOf(config.tempValue));
+        HardwareAcceleration.applySettings();
     }
 
     public static void discardConfig() {
@@ -131,6 +135,9 @@ public final class ConfigManager {
     public static void setDefaults() {
         for (ConfigType<?> config : REGISTRY)
             config.setDefault();
+        if (!initializing) {
+            HardwareAcceleration.applySettings();
+        }
     }
 
     public static void update(JsonObject json, int version) {

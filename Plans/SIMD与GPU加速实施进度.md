@@ -8,8 +8,8 @@
 | --- | --- | --- |
 | H0 | 完成并已推送 | `d1b54b31975ebae55cadeea9c43030e5198f6edf`，[技术定案与基线](SIMD与GPU加速H0技术定案.md) |
 | H1 | 完成并已推送；实机项 MANUAL/PENDING，最终集中验收 | `93f6e33c73700b7f82351dc951fbf36795395677`，公共合同与 Java 后端 |
-| H2 | 完成；实机项 MANUAL/PENDING，最终集中验收 | Windows SIMD，提交见本文件 Git 历史 |
-| H3 | 待实施 | 全局设置与回退 |
+| H2 | 完成并已推送；实机项 MANUAL/PENDING，最终集中验收 | `295c548375594362730c1d4354c4f1a5e4b98f4a`，Windows SIMD |
+| H3 | 完成；实机项 MANUAL/PENDING，最终集中验收 | 全局设置与回退，提交见本文件 Git 历史 |
 | H4 | 待实施 | 公共 GPU 后端 |
 | H5 | 待实施 | 双引擎完整接入 |
 | H6 | 待实施 | 四平台 native 与 CI |
@@ -104,3 +104,34 @@
 - 最终真实客户端/画面项按用户要求 `MANUAL/PENDING`；没有使用 computer-use 或 offscreen。
 - 最终 `:fabric:build packageLocalNative` 成功（12s），CTest 再次通过；日志
   `build/reports/acceleration/h2-final-build.log`。已检查本阶段代码可读性、status/diff 与 `git diff --check`。
+
+## H3
+
+- 原设置页新增“硬件加速 / Hardware Acceleration”同级分类，复用 BoolConfig/EnumConfig、保存、撤销与重置流程。
+  主开关默认 false；旧配置/同进程重载缺字段都重置为关闭+自动，状态字段只读且不落盘。
+  新增只读行沿用既有行/按钮布局，不建立独立引擎页面。
+- 公共 `CapabilityReport`、`FallbackReason` 和 `AccelerationController` 区分 requested/effective，
+  `DISABLED -> PROBING -> READY / FALLBACK_JAVA`。只在实际应用后排队，帧边界停用旧后端并有界探测；
+  临时编辑/撤销不加载，默认关闭不调用新增 native 或 GPU API。
+- SIMD 模式实际加载受控 JAR 库、双向 ABI 握手、检查可用 SSE2/AVX2 并做三顶点自检后才 READY。
+  当前 H3 的自动/GPU 明确返回“GPU 加速管线尚未就绪”（GPU_NOT_READY），不冒充 GPU 成功或静默降为 SIMD-only。
+  H4 接入真正 GPU 探测后替换此阶段的未就绪结果。
+- 标题界面失败暂存一条；客户端主线程在 player/world/chat 就绪后发送本地化聊天。
+  会话内按模式+原因去重，同偏好/模型/每帧不重新探测；关闭清理未发通知，成功资源重建取消旧失败通知。
+  主动关闭再开启或资源重建才触发新检测，日志只在结构化状态变化时记录，不含模型内容。
+- native 批次拒绝仍走局部 Java；运行期 RuntimeException/LinkageError 先停止该后端的新批次，
+  同一尚未提交批次实际重放 Java，保留 lease 供本次安全发出并排队失败聊天，避免模型消失或重复绘制。
+  关闭在帧边界使旧批次失效；没有修改 Avatar 选择/权限/加载或网络行为。
+- `hardwareAccelerationSmokeTest` 使用真实 ConfigManager/Configs 测新装、旧配置、保存、撤销、重置、只读状态不持久化；
+  独立控制器测试覆盖全部结构化失败、检测次数、requested/effective、标题暂存/入世发送/去重、关闭代次、
+  资源重试、成功重建取消旧通知，以及实际 Java fallback 输出和失败熔断。
+- `nativeActivationSmokeTest` 从本地打包 JAR 运行真实 DLL/self-test，实际 AVX2 READY；
+  `nativeAccessDeniedSmokeTest` 在独立 JVM 使用真实 `--illegal-native-access=deny`，准确得到 NATIVE_ACCESS_DENIED。
+  两者同时测试真实 loader 缺资源、清单/平台 ABI 错误、坏库哈希、32 位进程架构拒绝，均先于加载失败。
+- 新增 en_us / zh_cn 分类、控件、只读状态、所有原因和聊天文案；JSON/占位符完整性通过快速测试。
+- 首轮设置/访问策略/合同及旧 cloud 配置回归编译成功（27s）；随后加入真实 Figura emitter/YSM 综合生命周期回归成功（38s）。
+  日志分别 `build/reports/acceleration/h3-first-validation.log`、`build/reports/acceleration/h3-validation.log`。
+- 实际中英文设置窗口、聊天展示/次数、真实客户端开关与模型可见性按用户要求 `MANUAL/PENDING`，最终 computer-use 集中验收；
+  本阶段没有将 CPU recorder 当成 GUI 或 GPU 画面证据。
+- 最终设置/真实 native 访问允许与拒绝测试及 `:fabric:build` 成功（17s），日志
+  `build/reports/acceleration/h3-final-build.log`；已检查阶段代码可读性、status/diff 和 `git diff --check`。

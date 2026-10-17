@@ -1,6 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /** Global routing and lifetime boundary. No engine names or platform loading here. */
 public final class AccelerationService {
@@ -15,6 +16,7 @@ public final class AccelerationService {
 
     private final AccelerationBackend javaBackend = new JavaAccelerationBackend();
     private volatile AccelerationBackend preferredBackend = javaBackend;
+    private volatile Consumer<Throwable> backendFailure = ignored -> {};
     private volatile long resources;
     private volatile long frame;
 
@@ -28,7 +30,12 @@ public final class AccelerationService {
 
     /** Switching the numerical backend invalidates captured batches before accepting new work. */
     synchronized void useBackend(AccelerationBackend backend) {
+        useBackend(backend, ignored -> {});
+    }
+
+    synchronized void useBackend(AccelerationBackend backend, Consumer<Throwable> onFailure) {
         preferredBackend = backend == null ? javaBackend : Objects.requireNonNull(backend);
+        backendFailure = Objects.requireNonNull(onFailure);
         resources++;
     }
 
@@ -59,6 +66,20 @@ public final class AccelerationService {
             result = backend.transform(batch);
         } catch (NativeSimdBackend.NativeBatchException failure) {
             // Numeric/budget rejection is local to this batch; its original Java semantics remain valid.
+            result = javaBackend.transform(batch);
+        } catch (RuntimeException | LinkageError failure) {
+            if (backend == javaBackend) {
+                throw failure;
+            }
+            Consumer<Throwable> notify;
+            synchronized (this) {
+                notify = preferredBackend == backend ? backendFailure : ignored -> {};
+                if (preferredBackend == backend) {
+                    // Keep this lease valid so the unsubmitted batch can still be emitted through Java.
+                    preferredBackend = javaBackend;
+                }
+            }
+            notify.accept(failure);
             result = javaBackend.transform(batch);
         }
         return isCurrent(lease) ? result : null;

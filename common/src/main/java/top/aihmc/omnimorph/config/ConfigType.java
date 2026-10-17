@@ -16,6 +16,7 @@ import top.aihmc.omnimorph.utils.FiguraText;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 public abstract class ConfigType<T> {
 
@@ -137,6 +138,25 @@ public abstract class ConfigType<T> {
         }
     }
 
+
+    /** Transient read-only information, excluded from persistence and edited-value tracking. */
+    public static final class ReadOnlyConfig extends ParentedConfig<Void> {
+        public final Supplier<Component> text;
+
+        public ReadOnlyConfig(String name, Category category, Supplier<Component> text) {
+            super(name, category, null);
+            this.text = text;
+        }
+
+        @Override
+        public Void parseValue(String value) {
+            return null;
+        }
+
+        @Override
+        public void setValue(String value) {
+        }
+    }
 
     // -- boolean -- // 
 

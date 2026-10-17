@@ -16,6 +16,7 @@ import top.aihmc.omnimorph.lua.api.ConfigAPI;
 import top.aihmc.omnimorph.permissions.PermissionManager;
 import top.aihmc.omnimorph.permissions.Permissions;
 import top.aihmc.omnimorph.resources.FiguraRuntimeResources;
+import top.aihmc.omnimorph.render.acceleration.HardwareAcceleration;
 import top.aihmc.omnimorph.utils.ColorUtils;
 import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.PlatformUtils;
@@ -52,6 +53,7 @@ public class Configs {
             NAMEPLATE = new ConfigType.Category("nameplate"),
             SCRIPT = new ConfigType.Category("script"),
             RENDERING = new ConfigType.Category("rendering"),
+            HARDWARE_ACCELERATION = new ConfigType.Category("hardware_acceleration"),
             ACTION_WHEEL = new ConfigType.Category("action_wheel"),
             UI = new ConfigType.Category("ui"),
             PAPERDOLL = new ConfigType.Category("paperdoll"),
@@ -64,6 +66,43 @@ public class Configs {
                 this.tooltip = this.tooltip.copy().withStyle(ChatFormatting.RED);
             }};
 
+
+    public static final ConfigType.BoolConfig HARDWARE_ACCELERATION_ENABLED =
+            new ConfigType.BoolConfig("hardware_acceleration.enabled", HARDWARE_ACCELERATION, false) {
+                @Override
+                public void onChange() {
+                    if (!ConfigManager.isInitializing()) {
+                        HardwareAcceleration.applySettings();
+                    }
+                }
+
+                @Override
+                public void setDefault() {
+                    value = tempValue = defaultValue;
+                }
+            };
+    public static final ConfigType.EnumConfig HARDWARE_ACCELERATION_MODE =
+            new ConfigType.EnumConfig("hardware_acceleration.mode", HARDWARE_ACCELERATION, 0, 3) {
+                @Override
+                public void onChange() {
+                    if (!ConfigManager.isInitializing()) {
+                        HardwareAcceleration.applySettings();
+                    }
+                }
+
+                @Override
+                public void setDefault() {
+                    value = tempValue = defaultValue;
+                }
+            };
+    public static final ConfigType.ReadOnlyConfig HARDWARE_ACCELERATION_STATUS =
+            new ConfigType.ReadOnlyConfig("hardware_acceleration.status", HARDWARE_ACCELERATION, HardwareAcceleration::statusText);
+
+    /** Missing fields in old/reloaded configuration always mean disabled and automatic. */
+    static void prepareAccelerationLoad() {
+        HARDWARE_ACCELERATION_ENABLED.value = HARDWARE_ACCELERATION_ENABLED.tempValue = false;
+        HARDWARE_ACCELERATION_MODE.value = HARDWARE_ACCELERATION_MODE.tempValue = 0;
+    }
 
     // -- nameplate -- // 
 

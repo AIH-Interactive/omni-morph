@@ -18,12 +18,29 @@ import java.util.Locale;
 
 /** Loads only a matching, hash-verified JAR resource. No library search path or model input is used. */
 public final class NativeLibraryLoader {
+    public static final class LoadFailure extends IOException {
+        private final FallbackReason reason;
+
+        LoadFailure(FallbackReason reason, String message) {
+            super(message);
+            this.reason = reason;
+        }
+
+        public FallbackReason reason() {
+            return reason;
+        }
+    }
+
     public record Loaded(String platform, String sha256, int capabilities) {
     }
 
     private static Loaded loaded;
 
     private NativeLibraryLoader() {
+    }
+
+    static synchronized boolean isLoaded() {
+        return loaded != null;
     }
 
     public static synchronized Loaded load() throws IOException {
@@ -44,13 +61,13 @@ public final class NativeLibraryLoader {
             manifest = JsonParser.parseString(new String(readResource(resources, "natives/manifest.json", 262_144),
                     StandardCharsets.UTF_8).replaceFirst("^\\uFEFF", "")).getAsJsonObject();
         } catch (RuntimeException failure) {
-            throw new IOException("Invalid native manifest", failure);
+            throw new LoadFailure(FallbackReason.INTEGRITY_FAILURE, "Invalid native manifest");
         }
         JsonObject entry = validateManifest(manifest, platform, expectedPath);
         String hash = entry.get("sha256").getAsString();
         byte[] library = readResource(resources, expectedPath, 32 * 1024 * 1024);
         if (!sha256(library).equals(hash)) {
-            throw new IOException("Native resource hash mismatch");
+            throw new LoadFailure(FallbackReason.INTEGRITY_FAILURE, "Native resource hash mismatch");
         }
         Path directory = cache.toAbsolutePath().resolve("1.0.0-alpha.1").resolve("abi-" + NativeBindings.ABI).resolve(hash);
         rejectSymbolicParents(directory);
@@ -72,11 +89,11 @@ public final class NativeLibraryLoader {
         }
         if (Files.isSymbolicLink(target) || !Files.isRegularFile(target, LinkOption.NOFOLLOW_LINKS)
                 || Files.size(target) != library.length || !sha256(Files.readAllBytes(target)).equals(hash)) {
-            throw new IOException("Native cache hash/type mismatch");
+            throw new LoadFailure(FallbackReason.INTEGRITY_FAILURE, "Native cache hash/type mismatch");
         }
         System.load(target.toString());
         if (NativeBindings.handshake(NativeBindings.ABI) != NativeBindings.ABI) {
-            throw new IOException("Native ABI handshake rejected");
+            throw new LoadFailure(FallbackReason.ABI_MISMATCH, "Native ABI handshake rejected");
         }
         loaded = new Loaded(platform, hash, NativeBindings.capabilities());
         return loaded;
@@ -85,7 +102,7 @@ public final class NativeLibraryLoader {
     static JsonObject validateManifest(JsonObject manifest, String platform, String expectedPath) throws IOException {
         try {
             if (manifest.get("abi").getAsInt() != NativeBindings.ABI) {
-                throw new IOException("Native manifest ABI mismatch");
+                throw new LoadFailure(FallbackReason.ABI_MISMATCH, "Native manifest ABI mismatch");
             }
             JsonObject found = null;
             for (var element : manifest.getAsJsonArray("libraries")) {
@@ -94,10 +111,12 @@ public final class NativeLibraryLoader {
                     continue;
                 }
                 if (found != null) {
-                    throw new IOException("Duplicate native platform");
+                    throw new LoadFailure(FallbackReason.INTEGRITY_FAILURE, "Duplicate native platform");
+                }
+                if (entry.get("abi").getAsInt() != NativeBindings.ABI) {
+                    throw new LoadFailure(FallbackReason.ABI_MISMATCH, "Native platform ABI mismatch");
                 }
                 if (!expectedPath.equals(entry.get("path").getAsString())
-                        || entry.get("abi").getAsInt() != NativeBindings.ABI
                         || !entry.get("sha256").getAsString().matches("[0-9a-f]{64}")
                         || !entry.get("sourceCommit").getAsString().matches("[0-9a-f]{40}")
                         || !entry.get("sourceTreeSha256").getAsString().matches("[0-9a-f]{64}")
@@ -105,16 +124,16 @@ public final class NativeLibraryLoader {
                         || entry.get("toolchain").getAsString().isBlank()
                         || entry.get("minimumRuntime").getAsString().isBlank()
                         || entry.getAsJsonArray("dependencies") == null) {
-                    throw new IOException("Invalid native platform metadata");
+                    throw new LoadFailure(FallbackReason.INTEGRITY_FAILURE, "Invalid native platform metadata");
                 }
                 found = entry;
             }
             if (found == null) {
-                throw new IOException("Native library missing for process platform: " + platform);
+                throw new LoadFailure(FallbackReason.MISSING_LIBRARY, "Native library missing for process platform: " + platform);
             }
             return found;
         } catch (RuntimeException failure) {
-            throw new IOException("Malformed native manifest fields", failure);
+            throw new LoadFailure(FallbackReason.INTEGRITY_FAILURE, "Malformed native manifest fields");
         }
     }
 
@@ -124,12 +143,12 @@ public final class NativeLibraryLoader {
         String architecture = switch (arch) {
             case "amd64", "x86_64" -> "x86_64";
             case "aarch64", "arm64" -> "aarch64";
-            default -> throw new IOException("Unsupported process architecture: " + arch);
+            default -> throw new LoadFailure(FallbackReason.UNSUPPORTED_PLATFORM, "Unsupported process architecture: " + arch);
         };
         String system = os.contains("win") ? "windows" : os.contains("mac") ? "macos"
                 : os.contains("linux") ? "linux" : "unsupported";
         if (system.equals("unsupported") || (!system.equals("macos") && architecture.equals("aarch64"))) {
-            throw new IOException("Unsupported native process platform: " + system + "-" + architecture);
+            throw new LoadFailure(FallbackReason.UNSUPPORTED_PLATFORM, "Unsupported native process platform: " + system + "-" + architecture);
         }
         return system + "-" + architecture;
     }
@@ -137,11 +156,11 @@ public final class NativeLibraryLoader {
     private static byte[] readResource(ClassLoader resources, String path, int limit) throws IOException {
         try (InputStream stream = resources.getResourceAsStream(path)) {
             if (stream == null) {
-                throw new IOException("Missing packaged resource: " + path);
+                throw new LoadFailure(FallbackReason.MISSING_LIBRARY, "Missing packaged resource: " + path);
             }
             byte[] bytes = stream.readNBytes(limit + 1);
             if (bytes.length > limit) {
-                throw new IOException("Packaged native resource exceeds limit");
+                throw new LoadFailure(FallbackReason.INTEGRITY_FAILURE, "Packaged native resource exceeds limit");
             }
             return bytes;
         }
@@ -158,7 +177,7 @@ public final class NativeLibraryLoader {
     private static void rejectSymbolicParents(Path path) throws IOException {
         for (Path current = path; current != null; current = current.getParent()) {
             if (Files.isSymbolicLink(current)) {
-                throw new IOException("Native cache must not contain symbolic links");
+                throw new LoadFailure(FallbackReason.INTEGRITY_FAILURE, "Native cache must not contain symbolic links");
             }
         }
     }
