@@ -3,7 +3,10 @@ package org.figuramc.figura.model.ysm;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.avatar.UserData;
 import org.figuramc.figura.backend2.NetworkStuff;
+import org.figuramc.figura.backend2.HttpAPI;
 import org.figuramc.figura.backend2.protocol.CloudConnection;
+import org.figuramc.figura.backend2.protocol.CloudHttp;
+import org.figuramc.figura.backend2.protocol.CloudProtocol;
 import org.figuramc.figura.backend2.protocol.FiguraCloudProtocol;
 import org.figuramc.figura.config.Configs;
 
@@ -32,11 +35,14 @@ final class CloudProtocolLifecycleSmokeTest {
         int previousChoice = Configs.CLOUD_PROTOCOL.value;
         int previousTempChoice = Configs.CLOUD_PROTOCOL.tempValue;
         boolean previousToasts = Configs.CONNECTION_TOASTS.value;
+        boolean previousDebug = Configs.DEBUG_MODE.value;
+        boolean previousTempDebug = Configs.DEBUG_MODE.tempValue;
         boolean uploaded = AvatarManager.localUploaded;
         UserData resident = new UserData(local.owner().owner);
         resident.getAvatars().add(local.owner());
         UserData previous = users.put(local.owner().owner, resident);
         AtomicInteger staleApplied = new AtomicInteger();
+        HttpClient testClient = HttpClient.newHttpClient();
         var scope = new CloudConnection(NetworkStuff.connectionEpoch(),
                 new FiguraCloudProtocol(URI.create("https://127.0.0.1:1"), "synthetic-unused", HttpClient.newHttpClient()));
         try {
@@ -63,6 +69,49 @@ final class CloudProtocolLifecycleSmokeTest {
             NetworkStuff.disconnect("synthetic-offline");
             require(resident.getMainAvatar() == local.owner() && !local.isClosed(), "Offline disconnect preserves loader output");
             System.out.println("B6 actual Configs lifecycle: switch disconnect/epoch/re-auth, stale callback discard and offline local runtime retention PASS");
+            for (CloudProtocol.Kind kind : CloudProtocol.Kind.values()) {
+                Configs.SERVER_IP.value = Configs.SERVER_IP.tempValue = "http://127.0.0.1:1";
+                Configs.CLOUD_PROTOCOL.value = Configs.CLOUD_PROTOCOL.tempValue = kind == CloudProtocol.Kind.PROTOBUF ? 1 : 0;
+                Configs.DEBUG_MODE.value = Configs.DEBUG_MODE.tempValue = true;
+                var captured = HttpAPI.endpoint();
+                var active = new CloudConnection(NetworkStuff.connectionEpoch(),
+                        CloudProtocol.create(kind, captured, "synthetic-unused", "test", NetworkStuff.connectionEpoch(), testClient));
+                connectionField.set(null, active);
+                AtomicInteger late = new AtomicInteger();
+                active.post(128, late::incrementAndGet);
+                var authField = NetworkStuff.class.getDeclaredField("authenticationWork");
+                authField.setAccessible(true);
+                var auth = new CloudHttp(testClient, captured);
+                authField.set(null, auth);
+                long activeEpoch = NetworkStuff.connectionEpoch();
+                Configs.DEBUG_MODE.setTempValue("false");
+                require(active.active(), "Temporary Debug edit does not retire active connection");
+                Configs.DEBUG_MODE.setValue("false");
+                require(!active.active() && NetworkStuff.connectionEpoch() > activeEpoch && authField.get(null) == null,
+                        "Actual Debug apply retires both protocols, authentication and epoch immediately");
+                active.drain();
+                require(late.get() == 0, "Debug revocation discards queued callbacks");
+                try {
+                    auth.requireOpen();
+                    throw new AssertionError("Authentication survived revocation");
+                } catch (java.io.IOException expected) {
+                    // The registered authentication transport was actually closed.
+                }
+                NetworkStuff.reAuth();
+                require(connectionField.get(null) == null && authField.get(null) == null,
+                        "Explicit retry cannot reopen plaintext with Debug disabled");
+                Configs.DEBUG_MODE.value = true;
+                var lateEndpoint = HttpAPI.endpoint();
+                Configs.SERVER_IP.value = "https://different.test";
+                try {
+                    lateEndpoint.requireAllowed();
+                    throw new AssertionError("Old authentication endpoint survived address edit");
+                } catch (java.io.IOException expected) {
+                    require(expected.getMessage().equals("backend.endpoint.retired"), "Late auth rejected before next tick");
+                }
+                require(resident.getMainAvatar() == local.owner() && !local.isClosed(), "Debug revocation retains local runtime");
+            }
+            System.out.println("B7 actual Configs lifecycle: dual-protocol Debug revocation, authentication cancellation, retry/late callback rejection and local retention PASS");
         } finally {
             NetworkStuff.disconnect("fixture-cleanup");
             if (previous == null) {
@@ -75,8 +124,11 @@ final class CloudProtocolLifecycleSmokeTest {
             Configs.CLOUD_PROTOCOL.value = previousChoice;
             Configs.CLOUD_PROTOCOL.tempValue = previousTempChoice;
             Configs.CONNECTION_TOASTS.value = previousToasts;
+            Configs.DEBUG_MODE.value = previousDebug;
+            Configs.DEBUG_MODE.tempValue = previousTempDebug;
             AvatarManager.localUploaded = uploaded;
             scope.close();
+            testClient.close();
         }
     }
 

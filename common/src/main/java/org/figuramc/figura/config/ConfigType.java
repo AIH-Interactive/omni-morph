@@ -202,7 +202,11 @@ public abstract class ConfigType<T> {
 
     public static class StringConfig extends InputConfig<String> {
         public StringConfig(String name, Category category, String defaultValue) {
-            super(name, category, defaultValue, InputType.ANY);
+            this(name, category, defaultValue, InputType.ANY);
+        }
+
+        protected StringConfig(String name, Category category, String defaultValue, InputType inputType) {
+            super(name, category, defaultValue, inputType);
         }
 
         @Override

@@ -19,6 +19,8 @@ import java.util.concurrent.TimeUnit;
 /** Existing Figura HTTP and Ping/M7 wire contract, with explicit YSM capability. */
 public final class FiguraCloudProtocol implements CloudProtocol {
     private final URI origin;
+    private final CloudEndpoint endpoint;
+    private volatile java.util.concurrent.CompletableFuture<java.net.http.WebSocket> opening;
     private final String token;
     private final HttpClient client;
     private final CloudHttp http;
@@ -37,25 +39,35 @@ public final class FiguraCloudProtocol implements CloudProtocol {
     private record Packet(byte[] bytes, long enqueuedAt) {}
 
     public FiguraCloudProtocol(URI origin, String token, HttpClient client) {
-        this.origin = origin;
+        this(CloudEndpoint.parse(origin.toString(), () -> false), token, client);
+    }
+
+    public FiguraCloudProtocol(CloudEndpoint endpoint, String token, HttpClient client) {
+        this.endpoint = endpoint;
+        this.origin = endpoint.origin();
         this.token = token;
         this.client = client;
-        this.http = new CloudHttp(client);
+        this.http = new CloudHttp(client, endpoint);
     }
 
     @Override
     public void connect(Listener listener) throws Exception {
+        endpoint.requireAllowed();
         this.listener = listener;
         socket = new CloudSocket(65536, this::receive, reason -> {
             ready = false;
             if (!closed) {
                 listener.closed(reason);
             }
-        });
-        URI target = URI.create(origin.toString().replaceFirst("^http", "ws") + "/ws");
-        var connection = client.newWebSocketBuilder().connectTimeout(Duration.ofSeconds(15))
-                .header("x-omnimorph-models", "ysm").buildAsync(target, socket)
-                .get(15, TimeUnit.SECONDS);
+        }, endpoint);
+        URI target = endpoint.websocket("/ws");
+        endpoint.requireAllowed();
+        opening = client.newWebSocketBuilder().connectTimeout(Duration.ofSeconds(15))
+                .header("x-omnimorph-models", "ysm").buildAsync(target, socket);
+        if (closed) {
+            opening.cancel(true);
+        }
+        var connection = opening.get(15, TimeUnit.SECONDS);
         socket.attach(connection);
         byte[] bytes = token.getBytes(StandardCharsets.UTF_8);
         socket.send(ByteBuffer.allocate(1 + bytes.length).put((byte) 0).put(bytes).array());
@@ -283,6 +295,7 @@ public final class FiguraCloudProtocol implements CloudProtocol {
 
     @Override
     public synchronized boolean publish(YsmSyncMessage message) throws Exception {
+        endpoint.requireAllowed();
         List<byte[]> packets = YsmSyncPackets.fragment(++messageId, YsmSyncCodec.encode(message));
         int size = packets.stream().mapToInt(packet -> packet.length + 6).sum();
         if (pending.size() + packets.size() > 1024 || pendingBytes + size > 262144) {
@@ -299,6 +312,7 @@ public final class FiguraCloudProtocol implements CloudProtocol {
     }
 
     private synchronized void enqueue(byte[] bytes) throws IOException {
+        endpoint.requireAllowed();
         if (pending.size() >= 1024 || pendingBytes + bytes.length > 262144) {
             throw new IOException("Figura socket queue requires recovery");
         }
@@ -308,6 +322,7 @@ public final class FiguraCloudProtocol implements CloudProtocol {
 
     @Override
     public synchronized void tick(long tick) throws Exception {
+        http.requireOpen();
         this.tick = tick;
         synchronized (reassembly) {
             reassembly.expire(tick);
@@ -344,6 +359,9 @@ public final class FiguraCloudProtocol implements CloudProtocol {
         pending.clear();
         pendingBytes = 0;
         http.close();
+        if (opening != null) {
+            opening.cancel(true);
+        }
         if (socket != null) {
             socket.close();
         }

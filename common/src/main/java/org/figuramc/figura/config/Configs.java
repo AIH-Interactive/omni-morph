@@ -252,7 +252,14 @@ public class Configs {
 
     // -- DEV -- //
     public static final ConfigType.BoolConfig
-            DEBUG_MODE = new ConfigType.BoolConfig("debug_mode", DEV, false, false);
+            DEBUG_MODE = new ConfigType.BoolConfig("debug_mode", DEV, false, false) {
+                @Override
+                public void onChange() {
+                    if (!ConfigManager.isInitializing()) {
+                        NetworkStuff.debugPermissionChanged();
+                    }
+                }
+            };
     public static final ConfigType.BoolConfig
             LOCAL_ASSETS = new ConfigType.BoolConfig("local_assets", DEV, false, false);
 
@@ -290,8 +297,8 @@ public class Configs {
     public static final CloudProtocolConfig CLOUD_PROTOCOL =
             new CloudProtocolConfig("cloud_protocol", DEV, NetworkStuff::reAuth);
 
-    public static final ConfigType.IPConfig
-            SERVER_IP = new ConfigType.IPConfig("server_ip", DEV, "5d.aihmc.top") {
+    public static final BackendAddressConfig
+            SERVER_IP = new BackendAddressConfig("server_ip", DEV, "5d.aihmc.top") {
         @Override
         public void onChange() {
             super.onChange();

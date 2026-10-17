@@ -24,6 +24,8 @@ GitHub 链接 `https://github.com/AIH-Interactive`；Upstream 链接
 同步构建元数据、README 和界面显示；版本规范已写入 AGENTS.md。
 用户追加模组 ID 要求：后续迁移时统一为 `omni-morph`，同步模组清单、资源命名空间与必要引用。
 品牌迁移时可用 `mod_icon.png` 更新涉及的模组图标；需要适配尺寸时先用脚本转换再更新引用并验证。
+全部完成后提供源码目录直接启动后端的实际命令（例如 `cargo run`），无需用户先手动编译或寻找
+可执行文件。Rust 的自动编译仍会发生，交付说明中明确这一点，并列出必要配置与工作目录。
 
 | 阶段 | 状态 | 证据与检查点 |
 | --- | --- | --- |
@@ -34,7 +36,7 @@ GitHub 链接 `https://github.com/AIH-Interactive`；Upstream 链接
 | B4 | PASS | 后端 `03b740a` 已推送核对；18 项测试、Release 编译、生产 Java M7 向量与恢复/重启/双向桥接通过 |
 | B5 | PASS | 后端测试检查点 `3424695` 已推送核对；生产 Java 六组混合协议、状态回放、语料门禁与 Fabric 构建通过 |
 | B6 | PASS | 后端记录 `f802614` 已推送核对；实际配置矩阵、切换/离线模型保留、无回退测试及 Fabric 构建通过 |
-| B7 | TODO | Debug URI 与撤销、脱敏 |
+| B7 | PASS | 后端记录 `80cfcfc` 已推送核对；统一端点、Debug 撤销、真实 HTTP/WS/TLS 安全矩阵及双协议联调通过 |
 | B8 | TODO | 完整联调、迁移回滚与产物 |
 
 ## B0
@@ -287,3 +289,43 @@ Protobuf 在请求 Minecraft 身份 token 前先探测当前 origin 的能力，
 
 设置实机外观为 SKIPPED/MANUAL_BY_USER，CPU/原生对象测试不冒充 GUI PASS。两个仓库检查点
 提交推送并核对后再开始 B7；品牌、模组 ID、版本与图标按用户约定在 B0～B8 后统一迁移。
+
+## B7
+
+后端记录检查点 `80cfcfcaeea583ee9e6b58ac5e3840be8deac025` 已推送 origin/master 并核对远端。
+客户端前序提交 `bed32c2866637074212fabce04d5d5d1afc5766f`；本检查点包含端点及 Debug 安全策略。
+后端生产代码与协议定义未改，配套证据记录在 docs/B7.md。
+
+CloudEndpoint 为认证、RPC、原始资源和 WS 提供同一个规范 origin，裸 host[:port] 默认 HTTPS/WSS，
+显式 HTTP/WS 只在 Figura Debug 开启时允许，包含 IPv4、域名、局域网与方括号 IPv6。
+HTTPS/WSS 不随 Debug 降级。拒绝 userinfo、query、fragment、未知 scheme、非法端口和 API 路径，
+仅容忍末尾 /。历史 /api//auth 双斜线路径保留。地址沿用原字符串编辑控件及错误状态；
+已保存的合法明文地址在 Debug 关闭时仍保留，但配置与传输均拒绝使用，不擅自换地址。
+
+实际应用 Debug 关闭会立即关闭明文连接、取消认证与资源工作、推进 epoch 并清理回调；
+重试、认证成功回调、建连、排队 WS 发送及接收均再次检查动态许可与捕获的地址/协议。
+配置初始化期间不依据部分加载的设置重连；迟到 token 不可转发到新地址。本地运行时仍可用。
+HTTP 拒绝所有重定向，也拒绝注入启用了自动重定向的客户端；WS 使用相同禁止重定向的 JDK 客户端。
+没有关闭证书或主机名校验。NetworkStuff.debug 仅控制日志；日志保留方法/origin、状态或受控分类，
+不输出请求头、路径/查询凭证、认证响应或私有模型正文。
+
+自动门禁（Windows/JDK 25，最终源代码、前台日志与退出码核对）：
+
+- :common:cloudEndpointSmokeTest：URI/Debug 组合、两适配器关闭明文时零请求；真实 IPv6 HTTP；
+  真实 HTTP/WS 跨 origin 重定向均未到达凭证目标；进行中的 HTTP 取消、重试拒绝；
+  阻塞首个 WS 写入后撤销许可，后续排队写入未发出，迟到握手/接收均拒绝。
+- 临时证书仅由测试客户端信任的真实 HTTPS 监听器：HTTPS/WSS 向明文重定向未达目标；
+  Debug 开/关均维持 TLS；不匹配的主机名和未受信任证书均失败，未更改正式信任库。
+- :common:cloudProtocolConfigSmokeTest：实际地址字段的 Debug 校验、保存地址保留，以及实际
+  日志后端捕获。真实请求携带合成 token/Authorization/cookie 与私有正文/响应/路径/查询标记，
+  日志中均不含敏感标记，且明确捕获到允许的 method/origin 输出。日志开关不控制明文许可。
+- :common:ysmMaterialNativeSmokeTest：两个协议分别调用实际 Configs.DEBUG_MODE apply，
+  旧 scope/认证退役、epoch 前进、旧邮箱不执行、重试不恢复、地址变更前后旧认证许可失效，
+  注册的本地 UserData 与运行时始终保留。这是 CPU/原生对象证据，不是 GUI PASS。
+- :common:test、:common:writeCloudIntegrationClasspath、:fabric:build --console=plain：PASS。
+- cargo test --locked --offline -- --nocapture 使用最终客户端 classpath：18 项及实际 Java 双向
+  六组 Figura/普通 YSM/密文 YSM 联调 PASS；cargo build --release --locked --offline：PASS。
+- 受影响源码/文档 git diff --check：PASS。既有编译、remap 和 Gradle 警告不扩大处理范围。
+
+公网 TLS 部署与真实游戏外观仍为 SKIPPED/MANUAL_BY_USER；共享传输 TLS 测试不冒充公网或
+双游戏客户端渲染结果。本检查点两仓库推送核对后才开始 B8 的完整交付、迁移/回滚与产物记录。

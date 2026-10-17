@@ -50,13 +50,18 @@ public enum InputType {
             return false;
         }
     }),
-    IP(ServerAddress::isValidAddress);
+    IP(ServerAddress::isValidAddress),
+    ENDPOINT(s -> org.figuramc.figura.backend2.protocol.CloudEndpoint.valid(s, Configs.DEBUG_MODE.value), TextField.HintType.ANY);
 
     public final Predicate<String> validator;
     public final TextField.HintType hint;
 
     InputType(Predicate<String> predicate) {
+        this(predicate, null);
+    }
+
+    InputType(Predicate<String> predicate, TextField.HintType hint) {
         this.validator = predicate;
-        this.hint = TextField.HintType.valueOf(this.name());
+        this.hint = hint == null ? TextField.HintType.valueOf(this.name()) : hint;
     }
 }

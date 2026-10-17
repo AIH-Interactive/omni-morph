@@ -21,6 +21,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public final class ProtobufCloudProtocol implements CloudProtocol {
     public static final String CONTENT_TYPE = "application/x-protobuf";
     private final URI origin;
+    private final CloudEndpoint endpoint;
+    private volatile java.util.concurrent.CompletableFuture<java.net.http.WebSocket> opening;
     private final String token;
     private final String clientVersion;
     private final HttpClient client;
@@ -47,16 +49,22 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
     private long heartbeatTick;
 
     public ProtobufCloudProtocol(URI origin, String token, String clientVersion, long epoch, HttpClient client) {
-        this.origin = origin;
+        this(CloudEndpoint.parse(origin.toString(), () -> false), token, clientVersion, epoch, client);
+    }
+
+    public ProtobufCloudProtocol(CloudEndpoint endpoint, String token, String clientVersion, long epoch, HttpClient client) {
+        this.endpoint = endpoint;
+        this.origin = endpoint.origin();
         this.token = token;
         this.clientVersion = clientVersion;
         this.epoch = epoch;
         this.client = client;
-        this.http = new CloudHttp(client);
+        this.http = new CloudHttp(client, endpoint);
     }
 
     @Override
     public void connect(Listener listener) throws Exception {
+        endpoint.requireAllowed();
         this.listener = listener;
         capabilities = discover(http, origin);
         budget.configure(capabilities.getLimits().getMessagesPerSecond(), capabilities.getLimits().getBytesPerSecond());
@@ -80,12 +88,16 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
             if (!closed) {
                 listener.closed(reason);
             }
-        });
-        URI target = URI.create(origin.toString().replaceFirst("^http", "ws") + "/ws/protobuf/v1");
-        var connection = client.newWebSocketBuilder().connectTimeout(Duration.ofSeconds(15))
+        }, endpoint);
+        URI target = endpoint.websocket("/ws/protobuf/v1");
+        endpoint.requireAllowed();
+        opening = client.newWebSocketBuilder().connectTimeout(Duration.ofSeconds(15))
                 .subprotocols("omnimorph.cloud.v1").header("Authorization", "Bearer " + session)
-                .header("x-omnimorph-epoch", Long.toString(epoch)).buildAsync(target, socket)
-                .get(15, TimeUnit.SECONDS);
+                .header("x-omnimorph-epoch", Long.toString(epoch)).buildAsync(target, socket);
+        if (closed) {
+            opening.cancel(true);
+        }
+        var connection = opening.get(15, TimeUnit.SECONDS);
         if (!connection.getSubprotocol().equals("omnimorph.cloud.v1")) {
             connection.abort();
             throw new IOException("Missing negotiated subprotocol");
@@ -98,9 +110,18 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
     }
 
     public static void probe(URI origin, HttpClient client) throws Exception {
-        try (CloudHttp probe = new CloudHttp(client)) {
-            discover(probe, origin);
+        probe(CloudEndpoint.parse(origin.toString(), () -> false), client);
+    }
+
+    public static void probe(CloudEndpoint endpoint, HttpClient client) throws Exception {
+        try (CloudHttp probe = new CloudHttp(client, endpoint)) {
+            probe(endpoint, probe);
         }
+    }
+
+    public static void probe(CloudEndpoint endpoint, CloudHttp transport) throws Exception {
+        endpoint.requireAllowed();
+        discover(transport, endpoint.origin());
     }
 
     private static Cloud.HelloAck discover(CloudHttp http, URI origin) throws Exception {
@@ -608,6 +629,7 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
 
     @Override
     public synchronized void tick(long tick) throws Exception {
+        http.requireOpen();
         while (ready && !pending.isEmpty()) {
             Outbound outgoing = pending.getFirst();
             if (System.nanoTime() - outgoing.time() >= Duration.ofSeconds(30).toNanos()) {
@@ -645,6 +667,9 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
         closed = true;
         ready = false;
         http.close();
+        if (opening != null) {
+            opening.cancel(true);
+        }
         if (socket != null) {
             socket.close();
         }

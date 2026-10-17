@@ -55,6 +55,8 @@ public class NetworkStuff {
     private static CompletableFuture<Void> tasks;
     private static final java.util.concurrent.atomic.AtomicInteger pendingTasks = new java.util.concurrent.atomic.AtomicInteger();
     private static volatile CloudConnection connection;
+    private static volatile CloudHttp authenticationWork;
+    private static volatile CloudHttp resourceWork;
     private static volatile CloudProtocol.Kind connectedKind;
     private static volatile String connectedAddress;
     private static final int RECONNECT = 6000;
@@ -89,6 +91,14 @@ public class NetworkStuff {
     public static void tick() {
         uploadRate.tick();
         downloadRate.tick();
+        if (!endpointPermitted()) {
+            authCheck = RECONNECT;
+            if (connection != null || authenticationWork != null || resourceWork != null) {
+                disconnect(disconnectedReason);
+            }
+            tickYsmSync();
+            return;
+        }
         CloudConnection current = connection;
         if (current != null && (connectedKind != Configs.CLOUD_PROTOCOL.kind()
                 || !Objects.equals(connectedAddress, Configs.SERVER_IP.value))) {
@@ -275,19 +285,75 @@ public class NetworkStuff {
     public static void auth() {
         disconnect(null);
         authCheck = RECONNECT;
-        AuthHandler.auth(false);
+        if (endpointPermitted()) {
+            AuthHandler.auth(false);
+        }
     }
 
     public static void reAuth() {
         disconnect(null);
         authCheck = RECONNECT;
-        AuthHandler.auth(true);
+        if (endpointPermitted()) {
+            AuthHandler.auth(true);
+        }
     }
 
-    protected static void authSuccess(String token, long epoch) {
+    private static boolean endpointPermitted() {
+        try {
+            HttpAPI.endpoint().requireAllowed();
+            return true;
+        } catch (Exception rejected) {
+            String key = "backend.endpoint.debug_required".equals(rejected.getMessage())
+                    ? "backend.endpoint.debug_required" : "backend.endpoint.invalid";
+            disconnectedReason = FiguraText.of(key).getString();
+            backendStatus = 1;
+            return false;
+        }
+    }
+
+    public static void debugPermissionChanged() {
+        try {
+            if (HttpAPI.endpoint().plaintext()) {
+                if (Configs.DEBUG_MODE.value) {
+                    reAuth();
+                } else {
+                    disconnect(FiguraText.of("backend.endpoint.debug_required").getString());
+                    authCheck = RECONNECT;
+                }
+            }
+        } catch (Exception rejected) {
+            disconnect(FiguraText.of("backend.endpoint.invalid").getString());
+        }
+    }
+
+    static synchronized boolean registerAuthentication(long epoch, CloudHttp work) {
+        if (epoch != epochs.get()) {
+            work.close();
+            return false;
+        }
+        if (authenticationWork != null) {
+            authenticationWork.close();
+        }
+        authenticationWork = work;
+        return true;
+    }
+
+    static synchronized void finishAuthentication(CloudHttp work) {
+        if (authenticationWork == work) {
+            authenticationWork = null;
+        }
+        work.close();
+    }
+
+    protected static void authSuccess(String token, long epoch, CloudEndpoint endpoint) {
         Minecraft.getInstance().execute(() -> {
-            if (epoch == epochs.get()) {
-                connectAuthenticated(token, epoch);
+            try {
+                endpoint.requireAllowed();
+                if (epoch == epochs.get()) {
+                    connectAuthenticated(token, epoch);
+                }
+            } catch (java.io.IOException retired) {
+                // A late token belongs exclusively to the endpoint and policy that requested it.
             }
         });
     }
@@ -295,7 +361,8 @@ public class NetworkStuff {
     protected static void authFail(String reason, long epoch) {
         Minecraft.getInstance().execute(() -> {
             if (epoch == epochs.get()) {
-                String message = reason != null && reason.startsWith("backend.protobuf.")
+                String message = reason != null && (reason.startsWith("backend.protobuf.")
+                        || reason.startsWith("backend.endpoint.") || reason.equals("backend.auth.failed"))
                         ? FiguraText.of(reason).getString() : reason;
                 disconnect(message);
                 if (Configs.CONNECTION_TOASTS.value && message != null) {
@@ -322,9 +389,11 @@ public class NetworkStuff {
     private static void connectAuthenticated(String token, long epoch, CloudProtocol.Kind kind) {
         backendStatus = 2;
         disconnectedReason = null;
-        URI api = HttpAPI.getUri("");
-        URI origin = URI.create(api.getScheme() + "://" + api.getRawAuthority());
-        CloudProtocol protocol = CloudProtocol.create(kind, origin, token, FiguraMod.VERSION.toString(), epoch, client);
+        if (!endpointPermitted()) {
+            return;
+        }
+        CloudEndpoint endpoint = HttpAPI.endpoint(epoch);
+        CloudProtocol protocol = CloudProtocol.create(kind, endpoint, token, FiguraMod.VERSION.toString(), epoch, client);
         CloudConnection selected = new CloudConnection(epoch, protocol);
         connectedKind = kind;
         connectedAddress = Configs.SERVER_IP.value;
@@ -429,8 +498,16 @@ public class NetworkStuff {
         };
     }
 
-    public static void disconnect(String reason) {
+    public static synchronized void disconnect(String reason) {
         epochs.incrementAndGet();
+        if (authenticationWork != null) {
+            authenticationWork.close();
+            authenticationWork = null;
+        }
+        if (resourceWork != null) {
+            resourceWork.close();
+            resourceWork = null;
+        }
         CloudConnection previous = connection;
         connection = null;
         if (previous != null) {
@@ -707,8 +784,19 @@ public class NetworkStuff {
 
 
     private static InputStream request(HttpRequest request) throws Exception {
-        HttpResponse<InputStream> response = NetworkStuff.client.send(request, HttpResponse.BodyHandlers.ofInputStream());
-        return response.body();
+        CloudHttp transport;
+        synchronized (NetworkStuff.class) {
+            if (resourceWork == null) {
+                resourceWork = new CloudHttp(client, HttpAPI.endpoint());
+            }
+            transport = resourceWork;
+        }
+        var response = transport.send(request);
+        if (response.statusCode() != 200) {
+            transport.release(response.body());
+            throw new java.io.IOException("Cloud asset HTTP " + response.statusCode());
+        }
+        return transport.managed(response.body());
     }
 
     public static InputStream getResourcesHashes(String version) throws Exception {

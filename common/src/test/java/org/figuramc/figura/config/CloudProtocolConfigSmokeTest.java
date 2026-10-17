@@ -91,6 +91,7 @@ public final class CloudProtocolConfigSmokeTest {
                 }
             }
             unsupportedBackend();
+            endpointConfigurationAndLogs();
             System.out.println("PASS B6 configuration: fresh/missing/stable/numeric/unknown/save/reset/undo, address preservation, existing EnumConfig and unsupported-backend no fallback");
         } finally {
             try (var paths = Files.walk(directory)) {
@@ -104,6 +105,80 @@ public final class CloudProtocolConfigSmokeTest {
 
     private static JsonObject read(Path path) throws Exception {
         return JsonParser.parseString(Files.readString(path)).getAsJsonObject();
+    }
+
+    private static void endpointConfigurationAndLogs() throws Exception {
+        boolean previousDebug = Configs.DEBUG_MODE.value;
+        boolean previousNetworkDebug = org.figuramc.figura.backend2.NetworkStuff.debug;
+        String previousAddress = Configs.SERVER_IP.value;
+        String previousTemp = Configs.SERVER_IP.tempValue;
+        var logger = (org.apache.logging.log4j.core.Logger) org.apache.logging.log4j.LogManager
+                .getLogger(org.figuramc.figura.FiguraMod.MOD_NAME);
+        var messages = new java.util.ArrayList<String>();
+        var appender = new org.apache.logging.log4j.core.appender.AbstractAppender("cloud-b7-log-capture", null, null, true, null) {
+            @Override
+            public void append(org.apache.logging.log4j.core.LogEvent event) {
+                messages.add(event.getMessage().getFormattedMessage());
+            }
+        };
+        appender.start();
+        logger.addAppender(appender);
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        String privateMarker = "PRIVATE_MODEL_AND_AUTH_RESPONSE_MARKER";
+        server.createContext("/", exchange -> {
+            require(exchange.getRequestHeaders().getFirst("token").equals("TOKEN_MARKER"), "Real request carries authentication");
+            byte[] response = privateMarker.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, response.length);
+            exchange.getResponseBody().write(response);
+            exchange.close();
+        });
+        server.start();
+        try {
+            var address = new BackendAddressConfig("b7_endpoint", new ConfigType.Category("endpoint-test"), "kept.test");
+            Configs.DEBUG_MODE.value = false;
+            address.setValue("http://127.0.0.1:6665");
+            require(address.value.equals("kept.test"), "Field rejects plaintext without Debug");
+            address.deserialize(new JsonPrimitive("ws://[::1]:6665"));
+            require(address.value.equals("ws://[::1]:6665") && !InputType.ENDPOINT.validator.test(address.value),
+                    "Saved plaintext address is preserved but marked invalid with Debug disabled");
+            Configs.DEBUG_MODE.value = true;
+            require(InputType.ENDPOINT.validator.test(address.value), "Existing field accepts IPv6 after explicit Debug enable");
+            address.setValue("https://user:USERINFO_MARKER@example.test/api?QUERY_MARKER");
+            require(address.value.equals("ws://[::1]:6665"), "Invalid edit keeps prior address");
+            Configs.SERVER_IP.value = Configs.SERVER_IP.tempValue = "http://127.0.0.1:" + server.getAddress().getPort();
+            var request = java.net.http.HttpRequest.newBuilder(URI.create(Configs.SERVER_IP.value + "/private/PATH_MARKER?QUERY_MARKER"))
+                    .header("token", "TOKEN_MARKER").header("Authorization", "Bearer AUTHORIZATION_MARKER")
+                    .header("Cookie", "COOKIE_MARKER").POST(java.net.http.HttpRequest.BodyPublishers.ofString(privateMarker)).build();
+            var runner = org.figuramc.figura.backend2.HttpAPI.class.getDeclaredMethod("runString", java.net.http.HttpRequest.class,
+                    java.util.function.BiConsumer.class);
+            runner.setAccessible(true);
+            AtomicInteger deliveries = new AtomicInteger();
+            java.util.function.BiConsumer<Integer, String> consumer = (status, body) -> {
+                require(status == 200 && body.equals(privateMarker), "Actual auth/private response delivered without logging body");
+                deliveries.incrementAndGet();
+            };
+            org.figuramc.figura.backend2.NetworkStuff.debug = true;
+            runner.invoke(null, request, consumer);
+            require(messages.stream().anyMatch(message -> message.contains("Cloud HTTP request: method=POST, origin=http://127.0.0.1:")),
+                    "Actual enabled logging was captured");
+            org.figuramc.figura.backend2.NetworkStuff.debug = false;
+            runner.invoke(null, request, consumer);
+            require(deliveries.get() == 2, "Network log toggle does not authorize or block plaintext transport");
+            String captured = String.join("\n", messages);
+            for (String marker : new String[] {"TOKEN_MARKER", "AUTHORIZATION_MARKER", "COOKIE_MARKER", "USERINFO_MARKER",
+                    "PATH_MARKER", "QUERY_MARKER", privateMarker}) {
+                require(!captured.contains(marker), "Sensitive data absent from actual captured logs");
+            }
+            System.out.println("B7 original address field persistence/Debug validation and actual credential/body log redaction PASS");
+        } finally {
+            server.stop(0);
+            logger.removeAppender(appender);
+            appender.stop();
+            Configs.DEBUG_MODE.value = previousDebug;
+            Configs.SERVER_IP.value = previousAddress;
+            Configs.SERVER_IP.tempValue = previousTemp;
+            org.figuramc.figura.backend2.NetworkStuff.debug = previousNetworkDebug;
+        }
     }
 
     private static void unsupportedBackend() throws Exception {
@@ -123,7 +198,7 @@ public final class CloudProtocolConfigSmokeTest {
         server.start();
         try {
             URI origin = URI.create("http://127.0.0.1:" + server.getAddress().getPort());
-            try (var protocol = new ProtobufCloudProtocol(origin, "synthetic-unused", "test", 1, HttpClient.newHttpClient())) {
+            try (var protocol = new ProtobufCloudProtocol(org.figuramc.figura.backend2.protocol.CloudEndpoint.parse(origin.toString(), () -> true), "synthetic-unused", "test", 1, HttpClient.newHttpClient())) {
                 try {
                     protocol.connect(null);
                     throw new AssertionError("Unsupported backend accepted");

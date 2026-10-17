@@ -625,3 +625,15 @@ tasks.register('cloudProtocolConfigSmokeTest', JavaExec) {
 tasks.named('test') {
     dependsOn 'cloudProtocolConfigSmokeTest'
 }
+
+tasks.register('cloudEndpointSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks endpoint/Debug policy, real HTTP/TLS redirects, identity and cancellation.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'org.figuramc.figura.backend2.protocol.CloudEndpointSmokeTest'
+}
+
+tasks.named('test') {
+    dependsOn 'cloudEndpointSmokeTest'
+}
