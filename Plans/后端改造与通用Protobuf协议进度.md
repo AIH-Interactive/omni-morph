@@ -9,7 +9,7 @@
 | --- | --- | --- |
 | B0 | PASS | 自动门禁通过；后端 `ea5a05d` 已推送并核对；客户端为包含本记录的 B0 提交 |
 | B1 | PASS | 后端 `b1b9b1e` 已推送核对；客户端本阶段仅记录进度 |
-| B2 | TODO | Protobuf HTTP/WS 通用能力 |
+| B2 | PASS | 后端 `1c6d843` 已推送核对；真实混合协议 HTTP/WS 测试与 release 编译通过 |
 | B3 | TODO | YSM 原始资源与投影 |
 | B4 | TODO | YSM 实时与持久化恢复 |
 | B5 | TODO | 客户端双协议接线 |
@@ -70,3 +70,35 @@ B1 客户端代码不变；后端新增 `service/session.rs`、`event.rs`、`res
 
 后端 B1 提交 `b1b9b1ef850d67c873e4ff11fc1721ec34937a48` 已推送 `origin/master` 并核对远端 SHA；
 客户端本阶段检查点为包含此记录的 `B1: record shared backend service checkpoint` 提交。
+
+## B2
+
+后端提交 `1c6d8431ead6b6bcdf276bc41b6b48c14dd7ec8f` 已推送 `origin/master`，
+并通过 `git ls-remote` 核对。匹配客户端代码基线为
+`11ff1b4c5dec2286747bd507f4280b2b265b5f10`；B2 客户端仅更新此进度记录。
+
+已提供能力发现、Protobuf RPC、带子协议的二进制 WS、认证/Hello、资料/徽章/权限、
+限额/版本/MOTD、Figura 资源、装备/删除与普通 Ping。新旧适配器共享业务事件，
+按各自 wire 编码；Ping 参数保持不透明 bytes。会话绑定实例和 epoch、到期与源身份，
+多连接按引用清理；按账号共享消息/字节预算及连接上限。
+
+资源使用版本化原子 manifest 与不可变 blob，普通 HTTP 流式传输原压缩 NBT，
+模型字节不进入 Protobuf/WS。上传授权、文件传输和提交分离，未提交资源不可装备；
+装备/删除校验 expected revision，并保存有界幂等结果。旧 `.moon` 懒导入，
+保留旧 Base64 文件 hash 与 self-profile 临时槽行为；旧写入/删除入口接入共用索引。
+解码前检查完整信封、重复项、深度、字符串、枚举与有限数值预算。
+
+自动门禁（主后端，Windows，锁定依赖，前台完整日志）：
+
+- `cargo check --locked --offline`：PASS。
+- `cargo test --locked --offline`：8 项 PASS；真实 HTTP/WS 基线包含 B1 生命周期与
+  B2 混合链路，覆盖旧上传→新资料/下载、新上传/提交/装备→旧下载、双向 Ping 字节等值、
+  换装/删除通知、重复提交/装备无重复通知、冲突与删除后 404、伪造 owner、超额、
+  未知版本、错误 epoch 和 bearer/session 不匹配。
+- registry/wire 测试覆盖账号消息/连接上限、慢接收者、解码前重复项预算、截断、
+  未知字段、整数回绕、NaN/Infinity 拒绝。
+- `cargo build --release --locked --offline`：PASS，优化可执行文件实际编译成功。
+
+本阶段无客户端代码变化，沿用 B0 的 Fabric 编译证据。真实游戏、公网 HTTPS 部署仍未验收；
+YSM 能力、恢复和生产客户端接线分别属于 B3/B4/B5，不因通用链路通过而提前记为完成。
+详细后端记录见 `omnm-cloud/docs/B2.md`。本记录独立提交推送、核对远端后才进入 B3。
