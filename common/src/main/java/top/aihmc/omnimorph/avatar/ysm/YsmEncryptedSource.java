@@ -58,7 +58,7 @@ public final class YsmEncryptedSource implements AutoCloseable {
     }
 
     public static YsmEncryptedSource read(Path path, BooleanSupplier cancelled) throws IOException {
-        YsmDecodeBudget budget = new YsmDecodeBudget(YsmResourceLimits.DEFAULT, cancelled, 10000);
+        YsmDecodeBudget budget = new YsmDecodeBudget(YsmResourceLimits.DEFAULT, cancelled, 60000);
         budget.length(Files.size(path), budget.limits().fileBytes(), "source/file", 0);
         byte[] bytes;
         try (var stream = Files.newInputStream(path)) {
@@ -73,7 +73,7 @@ public final class YsmEncryptedSource implements AutoCloseable {
 
     public static YsmEncryptedSource read(byte[] bytes, String displayName,
                                           BooleanSupplier cancelled) throws IOException {
-        YsmDecodeBudget budget = new YsmDecodeBudget(YsmResourceLimits.DEFAULT, cancelled, 10000);
+        YsmDecodeBudget budget = new YsmDecodeBudget(YsmResourceLimits.DEFAULT, cancelled, 60000);
         return read(bytes, displayName, budget);
     }
 

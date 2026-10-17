@@ -23,6 +23,7 @@ public final class YsmBinaryResourcesSmokeTest {
         testAnimationMapping();
         testLegacySourceOwnership();
         testMetadata();
+        testJsonFailureClassification();
         if (args.length != 0) {
             testCorpus(Path.of(args[0]));
             testMappedCorpus(Path.of(args[0]));
@@ -79,6 +80,26 @@ public final class YsmBinaryResourcesSmokeTest {
         child.parentName = "root";
         child.name = "root";
         expectFailure(() -> YsmBinaryGeometryMapper.map(raw, new YsmDecodeBudget()), "INVALID_DATA:");
+    }
+
+    private static void testJsonFailureClassification() throws Exception {
+        var constructor = YsmBinaryResourceMapper.class.getDeclaredConstructor(YsmDecodeBudget.class);
+        constructor.setAccessible(true);
+        var json = YsmBinaryResourceMapper.class.getDeclaredMethod("json", String.class,
+                com.google.gson.JsonObject.class);
+        json.setAccessible(true);
+        var value = new com.google.gson.JsonObject();
+        value.addProperty("synthetic", "x".repeat(20000));
+        var limits = new top.aihmc.omnimorph.avatar.ysm.YsmResourceLimits(1024, 1, 1, 4096);
+        var mapper = constructor.newInstance(new YsmDecodeBudget(limits, () -> false, 10000));
+        try {
+            json.invoke(mapper, "fixture.json", value);
+            throw new AssertionError("JSON resource limit was ignored");
+        } catch (java.lang.reflect.InvocationTargetException failure) {
+            require(failure.getCause() instanceof YsmDecodeException decoded
+                            && decoded.code() == YsmDecodeException.Code.RESOURCE_LIMIT,
+                    "JSON resource failures retain their category through Gson");
+        }
     }
 
     private static void testImages() throws Exception {
