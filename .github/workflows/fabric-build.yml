@@ -22,7 +22,7 @@ defaults:
 jobs:
   build:
     name: Minecraft 26.1.2 Fabric
-    runs-on: windows-2022
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -38,7 +38,7 @@ jobs:
 
       - name: Build Fabric mod
         run: |
-          & .\gradlew.bat :fabric:build --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log
+          & bash ./gradlew :fabric:build --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log
           $buildExitCode = $LASTEXITCODE
           Get-Content -LiteralPath build.log -Tail 40
           if ($buildExitCode -ne 0) { exit $buildExitCode }
