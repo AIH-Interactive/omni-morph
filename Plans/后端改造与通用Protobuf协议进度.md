@@ -9,13 +9,21 @@
 在 B0～B8 改造检查点完成后独立执行，覆盖源码及必要的 Mixin/反射/配置/协议生成引用，
 运行客户端编译与相关回归后单独提交、推送并核对远端；当前不提前混入 B3。
 
+用户追加品牌迁移：上述改造完成后，更新截图所示帮助页及相关显示字段，
+将 Figura Docs、Figura Version、Lua 版本的 Figura 后缀等涉及的品牌标注统一改为 `OmniMorph`。
+帮助页按用户最新参考图组织：Documentation 为 OmniMorph Docs、Figura Lua Manual、
+YSM / Molang Guide；Project & Community 为 OmniMorph GitHub、Credits、Figura Upstream。
+GitHub 链接 `https://github.com/AIH-Interactive`；Upstream 链接
+`https://github.com/FiguraMC/Figura`。移除 Discord 与 Ko-fi；明确的上游引用保留 Figura 名称。
+与包名迁移配套处理，完成客户端编译及真实游戏界面验证；未执行的人工项明确记录状态。
+
 | 阶段 | 状态 | 证据与检查点 |
 | --- | --- | --- |
 | B0 | PASS | 自动门禁通过；后端 `ea5a05d` 已推送并核对；客户端为包含本记录的 B0 提交 |
 | B1 | PASS | 后端 `b1b9b1e` 已推送核对；客户端本阶段仅记录进度 |
 | B2 | PASS | 后端 `1c6d843` 已推送核对；真实混合协议 HTTP/WS 测试与 release 编译通过 |
 | B3 | PASS | 后端 `069bf61` 已推送核对；双适配器原始文件、投影、失败/取消/并发测试及 release 编译通过 |
-| B4 | TODO | YSM 实时与持久化恢复 |
+| B4 | PASS | 后端 `03b740a` 已推送核对；18 项测试、Release 编译、生产 Java M7 向量与恢复/重启/双向桥接通过 |
 | B5 | TODO | 客户端双协议接线 |
 | B6 | TODO | 设置、默认值与迁移 |
 | B7 | TODO | Debug URI 与撤销、脱敏 |
@@ -139,3 +147,42 @@ YSM 主装备默认清空 Figura 兼容槽；显式 retain 时保留此前独立
 合成密文只验证后端容器/传输，不冒充可解密的真实模型；客户端 loader/crypto 语料门禁保留至
 B5/B8，公网部署和游戏人工验收仍单独记录。详细记录见 `omnm-cloud/docs/B3.md`。
 本阶段客户端检查点为包含本记录的提交，推送并核对远端后再开始 B4。
+
+
+## B4
+
+后端 `03b740a7f2a905775c9cc2a83f3d551021261a6b` 已推送 origin/master 并核对远端 SHA。
+客户端运行时代码沿用 `9a1d43a6bf069b605bb176a7a99d0b6f4f65bb95`；本检查点新增
+生产 Java M7 编码器向量导出/验证工具、共用向量和协议说明，生产适配器接线仍属 B5。
+
+正式快照/增量/事件由共用状态服务验证和持久化，绑定账号、装备 revision、content/schema、
+独占 publisher scope/session/generation。完整快照包含全部分区，delta 缺省保留、空分区清除；
+重复包不广播，缺基线/序列断裂/过期要求恢复。换装和删除与撤销持久状态原子提交。
+实体 owner 无外部权威来源，明确返回 AUTHORITY_UNAVAILABLE，未宣告实体能力。
+
+持久化物化快照、原始完整快照时间、watermark、32 帧/262144 bytes/64 事件尾部；
+快照 TTL 300 秒，事件 30 秒，增量不延长原快照期限。恢复不重放快照之前的瞬时事件，
+离线 owner 不推进时钟。新旧连接共用 32 消息/262144 bytes 队列预算，溢出/滞后/排队事件过期
+明确要求重新恢复。新协议已宣告 YSM_RECOVERY；缺基线向 owner 节流发送 SnapshotRequest。
+
+旧桥接沿用真实 M7 YSMS/YSMP 编码和 reserved Ping，不透传 protobuf bytes；
+普通 Figura Ping 仍为不透明数据。扩展旧连接显式 header 或合法入站 M7 声明能力，未修改的
+上游客户端不收到 YSM 帧。旧 combined state/events 原子归约为有序正式帧，保存原始 cursor/
+fingerprint，重启后重试仍去重。旧导入 avatar 的 schema 在首次授权运行时发布时持久绑定。
+M7 没有 SnapshotRequest/error 控制帧，旧 owner 依靠既有周期完整快照恢复，未虚构兼容能力。
+
+最终门禁（Windows、锁定依赖、前台日志）：
+
+- cargo check --locked --offline：PASS，无编译警告。
+- cargo test --locked --offline：18 项 PASS，含真实 HTTP/WS 的晚加入、缺基线请求、
+  重连/旧 epoch、双向旧 M7↔Protobuf、重复/短动作/删除、实体拒绝；存储验证 TTL、
+  尾部淘汰、旧代、撤销及原子提交失败；队列验证全生产者共享字节上限及过期事件不回放。
+- 应用监听器停止并等待结束，再重新打开持久存储并创建全新 AppState/监听器，验证 instance
+  保持、server epoch 更换、旧凭证拒绝、水位快照和离线无历史动作重放；不冒充操作系统杀进程。
+- cargo build --release --locked --offline：PASS。
+- JDK 25 编译生产 M7 codec 和 exporter，--verify：三个消息及一个分片向量 PASS；
+  Rust 侧字段/原始 bytes/CRC/分片互操作及畸形输入通过。
+- 共用协议发布副本 SHA 校验、git diff --check：PASS，schema 摘要不变。
+
+客户端生产代码本阶段未变，沿用 B0 Fabric 编译；真实游戏与公网部署为 MANUAL/PENDING。
+完整后端证据与桥接边界见 omnm-cloud/docs/B4.md。本客户端检查点提交推送并核对后进入 B5。
