@@ -12,7 +12,7 @@
 | H3 | 完成并已推送；实机项 MANUAL/PENDING，最终集中验收 | `8f444cf9725e35985ea61a1008439699dd56633c`，全局设置与回退 |
 | H4 | 完成并已推送；真实 GPU/画面项 MANUAL/PENDING，最终集中验收 | `8c3955c1b1b0985b1c2af86cc293a86e41c42859`，公共 GPU 后端 |
 | H5 | 完成并已推送；真实 GPU/画面项 MANUAL/PENDING，最终集中验收 | `76b299102f232cb5735de0949536d73b057c5827`，双引擎完整接入 |
-| H6 | 实现及本地编译通过；四 runner 验证中 | 四平台 native 与 CI；远端成功前不进入 H7 |
+| H6 | 完成；四 runner/最终 JAR 全部通过 | `432af82fe4765111f7d436c4b86571d27b0ec2f3`，[CI 39015871560](https://github.com/AIH-Interactive/omni-morph/actions/runs/39015871560) |
 | H7 | 待实施 | 稳定性与性能 |
 | H8 | 待实施 | 最终审计交付 |
 
@@ -203,7 +203,7 @@
 - 按用户要求没有打开图形窗口；真实各视角、材质、GUI、中英文设置、聊天与多人画面对照
   `MANUAL/PENDING`，最终 computer-use 集中验收。已检查代码可读性、status/diff 与 `git diff --check`。
 
-## H6（验证中）
+## H6
 
 - x64 CPUID/XGETBV 增加 GCC/Clang 入口；JNI/验证/标量/SSE2 保持基线 ISA，AVX2 单文件启用且不要求 FMA。
   macOS arm64 独立 NEON 内核处理完整矩阵/法线/UV，新增内核号 3、能力位 64，ABI 1 原有调用布局不变。
@@ -224,8 +224,8 @@
   `build/reports/acceleration/h6-windows-native.log`。Fabric/独立 JNI/激活与受限访问测试通过；
   四平台合并合同以明确的合成字节验证缺平台、重复平台、错误 commit/hash 拒绝及原条目保留，合成包不作为平台可执行证据。
   日志 `h6-packaging-smoke.log`、`h6-final-local-build.log`、`h6-workflow-check.log`（同一报告目录）。
-- H6 需要推送实现才能触发真实远端 runner；目前只完成本地自动验证，尚未将四平台 CI 或最终 Artifact 标为通过。
-  CI 全部通过并记录下载证据后才完成本阶段检查点；真实 GPU/画面仍按要求最终集中验收。
+- H6 实现经本地自动验证后推送，触发真实远端 runner；以下记录首轮问题及最终成功证据。
+  真实 GPU/画面仍按要求最终集中验收。
 - 首轮 [CI 39015371199](https://github.com/AIH-Interactive/omni-morph/actions/runs/39015371199)：
   Linux 基础构建成功，四平台 C++ 编译及 CTest 全部成功；后续 jar/部分 codesign 成功但无输出，
   Tee-Object 未创建空日志，强制日志读取因此失败。已改为先创建日志再执行原前台管道，保留即时退出码检查；
@@ -235,3 +235,14 @@
   JNI 测试创建的临时缓存经过系统符号链接，触发既有 loader 拒绝。测试对自身新建目录调用 toRealPath 后加载，
   保留生产缓存符号链接策略；本地 JNI、禁用/缺库/未知架构、访问拒绝及 Fabric 编译回归通过（9s），
   日志 `h6-real-cache-root.log`。macOS 的实际加载结果继续等待真实 runner。
+- 最终 [CI 39015871560](https://github.com/AIH-Interactive/omni-morph/actions/runs/39015871560) 全部成功：
+  唯一 Linux Fabric 构建、四平台 native/CTest/JNI、合并、同一最终 JAR 的四平台缺库/未知架构/禁用/访问拒绝与实际 JNI，
+  最后才上传 [30 天可下载最终 JAR](https://github.com/AIH-Interactive/omni-morph/actions/runs/39015871560/artifacts/12093899440)。
+  源码提交 `432af82fe4765111f7d436c4b86571d27b0ec2f3`；x64 实际内核 `[0,-1,1,2]`、arm64 `[0,-1,3]`，NEON 能力位 65。
+- 最终 JAR SHA-256：`2464c190abe18d54db057dbc26157aea9ec0f3cd20bef1ebd5099e0dba09b231`。
+  本地实际下载公开最终产物，与 CI 内部四 runner 验证包哈希相同；检查四库 hash/commit/runId 后，
+  在 Windows 实际从下载包加载并数值差分通过。文件位于 `build/reports/acceleration/h6-ci-final/published.jar`；
+  日志 `h6-published-windows-smoke.log`，任务状态 `h6-ci-jobs.json`，macOS 最终验证日志 `h6-final-macos-arm64.log`。
+- 实际 ELF 直接符号下限 glibc 2.4、GLIBCXX 3.4、CXXABI 1.3.9；来自 readelf 的版本记录，
+  这仅是本库的符号需求，不降低 Minecraft/JDK 25 自身的系统要求。Windows 仅 KERNEL32，macOS 两架构仅系统 libc++/libSystem。
+  以上不作为跨平台真实 GPU/游戏画面或性能证据；H6 没有在本机交叉编译非 Windows 平台。
