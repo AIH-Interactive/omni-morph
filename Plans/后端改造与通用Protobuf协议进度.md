@@ -8,7 +8,7 @@
 | 阶段 | 状态 | 证据与检查点 |
 | --- | --- | --- |
 | B0 | PASS | 自动门禁通过；后端 `ea5a05d` 已推送并核对；客户端为包含本记录的 B0 提交 |
-| B1 | TODO | 共用服务与旧协议兼容 |
+| B1 | PASS | 后端 `b1b9b1e` 已推送核对；客户端本阶段仅记录进度 |
 | B2 | TODO | Protobuf HTTP/WS 通用能力 |
 | B3 | TODO | YSM 原始资源与投影 |
 | B4 | TODO | YSM 实时与持久化恢复 |
@@ -51,3 +51,22 @@ Fabric JAR 包含 protobuf runtime；生成代码仅存构建目录。
 通过 `git ls-remote` 与本地 HEAD 等值核对。客户端 B0 对应包含本记录的
 `B0: freeze shared Protobuf contract and legacy wire baseline` 提交，检查点推送至 `origin/main`；
 只有核对该次远端推送成功后才开始 B1。
+
+## B1
+
+B0 客户端检查点：`a69050c4e6ae214e8416e6f626999852614b14b7`，已推送并核对 `origin/main`。
+B1 客户端代码不变；后端新增 `service/session.rs`、`event.rs`、`resource.rs`、
+`equipment.rs`，由原 HTTP/WS 适配器调用。连接按独立 ID 登记，断开不撤销其他连接或
+其他设备 token。Ping/AvatarChanged 在服务层为业务类型，旧适配器继续输出原帧。
+重复订阅去重、退订清理 worker；所有旧资源写入入口改用完成后才返回的共用写入函数，
+避免小文件留在被丢弃的 BufWriter 中。合法旧路由、响应、hash 与 Ping 参数保持等值。
+
+自动验证：`cargo test --locked` 5 项通过（含原 B0 向量和真实 HTTP/WS 完整链路）；
+`cargo build --locked` 后端实际可执行文件编译成功。覆盖上传权限/非法 token/体积上限、
+上传下载字节等值、普通 Ping/echo、重复订阅/退订再订阅、双设备 token、多连接通知、
+旧连接正常关闭/重连/突然断开、换装/删除通知、删除后 404 和旧资料空装备投影。
+测试连接和临时文件均清理。客户端本阶段无代码变更，沿用 B0 已通过的 Fabric 构建。
+新增 registry 测试计数方法有一条非阻断 dead_code 警告；未扩张阶段范围处理其他警告。
+
+后端 B1 提交 `b1b9b1ef850d67c873e4ff11fc1721ec34937a48` 已推送 `origin/master` 并核对远端 SHA；
+客户端本阶段检查点为包含此记录的 `B1: record shared backend service checkpoint` 提交。
