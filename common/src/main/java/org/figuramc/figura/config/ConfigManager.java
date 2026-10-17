@@ -26,7 +26,16 @@ public final class ConfigManager {
         saveConfig();
     }
 
+    public static boolean isInitializing() {
+        return initializing;
+    }
+
     public static void loadConfig() {
+        for (ConfigType<?> config : REGISTRY) {
+            if (config instanceof CloudProtocolConfig protocol) {
+                protocol.prepareLoad();
+            }
+        }
         try {
             if (FILE.exists()) {
                 initializing = true;

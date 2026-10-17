@@ -1,4 +1,12 @@
 {
+    "figura.config.cloud_protocol": "Cloud Protocol",
+    "figura.config.cloud_protocol.tooltip": "Choose the protocol for the configured server. Switching reconnects and authenticates again. Protobuf requires a compatible backend; Figura Cloud must be selected manually for older servers.",
+    "figura.config.cloud_protocol.1": "Figura Cloud",
+    "figura.config.cloud_protocol.1.tooltip": "Use the existing Figura Cloud HTTP and WebSocket protocol.",
+    "figura.config.cloud_protocol.2": "Protobuf",
+    "figura.config.cloud_protocol.2.tooltip": "Use the OmniMorph Protobuf protocol for Figura and YSM. Default; never falls back automatically.",
+    "figura.backend.protobuf.unsupported": "This server does not support Protobuf. Select Figura Cloud manually in Settings.",
+    "figura.backend.protobuf.failed": "Protobuf connection failed. Check the configured server and protocol; no automatic fallback was used.",
     "figura": "Figura",
     "figura.tab": "  ",
     "figura.ellipsis": "…",

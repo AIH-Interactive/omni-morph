@@ -1,4 +1,12 @@
 {
+    "figura.config.cloud_protocol": "云端协议",
+    "figura.config.cloud_protocol.tooltip": "选择当前服务器使用的协议。切换后会断开并重新认证。Protobuf 需要兼容后端；旧服务器请手动选择 Figura Cloud。",
+    "figura.config.cloud_protocol.1": "Figura Cloud",
+    "figura.config.cloud_protocol.1.tooltip": "使用原有 Figura Cloud HTTP 与 WebSocket 协议。",
+    "figura.config.cloud_protocol.2": "Protobuf",
+    "figura.config.cloud_protocol.2.tooltip": "使用 OmniMorph Protobuf 协议传输 Figura 与 YSM。默认启用，不会自动回退。",
+    "figura.backend.protobuf.unsupported": "此服务器不支持 Protobuf，请在设置中手动选择 Figura Cloud。",
+    "figura.backend.protobuf.failed": "Protobuf 连接失败，请检查服务器地址与协议；未自动回退。",
     "figura.config.avatar_volume_gain": "Avatar 音量增益",
     "figura.config.avatar_volume_gain.tooltip": "统一调整 Figura 和 YSM 模型声音的音量倍率\n0 为静音，1 为原音量，2 为两倍，最大为 10\n与游戏玩家音量和模型音量权限叠加，对正在播放的声音生效",
     "figura.gui.wardrobe.filter.all": "全部模型",
