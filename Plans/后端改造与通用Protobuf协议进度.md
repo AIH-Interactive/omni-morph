@@ -37,7 +37,7 @@ GitHub 链接 `https://github.com/AIH-Interactive`；Upstream 链接
 | B5 | PASS | 后端测试检查点 `3424695` 已推送核对；生产 Java 六组混合协议、状态回放、语料门禁与 Fabric 构建通过 |
 | B6 | PASS | 后端记录 `f802614` 已推送核对；实际配置矩阵、切换/离线模型保留、无回退测试及 Fabric 构建通过 |
 | B7 | PASS | 后端记录 `80cfcfc` 已推送核对；统一端点、Debug 撤销、真实 HTTP/WS/TLS 安全矩阵及双协议联调通过 |
-| B8 | TODO | 完整联调、迁移回滚与产物 |
+| B8 | PASS | 后端 `efe4a95` 已推送核对；真实进程中断/恢复/回滚、12 组协议配对、语料与构建通过，产物记录见本阶段 |
 
 ## B0
 
@@ -329,3 +329,62 @@ HTTP 拒绝所有重定向，也拒绝注入启用了自动重定向的客户端
 
 公网 TLS 部署与真实游戏外观仍为 SKIPPED/MANUAL_BY_USER；共享传输 TLS 测试不冒充公网或
 双游戏客户端渲染结果。本检查点两仓库推送核对后才开始 B8 的完整交付、迁移/回滚与产物记录。
+
+## B8
+
+后端检查点 `efe4a9523fbd7b5ca53e49509dcf32bfcf2bd2bb` 已推送 origin/master 并核对远端。
+客户端前序检查点 `116f1b50128213104d23ac642414cf171a4f25a5` 已推送核对；本阶段客户端
+生产代码不变，补齐测试与交付工具/记录。后端详细记录 docs/B8.md，启动/部署说明 docs/DEPLOYMENT.md。
+
+Storage 仅在确认 schema_version=1 后清理失效进程的 uploads/*.part，未知版本拒绝且保留
+其文件。不可变 blob 与旧 .moon 均保留。测试使用真实独立子进程，三次实际惰性导入不增加
+revision、不改旧字节；写入 YSM 主装备/Figura 兼容引用、删除 tombstone、完整快照和事件水位。
+在真实元数据事务同步候选文件后、原子替换前，由父进程终止子进程；随后多个全新进程均恢复
+旧提交，未发布中断资源，清理残余上传，并保留装备、快照/水位与 tombstone。未知 schema
+的 manifest/上传不被改写，恢复支持版本后可以重开。崩溃暂停点只存在于 cfg(test)。
+
+从改造前提交 28fb81ed177bf24ae616eb68e9c6220f0bd60a4a 归档源码独立编译并实际运行旧后端，
+使用临时目录、随机回环端口与本地合成认证提供方：旧 auth/profile/原始 Figura 下载可用，
+当前 Figura Cloud 生产适配器也实际完成认证、资料/限额/下载及不透明 Ping；cloud-v1 每个文件
+哈希与原 .moon 均不变。重开新版本仍保留 YSM 主装备、删除记录和恢复状态。
+
+新增顶层 protobufEnabled（缺省 true），改为 false 后重启关闭新 HTTP/资源/WS 入口。
+真实新后端进程分别验证关闭/开启两种配置，旧接口均可用，新数据不删除。客户端仍由用户
+显式选择 Figura Cloud 回退并持久保存。修正后端旧 token/认证响应 trace 输出和 URI 查询日志，
+实际开启后端 trace 检查合成无效 token 与本次签发 token 均未出现在日志中。
+
+自动门禁（最终代码，前台 PowerShell + Tee-Object，日志/退出码核对）：
+
+- Rust cargo check --locked --offline、cargo build --release --locked --offline：PASS。
+  cargo test --locked --offline -- --nocapture：20 项 PASS（含子进程辅助入口），并实际执行上述
+  中断/恢复/回滚/新入口开关。设置了 OMNIMORPH_ROLLBACK_BINARY、OMNIMORPH_DELIVERY_BINARY
+  与 OMNIMORPH_CLIENT_CLASSPATH_FILE，未把可选门禁未执行时的 SKIPPED 算作通过。
+- 当前生产 Java 适配器四种 source/observer 协议配对 × Figura/普通 YSM/合成密文 YSM 共 12 组：
+  原始 HTTP 字节/缓存引用、上传装备删除、Ping/echo、正式快照/增量/短动作、重复去重、
+  周期快照新事件、晚加入水位均 PASS。独立连接的 Ping 按 owner/id 匹配，不假设跨 socket 总序。
+  合成密文仅证明不透明传输；真实加载和解密另由动态语料门禁覆盖。
+- :common:test、ysmMaterialNativeSmokeTest、ysmPayloadSmokeTest、ysmSyncSmokeTest、
+  ysmLocalCorpusSmokeTest、ysmCryptoSmokeTest、writeCloudIntegrationClasspath、
+  :fabric:build --console=plain：PASS。动态枚举实际 5 个 Figura 编译、35 组普通 YSM 组装、
+  8 个密文组装/重新加载；crypto 1/2/3 固定向量及有界负例通过，未导出私有密钥/正文。
+- 冻结协议双仓库 release.sha256 校验 PASS，schema SHA-256 仍为
+  e843b3232be304f4965b68e521d64c36cd7532123928beadea2c0f33d29cdb64。
+- 受影响源码、文档与脚本 git diff --check：PASS；未提交 refs、参考 spm-cloud、日志或模型。
+
+本阶段 Windows release 后端 target/release/sculptor.exe SHA-256：
+29e4f199edce633df82dde7c7573d2377d444f89e5925410178221414b534cab。
+回滚基线 exe SHA-256：d6cfb80e15f04fa4b76291e616b5c41001edcf19c77a608314b4ceebc4674967。
+客户端本阶段检查点前构建的 figura-0.1.5+26.1.2-fabric-mc.jar（内嵌 116f1b5）SHA-256：
+92cbae1ac3efbca58278ffa8e71e278bbb7e1dad1558647a1e60306039909f3c。
+检查点提交后重建写入新提交标记的 JAR，并用 tools/record-cloud-release.ps1 记录双方完整 SHA、
+实际路径/版本/字节数/哈希到 build/reports/cloud/b8-release.json。脚本拒绝未提交的受跟踪改动
+（仅排除 build.log）及内嵌其他提交标记的 JAR。后续品牌迁移产物另记，不能混用哈希。
+
+源代码直接启动命令为后端目录中 cargo run --locked，默认读取 Config.toml，也支持 RUST_CONFIG；
+Cargo 自动完成必要编译，无需先手动生成 exe。完整前台日志启动命令、数据目录变量、TLS 代理、
+备份/惰性迁移/重启及回滚步骤已写入后端 docs/DEPLOYMENT.md，主 README 提供入口。
+
+公网部署、双真实游戏客户端的加载/切模/纹理/动作/声音/重连观察与外观截图仍明确为
+SKIPPED/MANUAL_BY_USER；本地协议与 CPU/原生测试不冒充实机 PASS。实体世界权威依赖按协议
+返回 AUTHORITY_UNAVAILABLE，未擅自模拟。B8 两仓库检查点完成并核对产物后，继续用户授权的
+top.aihmc.omnimorph 包名、omni-morph 模组 ID、OmniMorph 品牌/帮助页、1.0.0-alpha.1 与图标迁移。
