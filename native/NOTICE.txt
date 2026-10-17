@@ -17,3 +17,5 @@ GCC runtime licensing: https://gcc.gnu.org/onlinedocs/libstdc++/manual/license.h
 LLVM libc++ licensing: https://github.com/llvm/llvm-project/blob/main/libcxx/LICENSE.TXT
 Operating-system dependencies are recorded from the actual build in the platform manifest.
 The project license applies to these independently written sources.
+The complete JAR includes the project license at
+licenses/OmniMorph-PolyForm-Noncommercial-1.0.0.txt and credits/OmniMorph.txt.
