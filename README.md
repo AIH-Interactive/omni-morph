@@ -25,7 +25,7 @@
 | YSM 运行时 | 已接入几何、动画/controller、Molang、纹理与材质、控件、动作轮、语言和声音等消费者 |
 | 加密资源分发 | 已实现的上传、缓存和普通导出路径保留原密文；加载时在内存中解码 |
 | 现有多人状态 | 已实现基于 Figura Ping 的 YSM 状态同步与恢复状态机，能力及预算见 M7 记录 |
-| 后端与 Protobuf | B0～B7 已完成，含通用 Protobuf 后端、YSM 资源与恢复、客户端双协议适配、默认 Protobuf 设置及 Debug 端点安全；B8 完整交付验收仍在推进 |
+| 后端与 Protobuf | B0～B8 自动验收完成，含双协议、原始 HTTP 资源、YSM 状态恢复、默认 Protobuf、Debug 安全及进程迁移/回滚；公网部署与双游戏实机观察待人工验收 |
 | 游戏实际验收 | 自动化、真实游戏双客户端及人工观察分别记录，具体结果见验收矩阵 |
 
 本地模型加载可以独立使用。多人模型共享和动态同步需要相应客户端能力、身份认证及可用后端；未修改的原 Figura 客户端只能识别其支持的 Figura 内容。
@@ -79,6 +79,8 @@ if ($buildExitCode -ne 0) { exit $buildExitCode }
 配套后端独立维护于 [sculptor-for-omni-morph](https://github.com/AIH-Interactive/sculptor-for-omni-morph)，本地工作目录为 `omnm-cloud/`。客户端与后端分别提交和发布。
 
 后端改造按 B0～B8 顺序推进：保留 Figura 旧入口及线格式，新增统一资源描述、认证、装备、订阅和 YSM 状态恢复能力。Protobuf 用于控制消息与实时状态，模型包通过 HTTP/HTTPS 直接传输。默认使用 Protobuf；旧服务器需手动选择 Figura Cloud。裸服务器地址默认 HTTPS/WSS，显式 HTTP/WS 仅在 Debug 开启时允许，关闭 Debug 会撤销明文连接。完成状态以 [实施进度](Plans/后端改造与通用Protobuf协议进度.md) 为准。
+
+后端从源码直接启动使用 `cargo run --locked`，默认读取运行目录的 `Config.toml`，也支持 `RUST_CONFIG` 指定路径。Cargo 自动完成必要编译后启动，无需先手动构建可执行文件。配置、前台日志命令、HTTPS/WSS 代理、数据备份及回滚步骤见 [后端启动与部署说明](https://github.com/AIH-Interactive/sculptor-for-omni-morph/blob/master/docs/DEPLOYMENT.md)。
 
 ## 参考项目与致谢
 

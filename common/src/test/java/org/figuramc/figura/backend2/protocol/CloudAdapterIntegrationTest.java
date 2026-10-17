@@ -18,15 +18,20 @@ public final class CloudAdapterIntegrationTest {
     private static final byte[] PING = {0, -1, -128, 127};
 
     public static void main(String[] args) throws Exception {
+        if (args[0].equals("--legacy")) {
+            legacyBackend(args);
+            return;
+        }
         URI origin = URI.create(args[0]);
         Path fixtures = Path.of(args[1]);
         UUID owner = UUID.fromString(args[2]);
         UUID observer = UUID.fromString(args[3]);
         HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
-        for (int direction = 0; direction < 2; direction++) {
-            boolean sourceProtobuf = direction == 1;
+        for (int direction = 0; direction < 4; direction++) {
+            boolean sourceProtobuf = (direction & 1) != 0;
+            boolean targetProtobuf = (direction & 2) != 0;
             try (CloudProtocol source = adapter(sourceProtobuf, origin, "java-source", 100 + direction, http);
-                 CloudProtocol target = adapter(!sourceProtobuf, origin, "java-observer", 200 + direction, http)) {
+                 CloudProtocol target = adapter(targetProtobuf, origin, "java-observer", 200 + direction, http)) {
                 Probe sent = new Probe();
                 Probe received = new Probe();
                 source.connect(sent);
@@ -99,10 +104,37 @@ public final class CloudAdapterIntegrationTest {
                         require(source.delete("avatar").status() == 200, "Delete " + name);
                         require(JsonParser.parseString(target.profile(owner).body()).getAsJsonObject()
                                 .getAsJsonArray("equipped").isEmpty(), "Deleted primary absent " + name);
-                        System.out.println("PASS production client " + (sourceProtobuf ? "Protobuf -> Figura Cloud" : "Figura Cloud -> Protobuf")
+                        System.out.println("PASS production client " + (sourceProtobuf ? "Protobuf" : "Figura Cloud")
+                                + " -> " + (targetProtobuf ? "Protobuf" : "Figura Cloud")
                                 + ": " + name + " raw HTTP/profile/equip/delete/Ping" + (model == 1 ? "" : "/typed recovery/events"));
                     }
                 }
+            }
+        }
+    }
+
+    private static void legacyBackend(String[] args) throws Exception {
+        URI origin = URI.create(args[1]);
+        UUID owner = UUID.fromString(args[3]);
+        byte[] expected = Files.readAllBytes(Path.of(args[4]));
+        try (HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+             CloudProtocol protocol = adapter(false, origin, args[2], 1, http)) {
+            Probe probe = new Probe();
+            protocol.connect(probe);
+            try (Pump pump = new Pump(protocol)) {
+                probe.awaitReady();
+                require(protocol.checkAuth().status() == 200, "Current Figura Cloud authenticates to baseline backend");
+                protocol.profile(owner);
+                require(protocol.profile(owner).status() == 200 && protocol.limits().status() == 200,
+                        "Current adapter reads legacy profile/limits");
+                try (var download = protocol.download(owner, "avatar")) {
+                    require(Arrays.equals(CloudHttp.readBounded(download.stream(), 1048576), expected),
+                            "Baseline backend raw Figura bytes remain compatible");
+                }
+                protocol.ping(0x01020304, true, PING);
+                probe.awaitPing(owner, 0x01020304);
+                probe.requireHealthy();
+                System.out.println("PASS current Figura Cloud adapter -> baseline 28fb81e backend: auth/profile/limits/raw download/Ping");
             }
         }
     }
@@ -159,9 +191,25 @@ public final class CloudAdapterIntegrationTest {
         }
 
         private void awaitPing(UUID owner, int id) throws Exception {
-            String actual = pings.poll(10, TimeUnit.SECONDS);
-            requireHealthy();
-            require((owner + "/" + id).equals(actual), "Mixed Ping delivered with authenticated owner: " + actual);
+            String expected = owner + "/" + id;
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+            List<String> deferred = new ArrayList<>();
+            try {
+                while (System.nanoTime() < deadline) {
+                    String actual = pings.poll(Math.max(1, deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
+                    requireHealthy();
+                    if (expected.equals(actual)) {
+                        return;
+                    }
+                    if (actual != null) {
+                        deferred.add(actual);
+                    }
+                }
+                throw new AssertionError("Expected authenticated Ping: " + expected);
+            } finally {
+                // Independent producers have no shared arrival order; retain their other messages.
+                pings.addAll(deferred);
+            }
         }
 
         private YsmSyncMessage awaitState(boolean snapshot, boolean event) throws Exception {
