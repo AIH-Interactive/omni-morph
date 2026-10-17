@@ -226,3 +226,7 @@
   日志 `h6-packaging-smoke.log`、`h6-final-local-build.log`、`h6-workflow-check.log`（同一报告目录）。
 - H6 需要推送实现才能触发真实远端 runner；目前只完成本地自动验证，尚未将四平台 CI 或最终 Artifact 标为通过。
   CI 全部通过并记录下载证据后才完成本阶段检查点；真实 GPU/画面仍按要求最终集中验收。
+- 首轮 [CI 39015371199](https://github.com/AIH-Interactive/omni-morph/actions/runs/39015371199)：
+  Linux 基础构建成功，四平台 C++ 编译及 CTest 全部成功；后续 jar/部分 codesign 成功但无输出，
+  Tee-Object 未创建空日志，强制日志读取因此失败。已改为先创建日志再执行原前台管道，保留即时退出码检查；
+  本地以真正零 stdout/stderr 的 jar --create 复现并通过回归（`h6-quiet-regression.log`），不屏蔽任何工具输出。
