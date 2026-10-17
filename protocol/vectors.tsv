@@ -1,0 +1,14 @@
+# name<TAB>hex; synthetic public fixtures only
+hello	0801100152060a010112016a
+ping	08011002da020d15040302011801220400ff807f
+clear_controls	080110039a030412021200
+legacy_auth	00746573742d746f6b656e
+legacy_ping	01010203040100ff807f
+legacy_sub	0200112233445566778899aabbccddeeff
+legacy_unsub	0300112233445566778899aabbccddeeff
+legacy_s2c_auth	00
+legacy_s2c_ping	0100112233445566778899aabbccddeeff010203040100ff807f
+legacy_event	0200112233445566778899aabbccddeeff
+legacy_toast	030268656c6c6f0064657461696c
+legacy_chat	047b7d
+legacy_notice	0501
