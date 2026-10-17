@@ -1,152 +1,90 @@
-<h1 align="center"> Figura </h1>
-<p align="center">
-  <img alt="fabric" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/supported/fabric_vector.svg">
-  <img alt="forge" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/supported/forge_vector.svg">
-  <img alt="quilt" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/supported/quilt_vector.svg">
-  <img alt="neoforge" height="56" src="https://cdn.jsdelivr.net/gh/Hyperbole-Devs/vectors@neoforge_badges/assets/cozy/supported/neoforge_vector.svg">
-</p>
+# omni-morph
 
-## A Minecraft Java client mod that allows you to extensively customize your player model and have other players see your Avatar without requiring any server mods!
-![blockbench](https://raw.githubusercontent.com/FiguraMC/Figura/HEAD/.github/assets/blockbench.png)
+基于 [Figura](https://github.com/FiguraMC/Figura) 开发的 Minecraft Java 客户端模型模组，面向 Figura Avatar 与 YSM 模型提供统一的加载、预览、控件、动作和同步体验。
 
-## Utilizing the full potential of [Blockbench](https://www.blockbench.net/).
-![animation](https://raw.githubusercontent.com/FiguraMC/Figura/HEAD/.github/assets/anims.png)
+项目延续 Figura 的 Lua 环境、权限体系、衣柜、设置与预览界面，在此基础上加入 YSM 模型运行能力，并推进配套后端和通用 Protobuf 协议改造。`omni-morph` 是独立维护的衍生项目，当前构建产物和部分游戏内名称仍沿用 Figura。
 
-![mesh](https://raw.githubusercontent.com/FiguraMC/Figura/HEAD/.github/assets/mesh_e.png)
+[使用与兼容说明](Plans/YSM兼容与使用说明.md) · [开发计划](Plans/完善YSM引擎计划书.md) · [后端与协议计划](Plans/后端改造与通用Protobuf协议计划书.md) · [实施进度](Plans/后端改造与通用Protobuf协议进度.md) · [原 README 备份](README.Figura.original.md)
 
-## Not only can you customize your model but Figura also has an optional [Lua](https://www.lua.org/) API to make your own scripts!
+## 项目方向
 
-![lua](https://raw.githubusercontent.com/FiguraMC/Figura/HEAD/.github/assets/lua.png)
+- **统一模型体验**：在 Figura 原有操作界面中使用 Figura 与 YSM 模型，复用衣柜、控件、动作轮和预览。
+- **保留 Figura 能力**：保留原有 Avatar 加载、Lua API、模型权限及相关功能，并验证与 YSM 的共存。
+- **运行 YSM 模型**：支持模型资源、动画控制器、Molang、换肤、交互控件、动作及声音的已实现能力。
+- **统一云端协议**：逐阶段改造后端，保留原 Figura 协议，新增供 Figura/YSM 共用的 Protobuf 控制与状态协议；模型文件通过普通 HTTP/HTTPS 传输。
 
-## What if someone is invisible, or very small? Take advantage of Figura's robust permission system!
+## 当前功能与状态
 
-![perms](https://raw.githubusercontent.com/FiguraMC/Figura/HEAD/.github/assets/perms.png)
+| 范围 | 当前情况 |
+| --- | --- |
+| Figura Avatar | 保留原有目录/ZIP 加载、Lua、权限及界面，已有与 YSM 交替加载的自动回归 |
+| YSM 输入 | 支持目录、ZIP 和已支持版本的加密 `.ysm`；具体格式边界见使用说明 |
+| YSM 运行时 | 已接入几何、动画/controller、Molang、纹理与材质、控件、动作轮、语言和声音等消费者 |
+| 加密资源分发 | 已实现的上传、缓存和普通导出路径保留原密文；加载时在内存中解码 |
+| 现有多人状态 | 已实现基于 Figura Ping 的 YSM 状态同步与恢复状态机，能力及预算见 M7 记录 |
+| 后端与 Protobuf | B0 协议基线、B1 共用服务与旧协议适配已完成；B2～B8 按计划推进，尚未交付完整新协议链路 |
+| 游戏实际验收 | 自动化、真实游戏双客户端及人工观察分别记录，具体结果见验收矩阵 |
 
-## We also have some extras, like:
-![Qol](https://raw.githubusercontent.com/FiguraMC/Figura/HEAD/.github/assets/wheel.png)
+本地模型加载可以独立使用。多人模型共享和动态同步需要相应客户端能力、身份认证及可用后端；未修改的原 Figura 客户端只能识别其支持的 Figura 内容。
 
-![skullemoji](https://raw.githubusercontent.com/FiguraMC/Figura/HEAD/.github/assets/skull.png)
+原 YSM 引擎 M0～M8 的实现与验收记录见 [引擎计划](Plans/完善YSM引擎计划书.md)、[M8 验收矩阵](Plans/YSM-M8验收矩阵.md) 和 [M7 协议决策](Plans/YSM-M7协议决策记录.md)。支持的格式、第三方模组绑定、已知问题和人工待验项目，以这些记录及 [使用说明](Plans/YSM兼容与使用说明.md) 为准。
 
-Meet us on the [FiguraMC Discord Server](https://discord.figuramc.org/) for more info and help!
+## 当前开发基线
 
-Help translate Figura to your native language on [Weblate](https://translate.figuramc.org/projects/figuramc/figura/)!\
-![translate]
+| 项目 | 版本 / 范围 |
+| --- | --- |
+| Minecraft Java | 26.1.2 |
+| 当前构建平台 | Fabric |
+| Fabric Loader | 0.18.6 |
+| Fabric API | 0.145.4+26.1.2 |
+| Java / JDK | 25 |
+| 模组版本 | 0.1.5 |
 
-[translate]: https://translate.figuramc.org/widget/figuramc/figura/horizontal-auto.svg
-# Links
-[discord]: https://discord.com/api/guilds/1129805506354085959/widget.png
-[modrinth]: https://img.shields.io/badge/Modrinth-1bd96a?logo=modrinth&logoColor=ffffff
-[curseforge]: https://img.shields.io/badge/CurseForge-f16436?logo=curseforge&logoColor=ffffff
-[github]: https://img.shields.io/badge/GitHub-181717?logo=github
-[github-contrib]: https://img.shields.io/badge/GitHub-Contributing-grey?logo=github&labelColor=181717
-[kofi]: https://img.shields.io/badge/Ko--fi-00b9fe?logo=kofi&logoColor=ffffff
-[collective]: https://img.shields.io/badge/Open%20Collective-83b3fb?logo=opencollective&logoColor=ffffff
-[wiki]: https://img.shields.io/badge/Figura-Wiki-black?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAAXNSR0IArs4c6QAAAM5JREFUaIHtmbENAjEMRRPECIiSmvrYAZobggXoGIMhGOIa2IHUNDTU7HAsYBeWgh6W/isTx7knS5Z1qaUTwzTPkfg21trj3kWPJCQSoJEATbgTeN2mbYJ53vZ6tDulr4AEaCRAIwEaCdBIgMadO4aLM/PsnfjxELq4TTc7z92JP9szUvoKSIBGAjQSoJEAjQRoqjfzlK194HPc/fBzSlldH/bG015OXwEJ0EiAZhk94HWJXn+no6SvgARoJEBT16dX6IX930hfAQnQSIDmC5x4H/qkICDcAAAAAElFTkSuQmCC&labelColor=166ddd&color=5ea5ff
-[weblate]: https://img.shields.io/badge/Weblate-Translating-125252?logo=Weblate&logoColor=ffffff&labelColor=2ECCAA
-[website]:  https://img.shields.io/badge/FiguraMC-Website-purple?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAG4AAABuCAYAAADGWyb7AAAACXBIWXMAAAsSAAALEgHS3X78AAAAG3RFWHRTb2Z0d2FyZQBDZWxzeXMgU3R1ZGlvIFRvb2zBp+F8AAAHu0lEQVR4nO3dTWgcZRjA8X9AoR6sFKXoJdQI/SBiTkFQEOvRg6daoQc96EEh0RRRL6VC8CKxIEaoYAO2YEHpQQQLvWgvFmzpoaUVDSg9uWDRmkBBEIwH+7Szs/PxPu/7vO+8u9n/KZuP2YEfz8xOdmZ2YmNjg2HtpZMErfzxA0xYrUvqJoYBLhRI2zCAZguXGquuXBGzgssFC2Dr+cHvLX+YD2IWcLmDlcsBsFO4YQMr1yVgJ3DDDlauC8CkcKMGVi4lYBK4UQcrlwIwOlwuaCnAisXGiwqXA1pqsGIx8aLAbXawcjEAzeG6QptbcPu9EwfirkdVB3sw9YUtnilcCjQBevmht0yWt9JbAuKAHuz1P7bEM4OLiTa3YAfVlgVkGayYFZ4JXAy0lFhNrfSWnBGbwIpZ4AXDWaPlAlauCdAVrFgoXhCcJdrcAjz1117mnjyq+rszf65YrYJTRUAfsGIheN5wVmhzC/Dl9E8Wi0qK+NXuJZPl+OJ5wVmhbf/UBqxcKsAu8dRwuaNJo46ngrNAs9w0tpUKb6W3xP17w5ejwUsKF3vKqhqm/V4UuGFEk0YRzwlumNGkz398t+/xAw9ORnsuH7ype5fvPDg234rXCheKlnKf1lYZr5g1pCteH1ixFryocDmhSU14khViE14tmBQCN2pokgse2ACW8VrBijXgmcNtPQ8vnswXDdzhpBBAOVRQgUk+cFq04jvOWy7liyalxLs8GzC5NXjBcOVTBKzR9l/dXfuzkKnWwkm+gN54GjgXtKpzOqw2kU1YdWmf1xcO8sBTw9WdhGOB5gNWTrMOqfFWekvMPmezrxuAq0NrO2sqdBNpgSa54oXAgR+e1dS1wrmc5hY6bZZoksv6hMKBHs9q6vrgimia8xJDpi0GmtSGZwEHejyLqRuA055IGjJtMdGkpnWzggMdntfU7bgOhxar4eYX9AfcvtOWAk2qw7OEAx2e89TtuH7n6yo4H7Tcp02qW8ePv3+Nbdu2mz2P6dQVwYrdwguC6108zsN3Pa79s6RoUhXeB2f3sOXupwHMAIOnrg5MGsP9Dwd0htc3dW1gUhHOdzP5/q7RgANbPBXc64f1T3BoccIbrnfxOIAargs0qYxXhINu8C4/f49+4WO4PQO/Y4WXJZxsJiUNXi5wVWhSSjyvzaUvnEybNKpwEIY3hjPKFQ5s8KJtLg8tTkzMvaG/eKAMB+54OcC1oUHaqfPZz43hairCQdypU8NN3bSDg7zxNJtJKdXm8vLspNsB+NTN21+q4cqvKIsNA5wrGthMnQlcAUxSwR3swR/f1cOBG95mgoN2vFq4CjDJCa54yWwbHOSH54MGg3AQZ+oG4BrApEa4qmucXeCgHS81nBYNOoBzAJMq4ZouSneFgzzwfNEgMdwz11TL7INzuYuABu6bHz5rvYtC7HNOfNFgCOA0t33QwgGd4IWiQTUc6PGiwP2yX3c44AMHafFiosEmg4M0eBZoMIar/H4MQCswaeTgAN7+LQyuWAiiNZbUhAZjuL7+/uesdjWilT3c9BhuoDY0iAD3zr9uC5q+8+XExsYGv76geyM1Bhx0j+eCBh3ATZcezxyZ8IKzeIFSV1d4XaFBA1wZTMoRDtLjuaJBov1bHZiUKxykw9OgQeTNZBuY5AMnt33Y9/NW1z/JFk+LBpHgXMEkDVz5Ph0auHOrp7lx43fl2v1fLLws0GYnYf6aej1uwwG1eHU3Vrnw9bzz5vLc6mkAbzywA/QBk8zhTjgeBhSbOdJ/tU4Zru1OOBo4CJu6clrEECwpyqtJSzjNrYs0m0uwxUtdTptJKN914ZVl1avLLqcuZblNGwTCweaYutymDQzgYLTxspk2aICDJFMHw4EXBc1g2sAITruvk3LGi4EGNtMGdbc9TDR1kCdeNDSjaQNDOBgNvFhoYDdt0HRr302Ilxva2sxN7uMT3R1i1XC3zn2/8NGi1/4OusXLCW1t5s6p6Ho4cMOruMpk35lHHFavOov/a2qKCQa6/VoRDOrRIASu5UK8EDyIDxgbTHKZtjKY5A8Hg3iuty7CDg/sAFOBQTtaHRg0o4EGTgFWLBQP+gElV0jfixGf2Pls3+PV9Suqv29CawKTwuEA3jsc9Pk6FnhSFaJVMl07tz5a+XNXvDo0FzBoRwPN58dlhCdpEcubvTqgptrwqtBcwcANDbQftZkhXhfV4ZXRNGDgjgaJ4SDsOC+XquCKaFowKR4chOEVrnHed/Qx78V0XRGueJzmCwY6NPD9HHAtXs1F6cOKJ3AyZSFgoEeDgA9wd8JzuYvAtzu8/7/ZRUW0UDDwQ4MQOKjHU9z24XZDALi6foXLs5OsHbtqsjxfNAiFg348H7BymQKe2rVuBgZhaGABB3DyTYOFlMoE0BoMwtHACg7i4EmJEU/tWgcwBwMbNLCEA3u8qoshlncA/m/YViVQFi/rm7JCA2s4sMHTXr1yC9O5mvfHYoGBLRrEgAN/PC2YUTHBwB4NYsFJroBjMHVx4aAZb0TBIC4apICDQbwRBoP4aJAKTroU8ZChoVECk9LCSYkARxFM6gZOigQ4ymBSt3CSEeBmAJPygJM8ATcTmJQXXDEHxFF4We9bvnDFSojDfOBs1XDA1bTGq0ErPwxAdf0Hwx3OLyPuOrkAAAAASUVORK5CYII=&labelColor=01090E
+当前记录的自动化验证环境为 Windows 11 / JDK 25。仓库保留了其他加载器相关目录；当前构建与验证范围见上表。
 
+## 开始使用
 
-## Social: [ ![discord] ](https://discord.figuramc.org/) [ ![website] ](https://figuramc.org/)
+1. 准备与上述基线匹配的 Fabric 客户端和依赖，将本项目构建的模组 JAR 放入客户端 `mods` 目录。
+2. 使用 Figura 原有模型目录与衣柜加载模型；支持的 YSM 输入直接识别，纯 YSM 模型运行不要求额外编写 Lua。
+3. 在原有模型控件页、动作轮和预览中操作模型。具体格式、声音、权限及联网说明见 [YSM 兼容与使用说明](Plans/YSM兼容与使用说明.md)。
 
-## Download: [ ![modrinth] ](https://modrinth.com/mod/figura) [ ![curseforge] ](https://curseforge.com/minecraft/mc-mods/figura) [ ![github] ](https://github.com/FiguraMC/Figura/releases/latest)
+本项目的代码与版本更新位于 [AIH-Interactive/omni-morph](https://github.com/AIH-Interactive/omni-morph)。Figura 上游的下载入口和社区链接保留在 [原 README](README.Figura.original.md)，用于了解上游项目。
 
-## Donate: [ ![collective] ](https://opencollective.com/figura) [ ![kofi] ](https://ko-fi.com/skyrina)
+## 从源码构建
 
-## Resources: [ ![wiki] ](https://wiki.figuramc.org/) [ ![weblate] ](https://translate.figuramc.org/projects/figuramc/figura/) [ ![github-contrib] ](https://github.com/FiguraMC/Figura/blob/HEAD/CONTRIBUTING.md)
+准备 JDK 25，并确保 `JAVA_HOME` 与 `PATH` 指向该版本。本地已有 `usejdk` 函数时，可以先执行 `usejdk 25`。在仓库根目录使用 PowerShell：
 
+```powershell
+& .\gradlew.bat :fabric:build --console=plain 2>&1 | Tee-Object -FilePath 'build.log'
+$buildExitCode = $LASTEXITCODE
+Get-Content -LiteralPath 'build.log' -Tail 40
+if ($buildExitCode -ne 0) { exit $buildExitCode }
+```
 
-# FAQ
+构建产物位于 `fabric/build/libs/`，当前成品命名仍使用 `figura-...-fabric-mc.jar`。网络协议 smoke test 随 `:common:test` 执行；YSM 各项验证入口及历史结果见计划和验收记录。
 
-### • My avatars don't appear in the Figura list, even though they're in the correct folder?
-> Check if your avatar has a file called "avatar.json" (don't forget to check file extensions)
-> 
-> This file can be completely empty, it just needs to be present for Figura to recognise it as an avatar
+## 配套后端与协议改造
 
-### • How do I hide the vanilla model?
-> At the top of your script, put:
->
-> • To hide literally everything (player, armor, elytra, held items):
-> ```lua
-> vanilla_model.ALL:setVisible(false)
-> ```
->
-> • To hide only the player:
-> ```lua
-> vanilla_model.PLAYER:setVisible(false)
-> ```
->
-> • To hide only armor:
-> ```lua
-> vanilla_model.ARMOR:setVisible(false)
-> ```
-> 
-> • To hide other, or specific parts, you can check the in-game docs
+配套后端独立维护于 [sculptor-for-omni-morph](https://github.com/AIH-Interactive/sculptor-for-omni-morph)，本地工作目录为 `omnm-cloud/`。客户端与后端分别提交和发布。
 
-### • How do I play a Blockbench Animation?
-> Simply put this code in your script:
-> ```lua
-> animations.modelName.animationName:play()
-> ```
-> Where:
-> 
-> "`animations`" is the global table which contains all animations
-> 
-> "`modelName`" is the name of the model you are accessing the animation from
-> 
-> "`animationName`" is, as the name says, the animation name
+后端改造按 B0～B8 顺序推进：保留 Figura 旧入口及线格式，新增统一资源描述、认证、装备、订阅和 YSM 状态恢复能力。Protobuf 用于控制消息与实时状态，模型包通过 HTTP/HTTPS 直接传输。默认协议选择、设置迁移及 Debug 明文连接仍属于后续阶段，完成状态以 [实施进度](Plans/后端改造与通用Protobuf协议进度.md) 为准。
 
-### • What are Pings and how do I use them?
-> Pings are Lua functions that are executed for everyone running your avatar's script
-> 
-> Pings are sent from the host player, and can be used to sync things like keypresses or action wheel actions
-> 
-> To create a ping:
-> ```lua
-> function pings.myPing(arg1, arg2)
->   -- code to run once the ping is called
-> end
-> ```
-> And to execute the ping, it's as simple as calling a lua function:
-> ```lua
-> pings.myPing("Hello", "World")
-> ```
-> Note that pings are limited in their content and size, and are rate-limited
+## 参考项目与致谢
 
-### • How can I add an emissive texture?
-> Name the texture the same as the non-emissive counterpart, then add `_e` to the end
-> 
-> And don't forget to set the places you don't want to glow to **transparent black** (#00000000), to also ensure compatibility with shader mods
+感谢以下项目及其贡献者提供的代码基础、公开资料和实现参考：
 
-### • My emissives doesn't glow, nor have bloom with Iris/OptiFine shaders?
-> Since some shaders do not support emissives, a compatibility setting (default on) will change the render type of emissive textures to render them at it were fullbright, however that can lead to some unintended results
->
-> You can force your avatar to use the correct emissive render type by using the render type `EYES` on your model
+- [Figura](https://github.com/FiguraMC/Figura)：本项目的代码基础，以及 Avatar、Lua、权限和界面体系。
+- [Sparkle-Morpher](https://github.com/sdf123098/Sparkle-Morpher)：模型运行、YSM 相关功能行为与兼容性核对参考。
+- [OpenYSM / YSMParser](https://github.com/OpenYSM/YSMParser)：YSM 容器、加密与二进制格式解析参考。
+- [Sculptor](https://github.com/MrXiaoM/sculptor)：配套后端标注的上游项目。
+- [spm-cloud](https://github.com/sdf123098/spm-cloud)：Protobuf 握手、生成链和协议测试方案的参考；本项目使用独立的协议命名空间与版本。
 
-### • How can I use Figura with OptiFine?
-> Figura will work with OptiFine but due to its closed source nature issues might arise, therefore we still recommend you try using Sodium+Iris (Fabric) or Rubidium+Oculus (Forge) instead
-> 
-> Check out the full list of [alternatives](https://lambdaurora.dev/optifine_alternatives/)
+Figura 原有贡献者名单保留于 [CREDITS](CREDITS)。本次改写前的主 README 完整保存在 [README.Figura.original.md](README.Figura.original.md)。
 
-### • Where can I find Avatars to download?
-> For now, you can find Avatars in the showcase channel in the official Discord server (A Web Based and In-Game browser is in the works!)
+## AI 辅助开发
 
-### • My Minecraft is cracked (non-premium/non-original) or I'm trying to join a cracked offline mode server, why can't I use Figura?
-> Figura uses your account's UUID and your Mojang authentication as a way to prove you own that account, avoiding unwanted / malicious uploads
-> 
-> Non-premium Minecraft accounts don't authenticate with Mojang, and Offline mode servers don't report working UUID's, as such can neither upload nor download Figura avatars
+`omni-morph` 使用 AI 工具辅助代码实现、问题排查、测试与文档整理。项目方向、需求取舍和发布由维护者负责；功能是否完成，以实际代码、构建结果、测试和验收记录为依据。
 
+## 许可证
 
-## Community Resources
-
-* Want to learn / get into Lua scripting?
-  check out this [Lua quickstart](https://manuel-3.github.io/lua-quickstart) made by Manuel.
-
-* If you are tired of having to be in-game to look in the wiki, applejuice hosts the wiki as a [website.](https://applejuiceyy.github.io/figs/)
-
-* Are you new to Figura and are looking for a video tutorial about how everything works? You should probably watch Chloe's [Figura tutorial series](https://www.youtube.com/playlist?list=PLNz7v2g2SFA8lOQUDS4z4-gIDLi_dWAhl) on YouTube.
-
-* Do you use VSCode and wish Figura's documentation autocompleted in the editor? GrandpaScout saves the day with their [VSDocs.](https://github.com/GrandpaScout/FiguraRewriteVSDocs/wiki)
-
-* Katt has created a Blockbench extention which adds a special model format for Figura! Read more [here.](https://github.com/KitCat962/figura-format-bbplugin) - Note. This plugin is available on the Blockbench plugin browser and should be installed from there.
-
-* By searching "Figura" in the VSCode extention browser you can install Manuel's Figura [extension](https://marketplace.visualstudio.com/items?itemName=Manuel-Underscore.figura)! It adds multiple useful features including autocomplete for your model paths.
+本仓库许可证见 [LICENSE.md](LICENSE.md)。第三方代码、依赖及参考实现的许可证和署名信息，见各自随附文件与项目来源。
