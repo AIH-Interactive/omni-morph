@@ -74,6 +74,34 @@ public final class YsmMaterialNativeSmokeTest {
             RenderSystem.initRenderThread();
             instance.set(null, client);
             org.figuramc.figura.permissions.PermissionManager.init();
+            if (args.length == 2 && args[0].equals("--held-items")) {
+                client.sounds = YsmStabilitySmokeTest.soundManager(unsafe);
+                Field device = RenderSystem.class.getDeclaredField("DEVICE");
+                device.setAccessible(true);
+                Object previousDevice = device.get(null);
+                try {
+                    device.set(null, new PublicationDevice());
+                    testAttachmentGeometry(unsafe, client);
+                    Path root = Path.of(args[1]);
+                    int checked = 0;
+                    int encrypted = 0;
+                    try (var paths = Files.list(root)) {
+                        for (Path path : paths.sorted().toList()) {
+                            if (org.figuramc.figura.avatar.ysm.YsmAvatarDetector.isYsmAvatar(path)) {
+                                if (testCorpusHeldItems(unsafe, client, path, checked++)) {
+                                    encrypted++;
+                                }
+                            }
+                        }
+                    }
+                    require(checked > 0 && encrypted > 0, "corpus includes plain and encrypted runtime inputs");
+                    System.out.println("World attachment corpus: models=" + checked + " encrypted=" + encrypted + " PASS");
+                } finally {
+                    client.drain();
+                    device.set(null, previousDevice);
+                }
+                return;
+            }
             if (args.length == 2 && args[0].equals("--controlled-base-geometry")) {
                 client.sounds = YsmStabilitySmokeTest.soundManager(unsafe);
                 testControlledBaseGeometry(unsafe, client, Path.of(args[1]));
@@ -1127,6 +1155,113 @@ public final class YsmMaterialNativeSmokeTest {
         require(body == storage.order(renderer.bodySubmitOrder()) && body != nativeItems,
                 "body uses the stable native bucket independently of collection time");
         storage.clear();
+    }
+
+    private static boolean testCorpusHeldItems(Unsafe unsafe, RecordingClient client, Path path, int index) throws Exception {
+        Avatar avatar = owner(unsafe, 100 + index);
+        try (var data = YsmModelData.read(path, () -> false);
+             var runtime = YsmModelRuntime.fromData(avatar, data,
+                     YsmAvatarLoader.toRuntimeTag(data, data.manifest().textures().getFirst()))) {
+            install(avatar, "ysmRuntime", runtime);
+            var roles = java.util.EnumSet.allOf(YsmBoneRole.class);
+            roles.removeAll(java.util.EnumSet.of(YsmBoneRole.GUI, YsmBoneRole.BACKGROUND, YsmBoneRole.FIRST_PERSON_ARM));
+            var all = geometryVertices(runtime, new YsmPartMask(roles));
+            var actual = worldVertices(runtime, null);
+            require(actual.equals(all), "body plus attachments must render each visible vertex once: expected="
+                    + all.size() + " actual=" + actual.size() + " corpusIndex=" + index);
+            if (path.getFileName().toString().equals("芙宁娜v3.14中文配音.ysm")) {
+                require(all.size() == 33360, "reported model retains every authored default-pose vertex");
+            }
+            require(worldVertices(runtime, runtime.captureRenderPose(false)).equals(all),
+                    "deferred world pass preserves corpus geometry and matrices");
+            System.out.println("World attachment corpus: index=" + index + " vertices=" + all.size() + " PASS");
+            return runtime.encryptedSource();
+        } finally {
+            client.drain();
+        }
+    }
+
+    private static List<String> worldVertices(YsmModelRuntime runtime, YsmRenderPose pose) {
+        var vertices = new ArrayList<String>();
+        var consumer = vertexRecorder(vertices);
+        runtime.renderer().renderWithAttachments(new com.mojang.blaze3d.vertex.PoseStack(),
+                type -> consumer, 0, pose);
+        vertices.sort(String::compareTo);
+        return vertices;
+    }
+
+    private static void testAttachmentGeometry(Unsafe unsafe, RecordingClient client) throws Exception {
+        String geometry = """
+                {"minecraft:geometry":[{"description":{"texture_width":1,"texture_height":1},"bones":[
+                  {"name":"root"},
+                  {"name":"BladeLocator","parent":"root"},
+                  {"name":"RightSword","parent":"root","cubes":[{"origin":[0,0,0],"size":[1,1,1],"uv":[0,0]}]},
+                  {"name":"detail","parent":"RightSword","cubes":[{"origin":[1,0,0],"size":[1,1,1],"uv":[0,0]}]},
+                  {"name":"LeftSword","parent":"root","cubes":[{"origin":[2,0,0],"size":[1,1,1],"uv":[0,0]}]},
+                  {"name":"WingLeft","parent":"root","cubes":[{"origin":[3,0,0],"size":[1,1,1],"uv":[0,0]}]},
+                  {"name":"WingRight","parent":"root","cubes":[{"origin":[4,0,0],"size":[1,1,1],"uv":[0,0]}]},
+                  {"name":"Backpack","parent":"root","cubes":[{"origin":[5,0,0],"size":[1,1,1],"uv":[0,0]}]},
+                  {"name":"Sheath","parent":"root","cubes":[{"origin":[6,0,0],"size":[1,1,1],"uv":[0,0]}]}]}]}
+                """;
+        Fixture fixture = new Fixture(unsafe, 91, null, geometry);
+        try {
+            var runtime = fixture.runtime;
+            runtime.getPart("root").setPos(16d, 32d, 0d);
+            runtime.getPart("root").setRot(0d, 0d, 90d);
+            var expected = geometryVertices(runtime, YsmPartMask.DEBUG_ALL);
+            require(expected.size() == 7 * 24, "seven cubes provide an independent draw-count oracle");
+            require(worldVertices(runtime, null).equals(expected),
+                    "sword pairs, wing pairs, sheath, backpack and ordinary children draw exactly once with ancestor matrices");
+            var named = new ArrayList<String>();
+            var namedConsumer = vertexRecorder(named);
+            require(runtime.renderer().renderAttachment(new com.mojang.blaze3d.vertex.PoseStack(),
+                    type -> namedConsumer, 0, "Backpack"), "named backpack attachment renders");
+            var backpack = geometryVertices(runtime, new YsmPartMask(java.util.EnumSet.of(YsmBoneRole.BACKPACK)));
+            named.sort(String::compareTo);
+            require(named.equals(backpack), "named attachment includes the full translated and rotated ancestor chain");
+            var blades = new ArrayList<String>();
+            var bladeConsumer = vertexRecorder(blades);
+            runtime.renderer().renderAttachmentType(new com.mojang.blaze3d.vertex.PoseStack(),
+                    type -> bladeConsumer, 0, YsmAttachmentType.BLADE);
+            blades.sort(String::compareTo);
+            require(blades.size() == 3 * 24 && blades.equals(geometryVertices(runtime,
+                    new YsmPartMask(java.util.EnumSet.of(YsmBoneRole.BLADE)))),
+                    "typed blade pass includes both swords and their ordinary children once");
+            var snapshot = runtime.captureRenderPose(false);
+            runtime.getPart("root").setVisible(false);
+            require(worldVertices(runtime, null).isEmpty(), "hidden ancestor suppresses every attachment branch");
+            require(worldVertices(runtime, snapshot).equals(expected), "deferred attachment pass retains ancestor snapshot");
+            runtime.getPart("root").setVisible(true);
+            runtime.getPart("root").setScale(0d, 0d, 0d);
+            require(worldVertices(runtime, null).isEmpty(), "zero-scale ancestor suppresses attachments");
+        } finally {
+            fixture.runtime.close();
+            client.drain();
+        }
+    }
+
+    private static List<String> geometryVertices(YsmModelRuntime runtime, YsmPartMask mask) throws Exception {
+        var vertices = new ArrayList<String>();
+        var consumer = vertexRecorder(vertices);
+        runtime.renderer().render(new com.mojang.blaze3d.vertex.PoseStack(), type -> consumer, 0, mask);
+        vertices.sort(String::compareTo);
+        return vertices;
+    }
+
+    private static com.mojang.blaze3d.vertex.VertexConsumer vertexRecorder(List<String> vertices) {
+        return (com.mojang.blaze3d.vertex.VertexConsumer) java.lang.reflect.Proxy.newProxyInstance(
+                YsmMaterialNativeSmokeTest.class.getClassLoader(),
+                new Class<?>[]{com.mojang.blaze3d.vertex.VertexConsumer.class}, (proxy, method, arguments) -> {
+                    if (method.getName().equals("addVertex") && arguments.length == 3) {
+                        vertices.add(arguments[0] + "," + arguments[1] + "," + arguments[2]);
+                    } else if (method.getName().equals("addVertex") && arguments.length == 4) {
+                        var pose = (com.mojang.blaze3d.vertex.PoseStack.Pose) arguments[0];
+                        var position = pose.pose().transformPosition(new org.joml.Vector3f(
+                                (float) arguments[1], (float) arguments[2], (float) arguments[3]));
+                        vertices.add(position.x + "," + position.y + "," + position.z);
+                    }
+                    return method.getReturnType() == void.class ? null : proxy;
+                });
     }
 
     private static void testHandLocators(Unsafe unsafe, RecordingClient client) throws Exception {

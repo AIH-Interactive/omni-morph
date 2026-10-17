@@ -4,6 +4,13 @@ import java.util.EnumSet;
 import java.util.Set;
 
 public class YsmPartMask {
+    public static final YsmPartMask WORLD_ATTACHMENTS = new YsmPartMask(EnumSet.of(
+            YsmBoneRole.BACKPACK,
+            YsmBoneRole.BLADE,
+            YsmBoneRole.SHEATH,
+            YsmBoneRole.ELYTRA
+    ));
+
     public static final YsmPartMask PLAYER_BODY = new YsmPartMask(EnumSet.of(
             YsmBoneRole.BODY,
             YsmBoneRole.LEFT_HAND,
