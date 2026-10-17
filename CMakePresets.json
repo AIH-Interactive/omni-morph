@@ -1,0 +1,18 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "windows-x64-release",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/native/windows-x64-release",
+      "architecture": { "value": "x64", "strategy": "external" },
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "windows-x64-release", "configurePreset": "windows-x64-release" }
+  ],
+  "testPresets": [
+    { "name": "windows-x64-release", "configurePreset": "windows-x64-release", "output": { "verbosity": "verbose" } }
+  ]
+}

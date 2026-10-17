@@ -128,6 +128,33 @@ tasks.register('accelerationContractSmokeTest', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.render.acceleration.AccelerationContractSmokeTest'
 }
 
+tasks.named('compileJava', JavaCompile) {
+    options.headerOutputDirectory = layout.buildDirectory.dir('generated/jni')
+}
+
+tasks.register('nativeSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Runs actual JNI numerical, memory boundary and renderer replay tests from the local JAR.'
+    dependsOn testClasses, ':packageLocalNative'
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.render.acceleration.NativeAccelerationSmokeTest'
+    jvmArgs '--enable-native-access=ALL-UNNAMED', '-Xcheck:jni'
+    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-fabric-mc-windows-local.jar").path,
+            rootProject.file('build/reports/acceleration/h2-jni-timing.csv').path,
+            rootProject.file('refs/avatars/末影龙娘.ysm').path
+}
+
+tasks.register('nativeTimingTest', JavaExec) {
+    group = 'verification'
+    description = 'Measures JNI and complete packing/output cost without diagnostic JNI checking overhead.'
+    dependsOn testClasses, ':packageLocalNative'
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.render.acceleration.NativeAccelerationSmokeTest'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-fabric-mc-windows-local.jar").path,
+            rootProject.file('build/reports/acceleration/h2-jni-timing-runtime.csv').path, '--timing-only'
+}
+
 tasks.register('figuraAccelerationReplay', JavaExec) {
     group = 'verification'
     description = 'Checks actual deferred Figura vertex output and stale Avatar rejection.'

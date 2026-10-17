@@ -14,6 +14,7 @@ public final class AccelerationService {
     }
 
     private final AccelerationBackend javaBackend = new JavaAccelerationBackend();
+    private volatile AccelerationBackend preferredBackend = javaBackend;
     private volatile long resources;
     private volatile long frame;
 
@@ -22,6 +23,12 @@ public final class AccelerationService {
     }
 
     public synchronized void invalidateResources() {
+        resources++;
+    }
+
+    /** Switching the numerical backend invalidates captured batches before accepting new work. */
+    synchronized void useBackend(AccelerationBackend backend) {
+        preferredBackend = backend == null ? javaBackend : Objects.requireNonNull(backend);
         resources++;
     }
 
@@ -43,7 +50,17 @@ public final class AccelerationService {
         if (!batch.lease().equals(lease)) {
             throw new IllegalArgumentException("Adapter returned a batch from another submission");
         }
-        double[] result = javaBackend.transform(batch);
+        AccelerationBackend backend = preferredBackend;
+        if (!backend.supports(AccelerationBackend.Operation.VERTEX_TRANSFORM, batch)) {
+            backend = javaBackend;
+        }
+        double[] result;
+        try {
+            result = backend.transform(batch);
+        } catch (NativeSimdBackend.NativeBatchException failure) {
+            // Numeric/budget rejection is local to this batch; its original Java semantics remain valid.
+            result = javaBackend.transform(batch);
+        }
         return isCurrent(lease) ? result : null;
     }
 }

@@ -1,0 +1,13 @@
+OmniMorph acceleration native library
+
+The ABI, validation, scalar, SSE2 and AVX2 kernels in this directory are
+independently implemented for OmniMorph. No source file from openysm.cpp or
+Sparkle-Morpher has been copied into this native library.
+
+Reference projects (algorithm/architecture comparison only):
+openysm.cpp: https://github.com/OpenYSMDev/openysm.cpp
+Sparkle-Morpher: https://github.com/sdf123098/Sparkle-Morpher
+
+Windows local builds link the MSVC C/C++ runtime statically. Operating-system
+dependencies are recorded from the actual build in the platform manifest.
+The project license applies to these independently written sources.
