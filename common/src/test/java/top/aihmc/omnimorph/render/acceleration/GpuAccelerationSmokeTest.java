@@ -43,6 +43,10 @@ public final class GpuAccelerationSmokeTest {
             require(wrapped.contains("omnimorph_original_main()") && wrapped.contains("OmniParts[64]")
                     && wrapped.contains("minecraft_mix_light") && wrapped.contains("fog_spherical_distance")
                     && wrapped.contains("UV1 = OmniOverlayLight.xy"), "active material lighting/fog/overlay retained");
+            String grouped = GpuShaderProgram.wrapRigidEntitySource(original);
+            require(grouped.contains("ivec4 OmniRemap[256]") && grouped.contains("OmniParts[part].normal2.w")
+                    && grouped.contains("minecraft_mix_light") && grouped.contains("fog_spherical_distance"),
+                    "rigid palette shader keeps original lighting and uses per-part options");
             try {
                 GpuShaderProgram.wrapEntitySource(original.replace("in vec3 Normal;", "in vec2 ChangedNormal;"));
                 throw new AssertionError("changed shader input must reject");
@@ -255,7 +259,7 @@ public final class GpuAccelerationSmokeTest {
                 x, 3, 3, 1, 0, 1, 0, 0, 1}, 4);
     }
 
-    static final class FakeResource implements GpuDeviceAdapter.Mesh, GpuDeviceAdapter.Pose {
+    static final class FakeResource implements GpuDeviceAdapter.Mesh, GpuDeviceAdapter.Pose, GpuDeviceAdapter.Indices {
         final FakeDevice owner;
         final ByteBuffer data;
         final long bytes;
@@ -279,6 +283,23 @@ public final class GpuAccelerationSmokeTest {
             require(!closed, "resource must not be double-closed");
             closed = true;
             owner.liveBytes -= bytes;
+        }
+    }
+
+    static class RigidDevice extends FakeDevice {
+        @Override
+        public boolean supportsRigidGroups() {
+            return true;
+        }
+
+        @Override
+        public Material compileRigidGroup(RenderPipeline original) {
+            return compile(original);
+        }
+
+        @Override
+        public Indices uploadIndices(ByteBuffer data) {
+            return new FakeResource(this, data, data.remaining());
         }
     }
 

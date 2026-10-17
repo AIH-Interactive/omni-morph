@@ -25,16 +25,27 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         private final GpuDeviceAdapter.Mesh mesh;
         private final GpuDeviceAdapter.Pose pose;
         private final int indices;
+        private final GpuDeviceAdapter.Indices sortedIndices;
 
         private Prepared(GpuAccelerationBackend backend, DrawBatch batch, GpuDeviceAdapter.Material material,
                          GpuDeviceAdapter.Mesh mesh, GpuDeviceAdapter.Pose pose, int indices) {
+            this(backend, batch, material, mesh, pose, indices, null);
+        }
+
+        private Prepared(GpuAccelerationBackend backend, DrawBatch batch, GpuDeviceAdapter.Material material,
+                         GpuDeviceAdapter.Mesh mesh, GpuDeviceAdapter.Pose pose, int indices,
+                         GpuDeviceAdapter.Indices sortedIndices) {
             this.backend = backend;
             this.batch = batch;
             this.material = material;
             this.mesh = mesh;
             this.pose = pose;
             this.indices = indices;
+            this.sortedIndices = sortedIndices;
         }
+    }
+
+    record PreparedRange(Prepared prepared, int firstFace, int faceCount) {
     }
 
     static final class Failure extends RuntimeException {
@@ -76,6 +87,40 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         }
     }
 
+    private static final class GroupKey {
+        private final long owner;
+        private final List<MeshHandle> meshes;
+        private final int hash;
+
+        GroupKey(List<DrawBatch> batches) {
+            owner = batches.getFirst().lease().ownerGeneration();
+            meshes = batches.stream().map(DrawBatch::mesh).toList();
+            int result = Long.hashCode(owner);
+            for (MeshHandle mesh : meshes) {
+                result = 31 * result + mesh.geometryHash();
+            }
+            hash = result;
+        }
+
+        @Override
+        public int hashCode() {
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof GroupKey key) || owner != key.owner || meshes.size() != key.meshes.size()) {
+                return false;
+            }
+            for (int index = 0; index < meshes.size(); index++) {
+                if (!meshes.get(index).sameGeometry(key.meshes.get(index))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
     private static final class Entry {
         final AccelerationOwner owner;
         final GpuDeviceAdapter.Mesh mesh;
@@ -93,13 +138,15 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
     private final GpuDeviceAdapter device;
     private final GpuRetirement retirement;
     private final long memoryBudget;
-    private final long poseBudget;
+    private final long frameUploadBudget;
     private final Map<Key, Entry> meshes = new HashMap<>();
+    private final Map<GroupKey, Entry> groups = new HashMap<>();
     private final Map<RenderPipeline, GpuDeviceAdapter.Material> materials = new IdentityHashMap<>();
+    private final Map<RenderPipeline, GpuDeviceAdapter.Material> groupMaterials = new IdentityHashMap<>();
     private final Map<RenderPipeline, Boolean> pendingMaterials = new LinkedHashMap<>();
-    private final List<GpuDeviceAdapter.Resource> framePoses = new ArrayList<>();
+    private final List<GpuDeviceAdapter.Resource> frameResources = new ArrayList<>();
     private long residentBytes;
-    private long framePoseBytes;
+    private long frameUploadBytes;
     private long frame;
     private long draws;
     private long uploads;
@@ -111,11 +158,11 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
     private volatile AccelerationBackend cpuBackend;
     private final JavaAccelerationBackend javaBackend = new JavaAccelerationBackend();
 
-    GpuAccelerationBackend(GpuDeviceAdapter device, GpuRetirement retirement, long memoryBudget, long poseBudget) {
+    GpuAccelerationBackend(GpuDeviceAdapter device, GpuRetirement retirement, long memoryBudget, long frameUploadBudget) {
         this.device = device;
         this.retirement = retirement;
         this.memoryBudget = memoryBudget;
-        this.poseBudget = poseBudget;
+        this.frameUploadBudget = frameUploadBudget;
     }
 
     /** One bounded initialization unit per frame; model submission remains Java until all three pass. */
@@ -227,7 +274,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         Entry entry = meshes.get(key);
         long geometryBytes = entry == null ? (long) batch.mesh().vertexCount() * GpuBatchData.VERTEX_BYTES
                 + (long) batch.mesh().faceCount() * (batch.mesh().verticesPerFace() - 2) * 3 * Integer.BYTES : 0;
-        if (framePoseBytes + GpuBatchData.POSE_BYTES > poseBudget
+        if (frameUploadBytes + GpuBatchData.POSE_BYTES > frameUploadBudget
                 || residentBytes + retirement.bytes() + geometryBytes + GpuBatchData.POSE_BYTES > memoryBudget) {
             return null;
         }
@@ -250,13 +297,65 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         GpuDeviceAdapter.Pose pose;
         try {
             pose = device.uploadPose(GpuBatchData.pose(batch));
-            framePoses.add(pose);
-            residentBytes += pose.bytes();
-            framePoseBytes += pose.bytes();
+            ownFrameResource(pose);
         } catch (RuntimeException failure) {
             throw new Failure(FallbackReason.RESOURCE_EXHAUSTED, false, failure);
         }
         return new Prepared(this, batch, materials.get(batch.semantics().material().pipeline()), entry.mesh, pose, entry.indices);
+    }
+
+    List<PreparedRange> prepareGroup(List<DrawBatch> batches, long[] order, BooleanSupplier current) {
+        device.assertThread();
+        if (!current.getAsBoolean() || !ready || closed || invalidated || !device.supportsRigidGroups()
+                || !GpuRigidData.supports(batches)) {
+            return null;
+        }
+        DrawBatch first = batches.getFirst();
+        GpuDeviceAdapter.Material material = groupMaterials.get(first.semantics().material().pipeline());
+        if (material == null) {
+            return null;
+        }
+        for (DrawBatch batch : batches) {
+            if (!batch.semantics().visible()) {
+                return null;
+            }
+        }
+        if (!device.isCurrent()) {
+            throw new Failure(FallbackReason.GPU_UNAVAILABLE, false, null);
+        }
+        var data = new GpuRigidData(batches, order);
+        var key = new GroupKey(batches);
+        Entry entry = groups.get(key);
+        long geometryBytes = entry == null ? data.geometryBytes() : 0;
+        if (frameUploadBytes + data.frameBytes() > frameUploadBudget
+                || residentBytes + retirement.bytes() + geometryBytes + data.frameBytes() > memoryBudget
+                || !current.getAsBoolean()) {
+            return null;
+        }
+        try {
+            if (entry == null) {
+                GpuDeviceAdapter.Mesh geometry = device.uploadGeometry(data.vertices(), GpuRigidData.initialIndices());
+                entry = new Entry(first, geometry, Math.multiplyExact(order.length, 6), frame);
+                groups.put(key, entry);
+                residentBytes += geometry.bytes();
+                uploads++;
+            } else {
+                cacheHits++;
+            }
+            entry.lastFrame = frame;
+            GpuDeviceAdapter.Indices indices = device.uploadIndices(data.indices());
+            ownFrameResource(indices);
+            List<PreparedRange> result = new ArrayList<>();
+            for (GpuRigidData.Range range : data.ranges()) {
+                GpuDeviceAdapter.Pose pose = device.uploadPose(data.pose(range));
+                ownFrameResource(pose);
+                var prepared = new Prepared(this, first, material, entry.mesh, pose, entry.indices, indices);
+                result.add(new PreparedRange(prepared, range.firstFace(), range.faceCount()));
+            }
+            return List.copyOf(result);
+        } catch (RuntimeException failure) {
+            throw new Failure(FallbackReason.RESOURCE_EXHAUSTED, false, failure);
+        }
     }
 
     DrawResult drawPrepared(Prepared prepared, GpuDrawContext context, int firstIndex, int indexCount, BooleanSupplier current) {
@@ -275,12 +374,18 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         }
         boolean[] issued = {false};
         try {
-            device.draw(prepared.material, prepared.mesh, prepared.pose, context, firstIndex, indexCount, () -> {
+            Runnable issuing = () -> {
                 if (!current.getAsBoolean()) {
                     throw new Stale();
                 }
                 issued[0] = true;
-            });
+            };
+            if (prepared.sortedIndices == null) {
+                device.draw(prepared.material, prepared.mesh, prepared.pose, context, firstIndex, indexCount, issuing);
+            } else {
+                device.drawWithIndices(prepared.material, prepared.mesh, prepared.pose, prepared.sortedIndices,
+                        context, firstIndex, indexCount, issuing);
+            }
             draws++;
             return DrawResult.DRAWN;
         } catch (Stale ignored) {
@@ -301,15 +406,23 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
             return;
         }
         frame++;
-        List<GpuDeviceAdapter.Resource> retired = new ArrayList<>(framePoses);
-        framePoses.clear();
-        framePoseBytes = 0;
+        List<GpuDeviceAdapter.Resource> retired = new ArrayList<>(frameResources);
+        frameResources.clear();
+        frameUploadBytes = 0;
         var iterator = meshes.entrySet().iterator();
         while (iterator.hasNext()) {
             Entry entry = iterator.next().getValue();
             if (!entry.owner.isCurrent() || frame - entry.lastFrame > 120) {
                 retired.add(entry.mesh);
                 iterator.remove();
+            }
+        }
+        var groupIterator = groups.entrySet().iterator();
+        while (groupIterator.hasNext()) {
+            Entry entry = groupIterator.next().getValue();
+            if (!entry.owner.isCurrent() || frame - entry.lastFrame > 120) {
+                retired.add(entry.mesh);
+                groupIterator.remove();
             }
         }
         retire(retired);
@@ -345,14 +458,19 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         closed = true;
         ready = false;
         cpuBackend = null;
-        List<GpuDeviceAdapter.Resource> retired = new ArrayList<>(framePoses);
+        List<GpuDeviceAdapter.Resource> retired = new ArrayList<>(frameResources);
         for (Entry entry : meshes.values()) {
+            retired.add(entry.mesh);
+        }
+        for (Entry entry : groups.values()) {
             retired.add(entry.mesh);
         }
         retire(retired);
         meshes.clear();
-        framePoses.clear();
+        groups.clear();
+        frameResources.clear();
         materials.clear();
+        groupMaterials.clear();
         pendingMaterials.clear();
     }
 
@@ -368,12 +486,25 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         return cacheHits;
     }
 
+    boolean supportsRigidGroups() {
+        return device.supportsRigidGroups();
+    }
+
     long residentBytes() {
         return residentBytes;
     }
 
     private void prepareMaterial(RenderPipeline pipeline) {
         materials.put(pipeline, device.compile(pipeline));
+        if (device.supportsRigidGroups()) {
+            groupMaterials.put(pipeline, device.compileRigidGroup(pipeline));
+        }
+    }
+
+    private void ownFrameResource(GpuDeviceAdapter.Resource resource) {
+        frameResources.add(resource);
+        residentBytes += resource.bytes();
+        frameUploadBytes += resource.bytes();
     }
 
     private void retire(List<GpuDeviceAdapter.Resource> resources) {

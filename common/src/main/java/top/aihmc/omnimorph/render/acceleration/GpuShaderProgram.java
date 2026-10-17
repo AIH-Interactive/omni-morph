@@ -77,6 +77,38 @@ final class GpuShaderProgram {
             }
             """;
 
+    private static final String RIGID_MAIN_BODY = """
+
+            void main() {
+                int globalPart = OmniJoints.x;
+                int packed = OmniRemap[globalPart / 16][(globalPart / 4) % 4];
+                int part = (packed >> ((globalPart % 4) * 8)) & 255;
+                vec4 transformed = OmniParts[part].position * vec4(OmniPosition, 1.0);
+                if (OmniParts[part].normal1.w != 0.0) {
+                    transformed.w = 1.0;
+                }
+                float offset = OmniParts[part].normal2.w;
+                if (offset != 0.0) {
+                    transformed += normalize(transformed) * offset;
+                }
+                Position = transformed.xyz;
+                mat3 normalMatrix = mat3(OmniParts[part].normal0.xyz,
+                    OmniParts[part].normal1.xyz, OmniParts[part].normal2.xyz);
+                vec3 direction = normalMatrix * OmniNormal;
+                if (OmniParts[part].normal0.w != 0.0) {
+                    direction = normalize(direction);
+                }
+                Normal = vec3(ivec3(clamp(direction, -1.0, 1.0) * 127.0)) / 127.0;
+                mat3 uvMatrix = mat3(OmniParts[part].uv0.xyz,
+                    OmniParts[part].uv1.xyz, OmniParts[part].uv2.xyz);
+                UV0 = (uvMatrix * vec3(OmniUV, 1.0)).xy;
+                Color = OmniTint;
+                UV1 = OmniOverlayLight.xy;
+                UV2 = OmniOverlayLight.zw;
+                omnimorph_original_main();
+            }
+            """;
+
     private GpuShaderProgram() {
     }
 
@@ -86,6 +118,15 @@ final class GpuShaderProgram {
     }
 
     static String wrapEntitySource(String original) {
+        return wrapEntitySource(original, DECLARATIONS, MAIN_BODY);
+    }
+
+    static String wrapRigidEntitySource(String original) {
+        String declarations = DECLARATIONS.replace("vec4 OmniOptions;", "vec4 OmniOptions;\n    ivec4 OmniRemap[256];");
+        return wrapEntitySource(original, declarations, RIGID_MAIN_BODY);
+    }
+
+    private static String wrapEntitySource(String original, String declarations, String body) {
         if (original == null) {
             throw new IllegalArgumentException("Missing active entity vertex shader");
         }
@@ -104,8 +145,8 @@ final class GpuShaderProgram {
         if (main.results().count() != 1) {
             throw new IllegalArgumentException("Entity vertex entry point contract changed");
         }
-        source = MAIN.matcher(source).replaceFirst(DECLARATIONS + "\nvoid omnimorph_original_main()");
-        return source + MAIN_BODY;
+        source = MAIN.matcher(source).replaceFirst(declarations + "\nvoid omnimorph_original_main()");
+        return source + body;
     }
 
     static RenderPipeline pipeline(RenderPipeline original, Identifier location) {

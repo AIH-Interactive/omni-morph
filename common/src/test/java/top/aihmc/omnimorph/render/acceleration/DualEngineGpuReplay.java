@@ -59,13 +59,16 @@ public final class DualEngineGpuReplay {
                     var actual = new ArrayList<float[]>();
                     device.sink = recorder(actual);
                     long before = device.vertices;
+                    long beforeGroups = device.groupedDraws;
                     var source = MultiBufferSource.immediate(memory);
                     runtime.renderer().renderWithAttachments(new PoseStack(), source, 0x00f000a0,
                             runtime.captureRenderPose(false));
                     source.endBatch();
                     require(device.vertices > before, "YSM model must actually use GPU submission");
+                    require(device.groupedDraws > beforeGroups, "real YSM replay must decode the grouped palette path");
                     compare(expected, actual);
-                    System.out.println("YSM production GPU-layout replay vertices=" + actual.size() + " PASS");
+                    System.out.println("YSM production GPU-layout replay vertices=" + actual.size()
+                            + " groupedDraws=" + (device.groupedDraws - beforeGroups) + " PASS");
                 });
             }
         } finally {
@@ -155,9 +158,10 @@ public final class DualEngineGpuReplay {
         return true;
     }
 
-    private static final class DecodingDevice extends GpuAccelerationSmokeTest.FakeDevice {
+    private static final class DecodingDevice extends GpuAccelerationSmokeTest.RigidDevice {
         VertexConsumer sink;
         long vertices;
+        long groupedDraws;
 
         @Override
         public void draw(Material material, Mesh mesh, Pose pose, GpuDrawContext context,
@@ -166,40 +170,75 @@ public final class DualEngineGpuReplay {
             ByteBuffer geometry = ((GpuAccelerationSmokeTest.FakeResource) mesh).data;
             ByteBuffer matrices = ((GpuAccelerationSmokeTest.FakeResource) pose).data;
             for (int vertex = firstIndex / 6 * 4; vertex < (firstIndex + indexCount) / 6 * 4; vertex++) {
-                int offset = vertex * GpuBatchData.VERTEX_BYTES;
-                float[] position = {geometry.getFloat(offset), geometry.getFloat(offset + 4), geometry.getFloat(offset + 8), 1};
-                if (matrices.getFloat(GpuBatchData.PARAMETER_OFFSET + 40) != 0) {
-                    float[] blended = new float[4];
-                    float total = 0;
-                    for (int influence = 0; influence < 4; influence++) {
-                        float weight = geometry.getFloat(offset + 32 + influence * 4);
-                        if (weight > 0) {
-                            float[] joint = multiply(matrices, geometry.getInt(offset + 48 + influence * 4) * 160, position, 4);
-                            for (int component = 0; component < 4; component++) {
-                                blended[component] += joint[component] * weight;
-                            }
-                            total += weight;
-                        }
-                    }
-                    if (total > 0) {
-                        for (int component = 0; component < 4; component++) {
-                            position[component] = blended[component] / total;
-                        }
-                    }
-                }
-                position = multiply(matrices, 0, position, 4);
-                float[] normal = multiply(matrices, 64,
-                        new float[]{geometry.getFloat(offset + 12), geometry.getFloat(offset + 16), geometry.getFloat(offset + 20)}, 3);
-                if (matrices.getFloat(GpuBatchData.PARAMETER_OFFSET + 36) == 1) {
-                    float length = (float) Math.sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
-                    for (int component = 0; component < 3; component++) {
-                        normal[component] /= length;
-                    }
-                }
-                float[] uv = multiply(matrices, 112, new float[]{geometry.getFloat(offset + 24), geometry.getFloat(offset + 28), 1}, 3);
-                sink.addVertex(position[0], position[1], position[2]).setNormal(normal[0], normal[1], normal[2]).setUv(uv[0], uv[1]);
-                vertices++;
+                emit(geometry, matrices, vertex, 0, false);
             }
+        }
+
+        @Override
+        public void drawWithIndices(Material material, Mesh mesh, Pose pose, Indices indices, GpuDrawContext context,
+                                    int firstIndex, int indexCount, Runnable issuingDraw) {
+            issuingDraw.run();
+            groupedDraws++;
+            ByteBuffer geometry = ((GpuAccelerationSmokeTest.FakeResource) mesh).data;
+            ByteBuffer matrices = ((GpuAccelerationSmokeTest.FakeResource) pose).data;
+            ByteBuffer order = ((GpuAccelerationSmokeTest.FakeResource) indices).data;
+            for (int face = firstIndex / 6; face < (firstIndex + indexCount) / 6; face++) {
+                int first = order.getInt(face * 6 * Integer.BYTES);
+                int batch = geometry.getInt(first * GpuBatchData.VERTEX_BYTES + 48);
+                int packed = matrices.getInt(GpuRigidData.REMAP_OFFSET + batch / 4 * Integer.BYTES);
+                int matrix = (packed >>> ((batch % 4) * 8) & 0xff) * GpuBatchData.PART_BYTES;
+                for (int corner = 0; corner < 4; corner++) {
+                    emit(geometry, matrices, first + corner, matrix, true);
+                }
+            }
+        }
+
+        private void emit(ByteBuffer geometry, ByteBuffer matrices, int vertex, int matrix, boolean grouped) {
+            int offset = vertex * GpuBatchData.VERTEX_BYTES;
+            float[] position = {geometry.getFloat(offset), geometry.getFloat(offset + 4), geometry.getFloat(offset + 8), 1};
+            if (!grouped && matrices.getFloat(GpuBatchData.PARAMETER_OFFSET + 40) != 0) {
+                float[] blended = new float[3];
+                float total = 0;
+                for (int influence = 0; influence < 4; influence++) {
+                    float weight = geometry.getFloat(offset + 32 + influence * 4);
+                    if (weight > 0) {
+                        float[] joint = multiply(matrices, geometry.getInt(offset + 48 + influence * 4) * 160, position, 4);
+                        for (int component = 0; component < 3; component++) {
+                            blended[component] += joint[component] * weight;
+                        }
+                        total += weight;
+                    }
+                }
+                if (total > 0) {
+                    for (int component = 0; component < 3; component++) {
+                        position[component] = blended[component] / total;
+                    }
+                }
+            }
+            position = multiply(matrices, matrix, position, 4);
+            boolean floatPose = matrices.getFloat(grouped ? matrix + 92 : GpuBatchData.PARAMETER_OFFSET + 44) != 0;
+            if (floatPose) {
+                position[3] = 1;
+            }
+            float vertexOffset = matrices.getFloat(grouped ? matrix + 108 : GpuBatchData.PARAMETER_OFFSET + 32);
+            if (vertexOffset != 0) {
+                float length = (float) Math.sqrt(position[0] * position[0] + position[1] * position[1]
+                        + position[2] * position[2] + position[3] * position[3]);
+                for (int component = 0; component < 4; component++) {
+                    position[component] += position[component] / length * vertexOffset;
+                }
+            }
+            float[] normal = multiply(matrices, matrix + 64,
+                    new float[]{geometry.getFloat(offset + 12), geometry.getFloat(offset + 16), geometry.getFloat(offset + 20)}, 3);
+            if (matrices.getFloat(grouped ? matrix + 76 : GpuBatchData.PARAMETER_OFFSET + 36) == 1) {
+                float length = (float) Math.sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+                for (int component = 0; component < 3; component++) {
+                    normal[component] /= length;
+                }
+            }
+            float[] uv = multiply(matrices, matrix + 112, new float[]{geometry.getFloat(offset + 24), geometry.getFloat(offset + 28), 1}, 3);
+            sink.addVertex(position[0], position[1], position[2]).setNormal(normal[0], normal[1], normal[2]).setUv(uv[0], uv[1]);
+            vertices++;
         }
 
         @Override

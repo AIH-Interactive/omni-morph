@@ -14,7 +14,7 @@
 | H5 | 完成并已推送；真实 GPU/画面项 MANUAL/PENDING，最终集中验收 | `76b299102f232cb5735de0949536d73b057c5827`，双引擎完整接入 |
 | H6 | 完成；四 runner/最终 JAR 全部通过 | `432af82fe4765111f7d436c4b86571d27b0ec2f3`，[CI 39015871560](https://github.com/AIH-Interactive/omni-morph/actions/runs/39015871560) |
 | H6 补充 | 完成；六平台 native 与最终 JAR 检查通过 | `48910b703ab75fdede34a6b9d48eee50c36d8047`，[CI 39017540304](https://github.com/AIH-Interactive/omni-morph/actions/runs/39017540304)；Android 设备 JNI/游戏 MANUAL/PENDING |
-| H7 | 待实施 | 稳定性与性能 |
+| H7 | 自动验证/编译完成；实机与性能 MANUAL/PENDING | [H7 验证报告](SIMD与GPU加速H7验证报告.md)，按用户指示交人工验收 |
 | H8 | 待实施 | 最终审计交付 |
 
 ## H0
@@ -271,3 +271,34 @@
   本地检查六库及两份 Android NDK 许可 hash，并从此包实际加载 Windows JNI 数值差分成功；
   日志 `h6-six-published-windows.log`，CI 状态 `h6-six-jobs.json`，两新增平台日志 `h6-six-linux-arm64.log` / `h6-six-android.log`。
   下载包和清单位于 `build/reports/acceleration/h6-six-final/`；设备 JNI/游戏待实机的边界保持不变。
+
+## H7（自动检查点完成，实机由人工验收）
+
+- 先执行快速 CPU/JNI/提交合同测试。用户随后明确实机测试视作人工验收、不使用 computer-use；本轮未启动游戏窗口。
+- `accelerationPreparationBenchmark` 明确只统计 CPU 准备：真实 YSM renderer、实际 SIMD，GPU 采用命令记录设备，
+  不能作为真实 GPU/总帧性能证据。普通样本 8,676 顶点、复杂样本 292,672 顶点，三轮交替顺序，预热后保留逐帧 CSV。
+- 复杂透明模型首次每帧恰好 815 份 10,288 B 姿态，触及 8 MiB 预算后整材质 Java 回退、GPU draw 为零。
+  `h7-heavy-quick-red.log` 复现；只在诊断中改为 16 MiB 后出现 draw（`h7-heavy-budget-probe.log`），随后移除预算覆盖选项。
+  保持生产预算，改为全局排序后按实际提交顺序准备；耗尽时只回放剩余排序面。先失败的精确顺序回归
+  `h7-budget-order-red.log`，修复及原始复杂模型/Fabric 编译通过 `h7-budget-order-green.log`。
+- JFR 发现每帧相同网格重建/复制/哈希的分配热点。新增 runtime 所有、64 MiB/4096 项上限的只读网格快照缓存，
+  复用前逐项检查可变位置、法线、UV 和可见面；禁用清除。修改、增删面、透明度、65,536 顶点尾部测试，
+  Figura/普通及加密 YSM 数值回放和 Fabric 构建成功（`h7-mesh-cache-quick.log`）。
+- 三轮预热 CPU 准备中复杂 GPU 路径 p50 从约 43–44 ms 降至 33–34 ms，Java 约 22–25 ms，仍未达到性能目标；
+  复杂 SIMD 约 55–56 ms，也未通过。原始数据 `h7-mesh-cache-profile.csv`、日志 `h7-mesh-cache-profile.log`、
+  JFR `h7-preparation.jfr`。这些采样不能当作实际 GPU 加速成功。
+- 复杂透明模型约 69,860 次 draw/frame。短时仅 CPU 分组探针发现 234 份不同刚性姿态，三帧排序流仅需约 27 个
+  最多 64 姿态的连续区间（`h7-palette-probe.log`）；下一步在现有 UBO 和预算限制内验证刚性网格合并/索引分组。
+  此探针不是已实现的 draw 合并，也没有放宽数值和性能验收阈值。
+- 随后实现刚性合并网格、原始全局排序索引、最多 64 姿态的连续区间及紧凑 remap；UBO 14,384 B，
+  至多 4096 源批次，索引与姿态仍共同受 8 MiB 帧预算限制，GPU 常驻/退休资源仍受 64 MiB 限制。
+  复杂样本实际命令记录为 9 draw/frame、普通样本为 1；不是实机 GPU 时间证据。
+- 普通/加密 YSM 的生产回放明确断言使用分组路径，分别 1/2 个 grouped draw，位置/法线/UV 冻结差分通过。
+  分组前后发出、预算不足、索引/姿态分配失败均保留排序与剩余面回放；姿态变动复用网格、几何变动重建，
+  owner 退休及 100 次后端创建/绘制/关闭的资源记录归零。日志 `h7-rigid-lifecycle.log` / `h7-delivery-check.log`。
+- 最终完整回归和 Fabric 构建成功（2m 8s），包含异步加密加载、广播/Reload All、配置、访问拒绝及实际 JNI
+  43 项语料（8 加密）/两 renderer，实际消费 3,360,836 JNI 顶点，日志 `h7-final-regression.log`。
+  缓存关闭同步、可读性和明确分组断言复核后，相关单元/生产回放及 Fabric 构建再次成功（53s），日志 `h7-delivery-check.log`。
+- [H7 报告](SIMD与GPU加速H7验证报告.md) 提供三轮 p50/p95/p99 和 [1620 帧原始 CSV](evidence/acceleration/h7-cpu-preparation.csv)。
+  CPU 准备仍未体现相对 Java 的提速，不宣称满足性能目标；真实画面、GPU/总帧、驱动资源及兼容矩阵全部 MANUAL/PENDING。
+  按用户追加指示不阻塞自动检查点；数值和性能阈值保持冻结。

@@ -17,6 +17,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import com.mojang.blaze3d.pipeline.RenderPipeline;
 
 /** Executes real native BufferSource/RenderType flush boundaries with command-recording device operations. */
 public final class GpuSubmissionSmokeTest {
@@ -31,8 +32,14 @@ public final class GpuSubmissionSmokeTest {
         transparentBoundary(0);
         transparentBoundary(1);
         transparentBoundary(2);
+        transparentBoundary(3);
+        for (int failure = 0; failure < 6; failure++) {
+            groupedBoundary(failure);
+        }
+        groupedCacheAndLifetimes();
+        repeatedGroupedBackends();
         retirementBeforeFlush();
-        System.out.println("PASS H5 actual BufferSource flush, cross-batch authored-face sorting, pre/post-draw remaining-only Java fallback and stale queued rejection; GPU pixels MANUAL/PENDING");
+        System.out.println("PASS actual BufferSource ordering, rigid palettes, bounded fallback, owner retirement and 100 backend cycles; GPU pixels MANUAL/PENDING");
     }
 
     private static void opaqueBoundary() {
@@ -51,7 +58,8 @@ public final class GpuSubmissionSmokeTest {
     }
 
     private static void transparentBoundary(int failure) {
-        try (Fixture fixture = new Fixture(); ByteBufferBuilder memory = new ByteBufferBuilder(256)) {
+        try (Fixture fixture = new Fixture(failure == 3 ? GpuBatchData.POSE_BYTES : 100_000);
+             ByteBufferBuilder memory = new ByteBufferBuilder(256)) {
             RenderType material = RenderTypes.entityTranslucent(TEXTURE);
             // First encounter queues compilation; the next frame prepares it outside model traversal.
             fixture.gpu.supports(AccelerationBackend.Operation.GPU_DRAW, batch(fixture.service, fixture.owner, material, 1));
@@ -71,9 +79,12 @@ public final class GpuSubmissionSmokeTest {
             } else if (failure == 1) {
                 require(fixture.device.drawn.isEmpty() && fixture.javaFaces.equals(List.of(4f, 3f, 2f, 1f)),
                         "pre-draw failure replays all unsubmitted faces through original Java material");
-            } else {
+            } else if (failure == 2) {
                 require(fixture.device.drawn.equals(List.of(4f)) && fixture.javaFaces.equals(List.of(3f, 2f, 1f)),
                         "post-issue failure does not duplicate an already submitted face");
+            } else {
+                require(fixture.device.drawn.equals(List.of(4f)) && fixture.javaFaces.equals(List.of(3f, 2f, 1f)),
+                        "pose budget exhaustion retains submitted GPU faces and replays only remaining sorted faces");
             }
             require(fixture.scopesOpened == fixture.scopesClosed, "native model-view layering scope always restored");
         }
@@ -97,6 +108,106 @@ public final class GpuSubmissionSmokeTest {
         }
     }
 
+    private static void groupedBoundary(int failure) {
+        var device = new GroupingDevice();
+        try (Fixture fixture = new Fixture(failure == 3 ? 20_000 : 100_000, device);
+             ByteBufferBuilder memory = new ByteBufferBuilder(256)) {
+            RenderType material = RenderTypes.entityTranslucent(TEXTURE);
+            fixture.gpu.supports(AccelerationBackend.Operation.GPU_DRAW, batch(fixture.service, fixture.owner, material, 1));
+            fixture.service.beginFrame();
+            fixture.submission.nextFrame();
+            device.failBeforeAt = failure == 1 ? 1 : 0;
+            device.failAfterAt = failure == 2 ? 1 : 0;
+            device.failIndices = failure == 4;
+            device.failPoseUpload = failure == 5;
+            MultiBufferSource.BufferSource source = MultiBufferSource.immediate(memory);
+            for (int depth = 1; depth <= 65; depth++) {
+                DrawBatch original = batch(fixture.service, fixture.owner, material, depth);
+                var pose = new PoseSnapshot(FiguraMat4.of().translate(0, 0, depth / 1024.0), FiguraMat3.of());
+                fixture.offer(source, new DrawBatch(original.lease(), original.mesh(), pose, original.semantics()));
+            }
+            source.endBatch();
+            List<Float> expected = new ArrayList<>();
+            for (int depth = 65; depth > 0; depth--) {
+                expected.add(depth + depth / 1024f);
+            }
+            List<Float> actual = new ArrayList<>(device.drawn);
+            actual.addAll(fixture.javaFaces);
+            require(actual.equals(expected), "grouped GPU and remaining Java retain every globally sorted face exactly once");
+            if (failure == 0) {
+                require(device.drawCalls == 2 && fixture.javaFaces.isEmpty() && device.uploads == 1,
+                        "65 different poses use two draws and a single cached raw mesh");
+            } else if (failure == 1) {
+                require(device.drawn.isEmpty() && fixture.javaFaces.size() == 65,
+                        "group failure before issue replays every face");
+            } else if (failure == 2) {
+                require(device.drawn.size() == 64 && fixture.javaFaces.size() == 1,
+                        "group failure after issue skips the entire submitted range");
+            } else if (failure == 3) {
+                require(device.drawn.size() == 1 && fixture.javaFaces.size() == 64,
+                        "insufficient group budget uses bounded per-batch preparation and sorted remaining fallback");
+            } else {
+                require(device.drawn.isEmpty() && fixture.javaFaces.size() == 65 && !fixture.service.gpuDrawEnabled(),
+                        "group allocation failure fuses safely to Java before any face is issued");
+            }
+            require(fixture.scopesOpened == fixture.scopesClosed, "grouped material scope always restores transforms");
+        }
+    }
+
+    private static void groupedCacheAndLifetimes() {
+        var device = new GroupingDevice();
+        device.complete = true;
+        try (Fixture fixture = new Fixture(100_000, device); ByteBufferBuilder memory = new ByteBufferBuilder(256)) {
+            RenderType material = RenderTypes.entityTranslucent(TEXTURE);
+            fixture.gpu.supports(AccelerationBackend.Operation.GPU_DRAW, batch(fixture.service, fixture.owner, material, 1));
+            MultiBufferSource.BufferSource source = MultiBufferSource.immediate(memory);
+            for (int frame = 0; frame < 3; frame++) {
+                fixture.service.beginFrame();
+                fixture.submission.nextFrame();
+                device.drawn.clear();
+                List<Float> expected = new ArrayList<>();
+                for (int depth = 1; depth <= 65; depth++) {
+                    float authored = depth + (frame == 2 && depth == 1 ? .5f : 0);
+                    float translation = frame == 1 ? 130 - 2 * depth : depth / 1024f;
+                    DrawBatch original = batch(fixture.service, fixture.owner, material, authored);
+                    var pose = new PoseSnapshot(FiguraMat4.of().translate(0, 0, translation), FiguraMat3.of());
+                    fixture.offer(source, new DrawBatch(original.lease(), original.mesh(), pose, original.semantics()));
+                    expected.add(authored + translation);
+                }
+                source.endBatch();
+                expected.sort(java.util.Comparator.reverseOrder());
+                require(device.drawn.equals(expected) && fixture.javaFaces.isEmpty(),
+                        "pose changes rebuild sorted indices and preserve every face across cached frames");
+                require(device.uploads == (frame == 2 ? 2 : 1),
+                        "pose-only changes reuse geometry; direct geometry changes produce a new cached mesh");
+            }
+            device.drawn.clear();
+            fixture.offer(source, batch(fixture.service, fixture.owner, material, 1));
+            fixture.owner.retire();
+            source.endBatch();
+            fixture.service.beginFrame();
+            require(device.drawn.isEmpty() && device.liveBytes == 0 && fixture.gpu.residentBytes() == 0,
+                    "retired owner rejects pending faces and fences every combined mesh, pose and index buffer");
+        }
+    }
+
+    private static void repeatedGroupedBackends() {
+        for (int cycle = 0; cycle < 100; cycle++) {
+            var device = new GroupingDevice();
+            device.complete = true;
+            try (Fixture fixture = new Fixture(100_000, device); ByteBufferBuilder memory = new ByteBufferBuilder(256)) {
+                RenderType material = RenderTypes.entityCutout(TEXTURE);
+                MultiBufferSource.BufferSource source = MultiBufferSource.immediate(memory);
+                fixture.offer(source, batch(fixture.service, fixture.owner, material, 1));
+                fixture.offer(source, batch(fixture.service, fixture.owner, material, 2));
+                source.endBatch();
+                require(device.drawCalls == 1 && device.uploads == 1 && fixture.javaFaces.isEmpty(),
+                        "each backend cycle submits a real grouped command before releasing it");
+            }
+            require(device.liveBytes == 0, "100 backend enable/close cycles retain no GPU resource records");
+        }
+    }
+
     private static DrawBatch batch(AccelerationService service, AccelerationOwner owner, RenderType material, double... depths) {
         double[] vertices = new double[depths.length * 4 * 9];
         for (int face = 0; face < depths.length; face++) {
@@ -115,7 +226,7 @@ public final class GpuSubmissionSmokeTest {
                 new PoseSnapshot(FiguraMat4.of(), FiguraMat3.of()), semantics);
     }
 
-    private static final class RecordingDevice extends GpuAccelerationSmokeTest.FakeDevice {
+    private static class RecordingDevice extends GpuAccelerationSmokeTest.FakeDevice {
         final List<Float> drawn = new ArrayList<>();
         int attempts;
         int failBeforeAt;
@@ -141,10 +252,68 @@ public final class GpuSubmissionSmokeTest {
         }
     }
 
+    private static final class GroupingDevice extends RecordingDevice {
+        boolean failIndices;
+        @Override
+        public boolean supportsRigidGroups() {
+            return true;
+        }
+
+        @Override
+        public Material compileRigidGroup(RenderPipeline original) {
+            return compile(original);
+        }
+
+        @Override
+        public Indices uploadIndices(ByteBuffer data) {
+            if (failIndices) {
+                throw new IllegalStateException("injected sorted index allocation failure");
+            }
+            return new GpuAccelerationSmokeTest.FakeResource(this, data, data.remaining());
+        }
+
+        @Override
+        public void draw(Material material, Mesh mesh, Pose pose, GpuDrawContext context,
+                         int firstIndex, int indexCount, Runnable issuingDraw) {
+            drawWithIndices(material, mesh, pose, null, context, firstIndex, indexCount, issuingDraw);
+        }
+
+        @Override
+        public void drawWithIndices(Material material, Mesh mesh, Pose pose, Indices indices, GpuDrawContext context,
+                                    int firstIndex, int indexCount, Runnable issuingDraw) {
+            attempts++;
+            if (attempts == failBeforeAt) {
+                throw new IllegalStateException("injected group failure before issue");
+            }
+            issuingDraw.run();
+            drawCalls++;
+            ByteBuffer geometry = ((GpuAccelerationSmokeTest.FakeResource) mesh).data;
+            ByteBuffer matrices = ((GpuAccelerationSmokeTest.FakeResource) pose).data;
+            ByteBuffer sorted = indices == null ? null : ((GpuAccelerationSmokeTest.FakeResource) indices).data;
+            for (int face = firstIndex / 6; face < (firstIndex + indexCount) / 6; face++) {
+                int vertex = sorted == null ? face * 4 : sorted.getInt(face * 6 * Integer.BYTES);
+                int offset = vertex * GpuBatchData.VERTEX_BYTES;
+                int matrix = 0;
+                if (sorted != null) {
+                    int batch = geometry.getInt(offset + 48);
+                    int packed = matrices.getInt(GpuRigidData.REMAP_OFFSET + batch / 4 * Integer.BYTES);
+                    matrix = (packed >>> ((batch % 4) * 8) & 0xff) * GpuBatchData.PART_BYTES;
+                }
+                float depth = matrices.getFloat(matrix + 8) * geometry.getFloat(offset)
+                        + matrices.getFloat(matrix + 24) * geometry.getFloat(offset + 4)
+                        + matrices.getFloat(matrix + 40) * geometry.getFloat(offset + 8) + matrices.getFloat(matrix + 56);
+                drawn.add(depth);
+            }
+            if (attempts == failAfterAt) {
+                throw new IllegalStateException("injected group failure after issue");
+            }
+        }
+    }
+
     private static final class Fixture implements AutoCloseable {
-        final RecordingDevice device = new RecordingDevice();
+        final RecordingDevice device;
         final GpuRetirement retirement = new GpuRetirement();
-        final GpuAccelerationBackend gpu = new GpuAccelerationBackend(device, retirement, 1_000_000, 100_000);
+        final GpuAccelerationBackend gpu;
         final AccelerationService service = new AccelerationService();
         final AccelerationOwner owner = new AccelerationOwner();
         final List<Float> javaFaces = new ArrayList<>();
@@ -153,6 +322,16 @@ public final class GpuSubmissionSmokeTest {
         int scopesClosed;
 
         Fixture() {
+            this(100_000);
+        }
+
+        Fixture(long poseBudget) {
+            this(poseBudget, new RecordingDevice());
+        }
+
+        Fixture(long poseBudget, RecordingDevice device) {
+            this.device = device;
+            gpu = new GpuAccelerationBackend(device, retirement, 1_000_000, poseBudget);
             require(!gpu.initializeStep() && !gpu.initializeStep() && gpu.initializeStep(), "GPU contract fixture initialization");
             service.useBackend(gpu);
             submission = new GpuSubmission(service, material -> {
