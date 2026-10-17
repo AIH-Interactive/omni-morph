@@ -53,7 +53,9 @@ public final class CloudAdapterIntegrationTest {
                         String content = model == 1 ? "" : Files.readString(fixtures.resolve(name + ".sha256")).trim();
                         String schema = "22".repeat(32);
                         var metadata = model == 1 ? CloudProtocol.Metadata.figura() : new CloudProtocol.Metadata(model, content, schema);
-                        require(source.upload("avatar", bytes, metadata).status() == 200, "Upload " + name);
+                        AtomicLong sentBytes = new AtomicLong(-1);
+                        require(source.upload("avatar", bytes, metadata, sentBytes::set).status() == 200, "Upload " + name);
+                        require(sentBytes.get() == bytes.length, "Actual raw HTTP upload reports exact bytes: " + name);
                         require(source.equip(List.of(owner), List.of("avatar")).status() == 200, "Equip " + name);
                         CloudProtocol.Reply profile = target.profile(owner);
                         var selected = JsonParser.parseString(profile.body()).getAsJsonObject().getAsJsonArray("equipped");

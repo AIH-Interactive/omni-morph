@@ -3,7 +3,8 @@ package top.aihmc.omnimorph.avatar;
 /** Immutable snapshots may be read by rendering while a worker advances the current request. */
 public final class AvatarLoadProgress {
     public enum Stage {
-        PROFILE, DOWNLOADING, READING, PREPARING, DECODING, BUILDING, APPLYING
+        PROFILE, DOWNLOADING, READING, PREPARING, DECODING, BUILDING, APPLYING,
+        COMPRESSING, UPLOADING, EQUIPPING
     }
 
     public record Snapshot(long request, Stage stage, long received, long total) {
@@ -30,6 +31,12 @@ public final class AvatarLoadProgress {
     public synchronized void downloaded(long request, long received, long total) {
         if (snapshot != null && snapshot.request() == request) {
             snapshot = new Snapshot(request, Stage.DOWNLOADING, Math.max(0, received), total);
+        }
+    }
+
+    public synchronized void uploaded(long request, long sent, long total) {
+        if (snapshot != null && snapshot.request() == request) {
+            snapshot = new Snapshot(request, Stage.UPLOADING, Math.max(0, sent), total);
         }
     }
 

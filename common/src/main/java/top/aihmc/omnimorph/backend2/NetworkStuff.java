@@ -12,6 +12,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Util;
 import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.avatar.Avatar;
+import top.aihmc.omnimorph.avatar.AvatarLoadProgress;
 import top.aihmc.omnimorph.avatar.AvatarManager;
 import top.aihmc.omnimorph.avatar.Badges;
 import top.aihmc.omnimorph.avatar.UserData;
@@ -55,6 +56,7 @@ public class NetworkStuff {
     private static final AtomicLong localSelections = new AtomicLong();
     private static volatile Avatar localBroadcastAvatar;
     private static volatile boolean localBroadcastPending;
+    private static final AvatarLoadProgress uploadProgress = new AvatarLoadProgress();
     private static CompletableFuture<Void> tasks;
     private static final java.util.concurrent.atomic.AtomicInteger pendingTasks = new java.util.concurrent.atomic.AtomicInteger();
     private static volatile CloudConnection connection;
@@ -509,6 +511,7 @@ public class NetworkStuff {
     }
 
     public static synchronized void disconnect(String reason) {
+        uploadProgress.clear();
         AvatarManager.clearNetworkLoadingProgress();
         epochs.incrementAndGet();
         if (authenticationWork != null) {
@@ -604,8 +607,14 @@ public class NetworkStuff {
 
                 //error
                 if (code != 200) {
-                    if (code == 404 && Configs.CONNECTION_TOASTS.value)
-                        FiguraToast.sendToast(FiguraText.of("backend.user_not_found"), FiguraToast.ToastType.ERROR);
+                    if (code == 404) {
+                        // A player without a cloud profile has no equipped model.
+                        user.clear();
+                        user.loadBadges(Badges.emptyBadges());
+                        if (FiguraMod.isLocal(user.id)) {
+                            AvatarManager.localUploaded = false;
+                        }
+                    }
                     return;
                 }
 
@@ -641,6 +650,10 @@ public class NetworkStuff {
                 long generation = requestGenerations.getOrDefault(user.id, 0L);
                 user.loadData(avatars, badgesPair, () -> selected == connection && selected.active()
                         && generation == requestGenerations.getOrDefault(user.id, 0L));
+                if (FiguraMod.isLocal(user.id)
+                        && top.aihmc.omnimorph.avatar.local.LocalAvatarLoader.getLastLoadedPath() == null) {
+                    AvatarManager.localUploaded = !avatars.isEmpty();
+                }
             } finally {
                 user.loading.finish(progress);
             }
@@ -658,6 +671,7 @@ public class NetworkStuff {
     }
 
     public static void localSelectionChanged() {
+        uploadProgress.clear();
         localSelections.incrementAndGet();
         localBroadcastAvatar = null;
         localBroadcastPending = false;
@@ -678,8 +692,9 @@ public class NetworkStuff {
         CompoundTag source = avatar == null ? null : avatar.nbt;
         YsmModelRuntime runtime = avatar == null ? null : avatar.getYsmRuntime();
         long selection = localSelections.get();
+        long progress = source == null ? 0 : uploadProgress.begin(AvatarLoadProgress.Stage.COMPRESSING);
         localBroadcastPending = false;
-        queueString(Util.NIL_UUID, protocol -> {
+        boolean queued = queueString(Util.NIL_UUID, protocol -> {
             if (selection != localSelections.get()) {
                 return new CloudProtocol.Reply(204, "");
             }
@@ -695,7 +710,10 @@ public class NetworkStuff {
                 if (selection != localSelections.get()) {
                     return new CloudProtocol.Reply(204, "");
                 }
-                var uploaded = protocol.upload("avatar", output.toByteArray(), metadata);
+                byte[] bytes = output.toByteArray();
+                uploadProgress.uploaded(progress, 0, bytes.length);
+                var uploaded = protocol.upload("avatar", bytes, metadata,
+                        sent -> uploadProgress.uploaded(progress, sent, bytes.length));
                 if (uploaded.status() != 200) {
                     return uploaded;
                 }
@@ -703,9 +721,11 @@ public class NetworkStuff {
             if (selection != localSelections.get()) {
                 return new CloudProtocol.Reply(204, "");
             }
+            uploadProgress.stage(progress, AvatarLoadProgress.Stage.EQUIPPING);
             return source == null ? protocol.equip(List.of(), List.of())
                     : protocol.equip(List.of(avatar.owner), List.of("avatar"));
         }, (code, body) -> {
+            uploadProgress.finish(progress);
             if (selection != localSelections.get()) {
                 return;
             }
@@ -717,6 +737,14 @@ public class NetworkStuff {
                 FiguraMod.LOGGER.warn("Local model broadcast failed: HTTP {}", code);
             }
         });
+        if (!queued) {
+            uploadProgress.finish(progress);
+            localBroadcastPending = true;
+        }
+    }
+
+    public static AvatarLoadProgress.Snapshot getUploadProgress() {
+        return uploadProgress.snapshot();
     }
 
     public static void deleteAvatar(String avatar) {
@@ -867,7 +895,7 @@ public class NetworkStuff {
     }
 
     public static boolean canUpload() {
-        return isConnected() && uploadRate.check();
+        return isConnected() && uploadRate.check() && uploadProgress.snapshot() == null;
     }
 
     public static int getSizeLimit() {

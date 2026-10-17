@@ -2,13 +2,13 @@ package top.aihmc.omnimorph.gui.screens;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.*;
 import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.AvatarManager;
 import top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher;
-import top.aihmc.omnimorph.avatar.local.LocalAvatarLoader;
 import top.aihmc.omnimorph.backend2.NetworkStuff;
 import top.aihmc.omnimorph.config.Configs;
 import top.aihmc.omnimorph.gui.FiguraToast;
@@ -79,23 +79,13 @@ public class WardrobeScreen extends AbstractPanelScreen {
         // upload
         addRenderableWidget(upload = new Button(buttX - 48, buttY, 24, 24, 0, 0, 24, new FiguraIdentifier("textures/gui/upload.png"), 72, 24, FiguraText.of("gui.wardrobe.upload.tooltip"), button -> {
             Avatar avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
-            try {
-                LocalAvatarLoader.loadAvatar(null, null);
-            } catch (Exception ignored) {}
             NetworkStuff.uploadAvatar(avatar);
-            AvatarList.selectedEntry = null;
         }));
         upload.setActive(false);
 
         // reload
         addRenderableWidget(new Button(buttX - 12, buttY, 24, 24, 0, 0, 24, new FiguraIdentifier("textures/gui/reload.png"), 72, 24, FiguraText.of("gui.wardrobe.reload.tooltip"), button -> {
-            AvatarManager.clearAvatars(FiguraMod.getLocalPlayerUUID());
-            try {
-                LocalAvatarLoader.loadAvatar(null, null);
-            } catch (Exception ignored) {}
-            AvatarManager.localUploaded = true;
-            AvatarList.selectedEntry = null;
-            NetworkStuff.auth();
+            AvatarManager.reloadCloudAvatar();
         }));
 
         // delete
@@ -103,6 +93,9 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 NetworkStuff.deleteAvatar(null))
         );
         delete.setActive(false);
+
+        addRenderableOnly((gui, mouseX, mouseY, delta) -> renderUploadProgress(gui,
+                entity.getX() + 8, entity.getY() + entity.getHeight() - 26, entity.getWidth() - 16));
 
         StatusWidget statusWidget = new StatusWidget(entity.getX() + entity.getWidth() - 64, 0, 64);
         statusWidget.setY(entity.getY() - statusWidget.getHeight() - 4);
@@ -245,7 +238,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         // backend buttons
         Avatar avatar;
         upload.setActive(NetworkStuff.canUpload() && !AvatarManager.localUploaded && (avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID())) != null && avatar.nbt != null && avatar.loaded);
-        delete.setActive(NetworkStuff.isConnected() && AvatarManager.localUploaded);
+        delete.setActive(NetworkStuff.isConnected() && AvatarManager.localUploaded && NetworkStuff.getUploadProgress() == null);
 
         updateMotdWidget();
     }
@@ -254,6 +247,27 @@ public class WardrobeScreen extends AbstractPanelScreen {
     public void removed() {
         super.removed();
         LocalAvatarFetcher.save();
+    }
+
+    private void renderUploadProgress(GuiGraphicsExtractor gui, int x, int y, int width) {
+        var progress = NetworkStuff.getUploadProgress();
+        if (progress == null || width < 16) {
+            return;
+        }
+        double fraction = progress.fraction();
+        var text = FiguraText.of("loading." + progress.stage().name().toLowerCase(java.util.Locale.ROOT));
+        if (fraction >= 0) {
+            text.append(" " + (int) Math.floor(fraction * 100) + "%");
+        }
+        gui.fill(x, y, x + width, y + 22, 0xD0101010);
+        gui.centeredText(font, TextUtils.trimToWidthEllipsis(font, text, width - 4, TextUtils.ELLIPSIS),
+                x + width / 2, y + 2, 0xFFFFFFFF);
+        gui.fill(x + 2, y + 15, x + width - 2, y + 20, 0xFF404040);
+        int span = width - 4;
+        int filled = fraction >= 0 ? (int) Math.floor(span * fraction) : Math.max(1, span / 4);
+        int offset = fraction >= 0 || Configs.REDUCED_MOTION.value ? 0
+                : Math.floorMod(FiguraMod.ticks * 2, span - filled + 1);
+        gui.fill(x + 2 + offset, y + 15, x + 2 + offset + filled, y + 20, 0xFF55FFFF);
     }
 
     @Override

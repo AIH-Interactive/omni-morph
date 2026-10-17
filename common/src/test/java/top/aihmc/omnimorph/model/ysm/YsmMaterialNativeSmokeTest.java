@@ -87,6 +87,11 @@ public final class YsmMaterialNativeSmokeTest {
             }
             instance.set(null, client);
             top.aihmc.omnimorph.permissions.PermissionManager.init();
+            if (args.length == 1 && args[0].equals("--cloud-refresh")) {
+                client.sounds = YsmStabilitySmokeTest.soundManager(unsafe, true);
+                AvatarAsyncLoadSmokeTest.run(unsafe, client, client::drain);
+                return;
+            }
             if (args.length == 2 && args[0].equals("--acceleration")) {
                 client.sounds = YsmStabilitySmokeTest.soundManager(unsafe);
                 Field device = RenderSystem.class.getDeclaredField("DEVICE");
@@ -1684,7 +1689,7 @@ public final class YsmMaterialNativeSmokeTest {
 
         @Override
         public net.minecraft.client.User getUser() {
-            return new net.minecraft.client.User("CPU preview fixture", new UUID(0, 999), "",
+            return new net.minecraft.client.User("CPU preview fixture", UUID.fromString("10000000-0000-4000-8000-000000000999"), "",
                     java.util.Optional.empty(), java.util.Optional.empty());
         }
 

@@ -65,6 +65,16 @@ public interface CloudProtocol extends AutoCloseable {
         return new Reply(400, "Raw Figura routes require the Figura Cloud protocol");
     }
     Reply upload(String id, byte[] bytes, Metadata metadata) throws Exception;
+    default Reply upload(String id, byte[] bytes, Metadata metadata,
+                         java.util.function.LongConsumer progress) throws Exception {
+        progress.accept(0);
+        Reply result = upload(id, bytes, metadata);
+        if (result.status() == 200) {
+            progress.accept(bytes.length);
+        }
+        return result;
+    }
+
     Reply delete(String id) throws Exception;
     Reply equip(List<UUID> owners, List<String> assets) throws Exception;
     Download download(UUID owner, String id) throws Exception;

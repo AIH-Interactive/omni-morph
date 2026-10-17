@@ -791,6 +791,27 @@ tasks.register('writeCloudIntegrationClasspath') {
     }
 }
 
+tasks.register('cloudUploadProgressSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks raw upload body byte progress, retries, stages and cancellation.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.backend2.protocol.CloudUploadProgressSmokeTest'
+}
+
+tasks.register('avatarCloudRefreshSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Replays wardrobe cloud refresh by player UUID, resource matching and missing-profile behavior.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest'
+    args '--cloud-refresh'
+}
+
+tasks.named('test') {
+    dependsOn 'cloudUploadProgressSmokeTest'
+}
+
 
 tasks.register('cloudProtocolConfigSmokeTest', JavaExec) {
     group = 'verification'

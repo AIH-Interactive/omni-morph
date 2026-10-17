@@ -296,6 +296,22 @@ public class AvatarManager {
         clearCEMAvatars();
     }
 
+    /** The wardrobe refresh explicitly leaves local preview mode and reads this player's cloud equipment. */
+    public static void reloadCloudAvatar() {
+        UUID id = FiguraMod.getLocalPlayerUUID();
+        NetworkStuff.localSelectionChanged();
+        LocalAvatarLoader.loadAvatar(null, null);
+        AvatarList.selectedEntry = null;
+        UserData user = LOADED_USERS.computeIfAbsent(id, UserData::new);
+        user.ysmLoads.begin();
+        NetworkStuff.clear(id);
+        FETCHED_USERS.add(id);
+        if (!NetworkStuff.isConnected()) {
+            NetworkStuff.auth();
+        }
+        NetworkStuff.getUser(user);
+    }
+
     // load the local player avatar
     public static void loadLocalAvatar(Path path) {
         UUID id = FiguraMod.getLocalPlayerUUID();
