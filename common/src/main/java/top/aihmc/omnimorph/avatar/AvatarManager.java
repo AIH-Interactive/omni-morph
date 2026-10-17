@@ -296,6 +296,14 @@ public class AvatarManager {
         clearCEMAvatars();
     }
 
+    /** Retire pending preparation without removing the visible model during a library equip request. */
+    public static void cancelPendingLocalLoad() {
+        UserData user = LOADED_USERS.get(FiguraMod.getLocalPlayerUUID());
+        if (user != null) {
+            user.ysmLoads.begin();
+        }
+    }
+
     /** The wardrobe refresh explicitly leaves local preview mode and reads this player's cloud equipment. */
     public static void reloadCloudAvatar() {
         UUID id = FiguraMod.getLocalPlayerUUID();

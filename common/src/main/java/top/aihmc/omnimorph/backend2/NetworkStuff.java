@@ -677,6 +677,55 @@ public class NetworkStuff {
         localBroadcastPending = false;
     }
 
+    /** Opaque guard for a formal library equip request within one connection and local selection. */
+    public static final class LibrarySelection {
+        private final CloudConnection connection;
+        private final UUID player;
+        private final long selection;
+
+        private LibrarySelection(CloudConnection connection, UUID player, long selection) {
+            this.connection = connection;
+            this.player = player;
+            this.selection = selection;
+        }
+    }
+
+    /**
+     * Called on the client thread before submitting a library equip request. Retire pending local
+     * broadcasts and preparations while keeping the current visible model if the request fails.
+     */
+    public static LibrarySelection beginLibrarySelection() {
+        if (!isConnected()) {
+            throw new IllegalStateException("Cloud connection is unavailable");
+        }
+        localSelectionChanged();
+        UUID player = FiguraMod.getLocalPlayerUUID();
+        AvatarManager.cancelPendingLocalLoad();
+        clear(player);
+        return new LibrarySelection(connection, player, localSelections.get());
+    }
+
+    /** May also be checked by the background request before committing equipment. */
+    public static boolean librarySelectionCurrent(LibrarySelection selection) {
+        return selection != null && selection.connection == connection
+                && selection.connection.active() && selection.connection.epoch == epochs.get()
+                && selection.selection == localSelections.get()
+                && selection.player.equals(FiguraMod.getLocalPlayerUUID());
+    }
+
+    /**
+     * Called on the client thread only after the library endpoint confirms equip success. Load the
+     * server's source alias through the normal profile/download path; never upload it as "avatar".
+     */
+    public static boolean publishLibraryEquipment(LibrarySelection selection) {
+        if (!librarySelectionCurrent(selection)) {
+            return false;
+        }
+        AvatarManager.reloadCloudAvatar();
+        YSM_SYNC.requestSnapshot();
+        return true;
+    }
+
     /** Called only after successful local publication, or when the local model is explicitly cleared. */
     public static void localAvatarReady(Avatar avatar) {
         localBroadcastAvatar = avatar;
