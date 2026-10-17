@@ -1,6 +1,6 @@
 # OmniMorph 模型库开发计划书
 
-状态：实施中，M0～M3 自动检查通过；M4～M7 尚未实施。各阶段证据见 8.2，不代表功能已全部实现或视觉验收通过。
+状态：实施中，M0～M3 自动检查通过并完成双仓库推送；M4 正在实施，M5～M7 尚未实施。各阶段证据见 8.2，不代表功能已全部实现或视觉验收通过。
 
 用户实施中补充（2026-10-18）：本次目标版本为 `1.0.0-alpha.2`，界面显示对应 `1.0 Alpha 2`；在客户端阶段同步构建、模组清单、产物和 README。新增图标允许先绘制 SVG 再通过脚本转换 PNG；缺省封面仍使用根目录 ingame_logo.png。该补充覆盖本文原有“不升级版本”约束，不改变 M0→M7 顺序及其他范围。
 
@@ -513,8 +513,8 @@ if ($buildExitCode -ne 0) {
 | M0 | PASS | Rust storage 7/7；Fabric compileJava、ysmPackageSmokeTest、ysmCryptoSmokeTest；8 样例哈希/JSON/分页预算，均退出 0 | 真实模型/GUI 为后续阶段 MANUAL/PENDING | 75ffa9d / origin main 已确认 | 8143665 / origin master 已确认 |
 | M1 | PASS | cargo test library 12/12；storage 12/12；全 Rust 回归 37/37，退出 0；rustfmt/diff check 通过 | 无 GUI；真实部署凭据和外部生产二进制回滚 MANUAL/PENDING | e49f306 / origin main 已确认 | 4178e06 / origin master 已确认 |
 | M2 | PASS | cargo build 退出 0；library 专项 34 通过；全 Rust 回归 59 通过；线程饱和隔离测试 1 通过，退出均 0；rustfmt/diff check 通过 | 无 GUI；真实部署 MANUAL/PENDING | b36a934 / origin main 已核对一致 | 578dfbc / origin master 已核对一致 |
-| M3 | PASS（自动检查） | cargo build；Rust 全量 75 通过及饱和隔离 1 通过；Fabric compileJava、avatarCloudRefreshSmokeTest、cloudAdapterSmokeTest；退出均 0，diff check 通过 | 真实游戏/部署回滚 MANUAL/PENDING | 本次 M3 独立检查点提交，推送后核对远端 | 392b9ad / origin master 已核对一致 |
-| M4 | NOT_STARTED | — | — | — | — |
+| M3 | PASS（自动检查） | cargo build；Rust 全量 75 通过及饱和隔离 1 通过；Fabric compileJava、avatarCloudRefreshSmokeTest、cloudAdapterSmokeTest；退出均 0，diff check 通过 | 真实游戏/部署回滚 MANUAL/PENDING | 6648035 / origin main 已核对一致 | 392b9ad / origin master 已核对一致 |
+| M4 | IN_PROGRESS | Fabric compileJava；元数据、LibraryClient、独立缓存、preview/download、独立运行时/帧寿命及云端刷新/CloudAdapter 回归通过；后端 session CAS 专项 1/1；仍不是阶段 PASS | GUI MANUAL/PENDING | 本地在制修改，未作阶段提交 | session 追加本人 equipment_revision；在制未提交 |
 | M5 | NOT_STARTED | — | — | — | — |
 | M6 | NOT_STARTED | — | — | — | — |
 | M7 | NOT_STARTED | — | — | — | — |
@@ -570,6 +570,26 @@ if ($buildExitCode -ne 0) {
 - 旧入口专项通过：相同密文更换合法 NBT 根名，raw/NBT hash 均改变，仍按服务端核验的密文身份屏蔽；覆盖历史 internal 上传的惰性索引、屏蔽后的 v1 上传和 internal 一次性临时上传，外部拒绝、本人可读。修复该必测路径 Windows 只读句柄 sync_all 失败，改用可写句柄刷盘；不改变 internal Host/旧管理员 token 的既有认证范围。日志 `omnimorph-m3-old-entries.log`。
 - M3 最终自动检查：cargo build 退出 0；全量 75 通过、1 项既有饱和测试隔离；隔离单测另批 1/1，退出均 0；新增代码格式及 git diff --check 通过。日志 `omnimorph-m3-build.log`、`omnimorph-m3-final-all.log`、`omnimorph-m3-saturation.log`。分发闭环验证后 capabilities.enabled 开启。合成加密 fixture 只证明协议/权限，不证明真实渲染；真实游戏窗口、CJK/视觉和真实部署回滚保持 MANUAL/PENDING。先完成 M3 双仓库独立提交/推送检查点，才开始 M4。
 - 后端 M3 `392b9ad5061482dd2fc8599749a79dda968bf1f4` 已推送 origin/master，ls-remote 核对一致。客户端本次独立提交包括来源接缝、对应回归和此记录；推送核对后进入 M4。未纳入 build.log、refs、spm-cloud 或部署凭据。
+
+#### M4 在制记录（阶段未完成，2026-10-18）
+
+- 客户端 M3 `6648035447712e7eb634390ea01fa039c1cc4887` 已推送 origin/main 并核对一致后开始 M4。已同步 gradle.properties、界面版本、README、原生库版本缓存目录及 CI 装配/验证产物名至 alpha.2；模组清单仍使用 Gradle 版本替换，不写死另一版本。
+- YsmManifest 新增免费标记并保留旧构造入口；新格式读取 properties.free，旧格式读取 ysm_extra_info.free，二进制直接映射 properties.isFree，缺省 false。Figura Metadata 新增可选 Boolean free。LibraryMetadataReader 在现有 ZIP/加密解析预算内按内容识别来源，产生不可变元数据、原始作者列表及授权默认值，不触发装备/广播；缺省作者为空，不借用衣柜的 '?' 显示占位。
+- 新增 libraryMetadataSmokeTest 覆盖 Figura/新旧 YSM 的 true、false、缺失及二进制 true/false、作者顺序/去空、ZIP 内容识别和取消；Fabric compileJava、该测试及现有 ysmPackageSmokeTest、ysmBinaryResourcesSmokeTest、ysmCryptoSmokeTest 均退出 0。日志为 TEMP/omnimorph-m4-metadata.log；真实加密 corpus、UI 默认选中项不被用户编辑后覆盖仍待 M4/M6 后续检查。
+- 新增 LibraryClient/LibraryModels/LibrarySession，以及由两种现有协议适配器持有的 LibraryAccess。模型库请求只允许同源 `/api/library/v1/` 路径；Figura 使用原玩家 token 和显式模式头，Protobuf 使用 scoped session/epoch，不暴露原凭据给界面。每次调用持有独立 CloudHttp，取消不关闭衣柜连接；适配器关闭时回收全部活动调用。请求头/正文同一 60 秒截止关闭卡住的流，控制 JSON 限制 64 KiB；错误只提取受限 code/request_id/retryable，不转发任意响应正文。
+- NetworkStuff 按当前实际连接、实例、玩家 UUID/epoch 惰性提供库服务，切服/断连/换玩家时退休。控制任务 2 工作线程/16 队列、传输 2/4、缩略图 4/16，活动 HTTP 调用上限 8，待交付结果总数也受限。结果只通过客户端线程执行器交付，取消或身份过期时拒绝旧结果；列表文件任务不共享阻塞队列。
+- libraryClientSmokeTest 使用真实本地 HTTP 和生产适配器认证逻辑，覆盖两个认证模式、编码中文查询、旧服务不支持/401、游戏线程交付、排队结果退休、真实阻塞正文取消、队列饱和、文件线程占满时控制请求仍完成、64 KiB 响应及跨域/重定向拒绝。退出 0；未声称进行了完整 60 秒正文超时等待测试。
+- 新增 LibraryPreviewCache，独立根为 `model-library-preview`，模型/缩略图目录分离，键含实例、玩家、模型/revision、策略版本及服务端传输确认的 raw hash；读前必须获得新权限判断。文件原子写入并复核哈希，默认模型 128 MiB/缩略图 32 MiB、24 小时 TTL、每类 4096 项上限；首次工作线程访问清理未完成文件，跨缓存对象共享活动租约避免 LRU/TTL 删除在用数据。
+- 新增 LibraryTransferService 的数据准备路径：每次先请求当前 detail 权限，预览缓存命中仍重新鉴权；正式下载不读取/提升预览文件，重新创建 download transfer 并流式写独立正式临时文件，校验长度/SHA-256 后受 256 MiB NBT 预算解析，成功/失败均清理临时文件。加密包只接受现有 portable 密文载荷；预览不完成收据，正式下载校验后才确认收据。当前只准备数据，尚未执行来源装备及运行时发布。
+- libraryPreviewCacheSmokeTest 验证独立目录、TTL/LRU、活动租约、权限回调、作用域与损坏哈希；libraryTransferSmokeTest 用真实本地 HTTP 和既有固定加密向量验证缓存复查、正式独立下载、密文原包落盘、撤权、摘要失败清理和收据区分，并断言未调用 upload/equip，均退出 0。Fabric compileJava、上述三个新专项及 avatarCloudRefreshSmokeTest、cloudAdapterSmokeTest 同批退出 0；日志 `omnimorph-m4-service-partial.log`。补充正文截止逻辑后 Client/Transfer 专项再通过，日志 `omnimorph-m4-client-transfer.log`。
+- 已接入 LibraryPreviewSession 与 LibraryPreviewBinding：专用 RemotePlayer 不加入世界/LOADED_USERS；后台复用 AvatarLoadExecutor/Avatar.load，客户端线程按 generation/当前库会话/世界判旧。按专用实体、UUID 和独立 EntityRenderState 查找模型，UIHelper 提取状态时保留帧引用；GuiRenderer.render 的 finally 与 close 释放帧，切换/关闭先断开实体绑定，最后一个延迟帧完成后才 clean。EntityPreview 和 AvatarScreen 全屏预览携带同一 session；M5 父屏切换至全屏时须检查 isExpanded 保留所有权，返回时复用会话。
+- 新增 Avatar.createLibraryPreview：非 host、独立 DEFAULT 权限包，不登记持久玩家权限；网络/粒子/声音/名称牌/取消声音等副作用权限关闭，嵌套 YSM evaluator/子实体继承预览权限作用域。预览不读取/写入正式控件值存储，也不恢复正式动作轮盘布局；未修改普通衣柜/观察者的既有权限策略。
+- libraryPreviewRuntimeSmokeTest 在现有非像素 native-loader 测试环境运行实际异步 Avatar 加载，覆盖排队切换仅最新发布、控制与权限隔离、不改变衣柜/云端状态、两个延迟状态及重复 capture、关闭后保活/帧完成释放、会话退休，以及固定加密 1 向量解码到现有 YSM runtime。首次失败为测试缺少记录粒子引擎，复用既有 fixture 后修正；生产 UI 未添加测试专用分支。随后通过，日志 `omnimorph-m4-preview-runtime.log`。该测试未启动真实窗口、未验证实际 Mixin 注入或像素效果。
+- 真实复杂模型 corpus 为 MANUAL/PENDING：refs/avatars 是指向外部 Minecraft 版本目录的符号链接，其目标当前不可用；未修改/修复 refs。默认自动测试使用仓库内有效的最小加密 1 向量，不把它作为复杂材质/动画画面的通过证据。需要时可通过 -PlibraryPreviewModel 指定可用模型，人工项不阻塞阶段。
+- 为正式库装备的 CAS 读取，后端现有 `/api/library/v1/session` 追加 `equipment_revision`，只从当前认证玩家装备状态获取并运行于有界 worker；没有新路由、迁移或 Protobuf 字段修改。真实 API 专项验证初始 0、装备后 1、其他玩家仍为本人 0、旧 revision 装备返回 409；1/1 退出 0，日志 `omnimorph-m4-equipment-session.log`。客户端增加严格 SessionInfo DTO，缺字段不默认为 0。
+- 正式发布接缝已支持接收已准备 Avatar 并经 UserData 主线程交换，成功后清理本地 watcher/衣柜选中项、标记已发布并请求 YSM 快照；失败/迟到候选清理资源并保留原模型。活动库选择期间忽略自身装备通知产生的竞争 reload，其他观察者通知保持原行为。新增 worker-only 来源 profile/cache-key 核对辅助入口，最终装备服务尚待串联。
+- 扩展真实云端刷新 fixture：验证正式模型后台准备、主线程发布、无额外 upload/equip/download、旧选择路径退出、自身通知不抢先 reload、迟到候选寿命退休。Fabric compileJava、avatarCloudRefreshSmokeTest、libraryPreviewRuntimeSmokeTest、libraryClientSmokeTest 最新同批通过，退出 0；日志 `omnimorph-m4-preview-publication-partial.log`。这仍不是完整 M4 退出证据。
+- 待完成：完整 LibraryEquipmentService 串联 session CAS/正式下载/运行时准备/equip/来源 profile 核对/发布，含失败重查与幂等重试；上传分发包纯准备与正式缓存来源映射；异步缩略图解码/GPU 线程边界；全屏/异常退出最终核对、alpha.2 产物核对及 M4 最终自动检查、双仓库提交推送。真实窗口/Mixin 启动和复杂模型视觉验收为 MANUAL/PENDING。M4 未完成，不进入 M5。
 
 ## 9. 安全、兼容性、异常与性能验收方案
 
