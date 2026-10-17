@@ -97,7 +97,7 @@ public final class YsmBinaryResourceMapper {
         YsmManifest manifest = new YsmManifest(YsmAvatarKind.NEW,
                 raw.metadata.name.isBlank() ? displayName : raw.metadata.name, raw.metadata.tips,
                 raw.metadata.authors.stream().map(author -> author.name).toArray(String[]::new), main, arm,
-                animations, controllers, textures, defaultTexture, index);
+                animations, controllers, textures, defaultTexture, index, raw.properties.isFree);
         YsmMemoryResourceSource resources = new YsmMemoryResourceSource(displayName, files, budget.limits());
         return new Mapping(resources, manifest, Map.copyOf(geometries));
     }

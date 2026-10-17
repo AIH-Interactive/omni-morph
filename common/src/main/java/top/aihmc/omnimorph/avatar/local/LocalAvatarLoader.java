@@ -145,15 +145,28 @@ public class LocalAvatarLoader {
     }
 
     public static CompoundTag compileFiguraAvatar(Path path, UUID owner) throws Exception {
+        return compileFiguraAvatar(path, owner, true);
+    }
+
+    /** Library preparation does not change wardrobe progress, watchers or the selected avatar. */
+    public static CompoundTag prepareFiguraAvatar(Path path, UUID owner) throws Exception {
+        return compileFiguraAvatar(path, owner, false);
+    }
+
+    private static CompoundTag compileFiguraAvatar(Path path, UUID owner, boolean reportProgress) throws Exception {
         // load as folder
         CompoundTag nbt = new CompoundTag();
 
         // scripts
-        loadState = LoadState.SCRIPTS;
+        if (reportProgress) {
+            loadState = LoadState.SCRIPTS;
+        }
         loadScripts(path, nbt);
 
         // custom sounds
-        loadState = LoadState.SOUNDS;
+        if (reportProgress) {
+            loadState = LoadState.SOUNDS;
+        }
         loadSounds(path, nbt);
 
         // models
@@ -161,12 +174,16 @@ public class LocalAvatarLoader {
         ListTag animations = new ListTag();
         BlockbenchParser2 modelParser = new BlockbenchParser2();
 
-        loadState = LoadState.MODELS;
+        if (reportProgress) {
+            loadState = LoadState.MODELS;
+        }
         CompoundTag models = loadModels(path, path, modelParser, textures, animations, "");
         models.putString("name", "models");
 
         // metadata
-        loadState = LoadState.METADATA;
+        if (reportProgress) {
+            loadState = LoadState.METADATA;
+        }
         String avatarJson = IOUtils.readFile(path.resolve("avatar.json"));
         var metadata = AvatarMetadataParser.read(avatarJson);
         CompoundTag metadataNbt = AvatarMetadataParser.parse(metadata, avatarJson, IOUtils.getFileNameOrEmpty(path));

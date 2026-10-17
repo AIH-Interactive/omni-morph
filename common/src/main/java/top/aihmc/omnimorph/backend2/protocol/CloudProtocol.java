@@ -56,6 +56,9 @@ public interface CloudProtocol extends AutoCloseable {
     void connect(Listener listener) throws Exception;
     boolean connected();
     String instance();
+    default LibraryAccess libraryAccess() throws java.io.IOException {
+        throw new java.io.IOException("LIBRARY_UNSUPPORTED");
+    }
     Reply profile(UUID owner) throws Exception;
     Reply limits() throws Exception;
     Reply version() throws Exception;

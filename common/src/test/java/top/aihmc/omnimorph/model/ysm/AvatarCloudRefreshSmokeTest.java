@@ -138,6 +138,32 @@ final class AvatarCloudRefreshSmokeTest {
             require(user.getMainAvatar() == null && user.loading.snapshot() == null && !AvatarManager.localUploaded,
                     "a missing UUID profile means no equipped model and clears loading without a user-not-found error toast");
             require(profiles.get() == 4 && downloads.get() == 1, "refresh does not match by name or invent another account");
+            var formal = NetworkStuff.beginLibrarySelection();
+            var listenerFactory = NetworkStuff.class.getDeclaredMethod("listener", CloudConnection.class);
+            listenerFactory.setAccessible(true);
+            var listener = (CloudProtocol.Listener) listenerFactory.invoke(null, scope);
+            listener.changed(player);
+            scope.drain();
+            runRequests(process, work, scope);
+            require(profiles.get() == 4, "a source-equip event cannot start a competing reload during formal publication");
+            var formalTag = nbt.copy();
+            formalTag.getCompoundOrEmpty("metadata").putString("name", "prepared source model");
+            Avatar prepared = prepare(player, formalTag, drain);
+            lastPath.set(null, java.nio.file.Path.of("previous-local-choice"));
+            var publication = NetworkStuff.publishLibraryEquipment(formal, prepared);
+            drain.run();
+            require(publication.get(5, TimeUnit.SECONDS) && user.getMainAvatar() == prepared
+                            && AvatarManager.localUploaded && LocalAvatarLoader.getLastLoadedPath() == null,
+                    "confirmed source equipment publishes the already prepared model and leaves wardrobe preview mode");
+            require(profiles.get() == 4 && downloads.get() == 1,
+                    "prepared publication does not upload, equip or download the source again");
+            var obsolete = NetworkStuff.beginLibrarySelection();
+            Avatar stale = prepare(player, formalTag.copy(), drain);
+            var lifetime = stale.accelerationOwner();
+            NetworkStuff.localSelectionChanged();
+            require(!NetworkStuff.publishLibraryEquipment(obsolete, stale).get(5, TimeUnit.SECONDS)
+                            && user.getMainAvatar() == prepared && !lifetime.isCurrent(),
+                    "late formal publication cleans its candidate and retains the resident model");
             System.out.println("PASS wardrobe cloud refresh: current UUID, retained authentication/model, Figura resource matching, 404 empty selection and 503 retention; GUI MANUAL/PENDING");
         } finally {
             NetworkStuff.clear(player);
@@ -156,6 +182,21 @@ final class AvatarCloudRefreshSmokeTest {
             connection.set(null, previousConnection);
             NetworkStuff.backendStatus = previousStatus;
         }
+    }
+
+    private static Avatar prepare(UUID player, CompoundTag nbt, Runnable drain) throws Exception {
+        var avatar = new Avatar(player);
+        var ready = top.aihmc.omnimorph.avatar.AvatarLoadExecutor.submit(() -> {
+            avatar.load(nbt);
+            return avatar.loaded && avatar.nbt != null;
+        });
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (!ready.isDone() && System.nanoTime() < deadline) {
+            drain.run();
+            Thread.sleep(1);
+        }
+        require(ready.get(1, TimeUnit.SECONDS), "actual formal candidate prepares on the bounded model worker");
+        return avatar;
     }
 
     private static void runRequests(java.lang.reflect.Method process, java.lang.reflect.Field work,

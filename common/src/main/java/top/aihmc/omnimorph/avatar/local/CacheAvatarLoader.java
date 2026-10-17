@@ -7,11 +7,16 @@ import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.avatar.UserData;
 import top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload;
 import top.aihmc.omnimorph.utils.IOUtils;
+import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
+import com.google.gson.Gson;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.attribute.FileTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 public class CacheAvatarLoader {
@@ -125,6 +130,42 @@ public class CacheAvatarLoader {
 
             FiguraMod.debug("Finished clearing avatar cache");
         });
+    }
+
+    /** Descriptive provenance only; every new library use must obtain fresh backend permission. */
+    public record LibrarySource(String instance, UUID viewer, UUID modelId, long modelRevision,
+                                long policyRevision, String assetId, long assetRevision,
+                                String visibility, boolean requiresAuthorization, boolean showPrivateEquipment) {}
+
+    /** Worker-only formal cache write. Preview files are never copied or promoted here. */
+    public static void saveLibrary(String hash, CompoundTag nbt, LibrarySource source) throws java.io.IOException {
+        if (!hash.matches("[a-f0-9]{64}") || source.instance() == null || source.viewer() == null
+                || source.modelId() == null || source.modelRevision() < 1 || source.policyRevision() < 1) {
+            throw new java.io.IOException("INVALID_LIBRARY_SOURCE");
+        }
+        Path directory = getAvatarCacheDirectory();
+        String scope = CloudHttp.sha256((source.instance() + "\n" + source.viewer()).getBytes(StandardCharsets.UTF_8));
+        Path model = Files.createTempFile(directory, "library-model-", ".part");
+        Path provenance = null;
+        try {
+            try (var output = Files.newOutputStream(model)) {
+                NbtIo.writeCompressed(YsmSourcePayload.forOutput(nbt), output);
+            }
+            if (Files.size(model) > CloudHttp.FILE_BYTES) {
+                throw new java.io.IOException("FORMAL_CACHE_LIMIT");
+            }
+            provenance = Files.createTempFile(directory, "library-source-", ".part");
+            Files.writeString(provenance, new Gson().toJson(source), StandardCharsets.UTF_8);
+            Files.move(model, directory.resolve(hash + ".nbt"), StandardCopyOption.ATOMIC_MOVE,
+                    StandardCopyOption.REPLACE_EXISTING);
+            Files.move(provenance, directory.resolve(hash + "." + scope + ".library-source.json"),
+                    StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+        } finally {
+            Files.deleteIfExists(model);
+            if (provenance != null) {
+                Files.deleteIfExists(provenance);
+            }
+        }
     }
 
     // cache directory

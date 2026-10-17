@@ -24,6 +24,7 @@ public final class FiguraCloudProtocol implements CloudProtocol {
     private final String token;
     private final HttpClient client;
     private final CloudHttp http;
+    private final LibraryAccess library;
     private final CloudBudget budget = new CloudBudget();
     private final Map<String, Resource> resources = new ConcurrentHashMap<>();
     private final YsmSyncPackets reassembly = new YsmSyncPackets();
@@ -48,6 +49,18 @@ public final class FiguraCloudProtocol implements CloudProtocol {
         this.token = token;
         this.client = client;
         this.http = new CloudHttp(client, endpoint);
+        this.library = new LibraryAccess(endpoint, client, request -> {
+            if (!connected()) {
+                throw new IOException("LIBRARY_RETIRED");
+            }
+            request.header("x-omnimorph-auth-mode", "figura")
+                    .header("Authorization", "Bearer " + token);
+        });
+    }
+
+    @Override
+    public LibraryAccess libraryAccess() {
+        return library;
     }
 
     @Override
@@ -369,6 +382,7 @@ public final class FiguraCloudProtocol implements CloudProtocol {
         pending.clear();
         pendingBytes = 0;
         http.close();
+        library.close();
         if (opening != null) {
             opening.cancel(true);
         }

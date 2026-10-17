@@ -107,7 +107,9 @@ public final class YsmManifestReader {
         List<String> animations = readNewAnimations(ysmPackage, player, warnings);
         List<String> controllers = readNewAnimationControllers(ysmPackage, player, warnings);
         YsmResourceIndex index = buildIndex(ysmPackage, YsmAvatarKind.NEW, mainModel, armModel, animations, controllers, textures, root, warnings);
-        return new YsmManifest(YsmAvatarKind.NEW, name, description, readAuthors(metadata), mainModel, armModel, animations, controllers, textures, defaultTexture, index);
+        return new YsmManifest(YsmAvatarKind.NEW, name, description, readAuthors(metadata), mainModel,
+                armModel, animations, controllers, textures, defaultTexture, index,
+                YsmJson.bool(properties, "free", false));
     }
 
     public static YsmManifest readOld(Path path) throws java.io.IOException {
@@ -136,7 +138,9 @@ public final class YsmManifestReader {
         List<String> controllers = readOldAnimationControllers(ysmPackage);
 
         YsmResourceIndex index = buildIndex(ysmPackage, YsmAvatarKind.OLD, mainModel, armModel, animations, controllers, textures, null, warnings);
-        return new YsmManifest(YsmAvatarKind.OLD, name, tips, readAuthors(extra), mainModel, armModel, animations, controllers, textures, "", index);
+        return new YsmManifest(YsmAvatarKind.OLD, name, tips, readAuthors(extra), mainModel,
+                armModel, animations, controllers, textures, "", index,
+                YsmJson.bool(extra, "free", false));
     }
 
     private static List<String> readNewAnimations(YsmResourceSource ysmPackage, JsonObject player, List<String> warnings) throws IOException {

@@ -314,6 +314,75 @@ tasks.register("ysmPackageSmokeTest", JavaExec) {
     mainClass = "top.aihmc.omnimorph.avatar.ysm.YsmPackageSmokeTest"
 }
 
+tasks.register('libraryMetadataSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks model-library metadata and source-defined authorization defaults without equipment changes.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.library.LibraryMetadataSmokeTest'
+}
+
+tasks.register('libraryClientSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks actual library HTTP adapter auth, bounded worker lanes, cancellation and retired publication.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.backend2.library.LibraryClientSmokeTest'
+}
+
+tasks.register('libraryPreviewCacheSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks independent preview storage, authorization, checksums, leases and TTL/LRU budgets.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.library.LibraryPreviewCacheSmokeTest'
+}
+
+tasks.register('libraryTransferSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks authorized preview reuse, fresh formal downloads and encrypted payload/receipt boundaries.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.library.LibraryTransferSmokeTest'
+}
+
+tasks.register('libraryPreviewRuntimeSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks detached Avatar preparation, permissions and deferred GUI-state lifetime without pixel assertions.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest'
+    maxHeapSize = '2g'
+    def model = project.findProperty('libraryPreviewModel')
+    args '--library-preview', rootProject.file(model ?: 'common/src/test/resources/ysm/crypto-vectors/crypto1.ysm').path
+}
+
+tasks.register('libraryEquipmentSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Replays actual formal use, HTTP CAS/retry, Avatar publication and source cache provenance.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest'
+    args '--library-equipment'
+}
+
+tasks.register('libraryPackagePreparationSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks bounded pure Figura/YSM upload preparation without equipment or wardrobe changes.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest'
+    args '--library-preparation'
+}
+
+tasks.register('libraryThumbnailSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks real thumbnail HTTP, bounded PNG/JPEG decode and cache permission/revision races.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.library.LibraryThumbnailSmokeTest'
+}
+
 tasks.register("ysmBaselineSmokeTest", JavaExec) {
     group = "verification"
     description = "Checks YSM candidate discovery, diagnostics, and strict scan gates using synthetic fixtures."

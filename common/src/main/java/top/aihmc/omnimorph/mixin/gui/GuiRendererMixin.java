@@ -2,6 +2,7 @@ package top.aihmc.omnimorph.mixin.gui;
 
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import net.minecraft.client.multiplayer.chat.GuiMessage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.render.GuiRenderer;
@@ -18,6 +19,7 @@ import top.aihmc.omnimorph.ducks.GuiEntityRenderStateExtension;
 import top.aihmc.omnimorph.ducks.GuiMessageAccessor;
 import top.aihmc.omnimorph.gui.FiguraGuiEntityRenderer;
 import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
+import top.aihmc.omnimorph.model.library.LibraryPreviewBinding;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.*;
@@ -29,6 +31,16 @@ import java.util.List;
 
 @Mixin(GuiRenderer.class)
 public class GuiRendererMixin {
+
+    @WrapMethod(method = "render")
+    private void figura$retireLibraryPreviewFrames(
+            GpuBufferSlice buffer, Operation<Void> original) {
+        try {
+            original.call(buffer);
+        } finally {
+            LibraryPreviewBinding.finishFrame();
+        }
+    }
 
     @Shadow @Final
     GuiRenderState renderState;
@@ -52,6 +64,7 @@ public class GuiRendererMixin {
 
     @Inject(method = "close", at = @At(value = "INVOKE", target = "Ljava/util/Collection;forEach(Ljava/util/function/Consumer;)V", ordinal = 0, shift = At.Shift.AFTER))
     private void onClose(CallbackInfo ci) {
+        LibraryPreviewBinding.finishFrame();
         figura$paperDollRenderer.close();
     }
 }

@@ -123,7 +123,7 @@ final class AvatarAsyncLoadSmokeTest {
         }
     }
 
-    private static final class RecordingParticles extends ParticleEngine implements ParticleEngineAccessor {
+    static final class RecordingParticles extends ParticleEngine implements ParticleEngineAccessor {
         private RecordingParticles() {
             super(null, null);
         }
