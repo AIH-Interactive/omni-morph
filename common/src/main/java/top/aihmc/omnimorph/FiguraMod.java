@@ -32,6 +32,9 @@ import top.aihmc.omnimorph.wizards.AvatarWizard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.*;
 
@@ -118,15 +121,35 @@ public class FiguraMod {
     }
 
     // mod root directory
-    public static Path getFiguraDirectory() {
+    public static synchronized Path getFiguraDirectory() {
         String config = Configs.MAIN_DIR.value;
-        Path p = config.isBlank() ? GAME_DIR.resolve(MOD_ID) : Path.of(config);
-        Path legacy = GAME_DIR.resolve("figura");
-        if (config.isBlank() && !java.nio.file.Files.exists(p) && java.nio.file.Files.isDirectory(legacy)) {
-            // Keep existing models/cache/permissions accessible without moving user files.
-            p = legacy;
+        if (!config.isBlank()) {
+            return IOUtils.createDirIfNeeded(Path.of(config));
         }
-        return IOUtils.createDirIfNeeded(p);
+
+        Path gameDirectory = GAME_DIR.toAbsolutePath().normalize();
+        Path directory = gameDirectory.resolve("omnimorph");
+        if (!Files.exists(directory, LinkOption.NOFOLLOW_LINKS)) {
+            for (String oldName : new String[] {"omni-morph", "figura"}) {
+                Path legacy = gameDirectory.resolve(oldName).normalize();
+                // Restrict directory renames to direct children of the game directory.
+                if (!gameDirectory.equals(legacy.getParent()) || !gameDirectory.equals(directory.getParent())) {
+                    throw new IllegalStateException("Mod directory migration escaped the game directory");
+                }
+                if (!Files.isDirectory(legacy)) {
+                    continue;
+                }
+                try {
+                    Files.move(legacy, directory);
+                    LOGGER.info("Migrated mod directory from {} to {}", legacy, directory);
+                } catch (IOException exception) {
+                    LOGGER.error("Failed to migrate mod directory; continuing to use {}", legacy, exception);
+                    return legacy;
+                }
+                break;
+            }
+        }
+        return IOUtils.createDirIfNeeded(directory);
     }
 
     // mod cache directory
