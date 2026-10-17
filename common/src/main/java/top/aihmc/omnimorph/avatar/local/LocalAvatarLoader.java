@@ -126,7 +126,11 @@ public class LocalAvatarLoader {
                 // load
                 net.minecraft.client.Minecraft.getInstance().execute(() -> {
                     if (target.ysmLoads.current(generation)) {
-                        target.loadAvatar(nbt);
+                        target.loadAvatar(nbt).thenAccept(published -> {
+                            if (published) {
+                                top.aihmc.omnimorph.backend2.NetworkStuff.localAvatarReady(target.getMainAvatar());
+                            }
+                        });
                     }
                 });
             } catch (Throwable e) {
