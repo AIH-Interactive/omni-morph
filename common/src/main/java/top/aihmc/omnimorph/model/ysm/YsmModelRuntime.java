@@ -56,6 +56,7 @@ public class YsmModelRuntime implements AutoCloseable {
     private static final float DEFAULT_YSM_SCALE = 0.7f;
 
     private final Avatar owner;
+    private Avatar complexityOwner;
     private final YsmGeometry geometry;
     private YsmGeometry armGeometry;
     private FiguraTexture texture;
@@ -110,6 +111,7 @@ public class YsmModelRuntime implements AutoCloseable {
 
     private YsmModelRuntime(Avatar owner, YsmGeometry geometry, YsmGeometry armGeometry, FiguraTexture texture, String textureId, boolean textureTranslucent, String kind, String modelKey, Map<String, byte[]> textureData, float defaultWidthScale, float defaultHeightScale, boolean encryptedSource) {
         this.owner = owner;
+        this.complexityOwner = owner;
         this.encryptedSource = encryptedSource;
         this.geometry = geometry;
         this.armGeometry = armGeometry;
@@ -473,6 +475,10 @@ public class YsmModelRuntime implements AutoCloseable {
         return geometry;
     }
 
+    public void recordComplexity(int faces) {
+        complexityOwner.recordYsmComplexity(faces);
+    }
+
     public YsmGeometry getArmGeometry() {
         return armGeometry;
     }
@@ -707,6 +713,7 @@ public class YsmModelRuntime implements AutoCloseable {
                     definition.texture(), definition.id(), definition.isTextureTranslucent(), definition.kind(),
                     modelKey, Map.of(), 1f, 1f, encryptedSource);
             instance.ownsTexture = false;
+            instance.complexityOwner = complexityOwner;
             instance.subEntityRuntime = true;
             instance.sharedAudio = audio();
             instance.allCutout = allCutout;
@@ -1254,6 +1261,7 @@ public class YsmModelRuntime implements AutoCloseable {
             var result = new YsmModelRuntime(previewOwner, previewGeometry, previewArms, texture, textureId,
                     textureTranslucent, kind, modelKey, textureData, defaultWidthScale, defaultHeightScale, encryptedSource);
             result.previewRuntime = true;
+            result.complexityOwner = complexityOwner;
             result.ownsTexture = false;
             result.materialData = materialData;
             result.guiNoLighting = guiNoLighting;

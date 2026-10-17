@@ -32,6 +32,7 @@ public class YsmRenderer {
     }
 
     public boolean render(PoseStack stack, MultiBufferSource bufferSource, int light, YsmPartMask mask, YsmRenderPose pose) {
+        runtime.recordComplexity(0);
         if (runtime.geometry().roots.isEmpty())
             return false;
 
@@ -68,6 +69,7 @@ public class YsmRenderer {
     }
 
     public boolean renderSubEntity(PoseStack stack, MultiBufferSource bufferSource, int light, YsmSubEntity entity) {
+        runtime.recordComplexity(0);
         if (entity == null || entity.geometry().roots.isEmpty())
             return false;
 
@@ -130,6 +132,7 @@ public class YsmRenderer {
 
     private boolean renderAttachment(PoseStack stack, MultiBufferSource bufferSource, int light,
                                       YsmAttachmentPoint point, YsmRenderPose pose) {
+        runtime.recordComplexity(0);
         if (point == null)
             return false;
         YsmGeometry.Bone bone = findAttachmentBone(point.boneName());
@@ -178,6 +181,7 @@ public class YsmRenderer {
 
     public boolean renderFirstPersonArm(PoseStack stack, MultiBufferSource bufferSource, int light,
                                          boolean left, YsmRenderPose pose) {
+        runtime.recordComplexity(0);
         YsmGeometry armGeo = runtime.getArmGeometry();
         if (armGeo == null) {
             armGeo = runtime.geometry();
@@ -388,6 +392,7 @@ public class YsmRenderer {
         for (YsmGeometry.Quad quad : cube.quads) {
             if (!quad.visible())
                 continue;
+            runtime.recordComplexity(1);
             quad(vertices, stack, quad, light);
         }
     }

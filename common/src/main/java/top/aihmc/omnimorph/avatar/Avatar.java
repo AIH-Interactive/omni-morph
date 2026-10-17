@@ -751,6 +751,8 @@ public class Avatar {
     // limits
     public int animationComplexity;
     public final Instructions complexity;
+    private long ysmComplexityFrame = Long.MIN_VALUE;
+
     public final Instructions init, render, worldRender, tick, worldTick, animation;
     public final Map<String, Instructions> customInstructions = new HashMap<>();
     public final RefilledNumber particlesRemaining, soundsRemaining;
@@ -1714,6 +1716,18 @@ public class Avatar {
         events.clear();
     }
 
+    /** YSM uses Figura's unit: one submitted polygon face, rather than bones or vertices. */
+    public void recordYsmComplexity(int faces) {
+        if (complexity == null) {
+            return;
+        }
+        long frame = top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.currentFrame();
+        if (ysmComplexityFrame != frame) {
+            ysmComplexityFrame = frame;
+            complexity.reset(permissions == null ? complexity.max : permissions.get(Permissions.COMPLEXITY));
+        }
+        complexity.use(faces);
+    }
     public boolean isYsmNative() {
         return ysmRuntime != null;
     }

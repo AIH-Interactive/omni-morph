@@ -58,7 +58,8 @@ public class PlayerStatusWidget extends StatusWidget {
         status = !FiguraMod.isLocal(owner) ? 3 : avatar.fileSize > NetworkStuff.getSizeLimit() ? 1 : avatar.fileSize > NetworkStuff.getSizeLimit() * 0.75 ? 2 : 3;
 
         // complexity
-        int complexity = avatar.renderer == null ? 0 : avatar.complexity.pre >= avatar.permissions.get(Permissions.COMPLEXITY) ? 1 : 3;
+        int complexity = avatar.renderer == null && !avatar.isYsmNative() ? 0
+                : avatar.complexity.pre >= avatar.permissions.get(Permissions.COMPLEXITY) ? 1 : 3;
         status += complexity << 2;
 
         // script init
