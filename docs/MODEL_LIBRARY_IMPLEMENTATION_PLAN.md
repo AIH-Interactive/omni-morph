@@ -1,6 +1,6 @@
 # OmniMorph 模型库开发计划书
 
-状态：实施中，M0～M1 检查通过；M2 正在实施，M3～M7 尚未实施。各阶段证据见 8.2，不代表功能已全部实现或视觉验收通过。
+状态：实施中，M0～M2 检查通过；M3～M7 尚未实施。各阶段证据见 8.2，不代表功能已全部实现或视觉验收通过。
 
 用户实施中补充（2026-10-18）：本次目标版本为 `1.0.0-alpha.2`，界面显示对应 `1.0 Alpha 2`；在客户端阶段同步构建、模组清单、产物和 README。新增图标允许先绘制 SVG 再通过脚本转换 PNG；缺省封面仍使用根目录 ingame_logo.png。该补充覆盖本文原有“不升级版本”约束，不改变 M0→M7 顺序及其他范围。
 
@@ -506,7 +506,7 @@ if ($buildExitCode -ne 0) {
 | --- | --- | --- | --- | --- | --- |
 | M0 | PASS | Rust storage 7/7；Fabric compileJava、ysmPackageSmokeTest、ysmCryptoSmokeTest；8 样例哈希/JSON/分页预算，均退出 0 | 真实模型/GUI 为后续阶段 MANUAL/PENDING | 75ffa9d / origin main 已确认 | 8143665 / origin master 已确认 |
 | M1 | PASS | cargo test library 12/12；storage 12/12；全 Rust 回归 37/37，退出 0；rustfmt/diff check 通过 | 无 GUI；真实部署凭据和外部生产二进制回滚 MANUAL/PENDING | e49f306 / origin main 已确认 | 4178e06 / origin master 已确认 |
-| M2 | IN_PROGRESS（尚未完成阶段提交检查点） | library 专项 34 通过；全 Rust 回归 59 通过；线程饱和隔离测试 1 通过，退出均 0 | 尚无 GUI；真实部署 MANUAL/PENDING | 本次仅先推送补充计划；阶段完成后另记检查点 | 实现未提交，待最终编译/差异审查 |
+| M2 | PASS（提交推送检查点见下） | cargo build 退出 0；library 专项 34 通过；全 Rust 回归 59 通过；线程饱和隔离测试 1 通过，退出均 0；rustfmt/diff check 通过 | 无 GUI；真实部署 MANUAL/PENDING | 本行所在 M2 进度提交；推送确认后进入 M3 | 578dfbc / origin master 已核对一致 |
 | M3 | NOT_STARTED | — | — | — | — |
 | M4 | NOT_STARTED | — | — | — | — |
 | M5 | NOT_STARTED | — | — | — | — |
@@ -532,14 +532,16 @@ if ($buildExitCode -ne 0) {
 - `cargo test library` 12/12、`cargo test storage` 12/12、涉及启动/协议回归的 `cargo test` 37/37，退出码均 0。测试包括迁移失败回滚、备份恢复可读、重启、联合事务失败、并发唯一键、操作重用冲突、密码向量/错误参数、配置删除/恢复不复活旧令牌。新增 Rust 文件定向 rustfmt；git diff --check 通过。
 - 真实管理员部署凭据、交互式密码录入为 MANUAL/PENDING；现有存储回归中由环境变量选择的外部旧/生产二进制回滚未运行，归入 M7，不将其标为 PASS。无 GUI 改动，无新增生产依赖，版本不变。
 
-#### M2 在制记录（阶段未完成，2026-10-18）
+#### M2 执行证据（2026-10-18）
 
 - 新增 `omnm-cloud/src/api/library/` 及 `service/library.rs`、`service/library/{images,uploads,transfers}.rs`：已接入模型列表/详情/修改/删除、收藏、UUID 授权及可信玩家解析、管理员登录/刷新/退出/屏蔽路由、封面流、上传 reserve/body/commit/cancel、预览/正式下载及收据。当前 capabilities 的 enabled 保持 false，M3 装备/分发闭环验收完成前不能宣称可用。
 - 库上传复用原资源 grant 与同一个有界流写入实现；pending 来源绑定先于发放 grant，资源描述与模型发布使用同一 SQLite 事务。旧 CommitUpload、Equip/Delete 和 guessed resource URL 已加库来源保护接缝；后续完整分发失效属于 M3。
 - 包检查增加服务端 NBT 哈希、密文身份、名称/作者读取与 modified UTF-8 解码。封面为受限 PNG/JPEG 解码，最小专用 image 依赖只启用 PNG/JPEG，不引入图像服务。
 - 已执行真实临时 Axum 服务测试，覆盖列表/总数、pending 隐藏、收藏重试、私有覆盖授权、版本冲突、伪造上传者、上传校验/取消/断流重试/重启/提交竞争、动态大小限制、不支持格式早拒绝、删除 tombstone 重试、封面校验、管理员登录限流/令牌操作重试/配置删除恢复不复活旧令牌、玩家撤销、传输策略/版本/有效期复查、下载确认与按 UTC 日去重、预览不计下载、上传者自动授权。
 - 最新 `cargo test library` 34 通过；`cargo test` 59 通过、1 个线程饱和测试按设计隔离；该测试通过 `cargo test worker_saturation_returns_503_and_recovers_after_permits_are_released -- --ignored --test-threads=1` 单独执行通过，合计 60 个注册测试均已运行，退出均 0。日志保存在本机临时目录 `omnimorph-m2-library.log`、`omnimorph-m2-all.log`、`omnimorph-m2-saturation.log`。合成加密样例仅证明解析边界，不是实际模型渲染证据。
-- M2 待完成：最终普通二进制编译、部署/API 文档及可读性/差异审查、独立后端和客户端阶段检查点提交推送。用户要求先单独推送本次补充计划书；这不等于 M2 已提交完成，不提前进入 M3。真实部署/交互式凭据和后续 GUI 验收标记 MANUAL/PENDING，不阻塞阶段。
+- `cargo build` 普通二进制编译通过，退出 0；六项未使用代码警告为基础测试入口及 M3 待接入的分发函数，无编译错误。已完成范围内可读性检查、定向 rustfmt、暂存差异及 git diff --check；新增受限图片解码依赖仅启用 PNG/JPEG。
+- 后端 `578dfbc8651e24019064c3be740efd96d7344ff0` 已推送 origin/master 且通过 ls-remote 核对一致；本客户端进度提交推送确认后才进入 M3。补充计划已先按用户要求在 `b64aa05` 独立推送。未纳入 build.log、refs、spm-cloud 或任何真实凭据。
+- 真实部署/交互式凭据和后续 GUI 验收为 MANUAL/PENDING；本阶段不宣称装备/同步闭环已完成，也不启用 capabilities.enabled。M3 将实施双协议来源策略与私有当前装备展示选项，默认关闭。
 
 ## 9. 安全、兼容性、异常与性能验收方案
 
