@@ -13,7 +13,7 @@
 | H4 | 完成并已推送；真实 GPU/画面项 MANUAL/PENDING，最终集中验收 | `8c3955c1b1b0985b1c2af86cc293a86e41c42859`，公共 GPU 后端 |
 | H5 | 完成并已推送；真实 GPU/画面项 MANUAL/PENDING，最终集中验收 | `76b299102f232cb5735de0949536d73b057c5827`，双引擎完整接入 |
 | H6 | 完成；四 runner/最终 JAR 全部通过 | `432af82fe4765111f7d436c4b86571d27b0ec2f3`，[CI 39015871560](https://github.com/AIH-Interactive/omni-morph/actions/runs/39015871560) |
-| H6 补充 | 实施中；用户追加 Linux ARM64 与 Android native 构建 | 六平台集合；Android arm64-v8a/API26，设备 JNI/游戏 MANUAL/PENDING |
+| H6 补充 | 完成；六平台 native 与最终 JAR 检查通过 | `48910b703ab75fdede34a6b9d48eee50c36d8047`，[CI 39017540304](https://github.com/AIH-Interactive/omni-morph/actions/runs/39017540304)；Android 设备 JNI/游戏 MANUAL/PENDING |
 | H7 | 待实施 | 稳定性与性能 |
 | H8 | 待实施 | 最终审计交付 |
 
@@ -264,3 +264,10 @@
   日志 `h6-extra-final-local.log`，六平台 YAML/发布依赖检查 `h6-extra-workflow-check.log`。远端结果继续验证。
 - 首轮补充 CI 39017120294：Android NDK 编译、qemu 数值测试及 ELF 检查成功；其余五平台因 PowerShell 数组
   splatting 将 `-Platform` 当作位置参数而未进入编译。改用命名参数哈希表，继续六平台验证。
+- 补充最终 [CI 39017540304](https://github.com/AIH-Interactive/omni-morph/actions/runs/39017540304) 全部成功：六平台 native、合并、五平台最终 JAR 真 JNI 与 Android 最终 JAR ELF/许可验证，最后才发布
+  [六平台下载产物](https://github.com/AIH-Interactive/omni-morph/actions/runs/39017540304/artifacts/12094733545)。
+  Linux ARM64 实际 NEON 能力 65、内核 `[0,-1,3]`，直接符号下限 glibc 2.17 / GLIBCXX 3.4 / CXXABI 1.3.9。
+- 下载的最终 JAR SHA-256：`a99495f863f15ce19b8f50e0805fee5957a9e66aa94195d57700242620193475`。
+  本地检查六库及两份 Android NDK 许可 hash，并从此包实际加载 Windows JNI 数值差分成功；
+  日志 `h6-six-published-windows.log`，CI 状态 `h6-six-jobs.json`，两新增平台日志 `h6-six-linux-arm64.log` / `h6-six-android.log`。
+  下载包和清单位于 `build/reports/acceleration/h6-six-final/`；设备 JNI/游戏待实机的边界保持不变。
