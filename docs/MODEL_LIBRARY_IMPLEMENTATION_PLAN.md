@@ -1,6 +1,6 @@
 # OmniMorph 模型库开发计划书
 
-状态：实施中，M0～M4 自动检查通过；M4 正在完成独立提交/推送检查点，完成后才进入 M5。M5～M7 尚未实施。各阶段证据见 8.2，不代表功能已全部实现或视觉验收通过。
+状态：实施中，M0～M5 自动检查通过；M5 正在完成独立提交/推送检查点，完成后才进入 M6。M6～M7 尚未实施。各阶段证据见 8.2，不代表功能已全部实现或视觉验收通过。
 
 用户实施中补充（2026-10-18）：本次目标版本为 `1.0.0-alpha.2`，界面显示对应 `1.0 Alpha 2`；在客户端阶段同步构建、模组清单、产物和 README。新增图标允许先绘制 SVG 再通过脚本转换 PNG；缺省封面仍使用根目录 ingame_logo.png。该补充覆盖本文原有“不升级版本”约束，不改变 M0→M7 顺序及其他范围。
 
@@ -514,8 +514,8 @@ if ($buildExitCode -ne 0) {
 | M1 | PASS | cargo test library 12/12；storage 12/12；全 Rust 回归 37/37，退出 0；rustfmt/diff check 通过 | 无 GUI；真实部署凭据和外部生产二进制回滚 MANUAL/PENDING | e49f306 / origin main 已确认 | 4178e06 / origin master 已确认 |
 | M2 | PASS | cargo build 退出 0；library 专项 34 通过；全 Rust 回归 59 通过；线程饱和隔离测试 1 通过，退出均 0；rustfmt/diff check 通过 | 无 GUI；真实部署 MANUAL/PENDING | b36a934 / origin main 已核对一致 | 578dfbc / origin master 已核对一致 |
 | M3 | PASS（自动检查） | cargo build；Rust 全量 75 通过及饱和隔离 1 通过；Fabric compileJava、avatarCloudRefreshSmokeTest、cloudAdapterSmokeTest；退出均 0，diff check 通过 | 真实游戏/部署回滚 MANUAL/PENDING | 6648035 / origin main 已核对一致 | 392b9ad / origin master 已核对一致 |
-| M4 | PASS（自动检查） | Fabric build；8 个库专项及云端刷新/CloudAdapter、YSM package/binary/crypto 回归；Rust build、全量 76 通过及饱和隔离 1 通过，退出均 0；alpha.2 产物清单/服务类核对通过 | 真实窗口/Mixin/复杂模型/GPU 像素 MANUAL/PENDING | 本次 M4 独立检查点提交，推送后核对远端 | 213f306 / origin master 已核对一致 |
-| M5 | NOT_STARTED | — | — | — | — |
+| M4 | PASS（自动检查） | Fabric build；8 个库专项及云端刷新/CloudAdapter、YSM package/binary/crypto 回归；Rust build、全量 76 通过及饱和隔离 1 通过，退出均 0；alpha.2 产物清单/服务类核对通过 | 真实窗口/Mixin/复杂模型/GPU 像素 MANUAL/PENDING | 6f930cf / origin main 已核对一致 | 213f306 / origin master 已核对一致 |
+| M5 | PASS（自动检查） | Fabric build、布局/主屏回调专项、缩略图/预览运行时/正式装备回归；Rust build、全量 77 通过及饱和隔离 1 通过，退出均 0；中英 JSON 和占位图哈希核对通过 | 分辨率/GUI scale/CJK/焦点/遮挡/真实全屏返回 MANUAL/PENDING | 本次 M5 独立检查点提交，推送后核对远端 | cab9c24 / origin master 已核对一致 |
 | M6 | NOT_STARTED | — | — | — | — |
 | M7 | NOT_STARTED | — | — | — | — |
 
@@ -598,6 +598,19 @@ if ($buildExitCode -ne 0) {
 - M4 最终客户端检查：`:fabric:build`；libraryMetadataSmokeTest、libraryClientSmokeTest、libraryPreviewCacheSmokeTest、libraryTransferSmokeTest、libraryPreviewRuntimeSmokeTest、libraryEquipmentSmokeTest、libraryPackagePreparationSmokeTest、libraryThumbnailSmokeTest；avatarCloudRefreshSmokeTest、cloudAdapterSmokeTest、ysmPackageSmokeTest、ysmBinaryResourcesSmokeTest、ysmCryptoSmokeTest，同批退出 0，日志 `omnimorph-m4-final-client.log`。产物 `omni-morph-1.0.0-alpha.2+26.1.2-fabric-mc.jar` 内清单为项目既有格式 `1.0.0-alpha.2+26.1.2-17942a0`，新增服务类存在；SHA-256 `36d38b6be86f26f831b62a74162c0497f402d39b4ddec403b10dd7b86700f6aa`。README/界面/Gradle/原生缓存/CI 同为 alpha.2。
 - M4 后端检查：cargo build、全量 76 通过/饱和项按既有规则隔离，另批饱和 1/1，均退出 0；Rust 新增代码按现有 2024 格式风格核对、diff check 通过。日志 `omnimorph-m4-backend-build.log`、`omnimorph-m4-backend-tests.log`、`omnimorph-m4-backend-saturation.log`。后端独立提交 `213f30648dee1a31e19ffad58b98e5fb61275563` 已推送 origin/master，ls-remote 一致。
 - 真实游戏窗口、全屏返回的实际交互、Mixin 启动、GPU 像素/CJK/复杂模型材质动画验收保持 MANUAL/PENDING，不阻塞本次检查点；M6 仍负责上传开关手动修改不被回调覆盖的表单验证。完成客户端本次独立提交/推送并核对远端后才进入 M5；未纳入 build.log、refs、spm-cloud、部署凭据或其他额外目标。
+
+#### M5 实施及检查点记录（2026-10-18）
+
+- M4 客户端 `6f930cf8f208f84171eaeab30e0c2c6fecb0919f`、后端 `213f30648dee1a31e19ffad58b98e5fb61275563` 均已独立提交/推送且 ls-remote 一致后，开始本阶段。
+- 新增 ModelLibraryScreen，在衣柜旁增加独立模型库 Tab；使用既有 AbstractPanelScreen、Button、SearchBar、ScrollBarWidget、EntityPreview 和现有强调色。接入我的模型/收藏/公共库、分类/类型/授权筛选、300 ms 搜索防抖、服务端排序/分页/总数、加载/空/离线/旧服务器/错误态及刷新重试。页面不预读管理数据，上传/授权/管理表单仍由 M6 接入。
+- 新增 ModelLibraryLayout、ModelLibraryGrid、ModelCardWidget。列表约占 70%，列数按逻辑宽度计算，单页可滚动，只持有视口及一行预取的卡片/缩略图；渲染和点击共用裁剪几何，方向键移动选择。resize 重排复用页面/预览/已有卡片数据，不发起列表重新查询，保留原首个可见模型所在行作为锚点。小于 300×220 时提示调整窗口或 GUI scale，保留返回按钮。
+- 卡片含自定义封面/指定占位、Figura/YSM/加密 YSM 徽标、名称、第一作者及“等”、下载/收藏计数、收藏按钮和授权提示；tooltip 提供内部名称、完整作者、上传者与完整 UUID，右键复制 UUID。封面失败回退同一占位，提示刷新重试。新增 Tab 图标来自仓库 SVG `tools/art/model-library.svg`，由 `tools/render-library-icon.ps1` 转 PNG；不修改既有纹理 UV。占位图与根 ingame_logo.png SHA-256 均为 `e1c955ce47cca2b7e9a0387d179b8257aefdd27bbc36ad80c7f8b19b91078716`。
+- 选择/再次点击取消/换页只准备隔离预览；全屏携带同一会话，父屏 removed 仅在 isExpanded 时保留所有权，普通退出/断连清理网格、缩略图、预览及本屏任务。正式按钮使用 M4 来源装备服务，默认私有展示关闭，失败可显式重试。收藏、公开性、删除使用后端 operation_id；公开性/删除提交 policy_revision 的 CAS，完成或失败均重查列表，不盲改本地计数；删除需二次点击确认，后端不允许的管理操作不显示。
+- modelLibraryLayoutSmokeTest 覆盖 1/2/3/更多列、不同视口、行间空隙/视口外命中拒绝、滚动锚点和一行预取预算。modelLibraryCatalogSmokeTest 在既有 native-loader fixture 中运行真实主屏请求/变更回调与本地 HTTP，覆盖旧搜索被取消、新结果保留、编码查询/服务端筛选排序/页大小、策略版本 CAS、收藏、确认后的删除及隐藏条目清理选择，并检查没有 upload/equip 请求；没有构建或渲染 GUI 控件，不把回调测试当作窗口验收。均通过，日志 `omnimorph-m5-layout.log`、`omnimorph-m5-catalog.log`。
+- 对接发现已写入计划的 name 排序未在后端白名单实现，仅补齐这一合同项：按 display_name COLLATE NOCASE、model_id 在分页前排序。真实 API 专项用三个单项页验证全局顺序、同名大小写稳定排序、total/has_next 和非法排序拒绝；通过，日志 `omnimorph-m5-name-sort.log`。测试修正了当前 uuid 功能集合不包含 new_v4 的 fixture 用法，复用既有 random_id，没有增加依赖。
+- 最终客户端 `:fabric:build`、modelLibraryCatalogSmokeTest、modelLibraryLayoutSmokeTest、libraryThumbnailSmokeTest、libraryPreviewRuntimeSmokeTest、libraryEquipmentSmokeTest 通过；按现有强调色完成最终差异检查后，再执行 Fabric build/两个 M5 专项通过。日志 `omnimorph-m5-final-client.log`、`omnimorph-m5-final-layout.log`。中英语言 JSON 可解析、diff check 通过；未格式化无关旧代码。
+- 最终后端 cargo build、77 项全量通过，既有饱和项独立 1/1 通过；Rust 新代码格式及 diff check 通过。日志 `omnimorph-m5-backend-build.log`、`omnimorph-m5-backend-tests.log`、`omnimorph-m5-backend-saturation.log`。独立提交 `cab9c24d329a83fbb6adf6a7ff2b5b7539c0a75a` 已推送 origin/master，ls-remote 一致。
+- 1280×720、1920×1080、2560×1440、多 GUI scale 的真实窗口、CJK 字形、焦点/Tab、滚动遮挡、实际图片/GPU、全屏往返及删除确认交互均为 MANUAL/PENDING，按用户要求跳过，不声称视觉 PASS。完成客户端 M5 独立提交/推送并核对远端后才进入 M6；版本保持 alpha.2。
 
 ## 9. 安全、兼容性、异常与性能验收方案
 

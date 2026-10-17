@@ -29,6 +29,7 @@ public class PanelSelectorWidget extends AbstractContainerElement {
                 add(s -> Pair.of(new ProfileScreen(s), PanelIcon.PROFILE));
                 add(s -> Pair.of(new BrowserScreen(s), PanelIcon.BROWSER));
                 add(s -> Pair.of(new WardrobeScreen(s), PanelIcon.WARDROBE));
+                add(s -> Pair.of(new ModelLibraryScreen(s), PanelIcon.LIBRARY));
                 add(s -> Pair.of(new PermissionsScreen(s), PanelIcon.PERMISSIONS));
                 add(s -> Pair.of(new ConfigScreen(s), PanelIcon.SETTINGS));
                 add(s -> Pair.of(new HelpScreen(s), PanelIcon.HELP));
@@ -137,7 +138,8 @@ public class PanelSelectorWidget extends AbstractContainerElement {
         PERMISSIONS(3),
         SETTINGS(4),
         HELP(5),
-        OTHER(6);
+        OTHER(6),
+        LIBRARY(0);
 
         public final int uv;
 
@@ -154,7 +156,9 @@ public class PanelSelectorWidget extends AbstractContainerElement {
         private final PanelSelectorWidget parent;
 
         public PanelButton(int x, int y, int width, int height, Component text, PanelIcon icon, PanelSelectorWidget parent, OnPress pressAction) {
-            super(x, y, width, height, 20 * icon.uv, 0, 20, ICONS, 140, 20, text, null, pressAction);
+            super(x, y, width, height, 20 * icon.uv, 0, 20,
+                    icon == PanelIcon.LIBRARY ? new FiguraIdentifier("textures/gui/library.png") : ICONS,
+                    icon == PanelIcon.LIBRARY ? 20 : 140, 20, text, null, pressAction);
             this.parent = parent;
         }
 

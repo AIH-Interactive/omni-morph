@@ -383,6 +383,23 @@ tasks.register('libraryThumbnailSmokeTest', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.model.library.LibraryThumbnailSmokeTest'
 }
 
+tasks.register('modelLibraryLayoutSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks logical-pixel card reflow, virtualization, scroll anchors and clipped pointer hits.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.library.ModelLibraryLayoutSmokeTest'
+}
+
+tasks.register('modelLibraryCatalogSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Runs actual catalog screen callbacks against HTTP, without pixel or GUI correctness claims.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest'
+    args '--library-catalog'
+}
+
 tasks.register("ysmBaselineSmokeTest", JavaExec) {
     group = "verification"
     description = "Checks YSM candidate discovery, diagnostics, and strict scan gates using synthetic fixtures."
