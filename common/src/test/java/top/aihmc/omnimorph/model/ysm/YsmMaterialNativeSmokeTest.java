@@ -89,14 +89,17 @@ public final class YsmMaterialNativeSmokeTest {
             top.aihmc.omnimorph.permissions.PermissionManager.init();
             if ((args.length == 2 && args[0].equals("--library-preview"))
                     || (args.length == 1 && args[0].equals("--library-equipment"))
-                    || (args.length == 1 && args[0].equals("--library-preparation"))) {
+                    || (args.length == 1 && args[0].equals("--library-preparation"))
+                    || (args.length == 1 && args[0].equals("--library-catalog"))) {
                 client.sounds = YsmStabilitySmokeTest.soundManager(unsafe, true);
                 Field particles = Minecraft.class.getDeclaredField("particleEngine");
                 particles.setAccessible(true);
                 Object previousParticles = particles.get(client);
                 try {
                     particles.set(client, unsafe.allocateInstance(AvatarAsyncLoadSmokeTest.RecordingParticles.class));
-                    if (args[0].equals("--library-preparation")) {
+                    if (args[0].equals("--library-catalog")) {
+                        top.aihmc.omnimorph.model.library.ModelLibraryCatalogSmokeTest.run(client::drain);
+                    } else if (args[0].equals("--library-preparation")) {
                         top.aihmc.omnimorph.model.library.LibraryPackagePreparationSmokeTest.run();
                     } else if (args[0].equals("--library-equipment")) {
                         top.aihmc.omnimorph.model.library.LibraryEquipmentSmokeTest.run(client::drain);
