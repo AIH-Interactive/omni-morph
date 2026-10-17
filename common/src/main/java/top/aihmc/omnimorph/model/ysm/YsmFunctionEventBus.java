@@ -1,0 +1,50 @@
+package top.aihmc.omnimorph.model.ysm;
+
+import top.aihmc.omnimorph.model.ysm.controller.YsmControllerSlot;
+import top.aihmc.omnimorph.model.ysm.controller.YsmControllerSlotBinder;
+
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+public class YsmFunctionEventBus {
+    private final Set<String> executedEventsThisFrame = new HashSet<>();
+    private final ArrayDeque<String> recentEvents = new ArrayDeque<>();
+
+    public void beginFrame() {
+        executedEventsThisFrame.clear();
+    }
+
+    public Set<String> eventsForController(String controllerName, YsmControllerSlot slot) {
+        return YsmControllerSlotBinder.eventNamesForController(controllerName, slot);
+    }
+
+    public List<String> eventsForController(String controllerName, YsmControllerSlot slot, Collection<String> events) {
+        if (events == null || events.isEmpty())
+            return List.of();
+        return YsmControllerSlotBinder.eventNamesForController(controllerName, slot).stream()
+                .filter(events::contains)
+                .filter(event -> !executedEventsThisFrame.contains(event))
+                .toList();
+    }
+
+    public List<String> unboundEvents(Collection<String> events) {
+        return YsmControllerSlotBinder.unboundEvents(events, executedEventsThisFrame);
+    }
+
+    public void markExecuted(String event, String slot, int functionCount) {
+        if (event == null || event.isBlank())
+            return;
+        executedEventsThisFrame.add(event);
+        String value = slot == null || slot.isBlank() ? event + " x" + functionCount : event + " @" + slot + " x" + functionCount;
+        recentEvents.addFirst(value);
+        while (recentEvents.size() > 16)
+            recentEvents.removeLast();
+    }
+
+    public List<String> recentEvents() {
+        return List.copyOf(recentEvents);
+    }
+}

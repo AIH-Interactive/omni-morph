@@ -1,7 +1,7 @@
 package com.github.ustc_zzzz.imageio.avif;
 
-import org.figuramc.figura.avatar.ysm.crypto.YsmDecodeBudget;
-import org.figuramc.figura.avatar.ysm.crypto.YsmDecodeException;
+import top.aihmc.omnimorph.avatar.ysm.crypto.YsmDecodeBudget;
+import top.aihmc.omnimorph.avatar.ysm.crypto.YsmDecodeException;
 
 import javax.imageio.stream.MemoryCacheImageInputStream;
 import java.awt.image.BufferedImage;

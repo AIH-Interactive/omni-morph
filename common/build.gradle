@@ -63,7 +63,7 @@ tasks.register('networkProtocolSmokeTest', JavaExec) {
     description = 'Executes the frozen Java/Rust v1 wire vectors and legacy frame baseline.'
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'org.figuramc.figura.backend2.protocol.NetworkProtocolSmokeTest'
+    mainClass = 'top.aihmc.omnimorph.backend2.protocol.NetworkProtocolSmokeTest'
     args rootProject.file('protocol').path
 }
 
@@ -114,7 +114,7 @@ tasks.register("scanYsmModels", JavaExec) {
     group = "verification"
     description = "Scans YSM model packages and validates geometry, resources, and animation JSON."
     classpath = sourceSets.main.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmModelScanner"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmModelScanner"
     if ((project.findProperty("ysmScanDump") ?: "false").toString().toBoolean()) {
         args "--dump"
     }
@@ -135,7 +135,7 @@ tasks.register("ysmPhase41SmokeTest", JavaExec) {
     description = "Runs YSM phase 4.1 function package parser and controller-slot smoke checks."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmPhase41SmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmPhase41SmokeTest"
 }
 
 tasks.register("ysmPackageSmokeTest", JavaExec) {
@@ -143,7 +143,7 @@ tasks.register("ysmPackageSmokeTest", JavaExec) {
     description = "Runs YSM folder and zip resource package smoke checks."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath
-    mainClass = "org.figuramc.figura.avatar.ysm.YsmPackageSmokeTest"
+    mainClass = "top.aihmc.omnimorph.avatar.ysm.YsmPackageSmokeTest"
 }
 
 tasks.register("ysmBaselineSmokeTest", JavaExec) {
@@ -151,7 +151,7 @@ tasks.register("ysmBaselineSmokeTest", JavaExec) {
     description = "Checks YSM candidate discovery, diagnostics, and strict scan gates using synthetic fixtures."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmBaselineSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmBaselineSmokeTest"
 }
 
 tasks.register("ysmDataBoundarySmokeTest", JavaExec) {
@@ -159,7 +159,7 @@ tasks.register("ysmDataBoundarySmokeTest", JavaExec) {
     description = "Checks YSM source/data equivalence, limits, cancellation, and ordinary Figura compilation."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.avatar.ysm.YsmDataBoundarySmokeTest"
+    mainClass = "top.aihmc.omnimorph.avatar.ysm.YsmDataBoundarySmokeTest"
 }
 
 tasks.register("ysmLocalCorpusSmokeTest", JavaExec) {
@@ -167,7 +167,7 @@ tasks.register("ysmLocalCorpusSmokeTest", JavaExec) {
     description = "Loads local YSM data and compiles ordinary Figura folder/ZIP assets through their formal loader."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.avatar.ysm.YsmLocalCorpusSmokeTest"
+    mainClass = "top.aihmc.omnimorph.avatar.ysm.YsmLocalCorpusSmokeTest"
     args rootProject.file(project.findProperty("ysmScanPath") ?: "refs/avatars").path
 }
 
@@ -176,7 +176,7 @@ tasks.register("ysmCryptoSmokeTest", JavaExec) {
     description = "Verifies fixed crypto 1/2/3 vectors, malformed inputs, and optional local encrypted files."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath
-    mainClass = "org.figuramc.figura.avatar.ysm.crypto.YsmCryptoSmokeTest"
+    mainClass = "top.aihmc.omnimorph.avatar.ysm.crypto.YsmCryptoSmokeTest"
     def corpus = project.findProperty("ysmCryptoCorpus")
     if (corpus != null) {
         args rootProject.file(corpus).path
@@ -188,7 +188,7 @@ tasks.register("ysmBinaryInputSmokeTest", JavaExec) {
     description = "Checks binary animation-duration sentinels and strict geometry float boundaries."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath
-    mainClass = "org.figuramc.figura.avatar.ysm.binary.YsmBinaryInputSmokeTest"
+    mainClass = "top.aihmc.omnimorph.avatar.ysm.binary.YsmBinaryInputSmokeTest"
 }
 
 tasks.register("ysmBinaryFormatSmokeTest", JavaExec) {
@@ -196,7 +196,7 @@ tasks.register("ysmBinaryFormatSmokeTest", JavaExec) {
     description = "Checks fixed binary format vectors and explicit no-DWORD layout equivalence."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath
-    mainClass = "org.figuramc.figura.avatar.ysm.binary.YsmBinaryFormatSmokeTest"
+    mainClass = "top.aihmc.omnimorph.avatar.ysm.binary.YsmBinaryFormatSmokeTest"
 }
 
 tasks.register("ysmBinaryResourcesSmokeTest", JavaExec) {
@@ -204,7 +204,7 @@ tasks.register("ysmBinaryResourcesSmokeTest", JavaExec) {
     description = "Checks direct binary geometry mapping, bounded image decoding, and optional encrypted corpus resources."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath
-    mainClass = "org.figuramc.figura.avatar.ysm.binary.YsmBinaryResourcesSmokeTest"
+    mainClass = "top.aihmc.omnimorph.avatar.ysm.binary.YsmBinaryResourcesSmokeTest"
     def corpus = project.findProperty("ysmCryptoCorpus")
     if (corpus != null) {
         args rootProject.file(corpus).path
@@ -216,7 +216,7 @@ tasks.register("ysmPayloadSmokeTest", JavaExec) {
     description = "Checks ciphertext-only YSM output and serialized disk contents without decrypted resources."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.avatar.ysm.YsmPayloadSmokeTest"
+    mainClass = "top.aihmc.omnimorph.avatar.ysm.YsmPayloadSmokeTest"
 }
 
 tasks.register("ysmPrivateDiagnosticsSmokeTest", JavaExec) {
@@ -224,7 +224,7 @@ tasks.register("ysmPrivateDiagnosticsSmokeTest", JavaExec) {
     description = "Captures logs to check private geometry diagnostics and ordinary logging compatibility."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.avatar.ysm.YsmPrivateDiagnosticsSmokeTest"
+    mainClass = "top.aihmc.omnimorph.avatar.ysm.YsmPrivateDiagnosticsSmokeTest"
 }
 
 tasks.register("ysmAnimationWeightSmokeTest", JavaExec) {
@@ -232,7 +232,7 @@ tasks.register("ysmAnimationWeightSmokeTest", JavaExec) {
     description = "Checks dynamic animation clip weights and per-evaluator isolation for M3."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmAnimationWeightSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmAnimationWeightSmokeTest"
 }
 
 tasks.register("ysmControllerIsolationSmokeTest", JavaExec) {
@@ -240,7 +240,7 @@ tasks.register("ysmControllerIsolationSmokeTest", JavaExec) {
     description = "Checks independent controller playback slots and numeric reference weights for M3."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmControllerIsolationSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmControllerIsolationSmokeTest"
 }
 
 tasks.register("ysmBlendTransitionSmokeTest", JavaExec) {
@@ -248,7 +248,7 @@ tasks.register("ysmBlendTransitionSmokeTest", JavaExec) {
     description = "Checks reference-shaped transition curve parsing and immutable interpolation for M3."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmBlendTransitionSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmBlendTransitionSmokeTest"
 }
 
 tasks.register("ysmPoseSamplingSmokeTest", JavaExec) {
@@ -256,7 +256,7 @@ tasks.register("ysmPoseSamplingSmokeTest", JavaExec) {
     description = "Checks shared pose sampling, owned snapshots and shortest rotation blending for M3."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmPoseSamplingSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmPoseSamplingSmokeTest"
 }
 
 tasks.register("ysmControllerPoseLayerSmokeTest", JavaExec) {
@@ -264,7 +264,7 @@ tasks.register("ysmControllerPoseLayerSmokeTest", JavaExec) {
     description = "Checks controller-layer snapshot transitions and multi-clip pose composition for M3."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmControllerPoseLayerSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmControllerPoseLayerSmokeTest"
 }
 
 tasks.register("ysmAnimationEventWindowSmokeTest", JavaExec) {
@@ -272,7 +272,7 @@ tasks.register("ysmAnimationEventWindowSmokeTest", JavaExec) {
     description = "Checks chronological animation event crossings before loop wrapping for M3."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmAnimationEventWindowSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmAnimationEventWindowSmokeTest"
 }
 
 tasks.register("ysmAnimationFrameClockSmokeTest", JavaExec) {
@@ -280,7 +280,7 @@ tasks.register("ysmAnimationFrameClockSmokeTest", JavaExec) {
     description = "Checks frame identity gating and repeated-pass animation/event cadence for M3."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmAnimationFrameClockSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmAnimationFrameClockSmokeTest"
 }
 
 tasks.register("ysmControllerSoundSmokeTest", JavaExec) {
@@ -288,7 +288,7 @@ tasks.register("ysmControllerSoundSmokeTest", JavaExec) {
     description = "Checks controller entry audio requests and held-condition sound transition gating for M3."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmControllerSoundSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmControllerSoundSmokeTest"
 }
 
 tasks.register("ysmChildControllerSmokeTest", JavaExec) {
@@ -296,7 +296,7 @@ tasks.register("ysmChildControllerSmokeTest", JavaExec) {
     description = "Checks parent-driven child controllers, exit/re-entry, empty-state cycles and bounded depth for M3."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmChildControllerSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmChildControllerSmokeTest"
 }
 
 tasks.register("ysmControllerContextSmokeTest", JavaExec) {
@@ -304,7 +304,7 @@ tasks.register("ysmControllerContextSmokeTest", JavaExec) {
     description = "Checks owned controller context for nested evaluation, animation sampling and timeline dispatch."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmControllerContextSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmControllerContextSmokeTest"
 }
 
 tasks.register("ysmControllerPhaseSmokeTest", JavaExec) {
@@ -312,7 +312,7 @@ tasks.register("ysmControllerPhaseSmokeTest", JavaExec) {
     description = "Checks reference controller phase order, fp.arm classification and per-frame event ownership."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmControllerPhaseSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmControllerPhaseSmokeTest"
 }
 
 tasks.register("ysmFirstPersonControllerSmokeTest", JavaExec) {
@@ -320,7 +320,7 @@ tasks.register("ysmFirstPersonControllerSmokeTest", JavaExec) {
     description = "Checks first-person controller lifetime and scoped view queries across camera changes."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmFirstPersonControllerSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmFirstPersonControllerSmokeTest"
 }
 
 tasks.register("ysmFunctionStageSmokeTest", JavaExec) {
@@ -328,7 +328,7 @@ tasks.register("ysmFunctionStageSmokeTest", JavaExec) {
     description = "Checks real Molang event execution in implicit stages and inactive first-person fallback exclusion."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmFunctionStageSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmFunctionStageSmokeTest"
 }
 
 tasks.register("ysmBoneMatrixSmokeTest", JavaExec) {
@@ -336,7 +336,7 @@ tasks.register("ysmBoneMatrixSmokeTest", JavaExec) {
     description = "Checks actual bone rendering matrices against independent weight, pivot and rotation-transition coefficients."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmBoneMatrixSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmBoneMatrixSmokeTest"
 }
 
 tasks.register("ysmDeferredPoseSmokeTest", JavaExec) {
@@ -344,7 +344,7 @@ tasks.register("ysmDeferredPoseSmokeTest", JavaExec) {
     description = "Checks immutable submission-time body/arm matrices, model scale and attachment visibility."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmDeferredPoseSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmDeferredPoseSmokeTest"
 }
 
 tasks.register("ysmPlayerTimelineSmokeTest", JavaExec) {
@@ -352,7 +352,7 @@ tasks.register("ysmPlayerTimelineSmokeTest", JavaExec) {
     description = "Checks production player CPU steps against fixed timeline body/arm matrices and owned event traces."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmPlayerTimelineSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmPlayerTimelineSmokeTest"
 }
 
 tasks.register("ysmSyncDeferSmokeTest", JavaExec) {
@@ -360,7 +360,7 @@ tasks.register("ysmSyncDeferSmokeTest", JavaExec) {
     description = "Checks reference local sync/defer event ordering, captured arguments and lifecycle budgets for M4."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmSyncDeferSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmSyncDeferSmokeTest"
 }
 
 tasks.register("ysmMolangBudgetSmokeTest", JavaExec) {
@@ -368,7 +368,7 @@ tasks.register("ysmMolangBudgetSmokeTest", JavaExec) {
     description = "Checks shared total Molang execution budgets, repeated-frame limits and recovery after exhaustion."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmMolangBudgetSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmMolangBudgetSmokeTest"
 }
 
 tasks.register("ysmFilterSmokeTest", JavaExec) {
@@ -376,7 +376,7 @@ tasks.register("ysmFilterSmokeTest", JavaExec) {
     description = "Checks real first/second-order binding signatures, reference recurrence and per-bone/view/model state."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmFilterSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmFilterSmokeTest"
 }
 
 tasks.register("ysmPerlinSmokeTest", JavaExec) {
@@ -384,7 +384,7 @@ tasks.register("ysmPerlinSmokeTest", JavaExec) {
     description = "Checks pure Java seeded Perlin against frozen native STB vectors and actual Molang bindings."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmPerlinSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmPerlinSmokeTest"
 }
 
 tasks.register("ysmBoneQuerySmokeTest", JavaExec) {
@@ -392,7 +392,7 @@ tasks.register("ysmBoneQuerySmokeTest", JavaExec) {
     description = "Checks live read-only bone vectors through actual Avatar bindings, including body/arm and Avatar isolation."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmBoneQuerySmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmBoneQuerySmokeTest"
 }
 
 tasks.register("ysmInputSmokeTest", JavaExec) {
@@ -400,7 +400,7 @@ tasks.register("ysmInputSmokeTest", JavaExec) {
     description = "Checks YSM input event state, owner gating, reference argument semantics and focus cleanup."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmInputSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmInputSmokeTest"
 }
 
 tasks.register("ysmParticleRequestSmokeTest", JavaExec) {
@@ -408,7 +408,7 @@ tasks.register("ysmParticleRequestSmokeTest", JavaExec) {
     description = "Checks captured particle parameters and reference emission planning without a game particle engine."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmParticleRequestSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmParticleRequestSmokeTest"
 }
 
 tasks.register("ysmParticleDispatchSmokeTest", JavaExec) {
@@ -416,7 +416,7 @@ tasks.register("ysmParticleDispatchSmokeTest", JavaExec) {
     description = "Checks owned particle dispatch lifecycle, queue budgets, model/world guards and formal binding gates."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmParticleDispatchSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmParticleDispatchSmokeTest"
 }
 
 tasks.register("ysmBindingReferenceAudit", JavaExec) {
@@ -424,7 +424,7 @@ tasks.register("ysmBindingReferenceAudit", JavaExec) {
     description = "Audits corpus binding dependencies with all encrypted candidates decoded by the shared scanner."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmBindingReferenceAudit"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmBindingReferenceAudit"
     args rootProject.file("refs/avatars").path
 }
 
@@ -433,7 +433,7 @@ tasks.register("ysmUnavailableBindingSmokeTest", JavaExec) {
     description = "Checks explicit rejection and recovery for a reserved binding without a verified reference contract."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmUnavailableBindingSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmUnavailableBindingSmokeTest"
 }
 
 tasks.register("ysmFunctionContractSmokeTest", JavaExec) {
@@ -441,7 +441,7 @@ tasks.register("ysmFunctionContractSmokeTest", JavaExec) {
     description = "Checks formal function loading, typed arguments/returns and per-Avatar temp/string/error contracts."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmFunctionContractSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmFunctionContractSmokeTest"
 }
 
 tasks.register("ysmControllerDiagnosticSmokeTest", JavaExec) {
@@ -449,7 +449,7 @@ tasks.register("ysmControllerDiagnosticSmokeTest", JavaExec) {
     description = "Checks formal controller resource/state parse diagnostics and encrypted privacy."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmControllerDiagnosticSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmControllerDiagnosticSmokeTest"
 }
 
 tasks.register("ysmVanillaStateSmokeTest", JavaExec) {
@@ -457,7 +457,7 @@ tasks.register("ysmVanillaStateSmokeTest", JavaExec) {
     description = "Checks native glider/elytra state and reference blink timing through formal bindings."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmVanillaStateSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmVanillaStateSmokeTest"
 }
 
 tasks.register("ysmParticleNativeSmokeTest", JavaExec) {
@@ -465,7 +465,7 @@ tasks.register("ysmParticleNativeSmokeTest", JavaExec) {
     description = "Checks production particle submission with native lifetime APIs and real owner quotas using a CPU recording engine."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmParticleNativeSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmParticleNativeSmokeTest"
 }
 
 tasks.register("ysmSoundNativeSmokeTest", JavaExec) {
@@ -473,7 +473,7 @@ tasks.register("ysmSoundNativeSmokeTest", JavaExec) {
     description = "Checks formal sound binding execution with real LuaSound and a CPU recording engine."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmSoundNativeSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmSoundNativeSmokeTest"
 }
 
 tasks.register("ysmAudioDecodeSmokeTest", JavaExec) {
@@ -481,7 +481,7 @@ tasks.register("ysmAudioDecodeSmokeTest", JavaExec) {
     description = "Decodes all plain/encrypted corpus sounds to bounded PCM and checks Opus trimming."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmAudioDecodeSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmAudioDecodeSmokeTest"
     args rootProject.file("refs/avatars").path
 }
 
@@ -491,7 +491,7 @@ tasks.register("ysmLanguageSmokeTest", JavaExec) {
     description = "Checks shared model dictionaries, native locale switching, schema labels and plain/encrypted corpus translations."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmLanguageSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmLanguageSmokeTest"
     args rootProject.file("refs/avatars").path
 }
 
@@ -501,7 +501,7 @@ tasks.register("ysmControlRuntimeSmokeTest", JavaExec) {
     description = "Checks live YSM forms, complete Molang commands, reset and model-scoped disk restore."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmControlRuntimeSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmControlRuntimeSmokeTest"
 }
 
 
@@ -510,7 +510,7 @@ tasks.register("ysmActionRuntimeSmokeTest", JavaExec) {
     description = "Checks native action modes, held input ownership, callbacks and disk-restored wheel layout without GUI rendering."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmActionRuntimeSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmActionRuntimeSmokeTest"
 }
 
 
@@ -519,7 +519,7 @@ tasks.register("ysmMaterialInputSmokeTest", JavaExec) {
     description = "Checks material-channel pairing through plain/binary mapping and all encrypted/plain runtime inputs."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.avatar.ysm.YsmMaterialInputSmokeTest"
+    mainClass = "top.aihmc.omnimorph.avatar.ysm.YsmMaterialInputSmokeTest"
     args rootProject.file("refs/avatars").path
 }
 
@@ -529,7 +529,7 @@ tasks.register("ysmMaterialNativeSmokeTest", JavaExec) {
     description = "Checks real NativeImage material ownership, skin switching and deferred release without GPU rendering."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmMaterialNativeSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest"
 }
 
 
@@ -538,7 +538,7 @@ tasks.register("ysmMultilineExpressionSmokeTest", JavaExec) {
     description = "Checks merged timeline and controller expression blocks and loader/runtime propagation."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmMultilineExpressionSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmMultilineExpressionSmokeTest"
 }
 
 
@@ -547,7 +547,7 @@ tasks.register("ysmAvifSmokeTest", JavaExec) {
     description = "Decodes actual AVIF model resources with bounded, deterministic native ownership."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.avatar.ysm.YsmAvifSmokeTest"
+    mainClass = "top.aihmc.omnimorph.avatar.ysm.YsmAvifSmokeTest"
     args rootProject.file("refs/avatars").path
 }
 
@@ -556,7 +556,7 @@ tasks.register("ysmSyncSmokeTest", JavaExec) {
     description = "Checks bounded YSM state codec and deterministic observer replay without a live backend."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmSyncSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmSyncSmokeTest"
 }
 
 tasks.register("ysmStabilitySmokeTest", JavaExec) {
@@ -564,7 +564,7 @@ tasks.register("ysmStabilitySmokeTest", JavaExec) {
     description = "Runs the frozen 100-switch corpus budget with native image/PCM ownership checks and CPU timing."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmMaterialNativeSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest"
     maxHeapSize = "2g"
     args "--stability", rootProject.file("refs/avatars").path,
             rootProject.file("build/reports/ysm/m8-stability.json").path,
@@ -575,7 +575,7 @@ tasks.register("ysmControlledBaseGeometrySmokeTest", JavaExec) {
     description = "Checks controller-owned parallel playback and rendered vertex bounds on the reported model."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmMaterialNativeSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest"
     args "--controlled-base-geometry", rootProject.file("refs/avatars/末影龙娘.ysm").path
 }
 
@@ -584,7 +584,7 @@ tasks.register("ysmHeldItemGeometrySmokeTest", JavaExec) {
     description = "Checks held-item and attachment geometry on the reported model."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = "org.figuramc.figura.model.ysm.YsmMaterialNativeSmokeTest"
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest"
     maxHeapSize = "2g"
     args "--held-items", rootProject.file("refs/avatars").path
 }
@@ -595,7 +595,7 @@ tasks.register('cloudAdapterSmokeTest', JavaExec) {
     description = 'Checks formal YSM mapping, bounded control decoding and connection epoch retirement.'
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'org.figuramc.figura.backend2.protocol.CloudAdapterSmokeTest'
+    mainClass = 'top.aihmc.omnimorph.backend2.protocol.CloudAdapterSmokeTest'
     args rootProject.file('protocol').path
 }
 
@@ -619,7 +619,7 @@ tasks.register('cloudProtocolConfigSmokeTest', JavaExec) {
     description = 'Exercises actual protocol config persistence, migration/reset, and unsupported backend without fallback.'
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'org.figuramc.figura.config.CloudProtocolConfigSmokeTest'
+    mainClass = 'top.aihmc.omnimorph.config.CloudProtocolConfigSmokeTest'
 }
 
 tasks.named('test') {
@@ -631,7 +631,7 @@ tasks.register('cloudEndpointSmokeTest', JavaExec) {
     description = 'Checks endpoint/Debug policy, real HTTP/TLS redirects, identity and cancellation.'
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'org.figuramc.figura.backend2.protocol.CloudEndpointSmokeTest'
+    mainClass = 'top.aihmc.omnimorph.backend2.protocol.CloudEndpointSmokeTest'
 }
 
 tasks.named('test') {
