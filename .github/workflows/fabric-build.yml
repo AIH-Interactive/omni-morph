@@ -113,7 +113,7 @@ jobs:
       - name: Build native kernels and run platform validation
         run: |
           $script = if ('${{ matrix.platform }}' -eq 'android-aarch64') { './tools/build-native-android-ci.ps1' } else { './tools/build-native-ci.ps1' }
-          $arguments = if ('${{ matrix.platform }}' -eq 'android-aarch64') { @() } else { @('-Platform', '${{ matrix.platform }}') }
+          $arguments = if ('${{ matrix.platform }}' -eq 'android-aarch64') { @{} } else { @{ Platform = '${{ matrix.platform }}' } }
           & $script @arguments 2>&1 | Tee-Object -FilePath build.log
           $buildExitCode = $LASTEXITCODE
           Get-Content -LiteralPath build.log -Tail 40

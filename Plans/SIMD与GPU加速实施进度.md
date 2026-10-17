@@ -262,3 +262,5 @@
   日志 `h6-extra-windows-native.log`、`h6-extra-local-build.log`。
   最终六平台合并、缺失/重复平台及 Android 许可缺失/坏 hash 负例、Windows JNI 与 Fabric 构建成功（9s），
   日志 `h6-extra-final-local.log`，六平台 YAML/发布依赖检查 `h6-extra-workflow-check.log`。远端结果继续验证。
+- 首轮补充 CI 39017120294：Android NDK 编译、qemu 数值测试及 ELF 检查成功；其余五平台因 PowerShell 数组
+  splatting 将 `-Platform` 当作位置参数而未进入编译。改用命名参数哈希表，继续六平台验证。
