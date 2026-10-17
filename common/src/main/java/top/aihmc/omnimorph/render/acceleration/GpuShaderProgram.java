@@ -81,8 +81,8 @@ final class GpuShaderProgram {
 
             void main() {
                 int globalPart = OmniJoints.x;
-                int packed = OmniRemap[globalPart / 16][(globalPart / 4) % 4];
-                int part = (packed >> ((globalPart % 4) * 8)) & 255;
+                int packedRemap = OmniRemap[globalPart / 16][(globalPart / 4) % 4];
+                int part = (packedRemap >> ((globalPart % 4) * 8)) & 255;
                 vec4 transformed = OmniParts[part].position * vec4(OmniPosition, 1.0);
                 if (OmniParts[part].normal1.w != 0.0) {
                     transformed.w = 1.0;

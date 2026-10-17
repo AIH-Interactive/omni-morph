@@ -324,3 +324,14 @@
 - H0～H8 自动范围已完成；实机画面、驱动资源/兼容、Android 设备和真实 GPU/总帧性能按用户追加指示人工待验，
   不作为已经运行或性能达标。完整证据和验收边界见 H8 审计及 H7 报告。
 - 最终验收记录提交前，确认客户端关闭后再次完成 Fabric 构建（7s），日志 `h8-checkpoint-build.log`。
+
+## H8 后续：实机反馈 shader 编译失败
+
+- 客户端 `64f62c3` 日志记录 `activation_probe_rigid` 顶点 shader 在局部整型声明处发生语法错误，
+  随后 AUTO/GPU 均进入 `SHADER_FAILURE`。此失败与 JNI native 访问权限无关。
+- 刚性分组 shader 将 GLSL 布局关键字 `packed` 用作局部变量；改名为 `packedRemap`，保持 remap 解码行为不变。
+- 对实际 Minecraft entity shader 包装结果新增关键字声明回归；修复前失败（`shader-packed-red.log`），
+  修复后三项 GPU CPU 合同测试及 Fabric 完整构建通过（40s，`shader-packed-green.log`）。
+- 以上测试验证生成源码与 CPU 合同，未启动游戏或验证实际驱动编译；修复后的实机启用与画面仍为 `MANUAL/PENDING`。
+- Windows 本地 native 修复包已生成，实际 JAR 提取/哈希/ABI/JNI 差分通过（`shader-packed-package.log`），
+  capabilities=63，scalar/auto/SSE2/AVX2 均通过；未修改客户端 mods 中的文件。

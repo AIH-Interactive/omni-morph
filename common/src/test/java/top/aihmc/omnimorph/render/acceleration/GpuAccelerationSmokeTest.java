@@ -44,6 +44,9 @@ public final class GpuAccelerationSmokeTest {
                     && wrapped.contains("minecraft_mix_light") && wrapped.contains("fog_spherical_distance")
                     && wrapped.contains("UV1 = OmniOverlayLight.xy"), "active material lighting/fog/overlay retained");
             String grouped = GpuShaderProgram.wrapRigidEntitySource(original);
+            // GLSL reserves "packed" as a layout keyword, even for local integer declarations.
+            require(!java.util.regex.Pattern.compile("\\bint\\s+packed\\b").matcher(grouped).find(),
+                    "rigid shader must not declare the GLSL layout keyword packed as a variable");
             require(grouped.contains("ivec4 OmniRemap[256]") && grouped.contains("OmniParts[part].normal2.w")
                     && grouped.contains("minecraft_mix_light") && grouped.contains("fog_spherical_distance"),
                     "rigid palette shader keeps original lighting and uses per-part options");
