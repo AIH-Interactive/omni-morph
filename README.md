@@ -4,6 +4,8 @@
 
 项目延续 Figura 的 Lua 环境、权限体系、衣柜、设置与预览界面，在此基础上加入 YSM 模型运行能力，并推进配套后端和通用 Protobuf 协议改造。`omni-morph` 是独立维护的衍生项目，当前构建产物和部分游戏内名称仍沿用 Figura。
 
+支持 **Lua + Molang 双运行时及联动**：Lua 用于脚本与交互逻辑，Molang 用于 YSM 表达式与动画控制；两者可通过模型接口协作，实现脚本、模型状态和动画联动。纯 YSM 模型也可独立运行，无需额外编写 Lua。
+
 [使用与兼容说明](Plans/YSM兼容与使用说明.md) · [开发计划](Plans/完善YSM引擎计划书.md) · [后端与协议计划](Plans/后端改造与通用Protobuf协议计划书.md) · [实施进度](Plans/后端改造与通用Protobuf协议进度.md) · [原 README 备份](README.Figura.original.md)
 
 ## 项目方向
@@ -11,6 +13,7 @@
 - **统一模型体验**：在 Figura 原有操作界面中使用 Figura 与 YSM 模型，复用衣柜、控件、动作轮和预览。
 - **保留 Figura 能力**：保留原有 Avatar 加载、Lua API、模型权限及相关功能，并验证与 YSM 的共存。
 - **运行 YSM 模型**：支持模型资源、动画控制器、Molang、换肤、交互控件、动作及声音的已实现能力。
+- **双运行时联动**：同时支持 Lua 与 Molang，通过 `ysm_model`、`ysm_actions` 等接口联动模型部件、纹理、动画和动作；具体接口与边界见使用说明。
 - **统一云端协议**：逐阶段改造后端，保留原 Figura 协议，新增供 Figura/YSM 共用的 Protobuf 控制与状态协议；模型文件通过普通 HTTP/HTTPS 传输。
 
 ## 当前功能与状态
