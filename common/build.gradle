@@ -110,6 +110,16 @@ tasks.withType(Test).configureEach {
     failOnNoDiscoveredTests = false
 }
 
+tasks.register('accelerationGpuRouteProbe', JavaExec) {
+    group = 'verification'
+    description = 'H0 only: opens a real window and exercises Minecraft matrix uniform and indexed draw APIs.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.render.acceleration.AccelerationGpuRouteProbe'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    args rootProject.file('build/reports/acceleration/h0-gpu-route.txt').path
+}
+
 tasks.register("scanYsmModels", JavaExec) {
     group = "verification"
     description = "Scans YSM model packages and validates geometry, resources, and animation JSON."
