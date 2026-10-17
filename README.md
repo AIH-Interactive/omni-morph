@@ -83,6 +83,8 @@ if ($buildExitCode -ne 0) { exit $buildExitCode }
 感谢以下项目及其贡献者提供的代码基础、公开资料和实现参考：
 
 - [Figura](https://github.com/FiguraMC/Figura)：本项目的代码基础，以及 Avatar、Lua、权限和界面体系。
+- [YesSteveModel](https://github.com/YesSteveModel/YesSteveModel)：YSM 开源项目。
+- [YesSteveModel-Native](https://github.com/YesSteveModel/YesSteveModel-Native)：YSM Native 开源项目。
 - [Sparkle-Morpher](https://github.com/sdf123098/Sparkle-Morpher)：模型运行、YSM 相关功能行为与兼容性核对参考。
 - [OpenYSM / YSMParser](https://github.com/OpenYSM/YSMParser)：YSM 容器、加密与二进制格式解析参考。
 - [Sculptor](https://github.com/MrXiaoM/sculptor)：配套后端标注的上游项目。
