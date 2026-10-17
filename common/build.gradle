@@ -188,6 +188,38 @@ tasks.register('dualEngineGpuReplay', JavaExec) {
     args rootProject.file('refs/avatars/末影龙娘.ysm').path, rootProject.file('refs/avatars/01_taisho_maid').path
 }
 
+tasks.register('compileNativeInterface', JavaCompile) {
+    group = 'build'
+    source files(
+            'src/main/java/top/aihmc/omnimorph/render/acceleration/NativeBindings.java',
+            'src/main/java/top/aihmc/omnimorph/render/acceleration/NativeLibraryLoader.java',
+            'src/main/java/top/aihmc/omnimorph/render/acceleration/FallbackReason.java',
+            'src/test/java/top/aihmc/omnimorph/render/acceleration/NativePlatformSmokeTest.java')
+    classpath = files({ configurations.compileClasspath.findAll { it.name.startsWith('gson-') } })
+    destinationDirectory = rootProject.layout.buildDirectory.dir('native-interface/classes')
+    options.headerOutputDirectory = rootProject.layout.buildDirectory.dir('native-interface/headers')
+    doLast {
+        copy {
+            from classpath
+            into rootProject.layout.buildDirectory.dir('native-interface/lib')
+        }
+        copy {
+            from rootProject.file('native/include/acceleration.hpp')
+            into rootProject.layout.buildDirectory.dir('native-interface/spec')
+        }
+    }
+}
+
+tasks.register('nativePlatformSmokeTest', JavaExec) {
+    group = 'verification'
+    dependsOn compileNativeInterface, ':packageLocalNative'
+    classpath = files(rootProject.layout.buildDirectory.dir('native-interface/classes')) +
+            fileTree(rootProject.layout.buildDirectory.dir('native-interface/lib')) +
+            files(rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-fabric-mc-windows-local.jar"))
+    mainClass = 'top.aihmc.omnimorph.render.acceleration.NativePlatformSmokeTest'
+    jvmArgs '--enable-native-access=ALL-UNNAMED', '-Xcheck:jni'
+}
+
 ['nativeActivationSmokeTest': 'allow', 'nativeAccessDeniedSmokeTest': 'deny'].each { taskName, policy ->
     tasks.register(taskName, JavaExec) {
         group = 'verification'

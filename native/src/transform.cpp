@@ -85,8 +85,18 @@ Status execute(Buffer input, std::int32_t input_offset, std::int32_t input_strid
     try {
         // Publish only a complete finite result. A rejected batch never touches the caller's output.
         std::vector<std::byte> result(static_cast<std::size_t>(count) * vertex_bytes);
-        TransformKernel kernel = selected == Kernel::avx2 ? avx2_kernel
-                                 : selected == Kernel::sse2 ? sse2_kernel : scalar_kernel;
+        TransformKernel kernel = scalar_kernel;
+#if defined(OMNIMORPH_ARM64)
+        if (selected == Kernel::neon) {
+            kernel = neon_kernel;
+        }
+#else
+        if (selected == Kernel::avx2) {
+            kernel = avx2_kernel;
+        } else if (selected == Kernel::sse2) {
+            kernel = sse2_kernel;
+        }
+#endif
         kernel(source, input_stride, result.data(), vertex_bytes, count, transform);
         if (!finite_values(result.data(), static_cast<std::size_t>(count) * vertex_floats)) {
             return Status::numerical_failure;

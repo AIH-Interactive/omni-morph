@@ -1,5 +1,12 @@
 #include "acceleration.hpp"
 #include <jni.h>
+#if defined(OMNIMORPH_GENERATED_JNI)
+#include "top_aihmc_omnimorph_render_acceleration_NativeBindings.h"
+static_assert(omnimorph::abi_version == top_aihmc_omnimorph_render_acceleration_NativeBindings_ABI);
+static_assert(omnimorph::vertex_bytes == top_aihmc_omnimorph_render_acceleration_NativeBindings_STRIDE_BYTES);
+static_assert(omnimorph::matrix_floats * sizeof(float) == top_aihmc_omnimorph_render_acceleration_NativeBindings_MATRIX_BYTES);
+static_assert(omnimorph::max_vertices == top_aihmc_omnimorph_render_acceleration_NativeBindings_MAX_VERTICES);
+#endif
 
 namespace {
 
