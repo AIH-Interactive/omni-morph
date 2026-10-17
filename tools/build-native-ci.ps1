@@ -31,6 +31,9 @@ function Invoke-BuildStep {
     $stepDirectory = Join-Path $nativeRoot $Name
     New-Item -ItemType Directory -Force -Path $stepDirectory | Out-Null
     $stepLog = Join-Path $stepDirectory 'build.log'
+    # Tee-Object receives no records for a successful quiet tool such as jar --create.
+    # Create its log first so the mandatory post-command inspection remains valid.
+    [IO.File]::WriteAllText($stepLog, '', [Text.UTF8Encoding]::new($false))
     & $Executable @Arguments 2>&1 | Tee-Object -FilePath $stepLog
     $buildExitCode = $LASTEXITCODE
     Get-Content -LiteralPath $stepLog -Tail 10
