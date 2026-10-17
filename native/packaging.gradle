@@ -1,0 +1,71 @@
+import groovy.json.JsonSlurper
+import java.security.MessageDigest
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+import java.util.zip.ZipOutputStream
+
+tasks.register('packageLocalNative') {
+    group = 'build'
+    description = 'Copies the Fabric JAR and injects the already built Windows local native library.'
+    dependsOn ':fabric:remapJar'
+    doLast {
+        def nativeRoot = rootProject.file('build/native/windows-x64-release')
+        def manifestFile = new File(nativeRoot, 'manifest.json')
+        def library = new File(nativeRoot, 'bin/omnimorph_accel.dll')
+        if (!manifestFile.isFile() || !library.isFile()) {
+            throw new GradleException('Run tools/build-native-windows.ps1 first. Java builds do not require C++.')
+        }
+        def manifest = new JsonSlurper().parse(manifestFile)
+        if (manifest.libraries.size() != 1) {
+            throw new GradleException('Local native JAR requires exactly one Windows platform')
+        }
+        def platform = manifest.libraries[0]
+        def hash = HexFormat.of().formatHex(MessageDigest.getInstance('SHA-256').digest(library.bytes))
+        if (manifest.buildKind != 'local' || manifest.abi != 1 || platform.abi != 1 ||
+                platform.platform != 'windows-x86_64' || platform.sha256 != hash ||
+                platform.path != 'natives/windows-x86_64/omnimorph_accel.dll') {
+            throw new GradleException('Windows local native manifest/hash mismatch')
+        }
+        def original = project(':fabric').tasks.named('remapJar').get().archiveFile.get().asFile
+        def destination = rootProject.file("build/local-native/${original.name.replace('.jar', '-windows-local.jar')}")
+        destination.parentFile.mkdirs()
+        def temporary = new File(destination.parentFile, destination.name + '.tmp')
+        def seen = new HashSet<String>()
+        try {
+            new ZipOutputStream(new FileOutputStream(temporary)).withCloseable { output ->
+                new ZipFile(original).withCloseable { input ->
+                    input.entries().each { entry ->
+                        if (!seen.add(entry.name) || entry.name.startsWith('natives/')) {
+                            throw new GradleException("Duplicate/pre-existing native JAR entry: ${entry.name}")
+                        }
+                        output.putNextEntry(new ZipEntry(entry.name))
+                        if (!entry.directory) {
+                            input.getInputStream(entry).withCloseable { it.transferTo(output) }
+                        }
+                        output.closeEntry()
+                    }
+                }
+                [(platform.path): library, 'natives/manifest.json': manifestFile,
+                 'natives/NOTICE.txt': rootProject.file('native/NOTICE.txt')].each { name, file ->
+                    if (!seen.add(name)) {
+                        throw new GradleException("Duplicate injected entry: $name")
+                    }
+                    output.putNextEntry(new ZipEntry(name))
+                    file.withInputStream { it.transferTo(output) }
+                    output.closeEntry()
+                }
+            }
+            java.nio.file.Files.move(temporary.toPath(), destination.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        } finally {
+            temporary.delete()
+        }
+        logger.lifecycle("Windows local native JAR: $destination")
+    }
+}
+
+tasks.register('nativeSmokeTest') {
+    group = 'verification'
+    description = 'Loads the packaged Windows native and runs bounded JNI differential checks.'
+    dependsOn ':common:nativeSmokeTest'
+}

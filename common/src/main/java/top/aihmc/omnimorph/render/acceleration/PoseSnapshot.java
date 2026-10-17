@@ -7,6 +7,8 @@ import top.aihmc.omnimorph.math.matrix.FiguraMat4;
 import top.aihmc.omnimorph.math.vector.FiguraVec3;
 import top.aihmc.omnimorph.math.vector.FiguraVec4;
 
+import java.nio.ByteBuffer;
+
 /** Copies matrices, including vanilla's normal trust/normalization semantics. */
 public final class PoseSnapshot {
     private final FiguraMat4 position;
@@ -113,6 +115,34 @@ public final class PoseSnapshot {
 
     public int skinJointCount() {
         return skinDeltas.length;
+    }
+
+    /** Packs a bounded ABI batch without exposing mutable matrices or truncating skin influences. */
+    void writeNativeVertices(MeshHandle mesh, ByteBuffer destination) {
+        FiguraVec4 point = FiguraVec4.of();
+        FiguraVec4 temporary = FiguraVec4.of();
+        Vector3f direction = new Vector3f();
+        destination.clear();
+        for (int vertex = 0; vertex < mesh.vertexCount(); vertex++) {
+            point.set(mesh.component(vertex, 0), mesh.component(vertex, 1),
+                    mesh.component(vertex, 2), floatPose == null ? mesh.component(vertex, 3) : 1);
+            if (floatPose == null) {
+                applySkinning(point, temporary, mesh.influences(vertex));
+            }
+            destination.putFloat((float) point.x).putFloat((float) point.y)
+                    .putFloat((float) point.z).putFloat((float) point.w);
+            if (floatPose != null) {
+                // Preserve vanilla's private trusted-normal policy exactly, including its normalization.
+                floatPose.transformNormal((float) mesh.component(vertex, 4),
+                        (float) mesh.component(vertex, 5), (float) mesh.component(vertex, 6), direction);
+                destination.putFloat(direction.x).putFloat(direction.y).putFloat(direction.z);
+            } else {
+                destination.putFloat((float) mesh.component(vertex, 4)).putFloat((float) mesh.component(vertex, 5))
+                        .putFloat((float) mesh.component(vertex, 6));
+            }
+            destination.putFloat((float) mesh.component(vertex, 7)).putFloat((float) mesh.component(vertex, 8));
+        }
+        destination.flip();
     }
 
     public boolean usesFloatPrecision() {

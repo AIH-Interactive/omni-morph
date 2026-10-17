@@ -3,6 +3,8 @@ plugins {
 	id "dev.architectury.loom" version "1.14-SNAPSHOT" apply false
 }
 
+apply from: 'native/packaging.gradle'
+
 architectury {
 	minecraft = rootProject.minecraft_version
 }
