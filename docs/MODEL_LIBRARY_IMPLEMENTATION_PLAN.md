@@ -1,6 +1,6 @@
 # OmniMorph 模型库开发计划书
 
-状态：待实施。本文只定义开发工作，不代表功能已经实现或测试通过。
+状态：实施中，M0 合同检查通过；M1～M7 尚未实施。各阶段证据见 8.2，不代表功能已全部实现或视觉验收通过。
 
 调查日期：2026-10-18（Asia/Seoul）。客户端调查基线：`228d16b`；Rust 后端调查基线：`e6355bc`。实施时必须重新核对工作区变化，但不得借此扩大范围。
 
@@ -371,7 +371,7 @@ Protobuf 模式复用现有 Bearer session + `x-omnimorph-epoch` 的身份解析
 
 ## 8. 分阶段执行计划
 
-以下所有阶段均为**尚未执行**。不得把本次计划书提交视为下列开发阶段通过。依赖顺序固定：M0 → M1 → M2 → M3 → M4 → M5 → M6 → M7。
+以下阶段状态以 8.2 为准。不得把初始计划书提交视为开发阶段通过。依赖顺序固定：M0 → M1 → M2 → M3 → M4 → M5 → M6 → M7。
 
 ### 8.1 通用执行与提交门禁
 
@@ -490,7 +490,7 @@ if ($buildExitCode -ne 0) {
 
 | 阶段 | 状态 | 自动验证/退出码 | 手工验证 | 客户端 commit/push | 后端 commit/push |
 | --- | --- | --- | --- | --- | --- |
-| M0 | NOT_STARTED | — | — | — | — |
+| M0 | PASS（提交推送检查点见下） | Rust storage 7/7；Fabric compileJava、ysmPackageSmokeTest、ysmCryptoSmokeTest；8 样例哈希/JSON/分页预算，均退出 0 | 真实模型/GUI 为后续阶段 MANUAL/PENDING | 本行所在 M0 提交；push 成功后进入 M1 | 8143665 / origin master 已确认 |
 | M1 | NOT_STARTED | — | — | — | — |
 | M2 | NOT_STARTED | — | — | — | — |
 | M3 | NOT_STARTED | — | — | — | — |
@@ -498,6 +498,16 @@ if ($buildExitCode -ne 0) {
 | M5 | NOT_STARTED | — | — | — | — |
 | M6 | NOT_STARTED | — | — | — | — |
 | M7 | NOT_STARTED | — | — | — | — |
+
+#### M0 执行证据（2026-10-18）
+
+- 客户端基线 `7631652`、后端基线 `e6355bc`；已核对原有工作区日志和嵌套参考目录，均不纳入提交。
+- 合同见 `omnm-cloud/docs/MODEL_LIBRARY_API.md`（独立后端仓库）；样例及哈希见 `docs/MODEL_LIBRARY_FIXTURES.md` 与 `docs/model-library-fixtures/sha256.json`。
+- 静态核对 Figura、Protobuf、`/api/v1`、internal、临时上传/历史导入、订阅和恢复入口；配置已有热加载，合同要求每次管理员请求重查配置指纹。
+- 冻结管理员 PBKDF2 版本化格式、凭据存储策略、JSON/文本预算、主体与状态权限矩阵、屏蔽身份种类、最小逻辑窗口尺寸。
+- 为满足每阶段编译测试要求，文档阶段额外执行基线：后端 `cargo test storage`（7/7，退出 0）；客户端 JDK 25 下 `:fabric:compileJava :common:ysmPackageSmokeTest :common:ysmCryptoSmokeTest`（BUILD SUCCESSFUL，退出 0）。当前终端没有 `usejdk` 函数，使用已有 `D:\Program Files\Java\25` 设置进程 JAVA_HOME/PATH；未修改系统配置。
+- 样例验证检查 8 个 SHA-256、两个 ZIP 元数据、JSON 摘要与 64 KiB 分页预算，退出 0。控制响应预算推导固定最大 page_size=8；M7 的万条数据测试使用实际支持上限，不临时缩页。
+- 真实模型渲染、材质/动画、字体和窗口交互：MANUAL/PENDING，归入 M4～M7，不以合成向量替代。M0 无阻断合同问题，无生产代码或版本修改。
 
 ## 9. 安全、兼容性、异常与性能验收方案
 
