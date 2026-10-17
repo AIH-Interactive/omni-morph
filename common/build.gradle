@@ -120,6 +120,22 @@ tasks.register('accelerationGpuRouteProbe', JavaExec) {
     args rootProject.file('build/reports/acceleration/h0-gpu-route.txt').path
 }
 
+tasks.register('accelerationContractSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks immutable transform batches, numeric conventions and stale lifetime rejection.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.render.acceleration.AccelerationContractSmokeTest'
+}
+
+tasks.register('figuraAccelerationReplay', JavaExec) {
+    group = 'verification'
+    description = 'Checks actual deferred Figura vertex output and stale Avatar rejection.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.render.acceleration.FiguraAccelerationReplay'
+}
+
 tasks.register("scanYsmModels", JavaExec) {
     group = "verification"
     description = "Scans YSM model packages and validates geometry, resources, and animation JSON."

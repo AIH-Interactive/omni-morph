@@ -41,6 +41,7 @@ import top.aihmc.omnimorph.backend2.NetworkStuff;
 import top.aihmc.omnimorph.avatar.control.AvatarControlRuntime;
 import top.aihmc.omnimorph.avatar.ysm.YsmModelData;
 import top.aihmc.omnimorph.config.Configs;
+import top.aihmc.omnimorph.render.acceleration.AccelerationOwner;
 import top.aihmc.omnimorph.ducks.FiguraEntityRenderStateExtension;
 import top.aihmc.omnimorph.ducks.NodeCollectorExtension;
 import top.aihmc.omnimorph.gui.FiguraPortraitRenderState;
@@ -110,6 +111,18 @@ import java.util.function.Consumer;
 // contains all things related to the avatar
 // and also related to the owner, like its permissions
 public class Avatar {
+    private volatile AccelerationOwner accelerationOwner;
+
+    public AccelerationOwner accelerationOwner() {
+        if (accelerationOwner == null) {
+            synchronized (this) {
+                if (accelerationOwner == null) {
+                    accelerationOwner = new AccelerationOwner();
+                }
+            }
+        }
+        return accelerationOwner;
+    }
 
     public static boolean firstPerson;
 
@@ -1703,6 +1716,7 @@ public class Avatar {
      * also closes and stops this avatar sounds
      */
     public void clean() {
+        accelerationOwner().retire();
         if (molangContext != null) {
             molangContext.filters.clear();
         }

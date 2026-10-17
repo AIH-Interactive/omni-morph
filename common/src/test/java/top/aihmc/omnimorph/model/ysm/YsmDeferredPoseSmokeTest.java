@@ -2,6 +2,8 @@ package top.aihmc.omnimorph.model.ysm;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import org.joml.Matrix4f;
+import top.aihmc.omnimorph.render.acceleration.AccelerationOwner;
+import top.aihmc.omnimorph.render.acceleration.AccelerationService;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -48,6 +50,7 @@ public final class YsmDeferredPoseSmokeTest {
         detached.addAnimPos(999, 0, 0);
         require(bodyPose.part("Root").animPosRaw().x == 16, "returned render view cannot mutate immutable snapshot");
         testHiddenHierarchy();
+        testStaleSubmission();
         System.out.println("M3 deferred body/arm matrices, owned scale/visibility and immutable submission pose checks passed.");
     }
 
@@ -64,6 +67,17 @@ public final class YsmDeferredPoseSmokeTest {
         } catch (ReflectiveOperationException failure) {
             throw new AssertionError("production bone transform failed", failure);
         }
+    }
+
+    private static void testStaleSubmission() {
+        AccelerationService service = AccelerationService.INSTANCE;
+        AccelerationOwner owner = new AccelerationOwner();
+        var lease = service.capture(owner, "body");
+        YsmRenderPose pose = YsmRenderPose.capture(List.of(), new Matrix4f(), false, lease);
+        service.beginFrame();
+        YsmRenderer renderer = new YsmRenderer(null);
+        require(!renderer.render(null, null, 0, null, pose), "old body frame rejected before renderer access");
+        require(!renderer.renderFirstPersonArm(null, null, 0, true, pose), "old arm frame rejected before renderer access");
     }
 
     private static void testHiddenHierarchy() {

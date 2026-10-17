@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.model.ysm;
 
+import top.aihmc.omnimorph.render.acceleration.AccelerationService;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
@@ -1386,7 +1388,9 @@ public class YsmModelRuntime implements AutoCloseable {
             applyModelScale(scale);
         }
         boolean unlit = guiNoLighting && owner.renderMode == top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI;
-        return YsmRenderPose.capture(uniqueParts(firstPerson), scale.last().pose(), unlit);
+        var lease = AccelerationService.INSTANCE.capture(
+                owner.accelerationOwner(), String.valueOf(owner.renderMode));
+        return YsmRenderPose.capture(uniqueParts(firstPerson), scale.last().pose(), unlit, lease);
     }
 
     public boolean renderFirstPersonArm(PoseStack stack, MultiBufferSource bufferSource, int light, boolean left) {
@@ -1443,6 +1447,7 @@ public class YsmModelRuntime implements AutoCloseable {
     @Override
     public synchronized void close() {
         closed = true;
+        owner.accelerationOwner().retire();
         subEntityInstances.close();
         for (Tag value : functionInput) {
             if (value instanceof CompoundTag entry) {

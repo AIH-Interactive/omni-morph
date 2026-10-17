@@ -25,6 +25,11 @@ import top.aihmc.omnimorph.model.rendering.texture.FiguraRenderTypes;
 import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
 import top.aihmc.omnimorph.model.rendering.texture.FiguraTextureSet;
 import top.aihmc.omnimorph.model.rendertasks.RenderTask;
+import top.aihmc.omnimorph.render.acceleration.AccelerationService;
+import top.aihmc.omnimorph.render.acceleration.DrawBatch;
+import top.aihmc.omnimorph.render.acceleration.DrawSemantics;
+import top.aihmc.omnimorph.render.acceleration.MeshHandle;
+import top.aihmc.omnimorph.render.acceleration.PoseSnapshot;
 import top.aihmc.omnimorph.utils.ColorUtils;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 import org.jetbrains.annotations.Nullable;
@@ -665,6 +670,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
 
         // get texture
         Identifier id = textureSet.getOverrideTexture(avatar.owner, texture);
+        ret.texture = id;
 
         // color
         ret.color = primary ? customization.color : customization.color2;
@@ -720,28 +726,61 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         int light = vertexData.fullBright ? LightCoordsUtil.FULL_BRIGHT : customization.light;
 
         boolean useSkinning = boneDeltas != null && boneDeltas.length > 0 && part.skinBoneIndices != null && part.skinBoneWeights != null;
+        AccelerationService acceleration = AccelerationService.INSTANCE;
+        var lease = acceleration.capture(avatar.accelerationOwner(), String.valueOf(avatar.renderMode));
 
         VERTEX_BUFFER.getBufferFor(vertexData.renderType, vertexData.primary, vertexConsumer -> {
+            if (!acceleration.isCurrent(lease)) {
+                return;
+            }
+            double[] input = new double[Math.multiplyExact(vertCount, MeshHandle.STRIDE)];
+            List<MeshHandle.Influences> influences = useSkinning ? new ArrayList<>(vertCount) : List.of();
             for (int i = 0; i < vertCount; i++) {
                 Vertex vertex = vertices.get(i);
-
-                pos.set(vertex.x, vertex.y, vertex.z, 1);
-                if (useSkinning && vertex.origIdx >= 0 && vertex.origIdx < part.skinBoneIndices.length && part.skinBoneIndices[vertex.origIdx] != null)
-                    applySkinningDelta(pos, vertex.origIdx, part, boneDeltas);
-                pos.transform(customization.positionMatrix);
-                pos.add(pos.normalized().scale(vertexData.vertexOffset));
-                normal.set(vertex.nx, vertex.ny, vertex.nz);
-                normal.transform(customization.normalMatrix);
-                uv.set(vertex.u, vertex.v, 1);
-                uv.divide(uvFixer);
-                uv.transform(customization.uvMatrix);
+                int offset = i * MeshHandle.STRIDE;
+                input[offset] = vertex.x;
+                input[offset + 1] = vertex.y;
+                input[offset + 2] = vertex.z;
+                input[offset + 3] = 1;
+                input[offset + 4] = vertex.nx;
+                input[offset + 5] = vertex.ny;
+                input[offset + 6] = vertex.nz;
+                input[offset + 7] = vertex.u / uvFixer.x;
+                input[offset + 8] = vertex.v / uvFixer.y;
+                if (useSkinning) {
+                    int original = vertex.origIdx;
+                    int[] joints = original >= 0 && original < part.skinBoneIndices.length
+                            ? part.skinBoneIndices[original] : null;
+                    float[] weights = joints == null ? null : part.skinBoneWeights[original];
+                    influences.add(joints == null || weights == null
+                            ? new MeshHandle.Influences(new int[0], new float[0])
+                            : new MeshHandle.Influences(joints, weights));
+                }
+            }
+            MeshHandle mesh = new MeshHandle(input, 4, influences);
+            PoseSnapshot pose = new PoseSnapshot(customization.positionMatrix, customization.normalMatrix,
+                    customization.uvMatrix, boneDeltas);
+            DrawSemantics semantics = new DrawSemantics(vertexData.renderType, vertexData.texture,
+                    vertexData.primary ? DrawSemantics.Layer.PRIMARY : DrawSemantics.Layer.SECONDARY,
+                    lease.view(), vertexData.primary ? 0 : 1, faceCount, light, overlay,
+                    (float) vertexData.color.x, (float) vertexData.color.y, (float) vertexData.color.z,
+                    customization.alpha, vertexData.vertexOffset, true);
+            double[] transformed = acceleration.transform(lease, token -> new DrawBatch(token, mesh, pose, semantics));
+            if (transformed == null) {
+                return;
+            }
+            for (int i = 0; i < vertCount; i++) {
+                int offset = i * MeshHandle.STRIDE;
+                pos.set(transformed[offset], transformed[offset + 1], transformed[offset + 2], transformed[offset + 3]);
+                pos.add(pos.normalized().scale(semantics.vertexOffset()));
+                normal.set(transformed[offset + 4], transformed[offset + 5], transformed[offset + 6]);
 
                 vertexConsumer
                         .addVertex((float) pos.x, (float) pos.y, (float) pos.z)
-                        .setColor((float) vertexData.color.x, (float) vertexData.color.y, (float) vertexData.color.z, customization.alpha)
-                        .setUv((float) uv.x, (float) uv.y)
-                        .setOverlay(overlay)
-                        .setLight(light)
+                        .setColor(semantics.red(), semantics.green(), semantics.blue(), semantics.alpha())
+                        .setUv((float) transformed[offset + 7], (float) transformed[offset + 8])
+                        .setOverlay(semantics.overlay())
+                        .setLight(semantics.light())
                         .setNormal((float) normal.x, (float) normal.y, (float) normal.z);
             }
         });
@@ -785,6 +824,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
 
     private static class VertexData {
         public RenderType renderType;
+        public Identifier texture;
         public boolean fullBright;
         public float vertexOffset;
         public FiguraVec3 color;
