@@ -16,8 +16,9 @@ import java.nio.charset.StandardCharsets;
 public class AuthHandler {
 
     public static void auth(boolean reAuth) {
+        long epoch = NetworkStuff.connectionEpoch();
         NetworkStuff.async(() -> {
-            if (!reAuth && NetworkStuff.isConnected())
+            if (epoch != NetworkStuff.connectionEpoch() || !reAuth && NetworkStuff.isConnected())
                 return;
 
             FiguraMod.LOGGER.info("Authenticating with " + FiguraMod.MOD_NAME + " server...");
@@ -37,18 +38,18 @@ public class AuthHandler {
                 } catch (AuthenticationUnavailableException e) {
                     FiguraMod.LOGGER.info("Mojang Authentication Server Unavailable, Using Offline Mode");
                 }
-                NetworkStuff.authSuccess(getToken(serverID));
+                NetworkStuff.authSuccess(getToken(serverID), epoch);
             // cringe exceptions
             } catch (AuthenticationUnavailableException e) {
-                NetworkStuff.authFail(Component.translatable("disconnect.loginFailedInfo.serversUnavailable").getString());
+                NetworkStuff.authFail(Component.translatable("disconnect.loginFailedInfo.serversUnavailable").getString(), epoch);
             } catch (InvalidCredentialsException e) {
-                NetworkStuff.authFail(Component.translatable("disconnect.loginFailedInfo.invalidSession").getString());
+                NetworkStuff.authFail(Component.translatable("disconnect.loginFailedInfo.invalidSession").getString(), epoch);
             } catch (InsufficientPrivilegesException e) {
-                NetworkStuff.authFail(Component.translatable("disconnect.loginFailedInfo.insufficientPrivileges").getString());
+                NetworkStuff.authFail(Component.translatable("disconnect.loginFailedInfo.insufficientPrivileges").getString(), epoch);
             } catch (UserBannedException e) {
-                NetworkStuff.authFail(Component.translatable("disconnect.loginFailedInfo.userBanned").getString());
+                NetworkStuff.authFail(Component.translatable("disconnect.loginFailedInfo.userBanned").getString(), epoch);
             } catch (Exception e) {
-                NetworkStuff.authFail(e.getMessage());
+                NetworkStuff.authFail(e.getMessage(), epoch);
             }
         });
     }

@@ -46,11 +46,15 @@ public class CacheAvatarLoader {
     }
 
     public static boolean checkAndLoad(String hash, UserData target) {
+        return checkAndLoad(hash, target, Runnable::run);
+    }
+
+    public static boolean checkAndLoad(String hash, UserData target, java.util.function.Consumer<Runnable> publish) {
         Path p = getAvatarCacheDirectory();
         p = p.resolve(hash + ".nbt");
 
         if (Files.exists(p)) {
-            load(hash, target);
+            load(hash, target, publish);
             return true;
         }
 
@@ -58,10 +62,18 @@ public class CacheAvatarLoader {
     }
 
     public static void load(String hash, UserData target) {
+        load(hash, target, Runnable::run);
+    }
+
+    private static void load(String hash, UserData target, java.util.function.Consumer<Runnable> publish) {
         LocalAvatarLoader.async(() -> {
             Path path = getAvatarCacheDirectory().resolve(hash + ".nbt");
-            try {
-                target.loadAvatar(NbtIo.readCompressed(Files.newInputStream(path), NbtAccounter.unlimitedHeap()));
+            try (var stream = Files.newInputStream(path)) {
+                if (Files.size(path) > org.figuramc.figura.backend2.protocol.CloudHttp.FILE_BYTES) {
+                    throw new java.io.IOException("Cached model exceeds byte budget");
+                }
+                var nbt = NbtIo.readCompressed(stream, NbtAccounter.create(256L * 1024 * 1024));
+                publish.accept(() -> target.loadAvatar(nbt));
                 FiguraMod.debug("Loaded avatar \"{}\" from cache to \"{}\"", hash, target.id);
             } catch (Exception e) {
                 FiguraMod.LOGGER.error("Failed to load cache avatar: " + hash, e);

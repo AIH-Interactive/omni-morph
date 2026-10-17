@@ -27,10 +27,15 @@ public class UserData {
     }
 
     public void loadData(ArrayList<Pair<String, Pair<String, UUID>>> avatars, Pair<BitSet,BitSet> badges) {
+        loadData(avatars, badges, Runnable::run);
+    }
+
+    public void loadData(ArrayList<Pair<String, Pair<String, UUID>>> avatars, Pair<BitSet,BitSet> badges,
+                         java.util.function.Consumer<Runnable> publish) {
         loadBadges(badges);
         clear();
         for (Pair<String, Pair<String, UUID>> avatar : avatars) {
-            if (!CacheAvatarLoader.checkAndLoad(avatar.getFirst(), this)) {
+            if (!CacheAvatarLoader.checkAndLoad(avatar.getFirst(), this, publish)) {
                 Pair<String, UUID> pair = avatar.getSecond();
                 NetworkStuff.getAvatar(this, pair.getSecond(), pair.getFirst(), avatar.getFirst());
             }
