@@ -11,6 +11,8 @@ Sparkle-Morpher: https://github.com/sdf123098/Sparkle-Morpher
 Windows builds link the MSVC C/C++ runtime statically. Linux builds dynamically
 link system glibc, libstdc++ and libgcc_s; macOS builds dynamically link system
 libc++ and libSystem. These system libraries are not copied into this JAR.
+Android arm64-v8a builds use NDK r28c and statically link its C++ runtime.
+The NDK notices are included under natives/android-aarch64/licenses/.
 GCC runtime licensing: https://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html
 LLVM libc++ licensing: https://github.com/llvm/llvm-project/blob/main/libcxx/LICENSE.TXT
 Operating-system dependencies are recorded from the actual build in the platform manifest.

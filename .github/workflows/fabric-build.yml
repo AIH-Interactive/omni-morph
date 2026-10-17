@@ -69,6 +69,10 @@ jobs:
             runner: windows-2025
           - platform: linux-x86_64
             runner: ubuntu-24.04
+          - platform: linux-aarch64
+            runner: ubuntu-24.04-arm
+          - platform: android-aarch64
+            runner: ubuntu-24.04
           - platform: macos-x86_64
             runner: macos-15-intel
           - platform: macos-aarch64
@@ -91,9 +95,26 @@ jobs:
         with:
           name: internal-native-interface
           path: build/native-interface
-      - name: Build, inspect and execute actual JNI numerical tests
+      - name: Install pinned Android NDK and native CPU emulator
+        if: matrix.platform == 'android-aarch64'
         run: |
-          & ./tools/build-native-ci.ps1 -Platform '${{ matrix.platform }}' 2>&1 | Tee-Object -FilePath build.log
+          & "$env:ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install 'ndk;28.2.13676358' 2>&1 | Tee-Object -FilePath build.log
+          $buildExitCode = $LASTEXITCODE
+          Get-Content -LiteralPath build.log -Tail 40
+          if ($buildExitCode -ne 0) { exit $buildExitCode }
+          & sudo apt-get update 2>&1 | Tee-Object -FilePath build.log -Append
+          $buildExitCode = $LASTEXITCODE
+          Get-Content -LiteralPath build.log -Tail 40
+          if ($buildExitCode -ne 0) { exit $buildExitCode }
+          & sudo apt-get install -y --no-install-recommends qemu-user 2>&1 | Tee-Object -FilePath build.log -Append
+          $buildExitCode = $LASTEXITCODE
+          Get-Content -LiteralPath build.log -Tail 40
+          if ($buildExitCode -ne 0) { exit $buildExitCode }
+      - name: Build native kernels and run platform validation
+        run: |
+          $script = if ('${{ matrix.platform }}' -eq 'android-aarch64') { './tools/build-native-android-ci.ps1' } else { './tools/build-native-ci.ps1' }
+          $arguments = if ('${{ matrix.platform }}' -eq 'android-aarch64') { @() } else { @('-Platform', '${{ matrix.platform }}') }
+          & $script @arguments 2>&1 | Tee-Object -FilePath build.log
           $buildExitCode = $LASTEXITCODE
           Get-Content -LiteralPath build.log -Tail 40
           if ($buildExitCode -ne 0) { exit $buildExitCode }
@@ -136,7 +157,7 @@ jobs:
         with:
           pattern: internal-native-*-*
           path: build/native-inputs
-      - name: Verify all four platforms, commit/run, ABI, hashes, notices and unchanged base entries
+      - name: Verify all six platforms, commit/run, ABI, hashes, notices and unchanged base entries
         run: |
           & bash ./gradlew assembleNativeJar '-PnativeBaseDir=build/native-base' '-PnativeArtifactsDir=build/native-inputs' '-PnativeOutput=build/final/omni-morph-1.0.0-alpha.1+26.1.2-fabric-mc.jar' "-PnativeCommit=$env:GITHUB_SHA" "-PnativeRun=$env:GITHUB_RUN_ID" "-PnativeAttempt=$env:GITHUB_RUN_ATTEMPT" --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log
           $buildExitCode = $LASTEXITCODE
@@ -157,7 +178,7 @@ jobs:
           retention-days: 14
 
   verify-final:
-    name: Final JAR JNI ${{ matrix.platform }}
+    name: Final JAR native ${{ matrix.platform }}
     needs: assemble
     strategy:
       fail-fast: false
@@ -167,6 +188,10 @@ jobs:
             runner: windows-2025
           - platform: linux-x86_64
             runner: ubuntu-24.04
+          - platform: linux-aarch64
+            runner: ubuntu-24.04-arm
+          - platform: android-aarch64
+            runner: ubuntu-24.04
           - platform: macos-x86_64
             runner: macos-15-intel
           - platform: macos-aarch64
@@ -174,6 +199,10 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v7
+        if: matrix.platform == 'android-aarch64'
+        with:
+          persist-credentials: false
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
@@ -187,6 +216,7 @@ jobs:
           name: internal-final-native-jar
           path: build/final
       - name: Load this platform from the identical final JAR and check fallback/access denial
+        if: matrix.platform != 'android-aarch64'
         run: |
           $jar = (Get-ChildItem -LiteralPath build/final -Filter '*-fabric-mc.jar').FullName
           $classpath = @('build/native-interface/classes', 'build/native-interface/lib/*', $jar) -join [IO.Path]::PathSeparator
@@ -199,6 +229,20 @@ jobs:
             Get-Content -LiteralPath build.log -Tail 40
             if ($buildExitCode -ne 0) { exit $buildExitCode }
           }
+          Get-FileHash -Algorithm SHA256 -LiteralPath $jar | Format-List | Out-String | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
+      - name: Verify Android artifact from the same final JAR
+        if: matrix.platform == 'android-aarch64'
+        run: |
+          & "$env:ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install 'ndk;28.2.13676358' 2>&1 | Tee-Object -FilePath build.log
+          $buildExitCode = $LASTEXITCODE
+          Get-Content -LiteralPath build.log -Tail 40
+          if ($buildExitCode -ne 0) { exit $buildExitCode }
+          $jar = (Get-ChildItem -LiteralPath build/final -Filter '*-fabric-mc.jar').FullName
+          & pwsh -NoProfile -File ./tools/verify-android-native.ps1 -JarPath $jar -ExpectedCommit $env:GITHUB_SHA -ExpectedRun $env:GITHUB_RUN_ID 2>&1 | Tee-Object -FilePath build.log -Append
+          $buildExitCode = $LASTEXITCODE
+          Get-Content -LiteralPath build.log -Tail 40
+          if ($buildExitCode -ne 0) { exit $buildExitCode }
+          'Android arm64-v8a build/ELF/JNI exports validated; device JNI/game MANUAL/PENDING.' | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
           Get-FileHash -Algorithm SHA256 -LiteralPath $jar | Format-List | Out-String | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v7
         if: always()
@@ -229,5 +273,5 @@ jobs:
         env:
           ARTIFACT_URL: ${{ steps.artifact.outputs.artifact-url }}
         run: |
-          "### Minecraft 26.1.2 / Fabric — all four native platforms verified" | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
+          "### Minecraft 26.1.2 / Fabric — six native builds, five platform JNI checks; Android device JNI/game MANUAL/PENDING" | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
           "[Download OmniMorph JAR]($env:ARTIFACT_URL)" | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY

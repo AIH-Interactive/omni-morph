@@ -31,8 +31,9 @@ omnimorph::Buffer buffer(JNIEnv* env, jobject object, bool output) {
 } // namespace
 
 extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*) {
+    // These entry points only need JNI 1.6, shared by desktop JVMs and Android runtimes.
     JNIEnv* env = nullptr;
-    if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_8) != JNI_OK) {
+    if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) != JNI_OK) {
         return JNI_ERR;
     }
     jclass bindings = env->FindClass("top/aihmc/omnimorph/render/acceleration/NativeBindings");
@@ -42,7 +43,7 @@ extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*) {
     jfieldID abi = env->GetStaticFieldID(bindings, "ABI", "I");
     const bool compatible = abi != nullptr && env->GetStaticIntField(bindings, abi) == omnimorph::abi_version;
     env->DeleteLocalRef(bindings);
-    return compatible ? JNI_VERSION_1_8 : JNI_ERR;
+    return compatible ? JNI_VERSION_1_6 : JNI_ERR;
 }
 
 extern "C" JNIEXPORT jint JNICALL

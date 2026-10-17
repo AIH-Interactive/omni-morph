@@ -131,7 +131,7 @@ int main() {
     try {
         dispatch_tests();
         numeric_and_boundary_tests();
-        std::cout << "PASS native dispatch, scalar/SSE2/available AVX2, unaligned/tails, bounds, alias, finite publication; capabilities="
+        std::cout << "PASS native dispatch, scalar/available SSE2/AVX2/NEON, unaligned/tails, bounds, alias, finite publication; capabilities="
                   << capability_bits(detect_cpu()) << '\n';
         return 0;
     } catch (const std::exception& failure) {

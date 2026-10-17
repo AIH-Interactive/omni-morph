@@ -145,9 +145,18 @@ public final class NativeLibraryLoader {
             case "aarch64", "arm64" -> "aarch64";
             default -> throw new LoadFailure(FallbackReason.UNSUPPORTED_PLATFORM, "Unsupported process architecture: " + arch);
         };
-        String system = os.contains("win") ? "windows" : os.contains("mac") ? "macos"
+        String runtime = System.getProperty("java.runtime.name", "").toLowerCase(Locale.ROOT);
+        String vm = System.getProperty("java.vm.name", "").toLowerCase(Locale.ROOT);
+        boolean android = os.contains("android") || runtime.contains("android") || vm.contains("dalvik")
+                || (os.contains("linux") && Files.isRegularFile(Path.of("/system/bin/linker64")));
+        return platformFor(os, architecture, android);
+    }
+
+    static String platformFor(String os, String architecture, boolean android) throws LoadFailure {
+        String system = android ? "android" : os.contains("win") ? "windows" : os.contains("mac") ? "macos"
                 : os.contains("linux") ? "linux" : "unsupported";
-        if (system.equals("unsupported") || (!system.equals("macos") && architecture.equals("aarch64"))) {
+        if (system.equals("unsupported") || (system.equals("windows") && architecture.equals("aarch64"))
+                || (system.equals("android") && !architecture.equals("aarch64"))) {
             throw new LoadFailure(FallbackReason.UNSUPPORTED_PLATFORM, "Unsupported native process platform: " + system + "-" + architecture);
         }
         return system + "-" + architecture;
