@@ -25,7 +25,7 @@ import java.util.concurrent.CompletableFuture;
 public class FiguraRuntimeResources {
 
     private static String ASSETS_VERSION;
-    public static final PathPackResources PACK = new PathPackResources(new PackLocationInfo(FiguraMod.MOD_NAME + " runtime resource pack", Component.literal("Figura Runtime Resources"), PackSource.BUILT_IN, Optional.empty()), getRootDirectory());
+    public static final PathPackResources PACK = new PathPackResources(new PackLocationInfo(FiguraMod.MOD_NAME + " runtime resource pack", Component.literal("OmniMorph Runtime Resources"), PackSource.BUILT_IN, Optional.empty()), getRootDirectory());
 
     public static Path getRootDirectory() {
         return IOUtils.getOrCreateDir(FiguraMod.getCacheDirectory(), "resources");
@@ -115,13 +115,51 @@ public class FiguraRuntimeResources {
         return object;
     }
     private static void getAndSaveResource(String path) throws Exception {
-        if (Configs.LOCAL_ASSETS.value) return;
+        if (Configs.LOCAL_ASSETS.value || path.equals("icon.png")
+                || path.equals("textures/gui/icon.png") || path.equals("textures/gui/help_icons.png")) {
+            return;
+        }
         Path target = getAssetsDirectory().resolve(path);
         IOUtils.createDirIfNeeded(target.getParent());
         try (InputStream resource = NetworkStuff.getResource(getAssetsVersion(), path); OutputStream fs = Files.newOutputStream(target)) {
-            fs.write(resource.readAllBytes());
+            byte[] bytes = resource.readAllBytes();
+            if (path.endsWith(".json")) {
+                bytes = remapPublicResource(path, bytes);
+            }
+            fs.write(bytes);
             FiguraMod.debug("Downloaded resource \"" + path + "\"");
         }
+    }
+
+    private static byte[] remapPublicResource(String path, byte[] bytes) {
+        String json = new String(bytes, java.nio.charset.StandardCharsets.UTF_8)
+                .replace("\"figura:", "\"" + FiguraMod.MOD_ID + ":");
+        if (!path.startsWith("lang/")) {
+            return json.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        }
+        JsonObject translations = new JsonObject();
+        for (var entry : JsonParser.parseString(json).getAsJsonObject().entrySet()) {
+            String key = entry.getKey();
+            // Project identity and Help are supplied by our bundled dictionaries.
+            if (key.equals("figura") || key.startsWith("figura.gui.help.")) {
+                continue;
+            }
+            String mappedKey = key.startsWith("figura.") ? FiguraMod.MOD_ID + key.substring(6)
+                    : key.replace("key.category.figura.", "key.category." + FiguraMod.MOD_ID + ".");
+            String value = entry.getValue().getAsString();
+            if (!key.startsWith("figura.docs.") && !key.contains("cloud_protocol")
+                    && !key.contains(".filter.figura") && !key.endsWith("avatar_volume_gain.tooltip")) {
+                value = value.replace("Figura Lua API", "__FIGURA_LUA_API__")
+                        .replace("Figura Cloud", "__FIGURA_CLOUD__")
+                        .replace("Figura Avatar", "__FIGURA_AVATAR__")
+                        .replace("Figura", FiguraMod.MOD_NAME)
+                        .replace("__FIGURA_LUA_API__", "Figura Lua API")
+                        .replace("__FIGURA_CLOUD__", "Figura Cloud")
+                        .replace("__FIGURA_AVATAR__", "Figura Avatar");
+            }
+            translations.addProperty(mappedKey, value.replace("/figura ", "/" + FiguraMod.MOD_ID + " "));
+        }
+        return translations.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
     }
 
     public static void joinFuture() {

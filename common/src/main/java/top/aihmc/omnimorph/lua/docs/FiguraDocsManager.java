@@ -306,7 +306,7 @@ public class FiguraDocsManager {
 
         FiguraDoc.ClassDoc doc = new FiguraDoc.ClassDoc(documentedClass, documentedClass.getAnnotation(LuaTypeDoc.class));
         NAME_MAP.put(documentedClass, doc.name);
-        CLASS_COMMAND_MAP.put(documentedClass, "/figura docs " + (pack == null ? "" : pack) + " " + doc.name);
+        CLASS_COMMAND_MAP.put(documentedClass, "/" + FiguraMod.MOD_ID + " docs " + (pack == null ? "" : pack) + " " + doc.name);
         return doc;
     }
 

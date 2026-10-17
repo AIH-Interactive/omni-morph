@@ -7,7 +7,7 @@ architectury {
 }
 
 loom {
-    accessWidenerPath = file("src/main/resources/figura.accesswidener")
+    accessWidenerPath = file("src/main/resources/omni-morph.accesswidener")
 }
 
 repositories {
@@ -636,4 +636,16 @@ tasks.register('cloudEndpointSmokeTest', JavaExec) {
 
 tasks.named('test') {
     dependsOn 'cloudEndpointSmokeTest'
+}
+
+tasks.register('omniMorphIdentitySmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Verifies existing settings/local model retention across the mod ID migration.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.config.OmniMorphIdentitySmokeTest'
+}
+
+tasks.named('test') {
+    dependsOn 'omniMorphIdentitySmokeTest'
 }

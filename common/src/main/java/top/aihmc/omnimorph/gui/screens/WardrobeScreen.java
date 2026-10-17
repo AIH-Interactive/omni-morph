@@ -131,9 +131,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
                                     FiguraText.of("gui.new_version.tooltip", Component.literal(NetworkStuff.latestVersion.toString()).withStyle(ChatFormatting.GREEN))
                             ))
                             .withClickEvent(new TextUtils.FiguraClickEvent(UIHelper.openURL(
-                                NetworkStuff.latestVersion.pre==null ? 
-                                    (FiguraMod.Links.Modrinth.url + "/versions") : 
-                                    (FiguraMod.Links.Github.url + "/releases")
+                                FiguraMod.Links.Releases.url
                                 ))
                             )
                     );

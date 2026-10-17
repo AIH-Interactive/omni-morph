@@ -14,8 +14,8 @@ loom {
         convertAccessWideners = true
         extraAccessWideners.add loom.accessWidenerPath.get().asFile.name
 
-        mixinConfig "figura-common.mixins.json"
-        mixinConfig "figura.mixins.json"
+        mixinConfig "omni-morph-common.mixins.json"
+        mixinConfig "omni-morph.mixins.json"
     }
 }
 

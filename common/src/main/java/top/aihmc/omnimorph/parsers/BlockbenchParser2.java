@@ -36,13 +36,13 @@ public class BlockbenchParser2 {
         try {
             BlockbenchCommonTypes.ModelFormat model = GSON.fromJson(json, BlockbenchCommonTypes.ModelFormat.class);
 
-            boolean validFormat = model.modelFormat.equals("free") || model.modelFormat.contains(FiguraMod.MOD_ID);
+            // The upstream Blockbench format is a data contract, independent of this mod's ID.
+            boolean validFormat = model.modelFormat.equals("free") || model.modelFormat.contains("figura");
             if (!validFormat) throw new Exception(String.format(
                     "Model \"%s\" has an incompatible model format: \"%s\".\n" +
-                            "Compatibility is limited to the \"Generic Model\" format and third-party %s-specific formats.",
+                            "Compatibility is limited to the \"Generic Model\" format and third-party Figura-specific formats.",
                     modelName,
-                    model.modelFormat,
-                    FiguraMod.MOD_NAME
+                    model.modelFormat
             ));
 
             Intermediary container = new Intermediary(this);

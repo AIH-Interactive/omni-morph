@@ -3,6 +3,7 @@ package top.aihmc.omnimorph.gui.widgets.lists;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 import net.minecraft.resources.Identifier;
+import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.config.ConfigType;
 import top.aihmc.omnimorph.gui.widgets.*;
 import top.aihmc.omnimorph.lua.api.net.NetworkingAPI;
@@ -182,7 +183,7 @@ public class NetworkFilterList extends AbstractList {
     }
 
     public static class NetworkFilterEntry extends AbstractContainerElement {
-        private static final Identifier deleteButtonLocation = new Identifier("figura", "textures/gui/delete.png");
+        private static final Identifier deleteButtonLocation = new Identifier(FiguraMod.MOD_ID, "textures/gui/delete.png");
         private final NetworkingAPI.Filter sourceFilter;
         private final IconButton deleteButton;
         private final TextField filterTextField;

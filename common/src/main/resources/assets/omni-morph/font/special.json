@@ -9,7 +9,7 @@
     },
     {
       "type": "bitmap",
-      "file": "figura:font/special.png",
+      "file": "omni-morph:font/special.png",
       "ascent": 8,
       "chars": [
         "\uD83D\uDC3E"

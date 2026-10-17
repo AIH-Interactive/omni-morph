@@ -410,3 +410,49 @@ writeCloudIntegrationClasspath、:fabric:build --console=plain 均 PASS；JAR �
 --locked --offline -- --nocapture（20 项与 12 组 Java 联调、旧进程/迁移/回滚）均 PASS。
 双仓库协议摘要校验与受影响 git diff --check PASS；生成源码未提交。
 客户端检查点推送核对后再开始模组 ID、品牌、版本和图标迁移。人工游戏观察状态保持原记录。
+
+## 后续品牌、模组 ID 与 Alpha 版本（用户追加）
+
+前序包名客户端检查点 6fe492951489658300eb0ddd2e8d201e1ae71436 已推送核对。
+状态 PASS。项目显示名称 OmniMorph，模组 ID/资源命名空间/构建名 omni-morph，
+规范版本 1.0.0-alpha.1（界面显示 1.0 Alpha）；保留 Figura Lua API、Figura Cloud、
+Figura/YSM 模型类型、原有 Lua API/类名及上游引用，未无差别替换代码技术名称。
+
+帮助页按用户参考组织文档与社区分组，包含 OmniMorph Docs、Figura Lua Manual、
+YSM / Molang Guide，以及指定 GitHub、Credits、Figura Upstream。Mod Menu Links 和 links
+命令只保留 GitHub=https://github.com/AIH-Interactive，发布下载链接指向 omni-morph/releases。
+元数据同步项目地址与 PolyForm Noncommercial 1.0.0 名称，保留上游作者/贡献者。
+mod_icon.png 经用户允许的脚本缩放为原有 64×64 元数据图标和保持原几何的按钮/帮助图集。
+
+无新配置时读取保留的 figura.json，保存写 omni-morph.json，原文件不覆盖；现存新配置优先。
+未显式选模型目录时，若新目录不存在则继续用已有 figura 目录，不移动/删除用户模型，
+现有 omni-morph 目录和显式用户路径优先。旧后端公共资源的 ID/语言键在客户端挂载时适配
+新命名空间，技术文档名称保留，公共资源不覆盖项目自带 Help/身份字段与品牌图标。
+当前编译与发布目标仍为 26.1.2 Fabric；其他加载器目录仅同步元数据，未冒充移植已完成。
+
+新旧 Blockbench 解析器都将 Figura 格式标识与安装的模组 ID 分离，继续识别既有 figura/free
+格式及原第三方 Figura 规则；未给用户模型改格式或重写包。语言语料门禁去除过时 40/5 固定
+数量断言，继续逐一检查实际识别的全部模型、两类输入和真实字典/文本消费者。
+
+最终自动门禁均 PASS：:common:test（含网络、适配器、配置、安全与新身份迁移 smoke）、
+ysmMaterialNativeSmokeTest；新身份测试实际调用配置与目录逻辑，验证备份不改、新配置优先、
+本地模型保留及公共字体/语言资源适配时保留技术名称。ysmLanguageSmokeTest 动态实际
+43 个 YSM 输入、8 个加密、55 份字典、2160 个 primitive key；共享文本、locale/fallback/隔离通过。
+ysmLocalCorpusSmokeTest 最终 5 个 Figura 编译、35 组普通 YSM 组装、8 个加密组装/重载；
+ysmPayloadSmokeTest、ysmSyncSmokeTest、ysmCryptoSmokeTest、writeCloudIntegrationClasspath
+及 :fabric:build --console=plain 通过。既有 Unsafe/remap 与内嵌纹理回退诊断未扩大处理。
+
+真实 Alpha JAR 检查：ID/name/version/license、唯一指定 GitHub、入口/Mixin/access widener、
+Java/资源新命名空间、实际图标图集尺寸及中英文 Help 标签全部通过，无旧根包和残余 assets/figura。
+带全部 B8 门禁输入的 Rust 测试 20 项、12 组 Java 双协议配对及原后端进程兼容/中断/回滚均 PASS；
+cargo build --release --locked --offline PASS。受影响 diff --check 与原 README 备份哈希保持检查通过。
+
+后端配套文档检查点 817eb785780f5faf8fa8644b643fdd7f2bafc2d9 已推送核对，详见
+docs/OMNIMORPH_BRANDING.md。本客户端检查点推送后重建嵌入最终 SHA 的 JAR，并使用
+tools/record-cloud-release.ps1 写 build/reports/cloud/final-release.json，记录实际产物哈希与双方完整
+提交；B8 历史产物留在 build/releases/b8。实际产物为
+fabric/build/libs/omni-morph-1.0.0-alpha.1+26.1.2-fabric-mc.jar。
+
+此记录不宣称真实游戏外观、双游戏客户端渲染/声音或公网部署 PASS，人工项继续为
+SKIPPED/MANUAL_BY_USER。源码直接启动及读取 Config.toml/RUST_CONFIG 的完整命令已交付在
+后端 docs/DEPLOYMENT.md，Cargo 自动处理必要编译，无需先手动生成可执行文件。

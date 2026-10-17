@@ -1,31 +1,31 @@
 modLoader = "javafml"
 loaderVersion = "[53,)"
-issueTrackerURL = "https://github.com/FiguraMC/Figura/issues"
-license = "Polyform-Noncommercial-1.0.0"
-displayURL = "https://github.com/FiguraMC/Figura"
+issueTrackerURL = "https://github.com/AIH-Interactive/omni-morph/issues"
+license = "PolyForm-Noncommercial-1.0.0"
+displayURL = "https://github.com/AIH-Interactive/omni-morph"
 
 [[mods]]
-modId = "figura"
+modId = "omni-morph"
 version = "${version}"
-displayName = "Figura"
-logoFile="assets/figura/icon.png"
-authors = "skyrina, lumelia, UnlikePaladin, omoflop"
+displayName = "OmniMorph"
+logoFile="assets/omni-morph/icon.png"
+authors = "AIH-Interactive, skyrina, lumelia, UnlikePaladin, omoflop"
 credits = "TooManyLimits, Lexize, KitCat962, Manuel-3, superpowers04, auriafoxgirl, applejuiceyy"
 description = '''
-Extensive customization of the Player model
+Unified Figura Avatar and YSM models with linked Lua and Molang runtimes
 '''
 
-[modproperties.figura]
+[modproperties.omni-morph]
 assets_version="${assets_version}"
 
-[[dependencies.figura]]
+[[dependencies.omni-morph]]
 modId = "forge"
 mandatory = true
 versionRange = "[53,)"
 ordering = "NONE"
 side = "CLIENT"
 
-[[dependencies.figura]]
+[[dependencies.omni-morph]]
 modId = "minecraft"
 mandatory = true
 versionRange = "[${minecraft_version},)"

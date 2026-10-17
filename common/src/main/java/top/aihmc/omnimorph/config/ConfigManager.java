@@ -37,9 +37,14 @@ public final class ConfigManager {
             }
         }
         try {
-            if (FILE.exists()) {
+            File source = FILE;
+            File legacy = PlatformUtils.getConfigDir().resolve("figura.json").toFile();
+            if (!source.exists() && legacy.isFile()) {
+                source = legacy;
+            }
+            if (source.exists()) {
                 initializing = true;
-                BufferedReader br = new BufferedReader(new FileReader(FILE));
+                BufferedReader br = new BufferedReader(new FileReader(source));
                 JsonObject json = JsonParser.parseReader(br).getAsJsonObject();
 
                 JsonElement version = json.get("CONFIG_VERSION");

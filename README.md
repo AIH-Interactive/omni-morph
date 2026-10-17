@@ -2,7 +2,7 @@
 
 基于 [Figura](https://github.com/FiguraMC/Figura) 开发的 Minecraft Java 客户端模型模组，面向 Figura Avatar 与 YSM 模型提供统一的加载、预览、控件、动作和同步体验。
 
-项目延续 Figura 的 Lua 环境、权限体系、衣柜、设置与预览界面，在此基础上加入 YSM 模型运行能力，并推进配套后端和通用 Protobuf 协议改造。`omni-morph` 是独立维护的衍生项目，当前构建产物和部分游戏内名称仍沿用 Figura。
+项目延续 Figura 的 Lua 环境、权限体系、衣柜、设置与预览界面，在此基础上加入 YSM 模型运行能力及配套后端和通用 Protobuf 协议。项目显示名称为 **OmniMorph**，仓库与模组 ID 为 `omni-morph`，Java 根包为 `top.aihmc.omnimorph`；Figura Lua API、Figura Cloud 等技术和上游名称继续保留。
 
 支持 **Lua + Molang 双运行时及联动**：Lua 用于脚本与交互逻辑，Molang 用于 YSM 表达式与动画控制；两者可通过模型接口协作，实现脚本、模型状态和动画联动。纯 YSM 模型也可独立运行，无需额外编写 Lua。
 
@@ -43,9 +43,11 @@
 | Fabric Loader | 0.18.6 |
 | Fabric API | 0.145.4+26.1.2 |
 | Java / JDK | 25 |
-| 模组版本 | 0.1.5 |
+| 模组版本 | `1.0.0-alpha.1`（界面显示 `1.0 Alpha`） |
 
 当前记录的自动化验证环境为 Windows 11 / JDK 25。仓库保留了其他加载器相关目录；当前构建与验证范围见上表。
+
+改名后优先使用 `omni-morph.json`；不存在时读取原 `figura.json`，保存到新文件并保留原文件。未指定模型路径且新数据目录不存在时，继续使用已有 `figura` 目录；不会移动或删除本地模型。显式目录设置仍优先。
 
 ## 版本移植计划
 
