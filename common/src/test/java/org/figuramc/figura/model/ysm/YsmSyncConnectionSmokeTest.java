@@ -1,6 +1,8 @@
 package org.figuramc.figura.model.ysm;
 
 import org.figuramc.figura.backend2.websocket.C2SMessageHandler;
+import org.figuramc.figura.backend2.protocol.YsmProtobuf;
+import org.figuramc.figura.model.ysm.sync.YsmSyncMessage;
 import org.figuramc.figura.model.ysm.sync.YsmSyncConnection;
 import org.figuramc.figura.model.ysm.sync.YsmSyncPackets;
 import org.figuramc.figura.model.ysm.sync.YsmSyncPingBudget;
@@ -105,7 +107,53 @@ final class YsmSyncConnectionSmokeTest {
         require(link.receiver.queuedPackets() == 0 && link.receiver.peerCount() == 0 && !replacement.isClosed(),
                 "world exit clears queues/peers without closing borrowed model");
         require(link.sender.rejectedMessages() == 0, "normal owner generation/reconnect transfer has no rejected application messages");
+        typedReplay(newSource, replacement);
         System.out.println("M7 production connection CPU replay: Ping framing/budget, baseline/delta, short actions, late join, model reload, generation and reconnect PASS");
+    }
+
+    private static void typedReplay(YsmModelRuntime source, YsmModelRuntime observer) {
+        var sender = new YsmSyncConnection();
+        var receiver = new YsmSyncConnection();
+        var publisher = new YsmProtobuf.Publisher();
+        Object senderEpoch = new Object();
+        Object receiverEpoch = new Object();
+        receiver.tickTyped(receiverEpoch, 200, null, uuid -> null, message -> false);
+        java.util.function.Predicate<YsmSyncMessage> transfer = message -> {
+            try {
+                for (var body : publisher.encode(message, 1)) {
+                    require(receiver.enqueueTyped(receiverEpoch, YsmProtobuf.decode(body.setMajor(1).build())),
+                            "formal message enters bounded model queue");
+                }
+                return true;
+            } catch (IOException exception) {
+                throw new AssertionError("Cannot map formal state", exception);
+            }
+        };
+        source.owner().controls.setValue(source.owner(), "ysm.width_scale", 1.35);
+        sender.tickTyped(senderEpoch, 200, source, uuid -> null, transfer);
+        receiver.tickTyped(receiverEpoch, 201, null, uuid -> null, message -> false);
+        require(receiver.queuedPackets() == 1, "baseline waits within budget while observer model is loading");
+        receiver.tickTyped(receiverEpoch, 202, null, uuid -> observer, message -> false);
+        require(Math.abs(observer.widthScale() - 1.35f) < 0.0001 && receiver.queuedPackets() == 0,
+                "formal baseline applies after loader completes");
+        float before = counter(observer);
+        source.actions().trigger("gui");
+        source.actions().stop("gui");
+        sender.tickTyped(senderEpoch, 204, source, uuid -> null, transfer);
+        receiver.tickTyped(receiverEpoch, 205, null, uuid -> observer, message -> false);
+        require(counter(observer) == before + 1 && !observer.actions().isActive("gui"),
+                "formal delta/event mapping replays real short action exactly once");
+        sender.requestSnapshot();
+        source.owner().controls.setValue(source.owner(), "ysm.width_scale", 1.4);
+        sender.tickTyped(senderEpoch, 208, source, uuid -> null, transfer);
+        receiver.tickTyped(receiverEpoch, 209, null, uuid -> observer, message -> false);
+        require(Math.abs(observer.widthScale() - 1.4f) < 0.0001 && counter(observer) == before + 1,
+                "requested full snapshot starts new generation without replaying historical effects");
+        receiver.tickTyped(null, 210, null, uuid -> null, message -> false);
+        require(receiver.queuedPackets() == 0 && receiver.peerCount() == 0 && !observer.isClosed(),
+                "formal world exit preserves borrowed runtime");
+        sender.tickTyped(null, 210, null, uuid -> null, message -> false);
+        System.out.println("B5 formal runtime CPU replay: loader delay, snapshot/delta, short action, refresh generation and world cleanup PASS");
     }
 
     private static float counter(YsmModelRuntime runtime) {

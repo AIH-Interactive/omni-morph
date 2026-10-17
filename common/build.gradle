@@ -588,3 +588,27 @@ tasks.register("ysmHeldItemGeometrySmokeTest", JavaExec) {
     maxHeapSize = "2g"
     args "--held-items", rootProject.file("refs/avatars").path
 }
+
+
+tasks.register('cloudAdapterSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks formal YSM mapping, bounded control decoding and connection epoch retirement.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'org.figuramc.figura.backend2.protocol.CloudAdapterSmokeTest'
+    args rootProject.file('protocol').path
+}
+
+tasks.named('test') {
+    dependsOn 'cloudAdapterSmokeTest'
+}
+
+tasks.register('writeCloudIntegrationClasspath') {
+    group = 'verification'
+    dependsOn testClasses
+    doLast {
+        def output = rootProject.file('build/cloud-integration-classpath.txt')
+        output.parentFile.mkdirs()
+        output.text = (sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath).asPath
+    }
+}

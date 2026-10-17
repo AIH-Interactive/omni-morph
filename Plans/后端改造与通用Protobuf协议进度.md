@@ -14,8 +14,16 @@
 帮助页按用户最新参考图组织：Documentation 为 OmniMorph Docs、Figura Lua Manual、
 YSM / Molang Guide；Project & Community 为 OmniMorph GitHub、Credits、Figura Upstream。
 GitHub 链接 `https://github.com/AIH-Interactive`；Upstream 链接
-`https://github.com/FiguraMC/Figura`。移除 Discord 与 Ko-fi；明确的上游引用保留 Figura 名称。
+`https://github.com/FiguraMC/Figura`。Credits 链接
+`https://github.com/AIH-Interactive/omni-morph/blob/main/CREDITS`。
+移除 Discord 与 Ko-fi；明确的上游引用保留 Figura 名称。
+用户明确保留代码中的技术名称（例如 Figura Lua API）、上游/协议名称，不做无差别全局品牌替换；
+项目品牌、已授权根包名与模组 ID 按各自目标迁移。
 与包名迁移配套处理，完成客户端编译及真实游戏界面验证；未执行的人工项明确记录状态。
+用户追加版本要求：上述迁移时，当前规范构建版本为 `1.0.0-alpha.1`，界面显示 `1.0 Alpha`，
+同步构建元数据、README 和界面显示；版本规范已写入 AGENTS.md。
+用户追加模组 ID 要求：后续迁移时统一为 `omni-morph`，同步模组清单、资源命名空间与必要引用。
+品牌迁移时可用 `mod_icon.png` 更新涉及的模组图标；需要适配尺寸时先用脚本转换再更新引用并验证。
 
 | 阶段 | 状态 | 证据与检查点 |
 | --- | --- | --- |
@@ -24,7 +32,7 @@ GitHub 链接 `https://github.com/AIH-Interactive`；Upstream 链接
 | B2 | PASS | 后端 `1c6d843` 已推送核对；真实混合协议 HTTP/WS 测试与 release 编译通过 |
 | B3 | PASS | 后端 `069bf61` 已推送核对；双适配器原始文件、投影、失败/取消/并发测试及 release 编译通过 |
 | B4 | PASS | 后端 `03b740a` 已推送核对；18 项测试、Release 编译、生产 Java M7 向量与恢复/重启/双向桥接通过 |
-| B5 | TODO | 客户端双协议接线 |
+| B5 | PASS | 后端测试检查点 `3424695` 已推送核对；生产 Java 六组混合协议、状态回放、语料门禁与 Fabric 构建通过 |
 | B6 | TODO | 设置、默认值与迁移 |
 | B7 | TODO | Debug URI 与撤销、脱敏 |
 | B8 | TODO | 完整联调、迁移回滚与产物 |
@@ -186,3 +194,56 @@ M7 没有 SnapshotRequest/error 控制帧，旧 owner 依靠既有周期完整�
 
 客户端生产代码本阶段未变，沿用 B0 Fabric 编译；真实游戏与公网部署为 MANUAL/PENDING。
 完整后端证据与桥接边界见 omnm-cloud/docs/B4.md。本客户端检查点提交推送并核对后进入 B5。
+
+
+## B5
+
+后端测试检查点 `34246951afe0873b43def4afd808b8e665445dfe` 已推送 origin/master 并核对。
+客户端前序提交 `fd401ea054b8daff72e4b0f2e7a4cbe5fe1acf29`；本客户端 B5 提交包含完整双适配器
+与以下入口接线。后端生产代码和协议 schema 本阶段不变，仅新增真实 Java 联调测试及 docs/B5.md。
+
+`backend2/protocol/CloudProtocol` 定义共用业务操作，FiguraCloudProtocol 保留旧 HTTP/Ping/M7
+线格式及普通通知，显式声明 YSM 能力；ProtobufCloudProtocol 执行能力发现、作用域认证、
+WS Hello、资料/徽章/版本/MOTD/限额、资源授权/提交、装备/删除、订阅、普通 Ping 与正式 YSM。
+工厂和程序连接入口支持两模式；既有默认选择暂保留 Figura Cloud，设置控件/默认 Protobuf 属 B6。
+
+模型输出仍先经过现有 YsmSourcePayload.forOutput，保持 Figura 压缩 NBT 和 YSM 现有分发包，
+密文保持原密文；模型 bytes 只走独立 HTTP PUT/GET，不进入控制信封/WS。下载先校验描述符、
+长度、原始 hash（旧协议保留 Base64 文件 hash），再经现有 NBT/模型加载器。
+文件 64 MiB 和解压 256 MiB 沿用已有 M0 资源预算；客户端与协商上限取较小值。
+缓存键包含 origin/instance、owner、revision/hash、格式/类型可用身份，防止跨端点/模型误用。
+
+`YsmProtobuf` 在现有状态对象与正式生成字段间映射全部分区，保留缺省/显式空和有符号缺省值。
+combined 状态/事件拆成有序正式帧，周期完整快照中的新瞬时事件保留，首次基线历史动作不回放。
+重复源游标重用原 canonical 帧，冲突/事件缺口受控拒绝。现有状态机新增 typed 通路，
+应用前继续校验 owner/content/schema/索引与 observer 权限；模型加载期间有界暂存，刷新请求以
+新代完整快照恢复，世界退出清空动态引用而不销毁借用模型。
+
+连接对象持有不可变协议/端点/会话范围和 epoch；HTTP、WS、业务回调与缓存加载都经过退役校验。
+切换/断开取消请求与流，清空旧回调，迟到认证不连接，迟到 HTTP/WS/缓存结果不发布到新连接。
+主线程邮箱、控制发送、重组、工作队列都有预算/期限；已解码模型等待发布或取消后才继续对应
+串行加载工作。正式控制解码在生成 parser 分配前检查重复字段/packed 项、深度和完整信封大小。
+
+自动门禁（Windows/JDK 25，前台日志及退出码核对）：
+
+- :common:test：PASS，实际执行原 networkProtocolSmokeTest 和 cloudAdapterSmokeTest，
+  覆盖共享向量、M7 全字段映射、presence、canonical 时钟/水位、畸形数据、epoch 退役、
+  资源路径同源及协商较低预算；服务端不能提高本地硬上限。
+- 生产 Java 适配器连接真实 Rust 随机端口监听器：Figura Cloud→Protobuf、Protobuf→Figura Cloud，
+  各 Figura/普通 YSM/密文 YSM，六组均 PASS；覆盖原始 HTTP 文件等值、资料/缓存引用、
+  上传/提交/装备/删除、认证 owner、普通 Ping/echo、状态/空分区、短动作、重复包、周期快照
+  新事件及退订再订阅恢复。合成密文不冒充可解密模型，实际解码另由语料门禁验证。
+- :common:ysmMaterialNativeSmokeTest：PASS，原 M7 回放及正式状态通路均实际应用到独立运行时，
+  包含加载延迟、控件/材质、短动作、新代刷新和退出清理；这是 CPU/原生对象测试，不是 GUI PASS。
+- :common:ysmPayloadSmokeTest、:common:ysmSyncSmokeTest：PASS，密文白名单/落盘泄漏和恢复去重通过。
+- :common:ysmLocalCorpusSmokeTest 动态枚举：5 个 Figura 编译、35 个普通 YSM 数据组装、
+  8 个加密 YSM 组装/重新加载。:common:ysmCryptoSmokeTest 使用 refs/avatars，
+  固定 crypto 1/2/3 向量及本次 8 个加密输入全部通过，未导出私有密钥或模型内容。
+- :fabric:build --console=plain：最终源代码构建 PASS；已有 remap/Unsafe/Gradle 弃用警告保留。
+- cargo check --locked --offline、cargo test --locked --offline -- --nocapture（显式客户端 classpath）：
+  PASS，18 项测试含上述六组真实 Java 联调；cargo build --release --locked --offline：PASS。
+- 两仓库受影响源码/文档 git diff --check：PASS，未提交 build.log、refs、模型或参考 spm-cloud。
+
+GUI/真实游戏观察为 SKIPPED/MANUAL_BY_USER，公网部署尚未验收。B6/B7/B8 继续按各自门禁执行，
+不因本阶段双适配器测试通过而提前记为设置、Debug 安全矩阵或完整交付完成。
+本阶段客户端检查点推送并核对远端后，才开始 B6。

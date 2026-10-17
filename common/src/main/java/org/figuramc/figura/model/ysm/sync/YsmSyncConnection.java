@@ -24,6 +24,9 @@ public final class YsmSyncConnection {
     private final Map<UUID, Peer> peers = new HashMap<>();
     private final LinkedHashMap<UUID, History> histories = new LinkedHashMap<>();
     private volatile Object connection;
+    private volatile long currentTick;
+    private volatile boolean snapshotRequested;
+    private int queuedBytes;
     private UUID session = UUID.randomUUID();
     private YsmModelRuntime host;
     private YsmModelRuntime failedHost;
@@ -42,7 +45,7 @@ public final class YsmSyncConnection {
     private YsmSyncMessage.State pendingState;
     private final AtomicLong rejected = new AtomicLong();
 
-    private record Inbound(Object connection, UUID owner, byte[] bytes) {
+    private record Inbound(Object connection, UUID owner, byte[] bytes, YsmSyncMessage message, long receivedTick) {
     }
 
     private record Peer(YsmModelRuntime runtime, YsmSyncModel model, YsmSyncReceiver receiver) {
@@ -58,23 +61,66 @@ public final class YsmSyncConnection {
         }
         synchronized (queued) {
             if (source != connection || source == null || data.length > YsmSyncPackets.MAX_PACKET_BYTES
-                    || queued.size() >= MAX_QUEUED_PACKETS) {
+                    || queued.size() >= MAX_QUEUED_PACKETS || queuedBytes + data.length > 262144) {
                 rejected.incrementAndGet();
                 return true;
             }
-            queued.addLast(new Inbound(source, owner, data.clone()));
+            queued.addLast(new Inbound(source, owner, data.clone(), null, currentTick));
+            queuedBytes += data.length;
         }
         return true;
+    }
+
+    /** Formal protocol adapters enqueue typed state, without manufacturing M7 packets. */
+    public boolean enqueueTyped(Object source, YsmSyncMessage message) {
+        int size;
+        try {
+            size = YsmSyncCodec.encode(message).length;
+        } catch (IOException exception) {
+            rejected.incrementAndGet();
+            return false;
+        }
+        synchronized (queued) {
+            if (source == null || source != connection || queued.size() >= MAX_QUEUED_PACKETS
+                    || queuedBytes + size > 262144) {
+                rejected.incrementAndGet();
+                return false;
+            }
+            queued.addLast(new Inbound(source, message.owner(), null, message, currentTick));
+            queuedBytes += size;
+        }
+        return true;
+    }
+
+    public void requestSnapshot() {
+        snapshotRequested = true;
     }
 
     /** A different socket or world identity starts a new isolated epoch. */
     public void tick(Object epoch, long tick, YsmModelRuntime local,
                      Function<UUID, YsmModelRuntime> models, Predicate<byte[]> send) {
+        tickInternal(epoch, tick, local, models, send, null);
+    }
+
+    public void tickTyped(Object epoch, long tick, YsmModelRuntime local,
+                          Function<UUID, YsmModelRuntime> models, Predicate<YsmSyncMessage> send) {
+        tickInternal(epoch, tick, local, models, null, send);
+    }
+
+    private void tickInternal(Object epoch, long tick, YsmModelRuntime local,
+                              Function<UUID, YsmModelRuntime> models, Predicate<byte[]> send,
+                              Predicate<YsmSyncMessage> typedSend) {
+        currentTick = tick;
         if (connection != epoch) {
             reset(epoch);
         }
         if (epoch == null) {
             return;
+        }
+        if (snapshotRequested) {
+            snapshotRequested = false;
+            generation++;
+            resetOutgoing();
         }
         packets.expire(tick);
         retirePeers(tick, models);
@@ -93,12 +139,12 @@ public final class YsmSyncConnection {
             if (hostModel == null) {
                 hostModel = new YsmSyncModel(local);
             }
-            if (!outgoing.isEmpty()) {
+            if (!outgoing.isEmpty() || pendingMessage != null) {
                 if (tick < outgoingStarted || tick - outgoingStarted >= YsmSyncPackets.EXPIRY_TICKS) {
                     generation++;
                     resetOutgoing();
                 } else {
-                    flush(tick, send);
+                    flush(tick, send, typedSend);
                     return;
                 }
             }
@@ -121,12 +167,12 @@ public final class YsmSyncConnection {
             YsmSyncMessage.State body = snapshot ? state : delta(lastState, state);
             pendingMessage = new YsmSyncMessage(local.owner().owner, session, hostModel.contentHash(), hostModel.schemaHash(),
                     generation, sequence + 1, snapshot ? -1 : sequence, tick, snapshot, watermark, body, events);
-            outgoing = YsmSyncPackets.fragment(++messageId, YsmSyncCodec.encode(pendingMessage));
+            outgoing = typedSend == null ? YsmSyncPackets.fragment(++messageId, YsmSyncCodec.encode(pendingMessage)) : List.of();
             pendingState = state;
             outgoingIndex = 0;
             outgoingStarted = tick;
             lastWatermark = watermark;
-            flush(tick, send);
+            flush(tick, send, typedSend);
         } catch (IOException | IllegalArgumentException | IllegalStateException exception) {
             // A model exceeding this protocol's budget still remains usable in single player.
             failedHost = local;
@@ -140,18 +186,34 @@ public final class YsmSyncConnection {
         synchronized (queued) {
             batch = List.copyOf(queued);
             queued.clear();
+            queuedBytes = 0;
         }
         for (Inbound input : batch) {
             if (input.connection() != connection) {
                 continue;
             }
             try {
-                byte[] message = packets.accept(input.owner(), input.bytes(), tick);
-                if (message == null) {
+                YsmSyncMessage decoded = input.message();
+                if (decoded == null) {
+                    byte[] message = packets.accept(input.owner(), input.bytes(), tick);
+                    if (message == null) {
+                        continue;
+                    }
+                    decoded = YsmSyncCodec.decode(message);
+                }
+                YsmModelRuntime runtime = models.apply(input.owner());
+                if (runtime == null && tick >= input.receivedTick() && tick - input.receivedTick() < 600) {
+                    int size = YsmSyncCodec.encode(decoded).length;
+                    synchronized (queued) {
+                        if (queued.size() < MAX_QUEUED_PACKETS && queuedBytes + size <= 262144) {
+                            queued.addLast(new Inbound(input.connection(), input.owner(), null, decoded, input.receivedTick()));
+                            queuedBytes += size;
+                        } else {
+                            rejected.incrementAndGet();
+                        }
+                    }
                     continue;
                 }
-                YsmSyncMessage decoded = YsmSyncCodec.decode(message);
-                YsmModelRuntime runtime = models.apply(input.owner());
                 if (runtime == null || runtime.isClosed() || runtime.owner().isHost
                         || !input.owner().equals(decoded.owner()) || !input.owner().equals(runtime.owner().owner)) {
                     continue;
@@ -201,7 +263,10 @@ public final class YsmSyncConnection {
         }
     }
 
-    private void flush(long tick, Predicate<byte[]> send) {
+    private void flush(long tick, Predicate<byte[]> send, Predicate<YsmSyncMessage> typedSend) {
+        if (typedSend != null && !typedSend.test(pendingMessage)) {
+            return;
+        }
         while (outgoingIndex < outgoing.size()) {
             if (!send.test(outgoing.get(outgoingIndex))) {
                 return;
@@ -222,6 +287,7 @@ public final class YsmSyncConnection {
         synchronized (queued) {
             connection = epoch;
             queued.clear();
+            queuedBytes = 0;
         }
         packets.clear();
         peers.clear();
