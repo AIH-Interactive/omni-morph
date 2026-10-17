@@ -16,6 +16,7 @@ public final class PoseSnapshot {
     private final PoseStack.Pose floatPose;
     private final FiguraMat3 uv;
     private final FiguraMat4[] skinDeltas;
+    private final int normalPolicy;
 
     public PoseSnapshot(FiguraMat4 position, FiguraMat3 normal) {
         this(position, normal, FiguraMat3.of(), null);
@@ -27,6 +28,7 @@ public final class PoseSnapshot {
         this.floatPose = null;
         this.uv = uv.copy();
         this.skinDeltas = copyDeltas(skinDeltas);
+        this.normalPolicy = 0;
     }
 
     public PoseSnapshot(PoseStack.Pose pose) {
@@ -35,6 +37,28 @@ public final class PoseSnapshot {
         this.floatPose = pose.copy();
         this.uv = FiguraMat3.of();
         this.skinDeltas = new FiguraMat4[0];
+        this.normalPolicy = detectNormalPolicy(this.floatPose);
+    }
+
+    /** 0 preserves raw normals, 1 normalizes, -1 requires Java for degenerate/non-finite vanilla state. */
+    public int normalPolicy() {
+        return normalPolicy;
+    }
+
+    private static int detectNormalPolicy(PoseStack.Pose pose) {
+        // Public transformNormal retains vanilla's private trusted-normal flag. Homogeneity distinguishes
+        // raw transformation (doubling the input doubles length) from normalization (length stays fixed).
+        for (int axis = 0; axis < 3; axis++) {
+            Vector3f input = new Vector3f(axis == 0 ? 1 : 0, axis == 1 ? 1 : 0, axis == 2 ? 1 : 0);
+            Vector3f first = pose.transformNormal(input, new Vector3f());
+            Vector3f second = pose.transformNormal(input.mul(2), new Vector3f());
+            double firstLength = Math.sqrt((double) first.x * first.x + (double) first.y * first.y + (double) first.z * first.z);
+            double secondLength = Math.sqrt((double) second.x * second.x + (double) second.y * second.y + (double) second.z * second.z);
+            if (Double.isFinite(firstLength) && Double.isFinite(secondLength) && firstLength > 0) {
+                return secondLength / firstLength < 1.5 ? 1 : 0;
+            }
+        }
+        return -1;
     }
 
     void transform(MeshHandle mesh, double[] output) {

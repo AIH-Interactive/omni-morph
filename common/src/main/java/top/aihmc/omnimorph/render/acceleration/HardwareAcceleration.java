@@ -2,9 +2,11 @@ package top.aihmc.omnimorph.render.acceleration;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import com.mojang.blaze3d.systems.RenderSystem;
 import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.config.Configs;
 import top.aihmc.omnimorph.utils.FiguraText;
+import top.aihmc.omnimorph.utils.PlatformUtils;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -19,26 +21,80 @@ public final class HardwareAcceleration {
             HardwareAcceleration::probe, report -> FiguraMod.LOGGER.info(
                     "Hardware acceleration: requested={}, state={}, effective={}, reason={}, nativeCapabilities={}",
                     report.requested(), report.state(), report.effective(), report.reason(), report.nativeCapabilities()));
+    private static MinecraftGpuDeviceAdapter gpuDevice;
+    private static GpuAccelerationBackend pendingGpu;
+    private static volatile boolean resetPendingGpu;
+    private static volatile boolean resetGpuDevice;
+    private static boolean retirementFailureLogged;
 
     private HardwareAcceleration() {
     }
 
     public static void applySettings() {
-        CONTROLLER.request(Boolean.TRUE.equals(Configs.HARDWARE_ACCELERATION_ENABLED.value),
-                Mode.values()[Configs.HARDWARE_ACCELERATION_MODE.value]);
+        if (CONTROLLER.request(Boolean.TRUE.equals(Configs.HARDWARE_ACCELERATION_ENABLED.value),
+                Mode.values()[Configs.HARDWARE_ACCELERATION_MODE.value])) {
+            resetPendingGpu = true;
+        }
     }
 
     public static void beginFrame() {
+        try {
+            GpuRetirement.GLOBAL.poll();
+            retirementFailureLogged = false;
+        } catch (RuntimeException | LinkageError failure) {
+            if (!retirementFailureLogged) {
+                FiguraMod.LOGGER.warn("GPU retirement is pending: {}", failure.getClass().getSimpleName());
+                retirementFailureLogged = true;
+            }
+            CONTROLLER.runtimeFailure(new GpuAccelerationBackend.Failure(FallbackReason.RUNTIME_FAILURE, false, failure));
+        }
+        if (resetPendingGpu) {
+            if (pendingGpu != null) {
+                pendingGpu.close();
+                pendingGpu = null;
+            }
+            resetPendingGpu = false;
+        }
+        if (resetGpuDevice) {
+            gpuDevice = null;
+            resetGpuDevice = false;
+        }
+        if (gpuDevice != null && !gpuDevice.isCurrent()) {
+            if (pendingGpu != null) {
+                pendingGpu.close();
+                pendingGpu = null;
+            }
+            gpuDevice = null;
+            CONTROLLER.retryAfterResourceReload();
+        }
         CONTROLLER.beginFrame();
         flushChat();
     }
 
     public static void retryAfterResourceReload() {
+        resetPendingGpu = true;
+        resetGpuDevice = true;
         CONTROLLER.retryAfterResourceReload();
     }
 
     public static CapabilityReport report() {
         return CONTROLLER.report();
+    }
+
+    public static void shutdown() {
+        try {
+            CONTROLLER.request(false, CONTROLLER.report().requested());
+            CONTROLLER.beginFrame();
+            if (pendingGpu != null) {
+                pendingGpu.close();
+                pendingGpu = null;
+            }
+            if (!GpuRetirement.GLOBAL.awaitRemaining(1_000_000_000L)) {
+                FiguraMod.LOGGER.warn("GPU retirement did not complete before device shutdown: {} bytes pending", GpuRetirement.GLOBAL.bytes());
+            }
+        } catch (RuntimeException | LinkageError failure) {
+            FiguraMod.LOGGER.warn("GPU shutdown cleanup could not complete: {}", failure.getClass().getSimpleName());
+        }
     }
 
     public static Component statusText() {
@@ -64,10 +120,10 @@ public final class HardwareAcceleration {
         return FiguraText.of("config.hardware_acceleration.reason." + reason.name().toLowerCase(Locale.ROOT));
     }
 
-    static AccelerationController.Activation probe(Mode mode) throws AccelerationController.ProbeFailure {
-        // H4 supplies the actual device-backed GPU probe. Never advertise SIMD-only as automatic/GPU success.
+    static AccelerationController.Activation probe(Mode mode)
+            throws AccelerationController.ProbeFailure, AccelerationController.ProbePending {
         if (mode != Mode.SIMD) {
-            throw new AccelerationController.ProbeFailure(FallbackReason.GPU_NOT_READY);
+            return probeGpu();
         }
         try {
             NativeLibraryLoader.Loaded loaded = NativeLibraryLoader.load();
@@ -86,6 +142,34 @@ public final class HardwareAcceleration {
             throw new AccelerationController.ProbeFailure(FallbackReason.NATIVE_LINK_FAILURE);
         } catch (IOException | RuntimeException failure) {
             throw new AccelerationController.ProbeFailure(FallbackReason.NATIVE_INITIALIZATION_FAILURE);
+        }
+    }
+
+    private static AccelerationController.Activation probeGpu()
+            throws AccelerationController.ProbeFailure, AccelerationController.ProbePending {
+        if (!RenderSystem.isOnRenderThread() || RenderSystem.tryGetDevice() == null) {
+            throw new AccelerationController.ProbeFailure(FallbackReason.GPU_UNAVAILABLE);
+        }
+        if (PlatformUtils.isModLoaded("iris") || PlatformUtils.isModLoaded("sodium")) {
+            throw new AccelerationController.ProbeFailure(FallbackReason.INCOMPATIBLE_PIPELINE);
+        }
+        if (pendingGpu == null) {
+            if (gpuDevice == null || !gpuDevice.isCurrent()) {
+                gpuDevice = new MinecraftGpuDeviceAdapter(RenderSystem.getDevice(), Minecraft.getInstance().getShaderManager()::getShader);
+            }
+            pendingGpu = new GpuAccelerationBackend(gpuDevice, GpuRetirement.GLOBAL, 64L * 1024 * 1024, 8L * 1024 * 1024);
+        }
+        try {
+            if (!pendingGpu.initializeStep()) {
+                throw new AccelerationController.ProbePending();
+            }
+            GpuAccelerationBackend ready = pendingGpu;
+            pendingGpu = null;
+            return new AccelerationController.Activation(ready, Effective.GPU, 0);
+        } catch (GpuAccelerationBackend.Failure failure) {
+            pendingGpu.close();
+            pendingGpu = null;
+            throw new AccelerationController.ProbeFailure(failure.reason);
         }
     }
 

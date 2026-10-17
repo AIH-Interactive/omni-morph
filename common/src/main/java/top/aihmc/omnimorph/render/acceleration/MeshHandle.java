@@ -1,6 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
 import java.util.List;
+import java.util.Arrays;
 
 /** Owned xyzw, normal xyz and UV input, in authored face order. */
 public final class MeshHandle {
@@ -9,6 +10,7 @@ public final class MeshHandle {
     private final double[] vertices;
     private final int verticesPerFace;
     private final List<Influences> influences;
+    private final int geometryHash;
 
     /** Variable-length weights; no backend may silently truncate this list. */
     public static final class Influences {
@@ -51,6 +53,35 @@ public final class MeshHandle {
             throw new IllegalArgumentException("Influence list must cover every vertex");
         }
         this.influences = List.copyOf(influences);
+        int hash = 31 * Arrays.hashCode(this.vertices) + verticesPerFace;
+        for (Influences influence : this.influences) {
+            hash = 31 * hash + Arrays.hashCode(influence.joints);
+            hash = 31 * hash + Arrays.hashCode(influence.weights);
+        }
+        geometryHash = hash;
+    }
+
+    public int geometryHash() {
+        return geometryHash;
+    }
+
+    /** Collision-safe cache comparison of immutable geometry, independent of per-frame pose/material. */
+    public boolean sameGeometry(MeshHandle other) {
+        if (this == other) {
+            return true;
+        }
+        if (geometryHash != other.geometryHash || verticesPerFace != other.verticesPerFace
+                || !Arrays.equals(vertices, other.vertices) || influences.size() != other.influences.size()) {
+            return false;
+        }
+        for (int index = 0; index < influences.size(); index++) {
+            Influences first = influences.get(index);
+            Influences second = other.influences.get(index);
+            if (!Arrays.equals(first.joints, second.joints) || !Arrays.equals(first.weights, second.weights)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public int vertexCount() {

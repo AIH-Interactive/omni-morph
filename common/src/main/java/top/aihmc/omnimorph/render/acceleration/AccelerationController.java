@@ -12,7 +12,13 @@ final class AccelerationController {
     }
 
     interface Probe {
-        Activation detect(Mode mode) throws ProbeFailure;
+        Activation detect(Mode mode) throws ProbeFailure, ProbePending;
+    }
+
+    static final class ProbePending extends Exception {
+        ProbePending() {
+            super(null, null, false, false);
+        }
     }
 
     static final class ProbeFailure extends Exception {
@@ -40,15 +46,16 @@ final class AccelerationController {
         this.changed = changed;
     }
 
-    synchronized void request(boolean enabled, Mode mode) {
+    synchronized boolean request(boolean enabled, Mode mode) {
         if (this.enabled == enabled && this.mode == mode) {
-            return;
+            return false;
         }
         this.enabled = enabled;
         this.mode = mode;
         pending = true;
         pendingChat = null;
         publish(new CapabilityReport(mode, enabled ? State.PROBING : State.DISABLED, Effective.JAVA, null, 0));
+        return true;
     }
 
     synchronized void retryAfterResourceReload() {
@@ -76,6 +83,8 @@ final class AccelerationController {
             }
             service.useBackend(activation.backend(), this::runtimeFailure);
             publish(new CapabilityReport(mode, State.READY, activation.effective(), null, activation.capabilities()));
+        } catch (ProbePending incomplete) {
+            pending = true;
         } catch (ProbeFailure failure) {
             fallback(failure.reason);
         } catch (RuntimeException | LinkageError failure) {
@@ -87,8 +96,10 @@ final class AccelerationController {
         if (!enabled || report.state() == State.FALLBACK_JAVA) {
             return;
         }
-        fallback(failure instanceof IllegalCallerException || failure instanceof SecurityException
-                ? FallbackReason.NATIVE_ACCESS_DENIED : FallbackReason.RUNTIME_FAILURE);
+        FallbackReason reason = failure instanceof GpuAccelerationBackend.Failure gpu ? gpu.reason
+                : failure instanceof IllegalCallerException || failure instanceof SecurityException
+                ? FallbackReason.NATIVE_ACCESS_DENIED : FallbackReason.RUNTIME_FAILURE;
+        fallback(reason);
     }
 
     private void fallback(FallbackReason reason) {

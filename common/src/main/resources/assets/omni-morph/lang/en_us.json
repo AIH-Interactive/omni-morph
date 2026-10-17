@@ -1903,6 +1903,7 @@
   "omni-morph.config.hardware_acceleration.reason.unsupported_cpu": "no supported SIMD instruction set",
   "omni-morph.config.hardware_acceleration.reason.gpu_unavailable": "the current graphics pipeline does not support acceleration",
   "omni-morph.config.hardware_acceleration.reason.gpu_not_ready": "the GPU acceleration pipeline is not ready",
+  "omni-morph.config.hardware_acceleration.reason.incompatible_pipeline": "installed rendering mods have no compatible acceleration path",
   "omni-morph.config.hardware_acceleration.reason.shader_failure": "acceleration shader validation failed",
   "omni-morph.config.hardware_acceleration.reason.resource_exhausted": "acceleration resource budget exhausted",
   "omni-morph.config.hardware_acceleration.reason.runtime_failure": "the acceleration backend failed at runtime"
