@@ -2,6 +2,8 @@ package top.aihmc.omnimorph.render.acceleration;
 
 import com.mojang.blaze3d.buffers.GpuFence;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.vertex.MeshData;
+import net.minecraft.client.renderer.rendertype.RenderType;
 
 import java.nio.ByteBuffer;
 
@@ -32,6 +34,12 @@ interface GpuDeviceAdapter {
     Mesh uploadGeometry(ByteBuffer vertices, ByteBuffer indices);
 
     Pose uploadPose(ByteBuffer data);
+
+    GpuSubmission.Scope openScope(RenderType material);
+
+    default void drawJava(RenderType material, MeshData geometry) {
+        material.draw(geometry);
+    }
 
     /** Marks the draw immediately before issuing it: an uncertain/partially submitted draw must not be replayed. */
     void draw(Material material, Mesh mesh, Pose pose, GpuDrawContext context,

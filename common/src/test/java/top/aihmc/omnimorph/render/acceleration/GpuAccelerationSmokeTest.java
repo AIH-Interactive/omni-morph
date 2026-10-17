@@ -255,7 +255,7 @@ public final class GpuAccelerationSmokeTest {
                 x, 3, 3, 1, 0, 1, 0, 0, 1}, 4);
     }
 
-    private static final class FakeResource implements GpuDeviceAdapter.Mesh, GpuDeviceAdapter.Pose {
+    static final class FakeResource implements GpuDeviceAdapter.Mesh, GpuDeviceAdapter.Pose {
         final FakeDevice owner;
         final ByteBuffer data;
         final long bytes;
@@ -282,7 +282,7 @@ public final class GpuAccelerationSmokeTest {
         }
     }
 
-    private static final class FakeDevice implements GpuDeviceAdapter {
+    static class FakeDevice implements GpuDeviceAdapter {
         final Thread thread = Thread.currentThread();
         long liveBytes;
         int selfTests;
@@ -333,6 +333,11 @@ public final class GpuAccelerationSmokeTest {
                 throw new IllegalStateException("injected pose allocation failure");
             }
             return lastPose = new FakeResource(this, data, data.remaining());
+        }
+
+        @Override
+        public GpuSubmission.Scope openScope(RenderType material) {
+            return new GpuSubmission.Scope(CONTEXT, () -> {});
         }
 
         @Override

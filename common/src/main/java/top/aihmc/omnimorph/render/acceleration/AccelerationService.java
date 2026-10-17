@@ -2,9 +2,12 @@ package top.aihmc.omnimorph.render.acceleration;
 
 import java.util.Objects;
 import java.util.function.Consumer;
+import com.mojang.blaze3d.vertex.MeshData;
+import net.minecraft.client.renderer.rendertype.RenderType;
 
 /** Global routing and lifetime boundary. No engine names or platform loading here. */
 public final class AccelerationService {
+    public static final int MAX_BATCH_VERTICES = 65_536;
     public static final AccelerationService INSTANCE = new AccelerationService();
 
     public record Lease(AccelerationOwner owner, long ownerGeneration, long resources, long frame, String view) {
@@ -70,6 +73,65 @@ public final class AccelerationService {
             // A foreign backend cannot establish whether it submitted a partial draw. Do not duplicate it.
             return GpuAccelerationBackend.DrawResult.ISSUED_BEFORE_FAILURE;
         }
+    }
+
+    public boolean accelerated() {
+        return preferredBackend != javaBackend;
+    }
+
+    public boolean gpuDrawEnabled() {
+        return preferredBackend instanceof GpuAccelerationBackend;
+    }
+
+    GpuSubmission.Scope openGpuDrawScope(RenderType material) {
+        if (!(preferredBackend instanceof GpuAccelerationBackend gpu)) {
+            throw new GpuAccelerationBackend.Failure(FallbackReason.GPU_UNAVAILABLE, false, null);
+        }
+        return gpu.openScope(material);
+    }
+
+    Consumer<MeshData> javaDrawCallback(RenderType material) {
+        if (preferredBackend instanceof GpuAccelerationBackend gpu) {
+            return geometry -> gpu.drawJava(material, geometry);
+        }
+        return material::draw;
+    }
+
+    public GpuAccelerationBackend.Prepared prepareGpuDraw(DrawBatch batch) {
+        if (!isCurrent(batch.lease()) || !(preferredBackend instanceof GpuAccelerationBackend gpu)) {
+            return null;
+        }
+        try {
+            return gpu.prepare(batch, () -> isCurrent(batch.lease()));
+        } catch (RuntimeException | LinkageError failure) {
+            backendFailed(gpu, failure);
+            return null;
+        }
+    }
+
+    public GpuAccelerationBackend.DrawResult drawPrepared(GpuAccelerationBackend.Prepared prepared,
+                                                         GpuDrawContext context, int firstIndex, int indexCount) {
+        if (!isCurrent(prepared.batch.lease())) {
+            return GpuAccelerationBackend.DrawResult.STALE;
+        }
+        if (preferredBackend != prepared.backend) {
+            return GpuAccelerationBackend.DrawResult.UNSUPPORTED;
+        }
+        try {
+            return prepared.backend.drawPrepared(prepared, context, firstIndex, indexCount,
+                    () -> isCurrent(prepared.batch.lease()));
+        } catch (GpuAccelerationBackend.Failure failure) {
+            backendFailed(prepared.backend, failure);
+            return failure.issued ? GpuAccelerationBackend.DrawResult.ISSUED_BEFORE_FAILURE
+                    : GpuAccelerationBackend.DrawResult.UNSUPPORTED;
+        } catch (RuntimeException | LinkageError failure) {
+            backendFailed(prepared.backend, failure);
+            return GpuAccelerationBackend.DrawResult.ISSUED_BEFORE_FAILURE;
+        }
+    }
+
+    void graphicsFailed(Throwable failure) {
+        backendFailed(preferredBackend, failure);
     }
 
     public Lease capture(AccelerationOwner owner, String view) {

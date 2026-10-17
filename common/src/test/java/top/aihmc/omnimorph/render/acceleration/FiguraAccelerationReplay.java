@@ -22,10 +22,15 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 /** Exercises the production deferred Figura emitter, without a graphics device. */
 public final class FiguraAccelerationReplay {
     public static void main(String[] args) throws Exception {
+        replay(null);
+    }
+
+    public static void replay(Function<VertexConsumer, MultiBufferSource> sourceFactory) throws Exception {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
         Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
@@ -42,6 +47,7 @@ public final class FiguraAccelerationReplay {
         constructor.setAccessible(true);
         Object data = constructor.newInstance();
         set(data, "renderType", RenderTypes.entityCutout(Identifier.parse("omni-morph:test")));
+        set(data, "texture", Identifier.parse("omni-morph:test"));
         set(data, "primary", true);
         set(data, "color", FiguraVec3.of(0.25, 0.5, 0.75));
         PartCustomization customization = new PartCustomization();
@@ -95,9 +101,10 @@ public final class FiguraAccelerationReplay {
                     }
                     return method.getReturnType() == void.class ? null : proxy;
                 });
-        MultiBufferSource destination = type -> sink;
+        MultiBufferSource destination = sourceFactory == null ? type -> sink : sourceFactory.apply(sink);
         push.invoke(renderer, 1, data, customization, textures, vertices, null, null);
         consume.invoke(buffer, true, destination);
+        flush(destination);
         require(positions.size() == 4 && positions.getFirst()[0] == 4 && positions.getFirst()[2] == 8,
                 "actual Figura draw consumes transformed batch positions");
         require(normals.size() == 4 && normals.getFirst()[1] == 0.5f,
@@ -115,14 +122,22 @@ public final class FiguraAccelerationReplay {
         FiguraMat4[] deltas = {FiguraMat4.of().translate(2, 0, 0), FiguraMat4.of().translate(0, 4, 0)};
         push.invoke(renderer, 1, data, customization, textures, vertices, part, deltas);
         consume.invoke(buffer, true, destination);
+        flush(destination);
         require(positions.size() == 4 && positions.getFirst()[0] == 4.5f && positions.getFirst()[1] == 9,
                 "actual Figura draw consumes the complete normalized skinning batch");
         positions.clear();
         push.invoke(renderer, 1, data, customization, textures, vertices, null, null);
         owner.accelerationOwner().retire();
         consume.invoke(buffer, true, destination);
+        flush(destination);
         require(positions.isEmpty(), "retired Avatar cannot emit a deferred Figura draw");
         System.out.println("Figura production emitter batch positions/normals/UV and retired deferred draw PASS.");
+    }
+
+    private static void flush(MultiBufferSource destination) {
+        if (destination instanceof MultiBufferSource.BufferSource source) {
+            source.endBatch();
+        }
     }
 
     private static void set(Object target, String name, Object value) throws Exception {

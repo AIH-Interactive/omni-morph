@@ -91,6 +91,27 @@ public final class PoseSnapshot {
         }
     }
 
+    /** CPU sorting still needs authored face centers; this never queries GPU results. */
+    void transformedPosition(MeshHandle mesh, int vertex, double[] output) {
+        if (floatPose != null) {
+            Vector3f value = floatPose.pose().transformPosition((float) mesh.component(vertex, 0),
+                    (float) mesh.component(vertex, 1), (float) mesh.component(vertex, 2), new Vector3f());
+            output[0] = value.x;
+            output[1] = value.y;
+            output[2] = value.z;
+            output[3] = 1;
+            return;
+        }
+        FiguraVec4 point = FiguraVec4.of(mesh.component(vertex, 0), mesh.component(vertex, 1),
+                mesh.component(vertex, 2), mesh.component(vertex, 3));
+        applySkinning(point, FiguraVec4.of(), mesh.influences(vertex));
+        point.transform(position);
+        output[0] = point.x;
+        output[1] = point.y;
+        output[2] = point.z;
+        output[3] = point.w;
+    }
+
     private void transformFloat(MeshHandle mesh, double[] output) {
         Vector3f point = new Vector3f();
         Vector3f direction = new Vector3f();
