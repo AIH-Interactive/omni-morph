@@ -32,6 +32,7 @@ import top.aihmc.omnimorph.math.matrix.FiguraMat4;
 import top.aihmc.omnimorph.math.vector.FiguraVec3;
 import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
 import top.aihmc.omnimorph.render.acceleration.AccelerationService;
+import top.aihmc.omnimorph.render.acceleration.HardwareAcceleration;
 import top.aihmc.omnimorph.utils.EntityUtils;
 import top.aihmc.omnimorph.utils.RenderUtils;
 import org.jetbrains.annotations.Nullable;
@@ -76,6 +77,7 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
 
     @Inject(method = "render", at = @At("HEAD"))
     private void figura$beginYsmRenderFrame(DeltaTracker deltaTracker, boolean tick, CallbackInfo ci) {
+        HardwareAcceleration.beginFrame();
         YsmRenderFrameClock.beginFrame();
         AccelerationService.INSTANCE.beginFrame();
     }

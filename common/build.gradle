@@ -155,6 +155,31 @@ tasks.register('nativeTimingTest', JavaExec) {
             rootProject.file('build/reports/acceleration/h2-jni-timing-runtime.csv').path, '--timing-only'
 }
 
+tasks.register('hardwareAccelerationSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks actual setting persistence/undo, frame activation, deferred chat and runtime Java fallback.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.render.acceleration.HardwareAccelerationSmokeTest'
+}
+
+['nativeActivationSmokeTest': 'allow', 'nativeAccessDeniedSmokeTest': 'deny'].each { taskName, policy ->
+    tasks.register(taskName, JavaExec) {
+        group = 'verification'
+        description = "Checks packaged native activation under actual JDK access policy: $policy"
+        dependsOn testClasses, ':packageLocalNative'
+        def nativeJar = rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-fabric-mc-windows-local.jar")
+        classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath + files(nativeJar)
+        mainClass = 'top.aihmc.omnimorph.render.acceleration.NativeActivationSmokeTest'
+        if (policy == 'allow') {
+            jvmArgs '--enable-native-access=ALL-UNNAMED', '-Xcheck:jni'
+        } else {
+            jvmArgs '--illegal-native-access=deny'
+        }
+        args nativeJar.path, policy
+    }
+}
+
 tasks.register('figuraAccelerationReplay', JavaExec) {
     group = 'verification'
     description = 'Checks actual deferred Figura vertex output and stale Avatar rejection.'
