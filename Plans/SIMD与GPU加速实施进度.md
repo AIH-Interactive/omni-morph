@@ -15,7 +15,7 @@
 | H6 | 完成；四 runner/最终 JAR 全部通过 | `432af82fe4765111f7d436c4b86571d27b0ec2f3`，[CI 39015871560](https://github.com/AIH-Interactive/omni-morph/actions/runs/39015871560) |
 | H6 补充 | 完成；六平台 native 与最终 JAR 检查通过 | `48910b703ab75fdede34a6b9d48eee50c36d8047`，[CI 39017540304](https://github.com/AIH-Interactive/omni-morph/actions/runs/39017540304)；Android 设备 JNI/游戏 MANUAL/PENDING |
 | H7 | 自动检查点完成并已推送；实机与性能 MANUAL/PENDING | `fde1666019782227ad4b0778168828a86a33f700`，[H7 验证报告](SIMD与GPU加速H7验证报告.md) |
-| H8 | 实施中；本地构建/许可审计通过，最终 CI 待核验 | [H8 最终审计](SIMD与GPU加速H8最终审计.md) |
+| H8 | 自动检查点完成；实机项按用户指示人工待验 | 构建 `64f62c36424d732bbd1372ca87193e0645774dff`，[最终 CI/下载与审计](SIMD与GPU加速H8最终审计.md) |
 
 ## H0
 
@@ -305,7 +305,7 @@
 - H7 提交/推送 `fde1666019782227ad4b0778168828a86a33f700`，远端 SHA 一致；
   [CI 39020025684](https://github.com/AIH-Interactive/omni-morph/actions/runs/39020025684) 六平台 native、最终包检查与发布全部成功。
 
-## H8（最终 CI 验证中）
+## H8（自动检查点完成）
 
 - README 补齐默认关闭、三模式、实际状态和回退、六平台/Android 边界、本地 Windows 与 CI 工作流；
   明确 CPU 准备数据未体现提速，真实 GPU/总帧性能仍人工待验。CREDITS/NOTICE 记录独立实现、对照来源和随包声明。
@@ -313,4 +313,14 @@
   与旧基础包保持条目字节的 native 合并不丢声明。构建和 synthetic 包装负例成功（17s），源文档对比通过。
 - 新增只读最终产物验证脚本并加入合并后的 CI 门禁；旧真实包因缺许可证被拒绝，synthetic 内容合同通过。
   本地只编译 Windows；实机/画面/真实 GPU 性能按用户追加指示交人工，不使用 computer-use。
-- 最终 CI 及可下载成品来源/哈希验证中；详见 H8 审计，尚不把待验写成 PASS。
+- H8 构建/交付候选提交 `64f62c36424d732bbd1372ca87193e0645774dff` 已推送并核对远端 SHA。
+  [CI 39020772851](https://github.com/AIH-Interactive/omni-morph/actions/runs/39020772851) 的 15 个任务全部成功，
+  包括新增项目许可证门禁、六平台 native、五平台最终 JNI、Android 最终 ELF，最后上传
+  [完整六平台 JAR](https://github.com/AIH-Interactive/omni-morph/actions/runs/39020772851/artifacts/12096333999)。
+- 发布 JAR SHA-256：`af6ee0fb5644fc2d53064833d597e3e360921f37bf7460e09fce3a5c15c15731`。
+  实际下载后重新通过六平台/来源/许可/依赖审计，并运行 Windows 真 JNI 差分；
+  日志 `h8-published-windows.log`，CI 状态 `h8-ci-jobs.json`，Android `h8-final-android.log`。
+  mod version `1.0.0-alpha.1+26.1.2-64f62c3` 对应源提交，版本阶段未升级。
+- H0～H8 自动范围已完成；实机画面、驱动资源/兼容、Android 设备和真实 GPU/总帧性能按用户追加指示人工待验，
+  不作为已经运行或性能达标。完整证据和验收边界见 H8 审计及 H7 报告。
+- 最终验收记录提交前，确认客户端关闭后再次完成 Fabric 构建（7s），日志 `h8-checkpoint-build.log`。

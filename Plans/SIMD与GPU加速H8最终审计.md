@@ -17,7 +17,7 @@
 | 排序/回退 | 原始全局面排序；预发出与已发出分组分别回放；预算耗尽只回放剩余面；不截断权重 | 自动通过，包含索引/姿态分配失败及组预算不足 |
 | 生命周期/预算 | owner 关闭、reload/旧帧拒绝、fence 退休；GPU 64 MiB，帧索引+姿态 8 MiB；刚性 UBO 14,384 B，至多 64 姿态/4096 源批次；CPU 快照关闭清空 | 自动资源记录及 100 次后端周期通过；真实驱动/native 内存与显存人工待验 |
 | 权限/运行时/同步 | 复杂度逐面记录；Lua/Molang 仍在原流程；异步准备、最新代次、广播/离线恢复/Reload All smoke | 相关自动回归通过；双客户端实际观察人工待验 |
-| 平台合并/来源 | 唯一 Linux 基础 JAR、六平台集合、相同 commit/run/ABI/hash；原 ZIP 条目逐字节保留；五平台最终 JNI、Android ELF 后才发布 | H7 [CI 39020025684](https://github.com/AIH-Interactive/omni-morph/actions/runs/39020025684) 全通过；H8 最终来源见下 |
+| 平台合并/来源 | 唯一 Linux 基础 JAR、六平台集合、相同 commit/run/ABI/hash；原 ZIP 条目逐字节保留；五平台最终 JNI、Android ELF 后才发布 | H8 [CI 39020772851](https://github.com/AIH-Interactive/omni-morph/actions/runs/39020772851) 全通过；最终来源见下 |
 | 源码和许可证 | [CREDITS](../CREDITS)、[项目许可证](../LICENSE.md)、`native/NOTICE.txt`；JAR 内项目完整许可证/署名、既有 YSM 声明及 NDK notices | H8 修复并加入最终产物自动门禁 |
 | 性能 | [H7 报告](SIMD与GPU加速H7验证报告.md) 与 [1620 帧原始数据](evidence/acceleration/h7-cpu-preparation.csv) | CPU 准备未体现相对 Java 的提速；真实 GPU/总帧和冻结目标 MANUAL/PENDING |
 
@@ -43,10 +43,25 @@ synthetic 合并包的内容/来源格式验证通过（`h8-synthetic-artifact-m
 检查项目许可证/署名与当前 checkout 一致、mod ID/version/提交后缀及声明的内嵌依赖完整。
 它验证内容和来源合同；后续五平台真 JNI 与 Android ELF 检查仍是独立必需任务，未替代或绕过。
 
-## 最终 CI 与下载（验证中）
+## 最终 CI 与下载（自动通过）
 
-H8 候选提交推送后，等待全部六平台任务及最终 JAR 发布，再记录 run、源码提交、下载链接和 SHA-256。
-最终下载产物还需在本地重新核对上述门禁并实际运行 Windows JNI；不复制或替换测试客户端的 MOD 链接。
+- 源码/构建提交：[`64f62c36424d732bbd1372ca87193e0645774dff`](https://github.com/AIH-Interactive/omni-morph/commit/64f62c36424d732bbd1372ca87193e0645774dff)。
+- [CI 39020772851](https://github.com/AIH-Interactive/omni-morph/actions/runs/39020772851) 的 15 个任务全部成功：
+  Linux 基础构建、六平台 native/各自验证、含许可证门禁的合并、五平台最终 JAR 真 JNI、Android 最终 ELF、最后发布。
+- [下载最终六平台 JAR](https://github.com/AIH-Interactive/omni-morph/actions/runs/39020772851/artifacts/12096333999)，保留 30 天，需要 GitHub 登录。
+- 文件名：`omni-morph-1.0.0-alpha.1+26.1.2-fabric-mc.jar`。
+  包内 mod ID 为 `omni-morph`，version 为 `1.0.0-alpha.1+26.1.2-64f62c3`，与源提交一致。
+- 最终 JAR SHA-256：`af6ee0fb5644fc2d53064833d597e3e360921f37bf7460e09fce3a5c15c15731`。
+
+实际下载发布 Artifact 后，本地完整门禁通过，以上 SHA 与 CI 合并后五平台验证的 JAR 相同；
+再以 JDK 25 / `-Xcheck:jni` 从下载包实际加载 Windows 库，Java 数值差分通过，能力 63、可用内核 `[0,-1,1,2]`。
+Android 最终验证确认为 Bionic 依赖、JNI 导出和 16 KiB 对齐通过，设备 JNI/游戏继续 MANUAL/PENDING。
+本地没有复制或替换测试客户端的 MOD 符号链接。
+
+本地证据：`build/reports/acceleration/h8-ci-jobs.json`、`h8-ci-assembly.log`、`h8-final-android.log`、
+`h8-published-windows.log`；下载的 JAR、native 清单和 mod 元数据位于 `build/reports/acceleration/h8-final/`。
+本记录的后续补充提交仅记录验收结果；上方下载与哈希始终明确对应已验证的构建提交，不冒充其他提交的产物。
+最终记录提交前，本地 Fabric 构建再次成功（7s），日志 `h8-checkpoint-build.log`。
 
 ## 交付与人工项
 
