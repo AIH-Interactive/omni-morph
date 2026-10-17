@@ -166,6 +166,8 @@ Figura 原有贡献者名单保留于 [CREDITS](CREDITS)。本次改写前的主
 
 `omni-morph` 使用 AI 工具辅助代码实现、问题排查、测试与文档整理。项目方向、需求取舍和发布由维护者负责；功能是否完成，以实际代码、构建结果、测试和验收记录为依据。
 
+项目部分美术素材（包括模组图标）使用 OpenAI GPT Image 生成，并经过后期编辑处理。
+
 ## 许可证
 
 `omni-morph` 遵循 [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0)。协议全文同时保存在 [LICENSE.md](LICENSE.md)。第三方代码、依赖及参考实现的许可证和署名信息，见各自随附文件与项目来源。
