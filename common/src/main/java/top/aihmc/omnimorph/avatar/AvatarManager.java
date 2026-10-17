@@ -24,6 +24,7 @@ import top.aihmc.omnimorph.gui.widgets.lists.AvatarList;
 import top.aihmc.omnimorph.lua.api.particle.ParticleAPI;
 import top.aihmc.omnimorph.lua.api.sound.SoundAPI;
 import top.aihmc.omnimorph.lua.api.world.WorldAPI;
+import top.aihmc.omnimorph.render.acceleration.AccelerationService;
 import top.aihmc.omnimorph.utils.EntityUtils;
 import top.aihmc.omnimorph.utils.FiguraClientCommandSource;
 import top.aihmc.omnimorph.utils.FiguraResourceListener;
@@ -46,7 +47,10 @@ public class AvatarManager {
 
     private static final Int2ObjectMap<Avatar> LOADED_CEM = new Int2ObjectOpenHashMap<>();
 
-    public static final FiguraResourceListener RESOURCE_RELOAD_EVENT = FiguraResourceListener.createResourceListener("resource_reload_event", manager -> executeAll("resourceReloadEvent", Avatar::resourceReloadEvent));
+    public static final FiguraResourceListener RESOURCE_RELOAD_EVENT = FiguraResourceListener.createResourceListener("resource_reload_event", manager -> {
+        AccelerationService.INSTANCE.invalidateResources();
+        executeAll("resourceReloadEvent", Avatar::resourceReloadEvent);
+    });
 
     public static boolean localUploaded = true; // init as true :3
     public static boolean panic = false;

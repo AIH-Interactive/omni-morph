@@ -2,6 +2,7 @@ package top.aihmc.omnimorph.model.ysm;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import top.aihmc.omnimorph.math.vector.FiguraVec3;
+import top.aihmc.omnimorph.render.acceleration.AccelerationService;
 import org.joml.Matrix4f;
 
 import java.util.LinkedHashMap;
@@ -13,6 +14,7 @@ public final class YsmRenderPose {
     private final Map<String, PartPose> parts;
     private final Matrix4f modelScale;
     private final boolean unlit;
+    private final AccelerationService.Lease lease;
 
     private record Vector(double x, double y, double z) {
         private static Vector capture(FiguraVec3 value) {
@@ -47,16 +49,23 @@ public final class YsmRenderPose {
     }
 
     public static YsmRenderPose capture(Iterable<YsmModelPart> source, Matrix4f modelScale, boolean unlit) {
+        return capture(source, modelScale, unlit, null);
+    }
+
+    public static YsmRenderPose capture(Iterable<YsmModelPart> source, Matrix4f modelScale, boolean unlit,
+                                       AccelerationService.Lease lease) {
         Map<String, PartPose> parts = new LinkedHashMap<>();
         for (YsmModelPart part : source) {
             PartPose pose = PartPose.capture(part);
             parts.put(part.getName(), pose);
             parts.putIfAbsent(part.getName().toLowerCase(Locale.US), pose);
         }
-        return new YsmRenderPose(parts, modelScale, unlit);
+        return new YsmRenderPose(parts, modelScale, unlit, lease);
     }
 
-    private YsmRenderPose(Map<String, PartPose> parts, Matrix4f modelScale, boolean unlit) {
+    private YsmRenderPose(Map<String, PartPose> parts, Matrix4f modelScale, boolean unlit,
+                          AccelerationService.Lease lease) {
+        this.lease = lease;
         this.unlit = unlit;
         this.parts = Map.copyOf(parts);
         this.modelScale = new Matrix4f(modelScale);
@@ -64,6 +73,10 @@ public final class YsmRenderPose {
 
     boolean unlit() {
         return unlit;
+    }
+
+    boolean isCurrent() {
+        return lease == null || AccelerationService.INSTANCE.isCurrent(lease);
     }
 
     YsmModelPart part(String name) {
