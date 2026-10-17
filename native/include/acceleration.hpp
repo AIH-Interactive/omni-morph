@@ -13,7 +13,7 @@ constexpr std::int32_t max_vertices = 65536;
 constexpr std::int32_t normalize_normals = 1;
 constexpr std::int32_t affine_output_w = 2;
 
-enum class Kernel : std::int32_t { automatic = -1, scalar = 0, sse2 = 1, avx2 = 2 };
+enum class Kernel : std::int32_t { automatic = -1, scalar = 0, sse2 = 1, avx2 = 2, neon = 3 };
 enum class Status : std::int32_t { ok = 0, invalid_argument = 1, unsupported_kernel = 2, numerical_failure = 3, exhausted = 4 };
 
 struct CpuFeatures {
@@ -23,6 +23,7 @@ struct CpuFeatures {
     bool fma = false;
     bool osxsave = false;
     bool xmm_ymm_state = false;
+    bool neon = false;
 };
 
 struct Buffer {
@@ -56,6 +57,8 @@ void scalar_kernel(const std::byte* input, std::int32_t input_stride, std::byte*
 void sse2_kernel(const std::byte* input, std::int32_t input_stride, std::byte* output,
                  std::int32_t output_stride, std::int32_t count, const Transform& transform);
 void avx2_kernel(const std::byte* input, std::int32_t input_stride, std::byte* output,
+                 std::int32_t output_stride, std::int32_t count, const Transform& transform);
+void neon_kernel(const std::byte* input, std::int32_t input_stride, std::byte* output,
                  std::int32_t output_stride, std::int32_t count, const Transform& transform);
 
 void finish_vertex(float* values, const Transform& transform);

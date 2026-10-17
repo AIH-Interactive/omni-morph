@@ -49,6 +49,9 @@ void dispatch_tests() {
     cpu.osxsave = false;
     require(!available(cpu, Kernel::avx2), "missing OSXSAVE must reject AVX2");
     require(!available(cpu, static_cast<Kernel>(99)), "unknown kernel must reject");
+    cpu = CpuFeatures{};
+    cpu.neon = true;
+    require(select_kernel(cpu) == Kernel::neon && available(cpu, Kernel::neon), "arm64 selects NEON");
 }
 
 void numeric_and_boundary_tests() {
@@ -73,7 +76,7 @@ void numeric_and_boundary_tests() {
                        view(output), offset, stride, vertices, kernel, flags);
     };
     require(run(reference, count, Kernel::scalar) == Status::ok, "scalar random batch");
-    for (Kernel kernel : {Kernel::scalar, Kernel::sse2, Kernel::avx2, Kernel::automatic}) {
+    for (Kernel kernel : {Kernel::scalar, Kernel::sse2, Kernel::avx2, Kernel::neon, Kernel::automatic}) {
         if (kernel != Kernel::automatic && !available(detect_cpu(), kernel)) {
             continue;
         }

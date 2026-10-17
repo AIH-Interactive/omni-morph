@@ -62,7 +62,8 @@ public final class NativeActivationSmokeTest {
             var activation = HardwareAcceleration.probe(CapabilityReport.Mode.SIMD);
             require(NativeLibraryLoader.isLoaded() && activation.backend() instanceof NativeSimdBackend
                     && (activation.effective() == CapabilityReport.Effective.SSE2
-                    || activation.effective() == CapabilityReport.Effective.AVX2), "actual packaged SIMD self-test before readiness");
+                    || activation.effective() == CapabilityReport.Effective.AVX2
+                    || activation.effective() == CapabilityReport.Effective.NEON), "actual packaged SIMD self-test before readiness");
             require(NativeBindings.handshake(1) == 1, "loaded native handshake");
             System.out.println("PASS native activation/self-test; actual effective=" + activation.effective());
         }

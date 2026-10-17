@@ -130,7 +130,7 @@ public final class HardwareAcceleration {
         try {
             NativeLibraryLoader.Loaded loaded = NativeLibraryLoader.load();
             int capabilities = loaded.capabilities();
-            if ((capabilities & 6) == 0) {
+            if ((capabilities & (2 | 4 | 64)) == 0) {
                 throw new AccelerationController.ProbeFailure(FallbackReason.UNSUPPORTED_CPU);
             }
             nativeSelfTest();
@@ -139,7 +139,8 @@ public final class HardwareAcceleration {
                 nativeWorkspace = new NativeSimdBackend();
             }
             return new AccelerationController.Activation(nativeWorkspace,
-                    (capabilities & 4) != 0 ? Effective.AVX2 : Effective.SSE2, capabilities);
+                    (capabilities & 64) != 0 ? Effective.NEON
+                            : (capabilities & 4) != 0 ? Effective.AVX2 : Effective.SSE2, capabilities);
         } catch (NativeLibraryLoader.LoadFailure failure) {
             throw new AccelerationController.ProbeFailure(failure.reason());
         } catch (IllegalCallerException | SecurityException failure) {

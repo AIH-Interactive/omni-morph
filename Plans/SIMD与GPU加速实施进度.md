@@ -11,8 +11,8 @@
 | H2 | 完成并已推送；实机项 MANUAL/PENDING，最终集中验收 | `295c548375594362730c1d4354c4f1a5e4b98f4a`，Windows SIMD |
 | H3 | 完成并已推送；实机项 MANUAL/PENDING，最终集中验收 | `8f444cf9725e35985ea61a1008439699dd56633c`，全局设置与回退 |
 | H4 | 完成并已推送；真实 GPU/画面项 MANUAL/PENDING，最终集中验收 | `8c3955c1b1b0985b1c2af86cc293a86e41c42859`，公共 GPU 后端 |
-| H5 | 完成；真实 GPU/画面项 MANUAL/PENDING，最终集中验收 | 双引擎完整接入，提交见本文件 Git 历史 |
-| H6 | 待实施 | 四平台 native 与 CI |
+| H5 | 完成并已推送；真实 GPU/画面项 MANUAL/PENDING，最终集中验收 | `76b299102f232cb5735de0949536d73b057c5827`，双引擎完整接入 |
+| H6 | 实现及本地编译通过；四 runner 验证中 | 四平台 native 与 CI；远端成功前不进入 H7 |
 | H7 | 待实施 | 稳定性与性能 |
 | H8 | 待实施 | 最终审计交付 |
 
@@ -202,3 +202,27 @@
   透明散乱面目前可能产生较多 draw，这是 H7 必须测量与按冻结阈值优化的路径。
 - 按用户要求没有打开图形窗口；真实各视角、材质、GUI、中英文设置、聊天与多人画面对照
   `MANUAL/PENDING`，最终 computer-use 集中验收。已检查代码可读性、status/diff 与 `git diff --check`。
+
+## H6（验证中）
+
+- x64 CPUID/XGETBV 增加 GCC/Clang 入口；JNI/验证/标量/SSE2 保持基线 ISA，AVX2 单文件启用且不要求 FMA。
+  macOS arm64 独立 NEON 内核处理完整矩阵/法线/UV，新增内核号 3、能力位 64，ABI 1 原有调用布局不变。
+  公共设置探测能准确显示 NEON，不将 arm64 标为 SSE2。
+- 工作流依次 build-mod → 四平台 build-native → assemble → 四平台 verify-final → publish-artifact。
+  Linux 生成唯一 Fabric 基础 JAR、JNI 头、ABI 规格及独立测试类；native runner 编译时包含该次生成的 JNI 头并静态核对布局。
+  基础 JAR、平台清单均绑定 commit/run/attempt；严格检查四平台集合、ABI、哈希、依赖、许可和品牌版本。
+  不再次 remap；最终 ZIP 对每个原始条目逐字节复核，保留所有内嵌依赖。
+- 按 [GitHub runner 官方列表](https://docs.github.com/en/actions/reference/runners/github-hosted-runners) 复核：
+  windows-2025、ubuntu-24.04、macos-15-intel、macos-14（arm64）。macOS job 显式检查预装 PowerShell 7 与进程架构。
+  download-artifact v8 按[官方接口](https://github.com/actions/download-artifact)限定本次 run 产物；最低 contents:read。
+- Windows 静态 MSVC CRT；Linux 动态系统运行库，readelf/ldd 实测 glibc/GLIBCXX/CXXABI 下限并拒绝非允许依赖；
+  macOS 校验 Mach-O 架构、13.0 deployment target、系统依赖和 ad-hoc 签名（不声称 notarized）。NOTICE 说明系统库来源。
+- 独立 `NativePlatformSmokeTest` 无 Minecraft/图形环境依赖，实际从 JAR hash 校验/解压/加载，验证可用内核的
+  Java 数值差分、未对齐/尾部、完整/空批次、法线选项、ABI/越界/别名/只读/非有限拒绝及失败不发布。
+  最终四 runner 均测试同一完整 JAR，并在独立进程验证默认未加载、未知架构、缺库及真实 JDK native-access 拒绝。
+- 本机仅 Windows 构建通过，CTest 成功、真实生成 JNI 头编译成功，实际 DLL 依赖仅 KERNEL32；日志
+  `build/reports/acceleration/h6-windows-native.log`。Fabric/独立 JNI/激活与受限访问测试通过；
+  四平台合并合同以明确的合成字节验证缺平台、重复平台、错误 commit/hash 拒绝及原条目保留，合成包不作为平台可执行证据。
+  日志 `h6-packaging-smoke.log`、`h6-final-local-build.log`、`h6-workflow-check.log`（同一报告目录）。
+- H6 需要推送实现才能触发真实远端 runner；目前只完成本地自动验证，尚未将四平台 CI 或最终 Artifact 标为通过。
+  CI 全部通过并记录下载证据后才完成本阶段检查点；真实 GPU/画面仍按要求最终集中验收。

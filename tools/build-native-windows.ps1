@@ -1,4 +1,4 @@
-param([string]$VisualStudioPath)
+param([string]$VisualStudioPath, [string]$JniHeadersDirectory)
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -57,7 +57,11 @@ function Invoke-NativeStep {
     }
 }
 
-Invoke-NativeStep 'configure' 'cmake' @('--preset', 'windows-x64-release')
+$configureArguments = @('--preset', 'windows-x64-release')
+if ($JniHeadersDirectory) {
+    $configureArguments += "-DOMNIMORPH_JNI_HEADERS=$JniHeadersDirectory"
+}
+Invoke-NativeStep 'configure' 'cmake' $configureArguments
 Invoke-NativeStep 'compile' 'cmake' @('--build', '--preset', 'windows-x64-release')
 Invoke-NativeStep 'test' 'ctest' @('--preset', 'windows-x64-release')
 

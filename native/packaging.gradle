@@ -1,8 +1,233 @@
 import groovy.json.JsonSlurper
+import groovy.json.JsonOutput
 import java.security.MessageDigest
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
+
+def sha256 = { File file ->
+    HexFormat.of().formatHex(MessageDigest.getInstance('SHA-256').digest(file.bytes))
+}
+
+def writeNativeJar = { File base, File destination, Map<String, byte[]> additions ->
+    destination.parentFile.mkdirs()
+    def temporary = new File(destination.parentFile, destination.name + '.tmp')
+    def seen = new HashSet<String>()
+    try {
+        new ZipOutputStream(new FileOutputStream(temporary)).withCloseable { output ->
+            new ZipFile(base).withCloseable { input ->
+                input.entries().each { entry ->
+                    if (!seen.add(entry.name) || entry.name.startsWith('natives/')) {
+                        throw new GradleException("Duplicate/pre-existing native JAR entry: ${entry.name}")
+                    }
+                    output.putNextEntry(new ZipEntry(entry.name))
+                    if (!entry.directory) {
+                        input.getInputStream(entry).withCloseable { it.transferTo(output) }
+                    }
+                    output.closeEntry()
+                }
+            }
+            additions.each { name, bytes ->
+                if (!seen.add(name)) {
+                    throw new GradleException("Duplicate injected entry: $name")
+                }
+                output.putNextEntry(new ZipEntry(name))
+                output.write(bytes)
+                output.closeEntry()
+            }
+        }
+        java.nio.file.Files.move(temporary.toPath(), destination.toPath(),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+    } finally {
+        temporary.delete()
+    }
+}
+
+def assembleNative = { File baseDirectory, File artifacts, File destination, String commit, String runId, String attempt ->
+    def metadata = new JsonSlurper().parse(new File(baseDirectory, 'base-manifest.json'))
+    File base = new File(baseDirectory, metadata.jar as String)
+    if (metadata.sourceCommit != commit || metadata.runId != runId || metadata.runAttempt != attempt
+            || metadata.sha256 != sha256(base) || metadata.abi != 1) {
+        throw new GradleException('Base JAR commit/run/hash/ABI mismatch')
+    }
+    def required = ['windows-x86_64': 'omnimorph_accel.dll', 'linux-x86_64': 'libomnimorph_accel.so',
+                    'macos-x86_64': 'libomnimorph_accel.dylib', 'macos-aarch64': 'libomnimorph_accel.dylib']
+    def entries = []
+    def additions = new LinkedHashMap<String, byte[]>()
+    def seenPlatforms = new HashSet<String>()
+    artifacts.eachDir { directory ->
+        File manifestFile = new File(directory, 'natives/manifest.json')
+        if (!manifestFile.isFile()) {
+            throw new GradleException("Native artifact has no manifest: ${directory.name}")
+        }
+        def manifest = new JsonSlurper().parse(manifestFile)
+        if (manifest.abi != 1 || manifest.buildKind != 'ci' || manifest.libraries.size() != 1) {
+            throw new GradleException('Expected one CI platform per native artifact')
+        }
+        def entry = manifest.libraries[0]
+        String expectedPath = "natives/${entry.platform}/${required[entry.platform]}"
+        if (!required.containsKey(entry.platform) || !seenPlatforms.add(entry.platform)
+                || entry.path != expectedPath || entry.abi != 1 || entry.sourceCommit != commit
+                || entry.runId != runId || entry.runAttempt != attempt || entry.sourceDirty != false
+                || !entry.platform.endsWith('-' + entry.architecture)
+                || !(entry.sourceTreeSha256 ==~ /[0-9a-f]{64}/)
+                || !entry.toolchain || !entry.minimumRuntime || !(entry.dependencies instanceof List)) {
+            throw new GradleException('Native platform metadata/set/commit/run/ABI mismatch')
+        }
+        File library = new File(directory, expectedPath)
+        if (!library.isFile() || entry.sha256 != sha256(library)) {
+            throw new GradleException('Native artifact hash mismatch')
+        }
+        File notice = new File(directory, 'natives/NOTICE.txt')
+        if (!notice.isFile() || notice.text.replace('\r\n', '\n') != rootProject.file('native/NOTICE.txt').text.replace('\r\n', '\n')) {
+            throw new GradleException('Native license notice missing or changed')
+        }
+        additions[expectedPath] = library.bytes
+        entries.add(entry)
+    }
+    if (seenPlatforms != required.keySet()) {
+        throw new GradleException("Missing native platforms: ${required.keySet() - seenPlatforms}")
+    }
+    new ZipFile(base).withCloseable { jar ->
+        def identity = new JsonSlurper().parse(jar.getInputStream(jar.getEntry('fabric.mod.json')))
+        if (identity.id != 'omni-morph' || identity.version != metadata.version
+                || !identity.version.startsWith("${rootProject.mod_version}+${rootProject.minecraft_version}-")
+                || !identity.version.endsWith(commit.take(7))) {
+            throw new GradleException('Base JAR identity/version/commit mismatch')
+        }
+        identity.jars.each { nested ->
+            if (jar.getEntry(nested.file) == null) {
+                throw new GradleException("Missing embedded dependency: ${nested.file}")
+            }
+        }
+    }
+    additions['natives/manifest.json'] = JsonOutput.prettyPrint(JsonOutput.toJson([
+            abi: 1, buildKind: 'ci', sourceCommit: commit, runId: runId, runAttempt: attempt,
+            libraries: entries.sort { it.platform }])).getBytes('UTF-8')
+    additions['natives/NOTICE.txt'] = rootProject.file('native/NOTICE.txt').bytes
+    writeNativeJar(base, destination, additions)
+    new ZipFile(base).withCloseable { original ->
+        new ZipFile(destination).withCloseable { result ->
+            original.entries().each { entry ->
+                if (!entry.directory) {
+                    def before = original.getInputStream(entry).withCloseable { it.readAllBytes() }
+                    def after = result.getInputStream(result.getEntry(entry.name)).withCloseable { it.readAllBytes() }
+                    if (!Arrays.equals(before, after)) {
+                        throw new GradleException("Assembly changed original entry: ${entry.name}")
+                    }
+                }
+            }
+        }
+    }
+}
+
+tasks.register('stageNativeBase') {
+    group = 'build'
+    dependsOn ':fabric:build', ':common:compileNativeInterface'
+    doLast {
+        File directory = rootProject.file('build/native-base')
+        directory.mkdirs()
+        File original = project(':fabric').tasks.named('remapJar').get().archiveFile.get().asFile
+        copy {
+            from original
+            into directory
+        }
+        String commit = ['git', 'rev-parse', 'HEAD'].execute(null, rootProject.projectDir).text.trim()
+        def identity
+        new ZipFile(original).withCloseable { jar ->
+            identity = new JsonSlurper().parse(jar.getInputStream(jar.getEntry('fabric.mod.json')))
+        }
+        new File(directory, 'base-manifest.json').text = JsonOutput.prettyPrint(JsonOutput.toJson([
+                abi: 1, jar: original.name, version: identity.version, sourceCommit: commit,
+                runId: System.getenv('GITHUB_RUN_ID') ?: '0', runAttempt: System.getenv('GITHUB_RUN_ATTEMPT') ?: '0',
+                sha256: sha256(original)]))
+    }
+}
+
+tasks.register('assembleNativeJar') {
+    group = 'build'
+    description = 'Merges only the verified four-platform artifacts from the current run; never remaps the base JAR.'
+    doLast {
+        assembleNative(rootProject.file(providers.gradleProperty('nativeBaseDir').get()),
+                rootProject.file(providers.gradleProperty('nativeArtifactsDir').get()),
+                rootProject.file(providers.gradleProperty('nativeOutput').get()),
+                providers.gradleProperty('nativeCommit').get(), providers.gradleProperty('nativeRun').get(),
+                providers.gradleProperty('nativeAttempt').get())
+    }
+}
+
+tasks.register('nativePackagingSmokeTest') {
+    group = 'verification'
+    description = 'Checks assembly rejection and exact base-entry preservation with explicitly synthetic platform bytes.'
+    dependsOn 'stageNativeBase'
+    doLast {
+        File root = rootProject.file('build/native-packaging-test')
+        File artifacts = new File(root, 'artifacts')
+        def metadata = new JsonSlurper().parse(rootProject.file('build/native-base/base-manifest.json'))
+        def platforms = ['windows-x86_64': 'omnimorph_accel.dll', 'linux-x86_64': 'libomnimorph_accel.so',
+                         'macos-x86_64': 'libomnimorph_accel.dylib', 'macos-aarch64': 'libomnimorph_accel.dylib']
+        platforms.each { platform, name ->
+            File directory = new File(artifacts, platform)
+            File library = new File(directory, "natives/$platform/$name")
+            library.parentFile.mkdirs()
+            library.text = 'synthetic packaging contract bytes; not executable native code'
+            File notice = new File(directory, 'natives/NOTICE.txt')
+            notice.bytes = rootProject.file('native/NOTICE.txt').bytes
+            def entry = [platform: platform, architecture: platform.endsWith('aarch64') ? 'aarch64' : 'x86_64',
+                         path: "natives/$platform/$name", abi: 1, sourceCommit: metadata.sourceCommit,
+                         sourceTreeSha256: '0' * 64, sourceDirty: false, toolchain: 'synthetic', minimumRuntime: 'synthetic',
+                         dependencies: [], sha256: sha256(library), runId: metadata.runId, runAttempt: metadata.runAttempt]
+            new File(directory, 'natives/manifest.json').text = JsonOutput.toJson([abi: 1, buildKind: 'ci', libraries: [entry]])
+        }
+        def run = { String commit, File input = artifacts ->
+            assembleNative(rootProject.file('build/native-base'), input, new File(root, 'synthetic.jar'),
+                    commit, metadata.runId, metadata.runAttempt)
+        }
+        run(metadata.sourceCommit)
+        def reject = { Closure action ->
+            boolean rejected = false
+            try {
+                action()
+            } catch (GradleException expected) {
+                rejected = true
+            }
+            if (!rejected) {
+                throw new GradleException('Invalid platform set unexpectedly published')
+            }
+        }
+        File manifest = new File(artifacts, 'macos-aarch64/natives/manifest.json')
+        String saved = manifest.text
+        manifest.text = saved.replace('macos-aarch64', 'macos-unknown')
+        reject { run(metadata.sourceCommit) }
+        manifest.text = saved.replace(metadata.sourceCommit, 'f' * 40)
+        reject { run(metadata.sourceCommit) }
+        manifest.text = saved
+        File missing = new File(root, 'missing')
+        platforms.keySet().take(3).each { platform ->
+            copy {
+                from new File(artifacts, platform)
+                into new File(missing, platform)
+            }
+        }
+        reject { run(metadata.sourceCommit, missing) }
+        File duplicate = new File(root, 'duplicate')
+        platforms.keySet().each { platform ->
+            copy {
+                from new File(artifacts, platform)
+                into new File(duplicate, platform)
+            }
+        }
+        copy {
+            from new File(artifacts, 'windows-x86_64')
+            into new File(duplicate, 'extra-windows')
+        }
+        reject { run(metadata.sourceCommit, duplicate) }
+        File library = new File(artifacts, 'macos-aarch64/natives/macos-aarch64/libomnimorph_accel.dylib')
+        library.append('corruption')
+        reject { run(metadata.sourceCommit) }
+        logger.lifecycle('PASS synthetic native assembly: complete platform set, commit/hash rejection, exact original ZIP entry preservation')
+    }
+}
 
 tasks.register('packageLocalNative') {
     group = 'build'

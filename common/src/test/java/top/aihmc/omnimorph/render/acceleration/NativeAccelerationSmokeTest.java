@@ -160,6 +160,9 @@ public final class NativeAccelerationSmokeTest {
         if ((NativeBindings.capabilities() & 4) != 0) {
             kernels.add(2);
         }
+        if ((NativeBindings.capabilities() & 64) != 0) {
+            kernels.add(3);
+        }
         kernels.add(-1);
         for (int count : new int[]{0, 1, 3, 16, 257, 4096}) {
             double[] vertices = new double[count * 9];
