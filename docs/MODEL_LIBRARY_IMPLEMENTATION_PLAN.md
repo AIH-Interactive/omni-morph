@@ -1,6 +1,6 @@
 # OmniMorph 模型库开发计划书
 
-状态：实施中，M0 合同检查通过；M1～M7 尚未实施。各阶段证据见 8.2，不代表功能已全部实现或视觉验收通过。
+状态：实施中，M0～M1 检查通过；M2～M7 尚未实施。各阶段证据见 8.2，不代表功能已全部实现或视觉验收通过。
 
 调查日期：2026-10-18（Asia/Seoul）。客户端调查基线：`228d16b`；Rust 后端调查基线：`e6355bc`。实施时必须重新核对工作区变化，但不得借此扩大范围。
 
@@ -490,8 +490,8 @@ if ($buildExitCode -ne 0) {
 
 | 阶段 | 状态 | 自动验证/退出码 | 手工验证 | 客户端 commit/push | 后端 commit/push |
 | --- | --- | --- | --- | --- | --- |
-| M0 | PASS（提交推送检查点见下） | Rust storage 7/7；Fabric compileJava、ysmPackageSmokeTest、ysmCryptoSmokeTest；8 样例哈希/JSON/分页预算，均退出 0 | 真实模型/GUI 为后续阶段 MANUAL/PENDING | 本行所在 M0 提交；push 成功后进入 M1 | 8143665 / origin master 已确认 |
-| M1 | NOT_STARTED | — | — | — | — |
+| M0 | PASS | Rust storage 7/7；Fabric compileJava、ysmPackageSmokeTest、ysmCryptoSmokeTest；8 样例哈希/JSON/分页预算，均退出 0 | 真实模型/GUI 为后续阶段 MANUAL/PENDING | 75ffa9d / origin main 已确认 | 8143665 / origin master 已确认 |
+| M1 | PASS（提交推送检查点见下） | cargo test library 12/12；storage 12/12；全 Rust 回归 37/37，退出 0；rustfmt/diff check 通过 | 无 GUI；真实部署凭据和外部生产二进制回滚 MANUAL/PENDING | 本行所在 M1 进度提交；push 成功后进入 M2 | 4178e06 / origin master 已确认 |
 | M2 | NOT_STARTED | — | — | — | — |
 | M3 | NOT_STARTED | — | — | — | — |
 | M4 | NOT_STARTED | — | — | — | — |
@@ -508,6 +508,15 @@ if ($buildExitCode -ne 0) {
 - 为满足每阶段编译测试要求，文档阶段额外执行基线：后端 `cargo test storage`（7/7，退出 0）；客户端 JDK 25 下 `:fabric:compileJava :common:ysmPackageSmokeTest :common:ysmCryptoSmokeTest`（BUILD SUCCESSFUL，退出 0）。当前终端没有 `usejdk` 函数，使用已有 `D:\Program Files\Java\25` 设置进程 JAVA_HOME/PATH；未修改系统配置。
 - 样例验证检查 8 个 SHA-256、两个 ZIP 元数据、JSON 摘要与 64 KiB 分页预算，退出 0。控制响应预算推导固定最大 page_size=8；M7 的万条数据测试使用实际支持上限，不临时缩页。
 - 真实模型渲染、材质/动画、字体和窗口交互：MANUAL/PENDING，归入 M4～M7，不以合成向量替代。M0 无阻断合同问题，无生产代码或版本修改。
+
+#### M1 执行证据（2026-10-18）
+
+- 独立模型/版本/标签/图片/收藏/授权/统计/来源映射/屏蔽哈希/幂等/审计/管理员会话表及索引；不引用 manifest 重写行的级联外键。
+- SQLite user_version 1→2：升级前 SQLite 一致性备份，DDL 与版本标记同事务；manifest save 保留库表，新增最小联合事务 hook，失败不发布内存候选。
+- 完成四组合×四身份×三状态的 48 项权限判断和观察者分发判断；BLOCKED 强制 PRIVATE；删除后屏蔽哈希保留，显式解除仍保持 PRIVATE。
+- 配置账户、受限 PBKDF2 验证、离线遮罩密码生成工具、哈希化令牌、轮换/重用撤销/登出、配置变化持久撤销。为完成本阶段已有配置热加载的会话撤销，最小修改 main.rs 与 utils/auxiliary.rs 传入存储并在 blocking worker 执行撤销；未接入 API 路由。
+- `cargo test library` 12/12、`cargo test storage` 12/12、涉及启动/协议回归的 `cargo test` 37/37，退出码均 0。测试包括迁移失败回滚、备份恢复可读、重启、联合事务失败、并发唯一键、操作重用冲突、密码向量/错误参数、配置删除/恢复不复活旧令牌。新增 Rust 文件定向 rustfmt；git diff --check 通过。
+- 真实管理员部署凭据、交互式密码录入为 MANUAL/PENDING；现有存储回归中由环境变量选择的外部旧/生产二进制回滚未运行，归入 M7，不将其标为 PASS。无 GUI 改动，无新增生产依赖，版本不变。
 
 ## 9. 安全、兼容性、异常与性能验收方案
 
