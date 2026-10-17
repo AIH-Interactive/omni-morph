@@ -141,11 +141,19 @@ public class YsmModelRuntime implements AutoCloseable {
 
     public static YsmModelRuntime fromNbt(Avatar owner, CompoundTag tag,
                                            java.util.function.BooleanSupplier cancelled) throws java.io.IOException {
+        return fromNbt(owner, tag, cancelled, stage -> {});
+    }
+
+    public static YsmModelRuntime fromNbt(Avatar owner, CompoundTag tag,
+            java.util.function.BooleanSupplier cancelled,
+            java.util.function.Consumer<top.aihmc.omnimorph.avatar.AvatarLoadProgress.Stage> progress) throws java.io.IOException {
         if (YsmSourcePayload.isEncrypted(tag)) {
             try (YsmModelData data = YsmSourcePayload.openData(tag, cancelled)) {
+                progress.accept(top.aihmc.omnimorph.avatar.AvatarLoadProgress.Stage.BUILDING);
                 return fromData(owner, data, tag);
             }
         }
+        progress.accept(top.aihmc.omnimorph.avatar.AvatarLoadProgress.Stage.BUILDING);
         String mainJson = new String(tag.getByteArray("main_model").orElse(new byte[0]), StandardCharsets.UTF_8);
         if (mainJson.isBlank())
             throw new java.io.IOException("YSM main model is empty");

@@ -110,6 +110,7 @@ public class LocalAvatarLoader {
             return;
 
         long generation = target.ysmLoads.begin();
+        long progress = target.loading.begin(top.aihmc.omnimorph.avatar.AvatarLoadProgress.Stage.READING);
         addWatchKey(path, KEYS::put);
 
         Path finalPath = path;
@@ -132,8 +133,10 @@ public class LocalAvatarLoader {
                             }
                         });
                     }
+                    target.loading.finish(progress);
                 });
             } catch (Throwable e) {
+                target.loading.finish(progress);
                 loadError = e.getMessage();
                 FiguraMod.LOGGER.error("Failed to load avatar from " + finalPath, e);
                 FiguraToast.sendToast(FiguraText.of("toast.load_error"), FiguraText.of("gui.load_error." + LocalAvatarLoader.getLoadState()), FiguraToast.ToastType.ERROR);

@@ -823,6 +823,11 @@ public class Avatar {
 
     /** Runs on a model preparation worker; publication is owned by UserData. */
     public void load(CompoundTag nbt, YsmModelData ysmData, java.util.function.BooleanSupplier cancelled) {
+        load(nbt, ysmData, cancelled, stage -> {});
+    }
+
+    public void load(CompoundTag nbt, YsmModelData ysmData, java.util.function.BooleanSupplier cancelled,
+                     java.util.function.Consumer<AvatarLoadProgress.Stage> progress) {
         this.nbt = nbt;
         loaded = false;
         controls.clear();
@@ -864,14 +869,16 @@ public class Avatar {
                 entityName = name;
 
             if (metadata.getStringOr("format", "").equals("ysm-native") && nbt.contains("ysm")) {
+                progress.accept(AvatarLoadProgress.Stage.DECODING);
                 this.molangContext = new MolangContext(this);
                 ysmRuntime = ysmData == null
-                        ? YsmModelRuntime.fromNbt(this, nbt.getCompoundOrEmpty("ysm"), cancelled)
+                        ? YsmModelRuntime.fromNbt(this, nbt.getCompoundOrEmpty("ysm"), cancelled, progress)
                         : YsmModelRuntime.fromData(this, ysmData, nbt.getCompoundOrEmpty("ysm"));
                 ysmRuntime.restoreControls();
                 renderer = null;
                 hasTexture = true;
             } else {
+                progress.accept(AvatarLoadProgress.Stage.BUILDING);
                 // animations and models
                 loadAnimations();
                 renderer = new ImmediateFiguraRenderer(this);

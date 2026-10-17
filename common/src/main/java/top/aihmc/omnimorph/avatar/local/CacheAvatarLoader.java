@@ -66,6 +66,7 @@ public class CacheAvatarLoader {
     }
 
     private static void load(String hash, UserData target, java.util.function.BooleanSupplier current) {
+        long progress = target.loading.begin(top.aihmc.omnimorph.avatar.AvatarLoadProgress.Stage.READING);
         LocalAvatarLoader.async(() -> {
             Path path = getAvatarCacheDirectory().resolve(hash + ".nbt");
             try (var stream = Files.newInputStream(path)) {
@@ -77,9 +78,11 @@ public class CacheAvatarLoader {
                     if (current.getAsBoolean()) {
                         target.loadAvatar(nbt, current);
                     }
+                    target.loading.finish(progress);
                 });
                 FiguraMod.debug("Loaded avatar \"{}\" from cache to \"{}\"", hash, target.id);
             } catch (Exception e) {
+                target.loading.finish(progress);
                 FiguraMod.LOGGER.error("Failed to load cache avatar: " + hash, e);
             }
         });
