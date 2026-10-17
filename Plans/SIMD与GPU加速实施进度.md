@@ -230,3 +230,8 @@
   Linux 基础构建成功，四平台 C++ 编译及 CTest 全部成功；后续 jar/部分 codesign 成功但无输出，
   Tee-Object 未创建空日志，强制日志读取因此失败。已改为先创建日志再执行原前台管道，保留即时退出码检查；
   本地以真正零 stdout/stderr 的 jar --create 复现并通过回归（`h6-quiet-regression.log`），不屏蔽任何工具输出。
+- 第二轮 [CI 39015615386](https://github.com/AIH-Interactive/omni-morph/actions/runs/39015615386)：
+  Windows/Linux native、依赖核查和真实 JAR JNI 全部成功；macOS 两架构编译/CTest/签名通过，
+  JNI 测试创建的临时缓存经过系统符号链接，触发既有 loader 拒绝。测试对自身新建目录调用 toRealPath 后加载，
+  保留生产缓存符号链接策略；本地 JNI、禁用/缺库/未知架构、访问拒绝及 Fabric 编译回归通过（9s），
+  日志 `h6-real-cache-root.log`。macOS 的实际加载结果继续等待真实 runner。

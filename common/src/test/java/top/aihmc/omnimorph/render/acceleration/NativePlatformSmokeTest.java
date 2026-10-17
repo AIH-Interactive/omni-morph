@@ -24,7 +24,9 @@ public final class NativePlatformSmokeTest {
             System.out.println("PASS native disabled/unsupported/missing resource contracts");
             return;
         }
-        var cache = Files.createTempDirectory("omnimorph-platform-jni-");
+        // macOS exposes its temporary directory through /var -> /private/var.
+        // Resolve the fresh, test-owned root before exercising the loader's no-symlink cache policy.
+        var cache = Files.createTempDirectory("omnimorph-platform-jni-").toRealPath();
         if (args.length > 0 && args[0].equals("--deny")) {
             try {
                 NativeLibraryLoader.load(NativePlatformSmokeTest.class.getClassLoader(), cache);
