@@ -1,6 +1,6 @@
 # OmniMorph 模型库开发计划书
 
-状态：实施中，M0～M2 检查通过；M3 正在实施，M4～M7 尚未实施。各阶段证据见 8.2，不代表功能已全部实现或视觉验收通过。
+状态：实施中，M0～M3 自动检查通过；M4～M7 尚未实施。各阶段证据见 8.2，不代表功能已全部实现或视觉验收通过。
 
 用户实施中补充（2026-10-18）：本次目标版本为 `1.0.0-alpha.2`，界面显示对应 `1.0 Alpha 2`；在客户端阶段同步构建、模组清单、产物和 README。新增图标允许先绘制 SVG 再通过脚本转换 PNG；缺省封面仍使用根目录 ingame_logo.png。该补充覆盖本文原有“不升级版本”约束，不改变 M0→M7 顺序及其他范围。
 
@@ -513,7 +513,7 @@ if ($buildExitCode -ne 0) {
 | M0 | PASS | Rust storage 7/7；Fabric compileJava、ysmPackageSmokeTest、ysmCryptoSmokeTest；8 样例哈希/JSON/分页预算，均退出 0 | 真实模型/GUI 为后续阶段 MANUAL/PENDING | 75ffa9d / origin main 已确认 | 8143665 / origin master 已确认 |
 | M1 | PASS | cargo test library 12/12；storage 12/12；全 Rust 回归 37/37，退出 0；rustfmt/diff check 通过 | 无 GUI；真实部署凭据和外部生产二进制回滚 MANUAL/PENDING | e49f306 / origin main 已确认 | 4178e06 / origin master 已确认 |
 | M2 | PASS | cargo build 退出 0；library 专项 34 通过；全 Rust 回归 59 通过；线程饱和隔离测试 1 通过，退出均 0；rustfmt/diff check 通过 | 无 GUI；真实部署 MANUAL/PENDING | b36a934 / origin main 已核对一致 | 578dfbc / origin master 已核对一致 |
-| M3 | IN_PROGRESS（尚未达到阶段退出条件） | 装备/流 8、衣柜哈希 1、重复库条目 1、双协议 WS 2 通过；当前全量 73 通过/1 个既有饱和测试隔离，退出 0；不是 M3 PASS | GUI MANUAL/PENDING | 补充计划 3e0273e 已推送，阶段代码未提交 | 在制实现未提交 |
+| M3 | PASS（自动检查） | cargo build；Rust 全量 75 通过及饱和隔离 1 通过；Fabric compileJava、avatarCloudRefreshSmokeTest、cloudAdapterSmokeTest；退出均 0，diff check 通过 | 真实游戏/部署回滚 MANUAL/PENDING | 本次 M3 独立检查点提交，推送后核对远端 | 392b9ad / origin master 已核对一致 |
 | M4 | NOT_STARTED | — | — | — | — |
 | M5 | NOT_STARTED | — | — | — | — |
 | M6 | NOT_STARTED | — | — | — | — |
@@ -549,7 +549,9 @@ if ($buildExitCode -ne 0) {
 - 后端 `578dfbc8651e24019064c3be740efd96d7344ff0` 已推送 origin/master 且通过 ls-remote 核对一致；本客户端进度提交推送确认后才进入 M3。补充计划已先按用户要求在 `b64aa05` 独立推送。未纳入 build.log、refs、spm-cloud 或任何真实凭据。
 - 真实部署/交互式凭据和后续 GUI 验收为 MANUAL/PENDING；本阶段不宣称装备/同步闭环已完成，也不启用 capabilities.enabled。M3 将实施双协议来源策略与私有当前装备展示选项，默认关闭。
 
-#### M3 在制记录（阶段未完成，2026-10-18）
+#### M3 实施与检查点记录（2026-10-18）
+
+以下保留实施期间的中间证据；最终状态以本节末尾的检查点及 8.2 状态表为准。
 
 - 双仓库 M2 检查点推送确认后开始。新增 `Policy::can_render_equipment`，私有当前装备展示依赖本人的独立选项；缺省/关闭时不放行观察者，主动开启不改变私有库访问权限；BLOCKED/DELETED 及屏蔽身份禁止对外渲染。已接入库来源装备、Protobuf 资源和两协议 profile，尚未完成全部分发入口。
 - 新增 `library_equipment_settings`，以来源装备引用为键、`show_private_equipment` 默认 false，旧引用无记录也按 false 处理；独立表避免设置源模型公共属性。SQLite v2→v3 与 v1→v3 均先备份再原子建表/更新版本；同步调整启动/布局的未知版本拒绝及对应回归，未修改 manifest 格式或 Protobuf v1。
@@ -563,7 +565,11 @@ if ($buildExitCode -ne 0) {
 - 已接入双协议订阅恢复及发送边界的当前观察者过滤；策略变更向已有观察者发送重查通知，隐藏的 Protobuf 装备投影为空并标记移除，Figura 发出原生重查事件；不向本人注入策略移除来强制清除本地模型。YSM SnapshotRequest/Resume 与排队状态复查可见性/当前模型身份及有效发布代数，legacy 分片发送也在检查点复查。
 - 新增真实双协议 WS 专项 2/2：公开→私有时已订阅观察者收到失效，旧 Lua ping 不继续外发，主动开启私有外观后恢复；合成加密 YSM 在允许时恢复原生/legacy 状态，退出展示后 SnapshotRequest、Resume 及排队状态不泄露。旧无装备时的 recovery 错误码保持原语义。连接复查绑定本次握手 token（仅连接内存），不依赖可缺省的 Userinfo.token，不把凭据写入持久档案。
 - 最新全量 `cargo test` 73 通过、1 个既有饱和测试按设计隔离，退出 0；旧 Figura/Protobuf/YSM 基线回归通过。日志 `omnimorph-m3-partial-all.log`、`omnimorph-m3-subscriptions.log`、`omnimorph-m3-legacy.log`；不是 M3 完整退出证据。
-- 待完成：客户端正式来源发布接缝；internal/旧入口最终核对；历史副本/密文身份与 A/B/C/D（上传者/授权者/未授权者/管理员）API/WS 完整矩阵；可读性/差异审查、最终编译回归和 M3 提交推送。当前实现保留未提交，不进入 M4。
+- M3 最终补齐：客户端 begin/current/publish 来源装备接缝绑定实际连接、玩家 UUID 和本地选择代数；开始请求仅取消旧广播/准备和回调，保留当前可见模型；确认装备成功后走 profile/来源别名下载，不匿名上传。晚到响应、同 epoch 更换连接、重复完成均被拒绝。M4 负责接入实际 LibraryClient。Fabric compileJava、avatarCloudRefreshSmokeTest、cloudAdapterSmokeTest 均退出 0，日志 `omnimorph-m3-client.log`；不是 GUI 视觉验收。
+- A/B/C/D 四方 API/WS 专项通过：上传者、授权者可获取公开授权模型；未授权者和配置管理员的观察者均无模型/兼容槽权限；撤销观察者授权后两种协议现有订阅收到失效通知，上传者仍保留本地模型。日志 `omnimorph-m3-matrix.log`。
+- 旧入口专项通过：相同密文更换合法 NBT 根名，raw/NBT hash 均改变，仍按服务端核验的密文身份屏蔽；覆盖历史 internal 上传的惰性索引、屏蔽后的 v1 上传和 internal 一次性临时上传，外部拒绝、本人可读。修复该必测路径 Windows 只读句柄 sync_all 失败，改用可写句柄刷盘；不改变 internal Host/旧管理员 token 的既有认证范围。日志 `omnimorph-m3-old-entries.log`。
+- M3 最终自动检查：cargo build 退出 0；全量 75 通过、1 项既有饱和测试隔离；隔离单测另批 1/1，退出均 0；新增代码格式及 git diff --check 通过。日志 `omnimorph-m3-build.log`、`omnimorph-m3-final-all.log`、`omnimorph-m3-saturation.log`。分发闭环验证后 capabilities.enabled 开启。合成加密 fixture 只证明协议/权限，不证明真实渲染；真实游戏窗口、CJK/视觉和真实部署回滚保持 MANUAL/PENDING。先完成 M3 双仓库独立提交/推送检查点，才开始 M4。
+- 后端 M3 `392b9ad5061482dd2fc8599749a79dda968bf1f4` 已推送 origin/master，ls-remote 核对一致。客户端本次独立提交包括来源接缝、对应回归和此记录；推送核对后进入 M4。未纳入 build.log、refs、spm-cloud 或部署凭据。
 
 ## 9. 安全、兼容性、异常与性能验收方案
 

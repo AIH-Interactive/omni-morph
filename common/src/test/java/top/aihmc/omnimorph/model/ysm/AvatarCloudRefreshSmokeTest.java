@@ -88,6 +88,18 @@ final class AvatarCloudRefreshSmokeTest {
             Configs.CONNECTION_TOASTS.value = true;
             lastPath.set(null, java.nio.file.Path.of("synthetic-local-preview"));
             AvatarManager.localUploaded = false;
+            var abandoned = NetworkStuff.beginLibrarySelection();
+            require(NetworkStuff.librarySelectionCurrent(abandoned) && user.getMainAvatar() == preview
+                            && LocalAvatarLoader.getLastLoadedPath() != null,
+                    "starting library equip retains the model and wardrobe selection on failure");
+            NetworkStuff.localSelectionChanged();
+            require(!NetworkStuff.publishLibraryEquipment(abandoned),
+                    "a newer local choice rejects late library equip completion");
+            var retired = NetworkStuff.beginLibrarySelection();
+            connection.set(null, new CloudConnection(NetworkStuff.connectionEpoch(), protocol));
+            require(!NetworkStuff.publishLibraryEquipment(retired),
+                    "a replacement connection rejects completion even with the same numeric epoch");
+            connection.set(null, scope);
             long epoch = NetworkStuff.connectionEpoch();
             status.set(503);
             AvatarManager.reloadCloudAvatar();
@@ -99,7 +111,9 @@ final class AvatarCloudRefreshSmokeTest {
             require(user.getMainAvatar() == preview && !AvatarManager.localUploaded,
                     "failed refresh must not advertise the retained local preview as uploaded");
             status.set(200);
-            AvatarManager.reloadCloudAvatar();
+            var library = NetworkStuff.beginLibrarySelection();
+            require(NetworkStuff.publishLibraryEquipment(library), "current confirmed library equipment reloads its source");
+            require(!NetworkStuff.publishLibraryEquipment(library), "library completion is consumed once");
             runRequests(process, work, scope);
             runRequests(process, work, scope);
             long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
