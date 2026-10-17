@@ -39,6 +39,15 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 /** Native image allocation/lifecycle only: no GPU device, GL context, framebuffer or window is created. */
 public final class YsmMaterialNativeSmokeTest {
     public static void main(String[] args) throws Exception {
+        run(args, null);
+    }
+
+    /** Reuses the real loader/runtime/native-image scope for acceleration renderer contract tests. */
+    public static void replayAcceleration(Path path, java.util.function.Consumer<YsmModelRuntime> replay) throws Exception {
+        run(new String[]{"--acceleration", path.toString()}, replay);
+    }
+
+    private static void run(String[] args, java.util.function.Consumer<YsmModelRuntime> replay) throws Exception {
         Path directory = Files.createTempDirectory("figura-native-material-").toAbsolutePath().normalize();
         String previousDirectory = System.getProperty("figura.test.directory");
         System.setProperty("figura.test.directory", directory.toString());
@@ -71,9 +80,33 @@ public final class YsmMaterialNativeSmokeTest {
         try {
             SharedConstants.tryDetectVersion();
             Bootstrap.bootStrap();
-            RenderSystem.initRenderThread();
+            if (previousThread == null) {
+                RenderSystem.initRenderThread();
+            } else {
+                RenderSystem.assertOnRenderThread();
+            }
             instance.set(null, client);
             top.aihmc.omnimorph.permissions.PermissionManager.init();
+            if (args.length == 2 && args[0].equals("--acceleration")) {
+                client.sounds = YsmStabilitySmokeTest.soundManager(unsafe);
+                Field device = RenderSystem.class.getDeclaredField("DEVICE");
+                device.setAccessible(true);
+                Object previousDevice = device.get(null);
+                try {
+                    device.set(null, new PublicationDevice());
+                    Avatar avatar = owner(unsafe, 918);
+                    try (var data = YsmModelData.read(Path.of(args[1]), () -> false);
+                         var runtime = YsmModelRuntime.fromData(avatar, data,
+                                 YsmAvatarLoader.toRuntimeTag(data, data.manifest().textures().getFirst()))) {
+                        install(avatar, "ysmRuntime", runtime);
+                        java.util.Objects.requireNonNull(replay).accept(runtime);
+                    }
+                } finally {
+                    client.drain();
+                    device.set(null, previousDevice);
+                }
+                return;
+            }
             if (args.length == 2 && args[0].equals("--async-encrypted")) {
                 client.sounds = YsmStabilitySmokeTest.soundManager(unsafe, true);
                 AvatarAsyncLoadSmokeTest.run(unsafe, client, client::drain, Path.of(args[1]));

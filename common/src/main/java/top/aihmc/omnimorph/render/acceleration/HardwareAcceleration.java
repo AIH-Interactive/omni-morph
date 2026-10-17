@@ -26,6 +26,7 @@ public final class HardwareAcceleration {
     private static volatile boolean resetPendingGpu;
     private static volatile boolean resetGpuDevice;
     private static boolean retirementFailureLogged;
+    private static NativeSimdBackend nativeWorkspace;
 
     private HardwareAcceleration() {
     }
@@ -38,6 +39,7 @@ public final class HardwareAcceleration {
     }
 
     public static void beginFrame() {
+        GpuSubmission.beginFrame();
         try {
             GpuRetirement.GLOBAL.poll();
             retirementFailureLogged = false;
@@ -123,7 +125,7 @@ public final class HardwareAcceleration {
     static AccelerationController.Activation probe(Mode mode)
             throws AccelerationController.ProbeFailure, AccelerationController.ProbePending {
         if (mode != Mode.SIMD) {
-            return probeGpu();
+            return probeGpu(mode);
         }
         try {
             NativeLibraryLoader.Loaded loaded = NativeLibraryLoader.load();
@@ -132,7 +134,11 @@ public final class HardwareAcceleration {
                 throw new AccelerationController.ProbeFailure(FallbackReason.UNSUPPORTED_CPU);
             }
             nativeSelfTest();
-            return new AccelerationController.Activation(new NativeSimdBackend(),
+            if (nativeWorkspace == null) {
+                // One bounded workspace survives mode toggles; no JNI pointer survives a call.
+                nativeWorkspace = new NativeSimdBackend();
+            }
+            return new AccelerationController.Activation(nativeWorkspace,
                     (capabilities & 4) != 0 ? Effective.AVX2 : Effective.SSE2, capabilities);
         } catch (NativeLibraryLoader.LoadFailure failure) {
             throw new AccelerationController.ProbeFailure(failure.reason());
@@ -145,7 +151,7 @@ public final class HardwareAcceleration {
         }
     }
 
-    private static AccelerationController.Activation probeGpu()
+    private static AccelerationController.Activation probeGpu(Mode mode)
             throws AccelerationController.ProbeFailure, AccelerationController.ProbePending {
         if (!RenderSystem.isOnRenderThread() || RenderSystem.tryGetDevice() == null) {
             throw new AccelerationController.ProbeFailure(FallbackReason.GPU_UNAVAILABLE);
@@ -164,8 +170,18 @@ public final class HardwareAcceleration {
                 throw new AccelerationController.ProbePending();
             }
             GpuAccelerationBackend ready = pendingGpu;
+            int capabilities = 0;
+            if (mode == Mode.AUTO) {
+                try {
+                    AccelerationController.Activation cpu = probe(Mode.SIMD);
+                    ready.useCpuBackend(cpu.backend());
+                    capabilities = cpu.capabilities();
+                } catch (AccelerationController.ProbeFailure unavailable) {
+                    FiguraMod.LOGGER.info("GPU ready; optional SIMD preparation unavailable: {}", unavailable.reason);
+                }
+            }
             pendingGpu = null;
-            return new AccelerationController.Activation(ready, Effective.GPU, 0);
+            return new AccelerationController.Activation(ready, Effective.GPU, capabilities);
         } catch (GpuAccelerationBackend.Failure failure) {
             pendingGpu.close();
             pendingGpu = null;

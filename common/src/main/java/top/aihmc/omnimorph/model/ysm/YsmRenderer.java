@@ -17,6 +17,10 @@ import top.aihmc.omnimorph.render.acceleration.DrawBatch;
 import top.aihmc.omnimorph.render.acceleration.DrawSemantics;
 import top.aihmc.omnimorph.render.acceleration.MeshHandle;
 import top.aihmc.omnimorph.render.acceleration.PoseSnapshot;
+import top.aihmc.omnimorph.render.acceleration.GpuSubmission;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class YsmRenderer {
     private final YsmModelRuntime runtime;
@@ -24,8 +28,11 @@ public class YsmRenderer {
     private RenderType culledTranslucentType;
     private YsmPreviewRenderTypes previewTypes;
 
-    private record DrawTarget(VertexConsumer consumer, RenderType material, Identifier texture,
+    private record DrawTarget(MultiBufferSource source, RenderType material, Identifier texture,
                               String channel, int order) {
+        VertexConsumer consumer() {
+            return source.getBuffer(material);
+        }
     }
 
     public YsmRenderer(YsmModelRuntime runtime) {
@@ -50,7 +57,7 @@ public class YsmRenderer {
 
         runtime.texture().uploadIfDirty(false, false);
         RenderType renderType = renderType(pose);
-        DrawTarget vertices = new DrawTarget(bufferSource.getBuffer(renderType), renderType,
+        DrawTarget vertices = new DrawTarget(bufferSource, renderType,
                 runtime.texture().getLocation(), mask == YsmPartMask.WORLD_ATTACHMENTS ? "attachments" : "body",
                 bodySubmitOrder());
 
@@ -91,7 +98,7 @@ public class YsmRenderer {
         RenderType renderType = entity.isTextureTranslucent()
                 ? RenderTypes.entityTranslucent(entity.texture().getLocation())
                 : RenderTypes.entityCutout(entity.texture().getLocation());
-        DrawTarget vertices = new DrawTarget(bufferSource.getBuffer(renderType), renderType,
+        DrawTarget vertices = new DrawTarget(bufferSource, renderType,
                 entity.texture().getLocation(), "sub-entity", bodySubmitOrder());
 
         stack.pushPose();
@@ -162,7 +169,7 @@ public class YsmRenderer {
 
         runtime.texture().uploadIfDirty(false, false);
         RenderType renderType = renderType(pose);
-        DrawTarget vertices = new DrawTarget(bufferSource.getBuffer(renderType), renderType,
+        DrawTarget vertices = new DrawTarget(bufferSource, renderType,
                 runtime.texture().getLocation(), "attachment/" + point.boneName(), bodySubmitOrder());
 
         updateTrackedPivots(false, pose);
@@ -211,7 +218,7 @@ public class YsmRenderer {
 
         runtime.texture().uploadIfDirty(false, false);
         RenderType renderType = renderType(pose);
-        DrawTarget vertices = new DrawTarget(bufferSource.getBuffer(renderType), renderType,
+        DrawTarget vertices = new DrawTarget(bufferSource, renderType,
                 runtime.texture().getLocation(), left ? "left-arm" : "right-arm", bodySubmitOrder());
 
         YsmPartMask mask = YsmPartMask.forPass(YsmRenderPass.FIRST_PERSON_ARM);
@@ -308,8 +315,7 @@ public class YsmRenderer {
         stack.pushPose();
         applyBoneTransform(bone, part, stack);
         if (renderSelf) {
-            for (YsmGeometry.Cube cube : bone.cubes)
-                renderCube(cube, stack, vertices, light);
+            renderGeometry(bone.cubes, stack, vertices, light);
         }
         for (YsmGeometry.Bone child : bone.children)
             renderBone(child, stack, vertices, light, mask, useArmParts, pose);
@@ -321,8 +327,7 @@ public class YsmRenderer {
             return;
         stack.pushPose();
         applyBoneTransform(bone, null, stack);
-        for (YsmGeometry.Cube cube : bone.cubes)
-            renderCube(cube, stack, vertices, light);
+        renderGeometry(bone.cubes, stack, vertices, light);
         for (YsmGeometry.Bone child : bone.children)
             renderStaticBone(child, stack, vertices, light);
         stack.popPose();
@@ -421,41 +426,93 @@ public class YsmRenderer {
     }
 
     private void quad(DrawTarget vertices, PoseStack stack, YsmGeometry.Quad quad, int light) {
+        if (!runtime.owner().accelerationOwner().isCurrent()) {
+            return;
+        }
         float[] positions = quad.positions();
         float[] uvs = quad.uvs();
         float[] normal = quad.normal();
-        double[] input = new double[4 * MeshHandle.STRIDE];
+        VertexConsumer consumer = vertices.consumer();
         for (int i = 0; i < 4; i++) {
-            int offset = i * MeshHandle.STRIDE;
-            input[offset] = positions[i * 3];
-            input[offset + 1] = positions[i * 3 + 1];
-            input[offset + 2] = positions[i * 3 + 2];
-            input[offset + 3] = 1;
-            input[offset + 4] = normal[0];
-            input[offset + 5] = normal[1];
-            input[offset + 6] = normal[2];
-            input[offset + 7] = uvs[i * 2];
-            input[offset + 8] = uvs[i * 2 + 1];
+            vertex(consumer, stack, positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2],
+                    uvs[i * 2], uvs[i * 2 + 1], normal[0], normal[1], normal[2], light);
         }
+    }
+
+    private void renderGeometry(List<YsmGeometry.Cube> cubes, PoseStack stack, DrawTarget target, int light) {
         AccelerationService acceleration = AccelerationService.INSTANCE;
-        var lease = acceleration.capture(runtime.owner().accelerationOwner(), String.valueOf(runtime.owner().renderMode));
-        MeshHandle mesh = new MeshHandle(input, 4);
-        PoseSnapshot pose = new PoseSnapshot(stack.last());
-        DrawSemantics semantics = new DrawSemantics(vertices.material(), vertices.texture(),
-                DrawSemantics.Layer.PRIMARY, vertices.channel(), vertices.order(), 1, light,
-                OverlayTexture.NO_OVERLAY, 1, 1, 1, 1, 0, true);
-        double[] transformed = acceleration.transform(lease, token -> new DrawBatch(token, mesh, pose, semantics));
-        if (transformed == null) {
+        if (!acceleration.accelerated()) {
+            for (YsmGeometry.Cube cube : cubes) {
+                renderCube(cube, stack, target, light);
+            }
             return;
         }
-        for (int i = 0; i < 4; i++) {
-            int offset = i * MeshHandle.STRIDE;
-            vertices.consumer().addVertex((float) transformed[offset], (float) transformed[offset + 1], (float) transformed[offset + 2])
-                    .setColor(semantics.red(), semantics.green(), semantics.blue(), semantics.alpha())
-                    .setUv((float) transformed[offset + 7], (float) transformed[offset + 8])
-                    .setOverlay(semantics.overlay())
-                    .setLight(semantics.light())
-                    .setNormal((float) transformed[offset + 4], (float) transformed[offset + 5], (float) transformed[offset + 6]);
+        List<YsmGeometry.Quad> faces = new ArrayList<>();
+        for (YsmGeometry.Cube cube : cubes) {
+            for (YsmGeometry.Quad face : cube.quads) {
+                if (face.visible()) {
+                    runtime.recordComplexity(1);
+                    faces.add(face);
+                }
+            }
+        }
+        if (faces.isEmpty()) {
+            return;
+        }
+        int maximumFaces = AccelerationService.MAX_BATCH_VERTICES / 4;
+        PoseSnapshot pose = new PoseSnapshot(stack.last());
+        for (int first = 0; first < faces.size(); first += maximumFaces) {
+            int count = Math.min(maximumFaces, faces.size() - first);
+            double[] input = new double[count * 4 * MeshHandle.STRIDE];
+            for (int face = 0; face < count; face++) {
+                YsmGeometry.Quad quad = faces.get(first + face);
+                for (int vertex = 0; vertex < 4; vertex++) {
+                    int offset = (face * 4 + vertex) * MeshHandle.STRIDE;
+                    input[offset] = quad.positions()[vertex * 3];
+                    input[offset + 1] = quad.positions()[vertex * 3 + 1];
+                    input[offset + 2] = quad.positions()[vertex * 3 + 2];
+                    input[offset + 3] = 1;
+                    input[offset + 4] = quad.normal()[0];
+                    input[offset + 5] = quad.normal()[1];
+                    input[offset + 6] = quad.normal()[2];
+                    input[offset + 7] = quad.uvs()[vertex * 2];
+                    input[offset + 8] = quad.uvs()[vertex * 2 + 1];
+                }
+            }
+            submitGeometry(target, new MeshHandle(input, 4), pose, light, count);
+        }
+    }
+
+    private void submitGeometry(DrawTarget target, MeshHandle mesh, PoseSnapshot pose, int light, int faces) {
+        AccelerationService acceleration = AccelerationService.INSTANCE;
+        var lease = acceleration.capture(runtime.owner().accelerationOwner(), String.valueOf(runtime.owner().renderMode));
+        DrawSemantics semantics = new DrawSemantics(target.material(), target.texture(),
+                DrawSemantics.Layer.PRIMARY, target.channel(), target.order(), faces, light,
+                OverlayTexture.NO_OVERLAY, 1, 1, 1, 1, 0, true);
+        DrawBatch batch = new DrawBatch(lease, mesh, pose, semantics);
+        double[][] output = {null};
+        GpuSubmission.JavaEmitter fallback = (consumer, firstVertex, vertexCount) -> {
+            if (!acceleration.isCurrent(lease)) {
+                return;
+            }
+            if (output[0] == null) {
+                output[0] = acceleration.transform(lease, token -> batch);
+            }
+            double[] transformed = output[0];
+            if (transformed == null) {
+                return;
+            }
+            for (int vertex = firstVertex; vertex < firstVertex + vertexCount; vertex++) {
+                int offset = vertex * MeshHandle.STRIDE;
+                consumer.addVertex((float) transformed[offset], (float) transformed[offset + 1], (float) transformed[offset + 2])
+                        .setColor(semantics.red(), semantics.green(), semantics.blue(), semantics.alpha())
+                        .setUv((float) transformed[offset + 7], (float) transformed[offset + 8])
+                        .setOverlay(semantics.overlay()).setLight(semantics.light())
+                        .setNormal((float) transformed[offset + 4], (float) transformed[offset + 5], (float) transformed[offset + 6]);
+            }
+        };
+        if (!GpuSubmission.enqueue(target.source(), batch, fallback)) {
+            fallback.emit(target.consumer(), 0, mesh.vertexCount());
         }
     }
 

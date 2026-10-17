@@ -171,6 +171,23 @@ tasks.register('gpuAccelerationSmokeTest', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuAccelerationSmokeTest'
 }
 
+tasks.register('gpuSubmissionSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Exercises real BufferSource/RenderType flushes with recorded GPU draws and original face sorting.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuSubmissionSmokeTest'
+}
+
+tasks.register('dualEngineGpuReplay', JavaExec) {
+    group = 'verification'
+    description = 'Replays production Figura/YSM emitters through the GPU wire layout using a CPU decoder.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.render.acceleration.DualEngineGpuReplay'
+    args rootProject.file('refs/avatars/末影龙娘.ysm').path, rootProject.file('refs/avatars/01_taisho_maid').path
+}
+
 ['nativeActivationSmokeTest': 'allow', 'nativeAccessDeniedSmokeTest': 'deny'].each { taskName, policy ->
     tasks.register(taskName, JavaExec) {
         group = 'verification'

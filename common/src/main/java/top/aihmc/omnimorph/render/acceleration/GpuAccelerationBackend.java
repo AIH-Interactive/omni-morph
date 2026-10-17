@@ -2,6 +2,8 @@ package top.aihmc.omnimorph.render.acceleration;
 
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import com.mojang.blaze3d.vertex.MeshData;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,6 +16,26 @@ import java.util.function.BooleanSupplier;
 /** Public GPU contract: immutable cached geometry, frame-owned poses and direct indexed draws. */
 public final class GpuAccelerationBackend implements AccelerationBackend {
     public enum DrawResult { UNSUPPORTED, STALE, DRAWN, ISSUED_BEFORE_FAILURE }
+
+    /** A frame-owned pose and cached mesh may be reused for several sorted face ranges. */
+    public static final class Prepared {
+        final GpuAccelerationBackend backend;
+        final DrawBatch batch;
+        private final GpuDeviceAdapter.Material material;
+        private final GpuDeviceAdapter.Mesh mesh;
+        private final GpuDeviceAdapter.Pose pose;
+        private final int indices;
+
+        private Prepared(GpuAccelerationBackend backend, DrawBatch batch, GpuDeviceAdapter.Material material,
+                         GpuDeviceAdapter.Mesh mesh, GpuDeviceAdapter.Pose pose, int indices) {
+            this.backend = backend;
+            this.batch = batch;
+            this.material = material;
+            this.mesh = mesh;
+            this.pose = pose;
+            this.indices = indices;
+        }
+    }
 
     static final class Failure extends RuntimeException {
         final FallbackReason reason;
@@ -86,6 +108,8 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
     private boolean ready;
     private boolean closed;
     private volatile boolean invalidated;
+    private volatile AccelerationBackend cpuBackend;
+    private final JavaAccelerationBackend javaBackend = new JavaAccelerationBackend();
 
     GpuAccelerationBackend(GpuDeviceAdapter device, GpuRetirement retirement, long memoryBudget, long poseBudget) {
         this.device = device;
@@ -120,13 +144,17 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
 
     @Override
     public boolean supports(Operation operation, DrawBatch batch) {
+        if (operation == Operation.VERTEX_TRANSFORM) {
+            AccelerationBackend cpu = cpuBackend;
+            return cpu != null && cpu.supports(operation, batch);
+        }
         if (operation != Operation.GPU_DRAW) {
             return false;
         }
         device.assertThread();
         if (!ready || closed || invalidated || !batch.semantics().visible()
                 || batch.semantics().material() == null || batch.semantics().isOutline()
-                || batch.semantics().sortOnUpload() || !GpuBatchData.supports(batch)) {
+                || !GpuBatchData.supports(batch)) {
             return false;
         }
         RenderPipeline pipeline = batch.semantics().material().pipeline();
@@ -144,17 +172,53 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
 
     @Override
     public double[] transform(DrawBatch batch) {
-        throw new UnsupportedOperationException("GPU output is consumed directly by draw, never read back as CPU vertices");
+        AccelerationBackend cpu = cpuBackend;
+        if (cpu == null) {
+            return javaBackend.transform(batch);
+        }
+        try {
+            return cpu.transform(batch);
+        } catch (NativeSimdBackend.NativeBatchException rejectedBatch) {
+            throw rejectedBatch;
+        } catch (RuntimeException | LinkageError failure) {
+            cpuBackend = null;
+            top.aihmc.omnimorph.FiguraMod.LOGGER.warn("Optional SIMD preparation disabled; GPU remains ready: {}", failure.getClass().getSimpleName());
+            return javaBackend.transform(batch);
+        }
+    }
+
+    void useCpuBackend(AccelerationBackend backend) {
+        cpuBackend = backend;
+    }
+
+    GpuSubmission.Scope openScope(RenderType material) {
+        device.assertThread();
+        if (closed || invalidated || !device.isCurrent()) {
+            throw new Failure(FallbackReason.GPU_UNAVAILABLE, false, null);
+        }
+        return device.openScope(material);
+    }
+
+    void drawJava(RenderType material, MeshData geometry) {
+        device.drawJava(material, geometry);
     }
 
     @Override
     public DrawResult draw(DrawBatch batch, GpuDrawContext context, BooleanSupplier current) {
-        device.assertThread();
         if (!current.getAsBoolean()) {
             return DrawResult.STALE;
         }
+        Prepared prepared = prepare(batch, current);
+        return prepared == null ? DrawResult.UNSUPPORTED : drawPrepared(prepared, context, 0, prepared.indices, current);
+    }
+
+    Prepared prepare(DrawBatch batch, BooleanSupplier current) {
+        device.assertThread();
+        if (!current.getAsBoolean()) {
+            return null;
+        }
         if (!supports(Operation.GPU_DRAW, batch)) {
-            return DrawResult.UNSUPPORTED;
+            return null;
         }
         if (!device.isCurrent()) {
             throw new Failure(FallbackReason.GPU_UNAVAILABLE, false, null);
@@ -165,7 +229,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
                 + (long) batch.mesh().faceCount() * (batch.mesh().verticesPerFace() - 2) * 3 * Integer.BYTES : 0;
         if (framePoseBytes + GpuBatchData.POSE_BYTES > poseBudget
                 || residentBytes + retirement.bytes() + geometryBytes + GpuBatchData.POSE_BYTES > memoryBudget) {
-            return DrawResult.UNSUPPORTED;
+            return null;
         }
         if (entry == null) {
             try {
@@ -192,9 +256,26 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         } catch (RuntimeException failure) {
             throw new Failure(FallbackReason.RESOURCE_EXHAUSTED, false, failure);
         }
+        return new Prepared(this, batch, materials.get(batch.semantics().material().pipeline()), entry.mesh, pose, entry.indices);
+    }
+
+    DrawResult drawPrepared(Prepared prepared, GpuDrawContext context, int firstIndex, int indexCount, BooleanSupplier current) {
+        device.assertThread();
+        if (!current.getAsBoolean()) {
+            return DrawResult.STALE;
+        }
+        if (closed || invalidated || prepared.backend != this) {
+            return DrawResult.UNSUPPORTED;
+        }
+        if (firstIndex < 0 || indexCount < 0 || firstIndex > prepared.indices - indexCount) {
+            throw new IllegalArgumentException("GPU draw range outside prepared mesh");
+        }
+        if (!device.isCurrent()) {
+            throw new Failure(FallbackReason.GPU_UNAVAILABLE, false, null);
+        }
         boolean[] issued = {false};
         try {
-            device.draw(materials.get(batch.semantics().material().pipeline()), entry.mesh, pose, context, 0, entry.indices, () -> {
+            device.draw(prepared.material, prepared.mesh, prepared.pose, context, firstIndex, indexCount, () -> {
                 if (!current.getAsBoolean()) {
                     throw new Stale();
                 }
@@ -263,6 +344,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         }
         closed = true;
         ready = false;
+        cpuBackend = null;
         List<GpuDeviceAdapter.Resource> retired = new ArrayList<>(framePoses);
         for (Entry entry : meshes.values()) {
             retired.add(entry.mesh);

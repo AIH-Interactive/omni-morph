@@ -11,6 +11,7 @@ import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.textures.TextureFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.resources.Identifier;
+import net.minecraft.client.renderer.rendertype.RenderType;
 import top.aihmc.omnimorph.math.matrix.FiguraMat3;
 import top.aihmc.omnimorph.math.matrix.FiguraMat4;
 
@@ -105,6 +106,11 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         assertThread();
         long size = data.remaining();
         return new BufferPose(device.createBuffer(() -> "OmniMorph frame pose", GpuBuffer.USAGE_UNIFORM, data), size);
+    }
+
+    @Override
+    public GpuSubmission.Scope openScope(RenderType material) {
+        return GpuSubmission.openMinecraftScope(material);
     }
 
     @Override

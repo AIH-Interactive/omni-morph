@@ -30,6 +30,7 @@ import top.aihmc.omnimorph.render.acceleration.DrawBatch;
 import top.aihmc.omnimorph.render.acceleration.DrawSemantics;
 import top.aihmc.omnimorph.render.acceleration.MeshHandle;
 import top.aihmc.omnimorph.render.acceleration.PoseSnapshot;
+import top.aihmc.omnimorph.render.acceleration.GpuSubmission;
 import top.aihmc.omnimorph.utils.ColorUtils;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 import org.jetbrains.annotations.Nullable;
@@ -729,8 +730,28 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         AccelerationService acceleration = AccelerationService.INSTANCE;
         var lease = acceleration.capture(avatar.accelerationOwner(), String.valueOf(avatar.renderMode));
 
-        VERTEX_BUFFER.getBufferFor(vertexData.renderType, vertexData.primary, vertexConsumer -> {
+        VERTEX_BUFFER.getBufferFor(vertexData.renderType, vertexData.primary, buffers -> {
             if (!acceleration.isCurrent(lease)) {
+                return;
+            }
+            if (!acceleration.accelerated()) {
+                VertexConsumer vertexConsumer = buffers.getBuffer(rt);
+                for (int i = 0; i < vertCount; i++) {
+                    Vertex vertex = vertices.get(i);
+                    pos.set(vertex.x, vertex.y, vertex.z, 1);
+                    if (useSkinning && vertex.origIdx >= 0 && vertex.origIdx < part.skinBoneIndices.length
+                            && part.skinBoneIndices[vertex.origIdx] != null) {
+                        applySkinningDelta(pos, vertex.origIdx, part, boneDeltas);
+                    }
+                    pos.transform(customization.positionMatrix);
+                    pos.add(pos.normalized().scale(vertexData.vertexOffset));
+                    normal.set(vertex.nx, vertex.ny, vertex.nz).transform(customization.normalMatrix);
+                    uv.set(vertex.u, vertex.v, 1).divide(uvFixer).transform(customization.uvMatrix);
+                    vertexConsumer.addVertex((float) pos.x, (float) pos.y, (float) pos.z)
+                            .setColor((float) vertexData.color.x, (float) vertexData.color.y, (float) vertexData.color.z, customization.alpha)
+                            .setUv((float) uv.x, (float) uv.y).setOverlay(overlay).setLight(light)
+                            .setNormal((float) normal.x, (float) normal.y, (float) normal.z);
+                }
                 return;
             }
             double[] input = new double[Math.multiplyExact(vertCount, MeshHandle.STRIDE)];
@@ -765,23 +786,33 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
                     lease.view(), vertexData.primary ? 0 : 1, faceCount, light, overlay,
                     (float) vertexData.color.x, (float) vertexData.color.y, (float) vertexData.color.z,
                     customization.alpha, vertexData.vertexOffset, true);
-            double[] transformed = acceleration.transform(lease, token -> new DrawBatch(token, mesh, pose, semantics));
-            if (transformed == null) {
-                return;
-            }
-            for (int i = 0; i < vertCount; i++) {
-                int offset = i * MeshHandle.STRIDE;
-                pos.set(transformed[offset], transformed[offset + 1], transformed[offset + 2], transformed[offset + 3]);
-                pos.add(pos.normalized().scale(semantics.vertexOffset()));
-                normal.set(transformed[offset + 4], transformed[offset + 5], transformed[offset + 6]);
-
-                vertexConsumer
-                        .addVertex((float) pos.x, (float) pos.y, (float) pos.z)
-                        .setColor(semantics.red(), semantics.green(), semantics.blue(), semantics.alpha())
-                        .setUv((float) transformed[offset + 7], (float) transformed[offset + 8])
-                        .setOverlay(semantics.overlay())
-                        .setLight(semantics.light())
-                        .setNormal((float) normal.x, (float) normal.y, (float) normal.z);
+            DrawBatch batch = new DrawBatch(lease, mesh, pose, semantics);
+            double[][] output = {null};
+            GpuSubmission.JavaEmitter fallback = (vertexConsumer, firstVertex, vertexCount) -> {
+                if (!acceleration.isCurrent(lease)) {
+                    return;
+                }
+                if (output[0] == null) {
+                    output[0] = acceleration.transform(lease, token -> batch);
+                }
+                double[] transformed = output[0];
+                if (transformed == null) {
+                    return;
+                }
+                for (int i = firstVertex; i < firstVertex + vertexCount; i++) {
+                    int offset = i * MeshHandle.STRIDE;
+                    pos.set(transformed[offset], transformed[offset + 1], transformed[offset + 2], transformed[offset + 3]);
+                    pos.add(pos.normalized().scale(semantics.vertexOffset()));
+                    normal.set(transformed[offset + 4], transformed[offset + 5], transformed[offset + 6]);
+                    vertexConsumer.addVertex((float) pos.x, (float) pos.y, (float) pos.z)
+                            .setColor(semantics.red(), semantics.green(), semantics.blue(), semantics.alpha())
+                            .setUv((float) transformed[offset + 7], (float) transformed[offset + 8])
+                            .setOverlay(semantics.overlay()).setLight(semantics.light())
+                            .setNormal((float) normal.x, (float) normal.y, (float) normal.z);
+                }
+            };
+            if (!GpuSubmission.enqueue(buffers, batch, fallback)) {
+                fallback.emit(buffers.getBuffer(rt), 0, vertCount);
             }
         });
     }
@@ -832,22 +863,21 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
     }
 
     private static class VertexBuffer {
-        private final HashMap<RenderType, List<Consumer<VertexConsumer>>> primaryBuffers = new LinkedHashMap<>();
-        private final HashMap<RenderType, List<Consumer<VertexConsumer>>> secondaryBuffers = new LinkedHashMap<>();
+        private final HashMap<RenderType, List<Consumer<MultiBufferSource>>> primaryBuffers = new LinkedHashMap<>();
+        private final HashMap<RenderType, List<Consumer<MultiBufferSource>>> secondaryBuffers = new LinkedHashMap<>();
 
-        public void getBufferFor(RenderType renderType, boolean primary, Consumer<VertexConsumer> consumer) {
-            HashMap<RenderType, List<Consumer<VertexConsumer>>> buffer = primary ? primaryBuffers : secondaryBuffers;
-            List<Consumer<VertexConsumer>> list = buffer.computeIfAbsent(renderType, renderType1 -> new ArrayList<>());
+        public void getBufferFor(RenderType renderType, boolean primary, Consumer<MultiBufferSource> consumer) {
+            HashMap<RenderType, List<Consumer<MultiBufferSource>>> buffer = primary ? primaryBuffers : secondaryBuffers;
+            List<Consumer<MultiBufferSource>> list = buffer.computeIfAbsent(renderType, renderType1 -> new ArrayList<>());
             list.add(consumer);
         }
 
         public void consume(boolean primary, MultiBufferSource bufferSource) {
-            HashMap<RenderType, List<Consumer<VertexConsumer>>> map = primary ? primaryBuffers : secondaryBuffers;
-            for (Map.Entry<RenderType, List<Consumer<VertexConsumer>>> entry : map.entrySet()) {
-                VertexConsumer vertexConsumer = bufferSource.getBuffer(entry.getKey());
-                List<Consumer<VertexConsumer>> consumers = entry.getValue();
-                for (Consumer<VertexConsumer> consumer : consumers)
-                    consumer.accept(vertexConsumer);
+            HashMap<RenderType, List<Consumer<MultiBufferSource>>> map = primary ? primaryBuffers : secondaryBuffers;
+            for (Map.Entry<RenderType, List<Consumer<MultiBufferSource>>> entry : map.entrySet()) {
+                List<Consumer<MultiBufferSource>> consumers = entry.getValue();
+                for (Consumer<MultiBufferSource> consumer : consumers)
+                    consumer.accept(bufferSource);
             }
             map.clear();
         }

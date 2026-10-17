@@ -10,8 +10,8 @@
 | H1 | 完成并已推送；实机项 MANUAL/PENDING，最终集中验收 | `93f6e33c73700b7f82351dc951fbf36795395677`，公共合同与 Java 后端 |
 | H2 | 完成并已推送；实机项 MANUAL/PENDING，最终集中验收 | `295c548375594362730c1d4354c4f1a5e4b98f4a`，Windows SIMD |
 | H3 | 完成并已推送；实机项 MANUAL/PENDING，最终集中验收 | `8f444cf9725e35985ea61a1008439699dd56633c`，全局设置与回退 |
-| H4 | 完成；真实 GPU/画面项 MANUAL/PENDING，最终集中验收 | 公共 GPU 后端，提交见本文件 Git 历史 |
-| H5 | 待实施 | 双引擎完整接入 |
+| H4 | 完成并已推送；真实 GPU/画面项 MANUAL/PENDING，最终集中验收 | `8c3955c1b1b0985b1c2af86cc293a86e41c42859`，公共 GPU 后端 |
+| H5 | 完成；真实 GPU/画面项 MANUAL/PENDING，最终集中验收 | 双引擎完整接入，提交见本文件 Git 历史 |
 | H6 | 待实施 | 四平台 native 与 CI |
 | H7 | 待实施 | 稳定性与性能 |
 | H8 | 待实施 | 最终审计交付 |
@@ -173,3 +173,32 @@
 - 按用户“先快速单元测试，最终才 computer-use”的要求，本阶段没有运行图形窗口；真实像素、自检驱动、
   游戏 draw/材质及画面对照为 `MANUAL/PENDING`，不能用 H0 原型或本次 CPU 测试替代。
   已检查本阶段可读性、status/diff 与 `git diff --check`。
+
+## H5
+
+- Figura deferred emitter 和 YSM body/arm/attachment/sub-entity 共用 `GpuSubmission`，在真实
+  `MultiBufferSource.BufferSource` 材质刷新时提交，模型遍历阶段不提前 draw。
+  原始 RenderSetup 的目标、纹理、动态 uniform、layering/texture transform 和 scissor 在正式设备适配器中借用。
+- 同材质透明面按 Minecraft 的第 0/2 顶点中心和实际 VertexSorting 跨批次排序；GPU 只提交相应索引范围。
+  CPU 只计算排序中心，不回读 GPU 顶点。轮廓、特殊 shader、包装或固定 BufferSource、共享原版纹理等保守走原 Java 材质。
+  不支持的不透明批次单独回退；透明材质中有不支持批次时整组走原生 Java 排序，以维持完整混合顺序。
+- GPU draw 前失败重放尚未提交的面；可能已经提交的范围不重复，后续面走 Java。
+  旧帧、退休 owner 的排队命令在刷新前拒绝；scope 无论成功或失败都恢复原 layering 变换。
+- YSM 将同骨骼可见面组成有界批次，按完整面切分，复杂度仍每面计一次；姿态与几何分离，动态内容由完整网格键刷新。
+  Figura 保留全部权重与独立 normal/UV 矩阵，特殊权重不截断。Lua/Molang 矩阵查询仍保留 CPU 精度。
+- 默认关闭恢复既有标量顶点循环，避免为禁用模式创建不可变批次；激活后才建立公共输入。
+  AUTO 的 GPU 后端可借用会话级 SIMD workspace 处理 CPU 回退；可选 SIMD 故障只停用该 CPU 路径，不使已就绪 GPU 失效。
+- `gpuSubmissionSmokeTest` 使用真实 BufferSource/RenderType 刷新，验证材质顺序、跨批次透明排序、
+  draw 前后故障不漏发/重发、scope 成对清理、旧 owner/frame 不分配与不提交。
+- `dualEngineGpuReplay` 从真实 Figura emitter 验证刚性/两骨权重输出；从真实普通 YSM 与加密末影龙娘运行时
+  分别核对 8676/17384 个顶点的 position/normal/UV，冻结误差不变，并断言确实进入 GPU 提交边界且资源全部释放。
+  设备是 CPU wire-layout decoder，以上仅证明输入/数值合同，不冒充真实 GPU 像素证据。
+- 第一轮既有复杂度、权限、加载失败保留、广播及渲染生命周期回归通过，日志
+  `build/reports/acceleration/h5-first-renderer-replay.log`。
+  最终 `dualEngineGpuReplay`、`gpuSubmissionSmokeTest`、GPU/设置/公共合同、Figura/YSM deferred pose、
+  真实 `nativeSmokeTest` 和 `:fabric:build` 成功（1m56s），日志 `build/reports/acceleration/h5-final-build.log`。
+  JNI 实际重放 43 个 YSM（8 个加密）和 Figura，共 3360836 顶点，含完整主体/附件对照。
+- JNI 诊断计时仍显示简单刚性批次比 Java 慢，不作性能提升承诺；真实 GPU 及三模式性能由 H7 验收。
+  透明散乱面目前可能产生较多 draw，这是 H7 必须测量与按冻结阈值优化的路径。
+- 按用户要求没有打开图形窗口；真实各视角、材质、GUI、中英文设置、聊天与多人画面对照
+  `MANUAL/PENDING`，最终 computer-use 集中验收。已检查代码可读性、status/diff 与 `git diff --check`。
