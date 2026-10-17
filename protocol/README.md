@@ -159,3 +159,38 @@ disabled. GUI/game/manual evidence must be recorded honestly and separately.
    retain additive protocol/YSM records. User can explicitly choose Figura Cloud.
 10. Public deployment and real game acceptance are separate evidence; local builds
     never count as production rollout or real two-client PASS.
+
+## B4 YSM recovery and legacy M7 bridge
+
+`YSM_RECOVERY` is advertised for authenticated player owners. Entity-qualified
+owners have no authoritative world binding and return AUTHORITY_UNAVAILABLE;
+entity authority is not advertised. Publisher identity binds the authenticated
+connection scope, UUID and generation. Retired publishers cannot reclaim state.
+Equipment revision changes and deletion revoke the stored publisher atomically.
+
+Recovery persists a materialized snapshot, original full-snapshot timestamp,
+event watermark and bounded tail in the atomic manifest. Deltas do not renew the
+300-second full-snapshot TTL. Resume requires contiguous retained frames; expired
+or missing history requests a fresh snapshot. Historical one-shot events never
+replay from a snapshot, and queued events expire after 30 seconds. Offline owners
+are not simulated. Slow consumers reconnect/resnapshot rather than silently drop
+events. Snapshot refresh requests to owner connections are throttled per owner.
+
+Extended Figura connections declare `x-omnimorph-models: ysm`; valid inbound M7
+also identifies support. The adapter translates typed state to/from the existing
+Java M7 `YSMS`/`YSMP` formats inside the reserved legacy Ping. Ordinary Ping bytes
+remain opaque. Legacy combined state/events are committed atomically and split
+into ordered canonical frames; their source cursor and fingerprint deduplicate
+retries across restart. An imported `avatar` resource lacks a runtime schema:
+the first authorized publication binds its schema, which cannot change for the
+same resource revision/content. The resource descriptor itself is immutable.
+
+The old M7 format has no snapshot-request or structured-error message. Recovery
+for an unchanged legacy owner therefore waits for its existing periodic full
+snapshot; no new legacy control message is invented. A new owner can receive the
+typed SnapshotRequest. Unsupported upstream Figura clients receive no YSM bytes.
+
+`m7-vectors.tsv` contains synthetic vectors exported by the production Java codec.
+Compile `protocol/tools/M7VectorExporter.java` with YsmSyncMessage, YsmSyncCodec
+and YsmSyncPackets, then run `M7VectorExporter --verify protocol/m7-vectors.tsv`.
+Rust tests decode these vectors and compare re-encoded bytes/CRC/fragments.
