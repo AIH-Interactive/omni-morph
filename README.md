@@ -74,7 +74,9 @@ Get-Content -LiteralPath 'build.log' -Tail 40
 if ($buildExitCode -ne 0) { exit $buildExitCode }
 ```
 
-构建产物位于 `fabric/build/libs/`，当前成品命名仍使用 `figura-...-fabric-mc.jar`。网络协议 smoke test 随 `:common:test` 执行；YSM 各项验证入口及历史结果见计划和验收记录。
+构建产物位于 `fabric/build/libs/`，成品命名为 `omni-morph-...-fabric-mc.jar`。网络协议 smoke test 随 `:common:test` 执行；YSM 各项验证入口及历史结果见计划和验收记录。
+
+[Fabric 26.1.2 构建](https://github.com/AIH-Interactive/omni-morph/actions/workflows/fabric-build.yml) 支持推送、PR 及手动触发，使用 JDK 25，仅编译 Fabric。打开成功运行的 Artifacts 或摘要链接即可下载成品 JAR（需登录 GitHub，保留 30 天）。
 
 ## 配套后端与协议改造
 
