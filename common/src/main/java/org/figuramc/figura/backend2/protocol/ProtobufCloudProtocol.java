@@ -58,12 +58,7 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
     @Override
     public void connect(Listener listener) throws Exception {
         this.listener = listener;
-        var discovery = CloudWire.decode(http.control(CloudHttp.request(origin.resolve("/api/protobuf/v1/capabilities")).build()));
-        if (!discovery.hasHelloAck()) {
-            throw new IOException("UNSUPPORTED_CAPABILITY: select Figura Cloud manually");
-        }
-        validateCapabilities(discovery.getHelloAck());
-        capabilities = discovery.getHelloAck();
+        capabilities = discover(http, origin);
         budget.configure(capabilities.getLimits().getMessagesPerSecond(), capabilities.getLimits().getBytesPerSecond());
         Cloud.Envelope authenticated = rpc(Cloud.Envelope.newBuilder().setAuth(Cloud.Auth.newBuilder()
                 .setToken(token).setInstanceId(capabilities.getInstanceId())));
@@ -102,11 +97,39 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
                 .addCapabilities(Cloud.Capability.YSM_RECOVERY)));
     }
 
-    private void validateCapabilities(Cloud.HelloAck hello) throws IOException {
+    public static void probe(URI origin, HttpClient client) throws Exception {
+        try (CloudHttp probe = new CloudHttp(client)) {
+            discover(probe, origin);
+        }
+    }
+
+    private static Cloud.HelloAck discover(CloudHttp http, URI origin) throws Exception {
+        var response = http.send(CloudHttp.request(origin.resolve("/api/protobuf/v1/capabilities")).build());
+        try (var body = response.body()) {
+            if (response.statusCode() == 404 || response.statusCode() == 405 || response.statusCode() == 501
+                    || response.statusCode() == 200 && !response.headers().firstValue("Content-Type").orElse("")
+                            .split(";")[0].equals(CONTENT_TYPE)) {
+                throw new Unsupported();
+            }
+            if (response.statusCode() != 200) {
+                throw new IOException("Capability discovery failed: HTTP " + response.statusCode());
+            }
+            Cloud.Envelope discovery = CloudWire.decode(CloudHttp.readBounded(body, 65536));
+            if (!discovery.hasHelloAck()) {
+                throw new Unsupported();
+            }
+            validateCapabilities(discovery.getHelloAck());
+            return discovery.getHelloAck();
+        } finally {
+            http.release(response.body());
+        }
+    }
+
+    private static void validateCapabilities(Cloud.HelloAck hello) throws IOException {
         if (hello.getSelectedMajor() != 1 || hello.getInstanceId().isBlank()
                 || !hello.getCapabilitiesList().contains(Cloud.Capability.FIGURA)
                 || hello.getLimits().getEnvelopeBytes() == 0 || hello.getLimits().getEnvelopeBytes() > 65536) {
-            throw new IOException("UNSUPPORTED_CAPABILITY: select Figura Cloud manually");
+            throw new Unsupported();
         }
     }
 
@@ -137,7 +160,7 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
                 .POST(HttpRequest.BodyPublishers.ofByteArray(request.toByteArray())).build());
         try (var stream = response.body()) {
             if (!response.headers().firstValue("Content-Type").orElse("").split(";")[0].equals(CONTENT_TYPE)) {
-                throw new IOException("UNSUPPORTED_CAPABILITY: select Figura Cloud manually");
+                throw new Unsupported();
             }
             int limit = capabilities == null ? 65536 : Math.min(65536, capabilities.getLimits().getEnvelopeBytes());
             Cloud.Envelope message = CloudWire.decode(CloudHttp.readBounded(stream, limit));
@@ -630,6 +653,12 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
         uploads.clear();
         cursors.clear();
         equipment.clear();
+    }
+
+    public static final class Unsupported extends IOException {
+        public Unsupported() {
+            super("backend.protobuf.unsupported");
+        }
     }
 
     public static final class Failure extends IOException {

@@ -612,3 +612,16 @@ tasks.register('writeCloudIntegrationClasspath') {
         output.text = (sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath).asPath
     }
 }
+
+
+tasks.register('cloudProtocolConfigSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Exercises actual protocol config persistence, migration/reset, and unsupported backend without fallback.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'org.figuramc.figura.config.CloudProtocolConfigSmokeTest'
+}
+
+tasks.named('test') {
+    dependsOn 'cloudProtocolConfigSmokeTest'
+}

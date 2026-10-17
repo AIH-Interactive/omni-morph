@@ -55,6 +55,8 @@ public class NetworkStuff {
     private static CompletableFuture<Void> tasks;
     private static final java.util.concurrent.atomic.AtomicInteger pendingTasks = new java.util.concurrent.atomic.AtomicInteger();
     private static volatile CloudConnection connection;
+    private static volatile CloudProtocol.Kind connectedKind;
+    private static volatile String connectedAddress;
     private static final int RECONNECT = 6000;
     private static int authCheck = RECONNECT;
     private static final YsmSyncConnection YSM_SYNC = new YsmSyncConnection();
@@ -88,9 +90,18 @@ public class NetworkStuff {
         uploadRate.tick();
         downloadRate.tick();
         CloudConnection current = connection;
+        if (current != null && (connectedKind != Configs.CLOUD_PROTOCOL.kind()
+                || !Objects.equals(connectedAddress, Configs.SERVER_IP.value))) {
+            reAuth();
+            return;
+        }
         if (current != null) {
             if (current.failure() != null) {
-                disconnect(current.failure());
+                String reason = current.failure();
+                disconnect(reason);
+                if (Configs.CONNECTION_TOASTS.value) {
+                    FiguraToast.sendToast(FiguraText.of("backend.disconnected"), Component.literal(reason), FiguraToast.ToastType.ERROR);
+                }
             } else {
                 current.drain();
             }
@@ -284,7 +295,12 @@ public class NetworkStuff {
     protected static void authFail(String reason, long epoch) {
         Minecraft.getInstance().execute(() -> {
             if (epoch == epochs.get()) {
-                disconnect(reason);
+                String message = reason != null && reason.startsWith("backend.protobuf.")
+                        ? FiguraText.of(reason).getString() : reason;
+                disconnect(message);
+                if (Configs.CONNECTION_TOASTS.value && message != null) {
+                    FiguraToast.sendToast(FiguraText.of("backend.disconnected"), Component.literal(message), FiguraToast.ToastType.ERROR);
+                }
             }
         });
     }
@@ -300,7 +316,7 @@ public class NetworkStuff {
     }
 
     private static void connectAuthenticated(String token, long epoch) {
-        connectAuthenticated(token, epoch, CloudProtocol.Kind.FIGURA_CLOUD);
+        connectAuthenticated(token, epoch, Configs.CLOUD_PROTOCOL.kind());
     }
 
     private static void connectAuthenticated(String token, long epoch, CloudProtocol.Kind kind) {
@@ -308,16 +324,24 @@ public class NetworkStuff {
         disconnectedReason = null;
         URI api = HttpAPI.getUri("");
         URI origin = URI.create(api.getScheme() + "://" + api.getRawAuthority());
-        // B6 connects this factory choice to the existing EnumConfig control.
         CloudProtocol protocol = CloudProtocol.create(kind, origin, token, FiguraMod.VERSION.toString(), epoch, client);
         CloudConnection selected = new CloudConnection(epoch, protocol);
+        connectedKind = kind;
+        connectedAddress = Configs.SERVER_IP.value;
         connection = selected;
         async(() -> {
             try {
                 protocol.connect(listener(selected));
             } catch (Exception exception) {
-                selected.fail(exception instanceof ProtobufCloudProtocol.Failure
-                        ? exception.getMessage() : "Cloud connection failed");
+                if (kind == CloudProtocol.Kind.PROTOBUF) {
+                    String key = exception instanceof ProtobufCloudProtocol.Unsupported
+                            || exception instanceof ProtobufCloudProtocol.Failure failure
+                                    && failure.code == org.figuramc.figura.backend2.protocol.generated.Cloud.ErrorCode.UNSUPPORTED_CAPABILITY
+                            ? "backend.protobuf.unsupported" : "backend.protobuf.failed";
+                    selected.fail(FiguraText.of(key).getString());
+                } else {
+                    selected.fail("Cloud connection failed");
+                }
             }
         });
     }

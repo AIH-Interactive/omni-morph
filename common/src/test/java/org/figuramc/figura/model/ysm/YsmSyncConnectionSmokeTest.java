@@ -108,6 +108,11 @@ final class YsmSyncConnectionSmokeTest {
                 "world exit clears queues/peers without closing borrowed model");
         require(link.sender.rejectedMessages() == 0, "normal owner generation/reconnect transfer has no rejected application messages");
         typedReplay(newSource, replacement);
+        try {
+            CloudProtocolLifecycleSmokeTest.run(newSource);
+        } catch (Exception exception) {
+            throw new AssertionError("Cloud configuration lifecycle", exception);
+        }
         System.out.println("M7 production connection CPU replay: Ping framing/budget, baseline/delta, short actions, late join, model reload, generation and reconnect PASS");
     }
 

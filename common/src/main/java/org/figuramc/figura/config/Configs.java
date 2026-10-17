@@ -287,6 +287,9 @@ public class Configs {
             EntryPointManager.reinit();
         }
     };
+    public static final CloudProtocolConfig CLOUD_PROTOCOL =
+            new CloudProtocolConfig("cloud_protocol", DEV, NetworkStuff::reAuth);
+
     public static final ConfigType.IPConfig
             SERVER_IP = new ConfigType.IPConfig("server_ip", DEV, "5d.aihmc.top") {
         @Override

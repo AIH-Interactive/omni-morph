@@ -33,7 +33,7 @@ GitHub 链接 `https://github.com/AIH-Interactive`；Upstream 链接
 | B3 | PASS | 后端 `069bf61` 已推送核对；双适配器原始文件、投影、失败/取消/并发测试及 release 编译通过 |
 | B4 | PASS | 后端 `03b740a` 已推送核对；18 项测试、Release 编译、生产 Java M7 向量与恢复/重启/双向桥接通过 |
 | B5 | PASS | 后端测试检查点 `3424695` 已推送核对；生产 Java 六组混合协议、状态回放、语料门禁与 Fabric 构建通过 |
-| B6 | TODO | 设置、默认值与迁移 |
+| B6 | PASS | 后端记录 `f802614` 已推送核对；实际配置矩阵、切换/离线模型保留、无回退测试及 Fabric 构建通过 |
 | B7 | TODO | Debug URI 与撤销、脱敏 |
 | B8 | TODO | 完整联调、迁移回滚与产物 |
 
@@ -247,3 +247,43 @@ combined 状态/事件拆成有序正式帧，周期完整快照中的新瞬时�
 GUI/真实游戏观察为 SKIPPED/MANUAL_BY_USER，公网部署尚未验收。B6/B7/B8 继续按各自门禁执行，
 不因本阶段双适配器测试通过而提前记为设置、Debug 安全矩阵或完整交付完成。
 本阶段客户端检查点推送并核对远端后，才开始 B6。
+
+
+## B6
+
+后端记录检查点 `f802614718a0b4e3b054ac8975e637e6e2af7fe0` 已推送 origin/master 并核对远端 SHA。
+客户端前序提交 `b3fb43e0e5c1795fb89fe4ebbde53a410885019d`；本客户端检查点包含协议设置与默认值。
+本阶段后端生产代码和协议定义不变，docs/B6.md 记录匹配行为与测试范围。
+
+复用原 EnumConfig/EnumElement 控件，设置仅有 Figura Cloud 与 Protobuf 两项，新增中英文
+名称/说明/手动选择旧协议提示。CloudProtocolConfig 在磁盘保存稳定 FIGURA_CLOUD/PROTOBUF
+名称，显式接受旧数字映射 0/1；新安装、缺字段、重置、未知字符串/数字/null/object 均回到
+Protobuf，发出不回显原值的受控诊断，不重置其他设置或更换用户服务器地址。
+新增字段无需改动已有 CONFIG_VERSION；每次加载重新应用缺字段默认，防止同进程沿用旧选择。
+
+应用协议修改时立即关闭旧连接、取消旧工作、清除旧邮箱并推进 epoch，然后重新认证。
+临时编辑/撤销不影响活动连接；重置后应用切换到 Protobuf；tick 同时检测协议/地址实际值变化。
+工厂与普通认证入口默认从当前设置选择适配器；普通 Ping 和 YSM 共用单个选中连接。
+
+Protobuf 在请求 Minecraft 身份 token 前先探测当前 origin 的能力，实际连接再复核实例/能力。
+404/405/501、非协议响应或缺能力给出本地化提示，要求用户手动选 Figura Cloud；没有自动旧协议
+重试、跨域选择或 TLS 降级。一般连接失败给出协议/服务器检查提示。失败/断开不清空本地模型。
+统一 URI/Debug 明文校验与日志安全仍按 B7 执行，本阶段不提前宣称该矩阵完成。
+
+自动门禁（Windows/JDK 25，前台日志、退出码核对）：
+
+- :common:cloudProtocolConfigSmokeTest：PASS。实际 ConfigManager 与 EnumConfig 子类在隔离临时
+  目录覆盖新安装、缺字段、稳定名/数字迁移、保存/重载、未知值、重置/apply/default 与 undo；
+  核对地址保持及打包的 en_us/zh_cn 两项标签/提示。
+- 真实本地 HTTP 监听器对能力返回 404：只收到一次无凭证能力探测，无认证/旧协议回退请求；
+  客户端返回明确的本地化手动选择提示。
+- :common:ysmMaterialNativeSmokeTest：PASS。新增测试调用真实 Configs.CLOUD_PROTOCOL→reAuth，
+  验证旧 scope 立即退役、epoch 前进、旧回调不执行、实际重新认证工作被安排；仅连接不可用的
+  合成回环端点。注册在 AvatarManager 中的本地运行时/UserData 与本地选择在失败/断开后保留。
+- :common:test（实际网络/适配器/配置 smoke tasks）和 :fabric:build --console=plain：最终 PASS。
+- cargo test --locked --offline -- --nocapture 使用本阶段 Java classpath：18 项 PASS，含六组
+  生产 Java 双向混合协议 Figura/普通 YSM/密文 YSM 回归；cargo build --release --locked --offline：PASS。
+- 受影响源码/文档 git diff --check：PASS。既有 remap/Unsafe/Gradle 警告未扩张处理。
+
+设置实机外观为 SKIPPED/MANUAL_BY_USER，CPU/原生对象测试不冒充 GUI PASS。两个仓库检查点
+提交推送并核对后再开始 B7；品牌、模组 ID、版本与图标按用户约定在 B0～B8 后统一迁移。

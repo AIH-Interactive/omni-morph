@@ -27,6 +27,15 @@ public class AuthHandler {
             Minecraft minecraft = Minecraft.getInstance();
             User user = minecraft.getUser();
             try {
+                if (org.figuramc.figura.config.Configs.CLOUD_PROTOCOL.kind()
+                        == org.figuramc.figura.backend2.protocol.CloudProtocol.Kind.PROTOBUF) {
+                    var api = HttpAPI.getUri("");
+                    var origin = java.net.URI.create(api.getScheme() + "://" + api.getRawAuthority());
+                    org.figuramc.figura.backend2.protocol.ProtobufCloudProtocol.probe(origin, NetworkStuff.client);
+                }
+                if (epoch != NetworkStuff.connectionEpoch()) {
+                    return;
+                }
                 String username = user.getName();
                 String serverID = getServerID(username);
                 FiguraMod.debug("Joining \"{}\" on server \"{}\"", username, serverID);
