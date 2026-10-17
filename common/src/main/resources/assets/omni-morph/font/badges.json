@@ -9,7 +9,7 @@
     },
     {
       "type": "bitmap",
-      "file": "figura:font/badges.png",
+      "file": "omni-morph:font/badges.png",
       "ascent": 8,
       "chars": [
         "△❗❌\uD83D\uDEE1",
@@ -19,7 +19,7 @@
     },
     {
       "type": "bitmap",
-      "file": "figura:font/pride.png",
+      "file": "omni-morph:font/pride.png",
       "ascent": 8,
       "chars": [
         "ᚠᚡᚢᚣᚤ",
@@ -31,7 +31,7 @@
     },
     {
       "type": "bitmap",
-      "file": "figura:font/loading.png",
+      "file": "omni-morph:font/loading.png",
       "ascent": 8,
       "chars": [
         "0123",

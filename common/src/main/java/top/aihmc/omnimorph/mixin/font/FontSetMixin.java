@@ -5,6 +5,7 @@ import com.mojang.blaze3d.font.UnbakedGlyph;
 import net.minecraft.client.gui.font.FontSet;
 import net.minecraft.client.gui.font.GlyphStitcher;
 import net.minecraft.client.gui.font.providers.BitmapProvider;
+import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.ducks.BitmapProviderGlyphAccessor;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -43,6 +44,6 @@ public abstract class FontSetMixin {
 
     @Unique
     private boolean figura$isEmojiFont() {
-        return ((GlyphStitcherAccessor)stitcher).getName().getNamespace().equals("figura");
+        return ((GlyphStitcherAccessor)stitcher).getName().getNamespace().equals(FiguraMod.MOD_ID);
     }
 }

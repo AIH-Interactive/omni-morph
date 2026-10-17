@@ -22,7 +22,7 @@ public final class CloudProtocolConfigSmokeTest {
             AtomicInteger changes = new AtomicInteger();
             var protocol = new CloudProtocolConfig("cloud_protocol", category, changes::incrementAndGet);
             var address = new ConfigType.StringConfig("server_ip", category, "original.test:443");
-            Path file = directory.resolve("figura.json");
+            Path file = directory.resolve("omni-morph.json");
             require(protocol.value == 1 && protocol.tempValue == 1 && protocol.defaultValue == 1,
                     "Fresh install/reset/missing use Protobuf");
             require(protocol.enumList.size() == 2 && protocol.enumTooltip.size() == 2,
@@ -81,12 +81,12 @@ public final class CloudProtocolConfigSmokeTest {
             require(protocol.value == 1 && protocol.tempValue == 1, "Programmatic default keeps value and UI consistent");
             for (String language : new String[] {"en_us", "zh_cn"}) {
                 try (var stream = CloudProtocolConfigSmokeTest.class.getClassLoader()
-                        .getResourceAsStream("assets/figura/lang/" + language + ".json")) {
+                        .getResourceAsStream("assets/omni-morph/lang/" + language + ".json")) {
                     require(stream != null, "Bundled language " + language);
                     var text = JsonParser.parseReader(new java.io.InputStreamReader(stream, java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
-                    require(text.get("figura.config.cloud_protocol.1").getAsString().equals("Figura Cloud")
-                                    && text.get("figura.config.cloud_protocol.2").getAsString().equals("Protobuf")
-                                    && text.has("figura.backend.protobuf.unsupported"),
+                    require(text.get("omni-morph.config.cloud_protocol.1").getAsString().equals("Figura Cloud")
+                                    && text.get("omni-morph.config.cloud_protocol.2").getAsString().equals("Protobuf")
+                                    && text.has("omni-morph.backend.protobuf.unsupported"),
                             "Existing settings labels and manual fallback hint: " + language);
                 }
             }

@@ -9,22 +9,11 @@ import top.aihmc.omnimorph.utils.FiguraClientCommandSource;
 import top.aihmc.omnimorph.utils.FiguraText;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 
 class LinkCommand {
 
-    private static final List<FiguraMod.Links> LINKS = new ArrayList<>() {{
-            add(FiguraMod.Links.Wiki);
-            add(FiguraMod.Links.Kofi);
-            add(FiguraMod.Links.OpenCollective);
-            add(null);
-            add(FiguraMod.Links.Discord);
-            add(FiguraMod.Links.Github);
-            add(null);
-            add(FiguraMod.Links.Modrinth);
-            add(FiguraMod.Links.Curseforge);
-    }};
+    private static final List<FiguraMod.Links> LINKS = List.of(FiguraMod.Links.Github);
 
     public static LiteralArgumentBuilder<FiguraClientCommandSource> getCommand() {
         // get links

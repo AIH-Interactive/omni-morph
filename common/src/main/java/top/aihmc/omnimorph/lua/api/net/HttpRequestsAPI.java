@@ -261,7 +261,7 @@ public class HttpRequestsAPI {
                     getHeaders().entrySet()) {
                 if (disallowedHeaders.stream().anyMatch(s -> s.equalsIgnoreCase(entry.getKey()))) {
                     if (parent.parent.owner.isHost) {
-                        FiguraMod.sendChatMessage(Component.translatable("figura.network.header_disabled", entry.getKey()));
+                        FiguraMod.sendChatMessage(Component.translatable("omni-morph.network.header_disabled", entry.getKey()));
                     }
                     continue;
                 }

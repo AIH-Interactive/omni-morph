@@ -25,14 +25,14 @@ public class ProfileScreen extends AbstractPanelScreen {
         }));
 
         this.addRenderableWidget(new Button(width / 2 - 30, height / 2 + 10, 60, 20, Component.literal("meow"), TextUtils.tryParseJson(
-                "{\"text\": \"△❗\n❌\uD83E\uDDC0\n\n☄❤\n\n\n☆★\",\"font\": \"figura:badges\"}"), button -> {
+                "{\"text\": \"△❗\n❌\uD83E\uDDC0\n\n☄❤\n\n\n☆★\",\"font\": \"omni-morph:badges\"}"), button -> {
             FiguraToast.sendToast(Component.literal("Backend restarting").setStyle(Style.EMPTY.withColor(0x99BBEE)), "in 10 minutes!", FiguraToast.ToastType.DEFAULT);
         }));
     }
 
     @Override
     public void renderOverlays(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
-        // UIHelper.highlight(stack, button, TextUtils.tryParseJson("{\"text\":\"🦐🦐🦐🦐\",\"font\":\"figura:emojis\"}"));
+        // UIHelper.highlight(stack, button, TextUtils.tryParseJson("{\"text\":\"🦐🦐🦐🦐\",\"font\":\"omni-morph:emojis\"}"));
         super.renderOverlays(gui, mouseX, mouseY, delta);
     }
 }

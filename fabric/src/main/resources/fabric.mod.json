@@ -1,24 +1,32 @@
 {
   "schemaVersion": 1,
-  "id": "figura",
+  "id": "omni-morph",
   "version": "${version}",
-
-  "name": "Figura",
-  "description": "Extensive customization of the Player model",
+  "name": "OmniMorph",
+  "description": "Unified Figura Avatar and YSM models with linked Lua and Molang runtimes",
   "authors": [
-    "skyrina", "lumelia", "UnlikePaladin", "omoflop"
+    "AIH-Interactive",
+    "skyrina",
+    "lumelia",
+    "UnlikePaladin",
+    "omoflop"
   ],
   "contributors": [
-    "TooManyLimits", "Lexize", "KitCat962", "Manuel-3", "superpowers04", "auriafoxgirl", "applejuiceyy"
+    "TooManyLimits",
+    "Lexize",
+    "KitCat962",
+    "Manuel-3",
+    "superpowers04",
+    "auriafoxgirl",
+    "applejuiceyy"
   ],
   "contact": {
-    "homepage": "https://github.com/FiguraMC/Figura",
-    "issues": "https://github.com/FiguraMC/Figura/issues"
+    "homepage": "https://github.com/AIH-Interactive/omni-morph",
+    "issues": "https://github.com/AIH-Interactive/omni-morph/issues",
+    "sources": "https://github.com/AIH-Interactive/omni-morph"
   },
-
-  "license": "Polyform-Noncommercial-1.0.0",
-  "icon": "assets/figura/icon.png",
-
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "icon": "assets/omni-morph/icon.png",
   "environment": "client",
   "entrypoints": {
     "client": [
@@ -26,28 +34,24 @@
     ]
   },
   "mixins": [
-    "figura.mixins.json",
-    "figura-common.mixins.json"
+    "omni-morph.mixins.json",
+    "omni-morph-common.mixins.json"
   ],
   "depends": {
     "java": ">=${java_version}",
-    "minecraft":  ">=${minecraft_version}",
+    "minecraft": ">=${minecraft_version}",
     "fabricloader": ">=0.15"
   },
   "conflicts": {
     "immersive_portals": "*",
     "canvas": "*",
-    "immediatelyfast":  "*"
+    "immediatelyfast": "*"
   },
   "custom": {
     "assets_version": "${assets_version}",
     "modmenu": {
       "links": {
-        "Discord": "https://discord.figuramc.org/",
-        "Ko-fi": "https://ko-fi.com/skyrina",
-        "Open Collective": "https://opencollective.com/figura",
-        "Modrinth":  "https://modrinth.com/mod/figura/",
-        "GitHub":  "https://github.com/FiguraMC/Figura"
+        "GitHub": "https://github.com/AIH-Interactive"
       }
     }
   }

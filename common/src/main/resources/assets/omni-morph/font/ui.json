@@ -9,20 +9,20 @@
     },
     {
       "type": "bitmap",
-      "file": "figura:font/arrows.png",
+      "file": "omni-morph:font/arrows.png",
       "ascent": 8,
       "chars": [">V<^"]
     },
     {
       "type": "bitmap",
-      "file": "figura:font/status.png",
+      "file": "omni-morph:font/status.png",
       "ascent": 8,
       "height": 10,
       "chars": ["-*/+="]
     },
     {
       "type": "bitmap",
-      "file": "figura:font/icons.png",
+      "file": "omni-morph:font/icons.png",
       "ascent": 8,
       "height": 10,
       "chars": ["★\uD83D\uDD0E?"]

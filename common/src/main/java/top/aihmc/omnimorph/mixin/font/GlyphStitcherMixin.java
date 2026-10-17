@@ -6,6 +6,7 @@ import net.minecraft.client.gui.font.FontTexture;
 import net.minecraft.client.gui.font.GlyphStitcher;
 import net.minecraft.client.gui.font.glyphs.BakedSheetGlyph;
 import net.minecraft.resources.Identifier;
+import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.ducks.BakedGlyphAccessor;
 import top.aihmc.omnimorph.font.EmojiCodePointHolder;
 import top.aihmc.omnimorph.font.Emojis;
@@ -37,6 +38,6 @@ public class GlyphStitcherMixin {
 
     @Unique
     private boolean figura$isEmojiFont() {
-        return texturePrefix.getNamespace().equals("figura");
+        return texturePrefix.getNamespace().equals(FiguraMod.MOD_ID);
     }
 }

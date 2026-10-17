@@ -36,8 +36,9 @@ import java.util.*;
 
 public class FiguraMod {
 
-    public static final String MOD_ID = "figura";
-    public static final String MOD_NAME = "Figura";
+    public static final String MOD_ID = "omni-morph";
+    public static final String MOD_NAME = "OmniMorph";
+    public static final String DISPLAY_VERSION = "1.0 Alpha";
     public static final FiguraModMetadata METADATA = FiguraModMetadata.getMetadataForMod(MOD_ID);
     public static final Version VERSION = new Version(PlatformUtils.getFiguraModVersionString());
     public static final Calendar CALENDAR = Calendar.getInstance();
@@ -118,6 +119,11 @@ public class FiguraMod {
     public static Path getFiguraDirectory() {
         String config = Configs.MAIN_DIR.value;
         Path p = config.isBlank() ? GAME_DIR.resolve(MOD_ID) : Path.of(config);
+        Path legacy = GAME_DIR.resolve("figura");
+        if (config.isBlank() && !java.nio.file.Files.exists(p) && java.nio.file.Files.isDirectory(legacy)) {
+            // Keep existing models/cache/permissions accessible without moving user files.
+            p = legacy;
+        }
         return IOUtils.createDirIfNeeded(p);
     }
 
@@ -188,13 +194,12 @@ public class FiguraMod {
     }
 
     public enum Links {
-        Wiki("https://wiki.figuramc.org/", ColorUtils.Colors.AWESOME_BLUE.style),
-        Kofi("https://ko-fi.com/skyrina", ColorUtils.Colors.KOFI.style),
-        OpenCollective("https://opencollective.com/figura", ColorUtils.Colors.KOFI.style),
-        Discord("https://discord.figuramc.org/", ColorUtils.Colors.DISCORD.style),
-        Github("https://github.com/FiguraMC/Figura", ColorUtils.Colors.GITHUB.style),
-        Modrinth("https://modrinth.com/mod/figura", ColorUtils.Colors.MODRINTH.style),
-        Curseforge("https://www.curseforge.com/minecraft/mc-mods/figura", ColorUtils.Colors.CURSEFORGE.style),
+        Docs("https://github.com/AIH-Interactive/omni-morph/blob/main/README.md", ColorUtils.Colors.AWESOME_BLUE.style),
+        MolangGuide("https://github.com/AIH-Interactive/omni-morph/blob/main/Plans/YSM兼容与使用说明.md", ColorUtils.Colors.AWESOME_BLUE.style),
+        Github("https://github.com/AIH-Interactive", ColorUtils.Colors.GITHUB.style),
+        Credits("https://github.com/AIH-Interactive/omni-morph/blob/main/CREDITS", ColorUtils.Colors.GITHUB.style),
+        Upstream("https://github.com/FiguraMC/Figura", ColorUtils.Colors.GITHUB.style),
+        Releases("https://github.com/AIH-Interactive/omni-morph/releases", ColorUtils.Colors.GITHUB.style),
         LuaManual("https://www.lua.org/manual/5.2/manual.html", ColorUtils.Colors.LUA_LOG.style);
 
         public final String url;
