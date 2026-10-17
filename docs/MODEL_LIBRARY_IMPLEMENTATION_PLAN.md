@@ -286,6 +286,7 @@ Rust 同步 SQLite、文件校验和密码 KDF 使用有界 blocking 工作路�
 | `library_grants` | (model_id, player_uuid) 唯一、name_snapshot、granted_by、created_at；权限固定为本期模型使用，不引入自定义角色体系 |
 | `library_stats` / `library_download_receipts` | model_id 的下载计数；receipt 绑定玩家、revision、用途、有效期、完成状态；重复确认不重复计数，预览不计下载 |
 | `library_resource_bindings` | (resource_owner, asset_id, revision) 唯一，source_model_id/source_revision；支持本人装备别名与统一权限追溯；M3 对装备引用增加 `show_private_equipment`（默认 false），只用于当前装备观察者渲染 |
+| `library_verified_blobs`（M3） | raw_sha256/hash_kind/verified_hash 唯一；持久化服务端核验的 NBT、源密文及 legacy 身份，供衣柜/历史副本动态屏蔽匹配；不使用客户端自报 hash，不引用 manifest 重写行 |
 | `library_blocked_hashes` | (hash_kind, verified_hash, blocking_model_id) 唯一、active、理由、操作者、时间；不能因删除库条目自动失效 |
 | `library_operations` | (actor_uuid, operation_id) 唯一、请求指纹、结果、有效期；处理模型库跨文件/数据库提交幂等 |
 | `library_audit` | actor UUID、动作、对象、时间、结果；不存明文密码、token 或私有模型正文 |
@@ -512,7 +513,7 @@ if ($buildExitCode -ne 0) {
 | M0 | PASS | Rust storage 7/7；Fabric compileJava、ysmPackageSmokeTest、ysmCryptoSmokeTest；8 样例哈希/JSON/分页预算，均退出 0 | 真实模型/GUI 为后续阶段 MANUAL/PENDING | 75ffa9d / origin main 已确认 | 8143665 / origin master 已确认 |
 | M1 | PASS | cargo test library 12/12；storage 12/12；全 Rust 回归 37/37，退出 0；rustfmt/diff check 通过 | 无 GUI；真实部署凭据和外部生产二进制回滚 MANUAL/PENDING | e49f306 / origin main 已确认 | 4178e06 / origin master 已确认 |
 | M2 | PASS | cargo build 退出 0；library 专项 34 通过；全 Rust 回归 59 通过；线程饱和隔离测试 1 通过，退出均 0；rustfmt/diff check 通过 | 无 GUI；真实部署 MANUAL/PENDING | b36a934 / origin main 已核对一致 | 578dfbc / origin master 已核对一致 |
-| M3 | IN_PROGRESS（尚未达到阶段退出条件） | storage 13 通过、装备 API 专项 6 通过；旧 HTTP 基线独立运行通过，全量并行回归仍有 1 项失败待定位；不是 M3 PASS | GUI MANUAL/PENDING | 补充计划先单独推送，阶段代码未提交 | 在制实现未提交 |
+| M3 | IN_PROGRESS（尚未达到阶段退出条件） | 装备/流 8、衣柜哈希 1、重复库条目 1、双协议 WS 2 通过；当前全量 73 通过/1 个既有饱和测试隔离，退出 0；不是 M3 PASS | GUI MANUAL/PENDING | 补充计划 3e0273e 已推送，阶段代码未提交 | 在制实现未提交 |
 | M4 | NOT_STARTED | — | — | — | — |
 | M5 | NOT_STARTED | — | — | — | — |
 | M6 | NOT_STARTED | — | — | — | — |
@@ -555,8 +556,14 @@ if ($buildExitCode -ne 0) {
 - `cargo test library` 36 通过、1 项既有饱和测试按设计不在此批运行；`cargo test storage` 13/13，通过退出 0。新增证据覆盖私有展示 true/false、两种授权状态、非本人不可分享、屏蔽/删除拒绝、库 ACL 不变，及 v2 备份保留/默认关闭/重启保留/非法布尔拒绝/失败回滚。日志为临时目录 `omnimorph-m3-foundation.log`、`omnimorph-m3-storage.log`。
 - 已新增来源装备 API/原子事务与资源别名，不复制或匿名重传包；装备 revision 冲突、同操作重试和数据库失败回滚均已验证。Protobuf 及 Figura profile 按观察者投影，含 compatibility 槽；本人现有本地装备选择保留。私有外观展示仅放行当前装备别名；关闭/卸装后拒绝后续读取；撤销使用者授权后，即使观察者仍有授权也不继续分发。
 - 用户确认的屏蔽规则已纳入后端事务和专项：屏蔽后既有 true 不参与放行，普通玩家不能重开，上传者携带管理上下文也不能开启对外展示；本人现有本地选择不被强制清除。M6 必须禁用对应 UI 选项。
-- `cargo test api::library::tests::equipment` 6/6，覆盖真实 HTTP、双协议 profile、展示开关、屏蔽、重启/幂等、并发 CAS、撤权和 SQL trigger 失败回滚；旧 `protocol::tests::legacy_http_baseline -- --exact` 独立运行通过。最新全量 `cargo test` 为 66 通过、1 失败、1 个既有饱和测试按设计隔离；失败为旧 HTTP 基线并行运行的 profile 结果，与独立运行不同，待定位测试状态/环境及实际行为，不能记为通过。日志：临时目录 `omnimorph-m3-equipment.log`、`omnimorph-m3-legacy.log`；全量失败完整输出保留后端 build.log。
-- 待完成：旧基线并行失败定位；客户端发布接缝；双协议旧下载/临时/internal/订阅/YSM 投影与即时失效；衣柜/历史资源可信哈希关联及 SELF_ONLY；完整 A/B/C/D API/WS 矩阵、全量回归、M3 提交推送。当前实现保留未提交，按用户要求先推送补充计划，不进入 M4。
+- `cargo test api::library::tests::equipment` 已扩展至 8/8：真实 HTTP、双协议 profile/下载、展示开关、屏蔽、重启/幂等、并发 CAS、撤权、SQL trigger 回滚、旧临时槽不覆盖来源装备及数据块之间的策略/会话撤销。Protobuf 与 Figura 文件读取共用有界流，32 个全局/每玩家 2 个准入，每 32 KiB 复查会话和来源策略，文件读取有超时；库正式 transfer 也共用同一准入预算。
+- 旧 HTTP 基线并行失败已定位为进程级 AVATARS_VAR 懒初始化与不同临时目录环境设置互相干扰。目录敏感基线改用独立测试子进程，新增 Figura 测试显式初始化隔离临时根；未更改生产目录配置来迎合测试。修复后全量 `cargo test` 70 通过、1 个既有饱和测试按设计隔离，退出 0。日志为临时目录 `omnimorph-m3-partial-all.log`；不据此宣称完整 M3 退出条件满足。
+- 新增不可变 blob 的服务器核验身份索引：新资源提交与身份记录同事务，历史 blob 在首次外部读取前受预算校验后保存身份。普通衣柜读取动态匹配屏蔽 RAW/NBT/密文/legacy 身份，不信任客户端声明的 content hash。真实旧衣柜上传专项 1/1，验证重压缩改变 raw hash 仍命中 NBT、屏蔽前的副本/屏蔽后的跨 UUID 上传只允许各自本人读取、猜 Protobuf 直链失败、未命中包仍正常。日志 `omnimorph-m3-wardrobe.log`；合成 fixture 不代表模型视觉效果。
+- 已统一重复库条目的有效策略视图：活动屏蔽哈希同时作用于已有副本的列表/total/详情/transfer/equip；屏蔽及解除时关联副本持久保持 PRIVATE 并推进策略 revision。真实管理员 API 专项 1/1，验证副本从我的模型/收藏/公开列表隐藏、管理员 BLOCKED 列表可查、既有 transfer 和新下载/装备/改公开被拒、解除后不自动上架。日志 `omnimorph-m3-copies.log`。
+- 已接入双协议订阅恢复及发送边界的当前观察者过滤；策略变更向已有观察者发送重查通知，隐藏的 Protobuf 装备投影为空并标记移除，Figura 发出原生重查事件；不向本人注入策略移除来强制清除本地模型。YSM SnapshotRequest/Resume 与排队状态复查可见性/当前模型身份及有效发布代数，legacy 分片发送也在检查点复查。
+- 新增真实双协议 WS 专项 2/2：公开→私有时已订阅观察者收到失效，旧 Lua ping 不继续外发，主动开启私有外观后恢复；合成加密 YSM 在允许时恢复原生/legacy 状态，退出展示后 SnapshotRequest、Resume 及排队状态不泄露。旧无装备时的 recovery 错误码保持原语义。连接复查绑定本次握手 token（仅连接内存），不依赖可缺省的 Userinfo.token，不把凭据写入持久档案。
+- 最新全量 `cargo test` 73 通过、1 个既有饱和测试按设计隔离，退出 0；旧 Figura/Protobuf/YSM 基线回归通过。日志 `omnimorph-m3-partial-all.log`、`omnimorph-m3-subscriptions.log`、`omnimorph-m3-legacy.log`；不是 M3 完整退出证据。
+- 待完成：客户端正式来源发布接缝；internal/旧入口最终核对；历史副本/密文身份与 A/B/C/D（上传者/授权者/未授权者/管理员）API/WS 完整矩阵；可读性/差异审查、最终编译回归和 M3 提交推送。当前实现保留未提交，不进入 M4。
 
 ## 9. 安全、兼容性、异常与性能验收方案
 
