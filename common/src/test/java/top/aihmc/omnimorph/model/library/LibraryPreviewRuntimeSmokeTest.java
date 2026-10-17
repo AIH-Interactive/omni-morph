@@ -1,0 +1,170 @@
+package top.aihmc.omnimorph.model.library;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.RemotePlayer;
+import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import net.minecraft.nbt.CompoundTag;
+import top.aihmc.omnimorph.FiguraMod;
+import top.aihmc.omnimorph.avatar.Avatar;
+import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
+import top.aihmc.omnimorph.avatar.AvatarManager;
+import top.aihmc.omnimorph.avatar.local.LocalAvatarLoader;
+import top.aihmc.omnimorph.avatar.ysm.YsmAvatarKind;
+import top.aihmc.omnimorph.avatar.ysm.YsmEncryptedSource;
+import top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload;
+import top.aihmc.omnimorph.backend2.NetworkStuff;
+import top.aihmc.omnimorph.backend2.library.LibraryClient;
+import top.aihmc.omnimorph.backend2.library.LibrarySession;
+import top.aihmc.omnimorph.backend2.protocol.CloudEndpoint;
+import top.aihmc.omnimorph.backend2.protocol.LibraryAccess;
+import top.aihmc.omnimorph.permissions.PermissionManager;
+import top.aihmc.omnimorph.permissions.Permissions;
+import sun.misc.Unsafe;
+
+import java.net.http.HttpClient;
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+/** Uses the existing native-loader harness; no GUI/rendered-pixel assertions. */
+public final class LibraryPreviewRuntimeSmokeTest {
+    public static void run(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+        Object users = field(AvatarManager.class, "LOADED_USERS").get(null);
+        int userCount = ((Map<?, ?>) users).size();
+        int permissions = ((Map<?, ?>) field(PermissionManager.class, "PLAYERS").get(null)).size();
+        Path localPath = LocalAvatarLoader.getLastLoadedPath();
+        boolean uploaded = AvatarManager.localUploaded;
+        long epoch = NetworkStuff.connectionEpoch();
+        var controlsLoaded = field(top.aihmc.omnimorph.avatar.control.AvatarControlValueStore.class, "loaded");
+        boolean previousControlsLoaded = controlsLoaded.getBoolean(null);
+        var live = new AtomicBoolean(true);
+        var endpoint = CloudEndpoint.parse("https://example.invalid", () -> false);
+        try (var access = new LibraryAccess(endpoint, HttpClient.newHttpClient(), request -> {
+            throw new AssertionError("Detached draft preview must not perform an HTTP operation");
+        }); var client = new LibraryClient(access,
+                new LibrarySession("synthetic-preview", FiguraMod.getLocalPlayerUUID(), epoch, live::get),
+                Minecraft.getInstance()::execute);
+             var preview = new LibraryPreviewSession(client)) {
+            // Only the entity allocation is replaced: actual Avatar loading, permissions,
+            // generation guards, production lookup bindings and resource cleanup all run.
+            var entity = (RemotePlayer) unsafe.allocateInstance(RemotePlayer.class);
+            UUID owner = (UUID) field(LibraryPreviewSession.class, "owner").get(preview);
+            entity.setUUID(owner);
+            field(LibraryPreviewSession.class, "entity").set(preview, entity);
+            var entered = new CountDownLatch(1);
+            var release = new CountDownLatch(1);
+            var gate = AvatarLoadExecutor.submit(() -> {
+                entered.countDown();
+                try {
+                    require(release.await(5, TimeUnit.SECONDS), "preparation gate is bounded");
+                } catch (InterruptedException failure) {
+                    throw new AssertionError(failure);
+                }
+                return true;
+            });
+            try {
+                require(entered.await(5, TimeUnit.SECONDS), "actual model worker is occupied");
+                var first = preview.selectDraft(model("old"));
+                var latest = preview.selectDraft(model("latest"));
+                require(!first.isDone() && !latest.isDone(), "preview selection never waits for the model worker");
+                release.countDown();
+                gate.get(5, TimeUnit.SECONDS);
+                require(!await(first, drain) && await(latest, drain), "only the newest preview generation publishes");
+            } finally {
+                release.countDown();
+            }
+            Avatar avatar = AvatarManager.getAvatar(entity);
+            require(avatar != null && avatar.name.equals("latest") && !avatar.isHost,
+                    "preview is a detached, non-host model");
+            var control = new top.aihmc.omnimorph.avatar.control.AvatarControlDefinition("preview-toggle",
+                    top.aihmc.omnimorph.avatar.control.AvatarControlType.TOGGLE);
+            top.aihmc.omnimorph.avatar.control.AvatarControlValueStore.apply(avatar, control);
+            top.aihmc.omnimorph.avatar.control.AvatarControlValueStore.save(avatar, control);
+            Avatar previewOwner = avatar;
+            avatar.createYsmPreviewRuntime(child -> {
+                require(child.isLibraryPreview && child.permissions == previewOwner.permissions,
+                        "nested YSM preview owners retain the detached permission/persistence scope");
+                return null;
+            });
+            require(AvatarManager.getAvatarForPlayer(owner) == avatar, "player renderer lookup uses the detached binding");
+            for (Permissions permission : new Permissions[]{Permissions.NETWORKING, Permissions.PARTICLES,
+                    Permissions.SOUNDS, Permissions.NAMEPLATE_EDIT, Permissions.CANCEL_SOUNDS}) {
+                require(avatar.permissions.get(permission) == 0, "preview does not inherit world/network side-effect permissions");
+            }
+            var firstFrame = new LivingEntityRenderState();
+            var secondFrame = new LivingEntityRenderState();
+            LibraryPreviewBinding.capture(entity, firstFrame);
+            LibraryPreviewBinding.capture(entity, secondFrame);
+            LibraryPreviewBinding.capture(entity, secondFrame);
+            var lifetime = avatar.accelerationOwner();
+            preview.clear();
+            require(AvatarManager.getAvatar(firstFrame) == avatar && AvatarManager.getEntity(secondFrame) == entity,
+                    "queued render states retain their detached entity and model after selection clears");
+            require(lifetime.isCurrent(), "clearing a preview cannot destroy resources before deferred GUI drawing");
+            LibraryPreviewBinding.finishFrame();
+            require(!lifetime.isCurrent(), "finishing the GUI frame retires the model after its final state releases");
+            LibraryPreviewBinding.finishFrame();
+
+            if (encrypted != null) {
+                CompoundTag portable = model("encrypted preview");
+                portable.getCompoundOrEmpty("metadata").putString("format", "ysm-native");
+                try (var source = YsmEncryptedSource.read(encrypted, () -> false)) {
+                    portable.put("ysm", YsmSourcePayload.fromEncrypted(source, YsmAvatarKind.NEW, null));
+                }
+                require(await(preview.selectDraft(portable), drain), "actual encrypted payload prepares in the detached preview");
+                avatar = AvatarManager.getAvatar(entity);
+                require(avatar.getYsmRuntime() != null && avatar.getYsmRuntime().encryptedSource(),
+                        "encrypted preview retains the existing runtime/source boundary");
+            }
+            live.set(false);
+            preview.tick();
+            require(preview.status().stage() == LibraryPreviewSession.Stage.CLOSED && preview.entity() == null,
+                    "session retirement clears the detached preview");
+            require(((Map<?, ?>) users).size() == userCount
+                            && ((Map<?, ?>) field(PermissionManager.class, "PLAYERS").get(null)).size() == permissions,
+                    "preview never registers a player model or persistent permissions");
+            require(controlsLoaded.getBoolean(null) == previousControlsLoaded,
+                    "preview control restoration and edits do not read or write the formal control store");
+            require(java.util.Objects.equals(LocalAvatarLoader.getLastLoadedPath(), localPath)
+                            && AvatarManager.localUploaded == uploaded && NetworkStuff.connectionEpoch() == epoch,
+                    "preview leaves wardrobe selection and cloud publication state unchanged");
+            System.out.println("PASS detached library preview: actual async Avatar loading, newest selection, restricted permissions, frame lifetime and encrypted runtime; GUI MANUAL/PENDING");
+        } finally {
+            LibraryPreviewBinding.finishFrame();
+            drain.run();
+        }
+    }
+
+    private static CompoundTag model(String name) {
+        var metadata = new CompoundTag();
+        metadata.putString("name", name);
+        var nbt = new CompoundTag();
+        nbt.put("metadata", metadata);
+        return nbt;
+    }
+
+    private static java.lang.reflect.Field field(Class<?> owner, String name) throws Exception {
+        var field = owner.getDeclaredField(name);
+        field.setAccessible(true);
+        return field;
+    }
+
+    private static boolean await(CompletableFuture<Boolean> future, Runnable drain) throws Exception {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+        while (!future.isDone() && System.nanoTime() < deadline) {
+            drain.run();
+            Thread.sleep(1);
+        }
+        return future.get(1, TimeUnit.SECONDS);
+    }
+
+    private static void require(boolean condition, String message) {
+        if (!condition) {
+            throw new AssertionError(message);
+        }
+    }
+}

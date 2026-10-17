@@ -38,6 +38,12 @@ final class YsmJson {
         return element != null && element.isJsonPrimitive() ? element.getAsString() : fallback;
     }
 
+    static boolean bool(JsonObject parent, String key, boolean fallback) {
+        JsonElement element = parent == null ? null : parent.get(key);
+        return element != null && element.isJsonPrimitive() && element.getAsJsonPrimitive().isBoolean()
+                ? element.getAsBoolean() : fallback;
+    }
+
     static float number(JsonObject parent, String key, float fallback) {
         if (parent == null)
             return fallback;

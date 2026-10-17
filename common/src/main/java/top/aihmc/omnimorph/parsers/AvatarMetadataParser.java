@@ -105,7 +105,7 @@ public class AvatarMetadataParser {
 
         return nbt;
     }
-    public static void injectToModels(Metadata metadata, CompoundTag models) throws IOException {
+    public static synchronized void injectToModels(Metadata metadata, CompoundTag models) throws IOException {
         PARTS_TO_MOVE.clear();
 
         if (metadata != null && metadata.customizations != null) {
@@ -219,6 +219,8 @@ public class AvatarMetadataParser {
     // json object class
     public static class Metadata {
         public String name, description, author, version, color, background, id;
+        /** Optional model-library upload default; absent means authorization is required. */
+        public Boolean free;
         public String[] authors, autoScripts, autoAnims, ignoredTextures, resources;
         public HashMap<String, Customization> customizations;
     }

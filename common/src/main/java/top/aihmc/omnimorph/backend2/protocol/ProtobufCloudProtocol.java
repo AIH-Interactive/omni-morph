@@ -27,6 +27,7 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
     private final String clientVersion;
     private final HttpClient client;
     private final CloudHttp http;
+    private final LibraryAccess library;
     private final CloudBudget budget = new CloudBudget();
     private final ArrayDeque<Outbound> pending = new ArrayDeque<>();
     private int pendingBytes;
@@ -60,6 +61,18 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
         this.epoch = epoch;
         this.client = client;
         this.http = new CloudHttp(client, endpoint);
+        this.library = new LibraryAccess(endpoint, client, request -> {
+            if (!connected() || session.isEmpty()) {
+                throw new IOException("LIBRARY_RETIRED");
+            }
+            request.header("Authorization", "Bearer " + session)
+                    .header("x-omnimorph-epoch", Long.toString(epoch));
+        });
+    }
+
+    @Override
+    public LibraryAccess libraryAccess() {
+        return library;
     }
 
     @Override
@@ -673,6 +686,7 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
         closed = true;
         ready = false;
         http.close();
+        library.close();
         if (opening != null) {
             opening.cancel(true);
         }

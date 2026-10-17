@@ -13,7 +13,8 @@ public record YsmManifest(
         List<String> animationControllerPaths,
         List<YsmTextureOption> textures,
         String defaultTexture,
-        YsmResourceIndex resourceIndex
+        YsmResourceIndex resourceIndex,
+        boolean free
 ) {
     public YsmManifest {
         authors = authors == null ? new String[0] : authors.clone();
@@ -25,6 +26,13 @@ public record YsmManifest(
     @Override
     public String[] authors() {
         return authors.clone();
+    }
+
+    public YsmManifest(YsmAvatarKind kind, String name, String description, String[] authors, String mainModelPath,
+                       String armModelPath, List<String> animationPaths, List<String> animationControllerPaths,
+                       List<YsmTextureOption> textures, String defaultTexture, YsmResourceIndex resourceIndex) {
+        this(kind, name, description, authors, mainModelPath, armModelPath, animationPaths,
+                animationControllerPaths, textures, defaultTexture, resourceIndex, false);
     }
 
     public YsmManifest(YsmAvatarKind kind, String name, String description, String[] authors, String mainModelPath,

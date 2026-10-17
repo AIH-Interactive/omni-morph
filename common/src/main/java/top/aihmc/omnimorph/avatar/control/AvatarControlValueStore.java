@@ -23,7 +23,7 @@ public final class AvatarControlValueStore {
     }
 
     static boolean applySavedValue(Avatar avatar, AvatarControlDefinition control) {
-        if (avatar == null || control == null || !isPersistent(control))
+        if (avatar == null || avatar.isLibraryPreview || control == null || !isPersistent(control))
             return false;
         load();
         StoredValue value = VALUES.getOrDefault(key(avatar), Map.of()).get(controlKey(avatar, control));
@@ -35,7 +35,7 @@ public final class AvatarControlValueStore {
     }
 
     public static void save(Avatar avatar, AvatarControlDefinition control) {
-        if (avatar == null || control == null || !isPersistent(control))
+        if (avatar == null || avatar.isLibraryPreview || control == null || !isPersistent(control))
             return;
         Object value = control.getValue();
         if (hasModelKey(avatar) && control.type() == AvatarControlType.ENUM) {

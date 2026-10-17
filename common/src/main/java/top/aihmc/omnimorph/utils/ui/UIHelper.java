@@ -64,6 +64,7 @@ import top.aihmc.omnimorph.mixin.font.FontSet$SourceAccessor;
 import top.aihmc.omnimorph.mixin.gui.GuiGraphicsAccessor;
 import top.aihmc.omnimorph.mixin.gui.GuiRendererAccessor;
 import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
+import top.aihmc.omnimorph.model.library.LibraryPreviewBinding;
 import top.aihmc.omnimorph.utils.FiguraIdentifier;
 import top.aihmc.omnimorph.utils.RenderUtils;
 import top.aihmc.omnimorph.utils.TextUtils;
@@ -274,6 +275,7 @@ public final class UIHelper {
         EntityRenderDispatcher entityRenderDispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
         EntityRenderer<? super LivingEntity, LivingEntityRenderState> entityRenderer = (EntityRenderer<? super LivingEntity, LivingEntityRenderState>) entityRenderDispatcher.getRenderer(entity);
         LivingEntityRenderState entityRenderState = entityRenderer.createRenderState();
+        LibraryPreviewBinding.capture(entity, entityRenderState);
         entityRenderer.extractRenderState(entity, entityRenderState,1.0F);
 
         net.minecraft.client.gui.navigation.ScreenRectangle scissorPeek = ((GuiGraphicsAccessor)gui).figura$getScissorStack().peek();

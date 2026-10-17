@@ -13,6 +13,7 @@ import net.minecraft.world.entity.LivingEntity;
 import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.gui.screens.AvatarScreen;
 import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
+import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
 import top.aihmc.omnimorph.utils.FiguraIdentifier;
 import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
@@ -26,6 +27,7 @@ public class EntityPreview extends AbstractContainerElement {
 
     // properties
     private LivingEntity entity;
+    private LibraryPreviewSession libraryPreview;
     private final float pitch, yaw, scale;
     private SwitchButton button;
 
@@ -69,9 +71,16 @@ public class EntityPreview extends AbstractContainerElement {
                 FiguraText.of("gui.expand"),
                 bx -> {
                     if (button.isToggled()) {
-                        Minecraft.getInstance().setScreen(new AvatarScreen(scale, pitch, yaw, this.entity, parentScreen));
+                        if (libraryPreview != null) {
+                            libraryPreview.setExpanded(true);
+                        }
+                        Minecraft.getInstance().setScreen(new AvatarScreen(scale, pitch, yaw, this.entity, parentScreen, libraryPreview));
                     } else {
-                        Minecraft.getInstance().setScreen(parentScreen);
+                        if (libraryPreview != null && Minecraft.getInstance().screen instanceof AvatarScreen avatarScreen) {
+                            avatarScreen.onClose();
+                        } else {
+                            Minecraft.getInstance().setScreen(parentScreen);
+                        }
                     }
                 }));
     }
@@ -80,6 +89,11 @@ public class EntityPreview extends AbstractContainerElement {
     public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
         if (!this.isVisible())
             return;
+
+        if (libraryPreview != null) {
+            libraryPreview.beforeExtract(delta);
+            entity = libraryPreview.entity();
+        }
 
         int x = getX();
         int y = getY();
@@ -261,6 +275,11 @@ public class EntityPreview extends AbstractContainerElement {
 
     public void setEntity(LivingEntity entity) {
         this.entity = entity;
+    }
+
+    public void setLibraryPreview(LibraryPreviewSession preview) {
+        libraryPreview = preview;
+        entity = preview == null ? null : preview.entity();
     }
 
     public void setToggled(boolean toggled) {

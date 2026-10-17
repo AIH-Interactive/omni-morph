@@ -19,6 +19,9 @@ import top.aihmc.omnimorph.avatar.UserData;
 import top.aihmc.omnimorph.avatar.local.CacheAvatarLoader;
 import top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload;
 import top.aihmc.omnimorph.backend2.protocol.*;
+import top.aihmc.omnimorph.backend2.library.LibraryClient;
+import top.aihmc.omnimorph.backend2.library.LibraryModels;
+import top.aihmc.omnimorph.backend2.library.LibrarySession;
 import top.aihmc.omnimorph.config.Configs;
 import top.aihmc.omnimorph.font.Emojis;
 import top.aihmc.omnimorph.gui.FiguraToast;
@@ -56,10 +59,12 @@ public class NetworkStuff {
     private static final AtomicLong localSelections = new AtomicLong();
     private static volatile Avatar localBroadcastAvatar;
     private static volatile boolean localBroadcastPending;
+    private static volatile LibrarySelection activeLibrarySelection;
     private static final AvatarLoadProgress uploadProgress = new AvatarLoadProgress();
     private static CompletableFuture<Void> tasks;
     private static final java.util.concurrent.atomic.AtomicInteger pendingTasks = new java.util.concurrent.atomic.AtomicInteger();
     private static volatile CloudConnection connection;
+    private static LibraryClient libraryClient;
     private static volatile CloudHttp authenticationWork;
     private static volatile CloudHttp resourceWork;
     private static volatile CloudProtocol.Kind connectedKind;
@@ -93,7 +98,32 @@ public class NetworkStuff {
         return epochs.get();
     }
 
+    /** Called on the client thread; one library service belongs to the current cloud connection. */
+    public static synchronized LibraryClient libraryClient() throws java.io.IOException {
+        if (!isConnected()) {
+            throw new java.io.IOException("LIBRARY_OFFLINE");
+        }
+        if (libraryClient == null || !libraryClient.current()) {
+            if (libraryClient != null) {
+                libraryClient.close();
+            }
+            CloudConnection selected = connection;
+            UUID player = FiguraMod.getLocalPlayerUUID();
+            var scope = new LibrarySession(
+                    selected.protocol.instance(), player, selected.epoch,
+                    () -> connection == selected && selected.active() && selected.protocol.connected()
+                            && player.equals(FiguraMod.getLocalPlayerUUID()));
+            libraryClient = new LibraryClient(
+                    selected.protocol.libraryAccess(), scope, Minecraft.getInstance()::execute);
+        }
+        return libraryClient;
+    }
+
     public static void tick() {
+        if (libraryClient != null && !libraryClient.current()) {
+            libraryClient.close();
+            libraryClient = null;
+        }
         uploadRate.tick();
         downloadRate.tick();
         if (!endpointPermitted()) {
@@ -459,7 +489,10 @@ public class NetworkStuff {
             @Override
             public void changed(UUID owner) {
                 selected.post(128, () -> {
-                    if (!FiguraMod.isLocal(owner) || top.aihmc.omnimorph.avatar.local.LocalAvatarLoader.getLastLoadedPath() == null) {
+                    boolean formalPublication = FiguraMod.isLocal(owner)
+                            && librarySelectionCurrent(activeLibrarySelection);
+                    if (!formalPublication && (!FiguraMod.isLocal(owner)
+                            || top.aihmc.omnimorph.avatar.local.LocalAvatarLoader.getLastLoadedPath() == null)) {
                         AvatarManager.reloadAvatar(owner);
                     }
                 });
@@ -511,6 +544,10 @@ public class NetworkStuff {
     }
 
     public static synchronized void disconnect(String reason) {
+        if (libraryClient != null) {
+            libraryClient.close();
+            libraryClient = null;
+        }
         uploadProgress.clear();
         AvatarManager.clearNetworkLoadingProgress();
         epochs.incrementAndGet();
@@ -675,6 +712,7 @@ public class NetworkStuff {
         localSelections.incrementAndGet();
         localBroadcastAvatar = null;
         localBroadcastPending = false;
+        activeLibrarySelection = null;
     }
 
     /** Opaque guard for a formal library equip request within one connection and local selection. */
@@ -702,12 +740,14 @@ public class NetworkStuff {
         UUID player = FiguraMod.getLocalPlayerUUID();
         AvatarManager.cancelPendingLocalLoad();
         clear(player);
-        return new LibrarySelection(connection, player, localSelections.get());
+        LibrarySelection selection = new LibrarySelection(connection, player, localSelections.get());
+        activeLibrarySelection = selection;
+        return selection;
     }
 
     /** May also be checked by the background request before committing equipment. */
     public static boolean librarySelectionCurrent(LibrarySelection selection) {
-        return selection != null && selection.connection == connection
+        return selection != null && selection == activeLibrarySelection && selection.connection == connection
                 && selection.connection.active() && selection.connection.epoch == epochs.get()
                 && selection.selection == localSelections.get()
                 && selection.player.equals(FiguraMod.getLocalPlayerUUID());
@@ -724,6 +764,56 @@ public class NetworkStuff {
         AvatarManager.reloadCloudAvatar();
         YSM_SYNC.requestSnapshot();
         return true;
+    }
+
+    /** Transfer ownership of an already prepared formal model; failure preserves the resident model. */
+    public static CompletableFuture<Boolean> publishLibraryEquipment(LibrarySelection selection, Avatar prepared) {
+        if (!librarySelectionCurrent(selection) || prepared == null || !prepared.loaded || prepared.nbt == null
+                || !selection.player.equals(prepared.owner)) {
+            if (prepared != null) {
+                prepared.clean();
+            }
+            return CompletableFuture.completedFuture(false);
+        }
+        clear(selection.player);
+        return AvatarManager.publishLibraryAvatar(prepared, () -> librarySelectionCurrent(selection))
+                .thenApply(published -> {
+                    if (published) {
+                        localSelectionChanged();
+                        YSM_SYNC.requestSnapshot();
+                    }
+                    return published;
+                });
+    }
+
+    public static void cancelLibrarySelection(LibrarySelection selection) {
+        if (librarySelectionCurrent(selection)) {
+            localSelectionChanged();
+        }
+    }
+
+    /** Worker-only profile refresh updates adapter identity and returns the official source-alias cache key. */
+    public static String libraryEquipmentCacheKey(
+            LibrarySelection selection, LibraryModels.Equipment equipment) throws Exception {
+        if (!librarySelectionCurrent(selection) || !selection.player.equals(equipment.owner())) {
+            throw new java.io.IOException("LIBRARY_RETIRED");
+        }
+        CloudProtocol.Reply reply = selection.connection.protocol.profile(selection.player);
+        if (reply.status() != 200 || !librarySelectionCurrent(selection)) {
+            throw new java.io.IOException("LIBRARY_PROFILE_UNAVAILABLE");
+        }
+        JsonArray selected = JsonParser.parseString(reply.body()).getAsJsonObject().getAsJsonArray("equipped");
+        if (selected == null || selected.size() != 1) {
+            throw new java.io.IOException("LIBRARY_EQUIPMENT_CHANGED");
+        }
+        JsonObject entry = selected.get(0).getAsJsonObject();
+        String expectedAsset = selection.connection.protocol instanceof FiguraCloudProtocol ? "avatar" : equipment.assetId();
+        String hash = entry.get("hash").getAsString();
+        if (!selection.player.toString().equals(entry.get("owner").getAsString())
+                || !expectedAsset.equals(entry.get("id").getAsString()) || !hash.matches("[a-f0-9]{64}")) {
+            throw new java.io.IOException("LIBRARY_EQUIPMENT_CHANGED");
+        }
+        return hash;
     }
 
     /** Called only after successful local publication, or when the local model is explicitly cleared. */

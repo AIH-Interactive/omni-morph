@@ -24,6 +24,7 @@ import top.aihmc.omnimorph.gui.widgets.lists.AvatarList;
 import top.aihmc.omnimorph.lua.api.particle.ParticleAPI;
 import top.aihmc.omnimorph.lua.api.sound.SoundAPI;
 import top.aihmc.omnimorph.lua.api.world.WorldAPI;
+import top.aihmc.omnimorph.model.library.LibraryPreviewBinding;
 import top.aihmc.omnimorph.render.acceleration.AccelerationService;
 import top.aihmc.omnimorph.render.acceleration.HardwareAcceleration;
 import top.aihmc.omnimorph.utils.EntityUtils;
@@ -34,6 +35,8 @@ import top.aihmc.omnimorph.utils.FiguraText;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 /**
@@ -145,6 +148,10 @@ public class AvatarManager {
 
     // player will also attempt to load from network, if possible
     public static Avatar getAvatarForPlayer(UUID player) {
+        Avatar preview = LibraryPreviewBinding.avatar(player);
+        if (preview != null && !panic) {
+            return preview;
+        }
         if (panic || Minecraft.getInstance().level == null)
             return null;
 
@@ -167,6 +174,10 @@ public class AvatarManager {
     }
 
     public static Avatar getAvatar(EntityRenderState state) {
+        Avatar preview = LibraryPreviewBinding.avatar(state);
+        if (preview != null && !panic) {
+            return preview;
+        }
         if (panic || Minecraft.getInstance().level == null || state == null) return null;
 
         if (state instanceof AvatarRenderState playerRenderState) {
@@ -178,6 +189,10 @@ public class AvatarManager {
     }
 
     public static Entity getEntity(EntityRenderState state) {
+        Entity preview = LibraryPreviewBinding.entity(state);
+        if (preview != null) {
+            return preview;
+        }
         if (Minecraft.getInstance().level == null || state == null) return null;
 
         if (state instanceof AvatarRenderState playerRenderState) {
@@ -189,6 +204,10 @@ public class AvatarManager {
 
     // tries to get data from an entity
     public static Avatar getAvatar(Entity entity) {
+        Avatar preview = LibraryPreviewBinding.avatar(entity);
+        if (preview != null && !panic) {
+            return preview;
+        }
         if (panic || Minecraft.getInstance().level == null || entity == null)
             return null;
 
@@ -302,6 +321,25 @@ public class AvatarManager {
         if (user != null) {
             user.ysmLoads.begin();
         }
+    }
+
+    /** Client-thread publication after a source-bound equip commit and successful worker preparation. */
+    public static CompletableFuture<Boolean> publishLibraryAvatar(Avatar prepared, BooleanSupplier current) {
+        UUID player = FiguraMod.getLocalPlayerUUID();
+        if (!player.equals(prepared.owner)) {
+            prepared.clean();
+            return CompletableFuture.completedFuture(false);
+        }
+        UserData user = LOADED_USERS.computeIfAbsent(player, UserData::new);
+        return user.publishAvatar(prepared, user.ysmLoads.begin(), current).thenApply(published -> {
+            if (published) {
+                LocalAvatarLoader.loadAvatar(null, null);
+                AvatarList.selectedEntry = null;
+                FETCHED_USERS.add(player);
+                localUploaded = true;
+            }
+            return published;
+        });
     }
 
     /** The wardrobe refresh explicitly leaves local preview mode and reads this player's cloud equipment. */

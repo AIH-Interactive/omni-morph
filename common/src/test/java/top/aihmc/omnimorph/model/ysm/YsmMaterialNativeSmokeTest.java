@@ -87,6 +87,29 @@ public final class YsmMaterialNativeSmokeTest {
             }
             instance.set(null, client);
             top.aihmc.omnimorph.permissions.PermissionManager.init();
+            if ((args.length == 2 && args[0].equals("--library-preview"))
+                    || (args.length == 1 && args[0].equals("--library-equipment"))
+                    || (args.length == 1 && args[0].equals("--library-preparation"))) {
+                client.sounds = YsmStabilitySmokeTest.soundManager(unsafe, true);
+                Field particles = Minecraft.class.getDeclaredField("particleEngine");
+                particles.setAccessible(true);
+                Object previousParticles = particles.get(client);
+                try {
+                    particles.set(client, unsafe.allocateInstance(AvatarAsyncLoadSmokeTest.RecordingParticles.class));
+                    if (args[0].equals("--library-preparation")) {
+                        top.aihmc.omnimorph.model.library.LibraryPackagePreparationSmokeTest.run();
+                    } else if (args[0].equals("--library-equipment")) {
+                        top.aihmc.omnimorph.model.library.LibraryEquipmentSmokeTest.run(client::drain);
+                    } else {
+                        top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.run(
+                                unsafe, client::drain, Path.of(args[1]));
+                    }
+                } finally {
+                    client.drain();
+                    particles.set(client, previousParticles);
+                }
+                return;
+            }
             if (args.length == 1 && args[0].equals("--cloud-refresh")) {
                 client.sounds = YsmStabilitySmokeTest.soundManager(unsafe, true);
                 AvatarAsyncLoadSmokeTest.run(unsafe, client, client::drain);

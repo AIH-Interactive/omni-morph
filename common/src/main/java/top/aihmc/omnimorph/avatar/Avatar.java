@@ -132,6 +132,7 @@ public class Avatar {
     public CompoundTag nbt;
     public volatile boolean loaded = true;
     public final boolean isHost;
+    public final boolean isLibraryPreview;
 
     //metadata
     public String name, entityName;
@@ -770,10 +771,16 @@ public class Avatar {
     public final Map<String, Instructions> customInstructions = new HashMap<>();
     public final RefilledNumber particlesRemaining, soundsRemaining;
     private Avatar(UUID owner, EntityType<?> type, String name) {
+        this(owner, type, name, null);
+    }
+
+    private Avatar(UUID owner, EntityType<?> type, String name, PermissionPack.PlayerPermissionPack previewPermissions) {
         this.owner = owner;
         this.entityType = type;
         this.isHost = type == EntityType.PLAYER && FiguraMod.isLocal(owner);
-        this.permissions = type == EntityType.PLAYER ? PermissionManager.get(owner) : PermissionManager.getMobPermissions(owner);
+        this.isLibraryPreview = previewPermissions != null;
+        this.permissions = previewPermissions != null ? previewPermissions
+                : type == EntityType.PLAYER ? PermissionManager.get(owner) : PermissionManager.getMobPermissions(owner);
         this.complexity = new Instructions(permissions.get(Permissions.COMPLEXITY));
         this.init = new Instructions(permissions.get(Permissions.INIT_INST));
         this.render = new Instructions(permissions.get(Permissions.RENDER_INST));
@@ -792,9 +799,24 @@ public class Avatar {
         }
     }
 
+    /** A detached, non-host owner with private default permissions and no persistent player entry. */
+    public static Avatar createLibraryPreview(UUID owner, String name) {
+        if (FiguraMod.isLocal(owner)) {
+            throw new IllegalArgumentException("PREVIEW_REQUIRES_DETACHED_OWNER");
+        }
+        var category = new PermissionPack.CategoryPermissionPack(Permissions.Category.DEFAULT);
+        var permissions = new PermissionPack.PlayerPermissionPack(category, owner.toString());
+        for (Permissions permission : List.of(Permissions.NETWORKING, Permissions.PARTICLES, Permissions.SOUNDS,
+                Permissions.NAMEPLATE_EDIT, Permissions.CANCEL_SOUNDS, Permissions.OFFSCREEN_RENDERING)) {
+            permissions.insert(permission, 0, FiguraMod.MOD_ID);
+        }
+        return new Avatar(owner, EntityType.PLAYER, name, permissions);
+    }
+
     /** Creates a detached evaluator owner for a model preview; it is never registered with AvatarManager. */
     public YsmModelRuntime createYsmPreviewRuntime(java.util.function.Function<Avatar, YsmModelRuntime> factory) {
-        Avatar preview = new Avatar(owner, entityType == null ? EntityType.PLAYER : entityType, entityName);
+        Avatar preview = new Avatar(owner, entityType == null ? EntityType.PLAYER : entityType, entityName,
+                isLibraryPreview ? permissions : null);
         preview.renderMode = EntityRenderMode.FIGURA_GUI;
         preview.molangContext = new MolangContext(preview);
         if (molangContext != null) {
@@ -807,7 +829,7 @@ public class Avatar {
     /** Detached execution owner for a physical sub-entity; no AvatarManager registration or GUI. */
     public YsmModelRuntime createYsmEntityRuntime(Entity entity,
             java.util.function.Function<Avatar, YsmModelRuntime> factory) {
-        Avatar child = new Avatar(owner, entity.getType(), entityName);
+        Avatar child = new Avatar(owner, entity.getType(), entityName, isLibraryPreview ? permissions : null);
         child.renderMode = EntityRenderMode.RENDER;
         child.molangContext = new MolangContext(child);
         child.ysmRuntime = factory.apply(child);
@@ -1845,7 +1867,7 @@ public class Avatar {
         events.offer(() -> {
             if (runtime.init(autoScripts))
                 init.use(runtime.getInstructions());
-            if (ysmRuntime != null && runtime.action_wheel != null)
+            if (ysmRuntime != null && runtime.action_wheel != null && !isLibraryPreview)
                 ysmRuntime.installDefaultActionWheel(runtime.action_wheel);
         });
     }
