@@ -1,6 +1,7 @@
 package org.figuramc.figura.backend2;
 
-import net.minecraft.client.multiplayer.resolver.ServerAddress;
+import org.figuramc.figura.backend2.protocol.CloudEndpoint;
+import org.figuramc.figura.backend2.protocol.CloudHttp;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.config.Configs;
 
@@ -15,37 +16,49 @@ import java.util.function.BiConsumer;
 public class HttpAPI {
 
     private final String token;
+    private final CloudEndpoint endpoint;
 
     public HttpAPI(String token) {
         this.token = token;
+        this.endpoint = endpoint();
     }
 
 
     // -- builders -- // 
 
 
-    protected static URI getUri(String url) {
-        return URI.create(getBackendAddress() + "/" + url);
+    public static CloudEndpoint endpoint() {
+        return endpoint(NetworkStuff.connectionEpoch());
+    }
+
+    public static CloudEndpoint endpoint(long epoch) {
+        String address = Configs.SERVER_IP.value;
+        var kind = Configs.CLOUD_PROTOCOL.kind();
+        return CloudEndpoint.parse(address, () -> Configs.DEBUG_MODE.value,
+                () -> epoch == NetworkStuff.connectionEpoch() && address.equals(Configs.SERVER_IP.value)
+                        && kind == Configs.CLOUD_PROTOCOL.kind());
+    }
+
+    protected static URI getUri(String path) {
+        try {
+            return endpoint().http("/api/" + path);
+        } catch (java.io.IOException rejected) {
+            throw new IllegalArgumentException(rejected.getMessage());
+        }
     }
 
     protected static String getBackendAddress() {
-        return "https://" + getBackendAddressWithPort() + "/api";
-    }
-
-    private static String getBackendAddressWithPort() {
-        ServerAddress backendIP = ServerAddress.parseString(Configs.SERVER_IP.value);
-        boolean hasPort = Configs.SERVER_IP.value.matches("[^:]+:\\d+");
-        if (hasPort) {
-            try {
-                return backendIP.getHost() + ":" + backendIP.getPort();
-            } catch (IllegalStateException ignored) { }
-        }
-        return backendIP.getHost();
+        return endpoint().origin() + "/api";
     }
 
     protected HttpRequest.Builder header(String url) {
+        try {
+            endpoint.requireAllowed();
+        } catch (java.io.IOException rejected) {
+            throw new IllegalArgumentException(rejected.getMessage());
+        }
         return HttpRequest
-                .newBuilder(getUri(url))
+                .newBuilder(endpoint.origin().resolve("/api/" + url))
                 .header("user-agent", FiguraMod.MOD_NAME + "/" + FiguraMod.VERSION)
                 .header("token", token);
     }
@@ -57,26 +70,32 @@ public class HttpAPI {
     protected static void runString(HttpRequest request, BiConsumer<Integer, String> consumer) {
         try {
             requestDebug(request);
-            HttpResponse<String> response = NetworkStuff.client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-            int code = response.statusCode();
-            if (code == 401) NetworkStuff.reAuth();
-            consumer.accept(code, response.body());
+            try (CloudHttp transport = new CloudHttp(NetworkStuff.client, endpoint())) {
+                var response = transport.send(request);
+                try (var body = response.body()) {
+                    int code = response.statusCode();
+                    if (code == 401) NetworkStuff.reAuth();
+                    consumer.accept(code, new String(CloudHttp.readBounded(body, 65536), StandardCharsets.UTF_8));
+                }
+            }
         } catch (Exception e) {
-            if (!e.getMessage().contains("GOAWAY received"))
-                FiguraMod.LOGGER.error("", e);
+            FiguraMod.LOGGER.warn("Cloud HTTP request failed: {}", e.getClass().getSimpleName());
         }
     }
 
     protected static void runStream(HttpRequest request, BiConsumer<Integer, InputStream> consumer) {
         try {
             requestDebug(request);
-            HttpResponse<InputStream> response = NetworkStuff.client.send(request, HttpResponse.BodyHandlers.ofInputStream());
-            int code = response.statusCode();
-            if (code == 401) NetworkStuff.reAuth();
-            consumer.accept(code, response.body());
+            try (CloudHttp transport = new CloudHttp(NetworkStuff.client, endpoint())) {
+                var response = transport.send(request);
+                try (var body = response.body()) {
+                    int code = response.statusCode();
+                    if (code == 401) NetworkStuff.reAuth();
+                    consumer.accept(code, body);
+                }
+            }
         } catch (Exception e) {
-            if (!e.getMessage().contains("GOAWAY received"))
-                FiguraMod.LOGGER.error("", e);
+            FiguraMod.LOGGER.warn("Cloud HTTP request failed: {}", e.getClass().getSimpleName());
         }
     }
 
@@ -86,7 +105,7 @@ public class HttpAPI {
 
     private static void requestDebug(HttpRequest msg) {
         if (NetworkStuff.debug)
-            FiguraMod.debug( "Sent Http request:\n\t" + msg.uri().toString() + "\n\t" + msg.headers().map().toString());
+            FiguraMod.debug("Cloud HTTP request: method={}, origin={}", msg.method(), endpoint().diagnostic());
     }
 
 

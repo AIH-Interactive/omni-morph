@@ -108,8 +108,8 @@ public final class CloudAdapterIntegrationTest {
     }
 
     private static CloudProtocol adapter(boolean protobuf, URI origin, String token, long epoch, HttpClient http) {
-        return protobuf ? new ProtobufCloudProtocol(origin, token, "integration", epoch, http)
-                : new FiguraCloudProtocol(origin, token, http);
+        return protobuf ? new ProtobufCloudProtocol(CloudEndpoint.parse(origin.toString(), () -> true), token, "integration", epoch, http)
+                : new FiguraCloudProtocol(CloudEndpoint.parse(origin.toString(), () -> true), token, http);
     }
 
     private static YsmSyncMessage message(UUID owner, UUID publisher, String content, String schema,

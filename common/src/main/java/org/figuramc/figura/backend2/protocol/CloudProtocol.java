@@ -14,9 +14,14 @@ public interface CloudProtocol extends AutoCloseable {
 
     static CloudProtocol create(Kind kind, java.net.URI origin, String token, String version,
                                 long epoch, java.net.http.HttpClient client) {
+        return create(kind, CloudEndpoint.parse(origin.toString(), () -> false), token, version, epoch, client);
+    }
+
+    static CloudProtocol create(Kind kind, CloudEndpoint endpoint, String token, String version,
+                                long epoch, java.net.http.HttpClient client) {
         return switch (kind) {
-            case FIGURA_CLOUD -> new FiguraCloudProtocol(origin, token, client);
-            case PROTOBUF -> new ProtobufCloudProtocol(origin, token, version, epoch, client);
+            case FIGURA_CLOUD -> new FiguraCloudProtocol(endpoint, token, client);
+            case PROTOBUF -> new ProtobufCloudProtocol(endpoint, token, version, epoch, client);
         };
     }
 

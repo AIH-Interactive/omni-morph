@@ -50,23 +50,16 @@ public class FiguraWebSocketAdapter extends WebSocketAdapter {
         try {
             websocket.sendBinary(C2SMessageHandler.auth(token).array());
         } catch (Exception e) {
-            handleClose(-1, e.getMessage());
+            handleClose(-1, "WebSocket initialization failed");
         }
     }
 
     public static String getBackendAddress() {
-        return "wss://" + getBackendAddressWithPort() + "/ws";
-    }
-
-    private static String getBackendAddressWithPort() {
-        ServerAddress backendIP = ServerAddress.parseString(Configs.SERVER_IP.value);
-        boolean hasPort = Configs.SERVER_IP.value.matches("[^:]+:\\d+");
-        if (hasPort) {
-            try {
-                return backendIP.getHost() + ":" + backendIP.getPort();
-            } catch (IllegalStateException ignored) { }
+        try {
+            return org.figuramc.figura.backend2.HttpAPI.endpoint().websocket("/ws").toString();
+        } catch (java.io.IOException rejected) {
+            throw new IllegalArgumentException(rejected.getMessage());
         }
-        return backendIP.getHost();
     }
 
     @Override
@@ -80,7 +73,7 @@ public class FiguraWebSocketAdapter extends WebSocketAdapter {
         try {
             S2CMessageHandler.handle(ByteBuffer.wrap(binary), websocket);
         } catch (Exception e) {
-            FiguraMod.LOGGER.error("Failed to handle ws message", e);
+            FiguraMod.LOGGER.warn("WebSocket message failed: {}", e.getClass().getSimpleName());
         }
     }
 
@@ -98,20 +91,16 @@ public class FiguraWebSocketAdapter extends WebSocketAdapter {
     @Override
     public void handleCallbackError(WebSocket websocket, Throwable cause) throws Exception {
         super.handleCallbackError(websocket, cause);
-        FiguraMod.LOGGER.error("Failed to handle ws message", cause);
+        FiguraMod.LOGGER.warn("WebSocket callback failed: {}", cause.getClass().getSimpleName());
     }
 
     @Override
     public void onDisconnected(WebSocket websocket, WebSocketFrame serverCloseFrame, WebSocketFrame clientCloseFrame, boolean remote) throws Exception {
         super.onDisconnected(websocket, serverCloseFrame, clientCloseFrame, remote);
-        String reason = serverCloseFrame.getCloseReason();
-        if (reason == null)
-            reason = "Unknown!";
-        int code = serverCloseFrame.getCloseCode();
-        reason = reason.trim().isEmpty() ? ERROR_CODES.getOrDefault(code, "Unknown") : reason;
-        FiguraMod.LOGGER.info("Closed connection: " + reason + ", Code: " + code + ", Remote: " + remote);
-
-        handleClose(code, reason + (FiguraMod.debugModeEnabled() ? "\n\nCode: " + code + "\nRemote: " + remote : ""));
+        int code = serverCloseFrame == null ? 1006 : serverCloseFrame.getCloseCode();
+        String reason = ERROR_CODES.getOrDefault(code, "WebSocket closed");
+        FiguraMod.LOGGER.info("Closed WebSocket: code={}, remote={}", code, remote);
+        handleClose(code, reason);
     }
 
     @Override

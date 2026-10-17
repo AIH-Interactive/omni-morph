@@ -14,6 +14,7 @@ public final class CloudSocket implements WebSocket.Listener, AutoCloseable {
     private final Consumer<byte[]> receive;
     private final Consumer<String> failure;
     private final int limit;
+    private final CloudEndpoint endpoint;
     private final ByteArrayOutputStream incoming = new ByteArrayOutputStream();
     private CompletableFuture<WebSocket> writes;
     private WebSocket socket;
@@ -22,12 +23,25 @@ public final class CloudSocket implements WebSocket.Listener, AutoCloseable {
     private int queuedMessages;
 
     public CloudSocket(int limit, Consumer<byte[]> receive, Consumer<String> failure) {
+        this(limit, receive, failure, null);
+    }
+
+    public CloudSocket(int limit, Consumer<byte[]> receive, Consumer<String> failure, CloudEndpoint endpoint) {
+        this.endpoint = endpoint;
         this.limit = limit;
         this.receive = receive;
         this.failure = failure;
     }
 
     public synchronized void attach(WebSocket socket) throws IOException {
+        if (endpoint != null) {
+            try {
+                endpoint.requireAllowed();
+            } catch (IOException rejected) {
+                socket.abort();
+                throw rejected;
+            }
+        }
         if (closed) {
             socket.abort();
             throw new IOException("Connection retired");
@@ -37,6 +51,9 @@ public final class CloudSocket implements WebSocket.Listener, AutoCloseable {
     }
 
     public synchronized boolean send(byte[] bytes) throws IOException {
+        if (endpoint != null) {
+            endpoint.requireAllowed();
+        }
         if (closed || socket == null || bytes.length > limit) {
             throw new IOException("Socket unavailable or message exceeds budget");
         }
@@ -46,7 +63,21 @@ public final class CloudSocket implements WebSocket.Listener, AutoCloseable {
         queuedMessages++;
         queuedBytes += bytes.length;
         byte[] copy = bytes.clone();
-        writes = writes.thenCompose(current -> current.sendBinary(ByteBuffer.wrap(copy), true))
+        writes = writes.thenCompose(current -> {
+            try {
+                synchronized (this) {
+                    if (closed) {
+                        throw new IOException("Connection retired");
+                    }
+                    if (endpoint != null) {
+                        endpoint.requireAllowed();
+                    }
+                    return current.sendBinary(ByteBuffer.wrap(copy), true);
+                }
+            } catch (IOException rejected) {
+                return CompletableFuture.failedFuture(rejected);
+            }
+        })
                 .orTimeout(5, TimeUnit.SECONDS);
         writes.whenComplete((ignored, error) -> {
             synchronized (this) {
@@ -68,6 +99,9 @@ public final class CloudSocket implements WebSocket.Listener, AutoCloseable {
     @Override
     public CompletableFuture<?> onBinary(WebSocket socket, ByteBuffer bytes, boolean last) {
         try {
+            if (endpoint != null) {
+                endpoint.requireAllowed();
+            }
             byte[] complete = null;
             synchronized (this) {
                 if (closed) {

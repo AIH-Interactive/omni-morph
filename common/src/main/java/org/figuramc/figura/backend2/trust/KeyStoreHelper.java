@@ -1,11 +1,9 @@
 package org.figuramc.figura.backend2.trust;
 
 import com.neovisionaries.ws.client.*;
-import net.minecraft.client.multiplayer.resolver.ServerAddress;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.backend2.NetworkStuff;
 import org.figuramc.figura.backend2.websocket.FiguraWebSocketAdapter;
-import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.utils.PlatformUtils;
 
 import javax.net.ssl.KeyManagerFactory;
@@ -31,14 +29,13 @@ public class KeyStoreHelper {
         FiguraMod.LOGGER.info("Initializing custom websocket");
         try {
             WebSocketFactory wsFactory = new WebSocketFactory();
-            String serverName = ServerAddress.parseString(Configs.SERVER_IP.value).getHost();
-            wsFactory.setServerName(serverName);
+            org.figuramc.figura.backend2.HttpAPI.endpoint().requireAllowed();
             WebSocket socket = wsFactory.createSocket(FiguraWebSocketAdapter.getBackendAddress());
             socket.addListener(new FiguraWebSocketAdapter(token));
             socket.addExtension(WebSocketExtension.PERMESSAGE_DEFLATE);
             return socket;
         } catch (IOException e) {
-            FiguraMod.LOGGER.error("Failed to load in the backend's certificates during Websocket creation!", e);
+            FiguraMod.LOGGER.warn("WebSocket initialization failed: {}", e.getClass().getSimpleName());
             NetworkStuff.disconnect("Failed to load certificates for the backend :c");
         }
         throw new WebSocketException(WebSocketError.SOCKET_CONNECT_ERROR);

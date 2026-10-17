@@ -18,16 +18,30 @@ public final class CloudHttp implements AutoCloseable {
     public static final int CONTROL_BYTES = 65536;
     public static final long FILE_BYTES = 64L * 1024 * 1024;
     private final HttpClient client;
+    private final CloudEndpoint endpoint;
     private final Set<CompletableFuture<?>> requests = ConcurrentHashMap.newKeySet();
     private final Set<InputStream> streams = ConcurrentHashMap.newKeySet();
     private volatile boolean closed;
 
     public CloudHttp(HttpClient client) {
+        this(client, null);
+    }
+
+    public CloudHttp(HttpClient client, CloudEndpoint endpoint) {
+        if (client.followRedirects() != HttpClient.Redirect.NEVER) {
+            throw new IllegalArgumentException("backend.endpoint.redirect_blocked");
+        }
         this.client = client;
+        this.endpoint = endpoint;
     }
 
     public HttpResponse<InputStream> send(HttpRequest request) throws Exception {
         requireOpen();
+        if (endpoint != null) {
+            endpoint.requireRequest(request.uri());
+        } else if (!request.uri().getScheme().equals("https")) {
+            throw new IOException("backend.endpoint.debug_required");
+        }
         CompletableFuture<HttpResponse<InputStream>> future = client.sendAsync(request,
                 HttpResponse.BodyHandlers.ofInputStream());
         requests.add(future);
@@ -40,6 +54,16 @@ public final class CloudHttp implements AutoCloseable {
             if (closed) {
                 response.body().close();
                 throw new IOException("Connection retired");
+            }
+            try {
+                requireOpen();
+            } catch (IOException retired) {
+                release(response.body());
+                throw retired;
+            }
+            if (response.statusCode() >= 300 && response.statusCode() < 400) {
+                release(response.body());
+                throw new IOException("backend.endpoint.redirect_blocked");
             }
             return response;
         } finally {
@@ -107,6 +131,9 @@ public final class CloudHttp implements AutoCloseable {
     }
 
     public void requireOpen() throws IOException {
+        if (endpoint != null) {
+            endpoint.requireAllowed();
+        }
         if (closed) {
             throw new IOException("Connection retired");
         }
