@@ -6,7 +6,7 @@ import java.util.Random;
 
 /**
  * Molang math.* function implementations.
- * All functions use float arithmetic as per Molang spec.
+ * YSM sin/cos accept degrees; its inverse trigonometric functions return radians.
  *
  * Reference: YSM MathBinding
  */
@@ -24,18 +24,18 @@ public final class MathFunctions {
             (float) Math.cos(Math.toRadians(args.getAsDouble(ctx, 0)));
 
     public static final Function ASIN = (ctx, args) ->
-            (float) Math.toDegrees(Math.asin(clamp(args.getAsDouble(ctx, 0), -1.0, 1.0)));
+            (float) Math.asin(clamp(args.getAsDouble(ctx, 0), -1.0, 1.0));
 
     public static final Function ACOS = (ctx, args) ->
-            (float) Math.toDegrees(Math.acos(clamp(args.getAsDouble(ctx, 0), -1.0, 1.0)));
+            (float) Math.acos(clamp(args.getAsDouble(ctx, 0), -1.0, 1.0));
 
     public static final Function ATAN = (ctx, args) ->
-            (float) Math.toDegrees(Math.atan(args.getAsDouble(ctx, 0)));
+            (float) Math.atan(args.getAsDouble(ctx, 0));
 
     public static final Function ATAN2 = (ctx, args) -> {
         double y = args.getAsDouble(ctx, 0);
         double x = args.getAsDouble(ctx, 1);
-        return (float) Math.toDegrees(Math.atan2(y, x));
+        return (float) Math.atan2(y, x);
     };
 
     public static final Function ABS = (ctx, args) ->
