@@ -1,3 +1,7 @@
+plugins {
+    id 'com.google.protobuf' version '0.9.5'
+}
+
 architectury {
     common(rootProject.enabled_platforms.split(","))
 }
@@ -13,6 +17,7 @@ repositories {
 }
 
 dependencies {
+    implementation 'com.google.protobuf:protobuf-java:4.31.1'
     mappings loom.layered {}
 
     // Libraries
@@ -43,6 +48,27 @@ dependencies {
     // Mods
     modCompileOnly "maven.modrinth:iris:$iris"
     modCompileOnly "maven.modrinth:immediatelyfast:$immediately_fast"
+}
+
+sourceSets.main.proto.srcDir rootProject.file('protocol')
+
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:4.31.1'
+    }
+}
+
+tasks.register('networkProtocolSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Executes the frozen Java/Rust v1 wire vectors and legacy frame baseline.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'org.figuramc.figura.backend2.protocol.NetworkProtocolSmokeTest'
+    args rootProject.file('protocol').path
+}
+
+tasks.named('test') {
+    dependsOn 'networkProtocolSmokeTest'
 }
 
 publishing {

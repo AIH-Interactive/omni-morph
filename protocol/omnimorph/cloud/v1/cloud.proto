@@ -1,0 +1,325 @@
+syntax = "proto3";
+
+package omnimorph.cloud.v1;
+option java_package = "org.figuramc.figura.backend2.protocol.generated";
+option java_outer_classname = "Cloud";
+
+// Published v1 numbers are immutable. Removed fields/values must be reserved.
+message Envelope {
+  uint32 major = 1;
+  uint64 request_id = 2;
+  string session_id = 3;
+  uint64 connection_epoch = 4;
+  oneof body {
+    Hello hello = 10;
+    HelloAck hello_ack = 11;
+    Auth auth = 12;
+    AuthResult auth_result = 13;
+    Error error = 14;
+    Ack ack = 15;
+    Resume resume = 16;
+    ProfileRequest profile_request = 20;
+    Profile profile = 21;
+    ServerInfo server_info = 22;
+    UploadRequest upload_request = 30;
+    TransferGrant transfer_grant = 31;
+    CommitUpload commit_upload = 32;
+    AvatarDescriptor avatar = 33;
+    Delete delete = 34;
+    Equip equip = 35;
+    EquippedState equipped = 36;
+    DownloadRequest download_request = 37;
+    Subscribe subscribe = 40;
+    Unsubscribe unsubscribe = 41;
+    AvatarChanged avatar_changed = 42;
+    FiguraPing figura_ping = 43;
+    YsmSnapshot ysm_snapshot = 50;
+    YsmDelta ysm_delta = 51;
+    YsmEvent ysm_event = 52;
+    SnapshotRequest snapshot_request = 53;
+    Heartbeat heartbeat = 60;
+  }
+}
+
+enum Capability {
+  CAPABILITY_UNSPECIFIED = 0;
+  FIGURA = 1;
+  YSM_PLAIN = 2;
+  YSM_ENCRYPTED = 3;
+  YSM_RECOVERY = 4;
+  ENTITY_AUTHORITY = 5;
+}
+
+enum ModelType {
+  MODEL_TYPE_UNSPECIFIED = 0;
+  MODEL_FIGURA = 1;
+  MODEL_YSM_PLAIN = 2;
+  MODEL_YSM_ENCRYPTED = 3;
+}
+
+enum DistributionFormat {
+  DISTRIBUTION_FORMAT_UNSPECIFIED = 0;
+  FIGURA_COMPRESSED_NBT = 1;
+  YSM_DISTRIBUTION_PACKAGE = 2;
+}
+
+enum ErrorCode {
+  ERROR_CODE_UNSPECIFIED = 0;
+  INVALID_MESSAGE = 1;
+  UNSUPPORTED_VERSION = 2;
+  UNAUTHENTICATED = 3;
+  FORBIDDEN = 4;
+  NOT_FOUND = 5;
+  CONFLICT = 6;
+  LIMIT_EXCEEDED = 7;
+  SNAPSHOT_REQUIRED = 8;
+  CURSOR_EXPIRED = 9;
+  AUTHORITY_UNAVAILABLE = 10;
+  OFFLINE = 11;
+  UNSUPPORTED_CAPABILITY = 12;
+  INTERNAL = 13;
+}
+
+message Limits {
+  uint32 envelope_bytes = 1;
+  uint32 ysm_state_bytes = 2;
+  uint64 upload_bytes = 3;
+  uint32 messages_per_second = 4;
+  uint32 bytes_per_second = 5;
+  uint32 subscriptions = 6;
+  uint32 queue_bytes = 7;
+  uint32 repeated_entries = 8;
+  uint32 nesting_depth = 9;
+  uint32 concurrent_uploads = 10;
+  uint32 event_count = 11;
+  uint32 event_ttl_seconds = 12;
+  uint32 snapshot_ttl_seconds = 13;
+  uint64 decompressed_bytes = 14;
+}
+
+message Hello {
+  repeated uint32 supported_majors = 1;
+  string client_version = 2;
+  repeated Capability capabilities = 3;
+}
+message HelloAck {
+  uint32 selected_major = 1;
+  string instance_id = 2;
+  repeated Capability capabilities = 3;
+  Limits limits = 4;
+  uint32 heartbeat_seconds = 5;
+  uint64 server_epoch = 6;
+}
+message Auth {
+  string token = 1;
+  string challenge = 2;
+  string instance_id = 3;
+}
+message AuthResult {
+  string owner = 1;
+  string session_id = 2;
+  uint64 expires_unix_seconds = 3;
+  string instance_id = 4;
+  uint32 protocol_major = 5;
+}
+message Error {
+  ErrorCode code = 1;
+  bool retryable = 2;
+  string localization_key = 3;
+  uint64 request_id = 4;
+}
+message Ack {
+  string operation_id = 1;
+  uint64 revision = 2;
+  uint64 sequence = 3;
+}
+message Resume {
+  string owner = 1;
+  uint64 server_epoch = 2;
+  uint64 revision = 3;
+  string publisher_session = 4;
+  uint64 generation = 5;
+  uint64 sequence = 6;
+  uint64 event_watermark = 7;
+}
+message Heartbeat { uint64 nonce = 1; }
+message ProfileRequest { string owner = 1; }
+message Badges {
+  repeated uint32 special = 1;
+  repeated uint32 pride = 2;
+}
+message Profile {
+  string owner = 1;
+  string rank = 2;
+  Badges badges = 3;
+  EquippedState equipped = 4;
+  string client_version = 5;
+  uint64 last_used = 6;
+  bool banned = 7;
+  bool can_upload = 8;
+}
+message ServerInfo {
+  Limits limits = 1;
+  string motd_json = 2;
+  string release = 3;
+  string prerelease = 4;
+  Badges allowed_badges = 5;
+  uint32 max_avatars = 6;
+}
+message AvatarDescriptor {
+  string owner = 1;
+  string asset_id = 2;
+  uint64 revision = 3;
+  ModelType model_type = 4;
+  DistributionFormat distribution_format = 5;
+  bytes raw_sha256 = 6;
+  uint64 raw_length = 7;
+  bytes content_sha256 = 8;
+  bytes schema_sha256 = 9;
+  repeated Capability required_capabilities = 10;
+  string legacy_figura_hash = 11;
+}
+message UploadRequest {
+  string operation_id = 1;
+  AvatarDescriptor resource = 2;
+}
+// Relative authorized HTTP path only. File bodies are raw bytes, never Envelope.
+message TransferGrant {
+  string operation_id = 1;
+  string relative_path = 2;
+  uint64 expires_unix_seconds = 3;
+  uint64 max_bytes = 4;
+}
+message CommitUpload {
+  string operation_id = 1;
+  bytes raw_sha256 = 2;
+  uint64 raw_length = 3;
+}
+message DownloadRequest {
+  string owner = 1;
+  string asset_id = 2;
+  uint64 revision = 3;
+}
+message Delete {
+  string operation_id = 1;
+  string asset_id = 2;
+  uint64 expected_revision = 3;
+}
+message Equip {
+  string operation_id = 1;
+  string asset_id = 2;
+  uint64 asset_revision = 3;
+  uint64 expected_revision = 4;
+  bool clear = 5;
+  bool retain_figura_compatibility = 6;
+}
+message EquippedState {
+  string owner = 1;
+  uint64 revision = 2;
+  AvatarDescriptor primary = 3;
+  AvatarDescriptor figura_compatibility = 4;
+}
+message Subscribe {
+  repeated string owners = 1;
+  repeated Resume cursors = 2;
+}
+message Unsubscribe { repeated string owners = 1; }
+message AvatarChanged {
+  EquippedState equipped = 1;
+  bool tombstone = 2;
+}
+message FiguraPing {
+  string owner = 1;
+  sfixed32 function_id = 2;
+  bool echo = 3;
+  bytes arguments = 4;
+}
+
+message YsmIdentity {
+  string owner = 1;
+  uint64 asset_revision = 2;
+  string publisher_session = 3;
+  uint64 generation = 4;
+  uint64 sequence = 5;
+  sint64 base_sequence = 6;
+  uint64 owner_tick = 7;
+  bytes content_sha256 = 8;
+  bytes schema_sha256 = 9;
+  uint64 event_watermark = 10;
+}
+enum ControlType {
+  CONTROL_TYPE_UNSPECIFIED = 0;
+  BOOLEAN = 1;
+  NUMBER = 2;
+  OPTION = 3;
+  COLOR = 4;
+}
+message Control {
+  uint32 index = 1;
+  ControlType type = 2;
+  double value = 3;
+}
+message Action {
+  uint32 index = 1;
+  bool active = 2;
+  float time = 3;
+  float speed = 4;
+  bool loop = 5;
+}
+message Controller {
+  uint32 index = 1;
+  uint32 state = 2;
+  float time = 3;
+}
+message Playback {
+  uint32 slot = 1;
+  uint32 clip = 2;
+  sint32 controller = 3;
+  float time = 4;
+  float speed = 5;
+  float weight = 6;
+  float target_weight = 7;
+  uint32 loop_mode = 8;
+  float fade_speed = 9;
+  uint32 flags = 10;
+}
+message Controls { repeated Control values = 1; }
+message Actions { repeated Action values = 1; }
+message Controllers { repeated Controller values = 1; }
+message Playbacks { repeated Playback values = 1; }
+// Message presence distinguishes omitted partitions from explicitly empty ones.
+message YsmState {
+  optional sint32 texture = 1;
+  Controls controls = 2;
+  Actions actions = 3;
+  Controllers controllers = 4;
+  Playbacks playbacks = 5;
+}
+enum EventKind {
+  EVENT_KIND_UNSPECIFIED = 0;
+  SYNC = 1;
+  PLAY = 2;
+  STOP = 3;
+  ACTION = 4;
+}
+message Event {
+  uint64 sequence = 1;
+  EventKind kind = 2;
+  repeated float arguments = 3;
+}
+message YsmSnapshot {
+  YsmIdentity identity = 1;
+  YsmState state = 2;
+}
+message YsmDelta {
+  YsmIdentity identity = 1;
+  YsmState state = 2;
+}
+message YsmEvent {
+  YsmIdentity identity = 1;
+  repeated Event events = 2;
+}
+message SnapshotRequest {
+  string owner = 1;
+  ErrorCode reason = 2;
+}
