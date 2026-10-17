@@ -135,6 +135,7 @@ public final class YsmMaterialNativeSmokeTest {
                 testTexturePublication(unsafe, client);
                 testLateTextureBindings(unsafe, client);
                 testTextureUploadLifetime(unsafe, client, publicationDevice);
+                testYsmComplexity(unsafe, client);
             } finally {
                 client.drain();
                 RenderSystem.getSamplerCache().close();
@@ -1269,6 +1270,38 @@ public final class YsmMaterialNativeSmokeTest {
                     }
                     return method.getReturnType() == void.class ? null : proxy;
                 });
+    }
+
+    private static void testYsmComplexity(Unsafe unsafe, RecordingClient client) throws Exception {
+        var fixture = new Fixture(unsafe, 701);
+        var runtime = fixture.runtime;
+        var owner = runtime.owner();
+        install(owner, "complexity", new Avatar.Instructions(4));
+        List<String> vertices = new ArrayList<>();
+        var recorder = vertexRecorder(vertices);
+        try {
+            top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
+            runtime.renderer().render(new com.mojang.blaze3d.vertex.PoseStack(), type -> recorder, 0, null);
+            require(vertices.size() == 24 && owner.complexity.pre == 6 && owner.complexity.remaining == -2,
+                    "six visible faces use six Figura complexity units, independent of vertices and permission display");
+            runtime.renderer().render(new com.mojang.blaze3d.vertex.PoseStack(), type -> recorder, 0, null);
+            require(owner.complexity.pre == 12, "separate draws share the same frame counter");
+            runtime.getPart("root").setVisible(false);
+            top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
+            runtime.renderer().render(new com.mojang.blaze3d.vertex.PoseStack(), type -> recorder, 0, null);
+            require(owner.complexity.pre == 0, "hidden hierarchy costs zero and a new frame resets counts");
+            runtime.getPart("root").setVisible(true);
+            owner.renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI;
+            top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
+            var preview = runtime.forRenderPass();
+            require(preview != runtime, "test exercises detached GUI preview");
+            preview.renderer().render(new com.mojang.blaze3d.vertex.PoseStack(), type -> recorder, 0, null);
+            require(owner.complexity.pre == 6, "detached preview reports complexity to the visible avatar information");
+            System.out.println("YSM Figura face complexity: visible/hidden geometry, per-frame draws, permission budget and detached preview PASS");
+        } finally {
+            runtime.close();
+            client.drain();
+        }
     }
 
     private static void testHandLocators(Unsafe unsafe, RecordingClient client) throws Exception {
