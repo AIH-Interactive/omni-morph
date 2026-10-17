@@ -449,6 +449,12 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
 
     @Override
     public Reply upload(String id, byte[] bytes, Metadata metadata) throws Exception {
+        return upload(id, bytes, metadata, sent -> {});
+    }
+
+    @Override
+    public Reply upload(String id, byte[] bytes, Metadata metadata,
+                        java.util.function.LongConsumer progress) throws Exception {
         if (!id.matches("[a-zA-Z0-9_-]{1,64}") || bytes.length > Math.min(CloudHttp.FILE_BYTES, capabilities.getLimits().getUploadBytes())) {
             return new Reply(413, "");
         }
@@ -473,7 +479,7 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
         var grant = grantResponse.getTransferGrant();
         validateGrant(grant, bytes.length);
         var response = http.send(authorized(CloudHttp.relative(origin, grant.getRelativePath()))
-                .header("Content-Type", "application/octet-stream").PUT(HttpRequest.BodyPublishers.ofByteArray(bytes)).build());
+                .header("Content-Type", "application/octet-stream").PUT(CloudHttp.uploadBody(bytes, progress)).build());
         try {
             if (response.statusCode() != 204) {
                 throw new IOException("Raw upload failed: HTTP " + response.statusCode());

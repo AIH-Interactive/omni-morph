@@ -102,6 +102,45 @@ public final class CloudHttp implements AutoCloseable {
         return readBounded(body, limit, received -> {});
     }
 
+    /** Counts raw body bytes handed to HTTP; the server response/commit is a separate stage. */
+    public static HttpRequest.BodyPublisher uploadBody(byte[] bytes, java.util.function.LongConsumer progress) {
+        if (bytes.length == 0) {
+            progress.accept(0);
+            return HttpRequest.BodyPublishers.noBody();
+        }
+        var source = HttpRequest.BodyPublishers.ofInputStream(() -> new java.io.ByteArrayInputStream(bytes));
+        java.util.concurrent.Flow.Publisher<java.nio.ByteBuffer> publisher = subscriber -> {
+            progress.accept(0);
+            source.subscribe(new java.util.concurrent.Flow.Subscriber<>() {
+                private long sent;
+
+                @Override
+                public void onSubscribe(java.util.concurrent.Flow.Subscription subscription) {
+                    subscriber.onSubscribe(subscription);
+                }
+
+                @Override
+                public void onNext(java.nio.ByteBuffer item) {
+                    int count = item.remaining();
+                    subscriber.onNext(item);
+                    sent += count;
+                    progress.accept(sent);
+                }
+
+                @Override
+                public void onError(Throwable failure) {
+                    subscriber.onError(failure);
+                }
+
+                @Override
+                public void onComplete() {
+                    subscriber.onComplete();
+                }
+            });
+        };
+        return HttpRequest.BodyPublishers.fromPublisher(publisher, bytes.length);
+    }
+
     public static byte[] readBounded(InputStream body, int limit, java.util.function.LongConsumer progress) throws IOException {
         var output = new java.io.ByteArrayOutputStream();
         byte[] buffer = new byte[8192];

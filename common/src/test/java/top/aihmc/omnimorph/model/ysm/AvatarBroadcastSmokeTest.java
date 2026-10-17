@@ -47,6 +47,7 @@ final class AvatarBroadcastSmokeTest {
         List<String> uploads = new ArrayList<>();
         List<Integer> equipment = new ArrayList<>();
         AtomicBoolean switchDuringUpload = new AtomicBoolean();
+        AtomicBoolean failUpload = new AtomicBoolean();
         var protocol = (CloudProtocol) Proxy.newProxyInstance(CloudProtocol.class.getClassLoader(),
                 new Class<?>[]{CloudProtocol.class}, (proxy, method, args) -> {
                     return switch (method.getName()) {
@@ -54,14 +55,27 @@ final class AvatarBroadcastSmokeTest {
                         case "close" -> null;
                         case "upload" -> {
                             require(Thread.currentThread() != clientThread, "compression/upload run off the game thread");
+                            require(NetworkStuff.getUploadProgress() != null, "active upload has visible progress");
+                            byte[] bytes = (byte[]) args[1];
+                            var progress = (java.util.function.LongConsumer) args[3];
+                            progress.accept(bytes.length / 2);
+                            require(NetworkStuff.getUploadProgress().received() == bytes.length / 2
+                                    && NetworkStuff.getUploadProgress().total() == bytes.length,
+                                    "transport progress reaches the wardrobe snapshot with exact bytes");
                             var nbt = NbtIo.readCompressed(new ByteArrayInputStream((byte[]) args[1]), NbtAccounter.unlimitedHeap());
                             uploads.add(nbt.getCompoundOrEmpty("metadata").getStringOr("name", ""));
                             if (switchDuringUpload.getAndSet(false)) {
                                 NetworkStuff.localSelectionChanged();
+                                require(NetworkStuff.getUploadProgress() == null, "selection change clears upload progress immediately");
                             }
-                            yield new CloudProtocol.Reply(200, "");
+                            yield new CloudProtocol.Reply(failUpload.getAndSet(false) ? 503 : 200, "");
                         }
                         case "equip" -> {
+                            if (!((List<?>) args[0]).isEmpty()) {
+                                require(NetworkStuff.getUploadProgress().stage()
+                                                == top.aihmc.omnimorph.avatar.AvatarLoadProgress.Stage.EQUIPPING,
+                                        "completed bytes wait for equipment confirmation");
+                            }
                             equipment.add(((List<?>) args[0]).size());
                             yield new CloudProtocol.Reply(200, "");
                         }
@@ -78,10 +92,14 @@ final class AvatarBroadcastSmokeTest {
             NetworkStuff.localAvatarReady(avatar);
             NetworkStuff.localSelectionChanged();
             NetworkStuff.localAvatarReady(avatar);
+            require(NetworkStuff.getUploadProgress().stage()
+                            == top.aihmc.omnimorph.avatar.AvatarLoadProgress.Stage.COMPRESSING,
+                    "queued preparation displays an indeterminate upload bar");
             process.invoke(null);
             ((CompletableFuture<?>) tasks.get(null)).get(10, TimeUnit.SECONDS);
             scope.drain();
             require(uploads.size() == 1 && equipment.equals(List.of(1)), "superseded switch is never uploaded/equipped");
+            require(NetworkStuff.getUploadProgress() == null, "successful upload/equip clears progress");
             switchDuringUpload.set(true);
             NetworkStuff.localAvatarReady(avatar);
             process.invoke(null);
@@ -102,6 +120,15 @@ final class AvatarBroadcastSmokeTest {
             ((CompletableFuture<?>) tasks.get(null)).get(10, TimeUnit.SECONDS);
             scope.drain();
             require(equipment.getLast() == 0, "clearing a selection publishes unequip");
+
+            failUpload.set(true);
+            AvatarManager.localUploaded = false;
+            NetworkStuff.localAvatarReady(avatar);
+            process.invoke(null);
+            ((CompletableFuture<?>) tasks.get(null)).get(10, TimeUnit.SECONDS);
+            scope.drain();
+            require(NetworkStuff.getUploadProgress() == null && !AvatarManager.localUploaded,
+                    "failed upload clears the bar and never reports the model as uploaded");
 
             Files.writeString(folder.resolve("avatar.json"), "{\"name\":\"Reload All restored\"}");
             UserData localUser = new UserData(local);

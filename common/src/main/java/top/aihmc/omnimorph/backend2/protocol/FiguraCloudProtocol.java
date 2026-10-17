@@ -165,6 +165,10 @@ public final class FiguraCloudProtocol implements CloudProtocol {
             return response;
         }
         JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+        if (json.has("uuid") && !json.get("uuid").getAsString().replace("-", "")
+                .equalsIgnoreCase(owner.toString().replace("-", ""))) {
+            throw new IOException("Profile owner mismatch");
+        }
         JsonArray equipped = json.getAsJsonArray("equipped");
         if (equipped.size() > 128) {
             throw new IOException("Profile exceeds resource budget");
@@ -223,12 +227,18 @@ public final class FiguraCloudProtocol implements CloudProtocol {
 
     @Override
     public Reply upload(String id, byte[] bytes, Metadata metadata) throws Exception {
+        return upload(id, bytes, metadata, sent -> {});
+    }
+
+    @Override
+    public Reply upload(String id, byte[] bytes, Metadata metadata,
+                        java.util.function.LongConsumer progress) throws Exception {
         requireAsset(id);
         if (bytes.length > CloudHttp.FILE_BYTES) {
             return new Reply(413, "");
         }
         return reply(request(id).header("Content-Type", "application/octet-stream")
-                .PUT(HttpRequest.BodyPublishers.ofByteArray(bytes)).build());
+                .PUT(CloudHttp.uploadBody(bytes, progress)).build());
     }
 
     @Override
