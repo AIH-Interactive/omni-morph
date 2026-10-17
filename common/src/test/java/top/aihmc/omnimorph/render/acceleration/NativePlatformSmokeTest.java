@@ -11,6 +11,21 @@ import java.util.Random;
 public final class NativePlatformSmokeTest {
     public static void main(String[] args) throws Exception {
         require(!NativeLibraryLoader.isLoaded(), "default path does not load native code");
+        require(NativeLibraryLoader.platformFor("linux", "aarch64", false).equals("linux-aarch64"), "Linux arm64 resource route");
+        require(NativeLibraryLoader.platformFor("linux", "aarch64", true).equals("android-aarch64"), "Bionic must use Android resources");
+        String previousOs = System.getProperty("os.name");
+        String previousArch = System.getProperty("os.arch");
+        String previousRuntime = System.getProperty("java.runtime.name");
+        try {
+            System.setProperty("os.name", "Linux");
+            System.setProperty("os.arch", "aarch64");
+            System.setProperty("java.runtime.name", "Android Runtime");
+            require(NativeLibraryLoader.currentPlatform().equals("android-aarch64"), "Android runtime detection precedes Linux");
+        } finally {
+            System.setProperty("os.name", previousOs);
+            System.setProperty("os.arch", previousArch);
+            System.setProperty("java.runtime.name", previousRuntime);
+        }
         if (args.length > 0 && args[0].equals("--fallback")) {
             String architecture = System.getProperty("os.arch");
             try {

@@ -13,6 +13,7 @@
 | H4 | 完成并已推送；真实 GPU/画面项 MANUAL/PENDING，最终集中验收 | `8c3955c1b1b0985b1c2af86cc293a86e41c42859`，公共 GPU 后端 |
 | H5 | 完成并已推送；真实 GPU/画面项 MANUAL/PENDING，最终集中验收 | `76b299102f232cb5735de0949536d73b057c5827`，双引擎完整接入 |
 | H6 | 完成；四 runner/最终 JAR 全部通过 | `432af82fe4765111f7d436c4b86571d27b0ec2f3`，[CI 39015871560](https://github.com/AIH-Interactive/omni-morph/actions/runs/39015871560) |
+| H6 补充 | 完成；六平台 native 与最终 JAR 检查通过 | `48910b703ab75fdede34a6b9d48eee50c36d8047`，[CI 39017540304](https://github.com/AIH-Interactive/omni-morph/actions/runs/39017540304)；Android 设备 JNI/游戏 MANUAL/PENDING |
 | H7 | 待实施 | 稳定性与性能 |
 | H8 | 待实施 | 最终审计交付 |
 
@@ -246,3 +247,27 @@
 - 实际 ELF 直接符号下限 glibc 2.4、GLIBCXX 3.4、CXXABI 1.3.9；来自 readelf 的版本记录，
   这仅是本库的符号需求，不降低 Minecraft/JDK 25 自身的系统要求。Windows 仅 KERNEL32，macOS 两架构仅系统 libc++/libSystem。
   以上不作为跨平台真实 GPU/游戏画面或性能证据；H6 没有在本机交叉编译非 Windows 平台。
+
+## H6 补充：Linux ARM64 与 Android（用户追加）
+
+- 2026-10-17 用户明确要求加入两平台 GitHub Actions native 编译，H7 暂保留未提交的测量工作，优先完成此补充检查点。
+- Linux ARM64 使用 ubuntu-24.04-arm 实际编译并运行 CTest/JNI；ARM64 公共分派在 Linux/Android 查询 HWCAP_ASIMD。
+  Android 使用独立 android-aarch64 资源，按 arm64-v8a/API26 和固定 NDK r28c 构建，静态 C++ runtime 随附 NDK notices。
+- 六平台必须齐全后才合并；新增 Android 许可条目及 hash 校验。JNI 入口使用双方均支持的 JNI 1.6 API，ABI 1 数据合同保持不变。
+  loader 识别 Android runtime 或其系统 linker，区分 Bionic 与 glibc；Linux ARM64 不再被误拒为不支持。
+- Android 在 CI 用 qemu-user 执行 NDK/Bionic 静态数值测试，核查共享库架构、系统依赖、JNI 导出和 16 KiB 对齐。
+  五平台实际最终 JAR JNI；Android 最终 JAR 执行相同库/许可 hash 及 ELF/导出检查。
+  Android 设备 JVM/启动器和游戏仍 MANUAL/PENDING，不把 glibc JVM、qemu 内核或 ELF 检查当成 Android JNI 实机证据。
+- 本地仅 Windows 构建；native/CTest、JNI 正常与访问拒绝、平台识别、配置回退和 Fabric 编译通过（20s），
+  日志 `h6-extra-windows-native.log`、`h6-extra-local-build.log`。
+  最终六平台合并、缺失/重复平台及 Android 许可缺失/坏 hash 负例、Windows JNI 与 Fabric 构建成功（9s），
+  日志 `h6-extra-final-local.log`，六平台 YAML/发布依赖检查 `h6-extra-workflow-check.log`。远端结果继续验证。
+- 首轮补充 CI 39017120294：Android NDK 编译、qemu 数值测试及 ELF 检查成功；其余五平台因 PowerShell 数组
+  splatting 将 `-Platform` 当作位置参数而未进入编译。改用命名参数哈希表，继续六平台验证。
+- 补充最终 [CI 39017540304](https://github.com/AIH-Interactive/omni-morph/actions/runs/39017540304) 全部成功：六平台 native、合并、五平台最终 JAR 真 JNI 与 Android 最终 JAR ELF/许可验证，最后才发布
+  [六平台下载产物](https://github.com/AIH-Interactive/omni-morph/actions/runs/39017540304/artifacts/12094733545)。
+  Linux ARM64 实际 NEON 能力 65、内核 `[0,-1,3]`，直接符号下限 glibc 2.17 / GLIBCXX 3.4 / CXXABI 1.3.9。
+- 下载的最终 JAR SHA-256：`a99495f863f15ce19b8f50e0805fee5957a9e66aa94195d57700242620193475`。
+  本地检查六库及两份 Android NDK 许可 hash，并从此包实际加载 Windows JNI 数值差分成功；
+  日志 `h6-six-published-windows.log`，CI 状态 `h6-six-jobs.json`，两新增平台日志 `h6-six-linux-arm64.log` / `h6-six-android.log`。
+  下载包和清单位于 `build/reports/acceleration/h6-six-final/`；设备 JNI/游戏待实机的边界保持不变。

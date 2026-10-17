@@ -51,6 +51,7 @@ def assembleNative = { File baseDirectory, File artifacts, File destination, Str
         throw new GradleException('Base JAR commit/run/hash/ABI mismatch')
     }
     def required = ['windows-x86_64': 'omnimorph_accel.dll', 'linux-x86_64': 'libomnimorph_accel.so',
+                    'linux-aarch64': 'libomnimorph_accel.so', 'android-aarch64': 'libomnimorph_accel.so',
                     'macos-x86_64': 'libomnimorph_accel.dylib', 'macos-aarch64': 'libomnimorph_accel.dylib']
     def entries = []
     def additions = new LinkedHashMap<String, byte[]>()
@@ -83,6 +84,22 @@ def assembleNative = { File baseDirectory, File artifacts, File destination, Str
             throw new GradleException('Native license notice missing or changed')
         }
         additions[expectedPath] = library.bytes
+        def licenses = entry.licenses ?: []
+        if (entry.platform == 'android-aarch64' && licenses.isEmpty()) {
+            throw new GradleException('Android static C++ runtime requires its NDK license notices')
+        }
+        licenses.each { license ->
+            String licensePath = license.path
+            if (!licensePath.startsWith("natives/${entry.platform}/licenses/") || licensePath.contains('..')
+                    || licensePath.contains('\\') || additions.containsKey(licensePath)) {
+                throw new GradleException('Invalid/duplicate native license path')
+            }
+            File licenseFile = new File(directory, licensePath)
+            if (!licenseFile.isFile() || license.sha256 != sha256(licenseFile)) {
+                throw new GradleException('Native license resource/hash mismatch')
+            }
+            additions[licensePath] = licenseFile.bytes
+        }
         entries.add(entry)
     }
     if (seenPlatforms != required.keySet()) {
@@ -146,7 +163,7 @@ tasks.register('stageNativeBase') {
 
 tasks.register('assembleNativeJar') {
     group = 'build'
-    description = 'Merges only the verified four-platform artifacts from the current run; never remaps the base JAR.'
+    description = 'Merges the complete six-platform artifact set from this run; never remaps the base JAR.'
     doLast {
         assembleNative(rootProject.file(providers.gradleProperty('nativeBaseDir').get()),
                 rootProject.file(providers.gradleProperty('nativeArtifactsDir').get()),
@@ -165,6 +182,7 @@ tasks.register('nativePackagingSmokeTest') {
         File artifacts = new File(root, 'artifacts')
         def metadata = new JsonSlurper().parse(rootProject.file('build/native-base/base-manifest.json'))
         def platforms = ['windows-x86_64': 'omnimorph_accel.dll', 'linux-x86_64': 'libomnimorph_accel.so',
+                         'linux-aarch64': 'libomnimorph_accel.so', 'android-aarch64': 'libomnimorph_accel.so',
                          'macos-x86_64': 'libomnimorph_accel.dylib', 'macos-aarch64': 'libomnimorph_accel.dylib']
         platforms.each { platform, name ->
             File directory = new File(artifacts, platform)
@@ -177,6 +195,13 @@ tasks.register('nativePackagingSmokeTest') {
                          path: "natives/$platform/$name", abi: 1, sourceCommit: metadata.sourceCommit,
                          sourceTreeSha256: '0' * 64, sourceDirty: false, toolchain: 'synthetic', minimumRuntime: 'synthetic',
                          dependencies: [], sha256: sha256(library), runId: metadata.runId, runAttempt: metadata.runAttempt]
+            if (platform == 'android-aarch64') {
+                String licensePath = "natives/$platform/licenses/SYNTHETIC.txt"
+                File license = new File(directory, licensePath)
+                license.parentFile.mkdirs()
+                license.text = 'synthetic license validation fixture'
+                entry.licenses = [[path: licensePath, sha256: sha256(license)]]
+            }
             new File(directory, 'natives/manifest.json').text = JsonOutput.toJson([abi: 1, buildKind: 'ci', libraries: [entry]])
         }
         def run = { String commit, File input = artifacts ->
@@ -195,6 +220,18 @@ tasks.register('nativePackagingSmokeTest') {
                 throw new GradleException('Invalid platform set unexpectedly published')
             }
         }
+        File androidManifest = new File(artifacts, 'android-aarch64/natives/manifest.json')
+        String savedAndroid = androidManifest.text
+        def androidData = new JsonSlurper().parseText(savedAndroid)
+        androidData.libraries[0].licenses = []
+        androidManifest.text = JsonOutput.toJson(androidData)
+        reject { run(metadata.sourceCommit) }
+        androidManifest.text = savedAndroid
+        File androidLicense = new File(artifacts, 'android-aarch64/natives/android-aarch64/licenses/SYNTHETIC.txt')
+        String savedLicense = androidLicense.text
+        androidLicense.append('corruption')
+        reject { run(metadata.sourceCommit) }
+        androidLicense.text = savedLicense
         File manifest = new File(artifacts, 'macos-aarch64/natives/manifest.json')
         String saved = manifest.text
         manifest.text = saved.replace('macos-aarch64', 'macos-unknown')
@@ -203,7 +240,7 @@ tasks.register('nativePackagingSmokeTest') {
         reject { run(metadata.sourceCommit) }
         manifest.text = saved
         File missing = new File(root, 'missing')
-        platforms.keySet().take(3).each { platform ->
+        platforms.keySet().take(platforms.size() - 1).each { platform ->
             copy {
                 from new File(artifacts, platform)
                 into new File(missing, platform)

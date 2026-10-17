@@ -1,5 +1,5 @@
 param(
-    [Parameter(Mandatory)][ValidateSet('windows-x86_64', 'linux-x86_64', 'macos-x86_64', 'macos-aarch64')]
+    [Parameter(Mandatory)][ValidateSet('windows-x86_64', 'linux-x86_64', 'linux-aarch64', 'macos-x86_64', 'macos-aarch64')]
     [string]$Platform
 )
 
@@ -86,8 +86,9 @@ if ($Platform.StartsWith('windows-')) {
         $minimumRuntime = 'macOS 13.0; system libc++; ad-hoc signed, not notarized'
     } else {
         $elfHeader = & readelf -h $library 2>&1
-        if ($LASTEXITCODE -ne 0 -or ($elfHeader -join "`n") -notmatch 'Advanced Micro Devices X86-64') {
-            throw 'ELF architecture does not match linux-x86_64.'
+        $expectedMachine = if ($Platform.EndsWith('aarch64')) { 'AArch64' } else { 'Advanced Micro Devices X86-64' }
+        if ($LASTEXITCODE -ne 0 -or ($elfHeader -join "`n") -notmatch $expectedMachine) {
+            throw "ELF architecture does not match $Platform."
         }
         $dependencyOutput = & ldd $library 2>&1 | Tee-Object -FilePath $dependencyLog
         if ($LASTEXITCODE -ne 0 -or ($dependencyOutput -join "`n") -match 'not found') { throw 'Unresolved ELF dependency.' }
@@ -95,7 +96,7 @@ if ($Platform.StartsWith('windows-')) {
         if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect ELF NEEDED entries.' }
         $dependencies = @([regex]::Matches(($dynamic -join "`n"), 'Shared library: \[([^\]]+)\]') | ForEach-Object { $_.Groups[1].Value })
         foreach ($dependency in $dependencies) {
-            if ($dependency -notin @('libm.so.6', 'libc.so.6', 'ld-linux-x86-64.so.2', 'libstdc++.so.6', 'libgcc_s.so.1')) {
+            if ($dependency -notin @('libm.so.6', 'libc.so.6', 'ld-linux-x86-64.so.2', 'ld-linux-aarch64.so.1', 'libstdc++.so.6', 'libgcc_s.so.1')) {
                 throw "Unexpected ELF dependency: $dependency"
             }
         }
@@ -110,7 +111,7 @@ if ($Platform.StartsWith('windows-')) {
         $abiVersions = @([regex]::Matches(($versions -join "`n"), 'CXXABI_([0-9]+\.[0-9]+(?:\.[0-9]+)?)') |
             ForEach-Object { [version]$_.Groups[1].Value } | Sort-Object -Unique)
         if ($abiVersions.Count -eq 0) { throw 'No measured CXXABI requirement found.' }
-        $minimumRuntime = "Linux x86_64; glibc >= $($glibc[-1]); system libstdc++ GLIBCXX >= $($cxxVersions[-1]), CXXABI >= $($abiVersions[-1]); system libgcc_s"
+        $minimumRuntime = "$Platform; glibc >= $($glibc[-1]); system libstdc++ GLIBCXX >= $($cxxVersions[-1]), CXXABI >= $($abiVersions[-1]); system libgcc_s"
     }
     $compiler = (& c++ --version | Select-Object -First 1)
     if ($LASTEXITCODE -ne 0) { throw 'Cannot identify native compiler.' }

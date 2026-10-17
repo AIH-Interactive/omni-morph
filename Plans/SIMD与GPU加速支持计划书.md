@@ -142,25 +142,31 @@ Sodium、Iris/光影、不同图形后端分别列入能力与画面矩阵。无
 
 ## 7. 支持平台与单工作流打包
 
-初始 native 发布矩阵如下。它表示必须产出和验证的库，并非预先宣称所有平台 GPU 通过。
+Native 发布矩阵如下。2026-10-17 按用户追加要求增加 Linux ARM64 和 Android arm64-v8a。
+它表示必须产出的库及各自验证边界，并非预先宣称所有平台 GPU 或 Android 启动器兼容性通过。
 
 | 平台 ID | runner 建议 | 产物 | 必须验证 |
 | --- | --- | --- | --- |
 | `windows-x86_64` | `windows-2022` | `omnimorph_accel.dll` | MSVC x64、Java 25 JNI 加载、标量/SSE2 与可用 AVX2、依赖清单 |
 | `linux-x86_64` | `ubuntu-22.04` | `libomnimorph_accel.so` | glibc 基线、动态依赖、Java JNI、当前 CPU 可用内核 |
+| `linux-aarch64` | `ubuntu-24.04-arm` | `libomnimorph_accel.so` | 真实 ARM64 runner、HWCAP/NEON、glibc/动态依赖、Java 25 JNI |
+| `android-aarch64` | `ubuntu-24.04` + NDK r28c | `libomnimorph_accel.so` | arm64-v8a / API 26 / Bionic、静态 C++ runtime 许可、16 KiB ELF 对齐、JNI 导出；NDK 数值内核在 CI qemu-user 执行；Android 设备 JNI/游戏 MANUAL/PENDING |
 | `macos-x86_64` | `macos-15-intel` | `libomnimorph_accel.dylib` | 实际 x64、最低系统版本、安装名/依赖、JNI；GPU 另验 |
 | `macos-aarch64` | `macos-14` | `libomnimorph_accel.dylib` | 实际 arm64、NEON、最低系统版本、JNI；GPU 另验 |
 
-runner 标签按编写时的 [GitHub 官方列表](https://docs.github.com/en/actions/reference/runners/github-hosted-runners) 核对，实施时再次确认可用性，不依赖 `macos-latest` 暗示架构。Windows/Linux arm64 及 32 位不列为首版 native 支持，仍可运行 Java；后续新增平台沿用同一 ABI 和打包合同。
+runner 标签按编写时的 [GitHub 官方列表](https://docs.github.com/en/actions/reference/runners/github-hosted-runners) 核对，实施时再次确认可用性，不依赖 `macos-latest` 暗示架构。Windows arm64 及 32 位仍不在本次 native 矩阵。
+Android 与 glibc Linux 分为独立平台资源，不能将 Linux ARM64 库直接充当 Android 库。
+Android 交叉编译仅发生在 GitHub Actions；本地仍只构建 Windows。NDK 固定为
+[r28c / 28.2.13676358](https://github.com/android/ndk/releases/tag/r28c)，沿用 ABI 1。
 
 Linux native 以所选构建基线实际符号版本确定最低 glibc，不用 JAR 构建的 Ubuntu 版本推断；避免意外链接开发机专有库。Windows 明确 CRT 策略，优先自包含且符合许可的静态运行库方案。macOS 校验 deployment target、架构和加载策略，必要签名步骤及其局限记录在产物清单。
 
 扩展现有 `fabric-build.yml`，流水线依赖必须是：
 
 1. **`build-mod`，Linux / JDK 25**：先编译 `:fabric:build`，生成唯一基础成品 JAR、JNI 头/ABI 规格与提交清单，上传内部中间 Artifact；中间 JAR 不作为最终下载入口。
-2. **`build-native`，`needs: build-mod`**：四平台原生 runner 矩阵，下载同一次运行的接口产物；锁定源码/依赖，CMake Release 构建、原生单元测试与 JNI 数值差分测试。每项上传库、依赖/许可证、哈希和平台清单；`fail-fast: false` 便于汇总失败。
-3. **`assemble`，Linux，`needs: [build-mod, build-native]`**：只下载本次 run / 本次提交的全部产物，验证四平台集合、ABI、提交及哈希，拒绝缺失/重复平台，然后写入 `natives/<platform>/` 和 manifest。
-4. **`verify-final`，`needs: assemble`**：四平台分别下载同一最终 JAR，实际从 JAR 解压并加载本平台库跑 JNI smoke；另有无匹配平台/缺库/禁用模式的 Java 回退测试，不假装在一个 runner 执行其他架构 DLL。
+2. **`build-native`，`needs: build-mod`**：六平台矩阵，下载同一次运行的接口产物；锁定源码/依赖，CMake Release 构建。五个平台在原生 runner 执行单元/JNI 差分；Android 使用固定 NDK 和 Bionic 数值内核测试，设备 JNI 待实机。每项上传库、依赖/许可证、哈希和平台清单；`fail-fast: false` 便于汇总失败。
+3. **`assemble`，Linux，`needs: [build-mod, build-native]`**：只下载本次 run / 本次提交的全部产物，验证六平台集合、ABI、提交及哈希，拒绝缺失/重复平台，然后写入 `natives/<platform>/` 和 manifest。
+4. **`verify-final`，`needs: assemble`**：五个平台分别下载同一最终 JAR，实际从 JAR 解压并加载本平台库跑 JNI smoke；另有无匹配平台/缺库/禁用模式的 Java 回退测试。Android 对同一 JAR 的 Android 库执行架构、Bionic 依赖、JNI 导出、哈希和许可检查，不能在 glibc JVM 中冒充 Android JNI 通过。
 5. **`publish-artifact`，`needs: verify-final`**：仅当所有必需任务成功才上传最终全平台 Fabric JAR，提供可点击摘要和 30 天 Artifacts；失败日志保留，任何平台失败不能静默发布缺库的“全平台版”。
 
 新增 Gradle 打包任务应从基础成品复制生成输出，通过 Java ZIP/Jar API 或 Gradle Jar 受控合并，不二次混淆、不丢失原有内嵌依赖/清单/资源，不通过再次执行 remapJar 覆盖已注入产物。验收检查 JAR 条目重复、全部平台库、哈希、许可证、mod ID/version 及实际 JNI 加载。最终文件仍以 `omni-morph-...-fabric-mc.jar` 面向用户，中间文件必须区分目录与名称。
@@ -205,9 +211,9 @@ H0～H8 必须顺序推进。每阶段按规定验证、更新进度记录、检
 | H3 全局设置和回退 | 原设置分类、默认关闭、实际状态、聊天通知、去重与安全关闭 | 新旧配置默认关闭且不主动加载；撤销不探测；标题界面延迟聊天；不支持/缺库/ABI 拒绝/受限访问均回 Java；实际窗口中英文字与控件验证 |
 | H4 公共 GPU 后端 | 设备能力自检、缓存网格、矩阵上传、shader、实际 draw、退休机制 | 真 GPU draw 使用结果；不依赖每帧 CPU readback；强制 shader/资源失败回退；设备重建、超预算、旧代次释放；真实画面数值/视觉对照 |
 | H5 双引擎完整接入 | Figura/YSM 常规几何、蒙皮、动态修改、各视角/材质/附件通道 | 两引擎均跑 SIMD/GPU；脚本动态修改后可重新加速；特殊通道回退正确；复杂度、权限、加载提示及多人状态不变，不能只完成 YSM |
-| H6 多平台 native 与整合 CI | 四平台库、合并 JAR、清单/依赖/许可和最终 JAR 平台 smoke | 真实四 runner 成功、ABI/哈希及最低运行库核查、最终 JAR 各平台加载；Linux 构建 Fabric；可下载最终 Artifact；故意漏平台阻止发布 |
+| H6 多平台 native 与整合 CI | 六平台库、合并 JAR、清单/依赖/许可和最终 JAR 平台 smoke | 五平台真实 runner/JNI、Android NDK/Bionic 内核与 ELF 检查成功；ABI/哈希及最低运行库核查；Linux 构建 Fabric；可下载最终 Artifact；故意漏平台阻止发布；Android 设备 JNI/游戏待实机 |
 | H7 稳定性与性能 | 真实语料、模式切换/重载/卸载、内存/显存、兼容矩阵及测量报告 | 本地只构建 Windows；其余平台 CI；性能包含真实 GPU 和 p50/p95/p99，统计 CPU/GPU 时间、JNI/上传开销；压力测试无资源增长，回退不丢模型 |
-| H8 最终审计与交付 | README 使用/支持矩阵、进度证据、最终发布 JAR、完整来源/许可证 | 每项需求有文件和日志/画面/产物证据，版本/提交对应；Java 默认、失败聊天回退、双引擎受益、四平台内置和 Windows-only 本地流程逐项复核 |
+| H8 最终审计与交付 | README 使用/支持矩阵、进度证据、最终发布 JAR、完整来源/许可证 | 每项需求有文件和日志/画面/产物证据，版本/提交对应；Java 默认、失败聊天回退、双引擎受益、六平台内置和 Windows-only 本地流程逐项复核 |
 
 H0 的微型原型仅用于验证所选 GPU 数据/提交路线，不提前完成后续阶段生产实现。H3 能力尚未就绪时必须如实显示检测失败并 Java 回退，不能提前显示 GPU 成功。
 

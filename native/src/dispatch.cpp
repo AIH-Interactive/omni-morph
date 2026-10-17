@@ -5,14 +5,22 @@
 #elif defined(OMNIMORPH_X64)
 #include <cpuid.h>
 #endif
+#if defined(OMNIMORPH_ARM64) && defined(__linux__)
+#include <asm/hwcap.h>
+#include <sys/auxv.h>
+#endif
 
 namespace omnimorph {
 
 CpuFeatures detect_cpu() {
     CpuFeatures features;
 #if defined(OMNIMORPH_ARM64)
-    // AArch64 Advanced SIMD is part of the macOS arm64 execution environment.
+    // macOS arm64 guarantees Advanced SIMD; Linux/Android expose the actual process capability.
+#if defined(__linux__)
+    features.neon = (getauxval(AT_HWCAP) & HWCAP_ASIMD) != 0;
+#else
     features.neon = true;
+#endif
 #else
     int registers[4]{};
 #if defined(_MSC_VER)
