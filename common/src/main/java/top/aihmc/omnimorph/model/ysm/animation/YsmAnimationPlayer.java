@@ -1859,7 +1859,7 @@ public class YsmAnimationPlayer {
         if (isSprinting && speed > minSpeed)
             return firstEnabled("run", "walk");
         if (speed > minSpeed)
-            return firstEnabled("walk");
+            return firstEnabled("walk", "run");
         return firstEnabled("idle");
     }
 

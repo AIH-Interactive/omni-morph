@@ -1672,3 +1672,16 @@ FiguraTexture 的共用修复覆盖 Figura/YSM：
 最终前台执行 :common:ysmHeldItemGeometrySmokeTest :common:ysmMaterialNativeSmokeTest :common:ysmDeferredPoseSmokeTest :common:ysmBoneMatrixSmokeTest :common:ysmControlledBaseGeometrySmokeTest :fabric:build --console=plain，BUILD SUCCESSFUL 1 分 14 秒/退出 0，20 tasks（15 executed、5 up-to-date），日志 build/reports/ysm/world-attachment-gate.log。纹理生命周期/换肤、主副手矩阵、原生层级顺序、末影龙娘移动通道等既有回归通过；既有 Unsafe/native-access、弃用和 remap 警告保留。完成修改可读性、差异及 git diff --check 检查后独立提交推送并核对远端 SHA。不使用 offscreen、不修改 refs/omnm-cloud、不关闭计算机。
 
 正式 JAR：fabric/build/libs/figura-0.1.5+26.1.2-fabric-mc.jar，12,823,981 字节，SHA-256：7FC57870E35C5391C68498583D90317EAA254479717368AD6720C2097630D856。此前产物哈希保留为历史证据。
+### 9.21 用户追加：移动滑行与附属骨骼异常旋转的共用修复（2026-10-17）
+
+用户反馈绯英移动时耳朵等部位乱动，银狼 Lv.999 同样存在身体移动、腿不迈步，要求检查共用问题。定位并修复三处共享运行时缺陷，没有修改模型或增加单模型补丁：
+
+- 原生行走只查找 walk，模型仅提供 run 时没有移动动画；现在按 walk、run 顺序回退。最小生产运行时夹具先失败，再验证 run 被选中且骨骼随时间运动。
+- YSM 的 sin/cos 接收角度，asin/acos/atan/atan2 返回弧度。只读对照本地 Sparkle-Morpher 实现，移除反三角函数额外的转角度操作，避免模型自行乘以 180/pi 时再次放大旋转。新增普通与优化浮点求值回归，覆盖四种反三角函数及模型常用的角度转换表达式。
+- 原先将单次表达式的 100,000 步限制直接用于整个模型帧，复杂模型动画被中途截断。真实绯英回放在 20 Hz/60 Hz 下分别需要最多 294,808/121,201 个 AST 步骤。现在单次独立求值仍为 100,000，整帧为 500,000；同帧多次调用共享余额，嵌套调用不能重置预算，Avatar 隔离、循环上限和下一帧恢复继续保留。新增 300,000 步完整帧、同帧重复耗尽和独立求值限制回归。
+
+红绿证据保留于 build/reports/ysm/locomotion-fallback-red.log、locomotion-fallback-green.log、locomotion-math-budget-red.log、locomotion-targeted-green.log。六项针对性检查通过：ysmMolangMathSmokeTest、ysmMolangBudgetSmokeTest、ysmMaterialNativeSmokeTest、ysmFilterSmokeTest、ysmControllerContextSmokeTest、ysmAnimationFrameClockSmokeTest。最终补充 ysmFunctionContractSmokeTest、ysmAnimationWeightSmokeTest、ysmVanillaStateSmokeTest，并执行 :fabric:build packageLocalNative --console=plain，BUILD SUCCESSFUL 39 秒、退出 0，24 tasks；日志 build/reports/ysm/locomotion-final-build.log。
+
+两份用户模型均以只读方式在内存中加载，20 Hz 和 60 Hz 连续移动回放均观察到腿部通道变化，预算耗尽帧数为 0。此项是 CPU 动画数值检查，不代表实机画面已验收。临时诊断源码及类文件归档到忽略目录 build/debug/locomotion，不提交模型、解密正文或临时探针。按用户最新要求停止 Computer Use，实机走路、耳朵及其他附属部位外观记为 MANUAL/PENDING，由用户验收；本次没有替换客户端已安装 JAR 或重启客户端。
+
+Windows 本地产物：build/local-native/omni-morph-1.0.0-alpha.1+26.1.2-fabric-mc-windows-local.jar，SHA-256：962D9385063729BFAEB7C17C24B2CCB10B00EB6FAFA2BDDB8D1400A6FC4558A7。版本保持 1.0.0-alpha.1，不修改 refs、omnm-cloud。完成可读性、差异及 git diff --check 检查后独立提交推送，并核对远端提交。

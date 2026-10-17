@@ -3,6 +3,8 @@ package top.aihmc.omnimorph.molang.runtime;
 /** Shared execution allowance for nested expressions, functions and context switches. */
 public final class MolangExecutionBudget {
     public static final int DEFAULT_STEPS = 100_000;
+    // One model frame includes events, controllers and all sampled bone channels.
+    public static final int DEFAULT_FRAME_STEPS = 500_000;
 
     public interface Owner {
         MolangExecutionBudget executionBudget();
@@ -15,22 +17,28 @@ public final class MolangExecutionBudget {
     }
 
     private final int maximumSteps;
+    private final int maximumFrameSteps;
     private int remaining;
     private int depth;
     private long frame = Long.MIN_VALUE;
     private int frameRemaining;
 
     public MolangExecutionBudget() {
-        this(DEFAULT_STEPS);
+        this(DEFAULT_STEPS, DEFAULT_FRAME_STEPS);
     }
 
     public MolangExecutionBudget(int maximumSteps) {
-        if (maximumSteps <= 0) {
+        this(maximumSteps, maximumSteps);
+    }
+
+    private MolangExecutionBudget(int maximumSteps, int maximumFrameSteps) {
+        if (maximumSteps <= 0 || maximumFrameSteps <= 0) {
             throw new IllegalArgumentException("Execution budget must be positive");
         }
         this.maximumSteps = maximumSteps;
+        this.maximumFrameSteps = maximumFrameSteps;
         remaining = maximumSteps;
-        frameRemaining = maximumSteps;
+        frameRemaining = maximumFrameSteps;
     }
 
     public Scope begin() {
@@ -46,7 +54,7 @@ public final class MolangExecutionBudget {
         if (root) {
             if (frame != identity) {
                 frame = identity;
-                frameRemaining = maximumSteps;
+                frameRemaining = maximumFrameSteps;
             }
             remaining = frameRemaining;
         }

@@ -159,6 +159,7 @@ public final class YsmMaterialNativeSmokeTest {
             testControlledBasePlayback(unsafe, client);
             testControllerChannelOwnership(unsafe, client);
             testRunningControllerPhase(unsafe, client);
+            testWalkingUsesAvailableLocomotion(unsafe, client);
             Field device = RenderSystem.class.getDeclaredField("DEVICE");
             device.setAccessible(true);
             Object previousDevice = device.get(null);
@@ -367,6 +368,39 @@ public final class YsmMaterialNativeSmokeTest {
                     require(Math.abs(runtime.getPart("root").animRotRaw().z - expectedAngles[mode]) < 0.0001,
                             "pre_parallel setup must precede " + expectedClips[mode] + ": " + runtime.getPart("root").animRotRaw());
                 }
+            }
+        } finally {
+            fixture.runtime.close();
+            client.drain();
+        }
+    }
+
+    private static void testWalkingUsesAvailableLocomotion(Unsafe unsafe, RecordingClient client) throws Exception {
+        Fixture fixture = new Fixture(unsafe, 72);
+        try {
+            var input = fixture.runtimeTag.copy();
+            var animations = new net.minecraft.nbt.ListTag();
+            var clip = new net.minecraft.nbt.CompoundTag();
+            clip.putByteArray("data", bytes("""
+                    {"animations":{"run":{"loop":true,"animation_length":1,
+                      "bones":{"root":{"rotation":["math.sin(q.anim_time*360)*30",0,0]}}}}}
+                    """));
+            animations.add(clip);
+            input.put("animations", animations);
+            Avatar avatar = owner(unsafe, 73);
+            try (var runtime = YsmModelRuntime.fromNbt(avatar, input)) {
+                install(avatar, "ysmRuntime", runtime);
+                var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
+                state.walkAnimationSpeed = 1f;
+                for (int tick = 0; tick <= 25; tick++) {
+                    state.ageInTicks = tick;
+                    top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
+                    runtime.updateAnimations(state, null);
+                }
+                require(runtime.animations().getActiveAnimation("run") != null,
+                        "walking must use the available run clip when the model has no walk clip");
+                require(Math.abs(runtime.getPart("root").animRotRaw().x) > 1,
+                        "walking fallback must sample a changing locomotion pose");
             }
         } finally {
             fixture.runtime.close();

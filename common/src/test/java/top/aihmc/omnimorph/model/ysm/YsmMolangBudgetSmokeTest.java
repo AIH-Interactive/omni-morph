@@ -25,6 +25,7 @@ public final class YsmMolangBudgetSmokeTest {
         testLoopsAndRecovery();
         testNestedContext();
         testFrameAndAvatarIsolation();
+        testDefaultFrameWorkload();
         System.out.println("M4 shared Molang execution budget, loop cleanup, context/frame/Avatar isolation and recovery passed.");
     }
 
@@ -80,7 +81,7 @@ public final class YsmMolangBudgetSmokeTest {
         Avatar.MolangContext first = new Avatar.MolangContext(null);
         Avatar.MolangContext second = new Avatar.MolangContext(null);
         try (var frame = first.executionBudget().beginFrame(17)) {
-            for (int step = 0; step < MolangExecutionBudget.DEFAULT_STEPS; step++) {
+            for (int step = 0; step < MolangExecutionBudget.DEFAULT_FRAME_STEPS; step++) {
                 first.executionBudget().consume();
             }
             expectExceeded(first.executionBudget()::consume, "first Avatar exhausted its frame allowance");
@@ -88,6 +89,27 @@ public final class YsmMolangBudgetSmokeTest {
         try (var frame = second.executionBudget().beginFrame(17)) {
             equal(1f, ExpressionEvaluator.evaluator(second).evalAsFloat(FloatExpression.ONE),
                     "second Avatar's same frame remains independent");
+        }
+    }
+
+    private static void testDefaultFrameWorkload() {
+        var context = new Avatar.MolangContext(null);
+        var evaluator = ExpressionEvaluator.evaluator(context);
+        // A real complex model needs about 295,000 AST steps for one 20 Hz frame.
+        var completeModelFrame = Collections.<Expression>nCopies(300_000, FloatExpression.ONE);
+        try (var frame = context.executionBudget().beginFrame(1)) {
+            evaluator.evalAll(completeModelFrame, false);
+        }
+        expectExceeded(() -> {
+            try (var repeatedPass = context.executionBudget().beginFrame(1)) {
+                evaluator.evalAll(completeModelFrame, false);
+            }
+        }, "repeated render passes cannot refill the larger frame allowance");
+        expectExceeded(() -> evaluator.evalAll(
+                Collections.nCopies(MolangExecutionBudget.DEFAULT_STEPS + 1, FloatExpression.ONE), false),
+                "standalone evaluations retain their original smaller allowance");
+        try (var nextFrame = context.executionBudget().beginFrame(2)) {
+            evaluator.evalAll(completeModelFrame, false);
         }
     }
 

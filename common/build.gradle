@@ -531,6 +531,18 @@ tasks.register("ysmSyncDeferSmokeTest", JavaExec) {
     mainClass = "top.aihmc.omnimorph.model.ysm.YsmSyncDeferSmokeTest"
 }
 
+tasks.register("ysmMolangMathSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks YSM inverse trigonometry units and authored bone angle conversion."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmMolangMathSmokeTest"
+}
+
+tasks.named('test') {
+    dependsOn 'ysmMolangMathSmokeTest'
+}
+
 tasks.register("ysmMolangBudgetSmokeTest", JavaExec) {
     group = "verification"
     description = "Checks shared total Molang execution budgets, repeated-frame limits and recovery after exhaustion."
