@@ -90,12 +90,9 @@ public class YsmRenderer {
     }
 
     public boolean renderAttachments(PoseStack stack, MultiBufferSource bufferSource, int light, YsmRenderPose pose) {
-        boolean rendered = false;
-        rendered |= renderAttachmentType(stack, bufferSource, light, YsmAttachmentType.BACKPACK, pose);
-        rendered |= renderAttachmentType(stack, bufferSource, light, YsmAttachmentType.BLADE, pose);
-        rendered |= renderAttachmentType(stack, bufferSource, light, YsmAttachmentType.SHEATH, pose);
-        rendered |= renderAttachmentType(stack, bufferSource, light, YsmAttachmentType.ELYTRA, pose);
-        return rendered;
+        // Attachment points describe item anchors, not an exhaustive list of geometry roots.
+        // Traverse the authored hierarchy so every branch keeps its ancestors and draws once.
+        return render(stack, bufferSource, light, YsmPartMask.WORLD_ATTACHMENTS, pose);
     }
 
     public boolean renderAttachmentType(PoseStack stack, MultiBufferSource bufferSource, int light, YsmAttachmentType type) {
@@ -104,6 +101,17 @@ public class YsmRenderer {
 
     private boolean renderAttachmentType(PoseStack stack, MultiBufferSource bufferSource, int light,
                                           YsmAttachmentType type, YsmRenderPose pose) {
+        YsmBoneRole role = switch (type) {
+            case BACKPACK -> YsmBoneRole.BACKPACK;
+            case BLADE -> YsmBoneRole.BLADE;
+            case SHEATH -> YsmBoneRole.SHEATH;
+            case ELYTRA -> YsmBoneRole.ELYTRA;
+            default -> null;
+        };
+        if (role != null) {
+            return render(stack, bufferSource, light,
+                    new YsmPartMask(java.util.EnumSet.of(role)), pose);
+        }
         boolean rendered = false;
         for (YsmAttachmentPoint point : runtime.attachmentPoints()) {
             if (point.type() == type)
@@ -138,6 +146,14 @@ public class YsmRenderer {
         updateTrackedPivots(false, pose);
         stack.pushPose();
         applyModelScale(stack, pose);
+        var ancestors = new java.util.ArrayList<YsmGeometry.Bone>();
+        for (var parent = findAttachmentBone(bone.parentName); parent != null;
+             parent = findAttachmentBone(parent.parentName)) {
+            ancestors.addFirst(parent);
+        }
+        for (var parent : ancestors) {
+            applyBoneTransform(parent, pose == null ? runtime.getPart(parent.name) : pose.part(parent.name), stack);
+        }
         renderBone(bone, stack, vertices, light, null, false, pose);
         stack.popPose();
         return true;
@@ -187,6 +203,18 @@ public class YsmRenderer {
     private boolean shouldRenderArmBone(YsmGeometry.Bone bone, boolean left, boolean useArmParts) {
         YsmBoneRole role = useArmParts ? runtime.armRoleOf(bone.name) : runtime.roleOf(bone.name);
         return YsmBoneMapper.isFirstPersonArmCandidate(bone.name, role, left);
+    }
+
+    private YsmBoneRole worldGeometryRole(YsmGeometry.Bone bone, YsmBoneRole role) {
+        // Ordinary descendants belong to their enclosing equipment branch. Otherwise a
+        // child is drawn in the body pass and again when its attachment is submitted.
+        for (var current = bone; current != null; current = findAttachmentBone(current.parentName)) {
+            YsmBoneRole ancestorRole = runtime.roleOf(current.name);
+            if (YsmPartMask.WORLD_ATTACHMENTS.allows(ancestorRole)) {
+                role = ancestorRole;
+            }
+        }
+        return role;
     }
 
     private RenderType renderType() {
@@ -243,6 +271,9 @@ public class YsmRenderer {
         YsmModelPart part = pose == null
                 ? (useArmParts ? runtime.getArmPart(bone.name) : runtime.getPart(bone.name)) : pose.part(bone.name);
         YsmBoneRole role = useArmParts ? runtime.armRoleOf(bone.name) : runtime.roleOf(bone.name);
+        if (!useArmParts && mask != YsmPartMask.FIRST_PERSON_ARM) {
+            role = worldGeometryRole(bone, role);
+        }
         if (part != null && (!part.visibleRaw() || part.hiddenScaleRaw()))
             return;
         boolean renderSelf = mask == null || mask.allows(role);

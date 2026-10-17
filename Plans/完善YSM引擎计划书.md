@@ -1656,3 +1656,19 @@ FiguraTexture 的共用修复覆盖 Figura/YSM：
 自动验收：:common:ysmMaterialNativeSmokeTest :common:ysmControlledBaseGeometrySmokeTest :common:ysmControllerPhaseSmokeTest :common:ysmControllerPoseLayerSmokeTest :common:ysmBoneMatrixSmokeTest :common:ysmVanillaStateSmokeTest 先通过 58 秒/退出 0（10 tasks，8 executed、2 up-to-date），日志 build/reports/ysm/running-phase-fixed.log。补充通道语法检查时测试的 ParseException checked-exception 声明错误已修正后重新运行。最终前台 :common:ysmMaterialNativeSmokeTest :common:ysmControlledBaseGeometrySmokeTest :common:ysmDeferredPoseSmokeTest :fabric:build --console=plain，BUILD SUCCESSFUL 49 秒/退出 0，18 tasks（12 executed、6 up-to-date），日志 build/reports/ysm/running-phase-final-gate.log。检查新修改可读性、完整差异及 git diff --check，独立提交推送并核对远端 SHA。此前过期语料数量断言的 FOLLOW_UP 仍保留，本次未修改其基线或声称重跑通过。
 
 正式 JAR：fabric/build/libs/figura-0.1.5+26.1.2-fabric-mc.jar，12,822,505 字节，SHA-256：20A184A4C77257E7062E41099AEAF692DA10D78126AAECEF73A421782FD42169。此前产物哈希保留为历史证据。
+
+### 9.20 用户追加：持剑消失及同类附件渲染的共用修复（2026-10-17）
+
+用户报告切换到芙宁娜v3.14中文配音.ysm 后持剑消失，并明确要求检查和全局修复类似渲染问题。检查范围为同一 YSM 绘制路径中的剑、双翼、背包、剑鞘、父级变换、隐藏/零缩放和延迟提交；没有扩展新的里程碑、后端或 GUI。
+
+原文件在内存中加载：36 个带几何的 BLADE 骨骼都没有独立附件登记，双手标准挂点可见且非零缩放。首次登记数量断言不足以判断子树是否实际可达，因此进一步记录生产 renderBone 输出的顶点及变换位置，比较完整可见几何与原身体/附件路径。修改前应输出 33,360 个顶点，实际只有 27,648 个，断言失败；日志 build/reports/ysm/held-item-red.log。早期记录器遗漏 VertexConsumer 的 Pose 参数重载，空输出曾误通过，补上真实变换坐标及非空检查后才取得这份失败证据，没有将早期通过作为有效验收。
+
+根因与修复位于共用 YsmRenderer：附件登记是挂点目录，不能充当全部几何根的目录；已有 BladeLocator 等挂点会阻止后续同类骨骼登记，导致模型自带剑等分支漏绘。世界附件现在从完整骨骼根遍历，以独立 WORLD_ATTACHMENTS 遮罩绘制，保留完整父级变换。附件子树中的普通子骨骼归属外围附件通道，避免身体通道先绘一次、附件又绘一次。按类型绘制同样覆盖全部分支；按名称单独绘制附件则补齐祖先变换。没有修改模型源文件、手持物偏移或主动隐藏语义，也没有用强制显示原版剑掩盖附件漏绘。
+
+新增 :common:ysmHeldItemGeometrySmokeTest，最小夹具含双剑、双翼、背包、剑鞘和普通子骨骼，共 7 个方块、168 个顶点。验证每个顶点只绘一次、父级平移旋转、按类型/按名称绘制、隐藏祖先、零缩放祖先、延迟快照不受后续隐藏影响。当前 refs/avatars 由 Files.list 枚举，全部 43 个 YSM（35 个明文、8 个加密）逐个正式装配，比较身体/附件两通道与单通道可见几何的坐标多重集合，并验证提交快照；逐个关闭和排空清理后加载下一个。芙宁娜恢复为 33,360/33,360。Figura 来源由现有识别器排除，本次没有修改其渲染器或将这项 YSM 检查宣称为 Figura 全量验收。
+
+验证边界：这是生产顶点提交路径的 CPU 数值回归，GPU 使用记录设备；不是窗口截图或驱动验收。43 个样本检查默认姿势的通道完整性，不代表全部动画/装备组合均已实机通过。真实持剑、左右手、切模后外观及与参考图对照按用户授权记 SKIPPED/MANUAL_BY_USER，不阻塞提交。遍历时一份加密输入保留 runtime/controller-parse 匿名警告，记 FOLLOW_UP/ENCRYPTED_CONTROLLER_PARSE；本项不声称该模型全部控制器已解析成功。既有语料固定数量断言过期的 FOLLOW_UP 仍保留，没有改写旧基线。
+
+最终前台执行 :common:ysmHeldItemGeometrySmokeTest :common:ysmMaterialNativeSmokeTest :common:ysmDeferredPoseSmokeTest :common:ysmBoneMatrixSmokeTest :common:ysmControlledBaseGeometrySmokeTest :fabric:build --console=plain，BUILD SUCCESSFUL 1 分 14 秒/退出 0，20 tasks（15 executed、5 up-to-date），日志 build/reports/ysm/world-attachment-gate.log。纹理生命周期/换肤、主副手矩阵、原生层级顺序、末影龙娘移动通道等既有回归通过；既有 Unsafe/native-access、弃用和 remap 警告保留。完成修改可读性、差异及 git diff --check 检查后独立提交推送并核对远端 SHA。不使用 offscreen、不修改 refs/omnm-cloud、不关闭计算机。
+
+正式 JAR：fabric/build/libs/figura-0.1.5+26.1.2-fabric-mc.jar，12,823,981 字节，SHA-256：7FC57870E35C5391C68498583D90317EAA254479717368AD6720C2097630D856。此前产物哈希保留为历史证据。
