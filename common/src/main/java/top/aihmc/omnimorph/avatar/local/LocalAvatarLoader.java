@@ -83,11 +83,11 @@ public class LocalAvatarLoader {
         }
     }
 
-    protected static void async(Runnable toRun) {
+    protected static synchronized void async(Runnable toRun) {
         if (tasks == null || tasks.isDone()) {
             tasks = CompletableFuture.runAsync(toRun);
         } else {
-            tasks.thenRun(toRun);
+            tasks = tasks.handle((ignored, failure) -> null).thenRunAsync(toRun);
         }
     }
 
@@ -124,7 +124,11 @@ public class LocalAvatarLoader {
                 CompoundTag nbt = compileFiguraAvatar(finalPath, target.id);
 
                 // load
-                target.ysmLoads.publish(generation, () -> target.loadAvatar(nbt));
+                net.minecraft.client.Minecraft.getInstance().execute(() -> {
+                    if (target.ysmLoads.current(generation)) {
+                        target.loadAvatar(nbt);
+                    }
+                });
             } catch (Throwable e) {
                 loadError = e.getMessage();
                 FiguraMod.LOGGER.error("Failed to load avatar from " + finalPath, e);

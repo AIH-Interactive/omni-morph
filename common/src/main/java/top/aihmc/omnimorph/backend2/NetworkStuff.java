@@ -624,20 +624,8 @@ public class NetworkStuff {
 
             CloudConnection selected = connection;
             long generation = requestGenerations.getOrDefault(user.id, 0L);
-            user.loadData(avatars, badgesPair, action -> {
-                try {
-                    selected.publishModel(() -> {
-                        if (selected == connection && selected.active()
-                                && generation == requestGenerations.getOrDefault(user.id, 0L)) {
-                            action.run();
-                        }
-                    });
-                } catch (Exception cancelled) {
-                    if (selected.active()) {
-                        selected.fail("Cached model publication failed");
-                    }
-                }
-            });
+            user.loadData(avatars, badgesPair, () -> selected == connection && selected.active()
+                    && generation == requestGenerations.getOrDefault(user.id, 0L));
         });
     }
 
@@ -728,7 +716,8 @@ public class NetworkStuff {
                     if (selected == connection && selected.active()
                             && requestGeneration == requestGenerations.getOrDefault(target.id, 0L)) {
                         CacheAvatarLoader.save(cacheKey, nbt);
-                        target.loadAvatar(nbt);
+                        target.loadAvatar(nbt, () -> selected == connection && selected.active()
+                                && requestGeneration == requestGenerations.getOrDefault(target.id, 0L));
                     }
                 });
             }

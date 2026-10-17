@@ -258,16 +258,21 @@ public class AvatarManager {
     public static void reloadAvatar(UUID id) {
         if (!localUploaded && FiguraMod.isLocal(id))
             loadLocalAvatar(LocalAvatarLoader.getLastLoadedPath());
-        else
-            clearAvatars(id);
+        else {
+            NetworkStuff.clear(id);
+            FETCHED_USERS.add(id);
+            UserData user = LOADED_USERS.computeIfAbsent(id, UserData::new);
+            NetworkStuff.getUser(user);
+        }
     }
 
     // load the local player avatar
     public static void loadLocalAvatar(Path path) {
         UUID id = FiguraMod.getLocalPlayerUUID();
 
-        // Keep the previous avatar until a YSM replacement has been assembled successfully.
-        if (path == null || !YsmAvatarDetector.isYsmAvatar(path)) {
+        // Retire cloud callbacks even when the previous model stays visible during preparation.
+        NetworkStuff.clear(id);
+        if (path == null) {
             clearAvatars(id);
         }
         FETCHED_USERS.add(id);

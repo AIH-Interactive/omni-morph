@@ -103,7 +103,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 
@@ -112,14 +111,13 @@ import java.util.function.Consumer;
 // and also related to the owner, like its permissions
 public class Avatar {
 
-    private static CompletableFuture<Void> tasks;
     public static boolean firstPerson;
 
     // properties
     public final UUID owner;
     public final EntityType<?> entityType;
     public CompoundTag nbt;
-    public boolean loaded = true;
+    public volatile boolean loaded = true;
     public final boolean isHost;
 
     //metadata
@@ -818,83 +816,81 @@ public class Avatar {
     }
 
     public void load(CompoundTag nbt, YsmModelData ysmData) {
-        Runnable toRun = () -> {
-            this.nbt = nbt;
-            loaded = false;
-            controls.clear();
-            controls.setOnChange(null);
-        };
+        load(nbt, ysmData, () -> false);
+    }
 
-        if (tasks == null || tasks.isDone()) {
-            tasks = CompletableFuture.runAsync(toRun);
-        } else {
-            tasks.thenRun(toRun);
-        }
-
-        tasks.join();
+    /** Runs on a model preparation worker; publication is owned by UserData. */
+    public void load(CompoundTag nbt, YsmModelData ysmData, java.util.function.BooleanSupplier cancelled) {
+        this.nbt = nbt;
+        loaded = false;
+        controls.clear();
+        controls.setOnChange(null);
 
         if (nbt == null) {
             loaded = true;
             return;
         }
 
-        tasks.thenRun(() -> {
-            try {
-                // metadata
-                CompoundTag metadata = nbt.getCompoundOrEmpty("metadata");
-                name = metadata.getStringOr("name", "");
-                authors = metadata.getStringOr("authors", "");
-                version = new Version(metadata.getStringOr("ver", ""));
-                if (metadata.contains("id"))
-                    id = metadata.getStringOr("id", "");
-                if (metadata.contains("color"))
-                    color = metadata.getStringOr("color", "");
-                if (metadata.contains("minify"))
-                    minify = metadata.getBooleanOr("minify", false);
-                if (nbt.contains("resources")) {
-                    CompoundTag res = nbt.getCompoundOrEmpty("resources");
-                    for (String k :
-                            res.keySet()) {
-                        resources.put(k, res.getByteArray(k).orElse(new byte[0]));
-                    }
+        try {
+            top.aihmc.omnimorph.avatar.ysm.YsmResourceLimits.checkCancelled(cancelled);
+            // metadata
+            CompoundTag metadata = nbt.getCompoundOrEmpty("metadata");
+            name = metadata.getStringOr("name", "");
+            authors = metadata.getStringOr("authors", "");
+            version = new Version(metadata.getStringOr("ver", ""));
+            if (metadata.contains("id"))
+                id = metadata.getStringOr("id", "");
+            if (metadata.contains("color"))
+                color = metadata.getStringOr("color", "");
+            if (metadata.contains("minify"))
+                minify = metadata.getBooleanOr("minify", false);
+            if (nbt.contains("resources")) {
+                CompoundTag res = nbt.getCompoundOrEmpty("resources");
+                for (String k :
+                        res.keySet()) {
+                    resources.put(k, res.getByteArray(k).orElse(new byte[0]));
                 }
-                for (String key : metadata.keySet()) {
-                    if (key.contains("badge_color_")) {
-                        badgeToColor.put(key.replace("badge_color_", ""), metadata.getStringOr(key, ""));
-                    }
+            }
+            for (String key : metadata.keySet()) {
+                if (key.contains("badge_color_")) {
+                    badgeToColor.put(key.replace("badge_color_", ""), metadata.getStringOr(key, ""));
                 }
-                fileSize = getFileSize();
-                versionStatus = getVersionStatus();
-                if (entityName.isBlank())
-                    entityName = name;
+            }
+            fileSize = getFileSize();
+            versionStatus = getVersionStatus();
+            if (entityName.isBlank())
+                entityName = name;
 
-                if (metadata.getStringOr("format", "").equals("ysm-native") && nbt.contains("ysm")) {
-                    this.molangContext = new MolangContext(this);
-                    ysmRuntime = ysmData == null
-                            ? YsmModelRuntime.fromNbt(this, nbt.getCompoundOrEmpty("ysm"))
-                            : YsmModelRuntime.fromData(this, ysmData, nbt.getCompoundOrEmpty("ysm"));
-                    ysmRuntime.restoreControls();
-                    renderer = null;
-                    hasTexture = true;
-                } else {
-                    // animations and models
-                    loadAnimations();
-                    renderer = new ImmediateFiguraRenderer(this);
-                }
-
-                // sounds and script
-                loadCustomSounds();
-                createLuaRuntime();
-            } catch (Exception e) {
-                FiguraMod.LOGGER.error("", e);
-                clean();
-                this.nbt = null;
-                this.renderer = null;
-                this.luaRuntime = null;
+            if (metadata.getStringOr("format", "").equals("ysm-native") && nbt.contains("ysm")) {
+                this.molangContext = new MolangContext(this);
+                ysmRuntime = ysmData == null
+                        ? YsmModelRuntime.fromNbt(this, nbt.getCompoundOrEmpty("ysm"), cancelled)
+                        : YsmModelRuntime.fromData(this, ysmData, nbt.getCompoundOrEmpty("ysm"));
+                ysmRuntime.restoreControls();
+                renderer = null;
+                hasTexture = true;
+            } else {
+                // animations and models
+                loadAnimations();
+                renderer = new ImmediateFiguraRenderer(this);
             }
 
-            loaded = true;
-        });
+            // sounds and script
+            loadCustomSounds();
+            createLuaRuntime();
+        } catch (Exception e) {
+            if (!(e instanceof java.io.InterruptedIOException)) {
+                FiguraMod.LOGGER.error("", e);
+            }
+            Minecraft.getInstance().execute(() -> {
+                clean();
+                this.renderer = null;
+                this.luaRuntime = null;
+            });
+            this.nbt = null;
+        }
+
+        loaded = true;
     }
 
     public void tick() {

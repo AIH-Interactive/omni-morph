@@ -46,15 +46,15 @@ public class CacheAvatarLoader {
     }
 
     public static boolean checkAndLoad(String hash, UserData target) {
-        return checkAndLoad(hash, target, Runnable::run);
+        return checkAndLoad(hash, target, () -> true);
     }
 
-    public static boolean checkAndLoad(String hash, UserData target, java.util.function.Consumer<Runnable> publish) {
+    public static boolean checkAndLoad(String hash, UserData target, java.util.function.BooleanSupplier current) {
         Path p = getAvatarCacheDirectory();
         p = p.resolve(hash + ".nbt");
 
         if (Files.exists(p)) {
-            load(hash, target, publish);
+            load(hash, target, current);
             return true;
         }
 
@@ -62,10 +62,10 @@ public class CacheAvatarLoader {
     }
 
     public static void load(String hash, UserData target) {
-        load(hash, target, Runnable::run);
+        load(hash, target, () -> true);
     }
 
-    private static void load(String hash, UserData target, java.util.function.Consumer<Runnable> publish) {
+    private static void load(String hash, UserData target, java.util.function.BooleanSupplier current) {
         LocalAvatarLoader.async(() -> {
             Path path = getAvatarCacheDirectory().resolve(hash + ".nbt");
             try (var stream = Files.newInputStream(path)) {
@@ -73,7 +73,11 @@ public class CacheAvatarLoader {
                     throw new java.io.IOException("Cached model exceeds byte budget");
                 }
                 var nbt = NbtIo.readCompressed(stream, NbtAccounter.create(256L * 1024 * 1024));
-                publish.accept(() -> target.loadAvatar(nbt));
+                net.minecraft.client.Minecraft.getInstance().execute(() -> {
+                    if (current.getAsBoolean()) {
+                        target.loadAvatar(nbt, current);
+                    }
+                });
                 FiguraMod.debug("Loaded avatar \"{}\" from cache to \"{}\"", hash, target.id);
             } catch (Exception e) {
                 FiguraMod.LOGGER.error("Failed to load cache avatar: " + hash, e);

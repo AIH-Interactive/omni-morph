@@ -65,8 +65,13 @@ final class YsmStabilitySmokeTest {
     }
 
     static SoundManager soundManager(Unsafe unsafe) throws Exception {
+        return soundManager(unsafe, false);
+    }
+
+    static SoundManager soundManager(Unsafe unsafe, boolean allowAvatarCleanup) throws Exception {
         RecordingManager manager = (RecordingManager) unsafe.allocateInstance(RecordingManager.class);
         manager.engine = (RecordingEngine) unsafe.allocateInstance(RecordingEngine.class);
+        manager.engine.allowAvatarCleanup = allowAvatarCleanup;
         return manager;
     }
 
@@ -319,6 +324,7 @@ final class YsmStabilitySmokeTest {
     }
 
     private static final class RecordingEngine extends SoundEngine implements SoundEngineAccessor {
+        private boolean allowAvatarCleanup;
         private long released;
         private long releasedBytes;
 
@@ -345,6 +351,9 @@ final class YsmStabilitySmokeTest {
 
         @Override
         public void figura$stopSound(UUID owner, String name) {
+            if (allowAvatarCleanup) {
+                return;
+            }
             throw new AssertionError("No playback handles were allocated");
         }
 
