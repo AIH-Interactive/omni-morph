@@ -126,15 +126,25 @@ final class GpuBatchData {
     static ByteBuffer pose(DrawBatch batch) {
         ByteBuffer data = direct(POSE_BYTES);
         PoseSnapshot pose = batch.pose();
-        write(data, pose.copyPositionMatrix());
-        writePadded3(data, pose.copyNormalMatrix());
-        writePadded3(data, pose.copyUvMatrix());
+        writePart(data, pose);
         for (int joint = 0; joint < pose.skinJointCount(); joint++) {
             data.position((joint + 1) * PART_BYTES);
             write(data, pose.copySkinDelta(joint));
         }
-        DrawSemantics draw = batch.semantics();
         data.position(PARAMETER_OFFSET);
+        writeParameters(data, batch);
+        return data.flip();
+    }
+
+    static void writePart(ByteBuffer data, PoseSnapshot pose) {
+        write(data, pose.copyPositionMatrix());
+        writePadded3(data, pose.copyNormalMatrix());
+        writePadded3(data, pose.copyUvMatrix());
+    }
+
+    static void writeParameters(ByteBuffer data, DrawBatch batch) {
+        DrawSemantics draw = batch.semantics();
+        PoseSnapshot pose = batch.pose();
         data.putFloat(quantizeColor(draw.red())).putFloat(quantizeColor(draw.green()))
                 .putFloat(quantizeColor(draw.blue())).putFloat(quantizeColor(draw.alpha()));
         data.putInt(draw.overlay() & 0xffff).putInt(draw.overlay() >>> 16)
@@ -142,7 +152,6 @@ final class GpuBatchData {
         data.putFloat((float) draw.vertexOffset()).putFloat(pose.normalPolicy())
                 .putFloat(pose.skinJointCount() > 0 && !pose.usesFloatPrecision() ? 1 : 0)
                 .putFloat(pose.usesFloatPrecision() ? 1 : 0);
-        return data.flip();
     }
 
     private static boolean finiteMatrix(double[] values) {

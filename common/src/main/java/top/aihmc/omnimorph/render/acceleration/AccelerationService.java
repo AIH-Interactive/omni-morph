@@ -1,6 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
 import java.util.Objects;
+import java.util.List;
 import java.util.function.Consumer;
 import com.mojang.blaze3d.vertex.MeshData;
 import net.minecraft.client.renderer.rendertype.RenderType;
@@ -83,6 +84,10 @@ public final class AccelerationService {
         return preferredBackend instanceof GpuAccelerationBackend;
     }
 
+    boolean gpuRigidGroupsEnabled() {
+        return preferredBackend instanceof GpuAccelerationBackend gpu && gpu.supportsRigidGroups();
+    }
+
     GpuSubmission.Scope openGpuDrawScope(RenderType material) {
         if (!(preferredBackend instanceof GpuAccelerationBackend gpu)) {
             throw new GpuAccelerationBackend.Failure(FallbackReason.GPU_UNAVAILABLE, false, null);
@@ -103,6 +108,23 @@ public final class AccelerationService {
         }
         try {
             return gpu.prepare(batch, () -> isCurrent(batch.lease()));
+        } catch (RuntimeException | LinkageError failure) {
+            backendFailed(gpu, failure);
+            return null;
+        }
+    }
+
+    List<GpuAccelerationBackend.PreparedRange> prepareGpuGroup(List<DrawBatch> batches, long[] order) {
+        if (!(preferredBackend instanceof GpuAccelerationBackend gpu) || batches.isEmpty()) {
+            return null;
+        }
+        for (DrawBatch batch : batches) {
+            if (!isCurrent(batch.lease())) {
+                return null;
+            }
+        }
+        try {
+            return gpu.prepareGroup(batches, order, () -> isCurrent(batches.getFirst().lease()));
         } catch (RuntimeException | LinkageError failure) {
             backendFailed(gpu, failure);
             return null;

@@ -22,6 +22,9 @@ interface GpuDeviceAdapter {
     interface Pose extends Resource {
     }
 
+    interface Indices extends Resource {
+    }
+
     record Material(RenderPipeline original, RenderPipeline accelerated) {
     }
 
@@ -31,9 +34,21 @@ interface GpuDeviceAdapter {
 
     Material compile(RenderPipeline original);
 
+    default boolean supportsRigidGroups() {
+        return false;
+    }
+
+    default Material compileRigidGroup(RenderPipeline original) {
+        throw new UnsupportedOperationException("Rigid group pipeline unavailable");
+    }
+
     Mesh uploadGeometry(ByteBuffer vertices, ByteBuffer indices);
 
     Pose uploadPose(ByteBuffer data);
+
+    default Indices uploadIndices(ByteBuffer data) {
+        throw new UnsupportedOperationException("Sorted index upload unavailable");
+    }
 
     GpuSubmission.Scope openScope(RenderType material);
 
@@ -44,6 +59,11 @@ interface GpuDeviceAdapter {
     /** Marks the draw immediately before issuing it: an uncertain/partially submitted draw must not be replayed. */
     void draw(Material material, Mesh mesh, Pose pose, GpuDrawContext context,
               int firstIndex, int indexCount, Runnable issuingDraw);
+
+    default void drawWithIndices(Material material, Mesh mesh, Pose pose, Indices indices, GpuDrawContext context,
+                                 int firstIndex, int indexCount, Runnable issuingDraw) {
+        throw new UnsupportedOperationException("Sorted rigid group drawing unavailable");
+    }
 
     GpuFence fence();
 

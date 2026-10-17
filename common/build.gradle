@@ -179,6 +179,22 @@ tasks.register('gpuSubmissionSmokeTest', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuSubmissionSmokeTest'
 }
 
+tasks.register('gpuRigidDataSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks sorted rigid palette packing, remap bounds and frame memory accounting.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuRigidDataSmokeTest'
+}
+
+tasks.register('ysmAccelerationMeshesSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks immutable YSM acceleration snapshots against direct geometry and visibility edits.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmAccelerationMeshesSmokeTest'
+}
+
 tasks.register('dualEngineGpuReplay', JavaExec) {
     group = 'verification'
     description = 'Replays production Figura/YSM emitters through the GPU wire layout using a CPU decoder.'
@@ -218,6 +234,23 @@ tasks.register('nativePlatformSmokeTest', JavaExec) {
             files(rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-fabric-mc-windows-local.jar"))
     mainClass = 'top.aihmc.omnimorph.render.acceleration.NativePlatformSmokeTest'
     jvmArgs '--enable-native-access=ALL-UNNAMED', '-Xcheck:jni'
+}
+
+tasks.register('accelerationPreparationBenchmark', JavaExec) {
+    group = 'verification'
+    description = 'Diagnoses actual renderer CPU preparation; command-recorded draws are not GPU/whole-frame performance evidence.'
+    dependsOn testClasses, ':packageLocalNative'
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.render.acceleration.AccelerationPreparationBenchmark'
+    systemProperty 'omnimorph.preparation.quick', providers.gradleProperty('preparationQuick').isPresent()
+    maxHeapSize = '2g'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    if (providers.gradleProperty('preparationJfr').isPresent()) {
+        jvmArgs "-XX:StartFlightRecording=filename=${rootProject.file('build/reports/acceleration/h7-preparation.jfr').path},settings=profile,dumponexit=true"
+    }
+    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-fabric-mc-windows-local.jar").path,
+            rootProject.file('refs/avatars').path,
+            rootProject.file('build/reports/acceleration/h7-preparation.csv').path
 }
 
 ['nativeActivationSmokeTest': 'allow', 'nativeAccessDeniedSmokeTest': 'deny'].each { taskName, policy ->

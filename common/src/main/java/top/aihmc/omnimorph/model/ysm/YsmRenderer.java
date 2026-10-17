@@ -19,11 +19,11 @@ import top.aihmc.omnimorph.render.acceleration.MeshHandle;
 import top.aihmc.omnimorph.render.acceleration.PoseSnapshot;
 import top.aihmc.omnimorph.render.acceleration.GpuSubmission;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class YsmRenderer {
     private final YsmModelRuntime runtime;
+    private final YsmAccelerationMeshes accelerationMeshes = new YsmAccelerationMeshes();
     private Identifier culledTranslucentTexture;
     private RenderType culledTranslucentType;
     private YsmPreviewRenderTypes previewTypes;
@@ -37,6 +37,10 @@ public class YsmRenderer {
 
     public YsmRenderer(YsmModelRuntime runtime) {
         this.runtime = runtime;
+    }
+
+    void clearAccelerationMeshes() {
+        accelerationMeshes.clear();
     }
 
     public boolean render(PoseStack stack, MultiBufferSource bufferSource, int light) {
@@ -442,44 +446,27 @@ public class YsmRenderer {
     private void renderGeometry(List<YsmGeometry.Cube> cubes, PoseStack stack, DrawTarget target, int light) {
         AccelerationService acceleration = AccelerationService.INSTANCE;
         if (!acceleration.accelerated()) {
+            accelerationMeshes.clear();
             for (YsmGeometry.Cube cube : cubes) {
                 renderCube(cube, stack, target, light);
             }
             return;
         }
-        List<YsmGeometry.Quad> faces = new ArrayList<>();
+        int visibleFaces = 0;
         for (YsmGeometry.Cube cube : cubes) {
             for (YsmGeometry.Quad face : cube.quads) {
                 if (face.visible()) {
                     runtime.recordComplexity(1);
-                    faces.add(face);
+                    visibleFaces++;
                 }
             }
         }
-        if (faces.isEmpty()) {
+        if (visibleFaces == 0) {
             return;
         }
-        int maximumFaces = AccelerationService.MAX_BATCH_VERTICES / 4;
         PoseSnapshot pose = new PoseSnapshot(stack.last());
-        for (int first = 0; first < faces.size(); first += maximumFaces) {
-            int count = Math.min(maximumFaces, faces.size() - first);
-            double[] input = new double[count * 4 * MeshHandle.STRIDE];
-            for (int face = 0; face < count; face++) {
-                YsmGeometry.Quad quad = faces.get(first + face);
-                for (int vertex = 0; vertex < 4; vertex++) {
-                    int offset = (face * 4 + vertex) * MeshHandle.STRIDE;
-                    input[offset] = quad.positions()[vertex * 3];
-                    input[offset + 1] = quad.positions()[vertex * 3 + 1];
-                    input[offset + 2] = quad.positions()[vertex * 3 + 2];
-                    input[offset + 3] = 1;
-                    input[offset + 4] = quad.normal()[0];
-                    input[offset + 5] = quad.normal()[1];
-                    input[offset + 6] = quad.normal()[2];
-                    input[offset + 7] = quad.uvs()[vertex * 2];
-                    input[offset + 8] = quad.uvs()[vertex * 2 + 1];
-                }
-            }
-            submitGeometry(target, new MeshHandle(input, 4), pose, light, count);
+        for (MeshHandle mesh : accelerationMeshes.get(cubes)) {
+            submitGeometry(target, mesh, pose, light, mesh.faceCount());
         }
     }
 

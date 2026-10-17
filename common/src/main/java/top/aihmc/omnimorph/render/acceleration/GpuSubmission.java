@@ -150,6 +150,16 @@ public final class GpuSubmission {
                 return;
             }
             if (!original.sortOnUpload()) {
+                if (service.gpuRigidGroupsEnabled() && batches.size() > 1) {
+                    List<Face> order = faces(batches, false);
+                    int remaining = drawGroup(batches, order);
+                    if (remaining >= 0) {
+                        if (remaining < order.size()) {
+                            drawJava(original, batches, order, remaining);
+                        }
+                        return;
+                    }
+                }
                 for (Queued batch : batches) {
                     drawBatches(List.of(batch));
                 }
@@ -160,20 +170,26 @@ public final class GpuSubmission {
         }
 
         private void drawBatches(List<Queued> batches) {
-            var prepared = new ArrayList<GpuAccelerationBackend.Prepared>(batches.size());
-            for (Queued batch : batches) {
-                var draw = service.prepareGpuDraw(batch.batch());
-                if (draw == null) {
-                    drawJava(original, batches, null, 0);
-                    return;
-                }
-                prepared.add(draw);
-            }
+            var prepared = new GpuAccelerationBackend.Prepared[batches.size()];
             List<Face> order = faces(batches, original.sortOnUpload());
+            int groupedRemaining = drawGroup(batches, order);
+            if (groupedRemaining >= 0) {
+                if (groupedRemaining < order.size()) {
+                    drawJava(original, batches, order, groupedRemaining);
+                }
+                return;
+            }
             int remaining = 0;
             try (Scope scope = context.apply(original)) {
                 while (remaining < order.size()) {
                     Face first = order.get(remaining);
+                    // Allocate in submission order. A later budget rejection must not discard earlier GPU work.
+                    if (prepared[first.batch()] == null) {
+                        prepared[first.batch()] = service.prepareGpuDraw(batches.get(first.batch()).batch());
+                        if (prepared[first.batch()] == null) {
+                            break;
+                        }
+                    }
                     int count = 1;
                     while (remaining + count < order.size()) {
                         Face next = order.get(remaining + count);
@@ -182,7 +198,7 @@ public final class GpuSubmission {
                         }
                         count++;
                     }
-                    var result = service.drawPrepared(prepared.get(first.batch()), scope.context, first.face() * 6, count * 6);
+                    var result = service.drawPrepared(prepared[first.batch()], scope.context, first.face() * 6, count * 6);
                     if (result == GpuAccelerationBackend.DrawResult.UNSUPPORTED) {
                         break;
                     }
@@ -197,6 +213,38 @@ public final class GpuSubmission {
             if (remaining < order.size()) {
                 drawJava(original, batches, order, remaining);
             }
+        }
+
+        /** Returns -1 when the ordinary per-batch path should handle this material. */
+        private int drawGroup(List<Queued> batches, List<Face> order) {
+            if (batches.size() < 2 || !service.gpuRigidGroupsEnabled()) {
+                return -1;
+            }
+            long[] sorted = new long[order.size()];
+            for (int index = 0; index < order.size(); index++) {
+                Face face = order.get(index);
+                sorted[index] = (long) face.batch() << 32 | Integer.toUnsignedLong(face.face());
+            }
+            var prepared = service.prepareGpuGroup(batches.stream().map(Queued::batch).toList(), sorted);
+            if (prepared == null) {
+                return -1;
+            }
+            int remaining = 0;
+            try (Scope scope = context.apply(original)) {
+                for (GpuAccelerationBackend.PreparedRange range : prepared) {
+                    var result = service.drawPrepared(range.prepared(), scope.context, range.firstFace() * 6, range.faceCount() * 6);
+                    if (result == GpuAccelerationBackend.DrawResult.UNSUPPORTED) {
+                        break;
+                    }
+                    remaining += range.faceCount();
+                    if (result == GpuAccelerationBackend.DrawResult.ISSUED_BEFORE_FAILURE) {
+                        break;
+                    }
+                }
+            } catch (RuntimeException | LinkageError failure) {
+                service.graphicsFailed(failure);
+            }
+            return remaining;
         }
     }
 
