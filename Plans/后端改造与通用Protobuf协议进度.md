@@ -388,3 +388,25 @@ Cargo 自动完成必要编译，无需先手动生成 exe。完整前台日志�
 SKIPPED/MANUAL_BY_USER；本地协议与 CPU/原生测试不冒充实机 PASS。实体世界权威依赖按协议
 返回 AUTHORITY_UNAVAILABLE，未擅自模拟。B8 两仓库检查点完成并核对产物后，继续用户授权的
 top.aihmc.omnimorph 包名、omni-morph 模组 ID、OmniMorph 品牌/帮助页、1.0.0-alpha.1 与图标迁移。
+
+## 后续包名迁移（用户追加）
+
+B8 客户端检查点 eaf7201c6510454f1694ac29a6616d41ca7620ef 已推送核对；双方产物已实际记录到
+build/reports/cloud/b8-release.json，并保存于 build/releases/b8，避免后续构建覆盖历史产物。
+B8 最终 JAR 内嵌 0.1.5+26.1.2-eaf7201，SHA-256：
+6b27858c537c11d4579bd4277e99208af43dfa57d5548984a236749ff0b7af9d。
+
+状态 PASS。仅迁移 Java 根包与对应源码路径、Gradle 运行入口、Mixin/反射/模组入口引用，
+以及跨语言测试启动类。保留 Figura 类名/API 技术名称；模组 ID/品牌/版本/图标在本检查点后处理。
+Protobuf 只修改 java_package 为 top.aihmc.omnimorph.backend2.protocol.generated，字段号、
+消息及线数据不变，所有黄金向量保持原样。协议源码 SHA-256 因 Java 选项变为
+6fff18b25ac2f6b88d1530add0dbc30546136506f878568f86bf713388a9e741；两仓库源码与摘要清单同步。
+B0～B8 记录保留当时的摘要，不改写历史证据。README.Figura.original.md 原始哈希仍等值。
+
+后端配套检查点 847b36704a17e9d6ef07a2026c397d6ac941651d 已推送核对，说明位于
+docs/CLIENT_NAMESPACE.md。最终 :common:test、ysmMaterialNativeSmokeTest、
+writeCloudIntegrationClasspath、:fabric:build --console=plain 均 PASS；JAR 旧根包 class=0、
+新根包 class=1270。cargo build --release --locked --offline、带全部 B8 门禁输入的 cargo test
+--locked --offline -- --nocapture（20 项与 12 组 Java 联调、旧进程/迁移/回滚）均 PASS。
+双仓库协议摘要校验与受影响 git diff --check PASS；生成源码未提交。
+客户端检查点推送核对后再开始模组 ID、品牌、版本和图标迁移。人工游戏观察状态保持原记录。

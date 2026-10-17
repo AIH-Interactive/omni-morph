@@ -1,0 +1,111 @@
+package top.aihmc.omnimorph.gui.widgets.config;
+
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import top.aihmc.omnimorph.config.ConfigType;
+import top.aihmc.omnimorph.gui.widgets.AbstractContainerElement;
+import top.aihmc.omnimorph.gui.widgets.Button;
+import top.aihmc.omnimorph.gui.widgets.ParentedButton;
+import top.aihmc.omnimorph.gui.widgets.lists.ConfigList;
+import top.aihmc.omnimorph.utils.ui.UIHelper;
+
+import java.util.Locale;
+import java.util.Objects;
+
+public abstract class AbstractConfigElement extends AbstractContainerElement {
+
+    protected final ConfigType<?> config;
+    protected final ConfigList parentList;
+    protected final CategoryWidget parentCategory;
+
+    protected Button resetButton;
+
+    protected Object initValue;
+
+    private String filter = "";
+
+    public AbstractConfigElement(int width, ConfigType<?> config, ConfigList parentList, CategoryWidget parentCategory) {
+        super(0, 0, width, 20);
+        this.config = config;
+        this.parentList = parentList;
+        this.parentCategory = parentCategory;
+        this.initValue = config.value;
+
+        // reset button
+        children.add(resetButton = new ParentedButton(0, 0, 60, 20, Component.translatable("controls.reset"), this, button -> config.resetTemp()));
+    }
+
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+        if (!this.isVisible()) return;
+
+        // vars
+        Font font = Minecraft.getInstance().font;
+        int textY = getY() + getHeight() / 2 - font.lineHeight / 2;
+
+        // hovered arrow
+        setHovered(isMouseOver(mouseX, mouseY));
+        if (isHovered()) gui.text(font, HOVERED_ARROW, (int) (getX() + 8 - font.width(HOVERED_ARROW) / 2f), textY, UIHelper.adjustColor(0xFFFFFF));
+
+        // render name
+        renderTitle(gui, font, textY);
+
+        // render children
+        super.extractRenderState(gui, mouseX, mouseY, delta);
+    }
+
+    public void renderTitle(GuiGraphicsExtractor gui, Font font, int y) {
+        gui.text(font, config.name, getX() + 16, y, UIHelper.adjustColor((config.disabled ? ChatFormatting.DARK_GRAY : ChatFormatting.WHITE).getColor()));
+    }
+
+    @Override
+    public boolean isMouseOver(double mouseX, double mouseY) {
+        boolean over = this.parentList.isInsideScissors(mouseX, mouseY) && super.isMouseOver(mouseX, mouseY);
+
+        if (over && mouseX < this.getX() + this.getWidth() - 158)
+            UIHelper.setTooltip(getTooltip());
+
+        return over;
+    }
+
+    public MutableComponent getTooltip() {
+        return config.tooltip.copy();
+    }
+
+    public boolean isDefault() {
+        return this.config.isDefault();
+    }
+
+    public boolean isChanged() {
+        return !Objects.equals(this.config.tempValue, this.initValue);
+    }
+
+    @Override
+    public void setX(int x) {
+        super.setX(x);
+        resetButton.setX(x + getWidth() - 60);
+    }
+
+    @Override
+    public void setY(int y) {
+        super.setY(y);
+        resetButton.setY(y);
+    }
+
+    @Override
+    public void setVisible(boolean visible) {
+        super.setVisible(visible && parentCategory.isShowingChildren() && matchesFilter());
+    }
+
+    public void updateFilter(String query) {
+        this.filter = query;
+    }
+
+    public boolean matchesFilter() {
+        return config.name.getString().toLowerCase(Locale.US).contains(filter) || config.tooltip.getString().toLowerCase(Locale.US).contains(filter);
+    }
+}

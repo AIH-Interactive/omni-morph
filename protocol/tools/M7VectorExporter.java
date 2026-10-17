@@ -1,6 +1,6 @@
-import org.figuramc.figura.model.ysm.sync.YsmSyncCodec;
-import org.figuramc.figura.model.ysm.sync.YsmSyncMessage;
-import org.figuramc.figura.model.ysm.sync.YsmSyncPackets;
+import top.aihmc.omnimorph.model.ysm.sync.YsmSyncCodec;
+import top.aihmc.omnimorph.model.ysm.sync.YsmSyncMessage;
+import top.aihmc.omnimorph.model.ysm.sync.YsmSyncPackets;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;

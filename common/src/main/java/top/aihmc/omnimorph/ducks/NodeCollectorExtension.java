@@ -1,0 +1,22 @@
+package top.aihmc.omnimorph.ducks;
+
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import org.apache.commons.lang3.function.TriFunction;
+import top.aihmc.omnimorph.avatar.Avatar;
+import top.aihmc.omnimorph.model.rendering.nodeRenderer.FiguraSubmission;
+
+import java.util.List;
+
+
+@FunctionalInterface
+interface QuadFunction<A, B, C, D, R> {
+    R apply(A a, B b, C c, D d);
+}
+
+public interface NodeCollectorExtension {
+    <S extends EntityRenderState> void submitFiguraModel(Avatar avatar, S renderState, TriFunction<Avatar, S, MultiBufferSource, Void> renderer);
+
+    List<FiguraSubmission> getFiguraSubmissions();
+}
+

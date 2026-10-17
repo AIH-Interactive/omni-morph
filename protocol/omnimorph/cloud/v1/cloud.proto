@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package omnimorph.cloud.v1;
-option java_package = "org.figuramc.figura.backend2.protocol.generated";
+option java_package = "top.aihmc.omnimorph.backend2.protocol.generated";
 option java_outer_classname = "Cloud";
 
 // Published v1 numbers are immutable. Removed fields/values must be reserved.

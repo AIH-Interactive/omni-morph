@@ -1,0 +1,299 @@
+package top.aihmc.omnimorph.avatar.control;
+
+import top.aihmc.omnimorph.FiguraMod;
+import top.aihmc.omnimorph.avatar.Avatar;
+import top.aihmc.omnimorph.molang.MolangEngine;
+import top.aihmc.omnimorph.molang.parser.ast.Expression;
+import top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator;
+import org.luaj.vm2.LuaFunction;
+import org.luaj.vm2.Varargs;
+
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+public class AvatarControlRuntime {
+    private final LinkedHashMap<String, AvatarControlDefinition> controls = new LinkedHashMap<>();
+    private final Set<String> initialBoundValues = new HashSet<>();
+    private String modelKey;
+    private LuaFunction onChange;
+
+    public AvatarControlDefinition register(AvatarControlDefinition control) {
+        controls.put(control.id(), control);
+        return control;
+    }
+
+    public AvatarControlDefinition register(Avatar avatar, AvatarControlDefinition control) {
+        AvatarControlValueStore.apply(avatar, control);
+        return register(control);
+    }
+
+    public AvatarControlDefinition get(String id) {
+        return controls.get(id);
+    }
+
+    public AvatarControlDefinition remove(String id) {
+        initialBoundValues.remove(id);
+        return controls.remove(id);
+    }
+
+    public void clear() {
+        controls.clear();
+        initialBoundValues.clear();
+        modelKey = null;
+    }
+
+    public Collection<AvatarControlDefinition> all() {
+        return controls.values();
+    }
+
+    public Map<String, AvatarControlDefinition> asMap() {
+        return new LinkedHashMap<>(controls);
+    }
+
+    public LuaFunction onChange() {
+        return onChange;
+    }
+
+    public void setOnChange(LuaFunction onChange) {
+        this.onChange = onChange;
+    }
+
+    public void syncAll(Avatar avatar) {
+        for (AvatarControlDefinition control : controls.values()) {
+            if (initialBoundValues.remove(control.id())) {
+                continue;
+            }
+            if (!control.persistent()) {
+                if (!hydrateMolangValue(avatar, control) && control.hasStoredValue())
+                    syncMolangValue(avatar, control);
+                continue;
+            }
+            syncMolangValue(avatar, control);
+        }
+    }
+
+    public void hydrateLiveValues(Avatar avatar) {
+        for (AvatarControlDefinition control : controls.values()) {
+            if (!control.persistent() || control.liveBinding())
+                hydrateMolangValue(avatar, control);
+        }
+    }
+
+    public void loadSavedValues(Avatar avatar) {
+        initialBoundValues.clear();
+        for (AvatarControlDefinition control : controls.values()) {
+            boolean restored = AvatarControlValueStore.applySavedValue(avatar, control);
+            if (!restored && control.initialValueFromBinding()) {
+                hydrateMolangValue(avatar, control);
+                // Reading an unsaved live form must not replay its option command during model load.
+                initialBoundValues.add(control.id());
+            }
+        }
+    }
+
+    public void loadSavedValues(Avatar avatar, String modelKey) {
+        this.modelKey = modelKey;
+        loadSavedValues(avatar);
+    }
+
+    String modelKey() {
+        return modelKey;
+    }
+
+    public Object getValue(String id) {
+        AvatarControlDefinition control = controls.get(id);
+        return control == null ? null : control.getValue();
+    }
+
+    public boolean setValue(Avatar avatar, String id, Object value) {
+        if (avatar != null && avatar.getYsmRuntime() != null && avatar.getYsmRuntime().animations().observerControlled()) {
+            return false;
+        }
+        AvatarControlDefinition control = controls.get(id);
+        if (control == null)
+            return false;
+        control.setValue(value);
+        LuaFunction interceptor = onChange();
+        if (avatar != null && interceptor != null) {
+            Varargs result = avatar.run(interceptor, avatar.tick, control.id(), control.getValue(), control);
+            if (result != null && result.arg(1).isboolean() && result.arg(1).checkboolean())
+                return true;
+        }
+        syncMolangValue(avatar, control);
+        AvatarControlValueStore.save(avatar, control);
+        LuaFunction onChange = control.onChange();
+        if (avatar != null && onChange != null)
+            avatar.run(onChange, avatar.tick, control.getValue(), control);
+        return true;
+    }
+
+    /** Applies owner state without observer disk persistence or Lua change callbacks. */
+    public boolean applyRemoteValue(Avatar avatar, String id, Object value) {
+        AvatarControlDefinition control = controls.get(id);
+        if (control == null) {
+            return false;
+        }
+        control.setValue(value);
+        syncMolangValue(avatar, control);
+        return true;
+    }
+
+    public boolean press(Avatar avatar, String id) {
+        if (avatar != null && avatar.getYsmRuntime() != null && avatar.getYsmRuntime().animations().observerControlled()) {
+            return false;
+        }
+        AvatarControlDefinition control = controls.get(id);
+        if (control == null)
+            return false;
+        LuaFunction onPress = control.onPress();
+        if (avatar != null && onPress != null)
+            avatar.run(onPress, avatar.tick, control);
+        return true;
+    }
+
+    public boolean reset(Avatar avatar, String id) {
+        AvatarControlDefinition control = controls.get(id);
+        if (control == null)
+            return false;
+        return setValue(avatar, id, control.getDefault());
+    }
+
+    public void resetAll(Avatar avatar) {
+        for (AvatarControlDefinition control : controls.values()) {
+            if (control.hasStoredValue() && control.type() != AvatarControlType.LABEL
+                    && control.type() != AvatarControlType.SEPARATOR && control.type() != AvatarControlType.BUTTON)
+                setValue(avatar, control.id(), control.getDefault());
+        }
+    }
+
+    private static boolean hydrateMolangValue(Avatar avatar, AvatarControlDefinition control) {
+        if (avatar == null || avatar.getMolangContext() == null || control == null || control.binding() == null || control.binding().isBlank())
+            return false;
+        Object value = evalMolangValue(avatar, control.binding());
+        if (value == null)
+            return false;
+        switch (control.type()) {
+            case TOGGLE -> {
+                if (value instanceof Boolean bool)
+                    control.setValue(bool);
+                else if (value instanceof Number number) {
+                    boolean enabled = avatar.getYsmRuntime() == null
+                            ? number.floatValue() != 0f : number.floatValue() > 0f;
+                    control.setValue(enabled);
+                }
+                else
+                    return false;
+            }
+            case SLIDER, NUMBER -> {
+                if (value instanceof Number number)
+                    control.setValue(number.doubleValue());
+                else
+                    return false;
+            }
+            case ENUM -> {
+                if (value instanceof Number number)
+                    control.setValue(Math.round(number.floatValue()));
+                else if (value instanceof Boolean bool)
+                    control.setValue(bool ? 1 : 0);
+                else
+                    control.setValue(value.toString());
+            }
+            case TEXT, COLOR, KEYBIND -> control.setValue(value.toString());
+            default -> {
+            }
+        }
+        return true;
+    }
+
+    private static void syncMolangValue(Avatar avatar, AvatarControlDefinition control) {
+        if (avatar == null || avatar.getMolangContext() == null || control == null)
+            return;
+        Object value = control.getValue();
+        String command = commandForValue(control, value);
+        if (command != null) {
+            var runtime = avatar.getYsmRuntime();
+            try (var effects = runtime == null ? null : runtime.functions().beginClientEffects(null)) {
+                evalMolangValue(avatar, command);
+            }
+            return;
+        }
+        setMolangVariable(avatar, control.binding(), value);
+    }
+
+    private static String commandForValue(AvatarControlDefinition control, Object value) {
+        if (control == null || value == null || control.optionCommands().isEmpty())
+            return null;
+        String direct = control.optionCommands().get(value.toString());
+        if (direct != null)
+            return direct;
+        Integer index = optionIndex(value);
+        if (index == null || index < 0 || index >= control.options().size())
+            return null;
+        return control.optionCommands().get(control.options().get(index));
+    }
+
+    static Integer optionIndex(Object value) {
+        if (value instanceof Number number)
+            return Math.round(number.floatValue());
+        if (value instanceof String string) {
+            try {
+                return Math.round(Float.parseFloat(string));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return null;
+    }
+
+    private static Object evalMolangValue(Avatar avatar, String expression) {
+        if (avatar == null || avatar.getMolangContext() == null || expression == null || expression.isBlank())
+            return null;
+        try {
+            List<Expression> parsed = MolangEngine.fromCustomBinding(avatar.getAvatarBindings()).parse(expression);
+            if (parsed.isEmpty())
+                return null;
+            return ExpressionEvaluator.evaluator(avatar.getMolangContext()).evalAll(parsed, true);
+        } catch (Exception ignored) {
+            // Expressions may originate in encrypted models; never log their source or parse error text.
+            FiguraMod.LOGGER.debug("Failed to evaluate avatar control expression");
+            return null;
+        }
+    }
+
+    private static void setMolangVariable(Avatar avatar, String name, Object value) {
+        if (name == null || name.isBlank() || value == null || avatar.getMolangContext() == null)
+            return;
+        float number;
+        if (value instanceof Number n)
+            number = n.floatValue();
+        else if (value instanceof Boolean b)
+            number = b ? 1f : 0f;
+        else
+            return;
+        avatar.getMolangContext().variables.setPath(name, number);
+        syncRoamingAlias(avatar, name, number);
+    }
+
+    private static String normalizeBindingPath(String name) {
+        String value = name == null ? "" : name.trim().toLowerCase(java.util.Locale.US);
+        if (value.startsWith("v."))
+            return value.substring(2);
+        if (value.startsWith("variable."))
+            return value.substring("variable.".length());
+        return value;
+    }
+
+    private static void syncRoamingAlias(Avatar avatar, String name, float value) {
+        String normalized = normalizeBindingPath(name);
+        if (!normalized.startsWith("roaming."))
+            return;
+        String roamingName = normalized.substring("roaming.".length()).replace('.', '_');
+        if (roamingName.isBlank())
+            return;
+        avatar.getMolangContext().variables.setPath(roamingName, value);
+        avatar.getMolangContext().variables.setPath("show_" + roamingName, value);
+    }
+}
