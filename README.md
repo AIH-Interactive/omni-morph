@@ -94,6 +94,7 @@ if ($buildExitCode -ne 0) { exit $buildExitCode }
 - [YesSteveModel](https://github.com/YesSteveModel/YesSteveModel)：YSM 开源项目。
 - [YesSteveModel-Native](https://github.com/YesSteveModel/YesSteveModel-Native)：YSM Native 开源项目。
 - [Sparkle-Morpher](https://github.com/sdf123098/Sparkle-Morpher)：模型运行、YSM 相关功能行为与兼容性核对参考。
+- [openysm.cpp](https://github.com/OpenYSMDev/openysm.cpp)：SIMD 与 native 实现参考，后续全局加速设计见 [SIMD 与 GPU 加速支持计划书](Plans/SIMD与GPU加速支持计划书.md)。
 - [OpenYSM / YSMParser](https://github.com/OpenYSM/YSMParser)：YSM 容器、加密与二进制格式解析参考。
 - [Sculptor](https://github.com/MrXiaoM/sculptor)：配套后端标注的上游项目。
 - [spm-cloud](https://github.com/sdf123098/spm-cloud)：Protobuf 握手、生成链和协议测试方案的参考；本项目使用独立的协议命名空间与版本。
