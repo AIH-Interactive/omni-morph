@@ -67,6 +67,20 @@ public final class OmniMorphIdentitySmokeTest {
                     "Explicit directory prevents automatic migration of default roots");
             Configs.MAIN_DIR.value = "";
 
+            var clearBrandCache = top.aihmc.omnimorph.resources.FiguraRuntimeResources.class
+                    .getDeclaredMethod("clearCachedBrandResources");
+            clearBrandCache.setAccessible(true);
+            Path cachedIcon = top.aihmc.omnimorph.resources.FiguraRuntimeResources.getAssetsDirectory()
+                    .resolve("textures/gui/show_figura.png");
+            Files.createDirectories(cachedIcon.getParent());
+            Files.writeString(cachedIcon, "old downloaded icon");
+            Configs.LOCAL_ASSETS.value = true;
+            clearBrandCache.invoke(null);
+            require(Files.exists(cachedIcon), "Explicit local assets remain authoritative");
+            Configs.LOCAL_ASSETS.value = false;
+            clearBrandCache.invoke(null);
+            require(!Files.exists(cachedIcon), "Old cached branding cannot override bundled icons while offline");
+
             for (String language : new String[] {"en_us", "zh_cn"}) {
                 try (var stream = OmniMorphIdentitySmokeTest.class.getClassLoader()
                         .getResourceAsStream("assets/" + FiguraMod.MOD_ID + "/lang/" + language + ".json")) {
