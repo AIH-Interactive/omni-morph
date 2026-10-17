@@ -1,12 +1,14 @@
 # OmniMorph 模型库开发计划书
 
-状态：实施中，M0～M2 检查通过；M3～M7 尚未实施。各阶段证据见 8.2，不代表功能已全部实现或视觉验收通过。
+状态：实施中，M0～M2 检查通过；M3 正在实施，M4～M7 尚未实施。各阶段证据见 8.2，不代表功能已全部实现或视觉验收通过。
 
 用户实施中补充（2026-10-18）：本次目标版本为 `1.0.0-alpha.2`，界面显示对应 `1.0 Alpha 2`；在客户端阶段同步构建、模组清单、产物和 README。新增图标允许先绘制 SVG 再通过脚本转换 PNG；缺省封面仍使用根目录 ingame_logo.png。该补充覆盖本文原有“不升级版本”约束，不改变 M0→M7 顺序及其他范围。
 
 用户授权规则补充（2026-10-18）：需授权模型的上传者自动获得授权且不能被撤销自身使用权。上传表单默认值从源模型的免费标记决定：YSM 新格式读取 `ysm.json` 的 `properties.free`，旧格式读取 `main.json` 的 `minecraft:geometry[0].description.ysm_extra_info.free`，加密二进制读取现有解码结果 `properties.isFree`；`true` 默认无需授权、`false` 默认需授权。YSM 既有属性默认值为 false，缺失时默认需授权。Figura 新增可选 `avatar.json.free` 布尔字段并沿用同一映射，缺失时同样默认需授权；默认值不覆盖用户明确调整的授权开关，私有语义不变。此补充纳入 M2 上传者授权、M4 元数据准备和 M6 上传表单，不提前扩张其他阶段。
 
 用户私有展示补充（2026-10-18）：私有模型的使用者可单独选择是否向其他玩家展示自己当前装备的外观，默认不展示。该设置保存于本人的来源装备引用，不改变模型库的 PRIVATE、列表/详情/封面/下载/授权权限。开启只允许当前装备的观察者渲染链路，关闭或切换装备后撤销该展示权限；BLOCKED/DELETED 及屏蔽哈希仍禁止对外展示。纳入 M3 来源绑定/双协议同步、M4 客户端接口和 M6 使用表单；不把当前装备展示变成公共库分享。
+
+用户屏蔽展示确认（2026-10-18）：屏蔽后被强制私有的模型，不允许玩家自行开启对外展示。此前开启的当前装备展示立即失效，后端拒绝重新开启，M6 界面禁用该选项；屏蔽哈希的 SELF_ONLY 不能被此开关覆盖。本人已持有的本地模型自用保持原规则。
 
 调查日期：2026-10-18（Asia/Seoul）。客户端调查基线：`228d16b`；Rust 后端调查基线：`e6355bc`。实施时必须重新核对工作区变化，但不得借此扩大范围。
 
@@ -248,6 +250,7 @@ Java 源码根路径简称 `J = common/src/main/java/top/aihmc/omnimorph`。
 6. PUBLIC 模型对有权限观察者同步；PRIVATE 默认仅本人显示，本人单独开启当前装备展示时允许观察者经该装备来源获取渲染所需内容；PUBLIC + 需授权只向已授权观察者提供完整模型。私有模型库下载等业务权限保持不变。
 7. 库来源私有、屏蔽、删除、撤权会使别名策略同步变化。服务器不信任客户端隐藏的 source 标记，别名关系由服务器创建并保存。
 8. 私有模型使用表单单独提供“向其他玩家展示当前装备”选项，初始关闭；作为 `show_private_equipment` 随来源装备事务提交并保存。当前装备支持本人修改该选项；关闭、换装、屏蔽或删除后向既有观察者发送失效投影，后续 HTTP/WS/YSM 恢复均重新校验。不把此设置存成公开库属性，也不向其他玩家开放该私有条目的列表/详情/封面或库下载接口。
+9. BLOCKED 强制私有后展示开关不可自行开启，原有 true 也不参与放行；屏蔽哈希始终 SELF_ONLY。界面禁用该开关，伪造启用请求由后端拒绝，不能靠私有展示选项绕过屏蔽。
 
 ### 5.4 上传上限与现有本地预算
 
@@ -283,6 +286,7 @@ Rust 同步 SQLite、文件校验和密码 KDF 使用有界 blocking 工作路�
 | `library_grants` | (model_id, player_uuid) 唯一、name_snapshot、granted_by、created_at；权限固定为本期模型使用，不引入自定义角色体系 |
 | `library_stats` / `library_download_receipts` | model_id 的下载计数；receipt 绑定玩家、revision、用途、有效期、完成状态；重复确认不重复计数，预览不计下载 |
 | `library_resource_bindings` | (resource_owner, asset_id, revision) 唯一，source_model_id/source_revision；支持本人装备别名与统一权限追溯；M3 对装备引用增加 `show_private_equipment`（默认 false），只用于当前装备观察者渲染 |
+| `library_verified_blobs`（M3） | raw_sha256/hash_kind/verified_hash 唯一；持久化服务端核验的 NBT、源密文及 legacy 身份，供衣柜/历史副本动态屏蔽匹配；不使用客户端自报 hash，不引用 manifest 重写行 |
 | `library_blocked_hashes` | (hash_kind, verified_hash, blocking_model_id) 唯一、active、理由、操作者、时间；不能因删除库条目自动失效 |
 | `library_operations` | (actor_uuid, operation_id) 唯一、请求指纹、结果、有效期；处理模型库跨文件/数据库提交幂等 |
 | `library_audit` | actor UUID、动作、对象、时间、结果；不存明文密码、token 或私有模型正文 |
@@ -484,6 +488,8 @@ if ($buildExitCode -ne 0) {
 
 补充任务：上传授权开关按 4.3 的 free 字段预选且可手动调整；需授权模型显示上传者自动授权且不可移除。私有模型使用及当前装备设置提供独立的对外展示选项，默认关闭，按 5.3 提交/更新；修改不改变公开性或库授权。
 
+屏蔽补充：被屏蔽而强制私有的模型禁用对外展示开关；收到屏蔽状态后清除该开关的可用状态，后端始终拒绝自行开启。
+
 **验收**：不要求手填作者；ZIP 内容识别正确；后端上限改变后提交刷新；私有和授权开关互不重置；取消弹窗不执行变更；配置 UUID 不匹配无法登录；屏蔽后所有普通列表刷新隐藏、服务器强制私有；解除屏蔽不自动公开。
 
 补充验收：授权默认值遵循源元数据且可修改，上传者自动授权可见；私有展示默认关闭，开启/关闭/切换装备对观察者生效且不开放私有库条目。新增必要图标可 SVG 绘制后脚本转换 PNG，占位封面仍为指定 ingame_logo。
@@ -506,8 +512,8 @@ if ($buildExitCode -ne 0) {
 | --- | --- | --- | --- | --- | --- |
 | M0 | PASS | Rust storage 7/7；Fabric compileJava、ysmPackageSmokeTest、ysmCryptoSmokeTest；8 样例哈希/JSON/分页预算，均退出 0 | 真实模型/GUI 为后续阶段 MANUAL/PENDING | 75ffa9d / origin main 已确认 | 8143665 / origin master 已确认 |
 | M1 | PASS | cargo test library 12/12；storage 12/12；全 Rust 回归 37/37，退出 0；rustfmt/diff check 通过 | 无 GUI；真实部署凭据和外部生产二进制回滚 MANUAL/PENDING | e49f306 / origin main 已确认 | 4178e06 / origin master 已确认 |
-| M2 | PASS（提交推送检查点见下） | cargo build 退出 0；library 专项 34 通过；全 Rust 回归 59 通过；线程饱和隔离测试 1 通过，退出均 0；rustfmt/diff check 通过 | 无 GUI；真实部署 MANUAL/PENDING | 本行所在 M2 进度提交；推送确认后进入 M3 | 578dfbc / origin master 已核对一致 |
-| M3 | NOT_STARTED | — | — | — | — |
+| M2 | PASS | cargo build 退出 0；library 专项 34 通过；全 Rust 回归 59 通过；线程饱和隔离测试 1 通过，退出均 0；rustfmt/diff check 通过 | 无 GUI；真实部署 MANUAL/PENDING | b36a934 / origin main 已核对一致 | 578dfbc / origin master 已核对一致 |
+| M3 | IN_PROGRESS（尚未达到阶段退出条件） | 装备/流 8、衣柜哈希 1、重复库条目 1、双协议 WS 2 通过；当前全量 73 通过/1 个既有饱和测试隔离，退出 0；不是 M3 PASS | GUI MANUAL/PENDING | 补充计划 3e0273e 已推送，阶段代码未提交 | 在制实现未提交 |
 | M4 | NOT_STARTED | — | — | — | — |
 | M5 | NOT_STARTED | — | — | — | — |
 | M6 | NOT_STARTED | — | — | — | — |
@@ -542,6 +548,22 @@ if ($buildExitCode -ne 0) {
 - `cargo build` 普通二进制编译通过，退出 0；六项未使用代码警告为基础测试入口及 M3 待接入的分发函数，无编译错误。已完成范围内可读性检查、定向 rustfmt、暂存差异及 git diff --check；新增受限图片解码依赖仅启用 PNG/JPEG。
 - 后端 `578dfbc8651e24019064c3be740efd96d7344ff0` 已推送 origin/master 且通过 ls-remote 核对一致；本客户端进度提交推送确认后才进入 M3。补充计划已先按用户要求在 `b64aa05` 独立推送。未纳入 build.log、refs、spm-cloud 或任何真实凭据。
 - 真实部署/交互式凭据和后续 GUI 验收为 MANUAL/PENDING；本阶段不宣称装备/同步闭环已完成，也不启用 capabilities.enabled。M3 将实施双协议来源策略与私有当前装备展示选项，默认关闭。
+
+#### M3 在制记录（阶段未完成，2026-10-18）
+
+- 双仓库 M2 检查点推送确认后开始。新增 `Policy::can_render_equipment`，私有当前装备展示依赖本人的独立选项；缺省/关闭时不放行观察者，主动开启不改变私有库访问权限；BLOCKED/DELETED 及屏蔽身份禁止对外渲染。已接入库来源装备、Protobuf 资源和两协议 profile，尚未完成全部分发入口。
+- 新增 `library_equipment_settings`，以来源装备引用为键、`show_private_equipment` 默认 false，旧引用无记录也按 false 处理；独立表避免设置源模型公共属性。SQLite v2→v3 与 v1→v3 均先备份再原子建表/更新版本；同步调整启动/布局的未知版本拒绝及对应回归，未修改 manifest 格式或 Protobuf v1。
+- `cargo test library` 36 通过、1 项既有饱和测试按设计不在此批运行；`cargo test storage` 13/13，通过退出 0。新增证据覆盖私有展示 true/false、两种授权状态、非本人不可分享、屏蔽/删除拒绝、库 ACL 不变，及 v2 备份保留/默认关闭/重启保留/非法布尔拒绝/失败回滚。日志为临时目录 `omnimorph-m3-foundation.log`、`omnimorph-m3-storage.log`。
+- 已新增来源装备 API/原子事务与资源别名，不复制或匿名重传包；装备 revision 冲突、同操作重试和数据库失败回滚均已验证。Protobuf 及 Figura profile 按观察者投影，含 compatibility 槽；本人现有本地装备选择保留。私有外观展示仅放行当前装备别名；关闭/卸装后拒绝后续读取；撤销使用者授权后，即使观察者仍有授权也不继续分发。
+- 用户确认的屏蔽规则已纳入后端事务和专项：屏蔽后既有 true 不参与放行，普通玩家不能重开，上传者携带管理上下文也不能开启对外展示；本人现有本地选择不被强制清除。M6 必须禁用对应 UI 选项。
+- `cargo test api::library::tests::equipment` 已扩展至 8/8：真实 HTTP、双协议 profile/下载、展示开关、屏蔽、重启/幂等、并发 CAS、撤权、SQL trigger 回滚、旧临时槽不覆盖来源装备及数据块之间的策略/会话撤销。Protobuf 与 Figura 文件读取共用有界流，32 个全局/每玩家 2 个准入，每 32 KiB 复查会话和来源策略，文件读取有超时；库正式 transfer 也共用同一准入预算。
+- 旧 HTTP 基线并行失败已定位为进程级 AVATARS_VAR 懒初始化与不同临时目录环境设置互相干扰。目录敏感基线改用独立测试子进程，新增 Figura 测试显式初始化隔离临时根；未更改生产目录配置来迎合测试。修复后全量 `cargo test` 70 通过、1 个既有饱和测试按设计隔离，退出 0。日志为临时目录 `omnimorph-m3-partial-all.log`；不据此宣称完整 M3 退出条件满足。
+- 新增不可变 blob 的服务器核验身份索引：新资源提交与身份记录同事务，历史 blob 在首次外部读取前受预算校验后保存身份。普通衣柜读取动态匹配屏蔽 RAW/NBT/密文/legacy 身份，不信任客户端声明的 content hash。真实旧衣柜上传专项 1/1，验证重压缩改变 raw hash 仍命中 NBT、屏蔽前的副本/屏蔽后的跨 UUID 上传只允许各自本人读取、猜 Protobuf 直链失败、未命中包仍正常。日志 `omnimorph-m3-wardrobe.log`；合成 fixture 不代表模型视觉效果。
+- 已统一重复库条目的有效策略视图：活动屏蔽哈希同时作用于已有副本的列表/total/详情/transfer/equip；屏蔽及解除时关联副本持久保持 PRIVATE 并推进策略 revision。真实管理员 API 专项 1/1，验证副本从我的模型/收藏/公开列表隐藏、管理员 BLOCKED 列表可查、既有 transfer 和新下载/装备/改公开被拒、解除后不自动上架。日志 `omnimorph-m3-copies.log`。
+- 已接入双协议订阅恢复及发送边界的当前观察者过滤；策略变更向已有观察者发送重查通知，隐藏的 Protobuf 装备投影为空并标记移除，Figura 发出原生重查事件；不向本人注入策略移除来强制清除本地模型。YSM SnapshotRequest/Resume 与排队状态复查可见性/当前模型身份及有效发布代数，legacy 分片发送也在检查点复查。
+- 新增真实双协议 WS 专项 2/2：公开→私有时已订阅观察者收到失效，旧 Lua ping 不继续外发，主动开启私有外观后恢复；合成加密 YSM 在允许时恢复原生/legacy 状态，退出展示后 SnapshotRequest、Resume 及排队状态不泄露。旧无装备时的 recovery 错误码保持原语义。连接复查绑定本次握手 token（仅连接内存），不依赖可缺省的 Userinfo.token，不把凭据写入持久档案。
+- 最新全量 `cargo test` 73 通过、1 个既有饱和测试按设计隔离，退出 0；旧 Figura/Protobuf/YSM 基线回归通过。日志 `omnimorph-m3-partial-all.log`、`omnimorph-m3-subscriptions.log`、`omnimorph-m3-legacy.log`；不是 M3 完整退出证据。
+- 待完成：客户端正式来源发布接缝；internal/旧入口最终核对；历史副本/密文身份与 A/B/C/D（上传者/授权者/未授权者/管理员）API/WS 完整矩阵；可读性/差异审查、最终编译回归和 M3 提交推送。当前实现保留未提交，不进入 M4。
 
 ## 9. 安全、兼容性、异常与性能验收方案
 
@@ -617,6 +639,7 @@ if ($buildExitCode -ne 0) {
 
 - [ ] 四组合符合第 3 节，授权名单不能覆盖私有库访问限制；私有当前装备的外观展示按独立选项执行。
 - [ ] 私有库条目始终不可由其他普通玩家访问；当前装备展示默认关闭，本人可单独开启/关闭，切换装备/关闭/屏蔽后观察者及时失效；库访问权限不变。
+- [ ] 屏蔽强制私有后禁止玩家自行对外展示，既有开启状态失效，UI 禁用且后端拒绝伪造开启；SELF_ONLY 不被覆盖。
 - [ ] 屏蔽后所有普通列表隐藏（包括上传者），后端强制私有且普通玩家不可改公开。
 - [ ] 解除屏蔽仍保持私有；删除屏蔽模型不会清掉屏蔽哈希约束。
 - [ ] 未屏蔽衣柜上传保持原样；匹配屏蔽 hash 的上传及历史副本只对各自本人可见。
