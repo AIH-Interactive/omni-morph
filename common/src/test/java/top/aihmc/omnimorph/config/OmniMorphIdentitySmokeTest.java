@@ -16,7 +16,7 @@ public final class OmniMorphIdentitySmokeTest {
         System.setProperty("figura.test.directory", directory.toString());
         try {
             Path legacyDirectory = Files.createDirectory(directory.resolve("figura"));
-            Path model = legacyDirectory.resolve("local-model-marker");
+            Path model = Files.createDirectory(legacyDirectory.resolve("avatars")).resolve("local-model-marker");
             Files.writeString(model, "synthetic-local-model");
             String legacyConfig = "{\"CONFIG_VERSION\":1,\"cloud_protocol\":\"FIGURA_CLOUD\","
                     + "\"server_ip\":\"https://preserved.test:7443\"}";
@@ -24,8 +24,13 @@ public final class OmniMorphIdentitySmokeTest {
             Path newFile = directory.resolve("omni-morph.json");
             Files.writeString(oldFile, legacyConfig);
 
-            require(FiguraMod.getFiguraDirectory().equals(legacyDirectory), "Existing local models remain selected");
-            require(!Files.exists(directory.resolve("omni-morph")), "Legacy fallback does not move/create another data tree");
+            Path currentDirectory = directory.resolve("omnimorph");
+            require(FiguraMod.getFiguraDirectory().equals(currentDirectory), "Default mod root uses omnimorph");
+            require(!Files.exists(legacyDirectory), "Legacy root is renamed to the default directory");
+            require(Files.readString(currentDirectory.resolve("avatars/local-model-marker")).equals("synthetic-local-model"),
+                    "Renamed avatar directory preserves model bytes");
+            require(top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.getLocalAvatarDirectory()
+                    .equals(currentDirectory.resolve("avatars")), "Actual wardrobe resolves omnimorph/avatars");
             ConfigManager.loadConfig();
             require(Configs.CLOUD_PROTOCOL.value == 0 && Configs.SERVER_IP.value.equals("https://preserved.test:7443"),
                     "Actual old config retains explicit protocol and server origin");
@@ -42,12 +47,25 @@ public final class OmniMorphIdentitySmokeTest {
                     "New configuration takes precedence over retained legacy config");
             require(Files.readString(oldFile).equals(legacyConfig), "Reload does not mutate the legacy backup");
 
-            Path currentDirectory = Files.createDirectory(directory.resolve("omni-morph"));
-            require(FiguraMod.getFiguraDirectory().equals(currentDirectory), "Existing new data directory takes precedence");
-            require(Files.readString(model).equals("synthetic-local-model"), "Original local model remains untouched");
+            Path previousDirectory = Files.createDirectory(directory.resolve("omni-morph"));
+            Files.writeString(previousDirectory.resolve("previous-marker"), "previous-root");
+            require(FiguraMod.getFiguraDirectory().equals(currentDirectory), "Existing canonical root takes precedence");
+            require(Files.exists(previousDirectory.resolve("previous-marker")), "Other roots are never merged or overwritten");
+            Files.move(currentDirectory, directory.resolve("retained-models"));
+            Files.createDirectory(legacyDirectory);
+            Files.writeString(legacyDirectory.resolve("figura-marker"), "oldest-root");
+            require(FiguraMod.getFiguraDirectory().equals(currentDirectory), "Previous branded root migrates to omnimorph");
+            require(Files.readString(currentDirectory.resolve("previous-marker")).equals("previous-root")
+                            && Files.exists(legacyDirectory.resolve("figura-marker")),
+                    "omni-morph migration takes precedence over figura and preserves the other tree");
             Configs.MAIN_DIR.value = directory.resolve("explicit-models").toString();
             require(FiguraMod.getFiguraDirectory().equals(directory.resolve("explicit-models")),
                     "User-selected local model directory remains authoritative");
+            Files.move(currentDirectory, directory.resolve("retained-previous-root"));
+            require(FiguraMod.getFiguraDirectory().equals(directory.resolve("explicit-models"))
+                            && Files.exists(legacyDirectory) && !Files.exists(currentDirectory),
+                    "Explicit directory prevents automatic migration of default roots");
+            Configs.MAIN_DIR.value = "";
 
             for (String language : new String[] {"en_us", "zh_cn"}) {
                 try (var stream = OmniMorphIdentitySmokeTest.class.getClassLoader()
