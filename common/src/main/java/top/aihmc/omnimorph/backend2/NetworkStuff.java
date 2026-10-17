@@ -509,6 +509,7 @@ public class NetworkStuff {
     }
 
     public static synchronized void disconnect(String reason) {
+        AvatarManager.clearNetworkLoadingProgress();
         epochs.incrementAndGet();
         if (authenticationWork != null) {
             authenticationWork.close();
@@ -530,11 +531,12 @@ public class NetworkStuff {
         disconnectedReason = reason;
     }
 
-    private static void queueString(UUID owner, Operation operation, BiConsumer<Integer, String> callback) {
+    private static boolean queueString(UUID owner, Operation operation, BiConsumer<Integer, String> callback) {
         if (API_REQUESTS.size() >= 128) {
-            return;
+            return false;
         }
         API_REQUESTS.add(new Request(owner, requestGenerations.getOrDefault(owner, 0L), operation, callback));
+        return true;
     }
 
     public static void diagnostic(String path, BiConsumer<Integer, String> callback) {
@@ -542,6 +544,7 @@ public class NetworkStuff {
     }
 
     public static void clear(UUID owner) {
+        AvatarManager.clearLoadingProgress(owner);
         requestGenerations.merge(owner, 1L, Long::sum);
         API_REQUESTS.removeIf(request -> request.owner().equals(owner));
     }
@@ -593,50 +596,58 @@ public class NetworkStuff {
         if (checkUUID(user.id))
             return;
 
-        queueString(user.id, api -> api.profile(user.id), (code, data) -> {
-            //debug
-            responseDebug("getUser", code, data);
+        long progress = user.loading.begin(top.aihmc.omnimorph.avatar.AvatarLoadProgress.Stage.PROFILE);
+        boolean queued = queueString(user.id, api -> api.profile(user.id), (code, data) -> {
+            try {
+                //debug
+                responseDebug("getUser", code, data);
 
-            //error
-            if (code != 200) {
-                if (code == 404 && Configs.CONNECTION_TOASTS.value)
-                    FiguraToast.sendToast(FiguraText.of("backend.user_not_found"), FiguraToast.ToastType.ERROR);
-                return;
+                //error
+                if (code != 200) {
+                    if (code == 404 && Configs.CONNECTION_TOASTS.value)
+                        FiguraToast.sendToast(FiguraText.of("backend.user_not_found"), FiguraToast.ToastType.ERROR);
+                    return;
+                }
+
+                //success
+
+                JsonObject json = JsonParser.parseString(data).getAsJsonObject();
+
+                //avatars
+                ArrayList<Pair<String, Pair<String, UUID>>> avatars = new ArrayList<>();
+
+                JsonArray equippedAvatars = json.getAsJsonArray("equipped");
+                for (JsonElement element : equippedAvatars) {
+                    JsonObject entry = element.getAsJsonObject();
+                    UUID owner = UUID.fromString(entry.get("owner").getAsString());
+                    avatars.add(Pair.of(entry.get("hash").getAsString(), Pair.of(entry.get("id").getAsString(), owner)));
+                }
+
+                //badges
+                JsonObject badges = json.getAsJsonObject("equippedBadges");
+                Pair<BitSet, BitSet> badgesPair = Badges.emptyBadges();
+
+                JsonArray pride = badges.getAsJsonArray("pride");
+                BitSet prideSet = badgesPair.getFirst();
+                for (int i = 0; i < pride.size(); i++)
+                    prideSet.set(i, pride.get(i).getAsInt() >= 1);
+
+                JsonArray special = badges.getAsJsonArray("special");
+                BitSet specialSet = badgesPair.getSecond();
+                for (int i = 0; i < special.size(); i++)
+                    specialSet.set(i, special.get(i).getAsInt() >= 1);
+
+                CloudConnection selected = connection;
+                long generation = requestGenerations.getOrDefault(user.id, 0L);
+                user.loadData(avatars, badgesPair, () -> selected == connection && selected.active()
+                        && generation == requestGenerations.getOrDefault(user.id, 0L));
+            } finally {
+                user.loading.finish(progress);
             }
-
-            //success
-
-            JsonObject json = JsonParser.parseString(data).getAsJsonObject();
-
-            //avatars
-            ArrayList<Pair<String, Pair<String, UUID>>> avatars = new ArrayList<>();
-
-            JsonArray equippedAvatars = json.getAsJsonArray("equipped");
-            for (JsonElement element : equippedAvatars) {
-                JsonObject entry = element.getAsJsonObject();
-                UUID owner = UUID.fromString(entry.get("owner").getAsString());
-                avatars.add(Pair.of(entry.get("hash").getAsString(), Pair.of(entry.get("id").getAsString(), owner)));
-            }
-
-            //badges
-            JsonObject badges = json.getAsJsonObject("equippedBadges");
-            Pair<BitSet, BitSet> badgesPair = Badges.emptyBadges();
-
-            JsonArray pride = badges.getAsJsonArray("pride");
-            BitSet prideSet = badgesPair.getFirst();
-            for (int i = 0; i < pride.size(); i++)
-                prideSet.set(i, pride.get(i).getAsInt() >= 1);
-
-            JsonArray special = badges.getAsJsonArray("special");
-            BitSet specialSet = badgesPair.getSecond();
-            for (int i = 0; i < special.size(); i++)
-                specialSet.set(i, special.get(i).getAsInt() >= 1);
-
-            CloudConnection selected = connection;
-            long generation = requestGenerations.getOrDefault(user.id, 0L);
-            user.loadData(avatars, badgesPair, () -> selected == connection && selected.active()
-                    && generation == requestGenerations.getOrDefault(user.id, 0L));
         });
+        if (!queued) {
+            user.loading.finish(progress);
+        }
     }
 
     public static void uploadAvatar(Avatar avatar) {
@@ -734,39 +745,48 @@ public class NetworkStuff {
         if (checkUUID(target.id)) {
             return;
         }
-        queueString(target.id, protocol -> {
-            CloudConnection selected = connection;
-            if (selected == null || selected.protocol != protocol || !selected.active()) {
-                throw new java.io.IOException("Retired cloud download");
-            }
-            long requestGeneration = requestGenerations.getOrDefault(target.id, 0L);
-            try (CloudProtocol.Download download = protocol.download(owner, id)) {
-                CloudProtocol.Resource resource = download.resource();
-                if (!resource.cacheKey().equals(cacheKey)) {
-                    throw new java.io.IOException("Stale resource profile");
+        long progress = target.loading.begin(top.aihmc.omnimorph.avatar.AvatarLoadProgress.Stage.DOWNLOADING);
+        boolean queued = queueString(target.id, protocol -> {
+            try {
+                CloudConnection selected = connection;
+                if (selected == null || selected.protocol != protocol || !selected.active()) {
+                    throw new java.io.IOException("Retired cloud download");
                 }
-                byte[] bytes = CloudHttp.readBounded(download.stream(), (int) CloudHttp.FILE_BYTES);
-                if (resource.length() >= 0 && resource.length() != bytes.length) {
-                    throw new java.io.IOException("Resource length mismatch");
-                }
-                String expected = resource.rawHash();
-                String actual = expected.startsWith("legacy:")
-                        ? CloudHttp.sha256(Base64.getEncoder().encode(bytes)) : CloudHttp.sha256(bytes);
-                if (!actual.equals(expected.replaceFirst("^legacy:", ""))) {
-                    throw new java.io.IOException("Resource hash mismatch");
-                }
-                CompoundTag nbt = NbtIo.readCompressed(new ByteArrayInputStream(bytes), NbtAccounter.create(256L * 1024 * 1024));
-                selected.publishModel(() -> {
-                    if (selected == connection && selected.active()
-                            && requestGeneration == requestGenerations.getOrDefault(target.id, 0L)) {
-                        CacheAvatarLoader.save(cacheKey, nbt);
-                        target.loadAvatar(nbt, () -> selected == connection && selected.active()
-                                && requestGeneration == requestGenerations.getOrDefault(target.id, 0L));
+                long requestGeneration = requestGenerations.getOrDefault(target.id, 0L);
+                try (CloudProtocol.Download download = protocol.download(owner, id)) {
+                    CloudProtocol.Resource resource = download.resource();
+                    if (!resource.cacheKey().equals(cacheKey)) {
+                        throw new java.io.IOException("Stale resource profile");
                     }
-                });
+                    byte[] bytes = CloudHttp.readBounded(download.stream(), (int) CloudHttp.FILE_BYTES,
+                            received -> target.loading.downloaded(progress, received, resource.length()));
+                    if (resource.length() >= 0 && resource.length() != bytes.length) {
+                        throw new java.io.IOException("Resource length mismatch");
+                    }
+                    String expected = resource.rawHash();
+                    String actual = expected.startsWith("legacy:")
+                            ? CloudHttp.sha256(Base64.getEncoder().encode(bytes)) : CloudHttp.sha256(bytes);
+                    if (!actual.equals(expected.replaceFirst("^legacy:", ""))) {
+                        throw new java.io.IOException("Resource hash mismatch");
+                    }
+                    CompoundTag nbt = NbtIo.readCompressed(new ByteArrayInputStream(bytes), NbtAccounter.create(256L * 1024 * 1024));
+                    selected.publishModel(() -> {
+                        if (selected == connection && selected.active()
+                                && requestGeneration == requestGenerations.getOrDefault(target.id, 0L)) {
+                            CacheAvatarLoader.save(cacheKey, nbt);
+                            target.loadAvatar(nbt, () -> selected == connection && selected.active()
+                                    && requestGeneration == requestGenerations.getOrDefault(target.id, 0L));
+                        }
+                    });
+                }
+                return new CloudProtocol.Reply(200, "");
+            } finally {
+                target.loading.finish(progress);
             }
-            return new CloudProtocol.Reply(200, "");
         }, (code, data) -> responseDebug("download", code, data));
+        if (!queued) {
+            target.loading.finish(progress);
+        }
         downloadRate.use();
     }
 

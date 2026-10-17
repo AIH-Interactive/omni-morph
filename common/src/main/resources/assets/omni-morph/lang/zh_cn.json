@@ -33,5 +33,12 @@
     "omni-morph.gui.help.github": "OmniMorph GitHub",
     "omni-morph.gui.help.credits": "Credits",
     "omni-morph.gui.help.upstream": "Figura Upstream",
-    "omni-morph.gui.help.omnimorph_version": "OmniMorph 版本：%s"
+    "omni-morph.gui.help.omnimorph_version": "OmniMorph 版本：%s",
+  "omni-morph.loading.profile": "加载中 · 查询模型",
+  "omni-morph.loading.downloading": "加载中 · 下载模型",
+  "omni-morph.loading.reading": "加载中 · 读取模型",
+  "omni-morph.loading.preparing": "加载中 · 准备模型",
+  "omni-morph.loading.decoding": "加载中 · 解码模型",
+  "omni-morph.loading.building": "加载中 · 组装模型",
+  "omni-morph.loading.applying": "加载中 · 应用模型"
 }

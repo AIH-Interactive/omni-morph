@@ -208,6 +208,22 @@ public class AvatarManager {
         return user == null ? null : user.getMainAvatar();
     }
 
+    public static AvatarLoadProgress.Snapshot getLoadingProgress(UUID owner) {
+        UserData user = LOADED_USERS.get(owner);
+        return user == null ? null : user.loading.snapshot();
+    }
+
+    public static void clearLoadingProgress(UUID owner) {
+        UserData user = LOADED_USERS.get(owner);
+        if (user != null) {
+            user.loading.clear();
+        }
+    }
+
+    public static void clearNetworkLoadingProgress() {
+        LOADED_USERS.values().forEach(user -> user.loading.clearNetwork());
+    }
+
     // get all main loaded avatars
     public static List<Avatar> getLoadedAvatars() {
         List<Avatar> list = new ArrayList<>();

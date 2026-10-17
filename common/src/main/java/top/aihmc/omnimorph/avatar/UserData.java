@@ -22,6 +22,7 @@ public class UserData {
 
     public final UUID id;
     public final YsmLoadGeneration ysmLoads = new YsmLoadGeneration();
+    public final AvatarLoadProgress loading = new AvatarLoadProgress();
     private final Queue<Avatar> avatars = new ConcurrentLinkedQueue<>();
     private Pair<BitSet, BitSet> badges;
 
@@ -54,19 +55,24 @@ public class UserData {
     public CompletableFuture<Boolean> loadAvatar(
             CompoundTag nbt, BooleanSupplier current) {
         long generation = ysmLoads.begin();
+        long progress = loading.begin(AvatarLoadProgress.Stage.PREPARING);
         Avatar prepared = new Avatar(id);
         return AvatarLoadExecutor.submit(() -> {
             if (!current.getAsBoolean() || !ysmLoads.current(generation)) {
                 return false;
             }
-            prepared.load(nbt, null, () -> !current.getAsBoolean() || !ysmLoads.current(generation));
+            prepared.load(nbt, null, () -> !current.getAsBoolean() || !ysmLoads.current(generation),
+                    stage -> loading.stage(progress, stage));
             return prepared.nbt != null && prepared.loaded;
         }).handle((success, failure) -> {
             if (failure != null) {
                 FiguraMod.LOGGER.error("Model preparation failed for {}", id, failure);
             }
             return failure == null && success;
-        }).thenCompose(success -> publishAvatar(prepared, generation, () -> success && current.getAsBoolean()));
+        }).thenCompose(success -> {
+            loading.stage(progress, AvatarLoadProgress.Stage.APPLYING);
+            return publishAvatar(prepared, generation, () -> success && current.getAsBoolean());
+        }).whenComplete((published, failure) -> loading.finish(progress));
     }
 
     public CompletableFuture<Boolean> loadYsmAvatar(
@@ -124,6 +130,7 @@ public class UserData {
     }
 
     public void clear() {
+        loading.clear();
         long generation = ysmLoads.begin();
         ysmLoads.publish(generation, () -> {
             for (Avatar avatar : avatars) {

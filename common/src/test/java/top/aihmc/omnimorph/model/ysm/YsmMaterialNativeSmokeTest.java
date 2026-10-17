@@ -157,6 +157,7 @@ public final class YsmMaterialNativeSmokeTest {
             testOwnershipAndDeferredClose(unsafe, client);
             client.sounds = YsmStabilitySmokeTest.soundManager(unsafe, true);
             AvatarAsyncLoadSmokeTest.run(unsafe, client, client::drain);
+            AvatarLoadProgressSmokeTest.run();
             require(client.queue.isEmpty(), "all scheduled native cleanup completed");
             System.out.println("M5 native material objects: formal assembly, paired selection, model isolation, channel recreation and deferred NativeImage release PASS; GPU/shader/GUI pending.");
         } finally {

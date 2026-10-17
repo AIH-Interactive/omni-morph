@@ -99,11 +99,23 @@ public final class CloudHttp implements AutoCloseable {
     }
 
     public static byte[] readBounded(InputStream body, int limit) throws IOException {
-        byte[] bytes = body.readNBytes(limit + 1);
-        if (bytes.length > limit) {
-            throw new IOException("Response exceeds byte budget");
+        return readBounded(body, limit, received -> {});
+    }
+
+    public static byte[] readBounded(InputStream body, int limit, java.util.function.LongConsumer progress) throws IOException {
+        var output = new java.io.ByteArrayOutputStream();
+        byte[] buffer = new byte[8192];
+        int received = 0;
+        int count;
+        while ((count = body.read(buffer, 0, (int) Math.min(buffer.length, (long) limit + 1 - received))) != -1) {
+            received += count;
+            if (received > limit) {
+                throw new IOException("Response exceeds byte budget");
+            }
+            output.write(buffer, 0, count);
+            progress.accept(received);
         }
-        return bytes;
+        return output.toByteArray();
     }
 
     public static String sha256(byte[] bytes) {

@@ -1866,5 +1866,12 @@
     "omni-morph.gui.help.github": "OmniMorph GitHub",
     "omni-morph.gui.help.credits": "Credits",
     "omni-morph.gui.help.upstream": "Figura Upstream",
-    "omni-morph.gui.help.omnimorph_version": "OmniMorph Version: %s"
+    "omni-morph.gui.help.omnimorph_version": "OmniMorph Version: %s",
+  "omni-morph.loading.profile": "Loading · Checking profile",
+  "omni-morph.loading.downloading": "Loading · Downloading",
+  "omni-morph.loading.reading": "Loading · Reading model",
+  "omni-morph.loading.preparing": "Loading · Preparing model",
+  "omni-morph.loading.decoding": "Loading · Decoding model",
+  "omni-morph.loading.building": "Loading · Building model",
+  "omni-morph.loading.applying": "Loading · Applying model"
 }

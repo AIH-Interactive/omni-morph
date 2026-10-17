@@ -50,11 +50,13 @@ final class AvatarAsyncLoadSmokeTest {
             var first = user.loadAvatar(model("first"));
             var latest = user.loadAvatar(model("latest"));
             require(!first.isDone() && !latest.isDone(), "requesting a switch never waits for the worker");
+            require(user.loading.snapshot() != null, "queued switch exposes player loading progress");
             release.countDown();
             require(gate.get(5, TimeUnit.SECONDS) != Thread.currentThread(), "preparation runs off the game thread");
             await(first, drain);
             await(latest, drain);
             require(!first.join() && latest.join(), "only the most recent requested model publishes");
+            require(user.loading.snapshot() == null, "successful publication clears progress");
             Avatar retained = user.getMainAvatar();
             require(retained != null && retained.name.equals("latest"), "actual prepared model becomes resident");
             AtomicBoolean scope = new AtomicBoolean(true);
@@ -70,6 +72,7 @@ final class AvatarAsyncLoadSmokeTest {
             await(failed, drain);
             require(!failed.join() && user.getMainAvatar() == retained,
                     "runtime assembly failure keeps the previous model");
+            require(user.loading.snapshot() == null, "failed preparation clears progress without hiding the previous model");
             if (encrypted != null) {
                 var portable = model("encrypted cache replay");
                 portable.getCompoundOrEmpty("metadata").putString("format", "ysm-native");

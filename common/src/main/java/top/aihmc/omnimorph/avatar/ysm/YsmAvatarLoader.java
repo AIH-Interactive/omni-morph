@@ -8,6 +8,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.avatar.UserData;
+import top.aihmc.omnimorph.avatar.AvatarLoadProgress;
 import top.aihmc.omnimorph.gui.FiguraToast;
 import top.aihmc.omnimorph.parsers.AvatarMetadataParser;
 import top.aihmc.omnimorph.utils.FiguraText;
@@ -28,14 +29,18 @@ public final class YsmAvatarLoader {
 
     public static CompletableFuture<YsmLoadResult> loadAvatar(Path path, UserData target) {
         long generation = target.ysmLoads.begin();
+        long progress = target.loading.begin(AvatarLoadProgress.Stage.DECODING);
         var prepared = new top.aihmc.omnimorph.avatar.Avatar(target.id);
         return top.aihmc.omnimorph.avatar.AvatarLoadExecutor.submit(() -> {
             try (YsmModelData data = YsmModelData.read(path, () -> !target.ysmLoads.current(generation))) {
                 YsmTextureOption texture = selectTexture(path, data.manifest().textures(), data.manifest().defaultTexture());
+                target.loading.stage(progress, AvatarLoadProgress.Stage.BUILDING);
                 CompoundTag nbt = toAvatarNbt(data, texture, target.id, path);
                 var identity = data.identity();
                 var diagnostics = data.diagnostics();
-                return target.loadYsmAvatar(prepared, nbt, data, generation).thenApply(published -> {
+                var publication = target.loadYsmAvatar(prepared, nbt, data, generation);
+                target.loading.stage(progress, AvatarLoadProgress.Stage.APPLYING);
+                return publication.thenApply(published -> {
                     if (published) {
                         top.aihmc.omnimorph.backend2.NetworkStuff.localAvatarReady(prepared);
                     }
@@ -62,7 +67,7 @@ public final class YsmAvatarLoader {
             net.minecraft.client.Minecraft.getInstance().execute(prepared::clean);
             FiguraMod.LOGGER.error("YSM preparation could not complete for {}", target.id, failure);
             return new YsmLoadResult(YsmLoadResult.Status.FAILED, null, List.of("RUNTIME_ASSEMBLY_FAILED"));
-        });
+        }).whenComplete((result, failure) -> target.loading.finish(progress));
     }
 
     public static CompoundTag toAvatarNbt(YsmModelData data, YsmTextureOption texture,
