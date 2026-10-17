@@ -86,6 +86,7 @@ final class AvatarAsyncLoadSmokeTest {
                 System.out.println("Reported encrypted model -> portable payload -> Avatar.load -> client publication PASS");
             }
             System.out.println("Actual avatar async preparation: nonblocking switch, newest generation, retired scope and failure retention PASS");
+            AvatarBroadcastSmokeTest.run(user, drain);
         } finally {
             release.countDown();
             user.clear();

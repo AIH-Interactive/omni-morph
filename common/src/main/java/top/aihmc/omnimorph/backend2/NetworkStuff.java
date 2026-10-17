@@ -52,6 +52,9 @@ public class NetworkStuff {
     private static final List<UUID> SUBSCRIPTIONS = new ArrayList<>();
     private static final Map<UUID, Long> requestGenerations = new ConcurrentHashMap<>();
     private static final AtomicLong epochs = new AtomicLong();
+    private static final AtomicLong localSelections = new AtomicLong();
+    private static volatile Avatar localBroadcastAvatar;
+    private static volatile boolean localBroadcastPending;
     private static CompletableFuture<Void> tasks;
     private static final java.util.concurrent.atomic.AtomicInteger pendingTasks = new java.util.concurrent.atomic.AtomicInteger();
     private static volatile CloudConnection connection;
@@ -425,8 +428,11 @@ public class NetworkStuff {
                     setLimits();
                     fetchMOTD();
                     subscribeAll();
+                    broadcastLocalAvatar();
                     for (UUID owner : List.copyOf(SUBSCRIPTIONS)) {
-                        AvatarManager.reloadAvatar(owner);
+                        if (!FiguraMod.isLocal(owner) || top.aihmc.omnimorph.avatar.local.LocalAvatarLoader.getLastLoadedPath() == null) {
+                            AvatarManager.reloadAvatar(owner);
+                        }
                     }
                     if (Configs.CONNECTION_TOASTS.value) {
                         FiguraToast.sendToast(FiguraText.of("backend.connected"));
@@ -450,7 +456,11 @@ public class NetworkStuff {
 
             @Override
             public void changed(UUID owner) {
-                selected.post(128, () -> AvatarManager.reloadAvatar(owner));
+                selected.post(128, () -> {
+                    if (!FiguraMod.isLocal(owner) || top.aihmc.omnimorph.avatar.local.LocalAvatarLoader.getLastLoadedPath() == null) {
+                        AvatarManager.reloadAvatar(owner);
+                    }
+                });
             }
 
             @Override
@@ -630,38 +640,72 @@ public class NetworkStuff {
     }
 
     public static void uploadAvatar(Avatar avatar) {
-        if (avatar == null || avatar.nbt == null) {
+        if (avatar != null && avatar.nbt != null) {
+            localAvatarReady(avatar);
+            uploadRate.use();
+        }
+    }
+
+    public static void localSelectionChanged() {
+        localSelections.incrementAndGet();
+        localBroadcastAvatar = null;
+        localBroadcastPending = false;
+    }
+
+    /** Called only after successful local publication, or when the local model is explicitly cleared. */
+    public static void localAvatarReady(Avatar avatar) {
+        localBroadcastAvatar = avatar;
+        localBroadcastPending = true;
+        broadcastLocalAvatar();
+    }
+
+    private static void broadcastLocalAvatar() {
+        if (!localBroadcastPending || !isConnected()) {
             return;
         }
-        try {
-            ByteArrayOutputStream output = new ByteArrayOutputStream();
-            NbtIo.writeCompressed(YsmSourcePayload.forOutput(avatar.nbt), output);
-            CloudProtocol.Metadata metadata = CloudProtocol.Metadata.figura();
-            YsmModelRuntime runtime = avatar.getYsmRuntime();
-            if (runtime != null) {
-                YsmSyncModel model = new YsmSyncModel(runtime);
-                metadata = new CloudProtocol.Metadata(runtime.encryptedSource() ? 3 : 2,
-                        model.contentHash(), model.schemaHash());
+        Avatar avatar = localBroadcastAvatar;
+        CompoundTag source = avatar == null ? null : avatar.nbt;
+        YsmModelRuntime runtime = avatar == null ? null : avatar.getYsmRuntime();
+        long selection = localSelections.get();
+        localBroadcastPending = false;
+        queueString(Util.NIL_UUID, protocol -> {
+            if (selection != localSelections.get()) {
+                return new CloudProtocol.Reply(204, "");
             }
-            byte[] bytes = output.toByteArray();
-            CloudProtocol.Metadata captured = metadata;
-            queueString(Util.NIL_UUID, api -> api.upload("avatar", bytes, captured), (code, data) -> {
-                if (code == 200) {
-                    equipAvatar(List.of(Pair.of(avatar.owner, "avatar")));
+            if (source != null) {
+                ByteArrayOutputStream output = new ByteArrayOutputStream();
+                NbtIo.writeCompressed(YsmSourcePayload.forOutput(source), output);
+                CloudProtocol.Metadata metadata = CloudProtocol.Metadata.figura();
+                if (runtime != null) {
+                    YsmSyncModel model = new YsmSyncModel(runtime);
+                    metadata = new CloudProtocol.Metadata(runtime.encryptedSource() ? 3 : 2,
+                            model.contentHash(), model.schemaHash());
                 }
-                String key = switch (code) {
-                    case 200 -> "backend.upload_success";
-                    case 413 -> "backend.upload_too_big";
-                    case 507 -> "backend.upload_too_many";
-                    default -> "backend.upload_error";
-                };
-                FiguraToast.sendToast(FiguraText.of(key), code == 200
-                        ? FiguraToast.ToastType.DEFAULT : FiguraToast.ToastType.ERROR);
-            });
-            uploadRate.use();
-        } catch (Exception exception) {
-            FiguraMod.LOGGER.error("Failed to prepare cloud model upload");
-        }
+                if (selection != localSelections.get()) {
+                    return new CloudProtocol.Reply(204, "");
+                }
+                var uploaded = protocol.upload("avatar", output.toByteArray(), metadata);
+                if (uploaded.status() != 200) {
+                    return uploaded;
+                }
+            }
+            if (selection != localSelections.get()) {
+                return new CloudProtocol.Reply(204, "");
+            }
+            return source == null ? protocol.equip(List.of(), List.of())
+                    : protocol.equip(List.of(avatar.owner), List.of("avatar"));
+        }, (code, body) -> {
+            if (selection != localSelections.get()) {
+                return;
+            }
+            if (code == 200) {
+                AvatarManager.localUploaded = source != null;
+                YSM_SYNC.requestSnapshot();
+            } else if (code != 204) {
+                localBroadcastPending = true;
+                FiguraMod.LOGGER.warn("Local model broadcast failed: HTTP {}", code);
+            }
+        });
     }
 
     public static void deleteAvatar(String avatar) {

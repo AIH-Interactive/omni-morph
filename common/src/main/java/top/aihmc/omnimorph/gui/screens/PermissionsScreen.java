@@ -133,7 +133,7 @@ public class PermissionsScreen extends AbstractPanelScreen {
         // reload all
         int bottomButtonsWidth = (listWidth - 24) / 2 - 2;
         addRenderableWidget(reloadAll = new Button(middle + 2, height - 24, bottomButtonsWidth, 20, FiguraText.of("gui.permissions.reload_all"), null, bx -> {
-            AvatarManager.clearAllAvatars();
+            AvatarManager.reloadAllAvatars();
             FiguraToast.sendToast(FiguraText.of("toast.reload_all"));
         }));
 

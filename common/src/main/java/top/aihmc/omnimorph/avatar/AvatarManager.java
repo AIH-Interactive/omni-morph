@@ -240,6 +240,7 @@ public class AvatarManager {
 
     // clears ALL loaded avatars, including local
     public static void clearAllAvatars() {
+        NetworkStuff.localSelectionChanged();
         for (UUID id : LOADED_USERS.keySet())
             clearAvatars(id);
 
@@ -256,7 +257,7 @@ public class AvatarManager {
 
     // reloads an avatar
     public static void reloadAvatar(UUID id) {
-        if (!localUploaded && FiguraMod.isLocal(id))
+        if (FiguraMod.isLocal(id) && LocalAvatarLoader.getLastLoadedPath() != null)
             loadLocalAvatar(LocalAvatarLoader.getLastLoadedPath());
         else {
             NetworkStuff.clear(id);
@@ -266,9 +267,17 @@ public class AvatarManager {
         }
     }
 
+    public static void reloadAllAvatars() {
+        for (UUID id : List.copyOf(LOADED_USERS.keySet())) {
+            reloadAvatar(id);
+        }
+        clearCEMAvatars();
+    }
+
     // load the local player avatar
     public static void loadLocalAvatar(Path path) {
         UUID id = FiguraMod.getLocalPlayerUUID();
+        NetworkStuff.localSelectionChanged();
 
         // Retire cloud callbacks even when the previous model stays visible during preparation.
         NetworkStuff.clear(id);
@@ -283,6 +292,9 @@ public class AvatarManager {
 
         // mark as not uploaded
         localUploaded = false;
+        if (path == null) {
+            NetworkStuff.localAvatarReady(null);
+        }
     }
 
     // load CEM avatar

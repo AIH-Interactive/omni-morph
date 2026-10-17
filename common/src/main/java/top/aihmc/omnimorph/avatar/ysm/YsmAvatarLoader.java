@@ -35,9 +35,13 @@ public final class YsmAvatarLoader {
                 CompoundTag nbt = toAvatarNbt(data, texture, target.id, path);
                 var identity = data.identity();
                 var diagnostics = data.diagnostics();
-                return target.loadYsmAvatar(prepared, nbt, data, generation).thenApply(published ->
-                        new YsmLoadResult(published ? YsmLoadResult.Status.PUBLISHED : YsmLoadResult.Status.CANCELLED,
-                                identity, diagnostics));
+                return target.loadYsmAvatar(prepared, nbt, data, generation).thenApply(published -> {
+                    if (published) {
+                        top.aihmc.omnimorph.backend2.NetworkStuff.localAvatarReady(prepared);
+                    }
+                    return new YsmLoadResult(published ? YsmLoadResult.Status.PUBLISHED : YsmLoadResult.Status.CANCELLED,
+                            identity, diagnostics);
+                });
             } catch (Exception failure) {
                 net.minecraft.client.Minecraft.getInstance().execute(prepared::clean);
                 if (failure instanceof java.io.InterruptedIOException || !target.ysmLoads.current(generation)) {
