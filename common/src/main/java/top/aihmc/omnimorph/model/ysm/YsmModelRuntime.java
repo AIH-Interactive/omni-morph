@@ -134,8 +134,13 @@ public class YsmModelRuntime implements AutoCloseable {
     }
 
     public static YsmModelRuntime fromNbt(Avatar owner, CompoundTag tag) throws java.io.IOException {
+        return fromNbt(owner, tag, () -> false);
+    }
+
+    public static YsmModelRuntime fromNbt(Avatar owner, CompoundTag tag,
+                                           java.util.function.BooleanSupplier cancelled) throws java.io.IOException {
         if (YsmSourcePayload.isEncrypted(tag)) {
-            try (YsmModelData data = YsmSourcePayload.openData(tag, () -> false)) {
+            try (YsmModelData data = YsmSourcePayload.openData(tag, cancelled)) {
                 return fromData(owner, data, tag);
             }
         }

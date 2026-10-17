@@ -1,6 +1,7 @@
 package top.aihmc.omnimorph.avatar;
 
 import com.mojang.datafixers.util.Pair;
+import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.avatar.local.CacheAvatarLoader;
@@ -13,7 +14,9 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Queue;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.BooleanSupplier;
 
 public class UserData {
 
@@ -27,59 +30,81 @@ public class UserData {
     }
 
     public void loadData(ArrayList<Pair<String, Pair<String, UUID>>> avatars, Pair<BitSet,BitSet> badges) {
-        loadData(avatars, badges, Runnable::run);
+        loadData(avatars, badges, () -> true);
     }
 
     public void loadData(ArrayList<Pair<String, Pair<String, UUID>>> avatars, Pair<BitSet,BitSet> badges,
-                         java.util.function.Consumer<Runnable> publish) {
+                         BooleanSupplier current) {
         loadBadges(badges);
-        clear();
+        if (avatars.isEmpty()) {
+            clear();
+        }
         for (Pair<String, Pair<String, UUID>> avatar : avatars) {
-            if (!CacheAvatarLoader.checkAndLoad(avatar.getFirst(), this, publish)) {
+            if (!CacheAvatarLoader.checkAndLoad(avatar.getFirst(), this, current)) {
                 Pair<String, UUID> pair = avatar.getSecond();
                 NetworkStuff.getAvatar(this, pair.getSecond(), pair.getFirst(), avatar.getFirst());
             }
         }
     }
 
-    public void loadAvatar(CompoundTag nbt) {
-        ysmLoads.begin();
-        FiguraMod.debug("--- avatar loading: " + id + " ---");
-        Avatar avatar = new Avatar(id);
-        this.avatars.add(avatar);
-        avatar.load(nbt);
-        FiguraMod.debug("--- loaded " + id + " ---");
+    public CompletableFuture<Boolean> loadAvatar(CompoundTag nbt) {
+        return loadAvatar(nbt, () -> true);
     }
 
-    public boolean loadYsmAvatar(CompoundTag nbt, YsmModelData data,
-                                  long generation) throws IOException {
-        if (!ysmLoads.current(generation)) {
-            return false;
-        }
+    public CompletableFuture<Boolean> loadAvatar(
+            CompoundTag nbt, BooleanSupplier current) {
+        long generation = ysmLoads.begin();
         Avatar prepared = new Avatar(id);
-        try {
-            prepared.load(nbt, data);
-            if (!prepared.loaded || prepared.getYsmRuntime() == null) {
-                throw new IOException("RUNTIME_ASSEMBLY_FAILED: YSM avatar was not prepared");
-            }
-            if (!ysmLoads.publish(generation, () -> {
-                for (Avatar previous : avatars) {
-                    previous.clean();
-                }
-                avatars.clear();
-                avatars.add(prepared);
-            })) {
-                prepared.clean();
+        return AvatarLoadExecutor.submit(() -> {
+            if (!current.getAsBoolean() || !ysmLoads.current(generation)) {
                 return false;
             }
-            return true;
-        } catch (Exception e) {
-            prepared.clean();
-            if (e instanceof IOException io) {
-                throw io;
+            prepared.load(nbt, null, () -> !current.getAsBoolean() || !ysmLoads.current(generation));
+            return prepared.nbt != null && prepared.loaded;
+        }).handle((success, failure) -> {
+            if (failure != null) {
+                FiguraMod.LOGGER.error("Model preparation failed for {}", id, failure);
             }
-            throw new IOException("RUNTIME_ASSEMBLY_FAILED: YSM avatar preparation failed", e);
+            return failure == null && success;
+        }).thenCompose(success -> publishAvatar(prepared, generation, () -> success && current.getAsBoolean()));
+    }
+
+    public CompletableFuture<Boolean> loadYsmAvatar(
+            Avatar prepared, CompoundTag nbt, YsmModelData data, long generation) throws IOException {
+        if (!ysmLoads.current(generation)) {
+            return publishAvatar(prepared, generation, () -> false);
         }
+        prepared.load(nbt, data, () -> !ysmLoads.current(generation));
+        if (!prepared.loaded || prepared.getYsmRuntime() == null) {
+            Minecraft.getInstance().execute(prepared::clean);
+            throw new IOException("RUNTIME_ASSEMBLY_FAILED: YSM avatar was not prepared");
+        }
+        return publishAvatar(prepared, generation, () -> true);
+    }
+
+    /** Only the short swap and retirement of native resources run on the client thread. */
+    public CompletableFuture<Boolean> publishAvatar(
+            Avatar prepared, long generation, BooleanSupplier current) {
+        var result = new CompletableFuture<Boolean>();
+        Minecraft.getInstance().execute(() -> {
+            try {
+                boolean published = current.getAsBoolean() && ysmLoads.publish(generation, () -> {
+                    for (Avatar previous : avatars) {
+                        previous.clean();
+                    }
+                    avatars.clear();
+                    avatars.add(prepared);
+                });
+                if (!published) {
+                    prepared.clean();
+                }
+                result.complete(published);
+            } catch (Exception failure) {
+                prepared.clean();
+                result.completeExceptionally(failure);
+            }
+        });
+        return result;
     }
 
     public void loadBadges(Pair<BitSet, BitSet> pair) {

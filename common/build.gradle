@@ -579,6 +579,16 @@ tasks.register("ysmControlledBaseGeometrySmokeTest", JavaExec) {
     args "--controlled-base-geometry", rootProject.file("refs/avatars/末影龙娘.ysm").path
 }
 
+tasks.register("ysmAsyncEncryptedLoadSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Replays the reported encrypted model through asynchronous Avatar loading and client publication."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest"
+    maxHeapSize = "2g"
+    args "--async-encrypted", rootProject.file("refs/avatars/末影龙娘.ysm").path
+}
+
 tasks.register("ysmHeldItemGeometrySmokeTest", JavaExec) {
     group = "verification"
     description = "Checks held-item and attachment geometry on the reported model."

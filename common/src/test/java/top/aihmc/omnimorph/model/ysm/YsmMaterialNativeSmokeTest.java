@@ -74,6 +74,11 @@ public final class YsmMaterialNativeSmokeTest {
             RenderSystem.initRenderThread();
             instance.set(null, client);
             top.aihmc.omnimorph.permissions.PermissionManager.init();
+            if (args.length == 2 && args[0].equals("--async-encrypted")) {
+                client.sounds = YsmStabilitySmokeTest.soundManager(unsafe, true);
+                AvatarAsyncLoadSmokeTest.run(unsafe, client, client::drain, Path.of(args[1]));
+                return;
+            }
             if (args.length == 2 && args[0].equals("--held-items")) {
                 client.sounds = YsmStabilitySmokeTest.soundManager(unsafe);
                 Field device = RenderSystem.class.getDeclaredField("DEVICE");
@@ -149,6 +154,8 @@ public final class YsmMaterialNativeSmokeTest {
             testModelSelection(unsafe, client);
             testSelectionRestore(unsafe, client, directory);
             testOwnershipAndDeferredClose(unsafe, client);
+            client.sounds = YsmStabilitySmokeTest.soundManager(unsafe, true);
+            AvatarAsyncLoadSmokeTest.run(unsafe, client, client::drain);
             require(client.queue.isEmpty(), "all scheduled native cleanup completed");
             System.out.println("M5 native material objects: formal assembly, paired selection, model isolation, channel recreation and deferred NativeImage release PASS; GPU/shader/GUI pending.");
         } finally {

@@ -28,24 +28,36 @@ public final class YsmAvatarLoader {
 
     public static CompletableFuture<YsmLoadResult> loadAvatar(Path path, UserData target) {
         long generation = target.ysmLoads.begin();
-        return CompletableFuture.supplyAsync(() -> {
+        var prepared = new top.aihmc.omnimorph.avatar.Avatar(target.id);
+        return top.aihmc.omnimorph.avatar.AvatarLoadExecutor.submit(() -> {
             try (YsmModelData data = YsmModelData.read(path, () -> !target.ysmLoads.current(generation))) {
                 YsmTextureOption texture = selectTexture(path, data.manifest().textures(), data.manifest().defaultTexture());
                 CompoundTag nbt = toAvatarNbt(data, texture, target.id, path);
-                boolean published = target.loadYsmAvatar(nbt, data, generation);
-                return new YsmLoadResult(published ? YsmLoadResult.Status.PUBLISHED : YsmLoadResult.Status.CANCELLED,
-                        data.identity(), data.diagnostics());
-            } catch (java.io.InterruptedIOException e) {
-                return new YsmLoadResult(YsmLoadResult.Status.CANCELLED, null, List.of("CANCELLED"));
-            } catch (Exception e) {
-                if (!target.ysmLoads.current(generation)) {
-                    return new YsmLoadResult(YsmLoadResult.Status.CANCELLED, null, List.of("CANCELLED"));
+                var identity = data.identity();
+                var diagnostics = data.diagnostics();
+                return target.loadYsmAvatar(prepared, nbt, data, generation).thenApply(published ->
+                        new YsmLoadResult(published ? YsmLoadResult.Status.PUBLISHED : YsmLoadResult.Status.CANCELLED,
+                                identity, diagnostics));
+            } catch (Exception failure) {
+                net.minecraft.client.Minecraft.getInstance().execute(prepared::clean);
+                if (failure instanceof java.io.InterruptedIOException || !target.ysmLoads.current(generation)) {
+                    return CompletableFuture.completedFuture(new YsmLoadResult(
+                            YsmLoadResult.Status.CANCELLED, null, List.of("CANCELLED")));
                 }
-                FiguraMod.LOGGER.error("Failed to load YSM avatar from " + path, e);
-                FiguraToast.sendToast(FiguraText.of("toast.load_error"), FiguraText.of("gui.load_error.models"), FiguraToast.ToastType.ERROR);
-                return new YsmLoadResult(YsmLoadResult.Status.FAILED, null, List.of(e.getMessage() == null
-                        ? e.getClass().getSimpleName() : e.getMessage()));
+                FiguraMod.LOGGER.error("Failed to load YSM avatar from " + path, failure);
+                net.minecraft.client.Minecraft.getInstance().execute(() -> {
+                    if (target.ysmLoads.current(generation)) {
+                        FiguraToast.sendToast(FiguraText.of("toast.load_error"),
+                                FiguraText.of("gui.load_error.models"), FiguraToast.ToastType.ERROR);
+                    }
+                });
+                return CompletableFuture.completedFuture(new YsmLoadResult(
+                        YsmLoadResult.Status.FAILED, null, List.of("RUNTIME_ASSEMBLY_FAILED")));
             }
+        }).thenCompose(result -> result).exceptionally(failure -> {
+            net.minecraft.client.Minecraft.getInstance().execute(prepared::clean);
+            FiguraMod.LOGGER.error("YSM preparation could not complete for {}", target.id, failure);
+            return new YsmLoadResult(YsmLoadResult.Status.FAILED, null, List.of("RUNTIME_ASSEMBLY_FAILED"));
         });
     }
 
