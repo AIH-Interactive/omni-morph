@@ -113,9 +113,14 @@ remapJar {
     archiveClassifier.set "fabric-mc"
 }
 
-jar {
-    from("LICENSE") {
-        rename { String.valueOf("$archives_base_name").toUpperCase() + "_${it}"}
+tasks.withType(Jar).configureEach {
+    from(rootProject.file('LICENSE.md')) {
+        into 'licenses'
+        rename { 'OmniMorph-PolyForm-Noncommercial-1.0.0.txt' }
+    }
+    from(rootProject.file('CREDITS')) {
+        into 'credits'
+        rename { 'OmniMorph.txt' }
     }
 }
 

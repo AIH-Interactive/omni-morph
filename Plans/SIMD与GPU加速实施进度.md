@@ -14,8 +14,8 @@
 | H5 | 完成并已推送；真实 GPU/画面项 MANUAL/PENDING，最终集中验收 | `76b299102f232cb5735de0949536d73b057c5827`，双引擎完整接入 |
 | H6 | 完成；四 runner/最终 JAR 全部通过 | `432af82fe4765111f7d436c4b86571d27b0ec2f3`，[CI 39015871560](https://github.com/AIH-Interactive/omni-morph/actions/runs/39015871560) |
 | H6 补充 | 完成；六平台 native 与最终 JAR 检查通过 | `48910b703ab75fdede34a6b9d48eee50c36d8047`，[CI 39017540304](https://github.com/AIH-Interactive/omni-morph/actions/runs/39017540304)；Android 设备 JNI/游戏 MANUAL/PENDING |
-| H7 | 自动验证/编译完成；实机与性能 MANUAL/PENDING | [H7 验证报告](SIMD与GPU加速H7验证报告.md)，按用户指示交人工验收 |
-| H8 | 待实施 | 最终审计交付 |
+| H7 | 自动检查点完成并已推送；实机与性能 MANUAL/PENDING | `fde1666019782227ad4b0778168828a86a33f700`，[H7 验证报告](SIMD与GPU加速H7验证报告.md) |
+| H8 | 实施中；本地构建/许可审计通过，最终 CI 待核验 | [H8 最终审计](SIMD与GPU加速H8最终审计.md) |
 
 ## H0
 
@@ -302,3 +302,15 @@
 - [H7 报告](SIMD与GPU加速H7验证报告.md) 提供三轮 p50/p95/p99 和 [1620 帧原始 CSV](evidence/acceleration/h7-cpu-preparation.csv)。
   CPU 准备仍未体现相对 Java 的提速，不宣称满足性能目标；真实画面、GPU/总帧、驱动资源及兼容矩阵全部 MANUAL/PENDING。
   按用户追加指示不阻塞自动检查点；数值和性能阈值保持冻结。
+- H7 提交/推送 `fde1666019782227ad4b0778168828a86a33f700`，远端 SHA 一致；
+  [CI 39020025684](https://github.com/AIH-Interactive/omni-morph/actions/runs/39020025684) 六平台 native、最终包检查与发布全部成功。
+
+## H8（最终 CI 验证中）
+
+- README 补齐默认关闭、三模式、实际状态和回退、六平台/Android 边界、本地 Windows 与 CI 工作流；
+  明确 CPU 准备数据未体现提速，真实 GPU/总帧性能仍人工待验。CREDITS/NOTICE 记录独立实现、对照来源和随包声明。
+- 修复最终 JAR/源码包缺少项目完整许可证的问题；Fabric Jar/ShadowJar 从实际 LICENSE.md/CREDITS 复制，
+  与旧基础包保持条目字节的 native 合并不丢声明。构建和 synthetic 包装负例成功（17s），源文档对比通过。
+- 新增只读最终产物验证脚本并加入合并后的 CI 门禁；旧真实包因缺许可证被拒绝，synthetic 内容合同通过。
+  本地只编译 Windows；实机/画面/真实 GPU 性能按用户追加指示交人工，不使用 computer-use。
+- 最终 CI 及可下载成品来源/哈希验证中；详见 H8 审计，尚不把待验写成 PASS。

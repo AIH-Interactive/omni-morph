@@ -24,3 +24,12 @@ Cookie: https://github.com/Covkie | 🍪 - Translation maintenance/General goobe
 Apple: https://github.com/applejuiceyy
 #GuiGui: https://github.com/HastagGuigui | French translation
 Playgamesgo: https://github.com/playgamesgo | Ukrainian translation
+
+OmniMorph SIMD/GPU acceleration;
+The shared ABI, scalar/SSE2/AVX2/NEON kernels, GPU batching and shader wrappers
+are independently implemented for OmniMorph. Reference comparison does not
+imply that source files were copied from the projects below.
+openysm.cpp: https://github.com/OpenYSMDev/openysm.cpp | Algorithm comparison
+Sparkle-Morpher: https://github.com/sdf123098/Sparkle-Morpher | Architecture/behavior comparison
+Native runtime notices: natives/NOTICE.txt in the complete CI JAR
+Android NDK r28c runtime notices: natives/android-aarch64/licenses/ in that JAR

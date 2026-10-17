@@ -163,6 +163,10 @@ jobs:
           $buildExitCode = $LASTEXITCODE
           Get-Content -LiteralPath build.log -Tail 40
           if ($buildExitCode -ne 0) { exit $buildExitCode }
+          & pwsh -NoProfile -File ./tools/verify-acceleration-artifact.ps1 -JarPath 'build/final/omni-morph-1.0.0-alpha.1+26.1.2-fabric-mc.jar' -ExpectedCommit $env:GITHUB_SHA -ExpectedRun $env:GITHUB_RUN_ID 2>&1 | Tee-Object -FilePath build.log -Append
+          $buildExitCode = $LASTEXITCODE
+          Get-Content -LiteralPath build.log -Tail 40
+          if ($buildExitCode -ne 0) { exit $buildExitCode }
           Get-FileHash -Algorithm SHA256 -LiteralPath 'build/final/omni-morph-1.0.0-alpha.1+26.1.2-fabric-mc.jar' | Format-List | Out-String | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v7
         with:

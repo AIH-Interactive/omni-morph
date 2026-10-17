@@ -26,6 +26,7 @@
 | 加密资源分发 | 已实现的上传、缓存和普通导出路径保留原密文；加载时在内存中解码 |
 | 现有多人状态 | 已实现基于 Figura Ping 的 YSM 状态同步与恢复状态机，能力及预算见 M7 记录 |
 | 后端与 Protobuf | B0～B8 自动验收完成，含双协议、原始 HTTP 资源、YSM 状态恢复、默认 Protobuf、Debug 安全及进程迁移/回滚；公网部署与双游戏实机观察待人工验收 |
+| SIMD / GPU | 公共后端已接通 Figura/YSM，默认关闭；六平台 native CI、数值/回退/资源合同测试通过，实机画面及性能交人工验收，尚无提速承诺 |
 | 游戏实际验收 | 自动化、真实游戏双客户端及人工观察分别记录，具体结果见验收矩阵 |
 
 本地模型加载可以独立使用。多人模型共享和动态同步需要相应客户端能力、身份认证及可用后端；未修改的原 Figura 客户端只能识别其支持的 Figura 内容。
@@ -63,6 +64,42 @@
 
 本项目的代码与版本更新位于 [AIH-Interactive/omni-morph](https://github.com/AIH-Interactive/omni-morph)。Figura 上游的下载入口和社区链接保留在 [原 README](README.Figura.original.md)，用于了解上游项目。
 
+## 硬件加速（实验性，默认关闭）
+
+在原设置页的 **硬件加速** 分类启用并保存。此客户端设置同时作用于 Figura 与 YSM，也作用于本客户端显示的远端模型；
+不需要为单个模型配置加速，不改变 Lua/Molang、权限、复杂度及模型同步规则。
+
+| 模式 | 行为 |
+| --- | --- |
+| 自动 / AUTO | 检测 GPU 并自检；GPU 就绪时可使用 SIMD 准备 CPU 回退数据。可选 native 不可用不影响已就绪 GPU；GPU 不可用则回 Java |
+| SIMD | 加载本平台 native 库，按实际 CPU/操作系统能力选择 SSE2、AVX2 或 NEON；不支持的批次仍由 Java 处理 |
+| GPU | 通过 Minecraft 图形 API 缓存网格并提交矩阵/排序索引；此模式不依赖额外 SIMD 库 |
+
+**实际状态** 显示禁用、检测中、就绪的实际后端或 Java 回退及原因。启用失败会在进入世界后发送一次去重聊天通知；
+标题界面不会提前刷屏。就绪代表后端自检成功，部分材质、蒙皮条件或超出预算的批次仍可回 Java。
+关闭设置会恢复 Java。当前检测到 **Iris 或 Sodium** 时，AUTO/GPU 会回 Java，可单独选择 SIMD。
+
+SIMD 使用包含对应 native 的 JAR；JDK 25 启动器需要允许 native 访问时，在 JVM 参数中添加
+`--enable-native-access=ALL-UNNAMED`。不授予访问、缺库、哈希/ABI 不匹配或架构不支持会安全回 Java。
+库按受控平台路径和内容哈希解压到本地缓存，不依赖系统搜索路径中的同名库。
+
+CI 最终 JAR 内置以下六种 native。表中的运行库下限只描述本库的实际符号/构建要求，Minecraft、JDK 和启动器仍有各自系统要求。
+
+| 平台 | Native 构建/自动验证 | 本库基线 |
+| --- | --- | --- |
+| Windows x86_64 | 原生 runner、CTest、最终 JAR 真 JNI | Windows 10 x64；静态 MSVC CRT |
+| Linux x86_64 | 原生 runner、CTest、最终 JAR 真 JNI | glibc 2.4、GLIBCXX 3.4、CXXABI 1.3.9；系统 libstdc++/libgcc_s |
+| Linux ARM64 | 真实 ARM64 runner、NEON/CTest、最终 JAR 真 JNI | glibc 2.17、GLIBCXX 3.4、CXXABI 1.3.9；系统 libstdc++/libgcc_s |
+| macOS x86_64 / ARM64 | 各自架构 runner、CTest、最终 JAR 真 JNI | macOS 13.0；系统 libc++/libSystem；ad-hoc 签名，未 notarize |
+| Android ARM64 | NDK r28c、Bionic/NEON 数值内核 qemu 测试、最终 JAR ELF/JNI 导出/许可/哈希检查 | arm64-v8a / API 26、16 KiB ELF 对齐、静态 C++ runtime；需要兼容的启动器/JVM |
+
+Android 提供独立 Bionic native，不能用 Linux ARM64 库替代；**Android 设备 JNI、启动器和游戏未验证**。
+Windows ARM64、32 位不在 native 支持矩阵。各平台真实 GPU/画面、实际驱动资源和性能均为人工待验。
+
+自动正确性及资源测试已记录；现有 CPU 准备测量仍未显示相对 Java 的提速，减少 draw 数不等于帧率提升。
+真实性能阈值保持不变，尚未获得通过证据。详见 [H7 验证报告与原始数据](Plans/SIMD与GPU加速H7验证报告.md)、
+[加速实施进度](Plans/SIMD与GPU加速实施进度.md) 和 [支持计划](Plans/SIMD与GPU加速支持计划书.md)。
+
 ## 从源码构建
 
 准备 JDK 25，并确保 `JAVA_HOME` 与 `PATH` 指向该版本。本地已有 `usejdk` 函数时，可以先执行 `usejdk 25`。在仓库根目录使用 PowerShell：
@@ -76,7 +113,31 @@ if ($buildExitCode -ne 0) { exit $buildExitCode }
 
 构建产物位于 `fabric/build/libs/`，成品命名为 `omni-morph-...-fabric-mc.jar`。网络协议 smoke test 随 `:common:test` 执行；YSM 各项验证入口及历史结果见计划和验收记录。
 
-[Fabric 26.1.2 构建](https://github.com/AIH-Interactive/omni-morph/actions/workflows/fabric-build.yml) 支持推送、PR 及手动触发，使用 Linux runner / JDK 25，仅编译 Fabric。打开成功运行的 Artifacts 或摘要链接即可下载成品 JAR（需登录 GitHub，保留 30 天）。
+上述独立 Fabric 构建不要求 C++ 工具链，未注入新增 native 库；GPU 路径仍可检测使用。需要本地 Windows SIMD 时，
+准备 MSVC x64 C++ 工具、CMake/Ninja 和 JDK 25，**先关闭客户端并确认退出**，再在 PowerShell 前台执行：
+
+```powershell
+& .\tools\build-native-windows.ps1 2>&1 | Tee-Object -FilePath 'build.log'
+$buildExitCode = $LASTEXITCODE
+Get-Content -LiteralPath 'build.log' -Tail 40
+if ($buildExitCode -ne 0) { exit $buildExitCode }
+
+& .\gradlew.bat packageLocalNative :common:nativePlatformSmokeTest --console=plain 2>&1 | Tee-Object -FilePath 'build.log' -Append
+$buildExitCode = $LASTEXITCODE
+Get-Content -LiteralPath 'build.log' -Tail 40
+if ($buildExitCode -ne 0) { exit $buildExitCode }
+```
+
+本地只编译 Windows；含库产物另存于 `build/local-native/`，名称带 `windows-local`，不覆盖原 Fabric 成品或测试客户端符号链接。
+Linux/macOS/Android 的编译在 CI 完成。
+完整 renderer/语料回放另需本地授权模型 `refs/avatars`，见 H7 报告；这些模型不随仓库分发。
+
+[Fabric 26.1.2 构建](https://github.com/AIH-Interactive/omni-morph/actions/workflows/fabric-build.yml) 支持推送、PR 及手动触发。
+流水线先在 Linux / JDK 25 生成唯一 Fabric 基础 JAR 和 JNI 接口，再编译六平台 native，核对同一提交/run 的 ABI、哈希和许可后合并。
+五个平台从同一最终 JAR 实际加载 JNI，Android 检查最终 JAR 内的 Bionic 库；全部成功才上传最终成品。
+打开成功运行的 Artifacts 或摘要链接下载 `omni-morph-...-fabric-mc.jar`（需登录 GitHub，保留 30 天）。
+内部基础包和 native 中间产物不是最终下载包；`natives/manifest.json` 记录来源/运行库/哈希，`natives/NOTICE.txt` 与 Android notices 随包保存。
+成品与源码包同时包含 `licenses/OmniMorph-PolyForm-Noncommercial-1.0.0.txt` 和 `credits/OmniMorph.txt`。
 
 ## 配套后端与协议改造
 
@@ -94,7 +155,7 @@ if ($buildExitCode -ne 0) { exit $buildExitCode }
 - [YesSteveModel](https://github.com/YesSteveModel/YesSteveModel)：YSM 开源项目。
 - [YesSteveModel-Native](https://github.com/YesSteveModel/YesSteveModel-Native)：YSM Native 开源项目。
 - [Sparkle-Morpher](https://github.com/sdf123098/Sparkle-Morpher)：模型运行、YSM 相关功能行为与兼容性核对参考。
-- [openysm.cpp](https://github.com/OpenYSMDev/openysm.cpp)：SIMD 与 native 实现参考，后续全局加速设计见 [SIMD 与 GPU 加速支持计划书](Plans/SIMD与GPU加速支持计划书.md)。
+- [openysm.cpp](https://github.com/OpenYSMDev/openysm.cpp)：SIMD/native 算法对照参考；本项目公共 ABI 与 scalar/SSE2/AVX2/NEON 内核独立实现，未复制其源文件。加速设计见 [SIMD 与 GPU 加速支持计划书](Plans/SIMD与GPU加速支持计划书.md)。
 - [OpenYSM / YSMParser](https://github.com/OpenYSM/YSMParser)：YSM 容器、加密与二进制格式解析参考。
 - [Sculptor](https://github.com/MrXiaoM/sculptor)：配套后端标注的上游项目。
 - [spm-cloud](https://github.com/sdf123098/spm-cloud)：Protobuf 握手、生成链和协议测试方案的参考；本项目使用独立的协议命名空间与版本。
