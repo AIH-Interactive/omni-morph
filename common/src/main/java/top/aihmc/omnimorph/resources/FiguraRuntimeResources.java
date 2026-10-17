@@ -14,17 +14,24 @@ import top.aihmc.omnimorph.utils.IOUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public class FiguraRuntimeResources {
 
     private static String ASSETS_VERSION;
+    private static final Set<String> BUNDLED_BRAND_RESOURCES = Set.of(
+            "icon.png", "textures/gui/icon.png", "textures/gui/help_icons.png",
+            "textures/gui/show_figura.png", "textures/gui/unknown_icon.png", "textures/avatar_wizard/icon.png",
+            "textures/gui/toast/default.png", "textures/gui/toast/warning.png", "textures/gui/toast/error.png",
+            "font/badges.json", "textures/font/omnimorph.png");
     public static final PathPackResources PACK = new PathPackResources(new PackLocationInfo(FiguraMod.MOD_NAME + " runtime resource pack", Component.literal("OmniMorph Runtime Resources"), PackSource.BUILT_IN, Optional.empty()), getRootDirectory());
 
     public static Path getRootDirectory() {
@@ -50,6 +57,8 @@ public class FiguraRuntimeResources {
     public static CompletableFuture<Void> init() {
         return future = CompletableFuture.runAsync(() -> {
             FiguraMod.LOGGER.info("Fetching backend resources...");
+            // The runtime pack takes precedence over bundled assets, including offline caches.
+            clearCachedBrandResources();
 
             JsonObject hashes, oldHashes;
 
@@ -114,9 +123,22 @@ public class FiguraRuntimeResources {
         }
         return object;
     }
+
+    private static void clearCachedBrandResources() {
+        if (Configs.LOCAL_ASSETS.value) {
+            return;
+        }
+        for (String path : BUNDLED_BRAND_RESOURCES) {
+            try {
+                Files.deleteIfExists(getAssetsDirectory().resolve(path));
+            } catch (IOException exception) {
+                FiguraMod.LOGGER.warn("Failed to remove cached branding resource {}", path, exception);
+            }
+        }
+    }
+
     private static void getAndSaveResource(String path) throws Exception {
-        if (Configs.LOCAL_ASSETS.value || path.equals("icon.png")
-                || path.equals("textures/gui/icon.png") || path.equals("textures/gui/help_icons.png")) {
+        if (Configs.LOCAL_ASSETS.value || BUNDLED_BRAND_RESOURCES.contains(path)) {
             return;
         }
         Path target = getAssetsDirectory().resolve(path);
