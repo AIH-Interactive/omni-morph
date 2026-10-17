@@ -9,8 +9,8 @@
 | H0 | 完成并已推送 | `d1b54b31975ebae55cadeea9c43030e5198f6edf`，[技术定案与基线](SIMD与GPU加速H0技术定案.md) |
 | H1 | 完成并已推送；实机项 MANUAL/PENDING，最终集中验收 | `93f6e33c73700b7f82351dc951fbf36795395677`，公共合同与 Java 后端 |
 | H2 | 完成并已推送；实机项 MANUAL/PENDING，最终集中验收 | `295c548375594362730c1d4354c4f1a5e4b98f4a`，Windows SIMD |
-| H3 | 完成；实机项 MANUAL/PENDING，最终集中验收 | 全局设置与回退，提交见本文件 Git 历史 |
-| H4 | 待实施 | 公共 GPU 后端 |
+| H3 | 完成并已推送；实机项 MANUAL/PENDING，最终集中验收 | `8f444cf9725e35985ea61a1008439699dd56633c`，全局设置与回退 |
+| H4 | 完成；真实 GPU/画面项 MANUAL/PENDING，最终集中验收 | 公共 GPU 后端，提交见本文件 Git 历史 |
 | H5 | 待实施 | 双引擎完整接入 |
 | H6 | 待实施 | 四平台 native 与 CI |
 | H7 | 待实施 | 稳定性与性能 |
@@ -135,3 +135,41 @@
   本阶段没有将 CPU recorder 当成 GUI 或 GPU 画面证据。
 - 最终设置/真实 native 访问允许与拒绝测试及 `:fabric:build` 成功（17s），日志
   `build/reports/acceleration/h3-final-build.log`；已检查阶段代码可读性、status/diff 和 `git diff --check`。
+
+## H4
+
+- 公共后端增加 GPU_DRAW、直接 draw 上下文与帧/重载/关闭生命周期；`AccelerationService.tryDraw`
+  在实际材质绘制边界检查代次，区分 UNSUPPORTED、STALE、DRAWN、ISSUED_BEFORE_FAILURE。
+  顶点结果直接交给 RenderPass.drawIndexed，GPU transform 不提供 CPU 顶点回读接口。
+  本阶段建立公共能力，Figura/YSM 的实际材质提交边界在 H5 接通，不能提前称双引擎 GPU 已完成。
+- `GpuBatchData`：64 字节静态顶点，位置/浮点法线/UV、四权重/四 int joint；64 个 160 字节部件槽，
+  总 10288 字节 std140 pose 块包含颜色、光照/overlay、偏移与规范化标志。
+  保留完整原始 MeshHandle；超过四权重、超过 63 skin delta、非有限/溢出/退化规范化/非仿射特殊批次走 Java，绝不截断。
+- `PoseSnapshot` 通过公开 transformNormal 的齐次性捕获 vanilla 私有的 trusted-normal 行为，
+  没有修改 Minecraft 私有字段或添加测试专用生产分支；脚本查询矩阵保持原精度。
+- `GpuShaderProgram` 包装当前 ShaderManager 的实体顶点源码入口，将位置/蒙皮/独立法线/UV 运算放到 GPU；
+  原实体 shader 的光照、雾、overlay、lightmap、材质 define 和原片元源码保持原义。
+  原颜色/法线最终 byte 量化也在 GPU/pose 参数中保留；剔除、深度、混合等管线状态从原管线复制。
+  VertexFormat 使用实际 API 注册空闲属性槽并验证 stride；输入合同变化则拒绝，不替换用户原 shader。
+- 生产设备适配器只使用 GpuDevice/RenderPipeline/RenderPass；按帧分三步检测：
+  诊断矩阵 draw/像素校验、实体 cutout 管线、实体 culled cutout 管线。三步完成之前状态 PROBING，模型保持 Java。
+  唯一 readback 在启用自检中（8×8 诊断，最多等待 1 秒），普通逐 draw 路径没有 copyTextureToBuffer/map/readback。
+- 不支持的材质独立 Java；本阶段透明排序/轮廓暂不进入 GPU，H5 扩展材质与双引擎边界。
+  新实体变体在模型遍历之外每帧最多编译一个；失败缓存为局部不支持。
+  Iris/Sodium 当前没有兼容实现，明确 INCOMPATIBLE_PIPELINE 回 Java，不强改用户图形状态。
+- 静态几何以 owner 代次、完整内容比较、布局策略缓存，姿态单独上传；动态几何创建新条目，姿态变化复用 VBO。
+  总预算 64 MiB、帧姿态 8 MiB，含等待退休资源；材质/管线缓存有界。
+  模型退休、重载、闲置和关闭使资源进入全局 fence 队列，关闭后队列继续轮询；普通帧只查询 timeout=0，不等待 GPU。
+  原世界离开逻辑清理所有 owner，旧世界命令无法提交；新增客户端 close 钩子在设备关闭前有界排空。
+- draw 发出前失败可安全转 Java；在调用 draw 前即标记“可能已提交”，其后失败不重画该 draw，
+  仅停止新 GPU 批次并让后续工作用 Java。buffer/pose 部分分配失败同样退休已有资源并保留有效模型。
+- `gpuAccelerationSmokeTest` 是 CPU fake-device 合同测试：实际 Minecraft shader/RenderPipeline/VertexFormat 数据合同、
+  三步就绪、未变换顶点+矩阵、缓存命中/动态刷新、颜色/overlay、五权重拒绝、非有限/溢出、帧/资源/owner 代次、
+  fence 前保留/完成后恰好一次释放、预算先拒绝、分配/设备/编译故障、draw 前后回退状态均通过。
+  fake-device 的调用记录不作为真实 GPU 像素或性能证据。
+- 首轮 GPU/设置/Java 合同与 Fabric 构建成功（40s），日志 `build/reports/acceleration/h4-first-validation.log`。
+  补齐资源/设备故障与 shutdown 后，GPU/设置/合同/Figura emitter/YSM deferred pose 与 `:fabric:build`
+  成功（30s），日志 `build/reports/acceleration/h4-final-build.log`。
+- 按用户“先快速单元测试，最终才 computer-use”的要求，本阶段没有运行图形窗口；真实像素、自检驱动、
+  游戏 draw/材质及画面对照为 `MANUAL/PENDING`，不能用 H0 原型或本次 CPU 测试替代。
+  已检查本阶段可读性、status/diff 与 `git diff --check`。

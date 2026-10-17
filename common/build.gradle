@@ -163,6 +163,14 @@ tasks.register('hardwareAccelerationSmokeTest', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.render.acceleration.HardwareAccelerationSmokeTest'
 }
 
+tasks.register('gpuAccelerationSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Fast CPU tests of GPU batch layout, draw routing, budgets, failures and fence ownership; no window/pixel claim.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuAccelerationSmokeTest'
+}
+
 ['nativeActivationSmokeTest': 'allow', 'nativeAccessDeniedSmokeTest': 'deny'].each { taskName, policy ->
     tasks.register(taskName, JavaExec) {
         group = 'verification'

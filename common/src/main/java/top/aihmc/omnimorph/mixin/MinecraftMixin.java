@@ -18,6 +18,7 @@ import top.aihmc.omnimorph.gui.FiguraToast;
 import top.aihmc.omnimorph.gui.PopupMenu;
 import top.aihmc.omnimorph.gui.screens.WardrobeScreen;
 import top.aihmc.omnimorph.lua.FiguraLuaPrinter;
+import top.aihmc.omnimorph.render.acceleration.HardwareAcceleration;
 import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.EntityUtils;
 import org.jetbrains.annotations.Nullable;
@@ -131,6 +132,11 @@ public abstract class MinecraftMixin {
         AvatarManager.clearAllAvatars();
         FiguraLuaPrinter.clearPrintQueue();
         NetworkStuff.unsubscribeAll();
+    }
+
+    @Inject(at = @At("HEAD"), method = "close")
+    private void figura$closeAcceleration(CallbackInfo ci) {
+        HardwareAcceleration.shutdown();
     }
 
     @Inject(at = @At("RETURN"), method = "setLevel")

@@ -20,12 +20,22 @@ public final class AccelerationService {
     private volatile long resources;
     private volatile long frame;
 
-    public synchronized void beginFrame() {
-        frame++;
+    public void beginFrame() {
+        AccelerationBackend backend;
+        synchronized (this) {
+            frame++;
+            backend = preferredBackend;
+        }
+        try {
+            backend.beginFrame();
+        } catch (RuntimeException | LinkageError failure) {
+            backendFailed(backend, failure);
+        }
     }
 
     public synchronized void invalidateResources() {
         resources++;
+        preferredBackend.invalidateResources();
     }
 
     /** Switching the numerical backend invalidates captured batches before accepting new work. */
@@ -34,9 +44,32 @@ public final class AccelerationService {
     }
 
     synchronized void useBackend(AccelerationBackend backend, Consumer<Throwable> onFailure) {
+        AccelerationBackend previous = preferredBackend;
         preferredBackend = backend == null ? javaBackend : Objects.requireNonNull(backend);
         backendFailure = Objects.requireNonNull(onFailure);
         resources++;
+        if (previous != preferredBackend && previous != javaBackend) {
+            previous.close();
+        }
+    }
+
+    /** Called only at the actual material/device draw boundary. Unsupported draws retain the Java path. */
+    public GpuAccelerationBackend.DrawResult tryDraw(DrawBatch batch, GpuDrawContext context) {
+        if (!isCurrent(batch.lease())) {
+            return GpuAccelerationBackend.DrawResult.STALE;
+        }
+        AccelerationBackend backend = preferredBackend;
+        try {
+            return backend.draw(batch, context, () -> isCurrent(batch.lease()));
+        } catch (GpuAccelerationBackend.Failure failure) {
+            backendFailed(backend, failure);
+            return failure.issued ? GpuAccelerationBackend.DrawResult.ISSUED_BEFORE_FAILURE
+                    : GpuAccelerationBackend.DrawResult.UNSUPPORTED;
+        } catch (RuntimeException | LinkageError failure) {
+            backendFailed(backend, failure);
+            // A foreign backend cannot establish whether it submitted a partial draw. Do not duplicate it.
+            return GpuAccelerationBackend.DrawResult.ISSUED_BEFORE_FAILURE;
+        }
     }
 
     public Lease capture(AccelerationOwner owner, String view) {
@@ -71,17 +104,27 @@ public final class AccelerationService {
             if (backend == javaBackend) {
                 throw failure;
             }
-            Consumer<Throwable> notify;
-            synchronized (this) {
-                notify = preferredBackend == backend ? backendFailure : ignored -> {};
-                if (preferredBackend == backend) {
-                    // Keep this lease valid so the unsubmitted batch can still be emitted through Java.
-                    preferredBackend = javaBackend;
-                }
-            }
-            notify.accept(failure);
+            backendFailed(backend, failure);
             result = javaBackend.transform(batch);
         }
         return isCurrent(lease) ? result : null;
+    }
+
+    private void backendFailed(AccelerationBackend backend, Throwable failure) {
+        Consumer<Throwable> notify;
+        synchronized (this) {
+            if (preferredBackend != backend || backend == javaBackend) {
+                return;
+            }
+            notify = backendFailure;
+            // Keep this lease valid so an unsubmitted batch can still be emitted through Java.
+            preferredBackend = javaBackend;
+        }
+        try {
+            backend.close();
+        } catch (RuntimeException | LinkageError cleanupFailure) {
+            failure.addSuppressed(cleanupFailure);
+        }
+        notify.accept(failure);
     }
 }

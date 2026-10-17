@@ -70,6 +70,7 @@
   "omni-morph.config.hardware_acceleration.reason.unsupported_cpu": "没有可用的 SIMD 指令集",
   "omni-morph.config.hardware_acceleration.reason.gpu_unavailable": "当前图形管线不支持加速",
   "omni-morph.config.hardware_acceleration.reason.gpu_not_ready": "GPU 加速管线尚未就绪",
+  "omni-morph.config.hardware_acceleration.reason.incompatible_pipeline": "已安装的渲染模组尚无兼容的加速路径",
   "omni-morph.config.hardware_acceleration.reason.shader_failure": "加速 shader 校验失败",
   "omni-morph.config.hardware_acceleration.reason.resource_exhausted": "加速资源预算不足",
   "omni-morph.config.hardware_acceleration.reason.runtime_failure": "加速后端运行故障"
