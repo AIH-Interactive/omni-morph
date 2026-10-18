@@ -429,9 +429,13 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
                     updateButtons();
                 }
             });
+        } catch (LibraryUploadDraft.InvalidCount invalid) {
+            message = FiguraText.of("gui.library.invalid_count",
+                    FiguraText.of("gui.library." + invalid.field()), invalid.maximumEntries());
         } catch (LibraryUploadDraft.InvalidField invalid) {
-            message = FiguraText.of("gui.library.invalid_field",
-                    FiguraText.of("gui.library." + invalid.field()), invalid.maximumBytes());
+            Component field = FiguraText.of("gui.library." + invalid.field());
+            message = invalid.maximumBytes() == 0 ? FiguraText.of("gui.library.invalid_text", field)
+                    : FiguraText.of("gui.library.invalid_field", field, invalid.maximumBytes());
         } catch (IllegalArgumentException invalid) {
             message = FiguraText.of("gui.library.metadata_error");
         }

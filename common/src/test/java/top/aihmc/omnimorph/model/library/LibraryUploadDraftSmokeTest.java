@@ -10,6 +10,37 @@ import java.util.UUID;
 public final class LibraryUploadDraftSmokeTest {
     public static void main(String[] args) {
         UUID uploader = UUID.randomUUID();
+        var credits = new LibraryMetadataReader.Metadata("FIGURA", "AYL's Dragon Wings & Tail",
+                java.util.stream.IntStream.range(0, 9).mapToObj(index -> "Original author " + index).toList(),
+                "", true);
+        var creditsDraft = new LibraryUploadDraft(uploader);
+        long creditsGeneration = creditsDraft.beginSource(Path.of("aylDWT 4.2.zip"));
+        creditsDraft.category("general");
+        creditsDraft.prepared(creditsGeneration, new LibraryPackagePreparation.Prepared(
+                credits, new CompoundTag(), new byte[]{1}, "synthetic"));
+        require(creditsDraft.snapshot(limits(64)).metadata().get("tags").equals(List.of()),
+                "a source with nine original authors can publish without optional tags");
+        var longAuthor = "中".repeat(10000);
+        var extensiveCredits = new LibraryMetadataReader.Metadata("FIGURA", "Full credits",
+                List.of(longAuthor), "", true);
+        creditsDraft.prepared(creditsGeneration, new LibraryPackagePreparation.Prepared(
+                extensiveCredits, new CompoundTag(), new byte[]{1}, "synthetic"));
+        require(creditsDraft.snapshot(limits(64)).metadata().get("authors").equals(List.of(longAuthor)),
+                "source author text has no length limit and is never truncated");
+        var manyAuthors = java.util.stream.IntStream.range(0, 128).mapToObj(index -> "Author " + index).toList();
+        creditsDraft.prepared(creditsGeneration, new LibraryPackagePreparation.Prepared(
+                new LibraryMetadataReader.Metadata("FIGURA", "Many authors", manyAuthors, "", true),
+                new CompoundTag(), new byte[]{1}, "synthetic"));
+        require(creditsDraft.snapshot(limits(64)).metadata().get("authors").equals(manyAuthors),
+                "source author lists have no count limit");
+        creditsDraft.tags("1,2,3,4,5,6,7,8,9");
+        try {
+            creditsDraft.snapshot(limits(64));
+            throw new AssertionError("tag count limit was bypassed");
+        } catch (LibraryUploadDraft.InvalidCount invalid) {
+            require(invalid.field().equals("tags") && invalid.maximumEntries() == 8,
+                    "tag count errors identify the exact field and count");
+        }
         var draft = new LibraryUploadDraft(uploader);
         var free = new LibraryMetadataReader.Metadata("FIGURA", "内部名称", List.of("原作者"), "说明", false);
         var restricted = new LibraryMetadataReader.Metadata("YSM_PLAIN", "YSM", List.of(), "", true);

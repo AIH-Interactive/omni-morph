@@ -35,6 +35,18 @@ public final class LibraryPackagePreparationSmokeTest {
                 require(actual.metadata().modelType().equals("FIGURA") && actual.nbt().contains("models")
                                 && actual.nbt().contains("scripts"),
                         "provided Figura archive prepares actual model geometry and scripts");
+                var actualDraft = new LibraryUploadDraft(owner);
+                long actualGeneration = actualDraft.beginSource(Path.of(regressionPackage));
+                actualDraft.category("full_model");
+                actualDraft.prepared(actualGeneration, actual);
+                var actualLimits = new top.aihmc.omnimorph.backend2.library.LibraryModels.Capabilities(
+                        true, 1, 64L * 1024 * 1024, 8, 1024, 256, 256,
+                        java.util.List.of("zip", "ysm"), java.util.List.of("FIGURA"),
+                        java.util.List.of("full_model"), false);
+                var actualSnapshot = actualDraft.snapshot(actualLimits);
+                require(actualSnapshot.metadata().get("authors").equals(actual.metadata().authors())
+                                && actualSnapshot.metadata().get("tags").equals(java.util.List.of()),
+                        "provided package retains all original authors and accepts empty optional tags at submit");
                 System.out.println("PASS provided Figura archive preparation");
             }
             Path figura = zip(directory.resolve("图包.zip"), Map.of(
