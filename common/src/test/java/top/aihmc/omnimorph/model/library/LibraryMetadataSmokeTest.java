@@ -78,6 +78,20 @@ public final class LibraryMetadataSmokeTest {
             require(metadata.modelType().equals("FIGURA") && !metadata.requiresAuthorizationDefault()
                             && metadata.authors().equals(List.of("作者")),
                     "ZIP content chooses Figura even with an unrelated main.json");
+            Path wrapped = directory.resolve("wrapped.zip");
+            writeZip(wrapped, Map.of("release/model/avatar.json", "{\"name\":\"Nested\",\"author\":\"作者\",\"free\":false}",
+                    "README.txt", "documentation", "skins/example.txt", "additional skins"));
+            var wrappedMetadata = LibraryMetadataReader.read(wrapped, () -> false);
+            require(wrappedMetadata.internalName().equals("Nested") && wrappedMetadata.requiresAuthorizationDefault()
+                            && wrappedMetadata.authors().equals(List.of("作者")),
+                    "multiple wrapping directories and unrelated siblings preserve nested source metadata");
+            Path multiple = directory.resolve("multiple.zip");
+            writeZip(multiple, Map.of("a/avatar.json", "{}", "b/avatar.json", "{}"));
+            expectFailure(() -> LibraryMetadataReader.read(multiple, () -> false), "AMBIGUOUS_FIGURA_SOURCE");
+            Path root = directory.resolve("root.zip");
+            writeZip(root, Map.of("avatar.json", "{\"name\":\"Root\"}", "example/avatar.json", "{}"));
+            require(LibraryMetadataReader.read(root, () -> false).internalName().equals("Root"),
+                    "an explicit root avatar keeps its existing precedence");
             Path disguised = directory.resolve("unknown.ysm");
             writeZip(disguised, Map.of("anything.json", "{}"));
             expectFailure(() -> LibraryMetadataReader.read(disguised, () -> false), "UNRECOGNIZED_SOURCE");

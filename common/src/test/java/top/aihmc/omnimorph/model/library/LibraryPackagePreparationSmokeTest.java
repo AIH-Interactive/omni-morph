@@ -45,6 +45,24 @@ public final class LibraryPackagePreparationSmokeTest {
             require(!CloudHttp.sha256(copy).equals(prepared.sha256())
                     && CloudHttp.sha256(prepared.compressed()).equals(prepared.sha256()), "owned bytes");
 
+            for (String prefix : java.util.List.of("aylDWT/", "release/anan-fullmodel/")) {
+                Path nested = zip(directory.resolve("nested-" + prefix.length() + ".zip"), Map.of(
+                        prefix + "avatar.json", "{\"name\":\"Nested\",\"author\":\"Original\",\"free\":true,\"resources\":[\"extra.txt\"]}",
+                        prefix + "extra.txt", "selected model resource",
+                        prefix + "script.lua", "return 1",
+                        "skins/unrelated.lua", "error('sibling must not be compiled')",
+                        "README.txt", "packaging documentation"));
+                var nestedPrepared = LibraryPackagePreparation.prepare(nested, owner, 1024 * 1024, () -> false);
+                require(nestedPrepared.metadata().internalName().equals("Nested")
+                                && nestedPrepared.metadata().authors().equals(java.util.List.of("Original"))
+                                && !nestedPrepared.metadata().requiresAuthorizationDefault(),
+                        "nested Figura metadata resolves the model's own avatar.json");
+                var scripts = nestedPrepared.nbt().getCompoundOrEmpty("scripts");
+                require(scripts.contains("script") && scripts.size() == 1
+                                && nestedPrepared.nbt().contains("resources"),
+                        "nested compilation uses model-relative paths and excludes sibling skins/scripts");
+            }
+
             Path plain = zip(directory.resolve("plain.ysm"), Map.of("ysm.json",
                     "{\"metadata\":{\"name\":\"Plain\"},\"properties\":{\"free\":false},"
                             + "\"files\":{\"player\":{\"model\":{\"main\":\"main.json\"}}}}",

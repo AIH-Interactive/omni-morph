@@ -56,16 +56,36 @@ public final class LibraryMetadataReader {
                     return fromYsm(data.manifest(), false);
                 }
             }
-            if (!source.exists("avatar.json")) {
-                throw new IOException("UNRECOGNIZED_SOURCE");
-            }
+            String root = figuraRoot(source, cancelled);
             String fallback = filename.substring(0, filename.lastIndexOf('.'));
-            var metadata = AvatarMetadataParser.read(source.readString("avatar.json"));
+            var metadata = AvatarMetadataParser.read(source.readString(root + "avatar.json"));
             YsmResourceLimits.checkCancelled(cancelled);
             return fromFigura(metadata, fallback);
         } catch (RuntimeException malformed) {
             throw new IOException("INVALID_METADATA", malformed);
         }
+    }
+
+    /** An explicit root manifest wins; otherwise require one unambiguous nested Figura model. */
+    static String figuraRoot(YsmPackage source, BooleanSupplier cancelled) throws IOException {
+        if (source.exists("avatar.json")) {
+            return "";
+        }
+        String root = null;
+        for (String name : source.resourcePaths()) {
+            YsmResourceLimits.checkCancelled(cancelled);
+            if (!name.toLowerCase(Locale.ROOT).endsWith("/avatar.json")) {
+                continue;
+            }
+            if (root != null) {
+                throw new IOException("AMBIGUOUS_FIGURA_SOURCE");
+            }
+            root = name.substring(0, name.length() - "avatar.json".length());
+        }
+        if (root == null) {
+            throw new IOException("UNRECOGNIZED_SOURCE");
+        }
+        return root;
     }
 
     public static Metadata fromFigura(AvatarMetadataParser.Metadata metadata, String fallback) {

@@ -445,3 +445,11 @@ R22 检查点：提取 LibraryPreviewPlayer，隔离 UUID 保持独立，皮肤�
 R23 检查点：衣柜管理 current 来源显式开启独立绘制，其他模型/屏蔽记录/回收站来源显式关闭，默认会话不启用；放大视图复用同一会话。GUI 提交只采集皮肤和站立姿态并保留帧资源，实际绘制直接调用原生 PlayerModel 与 Figura renderer，不查询世界实体或提交实体层；脚本正常更新，原版身体显隐不影响 Figura 自身几何的原生姿态输入。原有实体层共享补丁保留供其他页面使用。
 
 新增回归通过真实 GUI PIP 状态提交验证默认/开启/切回范围；在无世界与实体 dispatcher 的夹具中通过实际 PlayerModel 输出顶点、真实 Lua render 连续改变姿态、隐藏身体后不输出身体顶点，并验证原生 mesh 显隐恢复、护甲/披风层未调用。初次验证补齐无 GPU 测试夹具的 debug/camera/GUI 状态初始化及脚本调用，生产逻辑无测试专用分支。previewRuntime、Fabric build（含原护甲/披风方法回归）前台 Tee PASS，退出 0；差异空白核对通过。游戏内模型外观、皮肤、动画及拖动/放大验收 MANUAL/PENDING，不以 CPU 顶点与脚本回归代替画面验收。
+
+### R24 上传兼容嵌套 Figura ZIP
+
+兼容 ZIP 内单层/多层外包装目录，以及模型目录旁附带 README、LICENSE、skins 等文件的结构。元数据识别与编译统一定位 avatar.json 所在模型根目录：根部 avatar.json 保持原优先级，否则选择唯一嵌套候选；多个独立候选拒绝自动猜选。编译时移除外包装路径，只载入选中模型目录内的脚本/模型/资源，避免旁边的 skins 脚本混入。保留既有 YSM 格式识别、ZIP 安全与资源限额、取消、原衣柜状态隔离；不修改原 ZIP。
+
+先用单层/多层包装且没有 main.json 的实际准备流程回归复现 UNRECOGNIZED_SOURCE，再修复元数据根定位及模型相对路径编译，验证原作者/名称/free、脚本及资源、根级优先与多模型歧义拒绝，编译后提交推送。实际游戏选择、预览与上传验收 MANUAL/PENDING，版本保持 alpha.2。
+
+R24 检查点：单层及多层包装 ZIP 的实际 prepare 流程先复现 UNRECOGNIZED_SOURCE，修复后名称/作者/free、根相对脚本及资源编译通过，旁侧 skins 脚本未混入。元数据补充根级清单优先和多个嵌套候选拒绝回归；原 plain/encrypted YSM、限额、取消、不修改衣柜状态回归保持通过。libraryMetadata、libraryPackagePreparation、libraryUploadDraft、Fabric build（含预览/护甲/披风回归）前台 Tee PASS，退出 0；差异空白核对通过。实际截图对应原文件未提供，采用同结构合成 ZIP 验证；实际游戏选择/预览/上传 MANUAL/PENDING。
