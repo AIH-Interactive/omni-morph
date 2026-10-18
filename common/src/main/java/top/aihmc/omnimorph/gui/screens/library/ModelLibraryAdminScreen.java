@@ -298,9 +298,11 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
         }
         boolean mutable = !model.moderationStatus().equals("DELETED");
         if (mutable) {
-            actions.add(new LibraryRowList.Action(FiguraText.of("gui.library.block"),
-                    FiguraText.of(model.moderationStatus().equals("BLOCKED") ? "gui.library.unblock" : "gui.library.block"),
-                    true, () -> moderate(false), LibraryRowList.Icon.BLOCK));
+            boolean blocked = model.moderationStatus().equals("BLOCKED");
+            Component moderationLabel = FiguraText.of(blocked ? "gui.library.unblock" : "gui.library.block");
+            actions.add(new LibraryRowList.Action(moderationLabel, moderationLabel,
+                    model.allows("moderate"), () -> moderate(false),
+                    blocked ? LibraryRowList.Icon.UNBLOCK : LibraryRowList.Icon.BLOCK));
             actions.add(new LibraryRowList.Action(FiguraText.of("gui.library.delete"), FiguraText.of("gui.library.delete"),
                     true, () -> moderate(true), LibraryRowList.Icon.DELETE));
         } else {
