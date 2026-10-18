@@ -74,27 +74,31 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
             case "YSM_PLAIN" -> "YSM";
             default -> "Figura";
         };
-        UIHelper.renderScrollingText(gui, Component.literal(badge + " · ").append(LibraryLabels.category(model.categoryId())), informationX, y + 8,
+        int badgeWidth = Math.min(imageSize, Minecraft.getInstance().font.width(badge) + 6);
+        gui.fill(x + 4, y + 4, x + 4 + badgeWidth, y + 17, 0xd0101820);
+        UIHelper.renderScrollingText(gui, Component.literal(badge), x + 7, y + 7,
+                Math.max(1, badgeWidth - 6), 0xffeeeeee);
+        UIHelper.renderScrollingText(gui, LibraryLabels.category(model.categoryId()), informationX, y + 20,
                 informationWidth, 0xffbac6d8);
         favorite.setX(x + getWidth() - 24);
-        favorite.setY(y + getHeight() - 24);
+        favorite.setY(y + getHeight() - 20);
         favorite.extractRenderState(gui, mouseX, mouseY, delta);
         report.setX(x + getWidth() - 48);
-        report.setY(y + getHeight() - 24);
+        report.setY(y + getHeight() - 20);
         report.extractRenderState(gui, mouseX, mouseY, delta);
-        UIHelper.renderScrollingText(gui, Component.literal(model.displayName()), informationX, y + 25,
+        UIHelper.renderScrollingText(gui, Component.literal(model.displayName()), informationX, y + 8,
                 informationWidth, 0xffeeeeee);
         Component author = model.authors().isEmpty() ? FiguraText.of("gui.library.unknown_author")
                 : Component.literal(model.authors().getFirst()).append(model.authors().size() > 1
                 ? FiguraText.of("gui.library.more_authors") : Component.empty());
-        UIHelper.renderScrollingText(gui, author, informationX, y + 42, informationWidth, 0xffbac6d8);
-        UIHelper.renderScrollingText(gui, Component.literal(model.uploader().name()), informationX, y + 57,
+        UIHelper.renderScrollingText(gui, author, informationX, y + 34, informationWidth, 0xffbac6d8);
+        UIHelper.renderScrollingText(gui, Component.literal(model.uploader().name()), informationX, y + 46,
                 informationWidth, 0xffbac6d8);
         Component counts = FiguraText.of("gui.library.counts", model.downloads(), model.favorites());
         if (model.requiresAuthorization() && !model.allows("equip")) {
             counts = counts.copy().append(" • ").append(FiguraText.of("gui.library.locked"));
         }
-        UIHelper.renderScrollingText(gui, counts, informationX, y + 74, informationWidth, 0xffa9bbc9);
+        UIHelper.renderScrollingText(gui, counts, informationX, y + 58, informationWidth, 0xffa9bbc9);
         if (isMouseOver(mouseX, mouseY) && !favorite.isMouseOver(mouseX, mouseY) && !report.isMouseOver(mouseX, mouseY)) {
             var tooltip = FiguraText.of("gui.library.card_tooltip", model.internalName(),
                     String.join(", ", model.authors()), model.uploader().name(), model.uploader().uuid().toString());
