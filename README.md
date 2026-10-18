@@ -1,5 +1,7 @@
 # OmniMorph
 
+**简体中文** · [日本語](README.ja.md) · [English](README.en.md) · [한국어](README.ko.md)
+
 OmniMorph 是基于 [Figura](https://github.com/FiguraMC/Figura) 的 Minecraft Java 客户端模型模组，在统一的衣柜、预览和交互界面中使用 Figura Avatar 与 YSM 模型。
 
 支持 Lua 与 Molang 双运行时：Lua 负责脚本和交互，Molang 负责模型表达式与动画控制。纯 YSM 模型无需额外编写 Lua 即可加载运行。
