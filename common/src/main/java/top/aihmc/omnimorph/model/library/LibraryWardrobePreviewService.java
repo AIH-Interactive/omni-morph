@@ -43,6 +43,15 @@ public final class LibraryWardrobePreviewService {
         return fetch(ROOT + "BLOCK/" + operation, operation, 1, 1);
     }
 
+    public LibraryClient.Request<CompoundTag> recycled(String kind, UUID owner, UUID id) {
+        String path = switch (kind) {
+            case "LIBRARY" -> ROOT + "LIBRARY_RECYCLE/" + id;
+            case "WARDROBE" -> ROOT + "RECYCLE/" + id + "?owner=" + owner;
+            default -> throw new IllegalArgumentException("INVALID_RECYCLE_SOURCE");
+        };
+        return fetch(path, id, 1, 1);
+    }
+
     private LibraryClient.Request<CompoundTag> fetch(String path, UUID source, long revision, long policyRevision) {
         return client.submit(LibraryClient.Lane.TRANSFER, exchange -> {
             String token = administrator.get();

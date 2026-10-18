@@ -30,7 +30,7 @@ import java.util.UUID;
 
 /** Management data is requested only with a verified, current administrator session. */
 public final class ModelLibraryAdminScreen extends LibraryFormScreen {
-    private static final List<String> STATUSES = List.of("", "ACTIVE", "BLOCKED", "DELETED");
+    private static final List<String> STATUSES = List.of("", "ACTIVE", "BLOCKED");
     private final LibraryClient client;
     private final LibraryAdminSession admin;
     private final LibraryModels.Capabilities capabilities;
@@ -184,12 +184,21 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
                         minecraft.setScreen(new ModelLibraryWardrobeScreen(this, client, admin));
                     }
                 }));
-        addRenderableWidget(new Button(contentX, 76, 88, 16,
+        int toolbarWidth = Math.min(88, (area - 8) / 3);
+        addRenderableWidget(new Button(contentX, 76, toolbarWidth, 16,
                 FiguraText.of("gui.library.logout"), null, ignored -> logout()));
+        addRenderableWidget(new Button(contentX + toolbarWidth + 4, 76, toolbarWidth, 16,
+                FiguraText.of("gui.library.recycle_bin"), null, ignored -> {
+                    if (!busy() && admin.active()) {
+                        retainingChild = true;
+                        preview.clear();
+                        minecraft.setScreen(new ModelLibraryRecycleScreen(this, client, admin));
+                    }
+                }));
         addRenderableWidget(new Button(contentX + 4 + (area - 4) / 2, height - 24, (area - 4) / 2, 20,
                 FiguraText.of("gui.done"), null, ignored -> onClose()));
-        addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui, message, contentX + 92, 78,
-                Math.max(20, area - 92), 0xffd3e7e1));
+        addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui, message,
+                contentX + toolbarWidth * 2 + 8, 78, Math.max(20, area - toolbarWidth * 2 - 8), 0xffd3e7e1));
         building = false;
         refresh();
         updateButtons();

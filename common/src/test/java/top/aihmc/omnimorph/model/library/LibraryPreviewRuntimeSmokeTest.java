@@ -59,6 +59,22 @@ public final class LibraryPreviewRuntimeSmokeTest {
             UUID owner = (UUID) field(LibraryPreviewSession.class, "owner").get(preview);
             entity.setUUID(owner);
             field(LibraryPreviewSession.class, "entity").set(preview, entity);
+            // Row action buttons select again before invoking the second confirmation click.
+            var screenType = top.aihmc.omnimorph.gui.screens.library.ModelLibraryRecycleScreen.class;
+            var screen = unsafe.allocateInstance(screenType);
+            var item = new top.aihmc.omnimorph.backend2.library.LibraryRecycleService.Item("WARDROBE",
+                    UUID.randomUUID(), owner, "player", "model", java.util.List.of(), "FIGURA", "DELETED",
+                    0, 1, 2, "avatar", 0, true);
+            UUID recovery = UUID.randomUUID();
+            field(screenType, "selected").set(screen, item);
+            field(screenType, "armed").set(screen, "restore");
+            field(screenType, "operation").set(screen, recovery);
+            var select = screenType.getDeclaredMethod("select", item.getClass());
+            select.setAccessible(true);
+            select.invoke(screen, item);
+            require("restore".equals(field(screenType, "armed").get(screen))
+                            && recovery.equals(field(screenType, "operation").get(screen)),
+                    "repeated row selection preserves restore confirmation and retry identity");
             var entered = new CountDownLatch(1);
             var release = new CountDownLatch(1);
             var gate = AvatarLoadExecutor.submit(() -> {
