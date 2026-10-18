@@ -23,8 +23,20 @@ public final class YsmAnimationEventWindow {
             return List.of();
         }
         boolean forward = to > from;
-        List<Crossing> crossings = new ArrayList<>();
         boolean looping = loop && Float.isFinite(clip.length) && clip.length > 0f;
+        List<YsmAnimationEvent> events = clip.orderedEvents();
+        // Most render frames move forward without crossing a loop boundary. The
+        // index excludes unrelated timeline events and avoids sorting crossings.
+        if (forward && (!looping || Math.floor(from / clip.length) == Math.floor(to / clip.length))) {
+            double cycleStart = looping ? Math.floor(from / clip.length) * clip.length : 0d;
+            int start = bound(events, from - cycleStart, !initialDispatched && from == 0d);
+            int end = bound(events, looping ? Math.min(clip.length, to - cycleStart) : to, false);
+            if (end - start > MAX_CROSSINGS) {
+                throw new IllegalArgumentException("Animation event crossing budget exceeded");
+            }
+            return events.subList(start, end);
+        }
+        List<Crossing> crossings = new ArrayList<>();
         for (int index = 0; index < clip.events.size(); index++) {
             YsmAnimationEvent event = clip.events.get(index);
             if (!Float.isFinite(event.time()) || event.time() < 0f) {
@@ -61,6 +73,21 @@ public final class YsmAnimationEventWindow {
                 .thenComparingDouble(Crossing::cycle).thenComparingInt(Crossing::index);
         crossings.sort(forward ? order : order.reversed());
         return crossings.stream().map(Crossing::event).toList();
+    }
+
+    private static int bound(List<YsmAnimationEvent> events, double time, boolean inclusive) {
+        int low = 0;
+        int high = events.size();
+        while (low < high) {
+            int middle = (low + high) >>> 1;
+            double eventTime = events.get(middle).time();
+            if (eventTime < time || !inclusive && eventTime == time) {
+                low = middle + 1;
+            } else {
+                high = middle;
+            }
+        }
+        return low;
     }
 
     private static void add(List<Crossing> crossings, Crossing crossing) {
