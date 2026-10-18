@@ -2078,6 +2078,8 @@
   "omni-morph.gui.library.purge": "Delete permanently",
   "omni-morph.gui.library.restore": "Restore",
   "omni-morph.gui.library.recycle_bin": "Recycle bin",
+  "omni-morph.gui.library.wardrobe_restore_hint": "Restore and equip this wardrobe model. Keeps its visibility and block rules.",
+  "omni-morph.gui.library.restore_conflict": "The player has newer equipment or uploads. Refresh; recovery will not overwrite them.",
   "omni-morph.gui.library.leave_recycle": "Back to models",
   "omni-morph.gui.library.restore_admin_hint": "Open the administrator recycle bin to restore the deleted model.",
   "omni-morph.gui.library.deleted_recovery_hint": "Moved to recycle bin. An administrator can restore this model.",

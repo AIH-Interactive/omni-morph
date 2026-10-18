@@ -59,6 +59,26 @@ public final class LibraryPreviewRuntimeSmokeTest {
             UUID owner = (UUID) field(LibraryPreviewSession.class, "owner").get(preview);
             entity.setUUID(owner);
             field(LibraryPreviewSession.class, "entity").set(preview, entity);
+            // Row action buttons select their row before invoking the action on every click.
+            // Reselecting the same archive must not disarm the second restore click.
+            var screenType = top.aihmc.omnimorph.gui.screens.library.ModelLibraryWardrobeScreen.class;
+            var screen = unsafe.allocateInstance(screenType);
+            var item = new top.aihmc.omnimorph.gui.screens.library.ModelLibraryWardrobeScreen.Item(
+                    owner, "preview", "avatar", 1, 2, 1, UUID.randomUUID(), 1, true);
+            UUID restoreOperation = UUID.randomUUID();
+            field(screenType, "selected").set(screen, item);
+            field(screenType, "recycle").setBoolean(screen, true);
+            field(screenType, "armed").set(screen, "restore");
+            field(screenType, "operation").set(screen, restoreOperation);
+            try (var panel = new top.aihmc.omnimorph.gui.widgets.library.LibraryManagementPreview(client, () -> "")) {
+                field(screenType, "preview").set(screen, panel);
+                var select = screenType.getDeclaredMethod("select", item.getClass());
+                select.setAccessible(true);
+                select.invoke(screen, item);
+                require("restore".equals(field(screenType, "armed").get(screen))
+                                && restoreOperation.equals(field(screenType, "operation").get(screen)),
+                        "row action reselection preserves restore confirmation and its retry identity");
+            }
             var entered = new CountDownLatch(1);
             var release = new CountDownLatch(1);
             var gate = AvatarLoadExecutor.submit(() -> {
