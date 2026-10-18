@@ -27,15 +27,21 @@ public final class LibraryMetadataSmokeTest {
             require(figura.internalName().equals("fallback") && figura.authors().isEmpty(),
                     "absent authors stay empty without the wardrobe '?' display sentinel");
             for (boolean old : new boolean[]{false, true}) {
+                String formatted = "\"name\":\"§b测试模型\",\"tips\":\"§l模型说明§r\",\"authors\":[\"§e作者\"]";
                 String json = old
-                        ? "{\"minecraft:geometry\":[{\"description\":{\"ysm_extra_info\":{" + field + "}}}]}"
-                        : "{\"metadata\":{},\"properties\":{" + field + "}}";
+                        ? "{\"minecraft:geometry\":[{\"description\":{\"ysm_extra_info\":{" + formatted
+                            + (field.isEmpty() ? "" : "," + field) + "}}}]}"
+                        : "{\"metadata\":{" + formatted + "},\"properties\":{" + field + "}}";
                 try (var source = new YsmMemoryResourceSource("synthetic", Map.of(
                         old ? "main.json" : "ysm.json", json.getBytes(StandardCharsets.UTF_8)))) {
                     var manifest = YsmManifestReader.read(source);
                     require(manifest.free() == !authorization, "actual new/old free field survives parsing");
                     require(LibraryMetadataReader.fromYsm(manifest, false).requiresAuthorizationDefault()
                             == authorization, "YSM upload authorization default");
+                    var catalog = LibraryMetadataReader.fromYsm(manifest, false);
+                    require(catalog.internalName().equals("测试模型") && catalog.authors().equals(List.of("作者"))
+                                    && catalog.description().equals("模型说明") && manifest.name().contains("§"),
+                            "new/old YSM catalog text is plain without changing the source manifest");
                 }
             }
         }

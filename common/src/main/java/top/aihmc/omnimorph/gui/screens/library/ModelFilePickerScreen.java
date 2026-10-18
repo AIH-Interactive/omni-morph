@@ -58,22 +58,22 @@ public final class ModelFilePickerScreen extends AbstractPanelScreen {
                     FiguraText.of("gui.done"), null, button -> onClose()));
             return;
         }
-        var path = addRenderableWidget(new TextField(4, 30, Math.max(80, width - 96), 20,
+        var path = addRenderableWidget(new TextField(8, 30, Math.max(80, width - 104), 20,
                 TextField.HintType.FOLDER_PATH, ignored -> {}));
         path.getField().setValue(directory.toString());
-        addRenderableWidget(new Button(width - 88, 30, 40, 20, FiguraText.of("gui.library.open"), null, button -> {
+        addRenderableWidget(new Button(width - 92, 30, 40, 20, FiguraText.of("gui.library.open"), null, button -> {
             try {
                 navigate(Path.of(path.getField().getValue()));
             } catch (RuntimeException invalid) {
                 status = FiguraText.of("gui.library.file_error");
             }
         }));
-        addRenderableWidget(new Button(width - 44, 30, 40, 20, Component.literal(".."), null, button -> {
+        addRenderableWidget(new Button(width - 48, 30, 40, 20, Component.literal(".."), null, button -> {
             if (directory.getParent() != null) {
                 navigate(directory.getParent());
             }
         }));
-        rows = addRenderableWidget(new LibraryRowList(4, 54, width - 8, Math.max(32, height - 104)));
+        rows = addRenderableWidget(new LibraryRowList(8, 54, width - 16, Math.max(32, height - 104)));
         addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui, status,
                 8, height - 46, width - 16, 0xffeeeeee));
         addRenderableWidget(new Button(width - 84, height - 24, 80, 20, FiguraText.of("gui.done"),

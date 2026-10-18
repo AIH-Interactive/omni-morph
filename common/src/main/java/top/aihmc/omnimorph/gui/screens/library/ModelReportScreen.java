@@ -5,8 +5,7 @@ import net.minecraft.network.chat.Component;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.gui.screens.ModelLibraryScreen;
 import top.aihmc.omnimorph.gui.widgets.Button;
-import top.aihmc.omnimorph.gui.widgets.TextField;
-import top.aihmc.omnimorph.gui.widgets.library.LibraryFormBody;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryMultilineField;
 import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 
@@ -19,7 +18,7 @@ public final class ModelReportScreen extends LibraryFormScreen {
     private final LibraryClient client;
     private final UUID model;
     private LibraryClient.Request<?> pending;
-    private TextField reason;
+    private LibraryMultilineField reason;
     private Button submit;
     private UUID operation;
     private String submittedReason;
@@ -44,18 +43,27 @@ public final class ModelReportScreen extends LibraryFormScreen {
         if (!initForm()) {
             return;
         }
-        int area = Math.max(80, width - 16);
-        var body = addRenderableWidget(new LibraryFormBody(8, 28, area, Math.max(40, height - 84)));
-        reason = body.row(FiguraText.of("gui.library.report_reason"), new TextField(0, 0, area - 22, 20,
-                TextField.HintType.ANY, text -> value = text));
-        reason.getField().setMaxLength(512);
-        reason.getField().setValue(value);
-        submit = addRenderableWidget(new Button(8, height - 48, area, 20,
+        int area = Math.min(440, width - 16);
+        int left = (width - area) / 2;
+        int top = Math.max(30, (height - 180) / 2);
+        addRenderableOnly((gui, x, y, delta) -> {
+            UIHelper.blitSliced(gui, left, top, area, 180, UIHelper.OUTLINE_FILL);
+            UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.report_reason"), left + 8, top + 10,
+                    area - 16, 0xffeeeeee);
+            UIHelper.renderScrollingText(gui, Component.literal(model.toString()), left + 8, top + 26,
+                    area - 16, 0xffbac6d8);
+        });
+        reason = addRenderableWidget(new LibraryMultilineField(area - 16, 72, value, text -> value = text));
+        reason.setX(left + 8);
+        reason.setY(top + 44);
+        reason.setCharacterLimit(512);
+        int actionWidth = (area - 20) / 2;
+        submit = addRenderableWidget(new Button(left + actionWidth + 12, top + 152, actionWidth, 20,
                 FiguraText.of("gui.library.submit_report"), null, ignored -> submit()));
-        addRenderableWidget(new Button(8, height - 24, area, 20,
+        addRenderableWidget(new Button(left + 8, top + 152, actionWidth, 20,
                 FiguraText.of("gui.done"), null, ignored -> onClose()));
-        addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui, message, 8,
-                height - 62, area, 0xffd3e7e1));
+        addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui, message, left + 8,
+                top + 132, area - 16, 0xffd3e7e1));
     }
 
     private void submit() {

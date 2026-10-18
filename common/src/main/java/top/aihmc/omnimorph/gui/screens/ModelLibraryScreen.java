@@ -14,6 +14,10 @@ import top.aihmc.omnimorph.gui.widgets.EntityPreview;
 import top.aihmc.omnimorph.gui.widgets.SearchBar;
 import top.aihmc.omnimorph.gui.widgets.SwitchButton;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryFormBody;
+import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionTabs;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryCheckBox;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
 import top.aihmc.omnimorph.gui.widgets.lists.ModelLibraryGrid;
 import top.aihmc.omnimorph.gui.screens.library.ModelUploadScreen;
 import top.aihmc.omnimorph.gui.screens.library.ModelLibraryAuthorizationScreen;
@@ -81,6 +85,8 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
     private LibraryClient.Request<Boolean> adminRestore;
     private int leftWidth;
     private int actionsY;
+    private LibrarySectionTabs sections;
+    private boolean filtersExpanded;
 
     public ModelLibraryScreen(Screen parentScreen) {
         super(parentScreen, FiguraText.of("gui.panels.title.library"));
@@ -100,25 +106,20 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
             building = false;
             return;
         }
-        leftWidth = (width - 18) * 7 / 10;
-        int rightX = leftWidth + 12;
-        int rightWidth = width - rightX - 4;
-        int actionsHeight = Math.min(192, Math.max(80, height - 128));
+        var layout = new LibraryWorkspaceLayout(width, height);
+        leftWidth = layout.contentWidth();
+        int rightX = layout.previewX();
+        int rightWidth = layout.previewWidth();
+        int actionsHeight = Math.min(120, Math.max(56, height / 4));
         actionsY = height - 24 - actionsHeight;
-        for (int i = 0; i < SCOPES.size(); i++) {
-            int target = i;
-            addRenderableWidget(new Button(4 + i * (leftWidth + 2) / 3, 28, (leftWidth - 10) / 3, 20,
-                    FiguraText.of("gui.library.scope." + SCOPES.get(i)), null, button -> {
-                        scope = target;
-                        page = 1;
-                        refresh();
-                    }));
-        }
+        sections = addRenderableWidget(new LibrarySectionTabs(8, 28, leftWidth, scope,
+                capabilities != null && capabilities.adminLoginAvailable(), this::openSection));
+        uploadEntry = sections.button(3);
+        adminEntry = sections.button(4);
         addRenderableWidget(new Button(rightX, 28, (rightWidth - 4) / 2, 20, FiguraText.of("gui.library.refresh"),
                 null, button -> reconnectOrRefresh()));
-        adminEntry = addRenderableWidget(new Button(rightX + (rightWidth + 4) / 2, 28, (rightWidth - 4) / 2,
-                20, FiguraText.of("gui.library.admin_login"), null, button -> openAdmin()));
-        var search = new SearchBar(4, 52, leftWidth, 20, value -> {
+        int searchWidth = Math.max(80, leftWidth - 112);
+        var search = new SearchBar(8, 52, searchWidth, 20, value -> {
             if (!building && !value.equals(query)) {
                 query = value;
                 searchChangedAt = System.nanoTime();
@@ -127,36 +128,41 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         search.getField().setMaxLength(256);
         search.getField().setValue(query);
         addRenderableWidget(search);
-        int filterWidth = (leftWidth - 9) / 4;
-        addRenderableWidget(new Button(4, 76, filterWidth, 20, filterText("category", categoryValue()),
-                null, button -> {
-                    category = (category + 1) % categories().size();
-                    button.setMessage(filterText("category", categoryValue()));
+        addRenderableWidget(new Button(12 + searchWidth, 52, 20, 20, Component.literal("+"),
+                FiguraText.of("gui.library.filters"), ignored -> {
+                    filtersExpanded = !filtersExpanded;
+                    rebuildWidgets();
+                }));
+        addRenderableWidget(new LibraryDropdown(36 + searchWidth, 52, 76,
+                () -> SORTS.stream().map(value -> filterText("sort", value)).toList(), () -> sort, selected -> {
+                    sort = selected;
                     filterChanged();
                 }));
-        addRenderableWidget(new Button(7 + filterWidth, 76, filterWidth, 20,
-                filterText("type", TYPES.get(type)), null, button -> {
-                    type = (type + 1) % TYPES.size();
-                    button.setMessage(filterText("type", TYPES.get(type)));
-                    filterChanged();
-                }));
-        addRenderableWidget(new Button(10 + filterWidth * 2, 76, filterWidth, 20,
-                filterText("authorization", AUTHORIZATION.get(authorization)), null, button -> {
-                    authorization = (authorization + 1) % AUTHORIZATION.size();
-                    button.setMessage(filterText("authorization", AUTHORIZATION.get(authorization)));
-                    filterChanged();
-                }));
-        addRenderableWidget(new Button(13 + filterWidth * 3, 76, filterWidth, 20,
-                filterText("sort", SORTS.get(sort)), null, button -> {
-                    sort = (sort + 1) % SORTS.size();
-                    button.setMessage(filterText("sort", SORTS.get(sort)));
-                    filterChanged();
-                }));
+        int filterWidth = (leftWidth - 8) / 3;
+        if (filtersExpanded) {
+            addRenderableWidget(new LibraryDropdown(8, 76, filterWidth,
+                    () -> categories().stream().map(value -> filterText("category", value)).toList(), () -> category, selected -> {
+                        category = selected;
+                        filterChanged();
+                    }));
+            addRenderableWidget(new LibraryDropdown(12 + filterWidth, 76, filterWidth,
+                    () -> TYPES.stream().map(value -> filterText("type", value)).toList(), () -> type, selected -> {
+                        type = selected;
+                        filterChanged();
+                    }));
+            addRenderableWidget(new LibraryDropdown(16 + filterWidth * 2, 76, filterWidth,
+                    () -> AUTHORIZATION.stream().map(value -> filterText("authorization", value)).toList(),
+                    () -> authorization, selected -> {
+                        authorization = selected;
+                        filterChanged();
+                    }));
+        }
         if (client == null && !closed) {
             connect();
         }
         if (client != null && grid == null) {
-            grid = new ModelLibraryGrid(4, 100, leftWidth, height - 128, thumbnails,
+            int gridY = filtersExpanded ? 100 : 76;
+            grid = new ModelLibraryGrid(8, gridY, leftWidth, height - gridY - 28, thumbnails,
                     this::select, this::favorite, model -> {
                         preview.clear();
                         retainingChild = true;
@@ -164,20 +170,14 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                     });
         }
         if (grid != null) {
-            grid.setX(4);
-            grid.setY(100);
+            grid.setX(8);
+            grid.setY(filtersExpanded ? 100 : 76);
             grid.setWidth(leftWidth);
-            grid.setHeight(height - 128);
+            grid.setHeight(height - grid.getY() - 28);
             addRenderableWidget(grid);
         }
         if (preview != null) {
-            uploadEntry = addRenderableWidget(new Button(rightX, 52, (rightWidth - 4) / 2, 20,
-                    FiguraText.of("gui.library.upload"), null, button -> {
-                        preview.clear();
-                        retainingChild = true;
-                        minecraft.setScreen(new ModelUploadScreen(this, client, capabilities, this::refresh));
-                    }));
-            addRenderableWidget(new Button(rightX + (rightWidth + 4) / 2, 52, (rightWidth - 4) / 2, 20,
+            addRenderableWidget(new Button(rightX + (rightWidth + 4) / 2, 28, (rightWidth - 4) / 2, 20,
                     FiguraText.of("gui.library.my_appeals"), null, button -> {
                         if (client.current() && capabilities != null && capabilities.enabled()) {
                             preview.clear();
@@ -185,7 +185,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                             minecraft.setScreen(new ModelLibraryAppealsScreen(this, client, null));
                         }
                     }));
-            var widget = new EntityPreview(rightX, 76, rightWidth, Math.max(24, actionsY - 88), Math.max(12, rightWidth / 3),
+            var widget = new EntityPreview(rightX, 52, rightWidth, Math.max(24, actionsY - 64), Math.max(12, rightWidth / 3),
                     -15, 30, preview.entity(), this);
             widget.setLibraryPreview(preview);
             addRenderableWidget(widget);
@@ -200,7 +200,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                         minecraft.setScreen(new ModelLibraryAuthorizationScreen(this, client, selected.modelId(), () -> ""));
                     }
                 }));
-        showPrivate = actions.row(Component.empty(), new SwitchButton(0, 0, actionWidth, 20,
+        showPrivate = actions.row(Component.empty(), new LibraryCheckBox(0, 0, actionWidth,
                 FiguraText.of("gui.library.show_private"), FiguraText.of("gui.library.show_private_hint"), ignored -> {}));
         authorizationToggle = actions.row(Component.empty(), new Button(0, 0, actionWidth, 20,
                 FiguraText.of("gui.library.authorization"), null, button -> {
@@ -222,9 +222,9 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         actions.row(Component.empty(), favorite);
         actions.row(Component.empty(), visibility);
         actions.row(Component.empty(), delete);
-        previous = new Button(4, height - 24, 24, 20, Component.literal("<"),
+        previous = new Button(8, height - 24, 24, 20, Component.literal("<"),
                 FiguraText.of("gui.library.previous"), button -> changePage(-1));
-        next = new Button(leftWidth - 20, height - 24, 24, 20, Component.literal(">"),
+        next = new Button(leftWidth - 16, height - 24, 24, 20, Component.literal(">"),
                 FiguraText.of("gui.library.next"), button -> changePage(1));
         addRenderableWidget(previous);
         addRenderableWidget(next);
@@ -270,6 +270,27 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         } catch (java.io.IOException unavailable) {
             state = "offline";
             client = null;
+        }
+    }
+
+    /** Shared reference navigation, also used when returning from an upload form. */
+    public void openSection(int section) {
+        if (section < 0 || section > 4 || closed) {
+            return;
+        }
+        if (section < SCOPES.size()) {
+            scope = section;
+            page = 1;
+            rebuildWidgets();
+            refresh();
+        } else if (client != null && client.current() && capabilities != null && capabilities.enabled()) {
+            if (section == 3) {
+                preview.clear();
+                retainingChild = true;
+                minecraft.setScreen(new ModelUploadScreen(this, client, capabilities, this::refresh));
+            } else {
+                openAdmin();
+            }
         }
     }
 
@@ -463,10 +484,11 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         boolean busy = mutation != null && !mutation.future().isDone()
                 || equipmentOperation != null && !equipmentOperation.future().isDone();
         boolean available = !closed && client != null && client.current() && state.equals("ready") && !busy;
-        adminEntry.setVisible(capabilities != null && capabilities.adminLoginAvailable());
+        sections.administrator(capabilities != null && capabilities.adminLoginAvailable());
         adminEntry.setActive(!closed && client != null && client.current() && capabilities != null && !busy
                 && (adminRestore == null || adminRestore.future().isDone()));
-        adminEntry.setMessage(FiguraText.of(admin != null && admin.active() ? "gui.library.manage" : "gui.library.admin_login"));
+        adminEntry.setMessage(FiguraText.of("gui.library.manage"));
+        adminEntry.setTooltip(FiguraText.of(admin != null && admin.active() ? "gui.library.manage" : "gui.library.admin_login"));
         grants.setVisible(LibraryAuthorization.available(selected));
         grants.setActive(available && LibraryAuthorization.available(selected));
         authorizationToggle.setVisible(selected != null && selected.allows("patch"));

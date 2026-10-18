@@ -1,6 +1,7 @@
 package top.aihmc.omnimorph.gui.screens.library;
 
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import top.aihmc.omnimorph.backend2.library.LibraryAuthorization;
 import top.aihmc.omnimorph.backend2.library.LibraryAdminSession;
@@ -10,6 +11,9 @@ import top.aihmc.omnimorph.gui.screens.ModelLibraryScreen;
 import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.TextField;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryRowList;
+import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
+import top.aihmc.omnimorph.FiguraMod;
+import top.aihmc.omnimorph.utils.FiguraIdentifier;
 import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 
@@ -22,6 +26,8 @@ import java.util.function.Supplier;
 public final class ModelLibraryAuthorizationScreen extends LibraryFormScreen {
     private final LibraryClient client;
     private final LibraryAuthorization service;
+    private final LibraryThumbnailService thumbnails;
+    private LibraryThumbnailService.Handle thumbnail;
     private LibraryAdminSession admin;
     private LibraryClient.Request<?> pending;
     private LibraryModels.Model model;
@@ -44,6 +50,7 @@ public final class ModelLibraryAuthorizationScreen extends LibraryFormScreen {
         super(parent, FiguraText.of("gui.library.grants"));
         this.client = client;
         service = new LibraryAuthorization(client, model, admin);
+        thumbnails = new LibraryThumbnailService(client, FiguraMod.getCacheDirectory(), admin);
     }
 
     public ModelLibraryAuthorizationScreen(Screen parent, LibraryClient client, UUID model, LibraryAdminSession admin) {
@@ -61,8 +68,31 @@ public final class ModelLibraryAuthorizationScreen extends LibraryFormScreen {
         if (!initForm()) {
             return;
         }
-        int rowWidth = Math.max(40, width - 16);
-        var field = addRenderableWidget(new TextField(8, 28, Math.max(40, rowWidth - 92), 20,
+        int sidebar = Math.min(140, width / 4);
+        int bodyX = sidebar + 20;
+        int rowWidth = width - bodyX - 8;
+        addRenderableOnly((gui, mouseX, mouseY, delta) -> {
+            UIHelper.blitSliced(gui, 8, 52, sidebar, height - 84, UIHelper.OUTLINE_FILL);
+            var texture = thumbnail == null ? null : thumbnail.capture();
+            if (texture == null) {
+                texture = new FiguraIdentifier("textures/gui/library_placeholder.png");
+            }
+            int size = Math.min(72, sidebar - 12);
+            gui.blit(RenderPipelines.GUI_TEXTURED, texture, 8 + (sidebar - size) / 2, 60,
+                    0, 0, size, size, size, size);
+            UIHelper.renderScrollingText(gui, model == null ? Component.empty() : Component.literal(model.displayName()),
+                    8, 32, width - 40, 0xffeeeeee);
+            if (model != null) {
+                UIHelper.renderScrollingText(gui, Component.literal(model.internalName()), 14, 64 + size, sidebar - 12, 0xffeeeeee);
+                UIHelper.renderScrollingText(gui, Component.literal(String.join(", ", model.authors())),
+                        14, 80 + size, sidebar - 12, 0xffbac6d8);
+                UIHelper.renderScrollingText(gui, Component.literal(model.uploader().name()),
+                        14, 96 + size, sidebar - 12, 0xffbac6d8);
+            }
+        });
+        addRenderableWidget(new Button(12, height - 28, sidebar - 8, 20,
+                FiguraText.of("gui.library.grants"), null, ignored -> {}));
+        var field = addRenderableWidget(new TextField(bodyX, 52, Math.max(40, rowWidth - 92), 20,
                 TextField.HintType.NAME, value -> {
                     if (!name.equals(value)) {
                         name = value;
@@ -73,9 +103,9 @@ public final class ModelLibraryAuthorizationScreen extends LibraryFormScreen {
                 }));
         field.getField().setMaxLength(64);
         field.getField().setValue(name);
-        resolve = addRenderableWidget(new Button(width - 96, 28, 88, 20,
+        resolve = addRenderableWidget(new Button(width - 96, 52, 88, 20,
                 FiguraText.of("gui.library.resolve"), null, ignored -> resolve()));
-        confirm = addRenderableWidget(new Button(8, 52, rowWidth, 20,
+        confirm = addRenderableWidget(new Button(bodyX, height - 52, rowWidth, 20,
                 FiguraText.of("gui.library.confirm_grant"), null, ignored -> {
                     if (retry != null) {
                         change(retry);
@@ -85,22 +115,24 @@ public final class ModelLibraryAuthorizationScreen extends LibraryFormScreen {
                         change(new LibraryAuthorization.Change(candidate.uuid(), true, UUID.randomUUID(), model.policyRevision()));
                     }
                 }));
-        rows = addRenderableWidget(new LibraryRowList(8, 96, rowWidth, Math.max(24, height - 148)));
-        previous = addRenderableWidget(new Button(8, height - 48, 60, 20, Component.literal("<"), null,
+        rows = addRenderableWidget(new LibraryRowList(bodyX, 96, rowWidth, Math.max(24, height - 152)));
+        rows.columns(List.of(FiguraText.of("gui.library.player_name"), Component.literal("UUID"),
+                FiguraText.of("gui.library.authorized_at"), FiguraText.of("gui.library.actions")), 4, 7, 5, 2);
+        previous = addRenderableWidget(new Button(bodyX, height - 28, 28, 20, Component.literal("<"), null,
                 ignored -> {
                     page = Math.max(1, page - 1);
                     refresh();
                 }));
-        next = addRenderableWidget(new Button(72, height - 48, 60, 20, Component.literal(">"), null,
+        next = addRenderableWidget(new Button(bodyX + 32, height - 28, 28, 20, Component.literal(">"), null,
                 ignored -> {
                     page++;
                     refresh();
                 }));
-        addRenderableWidget(new Button(width - 96, height - 48, 88, 20,
+        addRenderableWidget(new Button(width - 96, height - 28, 88, 20,
                 FiguraText.of("gui.library.refresh"), null, ignored -> refresh()));
-        addRenderableWidget(new Button(width - 96, height - 24, 88, 20,
-                FiguraText.of("gui.done"), null, ignored -> onClose()));
-        addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui, message, 8, 78, rowWidth, 0xffd3e7e1));
+        addRenderableWidget(new Button(width - 28, 28, 20, 20,
+                Component.literal("×"), FiguraText.of("gui.done"), ignored -> onClose()));
+        addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui, message, bodyX, 78, rowWidth, 0xffd3e7e1));
         refresh();
     }
 
@@ -117,6 +149,10 @@ public final class ModelLibraryAuthorizationScreen extends LibraryFormScreen {
             pending.cancel();
         }
         model = null;
+        if (thumbnail != null) {
+            thumbnail.close();
+            thumbnail = null;
+        }
         candidate = null;
         revocation = null;
         results = null;
@@ -132,23 +168,30 @@ public final class ModelLibraryAuthorizationScreen extends LibraryFormScreen {
                 return;
             }
             model = value.model();
+            if (model.imageAvailable() && model.moderationStatus().equals("ACTIVE")) {
+                thumbnail = thumbnails.acquire(model.modelId());
+            }
             results = value.grants();
             message = FiguraText.of(model.visibility().equals("PRIVATE") ? "gui.library.private_grants" : "gui.library.uploader_granted");
-            rows.rows(results.items().stream().map(player -> new LibraryRowList.Row(
-                    Component.literal(player.name() + "  " + player.uuid()),
-                    Component.literal(Instant.ofEpochSecond(player.createdAt()).toString()).append("\n")
-                            .append(FiguraText.of("gui.library.revoke")),
-                    !model.uploader().uuid().equals(player.uuid()),
-                    () -> {
-                        if (!busy()) {
-                            revocation = player;
-                            candidate = null;
-                            retry = null;
-                            message = Component.literal(player.name() + "  " + player.uuid());
-                        }
-                    }
-            )).toList());
+            rows.rows(results.items().stream().map(this::grantRow).toList());
         });
+    }
+
+    private LibraryRowList.Row grantRow(LibraryAuthorization.Player player) {
+        boolean revocable = !model.uploader().uuid().equals(player.uuid());
+        Component tooltip = Component.literal(Instant.ofEpochSecond(player.createdAt()).toString())
+                .append("\n").append(FiguraText.of(revocable ? "gui.library.revoke" : "gui.library.uploader_granted"));
+        return new LibraryRowList.Row(Component.empty(), tooltip, revocable, () -> {
+            if (!busy() && revocable) {
+                revocation = player;
+                candidate = null;
+                retry = null;
+                message = Component.literal(player.name() + "  " + player.uuid());
+            }
+        }, List.of(Component.literal(player.name()), Component.literal(player.uuid().toString()),
+                Component.literal(Instant.ofEpochSecond(player.createdAt()).toString())), null,
+                revocable ? List.of(new LibraryRowList.Action(FiguraText.of("gui.library.revoke"),
+                        FiguraText.of("gui.library.revoke"), true, () -> {}, LibraryRowList.Icon.DELETE)) : List.of());
     }
 
     private void resolve() {
@@ -241,6 +284,8 @@ public final class ModelLibraryAuthorizationScreen extends LibraryFormScreen {
         revocation = null;
         model = null;
         retry = null;
+        thumbnails.close();
+        thumbnail = null;
         if (pending != null) {
             pending.cancel();
         }

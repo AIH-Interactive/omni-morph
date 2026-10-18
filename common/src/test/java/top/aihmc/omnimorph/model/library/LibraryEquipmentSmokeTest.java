@@ -283,6 +283,11 @@ public final class LibraryEquipmentSmokeTest {
                     exchange.getResponseHeaders().add("x-omnimorph-sha256", CloudHttp.sha256(bytes));
                     exchange.sendResponseHeaders(200, bytes.length);
                     if (blockBody) {
+                        // Deliver a real partial body before waiting for client-side
+                        // cancellation; otherwise some HTTP clients await the first
+                        // body byte before returning the streaming response.
+                        exchange.getResponseBody().write(bytes, 0, 1);
+                        exchange.getResponseBody().flush();
                         bodyStarted.countDown();
                         try {
                             bodyRelease.await(10, TimeUnit.SECONDS);
@@ -290,6 +295,8 @@ public final class LibraryEquipmentSmokeTest {
                             Thread.currentThread().interrupt();
                             return;
                         }
+                        exchange.getResponseBody().write(bytes, 1, bytes.length - 1);
+                        return;
                     }
                     exchange.getResponseBody().write(bytes);
                     return;

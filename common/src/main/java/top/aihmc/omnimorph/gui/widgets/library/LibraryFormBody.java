@@ -13,7 +13,7 @@ import java.util.List;
 
 /** Scrolls existing labeled controls, including keyboard focus, within a form's viewport. */
 public final class LibraryFormBody extends AbstractList {
-    private record Row(Component label, FiguraWidget widget, GuiEventListener input) {}
+    private record Row(Component label, FiguraWidget widget, GuiEventListener input, int height, int labelWidth) {}
     private final List<Row> rows = new ArrayList<>();
     private final boolean labeled;
     private GuiEventListener previousFocus;
@@ -28,7 +28,11 @@ public final class LibraryFormBody extends AbstractList {
     }
 
     public <T extends FiguraWidget & GuiEventListener> T row(Component label, T widget) {
-        rows.add(new Row(label, widget, widget));
+        return row(label, widget, labeled ? 40 : 24, 0);
+    }
+
+    public <T extends FiguraWidget & GuiEventListener> T row(Component label, T widget, int height, int labelWidth) {
+        rows.add(new Row(label, widget, widget, height, labelWidth));
         children.add(widget);
         return widget;
     }
@@ -37,7 +41,7 @@ public final class LibraryFormBody extends AbstractList {
     public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
         var visibleRows = rows.stream().filter(row -> row.widget().isVisible()).toList();
         int spacing = labeled ? 40 : 24;
-        int maximum = Math.max(0, visibleRows.size() * spacing - getHeight() + 4);
+        int maximum = Math.max(0, visibleRows.stream().mapToInt(Row::height).sum() - getHeight() + 4);
         int offset = (int) Math.round(scrollBar.getScrollProgress() * maximum);
         if (visibleRows.stream().noneMatch(row -> row.input().isFocused())) {
             previousFocus = null;
@@ -45,8 +49,8 @@ public final class LibraryFormBody extends AbstractList {
         for (int i = 0; i < visibleRows.size(); i++) {
             var input = visibleRows.get(i).input();
             if (input.isFocused() && input != previousFocus) {
-                int top = i * spacing;
-                if (top < offset || top + spacing - 2 > offset + getHeight()) {
+                int top = visibleRows.subList(0, i).stream().mapToInt(Row::height).sum();
+                if (top < offset || top + visibleRows.get(i).height() - 2 > offset + getHeight()) {
                     offset = Math.clamp(top, 0, maximum);
                     scrollBar.setScrollProgressNoAnim(maximum == 0 ? 0 : (double) offset / maximum);
                 }
@@ -60,16 +64,20 @@ public final class LibraryFormBody extends AbstractList {
         }
         enableScissors(gui);
         try {
+            int top = 0;
             for (int i = 0; i < visibleRows.size(); i++) {
                 Row row = visibleRows.get(i);
-                int y = getY() + 4 + i * spacing - offset;
-                row.widget().setX(getX() + 4);
-                row.widget().setY(y + (labeled ? 13 : 0));
+                int y = getY() + 4 + top - offset;
+                boolean inline = row.labelWidth() > 0;
+                row.widget().setX(getX() + 4 + row.labelWidth());
+                row.widget().setY(y + (labeled && !inline ? 13 : 0));
                 if (labeled) {
-                    UIHelper.renderScrollingText(gui, row.label(), getX() + 4, y, getWidth() - 22, 0xffbac6d8);
+                    UIHelper.renderScrollingText(gui, row.label(), getX() + 4, y + (inline ? 6 : 0),
+                            inline ? row.labelWidth() - 4 : getWidth() - 22, 0xffbac6d8);
                 }
                 row.widget().extractRenderState(gui, isInsideScissors(mouseX, mouseY) ? mouseX : -1,
                         isInsideScissors(mouseX, mouseY) ? mouseY : -1, delta);
+                top += row.height();
             }
         } finally {
             gui.disableScissor();

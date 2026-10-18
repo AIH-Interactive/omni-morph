@@ -84,6 +84,8 @@ public final class ModelLibraryReportsScreen extends LibraryFormScreen {
         addRenderableWidget(new Button(12 + (area - 4) / 2, 28, (area - 4) / 2, 20,
                 FiguraText.of("gui.library.refresh"), null, ignored -> refresh()));
         rows = addRenderableWidget(new LibraryRowList(8, 76, area, Math.max(24, height - 152)));
+        rows.columns(List.of(FiguraText.of("gui.library.display_name"), FiguraText.of("gui.library.player_name"),
+                FiguraText.of("gui.library.report_reason"), FiguraText.of("gui.library.created_at")), 4, 5, 7, 4);
         resolve = addRenderableWidget(new Button(8, height - 72, (area - 4) / 2, 20,
                 FiguraText.of("gui.library.resolve_report"), null, ignored -> resolve()));
         open = addRenderableWidget(new Button(12 + (area - 4) / 2, height - 72, (area - 4) / 2, 20,
@@ -142,8 +144,9 @@ public final class ModelLibraryReportsScreen extends LibraryFormScreen {
             }
             results = value;
             message = FiguraText.of("gui.library.page", value.page(), Math.max(1, (value.total() + 7) / 8), value.total());
-            rows.rows(value.items().stream().map(report -> new LibraryRowList.Row(
-                    Component.literal(report.modelName() + "  " + report.reason()),
+            rows.rows(value.items().stream().map(report -> LibraryRowList.Row.table(
+                    List.of(Component.literal(report.modelName()), Component.literal(report.reporterUuid().toString()),
+                            Component.literal(report.reason()), Component.literal(Instant.ofEpochSecond(report.createdAt()).toString())),
                     Component.literal(report.reporterUuid() + "\n" + Instant.ofEpochSecond(report.createdAt())
                             + "\n" + report.reason() + (report.resolvedBy() == null ? "" : "\n" + report.resolvedBy())), true,
                     () -> {

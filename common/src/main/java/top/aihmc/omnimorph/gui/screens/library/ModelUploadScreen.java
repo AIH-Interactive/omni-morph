@@ -1,7 +1,6 @@
 package top.aihmc.omnimorph.gui.screens.library;
 
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
@@ -12,15 +11,20 @@ import top.aihmc.omnimorph.gui.screens.AbstractPanelScreen;
 import top.aihmc.omnimorph.gui.screens.ModelLibraryScreen;
 import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.EntityPreview;
-import top.aihmc.omnimorph.gui.widgets.SwitchButton;
 import top.aihmc.omnimorph.gui.widgets.TextField;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryFormBody;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryRadioGroup;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryMultilineField;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryTagField;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
+import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionTabs;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryUploadSource;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
 import top.aihmc.omnimorph.model.library.LibraryPackagePreparation;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
 import top.aihmc.omnimorph.model.library.LibraryUploadDraft;
 import top.aihmc.omnimorph.model.library.LibraryUploadService;
-import top.aihmc.omnimorph.utils.FiguraIdentifier;
 import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 
@@ -49,13 +53,16 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
     private final List<Button> editableButtons = new ArrayList<>();
     private final List<TextField> editableFields = new ArrayList<>();
     private TextField name;
-    private TextField description;
+    private LibraryMultilineField description;
     private Button sourceButton;
     private Button author;
     private Button uploader;
     private Button imageButton;
     private Button upload;
-    private SwitchButton authorization;
+    private LibraryRadioGroup authorization;
+    private LibraryRadioGroup visibility;
+    private LibraryTagField tagField;
+    private LibrarySectionTabs sectionTabs;
     private Path source;
     private Path imagePath;
     private String tags = "";
@@ -104,81 +111,89 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         building = true;
         editableButtons.clear();
         editableFields.clear();
-        int left = Math.max(160, (width - 16) * 3 / 5);
-        int rightX = left + 12;
-        int right = width - rightX - 4;
-        var body = addRenderableWidget(new LibraryFormBody(4, 28, left, Math.max(40, height - 36)));
-        int fieldWidth = left - 22;
-        sourceButton = body.row(FiguraText.of("gui.library.source"), button(fieldWidth,
-                FiguraText.of("gui.library.choose_model"), ignored -> pick(ModelFilePickerScreen.Kind.MODEL)));
-        uploader = body.row(FiguraText.of("gui.library.uploader"), readonly(fieldWidth,
-                Component.literal(uploaderName)));
-        author = body.row(FiguraText.of("gui.library.authors"), readonly(fieldWidth, Component.empty()));
+        var layout = new LibraryWorkspaceLayout(width, height);
+        int left = layout.contentWidth();
+        int rightX = layout.previewX();
+        int right = layout.previewWidth();
+        sectionTabs = addRenderableWidget(new LibrarySectionTabs(layout.left(), layout.top(), left, 3,
+                limits.adminLoginAvailable(), section -> {
+                    if (!busy() && parentScreen instanceof ModelLibraryScreen catalog) {
+                        minecraft.setScreen(catalog);
+                        catalog.openSection(section);
+                    }
+                }));
+        var body = addRenderableWidget(new LibraryFormBody(layout.left(), layout.bodyY(), left,
+                height - layout.bodyY() - 8));
+        int labelWidth = Math.min(72, Math.max(48, left / 5));
+        int fieldWidth = left - labelWidth - 22;
+        var sourcePicker = new LibraryUploadSource(left - 22, limits.maxUploadBytes(),
+                () -> cover == null ? null : cover.capture(), () -> pick(ModelFilePickerScreen.Kind.MODEL),
+                () -> pick(ModelFilePickerScreen.Kind.IMAGE), this::clearImage);
+        body.row(FiguraText.of("gui.library.source"), sourcePicker, 108, 0);
+        sourceButton = sourcePicker.sourceButton();
+        imageButton = sourcePicker.imageButton();
+        editableButtons.add(sourceButton);
+        editableButtons.add(imageButton);
+        editableButtons.add(sourcePicker.clearButton());
         name = body.row(FiguraText.of("gui.library.display_name"), field(fieldWidth, draft.displayName(), value -> {
             if (!building) {
                 draft.displayName(value);
             }
-        }));
-        description = body.row(FiguraText.of("gui.library.description"), field(fieldWidth, draft.description(), value -> {
-            if (!building) {
-                draft.description(value);
-            }
-        }));
-        body.row(FiguraText.of("gui.library.category"), button(fieldWidth,
-                Component.literal(limits.categories().isEmpty() ? "" : limits.categories().get(category)), ignored -> {
+        }), 24, labelWidth);
+        uploader = body.row(FiguraText.of("gui.library.uploader"), readonly(fieldWidth,
+                Component.literal(uploaderName)), 24, labelWidth);
+        author = body.row(FiguraText.of("gui.library.authors"), readonly(fieldWidth, Component.empty()), 24, labelWidth);
+        var categoryField = new LibraryDropdown(0, 0, fieldWidth,
+                () -> limits.categories().stream().<Component>map(Component::literal).toList(),
+                () -> category, selected -> {
                     if (!limits.categories().isEmpty()) {
-                        category = (category + 1) % limits.categories().size();
+                        category = selected;
                         draft.category(limits.categories().get(category));
-                        ignored.setMessage(Component.literal(limits.categories().get(category)));
                     }
-                }));
-        body.row(FiguraText.of("gui.library.tags"), field(fieldWidth, tags, value -> {
+                });
+        editableButtons.add(categoryField);
+        body.row(FiguraText.of("gui.library.category"), categoryField, 24, labelWidth);
+        tagField = body.row(FiguraText.of("gui.library.tags"), new LibraryTagField(fieldWidth, tags, value -> {
             if (!building) {
                 tags = value;
                 draft.tags(value);
             }
-        }));
-        var visibility = new SwitchButton(0, 0, fieldWidth, 20, FiguraText.of("gui.library.public"), null,
-                button -> draft.isPublic(((SwitchButton) button).isToggled()));
-        visibility.setToggled(draft.isPublic());
-        editableButtons.add(visibility);
-        body.row(FiguraText.of("gui.library.visibility"), visibility);
-        authorization = new SwitchButton(0, 0, fieldWidth, 20, FiguraText.of("gui.library.needs_authorization"),
-                FiguraText.of("gui.library.uploader_granted"), button -> {
+        }), 48, labelWidth);
+        visibility = new LibraryRadioGroup(fieldWidth, FiguraText.of("gui.library.public"),
+                FiguraText.of("gui.library.private"), draft.isPublic(), draft::isPublic);
+        body.row(FiguraText.of("gui.library.visibility"), visibility, 24, labelWidth);
+        authorization = new LibraryRadioGroup(fieldWidth, FiguraText.of("gui.yes"), FiguraText.of("gui.no"),
+                draft.requiresAuthorization(), value -> {
                     if (!building) {
-                        draft.requiresAuthorization(((SwitchButton) button).isToggled());
+                        draft.requiresAuthorization(value);
                     }
                 });
-        editableButtons.add(authorization);
-        body.row(FiguraText.of("gui.library.authorization"), authorization);
-        imageButton = body.row(FiguraText.of("gui.library.cover"), button(fieldWidth,
-                FiguraText.of("gui.library.choose_image"), ignored -> pick(ModelFilePickerScreen.Kind.IMAGE)));
+        body.row(FiguraText.of("gui.library.authorization"), authorization, 24, labelWidth);
+        description = body.row(FiguraText.of("gui.library.description"), new LibraryMultilineField(fieldWidth, 56,
+                draft.description(), value -> {
+            if (!building) {
+                draft.description(value);
+            }
+        }), 60, labelWidth);
         if (imagePath != null) {
             imageButton.setMessage(Component.literal(imagePath.getFileName().toString()));
         }
-        body.row(Component.empty(), button(fieldWidth, FiguraText.of("gui.library.clear_image"), ignored -> clearImage()));
         body.row(Component.empty(), button(fieldWidth, FiguraText.of("gui.library.preview_draft"), ignored -> {
             if (prepared != null) {
                 preview.selectDraft(prepared::nbt);
             }
-        }));
-        var entity = addRenderableWidget(new EntityPreview(rightX, 30, right, Math.max(32, height - 164),
+        }), 24, labelWidth);
+        var entity = addRenderableWidget(new EntityPreview(rightX, layout.top(), right, layout.previewHeight() - 16,
                 Math.max(12, right / 3), -15, 30, preview.entity(), this));
         entity.setLibraryPreview(preview);
-        upload = addRenderableWidget(new Button(rightX, height - 48, right, 20,
+        int actionWidth = (right - 4) / 2;
+        upload = addRenderableWidget(new Button(rightX + actionWidth + 4, layout.footerY(), actionWidth, 20,
                 FiguraText.of("gui.library.publish"), null, ignored -> submit()));
-        addRenderableWidget(new Button(rightX, height - 24, right, 20,
-                FiguraText.of("gui.done"), null, ignored -> onClose()));
-        addRenderableWidget(new Button(rightX, height - 72, right, 20,
+        addRenderableWidget(new Button(rightX + right - 20, layout.top(), 20, 20,
+                Component.literal("×"), FiguraText.of("gui.done"), ignored -> onClose()));
+        addRenderableWidget(new Button(rightX, layout.footerY(), actionWidth, 20,
                 FiguraText.of("gui.library.cancel"), null, ignored -> cancelUpload()));
         addRenderableOnly((gui, x, y, delta) -> {
-            var texture = cover == null ? null : cover.capture();
-            if (texture == null) {
-                texture = new FiguraIdentifier("textures/gui/library_placeholder.png");
-            }
-            int size = Math.max(16, Math.min(right, 56));
-            gui.blit(RenderPipelines.GUI_TEXTURED, texture, rightX, height - 144,
-                    0, 0, size, size, size, size);
             Component status = message;
             if (operation != null && !operation.future().isDone() && operation.progress() != null) {
                 var progress = operation.progress();
@@ -189,7 +204,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
             } else if (preview.status().stage() == LibraryPreviewSession.Stage.FAILED) {
                 status = FiguraText.of("gui.library.failure", preview.status().errorCode());
             }
-            UIHelper.renderScrollingText(gui, status, rightX, height - 84, right, 0xffd3e7e1);
+            UIHelper.renderScrollingText(gui, status, rightX, layout.footerY() - 12, right, 0xffd3e7e1);
         });
         updateSourceFields();
         building = false;
@@ -214,7 +229,12 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
     }
 
     private Button readonly(int width, Component text) {
-        var widget = new Button(0, 0, width, 20, text, text, ignored -> {});
+        var widget = new Button(0, 0, width, 20, text, text, ignored -> {}) {
+            @Override
+            protected int getTextColor() {
+                return 0xffbac6d8;
+            }
+        };
         widget.setActive(false);
         return widget;
     }
@@ -287,6 +307,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
                 message = FiguraText.of("gui.library.preparation_error");
             } else if (draft.prepared(sourceGeneration, value)) {
                 prepared = value;
+                preview.selectDraft(value::nbt);
                 message = FiguraText.of("gui.library.ready_upload", value.byteLength(), limits.maxUploadBytes());
                 updateSourceFields();
             }
@@ -358,8 +379,8 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         boolean previous = building;
         building = true;
         name.getField().setValue(draft.displayName());
-        description.getField().setValue(draft.description());
-        authorization.setToggled(draft.requiresAuthorization());
+        description.setValue(draft.description());
+        authorization.setValue(draft.requiresAuthorization());
         sourceButton.setMessage(source == null ? FiguraText.of("gui.library.choose_model")
                 : Component.literal(source.getFileName().toString()));
         author.setMessage(prepared == null || prepared.metadata().authors().isEmpty()
@@ -428,8 +449,13 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
             return;
         }
         boolean editable = !closed && client.current() && !busy() && operation == null;
+        sectionTabs.setEnabled(!closed && client.current() && !busy());
         editableButtons.forEach(button -> button.setActive(editable));
         editableFields.forEach(field -> field.setEnabled(editable));
+        visibility.setActive(editable);
+        authorization.setActive(editable);
+        description.setEnabled(editable);
+        tagField.setEnabled(editable);
         upload.setActive(!closed && client.current() && !busy() && prepared != null
                 && (imageRequest == null || imageRequest.future().isDone())
                 && (operation == null || operation.future().isCompletedExceptionally()));

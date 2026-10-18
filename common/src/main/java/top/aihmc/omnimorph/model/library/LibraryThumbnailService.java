@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 /** Image HTTP/decoding uses the bounded thumbnail lane; GPU ownership stays on the render thread. */
 public final class LibraryThumbnailService implements AutoCloseable {
@@ -30,11 +31,17 @@ public final class LibraryThumbnailService implements AutoCloseable {
     private static final Set<Handle> FRAMES = new HashSet<>();
     private final LibraryClient client;
     private final LibraryPreviewCache cache;
+    private final Supplier<String> administrator;
     private final Set<Handle> handles = new HashSet<>();
     private boolean closed;
 
     public LibraryThumbnailService(LibraryClient client, Path cacheDirectory) {
+        this(client, cacheDirectory, () -> "");
+    }
+
+    public LibraryThumbnailService(LibraryClient client, Path cacheDirectory, Supplier<String> administrator) {
         this.client = client;
+        this.administrator = administrator;
         cache = new LibraryPreviewCache(cacheDirectory);
     }
 
@@ -61,6 +68,10 @@ public final class LibraryThumbnailService implements AutoCloseable {
 
     public LibraryClient.Request<Pixels> load(UUID id) {
         return client.submit(LibraryClient.Lane.THUMBNAIL, exchange -> {
+            String token = administrator.get();
+            if (!token.isBlank()) {
+                exchange.adminToken(token);
+            }
             LibraryModels.Model model = exchange.json("GET", ROOT + id, null, LibraryModels.Model.class);
             if (!id.equals(model.modelId())) {
                 throw new LibraryClient.Failure(0, "INVALID_LIBRARY_RESPONSE");

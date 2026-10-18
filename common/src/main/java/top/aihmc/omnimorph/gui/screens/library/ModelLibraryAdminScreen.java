@@ -10,6 +10,10 @@ import top.aihmc.omnimorph.gui.screens.ModelLibraryScreen;
 import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.SearchBar;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryRowList;
+import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionTabs;
+import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
+import top.aihmc.omnimorph.FiguraMod;
+import top.aihmc.omnimorph.utils.FiguraIdentifier;
 import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 
@@ -25,6 +29,8 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
     private final LibraryClient client;
     private final LibraryAdminSession admin;
     private final LibraryModels.Capabilities capabilities;
+    private final LibraryThumbnailService thumbnails;
+    private final Map<UUID, LibraryThumbnailService.Handle> images = new java.util.HashMap<>();
     private LibraryClient.Request<?> pending;
     private LibraryRowList rows;
     private LibraryModels.Page results;
@@ -56,6 +62,7 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
         this.client = client;
         this.admin = admin;
         this.capabilities = capabilities;
+        thumbnails = new LibraryThumbnailService(client, FiguraMod.getCacheDirectory(), admin::token);
     }
 
     @Override
@@ -71,7 +78,14 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
         retainingChild = false;
         building = true;
         int area = Math.max(40, width - 16);
-        var search = addRenderableWidget(new SearchBar(8, 28, area, 20, value -> {
+        addRenderableWidget(new LibrarySectionTabs(8, 28, area, 4, true, section -> {
+            if (!busy() && parentScreen instanceof ModelLibraryScreen catalog) {
+                minecraft.setScreen(catalog);
+                catalog.openSection(section);
+            }
+        }));
+        int searchWidth = Math.max(80, area / 2 - 4);
+        var search = addRenderableWidget(new SearchBar(8, 52, searchWidth, 20, value -> {
             if (!building && !query.equals(value)) {
                 query = value;
                 searchChanged = System.nanoTime();
@@ -80,25 +94,30 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
         search.getField().setMaxLength(256);
         search.getField().setValue(query);
         int column = Math.max(20, (area - 8) / 3);
-        addRenderableWidget(new Button(8, 52, column, 20, filter("status", STATUSES.get(status)), null, button -> {
+        int filterWidth = Math.max(24, (area - searchWidth - 12) / 3);
+        addRenderableWidget(new Button(12 + searchWidth, 52, filterWidth, 20, filter("status", STATUSES.get(status)), null, button -> {
             status = (status + 1) % STATUSES.size();
             button.setMessage(filter("status", STATUSES.get(status)));
             page = 1;
             refresh();
         }));
-        addRenderableWidget(new Button(12 + column, 52, column, 20, filter("category", category()), null, button -> {
+        addRenderableWidget(new Button(16 + searchWidth + filterWidth, 52, filterWidth, 20, filter("category", category()), null, button -> {
             category = (category + 1) % (capabilities.categories().size() + 1);
             button.setMessage(filter("category", category()));
             page = 1;
             refresh();
         }));
-        addRenderableWidget(new Button(16 + column * 2, 52, column, 20, filter("type", type()), null, button -> {
+        addRenderableWidget(new Button(20 + searchWidth + filterWidth * 2, 52, filterWidth, 20, filter("type", type()), null, button -> {
             type = (type + 1) % (capabilities.modelTypes().size() + 1);
             button.setMessage(filter("type", type()));
             page = 1;
             refresh();
         }));
         rows = addRenderableWidget(new LibraryRowList(8, 96, area, Math.max(24, height - 172)));
+        rows.columns(List.of(FiguraText.of("gui.library.cover"), FiguraText.of("gui.library.display_name"),
+                FiguraText.of("gui.library.authors"), FiguraText.of("gui.library.uploader"),
+                FiguraText.of("gui.library.status"), FiguraText.of("gui.library.downloads"),
+                FiguraText.of("gui.library.actions")), 2, 6, 4, 4, 3, 2, 5);
         grants = addRenderableWidget(new Button(8, height - 72, column, 20,
                 FiguraText.of("gui.library.grants"), null, ignored -> {
                     if (LibraryAuthorization.available(selected) && !busy() && admin.active()) {
@@ -180,6 +199,8 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
         selected = null;
         armed = null;
         results = null;
+        images.values().forEach(LibraryThumbnailService.Handle::close);
+        images.clear();
         rows.rows(List.of());
         StringBuilder path = new StringBuilder("/api/library/v1/models?scope=admin&page_size=8");
         Map<String, String> queryValues = Map.of("q", query, "status", STATUSES.get(status), "type", type(),
@@ -201,15 +222,46 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
             }
             results = value;
             message = FiguraText.of("gui.library.page", value.page(), Math.max(1, (value.total() + 7) / 8), value.total());
-            rows.rows(value.items().stream().map(model -> new LibraryRowList.Row(
-                    Component.literal(model.displayName() + "  " + model.moderationStatus() + "  " + model.uploader().name()),
-                    Component.literal(model.modelId().toString() + "\n" + model.uploader().uuid()), true,
-                    () -> {
-                        selected = model;
-                        armed = null;
-                        updateButtons();
-                    })).toList());
+            rows.rows(value.items().stream().map(this::tableRow).toList());
         });
+    }
+
+    private LibraryRowList.Row tableRow(LibraryModels.Model model) {
+        var image = model.imageAvailable() && model.moderationStatus().equals("ACTIVE")
+                ? images.computeIfAbsent(model.modelId(), thumbnails::acquire) : null;
+        var actions = new java.util.ArrayList<LibraryRowList.Action>();
+        if (LibraryAuthorization.available(model)) {
+            actions.add(new LibraryRowList.Action(FiguraText.of("gui.library.grants"), FiguraText.of("gui.library.grants"), true, () -> {
+                if (!busy() && admin.active()) {
+                    retainingChild = true;
+                    minecraft.setScreen(new ModelLibraryAuthorizationScreen(this, client, model.modelId(), admin));
+                }
+            }, LibraryRowList.Icon.GRANT));
+        }
+        boolean mutable = !model.moderationStatus().equals("DELETED");
+        actions.add(new LibraryRowList.Action(FiguraText.of("gui.library.block"),
+                FiguraText.of(model.moderationStatus().equals("BLOCKED") ? "gui.library.unblock" : "gui.library.block"),
+                mutable, () -> moderate(false), LibraryRowList.Icon.BLOCK));
+        actions.add(new LibraryRowList.Action(FiguraText.of("gui.library.delete"), FiguraText.of("gui.library.delete"),
+                mutable, () -> moderate(true), LibraryRowList.Icon.DELETE));
+        return new LibraryRowList.Row(Component.empty(),
+                Component.literal(model.modelId() + "\n" + model.uploader().uuid()), true,
+                () -> {
+                    if (selected == null || !selected.modelId().equals(model.modelId())) {
+                        armed = null;
+                    }
+                    selected = model;
+                    updateButtons();
+                }, List.of(Component.empty(), Component.literal(model.displayName()),
+                    model.authors().isEmpty() ? FiguraText.of("gui.library.unknown_author")
+                            : Component.literal(model.authors().getFirst()),
+                    Component.literal(model.uploader().name()),
+                    FiguraText.of("gui.library.value." + model.moderationStatus().toLowerCase(java.util.Locale.ROOT)),
+                    Component.literal(Long.toString(model.downloads()))),
+                () -> {
+                    var texture = image == null ? null : image.capture();
+                    return texture == null ? new FiguraIdentifier("textures/gui/library_placeholder.png") : texture;
+                }, actions);
     }
 
     private void moderate(boolean remove) {
@@ -330,6 +382,8 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
             selected = null;
             results = null;
             retry = null;
+            thumbnails.close();
+            images.clear();
             if (pending != null) {
                 pending.cancel();
             }

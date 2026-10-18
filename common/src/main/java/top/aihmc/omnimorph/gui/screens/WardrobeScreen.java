@@ -11,6 +11,7 @@ import top.aihmc.omnimorph.avatar.AvatarManager;
 import top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher;
 import top.aihmc.omnimorph.backend2.NetworkStuff;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
+import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.gui.screens.library.ModelLibraryAppealsScreen;
 import top.aihmc.omnimorph.gui.screens.library.WardrobeVisibilityScreen;
 import top.aihmc.omnimorph.config.Configs;
@@ -26,6 +27,8 @@ import top.aihmc.omnimorph.utils.ui.UIHelper;
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 public class WardrobeScreen extends AbstractPanelScreen {
     private static final Component DEBUG_MOTD_FALLBACK = Component.literal("No motd could be loaded.\n\n")
@@ -41,10 +44,15 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private Label panic;
 
     private Button upload, delete, back;
-    private Button libraryVisibility;
+    private SwitchButton libraryVisibility;
     private Button libraryAppeals;
     private LibraryClient.Request<?> libraryRequest;
     private long libraryGeneration;
+    private LibraryModels.WardrobeState visibilityState;
+    private LibraryClient.Request<?> visibilityRequest;
+    private long visibilityGeneration;
+    private boolean uploadWasRunning;
+    private boolean observedCloudUpload;
 
     public WardrobeScreen(Screen parentScreen) {
         super(parentScreen, FiguraText.of("gui.panels.title.wardrobe"));
@@ -56,6 +64,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
     @Override
     protected void init() {
         libraryGeneration++;
+        visibilityGeneration++;
         super.init();
 
         // screen
@@ -83,24 +92,32 @@ public class WardrobeScreen extends AbstractPanelScreen {
 
         int buttX = entity.getX() + entity.getWidth() / 2;
         int buttY = entity.getY() + entity.getHeight() + 4;
+        int actionStep = Math.min(36, Math.max(24, modelBgSize / 5));
 
         // upload
-        addRenderableWidget(upload = new Button(buttX - 48, buttY, 24, 24, 0, 0, 24, new FiguraIdentifier("textures/gui/upload.png"), 72, 24, FiguraText.of("gui.wardrobe.upload.tooltip"), button -> {
+        addRenderableWidget(upload = new Button(buttX - actionStep * 2 - 12, buttY, 24, 24, 0, 0, 24, new FiguraIdentifier("textures/gui/upload.png"), 72, 24, FiguraText.of("gui.wardrobe.upload.tooltip"), button -> {
             Avatar avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
             NetworkStuff.uploadAvatar(avatar);
         }));
         upload.setActive(false);
 
         // reload
-        addRenderableWidget(new Button(buttX - 12, buttY, 24, 24, 0, 0, 24, new FiguraIdentifier("textures/gui/reload.png"), 72, 24, FiguraText.of("gui.wardrobe.reload.tooltip"), button -> {
+        addRenderableWidget(new Button(buttX - actionStep - 12, buttY, 24, 24, 0, 0, 24, new FiguraIdentifier("textures/gui/reload.png"), 72, 24, FiguraText.of("gui.wardrobe.reload.tooltip"), button -> {
             AvatarManager.reloadCloudAvatar();
         }));
 
         // delete
-        addRenderableWidget(delete = new Button(buttX + 24, buttY, 24, 24, 0, 0, 24, new FiguraIdentifier("textures/gui/delete.png"), 72, 24, FiguraText.of("gui.wardrobe.delete.tooltip"), button ->
+        addRenderableWidget(delete = new Button(buttX + actionStep * 2 - 12, buttY, 24, 24, 0, 0, 24, new FiguraIdentifier("textures/gui/delete.png"), 72, 24, FiguraText.of("gui.wardrobe.delete.tooltip"), button ->
                 NetworkStuff.deleteAvatar(null))
         );
         delete.setActive(false);
+        libraryVisibility = addRenderableWidget(new SwitchButton(buttX - 12, buttY, 24, 24,
+                0, 0, 24, new FiguraIdentifier("textures/gui/wardrobe_visibility.png"), 72, 48,
+                FiguraText.of("gui.library.wardrobe_visibility"), button -> changeVisibility()));
+        libraryVisibility.setActive(false);
+        libraryAppeals = addRenderableWidget(new Button(buttX + actionStep - 12, buttY, 24, 24,
+                0, 0, 24, new FiguraIdentifier("textures/gui/wardrobe_appeal.png"), 72, 24,
+                FiguraText.of("gui.library.my_appeals"), button -> openLibrary(true)));
 
         addRenderableOnly((gui, mouseX, mouseY, delta) -> renderUploadProgress(gui,
                 entity.getX() + 8, entity.getY() + entity.getHeight() - 26, entity.getWidth() - 16));
@@ -182,13 +199,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         addRenderableWidget(keybinds);
 
         // avatar metadata
-        addRenderableOnly(infoWidget = new AvatarInfoWidget(this.width - panels - 4, 56, panels, back.getY() - 84));
-        int libraryButtonWidth = Math.max(24, (panels - 4) / 2);
-        libraryVisibility = addRenderableWidget(new Button(this.width - panels - 4, back.getY() - 24,
-                libraryButtonWidth, 20, FiguraText.of("gui.library.wardrobe_visibility"),
-                FiguraText.of("gui.library.wardrobe_show_hint"), button -> openLibrary(false)));
-        libraryAppeals = addRenderableWidget(new Button(this.width - panels + libraryButtonWidth, back.getY() - 24,
-                libraryButtonWidth, 20, FiguraText.of("gui.library.my_appeals"), null, button -> openLibrary(true)));
+        addRenderableOnly(infoWidget = new AvatarInfoWidget(this.width - panels - 4, 56, panels, back.getY() - 60));
 
         // backend MOTD
         if (motdWidget != null) {
@@ -197,8 +208,9 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }
         updateMotdWidget();
         boolean libraryAvailable = NetworkStuff.isConnected() && (libraryRequest == null || libraryRequest.future().isDone());
-        libraryVisibility.setActive(libraryAvailable && NetworkStuff.getUploadProgress() == null);
         libraryAppeals.setActive(libraryAvailable);
+        refreshVisibility();
+        observedCloudUpload = AvatarManager.localUploaded;
 
         // panic warning - always added last, on top
         addRenderableWidget(panic = new Label(
@@ -257,8 +269,16 @@ public class WardrobeScreen extends AbstractPanelScreen {
         upload.setActive(NetworkStuff.canUpload() && !AvatarManager.localUploaded && (avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID())) != null && avatar.nbt != null && avatar.loaded);
         delete.setActive(NetworkStuff.isConnected() && AvatarManager.localUploaded && NetworkStuff.getUploadProgress() == null);
         boolean libraryAvailable = NetworkStuff.isConnected() && (libraryRequest == null || libraryRequest.future().isDone());
-        libraryVisibility.setActive(libraryAvailable && NetworkStuff.getUploadProgress() == null);
+        boolean visibilityIdle = visibilityRequest == null || visibilityRequest.future().isDone();
+        libraryVisibility.setActive(libraryAvailable && visibilityIdle && NetworkStuff.getUploadProgress() == null
+                && visibilityState != null && visibilityState.canChangeVisibility());
         libraryAppeals.setActive(libraryAvailable);
+        boolean uploading = NetworkStuff.getUploadProgress() != null;
+        if (uploadWasRunning && !uploading || observedCloudUpload != AvatarManager.localUploaded) {
+            refreshVisibility();
+        }
+        uploadWasRunning = uploading;
+        observedCloudUpload = AvatarManager.localUploaded;
 
         updateMotdWidget();
     }
@@ -266,6 +286,10 @@ public class WardrobeScreen extends AbstractPanelScreen {
     @Override
     public void removed() {
         libraryGeneration++;
+        visibilityGeneration++;
+        if (visibilityRequest != null) {
+            visibilityRequest.cancel();
+        }
         if (libraryRequest != null) {
             libraryRequest.cancel();
         }
@@ -292,6 +316,68 @@ public class WardrobeScreen extends AbstractPanelScreen {
             });
         } catch (java.io.IOException unavailable) {
             FiguraToast.sendToast(FiguraText.of("gui.library.state.offline"));
+        }
+    }
+
+    private void refreshVisibility() {
+        visibilityState = null;
+        libraryVisibility.setActive(false);
+        if (visibilityRequest != null) {
+            visibilityRequest.cancel();
+        }
+        long expected = ++visibilityGeneration;
+        try {
+            LibraryClient client = NetworkStuff.libraryClient();
+            var request = client.submit(LibraryClient.Lane.CONTROL, exchange -> exchange.json("GET",
+                    "/api/library/v1/wardrobe", null, LibraryModels.WardrobeState.class));
+            visibilityRequest = request;
+            request.future().whenComplete((value, failure) -> {
+                if (expected != visibilityGeneration || !client.current()) {
+                    return;
+                }
+                if (failure == null) {
+                    visibilityState = value;
+                    libraryVisibility.setToggled(value.showing());
+                    libraryVisibility.setTooltip(FiguraText.of(!value.available() ? "gui.library.no_wardrobe_equipment"
+                            : value.blocked() ? "gui.library.blocked_visibility"
+                            : value.showEquipment() ? "gui.library.hide_wardrobe" : "gui.library.show_wardrobe"));
+                } else {
+                    libraryVisibility.setToggled(false);
+                    libraryVisibility.setTooltip(FiguraText.of("gui.library.state.unsupported"));
+                }
+            });
+        } catch (java.io.IOException unavailable) {
+            libraryVisibility.setToggled(false);
+        }
+    }
+
+    private void changeVisibility() {
+        var state = visibilityState;
+        if (state == null || !state.canChangeVisibility()
+                || visibilityRequest != null && !visibilityRequest.future().isDone()) {
+            libraryVisibility.setToggled(state != null && state.showing());
+            return;
+        }
+        long expected = ++visibilityGeneration;
+        try {
+            LibraryClient client = NetworkStuff.libraryClient();
+            Map<String, Object> input = Map.of("operation_id", UUID.randomUUID().toString(),
+                    "expected_equipment_revision", state.equipmentRevision(), "asset_id", state.assetId(),
+                    "asset_revision", state.assetRevision(), "show_equipment", libraryVisibility.isToggled());
+            var request = client.submit(LibraryClient.Lane.CONTROL, exchange -> exchange.json("PATCH",
+                    "/api/library/v1/wardrobe", input, Map.class));
+            visibilityRequest = request;
+            request.future().whenComplete((value, failure) -> {
+                if (expected == visibilityGeneration && client.current()) {
+                    if (failure != null) {
+                        FiguraToast.sendToast(FiguraText.of("gui.library.failure",
+                                failure instanceof LibraryClient.Failure typed ? typed.code : "LIBRARY_UNAVAILABLE"));
+                    }
+                    refreshVisibility();
+                }
+            });
+        } catch (java.io.IOException unavailable) {
+            refreshVisibility();
         }
     }
 

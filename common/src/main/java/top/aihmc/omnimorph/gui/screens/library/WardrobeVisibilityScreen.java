@@ -3,9 +3,11 @@ package top.aihmc.omnimorph.gui.screens.library;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
+import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.gui.screens.WardrobeScreen;
 import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.SwitchButton;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryCheckBox;
 import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 
@@ -14,18 +16,9 @@ import java.util.UUID;
 
 /** An explicit choice for the current uploaded wardrobe resource, separate from library-private intent. */
 public final class WardrobeVisibilityScreen extends LibraryFormScreen {
-    public record State(boolean available, String assetId, long assetRevision, long equipmentRevision,
-                        boolean showEquipment, boolean blocked) {
-        public State {
-            if (available && (assetId == null || assetRevision < 1 || equipmentRevision < 1)) {
-                throw new IllegalArgumentException("INVALID_WARDROBE_STATE");
-            }
-        }
-    }
-
     private final LibraryClient client;
     private LibraryClient.Request<?> pending;
-    private State state;
+    private LibraryModels.WardrobeState state;
     private Map<String, Object> mutation;
     private SwitchButton show;
     private Button apply;
@@ -48,16 +41,20 @@ public final class WardrobeVisibilityScreen extends LibraryFormScreen {
         if (!initForm()) {
             return;
         }
-        int area = Math.max(80, width - 16);
-        show = addRenderableWidget(new SwitchButton(8, 28, area, 20,
+        int area = Math.min(420, width - 16);
+        int left = (width - area) / 2;
+        int top = Math.max(30, (height - 160) / 2);
+        addRenderableOnly((gui, x, y, delta) -> UIHelper.blitSliced(gui, left, top, area, 160, UIHelper.OUTLINE_FILL));
+        show = addRenderableWidget(new LibraryCheckBox(left + 8, top + 12, area - 16,
                 FiguraText.of("gui.library.wardrobe_show"), FiguraText.of("gui.library.wardrobe_show_hint"), ignored -> {}));
-        apply = addRenderableWidget(new Button(8, height - 72, area, 20,
+        apply = addRenderableWidget(new Button(left + 8, top + 84, area - 16, 20,
                 FiguraText.of("gui.library.apply_visibility"), null, ignored -> apply()));
-        addRenderableWidget(new Button(8, height - 48, area, 20,
+        addRenderableWidget(new Button(left + 8, top + 108, area - 16, 20,
                 FiguraText.of("gui.library.refresh"), null, ignored -> refresh()));
-        addRenderableWidget(new Button(8, height - 24, area, 20,
+        addRenderableWidget(new Button(left + 8, top + 132, area - 16, 20,
                 FiguraText.of("gui.done"), null, ignored -> onClose()));
-        addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui, message, 8, 54, area, 0xffd3e7e1));
+        addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui, message,
+                left + 8, top + 44, area - 16, 0xffd3e7e1));
         refresh();
     }
 
@@ -77,7 +74,7 @@ public final class WardrobeVisibilityScreen extends LibraryFormScreen {
         state = null;
         show.setActive(false);
         var request = client.submit(LibraryClient.Lane.CONTROL, exchange -> exchange.json("GET",
-                "/api/library/v1/wardrobe", null, State.class));
+                "/api/library/v1/wardrobe", null, LibraryModels.WardrobeState.class));
         pending = request;
         request.future().whenComplete((value, failure) -> {
             if (closed || generation != expected) {
@@ -87,7 +84,7 @@ public final class WardrobeVisibilityScreen extends LibraryFormScreen {
                 failed(failure);
             } else {
                 state = value;
-                show.setToggled(value.available() && value.showEquipment() && !value.blocked());
+                show.setToggled(value.showing());
                 message = FiguraText.of(!value.available() ? "gui.library.no_wardrobe_equipment"
                         : value.blocked() ? "gui.library.blocked_visibility" : "gui.library.wardrobe_show_hint");
             }
@@ -95,7 +92,7 @@ public final class WardrobeVisibilityScreen extends LibraryFormScreen {
     }
 
     private void apply() {
-        if (closed || busy() || state == null || !state.available() || state.blocked()) {
+        if (closed || busy() || state == null || !state.canChangeVisibility()) {
             return;
         }
         if (mutation == null) {
@@ -133,7 +130,7 @@ public final class WardrobeVisibilityScreen extends LibraryFormScreen {
             onClose();
             return;
         }
-        boolean available = !closed && !busy() && state != null && state.available() && !state.blocked();
+        boolean available = !closed && !busy() && state != null && state.canChangeVisibility();
         show.setActive(available && mutation == null);
         apply.setActive(available && (mutation != null || show.isToggled() != state.showEquipment()));
         apply.setMessage(FiguraText.of(mutation == null ? "gui.library.apply_visibility" : "gui.library.retry_change"));
