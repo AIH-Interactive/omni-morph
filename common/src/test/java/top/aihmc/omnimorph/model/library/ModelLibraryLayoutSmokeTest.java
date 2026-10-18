@@ -3,9 +3,18 @@ package top.aihmc.omnimorph.model.library;
 import top.aihmc.omnimorph.gui.widgets.library.ModelLibraryLayout;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar;
+import top.aihmc.omnimorph.utils.FileSizeFormatter;
 
 public final class ModelLibraryLayoutSmokeTest {
     public static void main(String[] args) {
+        require(FileSizeFormatter.format(0, "字节").equals("0 字节"), "zero bytes");
+        require(FileSizeFormatter.format(1023, "字节").equals("1023 字节"), "byte unit boundary");
+        require(FileSizeFormatter.format(1024, "bytes").equals("1 KB"), "KB boundary");
+        require(FileSizeFormatter.format(1536, "bytes").equals("1.5 KB"), "fractional size");
+        require(FileSizeFormatter.format(1048576, "bytes").equals("1 MB"), "MB boundary");
+        require(FileSizeFormatter.format(67108864, "bytes").equals("64 MB"), "server upload limit");
+        require(FileSizeFormatter.format(1073741824, "bytes").equals("1 GB"), "GB boundary");
+        require(FileSizeFormatter.format(Long.MAX_VALUE, "bytes").endsWith(" GB"), "large limits stay bounded");
         for (int width : new int[]{300, 426, 640, 960, 1280}) {
             for (int height : new int[]{220, 240, 360, 540, 720}) {
                 var workspace = new LibraryWorkspaceLayout(width, height);
