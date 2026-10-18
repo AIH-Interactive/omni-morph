@@ -56,7 +56,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         }); var client = new LibraryClient(access,
                 new LibrarySession("synthetic-preview", FiguraMod.getLocalPlayerUUID(), epoch, live::get),
                 Minecraft.getInstance()::execute);
-             var preview = new LibraryPreviewSession(client)) {
+             var preview = new LibraryPreviewSession(client, true)) {
             testModelFilePicker(client, drain);
             testReportInput(client);
             testWardrobeDefaultPreview(unsafe);
@@ -131,19 +131,13 @@ public final class LibraryPreviewRuntimeSmokeTest {
             LibraryPreviewBinding.capture(entity, firstFrame);
             LibraryPreviewBinding.capture(entity, secondFrame);
             LibraryPreviewBinding.capture(entity, secondFrame);
-            var armorFrame = new PreviewFrame();
+            var armorFrame = new AvatarRenderState();
             LibraryPreviewBinding.capture(entity, armorFrame);
             var lifetime = avatar.accelerationOwner();
             preview.clear();
             require(AvatarManager.getAvatar(firstFrame) == avatar && AvatarManager.getEntity(secondFrame) == entity,
                     "queued render states retain their detached entity and model after selection clears");
             require(lifetime.isCurrent(), "clearing a preview cannot destroy resources before deferred GUI drawing");
-            if (Boolean.getBoolean("omnimorph.test.armorMixinRegression")) {
-                Class.forName("top.aihmc.omnimorph.model.library.LibraryArmorPreviewRegression")
-                        .getMethod("run", AvatarRenderState.class).invoke(null, armorFrame);
-                require(entity.equipmentReads == 1, "armor rendering reads equipment from the detached preview entity");
-                require(entity.capeReads == 1, "cape rendering reads state from the detached preview player");
-            }
             LibraryPreviewBinding.finishFrame();
             require(!lifetime.isCurrent(), "finishing the GUI frame retires the model after its final state releases");
             LibraryPreviewBinding.finishFrame();
@@ -184,7 +178,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(idleAvatar.renderer.root.getRot().y == 10d
                             && idleAvatar.renderer.root.getAnimScale().y == 1d,
                     "Figura preview advances model animation without an artificial breathing scale");
-            try (var local = new LibraryPreviewSession()) {
+            try (var local = new LibraryPreviewSession(null, true)) {
                 var localEntity = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
                 localEntity.setUUID((UUID) field(LibraryPreviewSession.class, "owner").get(local));
                 field(LibraryPreviewSession.class, "entity").set(local, localEntity);
@@ -244,9 +238,74 @@ public final class LibraryPreviewRuntimeSmokeTest {
                             && AvatarManager.localUploaded == uploaded && NetworkStuff.connectionEpoch() == epoch,
                     "preview leaves wardrobe selection and cloud publication state unchanged");
             System.out.println("PASS detached library preview: actual async Avatar loading, newest selection, restricted permissions, frame lifetime and encrypted runtime; GUI MANUAL/PENDING");
+            testCurrentPlayerFigura(unsafe, drain);
         } finally {
             LibraryPreviewBinding.finishFrame();
             drain.run();
+        }
+    }
+
+    private static void testCurrentPlayerFigura(Unsafe unsafe, Runnable drain) throws Exception {
+        Minecraft client = Minecraft.getInstance();
+        var previousPlayer = client.player;
+        var player = (CurrentPreviewPlayer) unsafe.allocateInstance(CurrentPreviewPlayer.class);
+        player.setUUID(UUID.randomUUID());
+        player.tickCount = 42;
+        client.player = player;
+        var packs = (Map<?, ?>) field(PermissionManager.class, "PLAYERS").get(null);
+        var controls = field(top.aihmc.omnimorph.avatar.control.AvatarControlValueStore.class, "loaded");
+        boolean controlsLoaded = controls.getBoolean(null);
+        try (var preview = new LibraryPreviewSession()) {
+            field(LibraryPreviewSession.class, "entity").set(preview, player);
+            var source = model("current player Figura");
+            var scripts = new CompoundTag();
+            scripts.putByteArray("script", """
+                    function events.tick()
+                        models:setRot(0, models:getRot().y + 5, 0)
+                    end
+                    """.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            source.put("scripts", scripts);
+            require(await(preview.selectDraft(source), drain), "current-player Figura preview loads");
+            require(preview.entity() == player, "normal Figura previews use the actual current player");
+            var active = new java.util.concurrent.atomic.AtomicReference<Avatar>();
+            var frame = new AvatarRenderState();
+            preview.withPlayerContext(() -> {
+                active.set(AvatarManager.getAvatar(player));
+                LibraryPreviewBinding.capture(player, frame);
+            });
+            Avatar avatar = active.get();
+            require(avatar != null && avatar.isHost && !avatar.isLibraryPreview
+                            && avatar.permissions == PermissionManager.get(player.getUUID())
+                            && avatar.luaRuntime.getUser() == player,
+                    "normal preview retains Figura's local host runtime, permissions and real player API");
+            require(LibraryPreviewBinding.avatar(player) == null && LibraryPreviewBinding.avatar(player.getUUID()) == null,
+                    "preview lookup cannot replace world equipment outside the GUI scope");
+            preview.tick();
+            require(player.tickCount == 42 && avatar.renderer.root.getTrueRot().y == 5,
+                    "preview scripts tick without advancing the actual player's entity clock");
+            require(AvatarManager.getEntity(frame) == player && AvatarManager.getAvatar(frame) == avatar,
+                    "deferred native Figura render uses the same real player and selected model");
+            preview.clear();
+            require(avatar.accelerationOwner().isCurrent(), "queued player preview remains alive until GUI completion");
+            LibraryPreviewBinding.finishFrame();
+            require(!avatar.accelerationOwner().isCurrent(), "closing player preview retires its own model resources");
+            System.out.println("PASS current-player Figura preview: real player, normal host permissions, Lua tick, scoped GUI lookup and deferred lifetime");
+        } finally {
+            client.player = previousPlayer;
+            packs.remove(player.getUUID());
+            controls.setBoolean(null, controlsLoaded);
+        }
+    }
+
+    private static final class CurrentPreviewPlayer extends net.minecraft.client.player.LocalPlayer
+            implements top.aihmc.omnimorph.mixin.EntityAccessor {
+        private CurrentPreviewPlayer() {
+            super(null, null, null, null, null, null, false, null);
+        }
+
+        @Override
+        public net.minecraft.world.level.Level getLevel() {
+            return Minecraft.getInstance().level;
         }
     }
 
@@ -282,7 +341,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         field(debug.getClass(), "currentlyEnabled").set(debug, new java.util.ArrayList<>());
         field(Minecraft.class, "gameRenderer").set(client, renderer);
         field(Minecraft.class, "debugEntries").set(client, debug);
-        try (var session = new LibraryPreviewSession()) {
+        try (var session = new LibraryPreviewSession(null, true)) {
             var player = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
             player.setUUID((UUID) field(LibraryPreviewSession.class, "owner").get(session));
             field(LibraryPreviewSession.class, "entity").set(session, player);
@@ -616,28 +675,6 @@ public final class LibraryPreviewRuntimeSmokeTest {
     }
 
     public static final class CapeStateReached extends RuntimeException {
-    }
-
-    private static final class PreviewFrame extends AvatarRenderState
-            implements top.aihmc.omnimorph.ducks.FiguraEntityRenderStateExtension {
-        private int entityId;
-        private float delta;
-
-        public Integer figura$getEntityId() {
-            return entityId;
-        }
-
-        public void figura$setEntityId(int id) {
-            entityId = id;
-        }
-
-        public float figura$getTickDelta() {
-            return delta;
-        }
-
-        public void figura$setTickDelta(float tickDelta) {
-            delta = tickDelta;
-        }
     }
 
     private static CompoundTag model(String name) {

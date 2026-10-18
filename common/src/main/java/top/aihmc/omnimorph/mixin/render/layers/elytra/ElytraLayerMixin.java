@@ -3,6 +3,7 @@ package top.aihmc.omnimorph.mixin.render.layers.elytra;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.object.equipment.ElytraModel;
@@ -13,6 +14,7 @@ import net.minecraft.client.renderer.entity.RenderLayerParent;
 import net.minecraft.client.renderer.entity.layers.EquipmentLayerRenderer;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.client.renderer.entity.layers.WingsLayer;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.renderer.entity.state.HumanoidRenderState;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
@@ -96,11 +98,9 @@ public abstract class ElytraLayerMixin<T extends LivingEntity, S extends Humanoi
                 }
             }
 
-            var entity = AvatarManager.getEntity(humanoidRenderState);
-            if (entity != null) {
-                avatar.elytraRender(entity, multiBufferSource, pose, light,
-                        ((FiguraEntityRenderStateExtension) humanoidRenderState).figura$getTickDelta(), elytraModel);
-            }
+            Integer id = humanoidRenderState instanceof AvatarRenderState playerRenderState ? playerRenderState.id : ((FiguraEntityRenderStateExtension)humanoidRenderState).figura$getEntityId();
+            if (id != null)
+                avatar.elytraRender(Minecraft.getInstance().level.getEntity(id), multiBufferSource, pose, light, ((FiguraEntityRenderStateExtension)humanoidRenderState).figura$getTickDelta(), elytraModel);
 
             if (vanillaPart != null)
                 vanillaPart.restore(elytraModel);

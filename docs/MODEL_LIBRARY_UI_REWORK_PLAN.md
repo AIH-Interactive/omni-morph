@@ -465,3 +465,22 @@ R25 检查点：卡片两行已接入既有中英文本地化格式，中文分�
 使用用户指定的 anan-fullmodel-0.0.7-rel.zip 直接复现：根目录已正确识别，但 LICENSE 下存在以换行符开头的目录，临时解包到 Windows 时抛出 InvalidPathException。改为在已校验、限额且固定快照的 ZIP 文件系统内编译选定模型目录；保留逐资源读取/累计限额与取消检查，不改写原 ZIP 或丢弃原文件名。原生资源打包改用源文件系统的 glob/遍历/输入流，避免 toFile 和 Windows Path.of；ZIP 贴图引用继续限制在所选模型根内。以真实文件及相同非法 Windows 名称的合成 ZIP（包含显式 resources）验证，再编译提交推送。游戏内验收 MANUAL/PENDING。
 
 R26 检查点：用户实际 anan-fullmodel-0.0.7-rel.zip 已先复现 LICENSE/换行符AnAn-Figura-avatar/LICENSE 的 InvalidPathException，修复后真实文件完整 prepare 通过，模型/脚本已生成；另有合成 ZIP 验证带换行符的显式资源保持原名，原嵌套目录、普通资源、YSM、限额/取消及衣柜状态回归保持通过。资源 glob 仍采用 Java 原生语义，测试精确声明带换行符的资源，不额外改变通配符语义。libraryPackagePreparation、libraryMetadata、Fabric build（含预览/护甲/披风）前台 Tee PASS，退出 0；差异空白核对通过。实际游戏预览/发布 MANUAL/PENDING。可通过测试环境变量 OMNIMORPH_TEST_FIGURA_PACKAGE 重放本机原包，不将用户模型纳入仓库。
+
+### R27 Figura 各预览绑定当前玩家及原版衣柜运行机制
+
+用户确认此前仅复用 UIHelper.drawEntity 不满足要求：上传草稿、模型库及模型管理等 Figura 预览应复用当前实际玩家、标准 Avatar、本机权限及真实玩家 API，而非随机 UUID/非 host/受限权限的隔离副本。只有衣柜管理仍使用隔离玩家及独立模型绘制；YSM 既有路径保持。为避免预览点选等同服务端装备，标准 Avatar 只在当前 GUI 的脚本执行/状态提取期间提供查找绑定，原生延迟绘制状态保留所选模型及实际玩家；离开作用域立即恢复原查找，资源在帧结束后释放，不推进真实玩家 tickCount。
+
+统一后审计先前隔离预览相关 Mixin：撤销不再使用的补丁；保留部分列出实际调用者及位置。验证实际玩家身份/正常 host 权限/脚本 tick/帧生命周期及原衣柜/衣柜管理/YSM 回归，编译后提交推送。游戏内视觉验收 MANUAL/PENDING。
+
+R27 Mixin 审计：
+
+- 撤销 a7c08d1 对 HumanoidArmorLayerMixinFabric 的隔离实体装备查找修改。
+- 撤销 84d7fe6 对 CapeLayerMixin、ElytraLayerMixin、CustomHeadLayerMixin、LivingEntityRendererMixin 普通 Figura 分支及 EntityRenderDispatcherMixin 乘客分支的隔离实体查找修改。普通 Figura 预览现在使用真实当前玩家，衣柜管理的独立绘制不进入这些实体层；YSM 在 LivingEntityRendererMixin 的 HEAD 分支取消原生提交，因此不依赖这些回退。仅回退当时的具体改动，保留各 Mixin 原本的 Figura 功能。
+- 保留 GuiRendererMixin 的 render finally/close -> LibraryPreviewBinding.finishFrame：UIHelper.drawEntity 第 278 行捕获原生 GUI 状态，衣柜管理 submitIndependentFigura 也捕获帧，模型切换/关闭必须等实际帧绘制完成再释放模型和缩略图资源。调用者为模型库、上传草稿、授权/管理员预览、衣柜管理及 YSM 原生 GUI。
+- 保留 GameRendererMixin 第 183 行注册 LibraryFiguraPreviewRenderer：LibraryManagementPreview.wardrobe -> setIndependentFigura(true) -> LibraryPreviewSession.submitIndependentFigura -> 此 PIP renderer，仅衣柜管理当前模型及其放大视图使用。
+- 保留 LivingEntityRendererMixin 第 97–99 行原有 isYsmNative/AvatarManager.getEntity(state) 分支：YSM 原生 GUI 从捕获帧取得独立玩家，用于动画及手持物提交，随后取消原生实体层。该分支不属于 84d7fe6 撤回的普通 Figura 查找。
+- GuiEntityRendererMixin 为原有 Figura GUI 绘制属性设置，非本次隔离闪退修复引入，继续由 UIHelper.drawEntity 使用。
+
+R27 检查点：默认 LibraryPreviewSession 的 Figura 选择已使用当前玩家、标准 Avatar 和本机权限，上传/模型库/模型管理及共享授权/回收站预览沿同一路径；只有衣柜管理 current 来源开启独立绘制，YSM 保留原路径。回归确认实际玩家对象、host=true、isLibraryPreview=false、相同本机权限包、Lua player 指向实际玩家，脚本 tick 连续执行但实际玩家 tickCount 不被预览推进；GUI 查找作用域退出恢复世界查找，延迟状态保留实际玩家/所选 Avatar，关闭后帧完成才清理资源。独立衣柜管理、普通衣柜及 YSM native 回归保持通过。
+
+libraryPreviewRuntime、完整 ysmMaterialNative、Fabric build 前台 Tee PASS，退出 0。删除已撤销补丁对应的旧隔离护甲/披风方法夹具，Fabric check 改依赖当前综合 previewRuntime 回归；差异空白核对通过，后续仅校正注释与换行。CPU 事件/状态/几何回归不替代游戏画面验收，实际游戏 MANUAL/PENDING，版本仍为 alpha.2。

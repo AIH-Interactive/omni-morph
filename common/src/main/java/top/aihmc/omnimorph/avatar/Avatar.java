@@ -1040,6 +1040,11 @@ public class Avatar {
         if (!isLibraryPreview) {
             throw new IllegalStateException("PREVIEW_REQUIRES_DETACHED_OWNER");
         }
+        initializePreviewPlayer(entity);
+    }
+
+    /** Initialize the same Lua player API for current-player GUI models and detached management models. */
+    public void initializePreviewPlayer(Entity entity) {
         flushQueuedEvents();
         if (!scriptError && luaRuntime != null && loaded) {
             luaRuntime.setUser(entity);

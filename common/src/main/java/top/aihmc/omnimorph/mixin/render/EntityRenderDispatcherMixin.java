@@ -131,7 +131,7 @@ public class EntityRenderDispatcherMixin {
         Integer entityId = ((FiguraEntityRenderStateExtension)entityRenderState).figura$getEntityId();
         if (entityId == null)
             return;
-        Entity entity = AvatarManager.getEntity(entityRenderState);
+        Entity entity = Minecraft.getInstance().level.getEntity(entityId);
         if (entity == null)
             return;
         Entity owner = entity.getFirstPassenger();
