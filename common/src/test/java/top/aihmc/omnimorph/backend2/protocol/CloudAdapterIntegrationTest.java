@@ -57,6 +57,18 @@ public final class CloudAdapterIntegrationTest {
                         require(source.upload("avatar", bytes, metadata, sentBytes::set).status() == 200, "Upload " + name);
                         require(sentBytes.get() == bytes.length, "Actual raw HTTP upload reports exact bytes: " + name);
                         require(source.equip(List.of(owner), List.of("avatar")).status() == 200, "Equip " + name);
+                        var self = JsonParser.parseString(source.profile(owner).body()).getAsJsonObject();
+                        require(self.getAsJsonArray("equipped").size() == 1, "Uploader self-profile retains equipment " + name);
+                        try (var call = source.libraryAccess().open()) {
+                            var wardrobe = call.send("GET", "/api/library/v1/wardrobe",
+                                    java.net.http.HttpRequest.BodyPublishers.noBody(), null, null);
+                            try (var body = wardrobe.body()) {
+                                require(wardrobe.statusCode() == 200, "Wardrobe lookup " + name);
+                                var state = JsonParser.parseString(new String(CloudHttp.readBounded(body, 65536),
+                                        java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+                                require(state.get("available").getAsBoolean(), "Uploaded wardrobe is available " + name);
+                            }
+                        }
                         CloudProtocol.Reply profile = target.profile(owner);
                         var selected = JsonParser.parseString(profile.body()).getAsJsonObject().getAsJsonArray("equipped");
                         require(selected.size() == 1, "Extended profile selects primary " + name);

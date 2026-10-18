@@ -46,6 +46,7 @@ public final class CloudUploadProgressSmokeTest {
         progress.clear();
         progress.uploaded(latest, 100, 100);
         require(progress.snapshot() == null, "cancel/disconnect cannot revive an upload bar");
+        ProtobufUploadRetrySmokeTest.run();
         System.out.println("PASS upload progress: exact raw body, chunk byte counts, retry reset, stage transitions and stale cancellation");
     }
 
