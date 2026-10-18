@@ -59,6 +59,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
              var preview = new LibraryPreviewSession(client)) {
             testModelFilePicker(client, drain);
             testReportInput(client);
+            testWardrobeDefaultPreview(unsafe);
             // Only the entity allocation is replaced: actual Avatar loading, permissions,
             // generation guards, production lookup bindings and resource cleanup all run.
             var entity = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
@@ -233,6 +234,39 @@ public final class LibraryPreviewRuntimeSmokeTest {
         } finally {
             LibraryPreviewBinding.finishFrame();
             drain.run();
+        }
+    }
+
+    private static void testWardrobeDefaultPreview(Unsafe unsafe) throws Exception {
+        var player = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
+        player.setUUID(UUID.randomUUID());
+        var wardrobe = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+        var widget = new top.aihmc.omnimorph.gui.widgets.EntityPreview(0, 0, 200, 200,
+                40, -15, 30, player, wardrobe);
+        try {
+            widget.tick();
+            require(field(widget.getClass(), "localPreview").get(widget) == null
+                            && field(widget.getClass(), "entity").get(widget) == player,
+                    "wardrobe default preview must retain the actual player without loading an isolated copy");
+            var expanded = new top.aihmc.omnimorph.gui.screens.AvatarScreen(40, -15, 30, player, wardrobe);
+            expanded.width = 640;
+            expanded.height = 360;
+            var initialize = expanded.getClass().getDeclaredMethod("init");
+            initialize.setAccessible(true);
+            initialize.invoke(expanded);
+            try {
+                var full = (top.aihmc.omnimorph.gui.widgets.EntityPreview) expanded.children().stream()
+                        .filter(top.aihmc.omnimorph.gui.widgets.EntityPreview.class::isInstance).findFirst().orElseThrow();
+                full.tick();
+                require(field(full.getClass(), "localPreview").get(full) == null
+                                && field(full.getClass(), "entity").get(full) == player,
+                        "expanded wardrobe preview uses the same actual player and model state");
+            } finally {
+                expanded.removed();
+            }
+            System.out.println("PASS wardrobe default preview: ordinary and expanded widgets retain the actual player without copies");
+        } finally {
+            widget.closeLocalPreview();
         }
     }
 

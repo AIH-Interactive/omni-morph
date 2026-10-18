@@ -15,6 +15,7 @@ import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.AvatarManager;
 import net.minecraft.nbt.CompoundTag;
 import top.aihmc.omnimorph.gui.screens.AvatarScreen;
+import top.aihmc.omnimorph.gui.screens.WardrobeScreen;
 import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
 import top.aihmc.omnimorph.utils.FiguraIdentifier;
@@ -35,6 +36,7 @@ public class EntityPreview extends AbstractContainerElement {
     private LivingEntity sourceEntity;
     private Avatar sourceAvatar;
     private CompoundTag sourceNbt;
+    private final boolean wardrobePreview;
     private final float pitch, yaw, scale;
     private SwitchButton button;
 
@@ -64,6 +66,8 @@ public class EntityPreview extends AbstractContainerElement {
         this.yaw = yaw;
         this.entity = entity;
         this.sourceEntity = entity;
+        // AvatarScreen retains the originating parent, so expansion uses the same mechanism.
+        this.wardrobePreview = parentScreen instanceof WardrobeScreen;
 
         modelX = width / 2;
         modelY = height / 2;
@@ -97,7 +101,7 @@ public class EntityPreview extends AbstractContainerElement {
     @Override
     public void tick() {
         super.tick();
-        if (libraryPreview != null || sourceEntity == null) {
+        if (libraryPreview != null || wardrobePreview || sourceEntity == null) {
             return;
         }
         Avatar current = AvatarManager.getAvatar(sourceEntity);
@@ -138,6 +142,8 @@ public class EntityPreview extends AbstractContainerElement {
         if (libraryPreview != null) {
             libraryPreview.beforeExtract(delta);
             entity = libraryPreview.entity();
+        } else if (wardrobePreview) {
+            entity = sourceEntity;
         } else if (localPreview != null) {
             localPreview.beforeExtract(delta);
             entity = localPreview.entity();
