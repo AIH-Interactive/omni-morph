@@ -11,6 +11,9 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import top.aihmc.omnimorph.FiguraMod;
+import top.aihmc.omnimorph.avatar.Avatar;
+import top.aihmc.omnimorph.avatar.AvatarManager;
+import net.minecraft.nbt.CompoundTag;
 import top.aihmc.omnimorph.gui.screens.AvatarScreen;
 import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
@@ -28,6 +31,10 @@ public class EntityPreview extends AbstractContainerElement {
     // properties
     private LivingEntity entity;
     private LibraryPreviewSession libraryPreview;
+    private LibraryPreviewSession localPreview;
+    private LivingEntity sourceEntity;
+    private Avatar sourceAvatar;
+    private CompoundTag sourceNbt;
     private final float pitch, yaw, scale;
     private SwitchButton button;
 
@@ -56,6 +63,7 @@ public class EntityPreview extends AbstractContainerElement {
         this.pitch = pitch;
         this.yaw = yaw;
         this.entity = entity;
+        this.sourceEntity = entity;
 
         modelX = width / 2;
         modelY = height / 2;
@@ -74,7 +82,8 @@ public class EntityPreview extends AbstractContainerElement {
                         if (libraryPreview != null) {
                             libraryPreview.setExpanded(true);
                         }
-                        Minecraft.getInstance().setScreen(new AvatarScreen(scale, pitch, yaw, this.entity, parentScreen, libraryPreview));
+                        Minecraft.getInstance().setScreen(new AvatarScreen(scale, pitch, yaw,
+                                localPreview == null ? this.entity : sourceEntity, parentScreen, libraryPreview));
                     } else {
                         if (libraryPreview != null && Minecraft.getInstance().screen instanceof AvatarScreen avatarScreen) {
                             avatarScreen.onClose();
@@ -86,6 +95,42 @@ public class EntityPreview extends AbstractContainerElement {
     }
 
     @Override
+    public void tick() {
+        super.tick();
+        if (libraryPreview != null || sourceEntity == null) {
+            return;
+        }
+        Avatar current = AvatarManager.getAvatar(sourceEntity);
+        CompoundTag nbt = current == null ? null : current.nbt;
+        if (localPreview == null) {
+            localPreview = new LibraryPreviewSession();
+            sourceAvatar = current;
+            sourceNbt = nbt;
+            localPreview.selectDraft(nbt == null ? new CompoundTag() : nbt);
+        }
+        if (current != sourceAvatar || nbt != sourceNbt) {
+            sourceAvatar = current;
+            sourceNbt = nbt;
+            if (nbt == null) {
+                localPreview.selectDraft(new CompoundTag());
+            } else {
+                localPreview.selectDraft(nbt);
+            }
+        }
+        localPreview.tick();
+    }
+
+    /** Only widget-owned local copies are retired here; library screens own their sessions. */
+    public void closeLocalPreview() {
+        if (localPreview != null) {
+            localPreview.close();
+            localPreview = null;
+        }
+        sourceAvatar = null;
+        sourceNbt = null;
+    }
+
+    @Override
     public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
         if (!this.isVisible())
             return;
@@ -93,6 +138,13 @@ public class EntityPreview extends AbstractContainerElement {
         if (libraryPreview != null) {
             libraryPreview.beforeExtract(delta);
             entity = libraryPreview.entity();
+        } else if (localPreview != null) {
+            localPreview.beforeExtract(delta);
+            entity = localPreview.entity();
+            synchronizeLocalAppearance();
+        } else {
+            // Wait for the detached copy instead of briefly displaying the live animation.
+            entity = null;
         }
 
         int x = getX();
@@ -274,10 +326,34 @@ public class EntityPreview extends AbstractContainerElement {
     }
 
     public void setEntity(LivingEntity entity) {
+        if (sourceEntity == entity) {
+            return;
+        }
+        closeLocalPreview();
+        sourceEntity = entity;
         this.entity = entity;
     }
 
+    private void synchronizeLocalAppearance() {
+        Avatar detached = entity == null ? null : AvatarManager.getAvatar(entity);
+        if (detached == null || sourceAvatar == null) {
+            return;
+        }
+        for (var control : detached.controls.all()) {
+            var source = sourceAvatar.controls.get(control.id());
+            if (source != null && !java.util.Objects.equals(control.getValue(), source.getValue())) {
+                control.setValue(source.getValue());
+            }
+        }
+        var target = detached.getYsmRuntime();
+        var source = sourceAvatar.getYsmRuntime();
+        if (target != null && source != null && !target.textureId().equals(source.textureId())) {
+            target.setTexture(source.textureId());
+        }
+    }
+
     public void setLibraryPreview(LibraryPreviewSession preview) {
+        closeLocalPreview();
         libraryPreview = preview;
         entity = preview == null ? null : preview.entity();
     }

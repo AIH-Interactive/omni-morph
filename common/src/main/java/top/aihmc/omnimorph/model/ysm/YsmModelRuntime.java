@@ -1200,13 +1200,6 @@ public class YsmModelRuntime implements AutoCloseable {
                 || owner.renderMode != top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI) {
             return this;
         }
-        // Settings show the live model so control changes and action playback are visible immediately.
-        var screen = Minecraft.getInstance().screen;
-        if (screen instanceof top.aihmc.omnimorph.gui.screens.AvatarControlsScreen
-                || screen instanceof top.aihmc.omnimorph.gui.screens.AvatarScreen expanded
-                && expanded.getSelectedPanel() == top.aihmc.omnimorph.gui.screens.AvatarControlsScreen.class) {
-            return this;
-        }
         Map<String, Object> controls = new LinkedHashMap<>();
         owner.controls.all().forEach(control -> controls.put(control.id(), control.getValue()));
         if (!java.util.Objects.equals(controls, previewControls)) {
@@ -1252,7 +1245,7 @@ public class YsmModelRuntime implements AutoCloseable {
             }
             previewSourceTexture = texture;
         }
-        return preview == null ? this : preview;
+        return preview;
     }
 
     private YsmModelRuntime createPreview(Map<String, Object> controls) throws java.io.IOException {
@@ -1297,8 +1290,11 @@ public class YsmModelRuntime implements AutoCloseable {
     }
 
     public void updateAnimations(LivingEntityRenderState state, LivingEntity entity, boolean firstPerson) {
-        // GUI previews keep the authored default pose and never execute animation events.
-        if (closed || previewRuntime) {
+        if (closed) {
+            return;
+        }
+        if (previewRuntime) {
+            applyPreviewIdle(state.ageInTicks);
             return;
         }
         Object nativeState = owner.controls.getValue("ysm.native_state_machine");
@@ -1306,6 +1302,37 @@ public class YsmModelRuntime implements AutoCloseable {
             animationPlayer.setNativeStateMachineEnabled(enabled);
         }
         animationPlayer.update(state, entity, firstPerson);
+    }
+
+    /** Vanilla standing arm sway, without executing model clips, controllers or events. */
+    private void applyPreviewIdle(float age) {
+        for (YsmModelPart part : uniqueParts(false)) {
+            part.resetAnimPose();
+            YsmBoneRole role = roleOf(part.getName());
+            if (role != YsmBoneRole.LEFT_HAND && role != YsmBoneRole.RIGHT_HAND) {
+                continue;
+            }
+            YsmGeometry.Bone bone = getBoneIgnoreCase(part.getName());
+            if (bone == null || YsmBoneMapper.isLocator(bone)) {
+                continue;
+            }
+            // A wrist/forearm below an animated arm must not receive the sway twice.
+            YsmGeometry.Bone parent = getBoneIgnoreCase(bone.parentName);
+            boolean nestedArm = false;
+            while (parent != null) {
+                if (roleOf(parent.name) == role) {
+                    nestedArm = true;
+                    break;
+                }
+                parent = getBoneIgnoreCase(parent.parentName);
+            }
+            if (!nestedArm) {
+                double side = role == YsmBoneRole.RIGHT_HAND ? 1 : -1;
+                double x = Math.toDegrees(Math.sin(age * 0.067f) * 0.05f) * side;
+                double z = Math.toDegrees(Math.cos(age * 0.09f) * 0.05f + 0.05f) * side;
+                part.addAnimRot(-x, 0, z);
+            }
+        }
     }
 
     private void registerDefaultControls() {

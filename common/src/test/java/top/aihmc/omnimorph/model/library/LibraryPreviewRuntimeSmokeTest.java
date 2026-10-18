@@ -145,10 +145,34 @@ public final class LibraryPreviewRuntimeSmokeTest {
 
             CompoundTag hidden = model("full Figura replacement");
             var scripts = new CompoundTag();
-            scripts.putByteArray("script", "vanilla_model.PLAYER:setVisible(false)".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            scripts.putByteArray("script", """
+                    vanilla_model.PLAYER:setVisible(false)
+                    function events.tick() vanilla_model.PLAYER:setVisible(true) end
+                    function events.world_render() vanilla_model.PLAYER:setVisible(true) end
+                    function events.render() vanilla_model.PLAYER:setVisible(true) end
+                    function events.post_render() vanilla_model.PLAYER:setVisible(true) end
+                    """.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             hidden.put("scripts", scripts);
             require(await(preview.selectDraft(hidden), drain), "actual Figura script initializes in the detached preview");
             require(!preview.showsVanillaPlayer(), "a Figura model hiding the vanilla player keeps the complete-model default");
+            Avatar idleAvatar = AvatarManager.getAvatar(entity);
+            int previousTicks = entity.tickCount;
+            preview.tick();
+            preview.beforeExtract(0.5f);
+            idleAvatar.tick();
+            idleAvatar.tickEvent();
+            idleAvatar.renderEvent(0.5f, null);
+            idleAvatar.postRenderEvent(0.5f, null);
+            require(entity.tickCount == previousTicks + 1 && !preview.showsVanillaPlayer(),
+                    "standing idle clock advances while authored Figura tick/render events stay dormant");
+            try (var local = new LibraryPreviewSession()) {
+                var localEntity = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
+                localEntity.setUUID((UUID) field(LibraryPreviewSession.class, "owner").get(local));
+                field(LibraryPreviewSession.class, "entity").set(local, localEntity);
+                require(await(local.selectDraft(hidden), drain), "local wardrobe preview loads without a backend session");
+                require(local.entity() != entity && AvatarManager.getAvatar(local.entity()) != idleAvatar,
+                        "local previews retain independent entities and script state");
+            }
 
             if (encrypted != null) {
                 CompoundTag portable = model("encrypted preview");

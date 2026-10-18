@@ -1003,7 +1003,14 @@ public final class YsmMaterialNativeSmokeTest {
     }
 
     private static void testPreviewDefaultPose(Unsafe unsafe, RecordingClient client) throws Exception {
-        Fixture fixture = new Fixture(unsafe, 35);
+        Fixture fixture = new Fixture(unsafe, 35, null, """
+                {"minecraft:geometry":[{"description":{"texture_width":1,"texture_height":1},"bones":[
+                  {"name":"root","cubes":[{"origin":[0,0,0],"size":[1,1,1],"uv":[0,0]}]},
+                  {"name":"leftArm","parent":"root"},
+                  {"name":"leftForearm","parent":"leftArm"},
+                  {"name":"rightArm","parent":"root"}
+                ]}]}
+                """);
         var runtime = fixture.runtime;
         var world = runtime.owner().getMolangContext();
         runtime.animations().play("idle", true, 1f);
@@ -1041,6 +1048,15 @@ public final class YsmMaterialNativeSmokeTest {
                 var pose = preview.captureRenderPose(false);
                 require(pose.part("root").animPosRaw().lengthSquared() == 0d,
                         "GUI rendering retains the default pose across animation frames");
+                double expectedX = -Math.toDegrees(Math.sin(age * 0.067f) * 0.05f);
+                require(Math.abs(pose.part("rightArm").animRotRaw().x - expectedX) < 0.00001
+                                && Math.abs(pose.part("leftArm").animRotRaw().x + expectedX) < 0.00001,
+                        "both arms use opposite vanilla standing sway at the current age");
+                require(pose.part("leftForearm").animRotRaw().lengthSquared() == 0d,
+                        "nested arm segments inherit sway without receiving it twice");
+                preview.updateAnimations(state, null);
+                require(Math.abs(preview.captureRenderPose(false).part("rightArm").animRotRaw().x - expectedX) < 0.00001,
+                        "repeated extraction does not accumulate standing sway");
             }
             require(!preview.animations().isActive("gui") && !preview.animations().isActive("idle")
                             && runtime.animations().getActiveAnimation("idle").time == 0.25f,
@@ -1074,8 +1090,8 @@ public final class YsmMaterialNativeSmokeTest {
                 var settings = (top.aihmc.omnimorph.gui.screens.AvatarControlsScreen) unsafe.allocateInstance(
                         top.aihmc.omnimorph.gui.screens.AvatarControlsScreen.class);
                 client.screen = settings;
-                require(runtime.forRenderPass() == runtime,
-                        "model settings preview renders the live runtime and its current action playback");
+                require(runtime.forRenderPass() == recreated,
+                        "model settings use the same isolated standing preview");
                 runtime.owner().controls.get("ysm.width_scale").setValue(1.1d);
                 require(Math.abs(runtime.forRenderPass().widthScale() - 1.1f) < 0.0001,
                         "settings preview consumes changed controls immediately");
@@ -1084,11 +1100,11 @@ public final class YsmMaterialNativeSmokeTest {
                 sample.setAccessible(true);
                 sample.invoke(runtime.animations(),
                         top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator.evaluator(world), false);
-                require(runtime.forRenderPass().captureRenderPose(false).part("root").animPosRaw().y == 16d,
-                        "settings preview reflects the live idle animation rather than the default or GUI clip");
+                require(runtime.forRenderPass().captureRenderPose(false).part("root").animPosRaw().y == 0d,
+                        "settings preview stays standing while the world samples its custom idle animation");
                 client.screen = new top.aihmc.omnimorph.gui.screens.AvatarScreen(1f, 0f, 0f, null, settings);
-                require(runtime.forRenderPass() == runtime,
-                        "expanded settings preview keeps the live runtime");
+                require(runtime.forRenderPass().isPreviewRuntime(),
+                        "expanded settings preview also uses isolated standing playback");
             } finally {
                 client.screen = previousScreen;
             }
