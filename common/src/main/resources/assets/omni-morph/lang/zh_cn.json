@@ -85,7 +85,7 @@
   "omni-morph.gui.library.all": "全部",
   "omni-morph.gui.library.filter.category": "分类：%s",
   "omni-morph.gui.library.filter.type": "类型：%s",
-  "omni-morph.gui.library.filter.authorization": "授权：%s",
+  "omni-morph.gui.library.filter.authorization": "需授权：%s",
   "omni-morph.gui.library.filter.sort": "排序：%s",
   "omni-morph.gui.library.unknown_author": "未知作者",
   "omni-morph.gui.library.more_authors": " 等",
@@ -135,7 +135,7 @@
   "omni-morph.gui.library.public": "在模型库公开",
   "omni-morph.gui.library.needs_authorization": "需要授权",
   "omni-morph.gui.library.uploader_granted": "上传者自动获得授权，且不能撤销自身授权。",
-  "omni-morph.gui.library.authorization": "授权",
+  "omni-morph.gui.library.authorization": "需授权",
   "omni-morph.gui.library.cover": "自定义封面（PNG / JPEG）",
   "omni-morph.gui.library.choose_model": "选择模型文件",
   "omni-morph.gui.library.choose_image": "选择封面图片",
@@ -246,5 +246,7 @@
   "omni-morph.gui.library.value.blocked": "已屏蔽",
   "omni-morph.gui.library.value.decorative_parts": "装饰部件",
   "omni-morph.gui.library.value.deleted": "回收站",
-  "omni-morph.gui.library.value.full_model": "完整模型"
+  "omni-morph.gui.library.value.full_model": "完整模型",
+  "omni-morph.gui.library.visibility_on_enable": "此模型尚未启用，勾选项将在“下载并启用”时保存。",
+  "omni-morph.gui.library.visibility_saved": "外观展示设置已保存。"
 }
