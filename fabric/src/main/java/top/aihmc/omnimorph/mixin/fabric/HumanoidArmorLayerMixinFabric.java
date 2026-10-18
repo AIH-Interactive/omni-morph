@@ -3,7 +3,6 @@ package top.aihmc.omnimorph.mixin.fabric;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.rendertype.RenderType;
@@ -14,7 +13,6 @@ import net.minecraft.client.renderer.entity.layers.EquipmentLayerRenderer;
 import net.minecraft.client.renderer.entity.layers.HumanoidArmorLayer;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.client.renderer.entity.state.HumanoidRenderState;
-import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -34,7 +32,6 @@ import net.minecraft.world.item.equipment.trim.ArmorTrim;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.AvatarManager;
 import top.aihmc.omnimorph.compat.GeckoLibCompat;
-import top.aihmc.omnimorph.ducks.FiguraEntityRenderStateExtension;
 import top.aihmc.omnimorph.ducks.FiguraSubmitCallBackExtension;
 import top.aihmc.omnimorph.lua.api.vanilla_model.VanillaPart;
 import top.aihmc.omnimorph.mixin.render.layers.EquipmentLayerRendererAccessor;
@@ -130,10 +127,14 @@ public abstract class HumanoidArmorLayerMixinFabric<S extends HumanoidRenderStat
 
     @Unique
     private void figura$tryRenderArmorPart(EquipmentSlot slot, FiguraArmorPartRenderer<S, A> renderer, PoseStack vanillaPoseStack, S state, SubmitNodeCollector submitNodeCollector, int light, ParentType... parentTypes) {
-        if (slot == null) return; // ?
-        Integer id = state instanceof AvatarRenderState playerRenderState ? playerRenderState.id : ((FiguraEntityRenderStateExtension)state).figura$getEntityId();
-        if (id == null) return;
-        ItemStack itemStack = ((LivingEntity)(Minecraft.getInstance().level.getEntity(id))).getItemBySlot(slot);
+        // GUI previews retain a detached entity through their queued render state.
+        if (slot == null || !(AvatarManager.getEntity(state) instanceof LivingEntity entity)) {
+            return;
+        }
+        ItemStack itemStack = entity.getItemBySlot(slot);
+        if (itemStack.isEmpty()) {
+            return;
+        }
 
         // Make sure the item in the equipment slot is actually a piece of armor
         if ((itemStack.getItem() instanceof Item armorItem && armorItem.components().has(DataComponents.EQUIPPABLE) && armorItem.components().get(DataComponents.EQUIPPABLE).slot() == slot && armorItem.components().has(DataComponents.ATTRIBUTE_MODIFIERS) && armorItem.components().get(DataComponents.ATTRIBUTE_MODIFIERS).modifiers().stream().anyMatch(attribute -> attribute.attribute() == Attributes.ARMOR))) {

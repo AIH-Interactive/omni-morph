@@ -166,3 +166,26 @@ void setupRepositories(RepositoryHandler repositories) {
         }
     }
 }
+
+sourceSets.test.compileClasspath += project(':common').sourceSets.main.output
+
+tasks.register('libraryArmorPreviewSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks the Fabric armor mixin against a detached, retained preview entity.'
+    dependsOn testClasses, project(':common').tasks.named('testClasses')
+    classpath = project(':common').sourceSets.test.runtimeClasspath +
+            project(':common').sourceSets.main.compileClasspath + sourceSets.test.runtimeClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest'
+    maxHeapSize = '2g'
+    systemProperty 'omnimorph.test.armorMixinRegression', 'true'
+    args '--library-preview', rootProject.file('common/src/test/resources/ysm/crypto-vectors/crypto1.ysm').path
+}
+
+// These tests use the common runtime harness rather than a JUnit runner.
+tasks.named('test', Test) {
+    failOnNoDiscoveredTests = false
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('libraryArmorPreviewSmokeTest')
+}

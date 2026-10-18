@@ -1,9 +1,13 @@
 package top.aihmc.omnimorph.model.library;
 
+import com.mojang.authlib.GameProfile;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.RemotePlayer;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.ItemStack;
 import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
@@ -51,7 +55,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
              var preview = new LibraryPreviewSession(client)) {
             // Only the entity allocation is replaced: actual Avatar loading, permissions,
             // generation guards, production lookup bindings and resource cleanup all run.
-            var entity = (RemotePlayer) unsafe.allocateInstance(RemotePlayer.class);
+            var entity = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
             UUID owner = (UUID) field(LibraryPreviewSession.class, "owner").get(preview);
             entity.setUUID(owner);
             field(LibraryPreviewSession.class, "entity").set(preview, entity);
@@ -101,11 +105,18 @@ public final class LibraryPreviewRuntimeSmokeTest {
             LibraryPreviewBinding.capture(entity, firstFrame);
             LibraryPreviewBinding.capture(entity, secondFrame);
             LibraryPreviewBinding.capture(entity, secondFrame);
+            var armorFrame = new AvatarRenderState();
+            LibraryPreviewBinding.capture(entity, armorFrame);
             var lifetime = avatar.accelerationOwner();
             preview.clear();
             require(AvatarManager.getAvatar(firstFrame) == avatar && AvatarManager.getEntity(secondFrame) == entity,
                     "queued render states retain their detached entity and model after selection clears");
             require(lifetime.isCurrent(), "clearing a preview cannot destroy resources before deferred GUI drawing");
+            if (Boolean.getBoolean("omnimorph.test.armorMixinRegression")) {
+                Class.forName("top.aihmc.omnimorph.model.library.LibraryArmorPreviewRegression")
+                        .getMethod("run", AvatarRenderState.class).invoke(null, armorFrame);
+                require(entity.equipmentReads == 1, "armor rendering reads equipment from the detached preview entity");
+            }
             LibraryPreviewBinding.finishFrame();
             require(!lifetime.isCurrent(), "finishing the GUI frame retires the model after its final state releases");
             LibraryPreviewBinding.finishFrame();
@@ -166,6 +177,20 @@ public final class LibraryPreviewRuntimeSmokeTest {
         } finally {
             LibraryPreviewBinding.finishFrame();
             drain.run();
+        }
+    }
+
+    private static final class ArmorPreviewPlayer extends RemotePlayer {
+        private int equipmentReads;
+
+        private ArmorPreviewPlayer() {
+            super(null, new GameProfile(UUID.randomUUID(), "preview"));
+        }
+
+        @Override
+        public ItemStack getItemBySlot(EquipmentSlot slot) {
+            equipmentReads++;
+            return ItemStack.EMPTY;
         }
     }
 
