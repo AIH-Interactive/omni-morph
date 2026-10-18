@@ -1,7 +1,6 @@
 package top.aihmc.omnimorph.gui.screens.library;
 
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import top.aihmc.omnimorph.backend2.library.LibraryAuthorization;
 import top.aihmc.omnimorph.backend2.library.LibraryAdminSession;
@@ -11,9 +10,8 @@ import top.aihmc.omnimorph.gui.screens.ModelLibraryScreen;
 import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.TextField;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryRowList;
-import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
-import top.aihmc.omnimorph.FiguraMod;
-import top.aihmc.omnimorph.utils.FiguraIdentifier;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryManagementPreview;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
 import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 
@@ -26,8 +24,7 @@ import java.util.function.Supplier;
 public final class ModelLibraryAuthorizationScreen extends LibraryFormScreen {
     private final LibraryClient client;
     private final LibraryAuthorization service;
-    private final LibraryThumbnailService thumbnails;
-    private LibraryThumbnailService.Handle thumbnail;
+    private final LibraryManagementPreview preview;
     private LibraryAdminSession admin;
     private LibraryClient.Request<?> pending;
     private LibraryModels.Model model;
@@ -50,7 +47,7 @@ public final class ModelLibraryAuthorizationScreen extends LibraryFormScreen {
         super(parent, FiguraText.of("gui.library.grants"));
         this.client = client;
         service = new LibraryAuthorization(client, model, admin);
-        thumbnails = new LibraryThumbnailService(client, FiguraMod.getCacheDirectory(), admin);
+        preview = new LibraryManagementPreview(client, admin);
     }
 
     public ModelLibraryAuthorizationScreen(Screen parent, LibraryClient client, UUID model, LibraryAdminSession admin) {
@@ -68,30 +65,18 @@ public final class ModelLibraryAuthorizationScreen extends LibraryFormScreen {
         if (!initForm()) {
             return;
         }
-        int sidebar = Math.min(140, width / 4);
-        int bodyX = sidebar + 20;
-        int rowWidth = width - bodyX - 8;
+        var layout = new LibraryWorkspaceLayout(width, height);
+        int bodyX = layout.left();
+        int rowWidth = layout.contentWidth();
+        addRenderableWidget(preview.place(this, layout.previewX(), 28, layout.previewWidth(), height - 36));
         addRenderableOnly((gui, mouseX, mouseY, delta) -> {
-            UIHelper.blitSliced(gui, 8, 52, sidebar, height - 84, UIHelper.OUTLINE_FILL);
-            var texture = thumbnail == null ? null : thumbnail.capture();
-            if (texture == null) {
-                texture = new FiguraIdentifier("textures/gui/library_placeholder.png");
-            }
-            int size = Math.min(72, sidebar - 12);
-            gui.blit(RenderPipelines.GUI_TEXTURED, texture, 8 + (sidebar - size) / 2, 60,
-                    0, 0, size, size, size, size);
-            UIHelper.renderScrollingText(gui, model == null ? Component.empty() : Component.literal(model.displayName()),
-                    8, 32, width - 40, 0xffeeeeee);
-            if (model != null) {
-                UIHelper.renderScrollingText(gui, Component.literal(model.internalName()), 14, 64 + size, sidebar - 12, 0xffeeeeee);
-                UIHelper.renderScrollingText(gui, Component.literal(String.join(", ", model.authors())),
-                        14, 80 + size, sidebar - 12, 0xffbac6d8);
-                UIHelper.renderScrollingText(gui, Component.literal(model.uploader().name()),
-                        14, 96 + size, sidebar - 12, 0xffbac6d8);
+            UIHelper.renderScrollingText(gui, model == null ? getTitle() : Component.literal(model.displayName()),
+                    bodyX, 32, rowWidth - 24, 0xffeeeeee);
+            if (model != null && UIHelper.isMouseOver(bodyX, 28, rowWidth - 24, 20, mouseX, mouseY)) {
+                UIHelper.setTooltip(FiguraText.of("gui.library.card_tooltip", model.internalName(),
+                        String.join(", ", model.authors()), model.uploader().name(), model.uploader().uuid().toString()));
             }
         });
-        addRenderableWidget(new Button(12, height - 28, sidebar - 8, 20,
-                FiguraText.of("gui.library.grants"), null, ignored -> {}));
         var field = addRenderableWidget(new TextField(bodyX, 52, Math.max(40, rowWidth - 92), 20,
                 TextField.HintType.NAME, value -> {
                     if (!name.equals(value)) {
@@ -103,7 +88,7 @@ public final class ModelLibraryAuthorizationScreen extends LibraryFormScreen {
                 }));
         field.getField().setMaxLength(64);
         field.getField().setValue(name);
-        resolve = addRenderableWidget(new Button(width - 96, 52, 88, 20,
+        resolve = addRenderableWidget(new Button(bodyX + rowWidth - 88, 52, 88, 20,
                 FiguraText.of("gui.library.resolve"), null, ignored -> resolve()));
         confirm = addRenderableWidget(new Button(bodyX, height - 52, rowWidth, 20,
                 FiguraText.of("gui.library.confirm_grant"), null, ignored -> {
@@ -128,9 +113,9 @@ public final class ModelLibraryAuthorizationScreen extends LibraryFormScreen {
                     page++;
                     refresh();
                 }));
-        addRenderableWidget(new Button(width - 96, height - 28, 88, 20,
+        addRenderableWidget(new Button(bodyX + rowWidth - 88, height - 28, 88, 20,
                 FiguraText.of("gui.library.refresh"), null, ignored -> refresh()));
-        addRenderableWidget(new Button(width - 28, 28, 20, 20,
+        addRenderableWidget(new Button(bodyX + rowWidth - 20, 28, 20, 20,
                 Component.literal("×"), FiguraText.of("gui.done"), ignored -> onClose()));
         addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui, message, bodyX, 78, rowWidth, 0xffd3e7e1));
         refresh();
@@ -149,10 +134,7 @@ public final class ModelLibraryAuthorizationScreen extends LibraryFormScreen {
             pending.cancel();
         }
         model = null;
-        if (thumbnail != null) {
-            thumbnail.close();
-            thumbnail = null;
-        }
+        preview.clear();
         candidate = null;
         revocation = null;
         results = null;
@@ -168,9 +150,7 @@ public final class ModelLibraryAuthorizationScreen extends LibraryFormScreen {
                 return;
             }
             model = value.model();
-            if (model.imageAvailable() && model.moderationStatus().equals("ACTIVE")) {
-                thumbnail = thumbnails.acquire(model.modelId());
-            }
+            preview.model(model.modelId(), Component.literal(model.displayName()));
             results = value.grants();
             message = FiguraText.of(model.visibility().equals("PRIVATE") ? "gui.library.private_grants" : "gui.library.uploader_granted");
             rows.rows(results.items().stream().map(this::grantRow).toList());
@@ -250,6 +230,7 @@ public final class ModelLibraryAuthorizationScreen extends LibraryFormScreen {
         message = FiguraText.of("gui.library.failure", code);
         if (code.equals("AUTHORIZATION_NOT_REQUIRED") || code.equals("FORBIDDEN") || code.equals("NOT_FOUND")) {
             model = null;
+            preview.clear();
             candidate = null;
             revocation = null;
             retry = null;
@@ -278,14 +259,17 @@ public final class ModelLibraryAuthorizationScreen extends LibraryFormScreen {
 
     @Override
     public void removed() {
+        if (preview.isExpanded()) {
+            super.removed();
+            return;
+        }
         closed = true;
         generation++;
         candidate = null;
         revocation = null;
         model = null;
         retry = null;
-        thumbnails.close();
-        thumbnail = null;
+        preview.close();
         if (pending != null) {
             pending.cancel();
         }

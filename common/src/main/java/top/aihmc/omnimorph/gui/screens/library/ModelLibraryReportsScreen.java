@@ -7,6 +7,8 @@ import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.gui.screens.ModelLibraryScreen;
 import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryRowList;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryManagementPreview;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
 import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 
@@ -40,6 +42,7 @@ public final class ModelLibraryReportsScreen extends LibraryFormScreen {
     private final LibraryClient client;
     private final LibraryAdminSession admin;
     private final Consumer<UUID> inspect;
+    private final LibraryManagementPreview preview;
     private LibraryClient.Request<?> pending;
     private LibraryRowList rows;
     private Button resolve;
@@ -61,6 +64,7 @@ public final class ModelLibraryReportsScreen extends LibraryFormScreen {
         this.client = client;
         this.admin = admin;
         this.inspect = inspect;
+        preview = new LibraryManagementPreview(client, admin::token);
     }
 
     @Override
@@ -73,7 +77,9 @@ public final class ModelLibraryReportsScreen extends LibraryFormScreen {
         if (!initForm()) {
             return;
         }
-        int area = Math.max(80, width - 16);
+        var layout = new LibraryWorkspaceLayout(width, height);
+        int area = layout.contentWidth();
+        addRenderableWidget(preview.place(this, layout.previewX(), 28, layout.previewWidth(), height - 36));
         addRenderableWidget(new Button(8, 28, (area - 4) / 2, 20,
                 FiguraText.of(resolved ? "gui.library.reports_resolved" : "gui.library.reports_open"), null, button -> {
                     resolved = !resolved;
@@ -106,7 +112,7 @@ public final class ModelLibraryReportsScreen extends LibraryFormScreen {
                     page++;
                     refresh();
                 }));
-        addRenderableWidget(new Button(width - 96, height - 24, 88, 20,
+        addRenderableWidget(new Button(8 + area - 88, height - 24, 88, 20,
                 FiguraText.of("gui.done"), null, ignored -> onClose()));
         addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui, message, 8, 54, area, 0xffd3e7e1));
         refresh();
@@ -125,6 +131,7 @@ public final class ModelLibraryReportsScreen extends LibraryFormScreen {
             pending.cancel();
         }
         selected = null;
+        preview.clear();
         operation = null;
         armed = false;
         results = null;
@@ -151,6 +158,7 @@ public final class ModelLibraryReportsScreen extends LibraryFormScreen {
                             + "\n" + report.reason() + (report.resolvedBy() == null ? "" : "\n" + report.resolvedBy())), true,
                     () -> {
                         selected = report;
+                        preview.model(report.modelId(), Component.literal(report.modelName()));
                         operation = null;
                         armed = false;
                         message = Component.literal(report.modelName() + "  " + report.reason());
@@ -216,7 +224,12 @@ public final class ModelLibraryReportsScreen extends LibraryFormScreen {
 
     @Override
     public void removed() {
+        if (preview.isExpanded()) {
+            super.removed();
+            return;
+        }
         closed = true;
+        preview.close();
         generation++;
         selected = null;
         results = null;

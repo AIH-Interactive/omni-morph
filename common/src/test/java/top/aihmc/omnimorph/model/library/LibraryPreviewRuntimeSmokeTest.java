@@ -129,6 +129,27 @@ public final class LibraryPreviewRuntimeSmokeTest {
                         "encrypted preview retains the existing runtime/source boundary");
                 require(!preview.showsVanillaPlayer(), "YSM replacement models do not select the decorative default");
             }
+            var resource = client.submit(LibraryClient.Lane.TRANSFER, exchange -> model("administrator resource"));
+            require(await(preview.selectResource(resource), drain), "administrator resource uses detached preparation");
+            require(AvatarManager.getAvatar(entity).name.equals("administrator resource"),
+                    "the selected resource replaces the preceding preview");
+            var blockedRead = new CountDownLatch(1);
+            var releaseRead = new CountDownLatch(1);
+            var oldResource = client.submit(LibraryClient.Lane.TRANSFER, exchange -> {
+                blockedRead.countDown();
+                require(releaseRead.await(5, TimeUnit.SECONDS), "resource gate is bounded");
+                return model("retired administrator resource");
+            });
+            var oldPreview = preview.selectResource(oldResource);
+            try {
+                require(blockedRead.await(5, TimeUnit.SECONDS), "resource read starts asynchronously");
+                preview.clear();
+                require(oldResource.future().isCancelled(), "clearing selection cancels the administrator read");
+            } finally {
+                releaseRead.countDown();
+            }
+            require(!await(oldPreview, drain) && preview.entity() == null,
+                    "a retired administrator response cannot republish an old model");
             live.set(false);
             preview.tick();
             require(preview.status().stage() == LibraryPreviewSession.Stage.CLOSED && preview.entity() == null,

@@ -67,6 +67,21 @@ public final class LibraryTransferSmokeTest {
                 try (var files = Files.list(directory.resolve("model-library-downloads"))) {
                     require(files.findAny().isEmpty(), "failed download removes its temporary file");
                 }
+                server.corrupt.set(false);
+                var wardrobe = new LibraryWardrobePreviewService(client, () -> "synthetic-admin");
+                var source = await(wardrobe.current(VIEWER, "self outfit/中文", 3, 9).future(), callbacks);
+                require(source.contains("ysm"), "administrator wardrobe bytes decode as portable NBT");
+                await(wardrobe.blocked(TRANSFER).future(), callbacks);
+                require(server.wardrobeFiles.get() == 2 && server.completed.get() == 1,
+                        "wardrobe previews use only the administrator routes and never complete a library download");
+                server.staleWardrobe.set(true);
+                failure(wardrobe.current(VIEWER, "self outfit/中文", 3, 9).future(), callbacks, "PREVIEW_UNAVAILABLE");
+                server.staleWardrobe.set(false);
+                server.corrupt.set(true);
+                failure(wardrobe.blocked(TRANSFER).future(), callbacks, "DISTRIBUTION_HASH_MISMATCH");
+                int requests = server.wardrobeFiles.get();
+                failure(new LibraryWardrobePreviewService(client, () -> "").blocked(TRANSFER).future(), callbacks, "FORBIDDEN");
+                require(server.wardrobeFiles.get() == requests, "no administrator session means no wardrobe request");
                 require(server.unexpected.get() == 0, "preview and raw download never upload or equip a model");
             }
             System.out.println("PASS library transfer: current permissions on cache hits, fresh formal stream, lengths/digests, encrypted-only disk data, receipt separation and failure cleanup");
@@ -115,6 +130,8 @@ public final class LibraryTransferSmokeTest {
         private final AtomicInteger unexpected = new AtomicInteger();
         private final AtomicBoolean revoked = new AtomicBoolean();
         private final AtomicBoolean corrupt = new AtomicBoolean();
+        private final AtomicInteger wardrobeFiles = new AtomicInteger();
+        private final AtomicBoolean staleWardrobe = new AtomicBoolean();
         private final byte[] bytes;
 
         private Server() throws Exception {
@@ -150,7 +167,29 @@ public final class LibraryTransferSmokeTest {
                 String path = request.getRequestURI().getPath();
                 String body;
                 int status = 200;
-                if (path.equals("/api/library/v1/models/" + MODEL)) {
+                if (path.startsWith("/api/library/v1/admin/wardrobe-preview/")) {
+                    wardrobeFiles.incrementAndGet();
+                    boolean current = path.equals("/api/library/v1/admin/wardrobe-preview/CURRENT/" + VIEWER);
+                    String expectedQuery = "asset_id=" + java.net.URLEncoder.encode("self outfit/中文", StandardCharsets.UTF_8)
+                            + "&asset_revision=3&equipment_revision=9";
+                    boolean valid = request.getRequestMethod().equals("GET")
+                            && "synthetic-admin".equals(request.getRequestHeaders().getFirst("x-omnimorph-admin"))
+                            && (current && expectedQuery.equals(request.getRequestURI().getRawQuery())
+                                || path.equals("/api/library/v1/admin/wardrobe-preview/BLOCK/" + TRANSFER));
+                    if (!valid || current && staleWardrobe.get()) {
+                        status = valid ? 409 : 403;
+                        body = "{\"code\":\"PREVIEW_UNAVAILABLE\"}";
+                    } else {
+                        request.getResponseHeaders().add("x-omnimorph-sha256", CloudHttp.sha256(bytes));
+                        request.sendResponseHeaders(200, bytes.length);
+                        byte[] sent = bytes.clone();
+                        if (corrupt.get()) {
+                            sent[sent.length - 1] ^= 1;
+                        }
+                        request.getResponseBody().write(sent);
+                        return;
+                    }
+                } else if (path.equals("/api/library/v1/models/" + MODEL)) {
                     details.incrementAndGet();
                     status = revoked.get() ? 403 : 200;
                     body = revoked.get() ? "{\"code\":\"FORBIDDEN\"}" : """

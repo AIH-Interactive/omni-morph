@@ -10,6 +10,7 @@ import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryRowList;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryMultilineField;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryManagementPreview;
 import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 
@@ -63,6 +64,7 @@ public final class ModelLibraryAppealsScreen extends LibraryFormScreen {
     private record Mutation(String path, Map<String, Object> body) {}
     private final LibraryClient client;
     private final LibraryAdminSession admin;
+    private final LibraryManagementPreview preview;
     private LibraryClient.Request<?> pending;
     private LibraryRowList rows;
     private LibraryMultilineField text;
@@ -86,6 +88,7 @@ public final class ModelLibraryAppealsScreen extends LibraryFormScreen {
         super(parent, FiguraText.of(admin == null ? "gui.library.my_appeals" : "gui.library.manage_appeals"));
         this.client = client;
         this.admin = admin;
+        preview = admin == null ? null : new LibraryManagementPreview(client, admin::token);
         mode = admin == null ? 0 : 1;
     }
 
@@ -101,42 +104,53 @@ public final class ModelLibraryAppealsScreen extends LibraryFormScreen {
         }
         var layout = new LibraryWorkspaceLayout(width, height);
         int area = layout.contentWidth();
-        addRenderableWidget(new Button(8, 28, (area - 4) / 2, 20, modeText(), null, button -> {
+        int contentX = admin == null ? 8 : 16 + layout.previewWidth();
+        if (preview != null) {
+            addRenderableWidget(preview.place(this, 8, 28, layout.previewWidth(), height - 36));
+        }
+        addRenderableWidget(new Button(contentX, 28, (area - 4) / 2, 20, modeText(), null, button -> {
             mode = admin == null ? (mode + 1) % 3 : mode == 1 ? 2 : 1;
             page = 1;
             button.setMessage(modeText());
             refresh();
         }));
-        addRenderableWidget(new Button(12 + (area - 4) / 2, 28, (area - 4) / 2, 20,
+        addRenderableWidget(new Button(contentX + 4 + (area - 4) / 2, 28, (area - 4) / 2, 20,
                 FiguraText.of("gui.library.refresh"), null, ignored -> refresh()));
-        rows = addRenderableWidget(new LibraryRowList(8, 56, area, Math.max(24, height - 88)));
-        int editorHeight = Math.max(48, Math.min(120, height - 160));
-        text = addRenderableWidget(new LibraryMultilineField(layout.previewWidth(), editorHeight, input, value -> input = value));
-        text.setX(layout.previewX());
-        text.setY(52);
+        rows = addRenderableWidget(new LibraryRowList(contentX, 56, area,
+                Math.max(24, height - (admin == null ? 88 : 196))));
+        int editorHeight = admin == null ? Math.max(48, Math.min(120, height - 160)) : 48;
+        int editorX = admin == null ? layout.previewX() : contentX;
+        int editorY = admin == null ? 52 : height - 124;
+        int editorWidth = admin == null ? layout.previewWidth() : area;
+        text = addRenderableWidget(new LibraryMultilineField(editorWidth, editorHeight, input, value -> input = value));
+        text.setX(editorX);
+        text.setY(editorY);
         text.setCharacterLimit(512);
-        submit = addRenderableWidget(new Button(layout.previewX(), height - 52, layout.previewWidth(), 20,
+        int actionWidth = admin == null ? layout.previewWidth() : (area - 4) / 2;
+        submit = addRenderableWidget(new Button(admin == null ? editorX : editorX + actionWidth + 4,
+                height - (admin == null ? 52 : 72), actionWidth, 20,
                 FiguraText.of(admin == null ? "gui.library.submit_appeal" : "gui.library.resolve_appeal"), null, ignored -> submit(false)));
-        unblock = addRenderableWidget(new Button(layout.previewX(), height - 76, layout.previewWidth(), 20,
+        unblock = addRenderableWidget(new Button(editorX, height - 72, actionWidth, 20,
                 FiguraText.of("gui.library.appeal_unblock"), FiguraText.of("gui.library.appeal_unblock_hint"), ignored -> submit(true)));
         unblock.setVisible(admin != null);
-        previous = addRenderableWidget(new Button(8, height - 28, 28, 20, Component.literal("<"), null,
+        previous = addRenderableWidget(new Button(contentX, height - 28, 28, 20, Component.literal("<"), null,
                 ignored -> {
                     page = Math.max(1, page - 1);
                     refresh();
                 }));
-        next = addRenderableWidget(new Button(40, height - 28, 28, 20, Component.literal(">"), null,
+        next = addRenderableWidget(new Button(contentX + 32, height - 28, 28, 20, Component.literal(">"), null,
                 ignored -> {
                     page++;
                     refresh();
                 }));
-        addRenderableWidget(new Button(layout.previewX(), height - 28, layout.previewWidth(), 20,
+        addRenderableWidget(new Button(admin == null ? editorX : contentX + area - 60,
+                height - 28, admin == null ? layout.previewWidth() : 60, 20,
                 FiguraText.of("gui.done"), null, ignored -> onClose()));
         addRenderableOnly((gui, x, y, delta) -> {
             UIHelper.renderScrollingText(gui, FiguraText.of(admin == null ? "gui.library.submit_appeal" : "gui.library.resolve_appeal"),
-                    layout.previewX(), 32, layout.previewWidth(), 0xffeeeeee);
-            UIHelper.renderScrollingText(gui, message, layout.previewX(), 60 + editorHeight,
-                    layout.previewWidth(), 0xffd3e7e1);
+                    editorX, admin == null ? 32 : height - 136, editorWidth, 0xffeeeeee);
+            UIHelper.renderScrollingText(gui, message, editorX, admin == null ? 60 + editorHeight : height - 44,
+                    editorWidth, 0xffd3e7e1);
         });
         refresh();
     }
@@ -164,6 +178,9 @@ public final class ModelLibraryAppealsScreen extends LibraryFormScreen {
         }
         target = null;
         appeal = null;
+        if (preview != null) {
+            preview.clear();
+        }
         retry = null;
         armed = null;
         hasNext = false;
@@ -203,6 +220,14 @@ public final class ModelLibraryAppealsScreen extends LibraryFormScreen {
                     () -> {
                         if (!busy()) {
                             appeal = item;
+                            if (preview != null) {
+                                Component title = Component.literal(item.targetId().toString());
+                                if (item.targetKind().equals("LIBRARY")) {
+                                    preview.model(item.targetId(), title);
+                                } else {
+                                    preview.blockedWardrobe(item.targetId(), title);
+                                }
+                            }
                             target = null;
                             retry = null;
                             armed = null;
@@ -304,7 +329,14 @@ public final class ModelLibraryAppealsScreen extends LibraryFormScreen {
 
     @Override
     public void removed() {
+        if (preview != null && preview.isExpanded()) {
+            super.removed();
+            return;
+        }
         closed = true;
+        if (preview != null) {
+            preview.close();
+        }
         generation++;
         appeal = null;
         target = null;

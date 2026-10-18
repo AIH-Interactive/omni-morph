@@ -30,6 +30,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
     private final LivingEntity entity;
     private final AtomicLong generations = new AtomicLong();
     private LibraryTransferService.Operation transfer;
+    private LibraryClient.Request<CompoundTag> resource;
     private LibraryPreviewBinding binding;
     private Avatar avatar;
     private volatile boolean closed;
@@ -93,6 +94,25 @@ public final class LibraryPreviewSession implements AutoCloseable {
         return selectDraft(() -> nbt);
     }
 
+    /** A source-bound administrator wardrobe read uses the same detached rendering lifecycle. */
+    public CompletableFuture<Boolean> selectResource(LibraryClient.Request<CompoundTag> request) {
+        long generation = begin();
+        resource = request;
+        var result = new CompletableFuture<Boolean>();
+        request.future().whenComplete((nbt, failure) -> {
+            if (!current(generation)) {
+                result.complete(false);
+            } else if (failure != null) {
+                status = new Status(Stage.FAILED, errorCode(failure));
+                result.complete(false);
+            } else {
+                prepare(nbt, generation, result);
+            }
+        });
+        cancelWith(result, generation);
+        return result;
+    }
+
     public CompletableFuture<Boolean> selectDraft(java.util.function.Supplier<CompoundTag> nbt) {
         long generation = begin();
         var result = new CompletableFuture<Boolean>();
@@ -106,6 +126,10 @@ public final class LibraryPreviewSession implements AutoCloseable {
             throw new IllegalStateException("PREVIEW_CLOSED");
         }
         long generation = generations.incrementAndGet();
+        if (resource != null) {
+            resource.cancel();
+            resource = null;
+        }
         if (transfer != null) {
             transfer.close();
             transfer = null;
@@ -208,6 +232,10 @@ public final class LibraryPreviewSession implements AutoCloseable {
         closed = true;
         expanded = false;
         generations.incrementAndGet();
+        if (resource != null) {
+            resource.cancel();
+            resource = null;
+        }
         if (transfer != null) {
             transfer.close();
             transfer = null;
