@@ -4,7 +4,6 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.HeadedModel;
 import net.minecraft.client.model.object.skull.SkullModelBase;
@@ -29,7 +28,6 @@ import net.minecraft.world.item.component.ResolvableProfile;
 import net.minecraft.world.level.block.SkullBlock;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.AvatarManager;
-import top.aihmc.omnimorph.ducks.FiguraEntityRenderStateExtension;
 import top.aihmc.omnimorph.ducks.FiguraItemStackRenderStateExtension;
 import top.aihmc.omnimorph.ducks.NodeCollectorExtension;
 import top.aihmc.omnimorph.ducks.SkullBlockRendererAccessor;
@@ -94,9 +92,7 @@ public abstract class CustomHeadLayerMixin<S extends LivingEntityRenderState, M 
 
                 // set item context
                 SkullBlockRendererAccessor.setItem(itemStack);
-                Integer id = ((FiguraEntityRenderStateExtension)entityState).figura$getEntityId();
-                if (id != null)
-                    SkullBlockRendererAccessor.setEntity(Minecraft.getInstance().level.getEntity(id));
+                SkullBlockRendererAccessor.setEntity(AvatarManager.getEntity(entityState));
                 SkullBlockRendererAccessor.setRenderMode(SkullBlockRendererAccessor.SkullRenderMode.HEAD);
                 SkullBlockRenderer.submitSkull(f, stack, submitNodeCollector, i, skullModelBase,
                         renderType, entityState.outlineColor, null);
@@ -130,9 +126,7 @@ public abstract class CustomHeadLayerMixin<S extends LivingEntityRenderState, M 
         ItemStack stack = ((FiguraItemStackRenderStateExtension)livingEntityRenderState.headItem).figura$getItemStack();
         if (stack == null) return;
         SkullBlockRendererAccessor.setItem(stack);
-        Integer id = ((FiguraEntityRenderStateExtension)livingEntityRenderState).figura$getEntityId();
-        if (id != null && Minecraft.getInstance().level != null && Minecraft.getInstance().level.getEntity(id) != null)
-            SkullBlockRendererAccessor.setEntity(Minecraft.getInstance().level.getEntity(id));
+        SkullBlockRendererAccessor.setEntity(AvatarManager.getEntity(livingEntityRenderState));
         SkullBlockRendererAccessor.setRenderMode(SkullBlockRendererAccessor.SkullRenderMode.HEAD);
     }
 }
