@@ -46,21 +46,25 @@ public final class LibraryManagementPreview extends AbstractContainerElement imp
 
     public void model(UUID model, Component title) {
         this.title = title;
+        session.setIndependentFigura(false);
         session.select(model, transfers);
     }
 
     public void wardrobe(UUID owner, String asset, long revision, long equipmentRevision, Component title) {
         this.title = title;
+        session.setIndependentFigura(true);
         session.selectResource(wardrobe.current(owner, asset, revision, equipmentRevision));
     }
 
     public void blockedWardrobe(UUID operation, Component title) {
         this.title = title;
+        session.setIndependentFigura(false);
         session.selectResource(wardrobe.blocked(operation));
     }
 
     public void recycled(String kind, UUID owner, UUID id, Component title) {
         this.title = title;
+        session.setIndependentFigura(false);
         session.selectResource(wardrobe.recycled(kind, owner, id));
     }
 

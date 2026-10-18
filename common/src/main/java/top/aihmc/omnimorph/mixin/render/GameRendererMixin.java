@@ -26,6 +26,7 @@ import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.AvatarManager;
 import top.aihmc.omnimorph.ducks.GameRendererAccessor;
 import top.aihmc.omnimorph.gui.FiguraGuiRenderer;
+import top.aihmc.omnimorph.model.library.LibraryFiguraPreviewRenderer;
 import top.aihmc.omnimorph.gui.FiguraPortraitRenderer;
 import top.aihmc.omnimorph.lua.api.ClientAPI;
 import top.aihmc.omnimorph.math.matrix.FiguraMat4;
@@ -179,6 +180,7 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
         List<PictureInPictureRenderer<?>> newList = new ArrayList<>(list);
         newList.add(new FiguraPortraitRenderer(source));
         newList.add(new FiguraGuiRenderer(source));
+        newList.add(new LibraryFiguraPreviewRenderer(source));
         return newList;
     }
 

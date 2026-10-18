@@ -61,6 +61,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             testReportInput(client);
             testWardrobeDefaultPreview(unsafe);
             testPreviewAppearance(unsafe);
+            testIndependentFigura(unsafe, drain);
             // Only the entity allocation is replaced: actual Avatar loading, permissions,
             // generation guards, production lookup bindings and resource cleanup all run.
             var entity = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
@@ -265,6 +266,115 @@ public final class LibraryPreviewRuntimeSmokeTest {
         }
         if (avatar.luaRuntime != null) {
             avatar.luaRuntime.vanilla_model.PLAYER.restore(model);
+        }
+    }
+
+    private static void testIndependentFigura(Unsafe unsafe, Runnable drain) throws Exception {
+        Minecraft client = Minecraft.getInstance();
+        var oldRenderer = client.gameRenderer;
+        var oldDebug = client.debugEntries;
+        var renderer = (net.minecraft.client.renderer.GameRenderer) unsafe.allocateInstance(
+                net.minecraft.client.renderer.GameRenderer.class);
+        field(renderer.getClass(), "mainCamera").set(renderer, new net.minecraft.client.Camera());
+        var debug = (net.minecraft.client.gui.components.debug.DebugScreenEntryList) unsafe.allocateInstance(
+                net.minecraft.client.gui.components.debug.DebugScreenEntryList.class);
+        field(debug.getClass(), "allStatuses").set(debug, new java.util.HashMap<>());
+        field(debug.getClass(), "currentlyEnabled").set(debug, new java.util.ArrayList<>());
+        field(Minecraft.class, "gameRenderer").set(client, renderer);
+        field(Minecraft.class, "debugEntries").set(client, debug);
+        try (var session = new LibraryPreviewSession()) {
+            var player = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
+            player.setUUID((UUID) field(LibraryPreviewSession.class, "owner").get(session));
+            field(LibraryPreviewSession.class, "entity").set(session, player);
+            var nbt = model("direct Figura preview");
+            var scripts = new CompoundTag();
+            scripts.putByteArray("script", """
+                    local count = 0
+                    function events.render()
+                        count = count + 1
+                        models:setRot(0, count * 5, 0)
+                    end
+                    """.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            nbt.put("scripts", scripts);
+            require(await(session.selectDraft(nbt), drain), "direct Figura fixture loads actual scripts");
+            Avatar avatar = AvatarManager.getAvatar(player);
+            require(!session.submitIndependentFigura(null, 50, 50, 30, -15, 30, 0.5f, 0, 0, 100, 100),
+                    "model library sessions default to Figura's original entity preview path");
+            session.setIndependentFigura(true);
+            var guiState = new net.minecraft.client.renderer.state.gui.GuiRenderState();
+            var gui = (PreviewGraphics) unsafe.allocateInstance(PreviewGraphics.class);
+            gui.state = guiState;
+            var scissorConstructor = net.minecraft.client.gui.GuiGraphicsExtractor.ScissorStack.class.getDeclaredConstructor();
+            scissorConstructor.setAccessible(true);
+            gui.scissor = scissorConstructor.newInstance();
+            require(session.submitIndependentFigura(gui, 50, 50, 30, -15, 30, 0.5f, 0, 0, 100, 100),
+                    "wardrobe management explicitly submits an independent model state");
+            var captured = new java.util.ArrayList<net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState>();
+            guiState.forEachPictureInPicture(captured::add);
+            require(captured.size() == 1 && captured.getFirst() instanceof LibraryFiguraPreviewState,
+                    "independent GUI submission bypasses native entity render states");
+            session.setIndependentFigura(false);
+            require(!session.submitIndependentFigura(null, 50, 50, 30, -15, 30, 0.5f, 0, 0, 100, 100),
+                    "leaving wardrobe management restores the original preview path");
+            var pose = new AvatarRenderState();
+            pose.skin = net.minecraft.client.resources.DefaultPlayerSkin.getDefaultSkin();
+            pose.showHat = pose.showJacket = pose.showLeftSleeve = pose.showRightSleeve = true;
+            pose.showLeftPants = pose.showRightPants = true;
+            var state = new LibraryFiguraPreviewState(avatar, pose, 0.5f, -15, 30, 0, 0,
+                    0, 0, 100, 100, 30, null, null);
+            var vertices = new java.util.ArrayList<String>();
+            var consumer = (com.mojang.blaze3d.vertex.VertexConsumer) java.lang.reflect.Proxy.newProxyInstance(
+                    LibraryPreviewRuntimeSmokeTest.class.getClassLoader(),
+                    new Class<?>[]{com.mojang.blaze3d.vertex.VertexConsumer.class}, (proxy, method, args) -> {
+                        if (method.getName().equals("addVertex")) {
+                            vertices.add(java.util.Arrays.toString(args));
+                        }
+                        return method.getReturnType() == void.class ? null : proxy;
+                    });
+            var model = LibraryFiguraPreviewRenderer.createModel(false);
+            session.beforeExtract(0.5f);
+            LibraryFiguraPreviewRenderer.draw(state, new com.mojang.blaze3d.vertex.PoseStack(), type -> consumer, model);
+            require(!vertices.isEmpty(), "direct preview emits native skinned player vertices without a level or dispatcher");
+            require(avatar.renderer.root.getTrueRot().y == 5 && !avatar.scriptError,
+                    "direct geometry drawing invokes the real Lua render event");
+            require(player.equipmentReads == 0 && player.capeReads == 0,
+                    "direct preview never enters entity armor/cape layers");
+            avatar.loadScript("hide body", "vanilla_model.PLAYER:setVisible(false)").call();
+            vertices.clear();
+            session.beforeExtract(0.5f);
+            LibraryFiguraPreviewRenderer.draw(state, new com.mojang.blaze3d.vertex.PoseStack(), type -> consumer, model);
+            require(vertices.isEmpty() && avatar.renderer.root.getTrueRot().y == 10,
+                    "script body visibility remains authoritative while render animation continues");
+            require(model.body.visible, "shared native mesh visibility is restored after drawing");
+            System.out.println("PASS independent Figura drawing: real Lua render, native body vertices, script visibility and no entity layers");
+        } finally {
+            field(Minecraft.class, "gameRenderer").set(client, oldRenderer);
+            field(Minecraft.class, "debugEntries").set(client, oldDebug);
+        }
+    }
+
+    private static final class PreviewGraphics extends net.minecraft.client.gui.GuiGraphicsExtractor
+            implements top.aihmc.omnimorph.mixin.gui.GuiGraphicsAccessor {
+        private net.minecraft.client.renderer.state.gui.GuiRenderState state;
+        private ScissorStack scissor;
+
+        private PreviewGraphics(net.minecraft.client.renderer.state.gui.GuiRenderState state) {
+            super(Minecraft.getInstance(), state, 100, 100);
+        }
+
+        @Override
+        public void nextStratum() {
+            state.nextStratum();
+        }
+
+        @Override
+        public net.minecraft.client.renderer.state.gui.GuiRenderState figura$getRenderState() {
+            return state;
+        }
+
+        @Override
+        public ScissorStack figura$getScissorStack() {
+            return scissor;
         }
     }
 
@@ -480,6 +590,16 @@ public final class LibraryPreviewRuntimeSmokeTest {
         @Override
         public net.minecraft.world.level.Level getLevel() {
             return Minecraft.getInstance().level;
+        }
+
+        @Override
+        public net.minecraft.world.entity.player.PlayerSkin getSkin() {
+            return net.minecraft.client.resources.DefaultPlayerSkin.getDefaultSkin();
+        }
+
+        @Override
+        public boolean isModelPartShown(net.minecraft.world.entity.player.PlayerModelPart part) {
+            return true;
         }
 
         @Override
