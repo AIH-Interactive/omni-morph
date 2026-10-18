@@ -459,3 +459,9 @@ R24 检查点：单层及多层包装 ZIP 的实际 prepare 流程先复现 UNRE
 卡片信息行复用既有本地化键 card_authors/card_uploader，显示为“作者：xxxx”“上传者：xxx”；保留原多作者省略、未知作者、滚动文字及紧凑布局。仅改展示标签，不改上传者/作者来源。编译及差异核对后独立提交推送；实际游戏文字显示 MANUAL/PENDING。
 
 R25 检查点：卡片两行已接入既有中英文本地化格式，中文分别显示作者：%s、上传者：%s，保留首位作者/等及未知作者处理。Fabric build（含既有预览回归）前台 Tee PASS，退出 0；差异与空白核对通过。实际游戏卡片文字及窄宽度滚动 MANUAL/PENDING。
+
+### R26 实包中 Windows 不支持的 ZIP 路径
+
+使用用户指定的 anan-fullmodel-0.0.7-rel.zip 直接复现：根目录已正确识别，但 LICENSE 下存在以换行符开头的目录，临时解包到 Windows 时抛出 InvalidPathException。改为在已校验、限额且固定快照的 ZIP 文件系统内编译选定模型目录；保留逐资源读取/累计限额与取消检查，不改写原 ZIP 或丢弃原文件名。原生资源打包改用源文件系统的 glob/遍历/输入流，避免 toFile 和 Windows Path.of；ZIP 贴图引用继续限制在所选模型根内。以真实文件及相同非法 Windows 名称的合成 ZIP（包含显式 resources）验证，再编译提交推送。游戏内验收 MANUAL/PENDING。
+
+R26 检查点：用户实际 anan-fullmodel-0.0.7-rel.zip 已先复现 LICENSE/换行符AnAn-Figura-avatar/LICENSE 的 InvalidPathException，修复后真实文件完整 prepare 通过，模型/脚本已生成；另有合成 ZIP 验证带换行符的显式资源保持原名，原嵌套目录、普通资源、YSM、限额/取消及衣柜状态回归保持通过。资源 glob 仍采用 Java 原生语义，测试精确声明带换行符的资源，不额外改变通配符语义。libraryPackagePreparation、libraryMetadata、Fabric build（含预览/护甲/披风）前台 Tee PASS，退出 0；差异空白核对通过。实际游戏预览/发布 MANUAL/PENDING。可通过测试环境变量 OMNIMORPH_TEST_FIGURA_PACKAGE 重放本机原包，不将用户模型纳入仓库。

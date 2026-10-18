@@ -84,7 +84,6 @@ public final class LibraryPackagePreparation {
             phase.accept(Phase.PREPARING);
             CompoundTag nbt;
             if (metadata.modelType().equals("FIGURA")) {
-                Path directory = Files.createDirectory(staging.resolve("figura"));
                 try (var archive = YsmPackage.open(source)) {
                     String root = LibraryMetadataReader.figuraRoot(archive, cancelled);
                     long total = 0;
@@ -94,19 +93,15 @@ public final class LibraryPackagePreparation {
                         if (!name.startsWith(root)) {
                             continue;
                         }
-                        String relative = name.substring(root.length());
-                        Path target = directory.resolve(relative).normalize();
-                        if (!target.startsWith(directory)) {
-                            throw new IOException("UNSAFE_RESOURCE_PATH");
-                        }
                         byte[] bytes = archive.readBytes(name);
                         total += bytes.length;
                         YsmResourceLimits.DEFAULT.checkResource(bytes.length, total, ++count, name);
-                        Files.createDirectories(target.getParent());
-                        Files.write(target, bytes);
                     }
+                    // ZIP names need not be valid Windows paths (for example LICENSE folders with newlines).
+                    // Compile inside the validated archive instead of extracting its entries onto the host.
+                    Path directory = archive.resolve(root + "avatar.json").getParent();
+                    nbt = LocalAvatarLoader.prepareFiguraAvatar(directory, owner);
                 }
-                nbt = LocalAvatarLoader.prepareFiguraAvatar(directory, owner);
             } else {
                 try (var data = YsmModelData.read(source, cancelled)) {
                     var manifest = data.manifest();
