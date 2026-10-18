@@ -15,6 +15,15 @@ import java.util.function.Supplier;
 
 /** Shared clipped row selector for file, authorization and management lists. */
 public final class LibraryRowList extends AbstractList {
+    private static final int TABLE_HEADER_HEIGHT = 20;
+    private static final int TABLE_ROW_HEIGHT = 24;
+    private static final int VERTICAL_PADDING = 4;
+
+    public static int tablePageCapacity(int height, int maximum) {
+        int visibleRows = Math.max(1, (height - TABLE_HEADER_HEIGHT - VERTICAL_PADDING) / TABLE_ROW_HEIGHT);
+        return Math.min(Math.max(1, maximum), visibleRows);
+    }
+
     public enum Icon { GRANT, BLOCK, DELETE, RESTORE, EDIT }
 
     public record Action(Component text, Component tooltip, boolean enabled, Runnable invoke, Icon icon) {
@@ -53,7 +62,7 @@ public final class LibraryRowList extends AbstractList {
     }
 
     private int rowStep() {
-        return cards ? 100 : 24;
+        return cards ? 100 : TABLE_ROW_HEIGHT;
     }
 
     public LibraryRowList(int x, int y, int width, int height) {
@@ -83,9 +92,9 @@ public final class LibraryRowList extends AbstractList {
     }
 
     private void arrange() {
-        int headerHeight = headings.isEmpty() ? 0 : 20;
+        int headerHeight = headings.isEmpty() ? 0 : TABLE_HEADER_HEIGHT;
         int step = rowStep();
-        int maximum = Math.max(0, rows.size() * step - getHeight() + headerHeight + 4);
+        int maximum = Math.max(0, rows.size() * step - getHeight() + headerHeight + VERTICAL_PADDING);
         int offset = (int) Math.round(scrollBar.getScrollProgress() * maximum);
         scrollBar.setVisible(maximum > 0);
         scrollBar.setActive(maximum > 0);
@@ -114,7 +123,7 @@ public final class LibraryRowList extends AbstractList {
     @Override
     public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
         arrange();
-        int headerHeight = headings.isEmpty() ? 0 : 20;
+        int headerHeight = headings.isEmpty() ? 0 : TABLE_HEADER_HEIGHT;
         gui.enableScissor(getX() + 1, getY() + headerHeight + 1,
                 getX() + getWidth() - 1, getY() + getHeight() - 1);
         try {

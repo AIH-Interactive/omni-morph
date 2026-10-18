@@ -572,3 +572,9 @@ R36b 检查点：cloudModelSwitch 原先失败、修复后通过；关联旧代�
 R37 实现：AvatarControlsScreen 继承原生 Screen，没有 AbstractPanelScreen 对预览控件的 tick 驱动；EntityPreview 原先仅将 WardrobeScreen 识别为实时预览，其余页面等待异步副本，导致设置页一直显示占位。将模型专用设置同样绑定实际玩家/当前模型，放大视图通过原父页面保留此机制；不创建第二份模型，不改变模型脚本/控制器或设置回调。新增普通/放大设置预览回归，修复前已失败复现错误路径。
 
 R37 检查点：普通/放大模型设置均保持实际玩家且没有副本加载，衣柜、模型库、独立衣柜管理及当前玩家 Figura 预览回归通过。libraryPreviewRuntime 和 Fabric build 前台 Tee PASS，退出 0；测试夹具不额外注册玩家权限，原全局状态保留断言继续通过。差异与空白核对通过，alpha.2 本地 JAR 更新；游戏内设置值即时预览及放大/返回视觉验收 MANUAL/PENDING。
+
+### R38 模型管理表格自适应分页
+
+根据用户截图，将模型管理页面固定 8 条改为按表格可用高度计算完整行数，扣除表头和上下边距，遵守后端声明的每页上限。窗口高度变化导致容量变化时从第一页刷新，页数依据响应 page_size 计算。保留紧凑表格、行操作和右侧预览；其他管理接口不扩展。完成容量边界回归、构建后提交推送；真实游戏窗口缩放验收 MANUAL/PENDING。
+
+R38 检查点：容量计算与表格实际行高/表头尺寸共用常量，完整行边界、最小容量、大窗口上限以及旧后端上限 8 的回归通过。modelLibraryLayoutSmokeTest、libraryManagementSmokeTest 和 Fabric build（含 previewRuntime）前台 Tee PASS，退出 0；差异与空白核对通过，本地 alpha.2 JAR 已更新。后端无新增修改；扩展容量需部署已支持 64 条上限的后端（58bdf33）。真实游戏窗口缩放及分页视觉验收 MANUAL/PENDING。

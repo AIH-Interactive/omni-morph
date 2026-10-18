@@ -53,6 +53,7 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
     private int type;
     private int status;
     private int page = 1;
+    private int requestedPageSize;
     private long generation;
     private long searchChanged;
     private String armed;
@@ -230,6 +231,11 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
         if (closed || !admin.active()) {
             return;
         }
+        int pageSize = LibraryRowList.tablePageCapacity(rows.getHeight(), capabilities.maxPageSize());
+        if (requestedPageSize != pageSize) {
+            page = 1;
+        }
+        requestedPageSize = pageSize;
         long requestGeneration = ++generation;
         if (pending != null) {
             pending.cancel();
@@ -241,7 +247,8 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
         images.values().forEach(LibraryThumbnailService.Handle::close);
         images.clear();
         rows.rows(List.of());
-        StringBuilder path = new StringBuilder("/api/library/v1/models?scope=admin&page_size=8");
+        StringBuilder path = new StringBuilder("/api/library/v1/models?scope=admin&page_size=")
+                .append(pageSize);
         Map<String, String> queryValues = Map.of("q", query, "status", STATUSES.get(status), "type", type(),
                 "category", category(), "page", Integer.toString(page));
         queryValues.forEach((key, value) -> path.append('&').append(key).append('=')
@@ -260,7 +267,8 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
                 return;
             }
             results = value;
-            message = FiguraText.of("gui.library.page", value.page(), Math.max(1, (value.total() + 7) / 8), value.total());
+            message = FiguraText.of("gui.library.page", value.page(),
+                    Math.max(1, (value.total() + value.pageSize() - 1) / value.pageSize()), value.total());
             rows.rows(value.items().stream().map(this::tableRow).toList());
         });
     }
