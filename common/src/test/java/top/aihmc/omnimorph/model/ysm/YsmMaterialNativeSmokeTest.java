@@ -1048,21 +1048,22 @@ public final class YsmMaterialNativeSmokeTest {
                 top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
                 preview.updateAnimations(state, null);
                 var pose = preview.captureRenderPose(false);
-                require(pose.part("root").animPosRaw().lengthSquared() == 0d,
-                        "GUI rendering retains the default pose across animation frames");
-                double expectedX = -Math.toDegrees(Math.sin(age * 0.067f) * 0.05f);
-                require(Math.abs(pose.part("rightArm").animRotRaw().x - expectedX) < 0.00001
-                                && Math.abs(pose.part("leftArm").animRotRaw().x + expectedX) < 0.00001,
-                        "both arms use opposite vanilla standing sway at the current age");
+                require(pose.part("root").animPosRaw().x == 0d
+                                && pose.part("root").animPosRaw().y >= 0d
+                                && pose.part("root").animPosRaw().y <= 16d,
+                        "GUI uses the model's default idle and never the GUI clip's X translation");
+                require(pose.part("rightArm").animRotRaw().lengthSquared() == 0d
+                                && pose.part("leftArm").animRotRaw().lengthSquared() == 0d,
+                        "preview does not overwrite authored animation with procedural arm movement");
                 require(pose.part("leftForearm").animRotRaw().lengthSquared() == 0d,
                         "nested arm segments inherit sway without receiving it twice");
                 preview.updateAnimations(state, null);
-                require(Math.abs(preview.captureRenderPose(false).part("rightArm").animRotRaw().x - expectedX) < 0.00001,
-                        "repeated extraction does not accumulate standing sway");
+                require(preview.captureRenderPose(false).part("root").animPosRaw().y == pose.part("root").animPosRaw().y,
+                        "repeated extraction does not advance the animation twice");
             }
-            require(!preview.animations().isActive("gui") && !preview.animations().isActive("idle")
+            require(!preview.animations().isActive("gui") && preview.animations().isActive("idle")
                             && runtime.animations().getActiveAnimation("idle").time == 0.25f,
-                    "GUI passes do not start preview clips or advance world playback");
+                    "GUI passes run independent default idle without starting GUI clips or advancing world playback");
             require(context.variables.getPath("preview_calls") == null
                             && context.variables.getPath("preview_events") == null
                             && world.variables.getPath("preview_calls") == null
@@ -1123,8 +1124,10 @@ public final class YsmMaterialNativeSmokeTest {
                     require(alternativePreview != alternative && alternativePreview.isPreviewRuntime(),
                             "omitted or invalid preview declarations still select the detached default pose");
                     alternativePreview.updateAnimations(state, null);
-                    require(alternativePreview.captureRenderPose(false).part("root").animPosRaw().lengthSquared() == 0d,
-                            "default pose does not depend on an available preview animation");
+                    require(alternativePreview.animations().isActive("idle")
+                                    && !alternativePreview.animations().isActive("gui")
+                                    && alternativePreview.captureRenderPose(false).part("root").animPosRaw().x == 0d,
+                            "default idle does not depend on a special preview animation declaration");
                 }
             }
             runtime.close();
@@ -1409,20 +1412,60 @@ public final class YsmMaterialNativeSmokeTest {
     }
 
     private static void testStandingPreviewVertices(Unsafe unsafe, RecordingClient client) throws Exception {
-        var fixture = new Fixture(unsafe, 703);
+        var fixture = new Fixture(unsafe, 703, null, """
+                {"minecraft:geometry":[{"description":{"texture_width":1,"texture_height":1},"bones":[
+                  {"name":"root","cubes":[{"origin":[0,0,0],"size":[1,1,1],"uv":[0,0]}]},
+                  {"name":"effect","parent":"root","cubes":[{"origin":[3,0,0],"size":[1,1,1],"uv":[0,0]}]}
+                ]}]}
+                """);
+        var tag = fixture.runtimeTag.copy();
+        var animations = new net.minecraft.nbt.ListTag();
+        var animation = new net.minecraft.nbt.CompoundTag();
+        animation.putString("path", "animations/standing.animation.json");
+        animation.putByteArray("data", bytes("""
+                {"animations":{
+                  "pre_parallel0":{"loop":true,"bones":{"effect":{"scale":[0,0,0]}}},
+                  "idle":{"loop":true,"animation_length":3,"bones":{"root":{"rotation":[0,"math.sin(q.anim_time*90)*15",0]}}},
+                  "gui":{"loop":true,"bones":{"root":{"position":[400,0,0]}}}
+                }}
+                """));
+        animations.add(animation);
+        tag.put("animations", animations);
+        var controllers = new net.minecraft.nbt.ListTag();
+        var controller = new net.minecraft.nbt.CompoundTag();
+        controller.putString("path", "controllers/standing.json");
+        controller.putByteArray("data", bytes("""
+                {"animation_controllers":{"controller.setup":{"initial_state":"default","states":{
+                  "default":{"animations":["pre_parallel0"]}
+                }}}}
+                """));
+        controllers.add(controller);
+        tag.put("animation_controllers", controllers);
+        var sourceOwner = owner(unsafe, 704);
+        var source = YsmModelRuntime.fromNbt(sourceOwner, tag);
+        install(sourceOwner, "ysmRuntime", source);
         try {
-            fixture.runtime.owner().renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI;
-            var preview = fixture.runtime.forRenderPass();
+            sourceOwner.renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI;
+            var preview = source.forRenderPass();
             var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
+            top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
             preview.updateAnimations(state, null);
             var first = geometryVertices(preview, YsmPartMask.PLAYER_BODY);
+            require(first.size() == 24 && !preview.getPart("effect").visibleRaw(),
+                    "preview must retain controller/base visibility and omit the hidden effect geometry");
+            require(!preview.animations().getControllers().isEmpty(), "preview keeps the model's controller definitions");
             state.ageInTicks = 24;
+            top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
             preview.updateAnimations(state, null);
             var second = geometryVertices(preview, YsmPartMask.PLAYER_BODY);
-            require(!first.isEmpty() && !second.isEmpty() && !first.equals(second),
-                    "standing preview must move visible vertices even without recognized humanoid arm names");
-            System.out.println("PASS preview rendering: baked geometry stays visible and generic standing motion changes emitted vertices");
+            require(second.size() == 24 && !first.equals(second),
+                    "model default idle moves visible vertices while hidden effects stay absent");
+            require(preview.animations().isActive("idle") && !preview.animations().isActive("gui")
+                            && source.getPart("root").animRotRaw().lengthSquared() == 0,
+                    "preview starts only default standing playback and leaves the world pose independent");
+            System.out.println("PASS standing preview: controllers and hidden geometry retained, default idle changes vertices, GUI clip inactive");
         } finally {
+            source.close();
             fixture.runtime.close();
             client.drain();
         }
@@ -1798,13 +1841,23 @@ public final class YsmMaterialNativeSmokeTest {
         }
     }
 
-    private static final class RecordingClient extends Minecraft {
+    private static final class RecordingClient extends Minecraft implements top.aihmc.omnimorph.mixin.MinecraftAccesor {
         private RecordingTextures manager;
         private net.minecraft.client.sounds.SoundManager sounds;
         private ConcurrentLinkedQueue<Runnable> queue;
 
         private RecordingClient() {
             super(null);
+        }
+
+        @Override
+        public float figura$invokeGetTickTargetMillis(float milliseconds) {
+            return milliseconds;
+        }
+
+        @Override
+        public net.minecraft.util.profiling.metrics.profiling.MetricsRecorder figura$invokeGetMetricsRecorder() {
+            return net.minecraft.util.profiling.metrics.profiling.InactiveMetricsRecorder.INSTANCE;
         }
 
         @Override

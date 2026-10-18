@@ -206,17 +206,15 @@ public final class LibraryPreviewSession implements AutoCloseable {
             close();
         } else if (avatar != null && entity != null && !AvatarManager.panic) {
             entity.tickCount++;
-            // Initialization retains visibility and materials; authored animation events stay dormant.
+            avatar.tick();
         }
     }
 
     public void beforeExtract(float delta) {
         if (current(generations.get()) && avatar != null && !AvatarManager.panic) {
             avatar.render(delta);
-            if (entity != null && avatar.renderer != null && avatar.renderer.root != null) {
-                avatar.renderer.root.animScale(top.aihmc.omnimorph.math.vector.FiguraVec3.of(
-                        1, PreviewIdlePose.breathingScale(entity.tickCount + delta), 1), false);
-            }
+            avatar.clearAnimations();
+            avatar.applyAnimations();
         }
     }
 

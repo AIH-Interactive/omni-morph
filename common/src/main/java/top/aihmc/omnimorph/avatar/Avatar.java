@@ -938,9 +938,6 @@ public class Avatar {
     }
 
     public void tick() {
-        if (isLibraryPreview) {
-            return;
-        }
         if (ysmRuntime != null) {
             ysmRuntime.sounds().tick();
             ysmRuntime.subEntityInstances().tick(Minecraft.getInstance().level);
@@ -997,7 +994,7 @@ public class Avatar {
 
         complexity.reset(permissions.get(Permissions.COMPLEXITY));
 
-        if (isLibraryPreview || scriptError || luaRuntime == null || !loaded)
+        if (scriptError || luaRuntime == null || !loaded)
             return;
 
         render.reset(permissions.get(Permissions.RENDER_INST));
@@ -1086,17 +1083,17 @@ public class Avatar {
     }
 
     public void tickEvent() {
-        if (!isLibraryPreview && loaded && luaRuntime != null && luaRuntime.getUser() != null)
+        if (loaded && luaRuntime != null && luaRuntime.getUser() != null)
             run("TICK", tick);
     }
 
     public void renderEvent(float delta, FiguraMat4 poseMatrix) {
-        if (!isLibraryPreview && loaded && luaRuntime != null && luaRuntime.getUser() != null)
+        if (loaded && luaRuntime != null && luaRuntime.getUser() != null)
             run("RENDER", render, delta, renderMode.name(), poseMatrix);
     }
 
     public void postRenderEvent(float delta, FiguraMat4 poseMatrix) {
-        if (!isLibraryPreview && loaded && luaRuntime != null && luaRuntime.getUser() != null)
+        if (loaded && luaRuntime != null && luaRuntime.getUser() != null)
             run("POST_RENDER", render.post(), delta, renderMode.name(), poseMatrix);
         renderMode = EntityRenderMode.OTHER;
     }
@@ -1695,7 +1692,7 @@ public class Avatar {
 
 
     public void applyAnimations() {
-        if (isLibraryPreview || !loaded || scriptError)
+        if (!loaded || scriptError)
             return;
 
         animation.reset(permissions.get(Permissions.ANIMATION_INST));
