@@ -831,6 +831,14 @@ tasks.register("ysmMaterialNativeSmokeTest", JavaExec) {
     mainClass = "top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest"
 }
 
+tasks.register("ysmIdlePerformanceProbe", JavaExec) {
+    group = "verification"
+    description = "Measures actual YSM idle controller and CPU rendering costs; does not measure GPU or game FPS."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmIdlePerformanceProbe"
+}
+
 
 tasks.register("ysmMultilineExpressionSmokeTest", JavaExec) {
     group = "verification"

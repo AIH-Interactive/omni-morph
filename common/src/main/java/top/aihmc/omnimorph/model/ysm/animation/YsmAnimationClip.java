@@ -1,7 +1,6 @@
 package top.aihmc.omnimorph.model.ysm.animation;
 
 import java.util.HashMap;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import top.aihmc.omnimorph.molang.parser.ast.Expression;
@@ -14,9 +13,14 @@ public class YsmAnimationClip {
     public final boolean loop;
     public final LoopMode loopMode;
     public final Map<String, YsmBoneAnimation> boneAnimations = new HashMap<>();
-    public final List<YsmAnimationEvent> events = new ArrayList<>();
+    private final YsmAnimationEventList eventTimeline = new YsmAnimationEventList();
+    public final List<YsmAnimationEvent> events = eventTimeline;
     public float blendWeight = 1f;
     public List<Expression> blendWeightExpressions = List.of();
+
+    List<YsmAnimationEvent> orderedEvents() {
+        return eventTimeline.ordered();
+    }
 
     public YsmAnimationClip(String name, float length, boolean loop) {
         this(name, length, loop ? LoopMode.LOOP : LoopMode.ONCE);

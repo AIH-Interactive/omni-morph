@@ -46,9 +46,17 @@ import top.aihmc.omnimorph.model.ysm.controller.YsmControllerPoseLayer;
 import top.aihmc.omnimorph.model.ysm.controller.YsmBlendTransition;
 import top.aihmc.omnimorph.model.ysm.sync.YsmSyncMessage;
 
+import java.lang.reflect.Field;
 import java.util.*;
 
 public class YsmAnimationPlayer {
+    private static final ClassValue<Map<String, Optional<Field>>> STATE_FIELDS =
+            new ClassValue<>() {
+                @Override
+                protected Map<String, Optional<Field>> computeValue(Class<?> type) {
+                    return new java.util.concurrent.ConcurrentHashMap<>();
+                }
+            };
     private final YsmModelRuntime runtime;
     private final Map<String, YsmAnimationClip> clips = new HashMap<>();
     private final Map<String, YsmAnimationController> controllers = new LinkedHashMap<>();
@@ -1878,8 +1886,8 @@ public class YsmAnimationPlayer {
 
     private boolean readBoolean(LivingEntityRenderState state, String name, boolean fallback) {
         try {
-            java.lang.reflect.Field field = state.getClass().getField(name);
-            return field.getBoolean(state);
+            Field field = stateField(state, name);
+            return field == null ? fallback : field.getBoolean(state);
         } catch (Throwable ignored) {
             return fallback;
         }
@@ -1887,11 +1895,24 @@ public class YsmAnimationPlayer {
 
     private float readFloat(LivingEntityRenderState state, String name, float fallback) {
         try {
-            java.lang.reflect.Field field = state.getClass().getField(name);
-            return field.getFloat(state);
+            Field field = stateField(state, name);
+            return field == null ? fallback : field.getFloat(state);
         } catch (Throwable ignored) {
             return fallback;
         }
+    }
+
+    private static Field stateField(LivingEntityRenderState state, String name) {
+        Class<?> type = state.getClass();
+        // Render-state fields differ across entity types. Cache absent fields as well
+        // as present ones instead of creating NoSuchFieldException every frame.
+        return STATE_FIELDS.get(type).computeIfAbsent(name, key -> {
+            try {
+                return Optional.of(type.getField(key));
+            } catch (NoSuchFieldException | SecurityException missing) {
+                return Optional.empty();
+            }
+        }).orElse(null);
     }
 
     private String normalizeName(String name) {

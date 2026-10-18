@@ -27,7 +27,60 @@ public final class YsmAnimationEventWindowSmokeTest {
         equal(List.of(), YsmAnimationEventWindow.crossed(clip, 1d, 2d, false, true), "finished once has no repeat event");
         reject(() -> YsmAnimationEventWindow.crossed(clip, Double.NaN, 1d, true, true));
         reject(() -> YsmAnimationEventWindow.crossed(clip, 0d, 1048577d, true, true));
+        verifyIndexedWindows();
         System.out.println("M3 chronological event windows, loop endpoints, reverse order and bounded crossings passed.");
+    }
+
+    private static void verifyIndexedWindows() {
+        var random = new java.util.Random(341);
+        for (int trial = 0; trial < 2000; trial++) {
+            var clip = new YsmAnimationClip("indexed", 1f, true);
+            for (int index = 0; index < 24; index++) {
+                clip.events.add(new YsmAnimationEvent(random.nextInt(21) / 16f, "timeline", "event" + index));
+            }
+            // Exercise cache invalidation, stable ties, unsorted input and loop boundaries.
+            YsmAnimationEventWindow.crossed(clip, 0d, .25d, false, false);
+            clip.events.set(0, new YsmAnimationEvent(.25f, "timeline", "changed"));
+            clip.events.add(new YsmAnimationEvent(0f, "timeline", "added"));
+            clip.events.subList(1, 3).clear();
+            double from = random.nextInt(97) / 16d - 3d;
+            double to = random.nextInt(97) / 16d - 3d;
+            boolean loop = random.nextBoolean();
+            boolean initial = random.nextBoolean();
+            var expected = reference(clip, from, to, loop, initial);
+            equal(expected, YsmAnimationEventWindow.crossed(clip, from, to, loop, initial),
+                    "indexed event selection preserves original crossings trial=" + trial);
+        }
+        System.out.println("PASS indexed event windows: 2000 differential cases, mutable lists and stable event order");
+    }
+
+    private record ExpectedCrossing(double time, int cycle, int index, YsmAnimationEvent event) {}
+
+    private static List<YsmAnimationEvent> reference(YsmAnimationClip clip, double from, double to,
+                                                    boolean loop, boolean initial) {
+        if (from == to) {
+            return List.of();
+        }
+        boolean forward = to > from;
+        var crossings = new java.util.ArrayList<ExpectedCrossing>();
+        for (int index = 0; index < clip.events.size(); index++) {
+            var event = clip.events.get(index);
+            if (loop && event.time() > clip.length) {
+                continue;
+            }
+            for (int cycle = loop ? -10 : 0; cycle <= (loop ? 10 : 0); cycle++) {
+                double time = cycle * clip.length + event.time();
+                boolean crossed = forward ? time > from && time <= to : time < from && time >= to;
+                boolean first = forward && !initial && from == 0d && event.time() == 0f && cycle == 0;
+                if (crossed || first) {
+                    crossings.add(new ExpectedCrossing(time, cycle, index, event));
+                }
+            }
+        }
+        var order = java.util.Comparator.comparingDouble(ExpectedCrossing::time)
+                .thenComparingInt(ExpectedCrossing::cycle).thenComparingInt(ExpectedCrossing::index);
+        crossings.sort(forward ? order : order.reversed());
+        return crossings.stream().map(ExpectedCrossing::event).toList();
     }
 
     private static List<String> values(YsmAnimationClip clip, double from, double to, boolean initialDispatched) {
