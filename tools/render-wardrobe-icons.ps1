@@ -12,6 +12,7 @@ $icons = @{
     'library_favorite' = @('library-favorite-off.svg', 'library-favorite-on.svg')
     'library_visibility' = @('wardrobe-hidden.svg', 'wardrobe-visible.svg')
     'library_delete' = @('library-delete.svg')
+    'library_restore' = @('library-restore.svg')
 }
 $colors = @('#777777', '#ffffff', '#55ffff')
 foreach ($icon in $icons.GetEnumerator()) {

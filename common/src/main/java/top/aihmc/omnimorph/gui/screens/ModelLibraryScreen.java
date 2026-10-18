@@ -81,6 +81,9 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
     private Button uploadEntry;
     private Button adminEntry;
     private Button grants;
+    private Button restoreDeleted;
+    private UUID lastDeleted;
+    private boolean openRecycleAfterLogin;
     private Button authorizationToggle;
     private SwitchButton showPrivate;
     private LibraryEquipmentVisibility equipmentVisibility;
@@ -227,6 +230,11 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                 FiguraText.of("gui.library.visibility"), null, button -> toggleVisibility()));
         delete = actions.action(new LibraryIconButton("library_delete", 1, () -> 0, FiguraText.of("gui.library.delete"),
                 FiguraText.of("gui.library.delete_confirm"), button -> delete()));
+        restoreDeleted = actions.action(new LibraryIconButton("library_restore", 1, () -> 0,
+                FiguraText.of("gui.library.restore"), FiguraText.of("gui.library.restore_admin_hint"), button -> {
+                    openRecycleAfterLogin = true;
+                    openAdmin();
+                }));
         previous = new Button(8, height - 24, 24, 20, Component.literal("<"),
                 FiguraText.of("gui.library.previous"), button -> changePage(-1));
         next = new Button(leftWidth - 16, height - 24, 24, 20, Component.literal(">"),
@@ -535,7 +543,12 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                 "/api/library/v1/models/" + model.modelId() + suffix, input, Map.class));
         mutation.future().whenComplete((result, failure) -> {
             if (!closed) {
-                actionMessage = failure == null ? Component.empty() : error(failure);
+                if (failure == null && method.equals("DELETE") && suffix.isEmpty()) {
+                    lastDeleted = model.modelId();
+                    actionMessage = FiguraText.of("gui.library.deleted_recovery_hint");
+                } else {
+                    actionMessage = failure == null ? Component.empty() : error(failure);
+                }
                 refresh();
             }
         });
@@ -588,6 +601,9 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         delete.setActive(available && selected != null && selected.allows("delete"));
         delete.setVisible(selected != null && selected.allows("delete"));
         delete.setMessage(FiguraText.of(deleteArmed == null ? "gui.library.delete" : "gui.library.delete_confirm"));
+        restoreDeleted.setVisible(selected == null && lastDeleted != null);
+        restoreDeleted.setActive(!closed && client != null && client.current() && !busy
+                && lastDeleted != null && capabilities != null && capabilities.adminLoginAvailable());
         boolean canPage = !closed && client != null && client.current() && !busy && results != null;
         previous.setActive(canPage && page > 1);
         next.setActive(canPage && results.hasNext());
@@ -673,7 +689,12 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         if (admin.active()) {
             preview.clear();
             retainingChild = true;
-            minecraft.setScreen(new ModelLibraryAdminScreen(this, client, admin, capabilities));
+            var screen = new ModelLibraryAdminScreen(this, client, admin, capabilities);
+            if (openRecycleAfterLogin) {
+                screen.openRecycle(lastDeleted);
+                openRecycleAfterLogin = false;
+            }
+            minecraft.setScreen(screen);
         } else {
             if (adminRestore != null && !adminRestore.future().isDone()) {
                 return;
