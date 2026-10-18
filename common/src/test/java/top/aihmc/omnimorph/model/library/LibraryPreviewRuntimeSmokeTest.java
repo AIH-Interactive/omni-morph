@@ -508,7 +508,33 @@ public final class LibraryPreviewRuntimeSmokeTest {
             } finally {
                 expanded.removed();
             }
-            System.out.println("PASS wardrobe default preview: ordinary and expanded widgets retain the actual player without copies");
+            var controls = new top.aihmc.omnimorph.gui.screens.AvatarControlsScreen(wardrobe,
+                    (Avatar) unsafe.allocateInstance(Avatar.class), "root");
+            var settings = new top.aihmc.omnimorph.gui.widgets.EntityPreview(0, 0, 200, 200,
+                    40, 0, 0, player, controls);
+            try {
+                settings.tick();
+                require(field(settings.getClass(), "localPreview").get(settings) == null
+                                && field(settings.getClass(), "entity").get(settings) == player,
+                        "model settings must show the live player/model being edited instead of waiting for an unticked copy");
+                var fullSettings = new top.aihmc.omnimorph.gui.screens.AvatarScreen(40, 0, 0, player, controls);
+                fullSettings.width = 640;
+                fullSettings.height = 360;
+                initialize.invoke(fullSettings);
+                try {
+                    var full = (top.aihmc.omnimorph.gui.widgets.EntityPreview) fullSettings.children().stream()
+                            .filter(top.aihmc.omnimorph.gui.widgets.EntityPreview.class::isInstance).findFirst().orElseThrow();
+                    full.tick();
+                    require(field(full.getClass(), "localPreview").get(full) == null
+                                    && field(full.getClass(), "entity").get(full) == player,
+                            "expanded model settings retain the live preview mechanism");
+                } finally {
+                    fullSettings.removed();
+                }
+            } finally {
+                settings.closeLocalPreview();
+            }
+            System.out.println("PASS wardrobe and model settings preview: ordinary/expanded widgets retain the live player without copies");
         } finally {
             widget.closeLocalPreview();
         }
