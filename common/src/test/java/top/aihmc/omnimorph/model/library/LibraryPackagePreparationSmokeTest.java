@@ -28,6 +28,15 @@ public final class LibraryPackagePreparationSmokeTest {
         var loaded = Map.copyOf(users);
         UUID owner = UUID.randomUUID();
         try {
+            String regressionPackage = System.getenv("OMNIMORPH_TEST_FIGURA_PACKAGE");
+            if (regressionPackage != null && !regressionPackage.isBlank()) {
+                var actual = LibraryPackagePreparation.prepare(Path.of(regressionPackage), owner,
+                        64L * 1024 * 1024, () -> false);
+                require(actual.metadata().modelType().equals("FIGURA") && actual.nbt().contains("models")
+                                && actual.nbt().contains("scripts"),
+                        "provided Figura archive prepares actual model geometry and scripts");
+                System.out.println("PASS provided Figura archive preparation");
+            }
             Path figura = zip(directory.resolve("图包.zip"), Map.of(
                     "avatar.json", "{\"free\":true,\"resources\":[\"extra.txt\"]}",
                     "extra.txt", "bounded packaged resource", "script.lua", "return 1"));
@@ -62,6 +71,15 @@ public final class LibraryPackagePreparationSmokeTest {
                                 && nestedPrepared.nbt().contains("resources"),
                         "nested compilation uses model-relative paths and excludes sibling skins/scripts");
             }
+
+            Path unusualNames = zip(directory.resolve("unusual-names.zip"), Map.of(
+                    "wrapped/avatar.json", "{\"resources\":[\"LICENSE/\\nAnAn-Figura-avatar/LICENSE\"]}",
+                    "wrapped/script.lua", "return 1",
+                    "wrapped/LICENSE/\nAnAn-Figura-avatar/LICENSE", "original attribution"));
+            var unusual = LibraryPackagePreparation.prepare(unusualNames, owner, 1024 * 1024, () -> false);
+            require(unusual.nbt().getCompoundOrEmpty("resources")
+                            .contains("LICENSE/\nAnAn-Figura-avatar/LICENSE"),
+                    "ZIP-only path names and explicitly declared attribution resources retain their exact names");
 
             Path plain = zip(directory.resolve("plain.ysm"), Map.of("ysm.json",
                     "{\"metadata\":{\"name\":\"Plain\"},\"properties\":{\"free\":false},"

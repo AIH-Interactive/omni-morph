@@ -17,8 +17,6 @@ import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.IOUtils;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
@@ -209,9 +207,9 @@ public class LocalAvatarLoader {
         return nbt;
     }
 
-    private static void loadResources(CompoundTag nbt, ListTag pathsTag, Path parentPath) {
+    private static void loadResources(CompoundTag nbt, ListTag pathsTag, Path parentPath) throws IOException {
         ArrayList<PathMatcher> pathMatchers = new ArrayList<>();
-        FileSystem fs = FileSystems.getDefault();
+        FileSystem fs = parentPath.getFileSystem();
         for (int i = 0; i < pathsTag.size(); i++) {
             pathMatchers.add(fs.getPathMatcher("glob:".concat(pathsTag.getStringOr(i, ""))));
         }
@@ -220,7 +218,7 @@ public class LocalAvatarLoader {
         CompoundTag resourcesTag = new CompoundTag();
         for (String p:
                 pathMap.keySet()) {
-            try (FileInputStream fis = new FileInputStream(pathMap.get(p).toFile())) {
+            try (var fis = Files.newInputStream(pathMap.get(p))) {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 GZIPOutputStream gos = new GZIPOutputStream(baos);
                 int i;
@@ -239,17 +237,12 @@ public class LocalAvatarLoader {
     }
 
     private static String unixifyPath(String original) {
-        Path p = Path.of(original);
-        String[] components = new String[p.getNameCount()];
-        for (int i = 0; i < components.length; i++) {
-            components[i] = p.getName(i).toString();
-        }
-        return String.join("/", components);
+        return original.replace('\\', '/');
     }
 
-    private static void matchPathsRecursive(Map<String, Path> pathMap, Path parent, Path current, ArrayList<PathMatcher> matchers) {
-        File f = current.toFile();
-        if (f.isFile()) {
+    private static void matchPathsRecursive(Map<String, Path> pathMap, Path parent, Path current,
+                                            ArrayList<PathMatcher> matchers) throws IOException {
+        if (Files.isRegularFile(current)) {
             Path relative = parent.toAbsolutePath().relativize(current.toAbsolutePath()).normalize();
             for (PathMatcher m :
                     matchers) {
@@ -260,9 +253,10 @@ public class LocalAvatarLoader {
             }
         }
         else {
-            for (File fl :
-                    current.toFile().listFiles()) {
-                matchPathsRecursive(pathMap, parent, fl.toPath(), matchers);
+            try (var children = Files.list(current)) {
+                for (Path child : children.toList()) {
+                    matchPathsRecursive(pathMap, parent, child, matchers);
+                }
             }
         }
     }
