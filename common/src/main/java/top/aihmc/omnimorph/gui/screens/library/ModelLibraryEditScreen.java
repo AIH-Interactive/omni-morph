@@ -82,7 +82,8 @@ public final class ModelLibraryEditScreen extends LibraryFormScreen {
             nameField.setEnabled(editable);
             body.row(FiguraText.of("gui.library.display_name"), nameField, 24, label);
             body.row(FiguraText.of("gui.library.authors"), readonly(fieldWidth,
-                    Component.literal(String.join(", ", model.authors()))), 24, label);
+                    Component.literal(String.join(", ", model.authors())),
+                    Component.literal(String.join("\n", model.authors()))), 24, label);
             body.row(FiguraText.of("gui.library.uploader"), readonly(fieldWidth,
                     Component.literal(model.uploader().name())), 24, label);
             var categories = new LibraryDropdown(0, 0, fieldWidth,
@@ -122,7 +123,11 @@ public final class ModelLibraryEditScreen extends LibraryFormScreen {
     }
 
     private Button readonly(int width, Component text) {
-        var button = new Button(0, 0, width, 20, text, text, ignored -> {});
+        return readonly(width, text, text);
+    }
+
+    private Button readonly(int width, Component text, Component tooltip) {
+        var button = new Button(0, 0, width, 20, text, tooltip, ignored -> {});
         button.setActive(false);
         return button;
     }
