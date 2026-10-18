@@ -55,6 +55,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
     private final List<TextField> editableFields = new ArrayList<>();
     private TextField name;
     private LibraryMultilineField description;
+    private int descriptionHeight = 56;
     private Button sourceButton;
     private Button author;
     private Button uploader;
@@ -168,12 +169,13 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
                     }
                 });
         body.row(FiguraText.of("gui.library.authorization"), authorization, 24, labelWidth);
-        description = body.row(FiguraText.of("gui.library.description"), new LibraryMultilineField(fieldWidth, 56,
+        descriptionHeight = Math.clamp(descriptionHeight, 40, Math.max(56, height / 2));
+        description = body.row(FiguraText.of("gui.library.description"), new LibraryMultilineField(fieldWidth, descriptionHeight,
                 draft.description(), value -> {
             if (!building) {
                 draft.description(value);
             }
-        }), 60, labelWidth);
+        }).resizable(40, Math.max(56, height / 2), value -> descriptionHeight = value), 44, labelWidth);
         if (imagePath != null) {
             imageButton.setMessage(Component.literal(imagePath.getFileName().toString()));
         }

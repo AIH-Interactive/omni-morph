@@ -150,6 +150,7 @@
   "omni-morph.gui.library.phase.uploading": "正在上传…",
   "omni-morph.gui.library.phase.applying": "服务器校验 / 发布中…",
   "omni-morph.gui.library.phase.compressing": "正在压缩分发包…",
+  "omni-morph.gui.library.resize_description": "拖动以调整描述框高度",
   "omni-morph.gui.library.bytes": "字节",
   "omni-morph.gui.library.ready_upload": "准备完成：%s / 服务器上限 %s",
   "omni-morph.gui.library.preparation_error": "无法准备此模型文件。",
