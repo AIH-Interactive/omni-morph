@@ -429,3 +429,9 @@ previewRuntime、完整 ysmMaterialNative、Fabric build 及举报输入/护甲/
 按用户最新要求，衣柜及其放大预览直接渲染实际当前玩家及 AvatarManager 已加载模型，不再创建 LibraryPreviewSession 副本、不重复初始化模型、不单独驱动脚本/动画。沿用 Figura 原有 GUI 绘制、旋转/拖动/缩放和模型本身的运行状态；模型库独立预览保持现状，不扩展到其他页面。新增真实衣柜来源及 AvatarScreen 放大控件回归，先验证旧代码仍创建副本而失败，修改后验证两处保留同一实际玩家，再编译提交推送；游戏内验收 MANUAL/PENDING。
 
 R21 检查点：衣柜来源的 EntityPreview 跳过副本创建与额外 tick，绘制直接使用实际 sourceEntity；AvatarScreen 保留原衣柜父页面，因此放大同样走 Figura 原玩家预览。回归先复现旧逻辑仍创建副本，修复后普通与真实 AvatarScreen 初始化的放大控件均保留同一玩家且 localPreview 为空。模型库隔离预览不变。previewRuntime、Fabric build 及原举报输入/护甲/披风回归前台 Tee PASS，退出 0；差异空白核对通过，版本保持 alpha.2。实际游戏动作、模型外观和拖动缩放验收 MANUAL/PENDING。
+
+### R22 Figura 隔离预览叠加原版玩家及皮肤
+
+用户要求：脚本默认不隐藏原版玩家时，Figura 部件模型与原版玩家及当前玩家皮肤同屏显示；脚本隐藏时不强制补回。沿用现有原生玩家渲染提交，由模型正常脚本控制各身体部件显隐；隔离身份与模型绑定保留，皮肤和 slim/wide 模型类型复用当前玩家已加载的原生皮肤，加载完成或皮肤变化后实时跟随。补齐隔离玩家的帽子/衣服/袖子/裤腿等外层皮肤偏好，缺少源玩家时使用原生默认皮肤。衣柜默认预览不改。验证无脚本/显式显示/显式隐藏的原生玩家部件、皮肤与外层设置、编译后提交推送；游戏内合成画面验收 MANUAL/PENDING。
+
+R22 检查点：提取 LibraryPreviewPlayer，隔离 UUID 保持独立，皮肤及模型类型实时读取当前玩家原生已加载 PlayerSkin，皮肤外层开关读取当前玩家，缺少源玩家时用原生默认皮肤。复用原生玩家与 Figura 部件同次合成绘制，原脚本继续控制各部件显隐。新增原生 PlayerModel 身体/帽子/外套/袖子/裤腿断言覆盖无脚本、显式显示和隐藏；新增真实预览玩家方法回归覆盖后续皮肤加载、SLIM 类型、外层偏好与源缺失。previewRuntime、Fabric build 及衣柜默认/举报输入/护甲/披风回归前台 Tee PASS，退出 0；差异空白核对通过，游戏画面 MANUAL/PENDING。

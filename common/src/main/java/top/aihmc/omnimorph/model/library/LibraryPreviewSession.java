@@ -1,12 +1,9 @@
 package top.aihmc.omnimorph.model.library;
 
-import com.mojang.authlib.GameProfile;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.player.RemotePlayer;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.PlayerSkin;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
 import top.aihmc.omnimorph.avatar.AvatarManager;
@@ -45,16 +42,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
     public LibraryPreviewSession(LibraryClient client) {
         this.client = client;
         world = Minecraft.getInstance().level;
-        entity = world == null ? null : new RemotePlayer(world, new GameProfile(owner, "LibraryPreview")) {
-            @Override
-            public PlayerSkin getSkin() {
-                var player = Minecraft.getInstance().player;
-                return player == null ? super.getSkin() : player.getSkin();
-            }
-        };
-        if (entity != null) {
-            entity.setOnGround(true);
-        }
+        entity = world == null ? null : new LibraryPreviewPlayer(world, owner, () -> Minecraft.getInstance().player);
     }
 
     public Status status() {
