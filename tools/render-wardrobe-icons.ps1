@@ -1,3 +1,4 @@
+# Regenerate wardrobe and library action sprites from their pixel SVG sources.
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -5,6 +6,12 @@ $outputDirectory = Join-Path $projectRoot 'common/src/main/resources/assets/omni
 $icons = @{
     'wardrobe_visibility' = @('wardrobe-hidden.svg', 'wardrobe-visible.svg')
     'wardrobe_appeal' = @('wardrobe-appeal.svg')
+    'library_grants' = @('library-grants.svg')
+    'library_authorization' = @('library-auth-free.svg', 'library-auth-required.svg')
+    'library_use' = @('library-use.svg')
+    'library_favorite' = @('library-favorite-off.svg', 'library-favorite-on.svg')
+    'library_visibility' = @('wardrobe-hidden.svg', 'wardrobe-visible.svg')
+    'library_delete' = @('library-delete.svg')
 }
 $colors = @('#777777', '#ffffff', '#55ffff')
 foreach ($icon in $icons.GetEnumerator()) {
