@@ -14,7 +14,8 @@ import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.EntityPreview;
 import top.aihmc.omnimorph.gui.widgets.SearchBar;
 import top.aihmc.omnimorph.gui.widgets.SwitchButton;
-import top.aihmc.omnimorph.gui.widgets.library.LibraryFormBody;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryIconButton;
 import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionTabs;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryCheckBox;
@@ -115,8 +116,8 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         leftWidth = layout.contentWidth();
         int rightX = layout.previewX();
         int rightWidth = layout.previewWidth();
-        int actionsHeight = Math.min(120, Math.max(56, height / 4));
-        actionsY = height - 24 - actionsHeight;
+        int actionsHeight = LibraryActionBar.heightFor(rightWidth, 6);
+        actionsY = height - 28 - actionsHeight;
         sections = addRenderableWidget(new LibrarySectionTabs(8, 28, leftWidth, scope,
                 capabilities != null && capabilities.adminLoginAvailable(), this::openSection));
         uploadEntry = sections.button(3);
@@ -195,9 +196,8 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
             widget.setLibraryPreview(preview);
             addRenderableWidget(widget);
         }
-        var actions = addRenderableWidget(new LibraryFormBody(rightX, actionsY, rightWidth, actionsHeight, false));
-        int actionWidth = Math.max(20, rightWidth - 22);
-        grants = actions.row(Component.empty(), new Button(0, 0, actionWidth, 20,
+        var actions = addRenderableWidget(new LibraryActionBar(rightX, actionsY, rightWidth, actionsHeight));
+        grants = actions.action(new LibraryIconButton("library_grants", 1, () -> 0,
                 FiguraText.of("gui.library.grants"), null, button -> {
                     if (LibraryAuthorization.available(selected)) {
                         preview.clear();
@@ -205,10 +205,11 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                         minecraft.setScreen(new ModelLibraryAuthorizationScreen(this, client, selected.modelId(), () -> ""));
                     }
                 }));
-        showPrivate = actions.row(Component.empty(), new LibraryCheckBox(0, 0, actionWidth,
+        showPrivate = actions.option(new LibraryCheckBox(0, 0, rightWidth,
                 FiguraText.of("gui.library.show_private"), FiguraText.of("gui.library.show_private_hint"), ignored -> savePrivateVisibility()));
         showPrivate.setToggled(visibilityState != null && visibilityState.showing());
-        authorizationToggle = actions.row(Component.empty(), new Button(0, 0, actionWidth, 20,
+        authorizationToggle = actions.action(new LibraryIconButton("library_authorization", 2,
+                () -> selected != null && selected.requiresAuthorization() ? 1 : 0,
                 FiguraText.of("gui.library.authorization"), null, button -> {
                     if (selected != null && selected.allows("patch")) {
                         mutate(selected, "PATCH", "", Map.of("operation_id", UUID.randomUUID().toString(),
@@ -216,18 +217,16 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                                 "requires_authorization", !selected.requiresAuthorization()));
                     }
                 }));
-        use = new Button(0, 0, actionWidth, 20, FiguraText.of("gui.library.use"),
-                null, button -> enable());
-        favorite = new Button(0, 0, actionWidth, 20, FiguraText.of("gui.library.favorite"),
-                null, button -> favorite(selected));
-        visibility = new Button(0, 0, actionWidth, 20, FiguraText.of("gui.library.visibility"),
-                null, button -> toggleVisibility());
-        delete = new Button(0, 0, actionWidth, 20, FiguraText.of("gui.library.delete"),
-                FiguraText.of("gui.library.delete_confirm"), button -> delete());
-        actions.row(Component.empty(), use);
-        actions.row(Component.empty(), favorite);
-        actions.row(Component.empty(), visibility);
-        actions.row(Component.empty(), delete);
+        use = actions.action(new LibraryIconButton("library_use", 1, () -> 0, FiguraText.of("gui.library.use"),
+                null, button -> enable()));
+        favorite = actions.action(new LibraryIconButton("library_favorite", 2,
+                () -> selected != null && selected.favorited() ? 1 : 0, FiguraText.of("gui.library.favorite"),
+                null, button -> favorite(selected)));
+        visibility = actions.action(new LibraryIconButton("library_visibility", 2,
+                () -> selected != null && selected.visibility().equals("PUBLIC") ? 1 : 0,
+                FiguraText.of("gui.library.visibility"), null, button -> toggleVisibility()));
+        delete = actions.action(new LibraryIconButton("library_delete", 1, () -> 0, FiguraText.of("gui.library.delete"),
+                FiguraText.of("gui.library.delete_confirm"), button -> delete()));
         previous = new Button(8, height - 24, 24, 20, Component.literal("<"),
                 FiguraText.of("gui.library.previous"), button -> changePage(-1));
         next = new Button(leftWidth - 16, height - 24, 24, 20, Component.literal(">"),

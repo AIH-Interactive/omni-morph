@@ -2,6 +2,7 @@ package top.aihmc.omnimorph.model.library;
 
 import top.aihmc.omnimorph.gui.widgets.library.ModelLibraryLayout;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar;
 
 public final class ModelLibraryLayoutSmokeTest {
     public static void main(String[] args) {
@@ -16,6 +17,10 @@ public final class ModelLibraryLayoutSmokeTest {
                                 && workspace.top() + workspace.previewHeight() < workspace.footerY()
                                 && workspace.footerY() + 20 <= height - 4,
                         "scrolling content and preview leave a separate usable footer");
+                int actionsHeight = LibraryActionBar.heightFor(workspace.previewWidth(), 6);
+                int actionsY = height - 28 - actionsHeight;
+                require(actionsY >= 100 && actionsY + actionsHeight <= height - 28,
+                        "icon actions and the visibility option leave a separate preview and footer");
             }
         }
         require(ModelLibraryLayout.of(240, 100, 8).columns() == 1, "one horizontal card column");
