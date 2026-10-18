@@ -37,6 +37,11 @@ public final class LibraryPreviewSession implements AutoCloseable {
     private boolean expanded;
     private Status status = new Status(Stage.IDLE, "");
 
+    /** Local wardrobe previews have no backend session dependency. */
+    public LibraryPreviewSession() {
+        this(null);
+    }
+
     public LibraryPreviewSession(LibraryClient client) {
         this.client = client;
         world = Minecraft.getInstance().level;
@@ -47,6 +52,9 @@ public final class LibraryPreviewSession implements AutoCloseable {
                 return player == null ? super.getSkin() : player.getSkin();
             }
         };
+        if (entity != null) {
+            entity.setOnGround(true);
+        }
     }
 
     public Status status() {
@@ -189,7 +197,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
     }
 
     private boolean current(long generation) {
-        return !closed && generations.get() == generation && client.current()
+        return !closed && generations.get() == generation && (client == null || client.current())
                 && Minecraft.getInstance().level == world;
     }
 
@@ -198,7 +206,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
             close();
         } else if (avatar != null && entity != null && !AvatarManager.panic) {
             entity.tickCount++;
-            avatar.tick();
+            // Initialization retains visibility and materials; authored animation events stay dormant.
         }
     }
 

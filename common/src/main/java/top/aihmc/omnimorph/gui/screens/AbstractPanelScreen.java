@@ -12,6 +12,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import top.aihmc.omnimorph.config.Configs;
 import top.aihmc.omnimorph.gui.widgets.ContextMenu;
+import top.aihmc.omnimorph.gui.widgets.EntityPreview;
 import top.aihmc.omnimorph.gui.widgets.FiguraRemovable;
 import top.aihmc.omnimorph.gui.widgets.FiguraTickable;
 import top.aihmc.omnimorph.gui.widgets.PanelSelectorWidget;
@@ -78,6 +79,26 @@ public abstract class AbstractPanelScreen extends Screen {
 
     public List<Renderable> renderables() {
         return ((ScreenAccessor) this).getRenderables();
+    }
+
+    private void closeLocalPreviews() {
+        for (GuiEventListener child : children()) {
+            if (child instanceof EntityPreview preview) {
+                preview.closeLocalPreview();
+            }
+        }
+    }
+
+    @Override
+    protected void clearWidgets() {
+        closeLocalPreviews();
+        super.clearWidgets();
+    }
+
+    @Override
+    public void removed() {
+        closeLocalPreviews();
+        super.removed();
     }
 
     @Override
