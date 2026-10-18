@@ -102,7 +102,7 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
         UIHelper.renderScrollingText(gui, counts, informationX, y + 58, informationWidth, 0xffa9bbc9);
         if (isMouseOver(mouseX, mouseY) && !favorite.isMouseOver(mouseX, mouseY) && !report.isMouseOver(mouseX, mouseY)) {
             var tooltip = FiguraText.of("gui.library.card_tooltip", model.internalName(),
-                    String.join(", ", model.authors()), model.uploader().name(), model.uploader().uuid().toString());
+                    String.join("\n", model.authors()), model.uploader().name(), model.uploader().uuid().toString());
             if (thumbnail != null && thumbnail.ready().isCompletedExceptionally()) {
                 tooltip.append("\n").append(FiguraText.of("gui.library.image_retry"));
             }
