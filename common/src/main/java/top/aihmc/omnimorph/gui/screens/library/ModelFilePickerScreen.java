@@ -2,6 +2,7 @@ package top.aihmc.omnimorph.gui.screens.library;
 
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.gui.screens.AbstractPanelScreen;
 import top.aihmc.omnimorph.gui.screens.ModelLibraryScreen;
@@ -38,7 +39,8 @@ public final class ModelFilePickerScreen extends AbstractPanelScreen {
                                  Consumer<Path> selected) {
         super(parent, FiguraText.of("gui.library.file_picker"));
         this.client = client;
-        this.directory = directory.toAbsolutePath().normalize();
+        this.directory = (kind == Kind.MODEL ? LocalAvatarFetcher.getLocalAvatarDirectory() : directory)
+                .toAbsolutePath().normalize();
         this.kind = kind;
         this.selected = selected;
     }
@@ -58,21 +60,26 @@ public final class ModelFilePickerScreen extends AbstractPanelScreen {
                     FiguraText.of("gui.done"), null, button -> onClose()));
             return;
         }
-        var path = addRenderableWidget(new TextField(8, 30, Math.max(80, width - 104), 20,
-                TextField.HintType.FOLDER_PATH, ignored -> {}));
-        path.getField().setValue(directory.toString());
-        addRenderableWidget(new Button(width - 92, 30, 40, 20, FiguraText.of("gui.library.open"), null, button -> {
-            try {
-                navigate(Path.of(path.getField().getValue()));
-            } catch (RuntimeException invalid) {
-                status = FiguraText.of("gui.library.file_error");
-            }
-        }));
-        addRenderableWidget(new Button(width - 48, 30, 40, 20, Component.literal(".."), null, button -> {
-            if (directory.getParent() != null) {
-                navigate(directory.getParent());
-            }
-        }));
+        if (kind == Kind.MODEL) {
+            addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui,
+                    Component.literal(directory.toString()), 8, 36, width - 16, 0xffbac6d8));
+        } else {
+            var path = addRenderableWidget(new TextField(8, 30, Math.max(80, width - 104), 20,
+                    TextField.HintType.FOLDER_PATH, ignored -> {}));
+            path.getField().setValue(directory.toString());
+            addRenderableWidget(new Button(width - 92, 30, 40, 20, FiguraText.of("gui.library.open"), null, button -> {
+                try {
+                    navigate(Path.of(path.getField().getValue()));
+                } catch (RuntimeException invalid) {
+                    status = FiguraText.of("gui.library.file_error");
+                }
+            }));
+            addRenderableWidget(new Button(width - 48, 30, 40, 20, Component.literal(".."), null, button -> {
+                if (directory.getParent() != null) {
+                    navigate(directory.getParent());
+                }
+            }));
+        }
         rows = addRenderableWidget(new LibraryRowList(8, 54, width - 16, Math.max(32, height - 104)));
         addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui, status,
                 8, height - 46, width - 16, 0xffeeeeee));
@@ -86,6 +93,9 @@ public final class ModelFilePickerScreen extends AbstractPanelScreen {
     }
 
     private void navigate(Path target) {
+        if (kind == Kind.MODEL) {
+            return;
+        }
         directory = target.toAbsolutePath().normalize();
         listing = null;
         generation++;
@@ -109,7 +119,8 @@ public final class ModelFilePickerScreen extends AbstractPanelScreen {
                 for (Path path : entries.stream().limit(4096).toList()) {
                     exchange.requireCurrent();
                     boolean folder = Files.isDirectory(path);
-                    if (folder || accepts(path, kind)) {
+                    if (kind == Kind.MODEL ? Files.isRegularFile(path) && accepts(path, kind)
+                            : folder || accepts(path, kind)) {
                         items.add(new Item(path, folder));
                     }
                 }
@@ -126,7 +137,10 @@ public final class ModelFilePickerScreen extends AbstractPanelScreen {
                 status = FiguraText.of("gui.library.file_error");
             } else {
                 listing = value;
-                status = FiguraText.of(value.truncated() ? "gui.library.file_limit" : "gui.library.file_hint");
+                String hint = kind == Kind.MODEL
+                        ? value.truncated() ? "gui.library.model_file_limit" : "gui.library.model_file_hint"
+                        : value.truncated() ? "gui.library.file_limit" : "gui.library.file_hint";
+                status = FiguraText.of(hint);
                 showListing();
             }
         });

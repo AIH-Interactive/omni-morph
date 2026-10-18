@@ -389,3 +389,9 @@ management、transfer、layout、previewRuntime 及 Fabric build 前台 Tee PASS
 R15c 检查点：后端默认数据库路径改为 data/metadata.db，迁移临时库和自动 pre-library 快照同样使用 .db。目标不存在时优先从同目录旧 metadata.sqlite3 使用 SQLite backup（包含已提交 WAL）迁移，其次兼容旧 cloud-v1 目录；原库保留作为恢复来源，既有 .db 始终优先，不被旧快照覆盖。部署/SQLite/回收站文档已同步路径及统一接口。
 
 新增回归验证 WAL 中的用户与模型关联、instance ID/装备/原始文件保留、新 .db 后续更新不被旧库覆盖、未知版本拒绝且不生成空库；原云目录迁移测试改为 .db 目标。layout 四项 PASS，完整 cargo test --locked 101 passed / 0 failed / 1 既有 ignored，cargo build --locked PASS，均前台 Tee，退出 0；未配置外部夹具按原检查 SKIPPED，差异及空白核对通过。实际部署升级与游戏内验收 MANUAL/PENDING。
+
+### R16 上传模型文件选择范围
+
+“选择模型”固定使用设置主目录下的 avatars 文件夹，与衣柜复用 LocalAvatarFetcher.getLocalAvatarDirectory；不使用上一次选中或拖入文件的父目录。模型选择页只显示该目录内可选的 .zip / .ysm 普通文件（大小写不敏感），路径只读且不提供目录导航。封面图片选择器及 ModelUploadScreen.onFilesDrop 原拖入逻辑保留。验证配置路径、类型过滤及回归后编译、提交推送；游戏内点击和拖入验收 MANUAL/PENDING。
+
+R16 检查点：实际选择器异步扫描回归验证配置主目录、固定 avatars、禁止离开目录、仅普通 zip/ysm 文件及大小写扩展名过滤；切换配置后新选择器使用新路径，封面浏览与外部拖入接收保留。previewRuntime、uploadDraft、护甲/披风方法回归及 Fabric build 前台 Tee PASS，退出 0；差异空白核对通过，游戏内验收 MANUAL/PENDING。
