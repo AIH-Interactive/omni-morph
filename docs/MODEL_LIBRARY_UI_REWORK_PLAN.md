@@ -561,6 +561,10 @@ R36a 检查点：cloudReconnect 退避/取消回归、cloudProtocolConfig、完�
 
 R36b（用户追加，R36a 检查点后实施）：切换模型概率性 UNSUPPORTED_CAPABILITY 断连，检查旧模型 YSM 状态队列与错误响应处理；仅处理过期模型状态的可恢复错误，不吞掉握手、认证或非法消息错误。构造回归复现后修复、编译、独立提交推送，再进入 R37。
 
+R36b 实现：实际 Protobuf send/receive 回归在修复前复现“旧 YSM 请求收到 UNSUPPORTED_CAPABILITY 后关闭连接”。本地选择或本账号装备资源变化时推进发布代次并移除尚未发送的 YSM 队列项；有界记录请求 ID 与发布代次，ACK 后删除。只有关联到旧代次状态请求的 CONFLICT/NOT_FOUND/UNSUPPORTED_CAPABILITY 才请求重建快照而保持连接；认证错误、未关联错误及当前模型错误仍走原关闭路径。不会降低后端模型类型、署名或权限检查。
+
+R36b 检查点：cloudModelSwitch 原先失败、修复后通过；关联旧代次错误恢复、队列退休、认证/无关联错误关闭均验证。cloudReconnect、cloudProtocolConfig、完整 ysmMaterialNative、libraryEquipment 和 Fabric build（含 previewRuntime）前台 Tee PASS，退出 0；模拟协议夹具同步支持新增选择生命周期通知，diff --check 通过。后端本阶段无需修改；真实游戏快速切换/网络延迟复测 MANUAL/PENDING。
+
 ### R37 模型专用设置预览缺失
 
 根据用户截图修复模型专用设置页面只显示占位标志的问题，检查当前模型绑定以及衣柜进入、放大返回的生命周期；沿用既有模型预览机制。实际游戏视觉验收 MANUAL/PENDING，完成回归和构建后独立提交推送。

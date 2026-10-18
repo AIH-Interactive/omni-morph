@@ -56,7 +56,7 @@ public final class LibraryEquipmentSmokeTest {
             var protocol = (CloudProtocol) Proxy.newProxyInstance(CloudProtocol.class.getClassLoader(),
                     new Class<?>[]{CloudProtocol.class}, (proxy, method, arguments) -> switch (method.getName()) {
                         case "connected" -> true;
-                        case "close" -> null;
+                        case "close", "localSelectionChanged" -> null;
                         case "profile" -> {
                             require(player.equals(arguments[0]), "profile refresh belongs to the authenticated player");
                             String id = server.wrongProfile ? "unrelated_asset" : server.alias();

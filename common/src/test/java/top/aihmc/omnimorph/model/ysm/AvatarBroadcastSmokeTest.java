@@ -52,7 +52,7 @@ final class AvatarBroadcastSmokeTest {
                 new Class<?>[]{CloudProtocol.class}, (proxy, method, args) -> {
                     return switch (method.getName()) {
                         case "connected" -> true;
-                        case "close" -> null;
+                        case "close", "localSelectionChanged" -> null;
                         case "upload" -> {
                             require(Thread.currentThread() != clientThread, "compression/upload run off the game thread");
                             require(NetworkStuff.getUploadProgress() != null, "active upload has visible progress");
