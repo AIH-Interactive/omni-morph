@@ -39,10 +39,15 @@ public final class LibraryThumbnailService implements AutoCloseable {
     }
 
     /** Managed heap pixels are safe to discard if cancellation wins before client-thread delivery. */
-    public record Pixels(int width, int height, int[] argb) {
+    public record Pixels(int width, int height, int[] argb, int sourceWidth, int sourceHeight) {
+        public Pixels(int width, int height, int[] argb) {
+            this(width, height, argb, width, height);
+        }
+
         public Pixels {
             if (width < 1 || height < 1 || width > THUMBNAIL_DIMENSION || height > THUMBNAIL_DIMENSION
-                    || argb.length != width * height) {
+                    || argb.length != width * height || sourceWidth < width || sourceHeight < height
+                    || sourceWidth > MAX_DIMENSION || sourceHeight > MAX_DIMENSION) {
                 throw new IllegalArgumentException("INVALID_THUMBNAIL");
             }
             argb = argb.clone();
@@ -128,7 +133,7 @@ public final class LibraryThumbnailService implements AutoCloseable {
                 var image = reader.read(0, parameters);
                 try {
                     int[] argb = image.getRGB(0, 0, image.getWidth(), image.getHeight(), null, 0, image.getWidth());
-                    return new Pixels(image.getWidth(), image.getHeight(), argb);
+                    return new Pixels(image.getWidth(), image.getHeight(), argb, width, height);
                 } finally {
                     image.flush();
                 }
@@ -139,11 +144,24 @@ public final class LibraryThumbnailService implements AutoCloseable {
     }
 
     public Handle acquire(UUID id) {
+        return acquire(load(id));
+    }
+
+    public Handle acquireLocal(byte[] bytes) {
+        if (bytes.length == 0 || bytes.length > MAX_BYTES) {
+            throw new IllegalArgumentException("IMAGE_LIMIT");
+        }
+        byte[] owned = bytes.clone();
+        return acquire(client.submit(LibraryClient.Lane.THUMBNAIL, exchange -> decode(owned)));
+    }
+
+    private Handle acquire(LibraryClient.Request<Pixels> request) {
         RenderSystem.assertOnRenderThread();
         if (closed || handles.size() >= 32) {
+            request.cancel();
             throw new IllegalStateException("THUMBNAIL_BUDGET");
         }
-        var handle = new Handle(load(id));
+        var handle = new Handle(request);
         handles.add(handle);
         handle.request.future().whenComplete(handle::publish);
         return handle;

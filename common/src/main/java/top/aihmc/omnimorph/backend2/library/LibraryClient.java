@@ -73,6 +73,10 @@ public final class LibraryClient implements AutoCloseable {
         return session;
     }
 
+    public String origin() {
+        return access.origin();
+    }
+
     public boolean current() {
         return !closed && session.current();
     }
@@ -258,6 +262,31 @@ public final class LibraryClient implements AutoCloseable {
                 throw new Failure(0, "CONTROL_LIMIT");
             }
             var response = send(method, path, HttpRequest.BodyPublishers.ofByteArray(encoded), "application/json");
+            return readJson(response, type);
+        }
+
+        public <T> T binaryJson(String method, String path, byte[] bytes, String contentType,
+                                Map<String, String> headers, Class<T> type) throws Exception {
+            request.requireCurrent();
+            var response = call.send(method, path, HttpRequest.BodyPublishers.ofByteArray(bytes), contentType,
+                    adminToken, headers);
+            return readJson(response, type);
+        }
+
+        public void binary(String method, String path, HttpRequest.BodyPublisher body,
+                           String contentType, int expectedStatus) throws Exception {
+            var response = send(method, path, body, contentType);
+            byte[] bytes;
+            try (InputStream input = response.body()) {
+                bytes = CloudHttp.readBounded(input, CloudHttp.CONTROL_BYTES);
+            }
+            request.requireCurrent();
+            if (response.statusCode() != expectedStatus) {
+                throw responseFailure(response.statusCode(), bytes);
+            }
+        }
+
+        private <T> T readJson(HttpResponse<InputStream> response, Class<T> type) throws Exception {
             byte[] bytes;
             try (InputStream input = response.body()) {
                 bytes = CloudHttp.readBounded(input, CloudHttp.CONTROL_BYTES);

@@ -400,6 +400,31 @@ tasks.register('modelLibraryCatalogSmokeTest', JavaExec) {
     args '--library-catalog'
 }
 
+tasks.register('libraryManagementSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks authorization gates and scoped administrator credentials against real HTTP and Windows ACLs.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.backend2.library.LibraryManagementSmokeTest'
+}
+
+tasks.register('libraryUploadDraftSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks source-driven defaults, explicit edit precedence and live submission metadata limits.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.library.LibraryUploadDraftSmokeTest'
+}
+
+tasks.register('libraryUploadSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Exercises actual upload HTTP, replay/CAS, cancel and encrypted synchronization inventory.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest'
+    args '--library-upload'
+}
+
 tasks.register("ysmBaselineSmokeTest", JavaExec) {
     group = "verification"
     description = "Checks YSM candidate discovery, diagnostics, and strict scan gates using synthetic fixtures."

@@ -33,11 +33,15 @@ public class TextField extends AbstractContainerElement {
         super(x, y, width, height);
         this.hint = hint;
 
-        field = new EditBox(Minecraft.getInstance().font, x + 4, y + (height - 8) / 2, width - 12, height - (height - 8) / 2, Component.empty());
+        field = createField(x + 4, y + (height - 8) / 2, width - 12, height - (height - 8) / 2);
         field.setMaxLength(32767);
         field.setBordered(false);
         field.setResponder(changedListener);
         children.add(field);
+    }
+
+    protected EditBox createField(int x, int y, int width, int height) {
+        return new EditBox(Minecraft.getInstance().font, x, y, width, height, Component.empty());
     }
 
     @Override

@@ -10,6 +10,9 @@ import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.AvatarManager;
 import top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher;
 import top.aihmc.omnimorph.backend2.NetworkStuff;
+import top.aihmc.omnimorph.backend2.library.LibraryClient;
+import top.aihmc.omnimorph.gui.screens.library.ModelLibraryAppealsScreen;
+import top.aihmc.omnimorph.gui.screens.library.WardrobeVisibilityScreen;
 import top.aihmc.omnimorph.config.Configs;
 import top.aihmc.omnimorph.gui.FiguraToast;
 import top.aihmc.omnimorph.gui.widgets.*;
@@ -38,6 +41,10 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private Label panic;
 
     private Button upload, delete, back;
+    private Button libraryVisibility;
+    private Button libraryAppeals;
+    private LibraryClient.Request<?> libraryRequest;
+    private long libraryGeneration;
 
     public WardrobeScreen(Screen parentScreen) {
         super(parentScreen, FiguraText.of("gui.panels.title.wardrobe"));
@@ -48,6 +55,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
 
     @Override
     protected void init() {
+        libraryGeneration++;
         super.init();
 
         // screen
@@ -174,7 +182,13 @@ public class WardrobeScreen extends AbstractPanelScreen {
         addRenderableWidget(keybinds);
 
         // avatar metadata
-        addRenderableOnly(infoWidget = new AvatarInfoWidget(this.width - panels - 4, 56, panels, back.getY() - 60));
+        addRenderableOnly(infoWidget = new AvatarInfoWidget(this.width - panels - 4, 56, panels, back.getY() - 84));
+        int libraryButtonWidth = Math.max(24, (panels - 4) / 2);
+        libraryVisibility = addRenderableWidget(new Button(this.width - panels - 4, back.getY() - 24,
+                libraryButtonWidth, 20, FiguraText.of("gui.library.wardrobe_visibility"),
+                FiguraText.of("gui.library.wardrobe_show_hint"), button -> openLibrary(false)));
+        libraryAppeals = addRenderableWidget(new Button(this.width - panels + libraryButtonWidth, back.getY() - 24,
+                libraryButtonWidth, 20, FiguraText.of("gui.library.my_appeals"), null, button -> openLibrary(true)));
 
         // backend MOTD
         if (motdWidget != null) {
@@ -182,6 +196,9 @@ public class WardrobeScreen extends AbstractPanelScreen {
             motdWidget = null;
         }
         updateMotdWidget();
+        boolean libraryAvailable = NetworkStuff.isConnected() && (libraryRequest == null || libraryRequest.future().isDone());
+        libraryVisibility.setActive(libraryAvailable && NetworkStuff.getUploadProgress() == null);
+        libraryAppeals.setActive(libraryAvailable);
 
         // panic warning - always added last, on top
         addRenderableWidget(panic = new Label(
@@ -239,14 +256,43 @@ public class WardrobeScreen extends AbstractPanelScreen {
         Avatar avatar;
         upload.setActive(NetworkStuff.canUpload() && !AvatarManager.localUploaded && (avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID())) != null && avatar.nbt != null && avatar.loaded);
         delete.setActive(NetworkStuff.isConnected() && AvatarManager.localUploaded && NetworkStuff.getUploadProgress() == null);
+        boolean libraryAvailable = NetworkStuff.isConnected() && (libraryRequest == null || libraryRequest.future().isDone());
+        libraryVisibility.setActive(libraryAvailable && NetworkStuff.getUploadProgress() == null);
+        libraryAppeals.setActive(libraryAvailable);
 
         updateMotdWidget();
     }
 
     @Override
     public void removed() {
+        libraryGeneration++;
+        if (libraryRequest != null) {
+            libraryRequest.cancel();
+        }
         super.removed();
         LocalAvatarFetcher.save();
+    }
+
+    private void openLibrary(boolean appeals) {
+        try {
+            LibraryClient client = NetworkStuff.libraryClient();
+            long expected = ++libraryGeneration;
+            var request = client.capabilities();
+            libraryRequest = request;
+            request.future().whenComplete((capabilities, failure) -> {
+                if (libraryGeneration != expected || !client.current()) {
+                    return;
+                }
+                if (failure != null || !capabilities.enabled()) {
+                    FiguraToast.sendToast(FiguraText.of("gui.library.state.unsupported"));
+                } else {
+                    minecraft.setScreen(appeals ? new ModelLibraryAppealsScreen(this, client, null)
+                            : new WardrobeVisibilityScreen(this, client));
+                }
+            });
+        } catch (java.io.IOException unavailable) {
+            FiguraToast.sendToast(FiguraText.of("gui.library.state.offline"));
+        }
     }
 
     private void renderUploadProgress(GuiGraphicsExtractor gui, int x, int y, int width) {

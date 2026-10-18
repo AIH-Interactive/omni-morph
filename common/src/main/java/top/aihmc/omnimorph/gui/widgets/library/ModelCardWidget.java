@@ -24,10 +24,17 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
     private final LibraryThumbnailService.Handle thumbnail;
     private final Consumer<LibraryModels.Model> select;
     private final Button favorite;
+    private final Button report;
     private boolean selected;
 
     public ModelCardWidget(LibraryModels.Model model, LibraryThumbnailService thumbnails,
                            Consumer<LibraryModels.Model> select, Consumer<LibraryModels.Model> favorite) {
+        this(model, thumbnails, select, favorite, ignored -> {});
+    }
+
+    public ModelCardWidget(LibraryModels.Model model, LibraryThumbnailService thumbnails,
+                           Consumer<LibraryModels.Model> select, Consumer<LibraryModels.Model> favorite,
+                           Consumer<LibraryModels.Model> report) {
         super(0, 0, 128, ModelLibraryLayout.CARD_HEIGHT);
         this.model = model;
         this.select = select;
@@ -36,6 +43,9 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
                 FiguraText.of("gui.library.favorite"), button -> favorite.accept(model));
         this.favorite.setActive(model.allows("favorite"));
         children.add(this.favorite);
+        this.report = new Button(0, 0, 20, 18, Component.literal("!"), FiguraText.of("gui.library.report"),
+                button -> report.accept(model));
+        children.add(this.report);
     }
 
     public void selected(boolean value) {
@@ -66,6 +76,9 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
         favorite.setX(x + getWidth() - 24);
         favorite.setY(y + 4);
         favorite.extractRenderState(gui, mouseX, mouseY, delta);
+        report.setX(x + getWidth() - 24);
+        report.setY(y + 26);
+        report.extractRenderState(gui, mouseX, mouseY, delta);
         UIHelper.renderScrollingText(gui, Component.literal(model.displayName()), x + 5, y + 63,
                 getWidth() - 10, 0xffeeeeee);
         Component author = model.authors().isEmpty() ? FiguraText.of("gui.library.unknown_author")
@@ -77,7 +90,7 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
             counts = counts.copy().append(" • ").append(FiguraText.of("gui.library.locked"));
         }
         UIHelper.renderScrollingText(gui, counts, x + 5, y + 97, getWidth() - 10, 0xffa9bbc9);
-        if (isMouseOver(mouseX, mouseY) && !favorite.isMouseOver(mouseX, mouseY)) {
+        if (isMouseOver(mouseX, mouseY) && !favorite.isMouseOver(mouseX, mouseY) && !report.isMouseOver(mouseX, mouseY)) {
             var tooltip = FiguraText.of("gui.library.card_tooltip", model.internalName(),
                     String.join(", ", model.authors()), model.uploader().name(), model.uploader().uuid().toString());
             if (thumbnail != null && thumbnail.ready().isCompletedExceptionally()) {
@@ -95,6 +108,9 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
         if (event.button() == 1) {
             Minecraft.getInstance().keyboardHandler.setClipboard(model.uploader().uuid().toString());
             return true;
+        }
+        if (report.isMouseOver(event.x(), event.y())) {
+            return report.mouseClicked(event, doubleClick);
         }
         if (favorite.isMouseOver(event.x(), event.y()) && favorite.isActive()) {
             return favorite.mouseClicked(event, doubleClick);

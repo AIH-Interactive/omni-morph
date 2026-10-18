@@ -77,6 +77,10 @@ public final class LibraryPreviewSession implements AutoCloseable {
 
     /** Upload drafts use their independently prepared NBT, never a wardrobe publication entry point. */
     public CompletableFuture<Boolean> selectDraft(CompoundTag nbt) {
+        return selectDraft(() -> nbt);
+    }
+
+    public CompletableFuture<Boolean> selectDraft(java.util.function.Supplier<CompoundTag> nbt) {
         long generation = begin();
         var result = new CompletableFuture<Boolean>();
         prepare(nbt, generation, result);
@@ -99,6 +103,11 @@ public final class LibraryPreviewSession implements AutoCloseable {
     }
 
     private void prepare(CompoundTag nbt, long generation, CompletableFuture<Boolean> result) {
+        prepare(() -> nbt, generation, result);
+    }
+
+    private void prepare(java.util.function.Supplier<CompoundTag> nbt, long generation,
+                         CompletableFuture<Boolean> result) {
         if (!current(generation) || entity == null) {
             if (current(generation)) {
                 status = new Status(Stage.FAILED, "NO_PREVIEW_WORLD");
@@ -111,7 +120,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
             if (!current(generation) || result.isCancelled()) {
                 return false;
             }
-            prepared.load(nbt, null, () -> !current(generation) || result.isCancelled());
+            prepared.load(nbt.get(), null, () -> !current(generation) || result.isCancelled());
             return prepared.loaded && prepared.nbt != null;
         }).whenComplete((loaded, failure) -> Minecraft.getInstance().execute(() -> {
             if (failure != null || !Boolean.TRUE.equals(loaded) || !current(generation) || result.isCancelled()) {
