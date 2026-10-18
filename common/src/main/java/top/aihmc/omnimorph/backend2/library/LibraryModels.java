@@ -16,7 +16,7 @@ public final class LibraryModels {
             formats = immutable(formats);
             modelTypes = immutable(modelTypes);
             categories = immutable(categories);
-            if (enabled && (version != 1 || maxUploadBytes <= 0 || maxPageSize < 1 || maxPageSize > 8
+            if (enabled && (version != 1 || maxUploadBytes <= 0 || maxPageSize < 1 || maxPageSize > 64
                     || maxImageBytes <= 0 || maxImageBytes > 2 * 1024 * 1024
                     || maxImageWidth < 1 || maxImageWidth > 2048 || maxImageHeight < 1 || maxImageHeight > 2048)) {
                 throw new IllegalArgumentException("INVALID_CAPABILITIES");
@@ -98,7 +98,7 @@ public final class LibraryModels {
     public record Page(List<Model> items, long total, int page, int pageSize, boolean hasNext) {
         public Page {
             items = immutable(items);
-            if (total < 0 || page < 1 || pageSize < 1 || pageSize > 8 || items.size() > pageSize
+            if (total < 0 || page < 1 || pageSize < 1 || pageSize > 64 || items.size() > pageSize
                     || items.size() > total) {
                 throw new IllegalArgumentException("INVALID_PAGE");
             }

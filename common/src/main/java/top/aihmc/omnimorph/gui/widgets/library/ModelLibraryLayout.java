@@ -17,6 +17,11 @@ public record ModelLibraryLayout(int width, int height, int count, int columns, 
         return (count + columns - 1) / columns;
     }
 
+    public int pageCapacity(int maximum) {
+        int visibleRows = Math.max(1, (height + GAP) / (CARD_HEIGHT + GAP));
+        return (int) Math.min(Math.max(1, maximum), (long) columns * visibleRows);
+    }
+
     public int maximumScroll() {
         return Math.max(0, rows() * (CARD_HEIGHT + GAP) - GAP - height);
     }
