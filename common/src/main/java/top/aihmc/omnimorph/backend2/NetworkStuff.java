@@ -905,6 +905,8 @@ public class NetworkStuff {
             } else if (code != 204) {
                 localBroadcastPending = true;
                 FiguraMod.LOGGER.warn("Local model broadcast failed: HTTP {}", code);
+                FiguraToast.sendToast(FiguraText.of("backend.upload_error"), Component.literal("HTTP " + code),
+                        FiguraToast.ToastType.ERROR);
             }
         });
         if (!queued) {

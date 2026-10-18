@@ -3,6 +3,8 @@ package top.aihmc.omnimorph.backend2.protocol;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.protobuf.ByteString;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import top.aihmc.omnimorph.backend2.protocol.generated.Cloud;
 import top.aihmc.omnimorph.model.ysm.sync.YsmSyncMessage;
 
@@ -19,6 +21,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /** Protobuf control/state and authorized raw HTTP resources for one connection epoch. */
 public final class ProtobufCloudProtocol implements CloudProtocol {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ProtobufCloudProtocol.class);
     public static final String CONTENT_TYPE = "application/x-protobuf";
     private final URI origin;
     private final CloudEndpoint endpoint;
@@ -207,7 +210,9 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
                 validateScope(message);
             }
             if (message.hasError()) {
-                throw new Failure(message.getError().getCode());
+                LOGGER.warn("Protobuf {} request failed: {}",
+                        request.getBodyCase(), message.getError().getCode());
+                throw new Failure(message.getError().getCode(), message.getError().getRetryable());
             }
             if (response.statusCode() != 200) {
                 throw new IOException("HTTP " + response.statusCode());
@@ -507,8 +512,8 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
         } finally {
             http.release(response.body());
         }
-        var committed = rpc(Cloud.Envelope.newBuilder().setCommitUpload(Cloud.CommitUpload.newBuilder()
-                .setOperationId(operation).setRawSha256(descriptor.getRawSha256()).setRawLength(bytes.length)));
+        var committed = commitUpload(Cloud.CommitUpload.newBuilder().setOperationId(operation)
+                .setRawSha256(descriptor.getRawSha256()).setRawLength(bytes.length).build());
         if (!committed.hasAvatar()) {
             throw new IOException("Resource commit missing");
         }
@@ -519,6 +524,26 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
         }
         uploads.put(id, committed.getAvatar());
         return new Reply(200, "");
+    }
+
+    private Cloud.Envelope commitUpload(Cloud.CommitUpload request) throws Exception {
+        for (int attempt = 0; ; attempt++) {
+            try {
+                var committed = rpc(Cloud.Envelope.newBuilder().setCommitUpload(request));
+                if (attempt > 0) {
+                    LOGGER.info("Protobuf upload commit recovered after {} attempts", attempt + 1);
+                }
+                return committed;
+            } catch (Failure failure) {
+                if (failure.code != Cloud.ErrorCode.LIMIT_EXCEEDED || !failure.retryable || attempt >= 2) {
+                    throw failure;
+                }
+                // The account budget resets after one second. Keep the uploaded bytes and idempotency key.
+                LOGGER.info("Protobuf upload commit throttled; retrying existing operation (attempt {}/3)", attempt + 2);
+                Thread.sleep(1000L * (attempt + 1));
+                http.requireOpen();
+            }
+        }
     }
 
     private void validateGrant(Cloud.TransferGrant grant, long length) throws IOException {
@@ -752,10 +777,16 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
 
     public static final class Failure extends IOException {
         public final Cloud.ErrorCode code;
+        public final boolean retryable;
 
         public Failure(Cloud.ErrorCode code) {
+            this(code, false);
+        }
+
+        public Failure(Cloud.ErrorCode code, boolean retryable) {
             super("backend.protobuf.error." + code.name().toLowerCase(Locale.ROOT));
             this.code = code;
+            this.retryable = retryable;
         }
     }
 }

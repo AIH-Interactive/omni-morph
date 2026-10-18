@@ -47,7 +47,7 @@ final class AvatarBroadcastSmokeTest {
         List<String> uploads = new ArrayList<>();
         List<Integer> equipment = new ArrayList<>();
         AtomicBoolean switchDuringUpload = new AtomicBoolean();
-        AtomicBoolean failUpload = new AtomicBoolean();
+        var uploadStatus = new java.util.concurrent.atomic.AtomicInteger(200);
         var protocol = (CloudProtocol) Proxy.newProxyInstance(CloudProtocol.class.getClassLoader(),
                 new Class<?>[]{CloudProtocol.class}, (proxy, method, args) -> {
                     return switch (method.getName()) {
@@ -68,7 +68,7 @@ final class AvatarBroadcastSmokeTest {
                                 NetworkStuff.localSelectionChanged();
                                 require(NetworkStuff.getUploadProgress() == null, "selection change clears upload progress immediately");
                             }
-                            yield new CloudProtocol.Reply(failUpload.getAndSet(false) ? 503 : 200, "");
+                            yield new CloudProtocol.Reply(uploadStatus.getAndSet(200), "");
                         }
                         case "equip" -> {
                             if (!((List<?>) args[0]).isEmpty()) {
@@ -121,7 +121,7 @@ final class AvatarBroadcastSmokeTest {
             scope.drain();
             require(equipment.getLast() == 0, "clearing a selection publishes unequip");
 
-            failUpload.set(true);
+            uploadStatus.set(503);
             AvatarManager.localUploaded = false;
             NetworkStuff.localAvatarReady(avatar);
             process.invoke(null);
@@ -129,6 +129,17 @@ final class AvatarBroadcastSmokeTest {
             scope.drain();
             require(NetworkStuff.getUploadProgress() == null && !AvatarManager.localUploaded,
                     "failed upload clears the bar and never reports the model as uploaded");
+            var toasts = net.minecraft.client.Minecraft.getInstance().getToastManager();
+            toasts.clear();
+            uploadStatus.set(429);
+            NetworkStuff.uploadAvatar(avatar);
+            process.invoke(null);
+            ((CompletableFuture<?>) tasks.get(null)).get(10, TimeUnit.SECONDS);
+            scope.drain();
+            require(NetworkStuff.getUploadProgress() == null && !AvatarManager.localUploaded
+                            && toasts.getToast(top.aihmc.omnimorph.gui.FiguraToast.class,
+                            top.aihmc.omnimorph.gui.FiguraToast.ToastType.ERROR) != null,
+                    "429 reports upload failure to the user instead of presenting bar completion as success");
 
             Files.writeString(folder.resolve("avatar.json"), "{\"name\":\"Reload All restored\"}");
             UserData localUser = new UserData(local);

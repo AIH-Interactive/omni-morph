@@ -69,6 +69,9 @@ public final class YsmMaterialNativeSmokeTest {
         Field clientOptions = Minecraft.class.getDeclaredField("options");
         clientOptions.setAccessible(true);
         clientOptions.set(client, options);
+        var toasts = (RecordingToasts) unsafe.allocateInstance(RecordingToasts.class);
+        toasts.entries = new ArrayList<>();
+        client.toasts = toasts;
         client.manager = (RecordingTextures) unsafe.allocateInstance(RecordingTextures.class);
         client.manager.textures = new HashMap<>();
         Field byPath = TextureManager.class.getDeclaredField("byPath");
@@ -1841,9 +1844,34 @@ public final class YsmMaterialNativeSmokeTest {
         }
     }
 
+    private static final class RecordingToasts extends net.minecraft.client.gui.components.toasts.ToastManager {
+        private List<net.minecraft.client.gui.components.toasts.Toast> entries;
+
+        private RecordingToasts() {
+            super(null, null);
+        }
+
+        @Override
+        public <T extends net.minecraft.client.gui.components.toasts.Toast> T getToast(Class<? extends T> type, Object token) {
+            return entries.stream().filter(type::isInstance).map(type::cast)
+                    .filter(toast -> java.util.Objects.equals(toast.getToken(), token)).findFirst().orElse(null);
+        }
+
+        @Override
+        public void addToast(net.minecraft.client.gui.components.toasts.Toast toast) {
+            entries.add(toast);
+        }
+
+        @Override
+        public void clear() {
+            entries.clear();
+        }
+    }
+
     private static final class RecordingClient extends Minecraft implements top.aihmc.omnimorph.mixin.MinecraftAccesor {
         private RecordingTextures manager;
         private net.minecraft.client.sounds.SoundManager sounds;
+        private net.minecraft.client.gui.components.toasts.ToastManager toasts;
         private ConcurrentLinkedQueue<Runnable> queue;
 
         private RecordingClient() {
@@ -1884,6 +1912,11 @@ public final class YsmMaterialNativeSmokeTest {
         @Override
         public net.minecraft.client.sounds.SoundManager getSoundManager() {
             return sounds;
+        }
+
+        @Override
+        public net.minecraft.client.gui.components.toasts.ToastManager getToastManager() {
+            return toasts;
         }
 
         @Override
