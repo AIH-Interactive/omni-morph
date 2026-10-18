@@ -177,8 +177,16 @@ public class EntityPreview extends AbstractContainerElement {
                     x + modelX, y + modelY, scale + scaledValue, angleX, angleY, delta,
                     x, y, x + width, y + height);
             if (!independent) {
-                UIHelper.drawEntity(x + modelX, y + modelY, scale + scaledValue, angleX, angleY, entity,
-                        gui, new Vector3f(), EntityRenderMode.FIGURA_GUI, x, y, x + width, y + height);
+                Runnable draw = () -> UIHelper.drawEntity(x + modelX, y + modelY, scale + scaledValue,
+                        angleX, angleY, entity, gui, new Vector3f(), EntityRenderMode.FIGURA_GUI,
+                        x, y, x + width, y + height);
+                if (libraryPreview != null) {
+                    libraryPreview.withPlayerContext(draw);
+                } else if (localPreview != null) {
+                    localPreview.withPlayerContext(draw);
+                } else {
+                    draw.run();
+                }
             }
             pose.popMatrix();
         } else {

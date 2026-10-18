@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** Client-thread bindings for detached entities and the GUI frames that retain them. */
+/** Scoped player/model lookup and ownership retained by deferred GUI frames. */
 public final class LibraryPreviewBinding implements AutoCloseable {
     private static final Map<Entity, LibraryPreviewBinding> ENTITIES = new IdentityHashMap<>();
     private static final Map<UUID, LibraryPreviewBinding> PLAYERS = new HashMap<>();
@@ -22,13 +22,40 @@ public final class LibraryPreviewBinding implements AutoCloseable {
     private boolean closed;
 
     LibraryPreviewBinding(LivingEntity entity, Avatar avatar) {
+        this(entity, avatar, true);
+    }
+
+    LibraryPreviewBinding(LivingEntity entity, Avatar avatar, boolean persistent) {
         this.entity = entity;
         this.avatar = avatar;
+        if (!persistent) {
+            return;
+        }
         if (ENTITIES.containsKey(entity) || PLAYERS.containsKey(avatar.owner)) {
             throw new IllegalStateException("PREVIEW_ALREADY_BOUND");
         }
         ENTITIES.put(entity, this);
         PLAYERS.put(avatar.owner, this);
+    }
+
+    /** Limit current-player model lookup to preview work; deferred frames retain their own binding. */
+    public void withPlayerContext(Runnable action) {
+        LibraryPreviewBinding previousEntity = ENTITIES.put(entity, this);
+        LibraryPreviewBinding previousPlayer = PLAYERS.put(avatar.owner, this);
+        try {
+            action.run();
+        } finally {
+            if (previousEntity == null) {
+                ENTITIES.remove(entity, this);
+            } else {
+                ENTITIES.put(entity, previousEntity);
+            }
+            if (previousPlayer == null) {
+                PLAYERS.remove(avatar.owner, this);
+            } else {
+                PLAYERS.put(avatar.owner, previousPlayer);
+            }
+        }
     }
 
     public static Avatar avatar(Entity entity) {

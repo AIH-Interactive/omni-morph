@@ -19,7 +19,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 
-/** One detached preview and its cancellable preparation. Public lifecycle methods run on the client thread. */
+/** Current-player Figura preview with opt-in detached management rendering and cancellable preparation. */
 public final class LibraryPreviewSession implements AutoCloseable {
     public enum Stage {
         IDLE, LOADING, READY, FAILED, CLOSED
@@ -27,10 +27,15 @@ public final class LibraryPreviewSession implements AutoCloseable {
 
     public record Status(Stage stage, String errorCode) {}
 
+    private record PreparedModel(Avatar avatar, boolean currentPlayer) {}
+
     private final LibraryClient client;
     private final ClientLevel world;
     private final UUID owner = UUID.randomUUID();
-    private final LivingEntity entity;
+    private LivingEntity entity;
+    private LivingEntity detachedEntity;
+    private final boolean detachedMode;
+    private boolean currentPlayerFigura;
     private final AtomicLong generations = new AtomicLong();
     private LibraryTransferService.Operation transfer;
     private LibraryClient.Request<CompoundTag> resource;
@@ -47,9 +52,18 @@ public final class LibraryPreviewSession implements AutoCloseable {
     }
 
     public LibraryPreviewSession(LibraryClient client) {
+        this(client, false);
+    }
+
+    /** Detached mode is reserved for management rendering and native regression fixtures. */
+    public LibraryPreviewSession(LibraryClient client, boolean detachedMode) {
         this.client = client;
+        this.detachedMode = detachedMode;
         world = Minecraft.getInstance().level;
-        entity = world == null ? null : new LibraryPreviewPlayer(world, owner, () -> Minecraft.getInstance().player);
+        if (detachedMode && world != null) {
+            detachedEntity = new LibraryPreviewPlayer(world, owner, () -> Minecraft.getInstance().player);
+        }
+        entity = detachedMode ? detachedEntity : Minecraft.getInstance().player;
     }
 
     public Status status() {
@@ -100,6 +114,12 @@ public final class LibraryPreviewSession implements AutoCloseable {
         return !closed && binding != null && current(generations.get()) ? entity : null;
     }
 
+    public void withPlayerContext(Runnable action) {
+        if (binding != null) {
+            binding.withPlayerContext(action);
+        }
+    }
+
     public boolean isExpanded() {
         return expanded;
     }
@@ -131,7 +151,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
         return selectDraft(() -> nbt);
     }
 
-    /** A source-bound administrator wardrobe read uses the same detached rendering lifecycle. */
+    /** Source-bound administrator reads share the same cancellable preparation lifecycle. */
     public CompletableFuture<Boolean> selectResource(LibraryClient.Request<CompoundTag> request) {
         long generation = begin();
         resource = request;
@@ -189,16 +209,30 @@ public final class LibraryPreviewSession implements AutoCloseable {
             result.complete(false);
             return;
         }
-        Avatar prepared = Avatar.createLibraryPreview(owner, "LibraryPreview");
+        boolean isolated = detachedMode || independentFigura;
+        LivingEntity player = Minecraft.getInstance().player;
         AvatarLoadExecutor.submit(() -> {
             if (!current(generation) || result.isCancelled()) {
-                return false;
+                return (PreparedModel) null;
             }
-            prepared.load(nbt.get(), null, () -> !current(generation) || result.isCancelled());
-            return prepared.loaded && prepared.nbt != null;
+            CompoundTag data = nbt.get();
+            boolean figura = !data.getCompoundOrEmpty("metadata").getStringOr("format", "").equals("ysm-native");
+            boolean usePlayer = !isolated && figura;
+            if (usePlayer && player == null) {
+                return null;
+            }
+            Avatar prepared = usePlayer ? new Avatar(player.getUUID())
+                    : Avatar.createLibraryPreview(owner, "LibraryPreview");
+            prepared.load(data, null, () -> !current(generation) || result.isCancelled());
+            return new PreparedModel(prepared, usePlayer);
         }).whenComplete((loaded, failure) -> Minecraft.getInstance().execute(() -> {
-            if (failure != null || !Boolean.TRUE.equals(loaded) || !current(generation) || result.isCancelled()) {
-                prepared.clean();
+            Avatar prepared = loaded == null ? null : loaded.avatar();
+            boolean stalePlayer = loaded != null && loaded.currentPlayer() && Minecraft.getInstance().player != player;
+            if (failure != null || prepared == null || !prepared.loaded || prepared.nbt == null
+                    || stalePlayer || !current(generation) || result.isCancelled()) {
+                if (prepared != null) {
+                    prepared.clean();
+                }
                 if (current(generation) && !result.isCancelled()) {
                     status = new Status(Stage.FAILED, "MODEL_PREPARATION_FAILED");
                 }
@@ -206,8 +240,17 @@ public final class LibraryPreviewSession implements AutoCloseable {
                 return;
             }
             avatar = prepared;
-            binding = new LibraryPreviewBinding(entity, prepared);
-            prepared.initializeLibraryPreview(entity);
+            currentPlayerFigura = loaded.currentPlayer();
+            if (!currentPlayerFigura && detachedEntity == null && world != null) {
+                detachedEntity = new LibraryPreviewPlayer(world, owner, () -> Minecraft.getInstance().player);
+            }
+            if (currentPlayerFigura) {
+                entity = player;
+            } else if (detachedEntity != null) {
+                entity = detachedEntity;
+            }
+            binding = new LibraryPreviewBinding(entity, prepared, !currentPlayerFigura);
+            binding.withPlayerContext(() -> prepared.initializePreviewPlayer(entity));
             status = new Status(Stage.READY, "");
             result.complete(true);
         }));
@@ -227,23 +270,28 @@ public final class LibraryPreviewSession implements AutoCloseable {
 
     private boolean current(long generation) {
         return !closed && generations.get() == generation && (client == null || client.current())
-                && Minecraft.getInstance().level == world;
+                && Minecraft.getInstance().level == world
+                && (!currentPlayerFigura || Minecraft.getInstance().player == entity);
     }
 
     public void tick() {
         if (!current(generations.get())) {
             close();
         } else if (avatar != null && entity != null && !AvatarManager.panic) {
-            entity.tickCount++;
-            avatar.tick();
+            if (!currentPlayerFigura) {
+                entity.tickCount++;
+            }
+            binding.withPlayerContext(avatar::tick);
         }
     }
 
     public void beforeExtract(float delta) {
         if (current(generations.get()) && avatar != null && !AvatarManager.panic) {
-            avatar.render(delta);
-            avatar.clearAnimations();
-            avatar.applyAnimations();
+            binding.withPlayerContext(() -> {
+                avatar.render(delta);
+                avatar.clearAnimations();
+                avatar.applyAnimations();
+            });
         }
     }
 
@@ -261,6 +309,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
             binding = null;
         }
         avatar = null;
+        currentPlayerFigura = false;
     }
 
     @Override

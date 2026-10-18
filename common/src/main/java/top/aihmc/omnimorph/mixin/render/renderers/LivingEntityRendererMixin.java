@@ -217,10 +217,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
 
         int overlay = getOverlayCoords(livingEntityRenderState, getWhiteOverlayProgress(livingEntityRenderState));
 
-        Entity entity = AvatarManager.getEntity(livingEntityRenderState);
-        if (entity == null) {
-            return;
-        }
+        Entity entity = Minecraft.getInstance().level.getEntity(entityId);
         // actually do the render here
 
         // populate pivot customizations BEFORE the layers loop so pivotPartRender()
