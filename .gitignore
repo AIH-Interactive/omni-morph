@@ -49,3 +49,16 @@ forge*changelog.txt
 
 # Used for testing against other mods
 libs/*
+
+# Local development plans, evidence and reference checkouts
+/Plans/
+/refs/
+/omnm-cloud/
+/README.Figura.original.md
+/docs/*
+!/docs/CHANGELOG.md
+!/docs/README.Figura.original.md
+
+# Local build and transformation logs
+/build.log
+/.architectury-transformer/

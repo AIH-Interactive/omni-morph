@@ -33,3 +33,11 @@ openysm.cpp: https://github.com/OpenYSMDev/openysm.cpp | Algorithm comparison
 Sparkle-Morpher: https://github.com/sdf123098/Sparkle-Morpher | Architecture/behavior comparison
 Native runtime notices: natives/NOTICE.txt in the complete CI JAR
 Android NDK r28c runtime notices: natives/android-aarch64/licenses/ in that JAR
+
+OmniMorph bundled Chinese interface translations;
+313 existing interface translations adapted from FiguraMC/Assets contributors.
+Source commit: 55356418f8cabaff2db30463ebeda4ddad6ef910
+https://github.com/FiguraMC/Assets/tree/55356418f8cabaff2db30463ebeda4ddad6ef910
+Files: v1/lang/zh_cn.json and v2/lang/zh_cn.json
+License: LGPL-2.1, https://github.com/FiguraMC/Assets/blob/55356418f8cabaff2db30463ebeda4ddad6ef910/LICENSE
+Adaptations: OmniMorph namespace/branding and additional project translations.
