@@ -58,6 +58,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 Minecraft.getInstance()::execute);
              var preview = new LibraryPreviewSession(client)) {
             testModelFilePicker(client, drain);
+            testReportInput(client);
             // Only the entity allocation is replaced: actual Avatar loading, permissions,
             // generation guards, production lookup bindings and resource cleanup all run.
             var entity = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
@@ -223,6 +224,76 @@ public final class LibraryPreviewRuntimeSmokeTest {
         } finally {
             LibraryPreviewBinding.finishFrame();
             drain.run();
+        }
+    }
+
+    private static void testReportInput(LibraryClient client) throws Exception {
+        Minecraft minecraft = Minecraft.getInstance();
+        var fontField = field(Minecraft.class, "font");
+        Object previousFont = fontField.get(minecraft);
+        // Deterministic text metrics only; this test makes no font/pixel/IME-platform assertions.
+        var font = new net.minecraft.client.gui.Font(null) {
+            private final net.minecraft.client.StringSplitter splitter =
+                    new net.minecraft.client.StringSplitter((codepoint, style) -> 6f);
+
+            @Override
+            public net.minecraft.client.StringSplitter getSplitter() {
+                return splitter;
+            }
+
+            @Override
+            public int width(String text) {
+                return text.codePointCount(0, text.length()) * 6;
+            }
+
+            @Override
+            public String plainSubstrByWidth(String text, int width) {
+                return splitter.plainHeadByWidth(text, width, net.minecraft.network.chat.Style.EMPTY);
+            }
+        };
+        fontField.set(minecraft, font);
+        var screen = new top.aihmc.omnimorph.gui.screens.library.ModelReportScreen(null, client, UUID.randomUUID());
+        try {
+            screen.width = 640;
+            screen.height = 360;
+            var initialize = screen.getClass().getDeclaredMethod("init");
+            initialize.setAccessible(true);
+            initialize.invoke(screen);
+            var reason = (top.aihmc.omnimorph.gui.widgets.library.LibraryMultilineField)
+                    field(screen.getClass(), "reason").get(screen);
+            var input = (net.minecraft.client.gui.components.MultiLineEditBox) reason.children().getFirst();
+            // Apply the same child coordinates as extraction without rendering a GUI framebuffer.
+            input.setX(reason.getX() + 2);
+            input.setY(reason.getY() + 2);
+            var click = new net.minecraft.client.input.MouseButtonEvent(reason.getX() + 8, reason.getY() + 8,
+                    new net.minecraft.client.input.MouseButtonInfo(0, 0));
+            require(screen.mouseClicked(click, false), "report reason receives the actual screen click");
+            require(screen.charTyped(new net.minecraft.client.input.CharacterEvent('举')),
+                    "report keyboard routing and enabled state work before mouse release");
+            screen.mouseReleased(click);
+            require(screen.charTyped(new net.minecraft.client.input.CharacterEvent('报')),
+                    "report reason accepts a character after a complete click and release");
+            require(input.getValue().equals("举报") && field(screen.getClass(), "value").get(screen).equals("举报"),
+                    "report input updates both native text and the submitted reason value");
+            require(screen.keyPressed(new net.minecraft.client.input.KeyEvent(257, 0, 0))
+                            && screen.charTyped(new net.minecraft.client.input.CharacterEvent('A'))
+                            && screen.keyPressed(new net.minecraft.client.input.KeyEvent(259, 0, 0)),
+                    "report reason keeps multiline editing and backspace after release");
+            require(input.getValue().equals("举报\n"), "native multiline editing updates the report value");
+            reason.setEnabled(false);
+            require(!screen.charTyped(new net.minecraft.client.input.CharacterEvent('禁')),
+                    "disabled report field does not accept characters");
+            reason.setEnabled(true);
+            require(screen.mouseClicked(click, false), "enabled report field can regain focus");
+            screen.mouseReleased(click);
+            screen.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(1, 1,
+                    new net.minecraft.client.input.MouseButtonInfo(0, 0)), false);
+            require(!screen.charTyped(new net.minecraft.client.input.CharacterEvent('外')),
+                    "clicking outside still clears report editing focus");
+            System.out.println("PASS report input: actual screen click/release, CJK text, newline/backspace, disabled state and outside focus");
+        } finally {
+            screen.removed();
+            fontField.set(minecraft, previousFont);
         }
     }
 
