@@ -241,3 +241,6 @@ P1 自动验证 PASS：元数据、上传草稿、上传服务、包准备、客
 - 已更新后端 `docs/MODEL_LIBRARY_RECYCLE.md`。检查差异并提交推送后端及本计划，再进入 R2。真实部署迁移及实际账号操作 MANUAL/PENDING。
 
 R2 纳入用户本轮补充：管理员模型管理页右侧增加选中模型隔离预览，避免误操作；未隐藏原版玩家的纯部件 Figura 模型预览中显示当前玩家原版模型，同时尊重模型对原版部位的隐藏设置。不得装备或广播预览模型。相关真实游戏画面由人工验收。
+
+R1a（用户追加，R2 前执行）：后端硬编码 full_model / decorative_parts 两个内置分类，配置 categories 只追加额外项，不可移除/替换内置项；客户端按实际隔离 Figura 运行时的原版玩家可见性确定默认分类，未隐藏原版的纯部件默认为 decorative_parts，其他为 full_model，显式手工选择不被异步结果覆盖。当前代码没有独立的 hideVanilla 元数据字段，不能用正则猜测任意 Lua；沿用模型实际 vanilla_model.PLAYER 可见性定义。默认分类与当前玩家原版外观复验 MANUAL/PENDING。
+R1a 后端检查 PASS：内置分类和追加/拒绝覆盖用例通过；完整 cargo test 为 94 passed、0 failed、1 个既有 ignored，cargo build 退出 0。配置示例 categories = []，旧配置的 general 继续作为额外项接受。前台 Tee 日志及退出码已核对。后端与本记录推送核对后继续 R2。
