@@ -170,16 +170,35 @@ public final class LibraryUploadDraft {
         validate(metadata.internalName(), 96, false, "internal_name");
         validate(description, 4096, true, "description");
         validate(source.getFileName().toString(), 128, false, "source");
-        if (metadata.authors().size() > 4 || tags.size() > 8) {
-            throw new IllegalArgumentException("METADATA_LIMIT");
+        if (tags.size() > 8) {
+            throw new InvalidCount("tags", 8);
         }
-        metadata.authors().forEach(author -> validate(author, 48, false, "authors"));
+        metadata.authors().forEach(author -> validate(author, 0, false, "authors"));
         tags.forEach(tag -> validate(tag, 32, false, "tags"));
         return new Snapshot(source, prepared, Map.of("display_name", displayName,
                 "internal_name", metadata.internalName(), "authors", metadata.authors(),
                 "model_type", metadata.modelType(), "category_id", category, "description", description,
                 "tags", tags, "visibility", isPublic ? "PUBLIC" : "PRIVATE",
                 "requires_authorization", requiresAuthorization), prepared.metadataSource());
+    }
+
+    public static final class InvalidCount extends IllegalArgumentException {
+        private final String field;
+        private final int maximumEntries;
+
+        private InvalidCount(String field, int maximumEntries) {
+            super("METADATA_LIMIT");
+            this.field = field;
+            this.maximumEntries = maximumEntries;
+        }
+
+        public String field() {
+            return field;
+        }
+
+        public int maximumEntries() {
+            return maximumEntries;
+        }
     }
 
     public static final class InvalidField extends IllegalArgumentException {
@@ -202,7 +221,8 @@ public final class LibraryUploadDraft {
     }
 
     private static void validate(String value, int maximumBytes, boolean emptyAllowed, String field) {
-        if (value == null || value.getBytes(StandardCharsets.UTF_8).length > maximumBytes
+        // A zero byte budget means that the source-defined author text has no field length limit.
+        if (value == null || maximumBytes > 0 && value.getBytes(StandardCharsets.UTF_8).length > maximumBytes
                 || !emptyAllowed && value.isBlank()
                 || value.codePoints().anyMatch(character -> character == 0 || character == '§'
                 || Character.isISOControl(character) && character != '\n' && character != '\t')) {

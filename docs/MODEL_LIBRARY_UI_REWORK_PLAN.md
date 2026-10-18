@@ -484,3 +484,15 @@ R27 Mixin 审计：
 R27 检查点：默认 LibraryPreviewSession 的 Figura 选择已使用当前玩家、标准 Avatar 和本机权限，上传/模型库/模型管理及共享授权/回收站预览沿同一路径；只有衣柜管理 current 来源开启独立绘制，YSM 保留原路径。回归确认实际玩家对象、host=true、isLibraryPreview=false、相同本机权限包、Lua player 指向实际玩家，脚本 tick 连续执行但实际玩家 tickCount 不被预览推进；GUI 查找作用域退出恢复世界查找，延迟状态保留实际玩家/所选 Avatar，关闭后帧完成才清理资源。独立衣柜管理、普通衣柜及 YSM native 回归保持通过。
 
 libraryPreviewRuntime、完整 ysmMaterialNative、Fabric build 前台 Tee PASS，退出 0。删除已撤销补丁对应的旧隔离护甲/披风方法夹具，Fabric check 改依赖当前综合 previewRuntime 回归；差异空白核对通过，后续仅校正注释与换行。CPU 事件/状态/几何回归不替代游戏画面验收，实际游戏 MANUAL/PENDING，版本仍为 alpha.2。
+
+### R28 上传署名校验及可选标签
+
+截图模型 AYL's Dragon Wings & Tail 原作者超过四位；客户端 snapshot 和后端 Metadata.validate 都以旧的 4 位/每位 48 字节上限拒绝，客户端数量超限落入通用“请检查模型名称、标签和服务器限额”。空标签原本允许，需明确显示为可选。
+
+R28a（用户最新追加）：取消后端原作者数量、单项长度和合计长度的专门上限，保留署名顺序、重复/控制字符校验及通用 64 KiB 请求/响应体保护，不截断原作者；tags 支持省略或空数组。原 4×48 字节作者预算及对应摘要大小推算作废。回归、编译、更新 API 契约并独立提交推送。
+
+R28b：客户端同步取消作者数量和长度限制，格式错误及标签数量/字节超限给出明确字段提示；标签标题明确可选，空值提交空数组。以多作者/长署名/空标签及本机 AYL 实包从 prepare 到 snapshot 验证，编译、记录并独立提交推送。实际游戏发布验收 MANUAL/PENDING；部署需要更新后端与客户端。
+
+R28a 检查点：后端取消作者数量、单条长度和合计长度限制；空标签数组及省略 tags 均接受，原格式/重复校验保持。九位作者回归先复现拒绝，修复后 128 位作者、一万字中文署名、多行署名及无标签通过；完整 cargo test --locked 102 passed / 0 failed / 1 既有 ignored，cargo build --locked PASS，前台 Tee 退出 0。契约文档同步取消固定作者预算及基于它的摘要最坏大小推算，保留通用控制体限额。后端已提交推送并确认远端：7eacf47。
+
+R28b 检查点：客户端同步取消作者数量/长度限制，保留格式检查；标签标题改为可选，空值提交 []，标签数量超限改为明确的字段/项数提示，作者格式错误不再显示不存在的字节上限。实际读取本机 aylDWT 4.2.zip（9 位作者），prepare 后取得 snapshot 成功且作者完整、标签为空；九位/128 位/一万字署名回归通过，旧上限问题在修复前已由 snapshot 回归复现 METADATA_LIMIT。libraryUploadDraft、libraryPackagePreparation（真实 AYL 包）、Fabric build（包含综合 previewRuntime）前台 Tee PASS，退出 0；中英语言 JSON、差异与空白核对通过。需部署匹配后端与客户端；实际游戏发布验收 MANUAL/PENDING。
