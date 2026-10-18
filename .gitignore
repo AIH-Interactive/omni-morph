@@ -57,6 +57,9 @@ libs/*
 /README.Figura.original.md
 /docs/*
 !/docs/CHANGELOG.md
+!/docs/CHANGELOG.en.md
+!/docs/CHANGELOG.ja.md
+!/docs/CHANGELOG.ko.md
 !/docs/README.Figura.original.md
 
 # Local build and transformation logs
