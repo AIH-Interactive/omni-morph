@@ -153,6 +153,8 @@
   "omni-morph.gui.library.ready_upload": "准备完成：%s 字节 / 服务器上限 %s",
   "omni-morph.gui.library.preparation_error": "无法准备此模型文件。",
   "omni-morph.gui.library.metadata_error": "请检查模型名称、标签和服务器限额。",
+  "omni-morph.gui.library.invalid_field": "%s 无效：上限 %s 个 UTF-8 字节；请检查空值或格式码。",
+  "omni-morph.gui.library.internal_name": "源模型名称",
   "omni-morph.gui.library.upload_success": "模型已发布",
   "omni-morph.gui.library.retry_upload": "重试同一次上传",
   "omni-morph.gui.library.cancelled": "已取消，可继续编辑草稿。",

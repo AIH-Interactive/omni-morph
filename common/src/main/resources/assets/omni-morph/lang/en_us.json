@@ -1986,6 +1986,8 @@
   "omni-morph.gui.library.ready_upload": "Ready: %s bytes / server limit %s",
   "omni-morph.gui.library.preparation_error": "Could not prepare this model file.",
   "omni-morph.gui.library.metadata_error": "Check the model name, tags and server limits.",
+  "omni-morph.gui.library.invalid_field": "Invalid %s: limit %s UTF-8 bytes; check empty values or formatting codes.",
+  "omni-morph.gui.library.internal_name": "Source model name",
   "omni-morph.gui.library.upload_success": "Model published",
   "omni-morph.gui.library.retry_upload": "Retry same upload",
   "omni-morph.gui.library.cancelled": "Cancelled. The draft can be edited.",

@@ -144,15 +144,15 @@ public final class LibraryUploadDraft {
                 || !limits.categories().contains(category) || !limits.modelTypes().contains(metadata.modelType())) {
             throw new IllegalArgumentException("UPLOAD_NOT_READY");
         }
-        validate(displayName, 96, false);
-        validate(metadata.internalName(), 96, false);
-        validate(description, 4096, true);
-        validate(source.getFileName().toString(), 128, false);
+        validate(displayName, 96, false, "display_name");
+        validate(metadata.internalName(), 96, false, "internal_name");
+        validate(description, 4096, true, "description");
+        validate(source.getFileName().toString(), 128, false, "source");
         if (metadata.authors().size() > 4 || tags.size() > 8) {
             throw new IllegalArgumentException("METADATA_LIMIT");
         }
-        metadata.authors().forEach(author -> validate(author, 48, false));
-        tags.forEach(tag -> validate(tag, 32, false));
+        metadata.authors().forEach(author -> validate(author, 48, false, "authors"));
+        tags.forEach(tag -> validate(tag, 32, false, "tags"));
         return new Snapshot(source, prepared, Map.of("display_name", displayName,
                 "internal_name", metadata.internalName(), "authors", metadata.authors(),
                 "model_type", metadata.modelType(), "category_id", category, "description", description,
@@ -160,12 +160,31 @@ public final class LibraryUploadDraft {
                 "requires_authorization", requiresAuthorization), prepared.metadataSource());
     }
 
-    private static void validate(String value, int maximumBytes, boolean emptyAllowed) {
+    public static final class InvalidField extends IllegalArgumentException {
+        private final String field;
+        private final int maximumBytes;
+
+        private InvalidField(String field, int maximumBytes) {
+            super("METADATA_LIMIT");
+            this.field = field;
+            this.maximumBytes = maximumBytes;
+        }
+
+        public String field() {
+            return field;
+        }
+
+        public int maximumBytes() {
+            return maximumBytes;
+        }
+    }
+
+    private static void validate(String value, int maximumBytes, boolean emptyAllowed, String field) {
         if (value == null || value.getBytes(StandardCharsets.UTF_8).length > maximumBytes
                 || !emptyAllowed && value.isBlank()
                 || value.codePoints().anyMatch(character -> character == 0 || character == '§'
                 || Character.isISOControl(character) && character != '\n' && character != '\t')) {
-            throw new IllegalArgumentException("METADATA_LIMIT");
+            throw new InvalidField(field, maximumBytes);
         }
     }
 }

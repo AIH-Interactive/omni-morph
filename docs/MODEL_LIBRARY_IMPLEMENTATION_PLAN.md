@@ -786,3 +786,11 @@ if ($buildExitCode -ne 0) {
 本次只调查源码、查看参考图、编写本 Markdown 并复制参考图片。未开发功能、未修改生产代码、未执行编译或测试。提交范围仅本文件与 `docs/MODEL_LIBRARY_UI_REFERENCE.png`；工作区已有 `build.log` 和嵌套目录保持原状。
 
 实施前必须关注的已识别风险：延迟 GUI 渲染中的预览绑定生命周期、旧下载路由绕过 ACL、自动广播丢失模型库来源、SQLite manifest 重写与库表关联、屏蔽哈希跨协议身份一致性。它们已纳入对应阶段，不作为额外无关重构理由。
+
+## 12. Alpha 2 上传修复与参考图排版持续目标（2026-10-18）
+
+用户新增要求：修复附件所示上传问题；所有涉及页面按本计划保存的七页参考图及本次附件一比一复刻排版，优先使用 Figura 控件，必要控件可自行构造绘制；新增贴图先绘制 SVG 再脚本转 PNG。衣柜展示/隐藏入口统一放在本次图二的模型预览下方操作栏。保留既定功能边界，不新增参考图中原已排除的功能；版本仍为 alpha.2。
+
+- 上传修复检查点：合成带 `§` 格式码的源名称、作者和描述，实际草稿快照在修复前报 `METADATA_LIMIT`。模型库元数据改为纯文本，原模型文件及加密源不改写，分发 NBT 外层名称/作者与提交元数据保持一致；手工非法输入仍被校验，提示具体字段和 UTF-8 字节限额。
+- 自动验证 PASS：JDK 25 下 `libraryUploadDraftSmokeTest`、`libraryMetadataSmokeTest`、`libraryUploadSmokeTest`、`libraryPackagePreparationSmokeTest` 及 `:fabric:build`，同批退出 0。HTTP 测试覆盖带格式源的准备、丢失响应重试、取消及加密同步身份。
+- 排版检查点：IN PROGRESS，按七页参考图覆盖本次涉及页面及衣柜操作栏。真实 Windows Minecraft 窗口截图和对照验收待完成；无法自动执行的项目记录为 `MANUAL/PENDING`。

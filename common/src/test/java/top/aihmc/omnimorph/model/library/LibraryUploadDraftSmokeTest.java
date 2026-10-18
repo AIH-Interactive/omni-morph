@@ -43,6 +43,20 @@ public final class LibraryUploadDraftSmokeTest {
                 "manual edit before metadata arrives also wins");
         long third = draft.beginSource(Path.of("third.ysm"));
         require(draft.metadata(third, restricted) && draft.requiresAuthorization(), "new source gets its own default");
+        var formatted = LibraryMetadataReader.fromFigura(
+                top.aihmc.omnimorph.parsers.AvatarMetadataParser.read(
+                        "{\"name\":\"§b测试模型\",\"authors\":[\"§e作者\"],\"description\":\"§l模型说明§r\"}"),
+                "fallback");
+        var formattedDraft = new LibraryUploadDraft(uploader);
+        long formattedSource = formattedDraft.beginSource(Path.of("formatted.zip"));
+        formattedDraft.prepared(formattedSource, new LibraryPackagePreparation.Prepared(
+                formatted, new CompoundTag(), new byte[]{1}, "synthetic"));
+        formattedDraft.category("general");
+        var formattedSnapshot = formattedDraft.snapshot(limits(64));
+        require(formattedSnapshot.metadata().get("display_name").equals("测试模型")
+                        && formattedSnapshot.metadata().get("authors").equals(List.of("作者"))
+                        && formattedSnapshot.metadata().get("description").equals("模型说明"),
+                "source formatting does not make an otherwise valid upload impossible");
         System.out.println("PASS upload draft: metadata defaults, explicit edit precedence, source generations and live UTF-8 limits");
     }
 
