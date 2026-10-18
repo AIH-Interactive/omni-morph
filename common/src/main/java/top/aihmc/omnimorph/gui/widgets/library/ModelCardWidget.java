@@ -91,8 +91,9 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
         Component author = model.authors().isEmpty() ? FiguraText.of("gui.library.unknown_author")
                 : Component.literal(model.authors().getFirst()).append(model.authors().size() > 1
                 ? FiguraText.of("gui.library.more_authors") : Component.empty());
-        UIHelper.renderScrollingText(gui, author, informationX, y + 34, informationWidth, 0xffbac6d8);
-        UIHelper.renderScrollingText(gui, Component.literal(model.uploader().name()), informationX, y + 46,
+        UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.card_authors", author),
+                informationX, y + 34, informationWidth, 0xffbac6d8);
+        UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.card_uploader", model.uploader().name()), informationX, y + 46,
                 informationWidth, 0xffbac6d8);
         Component counts = FiguraText.of("gui.library.counts", model.downloads(), model.favorites());
         if (model.requiresAuthorization() && !model.allows("equip")) {
