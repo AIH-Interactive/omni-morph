@@ -245,6 +245,8 @@
   "omni-morph.gui.library.purge": "彻底删除",
   "omni-morph.gui.library.restore": "恢复模型",
   "omni-morph.gui.library.recycle_bin": "回收站",
+  "omni-morph.gui.library.wardrobe_restore_hint": "恢复并启用衣柜模型，保留原展示设置及屏蔽限制。",
+  "omni-morph.gui.library.restore_conflict": "玩家已有新的装备或上传记录，请刷新；恢复不会覆盖新模型。",
   "omni-morph.gui.library.leave_recycle": "返回模型列表",
   "omni-morph.gui.library.restore_admin_hint": "打开管理员回收站，恢复刚刚删除的模型。",
   "omni-morph.gui.library.deleted_recovery_hint": "已移入回收站，管理员可恢复此模型。",

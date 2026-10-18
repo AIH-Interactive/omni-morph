@@ -4,6 +4,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import top.aihmc.omnimorph.backend2.protocol.CloudEndpoint;
 import top.aihmc.omnimorph.backend2.protocol.LibraryAccess;
+import top.aihmc.omnimorph.gui.screens.library.ModelLibraryWardrobeScreen;
 
 import java.net.InetSocketAddress;
 import java.net.http.HttpClient;
@@ -65,6 +66,17 @@ public final class LibraryManagementSmokeTest {
                 } else if (path.endsWith("/session")) {
                     boolean admin = ACCESS.equals(token);
                     respond(exchange, "{\"uuid\":\"" + OWNER + "\",\"name\":\"Uploader\",\"admin\":" + admin + ",\"equipment_revision\":0}");
+                } else if (path.endsWith("/admin/wardrobe-recycle")) {
+                    require(ACCESS.equals(token), "wardrobe recycle requires scoped administrator authority");
+                    respond(exchange, """
+                            {"items":[{"owner":"%s","name":"Uploader","asset_id":"avatar","asset_revision":3,
+                              "equipment_revision":7,"model_type":1,"operation_id":"%s","deleted_at":1234,"can_restore":true}],
+                             "total":1,"page":1,"page_size":8,"has_next":false}
+                            """.formatted(OWNER, MODEL));
+                } else if (path.endsWith("/admin/wardrobe-recycle/" + OWNER + "/" + MODEL + "/restore")) {
+                    require(ACCESS.equals(token) && body.contains("\"expected_equipment_revision\":7"),
+                            "wardrobe restoration sends selected equipment CAS with administrator authority");
+                    respond(exchange, "{\"equipment_revision\":8}");
                 } else if (path.endsWith("/models/" + MODEL)) {
                     if (token != null) {
                         ordinaryAdminLeaks.incrementAndGet();
@@ -126,6 +138,22 @@ public final class LibraryManagementSmokeTest {
             require(await(admin.login("Uploader", "synthetic-password", remember, UUID.randomUUID()).future(), queue),
                     "login verifies the authenticated player and admin context");
             require(admin.active(), "verified admin session is active");
+            var recycle = await(client.submit(LibraryClient.Lane.CONTROL, exchange -> {
+                exchange.adminToken(admin.token());
+                return exchange.json("GET", "/api/library/v1/admin/wardrobe-recycle", null,
+                        ModelLibraryWardrobeScreen.Page.class);
+            }).future(), queue);
+            var item = recycle.items().getFirst();
+            require(item.canRestore() && item.operationId().equals(MODEL) && item.assetRevision() == 3
+                            && item.equipmentRevision() == 7 && item.deletedAt() == 1234,
+                    "recycle records decode their source UUID, revisions and restore availability");
+            await(client.submit(LibraryClient.Lane.CONTROL, exchange -> {
+                exchange.adminToken(admin.token());
+                return exchange.json("POST", "/api/library/v1/admin/wardrobe-recycle/" + item.owner() + "/"
+                                + item.operationId() + "/restore",
+                        Map.of("operation_id", UUID.randomUUID().toString(),
+                                "expected_equipment_revision", item.equipmentRevision()), Map.class);
+            }).future(), queue);
             await(client.detail(MODEL).future(), queue);
             require(ordinaryAdminLeaks.get() == 0, "ordinary requests never inherit administrator credentials");
             if (remember) {

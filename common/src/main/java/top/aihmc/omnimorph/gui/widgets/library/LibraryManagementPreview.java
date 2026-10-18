@@ -59,6 +59,11 @@ public final class LibraryManagementPreview extends AbstractContainerElement imp
         session.selectResource(wardrobe.blocked(operation));
     }
 
+    public void recycledWardrobe(UUID owner, UUID operation, Component title) {
+        this.title = title;
+        session.selectResource(wardrobe.recycled(owner, operation));
+    }
+
     public void clear() {
         title = FiguraText.of("gui.library.select_model");
         session.clear();
