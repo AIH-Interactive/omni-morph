@@ -9,9 +9,14 @@ import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.gui.screens.ModelLibraryScreen;
 import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.SearchBar;
+import top.aihmc.omnimorph.gui.widgets.EntityPreview;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryLabels;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryRowList;
 import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionTabs;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
+import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
+import top.aihmc.omnimorph.model.library.LibraryTransferService;
 import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.utils.FiguraIdentifier;
 import top.aihmc.omnimorph.utils.FiguraText;
@@ -30,6 +35,8 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
     private final LibraryAdminSession admin;
     private final LibraryModels.Capabilities capabilities;
     private final LibraryThumbnailService thumbnails;
+    private final LibraryPreviewSession preview;
+    private final LibraryTransferService transfers;
     private final Map<UUID, LibraryThumbnailService.Handle> images = new java.util.HashMap<>();
     private LibraryClient.Request<?> pending;
     private LibraryRowList rows;
@@ -63,6 +70,8 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
         this.admin = admin;
         this.capabilities = capabilities;
         thumbnails = new LibraryThumbnailService(client, FiguraMod.getCacheDirectory(), admin::token);
+        preview = new LibraryPreviewSession(client);
+        transfers = new LibraryTransferService(client, FiguraMod.getCacheDirectory(), admin::token);
     }
 
     @Override
@@ -77,7 +86,19 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
         }
         retainingChild = false;
         building = true;
-        int area = Math.max(40, width - 16);
+        var layout = new LibraryWorkspaceLayout(width, height);
+        int area = layout.contentWidth();
+        var entity = addRenderableWidget(new EntityPreview(layout.previewX(), 52, layout.previewWidth(),
+                height - 80, Math.max(12, layout.previewWidth() / 3), -15, 30, preview.entity(), this));
+        entity.setLibraryPreview(preview);
+        addRenderableOnly((gui, mouseX, mouseY, delta) -> {
+            Component title = selected == null ? FiguraText.of("gui.library.select_model")
+                    : Component.literal(selected.displayName());
+            UIHelper.renderScrollingText(gui, title, layout.previewX(), 32, layout.previewWidth(), 0xffeeeeee);
+            var state = preview.status();
+            Component hint = FiguraText.of("gui.library.preview." + state.stage().name().toLowerCase(java.util.Locale.ROOT));
+            UIHelper.renderScrollingText(gui, hint, layout.previewX(), height - 20, layout.previewWidth(), 0xffbac6d8);
+        });
         addRenderableWidget(new LibrarySectionTabs(8, 28, area, 4, true, section -> {
             if (!busy() && parentScreen instanceof ModelLibraryScreen catalog) {
                 minecraft.setScreen(catalog);
@@ -114,10 +135,7 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
             refresh();
         }));
         rows = addRenderableWidget(new LibraryRowList(8, 96, area, Math.max(24, height - 172)));
-        rows.columns(List.of(FiguraText.of("gui.library.cover"), FiguraText.of("gui.library.display_name"),
-                FiguraText.of("gui.library.authors"), FiguraText.of("gui.library.uploader"),
-                FiguraText.of("gui.library.status"), FiguraText.of("gui.library.downloads"),
-                FiguraText.of("gui.library.actions")), 2, 6, 4, 4, 3, 2, 5);
+        rows.cards();
         grants = addRenderableWidget(new Button(8, height - 72, column, 20,
                 FiguraText.of("gui.library.grants"), null, ignored -> {
                     if (LibraryAuthorization.available(selected) && !busy() && admin.active()) {
@@ -180,8 +198,12 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
     }
 
     private Component filter(String label, String value) {
+        Component selectedValue = value.isEmpty() ? FiguraText.of("gui.library.all")
+                : label.equals("status") ? LibraryLabels.status(value)
+                : label.equals("category") ? LibraryLabels.category(value)
+                : FiguraText.of("gui.library.value." + value.toLowerCase(java.util.Locale.ROOT));
         return FiguraText.of("gui.library.filter." + label,
-                value.isEmpty() ? FiguraText.of("gui.library.all") : Component.literal(value));
+                selectedValue);
     }
 
     private boolean busy() {
@@ -197,6 +219,7 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
             pending.cancel();
         }
         selected = null;
+        preview.clear();
         armed = null;
         results = null;
         images.values().forEach(LibraryThumbnailService.Handle::close);
@@ -227,7 +250,7 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
     }
 
     private LibraryRowList.Row tableRow(LibraryModels.Model model) {
-        var image = model.imageAvailable() && model.moderationStatus().equals("ACTIVE")
+        var image = model.imageAvailable() && !model.moderationStatus().equals("DELETED")
                 ? images.computeIfAbsent(model.modelId(), thumbnails::acquire) : null;
         var actions = new java.util.ArrayList<LibraryRowList.Action>();
         if (LibraryAuthorization.available(model)) {
@@ -239,43 +262,74 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
             }, LibraryRowList.Icon.GRANT));
         }
         boolean mutable = !model.moderationStatus().equals("DELETED");
-        actions.add(new LibraryRowList.Action(FiguraText.of("gui.library.block"),
-                FiguraText.of(model.moderationStatus().equals("BLOCKED") ? "gui.library.unblock" : "gui.library.block"),
-                mutable, () -> moderate(false), LibraryRowList.Icon.BLOCK));
-        actions.add(new LibraryRowList.Action(FiguraText.of("gui.library.delete"), FiguraText.of("gui.library.delete"),
-                mutable, () -> moderate(true), LibraryRowList.Icon.DELETE));
+        if (mutable) {
+            actions.add(new LibraryRowList.Action(FiguraText.of("gui.library.block"),
+                    FiguraText.of(model.moderationStatus().equals("BLOCKED") ? "gui.library.unblock" : "gui.library.block"),
+                    true, () -> moderate(false), LibraryRowList.Icon.BLOCK));
+            actions.add(new LibraryRowList.Action(FiguraText.of("gui.library.delete"), FiguraText.of("gui.library.delete"),
+                    true, () -> moderate(true), LibraryRowList.Icon.DELETE));
+        } else {
+            actions.add(new LibraryRowList.Action(FiguraText.of("gui.library.restore"), FiguraText.of("gui.library.restore"),
+                    model.allows("restore"), () -> moderate(false)));
+            actions.add(new LibraryRowList.Action(FiguraText.of("gui.library.purge"), FiguraText.of("gui.library.purge"),
+                    model.allows("purge"), () -> moderate(true)));
+        }
         return new LibraryRowList.Row(Component.empty(),
                 Component.literal(model.modelId() + "\n" + model.uploader().uuid()), true,
-                () -> {
-                    if (selected == null || !selected.modelId().equals(model.modelId())) {
-                        armed = null;
-                    }
-                    selected = model;
-                    updateButtons();
-                }, List.of(Component.empty(), Component.literal(model.displayName()),
-                    model.authors().isEmpty() ? FiguraText.of("gui.library.unknown_author")
-                            : Component.literal(model.authors().getFirst()),
-                    Component.literal(model.uploader().name()),
-                    FiguraText.of("gui.library.value." + model.moderationStatus().toLowerCase(java.util.Locale.ROOT)),
-                    Component.literal(Long.toString(model.downloads()))),
+                () -> selectModel(model), List.of(Component.literal(model.displayName()),
+                    FiguraText.of("gui.library.card_authors", model.authors().isEmpty()
+                            ? FiguraText.of("gui.library.unknown_author") : Component.literal(String.join(", ", model.authors()))),
+                    FiguraText.of("gui.library.card_uploader", model.uploader().name()),
+                    LibraryLabels.status(model.moderationStatus()).copy().append(" · ")
+                            .append(FiguraText.of("gui.library.counts", model.downloads(), model.favorites())),
+                    LibraryLabels.category(model.categoryId())),
                 () -> {
                     var texture = image == null ? null : image.capture();
                     return texture == null ? new FiguraIdentifier("textures/gui/library_placeholder.png") : texture;
                 }, actions);
     }
 
+    private void selectModel(LibraryModels.Model model) {
+        if (selected == null || !selected.modelId().equals(model.modelId())) {
+            armed = null;
+            preview.clear();
+            if (model.allows("preview")) {
+                preview.select(model.modelId(), transfers);
+            }
+        }
+        selected = model;
+        updateButtons();
+    }
+
     private void moderate(boolean remove) {
         if (busy() || selected == null || !admin.active()) {
             return;
         }
-        String key = selected.modelId() + ":" + remove;
-        if (!key.equals(armed)) {
-            armed = key;
-            message = FiguraText.of("gui.library.confirm_moderation", selected.displayName());
+        boolean recycled = selected.moderationStatus().equals("DELETED");
+        String action;
+        String method;
+        String suffix;
+        String prompt;
+        if (recycled) {
+            action = remove ? "purge" : "restore";
+            method = "POST";
+            suffix = "/" + action;
+            prompt = remove ? "gui.library.confirm_purge" : "gui.library.confirm_restore";
+        } else {
+            action = remove ? "delete" : "moderate";
+            method = remove || selected.moderationStatus().equals("BLOCKED") ? "DELETE" : "PUT";
+            suffix = remove ? "" : "/block";
+            prompt = "gui.library.confirm_moderation";
+        }
+        if (!selected.allows(action)) {
             return;
         }
-        String method = remove ? "DELETE" : selected.moderationStatus().equals("BLOCKED") ? "DELETE" : "PUT";
-        String suffix = remove ? "" : "/block";
+        String key = selected.modelId() + ":" + action;
+        if (!key.equals(armed)) {
+            armed = key;
+            message = FiguraText.of(prompt, selected.displayName() + " [" + selected.modelId() + "]");
+            return;
+        }
         if (retry == null || !retry.model().equals(selected.modelId()) || !retry.method().equals(method)
                 || !retry.suffix().equals(suffix)) {
             retry = new Mutation(selected.modelId(), method, suffix, UUID.randomUUID(), selected.policyRevision());
@@ -316,10 +370,8 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
                 if (failure != null) {
                     failed(failure);
                 } else {
-                    selected = value;
-                    armed = null;
-                    message = Component.literal(value.displayName() + "  " + value.moderationStatus());
-                    updateButtons();
+                    selectModel(value);
+                    message = Component.literal(value.displayName() + "  ").append(LibraryLabels.status(value.moderationStatus()));
                 }
             }
         });
@@ -341,10 +393,12 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
         boolean available = !closed && !busy() && admin.active() && selected != null;
         grants.setVisible(LibraryAuthorization.available(selected));
         grants.setActive(available && LibraryAuthorization.available(selected));
-        block.setActive(available && selected.allows("moderate") && !selected.moderationStatus().equals("DELETED"));
-        block.setMessage(FiguraText.of(selected != null && selected.moderationStatus().equals("BLOCKED")
-                ? "gui.library.unblock" : "gui.library.block"));
-        delete.setActive(available && selected.allows("delete"));
+        boolean recycled = selected != null && selected.moderationStatus().equals("DELETED");
+        block.setActive(available && selected.allows(recycled ? "restore" : "moderate"));
+        block.setMessage(FiguraText.of(recycled ? "gui.library.restore"
+                : selected != null && selected.moderationStatus().equals("BLOCKED") ? "gui.library.unblock" : "gui.library.block"));
+        delete.setActive(available && selected.allows(recycled ? "purge" : "delete"));
+        delete.setMessage(FiguraText.of(recycled ? "gui.library.purge" : "gui.library.delete"));
         previous.setActive(!busy() && page > 1);
         next.setActive(!busy() && results != null && results.hasNext());
     }
@@ -360,6 +414,7 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
         if (!formReady) {
             return;
         }
+        preview.tick();
         if (!admin.active()) {
             rows.rows(List.of());
             selected = null;
@@ -376,13 +431,14 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
 
     @Override
     public void removed() {
-        if (!retainingChild) {
+        if (!retainingChild && !preview.isExpanded()) {
             closed = true;
             generation++;
             selected = null;
             results = null;
             retry = null;
             thumbnails.close();
+            preview.close();
             images.clear();
             if (pending != null) {
                 pending.cancel();

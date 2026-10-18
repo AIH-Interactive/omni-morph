@@ -26,6 +26,8 @@ public final class LibraryUploadDraft {
     private boolean nameEdited;
     private boolean descriptionEdited;
     private boolean authorizationEdited;
+    private boolean categoryEdited;
+    private List<String> categories = List.of();
 
     public LibraryUploadDraft(UUID uploader) {
         this.uploader = java.util.Objects.requireNonNull(uploader);
@@ -46,6 +48,8 @@ public final class LibraryUploadDraft {
         nameEdited = false;
         descriptionEdited = false;
         authorizationEdited = false;
+        categoryEdited = false;
+        defaultCategory(false);
         return generation;
     }
 
@@ -116,6 +120,24 @@ public final class LibraryUploadDraft {
 
     public void category(String value) {
         category = value;
+        categoryEdited = true;
+    }
+
+    public String category() {
+        return category;
+    }
+
+    public void categories(List<String> available) {
+        categories = List.copyOf(available);
+        defaultCategory(false);
+    }
+
+    public void defaultCategory(boolean decorative) {
+        if (categoryEdited || categories.isEmpty()) {
+            return;
+        }
+        String preferred = decorative ? "decorative_parts" : "full_model";
+        category = categories.contains(preferred) ? preferred : categories.getFirst();
     }
 
     public void tags(String commaSeparated) {

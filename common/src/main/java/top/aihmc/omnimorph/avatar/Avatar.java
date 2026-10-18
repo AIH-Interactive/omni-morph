@@ -1035,6 +1035,18 @@ public class Avatar {
         }
     }
 
+    /** Finish queued script initialization before a detached GUI preview becomes ready. */
+    public void initializeLibraryPreview(Entity entity) {
+        if (!isLibraryPreview) {
+            throw new IllegalStateException("PREVIEW_REQUIRES_DETACHED_OWNER");
+        }
+        flushQueuedEvents();
+        if (!scriptError && luaRuntime != null && loaded) {
+            luaRuntime.setUser(entity);
+            run("ENTITY_INIT", init.post());
+        }
+    }
+
     @Nullable
     public Varargs run(Object toRun, Instructions limit, Object... args) {
         // stuff that was not run yet

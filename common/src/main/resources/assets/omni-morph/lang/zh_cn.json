@@ -229,5 +229,22 @@
   "omni-morph.gui.library.wardrobe_show_hint": "衣柜上传默认展示；设置只作用于当前上传资源。屏蔽模型不能对外展示。",
   "omni-morph.gui.library.apply_visibility": "保存展示设置",
   "omni-morph.gui.library.no_wardrobe_equipment": "当前没有已启用的衣柜上传模型。",
-  "omni-morph.gui.library.blocked_visibility": "此模型已被屏蔽，仅本人可见；可通过“我的申诉”申请复核。"
+  "omni-morph.gui.library.blocked_visibility": "此模型已被屏蔽，仅本人可见；可通过“我的申诉”申请复核。",
+  "omni-morph.gui.library.card_authors": "作者：%s",
+  "omni-morph.gui.library.card_uploader": "上传者：%s",
+  "omni-morph.gui.library.confirm_purge": "再次点击彻底删除 %s，此操作不可恢复。",
+  "omni-morph.gui.library.confirm_restore": "再次点击恢复 %s，已有屏蔽仍生效。",
+  "omni-morph.gui.library.preview.closed": "预览已关闭",
+  "omni-morph.gui.library.preview.failed": "预览不可用",
+  "omni-morph.gui.library.preview.idle": "尚未选择预览",
+  "omni-morph.gui.library.preview.loading": "正在加载预览…",
+  "omni-morph.gui.library.preview.ready": "预览已就绪",
+  "omni-morph.gui.library.purge": "彻底删除",
+  "omni-morph.gui.library.restore": "恢复模型",
+  "omni-morph.gui.library.select_model": "选择模型以预览",
+  "omni-morph.gui.library.value.active": "正常",
+  "omni-morph.gui.library.value.blocked": "已屏蔽",
+  "omni-morph.gui.library.value.decorative_parts": "装饰部件",
+  "omni-morph.gui.library.value.deleted": "回收站",
+  "omni-morph.gui.library.value.full_model": "完整模型"
 }
