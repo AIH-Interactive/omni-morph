@@ -19,14 +19,14 @@ public class ProfileScreen extends AbstractPanelScreen {
     public void init() {
         super.init();
 
-        this.addRenderableWidget(new Button(width / 2 - 30, height / 2 - 30, 60, 20, Component.literal("meow"),
-                Component.literal("test").append("\n").append("one line").append("\n\n").append("two lines").append("\n").append("\n").append("two lines").append("\n\n\n").append("three lines").append("\n").append("\n").append("\n").append("three lines").append("\n"), button -> {
-            FiguraToast.sendToast(Component.literal("Backend restarting").setStyle(Style.EMPTY.withColor(0x99BBEE)), "in 10 minutes!", FiguraToast.ToastType.DEFAULT);
+        this.addRenderableWidget(new Button(width / 2 - 30, height / 2 - 30, 60, 20, FiguraText.of("gui.debug.meow"),
+                FiguraText.of("gui.debug.multiline"), button -> {
+            FiguraToast.sendToast(FiguraText.of("gui.debug.restarting").setStyle(Style.EMPTY.withColor(0x99BBEE)), FiguraText.of("gui.debug.ten_minutes"), FiguraToast.ToastType.DEFAULT);
         }));
 
-        this.addRenderableWidget(new Button(width / 2 - 30, height / 2 + 10, 60, 20, Component.literal("meow"), TextUtils.tryParseJson(
+        this.addRenderableWidget(new Button(width / 2 - 30, height / 2 + 10, 60, 20, FiguraText.of("gui.debug.meow"), TextUtils.tryParseJson(
                 "{\"text\": \"△❗\n❌\uD83E\uDDC0\n\n☄❤\n\n\n☆★\",\"font\": \"omni-morph:badges\"}"), button -> {
-            FiguraToast.sendToast(Component.literal("Backend restarting").setStyle(Style.EMPTY.withColor(0x99BBEE)), "in 10 minutes!", FiguraToast.ToastType.DEFAULT);
+            FiguraToast.sendToast(FiguraText.of("gui.debug.restarting").setStyle(Style.EMPTY.withColor(0x99BBEE)), FiguraText.of("gui.debug.ten_minutes"), FiguraToast.ToastType.DEFAULT);
         }));
     }
 

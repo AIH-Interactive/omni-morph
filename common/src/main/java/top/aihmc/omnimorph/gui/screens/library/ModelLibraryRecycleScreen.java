@@ -179,7 +179,8 @@ public final class ModelLibraryRecycleScreen extends LibraryFormScreen {
     }
 
     private LibraryRowList.Row row(LibraryRecycleService.Item item) {
-        return new LibraryRowList.Row(Component.empty(), Component.literal(item.kind() + "\n" + item.id() + "\n" + item.owner()),
+        return new LibraryRowList.Row(Component.empty(), FiguraText.of("gui.library.recycle_source."
+                + item.kind().toLowerCase(java.util.Locale.ROOT)).append("\n" + item.id() + "\n" + item.owner()),
                 true, () -> select(item), List.of(Component.empty(),
                 FiguraText.of("gui.library.recycle_source." + item.kind().toLowerCase(java.util.Locale.ROOT)),
                 Component.literal(item.name()), item.authors().isEmpty() ? FiguraText.of("gui.library.unknown_author")

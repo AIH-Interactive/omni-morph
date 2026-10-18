@@ -200,7 +200,8 @@ public final class ModelLibraryAppealsScreen extends LibraryFormScreen {
             if (requestedMode == 0) {
                 var value = exchange.json("GET", "/api/library/v1/appeal-targets?page=" + requestedPage, null, Targets.class);
                 return new View(value.items().stream().map(item -> LibraryRowList.Row.table(
-                        List.of(Component.literal(item.name()), Component.literal(item.targetKind())),
+                        List.of(Component.literal(item.name()), FiguraText.of("gui.library.recycle_source."
+                                + item.targetKind().toLowerCase(java.util.Locale.ROOT))),
                         Component.literal(item.targetId().toString()), true,
                         () -> {
                             if (!busy()) {

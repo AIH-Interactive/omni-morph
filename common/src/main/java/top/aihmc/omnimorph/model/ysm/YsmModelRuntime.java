@@ -16,6 +16,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import top.aihmc.omnimorph.FiguraMod;
+import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.avatar.AvatarTranslations;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.control.AvatarControlDefinition;
@@ -801,7 +802,7 @@ public class YsmModelRuntime implements AutoCloseable {
 
         Page root = wheel.newPage("YSM");
         root.newAction(1)
-                .setTitle("Settings")
+                .setTitleSupplier(() -> FiguraText.of("gui.controls.settings").getString())
                 .setItem("minecraft:comparator")
                 .setControlsPage("root");
 
@@ -885,7 +886,7 @@ public class YsmModelRuntime implements AutoCloseable {
 
         private BackAction(Page root) {
             this.root = root;
-            setTitle("Back");
+            setTitleSupplier(() -> FiguraText.of("gui.controls.back").getString());
             setItem("minecraft:arrow");
         }
 
@@ -901,7 +902,7 @@ public class YsmModelRuntime implements AutoCloseable {
 
         private OpenPageAction(Page page, String title) {
             this.page = page;
-            setTitle(title == null || title.isBlank() ? "Extra Animation" : title);
+            setTitle(title == null || title.isBlank() ? FiguraText.of("gui.controls.extra_animation").getString() : title);
             setItem("minecraft:book");
         }
 
@@ -977,7 +978,7 @@ public class YsmModelRuntime implements AutoCloseable {
                 continue;
             if (!headerAdded) {
                 owner.controls.register(new AvatarControlDefinition("ysm.discovered.header", AvatarControlType.LABEL)
-                        .setTitle("YSM Discovered Controls")
+                        .setTitleSupplier(() -> FiguraText.of("gui.controls.discovered").getString())
                         .setPage("ysm_discovered"));
                 headerAdded = true;
             }
@@ -1306,51 +1307,51 @@ public class YsmModelRuntime implements AutoCloseable {
 
     private void registerDefaultControls() {
         owner.controls.register(new AvatarControlDefinition("ysm.header", AvatarControlType.LABEL)
-                .setTitle("YSM Runtime")
+                .setTitleSupplier(() -> FiguraText.of("gui.controls.ysm_runtime").getString())
                 .setPage("root"));
         owner.controls.register(new AvatarControlDefinition("ysm.native_state_machine", AvatarControlType.TOGGLE)
-                .setTitle("Native state machine")
+                .setTitleSupplier(() -> FiguraText.of("gui.controls.native_state_machine").getString())
                 .setDefault(true)
                 .setPage("root"));
         owner.controls.register(new AvatarControlDefinition("ysm.action_loop", AvatarControlType.TOGGLE)
-                .setTitle("Loop wheel actions")
+                .setTitleSupplier(() -> FiguraText.of("gui.controls.action_loop").getString())
                 .setDefault(false)
                 .setPage("root"));
         owner.controls.register(new AvatarControlDefinition("ysm.action_speed", AvatarControlType.SLIDER)
-                .setTitle("Action speed")
+                .setTitleSupplier(() -> FiguraText.of("gui.controls.action_speed").getString())
                 .setRange(0.1d, 3.0d, 0.1d)
                 .setDefault(1.0d)
                 .setPage("root"));
         owner.controls.register(new AvatarControlDefinition("ysm.width_scale", AvatarControlType.SLIDER)
-                .setTitle("Width scale")
+                .setTitleSupplier(() -> FiguraText.of("gui.controls.width_scale").getString())
                 .setRange(0.1d, 5.0d, 0.05d)
                 .setDefault((double) defaultWidthScale)
                 .setPage("root"));
         owner.controls.register(new AvatarControlDefinition("ysm.height_scale", AvatarControlType.SLIDER)
-                .setTitle("Height scale")
+                .setTitleSupplier(() -> FiguraText.of("gui.controls.height_scale").getString())
                 .setRange(0.1d, 5.0d, 0.05d)
                 .setDefault((double) defaultHeightScale)
                 .setPage("root"));
         owner.controls.register(new AvatarControlDefinition("ysm.debug.header", AvatarControlType.LABEL)
-                .setTitle("YSM Debug")
+                .setTitleSupplier(() -> FiguraText.of("gui.controls.ysm_debug").getString())
                 .setPage("ysm_debug"));
         owner.controls.register(new AvatarControlDefinition("ysm.debug.functions", AvatarControlType.LABEL)
-                .setTitle("Functions: " + functions.functionCount() + "  Events: " + functions.eventCount())
+                .setTitleSupplier(() -> FiguraText.of("gui.controls.functions_events", functions.functionCount(), functions.eventCount()).getString())
                 .setPage("ysm_debug"));
         owner.controls.register(new AvatarControlDefinition("ysm.debug.function_names", AvatarControlType.LABEL)
-                .setTitle("fn: " + debugPreview(functions.functionDebugNames()))
+                .setTitleSupplier(() -> FiguraText.of("gui.controls.functions", debugPreview(functions.functionDebugNames())).getString())
                 .setPage("ysm_debug"));
         owner.controls.register(new AvatarControlDefinition("ysm.debug.event_names", AvatarControlType.LABEL)
-                .setTitle("events: " + debugPreview(new ArrayList<>(functions.eventDebugNames().keySet())))
+                .setTitleSupplier(() -> FiguraText.of("gui.controls.events", debugPreview(new ArrayList<>(functions.eventDebugNames().keySet()))).getString())
                 .setPage("ysm_debug"));
         owner.controls.register(new AvatarControlDefinition("ysm.debug.recent_events", AvatarControlType.LABEL)
-                .setTitle("recent: " + debugPreview(functions.recentEvents()))
+                .setTitleSupplier(() -> FiguraText.of("gui.controls.recent", debugPreview(functions.recentEvents())).getString())
                 .setPage("ysm_debug"));
         owner.controls.register(new AvatarControlDefinition("ysm.debug.sync_keys", AvatarControlType.LABEL)
-                .setTitle("sync: " + debugPreview(functions.recentSyncKeys()))
+                .setTitleSupplier(() -> FiguraText.of("gui.controls.sync", debugPreview(functions.recentSyncKeys())).getString())
                 .setPage("ysm_debug"));
         owner.controls.register(new AvatarControlDefinition("ysm.debug.call_stack", AvatarControlType.LABEL)
-                .setTitle("stack: " + debugPreview(functions.callStackDebugNames()))
+                .setTitleSupplier(() -> FiguraText.of("gui.controls.stack", debugPreview(functions.callStackDebugNames())).getString())
                 .setPage("ysm_debug"));
     }
 
