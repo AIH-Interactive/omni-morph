@@ -3,8 +3,8 @@ package top.aihmc.omnimorph.gui.widgets.library;
 /** Logical-pixel geometry shared by card rendering, clipping and pointer hit tests. */
 public record ModelLibraryLayout(int width, int height, int count, int columns, int cardWidth) {
     public static final int GAP = 6;
-    public static final int CARD_HEIGHT = 116;
-    public static final int MIN_CARD_WIDTH = 240;
+    public static final int CARD_HEIGHT = 92;
+    public static final int MIN_CARD_WIDTH = 196;
 
     public static ModelLibraryLayout of(int width, int height, int count) {
         int available = Math.max(1, width);

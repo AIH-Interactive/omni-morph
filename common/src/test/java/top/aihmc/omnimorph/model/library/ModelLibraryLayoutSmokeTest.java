@@ -32,10 +32,10 @@ public final class ModelLibraryLayoutSmokeTest {
                         "icon actions and the visibility option leave a separate preview and footer");
             }
         }
-        require(ModelLibraryLayout.of(240, 100, 8).columns() == 1, "one horizontal card column");
-        require(ModelLibraryLayout.of(486, 100, 8).columns() == 2, "two columns");
-        require(ModelLibraryLayout.of(732, 100, 8).columns() == 3, "three columns");
-        require(ModelLibraryLayout.of(1470, 100, 8).columns() == 6, "more than three columns");
+        require(ModelLibraryLayout.of(196, 100, 8).columns() == 1, "one compact card column");
+        require(ModelLibraryLayout.of(398, 100, 8).columns() == 2, "two columns");
+        require(ModelLibraryLayout.of(600, 100, 8).columns() == 3, "three compact columns in the former two-column area");
+        require(ModelLibraryLayout.of(1206, 100, 8).columns() == 6, "more than three columns");
         for (int width : new int[]{1, 128, 170, 240, 486, 732, 1470}) {
             for (int height : new int[]{1, 92, 116, 230, 800}) {
                 var layout = ModelLibraryLayout.of(width, height, 8);
@@ -57,13 +57,15 @@ public final class ModelLibraryLayoutSmokeTest {
                 }
             }
         }
-        var old = ModelLibraryLayout.of(486, 116, 8);
-        int anchor = old.first(244);
-        var resized = ModelLibraryLayout.of(240, 116, 8);
+        var old = ModelLibraryLayout.of(398, 92, 8);
+        int anchor = old.first(196);
+        var resized = ModelLibraryLayout.of(196, 92, 8);
         require(resized.first(resized.scrollTo(anchor)) == anchor, "resize retains first visible model index");
-        var row = ModelLibraryLayout.of(486, 116, 8);
+        var row = ModelLibraryLayout.of(398, 92, 8);
         require(row.endWithPrefetch(0) == 4, "one prefetch row after a fully visible row");
-        require(row.hit(240, 0, 0) == -1 && row.hit(0, 116, 0) == -1, "gaps are not card hits");
+        require(row.hit(196, 0, 0) == -1, "horizontal gaps are not card hits");
+        var tallerViewport = ModelLibraryLayout.of(398, 100, 8);
+        require(tallerViewport.hit(0, 92, 0) == -1, "vertical gaps are not card hits");
         require(ModelLibraryLayout.of(128, 116, 0).hit(0, 0, 0) == -1, "empty grid");
         System.out.println("PASS model library layout: responsive columns, scroll anchors, virtualization and clipped hit tests");
     }
