@@ -453,3 +453,9 @@ R23 检查点：衣柜管理 current 来源显式开启独立绘制，其他模�
 先用单层/多层包装且没有 main.json 的实际准备流程回归复现 UNRECOGNIZED_SOURCE，再修复元数据根定位及模型相对路径编译，验证原作者/名称/free、脚本及资源、根级优先与多模型歧义拒绝，编译后提交推送。实际游戏选择、预览与上传验收 MANUAL/PENDING，版本保持 alpha.2。
 
 R24 检查点：单层及多层包装 ZIP 的实际 prepare 流程先复现 UNRECOGNIZED_SOURCE，修复后名称/作者/free、根相对脚本及资源编译通过，旁侧 skins 脚本未混入。元数据补充根级清单优先和多个嵌套候选拒绝回归；原 plain/encrypted YSM、限额、取消、不修改衣柜状态回归保持通过。libraryMetadata、libraryPackagePreparation、libraryUploadDraft、Fabric build（含预览/护甲/披风回归）前台 Tee PASS，退出 0；差异空白核对通过。实际截图对应原文件未提供，采用同结构合成 ZIP 验证；实际游戏选择/预览/上传 MANUAL/PENDING。
+
+### R25 模型库卡片作者及上传者标签
+
+卡片信息行复用既有本地化键 card_authors/card_uploader，显示为“作者：xxxx”“上传者：xxx”；保留原多作者省略、未知作者、滚动文字及紧凑布局。仅改展示标签，不改上传者/作者来源。编译及差异核对后独立提交推送；实际游戏文字显示 MANUAL/PENDING。
+
+R25 检查点：卡片两行已接入既有中英文本地化格式，中文分别显示作者：%s、上传者：%s，保留首位作者/等及未知作者处理。Fabric build（含既有预览回归）前台 Tee PASS，退出 0；差异与空白核对通过。实际游戏卡片文字及窄宽度滚动 MANUAL/PENDING。
