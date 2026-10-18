@@ -57,6 +57,10 @@ public final class LibraryAccess implements AutoCloseable {
         return call;
     }
 
+    public String origin() {
+        return endpoint.origin().toString();
+    }
+
     @Override
     public synchronized void close() {
         closed = true;
@@ -76,6 +80,12 @@ public final class LibraryAccess implements AutoCloseable {
 
         public HttpResponse<InputStream> send(String method, String path, HttpRequest.BodyPublisher body,
                                               String contentType, String adminToken) throws Exception {
+            return send(method, path, body, contentType, adminToken, java.util.Map.of());
+        }
+
+        public HttpResponse<InputStream> send(String method, String path, HttpRequest.BodyPublisher body,
+                                              String contentType, String adminToken,
+                                              java.util.Map<String, String> mutationHeaders) throws Exception {
             URI relative = URI.create(path);
             if (path.length() > 8192 || relative.isAbsolute() || relative.getRawAuthority() != null
                     || relative.getRawFragment() != null || relative.getRawPath() == null
@@ -89,15 +99,30 @@ public final class LibraryAccess implements AutoCloseable {
                     .header("Cache-Control", "no-store")
                     .method(method, body);
             authorizer.authorize(request);
+            for (var entry : mutationHeaders.entrySet()) {
+                boolean valid = switch (entry.getKey()) {
+                    case "x-omnimorph-operation" -> entry.getValue().matches(
+                            "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}");
+                    case "x-omnimorph-expected-revision" -> entry.getValue().matches("[1-9][0-9]{0,18}");
+                    default -> false;
+                };
+                if (!valid) {
+                    throw new IOException("INVALID_LIBRARY_HEADER");
+                }
+                request.header(entry.getKey(), entry.getValue());
+            }
             if (contentType != null) {
                 request.header("Content-Type", contentType);
+            }
+            if (relative.getRawPath().startsWith("/api/library/v1/admin/")
+                    || adminToken != null && !adminToken.isEmpty()) {
+                request.header("x-omnimorph-origin", endpoint.origin().toString());
             }
             if (adminToken != null && !adminToken.isEmpty()) {
                 if (adminToken.length() > 1024) {
                     throw new IOException("INVALID_ADMIN_SESSION");
                 }
                 request.header("x-omnimorph-admin", adminToken);
-                request.header("x-omnimorph-origin", endpoint.origin().toString());
             }
             synchronized (this) {
                 if (finished) {

@@ -22,6 +22,9 @@ import java.util.function.BooleanSupplier;
 
 /** Bounded worker-only distribution preparation. No Avatar, equipment or preview-cache publication. */
 public final class LibraryPackagePreparation {
+    public enum Phase {
+        READING, PREPARING, COMPRESSING
+    }
     private LibraryPackagePreparation() {
     }
 
@@ -41,10 +44,29 @@ public final class LibraryPackagePreparation {
         public byte[] compressed() {
             return compressed.clone();
         }
+
+        public int byteLength() {
+            return compressed.length;
+        }
+
+        public String metadataSource() {
+            return switch (metadata.modelType()) {
+                case "FIGURA" -> "avatar.json";
+                case "YSM_ENCRYPTED" -> "encrypted_manifest";
+                default -> nbt.getCompoundOrEmpty("metadata").getStringOr("ysm_kind", "").equals("old")
+                        ? "main.json" : "ysm.json";
+            };
+        }
     }
 
     public static Prepared prepare(Path input, UUID owner, long uploadLimit,
                                    BooleanSupplier cancelled) throws Exception {
+        return prepare(input, owner, uploadLimit, cancelled, ignored -> {});
+    }
+
+    public static Prepared prepare(Path input, UUID owner, long uploadLimit,
+                                   BooleanSupplier cancelled, java.util.function.Consumer<Phase> phase) throws Exception {
+        phase.accept(Phase.READING);
         String filename = input.getFileName().toString();
         String lower = filename.toLowerCase(Locale.ROOT);
         if ((!lower.endsWith(".zip") && !lower.endsWith(".ysm")) || uploadLimit < 1) {
@@ -59,6 +81,7 @@ public final class LibraryPackagePreparation {
                 copy(stream, output, YsmResourceLimits.DEFAULT.fileBytes(), cancelled);
             }
             var metadata = LibraryMetadataReader.read(source, cancelled);
+            phase.accept(Phase.PREPARING);
             CompoundTag nbt;
             if (metadata.modelType().equals("FIGURA")) {
                 Path directory = Files.createDirectory(staging.resolve("figura"));
@@ -93,6 +116,7 @@ public final class LibraryPackagePreparation {
             nbt.getCompoundOrEmpty("metadata").putString("name", metadata.internalName());
             nbt.getCompoundOrEmpty("metadata").putString("authors", String.join("\n", metadata.authors()));
             nbt = YsmSourcePayload.forOutput(nbt);
+            phase.accept(Phase.COMPRESSING);
             var bytes = new ByteArrayOutputStream();
             long limit = Math.min(uploadLimit, CloudHttp.FILE_BYTES);
             try (var output = new OutputStream() {

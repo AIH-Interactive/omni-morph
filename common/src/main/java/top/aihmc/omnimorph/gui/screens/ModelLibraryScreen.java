@@ -7,10 +7,20 @@ import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.backend2.NetworkStuff;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
+import top.aihmc.omnimorph.backend2.library.LibraryAdminSession;
+import top.aihmc.omnimorph.backend2.library.LibraryAuthorization;
 import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.EntityPreview;
 import top.aihmc.omnimorph.gui.widgets.SearchBar;
+import top.aihmc.omnimorph.gui.widgets.SwitchButton;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryFormBody;
 import top.aihmc.omnimorph.gui.widgets.lists.ModelLibraryGrid;
+import top.aihmc.omnimorph.gui.screens.library.ModelUploadScreen;
+import top.aihmc.omnimorph.gui.screens.library.ModelLibraryAuthorizationScreen;
+import top.aihmc.omnimorph.gui.screens.library.ModelLibraryAdminLoginScreen;
+import top.aihmc.omnimorph.gui.screens.library.ModelLibraryAdminScreen;
+import top.aihmc.omnimorph.gui.screens.library.ModelReportScreen;
+import top.aihmc.omnimorph.gui.screens.library.ModelLibraryAppealsScreen;
 import top.aihmc.omnimorph.model.library.LibraryEquipmentService;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
@@ -53,6 +63,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
     private long searchChangedAt;
     private boolean building;
     private boolean closed;
+    private boolean retainingChild;
     private String state = "loading";
     private Component actionMessage = Component.empty();
     private Button previous;
@@ -61,7 +72,15 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
     private Button favorite;
     private Button visibility;
     private Button delete;
+    private Button uploadEntry;
+    private Button adminEntry;
+    private Button grants;
+    private Button authorizationToggle;
+    private SwitchButton showPrivate;
+    private LibraryAdminSession admin;
+    private LibraryClient.Request<Boolean> adminRestore;
     private int leftWidth;
+    private int actionsY;
 
     public ModelLibraryScreen(Screen parentScreen) {
         super(parentScreen, FiguraText.of("gui.panels.title.library"));
@@ -69,6 +88,8 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
 
     @Override
     protected void init() {
+        boolean resuming = retainingChild;
+        retainingChild = false;
         super.init();
         building = true;
         if (width < 300 || height < 220) {
@@ -82,6 +103,8 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         leftWidth = (width - 18) * 7 / 10;
         int rightX = leftWidth + 12;
         int rightWidth = width - rightX - 4;
+        int actionsHeight = Math.min(192, Math.max(80, height - 128));
+        actionsY = height - 24 - actionsHeight;
         for (int i = 0; i < SCOPES.size(); i++) {
             int target = i;
             addRenderableWidget(new Button(4 + i * (leftWidth + 2) / 3, 28, (leftWidth - 10) / 3, 20,
@@ -91,8 +114,10 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                         refresh();
                     }));
         }
-        addRenderableWidget(new Button(rightX, 28, rightWidth, 20, FiguraText.of("gui.library.refresh"),
+        addRenderableWidget(new Button(rightX, 28, (rightWidth - 4) / 2, 20, FiguraText.of("gui.library.refresh"),
                 null, button -> reconnectOrRefresh()));
+        adminEntry = addRenderableWidget(new Button(rightX + (rightWidth + 4) / 2, 28, (rightWidth - 4) / 2,
+                20, FiguraText.of("gui.library.admin_login"), null, button -> openAdmin()));
         var search = new SearchBar(4, 52, leftWidth, 20, value -> {
             if (!building && !value.equals(query)) {
                 query = value;
@@ -132,7 +157,11 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         }
         if (client != null && grid == null) {
             grid = new ModelLibraryGrid(4, 100, leftWidth, height - 128, thumbnails,
-                    this::select, this::favorite);
+                    this::select, this::favorite, model -> {
+                        preview.clear();
+                        retainingChild = true;
+                        minecraft.setScreen(new ModelReportScreen(this, client, model.modelId()));
+                    });
         }
         if (grid != null) {
             grid.setX(4);
@@ -142,24 +171,57 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
             addRenderableWidget(grid);
         }
         if (preview != null) {
-            int previewHeight = Math.max(24, height - 200);
-            var widget = new EntityPreview(rightX, 52, rightWidth, previewHeight, Math.max(12, rightWidth / 3),
+            uploadEntry = addRenderableWidget(new Button(rightX, 52, (rightWidth - 4) / 2, 20,
+                    FiguraText.of("gui.library.upload"), null, button -> {
+                        preview.clear();
+                        retainingChild = true;
+                        minecraft.setScreen(new ModelUploadScreen(this, client, capabilities, this::refresh));
+                    }));
+            addRenderableWidget(new Button(rightX + (rightWidth + 4) / 2, 52, (rightWidth - 4) / 2, 20,
+                    FiguraText.of("gui.library.my_appeals"), null, button -> {
+                        if (client.current() && capabilities != null && capabilities.enabled()) {
+                            preview.clear();
+                            retainingChild = true;
+                            minecraft.setScreen(new ModelLibraryAppealsScreen(this, client, null));
+                        }
+                    }));
+            var widget = new EntityPreview(rightX, 76, rightWidth, Math.max(24, actionsY - 88), Math.max(12, rightWidth / 3),
                     -15, 30, preview.entity(), this);
             widget.setLibraryPreview(preview);
             addRenderableWidget(widget);
         }
-        use = new Button(rightX, height - 120, rightWidth, 20, FiguraText.of("gui.library.use"),
+        var actions = addRenderableWidget(new LibraryFormBody(rightX, actionsY, rightWidth, actionsHeight, false));
+        int actionWidth = Math.max(20, rightWidth - 22);
+        grants = actions.row(Component.empty(), new Button(0, 0, actionWidth, 20,
+                FiguraText.of("gui.library.grants"), null, button -> {
+                    if (LibraryAuthorization.available(selected)) {
+                        preview.clear();
+                        retainingChild = true;
+                        minecraft.setScreen(new ModelLibraryAuthorizationScreen(this, client, selected.modelId(), () -> ""));
+                    }
+                }));
+        showPrivate = actions.row(Component.empty(), new SwitchButton(0, 0, actionWidth, 20,
+                FiguraText.of("gui.library.show_private"), FiguraText.of("gui.library.show_private_hint"), ignored -> {}));
+        authorizationToggle = actions.row(Component.empty(), new Button(0, 0, actionWidth, 20,
+                FiguraText.of("gui.library.authorization"), null, button -> {
+                    if (selected != null && selected.allows("patch")) {
+                        mutate(selected, "PATCH", "", Map.of("operation_id", UUID.randomUUID().toString(),
+                                "expected_revision", selected.policyRevision(),
+                                "requires_authorization", !selected.requiresAuthorization()));
+                    }
+                }));
+        use = new Button(0, 0, actionWidth, 20, FiguraText.of("gui.library.use"),
                 null, button -> enable());
-        favorite = new Button(rightX, height - 96, rightWidth, 20, FiguraText.of("gui.library.favorite"),
+        favorite = new Button(0, 0, actionWidth, 20, FiguraText.of("gui.library.favorite"),
                 null, button -> favorite(selected));
-        visibility = new Button(rightX, height - 72, rightWidth, 20, FiguraText.of("gui.library.visibility"),
+        visibility = new Button(0, 0, actionWidth, 20, FiguraText.of("gui.library.visibility"),
                 null, button -> toggleVisibility());
-        delete = new Button(rightX, height - 48, rightWidth, 20, FiguraText.of("gui.library.delete"),
+        delete = new Button(0, 0, actionWidth, 20, FiguraText.of("gui.library.delete"),
                 FiguraText.of("gui.library.delete_confirm"), button -> delete());
-        addRenderableWidget(use);
-        addRenderableWidget(favorite);
-        addRenderableWidget(visibility);
-        addRenderableWidget(delete);
+        actions.row(Component.empty(), use);
+        actions.row(Component.empty(), favorite);
+        actions.row(Component.empty(), visibility);
+        actions.row(Component.empty(), delete);
         previous = new Button(4, height - 24, 24, 20, Component.literal("<"),
                 FiguraText.of("gui.library.previous"), button -> changePage(-1));
         next = new Button(leftWidth - 20, height - 24, 24, 20, Component.literal(">"),
@@ -170,6 +232,9 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                 FiguraText.of("gui.done"), null, button -> onClose()));
         addRenderableOnly((gui, x, y, delta) -> renderStatus(gui));
         building = false;
+        if (resuming && capabilities != null) {
+            refresh();
+        }
         updateButtons();
     }
 
@@ -180,6 +245,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
             equipment = new LibraryEquipmentService(client, transfers);
             thumbnails = new LibraryThumbnailService(client, FiguraMod.getCacheDirectory());
             preview = new LibraryPreviewSession(client);
+            admin = new LibraryAdminSession(client, FiguraMod.getCacheDirectory());
             state = "loading";
             long requestGeneration = ++generation;
             var request = client.capabilities();
@@ -195,6 +261,9 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                     state = "unsupported";
                 } else {
                     capabilities = value;
+                    if (value.adminLoginAvailable()) {
+                        adminRestore = admin.restore();
+                    }
                     refresh();
                 }
             });
@@ -306,6 +375,9 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         }
         equipmentOperation = null;
         selected = model;
+        if (showPrivate != null) {
+            showPrivate.setToggled(false);
+        }
         deleteArmed = null;
         if (grid != null) {
             grid.selected(model == null ? null : model.modelId());
@@ -326,7 +398,8 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         if (equipmentOperation != null && equipmentOperation.future().isCompletedExceptionally()) {
             equipmentOperation.retry();
         } else {
-            equipmentOperation = equipment.enable(selected.modelId());
+            equipmentOperation = equipment.enable(selected.modelId(), showPrivate != null && showPrivate.isToggled()
+                    && selected.visibility().equals("PRIVATE") && selected.moderationStatus().equals("ACTIVE"));
         }
         var operation = equipmentOperation;
         operation.future().whenComplete((result, failure) -> {
@@ -390,6 +463,26 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         boolean busy = mutation != null && !mutation.future().isDone()
                 || equipmentOperation != null && !equipmentOperation.future().isDone();
         boolean available = !closed && client != null && client.current() && state.equals("ready") && !busy;
+        adminEntry.setVisible(capabilities != null && capabilities.adminLoginAvailable());
+        adminEntry.setActive(!closed && client != null && client.current() && capabilities != null && !busy
+                && (adminRestore == null || adminRestore.future().isDone()));
+        adminEntry.setMessage(FiguraText.of(admin != null && admin.active() ? "gui.library.manage" : "gui.library.admin_login"));
+        grants.setVisible(LibraryAuthorization.available(selected));
+        grants.setActive(available && LibraryAuthorization.available(selected));
+        authorizationToggle.setVisible(selected != null && selected.allows("patch"));
+        authorizationToggle.setActive(available && selected != null && selected.allows("patch"));
+        authorizationToggle.setMessage(FiguraText.of(selected != null && selected.requiresAuthorization()
+                ? "gui.library.needs_authorization" : "gui.library.value.free"));
+        boolean privateModel = selected != null && selected.visibility().equals("PRIVATE");
+        showPrivate.setVisible(privateModel);
+        showPrivate.setActive(available && privateModel && selected.moderationStatus().equals("ACTIVE") && selected.allows("equip"));
+        if (!privateModel || !selected.moderationStatus().equals("ACTIVE")) {
+            showPrivate.setToggled(false);
+        }
+        if (uploadEntry != null) {
+            uploadEntry.setActive(!closed && client != null && client.current() && capabilities != null
+                    && capabilities.enabled() && !busy);
+        }
         use.setActive(available && selected != null && selected.allows("equip")
                 && (equipmentOperation == null || equipmentOperation.future().isDone()));
         use.setMessage(FiguraText.of(equipmentOperation != null && equipmentOperation.future().isCompletedExceptionally()
@@ -425,7 +518,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         } else if (preview != null && preview.status().stage() == LibraryPreviewSession.Stage.FAILED) {
             message = FiguraText.of("gui.library.failure", preview.status().errorCode());
         }
-        UIHelper.renderScrollingText(gui, message, leftWidth + 12, height - 134,
+        UIHelper.renderScrollingText(gui, message, leftWidth + 12, actionsY - 12,
                 width - leftWidth - 16, 0xffd3e7e1);
     }
 
@@ -455,6 +548,9 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
     private void closeServices() {
         closed = true;
         generation++;
+        if (admin != null) {
+            admin.close();
+        }
         if (pending != null) {
             pending.cancel();
         }
@@ -475,9 +571,36 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         }
     }
 
+    private void openAdmin() {
+        if (admin == null || capabilities == null || !capabilities.adminLoginAvailable()) {
+            return;
+        }
+        if (admin.active()) {
+            preview.clear();
+            retainingChild = true;
+            minecraft.setScreen(new ModelLibraryAdminScreen(this, client, admin, capabilities));
+        } else {
+            if (adminRestore != null && !adminRestore.future().isDone()) {
+                return;
+            }
+            adminRestore = admin.restore();
+            adminRestore.future().whenComplete((restored, failure) -> {
+                if (!closed && client.current() && minecraft.screen == this) {
+                    if (failure == null && Boolean.TRUE.equals(restored) && admin.active()) {
+                        openAdmin();
+                    } else {
+                        preview.clear();
+                        retainingChild = true;
+                        minecraft.setScreen(new ModelLibraryAdminLoginScreen(this, client, admin, this::openAdmin));
+                    }
+                }
+            });
+        }
+    }
+
     @Override
     public void removed() {
-        if (preview == null || !preview.isExpanded()) {
+        if (!retainingChild && (preview == null || !preview.isExpanded())) {
             closeServices();
         }
         super.removed();

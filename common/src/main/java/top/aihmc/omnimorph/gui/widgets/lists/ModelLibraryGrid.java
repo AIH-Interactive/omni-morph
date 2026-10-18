@@ -19,6 +19,7 @@ public final class ModelLibraryGrid extends AbstractList implements AutoCloseabl
     private final LibraryThumbnailService thumbnails;
     private final Consumer<LibraryModels.Model> select;
     private final Consumer<LibraryModels.Model> favorite;
+    private final Consumer<LibraryModels.Model> report;
     private final Map<Integer, ModelCardWidget> cards = new HashMap<>();
     private List<LibraryModels.Model> models = List.of();
     private UUID selected;
@@ -27,10 +28,17 @@ public final class ModelLibraryGrid extends AbstractList implements AutoCloseabl
 
     public ModelLibraryGrid(int x, int y, int width, int height, LibraryThumbnailService thumbnails,
                             Consumer<LibraryModels.Model> select, Consumer<LibraryModels.Model> favorite) {
+        this(x, y, width, height, thumbnails, select, favorite, ignored -> {});
+    }
+
+    public ModelLibraryGrid(int x, int y, int width, int height, LibraryThumbnailService thumbnails,
+                            Consumer<LibraryModels.Model> select, Consumer<LibraryModels.Model> favorite,
+                            Consumer<LibraryModels.Model> report) {
         super(x, y, width, height);
         this.thumbnails = thumbnails;
         this.select = select;
         this.favorite = favorite;
+        this.report = report;
     }
 
     public void models(List<LibraryModels.Model> models, UUID selected) {
@@ -82,7 +90,7 @@ public final class ModelLibraryGrid extends AbstractList implements AutoCloseabl
                     ignored -> new ModelCardWidget(models.get(position), thumbnails, model -> {
                         selected = model.modelId().equals(selected) ? null : model.modelId();
                         select.accept(selected == null ? null : model);
-                    }, favorite));
+                    }, favorite, report));
             card.setX(getX() + 2 + layout.x(index));
             card.setY(getY() + 2 + layout.y(index, offset));
             card.setWidth(layout.cardWidth());
