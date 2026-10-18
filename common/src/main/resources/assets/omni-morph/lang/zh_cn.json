@@ -179,6 +179,8 @@
   "omni-morph.gui.library.file_error": "无法打开此路径，或文件类型不受支持。",
   "omni-morph.gui.library.file_limit": "仅显示前 4096 项，请输入更具体的路径。",
   "omni-morph.gui.library.file_hint": "输入目录路径，或将文件拖入上传表单。",
+  "omni-morph.gui.library.model_file_hint": "选择 avatars 内的 .zip 或 .ysm，也可将文件拖入上传表单。",
+  "omni-morph.gui.library.model_file_limit": "仅扫描前 4096 项，请整理 avatars 文件夹后重试。",
   "omni-morph.gui.library.grants": "授权管理",
   "omni-morph.gui.library.resolve": "查找玩家",
   "omni-morph.gui.library.confirm_grant": "确认授权此 UUID",

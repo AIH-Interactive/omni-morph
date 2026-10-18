@@ -2012,6 +2012,8 @@
   "omni-morph.gui.library.file_error": "Cannot open this path or unsupported file type.",
   "omni-morph.gui.library.file_limit": "Showing the first 4096 entries. Use a more specific path.",
   "omni-morph.gui.library.file_hint": "Enter a folder path, or drag a file onto the upload form.",
+  "omni-morph.gui.library.model_file_hint": "Choose a .zip or .ysm from avatars, or drag a file onto the upload form.",
+  "omni-morph.gui.library.model_file_limit": "Only the first 4096 entries were scanned. Organize the avatars folder and try again.",
   "omni-morph.gui.library.grants": "Manage authorizations",
   "omni-morph.gui.library.resolve": "Find player",
   "omni-morph.gui.library.confirm_grant": "Confirm authorization for this UUID",

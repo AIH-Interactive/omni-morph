@@ -23,10 +23,14 @@ import top.aihmc.omnimorph.backend2.protocol.CloudEndpoint;
 import top.aihmc.omnimorph.backend2.protocol.LibraryAccess;
 import top.aihmc.omnimorph.permissions.PermissionManager;
 import top.aihmc.omnimorph.permissions.Permissions;
+import top.aihmc.omnimorph.config.Configs;
+import top.aihmc.omnimorph.gui.screens.library.ModelFilePickerScreen;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryRowList;
 import sun.misc.Unsafe;
 
 import java.net.http.HttpClient;
 import java.nio.file.Path;
+import java.nio.file.Files;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -53,6 +57,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 new LibrarySession("synthetic-preview", FiguraMod.getLocalPlayerUUID(), epoch, live::get),
                 Minecraft.getInstance()::execute);
              var preview = new LibraryPreviewSession(client)) {
+            testModelFilePicker(client, drain);
             // Only the entity allocation is replaced: actual Avatar loading, permissions,
             // generation guards, production lookup bindings and resource cleanup all run.
             var entity = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
@@ -197,6 +202,60 @@ public final class LibraryPreviewRuntimeSmokeTest {
         }
     }
 
+    private static void testModelFilePicker(LibraryClient client, Runnable drain) throws Exception {
+        String originalRoot = Configs.MAIN_DIR.value;
+        Path root = Path.of(System.getProperty("figura.test.directory")).resolve("configured-model-root");
+        Path avatars = Files.createDirectories(root.resolve("avatars"));
+        Path outside = Files.createDirectories(root.resolve("outside"));
+        Files.writeString(avatars.resolve("a.ZIP"), "model");
+        Files.writeString(avatars.resolve("b.ysm"), "model");
+        Files.writeString(avatars.resolve("cover.png"), "image");
+        Files.writeString(avatars.resolve("notes.txt"), "ignored");
+        Files.createDirectory(avatars.resolve("folder.zip"));
+        Path dropped = Files.writeString(outside.resolve("dropped.ysm"), "model");
+        try {
+            Configs.MAIN_DIR.value = root.toString();
+            var picker = new ModelFilePickerScreen(null, client, outside, ModelFilePickerScreen.Kind.MODEL, ignored -> {});
+            var pickerType = ModelFilePickerScreen.class;
+            require(field(pickerType, "directory").get(picker).equals(avatars),
+                    "model picker follows the configured avatars directory rather than a previous external file");
+            var navigate = pickerType.getDeclaredMethod("navigate", Path.class);
+            navigate.setAccessible(true);
+            navigate.invoke(picker, outside);
+            require(field(pickerType, "directory").get(picker).equals(avatars), "model picker cannot navigate outside avatars");
+            field(pickerType, "rows").set(picker, new LibraryRowList(0, 0, 100, 100));
+            var load = pickerType.getDeclaredMethod("load");
+            load.setAccessible(true);
+            load.invoke(picker);
+            var request = (LibraryClient.Request<?>) field(pickerType, "request").get(picker);
+            Object listing = await(request.future(), drain);
+            var items = listing.getClass().getDeclaredMethod("items");
+            items.setAccessible(true);
+            var entries = (java.util.List<?>) items.invoke(listing);
+            var names = new java.util.ArrayList<String>();
+            for (Object entry : entries) {
+                var path = entry.getClass().getDeclaredMethod("path");
+                path.setAccessible(true);
+                names.add(((Path) path.invoke(entry)).getFileName().toString());
+            }
+            require(names.equals(java.util.List.of("a.ZIP", "b.ysm")),
+                    "actual asynchronous picker lists only zip/ysm files, excluding folders and other extensions");
+            picker.removed();
+            var images = new ModelFilePickerScreen(null, client, outside, ModelFilePickerScreen.Kind.IMAGE, ignored -> {});
+            require(field(pickerType, "directory").get(images).equals(outside), "image picker retains its original directory behavior");
+            require(ModelFilePickerScreen.accepts(dropped, ModelFilePickerScreen.Kind.MODEL),
+                    "dragged model acceptance remains independent from the fixed chooser directory");
+            Path secondRoot = Files.createDirectories(root.resolve("second-root"));
+            Configs.MAIN_DIR.value = secondRoot.toString();
+            var changed = new ModelFilePickerScreen(null, client, outside, ModelFilePickerScreen.Kind.MODEL, ignored -> {});
+            require(field(pickerType, "directory").get(changed).equals(secondRoot.resolve("avatars")),
+                    "a newly opened picker uses the current folder setting");
+            System.out.println("PASS model picker: configured avatars root, fixed navigation, real file filtering and external drag acceptance");
+        } finally {
+            Configs.MAIN_DIR.value = originalRoot;
+        }
+    }
+
     private static final class ArmorPreviewPlayer extends RemotePlayer {
         private int equipmentReads;
         private int capeReads;
@@ -257,7 +316,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         return field;
     }
 
-    private static boolean await(CompletableFuture<Boolean> future, Runnable drain) throws Exception {
+    private static <T> T await(CompletableFuture<T> future, Runnable drain) throws Exception {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
         while (!future.isDone() && System.nanoTime() < deadline) {
             drain.run();

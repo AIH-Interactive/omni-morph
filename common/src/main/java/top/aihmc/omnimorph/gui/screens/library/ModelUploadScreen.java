@@ -4,6 +4,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
+import top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
@@ -254,8 +255,12 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
     }
 
     private void pick(ModelFilePickerScreen.Kind kind) {
-        Path selected = kind == ModelFilePickerScreen.Kind.MODEL ? source : imagePath;
-        Path directory = selected == null ? FiguraMod.getFiguraDirectory() : selected.toAbsolutePath().getParent();
+        Path directory;
+        if (kind == ModelFilePickerScreen.Kind.MODEL) {
+            directory = LocalAvatarFetcher.getLocalAvatarDirectory();
+        } else {
+            directory = imagePath == null ? FiguraMod.getFiguraDirectory() : imagePath.toAbsolutePath().getParent();
+        }
         retainingChild = true;
         minecraft.setScreen(new ModelFilePickerScreen(this, client, directory, kind,
                 kind == ModelFilePickerScreen.Kind.MODEL ? this::selectFile : this::selectImage));
