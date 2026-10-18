@@ -88,8 +88,8 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
         building = true;
         var layout = new LibraryWorkspaceLayout(width, height);
         int area = layout.contentWidth();
-        int previewX = layout.left();
-        int contentX = previewX + layout.previewWidth() + 8;
+        int previewX = layout.previewX();
+        int contentX = layout.left();
         var entity = addRenderableWidget(new EntityPreview(previewX, 52, layout.previewWidth(),
                 height - 80, Math.max(12, layout.previewWidth() / 3), -15, 30, preview.entity(), this));
         entity.setLibraryPreview(preview);
