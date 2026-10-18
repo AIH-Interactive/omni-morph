@@ -38,6 +38,7 @@ public final class LibraryManagementSmokeTest {
         var ordinaryAdminLeaks = new AtomicInteger();
         var logouts = new AtomicInteger();
         var refreshes = new AtomicInteger();
+        var recycleChanges = new AtomicInteger();
         String origin = "http://127.0.0.1:" + server.getAddress().getPort();
         server.createContext("/api/library/v1/", exchange -> {
             try {
@@ -65,6 +66,27 @@ public final class LibraryManagementSmokeTest {
                 } else if (path.endsWith("/session")) {
                     boolean admin = ACCESS.equals(token);
                     respond(exchange, "{\"uuid\":\"" + OWNER + "\",\"name\":\"Uploader\",\"admin\":" + admin + ",\"equipment_revision\":0}");
+                } else if (path.endsWith("/admin/recycle")) {
+                    require(ACCESS.equals(token), "recycle listing requires scoped administrator authority");
+                    require(exchange.getRequestURI().getRawQuery().contains("source=WARDROBE")
+                                    && exchange.getRequestURI().getRawQuery().contains("type=FIGURA"),
+                            "source and model type filters are sent together");
+                    respond(exchange, """
+                            {"items":[{"kind":"WARDROBE","id":"%s","owner":"%s","uploader_name":"Uploader",
+                             "name":"Deleted","authors":[],"model_type":"FIGURA","status":"DELETED",
+                             "policy_revision":0,"asset_revision":3,"equipment_revision":7,"asset_id":"avatar",
+                             "downloads":0,"can_restore":true}],"total":1,"page":1,"page_size":8,"has_next":false}
+                            """.formatted(MODEL, OWNER));
+                } else if (path.contains("/admin/wardrobe-recycle/")) {
+                    require(ACCESS.equals(token) && body.contains("\"expected_equipment_revision\":7"),
+                            "wardrobe recovery targets the selected source revision");
+                    recycleChanges.incrementAndGet();
+                    respond(exchange, "{}");
+                } else if (path.endsWith("/admin/models/" + MODEL + "/purge")) {
+                    require(ACCESS.equals(token) && body.contains("\"expected_revision\":9"),
+                            "library purge targets the selected policy revision");
+                    recycleChanges.incrementAndGet();
+                    respond(exchange, "{}");
                 } else if (path.endsWith("/models/" + MODEL)) {
                     if (token != null) {
                         ordinaryAdminLeaks.incrementAndGet();
@@ -126,6 +148,19 @@ public final class LibraryManagementSmokeTest {
             require(await(admin.login("Uploader", "synthetic-password", remember, UUID.randomUUID()).future(), queue),
                     "login verifies the authenticated player and admin context");
             require(admin.active(), "verified admin session is active");
+            var recycle = new LibraryRecycleService(client, admin::token);
+            var items = await(recycle.list(1, "用户 &", "FIGURA", "WARDROBE").future(), queue);
+            var deleted = items.items().getFirst();
+            require(deleted.id().equals(MODEL) && deleted.canRestore() && deleted.equipmentRevision() == 7,
+                    "mixed recycle records retain their immutable source identity and revision");
+            UUID recovery = UUID.randomUUID();
+            await(recycle.change(deleted, false, recovery).future(), queue);
+            await(recycle.change(deleted, true, UUID.randomUUID()).future(), queue);
+            var library = new LibraryRecycleService.Item("LIBRARY", MODEL, OWNER, "Uploader", "Deleted",
+                    java.util.List.of(), "FIGURA", "DELETED", 9, 3, 0, "", 0, true);
+            await(recycle.change(library, true, UUID.randomUUID()).future(), queue);
+            require(recycleChanges.get() == 3, "restore and purge use the selected source-specific endpoint");
+            failure(new LibraryRecycleService(client, () -> "").list(1, "", "", "").future(), queue, "FORBIDDEN");
             await(client.detail(MODEL).future(), queue);
             require(ordinaryAdminLeaks.get() == 0, "ordinary requests never inherit administrator credentials");
             if (remember) {

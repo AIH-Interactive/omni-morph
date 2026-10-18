@@ -59,6 +59,7 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
     private long searchChanged;
     private boolean building;
     private boolean closed;
+    private boolean retainingChild;
     private Component message = Component.empty();
 
     public ModelLibraryWardrobeScreen(Screen parent, LibraryClient client, LibraryAdminSession admin) {
@@ -78,6 +79,7 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
         if (!initForm()) {
             return;
         }
+        retainingChild = false;
         var layout = new LibraryWorkspaceLayout(width, height);
         int area = layout.contentWidth();
         addRenderableWidget(preview.place(this, layout.previewX(), 28, layout.previewWidth(), height - 36));
@@ -112,6 +114,14 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
                 FiguraText.of("gui.library.refresh"), null, ignored -> refresh()));
         addRenderableWidget(new Button(8 + area - 88, height - 24, 88, 20,
                 FiguraText.of("gui.done"), null, ignored -> onClose()));
+        addRenderableWidget(new Button(8, height - 24, Math.max(40, area - 96), 20,
+                FiguraText.of("gui.library.recycle_bin"), null, ignored -> {
+                    if (!busy() && admin.active()) {
+                        retainingChild = true;
+                        preview.clear();
+                        minecraft.setScreen(new ModelLibraryRecycleScreen(this, client, admin));
+                    }
+                }));
         addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui, message, 8, 54, area, 0xffd3e7e1));
         refresh();
     }
@@ -231,7 +241,7 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
 
     @Override
     public void removed() {
-        if (preview.isExpanded()) {
+        if (retainingChild || preview.isExpanded()) {
             super.removed();
             return;
         }
