@@ -1762,6 +1762,11 @@ public final class YsmMaterialNativeSmokeTest {
         }
 
         @Override
+        public void onTextInputFocusChange(net.minecraft.client.gui.components.events.GuiEventListener input, boolean focused) {
+            // Native editing is exercised; OS text-input activation belongs to manual game validation.
+        }
+
+        @Override
         public net.minecraft.world.entity.Entity getCameraEntity() {
             return null;
         }

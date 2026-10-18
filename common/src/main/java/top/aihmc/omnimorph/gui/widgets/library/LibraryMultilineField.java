@@ -102,9 +102,13 @@ public final class LibraryMultilineField extends AbstractContainerElement {
     public boolean mouseReleased(MouseButtonEvent event) {
         if (resizing && event.button() == 0) {
             resizing = false;
-            return true;
+        } else if (getFocused() != null) {
+            getFocused().mouseReleased(event);
         }
-        return super.mouseReleased(event);
+        setDragging(false);
+        // Figura containers clear focus when a child consumes release. Text editing
+        // must retain both the native input focus and the screen's focused field.
+        return false;
     }
 
     @Override
