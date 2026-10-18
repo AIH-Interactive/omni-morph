@@ -136,6 +136,7 @@
   "omni-morph.gui.library.needs_authorization": "需要授权",
   "omni-morph.gui.library.uploader_granted": "上传者自动获得授权，且不能撤销自身授权。",
   "omni-morph.gui.library.authorization": "需授权",
+  "omni-morph.gui.library.table_cover": "封面",
   "omni-morph.gui.library.cover": "自定义封面（PNG / JPEG）",
   "omni-morph.gui.library.choose_model": "选择模型文件",
   "omni-morph.gui.library.choose_image": "选择封面图片",

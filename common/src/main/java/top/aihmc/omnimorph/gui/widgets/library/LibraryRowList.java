@@ -7,6 +7,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.lists.AbstractList;
+import top.aihmc.omnimorph.utils.FiguraIdentifier;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 
 import java.util.List;
@@ -170,7 +171,7 @@ public final class LibraryRowList extends AbstractList {
                             super.renderText(gui, delta);
                         } else {
                             int color = !isActive() ? 0xff666666 : isHoveredOrFocused() ? 0xff55ffff : 0xffeeeeee;
-                            drawIcon(gui, item.icon(), getX() + (getWidth() - 10) / 2, getY() + 5, color);
+                            drawIcon(gui, item.icon(), getX() + (getWidth() - 10) / 2, getY() + 5, color, getU());
                         }
                     }
                 };
@@ -270,27 +271,18 @@ public final class LibraryRowList extends AbstractList {
         }
     }
 
-    private static void drawIcon(GuiGraphicsExtractor gui, Icon icon, int x, int y, int color) {
+    private static void drawIcon(GuiGraphicsExtractor gui, Icon icon, int x, int y, int color, int frame) {
         switch (icon) {
-            case GRANT -> {
-                gui.fill(x, y, x + 10, y + 2, color);
-                gui.fill(x, y + 2, x + 2, y + 6, color);
-                gui.fill(x + 8, y + 2, x + 10, y + 6, color);
-                gui.fill(x + 2, y + 6, x + 4, y + 8, color);
-                gui.fill(x + 6, y + 6, x + 8, y + 8, color);
-                gui.fill(x + 4, y + 8, x + 6, y + 10, color);
+            case GRANT, DELETE -> {
+                String name = icon == Icon.GRANT ? "library_grants" : "library_delete";
+                gui.blit(RenderPipelines.GUI_TEXTURED, new FiguraIdentifier("textures/gui/" + name + ".png"),
+                        x - 3, y - 3, frame * 24, 0, 16, 16, 24, 24, 72, 24);
             }
             case BLOCK -> {
                 UIHelper.fillOutline(gui, x + 1, y + 1, 8, 8, color);
                 for (int step = 1; step < 9; step++) {
                     gui.fill(x + step, y + step, x + step + 1, y + step + 1, color);
                 }
-            }
-            case DELETE -> {
-                gui.fill(x + 3, y, x + 7, y + 1, color);
-                gui.fill(x + 1, y + 1, x + 9, y + 3, color);
-                UIHelper.fillOutline(gui, x + 2, y + 3, 6, 7, color);
-                gui.fill(x + 4, y + 4, x + 6, y + 8, color);
             }
         }
     }
