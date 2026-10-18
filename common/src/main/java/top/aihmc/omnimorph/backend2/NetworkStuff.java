@@ -71,6 +71,9 @@ public class NetworkStuff {
     private static volatile String connectedAddress;
     private static final int RECONNECT = 6000;
     private static int authCheck = RECONNECT;
+    private static final top.aihmc.omnimorph.backend2.protocol.CloudReconnect reconnect =
+            new top.aihmc.omnimorph.backend2.protocol.CloudReconnect();
+    private static volatile boolean authenticationPending;
     private static final YsmSyncConnection YSM_SYNC = new YsmSyncConnection();
     private static Object ysmWorld;
     private static CloudConnection ysmConnection;
@@ -143,7 +146,7 @@ public class NetworkStuff {
         if (current != null) {
             if (current.failure() != null) {
                 String reason = current.failure();
-                disconnect(reason);
+                connectionLost(reason);
                 if (Configs.CONNECTION_TOASTS.value) {
                     FiguraToast.sendToast(FiguraText.of("backend.disconnected"), Component.literal(reason), FiguraToast.ToastType.ERROR);
                 }
@@ -153,15 +156,18 @@ public class NetworkStuff {
         }
         if (--authCheck <= 0) {
             authCheck = RECONNECT;
-            if (!isConnected()) {
-                reAuth();
-            } else {
+            if (isConnected()) {
                 queueString(Util.NIL_UUID, CloudProtocol::checkAuth, (code, data) -> {
                     if (code != 200) {
                         reAuth();
                     }
                 });
             }
+        }
+        if (reconnect.tick(authenticationPending || authenticationWork != null || connection != null)) {
+            retire(null, false);
+            authenticationPending = true;
+            AuthHandler.auth(true);
         }
         tickSubscriptions();
         if (isConnected()) {
@@ -319,16 +325,20 @@ public class NetworkStuff {
 
     public static void auth() {
         disconnect(null);
+        reconnect.start();
         authCheck = RECONNECT;
         if (endpointPermitted()) {
+            authenticationPending = true;
             AuthHandler.auth(false);
         }
     }
 
     public static void reAuth() {
         disconnect(null);
+        reconnect.start();
         authCheck = RECONNECT;
         if (endpointPermitted()) {
+            authenticationPending = true;
             AuthHandler.auth(true);
         }
     }
@@ -399,7 +409,7 @@ public class NetworkStuff {
                 String message = reason != null && (reason.startsWith("backend.protobuf.")
                         || reason.startsWith("backend.endpoint.") || reason.equals("backend.auth.failed"))
                         ? FiguraText.of(reason).getString() : reason;
-                disconnect(message);
+                connectionLost(message);
                 if (Configs.CONNECTION_TOASTS.value && message != null) {
                     FiguraToast.sendToast(FiguraText.of("backend.disconnected"), Component.literal(message), FiguraToast.ToastType.ERROR);
                 }
@@ -409,11 +419,13 @@ public class NetworkStuff {
 
     public static void connect(String token) {
         disconnect(null);
+        reconnect.start();
         connectAuthenticated(token, epochs.get());
     }
 
     public static void connect(String token, CloudProtocol.Kind kind) {
         disconnect(null);
+        reconnect.start();
         connectAuthenticated(token, epochs.get(), kind);
     }
 
@@ -422,6 +434,7 @@ public class NetworkStuff {
     }
 
     private static void connectAuthenticated(String token, long epoch, CloudProtocol.Kind kind) {
+        authenticationPending = false;
         backendStatus = 2;
         disconnectedReason = null;
         if (!endpointPermitted()) {
@@ -455,6 +468,7 @@ public class NetworkStuff {
             @Override
             public void ready() {
                 selected.post(128, () -> {
+                    reconnect.connected();
                     backendStatus = 3;
                     checkVersion();
                     setLimits();
@@ -544,6 +558,19 @@ public class NetworkStuff {
     }
 
     public static synchronized void disconnect(String reason) {
+        retire(reason, true);
+    }
+
+    public static synchronized void connectionLost(String reason) {
+        retire(reason, false);
+        reconnect.failed();
+    }
+
+    private static synchronized void retire(String reason, boolean stopRetry) {
+        if (stopRetry) {
+            reconnect.stop();
+        }
+        authenticationPending = false;
         if (libraryClient != null) {
             libraryClient.close();
             libraryClient = null;

@@ -960,6 +960,14 @@ tasks.register('cloudProtocolConfigSmokeTest', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.config.CloudProtocolConfigSmokeTest'
 }
 
+tasks.register('cloudReconnectSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks reconnect backoff, cancellation and suppression of duplicate connection attempts.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.backend2.protocol.CloudReconnectSmokeTest'
+}
+
 tasks.named('test') {
     dependsOn 'cloudProtocolConfigSmokeTest'
 }

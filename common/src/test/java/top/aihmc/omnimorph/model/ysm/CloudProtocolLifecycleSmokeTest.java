@@ -112,6 +112,40 @@ final class CloudProtocolLifecycleSmokeTest {
                 require(resident.getMainAvatar() == local.owner() && !local.isClosed(), "Debug revocation retains local runtime");
             }
             System.out.println("B7 actual Configs lifecycle: dual-protocol Debug revocation, authentication cancellation, retry/late callback rejection and local retention PASS");
+            Configs.SERVER_IP.value = Configs.SERVER_IP.tempValue = "https://127.0.0.1:1";
+            NetworkStuff.reAuth();
+            ((CompletableFuture<?>) workField.get(null)).get(10, TimeUnit.SECONDS);
+            var failed = new CloudConnection(NetworkStuff.connectionEpoch(),
+                    new FiguraCloudProtocol(URI.create("https://127.0.0.1:1"), "synthetic-unused", testClient));
+            for (String name : new String[]{"connectedAddress", "connectedKind"}) {
+                var field = NetworkStuff.class.getDeclaredField(name);
+                field.setAccessible(true);
+                field.set(null, name.equals("connectedAddress") ? Configs.SERVER_IP.value : Configs.CLOUD_PROTOCOL.kind());
+            }
+            connectionField.set(null, failed);
+            failed.fail("synthetic transport loss");
+            Object previousWork = workField.get(null);
+            NetworkStuff.tick();
+            long failedEpoch = NetworkStuff.connectionEpoch();
+            for (int tick = 0; tick < 98; tick++) {
+                NetworkStuff.tick();
+            }
+            require(workField.get(null) == previousWork, "transport loss waits five seconds before authenticating");
+            NetworkStuff.tick();
+            Object retryWork = workField.get(null);
+            require(retryWork != previousWork && NetworkStuff.connectionEpoch() > failedEpoch,
+                    "real network tick starts one fresh authentication after backoff");
+            for (int tick = 0; tick < 200; tick++) {
+                NetworkStuff.tick();
+            }
+            require(workField.get(null) == retryWork, "pending authentication is not duplicated");
+            ((CompletableFuture<?>) retryWork).get(10, TimeUnit.SECONDS);
+            NetworkStuff.disconnect("manual cancellation");
+            for (int tick = 0; tick < 6000; tick++) {
+                NetworkStuff.tick();
+            }
+            require(workField.get(null) == retryWork, "manual disconnect also cancels the legacy periodic offline retry");
+            System.out.println("PASS automatic backend recovery: real tick scheduling, fresh epoch, one authentication and manual cancellation");
         } finally {
             NetworkStuff.disconnect("fixture-cleanup");
             if (previous == null) {

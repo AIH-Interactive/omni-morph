@@ -114,7 +114,7 @@ public class FiguraWebSocketAdapter extends WebSocketAdapter {
         if (Configs.CONNECTION_TOASTS.value)
             FiguraToast.sendToast(FiguraText.of("backend.disconnected"), FiguraToast.ToastType.ERROR);
 
-        NetworkStuff.disconnect(reason);
+        NetworkStuff.connectionLost(reason);
 
         if (code == 4000)
             NetworkStuff.reAuth();
