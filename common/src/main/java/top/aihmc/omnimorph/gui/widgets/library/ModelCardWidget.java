@@ -88,6 +88,11 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
         }
         if (model.visibility().equals("PRIVATE")) {
             drawStatusIcon(gui, VISIBILITY, statusX, statusY, 0);
+            statusX += 15;
+        }
+        if (model.moderationStatus().equals("BLOCKED")) {
+            gui.fill(statusX - 1, statusY - 1, statusX + 13, statusY + 13, 0xd0101820);
+            LibraryRowList.drawIcon(gui, LibraryRowList.Icon.BLOCK, statusX + 1, statusY + 1, 0xffeeeeee, 1);
         }
         UIHelper.renderScrollingText(gui, LibraryLabels.category(model.categoryId()), informationX, y + 20,
                 informationWidth, 0xffbac6d8);
@@ -118,6 +123,9 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
                     FiguraText.of(model.requiresAuthorization() ? "gui.yes" : "gui.no")));
             tooltip.append("\n").append(FiguraText.of("gui.library.card_visibility",
                     FiguraText.of(model.visibility().equals("PRIVATE") ? "gui.library.private" : "gui.library.public")));
+            if (model.moderationStatus().equals("BLOCKED")) {
+                tooltip.append("\n").append(LibraryLabels.status(model.moderationStatus()));
+            }
             if (thumbnail != null && thumbnail.ready().isCompletedExceptionally()) {
                 tooltip.append("\n").append(FiguraText.of("gui.library.image_retry"));
             }

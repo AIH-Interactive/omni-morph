@@ -280,7 +280,7 @@ public final class LibraryRowList extends AbstractList {
         }
     }
 
-    private static void drawIcon(GuiGraphicsExtractor gui, Icon icon, int x, int y, int color, int frame) {
+    static void drawIcon(GuiGraphicsExtractor gui, Icon icon, int x, int y, int color, int frame) {
         switch (icon) {
             case GRANT, DELETE, RESTORE, EDIT -> {
                 String name = switch (icon) {
