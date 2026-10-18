@@ -50,16 +50,16 @@ public class GameScreen extends AbstractPanelScreen {
         addRenderableWidget(keys = new Label(
                 Component.empty()
                         .append(Component.literal("[R]").withStyle(FiguraMod.getAccentColor()))
-                        .append(" restart, ")
+                        .append(FiguraText.of("gui.game.restart"))
                         .append(Component.literal("[P]").withStyle(FiguraMod.getAccentColor()))
-                        .append(" pause, ")
+                        .append(FiguraText.of("gui.game.pause"))
                         .append(Component.literal("[SPACE]").withStyle(FiguraMod.getAccentColor()))
-                        .append(" step")
+                        .append(FiguraText.of("gui.game.step"))
                         .append("\n")
                         .append(Component.literal("[F1]").withStyle(FiguraMod.getAccentColor()))
-                        .append(" hide text, ")
+                        .append(FiguraText.of("gui.game.hide_text"))
                         .append(Component.literal("[Scroll]").withStyle(FiguraMod.getAccentColor()))
-                        .append(" scale (restarts)"),
+                        .append(FiguraText.of("gui.game.resize")),
                 4, 4, 0)
         );
         addRenderableWidget(stats = new Label("", 4, keys.getRawY() + keys.getHeight(), 0));
@@ -70,9 +70,9 @@ public class GameScreen extends AbstractPanelScreen {
         super.tick();
         if (!paused) grid.tick();
         stats.setText(
-                Component.literal("Generation")
+                FiguraText.of("gui.game.generation")
                         .append(Component.literal(" " + grid.gen).withStyle(FiguraMod.getAccentColor()))
-                        .append(", Scale")
+                        .append(FiguraText.of("gui.game.scale"))
                         .append(Component.literal(" " + scale).withStyle(FiguraMod.getAccentColor()))
         );
     }

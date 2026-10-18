@@ -594,3 +594,15 @@ R39 检查点：复用既有 BLOCK 绘制，条件分支、图标间距及翻译
 用户追加删除状态分析：模型列表中的 DELETED 同样缺失 moderation_status，本次通用摘要修复一并覆盖并新增回归；回收站为独立 status 字段，原接口已明确返回 DELETED，现有回归验证正常，不修改回收站行为。
 
 R40 检查点：真实 HTTP 屏蔽后 mine 保留本人条目、公共/收藏隐藏、管理员列表返回 BLOCKED 且可用列表 policy_revision 解除屏蔽、解除后 mine 显示 ACTIVE 且保持 PRIVATE；同哈希副本权限与屏蔽不可对外展示回归通过。新增管理员模型列表 DELETED 状态断言，原回收站 status=DELETED 断言继续通过。完整 cargo test --locked 103 passed / 0 failed / 1 既有 ignored，cargo build --locked PASS；客户端管理/目录回调回归和 Fabric build（含 previewRuntime）前台 Tee PASS，退出 0。新增三态图标已核对，差异空白检查通过，alpha.2 本地包更新；本阶段需同步更新后端与客户端，真实游戏交互 MANUAL/PENDING。
+
+### R41 全客户端界面翻译补齐
+
+按用户澄清，检查全部客户端界面字段、按钮、状态、筛选与悬浮提示，包括动态键和内置模型控制项；用户填写的名称、模型自定义字段和技术标识保留原样。补齐简体中文与英文界面资源，不限于模型库。既有 Figura 界面翻译可从 LGPL 上游 Assets 的固定版本复用，记录来源；只补缺失资源，保留本项目已有译文。Lua API 参考正文不属于界面字段翻译范围。
+
+核对语言 JSON、键覆盖、格式占位符和动态枚举；必要时将界面写死英文接入翻译键，不改变业务逻辑或布局。完成构建后提交推送，实际游戏中文字形、截断和悬浮排版验收 MANUAL/PENDING。
+
+翻译来源：313 条既有界面译文复用 FiguraMC/Assets 贡献者的 [v1](https://github.com/FiguraMC/Assets/blob/55356418f8cabaff2db30463ebeda4ddad6ef910/v1/lang/zh_cn.json) / [v2](https://github.com/FiguraMC/Assets/blob/55356418f8cabaff2db30463ebeda4ddad6ef910/v2/lang/zh_cn.json) 简体中文资源（固定提交 55356418f8cabaff2db30463ebeda4ddad6ef910，[LGPL-2.1](https://github.com/FiguraMC/Assets/blob/55356418f8cabaff2db30463ebeda4ddad6ef910/LICENSE)）。仅取与本项目英文键对应的缺失条目，映射 OmniMorph 命名空间及品牌；其余缺失项和新增控件文案由本项目补齐。已有项目译文保留，另修正帮助标题等仍为英文的值。
+
+R41 实现：补齐原有 602 条缺失界面译文，将模型专用设置、内置 YSM 控件/调试字段、轮盘编辑、纹理菜单和内置调试/小游戏界面写死文案接入语言资源；申诉/回收站来源显示翻译，不直接显示 LIBRARY/WARDROBE。新增静态键及配置构造器动态键校验，覆盖状态、模型类型、控件类型和格式占位符，当前 964 个界面键中英文完整。模型自定义标题、函数名、资源 ID、绑定名称及用户内容保留原样；不改脚本、控制器或权限语义。
+
+R41 检查点：tools/check-ui-translations.ps1 验证 964 个界面键双语完整、JSON 无重复键、格式占位符一致；模型库布局、管理接口回归及 Fabric build（含 previewRuntime）前台 Tee PASS，退出 0。打包 JAR 内 en_us/zh_cn 资源核对完成，alpha.2 本地包已更新；diff --check 通过。后端无需修改。界面显示、语言切换、中文字体与悬浮/滚动文字实际游戏验收 MANUAL/PENDING。

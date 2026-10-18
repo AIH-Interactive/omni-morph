@@ -31,14 +31,14 @@ import java.util.Map;
 import java.util.UUID;
 
 public class WardrobeScreen extends AbstractPanelScreen {
-    private static final Component DEBUG_MOTD_FALLBACK = Component.literal("No motd could be loaded.\n\n")
+    private static final Component DEBUG_MOTD_FALLBACK = FiguraText.of("gui.debug.no_motd")
             .append("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n")
                     .withStyle(ChatFormatting.GRAY)
-            .append(Component.literal("(This is some text you can hover)\n")
-                    .withStyle(Style.EMPTY.withColor(0xFFF311A0).withHoverEvent(new HoverEvent.ShowText(Component.literal("hi chat")))))
-            .append(Component.literal("(This is some text you can click on)\n")
+            .append(FiguraText.of("gui.debug.hover_text")
+                    .withStyle(Style.EMPTY.withColor(0xFFF311A0).withHoverEvent(new HoverEvent.ShowText(FiguraText.of("gui.debug.greeting")))))
+            .append(FiguraText.of("gui.debug.click_text")
                     .withStyle(Style.EMPTY.withClickEvent(new ClickEvent.OpenUrl(URI.create("https://github.com/FiguraMC/Figura")))))
-            .append(Component.literal("(This is only visible in debug mode)")
+            .append(FiguraText.of("gui.debug.only_debug")
                     .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
 
     private Label panic;

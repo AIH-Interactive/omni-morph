@@ -98,7 +98,7 @@ public abstract class AbstractAvatarWidget extends AbstractContainerElement impl
                     context.setVisible(false);
                 });
             }
-            context.addTab(Component.literal("YSM Textures"), null, textures);
+            context.addTab(FiguraText.of("gui.wardrobe.ysm_textures"), null, textures);
             textureMenuAdded = true;
         } catch (Exception e) {
             FiguraMod.LOGGER.warn("Failed to build YSM texture menu for " + avatar.getPath(), e);

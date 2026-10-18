@@ -14,6 +14,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import top.aihmc.omnimorph.FiguraMod;
+import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.control.AvatarControlDefinition;
 import top.aihmc.omnimorph.avatar.control.AvatarControlType;
@@ -71,7 +72,7 @@ public class AvatarControlsScreen extends Screen {
     private final Map<String, ItemStack> wheelItemCache = new HashMap<>();
 
     public AvatarControlsScreen(Screen parentScreen, Avatar avatar, String page) {
-        super(Component.literal("Avatar Controls"));
+        super(FiguraText.of("gui.controls.title"));
         this.parentScreen = parentScreen;
         this.avatar = avatar;
         this.page = page == null || page.isBlank() ? "root" : page;
@@ -121,7 +122,7 @@ public class AvatarControlsScreen extends Screen {
             int widgetWidth = 180;
             addControlWidget(widgetX, y + 3, widgetWidth, control);
             if (canReset(control))
-                this.addRenderableWidget(new Button(widgetX + widgetWidth + 8, y + 3, 42, 20, Component.literal("Reset"), null, button -> {
+                this.addRenderableWidget(new Button(widgetX + widgetWidth + 8, y + 3, 42, 20, FiguraText.of("gui.controls.reset"), null, button -> {
                     avatar.controls.reset(avatar, control.id());
                     rebuild();
                 }));
@@ -134,7 +135,7 @@ public class AvatarControlsScreen extends Screen {
         }
 
         int footerWidth = panelWidth();
-        Button resetAll = new Button(panelX(), height - 32, footerWidth / 2 - 4, 20, Component.literal(isWheelPage() ? "Refresh Wheel" : "Reset All"), null, button -> {
+        Button resetAll = new Button(panelX(), height - 32, footerWidth / 2 - 4, 20, FiguraText.of(isWheelPage() ? "gui.controls.refresh_wheel" : "gui.reset_all"), null, button -> {
             if (isWheelPage()) {
                 refreshYsmWheel();
                 return;
@@ -162,7 +163,7 @@ public class AvatarControlsScreen extends Screen {
             case TEXT -> addTextInput(x, y, width, control, TextField.HintType.ANY, false);
             case NUMBER -> addTextInput(x, y, width, control, TextField.HintType.FLOAT, false);
             case KEYBIND -> addKeybind(x, y, width, control);
-            case BUTTON -> this.addRenderableWidget(new Button(x, y, width, 20, Component.literal(control.targetPage() == null ? "Run" : "Open"), null, button -> {
+            case BUTTON -> this.addRenderableWidget(new Button(x, y, width, 20, FiguraText.of(control.targetPage() == null ? "gui.controls.run" : "gui.controls.open"), null, button -> {
                 if (control.targetPage() != null) {
                     page = control.targetPage();
                     scroll = 0;
@@ -301,16 +302,16 @@ public class AvatarControlsScreen extends Screen {
 
         int controlsX = controlsX();
         int controlsWidth = controlsWidth();
-        UIHelper.renderOutlineText(gui, minecraft.font, Component.literal("Avatar Controls: " + page), controlsX + 10, 28, 0xFFFFFF, 0);
+        UIHelper.renderOutlineText(gui, minecraft.font, FiguraText.of("gui.controls.page", pageTitle(page)), controlsX + 10, 28, 0xFFFFFF, 0);
         if (previewWidth() > 0)
-            UIHelper.renderOutlineText(gui, minecraft.font, Component.literal("Preview"), previewX() + 8, 28, 0xFFD0D0D0, 0);
+            UIHelper.renderOutlineText(gui, minecraft.font, FiguraText.of("gui.controls.preview"), previewX() + 8, 28, 0xFFD0D0D0, 0);
         if (isWheelPage()) {
             renderWheelEditor(gui, controlsX, controlsWidth);
             renderDropdown(gui, mouseX, mouseY, delta);
             return;
         }
         if (controls.isEmpty()) {
-            UIHelper.renderOutlineText(gui, minecraft.font, Component.literal("No controls on this page"), controlsX + 10, contentTop() + 8, 0xAAAAAA, 0);
+            UIHelper.renderOutlineText(gui, minecraft.font, FiguraText.of("gui.controls.empty"), controlsX + 10, contentTop() + 8, 0xAAAAAA, 0);
             return;
         }
 
@@ -345,7 +346,7 @@ public class AvatarControlsScreen extends Screen {
         }
         int titleColor = control.type() == AvatarControlType.LABEL ? 0xFFD0D0D0 : 0xFFFFFFFF;
         UIHelper.renderOutlineText(gui, minecraft.font, Component.literal(control.getTitle()), x, y + 7, titleColor, 0);
-        Component meta = Component.literal(control.getType());
+        Component meta = FiguraText.of("gui.controls.type." + control.getType());
         gui.text(minecraft.font, meta, x + Math.min(190, controlsWidth() / 2), y + 7, 0xFF888888);
     }
 
@@ -507,9 +508,9 @@ public class AvatarControlsScreen extends Screen {
 
     private String pageTitle(String id) {
         if (YSM_WHEEL_PAGE.equals(id))
-            return "Wheel";
+            return FiguraText.of("gui.controls.wheel").getString();
         if ("root".equals(id))
-            return "Settings";
+            return FiguraText.of("gui.controls.settings").getString();
         for (AvatarControlDefinition control : avatar.controls.all()) {
             if (id.equals(control.targetPage()))
                 return control.getTitle();
@@ -553,13 +554,13 @@ public class AvatarControlsScreen extends Screen {
         x += pageCycleWidth + 4;
         this.addRenderableWidget(new Button(x, overviewY, 28, 20, Component.literal(">"), null, ignored -> cycleWheelEditorPage(1)));
         x += 38;
-        this.addRenderableWidget(new Button(x, overviewY, 68, 20, Component.literal("Auto Fill"), null, ignored -> autoFillWheelEditorPage(runtime)));
+        this.addRenderableWidget(new Button(x, overviewY, 68, 20, FiguraText.of("gui.controls.auto_fill"), null, ignored -> autoFillWheelEditorPage(runtime)));
         x += 72;
-        this.addRenderableWidget(new Button(x, overviewY, 66, 20, Component.literal("Compact"), null, ignored -> compactWheelEditorPage(runtime)));
+        this.addRenderableWidget(new Button(x, overviewY, 66, 20, FiguraText.of("gui.controls.compact"), null, ignored -> compactWheelEditorPage(runtime)));
         x += 70;
-        this.addRenderableWidget(new Button(x, overviewY, 82, 20, Component.literal("Clear Page"), null, ignored -> clearWheelEditorPage(runtime)));
+        this.addRenderableWidget(new Button(x, overviewY, 82, 20, FiguraText.of("gui.controls.clear_page"), null, ignored -> clearWheelEditorPage(runtime)));
         x += 86;
-        this.addRenderableWidget(new Button(x, overviewY, 70, 20, Component.literal("Stop All"), null, ignored -> {
+        this.addRenderableWidget(new Button(x, overviewY, 70, 20, FiguraText.of("gui.controls.stop_all"), null, ignored -> {
             runtime.actions().stopAll();
             rebuild();
         }));
@@ -570,13 +571,13 @@ public class AvatarControlsScreen extends Screen {
         pageName.getField().setValue(wheelPageNameDraft.isBlank() ? wheelEditorPage : wheelPageNameDraft);
         this.addRenderableWidget(pageName);
         editX += pageNameWidth + 8;
-        this.addRenderableWidget(new Button(editX, editY, 46, 20, Component.literal("Add"), null, ignored -> addWheelEditorPage(runtime)));
+        this.addRenderableWidget(new Button(editX, editY, 46, 20, FiguraText.of("gui.controls.add"), null, ignored -> addWheelEditorPage(runtime)));
         editX += 50;
-        Button renamePage = new Button(editX, editY, 64, 20, Component.literal("Rename"), null, ignored -> renameWheelEditorPage(runtime));
+        Button renamePage = new Button(editX, editY, 64, 20, FiguraText.of("gui.controls.rename"), null, ignored -> renameWheelEditorPage(runtime));
         renamePage.setActive(!"extra_animation".equals(wheelEditorPage));
         this.addRenderableWidget(renamePage);
         editX += 68;
-        Button deletePage = new Button(editX, editY, 58, 20, Component.literal("Delete"), null, ignored -> deleteWheelEditorPage(runtime));
+        Button deletePage = new Button(editX, editY, 58, 20, FiguraText.of("gui.controls.delete"), null, ignored -> deleteWheelEditorPage(runtime));
         deletePage.setActive(!"extra_animation".equals(wheelEditorPage));
         this.addRenderableWidget(deletePage);
         int overviewSlotY = overviewY + 58;
@@ -610,13 +611,13 @@ public class AvatarControlsScreen extends Screen {
 
         YsmActionDefinition selectedAction = selectedWheelAction(runtime);
         int selectedY = overviewY + 104;
-        Button bindButton = new Button(controlsX + 10, selectedY, 52, 20, Component.literal(focusedWheelKeybindAction != null && !focusedWheelKeybindToggle ? "Press" : "Bind"), null, ignored -> beginWheelKeybind(selectedAction, false));
+        Button bindButton = new Button(controlsX + 10, selectedY, 52, 20, FiguraText.of(focusedWheelKeybindAction != null && !focusedWheelKeybindToggle ? "gui.controls.press" : "gui.controls.bind"), null, ignored -> beginWheelKeybind(selectedAction, false));
         bindButton.setActive(selectedAction != null);
         this.addRenderableWidget(bindButton);
-        Button toggleBindButton = new Button(controlsX + 66, selectedY, 76, 20, Component.literal(focusedWheelKeybindAction != null && focusedWheelKeybindToggle ? "Press" : "Toggle Bind"), null, ignored -> beginWheelKeybind(selectedAction, true));
+        Button toggleBindButton = new Button(controlsX + 66, selectedY, 76, 20, FiguraText.of(focusedWheelKeybindAction != null && focusedWheelKeybindToggle ? "gui.controls.press" : "gui.controls.toggle_bind"), null, ignored -> beginWheelKeybind(selectedAction, true));
         toggleBindButton.setActive(selectedAction != null);
         this.addRenderableWidget(toggleBindButton);
-        Button unbindButton = new Button(controlsX + 146, selectedY, 58, 20, Component.literal("Unbind"), null, ignored -> unbindWheelActionKeybinds(selectedAction));
+        Button unbindButton = new Button(controlsX + 146, selectedY, 58, 20, FiguraText.of("gui.controls.unbind"), null, ignored -> unbindWheelActionKeybinds(selectedAction));
         unbindButton.setActive(selectedAction != null);
         this.addRenderableWidget(unbindButton);
 
@@ -636,19 +637,19 @@ public class AvatarControlsScreen extends Screen {
         for (YsmActionDefinition action : wheelActions()) {
             if (isWheelRowVisible(y, listTop, listBottom)) {
                 int buttonY = y + 6;
-                Button putButton = new Button(putButtonX, buttonY, 42, 20, Component.literal("Put"), null, ignored -> assignToWheelEditorPage(runtime, action));
+                Button putButton = new Button(putButtonX, buttonY, 42, 20, FiguraText.of("gui.controls.put"), null, ignored -> assignToWheelEditorPage(runtime, action));
                 putButton.setActive(nextAvailableWheelSlot(runtime, wheelEditorPage, currentWheelSlot(runtime, action), action) > 0);
                 this.addRenderableWidget(putButton);
-                this.addRenderableWidget(new Button(selectButtonX, buttonY, 56, 20, Component.literal("Select"), null, ignored -> {
+                this.addRenderableWidget(new Button(selectButtonX, buttonY, 56, 20, FiguraText.of("gui.controls.select"), null, ignored -> {
                     selectedWheelAction = action.getId();
                     rebuild();
                 }));
-                this.addRenderableWidget(new Button(runButtonX, buttonY, 38, 20, Component.literal("Run"), null, ignored -> {
+                this.addRenderableWidget(new Button(runButtonX, buttonY, 38, 20, FiguraText.of("gui.controls.run"), null, ignored -> {
                     selectedWheelAction = action.getId();
                     runtime.actions().trigger(action.getId());
                     rebuild();
                 }));
-                Button stopButton = new Button(stopButtonX, buttonY, 38, 20, Component.literal("Stop"), null, ignored -> {
+                Button stopButton = new Button(stopButtonX, buttonY, 38, 20, FiguraText.of("gui.controls.stop"), null, ignored -> {
                     selectedWheelAction = action.getId();
                     runtime.actions().stop(action.getId());
                     rebuild();
@@ -671,7 +672,7 @@ public class AvatarControlsScreen extends Screen {
                     button.setActive(!selected && owner == null);
                     this.addRenderableWidget(button);
                 }
-                this.addRenderableWidget(new Button(slotX + buttonWidth * 8 + 6, buttonY, clearWidth, 20, Component.literal("Clear"), null, ignored -> {
+                this.addRenderableWidget(new Button(slotX + buttonWidth * 8 + 6, buttonY, clearWidth, 20, FiguraText.of("gui.controls.clear"), null, ignored -> {
                     YsmActionWheelLayoutStore.set(runtime.getModelKey(), action.getId(), null, -1);
                     refreshYsmWheel();
                     rebuild();
@@ -684,22 +685,27 @@ public class AvatarControlsScreen extends Screen {
     private void renderWheelEditor(GuiGraphicsExtractor gui, int controlsX, int controlsWidth) {
         YsmModelRuntime runtime = avatar.getYsmRuntime();
         if (runtime == null) {
-            UIHelper.renderOutlineText(gui, minecraft.font, Component.literal("No YSM model loaded"), controlsX + 10, contentTop() + 8, 0xAAAAAA, 0);
+            UIHelper.renderOutlineText(gui, minecraft.font, FiguraText.of("gui.controls.no_model"), controlsX + 10, contentTop() + 8, 0xAAAAAA, 0);
             return;
         }
         List<YsmActionDefinition> actions = wheelActions();
         if (actions.isEmpty()) {
-            UIHelper.renderOutlineText(gui, minecraft.font, Component.literal("No YSM wheel actions"), controlsX + 10, contentTop() + 8, 0xAAAAAA, 0);
+            UIHelper.renderOutlineText(gui, minecraft.font, FiguraText.of("gui.controls.no_actions"), controlsX + 10, contentTop() + 8, 0xAAAAAA, 0);
             return;
         }
         normalizeWheelEditorPage();
         int innerX = controlsX + 10;
         int innerWidth = controlsWidth - 20;
         YsmActionDefinition selectedAction = selectedWheelAction(runtime);
-        String selectedText = selectedAction == null ? "Selected: none" : "Selected: " + selectedAction.getTitle() + "  " + wheelActionKeybindLabel(selectedAction);
+        String selectedText = FiguraText.of("gui.controls.selected", selectedAction == null
+                ? FiguraText.of("gui.controls.none").getString()
+                : selectedAction.getTitle() + "  " + wheelActionKeybindLabel(selectedAction)).getString();
         UIHelper.renderOutlineText(gui, minecraft.font, Component.literal(selectedText), innerX + 204, contentTop() + 116, selectedAction == null ? 0xFF777777 : 0xFF66AAFF, 0);
         if (previewWidth() > 0 && selectedAction != null) {
-            String previewText = runtime.actions().isActive(selectedAction.getId()) ? "Active " + numberText(runtime.actions().time(selectedAction.getId())) + "s" : "Idle";
+            String previewText = runtime.actions().isActive(selectedAction.getId())
+                    ? FiguraText.of("gui.controls.active_time",
+                            numberText(runtime.actions().time(selectedAction.getId()))).getString()
+                    : FiguraText.of("gui.controls.idle").getString();
             UIHelper.renderOutlineText(gui, minecraft.font, Component.literal(selectedAction.getTitle() + " / " + previewText), previewX() + 8, previewY() + previewHeight() - 18, 0xFFAAAAAA, 0);
         }
         int overviewY = contentTop() + 66;
@@ -733,9 +739,13 @@ public class AvatarControlsScreen extends Screen {
                 String pageText = entry == null ? defaultWheelPage(action) : entry.page();
                 int slot = entry == null ? 0 : entry.slot();
                 YsmActionDefinition owner = slot > 0 ? wheelSlotOwner(runtime, pageText, slot, action) : null;
-                String ownerText = owner == null ? "" : " occupied: " + owner.getTitle();
-                String activeText = runtime.actions().isActive(action.getId()) ? " active " + numberText(runtime.actions().time(action.getId())) + "s" : "";
-                Component meta = Component.literal(pageText + (slot > 0 ? " / " + slot : " / auto") + activeText + ownerText);
+                String ownerText = owner == null ? ""
+                        : " " + FiguraText.of("gui.controls.occupied", owner.getTitle()).getString();
+                String activeText = runtime.actions().isActive(action.getId())
+                        ? " " + FiguraText.of("gui.controls.active_time",
+                                numberText(runtime.actions().time(action.getId()))).getString() : "";
+                Component meta = Component.literal(pageText + " / "
+                        + (slot > 0 ? slot : FiguraText.of("gui.controls.auto").getString()) + activeText + ownerText);
                 UIHelper.renderScrollingText(gui, meta, titleX, y + 23, Math.max(40, metaRight - titleX), 0xFF888888);
             }
             y += WHEEL_ROW_HEIGHT;
@@ -878,17 +888,17 @@ public class AvatarControlsScreen extends Screen {
     private String wheelActionKeybindLabel(YsmActionDefinition action) {
         String press = wheelKeybindText(wheelActionKeybindName(action, false));
         String toggle = wheelKeybindText(wheelActionKeybindName(action, true));
-        return "Bind: " + press + " / Toggle: " + toggle;
+        return FiguraText.of("gui.controls.binding", press, toggle).getString();
     }
 
     private String wheelKeybindText(String name) {
         if (avatar.luaRuntime == null)
-            return "none";
+            return FiguraText.of("gui.controls.none").getString();
         for (var binding : avatar.luaRuntime.keybinds.keyBindings) {
             if (name.equals(binding.getName()))
                 return binding.getTranslatedKeyMessage().getString();
         }
-        return "none";
+        return FiguraText.of("gui.controls.none").getString();
     }
 
     private static String wheelActionKeybindName(YsmActionDefinition action, boolean toggle) {
@@ -1137,7 +1147,7 @@ public class AvatarControlsScreen extends Screen {
 
     private String keybindText(AvatarControlDefinition control) {
         String value = valueText(control);
-        return value.isBlank() ? "Unbound" : value;
+        return value.isBlank() ? FiguraText.of("gui.controls.unbound").getString() : value;
     }
 
     private int parseColor(String value, int fallback) {
