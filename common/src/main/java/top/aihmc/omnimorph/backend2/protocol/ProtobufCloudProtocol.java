@@ -31,7 +31,9 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
     private final CloudBudget budget = new CloudBudget();
     private final ArrayDeque<Outbound> pending = new ArrayDeque<>();
     private int pendingBytes;
-    private record Outbound(byte[] bytes, long time) {}
+    private record Outbound(byte[] bytes, long time, boolean modelState) {}
+    private final java.util.LinkedHashMap<Long, Long> stateRequests = new java.util.LinkedHashMap<>();
+    private long publicationGeneration;
     private final long epoch;
     private final Set<UUID> subscribed = ConcurrentHashMap.newKeySet();
     private final AtomicLong requestIds = new AtomicLong();
@@ -292,11 +294,13 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
                     Cloud.ErrorCode code = message.getError().getCode();
                     if (code == Cloud.ErrorCode.SNAPSHOT_REQUIRED || code == Cloud.ErrorCode.CURSOR_EXPIRED) {
                         listener.snapshotRequested();
+                    } else if (recoverRetiredState(message)) {
+                        listener.snapshotRequested();
                     } else {
                         throw new Failure(code);
                     }
                 }
-                case ACK -> { /* Control operations acknowledge without entering the model state machine. */ }
+                case ACK -> forgetStateRequest(message.getRequestId());
                 default -> throw new IOException("Unexpected protobuf message");
             }
         } catch (Exception exception) {
@@ -340,12 +344,15 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
         cursors.remove(owner);
     }
 
-    private void rememberEquipment(Cloud.EquippedState equipped) throws IOException {
+    private synchronized void rememberEquipment(Cloud.EquippedState equipped) throws IOException {
         UUID account = UUID.fromString(equipped.getOwner());
         if (equipment.size() >= 128 && !equipment.containsKey(account)) {
             throw new IOException("Equipment budget exceeded");
         }
-        equipment.put(account, equipped);
+        var previous = equipment.put(account, equipped);
+        if (account.equals(owner) && previous != null && !previous.getPrimary().equals(equipped.getPrimary())) {
+            localSelectionChanged();
+        }
         resources.entrySet().removeIf(entry -> entry.getKey().startsWith(account + "/"));
         if (equipped.hasPrimary()) {
             Cloud.AvatarDescriptor descriptor = equipped.getPrimary();
@@ -581,16 +588,52 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
     }
 
     private synchronized boolean send(Cloud.Envelope.Builder body) throws IOException {
-        byte[] bytes = envelope(body).toByteArray();
+        var request = envelope(body);
+        byte[] bytes = request.toByteArray();
         if (body.hasHello()) {
             return socket.send(bytes);
         }
         if (pending.size() >= 32 || pendingBytes + bytes.length > Math.min(262144, capabilities.getLimits().getQueueBytes())) {
             throw new IOException("Socket queue requires recovery");
         }
-        pending.addLast(new Outbound(bytes, System.nanoTime()));
+        boolean modelState = body.hasYsmSnapshot() || body.hasYsmDelta() || body.hasYsmEvent();
+        if (modelState) {
+            stateRequests.put(request.getRequestId(), publicationGeneration);
+            if (stateRequests.size() > 128) {
+                stateRequests.remove(stateRequests.keySet().iterator().next());
+            }
+        }
+        pending.addLast(new Outbound(bytes, System.nanoTime(), modelState));
         pendingBytes += bytes.length;
         return true;
+    }
+
+    @Override
+    public synchronized void localSelectionChanged() {
+        publicationGeneration++;
+        var iterator = pending.iterator();
+        while (iterator.hasNext()) {
+            var outgoing = iterator.next();
+            if (outgoing.modelState()) {
+                pendingBytes -= outgoing.bytes().length;
+                iterator.remove();
+            }
+        }
+    }
+
+    private synchronized boolean recoverRetiredState(Cloud.Envelope message) {
+        Long generation = stateRequests.remove(message.getRequestId());
+        if (generation == null || generation == publicationGeneration) {
+            return false;
+        }
+        return switch (message.getError().getCode()) {
+            case CONFLICT, NOT_FOUND, UNSUPPORTED_CAPABILITY -> true;
+            default -> false;
+        };
+    }
+
+    private synchronized void forgetStateRequest(long request) {
+        stateRequests.remove(request);
     }
 
     @Override
@@ -682,6 +725,7 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
     @Override
     public synchronized void close() {
         pending.clear();
+        stateRequests.clear();
         pendingBytes = 0;
         closed = true;
         ready = false;

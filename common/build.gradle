@@ -968,6 +968,14 @@ tasks.register('cloudReconnectSmokeTest', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.backend2.protocol.CloudReconnectSmokeTest'
 }
 
+tasks.register('cloudModelSwitchSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Replays queued model state errors after equipment changes without a live websocket.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.backend2.protocol.CloudModelSwitchSmokeTest'
+}
+
 tasks.named('test') {
     dependsOn 'cloudProtocolConfigSmokeTest'
 }

@@ -85,6 +85,7 @@ public interface CloudProtocol extends AutoCloseable {
     void subscribe(UUID owner) throws Exception;
     void unsubscribe(UUID owner) throws Exception;
     boolean publish(YsmSyncMessage message) throws Exception;
+    default void localSelectionChanged() {}
     void tick(long tick) throws Exception;
     @Override
     void close();

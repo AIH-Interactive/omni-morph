@@ -64,7 +64,7 @@ final class AvatarCloudRefreshSmokeTest {
         var protocol = (CloudProtocol) Proxy.newProxyInstance(CloudProtocol.class.getClassLoader(),
                 new Class<?>[]{CloudProtocol.class}, (proxy, method, arguments) -> switch (method.getName()) {
                     case "connected" -> true;
-                    case "close" -> null;
+                    case "close", "localSelectionChanged" -> null;
                     case "profile" -> {
                         require(player.equals(arguments[0]), "refresh requests the actual player UUID");
                         profiles.incrementAndGet();

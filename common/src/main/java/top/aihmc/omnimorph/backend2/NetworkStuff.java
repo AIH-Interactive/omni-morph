@@ -735,6 +735,10 @@ public class NetworkStuff {
     }
 
     public static void localSelectionChanged() {
+        CloudConnection current = connection;
+        if (current != null && current.active()) {
+            current.protocol.localSelectionChanged();
+        }
         uploadProgress.clear();
         localSelections.incrementAndGet();
         localBroadcastAvatar = null;
