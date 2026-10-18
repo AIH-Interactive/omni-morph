@@ -423,3 +423,9 @@ R19 检查点：baked-only 输入沿真实 fromData 装配后先复现 NoSuchEle
 R20 检查点：撤销 Avatar 对隔离预览的 tick/world-render/render/post-render/BB 动画禁用，LibraryPreviewSession 正常 tick，并在提取前执行 BB 动画清理/采样。YSM 预览完整复制控制器资源，注册控制器及函数事件，启动基础动画并沿正常 update 执行；不主动播放 GUI/展示片段。删除 PreviewIdlePose 和程序手臂覆盖，保留二进制几何复制。先复现 Figura 正常 tick 不能改变姿态和隐藏特效被输出，修复后实际 tick 脚本连续改变角度且根缩放保持 1；原生渲染器只输出可见主体 24 顶点，隐藏特效不输出，默认 idle 随时间改变实际顶点，控制器仍存在且执行，GUI 片段未被额外启动，世界实例姿态保持独立。
 
 previewRuntime、完整 ysmMaterialNative、Fabric build 及举报输入/护甲/披风回归前台 Tee PASS，退出 0。无 Mixin 的原生测试夹具补齐 EntityAccessor 与 MinecraftAccesor 接口，生产逻辑未为测试增加特殊分支。差异空白核对通过，alpha.2 不变；R17/R19 的停用与缩放策略作废。真实游戏衣柜和模型库画面验收仍为 MANUAL/PENDING，不能用自动测试声称已完成人工验收。
+
+### R21 衣柜恢复 Figura 默认预览机制
+
+按用户最新要求，衣柜及其放大预览直接渲染实际当前玩家及 AvatarManager 已加载模型，不再创建 LibraryPreviewSession 副本、不重复初始化模型、不单独驱动脚本/动画。沿用 Figura 原有 GUI 绘制、旋转/拖动/缩放和模型本身的运行状态；模型库独立预览保持现状，不扩展到其他页面。新增真实衣柜来源及 AvatarScreen 放大控件回归，先验证旧代码仍创建副本而失败，修改后验证两处保留同一实际玩家，再编译提交推送；游戏内验收 MANUAL/PENDING。
+
+R21 检查点：衣柜来源的 EntityPreview 跳过副本创建与额外 tick，绘制直接使用实际 sourceEntity；AvatarScreen 保留原衣柜父页面，因此放大同样走 Figura 原玩家预览。回归先复现旧逻辑仍创建副本，修复后普通与真实 AvatarScreen 初始化的放大控件均保留同一玩家且 localPreview 为空。模型库隔离预览不变。previewRuntime、Fabric build 及原举报输入/护甲/披风回归前台 Tee PASS，退出 0；差异空白核对通过，版本保持 alpha.2。实际游戏动作、模型外观和拖动缩放验收 MANUAL/PENDING。
