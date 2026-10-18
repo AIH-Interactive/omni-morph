@@ -1969,6 +1969,7 @@
   "omni-morph.gui.library.needs_authorization": "Requires authorization",
   "omni-morph.gui.library.uploader_granted": "The uploader is automatically authorized and cannot be revoked.",
   "omni-morph.gui.library.authorization": "Authorization",
+  "omni-morph.gui.library.table_cover": "Cover",
   "omni-morph.gui.library.cover": "Custom cover (PNG / JPEG)",
   "omni-morph.gui.library.choose_model": "Choose model file",
   "omni-morph.gui.library.choose_image": "Choose cover image",

@@ -88,25 +88,27 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
         building = true;
         var layout = new LibraryWorkspaceLayout(width, height);
         int area = layout.contentWidth();
-        var entity = addRenderableWidget(new EntityPreview(layout.previewX(), 52, layout.previewWidth(),
+        int previewX = layout.left();
+        int contentX = previewX + layout.previewWidth() + 8;
+        var entity = addRenderableWidget(new EntityPreview(previewX, 52, layout.previewWidth(),
                 height - 80, Math.max(12, layout.previewWidth() / 3), -15, 30, preview.entity(), this));
         entity.setLibraryPreview(preview);
         addRenderableOnly((gui, mouseX, mouseY, delta) -> {
             Component title = selected == null ? FiguraText.of("gui.library.select_model")
                     : Component.literal(selected.displayName());
-            UIHelper.renderScrollingText(gui, title, layout.previewX(), 32, layout.previewWidth(), 0xffeeeeee);
+            UIHelper.renderScrollingText(gui, title, previewX, 32, layout.previewWidth(), 0xffeeeeee);
             var state = preview.status();
             Component hint = FiguraText.of("gui.library.preview." + state.stage().name().toLowerCase(java.util.Locale.ROOT));
-            UIHelper.renderScrollingText(gui, hint, layout.previewX(), height - 20, layout.previewWidth(), 0xffbac6d8);
+            UIHelper.renderScrollingText(gui, hint, previewX, height - 20, layout.previewWidth(), 0xffbac6d8);
         });
-        addRenderableWidget(new LibrarySectionTabs(8, 28, area, 4, true, section -> {
+        addRenderableWidget(new LibrarySectionTabs(contentX, 28, area, 4, true, section -> {
             if (!busy() && parentScreen instanceof ModelLibraryScreen catalog) {
                 minecraft.setScreen(catalog);
                 catalog.openSection(section);
             }
         }));
         int searchWidth = Math.max(80, area / 2 - 4);
-        var search = addRenderableWidget(new SearchBar(8, 52, searchWidth, 20, value -> {
+        var search = addRenderableWidget(new SearchBar(contentX, 52, searchWidth, 20, value -> {
             if (!building && !query.equals(value)) {
                 query = value;
                 searchChanged = System.nanoTime();
@@ -116,74 +118,78 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
         search.getField().setValue(query);
         int column = Math.max(20, (area - 8) / 3);
         int filterWidth = Math.max(24, (area - searchWidth - 12) / 3);
-        addRenderableWidget(new Button(12 + searchWidth, 52, filterWidth, 20, filter("status", STATUSES.get(status)), null, button -> {
+        addRenderableWidget(new Button(contentX + 4 + searchWidth, 52, filterWidth, 20, filter("status", STATUSES.get(status)), null, button -> {
             status = (status + 1) % STATUSES.size();
             button.setMessage(filter("status", STATUSES.get(status)));
             page = 1;
             refresh();
         }));
-        addRenderableWidget(new Button(16 + searchWidth + filterWidth, 52, filterWidth, 20, filter("category", category()), null, button -> {
+        addRenderableWidget(new Button(contentX + 8 + searchWidth + filterWidth, 52, filterWidth, 20, filter("category", category()), null, button -> {
             category = (category + 1) % (capabilities.categories().size() + 1);
             button.setMessage(filter("category", category()));
             page = 1;
             refresh();
         }));
-        addRenderableWidget(new Button(20 + searchWidth + filterWidth * 2, 52, filterWidth, 20, filter("type", type()), null, button -> {
+        addRenderableWidget(new Button(contentX + 12 + searchWidth + filterWidth * 2, 52, filterWidth, 20, filter("type", type()), null, button -> {
             type = (type + 1) % (capabilities.modelTypes().size() + 1);
             button.setMessage(filter("type", type()));
             page = 1;
             refresh();
         }));
-        rows = addRenderableWidget(new LibraryRowList(8, 96, area, Math.max(24, height - 172)));
-        rows.cards();
-        grants = addRenderableWidget(new Button(8, height - 72, column, 20,
+        rows = addRenderableWidget(new LibraryRowList(contentX, 96, area, Math.max(24, height - 172)));
+        rows.columns(List.of(FiguraText.of("gui.library.table_cover"), FiguraText.of("gui.library.display_name"),
+                FiguraText.of("gui.library.authors"), FiguraText.of("gui.library.uploader"),
+                FiguraText.of("gui.library.status"), FiguraText.of("gui.library.downloads"),
+                FiguraText.of("gui.library.actions")), 2, 6, 4, 4, 3, 2, 5);
+        grants = addRenderableWidget(new Button(contentX, height - 72, column, 20,
                 FiguraText.of("gui.library.grants"), null, ignored -> {
                     if (LibraryAuthorization.available(selected) && !busy() && admin.active()) {
                         retainingChild = true;
                         minecraft.setScreen(new ModelLibraryAuthorizationScreen(this, client, selected.modelId(), admin));
                     }
                 }));
-        block = addRenderableWidget(new Button(12 + column, height - 72, column, 20,
+        block = addRenderableWidget(new Button(contentX + 4 + column, height - 72, column, 20,
                 FiguraText.of("gui.library.block"), null, ignored -> moderate(false)));
-        delete = addRenderableWidget(new Button(16 + column * 2, height - 72, column, 20,
+        delete = addRenderableWidget(new Button(contentX + 8 + column * 2, height - 72, column, 20,
                 FiguraText.of("gui.library.delete"), null, ignored -> moderate(true)));
-        previous = addRenderableWidget(new Button(8, height - 48, 36, 20, Component.literal("<"), null,
+        previous = addRenderableWidget(new Button(contentX, height - 48, 36, 20, Component.literal("<"), null,
                 ignored -> {
                     page = Math.max(1, page - 1);
                     refresh();
                 }));
-        next = addRenderableWidget(new Button(48, height - 48, 36, 20, Component.literal(">"), null,
+        next = addRenderableWidget(new Button(contentX + 40, height - 48, 36, 20, Component.literal(">"), null,
                 ignored -> {
                     page++;
                     refresh();
                 }));
         int managementWidth = Math.max(20, (area - 84) / 2);
-        addRenderableWidget(new Button(88, height - 48, managementWidth, 20,
+        addRenderableWidget(new Button(contentX + 80, height - 48, managementWidth, 20,
                 FiguraText.of("gui.library.reports"), null, ignored -> {
                     if (admin.active() && !busy()) {
                         retainingChild = true;
                         minecraft.setScreen(new ModelLibraryReportsScreen(this, client, admin, this::inspectReported));
                     }
                 }));
-        addRenderableWidget(new Button(92 + managementWidth, height - 48, managementWidth, 20,
+        addRenderableWidget(new Button(contentX + 84 + managementWidth, height - 48, managementWidth, 20,
                 FiguraText.of("gui.library.manage_appeals"), null, ignored -> {
                     if (admin.active() && !busy()) {
                         retainingChild = true;
                         minecraft.setScreen(new ModelLibraryAppealsScreen(this, client, admin));
                     }
                 }));
-        addRenderableWidget(new Button(8, height - 24, (area - 4) / 2, 20,
+        addRenderableWidget(new Button(contentX, height - 24, (area - 4) / 2, 20,
                 FiguraText.of("gui.library.wardrobe_manage"), null, ignored -> {
                     if (admin.active() && !busy()) {
                         retainingChild = true;
                         minecraft.setScreen(new ModelLibraryWardrobeScreen(this, client, admin));
                     }
                 }));
-        addRenderableWidget(new Button(8, 76, 88, 16,
+        addRenderableWidget(new Button(contentX, 76, 88, 16,
                 FiguraText.of("gui.library.logout"), null, ignored -> logout()));
-        addRenderableWidget(new Button(12 + (area - 4) / 2, height - 24, (area - 4) / 2, 20,
+        addRenderableWidget(new Button(contentX + 4 + (area - 4) / 2, height - 24, (area - 4) / 2, 20,
                 FiguraText.of("gui.done"), null, ignored -> onClose()));
-        addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui, message, 100, 78, Math.max(20, area - 92), 0xffd3e7e1));
+        addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui, message, contentX + 92, 78,
+                Math.max(20, area - 92), 0xffd3e7e1));
         building = false;
         refresh();
         updateButtons();
@@ -276,13 +282,11 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
         }
         return new LibraryRowList.Row(Component.empty(),
                 Component.literal(model.modelId() + "\n" + model.uploader().uuid()), true,
-                () -> selectModel(model), List.of(Component.literal(model.displayName()),
-                    FiguraText.of("gui.library.card_authors", model.authors().isEmpty()
-                            ? FiguraText.of("gui.library.unknown_author") : Component.literal(String.join(", ", model.authors()))),
-                    FiguraText.of("gui.library.card_uploader", model.uploader().name()),
-                    LibraryLabels.status(model.moderationStatus()).copy().append(" · ")
-                            .append(FiguraText.of("gui.library.counts", model.downloads(), model.favorites())),
-                    LibraryLabels.category(model.categoryId())),
+                () -> selectModel(model), List.of(Component.empty(), Component.literal(model.displayName()),
+                    model.authors().isEmpty() ? FiguraText.of("gui.library.unknown_author")
+                            : Component.literal(String.join(", ", model.authors())),
+                    Component.literal(model.uploader().name()), LibraryLabels.status(model.moderationStatus()),
+                    Component.literal(Long.toString(model.downloads()))),
                 () -> {
                     var texture = image == null ? null : image.capture();
                     return texture == null ? new FiguraIdentifier("textures/gui/library_placeholder.png") : texture;
