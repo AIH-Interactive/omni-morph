@@ -57,6 +57,10 @@ public final class LibraryTransferSmokeTest {
                     cached = files.findFirst().orElseThrow();
                 }
                 require(java.util.Arrays.equals(Files.readAllBytes(cached), server.bytes), "preview disk stores the original encrypted distribution only");
+                Files.setLastModifiedTime(cached, java.nio.file.attribute.FileTime.fromMillis(
+                        System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(90)));
+                await(transfers.preview(MODEL).request().future(), callbacks);
+                require(server.files.get() == 2, "the backend's two-hour lifetime permits a 90-minute-old preview");
                 server.revoked.set(true);
                 failure(transfers.preview(MODEL).request().future(), callbacks, "FORBIDDEN");
                 require(server.files.get() == 2, "revoked access cannot use disk or request another body");
@@ -68,20 +72,24 @@ public final class LibraryTransferSmokeTest {
                     require(files.findAny().isEmpty(), "failed download removes its temporary file");
                 }
                 server.corrupt.set(false);
-                var wardrobe = new LibraryWardrobePreviewService(client, () -> "synthetic-admin");
+                var wardrobe = new LibraryWardrobePreviewService(client, () -> "synthetic-admin", directory);
                 var source = await(wardrobe.current(VIEWER, "self outfit/中文", 3, 9).future(), callbacks);
                 require(source.contains("ysm"), "administrator wardrobe bytes decode as portable NBT");
                 await(wardrobe.blocked(TRANSFER).future(), callbacks);
+                await(new LibraryWardrobePreviewService(client, () -> "synthetic-admin", directory)
+                        .current(VIEWER, "self outfit/中文", 3, 9).future(), callbacks);
                 require(server.wardrobeFiles.get() == 2 && server.completed.get() == 1,
-                        "wardrobe previews use only the administrator routes and never complete a library download");
+                        "reopened wardrobe preview revalidates with HEAD and reuses original cached bytes");
+                require(server.wardrobeHeads.get() == 3, "every wardrobe cache hit still performs a live source check");
                 server.staleWardrobe.set(true);
                 failure(wardrobe.current(VIEWER, "self outfit/中文", 3, 9).future(), callbacks, "PREVIEW_UNAVAILABLE");
                 server.staleWardrobe.set(false);
+                server.cacheSeconds.set(0);
                 server.corrupt.set(true);
                 failure(wardrobe.blocked(TRANSFER).future(), callbacks, "DISTRIBUTION_HASH_MISMATCH");
-                int requests = server.wardrobeFiles.get();
-                failure(new LibraryWardrobePreviewService(client, () -> "").blocked(TRANSFER).future(), callbacks, "FORBIDDEN");
-                require(server.wardrobeFiles.get() == requests, "no administrator session means no wardrobe request");
+                int requests = server.wardrobeHeads.get();
+                failure(new LibraryWardrobePreviewService(client, () -> "", directory).blocked(TRANSFER).future(), callbacks, "FORBIDDEN");
+                require(server.wardrobeHeads.get() == requests, "no administrator session means no wardrobe request");
                 require(server.unexpected.get() == 0, "preview and raw download never upload or equip a model");
             }
             System.out.println("PASS library transfer: current permissions on cache hits, fresh formal stream, lengths/digests, encrypted-only disk data, receipt separation and failure cleanup");
@@ -131,6 +139,8 @@ public final class LibraryTransferSmokeTest {
         private final AtomicBoolean revoked = new AtomicBoolean();
         private final AtomicBoolean corrupt = new AtomicBoolean();
         private final AtomicInteger wardrobeFiles = new AtomicInteger();
+        private final AtomicInteger wardrobeHeads = new AtomicInteger();
+        private final AtomicInteger cacheSeconds = new AtomicInteger(7200);
         private final AtomicBoolean staleWardrobe = new AtomicBoolean();
         private final byte[] bytes;
 
@@ -164,15 +174,21 @@ public final class LibraryTransferSmokeTest {
 
         private void handle(HttpExchange request) throws java.io.IOException {
             try (request) {
+                request.getResponseHeaders().add("x-omnimorph-preview-cache-seconds", Integer.toString(cacheSeconds.get()));
                 String path = request.getRequestURI().getPath();
                 String body;
                 int status = 200;
                 if (path.startsWith("/api/library/v1/admin/wardrobe-preview/")) {
-                    wardrobeFiles.incrementAndGet();
+                    boolean head = request.getRequestMethod().equals("HEAD");
+                    if (head) {
+                        wardrobeHeads.incrementAndGet();
+                    } else {
+                        wardrobeFiles.incrementAndGet();
+                    }
                     boolean current = path.equals("/api/library/v1/admin/wardrobe-preview/CURRENT/" + VIEWER);
                     String expectedQuery = "asset_id=" + java.net.URLEncoder.encode("self outfit/中文", StandardCharsets.UTF_8)
                             + "&asset_revision=3&equipment_revision=9";
-                    boolean valid = request.getRequestMethod().equals("GET")
+                    boolean valid = (head || request.getRequestMethod().equals("GET"))
                             && "synthetic-admin".equals(request.getRequestHeaders().getFirst("x-omnimorph-admin"))
                             && (current && expectedQuery.equals(request.getRequestURI().getRawQuery())
                                 || path.equals("/api/library/v1/admin/wardrobe-preview/BLOCK/" + TRANSFER));
@@ -181,6 +197,11 @@ public final class LibraryTransferSmokeTest {
                         body = "{\"code\":\"PREVIEW_UNAVAILABLE\"}";
                     } else {
                         request.getResponseHeaders().add("x-omnimorph-sha256", CloudHttp.sha256(bytes));
+                        if (head) {
+                            request.getResponseHeaders().add("content-length", Integer.toString(bytes.length));
+                            request.sendResponseHeaders(200, -1);
+                            return;
+                        }
                         request.sendResponseHeaders(200, bytes.length);
                         byte[] sent = bytes.clone();
                         if (corrupt.get()) {

@@ -9,7 +9,6 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.nio.file.attribute.FileTime;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -21,7 +20,8 @@ import java.util.UUID;
 /** Independent raw-distribution/thumbnail cache. All methods run on a worker. */
 public final class LibraryPreviewCache {
     public enum Kind {
-        MODEL("models", 128L * 1024 * 1024), THUMBNAIL("thumbnails", 32L * 1024 * 1024);
+        MODEL("models", 128L * 1024 * 1024), WARDROBE("wardrobe", 128L * 1024 * 1024),
+        THUMBNAIL("thumbnails", 32L * 1024 * 1024);
 
         private final String directory;
         private final long budget;
@@ -63,7 +63,7 @@ public final class LibraryPreviewCache {
         void check() throws Exception;
     }
 
-    private static final Duration TTL = Duration.ofHours(24);
+    private static final Duration DEFAULT_LIFETIME = Duration.ofHours(1);
     private static final int MAX_ENTRIES = 4096;
     // Protect active files across screen/session cache objects sharing this independent root.
     private static final Map<Path, Integer> ACTIVE = new HashMap<>();
@@ -79,15 +79,22 @@ public final class LibraryPreviewCache {
     }
 
     public Optional<Lease> find(Key key, Kind kind, PermissionCheck permission) throws Exception {
+        return find(key, kind, DEFAULT_LIFETIME, permission);
+    }
+
+    public Optional<Lease> find(Key key, Kind kind, Duration lifetime, PermissionCheck permission) throws Exception {
         // Never turn a disk hit into an offline or stale authorization decision.
         permission.check();
-        initialize();
+        if (lifetime.isZero() || lifetime.isNegative()) {
+            return Optional.empty();
+        }
+        initialize(lifetime);
         Path path = directory(kind).resolve(key.filename());
         synchronized (ACTIVE) {
             if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
                 return Optional.empty();
             }
-            if (expired(path) || Files.size(path) > limit(kind)) {
+            if (expired(path, lifetime) || Files.size(path) > limit(kind)) {
                 deleteUnused(path);
                 return Optional.empty();
             }
@@ -97,7 +104,6 @@ public final class LibraryPreviewCache {
         try {
             // Verify immutable identity again; do not trust a manually replaced cache file.
             lease.read();
-            Files.setLastModifiedTime(path, FileTime.fromMillis(System.currentTimeMillis()));
             return Optional.of(lease);
         } catch (IOException corrupt) {
             lease.close();
@@ -110,14 +116,21 @@ public final class LibraryPreviewCache {
 
     /** The backend detail fixes scope/revisions before a hash from a previous transfer is reused. */
     public Optional<Lease> find(Scope scope, Kind kind, PermissionCheck permission) throws Exception {
+        return find(scope, kind, DEFAULT_LIFETIME, permission);
+    }
+
+    public Optional<Lease> find(Scope scope, Kind kind, Duration lifetime, PermissionCheck permission) throws Exception {
         permission.check();
-        initialize();
+        if (lifetime.isZero() || lifetime.isNegative()) {
+            return Optional.empty();
+        }
+        initialize(lifetime);
         try (var files = Files.list(directory(kind))) {
             for (Path path : files.limit(MAX_ENTRIES + 1L).toList()) {
                 String name = path.getFileName().toString();
                 if (name.startsWith(scope.prefix()) && name.matches("[a-f0-9]{64}-[a-f0-9]{64}\\.bin")) {
                     String hash = name.substring(65, 129);
-                    Optional<Lease> lease = find(new Key(scope, hash), kind, () -> {});
+                    Optional<Lease> lease = find(new Key(scope, hash), kind, lifetime, () -> {});
                     if (lease.isPresent()) {
                         return lease;
                     }
@@ -129,13 +142,20 @@ public final class LibraryPreviewCache {
 
     /** Only bytes from a verified server distribution response or original encrypted payload belong here. */
     public boolean put(Key key, Kind kind, byte[] bytes) throws IOException {
+        return put(key, kind, bytes, DEFAULT_LIFETIME);
+    }
+
+    public boolean put(Key key, Kind kind, byte[] bytes, Duration lifetime) throws IOException {
+        if (lifetime.isZero() || lifetime.isNegative()) {
+            return false;
+        }
         if (bytes.length == 0 || bytes.length > limit(kind) || bytes.length > kind.budget) {
             return false;
         }
         if (!CloudHttp.sha256(bytes).equals(key.rawHash())) {
             throw new IOException("PREVIEW_HASH_MISMATCH");
         }
-        initialize();
+        initialize(lifetime);
         Path directory = directory(kind);
         Path target = directory.resolve(key.filename());
         synchronized (ACTIVE) {
@@ -153,30 +173,34 @@ public final class LibraryPreviewCache {
             } finally {
                 Files.deleteIfExists(partial);
             }
-            cleanup(kind);
+            cleanup(kind, lifetime);
         }
         return Files.isRegularFile(target, LinkOption.NOFOLLOW_LINKS);
     }
 
-    /** Startup/periodic cleanup; leased files are excluded from TTL and LRU eviction. */
+    /** Startup/periodic cleanup; leased files are excluded from expiry and size-budget eviction. */
     public void cleanup() throws IOException {
+        cleanup(DEFAULT_LIFETIME);
+    }
+
+    private void cleanup(Duration lifetime) throws IOException {
         synchronized (ACTIVE) {
             for (Kind kind : Kind.values()) {
-                cleanup(kind);
+                cleanup(kind, lifetime);
             }
             initialized = true;
         }
     }
 
-    private void initialize() throws IOException {
+    private void initialize(Duration lifetime) throws IOException {
         synchronized (ACTIVE) {
             if (!initialized) {
-                cleanup();
+                cleanup(lifetime);
             }
         }
     }
 
-    private void cleanup(Kind kind) throws IOException {
+    private void cleanup(Kind kind, Duration lifetime) throws IOException {
         Path directory = directory(kind);
         record Entry(Path path, long length, long modified) {}
         var entries = new ArrayList<Entry>();
@@ -189,7 +213,7 @@ public final class LibraryPreviewCache {
                     deleteUnused(path);
                 } else if (path.getFileName().toString().matches("[a-f0-9]{64}-[a-f0-9]{64}\\.bin")
                         && Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
-                    if (expired(path)) {
+                    if (expired(path, lifetime)) {
                         deleteUnused(path);
                     }
                     if (Files.exists(path)) {
@@ -220,11 +244,11 @@ public final class LibraryPreviewCache {
     }
 
     private static int limit(Kind kind) {
-        return kind == Kind.MODEL ? (int) CloudHttp.FILE_BYTES : 2 * 1024 * 1024;
+        return kind == Kind.THUMBNAIL ? 2 * 1024 * 1024 : (int) CloudHttp.FILE_BYTES;
     }
 
-    private static boolean expired(Path path) throws IOException {
-        return System.currentTimeMillis() - Files.getLastModifiedTime(path).toMillis() > TTL.toMillis();
+    private static boolean expired(Path path, Duration lifetime) throws IOException {
+        return System.currentTimeMillis() - Files.getLastModifiedTime(path).toMillis() >= lifetime.toMillis();
     }
 
     private static boolean deleteUnused(Path path) throws IOException {

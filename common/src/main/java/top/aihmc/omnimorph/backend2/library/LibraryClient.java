@@ -235,6 +235,7 @@ public final class LibraryClient implements AutoCloseable {
         private final Request<?> request;
         private final LibraryAccess.Call call;
         private String adminToken = "";
+        private long previewCacheSeconds = 3600;
 
         private Exchange(Request<?> request, LibraryAccess.Call call) {
             this.request = request;
@@ -250,10 +251,28 @@ public final class LibraryClient implements AutoCloseable {
             request.requireCurrent();
         }
 
+        public long previewCacheSeconds() {
+            return previewCacheSeconds;
+        }
+
         public HttpResponse<InputStream> send(String method, String path, HttpRequest.BodyPublisher body,
                                               String contentType) throws Exception {
             request.requireCurrent();
-            return call.send(method, path, body, contentType, adminToken);
+            var response = call.send(method, path, body, contentType, adminToken);
+            if (response.statusCode() == 200) {
+                try {
+                    long seconds = response.headers().firstValueAsLong("x-omnimorph-preview-cache-seconds")
+                            .orElse(3600);
+                    if (seconds < 0 || seconds > 0xffffffffL) {
+                        throw new NumberFormatException("Invalid preview cache lifetime");
+                    }
+                    previewCacheSeconds = seconds;
+                } catch (NumberFormatException invalid) {
+                    response.body().close();
+                    throw new Failure(0, "INVALID_CACHE_LIFETIME");
+                }
+            }
+            return response;
         }
 
         public <T> T json(String method, String path, Object body, Class<T> type) throws Exception {
