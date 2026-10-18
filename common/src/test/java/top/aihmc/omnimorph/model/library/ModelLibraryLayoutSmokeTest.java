@@ -35,6 +35,14 @@ public final class ModelLibraryLayoutSmokeTest {
         require(ModelLibraryLayout.of(196, 100, 8).columns() == 1, "one compact card column");
         require(ModelLibraryLayout.of(398, 100, 8).columns() == 2, "two columns");
         require(ModelLibraryLayout.of(600, 100, 8).columns() == 3, "three compact columns in the former two-column area");
+        require(ModelLibraryLayout.of(600, 430, 0).pageCapacity(64) == 12,
+                "three columns and four complete rows request twelve models");
+        require(ModelLibraryLayout.of(600, 430, 0).pageCapacity(8) == 8,
+                "older backend maximum is respected");
+        require(ModelLibraryLayout.of(398, 190, 0).pageCapacity(64) == 4,
+                "smaller viewport requests only the rows it can display");
+        require(ModelLibraryLayout.of(10000, 10000, 0).pageCapacity(64) == 64,
+                "large screens remain within the server bound");
         require(ModelLibraryLayout.of(1206, 100, 8).columns() == 6, "more than three columns");
         for (int width : new int[]{1, 128, 170, 240, 486, 732, 1470}) {
             for (int height : new int[]{1, 92, 116, 230, 800}) {

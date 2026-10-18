@@ -92,8 +92,10 @@ public final class ModelLibraryCatalogSmokeTest {
              var client = new LibraryClient(access, new LibrarySession(origin, VIEWER, 1, () -> true),
                      Minecraft.getInstance()::execute)) {
             var screen = new ModelLibraryScreen(null);
+            screen.width = 960;
+            screen.height = 540;
             set(screen, "client", client);
-            set(screen, "capabilities", new LibraryModels.Capabilities(true, 1, 1024, 8, 1024, 256, 256,
+            set(screen, "capabilities", new LibraryModels.Capabilities(true, 1, 1024, 64, 1024, 256, 256,
                     List.of("zip"), List.of("FIGURA"), List.of("general"), false));
             set(screen, "query", "old-query");
             invoke(screen, "refresh");
@@ -106,7 +108,7 @@ public final class ModelLibraryCatalogSmokeTest {
             var page = (LibraryModels.Page) get(screen, "results");
             require(page.items().getFirst().displayName().equals("new"), "new search owns visible results");
             require(query.get().contains("scope=mine") && query.get().contains("sort=name")
-                    && query.get().contains("page_size=8") && query.get().contains("%E6%96%B0"),
+                    && query.get().contains("page_size=12") && query.get().contains("%E6%96%B0"),
                     "server query owns filtering, page budget and sort");
             release.countDown();
             drain.run();

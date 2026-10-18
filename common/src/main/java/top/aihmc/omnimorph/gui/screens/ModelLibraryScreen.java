@@ -18,6 +18,7 @@ import top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryIconButton;
 import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionTabs;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
+import top.aihmc.omnimorph.gui.widgets.library.ModelLibraryLayout;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryCheckBox;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
 import top.aihmc.omnimorph.gui.widgets.lists.ModelLibraryGrid;
@@ -43,6 +44,7 @@ import java.util.UUID;
 
 /** Three server-paginated catalogs sharing one detached preview and source-bound formal-use service. */
 public class ModelLibraryScreen extends AbstractPanelScreen {
+    private int requestedPageSize;
     private static final List<String> SCOPES = List.of("mine", "favorites", "public");
     private static final List<String> TYPES = List.of("", "FIGURA", "YSM_PLAIN", "YSM_ENCRYPTED");
     private static final List<String> AUTHORIZATION = List.of("", "required", "free");
@@ -248,7 +250,10 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                 FiguraText.of("gui.done"), null, button -> onClose()));
         addRenderableOnly((gui, x, y, delta) -> renderStatus(gui));
         building = false;
-        if (resuming && capabilities != null) {
+        if (capabilities != null && (resuming || requestedPageSize != pageCapacity())) {
+            if (requestedPageSize != pageCapacity()) {
+                page = 1;
+            }
             refresh();
         }
         updateButtons();
@@ -377,10 +382,11 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         if (preview != null) {
             preview.clear();
         }
+        requestedPageSize = pageCapacity();
         Map<String, String> query = Map.of("scope", SCOPES.get(scope), "q", this.query,
                 "category", categoryValue(), "type", TYPES.get(type),
                 "authorization", AUTHORIZATION.get(authorization), "sort", SORTS.get(sort),
-                "page", Integer.toString(page), "page_size", Integer.toString(capabilities.maxPageSize()));
+                "page", Integer.toString(page), "page_size", Integer.toString(requestedPageSize));
         var request = client.list(query);
         pending = request;
         request.future().whenComplete((value, failure) -> {
@@ -405,6 +411,14 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
             updateButtons();
         });
         updateButtons();
+    }
+
+    private int pageCapacity() {
+        var layout = new LibraryWorkspaceLayout(width, height);
+        int top = filtersExpanded ? 100 : 76;
+        // Match ModelLibraryGrid's scrollbar and inner padding exactly.
+        return ModelLibraryLayout.of(layout.contentWidth() - 18, height - top - 32, 0)
+                .pageCapacity(capabilities.maxPageSize());
     }
 
     private void select(LibraryModels.Model model) {
