@@ -1,13 +1,19 @@
 package top.aihmc.omnimorph.model.library;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.PlayerModelPart;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
 import top.aihmc.omnimorph.avatar.AvatarManager;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
+import top.aihmc.omnimorph.mixin.gui.GuiGraphicsAccessor;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -32,6 +38,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
     private Avatar avatar;
     private volatile boolean closed;
     private boolean expanded;
+    private boolean independentFigura;
     private Status status = new Status(Stage.IDLE, "");
 
     /** Local wardrobe previews have no backend session dependency. */
@@ -47,6 +54,40 @@ public final class LibraryPreviewSession implements AutoCloseable {
 
     public Status status() {
         return status;
+    }
+
+    public void setIndependentFigura(boolean enabled) {
+        independentFigura = enabled;
+    }
+
+    /** Capture skin and standing pose data without calling an entity renderer. */
+    public boolean submitIndependentFigura(GuiGraphicsExtractor gui,
+                                           int drawX, int drawY, float scale, float pitch, float yaw,
+                                           float delta, int x0, int y0, int x1, int y1) {
+        if (!independentFigura || avatar == null || avatar.isYsmNative() || entity() == null) {
+            return false;
+        }
+        var player = (AbstractClientPlayer) entity;
+        var pose = new AvatarRenderState();
+        pose.ageInTicks = entity.tickCount + delta;
+        pose.skin = player.getSkin();
+        pose.showHat = player.isModelPartShown(PlayerModelPart.HAT);
+        pose.showJacket = player.isModelPartShown(PlayerModelPart.JACKET);
+        pose.showLeftSleeve = player.isModelPartShown(PlayerModelPart.LEFT_SLEEVE);
+        pose.showRightSleeve = player.isModelPartShown(PlayerModelPart.RIGHT_SLEEVE);
+        pose.showLeftPants = player.isModelPartShown(PlayerModelPart.LEFT_PANTS_LEG);
+        pose.showRightPants = player.isModelPartShown(PlayerModelPart.RIGHT_PANTS_LEG);
+        LibraryPreviewBinding.capture(entity, pose);
+        var accessor = (GuiGraphicsAccessor) gui;
+        var scissor = accessor.figura$getScissorStack().peek();
+        var bounds = PictureInPictureRenderState.getBounds(x0, y0, x1, y1, scissor);
+        float offsetX = (drawX - (x0 + x1) / 2f) / scale;
+        float offsetY = (drawY - (y0 + y1) / 2f) / scale;
+        accessor.figura$getRenderState().addPicturesInPictureState(new LibraryFiguraPreviewState(
+                avatar, pose, delta, pitch, yaw, offsetX, offsetY,
+                x0, y0, x1, y1, scale, scissor, bounds));
+        gui.nextStratum();
+        return true;
     }
 
     /** Evaluate the model's real initialization result; never infer Lua behavior from source text. */

@@ -173,7 +173,13 @@ public class EntityPreview extends AbstractContainerElement {
         if (entity != null) {
             pose.pushMatrix();
             scaledValue = Mth.lerp((float) (1f - Math.pow(0.5f, delta)), scaledValue, scaledPrecise);
-            UIHelper.drawEntity(x + modelX, y + modelY, scale + scaledValue, angleX, angleY, entity, gui, new Vector3f(), EntityRenderMode.FIGURA_GUI, x, y, x+width, y+height);
+            boolean independent = libraryPreview != null && libraryPreview.submitIndependentFigura(gui,
+                    x + modelX, y + modelY, scale + scaledValue, angleX, angleY, delta,
+                    x, y, x + width, y + height);
+            if (!independent) {
+                UIHelper.drawEntity(x + modelX, y + modelY, scale + scaledValue, angleX, angleY, entity,
+                        gui, new Vector3f(), EntityRenderMode.FIGURA_GUI, x, y, x + width, y + height);
+            }
             pose.popMatrix();
         } else {
             // draw

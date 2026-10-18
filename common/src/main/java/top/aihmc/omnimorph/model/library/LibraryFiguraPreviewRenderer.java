@@ -1,0 +1,106 @@
+package top.aihmc.omnimorph.model.library;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
+import net.minecraft.client.gui.render.pip.PictureInPictureRenderer;
+import net.minecraft.client.model.geom.builders.CubeDeformation;
+import net.minecraft.client.model.geom.builders.LayerDefinition;
+import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.world.entity.player.PlayerModelType;
+import top.aihmc.omnimorph.avatar.Avatar;
+import top.aihmc.omnimorph.math.matrix.FiguraMat4;
+import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
+import top.aihmc.omnimorph.model.rendering.PartFilterScheme;
+import top.aihmc.omnimorph.permissions.Permissions;
+import top.aihmc.omnimorph.utils.ui.UIHelper;
+
+/** Direct Figura geometry plus a native skinned body, without EntityRenderDispatcher or render layers. */
+public final class LibraryFiguraPreviewRenderer extends PictureInPictureRenderer<LibraryFiguraPreviewState> {
+    private final PlayerModel wide = createModel(false);
+    private final PlayerModel slim = createModel(true);
+
+    public LibraryFiguraPreviewRenderer(MultiBufferSource.BufferSource source) {
+        super(source);
+    }
+
+    static PlayerModel createModel(boolean slim) {
+        return new PlayerModel(LayerDefinition.create(PlayerModel.createMesh(CubeDeformation.NONE, slim),
+                64, 64).bakeRoot(), slim);
+    }
+
+    @Override
+    public Class<LibraryFiguraPreviewState> getRenderStateClass() {
+        return LibraryFiguraPreviewState.class;
+    }
+
+    @Override
+    protected String getTextureLabel() {
+        return "OmniMorph independent Figura preview";
+    }
+
+    @Override
+    protected float getTranslateY(int height, int guiScale) {
+        return height / 2f;
+    }
+
+    @Override
+    protected void renderToTexture(LibraryFiguraPreviewState state, PoseStack stack) {
+        UIHelper.useFiguraLighting();
+        PlayerModel model = state.playerPose().skin.model() == PlayerModelType.SLIM ? slim : wide;
+        draw(state, stack, bufferSource, model);
+    }
+
+    static void draw(LibraryFiguraPreviewState state, PoseStack stack, MultiBufferSource source, PlayerModel model) {
+        Avatar avatar = state.avatar();
+        if (!avatar.loaded || !avatar.accelerationOwner().isCurrent()) {
+            return;
+        }
+        EntityRenderMode previousMode = avatar.renderMode;
+        boolean previousPaperdoll = UIHelper.paperdoll;
+        avatar.renderMode = EntityRenderMode.FIGURA_GUI;
+        UIHelper.paperdoll = true;
+        stack.pushPose();
+        try {
+            stack.translate(state.offsetX(), state.offsetY(), 0);
+            stack.mulPose(Axis.ZP.rotationDegrees(180));
+            stack.mulPose(Axis.XP.rotationDegrees(state.pitch()));
+            stack.mulPose(Axis.YP.rotationDegrees(state.yaw() + 180));
+            stack.translate(0, -1, 0);
+            stack.mulPose(Axis.YP.rotationDegrees(180));
+            stack.scale(-1, -1, 1);
+            stack.translate(0, -1.501f, 0);
+
+            model.setupAnim(state.playerPose());
+            avatar.updateMatrices(model, stack);
+            avatar.renderEvent(state.delta(), FiguraMat4.of());
+            var vanilla = avatar.luaRuntime == null ? null : avatar.luaRuntime.vanilla_model.PLAYER;
+            if (vanilla != null) {
+                vanilla.save(model);
+            }
+            try {
+                if (vanilla != null && avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1) {
+                    vanilla.preTransform(model);
+                }
+                // Copy the unhidden native pose first. Hiding the vanilla body must not hide Figura's own geometry.
+                avatar.render(null, 0, state.delta(), 1, stack, source, 0x00f000f0,
+                        OverlayTexture.NO_OVERLAY, model, PartFilterScheme.MODEL, false, false);
+                if (vanilla != null && avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1) {
+                    vanilla.posTransform(model);
+                }
+                model.renderToBuffer(stack, source.getBuffer(model.renderType(state.playerPose().skin.body().texturePath())),
+                        0x00f000f0, OverlayTexture.NO_OVERLAY);
+                avatar.postRenderEvent(state.delta(), FiguraMat4.of());
+            } finally {
+                if (vanilla != null) {
+                    vanilla.restore(model);
+                }
+            }
+        } finally {
+            stack.popPose();
+            avatar.renderMode = previousMode;
+            UIHelper.paperdoll = previousPaperdoll;
+        }
+    }
+}
