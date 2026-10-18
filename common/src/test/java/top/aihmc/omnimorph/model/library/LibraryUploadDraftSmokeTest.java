@@ -9,6 +9,7 @@ import java.util.UUID;
 
 public final class LibraryUploadDraftSmokeTest {
     public static void main(String[] args) {
+        testModelEdits();
         UUID uploader = UUID.randomUUID();
         var credits = new LibraryMetadataReader.Metadata("FIGURA", "AYL's Dragon Wings & Tail",
                 java.util.stream.IntStream.range(0, 9).mapToObj(index -> "Original author " + index).toList(),
@@ -102,6 +103,58 @@ public final class LibraryUploadDraftSmokeTest {
                         && formattedSnapshot.metadata().get("description").equals("模型说明"),
                 "source formatting does not make an otherwise valid upload impossible");
         System.out.println("PASS upload draft: metadata defaults, explicit edit precedence, source generations and live UTF-8 limits");
+    }
+
+    private static void testModelEdits() {
+        UUID owner = UUID.randomUUID();
+        UUID other = UUID.randomUUID();
+        var model = editableModel(owner, "ACTIVE", List.of("patch"));
+        require(LibraryModelEdits.available(model, owner), "owner can edit active model");
+        require(!LibraryModelEdits.available(model, other), "other player cannot edit");
+        require(LibraryModelEdits.available(model, other, true), "administrator can edit another upload");
+        require(!LibraryModelEdits.available(editableModel(owner, "ACTIVE", List.of()), owner, true),
+                "administrator also requires server patch action");
+        require(!LibraryModelEdits.available(editableModel(owner, "DELETED", List.of("patch")), owner, true),
+                "deleted models cannot be edited");
+        var blocked = editableModel(owner, "BLOCKED", List.of("patch"));
+        require(!LibraryModelEdits.available(blocked, owner)
+                && LibraryModelEdits.available(blocked, other, true), "blocked model requires administrator");
+        UUID operation = UUID.randomUUID();
+        var patch = LibraryModelEdits.snapshot(model, owner, limits(64), operation,
+                "Updated", "Description", "general", "Tag, tag, 第二个", false, false);
+        require(patch.keySet().equals(java.util.Set.of("operation_id", "expected_revision", "display_name",
+                        "description", "category_id", "tags", "visibility", "requires_authorization")),
+                "patch excludes readonly provenance and resource fields");
+        require(patch.get("expected_revision").equals(7L)
+                && patch.get("operation_id").equals(operation.toString()), "CAS uses policy revision and stable operation");
+        require(patch.get("tags").equals(List.of("Tag", "第二个"))
+                && patch.get("visibility").equals("PRIVATE")
+                && patch.get("requires_authorization").equals(false), "editable values preserved and tags normalized");
+        try {
+            patch.put("display_name", "changed");
+            throw new AssertionError("retry snapshot must be immutable");
+        } catch (UnsupportedOperationException expected) {
+            // A retry must send the same operation and payload after an uncertain response.
+        }
+        var adminPatch = LibraryModelEdits.snapshot(blocked, other, true, limits(64), operation,
+                "Updated", "", "general", "", false, true);
+        require(adminPatch.get("tags").equals(List.of()), "administrator can save optional empty tags");
+        reject(() -> LibraryModelEdits.snapshot(blocked, other, true, limits(64), operation,
+                "Updated", "", "general", "", true, true));
+        reject(() -> LibraryModelEdits.snapshot(model, other, limits(64), operation,
+                "Updated", "", "general", "", true, true));
+        reject(() -> LibraryModelEdits.snapshot(model, owner, limits(64), operation,
+                "", "", "general", "", true, true));
+        reject(() -> LibraryModelEdits.snapshot(model, owner, limits(64), operation,
+                "Updated", "", "unknown", "", true, true));
+        System.out.println("PASS model edits: owner/admin permissions, readonly provenance, CAS, optional tags and blocked visibility");
+    }
+
+    private static LibraryModels.Model editableModel(UUID owner, String status, List<String> actions) {
+        return new LibraryModels.Model(UUID.randomUUID(), 3, 7, "Name", "Internal", List.of("Author"),
+                new LibraryModels.Uploader(owner, "Uploader"), "FIGURA", 0, false, 0, 0, false,
+                "PRIVATE", true, actions, "Description", "general", List.of("old"), status, 10, 3,
+                "avatar.json", "SERVER_VERIFIED");
     }
 
     private static LibraryModels.Capabilities limits(long bytes) {

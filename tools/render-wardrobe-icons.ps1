@@ -13,6 +13,7 @@ $icons = @{
     'library_visibility' = @('wardrobe-hidden.svg', 'wardrobe-visible.svg')
     'library_delete' = @('library-delete.svg')
     'library_restore' = @('library-restore.svg')
+    'library_edit' = @('library-edit.svg')
 }
 $colors = @('#777777', '#ffffff', '#55ffff')
 foreach ($icon in $icons.GetEnumerator()) {

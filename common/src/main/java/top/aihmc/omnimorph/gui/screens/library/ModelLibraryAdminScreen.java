@@ -17,6 +17,7 @@ import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionTabs;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
 import top.aihmc.omnimorph.model.library.LibraryTransferService;
+import top.aihmc.omnimorph.model.library.LibraryModelEdits;
 import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.utils.FiguraIdentifier;
 import top.aihmc.omnimorph.utils.FiguraText;
@@ -140,7 +141,7 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
         rows.columns(List.of(FiguraText.of("gui.library.table_cover"), FiguraText.of("gui.library.display_name"),
                 FiguraText.of("gui.library.authors"), FiguraText.of("gui.library.uploader"),
                 FiguraText.of("gui.library.status"), FiguraText.of("gui.library.downloads"),
-                FiguraText.of("gui.library.actions")), 2, 6, 4, 4, 3, 2, 5);
+                FiguraText.of("gui.library.actions")), 2, 6, 4, 4, 3, 2, 6);
         grants = addRenderableWidget(new Button(contentX, height - 72, column, 20,
                 FiguraText.of("gui.library.grants"), null, ignored -> {
                     if (LibraryAuthorization.available(selected) && !busy() && admin.active()) {
@@ -268,6 +269,17 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
         var image = model.imageAvailable() && !model.moderationStatus().equals("DELETED")
                 ? images.computeIfAbsent(model.modelId(), thumbnails::acquire) : null;
         var actions = new java.util.ArrayList<LibraryRowList.Action>();
+        if (LibraryModelEdits.available(model, client.session().player(), true)) {
+            actions.add(new LibraryRowList.Action(FiguraText.of("gui.library.edit"),
+                    FiguraText.of("gui.library.edit"), true, () -> {
+                        if (!busy() && admin.active()) {
+                            retainingChild = true;
+                            preview.clear();
+                            minecraft.setScreen(new ModelLibraryEditScreen(this, client, capabilities,
+                                    model.modelId(), admin));
+                        }
+                    }, LibraryRowList.Icon.EDIT));
+        }
         if (LibraryAuthorization.available(model)) {
             actions.add(new LibraryRowList.Action(FiguraText.of("gui.library.grants"), FiguraText.of("gui.library.grants"), true, () -> {
                 if (!busy() && admin.active()) {

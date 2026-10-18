@@ -22,6 +22,8 @@ import top.aihmc.omnimorph.gui.widgets.library.LibraryCheckBox;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
 import top.aihmc.omnimorph.gui.widgets.lists.ModelLibraryGrid;
 import top.aihmc.omnimorph.gui.screens.library.ModelUploadScreen;
+import top.aihmc.omnimorph.gui.screens.library.ModelLibraryEditScreen;
+import top.aihmc.omnimorph.model.library.LibraryModelEdits;
 import top.aihmc.omnimorph.gui.screens.library.ModelLibraryAuthorizationScreen;
 import top.aihmc.omnimorph.gui.screens.library.ModelLibraryAdminLoginScreen;
 import top.aihmc.omnimorph.gui.screens.library.ModelLibraryAdminScreen;
@@ -77,6 +79,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
     private Button use;
     private Button favorite;
     private Button visibility;
+    private Button edit;
     private Button delete;
     private Button uploadEntry;
     private Button adminEntry;
@@ -116,7 +119,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         leftWidth = layout.contentWidth();
         int rightX = layout.previewX();
         int rightWidth = layout.previewWidth();
-        int actionsHeight = LibraryActionBar.heightFor(rightWidth, 6);
+        int actionsHeight = LibraryActionBar.heightFor(rightWidth, 7);
         actionsY = height - 28 - actionsHeight;
         sections = addRenderableWidget(new LibrarySectionTabs(8, 28, leftWidth, scope,
                 capabilities != null && capabilities.adminLoginAvailable(), this::openSection));
@@ -197,6 +200,14 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
             addRenderableWidget(widget);
         }
         var actions = addRenderableWidget(new LibraryActionBar(rightX, actionsY, rightWidth, actionsHeight));
+        edit = actions.action(new LibraryIconButton("library_edit", 1, () -> 0,
+                FiguraText.of("gui.library.edit"), null, ignored -> {
+                    if (client != null && LibraryModelEdits.available(selected, client.session().player())) {
+                        preview.clear();
+                        retainingChild = true;
+                        minecraft.setScreen(new ModelLibraryEditScreen(this, client, capabilities, selected.modelId()));
+                    }
+                }));
         grants = actions.action(new LibraryIconButton("library_grants", 1, () -> 0,
                 FiguraText.of("gui.library.grants"), null, button -> {
                     if (LibraryAuthorization.available(selected)) {
@@ -582,6 +593,9 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         favorite.setMessage(FiguraText.of(selected != null && selected.favorited()
                 ? "gui.library.unfavorite" : "gui.library.favorite"));
         visibility.setActive(available && selected != null && selected.allows("patch"));
+        boolean canEdit = client != null && LibraryModelEdits.available(selected, client.session().player());
+        edit.setVisible(canEdit);
+        edit.setActive(available && canEdit);
         visibility.setVisible(selected != null && selected.allows("patch"));
         visibility.setMessage(FiguraText.of(selected != null && selected.visibility().equals("PUBLIC")
                 ? "gui.library.make_private" : "gui.library.make_public"));

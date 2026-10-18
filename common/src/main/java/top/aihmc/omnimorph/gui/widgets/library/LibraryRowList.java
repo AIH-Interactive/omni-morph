@@ -15,7 +15,7 @@ import java.util.function.Supplier;
 
 /** Shared clipped row selector for file, authorization and management lists. */
 public final class LibraryRowList extends AbstractList {
-    public enum Icon { GRANT, BLOCK, DELETE, RESTORE }
+    public enum Icon { GRANT, BLOCK, DELETE, RESTORE, EDIT }
 
     public record Action(Component text, Component tooltip, boolean enabled, Runnable invoke, Icon icon) {
         public Action(Component text, Component tooltip, boolean enabled, Runnable invoke) {
@@ -273,10 +273,11 @@ public final class LibraryRowList extends AbstractList {
 
     private static void drawIcon(GuiGraphicsExtractor gui, Icon icon, int x, int y, int color, int frame) {
         switch (icon) {
-            case GRANT, DELETE, RESTORE -> {
+            case GRANT, DELETE, RESTORE, EDIT -> {
                 String name = switch (icon) {
                     case GRANT -> "library_grants";
                     case RESTORE -> "library_restore";
+                    case EDIT -> "library_edit";
                     default -> "library_delete";
                 };
                 gui.blit(RenderPipelines.GUI_TEXTURED, new FiguraIdentifier("textures/gui/" + name + ".png"),
