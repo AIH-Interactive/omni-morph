@@ -20,6 +20,8 @@ import java.util.function.Consumer;
 /** One visible card. Its thumbnail belongs to the card and never to the wardrobe texture registry. */
 public final class ModelCardWidget extends AbstractContainerElement implements AutoCloseable {
     private static final Identifier PLACEHOLDER = new FiguraIdentifier("textures/gui/library_placeholder.png");
+    private static final Identifier AUTHORIZATION = new FiguraIdentifier("textures/gui/library_authorization.png");
+    private static final Identifier VISIBILITY = new FiguraIdentifier("textures/gui/library_visibility.png");
     private final LibraryModels.Model model;
     private final LibraryThumbnailService.Handle thumbnail;
     private final Consumer<LibraryModels.Model> select;
@@ -78,6 +80,15 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
         gui.fill(x + 4, y + 4, x + 4 + badgeWidth, y + 17, 0xd0101820);
         UIHelper.renderScrollingText(gui, Component.literal(badge), x + 7, y + 7,
                 Math.max(1, badgeWidth - 6), 0xffeeeeee);
+        int statusX = x + 5;
+        int statusY = y + imageSize - 10;
+        if (model.requiresAuthorization()) {
+            drawStatusIcon(gui, AUTHORIZATION, statusX, statusY, 1);
+            statusX += 15;
+        }
+        if (model.visibility().equals("PRIVATE")) {
+            drawStatusIcon(gui, VISIBILITY, statusX, statusY, 0);
+        }
         UIHelper.renderScrollingText(gui, LibraryLabels.category(model.categoryId()), informationX, y + 20,
                 informationWidth, 0xffbac6d8);
         favorite.setX(x + getWidth() - 24);
@@ -103,11 +114,21 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
         if (isMouseOver(mouseX, mouseY) && !favorite.isMouseOver(mouseX, mouseY) && !report.isMouseOver(mouseX, mouseY)) {
             var tooltip = FiguraText.of("gui.library.card_tooltip", model.internalName(),
                     String.join("\n", model.authors()), model.uploader().name(), model.uploader().uuid().toString());
+            tooltip.append("\n").append(FiguraText.of("gui.library.filter.authorization",
+                    FiguraText.of(model.requiresAuthorization() ? "gui.yes" : "gui.no")));
+            tooltip.append("\n").append(FiguraText.of("gui.library.card_visibility",
+                    FiguraText.of(model.visibility().equals("PRIVATE") ? "gui.library.private" : "gui.library.public")));
             if (thumbnail != null && thumbnail.ready().isCompletedExceptionally()) {
                 tooltip.append("\n").append(FiguraText.of("gui.library.image_retry"));
             }
             UIHelper.setTooltip(tooltip);
         }
+    }
+
+    private static void drawStatusIcon(GuiGraphicsExtractor gui, Identifier texture, int x, int y, int variant) {
+        gui.fill(x - 1, y - 1, x + 13, y + 13, 0xd0101820);
+        gui.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 24, variant * 24,
+                12, 12, 24, 24, 72, 48);
     }
 
     @Override

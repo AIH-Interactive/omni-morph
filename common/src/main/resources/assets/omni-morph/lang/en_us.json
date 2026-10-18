@@ -1925,6 +1925,7 @@
   "omni-morph.gui.library.counts": "%s downloads · %s favorites",
   "omni-morph.gui.library.locked": "Authorization required",
   "omni-morph.gui.library.card_tooltip": "Internal name: %s\nAuthors:\n%s\nUploader: %s\nUUID: %s\nRight-click to copy uploader UUID",
+  "omni-morph.gui.library.card_visibility": "Visibility: %s",
   "omni-morph.gui.library.image_retry": "Image unavailable. Refresh to retry.",
   "omni-morph.gui.library.scale": "Increase the window size or reduce GUI scale (minimum 300 × 220).",
   "omni-morph.gui.library.use": "Download and Enable",
