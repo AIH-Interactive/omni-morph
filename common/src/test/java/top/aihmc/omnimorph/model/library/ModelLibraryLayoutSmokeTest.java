@@ -3,10 +3,21 @@ package top.aihmc.omnimorph.model.library;
 import top.aihmc.omnimorph.gui.widgets.library.ModelLibraryLayout;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryRowList;
 import top.aihmc.omnimorph.utils.FileSizeFormatter;
 
 public final class ModelLibraryLayoutSmokeTest {
     public static void main(String[] args) {
+        require(LibraryRowList.tablePageCapacity(402, 64) == 15,
+                "management table fills the available height after its header and padding");
+        require(LibraryRowList.tablePageCapacity(402, 8) == 8,
+                "management respects the older backend maximum");
+        require(LibraryRowList.tablePageCapacity(239, 64) == 8
+                        && LibraryRowList.tablePageCapacity(240, 64) == 9,
+                "management requests only complete rows at the next-row boundary");
+        require(LibraryRowList.tablePageCapacity(24, 64) == 1
+                        && LibraryRowList.tablePageCapacity(10000, 64) == 64,
+                "management capacity stays within minimum and server bounds");
         require(FileSizeFormatter.format(0, "字节").equals("0 字节"), "zero bytes");
         require(FileSizeFormatter.format(1023, "字节").equals("1023 字节"), "byte unit boundary");
         require(FileSizeFormatter.format(1024, "bytes").equals("1 KB"), "KB boundary");
