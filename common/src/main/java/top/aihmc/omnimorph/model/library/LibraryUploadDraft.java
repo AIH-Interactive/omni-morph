@@ -141,6 +141,10 @@ public final class LibraryUploadDraft {
     }
 
     public void tags(String commaSeparated) {
+        tags = normalizeTags(commaSeparated);
+    }
+
+    static List<String> normalizeTags(String commaSeparated) {
         var normalized = new ArrayList<String>();
         var identities = new java.util.HashSet<String>();
         for (String raw : commaSeparated.split(",")) {
@@ -149,7 +153,7 @@ public final class LibraryUploadDraft {
                 normalized.add(value);
             }
         }
-        tags = List.copyOf(normalized);
+        return List.copyOf(normalized);
     }
 
     public record Snapshot(Path source, LibraryPackagePreparation.Prepared prepared,
@@ -166,20 +170,24 @@ public final class LibraryUploadDraft {
                 || !limits.categories().contains(category) || !limits.modelTypes().contains(metadata.modelType())) {
             throw new IllegalArgumentException("UPLOAD_NOT_READY");
         }
-        validate(displayName, 96, false, "display_name");
+        validateEditable(displayName, description, tags);
         validate(metadata.internalName(), 96, false, "internal_name");
-        validate(description, 4096, true, "description");
         validate(source.getFileName().toString(), 128, false, "source");
-        if (tags.size() > 8) {
-            throw new InvalidCount("tags", 8);
-        }
         metadata.authors().forEach(author -> validate(author, 0, false, "authors"));
-        tags.forEach(tag -> validate(tag, 32, false, "tags"));
         return new Snapshot(source, prepared, Map.of("display_name", displayName,
                 "internal_name", metadata.internalName(), "authors", metadata.authors(),
                 "model_type", metadata.modelType(), "category_id", category, "description", description,
                 "tags", tags, "visibility", isPublic ? "PUBLIC" : "PRIVATE",
                 "requires_authorization", requiresAuthorization), prepared.metadataSource());
+    }
+
+    static void validateEditable(String name, String description, List<String> tags) {
+        validate(name, 96, false, "display_name");
+        validate(description, 4096, true, "description");
+        if (tags.size() > 8) {
+            throw new InvalidCount("tags", 8);
+        }
+        tags.forEach(tag -> validate(tag, 32, false, "tags"));
     }
 
     public static final class InvalidCount extends IllegalArgumentException {
