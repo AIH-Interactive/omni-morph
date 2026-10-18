@@ -14,6 +14,7 @@ $icons = @{
     'library_delete' = @('library-delete.svg')
     'library_restore' = @('library-restore.svg')
     'library_edit' = @('library-edit.svg')
+    'library_unblock' = @('library-unblock.svg')
 }
 $colors = @('#777777', '#ffffff', '#55ffff')
 foreach ($icon in $icons.GetEnumerator()) {

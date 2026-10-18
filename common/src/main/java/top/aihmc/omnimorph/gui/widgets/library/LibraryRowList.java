@@ -24,7 +24,7 @@ public final class LibraryRowList extends AbstractList {
         return Math.min(Math.max(1, maximum), visibleRows);
     }
 
-    public enum Icon { GRANT, BLOCK, DELETE, RESTORE, EDIT }
+    public enum Icon { GRANT, BLOCK, UNBLOCK, DELETE, RESTORE, EDIT }
 
     public record Action(Component text, Component tooltip, boolean enabled, Runnable invoke, Icon icon) {
         public Action(Component text, Component tooltip, boolean enabled, Runnable invoke) {
@@ -282,9 +282,10 @@ public final class LibraryRowList extends AbstractList {
 
     static void drawIcon(GuiGraphicsExtractor gui, Icon icon, int x, int y, int color, int frame) {
         switch (icon) {
-            case GRANT, DELETE, RESTORE, EDIT -> {
+            case GRANT, UNBLOCK, DELETE, RESTORE, EDIT -> {
                 String name = switch (icon) {
                     case GRANT -> "library_grants";
+                    case UNBLOCK -> "library_unblock";
                     case RESTORE -> "library_restore";
                     case EDIT -> "library_edit";
                     default -> "library_delete";

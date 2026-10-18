@@ -584,3 +584,13 @@ R38 检查点：容量计算与表格实际行高/表头尺寸共用常量，完
 仅为 BLOCKED 模型添加屏蔽状态图标，复用管理表格屏蔽按钮的同一绘制方法，与需授权、私有图标依次排列；悬浮提示同步显示已屏蔽的翻译文案。正常模型不显示该图标，不改变屏蔽规则和操作。构建后提交推送，游戏内视觉验收 MANUAL/PENDING。
 
 R39 检查点：复用既有 BLOCK 绘制，条件分支、图标间距及翻译复用核对完成；Fabric build（含 previewRuntime）前台 Tee PASS，退出 0，diff --check 通过。本地 alpha.2 JAR 更新，后端无需修改；实际游戏图标效果 MANUAL/PENDING。
+
+### R40 屏蔽状态、解除屏蔽与本人列表可见性
+
+用户修订：被屏蔽模型仍在上传者“我的模型”显示，公共列表和收藏继续隐藏；管理员操作按实际状态切换屏蔽/解除屏蔽，解除后保持私有。复用既有 DELETE /admin/models/{id}/block 接口，新增 Figura 风格的解除屏蔽图标（SVG 转 PNG 三态）。
+
+后端 HTTP 回归先复现 mine 总数为 0，修正筛选后再次复现列表 moderation_status 为 null：原列表摘要未序列化状态，客户端回退 ACTIVE，导致状态显示正常且再次发送 PUT 屏蔽。修复摘要实际状态与 mine 筛选；不开放屏蔽模型普通详情、下载、装备、修改公开性或对外分发。验证屏蔽/解除、同哈希副本、权限和列表刷新后编译提交，真实游戏操作验收 MANUAL/PENDING。
+
+用户追加删除状态分析：模型列表中的 DELETED 同样缺失 moderation_status，本次通用摘要修复一并覆盖并新增回归；回收站为独立 status 字段，原接口已明确返回 DELETED，现有回归验证正常，不修改回收站行为。
+
+R40 检查点：真实 HTTP 屏蔽后 mine 保留本人条目、公共/收藏隐藏、管理员列表返回 BLOCKED 且可用列表 policy_revision 解除屏蔽、解除后 mine 显示 ACTIVE 且保持 PRIVATE；同哈希副本权限与屏蔽不可对外展示回归通过。新增管理员模型列表 DELETED 状态断言，原回收站 status=DELETED 断言继续通过。完整 cargo test --locked 103 passed / 0 failed / 1 既有 ignored，cargo build --locked PASS；客户端管理/目录回调回归和 Fabric build（含 previewRuntime）前台 Tee PASS，退出 0。新增三态图标已核对，差异空白检查通过，alpha.2 本地包更新；本阶段需同步更新后端与客户端，真实游戏交互 MANUAL/PENDING。
