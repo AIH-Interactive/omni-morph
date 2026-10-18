@@ -1,5 +1,6 @@
 package top.aihmc.omnimorph.model.library;
 
+import net.minecraft.ChatFormatting;
 import top.aihmc.omnimorph.avatar.ysm.YsmEncryptedSource;
 import top.aihmc.omnimorph.avatar.ysm.YsmManifest;
 import top.aihmc.omnimorph.avatar.ysm.YsmModelData;
@@ -25,7 +26,11 @@ public final class LibraryMetadataReader {
     public record Metadata(String modelType, String internalName, List<String> authors,
                            String description, boolean requiresAuthorizationDefault) {
         public Metadata {
-            authors = List.copyOf(authors);
+            // Library catalog fields are plain text. Keep source/runtime formatting
+            // out of the catalog without changing the original model package.
+            internalName = plainText(internalName);
+            description = plainText(description);
+            authors = LibraryMetadataReader.authors(authors);
         }
     }
 
@@ -66,24 +71,29 @@ public final class LibraryMetadataReader {
     public static Metadata fromFigura(AvatarMetadataParser.Metadata metadata, String fallback) {
         List<String> authors = metadata.authors == null
                 ? Arrays.asList(metadata.author) : Arrays.asList(metadata.authors);
-        return new Metadata("FIGURA", name(metadata.name, fallback), authors(authors),
+        return new Metadata("FIGURA", name(metadata.name, fallback), authors,
                 metadata.description == null ? "" : metadata.description, !Boolean.TRUE.equals(metadata.free));
     }
 
     public static Metadata fromYsm(YsmManifest manifest, boolean encrypted) {
         return new Metadata(encrypted ? "YSM_ENCRYPTED" : "YSM_PLAIN", manifest.name(),
-                authors(Arrays.asList(manifest.authors())), manifest.description(), !manifest.free());
+                Arrays.asList(manifest.authors()), manifest.description(), !manifest.free());
     }
 
     private static String name(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value;
     }
 
+    private static String plainText(String value) {
+        return value == null ? "" : ChatFormatting.stripFormatting(value).replace("§", "");
+    }
+
     private static List<String> authors(List<String> values) {
         var result = new ArrayList<String>();
         for (String author : values) {
-            if (author != null && !author.isBlank() && !result.contains(author.trim())) {
-                result.add(author.trim());
+            String plain = plainText(author).strip();
+            if (!plain.isEmpty() && !result.contains(plain)) {
+                result.add(plain);
             }
         }
         return result;

@@ -47,7 +47,7 @@ public final class LibraryUploadSmokeTest {
             Path source = directory.resolve("source.zip");
             try (var zip = new ZipOutputStream(Files.newOutputStream(source))) {
                 zip.putNextEntry(new ZipEntry("avatar.json"));
-                zip.write("{\"name\":\"原始模型\",\"authors\":[\"作者\"],\"free\":true}"
+                zip.write("{\"name\":\"§b原始模型\",\"authors\":[\"§e作者\"],\"description\":\"§l模型说明§r\",\"free\":true}"
                         .getBytes(StandardCharsets.UTF_8));
                 zip.closeEntry();
             }
@@ -56,6 +56,11 @@ public final class LibraryUploadSmokeTest {
             draft.prepared(draft.beginSource(source), prepared);
             draft.category("general");
             var snapshot = draft.snapshot(server.limits());
+            require(snapshot.metadata().get("internal_name").equals("原始模型")
+                            && snapshot.metadata().get("authors").equals(java.util.List.of("作者"))
+                            && snapshot.metadata().get("description").equals("模型说明")
+                            && prepared.nbt().getCompoundOrEmpty("metadata").getStringOr("name", "").equals("原始模型"),
+                    "formatted source metadata and uploaded NBT agree on plain catalog text");
             try (var access = new LibraryAccess(CloudEndpoint.parse(server.origin(), () -> true), HttpClient.newHttpClient(),
                     builder -> builder.header("Authorization", "Bearer synthetic"));
                  var client = new LibraryClient(access, new LibrarySession(server.origin(), VIEWER, 1, () -> true),

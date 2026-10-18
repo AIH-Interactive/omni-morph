@@ -392,6 +392,9 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
                     updateButtons();
                 }
             });
+        } catch (LibraryUploadDraft.InvalidField invalid) {
+            message = FiguraText.of("gui.library.invalid_field",
+                    FiguraText.of("gui.library." + invalid.field()), invalid.maximumBytes());
         } catch (IllegalArgumentException invalid) {
             message = FiguraText.of("gui.library.metadata_error");
         }
