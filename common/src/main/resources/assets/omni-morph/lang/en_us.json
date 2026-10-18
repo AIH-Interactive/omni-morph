@@ -1983,6 +1983,7 @@
   "omni-morph.gui.library.phase.uploading": "Uploading…",
   "omni-morph.gui.library.phase.applying": "Server validation / publishing…",
   "omni-morph.gui.library.phase.compressing": "Compressing distribution package…",
+  "omni-morph.gui.library.resize_description": "Drag to resize the description box",
   "omni-morph.gui.library.bytes": "bytes",
   "omni-morph.gui.library.ready_upload": "Ready: %s / server limit %s",
   "omni-morph.gui.library.preparation_error": "Could not prepare this model file.",
