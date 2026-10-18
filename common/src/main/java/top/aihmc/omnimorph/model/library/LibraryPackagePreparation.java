@@ -86,11 +86,16 @@ public final class LibraryPackagePreparation {
             if (metadata.modelType().equals("FIGURA")) {
                 Path directory = Files.createDirectory(staging.resolve("figura"));
                 try (var archive = YsmPackage.open(source)) {
+                    String root = LibraryMetadataReader.figuraRoot(archive, cancelled);
                     long total = 0;
                     int count = 0;
                     for (String name : archive.resourcePaths()) {
                         YsmResourceLimits.checkCancelled(cancelled);
-                        Path target = directory.resolve(name).normalize();
+                        if (!name.startsWith(root)) {
+                            continue;
+                        }
+                        String relative = name.substring(root.length());
+                        Path target = directory.resolve(relative).normalize();
                         if (!target.startsWith(directory)) {
                             throw new IOException("UNSAFE_RESOURCE_PATH");
                         }
