@@ -78,7 +78,8 @@ public final class LibraryTransferService {
                         id, model.revision(), model.policyRevision());
                 if (!formal) {
                     // The detail immediately above is the fresh backend permission decision.
-                    var cached = preview.find(scope, LibraryPreviewCache.Kind.MODEL, exchange::requireCurrent);
+                    var cached = preview.find(scope, LibraryPreviewCache.Kind.MODEL,
+                            java.time.Duration.ofSeconds(exchange.previewCacheSeconds()), exchange::requireCurrent);
                     if (cached.isPresent()) {
                         try (var lease = cached.get()) {
                             byte[] bytes = lease.read();
@@ -137,7 +138,8 @@ public final class LibraryTransferService {
                     progress.stage(generation, AvatarLoadProgress.Stage.PREPARING);
                     result = parse(model, bytes, hash, purpose);
                     exchange.requireCurrent();
-                    preview.put(new LibraryPreviewCache.Key(scope, hash), LibraryPreviewCache.Kind.MODEL, bytes);
+                    preview.put(new LibraryPreviewCache.Key(scope, hash), LibraryPreviewCache.Kind.MODEL, bytes,
+                            java.time.Duration.ofSeconds(exchange.previewCacheSeconds()));
                 }
                 return result;
             } finally {

@@ -90,7 +90,7 @@ public final class LibraryAccess implements AutoCloseable {
             if (path.length() > 8192 || relative.isAbsolute() || relative.getRawAuthority() != null
                     || relative.getRawFragment() != null || relative.getRawPath() == null
                     || !relative.getRawPath().matches("/api/library/v1/[A-Za-z0-9/_-]+")
-                    || !Set.of("GET", "POST", "PUT", "PATCH", "DELETE").contains(method)) {
+                    || !Set.of("GET", "HEAD", "POST", "PUT", "PATCH", "DELETE").contains(method)) {
                 throw new IOException("INVALID_LIBRARY_ROUTE");
             }
             HttpRequest.Builder request = HttpRequest.newBuilder(endpoint.http(path))

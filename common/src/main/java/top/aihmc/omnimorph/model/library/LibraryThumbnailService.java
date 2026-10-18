@@ -81,7 +81,8 @@ public final class LibraryThumbnailService implements AutoCloseable {
             }
             var scope = new LibraryPreviewCache.Scope(client.session().instance(), client.session().player(),
                     id, model.imageRevision(), model.policyRevision());
-            var existing = cache.find(scope, LibraryPreviewCache.Kind.THUMBNAIL, exchange::requireCurrent);
+            var existing = cache.find(scope, LibraryPreviewCache.Kind.THUMBNAIL,
+                    java.time.Duration.ofSeconds(exchange.previewCacheSeconds()), exchange::requireCurrent);
             if (existing.isPresent()) {
                 try (var lease = existing.get()) {
                     return decode(lease.read());
@@ -112,7 +113,7 @@ public final class LibraryThumbnailService implements AutoCloseable {
                 throw new LibraryClient.Failure(409, "IMAGE_CHANGED");
             }
             cache.put(new LibraryPreviewCache.Key(scope, CloudHttp.sha256(bytes)),
-                    LibraryPreviewCache.Kind.THUMBNAIL, bytes);
+                    LibraryPreviewCache.Kind.THUMBNAIL, bytes, java.time.Duration.ofSeconds(exchange.previewCacheSeconds()));
             return decoded;
         });
     }

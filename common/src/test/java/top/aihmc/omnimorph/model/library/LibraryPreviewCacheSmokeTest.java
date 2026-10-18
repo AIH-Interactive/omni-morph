@@ -55,6 +55,22 @@ public final class LibraryPreviewCacheSmokeTest {
             }
             Files.write(onlyModel(cache), new byte[]{0});
             require(cache.find(scope, LibraryPreviewCache.Kind.MODEL, () -> {}).isEmpty(), "corrupt data is rejected and removed");
+            cache.put(key, LibraryPreviewCache.Kind.MODEL, bytes, Duration.ofHours(3));
+            Path timed = onlyModel(cache);
+            FileTime written = FileTime.fromMillis(System.currentTimeMillis() - Duration.ofHours(2).toMillis());
+            Files.setLastModifiedTime(timed, written);
+            try (var lease = new LibraryPreviewCache(directory).find(scope, LibraryPreviewCache.Kind.MODEL,
+                    Duration.ofHours(3), () -> {}).orElseThrow()) {
+                require(Arrays.equals(lease.read(), bytes), "a backend lifetime longer than one hour survives reopening");
+                require(Files.getLastModifiedTime(timed).equals(written), "cache hits do not extend the download lifetime");
+            }
+            require(cache.find(scope, LibraryPreviewCache.Kind.MODEL, () -> {}).isEmpty(),
+                    "the one-hour default expires old data");
+            cache.put(key, LibraryPreviewCache.Kind.MODEL, bytes);
+            Files.setLastModifiedTime(onlyModel(cache), FileTime.fromMillis(System.currentTimeMillis() - 2000));
+            require(cache.find(scope, LibraryPreviewCache.Kind.MODEL, Duration.ofSeconds(1), () -> {}).isEmpty(),
+                    "shorter backend lifetimes apply immediately");
+            require(!cache.put(key, LibraryPreviewCache.Kind.MODEL, bytes, Duration.ZERO), "zero lifetime disables storage");
             Files.writeString(Files.createDirectories(cache.root().resolve("models")).resolve("interrupted.part"), "partial");
             cache.cleanup();
             require(!Files.exists(cache.root().resolve("models/interrupted.part")), "startup cleanup removes incomplete writes");
