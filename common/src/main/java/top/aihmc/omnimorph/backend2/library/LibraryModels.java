@@ -36,7 +36,12 @@ public final class LibraryModels {
         }
     }
 
-    public record SessionInfo(UUID uuid, String name, boolean admin, Long equipmentRevision) {
+    public record SessionInfo(UUID uuid, String name, boolean admin, Long equipmentRevision,
+                              UUID equipmentModelId, Long equipmentModelRevision, boolean showPrivateEquipment) {
+        public SessionInfo(UUID uuid, String name, boolean admin, Long equipmentRevision) {
+            this(uuid, name, admin, equipmentRevision, null, null, false);
+        }
+
         public SessionInfo {
             if (uuid == null || name == null || equipmentRevision == null || equipmentRevision < 0) {
                 throw new IllegalArgumentException("INVALID_LIBRARY_SESSION");

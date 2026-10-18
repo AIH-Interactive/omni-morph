@@ -425,6 +425,14 @@ tasks.register('libraryUploadSmokeTest', JavaExec) {
     args '--library-upload'
 }
 
+tasks.register('libraryEquipmentVisibilitySmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks private appearance persistence, authoritative readback and equipment CAS.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.backend2.library.LibraryEquipmentVisibilitySmokeTest'
+}
+
 tasks.register("ysmBaselineSmokeTest", JavaExec) {
     group = "verification"
     description = "Checks YSM candidate discovery, diagnostics, and strict scan gates using synthetic fixtures."

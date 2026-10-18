@@ -2079,5 +2079,7 @@
   "omni-morph.gui.library.value.blocked": "Blocked",
   "omni-morph.gui.library.value.decorative_parts": "Decorative parts",
   "omni-morph.gui.library.value.deleted": "In recycle bin",
-  "omni-morph.gui.library.value.full_model": "Complete model"
+  "omni-morph.gui.library.value.full_model": "Complete model",
+  "omni-morph.gui.library.visibility_on_enable": "This model is not equipped. This choice will be saved when you download and enable it.",
+  "omni-morph.gui.library.visibility_saved": "Appearance visibility saved."
 }

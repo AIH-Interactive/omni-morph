@@ -9,6 +9,7 @@ import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.backend2.library.LibraryAdminSession;
 import top.aihmc.omnimorph.backend2.library.LibraryAuthorization;
+import top.aihmc.omnimorph.backend2.library.LibraryEquipmentVisibility;
 import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.EntityPreview;
 import top.aihmc.omnimorph.gui.widgets.SearchBar;
@@ -81,6 +82,10 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
     private Button grants;
     private Button authorizationToggle;
     private SwitchButton showPrivate;
+    private LibraryEquipmentVisibility equipmentVisibility;
+    private LibraryEquipmentVisibility.State visibilityState;
+    private LibraryClient.Request<LibraryEquipmentVisibility.State> visibilityRequest;
+    private long visibilityGeneration;
     private LibraryAdminSession admin;
     private LibraryClient.Request<Boolean> adminRestore;
     private int leftWidth;
@@ -201,7 +206,8 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                     }
                 }));
         showPrivate = actions.row(Component.empty(), new LibraryCheckBox(0, 0, actionWidth,
-                FiguraText.of("gui.library.show_private"), FiguraText.of("gui.library.show_private_hint"), ignored -> {}));
+                FiguraText.of("gui.library.show_private"), FiguraText.of("gui.library.show_private_hint"), ignored -> savePrivateVisibility()));
+        showPrivate.setToggled(visibilityState != null && visibilityState.showing());
         authorizationToggle = actions.row(Component.empty(), new Button(0, 0, actionWidth, 20,
                 FiguraText.of("gui.library.authorization"), null, button -> {
                     if (selected != null && selected.allows("patch")) {
@@ -243,6 +249,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
             client = NetworkStuff.libraryClient();
             transfers = new LibraryTransferService(client, FiguraMod.getCacheDirectory());
             equipment = new LibraryEquipmentService(client, transfers);
+            equipmentVisibility = new LibraryEquipmentVisibility(client);
             thumbnails = new LibraryThumbnailService(client, FiguraMod.getCacheDirectory());
             preview = new LibraryPreviewSession(client);
             admin = new LibraryAdminSession(client, FiguraMod.getCacheDirectory());
@@ -409,6 +416,62 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                 preview.select(model.modelId(), transfers);
             }
         }
+        readPrivateVisibility();
+        updateButtons();
+    }
+
+    private void readPrivateVisibility() {
+        long expected = ++visibilityGeneration;
+        if (visibilityRequest != null) {
+            visibilityRequest.cancel();
+        }
+        visibilityRequest = null;
+        visibilityState = null;
+        if (selected == null || !selected.visibility().equals("PRIVATE") || equipmentVisibility == null) {
+            return;
+        }
+        UUID model = selected.modelId();
+        var request = equipmentVisibility.read(model);
+        visibilityRequest = request;
+        request.future().whenComplete((value, failure) -> {
+            if (closed || expected != visibilityGeneration || selected == null || !model.equals(selected.modelId())) {
+                return;
+            }
+            visibilityState = failure == null ? value : null;
+            showPrivate.setToggled(value != null && value.showing());
+            if (failure != null) {
+                actionMessage = error(failure);
+            }
+            updateButtons();
+        });
+    }
+
+    private void savePrivateVisibility() {
+        if (visibilityState == null || selected == null) {
+            return;
+        }
+        if (!visibilityState.equipped()) {
+            actionMessage = FiguraText.of("gui.library.visibility_on_enable");
+            return;
+        }
+        long expected = ++visibilityGeneration;
+        UUID model = selected.modelId();
+        var request = equipmentVisibility.save(visibilityState, showPrivate.isToggled());
+        visibilityRequest = request;
+        request.future().whenComplete((value, failure) -> {
+            if (closed || expected != visibilityGeneration || selected == null || !model.equals(selected.modelId())) {
+                return;
+            }
+            if (failure != null) {
+                actionMessage = error(failure);
+                readPrivateVisibility();
+            } else {
+                visibilityState = value;
+                showPrivate.setToggled(value.showing());
+                actionMessage = FiguraText.of("gui.library.visibility_saved");
+            }
+            updateButtons();
+        });
         updateButtons();
     }
 
@@ -426,6 +489,9 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         operation.future().whenComplete((result, failure) -> {
             if (!closed && operation == equipmentOperation) {
                 actionMessage = failure == null ? FiguraText.of("gui.library.enabled") : error(failure);
+                if (failure == null) {
+                    readPrivateVisibility();
+                }
                 updateButtons();
             }
         });
@@ -482,6 +548,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
             return;
         }
         boolean busy = mutation != null && !mutation.future().isDone()
+                || visibilityRequest != null && !visibilityRequest.future().isDone()
                 || equipmentOperation != null && !equipmentOperation.future().isDone();
         boolean available = !closed && client != null && client.current() && state.equals("ready") && !busy;
         sections.administrator(capabilities != null && capabilities.adminLoginAvailable());
@@ -497,7 +564,10 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                 ? "gui.library.needs_authorization" : "gui.library.value.free"));
         boolean privateModel = selected != null && selected.visibility().equals("PRIVATE");
         showPrivate.setVisible(privateModel);
-        showPrivate.setActive(available && privateModel && selected.moderationStatus().equals("ACTIVE") && selected.allows("equip"));
+        showPrivate.setActive(available && visibilityState != null && privateModel
+                && selected.moderationStatus().equals("ACTIVE") && selected.allows("equip"));
+        showPrivate.setTooltip(FiguraText.of(visibilityState != null && !visibilityState.equipped()
+                ? "gui.library.visibility_on_enable" : "gui.library.show_private_hint"));
         if (!privateModel || !selected.moderationStatus().equals("ACTIVE")) {
             showPrivate.setToggled(false);
         }
@@ -570,6 +640,10 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
     private void closeServices() {
         closed = true;
         generation++;
+        visibilityGeneration++;
+        if (visibilityRequest != null) {
+            visibilityRequest.cancel();
+        }
         if (admin != null) {
             admin.close();
         }
