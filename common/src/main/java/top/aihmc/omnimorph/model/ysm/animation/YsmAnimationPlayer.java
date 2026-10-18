@@ -101,6 +101,7 @@ public class YsmAnimationPlayer {
         public float sampledTime = Float.NaN;
         private boolean retired;
         private String controllerName;
+        private YsmSyncMessage.Playback remoteState;
 
         public PlayingAnimation(YsmAnimationClip clip, boolean isNative) {
             this.clip = clip;
@@ -283,9 +284,14 @@ public class YsmAnimationPlayer {
         activeAnimations.forEach((slot, previous) -> {
             PlayingAnimation next = restored.get(slot);
             if (observerControlled && next != null && previous.clip == next.clip) {
-                next.sounds.addAll(previous.sounds);
-                previous.sounds.clear();
-                runtime.sounds().transferPlayback(previous, next);
+                if (previous.playbackGeneration == 0 && Objects.equals(previous.remoteState, next.remoteState)) {
+                    // A repeated owner sample must not undo the observer's frame-by-frame advancement.
+                    restored.put(slot, previous);
+                } else {
+                    next.sounds.addAll(previous.sounds);
+                    previous.sounds.clear();
+                    runtime.sounds().transferPlayback(previous, next);
+                }
             } else {
                 stopPlaybackSounds(previous);
             }
@@ -320,6 +326,7 @@ public class YsmAnimationPlayer {
             }
             YsmAnimationClip clip = clips.get(value.clip());
             PlayingAnimation playing = new PlayingAnimation(clip, (value.flags() & 1) != 0);
+            playing.remoteState = value;
             playing.controllerName = value.controller() < 0 ? null : normalizeControllerName(controllers.get(value.controller()));
             playing.time = value.time();
             playing.previousTime = value.time();

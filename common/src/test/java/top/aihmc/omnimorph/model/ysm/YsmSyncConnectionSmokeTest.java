@@ -1,7 +1,9 @@
 package top.aihmc.omnimorph.model.ysm;
 
+import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import top.aihmc.omnimorph.backend2.websocket.C2SMessageHandler;
 import top.aihmc.omnimorph.backend2.protocol.YsmProtobuf;
+import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
 import top.aihmc.omnimorph.model.ysm.sync.YsmSyncMessage;
 import top.aihmc.omnimorph.model.ysm.sync.YsmSyncConnection;
 import top.aihmc.omnimorph.model.ysm.sync.YsmSyncPackets;
@@ -108,6 +110,7 @@ final class YsmSyncConnectionSmokeTest {
                 "world exit clears queues/peers without closing borrowed model");
         require(link.sender.rejectedMessages() == 0, "normal owner generation/reconnect transfer has no rejected application messages");
         typedReplay(newSource, replacement);
+        idleContinuity(newSource, replacement);
         try {
             CloudProtocolLifecycleSmokeTest.run(newSource);
         } catch (Exception exception) {
@@ -164,6 +167,60 @@ final class YsmSyncConnectionSmokeTest {
     private static float counter(YsmModelRuntime runtime) {
         Object value = runtime.owner().getMolangContext().variables.getPath("preview_events");
         return value instanceof Number number ? number.floatValue() : 0;
+    }
+
+    private static void idleContinuity(YsmModelRuntime source, YsmModelRuntime observer) {
+        var sender = new YsmSyncConnection();
+        var receiver = new YsmSyncConnection();
+        Object epoch = new Object();
+        receiver.tickTyped(epoch, 300, null, uuid -> observer, message -> false);
+        java.util.function.Predicate<YsmSyncMessage> transfer = message -> receiver.enqueueTyped(epoch, message);
+        // This fixture clip has a time-dependent bone position, making a clock rewind visible in its pose.
+        source.animations().play("gui", true, 1f).time = 0.25f;
+        sender.tickTyped(epoch, 300, source, uuid -> null, transfer);
+        receiver.tickTyped(epoch, 300, null, uuid -> observer, message -> false);
+
+        var state = new LivingEntityRenderState();
+        state.ageInTicks = 300;
+        YsmRenderFrameClock.beginFrame();
+        observer.updateAnimations(state, null);
+        state.ageInTicks = 301;
+        YsmRenderFrameClock.beginFrame();
+        observer.updateAnimations(state, null);
+        float time = observer.animations().getActiveAnimation("gui").time;
+        double pose = observer.captureRenderPose(false).part("root").animPosRaw().x;
+
+        // A stationary owner's render clock may not advance between captures (for example, when culled).
+        source.owner().controls.setValue(source.owner(), "ysm.width_scale", 1.25);
+        sender.tickTyped(epoch, 304, source, uuid -> null, transfer);
+        receiver.tickTyped(epoch, 304, null, uuid -> observer, message -> false);
+        require(observer.animations().getActiveAnimation("gui").time == time,
+                "control-only delta must not rewind the observer's running idle playback");
+        require(Math.abs(observer.widthScale() - 1.25f) < 0.0001,
+                "control-only delta still updates the authoritative control value");
+        sender.tickTyped(epoch, 344, source, uuid -> null, transfer);
+        receiver.tickTyped(epoch, 344, null, uuid -> observer, message -> false);
+        require(observer.animations().getActiveAnimation("gui").time == time,
+                "unchanged periodic snapshot must not rewind the observer's running idle playback");
+        YsmRenderFrameClock.beginFrame();
+        observer.updateAnimations(state, null);
+        require(Math.abs(observer.captureRenderPose(false).part("root").animPosRaw().x - pose) < 0.0001,
+                "synchronization alone must not snap the stationary observer's sampled bone pose");
+
+        source.animations().getActiveAnimation("gui").time = 0.75f;
+        source.animations().getActiveAnimation("gui").speed = 0.5f;
+        sender.tickTyped(epoch, 348, source, uuid -> null, transfer);
+        receiver.tickTyped(epoch, 348, null, uuid -> observer, message -> false);
+        require(observer.animations().getActiveAnimation("gui").time == 0.75f
+                        && observer.animations().getActiveAnimation("gui").speed == 0.5f,
+                "changed owner playback time and speed still reach the observer");
+        source.animations().stop("gui");
+        sender.tickTyped(epoch, 352, source, uuid -> null, transfer);
+        receiver.tickTyped(epoch, 352, null, uuid -> observer, message -> false);
+        require(!observer.animations().isActive("gui"), "owner stop still removes the observer playback");
+        sender.tickTyped(null, 353, null, uuid -> null, message -> false);
+        receiver.tickTyped(null, 353, null, uuid -> null, message -> false);
+        System.out.println("PASS observer idle continuity: control delta, unchanged snapshot and actual sampled bone pose");
     }
 
     private static final class Link {
