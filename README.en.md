@@ -90,7 +90,11 @@ Thanks to these projects and their contributors:
 
 See [CREDITS](CREDITS) and the accompanying license and attribution files for contributors and third-party sources. The upstream introduction is preserved in the [original Figura README](docs/README.Figura.original.md).
 
-This project uses AI tools to assist development. Some artwork was generated with OpenAI GPT Image and subsequently edited.
+## AI-assisted development
+
+OmniMorph uses AI tools to assist with implementation, troubleshooting, testing, and documentation. Maintainers remain responsible for project direction, scope decisions, and releases. Feature completion is assessed against the actual code, build results, tests, and acceptance records.
+
+Some artwork, including the mod icon, was generated with OpenAI GPT Image and subsequently edited.
 
 ## License
 

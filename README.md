@@ -90,7 +90,11 @@ if ($buildExitCode -ne 0) {
 
 贡献者与第三方来源信息见 [CREDITS](CREDITS) 和随附的许可证、署名文件。上游项目介绍保留于 [Figura 原始 README](docs/README.Figura.original.md)。
 
-本项目使用 AI 工具辅助开发；部分美术素材使用 OpenAI GPT Image 生成并经过编辑处理。
+## AI 辅助开发
+
+OmniMorph 使用 AI 工具辅助代码实现、问题排查、测试与文档整理。项目方向、需求取舍和发布由维护者负责；功能是否完成，以实际代码、构建结果、测试和验收记录为依据。
+
+项目部分美术素材（包括模组图标）使用 OpenAI GPT Image 生成，并经过后期编辑处理。
 
 ## 许可证
 
