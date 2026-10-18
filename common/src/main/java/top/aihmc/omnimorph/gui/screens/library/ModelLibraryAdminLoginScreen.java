@@ -56,27 +56,27 @@ public final class ModelLibraryAdminLoginScreen extends LibraryFormScreen {
         int dialogHeight = 168;
         int x = (width - dialogWidth) / 2;
         int y = Math.max(30, (height - dialogHeight) / 2);
-        int sidebar = Math.max(76, dialogWidth / 3);
-        int inputX = x + sidebar + 42;
-        int inputWidth = dialogWidth - sidebar - 50;
+        int labelWidth = 92;
+        int inputX = x + 8 + labelWidth;
+        int inputWidth = dialogWidth - labelWidth - 16;
         addRenderableOnly((gui, mouseX, mouseY, delta) -> {
             UIHelper.blitSliced(gui, x, y, dialogWidth, dialogHeight, UIHelper.OUTLINE_FILL);
-            gui.fill(x + sidebar, y + 1, x + sidebar + 1, y + dialogHeight - 1, 0xff3c4b57);
+            gui.fill(x + 1, y + 26, x + dialogWidth - 1, y + 27, 0xff3c4b57);
             gui.blit(RenderPipelines.GUI_TEXTURED, new FiguraIdentifier("textures/gui/panels.png"),
-                    x + 12, y + 32, 60, 0, 20, 20, 140, 20);
-            UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.admin_login"), x + 8, y + 64,
-                    sidebar - 16, 0xffeeeeee);
-            UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.login_name"), x + sidebar + 6,
-                    y + 36, 32, 0xffbac6d8);
-            UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.password"), x + sidebar + 6,
-                    y + 64, 32, 0xffbac6d8);
+                    x + 6, y + 3, 60, 0, 20, 20, 140, 20);
+            UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.admin_login"), x + 32, y + 9,
+                    dialogWidth - 60, 0xffeeeeee);
+            UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.login_name"), x + 8,
+                    y + 44, labelWidth - 4, 0xffbac6d8);
+            UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.password"), x + 8,
+                    y + 72, labelWidth - 4, 0xffbac6d8);
         });
-        name = addRenderableWidget(new TextField(inputX, y + 30, inputWidth, 20, TextField.HintType.NAME, ignored -> {}));
+        name = addRenderableWidget(new TextField(inputX, y + 38, inputWidth, 20, TextField.HintType.NAME, ignored -> {}));
         name.getField().setMaxLength(64);
         password = addRenderableWidget(new LibraryPasswordField(inputWidth));
         password.setX(inputX);
-        password.setY(y + 58);
-        remember = addRenderableWidget(new LibraryCheckBox(x + sidebar + 8, y + 86, dialogWidth - sidebar - 16,
+        password.setY(y + 66);
+        remember = addRenderableWidget(new LibraryCheckBox(x + 8, y + 94, dialogWidth - 16,
                 FiguraText.of("gui.library.remember"), FiguraText.of("gui.library.remember_unavailable"), ignored -> {}));
         remember.setActive(false);
         permissionCheck = admin.rememberAvailable();
@@ -89,15 +89,15 @@ public final class ModelLibraryAdminLoginScreen extends LibraryFormScreen {
                 }
             }
         });
-        int actionWidth = Math.max(48, (dialogWidth - sidebar - 24) / 2);
+        int actionWidth = Math.max(48, (dialogWidth - 24) / 2);
         login = addRenderableWidget(new Button(x + dialogWidth - actionWidth - 8, y + dialogHeight - 28, actionWidth, 20,
                 FiguraText.of("gui.library.login"), null, ignored -> login()));
-        addRenderableWidget(new Button(x + sidebar + 8, y + dialogHeight - 28, actionWidth, 20,
+        addRenderableWidget(new Button(x + 8, y + dialogHeight - 28, actionWidth, 20,
                 FiguraText.of("gui.cancel"), null, ignored -> onClose()));
         addRenderableWidget(new Button(x + dialogWidth - 20, y + 2, 18, 18,
                 Component.literal("×"), FiguraText.of("gui.cancel"), ignored -> onClose()));
         addRenderableOnly((gui, mouseX, mouseY, delta) -> UIHelper.renderScrollingText(gui, message,
-                inputX - 34, password.getY() + 56, dialogWidth - sidebar - 16, 0xffd3e7e1));
+                x + 8, password.getY() + 56, dialogWidth - 16, 0xffd3e7e1));
     }
 
     private void login() {
