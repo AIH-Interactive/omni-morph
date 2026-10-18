@@ -524,3 +524,13 @@ R31 检查点：卡片按需授权、私有两个独立条件显示已有图片�
 根据用户游戏截图反馈，替换细实线编辑图标：绘制带空心笔身、独立橡皮及尖笔尖的像素铅笔 SVG，使用既有脚本转换为禁用灰色、普通白色、悬浮青色 PNG。玩家入口和管理员表格继续复用 library_edit，不修改按钮逻辑或尺寸。核对贴图后编译、提交推送；游戏内视觉验收 MANUAL/PENDING。
 
 R32 检查点：SVG 和三态 PNG 已替换，贴图目视核对完成；脚本重新生成后仅 library_edit.png 发生变化。Fabric build（含 previewRuntime）前台 Tee PASS，退出 0，diff --check 通过；alpha.2 本地包已更新。游戏内不同缩放下的辨识度验收 MANUAL/PENDING。
+
+### R33 anan 多行署名上传 INVALID_REQUEST
+
+实际 anan-fullmodel-0.0.7-rel.zip 的 authors 数组只有一个条目，条目内包含多行模型/脚本署名。客户端准备和 snapshot 成功；后端预留与传输成功，但提交阶段把 NBT 作者字符串按换行拆成数组，与原始单条多行署名比较，返回 400 INVALID_REQUEST。合成最小用例和真实模型包均已复现。
+
+修复后端提交校验：保留完整 NBT 署名文本，与提交作者数组按 Figura 规则以换行连接后的文本比较，不猜测不可逆的数组边界；目录中原始多行署名分组保持不变。衣柜回收站既有作者列表展示不受影响，内部名称与其他身份校验保留。新增 HTTP 全流程回归，检查原署名可发布且不被截断，伪造署名仍拒绝；客户端已有实包准备测试可选导出编译结果和请求，后端可直接回放真实文件，测试资料不提交。
+
+验证包括修复前合成/真实文件 400、修复后真实文件 200、完整后端测试/构建、客户端准备回归和构建。更新部署需替换后端；游戏内重试发布验收 MANUAL/PENDING。
+
+R33 检查点：合成多行署名与真实 anan 文件在修复前均于 commit 返回 400 INVALID_REQUEST；修复后真实文件全流程成功，详情中的作者数组与原始提交一致，伪造署名仍返回 400。完整 cargo test --locked 103 passed / 0 failed / 1 既有 ignored，cargo build --locked PASS；真实客户端 prepare/snapshot 导出回放、Fabric build（含 previewRuntime）PASS，全部前台 Tee 退出 0。新增 Rust 测试经过 rustfmt，diff --check 通过，测试导出资料清理且不提交。后端修复已推送并确认远端 2191806；客户端仅增加实包回放测试辅助与本计划记录，运行代码无需更新。部署后实际游戏上传验收 MANUAL/PENDING。
