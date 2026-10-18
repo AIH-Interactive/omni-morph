@@ -339,7 +339,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
 
     private Component filterText(String name, String value) {
         Component label = value.isEmpty() ? FiguraText.of("gui.library.all")
-                : name.equals("category") ? Component.literal(value)
+                : name.equals("category") ? top.aihmc.omnimorph.gui.widgets.library.LibraryLabels.category(value)
                 : FiguraText.of("gui.library.value." + value.toLowerCase(java.util.Locale.ROOT));
         return FiguraText.of("gui.library.filter." + name, label);
     }

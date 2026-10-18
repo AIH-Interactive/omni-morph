@@ -18,11 +18,11 @@ public final class ModelLibraryLayoutSmokeTest {
                         "scrolling content and preview leave a separate usable footer");
             }
         }
-        require(ModelLibraryLayout.of(128, 100, 8).columns() == 1, "one column");
-        require(ModelLibraryLayout.of(262, 100, 8).columns() == 2, "two columns");
-        require(ModelLibraryLayout.of(396, 100, 8).columns() == 3, "three columns");
-        require(ModelLibraryLayout.of(798, 100, 8).columns() == 6, "more than three columns");
-        for (int width : new int[]{1, 128, 170, 262, 396, 798, 1200}) {
+        require(ModelLibraryLayout.of(240, 100, 8).columns() == 1, "one horizontal card column");
+        require(ModelLibraryLayout.of(486, 100, 8).columns() == 2, "two columns");
+        require(ModelLibraryLayout.of(732, 100, 8).columns() == 3, "three columns");
+        require(ModelLibraryLayout.of(1470, 100, 8).columns() == 6, "more than three columns");
+        for (int width : new int[]{1, 128, 170, 240, 486, 732, 1470}) {
             for (int height : new int[]{1, 92, 116, 230, 800}) {
                 var layout = ModelLibraryLayout.of(width, height, 8);
                 for (int scroll : new int[]{0, layout.maximumScroll() / 2, layout.maximumScroll()}) {
@@ -43,13 +43,13 @@ public final class ModelLibraryLayoutSmokeTest {
                 }
             }
         }
-        var old = ModelLibraryLayout.of(262, 116, 8);
+        var old = ModelLibraryLayout.of(486, 116, 8);
         int anchor = old.first(244);
-        var resized = ModelLibraryLayout.of(128, 116, 8);
+        var resized = ModelLibraryLayout.of(240, 116, 8);
         require(resized.first(resized.scrollTo(anchor)) == anchor, "resize retains first visible model index");
-        var row = ModelLibraryLayout.of(262, 116, 8);
+        var row = ModelLibraryLayout.of(486, 116, 8);
         require(row.endWithPrefetch(0) == 4, "one prefetch row after a fully visible row");
-        require(row.hit(128, 0, 0) == -1 && row.hit(0, 116, 0) == -1, "gaps are not card hits");
+        require(row.hit(240, 0, 0) == -1 && row.hit(0, 116, 0) == -1, "gaps are not card hits");
         require(ModelLibraryLayout.of(128, 116, 0).hit(0, 0, 0) == -1, "empty grid");
         System.out.println("PASS model library layout: responsive columns, scroll anchors, virtualization and clipped hit tests");
     }

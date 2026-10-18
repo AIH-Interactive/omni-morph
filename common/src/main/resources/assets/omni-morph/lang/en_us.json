@@ -2062,5 +2062,22 @@
   "omni-morph.gui.library.wardrobe_show_hint": "Wardrobe uploads are shown by default. This setting applies only to your current uploaded resource. Blocked models cannot be shown.",
   "omni-morph.gui.library.apply_visibility": "Apply visibility",
   "omni-morph.gui.library.no_wardrobe_equipment": "No uploaded wardrobe model is currently equipped.",
-  "omni-morph.gui.library.blocked_visibility": "This model is blocked. It is visible only to you; use My appeals to request a review."
+  "omni-morph.gui.library.blocked_visibility": "This model is blocked. It is visible only to you; use My appeals to request a review.",
+  "omni-morph.gui.library.card_authors": "Authors: %s",
+  "omni-morph.gui.library.card_uploader": "Uploader: %s",
+  "omni-morph.gui.library.confirm_purge": "Click again to permanently delete %s. This cannot be undone.",
+  "omni-morph.gui.library.confirm_restore": "Click again to restore %s. Existing blocks remain in effect.",
+  "omni-morph.gui.library.preview.closed": "Preview closed",
+  "omni-morph.gui.library.preview.failed": "Preview unavailable",
+  "omni-morph.gui.library.preview.idle": "No preview selected",
+  "omni-morph.gui.library.preview.loading": "Loading preview…",
+  "omni-morph.gui.library.preview.ready": "Preview ready",
+  "omni-morph.gui.library.purge": "Delete permanently",
+  "omni-morph.gui.library.restore": "Restore",
+  "omni-morph.gui.library.select_model": "Select a model to preview",
+  "omni-morph.gui.library.value.active": "Active",
+  "omni-morph.gui.library.value.blocked": "Blocked",
+  "omni-morph.gui.library.value.decorative_parts": "Decorative parts",
+  "omni-morph.gui.library.value.deleted": "In recycle bin",
+  "omni-morph.gui.library.value.full_model": "Complete model"
 }

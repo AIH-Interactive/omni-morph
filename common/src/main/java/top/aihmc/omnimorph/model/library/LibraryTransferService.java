@@ -28,6 +28,7 @@ public final class LibraryTransferService {
     private final LibraryClient client;
     private final LibraryPreviewCache preview;
     private final Path formalDirectory;
+    private final java.util.function.Supplier<String> administrator;
 
     public record Package(LibraryModels.Model model, CompoundTag nbt, String rawHash, String purpose) {}
 
@@ -39,7 +40,13 @@ public final class LibraryTransferService {
     }
 
     public LibraryTransferService(LibraryClient client, Path figuraCacheDirectory) {
+        this(client, figuraCacheDirectory, () -> "");
+    }
+
+    public LibraryTransferService(LibraryClient client, Path figuraCacheDirectory,
+                                  java.util.function.Supplier<String> administrator) {
         this.client = client;
+        this.administrator = administrator;
         preview = new LibraryPreviewCache(figuraCacheDirectory);
         formalDirectory = figuraCacheDirectory.toAbsolutePath().normalize().resolve("model-library-downloads");
     }
@@ -57,6 +64,10 @@ public final class LibraryTransferService {
         long generation = progress.begin(AvatarLoadProgress.Stage.PROFILE);
         var request = client.submit(LibraryClient.Lane.TRANSFER, exchange -> {
             try {
+                String token = administrator.get();
+                if (token != null && !token.isBlank()) {
+                    exchange.adminToken(token);
+                }
                 LibraryModels.Model model = exchange.json("GET", ROOT + "models/" + id, null, LibraryModels.Model.class);
                 String purpose = formal ? "download" : "preview";
                 if (!id.equals(model.modelId()) || !model.allows(purpose) || model.byteLength() < 1

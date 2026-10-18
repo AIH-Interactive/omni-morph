@@ -42,6 +42,18 @@ public final class LibraryRowList extends AbstractList {
     private int selected = -1;
     private List<Component> headings = List.of();
     private int[] weights = new int[0];
+    private boolean cards;
+
+    public void cards() {
+        cards = true;
+        headings = List.of();
+        weights = new int[0];
+        first = -1;
+    }
+
+    private int rowStep() {
+        return cards ? 100 : 24;
+    }
 
     public LibraryRowList(int x, int y, int width, int height) {
         super(x, y, width, height);
@@ -71,19 +83,20 @@ public final class LibraryRowList extends AbstractList {
 
     private void arrange() {
         int headerHeight = headings.isEmpty() ? 0 : 20;
-        int maximum = Math.max(0, rows.size() * 24 - getHeight() + headerHeight + 4);
+        int step = rowStep();
+        int maximum = Math.max(0, rows.size() * step - getHeight() + headerHeight + 4);
         int offset = (int) Math.round(scrollBar.getScrollProgress() * maximum);
         scrollBar.setVisible(maximum > 0);
         scrollBar.setActive(maximum > 0);
         if (maximum > 0) {
-            scrollBar.setScrollRatio(24, maximum);
+            scrollBar.setScrollRatio(step, maximum);
         }
-        int start = offset / 24;
+        int start = offset / step;
         if (first != start) {
             first = start;
             children.clear();
             children.add(scrollBar);
-            int end = Math.min(rows.size(), start + (getHeight() + 23) / 24 + 1);
+            int end = Math.min(rows.size(), start + (getHeight() + step - 1) / step + 1);
             for (int i = start; i < end; i++) {
                 children.add(new RowButton(i));
             }
@@ -92,7 +105,8 @@ public final class LibraryRowList extends AbstractList {
             Button button = (Button) children.get(i);
             button.setX(getX() + 3);
             button.setWidth(getWidth() - 20);
-            button.setY(getY() + headerHeight + 2 + (first + i - 1) * 24 - offset);
+            button.setHeight(step - 2);
+            button.setY(getY() + headerHeight + 2 + (first + i - 1) * step - offset);
         }
     }
 
@@ -167,7 +181,7 @@ public final class LibraryRowList extends AbstractList {
 
         @Override
         protected void renderDefaultTexture(GuiGraphicsExtractor gui, float delta) {
-            if (headings.isEmpty()) {
+            if (headings.isEmpty() && !cards) {
                 super.renderDefaultTexture(gui, delta);
                 return;
             }
@@ -178,6 +192,20 @@ public final class LibraryRowList extends AbstractList {
 
         @Override
         protected void renderText(GuiGraphicsExtractor gui, float delta) {
+            if (cards) {
+                int size = Math.max(1, Math.min(getHeight() - 8, getWidth() / 3));
+                Identifier texture = row.thumbnail() == null ? null : row.thumbnail().get();
+                if (texture != null) {
+                    gui.blit(RenderPipelines.GUI_TEXTURED, texture, getX() + 4, getY() + 4,
+                            0, 0, size, size, size, size);
+                }
+                int textX = getX() + size + 10;
+                for (int line = 0; line < Math.min(5, row.cells().size()); line++) {
+                    UIHelper.renderScrollingText(gui, row.cells().get(line), textX, getY() + 6 + line * 13,
+                            Math.max(1, getWidth() - size - 16), getTextColor() | 0xff000000);
+                }
+                return;
+            }
             if (headings.isEmpty()) {
                 super.renderText(gui, delta);
                 return;
@@ -200,16 +228,18 @@ public final class LibraryRowList extends AbstractList {
         }
 
         private void arrangeActions() {
-            if (actions.isEmpty() || weights.length == 0) {
+            if (actions.isEmpty() || !cards && weights.length == 0) {
                 return;
             }
-            int start = columnX(weights.length - 1, getWidth());
+            int size = Math.max(1, Math.min(getHeight() - 8, getWidth() / 3));
+            int start = cards ? size + 10 : columnX(weights.length - 1, getWidth());
             int span = Math.max(1, (getWidth() - start) / actions.size());
             for (int index = 0; index < actions.size(); index++) {
                 Button button = actions.get(index);
                 button.setX(getX() + start + index * span);
-                button.setY(getY() + 1);
-                button.setWidth(Math.max(1, Math.min(20, span - 2)));
+                button.setY(cards ? getY() + getHeight() - 24 : getY() + 1);
+                int preferredWidth = cards && row.actions().get(index).icon() == null ? span - 2 : 20;
+                button.setWidth(Math.max(1, Math.min(preferredWidth, span - 2)));
             }
         }
 

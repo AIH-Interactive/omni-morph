@@ -87,9 +87,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         uploads = new LibraryUploadService(client);
         preview = new LibraryPreviewSession(client);
         thumbnails = new LibraryThumbnailService(client, FiguraMod.getCacheDirectory());
-        if (!limits.categories().isEmpty()) {
-            draft.category(limits.categories().getFirst());
-        }
+        draft.categories(limits.categories());
     }
 
     @Override
@@ -144,7 +142,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
                 Component.literal(uploaderName)), 24, labelWidth);
         author = body.row(FiguraText.of("gui.library.authors"), readonly(fieldWidth, Component.empty()), 24, labelWidth);
         var categoryField = new LibraryDropdown(0, 0, fieldWidth,
-                () -> limits.categories().stream().<Component>map(Component::literal).toList(),
+                () -> limits.categories().stream().map(top.aihmc.omnimorph.gui.widgets.library.LibraryLabels::category).toList(),
                 () -> category, selected -> {
                     if (!limits.categories().isEmpty()) {
                         category = selected;
@@ -307,7 +305,12 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
                 message = FiguraText.of("gui.library.preparation_error");
             } else if (draft.prepared(sourceGeneration, value)) {
                 prepared = value;
-                preview.selectDraft(value::nbt);
+                preview.selectDraft(value::nbt).thenAccept(ready -> {
+                    if (ready && !closed && requestGeneration == generation) {
+                        draft.defaultCategory(value.metadata().modelType().equals("FIGURA") && preview.showsVanillaPlayer());
+                        category = Math.max(0, limits.categories().indexOf(draft.category()));
+                    }
+                });
                 message = FiguraText.of("gui.library.ready_upload", value.byteLength(), limits.maxUploadBytes());
                 updateSourceFields();
             }
@@ -378,6 +381,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         }
         boolean previous = building;
         building = true;
+        category = Math.max(0, limits.categories().indexOf(draft.category()));
         name.getField().setValue(draft.displayName());
         description.setValue(draft.description());
         authorization.setValue(draft.requiresAuthorization());
@@ -390,7 +394,9 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
     }
 
     private void submit() {
-        if (busy() || prepared == null || closed || imageRequest != null && !imageRequest.future().isDone()) {
+        if (busy() || prepared == null || closed
+                || preview.status().stage() == LibraryPreviewSession.Stage.LOADING
+                || imageRequest != null && !imageRequest.future().isDone()) {
             return;
         }
         try {
@@ -457,6 +463,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         description.setEnabled(editable);
         tagField.setEnabled(editable);
         upload.setActive(!closed && client.current() && !busy() && prepared != null
+                && preview.status().stage() != LibraryPreviewSession.Stage.LOADING
                 && (imageRequest == null || imageRequest.future().isDone())
                 && (operation == null || operation.future().isCompletedExceptionally()));
         upload.setMessage(FiguraText.of(operation != null && operation.future().isCompletedExceptionally()

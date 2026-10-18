@@ -78,6 +78,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 release.countDown();
             }
             Avatar avatar = AvatarManager.getAvatar(entity);
+            require(preview.showsVanillaPlayer(), "Figura parts retain the vanilla player unless the model hides it");
             require(avatar != null && avatar.name.equals("latest") && !avatar.isHost,
                     "preview is a detached, non-host model");
             var control = new top.aihmc.omnimorph.avatar.control.AvatarControlDefinition("preview-toggle",
@@ -109,6 +110,13 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(!lifetime.isCurrent(), "finishing the GUI frame retires the model after its final state releases");
             LibraryPreviewBinding.finishFrame();
 
+            CompoundTag hidden = model("full Figura replacement");
+            var scripts = new CompoundTag();
+            scripts.putByteArray("script", "vanilla_model.PLAYER:setVisible(false)".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            hidden.put("scripts", scripts);
+            require(await(preview.selectDraft(hidden), drain), "actual Figura script initializes in the detached preview");
+            require(!preview.showsVanillaPlayer(), "a Figura model hiding the vanilla player keeps the complete-model default");
+
             if (encrypted != null) {
                 CompoundTag portable = model("encrypted preview");
                 portable.getCompoundOrEmpty("metadata").putString("format", "ysm-native");
@@ -119,6 +127,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 avatar = AvatarManager.getAvatar(entity);
                 require(avatar.getYsmRuntime() != null && avatar.getYsmRuntime().encryptedSource(),
                         "encrypted preview retains the existing runtime/source boundary");
+                require(!preview.showsVanillaPlayer(), "YSM replacement models do not select the decorative default");
             }
             live.set(false);
             preview.tick();
