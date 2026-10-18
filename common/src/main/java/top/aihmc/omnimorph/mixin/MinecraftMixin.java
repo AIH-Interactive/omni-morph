@@ -129,6 +129,7 @@ public abstract class MinecraftMixin {
 
     @Inject(at = @At("RETURN"), method = "clearClientLevel")
     private void clearLevel(Screen screen, CallbackInfo ci) {
+        NetworkStuff.disconnect(null);
         AvatarManager.clearAllAvatars();
         FiguraLuaPrinter.clearPrintQueue();
         NetworkStuff.unsubscribeAll();
