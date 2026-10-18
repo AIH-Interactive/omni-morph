@@ -92,6 +92,7 @@
   "omni-morph.gui.library.counts": "%s 次下载 · %s 个收藏",
   "omni-morph.gui.library.locked": "需要授权",
   "omni-morph.gui.library.card_tooltip": "内部名称：%s\n完整作者：\n%s\n上传者：%s\nUUID：%s\n右键复制上传者 UUID",
+  "omni-morph.gui.library.card_visibility": "公开性：%s",
   "omni-morph.gui.library.image_retry": "预览图不可用，请刷新重试。",
   "omni-morph.gui.library.scale": "请增大窗口或降低 GUI 缩放（最小 300 × 220）。",
   "omni-morph.gui.library.use": "下载并启用",
