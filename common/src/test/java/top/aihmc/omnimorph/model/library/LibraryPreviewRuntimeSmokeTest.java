@@ -60,6 +60,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             testModelFilePicker(client, drain);
             testReportInput(client);
             testWardrobeDefaultPreview(unsafe);
+            testPreviewAppearance(unsafe);
             // Only the entity allocation is replaced: actual Avatar loading, permissions,
             // generation guards, production lookup bindings and resource cleanup all run.
             var entity = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
@@ -106,6 +107,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             }
             Avatar avatar = AvatarManager.getAvatar(entity);
             require(preview.showsVanillaPlayer(), "Figura parts retain the vanilla player unless the model hides it");
+            assertVanillaBody(avatar, true);
             require(avatar != null && avatar.name.equals("latest") && !avatar.isHost,
                     "preview is a detached, non-host model");
             var control = new top.aihmc.omnimorph.avatar.control.AvatarControlDefinition("preview-toggle",
@@ -145,6 +147,15 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(!lifetime.isCurrent(), "finishing the GUI frame retires the model after its final state releases");
             LibraryPreviewBinding.finishFrame();
 
+            CompoundTag visible = model("Figura accessory with vanilla player");
+            var visibleScripts = new CompoundTag();
+            visibleScripts.putByteArray("script", "vanilla_model.PLAYER:setVisible(true)"
+                    .getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            visible.put("scripts", visibleScripts);
+            require(await(preview.selectDraft(visible), drain) && preview.showsVanillaPlayer(),
+                    "an explicit visible Figura player keeps the native body alongside the accessory");
+            assertVanillaBody(AvatarManager.getAvatar(entity), true);
+
             CompoundTag hidden = model("full Figura replacement");
             var scripts = new CompoundTag();
             scripts.putByteArray("script", """
@@ -158,6 +169,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             hidden.put("scripts", scripts);
             require(await(preview.selectDraft(hidden), drain), "actual Figura script initializes in the detached preview");
             require(!preview.showsVanillaPlayer(), "a Figura model hiding the vanilla player keeps the complete-model default");
+            assertVanillaBody(AvatarManager.getAvatar(entity), false);
             Avatar idleAvatar = AvatarManager.getAvatar(entity);
             int previousTicks = entity.tickCount;
             preview.tick();
@@ -234,6 +246,69 @@ public final class LibraryPreviewRuntimeSmokeTest {
         } finally {
             LibraryPreviewBinding.finishFrame();
             drain.run();
+        }
+    }
+
+    private static void assertVanillaBody(Avatar avatar, boolean visible) {
+        var mesh = net.minecraft.client.model.player.PlayerModel.createMesh(
+                net.minecraft.client.model.geom.builders.CubeDeformation.NONE, false);
+        var root = net.minecraft.client.model.geom.builders.LayerDefinition.create(mesh, 64, 64).bakeRoot();
+        var model = new net.minecraft.client.model.player.PlayerModel(root, false);
+        if (avatar.luaRuntime != null) {
+            avatar.luaRuntime.vanilla_model.PLAYER.save(model);
+            avatar.luaRuntime.vanilla_model.PLAYER.posTransform(model);
+        }
+        for (var part : java.util.List.of(model.head, model.body, model.leftArm, model.rightArm,
+                model.leftLeg, model.rightLeg, model.hat, model.jacket, model.leftSleeve,
+                model.rightSleeve, model.leftPants, model.rightPants)) {
+            require(part.visible == visible, "native player body and skin layers follow the Figura script's visibility");
+        }
+        if (avatar.luaRuntime != null) {
+            avatar.luaRuntime.vanilla_model.PLAYER.restore(model);
+        }
+    }
+
+    private static void testPreviewAppearance(Unsafe unsafe) throws Exception {
+        var source = (AppearancePlayer) unsafe.allocateInstance(AppearancePlayer.class);
+        source.skin = net.minecraft.client.resources.DefaultPlayerSkin.getDefaultSkin();
+        source.layers = java.util.EnumSet.allOf(net.minecraft.world.entity.player.PlayerModelPart.class);
+        var reference = new java.util.concurrent.atomic.AtomicReference<AppearancePlayer>(source);
+        var player = (LibraryPreviewPlayer) unsafe.allocateInstance(LibraryPreviewPlayer.class);
+        player.setUUID(UUID.randomUUID());
+        field(LibraryPreviewPlayer.class, "appearancePlayer").set(player,
+                (java.util.function.Supplier<AppearancePlayer>) reference::get);
+        require(player.getSkin() == source.skin, "isolated player uses the current player's native loaded skin");
+        for (var layer : net.minecraft.world.entity.player.PlayerModelPart.values()) {
+            require(player.isModelPartShown(layer), "isolated player includes enabled skin layers");
+        }
+        source.layers.remove(net.minecraft.world.entity.player.PlayerModelPart.HAT);
+        var previous = source.skin;
+        source.skin = new net.minecraft.world.entity.player.PlayerSkin(previous.body(), previous.cape(), previous.elytra(),
+                net.minecraft.world.entity.player.PlayerModelType.SLIM, previous.secure());
+        require(player.getSkin() == source.skin && !player.isModelPartShown(net.minecraft.world.entity.player.PlayerModelPart.HAT),
+                "later skin loading, slim arms and skin-layer preference changes propagate to the preview");
+        reference.set(null);
+        require(player.getSkin() != null && player.isModelPartShown(net.minecraft.world.entity.player.PlayerModelPart.JACKET),
+                "missing source player keeps a native default skin and visible skin layers");
+        System.out.println("PASS isolated player appearance: native skin, live loading/model type, skin layers and fallback");
+    }
+
+    private static final class AppearancePlayer extends RemotePlayer {
+        private net.minecraft.world.entity.player.PlayerSkin skin;
+        private java.util.EnumSet<net.minecraft.world.entity.player.PlayerModelPart> layers;
+
+        private AppearancePlayer() {
+            super(null, new GameProfile(UUID.randomUUID(), "appearance"));
+        }
+
+        @Override
+        public net.minecraft.world.entity.player.PlayerSkin getSkin() {
+            return skin;
+        }
+
+        @Override
+        public boolean isModelPartShown(net.minecraft.world.entity.player.PlayerModelPart part) {
+            return layers.contains(part);
         }
     }
 
