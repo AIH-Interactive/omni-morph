@@ -1929,10 +1929,34 @@ public class YsmAnimationPlayer {
         if (normalized.startsWith("animation."))
             normalized = normalized.substring("animation.".length());
         int colon = normalized.indexOf(':');
-        if (colon >= 0 && colon + 1 < normalized.length())
-            normalized = normalized.substring(colon + 1);
-        normalized = stripReferenceSuffix(normalized);
+        if (colon >= 0 && colon + 1 < normalized.length()) {
+            // A hand predicate's colon separates its item condition, not a namespace.
+            // Stripping it aliases hold/use clips to the same item name (e.g. bow).
+            if (!isConditionalHandName(normalized)) {
+                normalized = normalized.substring(colon + 1);
+            }
+        }
+        if (!isConditionalHandName(normalized)) {
+            normalized = stripReferenceSuffix(normalized);
+        }
         return normalized.toLowerCase(Locale.US);
+    }
+
+    private boolean isConditionalHandName(String name) {
+        int condition = name.length();
+        for (char separator : new char[]{':', '$', '#'}) {
+            int index = name.indexOf(separator);
+            if (index >= 0) {
+                condition = Math.min(condition, index);
+            }
+        }
+        if (condition == name.length()) {
+            return false;
+        }
+        return switch (simpleName(name.substring(0, condition))) {
+            case "hold_mainhand", "hold_offhand", "use_mainhand", "use_offhand", "swing", "swing_offhand" -> true;
+            default -> false;
+        };
     }
 
     private String literalAnimationName(String name) {
@@ -1941,7 +1965,7 @@ public class YsmAnimationPlayer {
         String normalized = name;
         if (normalized.startsWith("animation."))
             normalized = normalized.substring("animation.".length());
-        return stripReferenceSuffix(normalized).toLowerCase(Locale.US);
+        return (isConditionalHandName(normalized) ? normalized : stripReferenceSuffix(normalized)).toLowerCase(Locale.US);
     }
 
     private String resolveAnimationName(String name) {

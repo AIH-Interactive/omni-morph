@@ -906,6 +906,14 @@ tasks.register("ysmHeldItemGeometrySmokeTest", JavaExec) {
     args "--held-items", rootProject.file("refs/avatars").path
 }
 
+tasks.register("ysmHandAnimationSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks held and active-use YSM hand animation selection."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmHandAnimationSmokeTest"
+}
+
 
 tasks.register('cloudAdapterSmokeTest', JavaExec) {
     group = 'verification'
