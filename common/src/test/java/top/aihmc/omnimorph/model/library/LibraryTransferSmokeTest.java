@@ -81,13 +81,8 @@ public final class LibraryTransferSmokeTest {
                 require(server.wardrobeFiles.get() == 2 && server.completed.get() == 1,
                         "reopened wardrobe preview revalidates with HEAD and reuses original cached bytes");
                 require(server.wardrobeHeads.get() == 3, "every wardrobe cache hit still performs a live source check");
-                await(wardrobe.recycled(VIEWER, TRANSFER).future(), callbacks);
-                await(wardrobe.recycled(VIEWER, TRANSFER).future(), callbacks);
-                require(server.wardrobeHeads.get() == 5 && server.wardrobeFiles.get() == 3,
-                        "recycle previews use a separate, owner-bound cache and revalidate every reuse");
                 server.staleWardrobe.set(true);
                 failure(wardrobe.current(VIEWER, "self outfit/中文", 3, 9).future(), callbacks, "PREVIEW_UNAVAILABLE");
-                failure(wardrobe.recycled(VIEWER, TRANSFER).future(), callbacks, "PREVIEW_UNAVAILABLE");
                 server.staleWardrobe.set(false);
                 server.cacheSeconds.set(0);
                 server.corrupt.set(true);
@@ -191,15 +186,13 @@ public final class LibraryTransferSmokeTest {
                         wardrobeFiles.incrementAndGet();
                     }
                     boolean current = path.equals("/api/library/v1/admin/wardrobe-preview/CURRENT/" + VIEWER);
-                    boolean recycled = path.equals("/api/library/v1/admin/wardrobe-preview/RECYCLE/" + TRANSFER)
-                            && ("owner=" + VIEWER).equals(request.getRequestURI().getRawQuery());
                     String expectedQuery = "asset_id=" + java.net.URLEncoder.encode("self outfit/中文", StandardCharsets.UTF_8)
                             + "&asset_revision=3&equipment_revision=9";
                     boolean valid = (head || request.getRequestMethod().equals("GET"))
                             && "synthetic-admin".equals(request.getRequestHeaders().getFirst("x-omnimorph-admin"))
                             && (current && expectedQuery.equals(request.getRequestURI().getRawQuery())
-                                || path.equals("/api/library/v1/admin/wardrobe-preview/BLOCK/" + TRANSFER) || recycled);
-                    if (!valid || (current || recycled) && staleWardrobe.get()) {
+                                || path.equals("/api/library/v1/admin/wardrobe-preview/BLOCK/" + TRANSFER));
+                    if (!valid || current && staleWardrobe.get()) {
                         status = valid ? 409 : 403;
                         body = "{\"code\":\"PREVIEW_UNAVAILABLE\"}";
                     } else {

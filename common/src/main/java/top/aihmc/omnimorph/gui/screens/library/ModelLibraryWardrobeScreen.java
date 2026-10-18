@@ -10,7 +10,6 @@ import top.aihmc.omnimorph.gui.widgets.SearchBar;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryRowList;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryManagementPreview;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
-import top.aihmc.omnimorph.gui.widgets.library.LibraryIconButton;
 import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 
@@ -22,8 +21,7 @@ import java.util.UUID;
 
 /** Targets an immutable wardrobe resource and the selected player's equipment revision. */
 public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
-    public record Item(UUID owner, String name, String assetId, long assetRevision, long equipmentRevision, int modelType,
-                       UUID operationId, long deletedAt, boolean canRestore) {
+    public record Item(UUID owner, String name, String assetId, long assetRevision, long equipmentRevision, int modelType) {
         public Item {
             if (owner == null || name == null || assetId == null || assetRevision < 1 || equipmentRevision < 1
                     || modelType < 1 || modelType > 3) {
@@ -48,7 +46,6 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
     private LibraryRowList rows;
     private Button reset;
     private Button block;
-    private Button restore;
     private Button previous;
     private Button next;
     private Page results;
@@ -62,7 +59,6 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
     private long searchChanged;
     private boolean building;
     private boolean closed;
-    private boolean recycle;
     private Component message = Component.empty();
 
     public ModelLibraryWardrobeScreen(Screen parent, LibraryClient client, LibraryAdminSession admin) {
@@ -96,28 +92,12 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
         search.getField().setValue(query);
         building = false;
         rows = addRenderableWidget(new LibraryRowList(8, 76, area, Math.max(24, height - 152)));
-        if (recycle) {
-            rows.columns(List.of(FiguraText.of("gui.library.player_name"), Component.literal("UUID"),
-                    FiguraText.of("gui.library.source"), FiguraText.of("gui.library.actions")), 4, 7, 7, 2);
-        } else {
-            rows.columns(List.of(FiguraText.of("gui.library.player_name"), Component.literal("UUID"),
-                    FiguraText.of("gui.library.source")), 4, 7, 7);
-        }
+        rows.columns(List.of(FiguraText.of("gui.library.player_name"), Component.literal("UUID"),
+                FiguraText.of("gui.library.source")), 4, 7, 7);
         reset = addRenderableWidget(new Button(8, height - 72, (area - 4) / 2, 20,
                 FiguraText.of("gui.library.wardrobe_reset"), null, ignored -> change("reset")));
         block = addRenderableWidget(new Button(12 + (area - 4) / 2, height - 72, (area - 4) / 2, 20,
                 FiguraText.of("gui.library.block"), null, ignored -> change("block")));
-        restore = new LibraryIconButton("library_restore", 1, () -> 0, FiguraText.of("gui.library.restore"),
-                FiguraText.of("gui.library.wardrobe_restore_hint"), ignored -> change("restore"));
-        restore.setX(8);
-        restore.setY(height - 72);
-        restore.setWidth((area - 4) / 2);
-        restore.setHeight(20);
-        addRenderableWidget(restore);
-        reset.setVisible(!recycle);
-        block.setVisible(!recycle);
-        restore.setVisible(recycle);
-        restore.setActive(false);
         previous = addRenderableWidget(new Button(8, height - 48, 36, 20, Component.literal("<"), null,
                 ignored -> {
                     page = Math.max(1, page - 1);
@@ -132,15 +112,6 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
                 FiguraText.of("gui.library.refresh"), null, ignored -> refresh()));
         addRenderableWidget(new Button(8 + area - 88, height - 24, 88, 20,
                 FiguraText.of("gui.done"), null, ignored -> onClose()));
-        addRenderableWidget(new Button(8, height - 24, Math.max(40, area - 96), 20,
-                FiguraText.of(recycle ? "gui.library.leave_recycle" : "gui.library.recycle_bin"), null, ignored -> {
-                    if (!busy()) {
-                        recycle = !recycle;
-                        query = "";
-                        page = 1;
-                        rebuildWidgets();
-                    }
-                }));
         addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui, message, 8, 54, area, 0xffd3e7e1));
         refresh();
     }
@@ -163,7 +134,7 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
         armed = null;
         results = null;
         rows.rows(List.of());
-        String path = "/api/library/v1/admin/" + (recycle ? "wardrobe-recycle" : "wardrobe") + "?page=" + page + "&q="
+        String path = "/api/library/v1/admin/wardrobe?page=" + page + "&q="
                 + URLEncoder.encode(query, StandardCharsets.UTF_8);
         var request = client.submit(LibraryClient.Lane.CONTROL, exchange -> {
             exchange.adminToken(admin.token());
@@ -180,58 +151,28 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
             }
             results = value;
             message = FiguraText.of("gui.library.page", value.page(), Math.max(1, (value.total() + 7) / 8), value.total());
-            rows.rows(value.items().stream().map(this::row).toList());
+            rows.rows(value.items().stream().map(item -> LibraryRowList.Row.table(
+                    List.of(Component.literal(item.name()), Component.literal(item.owner().toString()),
+                            Component.literal(item.assetId() + " #" + item.assetRevision())),
+                    Component.literal(item.owner() + "\n" + item.assetId() + " #" + item.assetRevision()
+                            + "\n" + item.equipmentRevision()), true, () -> {
+                        selected = item;
+                        preview.wardrobe(item.owner(), item.assetId(), item.assetRevision(), item.equipmentRevision(),
+                                Component.literal(item.name()));
+                        armed = null;
+                        operation = null;
+                        message = Component.literal(item.name() + "  " + item.owner());
+                    })).toList());
         });
-    }
-
-    private LibraryRowList.Row row(Item item) {
-        var cells = new java.util.ArrayList<Component>(List.of(Component.literal(item.name()),
-                Component.literal(item.owner().toString()), Component.literal(item.assetId() + " #" + item.assetRevision())));
-        var actions = new java.util.ArrayList<LibraryRowList.Action>();
-        if (recycle) {
-            cells.add(Component.empty());
-            actions.add(new LibraryRowList.Action(FiguraText.of("gui.library.restore"),
-                    FiguraText.of(item.canRestore() ? "gui.library.wardrobe_restore_hint" : "gui.library.restore_conflict"),
-                    item.canRestore() && item.operationId() != null, () -> {
-                        if (selected != item) {
-                            select(item);
-                        }
-                        change("restore");
-                    }, LibraryRowList.Icon.RESTORE));
-        }
-        return new LibraryRowList.Row(Component.empty(), Component.literal(item.owner() + "\n" + item.assetId()
-                + " #" + item.assetRevision() + "\n" + item.equipmentRevision()), true, () -> select(item),
-                cells, null, actions);
-    }
-
-    private void select(Item item) {
-        if (busy() || selected == item) {
-            return;
-        }
-        selected = item;
-        if (recycle && item.operationId() != null) {
-            preview.recycledWardrobe(item.owner(), item.operationId(), Component.literal(item.name()));
-        } else if (!recycle) {
-            preview.wardrobe(item.owner(), item.assetId(), item.assetRevision(), item.equipmentRevision(),
-                    Component.literal(item.name()));
-        }
-        armed = null;
-        operation = null;
-        message = recycle && !item.canRestore() ? FiguraText.of("gui.library.restore_conflict")
-                : Component.literal(item.name() + "  " + item.owner());
     }
 
     private void change(String action) {
         if (selected == null || busy() || !admin.active()) {
             return;
         }
-        if (recycle != action.equals("restore") || recycle && (!selected.canRestore() || selected.operationId() == null)) {
-            return;
-        }
         if (!action.equals(armed)) {
             armed = action;
-            message = recycle ? FiguraText.of("gui.library.confirm_restore", selected.name() + " [" + selected.owner() + "]")
-                    : FiguraText.of("gui.library.confirm_wardrobe");
+            message = FiguraText.of("gui.library.confirm_wardrobe");
             return;
         }
         if (operation == null || !action.equals(operationAction)) {
@@ -243,11 +184,6 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
         long expected = ++generation;
         var request = client.submit(LibraryClient.Lane.CONTROL, exchange -> {
             exchange.adminToken(admin.token());
-            if (recycle) {
-                return exchange.json("POST", "/api/library/v1/admin/wardrobe-recycle/" + target.owner() + "/"
-                                + target.operationId() + "/restore",
-                        Map.of("operation_id", operationId.toString(), "expected_equipment_revision", target.equipmentRevision()), Map.class);
-            }
             return exchange.json("POST", "/api/library/v1/admin/wardrobe/" + target.owner() + "/" + action,
                     Map.of("operation_id", operationId.toString(), "expected_equipment_revision", target.equipmentRevision(),
                             "asset_id", target.assetId(), "asset_revision", target.assetRevision()), Map.class);
@@ -258,13 +194,7 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
                 if (failure != null) {
                     failed(failure);
                 } else {
-                    if (action.equals("restore")) {
-                        recycle = false;
-                        page = 1;
-                        rebuildWidgets();
-                    } else {
-                        refresh();
-                    }
+                    refresh();
                 }
             }
         });
@@ -275,9 +205,7 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
             admin.invalidate();
             onClose();
         }
-        message = recycle && failure instanceof LibraryClient.Failure typed && typed.status == 409
-                ? FiguraText.of("gui.library.restore_conflict")
-                : FiguraText.of("gui.library.failure", failure instanceof LibraryClient.Failure typed ? typed.code : "LIBRARY_UNAVAILABLE");
+        message = FiguraText.of("gui.library.failure", failure instanceof LibraryClient.Failure typed ? typed.code : "LIBRARY_UNAVAILABLE");
     }
 
     @Override
@@ -297,8 +225,6 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
         }
         reset.setActive(!closed && !busy() && selected != null);
         block.setActive(!closed && !busy() && selected != null);
-        restore.setActive(!closed && !busy() && recycle && selected != null && selected.canRestore()
-                && selected.operationId() != null);
         previous.setActive(!busy() && page > 1);
         next.setActive(!busy() && results != null && results.hasNext());
     }

@@ -43,10 +43,6 @@ public final class LibraryWardrobePreviewService {
         return fetch(ROOT + "BLOCK/" + operation, operation, 1, 1);
     }
 
-    public LibraryClient.Request<CompoundTag> recycled(UUID owner, UUID operation) {
-        return fetch(ROOT + "RECYCLE/" + operation + "?owner=" + owner, operation, 1, 1);
-    }
-
     private LibraryClient.Request<CompoundTag> fetch(String path, UUID source, long revision, long policyRevision) {
         return client.submit(LibraryClient.Lane.TRANSFER, exchange -> {
             String token = administrator.get();

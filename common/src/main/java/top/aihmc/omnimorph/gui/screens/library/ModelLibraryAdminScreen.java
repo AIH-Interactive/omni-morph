@@ -14,7 +14,6 @@ import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryLabels;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryRowList;
 import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionTabs;
-import top.aihmc.omnimorph.gui.widgets.library.LibraryIconButton;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
 import top.aihmc.omnimorph.model.library.LibraryTransferService;
@@ -46,7 +45,6 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
     private Button grants;
     private Button block;
     private Button delete;
-    private Button restore;
     private Button previous;
     private Button next;
     private String query = "";
@@ -54,7 +52,6 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
     private int type;
     private int status;
     private int page = 1;
-    private UUID focusAfterRefresh;
     private long generation;
     private long searchChanged;
     private String armed;
@@ -155,13 +152,6 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
                 FiguraText.of("gui.library.block"), null, ignored -> moderate(false)));
         delete = addRenderableWidget(new Button(contentX + 8 + column * 2, height - 72, column, 20,
                 FiguraText.of("gui.library.delete"), null, ignored -> moderate(true)));
-        restore = new LibraryIconButton("library_restore", 1, () -> 0, FiguraText.of("gui.library.restore"),
-                FiguraText.of("gui.library.confirm_restore", ""), ignored -> moderate(false));
-        restore.setX(contentX + 4 + column);
-        restore.setY(height - 72);
-        restore.setWidth(column);
-        restore.setHeight(20);
-        addRenderableWidget(restore);
         previous = addRenderableWidget(new Button(contentX, height - 48, 36, 20, Component.literal("<"), null,
                 ignored -> {
                     page = Math.max(1, page - 1);
@@ -194,23 +184,12 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
                         minecraft.setScreen(new ModelLibraryWardrobeScreen(this, client, admin));
                     }
                 }));
-        int toolbarWidth = Math.min(88, (area - 8) / 3);
-        addRenderableWidget(new Button(contentX, 76, toolbarWidth, 16,
+        addRenderableWidget(new Button(contentX, 76, 88, 16,
                 FiguraText.of("gui.library.logout"), null, ignored -> logout()));
-        addRenderableWidget(new Button(contentX + toolbarWidth + 4, 76, toolbarWidth, 16,
-                FiguraText.of(STATUSES.get(status).equals("DELETED") ? "gui.library.leave_recycle" : "gui.library.recycle_bin"),
-                null, ignored -> {
-                    status = STATUSES.get(status).equals("DELETED") ? 0 : STATUSES.indexOf("DELETED");
-                    query = "";
-                    category = 0;
-                    type = 0;
-                    page = 1;
-                    rebuildWidgets();
-                }));
         addRenderableWidget(new Button(contentX + 4 + (area - 4) / 2, height - 24, (area - 4) / 2, 20,
                 FiguraText.of("gui.done"), null, ignored -> onClose()));
-        addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui, message,
-                contentX + toolbarWidth * 2 + 8, 78, area - toolbarWidth * 2 - 8, 0xffd3e7e1));
+        addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui, message, contentX + 92, 78,
+                Math.max(20, area - 92), 0xffd3e7e1));
         building = false;
         refresh();
         updateButtons();
@@ -273,16 +252,6 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
             results = value;
             message = FiguraText.of("gui.library.page", value.page(), Math.max(1, (value.total() + 7) / 8), value.total());
             rows.rows(value.items().stream().map(this::tableRow).toList());
-            if (focusAfterRefresh != null) {
-                UUID target = focusAfterRefresh;
-                focusAfterRefresh = null;
-                var found = value.items().stream().filter(model -> model.modelId().equals(target)).findFirst();
-                if (found.isPresent()) {
-                    selectModel(found.get());
-                } else {
-                    inspectReported(target);
-                }
-            }
         });
     }
 
@@ -307,9 +276,9 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
                     true, () -> moderate(true), LibraryRowList.Icon.DELETE));
         } else {
             actions.add(new LibraryRowList.Action(FiguraText.of("gui.library.restore"), FiguraText.of("gui.library.restore"),
-                    model.allows("restore"), () -> moderate(false), LibraryRowList.Icon.RESTORE));
+                    model.allows("restore"), () -> moderate(false)));
             actions.add(new LibraryRowList.Action(FiguraText.of("gui.library.purge"), FiguraText.of("gui.library.purge"),
-                    model.allows("purge"), () -> moderate(true), LibraryRowList.Icon.DELETE));
+                    model.allows("purge"), () -> moderate(true)));
         }
         return new LibraryRowList.Row(Component.empty(),
                 Component.literal(model.modelId() + "\n" + model.uploader().uuid()), true,
@@ -384,15 +353,7 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
                     failed(failure);
                 } else {
                     retry = null;
-                    if (input.method().equals("DELETE") && input.suffix().isEmpty()) {
-                        openRecycle(input.model());
-                    } else if (input.suffix().equals("/restore")) {
-                        status = 0;
-                        focusAfterRefresh = input.model();
-                        rebuildWidgets();
-                    } else {
-                        refresh();
-                    }
+                    refresh();
                 }
             }
         });
@@ -420,18 +381,6 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
         });
     }
 
-    public void openRecycle(UUID model) {
-        status = STATUSES.indexOf("DELETED");
-        query = "";
-        category = 0;
-        type = 0;
-        page = 1;
-        focusAfterRefresh = model;
-        if (rows != null) {
-            rebuildWidgets();
-        }
-    }
-
     private void failed(Throwable failure) {
         if (failure instanceof LibraryClient.Failure typed && (typed.status == 401 || typed.status == 403)) {
             admin.invalidate();
@@ -449,9 +398,6 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
         grants.setVisible(LibraryAuthorization.available(selected));
         grants.setActive(available && LibraryAuthorization.available(selected));
         boolean recycled = selected != null && selected.moderationStatus().equals("DELETED");
-        block.setVisible(!recycled);
-        restore.setVisible(recycled);
-        restore.setActive(available && selected.allows("restore"));
         block.setActive(available && selected.allows(recycled ? "restore" : "moderate"));
         block.setMessage(FiguraText.of(recycled ? "gui.library.restore"
                 : selected != null && selected.moderationStatus().equals("BLOCKED") ? "gui.library.unblock" : "gui.library.block"));
