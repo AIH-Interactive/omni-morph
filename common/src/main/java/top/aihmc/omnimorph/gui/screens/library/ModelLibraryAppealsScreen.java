@@ -7,8 +7,9 @@ import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.gui.screens.AbstractPanelScreen;
 import top.aihmc.omnimorph.gui.screens.ModelLibraryScreen;
 import top.aihmc.omnimorph.gui.widgets.Button;
-import top.aihmc.omnimorph.gui.widgets.TextField;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryRowList;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryMultilineField;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
 import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 
@@ -64,7 +65,7 @@ public final class ModelLibraryAppealsScreen extends LibraryFormScreen {
     private final LibraryAdminSession admin;
     private LibraryClient.Request<?> pending;
     private LibraryRowList rows;
-    private TextField text;
+    private LibraryMultilineField text;
     private Button submit;
     private Button unblock;
     private Button previous;
@@ -98,7 +99,8 @@ public final class ModelLibraryAppealsScreen extends LibraryFormScreen {
         if (!initForm()) {
             return;
         }
-        int area = Math.max(80, width - 16);
+        var layout = new LibraryWorkspaceLayout(width, height);
+        int area = layout.contentWidth();
         addRenderableWidget(new Button(8, 28, (area - 4) / 2, 20, modeText(), null, button -> {
             mode = admin == null ? (mode + 1) % 3 : mode == 1 ? 2 : 1;
             page = 1;
@@ -107,28 +109,35 @@ public final class ModelLibraryAppealsScreen extends LibraryFormScreen {
         }));
         addRenderableWidget(new Button(12 + (area - 4) / 2, 28, (area - 4) / 2, 20,
                 FiguraText.of("gui.library.refresh"), null, ignored -> refresh()));
-        rows = addRenderableWidget(new LibraryRowList(8, 76, area, Math.max(24, height - 176)));
-        text = addRenderableWidget(new TextField(8, height - 96, area, 20, TextField.HintType.ANY, value -> input = value));
-        text.getField().setMaxLength(512);
-        text.getField().setValue(input);
-        submit = addRenderableWidget(new Button(8, height - 72, (area - 4) / 2, 20,
+        rows = addRenderableWidget(new LibraryRowList(8, 56, area, Math.max(24, height - 88)));
+        int editorHeight = Math.max(48, Math.min(120, height - 160));
+        text = addRenderableWidget(new LibraryMultilineField(layout.previewWidth(), editorHeight, input, value -> input = value));
+        text.setX(layout.previewX());
+        text.setY(52);
+        text.setCharacterLimit(512);
+        submit = addRenderableWidget(new Button(layout.previewX(), height - 52, layout.previewWidth(), 20,
                 FiguraText.of(admin == null ? "gui.library.submit_appeal" : "gui.library.resolve_appeal"), null, ignored -> submit(false)));
-        unblock = addRenderableWidget(new Button(12 + (area - 4) / 2, height - 72, (area - 4) / 2, 20,
+        unblock = addRenderableWidget(new Button(layout.previewX(), height - 76, layout.previewWidth(), 20,
                 FiguraText.of("gui.library.appeal_unblock"), FiguraText.of("gui.library.appeal_unblock_hint"), ignored -> submit(true)));
         unblock.setVisible(admin != null);
-        previous = addRenderableWidget(new Button(8, height - 48, 60, 20, Component.literal("<"), null,
+        previous = addRenderableWidget(new Button(8, height - 28, 28, 20, Component.literal("<"), null,
                 ignored -> {
                     page = Math.max(1, page - 1);
                     refresh();
                 }));
-        next = addRenderableWidget(new Button(72, height - 48, 60, 20, Component.literal(">"), null,
+        next = addRenderableWidget(new Button(40, height - 28, 28, 20, Component.literal(">"), null,
                 ignored -> {
                     page++;
                     refresh();
                 }));
-        addRenderableWidget(new Button(width - 96, height - 24, 88, 20,
+        addRenderableWidget(new Button(layout.previewX(), height - 28, layout.previewWidth(), 20,
                 FiguraText.of("gui.done"), null, ignored -> onClose()));
-        addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui, message, 8, 54, area, 0xffd3e7e1));
+        addRenderableOnly((gui, x, y, delta) -> {
+            UIHelper.renderScrollingText(gui, FiguraText.of(admin == null ? "gui.library.submit_appeal" : "gui.library.resolve_appeal"),
+                    layout.previewX(), 32, layout.previewWidth(), 0xffeeeeee);
+            UIHelper.renderScrollingText(gui, message, layout.previewX(), 60 + editorHeight,
+                    layout.previewWidth(), 0xffd3e7e1);
+        });
         refresh();
     }
 
@@ -159,6 +168,12 @@ public final class ModelLibraryAppealsScreen extends LibraryFormScreen {
         armed = null;
         hasNext = false;
         rows.rows(List.of());
+        if (mode == 0) {
+            rows.columns(List.of(FiguraText.of("gui.library.display_name"), FiguraText.of("gui.library.source")), 3, 1);
+        } else {
+            rows.columns(List.of(FiguraText.of("gui.library.source"), FiguraText.of("gui.library.report_reason"),
+                    FiguraText.of("gui.library.response")), 2, 5, 5);
+        }
         int requestedMode = mode;
         int requestedPage = page;
         var request = client.submit(LibraryClient.Lane.CONTROL, exchange -> {
@@ -167,8 +182,9 @@ public final class ModelLibraryAppealsScreen extends LibraryFormScreen {
             }
             if (requestedMode == 0) {
                 var value = exchange.json("GET", "/api/library/v1/appeal-targets?page=" + requestedPage, null, Targets.class);
-                return new View(value.items().stream().map(item -> new LibraryRowList.Row(
-                        Component.literal(item.name() + "  " + item.targetKind()), Component.literal(item.targetId().toString()), true,
+                return new View(value.items().stream().map(item -> LibraryRowList.Row.table(
+                        List.of(Component.literal(item.name()), Component.literal(item.targetKind())),
+                        Component.literal(item.targetId().toString()), true,
                         () -> {
                             if (!busy()) {
                                 target = item;
@@ -181,8 +197,8 @@ public final class ModelLibraryAppealsScreen extends LibraryFormScreen {
             }
             String root = admin == null ? "/api/library/v1/appeals" : "/api/library/v1/admin/appeals";
             var value = exchange.json("GET", root + "?page=" + requestedPage + "&resolved=" + (requestedMode == 2), null, Appeals.class);
-            return new View(value.items().stream().map(item -> new LibraryRowList.Row(
-                    Component.literal(item.targetKind() + "  " + item.reason()),
+            return new View(value.items().stream().map(item -> LibraryRowList.Row.table(
+                    List.of(Component.literal(item.targetKind()), Component.literal(item.reason()), Component.literal(item.response())),
                     Component.literal(item.uploaderUuid() + "\n" + item.targetId() + "\n" + item.reason() + "\n" + item.response()), true,
                     () -> {
                         if (!busy()) {
@@ -247,7 +263,7 @@ public final class ModelLibraryAppealsScreen extends LibraryFormScreen {
                     failed(failure);
                 } else {
                     input = "";
-                    text.getField().setValue("");
+                    text.setValue("");
                     refresh();
                 }
             }

@@ -19,6 +19,9 @@ abstract class LibraryFormScreen extends AbstractPanelScreen {
         super.init();
         // Finish or cancel the form before changing panels, preserving its parent's lifecycle.
         removeWidget(panels);
+        // Modal forms keep the reference header visible without abandoning a
+        // retained parent and its preview/network resources through another tab.
+        addRenderableOnly(panels);
         formReady = width >= 300 && height >= 220;
         if (!formReady) {
             addRenderableOnly((gui, x, y, delta) -> UIHelper.renderCenteredScrollingText(gui,

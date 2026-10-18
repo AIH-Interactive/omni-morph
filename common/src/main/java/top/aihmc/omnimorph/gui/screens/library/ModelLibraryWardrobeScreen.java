@@ -86,6 +86,8 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
         search.getField().setValue(query);
         building = false;
         rows = addRenderableWidget(new LibraryRowList(8, 76, area, Math.max(24, height - 152)));
+        rows.columns(List.of(FiguraText.of("gui.library.player_name"), Component.literal("UUID"),
+                FiguraText.of("gui.library.source")), 4, 7, 7);
         reset = addRenderableWidget(new Button(8, height - 72, (area - 4) / 2, 20,
                 FiguraText.of("gui.library.wardrobe_reset"), null, ignored -> change("reset")));
         block = addRenderableWidget(new Button(12 + (area - 4) / 2, height - 72, (area - 4) / 2, 20,
@@ -142,8 +144,9 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
             }
             results = value;
             message = FiguraText.of("gui.library.page", value.page(), Math.max(1, (value.total() + 7) / 8), value.total());
-            rows.rows(value.items().stream().map(item -> new LibraryRowList.Row(
-                    Component.literal(item.name() + "  " + item.assetId() + " #" + item.assetRevision()),
+            rows.rows(value.items().stream().map(item -> LibraryRowList.Row.table(
+                    List.of(Component.literal(item.name()), Component.literal(item.owner().toString()),
+                            Component.literal(item.assetId() + " #" + item.assetRevision())),
                     Component.literal(item.owner() + "\n" + item.assetId() + " #" + item.assetRevision()
                             + "\n" + item.equipmentRevision()), true, () -> {
                         selected = item;

@@ -1,9 +1,23 @@
 package top.aihmc.omnimorph.model.library;
 
 import top.aihmc.omnimorph.gui.widgets.library.ModelLibraryLayout;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
 
 public final class ModelLibraryLayoutSmokeTest {
     public static void main(String[] args) {
+        for (int width : new int[]{300, 426, 640, 960, 1280}) {
+            for (int height : new int[]{220, 240, 360, 540, 720}) {
+                var workspace = new LibraryWorkspaceLayout(width, height);
+                require(workspace.left() >= 4 && workspace.previewX() >= workspace.left() + workspace.contentWidth() + 4,
+                        "content and preview columns never overlap");
+                require(workspace.previewX() + workspace.previewWidth() <= width - 4 && workspace.previewWidth() >= 72,
+                        "preview and its controls remain inside the supported viewport");
+                require(workspace.bodyY() + workspace.bodyHeight() < workspace.footerY()
+                                && workspace.top() + workspace.previewHeight() < workspace.footerY()
+                                && workspace.footerY() + 20 <= height - 4,
+                        "scrolling content and preview leave a separate usable footer");
+            }
+        }
         require(ModelLibraryLayout.of(128, 100, 8).columns() == 1, "one column");
         require(ModelLibraryLayout.of(262, 100, 8).columns() == 2, "two columns");
         require(ModelLibraryLayout.of(396, 100, 8).columns() == 3, "three columns");

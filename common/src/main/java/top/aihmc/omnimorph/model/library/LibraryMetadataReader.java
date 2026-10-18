@@ -30,7 +30,7 @@ public final class LibraryMetadataReader {
             // out of the catalog without changing the original model package.
             internalName = plainText(internalName);
             description = plainText(description);
-            authors = LibraryMetadataReader.authors(authors);
+            authors = List.copyOf(LibraryMetadataReader.authors(authors));
         }
     }
 

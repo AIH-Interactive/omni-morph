@@ -44,6 +44,23 @@ public final class LibraryModels {
         }
     }
 
+    public record WardrobeState(boolean available, String assetId, long assetRevision, long equipmentRevision,
+                                boolean showEquipment, boolean blocked) {
+        public WardrobeState {
+            if (available && (assetId == null || assetRevision < 1 || equipmentRevision < 1)) {
+                throw new IllegalArgumentException("INVALID_WARDROBE_STATE");
+            }
+        }
+
+        public boolean canChangeVisibility() {
+            return available && !blocked;
+        }
+
+        public boolean showing() {
+            return available && showEquipment && !blocked;
+        }
+    }
+
     /** Detail responses contain the same summary fields followed by optional detail metadata. */
     public record Model(UUID modelId, long revision, long policyRevision, String displayName,
                         String internalName, List<String> authors, Uploader uploader, String modelType,

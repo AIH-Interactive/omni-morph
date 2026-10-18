@@ -33,6 +33,19 @@ public final class LibraryClientSmokeTest {
             """;
 
     public static void main(String[] args) throws Exception {
+        var gson = new com.google.gson.GsonBuilder()
+                .setFieldNamingPolicy(com.google.gson.FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES).create();
+        var missing = gson.fromJson("{\"available\":false}", LibraryModels.WardrobeState.class);
+        require(!missing.showing() && !missing.canChangeVisibility(), "missing wardrobe is disabled and hidden");
+        for (boolean blocked : new boolean[]{false, true}) {
+            for (boolean show : new boolean[]{false, true}) {
+                var value = gson.fromJson("{\"available\":true,\"asset_id\":\"synthetic\",\"asset_revision\":2,"
+                        + "\"equipment_revision\":3,\"show_equipment\":" + show + ",\"blocked\":" + blocked + "}",
+                        LibraryModels.WardrobeState.class);
+                require(value.showing() == (show && !blocked) && value.canChangeVisibility() == !blocked,
+                        "blocked wardrobe cannot be shown even if a stale response retained the show intent");
+            }
+        }
         for (boolean protobuf : new boolean[]{false, true}) {
             try (var server = new Server(protobuf)) {
                 testAdapterAndClient(server, protobuf);
