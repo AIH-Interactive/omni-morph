@@ -8,6 +8,8 @@ import top.aihmc.omnimorph.gui.screens.ModelLibraryScreen;
 import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.SearchBar;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryRowList;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryManagementPreview;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
 import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 
@@ -39,6 +41,7 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
 
     private final LibraryClient client;
     private final LibraryAdminSession admin;
+    private final LibraryManagementPreview preview;
     private LibraryClient.Request<?> pending;
     private LibraryRowList rows;
     private Button reset;
@@ -62,6 +65,7 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
         super(parent, FiguraText.of("gui.library.wardrobe_manage"));
         this.client = client;
         this.admin = admin;
+        preview = new LibraryManagementPreview(client, admin::token);
     }
 
     @Override
@@ -74,7 +78,9 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
         if (!initForm()) {
             return;
         }
-        int area = Math.max(80, width - 16);
+        var layout = new LibraryWorkspaceLayout(width, height);
+        int area = layout.contentWidth();
+        addRenderableWidget(preview.place(this, layout.previewX(), 28, layout.previewWidth(), height - 36));
         building = true;
         var search = addRenderableWidget(new SearchBar(8, 28, area, 20, value -> {
             if (!building && !value.equals(query)) {
@@ -104,7 +110,7 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
                 }));
         addRenderableWidget(new Button(88, height - 48, Math.max(40, area - 80), 20,
                 FiguraText.of("gui.library.refresh"), null, ignored -> refresh()));
-        addRenderableWidget(new Button(width - 96, height - 24, 88, 20,
+        addRenderableWidget(new Button(8 + area - 88, height - 24, 88, 20,
                 FiguraText.of("gui.done"), null, ignored -> onClose()));
         addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui, message, 8, 54, area, 0xffd3e7e1));
         refresh();
@@ -123,6 +129,7 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
             pending.cancel();
         }
         selected = null;
+        preview.clear();
         operation = null;
         armed = null;
         results = null;
@@ -150,6 +157,8 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
                     Component.literal(item.owner() + "\n" + item.assetId() + " #" + item.assetRevision()
                             + "\n" + item.equipmentRevision()), true, () -> {
                         selected = item;
+                        preview.wardrobe(item.owner(), item.assetId(), item.assetRevision(), item.equipmentRevision(),
+                                Component.literal(item.name()));
                         armed = null;
                         operation = null;
                         message = Component.literal(item.name() + "  " + item.owner());
@@ -222,7 +231,12 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
 
     @Override
     public void removed() {
+        if (preview.isExpanded()) {
+            super.removed();
+            return;
+        }
         closed = true;
+        preview.close();
         generation++;
         selected = null;
         results = null;
