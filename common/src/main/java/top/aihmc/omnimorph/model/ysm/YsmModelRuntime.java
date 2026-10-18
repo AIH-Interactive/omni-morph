@@ -32,7 +32,6 @@ import top.aihmc.omnimorph.math.matrix.FiguraMat4;
 import top.aihmc.omnimorph.math.vector.FiguraVec3;
 import top.aihmc.omnimorph.molang.MolangEngine;
 import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
-import top.aihmc.omnimorph.model.library.PreviewIdlePose;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationClip;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationParser;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationPlayer;
@@ -94,7 +93,6 @@ public class YsmModelRuntime implements AutoCloseable {
     private boolean previewRotationDisabled;
     private boolean guiNoLighting;
     private boolean previewRuntime;
-    private float previewAge;
     private boolean subEntityRuntime;
     private long subEntityQueryFrame = Long.MIN_VALUE;
     private boolean mergeMultilineExpressions;
@@ -227,7 +225,7 @@ public class YsmModelRuntime implements AutoCloseable {
                     textureTranslucent, kind, modelKey, textureData, defaultWidthScale, defaultHeightScale, data != null && data.encrypted());
             runtime.contentHash = tag.getStringOr("content_sha256", "");
             runtime.previewInput = new CompoundTag();
-            for (String key : List.of("animations", "functions", "action_schemas")) {
+            for (String key : List.of("animations", "animation_controllers", "functions", "action_schemas")) {
                 runtime.previewInput.put(key, tag.getListOrEmpty(key).copy());
             }
             for (String key : List.of("main_model", "arm_model")) {
@@ -585,7 +583,7 @@ public class YsmModelRuntime implements AutoCloseable {
     public void applyModelScale(PoseStack stack) {
         stack.scale(
                 0.9375f * widthScale(),
-                0.9375f * heightScale() * (previewRuntime ? PreviewIdlePose.breathingScale(previewAge) : 1f),
+                0.9375f * heightScale(),
                 0.9375f * widthScale()
         );
     }
@@ -1272,9 +1270,14 @@ public class YsmModelRuntime implements AutoCloseable {
             result.allCutout = allCutout;
             result.renderLayersFirst = renderLayersFirst;
             result.previewRotationDisabled = previewRotationDisabled;
-            result.animationPlayer.registerAnimations(readAnimations(previewInput,
-                    MolangEngine.fromCustomBinding(previewOwner.getAvatarBindings())));
+            MolangEngine engine = MolangEngine.fromCustomBinding(previewOwner.getAvatarBindings());
+            result.animationPlayer.registerAnimations(readAnimations(previewInput, engine));
+            result.animationPlayer.registerControllers(readAnimationControllers(previewInput, engine,
+                    (path, diagnostic) -> result.recordControllerDiagnostic(controllerDiagnostic(
+                            result.modelKey, result.encryptedSource, path, diagnostic)), result.controllerSources));
             result.functions.load(previewInput.getListOrEmpty("functions"));
+            result.animationPlayer.registerFunctionEventControllers(result.functions.controllerEventNames());
+            result.animationPlayer.startBaseAnimations();
             result.registerDefaultControls();
             result.readActionSchemas(previewInput);
             for (var control : previewOwner.controls.all()) {
@@ -1294,47 +1297,11 @@ public class YsmModelRuntime implements AutoCloseable {
         if (closed) {
             return;
         }
-        if (previewRuntime) {
-            previewAge = state.ageInTicks;
-            applyPreviewIdle(state.ageInTicks);
-            return;
-        }
         Object nativeState = owner.controls.getValue("ysm.native_state_machine");
         if (nativeState instanceof Boolean enabled) {
             animationPlayer.setNativeStateMachineEnabled(enabled);
         }
         animationPlayer.update(state, entity, firstPerson);
-    }
-
-    /** Vanilla standing arm sway, without executing model clips, controllers or events. */
-    private void applyPreviewIdle(float age) {
-        for (YsmModelPart part : uniqueParts(false)) {
-            part.resetAnimPose();
-            YsmBoneRole role = roleOf(part.getName());
-            if (role != YsmBoneRole.LEFT_HAND && role != YsmBoneRole.RIGHT_HAND) {
-                continue;
-            }
-            YsmGeometry.Bone bone = getBoneIgnoreCase(part.getName());
-            if (bone == null || YsmBoneMapper.isLocator(bone)) {
-                continue;
-            }
-            // A wrist/forearm below an animated arm must not receive the sway twice.
-            YsmGeometry.Bone parent = getBoneIgnoreCase(bone.parentName);
-            boolean nestedArm = false;
-            while (parent != null) {
-                if (roleOf(parent.name) == role) {
-                    nestedArm = true;
-                    break;
-                }
-                parent = getBoneIgnoreCase(parent.parentName);
-            }
-            if (!nestedArm) {
-                double side = role == YsmBoneRole.RIGHT_HAND ? 1 : -1;
-                double x = Math.toDegrees(Math.sin(age * 0.067f) * 0.05f) * side;
-                double z = Math.toDegrees(Math.cos(age * 0.09f) * 0.05f + 0.05f) * side;
-                part.addAnimRot(-x, 0, z);
-            }
-        }
     }
 
     private void registerDefaultControls() {
@@ -1494,7 +1461,7 @@ public class YsmModelRuntime implements AutoCloseable {
             for (String key : List.of("main_model", "arm_model")) {
                 previewInput.getByteArray(key).ifPresent(bytes -> java.util.Arrays.fill(bytes, (byte) 0));
             }
-            for (String key : List.of("animations", "functions", "action_schemas")) {
+            for (String key : List.of("animations", "animation_controllers", "functions", "action_schemas")) {
                 for (Tag value : previewInput.getListOrEmpty(key)) {
                     if (value instanceof CompoundTag entry) {
                         entry.getByteArray("data").ifPresent(bytes -> java.util.Arrays.fill(bytes, (byte) 0));

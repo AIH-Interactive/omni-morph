@@ -148,10 +148,11 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var scripts = new CompoundTag();
             scripts.putByteArray("script", """
                     vanilla_model.PLAYER:setVisible(false)
-                    function events.tick() vanilla_model.PLAYER:setVisible(true) end
-                    function events.world_render() vanilla_model.PLAYER:setVisible(true) end
-                    function events.render() vanilla_model.PLAYER:setVisible(true) end
-                    function events.post_render() vanilla_model.PLAYER:setVisible(true) end
+                    local ticks = 0
+                    function events.tick()
+                      ticks = ticks + 1
+                      models:setRot(0, ticks * 5, 0)
+                    end
                     """.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             hidden.put("scripts", scripts);
             require(await(preview.selectDraft(hidden), drain), "actual Figura script initializes in the detached preview");
@@ -160,17 +161,15 @@ public final class LibraryPreviewRuntimeSmokeTest {
             int previousTicks = entity.tickCount;
             preview.tick();
             preview.beforeExtract(0.5f);
-            idleAvatar.tick();
-            idleAvatar.tickEvent();
-            idleAvatar.renderEvent(0.5f, null);
-            idleAvatar.postRenderEvent(0.5f, null);
             require(entity.tickCount == previousTicks + 1 && !preview.showsVanillaPlayer(),
-                    "standing idle clock advances while authored Figura tick/render events stay dormant");
-            double firstScale = idleAvatar.renderer.root.getAnimScale().y;
-            entity.tickCount += 24;
+                    "standing idle clock preserves the model's initialized vanilla visibility");
+            require(idleAvatar.renderer.root.getRot().y == 5d,
+                    "Figura preview executes the model's normal tick script and changes its pose");
+            preview.tick();
             preview.beforeExtract(0.5f);
-            require(idleAvatar.renderer.root.getAnimScale().y != firstScale,
-                    "unbound Figura geometry receives standing motion without script animation events");
+            require(idleAvatar.renderer.root.getRot().y == 10d
+                            && idleAvatar.renderer.root.getAnimScale().y == 1d,
+                    "Figura preview advances model animation without an artificial breathing scale");
             try (var local = new LibraryPreviewSession()) {
                 var localEntity = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
                 localEntity.setUUID((UUID) field(LibraryPreviewSession.class, "owner").get(local));
@@ -361,12 +360,17 @@ public final class LibraryPreviewRuntimeSmokeTest {
         }
     }
 
-    private static final class ArmorPreviewPlayer extends RemotePlayer {
+    private static final class ArmorPreviewPlayer extends RemotePlayer implements top.aihmc.omnimorph.mixin.EntityAccessor {
         private int equipmentReads;
         private int capeReads;
 
         private ArmorPreviewPlayer() {
             super(null, new GameProfile(UUID.randomUUID(), "preview"));
+        }
+
+        @Override
+        public net.minecraft.world.level.Level getLevel() {
+            return Minecraft.getInstance().level;
         }
 
         @Override

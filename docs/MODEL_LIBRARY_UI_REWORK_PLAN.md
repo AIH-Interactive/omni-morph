@@ -415,3 +415,11 @@ R18 检查点：实际 ModelReportScreen 的原生多行输入回归先复现按
 用户反馈衣柜静态、模型库空白。旧回归只检查动画参数和成功加载，缺少最终几何输出，不足以确认可见动态。新增生产渲染器顶点回归已复现：二进制映射式输入仅提供 baked geometry、不提供 main_model JSON 时，forRenderPass 创建失败返回空；无标准手臂骨骼模型的两个时刻输出完全一致。修复使用已有几何深复制保留二进制已烘焙面，不依赖或生成 JSON；预览采用通用轻微站立呼吸及已有手臂轻摆，覆盖无标准骨骼的 YSM/Figura，禁止自定义动画事件，世界实例独立。验证两类失败回归、可见顶点变化、帧快照/生命周期及原护甲披风修复后编译提交推送；实际游戏验收 MANUAL/PENDING。
 
 R19 检查点：baked-only 输入沿真实 fromData 装配后先复现 NoSuchElementException 和空预览；使用既有几何深复制后可见顶点输出通过。随后复现无标准手臂模型多时刻顶点完全一致，补齐只作用于隔离实例的 0.6% 轻微站立呼吸，原版骨骼轻摆保留；实际生产 YSM 渲染器两个时刻输出非空且不同。Figura 隔离根节点同样采用通用待机，持续脚本仍不执行。encrypted GUI pass、previewRuntime、完整 ysmMaterialNative、Fabric build 以及举报输入/护甲/披风回归前台 Tee PASS，退出 0；差异及空白核对通过，版本保持 alpha.2。自动验证为实际几何/事件路径，不等价于游戏画面验收；MANUAL/PENDING。
+
+### R20 恢复预览正常脚本与控制器（替代 R17/R19 的错误停用策略）
+
+用户明确禁止擅自停用脚本和控制器。默认站立预览通过隔离玩家的站立状态实现，保留模型正常的 Lua tick/render、Figura BB 动画、YSM 基础/并行控制器及默认 idle；不额外触发展示/GUI 动画或动作。撤掉 R19 人工呼吸缩放及 R17 程序化手臂覆盖，保留二进制已烘焙几何复制和既有帧绑定/闪退修复。先建立回归确认 Figura tick 脚本停用及 YSM 基础显隐丢失，再恢复正常运行，验证隐藏特效不输出顶点、默认 idle 确实改变可见顶点、原世界状态独立。游戏内视觉验收 MANUAL/PENDING。
+
+R20 检查点：撤销 Avatar 对隔离预览的 tick/world-render/render/post-render/BB 动画禁用，LibraryPreviewSession 正常 tick，并在提取前执行 BB 动画清理/采样。YSM 预览完整复制控制器资源，注册控制器及函数事件，启动基础动画并沿正常 update 执行；不主动播放 GUI/展示片段。删除 PreviewIdlePose 和程序手臂覆盖，保留二进制几何复制。先复现 Figura 正常 tick 不能改变姿态和隐藏特效被输出，修复后实际 tick 脚本连续改变角度且根缩放保持 1；原生渲染器只输出可见主体 24 顶点，隐藏特效不输出，默认 idle 随时间改变实际顶点，控制器仍存在且执行，GUI 片段未被额外启动，世界实例姿态保持独立。
+
+previewRuntime、完整 ysmMaterialNative、Fabric build 及举报输入/护甲/披风回归前台 Tee PASS，退出 0。无 Mixin 的原生测试夹具补齐 EntityAccessor 与 MinecraftAccesor 接口，生产逻辑未为测试增加特殊分支。差异空白核对通过，alpha.2 不变；R17/R19 的停用与缩放策略作废。真实游戏衣柜和模型库画面验收仍为 MANUAL/PENDING，不能用自动测试声称已完成人工验收。
