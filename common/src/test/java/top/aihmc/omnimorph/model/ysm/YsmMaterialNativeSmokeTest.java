@@ -204,6 +204,8 @@ public final class YsmMaterialNativeSmokeTest {
                 testLateTextureBindings(unsafe, client);
                 testTextureUploadLifetime(unsafe, client, publicationDevice);
                 testYsmComplexity(unsafe, client);
+                testBakedPreviewGeometry(unsafe, client);
+                testStandingPreviewVertices(unsafe, client);
             } finally {
                 client.drain();
                 RenderSystem.getSamplerCache().close();
@@ -1390,6 +1392,42 @@ public final class YsmMaterialNativeSmokeTest {
                 });
     }
 
+    private static void testBakedPreviewGeometry(Unsafe unsafe, RecordingClient client) throws Exception {
+        // Binary mapping supplies baked geometry without an exported main_model JSON resource.
+        var fixture = new Fixture(unsafe, 702, null, null, true);
+        try {
+            fixture.runtime.owner().renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI;
+            var preview = fixture.runtime.forRenderPass();
+            require(preview != null, "baked library preview must not disappear when source JSON is absent");
+            require(!geometryVertices(preview, YsmPartMask.PLAYER_BODY).isEmpty(),
+                    "baked library preview must emit visible vertices, not merely finish loading");
+            require(preview.geometry() != fixture.runtime.geometry(), "preview geometry is independently owned");
+        } finally {
+            fixture.runtime.close();
+            client.drain();
+        }
+    }
+
+    private static void testStandingPreviewVertices(Unsafe unsafe, RecordingClient client) throws Exception {
+        var fixture = new Fixture(unsafe, 703);
+        try {
+            fixture.runtime.owner().renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI;
+            var preview = fixture.runtime.forRenderPass();
+            var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
+            preview.updateAnimations(state, null);
+            var first = geometryVertices(preview, YsmPartMask.PLAYER_BODY);
+            state.ageInTicks = 24;
+            preview.updateAnimations(state, null);
+            var second = geometryVertices(preview, YsmPartMask.PLAYER_BODY);
+            require(!first.isEmpty() && !second.isEmpty() && !first.equals(second),
+                    "standing preview must move visible vertices even without recognized humanoid arm names");
+            System.out.println("PASS preview rendering: baked geometry stays visible and generic standing motion changes emitted vertices");
+        } finally {
+            fixture.runtime.close();
+            client.drain();
+        }
+    }
+
     private static void testYsmComplexity(Unsafe unsafe, RecordingClient client) throws Exception {
         var fixture = new Fixture(unsafe, 701);
         var runtime = fixture.runtime;
@@ -1656,6 +1694,10 @@ public final class YsmMaterialNativeSmokeTest {
         }
 
         private Fixture(Unsafe unsafe, int id, Path selectionPath, String geometry) throws Exception {
+            this(unsafe, id, selectionPath, geometry, false);
+        }
+
+        private Fixture(Unsafe unsafe, int id, Path selectionPath, String geometry, boolean bakedOnly) throws Exception {
             Avatar owner = owner(unsafe, id);
             Map<String, byte[]> resources = new HashMap<>();
             resources.put("ysm.json", bytes("""
@@ -1699,6 +1741,10 @@ public final class YsmMaterialNativeSmokeTest {
                 YsmTextureOption selected = (YsmTextureOption) select.invoke(null, selectionPath,
                         data.manifest().textures(), data.manifest().defaultTexture());
                 runtimeTag = YsmAvatarLoader.toRuntimeTag(data, selected);
+                if (bakedOnly) {
+                    runtimeTag.remove("main_model");
+                    runtimeTag.remove("arm_model");
+                }
                 runtime = YsmModelRuntime.fromData(owner, data, runtimeTag);
                 install(owner, "ysmRuntime", runtime);
                 runtime.restoreControls();

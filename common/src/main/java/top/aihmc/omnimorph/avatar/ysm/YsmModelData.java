@@ -165,7 +165,8 @@ public final class YsmModelData implements AutoCloseable {
         }
     }
 
-    private static YsmGeometry copyGeometry(YsmGeometry source) {
+    /** Copies baked geometry for independent runtime ownership, including binary-only inputs. */
+    public static YsmGeometry copyGeometry(YsmGeometry source) {
         YsmGeometry copy = new YsmGeometry();
         copy.textureWidth = source.textureWidth;
         copy.textureHeight = source.textureHeight;

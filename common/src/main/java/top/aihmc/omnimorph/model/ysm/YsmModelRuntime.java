@@ -32,6 +32,7 @@ import top.aihmc.omnimorph.math.matrix.FiguraMat4;
 import top.aihmc.omnimorph.math.vector.FiguraVec3;
 import top.aihmc.omnimorph.molang.MolangEngine;
 import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
+import top.aihmc.omnimorph.model.library.PreviewIdlePose;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationClip;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationParser;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationPlayer;
@@ -93,6 +94,7 @@ public class YsmModelRuntime implements AutoCloseable {
     private boolean previewRotationDisabled;
     private boolean guiNoLighting;
     private boolean previewRuntime;
+    private float previewAge;
     private boolean subEntityRuntime;
     private long subEntityQueryFrame = Long.MIN_VALUE;
     private boolean mergeMultilineExpressions;
@@ -583,7 +585,7 @@ public class YsmModelRuntime implements AutoCloseable {
     public void applyModelScale(PoseStack stack) {
         stack.scale(
                 0.9375f * widthScale(),
-                0.9375f * heightScale(),
+                0.9375f * heightScale() * (previewRuntime ? PreviewIdlePose.breathingScale(previewAge) : 1f),
                 0.9375f * widthScale()
         );
     }
@@ -1249,10 +1251,9 @@ public class YsmModelRuntime implements AutoCloseable {
     }
 
     private YsmModelRuntime createPreview(Map<String, Object> controls) throws java.io.IOException {
-        YsmGeometry previewGeometry = YsmGeometryParser.parse(new String(
-                previewInput.getByteArray("main_model").orElseThrow(), StandardCharsets.UTF_8));
-        YsmGeometry previewArms = previewInput.contains("arm_model") ? YsmGeometryParser.parse(new String(
-                previewInput.getByteArray("arm_model").orElseThrow(), StandardCharsets.UTF_8)) : null;
+        // Binary sources already contain baked faces and intentionally have no model JSON.
+        YsmGeometry previewGeometry = YsmModelData.copyGeometry(geometry);
+        YsmGeometry previewArms = armGeometry == null ? null : YsmModelData.copyGeometry(armGeometry);
         byte[] pixels = textureData.get(textureId);
         if (pixels != null) {
             previewGeometry.applyTextureAlpha(pixels);
@@ -1294,6 +1295,7 @@ public class YsmModelRuntime implements AutoCloseable {
             return;
         }
         if (previewRuntime) {
+            previewAge = state.ageInTicks;
             applyPreviewIdle(state.ageInTicks);
             return;
         }

@@ -409,3 +409,9 @@ previewRuntime、完整 ysmMaterialNative、Fabric build 与实际护甲/披风�
 使用真实 ModelReportScreen 初始化及屏幕点击/松开/字符分发建立回归：按下鼠标期间可输入，松开后字符拒绝，确认持续输入失败由 LibraryMultilineField 继承的容器释放行为清除内部及屏幕焦点引起。修复多行编辑器释放事件以保留编辑焦点，同时结束鼠标拖动/调整大小；保持点击其他控件失焦、请求期间禁用及举报长度限制。验证真实输入和表单值、编辑/失焦/禁用及构建后提交推送。游戏内中文输入法与视觉验收 MANUAL/PENDING。
 
 R18 检查点：实际 ModelReportScreen 的原生多行输入回归先复现按下可输入、松开后拒绝字符（两次确定性失败），修复后完整点击/松开可继续输入中文，表单提交值同步；换行/退格、禁用拒绝输入及点击外部失焦均 PASS。仅修改 LibraryMultilineField 的释放处理，转发原生释放以结束选区拖动，保持父级焦点；不改举报接口与长度/重试规则。previewRuntime、Fabric build 及护甲/披风原生回归前台 Tee PASS，退出 0；差异空白核对通过。输入回归使用固定文字测量和原生编辑器/屏幕事件，不包含像素及操作系统输入法验证；实际游戏验收 MANUAL/PENDING。
+
+### R19 修复 R17 预览空白与静态回归
+
+用户反馈衣柜静态、模型库空白。旧回归只检查动画参数和成功加载，缺少最终几何输出，不足以确认可见动态。新增生产渲染器顶点回归已复现：二进制映射式输入仅提供 baked geometry、不提供 main_model JSON 时，forRenderPass 创建失败返回空；无标准手臂骨骼模型的两个时刻输出完全一致。修复使用已有几何深复制保留二进制已烘焙面，不依赖或生成 JSON；预览采用通用轻微站立呼吸及已有手臂轻摆，覆盖无标准骨骼的 YSM/Figura，禁止自定义动画事件，世界实例独立。验证两类失败回归、可见顶点变化、帧快照/生命周期及原护甲披风修复后编译提交推送；实际游戏验收 MANUAL/PENDING。
+
+R19 检查点：baked-only 输入沿真实 fromData 装配后先复现 NoSuchElementException 和空预览；使用既有几何深复制后可见顶点输出通过。随后复现无标准手臂模型多时刻顶点完全一致，补齐只作用于隔离实例的 0.6% 轻微站立呼吸，原版骨骼轻摆保留；实际生产 YSM 渲染器两个时刻输出非空且不同。Figura 隔离根节点同样采用通用待机，持续脚本仍不执行。encrypted GUI pass、previewRuntime、完整 ysmMaterialNative、Fabric build 以及举报输入/护甲/披风回归前台 Tee PASS，退出 0；差异及空白核对通过，版本保持 alpha.2。自动验证为实际几何/事件路径，不等价于游戏画面验收；MANUAL/PENDING。
