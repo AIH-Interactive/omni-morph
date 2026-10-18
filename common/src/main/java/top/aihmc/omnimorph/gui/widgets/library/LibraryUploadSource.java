@@ -26,7 +26,7 @@ public final class LibraryUploadSource extends AbstractContainerElement {
         int imageWidth = Math.max(52, width / 3);
         int sourceWidth = width - imageWidth - 6;
         source = new Button(0, 0, sourceWidth, 84, FiguraText.of("gui.library.choose_model"),
-                FiguraText.of("gui.library.upload_drop_hint", maximumBytes), ignored -> chooseSource.run()) {
+                FiguraText.of("gui.library.upload_drop_hint", LibraryLabels.fileSize(maximumBytes)), ignored -> chooseSource.run()) {
             @Override
             protected void renderText(GuiGraphicsExtractor gui, float delta) {
                 UIHelper.renderCenteredScrollingText(gui, Component.literal("+"), getX(), getY() + 10,

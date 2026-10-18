@@ -13,6 +13,7 @@ import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.EntityPreview;
 import top.aihmc.omnimorph.gui.widgets.TextField;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryFormBody;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryLabels;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryRadioGroup;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryMultilineField;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryTagField;
@@ -195,7 +196,8 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
             Component status = message;
             if (operation != null && !operation.future().isDone() && operation.progress() != null) {
                 var progress = operation.progress();
-                status = progress.total() > 0 ? FiguraText.of("gui.library.sent", progress.received(), progress.total())
+                status = progress.total() > 0 ? FiguraText.of("gui.library.sent",
+                        LibraryLabels.fileSize(progress.received()), LibraryLabels.fileSize(progress.total()))
                         : FiguraText.of("gui.library.phase." + progress.stage().name().toLowerCase(java.util.Locale.ROOT));
             } else if (sourceRequest != null && !sourceRequest.future().isDone()) {
                 status = FiguraText.of("gui.library.phase." + preparationPhase.name().toLowerCase(java.util.Locale.ROOT));
@@ -311,7 +313,8 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
                         category = Math.max(0, limits.categories().indexOf(draft.category()));
                     }
                 });
-                message = FiguraText.of("gui.library.ready_upload", value.byteLength(), limits.maxUploadBytes());
+                message = FiguraText.of("gui.library.ready_upload", LibraryLabels.fileSize(value.byteLength()),
+                        LibraryLabels.fileSize(limits.maxUploadBytes()));
                 updateSourceFields();
             }
             updateButtons();
