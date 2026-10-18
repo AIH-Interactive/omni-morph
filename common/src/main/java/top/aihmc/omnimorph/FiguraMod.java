@@ -220,7 +220,7 @@ public class FiguraMod {
 
     public enum Links {
         Docs("https://github.com/AIH-Interactive/omni-morph/blob/main/README.md", ColorUtils.Colors.AWESOME_BLUE.style),
-        MolangGuide("https://github.com/AIH-Interactive/omni-morph/blob/main/Plans/YSM兼容与使用说明.md", ColorUtils.Colors.AWESOME_BLUE.style),
+        MolangGuide("https://github.com/AIH-Interactive/omni-morph/blob/main/README.md#lua-与-molang", ColorUtils.Colors.AWESOME_BLUE.style),
         Github("https://github.com/AIH-Interactive", ColorUtils.Colors.GITHUB.style),
         Credits("https://github.com/AIH-Interactive/omni-morph/blob/main/CREDITS", ColorUtils.Colors.GITHUB.style),
         Upstream("https://github.com/FiguraMC/Figura", ColorUtils.Colors.GITHUB.style),
