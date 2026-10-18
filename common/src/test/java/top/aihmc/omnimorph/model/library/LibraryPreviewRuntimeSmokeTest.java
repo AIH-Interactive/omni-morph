@@ -105,7 +105,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             LibraryPreviewBinding.capture(entity, firstFrame);
             LibraryPreviewBinding.capture(entity, secondFrame);
             LibraryPreviewBinding.capture(entity, secondFrame);
-            var armorFrame = new AvatarRenderState();
+            var armorFrame = new PreviewFrame();
             LibraryPreviewBinding.capture(entity, armorFrame);
             var lifetime = avatar.accelerationOwner();
             preview.clear();
@@ -116,6 +116,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 Class.forName("top.aihmc.omnimorph.model.library.LibraryArmorPreviewRegression")
                         .getMethod("run", AvatarRenderState.class).invoke(null, armorFrame);
                 require(entity.equipmentReads == 1, "armor rendering reads equipment from the detached preview entity");
+                require(entity.capeReads == 1, "cape rendering reads state from the detached preview player");
             }
             LibraryPreviewBinding.finishFrame();
             require(!lifetime.isCurrent(), "finishing the GUI frame retires the model after its final state releases");
@@ -182,6 +183,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
 
     private static final class ArmorPreviewPlayer extends RemotePlayer {
         private int equipmentReads;
+        private int capeReads;
 
         private ArmorPreviewPlayer() {
             super(null, new GameProfile(UUID.randomUUID(), "preview"));
@@ -191,6 +193,37 @@ public final class LibraryPreviewRuntimeSmokeTest {
         public ItemStack getItemBySlot(EquipmentSlot slot) {
             equipmentReads++;
             return ItemStack.EMPTY;
+        }
+
+        @Override
+        public net.minecraft.client.entity.ClientAvatarState avatarState() {
+            capeReads++;
+            throw new CapeStateReached();
+        }
+    }
+
+    public static final class CapeStateReached extends RuntimeException {
+    }
+
+    private static final class PreviewFrame extends AvatarRenderState
+            implements top.aihmc.omnimorph.ducks.FiguraEntityRenderStateExtension {
+        private int entityId;
+        private float delta;
+
+        public Integer figura$getEntityId() {
+            return entityId;
+        }
+
+        public void figura$setEntityId(int id) {
+            entityId = id;
+        }
+
+        public float figura$getTickDelta() {
+            return delta;
+        }
+
+        public void figura$setTickDelta(float tickDelta) {
+            delta = tickDelta;
         }
     }
 

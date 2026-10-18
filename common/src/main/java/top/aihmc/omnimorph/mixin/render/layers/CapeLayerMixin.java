@@ -1,7 +1,6 @@
 package top.aihmc.omnimorph.mixin.render.layers;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.player.PlayerModel;
@@ -58,6 +57,11 @@ public abstract class CapeLayerMixin extends RenderLayer<AvatarRenderState, Play
         if (avatar == null)
             return;
 
+        if (!(AvatarManager.getEntity(playerRenderState) instanceof AbstractClientPlayer entity)) {
+            avatar = null;
+            return;
+        }
+
         // Acquire reference to fake cloak
         ModelPart fakeCloak = ((PlayerModelCapeAccessor) model).figura$getFakeCloak();
         ModelPart realCloak = ((PlayerModelCapeAccessor) model).figura$getCloak();
@@ -66,7 +70,6 @@ public abstract class CapeLayerMixin extends RenderLayer<AvatarRenderState, Play
         fakeCloak.loadPose(realCloak.storePose());
 
         // REFERENCED FROM CODE IN CapeLayer (CapeFeatureRenderer for Yarn), logic now in ClientAvatarState
-        AbstractClientPlayer entity = (AbstractClientPlayer) (Minecraft.getInstance().level.getEntity(playerRenderState.id));
         float tickDelta = ((FiguraEntityRenderStateExtension)playerRenderState).figura$getTickDelta();
 
         ClientAvatarStateAccessor entityState = (ClientAvatarStateAccessor) entity.avatarState();

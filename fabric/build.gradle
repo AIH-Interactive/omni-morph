@@ -167,7 +167,8 @@ void setupRepositories(RepositoryHandler repositories) {
     }
 }
 
-sourceSets.test.compileClasspath += project(':common').sourceSets.main.output
+sourceSets.test.compileClasspath += project(':common').sourceSets.main.output +
+        project(':common').sourceSets.test.output
 
 tasks.register('libraryArmorPreviewSmokeTest', JavaExec) {
     group = 'verification'
