@@ -47,6 +47,18 @@ public final class LibraryPackagePreparationSmokeTest {
                 require(actualSnapshot.metadata().get("authors").equals(actual.metadata().authors())
                                 && actualSnapshot.metadata().get("tags").equals(java.util.List.of()),
                         "provided package retains all original authors and accepts empty optional tags at submit");
+                String exportDirectory = System.getenv("OMNIMORPH_TEST_UPLOAD_DIRECTORY");
+                if (exportDirectory != null && !exportDirectory.isBlank()) {
+                    Path output = Files.createDirectories(Path.of(exportDirectory));
+                    Files.write(output.resolve("package.nbt"), actual.compressed());
+                    var input = new java.util.HashMap<String, Object>();
+                    input.put("metadata", actualSnapshot.metadata());
+                    input.put("raw_sha256", actual.sha256());
+                    input.put("byte_length", actual.byteLength());
+                    input.put("source_filename", Path.of(regressionPackage).getFileName().toString());
+                    input.put("metadata_source", actual.metadataSource());
+                    Files.writeString(output.resolve("upload.json"), new com.google.gson.Gson().toJson(input));
+                }
                 System.out.println("PASS provided Figura archive preparation");
             }
             Path figura = zip(directory.resolve("图包.zip"), Map.of(
