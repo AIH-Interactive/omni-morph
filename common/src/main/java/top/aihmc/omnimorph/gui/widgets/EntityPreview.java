@@ -15,6 +15,7 @@ import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.AvatarManager;
 import net.minecraft.nbt.CompoundTag;
 import top.aihmc.omnimorph.gui.screens.AvatarScreen;
+import top.aihmc.omnimorph.gui.screens.AvatarControlsScreen;
 import top.aihmc.omnimorph.gui.screens.WardrobeScreen;
 import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
@@ -36,7 +37,7 @@ public class EntityPreview extends AbstractContainerElement {
     private LivingEntity sourceEntity;
     private Avatar sourceAvatar;
     private CompoundTag sourceNbt;
-    private final boolean wardrobePreview;
+    private final boolean liveEntityPreview;
     private final float pitch, yaw, scale;
     private SwitchButton button;
 
@@ -66,8 +67,10 @@ public class EntityPreview extends AbstractContainerElement {
         this.yaw = yaw;
         this.entity = entity;
         this.sourceEntity = entity;
-        // AvatarScreen retains the originating parent, so expansion uses the same mechanism.
-        this.wardrobePreview = parentScreen instanceof WardrobeScreen;
+        // Wardrobe and model controls show the live model, including immediate control edits.
+        // AvatarScreen retains the originating parent so expansion uses the same mechanism.
+        this.liveEntityPreview = parentScreen instanceof WardrobeScreen
+                || parentScreen instanceof AvatarControlsScreen;
 
         modelX = width / 2;
         modelY = height / 2;
@@ -101,7 +104,7 @@ public class EntityPreview extends AbstractContainerElement {
     @Override
     public void tick() {
         super.tick();
-        if (libraryPreview != null || wardrobePreview || sourceEntity == null) {
+        if (libraryPreview != null || liveEntityPreview || sourceEntity == null) {
             return;
         }
         Avatar current = AvatarManager.getAvatar(sourceEntity);
@@ -142,7 +145,7 @@ public class EntityPreview extends AbstractContainerElement {
         if (libraryPreview != null) {
             libraryPreview.beforeExtract(delta);
             entity = libraryPreview.entity();
-        } else if (wardrobePreview) {
+        } else if (liveEntityPreview) {
             entity = sourceEntity;
         } else if (localPreview != null) {
             localPreview.beforeExtract(delta);
