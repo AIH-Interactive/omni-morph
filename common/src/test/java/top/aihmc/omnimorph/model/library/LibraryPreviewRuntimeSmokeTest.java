@@ -166,6 +166,11 @@ public final class LibraryPreviewRuntimeSmokeTest {
             idleAvatar.postRenderEvent(0.5f, null);
             require(entity.tickCount == previousTicks + 1 && !preview.showsVanillaPlayer(),
                     "standing idle clock advances while authored Figura tick/render events stay dormant");
+            double firstScale = idleAvatar.renderer.root.getAnimScale().y;
+            entity.tickCount += 24;
+            preview.beforeExtract(0.5f);
+            require(idleAvatar.renderer.root.getAnimScale().y != firstScale,
+                    "unbound Figura geometry receives standing motion without script animation events");
             try (var local = new LibraryPreviewSession()) {
                 var localEntity = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
                 localEntity.setUUID((UUID) field(LibraryPreviewSession.class, "owner").get(local));
@@ -185,6 +190,11 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 avatar = AvatarManager.getAvatar(entity);
                 require(avatar.getYsmRuntime() != null && avatar.getYsmRuntime().encryptedSource(),
                         "encrypted preview retains the existing runtime/source boundary");
+                avatar.renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI;
+                var encryptedPreview = avatar.getYsmRuntime().forRenderPass();
+                require(encryptedPreview != null && encryptedPreview.isPreviewRuntime()
+                                && !encryptedPreview.geometry().roots.isEmpty(),
+                        "encrypted library model must retain renderable geometry in the actual GUI pass");
                 require(!preview.showsVanillaPlayer(), "YSM replacement models do not select the decorative default");
             }
             var resource = client.submit(LibraryClient.Lane.TRANSFER, exchange -> model("administrator resource"));

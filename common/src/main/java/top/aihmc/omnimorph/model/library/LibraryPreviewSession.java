@@ -213,6 +213,10 @@ public final class LibraryPreviewSession implements AutoCloseable {
     public void beforeExtract(float delta) {
         if (current(generations.get()) && avatar != null && !AvatarManager.panic) {
             avatar.render(delta);
+            if (entity != null && avatar.renderer != null && avatar.renderer.root != null) {
+                avatar.renderer.root.animScale(top.aihmc.omnimorph.math.vector.FiguraVec3.of(
+                        1, PreviewIdlePose.breathingScale(entity.tickCount + delta), 1), false);
+            }
         }
     }
 
