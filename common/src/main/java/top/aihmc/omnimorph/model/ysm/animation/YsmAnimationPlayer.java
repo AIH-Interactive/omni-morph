@@ -1435,9 +1435,16 @@ public class YsmAnimationPlayer {
             boolean left = entity.getUsedItemHand() == InteractionHand.MAIN_HAND
                     ? mainArm == HumanoidArm.LEFT
                     : mainArm != HumanoidArm.LEFT;
-            syncNativeHandAnimation(left ? "left" : "right", true,
-                    useAnimationNames(entity, left, entity.getUseItem()));
-            sampleKineticChargeAnimation(left ? "left" : "right", entity, entity.getUseItem());
+            ItemStack item = entity.getUseItem();
+            String[] names = useAnimationNames(entity, left, item);
+            if (isKineticSpear(item) && firstHandAnimation(names) == null) {
+                // Legacy :spear clips describe a trident throw. Keep the authored grip
+                // when this model has no kinetic charge pose; the item handles its use orientation.
+                syncHoldingAnimation(entity, entity.getUsedItemHand(), left);
+            } else {
+                syncNativeHandAnimation(left ? "left" : "right", true, names);
+                sampleKineticChargeAnimation(left ? "left" : "right", entity, item);
+            }
             syncNativeHandAnimation(left ? "right" : "left", false);
         } else {
             syncHoldingAnimation(entity, InteractionHand.MAIN_HAND, mainArm == HumanoidArm.LEFT);
@@ -1499,9 +1506,11 @@ public class YsmAnimationPlayer {
             names.add("lance_charge");
         }
         names.addAll(Arrays.asList(conditionalAnimationNames(prefix, item, true)));
-        // Sparkle falls back to the generic use clip only after all declared
-        // id/tag/use-animation conditions have been considered.
-        names.add(prefix);
+        // Kinetic weapons need a dedicated charge pose. Generic legacy actions
+        // can point the authored grip in an unrelated direction.
+        if (!isKineticSpear(item)) {
+            names.add(prefix);
+        }
         return names.toArray(String[]::new);
     }
 
@@ -1611,8 +1620,6 @@ public class YsmAnimationPlayer {
                 result.add("spear");
         } else if (item.getUseAnimation() == ItemUseAnimation.SPEAR) {
             result.add(use ? "lance" : "spear");
-            if (use)
-                result.add("spear");
         } else if (item.is(Items.MACE)) {
             result.add("mace");
         } else {
@@ -1623,8 +1630,10 @@ public class YsmAnimationPlayer {
                 result.add("spade");
         }
         String useAnimation = item.getUseAnimation().name().toLowerCase(Locale.US);
-        if (!result.contains(useAnimation) && !useAnimation.equals("none"))
+        if (!result.contains(useAnimation) && !useAnimation.equals("none")
+                && !(use && useAnimation.equals("spear"))) {
             result.add(useAnimation);
+        }
         return result;
     }
 

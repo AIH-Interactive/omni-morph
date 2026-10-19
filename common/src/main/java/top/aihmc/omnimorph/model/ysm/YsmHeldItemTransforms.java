@@ -2,6 +2,8 @@ package top.aihmc.omnimorph.model.ysm;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
+import net.minecraft.client.model.effects.SpearAnimations;
+import net.minecraft.client.renderer.entity.state.ArmedEntityRenderState;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.HumanoidArm;
@@ -9,24 +11,16 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemUseAnimation;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.KineticWeapon;
 import org.joml.Matrix4f;
 
 /**
  * Shared third-person item transforms for native YSM hand locators.
  *
- * <p>The values match Sparkle-Morpher's authored-locator path. Keeping this
- * separate from locator resolution makes the behavior apply to every YSM
- * model without encoding model or bone names.</p>
+ * <p>Authored locators own the grip, while item-space use effects follow the
+ * current Minecraft implementation. This applies to every YSM model without
+ * encoding model or bone names.</p>
  */
 public final class YsmHeldItemTransforms {
-    private static final float SPEAR_TIRED_TIP_PLANE_ROLL_DEGREES = 90f;
-    private static final float SPEAR_ENGAGED_FORWARD_DEGREES = 90f;
-    private static final float SPEAR_ENGAGED_TIP_PLANE_COMPENSATION_DEGREES = 60f;
-    private static final float SPEAR_DISENGAGED_DOWN_DEGREES = 6f;
-    private static final float SPEAR_DISPLAY_PIVOT_Y = 0.125f;
-    private static final float SPEAR_DISPLAY_PIVOT_Z = 0.125f;
-
     private YsmHeldItemTransforms() {
     }
 
@@ -69,32 +63,23 @@ public final class YsmHeldItemTransforms {
 
     private static void applyKineticSpearUseTransform(PoseStack stack, LivingEntity entity, ItemStack itemStack, boolean leftHand) {
         if (entity == null || itemStack == null || itemStack.isEmpty()
-                || itemStack.getUseAnimation() != ItemUseAnimation.SPEAR)
+                || itemStack.getUseAnimation() != ItemUseAnimation.SPEAR
+                || !itemStack.has(DataComponents.KINETIC_WEAPON))
             return;
 
-        KineticWeapon weapon = itemStack.get(DataComponents.KINETIC_WEAPON);
         InteractionHand hand = leftHand == (entity.getMainArm() == HumanoidArm.LEFT)
                 ? InteractionHand.MAIN_HAND
                 : InteractionHand.OFF_HAND;
-        if (weapon == null || !entity.isUsingItem() || entity.getUsedItemHand() != hand)
+        if (!entity.isUsingItem() || entity.getUsedItemHand() != hand)
             return;
 
-        float useTicks = entity.getTicksUsingItem();
-        float engaged = smoothStep(progress(useTicks, 0f, weapon.delayTicks()));
-        int tiredStart = weapon.delayTicks();
-        int tiredEnd = tiredStart + weapon.dismountConditions().map(KineticWeapon.Condition::maxDurationTicks).orElse(0);
-        int disengagedEnd = Math.max(tiredEnd,
-                tiredStart + weapon.damageConditions().map(KineticWeapon.Condition::maxDurationTicks).orElse(0));
-        float tired = smoothStep(progress(useTicks, tiredStart, tiredEnd));
-        float disengaged = smoothStep(progress(useTicks, tiredEnd, disengagedEnd));
-        float handSign = leftHand ? -1f : 1f;
-
-        stack.rotateAround(Axis.XP.rotationDegrees(SPEAR_ENGAGED_TIP_PLANE_COMPENSATION_DEGREES * (1f - engaged)),
-                0f, SPEAR_DISPLAY_PIVOT_Y, SPEAR_DISPLAY_PIVOT_Z);
-        stack.rotateAround(Axis.YP.rotationDegrees(handSign * (SPEAR_ENGAGED_FORWARD_DEGREES + SPEAR_TIRED_TIP_PLANE_ROLL_DEGREES * tired)),
-                0f, SPEAR_DISPLAY_PIVOT_Y, SPEAR_DISPLAY_PIVOT_Z);
-        stack.rotateAround(Axis.XP.rotationDegrees(SPEAR_DISENGAGED_DOWN_DEGREES * disengaged),
-                0f, SPEAR_DISPLAY_PIVOT_Y, SPEAR_DISPLAY_PIVOT_Z);
+        // Use the current game's item-space transform after the authored YSM grip.
+        // Its pivots, charge phases, movement and hit feedback must stay in sync with vanilla.
+        var state = new ArmedEntityRenderState();
+        state.attackTime = entity.getAttackAnim(0f);
+        state.ticksSinceKineticHitFeedback = entity.getTicksSinceLastKineticHitFeedback(0f);
+        SpearAnimations.thirdPersonUseItem(state, stack, entity.getTicksUsingItem(),
+                leftHand ? HumanoidArm.LEFT : HumanoidArm.RIGHT, itemStack);
     }
 
     /**
@@ -109,15 +94,5 @@ public final class YsmHeldItemTransforms {
 
     private static float axisLength(float x, float y, float z) {
         return (float) Math.sqrt(x * x + y * y + z * z);
-    }
-
-    private static float progress(float value, float start, float end) {
-        if (end <= start)
-            return value >= end ? 1f : 0f;
-        return Math.max(0f, Math.min(1f, (value - start) / (end - start)));
-    }
-
-    private static float smoothStep(float value) {
-        return value * value * (3f - 2f * value);
     }
 }
