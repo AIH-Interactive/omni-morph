@@ -9,7 +9,6 @@ import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.backend2.library.LibraryAdminSession;
 import top.aihmc.omnimorph.backend2.library.LibraryAuthorization;
-import top.aihmc.omnimorph.backend2.library.LibraryEquipmentVisibility;
 import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.EntityPreview;
 import top.aihmc.omnimorph.gui.widgets.SearchBar;
@@ -19,7 +18,6 @@ import top.aihmc.omnimorph.gui.widgets.library.LibraryIconButton;
 import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionTabs;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
 import top.aihmc.omnimorph.gui.widgets.library.ModelLibraryLayout;
-import top.aihmc.omnimorph.gui.widgets.library.LibraryCheckBox;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
 import top.aihmc.omnimorph.gui.widgets.lists.ModelLibraryGrid;
 import top.aihmc.omnimorph.gui.screens.library.ModelUploadScreen;
@@ -87,11 +85,6 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
     private Button adminEntry;
     private Button grants;
     private Button authorizationToggle;
-    private SwitchButton showPrivate;
-    private LibraryEquipmentVisibility equipmentVisibility;
-    private LibraryEquipmentVisibility.State visibilityState;
-    private LibraryClient.Request<LibraryEquipmentVisibility.State> visibilityRequest;
-    private long visibilityGeneration;
     private LibraryAdminSession admin;
     private LibraryClient.Request<Boolean> adminRestore;
     private int leftWidth;
@@ -218,9 +211,6 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                         minecraft.setScreen(new ModelLibraryAuthorizationScreen(this, client, selected.modelId(), () -> ""));
                     }
                 }));
-        showPrivate = actions.option(new LibraryCheckBox(0, 0, rightWidth,
-                FiguraText.of("gui.library.show_private"), FiguraText.of("gui.library.show_private_hint"), ignored -> savePrivateVisibility()));
-        showPrivate.setToggled(visibilityState != null && visibilityState.showing());
         authorizationToggle = actions.action(new LibraryIconButton("library_authorization", 2,
                 () -> selected != null && selected.requiresAuthorization() ? 1 : 0,
                 FiguraText.of("gui.library.authorization"), null, button -> {
@@ -264,7 +254,6 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
             client = NetworkStuff.libraryClient();
             transfers = new LibraryTransferService(client, FiguraMod.getCacheDirectory());
             collection = NetworkStuff.wardrobeCollection();
-            equipmentVisibility = new LibraryEquipmentVisibility(client);
             thumbnails = new LibraryThumbnailService(client, FiguraMod.getCacheDirectory());
             preview = new LibraryPreviewSession(client);
             admin = new LibraryAdminSession(client, FiguraMod.getCacheDirectory());
@@ -424,9 +413,6 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
     private void select(LibraryModels.Model model) {
         addition = null;
         selected = model;
-        if (showPrivate != null) {
-            showPrivate.setToggled(false);
-        }
         deleteArmed = null;
         if (grid != null) {
             grid.selected(model == null ? null : model.modelId());
@@ -437,62 +423,6 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                 preview.select(model.modelId(), transfers);
             }
         }
-        readPrivateVisibility();
-        updateButtons();
-    }
-
-    private void readPrivateVisibility() {
-        long expected = ++visibilityGeneration;
-        if (visibilityRequest != null) {
-            visibilityRequest.cancel();
-        }
-        visibilityRequest = null;
-        visibilityState = null;
-        if (selected == null || !selected.visibility().equals("PRIVATE") || equipmentVisibility == null) {
-            return;
-        }
-        UUID model = selected.modelId();
-        var request = equipmentVisibility.read(model);
-        visibilityRequest = request;
-        request.future().whenComplete((value, failure) -> {
-            if (closed || expected != visibilityGeneration || selected == null || !model.equals(selected.modelId())) {
-                return;
-            }
-            visibilityState = failure == null ? value : null;
-            showPrivate.setToggled(value != null && value.showing());
-            if (failure != null) {
-                actionMessage = error(failure);
-            }
-            updateButtons();
-        });
-    }
-
-    private void savePrivateVisibility() {
-        if (visibilityState == null || selected == null) {
-            return;
-        }
-        if (!visibilityState.equipped()) {
-            actionMessage = FiguraText.of("gui.library.visibility_on_enable");
-            return;
-        }
-        long expected = ++visibilityGeneration;
-        UUID model = selected.modelId();
-        var request = equipmentVisibility.save(visibilityState, showPrivate.isToggled());
-        visibilityRequest = request;
-        request.future().whenComplete((value, failure) -> {
-            if (closed || expected != visibilityGeneration || selected == null || !model.equals(selected.modelId())) {
-                return;
-            }
-            if (failure != null) {
-                actionMessage = error(failure);
-                readPrivateVisibility();
-            } else {
-                visibilityState = value;
-                showPrivate.setToggled(value.showing());
-                actionMessage = FiguraText.of("gui.library.visibility_saved");
-            }
-            updateButtons();
-        });
         updateButtons();
     }
 
@@ -561,7 +491,6 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
             return;
         }
         boolean busy = mutation != null && !mutation.future().isDone()
-                || visibilityRequest != null && !visibilityRequest.future().isDone()
                 || addition != null && !addition.request().future().isDone();
         boolean available = !closed && client != null && client.current() && state.equals("ready") && !busy;
         sections.administrator(capabilities != null && capabilities.adminLoginAvailable());
@@ -575,15 +504,6 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         authorizationToggle.setActive(available && selected != null && selected.allows("patch"));
         authorizationToggle.setMessage(FiguraText.of(selected != null && selected.requiresAuthorization()
                 ? "gui.library.needs_authorization" : "gui.library.value.free"));
-        boolean privateModel = selected != null && selected.visibility().equals("PRIVATE");
-        showPrivate.setVisible(privateModel);
-        showPrivate.setActive(available && visibilityState != null && privateModel
-                && selected.moderationStatus().equals("ACTIVE") && selected.allows("equip"));
-        showPrivate.setTooltip(FiguraText.of(visibilityState != null && !visibilityState.equipped()
-                ? "gui.library.visibility_on_enable" : "gui.library.show_private_hint"));
-        if (!privateModel || !selected.moderationStatus().equals("ACTIVE")) {
-            showPrivate.setToggled(false);
-        }
         if (uploadEntry != null) {
             uploadEntry.setActive(!closed && client != null && client.current() && capabilities != null
                     && capabilities.enabled() && !busy);
@@ -657,10 +577,6 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
     private void closeServices() {
         closed = true;
         generation++;
-        visibilityGeneration++;
-        if (visibilityRequest != null) {
-            visibilityRequest.cancel();
-        }
         if (admin != null) {
             admin.close();
         }
