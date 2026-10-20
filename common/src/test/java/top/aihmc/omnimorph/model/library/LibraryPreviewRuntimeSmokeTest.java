@@ -776,6 +776,19 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     selection.newInstance(null, null, false, id, net.minecraft.network.chat.Component.literal("selected")));
             field(collection.getClass(), "entries").set(collection, java.util.List.of(
                     new top.aihmc.omnimorph.backend2.library.LibraryModels.CollectionEntry(id, 1, "UPLOAD", false, model)));
+            var showModel = new top.aihmc.omnimorph.gui.widgets.SwitchButton(0, 0, 24, 24,
+                    net.minecraft.network.chat.Component.literal("show"), false);
+            field(screen.getClass(), "showModel").set(screen, showModel);
+            UUID equippedModel = UUID.randomUUID();
+            field(screen.getClass(), "libraryVisibility").set(screen,
+                    new top.aihmc.omnimorph.backend2.library.LibraryEquipmentVisibility.State(equippedModel, 1, 7, true, true));
+            var updateVisibility = screen.getClass().getDeclaredMethod("updateVisibilityButton", boolean.class);
+            updateVisibility.setAccessible(true);
+            updateVisibility.invoke(screen, false);
+            require(showModel.isActive(), "actual public equipment remains configurable without collection membership and independently of preview selection");
+            field(screen.getClass(), "libraryVisibility").set(screen, null);
+            updateVisibility.invoke(screen, false);
+            require(!showModel.isActive(), "a preview selection alone cannot enable the equipment visibility switch");
             var actions = new top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar(20, 200, 240, 56);
             var build = screen.getClass().getDeclaredMethod("buildCloudCollectionActions", actions.getClass());
             build.setAccessible(true);

@@ -37,7 +37,17 @@ public final class LibraryModels {
     }
 
     public record SessionInfo(UUID uuid, String name, boolean admin, Long equipmentRevision,
-                              UUID equipmentModelId, Long equipmentModelRevision, boolean showPrivateEquipment) {
+                              UUID equipmentModelId, Long equipmentModelRevision, boolean showPrivateEquipment,
+                              Boolean showEquipment) {
+        public SessionInfo(UUID uuid, String name, boolean admin, Long equipmentRevision,
+                           UUID equipmentModelId, Long equipmentModelRevision, boolean showPrivateEquipment) {
+            this(uuid, name, admin, equipmentRevision, equipmentModelId, equipmentModelRevision, showPrivateEquipment, null);
+        }
+
+        public boolean showing() {
+            return showEquipment != null ? showEquipment : showPrivateEquipment;
+        }
+
         public SessionInfo(UUID uuid, String name, boolean admin, Long equipmentRevision) {
             this(uuid, name, admin, equipmentRevision, null, null, false);
         }
