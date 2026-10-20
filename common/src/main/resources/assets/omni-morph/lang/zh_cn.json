@@ -1,4 +1,10 @@
 {
+    "omni-morph.gui.wardrobe.unnamed_bone": "（未命名）",
+    "omni-morph.gui.wardrobe.no_bones": "暂无可用层级",
+    "omni-morph.gui.wardrobe.no_bone_matches": "没有匹配的骨骼",
+    "omni-morph.gui.wardrobe.refresh_bones": "刷新骨骼树",
+    "omni-morph.gui.wardrobe.selected_bone": "选中骨骼：",
+    "omni-morph.gui.wardrobe.bones_readonly": "只读骨骼树 · 不修改模型",
     "omni-morph.gui.wardrobe.save_failed": "配装保存失败，请重试",
     "omni-morph.gui.wardrobe.outfit": "配装",
     "omni-morph.gui.wardrobe.collection": "我的形象集",
