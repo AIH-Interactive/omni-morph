@@ -410,3 +410,10 @@ Rust 检查同样在后端目录采用该管道并立即检查退出码、读取
 - 模型库卡片悬浮追加完整类型文本，复用同一类型翻译，区分 Figura、普通 YSM、加密 YSM，不改变模型公开权限或授权状态。
 - 验证通过：`:fabric:build`（含正式控件顺序、分隔、无候选按钮、28 高度、本地/云端实际右键菜单回调、搜索旁刷新及类型翻译参数检查）、`:common:modelLibraryLayoutSmokeTest`、`:common:wardrobeTransitionSmokeTest`、`:common:boneTreeSmokeTest`、界面翻译检查 1018 键。
 - 原生菜单的 CPU 输入夹具提供确定的 viewport 尺寸，只证明事件和回调，不创建或渲染游戏窗口。真实窗口的分隔、菜单位置、图标、悬浮与滚动为 `MANUAL/PENDING`，未用隐藏渲染代替视觉验收。版本保持 Alpha 3，测试 JAR 与四种语言更新日志已更新。
+
+### 展示按钮请求生命周期修复（2026-10-21）
+
+- 已复现：配装选中预览时，展示状态与骨骼树共用模型观察字段，骨骼树改为跟随所选模型后不再更新该字段；每次页面 tick 都误判当前装备变化并取消请求，公开及私有形象均可能持续禁用。
+- 展示按钮独立记录当前已启用形象及其 NBT，变化时仅刷新一次；骨骼树仍跟随所选预览。保持装备目标、账号、CAS 和权限检查，不改变模型库公开权限或自动换装。
+- 回归先复现失败，再通过真实 WardrobeScreen.tick 与异步 HTTP 会话/保存/回读验证：不相关预览、连续 tick、公开/私有关闭与开启、装备重新加载。libraryPreviewRuntimeSmokeTest 与 libraryEquipmentVisibilitySmokeTest 通过；测试夹具仅补充无 Mixin 运行时的控件访问器和世界容器，真实游戏 GUI 为 MANUAL/PENDING。
+- 版本保持 1.0.0-alpha.3，四种语言更新日志同步。下一独立变更为来源/用途“全部”默认值与“装饰”文案。

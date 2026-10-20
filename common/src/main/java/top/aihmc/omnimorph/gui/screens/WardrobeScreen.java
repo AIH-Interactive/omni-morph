@@ -105,6 +105,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private LibraryClient.Request<?> visibilityRequest;
     private volatile long selectionGeneration;
     private long visibilityGeneration;
+    private top.aihmc.omnimorph.avatar.Avatar visibilityAvatar;
+    private CompoundTag visibilityNbt;
     private volatile boolean removed;
     private boolean wasUploading;
     private List<LibraryModels.CollectionEntry> shownEntries = List.of();
@@ -1161,7 +1163,10 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }
         if (tab == Tab.OUTFIT) {
             var current = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
-            if (current != observedAvatar || (current != null && current.nbt != observedNbt)) {
+            // Bone observations follow the selected preview; visibility always follows actual equipment.
+            if (current != visibilityAvatar || (current != null && current.nbt != visibilityNbt)) {
+                visibilityAvatar = current;
+                visibilityNbt = current == null ? null : current.nbt;
                 refreshVisibility();
             }
             if (previewWidget != null) {
