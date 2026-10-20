@@ -55,8 +55,8 @@ public final class LibraryPreviewCache {
             }
         }
 
-        private String filename() {
-            return scope.prefix() + rawHash + ".bin";
+        private String stem(Kind kind) {
+            return kind.name().toLowerCase(java.util.Locale.ROOT) + "-" + scope.prefix() + rawHash;
         }
     }
 
@@ -77,7 +77,7 @@ public final class LibraryPreviewCache {
     public LibraryPreviewCache(Path figuraCacheDirectory) {
         codec = new ModelCacheCodec(figuraCacheDirectory);
         cacheRoot = figuraCacheDirectory.toAbsolutePath().normalize();
-        root = cacheRoot.resolve("avatars/model-library-preview");
+        root = cacheRoot.resolve("avatars");
     }
 
     public Path root() {
@@ -95,7 +95,14 @@ public final class LibraryPreviewCache {
             return Optional.empty();
         }
         initialize(lifetime);
-        Path path = directory(kind).resolve(key.filename());
+        Path directory = directory(kind);
+        Path path = directory.resolve(key.stem(kind) + ".omc");
+        if (kind == Kind.THUMBNAIL) {
+            path = directory.resolve(key.stem(kind) + ".png");
+            if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
+                path = directory.resolve(key.stem(kind) + ".jpg");
+            }
+        }
         synchronized (ACTIVE) {
             if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
                 return Optional.empty();
@@ -132,10 +139,12 @@ public final class LibraryPreviewCache {
         }
         initialize(lifetime);
         try (var files = Files.list(directory(kind))) {
-            for (Path path : files.limit(MAX_ENTRIES + 1L).toList()) {
+            for (Path path : files.filter(file -> matches(file.getFileName().toString(), kind))
+                    .limit(MAX_ENTRIES + 1L).toList()) {
                 String name = path.getFileName().toString();
-                if (name.startsWith(scope.prefix()) && name.matches("[a-f0-9]{64}-[a-f0-9]{64}\\.bin")) {
-                    String hash = name.substring(65, 129);
+                String prefix = kind.name().toLowerCase(java.util.Locale.ROOT) + "-" + scope.prefix();
+                if (name.startsWith(prefix)) {
+                    String hash = name.substring(prefix.length(), prefix.length() + 64);
                     Optional<Lease> lease = find(new Key(scope, hash), kind, lifetime, () -> {});
                     if (lease.isPresent()) {
                         return lease;
@@ -163,12 +172,13 @@ public final class LibraryPreviewCache {
         }
         initialize(lifetime);
         Path directory = directory(kind);
-        Path target = directory.resolve(key.filename());
+        Path target = directory.resolve(key.stem(kind)
+                + (kind == Kind.THUMBNAIL ? AvatarCachePaths.imageExtension(bytes) : ".omc"));
         synchronized (ACTIVE) {
             if (ACTIVE.containsKey(target)) {
                 return false;
             }
-            Path partial = Files.createTempFile(directory, "transfer-", ".part");
+            Path partial = Files.createTempFile(directory, "preview-" + kind.directory + "-", ".part");
             try {
                 if (kind == Kind.THUMBNAIL) {
                     Files.write(partial, bytes);
@@ -219,9 +229,10 @@ public final class LibraryPreviewCache {
                 if (Files.isSymbolicLink(path)) {
                     continue;
                 }
-                if (path.getFileName().toString().endsWith(".part")) {
+                if (path.getFileName().toString().startsWith("preview-" + kind.directory + "-")
+                        && path.getFileName().toString().endsWith(".part")) {
                     deleteUnused(path);
-                } else if (path.getFileName().toString().matches("[a-f0-9]{64}-[a-f0-9]{64}\\.bin")
+                } else if (matches(path.getFileName().toString(), kind)
                         && Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
                     if (expired(path, lifetime) || kind != Kind.THUMBNAIL && !ModelCacheCodec.isWrapped(path)) {
                         deleteUnused(path);
@@ -247,15 +258,27 @@ public final class LibraryPreviewCache {
     }
 
     private Path directory(Kind kind) throws IOException {
-        if (kind != Kind.THUMBNAIL) {
-            return AvatarCachePaths.prepare(cacheRoot, "model-library-preview/" + kind.directory);
-        }
-        Path thumbnails = cacheRoot.resolve("model-library-preview/thumbnails");
-        if (Files.isSymbolicLink(cacheRoot) || Files.isSymbolicLink(thumbnails.getParent())
-                || Files.isSymbolicLink(thumbnails)) {
-            throw new IOException("UNSAFE_PREVIEW_CACHE");
-        }
-        return Files.createDirectories(thumbnails);
+        return AvatarCachePaths.prepareFlat(cacheRoot, "model-library-preview/" + kind.directory, file -> {
+            String name = file.getFileName().toString();
+            if (!name.matches("[a-f0-9]{64}-[a-f0-9]{64}\\.(bin|omc|png|jpg)")) {
+                return null;
+            }
+            String extension = ".omc";
+            if (kind == Kind.THUMBNAIL) {
+                try (var input = Files.newInputStream(file)) {
+                    extension = AvatarCachePaths.imageExtension(input.readNBytes(8));
+                } catch (IOException invalidImage) {
+                    return null;
+                }
+            }
+            return kind.name().toLowerCase(java.util.Locale.ROOT) + "-" + name.substring(0, 129) + extension;
+        });
+    }
+
+    private static boolean matches(String name, Kind kind) {
+        String extension = kind == Kind.THUMBNAIL ? "(png|jpg)" : "omc";
+        return name.matches(kind.name().toLowerCase(java.util.Locale.ROOT)
+                + "-[a-f0-9]{64}-[a-f0-9]{64}\\." + extension);
     }
 
     private static int limit(Kind kind) {

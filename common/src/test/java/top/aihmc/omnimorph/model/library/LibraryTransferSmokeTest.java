@@ -53,22 +53,28 @@ public final class LibraryTransferSmokeTest {
                     require(files.findAny().isEmpty(), "formal temporary file is removed after verified preparation");
                 }
                 Path cached;
-                try (var files = Files.list(directory.resolve("avatars/model-library-preview/models"))) {
-                    cached = files.findFirst().orElseThrow();
+                try (var files = Files.list(directory.resolve("avatars"))) {
+                    cached = files.filter(path -> path.getFileName().toString().startsWith("model-")
+                            && path.toString().endsWith(".omc")).findFirst().orElseThrow();
                 }
                 var codec = new top.aihmc.omnimorph.model.cache.ModelCacheCodec(directory);
                 require(!java.util.Arrays.equals(Files.readAllBytes(cached), server.bytes), "preview disk is wrapped against direct unpacking");
                 require(java.util.Arrays.equals(codec.read(cached, CloudHttp.FILE_BYTES), server.bytes),
                         "cache unwrap restores only the original portable distribution");
-                Files.move(directory.resolve("avatars/wardrobe-resources"), directory.resolve("wardrobe-resources"));
+                Path oldResources = Files.createDirectories(directory.resolve("wardrobe-resources"));
+                try (var files = Files.list(directory.resolve("avatars"))) {
+                    for (Path file : files.filter(path -> path.getFileName().toString().startsWith("resource-")).toList()) {
+                        Files.move(file, oldResources.resolve(file.getFileName().toString().substring("resource-".length())));
+                    }
+                }
                 await(new LibraryTransferService(client, directory).download(MODEL).request().future(), callbacks);
                 require(!Files.exists(directory.resolve("wardrobe-resources")),
                         "actual formal download lookup migrates legacy resources and their indexes");
                 await(transfers.download(MODEL).request().future(), callbacks);
                 require(server.files.get() == 2 && server.completed.get() == 1,
                         "authorized complete formal cache avoids duplicate downloads and receipts");
-                try (var files = Files.list(directory.resolve("avatars/wardrobe-resources"))) {
-                    for (Path file : files.toList()) {
+                try (var files = Files.list(directory.resolve("avatars"))) {
+                    for (Path file : files.filter(path -> path.getFileName().toString().startsWith("resource-")).toList()) {
                         Files.delete(file);
                     }
                 }
@@ -81,8 +87,8 @@ public final class LibraryTransferSmokeTest {
                 failure(transfers.download(MODEL).request().future(), callbacks, "FORBIDDEN");
                 require(server.files.get() == 2, "revoked access cannot use disk or request another body");
                 server.revoked.set(false);
-                try (var files = Files.list(directory.resolve("avatars/wardrobe-resources"))) {
-                    for (Path file : files.toList()) {
+                try (var files = Files.list(directory.resolve("avatars"))) {
+                    for (Path file : files.filter(path -> path.getFileName().toString().startsWith("resource-")).toList()) {
                         Files.delete(file);
                     }
                 }

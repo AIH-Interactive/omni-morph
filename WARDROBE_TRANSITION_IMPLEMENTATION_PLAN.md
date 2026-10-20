@@ -373,3 +373,10 @@ Rust 检查同样在后端目录采用该管道并立即检查退出码、读取
 - 缩略图仍在 `cache/model-library-preview/thumbnails`；原密钥与账号形象集快照保持原位置。正式资源的单模型索引随模型包迁移，避免丢失校验及下载回执恢复信息。后续装饰品使用独立目录，本次不创建或实现装饰品缓存。
 - 读取或清理时按需迁移旧的受控缓存目录，沿用原密钥，不解密落盘、不触碰用户模型源目录；目标已有同名文件时保留双方，避免覆盖新缓存。原预览授权检查、TTL、活动租约及下载失败清理继续生效。
 - 验证通过：`:fabric:build`、`:common:libraryPreviewCacheSmokeTest`、`:common:libraryTransferSmokeTest`、`:common:libraryEquipmentSmokeTest`；覆盖真实预览/正式下载入口的旧目录迁移、沿用密钥解密、重名保留、不重复下载、缩略图独立预算、权限与回执重试。测试夹具中的独立缩略图迁移哨兵已在预算测试前清理，未修改生产预算行为。版本保持 `1.0.0-alpha.3`，测试 JAR 已更新。
+
+### 形象与缩略图同目录（覆盖上节的目录细分，2026-10-20）
+
+- 形象模型与缩略图直接共用 `cache/avatars`；预览包改用 `.omc`，不再使用 `.bin`。缩略图按文件签名保存为 `.png` / `.jpg`，保留原图片内容、不转换格式。正式模型、预览模型、衣柜预览与缩略图使用不同文件名前缀，账号/实例/资源版本及权限作用域继续隔离。
+- 兼容更早的缓存根目录和上一版 `avatars` 内子目录，按需移入同一目录并保留重名目标；正式资源的校验索引/下载回执随包迁移，原密钥与账号快照位置不变。下载未完成的加密暂存仍使用受控暂存子目录，装饰品未实现且未来使用独立目录。
+- 共用目录后，预览查找先按类型筛选再限数量，TTL/LRU 仅处理本类型文件；预览临时文件清理只匹配本类型前缀，避免删除正式资源或其他下载中的文件。
+- 验证通过：`:fabric:build`、`:common:libraryPreviewCacheSmokeTest`、`:common:libraryThumbnailSmokeTest`、`:common:libraryTransferSmokeTest`、`:common:libraryEquipmentSmokeTest`。覆盖新文件扩展名、旧 `.bin` 模型/PNG/JPEG 缩略图迁移、同目录类型隔离、授权检查、活动租约、独立预算、正式缓存复用和失败清理。`git diff --check` 无错误；保持 Alpha 3，测试 JAR 已更新。

@@ -8,7 +8,7 @@
 
 ### Added
 
-- Full-avatar resources, model previews and download staging now share `cache/avatars`, with lazy legacy migration. Thumbnails, keys and account metadata remain separate; future decorations will use their own directory.
+- Avatar models and thumbnails share the flat `cache/avatars` directory: models use `.omc`, and images use `.png` / `.jpg` according to their contents. Legacy caches migrate lazily; keys and account metadata remain separate, with a separate directory planned for decorations.
 - Vertical Outfit / My Collection tabs, with independent local/cloud sources and avatar/part modes. Decoration areas remain layout placeholders marked “Coming in 2.0”.
 - “Add to wardrobe” in the model library and automatic cloud collection membership for personal uploads, without automatically equipping models.
 - Outfit candidates, manual caching and permitted cloud model management; “Automatically cache collection” under global Misc settings, off by default.

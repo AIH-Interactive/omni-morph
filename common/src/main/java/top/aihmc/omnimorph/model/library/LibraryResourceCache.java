@@ -29,7 +29,7 @@ public final class LibraryResourceCache {
     public LibraryResourceCache(Path root, LibrarySession session) {
         this.session = session;
         cacheRoot = root.toAbsolutePath().normalize();
-        directory = cacheRoot.resolve("avatars/wardrobe-resources");
+        directory = cacheRoot.resolve("avatars");
         codec = new ModelCacheCodec(root);
     }
 
@@ -37,9 +37,13 @@ public final class LibraryResourceCache {
         if (Files.isSymbolicLink(directory)) {
             throw new IOException("UNSAFE_RESOURCE_CACHE");
         }
-        AvatarCachePaths.prepare(cacheRoot, "wardrobe-resources");
+        AvatarCachePaths.prepareFlat(cacheRoot, "wardrobe-resources", file -> {
+            String name = file.getFileName().toString();
+            return name.matches("[a-f0-9]{64}(\\.[a-f0-9-]{36}\\.pending)?\\.(omc|json)")
+                    ? "resource-" + name : null;
+        });
         String identity = session.instance() + "\n" + session.player() + "\n" + model.modelId();
-        return directory.resolve(CloudHttp.sha256(identity.getBytes(StandardCharsets.UTF_8)) + suffix);
+        return directory.resolve("resource-" + CloudHttp.sha256(identity.getBytes(StandardCharsets.UTF_8)) + suffix);
     }
 
     public byte[] read(LibraryModels.Model model) throws IOException {

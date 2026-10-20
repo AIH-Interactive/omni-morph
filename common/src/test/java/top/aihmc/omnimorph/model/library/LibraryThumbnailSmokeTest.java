@@ -83,6 +83,12 @@ public final class LibraryThumbnailSmokeTest {
             var thumbnails = new LibraryThumbnailService(client, directory);
             // Do not call acquire/close GPU methods in this CPU-only test.
             require(await(thumbnails.load(MODEL).future(), callbacks).width() == pixels.width(), "real image stream");
+            try (var files = Files.list(directory.resolve("avatars"))) {
+                Path image = files.filter(path -> path.getFileName().toString().startsWith("thumbnail-"))
+                        .findFirst().orElseThrow();
+                require(image.toString().endsWith(".png") && java.util.Arrays.equals(Files.readAllBytes(image), png),
+                        "actual thumbnail downloads use a PNG extension beside avatar caches");
+            }
             await(thumbnails.load(MODEL).future(), callbacks);
             require(images.get() == 1 && details.get() == 3, "cache hit still rechecks current backend policy");
             allowed.set(false);
