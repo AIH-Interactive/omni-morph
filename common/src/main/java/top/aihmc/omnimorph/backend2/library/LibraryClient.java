@@ -129,6 +129,11 @@ public final class LibraryClient implements AutoCloseable {
                 Map.of("in_outfit", inOutfit), JsonObject.class));
     }
 
+    public Request<JsonObject> collectionRemove(UUID model) {
+        return submit(Lane.CONTROL, exchange -> exchange.json("DELETE", ROOT + "collection/" + model,
+                null, JsonObject.class));
+    }
+
     public <T> Request<T> submit(Lane lane, Task<T> action) {
         var request = new Request<T>(executors.get(lane));
         synchronized (requests) {

@@ -68,7 +68,7 @@ public class Configs {
 
 
     public static final ConfigType.BoolConfig WARDROBE_AUTO_CACHE =
-            new ConfigType.BoolConfig("wardrobe_auto_cache", UI, false);
+            new ConfigType.BoolConfig("wardrobe_auto_cache", MISC, false);
 
     public static final ConfigType.BoolConfig HARDWARE_ACCELERATION_ENABLED =
             new ConfigType.BoolConfig("hardware_acceleration.enabled", HARDWARE_ACCELERATION, false) {

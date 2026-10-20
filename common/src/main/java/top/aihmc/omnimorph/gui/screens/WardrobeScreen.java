@@ -16,10 +16,12 @@ import top.aihmc.omnimorph.backend2.HttpAPI;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.backend2.library.LibraryEquipmentVisibility;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
-import top.aihmc.omnimorph.config.ConfigManager;
+import top.aihmc.omnimorph.backend2.library.LibraryAuthorization;
 import top.aihmc.omnimorph.config.Configs;
 import top.aihmc.omnimorph.gui.FiguraToast;
 import top.aihmc.omnimorph.gui.screens.library.ModelLibraryAppealsScreen;
+import top.aihmc.omnimorph.gui.screens.library.ModelLibraryAuthorizationScreen;
+import top.aihmc.omnimorph.gui.screens.library.ModelLibraryEditScreen;
 import top.aihmc.omnimorph.gui.widgets.AvatarInfoWidget;
 import top.aihmc.omnimorph.gui.widgets.BackendMotdWidget;
 import top.aihmc.omnimorph.gui.widgets.Button;
@@ -36,6 +38,7 @@ import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
+import top.aihmc.omnimorph.model.library.LibraryModelEdits;
 import top.aihmc.omnimorph.model.library.PreviewHierarchy;
 import top.aihmc.omnimorph.utils.FiguraIdentifier;
 import top.aihmc.omnimorph.model.library.LibraryCollectionService;
@@ -124,6 +127,15 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private Button uploadButton;
     private Button deleteButton;
     private SwitchButton showModel;
+    private Button cacheSelectedButton;
+    private Button removeCollectionButton;
+    private Button editCollectionButton;
+    private Button collectionGrantsButton;
+    private Button collectionAuthorizationButton;
+    private Button collectionPublicationButton;
+    private UUID deleteCollectionArmed;
+    private LibraryClient.Request<?> collectionMutation;
+    private java.util.concurrent.CompletableFuture<?> collectionChange;
     private Component message = Component.empty();
 
     public WardrobeScreen(Screen parentScreen) {
@@ -160,6 +172,12 @@ public class WardrobeScreen extends AbstractPanelScreen {
         candidateButton = null;
         enableButton = null;
         showModel = null;
+        cacheSelectedButton = null;
+        removeCollectionButton = null;
+        editCollectionButton = null;
+        collectionGrantsButton = null;
+        collectionAuthorizationButton = null;
+        collectionPublicationButton = null;
         uploadButton = null;
         deleteButton = null;
         previewWidget = null;
@@ -386,7 +404,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private void buildPreview() {
         int x = layout.previewX();
         int w = layout.previewWidth();
-        int actionsHeight = LibraryActionBar.heightFor(w, tab == Tab.OUTFIT ? 13 : 3) - 28;
+        int actionCount = tab == Tab.OUTFIT ? 13 : source == Source.CLOUD ? 7 : 3;
+        int actionsHeight = LibraryActionBar.heightFor(w, actionCount) - 28;
         int actionsY = height - 30 - actionsHeight;
         int size = Math.max(24, Math.min(w, actionsY - layout.top() - 42));
         previewWidget = new EntityPreview(x, layout.top(), w, size, size * 0.38f, -15, 30,
@@ -431,14 +450,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
             }
         }));
         if (tab == Tab.COLLECTION && source == Source.CLOUD) {
-            actions.action(new LibraryIconButton("wardrobe_cache", 2,
-                    () -> Configs.WARDROBE_AUTO_CACHE.value ? 1 : 0, text("auto_cache"), null, button -> {
-                Configs.WARDROBE_AUTO_CACHE.setValue(Boolean.toString(!Configs.WARDROBE_AUTO_CACHE.value));
-                ConfigManager.saveConfig();
-                if (collection != null) {
-                    collection.refresh();
-                }
-            }));
+            buildCloudCollectionActions(actions);
         }
         if (source == Source.LOCAL) {
             actions.action(icon(0, 0, "new_avatar", "avatars",
@@ -476,6 +488,189 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 syncHierarchy();
             }));
         }
+    }
+
+    private LibraryModels.Model selectedCollectionModel() {
+        if (selected == null || selected.cloud() == null || collection == null) {
+            return null;
+        }
+        return collection.entries().stream().filter(entry -> entry.modelId().equals(selected.cloud()))
+                .map(LibraryModels.CollectionEntry::model).filter(java.util.Objects::nonNull).findFirst().orElse(null);
+    }
+
+    private boolean ownsCollectionModel(LibraryModels.Model model) {
+        return model != null && client != null && model.uploader().uuid().equals(client.session().player());
+    }
+
+    private boolean collectionBusy() {
+        return collectionMutation != null && !collectionMutation.future().isDone()
+                || collectionChange != null && !collectionChange.isDone()
+                || selected != null && selected.cloud() != null && collection != null && collection.busy(selected.cloud());
+    }
+
+    private void buildCloudCollectionActions(LibraryActionBar actions) {
+        cacheSelectedButton = actions.action(new LibraryIconButton("wardrobe_cache", 2,
+                () -> selected != null && selected.cloud() != null && collection != null
+                        && collection.cacheState(selected.cloud()).equals("cached") ? 1 : 0,
+                text("cache_selected"), null, button -> {
+            var model = selectedCollectionModel();
+            if (model != null && model.allows("download") && !collectionBusy()) {
+                cachingModel = model.modelId();
+                selectionCaching = collection.add(model.modelId());
+                selectionCaching.request().future().whenComplete((value, failure) -> {
+                    if (!removed && failure != null) {
+                        error(failure);
+                    }
+                });
+            }
+        }));
+        removeCollectionButton = actions.action(new LibraryIconButton("library_delete", 1, () -> 0,
+                text("remove_collection"), null, button -> removeSelectedCollection()));
+        editCollectionButton = actions.action(new LibraryIconButton("library_edit", 1, () -> 0,
+                FiguraText.of("gui.library.edit"), null, button -> {
+            var model = selectedCollectionModel();
+            if (client == null || !LibraryModelEdits.available(model, client.session().player()) || collectionBusy()) {
+                return;
+            }
+            var expectedClient = client;
+            long generation = selectionGeneration;
+            var request = client.capabilities();
+            collectionMutation = request;
+            request.future().whenComplete((capabilities, failure) -> {
+                if (!removed && client == expectedClient && expectedClient.current() && generation == selectionGeneration) {
+                    if (failure != null) {
+                        error(failure);
+                    } else if (capabilities.enabled()) {
+                        preview.clear();
+                        minecraft.setScreen(new ModelLibraryEditScreen(this, client, capabilities, model.modelId()));
+                    }
+                }
+            });
+        }));
+        collectionGrantsButton = actions.action(new LibraryIconButton("library_grants", 1, () -> 0,
+                FiguraText.of("gui.library.grants"), null, button -> {
+            var model = selectedCollectionModel();
+            if (LibraryAuthorization.available(model) && !collectionBusy()) {
+                preview.clear();
+                minecraft.setScreen(new ModelLibraryAuthorizationScreen(this, client, model.modelId(), () -> ""));
+            }
+        }));
+        collectionAuthorizationButton = actions.action(new LibraryIconButton("library_authorization", 2,
+                () -> selectedCollectionModel() != null && selectedCollectionModel().requiresAuthorization() ? 1 : 0,
+                FiguraText.of("gui.library.authorization"), null, button -> {
+            var model = selectedCollectionModel();
+            if (model != null && model.allows("patch")) {
+                mutateCollectionModel(model, "PATCH", Map.of("operation_id", UUID.randomUUID().toString(),
+                        "expected_revision", model.policyRevision(), "requires_authorization", !model.requiresAuthorization()), false);
+            }
+        }));
+        collectionPublicationButton = actions.action(new LibraryIconButton("library_visibility", 2,
+                () -> selectedCollectionModel() != null && selectedCollectionModel().visibility().equals("PUBLIC") ? 1 : 0,
+                FiguraText.of("gui.library.visibility"), null, button -> {
+            var model = selectedCollectionModel();
+            if (model != null && model.allows("patch")) {
+                mutateCollectionModel(model, "PATCH", Map.of("operation_id", UUID.randomUUID().toString(),
+                        "expected_revision", model.policyRevision(),
+                        "visibility", model.visibility().equals("PUBLIC") ? "PRIVATE" : "PUBLIC"), false);
+            }
+        }));
+        updateCollectionButtons();
+    }
+
+    private void removeSelectedCollection() {
+        if (selected == null || selected.cloud() == null || client == null || !client.current()
+                || collection == null || !collection.available() || collectionBusy()) {
+            return;
+        }
+        UUID id = selected.cloud();
+        var model = selectedCollectionModel();
+        if (ownsCollectionModel(model)) {
+            if (!model.allows("delete")) {
+                return;
+            }
+            if (!id.equals(deleteCollectionArmed)) {
+                deleteCollectionArmed = id;
+                updateCollectionButtons();
+                return;
+            }
+            mutateCollectionModel(model, "DELETE", Map.of("operation_id", UUID.randomUUID().toString(),
+                    "expected_revision", model.policyRevision()), true);
+        } else {
+            var change = collection.remove(id);
+            collectionChange = change;
+            change.whenComplete((value, failure) -> finishCollectionChange(id, failure, true));
+        }
+    }
+
+    private void mutateCollectionModel(LibraryModels.Model model, String method, Map<String, Object> input,
+                                       boolean removeMember) {
+        if (client == null || !client.current() || collectionBusy()) {
+            return;
+        }
+        var request = client.submit(LibraryClient.Lane.CONTROL, exchange -> exchange.json(method,
+                "/api/library/v1/models/" + model.modelId(), input, Map.class));
+        collectionMutation = request;
+        var targetCollection = collection;
+        request.future().whenComplete((value, failure) -> {
+            if (failure != null) {
+                finishCollectionChange(model.modelId(), failure, false);
+            } else {
+                var refresh = removeMember ? targetCollection.remove(model.modelId()) : targetCollection.refresh();
+                collectionChange = refresh;
+                refresh.whenComplete((entries, refreshFailure) -> finishCollectionChange(model.modelId(), refreshFailure, removeMember));
+            }
+        });
+    }
+
+    private void finishCollectionChange(UUID id, Throwable failure, boolean clearSelection) {
+        if (removed) {
+            return;
+        }
+        if (failure != null) {
+            error(failure);
+        } else if (clearSelection && selected != null && id.equals(selected.cloud())) {
+            selected = null;
+            selections.remove(context());
+            deleteCollectionArmed = null;
+            previewSelection();
+            refreshCollectionCards();
+        }
+        updateCollectionButtons();
+    }
+
+    private void updateCollectionButtons() {
+        if (cacheSelectedButton == null) {
+            return;
+        }
+        var model = selectedCollectionModel();
+        boolean available = !removed && client != null && client.current() && collection != null
+                && collection.available() && !collectionBusy();
+        cacheSelectedButton.setActive(available && model != null && model.allows("download"));
+        if (selected != null && selected.cloud() != null && collection != null) {
+            cacheSelectedButton.setMessage(text("cache_selected").copy().append(" · ").append(text(collection.cacheState(selected.cloud()))));
+        }
+        boolean owner = ownsCollectionModel(model);
+        removeCollectionButton.setActive(available && selected != null && selected.cloud() != null
+                && (!owner || model.allows("delete")));
+        removeCollectionButton.setMessage(owner ? collectionRemovalLabel(model.modelId())
+                : text("remove_collection"));
+        editCollectionButton.setVisible(client != null && LibraryModelEdits.available(model, client.session().player()));
+        editCollectionButton.setActive(available && editCollectionButton.isVisible());
+        collectionGrantsButton.setVisible(LibraryAuthorization.available(model));
+        collectionGrantsButton.setActive(available && collectionGrantsButton.isVisible());
+        boolean patch = owner && model.allows("patch");
+        collectionAuthorizationButton.setVisible(patch);
+        collectionAuthorizationButton.setActive(available && patch);
+        collectionAuthorizationButton.setMessage(FiguraText.of(model != null && model.requiresAuthorization()
+                ? "gui.library.needs_authorization" : "gui.library.value.free"));
+        collectionPublicationButton.setVisible(patch);
+        collectionPublicationButton.setActive(available && patch);
+        collectionPublicationButton.setMessage(FiguraText.of(model != null && model.visibility().equals("PUBLIC")
+                ? "gui.library.make_private" : "gui.library.make_public"));
+    }
+
+    private Component collectionRemovalLabel(UUID id) {
+        return id.equals(deleteCollectionArmed) ? FiguraText.of("gui.library.delete_confirm") : text("delete_submission");
     }
 
     private void buildRightPane() {
@@ -579,6 +774,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private void selectLocal(LocalAvatarFetcher.AvatarPath avatar) {
+        deleteCollectionArmed = null;
         selected = avatar == null ? null : new Selection(avatar.getPath(), avatar.getTheActualPathForThis(), avatar.isYsm(), null,
                 Component.literal(avatar.getName()));
         selections.put(context(), selected);
@@ -586,6 +782,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private void selectCloud(LibraryModels.CollectionEntry entry) {
+        deleteCollectionArmed = null;
         if (client == null || collection == null || !collection.available()
                 || entry.model() == null || !entry.model().allows("preview")) {
             message = text("unavailable");
@@ -906,7 +1103,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }
         boolean busy = enabling != null && !enabling.future().isDone();
         if (candidateButton != null) {
-            candidateButton.setActive(!parts && !busy && (selected == null && tab == Tab.OUTFIT
+            candidateButton.setActive(!parts && !busy && !collectionBusy() && (selected == null && tab == Tab.OUTFIT
                     || selected != null && (selected.path() != null
                     || client != null && client.current() && collection.available())));
             candidateButton.setMessage(text(selected == null && tab == Tab.OUTFIT ? "go_collection"
@@ -943,6 +1140,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         if (previewWidget != null) {
             previewWidget.setSelectedBone(tab == Tab.OUTFIT ? bones.selectedPart() : null);
         }
+        updateCollectionButtons();
     }
 
     @Override

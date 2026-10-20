@@ -120,6 +120,15 @@ public final class LibraryTransferSmokeTest {
                                     && LibraryCollectionService.offlineMetadata(directory, server.origin(), UUID.randomUUID()).isEmpty(),
                             "offline metadata is account scoped and is not an authorization result");
                     server.collectionStatus.set(200);
+                    require(await(collection.refresh(), callbacks).size() == 1 && collection.available(),
+                            "membership is authoritative again before removal");
+                    int cachedBodies = server.files.get();
+                    require(await(collection.remove(MODEL), callbacks).isEmpty()
+                                    && await(collection.remove(MODEL), callbacks).isEmpty(),
+                            "collection removal uses DELETE and refreshes membership repeatably");
+                    require(server.removals.get() == 2 && server.files.get() == cachedBodies
+                                    && LibraryCollectionService.offlineMetadata(directory, server.origin(), VIEWER).isEmpty(),
+                            "removing membership updates the account snapshot without a model transfer or activation");
                 }
                 int formalReceipts = server.completed.get();
                 var wardrobe = new LibraryWardrobePreviewService(client, () -> "synthetic-admin", directory);
@@ -196,6 +205,7 @@ public final class LibraryTransferSmokeTest {
         private final AtomicBoolean corrupt = new AtomicBoolean();
         private final AtomicBoolean joined = new AtomicBoolean();
         private final AtomicInteger collectionStatus = new AtomicInteger(200);
+        private final AtomicInteger removals = new AtomicInteger();
         private final AtomicBoolean loseJoinResponse = new AtomicBoolean();
         private final ConcurrentLinkedQueue<String> completionOperations = new ConcurrentLinkedQueue<>();
         private final AtomicInteger wardrobeFiles = new AtomicInteger();
@@ -274,10 +284,16 @@ public final class LibraryTransferSmokeTest {
                         return;
                     }
                 } else if (path.equals("/api/library/v1/collection/" + MODEL)) {
-                    joined.set(true);
-                    boolean lost = loseJoinResponse.getAndSet(false);
-                    status = lost ? 503 : 200;
-                    body = lost ? "{\"code\":\"BUSY\"}" : "{\"joined\":true}";
+                    if (request.getRequestMethod().equals("DELETE")) {
+                        removals.incrementAndGet();
+                        joined.set(false);
+                        body = "{\"joined\":false}";
+                    } else {
+                        joined.set(true);
+                        boolean lost = loseJoinResponse.getAndSet(false);
+                        status = lost ? 503 : 200;
+                        body = lost ? "{\"code\":\"BUSY\"}" : "{\"joined\":true}";
+                    }
                 } else if (path.equals("/api/library/v1/collection")) {
                     status = collectionStatus.get();
                     body = status != 200 ? "{\"code\":\"NOT_FOUND\"}" : joined.get() ? """
