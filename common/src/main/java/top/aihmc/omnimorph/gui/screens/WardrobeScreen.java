@@ -27,9 +27,11 @@ import top.aihmc.omnimorph.gui.widgets.Label;
 import top.aihmc.omnimorph.gui.widgets.SwitchButton;
 import top.aihmc.omnimorph.gui.widgets.lists.AvatarList;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.VerticalWardrobeTab;
+import top.aihmc.omnimorph.gui.widgets.wardrobe.BoneTreeWidget;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout;
 import top.aihmc.omnimorph.model.library.LibraryCollectionService;
+import top.aihmc.omnimorph.model.library.BoneTreeState;
 import top.aihmc.omnimorph.model.library.LibraryEquipmentService;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
 import top.aihmc.omnimorph.model.library.LibraryTransferService;
@@ -89,6 +91,9 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private String offlineScope = "";
     private UUID cloudAccount;
     private top.aihmc.omnimorph.avatar.Avatar observedAvatar;
+    private final BoneTreeState bones = new BoneTreeState();
+    private LibraryPreviewSession boneSession;
+    private long boneRevision = -1;
     private WardrobeLayout layout;
     private AvatarList localList;
     private WardrobeCloudList cloudList;
@@ -334,6 +339,10 @@ public class WardrobeScreen extends AbstractPanelScreen {
             Component state = preview.status().stage() == LibraryPreviewSession.Stage.FAILED
                     ? FiguraText.of("gui.library.failure", preview.status().errorCode()) : message;
             UIHelper.renderScrollingText(gui, state, x + 4, height - 98, w - 8, 0xffffdd88);
+            if (!bones.selectedName().isEmpty()) {
+                UIHelper.renderScrollingText(gui, text("selected_bone").copy().append(bones.selectedName()),
+                        x + 4, height - 112, w - 8, 0xff88dddd);
+            }
             if (AvatarManager.panic) {
                 gui.text(font, FiguraText.of("gui.panic", Configs.PANIC_BUTTON.keyBind.getTranslatedKeyMessage()),
                         x + 4, layout.top() + 4, 0xffffff55);
@@ -347,14 +356,25 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }
     }
 
-    /** Stage 3 installs the real read-only hierarchy in this pane. */
     private void buildRightPane() {
         int x = layout.treeX();
         int w = layout.treeWidth();
-        addRenderableOnly(new AvatarInfoWidget(x, layout.top(), w, Math.max(40, layout.height() - 36)));
-        addRenderableWidget(new Button(x, height - 78, w, 20, text("parts"), text("coming_2"), button -> {}))
-                .setActive(false);
-        addRenderableWidget(new Label(text("coming_2"), x + w / 2, height - 52, TextUtils.Alignment.CENTER));
+        syncHierarchy();
+        addRenderableWidget(new BoneTreeWidget(x, layout.top(), w, Math.max(64, height - 140), bones));
+        addRenderableWidget(new Button(x, height - 78, w, 20, text("refresh_bones"), null, button -> {
+            preview.refreshHierarchy();
+            syncHierarchy();
+        }));
+        addRenderableOnly((gui, mouseX, mouseY, delta) -> UIHelper.renderScrollingText(gui,
+                text("bones_readonly"), x + 4, height - 52, w - 8, 0xffaaaaaa));
+    }
+
+    private void syncHierarchy() {
+        if (preview != boneSession || preview.hierarchyRevision() != boneRevision) {
+            boneSession = preview;
+            boneRevision = preview.hierarchyRevision();
+            bones.replace(preview.hierarchy());
+        }
     }
 
     private void buildInformation() {
@@ -418,6 +438,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
             selected = new Selection(null, null, false, entry.modelId(), text("unavailable"));
             selections.put(context(), selected);
             preview.clear();
+            syncHierarchy();
             refreshVisibility();
             return;
         }
@@ -461,6 +482,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 }
             });
         }
+        syncHierarchy();
         refreshVisibility();
     }
 
@@ -703,6 +725,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
             refreshVisibility();
         }
         wasUploading = uploading;
+        syncHierarchy();
     }
 
     @Override

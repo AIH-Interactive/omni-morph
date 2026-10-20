@@ -314,6 +314,13 @@ tasks.register("ysmPackageSmokeTest", JavaExec) {
     mainClass = "top.aihmc.omnimorph.avatar.ysm.YsmPackageSmokeTest"
 }
 
+tasks.register('boneTreeSmokeTest', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.library.BoneTreeSmokeTest'
+}
+
 tasks.register('wardrobeTransitionSmokeTest', JavaExec) {
     group = 'verification'
     dependsOn testClasses

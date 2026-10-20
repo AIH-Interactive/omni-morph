@@ -98,7 +98,15 @@ public final class LibraryPreviewRuntimeSmokeTest {
             try {
                 require(entered.await(5, TimeUnit.SECONDS), "actual model worker is occupied");
                 var first = preview.selectDraft(model("old"));
-                var latest = preview.selectDraft(model("latest"));
+                var latestData = model("latest");
+                var treeRoot = new CompoundTag();
+                var treeChildren = new net.minecraft.nbt.ListTag();
+                var treeChild = new CompoundTag();
+                treeChild.putString("name", "actual-bone");
+                treeChildren.add(treeChild);
+                treeRoot.put("chld", treeChildren);
+                latestData.put("models", treeRoot);
+                var latest = preview.selectDraft(latestData);
                 require(!first.isDone() && !latest.isDone(), "preview selection never waits for the model worker");
                 release.countDown();
                 gate.get(5, TimeUnit.SECONDS);
@@ -107,6 +115,19 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 release.countDown();
             }
             Avatar avatar = AvatarManager.getAvatar(entity);
+            require(preview.hierarchy().nodes().stream().anyMatch(node -> node.name().equals("actual-bone")),
+                    "ready preview snapshots the actual loaded Figura part hierarchy");
+            var snapshot = preview.hierarchy();
+            var addedPart = new top.aihmc.omnimorph.model.FiguraModelPart(avatar, "later-script-part",
+                    new top.aihmc.omnimorph.model.PartCustomization(), Map.of(), new java.util.ArrayList<>());
+            avatar.renderer.root.children.add(addedPart);
+            preview.tick();
+            require(preview.hierarchy() == snapshot && snapshot.nodes().stream()
+                    .noneMatch(node -> node.name().equals("later-script-part")), "hierarchy is not rebuilt every frame");
+            preview.refreshHierarchy();
+            require(preview.hierarchy().nodes().stream().anyMatch(node -> node.name().equals("later-script-part")),
+                    "explicit refresh includes runtime structure changes");
+            avatar.renderer.root.children.remove(addedPart);
             require(preview.showsVanillaPlayer(), "Figura parts retain the vanilla player unless the model hides it");
             assertVanillaBody(avatar, true);
             require(avatar != null && avatar.name.equals("latest") && !avatar.isHost,
@@ -135,6 +156,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             LibraryPreviewBinding.capture(entity, armorFrame);
             var lifetime = avatar.accelerationOwner();
             preview.clear();
+            require(preview.hierarchy().nodes().isEmpty(), "retiring a preview clears its old hierarchy immediately");
             require(AvatarManager.getAvatar(firstFrame) == avatar && AvatarManager.getEntity(secondFrame) == entity,
                     "queued render states retain their detached entity and model after selection clears");
             require(lifetime.isCurrent(), "clearing a preview cannot destroy resources before deferred GUI drawing");
@@ -197,6 +219,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 avatar = AvatarManager.getAvatar(entity);
                 require(avatar.getYsmRuntime() != null && avatar.getYsmRuntime().encryptedSource(),
                         "encrypted preview retains the existing runtime/source boundary");
+                require(!preview.hierarchy().nodes().isEmpty()
+                                && preview.hierarchy().roots().size() == avatar.getYsmRuntime().rootParts().size(),
+                        "YSM preview hierarchy comes from the actual loaded runtime roots");
                 avatar.renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI;
                 var encryptedPreview = avatar.getYsmRuntime().forRenderPass();
                 require(encryptedPreview != null && encryptedPreview.isPreviewRuntime()

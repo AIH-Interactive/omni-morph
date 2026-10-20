@@ -45,6 +45,8 @@ public final class LibraryPreviewSession implements AutoCloseable {
     private boolean expanded;
     private boolean independentFigura;
     private Status status = new Status(Stage.IDLE, "");
+    private PreviewHierarchy hierarchy = PreviewHierarchy.EMPTY;
+    private long hierarchyRevision;
 
     /** Local wardrobe previews have no backend session dependency. */
     public LibraryPreviewSession() {
@@ -68,6 +70,22 @@ public final class LibraryPreviewSession implements AutoCloseable {
 
     public Status status() {
         return status;
+    }
+
+    public PreviewHierarchy hierarchy() {
+        return hierarchy;
+    }
+
+    public long hierarchyRevision() {
+        return hierarchyRevision;
+    }
+
+    /** Explicit refresh also supports scripts that changed the part structure after initial loading. */
+    public void refreshHierarchy() {
+        if (!closed && avatar != null) {
+            hierarchy = PreviewHierarchy.fromAvatar(avatar);
+            hierarchyRevision++;
+        }
     }
 
     public void setIndependentFigura(boolean enabled) {
@@ -251,6 +269,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
             }
             binding = new LibraryPreviewBinding(entity, prepared, !currentPlayerFigura);
             binding.withPlayerContext(() -> prepared.initializePreviewPlayer(entity));
+            refreshHierarchy();
             status = new Status(Stage.READY, "");
             result.complete(true);
         }));
@@ -304,6 +323,8 @@ public final class LibraryPreviewSession implements AutoCloseable {
     }
 
     private void retireModel() {
+        hierarchy = PreviewHierarchy.EMPTY;
+        hierarchyRevision++;
         if (binding != null) {
             binding.close();
             binding = null;

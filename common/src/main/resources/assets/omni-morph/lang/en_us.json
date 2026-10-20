@@ -1,4 +1,10 @@
 {
+    "omni-morph.gui.wardrobe.unnamed_bone": "(unnamed)",
+    "omni-morph.gui.wardrobe.no_bones": "No hierarchy available",
+    "omni-morph.gui.wardrobe.no_bone_matches": "No matching bones",
+    "omni-morph.gui.wardrobe.refresh_bones": "Refresh bone tree",
+    "omni-morph.gui.wardrobe.selected_bone": "Selected bone: ",
+    "omni-morph.gui.wardrobe.bones_readonly": "Read-only hierarchy · model unchanged",
     "omni-morph.gui.wardrobe.save_failed": "Could not save outfit; please retry",
     "omni-morph.gui.wardrobe.outfit": "Outfit",
     "omni-morph.gui.wardrobe.collection": "My Collection",
