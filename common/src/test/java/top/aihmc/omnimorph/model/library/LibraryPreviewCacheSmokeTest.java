@@ -18,16 +18,23 @@ public final class LibraryPreviewCacheSmokeTest {
         try {
             Path formal = Files.createDirectories(directory.resolve("avatars")).resolve("existing.nbt");
             Files.writeString(formal, "existing wardrobe data");
+            testLegacyMigration(directory);
             var cache = new LibraryPreviewCache(directory);
+            require(cache.root().startsWith(directory.resolve("avatars")), "model previews share the avatar-only root");
             UUID viewer = UUID.randomUUID();
             UUID model = UUID.randomUUID();
             byte[] bytes = "synthetic server distribution".getBytes(java.nio.charset.StandardCharsets.UTF_8);
             var scope = new LibraryPreviewCache.Scope("server-one", viewer, model, 1, 1);
             var key = new LibraryPreviewCache.Key(scope, CloudHttp.sha256(bytes));
             require(cache.put(key, LibraryPreviewCache.Kind.MODEL, bytes), "verified model package is cached");
+            Path savedPreview = onlyModel(cache);
+            Path oldPreview = Files.createDirectories(directory.resolve("model-library-preview/models"))
+                    .resolve(savedPreview.getFileName());
+            Files.move(savedPreview, oldPreview);
             var checks = new AtomicInteger();
             try (var lease = cache.find(scope, LibraryPreviewCache.Kind.MODEL, checks::incrementAndGet).orElseThrow()) {
                 require(Arrays.equals(lease.read(), bytes), "cache returns owned raw distribution bytes");
+                require(!Files.exists(oldPreview), "actual preview lookup migrates the legacy model directory");
                 Path file = onlyModel(cache);
                 Files.setLastModifiedTime(file, FileTime.fromMillis(System.currentTimeMillis() - Duration.ofHours(25).toMillis()));
                 new LibraryPreviewCache(directory).cleanup();
@@ -84,8 +91,10 @@ public final class LibraryPreviewCacheSmokeTest {
             Files.writeString(raw, "legacy plaintext download payload that exceeds thirty-two bytes");
             new top.aihmc.omnimorph.model.cache.ModelCacheCodec(directory).write(wrapped, bytes);
             LibraryTransferService.cleanupUnprotectedDownloads(directory);
-            require(!Files.exists(raw) && Files.exists(wrapped), "legacy cleanup preserves wrapped download files");
-            testThumbnailBudget(cache, viewer);
+            require(!Files.exists(directory.resolve("avatars/model-library-downloads").resolve(raw.getFileName()))
+                            && Files.exists(directory.resolve("avatars/model-library-downloads").resolve(wrapped.getFileName())),
+                    "legacy downloads relocate before cleanup, preserving wrapped files");
+            testThumbnailBudget(cache, viewer, directory);
             require(Files.readString(formal).equals("existing wardrobe data"), "preview cleanup never touches formal/wardrobe storage");
             System.out.println("PASS preview cache: independent paths, live authorization, scoped identities, checksum, TTL/LRU budgets and cross-session active leases");
         } finally {
@@ -97,20 +106,46 @@ public final class LibraryPreviewCacheSmokeTest {
         }
     }
 
+    private static void testLegacyMigration(Path directory) throws Exception {
+        var codec = new top.aihmc.omnimorph.model.cache.ModelCacheCodec(directory);
+        byte[] bytes = "retained encrypted avatar".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        Path old = Files.createDirectories(directory.resolve("wardrobe-resources")).resolve("retained.omc");
+        codec.write(old, bytes);
+        Path thumbnails = Files.createDirectories(directory.resolve("model-library-preview/thumbnails"));
+        Files.writeString(thumbnails.resolve("retained.png"), "thumbnail");
+        Path snapshot = directory.resolve("wardrobe-collection-sample.omc");
+        Files.writeString(snapshot, "account metadata");
+        Path target = top.aihmc.omnimorph.model.cache.AvatarCachePaths.prepare(directory, "wardrobe-resources");
+        require(!Files.exists(old) && Arrays.equals(codec.read(target.resolve("retained.omc"), 1024), bytes),
+                "relocated encrypted avatars retain their existing key");
+        Files.createDirectories(old.getParent());
+        Files.writeString(old, "older conflict");
+        top.aihmc.omnimorph.model.cache.AvatarCachePaths.prepare(directory, "wardrobe-resources");
+        require(Files.exists(old) && Arrays.equals(codec.read(target.resolve("retained.omc"), 1024), bytes),
+                "migration preserves both files when the target already exists");
+        require(Files.exists(thumbnails.resolve("retained.png")) && Files.exists(snapshot)
+                        && Files.exists(directory.resolve("model-cache.key"))
+                        && !Files.exists(directory.resolve("avatars/model-library-preview/thumbnails")),
+                "thumbnails, account snapshots and keys stay outside the avatar-only directory");
+        require(!Files.exists(directory.resolve("decorations")) && !Files.exists(directory.resolve("avatars/decorations")),
+                "the avatar cache migration does not create decoration storage");
+        Files.delete(thumbnails.resolve("retained.png"));
+    }
+
     private static Path onlyModel(LibraryPreviewCache cache) throws IOException {
         try (var files = Files.list(cache.root().resolve("models"))) {
             return files.filter(path -> path.toString().endsWith(".bin")).findFirst().orElseThrow();
         }
     }
 
-    private static void testThumbnailBudget(LibraryPreviewCache cache, UUID viewer) throws Exception {
+    private static void testThumbnailBudget(LibraryPreviewCache cache, UUID viewer, Path directory) throws Exception {
         byte[] bytes = new byte[2 * 1024 * 1024];
         for (int index = 0; index < 18; index++) {
             bytes[0] = (byte) index;
             var scope = new LibraryPreviewCache.Scope("server", viewer, new UUID(0, index), 1, 1);
             cache.put(new LibraryPreviewCache.Key(scope, CloudHttp.sha256(bytes)), LibraryPreviewCache.Kind.THUMBNAIL, bytes);
         }
-        try (var files = Files.list(cache.root().resolve("thumbnails"))) {
+        try (var files = Files.list(directory.resolve("model-library-preview/thumbnails"))) {
             long total = 0;
             int count = 0;
             for (Path file : files.toList()) {

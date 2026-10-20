@@ -365,3 +365,11 @@ Rust 检查同样在后端目录采用该管道并立即检查退出码、读取
 - 最终验证通过：`:fabric:build`（含实际 Figura/YSM 预览运行时回归）、`:common:libraryEquipmentVisibilitySmokeTest`、`:common:wardrobeTransitionSmokeTest`、`:common:modelLibraryLayoutSmokeTest`、`:common:boneTreeSmokeTest`；`git diff --check` 无错误。
 - 本地测试 JAR：`fabric/build/libs/omni-morph-1.0.0-alpha.3+26.1.2-fabric-mc.jar`；已核对包内模组版本为 Alpha 3，保留既有 Minecraft/提交号构建元数据。此本地 Gradle 产物未合入跨平台 native；完整 native 合包继续由现有手动 CI 处理，本轮未触发发布或线上部署。
 - 配套后端最新提交 `a6b130b`；真实窗口、多设备及多人视觉验证仍为 `MANUAL/PENDING`，不以自动夹具替代。
+
+
+### 完整形象缓存目录统一（2026-10-20）
+
+- `cache/avatars` 仅存放完整形象缓存：原有已加载形象直接文件、`wardrobe-resources` 正式资源、`model-library-preview/models` 与 `wardrobe` 模型预览、`model-library-downloads` 加密下载暂存。来源、格式和权限隔离规则不变。
+- 缩略图仍在 `cache/model-library-preview/thumbnails`；原密钥与账号形象集快照保持原位置。正式资源的单模型索引随模型包迁移，避免丢失校验及下载回执恢复信息。后续装饰品使用独立目录，本次不创建或实现装饰品缓存。
+- 读取或清理时按需迁移旧的受控缓存目录，沿用原密钥，不解密落盘、不触碰用户模型源目录；目标已有同名文件时保留双方，避免覆盖新缓存。原预览授权检查、TTL、活动租约及下载失败清理继续生效。
+- 验证通过：`:fabric:build`、`:common:libraryPreviewCacheSmokeTest`、`:common:libraryTransferSmokeTest`、`:common:libraryEquipmentSmokeTest`；覆盖真实预览/正式下载入口的旧目录迁移、沿用密钥解密、重名保留、不重复下载、缩略图独立预算、权限与回执重试。测试夹具中的独立缩略图迁移哨兵已在预算测试前清理，未修改生产预算行为。版本保持 `1.0.0-alpha.3`，测试 JAR 已更新。

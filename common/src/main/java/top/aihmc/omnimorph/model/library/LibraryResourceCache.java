@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.backend2.library.LibrarySession;
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
+import top.aihmc.omnimorph.model.cache.AvatarCachePaths;
 import top.aihmc.omnimorph.model.cache.ModelCacheCodec;
 
 import java.io.IOException;
@@ -21,12 +22,14 @@ public final class LibraryResourceCache {
     private static final Gson JSON = new Gson();
     private static final Object PUBLICATION = new Object();
     private final Path directory;
+    private final Path cacheRoot;
     private final LibrarySession session;
     private final ModelCacheCodec codec;
 
     public LibraryResourceCache(Path root, LibrarySession session) {
         this.session = session;
-        directory = root.toAbsolutePath().normalize().resolve("wardrobe-resources");
+        cacheRoot = root.toAbsolutePath().normalize();
+        directory = cacheRoot.resolve("avatars/wardrobe-resources");
         codec = new ModelCacheCodec(root);
     }
 
@@ -34,7 +37,7 @@ public final class LibraryResourceCache {
         if (Files.isSymbolicLink(directory)) {
             throw new IOException("UNSAFE_RESOURCE_CACHE");
         }
-        Files.createDirectories(directory);
+        AvatarCachePaths.prepare(cacheRoot, "wardrobe-resources");
         String identity = session.instance() + "\n" + session.player() + "\n" + model.modelId();
         return directory.resolve(CloudHttp.sha256(identity.getBytes(StandardCharsets.UTF_8)) + suffix);
     }

@@ -8,6 +8,7 @@ import top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
+import top.aihmc.omnimorph.model.cache.AvatarCachePaths;
 import top.aihmc.omnimorph.model.cache.ModelCacheCodec;
 
 import java.io.ByteArrayInputStream;
@@ -29,6 +30,7 @@ public final class LibraryTransferService {
     private final LibraryClient client;
     private final LibraryPreviewCache preview;
     private final Path formalDirectory;
+    private final Path cacheRoot;
     private final ModelCacheCodec codec;
     private final LibraryResourceCache resources;
     private final java.util.function.Supplier<String> administrator;
@@ -53,7 +55,8 @@ public final class LibraryTransferService {
         preview = new LibraryPreviewCache(figuraCacheDirectory);
         codec = new ModelCacheCodec(figuraCacheDirectory);
         resources = new LibraryResourceCache(figuraCacheDirectory, client.session());
-        formalDirectory = figuraCacheDirectory.toAbsolutePath().normalize().resolve("model-library-downloads");
+        cacheRoot = figuraCacheDirectory.toAbsolutePath().normalize();
+        formalDirectory = cacheRoot.resolve("avatars/model-library-downloads");
     }
 
     public Operation preview(UUID model) {
@@ -62,7 +65,7 @@ public final class LibraryTransferService {
 
     /** Discard old plaintext download leftovers only within the application's dedicated cache. */
     public static void cleanupUnprotectedDownloads(Path cacheRoot) throws IOException {
-        Path directory = cacheRoot.resolve("model-library-downloads");
+        Path directory = AvatarCachePaths.prepare(cacheRoot, "model-library-downloads");
         if (Files.isSymbolicLink(directory) || !Files.isDirectory(directory)) {
             return;
         }
@@ -160,7 +163,7 @@ public final class LibraryTransferService {
                     }
                     Path partial = null;
                     try (InputStream input = response.body()) {
-                        Files.createDirectories(formalDirectory);
+                        AvatarCachePaths.prepare(cacheRoot, "model-library-downloads");
                         partial = Files.createTempFile(formalDirectory, "download-", ".part");
                         try (OutputStream output = codec.output(partial)) {
                             receive(exchange, input, output, model.byteLength(), hash, progress, generation);

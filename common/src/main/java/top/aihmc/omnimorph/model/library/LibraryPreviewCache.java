@@ -1,6 +1,7 @@
 package top.aihmc.omnimorph.model.library;
 
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
+import top.aihmc.omnimorph.model.cache.AvatarCachePaths;
 import top.aihmc.omnimorph.model.cache.ModelCacheCodec;
 
 import java.io.IOException;
@@ -69,12 +70,14 @@ public final class LibraryPreviewCache {
     // Protect active files across screen/session cache objects sharing this independent root.
     private static final Map<Path, Integer> ACTIVE = new HashMap<>();
     private final Path root;
+    private final Path cacheRoot;
     private final ModelCacheCodec codec;
     private boolean initialized;
 
     public LibraryPreviewCache(Path figuraCacheDirectory) {
         codec = new ModelCacheCodec(figuraCacheDirectory);
-        root = figuraCacheDirectory.toAbsolutePath().normalize().resolve("model-library-preview");
+        cacheRoot = figuraCacheDirectory.toAbsolutePath().normalize();
+        root = cacheRoot.resolve("avatars/model-library-preview");
     }
 
     public Path root() {
@@ -244,10 +247,15 @@ public final class LibraryPreviewCache {
     }
 
     private Path directory(Kind kind) throws IOException {
-        if (Files.isSymbolicLink(root) || Files.isSymbolicLink(root.resolve(kind.directory))) {
+        if (kind != Kind.THUMBNAIL) {
+            return AvatarCachePaths.prepare(cacheRoot, "model-library-preview/" + kind.directory);
+        }
+        Path thumbnails = cacheRoot.resolve("model-library-preview/thumbnails");
+        if (Files.isSymbolicLink(cacheRoot) || Files.isSymbolicLink(thumbnails.getParent())
+                || Files.isSymbolicLink(thumbnails)) {
             throw new IOException("UNSAFE_PREVIEW_CACHE");
         }
-        return Files.createDirectories(root.resolve(kind.directory));
+        return Files.createDirectories(thumbnails);
     }
 
     private static int limit(Kind kind) {
