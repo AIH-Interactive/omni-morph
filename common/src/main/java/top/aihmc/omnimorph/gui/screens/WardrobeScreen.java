@@ -75,6 +75,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private Pane pane = Pane.RESOURCES;
     private boolean bonesShown;
     private boolean parts;
+    private boolean resourceFiltersExpanded;
     private final Map<Context, AvatarList.View> localViews = new HashMap<>();
     private final Map<Context, WardrobeCloudList.View> cloudViews = new HashMap<>();
     private final Map<Context, WardrobeCollectionGrid.View> cardViews = new HashMap<>();
@@ -331,8 +332,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private void buildResources() {
         int x = layout.leftX();
         int w = layout.leftWidth();
-        int selectorWidth = Math.min(100, (w - 4) / 2);
-        addRenderableWidget(new LibraryDropdown(x, 54, selectorWidth,
+        var sourceFilter = new LibraryDropdown(0, 0, 80,
                 () -> List.of(text("local"), text("cloud")), () -> source == Source.LOCAL ? 0 : 1, index -> {
             saveView();
             source = index == 0 ? Source.LOCAL : Source.CLOUD;
@@ -340,26 +340,40 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 collection.refresh();
             }
             rebuildWidgets();
-        }));
-        addRenderableWidget(new LibraryDropdown(x + selectorWidth + 4, 54, selectorWidth,
+        });
+        var modeFilter = new LibraryDropdown(0, 0, 80,
                 () -> List.of(text("avatars"), text("parts")), () -> parts ? 1 : 0, index -> {
             parts = index == 1;
             rebuild();
-        }));
+        });
         if (parts) {
-            addRenderableWidget(new Label(text("coming_2"), x + w / 2, 84, TextUtils.Alignment.CENTER));
-            int row = 104;
+            var placeholder = addRenderableWidget(new WardrobeCloudList(x, 54, w, Math.max(88, height - 88),
+                    new WardrobeCloudList.View(), ignored -> {}, ignored -> Component.empty()));
+            int heading = resourceFiltersExpanded ? 114 : 90;
+            var comingSoon = addRenderableWidget(new Label(text("coming_2"), x + w / 2, heading, TextUtils.Alignment.CENTER));
+            var features = new ArrayList<Button>();
+            int row = heading + 20;
             for (String feature : List.of("combination", "attachment", "anchor")) {
-                addRenderableWidget(new Button(x, row, w, 20, text(feature), text("coming_2"), button -> {}))
-                        .setActive(false);
+                var featureButton = addRenderableWidget(new Button(x, row, w, 20,
+                        text(feature), text("coming_2"), button -> {}));
+                featureButton.setActive(false);
+                features.add(featureButton);
                 row += 24;
             }
+            placeholder.setResourceFilters(sourceFilter, modeFilter, resourceFiltersExpanded, expanded -> {
+                resourceFiltersExpanded = expanded;
+                int top = expanded ? 114 : 90;
+                comingSoon.setY(top);
+                for (int index = 0; index < features.size(); index++) {
+                    features.get(index).setY(top + 20 + index * 24);
+                }
+            });
             return;
         }
-        int listHeight = Math.max(88, height - 112);
+        int listHeight = Math.max(88, height - 88);
         if (tab == Tab.COLLECTION) {
             var view = cardViews.computeIfAbsent(context(), ignored -> new WardrobeCollectionGrid.View());
-            collectionGrid = addRenderableWidget(new WardrobeCollectionGrid(x, 78, w,
+            collectionGrid = addRenderableWidget(new WardrobeCollectionGrid(x, 54, w,
                     source == Source.CLOUD ? listHeight - 14 : listHeight, view,
                     client == null ? null : thumbnails, entry -> {
                 if (entry.local() != null) {
@@ -368,6 +382,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
                     selectCloud(entry.cloud());
                 }
             }, id -> client == null ? FiguraText.of("gui.library.state.offline") : text(collection.cacheState(id))));
+            collectionGrid.setResourceFilters(sourceFilter, modeFilter, resourceFiltersExpanded,
+                    expanded -> resourceFiltersExpanded = expanded);
             refreshCollectionCards();
             if (source == Source.CLOUD) {
                 addRenderableOnly((gui, mouseX, mouseY, delta) -> UIHelper.renderScrollingText(gui,
@@ -377,19 +393,23 @@ public class WardrobeScreen extends AbstractPanelScreen {
                         x + 2, height - 46, w - 4, 0xffffdd88));
             }
         } else if (source == Source.LOCAL) {
-            localList = new AvatarList(x, 78, w, listHeight, this, this::selectLocal,
+            localList = new AvatarList(x, 54, w, listHeight, this, this::selectLocal,
                     avatar -> tab == Tab.COLLECTION || localCandidates.contains(avatar.getTheActualPathForThis()));
             localList.showSourceBadge(true);
             localList.setActionsVisible(false);
             var saved = selections.get(context());
             localContext = context();
             localList.restore(localViews.get(context()), saved == null ? null : saved.reference());
+            localList.setResourceFilters(sourceFilter, modeFilter, resourceFiltersExpanded,
+                    expanded -> resourceFiltersExpanded = expanded);
             addRenderableWidget(localList);
         } else {
             var view = cloudViews.computeIfAbsent(context(), ignored -> new WardrobeCloudList.View());
-            cloudList = addRenderableWidget(new WardrobeCloudList(x, 78, w, Math.max(72, listHeight - 14), view,
+            cloudList = addRenderableWidget(new WardrobeCloudList(x, 54, w, Math.max(72, listHeight - 14), view,
                     this::selectCloud, id -> client == null ? FiguraText.of("gui.library.state.offline")
                     : text(collection.cacheState(id))));
+            cloudList.setResourceFilters(sourceFilter, modeFilter, resourceFiltersExpanded,
+                    expanded -> resourceFiltersExpanded = expanded);
             cloudList.thumbnails(client == null ? null : thumbnails);
             refreshCloudRows();
             addRenderableOnly((gui, mouseX, mouseY, delta) -> UIHelper.renderScrollingText(gui,

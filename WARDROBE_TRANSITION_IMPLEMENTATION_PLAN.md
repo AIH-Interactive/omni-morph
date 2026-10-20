@@ -393,3 +393,11 @@ Rust 检查同样在后端目录采用该管道并立即检查退出码、读取
 - 升级时识别旧格式命名的 `.omc` 模型，保留内容及密钥改为 `.oma`，不覆盖已有目标、不改动形象集文件。根目录仅首次迁移扫描，旧子目录按需迁移直接输出新后缀。
 - 缓存统一仅针对形象模型和缩略图，不迁移原生库、配置、密钥或账号形象集数据；未完成下载仍保留受控暂存子目录。`cosmetic` 与 `.oms` 为 2.0 预留常量，不创建装饰品文件或实现加载、下载、组合与挂载功能。
 - 验证通过：`:fabric:build`、`:common:modelCacheCodecSmokeTest`、`:common:libraryPreviewCacheSmokeTest`、`:common:libraryThumbnailSmokeTest`、`:common:libraryTransferSmokeTest`、`:common:libraryEquipmentSmokeTest`；覆盖 `.oma` 正式缓存、旧 `.omc` 模型迁移与内容保留、形象集 `.omc` 保留、图片格式和授权回归。最终构建仍为 Alpha 3；更新日志同步，`git diff --check` 无错误。
+
+### 来源、模式统一收纳与翻译补全（2026-10-20）
+
+- 本地/云端来源、形象/部件模式和原格式筛选统一归入搜索旁“+”，配装本地紧凑列表、云端列表和形象集卡片共用同一交互约定。移除顶部常驻的两个下拉框，搜索与列表上移，收起后归还筛选行空间。
+- 三个选择器在展开行内按可用宽度排列；收起不重置条件，来源/模式切换沿用现有回调，不启用模型。屏幕保存展开状态，切换资源列表不会关闭正在使用的筛选面板；2.0 部件占位页保留同一入口，可切回形象，仍无装饰业务。
+- 补齐中英文 `gui.wardrobe.cached`、`not_cached`、`downloading`、`cache_failed`；翻译检查增加衣柜 `text(...)` 简写及运行时缓存状态键，防止仅检查 `FiguraText.of(...)` 时遗漏。
+- 验证通过：`:fabric:build`（含三类列表真实控件的折叠/展开、独立值、160/460 宽度及生产部件页入口检查）、`:common:wardrobeTransitionSmokeTest`、`:common:modelLibraryLayoutSmokeTest`，`tools/check-ui-translations.ps1` 检查 1018 个界面键、重复键和占位符。`git diff --check` 无错误。
+- 实际游戏窗口的下拉文本、菜单位置及最终排版为 `MANUAL/PENDING`；没有使用隐藏渲染代替视觉验收。Alpha 3 测试 JAR 已重新生成，版本不变，四种语言更新日志同步。
