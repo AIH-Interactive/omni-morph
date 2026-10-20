@@ -63,6 +63,23 @@ public final class LibraryResourceCache {
         }
     }
 
+    /** Descriptive UI status only; actual reads still authenticate and hash-check the package. */
+    public boolean present(LibraryModels.Model model) {
+        try {
+            Path index = path(model, ".json");
+            Path data = path(model, ".omc");
+            if (!Files.isRegularFile(index) || Files.isSymbolicLink(index) || Files.size(index) > 4096
+                    || !Files.isRegularFile(data) || Files.isSymbolicLink(data)) {
+                return false;
+            }
+            Index value = JSON.fromJson(Files.readString(index), Index.class);
+            return value != null && value.revision() == model.revision()
+                    && value.policyRevision() == model.policyRevision();
+        } catch (IOException | RuntimeException invalid) {
+            return false;
+        }
+    }
+
     /** Publishes data before its index; interrupted commits are cache misses, never partial models. */
     public void publish(LibraryModels.Model model, Path encrypted, String hash) throws IOException {
         Path target = path(model, ".omc");

@@ -381,6 +381,23 @@ public class EntityPreview extends AbstractContainerElement {
         entity = preview == null ? null : preview.entity();
     }
 
+    public record View(float pitch, float yaw, float zoom, float x, float y) {}
+
+    public View view() {
+        return new View(angleX, angleY, scale == 0 ? 1 : (scale + scaledPrecise) / scale,
+                (float) modelX / Math.max(1, getWidth()), (float) modelY / Math.max(1, getHeight()));
+    }
+
+    public void restoreView(View view) {
+        if (view != null) {
+            angleX = view.pitch();
+            angleY = view.yaw();
+            scaledPrecise = scaledValue = scale * (view.zoom() - 1);
+            modelX = Math.round(view.x() * getWidth());
+            modelY = Math.round(view.y() * getHeight());
+        }
+    }
+
     public void setToggled(boolean toggled) {
         this.button.setToggled(toggled);
         this.button.setTooltip(toggled ? FiguraText.of("gui.minimise") : FiguraText.of("gui.expand"));

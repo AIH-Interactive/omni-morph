@@ -21,16 +21,20 @@ import java.util.concurrent.CompletableFuture;
 
 /** Connection-owned collection with one bounded automatic transfer at a time. Client-thread lifecycle. */
 public final class LibraryCollectionService implements AutoCloseable {
-    private record Snapshot(List<LibraryModels.CollectionEntry> entries, String failure) {}
+    private record Snapshot(List<LibraryModels.CollectionEntry> entries, Map<UUID, String> cacheStates, String failure) {}
 
     private final LibraryClient client;
     private final LibraryTransferService transfers;
     private final Path snapshot;
     private final ModelCacheCodec codec;
+    private final LibraryResourceCache resources;
+    private final Map<UUID, String> cacheStates = new LinkedHashMap<>();
     private final Map<UUID, LibraryTransferService.Operation> additions = new LinkedHashMap<>();
     private List<LibraryModels.CollectionEntry> entries = List.of();
     private LibraryClient.Request<Snapshot> refresh;
     private LibraryTransferService.Operation automatic;
+    private UUID automaticModel;
+    private String automaticPrevious;
     private int automaticIndex;
     private boolean closed;
     private String failure = "";
@@ -39,9 +43,8 @@ public final class LibraryCollectionService implements AutoCloseable {
         this.client = client;
         transfers = new LibraryTransferService(client, cacheRoot);
         codec = new ModelCacheCodec(cacheRoot);
-        String scope = client.session().instance() + "\n" + client.session().player();
-        snapshot = cacheRoot.resolve("wardrobe-collection-"
-                + CloudHttp.sha256(scope.getBytes(StandardCharsets.UTF_8)) + ".omc");
+        resources = new LibraryResourceCache(cacheRoot, client.session());
+        snapshot = metadataPath(cacheRoot, client.origin(), client.session().player());
     }
 
     public List<LibraryModels.CollectionEntry> entries() {
@@ -50,6 +53,10 @@ public final class LibraryCollectionService implements AutoCloseable {
 
     public String failure() {
         return failure;
+    }
+
+    public String cacheState(UUID model) {
+        return cacheStates.getOrDefault(model, "not_cached");
     }
 
     public CompletableFuture<List<LibraryModels.CollectionEntry>> refresh() {
@@ -68,14 +75,19 @@ public final class LibraryCollectionService implements AutoCloseable {
                     result.addAll(response.items());
                     if (!response.hasNext()) {
                         saveSnapshot(result);
-                        return new Snapshot(List.copyOf(result), "");
+                        var states = new LinkedHashMap<UUID, String>();
+                        for (var entry : result) {
+                            states.put(entry.modelId(), entry.model() == null ? "unavailable"
+                                    : resources.present(entry.model()) ? "cached" : "not_cached");
+                        }
+                        return new Snapshot(List.copyOf(result), states, "");
                     }
                     exchange.requireCurrent();
                     page++;
                 }
             } catch (IOException unavailable) {
                 // Only metadata is retained offline. Every preview/download still rechecks authority.
-                return new Snapshot(readSnapshot(), code(unavailable));
+                return new Snapshot(readSnapshot(), Map.of(), code(unavailable));
             }
         });
         refresh.future().whenComplete((value, error) -> {
@@ -83,6 +95,8 @@ public final class LibraryCollectionService implements AutoCloseable {
                 if (error == null) {
                     entries = value.entries();
                     failure = value.failure();
+                    cacheStates.clear();
+                    cacheStates.putAll(value.cacheStates());
                 } else {
                     failure = code(error);
                 }
@@ -103,6 +117,20 @@ public final class LibraryCollectionService implements AutoCloseable {
     }
 
     private List<LibraryModels.CollectionEntry> readSnapshot() {
+        return readMetadata(snapshot, codec);
+    }
+
+    /** Offline metadata is scoped to the configured origin and account, never used as authorization. */
+    public static List<LibraryModels.CollectionEntry> offlineMetadata(Path root, String origin, UUID viewer) {
+        return readMetadata(metadataPath(root, origin, viewer), new ModelCacheCodec(root));
+    }
+
+    private static Path metadataPath(Path root, String origin, UUID viewer) {
+        String scope = origin + "\n" + viewer;
+        return root.resolve("wardrobe-collection-" + CloudHttp.sha256(scope.getBytes(StandardCharsets.UTF_8)) + ".omc");
+    }
+
+    private static List<LibraryModels.CollectionEntry> readMetadata(Path snapshot, ModelCacheCodec codec) {
         try {
             byte[] bytes = codec.read(snapshot, 16 * 1024 * 1024);
             var values = new Gson().fromJson(new String(bytes, StandardCharsets.UTF_8),
@@ -119,13 +147,16 @@ public final class LibraryCollectionService implements AutoCloseable {
             return existing;
         }
         var operation = transfers.add(model);
+        cacheStates.put(model, "downloading");
         additions.put(model, operation);
         operation.request().future().whenComplete((value, error) -> {
             additions.remove(model, operation);
             if (!closed && client.current()) {
                 if (error == null) {
+                    cacheStates.put(model, "cached");
                     refresh();
                 } else {
+                    cacheStates.put(model, "cache_failed");
                     failure = code(error);
                 }
             }
@@ -140,6 +171,9 @@ public final class LibraryCollectionService implements AutoCloseable {
         }
         if (!Configs.WARDROBE_AUTO_CACHE.value) {
             if (automatic != null) {
+                if (!automatic.request().future().isDone()) {
+                    cacheStates.put(automaticModel, automaticPrevious);
+                }
                 automatic.close();
                 automatic = null;
                 automaticIndex = 0;
@@ -154,9 +188,15 @@ public final class LibraryCollectionService implements AutoCloseable {
             var entry = entries.get(automaticIndex++);
             if (entry.model() != null && entry.model().allows("download")) {
                 automatic = transfers.download(entry.modelId());
+                automaticModel = entry.modelId();
+                automaticPrevious = cacheState(entry.modelId());
+                cacheStates.put(entry.modelId(), "downloading");
                 automatic.request().future().whenComplete((value, error) -> {
                     if (error != null && !closed && Configs.WARDROBE_AUTO_CACHE.value) {
+                        cacheStates.put(entry.modelId(), "cache_failed");
                         failure = code(error);
+                    } else if (error == null && !closed) {
+                        cacheStates.put(entry.modelId(), "cached");
                     }
                 });
                 break;

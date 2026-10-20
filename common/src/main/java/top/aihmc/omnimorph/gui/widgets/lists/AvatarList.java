@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public class AvatarList extends AbstractList {
 
@@ -33,17 +35,30 @@ public class AvatarList extends AbstractList {
 
     private int totalHeight = 0;
     private String filter = "";
-    private static AvatarTypeFilter typeFilter = AvatarTypeFilter.ALL;
+    private AvatarTypeFilter typeFilter = AvatarTypeFilter.ALL;
+    private final Consumer<LocalAvatarFetcher.AvatarPath> selection;
+    private final Predicate<LocalAvatarFetcher.AvatarPath> included;
+    private Path previewSelection;
+    private SearchBar search;
+    private Button formatButton;
 
     public static Path selectedEntry;
 
     // -- Constructors -- // 
 
     public AvatarList(int x, int y, int width, int height, AbstractPanelScreen parentScreen) {
+        this(x, y, width, height, parentScreen, null, ignored -> true);
+    }
+
+    public AvatarList(int x, int y, int width, int height, AbstractPanelScreen parentScreen,
+                      Consumer<LocalAvatarFetcher.AvatarPath> selection,
+                      Predicate<LocalAvatarFetcher.AvatarPath> included) {
         super(x, y, width, height);
+        this.selection = selection;
+        this.included = included;
 
         // search bar
-        children.add(new SearchBar(x + 4, y + 4, width - 8, 20, s -> {
+        children.add(search = new SearchBar(x + 4, y + 4, width - 8, 20, s -> {
             if (!filter.equals(s))
                 scrollBar.setScrollProgress(0f);
             filter = s;
@@ -67,8 +82,7 @@ public class AvatarList extends AbstractList {
                 60, 20,
                 FiguraText.of("gui.wardrobe.unselect.tooltip"),
                 button -> {
-                    AvatarManager.loadLocalAvatar(null);
-                    selectedEntry = null;
+                    selectAvatar(null);
                 })
         );
 
@@ -83,7 +97,7 @@ public class AvatarList extends AbstractList {
         );
 
         // Shared Figura button cycles the visible avatar formats without reloading sources.
-        children.add(new Button(x + 4, y + 52, width - 8, 20,
+        children.add(formatButton = new Button(x + 4, y + 52, width - 8, 20,
                 FiguraText.of(typeFilter.translationKey()), FiguraText.of("gui.wardrobe.filter.tooltip"), button -> {
                     typeFilter = typeFilter.next();
                     button.setMessage(FiguraText.of(typeFilter.translationKey()));
@@ -210,7 +224,41 @@ public class AvatarList extends AbstractList {
     }
 
     public boolean matches(LocalAvatarFetcher.AvatarPath avatar, String query) {
-        return typeFilter.matches(avatar, query);
+        if (avatar instanceof LocalAvatarFetcher.FolderPath folder) {
+            return folder.getChildren().stream().anyMatch(child -> matches(child, query));
+        }
+        return included.test(avatar) && typeFilter.matches(avatar, query);
+    }
+
+    public void selectAvatar(LocalAvatarFetcher.AvatarPath avatar) {
+        if (selection != null) {
+            previewSelection = avatar == null ? null : avatar.getTheActualPathForThis();
+            selection.accept(avatar);
+        } else {
+            AvatarManager.loadLocalAvatar(avatar == null ? null : avatar.getPath());
+            selectedEntry = avatar == null ? null : avatar.getTheActualPathForThis();
+        }
+    }
+
+    public boolean isSelected(LocalAvatarFetcher.AvatarPath avatar) {
+        return avatar.getTheActualPathForThis().equals(selection == null ? selectedEntry : previewSelection);
+    }
+
+    public record View(String search, AvatarTypeFilter type, double scroll) {}
+
+    public View view() {
+        return new View(filter, typeFilter, scrollBar.getScrollProgress());
+    }
+
+    public void restore(View view, Path selected) {
+        previewSelection = selected;
+        if (view != null) {
+            typeFilter = view.type();
+            formatButton.setMessage(FiguraText.of(typeFilter.translationKey()));
+            search.getField().setValue(view.search());
+            loadContents();
+            scrollBar.setScrollProgressNoAnim(view.scroll());
+        }
     }
 
     public void updateScroll() {
@@ -239,7 +287,7 @@ public class AvatarList extends AbstractList {
         }
 
         // set scroll
-        scrollBar.setScrollProgressNoAnim(y / totalHeight);
+        scrollBar.setScrollProgressNoAnim(totalHeight == 0 ? 0 : y / totalHeight);
     }
 
     @Override
