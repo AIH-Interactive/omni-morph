@@ -19,6 +19,7 @@
 
 ### Fixed and improved
 
+- Source and use filters now default to All, combining local/cloud resources while keeping outfits limited to candidates. Parts are labeled Cosmetics, with the 2.0 placeholder retained.
 - Fix the appearance-sharing switch staying disabled for public and private equipment after selecting a preview; track actual equipment independently so ticks do not repeatedly cancel reads or saves.
 
 - Outfit removal moves to local/cloud row context menus. Common actions come first with functional dividers; local creation/folder actions are collection-only, and bone refresh sits beside search. Outfit rows are taller with one type badge at top-left; library tooltips include the full model type.

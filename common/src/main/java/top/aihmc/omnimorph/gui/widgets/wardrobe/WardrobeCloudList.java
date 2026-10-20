@@ -3,6 +3,7 @@ package top.aihmc.omnimorph.gui.widgets.wardrobe;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
+import top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher;
 import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.ContextMenu;
 import top.aihmc.omnimorph.gui.widgets.SearchBar;
@@ -39,6 +40,10 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
     private final java.util.function.Function<UUID, Component> cacheState;
     private List<LibraryModels.CollectionEntry> entries = List.of();
     private UUID selected;
+    private List<LocalAvatarFetcher.AvatarPath> localEntries = List.of();
+    private Consumer<LocalAvatarFetcher.AvatarPath> selectLocal;
+    private Consumer<LocalAvatarFetcher.AvatarPath> removeLocal;
+    private java.nio.file.Path selectedLocal;
     private LibraryThumbnailService thumbnails;
     private final Map<UUID, LibraryThumbnailService.Handle> icons = new HashMap<>();
     private final LibraryDropdown formatFilter;
@@ -128,6 +133,32 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
         }
     }
 
+    public void localEntries(List<LocalAvatarFetcher.AvatarPath> values,
+                             Consumer<LocalAvatarFetcher.AvatarPath> select,
+                             Consumer<LocalAvatarFetcher.AvatarPath> remove, java.nio.file.Path selected) {
+        localEntries = List.copyOf(values);
+        selectLocal = select;
+        removeLocal = remove;
+        selectedLocal = selected;
+    }
+
+    private void choose(WardrobeCollectionGrid.Entry entry) {
+        if (entry.local() != null) {
+            selectedLocal = entry.local().getTheActualPathForThis();
+            selected = null;
+            selectLocal.accept(entry.local());
+        } else {
+            selected = entry.cloud().modelId();
+            selectedLocal = null;
+            select.accept(entry.cloud());
+        }
+    }
+
+    private boolean isSelected(WardrobeCollectionGrid.Entry entry) {
+        return entry.local() != null ? entry.local().getTheActualPathForThis().equals(selectedLocal)
+                : entry.cloud().modelId().equals(selected);
+    }
+
     public void thumbnails(LibraryThumbnailService next) {
         if (thumbnails != next) {
             close();
@@ -150,7 +181,8 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
         for (int index = first; index < end; index++) {
             nextRows.add(index);
         }
-        var visible = nextRows.stream().map(index -> filtered.get(index).modelId()).collect(java.util.stream.Collectors.toSet());
+        var visible = nextRows.stream().map(index -> filtered.get(index).cloud()).filter(java.util.Objects::nonNull)
+                .map(LibraryModels.CollectionEntry::modelId).collect(java.util.stream.Collectors.toSet());
         for (UUID id : List.copyOf(icons.keySet())) {
             if (!visible.contains(id)) {
                 icons.remove(id).close();
@@ -160,14 +192,12 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
         children.removeIf(child -> child instanceof Row);
         for (int index : nextRows) {
             var entry = filtered.get(index);
-            if (thumbnails != null && entry.model() != null && entry.model().imageAvailable()) {
-                icons.computeIfAbsent(entry.modelId(), thumbnails::acquire);
+            var cloud = entry.cloud();
+            if (thumbnails != null && cloud != null && cloud.model() != null && cloud.model().imageAvailable()) {
+                icons.computeIfAbsent(cloud.modelId(), thumbnails::acquire);
             }
             var row = new Row(getX() + 4, getY() + contentTop() + index * ROW_STRIDE - offset, getWidth() - 20,
-                    entry, button -> {
-                        selected = entry.modelId();
-                        select.accept(entry);
-                    });
+                    entry, button -> choose(entry));
             children.add(row);
         }
         UIHelper.blitSliced(gui, getX(), getY(), getWidth(), getHeight(), UIHelper.OUTLINE_FILL);
@@ -201,59 +231,62 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
         }
         int current = -1;
         for (int index = 0; index < values.size(); index++) {
-            if (values.get(index).modelId().equals(selected)) {
+            if (isSelected(values.get(index))) {
                 current = index;
                 break;
             }
         }
         int next = Math.clamp(current + (event.key() == 264 ? 1 : -1), 0, values.size() - 1);
-        selected = values.get(next).modelId();
-        select.accept(values.get(next));
+        choose(values.get(next));
         int maximum = Math.max(0, values.size() * ROW_STRIDE - Math.max(1, getHeight() - contentTop() - 2));
         scrollBar.setScrollProgressNoAnim(maximum == 0 ? 0 : Math.min(1d, next * (double) ROW_STRIDE / maximum));
         return true;
     }
 
-    private List<LibraryModels.CollectionEntry> filteredEntries() {
+    private List<WardrobeCollectionGrid.Entry> filteredEntries() {
         String query = view.query.toLowerCase(Locale.ROOT);
-        return entries.stream().filter(entry -> {
-            var model = entry.model();
-            String title = model == null ? entry.modelId().toString() : model.displayName();
-            String format = model == null ? "" : model.modelType();
-            return title.toLowerCase(Locale.ROOT).contains(query)
-                    && (view.format == 0 || format.equals(List.of("", "FIGURA", "YSM_PLAIN", "YSM_ENCRYPTED").get(view.format)));
+        var resources = new ArrayList<WardrobeCollectionGrid.Entry>();
+        localEntries.forEach(entry -> resources.add(new WardrobeCollectionGrid.Entry(entry, null)));
+        entries.forEach(entry -> resources.add(new WardrobeCollectionGrid.Entry(null, entry)));
+        return resources.stream().filter(entry -> {
+            boolean matches = entry.local() != null ? entry.local().search(query)
+                    : entry.name().getString().toLowerCase(Locale.ROOT).contains(query);
+            return matches && (view.format == 0
+                    || entry.format().equals(List.of("", "FIGURA", "YSM_PLAIN", "YSM_ENCRYPTED").get(view.format)));
         }).toList();
     }
 
     private final class Row extends Button {
-        private final LibraryModels.CollectionEntry entry;
+        private final WardrobeCollectionGrid.Entry entry;
 
-        private Row(int x, int y, int width, LibraryModels.CollectionEntry entry, OnPress action) {
-            super(x, y, width, ROW_HEIGHT, entry.model() == null ? FiguraText.of("gui.wardrobe.unavailable")
-                    : Component.literal(entry.model().displayName()), null, action);
+        private Row(int x, int y, int width, WardrobeCollectionGrid.Entry entry, OnPress action) {
+            super(x, y, width, ROW_HEIGHT, entry.name(), null, action);
             this.entry = entry;
-            setTooltip(ModelResourceBadges.tooltip(getMessage(), true, entry.model() == null ? "" : entry.model().modelType()));
+            setTooltip(ModelResourceBadges.tooltip(getMessage(), entry.cloud() != null, entry.format()));
             shouldHaveBackground(false);
         }
 
         @Override
         public void extractContents(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
             super.extractContents(gui, mouseX, mouseY, delta);
-            if (entry.modelId().equals(selected)) {
+            if (isSelected(entry)) {
                 UIHelper.fillOutline(gui, getX(), getY(), getWidth(), getHeight(), 0xffffffff);
             }
         }
 
         @Override
         protected void renderText(GuiGraphicsExtractor gui, float delta) {
-            var handle = icons.get(entry.modelId());
-            var icon = handle == null ? null : handle.capture();
+            var handle = entry.cloud() == null ? null : icons.get(entry.cloud().modelId());
+            var localIcon = entry.local() == null ? null : entry.local().getIcon();
+            var icon = localIcon != null ? localIcon.getLocation() : handle == null ? null : handle.capture();
             UIHelper.blit(gui, getX() + 2, getY() + 4, 20, 20,
                     icon == null ? new FiguraIdentifier("textures/gui/unknown_icon.png") : icon);
             ModelResourceBadges.drawType(gui, getX() + 2, getY() + 4,
-                    entry.model() == null ? "" : entry.model().modelType());
+                    entry.format());
             UIHelper.renderScrollingText(gui, getMessage(), getX() + 24, getY() + 4, getWidth() - 26, 0xffffffff);
-            UIHelper.renderScrollingText(gui, cacheState.apply(entry.modelId()), getX() + 24, getY() + 15,
+            Component detail = entry.local() != null ? Component.literal(entry.local().getDescription())
+                    : cacheState.apply(entry.cloud().modelId());
+            UIHelper.renderScrollingText(gui, detail, getX() + 24, getY() + 15,
                     getWidth() - 26, 0xffaaaaaa);
         }
 
@@ -262,10 +295,15 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
             if (!isInsideScissors(event.x(), event.y())) {
                 return false;
             }
-            if (event.button() == 1 && outfitRemoval != null && isMouseOver(event.x(), event.y())) {
+            boolean removable = entry.local() != null ? removeLocal != null : outfitRemoval != null;
+            if (event.button() == 1 && removable && isMouseOver(event.x(), event.y())) {
                 var menu = new ContextMenu(this);
                 menu.addAction(FiguraText.of("gui.wardrobe.remove_outfit"), null, ignored -> {
-                    outfitRemoval.accept(entry);
+                    if (entry.local() != null) {
+                        removeLocal.accept(entry.local());
+                    } else {
+                        outfitRemoval.accept(entry.cloud());
+                    }
                     menu.setVisible(false);
                 });
                 menu.setX((int) event.x());

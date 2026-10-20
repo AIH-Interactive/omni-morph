@@ -735,6 +735,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             System.out.println("PASS report input: actual screen click/release, CJK text, newline/backspace, disabled state and outside focus");
             testCollectionCardsAndTreeScrolling();
             testResourceFilterPanels();
+            testAllResourceSources(client);
             testWardrobeActionMenus();
         } finally {
             screen.removed();
@@ -1032,6 +1033,84 @@ public final class LibraryPreviewRuntimeSmokeTest {
         System.out.println("PASS collection card pointer/keyboard/filter routing and conditional horizontal bone scrolling; GUI MANUAL/PENDING");
     }
 
+    private static void testAllResourceSources(LibraryClient client) throws Exception {
+        var fetcher = top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.class;
+        top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.reloadAvatars().get(5, TimeUnit.SECONDS);
+        var originals = java.util.List.copyOf(top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.ALL_AVATARS);
+        boolean reload = field(fetcher, "requireReload").getBoolean(null);
+        Path root = Files.createTempDirectory(Path.of(System.getProperty("figura.test.directory")), "all-sources-");
+        Path first = Files.createDirectories(root.resolve("included"));
+        Path second = Files.createDirectories(root.resolve("excluded"));
+        Files.writeString(first.resolve("avatar.json"), "{\"name\":\"included\"}");
+        Files.writeString(second.resolve("avatar.json"), "{\"name\":\"excluded\"}");
+        var local = new top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath(first, first);
+        var other = new top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath(second, second);
+        var member = new top.aihmc.omnimorph.backend2.library.LibraryModels.CollectionEntry(UUID.randomUUID(), 1, "UPLOAD", true, null);
+        var notInOutfit = new top.aihmc.omnimorph.backend2.library.LibraryModels.CollectionEntry(UUID.randomUUID(), 1, "DOWNLOAD", false, null);
+        try (var collection = new LibraryCollectionService(client, root);
+             var grid = new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid(0, 0, 420, 240,
+                     new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.View(), null, ignored -> {},
+                     ignored -> net.minecraft.network.chat.Component.empty())) {
+            field(fetcher, "requireReload").setBoolean(null, false);
+            top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.ALL_AVATARS.clear();
+            top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.ALL_AVATARS.addAll(java.util.List.of(local, other));
+            field(collection.getClass(), "entries").set(collection, java.util.List.of(member, notInOutfit));
+            var candidates = LocalOutfitCandidates.forDirectory(root);
+            require(candidates.set(first, true).get(5, TimeUnit.SECONDS), "fixture candidate is persisted");
+            var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+            var type = screen.getClass();
+            field(type, "client").set(screen, client);
+            field(type, "collection").set(screen, collection);
+            field(type, "localCandidates").set(screen, candidates);
+            require(field(type, "source").get(screen).toString().equals("ALL")
+                            && field(type, "mode").get(screen).toString().equals("ALL")
+                            && !field(type, "parts").getBoolean(screen),
+                    "source and use default independently to All without entering the cosmetic placeholder");
+            field(type, "tab").set(screen, field(type, "tab").getType().getEnumConstants()[1]);
+            field(type, "collectionGrid").set(screen, grid);
+            var refresh = type.getDeclaredMethod("refreshCollectionCards");
+            refresh.setAccessible(true);
+            Object[] sources = field(type, "source").getType().getEnumConstants();
+            for (int index = 0; index < sources.length; index++) {
+                field(type, "source").set(screen, sources[index]);
+                refresh.invoke(screen);
+                var entries = (java.util.List<?>) field(grid.getClass(), "entries").get(grid);
+                require(entries.size() == (index == 0 ? 4 : 2), "All combines local/cloud cards while individual sources stay filtered");
+            }
+            field(type, "source").set(screen, sources[0]);
+            field(type, "tab").set(screen, field(type, "tab").getType().getEnumConstants()[0]);
+            field(type, "collectionGrid").set(screen, null);
+            screen.width = 640;
+            screen.height = 360;
+            field(type, "layout").set(screen, top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout.of(640, 360));
+            var build = type.getDeclaredMethod("buildResources");
+            build.setAccessible(true);
+            build.invoke(screen);
+            var list = (top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList) field(type, "cloudList").get(screen);
+            try (list) {
+                var filtered = list.getClass().getDeclaredMethod("filteredEntries");
+                filtered.setAccessible(true);
+                var entries = (java.util.List<?>) filtered.invoke(list);
+                require(entries.size() == 2
+                                && entries.contains(new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(local, null))
+                                && entries.contains(new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(null, member)),
+                        "All outfit sources contain only local/cloud candidates, never other collection entries");
+                var selectors = (java.util.List<?>) field(list.getClass(), "resourceFilters").get(list);
+                for (Object selector : selectors) {
+                    var choices = (java.util.function.Supplier<?>) field(selector.getClass(), "choices").get(selector);
+                    var selected = (java.util.function.IntSupplier) field(selector.getClass(), "selected").get(selector);
+                    require(((java.util.List<?>) choices.get()).size() == 3 && selected.getAsInt() == 0,
+                            "production source/use dropdowns each expose All as the default first option");
+                }
+            }
+            System.out.println("PASS All source/use defaults: combined collection cards, candidate-only outfit rows and three production filter choices");
+        } finally {
+            top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.ALL_AVATARS.clear();
+            top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.ALL_AVATARS.addAll(originals);
+            field(fetcher, "requireReload").setBoolean(null, reload);
+        }
+    }
+
     private static void testResourceFilterPanels() throws Exception {
         for (int width : new int[]{160, 460}) {
             var local = new top.aihmc.omnimorph.gui.widgets.lists.AvatarList(10, 54, width, 220, null,
@@ -1201,7 +1280,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 var rowType = Class.forName("top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList$Row");
                 var constructor = rowType.getDeclaredConstructors()[0];
                 constructor.setAccessible(true);
-                var row = (top.aihmc.omnimorph.gui.widgets.Button) constructor.newInstance(cloud, 4, 30, 160, entry,
+                var row = (top.aihmc.omnimorph.gui.widgets.Button) constructor.newInstance(cloud, 4, 30, 160,
+                        new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(null, entry),
                         (top.aihmc.omnimorph.gui.widgets.Button.OnPress) ignored -> selected.incrementAndGet());
                 require(row.getHeight() == 28 && row.mouseClicked(rightClick, false), "cloud rows share the taller context-menu interaction");
                 menu = top.aihmc.omnimorph.utils.ui.UIHelper.getContext();
@@ -1211,6 +1291,23 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 remove.onPress(null);
                 require(removed.get() == entry && selected.get() == 0 && !menu.isVisible(),
                         "cloud removal captures the clicked member without invoking selection/equipment");
+                removed.set(null);
+                cloud.localEntries(java.util.List.of(avatar), ignored -> selected.incrementAndGet(), removed::set, null);
+                var mixedLocalRow = (top.aihmc.omnimorph.gui.widgets.Button) constructor.newInstance(cloud, 4, 30, 160,
+                        new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(avatar, null),
+                        (top.aihmc.omnimorph.gui.widgets.Button.OnPress) ignored -> selected.incrementAndGet());
+                require(mixedLocalRow.mouseClicked(rightClick, false), "All-source local rows expose outfit removal");
+                menu = top.aihmc.omnimorph.utils.ui.UIHelper.getContext();
+                remove = (top.aihmc.omnimorph.gui.widgets.Button) menu.children().stream()
+                        .filter(child -> child instanceof top.aihmc.omnimorph.gui.widgets.Button button
+                                && button.getMessage().getString().equals(removeLabel)).findFirst().orElseThrow();
+                remove.onPress(null);
+                require(removed.get() == avatar && selected.get() == 0 && !menu.isVisible(),
+                        "All-source local removal uses the local resource callback without selecting it");
+                cloud.entries(java.util.List.of(entry), null);
+                require(cloud.keyPressed(new net.minecraft.client.input.KeyEvent(264, 0, 0))
+                                && cloud.keyPressed(new net.minecraft.client.input.KeyEvent(264, 0, 0)) && selected.get() == 2,
+                        "mixed outfit keyboard navigation selects both local and cloud resources");
             }
         } finally {
             minecraft.screen = previousScreen;
