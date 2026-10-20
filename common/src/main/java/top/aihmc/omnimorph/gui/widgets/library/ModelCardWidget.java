@@ -10,6 +10,7 @@ import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.gui.widgets.AbstractContainerElement;
 import top.aihmc.omnimorph.gui.widgets.Button;
+import top.aihmc.omnimorph.gui.widgets.ModelResourceBadges;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
 import top.aihmc.omnimorph.utils.FiguraIdentifier;
 import top.aihmc.omnimorph.utils.FiguraText;
@@ -71,15 +72,7 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
         int informationWidth = Math.max(1, getWidth() - imageSize - 16);
         gui.blit(RenderPipelines.GUI_TEXTURED, texture, x + 4, y + 4, 0, 0,
                 imageSize, imageSize, imageSize, imageSize);
-        String badge = switch (model.modelType()) {
-            case "YSM_ENCRYPTED" -> "YSM •";
-            case "YSM_PLAIN" -> "YSM";
-            default -> "Figura";
-        };
-        int badgeWidth = Math.min(imageSize, Minecraft.getInstance().font.width(badge) + 6);
-        gui.fill(x + 4, y + 4, x + 4 + badgeWidth, y + 17, 0xd0101820);
-        UIHelper.renderScrollingText(gui, Component.literal(badge), x + 7, y + 7,
-                Math.max(1, badgeWidth - 6), 0xffeeeeee);
+        ModelResourceBadges.drawType(gui, x + 4, y + 4, model.modelType(), 16);
         int statusX = x + 5;
         int statusY = y + imageSize - 10;
         if (model.requiresAuthorization()) {

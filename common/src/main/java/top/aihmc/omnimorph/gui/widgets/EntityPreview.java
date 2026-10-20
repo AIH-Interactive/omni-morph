@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.gui.widgets;
 
+import top.aihmc.omnimorph.model.library.PreviewBoneHighlight;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -51,6 +53,7 @@ public class EntityPreview extends AbstractContainerElement {
 
     // scale
     private float scaledValue = 0f, scaledPrecise = 0f;
+    private Object selectedBone;
     private static final float SCALE_FACTOR = 1.1F;
 
     // pos
@@ -90,7 +93,7 @@ public class EntityPreview extends AbstractContainerElement {
                             libraryPreview.setExpanded(true);
                         }
                         Minecraft.getInstance().setScreen(new AvatarScreen(scale, pitch, yaw,
-                                localPreview == null ? this.entity : sourceEntity, parentScreen, libraryPreview));
+                                localPreview == null ? this.entity : sourceEntity, parentScreen, libraryPreview, selectedBone));
                     } else {
                         if (libraryPreview != null && Minecraft.getInstance().screen instanceof AvatarScreen avatarScreen) {
                             avatarScreen.onClose();
@@ -174,6 +177,9 @@ public class EntityPreview extends AbstractContainerElement {
         // render entity
         Matrix3x2fStack pose = gui.pose();
         if (entity != null) {
+            if (libraryPreview == null && liveEntityPreview) {
+                PreviewBoneHighlight.capture(AvatarManager.getAvatar(entity), selectedBone);
+            }
             pose.pushMatrix();
             scaledValue = Mth.lerp((float) (1f - Math.pow(0.5f, delta)), scaledValue, scaledPrecise);
             boolean independent = libraryPreview != null && libraryPreview.submitIndependentFigura(gui,
@@ -355,6 +361,10 @@ public class EntityPreview extends AbstractContainerElement {
         closeLocalPreview();
         sourceEntity = entity;
         this.entity = entity;
+    }
+
+    public void setSelectedBone(Object part) {
+        selectedBone = part;
     }
 
     private void synchronizeLocalAppearance() {

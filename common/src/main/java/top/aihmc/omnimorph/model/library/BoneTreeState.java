@@ -22,6 +22,7 @@ public final class BoneTreeState {
     private int selected = -1;
     private long modelVersion;
     private double scroll;
+    private double horizontalScroll;
 
     public void replace(PreviewHierarchy hierarchy) {
         this.hierarchy = hierarchy;
@@ -32,6 +33,7 @@ public final class BoneTreeState {
         query = "";
         selected = -1;
         scroll = 0;
+        horizontalScroll = 0;
         modelVersion++;
         arrange();
     }
@@ -125,6 +127,10 @@ public final class BoneTreeState {
         return selected;
     }
 
+    public Object selectedPart() {
+        return hierarchy.part(selected);
+    }
+
     public long modelVersion() {
         return modelVersion;
     }
@@ -135,6 +141,14 @@ public final class BoneTreeState {
 
     public void scroll(double value) {
         scroll = value;
+    }
+
+    public double horizontalScroll() {
+        return horizontalScroll;
+    }
+
+    public void horizontalScroll(double value) {
+        horizontalScroll = Math.clamp(value, 0, 1);
     }
 
     public String selectedName() {

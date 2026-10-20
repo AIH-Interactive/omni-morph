@@ -20,6 +20,15 @@ public final class WardrobeTransitionSmokeTest {
                     require(layout.leftX() + layout.leftWidth() < layout.previewX()
                             && layout.previewX() + layout.previewWidth() < layout.treeX(), "three columns never overlap");
                 }
+                var collection = WardrobeLayout.collectionOf(width, height);
+                require(collection.leftWidth() > 0 && collection.previewWidth() > 0
+                                && collection.previewX() + collection.previewWidth() <= width,
+                        "collection cards and right preview fit the logical window");
+                if (!collection.compact()) {
+                    require(collection.leftX() + collection.leftWidth() < collection.previewX()
+                                    && collection.leftWidth() > collection.previewWidth(),
+                            "collection reserves a wide card workspace left of the selected preview");
+                }
             }
         }
         var directory = Files.createTempDirectory("wardrobe-candidates-");

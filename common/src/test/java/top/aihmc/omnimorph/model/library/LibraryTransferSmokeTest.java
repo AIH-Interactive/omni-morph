@@ -63,6 +63,11 @@ public final class LibraryTransferSmokeTest {
                 await(transfers.download(MODEL).request().future(), callbacks);
                 require(server.files.get() == 2 && server.completed.get() == 1,
                         "authorized complete formal cache avoids duplicate downloads and receipts");
+                try (var files = Files.list(directory.resolve("wardrobe-resources"))) {
+                    for (Path file : files.toList()) {
+                        Files.delete(file);
+                    }
+                }
                 Files.setLastModifiedTime(cached, java.nio.file.attribute.FileTime.fromMillis(
                         System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(90)));
                 await(transfers.preview(MODEL).request().future(), callbacks);
@@ -97,6 +102,13 @@ public final class LibraryTransferSmokeTest {
                 await(transfers.add(MODEL).request().future(), callbacks);
                 require(server.joined.get() && server.files.get() == addedFiles,
                         "adding persists account membership and repeated addition reuses the formal cache");
+                var selectedPreview = await(transfers.preview(MODEL).request().future(), callbacks);
+                require(selectedPreview.purpose().equals("preview") && server.files.get() == addedFiles,
+                        "selected collection previews reuse verified formal bytes without another model body");
+                server.revoked.set(true);
+                failure(transfers.preview(MODEL).request().future(), callbacks, "FORBIDDEN");
+                require(server.files.get() == addedFiles, "formal bytes do not bypass current preview permission");
+                server.revoked.set(false);
                 try (var collection = new LibraryCollectionService(client, directory)) {
                     require(await(collection.refresh(), callbacks).size() == 1 && collection.available(),
                             "collection comes from a successful current backend response");

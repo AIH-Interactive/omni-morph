@@ -39,6 +39,7 @@ public class AvatarList extends AbstractList {
     private final Consumer<LocalAvatarFetcher.AvatarPath> selection;
     private final Predicate<LocalAvatarFetcher.AvatarPath> included;
     private Path previewSelection;
+    private boolean sourceBadge;
     private SearchBar search;
     private Button formatButton;
 
@@ -242,6 +243,14 @@ public class AvatarList extends AbstractList {
 
     public boolean isSelected(LocalAvatarFetcher.AvatarPath avatar) {
         return avatar.getTheActualPathForThis().equals(selection == null ? selectedEntry : previewSelection);
+    }
+
+    public void showSourceBadge(boolean visible) {
+        sourceBadge = visible;
+    }
+
+    public boolean showsSourceBadge() {
+        return sourceBadge;
     }
 
     public record View(String search, AvatarTypeFilter type, double scroll) {}

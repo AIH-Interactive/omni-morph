@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.model.ysm;
 
+import top.aihmc.omnimorph.model.library.PreviewBoneHighlight;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -320,6 +322,9 @@ public class YsmRenderer {
         applyBoneTransform(bone, part, stack);
         if (renderSelf) {
             renderGeometry(bone.cubes, stack, vertices, light);
+            if (PreviewBoneHighlight.selected(runtime.owner(), runtime.getPart(bone.name))) {
+                PreviewBoneHighlight.ysm(bone, stack, vertices.source());
+            }
         }
         for (YsmGeometry.Bone child : bone.children)
             renderBone(child, stack, vertices, light, mask, useArmParts, pose);

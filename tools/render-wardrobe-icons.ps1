@@ -1,4 +1,6 @@
 # Regenerate wardrobe and library action sprites from their pixel SVG sources.
+param([string[]]$Names = @())
+
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -15,9 +17,15 @@ $icons = @{
     'library_restore' = @('library-restore.svg')
     'library_edit' = @('library-edit.svg')
     'library_unblock' = @('library-unblock.svg')
+    'wardrobe_source_local' = @('wardrobe-source-local.svg')
+    'wardrobe_source_cloud' = @('wardrobe-source-cloud.svg')
+    'wardrobe_type_ysm' = @('wardrobe-type-ysm.svg')
 }
 $colors = @('#777777', '#ffffff', '#55ffff')
 foreach ($icon in $icons.GetEnumerator()) {
+    if ($Names.Count -gt 0 -and $icon.Key -notin $Names) {
+        continue
+    }
     $bitmap = [System.Drawing.Bitmap]::new(72, 24 * $icon.Value.Count)
     $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
     try {

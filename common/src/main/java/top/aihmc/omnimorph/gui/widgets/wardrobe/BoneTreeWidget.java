@@ -7,6 +7,7 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import top.aihmc.omnimorph.gui.widgets.SearchBar;
+import top.aihmc.omnimorph.gui.widgets.ScrollBarWidget;
 import top.aihmc.omnimorph.gui.widgets.lists.AbstractList;
 import top.aihmc.omnimorph.model.library.BoneTreeState;
 import top.aihmc.omnimorph.utils.FiguraText;
@@ -17,6 +18,10 @@ public final class BoneTreeWidget extends AbstractList {
     private static final int ROW_HEIGHT = 18;
     private final BoneTreeState state;
     private final SearchBar search;
+    private final ScrollBarWidget horizontalBar;
+    private java.util.List<BoneTreeState.Row> measuredRows;
+    private int measuredWidth;
+    private int horizontalMaximum;
     private long modelVersion;
 
     public BoneTreeWidget(int x, int y, int width, int height, BoneTreeState state) {
@@ -28,6 +33,12 @@ public final class BoneTreeWidget extends AbstractList {
             scrollBar.setScrollProgressNoAnim(state.scroll());
         });
         children.add(search);
+        horizontalBar = new ScrollBarWidget(x + 4, y + height - 12, Math.max(24, width - 22), 10,
+                state.horizontalScroll(), false);
+        horizontalBar.setVisible(false);
+        horizontalBar.setActive(false);
+        horizontalBar.setAction(bar -> state.horizontalScroll(bar.getScrollProgress()));
+        children.add(horizontalBar);
         search.getField().setValue(state.query());
         scrollBar.setY(y + 28);
         scrollBar.setHeight(Math.max(16, height - 32));
@@ -41,12 +52,13 @@ public final class BoneTreeWidget extends AbstractList {
             modelVersion = state.modelVersion();
             search.getField().setValue(state.query());
             scrollBar.setScrollProgressNoAnim(0);
+            horizontalBar.setScrollProgressNoAnim(0);
         }
         super.tick();
     }
 
     private int maximumScroll() {
-        return Math.max(0, state.rows().size() * ROW_HEIGHT - Math.max(1, getHeight() - 30));
+        return Math.max(0, state.rows().size() * ROW_HEIGHT - rowArea());
     }
 
     private int offset() {
@@ -54,11 +66,49 @@ public final class BoneTreeWidget extends AbstractList {
     }
 
     private int indent(BoneTreeState.Row row) {
-        return Math.min(row.depth() * 10, Math.max(0, getWidth() / 2 - 20));
+        return row.depth() * 10;
+    }
+
+    private int rowArea() {
+        return Math.max(1, getHeight() - 30 - (horizontalBar.isVisible() ? 12 : 0));
+    }
+
+    private int horizontalOffset() {
+        return (int) Math.round(horizontalBar.getScrollProgress() * horizontalMaximum);
+    }
+
+    private void updateScrollbars() {
+        if (measuredRows != state.rows() || measuredWidth != getWidth()) {
+            measuredRows = state.rows();
+            measuredWidth = getWidth();
+            int contentWidth = 0;
+            var font = Minecraft.getInstance().font;
+            for (var row : measuredRows) {
+                contentWidth = Math.max(contentWidth, indent(row) + 16 + font.width(name(row)));
+            }
+            horizontalMaximum = Math.max(0, contentWidth - Math.max(1, getWidth() - 22));
+        }
+        boolean horizontal = horizontalMaximum > 0;
+        horizontalBar.setVisible(horizontal);
+        horizontalBar.setActive(horizontal);
+        if (!horizontal) {
+            horizontalBar.setScrollProgressNoAnim(0);
+        }
+        horizontalBar.setScrollRatio(10, Math.max(1, horizontalMaximum));
+        scrollBar.setHeight(Math.max(16, getHeight() - 32 - (horizontal ? 12 : 0)));
+        scrollBar.setVisible(maximumScroll() > 0);
+        scrollBar.setActive(maximumScroll() > 0);
+        updateScissors(1, 28, -18, -29 - (horizontal ? 12 : 0));
+    }
+
+    private static Component name(BoneTreeState.Row row) {
+        return row.node().name().isEmpty() ? FiguraText.of("gui.wardrobe.unnamed_bone")
+                : Component.literal(row.node().name());
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+        updateScrollbars();
         int maximum = maximumScroll();
         scrollBar.setVisible(maximum > 0);
         scrollBar.setScrollRatio(ROW_HEIGHT, Math.max(1, maximum));
@@ -70,11 +120,11 @@ public final class BoneTreeWidget extends AbstractList {
             var font = Minecraft.getInstance().font;
             int offset = offset();
             int first = offset / ROW_HEIGHT;
-            int end = Math.min(state.rows().size(), (offset + Math.max(1, getHeight() - 28)) / ROW_HEIGHT + 1);
+            int end = Math.min(state.rows().size(), (offset + rowArea()) / ROW_HEIGHT + 1);
             for (int index = first; index < end; index++) {
                 var row = state.rows().get(index);
                 int y = getY() + 28 + index * ROW_HEIGHT - offset;
-                int x = getX() + 4 + indent(row);
+                int x = getX() + 4 + indent(row) - horizontalOffset();
                 boolean selected = row.node().id() == state.selected();
                 if (selected) {
                     gui.fill(getX() + 2, y, getX() + getWidth() - 14, y + ROW_HEIGHT, 0xff264d5a);
@@ -84,13 +134,11 @@ public final class BoneTreeWidget extends AbstractList {
                     arrow = row.expanded() ? "v" : ">";
                 }
                 gui.text(font, arrow, x, y + 4, 0xffdddddd);
-                Component name = row.node().name().isEmpty() ? FiguraText.of("gui.wardrobe.unnamed_bone")
-                        : Component.literal(row.node().name());
+                Component name = name(row);
                 if (row.matched()) {
                     name = name.copy().withStyle(ChatFormatting.YELLOW);
                 }
-                UIHelper.renderScrollingText(gui, name, x + 12, y + 4,
-                        Math.max(1, getWidth() - (x - getX()) - 30), 0xffffffff);
+                gui.text(font, name, x + 12, y + 4, 0xffffffff);
                 if (isInsideScissors(mouseX, mouseY) && mouseY >= y && mouseY < y + ROW_HEIGHT) {
                     UIHelper.setTooltip(name);
                 }
@@ -106,6 +154,7 @@ public final class BoneTreeWidget extends AbstractList {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        updateScrollbars();
         if (super.mouseClicked(event, doubleClick)) {
             return true;
         }
@@ -119,10 +168,23 @@ public final class BoneTreeWidget extends AbstractList {
         search.setFocused(false);
         var row = state.rows().get(index);
         state.select(row.node().id());
-        if (row.expandable() && event.x() < getX() + 18 + indent(row)) {
+        int arrowX = getX() + 4 + indent(row) - horizontalOffset();
+        if (row.expandable() && event.x() >= arrowX && event.x() < arrowX + 14) {
             state.toggle(row.node().id());
         }
         return true;
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontal, double vertical) {
+        if (!isMouseOver(mouseX, mouseY)) {
+            return false;
+        }
+        updateScrollbars();
+        if (horizontalBar.isVisible() && (horizontal != 0 || horizontalBar.isMouseOver(mouseX, mouseY))) {
+            return horizontalBar.mouseScrolled(mouseX, mouseY, 0, horizontal != 0 ? horizontal : vertical);
+        }
+        return super.mouseScrolled(mouseX, mouseY, horizontal, vertical);
     }
 
     @Override

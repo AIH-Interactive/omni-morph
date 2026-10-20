@@ -11,6 +11,7 @@ import top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher;
 import top.aihmc.omnimorph.font.Emojis;
 import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.lists.AvatarList;
+import top.aihmc.omnimorph.gui.widgets.ModelResourceBadges;
 import top.aihmc.omnimorph.utils.FiguraIdentifier;
 import top.aihmc.omnimorph.utils.FileTexture;
 import top.aihmc.omnimorph.utils.TextUtils;
@@ -49,8 +50,13 @@ public class AvatarWidget extends AbstractAvatarWidget {
 
                 // icon
                 FileTexture texture = avatar.getIcon();
+                String format = avatar.isEncryptedYsm() ? "YSM_ENCRYPTED" : avatar.isYsm() ? "YSM_PLAIN" : "FIGURA";
                 Identifier icon = texture == null ? MISSING_ICON : texture.getLocation();
                 UIHelper.blit(gui, x, y, 20, 20, icon);
+                if (parent.showsSourceBadge()) {
+                    ModelResourceBadges.draw(gui, x, y, false);
+                    ModelResourceBadges.drawType(gui, x + 10, y + 10, format);
+                }
 
                 // name
                 Component parsedName = TextUtils.trimToWidthEllipsis(font, getMessage(), width, TextUtils.ELLIPSIS.copy().withStyle(getMessage().getStyle()));
@@ -61,10 +67,13 @@ public class AvatarWidget extends AbstractAvatarWidget {
                 gui.text(font, parsedDescription, x + 22, y + font.lineHeight + 1, UIHelper.adjustColor(ChatFormatting.GRAY.getColor()));
 
                 // tooltip
-                if (parsedName != getMessage() || parsedDescription != description) {
+                if (parent.showsSourceBadge() || parsedName != getMessage() || parsedDescription != description) {
                     Component tooltip = instance.getName();
                     if (!description.getString().isBlank())
                         tooltip = tooltip.copy().append("\n\n").append(description);
+                    if (parent.showsSourceBadge()) {
+                        tooltip = ModelResourceBadges.tooltip(tooltip, false, format);
+                    }
                     setTooltip(tooltip);
                 }
             }
