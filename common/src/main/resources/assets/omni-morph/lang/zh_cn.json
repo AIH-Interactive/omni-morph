@@ -47,6 +47,7 @@
     "omni-morph.gui.wardrobe.cache_selected": "缓存所选形象",
     "omni-morph.gui.wardrobe.remove_collection": "从形象集移除（保留当前装备及缓存）",
     "omni-morph.gui.wardrobe.delete_submission": "删除自己上传的原模型",
+    "omni-morph.gui.wardrobe.publish_current": "发布当前形象",
     "omni-morph.config.wardrobe_auto_cache.tooltip": "默认关闭，选择资源或明确加入、启用时按需缓存；开启后自动缓存当前账号可访问的全部云端形象，不自动启用。",
     "omni-morph": "OmniMorph",
     "omni-morph.gui.help.about": "关于",

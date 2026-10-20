@@ -13,6 +13,9 @@ import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.SearchBar;
 import top.aihmc.omnimorph.gui.widgets.library.ModelLibraryLayout;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryLabels;
+import top.aihmc.omnimorph.gui.widgets.library.ModelCardWidget;
+import top.aihmc.omnimorph.gui.widgets.ModelResourceBadges;
 import top.aihmc.omnimorph.gui.widgets.lists.AbstractList;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
 import top.aihmc.omnimorph.utils.FiguraIdentifier;
@@ -151,7 +154,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
     }
 
     private void arrange() {
-        layout = ModelLibraryLayout.of(getWidth() - 20, getHeight() - contentTop() - 2, filtered.size());
+        layout = ModelLibraryLayout.of(getWidth() - 18, getHeight() - contentTop() - 2, filtered.size());
         scrollBar.setVisible(layout.maximumScroll() > 0);
         scrollBar.setActive(layout.maximumScroll() > 0);
         scrollBar.setScrollRatio(ModelLibraryLayout.CARD_HEIGHT, Math.max(1, layout.maximumScroll()));
@@ -205,19 +208,29 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
         } else if (images.containsKey(index)) {
             image = images.get(index).capture();
         }
-        int size = Math.max(1, Math.min(80, (width - 16) / 2));
+        int size = ModelLibraryLayout.imageSize(width);
         gui.blit(RenderPipelines.GUI_TEXTURED, image == null ? PLACEHOLDER : image, x + 4, y + 4,
                 0, 0, size, size, size, size);
+        ModelResourceBadges.drawType(gui, x + 4, y + 4, entry.format(), 16);
         int textX = x + size + 10;
         int textWidth = Math.max(1, width - size - 16);
         UIHelper.renderScrollingText(gui, entry.name(), textX, y + 8, textWidth, 0xffeeeeee);
-        UIHelper.renderScrollingText(gui, Component.literal(entry.format()), textX, y + 24, textWidth, 0xffbac6d8);
         Component detail = entry.local() != null ? Component.literal(entry.local().getDescription())
                 : cacheState.apply(entry.cloud().modelId());
-        UIHelper.renderScrollingText(gui, detail, textX, y + 42, textWidth, 0xffbac6d8);
         if (entry.cloud() != null && entry.cloud().model() != null) {
-            UIHelper.renderScrollingText(gui, FiguraText.of(entry.cloud().model().visibility().equals("PRIVATE")
-                    ? "gui.library.private" : "gui.library.public"), textX, y + 60, textWidth, 0xffa9bbc9);
+            var model = entry.cloud().model();
+            ModelCardWidget.drawStatusIcons(gui, x, y, size, model);
+            UIHelper.renderScrollingText(gui, LibraryLabels.category(model.categoryId()), textX, y + 20, textWidth, 0xffbac6d8);
+            Component author = model.authors().isEmpty() ? FiguraText.of("gui.library.unknown_author")
+                    : Component.literal(model.authors().getFirst());
+            UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.card_authors", author),
+                    textX, y + 34, textWidth, 0xffbac6d8);
+            UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.card_uploader", model.uploader().name()),
+                    textX, y + 46, textWidth, 0xffbac6d8);
+            UIHelper.renderScrollingText(gui, detail, textX, y + 58, textWidth, 0xffa9bbc9);
+        } else {
+            UIHelper.renderScrollingText(gui, Component.literal(entry.format()), textX, y + 20, textWidth, 0xffbac6d8);
+            UIHelper.renderScrollingText(gui, detail, textX, y + 34, textWidth, 0xffbac6d8);
         }
         if (isInsideScissors(mouseX, mouseY) && layout.hit(mouseX - getX() - 2, mouseY - getY() - contentTop(), scroll()) == index) {
             UIHelper.setTooltip(entry.name().copy().append("\n").append(detail));
