@@ -81,6 +81,7 @@ public final class FiguraAccelerationReplay {
         List<float[]> positions = new ArrayList<>();
         List<float[]> normals = new ArrayList<>();
         List<float[]> uvs = new ArrayList<>();
+        List<float[]> colors = new ArrayList<>();
         VertexConsumer sink = (VertexConsumer) Proxy.newProxyInstance(VertexConsumer.class.getClassLoader(),
                 new Class<?>[]{VertexConsumer.class}, (proxy, method, arguments) -> {
                     if (method.isDefault()) {
@@ -90,6 +91,7 @@ public final class FiguraAccelerationReplay {
                         case "addVertex" -> positions;
                         case "setNormal" -> normals;
                         case "setUv" -> uvs;
+                        case "setColor" -> colors;
                         default -> null;
                     };
                     if (target != null) {
@@ -125,6 +127,36 @@ public final class FiguraAccelerationReplay {
         flush(destination);
         require(positions.size() == 4 && positions.getFirst()[0] == 4.5f && positions.getFirst()[1] == 9,
                 "actual Figura draw consumes the complete normalized skinning batch");
+        if (sourceFactory == null) {
+            var selected = (FiguraModelPart) unsafe.allocateInstance(FiguraModelPart.class);
+            var child = (FiguraModelPart) unsafe.allocateInstance(FiguraModelPart.class);
+            child.parent = selected;
+            boolean paperdoll = top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll;
+            var materials = new ArrayList<net.minecraft.client.renderer.rendertype.RenderType>();
+            try {
+                top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = true;
+                top.aihmc.omnimorph.model.library.PreviewBoneHighlight.capture(owner, selected);
+                colors.clear();
+                push.invoke(renderer, 1, data, customization, textures, vertices, part, null);
+                // The renderer must retain captured alpha even after GUI frame references are released.
+                top.aihmc.omnimorph.model.library.PreviewBoneHighlight.finishFrame();
+                consume.invoke(buffer, true, (MultiBufferSource) type -> {
+                    materials.add(type);
+                    return sink;
+                });
+                require(colors.size() == 4 && colors.getFirst()[3] == 38 && materials.getFirst().hasBlending(),
+                        "unselected Figura geometry emits authored alpha times 0.3 with a blending material");
+                colors.clear();
+                top.aihmc.omnimorph.model.library.PreviewBoneHighlight.capture(owner, selected);
+                push.invoke(renderer, 1, data, customization, textures, vertices, child, null);
+                consume.invoke(buffer, true, (MultiBufferSource) type -> sink);
+                require(colors.size() == 4 && colors.getFirst()[3] == 127 && customization.alpha == 0.5f,
+                        "selected descendants retain authored alpha without modifying model customization");
+            } finally {
+                top.aihmc.omnimorph.model.library.PreviewBoneHighlight.finishFrame();
+                top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = paperdoll;
+            }
+        }
         positions.clear();
         push.invoke(renderer, 1, data, customization, textures, vertices, null, null);
         owner.accelerationOwner().retire();

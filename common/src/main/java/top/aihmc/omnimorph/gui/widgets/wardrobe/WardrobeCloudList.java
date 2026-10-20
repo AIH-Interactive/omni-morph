@@ -5,6 +5,7 @@ import net.minecraft.network.chat.Component;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.SearchBar;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
 import top.aihmc.omnimorph.gui.widgets.ModelResourceBadges;
 import top.aihmc.omnimorph.gui.widgets.lists.AbstractList;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
@@ -26,6 +27,7 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
         public String query = "";
         public int format;
         public double scroll;
+        public boolean filtersExpanded;
     }
 
     private final View view;
@@ -35,6 +37,7 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
     private UUID selected;
     private LibraryThumbnailService thumbnails;
     private final Map<UUID, LibraryThumbnailService.Handle> icons = new HashMap<>();
+    private final LibraryDropdown formatFilter;
 
     public WardrobeCloudList(int x, int y, int width, int height, View view,
                              Consumer<LibraryModels.CollectionEntry> select,
@@ -43,7 +46,7 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
         this.view = view;
         this.select = select;
         this.cacheState = cacheState;
-        var search = new SearchBar(x + 4, y + 4, width - 8, 20, value -> {
+        var search = new SearchBar(x + 4, y + 4, width - 32, 20, value -> {
             view.query = value;
             view.scroll = 0;
             scrollBar.setScrollProgressNoAnim(0);
@@ -53,19 +56,33 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
         double initialScroll = view.scroll;
         search.getField().setValue(initial);
         view.scroll = initialScroll;
-        children.add(new Button(x + 4, y + 28, width - 8, 20, formatLabel(), null, button -> {
-            view.format = (view.format + 1) % 4;
-            button.setMessage(formatLabel());
-            scrollBar.setScrollProgressNoAnim(0);
+        children.add(new Button(x + width - 24, y + 4, 20, 20, Component.literal("+"),
+                FiguraText.of("gui.library.filters"), button -> {
+            view.filtersExpanded = !view.filtersExpanded;
+            updateHeader();
         }));
-        scrollBar.setY(y + 52);
-        scrollBar.setHeight(Math.max(16, height - 56));
+        formatFilter = new LibraryDropdown(x + 4, y + 28, Math.min(128, width - 8),
+                () -> List.of("all", "figura", "ysm_plain", "ysm_encrypted").stream()
+                        .<Component>map(key -> FiguraText.of("gui.wardrobe.filter." + key)).toList(),
+                () -> view.format, selected -> {
+            view.format = selected;
+            view.scroll = 0;
+            scrollBar.setScrollProgressNoAnim(0);
+        });
+        children.add(formatFilter);
+        updateHeader();
         scrollBar.setScrollProgressNoAnim(view.scroll);
-        updateScissors(1, 52, -2, -53);
     }
 
-    private Component formatLabel() {
-        return FiguraText.of("gui.wardrobe.filter." + List.of("all", "figura", "ysm_plain", "ysm_encrypted").get(view.format));
+    private int contentTop() {
+        return view.filtersExpanded ? 52 : 28;
+    }
+
+    private void updateHeader() {
+        formatFilter.setVisible(view.filtersExpanded);
+        scrollBar.setY(getY() + contentTop());
+        scrollBar.setHeight(Math.max(16, getHeight() - contentTop() - 4));
+        updateScissors(1, contentTop(), -2, -contentTop() - 1);
     }
 
     public void entries(List<LibraryModels.CollectionEntry> values, UUID selected) {
@@ -86,7 +103,7 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
     @Override
     public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
         var filtered = filteredEntries();
-        int area = Math.max(1, getHeight() - 54);
+        int area = Math.max(1, getHeight() - contentTop() - 2);
         int maximum = Math.max(0, filtered.size() * 26 - area);
         scrollBar.setVisible(maximum > 0);
         scrollBar.setScrollRatio(26, Math.max(1, maximum));
@@ -111,7 +128,7 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
             if (thumbnails != null && entry.model() != null && entry.model().imageAvailable()) {
                 icons.computeIfAbsent(entry.modelId(), thumbnails::acquire);
             }
-            var row = new Row(getX() + 4, getY() + 52 + index * 26 - offset, getWidth() - 20,
+            var row = new Row(getX() + 4, getY() + contentTop() + index * 26 - offset, getWidth() - 20,
                     entry, button -> {
                         selected = entry.modelId();
                         select.accept(entry);

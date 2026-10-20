@@ -186,9 +186,13 @@ public class EntityPreview extends AbstractContainerElement {
                     x + modelX, y + modelY, scale + scaledValue, angleX, angleY, delta,
                     x, y, x + width, y + height);
             if (!independent) {
-                Runnable draw = () -> UIHelper.drawEntity(x + modelX, y + modelY, scale + scaledValue,
+                Runnable draw = () -> {
+                    // Library contexts resolve the selected Avatar only inside this scoped lookup.
+                    PreviewBoneHighlight.capture(AvatarManager.getAvatar(entity), selectedBone);
+                    UIHelper.drawEntity(x + modelX, y + modelY, scale + scaledValue,
                         angleX, angleY, entity, gui, new Vector3f(), EntityRenderMode.FIGURA_GUI,
                         x, y, x + width, y + height);
+                };
                 if (libraryPreview != null) {
                     libraryPreview.withPlayerContext(draw);
                 } else if (localPreview != null) {
