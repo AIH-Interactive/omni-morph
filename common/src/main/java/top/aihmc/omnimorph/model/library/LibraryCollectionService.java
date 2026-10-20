@@ -64,6 +64,28 @@ public final class LibraryCollectionService implements AutoCloseable {
         return !closed && authoritative;
     }
 
+    public boolean busy(UUID model) {
+        var addition = additions.get(model);
+        return addition != null && !addition.request().future().isDone()
+                || model.equals(automaticModel) && automatic != null && !automatic.request().future().isDone();
+    }
+
+    public CompletableFuture<List<LibraryModels.CollectionEntry>> remove(UUID model) {
+        if (busy(model)) {
+            return CompletableFuture.failedFuture(new LibraryClient.Failure(0, "RESOURCE_BUSY"));
+        }
+        return client.collectionRemove(model).future().thenCompose(ignored -> {
+            // A pre-mutation page must not restore the just-removed membership.
+            if (refresh != null && !refresh.future().isDone()) {
+                refresh.cancel();
+            }
+            refresh = null;
+            entries = entries.stream().filter(entry -> !entry.modelId().equals(model)).toList();
+            cacheStates.remove(model);
+            return refresh();
+        });
+    }
+
     public CompletableFuture<List<LibraryModels.CollectionEntry>> refresh() {
         if (refresh != null && !refresh.future().isDone()) {
             return refresh.future().thenApply(Snapshot::entries);

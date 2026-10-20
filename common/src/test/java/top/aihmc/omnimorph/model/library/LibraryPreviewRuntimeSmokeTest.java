@@ -59,6 +59,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
              var preview = new LibraryPreviewSession(client, true)) {
             testModelFilePicker(client, drain);
             testReportInput(client);
+            testCollectionActions(client);
             testWardrobeDefaultPreview(unsafe);
             testPreviewAppearance(unsafe);
             testIndependentFigura(unsafe, drain);
@@ -735,6 +736,81 @@ public final class LibraryPreviewRuntimeSmokeTest {
         } finally {
             screen.removed();
             fontField.set(minecraft, previousFont);
+        }
+    }
+
+    private static void testCollectionActions(LibraryClient client) throws Exception {
+        require(!Configs.WARDROBE_AUTO_CACHE.defaultValue && Configs.WARDROBE_AUTO_CACHE.parent == Configs.MISC
+                        && Configs.MISC.children.contains(Configs.WARDROBE_AUTO_CACHE)
+                        && !Configs.UI.children.contains(Configs.WARDROBE_AUTO_CACHE),
+                "the existing default-off cache preference appears once in global Misc settings");
+        Path cache = Path.of(System.getProperty("figura.test.directory")).resolve("collection-actions");
+        try (var collection = new LibraryCollectionService(client, cache)) {
+            var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+            field(screen.getClass(), "client").set(screen, client);
+            field(screen.getClass(), "collection").set(screen, collection);
+            field(collection.getClass(), "authoritative").setBoolean(collection, true);
+            UUID id = UUID.randomUUID();
+            var modelJson = new com.google.gson.JsonObject();
+            modelJson.addProperty("model_id", id.toString());
+            modelJson.addProperty("revision", 1);
+            modelJson.addProperty("policy_revision", 9);
+            modelJson.addProperty("display_name", "Collection owner");
+            modelJson.addProperty("internal_name", "collection-owner");
+            modelJson.addProperty("model_type", "FIGURA");
+            modelJson.addProperty("visibility", "PRIVATE");
+            modelJson.addProperty("requires_authorization", true);
+            var uploader = new com.google.gson.JsonObject();
+            uploader.addProperty("uuid", client.session().player().toString());
+            uploader.addProperty("name", "owner");
+            modelJson.add("uploader", uploader);
+            modelJson.add("allowed_actions", com.google.gson.JsonParser.parseString(
+                    "[\"preview\",\"download\",\"equip\",\"patch\",\"delete\",\"grants\"]"));
+            var gson = new com.google.gson.GsonBuilder()
+                    .setFieldNamingPolicy(com.google.gson.FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES).create();
+            var model = gson.fromJson(modelJson, top.aihmc.omnimorph.backend2.library.LibraryModels.Model.class);
+            var selectionType = field(screen.getClass(), "selected").getType();
+            var selection = selectionType.getDeclaredConstructors()[0];
+            selection.setAccessible(true);
+            field(screen.getClass(), "selected").set(screen,
+                    selection.newInstance(null, null, false, id, net.minecraft.network.chat.Component.literal("selected")));
+            field(collection.getClass(), "entries").set(collection, java.util.List.of(
+                    new top.aihmc.omnimorph.backend2.library.LibraryModels.CollectionEntry(id, 1, "UPLOAD", false, model)));
+            var actions = new top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar(20, 200, 240, 56);
+            var build = screen.getClass().getDeclaredMethod("buildCloudCollectionActions", actions.getClass());
+            build.setAccessible(true);
+            build.invoke(screen, actions);
+            for (String name : java.util.List.of("cacheSelectedButton", "removeCollectionButton",
+                    "editCollectionButton", "collectionGrantsButton", "collectionAuthorizationButton", "collectionPublicationButton")) {
+                var button = (top.aihmc.omnimorph.gui.widgets.Button) field(screen.getClass(), name).get(screen);
+                require(button.isVisible() && button.isActive() && actions.children().contains(button),
+                        "authorized personal actions belong to the preview action bar: " + name);
+            }
+            var remove = (top.aihmc.omnimorph.gui.widgets.Button) field(screen.getClass(), "removeCollectionButton").get(screen);
+            remove.onPress(null);
+            require(id.equals(field(screen.getClass(), "deleteCollectionArmed").get(screen))
+                            && field(screen.getClass(), "collectionMutation").get(screen) == null,
+                    "own-upload delete first confirms the exact model without issuing a mutation");
+            uploader.addProperty("uuid", UUID.randomUUID().toString());
+            modelJson.add("allowed_actions", com.google.gson.JsonParser.parseString("[\"preview\"]"));
+            var other = gson.fromJson(modelJson, top.aihmc.omnimorph.backend2.library.LibraryModels.Model.class);
+            field(collection.getClass(), "entries").set(collection, java.util.List.of(
+                    new top.aihmc.omnimorph.backend2.library.LibraryModels.CollectionEntry(id, 1, "DOWNLOAD", false, other)));
+            var update = screen.getClass().getDeclaredMethod("updateCollectionButtons");
+            update.setAccessible(true);
+            update.invoke(screen);
+            require(remove.isActive(), "another author's model can be removed from the account collection");
+            for (String name : java.util.List.of("editCollectionButton", "collectionGrantsButton",
+                    "collectionAuthorizationButton", "collectionPublicationButton")) {
+                require(!((top.aihmc.omnimorph.gui.widgets.Button) field(screen.getClass(), name).get(screen)).isVisible(),
+                        "unavailable personal model actions remain hidden: " + name);
+            }
+            require(!((top.aihmc.omnimorph.gui.widgets.Button) field(screen.getClass(), "cacheSelectedButton").get(screen)).isActive(),
+                    "preview-only resources cannot use the formal cache button");
+            field(collection.getClass(), "authoritative").setBoolean(collection, false);
+            update.invoke(screen);
+            require(!remove.isActive(), "offline metadata cannot authorize collection mutations");
+            System.out.println("PASS collection preview actions: ownership, permissions, confirmation, offline state and one global cache preference");
         }
     }
 
