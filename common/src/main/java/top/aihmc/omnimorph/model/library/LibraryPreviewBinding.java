@@ -89,6 +89,7 @@ public final class LibraryPreviewBinding implements AutoCloseable {
 
     /** Runs after actual GUI drawing, including exceptional completion and renderer shutdown. */
     public static void finishFrame() {
+        PreviewBoneHighlight.finishFrame();
         LibraryThumbnailService.finishFrame();
         List<LibraryPreviewBinding> retained = List.copyOf(FRAMES.values());
         FRAMES.clear();

@@ -13,7 +13,7 @@ import java.util.Set;
 import java.util.function.Function;
 
 /** Immutable read-only snapshot of one loaded preview. IDs are unique within this snapshot. */
-public record PreviewHierarchy(List<Node> nodes, List<Integer> roots) {
+public record PreviewHierarchy(List<Node> nodes, List<Integer> roots, List<Object> parts) {
     public static final PreviewHierarchy EMPTY = new PreviewHierarchy(List.of(), List.of());
 
     public record Node(int id, int parent, String name, List<Integer> children) {
@@ -27,6 +27,16 @@ public record PreviewHierarchy(List<Node> nodes, List<Integer> roots) {
     public PreviewHierarchy {
         nodes = List.copyOf(nodes);
         roots = List.copyOf(roots);
+        parts = List.copyOf(parts);
+    }
+
+    public PreviewHierarchy(List<Node> nodes, List<Integer> roots) {
+        this(nodes, roots, List.of());
+    }
+
+    /** Identity is used only for GUI selection feedback; no model edits are exposed by the tree. */
+    public Object part(int id) {
+        return id < 0 || id >= parts.size() ? null : parts.get(id);
     }
 
     public static PreviewHierarchy fromAvatar(Avatar avatar) {
@@ -61,12 +71,14 @@ public record PreviewHierarchy(List<Node> nodes, List<Integer> roots) {
         var parents = new ArrayList<Integer>();
         var childIds = new ArrayList<List<Integer>>();
         var rootIds = new ArrayList<Integer>();
+        var references = new ArrayList<Object>();
         while (!pending.isEmpty()) {
             var entry = pending.pop();
             if (!seen.add(entry.part())) {
                 continue; // Runtime aliases or a malformed cycle must not duplicate or loop the GUI tree.
             }
             int id = names.size();
+            references.add(entry.part());
             names.add(name.apply(entry.part()));
             parents.add(entry.parent());
             childIds.add(new ArrayList<>());
@@ -84,6 +96,6 @@ public record PreviewHierarchy(List<Node> nodes, List<Integer> roots) {
         for (int id = 0; id < names.size(); id++) {
             nodes.add(new Node(id, parents.get(id), names.get(id), childIds.get(id)));
         }
-        return new PreviewHierarchy(nodes, rootIds);
+        return new PreviewHierarchy(nodes, rootIds, references);
     }
 }

@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.model.rendering;
 
+import top.aihmc.omnimorph.model.library.PreviewBoneHighlight;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.datafixers.util.Pair;
@@ -340,6 +342,9 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         // render this
         FiguraMod.popPushProfiler("pushVertices");
         boolean breakRender = thisPassedPredicate && !part.pushVerticesImmediate(this, remainingComplexity);
+        if (thisPassedPredicate && PreviewBoneHighlight.selected(avatar, part)) {
+            PreviewBoneHighlight.figura(part, customizationStack.peek(), bufferSource);
+        }
 
         // render extras
         FiguraMod.popPushProfiler("extras");

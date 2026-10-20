@@ -16,6 +16,7 @@ public final class VerticalWardrobeTab extends Button {
         gui.pose().pushMatrix();
         try {
             gui.pose().translate(getX() + getWidth() / 2f, getY() + getHeight() / 2f);
+            gui.pose().scale(-1f, 1f);
             gui.pose().rotate((float) Math.PI / 2f);
             UIHelper.renderCenteredScrollingText(gui, getMessage(), -getHeight() / 2 + 2,
                     -getWidth() / 2, getHeight() - 4, getWidth(), getTextColor());

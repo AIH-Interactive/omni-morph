@@ -119,6 +119,11 @@ public final class LibraryTransferService {
                     }
                 }
                 if (!formal) {
+                    // A formally downloaded source may serve a freshly authorized preview, never the reverse.
+                    byte[] formalBytes = resources.read(model);
+                    if (formalBytes != null) {
+                        return parse(model, formalBytes, CloudHttp.sha256(formalBytes), purpose);
+                    }
                     // The detail immediately above is the fresh backend permission decision.
                     var cached = preview.find(scope, LibraryPreviewCache.Kind.MODEL,
                             java.time.Duration.ofSeconds(exchange.previewCacheSeconds()), exchange::requireCurrent);

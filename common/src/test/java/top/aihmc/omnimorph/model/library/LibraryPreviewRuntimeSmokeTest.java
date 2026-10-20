@@ -432,6 +432,31 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(vertices.isEmpty() && avatar.renderer.root.getTrueRot().y == 10,
                     "script body visibility remains authoritative while render animation continues");
             require(model.body.visible, "shared native mesh visibility is restored after drawing");
+            vertices.clear();
+            boolean previousPaperdoll = top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll;
+            var previousMode = avatar.renderMode;
+            var part = avatar.renderer.root;
+            try {
+                PreviewBoneHighlight.capture(avatar, part);
+                top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = false;
+                require(!PreviewBoneHighlight.selected(avatar, part), "bone feedback cannot affect world rendering");
+                top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = true;
+                avatar.renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI;
+                require(PreviewBoneHighlight.selected(avatar, part), "the GUI targets the selected part identity");
+                PreviewBoneHighlight.figura(part, new top.aihmc.omnimorph.model.PartCustomization(), type -> consumer);
+                int figuraLines = vertices.size();
+                require(figuraLines == 24, "empty Figura groups receive a visible pivot box without model geometry edits");
+                var bone = new top.aihmc.omnimorph.model.ysm.YsmGeometry.Bone("selected", null, new float[3], new float[3]);
+                PreviewBoneHighlight.ysm(bone, new com.mojang.blaze3d.vertex.PoseStack(), type -> consumer);
+                require(vertices.size() == figuraLines + 24 && bone.cubes.isEmpty(),
+                        "YSM bone feedback emits an overlay without adding cubes to the source model");
+                PreviewBoneHighlight.finishFrame();
+                require(!PreviewBoneHighlight.selected(avatar, part), "selection feedback cannot leak into later frames");
+            } finally {
+                PreviewBoneHighlight.finishFrame();
+                top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = previousPaperdoll;
+                avatar.renderMode = previousMode;
+            }
             System.out.println("PASS independent Figura drawing: real Lua render, native body vertices, script visibility and no entity layers");
         } finally {
             field(Minecraft.class, "gameRenderer").set(client, oldRenderer);
@@ -512,6 +537,26 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var player = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
         player.setUUID(UUID.randomUUID());
         var wardrobe = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+        wardrobe.width = 640;
+        wardrobe.height = 360;
+        field(wardrobe.getClass(), "layout").set(wardrobe,
+                top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout.of(640, 360));
+        try (var selectionPreview = new LibraryPreviewSession()) {
+            field(wardrobe.getClass(), "preview").set(wardrobe, selectionPreview);
+            var buildPreview = wardrobe.getClass().getDeclaredMethod("buildPreview");
+            buildPreview.setAccessible(true);
+            buildPreview.invoke(wardrobe);
+            var actual = (top.aihmc.omnimorph.gui.widgets.EntityPreview) field(wardrobe.getClass(), "previewWidget").get(wardrobe);
+            actual.tick();
+            require(field(actual.getClass(), "libraryPreview").get(actual) == null
+                            && field(actual.getClass(), "localPreview").get(actual) == null,
+                    "the production outfit screen never attaches an isolated preview session");
+            var choose = wardrobe.getClass().getDeclaredMethod("previewSelection");
+            choose.setAccessible(true);
+            choose.invoke(wardrobe);
+            require(selectionPreview.status().stage() == LibraryPreviewSession.Stage.IDLE,
+                    "outfit selection does not prepare a model copy or publish equipment");
+        }
         var widget = new top.aihmc.omnimorph.gui.widgets.EntityPreview(0, 0, 200, 200,
                 40, -15, 30, player, wardrobe);
         try {
@@ -587,6 +632,11 @@ public final class LibraryPreviewRuntimeSmokeTest {
             }
 
             @Override
+            public int width(net.minecraft.network.chat.FormattedText text) {
+                return width(text.getString());
+            }
+
+            @Override
             public String plainSubstrByWidth(String text, int width) {
                 return splitter.plainHeadByWidth(text, width, net.minecraft.network.chat.Style.EMPTY);
             }
@@ -631,10 +681,52 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(!screen.charTyped(new net.minecraft.client.input.CharacterEvent('外')),
                     "clicking outside still clears report editing focus");
             System.out.println("PASS report input: actual screen click/release, CJK text, newline/backspace, disabled state and outside focus");
+            testCollectionCardsAndTreeScrolling();
         } finally {
             screen.removed();
             fontField.set(minecraft, previousFont);
         }
+    }
+
+    private static void testCollectionCardsAndTreeScrolling() throws Exception {
+        var first = new top.aihmc.omnimorph.backend2.library.LibraryModels.CollectionEntry(UUID.randomUUID(), 1, "DOWNLOAD", false, null);
+        var second = new top.aihmc.omnimorph.backend2.library.LibraryModels.CollectionEntry(UUID.randomUUID(), 2, "UPLOAD", false, null);
+        var chosen = new java.util.concurrent.atomic.AtomicReference<top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry>();
+        var view = new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.View();
+        try (var grid = new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid(0, 0, 460, 240, view,
+                null, chosen::set, ignored -> net.minecraft.network.chat.Component.literal("offline"))) {
+            var a = new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(null, first);
+            var b = new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(null, second);
+            grid.entries(java.util.List.of(a, b), null);
+            var click = new net.minecraft.client.input.MouseButtonEvent(8, 62, new net.minecraft.client.input.MouseButtonInfo(0, 0));
+            require(grid.mouseClicked(click, false) && chosen.get() == a, "collection pointer hit testing selects the first card");
+            require(grid.keyPressed(new net.minecraft.client.input.KeyEvent(262, 0, 0)) && chosen.get() == b,
+                    "collection arrow navigation uses the same two-column card layout");
+            var search = (top.aihmc.omnimorph.gui.widgets.SearchBar) grid.children().stream()
+                    .filter(top.aihmc.omnimorph.gui.widgets.SearchBar.class::isInstance).findFirst().orElseThrow();
+            search.getField().setValue("no such model");
+            require(!grid.mouseClicked(click, false) && chosen.get() == b, "filtered empty space cannot select a hidden card");
+        }
+        var child = new top.aihmc.omnimorph.model.FiguraModelPart(null, "deep-".repeat(40),
+                new top.aihmc.omnimorph.model.PartCustomization(), Map.of(), new java.util.ArrayList<>());
+        var root = new top.aihmc.omnimorph.model.FiguraModelPart(null, "root",
+                new top.aihmc.omnimorph.model.PartCustomization(), Map.of(), new java.util.ArrayList<>(java.util.List.of(child)));
+        var tree = new BoneTreeState();
+        tree.replace(PreviewHierarchy.fromFigura(root));
+        var widget = new top.aihmc.omnimorph.gui.widgets.wardrobe.BoneTreeWidget(0, 0, 180, 180, tree);
+        var update = widget.getClass().getDeclaredMethod("updateScrollbars");
+        update.setAccessible(true);
+        var bar = (top.aihmc.omnimorph.gui.widgets.ScrollBarWidget) field(widget.getClass(), "horizontalBar").get(widget);
+        update.invoke(widget);
+        require(!bar.isVisible(), "collapsed short roots need no horizontal scrollbar");
+        tree.toggle(0);
+        update.invoke(widget);
+        require(bar.isVisible() && widget.mouseScrolled(50, 80, -1, 0) && tree.horizontalScroll() > 0,
+                "expanded overflowing hierarchy exposes a usable horizontal scrollbar");
+        tree.toggle(0);
+        update.invoke(widget);
+        require(!bar.isVisible() && tree.horizontalScroll() == 0, "collapsing fitting rows hides and resets horizontal overflow");
+        System.out.println("PASS collection card pointer/keyboard/filter routing and conditional horizontal bone scrolling; GUI MANUAL/PENDING");
     }
 
     private static void testModelFilePicker(LibraryClient client, Runnable drain) throws Exception {

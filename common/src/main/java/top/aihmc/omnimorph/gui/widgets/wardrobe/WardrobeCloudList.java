@@ -5,7 +5,10 @@ import net.minecraft.network.chat.Component;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.SearchBar;
+import top.aihmc.omnimorph.gui.widgets.ModelResourceBadges;
 import top.aihmc.omnimorph.gui.widgets.lists.AbstractList;
+import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
+import top.aihmc.omnimorph.utils.FiguraIdentifier;
 import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 
@@ -13,10 +16,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /** Uses native list/search/button controls and creates only the visible collection rows. */
-public final class WardrobeCloudList extends AbstractList {
+public final class WardrobeCloudList extends AbstractList implements AutoCloseable {
     public static final class View {
         public String query = "";
         public int format;
@@ -28,6 +33,8 @@ public final class WardrobeCloudList extends AbstractList {
     private final java.util.function.Function<UUID, Component> cacheState;
     private List<LibraryModels.CollectionEntry> entries = List.of();
     private UUID selected;
+    private LibraryThumbnailService thumbnails;
+    private final Map<UUID, LibraryThumbnailService.Handle> icons = new HashMap<>();
 
     public WardrobeCloudList(int x, int y, int width, int height, View view,
                              Consumer<LibraryModels.CollectionEntry> select,
@@ -64,7 +71,15 @@ public final class WardrobeCloudList extends AbstractList {
     public void entries(List<LibraryModels.CollectionEntry> values, UUID selected) {
         this.selected = selected;
         if (!entries.equals(values)) {
+            close();
             entries = List.copyOf(values);
+        }
+    }
+
+    public void thumbnails(LibraryThumbnailService next) {
+        if (thumbnails != next) {
+            close();
+            thumbnails = next;
         }
     }
 
@@ -83,17 +98,21 @@ public final class WardrobeCloudList extends AbstractList {
         for (int index = first; index < end; index++) {
             nextRows.add(index);
         }
+        var visible = nextRows.stream().map(index -> filtered.get(index).modelId()).collect(java.util.stream.Collectors.toSet());
+        for (UUID id : List.copyOf(icons.keySet())) {
+            if (!visible.contains(id)) {
+                icons.remove(id).close();
+            }
+        }
         // Only visible rows have widgets, independent of the total account collection size.
         children.removeIf(child -> child instanceof Row);
         for (int index : nextRows) {
             var entry = filtered.get(index);
-            Component title = entry.model() == null ? FiguraText.of("gui.wardrobe.unavailable")
-                    : Component.literal(entry.model().displayName()).append(" · ").append(cacheState.apply(entry.modelId()));
-            if (entry.modelId().equals(selected)) {
-                title = title.copy().withStyle(net.minecraft.ChatFormatting.AQUA);
+            if (thumbnails != null && entry.model() != null && entry.model().imageAvailable()) {
+                icons.computeIfAbsent(entry.modelId(), thumbnails::acquire);
             }
             var row = new Row(getX() + 4, getY() + 52 + index * 26 - offset, getWidth() - 20,
-                    title, button -> {
+                    entry, button -> {
                         selected = entry.modelId();
                         select.accept(entry);
                     });
@@ -155,13 +174,47 @@ public final class WardrobeCloudList extends AbstractList {
     }
 
     private final class Row extends Button {
-        private Row(int x, int y, int width, Component text, OnPress action) {
-            super(x, y, width, 24, text, text, action);
+        private final LibraryModels.CollectionEntry entry;
+
+        private Row(int x, int y, int width, LibraryModels.CollectionEntry entry, OnPress action) {
+            super(x, y, width, 24, entry.model() == null ? FiguraText.of("gui.wardrobe.unavailable")
+                    : Component.literal(entry.model().displayName()), null, action);
+            this.entry = entry;
+            setTooltip(ModelResourceBadges.tooltip(getMessage(), true, entry.model() == null ? "" : entry.model().modelType()));
+            shouldHaveBackground(false);
+        }
+
+        @Override
+        public void extractContents(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+            super.extractContents(gui, mouseX, mouseY, delta);
+            if (entry.modelId().equals(selected)) {
+                UIHelper.fillOutline(gui, getX(), getY(), getWidth(), getHeight(), 0xffffffff);
+            }
+        }
+
+        @Override
+        protected void renderText(GuiGraphicsExtractor gui, float delta) {
+            var handle = icons.get(entry.modelId());
+            var icon = handle == null ? null : handle.capture();
+            UIHelper.blit(gui, getX() + 2, getY() + 2, 20, 20,
+                    icon == null ? new FiguraIdentifier("textures/gui/unknown_icon.png") : icon);
+            ModelResourceBadges.draw(gui, getX() + 2, getY() + 2, true);
+            ModelResourceBadges.drawType(gui, getX() + 12, getY() + 12,
+                    entry.model() == null ? "" : entry.model().modelType());
+            UIHelper.renderScrollingText(gui, getMessage(), getX() + 24, getY() + 2, getWidth() - 26, 0xffffffff);
+            UIHelper.renderScrollingText(gui, cacheState.apply(entry.modelId()), getX() + 24, getY() + 13,
+                    getWidth() - 26, 0xffaaaaaa);
         }
 
         @Override
         public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
             return isInsideScissors(event.x(), event.y()) && super.mouseClicked(event, doubleClick);
         }
+    }
+
+    @Override
+    public void close() {
+        icons.values().forEach(LibraryThumbnailService.Handle::close);
+        icons.clear();
     }
 }

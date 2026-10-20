@@ -31,6 +31,10 @@ import top.aihmc.omnimorph.gui.widgets.wardrobe.VerticalWardrobeTab;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.BoneTreeWidget;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout;
+import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid;
+import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
+import top.aihmc.omnimorph.model.library.PreviewHierarchy;
+import top.aihmc.omnimorph.utils.FiguraIdentifier;
 import top.aihmc.omnimorph.model.library.LibraryCollectionService;
 import top.aihmc.omnimorph.model.library.BoneTreeState;
 import top.aihmc.omnimorph.model.library.LibraryEquipmentService;
@@ -43,6 +47,8 @@ import top.aihmc.omnimorph.utils.TextUtils;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 
 import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,25 +66,31 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private Tab tab = Tab.OUTFIT;
     private Source source = Source.LOCAL;
     private Pane pane = Pane.RESOURCES;
+    private boolean bonesShown;
     private boolean parts;
     private final Map<Context, AvatarList.View> localViews = new HashMap<>();
     private final Map<Context, WardrobeCloudList.View> cloudViews = new HashMap<>();
+    private final Map<Context, WardrobeCollectionGrid.View> cardViews = new HashMap<>();
+    private final Map<Tab, EntityPreview.View> previewViews = new HashMap<>();
     private final Map<Context, Selection> selections = new HashMap<>();
     private final Map<Tab, Source> tabSources = new HashMap<>();
     private final Map<Tab, Boolean> tabModes = new HashMap<>();
-    private final Map<UUID, Boolean> draftVisibility = new HashMap<>();
     private Context localContext;
     private LocalOutfitCandidates localCandidates;
     private Selection selected;
     private LibraryPreviewSession preview;
     private LibraryClient previewClient;
     private EntityPreview previewWidget;
-    private EntityPreview.View previewView;
+    private Tab previewTab;
+    private WardrobeCollectionGrid collectionGrid;
+    private LibraryThumbnailService thumbnails;
     private LibraryClient client;
     private LibraryCollectionService collection;
     private LibraryTransferService transfers;
     private LibraryEquipmentService equipment;
     private LibraryEquipmentService.Operation enabling;
+    private LibraryTransferService.Operation selectionCaching;
+    private UUID cachingModel;
     private LibraryEquipmentVisibility visibility;
     private LibraryEquipmentVisibility.State libraryVisibility;
     private LibraryModels.WardrobeState localVisibility;
@@ -92,14 +104,22 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private String offlineScope = "";
     private UUID cloudAccount;
     private top.aihmc.omnimorph.avatar.Avatar observedAvatar;
+    private CompoundTag observedNbt;
+    private boolean observedReady;
+    private boolean liveHierarchy;
     private final BoneTreeState bones = new BoneTreeState();
     private LibraryPreviewSession boneSession;
     private long boneRevision = -1;
     private WardrobeLayout layout;
     private AvatarList localList;
     private WardrobeCloudList cloudList;
+    private AvatarInfoWidget infoWidget;
+    private BackendMotdWidget motdWidget;
+    private Component observedMotd;
     private Button enableButton;
     private Button candidateButton;
+    private Button uploadButton;
+    private Button deleteButton;
     private SwitchButton showModel;
     private Component message = Component.empty();
 
@@ -113,7 +133,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
 
     private void saveView() {
         if (previewWidget != null) {
-            previewView = previewWidget.view();
+            previewViews.put(previewTab, previewWidget.view());
         }
         if (localList != null) {
             localViews.put(localContext, localList.view());
@@ -132,9 +152,13 @@ public class WardrobeScreen extends AbstractPanelScreen {
         super.init();
         localList = null;
         cloudList = null;
+        infoWidget = null;
+        motdWidget = null;
         candidateButton = null;
         enableButton = null;
         showModel = null;
+        uploadButton = null;
+        deleteButton = null;
         previewWidget = null;
         if (localCandidates == null) {
             localCandidates = LocalOutfitCandidates.forDirectory(FiguraMod.getFiguraDirectory());
@@ -147,32 +171,36 @@ public class WardrobeScreen extends AbstractPanelScreen {
             preview = new LibraryPreviewSession();
             previewClient = null;
             preview.setIndependentFigura(true);
-            if (selected != null) {
+            if (tab == Tab.COLLECTION && selected != null) {
                 previewSelection();
-            } else {
-                previewCurrent();
             }
         }
-        layout = WardrobeLayout.of(width, height);
+        layout = tab == Tab.COLLECTION ? WardrobeLayout.collectionOf(width, height) : WardrobeLayout.of(width, height);
         addRenderableWidget(new VerticalWardrobeTab(4, 28, 66, text("outfit"), button -> switchTab(Tab.OUTFIT)));
         addRenderableWidget(new VerticalWardrobeTab(4, 98, 100, text("collection"), button -> switchTab(Tab.COLLECTION)));
         if (layout.compact()) {
-            int sectionWidth = Math.max(1, (width - 36) / Pane.values().length);
-            for (Pane target : Pane.values()) {
+            var panes = tab == Tab.COLLECTION ? List.of(Pane.RESOURCES, Pane.PREVIEW) : List.of(Pane.values());
+            int sectionWidth = Math.max(1, (width - 36) / panes.size());
+            for (Pane target : panes) {
                 addRenderableWidget(new Button(30 + target.ordinal() * sectionWidth, 28, sectionWidth - 2, 20,
-                        text(target.name().toLowerCase(java.util.Locale.ROOT)), null, button -> {
+                        text(target == Pane.INFO ? "default_panel" : target.name().toLowerCase(java.util.Locale.ROOT)), null, button -> {
                     pane = target;
+                    if (target == Pane.TREE || target == Pane.INFO) {
+                        bonesShown = target == Pane.TREE;
+                    }
                     rebuild();
                 }));
             }
         } else {
             addRenderableOnly((gui, x, y, delta) -> gui.text(font,
                     tab == Tab.OUTFIT ? text("outfit") : text("collection"), 32, 32, 0xffffffff));
-            addRenderableWidget(new Button(layout.treeX(), 28, layout.treeWidth(), 20,
-                    text(pane == Pane.INFO ? "tree" : "info"), null, button -> {
-                pane = pane == Pane.INFO ? Pane.TREE : Pane.INFO;
-                rebuild();
-            }));
+            if (tab == Tab.OUTFIT) {
+                int half = layout.treeWidth() / 2;
+                addRenderableWidget(new Button(layout.treeX(), 28, half - 2, 20, text("default_panel"), null,
+                        button -> switchRightPane(false))).setActive(bonesShown);
+                addRenderableWidget(new Button(layout.treeX() + half, 28, layout.treeWidth() - half, 20,
+                        text("tree"), null, button -> switchRightPane(true))).setActive(!bonesShown);
+            }
         }
         if (!layout.compact() || pane == Pane.RESOURCES) {
             buildResources();
@@ -180,8 +208,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
         if (!layout.compact() || pane == Pane.PREVIEW) {
             buildPreview();
         }
-        if (!layout.compact() || pane == Pane.TREE || pane == Pane.INFO) {
-            if (pane == Pane.INFO) {
+        if (tab == Tab.OUTFIT && (!layout.compact() || pane == Pane.TREE || pane == Pane.INFO)) {
+            if (!bonesShown) {
                 buildInformation();
             } else {
                 buildRightPane();
@@ -195,6 +223,12 @@ public class WardrobeScreen extends AbstractPanelScreen {
         return FiguraText.of("gui.wardrobe." + key);
     }
 
+    private void switchRightPane(boolean bones) {
+        bonesShown = bones;
+        pane = bones ? Pane.TREE : Pane.INFO;
+        rebuild();
+    }
+
     private void connect() {
         try {
             LibraryClient next = NetworkStuff.libraryClient();
@@ -202,6 +236,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 if (equipment != null) {
                     equipment.close();
                 }
+                closeThumbnails();
                 client = next;
                 cloudAccount = client.session().player();
                 collection = NetworkStuff.wardrobeCollection();
@@ -209,6 +244,15 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 equipment = new LibraryEquipmentService(client, transfers);
                 visibility = new LibraryEquipmentVisibility(client);
                 collection.refresh();
+            }
+            if (thumbnails == null) {
+                thumbnails = new LibraryThumbnailService(client, FiguraMod.getCacheDirectory());
+            }
+            if (collectionGrid != null) {
+                collectionGrid.thumbnails(thumbnails);
+            }
+            if (cloudList != null) {
+                cloudList.thumbnails(thumbnails);
             }
         } catch (java.io.IOException offline) {
             client = null;
@@ -243,11 +287,25 @@ public class WardrobeScreen extends AbstractPanelScreen {
 
     private void switchTab(Tab next) {
         saveView();
+        if (next == tab) {
+            return;
+        }
+        if (preview != null) {
+            preview.clear();
+        }
         tabSources.put(tab, source);
         tabModes.put(tab, parts);
         tab = next;
         source = tabSources.getOrDefault(next, Source.LOCAL);
         parts = tabModes.getOrDefault(next, false);
+        selected = selections.get(context());
+        if (tab == Tab.COLLECTION && (pane == Pane.TREE || pane == Pane.INFO)) {
+            pane = Pane.PREVIEW;
+        }
+        if (tab == Tab.COLLECTION && selected != null) {
+            previewSelection();
+        }
+        syncHierarchy();
         rebuildWidgets();
     }
 
@@ -280,9 +338,29 @@ public class WardrobeScreen extends AbstractPanelScreen {
             return;
         }
         int listHeight = Math.max(88, height - 140);
-        if (source == Source.LOCAL) {
+        if (tab == Tab.COLLECTION) {
+            var view = cardViews.computeIfAbsent(context(), ignored -> new WardrobeCollectionGrid.View());
+            collectionGrid = addRenderableWidget(new WardrobeCollectionGrid(x, 78, w,
+                    source == Source.CLOUD ? listHeight - 14 : listHeight, view,
+                    client == null ? null : thumbnails, entry -> {
+                if (entry.local() != null) {
+                    selectLocal(entry.local());
+                } else {
+                    selectCloud(entry.cloud());
+                }
+            }, id -> client == null ? FiguraText.of("gui.library.state.offline") : text(collection.cacheState(id))));
+            refreshCollectionCards();
+            if (source == Source.CLOUD) {
+                addRenderableOnly((gui, mouseX, mouseY, delta) -> UIHelper.renderScrollingText(gui,
+                        client == null ? FiguraText.of("gui.library.state.offline")
+                                : collection.failure().isEmpty() ? text("cloud")
+                                : FiguraText.of("gui.library.failure", collection.failure()),
+                        x + 2, height - 74, w - 4, 0xffffdd88));
+            }
+        } else if (source == Source.LOCAL) {
             localList = new AvatarList(x, 78, w, listHeight, this, this::selectLocal,
                     avatar -> tab == Tab.COLLECTION || localCandidates.contains(avatar.getTheActualPathForThis()));
+            localList.showSourceBadge(true);
             var saved = selections.get(context());
             localContext = context();
             localList.restore(localViews.get(context()), saved == null ? null : saved.reference());
@@ -292,6 +370,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
             cloudList = addRenderableWidget(new WardrobeCloudList(x, 78, w, Math.max(72, listHeight - 14), view,
                     this::selectCloud, id -> client == null ? FiguraText.of("gui.library.state.offline")
                     : text(collection.cacheState(id))));
+            cloudList.thumbnails(client == null ? null : thumbnails);
             refreshCloudRows();
             addRenderableOnly((gui, mouseX, mouseY, delta) -> UIHelper.renderScrollingText(gui,
                     client == null ? FiguraText.of("gui.library.state.offline")
@@ -326,14 +405,25 @@ public class WardrobeScreen extends AbstractPanelScreen {
         int size = Math.max(24, Math.min(w, layout.height() - 20));
         previewWidget = new EntityPreview(x, layout.top(), w, size, size * 0.38f, -15, 30,
                 Minecraft.getInstance().player, this);
-        previewWidget.setLibraryPreview(preview);
-        previewWidget.restoreView(previewView);
+        previewTab = tab;
+        if (tab == Tab.COLLECTION) {
+            previewWidget.setLibraryPreview(preview);
+        }
+        previewWidget.restoreView(previewViews.get(tab));
+        previewWidget.setSelectedBone(tab == Tab.OUTFIT ? bones.selectedPart() : null);
         addRenderableWidget(previewWidget);
         addRenderableOnly((gui, mouseX, mouseY, delta) -> {
-            Component name = selected == null ? text("current_equipped") : text("previewing").copy()
-                    .append(selected.name()).append(" · ").append(text(selected.cloud() == null ? "local" : "cloud"));
+            Component name;
+            if (tab == Tab.OUTFIT) {
+                name = text("current_equipped");
+            } else if (selected == null) {
+                name = FiguraText.of("gui.library.select_model");
+            } else {
+                name = text("previewing").copy().append(selected.name()).append(" · ")
+                        .append(text(selected.cloud() == null ? "local" : "cloud"));
+            }
             UIHelper.renderScrollingText(gui, name, x + 4, layout.top() + size + 2, w - 8, 0xffffffff);
-            Component state = preview.status().stage() == LibraryPreviewSession.Stage.FAILED
+            Component state = tab == Tab.COLLECTION && preview.status().stage() == LibraryPreviewSession.Stage.FAILED
                     ? FiguraText.of("gui.library.failure", preview.status().errorCode()) : message;
             UIHelper.renderScrollingText(gui, state, x + 4, height - 98, w - 8, 0xffffdd88);
             if (!bones.selectedName().isEmpty()) {
@@ -346,10 +436,28 @@ public class WardrobeScreen extends AbstractPanelScreen {
             }
         });
         if (tab == Tab.OUTFIT) {
-            enableButton = addRenderableWidget(new Button(x, height - 78, w, 20, text("enable"), null,
+            int step = Math.min(36, Math.max(24, w / 6));
+            int start = x + (w - step * 5 - 24) / 2;
+            int y = height - 78;
+            uploadButton = addRenderableWidget(icon(start, y, "upload", "upload_current", button -> uploadCurrent()));
+            addRenderableWidget(icon(start + step, y, "reload", "reload_current", button -> AvatarManager.reloadCloudAvatar()));
+            showModel = addRenderableWidget(new SwitchButton(start + step * 2, y, 24, 24, 0, 0, 24,
+                    new FiguraIdentifier("textures/gui/wardrobe_visibility.png"), 72, 48, text("show_others"),
+                    button -> changeVisibility()));
+            addRenderableWidget(icon(start + step * 3, y, "wardrobe_appeal", "info", button -> openAppeals()))
+                    .setTooltip(FiguraText.of("gui.library.my_appeals"));
+            deleteButton = addRenderableWidget(icon(start + step * 4, y, "delete", "delete_current", button -> {
+                if (NetworkStuff.isConnected() && AvatarManager.localUploaded && NetworkStuff.getUploadProgress() == null) {
+                    NetworkStuff.deleteAvatar(null);
+                }
+            }));
+            enableButton = addRenderableWidget(icon(start + step * 5, y, "library_use", "enable",
                     button -> enableSelection()));
-            showModel = addRenderableWidget(new SwitchButton(x, height - 56, w, 20,
-                    text("show_others"), null, button -> changeVisibility()));
+            addRenderableOnly((gui, mouseX, mouseY, delta) -> {
+                if (selected != null) {
+                    UIHelper.renderScrollingText(gui, selected.name(), x + 4, height - 48, w - 8, 0xffbac6d8);
+                }
+            });
         }
     }
 
@@ -359,7 +467,11 @@ public class WardrobeScreen extends AbstractPanelScreen {
         syncHierarchy();
         addRenderableWidget(new BoneTreeWidget(x, layout.top(), w, Math.max(64, height - 140), bones));
         addRenderableWidget(new Button(x, height - 78, w, 20, text("refresh_bones"), null, button -> {
-            preview.refreshHierarchy();
+            if (tab == Tab.OUTFIT) {
+                liveHierarchy = false;
+            } else {
+                preview.refreshHierarchy();
+            }
             syncHierarchy();
         }));
         addRenderableOnly((gui, mouseX, mouseY, delta) -> UIHelper.renderScrollingText(gui,
@@ -367,6 +479,23 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private void syncHierarchy() {
+        if (tab == Tab.OUTFIT) {
+            var current = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
+            CompoundTag nbt = current == null ? null : current.nbt;
+            boolean ready = current != null && current.loaded;
+            if (!liveHierarchy || current != observedAvatar || nbt != observedNbt || ready != observedReady) {
+                observedAvatar = current;
+                observedNbt = nbt;
+                observedReady = ready;
+                liveHierarchy = true;
+                bones.replace(ready ? PreviewHierarchy.fromAvatar(current) : PreviewHierarchy.EMPTY);
+            }
+            return;
+        }
+        if (liveHierarchy) {
+            liveHierarchy = false;
+            boneSession = null;
+        }
         if (preview != boneSession || preview.hierarchyRevision() != boneRevision) {
             boneSession = preview;
             boneRevision = preview.hierarchyRevision();
@@ -377,49 +506,77 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private void buildInformation() {
         int x = layout.treeX();
         int w = layout.treeWidth();
-        int infoHeight = Math.max(40, layout.height() / 2);
-        addRenderableOnly(new AvatarInfoWidget(x, layout.top(), w, infoHeight));
-        if (NetworkStuff.motd != null && layout.height() - infoHeight > 28) {
-            addRenderableWidget(new BackendMotdWidget(x, layout.top() + infoHeight + 4, w,
-                    layout.height() - infoHeight - 4, NetworkStuff.motd, font));
+        int infoHeight = Math.min(Math.max(108, layout.height() / 2), Math.max(40, layout.height() - 56));
+        infoWidget = addRenderableOnly(new AvatarInfoWidget(x, layout.top(), w, infoHeight));
+        updateMotdWidget();
+    }
+
+    private void updateMotdWidget() {
+        if (infoWidget == null) {
+            return;
+        }
+        int y = infoWidget.getY() + infoWidget.getHeight() + 4;
+        int available = Math.max(0, layout.top() + layout.height() - y);
+        if (NetworkStuff.motd == null) {
+            if (motdWidget != null) {
+                removeWidget(motdWidget);
+                motdWidget = null;
+            }
+            observedMotd = null;
+            return;
+        }
+        if (motdWidget == null && available >= 28) {
+            motdWidget = addRenderableWidget(new BackendMotdWidget(layout.treeX(), y, layout.treeWidth(), available,
+                    NetworkStuff.motd, font));
+            motdWidget.setMessage(NetworkStuff.motd);
+            observedMotd = NetworkStuff.motd;
+        }
+        if (motdWidget != null) {
+            motdWidget.setY(y);
+            motdWidget.setHeight(available);
+            motdWidget.visible = available >= 28;
+            if (NetworkStuff.motd != observedMotd) {
+                motdWidget.setMessage(NetworkStuff.motd);
+                observedMotd = NetworkStuff.motd;
+            }
         }
     }
 
     private void buildToolbar() {
         int x = 30;
-        int step = Math.max(1, (width - 36) / 8);
-        addRenderableWidget(new Button(x, height - 28, step - 2, 20, text("upload_current"),
-                FiguraText.of("gui.wardrobe.upload.tooltip"), button -> {
-            var avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
-            if (avatar != null && NetworkStuff.canUpload() && !AvatarManager.localUploaded) {
-                NetworkStuff.uploadAvatar(avatar);
-            }
-        }));
-        addRenderableWidget(new Button(x + step, height - 28, step - 2, 20, text("reload_current"), null,
-                button -> AvatarManager.reloadCloudAvatar()));
-        addRenderableWidget(new Button(x + step * 2, height - 28, step - 2, 20, text("delete_current"), null,
-                button -> {
-            if (NetworkStuff.isConnected() && AvatarManager.localUploaded && NetworkStuff.getUploadProgress() == null) {
-                NetworkStuff.deleteAvatar(null);
-            }
-        }));
-        addRenderableWidget(new Button(x + step * 3, height - 28, step - 2, 20, text("sound"), null,
-                button -> minecraft.setScreen(new SoundScreen(this))));
-        addRenderableWidget(new Button(x + step * 4, height - 28, step - 2, 20, text("keybinds"), null,
-                button -> minecraft.setScreen(new KeybindScreen(this))));
-        addRenderableWidget(new Button(x + step * 5, height - 28, step - 2, 20,
-                FiguraText.of("gui.library.my_appeals"), null, button -> {
-            if (client != null && client.current()) {
-                minecraft.setScreen(new ModelLibraryAppealsScreen(this, client, null));
-            }
-        }));
-        addRenderableWidget(new Button(x + step * 6, height - 28, step - 2, 20, text("clear_current"), null,
-                button -> {
-            AvatarManager.loadLocalAvatar(null);
-            AvatarList.selectedEntry = null;
-        }));
-        addRenderableWidget(new Button(x + step * 7, height - 28, step - 2, 20, FiguraText.of("gui.done"), null,
+        if (tab == Tab.OUTFIT) {
+            addRenderableWidget(icon(x, height - 28, "sound", "sound", button -> minecraft.setScreen(new SoundScreen(this))));
+            addRenderableWidget(icon(x + 30, height - 28, "keybind", "keybinds", button -> minecraft.setScreen(new KeybindScreen(this))));
+            addRenderableWidget(icon(x + 60, height - 28, "unselect", "clear_current", button -> {
+                AvatarManager.loadLocalAvatar(null);
+                AvatarList.selectedEntry = null;
+            }));
+        } else if (source == Source.LOCAL) {
+            addRenderableWidget(icon(x, height - 28, "new_avatar", "avatars",
+                    button -> minecraft.setScreen(new AvatarWizardScreen(this))));
+            addRenderableWidget(icon(x + 30, height - 28, "folder", "local", button ->
+                    net.minecraft.util.Util.getPlatform().openUri(LocalAvatarFetcher.getLocalAvatarDirectory().toUri())));
+        }
+        addRenderableWidget(new Button(width - 90, height - 26, 84, 20, FiguraText.of("gui.done"), null,
                 button -> onClose()));
+    }
+
+    private Button icon(int x, int y, String texture, String tooltip, Button.OnPress action) {
+        return new Button(x, y, 24, 24, 0, 0, 24,
+                new FiguraIdentifier("textures/gui/" + texture + ".png"), 72, 24, text(tooltip), action);
+    }
+
+    private void uploadCurrent() {
+        var avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
+        if (avatar != null && avatar.loaded && avatar.nbt != null && NetworkStuff.canUpload() && !AvatarManager.localUploaded) {
+            NetworkStuff.uploadAvatar(avatar);
+        }
+    }
+
+    private void openAppeals() {
+        if (client != null && client.current()) {
+            minecraft.setScreen(new ModelLibraryAppealsScreen(this, client, null));
+        }
     }
 
     private void selectLocal(LocalAvatarFetcher.AvatarPath avatar) {
@@ -443,18 +600,54 @@ public class WardrobeScreen extends AbstractPanelScreen {
         selected = new Selection(null, null, false, entry.modelId(), Component.literal(entry.model().displayName()));
         selections.put(context(), selected);
         previewSelection();
+        if (tab == Tab.OUTFIT && entry.model().allows("download")) {
+            cachingModel = entry.modelId();
+            selectionCaching = collection.add(entry.modelId());
+            long expected = selectionGeneration;
+            selectionCaching.request().future().whenComplete((value, failure) -> {
+                if (!removed && expected == selectionGeneration && failure != null) {
+                    error(failure);
+                }
+            });
+        }
     }
 
     private void previewSelection() {
         long generation = ++selectionGeneration;
+        message = Component.empty();
+        if (tab == Tab.OUTFIT) {
+            syncHierarchy();
+            refreshVisibility();
+            return;
+        }
         LibraryClient requiredClient = selected != null && selected.cloud() != null ? client : null;
         bindPreview(requiredClient);
-        message = Component.empty();
         if (selected == null) {
-            previewCurrent();
+            preview.clear();
         } else if (selected.cloud() != null) {
             if (client != null && client.current()) {
-                preview.select(selected.cloud(), transfers);
+                UUID model = selected.cloud();
+                boolean downloadable = collection.entries().stream().anyMatch(entry -> entry.modelId().equals(model)
+                        && entry.model() != null && entry.model().allows("download"));
+                if (downloadable) {
+                    preview.clear();
+                    message = text("downloading");
+                    cachingModel = model;
+                    selectionCaching = collection.add(model);
+                    selectionCaching.request().future().whenComplete((value, failure) -> {
+                        if (!removed && generation == selectionGeneration && tab == Tab.COLLECTION
+                                && client == requiredClient && requiredClient.current()) {
+                            message = Component.empty();
+                            if (failure != null) {
+                                error(failure);
+                            }
+                            // Fresh preview permission is still required; a valid formal cache avoids another body.
+                            preview.select(model, transfers);
+                        }
+                    });
+                } else {
+                    preview.select(model, transfers);
+                }
             } else {
                 preview.clear();
                 message = FiguraText.of("gui.library.state.offline");
@@ -495,12 +688,6 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }
     }
 
-    private void previewCurrent() {
-        observedAvatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
-        preview.selectDraft(observedAvatar != null && observedAvatar.nbt != null
-                ? observedAvatar.nbt.copy() : new CompoundTag());
-    }
-
     private boolean candidate() {
         if (selected == null) {
             return false;
@@ -539,12 +726,17 @@ public class WardrobeScreen extends AbstractPanelScreen {
         if (selected == null || parts || tab != Tab.OUTFIT || !candidate()) {
             return;
         }
+        if (selectionIsCaching()) {
+            return;
+        }
         if (selected.path() != null) {
             AvatarManager.loadLocalAvatar(selected.path());
             AvatarList.selectedEntry = selected.reference();
             message = text("enabling");
         } else if (equipment != null && client.current()) {
-            enabling = equipment.enable(selected.cloud(), showModel != null && showModel.isToggled());
+            boolean showing = libraryVisibility != null && selected.cloud().equals(libraryVisibility.model())
+                    && libraryVisibility.showing();
+            enabling = equipment.enable(selected.cloud(), showing);
             enabling.future().whenComplete((result, failure) -> {
                 if (!removed) {
                     if (failure != null) {
@@ -558,13 +750,50 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }
     }
 
+    private boolean selectionIsCaching() {
+        return selected != null && selected.cloud() != null && selected.cloud().equals(cachingModel)
+                && selectionCaching != null && !selectionCaching.request().future().isDone();
+    }
+
     private void refreshCloudRows() {
-        if (cloudList == null) {
+        if (cloudList == null && (collectionGrid == null || source != Source.CLOUD)) {
             return;
         }
         shownEntries = client == null ? offlineEntries : collection.entries();
-        cloudList.entries(shownEntries.stream().filter(entry -> tab == Tab.COLLECTION || entry.inOutfit()).toList(),
+        if (collectionGrid != null) {
+            refreshCollectionCards();
+            return;
+        }
+        cloudList.entries(shownEntries.stream().filter(LibraryModels.CollectionEntry::inOutfit).toList(),
                 selected == null ? null : selected.cloud());
+    }
+
+    private void refreshCollectionCards() {
+        if (collectionGrid == null) {
+            return;
+        }
+        var entries = new ArrayList<WardrobeCollectionGrid.Entry>();
+        if (source == Source.LOCAL) {
+            LocalAvatarFetcher.reloadAvatars();
+            var pending = new ArrayDeque<>(List.copyOf(LocalAvatarFetcher.ALL_AVATARS));
+            while (!pending.isEmpty()) {
+                var entry = pending.removeFirst();
+                if (entry instanceof LocalAvatarFetcher.FolderPath folder) {
+                    pending.addAll(List.copyOf(folder.getChildren()));
+                } else {
+                    entries.add(new WardrobeCollectionGrid.Entry(entry, null));
+                }
+            }
+            entries.sort(java.util.Comparator.comparing(entry -> entry.name().getString(), String.CASE_INSENSITIVE_ORDER));
+        } else {
+            shownEntries = client == null ? offlineEntries : collection.entries();
+            for (var entry : shownEntries) {
+                entries.add(new WardrobeCollectionGrid.Entry(null, entry));
+            }
+        }
+        String selectedKey = selected == null ? null : selected.reference() != null
+                ? selected.reference().toUri().toString() : selected.cloud().toString();
+        collectionGrid.entries(entries, selectedKey);
     }
 
     private void refreshVisibility() {
@@ -582,33 +811,19 @@ public class WardrobeScreen extends AbstractPanelScreen {
         if (client == null || !client.current()) {
             return;
         }
-        if (selected != null && selected.cloud() != null) {
-            var request = visibility.read(selected.cloud());
-            visibilityRequest = request;
-            request.future().whenComplete((state, failure) -> {
-                if (!removed && expected == visibilityGeneration && failure == null) {
-                    libraryVisibility = state;
-                    showModel.setToggled(state.equipped() ? state.showing()
-                            : draftVisibility.getOrDefault(state.model(), false));
+        var request = client.sessionInfo();
+        visibilityRequest = request;
+        request.future().whenComplete((state, failure) -> {
+            if (!removed && expected == visibilityGeneration && failure == null) {
+                if (state.equipmentModelId() != null && state.equipmentModelRevision() != null) {
+                    libraryVisibility = new LibraryEquipmentVisibility.State(state.equipmentModelId(),
+                            state.equipmentModelRevision(), state.equipmentRevision(), true, state.showPrivateEquipment());
+                    showModel.setToggled(state.showPrivateEquipment());
+                } else {
+                    readLocalVisibility(expected);
                 }
-            });
-        } else if (selected == null) {
-            var request = client.sessionInfo();
-            visibilityRequest = request;
-            request.future().whenComplete((state, failure) -> {
-                if (!removed && expected == visibilityGeneration && failure == null) {
-                    if (state.equipmentModelId() != null && state.equipmentModelRevision() != null) {
-                        libraryVisibility = new LibraryEquipmentVisibility.State(state.equipmentModelId(),
-                                state.equipmentModelRevision(), state.equipmentRevision(), true, state.showPrivateEquipment());
-                        showModel.setToggled(state.showPrivateEquipment());
-                    } else {
-                        readLocalVisibility(expected);
-                    }
-                }
-            });
-        } else {
-            readLocalVisibility(expected);
-        }
+            }
+        });
     }
 
     private void readLocalVisibility(long expected) {
@@ -626,8 +841,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private void changeVisibility() {
         if (libraryVisibility != null) {
             if (!libraryVisibility.equipped()) {
-                draftVisibility.put(libraryVisibility.model(), showModel.isToggled());
-                return; // Draft intent is passed only by the explicit enable action.
+                return;
             }
             visibilityRequest = visibility.save(libraryVisibility, showModel.isToggled());
         } else if (localVisibility != null && localVisibility.canChangeVisibility()) {
@@ -666,11 +880,11 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 preview.clear();
             }
             selections.entrySet().removeIf(entry -> entry.getValue() != null && entry.getValue().cloud() != null);
-            draftVisibility.clear();
             offlineEntries = List.of();
             cloudAccount = FiguraMod.getLocalPlayerUUID();
         }
         if (client != null && !client.current()) {
+            closeThumbnails();
             client = null;
             offlineScope = "";
             loadOfflineMetadata();
@@ -691,12 +905,16 @@ public class WardrobeScreen extends AbstractPanelScreen {
         if (client != null && collection != null && shownEntries != collection.entries()) {
             refreshCloudRows();
         }
-        if (selected == null) {
+        if (collectionGrid != null && source == Source.LOCAL) {
+            refreshCollectionCards();
+        }
+        if (tab == Tab.OUTFIT) {
             var current = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
-            if (current != observedAvatar) {
-                bindPreview(null);
-                previewCurrent();
+            if (current != observedAvatar || (current != null && current.nbt != observedNbt)) {
                 refreshVisibility();
+            }
+            if (previewWidget != null) {
+                previewWidget.setEntity(minecraft.player);
             }
         }
         boolean busy = enabling != null && !enabling.future().isDone();
@@ -708,13 +926,13 @@ public class WardrobeScreen extends AbstractPanelScreen {
                     : candidate() ? "remove_outfit" : "add_outfit"));
         }
         if (enableButton != null) {
-            enableButton.setActive(!parts && candidate() && !busy && preview.status().stage() == LibraryPreviewSession.Stage.READY
+            enableButton.setActive(!parts && candidate() && !busy && !selectionIsCaching()
                     && (selected.path() != null || client != null && client.current()));
         }
         if (showModel != null) {
             boolean pending = visibilityRequest != null && !visibilityRequest.future().isDone();
             boolean localTarget = localVisibility != null && localVisibility.canChangeVisibility()
-                    && (selected == null || selected.reference() != null && selected.reference().equals(AvatarList.selectedEntry));
+                    && tab == Tab.OUTFIT;
             boolean privateTarget = libraryVisibility != null && collection != null
                     && collection.entries().stream().anyMatch(entry -> entry.modelId().equals(libraryVisibility.model())
                     && entry.model() != null && entry.model().visibility().equals("PRIVATE") && entry.model().allows("equip"));
@@ -725,13 +943,46 @@ public class WardrobeScreen extends AbstractPanelScreen {
             refreshVisibility();
         }
         wasUploading = uploading;
+        updateMotdWidget();
+        if (uploadButton != null) {
+            var current = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
+            uploadButton.setActive(NetworkStuff.canUpload() && !AvatarManager.localUploaded
+                    && current != null && current.loaded && current.nbt != null);
+        }
+        if (deleteButton != null) {
+            deleteButton.setActive(NetworkStuff.isConnected() && AvatarManager.localUploaded && !uploading);
+        }
         syncHierarchy();
+        if (previewWidget != null) {
+            previewWidget.setSelectedBone(tab == Tab.OUTFIT ? bones.selectedPart() : null);
+        }
     }
 
     @Override
     protected void clearWidgets() {
         saveView();
+        if (collectionGrid != null) {
+            collectionGrid.close();
+            collectionGrid = null;
+        }
+        if (cloudList != null) {
+            cloudList.close();
+        }
         super.clearWidgets();
+    }
+
+    private void closeThumbnails() {
+        if (collectionGrid != null) {
+            collectionGrid.close();
+            collectionGrid.thumbnails(null);
+        }
+        if (cloudList != null) {
+            cloudList.thumbnails(null);
+        }
+        if (thumbnails != null) {
+            thumbnails.close();
+            thumbnails = null;
+        }
     }
 
     @Override
@@ -749,6 +1000,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         if (equipment != null) {
             equipment.close();
         }
+        closeThumbnails();
         super.removed();
         LocalAvatarFetcher.save();
     }

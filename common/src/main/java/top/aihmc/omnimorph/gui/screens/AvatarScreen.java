@@ -13,6 +13,7 @@ public class AvatarScreen extends AbstractPanelScreen {
     private final float yaw;
     private final LivingEntity entity;
     private final LibraryPreviewSession libraryPreview;
+    private final Object selectedBone;
     private boolean returningToParent;
 
     public AvatarScreen(float scale, float pitch, float yaw, LivingEntity entity, Screen parentScreen) {
@@ -21,12 +22,18 @@ public class AvatarScreen extends AbstractPanelScreen {
 
     public AvatarScreen(float scale, float pitch, float yaw, LivingEntity entity, Screen parentScreen,
                         LibraryPreviewSession libraryPreview) {
+        this(scale, pitch, yaw, entity, parentScreen, libraryPreview, null);
+    }
+
+    public AvatarScreen(float scale, float pitch, float yaw, LivingEntity entity, Screen parentScreen,
+                        LibraryPreviewSession libraryPreview, Object selectedBone) {
         super(parentScreen, FiguraText.of("gui.panels.title.avatar"));
         this.scale = scale;
         this.pitch = pitch;
         this.yaw = yaw;
         this.entity = entity;
         this.libraryPreview = libraryPreview;
+        this.selectedBone = selectedBone;
     }
 
     @Override
@@ -41,6 +48,7 @@ public class AvatarScreen extends AbstractPanelScreen {
 
         // entity
         EntityPreview widget = new EntityPreview(0, 0, width, height, scale, pitch, yaw, entity, parentScreen);
+        widget.setSelectedBone(selectedBone);
         if (libraryPreview != null) {
             widget.setLibraryPreview(libraryPreview);
         }
