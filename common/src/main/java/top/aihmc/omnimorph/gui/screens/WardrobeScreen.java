@@ -64,14 +64,16 @@ import java.util.UUID;
 /** Collection membership, outfit candidates, preview selection and equipment are independent states. */
 public class WardrobeScreen extends AbstractPanelScreen {
     private enum Tab { OUTFIT, COLLECTION }
-    private enum Source { LOCAL, CLOUD }
+    private enum Source { ALL, LOCAL, CLOUD }
+    private enum Mode { ALL, AVATAR, COSMETIC }
     private enum Pane { RESOURCES, PREVIEW, TREE, INFO }
 
     private record Selection(Path path, Path reference, boolean ysm, UUID cloud, Component name) {}
     private record Context(Tab tab, Source source) {}
 
     private Tab tab = Tab.OUTFIT;
-    private Source source = Source.LOCAL;
+    private Source source = Source.ALL;
+    private Mode mode = Mode.ALL;
     private Pane pane = Pane.RESOURCES;
     private boolean bonesShown;
     private boolean parts;
@@ -82,7 +84,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private final Map<Tab, EntityPreview.View> previewViews = new HashMap<>();
     private final Map<Context, Selection> selections = new HashMap<>();
     private final Map<Tab, Source> tabSources = new HashMap<>();
-    private final Map<Tab, Boolean> tabModes = new HashMap<>();
+    private final Map<Tab, Mode> tabModes = new HashMap<>();
     private Context localContext;
     private LocalOutfitCandidates localCandidates;
     private Selection selected;
@@ -316,10 +318,11 @@ public class WardrobeScreen extends AbstractPanelScreen {
             preview.clear();
         }
         tabSources.put(tab, source);
-        tabModes.put(tab, parts);
+        tabModes.put(tab, mode);
         tab = next;
-        source = tabSources.getOrDefault(next, Source.LOCAL);
-        parts = tabModes.getOrDefault(next, false);
+        source = tabSources.getOrDefault(next, Source.ALL);
+        mode = tabModes.getOrDefault(next, Mode.ALL);
+        parts = mode == Mode.COSMETIC;
         selected = selections.get(context());
         if (tab == Tab.COLLECTION && (pane == Pane.TREE || pane == Pane.INFO)) {
             pane = Pane.PREVIEW;
@@ -335,17 +338,18 @@ public class WardrobeScreen extends AbstractPanelScreen {
         int x = layout.leftX();
         int w = layout.leftWidth();
         var sourceFilter = new LibraryDropdown(0, 0, 80,
-                () -> List.of(text("local"), text("cloud")), () -> source == Source.LOCAL ? 0 : 1, index -> {
+                () -> List.of(text("all"), text("local"), text("cloud")), () -> source.ordinal(), index -> {
             saveView();
-            source = index == 0 ? Source.LOCAL : Source.CLOUD;
-            if (source == Source.CLOUD && collection != null) {
+            source = Source.values()[index];
+            if (source != Source.LOCAL && collection != null) {
                 collection.refresh();
             }
             rebuildWidgets();
         });
         var modeFilter = new LibraryDropdown(0, 0, 80,
-                () -> List.of(text("avatars"), text("parts")), () -> parts ? 1 : 0, index -> {
-            parts = index == 1;
+                () -> List.of(text("all"), text("avatars"), text("parts")), () -> mode.ordinal(), index -> {
+            mode = Mode.values()[index];
+            parts = mode == Mode.COSMETIC;
             rebuild();
         });
         if (parts) {
@@ -376,7 +380,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         if (tab == Tab.COLLECTION) {
             var view = cardViews.computeIfAbsent(context(), ignored -> new WardrobeCollectionGrid.View());
             collectionGrid = addRenderableWidget(new WardrobeCollectionGrid(x, 54, w,
-                    source == Source.CLOUD ? listHeight - 14 : listHeight, view,
+                    source != Source.LOCAL ? listHeight - 14 : listHeight, view,
                     client == null ? null : thumbnails, entry -> {
                 if (entry.local() != null) {
                     selectLocal(entry.local());
@@ -387,7 +391,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
             collectionGrid.setResourceFilters(sourceFilter, modeFilter, resourceFiltersExpanded,
                     expanded -> resourceFiltersExpanded = expanded);
             refreshCollectionCards();
-            if (source == Source.CLOUD) {
+            if (source != Source.LOCAL) {
                 addRenderableOnly((gui, mouseX, mouseY, delta) -> UIHelper.renderScrollingText(gui,
                         client == null ? FiguraText.of("gui.library.state.offline")
                                 : collection.failure().isEmpty() ? text("cloud")
@@ -427,7 +431,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private void buildPreview() {
         int x = layout.previewX();
         int w = layout.previewWidth();
-        int actionCount = tab == Tab.OUTFIT ? 9 : source == Source.CLOUD ? 8 : 4;
+        boolean cloudActions = source == Source.CLOUD || source == Source.ALL && selected != null && selected.cloud() != null;
+        int actionCount = tab == Tab.OUTFIT ? 9 : cloudActions ? 8 : 4;
         int actionsHeight = LibraryActionBar.heightFor(w, actionCount);
         int actionsY = height - 28 - actionsHeight;
         int size = LibraryWorkspaceLayout.previewHeightBeforeActions(layout.top(), actionsY);
@@ -465,7 +470,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         if (tab == Tab.COLLECTION) {
             candidateButton = actions.action(new LibraryIconButton("wardrobe_outfit", 2,
                     () -> candidate() ? 1 : 0, text("add_outfit"), null, button -> changeCandidate()));
-            if (source == Source.CLOUD) {
+            if (cloudActions) {
                 buildCloudCollectionActions(actions);
             } else {
                 actions.separator();
@@ -805,6 +810,9 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 Component.literal(avatar.getName()));
         selections.put(context(), selected);
         previewSelection();
+        if (source == Source.ALL && tab == Tab.COLLECTION) {
+            rebuild();
+        }
     }
 
     private void selectCloud(LibraryModels.CollectionEntry entry) {
@@ -817,11 +825,17 @@ public class WardrobeScreen extends AbstractPanelScreen {
             preview.clear();
             syncHierarchy();
             refreshVisibility();
+            if (source == Source.ALL && tab == Tab.COLLECTION) {
+                rebuild();
+            }
             return;
         }
         selected = new Selection(null, null, false, entry.modelId(), Component.literal(entry.model().displayName()));
         selections.put(context(), selected);
         previewSelection();
+        if (source == Source.ALL && tab == Tab.COLLECTION) {
+            rebuild();
+        }
     }
 
     private void previewSelection() {
@@ -998,7 +1012,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private void refreshCloudRows() {
-        if (cloudList == null && (collectionGrid == null || source != Source.CLOUD)) {
+        if (cloudList == null && (collectionGrid == null || source == Source.LOCAL)) {
             return;
         }
         shownEntries = client == null ? offlineEntries : collection.entries();
@@ -1008,6 +1022,10 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }
         cloudList.entries(shownEntries.stream().filter(LibraryModels.CollectionEntry::inOutfit).toList(),
                 selected == null ? null : selected.cloud());
+        if (source == Source.ALL) {
+            cloudList.localEntries(localEntries(true), this::selectLocal, this::removeLocalOutfit,
+                    selected == null ? null : selected.reference());
+        }
     }
 
     private void refreshCollectionCards() {
@@ -1015,19 +1033,12 @@ public class WardrobeScreen extends AbstractPanelScreen {
             return;
         }
         var entries = new ArrayList<WardrobeCollectionGrid.Entry>();
-        if (source == Source.LOCAL) {
-            LocalAvatarFetcher.reloadAvatars();
-            var pending = new ArrayDeque<>(List.copyOf(LocalAvatarFetcher.ALL_AVATARS));
-            while (!pending.isEmpty()) {
-                var entry = pending.removeFirst();
-                if (entry instanceof LocalAvatarFetcher.FolderPath folder) {
-                    pending.addAll(List.copyOf(folder.getChildren()));
-                } else {
-                    entries.add(new WardrobeCollectionGrid.Entry(entry, null));
-                }
+        if (source != Source.CLOUD) {
+            for (var entry : localEntries(false)) {
+                entries.add(new WardrobeCollectionGrid.Entry(entry, null));
             }
-            entries.sort(java.util.Comparator.comparing(entry -> entry.name().getString(), String.CASE_INSENSITIVE_ORDER));
-        } else {
+        }
+        if (source != Source.LOCAL) {
             shownEntries = client == null ? offlineEntries : collection.entries();
             for (var entry : shownEntries) {
                 entries.add(new WardrobeCollectionGrid.Entry(null, entry));
@@ -1036,6 +1047,22 @@ public class WardrobeScreen extends AbstractPanelScreen {
         String selectedKey = selected == null ? null : selected.reference() != null
                 ? selected.reference().toUri().toString() : selected.cloud().toString();
         collectionGrid.entries(entries, selectedKey);
+    }
+
+    private List<LocalAvatarFetcher.AvatarPath> localEntries(boolean outfitOnly) {
+        LocalAvatarFetcher.reloadAvatars();
+        var result = new ArrayList<LocalAvatarFetcher.AvatarPath>();
+        var pending = new ArrayDeque<>(List.copyOf(LocalAvatarFetcher.ALL_AVATARS));
+        while (!pending.isEmpty()) {
+            var entry = pending.removeFirst();
+            if (entry instanceof LocalAvatarFetcher.FolderPath folder) {
+                pending.addAll(List.copyOf(folder.getChildren()));
+            } else if (!outfitOnly || localCandidates.contains(entry.getTheActualPathForThis())) {
+                result.add(entry);
+            }
+        }
+        result.sort(java.util.Comparator.comparing(LocalAvatarFetcher.AvatarPath::getName, String.CASE_INSENSITIVE_ORDER));
+        return result;
     }
 
     private void refreshVisibility() {
@@ -1158,8 +1185,12 @@ public class WardrobeScreen extends AbstractPanelScreen {
         if (client != null && collection != null && shownEntries != collection.entries()) {
             refreshCloudRows();
         }
-        if (collectionGrid != null && source == Source.LOCAL) {
+        if (collectionGrid != null && source != Source.CLOUD) {
             refreshCollectionCards();
+        }
+        if (cloudList != null && source == Source.ALL && !parts) {
+            cloudList.localEntries(localEntries(true), this::selectLocal, this::removeLocalOutfit,
+                    selected == null ? null : selected.reference());
         }
         if (tab == Tab.OUTFIT) {
             var current = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
