@@ -37,6 +37,7 @@ public final class LibraryCollectionService implements AutoCloseable {
     private String automaticPrevious;
     private int automaticIndex;
     private boolean closed;
+    private boolean authoritative;
     private String failure = "";
 
     public LibraryCollectionService(LibraryClient client, Path cacheRoot) {
@@ -59,11 +60,16 @@ public final class LibraryCollectionService implements AutoCloseable {
         return cacheStates.getOrDefault(model, "not_cached");
     }
 
+    public boolean available() {
+        return !closed && authoritative;
+    }
+
     public CompletableFuture<List<LibraryModels.CollectionEntry>> refresh() {
         if (refresh != null && !refresh.future().isDone()) {
             return refresh.future().thenApply(Snapshot::entries);
         }
         failure = "";
+        authoritative = false;
         automaticIndex = 0;
         refresh = client.submit(LibraryClient.Lane.CONTROL, exchange -> {
             try {
@@ -95,6 +101,7 @@ public final class LibraryCollectionService implements AutoCloseable {
                 if (error == null) {
                     entries = value.entries();
                     failure = value.failure();
+                    authoritative = value.failure().isEmpty();
                     cacheStates.clear();
                     cacheStates.putAll(value.cacheStates());
                 } else {
@@ -142,6 +149,9 @@ public final class LibraryCollectionService implements AutoCloseable {
     }
 
     public LibraryTransferService.Operation add(UUID model) {
+        if (automatic != null && model.equals(automaticModel) && !automatic.request().future().isDone()) {
+            return automatic; // Automatic transfers only target resources already in this account's collection.
+        }
         var existing = additions.get(model);
         if (existing != null && !existing.request().future().isDone()) {
             return existing;
@@ -158,6 +168,13 @@ public final class LibraryCollectionService implements AutoCloseable {
                 } else {
                     cacheStates.put(model, "cache_failed");
                     failure = code(error);
+                    // A lost join response or a failed local commit may still have created the member.
+                    refresh().whenComplete((members, refreshError) -> {
+                        if (!closed && client.current()) {
+                            cacheStates.put(model, "cache_failed");
+                            failure = code(error);
+                        }
+                    });
                 }
             }
         });
@@ -180,12 +197,16 @@ public final class LibraryCollectionService implements AutoCloseable {
             }
             return;
         }
-        if (!failure.isEmpty() || refresh == null || !refresh.future().isDone()
+        if (!available() || !failure.isEmpty() || refresh == null || !refresh.future().isDone()
                 || automatic != null && !automatic.request().future().isDone()) {
             return;
         }
         while (automaticIndex < entries.size()) {
             var entry = entries.get(automaticIndex++);
+            var addition = additions.get(entry.modelId());
+            if (addition != null && !addition.request().future().isDone()) {
+                continue;
+            }
             if (entry.model() != null && entry.model().allows("download")) {
                 automatic = transfers.download(entry.modelId());
                 automaticModel = entry.modelId();

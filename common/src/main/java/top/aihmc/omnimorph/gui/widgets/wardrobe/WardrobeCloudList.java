@@ -93,7 +93,10 @@ public final class WardrobeCloudList extends AbstractList {
                 title = title.copy().withStyle(net.minecraft.ChatFormatting.AQUA);
             }
             var row = new Row(getX() + 4, getY() + 52 + index * 26 - offset, getWidth() - 20,
-                    title, button -> select.accept(entry));
+                    title, button -> {
+                        selected = entry.modelId();
+                        select.accept(entry);
+                    });
             children.add(row);
         }
         UIHelper.blitSliced(gui, getX(), getY(), getWidth(), getHeight(), UIHelper.OUTLINE_FILL);

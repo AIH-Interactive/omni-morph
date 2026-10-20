@@ -164,6 +164,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(!lifetime.isCurrent(), "finishing the GUI frame retires the model after its final state releases");
             LibraryPreviewBinding.finishFrame();
 
+            require(await(preview.selectDraft(new CompoundTag()), drain) && preview.showsVanillaPlayer(),
+                    "an empty wardrobe selection can preview the default player without activating an avatar");
             CompoundTag visible = model("Figura accessory with vanilla player");
             var visibleScripts = new CompoundTag();
             visibleScripts.putByteArray("script", "vanilla_model.PLAYER:setVisible(true)"

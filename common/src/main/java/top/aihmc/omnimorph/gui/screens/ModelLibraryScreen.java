@@ -221,7 +221,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                     }
                 }));
         use = actions.action(new LibraryIconButton("library_use", 1, () -> 0, FiguraText.of("gui.library.collection_add"),
-                null, button -> enable()));
+                null, button -> addToWardrobe()));
         favorite = actions.action(new LibraryIconButton("library_favorite", 2,
                 () -> selected != null && selected.favorited() ? 1 : 0, FiguraText.of("gui.library.favorite"),
                 null, button -> favorite(selected)));
@@ -298,7 +298,12 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
             if (section == 3) {
                 preview.clear();
                 retainingChild = true;
-                minecraft.setScreen(new ModelUploadScreen(this, client, capabilities, this::refresh));
+                minecraft.setScreen(new ModelUploadScreen(this, client, capabilities, () -> {
+                    if (collection != null && client.current()) {
+                        collection.refresh();
+                    }
+                    refresh();
+                }));
             } else {
                 openAdmin();
             }
@@ -426,7 +431,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         updateButtons();
     }
 
-    private void enable() {
+    private void addToWardrobe() {
         if (selected == null) {
             return;
         }
@@ -510,9 +515,12 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         }
         boolean joined = selected != null && collection != null && collection.entries().stream()
                 .anyMatch(entry -> entry.modelId().equals(selected.modelId()));
-        use.setActive(available && selected != null && selected.allows("download")
+        use.setActive(available && collection != null && collection.available() && selected != null && selected.allows("download")
                 && (addition == null || addition.request().future().isDone()));
         use.setMessage(FiguraText.of(joined ? "gui.library.collection_joined" : "gui.library.collection_add"));
+        use.setTooltip(collection != null && !collection.available() && !collection.failure().isEmpty()
+                ? FiguraText.of("gui.library.failure", collection.failure())
+                : FiguraText.of(joined ? "gui.library.collection_joined" : "gui.library.collection_add"));
         favorite.setActive(available && selected != null && selected.allows("favorite"));
         favorite.setMessage(FiguraText.of(selected != null && selected.favorited()
                 ? "gui.library.unfavorite" : "gui.library.favorite"));

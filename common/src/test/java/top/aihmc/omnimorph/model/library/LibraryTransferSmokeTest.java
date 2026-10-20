@@ -84,11 +84,31 @@ public final class LibraryTransferSmokeTest {
                     require(files.findAny().isEmpty(), "failed download removes its temporary file");
                 }
                 server.corrupt.set(false);
+                server.loseJoinResponse.set(true);
+                failure(transfers.add(MODEL).request().future(), callbacks, "BUSY");
+                int retainedFiles = server.files.get();
                 await(transfers.add(MODEL).request().future(), callbacks);
+                require(server.files.get() == retainedFiles,
+                        "a lost membership response resumes the verified staged input without another download");
+                var receipts = server.completionOperations.toArray(String[]::new);
+                require(receipts.length >= 2 && receipts[receipts.length - 1].equals(receipts[receipts.length - 2]),
+                        "receipt retry retains the exact completion operation ID");
                 int addedFiles = server.files.get();
                 await(transfers.add(MODEL).request().future(), callbacks);
                 require(server.joined.get() && server.files.get() == addedFiles,
                         "adding persists account membership and repeated addition reuses the formal cache");
+                try (var collection = new LibraryCollectionService(client, directory)) {
+                    require(await(collection.refresh(), callbacks).size() == 1 && collection.available(),
+                            "collection comes from a successful current backend response");
+                    server.collectionStatus.set(404);
+                    require(await(collection.refresh(), callbacks).size() == 1 && !collection.available(),
+                            "cached metadata remains descriptive when the backend lacks the collection API");
+                    require(collection.failure().equals("NOT_FOUND"), "unsupported collection API is surfaced");
+                    require(LibraryCollectionService.offlineMetadata(directory, server.origin(), VIEWER).size() == 1
+                                    && LibraryCollectionService.offlineMetadata(directory, server.origin(), UUID.randomUUID()).isEmpty(),
+                            "offline metadata is account scoped and is not an authorization result");
+                    server.collectionStatus.set(200);
+                }
                 int formalReceipts = server.completed.get();
                 var wardrobe = new LibraryWardrobePreviewService(client, () -> "synthetic-admin", directory);
                 var source = await(wardrobe.current(VIEWER, "self outfit/中文", 3, 9).future(), callbacks);
@@ -163,6 +183,9 @@ public final class LibraryTransferSmokeTest {
         private final AtomicBoolean revoked = new AtomicBoolean();
         private final AtomicBoolean corrupt = new AtomicBoolean();
         private final AtomicBoolean joined = new AtomicBoolean();
+        private final AtomicInteger collectionStatus = new AtomicInteger(200);
+        private final AtomicBoolean loseJoinResponse = new AtomicBoolean();
+        private final ConcurrentLinkedQueue<String> completionOperations = new ConcurrentLinkedQueue<>();
         private final AtomicInteger wardrobeFiles = new AtomicInteger();
         private final AtomicInteger wardrobeHeads = new AtomicInteger();
         private final AtomicInteger cacheSeconds = new AtomicInteger(7200);
@@ -240,9 +263,12 @@ public final class LibraryTransferSmokeTest {
                     }
                 } else if (path.equals("/api/library/v1/collection/" + MODEL)) {
                     joined.set(true);
-                    body = "{\"joined\":true}";
+                    boolean lost = loseJoinResponse.getAndSet(false);
+                    status = lost ? 503 : 200;
+                    body = lost ? "{\"code\":\"BUSY\"}" : "{\"joined\":true}";
                 } else if (path.equals("/api/library/v1/collection")) {
-                    body = joined.get() ? """
+                    status = collectionStatus.get();
+                    body = status != 200 ? "{\"code\":\"NOT_FOUND\"}" : joined.get() ? """
                             {"items":[{"model_id":"%s","joined_at":1,"join_source":"DOWNLOAD","in_outfit":false}],
                              "page":1,"page_size":64,"total":1,"has_next":false}
                             """.formatted(MODEL)
@@ -274,6 +300,9 @@ public final class LibraryTransferSmokeTest {
                     request.getResponseBody().write(sent);
                     return;
                 } else if (path.equals("/api/library/v1/transfers/" + TRANSFER + "/complete")) {
+                    var input = com.google.gson.JsonParser.parseString(new String(
+                            request.getRequestBody().readAllBytes(), StandardCharsets.UTF_8)).getAsJsonObject();
+                    completionOperations.add(input.get("operation_id").getAsString());
                     completed.incrementAndGet();
                     body = "{}";
                 } else {

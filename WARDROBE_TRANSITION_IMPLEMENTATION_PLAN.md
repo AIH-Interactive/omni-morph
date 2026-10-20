@@ -1,6 +1,6 @@
 # OmniMorph 1.x 衣柜 GUI 过渡改造实施计划
 
-状态：实施中。调查日期：2026-10-20；客户端源码基线：`18b7bf5`，后端基线：`0f09b3b`。
+状态：阶段 1～4 实现及自动验证完成；人工验收按授权跳过，保留 `MANUAL/PENDING`。调查日期：2026-10-20；客户端源码基线：`18b7bf5`，后端基线：`0f09b3b`。
 初始交付仅编写计划；后续已获授权依次执行阶段 1～4，阶段完成后编译测试、提交并推送。人工验收统一记录为 `MANUAL/PENDING`，不阻塞实施检查点。
 
 ## 1. 目标与范围
@@ -249,8 +249,8 @@ Rust 检查同样在后端目录采用该管道并立即检查退出码、读取
 | --- | --- | --- |
 | 1 账号云端衣柜与缓存 | 已提交、已推送 | 客户端 `3e42d20`；后端 `d1de138`。Fabric 构建及缓存/传输/客户端/投稿/装备回归通过；Rust 模型库 61 通过 / 1 既有忽略（含 Java/Rust 联调），存储 5 通过。 |
 | 2 配装 / 我的形象集与独立预览 | 已提交、已推送 | 客户端 `74a1e19`。Fabric 构建、布局/候选持久化、模型库回调、装备及展示服务回归通过；人工 GUI 为 `MANUAL/PENDING`。 |
-| 3 只读骨骼树 | 自动验证通过，完成检查点提交 | Fabric 构建、骨骼树逻辑、实际加载快照、YSM 骨骼矩阵和查询回归通过。提交/推送见 Git 历史；人工 GUI 为 `MANUAL/PENDING`。 |
-| 4 整体验收 | 待实施 | 未执行 |
+| 3 只读骨骼树 | 已提交、已推送 | 客户端 `901bf45`。Fabric 构建、骨骼树逻辑、实际加载快照、YSM 骨骼矩阵和查询回归通过；人工 GUI 为 `MANUAL/PENDING`。 |
+| 4 整体验收 | 实现及自动验证完成，检查点提交 | 后端 `b195d02` 已推送；客户端本次检查点提交包含本记录，提交/推送以 Git 历史为准。Fabric 构建、下述客户端回归、Rust 全量及实际 Java/Rust HTTP 联调通过；人工验收按授权跳过。 |
 
 达到上述验收即结束 1.x 过渡改造。留给 2.x 的接缝仅为模式枚举、资源选择结果与只读层级适配；装饰组合、骨骼挂载及虚拟锚点另行立项。
 
@@ -283,3 +283,31 @@ Rust 检查同样在后端目录采用该管道并立即检查退出码、读取
 - 选中节点在树行高亮，并在预览区域显示名称。两个现有渲染器均无可直接复用的单部件高亮入口；本阶段不增加渲染路径，不修改骨骼、变换、可见性、材质或 Lua/Molang 状态，按计划采用名称提示降级。
 - 自动证据：`boneTreeSmokeTest` 覆盖真实 Figura/YSM 部件对象、同名节点、中文和大小写搜索、清空恢复、换模型及 5000 层深度；扩展 `LibraryPreviewRuntimeSmokeTest` 验证实际异步加载结果、tick 不刷新、手动刷新和清理；`ysmBoneMatrixSmokeTest`、`ysmBoneQuerySmokeTest` 及 Fabric 构建通过。
 - `MANUAL/PENDING`：真实窗口中的树交互、搜索输入、中文渲染和预览名称提示。骨骼树已经实装，不属于“敬请期待（2.0实装）”占位功能。
+
+### 实施记录：阶段 4（2026-10-20）
+
+- 修复本阶段范围内的收尾问题：无自定义模型时仍预览默认玩家；云端列表选中反馈立即更新；投稿完成刷新账号形象集；成员 API 不可用时仅显示历史元数据，禁用依赖账号成员的操作，不伪装成本机云端衣柜。
+- 加入回执失败保留经过校验的加密暂存及完成操作 ID；有效期、模型/策略版本和身份仍须重查。重试复用原字节和操作标识，测试覆盖服务端已加入但响应丢失的情况；成员成功而缓存失败时重新拉取账号状态并保留失败提示。自动缓存与同模型手动加入避免并发重复传输。
+- 本机缓存密钥先写临时文件再发布，避免失败写入留下半个密钥；清理旧明文预览缓存和已确认下载缓存目录内的旧明文暂存，保留封装数据及用户源文件。测试验证未过期旧缓存也失效、封装下载不被清理。
+- Rust 全量回归发现旧 schema 2/3 测试夹具保留了新表；仅修正夹具以重建真实旧版本，不改变生产迁移。全量 `cargo test -- --nocapture`：111 通过、0 失败、1 单独运行的忽略项；该并发饱和项另行运行后 1 通过。实际 Java 客户端到 Rust listener 的模型库联调及 Figura Cloud/Protobuf 四种协议配对通过。
+- 最终客户端命令通过：`:fabric:build`、`:common:modelCacheCodecSmokeTest`、`:common:libraryPreviewCacheSmokeTest`、`:common:libraryTransferSmokeTest`、`:common:libraryClientSmokeTest`、`:common:libraryUploadSmokeTest`、`:common:libraryEquipmentSmokeTest`、`:common:libraryEquipmentVisibilitySmokeTest`、`:common:wardrobeTransitionSmokeTest`、`:common:boneTreeSmokeTest`、`:common:modelLibraryLayoutSmokeTest`、`:common:modelLibraryCatalogSmokeTest`、`:common:cloudModelSwitchSmokeTest`、`:common:ysmSyncSmokeTest`、`:common:ysmMolangMathSmokeTest`、`:common:writeCloudIntegrationClasspath`。Fabric 构建同时执行实际异步模型加载的预览运行时检查。
+- 构建产物：`fabric/build/libs/omni-morph-1.0.0-alpha.2+26.1.2-fabric-mc.jar`；保留已有版本，不自动升版。交付包含客户端及独立 Rust 仓库的阶段提交，不涉及线上部署。
+
+| 最终验收范围 | 当前证据与限制 |
+| --- | --- |
+| 成员、投稿、候选、跨客户端与权限 | 实际 Rust HTTP 联调和后端持久化/授权测试通过；真实两台设备游戏操作为 `MANUAL/PENDING`。 |
+| 缓存封装、重试、账号隔离 | 编解码、篡改/截断/密钥失效、缓存授权、丢响应重试及旧缓存清理测试通过；真实断网、磁盘耗尽与开关操作体验为 `MANUAL/PENDING`。 |
+| Figura/YSM 预览、启用与同步 | 实际加载器、正式装备、展示 CAS、云端模型切换及同步编码/重连测试通过；实窗预览旋转缩放、Lua/Molang 动画和多人观察为 `MANUAL/PENDING`。 |
+| 骨骼树 | 实际加载层级、折叠/搜索恢复、代次清理及只读测试通过；实窗输入、点击、选中显示为 `MANUAL/PENDING`。按阶段 3 记录降级为树行高亮及名称提示。 |
+| 页面布局与 2.0 占位 | 布局计算和相关回调测试通过；垂直 Tab 的整体 90° 文字、来源/模式/候选切换、中文渲染、854×480 / 1280×720 / 1920×1080 实际窗口及 GUI Scale 为 `MANUAL/PENDING`。不以计算结果替代截图验收。 |
+| 可选旧生产二进制门禁 | 未提供 `OMNIMORPH_ROLLBACK_BINARY` / `OMNIMORPH_DELIVERY_BINARY`，旧生产进程回滚及生产主入口切换检查为 `MANUAL/PENDING`；不影响本次新增接口与实际测试 listener 联调结果。 |
+
+以上人工项目按本轮明确授权跳过，未宣称已实际运行游戏窗口或完成视觉验收；不为通过验收增加隐藏渲染路径或扩展 2.0 业务。
+
+### 操作说明
+
+1. 在模型库点击“加入衣柜”，资源出现在“我的形象集 → 云端”；自己成功投稿也进入这里，两者都不自动启用或加入配装。
+2. 在我的形象集选择本地/云端形象并“加入配装”，返回配装后只显示已加入的候选；选择更新预览，点击“启用”才更换化身。
+3. 云端来源区域可切换本设备“自动缓存到本机”，默认关闭；关闭不删除完整缓存，按需预览/启用继续校验权限。
+4. 私有模型向他人展示的设置统一位于配装预览操作区；条目公开/私有仍由模型库编辑管理。
+5. 右栏查看只读骨骼树，搜索展开匹配路径，清空恢复原折叠；需要读取脚本后的结构变化时显式刷新。部件、组合、挂载和锚点区域为“敬请期待（2.0实装）”。

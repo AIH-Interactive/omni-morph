@@ -60,6 +60,23 @@ public final class LibraryTransferService {
         return fetch(model, false);
     }
 
+    /** Discard old plaintext download leftovers only within the application's dedicated cache. */
+    public static void cleanupUnprotectedDownloads(Path cacheRoot) throws IOException {
+        Path directory = cacheRoot.resolve("model-library-downloads");
+        if (Files.isSymbolicLink(directory) || !Files.isDirectory(directory)) {
+            return;
+        }
+        try (var files = Files.list(directory)) {
+            for (Path path : files.toList()) {
+                if (Files.isRegularFile(path, java.nio.file.LinkOption.NOFOLLOW_LINKS)
+                        && path.getFileName().toString().matches("download-.*\\.part")
+                        && Files.size(path) > 32 && !ModelCacheCodec.isWrapped(path)) {
+                    Files.deleteIfExists(path);
+                }
+            }
+        }
+    }
+
     public Operation download(UUID model) {
         return fetch(model, true);
     }
@@ -93,6 +110,12 @@ public final class LibraryTransferService {
                     byte[] cached = resources.read(model);
                     if (cached != null && (!join || isMember(exchange, id))) {
                         return parse(model, cached, CloudHttp.sha256(cached), purpose);
+                    }
+                    var pending = resources.pending(model);
+                    if (pending != null) {
+                        var result = parse(model, pending.bytes(), pending.hash(), purpose);
+                        finishPending(exchange, model, pending, join);
+                        return result;
                     }
                 }
                 if (!formal) {
@@ -138,15 +161,10 @@ public final class LibraryTransferService {
                             receive(exchange, input, output, model.byteLength(), hash, progress, generation);
                         }
                         progress.stage(generation, AvatarLoadProgress.Stage.PREPARING);
-                        result = parse(model, codec.read(partial, CloudHttp.FILE_BYTES), hash, purpose);
-                        exchange.json("POST", ROOT + "transfers/" + transfer.transferId() + "/complete",
-                                Map.of("operation_id", UUID.randomUUID().toString(), "raw_sha256", hash),
-                                com.google.gson.JsonObject.class);
-                        if (join) {
-                            exchange.json("PUT", ROOT + "collection/" + id,
-                                    Map.of("transfer_id", transfer.transferId().toString()), com.google.gson.JsonObject.class);
-                        }
-                        resources.publish(model, partial, hash);
+                        byte[] bytes = codec.read(partial, CloudHttp.FILE_BYTES);
+                        result = parse(model, bytes, hash, purpose);
+                        var pending = resources.stage(model, partial, bytes, hash, transfer);
+                        finishPending(exchange, model, pending, join);
                     } finally {
                         if (partial != null) {
                             Files.deleteIfExists(partial);
@@ -171,6 +189,19 @@ public final class LibraryTransferService {
         });
         request.future().whenComplete((value, failure) -> progress.finish(generation));
         return new Operation(request, progress);
+    }
+
+    private void finishPending(LibraryClient.Exchange exchange, LibraryModels.Model model,
+                               LibraryResourceCache.Pending pending, boolean join) throws Exception {
+        exchange.json("POST", ROOT + "transfers/" + pending.transfer() + "/complete",
+                Map.of("operation_id", pending.completion().toString(), "raw_sha256", pending.hash()),
+                com.google.gson.JsonObject.class);
+        if (join) {
+            exchange.json("PUT", ROOT + "collection/" + model.modelId(),
+                    Map.of("transfer_id", pending.transfer().toString()), com.google.gson.JsonObject.class);
+        }
+        exchange.requireCurrent();
+        resources.publish(model, pending);
     }
 
     private boolean isMember(LibraryClient.Exchange exchange, UUID id) throws Exception {
