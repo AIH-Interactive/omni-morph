@@ -2,6 +2,10 @@ package top.aihmc.omnimorph.gui.widgets.library;
 
 /** The reference workspace: a content pane, a narrow preview pane and a 24-pixel footer. */
 public record LibraryWorkspaceLayout(int width, int height) {
+    public static int previewHeightBeforeActions(int top, int actionsY) {
+        return Math.max(24, actionsY - top - 12);
+    }
+
     public int left() {
         return 8;
     }

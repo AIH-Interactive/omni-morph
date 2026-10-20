@@ -189,7 +189,8 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                             minecraft.setScreen(new ModelLibraryAppealsScreen(this, client, null));
                         }
                     }));
-            var widget = new EntityPreview(rightX, 52, rightWidth, Math.max(24, actionsY - 64), Math.max(12, rightWidth / 3),
+            var widget = new EntityPreview(rightX, 52, rightWidth,
+                    LibraryWorkspaceLayout.previewHeightBeforeActions(52, actionsY), Math.max(12, rightWidth / 3),
                     -15, 30, preview.entity(), this);
             widget.setLibraryPreview(preview);
             addRenderableWidget(widget);

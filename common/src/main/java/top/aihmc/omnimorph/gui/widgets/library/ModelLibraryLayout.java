@@ -6,6 +6,10 @@ public record ModelLibraryLayout(int width, int height, int count, int columns, 
     public static final int CARD_HEIGHT = 92;
     public static final int MIN_CARD_WIDTH = 196;
 
+    public static int imageSize(int cardWidth) {
+        return Math.max(1, Math.min(CARD_HEIGHT - 8, (cardWidth - 16) / 2));
+    }
+
     public static ModelLibraryLayout of(int width, int height, int count) {
         int available = Math.max(1, width);
         int columns = Math.max(1, (available + GAP) / (MIN_CARD_WIDTH + GAP));

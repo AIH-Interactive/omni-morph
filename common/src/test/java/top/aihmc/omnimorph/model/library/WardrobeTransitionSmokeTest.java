@@ -25,6 +25,11 @@ public final class WardrobeTransitionSmokeTest {
                                 && collection.previewX() + collection.previewWidth() <= width,
                         "collection cards and right preview fit the logical window");
                 if (!collection.compact()) {
+                    var catalog = new top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout(width - 22, height);
+                    require(collection.leftWidth() == catalog.contentWidth()
+                                    && collection.previewWidth() == catalog.previewWidth()
+                                    && collection.previewX() == catalog.previewX() + 22,
+                            "collection reuses catalog 70/30 proportions after reserving the vertical tabs");
                     require(collection.leftX() + collection.leftWidth() < collection.previewX()
                                     && collection.leftWidth() > collection.previewWidth(),
                             "collection reserves a wide card workspace left of the selected preview");

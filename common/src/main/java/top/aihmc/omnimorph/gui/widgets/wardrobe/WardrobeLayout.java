@@ -1,18 +1,21 @@
 package top.aihmc.omnimorph.gui.widgets.wardrobe;
 
+import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
+
 /** Dimensions are Minecraft GUI units. Compact windows expose each pane through navigation. */
 public record WardrobeLayout(int leftX, int leftWidth, int previewX, int previewWidth,
                              int treeX, int treeWidth, int top, int height, boolean compact) {
     /** The collection uses a card workspace and a preview on its right, rather than three columns. */
     public static WardrobeLayout collectionOf(int width, int height) {
-        if (width < 560) {
+        if (width < 300) {
             return of(width, height);
         }
-        int available = width - 36;
-        int preview = Math.max(180, available / 3);
-        int cards = available - preview - 6;
-        return new WardrobeLayout(30, cards, 30 + cards + 6, preview,
-                30 + cards + 6, preview, 54, Math.max(24, height - 160), false);
+        // The vertical wardrobe tabs consume 22 GUI units; the remaining workspace is the catalog's 70/30 layout.
+        var workspace = new LibraryWorkspaceLayout(width - 22, height);
+        int previewX = workspace.previewX() + 22;
+        return new WardrobeLayout(workspace.left() + 22, workspace.contentWidth(),
+                previewX, workspace.previewWidth(), previewX, workspace.previewWidth(),
+                52, Math.max(24, height - 160), false);
     }
 
     public static WardrobeLayout of(int width, int height) {

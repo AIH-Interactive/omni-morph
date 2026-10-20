@@ -31,6 +31,7 @@ import top.aihmc.omnimorph.gui.widgets.SwitchButton;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryIconButton;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
 import top.aihmc.omnimorph.gui.widgets.lists.AvatarList;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.VerticalWardrobeTab;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.BoneTreeWidget;
@@ -122,7 +123,6 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private AvatarInfoWidget infoWidget;
     private BackendMotdWidget motdWidget;
     private Component observedMotd;
-    private Button enableButton;
     private Button candidateButton;
     private Button uploadButton;
     private Button deleteButton;
@@ -170,7 +170,6 @@ public class WardrobeScreen extends AbstractPanelScreen {
         infoWidget = null;
         motdWidget = null;
         candidateButton = null;
-        enableButton = null;
         showModel = null;
         cacheSelectedButton = null;
         removeCollectionButton = null;
@@ -404,11 +403,12 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private void buildPreview() {
         int x = layout.previewX();
         int w = layout.previewWidth();
-        int actionCount = tab == Tab.OUTFIT ? 13 : source == Source.CLOUD ? 7 : 3;
-        int actionsHeight = LibraryActionBar.heightFor(w, actionCount) - 28;
-        int actionsY = height - 30 - actionsHeight;
-        int size = Math.max(24, Math.min(w, actionsY - layout.top() - 42));
-        previewWidget = new EntityPreview(x, layout.top(), w, size, size * 0.38f, -15, 30,
+        int actionCount = tab == Tab.OUTFIT ? 12 : source == Source.CLOUD ? 7 : 3;
+        int actionsHeight = LibraryActionBar.heightFor(w, actionCount);
+        int actionsY = height - 28 - actionsHeight;
+        int size = LibraryWorkspaceLayout.previewHeightBeforeActions(layout.top(), actionsY);
+        float scale = tab == Tab.COLLECTION ? Math.max(12f, w / 3f) : Math.min(w, size) * 0.38f;
+        previewWidget = new EntityPreview(x, layout.top(), w, size, scale, -15, 30,
                 Minecraft.getInstance().player, this);
         previewTab = tab;
         if (selectionPreview()) {
@@ -427,14 +427,11 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 name = text("previewing").copy().append(selected.name()).append(" · ")
                         .append(text(selected.cloud() == null ? "local" : "cloud"));
             }
-            UIHelper.renderScrollingText(gui, name, x + 4, layout.top() + size + 2, w - 8, 0xffffffff);
             Component state = selectionPreview() && preview.status().stage() == LibraryPreviewSession.Stage.FAILED
                     ? FiguraText.of("gui.library.failure", preview.status().errorCode()) : message;
-            UIHelper.renderScrollingText(gui, state, x + 4, actionsY - 14, w - 8, 0xffffdd88);
-            if (!bones.selectedName().isEmpty()) {
-                UIHelper.renderScrollingText(gui, text("selected_bone").copy().append(bones.selectedName()),
-                        x + 4, actionsY - 28, w - 8, 0xff88dddd);
-            }
+            Component footer = !state.getString().isEmpty() ? state : !bones.selectedName().isEmpty()
+                    ? text("selected_bone").copy().append(bones.selectedName()) : name;
+            UIHelper.renderScrollingText(gui, footer, x + 4, actionsY - 12, w - 8, 0xffd3e7e1);
             if (AvatarManager.panic) {
                 gui.text(font, FiguraText.of("gui.panic", Configs.PANIC_BUTTON.keyBind.getTranslatedKeyMessage()),
                         x + 4, layout.top() + 4, 0xffffff55);
@@ -459,7 +456,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
                     net.minecraft.util.Util.getPlatform().openUri(LocalAvatarFetcher.getLocalAvatarDirectory().toUri())));
         }
         if (tab == Tab.OUTFIT) {
-            uploadButton = actions.action(icon(0, 0, "upload", "upload_current", button -> uploadCurrent()));
+            uploadButton = actions.action(icon(0, 0, "upload", "publish_current", button -> publishCurrent()));
             actions.action(icon(0, 0, "reload", "reload_current", button -> AvatarManager.reloadCloudAvatar()));
             showModel = actions.action(new SwitchButton(0, 0, 24, 24, 0, 0, 24,
                     new FiguraIdentifier("textures/gui/wardrobe_visibility.png"), 72, 48, text("show_others"),
@@ -471,8 +468,6 @@ public class WardrobeScreen extends AbstractPanelScreen {
                     NetworkStuff.deleteAvatar(null);
                 }
             }));
-            enableButton = actions.action(icon(0, 0, "library_use", "enable",
-                    button -> enableSelection()));
             actions.action(icon(0, 0, "sound", "sound", button -> minecraft.setScreen(new SoundScreen(this))));
             actions.action(icon(0, 0, "keybind", "keybinds", button -> minecraft.setScreen(new KeybindScreen(this))));
             actions.action(icon(0, 0, "unselect", "clear_current", button -> {
@@ -764,6 +759,14 @@ public class WardrobeScreen extends AbstractPanelScreen {
         var avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
         if (avatar != null && avatar.loaded && avatar.nbt != null && NetworkStuff.canUpload() && !AvatarManager.localUploaded) {
             NetworkStuff.uploadAvatar(avatar);
+        }
+    }
+
+    private void publishCurrent() {
+        if (selected != null) {
+            enableSelection();
+        } else {
+            uploadCurrent();
         }
     }
 
@@ -1109,10 +1112,6 @@ public class WardrobeScreen extends AbstractPanelScreen {
             candidateButton.setMessage(text(selected == null && tab == Tab.OUTFIT ? "go_collection"
                     : candidate() ? "remove_outfit" : "add_outfit"));
         }
-        if (enableButton != null) {
-            enableButton.setActive(!parts && candidate() && !busy && !selectionIsCaching()
-                    && (selected.path() != null || client != null && client.current()));
-        }
         if (showModel != null) {
             boolean pending = visibilityRequest != null && !visibilityRequest.future().isDone();
             boolean localTarget = localVisibility != null && localVisibility.canChangeVisibility()
@@ -1130,8 +1129,11 @@ public class WardrobeScreen extends AbstractPanelScreen {
         updateMotdWidget();
         if (uploadButton != null) {
             var current = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
-            uploadButton.setActive(NetworkStuff.canUpload() && !AvatarManager.localUploaded
-                    && current != null && current.loaded && current.nbt != null);
+            boolean canPublish = selected != null ? !parts && candidate() && !busy && !selectionIsCaching()
+                    && (selected.path() != null || client != null && client.current())
+                    : NetworkStuff.canUpload() && !AvatarManager.localUploaded
+                        && current != null && current.loaded && current.nbt != null;
+            uploadButton.setActive(canPublish);
         }
         if (deleteButton != null) {
             deleteButton.setActive(NetworkStuff.isConnected() && AvatarManager.localUploaded && !uploading);

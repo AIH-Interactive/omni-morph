@@ -345,3 +345,9 @@ Rust 检查同样在后端目录采用该管道并立即检查退出码、读取
 - Rust 新增 `DELETE /api/library/v1/collection/:id`，按已认证账号移除成员及配装候选引用，支持重复请求；无 schema/同步协议修改。后端提交 `b57018b` 已推送，线上部署不在本次操作范围；新移除入口需要匹配后端版本。
 - 原默认关闭的 `wardrobe_auto_cache` 设置复用原持久化键，移动到全局“其它”，中文名称“自动缓存形象集”；移除形象集页面的自动开关，仅保留带缓存状态的手动缓存图标。本地新建/文件夹操作已统一在右侧预览下方。
 - 验证通过：Rust `cargo test collection -- --nocapture` 4 项；客户端 `:fabric:build`（含真实控件的所有权/权限/确认/离线回归及 Figura/YSM 条目预览）、`:common:libraryTransferSmokeTest`（含重复 DELETE、成员刷新和账号快照清理）、`:common:libraryClientSmokeTest`、`:common:modelLibraryCatalogSmokeTest`。实窗图标/设置布局与线上多设备操作为 `MANUAL/PENDING`。
+
+### 模型库布局对齐与操作合并（2026-10-20）
+
+- 我的形象集复用模型库 70/30 列表/预览比例、卡片宽高及缩略图尺寸；形象集和配装均使用模型库的预览高度计算，按钮自适应换行时同步让出空间。
+- 配装保留第一个上传图标，说明改为“发布当前形象”，删除重复启用图标；选中资源时发布所选形象，无选择时发布当前形象。预览说明、模型名、来源及状态提示浓缩为一行。
+- 验证通过：`:fabric:build`（含预览运行时检查）、`:common:wardrobeTransitionSmokeTest`、`:common:modelLibraryLayoutSmokeTest`、`:common:libraryEquipmentSmokeTest`；实窗布局为 `MANUAL/PENDING`。

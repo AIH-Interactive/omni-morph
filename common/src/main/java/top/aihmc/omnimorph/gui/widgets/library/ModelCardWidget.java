@@ -67,26 +67,13 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
             texture = PLACEHOLDER;
         }
         // Full normalized texture, with dimensions independent of the source image's pixel size.
-        int imageSize = Math.max(1, Math.min(getHeight() - 8, (getWidth() - 16) / 2));
+        int imageSize = ModelLibraryLayout.imageSize(getWidth());
         int informationX = x + imageSize + 10;
         int informationWidth = Math.max(1, getWidth() - imageSize - 16);
         gui.blit(RenderPipelines.GUI_TEXTURED, texture, x + 4, y + 4, 0, 0,
                 imageSize, imageSize, imageSize, imageSize);
         ModelResourceBadges.drawType(gui, x + 4, y + 4, model.modelType(), 16);
-        int statusX = x + 5;
-        int statusY = y + imageSize - 10;
-        if (model.requiresAuthorization()) {
-            drawStatusIcon(gui, AUTHORIZATION, statusX, statusY, 1);
-            statusX += 15;
-        }
-        if (model.visibility().equals("PRIVATE")) {
-            drawStatusIcon(gui, VISIBILITY, statusX, statusY, 0);
-            statusX += 15;
-        }
-        if (model.moderationStatus().equals("BLOCKED")) {
-            gui.fill(statusX - 1, statusY - 1, statusX + 13, statusY + 13, 0xd0101820);
-            LibraryRowList.drawIcon(gui, LibraryRowList.Icon.BLOCK, statusX + 1, statusY + 1, 0xffeeeeee, 1);
-        }
+        drawStatusIcons(gui, x, y, imageSize, model);
         UIHelper.renderScrollingText(gui, LibraryLabels.category(model.categoryId()), informationX, y + 20,
                 informationWidth, 0xffbac6d8);
         favorite.setX(x + getWidth() - 24);
@@ -123,6 +110,23 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
                 tooltip.append("\n").append(FiguraText.of("gui.library.image_retry"));
             }
             UIHelper.setTooltip(tooltip);
+        }
+    }
+
+    public static void drawStatusIcons(GuiGraphicsExtractor gui, int x, int y, int imageSize, LibraryModels.Model model) {
+        int statusX = x + 5;
+        int statusY = y + imageSize - 10;
+        if (model.requiresAuthorization()) {
+            drawStatusIcon(gui, AUTHORIZATION, statusX, statusY, 1);
+            statusX += 15;
+        }
+        if (model.visibility().equals("PRIVATE")) {
+            drawStatusIcon(gui, VISIBILITY, statusX, statusY, 0);
+            statusX += 15;
+        }
+        if (model.moderationStatus().equals("BLOCKED")) {
+            gui.fill(statusX - 1, statusY - 1, statusX + 13, statusY + 13, 0xd0101820);
+            LibraryRowList.drawIcon(gui, LibraryRowList.Icon.BLOCK, statusX + 1, statusY + 1, 0xffeeeeee, 1);
         }
     }
 
