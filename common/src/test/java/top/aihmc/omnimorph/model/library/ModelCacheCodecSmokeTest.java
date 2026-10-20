@@ -9,7 +9,7 @@ import java.util.Arrays;
 public final class ModelCacheCodecSmokeTest {
     public static void main(String[] args) throws Exception {
         var root = Files.createTempDirectory("model-cache-codec-");
-        var file = root.resolve("resource.omc");
+        var file = root.resolve("resource.oma");
         try {
             var codec = new ModelCacheCodec(root);
             byte[] plain = "PK-model-texture-script-中文".repeat(100).getBytes(java.nio.charset.StandardCharsets.UTF_8);

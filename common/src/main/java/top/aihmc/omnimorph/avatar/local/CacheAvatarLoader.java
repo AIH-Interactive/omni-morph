@@ -10,6 +10,8 @@ import top.aihmc.omnimorph.utils.IOUtils;
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
 import com.google.gson.Gson;
 import top.aihmc.omnimorph.model.cache.ModelCacheCodec;
+import top.aihmc.omnimorph.model.cache.AvatarCachePaths;
+import top.aihmc.omnimorph.model.cache.ModelCacheLayout;
 import top.aihmc.omnimorph.model.library.LibraryPreviewCache;
 import top.aihmc.omnimorph.model.library.LibraryTransferService;
 
@@ -70,7 +72,7 @@ public class CacheAvatarLoader {
     public static boolean checkAndLoad(String hash, UserData target,
                                        java.util.function.BooleanSupplier current, Runnable missing) {
         Path p = getAvatarCacheDirectory();
-        p = p.resolve(hash + ".omc");
+        p = p.resolve(hash + ModelCacheLayout.AVATAR_EXTENSION);
 
         if (Files.exists(p)) {
             load(hash, target, current, missing);
@@ -92,7 +94,7 @@ public class CacheAvatarLoader {
                              Runnable missing) {
         long progress = target.loading.begin(top.aihmc.omnimorph.avatar.AvatarLoadProgress.Stage.READING);
         LocalAvatarLoader.async(() -> {
-            Path path = getAvatarCacheDirectory().resolve(hash + ".omc");
+            Path path = getAvatarCacheDirectory().resolve(hash + ModelCacheLayout.AVATAR_EXTENSION);
             try (var stream = new java.io.ByteArrayInputStream(
                     new ModelCacheCodec(FiguraMod.getCacheDirectory()).read(path, CloudHttp.FILE_BYTES))) {
                 var nbt = NbtIo.readCompressed(stream, NbtAccounter.create(256L * 1024 * 1024));
@@ -122,7 +124,7 @@ public class CacheAvatarLoader {
 
     public static void save(String hash, CompoundTag nbt) {
         LocalAvatarLoader.async(() -> {
-            Path file = getAvatarCacheDirectory().resolve(hash + ".omc");
+            Path file = getAvatarCacheDirectory().resolve(hash + ModelCacheLayout.AVATAR_EXTENSION);
             try {
                 CompoundTag portable = YsmSourcePayload.forOutput(nbt);
                 try (var output = new ModelCacheCodec(FiguraMod.getCacheDirectory()).output(file)) {
@@ -183,7 +185,7 @@ public class CacheAvatarLoader {
             }
             provenance = Files.createTempFile(directory, "library-source-", ".part");
             Files.writeString(provenance, new Gson().toJson(source), StandardCharsets.UTF_8);
-            Files.move(model, directory.resolve(hash + ".omc"), StandardCopyOption.ATOMIC_MOVE,
+            Files.move(model, directory.resolve(hash + ModelCacheLayout.AVATAR_EXTENSION), StandardCopyOption.ATOMIC_MOVE,
                     StandardCopyOption.REPLACE_EXISTING);
             Files.move(provenance, directory.resolve(hash + "." + scope + ".library-source.json"),
                     StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
@@ -197,6 +199,12 @@ public class CacheAvatarLoader {
 
     // cache directory
     public static Path getAvatarCacheDirectory() {
-        return IOUtils.getOrCreateDir(FiguraMod.getCacheDirectory(), "avatars");
+        Path cacheRoot = FiguraMod.getCacheDirectory();
+        try {
+            AvatarCachePaths.migrateModelExtensions(cacheRoot);
+        } catch (java.io.IOException failure) {
+            FiguraMod.debug("Failed to rename legacy avatar cache files", failure);
+        }
+        return IOUtils.getOrCreateDir(cacheRoot, ModelCacheLayout.AVATAR_DIRECTORY);
     }
 }

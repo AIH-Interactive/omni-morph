@@ -84,7 +84,7 @@ public final class LibraryEquipmentSmokeTest {
                 require(!server.lastInput.get("show_private_equipment").getAsBoolean(), "private rendering defaults closed");
                 Path directory = CacheAvatarLoader.getAvatarCacheDirectory();
                 String cacheKey = server.hash();
-                require(Files.isRegularFile(directory.resolve(cacheKey + ".omc")), "official wrapped formal cache is populated");
+                require(Files.isRegularFile(directory.resolve(cacheKey + ".oma")), "official wrapped formal cache is populated");
                 try (var mappings = Files.list(directory)) {
                     Path mapping = mappings.filter(path -> path.getFileName().toString().startsWith(cacheKey + ".")
                             && path.toString().endsWith(".library-source.json")).findFirst().orElseThrow();
@@ -127,11 +127,11 @@ public final class LibraryEquipmentSmokeTest {
                 // Exercise cancellation on a cache miss rather than bypassing the stream with a valid hit.
                 String formalIdentity = client.session().instance() + "\n" + player + "\n" + server.model;
                 String formalName = CloudHttp.sha256(formalIdentity.getBytes(StandardCharsets.UTF_8));
-                Files.deleteIfExists(FiguraMod.getCacheDirectory().resolve("wardrobe-resources")
-                        .resolve(formalName + ".omc"));
+                Files.deleteIfExists(FiguraMod.getCacheDirectory().resolve("avatars")
+                        .resolve("resource-" + formalName + ".oma"));
                 server.blockBody = true;
                 var cancelled = service.enable(server.model);
-                Path partials = FiguraMod.getCacheDirectory().resolve("model-library-downloads");
+                Path partials = FiguraMod.getCacheDirectory().resolve("avatars/model-library-downloads");
                 waitFor(() -> server.bodyStarted.getCount() == 0 && hasFile(partials), drain);
                 cancelled.close();
                 server.bodyRelease.countDown();
