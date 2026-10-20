@@ -23,15 +23,19 @@ public final class ModelResourceBadges {
     }
 
     public static Component tooltip(Component title, boolean cloud, String format) {
+        return title.copy().append("\n").append(FiguraText.of("gui.wardrobe.resource_source",
+                FiguraText.of(cloud ? "gui.wardrobe.cloud" : "gui.wardrobe.local")))
+                .append("\n").append(typeTooltip(format));
+    }
+
+    public static Component typeTooltip(String format) {
         String type = switch (format) {
             case "FIGURA" -> "gui.wardrobe.filter.figura";
             case "YSM_PLAIN" -> "gui.wardrobe.filter.ysm_plain";
             case "YSM_ENCRYPTED" -> "gui.wardrobe.filter.ysm_encrypted";
             default -> "gui.wardrobe.unavailable";
         };
-        return title.copy().append("\n").append(FiguraText.of("gui.wardrobe.resource_source",
-                FiguraText.of(cloud ? "gui.wardrobe.cloud" : "gui.wardrobe.local")))
-                .append("\n").append(FiguraText.of("gui.wardrobe.resource_type", FiguraText.of(type)));
+        return FiguraText.of("gui.wardrobe.resource_type", FiguraText.of(type));
     }
 
     public static void drawType(GuiGraphicsExtractor gui, int x, int y, String format) {

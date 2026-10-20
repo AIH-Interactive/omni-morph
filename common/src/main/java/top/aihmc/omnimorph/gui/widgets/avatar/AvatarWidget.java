@@ -13,11 +13,14 @@ import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.lists.AvatarList;
 import top.aihmc.omnimorph.gui.widgets.ModelResourceBadges;
 import top.aihmc.omnimorph.utils.FiguraIdentifier;
+import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.FileTexture;
 import top.aihmc.omnimorph.utils.TextUtils;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 
 public class AvatarWidget extends AbstractAvatarWidget {
+
+    private boolean outfitMenuAdded;
 
     public static final Identifier MISSING_ICON = new FiguraIdentifier("textures/gui/unknown_icon.png");
 
@@ -46,7 +49,7 @@ public class AvatarWidget extends AbstractAvatarWidget {
                 int space = SPACING * depth;
                 int width = this.getWidth() - 26 - space;
                 int x = getX() + 2 + space;
-                int y = getY() + 2;
+                int y = getY() + (getHeight() - 20) / 2;
 
                 // icon
                 FileTexture texture = avatar.getIcon();
@@ -54,8 +57,7 @@ public class AvatarWidget extends AbstractAvatarWidget {
                 Identifier icon = texture == null ? MISSING_ICON : texture.getLocation();
                 UIHelper.blit(gui, x, y, 20, 20, icon);
                 if (parent.showsSourceBadge()) {
-                    ModelResourceBadges.draw(gui, x, y, false);
-                    ModelResourceBadges.drawType(gui, x + 10, y + 10, format);
+                    ModelResourceBadges.drawType(gui, x, y, format);
                 }
 
                 // name
@@ -94,5 +96,26 @@ public class AvatarWidget extends AbstractAvatarWidget {
 
         this.button.shouldHaveBackground(false);
         children.add(this.button);
+        updateRowHeight();
+    }
+
+    public void updateRowHeight() {
+        int height = parent.showsSourceBadge() ? 28 : 24;
+        setHeight(height);
+        button.setHeight(height);
+    }
+
+    @Override
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        if (event.button() == 1 && isMouseOver(event.x(), event.y())
+                && parent.canRemoveFromOutfit() && !outfitMenuAdded) {
+            context.addDivisor();
+            context.addAction(FiguraText.of("gui.wardrobe.remove_outfit"), null, ignored -> {
+                parent.removeFromOutfit(avatar);
+                context.setVisible(false);
+            });
+            outfitMenuAdded = true;
+        }
+        return super.mouseClicked(event, doubleClick);
     }
 }

@@ -6,10 +6,12 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import top.aihmc.omnimorph.gui.widgets.SearchBar;
+import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.ScrollBarWidget;
+import top.aihmc.omnimorph.gui.widgets.SearchBar;
 import top.aihmc.omnimorph.gui.widgets.lists.AbstractList;
 import top.aihmc.omnimorph.model.library.BoneTreeState;
+import top.aihmc.omnimorph.utils.FiguraIdentifier;
 import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 
@@ -25,14 +27,23 @@ public final class BoneTreeWidget extends AbstractList {
     private long modelVersion;
 
     public BoneTreeWidget(int x, int y, int width, int height, BoneTreeState state) {
+        this(x, y, width, height, state, null);
+    }
+
+    public BoneTreeWidget(int x, int y, int width, int height, BoneTreeState state, Runnable refresh) {
         super(x, y, width, height);
         this.state = state;
         modelVersion = state.modelVersion();
-        search = new SearchBar(x + 4, y + 4, width - 8, 20, value -> {
+        search = new SearchBar(x + 4, y + 4, width - (refresh == null ? 8 : 36), 20, value -> {
             state.search(value);
             scrollBar.setScrollProgressNoAnim(state.scroll());
         });
         children.add(search);
+        if (refresh != null) {
+            children.add(new Button(x + width - 28, y + 2, 24, 24, 0, 0, 24,
+                    new FiguraIdentifier("textures/gui/reload.png"), 72, 24,
+                    FiguraText.of("gui.wardrobe.refresh_bones"), button -> refresh.run()));
+        }
         horizontalBar = new ScrollBarWidget(x + 4, y + height - 12, Math.max(24, width - 22), 10,
                 state.horizontalScroll(), false);
         horizontalBar.setVisible(false);

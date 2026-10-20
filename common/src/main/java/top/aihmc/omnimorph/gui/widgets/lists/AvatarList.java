@@ -42,6 +42,7 @@ public class AvatarList extends AbstractList {
     private final Predicate<LocalAvatarFetcher.AvatarPath> included;
     private Path previewSelection;
     private boolean sourceBadge;
+    private Consumer<LocalAvatarFetcher.AvatarPath> outfitRemoval;
     private SearchBar search;
     private Button formatButton;
     private List<LibraryDropdown> resourceFilters = List.of();
@@ -300,6 +301,25 @@ public class AvatarList extends AbstractList {
 
     public void showSourceBadge(boolean visible) {
         sourceBadge = visible;
+        for (var widget : avatarList) {
+            if (widget instanceof AvatarWidget model) {
+                model.updateRowHeight();
+            }
+        }
+    }
+
+    public void setOutfitRemoval(Consumer<LocalAvatarFetcher.AvatarPath> remove) {
+        outfitRemoval = remove;
+    }
+
+    public boolean canRemoveFromOutfit() {
+        return outfitRemoval != null;
+    }
+
+    public void removeFromOutfit(LocalAvatarFetcher.AvatarPath avatar) {
+        if (outfitRemoval != null) {
+            outfitRemoval.accept(avatar);
+        }
     }
 
     public boolean showsSourceBadge() {

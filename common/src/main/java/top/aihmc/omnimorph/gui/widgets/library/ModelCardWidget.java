@@ -99,6 +99,7 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
         if (isMouseOver(mouseX, mouseY) && !favorite.isMouseOver(mouseX, mouseY) && !report.isMouseOver(mouseX, mouseY)) {
             var tooltip = FiguraText.of("gui.library.card_tooltip", model.internalName(),
                     String.join("\n", model.authors()), model.uploader().name(), model.uploader().uuid().toString());
+            tooltip.append("\n").append(ModelResourceBadges.typeTooltip(model.modelType()));
             tooltip.append("\n").append(FiguraText.of("gui.library.filter.authorization",
                     FiguraText.of(model.requiresAuthorization() ? "gui.yes" : "gui.no")));
             tooltip.append("\n").append(FiguraText.of("gui.library.card_visibility",
