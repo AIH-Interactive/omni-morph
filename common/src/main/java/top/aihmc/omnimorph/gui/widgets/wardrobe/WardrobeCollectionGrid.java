@@ -12,6 +12,7 @@ import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.SearchBar;
 import top.aihmc.omnimorph.gui.widgets.library.ModelLibraryLayout;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
 import top.aihmc.omnimorph.gui.widgets.lists.AbstractList;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
 import top.aihmc.omnimorph.utils.FiguraIdentifier;
@@ -56,6 +57,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
         public String query = "";
         public int format;
         public double scroll;
+        public boolean filtersExpanded;
     }
 
     private static final Identifier PLACEHOLDER = new FiguraIdentifier("textures/gui/library_placeholder.png");
@@ -69,6 +71,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
     private List<Entry> filtered = List.of();
     private ModelLibraryLayout layout;
     private String selected;
+    private final LibraryDropdown formatFilter;
 
     public WardrobeCollectionGrid(int x, int y, int width, int height, View view,
                                   LibraryThumbnailService thumbnails, Consumer<Entry> select,
@@ -78,7 +81,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
         this.thumbnails = thumbnails;
         this.select = select;
         this.cacheState = cacheState;
-        var search = new SearchBar(x + 4, y + 4, width - 8, 20, value -> {
+        var search = new SearchBar(x + 4, y + 4, width - 32, 20, value -> {
             view.query = value;
             view.scroll = 0;
             scrollBar.setScrollProgressNoAnim(0);
@@ -88,21 +91,35 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
         double savedScroll = view.scroll;
         search.getField().setValue(view.query);
         view.scroll = savedScroll;
-        children.add(new Button(x + 4, y + 28, width - 8, 20, formatLabel(), null, button -> {
-            view.format = (view.format + 1) % FORMATS.size();
-            button.setMessage(formatLabel());
+        children.add(new Button(x + width - 24, y + 4, 20, 20, Component.literal("+"),
+                FiguraText.of("gui.library.filters"), button -> {
+            view.filtersExpanded = !view.filtersExpanded;
+            updateHeader();
+        }));
+        formatFilter = new LibraryDropdown(x + 4, y + 28, Math.min(128, width - 8),
+                () -> List.of("all", "figura", "ysm_plain", "ysm_encrypted").stream()
+                        .<Component>map(key -> FiguraText.of("gui.wardrobe.filter." + key)).toList(),
+                () -> view.format, selected -> {
+            view.format = selected;
             view.scroll = 0;
             scrollBar.setScrollProgressNoAnim(0);
             filter();
-        }));
-        scrollBar.setY(y + 54);
-        scrollBar.setHeight(Math.max(16, height - 58));
+        });
+        children.add(formatFilter);
+        updateHeader();
         scrollBar.setScrollProgressNoAnim(view.scroll);
-        updateScissors(2, 54, -18, -56);
     }
 
-    private Component formatLabel() {
-        return FiguraText.of("gui.wardrobe.filter." + List.of("all", "figura", "ysm_plain", "ysm_encrypted").get(view.format));
+    private int contentTop() {
+        return view.filtersExpanded ? 54 : 30;
+    }
+
+    private void updateHeader() {
+        formatFilter.setVisible(view.filtersExpanded);
+        scrollBar.setY(getY() + contentTop());
+        scrollBar.setHeight(Math.max(16, getHeight() - contentTop() - 4));
+        updateScissors(2, contentTop(), -18, -contentTop() - 2);
+        layout = null;
     }
 
     public void entries(List<Entry> values, String selected) {
@@ -134,7 +151,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
     }
 
     private void arrange() {
-        layout = ModelLibraryLayout.of(getWidth() - 20, getHeight() - 56, filtered.size());
+        layout = ModelLibraryLayout.of(getWidth() - 20, getHeight() - contentTop() - 2, filtered.size());
         scrollBar.setVisible(layout.maximumScroll() > 0);
         scrollBar.setActive(layout.maximumScroll() > 0);
         scrollBar.setScrollRatio(ModelLibraryLayout.CARD_HEIGHT, Math.max(1, layout.maximumScroll()));
@@ -175,7 +192,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
     private void drawCard(GuiGraphicsExtractor gui, int index, int mouseX, int mouseY) {
         Entry entry = filtered.get(index);
         int x = getX() + 2 + layout.x(index);
-        int y = getY() + 54 + layout.y(index, scroll());
+        int y = getY() + contentTop() + layout.y(index, scroll());
         int width = layout.cardWidth();
         boolean active = entry.key().equals(selected);
         gui.fill(x, y, x + width, y + ModelLibraryLayout.CARD_HEIGHT, active ? 0xc0335566 : 0xb51a202c);
@@ -202,7 +219,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
             UIHelper.renderScrollingText(gui, FiguraText.of(entry.cloud().model().visibility().equals("PRIVATE")
                     ? "gui.library.private" : "gui.library.public"), textX, y + 60, textWidth, 0xffa9bbc9);
         }
-        if (isInsideScissors(mouseX, mouseY) && layout.hit(mouseX - getX() - 2, mouseY - getY() - 54, scroll()) == index) {
+        if (isInsideScissors(mouseX, mouseY) && layout.hit(mouseX - getX() - 2, mouseY - getY() - contentTop(), scroll()) == index) {
             UIHelper.setTooltip(entry.name().copy().append("\n").append(detail));
         }
     }
@@ -217,7 +234,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (event.button() == 0 && isInsideScissors(event.x(), event.y())) {
             arrange();
-            int index = layout.hit(event.x() - getX() - 2, event.y() - getY() - 54, scroll());
+            int index = layout.hit(event.x() - getX() - 2, event.y() - getY() - contentTop(), scroll());
             if (index >= 0) {
                 choose(index);
                 return true;

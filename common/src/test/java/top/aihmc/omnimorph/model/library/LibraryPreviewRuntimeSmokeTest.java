@@ -265,14 +265,14 @@ public final class LibraryPreviewRuntimeSmokeTest {
                             && AvatarManager.localUploaded == uploaded && NetworkStuff.connectionEpoch() == epoch,
                     "preview leaves wardrobe selection and cloud publication state unchanged");
             System.out.println("PASS detached library preview: actual async Avatar loading, newest selection, restricted permissions, frame lifetime and encrypted runtime; GUI MANUAL/PENDING");
-            testCurrentPlayerFigura(unsafe, drain);
+            testCurrentPlayerFigura(unsafe, drain, encrypted);
         } finally {
             LibraryPreviewBinding.finishFrame();
             drain.run();
         }
     }
 
-    private static void testCurrentPlayerFigura(Unsafe unsafe, Runnable drain) throws Exception {
+    private static void testCurrentPlayerFigura(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
         Minecraft client = Minecraft.getInstance();
         var previousPlayer = client.player;
         var player = (CurrentPreviewPlayer) unsafe.allocateInstance(CurrentPreviewPlayer.class);
@@ -316,6 +316,56 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(avatar.accelerationOwner().isCurrent(), "queued player preview remains alive until GUI completion");
             LibraryPreviewBinding.finishFrame();
             require(!avatar.accelerationOwner().isCurrent(), "closing player preview retires its own model resources");
+            var outfit = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+            field(outfit.getClass(), "preview").set(outfit, preview);
+            var widget = new top.aihmc.omnimorph.gui.widgets.EntityPreview(0, 0, 180, 180, 40, -15, 30, player, outfit);
+            field(outfit.getClass(), "previewWidget").set(outfit, widget);
+            Path selectedDirectory = Files.createDirectories(Path.of(System.getProperty("figura.test.directory")).resolve("outfit-selected"));
+            Files.writeString(selectedDirectory.resolve("avatar.json"), "{\"name\":\"selected outfit fixture\"}");
+            var selectLocal = outfit.getClass().getDeclaredMethod("selectLocal",
+                    top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath.class);
+            selectLocal.setAccessible(true);
+            Avatar worldAvatar = AvatarManager.getAvatar(player);
+            selectLocal.invoke(outfit, new top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath(selectedDirectory, selectedDirectory));
+            require(preview.status().stage() != LibraryPreviewSession.Stage.IDLE,
+                    "clicking an outfit entry must start preview loading rather than leave the equipped model unchanged");
+            long previewDeadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
+            while (preview.status().stage() == LibraryPreviewSession.Stage.LOADING && System.nanoTime() < previewDeadline) {
+                drain.run();
+                Thread.sleep(5);
+            }
+            require(preview.status().stage() == LibraryPreviewSession.Stage.READY && preview.entity() == player,
+                    "outfit selection prepares a model through Figura's original real-player preview path");
+            require(field(widget.getClass(), "libraryPreview").get(widget) == preview
+                            && AvatarManager.getAvatar(player) == worldAvatar,
+                    "outfit widget displays the selection without replacing world equipment");
+            var syncHierarchy = outfit.getClass().getDeclaredMethod("syncHierarchy");
+            syncHierarchy.setAccessible(true);
+            syncHierarchy.invoke(outfit);
+            require(field(outfit.getClass(), "boneSession").get(outfit) == preview,
+                    "outfit bones follow the selected preview rather than the equipped avatar");
+            // Supply the preview entity normally constructed from ClientLevel; this harness has no level.
+            var ysmEntity = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
+            ysmEntity.setUUID((UUID) field(LibraryPreviewSession.class, "owner").get(preview));
+            field(LibraryPreviewSession.class, "detachedEntity").set(preview, ysmEntity);
+            selectLocal.invoke(outfit, new top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath(encrypted, encrypted.getParent()));
+            previewDeadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
+            while (preview.status().stage() == LibraryPreviewSession.Stage.LOADING && System.nanoTime() < previewDeadline) {
+                drain.run();
+                Thread.sleep(5);
+            }
+            var ysm = new java.util.concurrent.atomic.AtomicReference<Avatar>();
+            preview.withPlayerContext(() -> ysm.set(AvatarManager.getAvatar(preview.entity())));
+            require(preview.status().stage() == LibraryPreviewSession.Stage.READY,
+                    "encrypted YSM outfit preview finishes loading: " + preview.status());
+            require(ysm.get() != null && ysm.get().isYsmNative(),
+                    "the outfit entry handler resolves the actual selected YSM runtime");
+            require(AvatarManager.getAvatar(player) == worldAvatar,
+                    "encrypted YSM preview does not replace world equipment");
+            selectLocal.invoke(outfit, new Object[]{null});
+            require(field(widget.getClass(), "libraryPreview").get(widget) == null,
+                    "clearing the candidate restores the original equipped-player preview");
+            System.out.println("PASS outfit entry preview: actual Figura/encrypted YSM loading, widget binding, matching bones and unchanged equipment");
             System.out.println("PASS current-player Figura preview: real player, normal host permissions, Lua tick, scoped GUI lookup and deferred lifetime");
         } finally {
             client.player = previousPlayer;
@@ -704,6 +754,19 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     "collection arrow navigation uses the same two-column card layout");
             var search = (top.aihmc.omnimorph.gui.widgets.SearchBar) grid.children().stream()
                     .filter(top.aihmc.omnimorph.gui.widgets.SearchBar.class::isInstance).findFirst().orElseThrow();
+            var format = (top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown) grid.children().stream()
+                    .filter(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::isInstance).findFirst().orElseThrow();
+            var toggle = (top.aihmc.omnimorph.gui.widgets.Button) grid.children().stream()
+                    .filter(child -> child instanceof top.aihmc.omnimorph.gui.widgets.Button button
+                            && button.getMessage().getString().equals("+")).findFirst().orElseThrow();
+            require(!format.isVisible() && grid.scissorsY == 30, "filters start collapsed with card space reclaimed");
+            toggle.onPress(null);
+            require(format.isVisible() && grid.scissorsY == 54, "plus expands the native type dropdown below search");
+            view.format = 2;
+            toggle.onPress(null);
+            require(!format.isVisible() && view.format == 2 && grid.scissorsY == 30,
+                    "collapsing filters preserves the selected format and restores card hit geometry");
+            view.format = 0;
             search.getField().setValue("no such model");
             require(!grid.mouseClicked(click, false) && chosen.get() == b, "filtered empty space cannot select a hidden card");
         }

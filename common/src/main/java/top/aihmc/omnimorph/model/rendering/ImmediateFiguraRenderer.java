@@ -720,10 +720,14 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
                               FiguraModelPart part, @Nullable FiguraMat4[] boneDeltas) {
         int vertCount = faceCount * 4;
 
-        RenderType rt = vertexData.renderType;
-        if (rt == RenderTypes.lines()) {
+        if (vertexData.renderType == RenderTypes.lines()) {
             return;
         }
+        // Capture GUI selection before deferred emission; never edit the shared customization stack.
+        float opacity = PreviewBoneHighlight.opacity(avatar, part);
+        float alpha = customization.alpha * opacity;
+        RenderType rt = opacity < 1f
+                ? PreviewBoneHighlight.translucent(vertexData.renderType, vertexData.texture) : vertexData.renderType;
 
         FiguraVec3 uvFixer = FiguraVec3.of();
         uvFixer.set(textureSet.getWidth(), textureSet.getHeight(), 1); // Dividing by this makes uv 0 to 1
@@ -735,7 +739,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         AccelerationService acceleration = AccelerationService.INSTANCE;
         var lease = acceleration.capture(avatar.accelerationOwner(), String.valueOf(avatar.renderMode));
 
-        VERTEX_BUFFER.getBufferFor(vertexData.renderType, vertexData.primary, buffers -> {
+        VERTEX_BUFFER.getBufferFor(rt, vertexData.primary, buffers -> {
             if (!acceleration.isCurrent(lease)) {
                 return;
             }
@@ -753,7 +757,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
                     normal.set(vertex.nx, vertex.ny, vertex.nz).transform(customization.normalMatrix);
                     uv.set(vertex.u, vertex.v, 1).divide(uvFixer).transform(customization.uvMatrix);
                     vertexConsumer.addVertex((float) pos.x, (float) pos.y, (float) pos.z)
-                            .setColor((float) vertexData.color.x, (float) vertexData.color.y, (float) vertexData.color.z, customization.alpha)
+                            .setColor((float) vertexData.color.x, (float) vertexData.color.y, (float) vertexData.color.z, alpha)
                             .setUv((float) uv.x, (float) uv.y).setOverlay(overlay).setLight(light)
                             .setNormal((float) normal.x, (float) normal.y, (float) normal.z);
                 }
@@ -786,11 +790,11 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
             MeshHandle mesh = new MeshHandle(input, 4, influences);
             PoseSnapshot pose = new PoseSnapshot(customization.positionMatrix, customization.normalMatrix,
                     customization.uvMatrix, boneDeltas);
-            DrawSemantics semantics = new DrawSemantics(vertexData.renderType, vertexData.texture,
+            DrawSemantics semantics = new DrawSemantics(rt, vertexData.texture,
                     vertexData.primary ? DrawSemantics.Layer.PRIMARY : DrawSemantics.Layer.SECONDARY,
                     lease.view(), vertexData.primary ? 0 : 1, faceCount, light, overlay,
                     (float) vertexData.color.x, (float) vertexData.color.y, (float) vertexData.color.z,
-                    customization.alpha, vertexData.vertexOffset, true);
+                    alpha, vertexData.vertexOffset, true);
             DrawBatch batch = new DrawBatch(lease, mesh, pose, semantics);
             double[][] output = {null};
             GpuSubmission.JavaEmitter fallback = (vertexConsumer, firstVertex, vertexCount) -> {

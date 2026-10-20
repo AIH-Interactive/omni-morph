@@ -31,7 +31,11 @@ public class YsmRenderer {
     private YsmPreviewRenderTypes previewTypes;
 
     private record DrawTarget(MultiBufferSource source, RenderType material, Identifier texture,
-                              String channel, int order) {
+                              String channel, int order, float alpha) {
+        DrawTarget(MultiBufferSource source, RenderType material, Identifier texture, String channel, int order) {
+            this(source, material, texture, channel, order, 1f);
+        }
+
         VertexConsumer consumer() {
             return source.getBuffer(material);
         }
@@ -262,7 +266,12 @@ public class YsmRenderer {
     }
 
     private RenderType renderType(YsmRenderPose pose) {
+        return renderType(pose, false);
+    }
+
+    private RenderType renderType(YsmRenderPose pose, boolean forceTranslucent) {
         Identifier texture = runtime.texture().getLocation();
+        boolean translucent = forceTranslucent || runtime.isTextureTranslucent();
         boolean unlit = pose == null
                 ? runtime.isGuiNoLighting() && runtime.owner().renderMode == EntityRenderMode.FIGURA_GUI
                 : pose.unlit();
@@ -270,13 +279,13 @@ public class YsmRenderer {
             if (previewTypes == null) {
                 previewTypes = new YsmPreviewRenderTypes();
             }
-            return previewTypes.get(texture, runtime.isAllCutout(), runtime.isTextureTranslucent());
+            return previewTypes.get(texture, runtime.isAllCutout(), translucent);
         }
         if (!runtime.isAllCutout()) {
-            return runtime.isTextureTranslucent()
+            return translucent
                     ? RenderTypes.entityTranslucent(texture) : RenderTypes.entityCutout(texture);
         }
-        if (!runtime.isTextureTranslucent()) {
+        if (!translucent) {
             return RenderTypes.entityCutoutCull(texture);
         }
         if (!texture.equals(culledTranslucentTexture)) {
@@ -321,7 +330,11 @@ public class YsmRenderer {
         stack.pushPose();
         applyBoneTransform(bone, part, stack);
         if (renderSelf) {
-            renderGeometry(bone.cubes, stack, vertices, light);
+            float opacity = PreviewBoneHighlight.opacity(runtime.owner(), runtime.getPart(bone.name));
+            DrawTarget target = opacity < 1f
+                    ? new DrawTarget(vertices.source(), renderType(pose, true), vertices.texture(),
+                            vertices.channel(), vertices.order(), opacity) : vertices;
+            renderGeometry(bone.cubes, stack, target, light);
             if (PreviewBoneHighlight.selected(runtime.owner(), runtime.getPart(bone.name))) {
                 PreviewBoneHighlight.ysm(bone, stack, vertices.source());
             }
@@ -444,7 +457,7 @@ public class YsmRenderer {
         VertexConsumer consumer = vertices.consumer();
         for (int i = 0; i < 4; i++) {
             vertex(consumer, stack, positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2],
-                    uvs[i * 2], uvs[i * 2 + 1], normal[0], normal[1], normal[2], light);
+                    uvs[i * 2], uvs[i * 2 + 1], normal[0], normal[1], normal[2], light, vertices.alpha());
         }
     }
 
@@ -480,7 +493,7 @@ public class YsmRenderer {
         var lease = acceleration.capture(runtime.owner().accelerationOwner(), String.valueOf(runtime.owner().renderMode));
         DrawSemantics semantics = new DrawSemantics(target.material(), target.texture(),
                 DrawSemantics.Layer.PRIMARY, target.channel(), target.order(), faces, light,
-                OverlayTexture.NO_OVERLAY, 1, 1, 1, 1, 0, true);
+                OverlayTexture.NO_OVERLAY, 1, 1, 1, target.alpha(), 0, true);
         DrawBatch batch = new DrawBatch(lease, mesh, pose, semantics);
         double[][] output = {null};
         GpuSubmission.JavaEmitter fallback = (consumer, firstVertex, vertexCount) -> {
@@ -508,9 +521,10 @@ public class YsmRenderer {
         }
     }
 
-    private void vertex(VertexConsumer vertices, PoseStack stack, float x, float y, float z, float u, float v, float nx, float ny, float nz, int light) {
+    private void vertex(VertexConsumer vertices, PoseStack stack, float x, float y, float z,
+                        float u, float v, float nx, float ny, float nz, int light, float alpha) {
         vertices.addVertex(stack.last(), x, y, z)
-                .setColor(1f, 1f, 1f, 1f)
+                .setColor(1f, 1f, 1f, alpha)
                 .setUv(u, v)
                 .setOverlay(OverlayTexture.NO_OVERLAY)
                 .setLight(light)

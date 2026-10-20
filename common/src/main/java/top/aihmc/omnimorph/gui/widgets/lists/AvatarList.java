@@ -5,6 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.util.Mth;
+import net.minecraft.network.chat.Component;
 import top.aihmc.omnimorph.avatar.AvatarManager;
 import top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher;
 import top.aihmc.omnimorph.avatar.local.AvatarTypeFilter;
@@ -12,6 +13,7 @@ import top.aihmc.omnimorph.gui.screens.AbstractPanelScreen;
 import top.aihmc.omnimorph.gui.screens.AvatarWizardScreen;
 import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.SearchBar;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
 import top.aihmc.omnimorph.gui.widgets.avatar.AbstractAvatarWidget;
 import top.aihmc.omnimorph.gui.widgets.avatar.AvatarFolderWidget;
 import top.aihmc.omnimorph.gui.widgets.avatar.AvatarWidget;
@@ -42,6 +44,12 @@ public class AvatarList extends AbstractList {
     private boolean sourceBadge;
     private SearchBar search;
     private Button formatButton;
+    private boolean filtersExpanded;
+    private int contentTop = 49;
+    private boolean actionsVisible = true;
+    private Button newAvatarButton;
+    private Button unselectButton;
+    private Button folderButton;
 
     public static Path selectedEntry;
 
@@ -59,14 +67,19 @@ public class AvatarList extends AbstractList {
         this.included = included;
 
         // search bar
-        children.add(search = new SearchBar(x + 4, y + 4, width - 8, 20, s -> {
+        children.add(search = new SearchBar(x + 4, y + 4, width - 32, 20, s -> {
             if (!filter.equals(s))
                 scrollBar.setScrollProgress(0f);
             filter = s;
         }));
+        children.add(new Button(x + width - 24, y + 4, 20, 20, Component.literal("+"),
+                FiguraText.of("gui.library.filters"), button -> {
+            filtersExpanded = !filtersExpanded;
+            updateHeader();
+        }));
 
         // new avatar
-        children.add(new Button(
+        children.add(newAvatarButton = new Button(
                 x + width / 2 - 46, y + 28,
                 20, 20, 0, 0, 20,
                 new FiguraIdentifier("textures/gui/new_avatar.png"),
@@ -76,7 +89,7 @@ public class AvatarList extends AbstractList {
         );
 
         // unselect
-        children.add(new Button(
+        children.add(unselectButton = new Button(
                 x + width / 2 - 10, y + 28,
                 20, 20, 0, 0, 20,
                 new FiguraIdentifier("textures/gui/unselect.png"),
@@ -88,7 +101,7 @@ public class AvatarList extends AbstractList {
         );
 
         // root folder
-        children.add(new Button(
+        children.add(folderButton = new Button(
                 x + width / 2 + 26, y + 28,
                 20, 20, 0, 0, 20,
                 new FiguraIdentifier("textures/gui/folder.png"),
@@ -97,21 +110,16 @@ public class AvatarList extends AbstractList {
                 button -> Util.getPlatform().openUri(LocalAvatarFetcher.getLocalAvatarDirectory().toUri()))
         );
 
-        // Shared Figura button cycles the visible avatar formats without reloading sources.
-        children.add(formatButton = new Button(x + 4, y + 52, width - 8, 20,
-                FiguraText.of(typeFilter.translationKey()), FiguraText.of("gui.wardrobe.filter.tooltip"), button -> {
-                    typeFilter = typeFilter.next();
-                    button.setMessage(FiguraText.of(typeFilter.translationKey()));
+        children.add(formatButton = new LibraryDropdown(x + 4, y + 52, Math.min(128, width - 8),
+                () -> java.util.Arrays.stream(AvatarTypeFilter.values())
+                        .<Component>map(type -> FiguraText.of(type.translationKey())).toList(),
+                () -> typeFilter.ordinal(), index -> {
+                    typeFilter = AvatarTypeFilter.values()[index];
                     scrollBar.setScrollProgress(0f);
                     loadContents();
                 }));
 
-        // scrollbar
-        this.scrollBar.setY(y + 72);
-        this.scrollBar.setHeight(height - 76);
-
-        // scissors
-        this.updateScissors(1, 73, -2, -74);
+        updateHeader();
 
         // initial load
         loadContents();
@@ -119,6 +127,24 @@ public class AvatarList extends AbstractList {
     }
 
     // -- Functions -- // 
+    private void updateHeader() {
+        int actionsHeight = actionsVisible ? 24 : 0;
+        contentTop = 25 + actionsHeight + (filtersExpanded ? 24 : 0);
+        formatButton.setVisible(filtersExpanded);
+        formatButton.setY(getY() + 28 + actionsHeight);
+        scrollBar.setY(getY() + contentTop - 1);
+        scrollBar.setHeight(Math.max(16, getHeight() - contentTop - 3));
+        updateScissors(1, contentTop, -2, -contentTop - 1);
+    }
+
+    public void setActionsVisible(boolean visible) {
+        actionsVisible = visible;
+        newAvatarButton.setVisible(visible);
+        unselectButton.setVisible(visible);
+        folderButton.setVisible(visible);
+        updateHeader();
+    }
+
     @Override
     public void tick() {
         // update list
@@ -143,12 +169,13 @@ public class AvatarList extends AbstractList {
             totalHeight += avatar.getHeight() + 2;
         int entryHeight = avatarList.isEmpty() ? 0 : totalHeight / avatarList.size();
 
-        scrollBar.setVisible(totalHeight > height - 73);
-        scrollBar.setScrollRatio(entryHeight, totalHeight - (height - 73));
+        scrollBar.setVisible(totalHeight > height - contentTop);
+        scrollBar.setScrollRatio(entryHeight, totalHeight - (height - contentTop));
 
         // render list
         int xOffset = scrollBar.isVisible() ? 4 : 11;
-        int yOffset = scrollBar.isVisible() ? (int) -(Mth.lerp(scrollBar.getScrollProgress(), -73, totalHeight - height)) : 73;
+        int yOffset = scrollBar.isVisible()
+                ? (int) -(Mth.lerp(scrollBar.getScrollProgress(), -contentTop, totalHeight - height)) : contentTop;
         boolean hidden = false;
 
         for (AbstractAvatarWidget avatar : avatarList) {
@@ -253,17 +280,22 @@ public class AvatarList extends AbstractList {
         return sourceBadge;
     }
 
-    public record View(String search, AvatarTypeFilter type, double scroll) {}
+    public record View(String search, AvatarTypeFilter type, double scroll, boolean filtersExpanded) {
+        public View(String search, AvatarTypeFilter type, double scroll) {
+            this(search, type, scroll, false);
+        }
+    }
 
     public View view() {
-        return new View(filter, typeFilter, scrollBar.getScrollProgress());
+        return new View(filter, typeFilter, scrollBar.getScrollProgress(), filtersExpanded);
     }
 
     public void restore(View view, Path selected) {
         previewSelection = selected;
         if (view != null) {
             typeFilter = view.type();
-            formatButton.setMessage(FiguraText.of(typeFilter.translationKey()));
+            filtersExpanded = view.filtersExpanded();
+            updateHeader();
             search.getField().setValue(view.search());
             loadContents();
             scrollBar.setScrollProgressNoAnim(view.scroll());

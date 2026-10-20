@@ -8,11 +8,14 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.resources.Identifier;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.model.FiguraModelPart;
 import top.aihmc.omnimorph.model.PartCustomization;
 import top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer;
 import top.aihmc.omnimorph.model.ysm.YsmGeometry;
+import top.aihmc.omnimorph.model.ysm.YsmModelPart;
 import top.aihmc.omnimorph.utils.FiguraIdentifier;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 
@@ -36,8 +39,35 @@ public final class PreviewBoneHighlight {
         return part != null && UIHelper.paperdoll && FRAMES.get(avatar) == part;
     }
 
+    /** Keep the selected subtree intact without changing authored visibility or alpha. */
+    public static float opacity(Avatar avatar, Object part) {
+        Object selected = UIHelper.paperdoll ? FRAMES.get(avatar) : null;
+        if (selected == null || part == null) {
+            return 1f;
+        }
+        for (Object ancestor = part; ancestor != null;) {
+            if (ancestor == selected) {
+                return 1f;
+            }
+            ancestor = switch (ancestor) {
+                case FiguraModelPart figura -> figura.parent;
+                case YsmModelPart ysm -> ysm.getParent();
+                default -> null;
+            };
+        }
+        return 0.3f;
+    }
+
     public static void finishFrame() {
         FRAMES.clear();
+    }
+
+    public static RenderType translucent(RenderType original, Identifier texture) {
+        if (original.hasBlending() || texture == null) {
+            return original;
+        }
+        return original.pipeline().isCull()
+                ? RenderTypes.entityTranslucentCullItemTarget(texture) : RenderTypes.entityTranslucent(texture);
     }
 
     public static void figura(FiguraModelPart part, PartCustomization transform, MultiBufferSource source) {

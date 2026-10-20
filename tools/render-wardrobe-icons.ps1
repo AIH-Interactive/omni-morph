@@ -20,6 +20,8 @@ $icons = @{
     'wardrobe_source_local' = @('wardrobe-source-local.svg')
     'wardrobe_source_cloud' = @('wardrobe-source-cloud.svg')
     'wardrobe_type_ysm' = @('wardrobe-type-ysm.svg')
+    'wardrobe_outfit' = @('wardrobe-outfit-add.svg', 'wardrobe-outfit-remove.svg')
+    'wardrobe_cache' = @('wardrobe-cache-off.svg', 'wardrobe-cache-on.svg')
 }
 $colors = @('#777777', '#ffffff', '#55ffff')
 foreach ($icon in $icons.GetEnumerator()) {
