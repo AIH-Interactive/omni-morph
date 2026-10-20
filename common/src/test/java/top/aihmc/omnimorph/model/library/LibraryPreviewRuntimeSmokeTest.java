@@ -60,6 +60,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             testModelFilePicker(client, drain);
             testReportInput(client);
             testCollectionActions(client);
+            testWardrobeVisibilityTicks(unsafe);
             testWardrobeDefaultPreview(unsafe);
             testPreviewAppearance(unsafe);
             testIndependentFigura(unsafe, drain);
@@ -738,6 +739,154 @@ public final class LibraryPreviewRuntimeSmokeTest {
         } finally {
             screen.removed();
             fontField.set(minecraft, previousFont);
+        }
+    }
+
+    private static void testWardrobeVisibilityTicks(Unsafe unsafe) throws Exception {
+        Minecraft minecraft = Minecraft.getInstance();
+        var previousLevel = minecraft.level;
+        UUID player = FiguraMod.getLocalPlayerUUID();
+        UUID model = UUID.randomUUID();
+        var permissions = (Map<?, ?>) field(PermissionManager.class, "PLAYERS").get(null);
+        boolean hadPermissions = permissions.containsKey(player);
+        @SuppressWarnings("unchecked")
+        var users = (Map<UUID, top.aihmc.omnimorph.avatar.UserData>) field(AvatarManager.class, "LOADED_USERS").get(null);
+        @SuppressWarnings("unchecked")
+        var fetched = (java.util.Set<UUID>) field(AvatarManager.class, "FETCHED_USERS").get(null);
+        var previousUser = users.get(player);
+        boolean alreadyFetched = fetched.contains(player);
+        var user = new top.aihmc.omnimorph.avatar.UserData(player);
+        Avatar equipped = new Avatar(player);
+        equipped.nbt = model("equipped");
+        user.getAvatars().add(equipped);
+        var callbacks = new java.util.concurrent.ConcurrentLinkedQueue<Runnable>();
+        Runnable deliver = () -> {
+            Runnable callback;
+            while ((callback = callbacks.poll()) != null) {
+                callback.run();
+            }
+        };
+        var showing = new AtomicBoolean(true);
+        var publicModel = new AtomicBoolean();
+        var revision = new java.util.concurrent.atomic.AtomicLong(7);
+        var server = com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/api/library/v1/", exchange -> {
+            try {
+                String response;
+                if (exchange.getRequestURI().getPath().endsWith("/session")) {
+                    response = "{\"uuid\":\"" + player + "\",\"name\":\"Player\",\"admin\":false,"
+                            + "\"equipment_revision\":" + revision.get() + ",\"equipment_model_id\":\"" + model
+                            + "\",\"equipment_model_revision\":1,\"show_private_equipment\":"
+                            + (!publicModel.get() && showing.get()) + ",\"show_equipment\":" + showing.get() + "}";
+                } else {
+                    require(exchange.getRequestMethod().equals("POST")
+                                    && exchange.getRequestURI().getPath().equals("/api/library/v1/models/" + model + "/equip"),
+                            "visibility targets actual equipment, never the unrelated selected preview");
+                    var input = com.google.gson.JsonParser.parseString(new String(exchange.getRequestBody().readAllBytes(),
+                            java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+                    require(input.get("expected_equipment_revision").getAsLong() == revision.get(), "visibility retains equipment CAS");
+                    showing.set(input.get("show_equipment").getAsBoolean());
+                    response = "{\"model_id\":\"" + model + "\",\"model_revision\":1,\"equipment_revision\":"
+                            + revision.incrementAndGet() + ",\"owner\":\"" + player + "\",\"asset_id\":\"lib_"
+                            + model.toString().replace("-", "") + "_1\",\"asset_revision\":1,\"show_private_equipment\":"
+                            + showing.get() + "}";
+                }
+                byte[] body = response.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                exchange.getResponseHeaders().set("Content-Type", "application/json");
+                exchange.sendResponseHeaders(200, body.length);
+                exchange.getResponseBody().write(body);
+            } finally {
+                exchange.close();
+            }
+        });
+        server.start();
+        String origin = "http://127.0.0.1:" + server.getAddress().getPort();
+        try (var access = new LibraryAccess(CloudEndpoint.parse(origin, () -> true), HttpClient.newHttpClient(),
+                request -> request.header("Authorization", "Bearer synthetic-player"));
+             var client = new LibraryClient(access, new LibrarySession(origin, player, 1, () -> true), callbacks::add);
+             var preview = new LibraryPreviewSession()) {
+            // Only the world container is allocated: real avatar lookup, screen ticks and HTTP callbacks run.
+            minecraft.level = (net.minecraft.client.multiplayer.ClientLevel) unsafe.allocateInstance(net.minecraft.client.multiplayer.ClientLevel.class);
+            users.put(player, user);
+            fetched.add(player);
+            var screenType = top.aihmc.omnimorph.gui.screens.WardrobeScreen.class;
+            // Supply the vanilla renderable accessor normally installed by the game's mixin runtime.
+            var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null) {
+                private final java.util.List<net.minecraft.client.gui.components.Renderable> renderables = new java.util.ArrayList<>();
+
+                @Override
+                public java.util.List<net.minecraft.client.gui.components.Renderable> renderables() {
+                    return renderables;
+                }
+            };
+            field(screenType, "client").set(screen, client);
+            field(screenType, "preview").set(screen, preview);
+            field(screenType, "visibility").set(screen,
+                    new top.aihmc.omnimorph.backend2.library.LibraryEquipmentVisibility(client));
+            var constructor = field(screenType, "selected").getType().getDeclaredConstructors()[0];
+            constructor.setAccessible(true);
+            field(screenType, "selected").set(screen, constructor.newInstance(null, null, false,
+                    UUID.randomUUID(), net.minecraft.network.chat.Component.literal("unrelated preview")));
+            var button = new top.aihmc.omnimorph.gui.widgets.SwitchButton(0, 0, 24, 24,
+                    net.minecraft.network.chat.Component.literal("show"), false);
+            field(screenType, "showModel").set(screen, button);
+            var refresh = screenType.getDeclaredMethod("refreshVisibility");
+            refresh.setAccessible(true);
+            var change = screenType.getDeclaredMethod("changeVisibility");
+            change.setAccessible(true);
+            for (boolean isPublic : new boolean[]{false, true}) {
+                publicModel.set(isPublic);
+                refresh.invoke(screen);
+                screen.tick();
+                var pending = (LibraryClient.Request<?>) field(screenType, "visibilityRequest").get(screen);
+                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+                while (callbacks.isEmpty() && System.nanoTime() < deadline) {
+                    Thread.sleep(1);
+                }
+                require(!callbacks.isEmpty(), "session response reaches the client callback queue");
+                screen.tick();
+                require(field(screenType, "visibilityRequest").get(screen) == pending && !pending.future().isCancelled(),
+                        "selected preview must not cancel and restart the visibility request on every tick");
+                await(pending.future(), deliver);
+                screen.tick();
+                require(button.isActive(), "public/private visibility must stay usable across ticks with a selected preview");
+                for (boolean value : new boolean[]{false, true}) {
+                    button.setToggled(value);
+                    change.invoke(screen);
+                    var saving = (LibraryClient.Request<?>) field(screenType, "visibilityRequest").get(screen);
+                    screen.tick();
+                    await(saving.future(), deliver);
+                    var reading = (LibraryClient.Request<?>) field(screenType, "visibilityRequest").get(screen);
+                    await(reading.future(), deliver);
+                    screen.tick();
+                    require(button.isActive() && button.isToggled() == value && showing.get() == value,
+                            "public/private changes persist and remain usable after readback and further ticks");
+                }
+            }
+            equipped.nbt = model("reloaded equipment");
+            screen.tick();
+            var reading = (LibraryClient.Request<?>) field(screenType, "visibilityRequest").get(screen);
+            screen.tick();
+            require(field(screenType, "visibilityRequest").get(screen) == reading,
+                    "equipment reload refreshes once without cancelling the request on the next tick");
+            await(reading.future(), deliver);
+            screen.tick();
+            require(button.isActive(), "equipment reload recovers the visibility control");
+            System.out.println("PASS wardrobe visibility lifecycle: selected preview, multiple ticks, public/private HTTP saves and equipment reload");
+        } finally {
+            server.stop(0);
+            minecraft.level = previousLevel;
+            if (previousUser == null) {
+                users.remove(player);
+            } else {
+                users.put(player, previousUser);
+            }
+            if (!alreadyFetched) {
+                fetched.remove(player);
+            }
+            if (!hadPermissions) {
+                permissions.remove(player);
+            }
         }
     }
 
