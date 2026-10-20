@@ -27,6 +27,30 @@ public final class LibraryActionBar extends AbstractContainerElement {
         return button;
     }
 
+    /** A divider occupies one toolbar slot and participates in the existing responsive wrapping. */
+    public void separator() {
+        if (!actions.isEmpty() && actions.getLast() != null) {
+            actions.add(null);
+        }
+    }
+
+    private List<Button> visibleActions() {
+        var visible = new ArrayList<Button>();
+        boolean separatorPending = false;
+        for (Button button : actions) {
+            if (button == null) {
+                separatorPending = !visible.isEmpty();
+            } else if (button.isVisible()) {
+                if (separatorPending) {
+                    visible.add(null);
+                    separatorPending = false;
+                }
+                visible.add(button);
+            }
+        }
+        return visible;
+    }
+
     public <T extends Button> T option(T button) {
         option = button;
         children.add(button);
@@ -35,15 +59,21 @@ public final class LibraryActionBar extends AbstractContainerElement {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
-        List<Button> visible = actions.stream().filter(Button::isVisible).toList();
+        List<Button> visible = visibleActions();
         int columns = Math.max(1, (getWidth() + 4) / 28);
         for (int index = 0; index < visible.size(); index++) {
             int row = index / columns;
             int count = Math.min(columns, visible.size() - row * columns);
             int left = getX() + (getWidth() - (count * 28 - 4)) / 2;
             Button button = visible.get(index);
-            button.setX(left + index % columns * 28);
-            button.setY(getY() + row * 28);
+            int x = left + index % columns * 28;
+            int y = getY() + row * 28;
+            if (button == null) {
+                gui.fill(x + 11, y + 3, x + 12, y + 21, 0xff58666c);
+            } else {
+                button.setX(x);
+                button.setY(y);
+            }
         }
         if (option != null) {
             option.setX(getX());

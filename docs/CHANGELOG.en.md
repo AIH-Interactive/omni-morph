@@ -19,6 +19,7 @@
 
 ### Fixed and improved
 
+- Outfit removal moves to local/cloud row context menus. Common actions come first with functional dividers; local creation/folder actions are collection-only, and bone refresh sits beside search. Outfit rows are taller with one type badge at top-left; library tooltips include the full model type.
 - Outfit selections now update the preview. Added previews use Figura’s native entity GUI rendering without automatically changing equipment.
 - Collection cards, list/preview proportions and preview heights follow the model library; source, avatar/part mode and format selectors collapse into “+”, with icon actions below the preview.
 - Added missing English/Chinese cache-status translations and included wardrobe helper keys in translation checks.

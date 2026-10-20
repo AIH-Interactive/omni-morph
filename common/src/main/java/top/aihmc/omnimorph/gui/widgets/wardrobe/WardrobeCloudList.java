@@ -4,6 +4,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.gui.widgets.Button;
+import top.aihmc.omnimorph.gui.widgets.ContextMenu;
 import top.aihmc.omnimorph.gui.widgets.SearchBar;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
 import top.aihmc.omnimorph.gui.widgets.ModelResourceBadges;
@@ -30,6 +31,9 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
         public boolean filtersExpanded;
     }
 
+    public static final int ROW_HEIGHT = 28;
+    private static final int ROW_STRIDE = ROW_HEIGHT + 2;
+    private Consumer<LibraryModels.CollectionEntry> outfitRemoval;
     private final View view;
     private final Consumer<LibraryModels.CollectionEntry> select;
     private final java.util.function.Function<UUID, Component> cacheState;
@@ -112,6 +116,10 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
         updateScissors(1, contentTop(), -2, -contentTop() - 1);
     }
 
+    public void setOutfitRemoval(Consumer<LibraryModels.CollectionEntry> remove) {
+        outfitRemoval = remove;
+    }
+
     public void entries(List<LibraryModels.CollectionEntry> values, UUID selected) {
         this.selected = selected;
         if (!entries.equals(values)) {
@@ -131,13 +139,13 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
     public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
         var filtered = filteredEntries();
         int area = Math.max(1, getHeight() - contentTop() - 2);
-        int maximum = Math.max(0, filtered.size() * 26 - area);
+        int maximum = Math.max(0, filtered.size() * ROW_STRIDE - area);
         scrollBar.setVisible(maximum > 0);
-        scrollBar.setScrollRatio(26, Math.max(1, maximum));
+        scrollBar.setScrollRatio(ROW_STRIDE, Math.max(1, maximum));
         view.scroll = scrollBar.getScrollProgress();
         int offset = (int) Math.round(view.scroll * maximum);
-        int first = offset / 26;
-        int end = Math.min(filtered.size(), (offset + area) / 26 + 1);
+        int first = offset / ROW_STRIDE;
+        int end = Math.min(filtered.size(), (offset + area) / ROW_STRIDE + 1);
         var nextRows = new ArrayList<Integer>();
         for (int index = first; index < end; index++) {
             nextRows.add(index);
@@ -155,7 +163,7 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
             if (thumbnails != null && entry.model() != null && entry.model().imageAvailable()) {
                 icons.computeIfAbsent(entry.modelId(), thumbnails::acquire);
             }
-            var row = new Row(getX() + 4, getY() + contentTop() + index * 26 - offset, getWidth() - 20,
+            var row = new Row(getX() + 4, getY() + contentTop() + index * ROW_STRIDE - offset, getWidth() - 20,
                     entry, button -> {
                         selected = entry.modelId();
                         select.accept(entry);
@@ -201,8 +209,8 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
         int next = Math.clamp(current + (event.key() == 264 ? 1 : -1), 0, values.size() - 1);
         selected = values.get(next).modelId();
         select.accept(values.get(next));
-        int maximum = Math.max(0, values.size() * 26 - Math.max(1, getHeight() - 54));
-        scrollBar.setScrollProgressNoAnim(maximum == 0 ? 0 : Math.min(1d, next * 26d / maximum));
+        int maximum = Math.max(0, values.size() * ROW_STRIDE - Math.max(1, getHeight() - contentTop() - 2));
+        scrollBar.setScrollProgressNoAnim(maximum == 0 ? 0 : Math.min(1d, next * (double) ROW_STRIDE / maximum));
         return true;
     }
 
@@ -221,7 +229,7 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
         private final LibraryModels.CollectionEntry entry;
 
         private Row(int x, int y, int width, LibraryModels.CollectionEntry entry, OnPress action) {
-            super(x, y, width, 24, entry.model() == null ? FiguraText.of("gui.wardrobe.unavailable")
+            super(x, y, width, ROW_HEIGHT, entry.model() == null ? FiguraText.of("gui.wardrobe.unavailable")
                     : Component.literal(entry.model().displayName()), null, action);
             this.entry = entry;
             setTooltip(ModelResourceBadges.tooltip(getMessage(), true, entry.model() == null ? "" : entry.model().modelType()));
@@ -240,19 +248,33 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
         protected void renderText(GuiGraphicsExtractor gui, float delta) {
             var handle = icons.get(entry.modelId());
             var icon = handle == null ? null : handle.capture();
-            UIHelper.blit(gui, getX() + 2, getY() + 2, 20, 20,
+            UIHelper.blit(gui, getX() + 2, getY() + 4, 20, 20,
                     icon == null ? new FiguraIdentifier("textures/gui/unknown_icon.png") : icon);
-            ModelResourceBadges.draw(gui, getX() + 2, getY() + 2, true);
-            ModelResourceBadges.drawType(gui, getX() + 12, getY() + 12,
+            ModelResourceBadges.drawType(gui, getX() + 2, getY() + 4,
                     entry.model() == null ? "" : entry.model().modelType());
-            UIHelper.renderScrollingText(gui, getMessage(), getX() + 24, getY() + 2, getWidth() - 26, 0xffffffff);
-            UIHelper.renderScrollingText(gui, cacheState.apply(entry.modelId()), getX() + 24, getY() + 13,
+            UIHelper.renderScrollingText(gui, getMessage(), getX() + 24, getY() + 4, getWidth() - 26, 0xffffffff);
+            UIHelper.renderScrollingText(gui, cacheState.apply(entry.modelId()), getX() + 24, getY() + 15,
                     getWidth() - 26, 0xffaaaaaa);
         }
 
         @Override
         public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
-            return isInsideScissors(event.x(), event.y()) && super.mouseClicked(event, doubleClick);
+            if (!isInsideScissors(event.x(), event.y())) {
+                return false;
+            }
+            if (event.button() == 1 && outfitRemoval != null && isMouseOver(event.x(), event.y())) {
+                var menu = new ContextMenu(this);
+                menu.addAction(FiguraText.of("gui.wardrobe.remove_outfit"), null, ignored -> {
+                    outfitRemoval.accept(entry);
+                    menu.setVisible(false);
+                });
+                menu.setX((int) event.x());
+                menu.setY((int) event.y());
+                menu.setVisible(true);
+                UIHelper.setContext(menu);
+                return true;
+            }
+            return super.mouseClicked(event, doubleClick);
         }
     }
 

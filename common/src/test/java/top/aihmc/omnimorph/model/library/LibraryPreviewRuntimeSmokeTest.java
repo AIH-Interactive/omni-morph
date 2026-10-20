@@ -734,6 +734,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             System.out.println("PASS report input: actual screen click/release, CJK text, newline/backspace, disabled state and outside focus");
             testCollectionCardsAndTreeScrolling();
             testResourceFilterPanels();
+            testWardrobeActionMenus();
         } finally {
             screen.removed();
             fontField.set(minecraft, previousFont);
@@ -961,6 +962,125 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 "2.0 placeholder mode retains access to the collapsed source and mode selectors");
         placeholder.close();
         System.out.println("PASS wardrobe plus panels: all resource selectors, independent values, bounded geometry and parts-mode access; GUI MANUAL/PENDING");
+    }
+
+    private static void testWardrobeActionMenus() throws Exception {
+        var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+        screen.width = 640;
+        screen.height = 360;
+        field(screen.getClass(), "layout").set(screen,
+                top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout.of(640, 360));
+        var build = screen.getClass().getDeclaredMethod("buildPreview");
+        build.setAccessible(true);
+        try (var preview = new LibraryPreviewSession()) {
+            field(screen.getClass(), "preview").set(screen, preview);
+            build.invoke(screen);
+            var actions = (top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar) screen.children().stream()
+                    .filter(top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar.class::isInstance).findFirst().orElseThrow();
+            var visible = actions.getClass().getDeclaredMethod("visibleActions");
+            visible.setAccessible(true);
+            var slots = (java.util.List<?>) visible.invoke(actions);
+            require(field(screen.getClass(), "candidateButton").get(screen) == null && slots.size() == 9 && slots.get(5) == null,
+                    "outfit actions contain five common controls followed by a divider and three secondary controls");
+            var expected = java.util.List.of("upload", "reload", "wardrobe_visibility", "wardrobe_appeal", "delete",
+                    "sound", "keybind", "unselect");
+            int index = 0;
+            for (Object slot : slots) {
+                if (slot != null) {
+                    var texture = field(top.aihmc.omnimorph.gui.widgets.Button.class, "texture").get(slot);
+                    require(texture.toString().endsWith("/" + expected.get(index++) + ".png"),
+                            "common operations precede sound/keybind/clear, without local creation or tree refresh");
+                }
+            }
+        }
+        var refreshed = new java.util.concurrent.atomic.AtomicInteger();
+        var tree = new top.aihmc.omnimorph.gui.widgets.wardrobe.BoneTreeWidget(10, 20, 180, 180,
+                new BoneTreeState(), refreshed::incrementAndGet);
+        var refresh = (top.aihmc.omnimorph.gui.widgets.Button) tree.children().stream()
+                .filter(top.aihmc.omnimorph.gui.widgets.Button.class::isInstance).findFirst().orElseThrow();
+        var search = (top.aihmc.omnimorph.gui.widgets.SearchBar) tree.children().stream()
+                .filter(top.aihmc.omnimorph.gui.widgets.SearchBar.class::isInstance).findFirst().orElseThrow();
+        refresh.onPress(null);
+        require(refreshed.get() == 1 && search.getX() + search.getWidth() < refresh.getX()
+                        && refresh.getX() + refresh.getWidth() <= tree.getX() + tree.getWidth(),
+                "tree refresh is clickable alongside search without overlapping its input");
+        Minecraft minecraft = Minecraft.getInstance();
+        var previousScreen = minecraft.screen;
+        var windowField = field(Minecraft.class, "window");
+        Object previousWindow = windowField.get(minecraft);
+        // Context-menu bounds need deterministic viewport metrics, without creating or rendering a window.
+        // This fixture verifies callbacks only; real-window menu placement remains MANUAL/PENDING.
+        Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+        var viewport = (com.mojang.blaze3d.platform.Window) unsafe.allocateInstance(com.mojang.blaze3d.platform.Window.class);
+        field(viewport.getClass(), "guiScaledWidth").setInt(viewport, 640);
+        field(viewport.getClass(), "guiScaledHeight").setInt(viewport, 360);
+        windowField.set(minecraft, viewport);
+        minecraft.screen = screen;
+        try {
+            var selected = new java.util.concurrent.atomic.AtomicInteger();
+            var removed = new java.util.concurrent.atomic.AtomicReference<Object>();
+            var local = new top.aihmc.omnimorph.gui.widgets.lists.AvatarList(0, 0, 180, 180, screen,
+                    ignored -> selected.incrementAndGet(), ignored -> true);
+            local.setActionsVisible(false);
+            local.showSourceBadge(true);
+            local.setOutfitRemoval(removed::set);
+            Path path = Files.createDirectories(Path.of(System.getProperty("figura.test.directory")).resolve("outfit-menu-avatar"));
+            Files.writeString(path.resolve("avatar.json"), "{\"name\":\"Menu avatar\"}");
+            var avatar = new top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath(path, path);
+            var localRow = new top.aihmc.omnimorph.gui.widgets.avatar.AvatarWidget(0, 160, avatar, local);
+            localRow.setX(4);
+            localRow.setY(30);
+            var rightClick = new net.minecraft.client.input.MouseButtonEvent(8, 36,
+                    new net.minecraft.client.input.MouseButtonInfo(1, 0));
+            require(localRow.getHeight() == 28 && localRow.mouseClicked(rightClick, false),
+                    "taller local outfit rows retain their existing right-click context menu");
+            var menu = top.aihmc.omnimorph.utils.ui.UIHelper.getContext();
+            var removeLabel = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.remove_outfit").getString();
+            var remove = (top.aihmc.omnimorph.gui.widgets.Button) menu.children().stream()
+                    .filter(child -> child instanceof top.aihmc.omnimorph.gui.widgets.Button button
+                            && button.getMessage().getString().equals(removeLabel)).findFirst().orElseThrow();
+            remove.onPress(null);
+            require(removed.get() == avatar && selected.get() == 0 && !menu.isVisible(),
+                    "removal targets the right-clicked local avatar without selecting or equipping it");
+            removed.set(null);
+            try (var cloud = new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList(0, 0, 180, 180,
+                    new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList.View(),
+                    ignored -> selected.incrementAndGet(), ignored -> net.minecraft.network.chat.Component.empty())) {
+                cloud.setOutfitRemoval(removed::set);
+                var entry = new top.aihmc.omnimorph.backend2.library.LibraryModels.CollectionEntry(UUID.randomUUID(), 1,
+                        "UPLOAD", true, null);
+                var rowType = Class.forName("top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList$Row");
+                var constructor = rowType.getDeclaredConstructors()[0];
+                constructor.setAccessible(true);
+                var row = (top.aihmc.omnimorph.gui.widgets.Button) constructor.newInstance(cloud, 4, 30, 160, entry,
+                        (top.aihmc.omnimorph.gui.widgets.Button.OnPress) ignored -> selected.incrementAndGet());
+                require(row.getHeight() == 28 && row.mouseClicked(rightClick, false), "cloud rows share the taller context-menu interaction");
+                menu = top.aihmc.omnimorph.utils.ui.UIHelper.getContext();
+                remove = (top.aihmc.omnimorph.gui.widgets.Button) menu.children().stream()
+                        .filter(child -> child instanceof top.aihmc.omnimorph.gui.widgets.Button button
+                                && button.getMessage().getString().equals(removeLabel)).findFirst().orElseThrow();
+                remove.onPress(null);
+                require(removed.get() == entry && selected.get() == 0 && !menu.isVisible(),
+                        "cloud removal captures the clicked member without invoking selection/equipment");
+            }
+        } finally {
+            minecraft.screen = previousScreen;
+            windowField.set(minecraft, previousWindow);
+        }
+        for (String format : java.util.List.of("FIGURA", "YSM_PLAIN", "YSM_ENCRYPTED")) {
+            String expected = switch (format) {
+                case "FIGURA" -> "gui.wardrobe.filter.figura";
+                case "YSM_PLAIN" -> "gui.wardrobe.filter.ysm_plain";
+                default -> "gui.wardrobe.filter.ysm_encrypted";
+            };
+            var label = (net.minecraft.network.chat.contents.TranslatableContents)
+                    top.aihmc.omnimorph.gui.widgets.ModelResourceBadges.typeTooltip(format).getContents();
+            var type = (net.minecraft.network.chat.Component) label.getArgs()[0];
+            require(type.getContents() instanceof net.minecraft.network.chat.contents.TranslatableContents translated
+                            && translated.getKey().equals("omni-morph." + expected),
+                    "catalog type tooltip retains the full localized Figura/YSM/encrypted YSM label");
+        }
+        System.out.println("PASS wardrobe action groups, native local/cloud removal menus, taller rows, tree refresh and type text; GUI MANUAL/PENDING");
     }
 
     private static void testModelFilePicker(LibraryClient client, Runnable drain) throws Exception {
