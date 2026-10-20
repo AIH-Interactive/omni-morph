@@ -55,7 +55,7 @@ public final class LibraryTransferSmokeTest {
                 Path cached;
                 try (var files = Files.list(directory.resolve("avatars"))) {
                     cached = files.filter(path -> path.getFileName().toString().startsWith("model-")
-                            && path.toString().endsWith(".omc")).findFirst().orElseThrow();
+                            && path.toString().endsWith(".oma")).findFirst().orElseThrow();
                 }
                 var codec = new top.aihmc.omnimorph.model.cache.ModelCacheCodec(directory);
                 require(!java.util.Arrays.equals(Files.readAllBytes(cached), server.bytes), "preview disk is wrapped against direct unpacking");

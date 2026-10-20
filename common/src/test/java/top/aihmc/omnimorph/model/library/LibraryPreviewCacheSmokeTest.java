@@ -29,7 +29,7 @@ public final class LibraryPreviewCacheSmokeTest {
             require(cache.put(key, LibraryPreviewCache.Kind.MODEL, bytes), "verified model package is cached");
             Path savedPreview = onlyModel(cache);
             Path oldPreview = Files.createDirectories(directory.resolve("model-library-preview/models"))
-                    .resolve(savedPreview.getFileName().toString().substring("model-".length()).replace(".omc", ".bin"));
+                    .resolve(savedPreview.getFileName().toString().substring("model-".length()).replace(".oma", ".bin"));
             Files.move(savedPreview, oldPreview);
             var checks = new AtomicInteger();
             try (var lease = cache.find(scope, LibraryPreviewCache.Kind.MODEL, checks::incrementAndGet).orElseThrow()) {
@@ -110,6 +110,9 @@ public final class LibraryPreviewCacheSmokeTest {
         var codec = new top.aihmc.omnimorph.model.cache.ModelCacheCodec(directory);
         byte[] bytes = "retained encrypted avatar".getBytes(java.nio.charset.StandardCharsets.UTF_8);
         String resource = "c".repeat(64) + ".omc";
+        Path flat = Files.createDirectories(directory.resolve("avatars"));
+        String flatName = "b".repeat(64);
+        codec.write(flat.resolve(flatName + ".omc"), bytes);
         Path old = Files.createDirectories(directory.resolve("wardrobe-resources")).resolve(resource);
         codec.write(old, bytes);
         Path thumbnails = Files.createDirectories(directory.resolve("model-library-preview/thumbnails"));
@@ -123,14 +126,17 @@ public final class LibraryPreviewCacheSmokeTest {
         Path snapshot = directory.resolve("wardrobe-collection-sample.omc");
         Files.writeString(snapshot, "account metadata");
         Path target = top.aihmc.omnimorph.model.cache.AvatarCachePaths.prepareFlat(directory, "wardrobe-resources",
-                file -> "resource-" + file.getFileName());
-        Path relocated = target.resolve("resource-" + resource);
+                file -> "resource-" + file.getFileName().toString().replace(".omc", ".oma"));
+        Path relocated = target.resolve("resource-" + resource.replace(".omc", ".oma"));
+        require(!Files.exists(flat.resolve(flatName + ".omc"))
+                        && Arrays.equals(codec.read(flat.resolve(flatName + ".oma"), 1024), bytes),
+                "existing flat avatar .omc files migrate to .oma without changing their contents");
         require(!Files.exists(old) && Arrays.equals(codec.read(relocated, 1024), bytes),
                 "relocated encrypted avatars retain their existing key");
         Files.createDirectories(old.getParent());
         Files.writeString(old, "older conflict");
         top.aihmc.omnimorph.model.cache.AvatarCachePaths.prepareFlat(directory, "wardrobe-resources",
-                file -> "resource-" + file.getFileName());
+                file -> "resource-" + file.getFileName().toString().replace(".omc", ".oma"));
         require(Files.exists(old) && Arrays.equals(codec.read(relocated, 1024), bytes),
                 "migration preserves both files when the target already exists");
         new LibraryPreviewCache(directory).cleanup();
@@ -149,7 +155,7 @@ public final class LibraryPreviewCacheSmokeTest {
 
     private static Path onlyModel(LibraryPreviewCache cache) throws IOException {
         try (var files = Files.list(cache.root())) {
-            return files.filter(path -> path.getFileName().toString().startsWith("model-") && path.toString().endsWith(".omc")).findFirst().orElseThrow();
+            return files.filter(path -> path.getFileName().toString().startsWith("model-") && path.toString().endsWith(".oma")).findFirst().orElseThrow();
         }
     }
 

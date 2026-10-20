@@ -6,6 +6,7 @@ import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
 import top.aihmc.omnimorph.config.Configs;
 import top.aihmc.omnimorph.model.cache.ModelCacheCodec;
+import top.aihmc.omnimorph.model.cache.ModelCacheLayout;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -156,7 +157,7 @@ public final class LibraryCollectionService implements AutoCloseable {
 
     private static Path metadataPath(Path root, String origin, UUID viewer) {
         String scope = origin + "\n" + viewer;
-        return root.resolve("wardrobe-collection-" + CloudHttp.sha256(scope.getBytes(StandardCharsets.UTF_8)) + ".omc");
+        return root.resolve("wardrobe-collection-" + CloudHttp.sha256(scope.getBytes(StandardCharsets.UTF_8)) + ModelCacheLayout.COLLECTION_EXTENSION);
     }
 
     private static List<LibraryModels.CollectionEntry> readMetadata(Path snapshot, ModelCacheCodec codec) {

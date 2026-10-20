@@ -3,6 +3,7 @@ package top.aihmc.omnimorph.model.library;
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
 import top.aihmc.omnimorph.model.cache.AvatarCachePaths;
 import top.aihmc.omnimorph.model.cache.ModelCacheCodec;
+import top.aihmc.omnimorph.model.cache.ModelCacheLayout;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -77,7 +78,7 @@ public final class LibraryPreviewCache {
     public LibraryPreviewCache(Path figuraCacheDirectory) {
         codec = new ModelCacheCodec(figuraCacheDirectory);
         cacheRoot = figuraCacheDirectory.toAbsolutePath().normalize();
-        root = cacheRoot.resolve("avatars");
+        root = cacheRoot.resolve(ModelCacheLayout.AVATAR_DIRECTORY);
     }
 
     public Path root() {
@@ -96,7 +97,7 @@ public final class LibraryPreviewCache {
         }
         initialize(lifetime);
         Path directory = directory(kind);
-        Path path = directory.resolve(key.stem(kind) + ".omc");
+        Path path = directory.resolve(key.stem(kind) + ModelCacheLayout.AVATAR_EXTENSION);
         if (kind == Kind.THUMBNAIL) {
             path = directory.resolve(key.stem(kind) + ".png");
             if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
@@ -173,7 +174,7 @@ public final class LibraryPreviewCache {
         initialize(lifetime);
         Path directory = directory(kind);
         Path target = directory.resolve(key.stem(kind)
-                + (kind == Kind.THUMBNAIL ? AvatarCachePaths.imageExtension(bytes) : ".omc"));
+                + (kind == Kind.THUMBNAIL ? AvatarCachePaths.imageExtension(bytes) : ModelCacheLayout.AVATAR_EXTENSION));
         synchronized (ACTIVE) {
             if (ACTIVE.containsKey(target)) {
                 return false;
@@ -260,10 +261,10 @@ public final class LibraryPreviewCache {
     private Path directory(Kind kind) throws IOException {
         return AvatarCachePaths.prepareFlat(cacheRoot, "model-library-preview/" + kind.directory, file -> {
             String name = file.getFileName().toString();
-            if (!name.matches("[a-f0-9]{64}-[a-f0-9]{64}\\.(bin|omc|png|jpg)")) {
+            if (!name.matches("[a-f0-9]{64}-[a-f0-9]{64}\\.(bin|omc|oma|png|jpg)")) {
                 return null;
             }
-            String extension = ".omc";
+            String extension = ModelCacheLayout.AVATAR_EXTENSION;
             if (kind == Kind.THUMBNAIL) {
                 try (var input = Files.newInputStream(file)) {
                     extension = AvatarCachePaths.imageExtension(input.readNBytes(8));
@@ -276,7 +277,7 @@ public final class LibraryPreviewCache {
     }
 
     private static boolean matches(String name, Kind kind) {
-        String extension = kind == Kind.THUMBNAIL ? "(png|jpg)" : "omc";
+        String extension = kind == Kind.THUMBNAIL ? "(png|jpg)" : "oma";
         return name.matches(kind.name().toLowerCase(java.util.Locale.ROOT)
                 + "-[a-f0-9]{64}-[a-f0-9]{64}\\." + extension);
     }

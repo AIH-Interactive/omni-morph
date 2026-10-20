@@ -6,6 +6,7 @@ import top.aihmc.omnimorph.backend2.library.LibrarySession;
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
 import top.aihmc.omnimorph.model.cache.AvatarCachePaths;
 import top.aihmc.omnimorph.model.cache.ModelCacheCodec;
+import top.aihmc.omnimorph.model.cache.ModelCacheLayout;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -29,7 +30,7 @@ public final class LibraryResourceCache {
     public LibraryResourceCache(Path root, LibrarySession session) {
         this.session = session;
         cacheRoot = root.toAbsolutePath().normalize();
-        directory = cacheRoot.resolve("avatars");
+        directory = cacheRoot.resolve(ModelCacheLayout.AVATAR_DIRECTORY);
         codec = new ModelCacheCodec(root);
     }
 
@@ -39,8 +40,13 @@ public final class LibraryResourceCache {
         }
         AvatarCachePaths.prepareFlat(cacheRoot, "wardrobe-resources", file -> {
             String name = file.getFileName().toString();
-            return name.matches("[a-f0-9]{64}(\\.[a-f0-9-]{36}\\.pending)?\\.(omc|json)")
-                    ? "resource-" + name : null;
+            if (!name.matches("[a-f0-9]{64}(\\.[a-f0-9-]{36}\\.pending)?\\.(oma|omc|json)")) {
+                return null;
+            }
+            if (name.endsWith(".omc")) {
+                name = name.substring(0, name.length() - 4) + ModelCacheLayout.AVATAR_EXTENSION;
+            }
+            return "resource-" + name;
         });
         String identity = session.instance() + "\n" + session.player() + "\n" + model.modelId();
         return directory.resolve("resource-" + CloudHttp.sha256(identity.getBytes(StandardCharsets.UTF_8)) + suffix);
@@ -49,7 +55,7 @@ public final class LibraryResourceCache {
     public byte[] read(LibraryModels.Model model) throws IOException {
         session.requireCurrent();
         Path indexFile = path(model, ".json");
-        Path data = path(model, ".omc");
+        Path data = path(model, ModelCacheLayout.AVATAR_EXTENSION);
         if (!Files.isRegularFile(indexFile) || !Files.isRegularFile(data)) {
             return null;
         }
@@ -78,7 +84,7 @@ public final class LibraryResourceCache {
     public boolean present(LibraryModels.Model model) {
         try {
             Path index = path(model, ".json");
-            Path data = path(model, ".omc");
+            Path data = path(model, ModelCacheLayout.AVATAR_EXTENSION);
             if (!Files.isRegularFile(index) || Files.isSymbolicLink(index) || Files.size(index) > 4096
                     || !Files.isRegularFile(data) || Files.isSymbolicLink(data)) {
                 return false;
@@ -95,7 +101,7 @@ public final class LibraryResourceCache {
     public Pending stage(LibraryModels.Model model, Path encrypted, byte[] bytes, String hash,
                          LibraryModels.Transfer transfer) throws IOException {
         UUID completion = UUID.randomUUID();
-        Path data = pendingPath(model, transfer.transferId(), ".omc");
+        Path data = pendingPath(model, transfer.transferId(), ModelCacheLayout.AVATAR_EXTENSION);
         Path index = pendingPath(model, transfer.transferId(), ".json");
         Path partial = Files.createTempFile(directory, "receipt-", ".part");
         boolean published = false;
@@ -128,7 +134,7 @@ public final class LibraryResourceCache {
                 } catch (IllegalArgumentException malformedName) {
                     continue;
                 }
-                Path data = pendingPath(model, transfer, ".omc");
+                Path data = pendingPath(model, transfer, ModelCacheLayout.AVATAR_EXTENSION);
                 try {
                     if (Files.isSymbolicLink(file) || Files.size(file) > 4096) {
                         throw new IOException("INVALID_PENDING_CACHE");
@@ -162,7 +168,7 @@ public final class LibraryResourceCache {
 
     public void publish(LibraryModels.Model model, Pending pending) throws IOException {
         synchronized (PUBLICATION) {
-            Path data = pendingPath(model, pending.transfer(), ".omc");
+            Path data = pendingPath(model, pending.transfer(), ModelCacheLayout.AVATAR_EXTENSION);
             if (Files.exists(data)) {
                 publish(model, data, pending.hash());
             } else {
@@ -177,7 +183,7 @@ public final class LibraryResourceCache {
 
     /** Publishes data before its index; interrupted commits are cache misses, never partial models. */
     private void publish(LibraryModels.Model model, Path encrypted, String hash) throws IOException {
-        Path target = path(model, ".omc");
+        Path target = path(model, ModelCacheLayout.AVATAR_EXTENSION);
         Path index = path(model, ".json");
         Path partial = Files.createTempFile(directory, "index-", ".part");
         try {

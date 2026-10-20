@@ -380,3 +380,16 @@ Rust 检查同样在后端目录采用该管道并立即检查退出码、读取
 - 兼容更早的缓存根目录和上一版 `avatars` 内子目录，按需移入同一目录并保留重名目标；正式资源的校验索引/下载回执随包迁移，原密钥与账号快照位置不变。下载未完成的加密暂存仍使用受控暂存子目录，装饰品未实现且未来使用独立目录。
 - 共用目录后，预览查找先按类型筛选再限数量，TTL/LRU 仅处理本类型文件；预览临时文件清理只匹配本类型前缀，避免删除正式资源或其他下载中的文件。
 - 验证通过：`:fabric:build`、`:common:libraryPreviewCacheSmokeTest`、`:common:libraryThumbnailSmokeTest`、`:common:libraryTransferSmokeTest`、`:common:libraryEquipmentSmokeTest`。覆盖新文件扩展名、旧 `.bin` 模型/PNG/JPEG 缩略图迁移、同目录类型隔离、授权检查、活动租约、独立预算、正式缓存复用和失败清理。`git diff --check` 无错误；保持 Alpha 3，测试 JAR 已更新。
+
+### 缓存扩展名与装饰品目录预留（2026-10-20）
+
+| 数据 | 目录约定 | 扩展名 |
+| --- | --- | --- |
+| 完整形象模型（正式、预览、已加载）及其缩略图 | `cache/avatars` | 模型 `.oma`；缩略图 `.png` / `.jpg` |
+| 账号形象集快照 | 保持原 `cache` 根目录及账号作用域文件名 | `.omc` |
+| 装饰品缓存（仅预留） | `cache/cosmetic` | `.oms` |
+
+- `ModelCacheLayout` 集中定义上述目录和扩展名。模型的读写、正式下载回执恢复及预览均使用 `.oma`；形象集快照继续使用 `.omc`。共享加密封装不变，不把文件扩展名当作访问授权。
+- 升级时识别旧格式命名的 `.omc` 模型，保留内容及密钥改为 `.oma`，不覆盖已有目标、不改动形象集文件。根目录仅首次迁移扫描，旧子目录按需迁移直接输出新后缀。
+- 缓存统一仅针对形象模型和缩略图，不迁移原生库、配置、密钥或账号形象集数据；未完成下载仍保留受控暂存子目录。`cosmetic` 与 `.oms` 为 2.0 预留常量，不创建装饰品文件或实现加载、下载、组合与挂载功能。
+- 验证通过：`:fabric:build`、`:common:modelCacheCodecSmokeTest`、`:common:libraryPreviewCacheSmokeTest`、`:common:libraryThumbnailSmokeTest`、`:common:libraryTransferSmokeTest`、`:common:libraryEquipmentSmokeTest`；覆盖 `.oma` 正式缓存、旧 `.omc` 模型迁移与内容保留、形象集 `.omc` 保留、图片格式和授权回归。最终构建仍为 Alpha 3；更新日志同步，`git diff --check` 无错误。
