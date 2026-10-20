@@ -4,6 +4,25 @@
 
 [Project overview](../README.en.md)
 
+## 1.0.0-alpha.3
+
+### Added
+
+- Vertical Outfit / My Collection tabs, with independent local/cloud sources and avatar/part modes. Decoration areas remain layout placeholders marked “Coming in 2.0”.
+- “Add to wardrobe” in the model library and automatic cloud collection membership for personal uploads, without automatically equipping models.
+- Outfit candidates, manual caching and permitted cloud model management; “Automatically cache collection” under global Misc settings, off by default.
+- Shared compressed, encrypted cache containers to discourage direct extraction; account and model permissions still apply.
+- Read-only Figura/YSM bone trees with collapsed defaults, name search, expansion restoration and horizontal scrolling; selected geometry is outlined while other parts become translucent.
+- Appearance sharing for the currently equipped model, including public models, independently of catalog visibility.
+
+### Fixed and improved
+
+- Outfit selections now update the preview. Added previews use Figura’s native entity GUI rendering without automatically changing equipment.
+- Collection cards, list/preview proportions and preview heights follow the model library; filters collapse into “+” and icon actions sit below the preview.
+- Fixed missing vertical tab text, unified source/type icons and single-line preview information, and consolidated duplicate publication actions.
+
+Cloud collection removal and public equipment visibility require the matching backend update. Real game window and multiplayer visual checks remain `MANUAL/PENDING`.
+
 ## 1.0.0-alpha.2
 
 ### Added

@@ -42,7 +42,7 @@ public class FiguraMod {
 
     public static final String MOD_ID = "omni-morph";
     public static final String MOD_NAME = "OmniMorph";
-    public static final String DISPLAY_VERSION = "1.0 Alpha 2";
+    public static final String DISPLAY_VERSION = "1.0 Alpha 3";
     public static final FiguraModMetadata METADATA = FiguraModMetadata.getMetadataForMod(MOD_ID);
     public static final Version VERSION = new Version(PlatformUtils.getFiguraModVersionString());
     public static final Calendar CALENDAR = Calendar.getInstance();
