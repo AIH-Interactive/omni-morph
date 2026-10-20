@@ -36,6 +36,15 @@ foreach ($file in Get-ChildItem -LiteralPath $sourceDirectory -Recurse -Filter '
         }
     }
 }
+# WardrobeScreen uses a local text helper and runtime collection-cache states.
+$wardrobe = [System.IO.File]::ReadAllText((Join-Path $sourceDirectory 'top/aihmc/omnimorph/gui/screens/WardrobeScreen.java'))
+foreach ($match in [regex]::Matches($wardrobe, '\btext\("([a-z0-9_]+)"')) {
+    [void]$required.Add('omni-morph.gui.wardrobe.' + $match.Groups[1].Value)
+}
+foreach ($value in @('cached', 'not_cached', 'downloading', 'cache_failed', 'unavailable',
+        'local', 'cloud', 'avatars', 'parts', 'combination', 'attachment', 'anchor')) {
+    [void]$required.Add("omni-morph.gui.wardrobe.$value")
+}
 foreach ($value in @('active', 'blocked', 'deleted', 'figura', 'ysm_plain', 'ysm_encrypted',
         'full_model', 'decorative_parts')) {
     [void]$required.Add("omni-morph.gui.library.value.$value")

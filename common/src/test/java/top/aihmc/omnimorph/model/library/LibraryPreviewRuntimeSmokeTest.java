@@ -733,6 +733,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     "clicking outside still clears report editing focus");
             System.out.println("PASS report input: actual screen click/release, CJK text, newline/backspace, disabled state and outside focus");
             testCollectionCardsAndTreeScrolling();
+            testResourceFilterPanels();
         } finally {
             screen.removed();
             fontField.set(minecraft, previousFont);
@@ -879,6 +880,87 @@ public final class LibraryPreviewRuntimeSmokeTest {
         update.invoke(widget);
         require(!bar.isVisible() && tree.horizontalScroll() == 0, "collapsing fitting rows hides and resets horizontal overflow");
         System.out.println("PASS collection card pointer/keyboard/filter routing and conditional horizontal bone scrolling; GUI MANUAL/PENDING");
+    }
+
+    private static void testResourceFilterPanels() throws Exception {
+        for (int width : new int[]{160, 460}) {
+            var local = new top.aihmc.omnimorph.gui.widgets.lists.AvatarList(10, 54, width, 220, null,
+                    ignored -> {}, ignored -> true);
+            local.setActionsVisible(false);
+            try (var cloud = new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList(10, 54, width, 220,
+                    new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList.View(), ignored -> {},
+                    ignored -> net.minecraft.network.chat.Component.empty());
+                 var cards = new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid(10, 54, width, 220,
+                    new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.View(), null, ignored -> {},
+                    ignored -> net.minecraft.network.chat.Component.empty())) {
+                for (var panel : java.util.List.<top.aihmc.omnimorph.gui.widgets.lists.AbstractList>of(local, cloud, cards)) {
+                    var open = new java.util.concurrent.atomic.AtomicBoolean();
+                    var source = new java.util.concurrent.atomic.AtomicInteger();
+                    var mode = new java.util.concurrent.atomic.AtomicInteger();
+                    var sourceControl = new top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown(0, 0, 80,
+                            () -> java.util.List.of(net.minecraft.network.chat.Component.literal("local"),
+                                    net.minecraft.network.chat.Component.literal("cloud")), source::get, source::set);
+                    var modeControl = new top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown(0, 0, 80,
+                            () -> java.util.List.of(net.minecraft.network.chat.Component.literal("avatar"),
+                                    net.minecraft.network.chat.Component.literal("parts")), mode::get, mode::set);
+                    panel.getClass().getMethod("setResourceFilters", sourceControl.getClass(), modeControl.getClass(),
+                            boolean.class, java.util.function.Consumer.class).invoke(panel, sourceControl, modeControl,
+                            false, (java.util.function.Consumer<Boolean>) open::set);
+                    var dropdowns = panel.children().stream()
+                            .filter(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::isInstance)
+                            .map(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::cast).toList();
+                    var toggle = (top.aihmc.omnimorph.gui.widgets.Button) panel.children().stream()
+                            .filter(child -> child instanceof top.aihmc.omnimorph.gui.widgets.Button button
+                                    && button.getMessage().getString().equals("+")).findFirst().orElseThrow();
+                    int collapsed = panel.scissorsY;
+                    require(dropdowns.size() == 3 && dropdowns.stream().noneMatch(top.aihmc.omnimorph.gui.widgets.Button::isVisible),
+                            "source, mode and format are all owned by the collapsed plus panel");
+                    toggle.onPress(null);
+                    require(open.get() && dropdowns.stream().allMatch(top.aihmc.omnimorph.gui.widgets.Button::isVisible)
+                                    && panel.scissorsY == collapsed + 24,
+                            "plus reveals all selectors together and reserves one filter row");
+                    for (int index = 0; index < dropdowns.size(); index++) {
+                        var control = dropdowns.get(index);
+                        require(control.getWidth() > 0 && control.getX() >= panel.getX()
+                                        && control.getX() + control.getWidth() <= panel.getX() + width
+                                        && (index == 0 || dropdowns.get(index - 1).getX()
+                                            + dropdowns.get(index - 1).getWidth() < control.getX()),
+                                "expanded selectors fit narrow/wide lists without overlapping");
+                    }
+                    ((java.util.function.IntConsumer) field(sourceControl.getClass(), "changed").get(sourceControl)).accept(1);
+                    require(source.get() == 1 && mode.get() == 0, "source selection does not change resource mode");
+                    ((java.util.function.IntConsumer) field(modeControl.getClass(), "changed").get(modeControl)).accept(1);
+                    toggle.onPress(null);
+                    require(!open.get() && source.get() == 1 && mode.get() == 1 && panel.scissorsY == collapsed
+                                    && dropdowns.stream().noneMatch(top.aihmc.omnimorph.gui.widgets.Button::isVisible),
+                            "collapse retains both selections while reclaiming list space");
+                }
+            }
+        }
+        var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+        screen.width = 640;
+        screen.height = 360;
+        field(screen.getClass(), "layout").set(screen,
+                top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout.of(640, 360));
+        field(screen.getClass(), "parts").setBoolean(screen, true);
+        var build = screen.getClass().getDeclaredMethod("buildResources");
+        build.setAccessible(true);
+        build.invoke(screen);
+        require(screen.children().stream().noneMatch(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::isInstance),
+                "production wardrobe no longer creates standalone source or mode selectors above search");
+        var placeholder = (top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList) screen.children().stream()
+                .filter(top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList.class::isInstance).findFirst().orElseThrow();
+        var toggle = (top.aihmc.omnimorph.gui.widgets.Button) placeholder.children().stream()
+                .filter(child -> child instanceof top.aihmc.omnimorph.gui.widgets.Button button
+                        && button.getMessage().getString().equals("+")).findFirst().orElseThrow();
+        toggle.onPress(null);
+        require(field(screen.getClass(), "resourceFiltersExpanded").getBoolean(screen)
+                        && placeholder.children().stream().filter(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::isInstance)
+                        .map(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::cast)
+                        .allMatch(top.aihmc.omnimorph.gui.widgets.Button::isVisible),
+                "2.0 placeholder mode retains access to the collapsed source and mode selectors");
+        placeholder.close();
+        System.out.println("PASS wardrobe plus panels: all resource selectors, independent values, bounded geometry and parts-mode access; GUI MANUAL/PENDING");
     }
 
     private static void testModelFilePicker(LibraryClient client, Runnable drain) throws Exception {

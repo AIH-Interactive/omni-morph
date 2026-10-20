@@ -44,6 +44,8 @@ public class AvatarList extends AbstractList {
     private boolean sourceBadge;
     private SearchBar search;
     private Button formatButton;
+    private List<LibraryDropdown> resourceFilters = List.of();
+    private Consumer<Boolean> filtersChanged = ignored -> {};
     private boolean filtersExpanded;
     private int contentTop = 49;
     private boolean actionsVisible = true;
@@ -76,6 +78,7 @@ public class AvatarList extends AbstractList {
                 FiguraText.of("gui.library.filters"), button -> {
             filtersExpanded = !filtersExpanded;
             updateHeader();
+            filtersChanged.accept(filtersExpanded);
         }));
 
         // new avatar
@@ -127,10 +130,33 @@ public class AvatarList extends AbstractList {
     }
 
     // -- Functions -- // 
+    public void setResourceFilters(LibraryDropdown source, LibraryDropdown mode, boolean expanded,
+                                   Consumer<Boolean> changed) {
+        children.removeAll(resourceFilters);
+        resourceFilters = List.of(source, mode);
+        children.remove(formatButton);
+        children.addAll(resourceFilters);
+        children.add(formatButton);
+        filtersExpanded = expanded;
+        filtersChanged = changed;
+        updateHeader();
+    }
+
     private void updateHeader() {
         int actionsHeight = actionsVisible ? 24 : 0;
         contentTop = 25 + actionsHeight + (filtersExpanded ? 24 : 0);
         formatButton.setVisible(filtersExpanded);
+        int selectorWidth = Math.min(100, (getWidth() - 16) / 3);
+        for (int index = 0; index < resourceFilters.size(); index++) {
+            var selector = resourceFilters.get(index);
+            selector.setVisible(filtersExpanded);
+            selector.setX(getX() + 4 + index * (selectorWidth + 4));
+            selector.setY(getY() + 28 + actionsHeight);
+            selector.setWidth(selectorWidth);
+        }
+        int selectorsWidth = resourceFilters.isEmpty() ? 0 : 2 * (selectorWidth + 4);
+        formatButton.setX(getX() + 4 + selectorsWidth);
+        formatButton.setWidth(Math.min(128, getWidth() - 8 - selectorsWidth));
         formatButton.setY(getY() + 28 + actionsHeight);
         scrollBar.setY(getY() + contentTop - 1);
         scrollBar.setHeight(Math.max(16, getHeight() - contentTop - 3));

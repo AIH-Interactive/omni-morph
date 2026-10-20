@@ -75,6 +75,8 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
     private ModelLibraryLayout layout;
     private String selected;
     private final LibraryDropdown formatFilter;
+    private List<LibraryDropdown> resourceFilters = List.of();
+    private Consumer<Boolean> filtersChanged = ignored -> {};
 
     public WardrobeCollectionGrid(int x, int y, int width, int height, View view,
                                   LibraryThumbnailService thumbnails, Consumer<Entry> select,
@@ -98,6 +100,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
                 FiguraText.of("gui.library.filters"), button -> {
             view.filtersExpanded = !view.filtersExpanded;
             updateHeader();
+            filtersChanged.accept(view.filtersExpanded);
         }));
         formatFilter = new LibraryDropdown(x + 4, y + 28, Math.min(128, width - 8),
                 () -> List.of("all", "figura", "ysm_plain", "ysm_encrypted").stream()
@@ -117,8 +120,32 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
         return view.filtersExpanded ? 54 : 30;
     }
 
+    public void setResourceFilters(LibraryDropdown source, LibraryDropdown mode, boolean expanded,
+                                   Consumer<Boolean> changed) {
+        children.removeAll(resourceFilters);
+        resourceFilters = List.of(source, mode);
+        children.remove(formatFilter);
+        children.addAll(resourceFilters);
+        children.add(formatFilter);
+        view.filtersExpanded = expanded;
+        filtersChanged = changed;
+        updateHeader();
+    }
+
     private void updateHeader() {
         formatFilter.setVisible(view.filtersExpanded);
+        int selectorWidth = Math.min(100, (getWidth() - 16) / 3);
+        for (int index = 0; index < resourceFilters.size(); index++) {
+            var selector = resourceFilters.get(index);
+            selector.setVisible(view.filtersExpanded);
+            selector.setX(getX() + 4 + index * (selectorWidth + 4));
+            selector.setY(getY() + 28);
+            selector.setWidth(selectorWidth);
+        }
+        int selectorsWidth = resourceFilters.isEmpty() ? 0 : 2 * (selectorWidth + 4);
+        formatFilter.setX(getX() + 4 + selectorsWidth);
+        formatFilter.setWidth(Math.min(128, getWidth() - 8 - selectorsWidth));
+        formatFilter.setY(getY() + 28);
         scrollBar.setY(getY() + contentTop());
         scrollBar.setHeight(Math.max(16, getHeight() - contentTop() - 4));
         updateScissors(2, contentTop(), -18, -contentTop() - 2);

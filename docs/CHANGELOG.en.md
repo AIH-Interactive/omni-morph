@@ -20,7 +20,8 @@
 ### Fixed and improved
 
 - Outfit selections now update the preview. Added previews use Figura’s native entity GUI rendering without automatically changing equipment.
-- Collection cards, list/preview proportions and preview heights follow the model library; filters collapse into “+” and icon actions sit below the preview.
+- Collection cards, list/preview proportions and preview heights follow the model library; source, avatar/part mode and format selectors collapse into “+”, with icon actions below the preview.
+- Added missing English/Chinese cache-status translations and included wardrobe helper keys in translation checks.
 - Fixed missing vertical tab text, unified source/type icons and single-line preview information, and consolidated duplicate publication actions.
 
 Cloud collection removal and public equipment visibility require the matching backend update. Real game window and multiplayer visual checks remain `MANUAL/PENDING`.
