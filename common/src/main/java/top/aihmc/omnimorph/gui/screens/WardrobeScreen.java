@@ -1004,8 +1004,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
             if (!removed && expected == visibilityGeneration && failure == null) {
                 if (state.equipmentModelId() != null && state.equipmentModelRevision() != null) {
                     libraryVisibility = new LibraryEquipmentVisibility.State(state.equipmentModelId(),
-                            state.equipmentModelRevision(), state.equipmentRevision(), true, state.showPrivateEquipment());
-                    showModel.setToggled(state.showPrivateEquipment());
+                            state.equipmentModelRevision(), state.equipmentRevision(), true, state.showing());
+                    showModel.setToggled(state.showing());
                 } else {
                     readLocalVisibility(expected);
                 }
@@ -1055,6 +1055,17 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private void error(Throwable failure) {
         message = FiguraText.of("gui.library.failure", failure instanceof LibraryClient.Failure typed
                 ? typed.code : "LIBRARY_UNAVAILABLE");
+    }
+
+    private void updateVisibilityButton(boolean busy) {
+        if (showModel == null) {
+            return;
+        }
+        boolean pending = visibilityRequest != null && !visibilityRequest.future().isDone();
+        boolean localTarget = localVisibility != null && localVisibility.canChangeVisibility();
+        boolean libraryTarget = libraryVisibility != null && libraryVisibility.equipped();
+        showModel.setActive(tab == Tab.OUTFIT && !parts && !busy && !pending
+                && client != null && client.current() && (localTarget || libraryTarget));
     }
 
     @Override
@@ -1112,15 +1123,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
             candidateButton.setMessage(text(selected == null && tab == Tab.OUTFIT ? "go_collection"
                     : candidate() ? "remove_outfit" : "add_outfit"));
         }
-        if (showModel != null) {
-            boolean pending = visibilityRequest != null && !visibilityRequest.future().isDone();
-            boolean localTarget = localVisibility != null && localVisibility.canChangeVisibility()
-                    && tab == Tab.OUTFIT;
-            boolean privateTarget = libraryVisibility != null && collection != null
-                    && collection.entries().stream().anyMatch(entry -> entry.modelId().equals(libraryVisibility.model())
-                    && entry.model() != null && entry.model().visibility().equals("PRIVATE") && entry.model().allows("equip"));
-            showModel.setActive(!parts && !busy && !pending && client != null && client.current() && (localTarget || privateTarget));
-        }
+        updateVisibilityButton(busy);
         boolean uploading = NetworkStuff.getUploadProgress() != null;
         if (wasUploading && !uploading) {
             refreshVisibility();

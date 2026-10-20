@@ -21,7 +21,7 @@ public final class LibraryEquipmentVisibility {
         boolean equipped = model.equals(session.equipmentModelId())
                 && session.equipmentModelRevision() != null && session.equipmentModelRevision() > 0;
         return new State(model, equipped ? session.equipmentModelRevision() : 0, session.equipmentRevision(),
-                equipped, equipped && session.showPrivateEquipment());
+                equipped, equipped && session.showing());
     }
 
     public LibraryClient.Request<State> read(UUID model) {
@@ -38,7 +38,7 @@ public final class LibraryEquipmentVisibility {
             var result = exchange.json("POST", "/api/library/v1/models/" + expected.model() + "/equip",
                     Map.of("operation_id", operation.toString(), "model_revision", expected.modelRevision(),
                             "expected_equipment_revision", expected.equipmentRevision(),
-                            "show_private_equipment", showing), LibraryModels.Equipment.class);
+                            "show_private_equipment", showing, "show_equipment", showing), LibraryModels.Equipment.class);
             if (!expected.model().equals(result.modelId()) || !client.session().player().equals(result.owner())
                     || result.modelRevision() != expected.modelRevision() || result.showPrivateEquipment() != showing) {
                 throw new LibraryClient.Failure(409, "EQUIPMENT_CHANGED");

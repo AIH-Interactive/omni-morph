@@ -351,3 +351,10 @@ Rust 检查同样在后端目录采用该管道并立即检查退出码、读取
 - 我的形象集复用模型库 70/30 列表/预览比例、卡片宽高及缩略图尺寸；形象集和配装均使用模型库的预览高度计算，按钮自适应换行时同步让出空间。
 - 配装保留第一个上传图标，说明改为“发布当前形象”，删除重复启用图标；选中资源时发布所选形象，无选择时发布当前形象。预览说明、模型名、来源及状态提示浓缩为一行。
 - 验证通过：`:fabric:build`（含预览运行时检查）、`:common:wardrobeTransitionSmokeTest`、`:common:modelLibraryLayoutSmokeTest`、`:common:libraryEquipmentSmokeTest`；实窗布局为 `MANUAL/PENDING`。
+
+### 当前装备展示开关（2026-10-20）
+
+- 展示按钮仅操作服务端当前已启用的来源与装备版本，不读取预览选择、形象集成员关系或公开/私有筛选；公开与私有模型都可设置是否对外展示。无当前装备、请求未完成或离线时保持禁用。
+- 新增会话 `show_equipment` 读回，兼容旧私有字段；保存沿用原装备 CAS API，携带通用展示意图，不下载、不加载、不切换化身。公开条目访问权限与装备展示互相独立。
+- 后端提交 `a6b130b` 已推送：复用现有衣柜展示表，无 schema 迁移，旧请求保持原公开默认展示/私有默认隐藏；两种协议的装备投影与别名下载执行新展示设置，授权、屏蔽与来源检查保留。
+- 验证通过：`:fabric:build`、`:common:libraryEquipmentVisibilitySmokeTest`、`:common:libraryEquipmentSmokeTest`；Rust 装备 13 项、订阅 3 项通过。涵盖公开开关、其他穿戴者独立设置、模型库仍可访问、CAS/幂等重放及原私有模型回归。真实多人游戏与后端部署为 `MANUAL/PENDING`。

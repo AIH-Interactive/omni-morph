@@ -22,6 +22,7 @@ public final class LibraryEquipmentVisibilitySmokeTest {
         UUID player = UUID.randomUUID();
         UUID model = UUID.randomUUID();
         var showing = new AtomicBoolean();
+        var publicModel = new AtomicBoolean();
         var blocked = new AtomicBoolean();
         var switched = new AtomicBoolean();
         var loseResponse = new AtomicBoolean();
@@ -39,7 +40,8 @@ public final class LibraryEquipmentVisibilitySmokeTest {
                             + "\"equipment_revision\":" + revision.get() + ",\"equipment_model_id\":"
                             + (switched.get() ? "null" : "\"" + model + "\"")
                             + ",\"equipment_model_revision\":1,\"show_private_equipment\":"
-                            + (showing.get() && !blocked.get()) + "}";
+                            + (!publicModel.get() && showing.get() && !blocked.get())
+                            + ",\"show_equipment\":" + (showing.get() && !blocked.get()) + "}";
                 } else {
                     require(exchange.getRequestURI().getPath().equals("/api/library/v1/models/" + model + "/equip")
                             && exchange.getRequestMethod().equals("POST"), "only existing equip metadata is mutated");
@@ -52,7 +54,8 @@ public final class LibraryEquipmentVisibilitySmokeTest {
                         status = 409;
                         response = "{\"code\":\"CONFLICT\"}";
                     } else {
-                        showing.set(input.get("show_private_equipment").getAsBoolean());
+                        require(input.has("show_equipment"), "general visibility is explicitly sent for public as well as private equipment");
+                        showing.set(input.get("show_equipment").getAsBoolean());
                         long saved = revision.incrementAndGet();
                         if (loseResponse.getAndSet(false)) {
                             return;
@@ -88,6 +91,13 @@ public final class LibraryEquipmentVisibilitySmokeTest {
             loseResponse.set(true);
             failure(service.save(saved, false).future(), callbacks);
             require(!await(service.read(model).future(), callbacks).showing(), "lost acknowledgement is resolved from authoritative state");
+            publicModel.set(true);
+            showing.set(true);
+            var publicState = await(service.read(model).future(), callbacks);
+            require(publicState.showing(), "public equipment uses general visibility even when the legacy private flag is false");
+            var hiddenPublic = await(service.save(publicState, false).future(), callbacks);
+            require(!hiddenPublic.showing(), "public equipment can be hidden without changing its source");
+            require(await(service.save(hiddenPublic, true).future(), callbacks).showing(), "public equipment can be shown again");
             blocked.set(true);
             failure(service.save(await(service.read(model).future(), callbacks), true).future(), callbacks);
             require(!await(service.read(model).future(), callbacks).showing(), "blocking cannot be overridden by the switch");
@@ -96,7 +106,7 @@ public final class LibraryEquipmentVisibilitySmokeTest {
         } finally {
             server.stop(0);
         }
-        System.out.println("PASS private equipment visibility: persisted readback, CAS, lost response, blocking and source isolation");
+        System.out.println("PASS public/private equipment visibility: persisted readback, CAS, lost response, blocking and source isolation");
     }
 
     private static <T> T await(CompletableFuture<T> future, ConcurrentLinkedQueue<Runnable> callbacks) throws Exception {
