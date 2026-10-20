@@ -25,6 +25,7 @@ import top.aihmc.omnimorph.backend2.library.LibrarySession;
 import top.aihmc.omnimorph.config.Configs;
 import top.aihmc.omnimorph.font.Emojis;
 import top.aihmc.omnimorph.gui.FiguraToast;
+import top.aihmc.omnimorph.model.library.LibraryCollectionService;
 import top.aihmc.omnimorph.model.ysm.YsmModelRuntime;
 import top.aihmc.omnimorph.model.ysm.sync.*;
 import top.aihmc.omnimorph.utils.FiguraText;
@@ -65,6 +66,7 @@ public class NetworkStuff {
     private static final java.util.concurrent.atomic.AtomicInteger pendingTasks = new java.util.concurrent.atomic.AtomicInteger();
     private static volatile CloudConnection connection;
     private static LibraryClient libraryClient;
+    private static LibraryCollectionService wardrobeCollection;
     private static volatile CloudHttp authenticationWork;
     private static volatile CloudHttp resourceWork;
     private static volatile CloudProtocol.Kind connectedKind;
@@ -107,6 +109,10 @@ public class NetworkStuff {
             throw new java.io.IOException("LIBRARY_OFFLINE");
         }
         if (libraryClient == null || !libraryClient.current()) {
+            if (wardrobeCollection != null) {
+                wardrobeCollection.close();
+                wardrobeCollection = null;
+            }
             if (libraryClient != null) {
                 libraryClient.close();
             }
@@ -122,12 +128,37 @@ public class NetworkStuff {
         return libraryClient;
     }
 
+    public static synchronized LibraryCollectionService wardrobeCollection()
+            throws java.io.IOException {
+        LibraryClient client = libraryClient();
+        if (wardrobeCollection == null) {
+            wardrobeCollection = new LibraryCollectionService(
+                    client, FiguraMod.getCacheDirectory());
+            wardrobeCollection.refresh();
+        }
+        return wardrobeCollection;
+    }
+
     public static void tick() {
+        if (wardrobeCollection != null && (libraryClient == null || !libraryClient.current())) {
+            wardrobeCollection.close();
+            wardrobeCollection = null;
+        }
         if (libraryClient != null && !libraryClient.current()) {
             libraryClient.close();
             libraryClient = null;
         }
         uploadRate.tick();
+        if (Configs.WARDROBE_AUTO_CACHE.value && isConnected() && wardrobeCollection == null) {
+            try {
+                wardrobeCollection();
+            } catch (java.io.IOException unavailable) {
+                // The existing connection lifecycle controls reconnect and retries.
+            }
+        }
+        if (wardrobeCollection != null) {
+            wardrobeCollection.tick();
+        }
         downloadRate.tick();
         if (!endpointPermitted()) {
             authCheck = RECONNECT;
@@ -567,6 +598,10 @@ public class NetworkStuff {
     }
 
     private static synchronized void retire(String reason, boolean stopRetry) {
+        if (wardrobeCollection != null) {
+            wardrobeCollection.close();
+            wardrobeCollection = null;
+        }
         if (stopRetry) {
             reconnect.stop();
         }

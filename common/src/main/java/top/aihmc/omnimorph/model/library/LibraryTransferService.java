@@ -8,6 +8,7 @@ import top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
+import top.aihmc.omnimorph.model.cache.ModelCacheCodec;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -28,6 +29,8 @@ public final class LibraryTransferService {
     private final LibraryClient client;
     private final LibraryPreviewCache preview;
     private final Path formalDirectory;
+    private final ModelCacheCodec codec;
+    private final LibraryResourceCache resources;
     private final java.util.function.Supplier<String> administrator;
 
     public record Package(LibraryModels.Model model, CompoundTag nbt, String rawHash, String purpose) {}
@@ -48,6 +51,8 @@ public final class LibraryTransferService {
         this.client = client;
         this.administrator = administrator;
         preview = new LibraryPreviewCache(figuraCacheDirectory);
+        codec = new ModelCacheCodec(figuraCacheDirectory);
+        resources = new LibraryResourceCache(figuraCacheDirectory, client.session());
         formalDirectory = figuraCacheDirectory.toAbsolutePath().normalize().resolve("model-library-downloads");
     }
 
@@ -59,7 +64,15 @@ public final class LibraryTransferService {
         return fetch(model, true);
     }
 
+    public Operation add(UUID model) {
+        return fetch(model, true, true);
+    }
+
     private Operation fetch(UUID id, boolean formal) {
+        return fetch(id, formal, false);
+    }
+
+    private Operation fetch(UUID id, boolean formal, boolean join) {
         var progress = new AvatarLoadProgress();
         long generation = progress.begin(AvatarLoadProgress.Stage.PROFILE);
         var request = client.submit(LibraryClient.Lane.TRANSFER, exchange -> {
@@ -76,6 +89,12 @@ public final class LibraryTransferService {
                 }
                 var scope = new LibraryPreviewCache.Scope(client.session().instance(), client.session().player(),
                         id, model.revision(), model.policyRevision());
+                if (formal) {
+                    byte[] cached = resources.read(model);
+                    if (cached != null && (!join || isMember(exchange, id))) {
+                        return parse(model, cached, CloudHttp.sha256(cached), purpose);
+                    }
+                }
                 if (!formal) {
                     // The detail immediately above is the fresh backend permission decision.
                     var cached = preview.find(scope, LibraryPreviewCache.Kind.MODEL,
@@ -115,20 +134,24 @@ public final class LibraryTransferService {
                     try (InputStream input = response.body()) {
                         Files.createDirectories(formalDirectory);
                         partial = Files.createTempFile(formalDirectory, "download-", ".part");
-                        try (OutputStream output = Files.newOutputStream(partial)) {
+                        try (OutputStream output = codec.output(partial)) {
                             receive(exchange, input, output, model.byteLength(), hash, progress, generation);
                         }
                         progress.stage(generation, AvatarLoadProgress.Stage.PREPARING);
-                        try (InputStream file = Files.newInputStream(partial)) {
-                            result = parse(model, file, hash, purpose);
+                        result = parse(model, codec.read(partial, CloudHttp.FILE_BYTES), hash, purpose);
+                        exchange.json("POST", ROOT + "transfers/" + transfer.transferId() + "/complete",
+                                Map.of("operation_id", UUID.randomUUID().toString(), "raw_sha256", hash),
+                                com.google.gson.JsonObject.class);
+                        if (join) {
+                            exchange.json("PUT", ROOT + "collection/" + id,
+                                    Map.of("transfer_id", transfer.transferId().toString()), com.google.gson.JsonObject.class);
                         }
+                        resources.publish(model, partial, hash);
                     } finally {
                         if (partial != null) {
                             Files.deleteIfExists(partial);
                         }
                     }
-                    exchange.json("POST", ROOT + "transfers/" + transfer.transferId() + "/complete",
-                            Map.of("operation_id", UUID.randomUUID().toString(), "raw_sha256", hash), com.google.gson.JsonObject.class);
                 } else {
                     var output = new ByteArrayOutputStream();
                     try (InputStream input = response.body()) {
@@ -148,6 +171,21 @@ public final class LibraryTransferService {
         });
         request.future().whenComplete((value, failure) -> progress.finish(generation));
         return new Operation(request, progress);
+    }
+
+    private boolean isMember(LibraryClient.Exchange exchange, UUID id) throws Exception {
+        int page = 1;
+        while (true) {
+            var result = exchange.json("GET", ROOT + "collection?page_size=64&page=" + page,
+                    null, LibraryModels.CollectionPage.class);
+            if (result.items().stream().anyMatch(entry -> id.equals(entry.modelId()))) {
+                return true;
+            }
+            if (!result.hasNext()) {
+                return false;
+            }
+            page++;
+        }
     }
 
     private static void receive(LibraryClient.Exchange exchange, InputStream input, OutputStream output,

@@ -9,6 +9,7 @@ import top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload;
 import top.aihmc.omnimorph.utils.IOUtils;
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
 import com.google.gson.Gson;
+import top.aihmc.omnimorph.model.cache.ModelCacheCodec;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,7 +37,7 @@ public class CacheAvatarLoader {
                     FileTime time = Files.getLastModifiedTime(child);
                     long diff = System.currentTimeMillis() - time.toMillis();
                     long elapsed = TimeUnit.MILLISECONDS.toDays(diff);
-                    if (elapsed > 7) {
+                    if (elapsed > 7 || child.getFileName().toString().endsWith(".nbt")) {
                         if (Files.deleteIfExists(child)) {
                             FiguraMod.debug("Successfully deleted cache avatar \"{}\" with \"{}\" days old", IOUtils.getFileNameOrEmpty(child), elapsed);
                         } else {
@@ -55,11 +56,16 @@ public class CacheAvatarLoader {
     }
 
     public static boolean checkAndLoad(String hash, UserData target, java.util.function.BooleanSupplier current) {
+        return checkAndLoad(hash, target, current, () -> {});
+    }
+
+    public static boolean checkAndLoad(String hash, UserData target,
+                                       java.util.function.BooleanSupplier current, Runnable missing) {
         Path p = getAvatarCacheDirectory();
-        p = p.resolve(hash + ".nbt");
+        p = p.resolve(hash + ".omc");
 
         if (Files.exists(p)) {
-            load(hash, target, current);
+            load(hash, target, current, missing);
             return true;
         }
 
@@ -71,13 +77,16 @@ public class CacheAvatarLoader {
     }
 
     private static void load(String hash, UserData target, java.util.function.BooleanSupplier current) {
+        load(hash, target, current, () -> {});
+    }
+
+    private static void load(String hash, UserData target, java.util.function.BooleanSupplier current,
+                             Runnable missing) {
         long progress = target.loading.begin(top.aihmc.omnimorph.avatar.AvatarLoadProgress.Stage.READING);
         LocalAvatarLoader.async(() -> {
-            Path path = getAvatarCacheDirectory().resolve(hash + ".nbt");
-            try (var stream = Files.newInputStream(path)) {
-                if (Files.size(path) > top.aihmc.omnimorph.backend2.protocol.CloudHttp.FILE_BYTES) {
-                    throw new java.io.IOException("Cached model exceeds byte budget");
-                }
+            Path path = getAvatarCacheDirectory().resolve(hash + ".omc");
+            try (var stream = new java.io.ByteArrayInputStream(
+                    new ModelCacheCodec(FiguraMod.getCacheDirectory()).read(path, CloudHttp.FILE_BYTES))) {
                 var nbt = NbtIo.readCompressed(stream, NbtAccounter.create(256L * 1024 * 1024));
                 net.minecraft.client.Minecraft.getInstance().execute(() -> {
                     if (current.getAsBoolean()) {
@@ -88,6 +97,16 @@ public class CacheAvatarLoader {
                 FiguraMod.debug("Loaded avatar \"{}\" from cache to \"{}\"", hash, target.id);
             } catch (Exception e) {
                 target.loading.finish(progress);
+                try {
+                    Files.deleteIfExists(path);
+                } catch (java.io.IOException cleanupFailure) {
+                    FiguraMod.debug("Failed to remove invalid model cache");
+                }
+                net.minecraft.client.Minecraft.getInstance().execute(() -> {
+                    if (current.getAsBoolean()) {
+                        missing.run();
+                    }
+                });
                 FiguraMod.LOGGER.error("Failed to load cache avatar: " + hash, e);
             }
         });
@@ -95,10 +114,10 @@ public class CacheAvatarLoader {
 
     public static void save(String hash, CompoundTag nbt) {
         LocalAvatarLoader.async(() -> {
-            Path file = getAvatarCacheDirectory().resolve(hash + ".nbt");
+            Path file = getAvatarCacheDirectory().resolve(hash + ".omc");
             try {
                 CompoundTag portable = YsmSourcePayload.forOutput(nbt);
-                try (var output = Files.newOutputStream(file)) {
+                try (var output = new ModelCacheCodec(FiguraMod.getCacheDirectory()).output(file)) {
                     NbtIo.writeCompressed(portable, output);
                 }
                 FiguraMod.debug("Saved avatar \"{}\" on cache", hash);
@@ -148,7 +167,7 @@ public class CacheAvatarLoader {
         Path model = Files.createTempFile(directory, "library-model-", ".part");
         Path provenance = null;
         try {
-            try (var output = Files.newOutputStream(model)) {
+            try (var output = new ModelCacheCodec(FiguraMod.getCacheDirectory()).output(model)) {
                 NbtIo.writeCompressed(YsmSourcePayload.forOutput(nbt), output);
             }
             if (Files.size(model) > CloudHttp.FILE_BYTES) {
@@ -156,7 +175,7 @@ public class CacheAvatarLoader {
             }
             provenance = Files.createTempFile(directory, "library-source-", ".part");
             Files.writeString(provenance, new Gson().toJson(source), StandardCharsets.UTF_8);
-            Files.move(model, directory.resolve(hash + ".nbt"), StandardCopyOption.ATOMIC_MOVE,
+            Files.move(model, directory.resolve(hash + ".omc"), StandardCopyOption.ATOMIC_MOVE,
                     StandardCopyOption.REPLACE_EXISTING);
             Files.move(provenance, directory.resolve(hash + "." + scope + ".library-source.json"),
                     StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);

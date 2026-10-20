@@ -314,6 +314,13 @@ tasks.register("ysmPackageSmokeTest", JavaExec) {
     mainClass = "top.aihmc.omnimorph.avatar.ysm.YsmPackageSmokeTest"
 }
 
+tasks.register('modelCacheCodecSmokeTest', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.library.ModelCacheCodecSmokeTest'
+}
+
 tasks.register('libraryMetadataSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Checks model-library metadata and source-defined authorization defaults without equipment changes.'

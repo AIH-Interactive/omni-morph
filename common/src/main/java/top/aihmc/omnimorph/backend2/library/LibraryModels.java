@@ -105,6 +105,17 @@ public final class LibraryModels {
         }
     }
 
+    public record CollectionEntry(UUID modelId, long joinedAt, String joinSource, boolean inOutfit, Model model) {}
+
+    public record CollectionPage(List<CollectionEntry> items, long total, int page, int pageSize, boolean hasNext) {
+        public CollectionPage {
+            items = immutable(items);
+            if (total < 0 || page < 1 || pageSize < 1 || pageSize > 64 || items.size() > pageSize) {
+                throw new IllegalArgumentException("INVALID_COLLECTION_PAGE");
+            }
+        }
+    }
+
     public record Transfer(UUID transferId, String purpose, long modelRevision, long policyRevision,
                            String relativePath, long expiresAt) {
         public Transfer {

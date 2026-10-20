@@ -1,4 +1,10 @@
 {
+    "omni-morph.gui.library.collection_add": "加入衣柜",
+    "omni-morph.gui.library.collection_joined": "已加入衣柜",
+    "omni-morph.gui.library.collection_added": "已加入我的形象集 · 云端",
+    "omni-morph.gui.library.collection_downloading": "正在加入衣柜…",
+    "omni-morph.config.wardrobe_auto_cache": "自动缓存云端形象",
+    "omni-morph.config.wardrobe_auto_cache.tooltip": "在本机自动缓存当前账号可访问的云端形象，不自动启用。",
     "omni-morph": "OmniMorph",
     "omni-morph.gui.help.about": "关于",
     "omni-morph.gui.help.lua_version": "Lua 版本：%s",

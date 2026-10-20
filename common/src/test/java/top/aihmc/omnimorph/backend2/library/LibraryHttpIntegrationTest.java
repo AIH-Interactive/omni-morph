@@ -79,6 +79,30 @@ public final class LibraryHttpIntegrationTest {
             long formalMicros = (System.nanoTime() - started) / 1000;
             require(downloaded.purpose().equals("download") && downloaded.nbt().contains("metadata"), "real formal NBT transfer");
             require(await(client.detail(model).future(), callbacks).downloads() == 1, "real formal receipt counts once");
+            require(await(client.collection(1).future(), callbacks).items().stream()
+                    .anyMatch(entry -> entry.modelId().equals(model) && !entry.inOutfit()),
+                    "published submission belongs to the account without becoming an outfit candidate");
+            try (var viewerAccess = new LibraryAccess(endpoint, HttpClient.newHttpClient(), request -> request
+                    .header("Authorization", "Bearer synthetic-token-2").header("x-omnimorph-auth-mode", "figura"));
+                 var viewer = new LibraryClient(viewerAccess,
+                         new LibrarySession(instance, new UUID(0, 2), 1, () -> true), callbacks::add)) {
+                var viewerTransfers = new LibraryTransferService(viewer, directory.resolve("device-one"));
+                await(viewerTransfers.add(model).request().future(), callbacks);
+                await(viewerTransfers.add(model).request().future(), callbacks);
+                require(await(viewer.collection(1).future(), callbacks).total() == 1,
+                        "formal addition uses actual server membership and is idempotent");
+                require(await(viewer.sessionInfo().future(), callbacks).equipmentModelId() == null,
+                        "addition never equips the model");
+                await(viewer.collectionOutfit(model, true).future(), callbacks);
+            }
+            try (var secondAccess = new LibraryAccess(endpoint, HttpClient.newHttpClient(), request -> request
+                    .header("Authorization", "Bearer synthetic-token-2").header("x-omnimorph-auth-mode", "figura"));
+                 var secondDevice = new LibraryClient(secondAccess,
+                         new LibrarySession(instance, new UUID(0, 2), 2, () -> true), callbacks::add)) {
+                require(await(secondDevice.collection(1).future(), callbacks).items().stream()
+                        .anyMatch(entry -> entry.modelId().equals(model) && entry.inOutfit()),
+                        "an independent client sees account membership and outfit preference without local cache");
+            }
             System.out.printf("M7 synthetic Rust/Java transfer timing: thumbnail=%d us, thumbnail_cache=%d us, "
                             + "preview=%d us, preview_cache=%d us, formal_download=%d us, heap_snapshot=%d bytes%n",
                     thumbnailMicros, cachedThumbnailMicros, previewMicros, cachedPreviewMicros, formalMicros,
