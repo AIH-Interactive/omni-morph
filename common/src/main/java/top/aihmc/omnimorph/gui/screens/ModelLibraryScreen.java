@@ -30,7 +30,7 @@ import top.aihmc.omnimorph.gui.screens.library.ModelLibraryAdminLoginScreen;
 import top.aihmc.omnimorph.gui.screens.library.ModelLibraryAdminScreen;
 import top.aihmc.omnimorph.gui.screens.library.ModelReportScreen;
 import top.aihmc.omnimorph.gui.screens.library.ModelLibraryAppealsScreen;
-import top.aihmc.omnimorph.model.library.LibraryEquipmentService;
+import top.aihmc.omnimorph.model.library.LibraryCollectionService;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
 import top.aihmc.omnimorph.model.library.LibraryTransferService;
@@ -42,7 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** Three server-paginated catalogs sharing one detached preview and source-bound formal-use service. */
+/** Three server-paginated catalogs sharing one detached preview and account collection. */
 public class ModelLibraryScreen extends AbstractPanelScreen {
     private int requestedPageSize;
     private static final List<String> SCOPES = List.of("mine", "favorites", "public");
@@ -52,8 +52,8 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
     private LibraryClient client;
     private LibraryModels.Capabilities capabilities;
     private LibraryTransferService transfers;
-    private LibraryEquipmentService equipment;
-    private LibraryEquipmentService.Operation equipmentOperation;
+    private LibraryCollectionService collection;
+    private LibraryTransferService.Operation addition;
     private LibraryPreviewSession preview;
     private LibraryThumbnailService thumbnails;
     private ModelLibraryGrid grid;
@@ -230,7 +230,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                                 "requires_authorization", !selected.requiresAuthorization()));
                     }
                 }));
-        use = actions.action(new LibraryIconButton("library_use", 1, () -> 0, FiguraText.of("gui.library.use"),
+        use = actions.action(new LibraryIconButton("library_use", 1, () -> 0, FiguraText.of("gui.library.collection_add"),
                 null, button -> enable()));
         favorite = actions.action(new LibraryIconButton("library_favorite", 2,
                 () -> selected != null && selected.favorited() ? 1 : 0, FiguraText.of("gui.library.favorite"),
@@ -263,7 +263,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         try {
             client = NetworkStuff.libraryClient();
             transfers = new LibraryTransferService(client, FiguraMod.getCacheDirectory());
-            equipment = new LibraryEquipmentService(client, transfers);
+            collection = NetworkStuff.wardrobeCollection();
             equipmentVisibility = new LibraryEquipmentVisibility(client);
             thumbnails = new LibraryThumbnailService(client, FiguraMod.getCacheDirectory());
             preview = new LibraryPreviewSession(client);
@@ -422,10 +422,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
     }
 
     private void select(LibraryModels.Model model) {
-        if (equipmentOperation != null && !equipmentOperation.future().isDone()) {
-            equipmentOperation.close();
-        }
-        equipmentOperation = null;
+        addition = null;
         selected = model;
         if (showPrivate != null) {
             showPrivate.setToggled(false);
@@ -503,19 +500,11 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         if (selected == null) {
             return;
         }
-        if (equipmentOperation != null && equipmentOperation.future().isCompletedExceptionally()) {
-            equipmentOperation.retry();
-        } else {
-            equipmentOperation = equipment.enable(selected.modelId(), showPrivate != null && showPrivate.isToggled()
-                    && selected.visibility().equals("PRIVATE") && selected.moderationStatus().equals("ACTIVE"));
-        }
-        var operation = equipmentOperation;
-        operation.future().whenComplete((result, failure) -> {
-            if (!closed && operation == equipmentOperation) {
-                actionMessage = failure == null ? FiguraText.of("gui.library.enabled") : error(failure);
-                if (failure == null) {
-                    readPrivateVisibility();
-                }
+        addition = collection.add(selected.modelId());
+        var operation = addition;
+        operation.request().future().whenComplete((result, failure) -> {
+            if (!closed && operation == addition) {
+                actionMessage = failure == null ? FiguraText.of("gui.library.collection_added") : error(failure);
                 updateButtons();
             }
         });
@@ -553,7 +542,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
 
     private void mutate(LibraryModels.Model model, String method, String suffix, Map<String, Object> input) {
         if (closed || mutation != null && !mutation.future().isDone()
-                || equipmentOperation != null && !equipmentOperation.future().isDone()) {
+                || addition != null && !addition.request().future().isDone()) {
             return;
         }
         mutation = client.submit(LibraryClient.Lane.CONTROL, exchange -> exchange.json(method,
@@ -573,7 +562,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         }
         boolean busy = mutation != null && !mutation.future().isDone()
                 || visibilityRequest != null && !visibilityRequest.future().isDone()
-                || equipmentOperation != null && !equipmentOperation.future().isDone();
+                || addition != null && !addition.request().future().isDone();
         boolean available = !closed && client != null && client.current() && state.equals("ready") && !busy;
         sections.administrator(capabilities != null && capabilities.adminLoginAvailable());
         adminEntry.setActive(!closed && client != null && client.current() && capabilities != null && !busy
@@ -599,10 +588,11 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
             uploadEntry.setActive(!closed && client != null && client.current() && capabilities != null
                     && capabilities.enabled() && !busy);
         }
-        use.setActive(available && selected != null && selected.allows("equip")
-                && (equipmentOperation == null || equipmentOperation.future().isDone()));
-        use.setMessage(FiguraText.of(equipmentOperation != null && equipmentOperation.future().isCompletedExceptionally()
-                ? "gui.library.retry_use" : "gui.library.use"));
+        boolean joined = selected != null && collection != null && collection.entries().stream()
+                .anyMatch(entry -> entry.modelId().equals(selected.modelId()));
+        use.setActive(available && selected != null && selected.allows("download")
+                && (addition == null || addition.request().future().isDone()));
+        use.setMessage(FiguraText.of(joined ? "gui.library.collection_joined" : "gui.library.collection_add"));
         favorite.setActive(available && selected != null && selected.allows("favorite"));
         favorite.setMessage(FiguraText.of(selected != null && selected.favorited()
                 ? "gui.library.unfavorite" : "gui.library.favorite"));
@@ -630,8 +620,8 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         UIHelper.renderCenteredScrollingText(gui, FiguraText.of("gui.library.page", page, pages,
                 results == null ? 0 : results.total()), 34, height - 24, leftWidth - 64, 20, 0xffeeeeee);
         Component message = actionMessage;
-        if (equipmentOperation != null && !equipmentOperation.future().isDone()) {
-            message = FiguraText.of("gui.library.state.enabling");
+        if (addition != null && !addition.request().future().isDone()) {
+            message = FiguraText.of("gui.library.collection_downloading");
         } else if (preview != null && preview.status().stage() == LibraryPreviewSession.Stage.LOADING) {
             message = FiguraText.of("gui.library.state.preview_loading");
         } else if (preview != null && preview.status().stage() == LibraryPreviewSession.Stage.FAILED) {
@@ -685,9 +675,6 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         }
         if (thumbnails != null) {
             thumbnails.close();
-        }
-        if (equipment != null) {
-            equipment.close();
         }
         if (preview != null) {
             preview.close();

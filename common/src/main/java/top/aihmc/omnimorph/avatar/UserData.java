@@ -41,9 +41,10 @@ public class UserData {
             clear();
         }
         for (Pair<String, Pair<String, UUID>> avatar : avatars) {
-            if (!CacheAvatarLoader.checkAndLoad(avatar.getFirst(), this, current)) {
-                Pair<String, UUID> pair = avatar.getSecond();
-                NetworkStuff.getAvatar(this, pair.getSecond(), pair.getFirst(), avatar.getFirst());
+            Pair<String, UUID> pair = avatar.getSecond();
+            Runnable download = () -> NetworkStuff.getAvatar(this, pair.getSecond(), pair.getFirst(), avatar.getFirst());
+            if (!CacheAvatarLoader.checkAndLoad(avatar.getFirst(), this, current, download)) {
+                download.run();
             }
         }
     }

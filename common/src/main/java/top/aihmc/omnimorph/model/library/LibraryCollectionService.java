@@ -1,0 +1,186 @@
+package top.aihmc.omnimorph.model.library;
+
+import com.google.gson.Gson;
+import top.aihmc.omnimorph.backend2.library.LibraryClient;
+import top.aihmc.omnimorph.backend2.library.LibraryModels;
+import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
+import top.aihmc.omnimorph.config.Configs;
+import top.aihmc.omnimorph.model.cache.ModelCacheCodec;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+/** Connection-owned collection with one bounded automatic transfer at a time. Client-thread lifecycle. */
+public final class LibraryCollectionService implements AutoCloseable {
+    private record Snapshot(List<LibraryModels.CollectionEntry> entries, String failure) {}
+
+    private final LibraryClient client;
+    private final LibraryTransferService transfers;
+    private final Path snapshot;
+    private final ModelCacheCodec codec;
+    private final Map<UUID, LibraryTransferService.Operation> additions = new LinkedHashMap<>();
+    private List<LibraryModels.CollectionEntry> entries = List.of();
+    private LibraryClient.Request<Snapshot> refresh;
+    private LibraryTransferService.Operation automatic;
+    private int automaticIndex;
+    private boolean closed;
+    private String failure = "";
+
+    public LibraryCollectionService(LibraryClient client, Path cacheRoot) {
+        this.client = client;
+        transfers = new LibraryTransferService(client, cacheRoot);
+        codec = new ModelCacheCodec(cacheRoot);
+        String scope = client.session().instance() + "\n" + client.session().player();
+        snapshot = cacheRoot.resolve("wardrobe-collection-"
+                + CloudHttp.sha256(scope.getBytes(StandardCharsets.UTF_8)) + ".omc");
+    }
+
+    public List<LibraryModels.CollectionEntry> entries() {
+        return entries;
+    }
+
+    public String failure() {
+        return failure;
+    }
+
+    public CompletableFuture<List<LibraryModels.CollectionEntry>> refresh() {
+        if (refresh != null && !refresh.future().isDone()) {
+            return refresh.future().thenApply(Snapshot::entries);
+        }
+        failure = "";
+        automaticIndex = 0;
+        refresh = client.submit(LibraryClient.Lane.CONTROL, exchange -> {
+            try {
+                var result = new ArrayList<LibraryModels.CollectionEntry>();
+                int page = 1;
+                while (true) {
+                    var response = exchange.json("GET", "/api/library/v1/collection?page_size=64&page=" + page,
+                            null, LibraryModels.CollectionPage.class);
+                    result.addAll(response.items());
+                    if (!response.hasNext()) {
+                        saveSnapshot(result);
+                        return new Snapshot(List.copyOf(result), "");
+                    }
+                    exchange.requireCurrent();
+                    page++;
+                }
+            } catch (IOException unavailable) {
+                // Only metadata is retained offline. Every preview/download still rechecks authority.
+                return new Snapshot(readSnapshot(), code(unavailable));
+            }
+        });
+        refresh.future().whenComplete((value, error) -> {
+            if (!closed && client.current()) {
+                if (error == null) {
+                    entries = value.entries();
+                    failure = value.failure();
+                } else {
+                    failure = code(error);
+                }
+            }
+        });
+        return refresh.future().thenApply(Snapshot::entries);
+    }
+
+    private void saveSnapshot(List<LibraryModels.CollectionEntry> entries) throws IOException {
+        Path partial = Files.createTempFile(snapshot.getParent(), "collection-", ".part");
+        try {
+            codec.write(partial, new Gson().toJson(entries).getBytes(StandardCharsets.UTF_8));
+            client.session().requireCurrent();
+            Files.move(partial, snapshot, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+        } finally {
+            Files.deleteIfExists(partial);
+        }
+    }
+
+    private List<LibraryModels.CollectionEntry> readSnapshot() {
+        try {
+            byte[] bytes = codec.read(snapshot, 16 * 1024 * 1024);
+            var values = new Gson().fromJson(new String(bytes, StandardCharsets.UTF_8),
+                    LibraryModels.CollectionEntry[].class);
+            return values == null ? List.of() : List.of(values);
+        } catch (IOException | RuntimeException invalid) {
+            return List.of();
+        }
+    }
+
+    public LibraryTransferService.Operation add(UUID model) {
+        var existing = additions.get(model);
+        if (existing != null && !existing.request().future().isDone()) {
+            return existing;
+        }
+        var operation = transfers.add(model);
+        additions.put(model, operation);
+        operation.request().future().whenComplete((value, error) -> {
+            additions.remove(model, operation);
+            if (!closed && client.current()) {
+                if (error == null) {
+                    refresh();
+                } else {
+                    failure = code(error);
+                }
+            }
+        });
+        return operation;
+    }
+
+    public void tick() {
+        if (closed || !client.current()) {
+            close();
+            return;
+        }
+        if (!Configs.WARDROBE_AUTO_CACHE.value) {
+            if (automatic != null) {
+                automatic.close();
+                automatic = null;
+                automaticIndex = 0;
+            }
+            return;
+        }
+        if (!failure.isEmpty() || refresh == null || !refresh.future().isDone()
+                || automatic != null && !automatic.request().future().isDone()) {
+            return;
+        }
+        while (automaticIndex < entries.size()) {
+            var entry = entries.get(automaticIndex++);
+            if (entry.model() != null && entry.model().allows("download")) {
+                automatic = transfers.download(entry.modelId());
+                automatic.request().future().whenComplete((value, error) -> {
+                    if (error != null && !closed && Configs.WARDROBE_AUTO_CACHE.value) {
+                        failure = code(error);
+                    }
+                });
+                break;
+            }
+        }
+    }
+
+    private static String code(Throwable error) {
+        return error instanceof LibraryClient.Failure typed ? typed.code : "CACHE_UNAVAILABLE";
+    }
+
+    @Override
+    public void close() {
+        closed = true;
+        if (refresh != null) {
+            refresh.cancel();
+        }
+        if (automatic != null) {
+            automatic.close();
+        }
+        for (var operation : List.copyOf(additions.values())) {
+            operation.close();
+        }
+        additions.clear();
+        entries = List.of();
+    }
+}

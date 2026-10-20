@@ -1,6 +1,7 @@
 package top.aihmc.omnimorph.model.library;
 
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
+import top.aihmc.omnimorph.model.cache.ModelCacheCodec;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -68,9 +69,11 @@ public final class LibraryPreviewCache {
     // Protect active files across screen/session cache objects sharing this independent root.
     private static final Map<Path, Integer> ACTIVE = new HashMap<>();
     private final Path root;
+    private final ModelCacheCodec codec;
     private boolean initialized;
 
     public LibraryPreviewCache(Path figuraCacheDirectory) {
+        codec = new ModelCacheCodec(figuraCacheDirectory);
         root = figuraCacheDirectory.toAbsolutePath().normalize().resolve("model-library-preview");
     }
 
@@ -94,13 +97,13 @@ public final class LibraryPreviewCache {
             if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
                 return Optional.empty();
             }
-            if (expired(path, lifetime) || Files.size(path) > limit(kind)) {
+            if (expired(path, lifetime) || Files.size(path) > limit(kind) + 65536L) {
                 deleteUnused(path);
                 return Optional.empty();
             }
             ACTIVE.merge(path, 1, Integer::sum);
         }
-        Lease lease = new Lease(path, key.rawHash(), limit(kind));
+        Lease lease = new Lease(path, key.rawHash(), limit(kind), kind == Kind.THUMBNAIL ? null : codec);
         try {
             // Verify immutable identity again; do not trust a manually replaced cache file.
             lease.read();
@@ -164,7 +167,11 @@ public final class LibraryPreviewCache {
             }
             Path partial = Files.createTempFile(directory, "transfer-", ".part");
             try {
-                Files.write(partial, bytes);
+                if (kind == Kind.THUMBNAIL) {
+                    Files.write(partial, bytes);
+                } else {
+                    codec.write(partial, bytes);
+                }
                 try {
                     Files.move(partial, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
                 } catch (AtomicMoveNotSupportedException unsupported) {
@@ -259,12 +266,14 @@ public final class LibraryPreviewCache {
         private final Path path;
         private final String hash;
         private final int limit;
+        private final ModelCacheCodec codec;
         private boolean closed;
 
-        private Lease(Path path, String hash, int limit) {
+        private Lease(Path path, String hash, int limit, ModelCacheCodec codec) {
             this.path = path;
             this.hash = hash;
             this.limit = limit;
+            this.codec = codec;
         }
 
         public synchronized byte[] read() throws IOException {
@@ -272,8 +281,12 @@ public final class LibraryPreviewCache {
                 throw new IOException("PREVIEW_LEASE_CLOSED");
             }
             byte[] bytes;
-            try (var input = Files.newInputStream(path)) {
-                bytes = CloudHttp.readBounded(input, limit);
+            if (codec != null) {
+                bytes = codec.read(path, limit);
+            } else {
+                try (var input = Files.newInputStream(path)) {
+                    bytes = CloudHttp.readBounded(input, limit);
+                }
             }
             if (!CloudHttp.sha256(bytes).equals(hash)) {
                 throw new IOException("PREVIEW_HASH_MISMATCH");

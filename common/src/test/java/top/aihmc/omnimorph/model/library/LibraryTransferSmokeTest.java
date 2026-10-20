@@ -56,15 +56,27 @@ public final class LibraryTransferSmokeTest {
                 try (var files = Files.list(directory.resolve("model-library-preview/models"))) {
                     cached = files.findFirst().orElseThrow();
                 }
-                require(java.util.Arrays.equals(Files.readAllBytes(cached), server.bytes), "preview disk stores the original encrypted distribution only");
+                var codec = new top.aihmc.omnimorph.model.cache.ModelCacheCodec(directory);
+                require(!java.util.Arrays.equals(Files.readAllBytes(cached), server.bytes), "preview disk is wrapped against direct unpacking");
+                require(java.util.Arrays.equals(codec.read(cached, CloudHttp.FILE_BYTES), server.bytes),
+                        "cache unwrap restores only the original portable distribution");
+                await(transfers.download(MODEL).request().future(), callbacks);
+                require(server.files.get() == 2 && server.completed.get() == 1,
+                        "authorized complete formal cache avoids duplicate downloads and receipts");
                 Files.setLastModifiedTime(cached, java.nio.file.attribute.FileTime.fromMillis(
                         System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(90)));
                 await(transfers.preview(MODEL).request().future(), callbacks);
                 require(server.files.get() == 2, "the backend's two-hour lifetime permits a 90-minute-old preview");
                 server.revoked.set(true);
                 failure(transfers.preview(MODEL).request().future(), callbacks, "FORBIDDEN");
+                failure(transfers.download(MODEL).request().future(), callbacks, "FORBIDDEN");
                 require(server.files.get() == 2, "revoked access cannot use disk or request another body");
                 server.revoked.set(false);
+                try (var files = Files.list(directory.resolve("wardrobe-resources"))) {
+                    for (Path file : files.toList()) {
+                        Files.delete(file);
+                    }
+                }
                 server.corrupt.set(true);
                 failure(transfers.download(MODEL).request().future(), callbacks, "DISTRIBUTION_HASH_MISMATCH");
                 require(server.completed.get() == 1, "failed digest cannot complete a receipt");
@@ -72,13 +84,19 @@ public final class LibraryTransferSmokeTest {
                     require(files.findAny().isEmpty(), "failed download removes its temporary file");
                 }
                 server.corrupt.set(false);
+                await(transfers.add(MODEL).request().future(), callbacks);
+                int addedFiles = server.files.get();
+                await(transfers.add(MODEL).request().future(), callbacks);
+                require(server.joined.get() && server.files.get() == addedFiles,
+                        "adding persists account membership and repeated addition reuses the formal cache");
+                int formalReceipts = server.completed.get();
                 var wardrobe = new LibraryWardrobePreviewService(client, () -> "synthetic-admin", directory);
                 var source = await(wardrobe.current(VIEWER, "self outfit/中文", 3, 9).future(), callbacks);
                 require(source.contains("ysm"), "administrator wardrobe bytes decode as portable NBT");
                 await(wardrobe.blocked(TRANSFER).future(), callbacks);
                 await(new LibraryWardrobePreviewService(client, () -> "synthetic-admin", directory)
                         .current(VIEWER, "self outfit/中文", 3, 9).future(), callbacks);
-                require(server.wardrobeFiles.get() == 2 && server.completed.get() == 1,
+                require(server.wardrobeFiles.get() == 2 && server.completed.get() == formalReceipts,
                         "reopened wardrobe preview revalidates with HEAD and reuses original cached bytes");
                 require(server.wardrobeHeads.get() == 3, "every wardrobe cache hit still performs a live source check");
                 await(wardrobe.recycled("WARDROBE", VIEWER, TRANSFER).future(), callbacks);
@@ -144,6 +162,7 @@ public final class LibraryTransferSmokeTest {
         private final AtomicInteger unexpected = new AtomicInteger();
         private final AtomicBoolean revoked = new AtomicBoolean();
         private final AtomicBoolean corrupt = new AtomicBoolean();
+        private final AtomicBoolean joined = new AtomicBoolean();
         private final AtomicInteger wardrobeFiles = new AtomicInteger();
         private final AtomicInteger wardrobeHeads = new AtomicInteger();
         private final AtomicInteger cacheSeconds = new AtomicInteger(7200);
@@ -219,6 +238,15 @@ public final class LibraryTransferSmokeTest {
                         request.getResponseBody().write(sent);
                         return;
                     }
+                } else if (path.equals("/api/library/v1/collection/" + MODEL)) {
+                    joined.set(true);
+                    body = "{\"joined\":true}";
+                } else if (path.equals("/api/library/v1/collection")) {
+                    body = joined.get() ? """
+                            {"items":[{"model_id":"%s","joined_at":1,"join_source":"DOWNLOAD","in_outfit":false}],
+                             "page":1,"page_size":64,"total":1,"has_next":false}
+                            """.formatted(MODEL)
+                            : "{\"items\":[],\"page\":1,\"page_size\":64,\"total\":0,\"has_next\":false}";
                 } else if (path.equals("/api/library/v1/models/" + MODEL)) {
                     details.incrementAndGet();
                     status = revoked.get() ? 403 : 200;

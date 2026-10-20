@@ -116,6 +116,19 @@ public final class LibraryClient implements AutoCloseable {
                 null, LibraryModels.SessionInfo.class));
     }
 
+    public Request<LibraryModels.CollectionPage> collection(int page) {
+        if (page < 1) {
+            throw new IllegalArgumentException("INVALID_COLLECTION_PAGE");
+        }
+        return submit(Lane.CONTROL, exchange -> exchange.json("GET",
+                ROOT + "collection?page_size=64&page=" + page, null, LibraryModels.CollectionPage.class));
+    }
+
+    public Request<JsonObject> collectionOutfit(UUID model, boolean inOutfit) {
+        return submit(Lane.CONTROL, exchange -> exchange.json("PUT", ROOT + "collection/" + model + "/outfit",
+                Map.of("in_outfit", inOutfit), JsonObject.class));
+    }
+
     public <T> Request<T> submit(Lane lane, Task<T> action) {
         var request = new Request<T>(executors.get(lane));
         synchronized (requests) {
