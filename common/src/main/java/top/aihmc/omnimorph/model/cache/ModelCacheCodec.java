@@ -27,6 +27,13 @@ public final class ModelCacheCodec {
         keyFile = cacheRoot.toAbsolutePath().normalize().resolve("model-cache.key");
     }
 
+    /** Format detection for legacy cleanup only; readers must still authenticate the container. */
+    public static boolean isWrapped(Path path) throws IOException {
+        try (var input = Files.newInputStream(path)) {
+            return Arrays.equals(input.readNBytes(HEADER.length), HEADER);
+        }
+    }
+
     private synchronized byte[] key() throws IOException {
         if (Files.isSymbolicLink(keyFile) || Files.isSymbolicLink(keyFile.getParent())) {
             throw new IOException("UNSAFE_CACHE_KEY");
@@ -36,7 +43,17 @@ public final class ModelCacheCodec {
             if (!Files.exists(keyFile, LinkOption.NOFOLLOW_LINKS)) {
                 byte[] generated = new byte[32];
                 RANDOM.nextBytes(generated);
-                Files.write(keyFile, generated, java.nio.file.StandardOpenOption.CREATE_NEW);
+                Path partial = Files.createTempFile(keyFile.getParent(), "cache-key-", ".part");
+                try {
+                    Files.write(partial, generated);
+                    try {
+                        Files.move(partial, keyFile);
+                    } catch (java.nio.file.FileAlreadyExistsException anotherClient) {
+                        // A concurrent client supplied the shared key; read that key below.
+                    }
+                } finally {
+                    Files.deleteIfExists(partial);
+                }
             }
             if (Files.size(keyFile) != 32) {
                 throw new IOException("INVALID_CACHE_KEY");

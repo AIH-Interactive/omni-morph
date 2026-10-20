@@ -220,7 +220,7 @@ public final class LibraryPreviewCache {
                     deleteUnused(path);
                 } else if (path.getFileName().toString().matches("[a-f0-9]{64}-[a-f0-9]{64}\\.bin")
                         && Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
-                    if (expired(path, lifetime)) {
+                    if (expired(path, lifetime) || kind != Kind.THUMBNAIL && !ModelCacheCodec.isWrapped(path)) {
                         deleteUnused(path);
                     }
                     if (Files.exists(path)) {

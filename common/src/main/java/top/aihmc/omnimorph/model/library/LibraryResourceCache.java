@@ -11,11 +11,15 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.UUID;
 
 /** Worker-only formal resources. Callers must first obtain fresh detail permission. */
 public final class LibraryResourceCache {
     private record Index(long revision, long policyRevision, String hash, long length) {}
+    private record StagedIndex(Index resource, UUID transfer, UUID completion, long expiresAt) {}
+    public record Pending(byte[] bytes, String hash, UUID transfer, UUID completion, long expiresAt) {}
     private static final Gson JSON = new Gson();
+    private static final Object PUBLICATION = new Object();
     private final Path directory;
     private final LibrarySession session;
     private final ModelCacheCodec codec;
@@ -80,8 +84,92 @@ public final class LibraryResourceCache {
         }
     }
 
+    /** Receipt IDs are kept with the verified encrypted input so lost responses never require another body. */
+    public Pending stage(LibraryModels.Model model, Path encrypted, byte[] bytes, String hash,
+                         LibraryModels.Transfer transfer) throws IOException {
+        UUID completion = UUID.randomUUID();
+        Path data = pendingPath(model, transfer.transferId(), ".omc");
+        Path index = pendingPath(model, transfer.transferId(), ".json");
+        Path partial = Files.createTempFile(directory, "receipt-", ".part");
+        boolean published = false;
+        try {
+            Files.writeString(partial, JSON.toJson(new StagedIndex(
+                    new Index(model.revision(), model.policyRevision(), hash, bytes.length),
+                    transfer.transferId(), completion, transfer.expiresAt())));
+            session.requireCurrent();
+            Files.move(encrypted, data, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            Files.move(partial, index, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            published = true;
+            return new Pending(bytes, hash, transfer.transferId(), completion, transfer.expiresAt());
+        } finally {
+            Files.deleteIfExists(partial);
+            if (!published) {
+                Files.deleteIfExists(data);
+            }
+        }
+    }
+
+    public Pending pending(LibraryModels.Model model) throws IOException {
+        String prefix = path(model, "").getFileName().toString() + ".";
+        try (var files = Files.list(directory)) {
+            for (Path file : files.filter(candidate -> candidate.getFileName().toString().startsWith(prefix)
+                    && candidate.getFileName().toString().endsWith(".pending.json")).toList()) {
+                UUID transfer;
+                try {
+                    String name = file.getFileName().toString();
+                    transfer = UUID.fromString(name.substring(prefix.length(), name.length() - ".pending.json".length()));
+                } catch (IllegalArgumentException malformedName) {
+                    continue;
+                }
+                Path data = pendingPath(model, transfer, ".omc");
+                try {
+                    if (Files.isSymbolicLink(file) || Files.size(file) > 4096) {
+                        throw new IOException("INVALID_PENDING_CACHE");
+                    }
+                    StagedIndex stored = JSON.fromJson(Files.readString(file), StagedIndex.class);
+                    if (stored == null || stored.resource() == null || stored.completion() == null
+                            || !transfer.equals(stored.transfer()) || stored.expiresAt() <= java.time.Instant.now().getEpochSecond()
+                            || stored.resource().revision() != model.revision()
+                            || stored.resource().policyRevision() != model.policyRevision()
+                            || stored.resource().length() != model.byteLength()) {
+                        throw new IOException("STALE_PENDING_CACHE");
+                    }
+                    byte[] bytes = codec.read(data, CloudHttp.FILE_BYTES);
+                    if (bytes.length != model.byteLength() || !CloudHttp.sha256(bytes).equals(stored.resource().hash())) {
+                        throw new IOException("INVALID_PENDING_CACHE");
+                    }
+                    session.requireCurrent();
+                    return new Pending(bytes, stored.resource().hash(), transfer, stored.completion(), stored.expiresAt());
+                } catch (IOException | com.google.gson.JsonParseException invalid) {
+                    Files.deleteIfExists(file);
+                    Files.deleteIfExists(data);
+                }
+            }
+        }
+        return null;
+    }
+
+    private Path pendingPath(LibraryModels.Model model, UUID transfer, String suffix) throws IOException {
+        return path(model, "." + transfer + ".pending" + suffix);
+    }
+
+    public void publish(LibraryModels.Model model, Pending pending) throws IOException {
+        synchronized (PUBLICATION) {
+            Path data = pendingPath(model, pending.transfer(), ".omc");
+            if (Files.exists(data)) {
+                publish(model, data, pending.hash());
+            } else {
+                byte[] existing = read(model);
+                if (existing == null || !CloudHttp.sha256(existing).equals(pending.hash())) {
+                    throw new IOException("PENDING_CACHE_MISSING");
+                }
+            }
+            Files.deleteIfExists(pendingPath(model, pending.transfer(), ".json"));
+        }
+    }
+
     /** Publishes data before its index; interrupted commits are cache misses, never partial models. */
-    public void publish(LibraryModels.Model model, Path encrypted, String hash) throws IOException {
+    private void publish(LibraryModels.Model model, Path encrypted, String hash) throws IOException {
         Path target = path(model, ".omc");
         Path index = path(model, ".json");
         Path partial = Files.createTempFile(directory, "index-", ".part");

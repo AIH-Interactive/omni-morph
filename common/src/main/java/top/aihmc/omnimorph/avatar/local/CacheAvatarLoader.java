@@ -10,6 +10,8 @@ import top.aihmc.omnimorph.utils.IOUtils;
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
 import com.google.gson.Gson;
 import top.aihmc.omnimorph.model.cache.ModelCacheCodec;
+import top.aihmc.omnimorph.model.library.LibraryPreviewCache;
+import top.aihmc.omnimorph.model.library.LibraryTransferService;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,6 +26,12 @@ public class CacheAvatarLoader {
 
     public static void init() {
         LocalAvatarLoader.async(() -> {
+            try {
+                new LibraryPreviewCache(FiguraMod.getCacheDirectory()).cleanup();
+                LibraryTransferService.cleanupUnprotectedDownloads(FiguraMod.getCacheDirectory());
+            } catch (java.io.IOException failure) {
+                FiguraMod.debug("Failed to clean legacy model caches", failure);
+            }
             Path file = getAvatarCacheDirectory();
             if (!(Files.exists(file) && Files.isDirectory(file)))
                 return;

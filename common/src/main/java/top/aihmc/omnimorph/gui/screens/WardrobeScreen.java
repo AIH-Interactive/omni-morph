@@ -3,6 +3,7 @@ package top.aihmc.omnimorph.gui.screens;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.nbt.CompoundTag;
 import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.avatar.AvatarManager;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
@@ -149,11 +150,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
             if (selected != null) {
                 previewSelection();
             } else {
-                var avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
-                observedAvatar = avatar;
-                if (avatar != null && avatar.nbt != null) {
-                    preview.selectDraft(avatar.nbt.copy());
-                }
+                previewCurrent();
             }
         }
         layout = WardrobeLayout.of(width, height);
@@ -433,7 +430,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private void selectCloud(LibraryModels.CollectionEntry entry) {
-        if (entry.model() == null || !entry.model().allows("preview")) {
+        if (client == null || collection == null || !collection.available()
+                || entry.model() == null || !entry.model().allows("preview")) {
             message = text("unavailable");
             selected = new Selection(null, null, false, entry.modelId(), text("unavailable"));
             selections.put(context(), selected);
@@ -453,8 +451,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         bindPreview(requiredClient);
         message = Component.empty();
         if (selected == null) {
-            preview.clear();
-            observedAvatar = null;
+            previewCurrent();
         } else if (selected.cloud() != null) {
             if (client != null && client.current()) {
                 preview.select(selected.cloud(), transfers);
@@ -498,11 +495,18 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }
     }
 
+    private void previewCurrent() {
+        observedAvatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
+        preview.selectDraft(observedAvatar != null && observedAvatar.nbt != null
+                ? observedAvatar.nbt.copy() : new CompoundTag());
+    }
+
     private boolean candidate() {
         if (selected == null) {
             return false;
         }
         return selected.path() != null ? localCandidates.contains(selected.reference()) : client != null && collection != null
+                && collection.available()
                 && collection.entries().stream().anyMatch(entry -> entry.modelId().equals(selected.cloud()) && entry.inOutfit());
     }
 
@@ -518,7 +522,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 }
             }));
             rebuild();
-        } else if (client != null && client.current()) {
+        } else if (client != null && client.current() && collection.available()) {
             client.collectionOutfit(selected.cloud(), !included).future().whenComplete((value, failure) -> {
                 if (!removed) {
                     if (failure == null) {
@@ -690,20 +694,16 @@ public class WardrobeScreen extends AbstractPanelScreen {
         if (selected == null) {
             var current = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
             if (current != observedAvatar) {
-                observedAvatar = current;
                 bindPreview(null);
-                if (current != null && current.nbt != null) {
-                    preview.selectDraft(current.nbt.copy());
-                } else {
-                    preview.clear();
-                }
+                previewCurrent();
                 refreshVisibility();
             }
         }
         boolean busy = enabling != null && !enabling.future().isDone();
         if (candidateButton != null) {
             candidateButton.setActive(!parts && !busy && (selected == null && tab == Tab.OUTFIT
-                    || selected != null && (selected.path() != null || client != null && client.current())));
+                    || selected != null && (selected.path() != null
+                    || client != null && client.current() && collection.available())));
             candidateButton.setMessage(text(selected == null && tab == Tab.OUTFIT ? "go_collection"
                     : candidate() ? "remove_outfit" : "add_outfit"));
         }

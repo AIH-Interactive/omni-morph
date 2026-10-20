@@ -74,6 +74,17 @@ public final class LibraryPreviewCacheSmokeTest {
             Files.writeString(Files.createDirectories(cache.root().resolve("models")).resolve("interrupted.part"), "partial");
             cache.cleanup();
             require(!Files.exists(cache.root().resolve("models/interrupted.part")), "startup cleanup removes incomplete writes");
+            Path legacy = cache.root().resolve("models").resolve("a".repeat(64) + "-" + "b".repeat(64) + ".bin");
+            Files.writeString(legacy, "legacy plaintext preview");
+            cache.cleanup();
+            require(!Files.exists(legacy), "unexpired legacy plaintext previews are discarded");
+            Path downloads = Files.createDirectories(directory.resolve("model-library-downloads"));
+            Path raw = downloads.resolve("download-legacy.part");
+            Path wrapped = downloads.resolve("download-current.part");
+            Files.writeString(raw, "legacy plaintext download payload that exceeds thirty-two bytes");
+            new top.aihmc.omnimorph.model.cache.ModelCacheCodec(directory).write(wrapped, bytes);
+            LibraryTransferService.cleanupUnprotectedDownloads(directory);
+            require(!Files.exists(raw) && Files.exists(wrapped), "legacy cleanup preserves wrapped download files");
             testThumbnailBudget(cache, viewer);
             require(Files.readString(formal).equals("existing wardrobe data"), "preview cleanup never touches formal/wardrobe storage");
             System.out.println("PASS preview cache: independent paths, live authorization, scoped identities, checksum, TTL/LRU budgets and cross-session active leases");
