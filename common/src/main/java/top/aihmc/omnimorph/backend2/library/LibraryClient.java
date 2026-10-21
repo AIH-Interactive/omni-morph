@@ -7,6 +7,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
 import top.aihmc.omnimorph.backend2.protocol.LibraryAccess;
+import top.aihmc.omnimorph.model.outfit.OutfitCodec;
+import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -104,6 +106,33 @@ public final class LibraryClient implements AutoCloseable {
             path.append(encode(entry.getKey())).append('=').append(encode(entry.getValue())).append('&');
         }
         return submit(Lane.CONTROL, exchange -> exchange.json("GET", path.toString(), null, LibraryModels.Page.class));
+    }
+
+    public Request<OutfitConfig> currentOutfit() {
+        return submit(Lane.CONTROL, exchange -> OutfitCodec.decode(
+                exchange.json("GET", ROOT + "outfits/current", null, JsonObject.class).toString()));
+    }
+
+    public Request<JsonObject> outfitPresets() {
+        return submit(Lane.CONTROL, exchange -> exchange.json("GET", ROOT + "outfit-presets",
+                null, JsonObject.class));
+    }
+
+    public Request<JsonObject> outfitPreset(UUID id) {
+        return submit(Lane.CONTROL, exchange -> exchange.json("GET", ROOT + "outfit-presets/" + id,
+                null, JsonObject.class));
+    }
+
+    public Request<JsonObject> saveOutfitPreset(UUID operationId, UUID presetId, long expectedRevision,
+                                               String name, OutfitConfig config) {
+        var body = new JsonObject();
+        body.addProperty("operation_id", operationId.toString());
+        body.addProperty("preset_id", presetId.toString());
+        body.addProperty("expected_revision", expectedRevision);
+        body.addProperty("name", name);
+        body.add("configuration", JsonParser.parseString(OutfitCodec.encode(config)));
+        return submit(Lane.CONTROL, exchange -> exchange.json("POST", ROOT + "outfit-presets",
+                body, JsonObject.class));
     }
 
     public Request<LibraryModels.Model> detail(UUID model) {

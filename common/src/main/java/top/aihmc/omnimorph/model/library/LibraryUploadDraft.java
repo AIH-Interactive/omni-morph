@@ -1,5 +1,6 @@
 package top.aihmc.omnimorph.model.library;
 
+import com.google.gson.JsonObject;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 
 import java.nio.charset.StandardCharsets;
@@ -17,6 +18,8 @@ public final class LibraryUploadDraft {
     private Path source;
     private LibraryMetadataReader.Metadata metadata;
     private LibraryPackagePreparation.Prepared prepared;
+    private String resourceKind = "AVATAR";
+    private JsonObject accessoryMetadata;
     private String displayName = "";
     private String description = "";
     private String category = "";
@@ -42,6 +45,8 @@ public final class LibraryUploadDraft {
         source = path;
         metadata = null;
         prepared = null;
+        resourceKind = "AVATAR";
+        accessoryMetadata = null;
         displayName = "";
         description = "";
         requiresAuthorization = true;
@@ -86,6 +91,16 @@ public final class LibraryUploadDraft {
     public void displayName(String value) {
         displayName = value;
         nameEdited = true;
+    }
+
+    /** Purpose is separate from the Figura/YSM source format; Outfit uses its own JSON preparation. */
+    public void resourceKind(String kind, JsonObject declaration) {
+        if (!(kind.equals("AVATAR") && declaration == null)
+                && !(kind.equals("ACCESSORY") && declaration != null)) {
+            throw new IllegalArgumentException("INVALID_RESOURCE_KIND");
+        }
+        resourceKind = kind;
+        accessoryMetadata = declaration == null ? null : declaration.deepCopy();
     }
 
     public String displayName() {
@@ -174,11 +189,18 @@ public final class LibraryUploadDraft {
         validate(metadata.internalName(), 96, false, "internal_name");
         validate(source.getFileName().toString(), 128, false, "source");
         metadata.authors().forEach(author -> validate(author, 0, false, "authors"));
-        return new Snapshot(source, prepared, Map.of("display_name", displayName,
+        var fields = new java.util.HashMap<String, Object>(Map.of("display_name", displayName,
                 "internal_name", metadata.internalName(), "authors", metadata.authors(),
                 "model_type", metadata.modelType(), "category_id", category, "description", description,
                 "tags", tags, "visibility", isPublic ? "PUBLIC" : "PRIVATE",
-                "requires_authorization", requiresAuthorization), prepared.metadataSource());
+                "requires_authorization", requiresAuthorization));
+        fields.put("resource_kind", resourceKind);
+        if (accessoryMetadata != null) {
+            fields.put("accessory_metadata", accessoryMetadata.deepCopy());
+        }
+        return new Snapshot(source, prepared, fields,
+                resourceKind.equals("ACCESSORY") && metadata.modelType().equals("FIGURA")
+                        ? "cosmetic.json" : prepared.metadataSource());
     }
 
     static void validateEditable(String name, String description, List<String> tags) {

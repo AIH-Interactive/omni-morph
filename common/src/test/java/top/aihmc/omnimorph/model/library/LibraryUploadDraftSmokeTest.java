@@ -21,6 +21,19 @@ public final class LibraryUploadDraftSmokeTest {
                 credits, new CompoundTag(), new byte[]{1}, "synthetic"));
         require(creditsDraft.snapshot(limits(64)).metadata().get("tags").equals(List.of()),
                 "a source with nine original authors can publish without optional tags");
+        var accessory = new com.google.gson.JsonObject();
+        accessory.addProperty("cosmetic_anchor", "wing_anchor");
+        creditsDraft.resourceKind("ACCESSORY", accessory);
+        var accessorySnapshot = creditsDraft.snapshot(limits(64));
+        require(accessorySnapshot.metadata().get("resource_kind").equals("ACCESSORY")
+                        && accessorySnapshot.metadata().get("model_type").equals("FIGURA")
+                        && accessorySnapshot.metadataSource().equals("cosmetic.json"),
+                "purpose, source format and accessory manifest remain distinct");
+        accessory.addProperty("cosmetic_anchor", "head_anchor");
+        require(((com.google.gson.JsonObject) accessorySnapshot.metadata().get("accessory_metadata"))
+                        .get("cosmetic_anchor").getAsString().equals("wing_anchor"),
+                "upload declaration is a snapshot of the selected purpose");
+        creditsDraft.resourceKind("AVATAR", null);
         var longAuthor = "中".repeat(10000);
         var extensiveCredits = new LibraryMetadataReader.Metadata("FIGURA", "Full credits",
                 List.of(longAuthor), "", true);

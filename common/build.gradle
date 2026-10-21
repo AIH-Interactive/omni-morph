@@ -52,6 +52,15 @@ dependencies {
 
 sourceSets.main.proto.srcDir rootProject.file('protocol')
 
+tasks.register('outfitContractSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks independent outfit JSON, stable duplicate identities and bounded references.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.outfit.OutfitContractSmokeTest'
+    args rootProject.file('protocol').path
+}
+
 protobuf {
     protoc {
         artifact = 'com.google.protobuf:protoc:4.31.1'
