@@ -9,6 +9,7 @@ import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
 import top.aihmc.omnimorph.backend2.protocol.LibraryAccess;
 import top.aihmc.omnimorph.model.outfit.OutfitCodec;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;
+import top.aihmc.omnimorph.model.outfit.OutfitLimits;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -124,13 +125,13 @@ public final class LibraryClient implements AutoCloseable {
     }
 
     public Request<JsonObject> saveOutfitPreset(UUID operationId, UUID presetId, long expectedRevision,
-                                               String name, OutfitConfig config) {
+                                               String name, OutfitConfig config, OutfitLimits limits) {
         var body = new JsonObject();
         body.addProperty("operation_id", operationId.toString());
         body.addProperty("preset_id", presetId.toString());
         body.addProperty("expected_revision", expectedRevision);
         body.addProperty("name", name);
-        body.add("configuration", JsonParser.parseString(OutfitCodec.encode(config)));
+        body.add("configuration", JsonParser.parseString(OutfitCodec.encode(config, limits)));
         return submit(Lane.CONTROL, exchange -> exchange.json("POST", ROOT + "outfit-presets",
                 body, JsonObject.class));
     }
