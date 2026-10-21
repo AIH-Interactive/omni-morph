@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.backend2.library;
 
+import com.google.gson.JsonObject;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -11,7 +13,15 @@ public final class LibraryModels {
     public record Capabilities(boolean enabled, int version, long maxUploadBytes, int maxPageSize,
                                long maxImageBytes, int maxImageWidth, int maxImageHeight,
                                List<String> formats, List<String> modelTypes, List<String> categories,
-                               boolean adminLoginAvailable) {
+                               boolean adminLoginAvailable, OutfitCapabilities outfitsV1) {
+        public Capabilities(boolean enabled, int version, long maxUploadBytes, int maxPageSize,
+                            long maxImageBytes, int maxImageWidth, int maxImageHeight,
+                            List<String> formats, List<String> modelTypes, List<String> categories,
+                            boolean adminLoginAvailable) {
+            this(enabled, version, maxUploadBytes, maxPageSize, maxImageBytes, maxImageWidth,
+                    maxImageHeight, formats, modelTypes, categories, adminLoginAvailable, null);
+        }
+
         public Capabilities {
             formats = immutable(formats);
             modelTypes = immutable(modelTypes);
@@ -25,6 +35,23 @@ public final class LibraryModels {
 
         public static Capabilities unsupported() {
             return new Capabilities(false, 1, 0, 0, 0, 0, 0, List.of(), List.of(), List.of(), false);
+        }
+    }
+
+    public record OutfitCapabilities(int schemaVersion, boolean configuration, boolean presets,
+                                     boolean apply, boolean events, int maxInstances, int maxVirtualAnchors,
+                                     int maxDepth, int maxResourceNodes, int maxTotalNodes,
+                                     int maxBoneOverrides, int maxJsonBytes, int maxTrails, int maxTrailSamples) {
+        public OutfitCapabilities {
+            if (schemaVersion != 1 || maxInstances < 1 || maxInstances > 32
+                    || maxVirtualAnchors < 1 || maxVirtualAnchors > 128
+                    || maxDepth < 1 || maxDepth > 64 || maxResourceNodes < 1 || maxResourceNodes > 8192
+                    || maxTotalNodes < 1 || maxTotalNodes > 32768
+                    || maxBoneOverrides < 0 || maxBoneOverrides > 1024
+                    || maxJsonBytes < 1 || maxJsonBytes > 65536
+                    || maxTrails < 0 || maxTrails > 8 || maxTrailSamples < 1 || maxTrailSamples > 256) {
+                throw new IllegalArgumentException("INVALID_OUTFIT_CAPABILITIES");
+            }
         }
     }
 
@@ -83,14 +110,35 @@ public final class LibraryModels {
                         boolean favorited, String visibility, boolean requiresAuthorization,
                         List<String> allowedActions, String description, String categoryId,
                         List<String> tags, String moderationStatus, long byteLength, long resourceRevision,
-                        String metadataSource, String metadataValidation) {
+                        String metadataSource, String metadataValidation, String resourceKind,
+                        JsonObject accessoryMetadata) {
+        public Model(UUID modelId, long revision, long policyRevision, String displayName,
+                     String internalName, List<String> authors, Uploader uploader, String modelType,
+                     long imageRevision, boolean imageAvailable, long downloads, long favorites,
+                     boolean favorited, String visibility, boolean requiresAuthorization,
+                     List<String> allowedActions, String description, String categoryId,
+                     List<String> tags, String moderationStatus, long byteLength, long resourceRevision,
+                     String metadataSource, String metadataValidation) {
+            this(modelId, revision, policyRevision, displayName, internalName, authors, uploader, modelType,
+                    imageRevision, imageAvailable, downloads, favorites, favorited, visibility,
+                    requiresAuthorization, allowedActions, description, categoryId, tags, moderationStatus,
+                    byteLength, resourceRevision, metadataSource, metadataValidation, "AVATAR", null);
+        }
+
         public Model {
+            resourceKind = resourceKind == null ? "AVATAR" : resourceKind;
+            accessoryMetadata = accessoryMetadata == null ? null : accessoryMetadata.deepCopy();
+            if (!List.of("AVATAR", "ACCESSORY", "OUTFIT").contains(resourceKind)
+                    || (resourceKind.equals("OUTFIT") && modelType != null)) {
+                throw new IllegalArgumentException("INVALID_RESOURCE_KIND");
+            }
             authors = immutable(authors);
             allowedActions = immutable(allowedActions);
             tags = immutable(tags);
             if (modelId == null || revision < 1 || policyRevision < 1 || displayName == null
                     || internalName == null || uploader == null
-                    || !List.of("FIGURA", "YSM_PLAIN", "YSM_ENCRYPTED").contains(modelType)
+                    || (!resourceKind.equals("OUTFIT")
+                    && !List.of("FIGURA", "YSM_PLAIN", "YSM_ENCRYPTED").contains(modelType))
                     || !List.of("PRIVATE", "PUBLIC").contains(visibility)
                     || imageRevision < 0 || downloads < 0 || favorites < 0 || byteLength < 0) {
                 throw new IllegalArgumentException("INVALID_MODEL");
@@ -102,6 +150,11 @@ public final class LibraryModels {
 
         public boolean allows(String action) {
             return allowedActions.contains(action);
+        }
+
+        @Override
+        public JsonObject accessoryMetadata() {
+            return accessoryMetadata == null ? null : accessoryMetadata.deepCopy();
         }
     }
 

@@ -1,0 +1,249 @@
+{
+  "schema_version": 1,
+  "template_version": "ysm-default-1",
+  "files": [
+    {
+      "path": "animations/arm.animation.json",
+      "sha256": "239e2dadcc57f8fa08e8087c9eb2e3db9fafef289c787421caa77f2dce09538e",
+      "bytes": 215515
+    },
+    {
+      "path": "animations/arrow.animation.json",
+      "sha256": "01902bc329af43baf925d67eb6861c5f4e2dd5355258c96819533ed7d94239ba",
+      "bytes": 744
+    },
+    {
+      "path": "animations/boat.animation.json",
+      "sha256": "f40524137ed91be2a0e7ff6b12b73e4aa46574053e6d9f1e2e3df6da0fedb6fd",
+      "bytes": 1113
+    },
+    {
+      "path": "animations/carryon.animation.json",
+      "sha256": "fe28bda145b9a8f8acfd3aa1d85b267a55e5c6538f595161dbd2161bbebd8bda",
+      "bytes": 3078
+    },
+    {
+      "path": "animations/extra.animation.json",
+      "sha256": "febebf03a70fca55ac3138c7e97fd24a0c83cdf54b27c3d3a091e8a6bb2ad1cb",
+      "bytes": 124605
+    },
+    {
+      "path": "animations/fp.arm.animation.json",
+      "sha256": "6030836fffd11cc9883b495cc01e314c377db9f428bd0d76578f3431898a3b9a",
+      "bytes": 441
+    },
+    {
+      "path": "animations/im.animation.json",
+      "sha256": "63891b691a327ad8fa18b55805f315e5d595d4c8dcf5c0489b8d0c10647f236a",
+      "bytes": 26602
+    },
+    {
+      "path": "animations/iss.animation.json",
+      "sha256": "37cc6952c62fbe24376a1effdca702a015ae224c4cde5c042e2ed70a94987fb9",
+      "bytes": 90240
+    },
+    {
+      "path": "animations/main.animation.json",
+      "sha256": "47f07b6b0506e47a1b1963ae568cabb83fea82ac33b0ba2671ca26a0c4005e02",
+      "bytes": 190548
+    },
+    {
+      "path": "animations/parcool.animation.json",
+      "sha256": "5407ef2708e8849b9ffbeaac4dd81cbb6943a3cef53d6cd6e13f22c2426f1d98",
+      "bytes": 186710
+    },
+    {
+      "path": "animations/slashblade.animation.json",
+      "sha256": "af05ec10f7e23dd7148f6a72bdba8abd0e4899dd9e7bf6d65cc42e4feba118fb",
+      "bytes": 1652964
+    },
+    {
+      "path": "animations/swem.animation.json",
+      "sha256": "b0018f5a7e88c21f78b75ff18c98966428ac691c46f716950d2a8f2a0815abb3",
+      "bytes": 42814
+    },
+    {
+      "path": "animations/tac.animation.json",
+      "sha256": "4594de398c4d34311d540caa2c1b314f631307fd68d810dfc84a8ac1552b3e88",
+      "bytes": 321898
+    },
+    {
+      "path": "animations/tlm.animation.json",
+      "sha256": "353dc14cd77017092bc969500977609c5585fe71db258cf57ae703d9cdb00641",
+      "bytes": 66511
+    },
+    {
+      "path": "avatar/arekya.jpg",
+      "sha256": "899a5d78be8178bbb58815841ed279dd471e249d6e4977d20f5e2b3d18289544",
+      "bytes": 38813
+    },
+    {
+      "path": "avatar/dm.png",
+      "sha256": "5d28f00fd947e31f361da9cab6c16693d80f25988515822e078cea1f5ef08a60",
+      "bytes": 5471
+    },
+    {
+      "path": "avatar/gsl.png",
+      "sha256": "0bf76a1ba896f709839f9c35bb62852350b4b0f110bc9a1c4c4c5acc99f25188",
+      "bytes": 4738
+    },
+    {
+      "path": "avatar/hl.png",
+      "sha256": "80f61d49f385faf974b8b3e579b6b307b9046992f1d3ae32647e8676102d5fa3",
+      "bytes": 5216
+    },
+    {
+      "path": "avatar/lmg.png",
+      "sha256": "0d05a6be0b1ffb32f6497265f7411b7741f18ae89a82e82a4982e39ba4183fa4",
+      "bytes": 2984
+    },
+    {
+      "path": "avatar/tzz.png",
+      "sha256": "5067ef9a1ccad6acc4807d464f46358afd5f092ff78cf17a66ea82c613469e1e",
+      "bytes": 3433
+    },
+    {
+      "path": "lang/en_us.json",
+      "sha256": "4f7d0984d24b8c2072c2b61be7bc66ee8a95834619a383c994fdba3fac972855",
+      "bytes": 1640
+    },
+    {
+      "path": "lang/zh_cn.json",
+      "sha256": "ff91b7d1374d3a798a2b2a4843ada31d20840a083c9e82b7defe90b5f14d04a9",
+      "bytes": 1648
+    },
+    {
+      "path": "models/arm.json",
+      "sha256": "7adf7883bf15673450a139cc0b5281f421365fd55481be9a6f4c35a754bccc70",
+      "bytes": 1916
+    },
+    {
+      "path": "models/arrow.json",
+      "sha256": "4f04aa3cb1327346ae1f63b4f960571c990dc7fd2e0ad93965c9b130d1eff324",
+      "bytes": 14608
+    },
+    {
+      "path": "models/boat.json",
+      "sha256": "9e4d7cf3d6c22753a52c54aef3c32b5976b03fac93e73cc6b100ad51c67f572f",
+      "bytes": 35930
+    },
+    {
+      "path": "models/chest_boat.json",
+      "sha256": "8f438703a822083e48080ded16145947b50f57856b6d04e436e1964fd3fefbe3",
+      "bytes": 39538
+    },
+    {
+      "path": "models/firework_rocket.json",
+      "sha256": "21e86847c32325b8158d0f92965b84a53d3b1730613c0854c5f7c8f8078899dd",
+      "bytes": 15223
+    },
+    {
+      "path": "models/fishing_bobber.json",
+      "sha256": "9fac3cb452683c2f8164b7a118babfabb5bcc3362715e7d7352d1ff29b0cd2f1",
+      "bytes": 2191
+    },
+    {
+      "path": "models/main.json",
+      "sha256": "8a6794aac944330fbff1cd85f52e859250473f9c6464459b5cce70371ae5c94e",
+      "bytes": 91228
+    },
+    {
+      "path": "models/minecart.json",
+      "sha256": "4ee627e87958ec1235206cca85d06d3b3c473a7b2ae896a8c4fe9b95cb2fd736",
+      "bytes": 10604
+    },
+    {
+      "path": "models/trident.json",
+      "sha256": "c4fe22b907f29f99d3973a8111ce8267153f980bc85a1ed6b6a29c3bb39bd1d2",
+      "bytes": 4816
+    },
+    {
+      "path": "textures/arrow.png",
+      "sha256": "0ecda6c1557cf3571289a3212c93e125d8b075cc37ac62f14dad852d83a576ec",
+      "bytes": 1213
+    },
+    {
+      "path": "textures/blue.png",
+      "sha256": "e8d13cbd9f432bcc58a9d954125bca35b19e9bee84151872a9643d37d2151263",
+      "bytes": 3931
+    },
+    {
+      "path": "textures/boat.png",
+      "sha256": "ae83a6dff32901c63f01acf7256cbe8c36595685c3a8a6737b15d5c0ad417e14",
+      "bytes": 3468
+    },
+    {
+      "path": "textures/default.png",
+      "sha256": "7145bb7042e2a47da62ca4bb9197089bacaf7a254acb4e99da261e42429f1b5f",
+      "bytes": 4210
+    },
+    {
+      "path": "textures/firework_rocket.png",
+      "sha256": "1c2570249547a5f60259852572369112a092ff9f81b5c05dc782dde8856aa3dc",
+      "bytes": 621
+    },
+    {
+      "path": "textures/fishing_bobber.png",
+      "sha256": "14e65b95c519f47578b63a915744b96359d87dc9bc2822dd9ba203a228c53191",
+      "bytes": 202
+    },
+    {
+      "path": "textures/gui/background.png",
+      "sha256": "d13cc65035f3979c81f16763d49d8bb56e86a9d1921b2d3909def3c05b0c8d13",
+      "bytes": 953
+    },
+    {
+      "path": "textures/gui/foreground.png",
+      "sha256": "43d7c8b33fe33fd381e5e43791fb7e28749cae52b87f35b1c5fc19557a1e4c10",
+      "bytes": 320
+    },
+    {
+      "path": "textures/minecart.png",
+      "sha256": "277e32e4980b846be5dee52180a625d84b79cd01476a761005c2d0fe76be465f",
+      "bytes": 1566
+    },
+    {
+      "path": "textures/trident.png",
+      "sha256": "e3679462ebd3b8114373d1d167316c0a57b8491a43e360f4177b3bfc3f2a6252",
+      "bytes": 357
+    },
+    {
+      "path": "ysm.json",
+      "sha256": "316d9137b3059211b15c5b63401d488d71c3a61dbf5b572676eacd6f31fda73c",
+      "bytes": 5117
+    }
+  ],
+  "base_action_whitelist": [
+    "gui",
+    "idle",
+    "walk",
+    "run",
+    "jump",
+    "sneak",
+    "sneaking",
+    "swim",
+    "swim_stand",
+    "fly",
+    "elytra_fly",
+    "sit",
+    "ride",
+    "ride_pig",
+    "boat",
+    "climb",
+    "climbing",
+    "attacked",
+    "death",
+    "sleep",
+    "riptide",
+    "use_mainhand",
+    "use_offhand",
+    "swing_hand",
+    "swing_offhand",
+    "ladder_up",
+    "ladder_stillness",
+    "ladder_down"
+  ],
+  "base_animation_file": "animations/main.animation.json",
+  "excluded": "parallel/pre_parallel, physics, blink, mod-specific actions; first-person arm domain is resolved separately",
+  "coordinate_contract": "entity-root-local; model units; T*Rx*Ry*Rz*S; positive scale"
+}

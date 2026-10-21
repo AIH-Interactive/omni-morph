@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "revision": 0,
+  "base": null,
+  "instances": [
+    {
+      "instance_id": "00000000-0000-0000-0000-000000000001",
+      "resource": {
+        "source": "LOCAL",
+        "local_id": "00000000-0000-0000-0000-000000000010",
+        "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "format": "FIGURA"
+      },
+      "display_ordinal": 1,
+      "enabled": true,
+      "anchor": {
+        "type": "STANDARD",
+        "name": "wing_anchor"
+      },
+      "transform": {
+        "position": [
+          1.0,
+          2.0,
+          3.0
+        ],
+        "rotation": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "scale": [
+          1.0,
+          2.0,
+          3.0
+        ]
+      },
+      "bone_overrides": [],
+      "controls": {
+        "flap": true,
+        "speed": 1.5
+      },
+      "lua_state": {
+        "mode": "idle"
+      }
+    },
+    {
+      "instance_id": "00000000-0000-0000-0000-000000000002",
+      "resource": {
+        "source": "LOCAL",
+        "local_id": "00000000-0000-0000-0000-000000000010",
+        "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "format": "FIGURA"
+      },
+      "display_ordinal": 2,
+      "enabled": true,
+      "anchor": {
+        "type": "STANDARD",
+        "name": "wing_anchor"
+      },
+      "transform": {
+        "position": [
+          1.0,
+          2.0,
+          3.0
+        ],
+        "rotation": [
+          10.0,
+          20.0,
+          30.0
+        ],
+        "scale": [
+          1.0,
+          2.0,
+          3.0
+        ]
+      },
+      "bone_overrides": [],
+      "controls": {
+        "flap": true,
+        "speed": 1.5
+      },
+      "lua_state": {
+        "mode": "idle"
+      }
+    }
+  ],
+  "virtual_anchors": [],
+  "display_ordinals": {
+    "local:00000000-0000-0000-0000-000000000010": 2
+  },
+  "show_equipment": false
+}
