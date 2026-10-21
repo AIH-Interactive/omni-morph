@@ -1,6 +1,7 @@
 package top.aihmc.omnimorph.backend2.library;
 
 import com.google.gson.JsonObject;
+import top.aihmc.omnimorph.model.outfit.OutfitLimits;
 
 import java.util.List;
 import java.util.UUID;
@@ -41,16 +42,22 @@ public final class LibraryModels {
     public record OutfitCapabilities(int schemaVersion, boolean configuration, boolean presets,
                                      boolean apply, boolean events, int maxInstances, int maxVirtualAnchors,
                                      int maxDepth, int maxResourceNodes, int maxTotalNodes,
-                                     int maxBoneOverrides, int maxJsonBytes, int maxTrails, int maxTrailSamples) {
+                                     int maxBoneOverrides, int maxJsonBytes, int maxTrails, int maxTrailSamples,
+                                     OutfitLimits limits) {
         public OutfitCapabilities {
-            if (schemaVersion != 1 || maxInstances < 1 || maxInstances > 32
-                    || maxVirtualAnchors < 1 || maxVirtualAnchors > 128
-                    || maxDepth < 1 || maxDepth > 64 || maxResourceNodes < 1 || maxResourceNodes > 8192
-                    || maxTotalNodes < 1 || maxTotalNodes > 32768
+            if (schemaVersion != 1 || maxInstances < 0 || maxInstances > 32
+                    || maxVirtualAnchors < 0 || maxVirtualAnchors > 128
+                    || maxDepth < 1 || maxDepth > 64 || maxResourceNodes < 0 || maxResourceNodes > 8192
+                    || maxTotalNodes < 0 || maxTotalNodes > 32768
                     || maxBoneOverrides < 0 || maxBoneOverrides > 1024
                     || maxJsonBytes < 1 || maxJsonBytes > 65536
                     || maxTrails < 0 || maxTrails > 8 || maxTrailSamples < 1 || maxTrailSamples > 256) {
                 throw new IllegalArgumentException("INVALID_OUTFIT_CAPABILITIES");
+            }
+            if (limits == null) {
+                limits = new OutfitLimits(maxInstances, maxVirtualAnchors, maxDepth, maxResourceNodes,
+                        maxTotalNodes, maxBoneOverrides, maxJsonBytes, maxTrails, maxTrailSamples,
+                        128, 128, 512, 64, 256, 128, 4096, 36000, 0.001, 64, true, 8, 15, 16);
             }
         }
     }

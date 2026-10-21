@@ -33,11 +33,50 @@ public record OutfitConfig(int schemaVersion, long revision, ResourceRef base,
             text(entry.getKey(), 512, false);
             require(entry.getValue() > 0);
         }
-        validateGraph(instances, virtualAnchors, displayOrdinals);
+        validateGraph(instances, virtualAnchors, displayOrdinals, MAX_DEPTH);
     }
 
     public static OutfitConfig empty() {
         return new OutfitConfig(1, 0, null, List.of(), List.of(), Map.of(), false);
+    }
+
+    /** Run at draft operations/preparation with the current connection's negotiated limits. */
+    public void validateLimits(OutfitLimits limits) {
+        require(instances.size() <= limits.maxInstances() && virtualAnchors.size() <= limits.maxVirtualAnchors()
+                && displayOrdinals.size() <= limits.maxDisplayOrdinals());
+        int overrides = 0;
+        for (VirtualAnchor anchor : virtualAnchors) {
+            validateTransform(anchor.transform(), limits);
+            require(anchor.parent().path().size() <= limits.maxDepth());
+        }
+        for (Instance instance : instances) {
+            validateTransform(instance.transform(), limits);
+            require(instance.controls().size() <= limits.maxControls()
+                    && instance.luaState().size() <= limits.maxLuaStateEntries());
+            for (Map<String, Object> state : List.of(instance.controls(), instance.luaState())) {
+                for (Object value : state.values()) {
+                    if (value instanceof String string) {
+                        text(string, limits.maxStateStringBytes(), true);
+                    }
+                }
+            }
+            overrides += instance.boneOverrides().size();
+            require(overrides <= limits.maxBoneOverrides());
+            for (BoneOverride override : instance.boneOverrides()) {
+                validateTransform(override.transform(), limits);
+                require(override.bone().path().size() <= limits.maxDepth());
+            }
+            if (instance.anchor().bone() != null) {
+                require(instance.anchor().bone().path().size() <= limits.maxDepth());
+            }
+        }
+        validateGraph(instances, virtualAnchors, displayOrdinals, limits.maxDepth());
+    }
+
+    private static void validateTransform(Transform transform, OutfitLimits limits) {
+        require(transform.position().within(-limits.positionLimit(), limits.positionLimit())
+                && transform.rotation().within(-limits.rotationLimit(), limits.rotationLimit())
+                && transform.scale().within(limits.minScale(), limits.maxScale()));
     }
 
     public enum ResourceKind { AVATAR, ACCESSORY, OUTFIT }
@@ -203,7 +242,7 @@ public record OutfitConfig(int schemaVersion, long revision, ResourceRef base,
     }
 
     private static void validateGraph(List<Instance> instances, List<VirtualAnchor> virtualAnchors,
-                                      Map<String, Integer> watermarks) {
+                                      Map<String, Integer> watermarks, int maxDepth) {
         var ids = new HashSet<UUID>();
         for (Instance instance : instances) {
             require(ids.add(instance.instanceId()));
@@ -241,7 +280,7 @@ public record OutfitConfig(int schemaVersion, long revision, ResourceRef base,
         for (UUID id : ids) {
             var visited = new HashSet<UUID>();
             for (UUID next = id; next != null; next = edges.get(next)) {
-                require(visited.add(next) && visited.size() <= MAX_DEPTH);
+                require(visited.add(next) && visited.size() <= maxDepth);
             }
         }
     }

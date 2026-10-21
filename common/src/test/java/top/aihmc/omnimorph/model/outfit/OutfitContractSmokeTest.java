@@ -14,6 +14,11 @@ public final class OutfitContractSmokeTest {
         require(config.instances().size() == 2, "two independent copies survive");
         require(!config.instances().get(0).instanceId().equals(config.instances().get(1).instanceId()), "instance identity");
         require(config.instances().get(0).resource().equals(config.instances().get(1).resource()), "same immutable resource");
+        var narrow = new OutfitLimits(1, 128, 64, 8192, 32768, 1024, 65536, 0, 256,
+                128, 128, 512, 64, 256, 128, 4096, 36000, 0.001, 64, true, 8, 15, 16);
+        reject(() -> OutfitCodec.decode(fixture, narrow));
+        reject(() -> OutfitCodec.encode(config, narrow));
+        config.validateLimits(OutfitLimits.defaults());
         reject(() -> OutfitCodec.decode(fixture.replace("STANDARD", "UNKNOWN")));
         reject(() -> OutfitCodec.decode(fixture.replace("LOCAL", "UNKNOWN")));
         reject(() -> new OutfitConfig.Vector(Double.NaN, 0, 0));

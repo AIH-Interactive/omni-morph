@@ -24,6 +24,8 @@ BoneRef 为 instance_id（null 为基础）、完整 path 段（name + 同名兄
 
 硬上限：32 实例、128 虚拟点、层级深度 64、单资源节点 8192、整套节点 32768、内部覆盖 1024、配置 65536 UTF-8 字节、8 拖尾/每条 256 采样。位置各轴 ±4096、旋转各轴 ±36000、缩放 [0.001,64]。现有三角形/纹理/Lua/粒子/声音权限按穿戴者汇总；服务器只能收紧。无效值/图/预算明确拒绝，不静默截断。
 
+用户追加：运行时装饰预算从后端独立 `[outfit.limits]` 读取，经 `capabilities.outfits_v1.limits` 下发；缺省键沿用默认值。支持单独收紧实例/虚拟点/层级/节点/覆盖/配置字节/控制项/Lua 声明状态/预设/编号水位/导出骨骼/拖尾/变换及动态光源。计数为零可关闭对应容量；深度、配置最小字节及采样缓冲必须有效。无效配置明确拒绝；按既有配置监听流程重载后，后续请求使用新限制。静态安全校验仍保留，用户配置不能越过 v1 硬边界。
+
 沿用 HTTP 错误：INVALID_REQUEST（结构/值/图）、CONFLICT（CAS/幂等参数冲突）、NOT_FOUND（本人作用域外预设）、UNAUTHENTICATED、FORBIDDEN、RATE_LIMITED、INTERNAL。Apply 阶段补充冲突的最新 revision 响应；目前不开放 Apply。
 
 ## 接口与迁移
@@ -41,6 +43,8 @@ capabilities.outfits_v1 分别声明 configuration/presets/apply/events。阶段
 Lua API：cosmetic_controls 与 avatar_controls 同名方法/链式/类型/回调，容器按实例隔离；cosmetic_animations:setPage(page)、cosmetic_animations:onEvent(callback)。事件给出动画名、类型/标记、时间、播放代际，通过有界队列在下一 tick 派发。时序为 Lua/controls → Molang → 姿态/挂点 → 绘制。Java 暴露受限实例句柄，不向脚本暴露其他作者 Avatar 或 host 权限；Rust 不运行脚本。
 
 在既有 particles 增加 newTexturedParticle(texture,pos,velocity)，复用 LuaParticle 常规属性。纹理限本资源授权句柄；emissive 默认 false。精灵图参数：frameWidth/frameHeight 或 columns/rows（矛盾拒绝）、frameCount、startFrame/endFrame（0 起始闭区间）、frameTimeTicks>0、playback=once/loop/pingPong、initialFrame、randomStart、frame、paused、单元间距/边距。左上角起按行排列；once 停末帧，寿命独立；按 tick+partial tick 计时。共享纹理上传，实例粒子归属独立；仅同步授权事件/种子，不同步逐粒子位置。第 5.4 节全部渲染、生命周期和总预算约束保留。
+
+用户追加：粒子 `dynamicLight` 独立开关默认 false，`lightLevel` 默认 15（0—15），`lightRadius` 默认 7.5 方块；与 full-bright/emissive 无绑定。光源影响实际邻近世界/实体渲染，跟随粒子位置，不改服务器光照数据。后端 `[outfit.limits]` 配置 dynamic_lighting_enabled（默认 true）、max_dynamic_lights（每穿戴者默认 8，安全边界 32）、max_dynamic_light_level（默认/最大 15）、max_dynamic_light_radius（默认 16 方块，安全边界 32）。移除/过期/禁用/重载/传送/世界切换/断线时按实例清理。阶段一仅锁定参数/预算，阶段三实现渲染及设置项；真实明暗场景验证记 MANUAL/PENDING。
 
 创建 `+` 位于形象集，筛选 `+` 位于搜索区，tooltip 不同。三个菜单项：Figura 原向导；YSM 完整复制模板后只改 metadata.name/tips/authors，保留 credits/license；装饰写 cosmetic.json + 根名固定为 Cosmetic 的模型模板 + PNG + Lua。九类分类、左右目标、拖尾单空骨骼例外及 SVG→PNG 资产严格依计划第 6.4 节。失败只清本次新建目录，源资源 hash 不变。
 

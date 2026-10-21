@@ -34,15 +34,26 @@ public final class OutfitCodec {
     }
 
     public static String encode(OutfitConfig configuration) {
+        return encode(configuration, OutfitLimits.defaults());
+    }
+
+    public static String encode(OutfitConfig configuration, OutfitLimits limits) {
+        configuration.validateLimits(limits);
         String json = JSON.toJson(configuration);
-        OutfitConfig.require(json.getBytes(StandardCharsets.UTF_8).length <= OutfitConfig.MAX_JSON_BYTES);
+        OutfitConfig.require(json.getBytes(StandardCharsets.UTF_8).length <= limits.maxJsonBytes());
         return json;
     }
 
     public static OutfitConfig decode(String json) {
+        return decode(json, OutfitLimits.defaults());
+    }
+
+    public static OutfitConfig decode(String json, OutfitLimits limits) {
+        OutfitConfig.require(json.getBytes(StandardCharsets.UTF_8).length <= limits.maxJsonBytes());
         OutfitConfig.require(json.getBytes(StandardCharsets.UTF_8).length <= OutfitConfig.MAX_JSON_BYTES);
         OutfitConfig result = JSON.fromJson(json, OutfitConfig.class);
         OutfitConfig.require(result != null);
+        result.validateLimits(limits);
         return result;
     }
 }
