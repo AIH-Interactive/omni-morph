@@ -154,15 +154,27 @@ jobs:
           path: build/native-inputs
       - name: Verify all six platforms, commit/run, ABI, hashes, notices and unchanged base entries
         run: |
-          & bash ./gradlew assembleNativeJar '-PnativeBaseDir=build/native-base' '-PnativeArtifactsDir=build/native-inputs' '-PnativeOutput=build/final/omni-morph-1.0.0-alpha.2+26.1.2-fabric-mc.jar' "-PnativeCommit=$env:GITHUB_SHA" "-PnativeRun=$env:GITHUB_RUN_ID" "-PnativeAttempt=$env:GITHUB_RUN_ATTEMPT" --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log
+          $properties = @{}
+          foreach ($line in Get-Content -LiteralPath gradle.properties) {
+            if ($line -match '^\s*(archives_base_name|mod_version|minecraft_version)\s*=\s*(\S+)\s*$') {
+              $properties[$Matches[1]] = $Matches[2]
+            }
+          }
+          foreach ($key in 'archives_base_name', 'mod_version', 'minecraft_version') {
+            if (-not $properties.ContainsKey($key)) {
+              throw "Missing $key in gradle.properties"
+            }
+          }
+          $finalJar = 'build/final/{0}-{1}+{2}-fabric-mc.jar' -f $properties.archives_base_name, $properties.mod_version, $properties.minecraft_version
+          & bash ./gradlew assembleNativeJar '-PnativeBaseDir=build/native-base' '-PnativeArtifactsDir=build/native-inputs' "-PnativeOutput=$finalJar" "-PnativeCommit=$env:GITHUB_SHA" "-PnativeRun=$env:GITHUB_RUN_ID" "-PnativeAttempt=$env:GITHUB_RUN_ATTEMPT" --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log
           $buildExitCode = $LASTEXITCODE
           Get-Content -LiteralPath build.log -Tail 40
           if ($buildExitCode -ne 0) { exit $buildExitCode }
-          & pwsh -NoProfile -File ./tools/verify-acceleration-artifact.ps1 -JarPath 'build/final/omni-morph-1.0.0-alpha.2+26.1.2-fabric-mc.jar' -ExpectedCommit $env:GITHUB_SHA -ExpectedRun $env:GITHUB_RUN_ID 2>&1 | Tee-Object -FilePath build.log -Append
+          & pwsh -NoProfile -File ./tools/verify-acceleration-artifact.ps1 -JarPath $finalJar -ExpectedCommit $env:GITHUB_SHA -ExpectedRun $env:GITHUB_RUN_ID 2>&1 | Tee-Object -FilePath build.log -Append
           $buildExitCode = $LASTEXITCODE
           Get-Content -LiteralPath build.log -Tail 40
           if ($buildExitCode -ne 0) { exit $buildExitCode }
-          Get-FileHash -Algorithm SHA256 -LiteralPath 'build/final/omni-morph-1.0.0-alpha.2+26.1.2-fabric-mc.jar' | Format-List | Out-String | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
+          Get-FileHash -Algorithm SHA256 -LiteralPath $finalJar | Format-List | Out-String | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v7
         with:
           name: internal-final-native-jar
