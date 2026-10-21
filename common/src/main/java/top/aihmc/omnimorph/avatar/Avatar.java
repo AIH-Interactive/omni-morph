@@ -64,6 +64,7 @@ import top.aihmc.omnimorph.math.matrix.FiguraMat4;
 import top.aihmc.omnimorph.math.vector.FiguraVec3;
 import top.aihmc.omnimorph.mixin.gui.GuiGraphicsAccessor;
 import top.aihmc.omnimorph.model.FiguraModelPart;
+import top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext;
 import top.aihmc.omnimorph.model.ParentType;
 import top.aihmc.omnimorph.model.PartCustomization;
 import net.minecraft.world.attribute.EnvironmentAttributes;
@@ -155,7 +156,8 @@ public class Avatar {
     public FiguraRenderer renderer;
     private YsmModelRuntime ysmRuntime;
     public FiguraLuaRuntime luaRuntime;
-    public final AvatarControlRuntime controls = new AvatarControlRuntime();
+    public final AvatarControlRuntime controls = new AvatarControlRuntime(this);
+    public final CosmeticInstanceContext cosmeticContext;
     public EntityRenderMode renderMode = EntityRenderMode.OTHER;
 
     public final PermissionPack.PlayerPermissionPack permissions;
@@ -351,6 +353,12 @@ public class Avatar {
 
         @Override
         public MolangExecutionBudget executionBudget() {
+            if (owner != null && owner.cosmeticContext != null) {
+                var shared = owner.cosmeticContext.molangBudget();
+                if (shared != null) {
+                    return shared;
+                }
+            }
             return executionBudget;
         }
         public final Avatar owner;
@@ -770,14 +778,42 @@ public class Avatar {
     public final Instructions init, render, worldRender, tick, worldTick, animation;
     public final Map<String, Instructions> customInstructions = new HashMap<>();
     public final RefilledNumber particlesRemaining, soundsRemaining;
+
+    public boolean useParticle() {
+        var shared = cosmeticContext == null ? null : cosmeticContext.effectBudget();
+        return shared == null ? particlesRemaining.use() : shared.use(this, true);
+    }
+
+    public boolean useSound() {
+        var shared = cosmeticContext == null ? null : cosmeticContext.effectBudget();
+        return shared == null ? soundsRemaining.use() : shared.use(this, false);
+    }
+
+    public int remainingParticles() {
+        var shared = cosmeticContext == null ? null : cosmeticContext.effectBudget();
+        return shared == null ? particlesRemaining.peek() : shared.remaining(this, true);
+    }
+
+    public int remainingSounds() {
+        var shared = cosmeticContext == null ? null : cosmeticContext.effectBudget();
+        return shared == null ? soundsRemaining.peek() : shared.remaining(this, false);
+    }
+
     private Avatar(UUID owner, EntityType<?> type, String name) {
         this(owner, type, name, null);
     }
 
     private Avatar(UUID owner, EntityType<?> type, String name, PermissionPack.PlayerPermissionPack previewPermissions) {
+        this(owner, type, name, previewPermissions, null);
+    }
+
+    private Avatar(UUID owner, EntityType<?> type, String name,
+                   PermissionPack.PlayerPermissionPack previewPermissions,
+                   CosmeticInstanceContext cosmeticContext) {
         this.owner = owner;
+        this.cosmeticContext = cosmeticContext;
         this.entityType = type;
-        this.isHost = type == EntityType.PLAYER && FiguraMod.isLocal(owner);
+        this.isHost = cosmeticContext == null && type == EntityType.PLAYER && FiguraMod.isLocal(owner);
         this.isLibraryPreview = previewPermissions != null;
         this.permissions = previewPermissions != null ? previewPermissions
                 : type == EntityType.PLAYER ? PermissionManager.get(owner) : PermissionManager.getMobPermissions(owner);
@@ -813,12 +849,33 @@ public class Avatar {
         return new Avatar(owner, EntityType.PLAYER, name, permissions);
     }
 
+    /** A private execution identity prevents cleanup, preferences and events crossing instances. */
+    public static Avatar createCosmetic(CosmeticInstanceContext context,
+                                        PermissionPack.PlayerPermissionPack wearerPermissions, String name) {
+        var category = new PermissionPack.CategoryPermissionPack(Permissions.Category.DEFAULT);
+        var permissions = new PermissionPack.PlayerPermissionPack(category, context.executionId().toString());
+        for (Permissions permission : Permissions.DEFAULT) {
+            permissions.insert(permission, wearerPermissions.get(permission), FiguraMod.MOD_ID);
+        }
+        for (Permissions permission : List.of(Permissions.NETWORKING, Permissions.VANILLA_MODEL_EDIT,
+                Permissions.NAMEPLATE_EDIT, Permissions.CANCEL_SOUNDS, Permissions.OFFSCREEN_RENDERING)) {
+            permissions.insert(permission, 0, FiguraMod.MOD_ID);
+        }
+        return new Avatar(context.executionId(), EntityType.PLAYER, name, permissions, context);
+    }
+
     /** Creates a detached evaluator owner for a model preview; it is never registered with AvatarManager. */
     public YsmModelRuntime createYsmPreviewRuntime(java.util.function.Function<Avatar, YsmModelRuntime> factory) {
         Avatar preview = new Avatar(owner, entityType == null ? EntityType.PLAYER : entityType, entityName,
                 isLibraryPreview ? permissions : null);
         preview.renderMode = EntityRenderMode.FIGURA_GUI;
-        preview.molangContext = new MolangContext(preview);
+        preview.molangContext = new MolangContext(preview) {
+            @Override
+            public MolangExecutionBudget executionBudget() {
+                return Avatar.this.molangContext == null ? super.executionBudget()
+                        : Avatar.this.molangContext.executionBudget();
+            }
+        };
         if (molangContext != null) {
             preview.molangContext.variables.copyValuesFrom(molangContext.variables);
         }
@@ -1728,6 +1785,9 @@ public class Avatar {
      * Tries to find the entity by owner UUID, falls back to the local player.
      */
     private Entity getEntity() {
+        if (cosmeticContext != null) {
+            return luaRuntime == null ? null : luaRuntime.getUser();
+        }
         if (owner != null) {
             var mc = Minecraft.getInstance();
             if (mc.level != null) {
@@ -1882,8 +1942,10 @@ public class Avatar {
         runtime.setInstructionLimit(init.remaining);
 
         events.offer(() -> {
-            if (runtime.init(autoScripts))
+            if (runtime.init(autoScripts)
+                    && top.aihmc.omnimorph.model.outfit.OutfitInstructionBudget.current(this) == null) {
                 init.use(runtime.getInstructions());
+            }
             if (ysmRuntime != null && runtime.action_wheel != null && !isLibraryPreview)
                 ysmRuntime.installDefaultActionWheel(runtime.action_wheel);
         });
@@ -2015,6 +2077,16 @@ public class Avatar {
         if (!ignoreSize && (image.getWidth() > max || image.getHeight() > max)) {
             noPermissions.add(Permissions.TEXTURE_SIZE);
             throw new LuaError("Texture exceeded max size of " + max + " x " + max + " resolution, got " + image.getWidth() + " x " + image.getHeight());
+        }
+
+        var outfitBudget = top.aihmc.omnimorph.model.outfit.OutfitInstructionBudget.current(this);
+        if (outfitBudget != null) {
+            try {
+                outfitBudget.checkTextureRegistration(this, name);
+            } catch (RuntimeException rejected) {
+                image.close();
+                throw rejected;
+            }
         }
 
         FiguraTexture oldText = renderer.customTextures.get(name);

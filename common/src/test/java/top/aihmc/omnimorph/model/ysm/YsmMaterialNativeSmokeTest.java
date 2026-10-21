@@ -47,6 +47,15 @@ public final class YsmMaterialNativeSmokeTest {
         run(new String[]{"--acceleration", path.toString()}, replay);
     }
 
+    /** Texture allocation recorder for native vertex tests; supplies no real GPU or visual evidence. */
+    public static AutoCloseable recordingTextureDevice() throws ReflectiveOperationException {
+        Field device = RenderSystem.class.getDeclaredField("DEVICE");
+        device.setAccessible(true);
+        Object previous = device.get(null);
+        device.set(null, new PublicationDevice());
+        return () -> device.set(null, previous);
+    }
+
     private static void run(String[] args, java.util.function.Consumer<YsmModelRuntime> replay) throws Exception {
         Path directory = Files.createTempDirectory("figura-native-material-").toAbsolutePath().normalize();
         String previousDirectory = System.getProperty("figura.test.directory");
@@ -91,6 +100,7 @@ public final class YsmMaterialNativeSmokeTest {
             instance.set(null, client);
             top.aihmc.omnimorph.permissions.PermissionManager.init();
             if ((args.length == 2 && args[0].equals("--library-preview"))
+                    || (args.length == 2 && args[0].equals("--cosmetic-sources"))
                     || (args.length == 1 && args[0].equals("--library-equipment"))
                     || (args.length == 1 && args[0].equals("--library-preparation"))
                     || (args.length == 1 && args[0].equals("--library-catalog"))
@@ -101,7 +111,9 @@ public final class YsmMaterialNativeSmokeTest {
                 Object previousParticles = particles.get(client);
                 try {
                     particles.set(client, unsafe.allocateInstance(AvatarAsyncLoadSmokeTest.RecordingParticles.class));
-                    if (args[0].equals("--library-upload")) {
+                    if (args[0].equals("--cosmetic-sources")) {
+                        top.aihmc.omnimorph.model.outfit.CosmeticSourceSmokeTest.run(Path.of(args[1]));
+                    } else if (args[0].equals("--library-upload")) {
                         top.aihmc.omnimorph.model.library.LibraryUploadSmokeTest.run(client::drain);
                     } else if (args[0].equals("--library-catalog")) {
                         top.aihmc.omnimorph.model.library.ModelLibraryCatalogSmokeTest.run(client::drain);

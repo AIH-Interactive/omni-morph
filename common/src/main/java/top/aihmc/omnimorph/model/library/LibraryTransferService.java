@@ -10,6 +10,7 @@ import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
 import top.aihmc.omnimorph.model.cache.AvatarCachePaths;
 import top.aihmc.omnimorph.model.cache.ModelCacheCodec;
+import top.aihmc.omnimorph.model.cache.ModelCacheLayout;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -102,6 +103,7 @@ public final class LibraryTransferService {
                     exchange.adminToken(token);
                 }
                 LibraryModels.Model model = exchange.json("GET", ROOT + "models/" + id, null, LibraryModels.Model.class);
+                LibraryPreviewCache modelPreview = preview.forResourceKind(model.resourceKind());
                 String purpose = formal ? "download" : "preview";
                 if (!id.equals(model.modelId()) || !model.allows(purpose) || model.byteLength() < 1
                         || model.byteLength() > CloudHttp.FILE_BYTES) {
@@ -128,7 +130,7 @@ public final class LibraryTransferService {
                         return parse(model, formalBytes, CloudHttp.sha256(formalBytes), purpose);
                     }
                     // The detail immediately above is the fresh backend permission decision.
-                    var cached = preview.find(scope, LibraryPreviewCache.Kind.MODEL,
+                    var cached = modelPreview.find(scope, LibraryPreviewCache.Kind.MODEL,
                             java.time.Duration.ofSeconds(exchange.previewCacheSeconds()), exchange::requireCurrent);
                     if (cached.isPresent()) {
                         try (var lease = cached.get()) {
@@ -157,14 +159,18 @@ public final class LibraryTransferService {
                 progress.stage(generation, AvatarLoadProgress.Stage.DOWNLOADING);
                 Package result;
                 if (formal) {
-                    if (Files.isSymbolicLink(formalDirectory)) {
+                    Path stagingDirectory = "ACCESSORY".equals(model.resourceKind())
+                            ? ModelCacheLayout.cosmeticDirectory(cacheRoot) : formalDirectory;
+                    if (Files.isSymbolicLink(stagingDirectory)) {
                         response.body().close();
                         throw new IOException("UNSAFE_FORMAL_DIRECTORY");
                     }
                     Path partial = null;
                     try (InputStream input = response.body()) {
-                        AvatarCachePaths.prepare(cacheRoot, "model-library-downloads");
-                        partial = Files.createTempFile(formalDirectory, "download-", ".part");
+                        if (!"ACCESSORY".equals(model.resourceKind())) {
+                            AvatarCachePaths.prepare(cacheRoot, "model-library-downloads");
+                        }
+                        partial = Files.createTempFile(stagingDirectory, "download-", ".part");
                         try (OutputStream output = codec.output(partial)) {
                             receive(exchange, input, output, model.byteLength(), hash, progress, generation);
                         }
@@ -187,7 +193,7 @@ public final class LibraryTransferService {
                     progress.stage(generation, AvatarLoadProgress.Stage.PREPARING);
                     result = parse(model, bytes, hash, purpose);
                     exchange.requireCurrent();
-                    preview.put(new LibraryPreviewCache.Key(scope, hash), LibraryPreviewCache.Kind.MODEL, bytes,
+                    modelPreview.put(new LibraryPreviewCache.Key(scope, hash), LibraryPreviewCache.Kind.MODEL, bytes,
                             java.time.Duration.ofSeconds(exchange.previewCacheSeconds()));
                 }
                 return result;

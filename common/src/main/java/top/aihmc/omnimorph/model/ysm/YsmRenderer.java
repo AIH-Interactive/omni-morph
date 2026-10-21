@@ -440,9 +440,8 @@ public class YsmRenderer {
 
     private void renderCube(YsmGeometry.Cube cube, PoseStack stack, DrawTarget vertices, int light) {
         for (YsmGeometry.Quad quad : cube.quads) {
-            if (!quad.visible())
+            if (!quad.visible() || !runtime.consumeOutfitFaces(1))
                 continue;
-            runtime.recordComplexity(1);
             quad(vertices, stack, quad, light);
         }
     }
@@ -474,12 +473,18 @@ public class YsmRenderer {
         for (YsmGeometry.Cube cube : cubes) {
             for (YsmGeometry.Quad face : cube.quads) {
                 if (face.visible()) {
-                    runtime.recordComplexity(1);
                     visibleFaces++;
                 }
             }
         }
         if (visibleFaces == 0) {
+            return;
+        }
+        if (!runtime.consumeOutfitFaces(visibleFaces)) {
+            // A mesh is indivisible here; submit only the permitted prefix through native quads.
+            for (YsmGeometry.Cube cube : cubes) {
+                renderCube(cube, stack, target, light);
+            }
             return;
         }
         PoseSnapshot pose = new PoseSnapshot(stack.last());

@@ -215,6 +215,12 @@ public class FiguraAPIManager {
 
     private static final Set<FiguraAPI> ENTRYPOINTS = new HashSet<>();
 
+    private static final Set<String> COSMETIC_APIS = Set.of(
+            "events", "ysm_model", "animations", "vectors", "matrices", "json");
+    private static final Set<String> COSMETIC_INTERNAL_APIS = Set.of(
+            "vanilla_model", "keybinds", "host", "nameplate", "renderer", "action_wheel",
+            "avatar_controls", "avatar", "pings", "textures");
+
     public static void initEntryPoints(Set<FiguraAPI> set) {
         for (FiguraAPI api : set) {
             ENTRYPOINTS.add(api);
@@ -225,8 +231,23 @@ public class FiguraAPIManager {
     public static void setupTypesAndAPIs(FiguraLuaRuntime runtime) {
         for (Class<?> clazz : WHITELISTED_CLASSES)
             runtime.registerClass(clazz);
-        for (Map.Entry<String, Function<FiguraLuaRuntime, Object>> entry : API_GETTERS.entrySet())
-            runtime.setGlobal(entry.getKey(), entry.getValue().apply(runtime));
+        boolean cosmetic = runtime.owner.cosmeticContext != null;
+        for (Map.Entry<String, Function<FiguraLuaRuntime, Object>> entry : API_GETTERS.entrySet()) {
+            if (cosmetic && !COSMETIC_APIS.contains(entry.getKey())
+                    && !COSMETIC_INTERNAL_APIS.contains(entry.getKey())) {
+                continue;
+            }
+            // Native rendering still needs its private API objects; Lua only receives instance capabilities.
+            Object api = entry.getValue().apply(runtime);
+            if (!cosmetic || COSMETIC_APIS.contains(entry.getKey())) {
+                runtime.setGlobal(entry.getKey(), api);
+            }
+        }
+        if (cosmetic) {
+            runtime.registerClass(CosmeticPlayerAPI.class);
+            runtime.setGlobal("cosmetic_controls", runtime.avatar_controls);
+            return;
+        }
         for (FiguraAPI api : ENTRYPOINTS) {
             String name = api.getName();
             if (name != null)

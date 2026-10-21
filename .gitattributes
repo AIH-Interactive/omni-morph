@@ -1,2 +1,5 @@
 # Keep benchmark line endings stable for the recorded SHA-256.
 Plans/evidence/acceleration/h7-cpu-preparation.csv text eol=lf
+
+# Bundled YSM templates are verified byte-for-byte against template-manifest.json.
+common/src/main/resources/assets/omni-morph/ysm_default/** -text whitespace=cr-at-eol

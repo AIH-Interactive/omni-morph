@@ -1,6 +1,7 @@
 package top.aihmc.omnimorph.model.ysm;
 
 import top.aihmc.omnimorph.render.acceleration.AccelerationService;
+import org.joml.Matrix4f;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
@@ -36,6 +37,7 @@ import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationClip;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationParser;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationPlayer;
+import top.aihmc.omnimorph.model.ysm.animation.YsmDefaultAnimationResolver;
 import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
 import top.aihmc.omnimorph.model.ysm.controller.YsmAnimationController;
 import top.aihmc.omnimorph.model.ysm.controller.YsmAnimationControllerParser;
@@ -47,6 +49,7 @@ import top.aihmc.omnimorph.model.ysm.action.YsmActionWheelLayoutStore;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -111,6 +114,8 @@ public class YsmModelRuntime implements AutoCloseable {
     private String contentHash = "";
     private final float defaultWidthScale;
     private final float defaultHeightScale;
+    private String defaultAnimationSignature = "";
+    private final List<String> defaultAnimationDiagnostics = new ArrayList<>();
 
     private YsmModelRuntime(Avatar owner, YsmGeometry geometry, YsmGeometry armGeometry, FiguraTexture texture, String textureId, boolean textureTranslucent, String kind, String modelKey, Map<String, byte[]> textureData, float defaultWidthScale, float defaultHeightScale, boolean encryptedSource) {
         this.owner = owner;
@@ -255,6 +260,10 @@ public class YsmModelRuntime implements AutoCloseable {
             }, runtime.controllerSources));
             runtime.functions.load(tag.getListOrEmpty("functions"));
             runtime.animationPlayer.registerFunctionEventControllers(runtime.functions.controllerEventNames());
+            if (owner.cosmeticContext == null && owner.nbt != null
+                    && !"ACCESSORY".equals(owner.nbt.getCompoundOrEmpty("metadata").getStringOr("resource_kind", ""))) {
+                runtime.loadDefaultAnimations(tag, ysmMolangEngine);
+            }
             runtime.animationPlayer.startBaseAnimations();
             runtime.registerDefaultControls();
             runtime.readActionSchemas(tag);
@@ -270,6 +279,85 @@ public class YsmModelRuntime implements AutoCloseable {
             }
             throw e;
         }
+    }
+
+    private void loadDefaultAnimations(CompoundTag tag, MolangEngine engine) {
+        try {
+            resolveDefaultAnimations(tag, engine);
+        } catch (java.io.IOException failure) {
+            // Keep the author's model usable and retain an explicit fallback failure for the UI.
+            defaultAnimationDiagnostics.add(failure.getMessage());
+        }
+    }
+
+    private void resolveDefaultAnimations(CompoundTag tag, MolangEngine engine) throws java.io.IOException {
+        if (subEntityRuntime || "projectile".equals(kind) || "vehicle".equals(kind)) {
+            return;
+        }
+        Set<String> declared = new LinkedHashSet<>();
+        try {
+            for (Tag value : tag.getListOrEmpty("animations")) {
+                if (!(value instanceof CompoundTag animation)) {
+                    continue;
+                }
+                String json = new String(animation.getByteArray("data").orElse(new byte[0]), StandardCharsets.UTF_8);
+                if (json.isBlank()) {
+                    continue;
+                }
+                var root = com.google.gson.JsonParser.parseString(json).getAsJsonObject();
+                if (root.has("animations")) {
+                    declared.addAll(root.getAsJsonObject("animations").keySet());
+                }
+            }
+        } catch (RuntimeException invalid) {
+            defaultAnimationDiagnostics.add("DEFAULT_FALLBACK_SKIPPED_AUTHOR_PARSE_ERROR");
+            return;
+        }
+        Set<String> excluded = animationPlayer.defaultExcludedNames(declared);
+        if (declared.stream().anyMatch(name -> !animationPlayer.getClips().containsKey(name))) {
+            defaultAnimationDiagnostics.add("DEFAULT_FALLBACK_SKIPPED_DAMAGED_AUTHOR_ANIMATION");
+        }
+        Set<String> mainExcluded = new LinkedHashSet<>(excluded);
+        boolean mainControlled = animationPlayer.getControllers().values().stream()
+                .anyMatch(controller -> controller.slot() == top.aihmc.omnimorph.model.ysm.controller.YsmControllerSlot.MAIN);
+        boolean handsControlled = mainControlled || animationPlayer.getControllers().values().stream()
+                .anyMatch(controller -> controller.slot() == top.aihmc.omnimorph.model.ysm.controller.YsmControllerSlot.POST_SWING);
+        boolean armsControlled = animationPlayer.getControllers().values().stream()
+                .anyMatch(controller -> controller.slot() == top.aihmc.omnimorph.model.ysm.controller.YsmControllerSlot.FIRST_PERSON_ARM);
+        if (mainControlled) {
+            mainExcluded.addAll(YsmDefaultAnimationResolver.MAIN_ACTIONS);
+        }
+        var main = YsmDefaultAnimationResolver.resolve(modelKey, YsmDefaultAnimationResolver.Domain.MAIN,
+                geometry.bones.keySet(), Map.of(), mainExcluded, Set.of(), true);
+        var hands = YsmDefaultAnimationResolver.resolve(modelKey, YsmDefaultAnimationResolver.Domain.ARM,
+                geometry.bones.keySet(), Map.of(), excluded, Set.of(), !handsControlled);
+        var arms = YsmDefaultAnimationResolver.resolve(modelKey, YsmDefaultAnimationResolver.Domain.ARM,
+                armGeometry == null ? geometry.bones.keySet() : armGeometry.bones.keySet(),
+                Map.of(), excluded, Set.of(), !armsControlled);
+        Map<String, YsmAnimationClip> effective = new LinkedHashMap<>(main.compile(engine));
+        effective.putAll(hands.compile(engine));
+        animationPlayer.registerDefaultAnimations(effective, arms.compile(engine));
+        defaultAnimationSignature = YsmDefaultAnimationResolver.signature(main, hands, arms);
+        for (var selection : List.of(main, hands, arms)) {
+            for (var entry : selection.definitions().entrySet()) {
+                if (!entry.getValue().missingBones().isEmpty() && defaultAnimationDiagnostics.size() < 32) {
+                    defaultAnimationDiagnostics.add("DEFAULT_ANIMATION_UNMAPPED_BONES:" + entry.getKey()
+                            + ":" + entry.getValue().missingBones().size());
+                }
+            }
+        }
+    }
+
+    public String defaultAnimationTemplateVersion() {
+        return defaultAnimationSignature.isEmpty() ? "" : YsmDefaultAnimationResolver.VERSION;
+    }
+
+    public String defaultAnimationSignature() {
+        return defaultAnimationSignature;
+    }
+
+    public List<String> defaultAnimationDiagnostics() {
+        return List.copyOf(defaultAnimationDiagnostics);
     }
 
     private static Map<String, byte[]> readTextureEntries(CompoundTag tag) {
@@ -488,6 +576,29 @@ public class YsmModelRuntime implements AutoCloseable {
 
     public void recordComplexity(int faces) {
         complexityOwner.recordYsmComplexity(faces);
+    }
+
+    /** Detached GUI playback and physical sub-entities still draw against this original owner. */
+    public Avatar renderBudgetOwner() {
+        return complexityOwner;
+    }
+
+    public int outfitFaceAllowance() {
+        recordComplexity(0);
+        var budget = top.aihmc.omnimorph.model.outfit.OutfitInstructionBudget.current(complexityOwner);
+        return budget == null ? Integer.MAX_VALUE : budget.allowance(complexityOwner, complexityOwner.complexity);
+    }
+
+    public boolean consumeOutfitFaces(int faces) {
+        var budget = top.aihmc.omnimorph.model.outfit.OutfitInstructionBudget.current(complexityOwner);
+        if (budget != null) {
+            if (outfitFaceAllowance() < faces) {
+                return false;
+            }
+            budget.charge(complexityOwner, complexityOwner.complexity, faces);
+        }
+        recordComplexity(faces);
+        return true;
     }
 
     public YsmGeometry getArmGeometry() {
@@ -1278,6 +1389,9 @@ public class YsmModelRuntime implements AutoCloseable {
                             result.modelKey, result.encryptedSource, path, diagnostic)), result.controllerSources));
             result.functions.load(previewInput.getListOrEmpty("functions"));
             result.animationPlayer.registerFunctionEventControllers(result.functions.controllerEventNames());
+            if (!defaultAnimationSignature.isEmpty()) {
+                result.loadDefaultAnimations(previewInput, engine);
+            }
             result.animationPlayer.startBaseAnimations();
             result.registerDefaultControls();
             result.readActionSchemas(previewInput);
@@ -1388,6 +1502,100 @@ public class YsmModelRuntime implements AutoCloseable {
         var lease = AccelerationService.INSTANCE.capture(
                 owner.accelerationOwner(), String.valueOf(owner.renderMode));
         return YsmRenderPose.capture(uniqueParts(firstPerson), scale.last().pose(), unlit, lease);
+    }
+
+    /** Current body pivots in native block space, without overwriting world-space Lua queries. */
+    public Map<YsmModelPart, Matrix4f> captureBonePivots(YsmRenderPose pose) {
+        if (closed || pose != null && !pose.isCurrent()) {
+            throw new IllegalStateException("YSM_POSE_EXPIRED");
+        }
+        PoseStack stack = new PoseStack();
+        if (pose == null) {
+            applyModelScale(stack);
+        } else {
+            pose.applyModelScale(stack);
+        }
+        Map<YsmModelPart, Matrix4f> matrices = new IdentityHashMap<>();
+        for (YsmGeometry.Bone root : geometry.roots) {
+            captureBonePivots(root, stack, pose, matrices);
+        }
+        return matrices;
+    }
+
+    /** First-person native geometry has its own pivots and deliberately omits body model scaling. */
+    public Map<YsmModelPart, Matrix4f> captureFirstPersonPivots(boolean left, YsmRenderPose pose) {
+        if (closed || pose != null && !pose.isCurrent()) {
+            throw new IllegalStateException("YSM_POSE_EXPIRED");
+        }
+        boolean armParts = hasArmModel();
+        YsmGeometry source = armParts ? armGeometry : geometry;
+        Map<YsmModelPart, Matrix4f> matrices = new IdentityHashMap<>();
+        PoseStack stack = new PoseStack();
+        for (YsmGeometry.Bone root : source.roots) {
+            YsmBoneRole role = armParts ? armRoleOf(root.name) : roleOf(root.name);
+            if (YsmBoneMapper.isFirstPersonArmCandidate(root.name, role, left)) {
+                captureFirstPersonPivots(root, stack, pose, armParts, left, false, matrices);
+            }
+        }
+        return matrices;
+    }
+
+    private void captureFirstPersonPivots(YsmGeometry.Bone bone, PoseStack stack, YsmRenderPose pose,
+                                          boolean armParts, boolean left, boolean selected,
+                                          Map<YsmModelPart, Matrix4f> matrices) {
+        YsmBoneRole role = armParts ? armRoleOf(bone.name) : roleOf(bone.name);
+        YsmBoneRole ownHand = left ? YsmBoneRole.LEFT_HAND : YsmBoneRole.RIGHT_HAND;
+        YsmBoneRole otherHand = left ? YsmBoneRole.RIGHT_HAND : YsmBoneRole.LEFT_HAND;
+        if (role == otherHand) {
+            return;
+        }
+        selected = selected || role == ownHand || role == YsmBoneRole.FIRST_PERSON_ARM;
+        YsmModelPart part = pose == null ? (armParts ? getArmPart(bone.name) : getPart(bone.name))
+                : pose.part(bone.name);
+        // Bind only an existing body bone of the same name. An unrelated arm-only bone is unresolved.
+        YsmModelPart bodyPart = getPart(bone.name);
+        if (selected && bodyPart != null) {
+            stack.pushPose();
+            try {
+                applyBoneTransform(stack, bone, true, part);
+                matrices.put(bodyPart, new Matrix4f(stack.last().pose()));
+            } finally {
+                stack.popPose();
+            }
+        }
+        stack.pushPose();
+        try {
+            applyBoneTransform(stack, bone, false, part);
+            for (YsmGeometry.Bone child : bone.children) {
+                captureFirstPersonPivots(child, stack, pose, armParts, left, selected, matrices);
+            }
+        } finally {
+            stack.popPose();
+        }
+    }
+
+    private void captureBonePivots(YsmGeometry.Bone bone, PoseStack stack, YsmRenderPose pose,
+                                    Map<YsmModelPart, Matrix4f> matrices) {
+        YsmModelPart part = getPart(bone.name);
+        YsmModelPart transformPart = pose == null ? part : pose.part(bone.name);
+        stack.pushPose();
+        try {
+            applyBoneTransform(stack, bone, true, transformPart);
+            if (part != null) {
+                matrices.put(part, new Matrix4f(stack.last().pose()));
+            }
+        } finally {
+            stack.popPose();
+        }
+        stack.pushPose();
+        try {
+            applyBoneTransform(stack, bone, false, transformPart);
+            for (YsmGeometry.Bone child : bone.children) {
+                captureBonePivots(child, stack, pose, matrices);
+            }
+        } finally {
+            stack.popPose();
+        }
     }
 
     public boolean renderFirstPersonArm(PoseStack stack, MultiBufferSource bufferSource, int light, boolean left) {

@@ -12,7 +12,6 @@ import net.minecraft.network.chat.FontDescription;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.Mth;
-import net.minecraft.world.level.Level;
 import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.avatar.AvatarManager;
 import top.aihmc.omnimorph.config.Configs;
@@ -28,6 +27,7 @@ import top.aihmc.omnimorph.gui.widgets.permissions.PlayerPermPackElement;
 import top.aihmc.omnimorph.permissions.PermissionManager;
 import top.aihmc.omnimorph.permissions.PermissionPack;
 import top.aihmc.omnimorph.permissions.Permissions;
+import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
 import top.aihmc.omnimorph.utils.FiguraIdentifier;
 import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.MathUtils;
@@ -41,6 +41,8 @@ public class PermissionsScreen extends AbstractPanelScreen {
     // -- widgets -- // 
     private PlayerList playerList;
     private EntityPreview entityWidget;
+    private LibraryPreviewSession playerPreview;
+    private UUID previewPlayer;
 
     private SliderWidget slider;
 
@@ -77,6 +79,11 @@ public class PermissionsScreen extends AbstractPanelScreen {
 
         // entity widget
         entityWidget = new EntityPreview(entityX, 28, entitySize, entitySize, modelSize, -15f, 30f, Minecraft.getInstance().player, this);
+        if (playerPreview == null || playerPreview.status().stage() == LibraryPreviewSession.Stage.CLOSED) {
+            playerPreview = new LibraryPreviewSession(null, true);
+            previewPlayer = null;
+        }
+        entityWidget.setLibraryPreview(playerPreview);
 
         // permission slider and list
         slider = new SliderWidget(middle + 2, (int) (entityWidget.getY() + entityWidget.getHeight() + lineHeight * 1.5 + 20), listWidth, 11, 1d, 5, true) {
@@ -187,11 +194,18 @@ public class PermissionsScreen extends AbstractPanelScreen {
     public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
         // set entity to render
         AbstractPermPackElement entity = playerList.selectedEntry;
-        Level world = Minecraft.getInstance().level;
-        if (world != null && entity instanceof PlayerPermPackElement player)
-            entityWidget.setEntity(world.getPlayerByUUID(UUID.fromString(player.getPack().name)));
-        else
-            entityWidget.setEntity(null);
+        UUID selected = entity instanceof PlayerPermPackElement player ? UUID.fromString(player.getPack().name) : null;
+        if (!java.util.Objects.equals(previewPlayer, selected)) {
+            previewPlayer = selected;
+            if (selected == null) {
+                playerPreview.clear();
+            } else {
+                playerPreview.selectPlayerDraft(selected, () -> {
+                    var avatar = AvatarManager.getAvatarForPlayer(selected);
+                    return avatar == null ? null : avatar.nbt;
+                });
+            }
+        }
 
         // expand animation
         float lerpDelta = MathUtils.magicDelta(0.6f, delta);
@@ -219,7 +233,18 @@ public class PermissionsScreen extends AbstractPanelScreen {
     }
 
     @Override
+    public void tick() {
+        if (playerPreview != null) {
+            playerPreview.tick();
+        }
+        super.tick();
+    }
+
+    @Override
     public void removed() {
+        if (playerPreview != null && !playerPreview.isExpanded()) {
+            playerPreview.close();
+        }
         PermissionManager.saveToDisk();
         super.removed();
     }

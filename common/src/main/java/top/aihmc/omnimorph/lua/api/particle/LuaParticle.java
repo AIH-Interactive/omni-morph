@@ -39,7 +39,7 @@ public class LuaParticle {
     @LuaMethodDoc("particle.spawn")
     public LuaParticle spawn() {
         if (!Minecraft.getInstance().isPaused()) {
-            if (owner.particlesRemaining.use()) {
+            if (owner.useParticle()) {
                 ParticleAPI.getParticleEngine().figura$spawnParticle(particle, owner.owner);
                 owner.noPermissions.remove(Permissions.PARTICLES);
             } else {

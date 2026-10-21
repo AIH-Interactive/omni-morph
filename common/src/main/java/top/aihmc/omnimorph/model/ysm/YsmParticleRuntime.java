@@ -79,7 +79,7 @@ public final class YsmParticleRuntime {
             if (client.isPaused()) {
                 return;
             }
-            if (!owner.particlesRemaining.check()) {
+            if (owner.remainingParticles() <= 0) {
                 owner.noPermissions.add(Permissions.PARTICLES);
                 return;
             }

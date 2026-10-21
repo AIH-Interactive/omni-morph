@@ -59,6 +59,8 @@ public class YsmAnimationPlayer {
             };
     private final YsmModelRuntime runtime;
     private final Map<String, YsmAnimationClip> clips = new HashMap<>();
+    private final Map<String, YsmAnimationClip> defaultClips = new HashMap<>();
+    private final Map<String, YsmAnimationClip> defaultArmClips = new HashMap<>();
     private final Map<String, YsmAnimationController> controllers = new LinkedHashMap<>();
     private final YsmControllerRuntime controllerRuntime;
     private final Map<String, PlayingAnimation> activeAnimations = new LinkedHashMap<>();
@@ -171,6 +173,31 @@ public class YsmAnimationPlayer {
         return clips;
     }
 
+    /** Defaults stay outside the frozen author's inventory and its v1 clip indexes. */
+    public void registerDefaultAnimations(Map<String, YsmAnimationClip> defaults,
+                                           Map<String, YsmAnimationClip> firstPerson) {
+        defaultClips.clear();
+        defaultClips.putAll(defaults);
+        defaultArmClips.clear();
+        firstPerson.values().forEach(clip -> defaultArmClips.put(clip.name, clip));
+    }
+
+    public Set<String> defaultExcludedNames(Collection<String> declared) {
+        Set<String> result = new HashSet<>(clips.keySet());
+        for (String name : declared) {
+            result.add(literalAnimationName(name));
+            String normalized = normalizeName(name);
+            result.add(normalized);
+            result.add(simpleName(normalized));
+        }
+        return Set.copyOf(result);
+    }
+
+    private YsmAnimationClip nativeClip(String name) {
+        YsmAnimationClip authored = clips.get(name);
+        return authored == null ? defaultClips.get(name) : authored;
+    }
+
     public void registerControllers(Map<String, YsmAnimationController> newControllers) {
         if (newControllers != null) {
             controllers.putAll(newControllers);
@@ -250,6 +277,10 @@ public class YsmAnimationPlayer {
         List<YsmSyncMessage.Playback> result = new ArrayList<>();
         for (var entry : activeAnimations.entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
             PlayingAnimation playing = entry.getValue();
+            if (defaultClips.containsValue(playing.clip)) {
+                // Legacy receivers retain the authored projection. A later outfit capability carries template identity.
+                continue;
+            }
             int flags = (playing.isNative ? 1 : 0) | (entry.getKey().startsWith("controller-function/") ? 2 : 0)
                     | (playing.retired ? 4 : 0);
             int controller = -1;
@@ -433,7 +464,7 @@ public class YsmAnimationPlayer {
                                          float speed, float fadeSeconds, String controllerName,
                                          ExpressionEvaluator<?> initialEvaluator) {
         String normalized = resolveAnimationName(name);
-        YsmAnimationClip clip = clips.get(normalized);
+        YsmAnimationClip clip = nativeClip(normalized);
         if (clip == null) return null;
 
         boolean created = !activeAnimations.containsKey(slot);
@@ -604,7 +635,7 @@ public class YsmAnimationPlayer {
         PlayingAnimation removed = activeAnimations.remove(normalized);
         stopPlaybackSounds(removed);
         if (removed != null && runtime != null && runtime.owner() != null && runtime.owner().isHost
-                && !runtime.isPreviewRuntime() && !runtime.isSubEntityRuntime()) {
+                && !runtime.isPreviewRuntime() && !runtime.isSubEntityRuntime() && !defaultClips.containsValue(removed.clip)) {
             runtime.functions().recordOwnerEvent(YsmSyncMessage.EventKind.STOP, List.of((float) syncClipIndex(removed.clip)));
         }
         controllerFunctionAnimations.values().removeIf(normalized::equals);
@@ -875,7 +906,14 @@ public class YsmAnimationPlayer {
                 if (!Float.isFinite(effectiveWeight) || effectiveWeight <= 0f) {
                     continue;
                 }
-                for (YsmBoneAnimation boneAnim : anim.clip.boneAnimations.values()) {
+                YsmAnimationClip sampledClip = anim.clip;
+                if (firstPerson && defaultClips.containsValue(sampledClip)) {
+                    sampledClip = defaultArmClips.get(sampledClip.name);
+                    if (sampledClip == null) {
+                        continue;
+                    }
+                }
+                for (YsmBoneAnimation boneAnim : sampledClip.boneAnimations.values()) {
                     List<YsmModelPart> targetParts = runtime.getAnimationParts(boneAnim.boneName, firstPerson);
                     if (targetParts.isEmpty()) continue;
 
@@ -1647,7 +1685,7 @@ public class YsmAnimationPlayer {
         if (selected == null) {
             nativeHandAnimations.remove(slot);
         } else {
-            YsmAnimationClip clip = clips.get(selected);
+            YsmAnimationClip clip = nativeClip(selected);
             play(selected, clip == null ? YsmAnimationClip.LoopMode.ONCE : clip.loopMode, 1f, 0.1f);
             nativeHandAnimations.put(slot, selected);
         }
@@ -1664,11 +1702,22 @@ public class YsmAnimationPlayer {
     }
 
     private String firstHandAnimation(String... names) {
+        boolean authoredEmpty = false;
         for (String name : names) {
             String normalized = resolveAnimationName(name);
             YsmAnimationClip clip = clips.get(normalized);
-            if (!isEmptyClip(clip))
+            if (!isEmptyClip(clip)) {
                 return normalized;
+            }
+            authoredEmpty |= clip != null;
+        }
+        if (!authoredEmpty && nativeStateMachineEnabled) {
+            for (String name : names) {
+                String normalized = resolveAnimationName(name);
+                if (isNativeAnimationEnabled(normalized) && !isEmptyClip(defaultClips.get(normalized))) {
+                    return normalized;
+                }
+            }
         }
         return null;
     }
@@ -1856,7 +1905,7 @@ public class YsmAnimationPlayer {
         if (!idealState.isBlank()) {
             PlayingAnimation anim = activeAnimations.get(idealState);
             if (anim == null) {
-                anim = new PlayingAnimation(clips.get(idealState), true);
+                anim = new PlayingAnimation(nativeClip(idealState), true);
                 activeAnimations.put(idealState, anim);
             }
             anim.targetWeight = 1f;
@@ -1894,7 +1943,7 @@ public class YsmAnimationPlayer {
     private String firstEnabled(String... names) {
         for (String name : names) {
             String normalized = normalizeName(name);
-            if (clips.containsKey(normalized) && !disabledNativeAnimations.contains(normalized))
+            if (nativeClip(normalized) != null && !disabledNativeAnimations.contains(normalized))
                 return normalized;
         }
         return "";

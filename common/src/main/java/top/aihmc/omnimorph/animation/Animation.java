@@ -8,6 +8,7 @@ import top.aihmc.omnimorph.lua.docs.LuaMethodDoc;
 import top.aihmc.omnimorph.lua.docs.LuaMethodOverload;
 import top.aihmc.omnimorph.lua.docs.LuaTypeDoc;
 import top.aihmc.omnimorph.model.FiguraModelPart;
+import top.aihmc.omnimorph.model.outfit.CosmeticMolangVariables;
 import top.aihmc.omnimorph.molang.parser.ast.Expression;
 import top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator;
 import org.luaj.vm2.LuaError;
@@ -700,6 +701,9 @@ public class Animation {
     @LuaMethodDoc("animation.get_molang_var")
     public Float getMolangVar(@LuaNotNil String name) {
         if (owner == null || owner.getMolangContext() == null) return null;
+        if (owner.cosmeticContext != null) {
+            return CosmeticMolangVariables.get(owner.getMolangContext().variables, name);
+        }
         // Check scope prefixes
         if (name.startsWith("v.") || name.startsWith("variable.")) {
             String varName = name.contains(".") ? name.substring(name.indexOf('.') + 1) : name;
@@ -716,6 +720,10 @@ public class Animation {
     @LuaMethodDoc("animation.set_molang_var")
     public Animation setMolangVar(@LuaNotNil String name, float value) {
         if (owner == null || owner.getMolangContext() == null) return this;
+        if (owner.cosmeticContext != null) {
+            CosmeticMolangVariables.set(owner.getMolangContext().variables, name, value);
+            return this;
+        }
         String varName = name.contains(".") ? name.substring(name.indexOf('.') + 1) : name;
         top.aihmc.omnimorph.molang.storage.VariableStorage vs = owner.getMolangContext().variables;
         if (vs != null) {
@@ -728,6 +736,10 @@ public class Animation {
     @LuaMethodDoc("animation.set_molang_vars")
     public Animation setMolangVars(@LuaNotNil LuaValue table) {
         if (!table.istable() || owner == null || owner.getMolangContext() == null) return this;
+        if (owner.cosmeticContext != null) {
+            CosmeticMolangVariables.setAll(owner.getMolangContext().variables, table);
+            return this;
+        }
         top.aihmc.omnimorph.molang.storage.VariableStorage vs = owner.getMolangContext().variables;
         if (vs == null) return this;
         LuaValue[] keys = table.checktable().keys();

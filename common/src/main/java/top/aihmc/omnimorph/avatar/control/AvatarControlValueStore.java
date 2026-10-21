@@ -23,8 +23,19 @@ public final class AvatarControlValueStore {
     }
 
     static boolean applySavedValue(Avatar avatar, AvatarControlDefinition control) {
-        if (avatar == null || avatar.isLibraryPreview || control == null || !isPersistent(control))
+        if (avatar == null || control == null || !isPersistent(control))
             return false;
+        if (avatar.cosmeticContext != null) {
+            Object value = avatar.cosmeticContext.control(control.id());
+            if (value == null) {
+                return false;
+            }
+            control.setValue(value);
+            return true;
+        }
+        if (avatar.isLibraryPreview) {
+            return false;
+        }
         load();
         StoredValue value = VALUES.getOrDefault(key(avatar), Map.of()).get(controlKey(avatar, control));
         if (value != null) {
@@ -35,7 +46,7 @@ public final class AvatarControlValueStore {
     }
 
     public static void save(Avatar avatar, AvatarControlDefinition control) {
-        if (avatar == null || avatar.isLibraryPreview || control == null || !isPersistent(control))
+        if (avatar == null || control == null || !isPersistent(control))
             return;
         Object value = control.getValue();
         if (hasModelKey(avatar) && control.type() == AvatarControlType.ENUM) {
@@ -46,6 +57,13 @@ public final class AvatarControlValueStore {
             }
             // Persist the user's choice, not a potentially private model label.
             value = index;
+        }
+        if (avatar.cosmeticContext != null) {
+            avatar.cosmeticContext.saveControl(control.id(), value);
+            return;
+        }
+        if (avatar.isLibraryPreview) {
+            return;
         }
         load();
         VALUES.computeIfAbsent(key(avatar), ignored -> new HashMap<>())

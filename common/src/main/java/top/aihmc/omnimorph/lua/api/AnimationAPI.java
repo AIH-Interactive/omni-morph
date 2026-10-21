@@ -13,6 +13,7 @@ import top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator;
 import top.aihmc.omnimorph.molang.runtime.binding.MolangBindings;
 import top.aihmc.omnimorph.molang.storage.StringPool;
 import top.aihmc.omnimorph.molang.storage.VariableStorage;
+import top.aihmc.omnimorph.model.outfit.CosmeticMolangVariables;
 import org.luaj.vm2.LuaValue;
 
 import java.util.*;
@@ -115,6 +116,10 @@ public class AnimationAPI {
         Avatar.MolangContext ctx = avatar.getMolangContext();
         if (ctx == null) return null;
 
+        if (avatar.cosmeticContext != null) {
+            return CosmeticMolangVariables.get(ctx.variables, name);
+        }
+
         String varName = name.contains(".") ? name.substring(name.indexOf('.') + 1) : name;
         Object val = ctx.variables.getScoped(StringPool.computeIfAbsent(varName));
         return val instanceof Number ? ((Number) val).floatValue() : null;
@@ -125,6 +130,11 @@ public class AnimationAPI {
     public AnimationAPI setMolangVar(@LuaNotNil String name, float value) {
         Avatar.MolangContext ctx = avatar.getMolangContext();
         if (ctx == null) return this;
+
+        if (avatar.cosmeticContext != null) {
+            CosmeticMolangVariables.set(ctx.variables, name, value);
+            return this;
+        }
 
         String varName = name.contains(".") ? name.substring(name.indexOf('.') + 1) : name;
         ctx.variables.setScoped(StringPool.computeIfAbsent(varName), value);
@@ -137,6 +147,11 @@ public class AnimationAPI {
         if (!table.istable()) return this;
         Avatar.MolangContext ctx = avatar.getMolangContext();
         if (ctx == null) return this;
+
+        if (avatar.cosmeticContext != null) {
+            CosmeticMolangVariables.setAll(ctx.variables, table);
+            return this;
+        }
 
         LuaValue[] keys = table.checktable().keys();
         for (LuaValue key : keys) {

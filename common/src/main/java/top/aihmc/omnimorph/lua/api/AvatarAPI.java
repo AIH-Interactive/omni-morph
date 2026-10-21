@@ -267,7 +267,7 @@ public class AvatarAPI {
     @LuaWhitelist
     @LuaMethodDoc("avatar.get_remaining_particles")
     public int getRemainingParticles() {
-        return avatar.particlesRemaining.peek();
+        return avatar.remainingParticles();
     }
 
     @LuaWhitelist
@@ -279,7 +279,7 @@ public class AvatarAPI {
     @LuaWhitelist
     @LuaMethodDoc("avatar.get_remaining_sounds")
     public int getRemainingSounds() {
-        return avatar.soundsRemaining.peek();
+        return avatar.remainingSounds();
     }
 
     @LuaWhitelist

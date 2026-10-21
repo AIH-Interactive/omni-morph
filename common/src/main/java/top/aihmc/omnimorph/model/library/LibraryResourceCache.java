@@ -22,7 +22,6 @@ public final class LibraryResourceCache {
     public record Pending(byte[] bytes, String hash, UUID transfer, UUID completion, long expiresAt) {}
     private static final Gson JSON = new Gson();
     private static final Object PUBLICATION = new Object();
-    private final Path directory;
     private final Path cacheRoot;
     private final LibrarySession session;
     private final ModelCacheCodec codec;
@@ -30,32 +29,43 @@ public final class LibraryResourceCache {
     public LibraryResourceCache(Path root, LibrarySession session) {
         this.session = session;
         cacheRoot = root.toAbsolutePath().normalize();
-        directory = cacheRoot.resolve(ModelCacheLayout.AVATAR_DIRECTORY);
         codec = new ModelCacheCodec(root);
     }
 
     private Path path(LibraryModels.Model model, String suffix) throws IOException {
+        Path directory = directory(model);
         if (Files.isSymbolicLink(directory)) {
             throw new IOException("UNSAFE_RESOURCE_CACHE");
         }
-        AvatarCachePaths.prepareFlat(cacheRoot, "wardrobe-resources", file -> {
-            String name = file.getFileName().toString();
-            if (!name.matches("[a-f0-9]{64}(\\.[a-f0-9-]{36}\\.pending)?\\.(oma|omc|json)")) {
-                return null;
-            }
-            if (name.endsWith(".omc")) {
-                name = name.substring(0, name.length() - 4) + ModelCacheLayout.AVATAR_EXTENSION;
-            }
-            return "resource-" + name;
-        });
+        if (!"ACCESSORY".equals(model.resourceKind())) {
+            AvatarCachePaths.prepareFlat(cacheRoot, "wardrobe-resources", file -> {
+                String name = file.getFileName().toString();
+                if (!name.matches("[a-f0-9]{64}(\\.[a-f0-9-]{36}\\.pending)?\\.(oma|omc|json)")) {
+                    return null;
+                }
+                if (name.endsWith(".omc")) {
+                    name = name.substring(0, name.length() - 4) + ModelCacheLayout.AVATAR_EXTENSION;
+                }
+                return "resource-" + name;
+            });
+        }
         String identity = session.instance() + "\n" + session.player() + "\n" + model.modelId();
         return directory.resolve("resource-" + CloudHttp.sha256(identity.getBytes(StandardCharsets.UTF_8)) + suffix);
+    }
+
+    private Path directory(LibraryModels.Model model) throws IOException {
+        return "ACCESSORY".equals(model.resourceKind()) ? ModelCacheLayout.cosmeticDirectory(cacheRoot)
+                : cacheRoot.resolve(ModelCacheLayout.AVATAR_DIRECTORY);
+    }
+
+    private static String extension(LibraryModels.Model model) {
+        return ModelCacheLayout.extension(model.resourceKind());
     }
 
     public byte[] read(LibraryModels.Model model) throws IOException {
         session.requireCurrent();
         Path indexFile = path(model, ".json");
-        Path data = path(model, ModelCacheLayout.AVATAR_EXTENSION);
+        Path data = path(model, extension(model));
         if (!Files.isRegularFile(indexFile) || !Files.isRegularFile(data)) {
             return null;
         }
@@ -84,7 +94,7 @@ public final class LibraryResourceCache {
     public boolean present(LibraryModels.Model model) {
         try {
             Path index = path(model, ".json");
-            Path data = path(model, ModelCacheLayout.AVATAR_EXTENSION);
+            Path data = path(model, extension(model));
             if (!Files.isRegularFile(index) || Files.isSymbolicLink(index) || Files.size(index) > 4096
                     || !Files.isRegularFile(data) || Files.isSymbolicLink(data)) {
                 return false;
@@ -101,9 +111,9 @@ public final class LibraryResourceCache {
     public Pending stage(LibraryModels.Model model, Path encrypted, byte[] bytes, String hash,
                          LibraryModels.Transfer transfer) throws IOException {
         UUID completion = UUID.randomUUID();
-        Path data = pendingPath(model, transfer.transferId(), ModelCacheLayout.AVATAR_EXTENSION);
+        Path data = pendingPath(model, transfer.transferId(), extension(model));
         Path index = pendingPath(model, transfer.transferId(), ".json");
-        Path partial = Files.createTempFile(directory, "receipt-", ".part");
+        Path partial = Files.createTempFile(index.getParent(), "receipt-", ".part");
         boolean published = false;
         try {
             Files.writeString(partial, JSON.toJson(new StagedIndex(
@@ -124,7 +134,7 @@ public final class LibraryResourceCache {
 
     public Pending pending(LibraryModels.Model model) throws IOException {
         String prefix = path(model, "").getFileName().toString() + ".";
-        try (var files = Files.list(directory)) {
+        try (var files = Files.list(directory(model))) {
             for (Path file : files.filter(candidate -> candidate.getFileName().toString().startsWith(prefix)
                     && candidate.getFileName().toString().endsWith(".pending.json")).toList()) {
                 UUID transfer;
@@ -134,7 +144,7 @@ public final class LibraryResourceCache {
                 } catch (IllegalArgumentException malformedName) {
                     continue;
                 }
-                Path data = pendingPath(model, transfer, ModelCacheLayout.AVATAR_EXTENSION);
+                Path data = pendingPath(model, transfer, extension(model));
                 try {
                     if (Files.isSymbolicLink(file) || Files.size(file) > 4096) {
                         throw new IOException("INVALID_PENDING_CACHE");
@@ -168,7 +178,7 @@ public final class LibraryResourceCache {
 
     public void publish(LibraryModels.Model model, Pending pending) throws IOException {
         synchronized (PUBLICATION) {
-            Path data = pendingPath(model, pending.transfer(), ModelCacheLayout.AVATAR_EXTENSION);
+            Path data = pendingPath(model, pending.transfer(), extension(model));
             if (Files.exists(data)) {
                 publish(model, data, pending.hash());
             } else {
@@ -183,9 +193,9 @@ public final class LibraryResourceCache {
 
     /** Publishes data before its index; interrupted commits are cache misses, never partial models. */
     private void publish(LibraryModels.Model model, Path encrypted, String hash) throws IOException {
-        Path target = path(model, ModelCacheLayout.AVATAR_EXTENSION);
+        Path target = path(model, extension(model));
         Path index = path(model, ".json");
-        Path partial = Files.createTempFile(directory, "index-", ".part");
+        Path partial = Files.createTempFile(index.getParent(), "index-", ".part");
         try {
             Files.writeString(partial, JSON.toJson(new Index(model.revision(), model.policyRevision(), hash,
                     model.byteLength())));
