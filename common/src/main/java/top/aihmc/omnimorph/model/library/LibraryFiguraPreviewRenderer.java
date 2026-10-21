@@ -13,6 +13,8 @@ import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.math.matrix.FiguraMat4;
 import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
 import top.aihmc.omnimorph.model.rendering.PartFilterScheme;
+import top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer;
+import org.joml.Matrix4f;
 import top.aihmc.omnimorph.permissions.Permissions;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 
@@ -67,35 +69,54 @@ public final class LibraryFiguraPreviewRenderer extends PictureInPictureRenderer
             stack.mulPose(Axis.ZP.rotationDegrees(180));
             stack.mulPose(Axis.XP.rotationDegrees(state.pitch()));
             stack.mulPose(Axis.YP.rotationDegrees(state.yaw() + 180));
+            Matrix4f entityToDraw = new Matrix4f(stack.last().pose());
             stack.translate(0, -1, 0);
             stack.mulPose(Axis.YP.rotationDegrees(180));
             stack.scale(-1, -1, 1);
             stack.translate(0, -1.501f, 0);
 
-            model.setupAnim(state.playerPose());
-            avatar.updateMatrices(model, stack);
-            avatar.renderEvent(state.delta(), FiguraMat4.of());
-            var vanilla = avatar.luaRuntime == null ? null : avatar.luaRuntime.vanilla_model.PLAYER;
-            if (vanilla != null) {
-                vanilla.save(model);
+            var outfit = LibraryPreviewBinding.composition(state.playerPose());
+            if (outfit != null) {
+                outfit.prepareFiguraBase(avatar);
             }
-            try {
-                if (vanilla != null && avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1) {
-                    vanilla.preTransform(model);
-                }
-                // Copy the unhidden native pose first. Hiding the vanilla body must not hide Figura's own geometry.
-                avatar.render(null, 0, state.delta(), 1, stack, source, 0x00f000f0,
-                        OverlayTexture.NO_OVERLAY, model, PartFilterScheme.MODEL, false, false);
-                if (vanilla != null && avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1) {
-                    vanilla.posTransform(model);
-                }
-                model.renderToBuffer(stack, source.getBuffer(model.renderType(state.playerPose().skin.body().texturePath())),
-                        0x00f000f0, OverlayTexture.NO_OVERLAY);
-                avatar.postRenderEvent(state.delta(), FiguraMat4.of());
-            } finally {
+            Runnable drawSubmittedBase = () -> {
+                model.setupAnim(state.playerPose());
+                avatar.updateMatrices(model, stack);
+                avatar.renderEvent(state.delta(), FiguraMat4.of());
+                var vanilla = avatar.luaRuntime == null ? null : avatar.luaRuntime.vanilla_model.PLAYER;
                 if (vanilla != null) {
-                    vanilla.restore(model);
+                    vanilla.save(model);
                 }
+                try {
+                    if (vanilla != null && avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1) {
+                        vanilla.preTransform(model);
+                    }
+                    // Copy the unhidden native pose first. Hiding the vanilla body must not hide Figura's own geometry.
+                    Runnable drawBase = () -> avatar.render(null, 0, state.delta(), 1, stack, source, 0x00f000f0,
+                            OverlayTexture.NO_OVERLAY, model, PartFilterScheme.MODEL, false, false);
+                    if (outfit == null) {
+                        drawBase.run();
+                    } else {
+                        var basePose = outfit.captureFiguraBase(avatar, new Matrix4f(entityToDraw).invert(), drawBase);
+                        OutfitNativeRenderer.draw(outfit, basePose, state.playerPose(), state.delta(), entityToDraw,
+                                source, EntityRenderMode.FIGURA_GUI);
+                    }
+                    if (vanilla != null && avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1) {
+                        vanilla.posTransform(model);
+                    }
+                    model.renderToBuffer(stack, source.getBuffer(model.renderType(state.playerPose().skin.body().texturePath())),
+                            0x00f000f0, OverlayTexture.NO_OVERLAY);
+                    avatar.postRenderEvent(state.delta(), FiguraMat4.of());
+                } finally {
+                    if (vanilla != null) {
+                        vanilla.restore(model);
+                    }
+                }
+            };
+            if (outfit != null) {
+                outfit.drawFiguraBase(avatar, drawSubmittedBase);
+            } else {
+                drawSubmittedBase.run();
             }
         } finally {
             stack.popPose();

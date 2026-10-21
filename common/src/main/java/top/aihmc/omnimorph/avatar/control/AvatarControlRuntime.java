@@ -1,5 +1,8 @@
 package top.aihmc.omnimorph.avatar.control;
 
+import org.luaj.vm2.LuaError;
+import top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext;
+import top.aihmc.omnimorph.model.outfit.CosmeticMolangVariables;
 import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.molang.MolangEngine;
@@ -16,19 +19,37 @@ import java.util.Map;
 import java.util.Set;
 
 public class AvatarControlRuntime {
+    private final Avatar owner;
     private final LinkedHashMap<String, AvatarControlDefinition> controls = new LinkedHashMap<>();
     private final Set<String> initialBoundValues = new HashSet<>();
     private String modelKey;
     private LuaFunction onChange;
 
+    public AvatarControlRuntime() {
+        this(null);
+    }
+
+    public AvatarControlRuntime(Avatar owner) {
+        this.owner = owner;
+    }
+
     public AvatarControlDefinition register(AvatarControlDefinition control) {
+        checkRegistration(owner, control);
         controls.put(control.id(), control);
         return control;
     }
 
     public AvatarControlDefinition register(Avatar avatar, AvatarControlDefinition control) {
+        checkRegistration(avatar, control);
         AvatarControlValueStore.apply(avatar, control);
         return register(control);
+    }
+
+    private void checkRegistration(Avatar avatar, AvatarControlDefinition control) {
+        if (avatar != null && avatar.cosmeticContext != null && !controls.containsKey(control.id())
+                && controls.size() >= avatar.cosmeticContext.limits().maxControls()) {
+            throw new LuaError("COSMETIC_CONTROL_LIMIT");
+        }
     }
 
     public AvatarControlDefinition get(String id) {
@@ -116,6 +137,13 @@ public class AvatarControlRuntime {
         AvatarControlDefinition control = controls.get(id);
         if (control == null)
             return false;
+        if (avatar != null && avatar.cosmeticContext != null) {
+            if (avatar.cosmeticContext.scope()
+                    == CosmeticInstanceContext.Scope.OBSERVER) {
+                return false;
+            }
+            avatar.cosmeticContext.validateControl(id, value);
+        }
         control.setValue(value);
         LuaFunction interceptor = onChange();
         if (avatar != null && interceptor != null) {
@@ -137,12 +165,19 @@ public class AvatarControlRuntime {
         if (control == null) {
             return false;
         }
+        if (avatar != null && avatar.cosmeticContext != null) {
+            avatar.cosmeticContext.validateControl(id, value);
+        }
         control.setValue(value);
         syncMolangValue(avatar, control);
         return true;
     }
 
     public boolean press(Avatar avatar, String id) {
+        if (avatar != null && avatar.cosmeticContext != null
+                && avatar.cosmeticContext.scope() == CosmeticInstanceContext.Scope.OBSERVER) {
+            return false;
+        }
         if (avatar != null && avatar.getYsmRuntime() != null && avatar.getYsmRuntime().animations().observerControlled()) {
             return false;
         }
@@ -273,7 +308,11 @@ public class AvatarControlRuntime {
             number = b ? 1f : 0f;
         else
             return;
-        avatar.getMolangContext().variables.setPath(name, number);
+        if (avatar.cosmeticContext != null) {
+            CosmeticMolangVariables.set(avatar.getMolangContext().variables, name, number);
+        } else {
+            avatar.getMolangContext().variables.setPath(name, number);
+        }
         syncRoamingAlias(avatar, name, number);
     }
 

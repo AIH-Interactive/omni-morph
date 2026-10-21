@@ -72,13 +72,28 @@ public final class LibraryPreviewCache {
     private static final Map<Path, Integer> ACTIVE = new HashMap<>();
     private final Path root;
     private final Path cacheRoot;
+    private final boolean cosmetic;
     private final ModelCacheCodec codec;
     private boolean initialized;
 
     public LibraryPreviewCache(Path figuraCacheDirectory) {
+        this(figuraCacheDirectory, false);
+    }
+
+    private LibraryPreviewCache(Path figuraCacheDirectory, boolean cosmetic) {
         codec = new ModelCacheCodec(figuraCacheDirectory);
+        this.cosmetic = cosmetic;
         cacheRoot = figuraCacheDirectory.toAbsolutePath().normalize();
-        root = cacheRoot.resolve(ModelCacheLayout.AVATAR_DIRECTORY);
+        root = cacheRoot.resolve(cosmetic ? ModelCacheLayout.COSMETIC_DIRECTORY : ModelCacheLayout.AVATAR_DIRECTORY);
+    }
+
+    public LibraryPreviewCache forResourceKind(String resourceKind) {
+        boolean requested = "ACCESSORY".equals(resourceKind);
+        return requested == cosmetic ? this : new LibraryPreviewCache(cacheRoot, requested);
+    }
+
+    private String extension() {
+        return cosmetic ? ModelCacheLayout.COSMETIC_EXTENSION : ModelCacheLayout.AVATAR_EXTENSION;
     }
 
     public Path root() {
@@ -97,7 +112,7 @@ public final class LibraryPreviewCache {
         }
         initialize(lifetime);
         Path directory = directory(kind);
-        Path path = directory.resolve(key.stem(kind) + ModelCacheLayout.AVATAR_EXTENSION);
+        Path path = directory.resolve(key.stem(kind) + extension());
         if (kind == Kind.THUMBNAIL) {
             path = directory.resolve(key.stem(kind) + ".png");
             if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
@@ -174,7 +189,7 @@ public final class LibraryPreviewCache {
         initialize(lifetime);
         Path directory = directory(kind);
         Path target = directory.resolve(key.stem(kind)
-                + (kind == Kind.THUMBNAIL ? AvatarCachePaths.imageExtension(bytes) : ModelCacheLayout.AVATAR_EXTENSION));
+                + (kind == Kind.THUMBNAIL ? AvatarCachePaths.imageExtension(bytes) : extension()));
         synchronized (ACTIVE) {
             if (ACTIVE.containsKey(target)) {
                 return false;
@@ -259,6 +274,9 @@ public final class LibraryPreviewCache {
     }
 
     private Path directory(Kind kind) throws IOException {
+        if (cosmetic) {
+            return ModelCacheLayout.cosmeticDirectory(cacheRoot);
+        }
         return AvatarCachePaths.prepareFlat(cacheRoot, "model-library-preview/" + kind.directory, file -> {
             String name = file.getFileName().toString();
             if (!name.matches("[a-f0-9]{64}-[a-f0-9]{64}\\.(bin|omc|oma|png|jpg)")) {
@@ -276,8 +294,8 @@ public final class LibraryPreviewCache {
         });
     }
 
-    private static boolean matches(String name, Kind kind) {
-        String extension = kind == Kind.THUMBNAIL ? "(png|jpg)" : "oma";
+    private boolean matches(String name, Kind kind) {
+        String extension = kind == Kind.THUMBNAIL ? "(png|jpg)" : cosmetic ? "oms" : "oma";
         return name.matches(kind.name().toLowerCase(java.util.Locale.ROOT)
                 + "-[a-f0-9]{64}-[a-f0-9]{64}\\." + extension);
     }

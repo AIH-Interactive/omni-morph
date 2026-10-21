@@ -52,8 +52,7 @@ public final class LibraryManagementPreview extends AbstractContainerElement imp
 
     public void wardrobe(UUID owner, String asset, long revision, long equipmentRevision, Component title) {
         this.title = title;
-        session.setIndependentFigura(false);
-        session.selectResource(wardrobe.current(owner, asset, revision, equipmentRevision));
+        session.selectPlayerResource(owner, () -> wardrobe.current(owner, asset, revision, equipmentRevision));
     }
 
     public void blockedWardrobe(UUID operation, Component title) {

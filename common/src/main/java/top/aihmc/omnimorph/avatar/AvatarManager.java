@@ -52,6 +52,7 @@ public class AvatarManager {
     private static final Int2ObjectMap<Avatar> LOADED_CEM = new Int2ObjectOpenHashMap<>();
 
     public static final FiguraResourceListener RESOURCE_RELOAD_EVENT = FiguraResourceListener.createResourceListener("resource_reload_event", manager -> {
+        top.aihmc.omnimorph.model.ysm.animation.YsmDefaultAnimationResolver.clear();
         AccelerationService.INSTANCE.invalidateResources();
         HardwareAcceleration.retryAfterResourceReload();
         executeAll("resourceReloadEvent", Avatar::resourceReloadEvent);
@@ -148,6 +149,9 @@ public class AvatarManager {
 
     // player will also attempt to load from network, if possible
     public static Avatar getAvatarForPlayer(UUID player) {
+        if (LibraryPreviewBinding.isVanilla(player)) {
+            return null;
+        }
         Avatar preview = LibraryPreviewBinding.avatar(player);
         if (preview != null && !panic) {
             return preview;
@@ -174,6 +178,9 @@ public class AvatarManager {
     }
 
     public static Avatar getAvatar(EntityRenderState state) {
+        if (LibraryPreviewBinding.isVanilla(state)) {
+            return null;
+        }
         Avatar preview = LibraryPreviewBinding.avatar(state);
         if (preview != null && !panic) {
             return preview;
@@ -204,6 +211,9 @@ public class AvatarManager {
 
     // tries to get data from an entity
     public static Avatar getAvatar(Entity entity) {
+        if (LibraryPreviewBinding.isVanilla(entity)) {
+            return null;
+        }
         Avatar preview = LibraryPreviewBinding.avatar(entity);
         if (preview != null && !panic) {
             return preview;

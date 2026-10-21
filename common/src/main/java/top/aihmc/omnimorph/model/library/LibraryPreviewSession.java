@@ -14,6 +14,12 @@ import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
 import top.aihmc.omnimorph.avatar.AvatarManager;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.mixin.gui.GuiGraphicsAccessor;
+import top.aihmc.omnimorph.model.outfit.OutfitComposition;
+import top.aihmc.omnimorph.model.outfit.OutfitConfig;
+import top.aihmc.omnimorph.model.outfit.OutfitLimits;
+import top.aihmc.omnimorph.model.outfit.OutfitPreparation;
+import top.aihmc.omnimorph.model.outfit.SkeletonIndex;
+import top.aihmc.omnimorph.permissions.PermissionPack;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -44,9 +50,18 @@ public final class LibraryPreviewSession implements AutoCloseable {
     private volatile boolean closed;
     private boolean expanded;
     private boolean independentFigura;
+    private UUID previewPlayer;
+    private LivingEntity livePlayer;
+    private Runnable preparePlayerFallback;
+    private boolean playerFallbackStarted;
+    private java.util.function.Supplier<CompoundTag> playerDraft;
+    private CompoundTag playerDraftNbt;
     private Status status = new Status(Stage.IDLE, "");
     private PreviewHierarchy hierarchy = PreviewHierarchy.EMPTY;
     private long hierarchyRevision;
+    private final SkeletonIndex.Cache outfitIndexes = new SkeletonIndex.Cache();
+    private final AtomicLong compositionGenerations = new AtomicLong();
+    private CompletableFuture<Boolean> pendingComposition;
 
     /** Local wardrobe previews have no backend session dependency. */
     public LibraryPreviewSession() {
@@ -110,6 +125,10 @@ public final class LibraryPreviewSession implements AutoCloseable {
         pose.showLeftPants = player.isModelPartShown(PlayerModelPart.LEFT_PANTS_LEG);
         pose.showRightPants = player.isModelPartShown(PlayerModelPart.RIGHT_PANTS_LEG);
         LibraryPreviewBinding.capture(entity, pose);
+        var outfit = LibraryPreviewBinding.composition(pose);
+        if (outfit != null) {
+            outfit.prepareFiguraBase(avatar);
+        }
         var accessor = (GuiGraphicsAccessor) gui;
         var scissor = accessor.figura$getScissorStack().peek();
         var bounds = PictureInPictureRenderState.getBounds(x0, y0, x1, y1, scissor);
@@ -124,17 +143,96 @@ public final class LibraryPreviewSession implements AutoCloseable {
 
     /** Evaluate the model's real initialization result; never infer Lua behavior from source text. */
     public boolean showsVanillaPlayer() {
-        return status.stage() == Stage.READY && avatar != null && !avatar.scriptError && !avatar.isYsmNative()
-                && (avatar.luaRuntime == null || avatar.luaRuntime.vanilla_model.PLAYER.checkVisible());
+        return status.stage() == Stage.READY && binding != null
+                && (avatar == null || (!avatar.scriptError && !avatar.isYsmNative()
+                && (avatar.luaRuntime == null || avatar.luaRuntime.vanilla_model.PLAYER.checkVisible())));
+    }
+
+    /** Explicit vanilla base: the binding owns no placeholder Avatar or Lua runtime. */
+    public boolean selectVanilla() {
+        resetPlayerPreview();
+        long generation = begin();
+        boolean isolated = detachedMode || independentFigura;
+        if (isolated && detachedEntity == null && world != null) {
+            detachedEntity = new LibraryPreviewPlayer(world, owner, () -> Minecraft.getInstance().player);
+        }
+        entity = isolated ? detachedEntity : Minecraft.getInstance().player;
+        if (!current(generation) || entity == null) {
+            status = new Status(Stage.FAILED, "NO_PREVIEW_WORLD");
+            return false;
+        }
+        currentPlayerFigura = !isolated;
+        binding = new LibraryPreviewBinding(entity, null, isolated);
+        status = new Status(Stage.READY, "");
+        return true;
     }
 
     public LivingEntity entity() {
+        if (livePlayer != null) {
+            return current(generations.get()) && resolveLivePlayer(previewPlayer) == livePlayer ? livePlayer : null;
+        }
         return !closed && binding != null && current(generations.get()) ? entity : null;
     }
 
     public void withPlayerContext(Runnable action) {
-        if (binding != null) {
+        if (livePlayer != null && entity() != null) {
+            action.run();
+        } else if (binding != null) {
             binding.withPlayerContext(action);
+        }
+    }
+
+    /** Borrow the actual online entity; only the fallback model belongs to this session. */
+    public void selectPlayerResource(UUID player,
+                                     java.util.function.Supplier<LibraryClient.Request<CompoundTag>> fallback) {
+        selectPlayer(player, () -> startResource(fallback.get()));
+    }
+
+    public void selectPlayerDraft(UUID player, java.util.function.Supplier<CompoundTag> fallback) {
+        selectPlayer(player, () -> {
+            playerDraftNbt = fallback.get();
+            CompoundTag data = playerDraftNbt;
+            startDraft(() -> data == null ? new CompoundTag() : data);
+        });
+        playerDraft = fallback;
+    }
+
+    private void selectPlayer(UUID player, Runnable fallback) {
+        clear();
+        previewPlayer = java.util.Objects.requireNonNull(player);
+        preparePlayerFallback = fallback;
+        independentFigura = true;
+        refreshPlayerPreview();
+    }
+
+    static LivingEntity resolveLivePlayer(UUID player) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (player == null || minecraft.level == null || minecraft.getConnection() == null
+                || minecraft.getConnection().getPlayerInfo(player) == null) {
+            return null;
+        }
+        LivingEntity entity = minecraft.level.getPlayerByUUID(player);
+        return entity == null || entity.isRemoved() ? null : entity;
+    }
+
+    private void refreshPlayerPreview() {
+        if (closed || previewPlayer == null || !current(generations.get())) {
+            return;
+        }
+        LivingEntity resolved = resolveLivePlayer(previewPlayer);
+        if (resolved != null) {
+            if (livePlayer != resolved) {
+                begin();
+                livePlayer = resolved;
+                playerFallbackStarted = false;
+                status = new Status(Stage.READY, "");
+            }
+        } else if (!playerFallbackStarted) {
+            livePlayer = null;
+            playerFallbackStarted = true;
+            preparePlayerFallback.run();
+        } else if (playerDraft != null && playerDraft.get() != playerDraftNbt) {
+            preparePlayerFallback.run();
         }
     }
 
@@ -147,6 +245,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
     }
 
     public CompletableFuture<Boolean> select(UUID model, LibraryTransferService transfers) {
+        resetPlayerPreview();
         long generation = begin();
         var result = new CompletableFuture<Boolean>();
         transfer = transfers.preview(model);
@@ -171,6 +270,11 @@ public final class LibraryPreviewSession implements AutoCloseable {
 
     /** Source-bound administrator reads share the same cancellable preparation lifecycle. */
     public CompletableFuture<Boolean> selectResource(LibraryClient.Request<CompoundTag> request) {
+        resetPlayerPreview();
+        return startResource(request);
+    }
+
+    private CompletableFuture<Boolean> startResource(LibraryClient.Request<CompoundTag> request) {
         long generation = begin();
         resource = request;
         var result = new CompletableFuture<Boolean>();
@@ -189,6 +293,11 @@ public final class LibraryPreviewSession implements AutoCloseable {
     }
 
     public CompletableFuture<Boolean> selectDraft(java.util.function.Supplier<CompoundTag> nbt) {
+        resetPlayerPreview();
+        return startDraft(nbt);
+    }
+
+    private CompletableFuture<Boolean> startDraft(java.util.function.Supplier<CompoundTag> nbt) {
         long generation = begin();
         var result = new CompletableFuture<Boolean>();
         prepare(nbt, generation, result);
@@ -201,6 +310,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
             throw new IllegalStateException("PREVIEW_CLOSED");
         }
         long generation = generations.incrementAndGet();
+        cancelCompositionPreparation();
         if (resource != null) {
             resource.cancel();
             resource = null;
@@ -294,23 +404,95 @@ public final class LibraryPreviewSession implements AutoCloseable {
     }
 
     public void tick() {
+        refreshPlayerPreview();
         if (!current(generations.get())) {
             close();
-        } else if (avatar != null && entity != null && !AvatarManager.panic) {
+        } else if (livePlayer != null) {
+            // The original AvatarManager owns ticking and the borrowed avatar's lifetime.
+            return;
+        } else if (binding != null && entity != null && !AvatarManager.panic) {
             if (!currentPlayerFigura) {
                 entity.tickCount++;
             }
-            binding.withPlayerContext(avatar::tick);
+            binding.withPlayerContext(binding::tick);
+        }
+    }
+
+    /** Install a prepared draft generation; existing deferred frames retain the previous generation. */
+    public void setComposition(OutfitComposition composition) {
+        if (binding == null) {
+            throw new IllegalStateException("PREVIEW_NOT_READY");
+        }
+        cancelCompositionPreparation();
+        binding.setComposition(composition);
+    }
+
+    /** Keep the current preview visible until every instance in the newest draft is prepared. */
+    public CompletableFuture<Boolean> prepareComposition(OutfitConfig configuration, OutfitLimits limits,
+                                                          UUID account, UUID outfit, PermissionPack.PlayerPermissionPack permissions,
+                                                          OutfitPreparation.Resources resources) {
+        if (closed || binding == null || livePlayer != null) {
+            throw new IllegalStateException("PREVIEW_NOT_READY");
+        }
+        if ((configuration.base() == null) != (avatar == null)
+                || (avatar != null && (configuration.base().format() == OutfitConfig.Format.FIGURA) == avatar.isYsmNative())) {
+            throw new IllegalArgumentException("PREVIEW_BASE_MISMATCH");
+        }
+        cancelCompositionPreparation();
+        long generation = generations.get();
+        long draft = compositionGenerations.get();
+        LibraryPreviewBinding target = binding;
+        LivingEntity wearer = entity;
+        var result = new CompletableFuture<Boolean>();
+        pendingComposition = result;
+        java.util.function.BooleanSupplier cancelled = () -> result.isCancelled() || !current(generation)
+                || compositionGenerations.get() != draft;
+        AvatarLoadExecutor.submit(() -> {
+            try {
+                return OutfitPreparation.prepare(configuration, limits, account, outfit,
+                        wearer, permissions, outfitIndexes, resources, cancelled);
+            } catch (Exception failure) {
+                throw new java.util.concurrent.CompletionException(failure);
+            }
+        })
+                .whenComplete((prepared, failure) -> Minecraft.getInstance().execute(() -> {
+                    if (cancelled.getAsBoolean() || target != binding || failure != null) {
+                        if (prepared != null) {
+                            prepared.close();
+                        }
+                        if (pendingComposition == result) {
+                            pendingComposition = null;
+                        }
+                        if (failure != null && !cancelled.getAsBoolean()) {
+                            result.completeExceptionally(failure);
+                        } else {
+                            result.complete(false);
+                        }
+                        return;
+                    }
+                    target.setComposition(prepared);
+                    pendingComposition = null;
+                    result.complete(true);
+                }));
+        return result;
+    }
+
+    private void cancelCompositionPreparation() {
+        compositionGenerations.incrementAndGet();
+        if (pendingComposition != null) {
+            pendingComposition.cancel(false);
+            pendingComposition = null;
         }
     }
 
     public void beforeExtract(float delta) {
+        refreshPlayerPreview();
         if (current(generations.get()) && avatar != null && !AvatarManager.panic) {
-            binding.withPlayerContext(() -> {
+            binding.withPlayerContext(() -> binding.withBaseBudget(() -> {
                 avatar.render(delta);
                 avatar.clearAnimations();
                 avatar.applyAnimations();
-            });
+            }));
         }
     }
 
@@ -318,6 +500,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
         if (closed) {
             return;
         }
+        resetPlayerPreview();
         begin();
         status = new Status(Stage.IDLE, "");
     }
@@ -333,12 +516,23 @@ public final class LibraryPreviewSession implements AutoCloseable {
         currentPlayerFigura = false;
     }
 
+    private void resetPlayerPreview() {
+        previewPlayer = null;
+        livePlayer = null;
+        preparePlayerFallback = null;
+        playerFallbackStarted = false;
+        playerDraft = null;
+        playerDraftNbt = null;
+    }
+
     @Override
     public void close() {
         if (closed) {
             return;
         }
         closed = true;
+        cancelCompositionPreparation();
+        resetPlayerPreview();
         expanded = false;
         generations.incrementAndGet();
         if (resource != null) {

@@ -151,7 +151,17 @@ public class LocalAvatarLoader {
         return compileFiguraAvatar(path, owner, false);
     }
 
+    /** Accessory preparation shares the native compiler and explicitly selects its manifest. */
+    public static CompoundTag prepareCosmeticAvatar(Path path, UUID owner) throws Exception {
+        return compileFiguraAvatar(path, owner, false, "cosmetic.json");
+    }
+
     private static CompoundTag compileFiguraAvatar(Path path, UUID owner, boolean reportProgress) throws Exception {
+        return compileFiguraAvatar(path, owner, reportProgress, "avatar.json");
+    }
+
+    private static CompoundTag compileFiguraAvatar(Path path, UUID owner, boolean reportProgress,
+                                                   String manifest) throws Exception {
         // load as folder
         CompoundTag nbt = new CompoundTag();
 
@@ -182,11 +192,16 @@ public class LocalAvatarLoader {
         if (reportProgress) {
             loadState = LoadState.METADATA;
         }
-        String avatarJson = IOUtils.readFile(path.resolve("avatar.json"));
+        String avatarJson = IOUtils.readFile(path.resolve(manifest));
         var metadata = AvatarMetadataParser.read(avatarJson);
         CompoundTag metadataNbt = AvatarMetadataParser.parse(metadata, avatarJson, IOUtils.getFileNameOrEmpty(path));
         nbt.put("metadata", metadataNbt);
         metadataNbt.putString("uuid", owner.toString());
+        if (manifest.equals("cosmetic.json")) {
+            top.aihmc.omnimorph.model.outfit.CosmeticMetadata.read(avatarJson);
+            metadataNbt.putString("resource_kind", "ACCESSORY");
+            metadataNbt.putString("cosmetic_json", avatarJson);
+        }
 
         AvatarMetadataParser.injectToModels(metadata, models);
         AvatarMetadataParser.injectToTextures(metadata, textures);

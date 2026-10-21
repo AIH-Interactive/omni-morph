@@ -30,10 +30,15 @@ import top.aihmc.omnimorph.ducks.FiguraSubmitCallBackExtension;
 import top.aihmc.omnimorph.ducks.NodeCollectorExtension;
 import top.aihmc.omnimorph.lua.api.nameplate.EntityNameplateCustomization;
 import top.aihmc.omnimorph.lua.api.vanilla_model.VanillaPart;
+import top.aihmc.omnimorph.model.library.LibraryPreviewBinding;
+import top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer;
+import top.aihmc.omnimorph.model.outfit.OutfitComposition;
+import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
 import top.aihmc.omnimorph.model.ysm.YsmModelRuntime;
 import top.aihmc.omnimorph.permissions.Permissions;
 import top.aihmc.omnimorph.utils.RenderUtils;
 import top.aihmc.omnimorph.utils.TextUtils;
+import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -208,9 +213,34 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
                 ? RenderTypes.entityTranslucent(ysm.texture().getLocation())
                 : RenderTypes.entityCutout(ysm.texture().getLocation());
         var submittedPose = ysm.captureRenderPose(true);
+        var player = Minecraft.getInstance().player;
+        OutfitComposition.Frame retainedOutfit = null;
+        if (LibraryPreviewBinding.hasComposition(player)) {
+            float delta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
+            AvatarRenderState outfitState = this.createRenderState(player, delta);
+            outfitState.lightCoords = light;
+            LibraryPreviewBinding.capture(player, outfitState);
+            var outfit = LibraryPreviewBinding.composition(outfitState);
+            retainedOutfit = outfit;
+            var basePose = outfit.captureYsmArm(ysm, new Matrix4f(), left, submittedPose);
+            ((NodeCollectorExtension) submitNodeCollector).submitFiguraModel(localAvatar, outfitState,
+                    (owner, state, buffers) -> {
+                        if (owner.getYsmRuntime() == ysm) {
+                            OutfitNativeRenderer.draw(outfit, basePose, state, delta,
+                                    copy.last().pose(), buffers, EntityRenderMode.FIRST_PERSON);
+                        }
+                        return null;
+                    });
+        }
+        var outfitFrame = retainedOutfit;
         submitNodeCollector.submitCustomGeometry(copy, renderType, (pose, buffer) -> {
             if (localAvatar.getYsmRuntime() == ysm) {
-                ysm.renderFirstPersonArm(copy, figura$singleBuffer(buffer), light, left, submittedPose);
+                if (outfitFrame == null) {
+                    ysm.renderFirstPersonArm(copy, figura$singleBuffer(buffer), light, left, submittedPose);
+                } else {
+                    outfitFrame.drawYsmBase(ysm.renderBudgetOwner(), () -> ysm.renderFirstPersonArm(
+                            copy, figura$singleBuffer(buffer), light, left, submittedPose));
+                }
             }
         });
 
@@ -226,7 +256,22 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
         Map<ModelPart, PartPose> modelState = RenderUtils.captureModelState(model);
 
         Avatar localAvatar = avatar;
+        var player = Minecraft.getInstance().player;
+        float delta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
+        AvatarRenderState outfitState = localAvatar == null && player != null && LibraryPreviewBinding.hasComposition(player)
+                ? this.createRenderState(player, delta) : null;
+        if (outfitState != null) {
+            outfitState.lightCoords = i;
+            LibraryPreviewBinding.capture(player, outfitState);
+        }
+        var outfit = outfitState == null ? null : LibraryPreviewBinding.composition(outfitState);
+        Matrix4f armToDraw = new Matrix4f(poseStack.last().pose());
         BiFunction<MultiBufferSource, PoseStack, Boolean> lambda = (bufferSource, stack) -> {
+            if (outfit != null && localAvatar == null) {
+                RenderUtils.restoreModelPoseState(model, modelState);
+                OutfitNativeRenderer.drawVanillaArm(outfit, model, outfitState, delta,
+                        armToDraw, bufferSource, modelPart == model.leftArm);
+            }
             if (localAvatar != null && localAvatar.luaRuntime != null) {
                 VanillaPart part = localAvatar.luaRuntime.vanilla_model.PLAYER;
                 RenderUtils.restoreModelPoseState(model, modelState);
@@ -266,27 +311,56 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
 
         Map<ModelPart, PartPose> modelState = RenderUtils.captureModelState(playerModel);
 
-        nodeCollectorExt.submitFiguraModel(avatar, null, (playerAvatar, state, bufferSource) -> {
+        var player = Minecraft.getInstance().player;
+        AvatarRenderState outfitState = player != null && LibraryPreviewBinding.hasComposition(player)
+                ? this.createRenderState(player, delta) : null;
+        if (outfitState != null) {
+            outfitState.lightCoords = light;
+            LibraryPreviewBinding.capture(player, outfitState);
+        }
 
-            RenderUtils.restoreModelPoseState(playerModel, modelState);
+        var submittedArmOutfit = outfitState == null ? null : LibraryPreviewBinding.composition(outfitState);
+        if (submittedArmOutfit != null) {
+            submittedArmOutfit.prepareFiguraBase(avatar);
+        }
 
-            if (playerAvatar != null && playerAvatar.luaRuntime != null) {
-                VanillaPart part = playerAvatar.luaRuntime.vanilla_model.PLAYER;
-                PlayerModel model = this.getModel();
+        nodeCollectorExt.submitFiguraModel(avatar, outfitState, (playerAvatar, state, bufferSource) -> {
+            Runnable drawSubmittedArm = () -> {
 
-                part.save(model);
+                RenderUtils.restoreModelPoseState(playerModel, modelState);
 
-                if (playerAvatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1) {
-                    part.preTransform(model);
-                    part.posTransform(model);
+                if (playerAvatar != null && playerAvatar.luaRuntime != null) {
+                    VanillaPart part = playerAvatar.luaRuntime.vanilla_model.PLAYER;
+                    PlayerModel model = this.getModel();
+
+                    part.save(model);
+
+                    if (playerAvatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1) {
+                        part.preTransform(model);
+                        part.posTransform(model);
+                    }
                 }
+
+                Runnable drawArm = () -> playerAvatar.firstPersonRender(copy, bufferSource,
+                        Minecraft.getInstance().player, playerModel, arm, light, delta);
+                var outfit = LibraryPreviewBinding.composition(state);
+                if (outfit == null) {
+                    drawArm.run();
+                } else {
+                    var pose = outfit.captureFiguraArm(playerAvatar, new Matrix4f(copy.last().pose()).invert(),
+                            arm == playerModel.leftArm, drawArm);
+                    OutfitNativeRenderer.draw(outfit, pose, state, delta,
+                            copy.last().pose(), bufferSource, EntityRenderMode.FIRST_PERSON);
+                }
+
+                if (playerAvatar.luaRuntime != null)
+                    playerAvatar.luaRuntime.vanilla_model.PLAYER.restore(playerModel);
+            };
+            if (submittedArmOutfit == null) {
+                drawSubmittedArm.run();
+            } else {
+                submittedArmOutfit.drawFiguraBase(playerAvatar, drawSubmittedArm);
             }
-
-            playerAvatar.firstPersonRender(copy, bufferSource, Minecraft.getInstance().player, playerModel, arm, light, delta);
-
-            if (playerAvatar.luaRuntime != null)
-                playerAvatar.luaRuntime.vanilla_model.PLAYER.restore(playerModel);
-
             return null;
         });
 

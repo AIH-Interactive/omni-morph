@@ -338,6 +338,39 @@ public class PartCustomization {
         target.secondaryTexture = secondaryTexture;
     }
 
+    /** Full render-pose copy, including animation channels omitted by the vanilla-transform backup. */
+    public void copyRenderPoseTo(PartCustomization target) {
+        copyTo(target);
+        target.animPos.set(animPos);
+        target.animRot.set(animRot);
+        target.animScale.set(animScale);
+    }
+
+    public boolean matchesRenderPose(PartCustomization other) {
+        return partType == other.partType && visible == other.visible
+                && needsMatrixRecalculation == other.needsMatrixRecalculation
+                && java.util.Objects.equals(vanillaVisible, other.vanillaVisible)
+                && java.util.Objects.equals(alpha, other.alpha)
+                && java.util.Objects.equals(light, other.light)
+                && java.util.Objects.equals(overlay, other.overlay)
+                && primaryRenderType == other.primaryRenderType && secondaryRenderType == other.secondaryRenderType
+                && primaryTexture == other.primaryTexture && secondaryTexture == other.secondaryTexture
+                && sameVector(position, other.position) && sameVector(rotation, other.rotation)
+                && sameVector(scale, other.scale) && sameVector(pivot, other.pivot)
+                && sameVector(offsetPivot, other.offsetPivot) && sameVector(offsetPos, other.offsetPos)
+                && sameVector(offsetRot, other.offsetRot) && sameVector(offsetScale, other.offsetScale)
+                && sameVector(animPos, other.animPos) && sameVector(animRot, other.animRot)
+                && sameVector(animScale, other.animScale) && sameVector(stackScale, other.stackScale)
+                && sameVector(color, other.color) && sameVector(color2, other.color2)
+                && positionMatrix.toMatrix4f().equals(other.positionMatrix.toMatrix4f())
+                && normalMatrix.toMatrix3f().equals(other.normalMatrix.toMatrix3f())
+                && uvMatrix.toMatrix3f().equals(other.uvMatrix.toMatrix3f());
+    }
+
+    private static boolean sameVector(FiguraVec3 first, FiguraVec3 second) {
+        return first.x == second.x && first.y == second.y && first.z == second.z;
+    }
+
     // Modify this object using the information contained in the other object
     public void modify(PartCustomization other) {
         positionMatrix.rightMultiply(other.positionMatrix);

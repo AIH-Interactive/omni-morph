@@ -6,6 +6,7 @@ import net.minecraft.world.entity.Entity;
 import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.lua.api.AvatarAPI;
+import top.aihmc.omnimorph.lua.api.CosmeticPlayerAPI;
 import top.aihmc.omnimorph.lua.api.HostAPI;
 import top.aihmc.omnimorph.lua.api.RendererAPI;
 import top.aihmc.omnimorph.lua.api.TextureAPI;
@@ -21,6 +22,7 @@ import top.aihmc.omnimorph.lua.api.ping.PingAPI;
 import top.aihmc.omnimorph.lua.api.vanilla_model.VanillaModelAPI;
 import top.aihmc.omnimorph.lua.api.ysm_model.YsmModelAPI;
 import top.aihmc.omnimorph.permissions.Permissions;
+import top.aihmc.omnimorph.model.outfit.OutfitInstructionBudget;
 import top.aihmc.omnimorph.utils.PathUtils;
 import org.luaj.vm2.*;
 import org.luaj.vm2.compiler.LuaC;
@@ -38,6 +40,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * One runtime per avatar
@@ -70,6 +73,8 @@ public class FiguraLuaRuntime {
     private final Map<String, Varargs> loadedScripts = new HashMap<>();
     private final Stack<String> loadingScripts = new Stack<>();
     public final LuaTypeManager typeManager = new LuaTypeManager();
+    private int sharedExecutionDepth;
+    private int exhaustedInstructions;
 
     public FiguraLuaRuntime(Avatar avatar, Map<String, String> scripts) {
         this.owner = avatar;
@@ -116,6 +121,9 @@ public class FiguraLuaRuntime {
             val = NullEntity.INSTANCE;
         } else {
             val = entityAPI = EntityAPI.wrap(user);
+            if (owner.cosmeticContext != null) {
+                val = new CosmeticPlayerAPI(user);
+            }
         }
 
         userGlobals.rawset("user", typeManager.javaToLua(val).arg1());
@@ -384,19 +392,35 @@ public class FiguraLuaRuntime {
         owner.luaRuntime = this;
 
         try {
-            if (autoScripts == null) {
-                for (String name : scripts.keySet())
-                    initializeScript(name);
-            } else {
-                for (Tag name : autoScripts)
-                    initializeScript(name.asString().get());
+            var budget = OutfitInstructionBudget.current(owner);
+            if (budget != null) {
+                if (budget.allowance(owner, owner.init) <= 0) {
+                    throw new LuaError("Outfit initialization budget exhausted");
+                }
+                return runBounded(owner.init, () -> {
+                    initializeScripts(autoScripts);
+                    return LuaValue.TRUE;
+                }, budget) != null;
             }
+            initializeScripts(autoScripts);
         } catch (Exception | StackOverflowError e) {
             error(e);
             return false;
         }
 
         return true;
+    }
+
+    private void initializeScripts(ListTag autoScripts) {
+        if (autoScripts == null) {
+            for (String name : scripts.keySet()) {
+                initializeScript(name);
+            }
+        } else {
+            for (Tag name : autoScripts) {
+                initializeScript(name.asString().get());
+            }
+        }
     }
 
     // error ^-^ //
@@ -423,12 +447,15 @@ public class FiguraLuaRuntime {
             FiguraMod.LOGGER.warn("Avatar {} bypassed resource limits with {} instructions", owner.owner, getInstructions());
             LuaError error = new LuaError("Script overran resource limits!");
             owner.noPermissions.add(Permissions.INIT_INST);
+            int consumed = Math.max(exhaustedInstructions, getInstructions());
             setInstructionLimit(1);
+            exhaustedInstructions = consumed;
             throw error;
         }
     };
 
     public void setInstructionLimit(int limit) {
+        exhaustedInstructions = 0;
         userGlobals.running.state.bytecodes = 0;
         setHookFunction.invoke(LuaValue.varargsOf(onReachedLimit, LuaValue.EMPTYSTRING, LuaValue.valueOf(Math.max(limit, 1))));
     }
@@ -455,20 +482,17 @@ public class FiguraLuaRuntime {
 
         Varargs val = LuaValue.varargsOf(values);
 
+        var budget = OutfitInstructionBudget.current(owner);
+        if (budget != null) {
+            return runBounded(limit, () -> invoke(toRun, val), budget);
+        }
+
         // set instructions limit
         setInstructionLimit(limit.remaining);
 
         // get and call event
         try {
-            Varargs ret;
-            if (toRun instanceof LuaEvent event)
-                ret = event.call(val);
-            else if (toRun instanceof String event)
-                ret = events.__index(event).call(val);
-            else if (toRun instanceof LuaValue func)
-                ret = func.invoke(val);
-            else
-                throw new IllegalArgumentException("Internal event error - Invalid type to run! (" + toRun.getClass().getSimpleName() + ")");
+            Varargs ret = invoke(toRun, val);
 
             // use instructions
             limit.use(getInstructions());
@@ -480,5 +504,44 @@ public class FiguraLuaRuntime {
 
         // failsafe return
         return null;
+    }
+
+    private Varargs invoke(Object toRun, Varargs args) {
+        if (toRun instanceof LuaEvent event) {
+            return event.call(args);
+        }
+        if (toRun instanceof String event) {
+            return events.__index(event).call(args);
+        }
+        if (toRun instanceof LuaValue func) {
+            return func.invoke(args);
+        }
+        throw new IllegalArgumentException("Internal event error - Invalid type to run! ("
+                + toRun.getClass().getSimpleName() + ")");
+    }
+
+    private Varargs runBounded(Avatar.Instructions limit, Supplier<Varargs> action,
+                               OutfitInstructionBudget budget) {
+        // Reentrant control callbacks stay inside the outer VM hook and are billed once.
+        if (sharedExecutionDepth != 0) {
+            return action.get();
+        }
+        int available = budget.allowance(owner, limit);
+        if (available <= 0) {
+            return null;
+        }
+        setInstructionLimit(available);
+        sharedExecutionDepth++;
+        try {
+            return action.get();
+        } catch (Exception | StackOverflowError failure) {
+            error(failure);
+            return null;
+        } finally {
+            sharedExecutionDepth--;
+            int consumed = Math.max(exhaustedInstructions, getInstructions());
+            budget.charge(owner, limit, consumed);
+            limit.use(consumed);
+        }
     }
 }

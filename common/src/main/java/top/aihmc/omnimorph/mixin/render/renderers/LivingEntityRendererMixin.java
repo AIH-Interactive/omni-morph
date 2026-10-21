@@ -28,6 +28,8 @@ import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.model.ysm.YsmPartMask;
 import top.aihmc.omnimorph.model.ysm.YsmRenderPass;
+import top.aihmc.omnimorph.model.library.LibraryPreviewBinding;
+import top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer;
 import top.aihmc.omnimorph.avatar.AvatarManager;
 import top.aihmc.omnimorph.config.Configs;
 import top.aihmc.omnimorph.ducks.FiguraEntityRenderStateExtension;
@@ -41,6 +43,7 @@ import top.aihmc.omnimorph.lua.api.world.ItemStackAPI;
 import top.aihmc.omnimorph.math.matrix.FiguraMat4;
 import top.aihmc.omnimorph.math.vector.FiguraVec3;
 import top.aihmc.omnimorph.model.rendering.PartFilterScheme;
+import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
 import top.aihmc.omnimorph.permissions.Permissions;
 import top.aihmc.omnimorph.utils.RenderUtils;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
@@ -91,8 +94,11 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
     private void onRender(S livingEntityRenderState, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState cameraRenderState, CallbackInfo ci) {
         top.aihmc.omnimorph.gui.AvatarLoadingRenderer.submit(livingEntityRenderState, poseStack, submitNodeCollector, cameraRenderState);
         currentAvatar = AvatarManager.getAvatar(livingEntityRenderState);
-        if (currentAvatar == null)
+        if (currentAvatar == null) {
+            lastPose = LibraryPreviewBinding.composition(livingEntityRenderState) == null
+                    ? null : new Matrix4f(poseStack.last().pose());
             return;
+        }
 
         if (currentAvatar.isYsmNative()) {
             Avatar localAvatar = currentAvatar;
@@ -116,10 +122,24 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
                 }
             }
             var submittedPose = runtime == null ? null : runtime.captureRenderPose(false);
+            var outfit = LibraryPreviewBinding.composition(livingEntityRenderState);
+            Matrix4f entityToDraw = new Matrix4f(poseStack.last().pose());
+            var outfitPose = outfit == null || runtime == null ? null : outfit.captureYsmBase(runtime,
+                    new Matrix4f(entityToDraw).invert().mul(ysmStack.last().pose()), submittedPose);
             int bodyOrder = runtime == null ? 0 : runtime.renderer().bodySubmitOrder();
             ((NodeCollectorExtension) submitNodeCollector.order(bodyOrder)).submitFiguraModel(localAvatar, livingEntityRenderState, (avatar, state, bufferSource) -> {
                 if (runtime != null && !runtime.isClosed() && avatar.getYsmRuntime() == attachedRuntime) {
-                    runtime.renderer().renderWithAttachments(ysmStack, bufferSource, state.lightCoords, submittedPose);
+                    if (outfitPose == null) {
+                        runtime.renderer().renderWithAttachments(ysmStack, bufferSource, state.lightCoords, submittedPose);
+                    } else {
+                        outfit.drawYsmBase(runtime.renderBudgetOwner(), () -> runtime.renderer().renderWithAttachments(
+                                ysmStack, bufferSource, state.lightCoords, submittedPose));
+                    }
+                    if (outfitPose != null) {
+                        OutfitNativeRenderer.draw(outfit, outfitPose, state,
+                                ((FiguraEntityRenderStateExtension) state).figura$getTickDelta(), entityToDraw,
+                                bufferSource, avatar.renderMode);
+                    }
                 }
                 return null;
             });
@@ -146,8 +166,20 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
 
     @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/SubmitNodeCollector;submitModel(Lnet/minecraft/client/model/Model;Ljava/lang/Object;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/rendertype/RenderType;IIILnet/minecraft/client/renderer/texture/TextureAtlasSprite;ILnet/minecraft/client/renderer/feature/ModelFeatureRenderer$CrumblingOverlay;)V", shift = At.Shift.BEFORE), method = "submit(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V", cancellable = true)
     private void setFiguraCallbacks(S livingEntityRenderState, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState cameraRenderState, CallbackInfo ci) {
-        if (currentAvatar == null)
+        if (currentAvatar == null) {
+            var outfit = LibraryPreviewBinding.composition(livingEntityRenderState);
+            if (outfit != null && LibraryPreviewBinding.isVanilla(livingEntityRenderState) && lastPose != null
+                    && !Avatar.firstPerson && getModel() instanceof net.minecraft.client.model.player.PlayerModel playerModel) {
+                Matrix4f entityToDraw = new Matrix4f(lastPose);
+                float delta = ((FiguraEntityRenderStateExtension) livingEntityRenderState).figura$getTickDelta();
+                ((FiguraSubmitCallBackExtension) playerModel).figura$addPreRenderingCallback((buffers, pose) -> {
+                    OutfitNativeRenderer.drawVanilla(outfit, playerModel, livingEntityRenderState, delta,
+                            entityToDraw, pose.last().pose(), buffers, EntityRenderMode.FIGURA_GUI);
+                    return true;
+                });
+            }
             return;
+        }
 
         if (Avatar.firstPerson) {
             M model = getModel();
@@ -224,6 +256,11 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
         // uses current-frame transforms instead of stale ones from the previous frame
         localAvatar.updateMatrices(model, poseStack);
 
+        var submittedOutfit = LibraryPreviewBinding.composition(livingEntityRenderState);
+        if (submittedOutfit != null) {
+            submittedOutfit.prepareFiguraBase(localAvatar);
+        }
+
         NodeCollectorExtension nodeCollectorExtension = (NodeCollectorExtension) submitNodeCollector;
 
         Matrix4f lastPs = new Matrix4f(lastPose);
@@ -232,62 +269,77 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
         poseStack2.last().set(poseStack.last());
 
         nodeCollectorExtension.submitFiguraModel(localAvatar, livingEntityRenderState, ((avatar, livingEntityState, bufferSource) -> {
-            // When viewed 3rd person, render all non-world parts.
-            RenderUtils.restoreModelPoseState(model, modelState);
+            Runnable drawSubmitted = () -> {
+                // When viewed 3rd person, render all non-world parts.
+                RenderUtils.restoreModelPoseState(model, modelState);
 
-            PartFilterScheme filter = invisible ? PartFilterScheme.PIVOTS : PartFilterScheme.MODEL;
+                PartFilterScheme filter = invisible ? PartFilterScheme.PIVOTS : PartFilterScheme.MODEL;
 
-            FiguraMod.pushProfiler(FiguraMod.MOD_ID);
-            FiguraMod.pushProfiler(avatar);
+                FiguraMod.pushProfiler(FiguraMod.MOD_ID);
+                FiguraMod.pushProfiler(avatar);
 
-            FiguraMod.pushProfiler("calculateMatrix");
-            Matrix4f diff = new Matrix4f(lastPs).invert().mul(poseStack2.last().pose());
-            FiguraMat4 poseMatrix = new FiguraMat4().set(diff);
+                FiguraMod.pushProfiler("calculateMatrix");
+                Matrix4f diff = new Matrix4f(lastPs).invert().mul(poseStack2.last().pose());
+                FiguraMat4 poseMatrix = new FiguraMat4().set(diff);
 
-            FiguraMod.popPushProfiler("render");
+                FiguraMod.popPushProfiler("render");
 
-            figura$transformParts(avatar, model);
+                figura$transformParts(avatar, model);
 
-            FiguraMod.popPushProfiler("renderEvent");
-            avatar.renderEvent(tickDelta, poseMatrix);
+                FiguraMod.popPushProfiler("renderEvent");
+                avatar.renderEvent(tickDelta, poseMatrix);
 
-            avatar.render(entity, livingEntityState.yRot, tickDelta, translucent ? 0.15f : 1f, poseStack2, bufferSource, livingEntityState.lightCoords, overlay, model, filter, translucent, glowing);
-
-            // Submit deferred items using fresh pivot transforms from commonRender()
-            FiguraMod.popPushProfiler("deferredItems");
-            var localRenderer = avatar.renderer;
-            if (localRenderer != null) {
-                for (var deferredItem : localRenderer.deferredItems) {
-                    avatar.pivotPartRender(deferredItem.pivotType(), stack -> {
-                        final float s = 16f;
-                        stack.scale(s, s, s);
-                        stack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-90f));
-
-                        var ext = (FiguraItemStackRenderStateExtension) deferredItem.renderState();
-                        ItemTransform transform = ext.figura$getItemTransform();
-
-                        if (avatar == null || !avatar.itemRenderEventDirect(
-                                ItemStackAPI.verify(ext.figura$getItemStack()),
-                                ext.figura$getDisplayContext().name(),
-                                FiguraVec3.fromVec3f(transform.translation()),
-                                FiguraVec3.of(transform.rotation().z(), transform.rotation().y(), transform.rotation().x()),
-                                FiguraVec3.fromVec3f(transform.scale()),
-                                ext.figura$isLeftHanded(),
-                                stack, bufferSource, deferredItem.light(), net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY))
-                            deferredItem.renderState().submit(stack, deferredItem.submitNodeCollector(), deferredItem.light(), net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, deferredItem.outlineColor());
-                    });
+                Runnable drawBase = () -> avatar.render(entity, livingEntityState.yRot, tickDelta, translucent ? 0.15f : 1f,
+                        poseStack2, bufferSource, livingEntityState.lightCoords, overlay, model, filter, translucent, glowing);
+                var outfit = LibraryPreviewBinding.composition(livingEntityState);
+                if (outfit == null) {
+                    drawBase.run();
+                } else {
+                    var basePose = outfit.captureFiguraBase(avatar, new Matrix4f(lastPs).invert(), drawBase);
+                    OutfitNativeRenderer.draw(outfit, basePose, livingEntityState, tickDelta, lastPs, bufferSource, avatar.renderMode);
                 }
-                localRenderer.deferredItems.clear();
+
+                // Submit deferred items using fresh pivot transforms from commonRender()
+                FiguraMod.popPushProfiler("deferredItems");
+                var localRenderer = avatar.renderer;
+                if (localRenderer != null) {
+                    for (var deferredItem : localRenderer.deferredItems) {
+                        avatar.pivotPartRender(deferredItem.pivotType(), stack -> {
+                            final float s = 16f;
+                            stack.scale(s, s, s);
+                            stack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-90f));
+
+                            var ext = (FiguraItemStackRenderStateExtension) deferredItem.renderState();
+                            ItemTransform transform = ext.figura$getItemTransform();
+
+                            if (avatar == null || !avatar.itemRenderEventDirect(
+                                    ItemStackAPI.verify(ext.figura$getItemStack()),
+                                    ext.figura$getDisplayContext().name(),
+                                    FiguraVec3.fromVec3f(transform.translation()),
+                                    FiguraVec3.of(transform.rotation().z(), transform.rotation().y(), transform.rotation().x()),
+                                    FiguraVec3.fromVec3f(transform.scale()),
+                                    ext.figura$isLeftHanded(),
+                                    stack, bufferSource, deferredItem.light(), net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY))
+                                deferredItem.renderState().submit(stack, deferredItem.submitNodeCollector(), deferredItem.light(), net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, deferredItem.outlineColor());
+                        });
+                    }
+                    localRenderer.deferredItems.clear();
+                }
+
+                FiguraMod.popPushProfiler("postRenderEvent");
+                avatar.postRenderEvent(tickDelta, poseMatrix);
+
+                FiguraMod.popProfiler(3);
+
+                // undo transformations
+                if (avatar.luaRuntime != null)
+                    avatar.luaRuntime.vanilla_model.PLAYER.restore(model);
+            };
+            if (submittedOutfit == null) {
+                drawSubmitted.run();
+            } else {
+                submittedOutfit.drawFiguraBase(avatar, drawSubmitted);
             }
-
-            FiguraMod.popPushProfiler("postRenderEvent");
-            avatar.postRenderEvent(tickDelta, poseMatrix);
-
-            FiguraMod.popProfiler(3);
-
-            // undo transformations
-            if (avatar.luaRuntime != null)
-                avatar.luaRuntime.vanilla_model.PLAYER.restore(model);
             return null;
         }));
     }

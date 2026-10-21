@@ -61,6 +61,15 @@ tasks.register('outfitContractSmokeTest', JavaExec) {
     args rootProject.file('protocol').path
 }
 
+tasks.register('cosmeticSourceSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks native accessory preparation, stable skeleton bindings and encrypted cosmetic caches; no GUI.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest'
+    args '--cosmetic-sources', rootProject.projectDir.path
+}
+
 protobuf {
     protoc {
         artifact = 'com.google.protobuf:protoc:4.31.1'

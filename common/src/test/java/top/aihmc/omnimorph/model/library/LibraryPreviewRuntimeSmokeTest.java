@@ -23,6 +23,8 @@ import top.aihmc.omnimorph.backend2.protocol.CloudEndpoint;
 import top.aihmc.omnimorph.backend2.protocol.LibraryAccess;
 import top.aihmc.omnimorph.permissions.PermissionManager;
 import top.aihmc.omnimorph.permissions.Permissions;
+import top.aihmc.omnimorph.model.outfit.OutfitConfig;
+import top.aihmc.omnimorph.model.outfit.OutfitLimits;
 import top.aihmc.omnimorph.config.Configs;
 import top.aihmc.omnimorph.gui.screens.library.ModelFilePickerScreen;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryRowList;
@@ -63,6 +65,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
             testWardrobeVisibilityTicks(unsafe);
             testWardrobeDefaultPreview(unsafe);
             testPreviewAppearance(unsafe);
+            testOtherPlayerRouting(unsafe, client);
+            testOtherPlayerDraft(unsafe, drain);
+            testVanillaSelection(unsafe, drain);
             testIndependentFigura(unsafe, drain);
             // Only the entity allocation is replaced: actual Avatar loading, permissions,
             // generation guards, production lookup bindings and resource cleanup all run.
@@ -271,6 +276,196 @@ public final class LibraryPreviewRuntimeSmokeTest {
         } finally {
             LibraryPreviewBinding.finishFrame();
             drain.run();
+        }
+    }
+
+    private static void testOtherPlayerRouting(Unsafe unsafe, LibraryClient library) throws Exception {
+        Minecraft minecraft = Minecraft.getInstance();
+        var previousPlayer = minecraft.player;
+        var previousLevel = minecraft.level;
+        var local = (CurrentPreviewPlayer) unsafe.allocateInstance(CurrentPreviewPlayer.class);
+        var remote = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
+        UUID target = UUID.randomUUID();
+        remote.setUUID(target);
+        remote.tickCount = 73;
+        var level = (OtherPlayerLevel) unsafe.allocateInstance(OtherPlayerLevel.class);
+        level.target = remote;
+        var connection = (net.minecraft.client.multiplayer.ClientPacketListener)
+                unsafe.allocateInstance(net.minecraft.client.multiplayer.ClientPacketListener.class);
+        var players = new java.util.HashMap<UUID, net.minecraft.client.multiplayer.PlayerInfo>();
+        players.put(target, (net.minecraft.client.multiplayer.PlayerInfo)
+                unsafe.allocateInstance(net.minecraft.client.multiplayer.PlayerInfo.class));
+        field(connection.getClass(), "playerInfoMap").set(connection, players);
+        field(net.minecraft.client.player.LocalPlayer.class, "connection").set(local, connection);
+        minecraft.player = local;
+        minecraft.level = level;
+        var reads = new java.util.concurrent.atomic.AtomicInteger();
+        var pending = new java.util.concurrent.atomic.AtomicReference<LibraryClient.Request<CompoundTag>>();
+        var release = new CountDownLatch(1);
+        try (var preview = new LibraryPreviewSession(library)) {
+            preview.selectPlayerResource(target, () -> {
+                reads.incrementAndGet();
+                var request = library.submit(LibraryClient.Lane.CONTROL, exchange -> {
+                    release.await(5, TimeUnit.SECONDS);
+                    return model("offline copy");
+                });
+                pending.set(request);
+                return request;
+            });
+            require(preview.entity() == remote && reads.get() == 0,
+                    "online player with its entity borrows the original preview without downloading a copy");
+            var invoked = new AtomicBoolean();
+            preview.withPlayerContext(() -> {
+                invoked.set(true);
+                require(LibraryPreviewBinding.avatar(remote) == null,
+                        "borrowed player never replaces the original Avatar lookup");
+            });
+            preview.tick();
+            preview.beforeExtract(0.5f);
+            require(invoked.get() && remote.tickCount == 73,
+                    "borrowed preview uses native context without independently ticking the player");
+            level.target = null;
+            preview.tick();
+            require(reads.get() == 1 && preview.entity() == null,
+                    "online player without an entity starts the isolated fallback");
+            level.target = remote;
+            preview.tick();
+            require(preview.entity() == remote && pending.get().future().isCancelled(),
+                    "entity arrival cancels the pending isolated generation");
+            players.clear();
+            preview.tick();
+            require(reads.get() == 2 && preview.entity() == null,
+                    "an entity without an online player entry also requires isolation");
+            preview.close();
+            require(pending.get().future().isCancelled() && !remote.isRemoved(),
+                    "closing cancels fallback work and preserves the borrowed entity");
+            System.out.println("PASS management/permissions player routing: online entity, missing entity, offline, cancellation and borrowed lifetime; GUI MANUAL/PENDING");
+        } finally {
+            release.countDown();
+            minecraft.player = previousPlayer;
+            minecraft.level = previousLevel;
+        }
+    }
+
+    private static void testOtherPlayerDraft(Unsafe unsafe, Runnable drain) throws Exception {
+        UUID target = UUID.randomUUID();
+        var source = new java.util.concurrent.atomic.AtomicReference<>(model("offline player"));
+        Avatar copy;
+        try (var preview = new LibraryPreviewSession(null, true)) {
+            var entity = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
+            UUID owner = (UUID) field(LibraryPreviewSession.class, "owner").get(preview);
+            entity.setUUID(owner);
+            field(LibraryPreviewSession.class, "entity").set(preview, entity);
+            field(LibraryPreviewSession.class, "detachedEntity").set(preview, entity);
+            preview.selectPlayerDraft(target, source::get);
+            waitReady(preview, drain);
+            copy = (Avatar) field(LibraryPreviewSession.class, "avatar").get(preview);
+            require(preview.entity() == entity && copy.isLibraryPreview && !copy.owner.equals(target),
+                    "offline permissions preview loads an isolated native avatar with a private identity");
+            source.set(model("updated offline player"));
+            preview.tick();
+            waitReady(preview, drain);
+            Avatar latest = (Avatar) field(LibraryPreviewSession.class, "avatar").get(preview);
+            require(latest != copy && !copy.accelerationOwner().isCurrent(),
+                    "late or refreshed player data retires the previous independent copy");
+            require(latest.nbt.getCompoundOrEmpty("metadata").getStringOr("name", "")
+                            .equals("updated offline player"),
+                    "permissions fallback uses the refreshed player model");
+            copy = latest;
+        }
+        require(!copy.accelerationOwner().isCurrent(), "closing permissions preview releases only its own copy");
+        System.out.println("PASS offline permissions copy: native load, private identity, refreshed NBT and cleanup; GUI MANUAL/PENDING");
+    }
+
+    private static void waitReady(LibraryPreviewSession preview, Runnable drain) throws Exception {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (preview.status().stage() == LibraryPreviewSession.Stage.LOADING && System.nanoTime() < deadline) {
+            drain.run();
+            Thread.sleep(5);
+        }
+        require(preview.status().stage() == LibraryPreviewSession.Stage.READY,
+                "player fallback preparation completes: " + preview.status());
+    }
+
+    private static void testVanillaSelection(Unsafe unsafe, Runnable drain) throws Exception {
+        Minecraft minecraft = Minecraft.getInstance();
+        var previousPlayer = minecraft.player;
+        var player = (CurrentPreviewPlayer) unsafe.allocateInstance(CurrentPreviewPlayer.class);
+        player.setUUID(UUID.randomUUID());
+        player.tickCount = 64;
+        minecraft.player = player;
+        Avatar equipped = new Avatar(player.getUUID());
+        equipped.load(model("equipped fixture"));
+        try (var original = new LibraryPreviewBinding(player, equipped);
+             var preview = new LibraryPreviewSession()) {
+            require(preview.selectVanilla() && preview.entity() == player && preview.showsVanillaPlayer(),
+                    "vanilla selection uses the actual player and its native skin");
+            require(field(LibraryPreviewSession.class, "avatar").get(preview) == null,
+                    "vanilla preview owns no empty Avatar placeholder");
+            var state = new AvatarRenderState();
+            preview.withPlayerContext(() -> {
+                require(AvatarManager.getAvatar(player) == null
+                                && AvatarManager.getAvatarForPlayer(player.getUUID()) == null,
+                        "vanilla scope masks the equipped model for entity and player lookups");
+                LibraryPreviewBinding.capture(player, state);
+            });
+            require(AvatarManager.getAvatar(player) == equipped && AvatarManager.getAvatar(state) == null
+                            && AvatarManager.getEntity(state) == player && LibraryPreviewBinding.isVanilla(state),
+                    "deferred vanilla frame stays isolated while outside lookups retain equipment");
+            var resource = new OutfitConfig.ResourceRef(OutfitConfig.Source.LOCAL, UUID.randomUUID(), null, null,
+                    null, "6".repeat(64), OutfitConfig.Format.FIGURA);
+            var declaration = new OutfitConfig.Instance(UUID.randomUUID(), resource, 1, true,
+                    OutfitConfig.AnchorRef.authorDefault("unknown"), OutfitConfig.Transform.identity(),
+                    java.util.List.of(), Map.of(), Map.of());
+            var config = new OutfitConfig(1, 0, null, java.util.List.of(declaration), java.util.List.of(),
+                    Map.of(resource.identity(), 1), false);
+            CompoundTag source = model("vanilla accessory");
+            source.getCompoundOrEmpty("metadata").putString("resource_kind", "ACCESSORY");
+            var wrongBase = new OutfitConfig(1, 0, resource, config.instances(), config.virtualAnchors(),
+                    config.displayOrdinals(), false);
+            try {
+                preview.prepareComposition(wrongBase, OutfitLimits.defaults(), player.getUUID(), UUID.randomUUID(),
+                        equipped.permissions, (reference, cancelled) -> source);
+                throw new AssertionError("custom-base draft published over a vanilla preview");
+            } catch (IllegalArgumentException expected) {
+                require(expected.getMessage().equals("PREVIEW_BASE_MISMATCH"),
+                        "draft base kind must agree with the prepared native preview");
+            }
+            require(await(preview.prepareComposition(config, OutfitLimits.defaults(), player.getUUID(), UUID.randomUUID(),
+                    equipped.permissions, (reference, cancelled) -> source), drain),
+                    "vanilla base accepts independently prepared accessory instances");
+            var outfitFrame = new AvatarRenderState();
+            preview.withPlayerContext(() -> LibraryPreviewBinding.capture(player, outfitFrame));
+            require(LibraryPreviewBinding.composition(outfitFrame) != null,
+                    "native vanilla extraction retains its complete accessory generation");
+            preview.tick();
+            require(player.tickCount == 64, "vanilla composition does not advance the actual entity clock");
+            preview.clear();
+            require(LibraryPreviewBinding.isVanilla(outfitFrame)
+                            && LibraryPreviewBinding.composition(outfitFrame) != null
+                            && equipped.accelerationOwner().isCurrent(),
+                    "retiring vanilla preview preserves extracted frames and equipped resources");
+            LibraryPreviewBinding.finishFrame();
+            require(!LibraryPreviewBinding.isVanilla(state) && AvatarManager.getAvatar(player) == equipped,
+                    "frame cleanup releases vanilla bindings without destroying outside equipment");
+            System.out.println("PASS vanilla composition preview: no placeholder Avatar, scoped equipment masking, async accessory preparation and deferred cleanup; GUI MANUAL/PENDING");
+        } finally {
+            LibraryPreviewBinding.finishFrame();
+            minecraft.player = previousPlayer;
+            ((Map<?, ?>) field(PermissionManager.class, "PLAYERS").get(null)).remove(player.getUUID());
+        }
+    }
+
+    private static final class OtherPlayerLevel extends net.minecraft.client.multiplayer.ClientLevel {
+        private net.minecraft.world.entity.player.Player target;
+
+        private OtherPlayerLevel() {
+            super(null, null, null, null, 0, 0, null, false, 0L, 0);
+        }
+
+        @Override
+        public net.minecraft.world.entity.player.Player getPlayerByUUID(UUID player) {
+            return target != null && player.equals(target.getUUID()) ? target : null;
         }
     }
 
@@ -509,11 +704,122 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = previousPaperdoll;
                 avatar.renderMode = previousMode;
             }
+            top.aihmc.omnimorph.model.outfit.NativeSkeletonSmokeTest.testFigura(avatar);
+            top.aihmc.omnimorph.model.outfit.OutfitNativeRenderSmokeTest.run();
+            testCompositionPreparation(session, drain, gui);
             System.out.println("PASS independent Figura drawing: real Lua render, native body vertices, script visibility and no entity layers");
         } finally {
             field(Minecraft.class, "gameRenderer").set(client, oldRenderer);
             field(Minecraft.class, "debugEntries").set(client, oldDebug);
         }
+    }
+
+    private static void testCompositionPreparation(LibraryPreviewSession session, Runnable drain,
+                                                    PreviewGraphics gui) throws Exception {
+        var resource = new OutfitConfig.ResourceRef(OutfitConfig.Source.LOCAL, UUID.randomUUID(), null, null,
+                null, "8".repeat(64), OutfitConfig.Format.FIGURA);
+        var declaration = new OutfitConfig.Instance(UUID.randomUUID(), resource, 1, true,
+                OutfitConfig.AnchorRef.authorDefault("unknown"), OutfitConfig.Transform.identity(),
+                java.util.List.of(), Map.of(), Map.of());
+        var baseResource = new OutfitConfig.ResourceRef(OutfitConfig.Source.LOCAL, UUID.randomUUID(), null, null,
+                null, "7".repeat(64), OutfitConfig.Format.FIGURA);
+        var configuration = new OutfitConfig(1, 0, baseResource, java.util.List.of(declaration), java.util.List.of(),
+                Map.of(resource.identity(), 1), false);
+        UUID account = UUID.randomUUID();
+        UUID outfit = UUID.randomUUID();
+        var permissions = new top.aihmc.omnimorph.permissions.PermissionPack.PlayerPermissionPack(
+                new top.aihmc.omnimorph.permissions.PermissionPack.CategoryPermissionPack(Permissions.Category.DEFAULT),
+                account.toString());
+        var source = model("prepared accessory");
+        source.getCompoundOrEmpty("metadata").putString("resource_kind", "ACCESSORY");
+        require(await(session.prepareComposition(configuration, OutfitLimits.defaults(), account, outfit, permissions,
+                (reference, cancelled) -> source), drain), "asynchronous draft preparation publishes a complete generation");
+        var entity = session.entity();
+        Avatar nativeAvatar = AvatarManager.getAvatar(entity);
+        var nativeRoot = nativeAvatar.renderer.root;
+        double submittedX = nativeRoot.customization.getPos().x;
+        nativeRoot.preRender = nativeAvatar.loadScript("observe submitted base pose", """
+                return function()
+                    observed_base_x = models:getPos().x
+                end
+                """).call().checkfunction();
+        session.setIndependentFigura(true);
+        gui.state = new net.minecraft.client.renderer.state.gui.GuiRenderState();
+        require(session.submitIndependentFigura(gui, 50, 50, 30, 0, -180, .5f, 0, 0, 100, 100),
+                "actual independent GUI submission captures a composed base pose");
+        var submitted = new java.util.ArrayList<net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState>();
+        gui.state.forEachPictureInPicture(submitted::add);
+        var nativeState = (LibraryFiguraPreviewState) submitted.getFirst();
+        var frame = nativeState.playerPose();
+        var previous = LibraryPreviewBinding.composition(frame);
+        require(previous != null, "native preview extraction retains the published composition");
+        nativeRoot.customization.setPos(123, 456, 789);
+        var emissions = new java.util.concurrent.atomic.AtomicInteger();
+        var sink = (com.mojang.blaze3d.vertex.VertexConsumer) java.lang.reflect.Proxy.newProxyInstance(
+                LibraryPreviewRuntimeSmokeTest.class.getClassLoader(),
+                new Class<?>[]{com.mojang.blaze3d.vertex.VertexConsumer.class}, (proxy, method, arguments) -> {
+                    if (method.isDefault()) {
+                        return java.lang.reflect.InvocationHandler.invokeDefault(proxy, method, arguments);
+                    }
+                    if (method.getName().equals("addVertex")) {
+                        emissions.incrementAndGet();
+                    }
+                    return method.getReturnType() == void.class ? null : proxy;
+                });
+        LibraryFiguraPreviewRenderer.draw(nativeState, new com.mojang.blaze3d.vertex.PoseStack(), type -> sink,
+                LibraryFiguraPreviewRenderer.createModel(false));
+        require(emissions.get() == 0, "hidden base and unresolved accessory do not emit geometry");
+        require(nativeAvatar.loadScript("observed submitted base", "return observed_base_x").call().checkdouble() == submittedX
+                        && nativeRoot.customization.getPos().x == 123,
+                "actual GUI draw uses submission-time base pose and restores later edits after all callbacks");
+        require(field(previous.getClass(), "evaluated").getBoolean(previous),
+                "the existing GUI draw path captures the native base pose and evaluates its retained composition");
+        var failed = session.prepareComposition(configuration, OutfitLimits.defaults(), account, outfit, permissions,
+                (reference, cancelled) -> model("wrong purpose"));
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (!failed.isDone() && System.nanoTime() < deadline) {
+            drain.run();
+            Thread.sleep(5);
+        }
+        require(failed.isCompletedExceptionally(), "failed resource preparation reports an error");
+        var binding = field(LibraryPreviewSession.class, "binding").get(session);
+        Object installed = field(LibraryPreviewBinding.class, "composition").get(binding);
+        require(installed != null, "preparation failure preserves the visible combination");
+        var entered = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+        var gate = AvatarLoadExecutor.submit(() -> {
+            entered.countDown();
+            try {
+                require(release.await(5, TimeUnit.SECONDS), "composition worker gate is bounded");
+            } catch (InterruptedException failure) {
+                throw new AssertionError(failure);
+            }
+            return true;
+        });
+        try {
+            require(entered.await(5, TimeUnit.SECONDS), "actual worker is occupied before rapid selection");
+            var staleRead = new AtomicBoolean();
+            var stale = session.prepareComposition(configuration, OutfitLimits.defaults(), account, outfit, permissions,
+                    (reference, cancelled) -> {
+                        staleRead.set(true);
+                        return source;
+                    });
+            var latest = session.prepareComposition(configuration, OutfitLimits.defaults(), account, outfit, permissions,
+                    (reference, cancelled) -> source);
+            require(stale.isCancelled(), "newer draft cancels the pending result");
+            release.countDown();
+            require(await(latest, drain) && !staleRead.get(), "retired generation never reads or publishes its resources");
+            require(field(LibraryPreviewBinding.class, "composition").get(binding) != installed,
+                    "only the newest complete combination replaces the old one");
+            require(LibraryPreviewBinding.composition(frame) == previous,
+                    "already extracted preview frames retain their original generation");
+        } finally {
+            release.countDown();
+            await(gate, drain);
+            session.setComposition(null);
+            LibraryPreviewBinding.finishFrame();
+        }
+        System.out.println("PASS asynchronous outfit preview: purpose validation, atomic replacement, newest draft, retained native frames and cleanup");
     }
 
     private static final class PreviewGraphics extends net.minecraft.client.gui.GuiGraphicsExtractor

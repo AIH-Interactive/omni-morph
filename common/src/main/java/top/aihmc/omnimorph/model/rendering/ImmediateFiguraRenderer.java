@@ -1,6 +1,7 @@
 package top.aihmc.omnimorph.model.rendering;
 
 import top.aihmc.omnimorph.model.library.PreviewBoneHighlight;
+import top.aihmc.omnimorph.model.outfit.OutfitInstructionBudget;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -36,12 +37,77 @@ import top.aihmc.omnimorph.render.acceleration.GpuSubmission;
 import top.aihmc.omnimorph.utils.ColorUtils;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 
 public class ImmediateFiguraRenderer extends FiguraRenderer {
+
+    private PartPoseCapture poseCapture;
+
+    public record CapturedPartPose(Map<FiguraModelPart, Matrix4f> matrices,
+                                   Map<FiguraModelPart, ParentType> parentTypes) {}
+
+    private static final class PartPoseCapture {
+        private final Map<FiguraModelPart, Matrix4f> matrices = new IdentityHashMap<>();
+        private final Map<FiguraModelPart, ParentType> parentTypes = new IdentityHashMap<>();
+        private final Set<FiguraModelPart> active = Collections.newSetFromMap(new IdentityHashMap<>());
+        private final int maxNodes;
+        private final int maxDepth;
+        private boolean failed;
+
+        private PartPoseCapture(int maxNodes, int maxDepth) {
+            this.maxNodes = maxNodes;
+            this.maxDepth = maxDepth;
+        }
+
+        private boolean enter(FiguraModelPart part) {
+            if (failed) {
+                return false;
+            }
+            if (active.size() >= maxDepth || !active.add(part)) {
+                failed = true;
+                return false;
+            }
+            parentTypes.put(part, part.parentType);
+            return true;
+        }
+
+        private void record(FiguraModelPart part, FiguraMat4 matrix) {
+            if (failed) {
+                return;
+            }
+            if (!matrices.containsKey(part) && matrices.size() >= maxNodes) {
+                failed = true;
+                return;
+            }
+            matrices.put(part, matrix.toMatrix4f());
+        }
+    }
+
+    /** Capture the actual native draw, including pre/post-render callback ordering and empty groups. */
+    public Map<FiguraModelPart, Matrix4f> capturePartPivots(Runnable drawing, int maxNodes, int maxDepth) {
+        return capturePartPose(drawing, maxNodes, maxDepth).matrices();
+    }
+
+    public CapturedPartPose capturePartPose(Runnable drawing, int maxNodes, int maxDepth) {
+        if (poseCapture != null || maxNodes < 0 || maxNodes > 8192 || maxDepth < 1 || maxDepth > 64) {
+            throw new IllegalArgumentException("FIGURA_POSE_CAPTURE_LIMIT");
+        }
+        PartPoseCapture capture = new PartPoseCapture(maxNodes, maxDepth);
+        poseCapture = capture;
+        try {
+            drawing.run();
+            if (capture.failed) {
+                throw new IllegalArgumentException("FIGURA_POSE_CAPTURE_LIMIT");
+            }
+            return new CapturedPartPose(capture.matrices, capture.parentTypes);
+        } finally {
+            poseCapture = null;
+        }
+    }
 
     protected final PartCustomization.PartCustomizationStack customizationStack = new PartCustomization.PartCustomizationStack();
 
@@ -153,9 +219,11 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
             CAMERA_POS_TO_WORLD_MATRIX.set(FiguraRenderer.worldToCameraPosMatrix().invert());
         }
 
-        // complexity
-        int prev = avatar.complexity.remaining;
-        int[] remainingComplexity = new int[] {prev};
+        // The native traversal clips faces before either ordinary or accelerated submission.
+        var outfitBudget = OutfitInstructionBudget.current(avatar);
+        int allowance = outfitBudget == null ? avatar.complexity.remaining
+                : outfitBudget.allowance(avatar, avatar.complexity);
+        int[] remainingComplexity = new int[] {allowance};
 
         // render all model parts
         if (root.customization.visible) {
@@ -206,13 +274,24 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
 
             // finish rendering
             checkEmpty();
+        } else if (poseCapture != null) {
+            customizationStack.push(setupRootCustomization(vertOffset));
+            try {
+                captureUnrenderedBranch(root);
+            } finally {
+                customizationStack.pop();
+            }
         }
 
         this.isRendering = false;
         if (this.dirty)
             clean();
 
-        return prev - Math.max(remainingComplexity[0], 0);
+        int consumed = allowance - Math.max(remainingComplexity[0], 0);
+        if (outfitBudget != null) {
+            outfitBudget.charge(avatar, avatar.complexity, consumed);
+        }
+        return consumed;
     }
 
     protected PartCustomization setupRootCustomization(double vertOffset) {
@@ -241,6 +320,18 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
     }
 
     protected boolean renderPart(FiguraModelPart part, int[] remainingComplexity, boolean prevPredicate) {
+        PartPoseCapture capture = poseCapture;
+        boolean entered = capture != null && capture.enter(part);
+        try {
+            return renderPartContents(part, remainingComplexity, prevPredicate);
+        } finally {
+            if (entered) {
+                capture.active.remove(part);
+            }
+        }
+    }
+
+    private boolean renderPartContents(FiguraModelPart part, int[] remainingComplexity, boolean prevPredicate) {
         FiguraMod.pushProfiler(part.name);
 
         PartCustomization custom = part.customization;
@@ -251,6 +342,9 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         if (thisPassedPredicate == null || (!custom.visible)) {
             if (part.parentType.isRenderLayer)
                 part.savedCustomization = customizationStack.peek();
+            if (poseCapture != null && !poseCapture.failed) {
+                captureUnrenderedPart(part, false);
+            }
             FiguraMod.popProfiler(2);
             return true;
         }
@@ -265,6 +359,9 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         // visibility
         FiguraMod.popPushProfiler("checkVanillaVisible");
         if (!ignoreVanillaVisibility && custom.vanillaVisible != null && !custom.vanillaVisible) {
+            if (poseCapture != null && !poseCapture.failed) {
+                captureUnrenderedPart(part, true);
+            }
             FiguraMod.popPushProfiler("removeVanillaTransforms");
             part.resetVanillaTransforms();
             FiguraMod.popProfiler(2);
@@ -304,6 +401,8 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
             custom.positionMatrix.set(positionCopy);
             custom.normalMatrix.set(normalCopy);
         }
+
+        recordPartPivot(part);
 
         if (thisPassedPredicate) {
             // recalculate world matrices
@@ -403,10 +502,18 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
 
         // render children
         FiguraMod.popPushProfiler("children");
+        boolean remainingChildren = false;
         for (FiguraModelPart child : List.copyOf(part.children)) {
+            if (remainingChildren) {
+                captureUnrenderedBranch(child);
+                continue;
+            }
             if (!renderPart(child, remainingComplexity, thisPassedPredicate)) {
                 breakRender = true;
-                break;
+                if (poseCapture == null) {
+                    break;
+                }
+                remainingChildren = true;
             }
         }
 
@@ -425,6 +532,50 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         FiguraMod.popProfiler(2);
 
         return !breakRender;
+    }
+
+    private void recordPartPivot(FiguraModelPart part) {
+        if (poseCapture == null || poseCapture.failed) {
+            return;
+        }
+        FiguraMat4 matrix = customizationStack.peek().positionMatrix.copy();
+        FiguraMat4 pivot = FiguraMat4.of().translate(part.customization.getPivot());
+        poseCapture.record(part, matrix.rightMultiply(pivot));
+    }
+
+    private void captureUnrenderedBranch(FiguraModelPart part) {
+        if (poseCapture == null || !poseCapture.enter(part)) {
+            return;
+        }
+        try {
+            captureUnrenderedPart(part, false);
+        } finally {
+            poseCapture.active.remove(part);
+        }
+    }
+
+    /** Hidden/filter-skipped branches inherit this frame's parent; drawing callbacks are not replayed. */
+    private void captureUnrenderedPart(FiguraModelPart part, boolean transformsApplied) {
+        if (!transformsApplied) {
+            part.applyVanillaTransforms(vanillaModelData);
+            part.applyExtraTransforms(customizationStack.peek());
+        }
+        try {
+            part.customization.recalculate();
+            customizationStack.push(part.customization);
+            try {
+                recordPartPivot(part);
+                for (FiguraModelPart child : List.copyOf(part.children)) {
+                    captureUnrenderedBranch(child);
+                }
+            } finally {
+                customizationStack.pop();
+            }
+        } finally {
+            if (!transformsApplied) {
+                part.resetVanillaTransforms();
+            }
+        }
     }
 
 

@@ -105,7 +105,7 @@ public class LuaSound {
         if (this.playing && this.handle != null && !this.handle.isStopped())
             return this;
 
-        if (!owner.soundsRemaining.use()) {
+        if (!owner.useSound()) {
             owner.noPermissions.add(Permissions.SOUNDS);
             return this;
         }

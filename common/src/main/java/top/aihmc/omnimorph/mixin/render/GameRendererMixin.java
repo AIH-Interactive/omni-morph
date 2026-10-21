@@ -2,6 +2,7 @@ package top.aihmc.omnimorph.mixin.render;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.resource.CrossFrameResourcePool;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -27,6 +28,7 @@ import top.aihmc.omnimorph.avatar.AvatarManager;
 import top.aihmc.omnimorph.ducks.GameRendererAccessor;
 import top.aihmc.omnimorph.gui.FiguraGuiRenderer;
 import top.aihmc.omnimorph.model.library.LibraryFiguraPreviewRenderer;
+import top.aihmc.omnimorph.model.library.LibraryPreviewBinding;
 import top.aihmc.omnimorph.gui.FiguraPortraitRenderer;
 import top.aihmc.omnimorph.lua.api.ClientAPI;
 import top.aihmc.omnimorph.math.matrix.FiguraMat4;
@@ -81,6 +83,16 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
         HardwareAcceleration.beginFrame();
         YsmRenderFrameClock.beginFrame();
         AccelerationService.INSTANCE.beginFrame();
+    }
+
+    @WrapMethod(method = "render")
+    private void figura$retireCompositionFrames(DeltaTracker deltaTracker, boolean tick, Operation<Void> original) {
+        try {
+            original.call(deltaTracker, tick);
+        } finally {
+            // World/hand submissions also need retirement when GUI rendering is skipped or throws.
+            LibraryPreviewBinding.finishFrame();
+        }
     }
 
     @Inject(method = "renderLevel", at = @At("HEAD"))
