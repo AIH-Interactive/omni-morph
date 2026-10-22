@@ -19,6 +19,8 @@ import top.aihmc.omnimorph.lua.docs.LuaTypeDoc;
 import top.aihmc.omnimorph.math.vector.FiguraVec3;
 import top.aihmc.omnimorph.utils.LuaUtils;
 import org.luaj.vm2.LuaError;
+import net.minecraft.world.phys.Vec3;
+import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
 
 import java.util.Objects;
 
@@ -39,7 +41,48 @@ public class ParticleAPI {
         return (ParticleEngineAccessor) Minecraft.getInstance().particleEngine;
     }
 
+    @LuaWhitelist
+    public LuaParticle newCustomParticle(@LuaNotNil Object texture, @LuaNotNil FiguraVec3 position,
+                                         FiguraVec3 velocity) {
+        FiguraTexture source = resolveTexture(owner, texture);
+        var world = Minecraft.getInstance().level;
+        if (world == null) {
+            throw new LuaError("Custom particles require a loaded world");
+        }
+        var speed = velocity == null ? Vec3.ZERO : new Vec3(velocity.x, velocity.y, velocity.z);
+        var particle = new CustomParticle(owner, world, source, new Vec3(position.x, position.y, position.z), speed);
+        return new LuaParticle("custom:" + source.getName(), particle, owner).spawn();
+    }
+
+    static FiguraTexture resolveTexture(Avatar owner, Object texture) {
+        FiguraTexture source = null;
+        if (texture instanceof FiguraTexture handle) {
+            source = handle;
+        } else if (texture instanceof String name) {
+            if (owner.renderer != null) {
+                source = owner.renderer.getTexture(name);
+            } else if (owner.getYsmRuntime() != null) {
+                source = owner.getYsmRuntime().particleTexture(name);
+            }
+        }
+        if (source == null || !source.belongsTo(owner)) {
+            throw new LuaError("Custom particle requires an authorized texture name or handle from this instance");
+        }
+        return source;
+    }
+
+    @LuaWhitelist
+    public LuaParticle newTexturedParticle(@LuaNotNil Object texture, @LuaNotNil FiguraVec3 position,
+                                           FiguraVec3 velocity) {
+        return newCustomParticle(texture, position, velocity);
+    }
+
     private LuaParticle generate(String id, double x, double y, double z, double w, double t, double h) {
+        if (owner.usesPreviewParticles()) {
+            // Native providers may spawn secondary effects from construction/ticking. Preserve the old
+            // preview's disabled native effects without making ordinary fluent particle scripts fail.
+            return new LuaParticle(id, new SuppressedPreviewParticle(Minecraft.getInstance().level, x, y, z), owner);
+        }
         try {
             id = convertOldToNewParticleFormat(id);
             ParticleOptions options = ParticleArgument.readParticle(new StringReader(id), WorldAPI.getCurrentWorld().registryAccess());
@@ -48,6 +91,15 @@ public class ParticleAPI {
             return new LuaParticle(id, p, owner);
         } catch (Exception e) {
             throw new LuaError(e.getMessage());
+        }
+    }
+
+    static final class SuppressedPreviewParticle extends net.minecraft.client.particle.NoRenderParticle {
+        private SuppressedPreviewParticle(net.minecraft.client.multiplayer.ClientLevel world,
+                                          double x, double y, double z) {
+            super(world, x, y, z);
+            hasPhysics = false;
+            remove();
         }
     }
 
@@ -251,7 +303,7 @@ public class ParticleAPI {
     @LuaWhitelist
     @LuaMethodDoc("particles.remove_particles")
     public ParticleAPI removeParticles() {
-        getParticleEngine().figura$clearParticles(owner.owner);
+        owner.clearParticles();
         return this;
     }
 
@@ -264,6 +316,9 @@ public class ParticleAPI {
             value = "particles.is_present"
     )
     public boolean isPresent(String id) {
+        if (owner.usesPreviewParticles()) {
+            return false;
+        }
         try {
             ParticleOptions options = ParticleArgument.readParticle(new StringReader(id), WorldAPI.getCurrentWorld().registryAccess());
             return getParticleEngine().figura$makeParticle(options, 0, 0, 0, 0, 0, 0) != null;

@@ -75,6 +75,8 @@ public class FiguraLuaRuntime {
     public final LuaTypeManager typeManager = new LuaTypeManager();
     private int sharedExecutionDepth;
     private int exhaustedInstructions;
+    private long particleTickInstructions = Long.MIN_VALUE;
+    private long particleFrameInstructions = Long.MIN_VALUE;
 
     public FiguraLuaRuntime(Avatar avatar, Map<String, String> scripts) {
         this.owner = avatar;
@@ -402,7 +404,13 @@ public class FiguraLuaRuntime {
                     return LuaValue.TRUE;
                 }, budget) != null;
             }
-            initializeScripts(autoScripts);
+            sharedExecutionDepth++;
+            try {
+                initializeScripts(autoScripts);
+            } finally {
+                sharedExecutionDepth--;
+                chargeNewParticleCallbackBudget(owner.init);
+            }
         } catch (Exception | StackOverflowError e) {
             error(e);
             return false;
@@ -475,6 +483,7 @@ public class FiguraLuaRuntime {
     }
 
     public Varargs run(Object toRun, Avatar.Instructions limit, Object... args) {
+        prepareParticleCallbackInstructions(limit);
         // parse args
         LuaValue[] values = new LuaValue[args.length];
         for (int i = 0; i < values.length; i++)
@@ -491,19 +500,66 @@ public class FiguraLuaRuntime {
         setInstructionLimit(limit.remaining);
 
         // get and call event
+        sharedExecutionDepth++;
+        boolean charged = false;
         try {
             Varargs ret = invoke(toRun, val);
 
             // use instructions
-            limit.use(getInstructions());
+            chargeNewParticleCallbackBudget(limit);
+            // Without callback registration, preserve the ordinary accounting path.
+            if (!OutfitInstructionBudget.hasParticleCallbacks(owner)) {
+                limit.use(getInstructions());
+            }
+            charged = true;
             // and return the value
             return ret;
         } catch (Exception | StackOverflowError e) {
             error(e);
+        } finally {
+            sharedExecutionDepth--;
+            if (!charged) {
+                chargeNewParticleCallbackBudget(limit);
+            }
         }
 
         // failsafe return
         return null;
+    }
+
+    /** A first registration inside an already-running ordinary script must not reset or evade its outer hook. */
+    private void chargeNewParticleCallbackBudget(Avatar.Instructions limit) {
+        if (!OutfitInstructionBudget.hasParticleCallbacks(owner)) {
+            return;
+        }
+        var budget = OutfitInstructionBudget.current(owner);
+        int consumed = Math.max(exhaustedInstructions, getInstructions());
+        budget.charge(owner, limit, consumed);
+        limit.use(consumed);
+    }
+
+    /** Hidden owners also receive one fresh instruction allowance, while repeated passes cannot refund it. */
+    private void prepareParticleCallbackInstructions(Avatar.Instructions limit) {
+        if (limit == owner.tick) {
+            long epoch = OutfitInstructionBudget.particleTick();
+            if (particleTickInstructions != epoch && OutfitInstructionBudget.hasParticleCallbacks(owner)) {
+                limit.reset(owner.permissions.get(Permissions.TICK_INST));
+            }
+            particleTickInstructions = epoch;
+        } else if (limit == owner.render) {
+            long epoch = top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.currentFrame();
+            if (particleFrameInstructions != epoch && OutfitInstructionBudget.hasParticleCallbacks(owner)) {
+                limit.reset(owner.permissions.get(Permissions.RENDER_INST));
+            }
+            particleFrameInstructions = epoch;
+        }
+    }
+
+    public int particleCallbackAllowance(boolean frame) {
+        var limit = frame ? owner.render : owner.tick;
+        prepareParticleCallbackInstructions(limit);
+        var budget = OutfitInstructionBudget.current(owner);
+        return budget == null ? Math.max(0, limit.remaining) : budget.allowance(owner, limit);
     }
 
     private Varargs invoke(Object toRun, Varargs args) {

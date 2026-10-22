@@ -17,6 +17,7 @@ import top.aihmc.omnimorph.avatar.AvatarManager;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.ducks.GuiEntityRenderStateExtension;
 import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
+import top.aihmc.omnimorph.model.library.LibraryPreviewBinding;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -47,6 +48,17 @@ public abstract class GuiEntityRendererMixin extends PictureInPictureRenderer<Gu
         }
         try {
             original.call(instance, entityRenderState, cameraRenderState, d+extended.getXPos(), e+extended.getYPos(), f, poseStack, submitNodeCollector);
+            if (extended.getRenderMode() == FIGURA_GUI) {
+                poseStack.pushPose();
+                try {
+                    poseStack.translate(d + extended.getXPos(), e + extended.getYPos(), f);
+                    // UIHelper captures this native entity pose at partial tick 1 as well.
+                    LibraryPreviewBinding.particles(entityRenderState, guiEntityRenderState.rotation(), 1)
+                            .submit(poseStack, submitNodeCollector);
+                } finally {
+                    poseStack.popPose();
+                }
+            }
         } finally {
             if (restoreYsmMode) {
                 avatar.renderMode = previousMode;

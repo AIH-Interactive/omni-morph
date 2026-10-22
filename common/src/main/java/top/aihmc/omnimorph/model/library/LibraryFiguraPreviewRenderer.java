@@ -15,6 +15,7 @@ import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
 import top.aihmc.omnimorph.model.rendering.PartFilterScheme;
 import top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer;
 import org.joml.Matrix4f;
+import org.joml.Quaternionf;
 import top.aihmc.omnimorph.permissions.Permissions;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 
@@ -118,6 +119,11 @@ public final class LibraryFiguraPreviewRenderer extends PictureInPictureRenderer
             } else {
                 drawSubmittedBase.run();
             }
+            // PiP's outer matrix reflects Z. Billboard orientation uses only the authored view rotation.
+            var viewRotation = new Quaternionf().rotationZ((float) Math.PI)
+                    .rotateX((float) Math.toRadians(state.pitch()))
+                    .rotateY((float) Math.toRadians(state.yaw() + 180));
+            LibraryPreviewBinding.particles(state.playerPose(), viewRotation, state.delta()).draw(entityToDraw, source);
         } finally {
             stack.popPose();
             avatar.renderMode = previousMode;

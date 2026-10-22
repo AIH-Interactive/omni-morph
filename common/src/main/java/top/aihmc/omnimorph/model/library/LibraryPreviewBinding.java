@@ -5,6 +5,11 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.model.outfit.OutfitComposition;
+import top.aihmc.omnimorph.model.outfit.OutfitLimits;
+import top.aihmc.omnimorph.lua.api.particle.PreviewParticleScope;
+import top.aihmc.omnimorph.lua.api.particle.PreviewParticleFrame;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Quaternionf;
 
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -18,9 +23,12 @@ public final class LibraryPreviewBinding implements AutoCloseable {
     private static final Map<UUID, LibraryPreviewBinding> PLAYERS = new HashMap<>();
     private static final Map<EntityRenderState, LibraryPreviewBinding> FRAMES = new IdentityHashMap<>();
     private static final Map<EntityRenderState, OutfitComposition.Frame> OUTFIT_FRAMES = new IdentityHashMap<>();
+    private static final Map<EntityRenderState, Vec3> PARTICLE_ORIGINS = new IdentityHashMap<>();
+    private static final Map<EntityRenderState, PreviewParticleFrame> PARTICLE_FRAMES = new IdentityHashMap<>();
     private final LivingEntity entity;
     private final Avatar avatar;
     private final UUID player;
+    private final PreviewParticleScope particles;
     private OutfitComposition composition;
     private int frames;
     private boolean closed;
@@ -33,11 +41,16 @@ public final class LibraryPreviewBinding implements AutoCloseable {
         this.entity = entity;
         this.avatar = avatar;
         this.player = avatar == null ? entity.getUUID() : avatar.owner;
+        if (persistent && (ENTITIES.containsKey(entity) || PLAYERS.containsKey(player))) {
+            throw new IllegalStateException("PREVIEW_ALREADY_BOUND");
+        }
+        this.particles = entity.level() instanceof net.minecraft.client.multiplayer.ClientLevel level
+                ? new PreviewParticleScope(level, OutfitLimits.defaults()) : null;
+        if (avatar != null && particles != null) {
+            particles.bind(avatar);
+        }
         if (!persistent) {
             return;
-        }
-        if (ENTITIES.containsKey(entity) || PLAYERS.containsKey(player)) {
-            throw new IllegalStateException("PREVIEW_ALREADY_BOUND");
         }
         ENTITIES.put(entity, this);
         PLAYERS.put(player, this);
@@ -104,6 +117,9 @@ public final class LibraryPreviewBinding implements AutoCloseable {
             throw new IllegalStateException("PREVIEW_CLOSED");
         }
         if (this.composition != composition) {
+            if (composition != null && particles != null) {
+                composition.bindPreviewParticles(particles);
+            }
             if (this.composition != null) {
                 this.composition.close();
             }
@@ -114,6 +130,9 @@ public final class LibraryPreviewBinding implements AutoCloseable {
     public void tick() {
         if (closed) {
             return;
+        }
+        if (particles != null) {
+            withBaseBudget(particles::tick);
         }
         if (composition != null) {
             composition.tick(avatar);
@@ -141,11 +160,19 @@ public final class LibraryPreviewBinding implements AutoCloseable {
     }
 
     public static void capture(Entity entity, EntityRenderState frame) {
+        capture(entity, frame, 1);
+    }
+
+    public static void capture(Entity entity, EntityRenderState frame, float partialTick) {
         LibraryPreviewBinding binding = ENTITIES.get(entity);
         if (binding == null || FRAMES.containsKey(frame)) {
             return;
         }
         FRAMES.put(frame, binding);
+        // UIHelper binds before native extraction, while the independent Figura state has no world coordinates.
+        if (binding.particles != null) {
+            PARTICLE_ORIGINS.put(frame, entity.getPosition(partialTick));
+        }
         binding.frames++;
         if (binding.composition != null) {
             OUTFIT_FRAMES.put(frame, binding.composition.retain());
@@ -154,6 +181,8 @@ public final class LibraryPreviewBinding implements AutoCloseable {
 
     /** Runs after actual GUI drawing, including exceptional completion and renderer shutdown. */
     public static void finishFrame() {
+        PARTICLE_FRAMES.clear();
+        PARTICLE_ORIGINS.clear();
         PreviewBoneHighlight.finishFrame();
         LibraryThumbnailService.finishFrame();
         List<OutfitComposition.Frame> outfits = List.copyOf(OUTFIT_FRAMES.values());
@@ -171,12 +200,29 @@ public final class LibraryPreviewBinding implements AutoCloseable {
         }
     }
 
+    /** Each submitted view owns one frozen extraction, independent of later entity movement or selection. */
+    public static PreviewParticleFrame particles(EntityRenderState frame, Quaternionf viewRotation, float partialTick) {
+        return PARTICLE_FRAMES.computeIfAbsent(frame, key -> {
+            LibraryPreviewBinding binding = FRAMES.get(key);
+            if (binding == null || binding.particles == null) {
+                return PreviewParticleFrame.empty();
+            }
+            PreviewParticleFrame[] extracted = {PreviewParticleFrame.empty()};
+            binding.withBaseBudget(() -> extracted[0] = binding.particles.extract(
+                    PARTICLE_ORIGINS.get(key), viewRotation, partialTick));
+            return extracted[0];
+        });
+    }
+
     @Override
     public void close() {
         if (closed) {
             return;
         }
         closed = true;
+        if (particles != null) {
+            particles.close();
+        }
         ENTITIES.remove(entity, this);
         PLAYERS.remove(player, this);
         if (composition != null) {

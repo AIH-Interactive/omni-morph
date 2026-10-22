@@ -23,6 +23,7 @@ import top.aihmc.omnimorph.backend2.protocol.CloudEndpoint;
 import top.aihmc.omnimorph.backend2.protocol.LibraryAccess;
 import top.aihmc.omnimorph.permissions.PermissionManager;
 import top.aihmc.omnimorph.permissions.Permissions;
+import top.aihmc.omnimorph.permissions.PermissionPack;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 import top.aihmc.omnimorph.model.outfit.OutfitLimits;
 import top.aihmc.omnimorph.config.Configs;
@@ -150,7 +151,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 return null;
             });
             require(AvatarManager.getAvatarForPlayer(owner) == avatar, "player renderer lookup uses the detached binding");
-            for (Permissions permission : new Permissions[]{Permissions.NETWORKING, Permissions.PARTICLES,
+            require(avatar.usesPreviewParticles() && avatar.permissions.get(Permissions.PARTICLES)
+                            == new PermissionPack.CategoryPermissionPack(Permissions.Category.DEFAULT).get(Permissions.PARTICLES),
+                    "owned model preview enables the default particle rate while retaining its preview identity");
+            for (Permissions permission : new Permissions[]{Permissions.NETWORKING,
                     Permissions.SOUNDS, Permissions.NAMEPLATE_EDIT, Permissions.CANCEL_SOUNDS}) {
                 require(avatar.permissions.get(permission) == 0, "preview does not inherit world/network side-effect permissions");
             }

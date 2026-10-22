@@ -91,7 +91,11 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
             original.call(deltaTracker, tick);
         } finally {
             // World/hand submissions also need retirement when GUI rendering is skipped or throws.
-            LibraryPreviewBinding.finishFrame();
+            try {
+                LibraryPreviewBinding.finishFrame();
+            } finally {
+                top.aihmc.omnimorph.lua.api.particle.CustomParticleRuntime.finishFrame();
+            }
         }
     }
 

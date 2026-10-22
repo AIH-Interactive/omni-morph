@@ -19,6 +19,7 @@ public final class OutfitContractSmokeTest {
         reject(() -> OutfitCodec.decode(fixture, narrow));
         reject(() -> OutfitCodec.encode(config, narrow));
         config.validateLimits(OutfitLimits.defaults());
+        customParticleLimits();
         reject(() -> OutfitCodec.decode(fixture.replace("STANDARD", "UNKNOWN")));
         reject(() -> OutfitCodec.decode(fixture.replace("LOCAL", "UNKNOWN")));
         reject(() -> new OutfitConfig.Vector(Double.NaN, 0, 0));
@@ -47,6 +48,45 @@ public final class OutfitContractSmokeTest {
                 .transformPosition(new Vector3f(1, 2, 3));
         require(marker.distance(new Vector3f(-5, 4, 15)) < 0.00001f, "T * Rx * Ry * Rz * S axis contract");
         System.out.println("Outfit contract smoke test passed (data/matrices only; no GUI validation).");
+    }
+
+    private static void customParticleLimits() {
+        var json = new com.google.gson.GsonBuilder()
+                .setFieldNamingPolicy(com.google.gson.FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES).create();
+        var advertised = json.toJsonTree(OutfitLimits.defaults()).getAsJsonObject();
+        String[] keys = {"max_custom_particles", "max_particle_layers", "max_ribbon_vertices",
+                "max_particle_callbacks_per_tick", "max_particle_callbacks_per_frame"};
+        int[] maximums = {4096, 8, 32768, 1024, 512};
+        for (int index = 0; index < keys.length; index++) {
+            String key = keys[index];
+            int maximum = maximums[index];
+            for (int invalid : new int[]{-1, maximum + 1}) {
+                var input = advertised.deepCopy();
+                input.addProperty(key, invalid);
+                reject(() -> json.fromJson(input, OutfitLimits.class));
+            }
+            advertised.addProperty(key, maximum);
+        }
+        var maximum = json.fromJson(advertised, OutfitLimits.class);
+        require(maximum.maxCustomParticles() == 4096 && maximum.maxParticleLayers() == 8
+                        && maximum.maxRibbonVertices() == 32768 && maximum.maxParticleCallbacksPerTick() == 1024
+                        && maximum.maxParticleCallbacksPerFrame() == 512,
+                "backend particle limits reach typed client without truncation");
+        for (String key : keys) {
+            advertised.addProperty(key, 0);
+        }
+        var disabled = json.fromJson(advertised, OutfitLimits.class);
+        require(disabled.maxCustomParticles() == 0 && disabled.maxParticleLayers() == 0
+                        && disabled.maxRibbonVertices() == 0 && disabled.maxParticleCallbacksPerTick() == 0
+                        && disabled.maxParticleCallbacksPerFrame() == 0,
+                "explicit zero disables instead of selecting defaults");
+        for (String key : keys) {
+            advertised.remove(key);
+        }
+        require(json.fromJson(advertised, OutfitLimits.class).equals(OutfitLimits.defaults()),
+                "older backend missing extension keys retains conservative defaults");
+        require(json.fromJson(json.toJson(maximum), OutfitLimits.class).equals(maximum),
+                "negotiated particle limits round trip");
     }
 
     private static void reject(Runnable action) {

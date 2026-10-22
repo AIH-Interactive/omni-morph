@@ -61,6 +61,14 @@ tasks.register('outfitContractSmokeTest', JavaExec) {
     args rootProject.file('protocol').path
 }
 
+tasks.register('customParticleSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks production custom particle sprite UV, tick playback and bounded options; no GUI.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.lua.api.particle.CustomParticleSmokeTest'
+}
+
 tasks.register('cosmeticSourceSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Checks native accessory preparation, stable skeleton bindings and encrypted cosmetic caches; no GUI.'

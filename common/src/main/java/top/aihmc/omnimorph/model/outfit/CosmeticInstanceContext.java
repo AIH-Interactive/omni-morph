@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.function.Function;
 
 /** Instance state belongs to an outfit session, never to the legacy per-avatar preference file. */
 public final class CosmeticInstanceContext {
@@ -30,6 +31,7 @@ public final class CosmeticInstanceContext {
     private Supplier<MolangExecutionBudget> outfitMolangBudget;
     private OutfitInstructionBudget instructionBudget;
     private OutfitEffectBudget effectBudget;
+    private Function<Float, TrailBuffer.Snapshot> trailSource;
 
     public CosmeticInstanceContext(UUID accountId, UUID outfitId, UUID wearerId,
                                    OutfitConfig.Instance instance, OutfitLimits limits, Scope scope) {
@@ -52,6 +54,18 @@ public final class CosmeticInstanceContext {
     public OutfitConfig.ResourceRef resource() { return resource; }
     public OutfitLimits limits() { return limits; }
     public Scope scope() { return scope; }
+
+    void bindTrailSource(Function<Float, TrailBuffer.Snapshot> source) {
+        trailSource = Objects.requireNonNull(source);
+    }
+
+    public boolean hasTrailSource() {
+        return trailSource != null;
+    }
+
+    public TrailBuffer.Snapshot trailSnapshot(float partialTick) {
+        return trailSource == null ? null : trailSource.apply(partialTick);
+    }
 
     void bindInstructionBudget(OutfitInstructionBudget budget) {
         instructionBudget = Objects.requireNonNull(budget);

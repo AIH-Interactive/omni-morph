@@ -216,7 +216,7 @@ public class FiguraAPIManager {
     private static final Set<FiguraAPI> ENTRYPOINTS = new HashSet<>();
 
     private static final Set<String> COSMETIC_APIS = Set.of(
-            "events", "ysm_model", "animations", "vectors", "matrices", "json");
+            "events", "ysm_model", "animations", "vectors", "matrices", "json", "particles");
     private static final Set<String> COSMETIC_INTERNAL_APIS = Set.of(
             "vanilla_model", "keybinds", "host", "nameplate", "renderer", "action_wheel",
             "avatar_controls", "avatar", "pings", "textures");
@@ -245,7 +245,9 @@ public class FiguraAPIManager {
         }
         if (cosmetic) {
             runtime.registerClass(CosmeticPlayerAPI.class);
+            runtime.registerClass(CosmeticAnimationsAPI.class);
             runtime.setGlobal("cosmetic_controls", runtime.avatar_controls);
+            runtime.setGlobal("cosmetic_animations", new CosmeticAnimationsAPI(runtime.owner));
             return;
         }
         for (FiguraAPI api : ENTRYPOINTS) {

@@ -46,6 +46,45 @@ import java.util.function.Consumer;
 public class ImmediateFiguraRenderer extends FiguraRenderer {
 
     private PartPoseCapture poseCapture;
+    private Map<FiguraModelPart, Matrix4f> outfitBoneOverrides = Map.of();
+
+    /** Native-only scoped offsets; scripts keep their own authored and animation channels. */
+    public void withOutfitBoneOverrides(Map<FiguraModelPart, Matrix4f> overrides, Runnable drawing) {
+        var previous = outfitBoneOverrides;
+        outfitBoneOverrides = overrides;
+        try {
+            drawing.run();
+        } finally {
+            outfitBoneOverrides = previous;
+        }
+    }
+
+    private FiguraMat4 pivotedOverride(FiguraModelPart part, Matrix4f override) {
+        var pivot = part.customization.getPivot();
+        return FiguraMat4.of().set(new Matrix4f().translation((float) pivot.x, (float) pivot.y, (float) pivot.z)
+                .mul(override).translate((float) -pivot.x, (float) -pivot.y, (float) -pivot.z));
+    }
+
+    private PartCustomization outfitCustomization(FiguraModelPart part, PartCustomization authored) {
+        Matrix4f override = outfitBoneOverrides.get(part);
+        if (override == null) {
+            return authored;
+        }
+        var effective = new PartCustomization();
+        authored.copyRenderPoseTo(effective);
+        effective.positionMatrix.rightMultiply(pivotedOverride(part, override));
+        var normal = FiguraMat4.of().set(override).deaugmented();
+        normal.invert();
+        normal.transpose();
+        // Match Figura's authored normal convention: uniform scale does not change lighting.
+        double volumeScale = Math.cbrt(override.determinant3x3());
+        normal.scale(volumeScale, volumeScale, volumeScale);
+        effective.normalMatrix.rightMultiply(normal);
+        var scale = override.getScale(new org.joml.Vector3f());
+        effective.stackScale.multiply(scale.x, scale.y, scale.z);
+        effective.needsMatrixRecalculation = false;
+        return effective;
+    }
 
     public record CapturedPartPose(Map<FiguraModelPart, Matrix4f> matrices,
                                    Map<FiguraModelPart, ParentType> parentTypes) {}
@@ -220,7 +259,8 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         }
 
         // The native traversal clips faces before either ordinary or accelerated submission.
-        var outfitBudget = OutfitInstructionBudget.current(avatar);
+        avatar.prepareComplexityFrame();
+        var outfitBudget = OutfitInstructionBudget.currentFaces(avatar);
         int allowance = outfitBudget == null ? avatar.complexity.remaining
                 : outfitBudget.allowance(avatar, avatar.complexity);
         int[] remainingComplexity = new int[] {allowance};
@@ -234,7 +274,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
                     if (renderLayer) {
                         PartCustomization customization = setupRootCustomization(vertOffset);
                         customizationStack.push(customization); // push root
-                        customizationStack.push(root.customization); // push "models"
+                        customizationStack.push(outfitCustomization(root, root.customization)); // push "models"
                     }
 
                     for (FiguraModelPart part : parts) {
@@ -393,7 +433,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
 
         // push stack
         FiguraMod.popPushProfiler("pushCustomizationStack");
-        customizationStack.push(custom);
+        customizationStack.push(voidMatrices ? custom : outfitCustomization(part, custom));
 
         // restore variables
         if (voidMatrices) {
@@ -562,7 +602,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         }
         try {
             part.customization.recalculate();
-            customizationStack.push(part.customization);
+            customizationStack.push(outfitCustomization(part, part.customization));
             try {
                 recordPartPivot(part);
                 for (FiguraModelPart child : List.copyOf(part.children)) {
@@ -710,7 +750,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         FiguraMod.popPushProfiler("calculatePartMatrices");
         custom.recalculate();
         FiguraMod.popPushProfiler("applyOnStack");
-        customizationStack.push(custom);
+        customizationStack.push(outfitCustomization(part, custom));
 
         // render extras
         if (thisPassedPredicate) {
@@ -790,6 +830,10 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
 
     private void searchBoneHierarchy(FiguraModelPart part, String[] boneNames, FiguraMat4[] deltas, FiguraMat4 parentAccum) {
         FiguraMat4 localDelta = buildBoneAnimDelta(part.customization);
+        Matrix4f override = outfitBoneOverrides.get(part);
+        if (override != null) {
+            localDelta.rightMultiply(pivotedOverride(part, override));
+        }
         FiguraMat4 combined = parentAccum.copy();
         combined.multiply(localDelta);
 

@@ -15,6 +15,9 @@ import top.aihmc.omnimorph.math.vector.FiguraVec4;
 import top.aihmc.omnimorph.mixin.particle.ParticleAccessor;
 import top.aihmc.omnimorph.permissions.Permissions;
 import top.aihmc.omnimorph.utils.LuaUtils;
+import org.luaj.vm2.LuaError;
+import org.luaj.vm2.LuaFunction;
+import org.luaj.vm2.LuaTable;
 
 @LuaWhitelist
 @LuaTypeDoc(
@@ -38,15 +41,247 @@ public class LuaParticle {
     @LuaWhitelist
     @LuaMethodDoc("particle.spawn")
     public LuaParticle spawn() {
+        if (particle instanceof ParticleAPI.SuppressedPreviewParticle) {
+            return this;
+        }
+        if (owner.previewParticles != null
+                && !(particle instanceof CustomParticle custom && custom.preview() == owner.previewParticles)) {
+            throw new LuaError("Only this preview's custom particles can be spawned in its isolated scope");
+        }
+        if (particle instanceof CustomParticle custom && (custom.active() || !custom.isAlive())) {
+            return this;
+        }
         if (!Minecraft.getInstance().isPaused()) {
             if (owner.useParticle()) {
-                ParticleAPI.getParticleEngine().figura$spawnParticle(particle, owner.owner);
+                if (particle instanceof CustomParticle custom && !custom.activate()) {
+                    owner.noPermissions.add(Permissions.PARTICLES);
+                    return this;
+                }
+                try {
+                    if (!(particle instanceof CustomParticle custom && custom.preview() != null)) {
+                        ParticleAPI.getParticleEngine().figura$spawnParticle(particle, owner.owner);
+                    }
+                } catch (RuntimeException | Error failure) {
+                    if (particle instanceof CustomParticle) {
+                        particle.remove();
+                    }
+                    throw failure;
+                }
                 owner.noPermissions.remove(Permissions.PARTICLES);
             } else {
                 owner.noPermissions.add(Permissions.PARTICLES);
             }
         }
         return this;
+    }
+
+    private CustomParticle custom() {
+        if (particle instanceof CustomParticle custom) {
+            return custom;
+        }
+        throw new LuaError("This setting requires a custom particle");
+    }
+
+    @LuaWhitelist
+    public LuaParticle setSpriteSheet(LuaTable options) {
+        custom().setSpriteSheet(options);
+        return this;
+    }
+
+    @LuaWhitelist
+    public LuaParticle setLayers(LuaTable layers) {
+        custom().setLayers(layers);
+        return this;
+    }
+
+    @LuaWhitelist
+    public int getLayerCount() {
+        return custom().layerCount();
+    }
+
+    @LuaWhitelist
+    public LuaParticle setRenderMode(@top.aihmc.omnimorph.lua.LuaNotNil String mode) {
+        custom().setRenderMode(mode);
+        return this;
+    }
+
+    @LuaWhitelist
+    public String getRenderMode() {
+        return custom().renderMode();
+    }
+
+    @LuaWhitelist
+    public LuaParticle setAnchorTrail(boolean enabled) {
+        custom().setAnchorTrail(enabled);
+        return this;
+    }
+
+    @LuaWhitelist
+    public boolean isAnchorTrail() {
+        return custom().anchorTrail();
+    }
+
+    @LuaWhitelist
+    public LuaParticle setRibbon(LuaTable options) {
+        custom().setRibbon(options);
+        return this;
+    }
+
+    @LuaWhitelist
+    public LuaTable getRibbon() {
+        return custom().getRibbon();
+    }
+
+    @LuaWhitelist
+    public String getRenderError() {
+        return custom().getRenderError();
+    }
+
+    @LuaWhitelist
+    public LuaParticle setAcceleration(Object x, Double y, Double z) {
+        var value = LuaUtils.parseVec3("setAcceleration", x, y, z);
+        custom().setAcceleration(new net.minecraft.world.phys.Vec3(value.x, value.y, value.z));
+        return this;
+    }
+
+    @LuaWhitelist
+    public FiguraVec3 getAcceleration() {
+        return FiguraVec3.fromVec3(custom().acceleration());
+    }
+
+    @LuaWhitelist
+    public LuaParticle setMotion(LuaTable options) {
+        custom().setMotion(options);
+        return this;
+    }
+
+    @LuaWhitelist
+    public String getMotionMode() {
+        return custom().motionMode();
+    }
+
+    @LuaWhitelist
+    public String getMotionError() {
+        return custom().getMotionError();
+    }
+
+    @LuaWhitelist
+    public LuaParticle setTickCallback(LuaFunction function) {
+        custom().setTickCallback(function);
+        return this;
+    }
+
+    @LuaWhitelist
+    public LuaParticle setFrameCallback(LuaFunction function) {
+        custom().setFrameCallback(function);
+        return this;
+    }
+
+    @LuaWhitelist
+    public String getCallbackError() {
+        return custom().getCallbackError();
+    }
+
+    @LuaWhitelist
+    public LuaParticle setRotation(float degrees) {
+        custom().setRotation(degrees);
+        return this;
+    }
+
+    @LuaWhitelist
+    public double getRotation() {
+        return custom().rotation();
+    }
+
+    @LuaWhitelist
+    public LuaParticle setAngularVelocity(float degreesPerTick) {
+        custom().setAngularVelocity(degreesPerTick);
+        return this;
+    }
+
+    @LuaWhitelist
+    public float getAngularVelocity() {
+        return custom().angularVelocity();
+    }
+
+    @LuaWhitelist
+    public LuaParticle setBlendMode(@top.aihmc.omnimorph.lua.LuaNotNil String mode) {
+        custom().setBlendMode(mode);
+        return this;
+    }
+
+    @LuaWhitelist
+    public String getBlendMode() {
+        return custom().blendMode();
+    }
+
+    @LuaWhitelist
+    public LuaParticle setFrame(int frame) {
+        custom().setFrame(frame);
+        return this;
+    }
+
+    @LuaWhitelist
+    public int getFrame() {
+        return custom().frame();
+    }
+
+    @LuaWhitelist
+    public LuaParticle setPaused(boolean paused) {
+        custom().setPaused(paused);
+        return this;
+    }
+
+    @LuaWhitelist
+    public boolean isPaused() {
+        return custom().paused();
+    }
+
+    @LuaWhitelist
+    public LuaParticle setEmissive(boolean emissive) {
+        custom().setEmissive(emissive);
+        return this;
+    }
+
+    @LuaWhitelist
+    public boolean isEmissive() {
+        return custom().emissive();
+    }
+
+    @LuaWhitelist
+    public LuaParticle setDynamicLight(boolean enabled) {
+        custom().setDynamicLight(enabled);
+        return this;
+    }
+
+    @LuaWhitelist
+    public boolean isDynamicLight() {
+        return custom().dynamicLight();
+    }
+
+    @LuaWhitelist
+    public LuaParticle setLightLevel(double level) {
+        if (!Double.isFinite(level) || level != Math.rint(level) || level < 0 || level > 15) {
+            throw new LuaError("Custom particle light level must be an integer from 0 to 15");
+        }
+        custom().setLightLevel((int) level);
+        return this;
+    }
+
+    @LuaWhitelist
+    public int getLightLevel() {
+        return custom().lightLevel();
+    }
+
+    @LuaWhitelist
+    public LuaParticle setLightRadius(double radius) {
+        custom().setLightRadius(radius);
+        return this;
+    }
+
+    @LuaWhitelist
+    public double getLightRadius() {
+        return custom().lightRadius();
     }
 
     @LuaWhitelist
@@ -59,7 +294,7 @@ public class LuaParticle {
     @LuaWhitelist
     @LuaMethodDoc("particle.is_alive")
     public boolean isAlive() {
-        return particle.isAlive();
+        return particle instanceof CustomParticle custom ? custom.active() : particle.isAlive();
     }
 
     @LuaWhitelist
@@ -162,6 +397,9 @@ public class LuaParticle {
             value = "particle.set_color")
     public LuaParticle setColor(Object r, Double g, Double b, Double a) {
         FiguraVec4 vec = LuaUtils.parseVec4("setColor", r, g, b, a, 1, 1, 1, 1);
+        if (particle instanceof CustomParticle) {
+            requireFinite((float) vec.x, (float) vec.y, (float) vec.z, (float) vec.w);
+        }
         if (particle instanceof SingleQuadParticle quadParticle) {
             quadParticle.setColor((float) vec.x, (float) vec.y, (float) vec.z);
             ((SingleQuadParticleAccessor) particle).figura$setParticleAlpha((float) vec.w);
@@ -213,6 +451,9 @@ public class LuaParticle {
             aliases = "power",
             value = "particle.set_power")
     public LuaParticle setPower(float power) {
+        if (particle instanceof CustomParticle) {
+            requireFinite(power);
+        }
         particle.setPower(power);
         this.power = power;
         return this;
@@ -243,6 +484,12 @@ public class LuaParticle {
             aliases = {"scale", "setSize", "size"},
             value = "particle.set_scale")
     public LuaParticle setScale(float scale) {
+        if (particle instanceof CustomParticle) {
+            requireFinite(scale);
+            if (scale <= 0) {
+                throw new LuaError("Custom particle scale must be positive");
+            }
+        }
         if (particle instanceof SingleQuadParticle quadParticle)
             ((SingleQuadParticleAccessor) quadParticle).figura$fixQuadSize();
         particle.scale(scale);
@@ -279,8 +526,19 @@ public class LuaParticle {
             aliases = "gravity",
             value = "particle.set_gravity")
     public LuaParticle setGravity(float gravity) {
+        if (particle instanceof CustomParticle) {
+            requireFinite(gravity);
+        }
         ((ParticleAccessor) particle).setGravity(gravity);
         return this;
+    }
+
+    private static void requireFinite(float... values) {
+        for (float value : values) {
+            if (!Float.isFinite(value)) {
+                throw new LuaError("Custom particle settings must be finite");
+            }
+        }
     }
 
     @LuaWhitelist

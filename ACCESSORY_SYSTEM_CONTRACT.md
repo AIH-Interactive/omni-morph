@@ -16,6 +16,10 @@ LOCAL 引用为稳定 UUID、格式及 SHA256，无绝对路径；CLOUD 为规�
 
 BoneRef 为 instance_id（null 为基础）、完整 path 段（name + 同名兄弟 sibling_ordinal）、skeleton_hash。锚点联合为 STANDARD/BASE_BONE/ACCESSORY_BONE/VIRTUAL/AUTO_TRAIL/UNRESOLVED。手动绑定不回退。虚拟锚点 UUID 可改名，父级为基础或装饰 BoneRef，不支持虚拟节点嵌套。依赖必须无环，无自引用、缺失实例或丢失所属实例的骨骼引用。
 
+装饰元数据的 `editable_bones` 是可选的、默认空的资源相对 BoneRef 列表，逐节点声明可编辑范围；必须同时声明 `has_bones` 和 `edit_bones`，引用不含玩家 instance_id，hash 与资源声明一致，不接受重复路径。范围数量/深度沿用 `[outfit.limits]` 的资源节点/深度上限；实际覆盖仍按整套 max_bone_overrides 限制。`exported_bones` 只声明对外挂载插槽，不能代替编辑授权。应用内部覆盖还必须通过加载后的路径/hash、原生运行时支持及当前用户资源编辑策略校验；缺失范围保持只读。
+
+内部覆盖是当前实例原生骨骼枢轴处追加的局部 T/Rx/Ry/Rz/S 矩阵，使用统一模型单位；作者姿态/动画先求值，覆盖再影响网格、子骨骼和导出挂点。清空覆盖恢复作者姿态，不修改资源文件或原始拓扑，也不把内部骨骼当作基础目标。
+
 绑定配置按基础资源身份 + skeleton_hash 保存；原版基础使用固定 vanilla 骨架版本。预设内 UUID 保持一致，导入其他草稿时重分配全部实例/虚拟 UUID 并重写内部引用与冲突编号。编辑器选择、树开关、搜索/折叠状态不进入运行时配置。
 
 ## 坐标、预算与错误
@@ -42,12 +46,81 @@ capabilities.outfits_v1 分别声明 configuration/presets/apply/events。阶段
 
 Lua API：cosmetic_controls 与 avatar_controls 同名方法/链式/类型/回调，容器按实例隔离；cosmetic_animations:setPage(page)、cosmetic_animations:onEvent(callback)。事件给出动画名、类型/标记、时间、播放代际，通过有界队列在下一 tick 派发。时序为 Lua/controls → Molang → 姿态/挂点 → 绘制。Java 暴露受限实例句柄，不向脚本暴露其他作者 Avatar 或 host 权限；Rust 不运行脚本。
 
-在既有 particles 增加 newTexturedParticle(texture,pos,velocity)，复用 LuaParticle 常规属性。纹理限本资源授权句柄；emissive 默认 false。精灵图参数：frameWidth/frameHeight 或 columns/rows（矛盾拒绝）、frameCount、startFrame/endFrame（0 起始闭区间）、frameTimeTicks>0、playback=once/loop/pingPong、initialFrame、randomStart、frame、paused、单元间距/边距。左上角起按行排列；once 停末帧，寿命独立；按 tick+partial tick 计时。共享纹理上传，实例粒子归属独立；仅同步授权事件/种子，不同步逐粒子位置。第 5.4 节全部渲染、生命周期和总预算约束保留。
+动画通知当前接线：`cosmetic_animations:onEvent(function)` 替换本实例唯一监听，`onEvent(nil)` 注销并清空待派发事件，`getEventError()` 返回最近拒绝/失败原因。每条回调收到新的表 `{animation,type,marker,time,generation}`，时间以秒计，代际来自本次播放；不包含 Lua/Molang 源码。待派发队列数量受本连接 `maxParticleCallbacksPerTick` 约束，通知执行与高级粒子 tick 回调共用穿戴者的该次数账本，并共同受既有整套 tick Lua 指令预算限制；字符串复用 `maxStateStringBytes` 的 UTF-8 上限，零次额度拒绝注册。队列满时丢弃新通知并给出明确原因，不阻塞原生动画；下一 tick 仅派发入场前的有限候选，回调新产生的通知最早再下一 tick 执行。更换监听、重载、播放代际失效、VM 替换或实例退休清除/拒绝旧通知，不退款已消费次数。
+
+已接入 Figura 原代码关键帧（type=`keyframe`、marker 为空）及一次/保持播放首次到端点（type=`end`），保留原代码关键帧执行方式；自然结束保留本代通知，手动停止/重启使旧代失效。队列在生产 Avatar.tick 的 tick 指令重置后调用，真实游戏时序仍 MANUAL/PENDING。跨端授权回放和隔离预览继续在既定检查点处理；setPage 属于阶段四的轮盘入口登记，本阶段不提前实现界面。
+
+YSM 从已有初始事件及 YsmAnimationEventWindow 经过窗口产生 timeline/sound/particle 通知；marker 仅取原事件对象显式的 `marker` 参数，未声明则为空，绝不回传 timeline 的 Molang 表达式。例如既有 timeline 对象可用 `{event="v.flash=1;",marker="sparkle"}` 分别声明原 Molang 动作和通知标识。通知只排队，原声音/粒子/Molang 仍走原处理路径；因组装时没有 Lua 监听而已经发生的初始事件不补发。ONCE/HOLD_ON_LAST_FRAME 首次到端点产生一次 end，随后自然淡出/移除仍可递送该通知。停止、主动淡出/控制器退休或重置撤销该播放的排队通知；主动淡出中不再生产新 Lua 通知，原生姿态继续按既有逻辑淡出。控制器对同一时钟逐帧刷新权重保持通知代际和结束标记；显式直接 play、建立新槽位或取消后重新激活才开始新通知代际。该内部通知代际不修改原播放时钟/同步 playbackGeneration。已关闭/被替换运行时、子实体和 observerControlled 投影不从本地源派发这些通知；观察端授权事件将在阶段五统一接入。
+
+在既有 particles 增加 newCustomParticle(texture,pos,velocity)，此前拟定 newTexturedParticle 作为同一实现的便捷入口，复用 LuaParticle 常规属性并保持旧 API 行为。纹理限本资源授权句柄；emissive 默认 false。精灵图参数：frameWidth/frameHeight 或 columns/rows（矛盾拒绝）、frameCount、startFrame/endFrame（0 起始闭区间）、frameTimeTicks>0、playback=once/loop/pingPong、initialFrame、randomStart、frame、paused、单元间距/边距。左上角起按行排列；once 停末帧，寿命独立；按 tick+partial tick 计时。共享纹理上传，实例粒子归属独立；仅同步授权事件/种子，不同步逐粒子位置。第 5.4 节全部渲染、生命周期和总预算约束保留。
+
+用户增量 CustomParticle：Billboard/Ribbon/Layered；多纹理层、平铺/拉伸、自由方向、加速度与旋转等属性，内置螺旋/环绕/追踪/贝塞尔运动，Lua 控制行为、Java 负责渲染/UV/纹理/生命周期。高级 Lua 回调同时受既有指令预算及穿戴者汇总 tick/帧次数限制。Ribbon 的 width/length 以方块计，lifetime 以 tick 计；uvRepeat 是每方块弧长重复数，uvOffset 是纹理周期偏移；taper/fade 默认 false，分别为尾端渐缩和年龄渐隐；emissive 与可选 light 独立，light 映射既有动态光源配置。平铺按世界弧长连续，stretch 映射保留轨迹全长；退化段/裁剪/传送/切世界必须有界且可清理。
+
+控制器 TrailBuffer 与 CustomParticle Ribbon 使用 OutfitTrailBudget 的同一穿戴者槽位账本；控制器仅在有效世界采样时取得槽位，GUI/手部 pass 不取得或清除世界槽位。目标失效、世界变化、采样过期、失败或关闭组合释放所属槽位，不释放其他来源。独立 Ribbon 退出模式/移除释放自己的槽位。顶点账本同样按穿戴者与全局渲染帧共享，实际提交后才扣费；移除、注销和释放槽位不能返还本帧已提交顶点。
+
+控制器绘制桥：CustomParticle 的 `setAnchorTrail(true)` / `isAnchorTrail()` 显式选择所属 Trail 装饰的控制器历史，仅在 Ribbon 模式读取该历史。普通 Avatar/没有 Trail 历史能力的实例拒绝启用，不能指定或借用其他实例。默认 false；既有独立粒子行为不变。开启后不采集第二份历史，也不再占独立轨迹槽位；多个绘制粒子可共用一条控制器历史，仍分别占粒子数量、层数、面数、顶点及光源额度。关闭链接若需要新的独立槽位但容量已满则原子拒绝；移除一个绘制粒子不能释放控制器所属槽位。
+
+链接模式下，控制器 Lua 决定目标、采样间隔/距离、源历史保留时间和传送阈值；`setRibbon` 的宽度、可见长度/寿命裁剪、UV、渐缩/渐隐与材质设置仍作用于取得的有界历史，不反向重写共享采样策略。粒子自身的原生总寿命继续到期；独立运动坐标不替换锚点历史。缺少/过期/换世界的历史不绘制也不在原粒子位置生成替代轨迹；恢复有效采样后可继续绘制。非自发光采用轨迹头部原生光照；可选动态光源跟随该头部，等待有效历史时保留已预留的光源额度而不发布照明。冻结的原生提交只重放不可变顶点、UV、颜色和纹理引用，不重新执行 Lua 或采样。原生顶点/提交已自动验证，真实游戏/GPU 画面仍 MANUAL/PENDING；装饰 particles 全局入口须等隔离预览实现后开放。
+
+精灵图边距/间距键固定为 marginX/marginY、spacingX/spacingY，单位像素，两侧使用相同边距。playback 缺省 loop，单帧图不随时间改变；randomStart=true 时私有种子选择播放范围内起点，覆盖 initialFrame 的播放起点，但仍校验 initialFrame 合法。手动 frame 只接受当前播放闭区间内的帧；暂停时手动改帧保持暂停，恢复继续分数相位。纹理退休后新消费者不得引用，已有消费者及其在途帧按持有句柄延迟回收；帧结束后必须释放自己的句柄。
+
+newCustomParticle/newTexturedParticle 接受本实例纹理名或 FiguraTexture、位置 FiguraVec3 和可省略的速度 FiguraVec3；与 newParticle 一样立即尝试生成，原 API 保留。新增粒子控制为 setSpriteSheet(table)、setFrame/getFrame、setPaused/isPaused、setEmissive/isEmissive；所有模式共用播放基础。新粒子默认寿命 20 ticks、速度零、重力零、关闭碰撞、自发光关闭；未成功入队时 isAlive=false，已移除不可重新生成。使用原生成权限并另计穿戴者存活数量；清理只作用于对应执行实例，在途帧可继续持有退休纹理直至帧结束。
+
+Layered：setLayers(table) 接受从 1 开始的连续非空层数组，按当前 max_particle_layers 在分配层列表前校验；成功自动切到 LAYERED。setRenderMode/getRenderMode 可在 BILLBOARD/LAYERED 间切换（设置不区分大小写，读取大写）；未配置层列表时不得切到 Layered。每层字段为 texture（缺省原构造纹理）、spriteSheet（缺省继承公共播放）、uv={u0,u1,v0,v1}（当前选中帧内 [0,1] 的正面积裁剪）、color（复制 Vec3/Vec4，缺省白）、alpha（[0,1]，缺省 1）、blend（alpha/additive/opaque，缺省 alpha）、emissive（缺省继承公共开关）。公共颜色/alpha 与层颜色/alpha 相乘；独立精灵图使用私有时钟，公共暂停作用于所有已配置层，公共 setFrame 只设置公共播放。当前 uv 裁剪不冒充后续无缝平铺/拉伸。
+
+setBlendMode/getBlendMode 设置 Billboard 基础层的混合模式；Layered 的各层由其 blend 字段决定。alpha 使用原生 source-alpha 混合，additive 为 RGB srcAlpha/ONE，opaque 关闭混合；均保留原生深度测试、关闭深度写入并使用同一透明阶段，避免混合模式改变作者层序。按层序调整的只是自定义批次槽位，原生批次相对顺序不变；不能以 CPU 层序测试替代实际 GPU 叠加验收。层配置/模式切换须先验证并持有全部新纹理，再原子替换；失败释放临时持有并保留旧状态。共享运动/寿命/一个存活粒子名额，每个被移除层的在途帧仍保留纹理至帧结束。
+
+粒子渲染复杂度沿用既有 COMPLEXITY 的“一个实际提交多边形面”单位：Billboard 一面，Layered 每层一面；在纹理上传和原生 quad 提取前整次申请，不足以绘制完整层列表时本次不提交，也不销毁粒子。被接受的提交扣入个人与整套共享面数，重复实际提交再次扣账，原生计数重置不返还已花额度。普通 Avatar 仅在持有自定义粒子时取得面数账本，不据此绑定 Lua 初始化/tick 指令作用域；最后一个粒子移除后账本保留到帧末，避免同帧随后绘制模型绕过预算。没有模型可见的穿戴者仍按渲染帧更新额度。
+
+Ribbon 几何以接受样本的累计世界弧长为基准，环形淘汰/寿命过期不重置该 UV 相位；世界/目标/传送重置则清零。length 与 lifetime 同时裁剪实际段并在边界插值，未来时间点裁剪到当前绘制时刻。repeat 按弧长乘 uvRepeat 加 uvOffset，stretch 将当前可见轨迹映射到一段纹理并忽略 uvRepeat；uvOffset 可正可负。每跨一个纹理周期先分割四边形，再用 [0,1] UV 映射到选中的纹理帧，不能仅对端点取模造成跨帧插值。taper 在当前可见尾端为零宽、头端为完整 width，fade 按样本年龄/lifetime 衰减。实际顶点和面成本包含全部层及平铺产生的细分，在顶点数组生成前检查限额；失败不得静默截断已配置样式。
+
+Ribbon 几何/采样配置使用不可变值及部分更新；宽度、长度、寿命和重复数为有限正数，偏移为有限有符号数，taper/fade 只接受布尔值。sampleDistance 可为零，sampleInterval/teleportDistance 必须有限且为正。读取固定 Lua 原始字段，不调用作者元方法，也不遍历任意长度配置表；返回配置为独立副本。缓冲可额外保留一个采样间隔供寿命边界插值，可见部分仍严格按 lifetime 裁剪。配置解析与几何预检只能证明相应覆盖，真实画面仍须独立验证。
+
+当前 Lua 入口为 `setRibbon(table)` 配置、`setRenderMode("RIBBON")` 选择模式、`getRibbon()` 读取副本、`getRenderError()` 读取最近提取错误；未出错返回 nil。Ribbon 的 lifetime 是历史保留时间，粒子自身生命周期仍由既有 setLifetime 控制。emissive 映射已有 setEmissive；light 为独立动态光源的布尔/配置表别名，默认关闭，各模式和分层共用同一份光源。选择 Ribbon 后修改层列表保持该模式；共享粒子位置/寿命和轨迹，各层只影响材质。冻结状态走原生粒子任意四边形缓冲及原生材质绘制路径，重放不重复采样。先整次扣除包含全部层的顶点与面数，拒绝不花额度，成功提交后同帧移除不返还，下一帧补充。GPU 运行及画面证据以进度记录为准。
+
+新增后端 `[outfit.limits]` 默认/客户端安全硬边界：max_custom_particles=512/4096（穿戴者存活总数）、max_particle_layers=4/8（每粒子）、max_ribbon_vertices=4096/32768（穿戴者每帧，含层）、max_particle_callbacks_per_tick=64/1024、max_particle_callbacks_per_frame=32/512；均允许 0 禁用。动态光源继续沿用 max_dynamic_lights 等已有键。缺省向后兼容，全部实例汇总，旧权限/速率/复杂度仍共同限制；阶段三必须另证实际消费与归还，契约本身不表示执行已实现。
+
+CustomParticle 运动入口为 `setAcceleration(vec3 | x,y,z)` / `getAcceleration()`、`setMotion(table)` / `getMotionMode()` / `getMotionError()`。加速度单位为方块/tick²，在 free 模式每 tick 先加到速度，再执行原生重力/阻力/物理；向量复制，返回值也为副本。内置模式每 tick 定成本求值，不运行 Lua 回调、不随绘制 FPS 推进；模式替换重新从当前 age 计时，不重置粒子寿命。显式曲线开始时定位到其 t=0，失效配置先拒绝，原运动不变；更换运动清空 Ribbon 历史，避免把不同曲线接成长线。
+
+| mode | 设置与行为 |
+| --- | --- |
+| free | 原有速度/重力/物理与新增加速度；切回时保留上一 tick 的速度和原物理配置 |
+| orbit / helix | center 为世界坐标（默认配置时粒子位置）；axis 为有限非零向量（默认 Y）；radius 默认 .5 且大于零；angularVelocity 为度/tick（默认 15，可负）；phase 为度（默认 0）。helix 的 rise 为方块/tick（默认 .05，可负），orbit 不沿轴推进 |
+| bezier | 四个世界坐标 Vector3 组成的密集 points 列表；duration 默认 20 tick 且有限正数。loop 默认 false，到达末点后停留至普通生命周期结束；true 按 duration 循环。控制点复制为不可变值 |
+| tracking | target 为固定 Vector3 或现有 EntityAPI 句柄；speed 默认 .1 方块/tick 且有限正数，不越过终点。实体必须在粒子世界当前加载，持续匹配对象身份、ID 和 UUID；不重绑定被复用的 ID。onTargetLost 默认 remove，也可 stop，后者冻结并立即释放目标引用，原生寿命照常到期 |
+
+内置轨迹为显式位置控制，不叠加 free 模式的加速度/重力/碰撞；原生移动中“碰撞后停止”的状态也不能阻止曲线位置更新。free 模式继续遵循原生碰撞状态。数值溢出时只移除该粒子并记录 NON_FINITE_MOTION；目标失效记录 TARGET_UNAVAILABLE，正常无错为 nil。只接受固定参数/已有句柄，不接受作为轨迹或目标的 Lua 函数；高级回调仍需后续次数与指令预算实现。
+
+`setRotation/getRotation` 使用角度，`setAngularVelocity/getAngularVelocity` 使用度/tick；值必须有限。Billboard/Layered 是绕视线的原生 roll，Ribbon 是绕轨迹切线旋转横截面，默认零仍朝向摄像机。角速度跨 360 度时保留本 tick 的正确插值方向，返回角度按 360 取余；转动不改变 Ribbon 的弧长 UV、预算或相邻段共享边界。真实轨迹/转动画面与性能仍独立验收。
+
+高级回调入口为 `setTickCallback(function | nil)`、`setFrameCallback(function | nil)` 与 `getCallbackError()`；nil 注销，设置方法可链式调用。回调参数为 `(particle, delta)`，tick 的 delta=1，frame 为提取时的 partial tick。tick 回调在内置运动/原生 tick 前执行；frame 回调在粒子引擎提取前执行，整帧只派发一次固定存活快照，期间新建粒子的 frame 回调等到下一帧。相同粒子在同 tick/帧只尝试一次，先标记再执行；回调替换/自移除/重入或保留帧重复绘制不能重复执行。移除/过期/清理解除函数与预算引用。
+
+调用总次数按穿戴者、tick/frame 两个独立账本计入后端上限；零值拒绝启用，正常数量超限只跳过本次回调，粒子运动/寿命继续。次数在真正执行前扣除，同 tick/帧移除再注册不返还。每次实际执行还必须有现有 TICK_INST 或 RENDER_INST 余量，并经所属 FiguraLuaRuntime 的 VM 钩子执行；副本共用原装扮指令预算，普通 Avatar 显式启用回调后才绑定粒子 Lua 账本，个人计数重置不退款。普通脚本/init 中途首次注册也保留外层 VM 钩子并计入外层全部成功或失败指令，嵌套调用只计费一次。MC tick 开始时推进回调时钟，避免在原生粒子 tick 与随后 Avatar tick 之间重置额度；未绘制主体也能在新 tick/帧恢复正确额度。
+
+超限分别报告 CALLBACK_TICK_LIMIT / CALLBACK_FRAME_LIMIT / CALLBACK_INSTRUCTION_LIMIT；无活动 Lua 所有者为 CALLBACK_OWNER_INACTIVE，异常为 CALLBACK_ERROR；正常为 nil。VM 异常沿用现有脚本失败清理，不能中断粒子引擎或停用其他执行实例。正式基础 Avatar 离开装扮作用域后的持续绑定/协商限制仍随既定阶段五正式运行时接通；当前受控同装扮副本与普通 Avatar 用例不冒充这一完整应用路径已通过。隔离预览通过自己的 scope 派发回调；装饰 Lua 已开放 particles，全局 host/net/world/file 等权限边界不变。
 
 用户追加：粒子 `dynamicLight` 独立开关默认 false，`lightLevel` 默认 15（0—15），`lightRadius` 默认 7.5 方块；与 full-bright/emissive 无绑定。光源影响实际邻近世界/实体渲染，跟随粒子位置，不改服务器光照数据。后端 `[outfit.limits]` 配置 dynamic_lighting_enabled（默认 true）、max_dynamic_lights（每穿戴者默认 8，安全边界 32）、max_dynamic_light_level（默认/最大 15）、max_dynamic_light_radius（默认 16 方块，安全边界 32）。移除/过期/禁用/重载/传送/世界切换/断线时按实例清理。阶段一仅锁定参数/预算，阶段三实现渲染及设置项；真实明暗场景验证记 MANUAL/PENDING。
+
+动态灯 Lua 方法为 `setDynamicLight/isDynamicLight`、`setLightLevel/getLightLevel`、`setLightRadius/getLightRadius`；设置方法可链式调用。亮度必须为整数，半径为有限正数且不超过 32。Ribbon 的 `light=true/false` 控制同一开关，`light={enabled, level, radius}` 部分更新；表的 enabled 省略时视为启用，读取返回独立表。关闭时可准备合法硬边界内的设置，启用及运行中必须通过后端当前开关/数量/亮度/半径校验；请求超限明确拒绝，不暗中缩短半径或降低亮度。配置收紧使现有光源不再合法时停用该源，保留粒子本身的普通寿命。
+
+原生路径对世界方块/流体的 LevelRenderer.getLightCoords 及 EntityRenderer.getPackedLightCoords 叠加径向衰减的客户端方块光，多个源取最大值，保留原天空光和更亮的原生光。RenderSectionRegion 通过自己的 level 访问器匹配世界，未知/其他世界不受影响；不调用服务端光引擎写入。不可变分区索引快照供异步区块编译查询，查询只访问本节候选源。区块使用稳定 tick 位置，移动按逻辑 tick 合并标记旧/新范围重建；实体使用每帧插值头端位置，多次渲染不重复标记地形。源范围加一个方块的采光边界，单源安全最大半径下不超过 216 节；零亮度无地形重建。设置变化/移除即时发布新快照和相应重建请求，批量实例/世界清理合并处理。
+
+当前自动证据为光场数值、生产采光钩子方法、区域世界识别、原生粒子生命周期与地形标脏调用记录；尚未用真实游戏窗口证明 Mixin 变换、区块重建完成、shader 输出及帧时间。上述实际画面和性能保持 MANUAL/PENDING，不能用自发光截图或纯光照数值代替。
 
 创建 `+` 位于形象集，筛选 `+` 位于搜索区，tooltip 不同。三个菜单项：Figura 原向导；YSM 完整复制模板后只改 metadata.name/tips/authors，保留 credits/license；装饰写 cosmetic.json + 根名固定为 Cosmetic 的模型模板 + PNG + Lua。九类分类、左右目标、拖尾单空骨骼例外及 SVG→PNG 资产严格依计划第 6.4 节。失败只清本次新建目录，源资源 hash 不变。
 
 `protocol/outfit-v1/template-manifest.json` 固定 ysm-default-1 的 42 文件 SHA256/字节数与 28 个 main 基础动作白名单。手部动作按 arm 渲染域精确选择，fp.arm 的 parallel 不自动注入。作者动作/显式空动画/禁用优先；角色映射先精确骨骼再显式角色，缺骨不猜测。有效 clip 表须携带模板版本/结构签名；不能将扩展索引塞入旧协议。最小辅助表达式依赖闭包由阶段二按真实片段解析锁定，不能整表自动播放。
+
+隔离粒子生命周期已接线：LibraryPreviewBinding 为自己拥有的预览 Avatar/装饰分配 PreviewParticleScope。每个 scope 使用私有预算 UUID，不能因共享玩家 UUID 与真实装备或其他预览争用粒子/轨迹/回调计数。已存在世界粒子的 Avatar 不能被收编；绑定前创建的粒子句柄不能借新 scope 进入世界引擎。预览的 CustomParticle 仍用原配置/运动/生命周期及纹理租约，但由 scope 逐 tick 推进，世界回调/世界 Ribbon 提交跳过它；局部 frame 回调需由自己的预览绘制路径调用。运动不查询真实碰撞，采光不查询真实世界光照；动态光开关和数量在 scope 内验证与占位，不注册 ParticleDynamicLights 世界光场。
+
+预览重载/清理以 Avatar 对象身份清所属粒子，不按相同玩家 UUID 清世界粒子。组合退休立即注销所属发射者，即使保留帧还没完成也不能重新生成；窗口/世界会话关闭清整个 scope，已提取帧仍依纹理租约寿命释放。原生粒子工厂可能在构造/推进时产生二次世界副作用，因此隔离 scope 不调用这些工厂：保留可链式配置但不存活的 NoRenderParticle 句柄，isPresent 返回 false；真实世界中的旧粒子工厂行为不变。
+
+GUI 粒子使用 PreviewParticleFrame 冻结提取后的原生 PARTICLE 顶点。Billboard 调用原生旋转四边形写入器，Ribbon 复用世界网格/分层 UV 写入器；提取时沿用面数/顶点预检和纹理帧租约。已提交 EntityRenderState 捕获实体原点，并只缓存一次该视图的几何；延迟重绘不能再次采样、执行 Lua 或扣预算。朝向使用视图纯旋转，外层模型矩阵负责 PiP 缩放/Z 翻转与面板偏移。Figura 独立预览直接绘制，原生实体预览经 custom geometry 队列按作者层号提交，均复用原粒子 pipeline/纹理采样器，不向世界引擎提交。
+
+绑定隔离 scope 的组合只在 FIGURA_GUI 帧采样控制器轨迹，使用 scope 的私有轨迹额度；原世界组合仍只在原世界模式采样。保留帧重放不追加历史，退休后不能复活历史；linked Ribbon 读取同一份只读轨迹。当前自动证据覆盖原生顶点格式、坐标/旋转/Z 翻转、分层提交和独立控制器源；真实粒子预览像素仍为 MANUAL/PENDING。
+
+LibraryPreviewSession 使用专用工厂：独立模型采用私有默认粒子速率权限，当前玩家副本保留原权限包并在异步 load 前标记预览粒子归属。绑定 scope 前不得激活自定义世界粒子，原生粒子工厂也不调用；准备失败/取消、排队 clean、资源重载和重复清理不按共享玩家 UUID 清世界粒子。原 createLibraryPreview 评估器工厂仍保持零粒子权限。生产 Avatar 初始化队列在 binding 建立后运行作者脚本，装饰的 particles API 服从原速率权限、实例归属及同装扮预算。
+
+YSM 纹理名只从已加载包内的 texture_entries、当前原生纹理和既有 GUI 图像表解析；禁止外部路径/URL 读取。当前原生纹理直接复用；非当前纹理首次使用时创建 FiguraTexture，按同一已加载数据对象缓存，包内 ID/路径别名共享句柄，逐帧提取不重新解码。运行时退休关闭缓存，存活粒子及提取帧通过既有租约延迟最终释放。自动测试覆盖 Figura/YSM 原生动画通知到作者 Lua/newCustomParticle 的预览和世界两条路径、包内纹理别名、GPU 资源释放、副本隔离和撤销；不替代真实客户端画面或阶段五授权跨端验收。
 
 真实 GUI/双客户端/动态渲染/性能项为 MANUAL/PENDING；数据、HTTP、迁移和矩阵测试各自只证明实际覆盖内容。

@@ -24,6 +24,7 @@ import java.util.UUID;
 /** Controller commands and native resource lifetime, not evidence of complete combination rendering. */
 public final class OutfitCompositionSmokeTest {
     public static void run(CompoundTag prepared) throws Exception {
+        OutfitAnchorSmokeTest.run();
         PlayerModel model = new PlayerModel(LayerDefinition.create(
                 PlayerModel.createMesh(CubeDeformation.NONE, false), 64, 64).bakeRoot(), false);
         var base = new VanillaSkeletonAdapter(model, OutfitLimits.defaults());

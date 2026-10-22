@@ -4,10 +4,13 @@ import top.aihmc.omnimorph.model.FiguraModelPart;
 import top.aihmc.omnimorph.model.ParentType;
 import top.aihmc.omnimorph.model.PartCustomization;
 import top.aihmc.omnimorph.math.matrix.FiguraMat4;
+import top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer;
 import top.aihmc.omnimorph.render.acceleration.AccelerationService;
+import org.joml.Matrix4f;
 import org.luaj.vm2.LuaFunction;
 
 import java.util.List;
+import java.util.Map;
 
 /** Private native-part pose for one retained command; geometry and Lua execution remain native. */
 public final class FiguraRenderPose {
@@ -61,10 +64,21 @@ public final class FiguraRenderPose {
 
     private final List<PartState> states;
     private final AccelerationService.Lease lease;
+    private final ImmediateFiguraRenderer renderer;
+    private final Map<FiguraModelPart, Matrix4f> overrides;
 
     public FiguraRenderPose(List<FiguraModelPart> parts, AccelerationService.Lease lease) {
+        this(parts, lease, null, Map.of());
+    }
+
+    public FiguraRenderPose(List<FiguraModelPart> parts, AccelerationService.Lease lease,
+                             ImmediateFiguraRenderer renderer, Map<FiguraModelPart, Matrix4f> overrides) {
         states = parts.stream().map(PartState::capture).toList();
         this.lease = lease;
+        this.renderer = renderer;
+        var copied = new java.util.HashMap<FiguraModelPart, Matrix4f>();
+        overrides.forEach((part, matrix) -> copied.put(part, new Matrix4f(matrix)));
+        this.overrides = Map.copyOf(copied);
     }
 
     public void draw(Runnable nativeDrawing) {
@@ -79,7 +93,11 @@ public final class FiguraRenderPose {
         states.forEach(PartState::apply);
         boolean completed = false;
         try {
-            nativeDrawing.run();
+            if (renderer == null || overrides.isEmpty()) {
+                nativeDrawing.run();
+            } else {
+                renderer.withOutfitBoneOverrides(overrides, nativeDrawing);
+            }
             completed = true;
         } finally {
             // Keep normal native callback edits when this is still the current pose. An older
