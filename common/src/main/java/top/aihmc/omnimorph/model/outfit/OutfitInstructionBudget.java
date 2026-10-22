@@ -8,6 +8,7 @@ import top.aihmc.omnimorph.permissions.Permissions;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -15,6 +16,19 @@ import java.util.function.Supplier;
 /** Outfit owners share existing instruction, face and custom texture limits; the controller is excluded. */
 public final class OutfitInstructionBudget {
     private static final ThreadLocal<OutfitInstructionBudget> CURRENT = new ThreadLocal<>();
+    private static final Map<Avatar, ParticleFaces> PARTICLE_FACES = new IdentityHashMap<>();
+    private static long particleTick;
+
+    private static final class ParticleFaces {
+        private final OutfitInstructionBudget budget;
+        private int references;
+        private int callbackReferences;
+        private boolean callbacksEnabled;
+
+        private ParticleFaces(Avatar owner) {
+            budget = new OutfitInstructionBudget(() -> owner);
+        }
+    }
 
     private static final class Usage {
         long epoch = Long.MIN_VALUE;
@@ -25,6 +39,7 @@ public final class OutfitInstructionBudget {
     private final Supplier<Avatar> base;
     private final Map<Permissions, Usage> usage = new HashMap<>();
     private long tick;
+    private boolean particleTickClock;
     private List<Avatar> instances = List.of();
 
     OutfitInstructionBudget(Supplier<Avatar> base) {
@@ -53,11 +68,97 @@ public final class OutfitInstructionBudget {
     }
 
     public static OutfitInstructionBudget current(Avatar avatar) {
-        if (avatar.cosmeticContext != null) {
+        if (avatar.cosmeticContext != null && avatar.cosmeticContext.instructionBudget() != null) {
             return avatar.cosmeticContext.instructionBudget();
         }
         var scope = CURRENT.get();
-        return scope != null && scope.base.get() == avatar ? scope : null;
+        if (scope != null && scope.base.get() == avatar) {
+            return scope;
+        }
+        var particles = PARTICLE_FACES.get(avatar);
+        return particles != null && particles.callbacksEnabled ? particles.budget : null;
+    }
+
+    /** Geometry alone does not bind ordinary Lua; explicit callback registration opts into that shared ledger. */
+    public static OutfitInstructionBudget currentFaces(Avatar avatar) {
+        var shared = current(avatar);
+        if (shared != null) {
+            return shared;
+        }
+        var particles = PARTICLE_FACES.get(avatar);
+        return particles == null ? null : particles.budget;
+    }
+
+    public static ParticleFaceLease retainParticleFaces(Avatar owner) {
+        var faces = PARTICLE_FACES.computeIfAbsent(owner, ParticleFaces::new);
+        faces.references++;
+        return new ParticleFaceLease(faces);
+    }
+
+    public static void finishParticleFrame() {
+        PARTICLE_FACES.values().removeIf(faces -> faces.references == 0 && faces.callbackReferences == 0);
+    }
+
+    public static void beginParticleTick() {
+        particleTick++;
+    }
+
+    public static long particleTick() {
+        return particleTick;
+    }
+
+    public static boolean hasParticleCallbacks(Avatar owner) {
+        var faces = PARTICLE_FACES.get(owner);
+        return faces != null && faces.callbacksEnabled;
+    }
+
+    public static ParticleCallbackLease retainParticleCallbacks(Avatar owner) {
+        var shared = current(owner);
+        var faces = PARTICLE_FACES.computeIfAbsent(owner, ParticleFaces::new);
+        faces.callbacksEnabled = true;
+        faces.callbackReferences++;
+        faces.budget.particleTickClock = true;
+        if (shared != null) {
+            shared.particleTickClock = true;
+        }
+        return new ParticleCallbackLease(faces);
+    }
+
+    public static final class ParticleCallbackLease implements AutoCloseable {
+        private final ParticleFaces faces;
+        private boolean closed;
+
+        private ParticleCallbackLease(ParticleFaces faces) {
+            this.faces = faces;
+        }
+
+        @Override
+        public void close() {
+            if (!closed) {
+                closed = true;
+                faces.callbackReferences--;
+                // Spent instruction ledgers stay active through the remaining particle/frame lifetime.
+            }
+        }
+    }
+
+    public static final class ParticleFaceLease implements AutoCloseable {
+        private final ParticleFaces faces;
+        private boolean closed;
+
+        private ParticleFaceLease(ParticleFaces faces) {
+            this.faces = faces;
+        }
+
+        @Override
+        public void close() {
+            if (!closed) {
+                closed = true;
+                faces.references--;
+                // Keep a spent ledger until frame retirement, even if the last particle is removed.
+                // Otherwise a later model draw in this frame could refund the particle's faces.
+            }
+        }
     }
 
     void beginTick() {
@@ -106,7 +207,7 @@ public final class OutfitInstructionBudget {
         if (permission == Permissions.INIT_INST) {
             epoch = 0;
         } else if (permission == Permissions.TICK_INST || permission == Permissions.WORLD_TICK_INST) {
-            epoch = tick;
+            epoch = particleTickClock ? particleTick : tick;
         }
         Usage value = usage.computeIfAbsent(permission, ignored -> new Usage());
         if (value.epoch != epoch) {

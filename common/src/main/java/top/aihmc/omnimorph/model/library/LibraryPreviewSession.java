@@ -124,7 +124,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
         pose.showRightSleeve = player.isModelPartShown(PlayerModelPart.RIGHT_SLEEVE);
         pose.showLeftPants = player.isModelPartShown(PlayerModelPart.LEFT_PANTS_LEG);
         pose.showRightPants = player.isModelPartShown(PlayerModelPart.RIGHT_PANTS_LEG);
-        LibraryPreviewBinding.capture(entity, pose);
+        LibraryPreviewBinding.capture(entity, pose, delta);
         var outfit = LibraryPreviewBinding.composition(pose);
         if (outfit != null) {
             outfit.prepareFiguraBase(avatar);
@@ -349,8 +349,8 @@ public final class LibraryPreviewSession implements AutoCloseable {
             if (usePlayer && player == null) {
                 return null;
             }
-            Avatar prepared = usePlayer ? new Avatar(player.getUUID())
-                    : Avatar.createLibraryPreview(owner, "LibraryPreview");
+            Avatar prepared = usePlayer ? Avatar.createPlayerModelPreview(player.getUUID())
+                    : Avatar.createParticlePreview(owner, "LibraryPreview");
             prepared.load(data, null, () -> !current(generation) || result.isCancelled());
             return new PreparedModel(prepared, usePlayer);
         }).whenComplete((loaded, failure) -> Minecraft.getInstance().execute(() -> {

@@ -15,6 +15,7 @@ public final class YsmRenderPose {
     private final Matrix4f modelScale;
     private final boolean unlit;
     private final AccelerationService.Lease lease;
+    private final Map<String, Matrix4f> boneOverrides;
 
     private record Vector(double x, double y, double z) {
         private static Vector capture(FiguraVec3 value) {
@@ -65,10 +66,25 @@ public final class YsmRenderPose {
 
     private YsmRenderPose(Map<String, PartPose> parts, Matrix4f modelScale, boolean unlit,
                           AccelerationService.Lease lease) {
+        this(parts, modelScale, unlit, lease, Map.of());
+    }
+
+    private YsmRenderPose(Map<String, PartPose> parts, Matrix4f modelScale, boolean unlit,
+                          AccelerationService.Lease lease, Map<String, Matrix4f> boneOverrides) {
         this.lease = lease;
         this.unlit = unlit;
         this.parts = Map.copyOf(parts);
         this.modelScale = new Matrix4f(modelScale);
+        this.boneOverrides = Map.copyOf(boneOverrides);
+    }
+
+    public YsmRenderPose withBoneOverrides(Map<YsmModelPart, Matrix4f> overrides) {
+        if (overrides.isEmpty()) {
+            return this;
+        }
+        var copied = new LinkedHashMap<String, Matrix4f>();
+        overrides.forEach((part, matrix) -> copied.put(part.getName(), new Matrix4f(matrix)));
+        return new YsmRenderPose(parts, modelScale, unlit, lease, copied);
     }
 
     boolean unlit() {
@@ -84,7 +100,12 @@ public final class YsmRenderPose {
         if (pose == null && name != null) {
             pose = parts.get(name.toLowerCase(Locale.US));
         }
-        return pose == null ? null : pose.detachedPart();
+        if (pose == null) {
+            return null;
+        }
+        var part = pose.detachedPart();
+        part.setOutfitTransform(boneOverrides.get(pose.name()));
+        return part;
     }
 
     void applyModelScale(PoseStack stack) {

@@ -42,6 +42,7 @@ public class Animation {
     private float time = 0f;
     private boolean inverted = false;
     private float lastTime = 0f;
+    private long eventGeneration;
     protected float frameTime = 0f;
 
     // -- data variables -- // 
@@ -142,6 +143,8 @@ public class Animation {
     }
 
     public void tick() {
+        boolean completed = false;
+        long generation = eventGeneration;
         // tick time
         this.controller.tick();
 
@@ -167,8 +170,11 @@ public class Animation {
         // loop checks
         switch (this.loop) {
             case ONCE -> {
-                if ((!inverted && time >= length) || (inverted && time <= 0))
-                    stop();
+                if ((!inverted && time >= length) || (inverted && time <= 0)) {
+                    controller.reset();
+                    playState = PlayState.STOPPED;
+                    completed = true;
+                }
             }
             case LOOP -> {
                 if (!inverted && time > length + loopDelay)
@@ -177,11 +183,13 @@ public class Animation {
                     time += length + loopDelay - offset;
             }
             case HOLD -> {
+                PlayState previous = playState;
                 time = inverted ? Math.max(time, offset) : Math.min(time, length);
                 if (!inverted && time >= length)
                     playState = PlayState.HOLDING;
                 else if (inverted && time <= 0)
                     playState = PlayState.HOLDING;
+                completed = previous != PlayState.HOLDING && playState == PlayState.HOLDING;
             }
         }
 
@@ -193,6 +201,14 @@ public class Animation {
             playCode(this.frameTime, this.lastTime);
         else
             playCode(this.lastTime, this.frameTime);
+        if (completed && eventGeneration == generation) {
+            notifyEvent("end", inverted ? 0 : length, generation);
+        }
+    }
+
+    private void notifyEvent(String type, double time, long generation) {
+        top.aihmc.omnimorph.lua.api.CosmeticAnimationsAPI.offer(owner, modelName + "." + name,
+                type, "", time, generation, () -> eventGeneration == generation);
     }
 
     public void playCode(float minTime, float maxTime) {
@@ -207,6 +223,7 @@ public class Animation {
 
         for (Float codeTime : codeFrames.keySet()) {
             if (codeTime >= minTime && codeTime < maxTime) {
+                notifyEvent("keyframe", codeTime, eventGeneration);
                 try {
                     LuaValue value = owner.loadScript("animations." + modelName + "." + name, codeFrames.get(codeTime));
                     owner.run(value, owner.animation, this);
@@ -251,6 +268,7 @@ public class Animation {
         switch (playState) {
             case PAUSED -> controller.resume();
             case STOPPED -> {
+                eventGeneration++;
                 controller.init();
                 time = inverted ? (length + startDelay) : (offset - startDelay);
                 lastTime = time;
@@ -274,6 +292,7 @@ public class Animation {
     @LuaWhitelist
     @LuaMethodDoc("animation.stop")
     public Animation stop() {
+        eventGeneration++;
         controller.reset();
         playState = PlayState.STOPPED;
         return this;

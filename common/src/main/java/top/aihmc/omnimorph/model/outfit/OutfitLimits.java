@@ -8,8 +8,16 @@ public record OutfitLimits(int maxInstances, int maxVirtualAnchors, int maxDepth
                            int maxPresets, int maxDisplayOrdinals, int maxExportedBones,
                            double positionLimit, double rotationLimit, double minScale, double maxScale,
                            boolean dynamicLightingEnabled, int maxDynamicLights, int maxDynamicLightLevel,
-                           double maxDynamicLightRadius) {
+                           double maxDynamicLightRadius,
+                           Integer maxCustomParticles, Integer maxParticleLayers, Integer maxRibbonVertices,
+                           Integer maxParticleCallbacksPerTick, Integer maxParticleCallbacksPerFrame) {
     public OutfitLimits {
+        // Boxed extension fields distinguish absent JSON keys from an explicit zero (disabled).
+        maxCustomParticles = maxCustomParticles == null ? 512 : maxCustomParticles;
+        maxParticleLayers = maxParticleLayers == null ? 4 : maxParticleLayers;
+        maxRibbonVertices = maxRibbonVertices == null ? 4096 : maxRibbonVertices;
+        maxParticleCallbacksPerTick = maxParticleCallbacksPerTick == null ? 64 : maxParticleCallbacksPerTick;
+        maxParticleCallbacksPerFrame = maxParticleCallbacksPerFrame == null ? 32 : maxParticleCallbacksPerFrame;
         bounded(maxInstances, 0, 32);
         bounded(maxVirtualAnchors, 0, 128);
         bounded(maxDepth, 1, 64);
@@ -33,6 +41,26 @@ public record OutfitLimits(int maxInstances, int maxVirtualAnchors, int maxDepth
         bounded(maxDynamicLightLevel, 0, 15);
         OutfitConfig.require(Double.isFinite(maxDynamicLightRadius)
                 && maxDynamicLightRadius >= 0 && maxDynamicLightRadius <= 32);
+        bounded(maxCustomParticles, 0, 4096);
+        bounded(maxParticleLayers, 0, 8);
+        bounded(maxRibbonVertices, 0, 32768);
+        bounded(maxParticleCallbacksPerTick, 0, 1024);
+        bounded(maxParticleCallbacksPerFrame, 0, 512);
+    }
+
+    public OutfitLimits(int maxInstances, int maxVirtualAnchors, int maxDepth,
+                        int maxResourceNodes, int maxTotalNodes, int maxBoneOverrides,
+                        int maxJsonBytes, int maxTrails, int maxTrailSamples,
+                        int maxControls, int maxLuaStateEntries, int maxStateStringBytes,
+                        int maxPresets, int maxDisplayOrdinals, int maxExportedBones,
+                        double positionLimit, double rotationLimit, double minScale, double maxScale,
+                        boolean dynamicLightingEnabled, int maxDynamicLights, int maxDynamicLightLevel,
+                        double maxDynamicLightRadius) {
+        this(maxInstances, maxVirtualAnchors, maxDepth, maxResourceNodes, maxTotalNodes, maxBoneOverrides,
+                maxJsonBytes, maxTrails, maxTrailSamples, maxControls, maxLuaStateEntries, maxStateStringBytes,
+                maxPresets, maxDisplayOrdinals, maxExportedBones, positionLimit, rotationLimit, minScale, maxScale,
+                dynamicLightingEnabled, maxDynamicLights, maxDynamicLightLevel, maxDynamicLightRadius,
+                null, null, null, null, null);
     }
 
     public static OutfitLimits defaults() {

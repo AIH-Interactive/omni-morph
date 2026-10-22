@@ -70,6 +70,8 @@ public class FiguraTexture extends SimpleTexture {
     private final NativeImage nativeImageTexture;
     private NativeImage backup;
     private volatile boolean isClosed = false;
+    private boolean closeRequested;
+    private int retainers;
     private boolean removalQueued;
     private boolean clamp;
     private boolean blur;
@@ -132,8 +134,56 @@ public class FiguraTexture extends SimpleTexture {
         Minecraft.getInstance().execute(this::close);
     }
 
+    public boolean belongsTo(Avatar avatar) {
+        return owner == avatar;
+    }
+
+    /** New consumers cannot acquire a retired texture; existing particles may retain extracted frames. */
+    public synchronized Lease retain() {
+        if (closeRequested || isClosed) {
+            throw new IllegalStateException("TEXTURE_RETIRED");
+        }
+        retainers++;
+        return new Lease();
+    }
+
+    public final class Lease implements AutoCloseable {
+        private boolean released;
+
+        private Lease() {
+        }
+
+        public Lease retain() {
+            synchronized (FiguraTexture.this) {
+                if (released || isClosed) {
+                    throw new IllegalStateException("TEXTURE_LEASE_RELEASED");
+                }
+                retainers++;
+                return new Lease();
+            }
+        }
+
+        @Override
+        public void close() {
+            synchronized (FiguraTexture.this) {
+                if (released) {
+                    return;
+                }
+                released = true;
+                retainers--;
+                if (retainers == 0 && closeRequested) {
+                    FiguraTexture.this.close();
+                }
+            }
+        }
+    }
+
     @Override
     public synchronized void close() {
+        closeRequested = true;
+        if (retainers != 0) {
+            return;
+        }
         // Make sure it doesn't close twice (minecraft tries to close the texture when reloading textures
         if (isClosed) return;
 
@@ -178,6 +228,10 @@ public class FiguraTexture extends SimpleTexture {
             this.doLoad(nativeImageTexture);
             dirty = false;
         }
+    }
+
+    public void uploadIfDirty() {
+        uploadIfDirty(clamp, blur);
     }
 
     public void uploadIfDirty(boolean clamp, boolean blur) {

@@ -80,10 +80,14 @@ public class YsmAnimationPlayer {
     private final Set<String> functionEventControllers = new HashSet<>();
     private boolean wasSwinging;
     private long lastBudgetFailureFrame = Long.MIN_VALUE;
+    private long notificationSequence;
 
     public static class PlayingAnimation {
         public final YsmAnimationClip clip;
         public long playbackGeneration;
+        private long notificationGeneration;
+        private boolean endNotificationDispatched;
+        private boolean notificationsActive = true;
         public float time;
         public float previousTime;
         private double eventWindowEnd;
@@ -256,6 +260,7 @@ public class YsmAnimationPlayer {
             if (!controller.equals(animation.controllerName)) {
                 return false;
             }
+            invalidateNotifications(animation);
             stopPlaybackSounds(animation);
             return true;
         });
@@ -471,6 +476,13 @@ public class YsmAnimationPlayer {
         PlayingAnimation playing = activeAnimations.computeIfAbsent(slot, k -> new PlayingAnimation(clip, false));
         stopPlaybackSounds(playing);
         playing.playbackGeneration++;
+        // Controllers refresh weights on an existing clock every frame. Only a new slot, an explicit
+        // direct play, or reactivation after cancellation starts another notification generation.
+        if (created || controllerName == null || !playing.notificationsActive) {
+            playing.notificationGeneration = ++notificationSequence;
+            playing.endNotificationDispatched = false;
+            playing.notificationsActive = true;
+        }
         playing.controllerName = controllerName;
         playing.loopMode = loopMode == null ? clip.loopMode : loopMode;
         playing.loop = playing.loopMode == YsmAnimationClip.LoopMode.LOOP;
@@ -552,6 +564,7 @@ public class YsmAnimationPlayer {
     private void retireSlot(String slot, float fadeSeconds) {
         PlayingAnimation playing = activeAnimations.remove(slot);
         if (playing != null) {
+            invalidateNotifications(playing);
             stopPlaybackSounds(playing);
         }
         if (playing == null || fadeSeconds <= 0f) {
@@ -633,6 +646,7 @@ public class YsmAnimationPlayer {
     public void stop(String name) {
         String normalized = resolveAnimationName(name);
         PlayingAnimation removed = activeAnimations.remove(normalized);
+        invalidateNotifications(removed);
         stopPlaybackSounds(removed);
         if (removed != null && runtime != null && runtime.owner() != null && runtime.owner().isHost
                 && !runtime.isPreviewRuntime() && !runtime.isSubEntityRuntime() && !defaultClips.containsValue(removed.clip)) {
@@ -649,6 +663,7 @@ public class YsmAnimationPlayer {
         PlayingAnimation animation = activeAnimations.get(slot);
         if (animation == null)
             return;
+        invalidateNotifications(animation);
         if (fadeSeconds <= 0f) {
             activeAnimations.remove(slot);
             stopPlaybackSounds(animation);
@@ -682,6 +697,9 @@ public class YsmAnimationPlayer {
             runtime.boneQueries().captureOutput(firstPerson);
         } catch (MolangExecutionBudget.Exceeded exhausted) {
             runtime.particles().discardPending();
+            if (runtime.owner().cosmeticAnimations != null) {
+                runtime.owner().cosmeticAnimations.discardPending();
+            }
             runtime.functions().discardDeferredCalls();
             long frame = YsmRenderFrameClock.currentFrame();
             if (lastBudgetFailureFrame != frame) {
@@ -852,6 +870,12 @@ public class YsmAnimationPlayer {
             }
             if (!observerControlled) {
                 dispatchEvents(anim, evaluator);
+                if (!anim.endNotificationDispatched && !anim.loop
+                        && anim.loopMode != YsmAnimationClip.LoopMode.LOOP && anim.clip.length > 0f
+                        && (anim.speed >= 0 ? anim.eventWindowEnd >= anim.clip.length : anim.eventWindowEnd <= 0f)) {
+                    anim.endNotificationDispatched = true;
+                    notifyAnimationEvent(anim, "end", "", anim.speed >= 0 ? anim.clip.length : 0f);
+                }
             }
         }
     }
@@ -1125,6 +1149,7 @@ public class YsmAnimationPlayer {
             for (YsmAnimationEvent event : YsmAnimationEventWindow.crossed(animation.clip,
                     animation.previousTime, animation.eventWindowEnd, animation.loop,
                     animation.initialEventsDispatched)) {
+                notifyAnimationEvent(animation, event.type(), event.params().getOrDefault("marker", ""), event.time());
                 handleEvent(event, evaluator, animation.controllerName);
             }
             if (runtime != null) {
@@ -1142,6 +1167,7 @@ public class YsmAnimationPlayer {
              var effectScope = runtime == null ? null : runtime.functions().beginClientEffects(animation)) {
             for (YsmAnimationEvent event : animation.clip.events) {
                 if (event.time() == 0f) {
+                    notifyAnimationEvent(animation, event.type(), event.params().getOrDefault("marker", ""), event.time());
                     if (currentEntity == null && "sound".equals(event.type())) {
                         // Assembly precedes entity binding; retain only audio for the first live update.
                         animation.pendingInitialSounds.add(event);
@@ -1155,6 +1181,30 @@ public class YsmAnimationPlayer {
             }
         }
         animation.initialEventsDispatched = true;
+    }
+
+    private void invalidateNotifications(PlayingAnimation animation) {
+        if (animation != null) {
+            animation.notificationGeneration = ++notificationSequence;
+            animation.endNotificationDispatched = true;
+            animation.notificationsActive = false;
+        }
+    }
+
+    private void notifyAnimationEvent(PlayingAnimation animation, String type, String marker, float time) {
+        if (!animation.notificationsActive || runtime == null || runtime.isClosed()
+                || runtime.isSubEntityRuntime() || observerControlled
+                || runtime.owner().getYsmRuntime() != runtime || runtime.owner().cosmeticAnimations == null) {
+            return;
+        }
+        if (animation.notificationGeneration == 0) {
+            animation.notificationGeneration = ++notificationSequence;
+        }
+        long generation = animation.notificationGeneration;
+        top.aihmc.omnimorph.lua.api.CosmeticAnimationsAPI.offer(runtime.owner(), animation.clip.name,
+                type, marker, time, generation,
+                () -> !runtime.isClosed() && !observerControlled && runtime.owner().getYsmRuntime() == runtime
+                        && animation.notificationGeneration == generation);
     }
 
     private void advanceAnimationTime(PlayingAnimation animation) {

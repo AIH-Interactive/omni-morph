@@ -33,6 +33,10 @@ public final class OutfitCodec {
     private OutfitCodec() {
     }
 
+    static OutfitConfig.BoneRef decodeBone(com.google.gson.JsonElement value) {
+        return JSON.fromJson(value, OutfitConfig.BoneRef.class);
+    }
+
     public static String encode(OutfitConfig configuration) {
         return encode(configuration, OutfitLimits.defaults());
     }

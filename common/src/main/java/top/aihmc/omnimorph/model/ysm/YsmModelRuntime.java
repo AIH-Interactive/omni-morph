@@ -69,6 +69,7 @@ public class YsmModelRuntime implements AutoCloseable {
     private String textureId;
     private boolean textureTranslucent;
     private final Map<String, byte[]> textureData;
+    private final Map<byte[], FiguraTexture> particleTextures = new IdentityHashMap<>();
     private Map<String, MaterialData> materialData = Map.of();
     private final Map<String, YsmModelPart> parts = new LinkedHashMap<>();
     private final Map<String, YsmModelPart> armParts = new LinkedHashMap<>();
@@ -585,12 +586,12 @@ public class YsmModelRuntime implements AutoCloseable {
 
     public int outfitFaceAllowance() {
         recordComplexity(0);
-        var budget = top.aihmc.omnimorph.model.outfit.OutfitInstructionBudget.current(complexityOwner);
+        var budget = top.aihmc.omnimorph.model.outfit.OutfitInstructionBudget.currentFaces(complexityOwner);
         return budget == null ? Integer.MAX_VALUE : budget.allowance(complexityOwner, complexityOwner.complexity);
     }
 
     public boolean consumeOutfitFaces(int faces) {
-        var budget = top.aihmc.omnimorph.model.outfit.OutfitInstructionBudget.current(complexityOwner);
+        var budget = top.aihmc.omnimorph.model.outfit.OutfitInstructionBudget.currentFaces(complexityOwner);
         if (budget != null) {
             if (outfitFaceAllowance() < faces) {
                 return false;
@@ -611,6 +612,32 @@ public class YsmModelRuntime implements AutoCloseable {
 
     public FiguraTexture texture() {
         return texture;
+    }
+
+    /** Resolve only this loaded package's texture entries; aliases share one lazy particle binding. */
+    public synchronized FiguraTexture particleTexture(String name) {
+        if (closed || name == null || name.isBlank()) {
+            return null;
+        }
+        byte[] bytes = textureData.get(name);
+        if (bytes == null) {
+            bytes = textureData.get(name.toLowerCase(java.util.Locale.US));
+        }
+        if (bytes == null) {
+            return name.equalsIgnoreCase(textureId) ? texture : guiResources.get(name);
+        }
+        FiguraTexture cached = particleTextures.get(bytes);
+        if (cached != null) {
+            return cached;
+        }
+        byte[] current = textureData.get(textureId);
+        if (current == null) {
+            current = textureData.get(textureId.toLowerCase(java.util.Locale.US));
+        }
+        if (bytes == current) {
+            return texture;
+        }
+        return particleTextures.computeIfAbsent(bytes, data -> new FiguraTexture(owner, "YSM particle", data));
     }
 
     public String textureId() {
@@ -1691,6 +1718,8 @@ public class YsmModelRuntime implements AutoCloseable {
         audio.close();
         translations.close();
         guiResources.close();
+        particleTextures.values().forEach(FiguraTexture::close);
+        particleTextures.clear();
         materialData = Map.of();
         animationPlayer.clearControllerFunctionTransitions();
         functions.clearEventState();
@@ -1964,6 +1993,7 @@ public class YsmModelRuntime implements AutoCloseable {
             stack.translate(-pos.x / 16d, pos.y / 16d, pos.z / 16d);
             rotate(stack, (float) -rot.x, (float) -rot.y, (float) rot.z);
             stack.scale((float) scale.x, (float) scale.y, (float) scale.z);
+            part.applyOutfitTransform(stack);
         } else {
             rotate(stack, bone.rotation[0], bone.rotation[1], bone.rotation[2]);
         }

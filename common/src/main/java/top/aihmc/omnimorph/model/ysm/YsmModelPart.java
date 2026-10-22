@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.model.ysm;
 
+import com.mojang.blaze3d.vertex.PoseStack;
+import org.joml.Matrix4f;
 import top.aihmc.omnimorph.lua.LuaWhitelist;
 import top.aihmc.omnimorph.lua.docs.LuaMethodDoc;
 import top.aihmc.omnimorph.lua.docs.LuaMethodOverload;
@@ -29,6 +31,17 @@ public class YsmModelPart {
     private FiguraMat4 worldMatrix = FiguraMat4.of();
     private boolean visible = true;
     private boolean defaultVisible = true;
+    private Matrix4f outfitTransform;
+
+    void setOutfitTransform(Matrix4f transform) {
+        outfitTransform = transform == null ? null : new Matrix4f(transform);
+    }
+
+    void applyOutfitTransform(PoseStack stack) {
+        if (outfitTransform != null) {
+            stack.mulPose(new Matrix4f().scale(1f / 16).mul(outfitTransform).scale(16));
+        }
+    }
 
     public YsmModelPart(String name, YsmModelPart parent, float[] pivot, float[] rotation) {
         this.name = name;

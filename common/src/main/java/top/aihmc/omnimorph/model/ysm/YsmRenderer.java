@@ -387,6 +387,7 @@ public class YsmRenderer {
             stack.translate(-pos.x / 16d, pos.y / 16d, pos.z / 16d);
             rotateBone(stack, (float) -rot.x, (float) -rot.y, (float) rot.z);
             stack.scale((float) scale.x, (float) scale.y, (float) scale.z);
+            part.applyOutfitTransform(stack);
         } else {
             rotateBone(stack, bone.rotation[0], bone.rotation[1], bone.rotation[2]);
         }

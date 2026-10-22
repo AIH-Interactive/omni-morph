@@ -56,6 +56,14 @@ public final class YsmMaterialNativeSmokeTest {
         return () -> device.set(null, previous);
     }
 
+    /** Existing native sound fixture, needed when bounded callback errors perform ordinary Avatar cleanup. */
+    public static AutoCloseable recordingSoundManager(Unsafe unsafe) throws Exception {
+        var client = (RecordingClient) Minecraft.getInstance();
+        var previous = client.sounds;
+        client.sounds = YsmStabilitySmokeTest.soundManager(unsafe, true);
+        return () -> client.sounds = previous;
+    }
+
     private static void run(String[] args, java.util.function.Consumer<YsmModelRuntime> replay) throws Exception {
         Path directory = Files.createTempDirectory("figura-native-material-").toAbsolutePath().normalize();
         String previousDirectory = System.getProperty("figura.test.directory");
@@ -218,6 +226,8 @@ public final class YsmMaterialNativeSmokeTest {
                 testTexturePublication(unsafe, client);
                 testLateTextureBindings(unsafe, client);
                 testTextureUploadLifetime(unsafe, client, publicationDevice);
+                top.aihmc.omnimorph.lua.api.particle.CustomParticleNativeSmokeTest.run(
+                        unsafe, owner(unsafe, 690), owner(unsafe, 691), client::drain);
                 testYsmComplexity(unsafe, client);
                 testBakedPreviewGeometry(unsafe, client);
                 testPreviewBoneFade(unsafe, client);
@@ -836,6 +846,27 @@ public final class YsmMaterialNativeSmokeTest {
                 require(texture.getSampler() == sampler, "late reads preserve the selected clamp/blur sampler");
             }
             require(device.created.size() == allocated, "dirty updates do not allocate or leak replacement GPU textures");
+            var particleLease = texture.retain();
+            var secondParticleLease = particleLease.retain();
+            texture.close();
+            require(!gpuTexture.isClosed() && !binding.isClosed()
+                            && texture.getTextureView() == binding,
+                    "retiring author texture keeps existing custom particles' binding alive");
+            try {
+                texture.retain();
+                throw new AssertionError("new particles must not acquire a retired author texture");
+            } catch (IllegalStateException expected) {
+                require(expected.getMessage().equals("TEXTURE_RETIRED"), "explicit retired texture rejection");
+            }
+            var extractedFrameLease = secondParticleLease.retain();
+            particleLease.close();
+            particleLease.close();
+            secondParticleLease.close();
+            require(!gpuTexture.isClosed() && !binding.isClosed(),
+                    "in-flight extracted frame outlives both particle leases and repeated release");
+            extractedFrameLease.close();
+            require(gpuTexture.isClosed() && binding.isClosed(),
+                    "final extracted frame release closes retired texture and GPU view");
         } finally {
             device.failView = false;
             device.failWrite = false;
@@ -1587,6 +1618,11 @@ public final class YsmMaterialNativeSmokeTest {
             preview.renderer().render(new com.mojang.blaze3d.vertex.PoseStack(), type -> recorder, 0, null);
             require(owner.complexity.pre == 6, "detached preview reports complexity to the visible avatar information");
             System.out.println("YSM Figura face complexity: visible/hidden geometry, per-frame draws, permission budget and detached preview PASS");
+            top.aihmc.omnimorph.model.outfit.OutfitParticleFaceBudgetSmokeTest.run(unsafe, owner, () -> {
+                vertices.clear();
+                runtime.renderer().render(new com.mojang.blaze3d.vertex.PoseStack(), type -> recorder, 0, null);
+                return vertices.size();
+            }, client::drain);
         } finally {
             runtime.close();
             client.drain();

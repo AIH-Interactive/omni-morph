@@ -134,6 +134,7 @@ public class Avatar {
     public volatile boolean loaded = true;
     public final boolean isHost;
     public final boolean isLibraryPreview;
+    private boolean playerModelPreview;
 
     //metadata
     public String name, entityName;
@@ -156,6 +157,8 @@ public class Avatar {
     public FiguraRenderer renderer;
     private YsmModelRuntime ysmRuntime;
     public FiguraLuaRuntime luaRuntime;
+    public top.aihmc.omnimorph.lua.api.CosmeticAnimationsAPI cosmeticAnimations;
+    public top.aihmc.omnimorph.lua.api.particle.PreviewParticleScope previewParticles;
     public final AvatarControlRuntime controls = new AvatarControlRuntime(this);
     public final CosmeticInstanceContext cosmeticContext;
     public EntityRenderMode renderMode = EntityRenderMode.OTHER;
@@ -773,7 +776,7 @@ public class Avatar {
     // limits
     public int animationComplexity;
     public final Instructions complexity;
-    private long ysmComplexityFrame = Long.MIN_VALUE;
+    private long complexityFrame = Long.MIN_VALUE;
 
     public final Instructions init, render, worldRender, tick, worldTick, animation;
     public final Map<String, Instructions> customInstructions = new HashMap<>();
@@ -837,16 +840,42 @@ public class Avatar {
 
     /** A detached, non-host owner with private default permissions and no persistent player entry. */
     public static Avatar createLibraryPreview(UUID owner, String name) {
+        return createLibraryPreview(owner, name, false);
+    }
+
+    /** Custom particles remain gated by a bound PreviewParticleScope even with the normal rate permission. */
+    public static Avatar createParticlePreview(UUID owner, String name) {
+        return createLibraryPreview(owner, name, true);
+    }
+
+    private static Avatar createLibraryPreview(UUID owner, String name, boolean customParticles) {
         if (FiguraMod.isLocal(owner)) {
             throw new IllegalArgumentException("PREVIEW_REQUIRES_DETACHED_OWNER");
         }
         var category = new PermissionPack.CategoryPermissionPack(Permissions.Category.DEFAULT);
         var permissions = new PermissionPack.PlayerPermissionPack(category, owner.toString());
-        for (Permissions permission : List.of(Permissions.NETWORKING, Permissions.PARTICLES, Permissions.SOUNDS,
+        for (Permissions permission : List.of(Permissions.NETWORKING, Permissions.SOUNDS,
                 Permissions.NAMEPLATE_EDIT, Permissions.CANCEL_SOUNDS, Permissions.OFFSCREEN_RENDERING)) {
             permissions.insert(permission, 0, FiguraMod.MOD_ID);
         }
+        if (!customParticles) {
+            permissions.insert(Permissions.PARTICLES, 0, FiguraMod.MOD_ID);
+        }
         return new Avatar(owner, EntityType.PLAYER, name, permissions);
+    }
+
+    /** Preserve the current player's normal Lua permissions while fencing particles before async preparation. */
+    public static Avatar createPlayerModelPreview(UUID owner) {
+        Avatar preview = new Avatar(owner);
+        preview.playerModelPreview = true;
+        return preview;
+    }
+
+    public boolean usesPreviewParticles() {
+        if (previewParticles != null || playerModelPreview) {
+            return true;
+        }
+        return cosmeticContext == null ? isLibraryPreview : cosmeticContext.scope() == CosmeticInstanceContext.Scope.DRAFT;
     }
 
     /** A private execution identity prevents cleanup, preferences and events crossing instances. */
@@ -1037,6 +1066,9 @@ public class Avatar {
 
         FiguraMod.popPushProfiler("tick");
         tick.reset(permissions.get(Permissions.TICK_INST));
+        if (cosmeticAnimations != null) {
+            cosmeticAnimations.dispatch();
+        }
         tickEvent();
 
         FiguraMod.popProfiler();
@@ -1260,6 +1292,14 @@ public class Avatar {
     }
 
     public void resourceReloadEvent() {
+        if (cosmeticAnimations != null) {
+            cosmeticAnimations.discardPending();
+        }
+        if (previewParticles != null) {
+            previewParticles.clearOwner(this);
+        } else if (!usesPreviewParticles()) {
+            top.aihmc.omnimorph.lua.api.particle.CustomParticleRuntime.clearOwner(owner);
+        }
         if (loaded) run("RESOURCE_RELOAD", tick);
     }
 
@@ -1815,6 +1855,9 @@ public class Avatar {
      * also closes and stops this avatar sounds
      */
     public void clean() {
+        if (cosmeticAnimations != null) {
+            cosmeticAnimations.close();
+        }
         accelerationOwner().retire();
         if (molangContext != null) {
             molangContext.filters.clear();
@@ -1836,15 +1879,23 @@ public class Avatar {
         events.clear();
     }
 
-    /** YSM uses Figura's unit: one submitted polygon face, rather than bones or vertices. */
-    public void recordYsmComplexity(int faces) {
+    /** Start once for model/particle submissions; hidden owners also get a fresh frame allowance. */
+    public void prepareComplexityFrame() {
         if (complexity == null) {
             return;
         }
         long frame = top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.currentFrame();
-        if (ysmComplexityFrame != frame) {
-            ysmComplexityFrame = frame;
+        if (complexityFrame != frame) {
+            complexityFrame = frame;
             complexity.reset(permissions == null ? complexity.max : permissions.get(Permissions.COMPLEXITY));
+        }
+    }
+
+    /** YSM uses Figura's unit: one submitted polygon face, rather than bones or vertices. */
+    public void recordYsmComplexity(int faces) {
+        prepareComplexityFrame();
+        if (complexity == null) {
+            return;
         }
         complexity.use(faces);
     }
@@ -1897,6 +1948,13 @@ public class Avatar {
     }
 
     public void clearParticles() {
+        if (previewParticles != null) {
+            previewParticles.clearOwner(this);
+            return;
+        }
+        if (usesPreviewParticles()) {
+            return;
+        }
         ParticleAPI.getParticleEngine().figura$clearParticles(owner);
     }
 

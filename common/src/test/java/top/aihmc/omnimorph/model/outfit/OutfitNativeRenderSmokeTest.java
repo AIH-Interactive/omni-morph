@@ -162,8 +162,233 @@ public final class OutfitNativeRenderSmokeTest {
         }
         testVanillaArms();
         testFiguraBaseFrames();
+        testAccessoryMounts(true, false);
+        testAccessoryMounts(false, false);
+        testAccessoryMounts(true, true);
+        testYsmAccessorySocket();
+        CosmeticBoneOverrideSmokeTest.run();
+        OutfitAutomaticAnchorSmokeTest.run();
+        OutfitTrailRuntimeSmokeTest.run();
         testYsmBaseBudget(false);
         testYsmBaseBudget(true);
+    }
+
+    private static void testAccessoryMounts(boolean authorized, boolean staleDeclaration) throws Exception {
+        var limits = OutfitLimits.defaults();
+        var model = new PlayerModel(LayerDefinition.create(PlayerModel.createMesh(CubeDeformation.NONE, false),
+                64, 64).bakeRoot(), false);
+        var base = new VanillaSkeletonAdapter(model, limits);
+        var anchor = new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.BASE_BONE, null,
+                base.binding().definition().reference(null, 0), null, null, null);
+        var resource = new OutfitConfig.ResourceRef(OutfitConfig.Source.LOCAL, UUID.randomUUID(), null, null,
+                null, "7".repeat(64), OutfitConfig.Format.FIGURA);
+        UUID account = UUID.randomUUID();
+        UUID outfit = UUID.randomUUID();
+        var permissions = new PermissionPack.PlayerPermissionPack(
+                new PermissionPack.CategoryPermissionPack(Permissions.Category.DEFAULT), account.toString());
+        var parent = new OutfitConfig.Instance(UUID.randomUUID(), resource, 1, true, anchor,
+                translation(16, 0, 0), List.of(), Map.of(), Map.of());
+        var avatars = new LinkedHashMap<UUID, Avatar>();
+        var indexes = new SkeletonIndex.Cache();
+        try {
+            Avatar parentAvatar = mountAvatar(parent, account, outfit, permissions);
+            avatars.put(parent.instanceId(), parentAvatar);
+            var skeleton = new FiguraSkeletonAdapter(
+                    (top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer) parentAvatar.renderer,
+                    resource, parent.instanceId(), indexes, limits).binding().definition();
+            var export = skeleton.reference(null, skeleton.uniqueNamed("Cosmetic").orElseThrow());
+            var parentBone = new OutfitConfig.BoneRef(parent.instanceId(), export.path(), export.skeletonHash());
+            var child = new OutfitConfig.Instance(UUID.randomUUID(), resource, 2, true,
+                    new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.ACCESSORY_BONE, null, parentBone, null, null, null),
+                    translation(0, 4, 0), List.of(), Map.of(), Map.of());
+            var virtual = new OutfitConfig.VirtualAnchor(UUID.randomUUID(), "child socket",
+                    new OutfitConfig.BoneRef(child.instanceId(), export.path(), export.skeletonHash()), translation(0, 0, 8));
+            var grandchild = new OutfitConfig.Instance(UUID.randomUUID(), resource, 3, true,
+                    new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.VIRTUAL, null, null, virtual.id(), null, null),
+                    OutfitConfig.Transform.identity(), List.of(), Map.of(), Map.of());
+            var privateRoot = new OutfitConfig.Instance(UUID.randomUUID(), resource, 4, true,
+                    new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.ACCESSORY_BONE, null,
+                            skeleton.reference(parent.instanceId(), skeleton.roots().getFirst()), null, null, null),
+                    OutfitConfig.Transform.identity(), List.of(), Map.of(), Map.of());
+            for (var declaration : List.of(child, grandchild, privateRoot)) {
+                avatars.put(declaration.instanceId(), mountAvatar(declaration, account, outfit, permissions));
+            }
+            var declaredExport = staleDeclaration
+                    ? new OutfitConfig.BoneRef(null, export.path(), "1".repeat(64)) : export;
+            var json = new com.google.gson.JsonObject();
+            json.addProperty("has_bones", true);
+            json.addProperty("display_bones", true);
+            json.addProperty("skeleton_hash", declaredExport.skeletonHash());
+            var exports = new com.google.gson.JsonArray();
+            exports.add(new com.google.gson.GsonBuilder()
+                    .setFieldNamingPolicy(com.google.gson.FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+                    .create().toJsonTree(declaredExport));
+            json.add("exported_bones", exports);
+            for (Avatar avatar : avatars.values()) {
+                var metadata = new CompoundTag();
+                metadata.putString("cosmetic_json", json.toString());
+                avatar.nbt.put("metadata", metadata);
+            }
+            parentAvatar.initializePreviewPlayer(null);
+            var part = parentAvatar.renderer.root.children.getFirst();
+            part.preRender = parentAvatar.loadScript("exported native pivot before draw", """
+                    return function(_, _, part) part:setPos(8, 0, 0) end
+                    """).call().checkfunction();
+            part.postRender = parentAvatar.loadScript("exported native pivot after draw", """
+                    return function(_, _, part) part:setPos(64, 0, 0) end
+                    """).call().checkfunction();
+            // Deliberately reverse the chain: readiness, not display order, must determine native submission.
+            var config = new OutfitConfig(1, 0, null, List.of(grandchild, privateRoot, child, parent),
+                    List.of(virtual), Map.of(resource.identity(), 4), false);
+            try (var composition = new OutfitComposition(config, limits, null, avatars, indexes, ignored -> authorized);
+                 var frame = composition.retain()) {
+                var positions = new ArrayList<float[]>();
+                var sink = vertexSink(positions);
+                var state = new net.minecraft.client.renderer.entity.state.AvatarRenderState();
+                state.lightCoords = 0x00f000f0;
+                var outer = new Matrix4f().translation(7, 11, 13);
+                OutfitNativeRenderer.drawVanilla(frame, model, state, .5f, outer, outer,
+                        type -> sink, EntityRenderMode.FIGURA_GUI);
+                int count = authorized && !staleDeclaration ? 12 : 4;
+                require(positions.size() == count, "only authorized, matching exported paths can submit dependants");
+                near(positions.getFirst(), 7 + 25f / 16, 11 + 2f / 16, 13 + 3f / 16);
+                if (count == 12) {
+                    near(positions.get(4), 7 + 25f / 16, 11 + 6f / 16, 13 + 3f / 16);
+                    near(positions.get(8), 7 + 25f / 16, 11 + 6f / 16, 13 + 11f / 16);
+                } else {
+                    require(avatars.get(child.instanceId()).luaRuntime == null
+                                    && avatars.get(grandchild.instanceId()).luaRuntime == null,
+                            "rejected dependencies do not initialize author effects");
+                }
+                require(avatars.get(privateRoot.instanceId()).luaRuntime == null,
+                        "a non-exported internal root cannot be used as an accessory socket");
+                require(part.customization.getPos().x == 64,
+                        "post-render edits persist without changing the captured draw-time pivot");
+                require(indexes.parseCount() == 2, "dependency waves reuse native skeleton definitions");
+                positions.clear();
+                part.customization.setPos(999, 0, 0);
+                OutfitNativeRenderer.drawVanilla(frame, model, state, .5f, outer, outer,
+                        type -> sink, EntityRenderMode.FIGURA_GUI);
+                require(positions.size() == count, "replaying a retained dependency frame keeps its command list");
+                if (count == 12) {
+                    near(positions.get(4), 7 + 25f / 16, 11 + 6f / 16, 13 + 3f / 16);
+                }
+                require(part.customization.getPos().x == 999, "old dependency rendering restores later live state");
+            }
+        } finally {
+            avatars.values().forEach(Avatar::clean);
+        }
+        System.out.println("PASS native accessory sockets: reversed dependency chain, shared virtual parent, draw callbacks, private paths and policy/hash rejection; authorized="
+                + authorized + ", stale=" + staleDeclaration);
+    }
+
+    private static Avatar mountAvatar(OutfitConfig.Instance declaration, UUID account, UUID outfit,
+                                      PermissionPack.PlayerPermissionPack permissions) {
+        var context = new CosmeticInstanceContext(account, outfit, account, declaration,
+                OutfitLimits.defaults(), CosmeticInstanceContext.Scope.DRAFT);
+        Avatar avatar = Avatar.createCosmetic(context, permissions, "native accessory socket");
+        avatar.load(new CompoundTag());
+        addQuad(avatar);
+        return avatar;
+    }
+
+    private static void testYsmAccessorySocket() throws Exception {
+        var limits = OutfitLimits.defaults();
+        var model = new PlayerModel(LayerDefinition.create(PlayerModel.createMesh(CubeDeformation.NONE, false),
+                64, 64).bakeRoot(), false);
+        var base = new VanillaSkeletonAdapter(model, limits);
+        var baseBone = new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.BASE_BONE, null,
+                base.binding().definition().reference(null, 0), null, null, null);
+        UUID account = UUID.randomUUID();
+        UUID outfit = UUID.randomUUID();
+        var permissions = new PermissionPack.PlayerPermissionPack(
+                new PermissionPack.CategoryPermissionPack(Permissions.Category.DEFAULT), account.toString());
+        var parentResource = new OutfitConfig.ResourceRef(OutfitConfig.Source.LOCAL, UUID.randomUUID(), null, null,
+                null, "2".repeat(64), OutfitConfig.Format.YSM_PLAIN);
+        var childResource = new OutfitConfig.ResourceRef(OutfitConfig.Source.LOCAL, UUID.randomUUID(), null, null,
+                null, "3".repeat(64), OutfitConfig.Format.FIGURA);
+        var parent = new OutfitConfig.Instance(UUID.randomUUID(), parentResource, 1, true, baseBone,
+                translation(16, 0, 0), List.of(), Map.of(), Map.of());
+        var context = new CosmeticInstanceContext(account, outfit, account, parent, limits, CosmeticInstanceContext.Scope.DRAFT);
+        Avatar parentAvatar = Avatar.createCosmetic(context, permissions, "native YSM exported socket");
+        var avatars = new LinkedHashMap<UUID, Avatar>();
+        avatars.put(parent.instanceId(), parentAvatar);
+        try (var textures = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.recordingTextureDevice()) {
+            var nbt = ysmCube();
+            nbt.getCompoundOrEmpty("ysm").putByteArray("main_model", """
+                    {"minecraft:geometry":[{"description":{"identifier":"geometry.exported_socket",
+                    "texture_width":16,"texture_height":16},"bones":[
+                    {"name":"Root","pivot":[2,3,5],"cubes":[{"origin":[1,2,3],"size":[1,2,3],"uv":[0,0]}]},
+                    {"name":"tailtip","parent":"Root","pivot":[7,11,13]}]}]}
+                    """.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            parentAvatar.load(nbt);
+            parentAvatar.initializePreviewPlayer(null);
+            var root = parentAvatar.getYsmRuntime().getPart("Root");
+            root.setPos(4d, 6d, 8d).setRot(0d, 0d, 90d).setScale(2d, 3d, 4d);
+            var indexes = new SkeletonIndex.Cache();
+            var skeleton = new YsmSkeletonAdapter(parentAvatar.getYsmRuntime(), parentResource, parent.instanceId(),
+                    indexes, limits).binding().definition();
+            var exported = skeleton.reference(null, skeleton.uniqueNamed("tailtip").orElseThrow());
+            var json = new com.google.gson.JsonObject();
+            json.addProperty("has_bones", true);
+            json.addProperty("skeleton_hash", skeleton.hash());
+            var exports = new com.google.gson.JsonArray();
+            exports.add(new com.google.gson.GsonBuilder()
+                    .setFieldNamingPolicy(com.google.gson.FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+                    .create().toJsonTree(exported));
+            json.add("exported_bones", exports);
+            parentAvatar.nbt.getCompoundOrEmpty("metadata").putString("cosmetic_json", json.toString());
+            var childBone = new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.ACCESSORY_BONE, null,
+                    new OutfitConfig.BoneRef(parent.instanceId(), exported.path(), exported.skeletonHash()), null, null, null);
+            var child = new OutfitConfig.Instance(UUID.randomUUID(), childResource, 1, true, childBone,
+                    OutfitConfig.Transform.identity(), List.of(), Map.of(), Map.of());
+            avatars.put(child.instanceId(), mountAvatar(child, account, outfit, permissions));
+            var config = new OutfitConfig(1, 0, null, List.of(child, parent), List.of(),
+                    Map.of(parentResource.identity(), 1, childResource.identity(), 1), false);
+            try (var composition = new OutfitComposition(config, limits, null, avatars, indexes)) {
+                var state = new net.minecraft.client.renderer.entity.state.AvatarRenderState();
+                state.lightCoords = 0x00f000f0;
+                var outer = new Matrix4f().translation(7, 11, 13);
+                var positions = new ArrayList<float[]>();
+                var sink = vertexSink(positions);
+                try (var frame = composition.retain()) {
+                    OutfitNativeRenderer.drawVanilla(frame, model, state, .5f, outer, outer,
+                            type -> sink, EntityRenderMode.FIGURA_GUI);
+                    require(positions.size() == 28, "a native YSM cube exports its empty animated child to Figura");
+                    // Native mirrored X, parent Rz90/S(2,3,4), native 15/16 model scale, then parent T16.
+                    near(positions.get(24), 7 - 17.75f / 16, 11 + .9375f / 16, 13 + 53.4375f / 16);
+                    positions.clear();
+                    root.setPos(999d, 0d, 0d);
+                    OutfitNativeRenderer.drawVanilla(frame, model, state, .5f, outer, outer,
+                            type -> sink, EntityRenderMode.FIGURA_GUI);
+                    require(positions.size() == 28, "retained YSM socket command remains drawable after live changes");
+                    near(positions.get(24), 7 - 17.75f / 16, 11 + .9375f / 16, 13 + 53.4375f / 16);
+                }
+                try (var failedFrame = composition.retain()) {
+                    try {
+                        failedFrame.draw(base.capture(new Matrix4f()), state, .5f, ignored -> {
+                            throw new IllegalStateException("native socket fixture failure");
+                        });
+                        throw new AssertionError("native failure must reach the caller");
+                    } catch (IllegalStateException failure) {
+                        require("native socket fixture failure".equals(failure.getMessage()), "native failure remains unchanged");
+                    }
+                    var frozen = new ArrayList<OutfitComposition.Draw>();
+                    failedFrame.draw(base.capture(new Matrix4f()), state, .5f, frozen::add);
+                    require(frozen.size() == 1 && frozen.getFirst().instanceId().equals(parent.instanceId()),
+                            "a first-draw failure freezes prepared parent commands without duplicate emit or child initialization");
+                }
+                require(indexes.parseCount() == 3, "native YSM socket frames do not reparse their definitions");
+            }
+        } finally {
+            avatars.values().forEach(Avatar::clean);
+        }
+        System.out.println("PASS native YSM exported empty pivot: signed axes, parent animation, nonuniform scale, mixed Figura child and retained failure replay; GUI/GPU MANUAL/PENDING");
+    }
+
+    private static OutfitConfig.Transform translation(double x, double y, double z) {
+        return new OutfitConfig.Transform(new OutfitConfig.Vector(x, y, z),
+                new OutfitConfig.Vector(0, 0, 0), new OutfitConfig.Vector(1, 1, 1));
     }
 
     private static void testYsmBaseBudget(boolean accelerated) throws Exception {
@@ -252,7 +477,7 @@ public final class OutfitNativeRenderSmokeTest {
                 + accelerated + "; CPU vertices only, GUI/GPU MANUAL/PENDING");
     }
 
-    private static CompoundTag ysmCube() {
+    static CompoundTag ysmCube() {
         var result = new CompoundTag();
         var metadata = new CompoundTag();
         metadata.putString("format", "ysm-native");
@@ -362,7 +587,11 @@ public final class OutfitNativeRenderSmokeTest {
         System.out.println("PASS retained Figura base: full Lua/native callback scope, matching accessory vertices and interleaved-frame restoration; GUI/GPU MANUAL/PENDING");
     }
 
-    private static VertexConsumer vertexSink(List<float[]> positions) {
+    static VertexConsumer vertexSink(List<float[]> positions) {
+        return vertexSink(positions, null);
+    }
+
+    static VertexConsumer vertexSink(List<float[]> positions, List<float[]> normals) {
         return (VertexConsumer) Proxy.newProxyInstance(VertexConsumer.class.getClassLoader(),
                 new Class<?>[]{VertexConsumer.class}, (proxy, method, arguments) -> {
                     if (method.isDefault()) {
@@ -370,6 +599,10 @@ public final class OutfitNativeRenderSmokeTest {
                     }
                     if (method.getName().equals("addVertex")) {
                         positions.add(new float[]{((Number) arguments[0]).floatValue(),
+                                ((Number) arguments[1]).floatValue(), ((Number) arguments[2]).floatValue()});
+                    }
+                    if (normals != null && method.getName().equals("setNormal")) {
+                        normals.add(new float[]{((Number) arguments[0]).floatValue(),
                                 ((Number) arguments[1]).floatValue(), ((Number) arguments[2]).floatValue()});
                     }
                     return method.getReturnType() == void.class ? null : proxy;
@@ -439,7 +672,7 @@ public final class OutfitNativeRenderSmokeTest {
         System.out.println("PASS native vanilla arm composition: separate left/right frames, slim pivots and no body leakage; real first-person GUI/GPU MANUAL/PENDING");
     }
 
-    private static void addQuad(Avatar avatar) {
+    static void addQuad(Avatar avatar) {
         var vertices = List.of(new Vertex(1, 2, 3, 0, 0, 0, 0, 1),
                 new Vertex(2, 2, 3, 16, 0, 0, 0, 1), new Vertex(2, 3, 3, 16, 16, 0, 0, 1),
                 new Vertex(1, 3, 3, 0, 16, 0, 0, 1));
@@ -467,7 +700,7 @@ public final class OutfitNativeRenderSmokeTest {
         avatar.renderer.root.children.add(part);
     }
 
-    private static void near(float[] value, float x, float y, float z) {
+    static void near(float[] value, float x, float y, float z) {
         require(Math.abs(value[0] - x) < .0001f && Math.abs(value[1] - y) < .0001f
                 && Math.abs(value[2] - z) < .0001f,
                 "native emitted position: " + java.util.Arrays.toString(value));

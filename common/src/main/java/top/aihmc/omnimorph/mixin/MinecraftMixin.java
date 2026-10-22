@@ -167,6 +167,12 @@ public abstract class MinecraftMixin {
     private void startTick(CallbackInfo ci) {
         FiguraMod.pushProfiler(FiguraMod.MOD_ID);
         FiguraMod.tick();
+        top.aihmc.omnimorph.lua.api.particle.ParticleDynamicLights.updateFrame(1);
         FiguraMod.popProfiler();
+    }
+
+    @Inject(at = @At("HEAD"), method = "tick")
+    private void figura$beginParticleCallbackTick(CallbackInfo ci) {
+        top.aihmc.omnimorph.lua.api.particle.CustomParticleRuntime.beginTick();
     }
 }

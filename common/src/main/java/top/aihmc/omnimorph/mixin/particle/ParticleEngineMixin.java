@@ -7,6 +7,8 @@ import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.resources.Identifier;
 import top.aihmc.omnimorph.ducks.ParticleEngineAccessor;
+import top.aihmc.omnimorph.lua.api.particle.CustomParticle;
+import top.aihmc.omnimorph.lua.api.particle.CustomParticleRuntime;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
@@ -61,5 +63,25 @@ public abstract class ParticleEngineMixin implements ParticleEngineAccessor {
     @Override
     public ParticleResources figura$getParticleResources() {
         return resourceManager;
+    }
+
+    @Inject(method = "clearParticles", at = @At("HEAD"))
+    private void figura$clearCustomParticles(CallbackInfo ci) {
+        CustomParticleRuntime.clearOwner(null);
+        particleMap.keySet().removeIf(particle -> particle instanceof CustomParticle);
+    }
+
+    @Inject(method = "extract", at = @At("TAIL"))
+    private void figura$extractRibbons(net.minecraft.client.renderer.state.level.ParticlesRenderState state,
+                                       net.minecraft.client.renderer.culling.Frustum frustum,
+                                       net.minecraft.client.Camera camera, float partialTick, CallbackInfo ci) {
+        CustomParticleRuntime.extractRibbons(state, frustum, camera, partialTick);
+    }
+
+    @Inject(method = "extract", at = @At("HEAD"))
+    private void figura$runParticleFrameCallbacks(net.minecraft.client.renderer.state.level.ParticlesRenderState state,
+                                                  net.minecraft.client.renderer.culling.Frustum frustum,
+                                                  net.minecraft.client.Camera camera, float partialTick, CallbackInfo ci) {
+        CustomParticleRuntime.runFrameCallbacks(partialTick);
     }
 }

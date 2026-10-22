@@ -34,11 +34,16 @@ public final class OutfitNativeRenderer {
                             LivingEntityRenderState state, float delta, Matrix4fc entityToDraw,
                             MultiBufferSource buffers, EntityRenderMode mode) {
         frame.draw(basePose, state, delta, mode,
-                command -> drawInstance(command, delta, entityToDraw, buffers, state.lightCoords, mode));
+                command -> drawInstance(frame, command, delta, entityToDraw, buffers, state.lightCoords, mode));
     }
 
     public static void drawInstance(OutfitComposition.Draw command, float delta, Matrix4fc entityToDraw,
                                     MultiBufferSource buffers, int light, EntityRenderMode mode) {
+        drawInstance(null, command, delta, entityToDraw, buffers, light, mode);
+    }
+
+    private static void drawInstance(OutfitComposition.Frame frame, OutfitComposition.Draw command, float delta,
+                                     Matrix4fc entityToDraw, MultiBufferSource buffers, int light, EntityRenderMode mode) {
         Avatar avatar = command.avatar();
         if (!avatar.loaded || avatar.scriptError || !avatar.accelerationOwner().isCurrent()) {
             return;
@@ -49,6 +54,9 @@ public final class OutfitNativeRenderer {
             PoseStack stack = new PoseStack();
             Matrix4f mounted = new Matrix4f(entityToDraw).scale(1f / 16).mul(command.matrix());
             if (avatar.isYsmNative()) {
+                if (frame != null) {
+                    frame.captureYsmInstance(command);
+                }
                 // YSM's original renderer consumes block-space geometry and keeps its own model scale.
                 stack.mulPose(mounted.scale(16));
                 avatar.getYsmRuntime().renderer().renderWithAttachments(stack, buffers, light, command.ysmPose());
@@ -60,8 +68,13 @@ public final class OutfitNativeRenderer {
                 stack.mulPose(mounted);
                 var wearer = avatar.luaRuntime == null ? null : avatar.luaRuntime.getUser();
                 command.figuraPose().draw(() -> {
-                    avatar.render(wearer, 0, delta, 1, stack, buffers, light,
+                    Runnable nativeDrawing = () -> avatar.render(wearer, 0, delta, 1, stack, buffers, light,
                             OverlayTexture.NO_OVERLAY, null, PartFilterScheme.MODEL, false, false);
+                    if (frame == null) {
+                        nativeDrawing.run();
+                    } else {
+                        frame.drawFiguraInstance(command, new Matrix4f(entityToDraw).invert(), nativeDrawing);
+                    }
                     avatar.postRenderEvent(delta, FiguraMat4.of());
                 });
             }
