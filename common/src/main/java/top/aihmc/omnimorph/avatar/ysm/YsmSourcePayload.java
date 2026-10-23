@@ -10,7 +10,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
-/** The only portable representation of an encrypted source: ciphertext plus bounded display/identity fields. */
+/** Portable encrypted sources retain ciphertext, bounded identity fields and explicitly authored accessory wrappers. */
 public final class YsmSourcePayload {
     private static final List<String> DISPLAY_FIELDS = List.of(
             "name", "authors", "ver", "uuid", "format", "ysm_kind", "ysm_texture", "color");
@@ -118,6 +118,22 @@ public final class YsmSourcePayload {
         CompoundTag output = new CompoundTag();
         output.put("metadata", metadata);
         output.put("ysm", portable);
+        if (original.getStringOr("resource_kind", "").equals("ACCESSORY")) {
+            String cosmeticJson = original.getStringOr("cosmetic_json", "");
+            try {
+                top.aihmc.omnimorph.model.outfit.CosmeticMetadata.read(cosmeticJson);
+            } catch (RuntimeException malformed) {
+                throw invalid("payload/cosmetic-metadata");
+            }
+            metadata.putString("resource_kind", "ACCESSORY");
+            metadata.putString("cosmetic_json", cosmeticJson);
+            // These are authored wrapper files supplied by LocalCosmeticSource, not decoded YSM geometry or textures.
+            for (String key : List.of("scripts", "sounds", "resources")) {
+                if (avatar.contains(key)) {
+                    output.put(key, avatar.get(key).copy());
+                }
+            }
+        }
         return output;
     }
 

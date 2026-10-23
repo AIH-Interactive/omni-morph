@@ -25,14 +25,21 @@ public final class BoneTreeWidget extends AbstractList {
     private int measuredWidth;
     private int horizontalMaximum;
     private long modelVersion;
+    private final java.util.function.Consumer<top.aihmc.omnimorph.model.library.OutfitHierarchy.Target> selectionChanged;
 
     public BoneTreeWidget(int x, int y, int width, int height, BoneTreeState state) {
         this(x, y, width, height, state, null);
     }
 
     public BoneTreeWidget(int x, int y, int width, int height, BoneTreeState state, Runnable refresh) {
+        this(x, y, width, height, state, refresh, null);
+    }
+
+    public BoneTreeWidget(int x, int y, int width, int height, BoneTreeState state, Runnable refresh,
+                           java.util.function.Consumer<top.aihmc.omnimorph.model.library.OutfitHierarchy.Target> selectionChanged) {
         super(x, y, width, height);
         this.state = state;
+        this.selectionChanged = selectionChanged;
         modelVersion = state.modelVersion();
         search = new SearchBar(x + 4, y + 4, width - (refresh == null ? 8 : 36), 20, value -> {
             state.search(value);
@@ -62,8 +69,8 @@ public final class BoneTreeWidget extends AbstractList {
         if (modelVersion != state.modelVersion()) {
             modelVersion = state.modelVersion();
             search.getField().setValue(state.query());
-            scrollBar.setScrollProgressNoAnim(0);
-            horizontalBar.setScrollProgressNoAnim(0);
+            scrollBar.setScrollProgressNoAnim(state.scroll());
+            horizontalBar.setScrollProgressNoAnim(state.horizontalScroll());
         }
         super.tick();
     }
@@ -179,6 +186,7 @@ public final class BoneTreeWidget extends AbstractList {
         search.setFocused(false);
         var row = state.rows().get(index);
         state.select(row.node().id());
+        notifySelection();
         int arrowX = getX() + 4 + indent(row) - horizontalOffset();
         if (row.expandable() && event.x() >= arrowX && event.x() < arrowX + 14) {
             state.toggle(row.node().id());
@@ -218,6 +226,7 @@ public final class BoneTreeWidget extends AbstractList {
         if (event.key() == 264 || event.key() == 265) {
             index = Math.clamp(index + (event.key() == 264 ? 1 : -1), 0, rows.size() - 1);
             state.select(rows.get(index).node().id());
+            notifySelection();
             scrollBar.setScrollProgressNoAnim(maximumScroll() == 0 ? 0
                     : Math.min(1d, index * (double) ROW_HEIGHT / maximumScroll()));
             return true;
@@ -227,5 +236,11 @@ public final class BoneTreeWidget extends AbstractList {
             return true;
         }
         return super.keyPressed(event);
+    }
+
+    private void notifySelection() {
+        if (selectionChanged != null) {
+            selectionChanged.accept(state.selectedTarget());
+        }
     }
 }

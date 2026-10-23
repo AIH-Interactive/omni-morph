@@ -43,7 +43,16 @@ public final class LibraryModels {
                                      boolean apply, boolean events, int maxInstances, int maxVirtualAnchors,
                                      int maxDepth, int maxResourceNodes, int maxTotalNodes,
                                      int maxBoneOverrides, int maxJsonBytes, int maxTrails, int maxTrailSamples,
-                                     OutfitLimits limits) {
+                                     OutfitLimits limits, boolean publication) {
+        public OutfitCapabilities(int schemaVersion, boolean configuration, boolean presets,
+                                  boolean apply, boolean events, int maxInstances, int maxVirtualAnchors,
+                                  int maxDepth, int maxResourceNodes, int maxTotalNodes,
+                                  int maxBoneOverrides, int maxJsonBytes, int maxTrails, int maxTrailSamples,
+                                  OutfitLimits limits) {
+            this(schemaVersion, configuration, presets, apply, events, maxInstances, maxVirtualAnchors,
+                    maxDepth, maxResourceNodes, maxTotalNodes, maxBoneOverrides, maxJsonBytes, maxTrails,
+                    maxTrailSamples, limits, false);
+        }
         public OutfitCapabilities {
             if (schemaVersion != 1 || maxInstances < 0 || maxInstances > 32
                     || maxVirtualAnchors < 0 || maxVirtualAnchors > 128

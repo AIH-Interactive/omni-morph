@@ -11,12 +11,22 @@ import java.util.function.Supplier;
 public final class LibraryRecycleService {
     public record Item(String kind, UUID id, UUID owner, String uploaderName, String name, List<String> authors,
                        String modelType, String status, long policyRevision, long assetRevision,
-                       long equipmentRevision, String assetId, long downloads, boolean canRestore) {
+                       long equipmentRevision, String assetId, long downloads, boolean canRestore, String resourceKind) {
+        public Item(String kind, UUID id, UUID owner, String uploaderName, String name, List<String> authors,
+                    String modelType, String status, long policyRevision, long assetRevision,
+                    long equipmentRevision, String assetId, long downloads, boolean canRestore) {
+            this(kind, id, owner, uploaderName, name, authors, modelType, status, policyRevision, assetRevision,
+                    equipmentRevision, assetId, downloads, canRestore, "AVATAR");
+        }
+
         public Item {
+            resourceKind = resourceKind == null ? "AVATAR" : resourceKind;
             authors = List.copyOf(authors);
             if (!List.of("LIBRARY", "WARDROBE").contains(kind) || id == null || owner == null
                     || name == null || uploaderName == null || !"DELETED".equals(status)
-                    || !List.of("FIGURA", "YSM_PLAIN", "YSM_ENCRYPTED").contains(modelType)
+                    || !List.of("AVATAR", "ACCESSORY", "OUTFIT").contains(resourceKind)
+                    || (resourceKind.equals("OUTFIT") ? modelType != null || !kind.equals("LIBRARY")
+                        : modelType == null || !List.of("FIGURA", "YSM_PLAIN", "YSM_ENCRYPTED").contains(modelType))
                     || assetRevision < 1 || downloads < 0
                     || kind.equals("LIBRARY") && policyRevision < 1
                     || kind.equals("WARDROBE") && (equipmentRevision < 1 || assetId == null)) {

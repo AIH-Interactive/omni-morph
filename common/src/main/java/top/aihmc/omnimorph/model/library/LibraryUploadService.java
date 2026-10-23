@@ -54,8 +54,18 @@ public final class LibraryUploadService implements AutoCloseable {
 
     public record Published(UUID modelId, boolean published) {}
     public record ImageResult(UUID modelId, long imageRevision, long policyRevision) {}
+    private record OutfitPublished(UUID modelId, boolean published, long revision, long policyRevision) {}
 
     public Operation upload(LibraryUploadDraft.Snapshot draft, Image image) {
+        if (active != null) {
+            active.close();
+        }
+        active = new Operation(draft, image);
+        active.start();
+        return active;
+    }
+
+    public Operation uploadOutfit(OutfitUploadDraft.Snapshot draft, Image image) {
         if (active != null) {
             active.close();
         }
@@ -73,6 +83,7 @@ public final class LibraryUploadService implements AutoCloseable {
 
     public final class Operation implements AutoCloseable {
         private final LibraryUploadDraft.Snapshot draft;
+        private final OutfitUploadDraft.Snapshot outfit;
         private final Image image;
         private final UUID operation = UUID.randomUUID();
         private final UUID commitOperation = UUID.randomUUID();
@@ -86,16 +97,32 @@ public final class LibraryUploadService implements AutoCloseable {
         private long imageExpectedRevision;
         private long commitExpectedRevision;
         private LibraryUploadIdentity identity;
+        private LibraryPackagePreparation.Prepared distribution;
         private int imageWidth;
         private int imageHeight;
         private LibraryClient.Request<Published> request;
         private CompletableFuture<?> preparing;
         private CompletableFuture<Published> future;
         private long progressGeneration;
+        private volatile OutfitPublished outfitPublished;
+        private boolean imagePrepared;
+
+        private record Preparation(LibraryPackagePreparation.Prepared distribution, LibraryUploadIdentity identity) {}
 
         private Operation(LibraryUploadDraft.Snapshot draft, Image image) {
             this.draft = draft;
+            this.outfit = null;
             this.image = image;
+        }
+
+        private Operation(OutfitUploadDraft.Snapshot outfit, Image image) {
+            this.draft = null;
+            this.outfit = java.util.Objects.requireNonNull(outfit);
+            this.image = image;
+        }
+
+        public boolean outfitPublished() {
+            return outfitPublished != null;
         }
 
         public CompletableFuture<Published> future() {
@@ -132,6 +159,10 @@ public final class LibraryUploadService implements AutoCloseable {
                     close();
                 }
             });
+            if (outfit != null) {
+                prepareOutfit(generation);
+                return;
+            }
             if (identity != null) {
                 send(generation);
                 return;
@@ -143,7 +174,18 @@ public final class LibraryUploadService implements AutoCloseable {
                         imageWidth = pixels.sourceWidth();
                         imageHeight = pixels.sourceHeight();
                     }
-                    return LibraryUploadIdentity.prepare(draft.prepared(), () -> !current(generation));
+                    LibraryPackagePreparation.Prepared source = draft.prepared();
+                    if (source.resourceKind().equals("ACCESSORY")) {
+                        source = LibraryPackagePreparation.withAccessoryMetadata(source,
+                                draft.accessoryDeclaration(),
+                                CloudHttp.FILE_BYTES, () -> !current(generation));
+                        var declaration = top.aihmc.omnimorph.model.outfit.OutfitCodec.encodeAccessoryMetadata(
+                                top.aihmc.omnimorph.model.outfit.CosmeticMetadata.read(source.accessoryMetadata().toString()));
+                        if (!declaration.equals(draft.metadata().get("accessory_metadata"))) {
+                            throw new java.io.IOException("COSMETIC_DECLARATION_BODY_MISMATCH");
+                        }
+                    }
+                    return new Preparation(source, LibraryUploadIdentity.prepare(source, () -> !current(generation)));
                 } catch (Exception failure) {
                     throw new java.util.concurrent.CompletionException(failure);
                 }
@@ -156,17 +198,98 @@ public final class LibraryUploadService implements AutoCloseable {
                     progress.finish(progressGeneration);
                     completion.completeExceptionally(new LibraryClient.Failure(0, "UPLOAD_PREPARATION_FAILED"));
                 } else {
-                    identity = prepared;
+                    distribution = prepared.distribution();
+                    identity = prepared.identity();
                     send(generation);
                 }
             }));
+        }
+
+        private void prepareOutfit(long generation) {
+            if (image == null || imagePrepared) {
+                sendOutfit(generation);
+                return;
+            }
+            var completion = future;
+            preparing = AvatarLoadExecutor.submit(() -> {
+                try {
+                    var pixels = LibraryThumbnailService.decode(image.bytes);
+                    imageWidth = pixels.sourceWidth();
+                    imageHeight = pixels.sourceHeight();
+                    return true;
+                } catch (Exception invalid) {
+                    throw new java.util.concurrent.CompletionException(invalid);
+                }
+            }).whenComplete((ready, failure) -> Minecraft.getInstance().execute(() -> {
+                if (!current(generation)) {
+                    completion.cancel(false);
+                } else if (failure != null) {
+                    progress.finish(progressGeneration);
+                    completion.completeExceptionally(new LibraryClient.Failure(0, "INVALID_IMAGE"));
+                } else {
+                    imagePrepared = true;
+                    sendOutfit(generation);
+                }
+            }));
+        }
+
+        private void sendOutfit(long generation) {
+            request = client.submit(LibraryClient.Lane.TRANSFER, exchange -> {
+                var limits = exchange.json("GET", ROOT + "capabilities", null, LibraryModels.Capabilities.class);
+                if (outfitPublished == null) {
+                    outfit.validate(limits, client.origin());
+                }
+                if (image != null && (image.byteLength() > limits.maxImageBytes()
+                        || imageWidth > limits.maxImageWidth() || imageHeight > limits.maxImageHeight())) {
+                    throw new LibraryClient.Failure(413, "UPLOAD_LIMIT");
+                }
+                if (outfitPublished == null) {
+                    progress.stage(progressGeneration, AvatarLoadProgress.Stage.UPLOADING);
+                    var result = exchange.json("POST", ROOT + "uploads/outfit",
+                            outfit.input(operation, limits.outfitsV1().limits()), OutfitPublished.class);
+                    if (result.modelId() == null || !result.published() || result.revision() != 1 || result.policyRevision() < 1) {
+                        throw new LibraryClient.Failure(0, "INVALID_OUTFIT_PUBLICATION");
+                    }
+                    exchange.requireCurrent();
+                    outfitPublished = result;
+                    imageExpectedRevision = result.policyRevision();
+                }
+                if (image != null) {
+                    var result = exchange.binaryJson("PUT", ROOT + "models/" + outfitPublished.modelId() + "/image",
+                            image.bytes, image.contentType(), Map.of("x-omnimorph-operation", imageOperation.toString(),
+                                    "x-omnimorph-expected-revision", Long.toString(imageExpectedRevision)), ImageResult.class);
+                    if (!outfitPublished.modelId().equals(result.modelId())
+                            || result.policyRevision() != imageExpectedRevision + 1
+                            || result.imageRevision() != result.policyRevision()) {
+                        throw new LibraryClient.Failure(409, "IMAGE_CHANGED");
+                    }
+                }
+                return new Published(outfitPublished.modelId(), true);
+            });
+            var completion = future;
+            request.future().whenComplete((published, failure) -> {
+                if (generation != attempt) {
+                    return;
+                }
+                progress.finish(progressGeneration);
+                if (failure != null) {
+                    completion.completeExceptionally(failure);
+                } else {
+                    completion.complete(published);
+                }
+            });
         }
 
         private void send(long generation) {
             long progressId = progressGeneration;
             request = client.submit(LibraryClient.Lane.TRANSFER, exchange -> {
                 var limits = exchange.json("GET", ROOT + "capabilities", null, LibraryModels.Capabilities.class);
-                if (!limits.enabled() || draft.prepared().byteLength() > limits.maxUploadBytes()
+                if (distribution.resourceKind().equals("ACCESSORY")) {
+                    top.aihmc.omnimorph.model.outfit.CosmeticMetadata.read(
+                            distribution.accessoryMetadata().toString()).validateLimits(limits.outfitsV1() == null
+                            ? top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults() : limits.outfitsV1().limits());
+                }
+                if (!limits.enabled() || distribution.byteLength() > limits.maxUploadBytes()
                         || !limits.categories().contains(draft.metadata().get("category_id"))
                         || !limits.modelTypes().contains(draft.metadata().get("model_type"))
                         || image != null && (image.byteLength() > limits.maxImageBytes()
@@ -186,9 +309,9 @@ public final class LibraryUploadService implements AutoCloseable {
                 var input = new HashMap<String, Object>();
                 input.put("operation_id", operation.toString());
                 input.put("metadata", draft.metadata());
-                input.put("raw_sha256", draft.prepared().sha256());
-                input.put("byte_length", draft.prepared().byteLength());
-                input.put("source_filename", draft.source().getFileName().toString());
+                input.put("raw_sha256", distribution.sha256());
+                input.put("byte_length", distribution.byteLength());
+                input.put("source_filename", draft.sourceFilename());
                 input.put("metadata_source", draft.metadataSource());
                 if (!identity.contentHash().isEmpty()) {
                     input.put("content_sha256", identity.contentHash());
@@ -196,7 +319,7 @@ public final class LibraryUploadService implements AutoCloseable {
                 }
                 progress.stage(progressGeneration, AvatarLoadProgress.Stage.PROFILE);
                 Grant reservation = exchange.json("POST", ROOT + "uploads", input, Grant.class);
-                if (!reservation.operationId().equals(operation) || reservation.maxBytes() < draft.prepared().byteLength()
+                if (!reservation.operationId().equals(operation) || reservation.maxBytes() < distribution.byteLength()
                         || grant != null && !grant.modelId().equals(reservation.modelId())) {
                     throw new LibraryClient.Failure(0, "INVALID_UPLOAD_GRANT");
                 }
@@ -205,7 +328,7 @@ public final class LibraryUploadService implements AutoCloseable {
                     commitExpectedRevision = reservation.policyRevision();
                 }
                 grant = reservation;
-                byte[] bytes = draft.prepared().compressed();
+                byte[] bytes = distribution.compressed();
                 progress.stage(progressGeneration, AvatarLoadProgress.Stage.UPLOADING);
                 try {
                     exchange.binary("PUT", grant.relativePath(), CloudHttp.uploadBody(bytes,
@@ -277,7 +400,7 @@ public final class LibraryUploadService implements AutoCloseable {
                 future.cancel(false);
             }
             progress.clear();
-            if (completed || !client.current()) {
+            if (completed || !client.current() || outfit != null) {
                 return CompletableFuture.completedFuture(null);
             }
             return client.submit(LibraryClient.Lane.CONTROL, exchange -> exchange.json("DELETE",

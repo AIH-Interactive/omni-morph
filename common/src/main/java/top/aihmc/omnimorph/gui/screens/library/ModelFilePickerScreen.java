@@ -21,8 +21,8 @@ import java.util.function.Consumer;
 
 /** A bounded asynchronous local file chooser built from the existing Figura widgets. */
 public final class ModelFilePickerScreen extends AbstractPanelScreen {
-    public enum Kind { MODEL, IMAGE }
-    private record Item(Path path, boolean directory) {}
+    public enum Kind { MODEL, ACCESSORY, OUTFIT, IMAGE }
+    private record Item(Path path, boolean directory, boolean selectable) {}
     private record Listing(List<Item> items, boolean truncated) {}
     private final LibraryClient client;
     private final Kind kind;
@@ -121,7 +121,7 @@ public final class ModelFilePickerScreen extends AbstractPanelScreen {
                     boolean folder = Files.isDirectory(path);
                     if (kind == Kind.MODEL ? Files.isRegularFile(path) && accepts(path, kind)
                             : folder || accepts(path, kind)) {
-                        items.add(new Item(path, folder));
+                        items.add(new Item(path, folder, !folder || kind == Kind.ACCESSORY && accepts(path, kind)));
                     }
                 }
                 items.sort(Comparator.comparing(Item::directory).reversed()
@@ -150,7 +150,7 @@ public final class ModelFilePickerScreen extends AbstractPanelScreen {
         rows.rows(listing.items().stream().map(item -> new LibraryRowList.Row(
                 Component.literal((item.directory() ? "[+] " : "") + item.path().getFileName()),
                 Component.literal(item.path().toString()), true, () -> {
-                    if (item.directory()) {
+                    if (!item.selectable()) {
                         navigate(item.path());
                     } else {
                         minecraft.setScreen(parentScreen);
@@ -164,6 +164,13 @@ public final class ModelFilePickerScreen extends AbstractPanelScreen {
             return false;
         }
         String filename = path.getFileName().toString().toLowerCase(Locale.ROOT);
+        if (kind == Kind.OUTFIT) {
+            return filename.endsWith(".json");
+        }
+        if (kind == Kind.ACCESSORY) {
+            return Files.isDirectory(path)
+                    ? Files.isRegularFile(path.resolve("cosmetic.json")) : filename.endsWith(".zip");
+        }
         return kind == Kind.MODEL ? filename.endsWith(".zip") || filename.endsWith(".ysm")
                 : filename.endsWith(".png") || filename.endsWith(".jpg") || filename.endsWith(".jpeg");
     }

@@ -9,6 +9,10 @@ import top.aihmc.omnimorph.avatar.ysm.YsmPackage;
 import top.aihmc.omnimorph.avatar.ysm.YsmResourceLimits;
 import top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload;
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
+import top.aihmc.omnimorph.model.outfit.CosmeticMetadata;
+import top.aihmc.omnimorph.model.outfit.LocalCosmeticSource;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -50,12 +54,24 @@ public final class LibraryPackagePreparation {
         }
 
         public String metadataSource() {
+            if (resourceKind().equals("ACCESSORY") && metadata.modelType().equals("FIGURA")) {
+                return "cosmetic.json";
+            }
             return switch (metadata.modelType()) {
                 case "FIGURA" -> "avatar.json";
                 case "YSM_ENCRYPTED" -> "encrypted_manifest";
                 default -> nbt.getCompoundOrEmpty("metadata").getStringOr("ysm_kind", "").equals("old")
                         ? "main.json" : "ysm.json";
             };
+        }
+
+        public String resourceKind() {
+            return nbt.getCompoundOrEmpty("metadata").getStringOr("resource_kind", "AVATAR");
+        }
+
+        public JsonObject accessoryMetadata() {
+            return resourceKind().equals("ACCESSORY") ? JsonParser.parseString(
+                    nbt.getCompoundOrEmpty("metadata").getStringOr("cosmetic_json", "")).getAsJsonObject() : null;
         }
     }
 
@@ -112,40 +128,7 @@ public final class LibraryPackagePreparation {
                 }
             }
             YsmResourceLimits.checkCancelled(cancelled);
-            // Preserve declared authors; do not serialize the wardrobe's display-only '?' fallback.
-            nbt.getCompoundOrEmpty("metadata").putString("name", metadata.internalName());
-            nbt.getCompoundOrEmpty("metadata").putString("authors", String.join("\n", metadata.authors()));
-            nbt = YsmSourcePayload.forOutput(nbt);
-            phase.accept(Phase.COMPRESSING);
-            var bytes = new ByteArrayOutputStream();
-            long limit = Math.min(uploadLimit, CloudHttp.FILE_BYTES);
-            try (var output = new OutputStream() {
-                private long written;
-
-                @Override
-                public void write(int value) throws IOException {
-                    reserve(1);
-                    bytes.write(value);
-                }
-
-                @Override
-                public void write(byte[] values, int offset, int length) throws IOException {
-                    reserve(length);
-                    bytes.write(values, offset, length);
-                }
-
-                private void reserve(int count) throws IOException {
-                    YsmResourceLimits.checkCancelled(cancelled);
-                    written += count;
-                    if (written > limit) {
-                        throw new IOException("UPLOAD_LIMIT");
-                    }
-                }
-            }) {
-                NbtIo.writeCompressed(nbt, output);
-            }
-            byte[] distribution = bytes.toByteArray();
-            return new Prepared(metadata, nbt, distribution, CloudHttp.sha256(distribution));
+            return finish(metadata, nbt, uploadLimit, cancelled, phase);
         } finally {
             try (var paths = Files.walk(staging)) {
                 for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) {
@@ -153,6 +136,114 @@ public final class LibraryPackagePreparation {
                 }
             }
         }
+    }
+
+    /** A cosmetic source stays a native accessory, including the encrypted payload inside an author wrapper. */
+    public static Prepared prepareAccessory(Path input, UUID owner, long uploadLimit,
+                                             BooleanSupplier cancelled, java.util.function.Consumer<Phase> phase) throws Exception {
+        phase.accept(Phase.READING);
+        YsmResourceLimits.checkCancelled(cancelled);
+        if (uploadLimit < 1) {
+            throw new IOException("UPLOAD_LIMIT");
+        }
+        try (var source = YsmPackage.open(input)) {
+            String root = cosmeticRoot(source, cancelled);
+            Path directory = source.resolve(root + CosmeticMetadata.FILE).getParent();
+            var description = LocalCosmeticSource.describe(directory, cancelled);
+            phase.accept(Phase.PREPARING);
+            var prepared = LocalCosmeticSource.prepare(directory, owner, description.contentHash(), cancelled);
+            var common = LibraryMetadataReader.fromFigura(description.metadata().common(), input.getFileName().toString());
+            var metadata = new LibraryMetadataReader.Metadata(description.format().name(), common.internalName(),
+                    common.authors(), common.description(), common.requiresAuthorizationDefault());
+            return finish(metadata, prepared.nbt(), uploadLimit, cancelled, phase);
+        }
+    }
+
+    private static String cosmeticRoot(YsmPackage source, BooleanSupplier cancelled) throws IOException {
+        if (source.exists(CosmeticMetadata.FILE)) {
+            return "";
+        }
+        String root = null;
+        for (String name : source.resourcePaths()) {
+            YsmResourceLimits.checkCancelled(cancelled);
+            if (name.endsWith("/" + CosmeticMetadata.FILE)) {
+                if (root != null) {
+                    throw new IOException("AMBIGUOUS_COSMETIC_SOURCE");
+                }
+                root = name.substring(0, name.length() - CosmeticMetadata.FILE.length());
+            }
+        }
+        if (root == null) {
+            throw new IOException("MISSING_COSMETIC_METADATA");
+        }
+        return root;
+    }
+
+    /** Edit only placement declarations on an immutable distribution copy; author capabilities and source files stay intact. */
+    public static Prepared withAccessoryMetadata(Prepared source, JsonObject declaration, long uploadLimit,
+                                                  BooleanSupplier cancelled) throws IOException {
+        YsmResourceLimits.checkCancelled(cancelled);
+        if (!source.resourceKind().equals("ACCESSORY") || declaration == null) {
+            throw new IOException("COSMETIC_RESOURCE_KIND_REQUIRED");
+        }
+        CosmeticMetadata.read(declaration.toString());
+        JsonObject authored = source.accessoryMetadata();
+        JsonObject immutableSource = authored.deepCopy();
+        JsonObject immutableEdited = declaration.deepCopy();
+        for (String key : java.util.List.of("category", "cosmetic_anchor", "default_transform")) {
+            immutableSource.remove(key);
+            immutableEdited.remove(key);
+        }
+        if (!immutableSource.equals(immutableEdited)) {
+            throw new IOException("COSMETIC_AUTHOR_DECLARATION_CHANGED");
+        }
+        if (authored.equals(declaration)) {
+            return source;
+        }
+        CompoundTag nbt = source.nbt();
+        nbt.getCompoundOrEmpty("metadata").putString("cosmetic_json", declaration.toString());
+        if (nbt.contains("ysm") && nbt.getCompoundOrEmpty("ysm").contains("cosmetic_json")) {
+            nbt.getCompoundOrEmpty("ysm").putString("cosmetic_json", declaration.toString());
+        }
+        return finish(source.metadata(), nbt, uploadLimit, cancelled, ignored -> {});
+    }
+
+    private static Prepared finish(LibraryMetadataReader.Metadata metadata, CompoundTag nbt, long uploadLimit,
+                                     BooleanSupplier cancelled, java.util.function.Consumer<Phase> phase) throws IOException {
+        // Preserve declared authors; do not serialize the wardrobe's display-only '?' fallback.
+        nbt.getCompoundOrEmpty("metadata").putString("name", metadata.internalName());
+        nbt.getCompoundOrEmpty("metadata").putString("authors", String.join("\n", metadata.authors()));
+        nbt = YsmSourcePayload.forOutput(nbt);
+        phase.accept(Phase.COMPRESSING);
+        var bytes = new ByteArrayOutputStream();
+        long limit = Math.min(uploadLimit, CloudHttp.FILE_BYTES);
+        try (var output = new OutputStream() {
+            private long written;
+
+            @Override
+            public void write(int value) throws IOException {
+                reserve(1);
+                bytes.write(value);
+            }
+
+            @Override
+            public void write(byte[] values, int offset, int length) throws IOException {
+                reserve(length);
+                bytes.write(values, offset, length);
+            }
+
+            private void reserve(int count) throws IOException {
+                YsmResourceLimits.checkCancelled(cancelled);
+                written += count;
+                if (written > limit) {
+                    throw new IOException("UPLOAD_LIMIT");
+                }
+            }
+        }) {
+            NbtIo.writeCompressed(nbt, output);
+        }
+        byte[] distribution = bytes.toByteArray();
+        return new Prepared(metadata, nbt, distribution, CloudHttp.sha256(distribution));
     }
 
     private static void copy(java.io.InputStream input, OutputStream output, long limit,

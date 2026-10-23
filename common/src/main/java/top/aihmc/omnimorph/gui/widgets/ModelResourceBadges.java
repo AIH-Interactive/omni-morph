@@ -29,6 +29,9 @@ public final class ModelResourceBadges {
     }
 
     public static Component typeTooltip(String format) {
+        if (format == null) {
+            return Component.empty();
+        }
         String type = switch (format) {
             case "FIGURA" -> "gui.wardrobe.filter.figura";
             case "YSM_PLAIN" -> "gui.wardrobe.filter.ysm_plain";
@@ -43,6 +46,9 @@ public final class ModelResourceBadges {
     }
 
     public static void drawType(GuiGraphicsExtractor gui, int x, int y, String format, int size) {
+        if (format == null) {
+            return;
+        }
         boolean figura = format.equals("FIGURA");
         if (!figura && !format.startsWith("YSM_")) {
             return;

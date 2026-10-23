@@ -11,6 +11,7 @@ import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
 import top.aihmc.omnimorph.gui.widgets.ModelResourceBadges;
 import top.aihmc.omnimorph.gui.widgets.lists.AbstractList;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
+import top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory;
 import top.aihmc.omnimorph.utils.FiguraIdentifier;
 import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
@@ -44,6 +45,9 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
     private Consumer<LocalAvatarFetcher.AvatarPath> selectLocal;
     private Consumer<LocalAvatarFetcher.AvatarPath> removeLocal;
     private java.nio.file.Path selectedLocal;
+    private List<LocalCosmeticInventory.Entry> cosmetics = List.of();
+    private Consumer<LocalCosmeticInventory.Entry> selectCosmetic;
+    private Consumer<LocalCosmeticInventory.Entry> removeCosmetic;
     private LibraryThumbnailService thumbnails;
     private final Map<UUID, LibraryThumbnailService.Handle> icons = new HashMap<>();
     private final LibraryDropdown formatFilter;
@@ -143,7 +147,11 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
     }
 
     private void choose(WardrobeCollectionGrid.Entry entry) {
-        if (entry.local() != null) {
+        if (entry.cosmetic() != null) {
+            selectedLocal = entry.cosmetic().path();
+            selected = null;
+            selectCosmetic.accept(entry.cosmetic());
+        } else if (entry.local() != null) {
             selectedLocal = entry.local().getTheActualPathForThis();
             selected = null;
             selectLocal.accept(entry.local());
@@ -155,8 +163,19 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
     }
 
     private boolean isSelected(WardrobeCollectionGrid.Entry entry) {
-        return entry.local() != null ? entry.local().getTheActualPathForThis().equals(selectedLocal)
+        return entry.cosmetic() != null ? entry.cosmetic().path().equals(selectedLocal)
+                : entry.local() != null ? entry.local().getTheActualPathForThis().equals(selectedLocal)
                 : entry.cloud().modelId().equals(selected);
+    }
+
+    public void cosmetics(List<LocalCosmeticInventory.Entry> values, Consumer<LocalCosmeticInventory.Entry> select,
+                           Consumer<LocalCosmeticInventory.Entry> remove, java.nio.file.Path selected) {
+        cosmetics = List.copyOf(values);
+        selectCosmetic = select;
+        removeCosmetic = remove;
+        if (selected != null) {
+            selectedLocal = selected;
+        }
     }
 
     public void thumbnails(LibraryThumbnailService next) {
@@ -247,10 +266,10 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
         String query = view.query.toLowerCase(Locale.ROOT);
         var resources = new ArrayList<WardrobeCollectionGrid.Entry>();
         localEntries.forEach(entry -> resources.add(new WardrobeCollectionGrid.Entry(entry, null)));
+        cosmetics.forEach(entry -> resources.add(new WardrobeCollectionGrid.Entry(null, null, entry)));
         entries.forEach(entry -> resources.add(new WardrobeCollectionGrid.Entry(null, entry)));
         return resources.stream().filter(entry -> {
-            boolean matches = entry.local() != null ? entry.local().search(query)
-                    : entry.name().getString().toLowerCase(Locale.ROOT).contains(query);
+            boolean matches = entry.search(query);
             return matches && (view.format == 0
                     || entry.format().equals(List.of("", "FIGURA", "YSM_PLAIN", "YSM_ENCRYPTED").get(view.format)));
         }).toList();
@@ -284,8 +303,7 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
             ModelResourceBadges.drawType(gui, getX() + 2, getY() + 4,
                     entry.format());
             UIHelper.renderScrollingText(gui, getMessage(), getX() + 24, getY() + 4, getWidth() - 26, 0xffffffff);
-            Component detail = entry.local() != null ? Component.literal(entry.local().getDescription())
-                    : cacheState.apply(entry.cloud().modelId());
+            Component detail = entry.cloud() == null ? entry.localDescription() : cacheState.apply(entry.cloud().modelId());
             UIHelper.renderScrollingText(gui, detail, getX() + 24, getY() + 15,
                     getWidth() - 26, 0xffaaaaaa);
         }
@@ -295,11 +313,14 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
             if (!isInsideScissors(event.x(), event.y())) {
                 return false;
             }
-            boolean removable = entry.local() != null ? removeLocal != null : outfitRemoval != null;
+            boolean removable = entry.cosmetic() != null ? removeCosmetic != null
+                    : entry.local() != null ? removeLocal != null : outfitRemoval != null;
             if (event.button() == 1 && removable && isMouseOver(event.x(), event.y())) {
                 var menu = new ContextMenu(this);
                 menu.addAction(FiguraText.of("gui.wardrobe.remove_outfit"), null, ignored -> {
-                    if (entry.local() != null) {
+                    if (entry.cosmetic() != null) {
+                        removeCosmetic.accept(entry.cosmetic());
+                    } else if (entry.local() != null) {
                         removeLocal.accept(entry.local());
                     } else {
                         outfitRemoval.accept(entry.cloud());

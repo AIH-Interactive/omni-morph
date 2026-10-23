@@ -30,6 +30,7 @@ public class AvatarControlDefinition {
     private String category;
     private Object defaultValue;
     private Object value;
+    private boolean explicitValue;
     private double min;
     private double max = 1d;
     private double step = 0.05d;
@@ -43,6 +44,17 @@ public class AvatarControlDefinition {
     private boolean initialValueFromBinding;
     private LuaFunction onChange;
     private LuaFunction onPress;
+    private Runnable definitionChanged;
+
+    void onDefinitionChanged(Runnable listener) {
+        definitionChanged = listener;
+    }
+
+    private void definitionChanged() {
+        if (definitionChanged != null) {
+            definitionChanged.run();
+        }
+    }
 
     public AvatarControlDefinition(@LuaNotNil String id, @LuaNotNil AvatarControlType type) {
         this.id = id;
@@ -51,17 +63,20 @@ public class AvatarControlDefinition {
 
     public AvatarControlDefinition setTitleSupplier(Supplier<String> supplier) {
         titleSupplier = supplier;
+        definitionChanged();
         return this;
     }
 
     public AvatarControlDefinition setDescriptionSupplier(Supplier<String> supplier) {
         descriptionSupplier = supplier;
+        definitionChanged();
         return this;
     }
 
     public AvatarControlDefinition setOptionLabelResolver(
             BiFunction<Integer, String, String> resolver) {
         optionLabelResolver = resolver;
+        definitionChanged();
         return this;
     }
 
@@ -181,6 +196,7 @@ public class AvatarControlDefinition {
     public AvatarControlDefinition setTitle(String title) {
         this.title = title;
         titleSupplier = null;
+        definitionChanged();
         return this;
     }
 
@@ -212,6 +228,7 @@ public class AvatarControlDefinition {
     public AvatarControlDefinition setDescription(String description) {
         this.description = description;
         descriptionSupplier = null;
+        definitionChanged();
         return this;
     }
 
@@ -242,6 +259,7 @@ public class AvatarControlDefinition {
     )
     public AvatarControlDefinition setPage(String page) {
         this.page = page == null || page.isBlank() ? "root" : page;
+        definitionChanged();
         return this;
     }
 
@@ -272,6 +290,7 @@ public class AvatarControlDefinition {
     )
     public AvatarControlDefinition setCategory(String category) {
         this.category = category;
+        definitionChanged();
         return this;
     }
 
@@ -302,6 +321,7 @@ public class AvatarControlDefinition {
     )
     public AvatarControlDefinition setBinding(String binding) {
         this.binding = binding == null || binding.isBlank() ? null : binding;
+        definitionChanged();
         return this;
     }
 
@@ -332,6 +352,7 @@ public class AvatarControlDefinition {
     )
     public AvatarControlDefinition setPersistent(boolean persistent) {
         this.persistent = persistent;
+        definitionChanged();
         return this;
     }
 
@@ -362,6 +383,7 @@ public class AvatarControlDefinition {
     )
     public AvatarControlDefinition setTargetPage(String page) {
         this.targetPage = page == null || page.isBlank() ? null : page;
+        definitionChanged();
         return this;
     }
 
@@ -397,8 +419,11 @@ public class AvatarControlDefinition {
     )
     public AvatarControlDefinition setDefault(Object value) {
         this.defaultValue = normalizeValue(value);
-        if (this.value == null)
+        // Factory defaults may be replaced by the author's chained setDefault call.
+        // Explicit edits and restored instance values must retain precedence.
+        if (!explicitValue || this.value == null)
             this.value = this.defaultValue;
+        definitionChanged();
         return this;
     }
 
@@ -429,6 +454,7 @@ public class AvatarControlDefinition {
     )
     public AvatarControlDefinition setValue(Object value) {
         this.value = normalizeValue(value);
+        explicitValue = true;
         return this;
     }
 
@@ -466,6 +492,7 @@ public class AvatarControlDefinition {
         this.min = min;
         if (this.max < min)
             this.max = min;
+        definitionChanged();
         return this;
     }
 
@@ -483,6 +510,7 @@ public class AvatarControlDefinition {
     @LuaMethodDoc("avatar_control.set_max")
     public AvatarControlDefinition setMax(double max) {
         this.max = Math.max(min, max);
+        definitionChanged();
         return this;
     }
 
@@ -501,6 +529,7 @@ public class AvatarControlDefinition {
     public AvatarControlDefinition setStep(double step) {
         if (step > 0d)
             this.step = step;
+        definitionChanged();
         return this;
     }
 
@@ -527,6 +556,7 @@ public class AvatarControlDefinition {
         this.min = min;
         this.max = Math.max(min, max);
         this.step = step == null || step <= 0d ? this.step : step;
+        definitionChanged();
         return this;
     }
 
@@ -558,6 +588,7 @@ public class AvatarControlDefinition {
     public AvatarControlDefinition addOption(String option) {
         if (option != null && !options.contains(option))
             options.add(option);
+        definitionChanged();
         return this;
     }
 
@@ -585,6 +616,7 @@ public class AvatarControlDefinition {
         addOption(option);
         if (option != null && command != null && !command.isBlank())
             optionCommands.put(option, command);
+        definitionChanged();
         return this;
     }
 
@@ -615,6 +647,7 @@ public class AvatarControlDefinition {
     public AvatarControlDefinition setOptions(List<?> values) {
         options.clear();
         optionCommands.clear();
+        definitionChanged();
         if (values != null) {
             for (Object value : values) {
                 if (value != null)

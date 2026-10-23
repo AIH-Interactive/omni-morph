@@ -77,6 +77,13 @@ public class AvatarScreen extends AbstractPanelScreen {
     public void removed() {
         if (libraryPreview != null && !returningToParent) {
             libraryPreview.close();
+            if (parentScreen instanceof CosmeticControlsScreen controls) {
+                controls.previewAbandoned();
+            } else if (parentScreen instanceof CosmeticAnimationScreen animations) {
+                animations.previewAbandoned();
+            } else if (parentScreen instanceof OutfitPresetsScreen presets) {
+                presets.previewAbandoned();
+            }
         }
         super.removed();
     }

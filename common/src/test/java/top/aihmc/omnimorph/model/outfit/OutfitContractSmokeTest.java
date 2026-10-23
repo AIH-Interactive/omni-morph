@@ -32,6 +32,13 @@ public final class OutfitContractSmokeTest {
         CosmeticMetadata metadata = CosmeticMetadata.read("{\"name\":\"星翼\",\"authors\":[\"作者\"],\"cosmetic_anchor\":\"wing_anchor\"}");
         require(metadata.common().name.equals("星翼"), "shared common metadata");
         require(metadata.defaultAnchor().type() == OutfitConfig.AnchorType.STANDARD, "typed author default");
+        require(metadata.defaultTransform().equals(OutfitConfig.Transform.identity()), "missing author transform defaults to identity");
+        var transformed = CosmeticMetadata.read("{\"default_transform\":{\"position\":[1,2,3],\"rotation\":[0,90,0],\"scale\":[1,2,1]}}");
+        require(transformed.defaultTransform().position().equals(new OutfitConfig.Vector(1, 2, 3))
+                        && transformed.defaultTransform().rotation().y() == 90
+                        && transformed.defaultTransform().scale().y() == 2,
+                "author position, rotation and scale use the same model-unit contract as draft transforms");
+        reject(() -> CosmeticMetadata.read("{\"default_transform\":{\"position\":[0,0,0],\"rotation\":[0,0,0],\"scale\":[0,1,1]}}"));
         require(CosmeticMetadata.read("{}").defaultAnchor().type() == OutfitConfig.AnchorType.UNRESOLVED,
                 "missing default stays unbound");
         require(CosmeticMetadata.read("{\"category\":\"FutureCategory\"}").category().equals("FutureCategory"),
@@ -41,6 +48,17 @@ public final class OutfitContractSmokeTest {
         reject(() -> CosmeticMetadata.selectManifest(true, true, null));
         require(CosmeticMetadata.selectManifest(true, true, OutfitConfig.ResourceKind.ACCESSORY).equals("cosmetic.json"),
                 "explicit purpose chooses the accessory manifest");
+        Path languages = Path.of(args[0]).getParent().resolve("common/src/main/resources/assets/omni-morph/lang");
+        var english = com.google.gson.JsonParser.parseString(Files.readString(languages.resolve("en_us.json"))).getAsJsonObject();
+        var chinese = com.google.gson.JsonParser.parseString(Files.readString(languages.resolve("zh_cn.json"))).getAsJsonObject();
+        for (String key : english.keySet()) {
+            if (key.startsWith("omni-morph.gui.wardrobe.instance_") || key.startsWith("omni-morph.gui.wardrobe.draft_")
+                    || key.equals("omni-morph.gui.wardrobe.instances")) {
+                require(chinese.has(key) && !english.get(key).getAsString().isBlank()
+                                && !chinese.get(key).getAsString().isBlank(),
+                        "draft editor labels are present in both supported languages: " + key);
+            }
+        }
 
         // Non-symmetric axis marker freezes column-vector composition in model units.
         Vector3f marker = new OutfitConfig.Transform(new OutfitConfig.Vector(1, 2, 3),

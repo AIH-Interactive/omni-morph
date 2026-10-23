@@ -30,6 +30,7 @@ public final class LibraryPreviewBinding implements AutoCloseable {
     private final UUID player;
     private final PreviewParticleScope particles;
     private OutfitComposition composition;
+    private Object selectedBone;
     private int frames;
     private boolean closed;
 
@@ -141,6 +142,10 @@ public final class LibraryPreviewBinding implements AutoCloseable {
         }
     }
 
+    public void selectedBone(Object part) {
+        selectedBone = closed ? null : part;
+    }
+
     public void withBaseBudget(Runnable preparation) {
         if (composition != null && avatar != null) {
             composition.withBaseBudget(avatar, preparation);
@@ -175,7 +180,9 @@ public final class LibraryPreviewBinding implements AutoCloseable {
         }
         binding.frames++;
         if (binding.composition != null) {
-            OUTFIT_FRAMES.put(frame, binding.composition.retain());
+            var outfit = binding.composition.retain();
+            outfit.capturePreviewSelection(binding.selectedBone);
+            OUTFIT_FRAMES.put(frame, outfit);
         }
     }
 
@@ -220,6 +227,7 @@ public final class LibraryPreviewBinding implements AutoCloseable {
             return;
         }
         closed = true;
+        selectedBone = null;
         if (particles != null) {
             particles.close();
         }

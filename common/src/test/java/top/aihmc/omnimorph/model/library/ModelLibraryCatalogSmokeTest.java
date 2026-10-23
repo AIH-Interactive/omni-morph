@@ -31,6 +31,9 @@ public final class ModelLibraryCatalogSmokeTest {
     private static final UUID VIEWER = new UUID(0, 1);
 
     public static void run(Runnable drain) throws Exception {
+        top.aihmc.omnimorph.gui.widgets.ModelResourceBadges.drawType(null, 0, 0, null, 16);
+        require(top.aihmc.omnimorph.gui.widgets.ModelResourceBadges.typeTooltip(null).getString().isEmpty(),
+                "formatless Outfit cards neither draw a native model badge nor fabricate a format tooltip");
         var entered = new CountDownLatch(1);
         var release = new CountDownLatch(1);
         var removed = new AtomicBoolean();

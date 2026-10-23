@@ -59,6 +59,7 @@ public final class CustomParticleNativeSmokeTest {
                 AnchorTrailNativeSmokeTest.run(unsafe, drain);
                 PreviewParticleNativeSmokeTest.run(first, drain, () -> engine.particles.size());
                 CosmeticParticleEntrySmokeTest.run(drain, () -> engine.particles.size());
+                CreatedTrailParticleSmokeTest.run(drain, () -> List.copyOf(engine.particles));
                 // The recording list is a submission log, not the native engine's live queue.
                 engine.particles.clear();
             }

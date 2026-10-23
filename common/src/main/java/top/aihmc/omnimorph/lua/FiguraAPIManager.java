@@ -216,9 +216,9 @@ public class FiguraAPIManager {
     private static final Set<FiguraAPI> ENTRYPOINTS = new HashSet<>();
 
     private static final Set<String> COSMETIC_APIS = Set.of(
-            "events", "ysm_model", "animations", "vectors", "matrices", "json", "particles");
+            "events", "ysm_model", "animations", "vectors", "matrices", "json", "particles", "action_wheel");
     private static final Set<String> COSMETIC_INTERNAL_APIS = Set.of(
-            "vanilla_model", "keybinds", "host", "nameplate", "renderer", "action_wheel",
+            "vanilla_model", "keybinds", "host", "nameplate", "renderer",
             "avatar_controls", "avatar", "pings", "textures");
 
     public static void initEntryPoints(Set<FiguraAPI> set) {

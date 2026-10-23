@@ -37,6 +37,18 @@ public final class OutfitCodec {
         return JSON.fromJson(value, OutfitConfig.BoneRef.class);
     }
 
+    static OutfitConfig.Transform decodeTransform(com.google.gson.JsonElement value) {
+        return JSON.fromJson(value, OutfitConfig.Transform.class);
+    }
+
+    /** Strict library wire declaration; common credits remain in the source manifest and catalog metadata. */
+    public static com.google.gson.JsonObject encodeAccessoryMetadata(CosmeticMetadata metadata) {
+        var declaration = JSON.toJsonTree(metadata).getAsJsonObject();
+        declaration.remove("common");
+        declaration.addProperty("schema_version", 1);
+        return declaration;
+    }
+
     public static String encode(OutfitConfig configuration) {
         return encode(configuration, OutfitLimits.defaults());
     }

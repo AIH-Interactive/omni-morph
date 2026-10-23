@@ -9,6 +9,7 @@ import net.minecraft.nbt.StringTag;
 import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.avatar.UserData;
 import top.aihmc.omnimorph.avatar.AvatarLoadProgress;
+import top.aihmc.omnimorph.avatar.local.LocalAvatarSource;
 import top.aihmc.omnimorph.gui.FiguraToast;
 import top.aihmc.omnimorph.parsers.AvatarMetadataParser;
 import top.aihmc.omnimorph.utils.FiguraText;
@@ -32,21 +33,25 @@ public final class YsmAvatarLoader {
         long progress = target.loading.begin(AvatarLoadProgress.Stage.DECODING);
         var prepared = new top.aihmc.omnimorph.avatar.Avatar(target.id);
         return top.aihmc.omnimorph.avatar.AvatarLoadExecutor.submit(() -> {
-            try (YsmModelData data = YsmModelData.read(path, () -> !target.ysmLoads.current(generation))) {
-                YsmTextureOption texture = selectTexture(path, data.manifest().textures(), data.manifest().defaultTexture());
-                target.loading.stage(progress, AvatarLoadProgress.Stage.BUILDING);
-                CompoundTag nbt = toAvatarNbt(data, texture, target.id, path);
-                var identity = data.identity();
-                var diagnostics = data.diagnostics();
-                var publication = target.loadYsmAvatar(prepared, nbt, data, generation);
-                target.loading.stage(progress, AvatarLoadProgress.Stage.APPLYING);
-                return publication.thenApply(published -> {
-                    if (published) {
-                        top.aihmc.omnimorph.backend2.NetworkStuff.localAvatarReady(prepared);
-                    }
-                    return new YsmLoadResult(published ? YsmLoadResult.Status.PUBLISHED : YsmLoadResult.Status.CANCELLED,
-                            identity, diagnostics);
-                });
+            try {
+                var source = LocalAvatarSource.capture(path, () -> !target.ysmLoads.current(generation));
+                try (YsmModelData data = YsmModelData.read(path, () -> !target.ysmLoads.current(generation))) {
+                    YsmTextureOption texture = selectTexture(path, data.manifest().textures(), data.manifest().defaultTexture());
+                    target.loading.stage(progress, AvatarLoadProgress.Stage.BUILDING);
+                    CompoundTag nbt = toAvatarNbt(data, texture, target.id, path);
+                    var identity = data.identity();
+                    var diagnostics = data.diagnostics();
+                    LocalAvatarSource.verify(path, source, () -> !target.ysmLoads.current(generation));
+                    var publication = target.loadYsmAvatar(prepared, nbt, data, generation, source);
+                    target.loading.stage(progress, AvatarLoadProgress.Stage.APPLYING);
+                    return publication.thenApply(published -> {
+                        if (published) {
+                            top.aihmc.omnimorph.backend2.NetworkStuff.localAvatarReady(prepared);
+                        }
+                        return new YsmLoadResult(published ? YsmLoadResult.Status.PUBLISHED : YsmLoadResult.Status.CANCELLED,
+                                identity, diagnostics);
+                    });
+                }
             } catch (Exception failure) {
                 net.minecraft.client.Minecraft.getInstance().execute(prepared::clean);
                 if (failure instanceof java.io.InterruptedIOException || !target.ysmLoads.current(generation)) {

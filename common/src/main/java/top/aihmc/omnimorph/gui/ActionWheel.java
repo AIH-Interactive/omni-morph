@@ -53,6 +53,69 @@ public class ActionWheel {
     private static int x, y;
     private static double mouseX, mouseY;
 
+    /** Preview draws reuse the native wheel artwork without changing the player's active wheel state. */
+    private record RenderState(Minecraft client, int count, int left, int right, float wheelScale,
+                               int centerX, int centerY, double pointerX, double pointerY, int selection) {
+        private static RenderState capture() {
+            return new RenderState(minecraft, slots, leftSlots, rightSlots, scale, x, y, mouseX, mouseY, selected);
+        }
+
+        private void restore() {
+            minecraft = client;
+            slots = count;
+            leftSlots = left;
+            rightSlots = right;
+            scale = wheelScale;
+            x = centerX;
+            y = centerY;
+            mouseX = pointerX;
+            mouseY = pointerY;
+            selected = selection;
+        }
+    }
+
+    public static void renderPreview(GuiGraphicsExtractor gui, Page page, int centerX, int centerY,
+                                     double pointerX, double pointerY) {
+        if (page == null) {
+            return;
+        }
+        RenderState previous = RenderState.capture();
+        try {
+            minecraft = Minecraft.getInstance();
+            x = centerX;
+            y = centerY;
+            scale = Configs.ACTION_WHEEL_SCALE.value;
+            slots = page.getSize();
+            leftSlots = slots / 2;
+            rightSlots = (slots + 1) / 2;
+            mouseX = pointerX;
+            mouseY = pointerY;
+            calculateSelected();
+            var pose = gui.pose();
+            pose.pushMatrix();
+            try {
+                pose.translate(x, y);
+                pose.scale(scale, scale);
+                renderTextures(gui, page);
+                renderItemsAndIcons(gui, page);
+            } finally {
+                pose.popMatrix();
+            }
+            renderTexts(gui, page);
+        } finally {
+            previous.restore();
+        }
+    }
+
+    public static int previewSelection(Page page, int centerX, int centerY, double pointerX, double pointerY) {
+        if (page == null) {
+            return -1;
+        }
+        int count = page.getSize();
+        return selection(centerX, centerY, Configs.ACTION_WHEEL_SCALE.value, pointerX, pointerY,
+                count / 2, (count + 1) / 2);
+    }
+
     public static void render(GuiGraphicsExtractor gui) {
         if (!isEnabled()) return;
 
@@ -137,13 +200,17 @@ public class ActionWheel {
     }
 
     private static void calculateSelected() {
+        selected = selection(x, y, scale, mouseX, mouseY, leftSlots, rightSlots);
+    }
+
+    private static int selection(int x, int y, float scale, double mouseX, double mouseY,
+                                 int leftSlots, int rightSlots) {
         // get the total mouse distance from the center of the wheel
         double mouseDistance = Math.sqrt(Math.pow(x - mouseX, 2) + Math.pow(y - mouseY, 2));
 
         // no need to sum left side because if the right side is 0, the left side will also be 0
         if (rightSlots == 0 || mouseDistance < (DEADZONE * scale)) {
-            selected = -1;
-            return;
+            return -1;
         }
 
         // get the mouse angle in degrees from middle of the wheel, starting at top, clockwise
@@ -152,9 +219,9 @@ public class ActionWheel {
 
         // get the selected slot
         if (angle < 180)
-            selected = (int) Math.floor((rightSlots / 180d) * angle);
+            return (int) Math.floor((rightSlots / 180d) * angle);
         else
-            selected = (int) Math.floor((leftSlots / 180d) * (angle - 180)) + rightSlots;
+            return (int) Math.floor((leftSlots / 180d) * (angle - 180)) + rightSlots;
     }
 
     private static void renderTextures(GuiGraphicsExtractor gui, Page page) {

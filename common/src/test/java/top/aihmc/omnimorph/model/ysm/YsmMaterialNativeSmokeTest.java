@@ -1991,14 +1991,41 @@ public final class YsmMaterialNativeSmokeTest {
         }
     }
 
+    /** CPU screen dispatch only. Native window creation, mixins and rendering still require the real client. */
+    public static AutoCloseable recordingScreens() {
+        var client = (RecordingClient) Minecraft.getInstance();
+        var previous = client.screenDispatcher;
+        var previousScreen = client.screen;
+        client.screenDispatcher = next -> {
+            if (client.screen != null) {
+                client.screen.removed();
+            }
+            client.screen = next;
+        };
+        return () -> {
+            client.screenDispatcher = previous;
+            client.screen = previousScreen;
+        };
+    }
+
     private static final class RecordingClient extends Minecraft implements top.aihmc.omnimorph.mixin.MinecraftAccesor {
         private RecordingTextures manager;
         private net.minecraft.client.sounds.SoundManager sounds;
         private net.minecraft.client.gui.components.toasts.ToastManager toasts;
         private ConcurrentLinkedQueue<Runnable> queue;
+        private java.util.function.Consumer<net.minecraft.client.gui.screens.Screen> screenDispatcher;
 
         private RecordingClient() {
             super(null);
+        }
+
+        @Override
+        public void setScreen(net.minecraft.client.gui.screens.Screen screen) {
+            if (screenDispatcher == null) {
+                super.setScreen(screen);
+            } else {
+                screenDispatcher.accept(screen);
+            }
         }
 
         @Override

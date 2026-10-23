@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="24" viewBox="0 0 72 24">
+  <defs>
+    <g id="settings" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+      <path d="M5 7h14M5 12h14M5 17h14"/>
+      <rect x="8" y="5" width="3" height="4" rx="1" fill="currentColor" stroke="none"/>
+      <rect x="14" y="10" width="3" height="4" rx="1" fill="currentColor" stroke="none"/>
+      <rect x="7" y="15" width="3" height="4" rx="1" fill="currentColor" stroke="none"/>
+      <path d="m18 2 .8 1.7 1.7.8-1.7.8L18 7l-.8-1.7-1.7-.8 1.7-.8Z" fill="currentColor" stroke="none"/>
+    </g>
+  </defs>
+  <use href="#settings" color="#71827e"/>
+  <use href="#settings" x="24" color="#dfefe8"/>
+  <use href="#settings" x="48" color="#8ff2c0"/>
+</svg>

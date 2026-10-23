@@ -16,16 +16,22 @@ import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.AvatarManager;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import top.aihmc.omnimorph.gui.screens.AvatarScreen;
 import top.aihmc.omnimorph.gui.screens.AvatarControlsScreen;
 import top.aihmc.omnimorph.gui.screens.WardrobeScreen;
 import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
+import top.aihmc.omnimorph.model.library.OutfitPresetResources;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryRowList;
 import top.aihmc.omnimorph.utils.FiguraIdentifier;
 import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 import org.joml.Matrix3x2fStack;
 import org.joml.Vector3f;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class EntityPreview extends AbstractContainerElement {
 
@@ -42,6 +48,8 @@ public class EntityPreview extends AbstractContainerElement {
     private final boolean liveEntityPreview;
     private final float pitch, yaw, scale;
     private SwitchButton button;
+    private LibraryRowList dependencyIssues;
+    private List<OutfitPresetResources.Issue> shownIssues = List.of();
 
     // transformation data
 
@@ -107,6 +115,7 @@ public class EntityPreview extends AbstractContainerElement {
     @Override
     public void tick() {
         super.tick();
+        updateConfigurationIssues();
         if (libraryPreview != null || liveEntityPreview || sourceEntity == null) {
             return;
         }
@@ -158,6 +167,7 @@ public class EntityPreview extends AbstractContainerElement {
             // Wait for the detached copy instead of briefly displaying the live animation.
             entity = null;
         }
+        updateConfigurationIssues();
 
         int x = getX();
         int y = getY();
@@ -177,6 +187,9 @@ public class EntityPreview extends AbstractContainerElement {
         // render entity
         Matrix3x2fStack pose = gui.pose();
         if (entity != null) {
+            if (libraryPreview != null) {
+                libraryPreview.selectedBone(selectedBone);
+            }
             if (libraryPreview == null && liveEntityPreview) {
                 PreviewBoneHighlight.capture(AvatarManager.getAvatar(entity), selectedBone);
             }
@@ -202,7 +215,7 @@ public class EntityPreview extends AbstractContainerElement {
                 }
             }
             pose.popMatrix();
-        } else {
+        } else if (shownIssues.isEmpty()) {
             // draw
             int s = Math.min(width, height) * 2 / 3;
             UIHelper.enableBlend();
@@ -212,6 +225,47 @@ public class EntityPreview extends AbstractContainerElement {
         gui.disableScissor();
 
         super.extractRenderState(gui, mouseX, mouseY, delta);
+    }
+
+    /** Every preview surface, including the expanded view, exposes the exact failed dependencies. */
+    private void updateConfigurationIssues() {
+        List<OutfitPresetResources.Issue> issues = libraryPreview == null
+                ? List.of() : libraryPreview.configurationIssues();
+        if (!issues.equals(shownIssues)) {
+            shownIssues = issues;
+            if (!issues.isEmpty() && dependencyIssues == null) {
+                dependencyIssues = new LibraryRowList(
+                        getX() + 4, getY() + 24, Math.max(1, getWidth() - 8), Math.max(1, getHeight() - 28));
+                children.add(dependencyIssues);
+            }
+            if (dependencyIssues != null) {
+                var rows = new ArrayList<LibraryRowList.Row>();
+                for (var issue : issues) {
+                    var owners = new ArrayList<Component>();
+                    if (issue.base()) {
+                        owners.add(FiguraText.of("gui.wardrobe.preset_base"));
+                    }
+                    for (var instance : issue.instances()) {
+                        owners.add(FiguraText.of("gui.wardrobe.preset_instance").append(" · " + instance));
+                    }
+                    for (var owner : owners) {
+                        var label = owner.copy().append(" · ").append(FiguraText.of("gui.library.failure", issue.code()));
+                        var tooltip = label.copy().append("\n" + issue.resource().identity()
+                                + "\n" + issue.resource().contentHash());
+                        rows.add(new LibraryRowList.Row(
+                                label, tooltip, true, () -> {}));
+                    }
+                }
+                dependencyIssues.rows(rows);
+            }
+        }
+        if (dependencyIssues != null) {
+            dependencyIssues.setVisible(!issues.isEmpty());
+            dependencyIssues.setX(getX() + 4);
+            dependencyIssues.setY(getY() + 24);
+            dependencyIssues.setWidth(Math.max(1, getWidth() - 8));
+            dependencyIssues.setHeight(Math.max(1, getHeight() - 28));
+        }
     }
 
     @Override
@@ -369,6 +423,9 @@ public class EntityPreview extends AbstractContainerElement {
 
     public void setSelectedBone(Object part) {
         selectedBone = part;
+        if (libraryPreview != null) {
+            libraryPreview.selectedBone(part);
+        }
     }
 
     private void synchronizeLocalAppearance() {

@@ -10,6 +10,7 @@ import java.util.Map;
 
 public final class BoneTreeSmokeTest {
     public static void main(String[] args) {
+        OutfitHierarchySmokeTest.run();
         var head = figura("Head", List.of(figura("眼睛", List.of())));
         var hand = figura("Hand", List.of());
         var otherHand = figura("Hand", List.of());

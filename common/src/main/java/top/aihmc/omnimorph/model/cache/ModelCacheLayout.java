@@ -11,12 +11,25 @@ public final class ModelCacheLayout {
     public static final String COLLECTION_EXTENSION = ".omc";
     public static final String COSMETIC_DIRECTORY = "cosmetic";
     public static final String COSMETIC_EXTENSION = ".oms";
+    public static final String CONFIGURATION_EXTENSION = ".configuration.json";
 
     private ModelCacheLayout() {
     }
 
     public static String extension(String resourceKind) {
         return "ACCESSORY".equals(resourceKind) ? COSMETIC_EXTENSION : AVATAR_EXTENSION;
+    }
+
+    /** Independent small JSON documents; never a native model cache or user preset directory. */
+    public static Path configurationDirectory(Path cacheRoot) throws IOException {
+        Path directory = cacheRoot.toAbsolutePath().normalize().resolve("outfit-configurations");
+        for (Path current = directory; current != null; current = current.getParent()) {
+            if (Files.isSymbolicLink(current)) {
+                throw new IOException("UNSAFE_CONFIGURATION_CACHE");
+            }
+        }
+        Files.createDirectories(directory);
+        return directory;
     }
 
     /** Creates cosmetic storage only on demand; it never resolves the user's cosmetics directory. */

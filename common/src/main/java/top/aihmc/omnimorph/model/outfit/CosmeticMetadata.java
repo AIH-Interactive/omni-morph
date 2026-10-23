@@ -11,13 +11,15 @@ public record CosmeticMetadata(AvatarMetadataParser.Metadata common, String cate
                                String cosmeticAnchor, boolean hasBones, boolean displayBones,
                                boolean editBones, String skeletonRevision, String skeletonHash,
                                List<String> supportedBases, String validationSource,
-                               List<OutfitConfig.BoneRef> exportedBones, List<OutfitConfig.BoneRef> editableBones) {
+                               List<OutfitConfig.BoneRef> exportedBones, List<OutfitConfig.BoneRef> editableBones,
+                               OutfitConfig.Transform defaultTransform) {
     public static final String DIRECTORY = "cosmetics";
     public static final String FILE = "cosmetic.json";
     public static final List<String> CATEGORIES = List.of(
             "Head", "Back", "Feet", "Legs", "Face", "Hair", "Tail", "Trail", "Wings");
 
     public CosmeticMetadata {
+        java.util.Objects.requireNonNull(defaultTransform);
         OutfitConfig.text(category, 64, false);
         OutfitConfig.text(cosmeticAnchor, 128, true);
         OutfitConfig.text(skeletonRevision, 128, true);
@@ -60,7 +62,9 @@ public record CosmeticMetadata(AvatarMetadataParser.Metadata common, String cate
                         ? root.getAsJsonArray("supported_bases").asList().stream().map(v -> v.getAsString()).toList()
                         : List.of("VANILLA", "FIGURA", "YSM"),
                 "CLIENT_EXTRACTED", readBones(root, "exported_bones", OutfitLimits.defaults().maxExportedBones()),
-                readBones(root, "editable_bones", OutfitLimits.defaults().maxResourceNodes()));
+                readBones(root, "editable_bones", OutfitLimits.defaults().maxResourceNodes()),
+                root.has("default_transform") ? OutfitCodec.decodeTransform(root.get("default_transform"))
+                        : OutfitConfig.Transform.identity());
     }
 
     private static List<OutfitConfig.BoneRef> readBones(JsonObject root, String key, int maximum) {
@@ -74,6 +78,15 @@ public record CosmeticMetadata(AvatarMetadataParser.Metadata common, String cate
 
     public OutfitConfig.AnchorRef defaultAnchor() {
         return OutfitConfig.AnchorRef.authorDefault(cosmeticAnchor);
+    }
+
+    /** Submission and preview use the same negotiated placement and declaration budgets. */
+    public void validateLimits(OutfitLimits limits) {
+        OutfitConfig.require(defaultTransform.position().within(-limits.positionLimit(), limits.positionLimit())
+                && defaultTransform.rotation().within(-limits.rotationLimit(), limits.rotationLimit())
+                && defaultTransform.scale().within(limits.minScale(), limits.maxScale())
+                && exportedBones.size() <= limits.maxExportedBones()
+                && editableBones.size() <= limits.maxResourceNodes());
     }
 
     public static String selectManifest(boolean avatarPresent, boolean cosmeticPresent,

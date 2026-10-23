@@ -11,6 +11,7 @@ import net.minecraft.resources.Identifier;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
 import top.aihmc.omnimorph.avatar.UserData;
+import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 import top.aihmc.omnimorph.ducks.ParticleEngineAccessor;
 import sun.misc.Unsafe;
 
@@ -27,6 +28,7 @@ final class AvatarAsyncLoadSmokeTest {
     }
 
     static void run(Unsafe unsafe, Minecraft client, Runnable drain, java.nio.file.Path encrypted) throws Exception {
+        LocalAvatarSourceSmokeTest.run(encrypted);
         var field = Minecraft.class.getDeclaredField("particleEngine");
         field.setAccessible(true);
         Object previous = field.get(client);
@@ -47,8 +49,10 @@ final class AvatarAsyncLoadSmokeTest {
         });
         try {
             require(entered.await(5, TimeUnit.SECONDS), "preparation worker started");
-            var first = user.loadAvatar(model("first"));
-            var latest = user.loadAvatar(model("latest"));
+            var firstSource = reference(1);
+            var latestSource = reference(2);
+            var first = user.loadAvatar(model("first"), () -> true, firstSource);
+            var latest = user.loadAvatar(model("latest"), () -> true, latestSource);
             require(!first.isDone() && !latest.isDone(), "requesting a switch never waits for the worker");
             require(user.loading.snapshot() != null, "queued switch exposes player loading progress");
             release.countDown();
@@ -59,12 +63,15 @@ final class AvatarAsyncLoadSmokeTest {
             require(user.loading.snapshot() == null, "successful publication clears progress");
             Avatar retained = user.getMainAvatar();
             require(retained != null && retained.name.equals("latest"), "actual prepared model becomes resident");
+            require(latestSource.equals(retained.outfitSource()),
+                    "published provenance belongs to the newest successful load, not the first selection");
             AtomicBoolean scope = new AtomicBoolean(true);
-            var retired = user.loadAvatar(model("retired"), scope::get);
+            var retired = user.loadAvatar(model("retired"), scope::get, firstSource);
             scope.set(false);
             await(retired, drain);
             require(!retired.join() && user.getMainAvatar() == retained,
                     "retired connection cannot replace or clear the resident model");
+            require(latestSource.equals(retained.outfitSource()), "retired selection cannot change resident provenance");
             var malformed = model("invalid");
             malformed.getCompoundOrEmpty("metadata").putString("format", "ysm-native");
             malformed.put("ysm", new CompoundTag());
@@ -73,6 +80,13 @@ final class AvatarAsyncLoadSmokeTest {
             require(!failed.join() && user.getMainAvatar() == retained,
                     "runtime assembly failure keeps the previous model");
             require(user.loading.snapshot() == null, "failed preparation clears progress without hiding the previous model");
+            require(latestSource.equals(retained.outfitSource()), "failed preparation preserves resident provenance");
+            var residentNbt = retained.nbt;
+            retained.nbt = residentNbt.copy();
+            require(retained.outfitSource() == null, "replacing public NBT invalidates the attached resource identity");
+            retained.nbt = residentNbt;
+            retained.load(residentNbt);
+            require(retained.outfitSource() == null, "even reloading the same NBT needs fresh explicit provenance");
             if (encrypted != null) {
                 var portable = model("encrypted cache replay");
                 portable.getCompoundOrEmpty("metadata").putString("format", "ysm-native");
@@ -86,6 +100,15 @@ final class AvatarAsyncLoadSmokeTest {
                 require(restored.join() && user.getMainAvatar().getYsmRuntime() != null
                                 && user.getMainAvatar().getYsmRuntime().encryptedSource(),
                         "reported ciphertext reaches a published Avatar runtime through the async cache entry point");
+                require(user.getMainAvatar().outfitSource() == null,
+                        "legacy cache loads without authoritative references do not invent cloud identities");
+                var local = top.aihmc.omnimorph.avatar.ysm.YsmAvatarLoader.loadAvatar(encrypted, user);
+                await(local, drain);
+                var reference = user.getMainAvatar().outfitSource();
+                require(local.join().status() == top.aihmc.omnimorph.avatar.ysm.YsmLoadResult.Status.PUBLISHED
+                                && reference != null && reference.source() == OutfitConfig.Source.LOCAL
+                                && reference.format() == OutfitConfig.Format.YSM_ENCRYPTED,
+                        "the actual encrypted source loader binds provenance before publishing its runtime");
                 System.out.println("Reported encrypted model -> portable payload -> Avatar.load -> client publication PASS");
             }
             System.out.println("Actual avatar async preparation: nonblocking switch, newest generation, retired scope and failure retention PASS");
@@ -105,6 +128,11 @@ final class AvatarAsyncLoadSmokeTest {
         var model = new CompoundTag();
         model.put("metadata", metadata);
         return model;
+    }
+
+    private static OutfitConfig.ResourceRef reference(long id) {
+        return new OutfitConfig.ResourceRef(OutfitConfig.Source.LOCAL, new UUID(0, id), null, null, null,
+                "a".repeat(64), OutfitConfig.Format.FIGURA);
     }
 
     private static void await(CompletableFuture<?> future, Runnable drain) throws Exception {

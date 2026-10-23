@@ -155,6 +155,10 @@ final class AvatarBroadcastSmokeTest {
             }
             require(localUser.getMainAvatar() != null && localUser.getMainAvatar().name.equals("Reload All restored"),
                     "Reload All actually recompiles and republishes the local selection");
+            var source = localUser.getMainAvatar().outfitSource();
+            require(source != null && source.source() == top.aihmc.omnimorph.model.outfit.OutfitConfig.Source.LOCAL,
+                    "the actual Figura directory loader binds a stable local reference before publication");
+            top.aihmc.omnimorph.avatar.local.LocalAvatarSource.verify(folder, source, () -> false);
             localUser.clear();
             System.out.println("Actual model broadcast: latest-only upload/equip, mid-upload switch, offline replay, unequip and Reload All source restoration PASS");
         } finally {

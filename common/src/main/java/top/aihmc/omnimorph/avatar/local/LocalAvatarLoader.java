@@ -120,12 +120,14 @@ public class LocalAvatarLoader {
         async(() -> {
             try {
                 FiguraMod.debug("--- avatar compiling: " + target.id + " ---");
+                var source = LocalAvatarSource.capture(finalPath, () -> !target.ysmLoads.current(generation));
                 CompoundTag nbt = compileFiguraAvatar(finalPath, target.id);
+                LocalAvatarSource.verify(finalPath, source, () -> !target.ysmLoads.current(generation));
 
                 // load
                 net.minecraft.client.Minecraft.getInstance().execute(() -> {
                     if (target.ysmLoads.current(generation)) {
-                        target.loadAvatar(nbt).thenAccept(published -> {
+                        target.loadAvatar(nbt, () -> true, source).thenAccept(published -> {
                             if (published) {
                                 top.aihmc.omnimorph.backend2.NetworkStuff.localAvatarReady(target.getMainAvatar());
                             }

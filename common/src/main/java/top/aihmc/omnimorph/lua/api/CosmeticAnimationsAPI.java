@@ -7,6 +7,7 @@ import org.luaj.vm2.LuaValue;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.lua.FiguraLuaRuntime;
 import top.aihmc.omnimorph.lua.LuaWhitelist;
+import top.aihmc.omnimorph.lua.api.action_wheel.Page;
 import top.aihmc.omnimorph.lua.api.particle.CustomParticleRuntime;
 import top.aihmc.omnimorph.lua.docs.LuaTypeDoc;
 import top.aihmc.omnimorph.model.outfit.OutfitInstructionBudget;
@@ -40,6 +41,46 @@ public final class CosmeticAnimationsAPI implements AutoCloseable {
     private boolean dispatching;
     private boolean closed;
     private String error;
+    private Page entryPage;
+    private FiguraLuaRuntime pageRuntime;
+
+    /** Optional author entry; nil restores the instance's current wheel page. */
+    @LuaWhitelist
+    public CosmeticAnimationsAPI setPage(Object page) {
+        if (closed || owner.luaRuntime == null) {
+            throw new LuaError("COSMETIC_ANIMATIONS_CLOSED");
+        }
+        if (page instanceof String title) {
+            page = owner.luaRuntime.action_wheel.getPage(title);
+            if (page == null) {
+                throw new LuaError("COSMETIC_ANIMATION_PAGE_NOT_FOUND");
+            }
+        }
+        if (page != null && !(page instanceof Page)) {
+            throw new LuaError("Expected a wheel page, page title or nil");
+        }
+        entryPage = (Page) page;
+        pageRuntime = owner.luaRuntime;
+        return this;
+    }
+
+    @LuaWhitelist
+    public CosmeticAnimationsAPI set_page(Object page) {
+        return setPage(page);
+    }
+
+    public Page animationPage() {
+        if (closed || owner.luaRuntime == null) {
+            return null;
+        }
+        if (entryPage != null && pageRuntime == owner.luaRuntime) {
+            return entryPage;
+        }
+        if (owner.getYsmRuntime() != null && !owner.getYsmRuntime().hasAnimationWheelActions()) {
+            return null;
+        }
+        return owner.luaRuntime.action_wheel.getCurrentPage();
+    }
 
     public CosmeticAnimationsAPI(Avatar owner) {
         if (owner.cosmeticContext == null) {
@@ -163,5 +204,7 @@ public final class CosmeticAnimationsAPI implements AutoCloseable {
         pending.clear();
         callback = null;
         runtime = null;
+        entryPage = null;
+        pageRuntime = null;
     }
 }

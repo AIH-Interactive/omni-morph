@@ -118,6 +118,8 @@ public final class OutfitAutomaticAnchorSmokeTest {
                     Map.of(tailResource.identity(), 2, trailResource.identity(), 1), false);
             try (var composition = new OutfitComposition(config, limits, null, avatars, indexes);
                  var frame = composition.retain()) {
+                composition.editorSnapshot(null);
+                frame.capturePreviewSelection(new top.aihmc.omnimorph.model.library.PreviewBoneHighlight.Mount(trail.instanceId()));
                 var state = new net.minecraft.client.renderer.entity.state.AvatarRenderState();
                 state.lightCoords = 0x00f000f0;
                 var outer = new Matrix4f().translation(7, 11, 13);
@@ -137,6 +139,8 @@ public final class OutfitAutomaticAnchorSmokeTest {
                 if (variant == Case.MANUAL_INVALID) {
                     require(trailDraw < 0 && avatars.get(trailId).luaRuntime == null,
                             "manual stale binding does not fall back or initialize effects");
+                    require(composition.previewMountTarget(trailId) == null && frame.previewHelpers(base.capture(new Matrix4f())).isEmpty(),
+                            "manual invalid bindings are never reported as a successful automatic preview target");
                 } else {
                     require(trailDraw >= 0, "an automatic anchor resolves after dependency waves");
                     boolean selectedFirst = variant == Case.DEFAULT;
@@ -144,6 +148,15 @@ public final class OutfitAutomaticAnchorSmokeTest {
                     UUID expected = selectedFirst ? firstId : selectedSecond ? secondId : null;
                     require(java.util.Objects.equals(composition.automaticTailSelections().get(trailId), expected),
                             "reported selected instance matches the stable automatic target: " + variant);
+                    var target = composition.previewMountTarget(trailId);
+                    require(target != null && target.bone() != null
+                                    && java.util.Objects.equals(target.bone().instanceId(), expected),
+                            "the GUI diagnostic retains the actual controller bone, including base fallback: " + variant);
+                    var helpers = frame.previewHelpers(base.capture(new Matrix4f()));
+                    var matrix = commands.get(trailDraw).matrix();
+                    require(!helpers.isEmpty(), "captured automatic preview selection produces native target helpers");
+                    near(new float[]{helpers.getFirst().x0(), helpers.getFirst().y0(), helpers.getFirst().z0()},
+                            matrix.m30(), matrix.m31(), matrix.m32());
                     var point = positions.get(trailDraw * 4);
                     if (expected != null) {
                         near(point, 7 + (selectedFirst ? 28f : 44f) / 16, 11 + 13f / 16, 14);
@@ -153,11 +166,21 @@ public final class OutfitAutomaticAnchorSmokeTest {
                     if (variant == Case.DEFAULT) {
                         avatars.get(firstId).scriptError = true;
                         try (var next = composition.retain()) {
+                            next.capturePreviewSelection(new top.aihmc.omnimorph.model.library.PreviewBoneHighlight.Mount(trailId));
                             positions.clear();
                             OutfitNativeRenderer.drawVanilla(next, model, state, .5f, outer, outer, type -> sink,
                                     EntityRenderMode.FIGURA_GUI);
                             require(!composition.automaticTailSelections().containsKey(trailId),
                                     "failed selected tail uses the base fallback rather than jumping to another tail");
+                            var fallback = composition.previewMountTarget(trailId);
+                            require(fallback != null && fallback.bone().instanceId() == null
+                                            && !next.previewHelpers(base.capture(new Matrix4f())).equals(helpers),
+                                    "failure switches GUI helper coordinates to the controller's actual base fallback");
+                            OutfitNativeRenderer.drawVanilla(frame, model, state, .5f, outer, outer, type -> sink,
+                                    EntityRenderMode.FIGURA_GUI);
+                            require(composition.previewMountTarget(trailId).equals(fallback)
+                                            && frame.previewHelpers(base.capture(new Matrix4f())).equals(helpers),
+                                    "replaying an older frame preserves its helpers without overwriting the newest GUI target");
                         }
                     }
                 }
@@ -185,10 +208,17 @@ public final class OutfitAutomaticAnchorSmokeTest {
                     Map.of(instance.resource().identity(), 1), false);
             try (var composition = new OutfitComposition(config, OutfitLimits.defaults(), null,
                     Map.of(instance.instanceId(), avatar), new SkeletonIndex.Cache()); var frame = composition.retain()) {
+                frame.capturePreviewSelection(new top.aihmc.omnimorph.model.library.PreviewBoneHighlight.Mount(instance.instanceId()));
                 var commands = new ArrayList<OutfitComposition.Draw>();
                 frame.draw(pose, null, 0, commands::add);
                 require(commands.size() == 1 && Math.abs(commands.getFirst().matrix().m30() - expected) < .0001f,
                         "Lua fallback chooses the expected base point: " + expected);
+                var target = composition.previewMountTarget(instance.instanceId());
+                var helpers = frame.previewHelpers(pose);
+                require(target != null && helpers.size() >= 3 && Math.abs(helpers.getFirst().x0() - expected) < .0001f,
+                        "automatic helper position comes from the same selected base/root target");
+                require((target.bone() == null) == (roots.size() > 1),
+                        "multi-root fallback is an explicit entity root, never a fabricated persistent bone path");
             }
         } finally {
             avatar.clean();

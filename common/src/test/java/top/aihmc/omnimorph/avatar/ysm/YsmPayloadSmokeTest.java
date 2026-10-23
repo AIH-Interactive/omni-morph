@@ -50,6 +50,24 @@ public final class YsmPayloadSmokeTest {
                 "original ciphertext byte equivalence");
         require(descriptor.contains("main_model") && metadata.contains("source_path"), "output filter preserves caller-owned input");
         require(!portable.toString().contains(MARKER), "portable NBT has no decoded markers");
+        CompoundTag accessory = avatar.copy();
+        String cosmetic = "{\"name\":\"星翼\",\"category\":\"Wings\",\"cosmetic_anchor\":\"wing_anchor\"}";
+        accessory.getCompoundOrEmpty("metadata").putString("resource_kind", "ACCESSORY");
+        accessory.getCompoundOrEmpty("metadata").putString("cosmetic_json", cosmetic);
+        CompoundTag authored = new CompoundTag();
+        authored.putByteArray("wrapper-file", "AUTHORED_COSMETIC_WRAPPER".getBytes(StandardCharsets.UTF_8));
+        for (String key : List.of("scripts", "sounds", "resources")) {
+            accessory.put(key, authored.copy());
+        }
+        CompoundTag portableAccessory = YsmSourcePayload.forOutput(accessory);
+        require(portableAccessory.keySet().equals(Set.of("metadata", "ysm", "scripts", "sounds", "resources"))
+                        && portableAccessory.getCompoundOrEmpty("metadata").getStringOr("cosmetic_json", "").equals(cosmetic)
+                        && portableAccessory.getCompoundOrEmpty("metadata").getStringOr("resource_kind", "").equals("ACCESSORY"),
+                "portable accessories retain their separate authored declaration and Lua/assets");
+        require(!portableAccessory.toString().contains(MARKER) && portableAccessory.getCompoundOrEmpty("scripts").equals(authored)
+                        && Arrays.equals(ciphertext, portableAccessory.getCompoundOrEmpty("ysm").getByteArray("source_ciphertext").orElseThrow())
+                        && YsmSourcePayload.forOutput(portableAccessory).equals(portableAccessory),
+                "accessory wrapping preserves exact ciphertext, excludes decoded native data and remains idempotent");
         Path directory = Files.createTempDirectory("ysm-payload-");
         try {
             Path file = directory.resolve("avatar.nbt");

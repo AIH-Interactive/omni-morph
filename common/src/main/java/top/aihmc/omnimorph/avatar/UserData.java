@@ -8,6 +8,7 @@ import top.aihmc.omnimorph.avatar.local.CacheAvatarLoader;
 import top.aihmc.omnimorph.backend2.NetworkStuff;
 import top.aihmc.omnimorph.avatar.ysm.YsmLoadGeneration;
 import top.aihmc.omnimorph.avatar.ysm.YsmModelData;
+import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -55,6 +56,11 @@ public class UserData {
 
     public CompletableFuture<Boolean> loadAvatar(
             CompoundTag nbt, BooleanSupplier current) {
+        return loadAvatar(nbt, current, null);
+    }
+
+    public CompletableFuture<Boolean> loadAvatar(
+            CompoundTag nbt, BooleanSupplier current, OutfitConfig.ResourceRef source) {
         long generation = ysmLoads.begin();
         long progress = loading.begin(AvatarLoadProgress.Stage.PREPARING);
         Avatar prepared = new Avatar(id);
@@ -64,6 +70,9 @@ public class UserData {
             }
             prepared.load(nbt, null, () -> !current.getAsBoolean() || !ysmLoads.current(generation),
                     stage -> loading.stage(progress, stage));
+            if (prepared.loaded && prepared.nbt != null && source != null) {
+                prepared.bindOutfitSource(source);
+            }
             return prepared.nbt != null && prepared.loaded;
         }).handle((success, failure) -> {
             if (failure != null) {
@@ -78,6 +87,12 @@ public class UserData {
 
     public CompletableFuture<Boolean> loadYsmAvatar(
             Avatar prepared, CompoundTag nbt, YsmModelData data, long generation) throws IOException {
+        return loadYsmAvatar(prepared, nbt, data, generation, null);
+    }
+
+    public CompletableFuture<Boolean> loadYsmAvatar(
+            Avatar prepared, CompoundTag nbt, YsmModelData data, long generation,
+            OutfitConfig.ResourceRef source) throws IOException {
         if (!ysmLoads.current(generation)) {
             return publishAvatar(prepared, generation, () -> false);
         }
@@ -85,6 +100,9 @@ public class UserData {
         if (!prepared.loaded || prepared.getYsmRuntime() == null) {
             Minecraft.getInstance().execute(prepared::clean);
             throw new IOException("RUNTIME_ASSEMBLY_FAILED: YSM avatar was not prepared");
+        }
+        if (source != null) {
+            prepared.bindOutfitSource(source);
         }
         return publishAvatar(prepared, generation, () -> true);
     }

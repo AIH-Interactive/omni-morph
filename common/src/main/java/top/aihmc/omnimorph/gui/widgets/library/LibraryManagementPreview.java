@@ -67,6 +67,15 @@ public final class LibraryManagementPreview extends AbstractContainerElement imp
         session.selectResource(wardrobe.recycled(kind, owner, id));
     }
 
+    public void recycled(top.aihmc.omnimorph.backend2.library.LibraryRecycleService.Item item, Component title) {
+        if (item.resourceKind().equals("OUTFIT")) {
+            this.title = title;
+            session.selectConfigurationResource(wardrobe.recycledConfiguration(item.id()), transfers);
+        } else {
+            recycled(item.kind(), item.owner(), item.id(), title);
+        }
+    }
+
     public void clear() {
         title = FiguraText.of("gui.library.select_model");
         session.clear();
