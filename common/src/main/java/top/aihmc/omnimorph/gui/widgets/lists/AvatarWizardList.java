@@ -120,7 +120,7 @@ public class AvatarWizardList extends AbstractList {
         Component lastName = Component.empty();
         List<GuiEventListener> lastList = new ArrayList<>();
 
-        for (WizardEntry value : WizardEntry.all()) {
+        for (WizardEntry value : wizard.entries()) {
             switch (value.type) {
                 case CATEGORY -> {
                     if (!lastList.isEmpty()) {

@@ -1,11 +1,13 @@
 package top.aihmc.omnimorph.gui.widgets.library;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.InputWithModifiers;
 import net.minecraft.network.chat.Component;
 import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.ContextMenu;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
+import top.aihmc.omnimorph.utils.FiguraText;
 
 import java.util.List;
 import java.util.function.IntConsumer;
@@ -17,13 +19,24 @@ public final class LibraryDropdown extends Button {
     private final Supplier<List<Component>> choices;
     private final IntSupplier selected;
     private final IntConsumer changed;
+    private final int pageSize;
 
     public LibraryDropdown(int x, int y, int width, Supplier<List<Component>> choices,
                             IntSupplier selected, IntConsumer changed) {
+        this(x, y, width, choices, selected, changed, Integer.MAX_VALUE);
+    }
+
+    /** Bounded menus for attachment trees; ordinary selectors retain their existing presentation. */
+    public LibraryDropdown(int x, int y, int width, Supplier<List<Component>> choices,
+                            IntSupplier selected, IntConsumer changed, int pageSize) {
         super(x, y, width, 20, Component.empty(), null, ignored -> {});
+        if (pageSize < 1) {
+            throw new IllegalArgumentException("Dropdown page size must be positive");
+        }
         this.choices = choices;
         this.selected = selected;
         this.changed = changed;
+        this.pageSize = pageSize;
         updateMessage();
     }
 
@@ -34,15 +47,31 @@ public final class LibraryDropdown extends Button {
 
     @Override
     public void onPress(InputWithModifiers input) {
+        openPage(Math.max(0, selected.getAsInt()) / pageSize);
+    }
+
+    private void openPage(int requestedPage) {
         var values = choices.get();
+        int page = Math.clamp(requestedPage, 0, values.isEmpty() ? 0 : (values.size() - 1) / pageSize);
+        int start = page * pageSize;
+        int end = (int) Math.min(values.size(), (long) start + pageSize);
         var menu = new ContextMenu(this, getWidth());
-        for (int index = 0; index < values.size(); index++) {
+        if (start > 0) {
+            menu.addAction(FiguraText.of("gui.wardrobe.anchor_previous"), null, ignored -> openPage(page - 1));
+        }
+        for (int index = start; index < end; index++) {
             int option = index;
-            menu.addAction(values.get(index), null, ignored -> {
+            Component fullLabel = values.get(index);
+            Component label = pageSize == Integer.MAX_VALUE ? fullLabel : Component.literal(
+                    Minecraft.getInstance().font.plainSubstrByWidth(fullLabel.getString(), Math.max(1, getWidth() - 12)));
+            menu.addAction(label, pageSize == Integer.MAX_VALUE ? null : fullLabel, ignored -> {
                 changed.accept(option);
                 updateMessage();
                 menu.setVisible(false);
             });
+        }
+        if (end < values.size()) {
+            menu.addAction(FiguraText.of("gui.wardrobe.anchor_next"), null, ignored -> openPage(page + 1));
         }
         if (!values.isEmpty()) {
             menu.setX(getX());

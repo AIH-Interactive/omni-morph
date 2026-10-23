@@ -33,6 +33,7 @@ public final class LibraryTransferSmokeTest {
     private static final UUID TRANSFER = new UUID(0, 22);
 
     public static void main(String[] args) throws Exception {
+        testOutfitConfiguration();
         Path directory = Files.createTempDirectory("library-transfer-");
         try (var server = new Server()) {
             var endpoint = CloudEndpoint.parse(server.origin(), () -> true);
@@ -177,6 +178,81 @@ public final class LibraryTransferSmokeTest {
         }
     }
 
+    private static void testOutfitConfiguration() throws Exception {
+        Path directory = Files.createTempDirectory("outfit-transfer-");
+        try (var server = new Server(true)) {
+            var callbacks = new ConcurrentLinkedQueue<Runnable>();
+            var endpoint = CloudEndpoint.parse(server.origin(), () -> true);
+            try (var access = new LibraryAccess(endpoint, HttpClient.newHttpClient(),
+                    request -> request.header("Authorization", "Bearer synthetic-player"));
+                 var client = new LibraryClient(access,
+                         new LibrarySession(server.origin(), VIEWER, 1, () -> true), callbacks::add)) {
+                var transfers = new LibraryTransferService(client, directory);
+                var first = await(transfers.preview(MODEL).request().future(), callbacks);
+                require(first.nbt() == null && first.configuration().equals(
+                                top.aihmc.omnimorph.model.outfit.OutfitConfig.empty()),
+                        "Outfit returns a configuration without fabricating native NBT or a model format");
+                await(new LibraryTransferService(client, directory).preview(MODEL).request().future(), callbacks);
+                require(server.details.get() == 2 && server.files.get() == 1 && server.completed.get() == 0,
+                        "reopened JSON preview rechecks authority and reuses its independent cache");
+                server.loseJoinResponse.set(true);
+                failure(transfers.add(MODEL).request().future(), callbacks, "BUSY");
+                require(server.files.get() == 2 && server.completed.get() == 1,
+                        "formal JSON addition obtains its own body and receipt rather than promoting preview bytes");
+                await(new LibraryTransferService(client, directory).add(MODEL).request().future(), callbacks);
+                var operations = server.completionOperations.toArray(String[]::new);
+                require(server.files.get() == 2 && server.joined.get() && operations.length == 2
+                                && operations[0].equals(operations[1]),
+                        "lost collection confirmation resumes JSON staging with its original completion operation");
+                await(transfers.preview(MODEL).request().future(), callbacks);
+                require(server.files.get() == 2, "freshly authorized preview may read formally downloaded JSON");
+                try (var files = Files.list(directory.resolve("outfit-configurations"))) {
+                    var stored = files.toList();
+                    require(stored.stream().noneMatch(path -> path.toString().endsWith(".oma")
+                                    || path.toString().endsWith(".oms") || path.toString().endsWith(".part")),
+                            "JSON storage has no native model suffixes or remaining temporary download");
+                    Path formal = stored.stream().filter(path -> path.getFileName().toString().startsWith("resource-")
+                            && path.toString().endsWith(".configuration.json")).findFirst().orElseThrow();
+                    require(!java.util.Arrays.equals(Files.readAllBytes(formal), server.bytes)
+                                    && java.util.Arrays.equals(new top.aihmc.omnimorph.model.cache.ModelCacheCodec(directory)
+                                            .read(formal, 65536), server.bytes),
+                            "independent JSON cache preserves the exact verified bytes using existing cache protection");
+                }
+                var recycle = new LibraryWardrobePreviewService(client, () -> "synthetic-admin", directory);
+                var archived = await(recycle.recycledConfiguration(TRANSFER).future(), callbacks);
+                await(new LibraryWardrobePreviewService(client, () -> "synthetic-admin", directory)
+                        .recycledConfiguration(TRANSFER).future(), callbacks);
+                require(archived.configuration().equals(top.aihmc.omnimorph.model.outfit.OutfitConfig.empty())
+                                && server.wardrobeHeads.get() == 2 && server.wardrobeFiles.get() == 1,
+                        "recycled JSON has its own typed decode and repeats a live HEAD before reusing protected bytes");
+                server.staleWardrobe.set(true);
+                failure(recycle.recycledConfiguration(TRANSFER).future(), callbacks, "PREVIEW_UNAVAILABLE");
+                server.staleWardrobe.set(false);
+                server.configurationSupported.set(false);
+                failure(transfers.preview(MODEL).request().future(), callbacks, "OUTFIT_UNSUPPORTED");
+                server.configurationSupported.set(true);
+                server.configurationBytes.set(256);
+                failure(transfers.preview(MODEL).request().future(), callbacks, "OUTFIT_LIMIT_EXCEEDED");
+                server.configurationBytes.set(65536);
+                server.jsonMedia.set(false);
+                failure(new LibraryTransferService(client, directory.resolve("invalid-media"))
+                        .preview(MODEL).request().future(), callbacks, "INVALID_DISTRIBUTION_RESPONSE");
+                server.jsonMedia.set(true);
+                server.revoked.set(true);
+                failure(transfers.preview(MODEL).request().future(), callbacks, "FORBIDDEN");
+                require(server.files.get() == 3 && server.unexpected.get() == 0,
+                        "cached JSON does not bypass current capability or resource permission");
+            }
+        } finally {
+            try (var files = Files.walk(directory)) {
+                for (Path file : files.sorted(Comparator.reverseOrder()).toList()) {
+                    Files.delete(file);
+                }
+            }
+        }
+        System.out.println("PASS Outfit JSON transfer: separate parsing/storage, live authorization, formal receipts and resumable collection addition");
+    }
+
     private static <T> T await(CompletableFuture<T> future, ConcurrentLinkedQueue<Runnable> callbacks) throws Exception {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
         while (!future.isDone() && System.nanoTime() < deadline) {
@@ -223,8 +299,17 @@ public final class LibraryTransferSmokeTest {
         private final AtomicInteger cacheSeconds = new AtomicInteger(7200);
         private final AtomicBoolean staleWardrobe = new AtomicBoolean();
         private final byte[] bytes;
+        private final boolean outfit;
+        private final AtomicBoolean configurationSupported = new AtomicBoolean(true);
+        private final AtomicInteger configurationBytes = new AtomicInteger(65536);
+        private final AtomicBoolean jsonMedia = new AtomicBoolean(true);
 
         private Server() throws Exception {
+            this(false);
+        }
+
+        private Server(boolean outfit) throws Exception {
+            this.outfit = outfit;
             byte[] ciphertext;
             try (var input = LibraryTransferSmokeTest.class.getResourceAsStream("/ysm/crypto-vectors/crypto1.ysm")) {
                 ciphertext = input.readAllBytes();
@@ -242,7 +327,9 @@ public final class LibraryTransferSmokeTest {
             nbt.put("ysm", source);
             var output = new ByteArrayOutputStream();
             NbtIo.writeCompressed(YsmSourcePayload.forOutput(nbt), output);
-            bytes = output.toByteArray();
+            bytes = outfit ? (top.aihmc.omnimorph.model.outfit.OutfitCodec.encode(
+                    top.aihmc.omnimorph.model.outfit.OutfitConfig.empty()) + " ".repeat(300)).getBytes(StandardCharsets.UTF_8)
+                    : output.toByteArray();
             server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
             server.createContext("/", this::handle);
             server.start();
@@ -258,7 +345,27 @@ public final class LibraryTransferSmokeTest {
                 String path = request.getRequestURI().getPath();
                 String body;
                 int status = 200;
-                if (path.startsWith("/api/library/v1/admin/wardrobe-preview/")) {
+                if (path.equals("/api/library/v1/capabilities") && outfit) {
+                    var limits = top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults();
+                    var capabilities = new top.aihmc.omnimorph.backend2.library.LibraryModels.OutfitCapabilities(
+                            1, configurationSupported.get(), true, false, false, 32, 128, 64, 8192, 32768,
+                            1024, 65536, 8, 256, limits);
+                    var value = new com.google.gson.JsonObject();
+                    value.addProperty("enabled", true);
+                    value.addProperty("version", 1);
+                    value.addProperty("max_upload_bytes", 1024 * 1024);
+                    value.addProperty("max_page_size", 64);
+                    value.addProperty("max_image_bytes", 1024 * 1024);
+                    value.addProperty("max_image_width", 1024);
+                    value.addProperty("max_image_height", 1024);
+                    value.add("outfits_v1", new com.google.gson.GsonBuilder()
+                            .setFieldNamingPolicy(com.google.gson.FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+                            .create().toJsonTree(capabilities));
+                    value.getAsJsonObject("outfits_v1").addProperty("max_json_bytes", configurationBytes.get());
+                    value.getAsJsonObject("outfits_v1").getAsJsonObject("limits")
+                            .addProperty("max_json_bytes", configurationBytes.get());
+                    body = value.toString();
+                } else if (path.startsWith("/api/library/v1/admin/wardrobe-preview/")) {
                     boolean head = request.getRequestMethod().equals("HEAD");
                     if (head) {
                         wardrobeHeads.incrementAndGet();
@@ -280,6 +387,9 @@ public final class LibraryTransferSmokeTest {
                         body = "{\"code\":\"PREVIEW_UNAVAILABLE\"}";
                     } else {
                         request.getResponseHeaders().add("x-omnimorph-sha256", CloudHttp.sha256(bytes));
+                        if (outfit) {
+                            request.getResponseHeaders().add("Content-Type", "application/json");
+                        }
                         if (head) {
                             request.getResponseHeaders().add("content-length", Integer.toString(bytes.length));
                             request.sendResponseHeaders(200, -1);
@@ -320,6 +430,12 @@ public final class LibraryTransferSmokeTest {
                              "model_type":"YSM_ENCRYPTED","visibility":"PRIVATE","requires_authorization":true,
                              "allowed_actions":["preview","download","equip"],"byte_length":%d}
                             """.formatted(MODEL, VIEWER, bytes.length);
+                    if (outfit && !revoked.get()) {
+                        var value = com.google.gson.JsonParser.parseString(body).getAsJsonObject();
+                        value.add("model_type", com.google.gson.JsonNull.INSTANCE);
+                        value.addProperty("resource_kind", "OUTFIT");
+                        body = value.toString();
+                    }
                 } else if (path.equals("/api/library/v1/models/" + MODEL + "/transfers")) {
                     String input = new String(request.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
                     String purpose = input.contains("download") ? "download" : "preview";
@@ -329,6 +445,9 @@ public final class LibraryTransferSmokeTest {
                             """.formatted(TRANSFER, purpose, TRANSFER);
                 } else if (path.equals("/api/library/v1/transfers/" + TRANSFER)) {
                     files.incrementAndGet();
+                    if (outfit && jsonMedia.get()) {
+                        request.getResponseHeaders().add("Content-Type", "application/json; charset=utf-8");
+                    }
                     request.getResponseHeaders().add("x-omnimorph-sha256", CloudHttp.sha256(bytes));
                     request.sendResponseHeaders(200, bytes.length);
                     byte[] sent = bytes.clone();

@@ -115,6 +115,7 @@ public final class LibraryAccess implements AutoCloseable {
                 request.header("Content-Type", contentType);
             }
             if (relative.getRawPath().startsWith("/api/library/v1/admin/")
+                    || relative.getRawPath().equals("/api/library/v1/uploads/outfit")
                     || adminToken != null && !adminToken.isEmpty()) {
                 request.header("x-omnimorph-origin", endpoint.origin().toString());
             }

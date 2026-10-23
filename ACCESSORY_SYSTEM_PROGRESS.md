@@ -16,7 +16,7 @@
 | 1 资源/配置契约和后端数据 | 含用户补充，自动验收 PASS | PASS | MANUAL/PENDING：旧业务真实界面回归 | 客户端 81dcbe1 / 后端 f404a5b 已确认推送 |
 | 2 解析/原生渲染/Lua 实例 | 自动验收 PASS；人工项按用户要求跳过 | PASS | MANUAL/PENDING：真实游戏/GPU/性能矩阵 | main@7d26956，远端 SHA 已核对；后端无改动 |
 | 3 挂载/骨骼/拖尾/粒子 | 自动验收 PASS；含 CustomParticle 和 Ribbon 增量要求 | PASS | MANUAL/PENDING：真实游戏/GUI/GPU/光照/性能，按用户要求跳过 | main/master 阶段三检查点，见本阶段验收记录 |
-| 4 衣柜/投稿/预设/创建 | NOT STARTED | PENDING | MANUAL/PENDING | PENDING |
+| 4 衣柜/投稿/预设/创建 | 自动验收 PASS；人工项按用户要求跳过 | PASS：最终 Fabric 构建、阶段四测试组、语言键、后端全量 | MANUAL/PENDING：真实窗口/CJK/GPU/双客户端 | main 本记录所在阶段四检查点；master@1117d0e 已确认推送，main 按检查点核对远端 SHA |
 | 5 原子应用/权限/同步 | NOT STARTED | PENDING | MANUAL/PENDING：双真实客户端 | PENDING |
 | 6 整体验收/性能/交付 | NOT STARTED | PENDING | MANUAL/PENDING：第 10 节真实渲染/性能矩阵 | PENDING |
 
@@ -432,6 +432,310 @@
 - 后端 master 检查点 `d3121f02bcef4272b3e39a963e4737bbf2b7995a` 已推送，并通过 ls-remote 与本地 HEAD 相等核对。
 - 本阶段检查点提交名：客户端 `feat(outfits): implement mounted cosmetics and custom particles`；后端 `feat(outfits): configure custom particle budgets and editable bones`。提交/推送当前 main/master 并核对远端 SHA 后，才开始阶段四。
 - 阶段四的编辑 UI/设置/模板、阶段五的正式 Apply/授权跨端事件与持久基础预算绑定、阶段六的真实验收/性能和 alpha.4 交付保持原顺序。人工项按用户要求明确标记并跳过；不宣称真实 GUI/GPU、双客户端或 alpha.4 发布已完成。三个公共 YSM bug 保持 OPEN，按用户指定在阶段六后全局修复。
+
+## 阶段四进行中（2026-10-22）
+
+- 开始前核对当前 main 工作树干净；阶段三客户端 `719f68e719fd0bcefb99df0997ab3acd03544925` 和后端 `d3121f02bcef4272b3e39a963e4737bbf2b7995a` 均已推送并核对远端 SHA。未新建/切换分支。
+- 阶段开始时 WardrobeScreen 的装饰用途为占位页，尚无草稿编辑状态；复用已有不可变 OutfitConfig、LocalCosmeticInventory 和 LibraryPreviewSession/OutfitPreparation，不重做已验证的解析与原生组合。
+- 新 OutfitDraft 从已提交快照建立编辑副本，支持显式原版/基础选择、重复实例添加、启停/移除、挂点与变换、内部覆盖、scalar controls、当前实例恢复默认及整份取消/重置。每次配置变化经当前 OutfitLimits 和 JSON 大小验证后原子替换；选择不触发配置代际，失败保留原快照、选择与编号水位。
+- 删除副本保留其余编号，后续添加递增。删除手动父实例或虚拟挂点时保留依赖实例并标记 UNRESOLVED，不静默挂到其他位置；只有 AUTO_TRAIL 清除已删除首选项后可继续既定自动回退。dependents 提供确认所需的直接/传递影响清单；虚拟锚点改名保留 ID，循环修改拒绝。
+- 预设复制重写全部实例/虚拟 ID、内部骨骼覆盖、挂点父引用和 AUTO_TRAIL 首选项；与当前装扮资源编号冲突时递增分配，未冲突的新资源保留后缀。源预设、已提交 revision、对外展示状态和模型文件均不被编辑操作修改；没有接通阶段五正式 Apply 或广播。
+- 新 outfitDraftSmokeTest 使用公开编辑方法覆盖取消/重置、重复号、选择清理、受影响依赖、循环、跨所属骨骼拒绝、预设 ID 重写和额度失败原子性。前台 JDK 25 `:fabric:compileJava :common:outfitDraftSmokeTest` PASS（15 秒），日志 `build/reports/outfit/stage4-draft-state.log`。这是草稿状态证据，不冒充衣柜控件或真实 GUI 已可用。
+- 复核用户 Ribbon 参数补充：width、length、lifetime、uvRepeat、uvOffset、taper、fade、emissive、light 已包含在阶段三契约、实现及验收表；不重置已完成阶段。阶段四本地资源列表准备中，新增工作线程目录快照及列表条目类型，尚未接入 WardrobeScreen，不宣称装饰页可用。前台编译发现目录扫描的 IOException 未包装，已修正后重新运行 `:fabric:compileJava :common:customParticleSmokeTest :common:outfitDraftSmokeTest`，退出码 0 / BUILD SUCCESSFUL（10 秒），日志 `build/reports/outfit/stage4-ribbon-supplement-check.log`。真实 GUI/粒子像素仍 MANUAL/PENDING。
+- **继续阶段四：** 本地/云端装饰选择及多实例草稿预览、基础实例操作/变换控件已接通；基础正式资源映射、预设选择、完整骨骼树/虚拟锚点编辑、设置/轮盘、投稿/预设页面和创建向导/模板/资产仍待完成。整阶段未到提交/推送检查点，五、六阶段未开始。
+
+### 本地装饰目录、候选列表与选择预览
+
+- LocalCosmeticCatalog 在既有有界模型工作线程扫描 LocalCosmeticInventory；主线程只发布不可变条目快照，合并并发刷新，监听目录变化。关闭视图取消待发布结果并释放 watcher，不因延迟结果恢复旧列表。无效资源保留不可用条目，文件系统失败有明确状态。
+- WardrobeCollectionGrid/WardrobeCloudList 增加真实本地装饰条目，保留原 Avatar 条目与云端资源；来源/用途/格式独立筛选。形象集显示全部本地装饰，衣柜只显示已有候选成员；增减候选沿用 LocalOutfitCandidates，不修改作者资源。用途为装饰时移除原占位页；本地 Avatar 单独筛选保留原 AvatarList。预设无 modelType 时不再把 null 交给类型图标。
+- 选择本地装饰从当前清单哈希准备真实 Figura/YSM 源，经过 OutfitPreparation/DRAFT 实例，在显式原版基础上预览单件。Trail 采用既有 AUTO_TRAIL，其余保留作者挂点；未知挂点保持失效，不猜测替换。当前在线时等待本连接的 capabilities，使用后端 limits；能力读取失败不以默认额度继续。旧请求和已关闭视图不能覆盖当前能力。
+- 预览不把装饰当基础 Avatar、不调用正式加载/发布，不改源文件；旧启用按钮按选中资源用途判断，ALL 筛选下也不能误装备装饰。切换选择/关闭退休私有组合，已提取帧仍沿用阶段三的租约。该检查点仅完成单资源预览入口；其后的多实例编辑进展见下一节。云端装饰/OUTFIT 预设选择仍明确不可用，后续按本阶段接通。
+- 新 LocalCosmeticCatalogSmokeTest 运行真实目录/清单解析，覆盖延迟主线程发布、刷新合并、源变更保留 ID/更新哈希、旧快照保留、无效资源、关闭后迟到结果和 IO 失败。LibraryPreviewRuntimeSmokeTest 增补实际目录与候选存储→生产卡片/列表筛选，以及 selectCosmetic→真实源编译→异步 DRAFT 组合→帧保留/退出的路径；确认正式装备、正式选择和源文件不变。测试对象使用既有原生 fixture；真实 GUI 字体、布局和渲染仍 MANUAL/PENDING。
+- 前台 JDK 25 `:fabric:compileJava :common:cosmeticSourceSmokeTest :common:libraryPreviewRuntimeSmokeTest :common:outfitDraftSmokeTest` PASS（39 秒），日志 `build/reports/outfit/stage4-local-cosmetic-ui-regression.log`。新增生产选择验证后 PASS（20 秒），日志 `stage4-local-cosmetic-selection.log`；新增来源/用途/成员筛选验证后 PASS（19 秒），日志 `stage4-local-cosmetic-filters.log`。收敛状态文本和按钮条件后的最终编译 PASS（5 秒），日志 `stage4-local-cosmetic-readability.log`。git diff --check 通过；本轮后端无改动，原未跟踪 build.log/spm-cloud 保留。阶段四未完成，不提前提交/推送为整阶段完成，也不进入阶段五。
+
+### 多实例草稿操作、标准挂点与变换控件
+
+- 现有预览工具条追加独立草稿操作分组：添加选中装饰、实例菜单、取消编辑、整份重置；按总槽数继续响应式换行。资源选择本身不创建正式草稿实例。实例菜单以同一资源名称加 #1/#2 后缀定位，支持选择、启停、作者默认重置和移除；依赖移除沿用原生确认页列出受影响实例，再由 OutfitDraft 标记失效。删除不重排后缀，后续添加递增。
+- 首次编辑在模型工作线程复制当前装备 NBT 并计算内容摘要，保留其 Figura/YSM 基础预览；原版无需空 Avatar，未就绪基础拒绝开始。该基础引用当前只是编辑会话内的私有快照，不是已证明可持久化/分发的正式资源引用。保存预设/正式 Apply 之前仍须补齐真实基础来源与固定修订映射，并在阶段五接入服务器已提交组合/修订；不把私有快照上传或宣称已完成这项依赖。
+- 草稿预览复用 LibraryPreviewSession 和 OutfitPreparation：变更复用已准备的基础，只替换完整实例代际；同批同资源只编译一次源，再为各实例独立加载。整份重置只在草稿选择原版并清实例，取消恢复编辑基线并回到实际当前装备；对外展示状态及正式加载/发布入口不被草稿操作调用。
+- 选择实例打开右侧原信息区的实例编辑视图；原默认信息/公告与骨骼树入口保留。支持显式标准挂点/AUTO_TRAIL 和位置/旋转/缩放九个分量，保留作者 default_transform；缺失默认变换为 identity。非法数、零/负缩放、非有限值或超额变换保留上一份有效草稿，输入框标错。新增 WardrobeEditorPanel 将字段限制在右栏并在矮窗口滚动；原生控件状态/几何检查不能替代真实窗口像素验收。
+- 资源选择代际隔离首次异步草稿准备，过期完成不能添加旧资源或抢回新预览；关闭/切账号退休会话，旧实例菜单不能修改新草稿。移除/重置/取消只保留当前及基线引用的源条目，不积累已删除资源的修订。新增中英标签及工具提示，两种语言的新增编辑键自动校验。
+- 自动证据增加生产 Add→实际基础快照→真实 cosmetic 源→多实例组合路径，验证独立 ID/递增后缀、作者变换、删除/重置/取消、输入框回调及兄弟不变、错误输入原子性、短面板滚动、账号清理和受控延迟的过期准备。原始正常/扩展 Figura、YSM、原版、后台/权限其他玩家预览及可见性回归保留。新夹具最初未回收其自己创建的装备权限项，补齐夹具清理后验证预览未新增持久权限；新增标签度量测试补齐非渲染字体夹具，不修改生产字体。
+- 前台 JDK 25 `:fabric:compileJava :common:outfitContractSmokeTest :common:outfitDraftSmokeTest :common:libraryPreviewRuntimeSmokeTest :common:cosmeticSourceSmokeTest` PASS（33 秒），日志 `build/reports/outfit/stage4-draft-ui-actions.log`；变换控件/滚动接线后 PASS（37 秒），日志 `stage4-draft-transform-ui.log`；代际、账号、资源条目释放收尾后最终 PASS（40 秒），日志 `stage4-draft-ui-lifecycle.log`。真实 GUI/CJK/菜单布局、画面及性能继续 MANUAL/PENDING。阶段四尚未完成，当前 main 工作树保留，不提前进入阶段五或提交为整阶段完成；后端 master 本轮无改动。
+
+### 云端装饰授权预览与固定引用（2026-10-23）
+
+- 新 CloudCosmeticSource 复用 LibraryTransferService、原缓存 codec 和授权请求；增加固定修订预览入口，不改变旧 Avatar 下载入口。校验 origin、资源 ID、revision、内容 hash、格式和 ACCESSORY 用途，并交叉检查正文 cosmetic_json 与后端装饰声明的分类、挂点、变换、兼容基础及骨骼能力。校验在既有有界模型工作线程进行，结果在客户端线程发布；会话失效后不能读取已准备正文。
+- WardrobeScreen 的云端装饰选择走与本地相同的 DRAFT 挂载准备，选择仅预览，显式 Add 才创建实例。草稿按完整固定引用保留资源；实例名称/作者默认重置可读取云端声明，副本仍以 instanceId 隔离。整批准备对同资源去重、一次传输一个资源；每次重新准备都检查当前权限，正文可复用已验证缓存。同批资源未全部就绪前不发布部分代际；再次授权发现拒绝时退休私有预览、保留草稿及实际装备。
+- 云端组合的 LibraryPreviewSession 绑定实际后端会话；新选择、页面关闭、代际替换或断线取消相应请求和批次。离线禁止使用失效的选中结果添加云端实例。现有端点不能取得某个固定修订时明确 RESOURCE_REVISION_UNAVAILABLE，不静默跟随卡片最新版本；后续预设/修订界面仍须提供修复入口。
+- 加密 YSM 联调实际暴露原 forOutput 会删掉装饰包装声明与 Lua/资源。按本阶段所需扩展 portable 契约：已声明 ACCESSORY 且 cosmetic_json 有效时保留该声明及包装目录的 scripts/sounds/resources；原始密文及原生 YSM 字段白名单继续使用现有规则。普通 YSM 的原输出规则不变。新增密文逐字节相等、无原生解密标记、独立作者包装内容和输出幂等验证；没有改三个待处理公共 YSM 姿态 bug。
+- 新 cloudCosmeticSourceSmokeTest 使用真实 HTTP/缓存，覆盖缓存命中仍授权、正文只下载一次、固定哈希/修订、声明不一致、撤销、跨 origin、真实在途取消及会话退休。原生预览任务增加生产 selectCloud→授权正文→Figura/加密 YSM→私有组合→两件副本的完整路径，并验证重新授权拒绝及新选择清理；不以 HTTP helper 通过代替实际实例加载。
+- 联调夹具修正了两个观察错误：本地源准备必须先取得实际源 hash；私有组合应在会话/提取帧检查，清空云端选择后应检查新绑定的本地会话。没有为通过夹具修改生产隔离机制。真实 GUI/GPU、真实后端双客户端及持续策略事件仍 MANUAL/PENDING，持续事件与正式发布按阶段五接通。
+- 前台 JDK 25 编译/原传输与预览回归 PASS（22 秒），日志 `build/reports/outfit/stage4-cloud-cosmetic-regression.log`；HTTP 源任务 PASS（7 秒），日志 `stage4-cloud-cosmetic-source.log`；补齐加密包装后 `:fabric:compileJava :common:ysmPayloadSmokeTest :common:cloudCosmeticSourceSmokeTest :common:libraryPreviewRuntimeSmokeTest :common:libraryTransferSmokeTest` PASS（20 秒），日志 `stage4-cloud-cosmetic-native.log`。按钮/断线收尾后编译与契约/草稿回归 PASS（5 秒），日志 `stage4-cloud-cosmetic-final.log`。git diff --check 通过。本轮后端无改动，原 build.log/spm-cloud 保留；阶段四仍未到整阶段提交/推送检查点。
+
+### YSM 创建器与完整 JAR 模板复制（2026-10-23）
+
+- YsmAvatarCreator 从构建产物内的模板清单读取资源，逐项验证长度与 SHA-256，复制全部 42 个冻结文件后覆盖 metadata.name/tips 并追加用户作者；保留原模板作者、角色、联系方式、许可和其他原始配置。复用已有 YsmModelData 解析实际目录包后才返回成功，不调用装备、上传或发布。
+- 运行时清单由 Gradle 从现有 protocol/outfit-v1/template-manifest.json 打包到 assets/omni-morph/wizard，未修改 ysm_default 文件。目录名保留中文并处理 Windows 非法字符/保留名，以原子创建目录避免覆盖重名资源；失败只删除本次创建的文件和目录。
+- 新 ysmAvatarCreationSmokeTest 覆盖实际构建 JAR 的资源读取、42 文件完整性、非元数据文件原 hash、主模型/手臂模型真实解析、原始许可/资源绑定、中文重名、缺失/损坏模板及越界路径失败清理。前台 JDK 25 `:fabric:compileJava :common:ysmAvatarCreationSmokeTest :common:outfitContractSmokeTest` PASS（8 秒），日志 `build/reports/outfit/stage4-ysm-creation-jar.log`。首次创建器编译/测试 PASS（31 秒），日志 `stage4-ysm-creation.log`。
+- 此处完成创建器基础能力，三项创建菜单、YSM 向导接线、普通装饰/拖尾模板及其美术资源仍待本阶段继续实现，不能宣称创建界面已可用。真实客户端创建/加载/字体/布局为 MANUAL/PENDING；阶段四未到整阶段提交/推送检查点，后续阶段未开始。
+
+### YSM 向导接线与创建失败保留表单（2026-10-23）
+
+- 原创建图标改为菜单，当前接通 Figura 与 YSM 两个可执行入口；装饰品第三项等待分类/拖尾模板接通后补齐，不将两项菜单算作三项菜单验收完成。筛选 `+` 行为不变。
+- AvatarWizardList 使用向导提供的条目集合：Figura 保留原有模型/脚本选项，YSM 仅显示名称、描述和作者。共用页面显示目标目录和重名自动后缀提示；尚未点击创建不创建资源目录。YSM 在既有有界模型工作线程执行复制/校验，提交时捕获输入快照，后续 UI 修改不改变正在创建的资源。
+- 创建页面阻止重复提交及文件操作未完成时关闭；失败留在原表单并恢复重试/取消，成功才返回来源页面。YSM 现在在 avatars 外同文件系统暂存，全部复制与实际加载验证后再无覆盖移动到最终目录；库存监听不会把未验证包展示为可用形象。
+- ysmAvatarCreationSmokeTest 补齐真实 worker 排队、表单元数据快照、未创建目录、失败输入保留与已验证包最终可见检查。LibraryPreviewRuntimeSmokeTest 经实际菜单、原生输入控件及 startBuild 完成回调，验证元数据字段、中文输入、重复提交/关闭保护和失败重试状态；仅为控件/回调证据，真实 GUI/字体/布局仍 MANUAL/PENDING。
+- 前台 JDK 25 `:fabric:compileJava :common:ysmAvatarCreationSmokeTest :common:outfitContractSmokeTest :common:libraryPreviewRuntimeSmokeTest` PASS（19 秒），日志 `stage4-ysm-wizard.log`。新增控件测试暴露独立 fixture 缺少 ScreenAccessor 混入及其列表可变性，补齐测试夹具后原生回归 PASS（11 秒），日志 `stage4-creation-form-native-final.log`；日志里的 Expected creation failure fixture 为主动注入失败路径。暂存发布修改后创建/契约回归 PASS（6 秒），日志 `stage4-ysm-wizard-publication.log`。日志均在 build/reports/outfit。阶段四仍 IN PROGRESS，不提前执行后续阶段或整阶段提交。
+
+### 九类装饰模板、SVG 美术与三项创建菜单（2026-10-23）
+
+- CosmeticTemplate 复用现有 BlockBenchModel 导出器生成九类局部几何：小帽、带 Flap 背包、单侧鞋面/腿环、双镜片眼镜、发夹缎带、三节尾巴与真实空 tailtip、单空 Cosmetic 拖尾根、左右翼。没有附带玩家骨架或隐藏基础模型脚本。未另克隆 Blockbench；真实 Blockbench 打开与 Minecraft 画面保留 MANUAL/PENDING。
+- CosmeticCreator 只写新的 cosmetics 资源目录，含 cosmetic.json、model.bbmodel、Lua 和贴图；元数据包含作者/分类/明确挂点/default_transform。先在库存外暂存，经实际 LocalAvatarLoader 编译和 SkeletonIndex 提取后写入实际骨架哈希、可编辑引用及 tailtip 导出引用，最终无覆盖移入库存。声明骨架与真实 FiguraSkeletonAdapter 哈希比对通过。
+- CosmeticWizardScreen/CosmeticWizard 接通第三项创建入口，分类下拉、标准挂点下拉/明确名称、左右足/腿目标及九个变换字段均使用现有控件。资源创建 `+` 的 tooltip 与筛选 `+` 区分；仅新建本地资源，不装备/投稿。创建错误现在显示具体原因并保留表单。
+- 新 geometry.lua 缓存本实例骨骼并在资源重载后重取，tick 只更新轻量局部显示/摆动/偏移/镜片透明度；Wings 左右反向、Tail 摆动。模板实测发现 controls 的工厂默认值阻止作者后续 setDefault 生效，因此 AvatarControlDefinition 仅增加显式值标记：作者可替换未显式赋值的工厂默认值，已保存/显式输入继续优先。模板默认值/明确 false 与已有 YSM controls 表达式、重置、持久化回归通过，没有改变实例权限。
+- art/cosmetic_templates 保留三个自绘 SVG，tools/generate-cosmetic-assets.cjs 使用作者环境 Sharp 导出 RGBA PNG；Sharp 不进入模组依赖。樱花为 32×32，星光为 128×64/8×32²，基础几何贴图 32×32。已检查导出像素与图像，两张粒子图逐帧 2 像素透明边界通过。运行时包带两张粒子 PNG，纹理按真实 renderer 名 model.sakura_petal/model.twinkle_star_sheet 引用。
+- trail.lua 提供静态/星光切换及实例启停、间隔、寿命、大小、发光、动态光、帧间隔、随机起帧、暂停；默认每 4 tick 一次/24 tick 寿命，星光切换默认自发光而动态光关闭。发射在 POST_RENDER 的原生/预览作用域内，按 tick 与上下文限速，不把 GUI 采样位置留到后续世界 tick；位置来自自身挂载根矩阵，传送清理仅本实例粒子。**本轮仅自动验证初始化、tick、禁用发射的 POST_RENDER 及贴图解析；开启发射后的真实创建产物→粒子生命周期/跨帧率/双实例/预览路由仍需后续自动接线验证，不以当前检查替代。** 真实粒子/GPU/照明画面始终 MANUAL/PENDING。
+- CosmeticCreationSmokeTest 在现有原生 fixture 中检查九类创建→实际源准备→Avatar/Lua 初始化/tick/controls、原生骨架哈希、空 tailtip/Trail、资源名/PNG、重名及异步向导产物；LibraryPreviewRuntimeSmokeTest 检查准确三项菜单、13 个装饰表单字段、右足/自定义挂点、无效缩放拒绝、无创建前写文件。前台 JDK 25 创建/原生界面/controls 最终回归 PASS（23 秒），日志 build/reports/outfit/stage4-cosmetic-template-final.log；三项菜单与契约组合 PASS（18 秒），日志 stage4-creation-three-menu.log；controls 独立回归与九类模板首轮 PASS（15 秒），日志 stage4-cosmetic-creation-validated.log。编译错误和错误的资源级引用/纹理名假设已修正后重跑，保留对应失败日志。
+- 阶段四继续 IN PROGRESS：创建产物的启用粒子路径、完整实例树/虚拟锚点编辑、设置/轮盘、正式基础来源映射、投稿/预设及本阶段其余验收仍未完成。没有进入阶段五、六或提前提交整阶段。
+
+### 新建拖尾产物的开启发射路径（2026-10-23）
+
+- CreatedTrailParticleSmokeTest 接入已有原生粒子 fixture，直接由 CosmeticCreator 生成目录、LocalCosmeticSource 编译、Avatar 加载真实示例 Lua，再运行 tick/POST_RENDER、公开粒子构造及原生 quad 提取。覆盖同账号/同配装/同资源的 #1/#2 两个实例：静态贴图全图 UV、默认 24 tick 寿命、0.35 大小、环境光/无动态光；一个实例关闭而另一个切换星光时原粒子不变，新粒子使用正确贴图、4×2 UV、full-bright 和 16 tick 循环；另验证重载、传送和无绘制时过期清理。
+- 同一新建 Lua 在真实绑定 PreviewParticleScope 的 DRAFT 实例内开启发射，私有 liveCount 增加且世界引擎提交计数不变，寿命结束归还额度。每 tick 一次绘制与十二次绘制，以及 RENDER/WORLD 两种回调同 tick 重入，都验证发射上界。原脚本按上下文分别计数会造成两个世界回调重复发射，已改为实例级 emittedTick；传送清理的当前 tick 也禁止再次发射。
+- **证据边界：** 该 JVM 没有 Mixin transformer，测试仅为 setScale 提供与既有 SingleQuadParticleMixin 相同的 0.2f quadSize 重置和原生 scale 调用；生产 API/混入/几何代码没有为测试改写。坐标由实际生成模型的受控 savedPartToWorldMat 提供，证明脚本→粒子构造→原生提取的数据链路，不能证明正式挂载渲染矩阵、真实混入加载或 GPU/场景画面。这些真实客户端项目继续 MANUAL/PENDING，不伪称真实端到端通过。
+- 前台 JDK 25 `:fabric:compileJava :common:ysmMaterialNativeSmokeTest :common:customParticleSmokeTest` PASS（11 秒），日志 `build/reports/outfit/stage4-created-trail-particles-final.log`。含新增产物发射验证及原有 Billboard/Layered/Ribbon、运动、动态光、隔离预览、Lua 事件/回调、材质/原生提取回归。首次完整发射回归 PASS（12 秒），日志 `stage4-created-trail-particles-extraction.log`；此前编译命名/未加载 mixin 的 fixture 错误日志保留。日志中的 YSM main model is empty 属已有 preparationFence 主动注入失败用例，最终退出码 0。
+- 下一步继续本阶段完整实例树/虚拟锚点编辑等剩余验收；阶段四仍 IN PROGRESS，保持 main，无后端修改，不进入阶段五、六。
+
+### 配装树快照与手动挂点选择（2026-10-23）
+
+- OutfitComposition 提供只读 EditorSnapshot；LibraryPreviewSession 在组合成功发布或明确刷新时生成 OutfitHierarchy，复用已加载模型和骨架索引，不在展开/折叠树时准备资源。分为基础、11 个标准挂点、每个装饰实例及虚拟锚点；骨骼以 instanceId/path/skeletonHash 关联真实原生部件，展示 ID 不用于保存。作者隐藏/无骨骼声明显示状态；后端编辑权限、作者内部编辑声明及导出权限分别记录。
+- BoneTreeState 保留目标类型和真实部件，分组标题不能冒充骨骼；鼠标/键盘选择回调接至衣柜实例选择。OutfitHierarchySmokeTest 检查同名骨骼的不同副本、隐藏声明、只读/导出权限、搜索及清理；原生衣柜夹具检查组合发布两个实例及选择归属。前台编译/骨骼树/原生预览回归 PASS，日志 `build/reports/outfit/stage4-outfit-tree-typed-final.log`。
+- 实例变换页增加手动挂点：基础真实骨骼、其他实例获准导出骨骼、已有共享虚拟锚点；排除自己及未导出骨骼，草稿继续原子校验依赖图及预算。显示完整所属路径，保存类型化稳定引用，过期菜单不能修改新选择的实例。LibraryDropdown 新增仅在明确传入 pageSize 时启用的分页；挂点每页六项及最多两个导航项，长路径收窄并以 tooltip 保留全文，原有选择器默认行为保持原样。
+- 自动验证覆盖目标列表/类型化配置编码、原生挂点控件回调只改选中副本、旧菜单选择隔离、实际分页菜单前进且条目数有界。JDK 25 前台 `:fabric:compileJava :common:boneTreeSmokeTest :common:libraryPreviewRuntimeSmokeTest` PASS（15 秒），日志 `build/reports/outfit/stage4-manual-attachment-paged-validated.log`。此前编译夹具声明和缺少 Window 尺寸的问题修正后重跑，失败日志保留；窗口对象/字体仅为 JVM 夹具，不证明真实窗口、CJK、tooltip 或 GPU 画面，均为 MANUAL/PENDING。
+- 阶段四仍 IN PROGRESS：虚拟锚点创建/修改/删除 UI、内部覆盖、分视图折叠/搜索状态、辅助高亮、设置/轮盘、正式基础来源映射及投稿/预设仍需继续。当前 main 保持不变；未达整阶段检查点，不提前进入阶段五或提交为阶段四完成。
+
+### 虚拟锚点编辑入口（2026-10-23）
+
+- 衣柜骨骼树下方增加挂点操作菜单：在有权限的基础骨骼/装饰导出骨骼上创建虚拟锚点，在虚拟节点上打开编辑。表单沿用右栏滚动容器，含名称、所属实例/父骨骼选择及局部位置/旋转/缩放九分量；父级选择不提供虚拟节点，使用固定 BoneRef，父级必须存在于当前授权树。输入与草稿数量/变换/依赖图校验共用既有实现，失败标红并保留上一份有效配置；不写回作者模型。
+- 删除先列出受影响实例名/有序副本后缀，再需点击确认。确认绑定锚点 UUID 和草稿 generation；期间草稿变化必须重新确认。实际删除将所有引用明确置为 UNRESOLVED，不静默改挂其他点；清除编辑状态并返回骨骼树。取消/重置草稿或选择实例编辑会退出虚拟编辑，旧表单回调不能复活已删除锚点。
+- 原生衣柜 fixture 使用真实加载的 Figura 基础根/Head 两个骨骼，验证创建、父级下拉改绑、无效实例骨骼拒绝、中文名称/位置编辑、空名称/零缩放拒绝、两个副本共享、确认前影响列表、代际变化重确认、删除失效及旧输入拒绝。先前夹具只有合成根，不能验证改父级；已为该用例增加真实 NBT 子骨骼，没有改生产解析器。JVM 确定性字体缺少 tail 截取重载的问题亦在夹具补齐。真实字体、窗口布局、tooltip 和预览画面继续 MANUAL/PENDING。
+- 前台 JDK 25 `:fabric:compileJava :common:boneTreeSmokeTest :common:libraryPreviewRuntimeSmokeTest` PASS（17 秒），日志 `build/reports/outfit/stage4-virtual-anchor-complete-controls.log`；包含新虚拟编辑及既有创建/草稿/管理预览/原生组合回归。此前夹具失败日志保留。阶段四仍 IN PROGRESS：内部骨骼覆盖编辑、各树分视图状态/辅助高亮、设置轮盘、正式基础来源、投稿和预设继续；未进入阶段五、六或提前提交阶段四完成。
+
+### 装饰内部骨骼覆盖控件（2026-10-23）
+
+- 树的挂点操作菜单对可编辑内部骨骼增加专属编辑入口。右栏显示资源名/稳定副本后缀/骨骼路径及同名兄弟序号，提供位置/旋转/缩放九分量、恢复作者姿态和返回树。入口与回调检查已加载树的 editable 结果、当前实例启用状态、选中实例、编辑骨骼及草稿对象；不把内部 BoneRef 转成基础骨骼引用，不写源包。当前本地资源按作者声明及运行时能力验证，云端仍沿用既有默认只读策略，正式授权传递在阶段五处理。
+- 变换使用 OutfitDraft.setBoneOverride 与既有预算校验，保留同资源其他实例。重置只清除当前骨骼记录并恢复字段，不生成伪装为作者默认值的恒等覆盖。取消、整份重置、虚拟编辑或实例编辑会清除内部编辑目标；选中实例变化、禁用/移除或当前树不再可编辑时，旧字段及重置回调不再修改草稿。OutfitComposition 的同次授权判定同时供 UI 快照及实际覆盖绑定使用，避免重复调用策略产生不同结果。
+- 原生控件用例从 CosmeticCreator 生成真实 Head 包，加入两个副本并经正式预览准备链加载；验证原生控件写入稳定 BoneRef、三个变换向量、拒绝非有限值、重置、选中其他副本/禁用/移除后的旧回调、metadata/bbmodel 字节内容保持不变。覆盖后实际组合准备成功。已有 CosmeticBoneOverrideSmokeTest 在同一原生预览回归内检查 Figura/YSM 原生 CPU 顶点、局部枢轴、子插槽、双副本、保留帧、蒙皮及编辑权限/范围拒绝；不将 CPU 输出等同真实客户端画面。
+- JDK 25 前台 `:fabric:compileJava :common:boneTreeSmokeTest :common:ysmMaterialNativeSmokeTest` PASS（13 秒），日志 `build/reports/outfit/stage4-bone-override-validated.log`；最终 `:common:libraryPreviewRuntimeSmokeTest` PASS（10 秒），日志 `stage4-bone-override-runtime-final.log`，含新控件及上述原生覆盖回归。首次新控件回归 PASS（15 秒），日志 `stage4-bone-override-native.log`。`git diff --check` 通过；真实 GUI/CJK/GPU/辅助显示继续 MANUAL/PENDING。
+- 阶段四继续 IN PROGRESS：各树独立视图/折叠/搜索状态、辅助高亮、设置/动画轮盘、正式基础来源映射及投稿/预设尚未完成。保持 main；未达整阶段提交检查点，不进入阶段五、六。
+
+### 独立骨骼树视图与状态恢复（2026-10-23）
+
+- 右栏增加分页的完整树/基础/标准挂点/各装饰实例/虚拟锚点选择。OutfitHierarchy 记录启用且有作者可展示骨架的实例集合；未启用、作者隐藏、无骨骼的资源不提供独立实例树入口。视图列表仅在快照变化时重建，衣柜只在列表内容变化时重建控件，不在逐帧绘制中遍历或解析骨架。
+- BoneTreeState 按视图分别保留查询、搜索前折叠状态、当前折叠、选中节点及双向滚动；搜索限定在当前子树，初次只展示本视图顶层，清空查询恢复搜索前展开。持久于本次编辑会话的状态用 kind/instanceId/path/skeletonHash/anchorId/standard 匹配，临时节点整数只用于当前快照。组合刷新后重映射；停用/移除的实例视图退回完整树并丢弃其选中骨骼；切离配装快照清理所有旧视图。
+- BoneTreeWidget 在模型版本变化后从状态恢复滚动，避免搜索框恢复时把滚动强制归零。原生衣柜测试使用实际新建装饰实例，通过真实下拉回调在基础/实例间切换并 tick 控件，断言搜索/滚动、所属实例、preview hierarchyRevision、draftPreviewGeneration 及原生 binding 身份保持约定行为；这些检查证明切树复用快照和绑定，不能证明真实像素布局。
+- OutfitHierarchySmokeTest 覆盖独立状态、搜索前折叠恢复、只读但可展示的实例入口、禁用/隐藏/无骨骼入口排除、故意调换节点编号后的稳定引用恢复、视图退役及会话清理。JDK 25 前台 `:fabric:compileJava :common:boneTreeSmokeTest :common:libraryPreviewRuntimeSmokeTest` PASS（23 秒），日志 `build/reports/outfit/stage4-tree-view-native.log`；前轮状态回归 PASS（16 秒），日志 `stage4-tree-view-state.log`。真实 GUI/CJK/滚动显示 MANUAL/PENDING。
+- 阶段四仍 IN PROGRESS：辅助高亮、实例选择默认定位挂载目标、装饰设置/动画轮盘、正式基础来源映射、投稿/预设及本阶段剩余验收继续；不提前进入阶段五/六或提交阶段四完成。
+
+### 实际骨骼的帧级高亮与枢轴/连线（2026-10-23）
+
+- 原先 EntityPreview 将装饰 part 存在基础 Avatar 的全帧选择表中，装饰绘制取不到对应高亮。现在 EntityPreview 在提取前将选中部件交给 LibraryPreviewSession/Binding，Binding.retain 时捕获到 OutfitComposition.Frame。组合发布/明确刷新时构建 actual-part→稳定 BoneRef 的身份映射；只登记有权限展示的启用装饰，帧捕获不重新遍历/解析模型。无效/过期部件对应明确空选择。
+- 保留帧在 Figura/YSM 基础绘制和装饰绘制期间使用 PreviewBoneHighlight.withSelection 作用域；嵌套结束恢复上一作用域，两个相同资源副本及不同 GUI 提交不互相借用选择。选中子树保留原有作者 alpha、不额外调暗，其余部件沿用 0.3 高亮因子；世界渲染仍不消费 GUI 高亮。既有原生选中包围框继续保留，不写模型真实可见性或同步配置。
+- 选中骨骼的原生 SkeletonPose 额外捕获即使未导出该骨骼；按同帧实际挂载矩阵生成局部三轴、选中节点到直接父/子节点的线段，重放复用冻结线段。只由 FIGURA_GUI 路径提交辅助线，并复用 min(maxResourceNodes,maxTotalNodes) 的后端节点预算，零预算不生成几何；跳过缺失/陈旧矩阵、零长度及非有限线段。帧释放清除选择和线段，组合资源仍等待在途帧结束。
+- CosmeticBoneOverrideSmokeTest 新验证实际 Figura/YSM 原生绘制（各含 Java 加速准备开/关）、双副本作用域、嵌套/交错帧、显式空选择、世界模式不调暗、辅助顶点、重放坐标、零/单节点预算、陈旧引用和关闭帧；衣柜原生控件用例经 Session→Binding→保留帧接线验证选择捕获。最初测试资源没有 display_bones 声明而被生产校验正确拒绝，已补测试声明后重跑，未放宽生产授权。
+- JDK 25 前台 `:fabric:compileJava :common:libraryPreviewRuntimeSmokeTest` PASS（14 秒），日志 `build/reports/outfit/stage4-preview-skeleton-binding-budget.log`；含新增接线和原生辅助矩阵/顶点，CPU 原生输出不代表真实 GUI/GPU 正确，相关画面仍 MANUAL/PENDING。
+- 本子项尚余标准/虚拟锚点及原版描述节点的辅助定位、实例默认挂载目标定位/显示生命周期继续处理；阶段四其它设置/轮盘、正式基础来源、投稿/预设工作尚未完成，仍 IN PROGRESS/main，不提前提交为阶段四完成。
+- 新 AGENTS.md 额度规则已采用；本轮可读 Codex 周池 usedPercent=6，即剩余 94%，未触发预警/交接。没有据模型推断订阅类型，也没有自动切换 Agent/分支；无需正常开发时逐步重写交接文档。
+
+### 标准/虚拟/原版节点的辅助定位与实例默认目标（2026-10-23）
+
+- BoneTreeState 将标准、虚拟和没有原生对象的原版描述节点作为 AnchorRef 交给预览，不把它们伪装成 Figura/YSM 对象。OutfitComposition 在快照发布时登记标准的唯一解析结果、授权导出插槽及有效虚拟父级，保留帧捕获 BoneRef+offset；缺失/歧义标准或无效父级不产生辅助几何。静态快照中的原版描述引用直到同帧 PlayerModel 姿态可用时才解析坐标。
+- PreviewBoneHighlight.anchor 使用与标准/虚拟实际挂载相同的父矩阵×modelMatrix，显示三轴和父节点连线，继续遵守现有节点预算与 FIGURA_GUI 提交范围；不使用上帧缓存 worldMatrix。原版没有 tailtip，选择该不可用标准不会生成替代坐标。
+- 实例选择经 selectDraftInstance 保留其编辑归属，BoneTreeState.locate 显示相应基础/标准/装饰导出/虚拟视图并展开目标祖先，树选择不反向覆盖被编辑实例。已有草稿中仅切换实例不调用 previewOutfitDraft；新加和实例恢复作者默认值在发布快照后定位声明目标。取消/重置及账号变化清理待定位和编辑状态。AUTO_TRAIL 目前仍无静态 locate 结果，动态目标定位下一步复用控制器实际选择，不在本次假称已完成。
+- OutfitHierarchySmokeTest 检查类型化选择及正确视图；原生衣柜控件检查新增实例发布后的默认目标和既有实例手动挂点定位、选中归属及准备代际不变。旧测试直接选择非当前视图节点，新增默认定位后被正确拒绝；测试已先显式切回完整树再选择实例标题，未取消生产子树隔离。
+- 原生用例使用带 Head 动画角度的真实 PlayerModel 验证虚拟 T/R/S、标准派生偏移、原版骨骼描述、坐标端点和实际辅助线顶点数（虚拟/标准 8、原版 6），以及 tailtip 拒绝。JDK 25 前台 `:fabric:compileJava :common:boneTreeSmokeTest :common:libraryPreviewRuntimeSmokeTest` PASS（14 秒），日志 `build/reports/outfit/stage4-anchor-focus-lifecycle-validated.log`；前轮矩阵/定位回归 PASS，日志 `stage4-typed-anchor-native.log`、`stage4-anchor-focus-validated.log`，失败夹具日志保留。真实 GUI/GPU/CJK 仍为 MANUAL/PENDING。
+- 阶段四继续 IN PROGRESS/main：自动拖尾动态目标定位、辅助显示生命周期余项、设置/动画轮盘、正式基础来源及投稿/预设仍需完成。未达到整阶段提交检查点，未进入阶段五、六。
+
+### 自动拖尾的控制器目标定位（2026-10-23）
+
+- 内置 cosmetic_controller 在 AUTO_TRAIL 准备成功后、emit 之前把实际 BoneHandle 交给可信桥 recordMountTarget；没有在 Java 重写另一份尾巴选择或基础回退。帧内保存 BoneRef+offset，只有成功结束的 FIGURA_GUI 帧按单调 sequence 发布诊断目标，旧帧重放不发布/覆盖新选择，失败帧不假称成功定位。诊断不进入配置或同步数据。
+- PreviewBoneHighlight.Mount 标记请求某个实际存在、启用且采用 AUTO_TRAIL 的实例目标，捕获后由该帧控制器填入精确选择；命令绘制使用更新后的帧选择作用域，辅助轴使用同帧目标骨骼姿态和 offset。多根模型的实体根回退以明确 null BoneRef 表示并生成根轴，不伪造可保存路径。继续遵守已有辅助节点预算和帧资源保留/释放。
+- 衣柜选择/新增/重置自动实例及切换挂点模式时保持自动定位归属；tick 只读取已发布诊断，在目标引用变化时切换/展开相应树，不随动画每帧清空搜索，也不触发下载/模型准备。手工选树节点、内部/虚拟编辑、禁用/移除、取消/重置和账号变化撤销动态定位。树定位不会把编辑中的拖尾 instanceId 换成被挂载的尾巴副本。
+- OutfitAutomaticAnchorSmokeTest 在原有真实可信 Lua/原生顶点用例内新增目标和辅助坐标断言，覆盖默认/首选/禁用/失效/歧义/循环、显式失效手动绑定、选中尾巴报错回退基础、交错旧帧重放不覆盖新诊断。基础 fallback fixture 覆盖 tailtip/hip/Body/单根/多根及歧义；其姿态为受控 CPU 矩阵，只证明选择和坐标契约。衣柜用例从真实 CosmeticCreator Trail 包加载实际控制器，在受控原生部件姿态下验证选择请求→诊断→树引用/实例归属、准备代际不变及禁用清理，未冒充真实窗口/世界端到端画面。
+- 前台 JDK 25 `:fabric:compileJava :common:boneTreeSmokeTest :common:libraryPreviewRuntimeSmokeTest` PASS（12 秒），日志 `build/reports/outfit/stage4-automatic-focus-routing.log`；前轮原生自动目标验证 PASS（11 秒），日志 `stage4-automatic-preview-native.log`。真实 GUI/GPU/CJK 和显示生命周期画面继续 MANUAL/PENDING。
+- 阶段四仍 IN PROGRESS/main：辅助显示生命周期/可见控件检查、设置/动画轮盘、正式基础来源映射、投稿/预设及本阶段完整验收继续；尚未到整阶段提交检查点，未进入阶段五、六。
+
+### 辅助显隐与编辑生命周期边界（2026-10-23）
+
+- 在现有挂点菜单增加显示/隐藏骨骼辅助及 tooltip，点击后关闭菜单，未增加主工具条同义按钮。previewBoneSelection 统一供预览创建与 tick 使用；关闭后向 EntityPreview/LibraryPreviewBinding 传空选择，恢复后保留原骨骼或自动目标选择。辅助显隐不重载资源，不改变草稿、作者可见性、装备展示或同步数据。
+- 控件 setSelectedBone 立即转发至当前库预览绑定，避免在下一次提取前残留旧辅助；普通 PreviewBoneHighlight.capture 的空选择会删除旧 Avatar 高亮。普通退出衣柜时先清理控件/绑定选择；展开共享预览仍保留已有会话和保留帧，不提前清理在途模型。已禁用/移除的草稿内部目标及无效自动归属在新组合准备完成之前也不向控件提供辅助选择，实际资源释放继续服从原有帧生命周期。
+- 原生 JVM 控件用例实际打开挂点菜单并点击 Show/Hide，验证菜单关闭、控件和绑定同步清空/恢复、树选择保留、草稿及准备代际不变，以及禁用后的即时选择拒绝；普通高亮回归验证 null capture 清理。窗口尺寸和字体仅为 JVM fixture，不是实际 Windows 窗口或视觉验收。前台 JDK 25 `:fabric:compileJava :common:libraryPreviewRuntimeSmokeTest` PASS（12 秒），日志 `build/reports/outfit/stage4-helper-visibility-final.log`；前轮含 boneTreeSmokeTest 的回归 PASS（14 秒），日志 `stage4-helper-visibility-lifecycle.log`。真实 GUI/GPU/CJK 继续 MANUAL/PENDING。
+- 对照计划第4.3节复核发现：已有下拉选择能表达带 instanceId 的 ACCESSORY_BONE，但尚缺第6项明确要求的树内“绑定至此装饰插槽”交互。下一步先补此交互并验证待绑定实例保持、目标归属及自引用/循环拒绝，然后继续设置/动画轮盘、基础正式来源及投稿/预设；不把上述界面缺口标为完成。阶段四继续 IN PROGRESS/main，未到整阶段提交点。
+
+### 树内明确绑定与装饰设置接线（2026-10-23）
+
+- 树内选点模式保留待绑定副本，点击目标不把编辑归属换为父副本；导出骨骼提供明确“绑定至此装饰插槽”，保存目标 UUID/path/hash。通过现有 OutfitDraft/OutfitCodec 原子校验，拒绝自引用、循环、私有骨骼、禁用目标及旧选点会话的菜单回调；取消只退出选点。真实 CosmeticCreator Tail 双副本经原生控件及实际组合准备验证，作者元数据不变。上轮已成功的 `stage4-tree-attachment-native.log` 本轮核实为 PASS（13 秒），不因先前工具输出截断重复实现。
+- 预览下方工具条新增“装饰设置”图标，沿用 LibraryIconButton 的 tooltip 和朗读名称；自绘 SVG 源为 `art/cosmetic_templates/cosmetic_settings.svg`，导出运行时 `textures/gui/cosmetic_settings.png`（72×24、RGBA、三个24×24状态），尺寸/通道已验证并检查导出图。无启用控制定义时禁用并解释原因。
+- CosmeticControlsScreen 复用 AvatarControlsScreen 的开关、滑条、枚举、颜色、文本、数字、键位、按钮、reset 和作者页面，不复制整套控件。分组以真实 instanceId/Avatar 定位并显示“装饰名 #N”，不按资源去重；保留同一隔离组合预览，不换成当前已装备基础 Avatar。注册/替换/移除及定义元数据变更通知 AvatarControlRuntime 版本；组合只比较各实例版本，未变时复用不可变分组快照，不逐帧扫描全部定义。
+- 设置值使用原实例回调/权限和 CosmeticInstanceContext 保存路径，并同步到该实例草稿；修改前校验后端 scalar/字符串/数量预算及整份装扮编码，拒绝时不改运行时或草稿。创建/切换页面不持久化工厂默认值；切组、定义替换、禁用、关闭和旧组合的保留控件不能改错副本。普通返回保留预览，离开或放弃展开预览走已有会话清理。正式持久化/应用和观察端恢复仍属后续检查点，本轮不广播草稿。
+- 原生控件用例从真实生成的 Tail 包执行可信帧准备及作者 Lua 注册，验证两个副本标签/独立值、草稿、实际开关/文本回调、超后端字符串预算失败保持原值并标红、有效替换清错、定义版本及移除后失效通知、保留/展开状态和旧控件拒绝。用于路由的基础姿态为受控 CPU 矩阵，不是假称真实世界或窗口画面。最初把嵌套挂载的空绘制回调夹具用于初始化子模型，缺少父级原生姿态导致该子模型未初始化；已将设置用例放到两个独立基础挂点的准备后执行，实际嵌套原生绘制仍由已有 accessory sockets 用例验证。旧工具条14项断言已更新为计划新增按钮后的15项。失败日志保留。
+- 前台 JDK 25 `:fabric:compileJava :common:outfitDraftSmokeTest :common:ysmControlRuntimeSmokeTest :common:libraryPreviewRuntimeSmokeTest` PASS（41 秒），日志 `build/reports/outfit/stage4-cosmetic-settings-lifecycle.log`；前轮设置/树绑定原生回归 PASS（26 秒），日志 `stage4-cosmetic-settings-independent-owners.log`。SVG 导出日志 `stage4-cosmetic-settings-assets.log`。真实 GUI/GPU/CJK、展开窗口实际交互仍为 MANUAL/PENDING，按用户要求跳过。
+- 阶段四保持 IN PROGRESS/main：装饰动画轮盘聚合/hold release、正式基础来源映射、预设/投稿及本阶段完整验收继续。未达到整阶段提交/推送检查点，未进入阶段五、六；后端保持 master，原有未跟踪文件保留。
+
+### 装饰动画轮盘的实例模型与作者入口（2026-10-23）
+
+- 新增组合持有的 OutfitActionWheel：宿主入口→按精确资源身份分组→按不可变 instanceId/显示编号定位副本→作者原始页面。相同资源不去重副本，单副本直达；宿主导航/返回追加到作者最后槽位之后，8槽满页进入后续原生 Page 分组，不修改作者源文件/slots/currentPage 的基础归属。原始 Action 对象、作者 Lua 回调及原生 YSM 页面跳转保留；切换基础脚本页面时重新呈现该页。
+- CosmeticAnimationsAPI 新增链式 setPage/set_page（Page、登记名称、nil），非法登记不替换原入口，nil 回到本实例既有轮盘。入口不跨 Lua runtime 留存；关闭释放引用。YSM 没有默认规则认可的实际附加动画动作时，只有设置按钮的默认页不构成动画入口；普通 Figura 动画文件同样不推测可点击动作。
+- 真实 Lua 回归暴露阶段三保留的 action_wheel 全局仍属内部 API，作者无法建立页面；已按本阶段明确要求公开实例自己的 action_wheel。没有把装饰提升为 host：isEnabled/getSelected/getSelectedAction 和脚本 execute 保持原有 host gate，网络/host/基础模型 API 仍不可见，观察 scope 不进入聚合执行。底层 Page 增加常数时间空页计数以判断是否有作者动作，不扫描或复制所有动作。
+- 聚合执行使用所属实例 Avatar 和共享指令预算；点击拦截、动作、滚动回调在同一拥有者中运行。原生 YSM 继续使用已有 Press 的 runtime/播放对象/代际识别，松开不停止别的副本或后来重启的同名动作；移除/会话失效/组合关闭及基础切页释放本对象的按压。未接跨端发送或改变正式装备。
+- YsmActionRuntimeSmokeTest 使用真实生产 Action/Page/YSM actions 验证基础8槽保留、第二分组入口、资源/双副本标签、非host真实执行、副本冷却、松开与替换代际、删除后旧导航拒绝、基础脚本切页、无基础 Avatar、单副本直达和会话失效释放。LibraryPreviewRuntimeSmokeTest 从真实生成的 Tail 包加载两个独立 Lua runtime，验证 Page对象/名称/别名登记、原始Action引用、动作/全局点击/滚动只在选中 sandbox 执行，以及作者子页和返回不被改写、nil/非法登记、关闭路由清理。CosmeticSourceSmokeTest 补充公开实例页面但无法从脚本执行全局轮盘的权限回归。
+- 前台 JDK 25 `:fabric:compileJava :common:ysmActionRuntimeSmokeTest :common:libraryPreviewRuntimeSmokeTest :common:cosmeticSourceSmokeTest` PASS（1分14秒），日志 `build/reports/outfit/stage4-outfit-wheel-author-api.log`；追加 Page对象/别名及脚本全局执行限制回归 `:common:cosmeticSourceSmokeTest :common:libraryPreviewRuntimeSmokeTest` PASS（57秒），日志 `stage4-outfit-wheel-restricted-api.log`。初轮测试枚举拼写及私有 Globals 访问编译错误已修正；夹具通过已有反射工具读取 Globals，没有放宽生产可见性。失败日志保留。
+- **仍未实现，不能按人工项跳过代码：** 衣柜轮盘预览 GUI/实际输入、从动画回调保存实例草稿值、正式基础来源映射、预设/投稿及阶段四其余要求。组合模型已准备好复用原轮盘渲染；正式玩家主轮盘需要阶段五原子发布提供当前组合来源，先记录依赖，不临时劫持全局装备或推迟本阶段可独立实现的草稿预览。真实 HUD/输入/GUI/GPU 仍 MANUAL/PENDING；上述 CPU/原生/Lua 证据只证明已覆盖的模型和回调路径。
+- 阶段四继续 IN PROGRESS；main/master 不变，未达到整阶段提交/推送检查点，未进入阶段五、六。未调整版本或提前处理 alpha.3 公共 bug。
+
+### 衣柜轮盘预览、输入与草稿值（2026-10-23）
+
+- 实例菜单增加有动画时才出现的“装饰动画”入口，打开 CosmeticAnimationScreen，继续持有相同 LibraryPreviewSession/完整草稿组合。左侧模型预览与轮盘共用原生实例，未准备另一个组合或改正式装备。基础/副本的原始 settings action 路由到同一拥有者的控件页面；关闭设置返回原轮盘，关闭轮盘返回衣柜，展开预览和放弃时清理仍服从会话/保留帧生命周期。
+- ActionWheel 新增预览绘制入口，仅临时设置渲染数据并在 finally 恢复；复用既有贴图/图标/文字绘制和命中算法，不激活玩家全局轮盘，不另造画法。CosmeticAnimationScreen 接原生 MouseButtonEvent/KeyEvent、1–8 选择、滚动/翻页、匹配按键/鼠标松开及按键重复抑制；切换输入源释放旧按压，退出/切设置同样释放。原生 YSM Press 的播放代际判定继续由已有聚合模型执行。
+- 点击/滚动回调及选中副本 tick 后，把该实例 CosmeticInstanceContext 的持久控制值保存到 OutfitDraft；与现有值相同时不编码整份配置。保存仍走既有整份配置/状态预算校验，失败显示错误，不静默提交。账号、草稿、组合及当前声明中的实例存在/启用/资源检查防止旧组合等待异步替换时继续执行已禁用副本。普通设置页及从轮盘打开的嵌套设置关闭后都拒绝保留旧控件，避免轮盘仍开放时旧设置回调误写。
+- 原生 JVM 回归从实际实例菜单按钮打开预览，使用真实生成 Tail 的两个 Lua sandbox，实际调用鼠标命中/点击、数字键/重复/匹配释放/其他键释放、滚动和嵌套控件；验证只有选中副本保存到草稿，全局轮盘启用/选择与准备代际不变，禁用副本的旧组合不能执行，副本及基础 settings 返回同一组合，关闭后的旧控件/旧键盘入口不能改草稿。
+- Screen.setScreen 的本轮测试使用显式、可恢复的 RecordingClient 屏幕派发夹具，调用真实 Screen.removed 和实际页面控件初始化；没有真实 Windows 窗口、Mixin 输入加载或 GPU 绘制，因此不能当成桌面/像素验收。真实窗口/布局/CJK、实际 YSM 按住松开动画、轮盘图文/GPU/展开窗口为 MANUAL/PENDING，按用户要求跳过；既有原生 YSM 动作回归仍覆盖 Press/替换代际的实际运行时。
+- 前台 JDK 25 `:fabric:compileJava :common:libraryPreviewRuntimeSmokeTest :common:ysmActionRuntimeSmokeTest` PASS（42秒），日志 `build/reports/outfit/stage4-wheel-preview-final.log`；含基础设置返回的原生回归 PASS（35秒），日志 `stage4-wheel-preview-settings-return.log`；前轮输入/拥有者生命周期回归 PASS（47秒），日志 `stage4-wheel-preview-owner-lifecycle.log`。初轮新 Screen 误用了其他页面私有的背景方法导致编译失败，已直接复用现有背景绘制 helper；失败日志 `stage4-wheel-preview-compile.log` 保留，未改变全局背景方案。
+- 阶段四继续 IN PROGRESS/main：下一步正式基础资源来源映射及预设/投稿；本阶段完整验收尚未结束，未到提交/推送检查点。正式已发布组合的主轮盘仍按阶段五依赖接通，未提前进入阶段五、六或处理公共 YSM bug。
+
+### 基础 Avatar 的真实来源绑定（2026-10-23）
+
+- 成功加载的 Avatar 现在保留 ResourceRef 和对应 NBT 身份；每次 load/clean 清除，外部替换 NBT 后不再返回旧引用。UserData 的新重载在原生准备成功、正式发布前绑定来源，旧接口继续工作且不猜测来源。新选择尚未完成、取消或准备失败时，实际驻留 Avatar 及其来源保持原样。
+- 正式 LibraryEquipmentService 使用本次已授权下载包的 origin、model ID、固定 revision、已校验 rawHash 和格式，随候选 Avatar 在原 CAS/身份复核后发布，不从 lib_ 别名或展示状态还原资源。未携带权威资源映射的旧缓存继续保持来源未知。
+- LocalAvatarSource 使用设备根目录 avatar-resource-ids.json 保存规范 URI→稳定 UUID，条目/文件大小有界、原子写入；引用仅含 UUID/hash/格式，不携带绝对路径。目录/普通 ZIP 按排序资源名及字节计算确定 hash，加密 YSM 流式哈希原始密文；不按执行 owner、NBT 压缩结果或模型名称生成资源版本，不为标识解密。实际 Figura/YSM 加载器在解析前捕获、解析后复核，再绑定成功准备的 Avatar。索引不可用不会阻断旧本地加载，但不生成伪造来源。
+- 本地引用可重新定位文件、目录或 ZIP 内目录，复核固定 hash/格式。JDK Path 打开的 ZIP 不一定登记在 URI 查找表中，必要时另开并关闭本次拥有的文件系统；URI 已登记的库存文件系统借用且不关闭。测试分别覆盖两条真实 JDK 路径。衣柜 beginOutfitDraft 复用实际 Avatar 的引用，并在异步完成时核对驻留对象、NBT、loaded 及来源；旧来源未知的编辑器快照仍仅允许私有预览，后续预设流程必须显式解析依赖。
+- 新增 LocalAvatarSourceSmokeTest 覆盖索引重建、无设备路径的引用、目录/ZIP 内容一致性、独立资源 ID、ZIP 关闭后重开、借用句柄清理、源修改拒绝、取消、普通/加密 YSM 类型及原密文 hash。现有原生用例新增真实 Figura 重载/加密 YSM 加载发布、过期/失败选择不改来源、相同 NBT 重新加载失效，以及衣柜草稿保留云端基础引用。
+- JDK 25 前台 `:fabric:compileJava :common:libraryPreviewRuntimeSmokeTest :common:libraryEquipmentSmokeTest` PASS（46 秒），日志 `build/reports/outfit/stage4-base-provenance-screen.log`；最终 `:common:ysmMaterialNativeSmokeTest :common:ysmAsyncEncryptedLoadSmokeTest` PASS（1 分钟），日志 `stage4-base-provenance-native-final.log`。前轮完整云端/原生/预览回归 PASS（1 分 37 秒），日志 `stage4-base-provenance-cloud.log`。新增文件及本轮修改均通过 diff whitespace 检查。
+- 保留两轮失败日志：`stage4-base-provenance-local-zip-assumption-failed.log` 是测试误将 Path/URI 文件系统强制视为同对象；`stage4-base-provenance-closed-fixture-failed.log` 是旧衣柜夹具两轮间复用已 clean 的 Avatar，已改为各自创建并准备，未取消生产清理或放宽来源校验。真实窗口/像素仍 MANUAL/PENDING；该来源子项不代表预设依赖准备/保存/导入、投稿及阶段四完成。继续 main，后台 master 未改，未进入阶段五、六或处理后置公共 bug。
+
+### 预设固定依赖准备与本地文档（2026-10-23）
+
+- LocalAvatarSource 新增 worker-only prepare：从设备索引按 UUID/hash/格式重开基础源，复用 Figura 编译或 YSM 原生解析，读取前后复核；不启用模型、不改变 lastLoadedPath/上传状态。ZIP 只关闭本次拥有的文件系统；加密 YSM 返回既有可携带密文的 NBT，不新建明文缓存。
+- OutfitPresetResources 接固定预设的基础及装饰依赖，按完整引用去重、逐件受限准备；本地装饰复用库存 UUID/元数据和原加载器，云端实例复用 CloudCosmeticSource，基础复用 LibraryTransferService 的 preview 授权/缓存并验证 AVATAR 用途、固定修订、raw hash、格式和 origin。不调用 equip、upload、授权授予或下载完成入集接口。同一来源不能同时伪装成基础和装饰。
+- 每个失效引用生成 Issue，区分基础并列出所有受影响实例 UUID；即使某件失败也继续检查其他依赖，保留已就绪部分及原配置，不换最新版或随机替换引用。Prepared 的 ready 仅表示依赖读取成功且会话有效，不冒充挂载校验或应用成功；资源读取返回独立 NBT，关闭/代际/账号退休后拒绝继续使用。HTTP 取消关闭在途请求，worker 在既有取消检查点停止，不阻塞 UI。
+- LocalOutfitPresets 使用 outfit-presets/<UUID>.json，文档只含名称、schema、独立预设修订及配置；沿用 OutfitCodec，maxPresets 控制保存数量，读取/目录扫描有界。保存检查 expectedRevision 并原子替换；冲突/预算错误不覆盖原文件，坏文档以失败项显示而不隐藏其他预设。真实文件往返验证保留本地固定引用、实例 ID/非连续后缀、启停、controls/Lua 标量状态；读取后经原 OutfitDraft.importPreset 分配新执行 ID，不复制模型正文或设备路径。
+- OutfitPresetResourcesSmokeTest 在原生客户端 JVM 夹具中验证实际 Figura 和加密 YSM 基础读取、原生装饰准备、真实 HTTP 的 AVATAR/ACCESSORY、重复副本只传输一次、缓存命中重新授权、撤销/修订失效、多个失效项及所有受影响副本、真实请求取消和结果退休。原 CloudCosmeticSource HTTP 夹具仅增加 Avatar 资源类型分支，旧装饰用例仍通过。
+- 前台 JDK 25 `:fabric:compileJava :common:localOutfitPresetsSmokeTest :common:outfitDraftSmokeTest :common:libraryPreviewRuntimeSmokeTest :common:cloudCosmeticSourceSmokeTest` PASS（50 秒），日志 `build/reports/outfit/stage4-preset-resources-store.log`。初轮 checked exception 未包装和测试误写 Transform.IDENTITY、错误硬编码 head_anchor 的失败日志分别保留为 `stage4-preset-dependencies-compile-failed.log`、`stage4-preset-dependencies-test-compile-failed.log`、`stage4-preset-dependencies-anchor-fixture-failed.log`；已按现有 worker/identity() API 和真实作者声明修正，未放宽生产判断。
+- **尚未接界面，不能按人工项跳过：** 衣柜本地预设名称/保存/列表/导入/预览及依赖失效展示，云端个人预设、封面和三类投稿仍继续。新读取器和本地文档只是这些工作流的基础，不宣称阶段四或预设端到端完成；真实窗口/CJK/像素仍 MANUAL/PENDING。继续 main/master，未到整阶段提交/推送检查点，未进入阶段五、六。
+- 本轮可靠额度读数为 10080 分钟池 usedPercent=16，即剩余 84%，ordinaryUsageAllowed=true，未触发预警/交接；未据此推断未确认的订阅类型，也未切换 Agent。
+
+### 衣柜本地预设页面与原生交互（2026-10-23）
+
+- 衣柜原操作分组之后增加“本地装扮预设”入口，沿用原 toolbar 布局计算，不移动已有操作；打开前复用 beginOutfitDraft。新 OutfitPresetsScreen 保留父衣柜草稿和会话，使用独立 LibraryPreviewSession，接分页列表、名称、另存/覆盖、刷新、预览/重试及导入。保存使用当前衣柜草稿；选中预设只预览，不改正式装备，也不启用或投稿模型。
+- 全部文档 IO、基础 NBT 拷贝、资源读取和原生解析走既有模型 worker；结果按页面/账号/世界/草稿 generation 校验。只有固定依赖全部可读、基础和组合原生准备成功时启用导入；失效列表逐副本显示 ordinal/instanceId 和错误码，基础单独标记。原预设和当前草稿不因失败被覆盖。导入走原 OutfitDraft.importPreset，为副本及虚拟锚点重写 ID、保留独立 controls 等配置，再让父衣柜重新验证并预览。
+- 捕获基础来源时记录可持久化标记；来源未知的临时 NBT 引用仅允许私有预览，不能通过本地保存写成可重载依赖。父衣柜保留 committedDraftBase 及来源标记，导入改变当前基础后，取消草稿仍恢复原快照，重置为原版基础时清当前快照。关闭/返回/展开后放弃各有明确清理，旧按钮和排队回调不能改草稿；已授权的原子文件操作不被强制中断。
+- 原生控件回归从实际衣柜入口打开，真实名称输入/保存/覆盖/修订冲突、原生下拉选双副本预设、独立原生组合预览、导入新 ID 和每副本控制值、取消恢复原基础、未知基础禁保存、缺失双副本逐条失败且禁导入、排队读取时立即关闭及晚回调拒绝均通过；实际装备 Avatar/来源不变。记录派发器及确定性字体只支持 CPU 控件路由，真实 Windows 窗口、CJK 字形/IME、布局、展开画面及 GPU 仍 MANUAL/PENDING。
+- 控件回归发现普通 Screen 无法接入 UIHelper 的上下文菜单层，已让页面继承现有 AbstractPanelScreen，并复用其背景、菜单、tooltip 和输入；没有修改全局 UIHelper 或新建菜单框架。保留失败日志 `stage4-local-preset-context-layer-failed.log`。其余测试夹具修正日志保留：`stage4-local-preset-test-compile-failed.log`（菜单项需转为 Button）、`stage4-local-preset-language-fixture-failed.log`（缺省翻译环境按组件参数验证错误码）、`stage4-local-preset-font-fixture-failed.log` / `stage4-local-preset-font-metrics-fixture-failed.log`（补测试字体的原生宽度度量，未改生产字体）。
+- 前台 JDK 25 `:fabric:compileJava :common:libraryPreviewRuntimeSmokeTest :common:localOutfitPresetsSmokeTest :common:outfitDraftSmokeTest` PASS（35 秒），日志 `build/reports/outfit/stage4-local-preset-native-ui.log`；初轮页面编译/既有回归 PASS（40 秒），日志 `stage4-local-preset-screen.log`。新中英语言键随页面加入，修改范围 whitespace 检查通过。
+- 下一检查点继续阶段四：云端个人预设、封面及三类投稿；同时复核库存与预设准备并存时本地 ID 索引刷新的稳定性。后者尚未作运行证据结论，不当成已确认丢失/损坏。阶段四仍 IN PROGRESS/main，后端 master 未改，未达到整阶段提交/推送点，未进入阶段五、六或处理后置公共 bug。
+
+### 保留库存与预设扫描的 ID 一致性（2026-10-23）
+
+- 前轮待复核项已取得运行证据：保留 LocalCosmeticCatalog 后新建一个装饰，由新 LocalCosmeticInventory（预设准备使用的同一入口）扫描并分配 ID，再刷新旧 catalog，原代码会更换该资源 ID。前台 `:common:cosmeticSourceSmokeTest` 在新增断言上确实失败，日志 `build/reports/outfit/stage4-preset-inventory-id-repro.log`，不把静态推测当作业务损坏结论。
+- 根因是每个库存只在构造时读 ID 文件，旧对象扫描会覆盖后来分配的 ID。原生模型准备的 AvatarLoadExecutor 是一个 worker，现有扫描无需新调度器或并发库存架构；只将已有读取逻辑收为 refreshIds，并在每次 scan 写入前合并磁盘 ID。资源内容、UUID 含义、文件格式和缓存规则不变，已有元数据、IO/取消失败处理继续沿用。
+- 同一复现断言修复后通过；前台 JDK 25 `:common:cosmeticSourceSmokeTest :common:libraryPreviewRuntimeSmokeTest` PASS（52 秒），日志 `build/reports/outfit/stage4-preset-inventory-id-fixed.log`，包含模板、原生来源、库存及衣柜本地预设回归。此证据覆盖同一进程原有 worker 上的交替扫描，不声称提供跨进程同时写索引的事务。
+
+### 个人云端预设与原生页面接线（2026-10-23）
+
+- CloudOutfitPresets 复用 LibraryClient 的认证、受限 CONTROL worker、HTTP/取消与 client-thread 投递，读写既有本人 outfit-presets 路径；后端无代码或 schema 修改。列表/文档解析检查 ID、整数修订、名称、配置及既有预算；保存确认核对预设 ID、expectedRevision+1、名称与配置，不能将不匹配响应当保存成功。
+- Save 保存固定 operationId、presetId、expectedRevision 和完整输入。已提交但返回 BUSY 的模拟场景中，显式 retry 使用同一输入并取得原结果，不重复创建；确认不匹配同样拒绝并可用原操作恢复。关闭取消当前句柄，过期会话不能发布已返回正文。个人预设保存不是投稿：不调用模型上传/装备、入集回执或授予权限；本地引用只在持有对应设备索引/资源时可用，不自动上传或公开模型。
+- 预设页面增加本地/个人云端来源选择，同一列表/命名/覆盖/独立预览/草稿导入控件读取各自来源。页面仅在边界把云端文档转换为现有不可变视图数据，不以 UUID 猜来源；切换清除旧选择和请求。保存失败显示“重试上一保存”，即使随后编辑名称仍明确重试原意图，tooltip 已说明；名字长度按本地/既有云端契约处理。云端失效时旧导入回调显式拒绝，不能因为配置只包含本地依赖而继续导入。
+- 新 HTTP smoke 验证实际认证请求、列表/读写、固定 CAS、响应已提交失败后的幂等重试、错误文档 ID/非整数修订/不匹配保存确认、真实请求取消及会话退休。原生页面测试从真实来源菜单进入个人云端，实际保存失败/编辑名称/点击重试、读取原名称与原操作、更新、私有预览、导入原版基础到草稿；本地文件数量及正式 Avatar 不变。另在会话退休后直接调用旧导入按钮，已准备的全本地文档仍不改草稿。字体/窗口为记录夹具，真实 GUI/GPU/CJK 仍 MANUAL/PENDING。
+- 前台 JDK 25 `:fabric:compileJava :common:cloudOutfitPresetsSmokeTest :common:libraryPreviewRuntimeSmokeTest :common:localOutfitPresetsSmokeTest` PASS（35 秒），日志 `build/reports/outfit/stage4-cloud-personal-presets-native-ui.log`；首轮传输/既有页面回归 PASS（31 秒），日志 `stage4-cloud-personal-presets.log`。checked LibraryClient.Failure 声明修正的编译失败日志保留为 `stage4-cloud-personal-presets-compile-failed.log`。本轮修改及新文件 whitespace 检查通过。
+- 阶段四仍 IN PROGRESS/main：封面、三类投稿及相应形象集/Outfit 资源卡片的依赖流程仍需接续，不能按人工项跳过实现；正式应用/跨端仍按阶段五执行。未到整阶段提交/推送检查点，未改后端 master 的原有未跟踪内容，未进入阶段五、六或处理后置 YSM bug。最新可靠额度为 10080 分钟池剩余 81%，ordinaryUsageAllowed=true，未触发预警或交接。
+
+### 装饰投稿原生准备及表单接线（2026-10-24）
+
+- LibraryPackagePreparation 增加独立 Accessory 准备：读取 cosmetic.json 目录或唯一嵌套 ZIP 根，复用 LocalCosmeticSource 原生编译、源内容前后校验和可分发 NBT；不把 Avatar 重新标成装饰。加密 YSM 包装保留原始密文和真实模型格式。仅允许在分发副本中修改 category、cosmetic_anchor、default_transform；作者、骨骼能力、基础类型和骨架声明保持源值，不覆盖用户文件。
+- 投稿页增加形象/装饰用途选择；装饰选择器区分可选 manifest 目录、可导航分组目录及 ZIP，不接受无包装的原始 YSM。表单预填分类、挂点、九分量默认变换并只读显示作者能力；未知符号保持未解析，不伪造标准挂点。装饰预览使用独立 vanilla 基础和真实 Cosmetic 实例，不把装饰加载成基础 Avatar；切换用途清理准备结果及组合，过期来源/关闭后的回调拒绝发布。
+- LibraryUploadDraft 的重试快照深复制可编辑 JsonObject，禁止用途与已准备正文不符。LibraryUploadService 在 worker 上按冻结声明生成最终正文，再计算 YSM 身份及分发哈希；发送使用这一正文和长度。目录来源沿用 ZIP 分发文件描述，原生模型格式保持不变。提交及发送前复核当前 outfit.limits 的变换、导出骨骼和节点预算；已有封面解码/上传、操作 ID、CAS 和丢响应重试流程继续复用。
+- 前台 JDK 25 `:fabric:compileJava :common:libraryPackagePreparationSmokeTest :common:libraryUploadDraftSmokeTest :common:libraryUploadSmokeTest` PASS（45 秒），日志 `build/reports/outfit/stage4-accessory-upload-preparation-verified.log`。增加加密装饰与原生页面后，准备/页面回归 PASS（38 秒），日志 `stage4-accessory-upload-native-form-anchor.log`。最终编译、草稿、HTTP 投稿及完整原生预览回归 PASS（52 秒），日志 `stage4-accessory-upload-final.log`；包含预算收紧拒绝、目录/ZIP 分类和实际字段编辑→重新挂载。早期测试夹具的异常类型、作者数组、接口名、输入类型和标准挂点名错误均修正，失败日志保留。末次仅修正新增代码缩进；git diff --check 通过。
+- 证据边界：原生控件派发/模型加载及已有 HTTP 投稿夹具不等于完整真实客户端装饰投稿往返；装饰 HTTP 正文与声明一致性的专门往返、Outfit 独立 JSON 投稿/资源卡片依赖和相应入集流程仍需继续。真实窗口/CJK/像素/GPU 为 MANUAL/PENDING。阶段四仍 IN PROGRESS/main，后端 master 未修改，未达到整阶段提交/推送检查点，未进入阶段五、六或处理后置公共 bug。
+
+### 装饰实际跨语言投稿与 Outfit JSON 发布后端（2026-10-24）
+
+- 装饰新增真实 HTTP 正文/长度/哈希与声明往返、丢提交回执后的冻结输入重试、后端预算收紧后预留前拒绝；Figura 与加密 YSM 都使用真实原生准备结果。首次夹具验证 PASS（22 秒），`build/reports/outfit/stage4-accessory-upload-http.log`，随后核对 Rust 严格 DTO 发现夹具未覆盖的接线缺口：完整 cosmetic.json 含公共作者字段且缺少规范化默认字段，不能直接作为 accessory_metadata。新增精确字段断言确实失败（`stage4-accessory-metadata-contract-repro.log`）；改为 OutfitCodec 的规范化能力声明，源清单另存不可变快照，worker 再检查正文声明的规范化结果相同。修复后客户端编译/草稿/HTTP 回归 PASS（31 秒），`stage4-accessory-metadata-contract-fixed.log`。
+- Java 测试可通过 OMNIMORPH_TEST_ACCESSORY_UPLOAD_DIRECTORY 输出实际 reserve.json/body.nbt，Rust 测试向真实监听器发送这些文件并读取详情/账号形象集。该测试先遇到空 editable_bones 被 Rust 省略的比较差异，改为按 Rust 类型规范化比较；继续暴露加密装饰提交真实返回 400，日志 `stage4-accessory-native-rust-interop-fixed.log`。这不是通过修改预期状态码绕过的失败。
+- 按 diagnosing-bugs 的实际失败→假设→共享路径核对定位：旧 encrypted package scanner 的可分发字段表未接纳已由 YsmSourcePayload 保留的装饰包装。后端现在只在资源用途明确为 ACCESSORY 且 cosmetic_json 是对象时接纳包装清单与 scripts/sounds/resources；原有 ysm 解密字段、根 models/textures 及无有效装饰声明的包装仍拒绝，不解密源文件。新增 scanner 反例和原始跨语言 HTTP 用例共同验证，未引入调试日志或模型特化。
+- 新增共同投稿路径的 JSON 分支 `POST /api/library/v1/uploads/outfit`，使用现有 library_models、resource_kinds、outfit_contents、tags、grants、collection；不建新公开库、不写 library_revisions 或资源 Protobuf、不填 Figura/YSM 格式。发布与自动入集在一笔事务内，操作 ID 重试返回原 modelId；公共目录策略和封面管理接口继续适用。每个依赖须在当前源站可授权获取，并匹配固定资源类型/修订/hash/格式；本地、外站、缺失、无权及哈希不匹配拒绝，不能通过发表预设自动公开依赖。`GET /api/library/v1/models/:id/outfit?revision=N` 仅按当前 preview 权限返回固定配置；它是预览读取，不冒充正式下载回执。
+- 后端新增 Outfit HTTP/数据库测试覆盖重复发布不重复内容/成员、model_type=NULL、无模型正文修订、公共预设不开放私有基础、失效修订和失败事务不留内容。定向 5 项 PASS，日志 `stage4-outfit-publication-backend-fixed.log`；缺失 import 的编译日志保留。之后全量 `cargo test -- --nocapture`（设置实际 Java 装饰产物目录）PASS：130 passed / 1 ignored，编译 43 秒、测试约13秒，日志 `stage4-outfit-and-encrypted-wrapper-regression.log`，其中 native_java_accessory_packages_publish_through_rust_routes 确实执行通过。单独 worker 饱和压力用例 ignored；未提供可执行文件/类路径的旧交付回滚、生产主入口开关和旧 Java listener 用例按原规则 SKIPPED，不能把它们当作本次已验证。Java 产物导出日志 `stage4-accessory-java-wire-export.log` PASS（24 秒）。
+- 阶段四仍 IN PROGRESS。下一检查点继续 Outfit 客户端投稿/协商与封面、共同目录和形象集卡片中的 JSON 配置/依赖预览、正式获取与回执流程；不能将新增后端接口当完整前台工作流。真实窗口/CJK/GPU 和双客户端仍 MANUAL/PENDING。根仓库 main、内嵌后端 master；本阶段尚未达提交/推送点，保留原有后端未跟踪 build.log 与 spm-cloud/，未提前进入阶段五、六或处理已登记公共 YSM 缺陷。
+
+### Outfit 客户端投稿、封面与原生表单（2026-10-24）
+
+- 后端 outfits_v1 增加 publication 能力标记，客户端缺省 false；旧后端仍只提供已有形象/装饰投稿，不根据 presets/configuration 推测支持发表。OutfitUploadDraft 独立读取有界的 OutfitConfig JSON 或已保存预设的 configuration/name，复用原配置编码和协商预算；不构建模型包、填模型格式或自动发表依赖。投稿快照冻结名称/说明/标签/策略/配置，本地及外站依赖必须先显式映射。
+- ModelUploadScreen 的用途增加装扮预设，复用原表单、图片选择/解码/封面服务及预览面板。配置摘要和逐项固定依赖引用/准备错误可读；依赖准备继续使用 OutfitPresetResources 的授权/缓存/原生加载入口，并用独立基础与装饰组合预览。缺失或无法分发的引用禁用发表；切换来源、用途、退出和过期会话退役请求/配置/预览。名称与配置均不依赖把 Outfit 伪装成某个 Figura/YSM 格式。
+- LibraryUploadService 增加同一 Operation 下的 JSON 分支：操作 ID 固定，丢发表回执后重发原 JSON；确认已发表后，封面失败只重试原封面 ID/CAS，不再发表配置或传模型正文。撤回新发表能力不阻止已确认发表后的独立封面重试，图片仍校验当前预算；取消不会删除已发表的配置，界面明确显示该状态。未确认结果保留显式重试语义，不能声称取消撤销了后台已提交事务。
+- HTTP 投稿回归 PASS（28 秒），日志 `build/reports/outfit/stage4-outfit-json-upload-client.log`；原生表单/草稿回归 PASS（37 秒），`stage4-outfit-upload-native-form.log`，覆盖三类用途、真实 JSON 预填、无模型正文的隔离组合、缺失本地依赖错误及关闭/切换后回调拒绝。最终编译/投稿/完整原生预览回归 PASS（51 秒），`stage4-outfit-upload-client-final.log`；覆盖配置与封面双重丢响应、正文不重发、原封面 CAS 和新投稿能力撤回。
+- 传输契约核对发现普通 LibraryAccess 未给 Outfit 发表发送后端 origin() 所需的 x-omnimorph-origin。新增实际请求头断言先失败，日志 `stage4-outfit-origin-header-repro.log`；仅在该新路径附带规范化源站，原认证及管理员规则不变。修复后 `:fabric:compileJava :common:libraryUploadSmokeTest :common:libraryClientSmokeTest` PASS（31 秒），`stage4-outfit-origin-header-fixed.log`，已有双适配认证、请求限额、取消及过期投递回归通过。后端能力协商与投稿定向5项 PASS，日志 `stage4-outfit-publication-capability.log`（编译46秒、测试约0.23秒）。
+- 证据边界与接续：本轮新增 Outfit JSON/封面客户端是 HTTP 夹具加真实原生控件/模型准备证据，不能冒充真实 GUI/GPU 或完整 Java→Rust 用户操作往返。资源卡片中的配置获取/依赖预览、正式下载回执及账号形象集消费仍继续阶段四；后续检查点复核完整三类入口。根 main、后端 master，未达整阶段提交/推送点，未进入阶段五、六或后置公共 bug。真实窗口/CJK/像素和 GPU 保持 MANUAL/PENDING。最新可靠额度10080分钟池剩余77%，ordinaryUsageAllowed=true，未触发预警或交接。
+
+### Outfit JSON 正式获取与回执后端（2026-10-24）
+
+- 现有 models/:id/transfers → transfers/:id → complete 流程已支持独立配置正文。TransferBody 区分原模型文件与有界 JSON 内存数据，但继续使用同一 DownloadPermit、逐段认证/策略复核、bytes_sent、摘要确认、操作去重和下载计数；没有新增“预览当下载”的捷径。共同详情为 Outfit 提供实际 UTF-8 正文长度和 outfit.json 元数据来源，model_type 保持空，不建模型正文修订或伪造压缩 NBT。
+- 真实 HTTP 用例覆盖 JSON 内容/媒体类型/长度/摘要一致，预览回执不能完成或入集，正式正文发送前/错误摘要/别人的传输拒绝，原确认/入集重放不重复计数，以及变为私有后旧传输和旧确认失效。初轮在创建凭证时返回 INTERNAL；测试日志 `build/reports/outfit/stage4-outfit-json-transfer-backend.log`。临时仅测试诊断日志将根因缩至外键，`stage4-outfit-json-transfer-probe.log`：旧 library_download_receipts 的联合外键只指 library_revisions，因此不可能接纳真实独立 Outfit 配置修订。
+- schema 8 原子迁移保留原回执全部列、完成/计数状态与唯一索引，目录 ID 仍有外键；精确修订必须存在于模型正文或 Outfit 配置表，插入/更新及两类内容删除/主键更新都有对应约束。迁移复制时同样校验既有回执，错误走原事务回滚/备份/FK 恢复机制；不以添加虚假 library_revisions 行解决。新增实际 v7 表结构升级测试验证完成回执/计数保留、缺失修订与仍被引用的正文删除/改号拒绝，以及 FK 检查和重复迁移。
+- 全量回归先暴露三个以“当前数据库删部分表+回退版本号”构造旧版本的夹具遗留 v8 触发器。只在测试中恢复原 library.sql 的模型回执联合外键与原数据后再模拟旧版本，未放宽生产迁移；其中集合夹具辅助调用误放位置已纠正。失败日志分别保留 `stage4-outfit-json-transfer-schema8.log`、`stage4-outfit-json-transfer-regression.log`，不能当作通过记录。测试临时 [DEBUG-outfit-transfer] 日志已移除，新增函数/测试用 rustfmt 限定范围排版，diff whitespace 检查通过。
+- 最终前台 `cargo test -- --nocapture` PASS：132 passed / 1 ignored，编译约38秒、测试约14秒，日志 `stage4-outfit-json-transfer-final.log`。设置了实际 Java 装饰产物目录，native_java_accessory_packages_publish_through_rust_routes 确实执行，旧模型、装饰、迁移、下载、入集、权限和旧协议回归一并通过。仍缺类路径/可执行文件的旧 Java listener、生产主入口及旧生产进程回滚按原规则 SKIPPED；worker 饱和用例按原规则 ignored，不能将这些项计为本轮执行通过。
+- 接续仍是阶段四：客户端获取应按 OUTFIT 路由 JSON，连接共同资源卡片、依赖预览/失效清单和形象集消费，复核管理入口；不能让原生 NBT 解析器或模型缓存后缀承载配置。当前仅后端正式获取子项完成，完整前台流程未完成。根 main、后端 master，未达到整阶段提交/推送点，未进入阶段五/六或后置公共 bug；真实窗口/CJK/GPU/双客户端仍 MANUAL/PENDING。
+
+### Outfit JSON 客户端获取与共同目录预览（2026-10-24）
+
+- LibraryTransferService 在原获取流程内按 OUTFIT 分流，保留原权限、固定修订、长度/摘要、传输与完成/入集接口；先取得当前配置能力和后端 limits，缓存命中也重新校验。JSON 必须是 application/json、合法 UTF-8、有界且符合 OutfitCodec；Package 返回独立 configuration/outfitLimits，nbt=null，不填模型格式或压缩 NBT。原四参数模型 Package 构造保持兼容。
+- 独立 cache/outfit-configurations/ 使用 .configuration.json 数据与 .json 索引，复用现有缓存字节保护、原子发布、作用域、TTL/预算和租约；不占用 .oma/.omc/.oms。正式获取保留独立正文和待确认回执，不提升预览缓存。HTTP 用例覆盖重新打开零重复正文、当前能力撤回/权限撤回/JSON 上限收紧、错误媒体类型、正式入集独立获取、丢入集响应后原完成 operationId 恢复，以及原始字节可校验与临时文件清理。
+- LibraryPreviewSession 的共同目录选择按配置调用既有 OutfitPresetResources，使用同一代际完成基础和装饰组合准备；配置预览始终使用独立实体和私有权限，保持正式装备、玩家缓存和持久权限表不变。共享 EntityPreview 在普通/展开预览中复用 LibraryRowList 显示基础或每个受影响 instanceId 的错误，tooltip 包含固定资源身份/hash，清空后退役错误清单。
+- 首轮前台编译/传输/缓存通过（30秒），日志 stage4-outfit-json-transfer-client.log；补充后端上限和媒体类型用例通过（12秒），stage4-outfit-json-transfer-client-budgets.log。原生目录用例自身通过后，全套末尾“不创建持久权限”的断言失败，日志 stage4-outfit-catalog-preview.log；静态调用链确认新入口 PermissionManager.get(account) 会插入 PLAYERS。改用隔离基础已有权限或私有默认 pack 后，同一完整回归通过（48秒），stage4-outfit-catalog-preview-private-permissions.log，未放宽断言或清理正式权限数据。
+- 错误列表初编译因 LibraryRowList 不提供 setActive 失败，保留 stage4-outfit-catalog-preview-issues.log；改用该控件现有可见性机制后，最终前台 JDK25 :fabric:compileJava :common:libraryTransferSmokeTest :common:libraryPreviewRuntimeSmokeTest :common:libraryPreviewCacheSmokeTest 全部 PASS（36秒），日志 build/reports/outfit/stage4-outfit-catalog-preview-issues-fixed.log。原生用例实际走 HTTP JSON→隔离原版基础组合、缺失本地依赖与副本行/tooltip、清空后旧响应拒绝；完整既有模板/投稿/草稿/原生模型/权限/管理预览回归通过。真实窗口/CJK/GPU 仍 MANUAL/PENDING，不以控件与 CPU 夹具冒充视觉验收。
+- 阶段四仍 IN PROGRESS，未达到整阶段提交点。下一步核对账户形象集 Outfit 的草稿导入/取消恢复、共同目录含真实基础与装饰依赖的完整预览，以及管理/回收入口是否仍假定模型正文。根 main、后端 master 保持不变，本轮未改后端；未进入阶段五/六、未处理后置公共 YSM bug。
+
+### 形象集 Outfit 选择、显式导入与取消（2026-10-24）
+
+- WardrobeScreen 的形象集选择现允许 OUTFIT 进入既有获取/隔离预览入口，不再按非 Avatar 一律“不可用”。允许下载时仍走原正式入集回执后再取得新鲜预览权限；仅预览权限不被擅自扩大。选择本身不创建草稿；原集合候选按钮在选中 Outfit 时改为既有“导入预设”动作，只在固定依赖和组合预览完成后可用，不调用 collectionOutfit 把配置当基础形象候选。
+- LibraryPreviewSession 仅在当前完整 READY 组合提供 ConfigurationPreview，包含原始不可变配置和仍受当前账号/代际约束的 Prepared 依赖；清空/关闭立即退役。导入复用 beginOutfitDraft 的正式基础快照与 installOutfitPreset 的依赖描述、ID 重写及资源登记，基础复制在原 worker 执行。检查当前选择、账号、客户端、预览文档、草稿对象/代际与操作身份；失效结果拒绝，成功后进入装扮编辑。预设继续保留当前装备可见性规则，取消恢复原草稿与原基础快照，不调用正式装备/发布接口。
+- 原生目录用例增加真实 cosmetic.json/script.lua 来源与同一资源的两个副本，先经实际 HTTP JSON 获取与固定本地依赖准备，再调用形象集真实 selectCloud/changeCandidate/cancelOutfitDraft 处理器。验证选择不建草稿、显式导入进入装扮、所有副本 ID 重写、取消恢复，以及导入发布前清空同一预览会拒绝旧结果；已有缺失依赖清单及正式传输回归保留。夹具只跳过屏幕重建布局，实际原生加载/异步资源/草稿处理器运行；不以其替代真实窗口/GPU 或完整 Java→Rust 发表后云端依赖场景。
+- 失败日志保留：stage4-collection-outfit-import.log 为测试未初始化 Minecraft lastInputType，补齐真实处理器夹具的 MOUSE 状态后，stage4-collection-outfit-import-input.log 暴露测试错误地期待预设覆盖当前装备可见性；未更改原产品规则。改用真实两副本验证实际导入变化，编译/原生回归 PASS（23秒），stage4-collection-outfit-import-copies.log；加入代际退休后，编译、完整原生预览、草稿与传输回归 PASS（26秒），stage4-collection-outfit-import-final.log。
+- 最终交付顺序调整为编辑器路由/预览启动后再完成导入 future。重复回归 stage4-collection-outfit-import-delivery.log 暴露原退休用例依赖 worker 时间：快速任务可能在 clear 之前已合法导入，不能据此判为过期发布。测试用有界 CountDownLatch 占住实际模型 worker，明确建立“导入排队→清空预览→释放 worker”的顺序，生产逻辑未为夹具增加特殊分支。最终前台 JDK25 :fabric:compileJava :common:libraryPreviewRuntimeSmokeTest :common:outfitDraftSmokeTest :common:libraryTransferSmokeTest PASS（25秒），完整日志 build/reports/outfit/stage4-collection-outfit-import-fenced.log；此有序场景才作为退休拒绝的确定性证据。根/后端 diff whitespace 检查仍须沿检查点执行，不把早先一次时序偶然通过当完整并发证明。
+- 阶段四仍 IN PROGRESS。管理/回收核对已发现尚缺资源类型分流：后端 storage/wardrobe_recycle.rs 的 library_recycle_list 以 String 读取可能为空的 Outfit model_type；Java LibraryRecycleService.Item 也只接受三类非空模型格式，回收预览仍走 NBT。当前为静态调用路径证据，未宣称已复现 HTTP 失败或已修复；下一检查点应补真实发表/删除/列表/预览/恢复的配置回收测试及实现，同时保持原模型和装饰行为。真实云端基础/装饰依赖的共同目录整体往返仍需核对。
+- 根 main、后端 master 未切换，本轮未改后端，未达阶段提交点；不提前进入阶段五/六或公共 YSM 缺陷。当前可靠10080分钟额度池已用27%、剩余73%，ordinaryUsageAllowed=true，未触发预警/交接；不由 planType 推断 Plus/Pro。
+
+### Outfit 管理回收、JSON 预览与空格式卡片（2026-10-24）
+
+- 新真实 HTTP 回归先复现已发表 Outfit 删除后管理员回收列表返回500/INTERNAL，日志 build/reports/outfit/stage4-outfit-recycle-repro.log。查询把允许为空的 model_type 读成 String；修正为 Option<String> 并带回共同资源 resource_kind。正常模型和装饰保留其真实格式，旧未标用途的记录缺省 AVATAR，不把 Outfit 伪装成 Figura/YSM。
+- 原管理员 wardrobe-preview/LIBRARY_RECYCLE 接口增加有界数据库 JSON 正文分支，和原文件分支共享认证、DownloadPermit、逐段当前管理员/回收状态及摘要复核；HEAD/GET 返回实际长度、摘要和 application/json。恢复继续保留配置，清除原子擦除各修订的 configuration_json，同时保留修订身份与已完成回执历史；不触发模型正文表或冻结协议，不移除还被回执引用的修订。已恢复或清除后旧回收预览拒绝，恢复/清除原操作重放保持幂等。
+- 后端定向通过，日志 stage4-outfit-recycle-backend.log（编译约39秒、测试0.12秒）。补充实际正式下载/完成回执后再删除/清除，以及恢复后的原配置一致性后，全量 cargo test -- --nocapture PASS：133 passed / 1 ignored（编译21.60秒、测试10.94秒），日志 stage4-outfit-recycle-backend-regression.log。实际 Java 装饰产物目录已设置，native_java_accessory_packages_publish_through_rust_routes 确实执行通过；旧 Java listener/生产主入口/旧生产进程回滚因未提供类路径或可执行文件仍 SKIPPED，worker 饱和用例按原规则 ignored，不能计为本轮已执行。新增测试和方法限定范围 rustfmt，管理员预览函数仅随正文分支调整必要缩进。
+- Java 回收 DTO 增加独立 resourceKind，保留旧构造方式及缺省 AVATAR；只有 LIBRARY/OUTFIT 可没有模型格式。LibraryWardrobePreviewService 在原 HEAD 校验/摘要/缓存链内分流配置，取得当前配置能力/预算并严格解码 UTF-8 JSON，缓存用独立 CONFIGURATION 类型；原模型 NBT 入口保持。LibraryManagementPreview 和真实回收选择处理器按用途调用 selectConfigurationResource；会话取消、当前选择和依赖准备继续使用原代际，清空退役配置请求、依赖和组合。
+- 前台编译、传输及管理 DTO HTTP 回归 PASS（15秒），stage4-outfit-recycle-client.log；实际管理预览入口经 HEAD/GET 配置和两个真实本地装饰副本准备独立组合、再清空的原生回归 PASS（25秒），stage4-outfit-recycle-native.log。该测试覆盖管理员配置分流与真实原生准备，不冒充真实 GUI/GPU 或从 Java UI 到真实 Rust 监听器的完整操作录制。
+- 共同目录卡片核对发现 ModelResourceBadges 对空格式调用 equals，新增相同绘制入口断言实际失败并定位该行，stage4-outfit-card-null-format-repro.log；无格式时不绘制原生格式徽标、tooltip 返回空文本，原 Figura/YSM 行为保持。最终前台 JDK25 :fabric:compileJava :common:modelLibraryCatalogSmokeTest :common:libraryPreviewRuntimeSmokeTest :common:libraryTransferSmokeTest :common:libraryManagementSmokeTest PASS（27秒），stage4-outfit-recycle-and-catalog-final.log。失败日志均保留；未引入调试日志、专用模型分支或新格式。
+- 下一检查点按阶段四原验收逐项汇总现有证据并核对仍缺的完整云端预设依赖消费；只补原范围内的缺口，不增加相邻功能。阶段四尚未标完成，未达整阶段提交/推送点；根 main、后端 master 保持，已有未提交改动和后端 build.log/spm-cloud 均保留。真实窗口/CJK/GPU/双客户端仍 MANUAL/PENDING，不提前进入阶段五/六或后置公共 YSM 缺陷。
+
+### 阶段四验收汇总与提交检查点（2026-10-24）
+
+以阶段四原范围、明确补充和自动验收为边界；没有把后续阶段的正式原子应用/广播提前列为本阶段完成项。用户允许跳过的真实人工验收统一 MANUAL/PENDING，不将其冒充 PASS。
+
+| 原定项目 | 当前自动证据 | 结论 |
+| --- | --- | --- |
+| 来源/用途默认全部且互相独立，选择不启用、草稿保留 | 完整原生衣柜回归的 All source/use defaults、筛选及候选处理器；既有目录回调/布局测试 | PASS；实际窗口为人工项 |
+| Figura/YSM/装饰三项创建，九类模板、两种拖尾预设、自绘贴图与设置图标 | YsmAvatarCreationSmokeTest 的构建 JAR/42资源/源 hash；CosmeticCreationSmokeTest 的九类创建和原生加载；CreatedTrailParticleSmokeTest 的实际 Lua/发射/原生顶点 | PASS；粒子画面/GPU 为人工项 |
+| 添加/启停/移除/重置/取消、多实例编号和草稿不可变边界 | OutfitDraftSmokeTest；原生衣柜双副本处理器、变换字段、依赖删除确认及取消恢复原基础 | PASS |
+| 完整/基础/标准/实例/虚拟骨骼树，默认折叠、搜索恢复、滚动、作者显示及只读权限 | BoneTreeSmokeTest、OutfitHierarchySmokeTest 和原生树选择/分视图状态/实际绑定控件回归 | PASS；真实像素/窄栏/CJK 为人工项 |
+| 手动挂点、虚拟锚点、内部覆盖、显隐辅助和默认/自动目标定位 | 原生挂载/覆盖矩阵、帧隔离、辅助顶点、双副本、自动目标、非法/禁用/失效/旧回调拒绝 | PASS；真实 GUI/GPU 为人工项 |
+| 设置按副本分组、作者控件、轮盘聚合与输入/松开、无控件/无动作退化 | 原生真实模板 Lua/controls/wheel 回归、定义版本刷新、草稿状态持久值及预算失败原子性 | PASS；正式已应用组合轮盘属于阶段五 |
+| 本地/本人云端预设保存/覆盖/分页/预览/导入，固定依赖和失效清单 | LocalOutfitPresetsSmokeTest、CloudOutfitPresetsSmokeTest、OutfitPresetResourcesSmokeTest、原生保存/重试/ID重写/取消/账号退休控件 | PASS |
+| 同一云端配置同时引用基础和双装饰，缓存与撤权 | 本轮新增真实 HTTP 的配置→云端基础→云端装饰双副本原生组合；重复预览两份正文均不重下、每项权限重检，撤权关联全部受影响副本且不发布旧组合 | PASS；日志 stage4-cloud-outfit-composition.log，20秒 |
+| Avatar/Accessory/Outfit 投稿、声明/挂点预填、封面、固定重试、正式获取/回执/入集 | 原生三用途表单；LibraryUploadSmokeTest、LibraryTransferSmokeTest、LibraryUploadDraftSmokeTest、LibraryThumbnailSmokeTest；后端真实路由及实际 Java 装饰产物互操作 | PASS；完整真人操作录制为人工项 |
+| 形象集卡片、Outfit 显式导入/取消、后台管理/回收与其他玩家预览 | 原生形象集导入/取消与有序退休、格式空值卡片回归、回收 HEAD/GET JSON/恢复/清除、在线实体复用/离线隔离及现有权限流程 | PASS；真人/双客户端为人工项 |
+| 语言键、旧模型/缓存/权限及冻结契约回归 | 新增123组英文/中文键完整；阶段四最终测试组、原生材质/加载/广播、旧模型/装饰后端回归；版本、Protobuf及 ysm_default 无本阶段差异 | PASS；版本仍 alpha.3 |
+
+- 最终前台 JDK25 `:fabric:build` 加阶段四契约、草稿、本地/云端预设、源加载、JAR创建、原生预览、包准备、投稿、传输/缓存/封面、目录/布局、管理、装备兼容、CustomParticle/原生材质/骨骼树测试组全部通过，BUILD SUCCESSFUL（1分38秒，41 tasks），完整日志 build/reports/outfit/stage4-checkpoint-java.log。日志中的 Expected creation failure fixture、空 YSM preparationFence、模拟广播503/429为已有失败路径夹具；最终退出码0。重映射/已弃用API警告保留，不作为真实游戏渲染通过证明。
+- 语言键检查 PASS：新增123组，日志 stage4-checkpoint-language.log。最终后端 `cargo test -- --nocapture` PASS：133 passed / 1 ignored（编译12.30秒、测试11.74秒），stage4-checkpoint-backend.log；设置了本轮 Java 导出的装饰产物，实际 Java→Rust 投稿用例执行通过。未配置旧 Java listener 类路径、生产主入口/回滚可执行文件的用例仍 SKIPPED，worker 饱和按原规则 ignored；它们不是阶段四已通过的真实场景证据。
+- 阶段四自动验收 DONE，不继续向本阶段追加要求。真实窗口/不同GUI缩放/CJK/窄栏/tooltip/粒子画面/GPU/双客户端均 MANUAL/PENDING，按用户要求跳过。真实同步和原子应用属于阶段五，alpha.4及最终性能矩阵属于阶段六；三项用户登记的公共YSM缺陷继续排在阶段1～6之后，不能提前处理或模型特化。
+- 提交范围已核对：根仓库仅本阶段源/测试/模板/自绘资源/工具及三份计划记录；后端18个阶段四文件，保留既有未跟踪 build.log/spm-cloud。git diff --check 通过。后端 master 阶段四提交 1117d0efce98f18711d6f9c0e63a4614b78341db 已推送，ls-remote 与 HEAD 一致，日志 stage4-backend-push.log；根仓库 main 由本记录所在阶段四提交交付，须完成推送并同样核对远端后才开始阶段五。
 
 ## alpha.3 已知公共 bug（用户指定在阶段 1～6 完成后修复）
 

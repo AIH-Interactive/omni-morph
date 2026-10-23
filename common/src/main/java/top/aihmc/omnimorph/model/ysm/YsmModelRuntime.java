@@ -934,6 +934,11 @@ public class YsmModelRuntime implements AutoCloseable {
         return functions;
     }
 
+    public boolean hasAnimationWheelActions() {
+        return actions.all().stream().anyMatch(action -> isExtraAnimation(action)
+                && action.getAnimation() != null && !action.getAnimation().startsWith("#"));
+    }
+
     public void installDefaultActionWheel(ActionWheelAPI wheel) {
         if (wheel == null || wheel.getCurrentPage() != null)
             return;

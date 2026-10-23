@@ -37,7 +37,7 @@ public final class LibraryResourceCache {
         if (Files.isSymbolicLink(directory)) {
             throw new IOException("UNSAFE_RESOURCE_CACHE");
         }
-        if (!"ACCESSORY".equals(model.resourceKind())) {
+        if (!"ACCESSORY".equals(model.resourceKind()) && !"OUTFIT".equals(model.resourceKind())) {
             AvatarCachePaths.prepareFlat(cacheRoot, "wardrobe-resources", file -> {
                 String name = file.getFileName().toString();
                 if (!name.matches("[a-f0-9]{64}(\\.[a-f0-9-]{36}\\.pending)?\\.(oma|omc|json)")) {
@@ -54,11 +54,17 @@ public final class LibraryResourceCache {
     }
 
     private Path directory(LibraryModels.Model model) throws IOException {
+        if ("OUTFIT".equals(model.resourceKind())) {
+            return ModelCacheLayout.configurationDirectory(cacheRoot);
+        }
         return "ACCESSORY".equals(model.resourceKind()) ? ModelCacheLayout.cosmeticDirectory(cacheRoot)
                 : cacheRoot.resolve(ModelCacheLayout.AVATAR_DIRECTORY);
     }
 
     private static String extension(LibraryModels.Model model) {
+        if ("OUTFIT".equals(model.resourceKind())) {
+            return ModelCacheLayout.CONFIGURATION_EXTENSION;
+        }
         return ModelCacheLayout.extension(model.resourceKind());
     }
 

@@ -10,38 +10,72 @@ import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.resources.Identifier;
+import org.joml.Matrix4fc;
+import org.joml.Vector3f;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.model.FiguraModelPart;
 import top.aihmc.omnimorph.model.PartCustomization;
 import top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer;
 import top.aihmc.omnimorph.model.ysm.YsmGeometry;
 import top.aihmc.omnimorph.model.ysm.YsmModelPart;
+import top.aihmc.omnimorph.model.outfit.OutfitConfig;
+import top.aihmc.omnimorph.model.outfit.SkeletonPose;
 import top.aihmc.omnimorph.utils.FiguraIdentifier;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
 
+import java.util.ArrayList;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /** One GUI frame's read-only selection. World rendering never consumes these overlays. */
 public final class PreviewBoneHighlight {
+    public record Mount(UUID instanceId) {}
     private static final Map<Avatar, Object> FRAMES = new IdentityHashMap<>();
+    private record Selection(Object part) {}
+    private static final ThreadLocal<Selection> ACTIVE = new ThreadLocal<>();
 
     private PreviewBoneHighlight() {}
 
     public static void capture(Avatar avatar, Object part) {
-        if (avatar != null && part != null) {
-            FRAMES.put(avatar, part);
+        if (avatar != null) {
+            if (part == null) {
+                FRAMES.remove(avatar);
+            } else {
+                FRAMES.put(avatar, part);
+            }
         }
     }
 
     public static boolean selected(Avatar avatar, Object part) {
-        return part != null && UIHelper.paperdoll && FRAMES.get(avatar) == part;
+        return part != null && UIHelper.paperdoll && selection(avatar) == part;
+    }
+
+    private static Object selection(Avatar avatar) {
+        var active = ACTIVE.get();
+        return active == null ? FRAMES.get(avatar) : active.part();
+    }
+
+    /** Retained GUI draws use their own frozen selection, including an explicit empty selection. */
+    public static void withSelection(Object part, Runnable drawing) {
+        var previous = ACTIVE.get();
+        ACTIVE.set(new Selection(part));
+        try {
+            drawing.run();
+        } finally {
+            if (previous == null) {
+                ACTIVE.remove();
+            } else {
+                ACTIVE.set(previous);
+            }
+        }
     }
 
     /** Keep the selected subtree intact without changing authored visibility or alpha. */
     public static float opacity(Avatar avatar, Object part) {
-        Object selected = UIHelper.paperdoll ? FRAMES.get(avatar) : null;
+        Object selected = UIHelper.paperdoll ? selection(avatar) : null;
         if (selected == null || part == null) {
             return 1f;
         }
@@ -60,6 +94,95 @@ public final class PreviewBoneHighlight {
 
     public static void finishFrame() {
         FRAMES.clear();
+    }
+
+    public record Segment(float x0, float y0, float z0, float x1, float y1, float z1, int color) {}
+
+    /** Model-unit pivots from the native pose, limited to the selection and immediate relatives. */
+    public static List<Segment> skeleton(SkeletonPose pose, OutfitConfig.BoneRef selected, int nodeBudget) {
+        if (pose == null || selected == null || nodeBudget < 1) {
+            return List.of();
+        }
+        var matrix = pose.matrix(selected);
+        var index = pose.definition().resolve(selected);
+        if (matrix.isEmpty() || index.isEmpty()) {
+            return List.of();
+        }
+        var result = new ArrayList<Segment>();
+        var pivot = matrix.get().getTranslation(new Vector3f());
+        axes(result, matrix.get());
+        var nodes = pose.definition().nodes();
+        int parent = nodes.get(index.get()).parent();
+        int used = 1;
+        for (int other = 0; other < nodes.size() && used < nodeBudget; other++) {
+            if (other != parent && nodes.get(other).parent() != index.get()) {
+                continue;
+            }
+            used++;
+            var relative = pose.definition().reference(selected.instanceId(), other);
+            pose.matrix(relative).ifPresent(value -> add(result, pivot, value.getTranslation(new Vector3f()), 0xffbf19));
+        }
+        return List.copyOf(result);
+    }
+
+    public static List<Segment> anchor(SkeletonPose pose, OutfitConfig.BoneRef parent,
+                                        OutfitConfig.Transform offset, int nodeBudget) {
+        if (pose == null || nodeBudget < 1) {
+            return List.of();
+        }
+        var matrix = pose.matrix(parent);
+        if (matrix.isEmpty()) {
+            return List.of();
+        }
+        var result = new ArrayList<Segment>();
+        var parentPosition = matrix.get().getTranslation(new Vector3f());
+        var anchor = matrix.get().mul(offset.modelMatrix());
+        axes(result, anchor);
+        if (nodeBudget > 1) {
+            add(result, parentPosition, anchor.getTranslation(new Vector3f()), 0xffbf19);
+        }
+        return List.copyOf(result);
+    }
+
+    private static void axes(List<Segment> result, Matrix4fc matrix) {
+        var pivot = matrix.getTranslation(new Vector3f());
+        add(result, pivot, matrix.transformPosition(new Vector3f(1, 0, 0)), 0xff5555);
+        add(result, pivot, matrix.transformPosition(new Vector3f(0, 1, 0)), 0x55ff55);
+        add(result, pivot, matrix.transformPosition(new Vector3f(0, 0, 1)), 0x5555ff);
+    }
+
+    public static List<Segment> root(OutfitConfig.Transform offset, int nodeBudget) {
+        if (nodeBudget < 1) {
+            return List.of();
+        }
+        var result = new ArrayList<Segment>();
+        axes(result, offset.modelMatrix());
+        return List.copyOf(result);
+    }
+
+    private static void add(List<Segment> result, Vector3f from, Vector3f to, int color) {
+        float distance = from.distanceSquared(to);
+        if (from.isFinite() && to.isFinite() && Float.isFinite(distance) && distance > 1e-12f) {
+            result.add(new Segment(from.x, from.y, from.z, to.x, to.y, to.z, color));
+        }
+    }
+
+    public static void drawSkeleton(List<Segment> segments, Matrix4fc entityToDraw, MultiBufferSource source) {
+        if (!UIHelper.paperdoll || segments.isEmpty()) {
+            return;
+        }
+        var stack = new PoseStack();
+        stack.mulPose(entityToDraw);
+        stack.scale(1f / 16, 1f / 16, 1f / 16);
+        var pose = stack.last();
+        var vertices = source.getBuffer(Lines.TYPE);
+        for (var line : segments) {
+            var normal = new Vector3f(line.x1() - line.x0(), line.y1() - line.y0(), line.z1() - line.z0()).normalize();
+            vertices.addVertex(pose, line.x0(), line.y0(), line.z0()).setColor(0xff000000 | line.color())
+                    .setNormal(pose, normal.x, normal.y, normal.z).setLineWidth(1f);
+            vertices.addVertex(pose, line.x1(), line.y1(), line.z1()).setColor(0xff000000 | line.color())
+                    .setNormal(pose, normal.x, normal.y, normal.z).setLineWidth(1f);
+        }
     }
 
     public static RenderType translucent(RenderType original, Identifier texture) {

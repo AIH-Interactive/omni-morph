@@ -24,6 +24,15 @@ public class AvatarControlRuntime {
     private final Set<String> initialBoundValues = new HashSet<>();
     private String modelKey;
     private LuaFunction onChange;
+    private long definitionRevision;
+
+    public long definitionRevision() {
+        return definitionRevision;
+    }
+
+    public boolean isEmpty() {
+        return controls.isEmpty();
+    }
 
     public AvatarControlRuntime() {
         this(null);
@@ -35,7 +44,12 @@ public class AvatarControlRuntime {
 
     public AvatarControlDefinition register(AvatarControlDefinition control) {
         checkRegistration(owner, control);
-        controls.put(control.id(), control);
+        AvatarControlDefinition previous = controls.put(control.id(), control);
+        if (previous != null && previous != control) {
+            previous.onDefinitionChanged(null);
+        }
+        control.onDefinitionChanged(() -> definitionRevision++);
+        definitionRevision++;
         return control;
     }
 
@@ -58,10 +72,21 @@ public class AvatarControlRuntime {
 
     public AvatarControlDefinition remove(String id) {
         initialBoundValues.remove(id);
-        return controls.remove(id);
+        AvatarControlDefinition removed = controls.remove(id);
+        if (removed != null) {
+            removed.onDefinitionChanged(null);
+            definitionRevision++;
+        }
+        return removed;
     }
 
     public void clear() {
+        if (!controls.isEmpty()) {
+            definitionRevision++;
+        }
+        for (var control : controls.values()) {
+            control.onDefinitionChanged(null);
+        }
         controls.clear();
         initialBoundValues.clear();
         modelKey = null;

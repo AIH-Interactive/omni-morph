@@ -11,6 +11,9 @@ import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
 import top.aihmc.omnimorph.model.cache.AvatarCachePaths;
 import top.aihmc.omnimorph.model.cache.ModelCacheCodec;
 import top.aihmc.omnimorph.model.cache.ModelCacheLayout;
+import top.aihmc.omnimorph.model.outfit.OutfitCodec;
+import top.aihmc.omnimorph.model.outfit.OutfitConfig;
+import top.aihmc.omnimorph.model.outfit.OutfitLimits;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -36,7 +39,12 @@ public final class LibraryTransferService {
     private final LibraryResourceCache resources;
     private final java.util.function.Supplier<String> administrator;
 
-    public record Package(LibraryModels.Model model, CompoundTag nbt, String rawHash, String purpose) {}
+    public record Package(LibraryModels.Model model, CompoundTag nbt, String rawHash, String purpose,
+                          OutfitConfig configuration, OutfitLimits outfitLimits) {
+        public Package(LibraryModels.Model model, CompoundTag nbt, String rawHash, String purpose) {
+            this(model, nbt, rawHash, purpose, null, null);
+        }
+    }
 
     public record Operation(LibraryClient.Request<Package> request, AvatarLoadProgress progress) implements AutoCloseable {
         @Override
@@ -62,6 +70,14 @@ public final class LibraryTransferService {
 
     public Operation preview(UUID model) {
         return fetch(model, false);
+    }
+
+    /** A draft's fixed revision must not silently follow an updated catalog card. */
+    public Operation preview(UUID model, long revision) {
+        if (revision < 1) {
+            throw new IllegalArgumentException("INVALID_RESOURCE_REVISION");
+        }
+        return fetch(model, false, false, revision);
     }
 
     /** Discard old plaintext download leftovers only within the application's dedicated cache. */
@@ -94,6 +110,10 @@ public final class LibraryTransferService {
     }
 
     private Operation fetch(UUID id, boolean formal, boolean join) {
+        return fetch(id, formal, join, null);
+    }
+
+    private Operation fetch(UUID id, boolean formal, boolean join, Long expectedRevision) {
         var progress = new AvatarLoadProgress();
         long generation = progress.begin(AvatarLoadProgress.Stage.PROFILE);
         var request = client.submit(LibraryClient.Lane.TRANSFER, exchange -> {
@@ -103,22 +123,40 @@ public final class LibraryTransferService {
                     exchange.adminToken(token);
                 }
                 LibraryModels.Model model = exchange.json("GET", ROOT + "models/" + id, null, LibraryModels.Model.class);
+                if (expectedRevision != null && model.revision() != expectedRevision) {
+                    throw new LibraryClient.Failure(0, "RESOURCE_REVISION_UNAVAILABLE");
+                }
                 LibraryPreviewCache modelPreview = preview.forResourceKind(model.resourceKind());
+                boolean outfit = "OUTFIT".equals(model.resourceKind());
+                OutfitLimits limits = null;
+                if (outfit) {
+                    var capabilities = exchange.json("GET", ROOT + "capabilities", null, LibraryModels.Capabilities.class);
+                    var supported = capabilities.outfitsV1();
+                    if (!capabilities.enabled() || supported == null || !supported.configuration()) {
+                        throw new LibraryClient.Failure(0, "OUTFIT_UNSUPPORTED");
+                    }
+                    limits = supported.limits();
+                }
+                LibraryPreviewCache.Kind cacheKind = outfit ? LibraryPreviewCache.Kind.CONFIGURATION
+                        : LibraryPreviewCache.Kind.MODEL;
                 String purpose = formal ? "download" : "preview";
                 if (!id.equals(model.modelId()) || !model.allows(purpose) || model.byteLength() < 1
                         || model.byteLength() > CloudHttp.FILE_BYTES) {
                     throw new LibraryClient.Failure(0, "MODEL_UNAVAILABLE");
+                }
+                if (outfit && model.byteLength() > limits.maxJsonBytes()) {
+                    throw new LibraryClient.Failure(0, "OUTFIT_LIMIT_EXCEEDED");
                 }
                 var scope = new LibraryPreviewCache.Scope(client.session().instance(), client.session().player(),
                         id, model.revision(), model.policyRevision());
                 if (formal) {
                     byte[] cached = resources.read(model);
                     if (cached != null && (!join || isMember(exchange, id))) {
-                        return parse(model, cached, CloudHttp.sha256(cached), purpose);
+                        return parse(model, cached, CloudHttp.sha256(cached), purpose, limits);
                     }
                     var pending = resources.pending(model);
                     if (pending != null) {
-                        var result = parse(model, pending.bytes(), pending.hash(), purpose);
+                        var result = parse(model, pending.bytes(), pending.hash(), purpose, limits);
                         finishPending(exchange, model, pending, join);
                         return result;
                     }
@@ -127,17 +165,17 @@ public final class LibraryTransferService {
                     // A formally downloaded source may serve a freshly authorized preview, never the reverse.
                     byte[] formalBytes = resources.read(model);
                     if (formalBytes != null) {
-                        return parse(model, formalBytes, CloudHttp.sha256(formalBytes), purpose);
+                        return parse(model, formalBytes, CloudHttp.sha256(formalBytes), purpose, limits);
                     }
                     // The detail immediately above is the fresh backend permission decision.
-                    var cached = modelPreview.find(scope, LibraryPreviewCache.Kind.MODEL,
+                    var cached = modelPreview.find(scope, cacheKind,
                             java.time.Duration.ofSeconds(exchange.previewCacheSeconds()), exchange::requireCurrent);
                     if (cached.isPresent()) {
                         try (var lease = cached.get()) {
                             byte[] bytes = lease.read();
                             if (bytes.length == model.byteLength()) {
                                 progress.stage(generation, AvatarLoadProgress.Stage.PREPARING);
-                                return parse(model, bytes, CloudHttp.sha256(bytes), purpose);
+                                return parse(model, bytes, CloudHttp.sha256(bytes), purpose, limits);
                             }
                         }
                     }
@@ -152,14 +190,17 @@ public final class LibraryTransferService {
                 var response = exchange.send("GET", transfer.relativePath(), HttpRequest.BodyPublishers.noBody(), null);
                 String hash = response.headers().firstValue("x-omnimorph-sha256").orElse("");
                 if (response.statusCode() != 200 || !hash.matches("[a-f0-9]{64}")
-                        || response.headers().firstValueAsLong("Content-Length").orElse(-1) != model.byteLength()) {
+                        || response.headers().firstValueAsLong("Content-Length").orElse(-1) != model.byteLength()
+                        || outfit && !response.headers().firstValue("Content-Type").orElse("")
+                                .split(";", 2)[0].trim().equalsIgnoreCase("application/json")) {
                     response.body().close();
                     throw new LibraryClient.Failure(response.statusCode(), "INVALID_DISTRIBUTION_RESPONSE");
                 }
                 progress.stage(generation, AvatarLoadProgress.Stage.DOWNLOADING);
                 Package result;
                 if (formal) {
-                    Path stagingDirectory = "ACCESSORY".equals(model.resourceKind())
+                    Path stagingDirectory = outfit ? ModelCacheLayout.configurationDirectory(cacheRoot)
+                            : "ACCESSORY".equals(model.resourceKind())
                             ? ModelCacheLayout.cosmeticDirectory(cacheRoot) : formalDirectory;
                     if (Files.isSymbolicLink(stagingDirectory)) {
                         response.body().close();
@@ -167,7 +208,7 @@ public final class LibraryTransferService {
                     }
                     Path partial = null;
                     try (InputStream input = response.body()) {
-                        if (!"ACCESSORY".equals(model.resourceKind())) {
+                        if (!outfit && !"ACCESSORY".equals(model.resourceKind())) {
                             AvatarCachePaths.prepare(cacheRoot, "model-library-downloads");
                         }
                         partial = Files.createTempFile(stagingDirectory, "download-", ".part");
@@ -176,7 +217,7 @@ public final class LibraryTransferService {
                         }
                         progress.stage(generation, AvatarLoadProgress.Stage.PREPARING);
                         byte[] bytes = codec.read(partial, CloudHttp.FILE_BYTES);
-                        result = parse(model, bytes, hash, purpose);
+                        result = parse(model, bytes, hash, purpose, limits);
                         var pending = resources.stage(model, partial, bytes, hash, transfer);
                         finishPending(exchange, model, pending, join);
                     } finally {
@@ -191,9 +232,9 @@ public final class LibraryTransferService {
                     }
                     byte[] bytes = output.toByteArray();
                     progress.stage(generation, AvatarLoadProgress.Stage.PREPARING);
-                    result = parse(model, bytes, hash, purpose);
+                    result = parse(model, bytes, hash, purpose, limits);
                     exchange.requireCurrent();
-                    modelPreview.put(new LibraryPreviewCache.Key(scope, hash), LibraryPreviewCache.Kind.MODEL, bytes,
+                    modelPreview.put(new LibraryPreviewCache.Key(scope, hash), cacheKind, bytes,
                             java.time.Duration.ofSeconds(exchange.previewCacheSeconds()));
                 }
                 return result;
@@ -255,7 +296,20 @@ public final class LibraryTransferService {
         }
     }
 
-    private static Package parse(LibraryModels.Model model, byte[] bytes, String hash, String purpose) throws IOException {
+    private static Package parse(LibraryModels.Model model, byte[] bytes, String hash, String purpose,
+                                 OutfitLimits limits) throws IOException {
+        if ("OUTFIT".equals(model.resourceKind())) {
+            try {
+                if (model.modelType() != null || limits == null) {
+                    throw new IllegalArgumentException("DISTRIBUTION_TYPE_MISMATCH");
+                }
+                String json = java.nio.charset.StandardCharsets.UTF_8.newDecoder()
+                        .decode(java.nio.ByteBuffer.wrap(bytes)).toString();
+                return new Package(model, null, hash, purpose, OutfitCodec.decode(json, limits), limits);
+            } catch (IllegalArgumentException | com.google.gson.JsonParseException malformed) {
+                throw new IOException("INVALID_OUTFIT_DISTRIBUTION", malformed);
+            }
+        }
         return parse(model, new ByteArrayInputStream(bytes), hash, purpose);
     }
 

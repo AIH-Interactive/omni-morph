@@ -24,6 +24,14 @@ public final class LibraryUploadDraftSmokeTest {
         var accessory = new com.google.gson.JsonObject();
         accessory.addProperty("cosmetic_anchor", "wing_anchor");
         creditsDraft.resourceKind("ACCESSORY", accessory);
+        reject(() -> creditsDraft.snapshot(limits(64)));
+        var accessoryData = new CompoundTag();
+        var header = new CompoundTag();
+        header.putString("resource_kind", "ACCESSORY");
+        header.putString("cosmetic_json", accessory.toString());
+        accessoryData.put("metadata", header);
+        creditsDraft.prepared(creditsGeneration, new LibraryPackagePreparation.Prepared(
+                credits, accessoryData, new byte[]{1}, "synthetic"));
         var accessorySnapshot = creditsDraft.snapshot(limits(64));
         require(accessorySnapshot.metadata().get("resource_kind").equals("ACCESSORY")
                         && accessorySnapshot.metadata().get("model_type").equals("FIGURA")
@@ -33,6 +41,27 @@ public final class LibraryUploadDraftSmokeTest {
         require(((com.google.gson.JsonObject) accessorySnapshot.metadata().get("accessory_metadata"))
                         .get("cosmetic_anchor").getAsString().equals("wing_anchor"),
                 "upload declaration is a snapshot of the selected purpose");
+        ((com.google.gson.JsonObject) accessorySnapshot.metadata().get("accessory_metadata")).addProperty("edit_bones", true);
+        require(!((com.google.gson.JsonObject) accessorySnapshot.metadata().get("accessory_metadata")).get("edit_bones").getAsBoolean(),
+                "snapshot access cannot mutate the declaration retained by an upload retry");
+        accessorySnapshot.accessoryDeclaration().addProperty("cosmetic_anchor", "back_anchor");
+        require(accessorySnapshot.accessoryDeclaration().get("cosmetic_anchor").getAsString().equals("wing_anchor"),
+                "source wrapper declaration is also an immutable retry snapshot");
+        var placement = com.google.gson.JsonParser.parseString("""
+                {"position":[1,0,0],"rotation":[0,0,0],"scale":[1,1,1]}
+                """).getAsJsonObject();
+        accessory.add("default_transform", placement);
+        creditsDraft.resourceKind("ACCESSORY", accessory);
+        creditsDraft.snapshot(limits(64));
+        var json = new com.google.gson.Gson();
+        var budgetJson = json.toJsonTree(top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults()).getAsJsonObject();
+        budgetJson.addProperty("positionLimit", 0);
+        var budget = json.fromJson(budgetJson, top.aihmc.omnimorph.model.outfit.OutfitLimits.class);
+        var outfitCapabilities = new LibraryModels.OutfitCapabilities(1, true, true, false, false,
+                32, 128, 64, 8192, 32768, 1024, 65536, 8, 256, budget);
+        var tightened = new LibraryModels.Capabilities(true, 1, 64, 64, 1024, 256, 256,
+                List.of("zip", "ysm"), List.of("FIGURA"), List.of("general"), false, outfitCapabilities);
+        reject(() -> creditsDraft.snapshot(tightened));
         creditsDraft.resourceKind("AVATAR", null);
         var longAuthor = "中".repeat(10000);
         var extensiveCredits = new LibraryMetadataReader.Metadata("FIGURA", "Full credits",

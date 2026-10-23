@@ -65,6 +65,7 @@ import top.aihmc.omnimorph.math.vector.FiguraVec3;
 import top.aihmc.omnimorph.mixin.gui.GuiGraphicsAccessor;
 import top.aihmc.omnimorph.model.FiguraModelPart;
 import top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext;
+import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 import top.aihmc.omnimorph.model.ParentType;
 import top.aihmc.omnimorph.model.PartCustomization;
 import net.minecraft.world.attribute.EnvironmentAttributes;
@@ -132,6 +133,8 @@ public class Avatar {
     public final EntityType<?> entityType;
     public CompoundTag nbt;
     public volatile boolean loaded = true;
+    private OutfitConfig.ResourceRef outfitSource;
+    private CompoundTag outfitSourceNbt;
     public final boolean isHost;
     public final boolean isLibraryPreview;
     private boolean playerModelPreview;
@@ -947,8 +950,23 @@ public class Avatar {
         load(nbt, ysmData, cancelled, stage -> {});
     }
 
+    /** Native loading code supplies provenance only after successful preparation. Never inferred from a pending selection. */
+    public void bindOutfitSource(OutfitConfig.ResourceRef source) {
+        if (!loaded || nbt == null) {
+            throw new IllegalStateException("OUTFIT_BASE_NOT_READY");
+        }
+        outfitSource = Objects.requireNonNull(source);
+        outfitSourceNbt = nbt;
+    }
+
+    public OutfitConfig.ResourceRef outfitSource() {
+        return loaded && nbt != null && nbt == outfitSourceNbt ? outfitSource : null;
+    }
+
     public void load(CompoundTag nbt, YsmModelData ysmData, java.util.function.BooleanSupplier cancelled,
                      java.util.function.Consumer<AvatarLoadProgress.Stage> progress) {
+        outfitSource = null;
+        outfitSourceNbt = null;
         this.nbt = nbt;
         loaded = false;
         controls.clear();
@@ -1855,6 +1873,8 @@ public class Avatar {
      * also closes and stops this avatar sounds
      */
     public void clean() {
+        outfitSource = null;
+        outfitSourceNbt = null;
         if (cosmeticAnimations != null) {
             cosmeticAnimations.close();
         }

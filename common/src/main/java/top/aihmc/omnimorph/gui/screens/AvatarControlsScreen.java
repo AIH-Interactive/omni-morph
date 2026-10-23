@@ -27,6 +27,7 @@ import top.aihmc.omnimorph.gui.widgets.ScrollBarWidget;
 import top.aihmc.omnimorph.gui.widgets.SwitchButton;
 import top.aihmc.omnimorph.gui.widgets.TextField;
 import top.aihmc.omnimorph.lua.api.ysm_actions.YsmActionsAPI;
+import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
 import top.aihmc.omnimorph.model.ysm.YsmModelRuntime;
 import top.aihmc.omnimorph.model.ysm.action.YsmActionDefinition;
 import top.aihmc.omnimorph.model.ysm.action.YsmActionWheelLayoutStore;
@@ -51,7 +52,7 @@ public class AvatarControlsScreen extends Screen {
     private static final String YSM_WHEEL_PAGE = "__ysm_wheel";
 
     private final Screen parentScreen;
-    private final Avatar avatar;
+    protected Avatar avatar;
     private String page;
     private final List<AvatarControlDefinition> controls = new ArrayList<>();
     private final List<String> pages = new ArrayList<>();
@@ -70,6 +71,7 @@ public class AvatarControlsScreen extends Screen {
     private String focusedWheelKeybindAction;
     private boolean focusedWheelKeybindToggle;
     private final Map<String, ItemStack> wheelItemCache = new HashMap<>();
+    private boolean buildingControls;
 
     public AvatarControlsScreen(Screen parentScreen, Avatar avatar, String page) {
         super(FiguraText.of("gui.controls.title"));
@@ -82,6 +84,9 @@ public class AvatarControlsScreen extends Screen {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft == null || avatar == null)
             return;
+        if (minecraft.screen instanceof CosmeticAnimationScreen preview && preview.openControls(avatar, page)) {
+            return;
+        }
         minecraft.setScreen(new AvatarControlsScreen(minecraft.screen, avatar, page));
     }
 
@@ -91,7 +96,16 @@ public class AvatarControlsScreen extends Screen {
         rebuild();
     }
 
-    private void rebuild() {
+    protected void rebuild() {
+        buildingControls = true;
+        try {
+            buildControls();
+        } finally {
+            buildingControls = false;
+        }
+    }
+
+    private void buildControls() {
         avatar.controls.hydrateLiveValues(avatar);
         this.clearWidgets();
         pageTabs.clear();
@@ -123,7 +137,7 @@ public class AvatarControlsScreen extends Screen {
             addControlWidget(widgetX, y + 3, widgetWidth, control);
             if (canReset(control))
                 this.addRenderableWidget(new Button(widgetX + widgetWidth + 8, y + 3, 42, 20, FiguraText.of("gui.controls.reset"), null, button -> {
-                    avatar.controls.reset(avatar, control.id());
+                    setControlValue(control, control.getDefault());
                     rebuild();
                 }));
             y += rowHeight(control);
@@ -132,20 +146,82 @@ public class AvatarControlsScreen extends Screen {
         if (previewWidth() > 0) {
             preview = new EntityPreview(previewX(), previewY(), previewWidth(), previewHeight(), previewScale(), 0f, 0f, minecraft == null ? null : minecraft.player, this);
             this.addRenderableWidget(preview);
+            if (controlPreview() != null) {
+                preview.setLibraryPreview(controlPreview());
+            }
         }
 
         int footerWidth = panelWidth();
+        Avatar expectedAvatar = avatar;
         Button resetAll = new Button(panelX(), height - 32, footerWidth / 2 - 4, 20, FiguraText.of(isWheelPage() ? "gui.controls.refresh_wheel" : "gui.reset_all"), null, button -> {
+            if (!controlsActive() || avatar != expectedAvatar) {
+                return;
+            }
             if (isWheelPage()) {
                 refreshYsmWheel();
                 return;
             }
-            avatar.controls.resetAll(avatar);
+            for (var control : List.copyOf(avatar.controls.all())) {
+                if (canReset(control)) {
+                    setControlValue(control, control.getDefault());
+                }
+            }
             rebuild();
         });
         resetAll.setActive(isWheelPage() ? avatar.getYsmRuntime() != null : hasResettableControls());
         this.addRenderableWidget(resetAll);
         this.addRenderableWidget(new Button(panelX() + footerWidth / 2 + 4, height - 32, footerWidth / 2 - 4, 20, Component.translatable("gui.done"), null, button -> onClose()));
+        buildAdditionalControls();
+    }
+
+    protected void buildAdditionalControls() {
+    }
+
+    protected boolean controlsActive() {
+        return true;
+    }
+
+    protected void controlsChanged() {
+    }
+
+    protected void validateControlChange(AvatarControlDefinition control, Object value) {
+    }
+
+    protected boolean includeWheelEditor() {
+        return true;
+    }
+
+    protected LibraryPreviewSession controlPreview() {
+        return null;
+    }
+
+    protected void selectControlAvatar(Avatar selected) {
+        avatar = selected;
+        page = "root";
+        scroll = 0;
+        focusedKeybind = null;
+        rebuild();
+    }
+
+    private boolean setControlValue(AvatarControlDefinition control, Object value) {
+        if (!controlsActive() || avatar.controls.get(control.id()) != control
+                || buildingControls && avatar.cosmeticContext != null) {
+            return false;
+        }
+        boolean changed;
+        try {
+            validateControlChange(control, value);
+            changed = avatar.controls.setValue(avatar, control.id(), value);
+        } catch (IllegalArgumentException invalid) {
+            if (avatar.cosmeticContext == null) {
+                throw invalid;
+            }
+            return false;
+        }
+        if (changed) {
+            controlsChanged();
+        }
+        return changed;
     }
 
     @Override
@@ -169,7 +245,10 @@ public class AvatarControlsScreen extends Screen {
                     scroll = 0;
                     rebuild();
                 } else {
-                    avatar.controls.press(avatar, control.id());
+                    if (controlsActive() && avatar.controls.get(control.id()) == control) {
+                        avatar.controls.press(avatar, control.id());
+                        controlsChanged();
+                    }
                 }
             }));
             default -> {
@@ -192,17 +271,21 @@ public class AvatarControlsScreen extends Screen {
     }
 
     private void addTextInput(int x, int y, int width, AvatarControlDefinition control, TextField.HintType hint, boolean colorPreview) {
-        TextField field = new TextField(x, y, width, 20, hint, text -> {
+        TextField field = new TextField(x, y, width, 20, hint, ignored -> {});
+        field.getField().setValue(valueText(control));
+        field.getField().setResponder(text -> {
+            boolean accepted;
             if (control.type() == AvatarControlType.NUMBER) {
                 try {
-                    avatar.controls.setValue(avatar, control.id(), Double.parseDouble(text));
+                    accepted = setControlValue(control, Double.parseDouble(text));
                 } catch (NumberFormatException ignored) {
+                    accepted = false;
                 }
             } else {
-                avatar.controls.setValue(avatar, control.id(), text);
+                accepted = setControlValue(control, text);
             }
+            field.setBorderColour(accepted ? 0xffffffff : 0xffff5555);
         });
-        field.getField().setValue(valueText(control));
         if (colorPreview)
             field.setBorderColour(parseColor(valueText(control), 0xFFFFFFFF));
         this.addRenderableWidget(field);
@@ -242,7 +325,7 @@ public class AvatarControlsScreen extends Screen {
                 rebuild();
                 return true;
             }
-            avatar.controls.setValue(avatar, focusedKeybind.id(), "key." + keyEvent.key());
+            setControlValue(focusedKeybind, "key." + keyEvent.key());
             focusedKeybind = null;
             rebuild();
             return true;
@@ -259,7 +342,7 @@ public class AvatarControlsScreen extends Screen {
             openDropdown = null;
         }
         if (focusedKeybind != null && event.button() != 0) {
-            avatar.controls.setValue(avatar, focusedKeybind.id(), "mouse." + event.button());
+            setControlValue(focusedKeybind, "mouse." + event.button());
             focusedKeybind = null;
             rebuild();
             return true;
@@ -436,7 +519,7 @@ public class AvatarControlsScreen extends Screen {
         addPage("root");
         for (AvatarControlDefinition control : avatar.controls.all())
             addPage(control.page());
-        if (avatar.getYsmRuntime() != null && !wheelActions().isEmpty())
+        if (includeWheelEditor() && avatar.getYsmRuntime() != null && !wheelActions().isEmpty())
             addPage(YSM_WHEEL_PAGE);
     }
 
@@ -521,7 +604,7 @@ public class AvatarControlsScreen extends Screen {
     }
 
     private boolean isWheelPage() {
-        return YSM_WHEEL_PAGE.equals(page);
+        return includeWheelEditor() && YSM_WHEEL_PAGE.equals(page);
     }
 
     private List<YsmActionDefinition> wheelActions() {
@@ -1179,6 +1262,9 @@ public class AvatarControlsScreen extends Screen {
         private ControlSlider(int x, int y, int width, int height, AvatarControlDefinition control) {
             super(x, y, width, height, progress(control), steps(control), steps(control) <= 21);
             this.control = control;
+            if (avatar.cosmeticContext != null) {
+                lastValue = currentValue();
+            }
         }
 
         @Override
@@ -1204,7 +1290,7 @@ public class AvatarControlsScreen extends Screen {
             }
             if (Double.isNaN(lastValue) || Math.abs(lastValue - value) > 0.0001d) {
                 lastValue = value;
-                avatar.controls.setValue(avatar, control.id(), value);
+                setControlValue(control, value);
             }
         }
 
@@ -1229,7 +1315,9 @@ public class AvatarControlsScreen extends Screen {
         @Override
         public void onPress(InputWithModifiers inputWithModifiers) {
             boolean next = !isToggled();
-            avatar.controls.setValue(avatar, control.id(), next);
+            if (!setControlValue(control, next)) {
+                return;
+            }
             setMessage(next ? SwitchButton.ON : SwitchButton.OFF);
             super.onPress(inputWithModifiers);
         }
@@ -1260,7 +1348,9 @@ public class AvatarControlsScreen extends Screen {
             this.context = new ContextMenu(this, width);
             for (String option : control.options()) {
                 this.context.addAction(Component.literal(control.optionLabel(option)), null, button -> {
-                    avatar.controls.setValue(avatar, control.id(), option);
+                    if (!setControlValue(control, option)) {
+                        return;
+                    }
                     this.setMessage(Component.literal(control.optionLabel(option)));
                     this.context.setVisible(false);
                     openDropdown = null;

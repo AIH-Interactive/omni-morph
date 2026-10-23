@@ -28,6 +28,7 @@ import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.EntityPreview;
 import top.aihmc.omnimorph.gui.widgets.Label;
 import top.aihmc.omnimorph.gui.widgets.SwitchButton;
+import top.aihmc.omnimorph.gui.widgets.TextField;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryIconButton;
@@ -38,6 +39,7 @@ import top.aihmc.omnimorph.gui.widgets.wardrobe.BoneTreeWidget;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid;
+import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeEditorPanel;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
 import top.aihmc.omnimorph.model.library.LibraryModelEdits;
 import top.aihmc.omnimorph.model.library.PreviewHierarchy;
@@ -48,6 +50,19 @@ import top.aihmc.omnimorph.model.library.LibraryEquipmentService;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
 import top.aihmc.omnimorph.model.library.LibraryTransferService;
 import top.aihmc.omnimorph.model.library.LocalOutfitCandidates;
+import top.aihmc.omnimorph.model.library.LocalCosmeticCatalog;
+import top.aihmc.omnimorph.model.library.CloudCosmeticSource;
+import top.aihmc.omnimorph.model.library.OutfitPresetResources;
+import top.aihmc.omnimorph.model.outfit.CosmeticMetadata;
+import top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory;
+import top.aihmc.omnimorph.model.outfit.LocalCosmeticSource;
+import top.aihmc.omnimorph.model.outfit.OutfitConfig;
+import top.aihmc.omnimorph.model.outfit.OutfitComposition;
+import top.aihmc.omnimorph.model.outfit.OutfitCodec;
+import top.aihmc.omnimorph.model.outfit.OutfitLimits;
+import top.aihmc.omnimorph.model.outfit.OutfitDraft;
+import top.aihmc.omnimorph.model.outfit.OutfitPreparation;
+import top.aihmc.omnimorph.permissions.PermissionManager;
 import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.IOUtils;
 import top.aihmc.omnimorph.utils.TextUtils;
@@ -68,7 +83,12 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private enum Mode { ALL, AVATAR, COSMETIC }
     private enum Pane { RESOURCES, PREVIEW, TREE, INFO }
 
-    private record Selection(Path path, Path reference, boolean ysm, UUID cloud, Component name) {}
+    private record Selection(Path path, Path reference, boolean ysm, UUID cloud, Component name,
+                             LocalCosmeticInventory.Entry cosmetic) {
+        private Selection(Path path, Path reference, boolean ysm, UUID cloud, Component name) {
+            this(path, reference, ysm, cloud, name, null);
+        }
+    }
     private record Context(Tab tab, Source source) {}
 
     private Tab tab = Tab.OUTFIT;
@@ -87,6 +107,36 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private final Map<Tab, Mode> tabModes = new HashMap<>();
     private Context localContext;
     private LocalOutfitCandidates localCandidates;
+    private LocalCosmeticCatalog cosmetics;
+    private List<LocalCosmeticInventory.Entry> observedCosmetics = List.of();
+    private LibraryClient.Request<LibraryModels.Capabilities> outfitCapabilitiesRequest;
+    private OutfitLimits outfitLimits = OutfitLimits.defaults();
+    private OutfitDraft outfitDraft;
+    private UUID draftIdentity = UUID.randomUUID();
+    private UUID draftAccount;
+    private final Map<OutfitConfig.ResourceRef, LocalCosmeticInventory.Entry> draftResources = new HashMap<>();
+    private final Map<OutfitConfig.ResourceRef, CloudCosmeticSource.Descriptor> draftCloudResources = new HashMap<>();
+    private CloudCosmeticSource.Operation cloudCosmeticSelection;
+    private CloudCosmeticSource.Prepared selectedCloudCosmetic;
+    private CloudCosmeticSource.Batch draftCloudBatch;
+    private CompoundTag draftBase;
+    private CompoundTag committedDraftBase;
+    private boolean draftBasePersistent;
+    private boolean committedDraftBasePersistent;
+    private java.util.concurrent.CompletableFuture<OutfitDraft> draftStart;
+    private long draftPreviewGeneration;
+    private long resourceSelectionGeneration;
+    private boolean draftPreviewActive;
+    private OutfitConfig.ResourceRef draftPreviewBase;
+    private Button addInstanceButton;
+    private Button editInstancesButton;
+    private Button cancelDraftButton;
+    private Button resetDraftButton;
+    private boolean editingInstance;
+    private UUID editingVirtualAnchor;
+    private OutfitConfig.BoneRef editingBone;
+    private UUID virtualRemovalArmed;
+    private long virtualRemovalGeneration;
     private Selection selected;
     private LibraryPreviewSession preview;
     private LibraryClient previewClient;
@@ -120,6 +170,18 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private boolean observedReady;
     private boolean liveHierarchy;
     private final BoneTreeState bones = new BoneTreeState();
+    private List<BoneTreeState.ViewChoice> renderedTreeChoices = List.of();
+    private OutfitConfig.AnchorRef pendingAnchorFocus;
+    private UUID automaticAnchorFocus;
+    private boolean boneHelpersShown = true;
+    private boolean cosmeticControlsOpen;
+    private boolean cosmeticAnimationsOpen;
+    private boolean outfitPresetsOpen;
+    private Button cosmeticSettingsButton;
+    private UUID attachingInstance;
+    private OutfitDraft attachmentDraft;
+    private long attachmentSelection;
+    private top.aihmc.omnimorph.model.outfit.OutfitComposition.MountTarget observedAutomaticTarget;
     private LibraryPreviewSession boneSession;
     private long boneRevision = -1;
     private WardrobeLayout layout;
@@ -170,6 +232,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         boolean returning = removed;
         removed = false;
         super.init();
+        discardOldAccountDraft();
         localList = null;
         cloudList = null;
         infoWidget = null;
@@ -184,9 +247,19 @@ public class WardrobeScreen extends AbstractPanelScreen {
         collectionPublicationButton = null;
         uploadButton = null;
         deleteButton = null;
+        addInstanceButton = null;
+        editInstancesButton = null;
+        cancelDraftButton = null;
+        resetDraftButton = null;
+        cosmeticSettingsButton = null;
         previewWidget = null;
         if (localCandidates == null) {
             localCandidates = LocalOutfitCandidates.forDirectory(FiguraMod.getFiguraDirectory());
+        }
+        if (cosmetics == null) {
+            cosmetics = new LocalCosmeticCatalog(FiguraMod.getFiguraDirectory(), minecraft::execute);
+            observedCosmetics = List.of();
+            cosmetics.refresh();
         }
         connect();
         if (returning && collection != null && client != null) {
@@ -195,7 +268,9 @@ public class WardrobeScreen extends AbstractPanelScreen {
         if (preview == null || preview.status().stage() == LibraryPreviewSession.Stage.CLOSED) {
             preview = new LibraryPreviewSession();
             previewClient = null;
-            if (selected != null) {
+            if (draftPreviewActive) {
+                previewOutfitDraft();
+            } else if (selected != null) {
                 previewSelection();
             }
         }
@@ -221,7 +296,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
             if (tab == Tab.OUTFIT) {
                 int half = layout.treeWidth() / 2;
                 addRenderableWidget(new Button(layout.treeX(), 28, half - 2, 20, text("default_panel"), null,
-                        button -> switchRightPane(false))).setActive(bonesShown);
+                        button -> switchRightPane(false))).setActive(bonesShown || editingInstance);
                 addRenderableWidget(new Button(layout.treeX() + half, 28, layout.treeWidth() - half, 20,
                         text("tree"), null, button -> switchRightPane(true))).setActive(!bonesShown);
             }
@@ -248,6 +323,12 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private void switchRightPane(boolean bones) {
+        if (!bones) {
+            clearAnchorSelection();
+        }
+        editingInstance = false;
+        editingVirtualAnchor = null;
+        editingBone = null;
         bonesShown = bones;
         pane = bones ? Pane.TREE : Pane.INFO;
         rebuild();
@@ -267,10 +348,14 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 transfers = new LibraryTransferService(client, FiguraMod.getCacheDirectory());
                 equipment = new LibraryEquipmentService(client, transfers);
                 visibility = new LibraryEquipmentVisibility(client);
+                readOutfitLimits(client);
                 collection.refresh();
             }
             if (thumbnails == null) {
                 thumbnails = new LibraryThumbnailService(client, FiguraMod.getCacheDirectory());
+            }
+            if (outfitCapabilitiesRequest == null) {
+                readOutfitLimits(client);
             }
             if (collectionGrid != null) {
                 collectionGrid.thumbnails(thumbnails);
@@ -282,6 +367,25 @@ public class WardrobeScreen extends AbstractPanelScreen {
             client = null;
             loadOfflineMetadata();
         }
+    }
+
+    private void readOutfitLimits(LibraryClient expectedClient) {
+        var request = expectedClient.capabilities();
+        outfitCapabilitiesRequest = request;
+        request.future().whenComplete((capabilities, failure) -> {
+            if (removed || client != expectedClient || outfitCapabilitiesRequest != request || !expectedClient.current()) {
+                return;
+            }
+            if (failure == null) {
+                outfitLimits = capabilities.outfitsV1() == null
+                        ? OutfitLimits.defaults() : capabilities.outfitsV1().limits();
+            }
+            if (draftPreviewActive) {
+                previewOutfitDraft();
+            } else if (selectedIsAccessory()) {
+                previewSelection();
+            }
+        });
     }
 
     private void loadOfflineMetadata() {
@@ -314,6 +418,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         if (next == tab) {
             return;
         }
+        resourceSelectionGeneration++;
         if (preview != null) {
             preview.clear();
         }
@@ -327,7 +432,13 @@ public class WardrobeScreen extends AbstractPanelScreen {
         if (tab == Tab.COLLECTION && (pane == Pane.TREE || pane == Pane.INFO)) {
             pane = Pane.PREVIEW;
         }
-        if (selected != null) {
+        if (tab == Tab.OUTFIT && outfitDraft != null && outfitDraft.dirty()) {
+            previewOutfitDraft();
+        } else {
+            draftPreviewActive = false;
+            draftPreviewGeneration++;
+        }
+        if (!draftPreviewActive && selected != null) {
             previewSelection();
         }
         syncHierarchy();
@@ -352,37 +463,15 @@ public class WardrobeScreen extends AbstractPanelScreen {
             parts = mode == Mode.COSMETIC;
             rebuild();
         });
-        if (parts) {
-            var placeholder = addRenderableWidget(new WardrobeCloudList(x, 54, w, Math.max(88, height - 88),
-                    new WardrobeCloudList.View(), ignored -> {}, ignored -> Component.empty()));
-            int heading = resourceFiltersExpanded ? 114 : 90;
-            var comingSoon = addRenderableWidget(new Label(text("coming_2"), x + w / 2, heading, TextUtils.Alignment.CENTER));
-            var features = new ArrayList<Button>();
-            int row = heading + 20;
-            for (String feature : List.of("combination", "attachment", "anchor")) {
-                var featureButton = addRenderableWidget(new Button(x, row, w, 20,
-                        text(feature), text("coming_2"), button -> {}));
-                featureButton.setActive(false);
-                features.add(featureButton);
-                row += 24;
-            }
-            placeholder.setResourceFilters(sourceFilter, modeFilter, resourceFiltersExpanded, expanded -> {
-                resourceFiltersExpanded = expanded;
-                int top = expanded ? 114 : 90;
-                comingSoon.setY(top);
-                for (int index = 0; index < features.size(); index++) {
-                    features.get(index).setY(top + 20 + index * 24);
-                }
-            });
-            return;
-        }
         int listHeight = Math.max(88, height - 88);
         if (tab == Tab.COLLECTION) {
             var view = cardViews.computeIfAbsent(context(), ignored -> new WardrobeCollectionGrid.View());
             collectionGrid = addRenderableWidget(new WardrobeCollectionGrid(x, 54, w,
                     source != Source.LOCAL ? listHeight - 14 : listHeight, view,
                     client == null ? null : thumbnails, entry -> {
-                if (entry.local() != null) {
+                if (entry.cosmetic() != null) {
+                    selectCosmetic(entry.cosmetic());
+                } else if (entry.local() != null) {
                     selectLocal(entry.local());
                 } else {
                     selectCloud(entry.cloud());
@@ -398,7 +487,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
                                 : FiguraText.of("gui.library.failure", collection.failure()),
                         x + 2, height - 46, w - 4, 0xffffdd88));
             }
-        } else if (source == Source.LOCAL) {
+        } else if (source == Source.LOCAL && mode != Mode.COSMETIC
+                && (mode == Mode.AVATAR || localCosmetics(true).isEmpty())) {
             localList = new AvatarList(x, 54, w, listHeight, this, this::selectLocal,
                     avatar -> tab == Tab.COLLECTION || localCandidates.contains(avatar.getTheActualPathForThis()));
             localList.showSourceBadge(true);
@@ -421,18 +511,28 @@ public class WardrobeScreen extends AbstractPanelScreen {
             cloudList.thumbnails(client == null ? null : thumbnails);
             refreshCloudRows();
             addRenderableOnly((gui, mouseX, mouseY, delta) -> UIHelper.renderScrollingText(gui,
-                    client == null ? FiguraText.of("gui.library.state.offline")
-                            : collection.failure().isEmpty() ? text("cloud")
-                            : FiguraText.of("gui.library.failure", collection.failure()),
+                    resourceStatus(),
                     x + 2, height - 46, w - 4, 0xffffdd88));
         }
+    }
+
+    private Component resourceStatus() {
+        if (source == Source.LOCAL) {
+            return cosmetics.failure().isEmpty() ? text("local")
+                    : FiguraText.of("gui.library.failure", cosmetics.failure());
+        }
+        if (client == null) {
+            return FiguraText.of("gui.library.state.offline");
+        }
+        return collection.failure().isEmpty() ? text("cloud")
+                : FiguraText.of("gui.library.failure", collection.failure());
     }
 
     private void buildPreview() {
         int x = layout.previewX();
         int w = layout.previewWidth();
         boolean cloudActions = source == Source.CLOUD || source == Source.ALL && selected != null && selected.cloud() != null;
-        int actionCount = tab == Tab.OUTFIT ? 9 : cloudActions ? 8 : 4;
+        int actionCount = tab == Tab.OUTFIT ? 16 : cloudActions ? 8 : 4;
         int actionsHeight = LibraryActionBar.heightFor(w, actionCount);
         int actionsY = height - 28 - actionsHeight;
         int size = LibraryWorkspaceLayout.previewHeightBeforeActions(layout.top(), actionsY);
@@ -444,11 +544,13 @@ public class WardrobeScreen extends AbstractPanelScreen {
             previewWidget.setLibraryPreview(preview);
         }
         previewWidget.restoreView(previewViews.get(tab));
-        previewWidget.setSelectedBone(tab == Tab.OUTFIT ? bones.selectedPart() : null);
+        previewWidget.setSelectedBone(previewBoneSelection());
         addRenderableWidget(previewWidget);
         addRenderableOnly((gui, mouseX, mouseY, delta) -> {
             Component name;
-            if (tab == Tab.OUTFIT && selected == null) {
+            if (tab == Tab.OUTFIT && draftPreviewActive) {
+                name = text("draft_preview");
+            } else if (tab == Tab.OUTFIT && selected == null) {
                 name = text("current_equipped");
             } else if (selected == null) {
                 name = FiguraText.of("gui.library.select_model");
@@ -474,8 +576,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 buildCloudCollectionActions(actions);
             } else {
                 actions.separator();
-                actions.action(icon(0, 0, "new_avatar", "avatars",
-                        button -> minecraft.setScreen(new AvatarWizardScreen(this))));
+                actions.action(icon(0, 0, "new_avatar", "create_resource",
+                        this::openCreateMenu));
                 actions.action(icon(0, 0, "folder", "local", button ->
                         net.minecraft.util.Util.getPlatform().openUri(LocalAvatarFetcher.getLocalAvatarDirectory().toUri())));
             }
@@ -500,6 +602,185 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 AvatarManager.loadLocalAvatar(null);
                 AvatarList.selectedEntry = null;
             }));
+            actions.separator();
+            addInstanceButton = actions.action(icon(0, 0, "friend_add", "instance_add", button -> addSelectedInstance()));
+            editInstancesButton = actions.action(icon(0, 0, "library_edit", "instances", button -> openInstances(button)));
+            cancelDraftButton = actions.action(icon(0, 0, "unselect", "draft_cancel", button -> cancelOutfitDraft()));
+            resetDraftButton = actions.action(icon(0, 0, "reload", "draft_reset", button -> resetOutfitDraft()));
+            cosmeticSettingsButton = actions.action(new LibraryIconButton("cosmetic_settings", 1, () -> 0,
+                    text("cosmetic_settings"), null, button -> openCosmeticControls()));
+            refreshCosmeticSettings();
+            actions.action(icon(0, 0, "library_edit", "outfit_presets", button -> openOutfitPresets()));
+        }
+    }
+
+    private void openOutfitPresets() {
+        if (removed || outfitPresetsOpen || !outfitLimitsReady()) {
+            return;
+        }
+        long selection = resourceSelectionGeneration;
+        beginOutfitDraft().whenComplete((draft, failure) -> {
+            if (removed || outfitPresetsOpen || selection != resourceSelectionGeneration) {
+                return;
+            }
+            if (failure != null) {
+                error(failure);
+                return;
+            }
+            outfitPresetsOpen = true;
+            minecraft.setScreen(new OutfitPresetsScreen(this, draft, FiguraMod.getLocalPlayerUUID(),
+                    FiguraMod.getFiguraDirectory(), client == null ? OutfitLimits.defaults() : outfitLimits, client, transfers));
+        });
+    }
+
+    boolean outfitPresetsActive(OutfitDraft draft, long generation, UUID account) {
+        return outfitPresetsOpen && !removed && outfitDraft == draft && draft.generation() == generation
+                && account.equals(FiguraMod.getLocalPlayerUUID()) && account.equals(draftAccount);
+    }
+
+    boolean presetBaseCanPersist() {
+        return outfitDraft != null && (outfitDraft.configuration().base() == null || draftBasePersistent);
+    }
+
+    void importOutfitPreset(OutfitDraft draft, long generation, UUID account,
+                           OutfitConfig configuration, OutfitPresetResources.Prepared prepared, CompoundTag base) {
+        if (!outfitPresetsActive(draft, generation, account) || !prepared.ready()) {
+            throw new IllegalStateException("OUTFIT_PRESET_RETIRED");
+        }
+        installOutfitPreset(draft, configuration, prepared, base);
+        previewOutfitDraft();
+    }
+
+    private void installOutfitPreset(OutfitDraft draft, OutfitConfig configuration,
+                                    OutfitPresetResources.Prepared prepared, CompoundTag base) {
+        if (configuration.base() != null && base == null) {
+            throw new IllegalStateException("OUTFIT_BASE_NOT_READY");
+        }
+        var local = prepared.localAccessories();
+        var cloud = new HashMap<OutfitConfig.ResourceRef, CloudCosmeticSource.Descriptor>();
+        for (var instance : configuration.instances()) {
+            if (instance.resource().source() == OutfitConfig.Source.CLOUD) {
+                var metadata = prepared.metadata(instance.resource());
+                cloud.put(instance.resource(), new CloudCosmeticSource.Descriptor(instance.resource(), metadata, metadata.common().name));
+            }
+        }
+        draft.importPreset(configuration);
+        draftBase = base;
+        draftBasePersistent = true;
+        draftResources.putAll(local);
+        draftCloudResources.putAll(cloud);
+        pruneDraftResources();
+        clearAnchorSelection();
+        virtualRemovalArmed = null;
+        editingInstance = false;
+        editingBone = null;
+        editingVirtualAnchor = null;
+        pendingAnchorFocus = null;
+        automaticAnchorFocus = null;
+        observedAutomaticTarget = null;
+        selected = null;
+        selections.put(context(), null);
+    }
+
+    void closeOutfitPresets(boolean returning) {
+        outfitPresetsOpen = false;
+        if (!returning) {
+            removed();
+        }
+    }
+
+    private void refreshCosmeticSettings() {
+        if (cosmeticSettingsButton != null) {
+            var composition = preview.outfitComposition();
+            boolean available = draftPreviewActive && outfitDraft != null && composition != null
+                    && !composition.controlGroups().isEmpty();
+            cosmeticSettingsButton.setActive(available);
+            cosmeticSettingsButton.setTooltip(text(available ? "cosmetic_settings" : "cosmetic_settings_empty"));
+        }
+    }
+
+    private void openCosmeticControls() {
+        var composition = preview.outfitComposition();
+        if (!draftPreviewActive || outfitDraft == null || composition == null || composition.controlGroups().isEmpty()) {
+            return;
+        }
+        cosmeticControlsOpen = true;
+        minecraft.setScreen(new CosmeticControlsScreen(this, preview, composition, outfitDraft,
+                FiguraMod.getLocalPlayerUUID()));
+    }
+
+    boolean cosmeticControlsActive(OutfitComposition composition,
+                                   OutfitDraft expectedDraft, UUID account,
+                                   OutfitComposition.ControlGroup group) {
+        return (cosmeticControlsOpen || cosmeticAnimationsOpen) && draftPreviewActive && outfitDraft == expectedDraft
+                && account.equals(FiguraMod.getLocalPlayerUUID()) && preview.outfitComposition() == composition
+                && composition.controlGroups().contains(group)
+                && outfitDraft.configuration().instances().stream().anyMatch(instance ->
+                        instance.instanceId().equals(group.instance().instanceId()) && instance.enabled()
+                                && instance.resource().equals(group.instance().resource()));
+    }
+
+    Component cosmeticControlName(OutfitComposition.ControlGroup group) {
+        return instanceName(group.instance());
+    }
+
+    void saveCosmeticControls(OutfitComposition.ControlGroup group) {
+        outfitDraft.setControls(group.instance().instanceId(), group.avatar().cosmeticContext.controls());
+    }
+
+    void closeCosmeticControls(boolean returning) {
+        cosmeticControlsOpen = false;
+        if (!returning) {
+            removed();
+        }
+    }
+
+    private void openCosmeticAnimations() {
+        var composition = preview.outfitComposition();
+        if (!draftPreviewActive || outfitDraft == null || composition == null || !composition.actionWheel().available()) {
+            return;
+        }
+        cosmeticAnimationsOpen = true;
+        minecraft.setScreen(new CosmeticAnimationScreen(this, preview, composition, outfitDraft,
+                FiguraMod.getLocalPlayerUUID()));
+    }
+
+    boolean cosmeticAnimationsActive(OutfitComposition composition, OutfitDraft draft, UUID account) {
+        return cosmeticAnimationsOpen && draftPreviewActive && outfitDraft == draft
+                && account.equals(FiguraMod.getLocalPlayerUUID()) && preview.outfitComposition() == composition;
+    }
+
+    void saveAnimationControls(OutfitComposition composition, OutfitDraft draft, UUID account,
+                               top.aihmc.omnimorph.avatar.Avatar owner) {
+        if (owner == null || owner.cosmeticContext == null
+                || !animationOwnerActive(composition, draft, account, owner)) {
+            return;
+        }
+        UUID id = owner.cosmeticContext.instanceId();
+        var controls = owner.cosmeticContext.controls();
+        if (!draft.instance(id).controls().equals(controls)) {
+            draft.setControls(id, controls);
+        }
+    }
+
+    boolean animationOwnerActive(OutfitComposition composition, OutfitDraft draft, UUID account,
+                                  top.aihmc.omnimorph.avatar.Avatar owner) {
+        if (!cosmeticAnimationsActive(composition, draft, account)) {
+            return false;
+        }
+        if (owner == null || owner == preview.outfitBase()) {
+            return true;
+        }
+        var context = owner.cosmeticContext;
+        return context != null && draft.configuration().instances().stream().anyMatch(instance ->
+                instance.instanceId().equals(context.instanceId()) && instance.enabled()
+                        && instance.resource().equals(context.resource()));
+    }
+
+    void closeCosmeticAnimations(boolean returning) {
+        cosmeticAnimationsOpen = false;
+        if (!returning) {
+            removed();
         }
     }
 
@@ -691,9 +972,33 @@ public class WardrobeScreen extends AbstractPanelScreen {
         int x = layout.treeX();
         int w = layout.treeWidth();
         syncHierarchy();
-        addRenderableWidget(new BoneTreeWidget(x, layout.top(), w, Math.max(64, height - 140), bones, this::refreshBones));
-        addRenderableOnly((gui, mouseX, mouseY, delta) -> UIHelper.renderScrollingText(gui,
-                text("bones_readonly"), x + 4, height - 52, w - 8, 0xffaaaaaa));
+        renderedTreeChoices = bones.viewChoices();
+        int treeTop = layout.top();
+        if (preview != null && preview.outfitHierarchy() != top.aihmc.omnimorph.model.library.OutfitHierarchy.EMPTY) {
+            var choices = bones.viewChoices();
+            addRenderableWidget(new LibraryDropdown(x, treeTop, w,
+                    () -> choices.stream().<Component>map(choice -> choice.view().equals(BoneTreeState.View.ALL)
+                            ? text("tree_all") : Component.literal(choice.label())).toList(),
+                    () -> {
+                        for (int index = 0; index < choices.size(); index++) {
+                            if (choices.get(index).view().equals(bones.view())) {
+                                return index;
+                            }
+                        }
+                        return 0;
+                    }, index -> bones.view(choices.get(index).view()), 6));
+            treeTop += 24;
+        }
+        addRenderableWidget(new BoneTreeWidget(x, treeTop, w, Math.max(40, height - 140 - (treeTop - layout.top())), bones,
+                this::refreshBones, this::selectTreeTarget));
+        if (outfitDraft != null && draftPreviewActive) {
+            addRenderableWidget(new Button(x, height - 60, w, 20,
+                    text(attachingInstance == null ? "anchor_actions" : "anchor_target_actions"), null,
+                    this::openAnchorActions));
+        } else {
+            addRenderableOnly((gui, mouseX, mouseY, delta) -> UIHelper.renderScrollingText(gui,
+                    text("bones_readonly"), x + 4, height - 52, w - 8, 0xffaaaaaa));
+        }
     }
 
     private void refreshBones() {
@@ -705,8 +1010,27 @@ public class WardrobeScreen extends AbstractPanelScreen {
         syncHierarchy();
     }
 
+    private void selectTreeTarget(top.aihmc.omnimorph.model.library.OutfitHierarchy.Target target) {
+        automaticAnchorFocus = null;
+        observedAutomaticTarget = null;
+        if (outfitDraft == null) {
+            return;
+        }
+        if (attachingInstance != null && attachmentDraft == outfitDraft
+                && outfitDraft.configuration().instances().stream().anyMatch(value -> value.instanceId().equals(attachingInstance))) {
+            outfitDraft.select(attachingInstance);
+            return;
+        }
+        clearAnchorSelection();
+        UUID instance = target == null ? null : target.instanceId();
+        if (instance == null || outfitDraft.configuration().instances().stream()
+                .anyMatch(value -> value.instanceId().equals(instance))) {
+            outfitDraft.select(instance);
+        }
+    }
+
     private boolean selectionPreview() {
-        return tab == Tab.COLLECTION || selected != null;
+        return tab == Tab.COLLECTION || selected != null || draftPreviewActive;
     }
 
     private void syncHierarchy() {
@@ -730,16 +1054,589 @@ public class WardrobeScreen extends AbstractPanelScreen {
         if (preview != boneSession || preview.hierarchyRevision() != boneRevision) {
             boneSession = preview;
             boneRevision = preview.hierarchyRevision();
-            bones.replace(preview.hierarchy());
+            if (preview.outfitHierarchy() == top.aihmc.omnimorph.model.library.OutfitHierarchy.EMPTY) {
+                bones.replace(preview.hierarchy());
+            } else {
+                bones.replace(preview.outfitHierarchy());
+                if (pendingAnchorFocus != null) {
+                    bones.locate(pendingAnchorFocus);
+                    pendingAnchorFocus = null;
+                }
+            }
         }
     }
 
     private void buildInformation() {
+        if (editingBone != null) {
+            if (outfitDraft != null && editingBone.instanceId().equals(outfitDraft.selectedInstance())
+                    && editableBone(editingBone)) {
+                buildBoneOverrideEditor(editingBone);
+                return;
+            }
+            editingBone = null;
+        }
+        if (outfitDraft != null && editingVirtualAnchor != null) {
+            var anchor = outfitDraft.configuration().virtualAnchors().stream()
+                    .filter(value -> value.id().equals(editingVirtualAnchor)).findFirst();
+            if (anchor.isPresent()) {
+                buildVirtualAnchorEditor(anchor.get());
+                return;
+            }
+            editingVirtualAnchor = null;
+        }
+        if (editingInstance && outfitDraft != null && outfitDraft.selectedInstance() != null) {
+            buildInstanceTransform();
+            return;
+        }
         int x = layout.treeX();
         int w = layout.treeWidth();
         int infoHeight = Math.min(Math.max(108, layout.height() / 2), Math.max(40, layout.height() - 56));
         infoWidget = addRenderableOnly(new AvatarInfoWidget(x, layout.top(), w, infoHeight));
         updateMotdWidget();
+    }
+
+    private void buildInstanceTransform() {
+        UUID id = outfitDraft.selectedInstance();
+        var instance = outfitDraft.instance(id);
+        int x = layout.treeX();
+        int width = layout.treeWidth();
+        int top = layout.top();
+        addRenderableOnly((gui, mouseX, mouseY, delta) -> UIHelper.renderScrollingText(gui,
+                instanceName(instance), x + 2, top + 4, width - 4, 0xffffffff));
+        var anchors = new ArrayList<OutfitConfig.AnchorRef>();
+        anchors.add(instance.anchor());
+        for (String name : OutfitConfig.STANDARD_ANCHORS.stream().sorted().toList()) {
+            var anchor = OutfitConfig.AnchorRef.authorDefault(name);
+            if (!anchors.contains(anchor)) {
+                anchors.add(anchor);
+            }
+        }
+        var automatic = new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.AUTO_TRAIL, null, null, null, null, null);
+        if (!anchors.contains(automatic)) {
+            anchors.add(automatic);
+        }
+        var anchorNames = new java.util.LinkedHashMap<OutfitConfig.AnchorRef, Component>();
+        for (var choice : preview.outfitHierarchy().anchors(id)) {
+            if (!anchors.contains(choice.anchor())) {
+                anchors.add(choice.anchor());
+            }
+            anchorNames.put(choice.anchor(), Component.literal(choice.label()));
+        }
+        OutfitDraft expectedDraft = outfitDraft;
+        addRenderableWidget(new LibraryDropdown(x, top + 18, width,
+                () -> anchors.stream().map(anchor -> anchorNames.getOrDefault(anchor, anchorLabel(anchor))).toList(),
+                () -> anchors.indexOf(expectedDraft.instance(id).anchor()), index -> {
+            if (outfitDraft != expectedDraft || !id.equals(outfitDraft.selectedInstance())) {
+                return;
+            }
+            try {
+                outfitDraft.setAnchor(id, anchors.get(index));
+                automaticAnchorFocus = anchors.get(index).type() == OutfitConfig.AnchorType.AUTO_TRAIL ? id : null;
+                observedAutomaticTarget = null;
+                pendingAnchorFocus = anchors.get(index);
+                previewOutfitDraft();
+            } catch (IllegalArgumentException invalid) {
+                message = FiguraText.of("gui.library.failure", "OUTFIT_DRAFT_LIMIT_OR_BINDING");
+            }
+        }, 6));
+        addRenderableWidget(new Button(x, top + 42, width, 20, text("anchor_pick"), null, button -> {
+            if (outfitDraft == expectedDraft && id.equals(outfitDraft.selectedInstance())) {
+                beginAnchorSelection(id);
+            }
+        }));
+        var transform = instance.transform();
+        var vectors = List.of(transform.position(), transform.rotation(), transform.scale());
+        var labels = List.of("instance_position", "instance_rotation", "instance_scale");
+        var fields = addRenderableWidget(new WardrobeEditorPanel(x, top + 66, width, Math.max(24, layout.height() - 68)));
+        int fieldWidth = Math.max(1, (width - 24) / 3);
+        for (int row = 0; row < vectors.size(); row++) {
+            int y = 2 + row * 38;
+            fields.add(new Label(text(labels.get(row)), 0, 0, TextUtils.Alignment.LEFT), 2, y);
+            var vector = vectors.get(row);
+            double[] values = {vector.x(), vector.y(), vector.z()};
+            for (int axis = 0; axis < 3; axis++) {
+                int component = axis;
+                int property = row;
+                var input = fields.add(new TextField(0, 0, fieldWidth, 20, null, ignored -> {}),
+                        2 + axis * (fieldWidth + 4), y + 12);
+                input.getField().setValue(Double.toString(values[axis]));
+                input.getField().setResponder(value -> updateInstanceTransform(id, property, component, value, input));
+            }
+        }
+    }
+
+    private static Component anchorLabel(OutfitConfig.AnchorRef anchor) {
+        return switch (anchor.type()) {
+            case STANDARD -> Component.literal(anchor.name());
+            case AUTO_TRAIL -> text("instance_auto_trail");
+            case UNRESOLVED -> text("instance_unbound").copy().append(" · ").append(anchor.symbol());
+            default -> text("instance_bound_target");
+        };
+    }
+
+    private void updateInstanceTransform(UUID id, int property, int component, String value, TextField input) {
+        if (outfitDraft == null || !id.equals(outfitDraft.selectedInstance())) {
+            return;
+        }
+        try {
+            double number = Double.parseDouble(value);
+            var current = outfitDraft.instance(id).transform();
+            var vector = switch (property) {
+                case 0 -> current.position();
+                case 1 -> current.rotation();
+                case 2 -> current.scale();
+                default -> throw new IllegalArgumentException("INVALID_TRANSFORM_PROPERTY");
+            };
+            double[] values = {vector.x(), vector.y(), vector.z()};
+            values[component] = number;
+            var replacement = new OutfitConfig.Vector(values[0], values[1], values[2]);
+            outfitDraft.setTransform(id, new OutfitConfig.Transform(property == 0 ? replacement : current.position(),
+                    property == 1 ? replacement : current.rotation(), property == 2 ? replacement : current.scale()));
+            input.setBorderColour(0xffffffff);
+            previewOutfitDraft();
+        } catch (IllegalArgumentException invalid) {
+            input.setBorderColour(0xffff5555);
+            message = text("instance_transform_invalid");
+        }
+    }
+
+    private void openAnchorActions(net.minecraft.client.gui.components.Button parent) {
+        if (outfitDraft == null || !draftPreviewActive) {
+            return;
+        }
+        if (attachingInstance != null && !validAnchorSelection()) {
+            clearAnchorSelection();
+        }
+        var target = bones.selectedTarget();
+        var menu = new top.aihmc.omnimorph.gui.widgets.ContextMenu(parent);
+        menu.addAction(text(boneHelpersShown ? "helpers_hide" : "helpers_show"), text("helpers_tooltip"),
+                button -> {
+                    toggleBoneHelpers();
+                    menu.setVisible(false);
+                });
+        UUID child = attachingInstance;
+        long selection = attachmentSelection;
+        if (child != null) {
+            if (target != null && target.mountable()) {
+                String key = target.kind() == top.aihmc.omnimorph.model.library.OutfitHierarchy.Kind.INSTANCE_BONE
+                        ? "anchor_bind_accessory" : "anchor_bind_target";
+                menu.addAction(text(key), instanceName(outfitDraft.instance(child)), button -> {
+                    bindTreeTarget(child, selection, target);
+                    menu.setVisible(false);
+                });
+            }
+            menu.addAction(text("anchor_pick_cancel"), null, button -> {
+                if (selection == attachmentSelection && child.equals(attachingInstance)) {
+                    clearAnchorSelection();
+                    selectDraftInstance(child);
+                }
+                menu.setVisible(false);
+            });
+        }
+        if (child == null && target != null && target.bone() != null && target.mountable()) {
+            menu.addAction(text("anchor_create"), null, button -> createVirtualAnchor(target.bone()));
+        }
+        if (child == null && target != null && target.anchorId() != null) {
+            menu.addAction(text("anchor_edit"), null, button -> editVirtualAnchor(target.anchorId()));
+        }
+        if (child == null && target != null && target.editable() && target.bone() != null) {
+            menu.addAction(text("bone_edit"), null, button -> editBoneOverride(target.bone()));
+        }
+        menu.setX(parent.getX());
+        menu.setY(parent.getY() + parent.getHeight());
+        menu.setVisible(true);
+        UIHelper.setContext(menu);
+    }
+
+    private void clearAnchorSelection() {
+        attachingInstance = null;
+        attachmentDraft = null;
+        attachmentSelection++;
+    }
+
+    private boolean validAnchorSelection() {
+        return attachingInstance != null && attachmentDraft == outfitDraft && outfitDraft != null
+                && attachingInstance.equals(outfitDraft.selectedInstance())
+                && outfitDraft.configuration().instances().stream()
+                        .anyMatch(instance -> attachingInstance.equals(instance.instanceId()));
+    }
+
+    private void beginAnchorSelection(UUID id) {
+        if (outfitDraft == null || !draftPreviewActive || !id.equals(outfitDraft.selectedInstance())) {
+            return;
+        }
+        outfitDraft.instance(id);
+        clearAnchorSelection();
+        attachingInstance = id;
+        attachmentDraft = outfitDraft;
+        automaticAnchorFocus = null;
+        observedAutomaticTarget = null;
+        pendingAnchorFocus = null;
+        editingInstance = false;
+        editingBone = null;
+        editingVirtualAnchor = null;
+        bonesShown = true;
+        pane = Pane.TREE;
+        syncHierarchy();
+        bones.view(BoneTreeState.View.ALL);
+        bones.select(-1);
+        if (layout != null) {
+            rebuild();
+        }
+    }
+
+    private void bindTreeTarget(UUID child, long selection,
+                                top.aihmc.omnimorph.model.library.OutfitHierarchy.Target target) {
+        if (outfitDraft == null || attachmentDraft != outfitDraft || !child.equals(attachingInstance)
+                || selection != attachmentSelection || !child.equals(outfitDraft.selectedInstance())) {
+            return;
+        }
+        try {
+            if (!target.mountable() || !preview.outfitHierarchy().targets().containsValue(target)) {
+                throw new IllegalArgumentException("OUTFIT_TARGET_UNAVAILABLE");
+            }
+            var type = switch (target.kind()) {
+                case BASE_BONE -> OutfitConfig.AnchorType.BASE_BONE;
+                case INSTANCE_BONE -> OutfitConfig.AnchorType.ACCESSORY_BONE;
+                case STANDARD -> OutfitConfig.AnchorType.STANDARD;
+                case VIRTUAL -> OutfitConfig.AnchorType.VIRTUAL;
+                default -> throw new IllegalArgumentException("OUTFIT_TARGET_UNAVAILABLE");
+            };
+            var parentBone = target.bone();
+            if (type == OutfitConfig.AnchorType.VIRTUAL) {
+                parentBone = outfitDraft.configuration().virtualAnchors().stream()
+                        .filter(anchor -> target.anchorId().equals(anchor.id())).findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException("OUTFIT_TARGET_UNAVAILABLE")).parent();
+                if (!validVirtualParent(parentBone)) {
+                    throw new IllegalArgumentException("OUTFIT_TARGET_UNAVAILABLE");
+                }
+            }
+            UUID owner = parentBone == null ? null : parentBone.instanceId();
+            if (owner != null && outfitDraft.configuration().instances().stream()
+                    .noneMatch(instance -> owner.equals(instance.instanceId()) && instance.enabled())) {
+                throw new IllegalArgumentException("OUTFIT_TARGET_UNAVAILABLE");
+            }
+            var anchor = new OutfitConfig.AnchorRef(type, target.standard(), target.bone(), target.anchorId(), null, null);
+            outfitDraft.setAnchor(child, anchor);
+            clearAnchorSelection();
+            pendingAnchorFocus = anchor;
+            automaticAnchorFocus = null;
+            observedAutomaticTarget = null;
+            editingInstance = true;
+            bonesShown = false;
+            pane = Pane.INFO;
+            previewOutfitDraft();
+            if (layout != null) {
+                rebuild();
+            }
+        } catch (IllegalArgumentException invalid) {
+            message = text("anchor_bind_invalid");
+        }
+    }
+
+    private boolean validVirtualParent(OutfitConfig.BoneRef parent) {
+        return preview != null && preview.outfitHierarchy().targets().values().stream()
+                .anyMatch(target -> target.mountable() && parent.equals(target.bone()));
+    }
+
+    private boolean editableBone(OutfitConfig.BoneRef bone) {
+        if (outfitDraft == null || preview == null || bone.instanceId() == null) {
+            return false;
+        }
+        boolean active = outfitDraft.configuration().instances().stream()
+                .anyMatch(instance -> instance.instanceId().equals(bone.instanceId()) && instance.enabled());
+        return active && preview.outfitHierarchy().targets().values().stream()
+                .anyMatch(target -> target.editable() && bone.equals(target.bone()));
+    }
+
+    private void editBoneOverride(OutfitConfig.BoneRef bone) {
+        if (!editableBone(bone)) {
+            message = text("bone_readonly");
+            return;
+        }
+        clearAnchorSelection();
+        outfitDraft.select(bone.instanceId());
+        automaticAnchorFocus = null;
+        observedAutomaticTarget = null;
+        editingBone = bone;
+        editingVirtualAnchor = null;
+        editingInstance = false;
+        bonesShown = false;
+        pane = Pane.INFO;
+        if (layout != null) {
+            rebuild();
+        }
+    }
+
+    private OutfitConfig.Transform boneOverride(OutfitConfig.BoneRef bone) {
+        return outfitDraft.instance(bone.instanceId()).boneOverrides().stream()
+                .filter(override -> override.bone().equals(bone)).map(OutfitConfig.BoneOverride::transform)
+                .findFirst().orElse(OutfitConfig.Transform.identity());
+    }
+
+    private boolean currentBoneEditor(OutfitDraft expected, OutfitConfig.BoneRef bone) {
+        return outfitDraft == expected && bone.equals(editingBone)
+                && bone.instanceId().equals(outfitDraft.selectedInstance()) && editableBone(bone);
+    }
+
+    private void buildBoneOverrideEditor(OutfitConfig.BoneRef bone) {
+        OutfitDraft expected = outfitDraft;
+        int x = layout.treeX();
+        int width = layout.treeWidth();
+        int top = layout.top();
+        var fields = addRenderableWidget(new WardrobeEditorPanel(x, top, width, Math.max(24, layout.height() - 24)));
+        Component title = instanceName(outfitDraft.instance(bone.instanceId())).copy();
+        for (var segment : bone.path()) {
+            title = title.copy().append(" / " + segment.name() + "[" + segment.siblingOrdinal() + "]");
+        }
+        fields.add(new Label(title, 0, 0, TextUtils.Alignment.LEFT), 2, 2);
+        var transform = boneOverride(bone);
+        var vectors = List.of(transform.position(), transform.rotation(), transform.scale());
+        var labels = List.of("instance_position", "instance_rotation", "instance_scale");
+        int fieldWidth = Math.max(1, (width - 24) / 3);
+        var inputs = new ArrayList<TextField>();
+        for (int row = 0; row < 3; row++) {
+            int y = 20 + row * 38;
+            fields.add(new Label(text(labels.get(row)), 0, 0, TextUtils.Alignment.LEFT), 2, y);
+            var vector = vectors.get(row);
+            double[] values = {vector.x(), vector.y(), vector.z()};
+            for (int axis = 0; axis < 3; axis++) {
+                int property = row;
+                int component = axis;
+                var input = fields.add(new TextField(0, 0, fieldWidth, 20, null, ignored -> {}),
+                        2 + axis * (fieldWidth + 4), y + 12);
+                inputs.add(input);
+                input.getField().setValue(Double.toString(values[axis]));
+                input.getField().setResponder(value -> {
+                    if (!currentBoneEditor(expected, bone)) {
+                        return;
+                    }
+                    try {
+                        var before = boneOverride(bone);
+                        var original = property == 0 ? before.position() : property == 1 ? before.rotation() : before.scale();
+                        double[] updated = {original.x(), original.y(), original.z()};
+                        updated[component] = Double.parseDouble(value);
+                        var replacement = new OutfitConfig.Vector(updated[0], updated[1], updated[2]);
+                        outfitDraft.setBoneOverride(bone.instanceId(), bone, new OutfitConfig.Transform(
+                                property == 0 ? replacement : before.position(),
+                                property == 1 ? replacement : before.rotation(), property == 2 ? replacement : before.scale()));
+                        input.setBorderColour(0xffffffff);
+                        previewOutfitDraft();
+                    } catch (IllegalArgumentException invalid) {
+                        input.setBorderColour(0xffff5555);
+                        message = text("instance_transform_invalid");
+                    }
+                });
+            }
+        }
+        fields.add(new Button(0, 0, Math.max(1, width - 18), 20, text("bone_reset"), null, button -> {
+            if (!currentBoneEditor(expected, bone)) {
+                return;
+            }
+            outfitDraft.clearBoneOverride(bone.instanceId(), bone);
+            editingBone = null;
+            // Prevent the reset fields' own responders from immediately recreating an identity override.
+            for (int index = 0; index < inputs.size(); index++) {
+                inputs.get(index).getField().setValue(index < 6 ? "0.0" : "1.0");
+                inputs.get(index).setBorderColour(0xffffffff);
+            }
+            editingBone = bone;
+            previewOutfitDraft();
+        }), 2, 138);
+        fields.add(new Button(0, 0, Math.max(1, width - 18), 20, text("anchor_back"), null,
+                button -> switchRightPane(true)), 2, 162);
+    }
+
+    private void createVirtualAnchor(OutfitConfig.BoneRef parent) {
+        if (outfitDraft == null || !validVirtualParent(parent)) {
+            message = text("unavailable");
+            return;
+        }
+        try {
+            UUID id = outfitDraft.addVirtualAnchor(text("anchor_default_name").getString(), parent,
+                    OutfitConfig.Transform.identity());
+            previewOutfitDraft();
+            editVirtualAnchor(id);
+        } catch (IllegalArgumentException invalid) {
+            message = text("anchor_invalid");
+        }
+    }
+
+    private void editVirtualAnchor(UUID id) {
+        if (outfitDraft == null || outfitDraft.configuration().virtualAnchors().stream()
+                .noneMatch(anchor -> anchor.id().equals(id))) {
+            return;
+        }
+        clearAnchorSelection();
+        editingVirtualAnchor = id;
+        automaticAnchorFocus = null;
+        observedAutomaticTarget = null;
+        editingBone = null;
+        virtualRemovalArmed = null;
+        editingInstance = false;
+        bonesShown = false;
+        pane = Pane.INFO;
+        if (layout != null) {
+            rebuild();
+        }
+    }
+
+    private OutfitConfig.VirtualAnchor editingAnchor(UUID id) {
+        if (outfitDraft == null || !id.equals(editingVirtualAnchor)) {
+            throw new IllegalArgumentException("OUTFIT_ANCHOR_EDITOR_EXPIRED");
+        }
+        return outfitDraft.configuration().virtualAnchors().stream().filter(anchor -> anchor.id().equals(id))
+                .findFirst().orElseThrow(() -> new IllegalArgumentException("OUTFIT_ANCHOR_MISSING"));
+    }
+
+    private void changeVirtualAnchor(UUID id, String name, OutfitConfig.BoneRef parent, OutfitConfig.Transform transform) {
+        editingAnchor(id);
+        if (!validVirtualParent(parent)) {
+            throw new IllegalArgumentException("OUTFIT_ANCHOR_PARENT_UNAVAILABLE");
+        }
+        outfitDraft.updateVirtualAnchor(id, name, parent, transform);
+        virtualRemovalArmed = null;
+        previewOutfitDraft();
+    }
+
+    private void buildVirtualAnchorEditor(OutfitConfig.VirtualAnchor anchor) {
+        UUID id = anchor.id();
+        OutfitDraft expected = outfitDraft;
+        int x = layout.treeX();
+        int width = layout.treeWidth();
+        int top = layout.top();
+        var fields = addRenderableWidget(new WardrobeEditorPanel(x, top, width, Math.max(24, layout.height() - 24)));
+        int contentWidth = Math.max(1, width - 18);
+        fields.add(new Label(text("anchor_name"), 0, 0, TextUtils.Alignment.LEFT), 2, 2);
+        var name = fields.add(new TextField(0, 0, contentWidth, 20, null, ignored -> {}), 2, 14);
+        name.getField().setMaxLength(128);
+        name.getField().setValue(anchor.name());
+        name.getField().setResponder(value -> {
+            if (outfitDraft != expected) {
+                return;
+            }
+            try {
+                var current = editingAnchor(id);
+                changeVirtualAnchor(id, value, current.parent(), current.transform());
+                name.setBorderColour(0xffffffff);
+            } catch (IllegalArgumentException invalid) {
+                name.setBorderColour(0xffff5555);
+                message = text("anchor_invalid");
+            }
+        });
+        var parents = new ArrayList<>(preview.outfitHierarchy().anchors(null).stream()
+                .filter(choice -> choice.anchor().bone() != null).toList());
+        if (parents.stream().noneMatch(choice -> anchor.parent().equals(choice.anchor().bone()))) {
+            var type = anchor.parent().instanceId() == null
+                    ? OutfitConfig.AnchorType.BASE_BONE : OutfitConfig.AnchorType.ACCESSORY_BONE;
+            parents.addFirst(new top.aihmc.omnimorph.model.library.OutfitHierarchy.AnchorChoice(
+                    text("unavailable").getString(), new OutfitConfig.AnchorRef(type, null, anchor.parent(), null, null, null)));
+        }
+        fields.add(new Label(text("anchor_parent"), 0, 0, TextUtils.Alignment.LEFT), 2, 40);
+        fields.add(new LibraryDropdown(0, 0, contentWidth,
+                () -> parents.stream().<Component>map(choice -> Component.literal(choice.label())).toList(),
+                () -> {
+                    for (int index = 0; index < parents.size(); index++) {
+                        if (parents.get(index).anchor().bone().equals(anchorParent(id))) {
+                            return index;
+                        }
+                    }
+                    return 0;
+                }, index -> {
+            if (outfitDraft != expected) {
+                return;
+            }
+            try {
+                var current = editingAnchor(id);
+                changeVirtualAnchor(id, current.name(), parents.get(index).anchor().bone(), current.transform());
+            } catch (IllegalArgumentException invalid) {
+                message = text("anchor_invalid");
+            }
+        }, 6), 2, 52);
+        var transform = anchor.transform();
+        var vectors = List.of(transform.position(), transform.rotation(), transform.scale());
+        var labels = List.of("instance_position", "instance_rotation", "instance_scale");
+        int fieldWidth = Math.max(1, (width - 24) / 3);
+        for (int row = 0; row < 3; row++) {
+            int y = 80 + row * 38;
+            fields.add(new Label(text(labels.get(row)), 0, 0, TextUtils.Alignment.LEFT), 2, y);
+            var vector = vectors.get(row);
+            double[] values = {vector.x(), vector.y(), vector.z()};
+            for (int axis = 0; axis < 3; axis++) {
+                int property = row;
+                int component = axis;
+                var input = fields.add(new TextField(0, 0, fieldWidth, 20, null, ignored -> {}),
+                        2 + axis * (fieldWidth + 4), y + 12);
+                input.getField().setValue(Double.toString(values[axis]));
+                input.getField().setResponder(value -> {
+                    if (outfitDraft != expected) {
+                        return;
+                    }
+                    try {
+                        var current = editingAnchor(id);
+                        var before = current.transform();
+                        var original = property == 0 ? before.position() : property == 1 ? before.rotation() : before.scale();
+                        double[] updated = {original.x(), original.y(), original.z()};
+                        updated[component] = Double.parseDouble(value);
+                        var replacement = new OutfitConfig.Vector(updated[0], updated[1], updated[2]);
+                        changeVirtualAnchor(id, current.name(), current.parent(), new OutfitConfig.Transform(
+                                property == 0 ? replacement : before.position(),
+                                property == 1 ? replacement : before.rotation(), property == 2 ? replacement : before.scale()));
+                        input.setBorderColour(0xffffffff);
+                    } catch (IllegalArgumentException invalid) {
+                        input.setBorderColour(0xffff5555);
+                        message = text("anchor_invalid");
+                    }
+                });
+            }
+        }
+        var remove = fields.add(new Button(0, 0, contentWidth, 20, text("anchor_remove"), null, button -> {
+            if (outfitDraft == expected && id.equals(editingVirtualAnchor)) {
+                removeVirtualAnchor(id, button);
+            }
+        }), 2, 198);
+        remove.setTooltip(virtualAnchorDependents(id));
+        fields.add(new Button(0, 0, contentWidth, 20, text("anchor_back"), null, button -> switchRightPane(true)), 2, 222);
+    }
+
+    private OutfitConfig.BoneRef anchorParent(UUID id) {
+        if (outfitDraft == null) {
+            return null;
+        }
+        return outfitDraft.configuration().virtualAnchors().stream().filter(anchor -> anchor.id().equals(id))
+                .map(OutfitConfig.VirtualAnchor::parent).findFirst().orElse(null);
+    }
+
+    private Component virtualAnchorDependents(UUID id) {
+        var names = text("anchor_affected").copy();
+        for (var instance : outfitDraft.configuration().instances()) {
+            if (id.equals(instance.anchor().anchorId())) {
+                names.append("\n").append(instanceName(instance));
+            }
+        }
+        return names;
+    }
+
+    private void removeVirtualAnchor(UUID id, net.minecraft.client.gui.components.Button button) {
+        if (outfitDraft == null || anchorParent(id) == null) {
+            return;
+        }
+        if (!id.equals(virtualRemovalArmed) || virtualRemovalGeneration != outfitDraft.generation()) {
+            virtualRemovalArmed = id;
+            virtualRemovalGeneration = outfitDraft.generation();
+            message = virtualAnchorDependents(id);
+            button.setMessage(text("anchor_remove_confirm"));
+            return;
+        }
+        outfitDraft.removeVirtualAnchor(id);
+        virtualRemovalArmed = null;
+        editingVirtualAnchor = null;
+        bonesShown = true;
+        pane = Pane.TREE;
+        previewOutfitDraft();
+        if (layout != null) {
+            rebuild();
+        }
     }
 
     private void updateMotdWidget() {
@@ -815,6 +1712,18 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }
     }
 
+    private void selectCosmetic(LocalCosmeticInventory.Entry entry) {
+        deleteCollectionArmed = null;
+        selected = new Selection(entry.path(), entry.path(), entry.source() != null
+                && entry.source().format() != OutfitConfig.Format.FIGURA, null,
+                new WardrobeCollectionGrid.Entry(null, null, entry).name(), entry);
+        selections.put(context(), selected);
+        previewSelection();
+        if (source == Source.ALL && tab == Tab.COLLECTION) {
+            rebuild();
+        }
+    }
+
     private void selectCloud(LibraryModels.CollectionEntry entry) {
         deleteCollectionArmed = null;
         if (client == null || collection == null || !collection.available()
@@ -839,7 +1748,19 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private void previewSelection() {
+        resourceSelectionGeneration++;
+        draftPreviewGeneration++;
+        draftPreviewActive = false;
         long generation = ++selectionGeneration;
+        selectedCloudCosmetic = null;
+        if (cloudCosmeticSelection != null) {
+            cloudCosmeticSelection.close();
+            cloudCosmeticSelection = null;
+        }
+        if (draftCloudBatch != null) {
+            draftCloudBatch.close();
+            draftCloudBatch = null;
+        }
         message = Component.empty();
         LibraryClient requiredClient = selected != null && selected.cloud() != null ? client : null;
         bindPreview(requiredClient);
@@ -848,7 +1769,23 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }
         if (selected == null) {
             preview.clear();
+        } else if (selected.cosmetic() != null) {
+            previewCosmetic(selected.cosmetic(), generation);
         } else if (selected.cloud() != null) {
+            var selectedModel = selectedCollectionModel();
+            if (selectedModel != null && selectedModel.resourceKind().equals("ACCESSORY")) {
+                previewCloudCosmetic(selectedModel, generation);
+                syncHierarchy();
+                refreshVisibility();
+                return;
+            }
+            if (!selectedIsAvatar() && !selectedIsOutfit()) {
+                preview.clear();
+                message = text("unavailable");
+                syncHierarchy();
+                refreshVisibility();
+                return;
+            }
             if (client != null && client.current()) {
                 UUID model = selected.cloud();
                 boolean downloadable = collection.entries().stream().anyMatch(entry -> entry.modelId().equals(model)
@@ -901,6 +1838,580 @@ public class WardrobeScreen extends AbstractPanelScreen {
         refreshVisibility();
     }
 
+    private void previewCosmetic(LocalCosmeticInventory.Entry entry, long generation) {
+        preview.clear();
+        if (entry.source() == null) {
+            message = text("unavailable");
+            return;
+        }
+        if (client != null && client.current() && (outfitCapabilitiesRequest == null
+                || !outfitCapabilitiesRequest.future().isDone())) {
+            message = text("downloading");
+            return;
+        }
+        if (client != null && client.current() && outfitCapabilitiesRequest.future().isCompletedExceptionally()) {
+            message = text("unavailable");
+            return;
+        }
+        UUID owner = FiguraMod.getLocalPlayerUUID();
+        var reference = entry.reference();
+        prepareSingleCosmetic(reference, entry.source().metadata(), (resource, cancelled) -> {
+            if (!resource.equals(reference)) {
+                throw new java.io.IOException("COSMETIC_RESOURCE_MISMATCH");
+            }
+            return LocalCosmeticSource.prepare(entry.path(), owner, reference.contentHash(), cancelled).nbt();
+        }, generation);
+    }
+
+    private void previewCloudCosmetic(LibraryModels.Model model, long generation) {
+        preview.clear();
+        if (client == null || !client.current() || !outfitLimitsReady()) {
+            message = text("unavailable");
+            return;
+        }
+        var expectedClient = client;
+        var session = preview;
+        cloudCosmeticSelection = new CloudCosmeticSource(client, transfers, minecraft::execute).select(model);
+        cloudCosmeticSelection.future().whenComplete((prepared, failure) -> {
+            if (removed || generation != selectionGeneration || preview != session
+                    || client != expectedClient || !expectedClient.current()) {
+                return;
+            }
+            if (failure != null) {
+                error(failure);
+                return;
+            }
+            selectedCloudCosmetic = prepared;
+            var declaration = prepared.descriptor();
+            prepareSingleCosmetic(declaration.reference(), declaration.metadata(), (reference, cancelled) -> {
+                if (!reference.equals(declaration.reference())) {
+                    throw new java.io.IOException("COSMETIC_RESOURCE_REFERENCE_MISMATCH");
+                }
+                return prepared.nbt();
+            }, generation);
+        });
+    }
+
+    private void prepareSingleCosmetic(OutfitConfig.ResourceRef reference, CosmeticMetadata metadata,
+                                        OutfitPreparation.Resources resources, long generation) {
+        if (!preview.selectVanilla()) {
+            return;
+        }
+        UUID owner = FiguraMod.getLocalPlayerUUID();
+        OutfitLimits limits = client == null ? OutfitLimits.defaults() : outfitLimits;
+        try {
+            var anchor = metadata.category().equals("Trail")
+                    ? new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.AUTO_TRAIL, null, null, null, null, null)
+                    : metadata.defaultAnchor();
+            var instance = new OutfitConfig.Instance(UUID.randomUUID(), reference, 1, true, anchor,
+                    metadata.defaultTransform(), List.of(), Map.of(), Map.of());
+            var configuration = new OutfitConfig(1, 0, null, List.of(instance), List.of(),
+                    Map.of(reference.identity(), 1), false);
+            OutfitCodec.encode(configuration, limits);
+            preview.prepareComposition(configuration, limits, owner, UUID.randomUUID(), PermissionManager.get(owner),
+                    resources).whenComplete((ready, failure) -> {
+                        if (!removed && generation == selectionGeneration && failure != null) {
+                            message = FiguraText.of("gui.library.failure", "COSMETIC_PREPARATION_FAILED");
+                        }
+                    });
+        } catch (IllegalArgumentException unavailable) {
+            message = text("unavailable");
+        }
+    }
+
+    private boolean selectedIsAvatar() {
+        if (selected == null || selected.cosmetic() != null) {
+            return false;
+        }
+        if (selected.cloud() == null) {
+            return true;
+        }
+        var model = selectedCollectionModel();
+        return model != null && model.resourceKind().equals("AVATAR");
+    }
+
+    private boolean selectedIsOutfit() {
+        var model = selectedCollectionModel();
+        return model != null && model.resourceKind().equals("OUTFIT");
+    }
+
+    private boolean selectedIsAccessory() {
+        if (selected == null) {
+            return false;
+        }
+        if (selected.cosmetic() != null) {
+            return true;
+        }
+        var model = selectedCollectionModel();
+        return model != null && model.resourceKind().equals("ACCESSORY");
+    }
+
+    private record CapturedDraft(OutfitConfig configuration, CompoundTag base, boolean persistent) {}
+
+    private java.util.concurrent.CompletableFuture<OutfitDraft> beginOutfitDraft() {
+        if (outfitDraft != null) {
+            return java.util.concurrent.CompletableFuture.completedFuture(outfitDraft);
+        }
+        if (draftStart != null && !draftStart.isDone()) {
+            return draftStart;
+        }
+        UUID owner = FiguraMod.getLocalPlayerUUID();
+        var current = AvatarManager.getAvatarForPlayer(owner);
+        CompoundTag data = current == null ? null : current.nbt;
+        var source = current == null ? null : current.outfitSource();
+        if (current != null && (!current.loaded || data == null)) {
+            return java.util.concurrent.CompletableFuture.failedFuture(new IllegalStateException("OUTFIT_BASE_NOT_READY"));
+        }
+        var world = minecraft.level;
+        OutfitLimits limits = client == null ? OutfitLimits.defaults() : outfitLimits;
+        boolean showing = libraryVisibility != null ? libraryVisibility.showing()
+                : localVisibility != null && localVisibility.showing();
+        var result = new java.util.concurrent.CompletableFuture<OutfitDraft>();
+        draftStart = result;
+        AvatarLoadExecutor.submit(() -> {
+            CompoundTag snapshot = data == null ? null : data.copy();
+            OutfitConfig.ResourceRef base = source;
+            if (snapshot != null && base == null) {
+                java.security.MessageDigest hash;
+                try {
+                    hash = java.security.MessageDigest.getInstance("SHA-256");
+                } catch (java.security.NoSuchAlgorithmException failure) {
+                    throw new IllegalStateException(failure);
+                }
+                try (var output = new java.security.DigestOutputStream(java.io.OutputStream.nullOutputStream(), hash)) {
+                    net.minecraft.nbt.NbtIo.writeCompressed(snapshot, output);
+                } catch (java.io.IOException failure) {
+                    throw new java.util.concurrent.CompletionException(failure);
+                }
+                boolean ysm = snapshot.getCompoundOrEmpty("metadata").getStringOr("format", "").equals("ysm-native");
+                boolean encrypted = ysm && top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload.isEncrypted(snapshot.getCompoundOrEmpty("ysm"));
+                OutfitConfig.Format format = !ysm ? OutfitConfig.Format.FIGURA
+                        : encrypted ? OutfitConfig.Format.YSM_ENCRYPTED : OutfitConfig.Format.YSM_PLAIN;
+                // A captured base is private to this editor. Apply/export must resolve its real resource provenance.
+                base = new OutfitConfig.ResourceRef(OutfitConfig.Source.LOCAL, UUID.randomUUID(), null, null, null,
+                        java.util.HexFormat.of().formatHex(hash.digest()), format);
+            }
+            return new CapturedDraft(new OutfitConfig(1, 0, base, List.of(), List.of(), Map.of(), showing), snapshot,
+                    snapshot == null || source != null);
+        }).whenComplete((captured, failure) -> minecraft.execute(() -> {
+            if (removed || result.isCancelled() || draftStart != result || minecraft.level != world
+                    || !owner.equals(FiguraMod.getLocalPlayerUUID())
+                    || AvatarManager.getAvatarForPlayer(owner) != current
+                    || current != null && (current.nbt != data || !current.loaded
+                    || !java.util.Objects.equals(current.outfitSource(), source))) {
+                result.cancel(false);
+            } else if (failure != null) {
+                result.completeExceptionally(failure);
+            } else {
+                outfitDraft = new OutfitDraft(captured.configuration(), limits);
+                draftBase = captured.base();
+                committedDraftBase = draftBase;
+                draftBasePersistent = captured.persistent();
+                committedDraftBasePersistent = draftBasePersistent;
+                draftAccount = owner;
+                result.complete(outfitDraft);
+            }
+        }));
+        return result;
+    }
+
+    private void addSelectedInstance() {
+        if (tab != Tab.OUTFIT || !selectedIsAccessory()) {
+            return;
+        }
+        var entry = selected.cosmetic();
+        var cloud = selectedCloudCosmetic;
+        if ((entry != null && entry.source() == null)
+                || (entry == null && (cloud == null || client == null || !client.current()))) {
+            return;
+        }
+        var reference = entry == null ? cloud.descriptor().reference() : entry.reference();
+        var metadata = entry == null ? cloud.descriptor().metadata() : entry.source().metadata();
+        if (!outfitLimitsReady()) {
+            message = text("unavailable");
+            return;
+        }
+        long selection = resourceSelectionGeneration;
+        beginOutfitDraft().whenComplete((draft, failure) -> {
+            if (removed || selection != resourceSelectionGeneration || tab != Tab.OUTFIT) {
+                return;
+            }
+            if (failure != null) {
+                message = FiguraText.of("gui.library.failure", "OUTFIT_DRAFT_PREPARATION_FAILED");
+                return;
+            }
+            try {
+                var anchor = metadata.category().equals("Trail")
+                        ? new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.AUTO_TRAIL, null, null, null, null, null)
+                        : metadata.defaultAnchor();
+                clearAnchorSelection();
+                UUID added = draft.add(reference, anchor, metadata.defaultTransform());
+                automaticAnchorFocus = anchor.type() == OutfitConfig.AnchorType.AUTO_TRAIL ? added : null;
+                observedAutomaticTarget = null;
+                pendingAnchorFocus = anchor;
+                if (entry != null) {
+                    draftResources.put(reference, entry);
+                } else {
+                    draftCloudResources.put(reference, cloud.descriptor());
+                }
+                previewOutfitDraft();
+            } catch (IllegalArgumentException invalid) {
+                message = FiguraText.of("gui.library.failure", "OUTFIT_DRAFT_LIMIT_OR_BINDING");
+            }
+        });
+    }
+
+    private Component instanceName(OutfitConfig.Instance instance) {
+        var resource = draftResources.get(instance.resource());
+        var cloud = draftCloudResources.get(instance.resource());
+        Component name;
+        if (resource != null) {
+            name = new WardrobeCollectionGrid.Entry(null, null, resource).name();
+        } else {
+            name = cloud == null ? text("unavailable") : Component.literal(cloud.name());
+        }
+        return name.copy().append(" #" + instance.displayOrdinal());
+    }
+
+    private CosmeticMetadata draftMetadata(OutfitConfig.ResourceRef reference) {
+        var local = draftResources.get(reference);
+        if (local != null && local.source() != null) {
+            return local.source().metadata();
+        }
+        var cloud = draftCloudResources.get(reference);
+        return cloud == null ? null : cloud.metadata();
+    }
+
+    private void openCreateMenu(net.minecraft.client.gui.components.Button parent) {
+        var menu = new top.aihmc.omnimorph.gui.widgets.ContextMenu(parent);
+        menu.addAction(text("create_figura"), null,
+                button -> minecraft.setScreen(new AvatarWizardScreen(this)));
+        menu.addAction(text("create_ysm"), null, button -> minecraft.setScreen(new AvatarWizardScreen(this,
+                new top.aihmc.omnimorph.wizards.YsmAvatarWizard())));
+        menu.addAction(text("create_cosmetic"), null,
+                button -> minecraft.setScreen(new CosmeticWizardScreen(this)));
+        UIHelper.setContext(menu);
+    }
+
+    private void openInstances(net.minecraft.client.gui.components.Button parent) {
+        if (outfitDraft == null) {
+            return;
+        }
+        var menu = new top.aihmc.omnimorph.gui.widgets.ContextMenu(parent);
+        OutfitDraft expected = outfitDraft;
+        var composition = preview.outfitComposition();
+        if (draftPreviewActive && composition != null && composition.actionWheel().available()) {
+            menu.addAction(text("cosmetic_animations"), text("cosmetic_animations_help"), button -> {
+                if (outfitDraft == expected) {
+                    menu.setVisible(false);
+                    openCosmeticAnimations();
+                }
+            });
+        }
+        for (var instance : outfitDraft.configuration().instances()) {
+            var options = new top.aihmc.omnimorph.gui.widgets.ContextMenu();
+            options.addAction(text("instance_select"), null, button -> {
+                if (outfitDraft == expected) {
+                    selectDraftInstance(instance.instanceId());
+                }
+            });
+            options.addAction(text(instance.enabled() ? "instance_disable" : "instance_enable"), null, button -> {
+                if (outfitDraft != expected) {
+                    return;
+                }
+                outfitDraft.select(instance.instanceId());
+                outfitDraft.setEnabled(instance.instanceId(), !outfitDraft.instance(instance.instanceId()).enabled());
+                previewOutfitDraft();
+            });
+            options.addAction(text("instance_reset"), null, button -> {
+                if (outfitDraft != expected) {
+                    return;
+                }
+                var metadata = draftMetadata(instance.resource());
+                if (metadata != null) {
+                    outfitDraft.select(instance.instanceId());
+                    var anchor = metadata.category().equals("Trail")
+                            ? new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.AUTO_TRAIL, null, null, null, null, null)
+                            : metadata.defaultAnchor();
+                    outfitDraft.resetInstance(instance.instanceId(), anchor, metadata.defaultTransform());
+                    automaticAnchorFocus = anchor.type() == OutfitConfig.AnchorType.AUTO_TRAIL ? instance.instanceId() : null;
+                    observedAutomaticTarget = null;
+                    pendingAnchorFocus = anchor;
+                    previewOutfitDraft();
+                    if (editingInstance) {
+                        rebuild();
+                    }
+                }
+            });
+            options.addAction(text("instance_remove"), null, button -> {
+                if (outfitDraft == expected) {
+                    removeDraftInstance(instance.instanceId());
+                }
+            });
+            Component label = instanceName(instance);
+            if (!instance.enabled()) {
+                label = label.copy().append(" · ").append(text("instance_disabled"));
+            }
+            menu.addTab(label, null, options);
+        }
+        menu.setX(parent.getX());
+        menu.setY(parent.getY() + parent.getHeight());
+        menu.setVisible(true);
+        UIHelper.setContext(menu);
+    }
+
+    private void removeDraftInstance(UUID id) {
+        if (id.equals(attachingInstance)) {
+            clearAnchorSelection();
+        }
+        OutfitDraft expected = outfitDraft;
+        var affected = outfitDraft.dependents(id);
+        if (affected.isEmpty()) {
+            outfitDraft.remove(id);
+            pruneDraftResources();
+            previewOutfitDraft();
+            if (editingInstance && outfitDraft.selectedInstance() == null && layout != null) {
+                editingInstance = false;
+                rebuild();
+            }
+            return;
+        }
+        Component names = Component.empty();
+        for (UUID dependent : affected) {
+            names = names.copy().append(instanceName(outfitDraft.instance(dependent))).append("\n");
+        }
+        minecraft.setScreen(new FiguraConfirmScreen(confirmed -> {
+            if (confirmed && outfitDraft == expected) {
+                outfitDraft.remove(id);
+                pruneDraftResources();
+            }
+            minecraft.setScreen(this);
+            previewOutfitDraft();
+        }, text("instance_remove_dependents"), names.getString(), this));
+    }
+
+    private void selectDraftInstance(UUID id) {
+        if (outfitDraft == null) {
+            return;
+        }
+        clearAnchorSelection();
+        outfitDraft.select(id);
+        editingInstance = true;
+        editingVirtualAnchor = null;
+        editingBone = null;
+        bonesShown = false;
+        pane = Pane.INFO;
+        var anchor = outfitDraft.instance(id).anchor();
+        automaticAnchorFocus = anchor.type() == OutfitConfig.AnchorType.AUTO_TRAIL ? id : null;
+        observedAutomaticTarget = null;
+        if (draftPreviewActive) {
+            pendingAnchorFocus = null;
+            syncHierarchy();
+            if (automaticAnchorFocus == null) {
+                bones.locate(anchor);
+            } else {
+                bones.select(-1);
+                updateAutomaticAnchorFocus();
+            }
+        } else {
+            pendingAnchorFocus = anchor;
+            previewOutfitDraft();
+        }
+        if (layout != null) {
+            rebuild();
+        }
+    }
+
+    private void cancelOutfitDraft() {
+        if (outfitDraft != null) {
+            clearAnchorSelection();
+            editingBone = null;
+            editingVirtualAnchor = null;
+            virtualRemovalArmed = null;
+            pendingAnchorFocus = null;
+            automaticAnchorFocus = null;
+            observedAutomaticTarget = null;
+            outfitDraft.cancel();
+            draftBase = committedDraftBase;
+            draftBasePersistent = committedDraftBasePersistent;
+            pruneDraftResources();
+            selected = null;
+            selections.put(context(), null);
+            previewSelection();
+            editingInstance = false;
+            if (layout != null) {
+                rebuild();
+            }
+        }
+    }
+
+    private void resetOutfitDraft() {
+        if (outfitDraft != null) {
+            clearAnchorSelection();
+            editingBone = null;
+            editingVirtualAnchor = null;
+            virtualRemovalArmed = null;
+            pendingAnchorFocus = null;
+            automaticAnchorFocus = null;
+            observedAutomaticTarget = null;
+            outfitDraft.reset();
+            draftBase = null;
+            draftBasePersistent = true;
+            pruneDraftResources();
+            previewOutfitDraft();
+            editingInstance = false;
+            if (layout != null) {
+                rebuild();
+            }
+        }
+    }
+
+    private boolean outfitLimitsReady() {
+        return client == null || client.current() && outfitCapabilitiesRequest != null
+                && outfitCapabilitiesRequest.future().isDone()
+                && !outfitCapabilitiesRequest.future().isCompletedExceptionally();
+    }
+
+    private void pruneDraftResources() {
+        var retained = new java.util.HashSet<OutfitConfig.ResourceRef>();
+        for (var configuration : List.of(outfitDraft.configuration(), outfitDraft.committed())) {
+            for (var instance : configuration.instances()) {
+                retained.add(instance.resource());
+            }
+        }
+        draftResources.keySet().retainAll(retained);
+        draftCloudResources.keySet().retainAll(retained);
+    }
+
+    private boolean discardOldAccountDraft() {
+        if (draftAccount == null || draftAccount.equals(FiguraMod.getLocalPlayerUUID())) {
+            return false;
+        }
+        outfitDraft = null;
+        clearAnchorSelection();
+        draftBase = null;
+        committedDraftBase = null;
+        draftBasePersistent = false;
+        committedDraftBasePersistent = false;
+        draftAccount = null;
+        draftResources.clear();
+        draftCloudResources.clear();
+        draftIdentity = UUID.randomUUID();
+        draftPreviewGeneration++;
+        draftPreviewActive = false;
+        editingInstance = false;
+        editingBone = null;
+        editingVirtualAnchor = null;
+        virtualRemovalArmed = null;
+        pendingAnchorFocus = null;
+        automaticAnchorFocus = null;
+        observedAutomaticTarget = null;
+        if (preview != null) {
+            preview.close();
+        }
+        return true;
+    }
+
+    private void previewOutfitDraft() {
+        if (outfitDraft == null || preview == null) {
+            return;
+        }
+        long generation = ++draftPreviewGeneration;
+        selectionGeneration++;
+        if (draftCloudBatch != null) {
+            draftCloudBatch.close();
+            draftCloudBatch = null;
+        }
+        if (cloudCosmeticSelection != null && !cloudCosmeticSelection.future().isDone()) {
+            cloudCosmeticSelection.close();
+            cloudCosmeticSelection = null;
+        }
+        message = Component.empty();
+        var configuration = outfitDraft.configuration();
+        var resources = Map.copyOf(draftResources);
+        var cloudReferences = configuration.instances().stream().map(OutfitConfig.Instance::resource)
+                .filter(reference -> reference.source() == OutfitConfig.Source.CLOUD).distinct().toList();
+        if (!cloudReferences.isEmpty() && (client == null || !client.current())) {
+            preview.clear();
+            message = FiguraText.of("gui.library.state.offline");
+            return;
+        }
+        UUID owner = FiguraMod.getLocalPlayerUUID();
+        OutfitLimits limits = client == null ? OutfitLimits.defaults() : outfitLimits;
+        bindPreview(cloudReferences.isEmpty() ? null : client);
+        var session = preview;
+        boolean reuseBase = draftPreviewActive && java.util.Objects.equals(draftPreviewBase, configuration.base())
+                && session.status().stage() == LibraryPreviewSession.Stage.READY;
+        draftPreviewActive = true;
+        draftPreviewBase = configuration.base();
+        if (previewWidget != null) {
+            previewWidget.setLibraryPreview(session);
+        }
+        java.util.concurrent.CompletableFuture<Boolean> baseReady;
+        if (reuseBase) {
+            baseReady = java.util.concurrent.CompletableFuture.completedFuture(true);
+        } else if (configuration.base() == null) {
+            baseReady = java.util.concurrent.CompletableFuture.completedFuture(session.selectVanilla());
+        } else {
+            baseReady = session.selectDraft(draftBase);
+        }
+        java.util.concurrent.CompletableFuture<Map<OutfitConfig.ResourceRef, CloudCosmeticSource.Prepared>> cloudReady;
+        if (cloudReferences.isEmpty()) {
+            cloudReady = java.util.concurrent.CompletableFuture.completedFuture(Map.of());
+        } else {
+            draftCloudBatch = new CloudCosmeticSource(client, transfers, minecraft::execute).readAll(cloudReferences);
+            cloudReady = draftCloudBatch.future();
+        }
+        java.util.concurrent.CompletableFuture.allOf(baseReady, cloudReady).whenComplete((ignored, failure) -> {
+            if (removed || generation != draftPreviewGeneration || session != preview) {
+                return;
+            }
+            draftCloudBatch = null;
+            if (failure != null) {
+                session.clear();
+                Throwable cause = failure;
+                while (cause instanceof java.util.concurrent.CompletionException && cause.getCause() != null) {
+                    cause = cause.getCause();
+                }
+                error(cause);
+                return;
+            }
+            if (!Boolean.TRUE.equals(baseReady.getNow(false))) {
+                return;
+            }
+            var cloud = cloudReady.getNow(Map.of());
+            cloud.forEach((reference, data) -> draftCloudResources.put(reference, data.descriptor()));
+            var prepared = new HashMap<OutfitConfig.ResourceRef, CompoundTag>();
+            session.prepareComposition(configuration, limits, owner, draftIdentity, PermissionManager.get(owner),
+                    (reference, cancelled) -> {
+                        CompoundTag cached = prepared.get(reference);
+                        if (cached != null) {
+                            return cached;
+                        }
+                        if (reference.source() == OutfitConfig.Source.CLOUD) {
+                            var source = cloud.get(reference);
+                            if (source == null) {
+                                throw new java.io.IOException("COSMETIC_RESOURCE_UNAVAILABLE");
+                            }
+                            CompoundTag data = source.nbt();
+                            prepared.put(reference, data);
+                            return data;
+                        }
+                        var entry = resources.get(reference);
+                        if (entry == null || !entry.reference().equals(reference)) {
+                            throw new java.io.IOException("COSMETIC_RESOURCE_UNAVAILABLE");
+                        }
+                        CompoundTag data = LocalCosmeticSource.prepare(entry.path(), owner, reference.contentHash(), cancelled).nbt();
+                        prepared.put(reference, data);
+                        return data;
+                    }).whenComplete((complete, error) -> {
+                        if (!removed && generation == draftPreviewGeneration && error != null) {
+                            message = FiguraText.of("gui.library.failure", "OUTFIT_DRAFT_PREPARATION_FAILED");
+                        }
+                    });
+        });
+    }
+
     private void bindPreview(LibraryClient requiredClient) {
         if (previewClient != requiredClient || preview.status().stage() == LibraryPreviewSession.Stage.CLOSED) {
             preview.close();
@@ -922,10 +2433,20 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private void removeLocalOutfit(LocalAvatarFetcher.AvatarPath avatar) {
-        if (tab != Tab.OUTFIT || parts || localCandidates == null) {
+        if (tab != Tab.OUTFIT || localCandidates == null) {
             return;
         }
-        var change = localCandidates.set(avatar.getTheActualPathForThis(), false);
+        removeLocalCandidate(avatar.getTheActualPathForThis());
+    }
+
+    private void removeLocalCosmetic(LocalCosmeticInventory.Entry entry) {
+        if (tab == Tab.OUTFIT && localCandidates != null) {
+            removeLocalCandidate(entry.path());
+        }
+    }
+
+    private void removeLocalCandidate(Path path) {
+        var change = localCandidates.set(path, false);
         change.whenComplete((saved, failure) -> minecraft.execute(() -> {
             if (!removed) {
                 if (failure != null || !Boolean.TRUE.equals(saved)) {
@@ -938,7 +2459,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private void removeCloudOutfit(LibraryModels.CollectionEntry entry) {
-        if (tab != Tab.OUTFIT || parts || client == null || !client.current()
+        if (tab != Tab.OUTFIT || client == null || !client.current()
                 || collection == null || !collection.available()) {
             return;
         }
@@ -954,7 +2475,11 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private void changeCandidate() {
-        if (selected == null || parts) {
+        if (selectedIsOutfit()) {
+            importCollectionOutfit();
+            return;
+        }
+        if (selected == null || selected.cosmetic() != null && selected.cosmetic().source() == null) {
             return;
         }
         boolean included = candidate();
@@ -978,8 +2503,68 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }
     }
 
+    private void importCollectionOutfit() {
+        if (removed || tab != Tab.COLLECTION || client == null || !client.current()
+                || collection == null || !collection.available() || collectionBusy() || !outfitLimitsReady()) {
+            return;
+        }
+        var document = preview.configurationPreview();
+        if (document == null) {
+            return;
+        }
+        var expectedClient = client;
+        var expectedPreview = preview;
+        var expectedSelection = selected;
+        long selection = selectionGeneration;
+        UUID account = FiguraMod.getLocalPlayerUUID();
+        var result = new java.util.concurrent.CompletableFuture<Boolean>();
+        collectionChange = result;
+        java.util.function.BooleanSupplier active = () -> !removed && tab == Tab.COLLECTION
+                && client == expectedClient && expectedClient.current() && account.equals(FiguraMod.getLocalPlayerUUID())
+                && selected == expectedSelection && selection == selectionGeneration && preview == expectedPreview
+                && expectedPreview.configurationPreview() == document && collectionChange == result;
+        beginOutfitDraft().whenComplete((draft, failure) -> {
+            if (!active.getAsBoolean() || failure != null) {
+                if (active.getAsBoolean() && failure != null) {
+                    error(failure);
+                }
+                result.complete(false);
+                return;
+            }
+            long draftGeneration = draft.generation();
+            AvatarLoadExecutor.submit(() -> {
+                try {
+                    return document.resources().base();
+                } catch (java.io.IOException unavailable) {
+                    throw new java.util.concurrent.CompletionException(unavailable);
+                }
+            }).whenComplete((base, problem) -> minecraft.execute(() -> {
+                if (!active.getAsBoolean() || outfitDraft != draft || draft.generation() != draftGeneration) {
+                    result.complete(false);
+                    return;
+                }
+                if (problem != null) {
+                    error(problem);
+                    result.complete(false);
+                    return;
+                }
+                try {
+                    installOutfitPreset(draft, document.configuration(), document.resources(), base);
+                    switchTab(Tab.OUTFIT);
+                    if (!draftPreviewActive) {
+                        previewOutfitDraft();
+                    }
+                    result.complete(true);
+                } catch (RuntimeException invalid) {
+                    error(invalid);
+                    result.complete(false);
+                }
+            }));
+        });
+    }
+
     private void enableSelection() {
-        if (selected == null || parts || tab != Tab.OUTFIT || !candidate()) {
+        if (!selectedIsAvatar() || tab != Tab.OUTFIT || !candidate()) {
             return;
         }
         if (selectionIsCaching()) {
@@ -1020,12 +2605,35 @@ public class WardrobeScreen extends AbstractPanelScreen {
             refreshCollectionCards();
             return;
         }
-        cloudList.entries(shownEntries.stream().filter(LibraryModels.CollectionEntry::inOutfit).toList(),
+        cloudList.entries(source == Source.LOCAL ? List.of() : shownEntries.stream()
+                        .filter(LibraryModels.CollectionEntry::inOutfit)
+                        .filter(entry -> matchesPurpose(new WardrobeCollectionGrid.Entry(null, entry))).toList(),
                 selected == null ? null : selected.cloud());
-        if (source == Source.ALL) {
-            cloudList.localEntries(localEntries(true), this::selectLocal, this::removeLocalOutfit,
-                    selected == null ? null : selected.reference());
+        refreshLocalRows();
+    }
+
+    private boolean matchesPurpose(WardrobeCollectionGrid.Entry entry) {
+        return mode == Mode.ALL || entry.resourceKind().equals(mode == Mode.AVATAR ? "AVATAR" : "ACCESSORY");
+    }
+
+    private List<LocalCosmeticInventory.Entry> localCosmetics(boolean outfitOnly) {
+        if (cosmetics == null || mode == Mode.AVATAR) {
+            return List.of();
         }
+        return cosmetics.entries().stream()
+                .filter(entry -> !outfitOnly || localCandidates.contains(entry.path())).toList();
+    }
+
+    private void refreshLocalRows() {
+        if (cloudList == null) {
+            return;
+        }
+        boolean includeLocal = source != Source.CLOUD;
+        Path selectedPath = selected == null ? null : selected.reference();
+        cloudList.localEntries(includeLocal ? localEntries(true) : List.of(), this::selectLocal,
+                this::removeLocalOutfit, selectedPath);
+        cloudList.cosmetics(includeLocal ? localCosmetics(true) : List.of(), this::selectCosmetic,
+                this::removeLocalCosmetic, selectedPath);
     }
 
     private void refreshCollectionCards() {
@@ -1037,11 +2645,17 @@ public class WardrobeScreen extends AbstractPanelScreen {
             for (var entry : localEntries(false)) {
                 entries.add(new WardrobeCollectionGrid.Entry(entry, null));
             }
+            for (var entry : localCosmetics(false)) {
+                entries.add(new WardrobeCollectionGrid.Entry(null, null, entry));
+            }
         }
         if (source != Source.LOCAL) {
             shownEntries = client == null ? offlineEntries : collection.entries();
             for (var entry : shownEntries) {
-                entries.add(new WardrobeCollectionGrid.Entry(null, entry));
+                var card = new WardrobeCollectionGrid.Entry(null, entry);
+                if (matchesPurpose(card)) {
+                    entries.add(card);
+                }
             }
         }
         String selectedKey = selected == null ? null : selected.reference() != null
@@ -1050,6 +2664,9 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private List<LocalAvatarFetcher.AvatarPath> localEntries(boolean outfitOnly) {
+        if (mode == Mode.COSMETIC) {
+            return List.of();
+        }
         LocalAvatarFetcher.reloadAvatars();
         var result = new ArrayList<LocalAvatarFetcher.AvatarPath>();
         var pending = new ArrayDeque<>(List.copyOf(LocalAvatarFetcher.ALL_AVATARS));
@@ -1154,6 +2771,40 @@ public class WardrobeScreen extends AbstractPanelScreen {
     public void tick() {
         super.tick();
         preview.tick();
+        refreshCosmeticSettings();
+        if (discardOldAccountDraft()) {
+            previewSelection();
+        }
+        if (addInstanceButton != null) {
+            boolean available = selected != null && (selected.cosmetic() != null && selected.cosmetic().source() != null
+                    || selected.cloud() != null && selectedCloudCosmetic != null && client != null && client.current());
+            addInstanceButton.setActive(available
+                    && outfitLimitsReady() && (draftStart == null || draftStart.isDone()));
+            editInstancesButton.setActive(outfitDraft != null && !outfitDraft.configuration().instances().isEmpty());
+            cancelDraftButton.setActive(outfitDraft != null && outfitDraft.dirty());
+            resetDraftButton.setActive(outfitDraft != null);
+        }
+        if (cosmetics != null) {
+            cosmetics.tick();
+            if (observedCosmetics != cosmetics.entries()) {
+                observedCosmetics = cosmetics.entries();
+                if (selected != null && selected.cosmetic() != null) {
+                    var replacement = observedCosmetics.stream()
+                            .filter(entry -> entry.path().equals(selected.reference())).findFirst().orElse(null);
+                    if (replacement == null) {
+                        selected = null;
+                        selections.put(context(), null);
+                        previewSelection();
+                    } else if (!replacement.equals(selected.cosmetic())) {
+                        selectCosmetic(replacement);
+                    }
+                }
+                if (localList != null && mode == Mode.ALL && !localCosmetics(true).isEmpty()) {
+                    rebuild();
+                }
+                refreshLocalRows();
+            }
+        }
         if (cloudAccount != null && !cloudAccount.equals(FiguraMod.getLocalPlayerUUID())) {
             if (selected != null && selected.cloud() != null) {
                 selected = null;
@@ -1164,6 +2815,17 @@ public class WardrobeScreen extends AbstractPanelScreen {
             cloudAccount = FiguraMod.getLocalPlayerUUID();
         }
         if (client != null && !client.current()) {
+            selectionGeneration++;
+            draftPreviewGeneration++;
+            selectedCloudCosmetic = null;
+            if (cloudCosmeticSelection != null) {
+                cloudCosmeticSelection.close();
+                cloudCosmeticSelection = null;
+            }
+            if (draftCloudBatch != null) {
+                draftCloudBatch.close();
+                draftCloudBatch = null;
+            }
             closeThumbnails();
             client = null;
             offlineScope = "";
@@ -1188,9 +2850,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
         if (collectionGrid != null && source != Source.CLOUD) {
             refreshCollectionCards();
         }
-        if (cloudList != null && source == Source.ALL && !parts) {
-            cloudList.localEntries(localEntries(true), this::selectLocal, this::removeLocalOutfit,
-                    selected == null ? null : selected.reference());
+        if (cloudList != null && source != Source.CLOUD) {
+            refreshLocalRows();
         }
         if (tab == Tab.OUTFIT) {
             var current = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
@@ -1206,10 +2867,16 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }
         boolean busy = enabling != null && !enabling.future().isDone();
         if (candidateButton != null) {
-            candidateButton.setActive(!parts && !busy && !collectionBusy() && (selected == null && tab == Tab.OUTFIT
-                    || selected != null && (selected.path() != null
-                    || client != null && client.current() && collection.available())));
-            candidateButton.setMessage(text(selected == null && tab == Tab.OUTFIT ? "go_collection"
+            boolean validSelection = selected == null || selected.cosmetic() == null || selected.cosmetic().source() != null;
+            boolean canManageCandidate = selected == null ? tab == Tab.OUTFIT : selected.path() != null
+                    || client != null && client.current() && collection.available();
+            candidateButton.setActive(validSelection && canManageCandidate && !busy && !collectionBusy());
+            if (selectedIsOutfit()) {
+                candidateButton.setActive(candidateButton.isActive() && preview != null
+                        && preview.configurationPreview() != null);
+            }
+            candidateButton.setMessage(text(selectedIsOutfit() ? "preset_import"
+                    : selected == null && tab == Tab.OUTFIT ? "go_collection"
                     : candidate() ? "remove_outfit" : "add_outfit"));
         }
         updateVisibilityButton(busy);
@@ -1221,7 +2888,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         updateMotdWidget();
         if (uploadButton != null) {
             var current = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
-            boolean canPublish = selected != null ? !parts && candidate() && !busy && !selectionIsCaching()
+            boolean canPublish = selected != null ? selectedIsAvatar() && candidate() && !busy && !selectionIsCaching()
                     && (selected.path() != null || client != null && client.current())
                     : NetworkStuff.canUpload() && !AvatarManager.localUploaded
                         && current != null && current.loaded && current.nbt != null;
@@ -1231,10 +2898,79 @@ public class WardrobeScreen extends AbstractPanelScreen {
             deleteButton.setActive(NetworkStuff.isConnected() && AvatarManager.localUploaded && !uploading);
         }
         syncHierarchy();
+        if (attachingInstance != null && !validAnchorSelection()) {
+            clearAnchorSelection();
+        }
+        if (bonesShown && layout != null && !renderedTreeChoices.equals(bones.viewChoices())) {
+            rebuild();
+        }
+        updateAutomaticAnchorFocus();
         if (previewWidget != null) {
-            previewWidget.setSelectedBone(tab == Tab.OUTFIT ? bones.selectedPart() : null);
+            previewWidget.setSelectedBone(previewBoneSelection());
         }
         updateCollectionButtons();
+    }
+
+    private Object previewBoneSelection() {
+        if (tab != Tab.OUTFIT || !boneHelpersShown) {
+            return null;
+        }
+        if (automaticAnchorFocus != null) {
+            return validAutomaticAnchorFocus()
+                    ? new top.aihmc.omnimorph.model.library.PreviewBoneHighlight.Mount(automaticAnchorFocus) : null;
+        }
+        var target = bones.selectedTarget();
+        if (outfitDraft != null && target != null && target.instanceId() != null
+                && outfitDraft.configuration().instances().stream().noneMatch(instance ->
+                        instance.instanceId().equals(target.instanceId()) && instance.enabled())) {
+            return null;
+        }
+        return bones.selectedPart();
+    }
+
+    private void toggleBoneHelpers() {
+        boneHelpersShown = !boneHelpersShown;
+        Object selection = previewBoneSelection();
+        if (previewWidget != null) {
+            previewWidget.setSelectedBone(selection);
+        }
+        if (preview != null) {
+            preview.selectedBone(selection);
+        }
+    }
+
+    private void updateAutomaticAnchorFocus() {
+        if (automaticAnchorFocus == null) {
+            return;
+        }
+        if (!validAutomaticAnchorFocus()) {
+            automaticAnchorFocus = null;
+            observedAutomaticTarget = null;
+            bones.select(-1);
+            return;
+        }
+        var target = preview.previewMountTarget(automaticAnchorFocus);
+        if (java.util.Objects.equals(target, observedAutomaticTarget)) {
+            return;
+        }
+        observedAutomaticTarget = target;
+        if (target == null) {
+            bones.select(-1);
+        } else if (target.bone() == null) {
+            bones.locateBaseRoot();
+        } else {
+            var type = target.bone().instanceId() == null
+                    ? OutfitConfig.AnchorType.BASE_BONE : OutfitConfig.AnchorType.ACCESSORY_BONE;
+            bones.locate(new OutfitConfig.AnchorRef(type, null, target.bone(), null, null, null));
+        }
+    }
+
+    private boolean validAutomaticAnchorFocus() {
+        return automaticAnchorFocus != null && outfitDraft != null && draftPreviewActive
+                && automaticAnchorFocus.equals(outfitDraft.selectedInstance())
+                && outfitDraft.configuration().instances().stream().anyMatch(instance ->
+                        instance.instanceId().equals(automaticAnchorFocus) && instance.enabled()
+                                && instance.anchor().type() == OutfitConfig.AnchorType.AUTO_TRAIL);
     }
 
     @Override
@@ -1267,17 +3003,46 @@ public class WardrobeScreen extends AbstractPanelScreen {
     @Override
     public void removed() {
         saveView();
+        if (cosmeticControlsOpen || cosmeticAnimationsOpen || outfitPresetsOpen) {
+            return;
+        }
         removed = true;
         selectionGeneration++;
         visibilityGeneration++;
+        draftPreviewGeneration++;
+        if (draftStart != null && !draftStart.isDone()) {
+            draftStart.cancel(false);
+        }
+        if (cloudCosmeticSelection != null) {
+            cloudCosmeticSelection.close();
+            cloudCosmeticSelection = null;
+        }
+        selectedCloudCosmetic = null;
+        if (draftCloudBatch != null) {
+            draftCloudBatch.close();
+            draftCloudBatch = null;
+        }
         if (visibilityRequest != null) {
             visibilityRequest.cancel();
         }
         if (preview != null && !preview.isExpanded()) {
+            clearAnchorSelection();
+            preview.selectedBone(null);
+            if (previewWidget != null) {
+                previewWidget.setSelectedBone(null);
+            }
             preview.close();
         }
         if (equipment != null) {
             equipment.close();
+        }
+        if (cosmetics != null) {
+            cosmetics.close();
+            cosmetics = null;
+        }
+        if (outfitCapabilitiesRequest != null) {
+            outfitCapabilitiesRequest.cancel();
+            outfitCapabilitiesRequest = null;
         }
         closeThumbnails();
         super.removed();

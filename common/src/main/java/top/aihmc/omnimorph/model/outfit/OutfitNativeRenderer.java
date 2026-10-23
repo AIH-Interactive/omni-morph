@@ -9,6 +9,7 @@ import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.math.matrix.FiguraMat4;
+import top.aihmc.omnimorph.model.library.PreviewBoneHighlight;
 import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
 import top.aihmc.omnimorph.model.rendering.PartFilterScheme;
 
@@ -33,8 +34,12 @@ public final class OutfitNativeRenderer {
     public static void draw(OutfitComposition.Frame frame, SkeletonPose basePose,
                             LivingEntityRenderState state, float delta, Matrix4fc entityToDraw,
                             MultiBufferSource buffers, EntityRenderMode mode) {
-        frame.draw(basePose, state, delta, mode,
-                command -> drawInstance(frame, command, delta, entityToDraw, buffers, state.lightCoords, mode));
+        frame.withPreviewSelection(() -> frame.draw(basePose, state, delta, mode,
+                command -> frame.withPreviewSelection(() ->
+                        drawInstance(frame, command, delta, entityToDraw, buffers, state.lightCoords, mode))));
+        if (mode == EntityRenderMode.FIGURA_GUI) {
+            PreviewBoneHighlight.drawSkeleton(frame.previewHelpers(basePose), entityToDraw, buffers);
+        }
     }
 
     public static void drawInstance(OutfitComposition.Draw command, float delta, Matrix4fc entityToDraw,

@@ -25,12 +25,24 @@ public final class VanillaSkeletonAdapter {
     }
 
     public VanillaSkeletonAdapter(PlayerModel model, OutfitLimits limits, SkeletonIndex.Cache cache) {
-        Part root = new Part("Root", model.root(), List.of(
-                leaf("Body", model.body), leaf("Head", model.head),
-                leaf("LeftArm", model.leftArm), leaf("RightArm", model.rightArm),
-                leaf("LeftLeg", model.leftLeg), leaf("RightLeg", model.rightLeg)));
+        Part root = root(model);
         binding = cache == null ? SkeletonIndex.capture(null, List.of(root), Part::name, Part::children, limits)
                 : cache.bind(null, null, List.of(root), Part::name, Part::children, limits);
+    }
+
+    /** Same native structural contract for an editor that has not extracted a player pose yet. */
+    public static SkeletonIndex.Binding<Part> describe(OutfitLimits limits) {
+        return SkeletonIndex.capture(null, List.of(root(null)), Part::name, Part::children, limits);
+    }
+
+    private static Part root(PlayerModel model) {
+        return new Part("Root", model == null ? null : model.root(), List.of(
+                leaf("Body", model == null ? null : model.body),
+                leaf("Head", model == null ? null : model.head),
+                leaf("LeftArm", model == null ? null : model.leftArm),
+                leaf("RightArm", model == null ? null : model.rightArm),
+                leaf("LeftLeg", model == null ? null : model.leftLeg),
+                leaf("RightLeg", model == null ? null : model.rightLeg)));
     }
 
     private static Part leaf(String name, ModelPart part) {

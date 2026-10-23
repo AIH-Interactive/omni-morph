@@ -54,6 +54,7 @@ public final class YsmActionRuntimeSmokeTest {
             testModes();
             testCallbacks();
             testLayout();
+            testOutfitWheel();
             System.out.println("M5 action runtime: hold/release, toggle/cooldown/speed, callback ownership and disk-restored wheel layout PASS; native input/GUI pending.");
         } finally {
             ActionWheel.releaseYsmPress();
@@ -124,6 +125,111 @@ public final class YsmActionRuntimeSmokeTest {
         require(!first.runtime.animations().isActive("press") && !first.runtime.actions().trigger("extra_animation.press"),
                 "closed model stops actions and rejects retained input requests");
         second.runtime.actions().close();
+    }
+
+    private static void testOutfitWheel() throws Exception {
+        Fixture base = new Fixture("wheel-base");
+        Fixture first = new Fixture("wheel-copy-one");
+        Fixture second = new Fixture("wheel-copy-two");
+        var account = java.util.UUID.randomUUID();
+        var outfit = java.util.UUID.randomUUID();
+        var resource = new top.aihmc.omnimorph.model.outfit.OutfitConfig.ResourceRef(
+                top.aihmc.omnimorph.model.outfit.OutfitConfig.Source.LOCAL, java.util.UUID.randomUUID(), null,
+                null, null, "8".repeat(64), top.aihmc.omnimorph.model.outfit.OutfitConfig.Format.YSM_PLAIN);
+        var entries = new java.util.ArrayList<top.aihmc.omnimorph.model.outfit.OutfitActionWheel.Entry>();
+        for (int index = 0; index < 2; index++) {
+            Fixture fixture = index == 0 ? first : second;
+            var declaration = new top.aihmc.omnimorph.model.outfit.OutfitConfig.Instance(java.util.UUID.randomUUID(),
+                    resource, index + 1, true, top.aihmc.omnimorph.model.outfit.OutfitConfig.AnchorRef.authorDefault("head_anchor"),
+                    top.aihmc.omnimorph.model.outfit.OutfitConfig.Transform.identity(), List.of(), Map.of(), Map.of());
+            install(fixture.owner, "cosmeticContext", new top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext(
+                    account, outfit, account, declaration, top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults(),
+                    top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext.Scope.DRAFT));
+            install(fixture.owner, "loaded", true);
+            var api = new top.aihmc.omnimorph.lua.api.CosmeticAnimationsAPI(fixture.owner);
+            var page = fixture.owner.luaRuntime.action_wheel.newPage("native animation page");
+            page.newAction(1).setTitle("Hold").setYsmAction("extra_animation.hold");
+            for (int slot = 2; slot <= 8; slot++) {
+                page.newAction(slot).setTitle("Author " + slot);
+            }
+            fixture.owner.luaRuntime.action_wheel.setPage(page);
+            api.setPage(page);
+            entries.add(new top.aihmc.omnimorph.model.outfit.OutfitActionWheel.Entry(declaration, "星翼", fixture.owner));
+        }
+        var authored = base.owner.luaRuntime.action_wheel.newPage("full base wheel");
+        for (int slot = 1; slot <= 8; slot++) {
+            authored.newAction(slot).setTitle("Base " + slot);
+        }
+        base.owner.luaRuntime.action_wheel.setPage(authored);
+        Object original = authored.getActions(null);
+        var active = new java.util.concurrent.atomic.AtomicBoolean(true);
+        try (var wheel = new top.aihmc.omnimorph.model.outfit.OutfitActionWheel(() -> List.copyOf(entries), active::get)) {
+            var root = wheel.page(base.owner);
+            require(root.getGroupCount() == 2 && root.slots()[0] == authored.getAction(1)
+                            && authored.getActions(null).equals(original),
+                    "a full base wheel keeps all original slots and appends navigation in another group");
+            root.setSlotsShift(2);
+            wheel.execute(base.owner, 0, true);
+            wheel.execute(base.owner, 1, true);
+            var copies = wheel.page(base.owner);
+            require(copies.slots()[1].getTitle().equals("星翼 #1") && copies.slots()[2].getTitle().equals("星翼 #2"),
+                    "resource grouping retains both ordered duplicate entries");
+            wheel.execute(base.owner, 1, true);
+            FiguraMod.ticks = 500;
+            wheel.execute(base.owner, 0, true);
+            require(first.runtime.actions().isActive("extra_animation.hold")
+                            && !second.runtime.actions().isActive("extra_animation.hold") && !first.owner.isHost,
+                    "aggregated native actions execute on their real non-host cosmetic owner");
+            wheel.release();
+            require(!first.runtime.actions().isActive("extra_animation.hold"), "release stops only this press's first-copy hold");
+            var leaf = wheel.page(base.owner);
+            leaf.setSlotsShift(2);
+            wheel.execute(base.owner, 0, true);
+            wheel.execute(base.owner, 2, true);
+            FiguraMod.ticks = 520;
+            wheel.execute(base.owner, 0, true);
+            require(second.runtime.actions().isActive("extra_animation.hold")
+                            && !first.runtime.actions().isActive("extra_animation.hold"),
+                    "the second copy has a separate action runtime and independent cooldown");
+            second.runtime.actions().stop("extra_animation.hold");
+            FiguraMod.ticks = 540;
+            second.runtime.actions().trigger("extra_animation.hold");
+            wheel.release();
+            require(second.runtime.actions().isActive("extra_animation.hold"),
+                    "releasing an old input cannot stop a replacement playback generation");
+            second.runtime.actions().stopAll();
+            leaf = wheel.page(base.owner);
+            leaf.setSlotsShift(2);
+            wheel.execute(base.owner, 0, true);
+            var oldEntry = wheel.page(base.owner).slots()[2];
+            entries.removeLast();
+            wheel.page(base.owner);
+            oldEntry.execute(null, true);
+            require(!second.runtime.actions().isActive("extra_animation.hold") && !wheel.page(base.owner).getTitle().equals("native animation page"),
+                    "removed-copy navigation is rejected instead of targeting the remaining copy");
+            var changedBase = base.owner.luaRuntime.action_wheel.newPage("script-changed base");
+            changedBase.newAction(1).setTitle("New author action");
+            base.owner.luaRuntime.action_wheel.setPage(changedBase);
+            require(wheel.page(base.owner).slots()[0] == changedBase.getAction(1),
+                    "a base script page change is immediately reflected without overwriting author pages");
+            var vanilla = wheel.page(null);
+            require(vanilla.slots()[0] != null, "vanilla/no base Avatar still presents the host animation entry");
+            wheel.execute(null, 0, true);
+            wheel.execute(null, 1, true);
+            FiguraMod.ticks = 560;
+            wheel.execute(null, 0, true);
+            require(first.runtime.actions().isActive("extra_animation.hold"), "single-copy resources enter their own page directly");
+            active.set(false);
+            require(wheel.page(null) == null && !first.runtime.actions().isActive("extra_animation.hold"),
+                    "retired/unauthorized presentation releases owned holds and exposes no stale page");
+        } finally {
+            first.runtime.actions().close();
+            second.runtime.actions().close();
+            base.runtime.actions().close();
+        }
+        require(authored.getActions(null).equals(original), "aggregation never mutates original base actions");
+        System.out.println("PASS outfit wheel/native YSM: full base slots, no-base navigation, duplicate grouping, real owner/cooldown, "
+                + "hold generations, script page changes and removed/retired cleanup; HUD/input/GPU MANUAL/PENDING");
     }
 
     private static void testCallbacks() throws Exception {

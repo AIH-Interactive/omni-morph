@@ -85,6 +85,8 @@ public final class LibraryUploadDraft {
         }
         applyMetadata(value.metadata());
         prepared = value;
+        resourceKind = value.resourceKind();
+        accessoryMetadata = value.accessoryMetadata();
         return true;
     }
 
@@ -101,6 +103,14 @@ public final class LibraryUploadDraft {
         }
         resourceKind = kind;
         accessoryMetadata = declaration == null ? null : declaration.deepCopy();
+    }
+
+    public String resourceKind() {
+        return resourceKind;
+    }
+
+    public JsonObject accessoryMetadata() {
+        return accessoryMetadata == null ? null : accessoryMetadata.deepCopy();
     }
 
     public String displayName() {
@@ -159,7 +169,7 @@ public final class LibraryUploadDraft {
         tags = normalizeTags(commaSeparated);
     }
 
-    static List<String> normalizeTags(String commaSeparated) {
+    public static List<String> normalizeTags(String commaSeparated) {
         var normalized = new ArrayList<String>();
         var identities = new java.util.HashSet<String>();
         for (String raw : commaSeparated.split(",")) {
@@ -172,9 +182,33 @@ public final class LibraryUploadDraft {
     }
 
     public record Snapshot(Path source, LibraryPackagePreparation.Prepared prepared,
-                           Map<String, Object> metadata, String metadataSource) {
+                           Map<String, Object> metadata, String metadataSource, JsonObject accessoryDeclaration) {
         public Snapshot {
-            metadata = Map.copyOf(metadata);
+            metadata = copyMetadata(metadata);
+            accessoryDeclaration = accessoryDeclaration == null ? null : accessoryDeclaration.deepCopy();
+        }
+
+        @Override
+        public JsonObject accessoryDeclaration() {
+            return accessoryDeclaration == null ? null : accessoryDeclaration.deepCopy();
+        }
+
+        @Override
+        public Map<String, Object> metadata() {
+            return copyMetadata(metadata);
+        }
+
+        private static Map<String, Object> copyMetadata(Map<String, Object> source) {
+            var copy = new java.util.HashMap<String, Object>(source);
+            copy.replaceAll((key, value) -> value instanceof JsonObject json ? json.deepCopy() : value);
+            return Map.copyOf(copy);
+        }
+
+        public String sourceFilename() {
+            String name = source.getFileName().toString();
+            String lower = name.toLowerCase(Locale.ROOT);
+            return prepared.resourceKind().equals("ACCESSORY") && !lower.endsWith(".zip") && !lower.endsWith(".ysm")
+                    ? name + ".zip" : name;
         }
     }
 
@@ -186,6 +220,14 @@ public final class LibraryUploadDraft {
             throw new IllegalArgumentException("UPLOAD_NOT_READY");
         }
         validateEditable(displayName, description, tags);
+        if (!resourceKind.equals(prepared.resourceKind())) {
+            throw new IllegalArgumentException("RESOURCE_KIND_BODY_MISMATCH");
+        }
+        if (accessoryMetadata != null) {
+            top.aihmc.omnimorph.model.outfit.CosmeticMetadata.read(accessoryMetadata.toString())
+                    .validateLimits(limits.outfitsV1() == null
+                            ? top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults() : limits.outfitsV1().limits());
+        }
         validate(metadata.internalName(), 96, false, "internal_name");
         validate(source.getFileName().toString(), 128, false, "source");
         metadata.authors().forEach(author -> validate(author, 0, false, "authors"));
@@ -196,11 +238,14 @@ public final class LibraryUploadDraft {
                 "requires_authorization", requiresAuthorization));
         fields.put("resource_kind", resourceKind);
         if (accessoryMetadata != null) {
-            fields.put("accessory_metadata", accessoryMetadata.deepCopy());
+            fields.put("accessory_metadata", top.aihmc.omnimorph.model.outfit.OutfitCodec.encodeAccessoryMetadata(
+                    top.aihmc.omnimorph.model.outfit.CosmeticMetadata.read(accessoryMetadata.toString())));
         }
-        return new Snapshot(source, prepared, fields,
+        var snapshot = new Snapshot(source, prepared, fields,
                 resourceKind.equals("ACCESSORY") && metadata.modelType().equals("FIGURA")
-                        ? "cosmetic.json" : prepared.metadataSource());
+                        ? "cosmetic.json" : prepared.metadataSource(), accessoryMetadata);
+        validate(snapshot.sourceFilename(), 128, false, "source");
+        return snapshot;
     }
 
     static void validateEditable(String name, String description, List<String> tags) {

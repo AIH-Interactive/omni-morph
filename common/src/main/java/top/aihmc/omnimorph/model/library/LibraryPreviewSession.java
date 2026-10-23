@@ -33,6 +33,8 @@ public final class LibraryPreviewSession implements AutoCloseable {
 
     public record Status(Stage stage, String errorCode) {}
 
+    public record ConfigurationPreview(OutfitConfig configuration, OutfitPresetResources.Prepared resources) {}
+
     private record PreparedModel(Avatar avatar, boolean currentPlayer) {}
 
     private final LibraryClient client;
@@ -45,6 +47,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
     private final AtomicLong generations = new AtomicLong();
     private LibraryTransferService.Operation transfer;
     private LibraryClient.Request<CompoundTag> resource;
+    private LibraryClient.Request<LibraryWardrobePreviewService.Configuration> configurationRequest;
     private LibraryPreviewBinding binding;
     private Avatar avatar;
     private volatile boolean closed;
@@ -58,10 +61,24 @@ public final class LibraryPreviewSession implements AutoCloseable {
     private CompoundTag playerDraftNbt;
     private Status status = new Status(Stage.IDLE, "");
     private PreviewHierarchy hierarchy = PreviewHierarchy.EMPTY;
+    private OutfitHierarchy outfitHierarchy = OutfitHierarchy.EMPTY;
+    private OutfitComposition previewComposition;
     private long hierarchyRevision;
     private final SkeletonIndex.Cache outfitIndexes = new SkeletonIndex.Cache();
     private final AtomicLong compositionGenerations = new AtomicLong();
     private CompletableFuture<Boolean> pendingComposition;
+    private OutfitPresetResources configurationResources;
+    private ConfigurationPreview configurationPreview;
+    private java.util.List<OutfitPresetResources.Issue> configurationIssues = java.util.List.of();
+
+    public java.util.List<OutfitPresetResources.Issue> configurationIssues() {
+        return configurationIssues;
+    }
+
+    public ConfigurationPreview configurationPreview() {
+        return !closed && status.stage() == Stage.READY && configurationPreview != null
+                && configurationPreview.resources().ready() ? configurationPreview : null;
+    }
 
     /** Local wardrobe previews have no backend session dependency. */
     public LibraryPreviewSession() {
@@ -91,16 +108,41 @@ public final class LibraryPreviewSession implements AutoCloseable {
         return hierarchy;
     }
 
+    public OutfitHierarchy outfitHierarchy() {
+        return outfitHierarchy;
+    }
+
+    public OutfitComposition outfitComposition() {
+        return closed ? null : previewComposition;
+    }
+
+    public Avatar outfitBase() {
+        return closed ? null : avatar;
+    }
+
     public long hierarchyRevision() {
         return hierarchyRevision;
     }
 
     /** Explicit refresh also supports scripts that changed the part structure after initial loading. */
     public void refreshHierarchy() {
-        if (!closed && avatar != null) {
-            hierarchy = PreviewHierarchy.fromAvatar(avatar);
+        if (!closed) {
+            if (previewComposition != null) {
+                outfitHierarchy = OutfitHierarchy.capture(previewComposition.editorSnapshot(avatar),
+                        new OutfitHierarchy.Labels(treeLabel("base"), treeLabel("accessories"),
+                                treeLabel("standards"), treeLabel("virtuals"), treeLabel("no_bones"),
+                                treeLabel("hidden_bones"), treeLabel("disabled")));
+                hierarchy = outfitHierarchy.hierarchy();
+            } else {
+                outfitHierarchy = OutfitHierarchy.EMPTY;
+                hierarchy = avatar == null ? PreviewHierarchy.EMPTY : PreviewHierarchy.fromAvatar(avatar);
+            }
             hierarchyRevision++;
         }
+    }
+
+    private static String treeLabel(String key) {
+        return top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.tree_" + key).getString();
     }
 
     public void setIndependentFigura(boolean enabled) {
@@ -152,7 +194,10 @@ public final class LibraryPreviewSession implements AutoCloseable {
     public boolean selectVanilla() {
         resetPlayerPreview();
         long generation = begin();
-        boolean isolated = detachedMode || independentFigura;
+        return bindVanilla(generation, detachedMode || independentFigura);
+    }
+
+    private boolean bindVanilla(long generation, boolean isolated) {
         if (isolated && detachedEntity == null && world != null) {
             detachedEntity = new LibraryPreviewPlayer(world, owner, () -> Minecraft.getInstance().player);
         }
@@ -180,6 +225,16 @@ public final class LibraryPreviewSession implements AutoCloseable {
         } else if (binding != null) {
             binding.withPlayerContext(action);
         }
+    }
+
+    public void selectedBone(Object part) {
+        if (binding != null) {
+            binding.selectedBone(part);
+        }
+    }
+
+    public OutfitComposition.MountTarget previewMountTarget(UUID instance) {
+        return previewComposition == null ? null : previewComposition.previewMountTarget(instance);
     }
 
     /** Borrow the actual online entity; only the fallback model belongs to this session. */
@@ -256,11 +311,100 @@ public final class LibraryPreviewSession implements AutoCloseable {
                 status = new Status(Stage.FAILED, errorCode(failure));
                 result.complete(false);
             } else {
-                prepare(data.nbt(), generation, result);
+                if (data.configuration() != null) {
+                    prepareConfiguration(data.configuration(), data.outfitLimits(), data.model().modelId(),
+                            transfers, generation, result);
+                } else {
+                    prepare(data.nbt(), generation, result);
+                }
             }
         });
         cancelWith(result, generation);
         return result;
+    }
+
+    public CompletableFuture<Boolean> selectConfigurationResource(
+            LibraryClient.Request<LibraryWardrobePreviewService.Configuration> request, LibraryTransferService transfers) {
+        resetPlayerPreview();
+        long generation = begin();
+        configurationRequest = request;
+        var result = new CompletableFuture<Boolean>();
+        request.future().whenComplete((data, failure) -> {
+            if (!current(generation)) {
+                result.complete(false);
+            } else if (failure != null) {
+                status = new Status(Stage.FAILED, errorCode(failure));
+                result.complete(false);
+            } else {
+                prepareConfiguration(data.configuration(), data.limits(), data.resource(), transfers, generation, result);
+            }
+        });
+        cancelWith(result, generation);
+        return result;
+    }
+
+    private void prepareConfiguration(OutfitConfig configuration, OutfitLimits limits, UUID identity,
+                                      LibraryTransferService transfers,
+                                      long generation, CompletableFuture<Boolean> result) {
+        if (client == null || limits == null) {
+            status = new Status(Stage.FAILED, "OUTFIT_UNSUPPORTED");
+            result.complete(false);
+            return;
+        }
+        UUID account = client.session().player();
+        var dependencies = new OutfitPresetResources(configuration, limits, account,
+                top.aihmc.omnimorph.FiguraMod.getFiguraDirectory(), client, transfers,
+                Minecraft.getInstance()::execute, () -> current(generation) && !result.isCancelled());
+        configurationResources = dependencies;
+        dependencies.future().whenComplete((resources, failure) -> {
+            if (!current(generation) || result.isCancelled()) {
+                result.complete(false);
+                return;
+            }
+            if (failure != null || !resources.ready()) {
+                configurationIssues = resources == null ? java.util.List.of() : resources.issues();
+                status = new Status(Stage.FAILED, failure == null ? "OUTFIT_PRESET_DEPENDENCY_UNAVAILABLE"
+                        : errorCode(failure));
+                result.complete(false);
+                return;
+            }
+            var base = new CompletableFuture<Boolean>();
+            if (configuration.base() == null) {
+                base.complete(bindVanilla(generation, true));
+            } else {
+                prepare(() -> {
+                    try {
+                        return resources.base();
+                    } catch (java.io.IOException unavailable) {
+                        throw new java.util.concurrent.CompletionException(unavailable);
+                    }
+                }, generation, base, true);
+            }
+            base.whenComplete((ready, problem) -> {
+                if (!current(generation) || result.isCancelled() || problem != null || !Boolean.TRUE.equals(ready)) {
+                    result.complete(false);
+                    return;
+                }
+                status = new Status(Stage.LOADING, "");
+                var permissions = avatar == null ? new PermissionPack.PlayerPermissionPack(
+                        new PermissionPack.CategoryPermissionPack(
+                                top.aihmc.omnimorph.permissions.Permissions.Category.DEFAULT), owner.toString())
+                        : avatar.permissions;
+                prepareComposition(configuration, limits, account, identity,
+                        permissions, resources::read)
+                        .whenComplete((complete, error) -> {
+                            if (current(generation) && !result.isCancelled()) {
+                                boolean success = error == null && Boolean.TRUE.equals(complete);
+                                status = new Status(success ? Stage.READY : Stage.FAILED,
+                                        success ? "" : "MODEL_PREPARATION_FAILED");
+                                configurationPreview = success ? new ConfigurationPreview(configuration, resources) : null;
+                                result.complete(success);
+                            } else {
+                                result.complete(false);
+                            }
+                        });
+            });
+        });
     }
 
     /** Upload drafts use their independently prepared NBT, never a wardrobe publication entry point. */
@@ -330,6 +474,11 @@ public final class LibraryPreviewSession implements AutoCloseable {
 
     private void prepare(java.util.function.Supplier<CompoundTag> nbt, long generation,
                          CompletableFuture<Boolean> result) {
+        prepare(nbt, generation, result, detachedMode || independentFigura);
+    }
+
+    private void prepare(java.util.function.Supplier<CompoundTag> nbt, long generation,
+                         CompletableFuture<Boolean> result, boolean isolated) {
         if (!current(generation) || entity == null) {
             if (current(generation)) {
                 status = new Status(Stage.FAILED, "NO_PREVIEW_WORLD");
@@ -337,7 +486,6 @@ public final class LibraryPreviewSession implements AutoCloseable {
             result.complete(false);
             return;
         }
-        boolean isolated = detachedMode || independentFigura;
         LivingEntity player = Minecraft.getInstance().player;
         AvatarLoadExecutor.submit(() -> {
             if (!current(generation) || result.isCancelled()) {
@@ -425,6 +573,8 @@ public final class LibraryPreviewSession implements AutoCloseable {
         }
         cancelCompositionPreparation();
         binding.setComposition(composition);
+        previewComposition = composition;
+        refreshHierarchy();
     }
 
     /** Keep the current preview visible until every instance in the newest draft is prepared. */
@@ -471,6 +621,8 @@ public final class LibraryPreviewSession implements AutoCloseable {
                         return;
                     }
                     target.setComposition(prepared);
+                    previewComposition = prepared;
+                    refreshHierarchy();
                     pendingComposition = null;
                     result.complete(true);
                 }));
@@ -506,6 +658,18 @@ public final class LibraryPreviewSession implements AutoCloseable {
     }
 
     private void retireModel() {
+        if (configurationRequest != null) {
+            configurationRequest.cancel();
+            configurationRequest = null;
+        }
+        configurationPreview = null;
+        if (configurationResources != null) {
+            configurationResources.close();
+            configurationResources = null;
+        }
+        configurationIssues = java.util.List.of();
+        previewComposition = null;
+        outfitHierarchy = OutfitHierarchy.EMPTY;
         hierarchy = PreviewHierarchy.EMPTY;
         hierarchyRevision++;
         if (binding != null) {

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="64" viewBox="0 0 128 64">
+  <defs>
+    <radialGradient id="gold">
+      <stop offset="0" stop-color="#fffff3"/>
+      <stop offset=".4" stop-color="#fff6d3"/>
+      <stop offset="1" stop-color="#f2d58c"/>
+    </radialGradient>
+    <path id="star" d="M0 -12 Q2 -2 10 0 Q2 2 0 12 Q-2 2 -10 0 Q-2 -2 0 -12Z" fill="url(#gold)"/>
+  </defs>
+  <use href="#star" transform="translate(16 16) scale(.45)" opacity=".16"/>
+  <use href="#star" transform="translate(48 16) scale(.65)" opacity=".5"/>
+  <use href="#star" transform="translate(80 16) scale(.85)" opacity=".8"/>
+  <use href="#star" transform="translate(112 16)" opacity="1"/>
+  <use href="#star" transform="translate(16 48) scale(.8)" opacity=".8"/>
+  <use href="#star" transform="translate(48 48) scale(.6)" opacity=".45"/>
+  <use href="#star" transform="translate(80 48) scale(.4)" opacity=".16"/>
+  <use href="#star" transform="translate(112 48) scale(.3)" opacity=".04"/>
+</svg>

@@ -124,6 +124,9 @@ function controller.frame(delta)
             if matrix then
                 attempted[id] = true
                 if cosmetic_native:prepare(id, delta) then
+                    if declaration.anchor_type == "AUTO_TRAIL" then
+                        cosmetic_native:recordMountTarget(id, bone)
+                    end
                     local mount = matrix:rightMultiply(declaration.transform)
                     cosmetic_native:emit(id, mount)
                     if declaration.category == "Trail" then

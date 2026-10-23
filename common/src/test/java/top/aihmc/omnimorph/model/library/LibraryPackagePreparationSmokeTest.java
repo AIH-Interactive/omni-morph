@@ -78,6 +78,8 @@ public final class LibraryPackagePreparationSmokeTest {
             require(!CloudHttp.sha256(copy).equals(prepared.sha256())
                     && CloudHttp.sha256(prepared.compressed()).equals(prepared.sha256()), "owned bytes");
 
+            testAccessoryPreparation(directory, owner);
+
             for (String prefix : java.util.List.of("aylDWT/", "release/anan-fullmodel/")) {
                 Path nested = zip(directory.resolve("nested-" + prefix.length() + ".zip"), Map.of(
                         prefix + "avatar.json", "{\"name\":\"Nested\",\"author\":\"Original\",\"free\":true,\"resources\":[\"extra.txt\"]}",
@@ -135,6 +137,73 @@ public final class LibraryPackagePreparationSmokeTest {
                 }
             }
         }
+    }
+
+    private static void testAccessoryPreparation(Path directory, UUID owner) throws Exception {
+        String declaration = """
+                {"name":"Ribbon","authors":["Original"],"category":"Trail",
+                 "cosmetic_anchor":"hip","resources":["credit.txt"],"free":true}
+                """;
+        Path folder = Files.createDirectory(directory.resolve("装饰目录"));
+        Files.writeString(folder.resolve("cosmetic.json"), declaration);
+        Files.writeString(folder.resolve("script.lua"), "return 1");
+        Files.writeString(folder.resolve("credit.txt"), "Original credit");
+        for (Path input : java.util.List.of(folder, zip(directory.resolve("accessory.zip"), Map.of(
+                "wrapper/cosmetic.json", declaration, "wrapper/script.lua", "return 1",
+                "wrapper/credit.txt", "Original credit")))) {
+            var phases = new java.util.ArrayList<LibraryPackagePreparation.Phase>();
+            var prepared = LibraryPackagePreparation.prepareAccessory(input, owner, 1024 * 1024,
+                    () -> false, phases::add);
+            require(prepared.resourceKind().equals("ACCESSORY")
+                            && prepared.metadataSource().equals("cosmetic.json")
+                            && prepared.metadata().authors().equals(java.util.List.of("Original"))
+                            && prepared.nbt().contains("scripts") && prepared.nbt().contains("resources"),
+                    "folder and nested archive retain accessory purpose, authors and native resources");
+            require(phases.equals(java.util.List.of(LibraryPackagePreparation.Phase.READING,
+                            LibraryPackagePreparation.Phase.PREPARING, LibraryPackagePreparation.Phase.COMPRESSING)),
+                    "accessory preparation reports the existing foreground progress phases");
+            var edited = prepared.accessoryMetadata();
+            edited.addProperty("cosmetic_anchor", "head");
+            var changed = LibraryPackagePreparation.withAccessoryMetadata(prepared, edited, 1024 * 1024, () -> false);
+            require(changed.accessoryMetadata().get("cosmetic_anchor").getAsString().equals("head")
+                            && prepared.accessoryMetadata().get("cosmetic_anchor").getAsString().equals("hip")
+                            && !changed.sha256().equals(prepared.sha256())
+                            && NbtIo.readCompressed(new ByteArrayInputStream(changed.compressed()),
+                            NbtAccounter.create(256L * 1024 * 1024)).equals(changed.nbt()),
+                    "edited anchor is serialized into a new immutable distribution and digest");
+            var changedAuthors = new com.google.gson.JsonArray();
+            changedAuthors.add("Changed author");
+            edited.add("authors", changedAuthors);
+            reject(() -> LibraryPackagePreparation.withAccessoryMetadata(prepared, edited, 1024 * 1024, () -> false));
+            reject(() -> LibraryPackagePreparation.withAccessoryMetadata(changed,
+                    changed.accessoryMetadata(), 1024, () -> true));
+        }
+        require(Files.readString(folder.resolve("cosmetic.json")).equals(declaration),
+                "upload edits never overwrite the author's source declaration");
+        Path encryptedFolder = Files.createDirectory(directory.resolve("encrypted-accessory"));
+        Files.writeString(encryptedFolder.resolve("cosmetic.json"), declaration);
+        Files.writeString(encryptedFolder.resolve("credit.txt"), "Original credit");
+        byte[] ciphertext = Files.readAllBytes(Path.of("src/test/resources/ysm/crypto-vectors/crypto1.ysm"));
+        Files.write(encryptedFolder.resolve("payload.ysm"), ciphertext);
+        var encrypted = LibraryPackagePreparation.prepareAccessory(encryptedFolder, owner, 1024 * 1024,
+                () -> false, ignored -> {});
+        var encryptedDeclaration = encrypted.accessoryMetadata();
+        encryptedDeclaration.addProperty("cosmetic_anchor", "head_anchor");
+        var editedEncrypted = LibraryPackagePreparation.withAccessoryMetadata(encrypted, encryptedDeclaration,
+                1024 * 1024, () -> false);
+        require(editedEncrypted.metadata().modelType().equals("YSM_ENCRYPTED")
+                        && editedEncrypted.resourceKind().equals("ACCESSORY")
+                        && editedEncrypted.metadataSource().equals("encrypted_manifest")
+                        && java.util.Arrays.equals(ciphertext, editedEncrypted.nbt().getCompoundOrEmpty("ysm")
+                        .getByteArray("source_ciphertext").orElseThrow())
+                        && editedEncrypted.accessoryMetadata().equals(encryptedDeclaration),
+                "encrypted accessory upload retains original ciphertext, native format and edited wrapper declaration");
+        Path ambiguous = zip(directory.resolve("ambiguous-accessory.zip"), Map.of(
+                "one/cosmetic.json", declaration, "two/cosmetic.json", declaration));
+        reject(() -> LibraryPackagePreparation.prepareAccessory(ambiguous, owner, 1024 * 1024,
+                () -> false, ignored -> {}));
+        reject(() -> LibraryPackagePreparation.prepareAccessory(folder, owner, 1, () -> false, ignored -> {}));
+        reject(() -> LibraryPackagePreparation.prepareAccessory(folder, owner, 1024, () -> true, ignored -> {}));
     }
 
     private static Path zip(Path path, Map<String, String> files) throws IOException {

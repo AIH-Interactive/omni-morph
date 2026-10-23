@@ -122,6 +122,8 @@ public final class LibraryUploadSmokeTest {
                         "stable mutation payloads and no unrelated upload/equip/header override path");
             }
 
+            testAccessoryUpload(directory, drain);
+            testOutfitUpload(directory, drain);
             Path encrypted = Path.of("src/test/resources/ysm/crypto-vectors/crypto1.ysm");
             var cipher = LibraryPackagePreparation.prepare(encrypted, VIEWER, CloudHttp.FILE_BYTES, () -> false);
             var identity = await(AvatarLoadExecutor.submit(() -> {
@@ -155,6 +157,131 @@ public final class LibraryUploadSmokeTest {
         }
     }
 
+    private static void testOutfitUpload(Path directory, Runnable drain) throws Exception {
+        var configuration = top.aihmc.omnimorph.model.outfit.OutfitConfig.empty();
+        Path source = directory.resolve("outfit.json");
+        Files.writeString(source, new Gson().toJson(Map.of("name", "JSON preset", "configuration",
+                JsonParser.parseString(top.aihmc.omnimorph.model.outfit.OutfitCodec.encode(configuration)))));
+        var prepared = OutfitUploadDraft.prepare(source, top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults());
+        try (var server = new Server();
+             var access = new LibraryAccess(CloudEndpoint.parse(server.origin(), () -> true), HttpClient.newHttpClient(),
+                     builder -> builder.header("Authorization", "Bearer synthetic"));
+             var client = new LibraryClient(access, new LibrarySession(server.origin(), VIEWER, 1, () -> true),
+                     net.minecraft.client.Minecraft.getInstance()::execute);
+             var uploads = new LibraryUploadService(client)) {
+            var snapshot = OutfitUploadDraft.snapshot(prepared, "Published JSON", "Summary", "general",
+                    java.util.List.of("preset"), true, true, server.limits(), server.origin());
+            var pixels = new BufferedImage(16, 8, BufferedImage.TYPE_INT_RGB);
+            var bytes = new ByteArrayOutputStream();
+            ImageIO.write(pixels, "png", bytes);
+            pixels.flush();
+            var image = new LibraryUploadService.Image(bytes.toByteArray(), "image/png");
+            server.dropOutfit.set(true);
+            server.dropImage.set(true);
+            var operation = uploads.uploadOutfit(snapshot, image);
+            reject(operation.future(), drain);
+            require(server.origin().equals(server.lastOutfitOrigin),
+                    "Outfit publication transport supplies the canonical origin required by the real backend");
+            reject(operation.retry(), drain);
+            require(operation.outfitPublished() && server.published.get() == 1 && server.outfitPosts.get() == 2,
+                    "lost outfit acknowledgement retries the same JSON publication before the separate cover operation");
+            Files.writeString(source, "changed after preparation");
+            server.outfitPublication = false;
+            require(await(operation.retry(), drain).published() && server.outfitPosts.get() == 2
+                            && server.images.get() == 1 && server.badReplay.get() == 0 && server.bodies.get() == 0,
+                    "lost cover acknowledgement retries only the original cover CAS without another publication/model body");
+            var transaction = server.transactions.values().stream().findFirst().orElseThrow();
+            require(transaction.input.getAsJsonObject("metadata").get("resource_kind").getAsString().equals("OUTFIT")
+                            && !transaction.input.getAsJsonObject("metadata").has("model_type")
+                            && transaction.input.get("configuration").equals(JsonParser.parseString(
+                            top.aihmc.omnimorph.model.outfit.OutfitCodec.encode(configuration))),
+                    "outfit upload sends an immutable JSON configuration and no invented model format");
+            reject(uploads.uploadOutfit(snapshot, null).future(), drain);
+            require(server.outfitPosts.get() == 2 && server.unexpected.get() == 0,
+                    "fresh capability withdrawal rejects publication without model upload/cancel/equipment fallback");
+        }
+        System.out.println("PASS Outfit JSON upload: bounded document, immutable publication, lost JSON/cover replies, stable CAS and capability withdrawal");
+    }
+
+    private static void testAccessoryUpload(Path directory, Runnable drain) throws Exception {
+        for (boolean encrypted : java.util.List.of(false, true)) {
+            Path source = Files.createDirectory(directory.resolve(encrypted ? "encrypted-cosmetic" : "figura-cosmetic"));
+            String original = """
+                    {"name":"Accessory source","authors":["Author"],"category":"Trail","cosmetic_anchor":"hip"}
+                    """;
+            Files.writeString(source.resolve("cosmetic.json"), original);
+            Files.writeString(source.resolve("script.lua"), "return 1");
+            byte[] ciphertext = encrypted ? Files.readAllBytes(Path.of("src/test/resources/ysm/crypto-vectors/crypto1.ysm")) : null;
+            if (ciphertext != null) {
+                Files.write(source.resolve("source.ysm"), ciphertext);
+            }
+            var prepared = LibraryPackagePreparation.prepareAccessory(source, VIEWER, CloudHttp.FILE_BYTES,
+                    () -> false, ignored -> {});
+            var draft = new LibraryUploadDraft(VIEWER);
+            draft.prepared(draft.beginSource(source), prepared);
+            draft.category("general");
+            var edited = prepared.accessoryMetadata();
+            edited.addProperty("cosmetic_anchor", "head_anchor");
+            edited.add("default_transform", JsonParser.parseString("""
+                    {"position":[1,0,0],"rotation":[0,0,0],"scale":[1,1,1]}
+                    """));
+            draft.resourceKind("ACCESSORY", edited);
+            try (var server = new Server();
+                 var access = new LibraryAccess(CloudEndpoint.parse(server.origin(), () -> true), HttpClient.newHttpClient(),
+                         builder -> builder.header("Authorization", "Bearer synthetic"));
+                 var client = new LibraryClient(access, new LibrarySession(server.origin(), VIEWER, 1, () -> true),
+                         net.minecraft.client.Minecraft.getInstance()::execute);
+                 var uploads = new LibraryUploadService(client)) {
+                var snapshot = draft.snapshot(server.limits());
+                var wireDeclaration = (JsonObject) snapshot.metadata().get("accessory_metadata");
+                require(wireDeclaration.keySet().equals(java.util.Set.of("schema_version", "category", "cosmetic_anchor",
+                                "default_transform", "supported_bases", "has_bones", "skeleton_revision", "skeleton_hash",
+                                "display_bones", "edit_bones", "exported_bones", "editable_bones", "validation_source")),
+                        "reserve metadata matches the backend's strict AccessoryMetadata fields, excluding common author fields");
+                server.dropCommit.set(true);
+                var operation = uploads.upload(snapshot, null);
+                reject(operation.future(), drain);
+                var transaction = server.transactions.values().stream().findFirst().orElseThrow();
+                edited.addProperty("cosmetic_anchor", "back_anchor");
+                ((JsonObject) snapshot.metadata().get("accessory_metadata")).addProperty("cosmetic_anchor", "back_anchor");
+                int bodyCount = server.bodies.get();
+                require(await(operation.retry(), drain).published() && server.published.get() == 1
+                                && server.bodies.get() == bodyCount && server.badReplay.get() == 0,
+                        "accessory commit retry preserves the original operation and frozen declaration");
+                var actual = transaction.body.getCompoundOrEmpty("metadata");
+                JsonObject declaration = JsonParser.parseString(actual.getStringOr("cosmetic_json", "")).getAsJsonObject();
+                require(top.aihmc.omnimorph.model.outfit.OutfitCodec.encodeAccessoryMetadata(
+                                top.aihmc.omnimorph.model.outfit.CosmeticMetadata.read(declaration.toString()))
+                                .equals(transaction.input.getAsJsonObject("metadata").getAsJsonObject("accessory_metadata"))
+                                && declaration.get("cosmetic_anchor").getAsString().equals("head_anchor")
+                                && transaction.input.get("source_filename").getAsString().endsWith(".zip")
+                                && !transaction.input.get("raw_sha256").getAsString().equals(prepared.sha256())
+                                && Files.readString(source.resolve("cosmetic.json")).equals(original),
+                        "HTTP body contains the edited declaration matching reserve metadata/hash, without source changes");
+                if (ciphertext != null) {
+                    require(java.util.Arrays.equals(ciphertext, transaction.body.getCompoundOrEmpty("ysm")
+                                    .getByteArray("source_ciphertext").orElseThrow())
+                                    && transaction.input.has("content_sha256") && transaction.input.has("schema_sha256"),
+                            "actual encrypted accessory HTTP upload retains ciphertext and native synchronization identity");
+                }
+                String export = System.getenv("OMNIMORPH_TEST_ACCESSORY_UPLOAD_DIRECTORY");
+                if (export != null && !export.isBlank()) {
+                    Path output = Files.createDirectories(Path.of(export).resolve(encrypted ? "encrypted" : "figura"));
+                    Files.writeString(output.resolve("reserve.json"), transaction.input.toString());
+                    Files.write(output.resolve("body.nbt"), transaction.bodyBytes);
+                }
+                var json = new Gson();
+                var budget = json.toJsonTree(server.outfitLimits).getAsJsonObject();
+                budget.addProperty("positionLimit", 0);
+                server.outfitLimits = json.fromJson(budget, top.aihmc.omnimorph.model.outfit.OutfitLimits.class);
+                int reserves = server.reserves.get();
+                reject(uploads.upload(snapshot, null).future(), drain);
+                require(server.reserves.get() == reserves, "fresh placement budget rejects an already prepared accessory before reserve");
+            }
+        }
+        System.out.println("PASS accessory HTTP upload: actual Figura/encrypted YSM body, edited declaration/hash, frozen retry and fresh outfit budgets");
+    }
+
     private static <T> T await(CompletableFuture<T> future, Runnable drain) throws Exception {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
         while (!future.isDone() && System.nanoTime() < deadline) {
@@ -186,6 +313,9 @@ public final class LibraryUploadSmokeTest {
         volatile boolean committed;
         volatile JsonObject commit;
         volatile String imageIdentity;
+        volatile net.minecraft.nbt.CompoundTag body;
+        volatile byte[] bodyBytes;
+        volatile long imageBaseRevision = 1;
 
         Transaction(JsonObject input) {
             this.input = input;
@@ -208,8 +338,14 @@ public final class LibraryUploadSmokeTest {
         final AtomicInteger published = new AtomicInteger();
         final AtomicInteger badReplay = new AtomicInteger();
         final AtomicInteger unexpected = new AtomicInteger();
+        final AtomicInteger outfitPosts = new AtomicInteger();
+        final AtomicBoolean dropOutfit = new AtomicBoolean();
+        volatile boolean outfitPublication = true;
+        volatile String lastOutfitOrigin;
         volatile long uploadLimit = CloudHttp.FILE_BYTES;
         volatile int imageWidth = 2048;
+        volatile top.aihmc.omnimorph.model.outfit.OutfitLimits outfitLimits =
+                top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults();
 
         Server() throws IOException {
             server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
@@ -225,7 +361,12 @@ public final class LibraryUploadSmokeTest {
         LibraryModels.Capabilities limits() {
             return new LibraryModels.Capabilities(true, 1, uploadLimit, 8, 2 * 1024 * 1024, imageWidth, 2048,
                     java.util.List.of("zip", "ysm"), java.util.List.of("FIGURA", "YSM_PLAIN", "YSM_ENCRYPTED"),
-                    java.util.List.of("general"), false);
+                    java.util.List.of("general"), false, outfitCapabilities());
+        }
+
+        LibraryModels.OutfitCapabilities outfitCapabilities() {
+            return new LibraryModels.OutfitCapabilities(1, true, true, false, false,
+                    32, 128, 64, 8192, 32768, 1024, 65536, 8, 256, outfitLimits, outfitPublication);
         }
 
         void handle(HttpExchange exchange) throws IOException {
@@ -246,6 +387,27 @@ public final class LibraryUploadSmokeTest {
                     value.addProperty("max_image_height", 2048);
                     value.add("categories", JsonParser.parseString("[\"general\"]"));
                     value.add("model_types", JsonParser.parseString("[\"FIGURA\",\"YSM_PLAIN\",\"YSM_ENCRYPTED\"]"));
+                    value.add("outfits_v1", new com.google.gson.GsonBuilder()
+                            .setFieldNamingPolicy(com.google.gson.FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+                            .create().toJsonTree(outfitCapabilities()));
+                } else if (path.equals("uploads/outfit") && method.equals("POST")) {
+                    lastOutfitOrigin = exchange.getRequestHeaders().getFirst("x-omnimorph-origin");
+                    outfitPosts.incrementAndGet();
+                    JsonObject input = json(exchange);
+                    String operation = input.get("operation_id").getAsString();
+                    Transaction transaction = transactions.computeIfAbsent(operation, ignored -> new Transaction(input));
+                    if (!transaction.input.equals(input)) {
+                        badReplay.incrementAndGet();
+                    }
+                    if (!transaction.committed) {
+                        transaction.committed = true;
+                        transaction.imageBaseRevision = 2;
+                        published.incrementAndGet();
+                    }
+                    result = Map.of("model_id", transaction.model, "published", true, "revision", 1, "policy_revision", 2);
+                    if (dropOutfit.getAndSet(false)) {
+                        status = 503;
+                    }
                 } else if (path.equals("uploads") && method.equals("POST")) {
                     reserves.incrementAndGet();
                     JsonObject input = json(exchange);
@@ -272,6 +434,11 @@ public final class LibraryUploadSmokeTest {
                         byte[] bytes = exchange.getRequestBody().readNBytes(Math.toIntExact(CloudHttp.FILE_BYTES + 1));
                         require(CloudHttp.sha256(bytes).equals(transaction.input.get("raw_sha256").getAsString()),
                                 "server verifies actual distribution hash");
+                        require(bytes.length == transaction.input.get("byte_length").getAsLong(),
+                                "reserve length matches the real HTTP body");
+                        transaction.body = net.minecraft.nbt.NbtIo.readCompressed(new java.io.ByteArrayInputStream(bytes),
+                                net.minecraft.nbt.NbtAccounter.create(256L * 1024 * 1024));
+                        transaction.bodyBytes = bytes;
                         if (blockBody.getAndSet(false)) {
                             bodyEntered.countDown();
                             bodyRelease.await(10, TimeUnit.SECONDS);
@@ -304,14 +471,16 @@ public final class LibraryUploadSmokeTest {
                     String identity = exchange.getRequestHeaders().getFirst("x-omnimorph-operation") + ":"
                             + exchange.getRequestHeaders().getFirst("x-omnimorph-expected-revision") + ":"
                             + CloudHttp.sha256(exchange.getRequestBody().readNBytes(2 * 1024 * 1024 + 1));
-                    require(exchange.getRequestHeaders().getFirst("x-omnimorph-expected-revision").equals("1"), "original image CAS");
+                    require(exchange.getRequestHeaders().getFirst("x-omnimorph-expected-revision")
+                            .equals(Long.toString(transaction.imageBaseRevision)), "original image CAS");
                     if (transaction.imageIdentity == null) {
                         images.incrementAndGet();
                     } else if (!transaction.imageIdentity.equals(identity)) {
                         badReplay.incrementAndGet();
                     }
                     transaction.imageIdentity = identity;
-                    result = Map.of("model_id", model, "image_revision", 2, "policy_revision", 2);
+                    result = Map.of("model_id", model, "image_revision", transaction.imageBaseRevision + 1,
+                            "policy_revision", transaction.imageBaseRevision + 1);
                     if (dropImage.getAndSet(false)) {
                         status = 503;
                     }

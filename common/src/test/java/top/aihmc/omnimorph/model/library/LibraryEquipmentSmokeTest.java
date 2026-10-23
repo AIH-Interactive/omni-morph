@@ -82,6 +82,13 @@ public final class LibraryEquipmentSmokeTest {
                                 && user.getMainAvatar().name.equals("source model") && AvatarManager.localUploaded,
                         "verified formal data prepares, commits and becomes the actual resident avatar");
                 require(!server.lastInput.get("show_private_equipment").getAsBoolean(), "private rendering defaults closed");
+                var provenance = user.getMainAvatar().outfitSource();
+                require(provenance != null && provenance.source()
+                                == top.aihmc.omnimorph.model.outfit.OutfitConfig.Source.CLOUD
+                                && provenance.origin().equals(client.origin()) && provenance.resourceId().equals(server.model)
+                                && provenance.revision() == 1 && provenance.contentHash().equals(server.hash())
+                                && provenance.format() == top.aihmc.omnimorph.model.outfit.OutfitConfig.Format.FIGURA,
+                        "published Avatar carries the exact authorized library resource, revision, origin and verified raw hash");
                 Path directory = CacheAvatarLoader.getAvatarCacheDirectory();
                 String cacheKey = server.hash();
                 require(Files.isRegularFile(directory.resolve(cacheKey + ".oma")), "official wrapped formal cache is populated");

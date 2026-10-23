@@ -52,6 +52,22 @@ dependencies {
 
 sourceSets.main.proto.srcDir rootProject.file('protocol')
 
+processResources {
+    from(rootProject.file('protocol/outfit-v1/template-manifest.json')) {
+        into 'assets/omni-morph/wizard'
+        rename { 'ysm-template-manifest.json' }
+    }
+}
+
+tasks.register('ysmAvatarCreationSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks bundled YSM creation, complete resources, provenance, conflicts and cleanup.'
+    dependsOn testClasses, jar
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.wizards.YsmAvatarCreationSmokeTest'
+    args tasks.named('jar').get().archiveFile.get().asFile.path
+}
+
 tasks.register('outfitContractSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Checks independent outfit JSON, stable duplicate identities and bounded references.'
@@ -69,6 +85,22 @@ tasks.register('customParticleSmokeTest', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.lua.api.particle.CustomParticleSmokeTest'
 }
 
+tasks.register('outfitDraftSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks draft edits, cancellation, dependencies, duplicate suffixes and preset identity copying.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.outfit.OutfitDraftSmokeTest'
+}
+
+tasks.register('localOutfitPresetsSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks local preset files, revisions, dependency identities, import and negotiated storage limits.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.outfit.LocalOutfitPresetsSmokeTest'
+}
+
 tasks.register('cosmeticSourceSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Checks native accessory preparation, stable skeleton bindings and encrypted cosmetic caches; no GUI.'
@@ -76,6 +108,22 @@ tasks.register('cosmeticSourceSmokeTest', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = 'top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest'
     args '--cosmetic-sources', rootProject.projectDir.path
+}
+
+tasks.register('cloudCosmeticSourceSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks authorized cloud accessory sources, fixed references, cache reuse and cancellation over HTTP.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.library.CloudCosmeticSourceSmokeTest'
+}
+
+tasks.register('cloudOutfitPresetsSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks authenticated personal preset HTTP/CAS, idempotent retry, response validation and cancellation.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.library.CloudOutfitPresetsSmokeTest'
 }
 
 protobuf {

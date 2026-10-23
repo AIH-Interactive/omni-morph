@@ -24,7 +24,8 @@ import java.util.UUID;
 public final class LibraryPreviewCache {
     public enum Kind {
         MODEL("models", 128L * 1024 * 1024), WARDROBE("wardrobe", 128L * 1024 * 1024),
-        THUMBNAIL("thumbnails", 32L * 1024 * 1024);
+        THUMBNAIL("thumbnails", 32L * 1024 * 1024),
+        CONFIGURATION("configurations", 16L * 1024 * 1024);
 
         private final String directory;
         private final long budget;
@@ -92,7 +93,10 @@ public final class LibraryPreviewCache {
         return requested == cosmetic ? this : new LibraryPreviewCache(cacheRoot, requested);
     }
 
-    private String extension() {
+    private String extension(Kind kind) {
+        if (kind == Kind.CONFIGURATION) {
+            return ModelCacheLayout.CONFIGURATION_EXTENSION;
+        }
         return cosmetic ? ModelCacheLayout.COSMETIC_EXTENSION : ModelCacheLayout.AVATAR_EXTENSION;
     }
 
@@ -112,7 +116,7 @@ public final class LibraryPreviewCache {
         }
         initialize(lifetime);
         Path directory = directory(kind);
-        Path path = directory.resolve(key.stem(kind) + extension());
+        Path path = directory.resolve(key.stem(kind) + extension(kind));
         if (kind == Kind.THUMBNAIL) {
             path = directory.resolve(key.stem(kind) + ".png");
             if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
@@ -189,7 +193,7 @@ public final class LibraryPreviewCache {
         initialize(lifetime);
         Path directory = directory(kind);
         Path target = directory.resolve(key.stem(kind)
-                + (kind == Kind.THUMBNAIL ? AvatarCachePaths.imageExtension(bytes) : extension()));
+                + (kind == Kind.THUMBNAIL ? AvatarCachePaths.imageExtension(bytes) : extension(kind)));
         synchronized (ACTIVE) {
             if (ACTIVE.containsKey(target)) {
                 return false;
@@ -274,6 +278,9 @@ public final class LibraryPreviewCache {
     }
 
     private Path directory(Kind kind) throws IOException {
+        if (kind == Kind.CONFIGURATION) {
+            return ModelCacheLayout.configurationDirectory(cacheRoot);
+        }
         if (cosmetic) {
             return ModelCacheLayout.cosmeticDirectory(cacheRoot);
         }
@@ -295,12 +302,16 @@ public final class LibraryPreviewCache {
     }
 
     private boolean matches(String name, Kind kind) {
-        String extension = kind == Kind.THUMBNAIL ? "(png|jpg)" : cosmetic ? "oms" : "oma";
+        String extension = kind == Kind.THUMBNAIL ? "(png|jpg)"
+                : kind == Kind.CONFIGURATION ? "configuration\\.json" : cosmetic ? "oms" : "oma";
         return name.matches(kind.name().toLowerCase(java.util.Locale.ROOT)
                 + "-[a-f0-9]{64}-[a-f0-9]{64}\\." + extension);
     }
 
     private static int limit(Kind kind) {
+        if (kind == Kind.CONFIGURATION) {
+            return top.aihmc.omnimorph.model.outfit.OutfitConfig.MAX_JSON_BYTES;
+        }
         return kind == Kind.THUMBNAIL ? 2 * 1024 * 1024 : (int) CloudHttp.FILE_BYTES;
     }
 

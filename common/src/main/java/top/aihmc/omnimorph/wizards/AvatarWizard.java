@@ -18,7 +18,9 @@ import top.aihmc.omnimorph.utils.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import static top.aihmc.omnimorph.model.ParentType.*;
 
@@ -51,6 +53,26 @@ public class AvatarWizard {
 
     public Object getEntry(WizardEntry entry, Object fallback) {
         return map.getOrDefault(entry, fallback);
+    }
+
+    public Collection<WizardEntry> entries() {
+        return WizardEntry.all();
+    }
+
+    /** Display the requested directory without creating it while the form is being edited. */
+    public Path targetDirectory() {
+        String name = (String) getEntry(WizardEntry.NAME, "");
+        return top.aihmc.omnimorph.FiguraMod.getFiguraDirectory().resolve("avatars")
+                .resolve(name.replaceAll(IOUtils.INVALID_FILENAME_REGEX, "_"));
+    }
+
+    public CompletableFuture<Void> buildAsync() {
+        try {
+            build();
+            return CompletableFuture.completedFuture(null);
+        } catch (Exception failure) {
+            return CompletableFuture.failedFuture(failure);
+        }
     }
 
     public boolean canBuild() {

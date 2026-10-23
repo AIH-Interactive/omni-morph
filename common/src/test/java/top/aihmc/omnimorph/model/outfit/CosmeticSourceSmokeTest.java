@@ -30,6 +30,8 @@ public final class CosmeticSourceSmokeTest {
         Path data = Files.createTempDirectory("cosmetic-source-test-");
         try {
             testSources(data, workspace);
+            top.aihmc.omnimorph.wizards.CosmeticCreationSmokeTest.run(data);
+            top.aihmc.omnimorph.model.library.LocalCosmeticCatalogSmokeTest.run(data);
             testIndexes();
             testCache(data.resolve("cache"));
             System.out.println("PASS cosmetic sources: native wrappers, stable IDs/index cache, .oms, isolated Lua/Molang/controls and timeout");
@@ -123,6 +125,14 @@ public final class CosmeticSourceSmokeTest {
                         assert(host == nil and net == nil and world == nil and avatar == nil)
                         assert(vanilla_model == nil and avatar_controls == nil and config == nil and file == nil)
                         assert(cosmetic_controls ~= nil and ysm_model ~= nil)
+                        assert(action_wheel ~= nil and not action_wheel:isEnabled() and action_wheel:getSelected() == 0)
+                        local cosmeticPage = action_wheel:newPage('cosmetic-entry')
+                        wheelCalls = 0
+                        cosmeticPage:newAction():onLeftClick(function() wheelCalls = wheelCalls + 1 end)
+                        action_wheel:setPage(cosmeticPage)
+                        cosmetic_animations:setPage('cosmetic-entry')
+                        action_wheel:execute(1)
+                        assert(wheelCalls == 0 and action_wheel:getSelectedAction() == nil)
                         calls = 0
                         cosmetic_controls:newToggle('wing'):setPersistent(true)
                             :setBinding('v.wing'):setOnChange(function(value)

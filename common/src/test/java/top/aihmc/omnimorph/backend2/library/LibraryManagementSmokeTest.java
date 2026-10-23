@@ -68,6 +68,16 @@ public final class LibraryManagementSmokeTest {
                     respond(exchange, "{\"uuid\":\"" + OWNER + "\",\"name\":\"Uploader\",\"admin\":" + admin + ",\"equipment_revision\":0}");
                 } else if (path.endsWith("/admin/recycle")) {
                     require(ACCESS.equals(token), "recycle listing requires scoped administrator authority");
+                    if (exchange.getRequestURI().getRawQuery().contains("source=LIBRARY")) {
+                        respond(exchange, """
+                                {"items":[{"kind":"LIBRARY","id":"%s","owner":"%s","uploader_name":"Uploader",
+                                 "name":"Deleted preset","authors":[],"resource_kind":"OUTFIT","model_type":null,
+                                 "status":"DELETED","policy_revision":9,"asset_revision":1,"equipment_revision":0,
+                                 "asset_id":"","downloads":0,"can_restore":true}],
+                                 "total":1,"page":1,"page_size":8,"has_next":false}
+                                """.formatted(MODEL, OWNER));
+                        return;
+                    }
                     require(exchange.getRequestURI().getRawQuery().contains("source=WARDROBE")
                                     && exchange.getRequestURI().getRawQuery().contains("type=FIGURA"),
                             "source and model type filters are sent together");
@@ -149,6 +159,10 @@ public final class LibraryManagementSmokeTest {
                     "login verifies the authenticated player and admin context");
             require(admin.active(), "verified admin session is active");
             var recycle = new LibraryRecycleService(client, admin::token);
+            var outfits = await(recycle.list(1, "", "", "LIBRARY").future(), queue);
+            require(outfits.items().size() == 1 && outfits.items().getFirst().resourceKind().equals("OUTFIT")
+                            && outfits.items().getFirst().modelType() == null,
+                    "administrator recycle pages retain independent Outfit purpose and absent native model format");
             var items = await(recycle.list(1, "用户 &", "FIGURA", "WARDROBE").future(), queue);
             var deleted = items.items().getFirst();
             require(deleted.id().equals(MODEL) && deleted.canRestore() && deleted.equipmentRevision() == 7,

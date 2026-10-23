@@ -18,6 +18,7 @@ import top.aihmc.omnimorph.gui.widgets.library.ModelCardWidget;
 import top.aihmc.omnimorph.gui.widgets.ModelResourceBadges;
 import top.aihmc.omnimorph.gui.widgets.lists.AbstractList;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
+import top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory;
 import top.aihmc.omnimorph.utils.FiguraIdentifier;
 import top.aihmc.omnimorph.utils.FiguraText;
 import top.aihmc.omnimorph.utils.ui.UIHelper;
@@ -32,12 +33,22 @@ import java.util.function.Function;
 
 /** Collection cards share the catalog geometry; selecting a card never equips its resource. */
 public final class WardrobeCollectionGrid extends AbstractList implements AutoCloseable {
-    public record Entry(LocalAvatarFetcher.AvatarPath local, LibraryModels.CollectionEntry cloud) {
+    public record Entry(LocalAvatarFetcher.AvatarPath local, LibraryModels.CollectionEntry cloud,
+                        LocalCosmeticInventory.Entry cosmetic) {
+        public Entry(LocalAvatarFetcher.AvatarPath local, LibraryModels.CollectionEntry cloud) {
+            this(local, cloud, null);
+        }
+
         public String key() {
-            return local != null ? local.getTheActualPathForThis().toUri().toString() : cloud.modelId().toString();
+            return cosmetic != null ? cosmetic.path().toUri().toString()
+                    : local != null ? local.getTheActualPathForThis().toUri().toString() : cloud.modelId().toString();
         }
 
         public Component name() {
+            if (cosmetic != null) {
+                String name = cosmetic.source() == null ? null : cosmetic.source().metadata().common().name;
+                return Component.literal(name == null || name.isBlank() ? cosmetic.path().getFileName().toString() : name);
+            }
             if (local != null) {
                 return Component.literal(local.getName());
             }
@@ -46,13 +57,38 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
         }
 
         public String format() {
+            if (cosmetic != null) {
+                return cosmetic.source() == null ? "" : cosmetic.source().format().name();
+            }
             if (local == null) {
-                return cloud.model() == null ? "" : cloud.model().modelType();
+                return cloud.model() == null || cloud.model().modelType() == null ? "" : cloud.model().modelType();
             }
             if (local.isEncryptedYsm()) {
                 return "YSM_ENCRYPTED";
             }
             return local.isYsm() ? "YSM_PLAIN" : "FIGURA";
+        }
+
+        public String resourceKind() {
+            if (cosmetic != null) {
+                return "ACCESSORY";
+            }
+            return local != null || cloud.model() == null ? "AVATAR" : cloud.model().resourceKind();
+        }
+
+        public Component localDescription() {
+            if (cosmetic != null) {
+                if (cosmetic.source() == null) {
+                    return FiguraText.of("gui.wardrobe.unavailable");
+                }
+                String description = cosmetic.source().metadata().common().description;
+                return Component.literal(description == null ? "" : description);
+            }
+            return local == null ? Component.empty() : Component.literal(local.getDescription());
+        }
+
+        public boolean search(String query) {
+            return local != null ? local.search(query) : name().getString().toLowerCase(Locale.ROOT).contains(query);
         }
     }
 
@@ -171,8 +207,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
         closeImages();
         String query = view.query.toLowerCase(Locale.ROOT);
         filtered = entries.stream().filter(entry -> (view.format == 0 || entry.format().equals(FORMATS.get(view.format)))
-                && (entry.local() != null ? entry.local().search(query)
-                : entry.name().getString().toLowerCase(Locale.ROOT).contains(query))).toList();
+                && entry.search(query)).toList();
         layout = null;
     }
 
@@ -242,8 +277,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
         int textX = x + size + 10;
         int textWidth = Math.max(1, width - size - 16);
         UIHelper.renderScrollingText(gui, entry.name(), textX, y + 8, textWidth, 0xffeeeeee);
-        Component detail = entry.local() != null ? Component.literal(entry.local().getDescription())
-                : cacheState.apply(entry.cloud().modelId());
+        Component detail = entry.cloud() == null ? entry.localDescription() : cacheState.apply(entry.cloud().modelId());
         if (entry.cloud() != null && entry.cloud().model() != null) {
             var model = entry.cloud().model();
             ModelCardWidget.drawStatusIcons(gui, x, y, size, model);

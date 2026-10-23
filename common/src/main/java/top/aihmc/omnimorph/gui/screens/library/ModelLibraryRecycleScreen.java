@@ -202,7 +202,7 @@ public final class ModelLibraryRecycleScreen extends LibraryFormScreen {
         selected = item;
         armed = null;
         operation = null;
-        preview.recycled(item.kind(), item.owner(), item.id(), Component.literal(item.name()));
+        preview.recycled(item, Component.literal(item.name()));
         message = item.canRestore() ? Component.literal(item.name()) : FiguraText.of("gui.library.restore_conflict");
     }
 

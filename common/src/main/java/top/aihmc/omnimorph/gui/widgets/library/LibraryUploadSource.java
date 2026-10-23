@@ -18,6 +18,7 @@ public final class LibraryUploadSource extends AbstractContainerElement {
     private final Button image;
     private final Button clear;
     private final Supplier<Identifier> cover;
+    private Component sourceFormat = Component.literal(".zip / .ysm");
 
     public LibraryUploadSource(int width, long maximumBytes, Supplier<Identifier> cover,
                                Runnable chooseSource, Runnable chooseImage, Runnable clearImage) {
@@ -33,7 +34,7 @@ public final class LibraryUploadSource extends AbstractContainerElement {
                         getWidth(), 18, getTextColor() | 0xff000000);
                 UIHelper.renderCenteredScrollingText(gui, getMessage(), getX() + 4, getY() + 34,
                         getWidth() - 8, 18, getTextColor() | 0xff000000);
-                UIHelper.renderCenteredScrollingText(gui, Component.literal(".zip / .ysm"), getX() + 4,
+                UIHelper.renderCenteredScrollingText(gui, sourceFormat, getX() + 4,
                         getY() + 56, getWidth() - 8, 16, 0xffbac6d8);
             }
         };
@@ -48,6 +49,11 @@ public final class LibraryUploadSource extends AbstractContainerElement {
 
     public Button sourceButton() {
         return source;
+    }
+
+    public void sourceFormat(Component label, Component tooltip) {
+        sourceFormat = label;
+        source.setTooltip(tooltip);
     }
 
     public Button imageButton() {

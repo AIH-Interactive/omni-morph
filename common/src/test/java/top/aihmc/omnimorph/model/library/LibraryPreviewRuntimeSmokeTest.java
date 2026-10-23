@@ -69,6 +69,11 @@ public final class LibraryPreviewRuntimeSmokeTest {
             testOtherPlayerRouting(unsafe, client);
             testOtherPlayerDraft(unsafe, drain);
             testVanillaSelection(unsafe, drain);
+            testCatalogOutfitPreview(unsafe, drain);
+            testWardrobeDraftActions(unsafe, drain);
+            testWardrobeCloudCosmetic(unsafe, drain, encrypted);
+            OutfitPresetResourcesSmokeTest.run(drain, encrypted);
+            testLocalPresetScreen(unsafe, drain, client);
             testIndependentFigura(unsafe, drain);
             // Only the entity allocation is replaced: actual Avatar loading, permissions,
             // generation guards, production lookup bindings and resource cleanup all run.
@@ -391,6 +396,388 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 "player fallback preparation completes: " + preview.status());
     }
 
+    private static void testCatalogOutfitPreview(Unsafe unsafe, Runnable drain) throws Exception {
+        var minecraft = Minecraft.getInstance();
+        var originalPlayer = minecraft.player;
+        var wearer = (CurrentPreviewPlayer) unsafe.allocateInstance(CurrentPreviewPlayer.class);
+        wearer.setUUID(FiguraMod.getLocalPlayerUUID());
+        minecraft.player = wearer;
+        var isolated = (CurrentPreviewPlayer) unsafe.allocateInstance(CurrentPreviewPlayer.class);
+        isolated.setUUID(UUID.randomUUID());
+        Path cosmetics = Files.createDirectories(FiguraMod.getFiguraDirectory().resolve("cosmetics"));
+        Path accessory = Files.createTempDirectory(cosmetics, "catalog-outfit-");
+        Files.writeString(accessory.resolve("cosmetic.json"), CloudCosmeticSourceSmokeTest.MANIFEST);
+        Files.writeString(accessory.resolve("script.lua"), "return 1");
+        top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory.Entry entry;
+        try (var inventory = new top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory(FiguraMod.getFiguraDirectory())) {
+            entry = inventory.scan(() -> false).stream().filter(value -> value.path().equals(accessory))
+                    .findFirst().orElseThrow();
+        }
+        var sourceDraft = new top.aihmc.omnimorph.model.outfit.OutfitDraft(OutfitConfig.empty(), OutfitLimits.defaults());
+        sourceDraft.add(entry.reference(), entry.source().metadata().defaultAnchor(), OutfitConfig.Transform.identity());
+        sourceDraft.add(entry.reference(), entry.source().metadata().defaultAnchor(), OutfitConfig.Transform.identity());
+        var configuration = new java.util.concurrent.atomic.AtomicReference<>(sourceDraft.configuration());
+        var configurationRevision = new java.util.concurrent.atomic.AtomicInteger(1);
+        var cloud = new CatalogCloudDependencies(model("Catalog cloud base"),
+                top.aihmc.omnimorph.model.outfit.LocalCosmeticSource.prepare(accessory, wearer.getUUID(),
+                        entry.source().contentHash(), () -> false).nbt(), entry.source().metadata(), wearer.getUUID());
+        UUID modelId = UUID.randomUUID();
+        UUID transferId = UUID.randomUUID();
+        var gson = new com.google.gson.GsonBuilder()
+                .setFieldNamingPolicy(com.google.gson.FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES).create();
+        var extension = new top.aihmc.omnimorph.backend2.library.LibraryModels.OutfitCapabilities(1, true, true,
+                false, false, 32, 128, 64, 8192, 32768, 1024, 65536, 8, 256, OutfitLimits.defaults(), true);
+        var capabilities = new top.aihmc.omnimorph.backend2.library.LibraryModels.Capabilities(true, 1,
+                1024 * 1024, 64, 1024 * 1024, 1024, 1024, java.util.List.of("zip", "ysm"),
+                java.util.List.of("FIGURA"), java.util.List.of("general"), false, extension);
+        var unexpected = new java.util.concurrent.atomic.AtomicInteger();
+        var server = com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/", request -> {
+            try (request) {
+                if (cloud.handle(request)) {
+                    return;
+                }
+                String path = request.getRequestURI().getPath();
+                byte[] configurationBytes = top.aihmc.omnimorph.model.outfit.OutfitCodec.encode(configuration.get())
+                        .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                String body;
+                if (path.equals("/api/library/v1/capabilities")) {
+                    body = gson.toJson(capabilities);
+                } else if (path.equals("/api/library/v1/admin/wardrobe-preview/LIBRARY_RECYCLE/" + modelId)) {
+                    require("synthetic-admin".equals(request.getRequestHeaders().getFirst("x-omnimorph-admin")),
+                            "recycled configuration preview retains explicit administrator authority");
+                    request.getResponseHeaders().add("Content-Type", "application/json");
+                    request.getResponseHeaders().add("x-omnimorph-sha256",
+                            top.aihmc.omnimorph.backend2.protocol.CloudHttp.sha256(configurationBytes));
+                    if (request.getRequestMethod().equals("HEAD")) {
+                        request.getResponseHeaders().add("Content-Length", Integer.toString(configurationBytes.length));
+                        request.sendResponseHeaders(200, -1);
+                    } else {
+                        request.sendResponseHeaders(200, configurationBytes.length);
+                        request.getResponseBody().write(configurationBytes);
+                    }
+                    return;
+                } else if (path.equals("/api/library/v1/models/" + modelId)) {
+                    body = """
+                            {"model_id":"%s","revision":%d,"policy_revision":1,"display_name":"preset",
+                             "internal_name":"preset","authors":[],"uploader":{"uuid":"%s","name":"owner"},
+                             "model_type":null,"resource_kind":"OUTFIT","visibility":"PUBLIC",
+                             "allowed_actions":["preview"],"byte_length":%d}
+                            """.formatted(modelId, configurationRevision.get(), wearer.getUUID(), configurationBytes.length);
+                } else if (path.equals("/api/library/v1/models/" + modelId + "/transfers")) {
+                    body = """
+                            {"transfer_id":"%s","purpose":"preview","model_revision":%d,"policy_revision":1,
+                             "relative_path":"/api/library/v1/transfers/%s","expires_at":2000000000}
+                            """.formatted(transferId, configurationRevision.get(), transferId);
+                } else if (path.equals("/api/library/v1/transfers/" + transferId)) {
+                    request.getResponseHeaders().add("Content-Type", "application/json");
+                    request.getResponseHeaders().add("x-omnimorph-sha256",
+                            top.aihmc.omnimorph.backend2.protocol.CloudHttp.sha256(configurationBytes));
+                    request.sendResponseHeaders(200, configurationBytes.length);
+                    request.getResponseBody().write(configurationBytes);
+                    return;
+                } else {
+                    unexpected.incrementAndGet();
+                    body = "{}";
+                }
+                byte[] bytes = body.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                request.sendResponseHeaders(200, bytes.length);
+                request.getResponseBody().write(bytes);
+            }
+        });
+        server.start();
+        Path cache = Files.createTempDirectory("outfit-catalog-preview-");
+        String origin = "http://127.0.0.1:" + server.getAddress().getPort();
+        try (var access = new LibraryAccess(CloudEndpoint.parse(origin, () -> true), HttpClient.newHttpClient(),
+                request -> request.header("Authorization", "Bearer synthetic"));
+             var client = new LibraryClient(access, new LibrarySession(origin, wearer.getUUID(), 1, () -> true),
+                     minecraft::execute);
+             var preview = new LibraryPreviewSession(client)) {
+            field(LibraryPreviewSession.class, "detachedEntity").set(preview, isolated);
+            require(await(preview.select(modelId, new LibraryTransferService(client, cache)), drain)
+                            && preview.status().stage() == LibraryPreviewSession.Stage.READY
+                            && preview.outfitComposition() != null && preview.entity() == isolated
+                            && preview.outfitBase() == null,
+                    "catalog selection fetches real JSON and prepares a private vanilla composition without NBT");
+            testCollectionOutfitImport(unsafe, drain, client, cache.resolve("collection"), modelId);
+            try (var management = new top.aihmc.omnimorph.gui.widgets.library.LibraryManagementPreview(
+                    client, () -> "synthetic-admin")) {
+                var recycled = (LibraryPreviewSession) field(management.getClass(), "session").get(management);
+                var detached = (CurrentPreviewPlayer) unsafe.allocateInstance(CurrentPreviewPlayer.class);
+                detached.setUUID(UUID.randomUUID());
+                field(LibraryPreviewSession.class, "detachedEntity").set(recycled, detached);
+                var item = new top.aihmc.omnimorph.backend2.library.LibraryRecycleService.Item("LIBRARY", modelId,
+                        wearer.getUUID(), "owner", "Deleted preset", java.util.List.of(), null,
+                        "DELETED", 3, 1, 0, "", 0, true, "OUTFIT");
+                management.recycled(item, net.minecraft.network.chat.Component.literal(item.name()));
+                awaitCondition(() -> recycled.configurationPreview() != null, drain);
+                require(recycled.entity() == detached && recycled.outfitBase() == null
+                                && recycled.configurationPreview().configuration().instances().size() == 2,
+                        "actual management preview routes a formatless recycled Outfit through JSON and private native dependencies");
+                management.clear();
+                require(recycled.configurationPreview() == null && recycled.outfitComposition() == null,
+                        "clearing recycled JSON retires its prepared resources and private composition");
+            }
+            configuration.set(cloud.configuration(origin));
+            configurationRevision.set(2);
+            var cloudTransfers = new LibraryTransferService(client, cache.resolve("cloud-composition"));
+            require(await(preview.select(modelId, cloudTransfers), drain)
+                            && preview.outfitBase() != null && preview.outfitBase().isLibraryPreview
+                            && preview.outfitComposition().editorSnapshot(preview.outfitBase()).configuration().instances().size() == 2
+                            && cloud.files.get() == 2,
+                    "one cloud Outfit resolves its exact cloud base and shared accessory into two private instances");
+            int details = cloud.details.get();
+            require(await(preview.select(modelId, cloudTransfers), drain)
+                            && cloud.files.get() == 2 && cloud.details.get() == details + 2,
+                    "repeated complete cloud Outfit preview rechecks both policies without downloading either native body");
+            cloud.revoked.set(true);
+            require(!await(preview.select(modelId, cloudTransfers), drain)
+                            && preview.configurationIssues().size() == 1
+                            && preview.configurationIssues().getFirst().instances().size() == 2
+                            && preview.configurationIssues().getFirst().code().equals("FORBIDDEN")
+                            && preview.outfitComposition() == null && cloud.files.get() == 2,
+                    "revoking one dependency rejects the complete cached preview and identifies both affected copies");
+            cloud.revoked.set(false);
+            var draft = new top.aihmc.omnimorph.model.outfit.OutfitDraft(OutfitConfig.empty(), OutfitLimits.defaults());
+            var missing = new OutfitConfig.ResourceRef(OutfitConfig.Source.LOCAL, UUID.randomUUID(), null, null, null,
+                    "0".repeat(64), OutfitConfig.Format.FIGURA);
+            draft.add(missing, OutfitConfig.AnchorRef.authorDefault("hip"), OutfitConfig.Transform.identity());
+            configuration.set(draft.configuration());
+            configurationRevision.set(3);
+            require(!await(preview.select(modelId, new LibraryTransferService(client, cache.resolve("missing"))), drain)
+                            && preview.status().stage() == LibraryPreviewSession.Stage.FAILED
+                            && preview.configurationIssues().size() == 1
+                            && preview.configurationIssues().getFirst().resource().equals(missing)
+                            && preview.outfitComposition() == null,
+                    "catalog dependency failure retains its exact resource and affected instances without partial publication");
+            var widget = new top.aihmc.omnimorph.gui.widgets.EntityPreview(10, 20, 240, 180,
+                    40, -15, 30, null, null);
+            widget.setLibraryPreview(preview);
+            widget.tick();
+            var issueList = (LibraryRowList) field(widget.getClass(), "dependencyIssues").get(widget);
+            @SuppressWarnings("unchecked")
+            var issueRows = (java.util.List<LibraryRowList.Row>) field(LibraryRowList.class, "rows").get(issueList);
+            require(issueList.isVisible() && issueRows.size() == 1
+                            && issueRows.getFirst().tooltip().getString().contains(missing.localId().toString())
+                            && issueRows.getFirst().text().getString().contains(draft.configuration().instances()
+                                    .getFirst().instanceId().toString()),
+                    "actual shared preview widget exposes the failed resource and its affected copy in scrollable rows");
+            var pending = preview.select(modelId, new LibraryTransferService(client, cache.resolve("cancelled")));
+            preview.clear();
+            widget.tick();
+            require(!await(pending, drain) && preview.status().stage() == LibraryPreviewSession.Stage.IDLE
+                            && preview.configurationIssues().isEmpty() && preview.outfitComposition() == null
+                            && !issueList.isVisible() && unexpected.get() == 0,
+                    "cleared catalog work cannot publish late dependency errors, equip, join or upload");
+        } finally {
+            server.stop(0);
+            minecraft.player = originalPlayer;
+            try (var files = Files.walk(cache)) {
+                for (Path file : files.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                    Files.deleteIfExists(file);
+                }
+            }
+            try (var files = Files.walk(accessory)) {
+                for (Path file : files.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                    Files.deleteIfExists(file);
+                }
+            }
+        }
+        System.out.println("PASS catalog Outfit preview: HTTP JSON selection, independent composition, dependency issues and generation retirement; GUI MANUAL/PENDING");
+    }
+
+    private static final class CatalogCloudDependencies {
+        private record Resource(UUID id, UUID transfer, String kind, byte[] bytes) {}
+
+        private final java.util.List<Resource> resources;
+        private final top.aihmc.omnimorph.model.outfit.CosmeticMetadata metadata;
+        private final UUID owner;
+        private final java.util.concurrent.atomic.AtomicInteger files = new java.util.concurrent.atomic.AtomicInteger();
+        private final java.util.concurrent.atomic.AtomicInteger details = new java.util.concurrent.atomic.AtomicInteger();
+        private final AtomicBoolean revoked = new AtomicBoolean();
+
+        private CatalogCloudDependencies(CompoundTag base, CompoundTag accessory,
+                                         top.aihmc.omnimorph.model.outfit.CosmeticMetadata metadata, UUID owner) throws Exception {
+            this.metadata = metadata;
+            this.owner = owner;
+            var baseBytes = new java.io.ByteArrayOutputStream();
+            var accessoryBytes = new java.io.ByteArrayOutputStream();
+            net.minecraft.nbt.NbtIo.writeCompressed(base, baseBytes);
+            net.minecraft.nbt.NbtIo.writeCompressed(accessory, accessoryBytes);
+            resources = java.util.List.of(new Resource(UUID.randomUUID(), UUID.randomUUID(), "AVATAR", baseBytes.toByteArray()),
+                    new Resource(UUID.randomUUID(), UUID.randomUUID(), "ACCESSORY", accessoryBytes.toByteArray()));
+        }
+
+        private OutfitConfig configuration(String origin) {
+            var base = reference(resources.getFirst(), origin);
+            var accessory = reference(resources.getLast(), origin);
+            var draft = new top.aihmc.omnimorph.model.outfit.OutfitDraft(new OutfitConfig(1, 0, base,
+                    java.util.List.of(), java.util.List.of(), Map.of(), false), OutfitLimits.defaults());
+            draft.add(accessory, metadata.defaultAnchor(), OutfitConfig.Transform.identity());
+            draft.add(accessory, metadata.defaultAnchor(), OutfitConfig.Transform.identity());
+            return draft.configuration();
+        }
+
+        private static OutfitConfig.ResourceRef reference(Resource resource, String origin) {
+            return new OutfitConfig.ResourceRef(OutfitConfig.Source.CLOUD, null, origin, resource.id(), 1L,
+                    top.aihmc.omnimorph.backend2.protocol.CloudHttp.sha256(resource.bytes()), OutfitConfig.Format.FIGURA);
+        }
+
+        private boolean handle(com.sun.net.httpserver.HttpExchange request) throws java.io.IOException {
+            String path = request.getRequestURI().getPath();
+            for (var resource : resources) {
+                String modelPath = "/api/library/v1/models/" + resource.id();
+                if (path.equals(modelPath)) {
+                    details.incrementAndGet();
+                    if (resource.kind().equals("ACCESSORY") && revoked.get()) {
+                        send(request, 403, "{\"code\":\"FORBIDDEN\"}");
+                        return true;
+                    }
+                    var value = com.google.gson.JsonParser.parseString("""
+                            {"model_id":"%s","revision":1,"policy_revision":1,"display_name":"dependency",
+                             "internal_name":"dependency","authors":[],"uploader":{"uuid":"%s","name":"owner"},
+                             "model_type":"FIGURA","resource_kind":"%s","visibility":"PRIVATE",
+                             "allowed_actions":["preview"],"byte_length":%d}
+                            """.formatted(resource.id(), owner, resource.kind(), resource.bytes().length)).getAsJsonObject();
+                    if (resource.kind().equals("ACCESSORY")) {
+                        value.add("accessory_metadata", top.aihmc.omnimorph.model.outfit.OutfitCodec.encodeAccessoryMetadata(metadata));
+                    }
+                    send(request, 200, value.toString());
+                    return true;
+                }
+                if (path.equals(modelPath + "/transfers")) {
+                    send(request, 200, """
+                            {"transfer_id":"%s","purpose":"preview","model_revision":1,"policy_revision":1,
+                             "relative_path":"/api/library/v1/transfers/%s","expires_at":2000000000}
+                            """.formatted(resource.transfer(), resource.transfer()));
+                    return true;
+                }
+                if (path.equals("/api/library/v1/transfers/" + resource.transfer())) {
+                    files.incrementAndGet();
+                    request.getResponseHeaders().add("x-omnimorph-sha256",
+                            top.aihmc.omnimorph.backend2.protocol.CloudHttp.sha256(resource.bytes()));
+                    request.sendResponseHeaders(200, resource.bytes().length);
+                    request.getResponseBody().write(resource.bytes());
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static void send(com.sun.net.httpserver.HttpExchange request, int status, String body) throws java.io.IOException {
+            byte[] bytes = body.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            request.sendResponseHeaders(status, bytes.length);
+            request.getResponseBody().write(bytes);
+        }
+    }
+
+    private static void testCollectionOutfitImport(Unsafe unsafe, Runnable drain, LibraryClient client,
+                                                   Path cache, UUID modelId) throws Exception {
+        var packs = (Map<?, ?>) field(PermissionManager.class, "PLAYERS").get(null);
+        UUID account = FiguraMod.getLocalPlayerUUID();
+        boolean hadPermissions = packs.containsKey(account);
+        var input = field(Minecraft.class, "lastInputType");
+        var previousInput = input.get(Minecraft.getInstance());
+        input.set(Minecraft.getInstance(), net.minecraft.client.InputType.MOUSE);
+        var type = top.aihmc.omnimorph.gui.screens.WardrobeScreen.class;
+        // Screen rebuilding is suppressed; real selection/import/cancel handlers and native preparation run.
+        var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null) {
+            @Override
+            protected void init() {
+            }
+        };
+        try (var collection = new LibraryCollectionService(client, cache)) {
+            var model = await(client.submit(LibraryClient.Lane.CONTROL, exchange -> exchange.json("GET",
+                    "/api/library/v1/models/" + modelId, null,
+                    top.aihmc.omnimorph.backend2.library.LibraryModels.Model.class)).future(), drain);
+            var entry = new top.aihmc.omnimorph.backend2.library.LibraryModels.CollectionEntry(
+                    modelId, 1, "DOWNLOAD", false, model);
+            field(collection.getClass(), "entries").set(collection, java.util.List.of(entry));
+            field(collection.getClass(), "authoritative").setBoolean(collection, true);
+            var preview = new LibraryPreviewSession(client);
+            var isolated = (CurrentPreviewPlayer) unsafe.allocateInstance(CurrentPreviewPlayer.class);
+            isolated.setUUID(UUID.randomUUID());
+            field(LibraryPreviewSession.class, "detachedEntity").set(preview, isolated);
+            field(type, "client").set(screen, client);
+            field(type, "collection").set(screen, collection);
+            field(type, "transfers").set(screen, new LibraryTransferService(client, cache));
+            field(type, "preview").set(screen, preview);
+            field(type, "previewClient").set(screen, client);
+            var capabilities = client.capabilities();
+            await(capabilities.future(), drain);
+            field(type, "outfitCapabilitiesRequest").set(screen, capabilities);
+            field(type, "tab").set(screen, java.util.Arrays.stream(field(type, "tab").getType().getEnumConstants())
+                    .filter(value -> value.toString().equals("COLLECTION")).findFirst().orElseThrow());
+            var select = type.getDeclaredMethod("selectCloud", entry.getClass());
+            select.setAccessible(true);
+            select.invoke(screen, entry);
+            awaitCondition(() -> preview.configurationPreview() != null, drain);
+            var sourceConfiguration = preview.configurationPreview().configuration();
+            require(field(type, "outfitDraft").get(screen) == null,
+                    "selecting a collection Outfit only previews and does not create or modify a draft");
+            var importSelected = type.getDeclaredMethod("changeCandidate");
+            importSelected.setAccessible(true);
+            importSelected.invoke(screen);
+            var imported = (CompletableFuture<?>) field(type, "collectionChange").get(screen);
+            require(Boolean.TRUE.equals(await(imported, drain)), "collection Outfit uses explicit import rather than candidate membership");
+            var draft = (top.aihmc.omnimorph.model.outfit.OutfitDraft) field(type, "outfitDraft").get(screen);
+            require(draft.configuration().instances().size() == 2 && draft.dirty()
+                            && draft.configuration().instances().stream().noneMatch(copy -> sourceConfiguration.instances()
+                                    .stream().anyMatch(original -> original.instanceId().equals(copy.instanceId())))
+                            && field(type, "tab").get(screen).toString().equals("OUTFIT")
+                            && field(type, "selected").get(screen) == null,
+                    "import selects the outfit editor and transfers configuration into its existing draft");
+            var cancel = type.getDeclaredMethod("cancelOutfitDraft");
+            cancel.setAccessible(true);
+            cancel.invoke(screen);
+            require(!draft.dirty() && draft.configuration().instances().isEmpty()
+                            && field(type, "draftBase").get(screen) == field(type, "committedDraftBase").get(screen),
+                    "cancelling imported configuration restores the original draft and original base snapshot");
+            var previousPreview = (LibraryPreviewSession) field(type, "preview").get(screen);
+            previousPreview.close();
+            var cancelledPreview = new LibraryPreviewSession(client);
+            field(LibraryPreviewSession.class, "detachedEntity").set(cancelledPreview, isolated);
+            field(type, "preview").set(screen, cancelledPreview);
+            field(type, "previewClient").set(screen, client);
+            field(type, "tab").set(screen, java.util.Arrays.stream(field(type, "tab").getType().getEnumConstants())
+                    .filter(value -> value.toString().equals("COLLECTION")).findFirst().orElseThrow());
+            select.invoke(screen, entry);
+            awaitCondition(() -> cancelledPreview.configurationPreview() != null, drain);
+            var entered = new CountDownLatch(1);
+            var release = new CountDownLatch(1);
+            var occupied = AvatarLoadExecutor.submit(() -> {
+                entered.countDown();
+                try {
+                    require(release.await(10, TimeUnit.SECONDS), "bounded model worker release");
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new AssertionError(interrupted);
+                }
+                return true;
+            });
+            CompletableFuture<?> retired;
+            try {
+                require(entered.await(5, TimeUnit.SECONDS), "actual model worker is occupied before stale import");
+                importSelected.invoke(screen);
+                retired = (CompletableFuture<?>) field(type, "collectionChange").get(screen);
+                cancelledPreview.clear();
+            } finally {
+                release.countDown();
+            }
+            await(occupied, drain);
+            require(!Boolean.TRUE.equals(await(retired, drain)) && !draft.dirty()
+                            && draft.configuration().instances().isEmpty(),
+                    "retiring the exact preview before import publication rejects stale prepared resources");
+        } finally {
+            screen.removed();
+            input.set(Minecraft.getInstance(), previousInput);
+            if (!hadPermissions) {
+                packs.remove(account);
+            }
+        }
+        System.out.println("PASS collection Outfit workflow: authorized selection, explicit draft import, editor routing and cancellation; GUI MANUAL/PENDING");
+    }
+
     private static void testVanillaSelection(Unsafe unsafe, Runnable drain) throws Exception {
         Minecraft minecraft = Minecraft.getInstance();
         var previousPlayer = minecraft.player;
@@ -452,12 +839,1823 @@ public final class LibraryPreviewRuntimeSmokeTest {
             LibraryPreviewBinding.finishFrame();
             require(!LibraryPreviewBinding.isVanilla(state) && AvatarManager.getAvatar(player) == equipped,
                     "frame cleanup releases vanilla bindings without destroying outside equipment");
+            testWardrobeCosmeticSelection(equipped, drain);
             System.out.println("PASS vanilla composition preview: no placeholder Avatar, scoped equipment masking, async accessory preparation and deferred cleanup; GUI MANUAL/PENDING");
         } finally {
             LibraryPreviewBinding.finishFrame();
             minecraft.player = previousPlayer;
             ((Map<?, ?>) field(PermissionManager.class, "PLAYERS").get(null)).remove(player.getUUID());
         }
+    }
+
+    private static void testWardrobeCosmeticSelection(Avatar equipped, Runnable drain) throws Exception {
+        Path root = Files.createTempDirectory(Path.of(System.getProperty("figura.test.directory")), "cosmetic-selection-");
+        Path manifest = root.resolve("cosmetic.json");
+        String declaration = "{\"name\":\"星翼\",\"category\":\"Head\",\"cosmetic_anchor\":\"head_anchor\"}";
+        Files.writeString(manifest, declaration);
+        Files.writeString(root.resolve("script.lua"), "return 1");
+        UUID owner = FiguraMod.getLocalPlayerUUID();
+        var packs = (Map<?, ?>) field(PermissionManager.class, "PLAYERS").get(null);
+        boolean hadPermissions = packs.containsKey(owner);
+        Path loadedPath = LocalAvatarLoader.getLastLoadedPath();
+        Path selectedPath = top.aihmc.omnimorph.gui.widgets.lists.AvatarList.selectedEntry;
+        var screenType = top.aihmc.omnimorph.gui.screens.WardrobeScreen.class;
+        var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+        try (var preview = new LibraryPreviewSession()) {
+            field(screenType, "preview").set(screen, preview);
+            var source = top.aihmc.omnimorph.model.outfit.LocalCosmeticSource.describe(root, () -> false);
+            var entry = new top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory.Entry(root, UUID.randomUUID(), source, "");
+            var choose = screenType.getDeclaredMethod("selectCosmetic", entry.getClass());
+            choose.setAccessible(true);
+            choose.invoke(screen, entry);
+            @SuppressWarnings("unchecked")
+            var pending = (CompletableFuture<Boolean>) field(LibraryPreviewSession.class, "pendingComposition").get(preview);
+            require(pending != null && await(pending, drain), "production accessory selection prepares an actual local source");
+            var frame = new AvatarRenderState();
+            preview.withPlayerContext(() -> LibraryPreviewBinding.capture(Minecraft.getInstance().player, frame));
+            require(LibraryPreviewBinding.composition(frame) != null && preview.showsVanillaPlayer()
+                            && field(LibraryPreviewSession.class, "avatar").get(preview) == null,
+                    "selection mounts a private composition over vanilla instead of loading the accessory as a base Avatar");
+            require(AvatarManager.getAvatar(Minecraft.getInstance().player) == equipped
+                            && java.util.Objects.equals(LocalAvatarLoader.getLastLoadedPath(), loadedPath)
+                            && java.util.Objects.equals(top.aihmc.omnimorph.gui.widgets.lists.AvatarList.selectedEntry, selectedPath)
+                            && Files.readString(manifest).equals(declaration),
+                    "selection preserves equipment, formal selection and source files");
+            var publish = screenType.getDeclaredMethod("enableSelection");
+            publish.setAccessible(true);
+            publish.invoke(screen);
+            require(java.util.Objects.equals(LocalAvatarLoader.getLastLoadedPath(), loadedPath),
+                    "legacy Avatar publication cannot equip an accessory even under the All purpose filter");
+            preview.clear();
+            require(!LibraryPreviewBinding.hasComposition(Minecraft.getInstance().player)
+                            && LibraryPreviewBinding.composition(frame) != null
+                            && AvatarManager.getAvatar(Minecraft.getInstance().player) == equipped,
+                    "selection retirement preserves extracted frames and outside equipment");
+            LibraryPreviewBinding.finishFrame();
+            var unavailable = new top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory.Entry(root,
+                    entry.localId(), null, "INVALID_COSMETIC_SOURCE");
+            choose.invoke(screen, unavailable);
+            require(preview.status().stage() == LibraryPreviewSession.Stage.IDLE,
+                    "invalid accessory selection stays unavailable without starting an Avatar load");
+            System.out.println("PASS wardrobe accessory selection: actual cosmetic source, private async composition, no base load/publication, deferred retirement and unavailable entry; GUI MANUAL/PENDING");
+        } finally {
+            LibraryPreviewBinding.finishFrame();
+            if (!hadPermissions) {
+                packs.remove(owner);
+            }
+            try (var files = Files.walk(root)) {
+                for (Path file : files.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                    Files.deleteIfExists(file);
+                }
+            }
+        }
+    }
+
+    private static void testWardrobeDraftActions(Unsafe unsafe, Runnable drain) throws Exception {
+        Minecraft minecraft = Minecraft.getInstance();
+        var previousPlayer = minecraft.player;
+        UUID owner = FiguraMod.getLocalPlayerUUID();
+        var packs = (Map<?, ?>) field(PermissionManager.class, "PLAYERS").get(null);
+        boolean hadPermissions = packs.containsKey(owner);
+        var player = (CurrentPreviewPlayer) unsafe.allocateInstance(CurrentPreviewPlayer.class);
+        player.setUUID(owner);
+        minecraft.player = player;
+        Avatar equipped = new Avatar(owner);
+        var baseData = model("draft base fixture");
+        var baseRoot = new CompoundTag();
+        var baseChildren = new net.minecraft.nbt.ListTag();
+        var baseHead = new CompoundTag();
+        baseHead.putString("name", "Head");
+        baseChildren.add(baseHead);
+        baseRoot.put("chld", baseChildren);
+        baseData.put("models", baseRoot);
+        equipped.load(baseData);
+        int fixturePermissions = packs.size();
+        Path root = Files.createTempDirectory(Path.of(System.getProperty("figura.test.directory")), "outfit-edit-");
+        String declaration = "{\"name\":\"星翼\",\"cosmetic_anchor\":\"head_anchor\","
+                + "\"default_transform\":{\"position\":[1,2,3],\"rotation\":[0,90,0],\"scale\":[1,2,1]}}";
+        Files.writeString(root.resolve("cosmetic.json"), declaration);
+        Files.writeString(root.resolve("script.lua"), "return 1");
+        var type = top.aihmc.omnimorph.gui.screens.WardrobeScreen.class;
+        var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+        try (var original = new LibraryPreviewBinding(player, equipped);
+             var preview = new LibraryPreviewSession()) {
+            field(type, "preview").set(screen, preview);
+            var source = top.aihmc.omnimorph.model.outfit.LocalCosmeticSource.describe(root, () -> false);
+            var entry = new top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory.Entry(root, UUID.randomUUID(), source, "");
+            var choose = type.getDeclaredMethod("selectCosmetic", entry.getClass());
+            choose.setAccessible(true);
+            choose.invoke(screen, entry);
+            require(field(type, "outfitDraft").get(screen) == null, "resource selection creates no outfit instance");
+            var add = type.getDeclaredMethod("addSelectedInstance");
+            add.setAccessible(true);
+            add.invoke(screen);
+            @SuppressWarnings("unchecked")
+            var starting = (CompletableFuture<top.aihmc.omnimorph.model.outfit.OutfitDraft>) field(type, "draftStart").get(screen);
+            var draft = await(starting, drain);
+            require(draft.committed().base() != null && draft.committed().instances().isEmpty(),
+                    "draft creation captures the equipped custom base instead of silently selecting vanilla");
+            awaitDraftComposition(screen, preview, drain);
+            var first = draft.configuration().instances().getFirst();
+            require(first.transform().equals(source.metadata().defaultTransform()), "instance starts from the author's local transform");
+            add.invoke(screen);
+            awaitDraftComposition(screen, preview, drain);
+            var second = draft.configuration().instances().getLast();
+            var tree = preview.outfitHierarchy();
+            require(tree.targets().values().stream().filter(target -> target.kind() == OutfitHierarchy.Kind.INSTANCE).count() == 2
+                            && tree.targets().values().stream().anyMatch(target -> first.instanceId().equals(target.instanceId()))
+                            && tree.targets().values().stream().anyMatch(target -> second.instanceId().equals(target.instanceId())),
+                    "Preparing the actual draft publishes both instance-owned entries in the preview hierarchy");
+            var sync = type.getDeclaredMethod("syncHierarchy");
+            sync.setAccessible(true);
+            sync.invoke(screen);
+            var treeState = (BoneTreeState) field(type, "bones").get(screen);
+            require(treeState.selectedTarget() != null && treeState.selectedTarget().kind() == OutfitHierarchy.Kind.STANDARD
+                            && treeState.selectedTarget().standard().equals(source.metadata().defaultAnchor().name()),
+                    "newly added instances focus their authored attachment after the draft snapshot is published");
+            treeState.view(BoneTreeState.View.ALL);
+            int firstHeader = tree.targets().entrySet().stream().filter(node -> node.getValue().kind() == OutfitHierarchy.Kind.INSTANCE
+                    && first.instanceId().equals(node.getValue().instanceId())).findFirst().orElseThrow().getKey();
+            treeState.select(firstHeader);
+            require(treeState.selectedTarget().instanceId().equals(first.instanceId()) && treeState.selectedPart() == null,
+                    "Production hierarchy synchronization retains typed identity and filters non-bone headers");
+            var chooseTarget = type.getDeclaredMethod("selectTreeTarget", OutfitHierarchy.Target.class);
+            chooseTarget.setAccessible(true);
+            chooseTarget.invoke(screen, treeState.selectedTarget());
+            require(draft.selectedInstance().equals(first.instanceId()), "Tree selection changes only the intended draft instance");
+            require(draft.configuration().instances().size() == 2 && first.displayOrdinal() == 1 && second.displayOrdinal() == 2
+                            && !first.instanceId().equals(second.instanceId()),
+                    "the production Add action creates independent numbered copies of the same source");
+            testInstanceTransformFields(unsafe, screen, draft, first.instanceId(), second.instanceId(), drain);
+            awaitDraftComposition(screen, preview, drain);
+            var remove = type.getDeclaredMethod("removeDraftInstance", UUID.class);
+            remove.setAccessible(true);
+            remove.invoke(screen, first.instanceId());
+            awaitDraftComposition(screen, preview, drain);
+            add.invoke(screen);
+            awaitDraftComposition(screen, preview, drain);
+            require(draft.configuration().instances().getFirst().displayOrdinal() == 2
+                            && draft.configuration().instances().getLast().displayOrdinal() == 3,
+                    "removing a copy never renumbers its sibling or reuses a suffix");
+            var reset = type.getDeclaredMethod("resetOutfitDraft");
+            reset.setAccessible(true);
+            reset.invoke(screen);
+            awaitDraftComposition(screen, preview, drain);
+            require(draft.configuration().base() == null && draft.configuration().instances().isEmpty()
+                            && AvatarManager.getAvatarForPlayer(owner) == equipped,
+                    "whole-draft reset selects vanilla only in the private editor");
+            var cancel = type.getDeclaredMethod("cancelOutfitDraft");
+            cancel.setAccessible(true);
+            cancel.invoke(screen);
+            require(!draft.dirty() && draft.configuration().equals(draft.committed())
+                            && !field(type, "draftPreviewActive").getBoolean(screen)
+                            && preview.status().stage() == LibraryPreviewSession.Stage.IDLE
+                            && AvatarManager.getAvatarForPlayer(owner) == equipped
+                            && Files.readString(root.resolve("cosmetic.json")).equals(declaration),
+                    "Cancel restores the baseline and actual equipment without publishing or changing source files");
+            require(packs.size() == fixturePermissions, "draft previews add no player permission entries beyond the equipped fixture");
+            field(type, "draftAccount").set(screen, UUID.randomUUID());
+            var discard = type.getDeclaredMethod("discardOldAccountDraft");
+            discard.setAccessible(true);
+            require(Boolean.TRUE.equals(discard.invoke(screen)) && field(type, "outfitDraft").get(screen) == null
+                            && ((Map<?, ?>) field(type, "draftResources").get(screen)).isEmpty()
+                            && preview.status().stage() == LibraryPreviewSession.Stage.CLOSED
+                            && AvatarManager.getAvatarForPlayer(owner) == equipped,
+                    "account mismatch discards private editor state and its preview without touching actual equipment");
+            testStaleDraftStart(entry, drain);
+            System.out.println("PASS wardrobe draft actions: actual base snapshot/source loading, independent copies, author transform, stable suffixes, remove/reset/cancel and unchanged equipment; GUI MANUAL/PENDING");
+        } finally {
+            LibraryPreviewBinding.finishFrame();
+            minecraft.player = previousPlayer;
+            if (!hadPermissions) {
+                packs.remove(owner);
+            }
+            try (var files = Files.walk(root)) {
+                for (Path path : files.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                    Files.deleteIfExists(path);
+                }
+            }
+        }
+    }
+
+    private static void testWardrobeCloudCosmetic(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+        Minecraft minecraft = Minecraft.getInstance();
+        var previousPlayer = minecraft.player;
+        UUID owner = FiguraMod.getLocalPlayerUUID();
+        var packs = (Map<?, ?>) field(PermissionManager.class, "PLAYERS").get(null);
+        boolean hadPermissions = packs.containsKey(owner);
+        var player = (CurrentPreviewPlayer) unsafe.allocateInstance(CurrentPreviewPlayer.class);
+        player.setUUID(owner);
+        minecraft.player = player;
+        var baseReference = new top.aihmc.omnimorph.model.outfit.OutfitConfig.ResourceRef(
+                top.aihmc.omnimorph.model.outfit.OutfitConfig.Source.CLOUD, null, "https://source.example",
+                UUID.randomUUID(), 7L, "b".repeat(64), top.aihmc.omnimorph.model.outfit.OutfitConfig.Format.FIGURA);
+        Path root = Files.createTempDirectory(Path.of(System.getProperty("figura.test.directory")), "cloud-outfit-edit-");
+        try {
+            for (boolean ysm : new boolean[]{false, true}) {
+                Avatar equipped = new Avatar(owner);
+                equipped.load(model("cloud draft base"));
+                equipped.bindOutfitSource(baseReference);
+                Path source = Files.createDirectories(root.resolve(ysm ? "YSM" : "Figura"));
+                Files.writeString(source.resolve("cosmetic.json"), CloudCosmeticSourceSmokeTest.MANIFEST);
+                Files.writeString(source.resolve("script.lua"), "return 1");
+                if (ysm) {
+                    Files.copy(encrypted, source.resolve("original.ysm"));
+                }
+                var description = top.aihmc.omnimorph.model.outfit.LocalCosmeticSource.describe(source, () -> false);
+                CompoundTag input = top.aihmc.omnimorph.model.outfit.LocalCosmeticSource.prepare(source, owner,
+                        description.contentHash(), () -> false).nbt();
+                Path cache = Files.createDirectories(root.resolve(ysm ? "ysm-cache" : "figura-cache"));
+                var live = new AtomicBoolean(true);
+                try (var server = new CloudCosmeticSourceSmokeTest.Server(input, CloudCosmeticSourceSmokeTest.MANIFEST);
+                     var access = new LibraryAccess(CloudEndpoint.parse(server.origin(), () -> true), HttpClient.newHttpClient(),
+                             request -> request.header("Authorization", "Bearer synthetic-player"));
+                     var client = new LibraryClient(access, new LibrarySession(server.origin(), owner, 1, live::get), minecraft::execute);
+                     var collection = new LibraryCollectionService(client, cache);
+                     var original = new LibraryPreviewBinding(player, equipped);
+                     var preview = new LibraryPreviewSession(client)) {
+                    var capabilities = client.capabilities();
+                    await(capabilities.future(), drain);
+                    var entry = new top.aihmc.omnimorph.backend2.library.LibraryModels.CollectionEntry(
+                            CloudCosmeticSourceSmokeTest.Server.MODEL, 1, "UPLOAD", true, server.model());
+                    field(collection.getClass(), "entries").set(collection, java.util.List.of(entry));
+                    field(collection.getClass(), "authoritative").setBoolean(collection, true);
+                    var type = top.aihmc.omnimorph.gui.screens.WardrobeScreen.class;
+                    var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+                    field(type, "client").set(screen, client);
+                    field(type, "collection").set(screen, collection);
+                    field(type, "transfers").set(screen, new LibraryTransferService(client, cache));
+                    field(type, "outfitCapabilitiesRequest").set(screen, capabilities);
+                    field(type, "preview").set(screen, preview);
+                    field(type, "previewClient").set(screen, client);
+                    var select = type.getDeclaredMethod("selectCloud", entry.getClass());
+                    select.setAccessible(true);
+                    select.invoke(screen, entry);
+                    var selection = (CloudCosmeticSource.Operation) field(type, "cloudCosmeticSelection").get(screen);
+                    var authorized = await(selection.future(), drain);
+                    long selectionDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
+                    while (!hasPrivateComposition(preview) && System.nanoTime() < selectionDeadline) {
+                        drain.run();
+                        Thread.sleep(1);
+                    }
+                    var selectedFrame = new AvatarRenderState();
+                    preview.withPlayerContext(() -> LibraryPreviewBinding.capture(player, selectedFrame));
+                    require(field(type, "outfitDraft").get(screen) == null && LibraryPreviewBinding.composition(selectedFrame) != null
+                                    && field(LibraryPreviewSession.class, "avatar").get(preview) == null,
+                            "cloud selection is a private mounted preview and does not create a draft instance or base Avatar: "
+                                    + preview.status() + ", " + field(type, "message").get(screen));
+                    var add = type.getDeclaredMethod("addSelectedInstance");
+                    add.setAccessible(true);
+                    add.invoke(screen);
+                    @SuppressWarnings("unchecked")
+                    var starting = (CompletableFuture<top.aihmc.omnimorph.model.outfit.OutfitDraft>) field(type, "draftStart").get(screen);
+                    var draft = await(starting, drain);
+                    require(baseReference.equals(draft.configuration().base()),
+                            "wardrobe draft captures the loaded Avatar's exact source rather than creating a random local identity");
+                    awaitDraftComposition(screen, preview, drain);
+                    add.invoke(screen);
+                    awaitDraftComposition(screen, preview, drain);
+                    var reference = authorized.descriptor().reference();
+                    require(draft.configuration().instances().size() == 2
+                                    && draft.configuration().instances().stream().allMatch(instance -> instance.resource().equals(reference))
+                                    && !draft.configuration().instances().getFirst().instanceId().equals(draft.configuration().instances().getLast().instanceId())
+                                    && server.files.get() == 1 && server.details.get() >= 3,
+                            "cloud Add preserves the authorized origin/revision/hash and uses fresh policy checks with one cached body");
+                    Object binding = field(LibraryPreviewSession.class, "binding").get(preview);
+                    Object composition = field(LibraryPreviewBinding.class, "composition").get(binding);
+                    @SuppressWarnings("unchecked")
+                    var instances = (Map<UUID, Avatar>) field(composition.getClass(), "instances").get(composition);
+                    require(instances.size() == 2 && instances.values().stream().allMatch(avatar -> avatar.isYsmNative() == ysm
+                                    && avatar.cosmeticContext.resource().equals(reference)),
+                            "authorized cloud packages reach the correct native Figura/encrypted YSM instance runtime");
+                    server.revoked.set(true);
+                    var refresh = type.getDeclaredMethod("previewOutfitDraft");
+                    refresh.setAccessible(true);
+                    refresh.invoke(screen);
+                    var denied = (CloudCosmeticSource.Batch) field(type, "draftCloudBatch").get(screen);
+                    require(await(denied.future().handle((value, failure) -> failure), drain) != null
+                                    && preview.status().stage() == LibraryPreviewSession.Stage.IDLE
+                                    && !hasPrivateComposition(preview)
+                                    && AvatarManager.getAvatarForPlayer(owner) == equipped && server.files.get() == 1,
+                            "known revocation retires cached private composition while preserving actual equipment and draft data");
+                    server.revoked.set(false);
+                    server.gate.set(true);
+                    select.invoke(screen, entry);
+                    var obsolete = (CloudCosmeticSource.Operation) field(type, "cloudCosmeticSelection").get(screen);
+                    try {
+                        require(server.entered.await(5, TimeUnit.SECONDS), "native screen preview reaches its controlled HTTP gate");
+                        var clear = type.getDeclaredMethod("selectLocal", top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath.class);
+                        clear.setAccessible(true);
+                        clear.invoke(screen, new Object[]{null});
+                    } finally {
+                        server.release.countDown();
+                    }
+                    var clearedPreview = (LibraryPreviewSession) field(type, "preview").get(screen);
+                    require(obsolete.future().isCancelled() && clearedPreview.status().stage() == LibraryPreviewSession.Stage.IDLE
+                                    && AvatarManager.getAvatarForPlayer(owner) == equipped && server.unexpected.get() == 0,
+                            "new selection cancels real cloud preparation without uploads, equip calls or receipts");
+                    clearedPreview.close();
+                }
+            }
+            System.out.println("PASS wardrobe cloud accessories: actual HTTP/portable Figura and encrypted YSM, scoped selection/Add, fixed references, shared cached body, revocation and stale selection cleanup; GUI MANUAL/PENDING");
+        } finally {
+            LibraryPreviewBinding.finishFrame();
+            minecraft.player = previousPlayer;
+            if (!hadPermissions) {
+                packs.remove(owner);
+            }
+            try (var files = Files.walk(root)) {
+                for (Path path : files.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                    Files.deleteIfExists(path);
+                }
+            }
+        }
+    }
+
+    private static void testLocalPresetScreen(Unsafe unsafe, Runnable drain, LibraryClient client) throws Exception {
+        var minecraft = Minecraft.getInstance();
+        var previousPlayer = minecraft.player;
+        var fontField = field(Minecraft.class, "font");
+        var previousFont = fontField.get(minecraft);
+        // Native routing needs deterministic metrics; this does not validate real fonts or rendered text.
+        var font = new net.minecraft.client.gui.Font(null) {
+            private final net.minecraft.client.StringSplitter splitter =
+                    new net.minecraft.client.StringSplitter((codepoint, style) -> 6f);
+
+            @Override
+            public net.minecraft.client.StringSplitter getSplitter() {
+                return splitter;
+            }
+
+            @Override
+            public int width(String text) {
+                return text.codePointCount(0, text.length()) * 6;
+            }
+
+            @Override
+            public int width(net.minecraft.network.chat.FormattedText text) {
+                return width(text.getString());
+            }
+
+            @Override
+            public int width(net.minecraft.util.FormattedCharSequence text) {
+                int[] count = {0};
+                text.accept((index, style, codepoint) -> {
+                    count[0]++;
+                    return true;
+                });
+                return count[0] * 6;
+            }
+
+            @Override
+            public String plainSubstrByWidth(String text, int width) {
+                return splitter.plainHeadByWidth(text, width, net.minecraft.network.chat.Style.EMPTY);
+            }
+        };
+        fontField.set(minecraft, font);
+        var window = field(Minecraft.class, "window");
+        var previousWindow = window.get(minecraft);
+        var viewport = (com.mojang.blaze3d.platform.Window) unsafe.allocateInstance(com.mojang.blaze3d.platform.Window.class);
+        field(viewport.getClass(), "guiScaledWidth").setInt(viewport, 640);
+        field(viewport.getClass(), "guiScaledHeight").setInt(viewport, 360);
+        window.set(minecraft, viewport);
+        UUID owner = FiguraMod.getLocalPlayerUUID();
+        var player = (CurrentPreviewPlayer) unsafe.allocateInstance(CurrentPreviewPlayer.class);
+        player.setUUID(owner);
+        minecraft.player = player;
+        var packs = (Map<?, ?>) field(PermissionManager.class, "PLAYERS").get(null);
+        boolean hadPermissions = packs.containsKey(owner);
+        Path data = FiguraMod.getFiguraDirectory();
+        Path root = Files.createTempDirectory(data, "preset-ui-");
+        Path accessory = Files.createDirectories(data.resolve("cosmetics/preset-ui-" + UUID.randomUUID()));
+        var presetFiles = new java.util.HashSet<UUID>();
+        var wardrobe = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+        var type = wardrobe.getClass();
+        Avatar equipped = new Avatar(owner);
+        try (var screens = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.recordingScreens();
+             var parentPreview = new LibraryPreviewSession()) {
+            testAccessoryUploadScreen(client, player, drain);
+            testOutfitUploadScreen(client, player, drain);
+            Files.writeString(root.resolve("avatar.json"), "{\"name\":\"Original preset base\"}");
+            var base = new top.aihmc.omnimorph.avatar.local.LocalAvatarSource(data).describe(root, () -> false);
+            equipped.load(new top.aihmc.omnimorph.avatar.local.LocalAvatarSource(data).prepare(base, owner, () -> false));
+            equipped.bindOutfitSource(base);
+            Files.writeString(accessory.resolve("cosmetic.json"), CloudCosmeticSourceSmokeTest.MANIFEST);
+            Files.writeString(accessory.resolve("script.lua"), "return 1");
+            top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory.Entry entry;
+            try (var inventory = new top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory(data)) {
+                entry = inventory.scan(() -> false).stream().filter(value -> value.path().equals(accessory)).findFirst().orElseThrow();
+            }
+            field(type, "preview").set(wardrobe, parentPreview);
+            wardrobe.width = 640;
+            wardrobe.height = 360;
+            var open = type.getDeclaredMethod("openOutfitPresets");
+            open.setAccessible(true);
+            var store = new top.aihmc.omnimorph.model.outfit.LocalOutfitPresets(data);
+            try (var original = new LibraryPreviewBinding(player, equipped)) {
+                minecraft.screen = wardrobe;
+                open.invoke(wardrobe);
+                awaitCondition(() -> minecraft.screen instanceof top.aihmc.omnimorph.gui.screens.OutfitPresetsScreen, drain);
+                var screen = (top.aihmc.omnimorph.gui.screens.OutfitPresetsScreen) minecraft.screen;
+                var screenType = screen.getClass();
+                screen.width = 640;
+                screen.height = 360;
+                var init = screenType.getDeclaredMethod("init");
+                init.setAccessible(true);
+                init.invoke(screen);
+                awaitCondition(() -> !field(screenType, "busy").getBoolean(screen), drain);
+                var draft = (top.aihmc.omnimorph.model.outfit.OutfitDraft) field(type, "outfitDraft").get(wardrobe);
+                long generation = draft.generation();
+                require(!field(type, "removed").getBoolean(wardrobe) && field(type, "outfitPresetsOpen").getBoolean(wardrobe)
+                                && draft.configuration().base().equals(base),
+                        "opening the actual preset action retains the wardrobe draft and its real base provenance");
+                var name = (top.aihmc.omnimorph.gui.widgets.TextField) field(screenType, "nameField").get(screen);
+                name.getField().setValue("中文 本地预设");
+                var save = (top.aihmc.omnimorph.gui.widgets.Button) field(screenType, "saveNew").get(screen);
+                require(save.isActive(), "resolved base and name enable local Save");
+                save.onPress(null);
+                awaitCondition(() -> field(screenType, "previewReady").getBoolean(screen), drain);
+                var saved = (top.aihmc.omnimorph.model.outfit.LocalOutfitPresets.Preset) field(screenType, "selected").get(screen);
+                presetFiles.add(saved.id());
+                require(store.read(saved.id(), top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults()).configuration()
+                                .equals(draft.configuration()) && draft.generation() == generation
+                                && AvatarManager.getAvatarForPlayer(owner) == equipped,
+                        "native Save persists the current draft, reloads its private preview and never changes actual equipment");
+                var update = (top.aihmc.omnimorph.gui.widgets.Button) field(screenType, "update").get(screen);
+                name.getField().setValue("更新名称");
+                update.onPress(null);
+                awaitCondition(() -> field(screenType, "previewReady").getBoolean(screen), drain);
+                var updated = (top.aihmc.omnimorph.model.outfit.LocalOutfitPresets.Preset) field(screenType, "selected").get(screen);
+                require(updated.revision() == 2 && updated.name().equals("更新名称"), "native Update uses the selected preset revision");
+                store.save(updated.id(), 2, "External update", updated.configuration(), top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults());
+                update.onPress(null);
+                awaitCondition(() -> !field(screenType, "busy").getBoolean(screen), drain);
+                require(field(screenType, "message").get(screen).toString().contains("OUTFIT_PRESET_REVISION_CONFLICT")
+                                && store.read(updated.id(), top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults()).name().equals("External update"),
+                        "native Update exposes a conflict and preserves the newer file: " + field(screenType, "message").get(screen));
+                var seed = new top.aihmc.omnimorph.model.outfit.OutfitDraft(new top.aihmc.omnimorph.model.outfit.OutfitConfig(
+                        1, 0, null, java.util.List.of(), java.util.List.of(), Map.of(), false),
+                        top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults());
+                UUID first = seed.add(entry.reference(), entry.source().metadata().defaultAnchor(), entry.source().metadata().defaultTransform());
+                UUID second = seed.add(entry.reference(), entry.source().metadata().defaultAnchor(), entry.source().metadata().defaultTransform());
+                seed.setControls(first, Map.of("amplitude", .25d));
+                seed.setControls(second, Map.of("amplitude", .75d));
+                UUID copiesId = UUID.randomUUID();
+                presetFiles.add(copiesId);
+                store.save(copiesId, 0, "双副本预设", seed.configuration(), top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults());
+                ((top.aihmc.omnimorph.gui.widgets.Button) field(screenType, "refresh").get(screen)).onPress(null);
+                awaitCondition(() -> !field(screenType, "busy").getBoolean(screen), drain);
+                var selector = (top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown) field(screenType, "selector").get(screen);
+                selector.onPress(null);
+                var menu = (top.aihmc.omnimorph.gui.widgets.ContextMenu) top.aihmc.omnimorph.utils.ui.UIHelper.getContext();
+                var presetChoice = (top.aihmc.omnimorph.gui.widgets.Button) menu.getEntries().stream()
+                        .filter(button -> button.getMessage().getString().equals("双副本预设")).findFirst().orElseThrow();
+                presetChoice.onPress(null);
+                awaitCondition(() -> field(screenType, "previewReady").getBoolean(screen), drain);
+                var privatePreview = (LibraryPreviewSession) field(screenType, "preview").get(screen);
+                require(privatePreview.outfitHierarchy().targets().values().stream()
+                                .filter(target -> target.kind() == OutfitHierarchy.Kind.INSTANCE).count() == 2
+                                && draft.generation() == generation && AvatarManager.getAvatarForPlayer(owner) == equipped,
+                        "selecting a preset through the real dropdown prepares both copies without importing or equipping them");
+                var importButton = (top.aihmc.omnimorph.gui.widgets.Button) field(screenType, "importPreset").get(screen);
+                require(importButton.isActive(), "Import becomes available only after complete native preparation");
+                importButton.onPress(null);
+                awaitDraftComposition(wardrobe, parentPreview, drain);
+                require(minecraft.screen == wardrobe && draft.configuration().base() == null
+                                && draft.configuration().instances().size() == 2
+                                && !draft.configuration().instances().getFirst().instanceId().equals(first)
+                                && !draft.configuration().instances().getLast().instanceId().equals(second)
+                                && draft.configuration().instances().getFirst().controls().equals(seed.instance(first).controls())
+                                && AvatarManager.getAvatarForPlayer(owner) == equipped,
+                        "Import edits only the retained draft, rewrites instance IDs and preserves each copy's control values");
+                long importedGeneration = draft.generation();
+                save.onPress(null);
+                importButton.onPress(null);
+                require(draft.generation() == importedGeneration, "closed preset controls cannot save or import into the parent");
+                var cancel = type.getDeclaredMethod("cancelOutfitDraft");
+                cancel.setAccessible(true);
+                cancel.invoke(wardrobe);
+                require(draft.configuration().equals(draft.committed())
+                                && field(type, "draftBase").get(wardrobe) == field(type, "committedDraftBase").get(wardrobe)
+                                && equipped.outfitSource().equals(base),
+                        "cancelling an imported draft restores the original base snapshot and provenance");
+                field(type, "draftBasePersistent").setBoolean(wardrobe, false);
+                open.invoke(wardrobe);
+                var blocked = (top.aihmc.omnimorph.gui.screens.OutfitPresetsScreen) minecraft.screen;
+                blocked.width = 640;
+                blocked.height = 360;
+                init.invoke(blocked);
+                awaitCondition(() -> !field(screenType, "busy").getBoolean(blocked), drain);
+                ((top.aihmc.omnimorph.gui.widgets.TextField) field(screenType, "nameField").get(blocked)).getField().setValue("Unknown source");
+                var blockedSave = (top.aihmc.omnimorph.gui.widgets.Button) field(screenType, "saveNew").get(blocked);
+                require(!blockedSave.isActive(), "an unresolved captured base cannot be saved as a reloadable preset");
+                blockedSave.onPress(null);
+                var missing = new top.aihmc.omnimorph.model.outfit.OutfitConfig.ResourceRef(
+                        top.aihmc.omnimorph.model.outfit.OutfitConfig.Source.LOCAL, UUID.randomUUID(), null, null, null,
+                        "f".repeat(64), top.aihmc.omnimorph.model.outfit.OutfitConfig.Format.FIGURA);
+                var broken = new top.aihmc.omnimorph.model.outfit.OutfitDraft(seed.committed(), top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults());
+                broken.add(missing, entry.source().metadata().defaultAnchor(), entry.source().metadata().defaultTransform());
+                broken.add(missing, entry.source().metadata().defaultAnchor(), entry.source().metadata().defaultTransform());
+                UUID brokenId = UUID.randomUUID();
+                presetFiles.add(brokenId);
+                store.save(brokenId, 0, "Missing copies", broken.configuration(), top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults());
+                var load = screenType.getDeclaredMethod("load", UUID.class);
+                load.setAccessible(true);
+                load.invoke(blocked, brokenId);
+                awaitCondition(() -> !field(screenType, "busy").getBoolean(blocked), drain);
+                var issues = (top.aihmc.omnimorph.gui.widgets.library.LibraryRowList) field(screenType, "issues").get(blocked);
+                require(((java.util.List<?>) field(issues.getClass(), "rows").get(issues)).size() == 2
+                                && !((top.aihmc.omnimorph.gui.widgets.Button) field(screenType, "importPreset").get(blocked)).isActive()
+                                && draft.configuration().equals(draft.committed()) && store.read(brokenId,
+                                top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults()).configuration().equals(broken.configuration()),
+                        "the actual failure list identifies both missing copies and preserves the original preset/draft");
+                var entered = new java.util.concurrent.CountDownLatch(1);
+                var release = new java.util.concurrent.CountDownLatch(1);
+                var gate = top.aihmc.omnimorph.avatar.AvatarLoadExecutor.submit(() -> {
+                    entered.countDown();
+                    try {
+                        require(release.await(10, TimeUnit.SECONDS), "preset worker gate releases promptly");
+                    } catch (InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                        throw new java.util.concurrent.CompletionException(interrupted);
+                    }
+                    return true;
+                });
+                try {
+                    require(entered.await(5, TimeUnit.SECONDS), "preset screen reaches the bounded worker gate");
+                    load.invoke(blocked, copiesId);
+                    blocked.onClose();
+                    require(minecraft.screen == wardrobe && field(screenType, "closed").getBoolean(blocked),
+                            "closing never waits behind queued preset reads");
+                } finally {
+                    release.countDown();
+                }
+                await(gate, drain);
+                await((CompletableFuture<?>) field(screenType, "work").get(blocked), drain);
+                require(draft.configuration().equals(draft.committed()), "late preset callbacks cannot import after the modal closes");
+                require(parentPreview.status().stage() != LibraryPreviewSession.Stage.CLOSED
+                                && AvatarManager.getAvatarForPlayer(owner) == equipped,
+                        "closing preset previews preserves the parent session and real equipment");
+                field(type, "draftBasePersistent").setBoolean(wardrobe, true);
+                testCloudPersonalPresetControls(wardrobe, draft, data, equipped, parentPreview, drain);
+            }
+            System.out.println("PASS local preset screen: native entry/name/save/update/conflict/dropdown/private composition/import/cancel, source guards and visible per-copy failures; recording screen dispatch, real GUI/GPU MANUAL/PENDING");
+        } finally {
+            field(type, "outfitPresetsOpen").setBoolean(wardrobe, false);
+            wardrobe.removed();
+            LibraryPreviewBinding.finishFrame();
+            minecraft.player = previousPlayer;
+            fontField.set(minecraft, previousFont);
+            window.set(minecraft, previousWindow);
+            if (!hadPermissions) {
+                packs.remove(owner);
+            }
+            for (UUID id : presetFiles) {
+                Files.deleteIfExists(data.resolve("outfit-presets").resolve(id + ".json"));
+            }
+            for (Path directory : java.util.List.of(root, accessory)) {
+                try (var files = Files.walk(directory)) {
+                    for (Path path : files.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                        Files.deleteIfExists(path);
+                    }
+                }
+            }
+        }
+    }
+
+    @FunctionalInterface
+    private interface PresetCondition {
+        boolean ready() throws Exception;
+    }
+
+    private static void testCloudPersonalPresetControls(top.aihmc.omnimorph.gui.screens.WardrobeScreen wardrobe,
+                                                         top.aihmc.omnimorph.model.outfit.OutfitDraft draft,
+                                                         Path data, Avatar equipped, LibraryPreviewSession parentPreview,
+                                                         Runnable drain) throws Exception {
+        var minecraft = Minecraft.getInstance();
+        UUID owner = FiguraMod.getLocalPlayerUUID();
+        var live = new AtomicBoolean(true);
+        var limits = top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults();
+        var local = new top.aihmc.omnimorph.model.outfit.LocalOutfitPresets(data);
+        int localCount = local.list(limits).size();
+        try (var server = new CloudOutfitPresetsSmokeTest.Server();
+             var access = new LibraryAccess(CloudEndpoint.parse(server.origin(), () -> true), HttpClient.newHttpClient(),
+                     request -> request.header("Authorization", "Bearer synthetic-owner"));
+             var client = new LibraryClient(access, new LibrarySession(server.origin(), owner, 1, live::get), minecraft::execute)) {
+            field(wardrobe.getClass(), "outfitPresetsOpen").setBoolean(wardrobe, true);
+            var screen = new top.aihmc.omnimorph.gui.screens.OutfitPresetsScreen(wardrobe, draft, owner, data, limits,
+                    client, new LibraryTransferService(client, data.resolve("cache")));
+            minecraft.setScreen(screen);
+            screen.width = 640;
+            screen.height = 360;
+            var type = screen.getClass();
+            var init = type.getDeclaredMethod("init");
+            init.setAccessible(true);
+            init.invoke(screen);
+            awaitCondition(() -> !field(type, "busy").getBoolean(screen), drain);
+            var storage = (top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown) field(type, "storage").get(screen);
+            storage.onPress(null);
+            String cloudLabel = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.preset_personal_cloud").getString();
+            var menu = top.aihmc.omnimorph.utils.ui.UIHelper.getContext();
+            var cloudChoice = (top.aihmc.omnimorph.gui.widgets.Button) menu.getEntries().stream()
+                    .filter(button -> button.getMessage().getString().equals(cloudLabel)).findFirst().orElseThrow();
+            cloudChoice.onPress(null);
+            awaitCondition(() -> !field(type, "busy").getBoolean(screen), drain);
+            require(field(type, "cloud").getBoolean(screen) && ((java.util.List<?>) field(type, "items").get(screen)).isEmpty(),
+                    "the native storage selector loads the authenticated owner's separate cloud list");
+            var name = (top.aihmc.omnimorph.gui.widgets.TextField) field(type, "nameField").get(screen);
+            name.getField().setValue("个人云端预设");
+            var save = (top.aihmc.omnimorph.gui.widgets.Button) field(type, "saveNew").get(screen);
+            long generation = draft.generation();
+            server.loseNext.set(true);
+            save.onPress(null);
+            awaitCondition(() -> !field(type, "busy").getBoolean(screen), drain);
+            require(field(type, "message").get(screen).toString().contains("BUSY"), "uncertain cloud Save remains visibly failed");
+            var operation = (CloudOutfitPresets.Save) field(type, "cloudSave").get(screen);
+            UUID operationId = operation.operationId();
+            name.getField().setValue("This later edit is not part of the retry");
+            var retry = (top.aihmc.omnimorph.gui.widgets.Button) field(type, "retry").get(screen);
+            require(retry.isActive(), "an uncertain save has an explicit retry action");
+            retry.onPress(null);
+            awaitCondition(() -> field(type, "previewReady").getBoolean(screen), drain);
+            var selected = (top.aihmc.omnimorph.model.outfit.LocalOutfitPresets.Preset) field(type, "selected").get(screen);
+            require(selected.name().equals("个人云端预设") && selected.revision() == 1
+                            && operation.operationId().equals(operationId) && server.commits.get() == 1 && server.replays.get() == 1
+                            && local.list(limits).size() == localCount && draft.generation() == generation
+                            && AvatarManager.getAvatarForPlayer(owner) == equipped,
+                    "native cloud retry retains the original intent/operation, creates one private document and never writes the local store or equipment");
+            name.getField().setValue("云端更新");
+            ((top.aihmc.omnimorph.gui.widgets.Button) field(type, "update").get(screen)).onPress(null);
+            awaitCondition(() -> field(type, "previewReady").getBoolean(screen), drain);
+            selected = (top.aihmc.omnimorph.model.outfit.LocalOutfitPresets.Preset) field(type, "selected").get(screen);
+            require(selected.revision() == 2 && selected.name().equals("云端更新"), "native cloud Update uses the owner's selected document revision");
+            var presets = new CloudOutfitPresets(client, limits);
+            var vanilla = new top.aihmc.omnimorph.model.outfit.OutfitConfig(1, 0, null, java.util.List.of(),
+                    java.util.List.of(), Map.of(), false);
+            UUID vanillaId = UUID.randomUUID();
+            try (var seed = presets.save(vanillaId, 0, "Cloud vanilla import", vanilla)) {
+                await(seed.future(), drain);
+            }
+            var load = type.getDeclaredMethod("load", UUID.class);
+            load.setAccessible(true);
+            load.invoke(screen, vanillaId);
+            awaitCondition(() -> field(type, "previewReady").getBoolean(screen), drain);
+            var importButton = (top.aihmc.omnimorph.gui.widgets.Button) field(type, "importPreset").get(screen);
+            importButton.onPress(null);
+            awaitDraftComposition(wardrobe, parentPreview, drain);
+            require(minecraft.screen == wardrobe && draft.configuration().base() == null && draft.dirty()
+                            && AvatarManager.getAvatarForPlayer(owner) == equipped && server.unexpected.get() == 0,
+                    "a cloud-owned preset imports only into the retained draft and never publishes or equips it");
+            var cancel = wardrobe.getClass().getDeclaredMethod("cancelOutfitDraft");
+            cancel.setAccessible(true);
+            cancel.invoke(wardrobe);
+            field(wardrobe.getClass(), "outfitPresetsOpen").setBoolean(wardrobe, true);
+            var retired = new top.aihmc.omnimorph.gui.screens.OutfitPresetsScreen(wardrobe, draft, owner, data, limits,
+                    client, new LibraryTransferService(client, data.resolve("cache")));
+            minecraft.setScreen(retired);
+            retired.width = 640;
+            retired.height = 360;
+            init.invoke(retired);
+            awaitCondition(() -> !field(type, "busy").getBoolean(retired), drain);
+            var switchStorage = type.getDeclaredMethod("changeStorage", int.class);
+            switchStorage.setAccessible(true);
+            switchStorage.invoke(retired, 1);
+            awaitCondition(() -> !field(type, "busy").getBoolean(retired), drain);
+            load.invoke(retired, vanillaId);
+            awaitCondition(() -> field(type, "previewReady").getBoolean(retired), drain);
+            live.set(false);
+            ((top.aihmc.omnimorph.gui.widgets.Button) field(type, "importPreset").get(retired)).onPress(null);
+            require(draft.configuration().equals(draft.committed()), "retired cloud sessions cannot import even a previously prepared all-local preset");
+            retired.onClose();
+            System.out.println("PASS personal cloud preset controls: actual storage selector/authenticated HTTP, lost-response retry with frozen intent, update/private preview/import, separate local files and retired callbacks; real GUI/GPU MANUAL/PENDING");
+        }
+    }
+
+    private static void awaitCondition(PresetCondition condition, Runnable drain) throws Exception {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(60);
+        while (!condition.ready() && System.nanoTime() < deadline) {
+            drain.run();
+            Thread.sleep(1);
+        }
+        require(condition.ready(), "native preset screen operation completed within the bounded wait");
+        drain.run();
+    }
+
+    private static boolean hasPrivateComposition(LibraryPreviewSession preview) throws Exception {
+        Object binding = field(LibraryPreviewSession.class, "binding").get(preview);
+        return binding != null && field(LibraryPreviewBinding.class, "composition").get(binding) != null;
+    }
+
+    private static void testStaleDraftStart(top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory.Entry entry,
+                                            Runnable drain) throws Exception {
+        var type = top.aihmc.omnimorph.gui.screens.WardrobeScreen.class;
+        var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+        var started = new java.util.concurrent.CountDownLatch(1);
+        var release = new java.util.concurrent.CountDownLatch(1);
+        try (var preview = new LibraryPreviewSession()) {
+            field(type, "preview").set(screen, preview);
+            var choose = type.getDeclaredMethod("selectCosmetic", entry.getClass());
+            choose.setAccessible(true);
+            choose.invoke(screen, entry);
+            var blocker = top.aihmc.omnimorph.avatar.AvatarLoadExecutor.submit(() -> {
+                started.countDown();
+                try {
+                    require(release.await(5, TimeUnit.SECONDS), "test worker gate releases promptly");
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new java.util.concurrent.CompletionException(interrupted);
+                }
+                return true;
+            });
+            try {
+                require(started.await(5, TimeUnit.SECONDS), "bounded model worker reaches the test gate");
+                var add = type.getDeclaredMethod("addSelectedInstance");
+                add.setAccessible(true);
+                add.invoke(screen);
+                var unavailable = new top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory.Entry(entry.path(),
+                        entry.localId(), null, "INVALID_COSMETIC_SOURCE");
+                choose.invoke(screen, unavailable);
+            } finally {
+                release.countDown();
+            }
+            await(blocker, drain);
+            @SuppressWarnings("unchecked")
+            var pending = (CompletableFuture<top.aihmc.omnimorph.model.outfit.OutfitDraft>) field(type, "draftStart").get(screen);
+            var draft = await(pending, drain);
+            require(draft.configuration().instances().isEmpty() && preview.status().stage() == LibraryPreviewSession.Stage.IDLE,
+                    "late draft preparation cannot add an old resource or override a newer selection");
+        }
+    }
+
+    private static void testInstanceTransformFields(Unsafe unsafe, top.aihmc.omnimorph.gui.screens.WardrobeScreen screen,
+                                                     top.aihmc.omnimorph.model.outfit.OutfitDraft draft,
+                                                     UUID first, UUID sibling, Runnable drain) throws Exception {
+        Minecraft minecraft = Minecraft.getInstance();
+        Object previousFont = field(Minecraft.class, "font").get(minecraft);
+        var font = new net.minecraft.client.gui.Font(null) {
+            private final net.minecraft.client.StringSplitter splitter = new net.minecraft.client.StringSplitter((codepoint, style) -> 6f);
+
+            @Override
+            public net.minecraft.client.StringSplitter getSplitter() {
+                return splitter;
+            }
+
+            @Override
+            public int width(String value) {
+                return value.codePointCount(0, value.length()) * 6;
+            }
+
+            @Override
+            public int width(net.minecraft.network.chat.FormattedText value) {
+                return width(value.getString());
+            }
+
+            @Override
+            public int width(net.minecraft.util.FormattedCharSequence value) {
+                int[] count = {0};
+                value.accept((index, style, codepoint) -> {
+                    count[0]++;
+                    return true;
+                });
+                return count[0] * 6;
+            }
+
+            @Override
+            public java.util.List<net.minecraft.util.FormattedCharSequence> split(net.minecraft.network.chat.FormattedText value, int width) {
+                return java.util.List.of(net.minecraft.util.FormattedCharSequence.forward(value.getString(), net.minecraft.network.chat.Style.EMPTY));
+            }
+
+            @Override
+            public String plainSubstrByWidth(String value, int width) {
+                return splitter.plainHeadByWidth(value, width, net.minecraft.network.chat.Style.EMPTY);
+            }
+
+            @Override
+            public String plainSubstrByWidth(String value, int width, boolean tail) {
+                return tail ? splitter.plainTailByWidth(value, width, net.minecraft.network.chat.Style.EMPTY)
+                        : plainSubstrByWidth(value, width);
+            }
+        };
+        field(Minecraft.class, "font").set(minecraft, font);
+        var unchangedSibling = draft.instance(sibling);
+        try {
+            draft.select(first);
+            field(screen.getClass(), "layout").set(screen,
+                    top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout.of(640, 360));
+            var build = screen.getClass().getDeclaredMethod("buildInstanceTransform");
+            build.setAccessible(true);
+            build.invoke(screen);
+            var selector = screen.children().stream()
+                    .filter(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::isInstance)
+                    .map(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::cast)
+                    .filter(control -> {
+                        try {
+                            var choices = (java.util.function.Supplier<?>) field(control.getClass(), "choices").get(control);
+                            return ((java.util.List<?>) choices.get()).stream()
+                                    .anyMatch(label -> ((net.minecraft.network.chat.Component) label).getString().contains(" / "));
+                        } catch (Exception failure) {
+                            throw new AssertionError(failure);
+                        }
+                    }).findFirst().orElseThrow();
+            var labels = (java.util.function.Supplier<?>) field(selector.getClass(), "choices").get(selector);
+            var options = (java.util.List<?>) labels.get();
+            int manual = -1;
+            for (int index = 0; index < options.size(); index++) {
+                if (((net.minecraft.network.chat.Component) options.get(index)).getString().contains(" / ")) {
+                    manual = index;
+                    break;
+                }
+            }
+            var selectAnchor = (java.util.function.IntConsumer) field(selector.getClass(), "changed").get(selector);
+            var previousScreen = minecraft.screen;
+            var windowField = field(Minecraft.class, "window");
+            Object previousWindow = windowField.get(minecraft);
+            var viewport = (com.mojang.blaze3d.platform.Window) unsafe.allocateInstance(com.mojang.blaze3d.platform.Window.class);
+            field(viewport.getClass(), "guiScaledWidth").setInt(viewport, 640);
+            field(viewport.getClass(), "guiScaledHeight").setInt(viewport, 360);
+            windowField.set(minecraft, viewport);
+            minecraft.screen = screen;
+            try {
+                selector.onPress(null);
+                var menu = top.aihmc.omnimorph.utils.ui.UIHelper.getContext();
+                require(menu != null && menu.getEntries().size() <= 8,
+                        "attachment menus are bounded even when the hierarchy exceeds one page");
+                var nextLabel = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.anchor_next").getString();
+                var next = (top.aihmc.omnimorph.gui.widgets.Button) menu.getEntries().stream()
+                        .filter(button -> button.getMessage().getString().equals(nextLabel)).findFirst().orElseThrow();
+                next.onPress(null);
+                var following = top.aihmc.omnimorph.utils.ui.UIHelper.getContext();
+                require(following != menu && following.getEntries().size() <= 8,
+                        "next page opens a bounded menu without discarding remaining targets");
+            } finally {
+                screen.contextMenu = null;
+                minecraft.screen = previousScreen;
+                windowField.set(minecraft, previousWindow);
+            }
+            selectAnchor.accept(manual);
+            require(draft.instance(first).anchor().type() == top.aihmc.omnimorph.model.outfit.OutfitConfig.AnchorType.BASE_BONE
+                            && draft.instance(first).anchor().bone().instanceId() == null
+                            && draft.instance(sibling).equals(unchangedSibling),
+                    "actual anchor control binds a stable base bone on the selected copy only");
+            var attached = draft.configuration();
+            draft.select(sibling);
+            selectAnchor.accept(0);
+            require(draft.configuration().equals(attached), "stale anchor menus cannot edit a newly selected instance");
+            draft.select(first);
+            var layoutBeforeFocus = field(screen.getClass(), "layout").get(screen);
+            field(screen.getClass(), "layout").set(screen, null);
+            long generationBeforeFocus = field(screen.getClass(), "draftPreviewGeneration").getLong(screen);
+            var selectInstance = screen.getClass().getDeclaredMethod("selectDraftInstance", UUID.class);
+            selectInstance.setAccessible(true);
+            selectInstance.invoke(screen, first);
+            var focused = (BoneTreeState) field(screen.getClass(), "bones").get(screen);
+            require(focused.selectedTarget().kind() == OutfitHierarchy.Kind.BASE_BONE
+                            && focused.selectedTarget().bone().equals(draft.instance(first).anchor().bone())
+                            && first.equals(draft.selectedInstance())
+                            && field(screen.getClass(), "draftPreviewGeneration").getLong(screen) == generationBeforeFocus,
+                    "selecting an existing draft instance focuses its attachment while preserving instance ownership and preparation generation");
+            field(screen.getClass(), "layout").set(screen, layoutBeforeFocus);
+            var panel = (top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeEditorPanel) screen.children().stream()
+                    .filter(top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeEditorPanel.class::isInstance).findFirst().orElseThrow();
+            var inputs = panel.children().stream().filter(top.aihmc.omnimorph.gui.widgets.TextField.class::isInstance)
+                    .map(top.aihmc.omnimorph.gui.widgets.TextField.class::cast).toList();
+            require(inputs.size() == 9, "instance pane exposes all position/rotation/scale components");
+            inputs.get(0).getField().setValue("10");
+            inputs.get(5).getField().setValue("45");
+            inputs.get(7).getField().setValue("1.5");
+            require(draft.instance(first).transform().position().x() == 10
+                            && draft.instance(first).transform().rotation().z() == 45
+                            && draft.instance(first).transform().scale().y() == 1.5
+                            && draft.instance(sibling).equals(unchangedSibling),
+                    "actual field callbacks edit the selected instance and preserve its sibling");
+            var valid = draft.configuration();
+            inputs.get(6).getField().setValue("0");
+            require(draft.configuration().equals(valid) && inputs.get(6).getBorderColour() == 0xffff5555,
+                    "invalid scale stays in the input with an error and preserves the prior valid draft");
+            inputs.get(6).getField().setValue("NaN");
+            require(draft.configuration().equals(valid), "nonfinite input cannot enter the draft");
+            inputs.get(6).getField().setValue("1");
+            require(inputs.get(6).getBorderColour() == 0xffffffff, "valid replacement clears input validation state");
+            panel.setHeight(36);
+            panel.tick();
+            var scroll = (top.aihmc.omnimorph.gui.widgets.ScrollBarWidget) field(
+                    top.aihmc.omnimorph.gui.widgets.lists.AbstractList.class, "scrollBar").get(panel);
+            require(scroll.isVisible(), "short instance panes expose scrolling instead of overlapping the toolbar");
+            // Geometry/field routing only: deterministic font metrics do not prove real CJK pixels or layout.
+            field(screen.getClass(), "layout").set(screen, null);
+            testVirtualAnchorEditor(screen, draft, first, sibling, drain);
+            testBoneOverrideEditor(unsafe, screen, draft, first, drain);
+            testAutomaticAnchorFocus(screen, draft, first, drain);
+            testTreeAttachmentActions(unsafe, screen, draft, first, drain);
+        } finally {
+            field(Minecraft.class, "font").set(minecraft, previousFont);
+        }
+    }
+
+    private static void testTreeAttachmentActions(Unsafe unsafe, top.aihmc.omnimorph.gui.screens.WardrobeScreen screen,
+                                                   top.aihmc.omnimorph.model.outfit.OutfitDraft draft,
+                                                   UUID previousSelection, Runnable drain) throws Exception {
+        var type = screen.getClass();
+        var preview = (LibraryPreviewSession) field(type, "preview").get(screen);
+        var root = Files.createTempDirectory(Path.of(System.getProperty("figura.test.directory")), "tree-attach-");
+        var directory = top.aihmc.omnimorph.wizards.CosmeticCreator.create(root, "插槽尾巴", "Fixture", "",
+                top.aihmc.omnimorph.wizards.CosmeticTemplate.TAIL, "hip",
+                top.aihmc.omnimorph.model.outfit.OutfitConfig.Transform.identity());
+        String authored = Files.readString(directory.resolve("cosmetic.json"));
+        var source = top.aihmc.omnimorph.model.outfit.LocalCosmeticSource.describe(directory, () -> false);
+        var entry = new top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory.Entry(directory, UUID.randomUUID(), source, "");
+        @SuppressWarnings("unchecked")
+        var resources = (Map<top.aihmc.omnimorph.model.outfit.OutfitConfig.ResourceRef,
+                top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory.Entry>) field(type, "draftResources").get(screen);
+        resources.put(entry.reference(), entry);
+        var base = preview.outfitHierarchy().anchors(null).stream()
+                .filter(choice -> choice.anchor().type() == top.aihmc.omnimorph.model.outfit.OutfitConfig.AnchorType.BASE_BONE)
+                .findFirst().orElseThrow().anchor();
+        UUID first = draft.add(entry.reference(), base, source.metadata().defaultTransform());
+        UUID second = draft.add(entry.reference(), base, source.metadata().defaultTransform());
+        var refresh = type.getDeclaredMethod("previewOutfitDraft");
+        refresh.setAccessible(true);
+        refresh.invoke(screen);
+        awaitDraftComposition(screen, preview, drain);
+        testCosmeticControls(screen, draft, first, second);
+        draft.select(first);
+        field(type, "layout").set(screen, top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout.of(640, 360));
+        var build = type.getDeclaredMethod("buildInstanceTransform");
+        build.setAccessible(true);
+        build.invoke(screen);
+        var pickLabel = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.anchor_pick").getString();
+        var pick = screen.children().stream().filter(top.aihmc.omnimorph.gui.widgets.Button.class::isInstance)
+                .map(top.aihmc.omnimorph.gui.widgets.Button.class::cast)
+                .filter(button -> button.getMessage().getString().equals(pickLabel)).toList().getLast();
+        field(type, "layout").set(screen, null);
+        var before = draft.configuration();
+        long generation = field(type, "draftPreviewGeneration").getLong(screen);
+        pick.onPress(null);
+        require(first.equals(field(type, "attachingInstance").get(screen)) && before.equals(draft.configuration())
+                        && field(type, "draftPreviewGeneration").getLong(screen) == generation,
+                "actual instance editor button enters tree targeting without changing the outfit or preparing sources");
+        var tree = (BoneTreeState) field(type, "bones").get(screen);
+        var firstTip = preview.outfitHierarchy().targets().values().stream()
+                .filter(target -> first.equals(target.instanceId()) && target.mountable() && target.bone() != null)
+                .findFirst().orElseThrow();
+        var secondTip = preview.outfitHierarchy().targets().values().stream()
+                .filter(target -> second.equals(target.instanceId()) && target.mountable() && target.bone() != null)
+                .findFirst().orElseThrow();
+        var choose = type.getDeclaredMethod("selectTreeTarget", OutfitHierarchy.Target.class);
+        choose.setAccessible(true);
+        require(tree.locate(new top.aihmc.omnimorph.model.outfit.OutfitConfig.AnchorRef(
+                top.aihmc.omnimorph.model.outfit.OutfitConfig.AnchorType.ACCESSORY_BONE,
+                null, secondTip.bone(), null, null, null)), "the target slot exists in the second copy's tree");
+        choose.invoke(screen, tree.selectedTarget());
+        require(first.equals(draft.selectedInstance()) && before.equals(draft.configuration()),
+                "choosing another accessory's slot retains the pending child instead of switching to its parent");
+        var minecraft = Minecraft.getInstance();
+        var previousScreen = minecraft.screen;
+        var windowField = field(Minecraft.class, "window");
+        Object previousWindow = windowField.get(minecraft);
+        var viewport = (com.mojang.blaze3d.platform.Window) unsafe.allocateInstance(com.mojang.blaze3d.platform.Window.class);
+        field(viewport.getClass(), "guiScaledWidth").setInt(viewport, 640);
+        field(viewport.getClass(), "guiScaledHeight").setInt(viewport, 360);
+        windowField.set(minecraft, viewport);
+        minecraft.screen = screen;
+        try {
+            var open = type.getDeclaredMethod("openAnchorActions", net.minecraft.client.gui.components.Button.class);
+            open.setAccessible(true);
+            var trigger = new top.aihmc.omnimorph.gui.widgets.Button(0, 0, 120, 20,
+                    net.minecraft.network.chat.Component.literal("Targets"), null, ignored -> {});
+            open.invoke(screen, trigger);
+            var label = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.anchor_bind_accessory").getString();
+            var bind = top.aihmc.omnimorph.utils.ui.UIHelper.getContext().getEntries().stream()
+                    .filter(button -> button.getMessage().getString().equals(label))
+                    .map(top.aihmc.omnimorph.gui.widgets.Button.class::cast).findFirst().orElseThrow();
+            var parentBefore = draft.instance(second);
+            bind.onPress(null);
+            require(draft.instance(first).anchor().type() == top.aihmc.omnimorph.model.outfit.OutfitConfig.AnchorType.ACCESSORY_BONE
+                            && draft.instance(first).anchor().bone().equals(secondTip.bone())
+                            && draft.instance(second).equals(parentBefore) && first.equals(draft.selectedInstance())
+                            && field(type, "attachingInstance").get(screen) == null,
+                    "explicit accessory socket menu stores the target's UUID/path/hash on the child only");
+            awaitDraftComposition(screen, preview, drain);
+            var begin = type.getDeclaredMethod("beginAnchorSelection", UUID.class);
+            begin.setAccessible(true);
+            draft.select(second);
+            begin.invoke(screen, second);
+            long epoch = field(type, "attachmentSelection").getLong(screen);
+            var apply = type.getDeclaredMethod("bindTreeTarget", UUID.class, long.class, OutfitHierarchy.Target.class);
+            apply.setAccessible(true);
+            var valid = draft.configuration();
+            apply.invoke(screen, second, epoch, firstTip);
+            require(draft.configuration().equals(valid), "reverse accessory binding is rejected atomically when it closes a cycle");
+            apply.invoke(screen, second, epoch, secondTip);
+            require(draft.configuration().equals(valid), "self-binding is rejected without changing either instance");
+            var internal = preview.outfitHierarchy().targets().values().stream()
+                    .filter(target -> first.equals(target.instanceId()) && target.bone() != null && !target.mountable())
+                    .findFirst().orElseThrow();
+            apply.invoke(screen, second, epoch, internal);
+            require(draft.configuration().equals(valid), "unexported bones cannot be used as tree attachment targets");
+            draft.setEnabled(first, false);
+            var disabled = draft.configuration();
+            apply.invoke(screen, second, epoch, firstTip);
+            require(draft.configuration().equals(disabled), "a stale menu cannot bind to a newly disabled owner");
+            draft.setEnabled(first, true);
+            valid = draft.configuration();
+            bind.onPress(null);
+            require(draft.configuration().equals(valid) && second.equals(field(type, "attachingInstance").get(screen)),
+                    "an old successful menu cannot mutate a later target-selection session");
+            open.invoke(screen, trigger);
+            var cancelLabel = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.anchor_pick_cancel").getString();
+            var cancel = top.aihmc.omnimorph.utils.ui.UIHelper.getContext().getEntries().stream()
+                    .filter(button -> button.getMessage().getString().equals(cancelLabel))
+                    .map(top.aihmc.omnimorph.gui.widgets.Button.class::cast).findFirst().orElseThrow();
+            cancel.onPress(null);
+            require(draft.configuration().equals(valid) && field(type, "attachingInstance").get(screen) == null,
+                    "canceling tree targeting preserves the outfit configuration");
+        } finally {
+            screen.contextMenu = null;
+            minecraft.screen = previousScreen;
+            windowField.set(minecraft, previousWindow);
+        }
+        draft.remove(first);
+        draft.remove(second);
+        resources.remove(entry.reference());
+        draft.select(previousSelection);
+        refresh.invoke(screen);
+        awaitDraftComposition(screen, preview, drain);
+        require(Files.readString(directory.resolve("cosmetic.json")).equals(authored), "tree binding never rewrites author metadata");
+        System.out.println("PASS tree attachment menus: actual picker/socket actions, duplicate ownership, native preparation, "
+                + "cycle/self/private/disabled/stale rejection, cancel and unchanged source; GUI MANUAL/PENDING");
+    }
+
+    private static void testCosmeticControls(top.aihmc.omnimorph.gui.screens.WardrobeScreen wardrobe,
+                                             top.aihmc.omnimorph.model.outfit.OutfitDraft draft,
+                                             UUID first, UUID second) throws Exception {
+        var wardrobeType = wardrobe.getClass();
+        var session = (LibraryPreviewSession) field(wardrobeType, "preview").get(wardrobe);
+        var composition = session.outfitComposition();
+        var base = (Avatar) field(LibraryPreviewSession.class, "avatar").get(session);
+        @SuppressWarnings("unchecked")
+        var skeleton = (top.aihmc.omnimorph.model.outfit.SkeletonIndex.Binding<Object>) composition.editorSnapshot(base).base();
+        var matrices = new java.util.IdentityHashMap<Object, org.joml.Matrix4f>();
+        for (Object part : skeleton.parts()) {
+            matrices.put(part, new org.joml.Matrix4f().scaling(1f / 16));
+        }
+        var pose = top.aihmc.omnimorph.model.outfit.SkeletonPose.fromNative(skeleton, matrices, new org.joml.Matrix4f(),
+                top.aihmc.omnimorph.model.outfit.SkeletonPose.NativeUnits.MODEL_UNITS);
+        try (var frame = composition.retain()) {
+            frame.draw(pose, new net.minecraft.client.renderer.entity.state.AvatarRenderState(), 0, ignored -> {});
+        }
+        var groups = composition.controlGroups();
+        @SuppressWarnings("unchecked")
+        var actualInstances = (Map<UUID, Avatar>) field(composition.getClass(), "instances").get(composition);
+        require(groups.stream().anyMatch(group -> group.instance().instanceId().equals(first)),
+                "generated tail registers controls through native preparation: " + actualInstances.entrySet().stream()
+                        .map(entry -> entry.getKey() + " loaded=" + entry.getValue().loaded + " scriptError="
+                                + entry.getValue().scriptError + " lua=" + (entry.getValue().luaRuntime != null)
+                                + " controls=" + entry.getValue().controls.asMap().keySet()).toList());
+        var firstGroup = groups.stream().filter(group -> group.instance().instanceId().equals(first)).findFirst().orElseThrow();
+        var secondGroup = groups.stream().filter(group -> group.instance().instanceId().equals(second)).findFirst().orElseThrow();
+        require(groups == composition.controlGroups() && firstGroup.avatar() != secondGroup.avatar(),
+                "unchanged registration versions reuse the group snapshot and duplicate resources retain separate owners");
+        field(wardrobeType, "cosmeticControlsOpen").setBoolean(wardrobe, true);
+        var settings = new top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen(wardrobe, session,
+                composition, draft, FiguraMod.getLocalPlayerUUID());
+        settings.width = 640;
+        settings.height = 360;
+        var build = top.aihmc.omnimorph.gui.screens.AvatarControlsScreen.class.getDeclaredMethod("rebuild");
+        build.setAccessible(true);
+        var before = draft.configuration();
+        long generation = field(wardrobeType, "draftPreviewGeneration").getLong(wardrobe);
+        build.invoke(settings);
+        var select = settings.children().stream()
+                .filter(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::isInstance)
+                .map(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::cast).findFirst().orElseThrow();
+        @SuppressWarnings("unchecked")
+        var labels = (java.util.function.Supplier<java.util.List<net.minecraft.network.chat.Component>>)
+                field(select.getClass(), "choices").get(select);
+        require(labels.get().stream().anyMatch(label -> label.getString().contains("插槽尾巴 #1"))
+                        && labels.get().stream().anyMatch(label -> label.getString().contains("插槽尾巴 #2")),
+                "the real group selector preserves the ordered duplicate names");
+        var choose = (java.util.function.IntConsumer) field(select.getClass(), "changed").get(select);
+        choose.accept(groups.indexOf(firstGroup));
+        require(draft.configuration().equals(before), "opening and switching groups do not persist factory defaults");
+        var firstSwitch = (top.aihmc.omnimorph.gui.widgets.SwitchButton) settings.children().stream()
+                .filter(widget -> widget.getClass().getSimpleName().equals("ControlSwitch")).findFirst().orElseThrow();
+        firstSwitch.onPress(null);
+        require(Boolean.FALSE.equals(draft.instance(first).controls().get("visible"))
+                        && !draft.instance(second).controls().containsKey("visible")
+                        && Boolean.FALSE.equals(firstGroup.avatar().controls.getValue("visible"))
+                        && Boolean.TRUE.equals(secondGroup.avatar().controls.getValue("visible")),
+                "native control callbacks save only the chosen instance in the draft and its actual runtime");
+        choose.accept(groups.indexOf(secondGroup));
+        var valid = draft.configuration();
+        firstSwitch.onPress(null);
+        require(draft.configuration().equals(valid), "a retained old control cannot edit another group's owner after switching");
+        var secondSwitch = (top.aihmc.omnimorph.gui.widgets.SwitchButton) settings.children().stream()
+                .filter(widget -> widget.getClass().getSimpleName().equals("ControlSwitch")).findFirst().orElseThrow();
+        secondSwitch.onPress(null);
+        require(Boolean.FALSE.equals(draft.instance(second).controls().get("visible"))
+                        && firstGroup.avatar().cosmeticContext != secondGroup.avatar().cosmeticContext,
+                "the second copy edits its own execution context and persistent draft values");
+        var scene = (top.aihmc.omnimorph.gui.widgets.EntityPreview) settings.children().stream()
+                .filter(top.aihmc.omnimorph.gui.widgets.EntityPreview.class::isInstance).findFirst().orElseThrow();
+        require(field(scene.getClass(), "libraryPreview").get(scene) == session,
+                "settings reuse the complete private outfit preview rather than the equipped base model");
+        wardrobe.removed();
+        require(session.outfitComposition() == composition && !field(wardrobeType, "removed").getBoolean(wardrobe),
+                "opening the retained settings child does not retire the draft generation");
+        session.setExpanded(true);
+        settings.removed();
+        require(field(wardrobeType, "cosmeticControlsOpen").getBoolean(wardrobe)
+                        && session.outfitComposition() == composition,
+                "opening the real expanded preview path retains the settings owner and draft session");
+        session.setExpanded(false);
+        var controls = secondGroup.avatar().controls;
+        long revision = controls.definitionRevision();
+        var added = new top.aihmc.omnimorph.avatar.control.AvatarControlDefinition("late_control",
+                top.aihmc.omnimorph.avatar.control.AvatarControlType.TEXT).setDefault("late");
+        controls.register(added);
+        require(controls.definitionRevision() > revision && composition.controlGroups() != groups,
+                "late control registration invalidates groups through definition versions");
+        build.invoke(settings);
+        var text = (top.aihmc.omnimorph.gui.widgets.TextField) settings.children().stream()
+                .filter(top.aihmc.omnimorph.gui.widgets.TextField.class::isInstance).findFirst().orElseThrow();
+        valid = draft.configuration();
+        text.getField().setValue("x".repeat(secondGroup.avatar().cosmeticContext.limits().maxStateStringBytes() + 1));
+        require(draft.configuration().equals(valid) && controls.getValue("late_control").equals("late")
+                        && text.getBorderColour() == 0xffff5555,
+                "backend string budget rejection preserves runtime and draft values and marks the native field");
+        text.getField().setValue("valid");
+        require("valid".equals(draft.instance(second).controls().get("late_control"))
+                        && text.getBorderColour() == 0xffffffff,
+                "valid text replacement updates only the selected copy and clears the validation error");
+        revision = controls.definitionRevision();
+        added.setPage("options");
+        require(controls.definitionRevision() > revision, "changing an existing definition notifies the settings page");
+        controls.remove("late_control");
+        revision = controls.definitionRevision();
+        added.setTitle("removed definition");
+        require(controls.definitionRevision() == revision, "removed definitions cannot invalidate their former owner");
+        draft.setEnabled(second, false);
+        valid = draft.configuration();
+        secondSwitch.onPress(null);
+        require(draft.configuration().equals(valid), "disabled instance callbacks are rejected immediately");
+        draft.setEnabled(second, true);
+        var close = wardrobeType.getDeclaredMethod("closeCosmeticControls", boolean.class);
+        close.setAccessible(true);
+        close.invoke(wardrobe, true);
+        valid = draft.configuration();
+        secondSwitch.onPress(null);
+        require(draft.configuration().equals(valid)
+                        && field(wardrobeType, "draftPreviewGeneration").getLong(wardrobe) == generation,
+                "closed settings reject retained callbacks and value edits do not prepare or publish equipment");
+        testCosmeticWheelCallbacks(wardrobe, draft, composition, firstGroup.avatar(), secondGroup.avatar());
+        draft.setControls(first, before.instances().stream().filter(instance -> instance.instanceId().equals(first))
+                .findFirst().orElseThrow().controls());
+        draft.setControls(second, before.instances().stream().filter(instance -> instance.instanceId().equals(second))
+                .findFirst().orElseThrow().controls());
+        System.out.println("PASS cosmetic settings: native reused controls/group selector, two-copy values, draft persistence, "
+                + "retained preview, definition versions and stale/disabled/closed callback rejection; GUI MANUAL/PENDING");
+    }
+
+    private static void testCosmeticWheelCallbacks(top.aihmc.omnimorph.gui.screens.WardrobeScreen wardrobe,
+                                                    top.aihmc.omnimorph.model.outfit.OutfitDraft draft,
+                                                    top.aihmc.omnimorph.model.outfit.OutfitComposition composition,
+                                                    Avatar first, Avatar second) throws Exception {
+        var wheel = composition.actionWheel();
+        require(!wheel.available(), "geometry/animation resources alone do not invent author wheel actions");
+        String script = """
+                wheel_clicks, wheel_scrolls, wheel_intercepts = 0, 0, 0
+                local root = action_wheel:newPage("author-root")
+                local child = action_wheel:newPage("author-child")
+                root:newAction():title("Author callback")
+                  :onLeftClick(function(action)
+                    wheel_clicks = wheel_clicks + 1
+                    cosmetic_controls:set("amplitude", 10 + wheel_clicks)
+                  end)
+                  :onScroll(function(delta, action)
+                    wheel_scrolls = wheel_scrolls + delta
+                    cosmetic_controls:set("speed", wheel_scrolls / 10)
+                  end)
+                root:newAction():title("Author child"):onLeftClick(function() action_wheel:setPage(child) end)
+                child:newAction():title("Author back"):onLeftClick(function() action_wheel:setPage(root) end)
+                action_wheel.leftClick = function() wheel_intercepts = wheel_intercepts + 1 return false end
+                action_wheel:setPage(root)
+                cosmetic_animations:setPage(root):set_page("author-root")
+                """;
+        for (Avatar owner : java.util.List.of(first, second)) {
+            var globals = (org.luaj.vm2.Globals) field(owner.luaRuntime.getClass(), "userGlobals").get(owner.luaRuntime);
+            require(owner.run(globals.load(script, "wheel author fixture"), owner.tick) != null
+                            && !owner.scriptError && !owner.isHost,
+                    "real cosmetic Lua runtime registers its author wheel without changing host privileges");
+        }
+        var source = first.luaRuntime.action_wheel.getCurrentPage();
+        var firstGlobals = (org.luaj.vm2.Globals) field(first.luaRuntime.getClass(), "userGlobals").get(first.luaRuntime);
+        var secondGlobals = (org.luaj.vm2.Globals) field(second.luaRuntime.getClass(), "userGlobals").get(second.luaRuntime);
+        var sourceAction = source.getAction(1);
+        Object original = source.getActions(null);
+        require(wheel.available() && wheel.page(null).slots()[0] != null,
+                "registered author pages create a no-base host entry");
+        wheel.execute(null, 0, true);
+        wheel.execute(null, 1, true);
+        var duplicates = wheel.page(null);
+        require(duplicates.slots()[1].getTitle().equals("插槽尾巴 #1")
+                        && duplicates.slots()[2].getTitle().equals("插槽尾巴 #2"),
+                "composition metadata and ordered identities supply the actual duplicate wheel labels");
+        wheel.execute(null, 1, true);
+        require(wheel.page(null).slots()[0] == sourceAction, "presentation retains the exact author Action object");
+        wheel.execute(null, 0, true);
+        wheel.scroll(null, 0, 2);
+        require(firstGlobals.get("wheel_clicks").toint() == 1
+                        && secondGlobals.get("wheel_clicks").toint() == 0
+                        && firstGlobals.get("wheel_intercepts").toint() == 1
+                        && firstGlobals.get("wheel_scrolls").toint() == 2,
+                "real Lua action/global/scroll callbacks execute solely in the selected cosmetic sandbox");
+        wheel.execute(null, 1, true);
+        require(wheel.page(null).getTitle().equals("author-child"), "author-driven subpage navigation stays within its actual wheel API");
+        wheel.execute(null, 0, true);
+        require(wheel.page(null).getTitle().equals("author-root"), "the author's own Back callback is preserved");
+        wheel.execute(null, 2, true);
+        wheel.execute(null, 2, true);
+        wheel.execute(null, 0, true);
+        require(secondGlobals.get("wheel_clicks").toint() == 1
+                        && firstGlobals.get("wheel_clicks").toint() == 1,
+                "selecting the second copy does not fan out callbacks to the first");
+        require(source.getActions(null).equals(original), "host navigation never writes into author action slots");
+        var explicit = first.cosmeticAnimations.animationPage();
+        try {
+            first.cosmeticAnimations.setPage("missing page");
+            throw new AssertionError("unknown explicit page accepted");
+        } catch (org.luaj.vm2.LuaError expected) {
+            require(first.cosmeticAnimations.animationPage() == explicit, "invalid registration preserves the prior entry");
+        }
+        first.cosmeticAnimations.setPage(null);
+        require(first.cosmeticAnimations.animationPage() == first.luaRuntime.action_wheel.getCurrentPage(),
+                "nil registration restores the instance's existing wheel entry");
+        testCosmeticWheelPreview(wardrobe, draft, composition, first, second);
+        wheel.close();
+        require(wheel.page(null) == null && !wheel.available(), "closing the private wheel removes all callback routes");
+        System.out.println("PASS cosmetic wheel/real Lua: generated packages, typed page registration, exact author actions, "
+                + "duplicate sandbox ownership, global/scroll callbacks and original subpage navigation; HUD/input/GPU MANUAL/PENDING");
+    }
+
+    private static void testCosmeticWheelPreview(top.aihmc.omnimorph.gui.screens.WardrobeScreen wardrobe,
+                                                 top.aihmc.omnimorph.model.outfit.OutfitDraft draft,
+                                                 top.aihmc.omnimorph.model.outfit.OutfitComposition composition,
+                                                 Avatar first, Avatar second) throws Exception {
+        var minecraft = Minecraft.getInstance();
+        var session = (LibraryPreviewSession) field(wardrobe.getClass(), "preview").get(wardrobe);
+        var windowField = field(Minecraft.class, "window");
+        var previousWindow = windowField.get(minecraft);
+        var unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+        unsafeField.setAccessible(true);
+        var viewport = (com.mojang.blaze3d.platform.Window) ((Unsafe) unsafeField.get(null))
+                .allocateInstance(com.mojang.blaze3d.platform.Window.class);
+        field(viewport.getClass(), "guiScaledWidth").setInt(viewport, 640);
+        field(viewport.getClass(), "guiScaledHeight").setInt(viewport, 360);
+        windowField.set(minecraft, viewport);
+        int previousWidth = wardrobe.width;
+        int previousHeight = wardrobe.height;
+        boolean enabled = top.aihmc.omnimorph.gui.ActionWheel.isEnabled();
+        int selection = top.aihmc.omnimorph.gui.ActionWheel.getSelected();
+        long generation = field(wardrobe.getClass(), "draftPreviewGeneration").getLong(wardrobe);
+        var firstGlobals = (org.luaj.vm2.Globals) field(first.luaRuntime.getClass(), "userGlobals").get(first.luaRuntime);
+        var beforeSibling = draft.instance(second.cosmeticContext.instanceId());
+        try (var screens = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.recordingScreens()) {
+            minecraft.screen = wardrobe;
+            wardrobe.width = 640;
+            wardrobe.height = 360;
+            var menuMethod = wardrobe.getClass().getDeclaredMethod("openInstances", net.minecraft.client.gui.components.Button.class);
+            menuMethod.setAccessible(true);
+            menuMethod.invoke(wardrobe, new top.aihmc.omnimorph.gui.widgets.Button(0, 0, 20, 20,
+                    net.minecraft.network.chat.Component.literal("instances"), null, ignored -> {}));
+            var menu = top.aihmc.omnimorph.utils.ui.UIHelper.getContext();
+            String label = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.cosmetic_animations").getString();
+            var open = (top.aihmc.omnimorph.gui.widgets.Button) menu.getEntries().stream()
+                    .filter(button -> button.getMessage().getString().equals(label)).findFirst().orElseThrow();
+            open.onPress(null);
+            require(minecraft.screen instanceof top.aihmc.omnimorph.gui.screens.CosmeticAnimationScreen
+                            && session.outfitComposition() == composition && !menu.isVisible(),
+                    "the actual instance-menu action retains the current draft composition and opens its wheel preview");
+            var preview = (top.aihmc.omnimorph.gui.screens.CosmeticAnimationScreen) minecraft.screen;
+            preview.width = 640;
+            preview.height = 360;
+            var initialize = preview.getClass().getDeclaredMethod("init");
+            initialize.setAccessible(true);
+            initialize.invoke(preview);
+            var model = (top.aihmc.omnimorph.gui.widgets.EntityPreview) preview.children().stream()
+                    .filter(top.aihmc.omnimorph.gui.widgets.EntityPreview.class::isInstance).findFirst().orElseThrow();
+            require(field(model.getClass(), "libraryPreview").get(model) == session,
+                    "the preview widget renders the same private complete outfit rather than real equipment");
+            java.util.function.IntConsumer press = key -> {
+                require(preview.keyPressed(new net.minecraft.client.input.KeyEvent(key, 0, 0)), "numeric wheel input handled");
+                require(preview.keyReleased(new net.minecraft.client.input.KeyEvent(key, 0, 0)), "matching wheel release handled");
+            };
+            press.accept(49);
+            press.accept(50);
+            press.accept(50);
+            int previousClicks = firstGlobals.get("wheel_clicks").toint();
+            preview.keyPressed(new net.minecraft.client.input.KeyEvent(49, 0, 0));
+            preview.keyPressed(new net.minecraft.client.input.KeyEvent(49, 0, 0));
+            require(firstGlobals.get("wheel_clicks").toint() == previousClicks + 1,
+                    "a held numeric key does not replay the press action on key repeat");
+            preview.keyReleased(new net.minecraft.client.input.KeyEvent(50, 0, 0));
+            require(field(preview.getClass(), "heldInput").getInt(preview) == 49,
+                    "releasing another key does not release the active input");
+            preview.keyReleased(new net.minecraft.client.input.KeyEvent(49, 0, 0));
+            require(field(preview.getClass(), "heldInput").getInt(preview) == -1
+                            && draft.instance(first.cosmeticContext.instanceId()).controls().get("amplitude")
+                                    .equals(first.controls.getValue("amplitude"))
+                            && draft.instance(second.cosmeticContext.instanceId()).equals(beforeSibling),
+                    "actual key input saves the selected cosmetic's callback values to its own draft only");
+            int centerX = 213 + (640 - 213) / 2;
+            double pointerX = centerX + 50;
+            double pointerY = 130;
+            var left = new net.minecraft.client.input.MouseButtonEvent(pointerX, pointerY,
+                    new net.minecraft.client.input.MouseButtonInfo(0, 0));
+            preview.mouseClicked(left, false);
+            require(firstGlobals.get("wheel_clicks").toint() == previousClicks + 2,
+                    "native pointer hit testing routes to the original author callback");
+            preview.mouseReleased(new net.minecraft.client.input.MouseButtonEvent(pointerX, pointerY,
+                    new net.minecraft.client.input.MouseButtonInfo(1, 0)));
+            require(field(preview.getClass(), "heldInput").getInt(preview) == 0,
+                    "right-button release does not end a left-button input");
+            preview.mouseReleased(left);
+            require(field(preview.getClass(), "heldInput").getInt(preview) == -1,
+                    "matching native mouse release clears the held action input");
+            preview.mouseScrolled(pointerX, pointerY, 2, 0);
+            require(draft.instance(first.cosmeticContext.instanceId()).controls().get("speed")
+                            .equals(first.controls.getValue("speed"))
+                            && top.aihmc.omnimorph.gui.ActionWheel.isEnabled() == enabled
+                            && top.aihmc.omnimorph.gui.ActionWheel.getSelected() == selection,
+                    "wheel scrolling saves its owner's values without activating or changing the equipped wheel selection");
+            int allowedClicks = firstGlobals.get("wheel_clicks").toint();
+            draft.setEnabled(first.cosmeticContext.instanceId(), false);
+            preview.keyPressed(new net.minecraft.client.input.KeyEvent(49, 0, 0));
+            require(firstGlobals.get("wheel_clicks").toint() == allowedClicks,
+                    "an instance disabled in the draft cannot execute through a still-retained prepared composition");
+            draft.setEnabled(first.cosmeticContext.instanceId(), true);
+            top.aihmc.omnimorph.gui.screens.AvatarControlsScreen.open(first, "root");
+            require(minecraft.screen instanceof top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen
+                            && session.outfitComposition() == composition,
+                    "an actual wheel controls-page action opens the scoped owner settings without retiring the preview");
+            var controls = (top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen) minecraft.screen;
+            controls.width = 640;
+            controls.height = 360;
+            var build = top.aihmc.omnimorph.gui.screens.AvatarControlsScreen.class.getDeclaredMethod("rebuild");
+            build.setAccessible(true);
+            build.invoke(controls);
+            var toggle = (top.aihmc.omnimorph.gui.widgets.SwitchButton) controls.children().stream()
+                    .filter(child -> child.getClass().getSimpleName().equals("ControlSwitch")).findFirst().orElseThrow();
+            toggle.onPress(null);
+            controls.onClose();
+            require(minecraft.screen == preview && session.outfitComposition() == composition,
+                    "closing scoped settings returns to the same wheel and complete draft generation");
+            var valid = draft.configuration();
+            toggle.onPress(null);
+            require(draft.configuration().equals(valid), "closed nested settings reject retained controls while the wheel remains open");
+            top.aihmc.omnimorph.gui.screens.AvatarControlsScreen.open(session.outfitBase(), "root");
+            require(minecraft.screen instanceof top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen,
+                    "an original base-wheel settings action also uses the retained preview scope");
+            var baseControls = (top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen) minecraft.screen;
+            baseControls.width = 640;
+            baseControls.height = 360;
+            build.invoke(baseControls);
+            require(field(top.aihmc.omnimorph.gui.screens.AvatarControlsScreen.class, "avatar").get(baseControls)
+                            == session.outfitBase() && field(baseControls.getClass(), "group").get(baseControls) == null,
+                    "base controls keep their real preview Avatar instead of editing the first cosmetic");
+            baseControls.onClose();
+            require(minecraft.screen == preview && session.outfitComposition() == composition,
+                    "base settings return without changing the draft composition's lifetime");
+            preview.onClose();
+            require(minecraft.screen == wardrobe && session.outfitComposition() == composition
+                            && !field(wardrobe.getClass(), "cosmeticAnimationsOpen").getBoolean(wardrobe),
+                    "Done returns to the wardrobe with the same private draft and no retained input scope");
+            valid = draft.configuration();
+            preview.keyPressed(new net.minecraft.client.input.KeyEvent(49, 0, 0));
+            require(draft.configuration().equals(valid)
+                            && field(wardrobe.getClass(), "draftPreviewGeneration").getLong(wardrobe) == generation,
+                    "old preview key callbacks cannot mutate a closed scope or prepare/equip resources");
+        } finally {
+            wardrobe.contextMenu = null;
+            wardrobe.width = previousWidth;
+            wardrobe.height = previousHeight;
+            windowField.set(minecraft, previousWindow);
+        }
+        System.out.println("PASS wheel preview/native controls: actual menu, pointer/key/repeat/release/scroll routing, private preview, "
+                + "per-copy draft values, nested settings return and closed-scope rejection; screen dispatch fixture, real GUI/GPU MANUAL/PENDING");
+    }
+
+    private static void testAutomaticAnchorFocus(top.aihmc.omnimorph.gui.screens.WardrobeScreen screen,
+                                                  top.aihmc.omnimorph.model.outfit.OutfitDraft draft,
+                                                  UUID previousSelection, Runnable drain) throws Exception {
+        var type = screen.getClass();
+        var preview = (LibraryPreviewSession) field(type, "preview").get(screen);
+        var root = Files.createTempDirectory(Path.of(System.getProperty("figura.test.directory")), "auto-focus-");
+        var directory = top.aihmc.omnimorph.wizards.CosmeticCreator.create(root, "自动拖尾", "Fixture", "",
+                top.aihmc.omnimorph.wizards.CosmeticTemplate.TRAIL, "tailtip",
+                top.aihmc.omnimorph.model.outfit.OutfitConfig.Transform.identity());
+        var source = top.aihmc.omnimorph.model.outfit.LocalCosmeticSource.describe(directory, () -> false);
+        var entry = new top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory.Entry(directory, UUID.randomUUID(), source, "");
+        @SuppressWarnings("unchecked")
+        var resources = (Map<top.aihmc.omnimorph.model.outfit.OutfitConfig.ResourceRef,
+                top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory.Entry>) field(type, "draftResources").get(screen);
+        resources.put(entry.reference(), entry);
+        var anchor = new top.aihmc.omnimorph.model.outfit.OutfitConfig.AnchorRef(
+                top.aihmc.omnimorph.model.outfit.OutfitConfig.AnchorType.AUTO_TRAIL, null, null, null, null, null);
+        UUID id = draft.add(entry.reference(), anchor, source.metadata().defaultTransform());
+        var refresh = type.getDeclaredMethod("previewOutfitDraft");
+        refresh.setAccessible(true);
+        refresh.invoke(screen);
+        awaitDraftComposition(screen, preview, drain);
+        var select = type.getDeclaredMethod("selectDraftInstance", UUID.class);
+        select.setAccessible(true);
+        select.invoke(screen, id);
+        long generation = field(type, "draftPreviewGeneration").getLong(screen);
+        require(id.equals(field(type, "automaticAnchorFocus").get(screen)),
+                "selecting an automatic instance requests dynamic focus instead of inventing a static target");
+        var composition = (top.aihmc.omnimorph.model.outfit.OutfitComposition) field(LibraryPreviewSession.class, "previewComposition").get(preview);
+        Avatar base = (Avatar) field(LibraryPreviewSession.class, "avatar").get(preview);
+        @SuppressWarnings("unchecked")
+        var binding = (top.aihmc.omnimorph.model.outfit.SkeletonIndex.Binding<Object>) composition.editorSnapshot(base).base();
+        var matrices = new java.util.IdentityHashMap<Object, org.joml.Matrix4f>();
+        for (Object part : binding.parts()) {
+            matrices.put(part, new org.joml.Matrix4f().scaling(1f / 16));
+        }
+        // Controlled native-part matrices isolate GUI routing; native draw/pivot coverage is in the companion test.
+        var pose = top.aihmc.omnimorph.model.outfit.SkeletonPose.fromNative(binding, matrices, new org.joml.Matrix4f(),
+                top.aihmc.omnimorph.model.outfit.SkeletonPose.NativeUnits.MODEL_UNITS);
+        try (var frame = composition.retain()) {
+            frame.capturePreviewSelection(new PreviewBoneHighlight.Mount(id));
+            frame.draw(pose, new net.minecraft.client.renderer.entity.state.AvatarRenderState(), 0, ignored -> {});
+            var target = preview.previewMountTarget(id);
+            require(target != null && target.bone() != null, "actual trusted controller reports the custom base root fallback");
+            var update = type.getDeclaredMethod("updateAutomaticAnchorFocus");
+            update.setAccessible(true);
+            update.invoke(screen);
+            var tree = (BoneTreeState) field(type, "bones").get(screen);
+            require(tree.selectedTarget() != null && target.bone().equals(tree.selectedTarget().bone())
+                            && id.equals(draft.selectedInstance())
+                            && field(type, "draftPreviewGeneration").getLong(screen) == generation,
+                    "automatic GUI focus follows the controller reference without changing the editing instance or loading resources");
+            draft.setEnabled(id, false);
+            update.invoke(screen);
+            require(field(type, "automaticAnchorFocus").get(screen) == null && tree.selectedTarget() == null,
+                    "disabling an automatic instance clears dynamic helper focus");
+        }
+        draft.remove(id);
+        resources.remove(entry.reference());
+        draft.select(previousSelection);
+        refresh.invoke(screen);
+        awaitDraftComposition(screen, preview, drain);
+        System.out.println("PASS automatic GUI focus: generated Trail, actual controller target, owned tree selection, "
+                + "unchanged preparation and disabled cleanup; controlled pose, GUI MANUAL/PENDING");
+    }
+
+    private static void testBoneOverrideEditor(Unsafe unsafe, top.aihmc.omnimorph.gui.screens.WardrobeScreen screen,
+                                               top.aihmc.omnimorph.model.outfit.OutfitDraft draft,
+                                               UUID previousSelection, Runnable drain) throws Exception {
+        var type = screen.getClass();
+        var preview = (LibraryPreviewSession) field(type, "preview").get(screen);
+        var root = Files.createTempDirectory(Path.of(System.getProperty("figura.test.directory")), "bone-editor-");
+        var directory = top.aihmc.omnimorph.wizards.CosmeticCreator.create(root, "发饰", "Fixture", "",
+                top.aihmc.omnimorph.wizards.CosmeticTemplate.HEAD, "head_anchor",
+                top.aihmc.omnimorph.model.outfit.OutfitConfig.Transform.identity());
+        var source = top.aihmc.omnimorph.model.outfit.LocalCosmeticSource.describe(directory, () -> false);
+        var entry = new top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory.Entry(directory, UUID.randomUUID(), source, "");
+        @SuppressWarnings("unchecked")
+        var resources = (Map<top.aihmc.omnimorph.model.outfit.OutfitConfig.ResourceRef,
+                top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory.Entry>) field(type, "draftResources").get(screen);
+        resources.put(entry.reference(), entry);
+        var authored = Files.readString(directory.resolve("cosmetic.json"));
+        var geometry = Files.readString(directory.resolve("model.bbmodel"));
+        UUID first = draft.add(entry.reference(), source.metadata().defaultAnchor(), source.metadata().defaultTransform());
+        UUID second = draft.add(entry.reference(), source.metadata().defaultAnchor(), source.metadata().defaultTransform());
+        var refresh = type.getDeclaredMethod("previewOutfitDraft");
+        refresh.setAccessible(true);
+        refresh.invoke(screen);
+        awaitDraftComposition(screen, preview, drain);
+        testTreeViewSelector(screen, preview, first);
+        var bone = preview.outfitHierarchy().targets().values().stream()
+                .filter(target -> first.equals(target.instanceId()) && target.editable() && target.bone() != null)
+                .findFirst().orElseThrow().bone();
+        var edit = type.getDeclaredMethod("editBoneOverride", bone.getClass());
+        edit.setAccessible(true);
+        int boneId = preview.outfitHierarchy().targets().entrySet().stream()
+                .filter(node -> bone.equals(node.getValue().bone())).findFirst().orElseThrow().getKey();
+        Object selectedPart = preview.outfitHierarchy().hierarchy().part(boneId);
+        var selectedFrame = new net.minecraft.client.renderer.entity.state.AvatarRenderState();
+        var emptyFrame = new net.minecraft.client.renderer.entity.state.AvatarRenderState();
+        preview.selectedBone(selectedPart);
+        preview.withPlayerContext(() -> LibraryPreviewBinding.capture(preview.entity(), selectedFrame));
+        preview.selectedBone(null);
+        preview.withPlayerContext(() -> LibraryPreviewBinding.capture(preview.entity(), emptyFrame));
+        boolean previousPaperdoll = top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll;
+        top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = true;
+        try {
+            LibraryPreviewBinding.composition(selectedFrame).withPreviewSelection(() -> require(
+                    PreviewBoneHighlight.selected(null, selectedPart),
+                    "native preview binding captures the selected accessory part before deferring the draw"));
+            LibraryPreviewBinding.composition(emptyFrame).withPreviewSelection(() -> require(
+                    !PreviewBoneHighlight.selected(null, selectedPart),
+                    "later empty preview selection leaves an earlier retained frame intact"));
+        } finally {
+            top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = previousPaperdoll;
+        }
+        var baseBone = preview.outfitHierarchy().targets().values().stream()
+                .filter(target -> target.kind() == OutfitHierarchy.Kind.BASE_BONE).findFirst().orElseThrow().bone();
+        edit.invoke(screen, baseBone);
+        require(field(type, "editingBone").get(screen) == null, "base bones never open the accessory override editor");
+        edit.invoke(screen, bone);
+        require(bone.equals(field(type, "editingBone").get(screen)) && first.equals(draft.selectedInstance()),
+                "authorized internal bone selection retains its exact owning instance");
+        testBoneHelperControls(unsafe, screen, draft, bone);
+        field(type, "layout").set(screen, top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout.of(640, 360));
+        var build = type.getDeclaredMethod("buildBoneOverrideEditor", bone.getClass());
+        build.setAccessible(true);
+        build.invoke(screen, bone);
+        var panel = screen.children().stream().filter(top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeEditorPanel.class::isInstance)
+                .map(top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeEditorPanel.class::cast).toList().getLast();
+        var inputs = panel.children().stream().filter(top.aihmc.omnimorph.gui.widgets.TextField.class::isInstance)
+                .map(top.aihmc.omnimorph.gui.widgets.TextField.class::cast).toList();
+        require(inputs.size() == 9, "internal bone editor exposes position, rotation and scale components");
+        inputs.getFirst().getField().setValue("3");
+        inputs.get(4).getField().setValue("30");
+        inputs.get(8).getField().setValue("1.25");
+        var override = draft.instance(first).boneOverrides().getFirst();
+        require(override.bone().equals(bone) && override.transform().position().x() == 3
+                        && override.transform().rotation().y() == 30 && override.transform().scale().z() == 1.25
+                        && draft.instance(second).boneOverrides().isEmpty(),
+                "actual bone fields edit one stable reference and preserve the same resource's sibling");
+        var valid = draft.configuration();
+        inputs.get(6).getField().setValue("NaN");
+        require(draft.configuration().equals(valid) && inputs.get(6).getBorderColour() == 0xffff5555,
+                "nonfinite bone values cannot enter the draft");
+        awaitDraftComposition(screen, preview, drain);
+        require(preview.outfitHierarchy().targets().values().stream().anyMatch(target -> bone.equals(target.bone()) && target.editable()),
+                "native composition preparation accepts the authored editable range and republishes its bone");
+        draft.select(second);
+        inputs.getFirst().getField().setValue("9");
+        require(draft.configuration().equals(valid), "old bone controls cannot edit a different selected copy");
+        draft.select(first);
+        draft.setEnabled(first, false);
+        var disabled = draft.configuration();
+        inputs.getFirst().getField().setValue("10");
+        require(draft.configuration().equals(disabled), "disabled instances reject old bone field callbacks");
+        draft.setEnabled(first, true);
+        var resetLabel = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.bone_reset").getString();
+        var reset = panel.children().stream().filter(top.aihmc.omnimorph.gui.widgets.Button.class::isInstance)
+                .map(top.aihmc.omnimorph.gui.widgets.Button.class::cast)
+                .filter(button -> button.getMessage().getString().equals(resetLabel)).findFirst().orElseThrow();
+        reset.onPress(null);
+        require(draft.instance(first).boneOverrides().isEmpty() && draft.instance(second).boneOverrides().isEmpty()
+                        && inputs.getFirst().getField().getValue().equals("0.0") && inputs.get(8).getField().getValue().equals("1.0"),
+                "Reset removes the override and restores fields without recreating identity records");
+        draft.remove(first);
+        draft.remove(second);
+        var removed = draft.configuration();
+        inputs.getFirst().getField().setValue("11");
+        reset.onPress(null);
+        require(draft.configuration().equals(removed) && Files.readString(directory.resolve("cosmetic.json")).equals(authored)
+                        && Files.readString(directory.resolve("model.bbmodel")).equals(geometry),
+                "removed bones reject old input/reset and author metadata/geometry stay unchanged");
+        resources.remove(entry.reference());
+        field(type, "editingBone").set(screen, null);
+        field(type, "layout").set(screen, null);
+        draft.select(previousSelection);
+        refresh.invoke(screen);
+        awaitDraftComposition(screen, preview, drain);
+        System.out.println("PASS internal bone editor: native generated package, independent instances, actual fields, "
+                + "authored bounds, reset, disabled/removed/stale controls and unchanged sources; GUI MANUAL/PENDING");
+    }
+
+    private static void testBoneHelperControls(Unsafe unsafe, top.aihmc.omnimorph.gui.screens.WardrobeScreen screen,
+                                               top.aihmc.omnimorph.model.outfit.OutfitDraft draft,
+                                               top.aihmc.omnimorph.model.outfit.OutfitConfig.BoneRef bone) throws Exception {
+        var type = screen.getClass();
+        var preview = (LibraryPreviewSession) field(type, "preview").get(screen);
+        var tree = (BoneTreeState) field(type, "bones").get(screen);
+        require(tree.locate(new top.aihmc.omnimorph.model.outfit.OutfitConfig.AnchorRef(
+                top.aihmc.omnimorph.model.outfit.OutfitConfig.AnchorType.ACCESSORY_BONE, null, bone, null, null, null)),
+                "helper control fixture selects the actual enabled internal bone");
+        var selection = type.getDeclaredMethod("previewBoneSelection");
+        selection.setAccessible(true);
+        Object part = selection.invoke(screen);
+        require(part != null, "enabled helpers expose the selected native part");
+        var widget = new top.aihmc.omnimorph.gui.widgets.EntityPreview(0, 0, 160, 160, 12, -15, 30,
+                Minecraft.getInstance().player, screen);
+        widget.setLibraryPreview(preview);
+        widget.setSelectedBone(part);
+        Object previousWidget = field(type, "previewWidget").get(screen);
+        field(type, "previewWidget").set(screen, widget);
+        var minecraft = Minecraft.getInstance();
+        var previousScreen = minecraft.screen;
+        var windowField = field(Minecraft.class, "window");
+        Object previousWindow = windowField.get(minecraft);
+        var viewport = (com.mojang.blaze3d.platform.Window) unsafe.allocateInstance(com.mojang.blaze3d.platform.Window.class);
+        field(viewport.getClass(), "guiScaledWidth").setInt(viewport, 640);
+        field(viewport.getClass(), "guiScaledHeight").setInt(viewport, 360);
+        windowField.set(minecraft, viewport);
+        minecraft.screen = screen;
+        try {
+            var configuration = draft.configuration();
+            long preparation = field(type, "draftPreviewGeneration").getLong(screen);
+            var open = type.getDeclaredMethod("openAnchorActions", net.minecraft.client.gui.components.Button.class);
+            open.setAccessible(true);
+            var trigger = new top.aihmc.omnimorph.gui.widgets.Button(0, 0, 120, 20,
+                    net.minecraft.network.chat.Component.literal("Actions"), null, ignored -> {});
+            open.invoke(screen, trigger);
+            var hideLabel = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.helpers_hide").getString();
+            var hide = top.aihmc.omnimorph.utils.ui.UIHelper.getContext().getEntries().stream()
+                    .filter(button -> button.getMessage().getString().equals(hideLabel))
+                    .map(top.aihmc.omnimorph.gui.widgets.Button.class::cast).findFirst().orElseThrow();
+            hide.onPress(null);
+            var binding = field(LibraryPreviewSession.class, "binding").get(preview);
+            require(selection.invoke(screen) == null && field(widget.getClass(), "selectedBone").get(widget) == null
+                            && field(LibraryPreviewBinding.class, "selectedBone").get(binding) == null
+                            && tree.selectedTarget().bone().equals(bone)
+                            && !top.aihmc.omnimorph.utils.ui.UIHelper.getContext().isVisible(),
+                    "actual Hide menu clears widget/binding helpers while retaining the editor's bone selection");
+            open.invoke(screen, trigger);
+            var showLabel = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.helpers_show").getString();
+            var show = top.aihmc.omnimorph.utils.ui.UIHelper.getContext().getEntries().stream()
+                    .filter(button -> button.getMessage().getString().equals(showLabel))
+                    .map(top.aihmc.omnimorph.gui.widgets.Button.class::cast).findFirst().orElseThrow();
+            show.onPress(null);
+            require(selection.invoke(screen) == part && field(widget.getClass(), "selectedBone").get(widget) == part
+                            && field(LibraryPreviewBinding.class, "selectedBone").get(binding) == part
+                            && configuration.equals(draft.configuration())
+                            && field(type, "draftPreviewGeneration").getLong(screen) == preparation,
+                    "actual Show menu restores only preview helpers without author/configuration changes or model preparation");
+            draft.setEnabled(bone.instanceId(), false);
+            require(selection.invoke(screen) == null, "disabled bones stop contributing helpers before the next composition publishes");
+            draft.setEnabled(bone.instanceId(), true);
+        } finally {
+            screen.contextMenu = null;
+            minecraft.screen = previousScreen;
+            windowField.set(minecraft, previousWindow);
+            field(type, "previewWidget").set(screen, previousWidget);
+        }
+        System.out.println("PASS helper visibility menu: native Show/Hide callbacks, widget/binding cleanup, "
+                + "retained selection, disabled guard and unchanged draft/preparation; GUI MANUAL/PENDING");
+    }
+
+    private static void testTreeViewSelector(top.aihmc.omnimorph.gui.screens.WardrobeScreen screen,
+                                             LibraryPreviewSession preview, UUID instance) throws Exception {
+        var type = screen.getClass();
+        field(type, "layout").set(screen, top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout.of(640, 360));
+        var build = type.getDeclaredMethod("buildRightPane");
+        build.setAccessible(true);
+        build.invoke(screen);
+        var selector = screen.children().stream()
+                .filter(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::isInstance)
+                .map(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::cast).toList().getLast();
+        var state = (BoneTreeState) field(type, "bones").get(screen);
+        var choices = state.viewChoices();
+        int instanceIndex = -1;
+        int baseIndex = -1;
+        for (int index = 0; index < choices.size(); index++) {
+            if (instance.equals(choices.get(index).view().instance())) {
+                instanceIndex = index;
+            } else if (choices.get(index).view().kind() == OutfitHierarchy.Kind.BASE) {
+                baseIndex = index;
+            }
+        }
+        require(instanceIndex >= 0 && baseIndex >= 0, "native tree selector exposes actual base and enabled accessory views");
+        long revision = preview.hierarchyRevision();
+        long preparation = field(type, "draftPreviewGeneration").getLong(screen);
+        var binding = field(LibraryPreviewSession.class, "binding").get(preview);
+        var change = (java.util.function.IntConsumer) field(selector.getClass(), "changed").get(selector);
+        change.accept(instanceIndex);
+        state.search("Headwear");
+        state.scroll(.4);
+        change.accept(baseIndex);
+        state.search("Head");
+        change.accept(instanceIndex);
+        var widget = screen.children().stream().filter(top.aihmc.omnimorph.gui.widgets.wardrobe.BoneTreeWidget.class::isInstance)
+                .map(top.aihmc.omnimorph.gui.widgets.wardrobe.BoneTreeWidget.class::cast).toList().getLast();
+        widget.tick();
+        require(state.query().equals("Headwear") && state.scroll() == .4
+                        && instance.equals(state.view().instance()) && state.rows().stream()
+                        .allMatch(row -> instance.equals(preview.outfitHierarchy().target(row.node().id()).instanceId())),
+                "actual view control and widget tick restore the accessory's own search/scroll without other instances");
+        require(preview.hierarchyRevision() == revision && field(type, "draftPreviewGeneration").getLong(screen) == preparation
+                        && field(LibraryPreviewSession.class, "binding").get(preview) == binding,
+                "switching/searching trees neither rebuilds the runtime snapshot nor starts source preparation");
+        state.view(BoneTreeState.View.ALL);
+        field(type, "layout").set(screen, null);
+        System.out.println("PASS native tree views: actual selector, per-instance search/scroll, widget restoration "
+                + "and unchanged preparation/binding; GUI MANUAL/PENDING");
+    }
+
+    private static void testVirtualAnchorEditor(top.aihmc.omnimorph.gui.screens.WardrobeScreen screen,
+                                                 top.aihmc.omnimorph.model.outfit.OutfitDraft draft,
+                                                 UUID first, UUID sibling, Runnable drain) throws Exception {
+        var type = screen.getClass();
+        var preview = (LibraryPreviewSession) field(type, "preview").get(screen);
+        awaitDraftComposition(screen, preview, drain);
+        var parent = preview.outfitHierarchy().anchors(null).stream()
+                .filter(choice -> choice.anchor().type() == top.aihmc.omnimorph.model.outfit.OutfitConfig.AnchorType.BASE_BONE)
+                .findFirst().orElseThrow().anchor().bone();
+        var create = type.getDeclaredMethod("createVirtualAnchor", parent.getClass());
+        create.setAccessible(true);
+        var deniedParent = new top.aihmc.omnimorph.model.outfit.OutfitConfig.BoneRef(first,
+                parent.path(), parent.skeletonHash());
+        var beforeCreate = draft.configuration();
+        create.invoke(screen, deniedParent);
+        require(draft.configuration().equals(beforeCreate), "unavailable accessory bone references cannot parent virtual anchors");
+        create.invoke(screen, parent);
+        UUID id = (UUID) field(type, "editingVirtualAnchor").get(screen);
+        require(id != null && draft.configuration().virtualAnchors().size() == 1,
+                "production Create makes an independent virtual anchor in the draft only");
+        awaitDraftComposition(screen, preview, drain);
+        var anchor = draft.configuration().virtualAnchors().getFirst();
+        field(type, "layout").set(screen, top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout.of(640, 360));
+        var build = type.getDeclaredMethod("buildVirtualAnchorEditor", anchor.getClass());
+        build.setAccessible(true);
+        build.invoke(screen, anchor);
+        var panel = screen.children().stream().filter(top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeEditorPanel.class::isInstance)
+                .map(top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeEditorPanel.class::cast).toList().getLast();
+        var inputs = panel.children().stream().filter(top.aihmc.omnimorph.gui.widgets.TextField.class::isInstance)
+                .map(top.aihmc.omnimorph.gui.widgets.TextField.class::cast).toList();
+        require(inputs.size() == 10, "virtual anchor editor exposes name and nine local transform components");
+        var parentSelector = panel.children().stream()
+                .filter(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::isInstance)
+                .map(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::cast).findFirst().orElseThrow();
+        var selectedParent = (java.util.function.IntSupplier) field(parentSelector.getClass(), "selected").get(parentSelector);
+        var chooseParent = (java.util.function.IntConsumer) field(parentSelector.getClass(), "changed").get(parentSelector);
+        int replacement = selectedParent.getAsInt() == 0 ? 1 : 0;
+        chooseParent.accept(replacement);
+        require(selectedParent.getAsInt() == replacement
+                        && !draft.configuration().virtualAnchors().getFirst().parent().equals(parent),
+                "native parent selector changes the stable parent reference without nesting a virtual node");
+        inputs.getFirst().getField().setValue("共享尾尖");
+        inputs.get(1).getField().setValue("4");
+        var current = draft.configuration().virtualAnchors().getFirst();
+        require(current.name().equals("共享尾尖") && current.transform().position().x() == 4,
+                "native field responders rename and move the virtual anchor");
+        var valid = draft.configuration();
+        inputs.getFirst().getField().setValue("");
+        inputs.get(7).getField().setValue("0");
+        require(draft.configuration().equals(valid) && inputs.getFirst().getBorderColour() == 0xffff5555
+                        && inputs.get(7).getBorderColour() == 0xffff5555,
+                "invalid names and scales preserve the last valid anchor and mark their inputs");
+        inputs.getFirst().getField().setValue("共享尾尖");
+        inputs.get(7).getField().setValue("1");
+        var originalFirst = draft.instance(first);
+        var originalSibling = draft.instance(sibling);
+        var shared = new top.aihmc.omnimorph.model.outfit.OutfitConfig.AnchorRef(
+                top.aihmc.omnimorph.model.outfit.OutfitConfig.AnchorType.VIRTUAL, null, null, id, null, null);
+        draft.setAnchor(first, shared);
+        draft.setAnchor(sibling, shared);
+        var removeLabel = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.anchor_remove").getString();
+        var remove = panel.children().stream().filter(top.aihmc.omnimorph.gui.widgets.Button.class::isInstance)
+                .map(top.aihmc.omnimorph.gui.widgets.Button.class::cast)
+                .filter(button -> button.getMessage().getString().equals(removeLabel)).findFirst().orElseThrow();
+        field(type, "layout").set(screen, null);
+        remove.onPress(null);
+        require(draft.configuration().virtualAnchors().size() == 1
+                        && ((net.minecraft.network.chat.Component) field(type, "message").get(screen)).getString().contains("#1")
+                        && ((net.minecraft.network.chat.Component) field(type, "message").get(screen)).getString().contains("#2"),
+                "first Delete lists both affected copies and retains the shared anchor");
+        draft.setEnabled(first, !originalFirst.enabled());
+        remove.onPress(null);
+        require(draft.configuration().virtualAnchors().size() == 1,
+                "changing the draft invalidates the prior deletion confirmation");
+        remove.onPress(null);
+        require(draft.configuration().virtualAnchors().isEmpty()
+                        && draft.instance(first).anchor().type() == top.aihmc.omnimorph.model.outfit.OutfitConfig.AnchorType.UNRESOLVED
+                        && draft.instance(sibling).anchor().type() == top.aihmc.omnimorph.model.outfit.OutfitConfig.AnchorType.UNRESOLVED,
+                "confirmed Delete removes the anchor and explicitly unbinds all users without silent fallback");
+        var deleted = draft.configuration();
+        inputs.getFirst().getField().setValue("obsolete callback");
+        require(draft.configuration().equals(deleted), "retired anchor fields cannot resurrect deleted state");
+        draft.setEnabled(first, originalFirst.enabled());
+        draft.setAnchor(first, originalFirst.anchor());
+        draft.setAnchor(sibling, originalSibling.anchor());
+        var refresh = type.getDeclaredMethod("previewOutfitDraft");
+        refresh.setAccessible(true);
+        refresh.invoke(screen);
+        awaitDraftComposition(screen, preview, drain);
+        System.out.println("PASS virtual anchor native editor: create, name/transform fields, shared dependents, "
+                + "invalid input, generation-fenced confirmation and explicit unbinding; GUI MANUAL/PENDING");
+    }
+
+    private static void awaitDraftComposition(top.aihmc.omnimorph.gui.screens.WardrobeScreen screen,
+                                               LibraryPreviewSession preview, Runnable drain) throws Exception {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
+        while (System.nanoTime() < deadline) {
+            drain.run();
+            Object binding = field(LibraryPreviewSession.class, "binding").get(preview);
+            if (binding != null) {
+                Object composition = field(LibraryPreviewBinding.class, "composition").get(binding);
+                var draft = (top.aihmc.omnimorph.model.outfit.OutfitDraft) field(screen.getClass(), "outfitDraft").get(screen);
+                if (composition != null && field(composition.getClass(), "configuration").get(composition).equals(draft.configuration())) {
+                    return;
+                }
+            }
+            Thread.sleep(1);
+        }
+        throw new AssertionError("The current draft composition did not become ready: " + preview.status());
     }
 
     private static final class OtherPlayerLevel extends net.minecraft.client.multiplayer.ClientLevel {
@@ -1357,7 +3555,17 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var other = new top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath(second, second);
         var member = new top.aihmc.omnimorph.backend2.library.LibraryModels.CollectionEntry(UUID.randomUUID(), 1, "UPLOAD", true, null);
         var notInOutfit = new top.aihmc.omnimorph.backend2.library.LibraryModels.CollectionEntry(UUID.randomUUID(), 1, "DOWNLOAD", false, null);
-        try (var collection = new LibraryCollectionService(client, root);
+        Path accessory = Files.createDirectories(root.resolve("cosmetics/星翼"));
+        Files.writeString(accessory.resolve("cosmetic.json"), "{\"name\":\"星翼\",\"cosmetic_anchor\":\"wing_anchor\"}");
+        var deliveries = new java.util.concurrent.ConcurrentLinkedQueue<Runnable>();
+        Runnable deliver = () -> {
+            Runnable action;
+            while ((action = deliveries.poll()) != null) {
+                action.run();
+            }
+        };
+        try (var catalog = new LocalCosmeticCatalog(root, deliveries::add);
+             var collection = new LibraryCollectionService(client, root);
              var grid = new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid(0, 0, 420, 240,
                      new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.View(), null, ignored -> {},
                      ignored -> net.minecraft.network.chat.Component.empty())) {
@@ -1367,11 +3575,14 @@ public final class LibraryPreviewRuntimeSmokeTest {
             field(collection.getClass(), "entries").set(collection, java.util.List.of(member, notInOutfit));
             var candidates = LocalOutfitCandidates.forDirectory(root);
             require(candidates.set(first, true).get(5, TimeUnit.SECONDS), "fixture candidate is persisted");
+            require(candidates.set(accessory, true).get(5, TimeUnit.SECONDS), "accessory candidate uses the existing local membership store");
+            require(await(catalog.refresh(), deliver).size() == 1, "actual accessory inventory is available for card and row filtering");
             var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
             var type = screen.getClass();
             field(type, "client").set(screen, client);
             field(type, "collection").set(screen, collection);
             field(type, "localCandidates").set(screen, candidates);
+            field(type, "cosmetics").set(screen, catalog);
             require(field(type, "source").get(screen).toString().equals("ALL")
                             && field(type, "mode").get(screen).toString().equals("ALL")
                             && !field(type, "parts").getBoolean(screen),
@@ -1385,9 +3596,22 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 field(type, "source").set(screen, sources[index]);
                 refresh.invoke(screen);
                 var entries = (java.util.List<?>) field(grid.getClass(), "entries").get(grid);
-                require(entries.size() == (index == 0 ? 4 : 2), "All combines local/cloud cards while individual sources stay filtered");
+                require(entries.size() == (index == 0 ? 5 : index == 1 ? 3 : 2),
+                        "All combines local Avatar/accessory/cloud cards while individual sources stay filtered");
             }
             field(type, "source").set(screen, sources[0]);
+            Object[] purposes = field(type, "mode").getType().getEnumConstants();
+            field(type, "mode").set(screen, purposes[2]);
+            refresh.invoke(screen);
+            var cosmeticCards = (java.util.List<?>) field(grid.getClass(), "entries").get(grid);
+            require(cosmeticCards.size() == 1 && cosmeticCards.contains(
+                            new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(null, null, catalog.entries().getFirst())),
+                    "accessory purpose filters independently from source and format");
+            field(type, "mode").set(screen, purposes[1]);
+            refresh.invoke(screen);
+            require(((java.util.List<?>) field(grid.getClass(), "entries").get(grid)).size() == 4,
+                    "Avatar purpose excludes local accessories without changing the All source");
+            field(type, "mode").set(screen, purposes[0]);
             field(type, "tab").set(screen, field(type, "tab").getType().getEnumConstants()[0]);
             field(type, "collectionGrid").set(screen, null);
             screen.width = 640;
@@ -1401,10 +3625,11 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 var filtered = list.getClass().getDeclaredMethod("filteredEntries");
                 filtered.setAccessible(true);
                 var entries = (java.util.List<?>) filtered.invoke(list);
-                require(entries.size() == 2
+                require(entries.size() == 3
                                 && entries.contains(new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(local, null))
-                                && entries.contains(new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(null, member)),
-                        "All outfit sources contain only local/cloud candidates, never other collection entries");
+                                && entries.contains(new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(null, member))
+                                && entries.contains(new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(null, null, catalog.entries().getFirst())),
+                        "All outfit sources contain local Avatar/accessory/cloud candidates, never other collection entries");
                 var selectors = (java.util.List<?>) field(list.getClass(), "resourceFilters").get(list);
                 for (Object selector : selectors) {
                     var choices = (java.util.function.Supplier<?>) field(selector.getClass(), "choices").get(selector);
@@ -1413,7 +3638,17 @@ public final class LibraryPreviewRuntimeSmokeTest {
                             "production source/use dropdowns each expose All as the default first option");
                 }
             }
-            System.out.println("PASS All source/use defaults: combined collection cards, candidate-only outfit rows and three production filter choices");
+            field(type, "mode").set(screen, purposes[2]);
+            field(type, "cloudList").set(screen, null);
+            build.invoke(screen);
+            var cosmeticList = (top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList) field(type, "cloudList").get(screen);
+            try (cosmeticList) {
+                var filtered = cosmeticList.getClass().getDeclaredMethod("filteredEntries");
+                filtered.setAccessible(true);
+                require(((java.util.List<?>) filtered.invoke(cosmeticList)).size() == 1,
+                        "production accessory purpose builds a real candidate list instead of a placeholder");
+            }
+            System.out.println("PASS All source/use defaults: actual accessory inventory, independent Avatar/accessory filters, collection cards and candidate-only rows; GUI MANUAL/PENDING");
         } finally {
             top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.ALL_AVATARS.clear();
             top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.ALL_AVATARS.addAll(originals);
@@ -1518,18 +3753,23 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var visible = actions.getClass().getDeclaredMethod("visibleActions");
             visible.setAccessible(true);
             var slots = (java.util.List<?>) visible.invoke(actions);
-            require(field(screen.getClass(), "candidateButton").get(screen) == null && slots.size() == 9 && slots.get(5) == null,
-                    "outfit actions contain five common controls followed by a divider and three secondary controls");
+            require(field(screen.getClass(), "candidateButton").get(screen) == null && slots.size() == 16
+                            && slots.get(5) == null && slots.get(9) == null,
+                    "outfit actions retain their existing groups and add a separate draft editing group");
             var expected = java.util.List.of("upload", "reload", "wardrobe_visibility", "wardrobe_appeal", "delete",
-                    "sound", "keybind", "unselect");
+                    "sound", "keybind", "unselect", "friend_add", "library_edit", "unselect", "reload", "cosmetic_settings", "library_edit");
             int index = 0;
             for (Object slot : slots) {
                 if (slot != null) {
-                    var texture = field(top.aihmc.omnimorph.gui.widgets.Button.class, "texture").get(slot);
+                    var texture = slot instanceof top.aihmc.omnimorph.gui.widgets.library.LibraryIconButton
+                            ? field(slot.getClass(), "icon").get(slot)
+                            : field(top.aihmc.omnimorph.gui.widgets.Button.class, "texture").get(slot);
                     require(texture.toString().endsWith("/" + expected.get(index++) + ".png"),
                             "common operations precede sound/keybind/clear, without local creation or tree refresh");
                 }
             }
+            require(!((top.aihmc.omnimorph.gui.widgets.Button) field(screen.getClass(), "cosmeticSettingsButton")
+                    .get(screen)).isActive(), "settings are disabled when no enabled instance registers controls");
         }
         var refreshed = new java.util.concurrent.atomic.AtomicInteger();
         var tree = new top.aihmc.omnimorph.gui.widgets.wardrobe.BoneTreeWidget(10, 20, 180, 180,
@@ -1555,6 +3795,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         windowField.set(minecraft, viewport);
         minecraft.screen = screen;
         try {
+            testCreationMenuAndForm(screen);
             var selected = new java.util.concurrent.atomic.AtomicInteger();
             var removed = new java.util.concurrent.atomic.AtomicReference<Object>();
             var local = new top.aihmc.omnimorph.gui.widgets.lists.AvatarList(0, 0, 180, 180, screen,
@@ -1639,6 +3880,255 @@ public final class LibraryPreviewRuntimeSmokeTest {
         System.out.println("PASS wardrobe action groups, native local/cloud removal menus, taller rows, tree refresh and type text; GUI MANUAL/PENDING");
     }
 
+    private static void testCreationMenuAndForm(top.aihmc.omnimorph.gui.screens.WardrobeScreen parent)
+            throws Exception {
+        Minecraft minecraft = Minecraft.getInstance();
+        var open = parent.getClass().getDeclaredMethod("openCreateMenu", net.minecraft.client.gui.components.Button.class);
+        open.setAccessible(true);
+        var anchor = new top.aihmc.omnimorph.gui.widgets.Button(20, 20, 24, 24,
+                net.minecraft.network.chat.Component.literal("+"), null, ignored -> {});
+        open.invoke(parent, anchor);
+        var menu = parent.contextMenu;
+        var labels = menu.children().stream().filter(top.aihmc.omnimorph.gui.widgets.Button.class::isInstance)
+                .map(top.aihmc.omnimorph.gui.widgets.Button.class::cast)
+                .map(button -> button.getMessage().getString()).toList();
+        require(labels.contains(top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.create_figura").getString())
+                        && labels.contains(top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.create_ysm").getString())
+                        && labels.contains(top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.create_cosmetic").getString())
+                        && labels.size() == 3,
+                "Existing create icon opens exactly the three requested resource creation entries");
+        parent.contextMenu = null;
+        Path root = Path.of(System.getProperty("figura.test.directory")).resolve("uncreated-form-root");
+        var ysm = new top.aihmc.omnimorph.wizards.YsmAvatarWizard(root);
+        var list = new top.aihmc.omnimorph.gui.widgets.lists.AvatarWizardList(20, 20, 240, 200, ysm);
+        var fields = list.children().stream().filter(top.aihmc.omnimorph.gui.widgets.TextField.class::isInstance)
+                .map(top.aihmc.omnimorph.gui.widgets.TextField.class::cast).toList();
+        require(fields.size() == 3 && list.children().stream()
+                .noneMatch(top.aihmc.omnimorph.gui.widgets.SwitchButton.class::isInstance),
+                "Actual YSM wizard list contains three metadata fields and no Figura model/script options");
+        fields.get(0).getField().setValue("中文/形象");
+        fields.get(1).getField().setValue("描述");
+        fields.get(2).getField().setValue("作者");
+        require(ysm.canBuild() && ysm.targetDirectory().equals(root.resolve("中文_形象")) && !Files.exists(root),
+                "Native field callbacks update the displayed target without creating files");
+        var cosmetic = new top.aihmc.omnimorph.wizards.CosmeticWizard(root.resolve("cosmetics"));
+        cosmetic.template(top.aihmc.omnimorph.wizards.CosmeticTemplate.FEET);
+        var cosmeticList = new top.aihmc.omnimorph.gui.widgets.lists.AvatarWizardList(20, 20, 240, 200, cosmetic);
+        var cosmeticFields = cosmeticList.children().stream()
+                .filter(top.aihmc.omnimorph.gui.widgets.TextField.class::isInstance)
+                .map(top.aihmc.omnimorph.gui.widgets.TextField.class::cast).toList();
+        require(cosmeticFields.size() == 13 && cosmetic.anchor().equals("left_foot_anchor"),
+                "Accessory form exposes metadata, explicit attachment and all nine local transform components");
+        cosmeticFields.get(0).getField().setValue("右足饰");
+        cosmeticFields.get(3).getField().setValue("right_foot_anchor");
+        cosmeticFields.get(4).getField().setValue("2.5");
+        require(cosmetic.canBuild() && cosmetic.anchor().equals("right_foot_anchor")
+                        && cosmetic.transform().position().x() == 2.5 && !Files.exists(root),
+                "Native accessory fields choose a single right-side target and retain resource-local transforms");
+        cosmeticFields.get(12).getField().setValue("0");
+        require(!cosmetic.canBuild(), "Invalid authored scale blocks Create");
+        cosmeticFields.get(12).getField().setValue("1");
+        cosmeticFields.get(3).getField().setValue("authored_socket");
+        require(cosmetic.canBuild(), "Explicit nonstandard names remain supported");
+        cosmetic.template(top.aihmc.omnimorph.wizards.CosmeticTemplate.TRAIL);
+        require(cosmetic.anchor().equals("tailtip"), "Trail template selects its declared AUTO_TRAIL preference");
+
+        var calls = new java.util.concurrent.atomic.AtomicInteger();
+        var job = new CompletableFuture<Void>();
+        var wizard = new top.aihmc.omnimorph.wizards.AvatarWizard() {
+            @Override
+            public CompletableFuture<Void> buildAsync() {
+                calls.incrementAndGet();
+                return job;
+            }
+        };
+        wizard.changeEntry(top.aihmc.omnimorph.wizards.WizardEntry.NAME, "保留输入");
+        var screenType = top.aihmc.omnimorph.gui.screens.AvatarWizardScreen.class;
+        var screen = new top.aihmc.omnimorph.gui.screens.AvatarWizardScreen(parent, wizard) {
+            private final java.util.List<net.minecraft.client.gui.components.Renderable> widgets =
+                    new java.util.ArrayList<>();
+
+            @Override
+            public java.util.List<net.minecraft.client.gui.components.Renderable> renderables() {
+                return widgets;
+            }
+        };
+        var build = new top.aihmc.omnimorph.gui.widgets.Button(0, 0, 100, 20,
+                net.minecraft.network.chat.Component.empty(), null, ignored -> {});
+        var cancel = new top.aihmc.omnimorph.gui.widgets.Button(0, 0, 100, 20,
+                net.minecraft.network.chat.Component.empty(), null, ignored -> {});
+        field(screenType, "build").set(screen, build);
+        field(screenType, "cancel").set(screen, cancel);
+        var start = screenType.getDeclaredMethod("startBuild");
+        start.setAccessible(true);
+        minecraft.screen = screen;
+        try {
+            start.invoke(screen);
+            start.invoke(screen);
+            screen.onClose();
+            require(calls.get() == 1 && !build.isActive() && !cancel.isActive() && minecraft.screen == screen,
+                    "Pending creation rejects repeated submission and closing before file work finishes");
+            job.completeExceptionally(new java.io.IOException("Expected creation failure fixture"));
+            screen.tick();
+            require(minecraft.screen == screen && build.isActive() && cancel.isActive()
+                            && wizard.getEntry(top.aihmc.omnimorph.wizards.WizardEntry.NAME, "").equals("保留输入"),
+                    "Actual failure callback preserves the form and restores retry/cancel controls");
+        } finally {
+            minecraft.screen = parent;
+        }
+        System.out.println("PASS creation menu/YSM form: actual native fields, metadata-only options, no files before Create, "
+                + "duplicate/close guards and failed-job retry state; GUI MANUAL/PENDING");
+    }
+
+    private static void testOutfitUploadScreen(LibraryClient client, CurrentPreviewPlayer player, Runnable drain) throws Exception {
+        var budget = top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults();
+        var extension = new top.aihmc.omnimorph.backend2.library.LibraryModels.OutfitCapabilities(1, true, true,
+                false, false, 32, 128, 64, 8192, 32768, 1024, 65536, 8, 256, budget, true);
+        var capabilities = new top.aihmc.omnimorph.backend2.library.LibraryModels.Capabilities(true, 1,
+                1024 * 1024, 64, 1024 * 1024, 1024, 1024, java.util.List.of("zip", "ysm"),
+                java.util.List.of("FIGURA"), java.util.List.of("general"), false, extension);
+        var screen = new top.aihmc.omnimorph.gui.screens.library.ModelUploadScreen(null, client, capabilities, () -> {});
+        var type = screen.getClass();
+        field(type, "sessionRequest").set(screen, client.submit(LibraryClient.Lane.CONTROL, exchange -> null));
+        var session = (LibraryPreviewSession) field(type, "preview").get(screen);
+        field(LibraryPreviewSession.class, "detachedEntity").set(session, player);
+        var minecraft = Minecraft.getInstance();
+        var input = field(Minecraft.class, "lastInputType");
+        var previousInput = input.get(minecraft);
+        var parent = minecraft.screen;
+        Path root = Files.createTempDirectory(FiguraMod.getFiguraDirectory(), "outfit-upload-ui-");
+        try {
+            input.set(minecraft, net.minecraft.client.InputType.MOUSE);
+            minecraft.screen = screen;
+            screen.width = 640;
+            screen.height = 360;
+            var initialize = type.getDeclaredMethod("init");
+            initialize.setAccessible(true);
+            initialize.invoke(screen);
+            var purpose = type.getDeclaredMethod("changePurpose", int.class);
+            purpose.setAccessible(true);
+            purpose.invoke(screen, 2);
+            require(field(type, "outfitSource").getBoolean(screen), "negotiated third purpose opens the real Outfit form");
+            Path source = root.resolve("preset.json");
+            Files.writeString(source, "{\"name\":\"Native preset\",\"configuration\":"
+                    + top.aihmc.omnimorph.model.outfit.OutfitCodec.encode(OutfitConfig.empty()) + "}");
+            var select = type.getDeclaredMethod("selectFile", Path.class);
+            select.setAccessible(true);
+            select.invoke(screen, source);
+            awaitCondition(() -> field(type, "outfitReady").getBoolean(screen), drain);
+            require(((top.aihmc.omnimorph.gui.widgets.TextField) field(type, "name").get(screen))
+                            .getField().getValue().equals("Native preset")
+                            && session.outfitComposition() != null && field(type, "prepared").get(screen) == null
+                            && ((top.aihmc.omnimorph.gui.widgets.Button) field(type, "upload").get(screen)).isActive(),
+                    "JSON metadata prefill and actual isolated composition enable publication without preparing model bytes");
+            var draft = new top.aihmc.omnimorph.model.outfit.OutfitDraft(OutfitConfig.empty(), budget);
+            var missing = new OutfitConfig.ResourceRef(OutfitConfig.Source.LOCAL, UUID.randomUUID(), null, null, null,
+                    "0".repeat(64), OutfitConfig.Format.FIGURA);
+            draft.add(missing, OutfitConfig.AnchorRef.authorDefault("hip"), OutfitConfig.Transform.identity());
+            Files.writeString(source, top.aihmc.omnimorph.model.outfit.OutfitCodec.encode(draft.configuration()));
+            select.invoke(screen, source);
+            awaitCondition(() -> field(type, "outfitResources").get(screen) != null, drain);
+            var resources = (OutfitPresetResources.Prepared) field(type, "outfitResources").get(screen);
+            require(resources.issues().size() == 1 && !field(type, "outfitReady").getBoolean(screen)
+                            && !field(type, "outfitDistributable").getBoolean(screen)
+                            && !((top.aihmc.omnimorph.gui.widgets.Button) field(type, "upload").get(screen)).isActive(),
+                    "the actual local dependency failure blocks publication and retains its explicit issue");
+            purpose.invoke(screen, 0);
+            require(field(type, "outfitPrepared").get(screen) == null && session.outfitComposition() == null,
+                    "switching back to Avatar retires the JSON draft and its dependency preview");
+            screen.removed();
+            select.invoke(screen, source);
+            require(field(type, "outfitPrepared").get(screen) == null, "closed Outfit source controls cannot restart work");
+        } finally {
+            screen.removed();
+            minecraft.screen = parent;
+            input.set(minecraft, previousInput);
+            try (var paths = Files.walk(root)) {
+                for (Path path : paths.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                    Files.deleteIfExists(path);
+                }
+            }
+        }
+        System.out.println("PASS Outfit upload native form: negotiated JSON purpose, metadata, isolated composition, dependency failure and source retirement; GUI MANUAL/PENDING");
+    }
+
+    private static void testAccessoryUploadScreen(LibraryClient client, CurrentPreviewPlayer player, Runnable drain) throws Exception {
+        var capabilities = new top.aihmc.omnimorph.backend2.library.LibraryModels.Capabilities(true, 1,
+                1024 * 1024, 64, 1024 * 1024, 1024, 1024, java.util.List.of("zip", "ysm"),
+                java.util.List.of("FIGURA", "YSM_PLAIN", "YSM_ENCRYPTED"),
+                java.util.List.of("full_model", "decorative_parts"), false);
+        var screen = new top.aihmc.omnimorph.gui.screens.library.ModelUploadScreen(null, client, capabilities, () -> {});
+        var type = screen.getClass();
+        field(type, "sessionRequest").set(screen, client.submit(LibraryClient.Lane.CONTROL, exchange -> null));
+        var session = (LibraryPreviewSession) field(type, "preview").get(screen);
+        field(LibraryPreviewSession.class, "detachedEntity").set(session, player);
+        var minecraft = Minecraft.getInstance();
+        var inputField = field(Minecraft.class, "lastInputType");
+        var previousInput = inputField.get(minecraft);
+        inputField.set(minecraft, net.minecraft.client.InputType.MOUSE);
+        var parent = minecraft.screen;
+        Path directory = Files.createTempDirectory(FiguraMod.getFiguraDirectory(), "upload-cosmetic-");
+        String source = """
+                {"name":"Upload accessory","authors":["Author"],"category":"Trail","cosmetic_anchor":"hip"}
+                """;
+        Files.writeString(directory.resolve("cosmetic.json"), source);
+        Files.writeString(directory.resolve("script.lua"), "return 1");
+        try {
+            minecraft.screen = screen;
+            screen.width = 640;
+            screen.height = 360;
+            var initialize = type.getDeclaredMethod("init");
+            initialize.setAccessible(true);
+            initialize.invoke(screen);
+            var purpose = type.getDeclaredMethod("changePurpose", boolean.class);
+            purpose.setAccessible(true);
+            purpose.invoke(screen, true);
+            var select = type.getDeclaredMethod("selectFile", Path.class);
+            select.setAccessible(true);
+            select.invoke(screen, directory);
+            awaitCondition(() -> field(type, "prepared").get(screen) != null, drain);
+            var pending = (java.util.concurrent.CompletableFuture<?>) field(type, "draftPreview").get(screen);
+            require(Boolean.TRUE.equals(await(pending, drain)) && session.outfitComposition() != null
+                            && field(LibraryPreviewSession.class, "avatar").get(session) == null,
+                    "upload previews a real private accessory composition over vanilla, never a base Avatar");
+            var composition = session.outfitComposition();
+            require(composition.editorSnapshot(null).configuration().instances().size() == 1,
+                    "upload accessory preview contains exactly its declared isolated instance");
+            @SuppressWarnings("unchecked")
+            var fields = (java.util.List<top.aihmc.omnimorph.gui.widgets.TextField>) field(type, "editableFields").get(screen);
+            fields.stream().filter(widget -> widget.getField().getValue().equals("hip")).findFirst().orElseThrow()
+                    .getField().setValue("head_anchor");
+            var declaration = type.getDeclaredMethod("accessoryDeclaration");
+            declaration.setAccessible(true);
+            var edited = (com.google.gson.JsonObject) declaration.invoke(screen);
+            require(edited.get("cosmetic_anchor").getAsString().equals("head_anchor")
+                            && edited.getAsJsonArray("authors").get(0).getAsString().equals("Author")
+                            && Files.readString(directory.resolve("cosmetic.json")).equals(source),
+                    "actual upload fields edit the anchor while preserving readonly authors and original files");
+            var preview = type.getDeclaredMethod("previewDraft");
+            preview.setAccessible(true);
+            require(Boolean.TRUE.equals(await((java.util.concurrent.CompletableFuture<?>) preview.invoke(screen), drain))
+                            && session.outfitComposition().editorSnapshot(null).configuration().instances().getFirst().anchor().name().equals("head_anchor"),
+                    "Preview mounts the edited anchor using the actual native accessory path");
+            purpose.invoke(screen, false);
+            require(field(type, "prepared").get(screen) == null && session.outfitComposition() == null,
+                    "purpose changes retire the prepared body and private composition instead of relabeling it");
+            screen.removed();
+            select.invoke(screen, directory);
+            require(field(type, "prepared").get(screen) == null, "closed upload controls cannot restart source preparation");
+        } finally {
+            screen.removed();
+            minecraft.screen = parent;
+            inputField.set(minecraft, previousInput);
+            try (var paths = Files.walk(directory)) {
+                for (Path path : paths.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                    Files.deleteIfExists(path);
+                }
+            }
+        }
+        System.out.println("PASS accessory upload native form: purpose, metadata prefill/edit, isolated composition, source preservation and stale guards; GUI MANUAL/PENDING");
+    }
+
     private static void testModelFilePicker(LibraryClient client, Runnable drain) throws Exception {
         String originalRoot = Configs.MAIN_DIR.value;
         Path root = Path.of(System.getProperty("figura.test.directory")).resolve("configured-model-root");
@@ -1678,6 +4168,32 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(names.equals(java.util.List.of("a.ZIP", "b.ysm")),
                     "actual asynchronous picker lists only zip/ysm files, excluding folders and other extensions");
             picker.removed();
+            Path cosmetics = Files.createDirectories(root.resolve("cosmetics"));
+            Path leaf = Files.createDirectory(cosmetics.resolve("装饰"));
+            Files.writeString(leaf.resolve("cosmetic.json"), "{}");
+            Files.createDirectory(cosmetics.resolve("分组"));
+            Files.writeString(cosmetics.resolve("accessory.zip"), "fixture");
+            Files.writeString(cosmetics.resolve("raw.ysm"), "wrapper required");
+            var accessoryPicker = new ModelFilePickerScreen(null, client, cosmetics,
+                    ModelFilePickerScreen.Kind.ACCESSORY, ignored -> {});
+            field(pickerType, "rows").set(accessoryPicker, new LibraryRowList(0, 0, 100, 100));
+            load.invoke(accessoryPicker);
+            var accessoryRequest = (LibraryClient.Request<?>) field(pickerType, "request").get(accessoryPicker);
+            Object accessoryListing = await(accessoryRequest.future(), drain);
+            var accessoryEntries = (java.util.List<?>) items.invoke(accessoryListing);
+            var selectableNames = new java.util.HashSet<String>();
+            for (Object entry : accessoryEntries) {
+                var selectable = entry.getClass().getDeclaredMethod("selectable");
+                var path = entry.getClass().getDeclaredMethod("path");
+                selectable.setAccessible(true);
+                path.setAccessible(true);
+                if ((boolean) selectable.invoke(entry)) {
+                    selectableNames.add(((Path) path.invoke(entry)).getFileName().toString());
+                }
+            }
+            require(accessoryEntries.size() == 3 && selectableNames.equals(java.util.Set.of("装饰", "accessory.zip")),
+                    "accessory picker selects manifest folders/ZIPs, navigates grouping folders and excludes unwrapped YSM");
+            accessoryPicker.removed();
             var images = new ModelFilePickerScreen(null, client, outside, ModelFilePickerScreen.Kind.IMAGE, ignored -> {});
             require(field(pickerType, "directory").get(images).equals(outside), "image picker retains its original directory behavior");
             require(ModelFilePickerScreen.accepts(dropped, ModelFilePickerScreen.Kind.MODEL),

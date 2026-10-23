@@ -24,6 +24,11 @@ public class Page {
     private final HashMap<Integer, Action> actionsMap = new HashMap<>();
 
     private int slotsShift = 0;
+    private int actionCount;
+
+    public boolean isEmpty() {
+        return actionCount == 0;
+    }
 
     @LuaWhitelist
     @LuaFieldDoc("wheel_page.keep_slots")
@@ -124,7 +129,7 @@ public class Page {
     public Action newAction(Integer index) {
         // set the action
         Action action = new Action();
-        this.actionsMap.put(checkIndex(index), action);
+        putAction(checkIndex(index), action);
 
         // return the action
         return action;
@@ -161,8 +166,17 @@ public class Page {
             index = this.checkIndex(null) + 1;
         if (index < 1)
             throw new LuaError("Index must be greater than 0!");
-        this.actionsMap.put(index - 1, action);
+        putAction(index - 1, action);
         return this;
+    }
+
+    private void putAction(int index, Action action) {
+        Action previous = actionsMap.put(index, action);
+        if (previous == null && action != null) {
+            actionCount++;
+        } else if (previous != null && action == null) {
+            actionCount--;
+        }
     }
 
     @LuaWhitelist

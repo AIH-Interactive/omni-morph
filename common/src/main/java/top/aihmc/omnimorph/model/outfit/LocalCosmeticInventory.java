@@ -48,6 +48,12 @@ public final class LocalCosmeticInventory implements AutoCloseable {
         Path data = dataRoot.toAbsolutePath().normalize();
         root = data.resolve(CosmeticMetadata.DIRECTORY);
         idsFile = data.resolve("cosmetic-resource-ids.json");
+        refreshIds();
+        watcher = data.getFileSystem().newWatchService();
+    }
+
+    /** Another worker-owned inventory may have assigned IDs while this view was retained by a child screen. */
+    private void refreshIds() throws IOException {
         if (Files.isRegularFile(idsFile) && !Files.isSymbolicLink(idsFile)) {
             if (Files.size(idsFile) > 1024 * 1024) {
                 throw new IOException("COSMETIC_ID_INDEX_LIMIT");
@@ -68,7 +74,6 @@ public final class LocalCosmeticInventory implements AutoCloseable {
                 throw new IOException("INVALID_COSMETIC_ID_INDEX", invalid);
             }
         }
-        watcher = data.getFileSystem().newWatchService();
     }
 
     public Path directory() {
@@ -99,6 +104,7 @@ public final class LocalCosmeticInventory implements AutoCloseable {
         if (closed || Files.isSymbolicLink(root) || Files.isSymbolicLink(idsFile)) {
             throw new IOException("UNAVAILABLE_COSMETIC_DIRECTORY");
         }
+        refreshIds();
         Files.createDirectories(root);
         var found = new ArrayList<Entry>();
         var packages = new HashSet<Path>();

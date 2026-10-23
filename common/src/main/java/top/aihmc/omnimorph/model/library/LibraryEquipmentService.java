@@ -9,6 +9,7 @@ import top.aihmc.omnimorph.avatar.local.CacheAvatarLoader;
 import top.aihmc.omnimorph.backend2.NetworkStuff;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
+import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 
 import java.util.Map;
 import java.util.UUID;
@@ -169,12 +170,20 @@ public final class LibraryEquipmentService implements AutoCloseable {
         private void prepare(long generation) {
             progress.stage(progressGeneration, AvatarLoadProgress.Stage.PREPARING);
             Avatar prepared = new Avatar(client.session().player());
-            var nbt = data.nbt();
+            var source = data;
+            var nbt = source.nbt();
             AvatarLoadExecutor.submit(() -> {
                 if (!current(generation)) {
                     return false;
                 }
                 prepared.load(nbt, null, () -> !current(generation));
+                if (prepared.loaded && prepared.nbt != null) {
+                    var resource = source.model();
+                    prepared.bindOutfitSource(new OutfitConfig.ResourceRef(
+                            OutfitConfig.Source.CLOUD, null, client.origin(),
+                            resource.modelId(), resource.revision(), source.rawHash(),
+                            OutfitConfig.Format.valueOf(resource.modelType())));
+                }
                 return prepared.loaded && prepared.nbt != null;
             }).whenComplete((loaded, failure) -> Minecraft.getInstance().execute(() -> {
                 if (failure != null || !Boolean.TRUE.equals(loaded) || !current(generation)) {

@@ -13,6 +13,7 @@ import top.aihmc.omnimorph.lua.FiguraLuaRuntime;
 import top.aihmc.omnimorph.lua.LuaWhitelist;
 import top.aihmc.omnimorph.lua.docs.LuaTypeDoc;
 import top.aihmc.omnimorph.math.matrix.FiguraMat4;
+import top.aihmc.omnimorph.model.library.PreviewBoneHighlight;
 import top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer;
 import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
 import top.aihmc.omnimorph.model.ysm.YsmRenderPose;
@@ -37,6 +38,21 @@ import java.util.function.Predicate;
 
 /** One immutable draft generation. Ownership transfers only after successful construction. */
 public final class OutfitComposition implements AutoCloseable {
+    public record EditorInstance(OutfitConfig.Instance declaration, CosmeticMetadata metadata,
+                                 SkeletonIndex.Binding<?> skeleton, boolean mayEdit,
+                                 Set<OutfitConfig.BoneRef> exported) {
+        public EditorInstance {
+            exported = Set.copyOf(exported);
+        }
+    }
+
+    public record EditorSnapshot(OutfitConfig configuration, SkeletonIndex.Binding<?> base,
+                                 List<EditorInstance> instances) {
+        public EditorSnapshot {
+            instances = List.copyOf(instances);
+        }
+    }
+
     public record Draw(UUID instanceId, Avatar avatar, Matrix4f matrix, YsmRenderPose ysmPose,
                        FiguraRenderPose figuraPose) {
         public Draw {
@@ -53,6 +69,41 @@ public final class OutfitComposition implements AutoCloseable {
     private final OutfitLimits limits;
     private final LivingEntity wearer;
     private final Map<UUID, Avatar> instances;
+    public record ControlGroup(OutfitConfig.Instance instance, Avatar avatar) {}
+    private final Map<UUID, Long> controlDefinitions = new HashMap<>();
+    private List<ControlGroup> controlGroups = List.of();
+    private long controlGroupsRevision;
+
+    /** Compare registration versions only; do not scan every control on every GUI tick. */
+    public List<ControlGroup> controlGroups() {
+        if (closed) {
+            return List.of();
+        }
+        boolean changed = controlDefinitions.size() != instances.size();
+        for (var entry : instances.entrySet()) {
+            long revision = entry.getValue().controls.definitionRevision();
+            if (!java.util.Objects.equals(controlDefinitions.put(entry.getKey(), revision), revision)) {
+                changed = true;
+            }
+        }
+        if (changed) {
+            var groups = new ArrayList<ControlGroup>();
+            for (var instance : configuration.instances()) {
+                Avatar avatar = instances.get(instance.instanceId());
+                if (instance.enabled() && avatar != null && !avatar.controls.isEmpty()) {
+                    groups.add(new ControlGroup(instance, avatar));
+                }
+            }
+            controlGroups = List.copyOf(groups);
+            controlGroupsRevision++;
+        }
+        return controlGroups;
+    }
+
+    public long controlGroupsRevision() {
+        controlGroups();
+        return controlGroupsRevision;
+    }
     private final Set<UUID> initialized = new HashSet<>();
     private final Avatar controllerOwner;
     private final FiguraLuaRuntime controllerRuntime;
@@ -63,12 +114,50 @@ public final class OutfitComposition implements AutoCloseable {
     private final Map<UUID, Set<OutfitConfig.BoneRef>> exportedBones = new HashMap<>();
     private final Map<UUID, CosmeticBoneOverrides> boneOverrides = new HashMap<>();
     private final Map<UUID, String> categories = new HashMap<>();
+    private final Map<UUID, CosmeticMetadata> editorMetadata = new HashMap<>();
+    private final Map<Object, OutfitConfig.BoneRef> previewBones = new IdentityHashMap<>();
+    private final Map<OutfitConfig.BoneRef, Object> previewParts = new HashMap<>();
+    private final Map<OutfitConfig.AnchorRef, BoneHandle> previewAnchors = new HashMap<>();
+    /** GUI diagnostic from the trusted selector; a null bone denotes its explicit entity-root fallback. */
+    public record MountTarget(OutfitConfig.BoneRef bone, OutfitConfig.Transform offset) {}
+    private final Map<UUID, MountTarget> previewMountTargets = new HashMap<>();
+    private long previewMountSequence;
+
+    public MountTarget previewMountTarget(UUID instance) {
+        return closed ? null : previewMountTargets.get(instance);
+    }
+    private final Set<UUID> editableInstances = new HashSet<>();
     private final Map<UUID, UUID> automaticTailSelections = new HashMap<>();
     private final Map<UUID, TrailBuffer> trails = new HashMap<>();
     private long frameSequence;
 
     private int retainedFrames;
     private boolean closed;
+    private OutfitActionWheel actionWheel;
+
+    public OutfitActionWheel actionWheel() {
+        OutfitConfig.require(!closed);
+        if (actionWheel == null) {
+            actionWheel = new OutfitActionWheel(this::animationEntries, () -> !closed);
+        }
+        return actionWheel;
+    }
+
+    private List<OutfitActionWheel.Entry> animationEntries() {
+        var entries = new ArrayList<OutfitActionWheel.Entry>();
+        for (var instance : configuration.instances()) {
+            Avatar avatar = instances.get(instance.instanceId());
+            if (instance.enabled() && avatar != null) {
+                var metadata = editorMetadata.get(instance.instanceId());
+                String name = metadata == null ? instance.resource().format().name() : metadata.common().name;
+                if (name == null || name.isBlank()) {
+                    name = instance.resource().format().name();
+                }
+                entries.add(new OutfitActionWheel.Entry(instance, name, avatar));
+            }
+        }
+        return List.copyOf(entries);
+    }
     private boolean released;
     private Frame activeFrame;
     private top.aihmc.omnimorph.lua.api.particle.PreviewParticleScope previewParticles;
@@ -162,13 +251,20 @@ public final class OutfitComposition implements AutoCloseable {
             OutfitConfig.require(nodes <= limits.maxTotalNodes());
             String manifest = avatar.nbt.getCompoundOrEmpty("metadata").getStringOr("cosmetic_json", "");
             var metadata = manifest.isEmpty() ? null : CosmeticMetadata.read(manifest);
+            if (metadata != null) {
+                editorMetadata.put(declaration.instanceId(), metadata);
+            }
+            boolean boneEditAllowed = mayEditBones.test(declaration.resource());
+            if (boneEditAllowed) {
+                editableInstances.add(declaration.instanceId());
+            }
             categories.put(declaration.instanceId(), metadata == null ? "Unknown" : metadata.category());
             if (declaration.enabled() && metadata != null && metadata.category().equals("Trail")) {
                 OutfitConfig.require(trails.size() < limits.maxTrails());
                 trails.put(declaration.instanceId(), new TrailBuffer(limits));
             }
             boneOverrides.put(declaration.instanceId(), CosmeticBoneOverrides.bind(avatar, declaration, metadata,
-                    mayEditBones.test(declaration.resource()), indexes, limits));
+                    boneEditAllowed, indexes, limits));
             if (metadata != null) {
                 OutfitConfig.require(metadata.exportedBones().size() <= limits.maxExportedBones());
                 for (var bone : metadata.exportedBones()) {
@@ -225,6 +321,65 @@ public final class OutfitComposition implements AutoCloseable {
             controllerOwner.clean();
             throw failure;
         }
+    }
+
+    /** Called only when publishing/explicitly refreshing a GUI snapshot; no source parsing or IO. */
+    public EditorSnapshot editorSnapshot(Avatar base) {
+        OutfitConfig.require(!closed);
+        SkeletonIndex.Binding<?> baseSkeleton = base == null ? VanillaSkeletonAdapter.describe(limits)
+                : editorSkeleton(base, configuration.base(), null);
+        previewBones.clear();
+        previewParts.clear();
+        previewAnchors.clear();
+        registerPreviewBones(baseSkeleton, null);
+        for (String name : OutfitConfig.STANDARD_ANCHORS) {
+            var targets = StandardAnchors.resolve(baseSkeleton.definition(), configuration.base() == null, name);
+            if (targets.size() == 1) {
+                var target = targets.getFirst();
+                previewAnchors.put(OutfitConfig.AnchorRef.authorDefault(name), new BoneHandle(target.bone(), target.offset()));
+            }
+        }
+        var entries = new ArrayList<EditorInstance>();
+        for (var declaration : configuration.instances()) {
+            UUID id = declaration.instanceId();
+            var skeleton = editorSkeleton(instances.get(id), declaration.resource(), id);
+            var metadata = editorMetadata.get(id);
+            if (declaration.enabled() && metadata != null && metadata.hasBones() && metadata.displayBones()) {
+                registerPreviewBones(skeleton, id);
+            }
+            entries.add(new EditorInstance(declaration, editorMetadata.get(id),
+                    skeleton, editableInstances.contains(id),
+                    exportedBones.getOrDefault(id, Set.of())));
+        }
+        for (var anchor : configuration.virtualAnchors()) {
+            boolean allowed = anchor.parent().instanceId() == null
+                    ? baseSkeleton.definition().resolve(anchor.parent()).isPresent()
+                    : exportedBones.getOrDefault(anchor.parent().instanceId(), Set.of()).contains(anchor.parent())
+                            && previewParts.containsKey(anchor.parent());
+            if (allowed) {
+                previewAnchors.put(new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.VIRTUAL, null, null,
+                        anchor.id(), null, null), new BoneHandle(anchor.parent(), anchor.transform()));
+            }
+        }
+        return new EditorSnapshot(configuration, baseSkeleton, entries);
+    }
+
+    private void registerPreviewBones(SkeletonIndex.Binding<?> binding, UUID instance) {
+        for (int index = 0; index < binding.parts().size(); index++) {
+            var bone = binding.definition().reference(instance, index);
+            previewBones.put(binding.parts().get(index), bone);
+            previewParts.put(bone, binding.parts().get(index));
+            var type = instance == null ? OutfitConfig.AnchorType.BASE_BONE : OutfitConfig.AnchorType.ACCESSORY_BONE;
+            if (instance == null || exportedBones.getOrDefault(instance, Set.of()).contains(bone)) {
+                previewAnchors.put(new OutfitConfig.AnchorRef(type, null, bone, null, null, null), new BoneHandle(bone));
+            }
+        }
+    }
+
+    private SkeletonIndex.Binding<?> editorSkeleton(Avatar avatar, OutfitConfig.ResourceRef resource, UUID instance) {
+        return avatar.isYsmNative()
+                ? new YsmSkeletonAdapter(avatar.getYsmRuntime(), resource, instance, indexes, limits).binding()
+                : new FiguraSkeletonAdapter((ImmediateFiguraRenderer) avatar.renderer, resource, instance, indexes, limits).binding();
     }
 
     public void tick() {
@@ -287,6 +442,9 @@ public final class OutfitComposition implements AutoCloseable {
     @Override
     public void close() {
         closed = true;
+        if (actionWheel != null) {
+            actionWheel.close();
+        }
         if (previewParticles != null) {
             instances.values().forEach(previewParticles::retireOwner);
         }
@@ -308,6 +466,10 @@ public final class OutfitComposition implements AutoCloseable {
         exportedBones.clear();
         boneOverrides.clear();
         categories.clear();
+        previewBones.clear();
+        previewParts.clear();
+        previewAnchors.clear();
+        previewMountTargets.clear();
         automaticTailSelections.clear();
         trails.clear();
     }
@@ -334,6 +496,60 @@ public final class OutfitComposition implements AutoCloseable {
         private FiguraRenderPose figuraBasePose;
         private Avatar figuraBase;
         private boolean drawingBase;
+        private boolean previewSelectionCaptured;
+        private Object previewPart;
+        private OutfitConfig.BoneRef previewBone;
+        private OutfitConfig.Transform previewOffset;
+        private UUID previewMount;
+        private boolean previewRoot;
+        private final Map<UUID, MountTarget> mountTargets = new HashMap<>();
+        private List<PreviewBoneHighlight.Segment> previewHelpers;
+
+        public void capturePreviewSelection(Object part) {
+            OutfitConfig.require(!frameClosed && !evaluated && !previewSelectionCaptured);
+            previewSelectionCaptured = true;
+            if (part instanceof PreviewBoneHighlight.Mount mount) {
+                if (configuration.instances().stream().anyMatch(instance -> instance.instanceId().equals(mount.instanceId())
+                        && instance.enabled() && instance.anchor().type() == OutfitConfig.AnchorType.AUTO_TRAIL)) {
+                    previewMount = mount.instanceId();
+                }
+            } else if (part instanceof OutfitConfig.AnchorRef anchor) {
+                var handle = previewAnchors.get(anchor);
+                if (handle != null) {
+                    previewBone = handle.reference;
+                    previewOffset = handle.offset;
+                    previewPart = previewParts.get(previewBone);
+                }
+            } else {
+                previewBone = previewBones.get(part);
+                previewPart = previewBone == null ? null : part;
+            }
+        }
+
+        public void withPreviewSelection(Runnable drawing) {
+            if (previewSelectionCaptured) {
+                PreviewBoneHighlight.withSelection(previewPart, drawing);
+            } else {
+                drawing.run();
+            }
+        }
+
+        public List<PreviewBoneHighlight.Segment> previewHelpers(SkeletonPose base) {
+            if (!previewSelectionCaptured || previewBone == null && !previewRoot || frameClosed) {
+                return List.of();
+            }
+            if (previewHelpers == null) {
+                int budget = Math.min(limits.maxResourceNodes(), limits.maxTotalNodes());
+                if (previewRoot) {
+                    previewHelpers = PreviewBoneHighlight.root(previewOffset, budget);
+                } else {
+                    var pose = previewBone.instanceId() == null ? base : instancePoses.get(previewBone.instanceId());
+                    previewHelpers = previewOffset == null ? PreviewBoneHighlight.skeleton(pose, previewBone, budget)
+                            : PreviewBoneHighlight.anchor(pose, previewBone, previewOffset, budget);
+                }
+            }
+            return previewHelpers;
+        }
 
         /** Capture before deferring the base's renderEvent/native draw/postRenderEvent callback. */
         public void prepareFiguraBase(Avatar base) {
@@ -360,7 +576,7 @@ public final class OutfitComposition implements AutoCloseable {
             try {
                 try (var instructions = instructionBudget.enter();
                      var budget = molangBudget().beginFrame(YsmRenderFrameClock.currentFrame())) {
-                    figuraBasePose.draw(nativeDrawing);
+                    withPreviewSelection(() -> figuraBasePose.draw(nativeDrawing));
                 }
             } finally {
                 drawingBase = false;
@@ -375,7 +591,7 @@ public final class OutfitComposition implements AutoCloseable {
             drawingBase = true;
             try (var instructions = instructionBudget.enter();
                  var budget = molangBudget().beginFrame(YsmRenderFrameClock.currentFrame())) {
-                nativeDrawing.run();
+                withPreviewSelection(nativeDrawing);
             } finally {
                 drawingBase = false;
                 releaseFrame();
@@ -468,6 +684,11 @@ public final class OutfitComposition implements AutoCloseable {
                             }
                         }
                         runController("endFrame", delta);
+                        if (mode == EntityRenderMode.FIGURA_GUI && !closed && sequence >= previewMountSequence) {
+                            previewMountTargets.clear();
+                            previewMountTargets.putAll(mountTargets);
+                            previewMountSequence = sequence;
+                        }
                     } finally {
                         // A native draw failure freezes the prepared commands, just like an ordinary retained frame.
                         evaluated = true;
@@ -496,7 +717,8 @@ public final class OutfitComposition implements AutoCloseable {
 
         /** Must run inside the command's retained Figura pose, including hidden-group fallback capture. */
         public void drawFiguraInstance(Draw command, Matrix4fc nativeToEntity, Runnable nativeDrawing) {
-            if (evaluated || exportedBones.getOrDefault(command.instanceId(), Set.of()).isEmpty()) {
+            boolean selectedInstance = previewBone != null && command.instanceId().equals(previewBone.instanceId());
+            if (evaluated || !selectedInstance && exportedBones.getOrDefault(command.instanceId(), Set.of()).isEmpty()) {
                 nativeDrawing.run();
                 return;
             }
@@ -509,7 +731,8 @@ public final class OutfitComposition implements AutoCloseable {
         }
 
         public void captureYsmInstance(Draw command) {
-            if (!evaluated && !exportedBones.getOrDefault(command.instanceId(), Set.of()).isEmpty()) {
+            boolean selectedInstance = previewBone != null && command.instanceId().equals(previewBone.instanceId());
+            if (!evaluated && (selectedInstance || !exportedBones.getOrDefault(command.instanceId(), Set.of()).isEmpty())) {
                 var avatar = command.avatar();
                 var adapter = new YsmSkeletonAdapter(avatar.getYsmRuntime(), avatar.cosmeticContext.resource(),
                         command.instanceId(), indexes, limits);
@@ -533,6 +756,12 @@ public final class OutfitComposition implements AutoCloseable {
                 instancePoses.clear();
                 figuraBasePose = null;
                 figuraBase = null;
+                previewPart = null;
+                previewBone = null;
+                previewOffset = null;
+                previewMount = null;
+                mountTargets.clear();
+                previewHelpers = null;
                 retainedFrames--;
                 releaseIfRetired();
             }
@@ -783,6 +1012,20 @@ public final class OutfitComposition implements AutoCloseable {
                 return false;
             } finally {
                 avatar.renderMode = previousMode;
+            }
+        }
+
+        @LuaWhitelist
+        public void recordMountTarget(String id, BoneHandle target) {
+            UUID instance = UUID.fromString(id);
+            OutfitConfig.require(activeFrame != null && activeFrame.prepared.containsKey(instance) && hasBone(target));
+            var selected = new MountTarget(target.reference, target.offset);
+            activeFrame.mountTargets.put(instance, selected);
+            if (instance.equals(activeFrame.previewMount)) {
+                activeFrame.previewBone = target.reference;
+                activeFrame.previewOffset = target.offset;
+                activeFrame.previewRoot = target.reference == null;
+                activeFrame.previewPart = previewParts.get(target.reference);
             }
         }
 
