@@ -55,8 +55,7 @@ public final class ParticleLightField {
 
         public Snapshot(Object world, List<Source> sources) {
             this.world = world;
-            this.sources = List.copyOf(sources);
-            var building = new Long2ObjectOpenHashMap<List<Source>>();
+            this.sources = List.copyOf(sources);            var building = new Long2ObjectOpenHashMap<List<Source>>();
             for (Source source : this.sources) {
                 if (source.level() == 0) {
                     continue;
@@ -66,6 +65,33 @@ public final class ParticleLightField {
             var frozen = new Long2ObjectOpenHashMap<List<Source>>();
             building.long2ObjectEntrySet().forEach(entry -> frozen.put(entry.getLongKey(), List.copyOf(entry.getValue())));
             sections = Long2ObjectMaps.unmodifiable(frozen);
+        }
+
+        public Object world() {
+            return world;
+        }
+
+        public List<Source> sources() {
+            return sources;
+        }
+
+        /** Continuous falloff luminance (0-15) for providers that query a position instead of a packed block. */
+        public double luminanceAt(double x, double y, double z) {
+            if (sources.isEmpty() || !Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z)) {
+                return 0.0;
+            }
+            double best = 0.0;
+            for (Source source : sources) {
+                double dx = x - source.position().x;
+                double dy = y - source.position().y;
+                double dz = z - source.position().z;
+                double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                if (distance >= source.radius()) {
+                    continue;
+                }
+                best = Math.max(best, source.level() * (1.0 - distance / source.radius()));
+            }
+            return best;
         }
 
         public int apply(Object queryWorld, double x, double y, double z, int original) {

@@ -31,6 +31,9 @@
   "entrypoints": {
     "client": [
       "top.aihmc.omnimorph.fabric.FiguraModFabric"
+    ],
+    "lambdynlights:initializer": [
+      "top.aihmc.omnimorph.compat.LambDynamicLightsCompat"
     ]
   },
   "mixins": [

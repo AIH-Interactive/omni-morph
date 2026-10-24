@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-24（Asia/Seoul，第一人称装饰脚本世界帧、Iris 粒子管线与拖尾矩阵；自动门禁 PASS，真实第一人称/Iris 画面 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
+更新时间：2026-10-25（Asia/Seoul，LambDynamicLights 粒子光源桥接完成；自动门禁 PASS，真实 LDL/Iris 光照画面 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
 
 ## 接续入口与约束
 
@@ -316,3 +316,21 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 主仓库 main，提交前基线 56fb83df；本轮源码/测试/文档纳入随后提交推送，最终以 `git rev-parse HEAD` 与 origin/main 一致为准。后端未改，`.omc/` 保留。JAR 18296237 字节，SHA256 b7b098c2d58595b5c536e1b2199a81186f27b482fd62171b2feffeabbffb2f90。
 
 最小下一步：①用户换包实测第一人称拖尾、Iris 光影（若仍异常提供 latest.log 中 Outfit accessory draw / FIRST_PERSON_WORLD 行和截图）；②确认 LDL 是 A 还是 B 后实施。
+## 当前有效交接：LambDynamicLights 粒子动态光源桥接（2026-10-25）
+
+用户选择方案 A（真正注册到 LDL，且**不修改 LDL 代码**），前置条件仅针对粒子动态光源；未安装 LDL 时只警告一次。上一节“LDL 待确认”已被本节取代。
+
+实现：
+- 依赖：Gegy Maven `dev.lambdaurora.lambdynamiclights:lambdynamiclights-api:4.11.2+26.1.2`，`compileOnly`（不打包；运行时用已安装 LDL 的 JiJ API）。gradle.properties 增加 `lambdynlights`。
+- 入口：fabric.mod.json 增加 `lambdynlights:initializer` → `LambDynamicLightsCompat`；用公开的 `DynamicLightsContext.dynamicLightBehaviorManager().add(...)` 注册单个 `ParticleLightBehavior`。
+- 行为：`lightAtPos` 复用 `ParticleLightField.Snapshot.luminanceAt`（level×(1−distance/radius)，半径截止，最大值）；包围盒为所有光源并集 +1 padding；`hasChanged` 用快照版本号。
+- 世界切换：LDL 的 `onChangeWorld` 清空 behavior 源，故 `MinecraftMixin.setLevel` RETURN 在检测到 LDL 时重新注册；类引用在 mod-loaded 分支内，未装 LDL 不会加载 compat 类。
+- 双向避免：LDL 存在时 `ParticleDynamicLights.useExternalProvider(true)`，内置光场停止注入/区块标脏，避免双倍亮度；LDL 缺席时 `FiguraMod.onClientInit` 打印一次回退警告，内置光场继续兜底。
+- 验证：ParticleLightFieldSmokeTest 增加连续亮度断言；alpha4-ldl-final-gate.log：libraryPreviewRuntimeSmokeTest、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS（54 秒）；git diff --check PASS。已确认产物含 entrypoint 与两个 compat class、未打包 LDL API。
+- 产物：JAR 18299784 字节，SHA256 1a908bee7a262c17b274d30bbeca15b1163207ebb7b4c585fb363826e1d8ab47。
+
+仍未验证（MANUAL/PENDING）：真实客户端同时启用 LDL + Iris 时的粒子光照亮度/区块重建/性能；LDL 在非 setLevel 路径清空源（如资源重载）时是否需要再次注册；LDL 缺席警告只验证编译与代码路径。跟进：第一人称脚本帧的 Figura 每帧丢弃绘制性能、手部挂点脚本双跑、vanilla 基础不重放；FiguraRenderPose.matches 世界矩阵缓存；手动 BASE_BONE 挂点误报。
+
+主仓库 main，提交前基线 3469d4cd；本轮源码/依赖/文档随后提交推送，最终以 `git rev-parse HEAD` 与 origin/main 一致为准。后端未改，`.omc/` 保留。
+
+最小下一步：用户装 LDL（4.11.2+26.1.2）与 Iris，进世界验证开启动态光源的粒子能照亮地面/实体；若没有光照，检查 latest.log 是否有 LDL 缺席警告，并提供日志确认 behavior 是否注册（必要时加一次性诊断）。

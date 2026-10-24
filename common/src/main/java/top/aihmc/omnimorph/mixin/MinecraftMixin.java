@@ -143,6 +143,10 @@ public abstract class MinecraftMixin {
     @Inject(at = @At("RETURN"), method = "setLevel")
     private void setLevel(ClientLevel world, CallbackInfo ci) {
         NetworkStuff.auth();
+        // LambDynamicLights drops its behavior sources on world change; register the particle bridge again.
+        if (top.aihmc.omnimorph.utils.PlatformUtils.isModLoaded("lambdynlights")) {
+            top.aihmc.omnimorph.compat.LambDynamicLightsCompat.onWorldJoin();
+        }
     }
 
     @Inject(at = @At("HEAD"), method = "runTick")
