@@ -2328,6 +2328,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
             }
             draftAuthority = client;
             installCapturedDraft(captured, outfitLimits, owner);
+            bindLocalDraftResources();
             draftStart = java.util.concurrent.CompletableFuture.completedFuture(outfitDraft);
             return draftStart;
         }
@@ -2356,6 +2357,31 @@ public class WardrobeScreen extends AbstractPanelScreen {
             }
         }));
         return result;
+    }
+
+    /**
+     * A draft rebuilt from the loaded outfit carries local accessory references but not their inventory entries.
+     * Bind each exact local source (same local id and content) so names, metadata and preview reads resolve.
+     */
+    private boolean bindLocalDraftResources() {
+        if (outfitDraft == null || observedCosmetics.isEmpty()) {
+            return false;
+        }
+        boolean bound = false;
+        for (var instance : outfitDraft.configuration().instances()) {
+            var reference = instance.resource();
+            if (reference.source() != OutfitConfig.Source.LOCAL || draftResources.containsKey(reference)) {
+                continue;
+            }
+            for (var entry : observedCosmetics) {
+                if (entry.source() != null && reference.equals(entry.reference())) {
+                    draftResources.put(reference, entry);
+                    bound = true;
+                    break;
+                }
+            }
+        }
+        return bound;
     }
 
     private static top.aihmc.omnimorph.avatar.Avatar loadedDraftBase(UUID owner) {
@@ -3463,6 +3489,9 @@ public class WardrobeScreen extends AbstractPanelScreen {
                     rebuild();
                 }
                 refreshLocalRows();
+                if (bindLocalDraftResources() && draftPreviewActive) {
+                    previewOutfitDraft();
+                }
             }
         }
         if (cloudAccount != null && !cloudAccount.equals(FiguraMod.getLocalPlayerUUID())) {

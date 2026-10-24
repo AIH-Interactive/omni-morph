@@ -1164,3 +1164,11 @@ alpha4-summary-cache-red.log 复现 RED；alpha4-summary-cache-final.log PASS（
 NetworkStuff.restoreOwner 两处静默失效：选中本地形象文件（LocalAvatarLoader.getLastLoadedPath()!=null）时完全跳过恢复；除 OUTFIT_CHANGED/LIMITS_CHANGED/可重试错误外的失败既不重试也不记录。用户 avatar-resource-ids.json 存在本地 YSM 路径，跳过分支可能成立，但未证实。
 
 本轮仅加诊断：跳过时记录一次 “Outfit owner restore skipped: a local avatar file is selected”，失败时记录 “Outfit owner restore failed: <code>”（不含模型名/路径）。未改恢复语义。alpha4-owner-restore-diagnostics.log PASS（40秒/22 tasks：outfitApplyClientSmokeTest、libraryPreviewRuntimeSmokeTest、fabric:build）。JAR 18269689 字节，SHA256 ea5bce28b183d52f2f9c5442df641a5664c9f2787549bd096c0068185b930e55。下一步待用户用新包提交→重进后提供 latest.log 中上述日志再定修复。
+
+## 2026-10-24：重开衣柜后已提交的本地装饰显示“资源不可用”
+
+全分支诊断日志确认：提交、服务器保存（revision 66，1 实例）与登录后 OWNER 恢复均成功。后端核对：apply 对每个实例 outfit_sources::resolve，不合法整体 Conflict 拒绝，不会部分丢弃；current 原样返回存储 JSON；后端无问题。根因在客户端：beginLocalOutfitDraft 从已加载配装重建草稿时只为 CLOUD 实例登记 draftCloudResources，LOCAL 实例未登记 draftResources，实例名回落为“资源不可用”，运行实例数据缺失时预览也无法读取本地源，骨骼树无装饰节点。
+
+修复：新增 bindLocalDraftResources，按完全相同的 LOCAL ResourceRef（localId+内容哈希+格式）从本地装饰库登记；草稿重建时立即执行，异步扫描结果更新后补登记并重新准备预览。不改提交/协议/后端。诊断日志保留（仅原因代码）。
+
+alpha4-restored-local-draft-red.log 复现“资源不可用”；alpha4-restored-local-draft-final.log PASS（49秒/23 tasks：libraryPreviewRuntimeSmokeTest、outfitApplyClientSmokeTest、cosmeticSourceSmokeTest、fabric:build）。真实重进后衣柜显示 MANUAL/PENDING。JAR 18270550 字节，SHA256 9564127bafc3b77bf69baf852c6ae17d2f8d335645a98cde41867da8ff8a3643。
