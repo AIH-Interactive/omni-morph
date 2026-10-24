@@ -131,6 +131,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private long resourceSelectionGeneration;
     private boolean draftPreviewActive;
     private OutfitConfig.ResourceRef draftPreviewBase;
+    private final List<Button> avatarActions = new ArrayList<>();
     private Button addInstanceButton;
     private Button editInstancesButton;
     private Button cancelDraftButton;
@@ -255,6 +256,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         cloudList = null;
         infoWidget = null;
         motdWidget = null;
+        avatarActions.clear();
         candidateButton = null;
         showModel = null;
         cacheSelectedButton = null;
@@ -557,7 +559,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         int x = layout.previewX();
         int w = layout.previewWidth();
         boolean cloudActions = source == Source.CLOUD || source == Source.ALL && selected != null && selected.cloud() != null;
-        int actionCount = tab == Tab.OUTFIT ? 19 : cloudActions ? 8 : 4;
+        int actionCount = tab == Tab.OUTFIT ? 16 : cloudActions ? 8 : 4;
         int actionsHeight = LibraryActionBar.heightFor(w, actionCount);
         int actionsY = height - 28 - actionsHeight;
         int size = LibraryWorkspaceLayout.previewHeightBeforeActions(layout.top(), actionsY);
@@ -610,39 +612,64 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }
         if (tab == Tab.OUTFIT) {
             uploadButton = actions.action(icon(0, 0, "upload", "publish_current", button -> publishCurrent()));
-            actions.action(icon(0, 0, "reload", "reload_current", button -> AvatarManager.reloadCloudAvatar()));
+            avatarActions.add(uploadButton);
+            avatarActions.add(actions.action(icon(0, 0, "reload", "reload_current",
+                    button -> AvatarManager.reloadCloudAvatar())));
             showModel = actions.action(new SwitchButton(0, 0, 24, 24, 0, 0, 24,
                     new FiguraIdentifier("textures/gui/wardrobe_visibility.png"), 72, 48, text("show_others"),
                     button -> changeVisibility()));
-            actions.action(icon(0, 0, "wardrobe_appeal", "info", button -> openAppeals()))
-                    .setTooltip(FiguraText.of("gui.library.my_appeals"));
+            avatarActions.add(showModel);
+            var appeals = actions.action(icon(0, 0, "wardrobe_appeal", "info", button -> openAppeals()));
+            appeals.setTooltip(FiguraText.of("gui.library.my_appeals"));
+            avatarActions.add(appeals);
             deleteButton = actions.action(icon(0, 0, "delete", "delete_current", button -> {
                 if (NetworkStuff.isConnected() && AvatarManager.localUploaded && NetworkStuff.getUploadProgress() == null) {
                     NetworkStuff.deleteAvatar(null);
                 }
             }));
+            avatarActions.add(deleteButton);
             actions.separator();
-            actions.action(icon(0, 0, "sound", "sound", button -> minecraft.setScreen(new SoundScreen(this))));
-            actions.action(icon(0, 0, "keybind", "keybinds", button -> minecraft.setScreen(new KeybindScreen(this))));
-            actions.action(icon(0, 0, "unselect", "clear_current", button -> {
+            avatarActions.add(actions.action(icon(0, 0, "sound", "sound",
+                    button -> minecraft.setScreen(new SoundScreen(this)))));
+            avatarActions.add(actions.action(icon(0, 0, "keybind", "keybinds",
+                    button -> minecraft.setScreen(new KeybindScreen(this)))));
+            avatarActions.add(actions.action(icon(0, 0, "unselect", "clear_current", button -> {
                 AvatarManager.loadLocalAvatar(null);
                 AvatarList.selectedEntry = null;
-            }));
+            })));
             actions.separator();
-            addInstanceButton = actions.action(icon(0, 0, "friend_add", "instance_add", button -> addSelectedInstance()));
-            editInstancesButton = actions.action(icon(0, 0, "library_edit", "instances", button -> openInstances(button)));
-            applyDraftButton = actions.action(icon(0, 0, "upload", "draft_apply", button -> applyOutfitDraft()));
-            retryDraftButton = actions.action(icon(0, 0, "reload", "draft_retry", button -> retryOutfitDraft()));
-            refreshDraftButton = actions.action(icon(0, 0, "reload", "draft_refresh", button -> refreshOutfitDraft()));
-            applyDraftButton.setActive(false);
-            retryDraftButton.setActive(false);
-            refreshDraftButton.setActive(outfitApplyAvailable() && !outfitOperationBusy());
-            cancelDraftButton = actions.action(icon(0, 0, "unselect", "draft_cancel", button -> cancelOutfitDraft()));
-            resetDraftButton = actions.action(icon(0, 0, "reload", "draft_reset", button -> resetOutfitDraft()));
+            addInstanceButton = actions.action(outfitIcon("wardrobe_instance_add", "instance_add", button -> addSelectedInstance()));
+            editInstancesButton = actions.action(outfitIcon("wardrobe_instances", "instances", button -> openInstances(button)));
             cosmeticSettingsButton = actions.action(new LibraryIconButton("cosmetic_settings", 1, () -> 0,
                     text("cosmetic_settings"), null, button -> openCosmeticControls()));
             refreshCosmeticSettings();
-            actions.action(icon(0, 0, "library_edit", "outfit_presets", button -> openOutfitPresets()));
+            actions.separator();
+            applyDraftButton = actions.action(outfitIcon("wardrobe_draft_apply", "draft_apply", button -> applyOutfitDraft()));
+            retryDraftButton = actions.action(outfitIcon("wardrobe_draft_retry", "draft_retry", button -> retryOutfitDraft()));
+            refreshDraftButton = actions.action(outfitIcon("wardrobe_draft_refresh", "draft_refresh", button -> refreshOutfitDraft()));
+            applyDraftButton.setActive(false);
+            retryDraftButton.setActive(false);
+            refreshDraftButton.setActive(outfitApplyAvailable() && !outfitOperationBusy());
+            cancelDraftButton = actions.action(outfitIcon("wardrobe_draft_cancel", "draft_cancel", button -> cancelOutfitDraft()));
+            resetDraftButton = actions.action(outfitIcon("wardrobe_draft_reset", "draft_reset", button -> resetOutfitDraft()));
+            actions.action(outfitIcon("wardrobe_outfit_presets", "outfit_presets", button -> openOutfitPresets()));
+            refreshActionGroups();
+        }
+    }
+
+    private Button outfitIcon(String icon, String tooltip, Button.OnPress action) {
+        return new LibraryIconButton(icon, 1, () -> 0, text(tooltip), null, action);
+    }
+
+    private void refreshActionGroups() {
+        boolean accessory = selectedIsAccessory() || selected == null && (parts || editingInstance);
+        for (Button button : avatarActions) {
+            button.setVisible(!accessory);
+        }
+        if (addInstanceButton != null) {
+            addInstanceButton.setVisible(accessory);
+            editInstancesButton.setVisible(accessory);
+            cosmeticSettingsButton.setVisible(accessory);
         }
     }
 
@@ -3133,6 +3160,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         super.tick();
         preview.tick();
         refreshCosmeticSettings();
+        refreshActionGroups();
         if (discardOldAccountDraft()) {
             previewSelection();
         }

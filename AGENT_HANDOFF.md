@@ -51,7 +51,7 @@ S1～S6 自动实施已收口并推送。后端仅原有未跟踪 build.log、sp
 - 主仓库实施涉及 avatar/UserData、backend2/NetworkStuff、library 的 Apply/Observer/Events/InstanceState、model/library 正式准备/同步、model/outfit、衣柜/控件/轮盘、正式渲染 Mixin、Lua API 及测试/文档；源文件均已纳入阶段提交。
 - 后端改动在 src/api/library、src/storage/outfit_*、旧装备/分发事务衔接、独立事件、对应 tests 和部署文档；原 build.log/spm-cloud 不提交。
 - 当前下一步由用户安排真实验收：按 docs/ALPHA4_ACCEPTANCE.md 在实际窗口、双客户端及相同场景中验证；此前不重复已通过无关门禁、不追加 S5 优化。YsmPublicPoseSmokeTest.java 已提交，临时 DEBUG 已移除。接手时先核对 Git/产物和未验项，不重启计划。
-- 最新 JAR 为 fabric/build/libs/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar（18,251,373字节，SHA256 a0ffa9b7f8079db2b614a359206b271cda0d553dc665a783d906b88169037fac），已包含睡姿/手/Head/滤波修正。根因/红绿日志和参考路径见进度记录末尾。DS 模型另有加密控制器解析警告，未证明与本次缺陷有关，作为跟进记录，不扩张解析器重构。
+- 最新 JAR 为 fabric/build/libs/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar（18,256,342字节，SHA256 3a6c4637f1d65b8493cb7ade798f57b938ec0c1dcfe2f80f4080e2e387c64a9a），已包含睡姿/手/Head/滤波修正。根因/红绿日志和参考路径见进度记录末尾。DS 模型另有加密控制器解析警告，未证明与本次缺陷有关，作为跟进记录，不扩张解析器重构。
 
 ## 相关文档
 
@@ -65,4 +65,4 @@ S1～S6 自动实施已收口并推送。后端仅原有未跟踪 build.log、sp
 ## 最新增量：睡眠偏移与工具栏（2026-10-24）
 
 睡眠偏出床：已补共享根矩阵缺失的床方向平移（站立 eyeHeight - 0.1）。RED/绿日志 alpha4-sleep-anchor-red.log / alpha4-sleep-anchor-final.log，回归及 Fabric build PASS（52秒）；实际游戏床面 MANUAL/PENDING。上方 JAR 大小/哈希已替换为本轮新包。
-下一步用户已授权：仅优化截图圈出工具栏，按选择形象/装扮显示控件组，自绘重复图标；保留现有行为、权限和配装流程。
+截图工具栏已完成：按实际所选形象/装饰切换控件组，配装事务操作共用；8 个手绘 SVG/PNG 三态图标区分功能。最终预览回归及 Fabric build PASS（alpha4-wardrobe-action-groups-final.log，27秒），选择/筛选优先级及切换均覆盖。真实 GUI/床面 MANUAL/PENDING；下一步按用户反馈验收，不自动新增优化。睡眠检查点 main@91e6cc0a 已推送核对；UI 在随后独立提交，接手以实际 HEAD 为准。上方大小/哈希为包含两项修改的最终 JAR。

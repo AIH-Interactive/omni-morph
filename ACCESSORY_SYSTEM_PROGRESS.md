@@ -1067,3 +1067,13 @@
 - PASS：alpha4-sleep-anchor-final.log，52秒/22 tasks，ysmDeferredPoseSmokeTest + fabric:build；四床向、不同眼高、父位置、无床方向、站姿均覆盖。构建附带原预览回归通过。
 - 真实 Minecraft 床面位置：MANUAL/PENDING，不能仅凭矩阵回归宣称截图问题完全消失。
 - 后续已授权 UI：圈出的工具栏随所选形象/装扮切换，重复功能图标自绘区分；此检查点尚未开始实现。
+
+## 2026-10-24：衣柜按资源类型显示操作组
+
+用户新增范围：仅截图圈出的工具栏和重复图标。复用 selectedIsAccessory、LibraryActionBar 可见项重排和 LibraryIconButton，不修改应用/权限/预览流程。
+
+- 选中形象显示原形象操作，选中本地/云端装饰显示添加实例、实例管理和装饰控件；无选择时沿用用途筛选/实例编辑上下文。实际所选资源优先于筛选值。
+- 配装应用/重试/刷新/撤销/重置/预设为公共组。隐藏项不占槽，原三态样式和提示保留。
+- 8 个手绘像素 SVG 和对应 PNG 区分实例添加、实例管理、应用、失败重试、从后端刷新、撤销、重置和预设；生成入口 tools/render-wardrobe-icons.ps1。已查看 alpha4-toolbar-icons.png 资源样张，非真实 GUI 证据。
+- PASS：alpha4-wardrobe-action-groups-final.log，27秒/21 tasks；真实控件构建、类型切换/All 选择/筛选优先级、可见顺序与旧权限禁用状态、预览回归和 Fabric build。此前增加测试时漏写 Component 全限定名导致编译失败，已修正，未修改业务逻辑应付测试。
+- 真实游戏布局、缩放、悬停及中文提示：MANUAL/PENDING。睡眠位置也仍需用户在四床方向复测。
