@@ -107,8 +107,19 @@ public final class OutfitPrivateUploadSmokeTest {
             }
             var changedBytes = new OutfitPrivateUpload(UUID.randomUUID(), upload.reference(), upload.resourceKind(),
                     null, new byte[]{9, 8, 7, 6}, null, null);
-            failure(client.uploadOutfitSource(changedBytes, value -> {}).future(), callbacks, 409, "CONFLICT");
-            require(server.reservations.get() == reservations, "changed distribution never replaces a fixed binding");
+            // A changed distribution of the same source asks the server to replace the binding. This fixture only
+            // accepts and acknowledges the original bytes, so the attempt must not be reported as a success.
+            boolean replacedAccepted;
+            try {
+                await(client.uploadOutfitSource(changedBytes, value -> {}).future(), callbacks);
+                replacedAccepted = true;
+            } catch (ExecutionException rejected) {
+                replacedAccepted = false;
+            }
+            require(!replacedAccepted, "a fixture that keeps the old bytes never yields an accepted replacement");
+            require(server.reservations.get() == reservations + 1,
+                    "a changed distribution reserves a replacement upload instead of stopping at a conflict");
+            reservations = server.reservations.get();
             for (String mode : List.of("lookup-missing-field", "lookup-bad-revision", "lookup-bad-source")) {
                 server.mode = mode;
                 failure(client.uploadOutfitSource(upload, value -> {}).future(), callbacks,

@@ -157,20 +157,21 @@ public final class OutfitApplyResources implements AutoCloseable {
         }
         Dependency dependency = local.get(next++);
         await(client.resolveOutfitSource(dependency.reference(), dependency.kind()), attempt, existing -> {
-            if (existing.isPresent()) {
+            if (allowUpload) {
+                // Publishing repackages the local source, so a package left by an older client is replaced.
+                upload(dependency, attempt, existing.orElse(null));
+            } else if (existing.isPresent()) {
                 read(dependency, attempt);
-            } else if (allowUpload) {
-                upload(dependency, attempt);
             } else {
                 failed(dependency, attempt, new LibraryClient.Failure(404, "NOT_FOUND"));
             }
         }, error -> failed(dependency, attempt, error));
     }
 
-    private void upload(Dependency dependency, long attempt) {
+    private void upload(Dependency dependency, long attempt, OutfitPrivateUpload.Binding existing) {
         OutfitPrivateUpload frozen = uploads.get(dependency.reference());
         if (frozen != null) {
-            send(dependency, attempt, frozen);
+            sendUnlessCurrent(dependency, attempt, frozen, existing);
             return;
         }
         var preparation = AvatarLoadExecutor.submit(() -> {
@@ -191,9 +192,19 @@ public final class OutfitApplyResources implements AutoCloseable {
                 failed(dependency, attempt, error);
             } else {
                 uploads.put(dependency.reference(), prepared.upload());
-                send(dependency, attempt, prepared.upload());
+                sendUnlessCurrent(dependency, attempt, prepared.upload(), existing);
             }
         }));
+    }
+
+    /** Reuse the server package only when it is byte-identical to the current local packaging. */
+    private void sendUnlessCurrent(Dependency dependency, long attempt, OutfitPrivateUpload frozen,
+                                   OutfitPrivateUpload.Binding existing) {
+        if (existing != null && frozen.rawSha256().equals(existing.rawSha256())) {
+            read(dependency, attempt);
+        } else {
+            send(dependency, attempt, frozen);
+        }
     }
 
     private void send(Dependency dependency, long attempt, OutfitPrivateUpload frozen) {

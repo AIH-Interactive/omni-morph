@@ -226,13 +226,10 @@ public final class LibraryClient implements AutoCloseable {
             OutfitLimits limits = outfitSourceLimits(exchange);
             JsonObject input = upload.request(limits);
             var existing = resolveOutfitSource(exchange, upload.reference(), upload.resourceKind(), limits);
-            if (existing.isPresent()) {
-                if (!upload.matches(existing.get())) {
-                    // The source already has immutable distributed bytes. Reload those before preparing a runtime.
-                    throw new Failure(409, "CONFLICT");
-                }
+            if (existing.isPresent() && upload.matches(existing.get())) {
                 return existing.get();
             }
+            // A different existing package (for example from an older client parser) is replaced by this upload.
             String path = ROOT + "outfits/resources/uploads";
             JsonObject reservation = privateUploadJson(exchange, path, input);
             try {
