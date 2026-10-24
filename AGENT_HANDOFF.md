@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-25（Asia/Seoul，应用 Blockbench 骨架蒙皮补丁；自动门禁 PASS，真实骨架模型画面 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
+更新时间：2026-10-25（Asia/Seoul，按 refs/Figura 恢复上游包名、设置 upstream；自动门禁 PASS，真实客户端混入画面 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
 
 ## 接续入口与约束
 
@@ -394,3 +394,11 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 提交 3da7058。`patch/` 与 `.omc/` 保持未跟踪；后端未改。
 
 真实 Blockbench 骨架模型（带非单位静止旋转/偏移与多骨骼权重）视觉验证仍 MANUAL/PENDING；若出现网格错位，优先检查 `bakeMeshTransform` 的父链假设（当前只把网格自身 customization 归零，未重挂到 armature）与 `findArmature` 的归属选择。
+## 当前有效交接：上游包名恢复与 upstream（2026-10-25）
+
+- 映射规则：当前 `<module>/src/main/java/top/aihmc/omnimorph/<rel>` 若在 `refs/Figura/<module>/src/main/java/org/figuramc/figura/<rel>` 存在，则移回 `org.figuramc.figura`；其余（新功能/重命名重写）保留 `top.aihmc.omnimorph`。结果：386 个文件、80 个包迁移；469 个文件留在旧包；旧包 61 个空目录删除。
+- Mixin 拆分：`figura-common.mixins.json`（78 项，package `org.figuramc.figura.mixin`）、`figura.mixins.json`（fabric 1 项 / forge 2 项）；原 `omni-morph*.mixins.json` 保留未迁移项。fabric.mod.json、forge/build.gradle、neoforge.mods.toml 已登记；fabric 入口为 `org.figuramc.figura.fabric.FiguraModFabric`。
+- 因为包被拆开，少量成员改为 public：`WizardEntry` 构造器、`WardrobeScreen` 子界面回调、`ParticleAPI.resolveTexture`、`CustomParticle.preview`、`CloudProtocolConfig.prepareLoad`，以及 `previewAbandoned` 等；测试平台 stub 移到 org。
+- upstream remote：`upstream https://github.com/FiguraMC/Figura.git`；按用户要求**没有 fetch/pull**，后续同步由人工执行。
+- 验证：三个 smoke test PASS；`:fabric:build` PASS；`git diff --check` 无错误。JAR 18306318 字节，SHA256 54a38f6d30849a390ea55fec401dc8df14b4f4f01240b2c4094d95902927a890，已安装。提交 f91dcc7f，HEAD=origin/main。
+- 未验证/跟进：真实客户端 mixin 加载与画面 MANUAL/PENDING；forge/neoforge 未在 settings.gradle 启用，未构建；`refs/Figura` 是快照，路径映射不覆盖重命名重写的类（如 `ImmediateFiguraRenderer` 视为新代码保留 top）；`patch/`、`.omc/` 未跟踪。

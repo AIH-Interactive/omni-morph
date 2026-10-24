@@ -1344,3 +1344,11 @@ alpha4-publish-disabled-diagnostics-build.log：libraryPreviewRuntimeSmokeTest�
 - 手动调整（补丁原样会破坏既有蒙皮测试）：蒙皮数据在加载后附加时延迟解析，并对缺失 indices/weights 的网格做完整性保护；outfit 骨骼覆盖改为在骨架空间应用，保持原有 pivot 语义（补丁原本把覆盖放进骨骼局部动画后再乘回，产生双重 pivot）。
 - 验证：`libraryPreviewRuntimeSmokeTest`（含 weighted Figura internal bone overlay，加速/非加速）PASS；完整门禁 `alpha4-armature-skinning-gate2.log` PASS 52 秒。真实 Blockbench 骨架模型视觉验证 MANUAL/PENDING。
 - 提交 3da7058。`patch/` 保持未跟踪。
+## 2026-10-25：按 refs/Figura 恢复上游包名并设置 upstream
+
+- 以 `refs/Figura` 为参照，把在**相同相对路径**下存在的 386 个 Java 源文件移回 `org.figuramc.figura`（80 个包，common/fabric/forge）；Omni Morph 新增的 outfit、library、ysm、particle、backend2 扩展等 469 个文件继续保留 `top.aihmc.omnimorph`。旧包内 61 个空目录已删除。
+- 混入包需要的新旧互引已补全；少量跨包访问成员改为 public（WizardEntry 构造器、WardrobeScreen 子界面回调、ParticleAPI.resolveTexture、CustomParticle.preview、CloudProtocolConfig.prepareLoad 等）。测试专用平台 stub 同步移到 `org` 包。
+- Mixin 配置按包拆分：`figura-common.mixins.json`（78 项，org.figuramc.figura.mixin）、`figura.mixins.json`（fabric 1 项 / forge 2 项）与原 `omni-morph*.mixins.json` 并存；fabric.mod.json、forge/build.gradle、neoforge.mods.toml 已登记新配置；fabric 入口改为 `org.figuramc.figura.fabric.FiguraModFabric`。
+- 上游 remote 已添加为 `upstream https://github.com/FiguraMC/Figura.git`，**未执行 fetch/pull**。
+- 验证：`libraryPreviewRuntimeSmokeTest`、`ysmMaterialNativeSmokeTest`、`outfitApplyClientSmokeTest` PASS；`:fabric:build` PASS；`git diff --check` 无错误。JAR 18306318 字节，SHA256 54a38f6d30849a390ea55fec401dc8df14b4f4f01240b2c4094d95902927a890，已安装。
+- 提交 f91dcc7f。真实客户端混入/GUI 画面 MANUAL/PENDING；`refs/Figura` 与未启用的 forge/neoforge 模块未拉取/未构建。
