@@ -185,18 +185,19 @@ public abstract class AbstractPanelScreen extends Screen {
     }
 
     public boolean contextMenuClick(MouseButtonEvent mouseButtonEvent, boolean bl) {
+        ContextMenu clickedMenu = contextMenu;
         // attempt to run context first
-        if (contextMenu != null && contextMenu.isVisible()) {
+        if (clickedMenu != null && clickedMenu.isVisible()) {
             // attempt to click on the context menu
-            boolean clicked = contextMenu.mouseClicked(mouseButtonEvent, false);
+            boolean clicked = clickedMenu.mouseClicked(mouseButtonEvent, false);
 
             // then try to click on the category container and suppress it
             // let the category handle the context menu visibility
-            if (!clicked && contextMenu.parent != null && contextMenu.parent.mouseClicked(mouseButtonEvent, bl))
+            if (!clicked && clickedMenu.parent != null && clickedMenu.parent.mouseClicked(mouseButtonEvent, bl))
                 return true;
 
             // otherwise, remove visibility and suppress the click only if we clicked on the context
-            contextMenu.setVisible(false);
+            clickedMenu.setVisible(false);
             return clicked;
         }
 

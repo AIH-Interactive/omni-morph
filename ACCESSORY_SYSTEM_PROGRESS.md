@@ -1094,3 +1094,17 @@ openCreateMenu 只注册菜单但未设置位置/可见；ContextMenu 默认隐�
 - RED：alpha4-create-menu-red.log，15秒，真实创建菜单调用后可见/定位断言失败。
 - PASS：alpha4-create-menu-final.log，30秒/21 tasks，正式菜单可见/定位、三个创建入口、原向导表单/预览回归及 Fabric build。
 - 实际窗口点击/布局及 YSM 高亮视觉仍 MANUAL/PENDING。该包同时包含已推送 main@3bba0c0f 的 YSM 高亮修复。
+
+## 2026-10-24：菜单重建空指针与装饰空几何
+
+用户日志的 AbstractPanelScreen.contextMenuClick:199 已复现：菜单回调会重建界面并清空 contextMenu，处理器随后继续读取可变字段。固定本次点击菜单的局部引用；关闭旧菜单而非回调替换的新菜单，不改变通用事件框架。
+
+实际资源来自 D:/Program Files/AIHMC/.minecraft/versions/纯净大区(26.1.2)/omnimorph/cosmetics（test/test1/test2），仅读取、未编辑用户文件。test1 挂载命令已生成、模型可见、预算2048，但 Cuff 原生顶点为0。根因是 Blockbench 4.9 导出缺省 cube type，在新多态解析器中被当作 UnknownElement，仅保留空部件。恢复缺失/null type 的 cube 缺省；显式 mesh/未知类型保持原处理，新导出添加 type=cube。全局格式兼容修复，无资源名称分支。
+
+- 菜单 RED：alpha4-menu-reentry-red.log，9秒，复现同一 contextMenu 空指针；回调动作回放绕开录音测试环境缺失的原生音频，不宣称真实窗口证据。此前夹具缺音频/hover 的失败未当作产品根因。
+- 菜单 PASS：alpha4-menu-reentry-final.log，13秒，正式 screen 分发允许回调清空菜单。
+- 资源 RED：alpha4-actual-cosmetics-probe.log，test1 原生输出0；alpha4-actual-cosmetics-diagnostic.log 记录命令/可见/源几何定位。夹具 GPU device/debugEntries 初始化失败已通过复用原记录设备处理，未修改生产渲染适配测试。
+- 修复后 alpha4-actual-cosmetics-green.log PASS（13秒），test1=24、test2=48顶点。
+- 最终 alpha4-accessory-render-final.log PASS（28秒/21 tasks），libraryPreviewRuntimeSmokeTest + fabric:build。设 OMNIMORPH_TEST_COSMETICS 为上述目录执行实际来源原生加载/挂载；缺省/null/显式mesh/显式未知type和新导出type均有常驻回归。临时 DEBUG 已移除。
+- test 为粒子拖尾，空几何正常，此回放未证明运动粒子视觉。真实窗口菜单、YSM/其他基础下装饰效果、实际世界/双客户端和拖尾移动效果仍 MANUAL/PENDING；不把CPU顶点回放冒充GPU/端到端PASS。
+- 全局 C:/Users/eryth/.codex/AGENTS.md 已增加安全点额度查询、仅阈值时委派 GPT-6 Luna 写交接、任务提前完成也更新手册。最后可靠读数 Plus：5小时剩余76%、周剩余19%；未到阈值，未调用 Luna。

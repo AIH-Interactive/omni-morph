@@ -56,8 +56,8 @@ GUI 验证须使用真实可见窗口，等待稳定后检查中文、布局、�
 
 ## 交付产物
 
-- 本机测试包（含计划后公共 Bug 修正）：`fabric/build/libs/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar`，18,256,498 字节。
-- SHA256：`931479b3724e4fd9890cdb8ce578df64e02aae457a7eedd240bfbe97d02478e4`。
+- 本机测试包（含计划后公共 Bug 修正）：`fabric/build/libs/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar`，18,257,057 字节。
+- SHA256：`3d9273f928611afb424e13a13232166629aaea0fef310d6c788034efda093b38`。
 - `stage6-artifact-check.log` PASS：ID `omni-morph`、清单版本 `1.0.0-alpha.4+26.1.2`、无重复 ZIP entry、19个内嵌依赖均存在、42个默认文件逐字节一致、新实例同步/Lua API 类齐全。
 - S6 初始产物后重建已重新核对（`alpha3-public-bugs-artifact.log` PASS）；最终相关构建/回归 `alpha3-public-bugs-checkpoint.log` PASS（1分44秒/24 tasks）。保留原 S6 日志作为历史证据，当前交付使用上方新哈希。
 
@@ -68,3 +68,5 @@ GUI 验证须使用真实可见窗口，等待稳定后检查中文、布局、�
 YSM 骨骼高亮：修复独立 GUI 预览的源选择身份；普通/加速半透明及选中子树回归 PASS（alpha4-bone-highlight-final.log，56秒），真实游戏描边/透明视觉 MANUAL/PENDING。
 
 创建菜单补充：修正按钮点击后菜单保持隐藏的问题，补定位与显示；alpha4-create-menu-final.log PASS（30秒）。实际窗口交互 MANUAL/PENDING，包内包含此前 YSM 高亮修复。
+
+菜单回调重建空指针及旧模板空几何修复：alpha4-accessory-render-final.log PASS（28秒）；用户实际腿饰24/翅膀48个原生顶点。拖尾无实体几何，移动粒子画面、实际GUI和世界仍 MANUAL/PENDING。当前测试包大小/哈希已更新。

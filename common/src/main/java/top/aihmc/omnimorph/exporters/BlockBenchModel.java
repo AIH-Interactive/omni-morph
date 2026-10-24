@@ -172,6 +172,7 @@ public class BlockBenchModel {
         @Override
         public JsonObject build() {
             JsonObject cube = super.build();
+            cube.addProperty("type", "cube");
             cube.add("from", vec3ToJson(position));
             cube.add("to", vec3ToJson(position.plus(size)));
             cube.addProperty("inflate", inflate);

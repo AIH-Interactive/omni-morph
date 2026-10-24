@@ -190,7 +190,15 @@ public class BlockbenchCommonTypes {
     @SuppressWarnings("unused")
     public static abstract class Element implements UUIDReferable, NBTRepresentation<CompoundTag> {
         public static final TypeAdapterFactory ADAPTER_FACTORY =
-                new GsonTypeByField<>(Element.class, "type")
+                new GsonTypeByField<>(Element.class, element -> {
+                    JsonElement type = element.getAsJsonObject().get("type");
+                    // Older Blockbench cubes, including our 4.9 exporter, omit this discriminator.
+                    if (type == null || type.isJsonNull()) {
+                        return "cube";
+                    }
+                    return type.isJsonPrimitive() && type.getAsJsonPrimitive().isString()
+                            ? type.getAsString() : null;
+                })
                         .bind("cube", CubeElement.class)
                         .bind("mesh", MeshElement.class)
                         .bind("locator", PointElement.class)
