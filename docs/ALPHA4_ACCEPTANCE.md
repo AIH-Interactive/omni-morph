@@ -50,13 +50,13 @@ GUI 验证须使用真实可见窗口，等待稳定后检查中文、布局、�
 
 ## 已知问题与延后项
 
-- 三项 alpha.3 公共 YSM 问题仍 OPEN，计划1～6收口后通用修复：`DS鲸鱼娘.ysm` 第一人称手；`少女-哥伦比娅.ysm` 仰头头部/头发；任意 `.ysm` 睡姿。截图路径见进度记录末尾。
+- 计划1～6收口后已实施三项全局 YSM 修正：共根手臂子树筛选、动画后标准 Head 跟随、按床朝向的睡眠整模旋转。指定模型的手部/稳态头部、通用四床向矩阵均有先红后绿证据；相关滤波初始零值已修正。真实手部/头发/床面动画与截图对照仍 **MANUAL/PENDING**，不能用原生数值回放宣称视觉完全一致。截图与日志见进度记录。
 - OWNER/OBSERVER 缓存辅助整理、授权请求批量优化、额外跨进程上传恢复是后续优化，不再阻塞 S5/S6。
 - 本地基础 Fabric JAR 不等同包含所有平台 JNI 的 CI 发布包；其他平台原生加速和公网部署/正式发布不由本次本机构建证明。
 
 ## 交付产物
 
-- 本机测试包：`fabric/build/libs/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar`，18,250,314 字节。
-- SHA256：`f20428538766e9798e0bef58de5514d0333c61dbde22c2951023b33b45733587`。
+- 本机测试包（含计划后公共 Bug 修正）：`fabric/build/libs/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar`，18,251,257 字节。
+- SHA256：`f64d1748b3a1046b442b325cabd57252983cba9c71fc20096cc539cdc4bb0fe0`。
 - `stage6-artifact-check.log` PASS：ID `omni-morph`、清单版本 `1.0.0-alpha.4+26.1.2`、无重复 ZIP entry、19个内嵌依赖均存在、42个默认文件逐字节一致、新实例同步/Lua API 类齐全。
-- 本记录哈希对应 S6 收口产物；后续三项公共 Bug 修复若重建同版本文件，须更新哈希和验证记录，不沿用本次哈希。
+- S6 初始产物后重建已重新核对（`alpha3-public-bugs-artifact.log` PASS）；最终相关构建/回归 `alpha3-public-bugs-checkpoint.log` PASS（1分44秒/24 tasks）。保留原 S6 日志作为历史证据，当前交付使用上方新哈希。

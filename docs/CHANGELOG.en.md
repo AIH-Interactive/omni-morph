@@ -8,7 +8,8 @@
 
 - Adds isolated accessory instances, anchors, trails, controls, CustomParticle/Ribbon and optional dynamic lights with server-defined `outfit.limits`.
 - Connects wardrobe creation/presets to atomic outfit Apply, authorized observer projection, persistent instance state and reconnect recovery; preserves legacy base projection and frozen v1.
-- Real Minecraft dual-client, GUI/GPU, lighting and performance checks remain `MANUAL/PENDING`; see [acceptance evidence](ALPHA4_ACCEPTANCE.md). The three reported alpha.3 YSM issues are tracked separately and are not claimed fixed here.
+- Fixes shared-root arm filtering, post-animation head tracking, sleeping root rotation and filter initialization through common YSM paths. No model-specific exceptions.
+- Real Minecraft dual-client, GUI/GPU, lighting, performance and reported pose visual comparisons remain `MANUAL/PENDING`; see [acceptance evidence](ALPHA4_ACCEPTANCE.md).
 
 ## 1.0.0-alpha.3
 

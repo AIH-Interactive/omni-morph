@@ -753,6 +753,15 @@ tasks.register("ysmDeferredPoseSmokeTest", JavaExec) {
     mainClass = "top.aihmc.omnimorph.model.ysm.YsmDeferredPoseSmokeTest"
 }
 
+tasks.register('ysmPublicPoseSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks the reported public YSM pose regressions with native runtimes; no GUI evidence.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmPublicPoseSmokeTest'
+    args rootProject.file('refs/avatars').path
+}
+
 tasks.register("ysmPlayerTimelineSmokeTest", JavaExec) {
     group = "verification"
     description = "Checks production player CPU steps against fixed timeline body/arm matrices and owned event traces."

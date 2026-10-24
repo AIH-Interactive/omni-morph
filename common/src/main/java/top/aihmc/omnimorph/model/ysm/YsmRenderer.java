@@ -257,8 +257,7 @@ public class YsmRenderer {
         stack.pushPose();
         boolean useArmParts = runtime.hasArmModel();
         for (YsmGeometry.Bone root : armGeo.roots) {
-            if (shouldRenderArmBone(root, left, useArmParts))
-                renderBone(root, stack, vertices, light, mask, useArmParts, pose);
+            renderBone(root, stack, vertices, light, mask, useArmParts, pose, left);
         }
         stack.popPose();
         return true;
@@ -337,6 +336,14 @@ public class YsmRenderer {
 
     private void renderBone(YsmGeometry.Bone bone, PoseStack stack, DrawTarget vertices, int light,
                              YsmPartMask mask, boolean useArmParts, YsmRenderPose pose) {
+        renderBone(bone, stack, vertices, light, mask, useArmParts, pose, null);
+    }
+
+    private void renderBone(YsmGeometry.Bone bone, PoseStack stack, DrawTarget vertices, int light,
+                            YsmPartMask mask, boolean useArmParts, YsmRenderPose pose, Boolean leftArm) {
+        if (leftArm != null && !shouldRenderArmBone(bone, leftArm, useArmParts)) {
+            return;
+        }
         YsmModelPart part = pose == null
                 ? (useArmParts ? runtime.getArmPart(bone.name) : runtime.getPart(bone.name)) : pose.part(bone.name);
         YsmBoneRole role = useArmParts ? runtime.armRoleOf(bone.name) : runtime.roleOf(bone.name);
@@ -360,7 +367,7 @@ public class YsmRenderer {
             }
         }
         for (YsmGeometry.Bone child : bone.children)
-            renderBone(child, stack, vertices, light, mask, useArmParts, pose);
+            renderBone(child, stack, vertices, light, mask, useArmParts, pose, leftArm);
         stack.popPose();
     }
 

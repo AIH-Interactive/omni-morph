@@ -40,10 +40,10 @@ public final class YsmFilterRuntime {
             if (manager.filters.size() >= MAX_FILTERS_PER_DOMAIN) {
                 throw new IllegalStateException("YSM filter state budget exceeded");
             }
-            filter = secondOrder ? new SecondOrder() : new FirstOrder();
+            filter = secondOrder ? new SecondOrder(input) : new FirstOrder(input);
             filter.setArguments(input, first, second, third);
             manager.filters.put(key, filter);
-            return input;
+            return filter.value;
         }
         filter.setArguments(input, first, second, third);
         return filter.value;
@@ -136,6 +136,10 @@ public final class YsmFilterRuntime {
     }
 
     private static final class FirstOrder extends Filter {
+        private FirstOrder(float input) {
+            value = finite(input);
+        }
+
         @Override
         protected void update(float seconds, MolangExecutionBudget budget) {
             float target = finite(input);
@@ -152,6 +156,10 @@ public final class YsmFilterRuntime {
     private static final class SecondOrder extends Filter {
         private float previousInput;
         private float velocity;
+
+        private SecondOrder(float input) {
+            snap(finite(input));
+        }
 
         @Override
         protected void update(float seconds, MolangExecutionBudget budget) {

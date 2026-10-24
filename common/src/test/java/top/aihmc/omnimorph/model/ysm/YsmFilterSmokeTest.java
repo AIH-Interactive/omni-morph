@@ -48,6 +48,7 @@ public final class YsmFilterSmokeTest {
     }
 
     private static void runTests() throws Exception {
+        testRestingPose();
         testFirstOrder();
         testSecondOrder();
         testBoneAndAvatarIsolation();
@@ -61,16 +62,28 @@ public final class YsmFilterSmokeTest {
         System.out.println("M4 real first/second-order bindings, numeric vectors, frame/bone/view/Avatar isolation and cleanup passed.");
     }
 
+    private static void testRestingPose() {
+        var filters = new YsmFilterRuntime();
+        var domain = YsmFilterRuntime.Domain.BODY;
+        filters.update(domain, 100f, 1L, null);
+        equal(80f, filters.firstOrder(domain, "head", 80f, 1f), "first head sample");
+        equal(80f, filters.firstOrder(domain, "head", 80f, 1f), "repeated sample must retain the head's initial pose");
+        equal(-35f, filters.secondOrder(domain, "hair", -35f, 1f, 0.5f, 0f), "first hair sample");
+        filters.update(domain, 101f, 2L, null);
+        equal(80f, filters.firstOrder(domain, "head", 80f, 1f), "constant head input cannot drift to zero");
+        equal(-35f, filters.secondOrder(domain, "hair", -35f, 1f, 0.5f, 0f), "resting hair has no artificial startup impulse");
+    }
+
     private static void testFirstOrder() throws Exception {
         Avatar.MolangContext context = new Avatar.MolangContext(null);
         update(context, YsmFilterRuntime.Domain.BODY, 100f);
         equal(10f, evaluate(context, "ysm.first_order('p',10);"), "creation returns input, as in reference");
         update(context, YsmFilterRuntime.Domain.BODY, 101f);
-        equal(0.5f, evaluate(context, "ysm.first_order('p',20);"), "advance uses previously supplied input");
+        equal(10f, evaluate(context, "ysm.first_order('p',20);"), "advance retains the initialized input");
         update(context, YsmFilterRuntime.Domain.BODY, 101f);
-        equal(0.5f, evaluate(context, "ysm.first_order('p',20);"), "same render tick cannot advance twice");
+        equal(10f, evaluate(context, "ysm.first_order('p',20);"), "same render tick cannot advance twice");
         update(context, YsmFilterRuntime.Domain.BODY, 102f);
-        equal(1.475f, evaluate(context, "ysm.first_order('p',20);"), "second independent first-order recurrence coefficient");
+        equal(10.5f, evaluate(context, "ysm.first_order('p',20);"), "first-order recurrence starts from the actual pose");
         update(context, YsmFilterRuntime.Domain.BODY, 500f);
         equal(20f, evaluate(context, "ysm.first_order('p',20,0);"), "large step clamps to response");
         update(context, YsmFilterRuntime.Domain.BODY, 501f);
@@ -83,7 +96,7 @@ public final class YsmFilterSmokeTest {
         update(context, YsmFilterRuntime.Domain.FIRST_PERSON, 100f);
         equal(80f, evaluate(context, "ysm.first_order('p',80);"), "arm domain does not reuse body state");
         update(context, YsmFilterRuntime.Domain.FIRST_PERSON, 101f);
-        equal(4f, evaluate(context, "ysm.first_order('p',80);"), "arm domain advances independently");
+        equal(80f, evaluate(context, "ysm.first_order('p',80);"), "constant arm pose stays at rest independently");
         context.filters.clear();
         equal(9f, evaluate(context, "ysm.first_order('p',9);"), "model cleanup recreates fresh filter state");
     }
@@ -93,18 +106,20 @@ public final class YsmFilterSmokeTest {
         update(context, YsmFilterRuntime.Domain.BODY, 100f);
         equal(10f, evaluate(context, "ysm.second_order('spring',10,1,0,0);"), "second-order creation value");
         update(context, YsmFilterRuntime.Domain.BODY, 101f);
-        equal(0f, evaluate(context, "ysm.second_order('spring',20,1,0,0);"), "first position step starts with zero velocity");
+        equal(10f, evaluate(context, "ysm.second_order('spring',20,1,0,0);"), "first position step starts at input with zero velocity");
         update(context, YsmFilterRuntime.Domain.BODY, 102f);
-        equal((float) (0.1d * Math.PI * Math.PI), evaluate(context, "ysm.second_order('spring',20,1,0,0);"),
-                "independent second-order velocity/position recurrence");
+        equal(10f, evaluate(context, "ysm.second_order('spring',20,1,0,0);"),
+                "changed input first updates spring velocity");
         Avatar.MolangContext fast = new Avatar.MolangContext(null);
         update(fast, YsmFilterRuntime.Domain.BODY, 100f);
         evaluate(fast, "ysm.second_order('fast',1,5,0,0);");
         update(fast, YsmFilterRuntime.Domain.BODY, 500f);
-        equal((float) (0.25d * Math.PI * Math.PI), evaluate(fast, "ysm.second_order('fast',1,5,0,0);"),
-                "hitch clamps to .1 seconds and uses two stable substeps");
+        equal(1f, evaluate(fast, "ysm.second_order('fast',1,5,0,0);"),
+                "constant spring has no false impulse after a large step");
         context.filters.secondOrder(YsmFilterRuntime.Domain.BODY, "invalid", 0f, Float.NaN, Float.NaN, Float.NaN);
         update(context, YsmFilterRuntime.Domain.BODY, 103f);
+        equal((float) (10d + 0.1d * Math.PI * Math.PI), evaluate(context, "ysm.second_order('spring',20,1,0,0);"),
+                "independent second-order position recurrence after the changed input");
         require(Float.isFinite(context.filters.secondOrder(YsmFilterRuntime.Domain.BODY, "invalid", 0f,
                 Float.NaN, Float.NaN, Float.NaN)), "nonfinite coefficients do not poison simulated state");
 
@@ -128,9 +143,9 @@ public final class YsmFilterSmokeTest {
         equal(10f, evaluate(first, "ysm.first_order('shared',10);"), "first Avatar creates its state");
         equal(90f, evaluate(second, "ysm.first_order('shared',90);"), "second Avatar uses its own same-named state");
         update(first, YsmFilterRuntime.Domain.BODY, 101f);
-        equal(0.5f, evaluate(first, "ysm.first_order('shared',10);"), "only first Avatar advances");
+        equal(10f, evaluate(first, "ysm.first_order('shared',10);"), "first Avatar keeps its initialized pose");
         update(second, YsmFilterRuntime.Domain.BODY, 101f);
-        equal(4.5f, evaluate(second, "ysm.first_order('shared',90);"), "second Avatar retains independent input");
+        equal(90f, evaluate(second, "ysm.first_order('shared',90);"), "second Avatar retains independent input");
         var clip = YsmAnimationParser.parse("""
                 {"animations":{"fixture":{"bones":{
                   "left":{"position":["ysm.second_order('same',2,1,0,0)",0,0]},
@@ -148,17 +163,17 @@ public final class YsmFilterSmokeTest {
         update(first, YsmFilterRuntime.Domain.BODY, 103f);
         float left = YsmAnimationSampler.sampleBone(clip.boneAnimations.get("left"), 0f, evaluator).position()[0];
         float right = YsmAnimationSampler.sampleBone(clip.boneAnimations.get("right"), 0f, evaluator).position()[0];
-        equal((float) (0.02d * Math.PI * Math.PI), left, "left bone independent numeric vector");
-        equal((float) (0.09d * Math.PI * Math.PI), right, "right bone independent numeric vector");
+        equal(2f, left, "left bone independent resting vector");
+        equal(9f, right, "right bone independent resting vector");
         try (var outer = first.filters.beginBone("outer")) {
             equal(7f, evaluate(first, "ysm.first_order('global',7);"), "first-order creates an unscoped key");
             equal(8f, evaluate(first, "ysm.second_order('scoped',8);"), "outer scoped filter created");
             try (var inner = first.filters.beginBone("inner")) {
-                equal(0f, evaluate(first, "ysm.first_order('global',99);"),
+                equal(7f, evaluate(first, "ysm.first_order('global',99);"),
                         "first-order name intentionally shared across bones, as in reference");
                 equal(9f, evaluate(first, "ysm.second_order('scoped',9);"), "inner scope owns different state");
             }
-            equal(0f, evaluate(first, "ysm.second_order('scoped',10);"), "nested scope restores outer state");
+            equal(8f, evaluate(first, "ysm.second_order('scoped',10);"), "nested scope restores outer state");
         }
         equal(11f, evaluate(first, "ysm.second_order('scoped',11);"), "normal close restores unscoped context");
         try (var outer = first.filters.beginBone("outer")) {
@@ -180,34 +195,34 @@ public final class YsmFilterSmokeTest {
             float input = domain == YsmFilterRuntime.Domain.BODY ? 10f
                     : domain == YsmFilterRuntime.Domain.FIRST_PERSON ? 40f : 90f;
             equal(input, filters.firstOrder(domain, "same", input, 1f), "domain first creation: " + domain);
-            equal(0f, filters.firstOrder(domain, "same", input, 1f),
-                    "reference repeated creation-frame call reads internal zero: " + domain);
+            equal(input, filters.firstOrder(domain, "same", input, 1f),
+                    "repeated creation-frame read preserves initial pose: " + domain);
             equal(input, filters.secondOrder(domain, "spring", input, 1f, 0f, 0f),
                     "second-order creates independent domain state: " + domain);
         }
         filters.update(YsmFilterRuntime.Domain.BODY, 101f, 2L, null);
-        equal(0.5f, filters.firstOrder(YsmFilterRuntime.Domain.BODY, "same", 20f, 1f), "body advances on frame two");
+        equal(10f, filters.firstOrder(YsmFilterRuntime.Domain.BODY, "same", 20f, 1f), "body retains its initial pose on frame two");
         filters.update(YsmFilterRuntime.Domain.BODY, 150f, 2L, null);
-        equal(0.5f, filters.firstOrder(YsmFilterRuntime.Domain.BODY, "same", 20f, 1f),
+        equal(10f, filters.firstOrder(YsmFilterRuntime.Domain.BODY, "same", 20f, 1f),
                 "changed render time in repeated pass cannot advance a domain twice");
         filters.update(YsmFilterRuntime.Domain.PREVIEW, 101f, 2L, null);
-        equal(4.5f, filters.firstOrder(YsmFilterRuntime.Domain.PREVIEW, "same", 90f, 1f),
+        equal(90f, filters.firstOrder(YsmFilterRuntime.Domain.PREVIEW, "same", 90f, 1f),
                 "preview advances after body in the same global frame");
         filters.update(YsmFilterRuntime.Domain.FIRST_PERSON, 101f, 2L, null);
-        equal(2f, filters.firstOrder(YsmFilterRuntime.Domain.FIRST_PERSON, "same", 40f, 1f),
+        equal(40f, filters.firstOrder(YsmFilterRuntime.Domain.FIRST_PERSON, "same", 40f, 1f),
                 "arm advances after preview in the same global frame");
         for (YsmFilterRuntime.Domain domain : YsmFilterRuntime.Domain.values()) {
             float input = domain == YsmFilterRuntime.Domain.BODY ? 10f
                     : domain == YsmFilterRuntime.Domain.FIRST_PERSON ? 40f : 90f;
-            equal(0f, filters.secondOrder(domain, "spring", input, 1f, 0f, 0f),
-                    "first spring update starts at zero velocity: " + domain);
+            equal(input, filters.secondOrder(domain, "spring", input, 1f, 0f, 0f),
+                    "first spring update starts at rest: " + domain);
             filters.update(domain, 102f, 3L, null);
-            equal((float) (input * 0.01d * Math.PI * Math.PI),
+            equal(input,
                     filters.secondOrder(domain, "spring", input, 1f, 0f, 0f),
                     "second spring update preserves each domain's input: " + domain);
         }
         filters.update(YsmFilterRuntime.Domain.BODY, 102f, 3L, null);
-        equal(1.475f, filters.firstOrder(YsmFilterRuntime.Domain.BODY, "same", 20f, 1f),
+        equal(10.5f, filters.firstOrder(YsmFilterRuntime.Domain.BODY, "same", 20f, 1f),
                 "rejected repeated pass did not overwrite the simulation clock");
         filters.clear();
         filters.update(YsmFilterRuntime.Domain.PREVIEW, 101f, 2L, null);
