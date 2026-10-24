@@ -138,3 +138,11 @@ S1～S6 自动实施已收口并推送。后端仅原有未跟踪 build.log、sp
 本节覆盖上方下一步。摘要缓存修复已推送 main@73d4d84f。随后修复云端 YSM 在配装中衣柜秒消失/世界只剩头：隔离 YSM 草稿基础按 DEFAULT COMPLEXITY 被组合帧截断，prepareComposition 改用穿戴者 COMPLEXITY。RED/GREEN 日志 alpha4-ysm-draft-budget-red.log / -final.log；回放需设 OMNIMORPH_TEST_YSM_PACKAGES 指向解密后的包目录（未设则跳过，用户数据未修改）。JAR 18269266 字节，SHA256 e538d530d4a25096987f98b2c413f5e7fbaf8194d70f9afc1a3bd0080e356ce7。
 
 最小下一步：①用户换包验证云端 YSM 在衣柜和世界中完整显示（MANUAL/PENDING）；②排查“配装提交后装饰未同步云端”，当前日志无提交请求或失败记录，需从提交事务入口追踪并请用户提供提交后的日志。额度不可读取，未推测。
+
+## 当前有效交接：配装重进后装饰消失（2026-10-24，排查中）
+
+YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后装饰消失：服务器已保存（提交前有 currentOutfit 相等校验），怀疑登录 OWNER 恢复未装入本地（NetworkStuff.restoreOwner 在选中本地形象文件时跳过，且多数失败无日志）。本轮只加 WARN 诊断日志，未改语义；详见 ACCESSORY_SYSTEM_PROGRESS.md 末节。JAR SHA256 ea5bce28b183d52f2f9c5442df641a5664c9f2787549bd096c0068185b930e55。
+
+最小下一步：用户新包提交→退出重进→提供 latest.log 中 “Outfit owner restore” 行；据此决定修复（跳过条件或具体失败）。未经日志证实不改恢复语义。云端 YSM 显示仍 MANUAL/PENDING。额度不可读取。
+
+更新（同日）：用户装入诊断包 ea5bce28 复现后，两条诊断均未出现，说明恢复停在其他无日志分支。已扩展为全分支追踪（协调器创建、能力未就绪、库选择仍活动、本地形象文件、身份不匹配、服务器无配装、读取期间选择变化、已加载、开始/完成、失败代码），仍不改语义。alpha4-owner-restore-trace.log PASS（40秒/22 tasks）。JAR 18270283 字节，SHA256 ab4895c0686b761e6929c59887f79e38fca969d4c4cbe94fbd7585b9ef0e4091。下一步：用户复现后搜索 “Outfit owner restore”。

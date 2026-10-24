@@ -225,6 +225,7 @@ public class NetworkStuff {
         private Object ownerWorld;
         private boolean ownerDirty = true;
         private boolean ownerLoading;
+        private final Set<String> ownerTraced = new java.util.HashSet<>();
         private long ownerRetryAt;
         private long ownerGeneration;
         private LibraryClient.Request<?> ownerRead;
@@ -232,6 +233,7 @@ public class NetworkStuff {
 
         private OutfitEventCoordinator(LibraryClient client) {
             this.client = client;
+            FiguraMod.LOGGER.info("Outfit owner restore coordinator started");
             events = client.outfitEvents(this);
             instanceSync = new OutfitInstanceSync(client, owner -> {
                 if (FiguraMod.isLocal(owner)) {
@@ -293,16 +295,27 @@ public class NetworkStuff {
 
         private void restoreOwner(long tick) {
             var outfits = capabilities == null ? null : capabilities.outfitsV1();
-            if (!ownerDirty || ownerLoading || tick < ownerRetryAt || world == null || outfits == null
-                    || !outfits.apply() || !outfits.configuration()
-                    || activeLibrarySelection != null && librarySelectionCurrent(activeLibrarySelection)
-                    || top.aihmc.omnimorph.avatar.local.LocalAvatarLoader.getLastLoadedPath() != null) {
+            if (!ownerDirty || ownerLoading || tick < ownerRetryAt || world == null) {
+                return;
+            }
+            if (outfits == null || !outfits.apply() || !outfits.configuration()) {
+                ownerTrace("server outfit capabilities unavailable");
+                return;
+            }
+            if (activeLibrarySelection != null && librarySelectionCurrent(activeLibrarySelection)) {
+                ownerTrace("a library selection is still active");
+                return;
+            }
+            if (top.aihmc.omnimorph.avatar.local.LocalAvatarLoader.getLastLoadedPath() != null) {
+                ownerTrace("a local avatar file is selected");
                 return;
             }
             var wearer = Minecraft.getInstance().player;
             if (wearer == null || !wearer.getUUID().equals(client.session().player())) {
+                ownerTrace("the local player is not the authenticated account");
                 return;
             }
+            ownerTraced.clear();
             long generation = ++ownerGeneration;
             long selection = localSelections.get();
             Object selectedWorld = world;
@@ -321,15 +334,20 @@ public class NetworkStuff {
                     return;
                 }
                 if (selection != localSelections.get() || configuration.revision() == 0) {
+                    FiguraMod.LOGGER.warn("Outfit owner restore skipped: {}", configuration.revision() == 0
+                            ? "the server has no committed outfit" : "the local selection changed during the read");
                     ownerLoading = false;
                     return;
                 }
                 UserData user = AvatarManager.getLoadedUser(wearer.getUUID());
                 if (ownerWorld == selectedWorld && user != null && user.getOutfit() != null && user.getOutfit().configuration().equals(configuration)
                         && user.getOutfit().composition().limits().equals(outfits.limits())) {
+                    FiguraMod.LOGGER.info("Outfit owner restore skipped: the committed outfit is already loaded");
                     ownerLoading = false;
                     return;
                 }
+                FiguraMod.LOGGER.info("Outfit owner restore started: revision {}, {} instances",
+                        configuration.revision(), configuration.instances().size());
                 if (ownerRestore != null) {
                     ownerRestore.close();
                 }
@@ -341,10 +359,18 @@ public class NetworkStuff {
                         .whenComplete((restored, error) -> {
                             if (current() && generation == ownerGeneration && error == null) {
                                 ownerWorld = selectedWorld;
+                                FiguraMod.LOGGER.info("Outfit owner restore completed");
                             }
                             ownerFinished(generation, error);
                         });
             });
+        }
+
+        /** Diagnostic only: each pending-restore reason is logged once until a restore read starts. */
+        private void ownerTrace(String reason) {
+            if (ownerTraced.add(reason)) {
+                FiguraMod.LOGGER.warn("Outfit owner restore waiting: {}", reason);
+            }
         }
 
         private void ownerFinished(long generation, Throwable failure) {
@@ -354,6 +380,10 @@ public class NetworkStuff {
             ownerLoading = false;
             while (failure instanceof java.util.concurrent.CompletionException && failure.getCause() != null) {
                 failure = failure.getCause();
+            }
+            if (failure != null) {
+                FiguraMod.LOGGER.warn("Outfit owner restore failed: {}", failure instanceof LibraryClient.Failure typed
+                        ? typed.code : failure.getClass().getSimpleName() + ": " + failure.getMessage());
             }
             if (failure != null && (retryObserver(failure)
                     || failure instanceof LibraryClient.Failure changed
