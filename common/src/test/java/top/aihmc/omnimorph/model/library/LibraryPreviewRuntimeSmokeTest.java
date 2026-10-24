@@ -72,6 +72,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             testLegacyCubeType();
             testProvidedCosmetics(unsafe, drain);
             testPackagedYsmDraftBases(unsafe, drain);
+            testPackagedFiguraDraftAccessory(unsafe, drain);
             testCatalogOutfitPreview(unsafe, drain);
             testWardrobeDraftActions(unsafe, drain);
             testWardrobeCloudCosmetic(unsafe, drain, encrypted);
@@ -955,6 +956,97 @@ public final class LibraryPreviewRuntimeSmokeTest {
             minecraft.player = previousPlayer;
         }
         System.out.println("PASS actual packaged YSM draft bases keep every native body vertex under the wearer face budget; GUI/GPU MANUAL/PENDING");
+    }
+
+    /** Actual distributed Figura base plus actual local accessory: the draft frame must leave faces for the accessory. */
+    private static void testPackagedFiguraDraftAccessory(Unsafe unsafe, Runnable drain) throws Exception {
+        String basePackage = System.getenv("OMNIMORPH_TEST_FIGURA_BASE");
+        String accessoryDirectory = System.getenv("OMNIMORPH_TEST_ACCESSORY");
+        if (basePackage == null || basePackage.isBlank() || accessoryDirectory == null || accessoryDirectory.isBlank()) {
+            return;
+        }
+        var minecraft = Minecraft.getInstance();
+        var previousPlayer = minecraft.player;
+        var previousDebug = minecraft.debugEntries;
+        var previousRenderer = minecraft.gameRenderer;
+        var player = (CurrentPreviewPlayer) unsafe.allocateInstance(CurrentPreviewPlayer.class);
+        player.setUUID(UUID.randomUUID());
+        minecraft.player = player;
+        var debug = (net.minecraft.client.gui.components.debug.DebugScreenEntryList) unsafe.allocateInstance(
+                net.minecraft.client.gui.components.debug.DebugScreenEntryList.class);
+        field(debug.getClass(), "allStatuses").set(debug, new java.util.HashMap<>());
+        field(debug.getClass(), "currentlyEnabled").set(debug, new java.util.ArrayList<>());
+        field(Minecraft.class, "debugEntries").set(minecraft, debug);
+        var renderer = (net.minecraft.client.renderer.GameRenderer) unsafe.allocateInstance(
+                net.minecraft.client.renderer.GameRenderer.class);
+        field(renderer.getClass(), "mainCamera").set(renderer, new net.minecraft.client.Camera());
+        field(Minecraft.class, "gameRenderer").set(minecraft, renderer);
+        // The local wearer's own pack is MAX; the detached preview default would stop at 2048 faces.
+        var wearer = new PermissionPack.PlayerPermissionPack(
+                new PermissionPack.CategoryPermissionPack(Permissions.Category.MAX), player.getUUID().toString());
+        CompoundTag baseData = net.minecraft.nbt.NbtIo.readCompressed(Path.of(basePackage),
+                net.minecraft.nbt.NbtAccounter.create(256L * 1024 * 1024));
+        Path source = Path.of(accessoryDirectory);
+        var description = top.aihmc.omnimorph.model.outfit.LocalCosmeticSource.describe(source, () -> false);
+        var accessory = new OutfitConfig.ResourceRef(OutfitConfig.Source.LOCAL, UUID.randomUUID(), null, null, null,
+                description.contentHash(), description.format());
+        var base = new OutfitConfig.ResourceRef(OutfitConfig.Source.CLOUD, null, "https://source.example",
+                UUID.randomUUID(), 1L, "6".repeat(64), OutfitConfig.Format.FIGURA);
+        try (var device = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.recordingTextureDevice();
+             var preview = new LibraryPreviewSession(null, true)) {
+            var detachedEntity = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
+            detachedEntity.setUUID((UUID) field(LibraryPreviewSession.class, "owner").get(preview));
+            field(LibraryPreviewSession.class, "entity").set(preview, detachedEntity);
+            require(await(preview.selectDraft(baseData), drain), "actual packaged Figura draft base loads");
+            var avatar = (Avatar) field(LibraryPreviewSession.class, "avatar").get(preview);
+            var definition = new top.aihmc.omnimorph.model.outfit.FiguraSkeletonAdapter(
+                    (top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer) avatar.renderer, base, null,
+                    new top.aihmc.omnimorph.model.outfit.SkeletonIndex.Cache(), OutfitLimits.defaults())
+                    .binding().definition();
+            var anchor = new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.BASE_BONE, null,
+                    definition.reference(null, definition.uniqueNamed("Body").orElseThrow()), null, null, null);
+            var instance = new OutfitConfig.Instance(UUID.randomUUID(), accessory, 1, true, anchor,
+                    OutfitConfig.Transform.identity(), java.util.List.of(), Map.of(), Map.of());
+            var config = new OutfitConfig(1, 0, base, java.util.List.of(instance), java.util.List.of(),
+                    Map.of(accessory.identity(), 1), false);
+            require(await(preview.prepareComposition(config, OutfitLimits.defaults(), player.getUUID(),
+                            UUID.randomUUID(), wearer, (resource, cancelled) ->
+                                    top.aihmc.omnimorph.model.outfit.LocalCosmeticSource.prepare(source,
+                                            player.getUUID(), description.contentHash(), cancelled).nbt()), drain),
+                    "actual Figura draft composition prepares with the actual accessory");
+            preview.tick();
+            var state = new AvatarRenderState();
+            state.lightCoords = 0x00f000f0;
+            var baseOnly = new java.util.concurrent.atomic.AtomicInteger();
+            avatar.render.reset(65536);
+            avatar.render(null, 0, .5f, 1, new com.mojang.blaze3d.vertex.PoseStack(), type -> countingSink(baseOnly),
+                    state.lightCoords, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, null,
+                    top.aihmc.omnimorph.model.rendering.PartFilterScheme.MODEL, false, false);
+            var composed = new java.util.concurrent.atomic.AtomicInteger();
+            try (var frame = preview.outfitComposition().retain()) {
+                avatar.render.reset(65536);
+                frame.prepareFiguraBase(avatar);
+                frame.drawFiguraBase(avatar, () -> {
+                    var pose = frame.captureFiguraBase(avatar, new org.joml.Matrix4f(), () -> avatar.render(
+                            null, 0, .5f, 1, new com.mojang.blaze3d.vertex.PoseStack(), type -> countingSink(composed),
+                            state.lightCoords, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, null,
+                            top.aihmc.omnimorph.model.rendering.PartFilterScheme.MODEL, false, false));
+                    top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer.draw(frame, pose, state, .5f,
+                            new org.joml.Matrix4f(), type -> countingSink(composed),
+                            top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI);
+                });
+            }
+            System.out.println("Packaged Figura draft base with actual accessory: base=" + baseOnly.get()
+                    + " composed=" + composed.get());
+            require(composed.get() > baseOnly.get(),
+                    "the draft frame draws the actual accessory after the whole packaged Figura base: base="
+                            + baseOnly.get() + " composed=" + composed.get());
+        } finally {
+            minecraft.player = previousPlayer;
+            field(Minecraft.class, "debugEntries").set(minecraft, previousDebug);
+            field(Minecraft.class, "gameRenderer").set(minecraft, previousRenderer);
+        }
+        System.out.println("PASS actual packaged Figura draft base keeps faces for its actual accessory; GUI/GPU MANUAL/PENDING");
     }
 
     private static com.mojang.blaze3d.vertex.VertexConsumer countingSink(java.util.concurrent.atomic.AtomicInteger vertices) {

@@ -1186,3 +1186,11 @@ alpha4-outfit-legacy-enable-final.log PASS（54秒/23 tasks：libraryPreviewRunt
 用户决定（覆盖上一节“配装页禁用启用”）：配装编辑全部本地，只有“发布当前形象”把基础形象与装饰一并提交；删除“应用整套装扮”按钮；“发布当前形象”在形象模式与装饰模式都显示。实现：服务器支持配装提交时 publishCurrent 直接走 applyOutfitDraft（原 Apply 条件决定可用），不再走旧启用/上传；旧后端保留原行为；按钮移出形象控件组，两种模式共用；删除 applyDraftButton。云端条目选中时若本地缓存未命中（LOCAL_PREVIEW_CACHE_MISS），经形象集 collection.add 自动获取一次后重新执行选择；同一模型每个衣柜会话只自动获取一次，再次未命中正常提示。
 
 alpha4-publish-outfit-final.log PASS（48秒/23 tasks：libraryPreviewRuntimeSmokeTest、outfitApplyClientSmokeTest、cosmeticSourceSmokeTest、fabric:build）；工具栏槽位更新（形象 15 / 装饰 11，装饰模式首位为发布），自动获取发起一次、不重复、非未命中不触发。测试服务器无下载回执，完整自动下载→重选链路未端到端验证，真实界面 MANUAL/PENDING。JAR 18271342 字节，SHA256 a5d5f59a5450318c4afdcbb321c175d29c9e1e9bf30d947d239ad436f578259c。
+
+## 2026-10-24：配装预览中任意基础上的装饰都不显示
+
+根因（真实数据离线复现）：衣柜配装预览把基础放在独立预览形象（DEFAULT 权限，COMPLEXITY 2048 面），组合帧中基础与装饰共享面数预算；稍大的基础即耗尽预算，装饰 0 面。实测 AI Hobbyist Founder：2048 时基础截断 11936 顶点、装饰 0；提升后基础完整、装饰绘制。编辑中世界本地预览与提交后衣柜草稿预览复用同一预览会话，故编辑与提交后均不可见。本地玩家实际为 MAX 档，正式装备不受限。上次仅对 YSM 基础修正，本轮扩展到所有基础格式：prepareComposition 对基础预览形象写入穿戴者 COMPLEXITY；若预览形象与穿戴者共用同一权限包则不写入，避免改动玩家真实权限。
+
+alpha4-figura-draft-budget-red.log 复现（base=11936 composed=11936）；alpha4-figura-draft-budget-final.log PASS（1分13秒/23 tasks），新增真实 Figura 基础+真实 test2 生产路径测试（OMNIMORPH_TEST_FIGURA_BASE/OMNIMORPH_TEST_ACCESSORY，未设跳过），YSM 四包回放继续通过。真实窗口显示 MANUAL/PENDING。JAR 18271340 字节，SHA256 e35c51fade054b05b0e8f335fb66d5f1a1e184c629b65a3e49669f314724c343。
+
+后续需求（用户提出，待确认方案后实施）：按所选基础形象分别保存与关联装饰配置，因不同模型骨骼不同。
