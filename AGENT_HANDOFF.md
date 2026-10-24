@@ -245,3 +245,8 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 最小下一步：①用户重新部署后端并换客户端包；②在配装中保留 test2 实例并点“发布当前形象”（草稿需有改动才可点，可微调一次位置），触发重新打包替换；③重进验证衣柜/世界显示装饰，日志中 “Outfit accessory draw” 应 vertices>0。诊断日志（draw/empty draw/allowance/not drawn/publish/owner restore）确认修复后再评估移除。后续项：手动挂点状态栏“未解析”误报。
 
 更新（20:21）：用户新报拖尾 cosmetics/test（AUTO? 用户挂到 tail4→seg42→seg12）不渲染，并有 “accessory script error during prepare”。test 为粒子拖尾（Trail，POST_RENDER 中 partToWorldMatrix + particles:newCustomParticle），无静态网格，离线真实数据重放 draft/owner 均 0 顶点且未复现脚本错误。装饰实例执行身份非本地玩家，FiguraLuaPrinter 的日志过滤使错误不进聊天/日志；已让 prepare/tick 脚本错误诊断附带 avatar.errorText（截断 400 字）。回归 PASS（alpha4-accessory-script-error-text.log，44秒），JAR 18277379 字节，SHA256 6081fd7a5d7815a92976f3d91ef0d23287f2e065ea877dc0f65d24a2541a76f4。用户 latest.log 仅到 19:55，不含 20:14 报错。下一步：用户复现并提供 “accessory script error during prepare: …” 全文，按 Lua 错误原文最小修复。
+
+## 当前有效交接：粒子动态光源满额降级（2026-10-24 20:34）
+
+拖尾 test 不渲染根因：动态光源满额时 setDynamicLight 向脚本抛 PARTICLE_DYNAMIC_LIGHT_COUNT_LIMIT 使装饰停止；按用户选择改为满额时粒子不发光、不报错（配置类错误仍报错）。见 ACCESSORY_SYSTEM_PROGRESS.md 末节。JAR SHA256 2e4154919adf7e90dbbea6150cc491d9b860523b8b2afab2e02cd50940699f2b。额度：5 小时 48%、周 19%。
+仍待用户：①重新部署后端 master@afef2cc5 并发布一次以替换 test/test1/test2 的空副本；②验证拖尾粒子显示（开启动态光源时超额粒子不发光属预期）。后续项：手动挂点“未解析”误报；诊断日志待确认后评估移除。

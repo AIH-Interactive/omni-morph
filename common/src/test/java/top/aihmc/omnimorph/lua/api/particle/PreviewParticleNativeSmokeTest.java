@@ -77,8 +77,8 @@ final class PreviewParticleNativeSmokeTest {
             require(c.isAlive() && separate.liveCount() == 1 && scope.liveCount() == 2,
                     "another preview using the same player UUID has an independent budget and registry");
             a.setDynamicLight(true);
-            reject(() -> b.setDynamicLight(true));
-            require(a.isDynamicLight() && !b.isDynamicLight()
+            b.setDynamicLight(true);
+            require(a.isDynamicLight() && !b.isDynamicLight() && b.isAlive()
                             && ParticleDynamicLights.liveCount(worldOwner.owner) == 0
                             && ParticleDynamicLights.apply(world, 1, 2, 3, 0) == 0,
                     "preview light slots are bounded locally and publish no world illumination");
