@@ -4,10 +4,10 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.InputWithModifiers;
 import net.minecraft.network.chat.Component;
-import top.aihmc.omnimorph.gui.widgets.Button;
-import top.aihmc.omnimorph.gui.widgets.ContextMenu;
-import top.aihmc.omnimorph.utils.ui.UIHelper;
-import top.aihmc.omnimorph.utils.FiguraText;
+import org.figuramc.figura.gui.widgets.Button;
+import org.figuramc.figura.gui.widgets.ContextMenu;
+import org.figuramc.figura.utils.ui.UIHelper;
+import org.figuramc.figura.utils.FiguraText;
 
 import java.util.List;
 import java.util.function.IntConsumer;

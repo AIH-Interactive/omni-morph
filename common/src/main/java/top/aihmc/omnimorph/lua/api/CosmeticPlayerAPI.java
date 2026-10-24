@@ -3,10 +3,10 @@ package top.aihmc.omnimorph.lua.api;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import top.aihmc.omnimorph.lua.LuaWhitelist;
-import top.aihmc.omnimorph.lua.docs.LuaTypeDoc;
-import top.aihmc.omnimorph.math.vector.FiguraVec2;
-import top.aihmc.omnimorph.math.vector.FiguraVec3;
+import org.figuramc.figura.lua.LuaWhitelist;
+import org.figuramc.figura.lua.docs.LuaTypeDoc;
+import org.figuramc.figura.math.vector.FiguraVec2;
+import org.figuramc.figura.math.vector.FiguraVec3;
 
 /** Read-only wearer queries, with no route to another entity, Avatar or model. */
 @LuaWhitelist

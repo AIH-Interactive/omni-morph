@@ -8,12 +8,12 @@ import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.OneArgFunction;
-import top.aihmc.omnimorph.animation.Animation;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.lua.FiguraLuaRuntime;
+import org.figuramc.figura.animation.Animation;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.lua.FiguraLuaRuntime;
 import top.aihmc.omnimorph.lua.api.CosmeticAnimationsAPI;
 import top.aihmc.omnimorph.lua.api.particle.CustomParticleRuntime;
-import top.aihmc.omnimorph.permissions.Permissions;
+import org.figuramc.figura.permissions.Permissions;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -136,7 +136,7 @@ public final class CosmeticAnimationEventSmokeTest {
             Avatar runaway = fixture.owner(wearer, 2);
             Avatar healthy = fixture.owner(wearer, 2);
             for (Avatar owner : List.of(runaway, healthy)) {
-                owner.permissions.insert(Permissions.TICK_INST, 64, top.aihmc.omnimorph.FiguraMod.MOD_ID);
+                owner.permissions.insert(Permissions.TICK_INST, 64, org.figuramc.figura.FiguraMod.MOD_ID);
             }
             listen(runaway, "while true do end");
             var hits = listen(healthy, "hit(e)");
@@ -331,7 +331,7 @@ public final class CosmeticAnimationEventSmokeTest {
             owners.add(owner);
             owner.load(data);
             owner.initializePreviewPlayer(null);
-            owner.permissions.insert(Permissions.TICK_INST, 4096, top.aihmc.omnimorph.FiguraMod.MOD_ID);
+            owner.permissions.insert(Permissions.TICK_INST, 4096, org.figuramc.figura.FiguraMod.MOD_ID);
             var runtime = new FiguraLuaRuntime(owner, Map.of());
             require(runtime.init(new ListTag()), "actual event Lua runtime initializes");
             return owner;

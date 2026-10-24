@@ -1,14 +1,14 @@
 package top.aihmc.omnimorph.model.ysm;
 
-import top.aihmc.omnimorph.avatar.AvatarManager;
-import top.aihmc.omnimorph.avatar.UserData;
-import top.aihmc.omnimorph.backend2.NetworkStuff;
-import top.aihmc.omnimorph.backend2.HttpAPI;
+import org.figuramc.figura.avatar.AvatarManager;
+import org.figuramc.figura.avatar.UserData;
+import org.figuramc.figura.backend2.NetworkStuff;
+import org.figuramc.figura.backend2.HttpAPI;
 import top.aihmc.omnimorph.backend2.protocol.CloudConnection;
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
 import top.aihmc.omnimorph.backend2.protocol.CloudProtocol;
 import top.aihmc.omnimorph.backend2.protocol.FiguraCloudProtocol;
-import top.aihmc.omnimorph.config.Configs;
+import org.figuramc.figura.config.Configs;
 
 import java.net.URI;
 import java.net.http.HttpClient;

@@ -16,13 +16,13 @@ import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.player.Abilities;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.control.AvatarControlRuntime;
 import top.aihmc.omnimorph.avatar.control.AvatarControlDefinition;
 import top.aihmc.omnimorph.avatar.control.AvatarControlType;
 import top.aihmc.omnimorph.model.ysm.action.YsmActionDefinition;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
-import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.model.rendering.EntityRenderMode;
 import top.aihmc.omnimorph.model.ysm.controller.YsmAnimationController;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationClip;
 import top.aihmc.omnimorph.molang.MolangEngine;
@@ -1342,9 +1342,9 @@ public final class YsmFunctionContractSmokeTest {
     private static void testDebugOutputContracts() throws Exception {
         Fixture plain = new Fixture(false);
         Fixture encrypted = new Fixture(true);
-        boolean previousDebug = top.aihmc.omnimorph.config.Configs.DEBUG_MODE.value;
+        boolean previousDebug = org.figuramc.figura.config.Configs.DEBUG_MODE.value;
         var logger = (org.apache.logging.log4j.core.Logger) org.apache.logging.log4j.LogManager
-                .getLogger(top.aihmc.omnimorph.FiguraMod.LOGGER.getName());
+                .getLogger(org.figuramc.figura.FiguraMod.LOGGER.getName());
         var previousLevel = logger.getLevel();
         List<String> messages = new ArrayList<>();
         var appender = new org.apache.logging.log4j.core.appender.AbstractAppender(
@@ -1369,11 +1369,11 @@ public final class YsmFunctionContractSmokeTest {
             } catch (top.aihmc.omnimorph.molang.parser.ParseException expected) {
                 // Production parser enforces the function's reference signature.
             }
-            top.aihmc.omnimorph.config.Configs.DEBUG_MODE.value = false;
+            org.figuramc.figura.config.Configs.DEBUG_MODE.value = false;
             require(plain.evalValue("q.debug_output(v.debug_disabled=1);") == null
                             && plain.context.variables.getPath("debug_disabled") == null && messages.isEmpty(),
                     "disabled debugging returns null before evaluating arguments or logging");
-            top.aihmc.omnimorph.config.Configs.DEBUG_MODE.value = true;
+            org.figuramc.figura.config.Configs.DEBUG_MODE.value = true;
             require(plain.evalValue("q.debug_output('prefix',v.debug_value=3,'模型',v.unset);") == null,
                     "enabled debug output returns raw null");
             require(messages.equals(List.of("[Molang Debug] prefix3.0模型null"))
@@ -1388,12 +1388,12 @@ public final class YsmFunctionContractSmokeTest {
             unsafeField.setAccessible(true);
             encrypted.context.entity = (net.minecraft.world.entity.Entity) ((Unsafe) unsafeField.get(null))
                     .allocateInstance(net.minecraft.world.entity.decoration.ArmorStand.class);
-            int modReads = top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl.loadedModReads;
+            int modReads = org.figuramc.figura.utils.fabric.PlatformUtilsImpl.loadedModReads;
             for (String name : List.of("dump_mods", "dump_effects", "dump_biome")) {
                 require(encrypted.evalValue("ysm." + name + ";") == null && messages.isEmpty(),
                         "encrypted runtime metadata suppresses dump diagnostics before native state access: " + name);
             }
-            require(top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl.loadedModReads == modReads,
+            require(org.figuramc.figura.utils.fabric.PlatformUtilsImpl.loadedModReads == modReads,
                     "encrypted runtime diagnostic does not enumerate the platform");
             require(ExpressionEvaluator.evaluator(encrypted.context.owner)
                             .eval(encrypted.engine.parse("q.debug_output('PRIVATE_DIRECT_OWNER');").getFirst()) == null
@@ -1406,7 +1406,7 @@ public final class YsmFunctionContractSmokeTest {
                             && plain.context.variables.getPath("private_nbt") == null && messages.isEmpty(),
                     "encrypted source payload also suppresses logging independently of runtime metadata");
         } finally {
-            top.aihmc.omnimorph.config.Configs.DEBUG_MODE.value = previousDebug;
+            org.figuramc.figura.config.Configs.DEBUG_MODE.value = previousDebug;
             logger.removeAppender(appender);
             logger.setLevel(previousLevel);
             appender.stop();

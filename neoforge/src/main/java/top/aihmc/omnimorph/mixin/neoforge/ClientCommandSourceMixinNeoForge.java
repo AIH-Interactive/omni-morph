@@ -6,7 +6,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
-import top.aihmc.omnimorph.utils.FiguraClientCommandSource;
+import org.figuramc.figura.utils.FiguraClientCommandSource;
 import org.spongepowered.asm.mixin.Mixin;
 
 @Mixin(CommandSourceStack.class)

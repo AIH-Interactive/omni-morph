@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.model.ysm;
 
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationPlayer;
 import top.aihmc.omnimorph.model.ysm.controller.YsmAnimationController;
 import top.aihmc.omnimorph.model.ysm.controller.YsmAnimationControllerParser;

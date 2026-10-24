@@ -1,9 +1,9 @@
 package top.aihmc.omnimorph.model.outfit;
 
-import top.aihmc.omnimorph.model.FiguraModelPart;
-import top.aihmc.omnimorph.model.ParentType;
-import top.aihmc.omnimorph.model.PartCustomization;
-import top.aihmc.omnimorph.math.matrix.FiguraMat4;
+import org.figuramc.figura.model.FiguraModelPart;
+import org.figuramc.figura.model.ParentType;
+import org.figuramc.figura.model.PartCustomization;
+import org.figuramc.figura.math.matrix.FiguraMat4;
 import top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer;
 import top.aihmc.omnimorph.render.acceleration.AccelerationService;
 import org.joml.Matrix4f;

@@ -4,7 +4,7 @@ import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import sun.misc.Unsafe;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.molang.MolangEngine;
 import top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator;
 import top.aihmc.omnimorph.molang.runtime.Function;

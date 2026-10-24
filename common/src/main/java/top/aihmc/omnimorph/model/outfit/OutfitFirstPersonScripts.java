@@ -13,9 +13,9 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
-import top.aihmc.omnimorph.model.rendering.PartFilterScheme;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.model.rendering.EntityRenderMode;
+import org.figuramc.figura.model.rendering.PartFilterScheme;
 import top.aihmc.omnimorph.model.ysm.YsmModelRuntime;
 import top.aihmc.omnimorph.model.ysm.YsmRenderer;
 

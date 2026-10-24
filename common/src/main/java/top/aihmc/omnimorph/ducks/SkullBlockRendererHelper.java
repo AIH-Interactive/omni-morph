@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.ducks;
 
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 
 public class SkullBlockRendererHelper {
     private static Avatar avatar;

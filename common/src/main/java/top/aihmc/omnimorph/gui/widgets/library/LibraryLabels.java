@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.gui.widgets.library;
 
 import net.minecraft.network.chat.Component;
-import top.aihmc.omnimorph.utils.FiguraText;
+import org.figuramc.figura.utils.FiguraText;
 import top.aihmc.omnimorph.utils.FileSizeFormatter;
 
 /** Only built-in values are translation keys; custom category names stay literal. */

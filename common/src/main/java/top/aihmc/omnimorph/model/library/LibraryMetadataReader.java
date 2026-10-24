@@ -7,7 +7,7 @@ import top.aihmc.omnimorph.avatar.ysm.YsmModelData;
 import top.aihmc.omnimorph.avatar.ysm.YsmPackage;
 import top.aihmc.omnimorph.avatar.ysm.YsmResourceLimits;
 import top.aihmc.omnimorph.avatar.ysm.YsmSourceIdentity;
-import top.aihmc.omnimorph.parsers.AvatarMetadataParser;
+import org.figuramc.figura.parsers.AvatarMetadataParser;
 
 import java.io.IOException;
 import java.nio.file.Files;

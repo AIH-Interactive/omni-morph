@@ -33,8 +33,8 @@ import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.model.rendering.EntityRenderMode;
 import top.aihmc.omnimorph.molang.MolangEngine;
 import top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator;
 import top.aihmc.omnimorph.molang.runtime.Function;
@@ -1210,10 +1210,10 @@ public final class YsmVanillaStateSmokeTest {
             require(bindings.getProperty(name) instanceof Variable && !(bindings.getProperty(name) instanceof Function),
                     "reference dump is a scalar variable: " + name);
         }
-        boolean previousDebug = top.aihmc.omnimorph.config.Configs.DEBUG_MODE.value;
-        int previousReads = top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl.loadedModReads;
+        boolean previousDebug = org.figuramc.figura.config.Configs.DEBUG_MODE.value;
+        int previousReads = org.figuramc.figura.utils.fabric.PlatformUtilsImpl.loadedModReads;
         var logger = (org.apache.logging.log4j.core.Logger) org.apache.logging.log4j.LogManager
-                .getLogger(top.aihmc.omnimorph.FiguraMod.LOGGER.getName());
+                .getLogger(org.figuramc.figura.FiguraMod.LOGGER.getName());
         var previousLevel = logger.getLevel();
         var messages = new java.util.ArrayList<String>();
         var appender = new org.apache.logging.log4j.core.appender.AbstractAppender(
@@ -1230,15 +1230,15 @@ public final class YsmVanillaStateSmokeTest {
         logger.addAppender(appender);
         logger.setLevel(org.apache.logging.log4j.Level.WARN);
         try {
-            top.aihmc.omnimorph.config.Configs.DEBUG_MODE.value = false;
+            org.figuramc.figura.config.Configs.DEBUG_MODE.value = false;
             world.biomePosition = null;
             for (String name : names) {
                 require(eval(engine, context, "ysm." + name + ";") == null, "disabled dump returns raw null: " + name);
             }
             require(messages.isEmpty() && world.biomePosition == null
-                            && top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl.loadedModReads == previousReads,
+                            && org.figuramc.figura.utils.fabric.PlatformUtilsImpl.loadedModReads == previousReads,
                     "disabled diagnostics perform no logging or platform enumeration");
-            top.aihmc.omnimorph.config.Configs.DEBUG_MODE.value = true;
+            org.figuramc.figura.config.Configs.DEBUG_MODE.value = true;
             require(eval(engine, context, "ysm.dump_mods;") == null, "mod enumeration returns raw null");
             require(messages.equals(List.of("Mod: display Alpha Mod  id fixture-z", "Mod: display Zulu Mod  id fixture-a")),
                     "platform mod diagnostics sort by display name and include IDs: " + messages);
@@ -1276,11 +1276,11 @@ public final class YsmVanillaStateSmokeTest {
             var cipher = new net.minecraft.nbt.CompoundTag();
             cipher.putInt("crypto_version", 3);
             owner.nbt.put("ysm", cipher);
-            int reads = top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl.loadedModReads;
+            int reads = org.figuramc.figura.utils.fabric.PlatformUtilsImpl.loadedModReads;
             for (String name : names) {
                 require(eval(engine, context, "ysm." + name + ";") == null, "private diagnostic returns raw null: " + name);
             }
-            require(messages.isEmpty() && top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl.loadedModReads == reads,
+            require(messages.isEmpty() && org.figuramc.figura.utils.fabric.PlatformUtilsImpl.loadedModReads == reads,
                     "encrypted payload diagnostics log nothing and do not enumerate the platform");
             owner.nbt = null;
             context.entity = null;
@@ -1289,8 +1289,8 @@ public final class YsmVanillaStateSmokeTest {
                     "entity diagnostics require a subject even with debugging enabled");
         } finally {
             activeEffects.set(entity, previousEffects);
-            top.aihmc.omnimorph.config.Configs.DEBUG_MODE.value = previousDebug;
-            top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl.loadedModReads = previousReads;
+            org.figuramc.figura.config.Configs.DEBUG_MODE.value = previousDebug;
+            org.figuramc.figura.utils.fabric.PlatformUtilsImpl.loadedModReads = previousReads;
             logger.removeAppender(appender);
             logger.setLevel(previousLevel);
             appender.stop();

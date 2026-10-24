@@ -7,11 +7,11 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.model.player.PlayerModel;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.math.matrix.FiguraMat4;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.math.matrix.FiguraMat4;
 import top.aihmc.omnimorph.model.library.PreviewBoneHighlight;
-import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
-import top.aihmc.omnimorph.model.rendering.PartFilterScheme;
+import org.figuramc.figura.model.rendering.EntityRenderMode;
+import org.figuramc.figura.model.rendering.PartFilterScheme;
 
 /** Converts the controller's model-unit matrices into each existing native renderer's input space. */
 public final class OutfitNativeRenderer {

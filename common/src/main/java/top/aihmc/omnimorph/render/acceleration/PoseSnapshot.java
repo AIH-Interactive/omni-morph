@@ -2,10 +2,10 @@ package top.aihmc.omnimorph.render.acceleration;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import org.joml.Vector3f;
-import top.aihmc.omnimorph.math.matrix.FiguraMat3;
-import top.aihmc.omnimorph.math.matrix.FiguraMat4;
-import top.aihmc.omnimorph.math.vector.FiguraVec3;
-import top.aihmc.omnimorph.math.vector.FiguraVec4;
+import org.figuramc.figura.math.matrix.FiguraMat3;
+import org.figuramc.figura.math.matrix.FiguraMat4;
+import org.figuramc.figura.math.vector.FiguraVec3;
+import org.figuramc.figura.math.vector.FiguraVec4;
 
 import java.nio.ByteBuffer;
 

@@ -8,7 +8,7 @@ import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.Bootstrap;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.control.AvatarControlRuntime;
 import top.aihmc.omnimorph.avatar.ysm.YsmAvatarLoader;
 import top.aihmc.omnimorph.avatar.ysm.YsmMemoryResourceSource;
@@ -16,9 +16,9 @@ import top.aihmc.omnimorph.avatar.ysm.YsmModelData;
 import top.aihmc.omnimorph.avatar.ysm.YsmSourceIdentity;
 import top.aihmc.omnimorph.avatar.ysm.YsmTextureOption;
 import top.aihmc.omnimorph.avatar.ysm.YsmTextureSelectionStore;
-import top.aihmc.omnimorph.mixin.render.TextureManagerAccessor;
-import top.aihmc.omnimorph.math.vector.FiguraVec3;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.mixin.render.TextureManagerAccessor;
+import org.figuramc.figura.math.vector.FiguraVec3;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import sun.misc.Unsafe;
 
 import javax.imageio.ImageIO;
@@ -106,7 +106,7 @@ public final class YsmMaterialNativeSmokeTest {
                 RenderSystem.assertOnRenderThread();
             }
             instance.set(null, client);
-            top.aihmc.omnimorph.permissions.PermissionManager.init();
+            org.figuramc.figura.permissions.PermissionManager.init();
             if ((args.length == 2 && args[0].equals("--library-preview"))
                     || (args.length == 2 && args[0].equals("--cosmetic-sources"))
                     || (args.length == 1 && args[0].equals("--library-equipment"))
@@ -880,7 +880,7 @@ public final class YsmMaterialNativeSmokeTest {
     }
 
     /** Replaces GPU allocation only; publication and the vanilla view lookup remain real. */
-    private static final class PublicationTexture extends top.aihmc.omnimorph.model.rendering.texture.FiguraTexture {
+    private static final class PublicationTexture extends org.figuramc.figura.model.rendering.texture.FiguraTexture {
         private int loads;
         private boolean failUpload;
 
@@ -1069,7 +1069,7 @@ public final class YsmMaterialNativeSmokeTest {
         world.variables.setPath("self", world.variables.evaluate(null));
         try {
             require(runtime.forRenderPass() == runtime, "world drawing keeps its original evaluator");
-            runtime.owner().renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI;
+            runtime.owner().renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
             var preview = runtime.forRenderPass();
             require(preview != runtime && preview.isPreviewRuntime(), "GUI default pose gets a detached evaluator");
             require(preview.owner().getYsmRuntime() == preview, "preview fn/ysm bindings resolve the detached runtime");
@@ -1152,7 +1152,7 @@ public final class YsmMaterialNativeSmokeTest {
                         top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator.evaluator(world), false);
                 require(runtime.forRenderPass().captureRenderPose(false).part("root").animPosRaw().y == 0d,
                         "settings preview stays standing while the world samples its custom idle animation");
-                client.screen = new top.aihmc.omnimorph.gui.screens.AvatarScreen(1f, 0f, 0f, null, settings);
+                client.screen = new org.figuramc.figura.gui.screens.AvatarScreen(1f, 0f, 0f, null, settings);
                 require(runtime.forRenderPass().isPreviewRuntime(),
                         "expanded settings preview also uses isolated standing playback");
             } finally {
@@ -1166,7 +1166,7 @@ public final class YsmMaterialNativeSmokeTest {
                     input.putString("preview_animation", declaration);
                 }
                 try (var alternative = YsmModelRuntime.fromNbt(owner(unsafe, 55), input)) {
-                    alternative.owner().renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI;
+                    alternative.owner().renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
                     var alternativePreview = alternative.forRenderPass();
                     require(alternativePreview != alternative && alternativePreview.isPreviewRuntime(),
                             "omitted or invalid preview declarations still select the detached default pose");
@@ -1194,7 +1194,7 @@ public final class YsmMaterialNativeSmokeTest {
         var renderer = runtime.renderer();
         try {
             require(runtime.isGuiNoLighting(), "formal loader retains gui_no_lighting");
-            runtime.owner().renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI;
+            runtime.owner().renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
             var opaque = (net.minecraft.client.renderer.rendertype.RenderType) renderType.invoke(renderer);
             var source = net.minecraft.client.renderer.RenderPipelines.ENTITY_TRANSLUCENT_EMISSIVE;
             require(opaque.pipeline().getVertexShader().equals(source.getVertexShader())
@@ -1220,16 +1220,16 @@ public final class YsmMaterialNativeSmokeTest {
             var guiPose = runtime.captureRenderPose(false);
             var submittedType = YsmRenderer.class.getDeclaredMethod("renderType", YsmRenderPose.class);
             submittedType.setAccessible(true);
-            runtime.owner().renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.WORLD;
+            runtime.owner().renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.WORLD;
             var deferredGui = (net.minecraft.client.renderer.rendertype.RenderType) submittedType.invoke(renderer, guiPose);
             require(deferredGui.pipeline().getShaderDefines().equals(unlitDefines),
                     "deferred GUI drawing retains submission-time unlit material after the avatar mode is restored");
             var worldPose = runtime.captureRenderPose(false);
-            runtime.owner().renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI;
+            runtime.owner().renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
             var deferredWorld = (net.minecraft.client.renderer.rendertype.RenderType) submittedType.invoke(renderer, worldPose);
             require(deferredWorld.pipeline() == net.minecraft.client.renderer.RenderPipelines.ENTITY_TRANSLUCENT_CULL,
                     "later GUI extraction cannot change a submitted world material");
-            runtime.owner().renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.WORLD;
+            runtime.owner().renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.WORLD;
             var world = (net.minecraft.client.renderer.rendertype.RenderType) renderType.invoke(renderer);
             require(world.pipeline() == net.minecraft.client.renderer.RenderPipelines.ENTITY_TRANSLUCENT_CULL,
                     "gui_no_lighting never changes the world material pipeline");
@@ -1446,7 +1446,7 @@ public final class YsmMaterialNativeSmokeTest {
         // Binary mapping supplies baked geometry without an exported main_model JSON resource.
         var fixture = new Fixture(unsafe, 702, null, null, true);
         try {
-            fixture.runtime.owner().renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI;
+            fixture.runtime.owner().renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
             var preview = fixture.runtime.forRenderPass();
             require(preview != null, "baked library preview must not disappear when source JSON is absent");
             require(!geometryVertices(preview, YsmPartMask.PLAYER_BODY).isEmpty(),
@@ -1471,7 +1471,7 @@ public final class YsmMaterialNativeSmokeTest {
         Field backend = service.getClass().getDeclaredField("preferredBackend");
         backend.setAccessible(true);
         Object previousBackend = backend.get(service);
-        boolean previousPaperdoll = top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll;
+        boolean previousPaperdoll = org.figuramc.figura.utils.ui.UIHelper.paperdoll;
         try {
             for (boolean accelerated : new boolean[]{false, true}) {
                 // A distinct Java backend exercises production accelerated capture and fallback emission.
@@ -1503,7 +1503,7 @@ public final class YsmMaterialNativeSmokeTest {
                     currentMaterial.set(material);
                     return consumer;
                 };
-                top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = true;
+                org.figuramc.figura.utils.ui.UIHelper.paperdoll = true;
                 top.aihmc.omnimorph.model.library.PreviewBoneHighlight.capture(runtime.owner(), runtime.getPart("selected"));
                 runtime.renderer().render(new com.mojang.blaze3d.vertex.PoseStack(), source, 0, null,
                         runtime.captureRenderPose(false));
@@ -1511,7 +1511,7 @@ public final class YsmMaterialNativeSmokeTest {
                                 && alphas.stream().filter(alpha -> alpha == 255).count() == 48,
                         "YSM parent fades while selected bone and child retain opacity, including deferred pose copies");
                 alphas.clear();
-                runtime.owner().renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI;
+                runtime.owner().renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
                 var detached = runtime.forRenderPass();
                 require(detached != runtime && detached.owner() != runtime.owner(),
                         "bone selection regression exercises the actual detached GUI runtime");
@@ -1521,12 +1521,12 @@ public final class YsmMaterialNativeSmokeTest {
                                 && alphas.stream().filter(alpha -> alpha == 255).count() == 48,
                         "the tree's source selection highlights the detached preview and fades other bones");
                 alphas.clear();
-                top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = false;
+                org.figuramc.figura.utils.ui.UIHelper.paperdoll = false;
                 runtime.renderer().render(new com.mojang.blaze3d.vertex.PoseStack(), source, 0, null);
                 require(alphas.size() == 72 && alphas.stream().allMatch(alpha -> alpha == 255),
                         "world rendering remains fully opaque while a GUI selection exists");
                 top.aihmc.omnimorph.model.library.PreviewBoneHighlight.finishFrame();
-                top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = true;
+                org.figuramc.figura.utils.ui.UIHelper.paperdoll = true;
                 require(top.aihmc.omnimorph.model.library.PreviewBoneHighlight.opacity(runtime.owner(), runtime.getPart("root")) == 1f,
                         "cleared selections restore the original material opacity");
                 require(runtime.getPart("root").visibleRaw() && runtime.getPart("selected").visibleRaw(),
@@ -1536,7 +1536,7 @@ public final class YsmMaterialNativeSmokeTest {
         } finally {
             backend.set(service, previousBackend);
             top.aihmc.omnimorph.model.library.PreviewBoneHighlight.finishFrame();
-            top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = previousPaperdoll;
+            org.figuramc.figura.utils.ui.UIHelper.paperdoll = previousPaperdoll;
             runtime.close();
             client.drain();
         }
@@ -1576,7 +1576,7 @@ public final class YsmMaterialNativeSmokeTest {
         var source = YsmModelRuntime.fromNbt(sourceOwner, tag);
         install(sourceOwner, "ysmRuntime", source);
         try {
-            sourceOwner.renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI;
+            sourceOwner.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
             var preview = source.forRenderPass();
             var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
             top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
@@ -1621,7 +1621,7 @@ public final class YsmMaterialNativeSmokeTest {
             runtime.renderer().render(new com.mojang.blaze3d.vertex.PoseStack(), type -> recorder, 0, null);
             require(owner.complexity.pre == 0, "hidden hierarchy costs zero and a new frame resets counts");
             runtime.getPart("root").setVisible(true);
-            owner.renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI;
+            owner.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
             top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
             var preview = runtime.forRenderPass();
             require(preview != runtime, "test exercises detached GUI preview");
@@ -1831,7 +1831,7 @@ public final class YsmMaterialNativeSmokeTest {
         Path secondPath = directory.resolve("model-b");
         YsmTextureSelectionStore.set(firstPath, "c");
         YsmTextureSelectionStore.set(secondPath, "plain");
-        require(Files.isRegularFile(top.aihmc.omnimorph.FiguraMod.getCacheDirectory().resolve("ysm_textures.nbt")),
+        require(Files.isRegularFile(org.figuramc.figura.FiguraMod.getCacheDirectory().resolve("ysm_textures.nbt")),
                 "skin selections use the actual disk cache");
         clearSelections();
         Fixture first = new Fixture(unsafe, 4, firstPath);

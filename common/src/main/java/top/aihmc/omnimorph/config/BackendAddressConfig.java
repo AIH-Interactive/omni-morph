@@ -2,9 +2,13 @@ package top.aihmc.omnimorph.config;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
-import top.aihmc.omnimorph.FiguraMod;
+import org.figuramc.figura.FiguraMod;
 import top.aihmc.omnimorph.backend2.protocol.CloudEndpoint;
 
+import org.figuramc.figura.config.ConfigManager;
+import org.figuramc.figura.config.ConfigType;
+import org.figuramc.figura.config.Configs;
+import org.figuramc.figura.config.InputType;
 /** Reuses the original string editor; a stored debug origin survives permission revocation. */
 public class BackendAddressConfig extends ConfigType.StringConfig implements ConfigType.SerializableConfig {
     public BackendAddressConfig(String name, ConfigType.Category category, String defaultValue) {

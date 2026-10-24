@@ -1,9 +1,9 @@
 package top.aihmc.omnimorph.model.ysm;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.control.AvatarControlRuntime;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationParser;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationPlayer;
 import top.aihmc.omnimorph.molang.MolangEngine;

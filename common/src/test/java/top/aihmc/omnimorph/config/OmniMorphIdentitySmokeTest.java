@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.config;
 
 import com.google.gson.JsonParser;
-import top.aihmc.omnimorph.FiguraMod;
+import org.figuramc.figura.FiguraMod;
 
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -9,6 +9,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 
+import org.figuramc.figura.config.ConfigManager;
+import org.figuramc.figura.config.Configs;
 /** Exercises real legacy/new configuration and local-data selection after the mod ID change. */
 public final class OmniMorphIdentitySmokeTest {
     public static void main(String[] args) throws Exception {
@@ -29,7 +31,7 @@ public final class OmniMorphIdentitySmokeTest {
             require(!Files.exists(legacyDirectory), "Legacy root is renamed to the default directory");
             require(Files.readString(currentDirectory.resolve("avatars/local-model-marker")).equals("synthetic-local-model"),
                     "Renamed avatar directory preserves model bytes");
-            require(top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.getLocalAvatarDirectory()
+            require(org.figuramc.figura.avatar.local.LocalAvatarFetcher.getLocalAvatarDirectory()
                     .equals(currentDirectory.resolve("avatars")), "Actual wardrobe resolves omnimorph/avatars");
             ConfigManager.loadConfig();
             require(Configs.CLOUD_PROTOCOL.value == 0 && Configs.SERVER_IP.value.equals("https://preserved.test:7443"),
@@ -67,10 +69,10 @@ public final class OmniMorphIdentitySmokeTest {
                     "Explicit directory prevents automatic migration of default roots");
             Configs.MAIN_DIR.value = "";
 
-            var clearBrandCache = top.aihmc.omnimorph.resources.FiguraRuntimeResources.class
+            var clearBrandCache = org.figuramc.figura.resources.FiguraRuntimeResources.class
                     .getDeclaredMethod("clearCachedBrandResources");
             clearBrandCache.setAccessible(true);
-            Path cachedIcon = top.aihmc.omnimorph.resources.FiguraRuntimeResources.getAssetsDirectory()
+            Path cachedIcon = org.figuramc.figura.resources.FiguraRuntimeResources.getAssetsDirectory()
                     .resolve("textures/gui/show_figura.png");
             Files.createDirectories(cachedIcon.getParent());
             Files.writeString(cachedIcon, "old downloaded icon");
@@ -92,7 +94,7 @@ public final class OmniMorphIdentitySmokeTest {
                             "Technical protocol identity remains Figura Cloud");
                 }
             }
-            var remap = top.aihmc.omnimorph.resources.FiguraRuntimeResources.class
+            var remap = org.figuramc.figura.resources.FiguraRuntimeResources.class
                     .getDeclaredMethod("remapPublicResource", String.class, byte[].class);
             remap.setAccessible(true);
             String upstreamLanguage = "{\"figura\":\"Figura\",\"figura.gui.help.ingame_docs\":\"Figura Docs\","

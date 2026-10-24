@@ -12,14 +12,14 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.math.matrix.FiguraMat3;
-import top.aihmc.omnimorph.math.matrix.FiguraMat4;
-import top.aihmc.omnimorph.model.FiguraModelPart;
-import top.aihmc.omnimorph.model.ParentType;
-import top.aihmc.omnimorph.model.VanillaModelData;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTextureSet;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.math.matrix.FiguraMat3;
+import org.figuramc.figura.math.matrix.FiguraMat4;
+import org.figuramc.figura.model.FiguraModelPart;
+import org.figuramc.figura.model.ParentType;
+import org.figuramc.figura.model.VanillaModelData;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.model.rendering.texture.FiguraTextureSet;
 import org.joml.Matrix3f;
 import org.joml.Matrix4d;
 import org.joml.Quaternionf;
@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.figuramc.figura.model.rendering.PartFilterScheme;
 /**
  * Mainly exists as an abstract superclass for VAO-based and
  * immediate mode avatar renderers. (VAO-based don't exist yet)

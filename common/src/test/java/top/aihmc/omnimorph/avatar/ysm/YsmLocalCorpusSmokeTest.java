@@ -3,8 +3,8 @@ package top.aihmc.omnimorph.avatar.ysm;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
-import top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher;
-import top.aihmc.omnimorph.avatar.local.LocalAvatarLoader;
+import org.figuramc.figura.avatar.local.LocalAvatarFetcher;
+import org.figuramc.figura.avatar.local.LocalAvatarLoader;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

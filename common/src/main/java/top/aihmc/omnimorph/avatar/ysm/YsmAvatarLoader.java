@@ -6,14 +6,14 @@ import com.google.gson.JsonObject;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
-import top.aihmc.omnimorph.FiguraMod;
-import top.aihmc.omnimorph.avatar.UserData;
+import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.avatar.UserData;
 import top.aihmc.omnimorph.avatar.AvatarLoadProgress;
 import top.aihmc.omnimorph.avatar.local.LocalAvatarSource;
-import top.aihmc.omnimorph.gui.FiguraToast;
-import top.aihmc.omnimorph.parsers.AvatarMetadataParser;
-import top.aihmc.omnimorph.utils.FiguraText;
-import top.aihmc.omnimorph.utils.IOUtils;
+import org.figuramc.figura.gui.FiguraToast;
+import org.figuramc.figura.parsers.AvatarMetadataParser;
+import org.figuramc.figura.utils.FiguraText;
+import org.figuramc.figura.utils.IOUtils;
 
 import java.nio.file.Path;
 import java.security.MessageDigest;
@@ -31,7 +31,7 @@ public final class YsmAvatarLoader {
     public static CompletableFuture<YsmLoadResult> loadAvatar(Path path, UserData target) {
         long generation = target.ysmLoads.begin();
         long progress = target.loading.begin(AvatarLoadProgress.Stage.DECODING);
-        var prepared = new top.aihmc.omnimorph.avatar.Avatar(target.id);
+        var prepared = new org.figuramc.figura.avatar.Avatar(target.id);
         return top.aihmc.omnimorph.avatar.AvatarLoadExecutor.submit(() -> {
             try {
                 var source = LocalAvatarSource.capture(path, () -> !target.ysmLoads.current(generation));
@@ -46,7 +46,7 @@ public final class YsmAvatarLoader {
                     target.loading.stage(progress, AvatarLoadProgress.Stage.APPLYING);
                     return publication.thenApply(published -> {
                         if (published) {
-                            top.aihmc.omnimorph.backend2.NetworkStuff.localAvatarReady(prepared);
+                            org.figuramc.figura.backend2.NetworkStuff.localAvatarReady(prepared);
                         }
                         return new YsmLoadResult(published ? YsmLoadResult.Status.PUBLISHED : YsmLoadResult.Status.CANCELLED,
                                 identity, diagnostics);

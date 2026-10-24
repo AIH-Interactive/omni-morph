@@ -131,7 +131,7 @@ public final class LibraryUploadDraftSmokeTest {
         long third = draft.beginSource(Path.of("third.ysm"));
         require(draft.metadata(third, restricted) && draft.requiresAuthorization(), "new source gets its own default");
         var formatted = LibraryMetadataReader.fromFigura(
-                top.aihmc.omnimorph.parsers.AvatarMetadataParser.read(
+                org.figuramc.figura.parsers.AvatarMetadataParser.read(
                         "{\"name\":\"§b测试模型\",\"authors\":[\"§e作者\"],\"description\":\"§l模型说明§r\"}"),
                 "fallback");
         var formattedDraft = new LibraryUploadDraft(uploader);

@@ -12,8 +12,8 @@ import com.mojang.blaze3d.textures.TextureFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.resources.Identifier;
 import net.minecraft.client.renderer.rendertype.RenderType;
-import top.aihmc.omnimorph.math.matrix.FiguraMat3;
-import top.aihmc.omnimorph.math.matrix.FiguraMat4;
+import org.figuramc.figura.math.matrix.FiguraMat3;
+import org.figuramc.figura.math.matrix.FiguraMat4;
 
 import java.nio.ByteBuffer;
 import java.util.Objects;

@@ -5,20 +5,22 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.config.Configs;
-import top.aihmc.omnimorph.gui.ActionWheel;
-import top.aihmc.omnimorph.gui.widgets.Button;
-import top.aihmc.omnimorph.gui.widgets.EntityPreview;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.config.Configs;
+import org.figuramc.figura.gui.ActionWheel;
+import org.figuramc.figura.gui.widgets.Button;
+import org.figuramc.figura.gui.widgets.EntityPreview;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
 import top.aihmc.omnimorph.model.outfit.OutfitActionWheel;
 import top.aihmc.omnimorph.model.outfit.OutfitComposition;
 import top.aihmc.omnimorph.model.outfit.OutfitDraft;
-import top.aihmc.omnimorph.utils.FiguraText;
-import top.aihmc.omnimorph.utils.ui.UIHelper;
+import org.figuramc.figura.utils.FiguraText;
+import org.figuramc.figura.utils.ui.UIHelper;
 
 import java.util.UUID;
 
+import org.figuramc.figura.gui.screens.AbstractPanelScreen;
+import org.figuramc.figura.gui.screens.WardrobeScreen;
 /** A private draft wheel: native artwork and owner callbacks, without activating the equipped wheel. */
 public final class CosmeticAnimationScreen extends Screen {
     private final WardrobeScreen wardrobe;
@@ -238,7 +240,7 @@ public final class CosmeticAnimationScreen extends Screen {
         }
     }
 
-    void previewAbandoned() {
+    public void previewAbandoned() {
         wardrobe.closeCosmeticAnimations(false);
     }
 }

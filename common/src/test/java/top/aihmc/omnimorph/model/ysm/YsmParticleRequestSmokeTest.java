@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.model.ysm;
 
 import net.minecraft.world.phys.Vec3;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.molang.MolangEngine;
 import top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator;
 import top.aihmc.omnimorph.molang.runtime.Function;

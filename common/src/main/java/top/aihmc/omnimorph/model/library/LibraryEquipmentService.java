@@ -1,12 +1,12 @@
 package top.aihmc.omnimorph.model.library;
 
 import net.minecraft.client.Minecraft;
-import top.aihmc.omnimorph.FiguraMod;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
 import top.aihmc.omnimorph.avatar.AvatarLoadProgress;
-import top.aihmc.omnimorph.avatar.local.CacheAvatarLoader;
-import top.aihmc.omnimorph.backend2.NetworkStuff;
+import org.figuramc.figura.avatar.local.CacheAvatarLoader;
+import org.figuramc.figura.backend2.NetworkStuff;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;

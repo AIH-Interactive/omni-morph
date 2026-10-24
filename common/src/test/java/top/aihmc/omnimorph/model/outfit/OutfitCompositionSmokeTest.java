@@ -5,9 +5,9 @@ import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.nbt.CompoundTag;
 import org.joml.Matrix4f;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.permissions.PermissionPack;
-import top.aihmc.omnimorph.permissions.Permissions;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.permissions.PermissionPack;
+import org.figuramc.figura.permissions.Permissions;
 import top.aihmc.omnimorph.molang.parser.ast.FloatExpression;
 import top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator;
 import top.aihmc.omnimorph.molang.runtime.MolangExecutionBudget;
@@ -52,7 +52,7 @@ public final class OutfitCompositionSmokeTest {
         UUID outfit = UUID.randomUUID();
         var permissions = new PermissionPack.PlayerPermissionPack(
                 new PermissionPack.CategoryPermissionPack(Permissions.Category.DEFAULT), account.toString());
-        permissions.insert(Permissions.INIT_INST, 1000, top.aihmc.omnimorph.FiguraMod.MOD_ID);
+        permissions.insert(Permissions.INIT_INST, 1000, org.figuramc.figura.FiguraMod.MOD_ID);
         for (var declaration : declarations) {
             var context = new CosmeticInstanceContext(account, outfit, account, declaration,
                     OutfitLimits.defaults(), CosmeticInstanceContext.Scope.DRAFT);
@@ -206,14 +206,14 @@ public final class OutfitCompositionSmokeTest {
         }
         var configuration = new OutfitConfig(1, 0, baseResource, declarations, List.of(), Map.of(resource.identity(), 4), false);
         try (var composition = new OutfitComposition(configuration, OutfitLimits.defaults(), wearer, instances, new SkeletonIndex.Cache())) {
-            var matrices = new java.util.IdentityHashMap<top.aihmc.omnimorph.model.FiguraModelPart, Matrix4f>();
+            var matrices = new java.util.IdentityHashMap<org.figuramc.figura.model.FiguraModelPart, Matrix4f>();
             skeleton.binding().parts().forEach(part -> matrices.put(part, new Matrix4f()));
             var pose = SkeletonPose.fromNative(skeleton.binding(), matrices, new Matrix4f(), SkeletonPose.NativeUnits.MODEL_UNITS);
             var views = new int[1];
             for (int index = 0; index < 2; index++) {
                 try (var frame = composition.retain()) {
                     composition.withBaseBudget(base, () -> frame.draw(pose, null, 0.5f,
-                            top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER, draw -> views[0]++));
+                            org.figuramc.figura.model.rendering.EntityRenderMode.RENDER, draw -> views[0]++));
                 }
             }
             require(views[0] == 4, "two formal views prepare both mounted instances");
@@ -252,7 +252,7 @@ public final class OutfitCompositionSmokeTest {
 
     /** Supply the entity accessor normally installed by Mixins in the plain JVM fixture. */
     private static final class EventWearer extends net.minecraft.world.entity.decoration.ArmorStand
-            implements top.aihmc.omnimorph.mixin.EntityAccessor {
+            implements org.figuramc.figura.mixin.EntityAccessor {
         private EventWearer() {
             super(net.minecraft.world.entity.EntityType.ARMOR_STAND, null);
         }
@@ -264,7 +264,7 @@ public final class OutfitCompositionSmokeTest {
     }
 
     private static void testSharedTextureBudget(Avatar first, Avatar second) {
-        for (int index = 0; index < top.aihmc.omnimorph.lua.api.TextureAPI.TEXTURE_LIMIT; index++) {
+        for (int index = 0; index < org.figuramc.figura.lua.api.TextureAPI.TEXTURE_LIMIT; index++) {
             Avatar owner = index % 2 == 0 ? first : second;
             owner.registerTexture("outfit-" + index, new com.mojang.blaze3d.platform.NativeImage(1, 1, true), false);
         }
@@ -295,11 +295,11 @@ public final class OutfitCompositionSmokeTest {
         require(soundMaximum > 0 && particleMaximum >= 20, "effect fixture has nonzero existing permissions");
         for (int index = 0; index < soundMaximum; index++) {
             Avatar owner = index % 2 == 0 ? first : second;
-            new top.aihmc.omnimorph.lua.api.sound.LuaSound(
+            new org.figuramc.figura.lua.api.sound.LuaSound(
                     (com.mojang.blaze3d.audio.SoundBuffer) null, "budget-only", owner).play();
             require(!owner.noPermissions.contains(Permissions.SOUNDS), "real LuaSound guard admits available quota");
         }
-        new top.aihmc.omnimorph.lua.api.sound.LuaSound(
+        new org.figuramc.figura.lua.api.sound.LuaSound(
                 (com.mojang.blaze3d.audio.SoundBuffer) null, "budget-only", first).play();
         require(first.noPermissions.contains(Permissions.SOUNDS) && first.soundsRemaining.peek() > 0
                         && first.remainingSounds() == 0 && second.remainingSounds() == 0,
@@ -307,7 +307,7 @@ public final class OutfitCompositionSmokeTest {
         for (int index = 0; index < particleMaximum; index++) {
             require((index % 2 == 0 ? first : second).useParticle(), "shared particle entry point consumes one token");
         }
-        new top.aihmc.omnimorph.lua.api.particle.LuaParticle("budget-only", null, first).spawn();
+        new org.figuramc.figura.lua.api.particle.LuaParticle("budget-only", null, first).spawn();
         require(first.noPermissions.contains(Permissions.PARTICLES) && first.particlesRemaining.peek() > 0
                         && first.remainingParticles() == 0 && second.remainingParticles() == 0,
                 "real LuaParticle denial guard shares the wearer allowance without constructing a particle");
@@ -319,7 +319,7 @@ public final class OutfitCompositionSmokeTest {
 
     private static void testSharedLuaBudget(Avatar first, Avatar second) {
         for (Avatar avatar : List.of(first, second)) {
-            avatar.permissions.insert(Permissions.RENDER_INST, 64, top.aihmc.omnimorph.FiguraMod.MOD_ID);
+            avatar.permissions.insert(Permissions.RENDER_INST, 64, org.figuramc.figura.FiguraMod.MOD_ID);
             avatar.render.reset(64);
         }
         YsmRenderFrameClock.beginFrame();
@@ -348,7 +348,7 @@ public final class OutfitCompositionSmokeTest {
         accessory.cosmeticContext.bindInstructionBudget(budget);
         try {
             base.load(new CompoundTag());
-            base.permissions.insert(Permissions.RENDER_INST, 64, top.aihmc.omnimorph.FiguraMod.MOD_ID);
+            base.permissions.insert(Permissions.RENDER_INST, 64, org.figuramc.figura.FiguraMod.MOD_ID);
             base.render.reset(64);
             base.render.use(20);
             accessory.render.reset(64);
@@ -359,7 +359,7 @@ public final class OutfitCompositionSmokeTest {
             require(accessory.luaRuntime.run(call, accessory.render) != null,
                     "accessory executes using the base's remaining allowance");
             int accessoryUsed = 64 - accessory.render.remaining;
-            var runtime = new top.aihmc.omnimorph.lua.FiguraLuaRuntime(base, Map.of());
+            var runtime = new org.figuramc.figura.lua.FiguraLuaRuntime(base, Map.of());
             require(runtime.init(new net.minecraft.nbt.ListTag()), "fixture base VM initializes normally");
             var baseCall = runtime.load("base shares accessory", "return 2");
             try (var scope = budget.enter()) {
@@ -373,7 +373,7 @@ public final class OutfitCompositionSmokeTest {
                         new com.mojang.blaze3d.platform.NativeImage(1, 1, true), false);
                 require(base.renderer.customTextures.get("base-slot") == texture,
                         "base texture registration uses the same scoped inventory as its accessory");
-                int baseSlots = top.aihmc.omnimorph.lua.api.TextureAPI.TEXTURE_LIMIT
+                int baseSlots = org.figuramc.figura.lua.api.TextureAPI.TEXTURE_LIMIT
                         - accessory.renderer.customTextures.size();
                 for (int index = 1; index < baseSlots; index++) {
                     base.registerTexture("base-slot-" + index,
@@ -394,7 +394,7 @@ public final class OutfitCompositionSmokeTest {
             accessory.cosmeticContext.bindEffectBudget(new OutfitEffectBudget(() -> base, accessory));
             try {
                 require(!accessory.useSound(), "the existing detached preview's zero sound permission is retained");
-                base.permissions.insert(Permissions.SOUNDS, 5, top.aihmc.omnimorph.FiguraMod.MOD_ID);
+                base.permissions.insert(Permissions.SOUNDS, 5, org.figuramc.figura.FiguraMod.MOD_ID);
                 base.soundsRemaining.set(5);
                 for (int tick = 0; tick < net.minecraft.SharedConstants.TICKS_PER_SECOND; tick++) {
                     base.soundsRemaining.tick();

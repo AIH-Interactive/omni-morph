@@ -1,8 +1,8 @@
 package top.aihmc.omnimorph.model.ysm;
 
-import top.aihmc.omnimorph.lua.LuaWhitelist;
-import top.aihmc.omnimorph.lua.docs.LuaMethodDoc;
-import top.aihmc.omnimorph.lua.docs.LuaTypeDoc;
+import org.figuramc.figura.lua.LuaWhitelist;
+import org.figuramc.figura.lua.docs.LuaMethodDoc;
+import org.figuramc.figura.lua.docs.LuaTypeDoc;
 
 @LuaWhitelist
 @LuaTypeDoc(name = "YsmLocator", value = "ysm_locator")

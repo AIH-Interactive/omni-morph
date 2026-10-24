@@ -3,8 +3,8 @@ package top.aihmc.omnimorph.utils.neoforge;
 
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforgespi.language.IModInfo;
-import top.aihmc.omnimorph.utils.FiguraModMetadata;
-import top.aihmc.omnimorph.utils.Version;
+import org.figuramc.figura.utils.FiguraModMetadata;
+import org.figuramc.figura.utils.Version;
 
 public class FiguraModMetadataImpl extends FiguraModMetadata {
     private final IModInfo modInfo;

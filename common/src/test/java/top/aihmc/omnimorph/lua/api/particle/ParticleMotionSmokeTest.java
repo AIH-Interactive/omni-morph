@@ -5,7 +5,7 @@ import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.TwoArgFunction;
-import top.aihmc.omnimorph.math.vector.FiguraVec3;
+import org.figuramc.figura.math.vector.FiguraVec3;
 
 import java.util.concurrent.atomic.AtomicReference;
 

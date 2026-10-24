@@ -2,13 +2,13 @@ package top.aihmc.omnimorph.model.ysm;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import org.joml.Matrix4f;
-import top.aihmc.omnimorph.lua.LuaWhitelist;
-import top.aihmc.omnimorph.lua.docs.LuaMethodDoc;
-import top.aihmc.omnimorph.lua.docs.LuaMethodOverload;
-import top.aihmc.omnimorph.lua.docs.LuaTypeDoc;
-import top.aihmc.omnimorph.math.matrix.FiguraMat4;
-import top.aihmc.omnimorph.math.vector.FiguraVec3;
-import top.aihmc.omnimorph.utils.LuaUtils;
+import org.figuramc.figura.lua.LuaWhitelist;
+import org.figuramc.figura.lua.docs.LuaMethodDoc;
+import org.figuramc.figura.lua.docs.LuaMethodOverload;
+import org.figuramc.figura.lua.docs.LuaTypeDoc;
+import org.figuramc.figura.math.matrix.FiguraMat4;
+import org.figuramc.figura.math.vector.FiguraVec3;
+import org.figuramc.figura.utils.LuaUtils;
 
 import java.util.ArrayList;
 import java.util.List;

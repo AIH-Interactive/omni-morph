@@ -3,7 +3,7 @@ package top.aihmc.omnimorph.gui.screens;
 import net.minecraft.network.chat.Component;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;
-import top.aihmc.omnimorph.utils.FiguraText;
+import org.figuramc.figura.utils.FiguraText;
 import top.aihmc.omnimorph.wizards.CosmeticTemplate;
 import top.aihmc.omnimorph.wizards.CosmeticWizard;
 
@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.figuramc.figura.gui.screens.AbstractPanelScreen;
+import org.figuramc.figura.gui.screens.AvatarWizardScreen;
 public final class CosmeticWizardScreen extends AvatarWizardScreen {
     private final CosmeticWizard cosmetic;
 

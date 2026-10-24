@@ -2,10 +2,10 @@ package top.aihmc.omnimorph.gui.widgets.library;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
-import top.aihmc.omnimorph.gui.widgets.AbstractContainerElement;
-import top.aihmc.omnimorph.gui.widgets.Button;
-import top.aihmc.omnimorph.utils.ui.UIHelper;
-import top.aihmc.omnimorph.FiguraMod;
+import org.figuramc.figura.gui.widgets.AbstractContainerElement;
+import org.figuramc.figura.gui.widgets.Button;
+import org.figuramc.figura.utils.ui.UIHelper;
+import org.figuramc.figura.FiguraMod;
 
 import java.util.function.Consumer;
 

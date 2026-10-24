@@ -30,13 +30,15 @@
   "environment": "client",
   "entrypoints": {
     "client": [
-      "top.aihmc.omnimorph.fabric.FiguraModFabric"
+      "org.figuramc.figura.fabric.FiguraModFabric"
     ],
     "lambdynlights:initializer": [
       "top.aihmc.omnimorph.compat.LambDynamicLightsCompat"
     ]
   },
   "mixins": [
+    "figura.mixins.json",
+    "figura-common.mixins.json",
     "omni-morph.mixins.json",
     "omni-morph-common.mixins.json"
   ],

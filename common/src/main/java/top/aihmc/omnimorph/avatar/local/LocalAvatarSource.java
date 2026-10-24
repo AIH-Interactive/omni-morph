@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.avatar.local;
 
 import com.google.gson.Gson;
-import top.aihmc.omnimorph.FiguraMod;
+import org.figuramc.figura.FiguraMod;
 import top.aihmc.omnimorph.avatar.ysm.YsmAvatarDetector;
 import top.aihmc.omnimorph.avatar.ysm.YsmEncryptedSource;
 import top.aihmc.omnimorph.avatar.ysm.YsmPackage;
@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
 
+import org.figuramc.figura.avatar.local.LocalAvatarLoader;
 /** Device-only source locations. Portable outfit references contain the ID and content hash, never these URIs. */
 public final class LocalAvatarSource {
     private record Index(Map<String, UUID> resources) {}

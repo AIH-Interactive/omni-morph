@@ -7,7 +7,7 @@ import net.minecraft.client.renderer.SubmitNodeCollection;
 import net.minecraft.client.renderer.SubmitNodeStorage;
 import net.minecraft.client.renderer.feature.CustomFeatureRenderer;
 import top.aihmc.omnimorph.ducks.NodeCollectorExtension;
-import top.aihmc.omnimorph.utils.ui.UIHelper;
+import org.figuramc.figura.utils.ui.UIHelper;
 
 import java.util.List;
 import java.util.Map;

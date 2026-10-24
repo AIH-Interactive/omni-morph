@@ -7,8 +7,8 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.Entity;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;

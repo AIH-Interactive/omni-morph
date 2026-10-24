@@ -6,8 +6,8 @@ import net.minecraft.world.phys.Vec3;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
-import top.aihmc.omnimorph.lua.api.entity.EntityAPI;
-import top.aihmc.omnimorph.math.vector.FiguraVec3;
+import org.figuramc.figura.lua.api.entity.EntityAPI;
+import org.figuramc.figura.math.vector.FiguraVec3;
 
 import java.lang.ref.WeakReference;
 import java.util.List;

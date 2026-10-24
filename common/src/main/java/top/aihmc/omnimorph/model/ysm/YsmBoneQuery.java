@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.model.ysm;
 
-import top.aihmc.omnimorph.math.vector.FiguraVec3;
+import org.figuramc.figura.math.vector.FiguraVec3;
 import top.aihmc.omnimorph.molang.runtime.Struct;
 import top.aihmc.omnimorph.molang.storage.StringPool;
 

@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.model.ysm;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import top.aihmc.omnimorph.math.vector.FiguraVec3;
+import org.figuramc.figura.math.vector.FiguraVec3;
 import top.aihmc.omnimorph.render.acceleration.AccelerationService;
 import org.joml.Matrix4f;
 

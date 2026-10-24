@@ -4,8 +4,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import org.joml.Quaternionf;
-import top.aihmc.omnimorph.animation.Animation;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.animation.Animation;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 import top.aihmc.omnimorph.model.outfit.OutfitLimits;
@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.IntSupplier;
 
+import org.figuramc.figura.lua.api.particle.ParticleAPI;
 /** Original Avatar init queue, authored Lua and native animation markers reach the public particle API. */
 final class CosmeticParticleEntrySmokeTest {
     static void run(Runnable drain, IntSupplier worldSubmissions) throws Exception {

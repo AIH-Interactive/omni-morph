@@ -1,8 +1,8 @@
 package top.aihmc.omnimorph.model.ysm;
 
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.model.rendering.EntityRenderMode;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import net.minecraft.util.RandomSource;
 import top.aihmc.omnimorph.molang.MolangEngine;
 import top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator;

@@ -5,10 +5,10 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import top.aihmc.omnimorph.gui.widgets.Button;
-import top.aihmc.omnimorph.gui.widgets.lists.AbstractList;
-import top.aihmc.omnimorph.utils.FiguraIdentifier;
-import top.aihmc.omnimorph.utils.ui.UIHelper;
+import org.figuramc.figura.gui.widgets.Button;
+import org.figuramc.figura.gui.widgets.lists.AbstractList;
+import org.figuramc.figura.utils.FiguraIdentifier;
+import org.figuramc.figura.utils.ui.UIHelper;
 
 import java.util.List;
 import java.util.function.Supplier;

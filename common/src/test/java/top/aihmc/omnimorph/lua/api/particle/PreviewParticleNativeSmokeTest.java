@@ -20,13 +20,13 @@ import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.ZeroArgFunction;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.lua.FiguraLuaRuntime;
-import top.aihmc.omnimorph.math.vector.FiguraVec3;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.lua.FiguraLuaRuntime;
+import org.figuramc.figura.math.vector.FiguraVec3;
 import top.aihmc.omnimorph.model.outfit.OutfitLimits;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
-import top.aihmc.omnimorph.permissions.Permissions;
+import org.figuramc.figura.permissions.Permissions;
 
 import java.util.Map;
 import java.util.Arrays;
@@ -36,6 +36,8 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntSupplier;
 
+import org.figuramc.figura.lua.api.particle.LuaParticle;
+import org.figuramc.figura.lua.api.particle.ParticleAPI;
 /** Actual Lua construction, isolated lifecycle and native panel geometry; pixel validation remains separate. */
 final class PreviewParticleNativeSmokeTest {
     static void run(Avatar worldOwner, Runnable drain, IntSupplier worldSubmissions) throws Exception {
@@ -213,7 +215,7 @@ final class PreviewParticleNativeSmokeTest {
         try {
             int submitted = worldSubmissions.getAsInt();
             require(prepared.usesPreviewParticles() && !prepared.isLibraryPreview
-                            && prepared.permissions == top.aihmc.omnimorph.permissions.PermissionManager.get(worldOwner.owner),
+                            && prepared.permissions == org.figuramc.figura.permissions.PermissionManager.get(worldOwner.owner),
                     "player model copy preserves normal player permissions and fences particles before loading");
             require(!pending.activate(), "an unbound player model copy cannot activate a custom world particle");
             var suppressed = new ParticleAPI(prepared).__index("minecraft:smoke").spawn();
@@ -245,9 +247,9 @@ final class PreviewParticleNativeSmokeTest {
         Avatar owner = Avatar.createParticlePreview(identity, "isolated particle fixture");
         owner.load(new CompoundTag());
         owner.initializePreviewPlayer(null);
-        owner.permissions.insert(Permissions.TICK_INST, 4096, top.aihmc.omnimorph.FiguraMod.MOD_ID);
-        owner.permissions.insert(Permissions.RENDER_INST, 4096, top.aihmc.omnimorph.FiguraMod.MOD_ID);
-        owner.permissions.insert(Permissions.COMPLEXITY, 10000, top.aihmc.omnimorph.FiguraMod.MOD_ID);
+        owner.permissions.insert(Permissions.TICK_INST, 4096, org.figuramc.figura.FiguraMod.MOD_ID);
+        owner.permissions.insert(Permissions.RENDER_INST, 4096, org.figuramc.figura.FiguraMod.MOD_ID);
+        owner.permissions.insert(Permissions.COMPLEXITY, 10000, org.figuramc.figura.FiguraMod.MOD_ID);
         var runtime = new FiguraLuaRuntime(owner, Map.of());
         require(runtime.init(new ListTag()), "preview fixture Lua initializes through native runtime");
         return owner;

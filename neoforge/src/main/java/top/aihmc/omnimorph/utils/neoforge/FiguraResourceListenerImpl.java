@@ -2,7 +2,7 @@ package top.aihmc.omnimorph.utils.neoforge;
 
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
-import top.aihmc.omnimorph.utils.FiguraResourceListener;
+import org.figuramc.figura.utils.FiguraResourceListener;
 
 import java.util.function.Consumer;
 

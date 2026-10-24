@@ -2,7 +2,7 @@ package top.aihmc.omnimorph.model.ysm;
 
 import com.google.gson.JsonParser;
 import net.minecraft.nbt.CompoundTag;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.molang.MolangEngine;
 import top.aihmc.omnimorph.model.ysm.animation.YsmDefaultAnimationResolver;
 import top.aihmc.omnimorph.model.ysm.animation.YsmDefaultAnimationResolver.Domain;

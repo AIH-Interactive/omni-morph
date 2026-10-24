@@ -12,6 +12,10 @@ import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.figuramc.figura.config.ConfigManager;
+import org.figuramc.figura.config.ConfigType;
+import org.figuramc.figura.config.Configs;
+import org.figuramc.figura.config.InputType;
 /** Actual EnumConfig/ConfigManager round trips, without a replacement configuration UI. */
 public final class CloudProtocolConfigSmokeTest {
     public static void main(String[] args) throws Exception {
@@ -109,11 +113,11 @@ public final class CloudProtocolConfigSmokeTest {
 
     private static void endpointConfigurationAndLogs() throws Exception {
         boolean previousDebug = Configs.DEBUG_MODE.value;
-        boolean previousNetworkDebug = top.aihmc.omnimorph.backend2.NetworkStuff.debug;
+        boolean previousNetworkDebug = org.figuramc.figura.backend2.NetworkStuff.debug;
         String previousAddress = Configs.SERVER_IP.value;
         String previousTemp = Configs.SERVER_IP.tempValue;
         var logger = (org.apache.logging.log4j.core.Logger) org.apache.logging.log4j.LogManager
-                .getLogger(top.aihmc.omnimorph.FiguraMod.MOD_NAME);
+                .getLogger(org.figuramc.figura.FiguraMod.MOD_NAME);
         var messages = new java.util.ArrayList<String>();
         var appender = new org.apache.logging.log4j.core.appender.AbstractAppender("cloud-b7-log-capture", null, null, true, null) {
             @Override
@@ -149,7 +153,7 @@ public final class CloudProtocolConfigSmokeTest {
             var request = java.net.http.HttpRequest.newBuilder(URI.create(Configs.SERVER_IP.value + "/private/PATH_MARKER?QUERY_MARKER"))
                     .header("token", "TOKEN_MARKER").header("Authorization", "Bearer AUTHORIZATION_MARKER")
                     .header("Cookie", "COOKIE_MARKER").POST(java.net.http.HttpRequest.BodyPublishers.ofString(privateMarker)).build();
-            var runner = top.aihmc.omnimorph.backend2.HttpAPI.class.getDeclaredMethod("runString", java.net.http.HttpRequest.class,
+            var runner = org.figuramc.figura.backend2.HttpAPI.class.getDeclaredMethod("runString", java.net.http.HttpRequest.class,
                     java.util.function.BiConsumer.class);
             runner.setAccessible(true);
             AtomicInteger deliveries = new AtomicInteger();
@@ -157,11 +161,11 @@ public final class CloudProtocolConfigSmokeTest {
                 require(status == 200 && body.equals(privateMarker), "Actual auth/private response delivered without logging body");
                 deliveries.incrementAndGet();
             };
-            top.aihmc.omnimorph.backend2.NetworkStuff.debug = true;
+            org.figuramc.figura.backend2.NetworkStuff.debug = true;
             runner.invoke(null, request, consumer);
             require(messages.stream().anyMatch(message -> message.contains("Cloud HTTP request: method=POST, origin=http://127.0.0.1:")),
                     "Actual enabled logging was captured");
-            top.aihmc.omnimorph.backend2.NetworkStuff.debug = false;
+            org.figuramc.figura.backend2.NetworkStuff.debug = false;
             runner.invoke(null, request, consumer);
             require(deliveries.get() == 2, "Network log toggle does not authorize or block plaintext transport");
             String captured = String.join("\n", messages);
@@ -177,7 +181,7 @@ public final class CloudProtocolConfigSmokeTest {
             Configs.DEBUG_MODE.value = previousDebug;
             Configs.SERVER_IP.value = previousAddress;
             Configs.SERVER_IP.tempValue = previousTemp;
-            top.aihmc.omnimorph.backend2.NetworkStuff.debug = previousNetworkDebug;
+            org.figuramc.figura.backend2.NetworkStuff.debug = previousNetworkDebug;
         }
     }
 

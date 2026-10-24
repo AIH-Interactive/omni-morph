@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.model.ysm;
 
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.molang.MolangEngine;
 import top.aihmc.omnimorph.molang.parser.ast.Expression;
 import top.aihmc.omnimorph.molang.parser.ast.FloatExpression;

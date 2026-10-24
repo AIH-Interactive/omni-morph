@@ -1,15 +1,15 @@
 package top.aihmc.omnimorph.wizards;
 
 import com.google.gson.JsonParser;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext;
 import top.aihmc.omnimorph.model.outfit.FiguraSkeletonAdapter;
 import top.aihmc.omnimorph.model.outfit.LocalCosmeticSource;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 import top.aihmc.omnimorph.model.outfit.OutfitLimits;
 import top.aihmc.omnimorph.model.outfit.SkeletonIndex;
-import top.aihmc.omnimorph.permissions.PermissionPack;
-import top.aihmc.omnimorph.permissions.Permissions;
+import org.figuramc.figura.permissions.PermissionPack;
+import org.figuramc.figura.permissions.Permissions;
 
 import javax.imageio.ImageIO;
 import java.nio.file.Files;
@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.figuramc.figura.wizards.WizardEntry;
 /** Uses the existing native source harness; actual windows and rendered particles remain pending. */
 public final class CosmeticCreationSmokeTest {
     public static void run(Path data) throws Exception {

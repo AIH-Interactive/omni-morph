@@ -2,12 +2,12 @@ package top.aihmc.omnimorph.model.outfit;
 
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.world.entity.Entity;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.avatar.AvatarManager;
-import top.aihmc.omnimorph.avatar.UserData;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.avatar.AvatarManager;
+import org.figuramc.figura.avatar.UserData;
 import top.aihmc.omnimorph.model.library.LibraryPreviewBinding;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
-import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
+import org.figuramc.figura.model.rendering.EntityRenderMode;
 
 import java.util.Collections;
 import java.util.IdentityHashMap;

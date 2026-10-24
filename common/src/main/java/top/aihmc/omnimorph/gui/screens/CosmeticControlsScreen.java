@@ -2,16 +2,16 @@ package top.aihmc.omnimorph.gui.screens;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.control.AvatarControlDefinition;
 import top.aihmc.omnimorph.avatar.control.AvatarControlType;
-import top.aihmc.omnimorph.gui.widgets.Button;
-import top.aihmc.omnimorph.gui.widgets.ScrollBarWidget;
+import org.figuramc.figura.gui.widgets.Button;
+import org.figuramc.figura.gui.widgets.ScrollBarWidget;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
 import top.aihmc.omnimorph.model.outfit.OutfitComposition;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 import top.aihmc.omnimorph.model.outfit.OutfitDraft;
-import top.aihmc.omnimorph.utils.FiguraText;
+import org.figuramc.figura.utils.FiguraText;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.figuramc.figura.gui.screens.WardrobeScreen;
 /**
  * Reuses the avatar control widgets while retaining the draft preview and each callback's real owner.
  * One tab per cosmetic resource lists every instance of that resource, separated by its ordinal.
@@ -278,7 +279,7 @@ public final class CosmeticControlsScreen extends AvatarControlsScreen {
         }
     }
 
-    void previewAbandoned() {
+    public void previewAbandoned() {
         if (wheelParent == null) {
             wardrobe.closeCosmeticControls(false);
         } else {

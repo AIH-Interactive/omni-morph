@@ -10,8 +10,8 @@ import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.Vec3;
 import top.aihmc.omnimorph.avatar.AvatarLoadProgress;
-import top.aihmc.omnimorph.avatar.AvatarManager;
-import top.aihmc.omnimorph.utils.FiguraText;
+import org.figuramc.figura.avatar.AvatarManager;
+import org.figuramc.figura.utils.FiguraText;
 
 /** Uses the native name-tag submission so labels follow the player without touching model ownership. */
 public final class AvatarLoadingRenderer {

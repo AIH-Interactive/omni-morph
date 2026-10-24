@@ -2,9 +2,9 @@ package top.aihmc.omnimorph.model.outfit;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.LivingEntity;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload;
-import top.aihmc.omnimorph.permissions.PermissionPack;
+import org.figuramc.figura.permissions.PermissionPack;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;

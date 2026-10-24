@@ -1,8 +1,8 @@
 package top.aihmc.omnimorph.wizards;
 
-import top.aihmc.omnimorph.exporters.BlockBenchModel;
-import top.aihmc.omnimorph.exporters.BlockBenchModel.Group;
-import top.aihmc.omnimorph.math.vector.FiguraVec3;
+import org.figuramc.figura.exporters.BlockBenchModel;
+import org.figuramc.figura.exporters.BlockBenchModel.Group;
+import org.figuramc.figura.math.vector.FiguraVec3;
 
 /** Small editable geometry in the selected attachment's local coordinates. */
 public enum CosmeticTemplate {

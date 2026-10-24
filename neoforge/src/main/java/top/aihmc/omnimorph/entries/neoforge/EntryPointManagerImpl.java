@@ -2,11 +2,11 @@ package top.aihmc.omnimorph.entries.neoforge;
 
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforgespi.language.ModFileScanData;
-import top.aihmc.omnimorph.FiguraMod;
-import top.aihmc.omnimorph.entries.annotations.FiguraAPIPlugin;
-import top.aihmc.omnimorph.entries.annotations.FiguraPermissionsPlugin;
-import top.aihmc.omnimorph.entries.annotations.FiguraScreenPlugin;
-import top.aihmc.omnimorph.entries.annotations.FiguraVanillaPartPlugin;
+import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.entries.annotations.FiguraAPIPlugin;
+import org.figuramc.figura.entries.annotations.FiguraPermissionsPlugin;
+import org.figuramc.figura.entries.annotations.FiguraScreenPlugin;
+import org.figuramc.figura.entries.annotations.FiguraVanillaPartPlugin;
 import org.objectweb.asm.Type;
 
 import java.lang.reflect.Constructor;

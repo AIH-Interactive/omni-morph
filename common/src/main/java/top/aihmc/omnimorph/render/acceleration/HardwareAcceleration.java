@@ -3,10 +3,10 @@ package top.aihmc.omnimorph.render.acceleration;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import com.mojang.blaze3d.systems.RenderSystem;
-import top.aihmc.omnimorph.FiguraMod;
-import top.aihmc.omnimorph.config.Configs;
-import top.aihmc.omnimorph.utils.FiguraText;
-import top.aihmc.omnimorph.utils.PlatformUtils;
+import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.config.Configs;
+import org.figuramc.figura.utils.FiguraText;
+import org.figuramc.figura.utils.PlatformUtils;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

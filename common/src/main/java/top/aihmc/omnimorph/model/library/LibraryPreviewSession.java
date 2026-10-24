@@ -9,9 +9,9 @@ import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.PlayerModelPart;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
-import top.aihmc.omnimorph.avatar.AvatarManager;
+import org.figuramc.figura.avatar.AvatarManager;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.mixin.gui.GuiGraphicsAccessor;
 import top.aihmc.omnimorph.model.outfit.OutfitComposition;
@@ -19,7 +19,7 @@ import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 import top.aihmc.omnimorph.model.outfit.OutfitLimits;
 import top.aihmc.omnimorph.model.outfit.OutfitPreparation;
 import top.aihmc.omnimorph.model.outfit.SkeletonIndex;
-import top.aihmc.omnimorph.permissions.PermissionPack;
+import org.figuramc.figura.permissions.PermissionPack;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -142,7 +142,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
     }
 
     private static String treeLabel(String key) {
-        return top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.tree_" + key).getString();
+        return org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.tree_" + key).getString();
     }
 
     public void setIndependentFigura(boolean enabled) {
@@ -234,9 +234,9 @@ public final class LibraryPreviewSession implements AutoCloseable {
     }
 
     /** Read-only render state; this does not publish equipment or register synchronization. */
-    public top.aihmc.omnimorph.avatar.UserData.OutfitState outfitState() {
+    public org.figuramc.figura.avatar.UserData.OutfitState outfitState() {
         return closed || previewComposition == null || entity() == null ? null
-                : new top.aihmc.omnimorph.avatar.UserData.OutfitState(
+                : new org.figuramc.figura.avatar.UserData.OutfitState(
                         previewComposition.configuration(), avatar, previewComposition);
     }
 
@@ -360,7 +360,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
         }
         UUID account = client.session().player();
         var dependencies = new OutfitPresetResources(configuration, limits, account,
-                top.aihmc.omnimorph.FiguraMod.getFiguraDirectory(), client, transfers,
+                org.figuramc.figura.FiguraMod.getFiguraDirectory(), client, transfers,
                 Minecraft.getInstance()::execute, () -> current(generation) && !result.isCancelled());
         configurationResources = dependencies;
         dependencies.future().whenComplete((resources, failure) -> {
@@ -395,7 +395,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
                 status = new Status(Stage.LOADING, "");
                 var permissions = avatar == null ? new PermissionPack.PlayerPermissionPack(
                         new PermissionPack.CategoryPermissionPack(
-                                top.aihmc.omnimorph.permissions.Permissions.Category.DEFAULT), owner.toString())
+                                org.figuramc.figura.permissions.Permissions.Category.DEFAULT), owner.toString())
                         : avatar.permissions;
                 prepareComposition(configuration, limits, account, identity,
                         permissions, resources::read)
@@ -598,9 +598,9 @@ public final class LibraryPreviewSession implements AutoCloseable {
         cancelCompositionPreparation();
         if (avatar != null && permissions != null && avatar.permissions != permissions) {
             // An isolated base keeps detached defaults, but its composed faces belong to the wearer, as when equipped.
-            avatar.permissions.insert(top.aihmc.omnimorph.permissions.Permissions.COMPLEXITY,
-                    permissions.get(top.aihmc.omnimorph.permissions.Permissions.COMPLEXITY),
-                    top.aihmc.omnimorph.FiguraMod.MOD_ID);
+            avatar.permissions.insert(org.figuramc.figura.permissions.Permissions.COMPLEXITY,
+                    permissions.get(org.figuramc.figura.permissions.Permissions.COMPLEXITY),
+                    org.figuramc.figura.FiguraMod.MOD_ID);
         }
         long generation = generations.get();
         long draft = compositionGenerations.get();

@@ -20,7 +20,7 @@ import top.aihmc.omnimorph.model.ysm.controller.YsmControllerState;
 import top.aihmc.omnimorph.model.ysm.controller.YsmControllerTransition;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationParser;
 import top.aihmc.omnimorph.molang.MolangEngine;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.molang.runtime.binding.MolangBindings;
 
 import java.io.IOException;

@@ -2,7 +2,7 @@ package top.aihmc.omnimorph.model.outfit;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import top.aihmc.omnimorph.FiguraMod;
+import org.figuramc.figura.FiguraMod;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
 
 import java.io.IOException;

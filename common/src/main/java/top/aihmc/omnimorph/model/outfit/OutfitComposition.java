@@ -8,18 +8,18 @@ import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.Varargs;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.lua.FiguraLuaRuntime;
-import top.aihmc.omnimorph.lua.LuaWhitelist;
-import top.aihmc.omnimorph.lua.docs.LuaTypeDoc;
-import top.aihmc.omnimorph.math.matrix.FiguraMat4;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.lua.FiguraLuaRuntime;
+import org.figuramc.figura.lua.LuaWhitelist;
+import org.figuramc.figura.lua.docs.LuaTypeDoc;
+import org.figuramc.figura.math.matrix.FiguraMat4;
 import top.aihmc.omnimorph.model.library.PreviewBoneHighlight;
 import top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer;
-import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
+import org.figuramc.figura.model.rendering.EntityRenderMode;
 import top.aihmc.omnimorph.model.ysm.YsmRenderPose;
 import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
 import top.aihmc.omnimorph.molang.runtime.MolangExecutionBudget;
-import top.aihmc.omnimorph.permissions.Permissions;
+import org.figuramc.figura.permissions.Permissions;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -1121,7 +1121,7 @@ public final class OutfitComposition implements AutoCloseable {
         /** Diagnostic only: each distinct mount failure is logged once per composition. */
         private void diagnose(String reason) {
             if (diagnosed.add(reason)) {
-                top.aihmc.omnimorph.FiguraMod.LOGGER.warn("Outfit accessory not drawn: {}", reason);
+                org.figuramc.figura.FiguraMod.LOGGER.warn("Outfit accessory not drawn: {}", reason);
             }
         }
 

@@ -2,8 +2,8 @@ package top.aihmc.omnimorph.gui.widgets.library;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
-import top.aihmc.omnimorph.gui.widgets.SwitchButton;
-import top.aihmc.omnimorph.utils.ui.UIHelper;
+import org.figuramc.figura.gui.widgets.SwitchButton;
+import org.figuramc.figura.utils.ui.UIHelper;
 
 /** Compact checkbox that retains Figura's toggle, input and narration behavior. */
 public final class LibraryCheckBox extends SwitchButton {

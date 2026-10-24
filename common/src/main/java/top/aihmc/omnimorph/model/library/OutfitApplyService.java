@@ -2,11 +2,11 @@ package top.aihmc.omnimorph.model.library;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.LivingEntity;
-import top.aihmc.omnimorph.FiguraMod;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
-import top.aihmc.omnimorph.avatar.AvatarManager;
-import top.aihmc.omnimorph.backend2.NetworkStuff;
+import org.figuramc.figura.avatar.AvatarManager;
+import org.figuramc.figura.backend2.NetworkStuff;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.backend2.library.OutfitApplyResult;
@@ -17,7 +17,7 @@ import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 import top.aihmc.omnimorph.model.outfit.OutfitLimits;
 import top.aihmc.omnimorph.model.outfit.OutfitPreparation;
 import top.aihmc.omnimorph.model.outfit.SkeletonIndex;
-import top.aihmc.omnimorph.permissions.PermissionManager;
+import org.figuramc.figura.permissions.PermissionManager;
 
 import java.nio.file.Path;
 import java.util.List;

@@ -2,7 +2,7 @@ package top.aihmc.omnimorph.model.outfit;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import top.aihmc.omnimorph.parsers.AvatarMetadataParser;
+import org.figuramc.figura.parsers.AvatarMetadataParser;
 
 import java.util.List;
 

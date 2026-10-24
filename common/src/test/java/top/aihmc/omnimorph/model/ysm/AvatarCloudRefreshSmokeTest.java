@@ -2,16 +2,16 @@ package top.aihmc.omnimorph.model.ysm;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
-import top.aihmc.omnimorph.FiguraMod;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.avatar.AvatarManager;
-import top.aihmc.omnimorph.avatar.UserData;
-import top.aihmc.omnimorph.avatar.local.LocalAvatarLoader;
-import top.aihmc.omnimorph.backend2.NetworkStuff;
+import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.avatar.AvatarManager;
+import org.figuramc.figura.avatar.UserData;
+import org.figuramc.figura.avatar.local.LocalAvatarLoader;
+import org.figuramc.figura.backend2.NetworkStuff;
 import top.aihmc.omnimorph.backend2.protocol.CloudConnection;
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
 import top.aihmc.omnimorph.backend2.protocol.CloudProtocol;
-import top.aihmc.omnimorph.config.Configs;
+import org.figuramc.figura.config.Configs;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

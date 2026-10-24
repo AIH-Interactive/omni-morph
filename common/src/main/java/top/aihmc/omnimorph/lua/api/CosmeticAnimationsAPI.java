@@ -4,12 +4,12 @@ import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaFunction;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.lua.FiguraLuaRuntime;
-import top.aihmc.omnimorph.lua.LuaWhitelist;
-import top.aihmc.omnimorph.lua.api.action_wheel.Page;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.lua.FiguraLuaRuntime;
+import org.figuramc.figura.lua.LuaWhitelist;
+import org.figuramc.figura.lua.api.action_wheel.Page;
 import top.aihmc.omnimorph.lua.api.particle.CustomParticleRuntime;
-import top.aihmc.omnimorph.lua.docs.LuaTypeDoc;
+import org.figuramc.figura.lua.docs.LuaTypeDoc;
 import top.aihmc.omnimorph.model.outfit.OutfitInstructionBudget;
 
 import java.nio.charset.StandardCharsets;
@@ -179,7 +179,7 @@ public final class CosmeticAnimationsAPI implements AutoCloseable {
                     owner.scriptError = true;
                     owner.luaRuntime = null;
                     owner.clearParticles();
-                    top.aihmc.omnimorph.FiguraMod.LOGGER.warn("Animation event callback failed for {}", owner.owner, failure);
+                    org.figuramc.figura.FiguraMod.LOGGER.warn("Animation event callback failed for {}", owner.owner, failure);
                 }
                 error = "ANIMATION_EVENT_CALLBACK_FAILED";
                 if (owner.scriptError) {

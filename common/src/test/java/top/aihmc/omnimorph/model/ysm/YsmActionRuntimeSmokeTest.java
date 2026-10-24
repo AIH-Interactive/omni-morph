@@ -11,20 +11,20 @@ import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.world.item.Items;
 import net.minecraft.server.Bootstrap;
-import top.aihmc.omnimorph.FiguraMod;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.control.AvatarControlDefinition;
 import top.aihmc.omnimorph.avatar.control.AvatarControlRuntime;
 import top.aihmc.omnimorph.avatar.control.AvatarControlType;
-import top.aihmc.omnimorph.gui.ActionWheel;
+import org.figuramc.figura.gui.ActionWheel;
 import top.aihmc.omnimorph.gui.screens.AvatarControlsScreen;
-import top.aihmc.omnimorph.lua.FiguraLuaRuntime;
-import top.aihmc.omnimorph.lua.api.action_wheel.Action;
-import top.aihmc.omnimorph.lua.api.action_wheel.ActionWheelAPI;
-import top.aihmc.omnimorph.lua.api.keybind.KeybindAPI;
+import org.figuramc.figura.lua.FiguraLuaRuntime;
+import org.figuramc.figura.lua.api.action_wheel.Action;
+import org.figuramc.figura.lua.api.action_wheel.ActionWheelAPI;
+import org.figuramc.figura.lua.api.keybind.KeybindAPI;
 import top.aihmc.omnimorph.lua.api.ysm_actions.YsmActionsAPI;
-import top.aihmc.omnimorph.lua.api.world.WorldAPI;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.lua.api.world.WorldAPI;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import top.aihmc.omnimorph.model.ysm.action.YsmActionRuntime;
 import top.aihmc.omnimorph.model.ysm.action.YsmActionSchemaParser;
 import top.aihmc.omnimorph.model.ysm.action.YsmActionWheelLayoutStore;
@@ -299,7 +299,7 @@ public final class YsmActionRuntimeSmokeTest {
             var item = net.minecraft.commands.arguments.item.ItemArgument.item(
                     net.minecraft.commands.CommandBuildContext.simple(client.level.registryAccess(), client.level.enabledFeatures()))
                     .parse(new com.mojang.brigadier.StringReader("minecraft:comparator")).createItemStack(1);
-            new top.aihmc.omnimorph.lua.api.world.ItemStackAPI(item);
+            new org.figuramc.figura.lua.api.world.ItemStackAPI(item);
             testInstalledLayout();
             testPageTabOverflow();
         } finally {
@@ -361,10 +361,10 @@ public final class YsmActionRuntimeSmokeTest {
                 }
                 addTabs.invoke(screen);
                 @SuppressWarnings("unchecked")
-                List<top.aihmc.omnimorph.gui.widgets.Button> tabs =
-                        (List<top.aihmc.omnimorph.gui.widgets.Button>) tabsField.get(screen);
+                List<org.figuramc.figura.gui.widgets.Button> tabs =
+                        (List<org.figuramc.figura.gui.widgets.Button>) tabsField.get(screen);
                 require(tabs.size() == count, "all page tabs are retained, including overflowing pages");
-                var bar = (top.aihmc.omnimorph.gui.widgets.ScrollBarWidget) barField.get(screen);
+                var bar = (org.figuramc.figura.gui.widgets.ScrollBarWidget) barField.get(screen);
                 if (count == 2) {
                     require(bar == null && (int) contentTop.invoke(screen) == 80,
                             "fitting tabs keep the original layout without a scrollbar");
@@ -389,7 +389,7 @@ public final class YsmActionRuntimeSmokeTest {
                         "right endpoint exposes the final tab and permits hits only inside the viewport");
                 require(!last.isMouseOver(right, last.getY() + 1), "clipped tabs cannot capture clicks beyond the preview boundary");
                 bar.setScrollProgressNoAnim(0.5);
-                Field dragging = top.aihmc.omnimorph.gui.widgets.ScrollBarWidget.class.getDeclaredField("isScrolling");
+                Field dragging = org.figuramc.figura.gui.widgets.ScrollBarWidget.class.getDeclaredField("isScrolling");
                 dragging.setAccessible(true);
                 dragging.setBoolean(bar, true);
                 require(bar.mouseDragged(new net.minecraft.client.input.MouseButtonEvent(right - 1, bar.getY() + 1, null), 20, 0)

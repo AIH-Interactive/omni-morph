@@ -13,6 +13,7 @@ import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.jar.JarFile;
 
+import org.figuramc.figura.wizards.WizardEntry;
 public final class YsmAvatarCreationSmokeTest {
     public static void main(String[] args) throws Exception {
         Path root = Files.createTempDirectory("omnimorph-ysm-create");

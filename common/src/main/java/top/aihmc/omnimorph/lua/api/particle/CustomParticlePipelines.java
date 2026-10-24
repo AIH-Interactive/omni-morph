@@ -8,7 +8,7 @@ import com.mojang.blaze3d.platform.DestFactor;
 import com.mojang.blaze3d.platform.SourceFactor;
 import net.minecraft.client.particle.SingleQuadParticle;
 import net.minecraft.client.renderer.RenderPipelines;
-import top.aihmc.omnimorph.utils.FiguraIdentifier;
+import org.figuramc.figura.utils.FiguraIdentifier;
 
 import java.util.ArrayList;
 import java.util.Comparator;

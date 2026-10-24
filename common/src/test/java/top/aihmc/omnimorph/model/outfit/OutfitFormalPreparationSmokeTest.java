@@ -4,10 +4,10 @@ import com.google.gson.Gson;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import sun.misc.Unsafe;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer;
-import top.aihmc.omnimorph.permissions.PermissionPack;
-import top.aihmc.omnimorph.permissions.Permissions;
+import org.figuramc.figura.permissions.PermissionPack;
+import org.figuramc.figura.permissions.Permissions;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -138,7 +138,7 @@ public final class OutfitFormalPreparationSmokeTest {
             testBorrowedBase(configuration, data, wearer, permissions, resource, authorized);
             var client = net.minecraft.client.Minecraft.getInstance();
             var previousLevel = client.level;
-            var cachedWorld = top.aihmc.omnimorph.lua.api.world.WorldAPI.class.getDeclaredField("cached");
+            var cachedWorld = org.figuramc.figura.lua.api.world.WorldAPI.class.getDeclaredField("cached");
             cachedWorld.setAccessible(true);
             var previousWorld = cachedWorld.get(null);
             try {
@@ -150,7 +150,7 @@ public final class OutfitFormalPreparationSmokeTest {
                 testPublication(configuration, data, wearer, permissions, resource, authorized, drain);
                 UUID originalOwner = wearer.getUUID();
                 try {
-                    wearer.setUUID(top.aihmc.omnimorph.FiguraMod.getLocalPlayerUUID());
+                    wearer.setUUID(org.figuramc.figura.FiguraMod.getLocalPlayerUUID());
                     top.aihmc.omnimorph.model.library.OutfitApplyServiceSmokeTest.run(data, wearer, drain);
                 } finally {
                     wearer.setUUID(originalOwner);
@@ -186,7 +186,7 @@ public final class OutfitFormalPreparationSmokeTest {
     private static void testPublication(OutfitConfig configuration, CompoundTag data, ArmorStand wearer,
                                         PermissionPack.PlayerPermissionPack permissions, OutfitConfig.ResourceRef resource,
                                         Predicate<OutfitConfig.ResourceRef> authorized, Runnable drain) throws Exception {
-        var user = new top.aihmc.omnimorph.avatar.UserData(wearer.getUUID());
+        var user = new org.figuramc.figura.avatar.UserData(wearer.getUUID());
         CompoundTag instanceData = data.copy();
         instanceData.remove("scripts");
         CompoundTag baseData = instanceData.copy();
@@ -257,7 +257,7 @@ public final class OutfitFormalPreparationSmokeTest {
             var wrongWearer = OutfitPreparation.prepare(empty, OutfitLimits.defaults(), wearer.getUUID(), UUID.randomUUID(),
                     wearer, permissions, new SkeletonIndex.Cache(), (ref, cancelled) -> { throw new AssertionError("no dependencies"); },
                     () -> false, CosmeticInstanceContext.Scope.OWNER, null, ref -> false, ref -> false);
-            var otherUser = new top.aihmc.omnimorph.avatar.UserData(UUID.randomUUID());
+            var otherUser = new org.figuramc.figura.avatar.UserData(UUID.randomUUID());
             require(!await(otherUser.publishOutfit(revision(empty, 3), null, wrongWearer,
                             otherUser.ysmLoads.begin(), () -> true), drain) && otherUser.getOutfit() == null,
                     "even vanilla compositions cannot be published under another wearer");
@@ -358,7 +358,7 @@ public final class OutfitFormalPreparationSmokeTest {
     }
 
     /** Plain JVM fixtures do not install Minecraft Mixins. Supply the real accessor contract explicitly. */
-    private static final class TestWearer extends ArmorStand implements top.aihmc.omnimorph.mixin.EntityAccessor {
+    private static final class TestWearer extends ArmorStand implements org.figuramc.figura.mixin.EntityAccessor {
         private TestWearer() {
             super(net.minecraft.world.entity.EntityType.ARMOR_STAND, null);
         }
@@ -370,7 +370,7 @@ public final class OutfitFormalPreparationSmokeTest {
     }
 
     private static final class RegistryLevel extends net.minecraft.client.multiplayer.ClientLevel
-            implements top.aihmc.omnimorph.mixin.ClientLevelInvoker {
+            implements org.figuramc.figura.mixin.ClientLevelInvoker {
         private RegistryLevel() {
             super(null, null, null, null, 0, 0, null, false, 0L, 0);
         }

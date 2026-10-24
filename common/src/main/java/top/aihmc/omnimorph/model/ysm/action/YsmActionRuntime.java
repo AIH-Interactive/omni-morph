@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.model.ysm.action;
 
-import top.aihmc.omnimorph.FiguraMod;
+import org.figuramc.figura.FiguraMod;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationPlayer;
 import top.aihmc.omnimorph.molang.storage.StringPool;
 import top.aihmc.omnimorph.model.ysm.YsmModelRuntime;

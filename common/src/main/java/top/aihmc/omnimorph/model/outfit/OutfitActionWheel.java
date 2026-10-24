@@ -1,12 +1,12 @@
 package top.aihmc.omnimorph.model.outfit;
 
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.lua.FiguraLuaRuntime;
-import top.aihmc.omnimorph.lua.api.action_wheel.Action;
-import top.aihmc.omnimorph.lua.api.action_wheel.ActionWheelAPI;
-import top.aihmc.omnimorph.lua.api.action_wheel.Page;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.lua.FiguraLuaRuntime;
+import org.figuramc.figura.lua.api.action_wheel.Action;
+import org.figuramc.figura.lua.api.action_wheel.ActionWheelAPI;
+import org.figuramc.figura.lua.api.action_wheel.Page;
 import top.aihmc.omnimorph.model.ysm.action.YsmActionRuntime;
-import top.aihmc.omnimorph.utils.FiguraText;
+import org.figuramc.figura.utils.FiguraText;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

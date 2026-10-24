@@ -47,7 +47,7 @@ public final class YsmAvatarDetector {
             Path main = ysmPackage.resolve("main.json");
             if (Files.exists(main) && !Files.isDirectory(main)) {
                 try {
-                    if (top.aihmc.omnimorph.utils.IOUtils.readFile(main).contains("minecraft:geometry"))
+                    if (org.figuramc.figura.utils.IOUtils.readFile(main).contains("minecraft:geometry"))
                         return YsmAvatarKind.OLD;
                 } catch (Exception ignored) {
                 }

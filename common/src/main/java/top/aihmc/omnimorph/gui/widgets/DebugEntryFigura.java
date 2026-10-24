@@ -5,11 +5,11 @@ import net.minecraft.client.gui.components.debug.DebugScreenDisplayer;
 import net.minecraft.client.gui.components.debug.DebugScreenEntry;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.LevelChunk;
-import top.aihmc.omnimorph.FiguraMod;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.avatar.AvatarManager;
-import top.aihmc.omnimorph.backend2.NetworkStuff;
-import top.aihmc.omnimorph.config.Configs;
+import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.avatar.AvatarManager;
+import org.figuramc.figura.backend2.NetworkStuff;
+import org.figuramc.figura.config.Configs;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;

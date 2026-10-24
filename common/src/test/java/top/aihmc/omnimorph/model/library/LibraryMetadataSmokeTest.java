@@ -5,7 +5,7 @@ import top.aihmc.omnimorph.avatar.ysm.YsmMemoryResourceSource;
 import top.aihmc.omnimorph.avatar.ysm.binary.YsmBinaryModel;
 import top.aihmc.omnimorph.avatar.ysm.binary.YsmBinaryResourceMapper;
 import top.aihmc.omnimorph.avatar.ysm.crypto.YsmDecodeBudget;
-import top.aihmc.omnimorph.parsers.AvatarMetadataParser;
+import org.figuramc.figura.parsers.AvatarMetadataParser;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

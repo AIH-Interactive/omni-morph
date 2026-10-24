@@ -1,10 +1,10 @@
 package top.aihmc.omnimorph.model.ysm;
 
 import net.minecraft.nbt.CompoundTag;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.ysm.binary.YsmTextureDecoder;
 import top.aihmc.omnimorph.avatar.ysm.crypto.YsmDecodeBudget;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 
 import java.io.IOException;
 import java.util.Arrays;

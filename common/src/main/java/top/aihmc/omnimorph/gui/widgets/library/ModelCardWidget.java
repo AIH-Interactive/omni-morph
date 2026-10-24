@@ -6,15 +6,15 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import top.aihmc.omnimorph.FiguraMod;
+import org.figuramc.figura.FiguraMod;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
-import top.aihmc.omnimorph.gui.widgets.AbstractContainerElement;
-import top.aihmc.omnimorph.gui.widgets.Button;
+import org.figuramc.figura.gui.widgets.AbstractContainerElement;
+import org.figuramc.figura.gui.widgets.Button;
 import top.aihmc.omnimorph.gui.widgets.ModelResourceBadges;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
-import top.aihmc.omnimorph.utils.FiguraIdentifier;
-import top.aihmc.omnimorph.utils.FiguraText;
-import top.aihmc.omnimorph.utils.ui.UIHelper;
+import org.figuramc.figura.utils.FiguraIdentifier;
+import org.figuramc.figura.utils.FiguraText;
+import org.figuramc.figura.utils.ui.UIHelper;
 
 import java.util.function.Consumer;
 

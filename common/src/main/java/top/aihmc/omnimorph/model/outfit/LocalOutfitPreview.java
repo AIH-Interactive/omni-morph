@@ -3,9 +3,9 @@ package top.aihmc.omnimorph.model.outfit;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.entity.Entity;
-import top.aihmc.omnimorph.FiguraMod;
-import top.aihmc.omnimorph.avatar.AvatarManager;
-import top.aihmc.omnimorph.avatar.UserData;
+import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.avatar.AvatarManager;
+import org.figuramc.figura.avatar.UserData;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
 
 import java.util.UUID;

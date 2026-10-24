@@ -229,7 +229,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
             throw rejectedBatch;
         } catch (RuntimeException | LinkageError failure) {
             cpuBackend = null;
-            top.aihmc.omnimorph.FiguraMod.LOGGER.warn("Optional SIMD preparation disabled; GPU remains ready: {}", failure.getClass().getSimpleName());
+            org.figuramc.figura.FiguraMod.LOGGER.warn("Optional SIMD preparation disabled; GPU remains ready: {}", failure.getClass().getSimpleName());
             return javaBackend.transform(batch);
         }
     }

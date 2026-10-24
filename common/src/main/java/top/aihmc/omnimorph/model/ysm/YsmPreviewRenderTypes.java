@@ -8,7 +8,7 @@ import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.resources.Identifier;
-import top.aihmc.omnimorph.utils.FiguraIdentifier;
+import org.figuramc.figura.utils.FiguraIdentifier;
 
 import java.util.LinkedHashSet;
 import java.util.Optional;

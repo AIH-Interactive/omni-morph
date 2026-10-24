@@ -1,10 +1,10 @@
 package top.aihmc.omnimorph.model.ysm;
 
 import net.minecraft.world.entity.Entity;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.lua.api.sound.LuaSound;
-import top.aihmc.omnimorph.lua.api.sound.SoundAPI;
-import top.aihmc.omnimorph.math.vector.FiguraVec3;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.lua.api.sound.LuaSound;
+import org.figuramc.figura.lua.api.sound.SoundAPI;
+import org.figuramc.figura.math.vector.FiguraVec3;
 import top.aihmc.omnimorph.molang.runtime.ExecutionContext;
 import top.aihmc.omnimorph.molang.runtime.Function;
 import top.aihmc.omnimorph.molang.runtime.binding.ValueConversions;

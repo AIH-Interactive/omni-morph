@@ -14,11 +14,11 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.lua.LuaTypeManager;
-import top.aihmc.omnimorph.lua.api.entity.EntityAPI;
-import top.aihmc.omnimorph.math.vector.FiguraVec3;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.lua.LuaTypeManager;
+import org.figuramc.figura.lua.api.entity.EntityAPI;
+import org.figuramc.figura.math.vector.FiguraVec3;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import sun.misc.Unsafe;
 
 import java.util.HashMap;
@@ -30,6 +30,7 @@ import static top.aihmc.omnimorph.lua.api.particle.ParticleMotionSmokeTest.optio
 import static top.aihmc.omnimorph.lua.api.particle.ParticleMotionSmokeTest.reject;
 import static top.aihmc.omnimorph.lua.api.particle.ParticleMotionSmokeTest.require;
 
+import org.figuramc.figura.lua.api.particle.LuaParticle;
 /** Native tick/extract and actual EntityAPI target identity; uses no real game pixels. */
 final class ParticleMotionNativeSmokeTest {
     static void run(Unsafe unsafe, Avatar owner, Runnable drain) throws Exception {

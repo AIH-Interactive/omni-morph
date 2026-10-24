@@ -2,11 +2,11 @@ package top.aihmc.omnimorph.model.ysm;
 
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.avatar.AvatarManager;
-import top.aihmc.omnimorph.avatar.UserData;
-import top.aihmc.omnimorph.avatar.local.LocalAvatarLoader;
-import top.aihmc.omnimorph.backend2.NetworkStuff;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.avatar.AvatarManager;
+import org.figuramc.figura.avatar.UserData;
+import org.figuramc.figura.avatar.local.LocalAvatarLoader;
+import org.figuramc.figura.backend2.NetworkStuff;
 import top.aihmc.omnimorph.backend2.protocol.CloudConnection;
 import top.aihmc.omnimorph.backend2.protocol.CloudProtocol;
 
@@ -37,7 +37,7 @@ final class AvatarBroadcastSmokeTest {
         var usersField = AvatarManager.class.getDeclaredField("LOADED_USERS");
         usersField.setAccessible(true);
         var users = (Map<UUID, UserData>) usersField.get(null);
-        UUID local = top.aihmc.omnimorph.FiguraMod.getLocalPlayerUUID();
+        UUID local = org.figuramc.figura.FiguraMod.getLocalPlayerUUID();
         UserData previousUser = users.get(local);
         var lastPath = LocalAvatarLoader.class.getDeclaredField("lastLoadedPath");
         lastPath.setAccessible(true);
@@ -137,8 +137,8 @@ final class AvatarBroadcastSmokeTest {
             ((CompletableFuture<?>) tasks.get(null)).get(10, TimeUnit.SECONDS);
             scope.drain();
             require(NetworkStuff.getUploadProgress() == null && !AvatarManager.localUploaded
-                            && toasts.getToast(top.aihmc.omnimorph.gui.FiguraToast.class,
-                            top.aihmc.omnimorph.gui.FiguraToast.ToastType.ERROR) != null,
+                            && toasts.getToast(org.figuramc.figura.gui.FiguraToast.class,
+                            org.figuramc.figura.gui.FiguraToast.ToastType.ERROR) != null,
                     "429 reports upload failure to the user instead of presenting bar completion as success");
 
             Files.writeString(folder.resolve("avatar.json"), "{\"name\":\"Reload All restored\"}");

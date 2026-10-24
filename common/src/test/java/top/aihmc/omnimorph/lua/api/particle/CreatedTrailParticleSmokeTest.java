@@ -7,7 +7,7 @@ import net.minecraft.client.particle.SingleQuadParticle;
 import net.minecraft.client.renderer.state.level.QuadParticleRenderState;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext;
 import top.aihmc.omnimorph.model.outfit.FiguraSkeletonAdapter;
 import top.aihmc.omnimorph.model.outfit.LocalCosmeticSource;
@@ -15,8 +15,8 @@ import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 import top.aihmc.omnimorph.model.outfit.OutfitLimits;
 import top.aihmc.omnimorph.model.outfit.SkeletonIndex;
 import top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer;
-import top.aihmc.omnimorph.permissions.PermissionPack;
-import top.aihmc.omnimorph.permissions.Permissions;
+import org.figuramc.figura.permissions.PermissionPack;
+import org.figuramc.figura.permissions.Permissions;
 import top.aihmc.omnimorph.wizards.CosmeticCreator;
 import top.aihmc.omnimorph.wizards.CosmeticTemplate;
 
@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 
+import org.figuramc.figura.lua.api.particle.LuaParticle;
 /** Real generated source/Lua/particle flow with controlled native matrices; no window/pixel assertions. */
 final class CreatedTrailParticleSmokeTest {
     static void run(Runnable drain, Supplier<List<Particle>> submissions) throws Exception {

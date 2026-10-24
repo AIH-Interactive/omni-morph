@@ -1,14 +1,14 @@
 package top.aihmc.omnimorph.lua.api.avatar_controls;
 
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.control.AvatarControlDefinition;
 import top.aihmc.omnimorph.avatar.control.AvatarControlType;
 import top.aihmc.omnimorph.gui.screens.AvatarControlsScreen;
-import top.aihmc.omnimorph.lua.LuaNotNil;
-import top.aihmc.omnimorph.lua.LuaWhitelist;
-import top.aihmc.omnimorph.lua.docs.LuaMethodDoc;
-import top.aihmc.omnimorph.lua.docs.LuaMethodOverload;
-import top.aihmc.omnimorph.lua.docs.LuaTypeDoc;
+import org.figuramc.figura.lua.LuaNotNil;
+import org.figuramc.figura.lua.LuaWhitelist;
+import org.figuramc.figura.lua.docs.LuaMethodDoc;
+import org.figuramc.figura.lua.docs.LuaMethodOverload;
+import org.figuramc.figura.lua.docs.LuaTypeDoc;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaFunction;
 

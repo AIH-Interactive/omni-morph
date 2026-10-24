@@ -3,11 +3,11 @@ package top.aihmc.omnimorph.model.ysm;
 import com.mojang.blaze3d.audio.SoundBuffer;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
-import top.aihmc.omnimorph.FiguraMod;
+import org.figuramc.figura.FiguraMod;
 import top.aihmc.omnimorph.avatar.ysm.YsmResourceLimits;
-import top.aihmc.omnimorph.lua.api.sound.SoundAPI;
-import top.aihmc.omnimorph.lua.api.sound.LuaSound;
-import top.aihmc.omnimorph.permissions.Permissions;
+import org.figuramc.figura.lua.api.sound.SoundAPI;
+import org.figuramc.figura.lua.api.sound.LuaSound;
+import org.figuramc.figura.permissions.Permissions;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;

@@ -14,18 +14,18 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.phys.Vec3;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.control.AvatarControlRuntime;
-import top.aihmc.omnimorph.ducks.SoundEngineAccessor;
-import top.aihmc.omnimorph.lua.api.sound.LuaSound;
-import top.aihmc.omnimorph.mixin.sound.SoundManagerAccessor;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.ducks.SoundEngineAccessor;
+import org.figuramc.figura.lua.api.sound.LuaSound;
+import org.figuramc.figura.mixin.sound.SoundManagerAccessor;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import top.aihmc.omnimorph.molang.MolangEngine;
 import top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator;
 import top.aihmc.omnimorph.molang.runtime.Function;
-import top.aihmc.omnimorph.permissions.PermissionPack;
-import top.aihmc.omnimorph.permissions.Permissions;
-import top.aihmc.omnimorph.utils.RefilledNumber;
+import org.figuramc.figura.permissions.PermissionPack;
+import org.figuramc.figura.permissions.Permissions;
+import org.figuramc.figura.utils.RefilledNumber;
 import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
@@ -183,13 +183,13 @@ public final class YsmSoundNativeSmokeTest {
     }
 
     private static void testAvatarVolumeGain(RecordingEngine engine) throws Exception {
-        var config = top.aihmc.omnimorph.config.Configs.AVATAR_VOLUME_GAIN;
+        var config = org.figuramc.figura.config.Configs.AVATAR_VOLUME_GAIN;
         float previousValue = config.value;
         float previousTemp = config.tempValue;
         Fixture fixture = new Fixture();
         LuaSound sound = new LuaSound(fixture.owner.customSounds.get("tone"), "gain", fixture.owner);
         try {
-            require(config.defaultValue == 1f && top.aihmc.omnimorph.config.ConfigManager.REGISTRY.contains(config),
+            require(config.defaultValue == 1f && org.figuramc.figura.config.ConfigManager.REGISTRY.contains(config),
                     "shared gain defaults to unchanged volume and participates in ordinary config persistence");
             config.setTempValue("2");
             require(config.value == previousValue && config.tempValue == 2f, "editing gain waits for config apply");
@@ -210,12 +210,12 @@ public final class YsmSoundNativeSmokeTest {
             RecordingHandle handle = (RecordingHandle) sound.getHandle();
             int commands = handle.commands;
             var volumeEngine = new VolumeEngine();
-            Field handlers = top.aihmc.omnimorph.mixin.sound.SoundEngineMixin.class.getDeclaredField("figuraHandlers");
+            Field handlers = org.figuramc.figura.mixin.sound.SoundEngineMixin.class.getDeclaredField("figuraHandlers");
             handlers.setAccessible(true);
             @SuppressWarnings("unchecked")
             List<LuaSound> active = (List<LuaSound>) handlers.get(volumeEngine);
             active.add(sound);
-            var tick = top.aihmc.omnimorph.mixin.sound.SoundEngineMixin.class.getDeclaredMethod(
+            var tick = org.figuramc.figura.mixin.sound.SoundEngineMixin.class.getDeclaredMethod(
                     "tickNonPaused", org.spongepowered.asm.mixin.injection.callback.CallbackInfo.class);
             tick.setAccessible(true);
             config.value = 2f;
@@ -240,7 +240,7 @@ public final class YsmSoundNativeSmokeTest {
         }
     }
 
-    private static final class VolumeEngine extends top.aihmc.omnimorph.mixin.sound.SoundEngineMixin {
+    private static final class VolumeEngine extends org.figuramc.figura.mixin.sound.SoundEngineMixin {
         @Override
         public void addEventListener(net.minecraft.client.sounds.SoundEventListener listener) {
         }
@@ -338,7 +338,7 @@ public final class YsmSoundNativeSmokeTest {
         require(firstBuffer != null && secondBuffer != null && firstBuffer != secondBuffer
                         && firstBuffer.size() == 5360, "models own independent decoded native buffers");
         testSubEntityAudio(engine, first, firstBuffer);
-        var api = new top.aihmc.omnimorph.lua.api.sound.SoundAPI(first.owner);
+        var api = new org.figuramc.figura.lua.api.sound.SoundAPI(first.owner);
         require(api.isPresent("model_tone") && api.getCustomSounds().contains("model_tone")
                         && !first.owner.customSounds.containsKey("model_tone"), "Lua sound API consumes model resources separately");
         var player = first.runtime.animations();
@@ -391,7 +391,7 @@ public final class YsmSoundNativeSmokeTest {
     }
 
     private static void testSubEntityAudio(RecordingEngine engine, Fixture parent, SoundBuffer shared) throws Exception {
-        top.aihmc.omnimorph.permissions.PermissionManager.init();
+        org.figuramc.figura.permissions.PermissionManager.init();
         var geometry = YsmGeometryParser.parse("{\"minecraft:geometry\":[{\"bones\":[{\"name\":\"root\"}]}]}");
         var constructor = YsmSubEntity.class.getDeclaredConstructor(String.class, String.class, List.class,
                 String.class, String.class, YsmGeometry.class, FiguraTexture.class, boolean.class,

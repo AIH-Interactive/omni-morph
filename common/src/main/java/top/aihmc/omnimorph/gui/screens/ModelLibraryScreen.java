@@ -3,16 +3,16 @@ package top.aihmc.omnimorph.gui.screens;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import top.aihmc.omnimorph.FiguraMod;
-import top.aihmc.omnimorph.backend2.NetworkStuff;
+import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.backend2.NetworkStuff;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.backend2.library.LibraryAdminSession;
 import top.aihmc.omnimorph.backend2.library.LibraryAuthorization;
-import top.aihmc.omnimorph.gui.widgets.Button;
-import top.aihmc.omnimorph.gui.widgets.EntityPreview;
-import top.aihmc.omnimorph.gui.widgets.SearchBar;
-import top.aihmc.omnimorph.gui.widgets.SwitchButton;
+import org.figuramc.figura.gui.widgets.Button;
+import org.figuramc.figura.gui.widgets.EntityPreview;
+import org.figuramc.figura.gui.widgets.SearchBar;
+import org.figuramc.figura.gui.widgets.SwitchButton;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryIconButton;
 import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionTabs;
@@ -32,14 +32,15 @@ import top.aihmc.omnimorph.model.library.LibraryCollectionService;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
 import top.aihmc.omnimorph.model.library.LibraryTransferService;
-import top.aihmc.omnimorph.utils.FiguraText;
-import top.aihmc.omnimorph.utils.ui.UIHelper;
+import org.figuramc.figura.utils.FiguraText;
+import org.figuramc.figura.utils.ui.UIHelper;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.figuramc.figura.gui.screens.AbstractPanelScreen;
 /** Three server-paginated catalogs sharing one detached preview and account collection. */
 public class ModelLibraryScreen extends AbstractPanelScreen {
     private int requestedPageSize;

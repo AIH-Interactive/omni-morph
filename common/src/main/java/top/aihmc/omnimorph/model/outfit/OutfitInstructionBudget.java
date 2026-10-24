@@ -1,10 +1,10 @@
 package top.aihmc.omnimorph.model.outfit;
 
 import org.luaj.vm2.LuaError;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.lua.api.TextureAPI;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.lua.api.TextureAPI;
 import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
-import top.aihmc.omnimorph.permissions.Permissions;
+import org.figuramc.figura.permissions.Permissions;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -189,7 +189,7 @@ public final class OutfitInstructionBudget {
         if (remaining == 0 && avatar.cosmeticContext != null && DIAGNOSED.add(System.identityHashCode(avatar) + ":" + permission)) {
             // Diagnostic only: an accessory found no shared allowance; record every input of the computation.
             var baseInstructions = baseAvatar == null ? null : instructions(baseAvatar, permission);
-            top.aihmc.omnimorph.FiguraMod.LOGGER.warn("Outfit accessory allowance exhausted: permission={}, accessoryMax={}, "
+            org.figuramc.figura.FiguraMod.LOGGER.warn("Outfit accessory allowance exhausted: permission={}, accessoryMax={}, "
                             + "accessoryRemaining={}, basePermission={}, baseCounter={}/{}, sharedUsed={}, observedBase={}",
                     permission.name, avatar.permissions.get(permission), instructions.remaining,
                     baseAvatar == null ? -1 : baseAvatar.permissions.get(permission),

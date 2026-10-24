@@ -2,8 +2,8 @@ package top.aihmc.omnimorph.model.ysm;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
-import top.aihmc.omnimorph.FiguraMod;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.molang.parser.ast.Expression;
 import top.aihmc.omnimorph.molang.runtime.ExecutionContext;
 import top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator;

@@ -18,7 +18,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.molang.runtime.AssignableVariable;
 import top.aihmc.omnimorph.molang.runtime.ExecutionContext;
 import top.aihmc.omnimorph.molang.runtime.MolangExecutionBudget;
@@ -36,7 +36,7 @@ import net.minecraft.world.entity.vehicle.boat.Raft;
 import top.aihmc.omnimorph.molang.runtime.Function;
 import top.aihmc.omnimorph.molang.runtime.Variable;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationClip;
-import top.aihmc.omnimorph.utils.PlatformUtils;
+import org.figuramc.figura.utils.PlatformUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -1259,7 +1259,7 @@ public class MolangBindings implements ObjectBinding {
         private static Object dumpMods(ExecutionContext<?> execution) {
             if (QueryVariables.canEmitDebugOutput(execution)) {
                 PlatformUtils.getLoadedMods().entrySet().stream().sorted(Map.Entry.comparingByValue())
-                        .forEach(mod -> top.aihmc.omnimorph.FiguraMod.LOGGER.warn(
+                        .forEach(mod -> org.figuramc.figura.FiguraMod.LOGGER.warn(
                                 "Mod: display {}  id {}", mod.getValue(), mod.getKey()));
             }
             return null;
@@ -1281,7 +1281,7 @@ public class MolangBindings implements ObjectBinding {
                 }
             }
             for (var effect : effects) {
-                top.aihmc.omnimorph.FiguraMod.LOGGER.warn("Effect: display {}  name {}  lv={}",
+                org.figuramc.figura.FiguraMod.LOGGER.warn("Effect: display {}  name {}  lv={}",
                         effect.getEffect().value().getDisplayName().getString(99),
                         BuiltInRegistries.MOB_EFFECT.getKey(effect.getEffect().value()), effect.getAmplifier() + 1);
             }
@@ -1295,8 +1295,8 @@ public class MolangBindings implements ObjectBinding {
             }
             var biome = entity.level().getBiome(entity.blockPosition());
             // These registry strings intentionally match the reference diagnostics, rather than biome/tag IDs.
-            biome.unwrapKey().ifPresent(key -> top.aihmc.omnimorph.FiguraMod.LOGGER.warn("Name {}", key.registry()));
-            biome.tags().forEach(tag -> top.aihmc.omnimorph.FiguraMod.LOGGER.warn("Tag {}", tag.registry()));
+            biome.unwrapKey().ifPresent(key -> org.figuramc.figura.FiguraMod.LOGGER.warn("Name {}", key.registry()));
+            biome.tags().forEach(tag -> org.figuramc.figura.FiguraMod.LOGGER.warn("Tag {}", tag.registry()));
             return null;
         }
 

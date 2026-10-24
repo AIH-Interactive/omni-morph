@@ -7,13 +7,13 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.model.FiguraModelPart;
-import top.aihmc.omnimorph.model.PartCustomization;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.model.FiguraModelPart;
+import org.figuramc.figura.model.PartCustomization;
 import top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer;
-import top.aihmc.omnimorph.model.rendering.PartFilterScheme;
-import top.aihmc.omnimorph.permissions.PermissionPack;
-import top.aihmc.omnimorph.permissions.Permissions;
+import org.figuramc.figura.model.rendering.PartFilterScheme;
+import org.figuramc.figura.permissions.PermissionPack;
+import org.figuramc.figura.permissions.Permissions;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -112,8 +112,8 @@ public final class NativeSkeletonSmokeTest {
         root.customization.visible = true;
         root.preRender = null;
         root.postRender = null;
-        empty.parentType = top.aihmc.omnimorph.model.ParentType.LeftArm;
-        hidden.parentType = top.aihmc.omnimorph.model.ParentType.RightArm;
+        empty.parentType = org.figuramc.figura.model.ParentType.LeftArm;
+        hidden.parentType = org.figuramc.figura.model.ParentType.RightArm;
         empty.postRender = avatar.loadScript("change parent after arm draw", """
                 return function(_, _, part)
                     part:setParentType("RightArm")
@@ -124,7 +124,7 @@ public final class NativeSkeletonSmokeTest {
         }, new com.mojang.blaze3d.vertex.PoseStack(), .5f, 0x00f000f0, 1, 0, false, false);
         renderer.posMat.reset();
         renderer.normalMat.reset();
-        hidden.parentType = top.aihmc.omnimorph.model.ParentType.World;
+        hidden.parentType = org.figuramc.figura.model.ParentType.World;
         SkeletonPose leftArm = adapter.captureArm(new Matrix4f(), true, renderer::render);
         var prunedReference = adapter.binding().definition().reference(null,
                 adapter.binding().definition().uniqueNamed("pruned_child").orElseThrow());
@@ -132,7 +132,7 @@ public final class NativeSkeletonSmokeTest {
                 "first-person arm capture prunes descendants of a rejected separate branch without unboxing null");
         require(leftArm.matrix(visibleReference).isPresent() && leftArm.matrix(hiddenReference).isEmpty(),
                 "Figura arm capture uses native draw-time parent types before post-render edits");
-        require(empty.parentType == top.aihmc.omnimorph.model.ParentType.RightArm,
+        require(empty.parentType == org.figuramc.figura.model.ParentType.RightArm,
                 "arm capture preserves the author's post-render mutation");
         require(leftArm.definition() == pose.definition() && cache.parseCount() == 1,
                 "arm filtering preserves the same stable body references and cached definition");

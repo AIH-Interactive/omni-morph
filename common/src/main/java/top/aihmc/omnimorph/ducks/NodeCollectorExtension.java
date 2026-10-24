@@ -3,7 +3,7 @@ package top.aihmc.omnimorph.ducks;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import org.apache.commons.lang3.function.TriFunction;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.model.rendering.nodeRenderer.FiguraSubmission;
 
 import java.util.List;

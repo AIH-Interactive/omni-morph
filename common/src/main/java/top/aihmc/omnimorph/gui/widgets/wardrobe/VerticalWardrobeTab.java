@@ -2,8 +2,8 @@ package top.aihmc.omnimorph.gui.widgets.wardrobe;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
-import top.aihmc.omnimorph.gui.widgets.Button;
-import top.aihmc.omnimorph.utils.ui.UIHelper;
+import org.figuramc.figura.gui.widgets.Button;
+import org.figuramc.figura.utils.ui.UIHelper;
 
 /** Rotates the complete label while keeping the native rectangular focus and hit target. */
 public final class VerticalWardrobeTab extends Button {

@@ -3,10 +3,11 @@ package top.aihmc.omnimorph.lua.api.particle;
 import net.minecraft.client.Minecraft;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaFunction;
-import top.aihmc.omnimorph.FiguraMod;
+import org.figuramc.figura.FiguraMod;
 import top.aihmc.omnimorph.model.outfit.OutfitInstructionBudget;
 import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
 
+import org.figuramc.figura.lua.api.particle.LuaParticle;
 /** One particle's callback handles. Execution is always through its owner's existing bounded Lua runtime. */
 final class CustomParticleCallbacks implements AutoCloseable {
     private final CustomParticle particle;

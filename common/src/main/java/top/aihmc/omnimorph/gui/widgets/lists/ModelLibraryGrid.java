@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 
+import org.figuramc.figura.gui.widgets.lists.AbstractList;
 /** Scrollable page with visible cards and one row of thumbnail prefetch; API pagination is separate. */
 public final class ModelLibraryGrid extends AbstractList implements AutoCloseable {
     private final LibraryThumbnailService thumbnails;

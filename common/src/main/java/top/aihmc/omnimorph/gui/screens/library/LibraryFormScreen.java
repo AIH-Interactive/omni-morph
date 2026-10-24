@@ -2,10 +2,10 @@ package top.aihmc.omnimorph.gui.screens.library;
 
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import top.aihmc.omnimorph.gui.screens.AbstractPanelScreen;
-import top.aihmc.omnimorph.gui.widgets.Button;
-import top.aihmc.omnimorph.utils.FiguraText;
-import top.aihmc.omnimorph.utils.ui.UIHelper;
+import org.figuramc.figura.gui.screens.AbstractPanelScreen;
+import org.figuramc.figura.gui.widgets.Button;
+import org.figuramc.figura.utils.FiguraText;
+import org.figuramc.figura.utils.ui.UIHelper;
 
 /** Forms keep an explicit return path and use the same supported minimum logical size. */
 abstract class LibraryFormScreen extends AbstractPanelScreen {

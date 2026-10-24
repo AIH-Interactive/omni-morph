@@ -16,10 +16,10 @@ import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
-import top.aihmc.omnimorph.FiguraMod;
-import top.aihmc.omnimorph.utils.FiguraText;
+import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.utils.FiguraText;
 import top.aihmc.omnimorph.avatar.AvatarTranslations;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.control.AvatarControlDefinition;
 import top.aihmc.omnimorph.avatar.control.AvatarControlType;
 import top.aihmc.omnimorph.avatar.ysm.YsmAvatarKind;
@@ -27,13 +27,13 @@ import top.aihmc.omnimorph.avatar.ysm.YsmAvatarLoader;
 import top.aihmc.omnimorph.avatar.ysm.YsmModelData;
 import top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload;
 import top.aihmc.omnimorph.avatar.ysm.crypto.YsmDecodeException;
-import top.aihmc.omnimorph.lua.api.action_wheel.Action;
-import top.aihmc.omnimorph.lua.api.action_wheel.ActionWheelAPI;
-import top.aihmc.omnimorph.lua.api.action_wheel.Page;
-import top.aihmc.omnimorph.math.matrix.FiguraMat4;
-import top.aihmc.omnimorph.math.vector.FiguraVec3;
+import org.figuramc.figura.lua.api.action_wheel.Action;
+import org.figuramc.figura.lua.api.action_wheel.ActionWheelAPI;
+import org.figuramc.figura.lua.api.action_wheel.Page;
+import org.figuramc.figura.math.matrix.FiguraMat4;
+import org.figuramc.figura.math.vector.FiguraVec3;
 import top.aihmc.omnimorph.molang.MolangEngine;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationClip;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationParser;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationPlayer;
@@ -1347,7 +1347,7 @@ public class YsmModelRuntime implements AutoCloseable {
     /** Selects a detached default-pose preview, leaving world playback untouched. */
     public synchronized YsmModelRuntime forRenderPass() {
         if (closed || previewRuntime || previewInput == null
-                || owner.renderMode != top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI) {
+                || owner.renderMode != org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI) {
             return this;
         }
         Map<String, Object> controls = new LinkedHashMap<>();
@@ -1537,7 +1537,7 @@ public class YsmModelRuntime implements AutoCloseable {
         if (!firstPerson) {
             applyModelScale(scale);
         }
-        boolean unlit = guiNoLighting && owner.renderMode == top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI;
+        boolean unlit = guiNoLighting && owner.renderMode == org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
         var lease = AccelerationService.INSTANCE.capture(
                 owner.accelerationOwner(), String.valueOf(owner.renderMode));
         return YsmRenderPose.capture(uniqueParts(firstPerson), scale.last().pose(), unlit, lease);
