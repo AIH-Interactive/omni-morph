@@ -62,6 +62,7 @@ public class YsmModelRuntime implements AutoCloseable {
     private static final float DEFAULT_YSM_SCALE = 0.7f;
 
     private final Avatar owner;
+    private YsmModelRuntime previewSource;
     private Avatar complexityOwner;
     private final YsmGeometry geometry;
     private YsmGeometry armGeometry;
@@ -569,6 +570,11 @@ public class YsmModelRuntime implements AutoCloseable {
 
     public Avatar owner() {
         return owner;
+    }
+
+    /** The bone tree retains source-part identities while GUI playback owns detached parts. */
+    YsmModelRuntime selectionSource() {
+        return previewSource == null ? this : previewSource;
     }
 
     public YsmGeometry geometry() {
@@ -1407,6 +1413,7 @@ public class YsmModelRuntime implements AutoCloseable {
             var result = new YsmModelRuntime(previewOwner, previewGeometry, previewArms, texture, textureId,
                     textureTranslucent, kind, modelKey, textureData, defaultWidthScale, defaultHeightScale, encryptedSource);
             result.previewRuntime = true;
+            result.previewSource = this;
             result.complexityOwner = complexityOwner;
             result.ownsTexture = false;
             result.materialData = materialData;

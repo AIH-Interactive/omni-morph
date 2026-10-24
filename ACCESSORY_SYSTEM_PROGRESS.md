@@ -1077,3 +1077,12 @@
 - 8 个手绘像素 SVG 和对应 PNG 区分实例添加、实例管理、应用、失败重试、从后端刷新、撤销、重置和预设；生成入口 tools/render-wardrobe-icons.ps1。已查看 alpha4-toolbar-icons.png 资源样张，非真实 GUI 证据。
 - PASS：alpha4-wardrobe-action-groups-final.log，27秒/21 tasks；真实控件构建、类型切换/All 选择/筛选优先级、可见顺序与旧权限禁用状态、预览回归和 Fabric build。此前增加测试时漏写 Component 全限定名导致编译失败，已修正，未修改业务逻辑应付测试。
 - 真实游戏布局、缩放、悬停及中文提示：MANUAL/PENDING。睡眠位置也仍需用户在四床方向复测。
+
+## 2026-10-24：YSM 选中骨骼高亮缺失
+
+用户补充 Figura 正常、YSM 无效。树持有源 YsmModelPart，正式 GUI 绘制却使用 forRenderPass 独立运行时（不同 Avatar/部件）。旧回归只覆盖源实例直接绘制，未覆盖该路径。最小修复：预览运行时记录自身源运行时，仅高亮/透明度判定使用该源实例身份，几何/动画仍由独立预览计算，不按名称跨实例匹配、不改变 Figura 路径。
+
+- RED：alpha4-bone-highlight-red.log，23秒，真实 forRenderPass 独立实例的选中/半透明断言失败。
+- PASS：alpha4-bone-highlight-final.log，56秒/22 tasks，YSM 原生材质回归和 Fabric build（附带正式预览回归）。覆盖普通/加速输出，选中子树255/其他76 alpha、独立预览、帧清理及世界绘制不受影响。
+- 实际游戏描边与透明视觉：MANUAL/PENDING，CPU 顶点/材质证据不冒充真实 GPU 画面。
+- 下一项用户已授权：创建本地形象/装饰按钮无响应，检查点后继续。
