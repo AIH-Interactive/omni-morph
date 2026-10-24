@@ -69,6 +69,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
             testOtherPlayerRouting(unsafe, client);
             testOtherPlayerDraft(unsafe, drain);
             testVanillaSelection(unsafe, drain);
+            testLegacyCubeType();
+            testProvidedCosmetics(unsafe, drain);
             testCatalogOutfitPreview(unsafe, drain);
             testWardrobeDraftActions(unsafe, drain);
             testWardrobeCloudCosmetic(unsafe, drain, encrypted);
@@ -783,6 +785,109 @@ public final class LibraryPreviewRuntimeSmokeTest {
             }
         }
         System.out.println("PASS collection Outfit workflow: authorized selection, explicit draft import, editor routing and cancellation; GUI MANUAL/PENDING");
+    }
+
+    private static void testLegacyCubeType() {
+        var gson = top.aihmc.omnimorph.parsers.BlockbenchCommonTypes.getGson();
+        var element = top.aihmc.omnimorph.parsers.BlockbenchCommonTypes.Element.class;
+        require(gson.fromJson("{}", element) instanceof
+                        top.aihmc.omnimorph.parsers.BlockbenchCommonTypes.CubeElement,
+                "legacy elements without a type retain cube geometry");
+        require(gson.fromJson("{\"type\":null}", element) instanceof
+                        top.aihmc.omnimorph.parsers.BlockbenchCommonTypes.CubeElement,
+                "legacy null cube types retain their original default");
+        require(gson.fromJson("{\"type\":\"mesh\"}", element) instanceof
+                        top.aihmc.omnimorph.parsers.BlockbenchCommonTypes.MeshElement,
+                "explicit mesh types keep their existing decoder");
+        require(gson.fromJson("{\"type\":\"unsupported\"}", element) instanceof
+                        top.aihmc.omnimorph.parsers.BlockbenchCommonTypes.UnknownElement,
+                "unknown explicit types do not become cubes");
+        var generated = top.aihmc.omnimorph.wizards.CosmeticTemplate.LEGS.model("").build();
+        require(generated.getAsJsonArray("elements").get(0).getAsJsonObject()
+                        .get("type").getAsString().equals("cube"),
+                "new exported templates declare cube types explicitly");
+    }
+
+    private static void testProvidedCosmetics(Unsafe unsafe, Runnable drain) throws Exception {
+        String directory = System.getenv("OMNIMORPH_TEST_COSMETICS");
+        if (directory == null || directory.isBlank()) {
+            return;
+        }
+        var minecraft = Minecraft.getInstance();
+        var previousPlayer = minecraft.player;
+        var player = (CurrentPreviewPlayer) unsafe.allocateInstance(CurrentPreviewPlayer.class);
+        player.setUUID(UUID.randomUUID());
+        minecraft.player = player;
+        var permissions = new PermissionPack.PlayerPermissionPack(
+                new PermissionPack.CategoryPermissionPack(Permissions.Category.DEFAULT), player.getUUID().toString());
+        var previousDebug = minecraft.debugEntries;
+        var debug = (net.minecraft.client.gui.components.debug.DebugScreenEntryList) unsafe.allocateInstance(
+                net.minecraft.client.gui.components.debug.DebugScreenEntryList.class);
+        field(debug.getClass(), "allStatuses").set(debug, new java.util.HashMap<>());
+        field(debug.getClass(), "currentlyEnabled").set(debug, new java.util.ArrayList<>());
+        field(Minecraft.class, "debugEntries").set(minecraft, debug);
+        var previousRenderer = minecraft.gameRenderer;
+        var renderer = (net.minecraft.client.renderer.GameRenderer) unsafe.allocateInstance(
+                net.minecraft.client.renderer.GameRenderer.class);
+        field(renderer.getClass(), "mainCamera").set(renderer, new net.minecraft.client.Camera());
+        field(Minecraft.class, "gameRenderer").set(minecraft, renderer);
+        boolean previousPaperdoll = top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll;
+        try (var device = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.recordingTextureDevice();
+             var directories = Files.list(Path.of(directory))) {
+            for (Path path : directories.filter(Files::isDirectory).sorted().toList()) {
+                var description = top.aihmc.omnimorph.model.outfit.LocalCosmeticSource.describe(path, () -> false);
+                var reference = new OutfitConfig.ResourceRef(OutfitConfig.Source.LOCAL, UUID.randomUUID(), null, null,
+                        null, description.contentHash(), description.format());
+                var declaration = new OutfitConfig.Instance(UUID.randomUUID(), reference, 1, true,
+                        description.metadata().category().equals("Trail")
+                                ? new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.AUTO_TRAIL, null, null, null, null, null)
+                                : description.metadata().defaultAnchor(), description.metadata().defaultTransform(),
+                        java.util.List.of(), Map.of(), Map.of());
+                var config = new OutfitConfig(1, 0, null, java.util.List.of(declaration), java.util.List.of(),
+                        Map.of(reference.identity(), 1), false);
+                try (var preview = new LibraryPreviewSession()) {
+                    require(preview.selectVanilla(), "actual-resource vanilla preview starts");
+                    require(await(preview.prepareComposition(config, OutfitLimits.defaults(), player.getUUID(),
+                            UUID.randomUUID(), permissions, (resource, cancelled) ->
+                                    top.aihmc.omnimorph.model.outfit.LocalCosmeticSource.prepare(path,
+                                            player.getUUID(), description.contentHash(), cancelled).nbt()), drain),
+                            "actual accessory prepares: " + path.getFileName());
+                    preview.tick();
+                    var composition = preview.outfitComposition();
+                    require(composition.runtimeInstances().size() == 1,
+                            "actual accessory remains script-error free: " + path.getFileName());
+                    var vertices = new java.util.concurrent.atomic.AtomicInteger();
+                    var sink = (com.mojang.blaze3d.vertex.VertexConsumer) java.lang.reflect.Proxy.newProxyInstance(
+                            LibraryPreviewRuntimeSmokeTest.class.getClassLoader(),
+                            new Class<?>[]{com.mojang.blaze3d.vertex.VertexConsumer.class}, (proxy, method, args) -> {
+                        if (method.isDefault()) {
+                            return java.lang.reflect.InvocationHandler.invokeDefault(proxy, method, args);
+                        }
+                        if (method.getName().equals("addVertex")) {
+                            vertices.incrementAndGet();
+                        }
+                        return method.getReturnType() == void.class ? null : proxy;
+                    });
+                    top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = true;
+                    try (var frame = composition.retain()) {
+                        var matrix = new org.joml.Matrix4f();
+                        top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer.drawVanilla(frame,
+                                LibraryFiguraPreviewRenderer.createModel(false), new AvatarRenderState(),
+                                .5f, matrix, matrix, material -> sink,
+                                top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI);
+                    }
+                    System.out.println("Actual accessory " + path.getFileName() + ": vertices=" + vertices.get());
+                    require(description.metadata().category().equals("Trail") || vertices.get() > 0,
+                            "actual non-particle accessory emits native geometry: " + path.getFileName());
+                }
+                LibraryPreviewBinding.finishFrame();
+            }
+        } finally {
+            minecraft.player = previousPlayer;
+            field(Minecraft.class, "debugEntries").set(minecraft, previousDebug);
+            field(Minecraft.class, "gameRenderer").set(minecraft, previousRenderer);
+            top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = previousPaperdoll;
+        }
     }
 
     private static void testVanillaSelection(Unsafe unsafe, Runnable drain) throws Exception {
@@ -3845,6 +3950,25 @@ public final class LibraryPreviewRuntimeSmokeTest {
         windowField.set(minecraft, viewport);
         minecraft.screen = screen;
         try {
+            var clearingMenu = new top.aihmc.omnimorph.gui.widgets.ContextMenu() {
+                @Override
+                public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+                    // Replay the action without the native audio engine; the screen dispatch remains real.
+                    ((top.aihmc.omnimorph.gui.widgets.Button) getEntries().getFirst()).onPress(null);
+                    return true;
+                }
+            };
+            clearingMenu.addAction(net.minecraft.network.chat.Component.literal("Rebuild"), null,
+                    ignored -> screen.contextMenu = null);
+            clearingMenu.setX(20);
+            clearingMenu.setY(20);
+            clearingMenu.setVisible(true);
+            screen.contextMenu = clearingMenu;
+            require(screen.contextMenuClick(new net.minecraft.client.input.MouseButtonEvent(24, 24,
+                            new net.minecraft.client.input.MouseButtonInfo(0, 0)), false),
+                    "menu callback may clear the screen menu during a consumed click");
+            require(screen.contextMenu == null && !clearingMenu.isVisible(),
+                    "the clicked menu closes after its callback rebuilds the screen");
             testCreationMenuAndForm(screen);
             var selected = new java.util.concurrent.atomic.AtomicInteger();
             var removed = new java.util.concurrent.atomic.AtomicReference<Object>();

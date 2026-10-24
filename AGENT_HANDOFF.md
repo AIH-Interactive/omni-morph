@@ -51,7 +51,7 @@ S1～S6 自动实施已收口并推送。后端仅原有未跟踪 build.log、sp
 - 主仓库实施涉及 avatar/UserData、backend2/NetworkStuff、library 的 Apply/Observer/Events/InstanceState、model/library 正式准备/同步、model/outfit、衣柜/控件/轮盘、正式渲染 Mixin、Lua API 及测试/文档；源文件均已纳入阶段提交。
 - 后端改动在 src/api/library、src/storage/outfit_*、旧装备/分发事务衔接、独立事件、对应 tests 和部署文档；原 build.log/spm-cloud 不提交。
 - 当前下一步由用户安排真实验收：按 docs/ALPHA4_ACCEPTANCE.md 在实际窗口、双客户端及相同场景中验证；此前不重复已通过无关门禁、不追加 S5 优化。YsmPublicPoseSmokeTest.java 已提交，临时 DEBUG 已移除。接手时先核对 Git/产物和未验项，不重启计划。
-- 最新 JAR 为 fabric/build/libs/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar（18,256,498字节，SHA256 931479b3724e4fd9890cdb8ce578df64e02aae457a7eedd240bfbe97d02478e4），已包含睡姿/手/Head/滤波修正。根因/红绿日志和参考路径见进度记录末尾。DS 模型另有加密控制器解析警告，未证明与本次缺陷有关，作为跟进记录，不扩张解析器重构。
+- 最新 JAR 为 fabric/build/libs/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar（18,257,057字节，SHA256 3d9273f928611afb424e13a13232166629aaea0fef310d6c788034efda093b38），已包含睡姿/手/Head/滤波修正。根因/红绿日志和参考路径见进度记录末尾。DS 模型另有加密控制器解析警告，未证明与本次缺陷有关，作为跟进记录，不扩张解析器重构。
 
 ## 相关文档
 
@@ -74,3 +74,15 @@ S1～S6 自动实施已收口并推送。后端仅原有未跟踪 build.log、sp
 ## 最新检查点：创建菜单（2026-10-24）
 
 创建按钮无响应已修复：补齐菜单位置和可见状态，仅三行业务改动。alpha4-create-menu-red.log RED；alpha4-create-menu-final.log 回归/构建 PASS（30秒）。高亮修复 main@3bba0c0f 已推送核对；本菜单改动随后独立提交。上方 JAR 大小/哈希为最终同时含两项修复的新包。当前无新增实施任务；真实 YSM 描边/其他部件半透明、创建菜单点击及其余既有人工项仍 MANUAL/PENDING，等用户实际游戏反馈。
+
+## 当前有效交接：菜单/实际装饰资源修复（2026-10-24）
+
+本节覆盖上方历史“下一步”描述。当前任务是用户实际装饰不显示和菜单 contextMenu 空指针。代码修复及自动验证完成：菜单点击固定局部引用；Blockbench 缺省/null type 按旧语义解码 cube，新导出明确 type。未改认证/协议/后端、未改版本、无资源特化。尚未完成的只有真实游戏验收，不自动扩张功能。
+
+主仓库 main，交付前基线834ca512，修改4个源码/测试文件和3个文档，均纳入随后检查点；最终提交号/远端一致性以 git rev-parse HEAD、git ls-remote origin refs/heads/main 核对。后端 master@656652e 无本轮修改，原未跟踪 build.log/spm-cloud 保留。全局 AGENTS.md 在仓库之外已按用户要求更新。
+
+验证：alpha4-menu-reentry-red.log 复现用户同栈；alpha4-menu-reentry-final.log PASS（13秒）。实际 test1 从0顶点变24，test2为48；alpha4-accessory-render-final.log PASS（28秒/21 tasks），相关源加载/脚本初始化/挂载/顶点、解析类型兼容及最终Fabric构建均验证。真实窗口菜单/装饰、YSM基础和世界/双客户端、test拖尾运动仍 MANUAL/PENDING。上方 JAR 大小和哈希已更新为最终新包。临时 DEBUG 已删除；无运行中测试/构建。读取用户数据而未修改；回放命令需设置 OMNIMORPH_TEST_COSMETICS 指向用户 cosmetics 目录，详情见进度记录末尾。
+
+最小下一步：用户更换新包并重启客户端，重新选择本地装饰验证预览/应用及菜单操作；未确认前不宣称真实端到端完成。如果仍有问题，从该实际资源和最新客户端日志接续，不重启S1～S6或大规模重构。
+
+额度：可靠接口显示 Plus，5小时剩余76%、周剩余19%，未到交接阈值；重置时间UTC秒1792825679/1793382104。正常完成由当前Agent更新本文；若以后达到交接阈值，仅委派 gpt-6-luna 编写本文，不切换日常开发模型；失败则先存最小状态。用户要求即使任务提前完成也更新手册已写入全局AGENTS。
