@@ -160,6 +160,8 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
 
         // Vertex data, read model parts
         root = FiguraModelPartReader.read(avatar, avatar.nbt.getCompoundOrEmpty("models"), textureSets, false);
+        // Capture the armature rest pose and bake skinned meshes into armature space
+        FiguraSkinning.setup(root);
 
         sortParts();
     }
@@ -810,55 +812,8 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
     }
 
     private FiguraMat4[] collectBoneSkinningDeltas(FiguraModelPart skinnedPart) {
-        String[] boneNames = skinnedPart.skinBoneNames;
-        FiguraMat4[] deltas = new FiguraMat4[boneNames.length];
-
-        if (skinnedPart.parent != null) {
-            for (FiguraModelPart sibling : skinnedPart.parent.children) {
-                if (sibling != skinnedPart)
-                    searchBoneHierarchy(sibling, boneNames, deltas, FiguraMat4.of());
-            }
-        }
-
-        for (int i = 0; i < boneNames.length; i++) {
-            if (deltas[i] == null)
-                deltas[i] = FiguraMat4.of();
-        }
-
-        return deltas;
-    }
-
-    private void searchBoneHierarchy(FiguraModelPart part, String[] boneNames, FiguraMat4[] deltas, FiguraMat4 parentAccum) {
-        FiguraMat4 localDelta = buildBoneAnimDelta(part.customization);
-        Matrix4f override = outfitBoneOverrides.get(part);
-        if (override != null) {
-            localDelta.rightMultiply(pivotedOverride(part, override));
-        }
-        FiguraMat4 combined = parentAccum.copy();
-        combined.multiply(localDelta);
-
-        for (int i = 0; i < boneNames.length; i++) {
-            if (deltas[i] == null && boneNames[i].equals(part.name))
-                deltas[i] = combined.copy();
-        }
-
-        for (FiguraModelPart child : part.children)
-            searchBoneHierarchy(child, boneNames, deltas, combined);
-    }
-
-    private static FiguraMat4 buildBoneAnimDelta(PartCustomization boneCust) {
-        FiguraVec3 pivot = boneCust.getPivot();
-        FiguraVec3 animRot = boneCust.getAnimRot();
-        FiguraVec3 animPos = boneCust.getAnimPos();
-        FiguraVec3 animScale = boneCust.getAnimScale();
-
-        FiguraMat4 delta = FiguraMat4.of();
-        delta.translate(-pivot.x, -pivot.y, -pivot.z);
-        delta.scale(animScale.x, animScale.y, animScale.z);
-        if (animRot.x != 0 || animRot.y != 0 || animRot.z != 0)
-            delta.rotateZYX(animRot.x, animRot.y, animRot.z);
-        delta.translate(pivot.x + animPos.x, pivot.y + animPos.y, pivot.z + animPos.z);
-        return delta;
+        // Bind-aware skinning: boneWorld * inverse(bindWorld), resolved once at model load
+        return FiguraSkinning.deltas(skinnedPart, outfitBoneOverrides);
     }
 
     private VertexData getTexture(PartCustomization customization, FiguraTextureSet textureSet, boolean primary) {

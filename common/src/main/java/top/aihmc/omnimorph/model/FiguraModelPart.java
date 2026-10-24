@@ -70,6 +70,16 @@ public class FiguraModelPart implements Comparable<FiguraModelPart> {
     @Nullable
     public float[][] skinBoneWeights;
 
+    // Resolved armature skinning data (see FiguraSkinning)
+    public boolean isArmature = false;
+    public boolean isBone = false;
+    @Nullable
+    public FiguraModelPart[] skinBoneParts;
+    @Nullable
+    public FiguraMat4[] skinBindInverse;
+    @Nullable
+    public FiguraModelPart skinArmature;
+
     @LuaWhitelist
     @LuaFieldDoc("model_part.pre_render")
     public LuaFunction preRender; // before calculations

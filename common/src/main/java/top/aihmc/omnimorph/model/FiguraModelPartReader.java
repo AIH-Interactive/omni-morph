@@ -34,6 +34,10 @@ public class FiguraModelPartReader {
         // Read name
         String name = partCompound.getStringOr("name", "");
 
+        // Armature markers. Older cached models do not have them; skinning still resolves by name.
+        boolean isArmature = partCompound.contains("armature") && partCompound.getBooleanOr("armature", false);
+        boolean isBone = partCompound.contains("bone") && partCompound.getBooleanOr("bone", false);
+
         // Read transformation
         PartCustomization customization = new PartCustomization();
         customization.needsMatrixRecalculation = true;
@@ -100,7 +104,9 @@ public class FiguraModelPartReader {
 
         result.facesByTexture = facesByTexture;
         storeTextures(result, textureSets);
-        if (partCompound.contains("pt")) {
+        result.isArmature = isArmature;
+        result.isBone = isBone;
+        if (!isArmature && !isBone && partCompound.contains("pt")) {
             try {
                 result.parentType = ParentType.valueOf(partCompound.getStringOr("pt", ""));
             } catch (Exception ignored) {}

@@ -318,7 +318,11 @@ public class BlockbenchV5Model extends ModelFormat {
                 if (rotation != null && !rotation.equals(0, 0, 0))
                     tag.put("rot", BlockbenchCommonTypes.vecToList(rotation));
 
-                BlockbenchCommonTypes.parseParent(name, tag);
+                // Armatures and bones are rig nodes, not vanilla model parts. Binding them to a
+                // vanilla parent type (e.g. a bone named "head") would apply unwanted transforms.
+                boolean rigNode = referent instanceof ArmatureElement || referent instanceof ArmatureBoneElement;
+                if (!rigNode)
+                    BlockbenchCommonTypes.parseParent(name, tag);
 
                 // TODO: collections?!
 
