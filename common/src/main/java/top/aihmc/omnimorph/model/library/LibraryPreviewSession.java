@@ -596,6 +596,12 @@ public final class LibraryPreviewSession implements AutoCloseable {
             throw new IllegalArgumentException("PREVIEW_BASE_MISMATCH");
         }
         cancelCompositionPreparation();
+        if (avatar != null && avatar.isYsmNative() && permissions != null) {
+            // An isolated YSM base keeps detached defaults, but its composed faces belong to the wearer, as when equipped.
+            avatar.permissions.insert(top.aihmc.omnimorph.permissions.Permissions.COMPLEXITY,
+                    permissions.get(top.aihmc.omnimorph.permissions.Permissions.COMPLEXITY),
+                    top.aihmc.omnimorph.FiguraMod.MOD_ID);
+        }
         long generation = generations.get();
         long draft = compositionGenerations.get();
         LibraryPreviewBinding target = binding;

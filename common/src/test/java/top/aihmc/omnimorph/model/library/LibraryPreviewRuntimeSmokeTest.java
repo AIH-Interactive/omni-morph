@@ -71,6 +71,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             testVanillaSelection(unsafe, drain);
             testLegacyCubeType();
             testProvidedCosmetics(unsafe, drain);
+            testPackagedYsmDraftBases(unsafe, drain);
             testCatalogOutfitPreview(unsafe, drain);
             testWardrobeDraftActions(unsafe, drain);
             testWardrobeCloudCosmetic(unsafe, drain, encrypted);
@@ -888,6 +889,86 @@ public final class LibraryPreviewRuntimeSmokeTest {
             field(Minecraft.class, "gameRenderer").set(minecraft, previousRenderer);
             top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = previousPaperdoll;
         }
+    }
+
+    /** Actual distributed YSM packages as a draft base: the composed body must not stop at the detached face budget. */
+    private static void testPackagedYsmDraftBases(Unsafe unsafe, Runnable drain) throws Exception {
+        String directory = System.getenv("OMNIMORPH_TEST_YSM_PACKAGES");
+        if (directory == null || directory.isBlank()) {
+            return;
+        }
+        var minecraft = Minecraft.getInstance();
+        var previousPlayer = minecraft.player;
+        var player = (CurrentPreviewPlayer) unsafe.allocateInstance(CurrentPreviewPlayer.class);
+        player.setUUID(UUID.randomUUID());
+        minecraft.player = player;
+        // The wardrobe passes the local wearer's own pack, whose trust is normally above the detached default.
+        var wearer = new PermissionPack.PlayerPermissionPack(
+                new PermissionPack.CategoryPermissionPack(Permissions.Category.MAX), player.getUUID().toString());
+        java.util.List<Path> packages;
+        try (var files = Files.list(Path.of(directory))) {
+            packages = files.filter(Files::isRegularFile).sorted().toList();
+        }
+        try (var device = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.recordingTextureDevice()) {
+            for (Path path : packages) {
+                CompoundTag nbt = net.minecraft.nbt.NbtIo.readCompressed(path,
+                        net.minecraft.nbt.NbtAccounter.create(256L * 1024 * 1024));
+                if (!nbt.getCompoundOrEmpty("metadata").getStringOr("format", "").equals("ysm-native")) {
+                    continue;
+                }
+                try (var preview = new LibraryPreviewSession()) {
+                    require(await(preview.selectDraft(nbt), drain), "actual packaged YSM draft base loads: " + path.getFileName());
+                    var base = new OutfitConfig.ResourceRef(OutfitConfig.Source.CLOUD, null, "https://source.example",
+                            UUID.randomUUID(), 1L, "5".repeat(64), OutfitConfig.Format.YSM_ENCRYPTED);
+                    var config = new OutfitConfig(1, 0, base, java.util.List.of(), java.util.List.of(), Map.of(), false);
+                    require(await(preview.prepareComposition(config, OutfitLimits.defaults(), player.getUUID(),
+                                    UUID.randomUUID(), wearer, (resource, cancelled) -> {
+                                        throw new java.io.IOException("NO_INSTANCES");
+                                    }), drain),
+                            "actual packaged YSM draft composition prepares: " + path.getFileName());
+                    var avatar = (Avatar) field(LibraryPreviewSession.class, "avatar").get(preview);
+                    avatar.renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER;
+                    var runtime = avatar.getYsmRuntime().forRenderPass();
+                    var direct = new java.util.concurrent.atomic.AtomicInteger();
+                    var composed = new java.util.concurrent.atomic.AtomicInteger();
+                    var directPose = runtime.captureRenderPose(false);
+                    top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
+                    runtime.renderer().renderWithAttachments(new com.mojang.blaze3d.vertex.PoseStack(),
+                            type -> countingSink(direct), 0x00f000f0, directPose);
+                    try (var frame = preview.outfitComposition().retain()) {
+                        var framePose = runtime.captureRenderPose(false);
+                        frame.captureYsmBase(runtime, new org.joml.Matrix4f(), framePose);
+                        top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
+                        frame.drawYsmBase(runtime.renderBudgetOwner(), () -> runtime.renderer().renderWithAttachments(
+                                new com.mojang.blaze3d.vertex.PoseStack(), type -> countingSink(composed),
+                                0x00f000f0, framePose));
+                    }
+                    System.out.println("Packaged YSM draft base " + path.getFileName() + ": direct=" + direct.get()
+                            + " composed=" + composed.get());
+                    require(direct.get() > 0 && composed.get() == direct.get(),
+                            "draft outfit base draws the whole packaged YSM body: " + path.getFileName()
+                                    + " direct=" + direct.get() + " composed=" + composed.get());
+                }
+                LibraryPreviewBinding.finishFrame();
+            }
+        } finally {
+            minecraft.player = previousPlayer;
+        }
+        System.out.println("PASS actual packaged YSM draft bases keep every native body vertex under the wearer face budget; GUI/GPU MANUAL/PENDING");
+    }
+
+    private static com.mojang.blaze3d.vertex.VertexConsumer countingSink(java.util.concurrent.atomic.AtomicInteger vertices) {
+        return (com.mojang.blaze3d.vertex.VertexConsumer) java.lang.reflect.Proxy.newProxyInstance(
+                LibraryPreviewRuntimeSmokeTest.class.getClassLoader(),
+                new Class<?>[]{com.mojang.blaze3d.vertex.VertexConsumer.class}, (proxy, method, args) -> {
+                    if (method.isDefault()) {
+                        return java.lang.reflect.InvocationHandler.invokeDefault(proxy, method, args);
+                    }
+                    if (method.getName().equals("addVertex")) {
+                        vertices.incrementAndGet();
+                    }
+                    return method.getReturnType() == void.class ? null : proxy;
+                });
     }
 
     private static void testVanillaSelection(Unsafe unsafe, Runnable drain) throws Exception {

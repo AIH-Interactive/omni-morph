@@ -132,3 +132,9 @@ S1～S6 自动实施已收口并推送。后端仅原有未跟踪 build.log、sp
 本节覆盖上方“最小下一步”。骨骼树取消挂载检查点已推送 main@eee74801。随后修复用户报告的“已缓存却提示未缓存”：形象集摘要 byteLength=0，cachedPreview/LibraryResourceCache.read 改为长度未知时依赖索引长度与 SHA256，revision/policy 照旧校验。RED/最终日志 alpha4-summary-cache-red.log / alpha4-summary-cache-final.log（PASS，1分1秒/23 tasks）。JAR 18269101 字节，SHA256 2be284c4b2fad6a2a52bff3e7f73cceb254d9a06f62e0dee064dce9ec77ca8bd。本修复随后提交推送 main，以 HEAD 与 origin/main 一致为准。
 
 最小下一步：用户换新包重启，在配装中选中已缓存云端形象/装饰确认可加载；真实 GUI/世界/双客户端等仍 MANUAL/PENDING。后端未改；`.omc/` 未跟踪保留。额度当前不可读取，未推测。
+
+## 当前有效交接：云端 YSM 配装预览截断（2026-10-24）
+
+本节覆盖上方下一步。摘要缓存修复已推送 main@73d4d84f。随后修复云端 YSM 在配装中衣柜秒消失/世界只剩头：隔离 YSM 草稿基础按 DEFAULT COMPLEXITY 被组合帧截断，prepareComposition 改用穿戴者 COMPLEXITY。RED/GREEN 日志 alpha4-ysm-draft-budget-red.log / -final.log；回放需设 OMNIMORPH_TEST_YSM_PACKAGES 指向解密后的包目录（未设则跳过，用户数据未修改）。JAR 18269266 字节，SHA256 e538d530d4a25096987f98b2c413f5e7fbaf8194d70f9afc1a3bd0080e356ce7。
+
+最小下一步：①用户换包验证云端 YSM 在衣柜和世界中完整显示（MANUAL/PENDING）；②排查“配装提交后装饰未同步云端”，当前日志无提交请求或失败记录，需从提交事务入口追踪并请用户提供提交后的日志。额度不可读取，未推测。
