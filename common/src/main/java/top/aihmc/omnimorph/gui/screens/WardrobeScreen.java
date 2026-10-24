@@ -297,6 +297,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 previewOutfitDraft();
             } else if (selected != null) {
                 previewSelection();
+            } else {
+                showLoadedOutfitDraft();
             }
         }
         layout = tab == Tab.COLLECTION ? WardrobeLayout.collectionOf(width, height) : WardrobeLayout.of(width, height);
@@ -469,9 +471,32 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }
         if (!draftPreviewActive && selected != null) {
             previewSelection();
+        } else if (!draftPreviewActive) {
+            showLoadedOutfitDraft();
         }
         syncHierarchy();
         rebuildWidgets();
+    }
+
+    /**
+     * The outfit tab opens on the committed outfit already loaded for this player, so its accessories appear in the
+     * preview and bone tree without first selecting an entry. Editing stays local; nothing is read from the server.
+     */
+    private void showLoadedOutfitDraft() {
+        if (tab != Tab.OUTFIT || selected != null || draftPreviewActive || minecraft == null) {
+            return;
+        }
+        boolean loadedOutfit = AvatarManager.getLoadedOutfit(FiguraMod.getLocalPlayerUUID()) != null;
+        boolean localPreview = top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.state(minecraft.player) != null;
+        if (!loadedOutfit && !localPreview) {
+            return;
+        }
+        beginOutfitDraft().whenComplete((draft, failure) -> {
+            if (removed || failure != null || tab != Tab.OUTFIT || selected != null || draftPreviewActive) {
+                return;
+            }
+            previewOutfitDraft();
+        });
     }
 
     private void buildResources() {

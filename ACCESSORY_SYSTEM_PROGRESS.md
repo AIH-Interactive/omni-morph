@@ -1194,3 +1194,15 @@ alpha4-publish-outfit-final.log PASS（48秒/23 tasks：libraryPreviewRuntimeSmo
 alpha4-figura-draft-budget-red.log 复现（base=11936 composed=11936）；alpha4-figura-draft-budget-final.log PASS（1分13秒/23 tasks），新增真实 Figura 基础+真实 test2 生产路径测试（OMNIMORPH_TEST_FIGURA_BASE/OMNIMORPH_TEST_ACCESSORY，未设跳过），YSM 四包回放继续通过。真实窗口显示 MANUAL/PENDING。JAR 18271340 字节，SHA256 e35c51fade054b05b0e8f335fb66d5f1a1e184c629b65a3e49669f314724c343。
 
 后续需求（用户提出，待确认方案后实施）：按所选基础形象分别保存与关联装饰配置，因不同模型骨骼不同。
+
+## 2026-10-24：重进后配装页不自动显示已提交配装（骨骼树无装饰）
+
+根因（代码阅读确认，未经真实游戏验证）：打开衣柜或切到配装页不会自动生成草稿；草稿只在选中条目、添加实例、预设、刷新等操作后才从已加载配装（AvatarManager.getLoadedOutfit）生成，因此重进后默认骨骼树只显示当前形象。服务器保存与登录 OWNER 恢复均正常（日志 revision 93 / 1 实例）。
+
+修复：WardrobeScreen 新增 showLoadedOutfitDraft，在新预览会话的 init 与切到配装页（无选中、无草稿预览）时调用；仅当本地存在已加载配装或本地预览状态时 beginOutfitDraft 后 previewOutfitDraft，纯本地、不读服务器。未改提交/恢复/协议/后端/版本。
+
+测试夹具：新用例 testOutfitTabShowsLoadedOutfit 走真实 switchTab；按既有测试做法抑制 widget 重建并设置 Minecraft lastInputType，避开 headless fixture 中 getLastInputType 为 null 的 NPE；awaitDraftComposition 改从声明类读取 outfitDraft；用例结束恢复 LOADED_USERS、PermissionManager PLAYERS、lastInputType 与当前玩家。
+
+alpha4-outfit-tab-restored-final.log PASS（54 秒）：libraryPreviewRuntimeSmokeTest（新用例断言草稿=已提交配置、骨骼树含实例、预览有运行实例）、outfitApplyClientSmokeTest、fabric:build。真实游戏衣柜/世界显示 MANUAL/PENDING；同会话手动挂载装饰在真实游戏不可见的问题仍未解决（既有诊断均未触发），需真实窗口确认。
+
+JAR 18273350 字节，SHA256 9a780a3d9be982977dfa6b6c7d6f5515cb757716c05c4759e2fcef5caf1abf3a。main 提交前基线 59f34fcc；后端未修改。

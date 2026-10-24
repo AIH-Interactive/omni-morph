@@ -75,6 +75,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             testPackagedFiguraDraftAccessory(unsafe, drain);
             testCatalogOutfitPreview(unsafe, drain);
             testWardrobeDraftActions(unsafe, drain);
+            testOutfitTabShowsLoadedOutfit(unsafe, drain);
             testWardrobeCloudCosmetic(unsafe, drain, encrypted);
             OutfitPresetResourcesSmokeTest.run(drain, encrypted);
             testLocalPresetScreen(unsafe, drain, client);
@@ -1188,6 +1189,132 @@ public final class LibraryPreviewRuntimeSmokeTest {
         } finally {
             top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.clear();
             LibraryPreviewBinding.finishFrame();
+            if (!hadPermissions) {
+                packs.remove(owner);
+            }
+            try (var files = Files.walk(root)) {
+                for (Path file : files.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                    Files.deleteIfExists(file);
+                }
+            }
+        }
+    }
+
+    /** After login restore, opening the outfit tab must show the committed accessory without selecting an entry. */
+    private static void testOutfitTabShowsLoadedOutfit(Unsafe unsafe, Runnable drain) throws Exception {
+        Minecraft minecraft = Minecraft.getInstance();
+        var previousPlayer = minecraft.player;
+        UUID owner = FiguraMod.getLocalPlayerUUID();
+        var player = (CurrentPreviewPlayer) unsafe.allocateInstance(CurrentPreviewPlayer.class);
+        player.setUUID(owner);
+        minecraft.player = player;
+        @SuppressWarnings("unchecked")
+        var users = (Map<UUID, top.aihmc.omnimorph.avatar.UserData>) field(AvatarManager.class, "LOADED_USERS").get(null);
+        var previousUser = users.get(owner);
+        var packs = (Map<?, ?>) field(PermissionManager.class, "PLAYERS").get(null);
+        boolean hadPermissions = packs.containsKey(owner);
+        var limits = OutfitLimits.defaults();
+        Path root = Files.createTempDirectory(Path.of(System.getProperty("figura.test.directory")), "restored-outfit-");
+        Files.writeString(root.resolve("cosmetic.json"), "{\"name\":\"restored accessory\",\"cosmetic_anchor\":\"head_anchor\"}");
+        Files.writeString(root.resolve("script.lua"), "return 1");
+        Avatar base = new Avatar(owner);
+        Avatar accessory = null;
+        top.aihmc.omnimorph.model.outfit.OutfitComposition composition = null;
+        var type = top.aihmc.omnimorph.gui.screens.WardrobeScreen.class;
+        // Only the tab switch itself runs: widget rebuilding is suppressed, and a concrete input type keeps the
+        // real focus pass working in the headless fixture.
+        var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null) {
+            @Override
+            protected void init() {
+            }
+        };
+        var input = field(Minecraft.class, "lastInputType");
+        var previousInput = input.get(minecraft);
+        input.set(minecraft, net.minecraft.client.InputType.MOUSE);
+        try (var preview = new LibraryPreviewSession()) {
+            var baseData = model("restored base");
+            var baseRoot = new CompoundTag();
+            var baseChildren = new net.minecraft.nbt.ListTag();
+            var head = new CompoundTag();
+            head.putString("name", "Head");
+            baseChildren.add(head);
+            baseRoot.put("chld", baseChildren);
+            baseData.put("models", baseRoot);
+            base.load(baseData);
+            var baseReference = new OutfitConfig.ResourceRef(OutfitConfig.Source.LOCAL, UUID.randomUUID(), null,
+                    null, null, "7".repeat(64), OutfitConfig.Format.FIGURA);
+            base.bindOutfitSource(baseReference);
+            var definition = new top.aihmc.omnimorph.model.outfit.FiguraSkeletonAdapter(
+                    (top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer) base.renderer, baseReference, null,
+                    new top.aihmc.omnimorph.model.outfit.SkeletonIndex.Cache(), limits).binding().definition();
+            var anchor = new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.BASE_BONE, null,
+                    definition.reference(null, definition.uniqueNamed("Head").orElseThrow()), null, null, null);
+            var description = top.aihmc.omnimorph.model.outfit.LocalCosmeticSource.describe(root, () -> false);
+            var entry = new top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory.Entry(root, UUID.randomUUID(),
+                    description, "");
+            var instance = new OutfitConfig.Instance(UUID.randomUUID(), entry.reference(), 1, true, anchor,
+                    OutfitConfig.Transform.identity(), java.util.List.of(), Map.of(), Map.of());
+            var config = new OutfitConfig(1, 9, baseReference, java.util.List.of(instance), java.util.List.of(),
+                    Map.of(entry.reference().identity(), 1), false);
+            var context = new top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext(owner, UUID.randomUUID(), owner,
+                    instance, limits, top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext.Scope.OWNER);
+            accessory = Avatar.createCosmetic(context, base.permissions, "restored accessory");
+            accessory.load(top.aihmc.omnimorph.model.outfit.LocalCosmeticSource.prepare(root, owner,
+                    description.contentHash(), () -> false).nbt());
+            composition = new top.aihmc.omnimorph.model.outfit.OutfitComposition(config, limits, player,
+                    Map.of(instance.instanceId(), accessory), new top.aihmc.omnimorph.model.outfit.SkeletonIndex.Cache());
+            // The state login restore publishes: committed configuration, resident base and OWNER instances.
+            var user = new top.aihmc.omnimorph.avatar.UserData(owner);
+            field(user.getClass(), "outfit").set(user,
+                    new top.aihmc.omnimorph.avatar.UserData.OutfitState(config, base, composition));
+            users.put(owner, user);
+            field(type, "preview").set(screen, preview);
+            field(type, "observedCosmetics").set(screen, java.util.List.of(entry));
+            var tabType = field(type, "tab").getType();
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            Object collectionTab = Enum.valueOf((Class) tabType, "COLLECTION");
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            Object outfitTab = Enum.valueOf((Class) tabType, "OUTFIT");
+            field(type, "tab").set(screen, collectionTab);
+            var switchTab = type.getDeclaredMethod("switchTab", tabType);
+            switchTab.setAccessible(true);
+            switchTab.invoke(screen, outfitTab);
+            var start = (CompletableFuture<?>) field(type, "draftStart").get(screen);
+            require(start != null, "opening the outfit tab starts a draft from the restored outfit");
+            await(start, drain);
+            awaitDraftComposition(screen, preview, drain);
+            var draft = (top.aihmc.omnimorph.model.outfit.OutfitDraft) field(type, "outfitDraft").get(screen);
+            require(draft != null && draft.configuration().equals(config),
+                    "the outfit tab draft is the committed restored configuration");
+            var tree = preview.outfitHierarchy();
+            boolean listed = false;
+            for (var node : tree.hierarchy().nodes()) {
+                var target = tree.target(node.id());
+                if (target != null && instance.instanceId().equals(target.instanceId())) {
+                    listed = true;
+                    break;
+                }
+            }
+            require(listed && preview.outfitComposition().runtimeInstances().containsKey(instance.instanceId()),
+                    "the restored accessory appears in the bone tree and preview without selecting an entry");
+            System.out.println("PASS outfit tab opens on the restored outfit: draft, bone tree instance and preview; GUI MANUAL/PENDING");
+        } finally {
+            top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.clear();
+            LibraryPreviewBinding.finishFrame();
+            if (previousUser == null) {
+                users.remove(owner);
+            } else {
+                users.put(owner, previousUser);
+            }
+            if (composition != null) {
+                composition.close();
+            }
+            if (accessory != null) {
+                accessory.clean();
+            }
+            base.clean();
+            minecraft.player = previousPlayer;
+            input.set(minecraft, previousInput);
             if (!hadPermissions) {
                 packs.remove(owner);
             }
@@ -3155,8 +3282,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
             Object binding = field(LibraryPreviewSession.class, "binding").get(preview);
             if (binding != null) {
                 Object composition = field(LibraryPreviewBinding.class, "composition").get(binding);
-                var draft = (top.aihmc.omnimorph.model.outfit.OutfitDraft) field(screen.getClass(), "outfitDraft").get(screen);
-                if (composition != null && field(composition.getClass(), "configuration").get(composition).equals(draft.configuration())) {
+                var draft = (top.aihmc.omnimorph.model.outfit.OutfitDraft) field(
+                        top.aihmc.omnimorph.gui.screens.WardrobeScreen.class, "outfitDraft").get(screen);
+                if (composition != null && field(composition.getClass(), "configuration").get(composition)
+                        .equals(draft.configuration())) {
                     return;
                 }
             }
