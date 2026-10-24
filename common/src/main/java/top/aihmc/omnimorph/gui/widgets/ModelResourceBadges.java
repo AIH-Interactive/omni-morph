@@ -4,8 +4,8 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import top.aihmc.omnimorph.utils.FiguraIdentifier;
-import top.aihmc.omnimorph.utils.FiguraText;
+import org.figuramc.figura.utils.FiguraIdentifier;
+import org.figuramc.figura.utils.FiguraText;
 
 /** Source is independent of model format and the catalog's public/private visibility. */
 public final class ModelResourceBadges {

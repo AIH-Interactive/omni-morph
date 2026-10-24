@@ -1,8 +1,8 @@
 package top.aihmc.omnimorph.render.acceleration;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import top.aihmc.omnimorph.math.matrix.FiguraMat3;
-import top.aihmc.omnimorph.math.matrix.FiguraMat4;
+import org.figuramc.figura.math.matrix.FiguraMat3;
+import org.figuramc.figura.math.matrix.FiguraMat4;
 
 import java.util.Arrays;
 import java.util.List;

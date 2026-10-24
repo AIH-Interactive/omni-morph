@@ -4,8 +4,8 @@ import com.google.common.hash.Hashing;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.utils.IOUtils;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.utils.IOUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;

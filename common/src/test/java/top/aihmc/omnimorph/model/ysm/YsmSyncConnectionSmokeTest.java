@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.model.ysm;
 
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
-import top.aihmc.omnimorph.backend2.websocket.C2SMessageHandler;
+import org.figuramc.figura.backend2.websocket.C2SMessageHandler;
 import top.aihmc.omnimorph.backend2.protocol.YsmProtobuf;
 import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
 import top.aihmc.omnimorph.model.ysm.sync.YsmSyncMessage;

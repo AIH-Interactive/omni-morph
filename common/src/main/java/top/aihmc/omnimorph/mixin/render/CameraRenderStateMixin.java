@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.mixin.render;
 
 import net.minecraft.client.renderer.state.level.CameraRenderState;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.ducks.CameraRenderStateExtension;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;

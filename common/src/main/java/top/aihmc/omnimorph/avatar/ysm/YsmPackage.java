@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.avatar.ysm;
 
-import top.aihmc.omnimorph.utils.IOUtils;
+import org.figuramc.figura.utils.IOUtils;
 
 import java.io.IOException;
 import java.io.ByteArrayOutputStream;

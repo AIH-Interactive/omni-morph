@@ -3,7 +3,7 @@ package top.aihmc.omnimorph.model.ysm.animation;
 import top.aihmc.omnimorph.molang.parser.ast.Expression;
 import top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator;
 import top.aihmc.omnimorph.molang.runtime.MolangExecutionBudget;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 
 import java.util.List;
 

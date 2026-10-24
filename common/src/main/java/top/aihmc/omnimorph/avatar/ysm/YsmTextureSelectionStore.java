@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.avatar.ysm;
 
 import net.minecraft.nbt.CompoundTag;
-import top.aihmc.omnimorph.utils.IOUtils;
+import org.figuramc.figura.utils.IOUtils;
 
 import java.nio.file.Path;
 import java.util.HashMap;

@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.model.outfit;
 
 import net.minecraft.nbt.CompoundTag;
-import top.aihmc.omnimorph.avatar.local.LocalAvatarLoader;
+import org.figuramc.figura.avatar.local.LocalAvatarLoader;
 import top.aihmc.omnimorph.avatar.ysm.YsmAvatarLoader;
 import top.aihmc.omnimorph.avatar.ysm.YsmEncryptedSource;
 import top.aihmc.omnimorph.avatar.ysm.YsmModelData;

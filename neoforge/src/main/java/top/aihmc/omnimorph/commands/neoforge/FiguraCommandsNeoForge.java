@@ -6,9 +6,9 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
-import top.aihmc.omnimorph.FiguraMod;
-import top.aihmc.omnimorph.commands.FiguraCommands;
-import top.aihmc.omnimorph.utils.FiguraClientCommandSource;
+import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.commands.FiguraCommands;
+import org.figuramc.figura.utils.FiguraClientCommandSource;
 
 @EventBusSubscriber(modid = FiguraMod.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
 public class FiguraCommandsNeoForge {

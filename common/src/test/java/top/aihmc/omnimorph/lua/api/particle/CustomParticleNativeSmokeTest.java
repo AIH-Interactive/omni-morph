@@ -17,15 +17,15 @@ import org.joml.Quaternionf;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.ducks.ParticleEngineAccessor;
-import top.aihmc.omnimorph.lua.LuaTypeManager;
-import top.aihmc.omnimorph.math.vector.FiguraVec3;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.ducks.ParticleEngineAccessor;
+import org.figuramc.figura.lua.LuaTypeManager;
+import org.figuramc.figura.math.vector.FiguraVec3;
 import top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 import top.aihmc.omnimorph.model.outfit.OutfitLimits;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
-import top.aihmc.omnimorph.utils.RefilledNumber;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.utils.RefilledNumber;
 import sun.misc.Unsafe;
 
 import java.util.ArrayList;
@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.figuramc.figura.lua.api.particle.LuaParticle;
+import org.figuramc.figura.lua.api.particle.ParticleAPI;
 /** Uses the existing native material recording device; native extraction runs, no game pixels are asserted. */
 public final class CustomParticleNativeSmokeTest {
     public static void run(Unsafe unsafe, Avatar first, Avatar second, Runnable drain) throws Exception {
@@ -84,12 +86,12 @@ public final class CustomParticleNativeSmokeTest {
     private static void initialize(Avatar owner) throws Exception {
         set(owner, "particlesRemaining", new RefilledNumber(16));
         set(owner, "noPermissions", new HashSet<>());
-        var category = new top.aihmc.omnimorph.permissions.PermissionPack.CategoryPermissionPack(
-                top.aihmc.omnimorph.permissions.Permissions.Category.DEFAULT);
-        var permissions = new top.aihmc.omnimorph.permissions.PermissionPack.PlayerPermissionPack(
+        var category = new org.figuramc.figura.permissions.PermissionPack.CategoryPermissionPack(
+                org.figuramc.figura.permissions.Permissions.Category.DEFAULT);
+        var permissions = new org.figuramc.figura.permissions.PermissionPack.PlayerPermissionPack(
                 category, owner.owner.toString());
-        permissions.insert(top.aihmc.omnimorph.permissions.Permissions.COMPLEXITY, 10000,
-                top.aihmc.omnimorph.FiguraMod.MOD_ID);
+        permissions.insert(org.figuramc.figura.permissions.Permissions.COMPLEXITY, 10000,
+                org.figuramc.figura.FiguraMod.MOD_ID);
         set(owner, "permissions", permissions);
         set(owner, "complexity", new Avatar.Instructions(10000));
     }
@@ -336,7 +338,7 @@ public final class CustomParticleNativeSmokeTest {
                     "author resource reload clears only its execution's custom particles");
             var c = new CustomParticle(second, Minecraft.getInstance().level, texture, Vec3.ZERO, Vec3.ZERO);
             require(c.activate(), "capacity is usable after reload");
-            var engineHook = new top.aihmc.omnimorph.mixin.particle.ParticleEngineMixin() {
+            var engineHook = new org.figuramc.figura.mixin.particle.ParticleEngineMixin() {
                 @Override
                 protected <T extends ParticleOptions> Particle makeParticle(T options, double x, double y,
                         double z, double vx, double vy, double vz) {
@@ -353,7 +355,7 @@ public final class CustomParticleNativeSmokeTest {
                 }
             };
             engineHook.figura$spawnParticle(c, second.owner);
-            var clear = top.aihmc.omnimorph.mixin.particle.ParticleEngineMixin.class.getDeclaredMethod(
+            var clear = org.figuramc.figura.mixin.particle.ParticleEngineMixin.class.getDeclaredMethod(
                     "figura$clearCustomParticles", org.spongepowered.asm.mixin.injection.callback.CallbackInfo.class);
             clear.setAccessible(true);
             clear.invoke(engineHook, new org.spongepowered.asm.mixin.injection.callback.CallbackInfo("clearParticles", false));
@@ -366,7 +368,7 @@ public final class CustomParticleNativeSmokeTest {
         }
     }
 
-    private static final class FixtureLevel extends ClientLevel implements top.aihmc.omnimorph.mixin.ClientLevelInvoker {
+    private static final class FixtureLevel extends ClientLevel implements org.figuramc.figura.mixin.ClientLevelInvoker {
         private FixtureLevel() {
             super(null, null, null, null, 0, 0, null, false, 0L, 0);
         }

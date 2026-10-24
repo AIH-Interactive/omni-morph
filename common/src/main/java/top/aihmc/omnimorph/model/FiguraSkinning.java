@@ -1,10 +1,10 @@
 package top.aihmc.omnimorph.model;
 
 import org.joml.Matrix4f;
-import top.aihmc.omnimorph.FiguraMod;
-import top.aihmc.omnimorph.math.matrix.FiguraMat4;
-import top.aihmc.omnimorph.math.vector.FiguraVec3;
-import top.aihmc.omnimorph.model.rendering.Vertex;
+import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.math.matrix.FiguraMat4;
+import org.figuramc.figura.math.vector.FiguraVec3;
+import org.figuramc.figura.model.rendering.Vertex;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayDeque;
@@ -14,6 +14,8 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 
+import org.figuramc.figura.model.FiguraModelPart;
+import org.figuramc.figura.model.PartCustomization;
 /**
  * Blockbench armature skinning.
  * <p>

@@ -2,7 +2,7 @@ package top.aihmc.omnimorph.parsers.ysm;
 
 import com.google.gson.*;
 import top.aihmc.omnimorph.avatar.ysm.YsmAvatarMetadataParser;
-import top.aihmc.omnimorph.utils.IOUtils;
+import org.figuramc.figura.utils.IOUtils;
 
 import java.nio.file.Path;
 import java.util.*;

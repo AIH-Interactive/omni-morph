@@ -5,7 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
-import top.aihmc.omnimorph.FiguraMod;
+import org.figuramc.figura.FiguraMod;
 import top.aihmc.omnimorph.avatar.control.AvatarControlDefinition;
 import top.aihmc.omnimorph.avatar.control.AvatarControlType;
 import top.aihmc.omnimorph.model.ysm.YsmModelRuntime;

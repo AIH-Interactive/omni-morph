@@ -2,9 +2,11 @@ package top.aihmc.omnimorph.config;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
-import top.aihmc.omnimorph.FiguraMod;
+import org.figuramc.figura.FiguraMod;
 import top.aihmc.omnimorph.backend2.protocol.CloudProtocol;
 
+import org.figuramc.figura.config.ConfigManager;
+import org.figuramc.figura.config.ConfigType;
 /** Existing enum widget, stable disk names; frozen legacy numeric mapping: 0=Figura, 1=Protobuf. */
 public final class CloudProtocolConfig extends ConfigType.EnumConfig implements ConfigType.SerializableConfig {
     private final Runnable changed;
@@ -51,7 +53,7 @@ public final class CloudProtocolConfig extends ConfigType.EnumConfig implements 
     }
 
     /** A missing field is always the new default, including config reload in the same process. */
-    void prepareLoad() {
+    public void prepareLoad() {
         value = tempValue = defaultValue;
     }
 

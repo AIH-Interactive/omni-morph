@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.model.library;
 
 import com.google.gson.Gson;
-import top.aihmc.omnimorph.FiguraMod;
+import org.figuramc.figura.FiguraMod;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
 
 import java.io.IOException;

@@ -1,11 +1,11 @@
 package top.aihmc.omnimorph.lua.api.ysm_model;
 
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.lua.LuaWhitelist;
-import top.aihmc.omnimorph.lua.docs.LuaMethodDoc;
-import top.aihmc.omnimorph.lua.docs.LuaTypeDoc;
-import top.aihmc.omnimorph.math.matrix.FiguraMat4;
-import top.aihmc.omnimorph.math.vector.FiguraVec3;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.lua.LuaWhitelist;
+import org.figuramc.figura.lua.docs.LuaMethodDoc;
+import org.figuramc.figura.lua.docs.LuaTypeDoc;
+import org.figuramc.figura.math.matrix.FiguraMat4;
+import org.figuramc.figura.math.vector.FiguraVec3;
 import top.aihmc.omnimorph.avatar.control.AvatarControlDefinition;
 import top.aihmc.omnimorph.model.ysm.YsmSubEntity;
 import top.aihmc.omnimorph.model.ysm.action.YsmActionDefinition;

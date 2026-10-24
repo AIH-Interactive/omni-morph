@@ -7,12 +7,12 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.server.Bootstrap;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.control.AvatarControlDefinition;
 import top.aihmc.omnimorph.avatar.control.AvatarControlRuntime;
 import top.aihmc.omnimorph.avatar.control.AvatarControlType;
 import top.aihmc.omnimorph.avatar.control.AvatarControlValueStore;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import top.aihmc.omnimorph.model.ysm.action.YsmActionSchemaParser;
 import top.aihmc.omnimorph.molang.MolangEngine;
 import top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator;
@@ -160,9 +160,9 @@ public final class YsmControlRuntimeSmokeTest {
         first.owner.controls.setValue(first.owner, "ysm.v_amount", 0.85);
         first.owner.controls.setValue(first.owner, "ysm.v_enabled", false);
         first.owner.controls.setValue(first.owner, "ysm.v_style", "Long");
-        require(Files.isRegularFile(top.aihmc.omnimorph.FiguraMod.getCacheDirectory().resolve("avatar_controls.nbt")),
+        require(Files.isRegularFile(org.figuramc.figura.FiguraMod.getCacheDirectory().resolve("avatar_controls.nbt")),
                 "actual persistent NBT file written");
-        try (var input = Files.newInputStream(top.aihmc.omnimorph.FiguraMod.getCacheDirectory().resolve("avatar_controls.nbt"))) {
+        try (var input = Files.newInputStream(org.figuramc.figura.FiguraMod.getCacheDirectory().resolve("avatar_controls.nbt"))) {
             CompoundTag saved = NbtIo.readCompressed(input, NbtAccounter.unlimitedHeap());
             int modelValues = 0;
             for (var entry : saved.getListOrEmpty("avatars")) {

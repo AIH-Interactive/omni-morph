@@ -8,8 +8,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
-import top.aihmc.omnimorph.gui.widgets.TextField;
-import top.aihmc.omnimorph.utils.FiguraText;
+import org.figuramc.figura.gui.widgets.TextField;
+import org.figuramc.figura.utils.FiguraText;
 
 /** Password input shares the existing control skin but never exposes its text to narration/copy. */
 public final class LibraryPasswordField extends TextField {

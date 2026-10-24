@@ -2,7 +2,7 @@ package top.aihmc.omnimorph.lua.api;
 
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaValue;
-import top.aihmc.omnimorph.lua.LuaWhitelist;
+import org.figuramc.figura.lua.LuaWhitelist;
 import top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext;
 
 /** Explicit scalar state declarations; this API never exposes another instance or a Java object graph. */

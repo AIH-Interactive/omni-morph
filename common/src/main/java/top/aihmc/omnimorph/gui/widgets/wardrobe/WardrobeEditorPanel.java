@@ -4,8 +4,8 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.input.MouseButtonEvent;
-import top.aihmc.omnimorph.gui.widgets.FiguraWidget;
-import top.aihmc.omnimorph.gui.widgets.lists.AbstractList;
+import org.figuramc.figura.gui.widgets.FiguraWidget;
+import org.figuramc.figura.gui.widgets.lists.AbstractList;
 
 import java.util.ArrayList;
 import java.util.List;

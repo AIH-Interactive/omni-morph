@@ -8,25 +8,25 @@ import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
-import top.aihmc.omnimorph.FiguraMod;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
-import top.aihmc.omnimorph.avatar.AvatarManager;
-import top.aihmc.omnimorph.avatar.local.LocalAvatarLoader;
+import org.figuramc.figura.avatar.AvatarManager;
+import org.figuramc.figura.avatar.local.LocalAvatarLoader;
 import top.aihmc.omnimorph.avatar.ysm.YsmAvatarKind;
 import top.aihmc.omnimorph.avatar.ysm.YsmEncryptedSource;
 import top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload;
-import top.aihmc.omnimorph.backend2.NetworkStuff;
+import org.figuramc.figura.backend2.NetworkStuff;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.backend2.library.LibrarySession;
 import top.aihmc.omnimorph.backend2.protocol.CloudEndpoint;
 import top.aihmc.omnimorph.backend2.protocol.LibraryAccess;
-import top.aihmc.omnimorph.permissions.PermissionManager;
-import top.aihmc.omnimorph.permissions.Permissions;
-import top.aihmc.omnimorph.permissions.PermissionPack;
+import org.figuramc.figura.permissions.PermissionManager;
+import org.figuramc.figura.permissions.Permissions;
+import org.figuramc.figura.permissions.PermissionPack;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 import top.aihmc.omnimorph.model.outfit.OutfitLimits;
-import top.aihmc.omnimorph.config.Configs;
+import org.figuramc.figura.config.Configs;
 import top.aihmc.omnimorph.gui.screens.library.ModelFilePickerScreen;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryRowList;
 import sun.misc.Unsafe;
@@ -137,8 +137,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(preview.hierarchy().nodes().stream().anyMatch(node -> node.name().equals("actual-bone")),
                     "ready preview snapshots the actual loaded Figura part hierarchy");
             var snapshot = preview.hierarchy();
-            var addedPart = new top.aihmc.omnimorph.model.FiguraModelPart(avatar, "later-script-part",
-                    new top.aihmc.omnimorph.model.PartCustomization(), Map.of(), new java.util.ArrayList<>());
+            var addedPart = new org.figuramc.figura.model.FiguraModelPart(avatar, "later-script-part",
+                    new org.figuramc.figura.model.PartCustomization(), Map.of(), new java.util.ArrayList<>());
             avatar.renderer.root.children.add(addedPart);
             preview.tick();
             require(preview.hierarchy() == snapshot && snapshot.nodes().stream()
@@ -246,7 +246,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 require(!preview.hierarchy().nodes().isEmpty()
                                 && preview.hierarchy().roots().size() == avatar.getYsmRuntime().rootParts().size(),
                         "YSM preview hierarchy comes from the actual loaded runtime roots");
-                avatar.renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI;
+                avatar.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
                 var encryptedPreview = avatar.getYsmRuntime().forRenderPass();
                 require(encryptedPreview != null && encryptedPreview.isPreviewRuntime()
                                 && !encryptedPreview.geometry().roots.isEmpty(),
@@ -556,7 +556,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                             && preview.configurationIssues().getFirst().resource().equals(missing)
                             && preview.outfitComposition() == null,
                     "catalog dependency failure retains its exact resource and affected instances without partial publication");
-            var widget = new top.aihmc.omnimorph.gui.widgets.EntityPreview(10, 20, 240, 180,
+            var widget = new org.figuramc.figura.gui.widgets.EntityPreview(10, 20, 240, 180,
                     40, -15, 30, null, null);
             widget.setLibraryPreview(preview);
             widget.tick();
@@ -692,9 +692,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var input = field(Minecraft.class, "lastInputType");
         var previousInput = input.get(Minecraft.getInstance());
         input.set(Minecraft.getInstance(), net.minecraft.client.InputType.MOUSE);
-        var type = top.aihmc.omnimorph.gui.screens.WardrobeScreen.class;
+        var type = org.figuramc.figura.gui.screens.WardrobeScreen.class;
         // Screen rebuilding is suppressed; real selection/import/cancel handlers and native preparation run.
-        var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null) {
+        var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null) {
             @Override
             protected void init() {
             }
@@ -792,19 +792,19 @@ public final class LibraryPreviewRuntimeSmokeTest {
     }
 
     private static void testLegacyCubeType() {
-        var gson = top.aihmc.omnimorph.parsers.BlockbenchCommonTypes.getGson();
-        var element = top.aihmc.omnimorph.parsers.BlockbenchCommonTypes.Element.class;
+        var gson = org.figuramc.figura.parsers.BlockbenchCommonTypes.getGson();
+        var element = org.figuramc.figura.parsers.BlockbenchCommonTypes.Element.class;
         require(gson.fromJson("{}", element) instanceof
-                        top.aihmc.omnimorph.parsers.BlockbenchCommonTypes.CubeElement,
+                        org.figuramc.figura.parsers.BlockbenchCommonTypes.CubeElement,
                 "legacy elements without a type retain cube geometry");
         require(gson.fromJson("{\"type\":null}", element) instanceof
-                        top.aihmc.omnimorph.parsers.BlockbenchCommonTypes.CubeElement,
+                        org.figuramc.figura.parsers.BlockbenchCommonTypes.CubeElement,
                 "legacy null cube types retain their original default");
         require(gson.fromJson("{\"type\":\"mesh\"}", element) instanceof
-                        top.aihmc.omnimorph.parsers.BlockbenchCommonTypes.MeshElement,
+                        org.figuramc.figura.parsers.BlockbenchCommonTypes.MeshElement,
                 "explicit mesh types keep their existing decoder");
         require(gson.fromJson("{\"type\":\"unsupported\"}", element) instanceof
-                        top.aihmc.omnimorph.parsers.BlockbenchCommonTypes.UnknownElement,
+                        org.figuramc.figura.parsers.BlockbenchCommonTypes.UnknownElement,
                 "unknown explicit types do not become cubes");
         var generated = top.aihmc.omnimorph.wizards.CosmeticTemplate.LEGS.model("").build();
         require(generated.getAsJsonArray("elements").get(0).getAsJsonObject()
@@ -835,7 +835,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 net.minecraft.client.renderer.GameRenderer.class);
         field(renderer.getClass(), "mainCamera").set(renderer, new net.minecraft.client.Camera());
         field(Minecraft.class, "gameRenderer").set(minecraft, renderer);
-        boolean previousPaperdoll = top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll;
+        boolean previousPaperdoll = org.figuramc.figura.utils.ui.UIHelper.paperdoll;
         try (var device = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.recordingTextureDevice();
              var directories = Files.list(Path.of(directory))) {
             for (Path path : directories.filter(Files::isDirectory).sorted().toList()) {
@@ -872,13 +872,13 @@ public final class LibraryPreviewRuntimeSmokeTest {
                         }
                         return method.getReturnType() == void.class ? null : proxy;
                     });
-                    top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = true;
+                    org.figuramc.figura.utils.ui.UIHelper.paperdoll = true;
                     try (var frame = composition.retain()) {
                         var matrix = new org.joml.Matrix4f();
                         top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer.drawVanilla(frame,
                                 LibraryFiguraPreviewRenderer.createModel(false), new AvatarRenderState(),
                                 .5f, matrix, matrix, material -> sink,
-                                top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI);
+                                org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI);
                     }
                     System.out.println("Actual accessory " + path.getFileName() + ": vertices=" + vertices.get());
                     require(description.metadata().category().equals("Trail") || vertices.get() > 0,
@@ -890,7 +890,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             minecraft.player = previousPlayer;
             field(Minecraft.class, "debugEntries").set(minecraft, previousDebug);
             field(Minecraft.class, "gameRenderer").set(minecraft, previousRenderer);
-            top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = previousPaperdoll;
+            org.figuramc.figura.utils.ui.UIHelper.paperdoll = previousPaperdoll;
         }
     }
 
@@ -930,7 +930,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                                     }), drain),
                             "actual packaged YSM draft composition prepares: " + path.getFileName());
                     var avatar = (Avatar) field(LibraryPreviewSession.class, "avatar").get(preview);
-                    avatar.renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER;
+                    avatar.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.RENDER;
                     var runtime = avatar.getYsmRuntime().forRenderPass();
                     var direct = new java.util.concurrent.atomic.AtomicInteger();
                     var composed = new java.util.concurrent.atomic.AtomicInteger();
@@ -1023,7 +1023,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             avatar.render.reset(65536);
             avatar.render(null, 0, .5f, 1, new com.mojang.blaze3d.vertex.PoseStack(), type -> countingSink(baseOnly),
                     state.lightCoords, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, null,
-                    top.aihmc.omnimorph.model.rendering.PartFilterScheme.MODEL, false, false);
+                    org.figuramc.figura.model.rendering.PartFilterScheme.MODEL, false, false);
             var composed = new java.util.concurrent.atomic.AtomicInteger();
             try (var frame = preview.outfitComposition().retain()) {
                 avatar.render.reset(65536);
@@ -1032,10 +1032,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     var pose = frame.captureFiguraBase(avatar, new org.joml.Matrix4f(), () -> avatar.render(
                             null, 0, .5f, 1, new com.mojang.blaze3d.vertex.PoseStack(), type -> countingSink(composed),
                             state.lightCoords, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, null,
-                            top.aihmc.omnimorph.model.rendering.PartFilterScheme.MODEL, false, false));
+                            org.figuramc.figura.model.rendering.PartFilterScheme.MODEL, false, false));
                     top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer.draw(frame, pose, state, .5f,
                             new org.joml.Matrix4f(), type -> countingSink(composed),
-                            top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI);
+                            org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI);
                 });
             }
             System.out.println("Packaged Figura draft base with actual accessory: base=" + baseOnly.get()
@@ -1135,22 +1135,22 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 ownerBase.tick();
                 var state = new AvatarRenderState();
                 state.lightCoords = 0x00f000f0;
-                avatar.renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER;
+                avatar.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.RENDER;
                 int draftBase = ysm ? countYsmVertices(avatar) : countFiguraVertices(avatar, state);
                 int draft = ysm ? countComposedYsmVertices(preview.outfitComposition(), avatar,
-                        top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER)
+                        org.figuramc.figura.model.rendering.EntityRenderMode.RENDER)
                         : countComposedFiguraVertices(preview.outfitComposition(), avatar, state,
-                        top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER);
-                ownerBase.renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER;
+                        org.figuramc.figura.model.rendering.EntityRenderMode.RENDER);
+                ownerBase.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.RENDER;
                 int ownerBaseOnly = ysm ? countYsmVertices(ownerBase) : countFiguraVertices(ownerBase, state);
                 int owner = ysm ? countComposedYsmVertices(ownerComposition, ownerBase,
-                        top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER)
+                        org.figuramc.figura.model.rendering.EntityRenderMode.RENDER)
                         : countComposedFiguraVertices(ownerComposition, ownerBase, state,
-                        top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER);
+                        org.figuramc.figura.model.rendering.EntityRenderMode.RENDER);
                 int firstPerson = ysm ? countComposedYsmVertices(ownerComposition, ownerBase,
-                        top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIRST_PERSON_WORLD)
+                        org.figuramc.figura.model.rendering.EntityRenderMode.FIRST_PERSON_WORLD)
                         : countComposedFiguraVertices(ownerComposition, ownerBase, state,
-                        top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIRST_PERSON_WORLD);
+                        org.figuramc.figura.model.rendering.EntityRenderMode.FIRST_PERSON_WORLD);
                 System.out.println("Reported local " + (ysm ? "YSM" : "Figura") + " base/accessory: draft base="
                         + draftBase + " draft=" + draft + " owner base=" + ownerBaseOnly + " owner=" + owner
                         + " firstPersonWorld=" + firstPerson + " anchor=" + bone.path().getLast().name());
@@ -1193,13 +1193,13 @@ public final class LibraryPreviewRuntimeSmokeTest {
         avatar.render(null, 0, .5f, 1, new com.mojang.blaze3d.vertex.PoseStack(),
                 type -> countingSink(vertices), state.lightCoords,
                 net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, null,
-                top.aihmc.omnimorph.model.rendering.PartFilterScheme.MODEL, false, false);
+                org.figuramc.figura.model.rendering.PartFilterScheme.MODEL, false, false);
         return vertices.get();
     }
 
     private static int countComposedFiguraVertices(top.aihmc.omnimorph.model.outfit.OutfitComposition composition,
                                                    Avatar avatar, AvatarRenderState state,
-                                                   top.aihmc.omnimorph.model.rendering.EntityRenderMode mode) {
+                                                   org.figuramc.figura.model.rendering.EntityRenderMode mode) {
         require(composition != null, "the reported composition is active");
         var vertices = new java.util.concurrent.atomic.AtomicInteger();
         try (var frame = composition.retain()) {
@@ -1210,7 +1210,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                         null, 0, .5f, 1, new com.mojang.blaze3d.vertex.PoseStack(),
                         type -> countingSink(vertices), state.lightCoords,
                         net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, null,
-                        top.aihmc.omnimorph.model.rendering.PartFilterScheme.MODEL, false, false));
+                        org.figuramc.figura.model.rendering.PartFilterScheme.MODEL, false, false));
                 frame.draw(pose, state, .5f, mode,
                         command -> top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer.drawInstance(command, .5f,
                                 new org.joml.Matrix4f(), type -> countingSink(vertices), state.lightCoords, mode));
@@ -1231,7 +1231,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
 
     private static int countComposedYsmVertices(top.aihmc.omnimorph.model.outfit.OutfitComposition composition,
                                                 Avatar avatar,
-                                                top.aihmc.omnimorph.model.rendering.EntityRenderMode mode) {
+                                                org.figuramc.figura.model.rendering.EntityRenderMode mode) {
         require(composition != null, "the reported composition is active");
         var vertices = new java.util.concurrent.atomic.AtomicInteger();
         try (var frame = composition.retain()) {
@@ -1344,9 +1344,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var packs = (Map<?, ?>) field(PermissionManager.class, "PLAYERS").get(null);
         boolean hadPermissions = packs.containsKey(owner);
         Path loadedPath = LocalAvatarLoader.getLastLoadedPath();
-        Path selectedPath = top.aihmc.omnimorph.gui.widgets.lists.AvatarList.selectedEntry;
-        var screenType = top.aihmc.omnimorph.gui.screens.WardrobeScreen.class;
-        var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+        Path selectedPath = org.figuramc.figura.gui.widgets.lists.AvatarList.selectedEntry;
+        var screenType = org.figuramc.figura.gui.screens.WardrobeScreen.class;
+        var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
         try (var preview = new LibraryPreviewSession()) {
             field(screenType, "preview").set(screen, preview);
             var source = top.aihmc.omnimorph.model.outfit.LocalCosmeticSource.describe(root, () -> false);
@@ -1365,7 +1365,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     "accessory editing uses the enabled model instead of replacing it with vanilla");
             require(AvatarManager.getAvatar(Minecraft.getInstance().player) == equipped
                             && java.util.Objects.equals(LocalAvatarLoader.getLastLoadedPath(), loadedPath)
-                            && java.util.Objects.equals(top.aihmc.omnimorph.gui.widgets.lists.AvatarList.selectedEntry, selectedPath)
+                            && java.util.Objects.equals(org.figuramc.figura.gui.widgets.lists.AvatarList.selectedEntry, selectedPath)
                             && Files.readString(manifest).equals(declaration),
                     "selection preserves equipment, formal selection and source files");
             var publish = screenType.getDeclaredMethod("enableSelection");
@@ -1409,7 +1409,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         player.setUUID(owner);
         minecraft.player = player;
         @SuppressWarnings("unchecked")
-        var users = (Map<UUID, top.aihmc.omnimorph.avatar.UserData>) field(AvatarManager.class, "LOADED_USERS").get(null);
+        var users = (Map<UUID, org.figuramc.figura.avatar.UserData>) field(AvatarManager.class, "LOADED_USERS").get(null);
         var previousUser = users.get(owner);
         var packs = (Map<?, ?>) field(PermissionManager.class, "PLAYERS").get(null);
         boolean hadPermissions = packs.containsKey(owner);
@@ -1420,10 +1420,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
         Avatar base = new Avatar(owner);
         Avatar accessory = null;
         top.aihmc.omnimorph.model.outfit.OutfitComposition composition = null;
-        var type = top.aihmc.omnimorph.gui.screens.WardrobeScreen.class;
+        var type = org.figuramc.figura.gui.screens.WardrobeScreen.class;
         // Only the tab switch itself runs: widget rebuilding is suppressed, and a concrete input type keeps the
         // real focus pass working in the headless fixture.
-        var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null) {
+        var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null) {
             @Override
             protected void init() {
             }
@@ -1464,9 +1464,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
             composition = new top.aihmc.omnimorph.model.outfit.OutfitComposition(config, limits, player,
                     Map.of(instance.instanceId(), accessory), new top.aihmc.omnimorph.model.outfit.SkeletonIndex.Cache());
             // The state login restore publishes: committed configuration, resident base and OWNER instances.
-            var user = new top.aihmc.omnimorph.avatar.UserData(owner);
+            var user = new org.figuramc.figura.avatar.UserData(owner);
             field(user.getClass(), "outfit").set(user,
-                    new top.aihmc.omnimorph.avatar.UserData.OutfitState(config, base, composition));
+                    new org.figuramc.figura.avatar.UserData.OutfitState(config, base, composition));
             users.put(owner, user);
             field(type, "preview").set(screen, preview);
             field(type, "observedCosmetics").set(screen, java.util.List.of(entry));
@@ -1551,8 +1551,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 + "\"default_transform\":{\"position\":[1,2,3],\"rotation\":[0,90,0],\"scale\":[1,2,1]}}";
         Files.writeString(root.resolve("cosmetic.json"), declaration);
         Files.writeString(root.resolve("script.lua"), "return 1");
-        var type = top.aihmc.omnimorph.gui.screens.WardrobeScreen.class;
-        var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+        var type = org.figuramc.figura.gui.screens.WardrobeScreen.class;
+        var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
         try (var original = new LibraryPreviewBinding(player, equipped);
              var preview = new LibraryPreviewSession()) {
             field(type, "preview").set(screen, preview);
@@ -1592,7 +1592,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             boundResources.clear();
             var nameOf = type.getDeclaredMethod("instanceName", OutfitConfig.Instance.class);
             nameOf.setAccessible(true);
-            String unavailable = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.unavailable").getString();
+            String unavailable = org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.unavailable").getString();
             require(((net.minecraft.network.chat.Component) nameOf.invoke(screen, first)).getString().startsWith(unavailable),
                     "fixture reproduces a restored local instance without its inventory entry");
             field(type, "observedCosmetics").set(screen, java.util.List.of(entry));
@@ -1603,10 +1603,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     "restored local instances rebind their exact inventory source for names and preview reads");
             require(!(boolean) bind.invoke(screen), "rebinding is idempotent once every local source is resolved");
             testLocalDraftPreview(unsafe, drain, screen, preview, player);
-            var mountMenu = new top.aihmc.omnimorph.gui.widgets.ContextMenu();
+            var mountMenu = new org.figuramc.figura.gui.widgets.ContextMenu();
             var quickMenu = type.getDeclaredMethod("addQuickMountMenu",
                     top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry.class,
-                    top.aihmc.omnimorph.gui.widgets.ContextMenu.class);
+                    org.figuramc.figura.gui.widgets.ContextMenu.class);
             quickMenu.setAccessible(true);
             long preparedGeneration = field(type, "draftPreviewGeneration").getLong(screen);
             var previousFont = minecraft.font;
@@ -1711,14 +1711,14 @@ public final class LibraryPreviewRuntimeSmokeTest {
         Files.writeString(selectedBase.resolve("avatar.json"), "{\"name\":\"Selected outfit base\"}");
         Path otherBase = Files.createTempDirectory(root.getParent(), "other-avatar-");
         Files.writeString(otherBase.resolve("avatar.json"), "{\"name\":\"Other outfit base\"}");
-        var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+        var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
         var type = screen.getClass();
         try (var preview = new LibraryPreviewSession()) {
             field(type, "preview").set(screen, preview);
             var chooseBase = type.getDeclaredMethod("selectLocal",
-                    top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath.class);
+                    org.figuramc.figura.avatar.local.LocalAvatarFetcher.AvatarPath.class);
             chooseBase.setAccessible(true);
-            chooseBase.invoke(screen, new top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath(selectedBase, root));
+            chooseBase.invoke(screen, new org.figuramc.figura.avatar.local.LocalAvatarFetcher.AvatarPath(selectedBase, root));
             var chooseAccessory = type.getDeclaredMethod("selectCosmetic", accessory.getClass());
             chooseAccessory.setAccessible(true);
             chooseAccessory.invoke(screen, accessory);
@@ -1751,7 +1751,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
     }
 
     /** Each base keeps its own accessory set: anchors belong to one skeleton and must not follow another base. */
-    private static void testPerBaseOutfits(top.aihmc.omnimorph.gui.screens.WardrobeScreen screen,
+    private static void testPerBaseOutfits(org.figuramc.figura.gui.screens.WardrobeScreen screen,
             java.lang.reflect.Method chooseBase, java.lang.reflect.Method chooseAccessory, java.lang.reflect.Method add,
             top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory.Entry accessory,
             Path baseA, Path baseB, Path root, LibraryPreviewSession preview, Runnable drain) throws Exception {
@@ -1763,7 +1763,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var instancesA = draft.configuration().instances();
         require(instancesA.size() == 1, "base A starts with its own accessory");
 
-        chooseBase.invoke(screen, new top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath(baseB, root));
+        chooseBase.invoke(screen, new org.figuramc.figura.avatar.local.LocalAvatarFetcher.AvatarPath(baseB, root));
         await((CompletableFuture<?>) field(type, "changingDraftBase").get(screen), drain);
         awaitDraftComposition(screen, preview, drain);
         require(field(type, "outfitDraft").get(screen) == draft
@@ -1779,7 +1779,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         require(instancesB.size() == 1 && !instancesB.getFirst().instanceId().equals(instancesA.getFirst().instanceId()),
                 "base B is dressed independently");
 
-        chooseBase.invoke(screen, new top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath(baseA, root));
+        chooseBase.invoke(screen, new org.figuramc.figura.avatar.local.LocalAvatarFetcher.AvatarPath(baseA, root));
         await((CompletableFuture<?>) field(type, "changingDraftBase").get(screen), drain);
         awaitDraftComposition(screen, preview, drain);
         require(draft.configuration().base().equals(referenceA) && draft.configuration().instances().equals(instancesA),
@@ -1886,8 +1886,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
                             CloudCosmeticSourceSmokeTest.Server.MODEL, 1, "UPLOAD", true, server.model());
                     field(collection.getClass(), "entries").set(collection, java.util.List.of(entry));
                     field(collection.getClass(), "authoritative").setBoolean(collection, true);
-                    var type = top.aihmc.omnimorph.gui.screens.WardrobeScreen.class;
-                    var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+                    var type = org.figuramc.figura.gui.screens.WardrobeScreen.class;
+                    var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
                     field(type, "client").set(screen, client);
                     field(type, "collection").set(screen, collection);
                     field(type, "transfers").set(screen, new LibraryTransferService(client, cache));
@@ -2095,7 +2095,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         Path root = Files.createTempDirectory(data, "preset-ui-");
         Path accessory = Files.createDirectories(data.resolve("cosmetics/preset-ui-" + UUID.randomUUID()));
         var presetFiles = new java.util.HashSet<UUID>();
-        var wardrobe = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+        var wardrobe = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
         var type = wardrobe.getClass();
         Avatar equipped = new Avatar(owner);
         try (var screens = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.recordingScreens();
@@ -2135,9 +2135,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 require(!field(type, "removed").getBoolean(wardrobe) && field(type, "outfitPresetsOpen").getBoolean(wardrobe)
                                 && draft.configuration().base().equals(base),
                         "opening the actual preset action retains the wardrobe draft and its real base provenance");
-                var name = (top.aihmc.omnimorph.gui.widgets.TextField) field(screenType, "nameField").get(screen);
+                var name = (org.figuramc.figura.gui.widgets.TextField) field(screenType, "nameField").get(screen);
                 name.getField().setValue("中文 本地预设");
-                var save = (top.aihmc.omnimorph.gui.widgets.Button) field(screenType, "saveNew").get(screen);
+                var save = (org.figuramc.figura.gui.widgets.Button) field(screenType, "saveNew").get(screen);
                 require(save.isActive(), "resolved base and name enable local Save");
                 save.onPress(null);
                 awaitCondition(() -> field(screenType, "previewReady").getBoolean(screen), drain);
@@ -2147,7 +2147,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                                 .equals(draft.configuration()) && draft.generation() == generation
                                 && AvatarManager.getAvatarForPlayer(owner) == equipped,
                         "native Save persists the current draft, reloads its private preview and never changes actual equipment");
-                var update = (top.aihmc.omnimorph.gui.widgets.Button) field(screenType, "update").get(screen);
+                var update = (org.figuramc.figura.gui.widgets.Button) field(screenType, "update").get(screen);
                 name.getField().setValue("更新名称");
                 update.onPress(null);
                 awaitCondition(() -> field(screenType, "previewReady").getBoolean(screen), drain);
@@ -2169,12 +2169,12 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 UUID copiesId = UUID.randomUUID();
                 presetFiles.add(copiesId);
                 store.save(copiesId, 0, "双副本预设", seed.configuration(), top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults());
-                ((top.aihmc.omnimorph.gui.widgets.Button) field(screenType, "refresh").get(screen)).onPress(null);
+                ((org.figuramc.figura.gui.widgets.Button) field(screenType, "refresh").get(screen)).onPress(null);
                 awaitCondition(() -> !field(screenType, "busy").getBoolean(screen), drain);
                 var selector = (top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown) field(screenType, "selector").get(screen);
                 selector.onPress(null);
-                var menu = (top.aihmc.omnimorph.gui.widgets.ContextMenu) top.aihmc.omnimorph.utils.ui.UIHelper.getContext();
-                var presetChoice = (top.aihmc.omnimorph.gui.widgets.Button) menu.getEntries().stream()
+                var menu = (org.figuramc.figura.gui.widgets.ContextMenu) org.figuramc.figura.utils.ui.UIHelper.getContext();
+                var presetChoice = (org.figuramc.figura.gui.widgets.Button) menu.getEntries().stream()
                         .filter(button -> button.getMessage().getString().equals("双副本预设")).findFirst().orElseThrow();
                 presetChoice.onPress(null);
                 awaitCondition(() -> field(screenType, "previewReady").getBoolean(screen), drain);
@@ -2183,7 +2183,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                                 .filter(target -> target.kind() == OutfitHierarchy.Kind.INSTANCE).count() == 2
                                 && draft.generation() == generation && AvatarManager.getAvatarForPlayer(owner) == equipped,
                         "selecting a preset through the real dropdown prepares both copies without importing or equipping them");
-                var importButton = (top.aihmc.omnimorph.gui.widgets.Button) field(screenType, "importPreset").get(screen);
+                var importButton = (org.figuramc.figura.gui.widgets.Button) field(screenType, "importPreset").get(screen);
                 require(importButton.isActive(), "Import becomes available only after complete native preparation");
                 importButton.onPress(null);
                 awaitDraftComposition(wardrobe, parentPreview, drain);
@@ -2212,8 +2212,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 blocked.height = 360;
                 init.invoke(blocked);
                 awaitCondition(() -> !field(screenType, "busy").getBoolean(blocked), drain);
-                ((top.aihmc.omnimorph.gui.widgets.TextField) field(screenType, "nameField").get(blocked)).getField().setValue("Unknown source");
-                var blockedSave = (top.aihmc.omnimorph.gui.widgets.Button) field(screenType, "saveNew").get(blocked);
+                ((org.figuramc.figura.gui.widgets.TextField) field(screenType, "nameField").get(blocked)).getField().setValue("Unknown source");
+                var blockedSave = (org.figuramc.figura.gui.widgets.Button) field(screenType, "saveNew").get(blocked);
                 require(!blockedSave.isActive(), "an unresolved captured base cannot be saved as a reloadable preset");
                 blockedSave.onPress(null);
                 var missing = new top.aihmc.omnimorph.model.outfit.OutfitConfig.ResourceRef(
@@ -2231,7 +2231,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 awaitCondition(() -> !field(screenType, "busy").getBoolean(blocked), drain);
                 var issues = (top.aihmc.omnimorph.gui.widgets.library.LibraryRowList) field(screenType, "issues").get(blocked);
                 require(((java.util.List<?>) field(issues.getClass(), "rows").get(issues)).size() == 2
-                                && !((top.aihmc.omnimorph.gui.widgets.Button) field(screenType, "importPreset").get(blocked)).isActive()
+                                && !((org.figuramc.figura.gui.widgets.Button) field(screenType, "importPreset").get(blocked)).isActive()
                                 && draft.configuration().equals(draft.committed()) && store.read(brokenId,
                                 top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults()).configuration().equals(broken.configuration()),
                         "the actual failure list identifies both missing copies and preserves the original preset/draft");
@@ -2294,7 +2294,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         boolean ready() throws Exception;
     }
 
-    private static void testCloudPersonalPresetControls(top.aihmc.omnimorph.gui.screens.WardrobeScreen wardrobe,
+    private static void testCloudPersonalPresetControls(org.figuramc.figura.gui.screens.WardrobeScreen wardrobe,
                                                          top.aihmc.omnimorph.model.outfit.OutfitDraft draft,
                                                          Path data, Avatar equipped, LibraryPreviewSession parentPreview,
                                                          Runnable drain) throws Exception {
@@ -2321,17 +2321,17 @@ public final class LibraryPreviewRuntimeSmokeTest {
             awaitCondition(() -> !field(type, "busy").getBoolean(screen), drain);
             var storage = (top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown) field(type, "storage").get(screen);
             storage.onPress(null);
-            String cloudLabel = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.preset_personal_cloud").getString();
-            var menu = top.aihmc.omnimorph.utils.ui.UIHelper.getContext();
-            var cloudChoice = (top.aihmc.omnimorph.gui.widgets.Button) menu.getEntries().stream()
+            String cloudLabel = org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.preset_personal_cloud").getString();
+            var menu = org.figuramc.figura.utils.ui.UIHelper.getContext();
+            var cloudChoice = (org.figuramc.figura.gui.widgets.Button) menu.getEntries().stream()
                     .filter(button -> button.getMessage().getString().equals(cloudLabel)).findFirst().orElseThrow();
             cloudChoice.onPress(null);
             awaitCondition(() -> !field(type, "busy").getBoolean(screen), drain);
             require(field(type, "cloud").getBoolean(screen) && ((java.util.List<?>) field(type, "items").get(screen)).isEmpty(),
                     "the native storage selector loads the authenticated owner's separate cloud list");
-            var name = (top.aihmc.omnimorph.gui.widgets.TextField) field(type, "nameField").get(screen);
+            var name = (org.figuramc.figura.gui.widgets.TextField) field(type, "nameField").get(screen);
             name.getField().setValue("个人云端预设");
-            var save = (top.aihmc.omnimorph.gui.widgets.Button) field(type, "saveNew").get(screen);
+            var save = (org.figuramc.figura.gui.widgets.Button) field(type, "saveNew").get(screen);
             long generation = draft.generation();
             server.loseNext.set(true);
             save.onPress(null);
@@ -2340,7 +2340,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var operation = (CloudOutfitPresets.Save) field(type, "cloudSave").get(screen);
             UUID operationId = operation.operationId();
             name.getField().setValue("This later edit is not part of the retry");
-            var retry = (top.aihmc.omnimorph.gui.widgets.Button) field(type, "retry").get(screen);
+            var retry = (org.figuramc.figura.gui.widgets.Button) field(type, "retry").get(screen);
             require(retry.isActive(), "an uncertain save has an explicit retry action");
             retry.onPress(null);
             awaitCondition(() -> field(type, "previewReady").getBoolean(screen), drain);
@@ -2351,7 +2351,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                             && AvatarManager.getAvatarForPlayer(owner) == equipped,
                     "native cloud retry retains the original intent/operation, creates one private document and never writes the local store or equipment");
             name.getField().setValue("云端更新");
-            ((top.aihmc.omnimorph.gui.widgets.Button) field(type, "update").get(screen)).onPress(null);
+            ((org.figuramc.figura.gui.widgets.Button) field(type, "update").get(screen)).onPress(null);
             awaitCondition(() -> field(type, "previewReady").getBoolean(screen), drain);
             selected = (top.aihmc.omnimorph.model.outfit.LocalOutfitPresets.Preset) field(type, "selected").get(screen);
             require(selected.revision() == 2 && selected.name().equals("云端更新"), "native cloud Update uses the owner's selected document revision");
@@ -2366,7 +2366,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             load.setAccessible(true);
             load.invoke(screen, vanillaId);
             awaitCondition(() -> field(type, "previewReady").getBoolean(screen), drain);
-            var importButton = (top.aihmc.omnimorph.gui.widgets.Button) field(type, "importPreset").get(screen);
+            var importButton = (org.figuramc.figura.gui.widgets.Button) field(type, "importPreset").get(screen);
             importButton.onPress(null);
             awaitDraftComposition(wardrobe, parentPreview, drain);
             require(minecraft.screen == wardrobe && draft.configuration().base() == null && draft.dirty()
@@ -2390,7 +2390,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             load.invoke(retired, vanillaId);
             awaitCondition(() -> field(type, "previewReady").getBoolean(retired), drain);
             live.set(false);
-            ((top.aihmc.omnimorph.gui.widgets.Button) field(type, "importPreset").get(retired)).onPress(null);
+            ((org.figuramc.figura.gui.widgets.Button) field(type, "importPreset").get(retired)).onPress(null);
             require(draft.configuration().equals(draft.committed()), "retired cloud sessions cannot import even a previously prepared all-local preset");
             retired.onClose();
             System.out.println("PASS personal cloud preset controls: actual storage selector/authenticated HTTP, lost-response retry with frozen intent, update/private preview/import, separate local files and retired callbacks; real GUI/GPU MANUAL/PENDING");
@@ -2414,8 +2414,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
 
     private static void testStaleDraftStart(top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory.Entry entry,
                                             Runnable drain) throws Exception {
-        var type = top.aihmc.omnimorph.gui.screens.WardrobeScreen.class;
-        var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+        var type = org.figuramc.figura.gui.screens.WardrobeScreen.class;
+        var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
         var started = new java.util.concurrent.CountDownLatch(1);
         var release = new java.util.concurrent.CountDownLatch(1);
         try (var preview = new LibraryPreviewSession()) {
@@ -2454,7 +2454,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         }
     }
 
-    private static void testInstanceTransformFields(Unsafe unsafe, top.aihmc.omnimorph.gui.screens.WardrobeScreen screen,
+    private static void testInstanceTransformFields(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
                                                      top.aihmc.omnimorph.model.outfit.OutfitDraft draft,
                                                      UUID first, UUID sibling, Runnable drain) throws Exception {
         Minecraft minecraft = Minecraft.getInstance();
@@ -2544,14 +2544,14 @@ public final class LibraryPreviewRuntimeSmokeTest {
             minecraft.screen = screen;
             try {
                 selector.onPress(null);
-                var menu = top.aihmc.omnimorph.utils.ui.UIHelper.getContext();
+                var menu = org.figuramc.figura.utils.ui.UIHelper.getContext();
                 require(menu != null && menu.getEntries().size() <= 8,
                         "attachment menus are bounded even when the hierarchy exceeds one page");
-                var nextLabel = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.anchor_next").getString();
-                var next = (top.aihmc.omnimorph.gui.widgets.Button) menu.getEntries().stream()
+                var nextLabel = org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.anchor_next").getString();
+                var next = (org.figuramc.figura.gui.widgets.Button) menu.getEntries().stream()
                         .filter(button -> button.getMessage().getString().equals(nextLabel)).findFirst().orElseThrow();
                 next.onPress(null);
-                var following = top.aihmc.omnimorph.utils.ui.UIHelper.getContext();
+                var following = org.figuramc.figura.utils.ui.UIHelper.getContext();
                 require(following != menu && following.getEntries().size() <= 8,
                         "next page opens a bounded menu without discarding remaining targets");
             } finally {
@@ -2584,8 +2584,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
             field(screen.getClass(), "layout").set(screen, layoutBeforeFocus);
             var panel = (top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeEditorPanel) screen.children().stream()
                     .filter(top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeEditorPanel.class::isInstance).findFirst().orElseThrow();
-            var inputs = panel.children().stream().filter(top.aihmc.omnimorph.gui.widgets.TextField.class::isInstance)
-                    .map(top.aihmc.omnimorph.gui.widgets.TextField.class::cast).toList();
+            var inputs = panel.children().stream().filter(org.figuramc.figura.gui.widgets.TextField.class::isInstance)
+                    .map(org.figuramc.figura.gui.widgets.TextField.class::cast).toList();
             require(inputs.size() == 9, "instance pane exposes all position/rotation/scale components");
             inputs.get(0).getField().setValue("10");
             inputs.get(5).getField().setValue("45");
@@ -2605,8 +2605,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(inputs.get(6).getBorderColour() == 0xffffffff, "valid replacement clears input validation state");
             panel.setHeight(36);
             panel.tick();
-            var scroll = (top.aihmc.omnimorph.gui.widgets.ScrollBarWidget) field(
-                    top.aihmc.omnimorph.gui.widgets.lists.AbstractList.class, "scrollBar").get(panel);
+            var scroll = (org.figuramc.figura.gui.widgets.ScrollBarWidget) field(
+                    org.figuramc.figura.gui.widgets.lists.AbstractList.class, "scrollBar").get(panel);
             require(scroll.isVisible(), "short instance panes expose scrolling instead of overlapping the toolbar");
             // Geometry/field routing only: deterministic font metrics do not prove real CJK pixels or layout.
             field(screen.getClass(), "layout").set(screen, null);
@@ -2619,7 +2619,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         }
     }
 
-    private static void testTreeAttachmentActions(Unsafe unsafe, top.aihmc.omnimorph.gui.screens.WardrobeScreen screen,
+    private static void testTreeAttachmentActions(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
                                                    top.aihmc.omnimorph.model.outfit.OutfitDraft draft,
                                                    UUID previousSelection, Runnable drain) throws Exception {
         var type = screen.getClass();
@@ -2650,9 +2650,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var build = type.getDeclaredMethod("buildInstanceTransform");
         build.setAccessible(true);
         build.invoke(screen);
-        var pickLabel = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.anchor_pick").getString();
-        var pick = screen.children().stream().filter(top.aihmc.omnimorph.gui.widgets.Button.class::isInstance)
-                .map(top.aihmc.omnimorph.gui.widgets.Button.class::cast)
+        var pickLabel = org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.anchor_pick").getString();
+        var pick = screen.children().stream().filter(org.figuramc.figura.gui.widgets.Button.class::isInstance)
+                .map(org.figuramc.figura.gui.widgets.Button.class::cast)
                 .filter(button -> button.getMessage().getString().equals(pickLabel)).toList().getLast();
         field(type, "layout").set(screen, null);
         var before = draft.configuration();
@@ -2688,13 +2688,13 @@ public final class LibraryPreviewRuntimeSmokeTest {
         try {
             var open = type.getDeclaredMethod("openAnchorActions", net.minecraft.client.gui.components.Button.class);
             open.setAccessible(true);
-            var trigger = new top.aihmc.omnimorph.gui.widgets.Button(0, 0, 120, 20,
+            var trigger = new org.figuramc.figura.gui.widgets.Button(0, 0, 120, 20,
                     net.minecraft.network.chat.Component.literal("Targets"), null, ignored -> {});
             open.invoke(screen, trigger);
-            var label = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.anchor_bind_accessory").getString();
-            var bind = top.aihmc.omnimorph.utils.ui.UIHelper.getContext().getEntries().stream()
+            var label = org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.anchor_bind_accessory").getString();
+            var bind = org.figuramc.figura.utils.ui.UIHelper.getContext().getEntries().stream()
                     .filter(button -> button.getMessage().getString().equals(label))
-                    .map(top.aihmc.omnimorph.gui.widgets.Button.class::cast).findFirst().orElseThrow();
+                    .map(org.figuramc.figura.gui.widgets.Button.class::cast).findFirst().orElseThrow();
             var parentBefore = draft.instance(second);
             bind.onPress(null);
             require(draft.instance(first).anchor().type() == top.aihmc.omnimorph.model.outfit.OutfitConfig.AnchorType.ACCESSORY_BONE
@@ -2730,20 +2730,20 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(draft.configuration().equals(valid) && second.equals(field(type, "attachingInstance").get(screen)),
                     "an old successful menu cannot mutate a later target-selection session");
             open.invoke(screen, trigger);
-            var cancelLabel = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.anchor_pick_cancel").getString();
-            var cancel = top.aihmc.omnimorph.utils.ui.UIHelper.getContext().getEntries().stream()
+            var cancelLabel = org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.anchor_pick_cancel").getString();
+            var cancel = org.figuramc.figura.utils.ui.UIHelper.getContext().getEntries().stream()
                     .filter(button -> button.getMessage().getString().equals(cancelLabel))
-                    .map(top.aihmc.omnimorph.gui.widgets.Button.class::cast).findFirst().orElseThrow();
+                    .map(org.figuramc.figura.gui.widgets.Button.class::cast).findFirst().orElseThrow();
             cancel.onPress(null);
             require(draft.configuration().equals(valid) && field(type, "attachingInstance").get(screen) == null,
                     "canceling tree targeting preserves the outfit configuration");
             var context = type.getDeclaredMethod("openBoneContext", OutfitHierarchy.Target.class, double.class, double.class);
             context.setAccessible(true);
             context.invoke(screen, firstTip, 100d, 100d);
-            var unmount = top.aihmc.omnimorph.utils.ui.UIHelper.getContext().getEntries().stream()
+            var unmount = org.figuramc.figura.utils.ui.UIHelper.getContext().getEntries().stream()
                     .filter(button -> button.getMessage().getString().equals(
-                            top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.instance_unmount").getString()))
-                    .map(top.aihmc.omnimorph.gui.widgets.Button.class::cast).findFirst().orElseThrow();
+                            org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.instance_unmount").getString()))
+                    .map(org.figuramc.figura.gui.widgets.Button.class::cast).findFirst().orElseThrow();
             unmount.onPress(null);
             awaitDraftComposition(screen, preview, drain);
             require(draft.configuration().instances().stream().noneMatch(value -> value.instanceId().equals(first))
@@ -2767,7 +2767,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 + "cycle/self/private/disabled/stale rejection, cancel and unchanged source; GUI MANUAL/PENDING");
     }
 
-    private static void testCosmeticControls(top.aihmc.omnimorph.gui.screens.WardrobeScreen wardrobe,
+    private static void testCosmeticControls(org.figuramc.figura.gui.screens.WardrobeScreen wardrobe,
                                              top.aihmc.omnimorph.model.outfit.OutfitDraft draft,
                                              UUID first, UUID second) throws Exception {
         var wardrobeType = wardrobe.getClass();
@@ -2809,7 +2809,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         build.invoke(settings);
         var settingsType = top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen.class;
         @SuppressWarnings("unchecked")
-        var tabs = (java.util.List<top.aihmc.omnimorph.gui.widgets.Button>)
+        var tabs = (java.util.List<org.figuramc.figura.gui.widgets.Button>)
                 field(settingsType, "tabButtons").get(settings);
         require(tabs.size() == 1 && tabs.getFirst().getMessage().getString().contains("插槽尾巴")
                         && !tabs.getFirst().getMessage().getString().contains("#"),
@@ -2855,7 +2855,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         require(draft.configuration().equals(before), "opening the merged tab does not persist factory defaults");
         var switches = settings.children().stream()
                 .filter(widget -> widget.getClass().getSimpleName().equals("ControlSwitch"))
-                .map(top.aihmc.omnimorph.gui.widgets.SwitchButton.class::cast).toList();
+                .map(org.figuramc.figura.gui.widgets.SwitchButton.class::cast).toList();
         var switchOwner = field(switches.getFirst().getClass(), "owner");
         var firstSwitch = switches.stream().filter(widget -> {
             try {
@@ -2884,8 +2884,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
                         && firstGroup.avatar().cosmeticContext != secondGroup.avatar().cosmeticContext,
                 "the first instance's row on the same page edits its own owner");
         var valid = draft.configuration();
-        var scene = (top.aihmc.omnimorph.gui.widgets.EntityPreview) settings.children().stream()
-                .filter(top.aihmc.omnimorph.gui.widgets.EntityPreview.class::isInstance).findFirst().orElseThrow();
+        var scene = (org.figuramc.figura.gui.widgets.EntityPreview) settings.children().stream()
+                .filter(org.figuramc.figura.gui.widgets.EntityPreview.class::isInstance).findFirst().orElseThrow();
         require(field(scene.getClass(), "libraryPreview").get(scene) == session,
                 "settings reuse the complete private outfit preview rather than the equipped base model");
         wardrobe.removed();
@@ -2907,8 +2907,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
         // Tall enough that the second instance's late row is inside the scrolled content area.
         settings.height = 1200;
         build.invoke(settings);
-        var text = (top.aihmc.omnimorph.gui.widgets.TextField) settings.children().stream()
-                .filter(top.aihmc.omnimorph.gui.widgets.TextField.class::isInstance).findFirst().orElseThrow();
+        var text = (org.figuramc.figura.gui.widgets.TextField) settings.children().stream()
+                .filter(org.figuramc.figura.gui.widgets.TextField.class::isInstance).findFirst().orElseThrow();
         valid = draft.configuration();
         text.getField().setValue("x".repeat(secondGroup.avatar().cosmeticContext.limits().maxStateStringBytes() + 1));
         require(draft.configuration().equals(valid) && controls.getValue("late_control").equals("late")
@@ -2985,12 +2985,12 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 var panel = new int[]{(int) panelX.invoke(settings), (int) panelY.invoke(settings),
                         (int) panelWidth.invoke(settings), (int) panelHeight.invoke(settings)};
                 var footer = settings.children().stream()
-                        .filter(widget -> widget instanceof top.aihmc.omnimorph.gui.widgets.Button button
+                        .filter(widget -> widget instanceof org.figuramc.figura.gui.widgets.Button button
                                 && button.getY() == size[1] - 32)
                         .map(net.minecraft.client.gui.components.AbstractWidget.class::cast).toList();
                 @SuppressWarnings("unchecked")
                 var tabRow = new java.util.ArrayList<net.minecraft.client.gui.components.AbstractWidget>(
-                        (java.util.List<top.aihmc.omnimorph.gui.widgets.Button>) tabsField.get(settings));
+                        (java.util.List<org.figuramc.figura.gui.widgets.Button>) tabsField.get(settings));
                 var tabScrollbar = (net.minecraft.client.gui.components.AbstractWidget)
                         field(settingsType, "tabScrollbar").get(settings);
                 if (tabScrollbar != null) {
@@ -3010,7 +3010,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     int overflow = field(settingsType, "tabOverflow").getInt(settings);
                     require(overflow > 0 && tabScrollbar != null,
                             "too many resource tabs create a horizontal scroll range at " + size[0] + "x" + size[1]);
-                    var bar = (top.aihmc.omnimorph.gui.widgets.ScrollBarWidget) tabScrollbar;
+                    var bar = (org.figuramc.figura.gui.widgets.ScrollBarWidget) tabScrollbar;
                     bar.setScrollProgress(1d);
                     var last = tabRow.get(tabRow.size() - 2);
                     require(field(settingsType, "tabScroll").getInt(settings) == overflow
@@ -3029,13 +3029,13 @@ public final class LibraryPreviewRuntimeSmokeTest {
         maxScroll.setAccessible(true);
         boolean scrollable = (int) maxScroll.invoke(settings) > 0;
         boolean scrollbar = settings.children().stream().anyMatch(widget ->
-                widget instanceof top.aihmc.omnimorph.gui.widgets.ScrollBarWidget bar && bar.getHeight() > bar.getWidth());
+                widget instanceof org.figuramc.figura.gui.widgets.ScrollBarWidget bar && bar.getHeight() > bar.getWidth());
         require(scrollable && scrollbar, "a long multi-instance list gets a vertical content scrollbar");
         System.out.println("PASS cosmetic settings layout: tab row/panel/footer separation at four sizes, "
                 + "horizontal tab scrolling to the last tab and vertical content scrollbar; GUI MANUAL/PENDING");
     }
 
-    private static void testCosmeticWheelCallbacks(top.aihmc.omnimorph.gui.screens.WardrobeScreen wardrobe,
+    private static void testCosmeticWheelCallbacks(org.figuramc.figura.gui.screens.WardrobeScreen wardrobe,
                                                     top.aihmc.omnimorph.model.outfit.OutfitDraft draft,
                                                     top.aihmc.omnimorph.model.outfit.OutfitComposition composition,
                                                     Avatar first, Avatar second) throws Exception {
@@ -3116,7 +3116,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 + "duplicate sandbox ownership, global/scroll callbacks and original subpage navigation; HUD/input/GPU MANUAL/PENDING");
     }
 
-    private static void testCosmeticWheelPreview(top.aihmc.omnimorph.gui.screens.WardrobeScreen wardrobe,
+    private static void testCosmeticWheelPreview(org.figuramc.figura.gui.screens.WardrobeScreen wardrobe,
                                                  top.aihmc.omnimorph.model.outfit.OutfitDraft draft,
                                                  top.aihmc.omnimorph.model.outfit.OutfitComposition composition,
                                                  Avatar first, Avatar second) throws Exception {
@@ -3133,8 +3133,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
         windowField.set(minecraft, viewport);
         int previousWidth = wardrobe.width;
         int previousHeight = wardrobe.height;
-        boolean enabled = top.aihmc.omnimorph.gui.ActionWheel.isEnabled();
-        int selection = top.aihmc.omnimorph.gui.ActionWheel.getSelected();
+        boolean enabled = org.figuramc.figura.gui.ActionWheel.isEnabled();
+        int selection = org.figuramc.figura.gui.ActionWheel.getSelected();
         long generation = field(wardrobe.getClass(), "draftPreviewGeneration").getLong(wardrobe);
         var firstGlobals = (org.luaj.vm2.Globals) field(first.luaRuntime.getClass(), "userGlobals").get(first.luaRuntime);
         var beforeSibling = draft.instance(second.cosmeticContext.instanceId());
@@ -3144,11 +3144,11 @@ public final class LibraryPreviewRuntimeSmokeTest {
             wardrobe.height = 360;
             var menuMethod = wardrobe.getClass().getDeclaredMethod("openInstances", net.minecraft.client.gui.components.Button.class);
             menuMethod.setAccessible(true);
-            menuMethod.invoke(wardrobe, new top.aihmc.omnimorph.gui.widgets.Button(0, 0, 20, 20,
+            menuMethod.invoke(wardrobe, new org.figuramc.figura.gui.widgets.Button(0, 0, 20, 20,
                     net.minecraft.network.chat.Component.literal("instances"), null, ignored -> {}));
-            var menu = top.aihmc.omnimorph.utils.ui.UIHelper.getContext();
-            String label = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.cosmetic_animations").getString();
-            var open = (top.aihmc.omnimorph.gui.widgets.Button) menu.getEntries().stream()
+            var menu = org.figuramc.figura.utils.ui.UIHelper.getContext();
+            String label = org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.cosmetic_animations").getString();
+            var open = (org.figuramc.figura.gui.widgets.Button) menu.getEntries().stream()
                     .filter(button -> button.getMessage().getString().equals(label)).findFirst().orElseThrow();
             open.onPress(null);
             require(minecraft.screen instanceof top.aihmc.omnimorph.gui.screens.CosmeticAnimationScreen
@@ -3160,8 +3160,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var initialize = preview.getClass().getDeclaredMethod("init");
             initialize.setAccessible(true);
             initialize.invoke(preview);
-            var model = (top.aihmc.omnimorph.gui.widgets.EntityPreview) preview.children().stream()
-                    .filter(top.aihmc.omnimorph.gui.widgets.EntityPreview.class::isInstance).findFirst().orElseThrow();
+            var model = (org.figuramc.figura.gui.widgets.EntityPreview) preview.children().stream()
+                    .filter(org.figuramc.figura.gui.widgets.EntityPreview.class::isInstance).findFirst().orElseThrow();
             require(field(model.getClass(), "libraryPreview").get(model) == session,
                     "the preview widget renders the same private complete outfit rather than real equipment");
             java.util.function.IntConsumer press = key -> {
@@ -3203,8 +3203,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
             preview.mouseScrolled(pointerX, pointerY, 2, 0);
             require(draft.instance(first.cosmeticContext.instanceId()).controls().get("speed")
                             .equals(first.controls.getValue("speed"))
-                            && top.aihmc.omnimorph.gui.ActionWheel.isEnabled() == enabled
-                            && top.aihmc.omnimorph.gui.ActionWheel.getSelected() == selection,
+                            && org.figuramc.figura.gui.ActionWheel.isEnabled() == enabled
+                            && org.figuramc.figura.gui.ActionWheel.getSelected() == selection,
                     "wheel scrolling saves its owner's values without activating or changing the equipped wheel selection");
             int allowedClicks = firstGlobals.get("wheel_clicks").toint();
             draft.setEnabled(first.cosmeticContext.instanceId(), false);
@@ -3222,7 +3222,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var build = top.aihmc.omnimorph.gui.screens.AvatarControlsScreen.class.getDeclaredMethod("rebuild");
             build.setAccessible(true);
             build.invoke(controls);
-            var toggle = (top.aihmc.omnimorph.gui.widgets.SwitchButton) controls.children().stream()
+            var toggle = (org.figuramc.figura.gui.widgets.SwitchButton) controls.children().stream()
                     .filter(child -> child.getClass().getSimpleName().equals("ControlSwitch")).findFirst().orElseThrow();
             toggle.onPress(null);
             controls.onClose();
@@ -3263,7 +3263,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 + "per-copy draft values, nested settings return and closed-scope rejection; screen dispatch fixture, real GUI/GPU MANUAL/PENDING");
     }
 
-    private static void testAutomaticAnchorFocus(top.aihmc.omnimorph.gui.screens.WardrobeScreen screen,
+    private static void testAutomaticAnchorFocus(org.figuramc.figura.gui.screens.WardrobeScreen screen,
                                                   top.aihmc.omnimorph.model.outfit.OutfitDraft draft,
                                                   UUID previousSelection, Runnable drain) throws Exception {
         var type = screen.getClass();
@@ -3329,7 +3329,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 + "unchanged preparation and disabled cleanup; controlled pose, GUI MANUAL/PENDING");
     }
 
-    private static void testBoneOverrideEditor(Unsafe unsafe, top.aihmc.omnimorph.gui.screens.WardrobeScreen screen,
+    private static void testBoneOverrideEditor(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
                                                top.aihmc.omnimorph.model.outfit.OutfitDraft draft,
                                                UUID previousSelection, Runnable drain) throws Exception {
         var type = screen.getClass();
@@ -3367,8 +3367,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
         preview.withPlayerContext(() -> LibraryPreviewBinding.capture(preview.entity(), selectedFrame));
         preview.selectedBone(null);
         preview.withPlayerContext(() -> LibraryPreviewBinding.capture(preview.entity(), emptyFrame));
-        boolean previousPaperdoll = top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll;
-        top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = true;
+        boolean previousPaperdoll = org.figuramc.figura.utils.ui.UIHelper.paperdoll;
+        org.figuramc.figura.utils.ui.UIHelper.paperdoll = true;
         try {
             LibraryPreviewBinding.composition(selectedFrame).withPreviewSelection(() -> require(
                     PreviewBoneHighlight.selected(null, selectedPart),
@@ -3377,7 +3377,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     !PreviewBoneHighlight.selected(null, selectedPart),
                     "later empty preview selection leaves an earlier retained frame intact"));
         } finally {
-            top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = previousPaperdoll;
+            org.figuramc.figura.utils.ui.UIHelper.paperdoll = previousPaperdoll;
         }
         var baseBone = preview.outfitHierarchy().targets().values().stream()
                 .filter(target -> target.kind() == OutfitHierarchy.Kind.BASE_BONE).findFirst().orElseThrow().bone();
@@ -3393,8 +3393,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
         build.invoke(screen, bone);
         var panel = screen.children().stream().filter(top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeEditorPanel.class::isInstance)
                 .map(top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeEditorPanel.class::cast).toList().getLast();
-        var inputs = panel.children().stream().filter(top.aihmc.omnimorph.gui.widgets.TextField.class::isInstance)
-                .map(top.aihmc.omnimorph.gui.widgets.TextField.class::cast).toList();
+        var inputs = panel.children().stream().filter(org.figuramc.figura.gui.widgets.TextField.class::isInstance)
+                .map(org.figuramc.figura.gui.widgets.TextField.class::cast).toList();
         require(inputs.size() == 9, "internal bone editor exposes position, rotation and scale components");
         inputs.getFirst().getField().setValue("3");
         inputs.get(4).getField().setValue("30");
@@ -3420,9 +3420,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
         inputs.getFirst().getField().setValue("10");
         require(draft.configuration().equals(disabled), "disabled instances reject old bone field callbacks");
         draft.setEnabled(first, true);
-        var resetLabel = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.bone_reset").getString();
-        var reset = panel.children().stream().filter(top.aihmc.omnimorph.gui.widgets.Button.class::isInstance)
-                .map(top.aihmc.omnimorph.gui.widgets.Button.class::cast)
+        var resetLabel = org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.bone_reset").getString();
+        var reset = panel.children().stream().filter(org.figuramc.figura.gui.widgets.Button.class::isInstance)
+                .map(org.figuramc.figura.gui.widgets.Button.class::cast)
                 .filter(button -> button.getMessage().getString().equals(resetLabel)).findFirst().orElseThrow();
         reset.onPress(null);
         require(draft.instance(first).boneOverrides().isEmpty() && draft.instance(second).boneOverrides().isEmpty()
@@ -3446,7 +3446,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 + "authored bounds, reset, disabled/removed/stale controls and unchanged sources; GUI MANUAL/PENDING");
     }
 
-    private static void testBoneHelperControls(Unsafe unsafe, top.aihmc.omnimorph.gui.screens.WardrobeScreen screen,
+    private static void testBoneHelperControls(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
                                                top.aihmc.omnimorph.model.outfit.OutfitDraft draft,
                                                top.aihmc.omnimorph.model.outfit.OutfitConfig.BoneRef bone) throws Exception {
         var type = screen.getClass();
@@ -3459,7 +3459,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         selection.setAccessible(true);
         Object part = selection.invoke(screen);
         require(part != null, "enabled helpers expose the selected native part");
-        var widget = new top.aihmc.omnimorph.gui.widgets.EntityPreview(0, 0, 160, 160, 12, -15, 30,
+        var widget = new org.figuramc.figura.gui.widgets.EntityPreview(0, 0, 160, 160, 12, -15, 30,
                 Minecraft.getInstance().player, screen);
         widget.setLibraryPreview(preview);
         widget.setSelectedBone(part);
@@ -3479,25 +3479,25 @@ public final class LibraryPreviewRuntimeSmokeTest {
             long preparation = field(type, "draftPreviewGeneration").getLong(screen);
             var open = type.getDeclaredMethod("openAnchorActions", net.minecraft.client.gui.components.Button.class);
             open.setAccessible(true);
-            var trigger = new top.aihmc.omnimorph.gui.widgets.Button(0, 0, 120, 20,
+            var trigger = new org.figuramc.figura.gui.widgets.Button(0, 0, 120, 20,
                     net.minecraft.network.chat.Component.literal("Actions"), null, ignored -> {});
             open.invoke(screen, trigger);
-            var hideLabel = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.helpers_hide").getString();
-            var hide = top.aihmc.omnimorph.utils.ui.UIHelper.getContext().getEntries().stream()
+            var hideLabel = org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.helpers_hide").getString();
+            var hide = org.figuramc.figura.utils.ui.UIHelper.getContext().getEntries().stream()
                     .filter(button -> button.getMessage().getString().equals(hideLabel))
-                    .map(top.aihmc.omnimorph.gui.widgets.Button.class::cast).findFirst().orElseThrow();
+                    .map(org.figuramc.figura.gui.widgets.Button.class::cast).findFirst().orElseThrow();
             hide.onPress(null);
             var binding = field(LibraryPreviewSession.class, "binding").get(preview);
             require(selection.invoke(screen) == null && field(widget.getClass(), "selectedBone").get(widget) == null
                             && field(LibraryPreviewBinding.class, "selectedBone").get(binding) == null
                             && tree.selectedTarget().bone().equals(bone)
-                            && !top.aihmc.omnimorph.utils.ui.UIHelper.getContext().isVisible(),
+                            && !org.figuramc.figura.utils.ui.UIHelper.getContext().isVisible(),
                     "actual Hide menu clears widget/binding helpers while retaining the editor's bone selection");
             open.invoke(screen, trigger);
-            var showLabel = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.helpers_show").getString();
-            var show = top.aihmc.omnimorph.utils.ui.UIHelper.getContext().getEntries().stream()
+            var showLabel = org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.helpers_show").getString();
+            var show = org.figuramc.figura.utils.ui.UIHelper.getContext().getEntries().stream()
                     .filter(button -> button.getMessage().getString().equals(showLabel))
-                    .map(top.aihmc.omnimorph.gui.widgets.Button.class::cast).findFirst().orElseThrow();
+                    .map(org.figuramc.figura.gui.widgets.Button.class::cast).findFirst().orElseThrow();
             show.onPress(null);
             require(selection.invoke(screen) == part && field(widget.getClass(), "selectedBone").get(widget) == part
                             && field(LibraryPreviewBinding.class, "selectedBone").get(binding) == part
@@ -3517,7 +3517,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 + "retained selection, disabled guard and unchanged draft/preparation; GUI MANUAL/PENDING");
     }
 
-    private static void testTreeViewSelector(top.aihmc.omnimorph.gui.screens.WardrobeScreen screen,
+    private static void testTreeViewSelector(org.figuramc.figura.gui.screens.WardrobeScreen screen,
                                              LibraryPreviewSession preview, UUID instance) throws Exception {
         var type = screen.getClass();
         field(type, "layout").set(screen, top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout.of(640, 360));
@@ -3565,7 +3565,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 + "and unchanged preparation/binding; GUI MANUAL/PENDING");
     }
 
-    private static void testVirtualAnchorEditor(top.aihmc.omnimorph.gui.screens.WardrobeScreen screen,
+    private static void testVirtualAnchorEditor(org.figuramc.figura.gui.screens.WardrobeScreen screen,
                                                  top.aihmc.omnimorph.model.outfit.OutfitDraft draft,
                                                  UUID first, UUID sibling, Runnable drain) throws Exception {
         var type = screen.getClass();
@@ -3593,8 +3593,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
         build.invoke(screen, anchor);
         var panel = screen.children().stream().filter(top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeEditorPanel.class::isInstance)
                 .map(top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeEditorPanel.class::cast).toList().getLast();
-        var inputs = panel.children().stream().filter(top.aihmc.omnimorph.gui.widgets.TextField.class::isInstance)
-                .map(top.aihmc.omnimorph.gui.widgets.TextField.class::cast).toList();
+        var inputs = panel.children().stream().filter(org.figuramc.figura.gui.widgets.TextField.class::isInstance)
+                .map(org.figuramc.figura.gui.widgets.TextField.class::cast).toList();
         require(inputs.size() == 10, "virtual anchor editor exposes name and nine local transform components");
         var parentSelector = panel.children().stream()
                 .filter(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::isInstance)
@@ -3625,9 +3625,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 top.aihmc.omnimorph.model.outfit.OutfitConfig.AnchorType.VIRTUAL, null, null, id, null, null);
         draft.setAnchor(first, shared);
         draft.setAnchor(sibling, shared);
-        var removeLabel = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.anchor_remove").getString();
-        var remove = panel.children().stream().filter(top.aihmc.omnimorph.gui.widgets.Button.class::isInstance)
-                .map(top.aihmc.omnimorph.gui.widgets.Button.class::cast)
+        var removeLabel = org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.anchor_remove").getString();
+        var remove = panel.children().stream().filter(org.figuramc.figura.gui.widgets.Button.class::isInstance)
+                .map(org.figuramc.figura.gui.widgets.Button.class::cast)
                 .filter(button -> button.getMessage().getString().equals(removeLabel)).findFirst().orElseThrow();
         field(type, "layout").set(screen, null);
         remove.onPress(null);
@@ -3658,7 +3658,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 + "invalid input, generation-fenced confirmation and explicit unbinding; GUI MANUAL/PENDING");
     }
 
-    private static void awaitDraftComposition(top.aihmc.omnimorph.gui.screens.WardrobeScreen screen,
+    private static void awaitDraftComposition(org.figuramc.figura.gui.screens.WardrobeScreen screen,
                                                LibraryPreviewSession preview, Runnable drain) throws Exception {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
         while (System.nanoTime() < deadline) {
@@ -3667,7 +3667,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             if (binding != null) {
                 Object composition = field(LibraryPreviewBinding.class, "composition").get(binding);
                 var draft = (top.aihmc.omnimorph.model.outfit.OutfitDraft) field(
-                        top.aihmc.omnimorph.gui.screens.WardrobeScreen.class, "outfitDraft").get(screen);
+                        org.figuramc.figura.gui.screens.WardrobeScreen.class, "outfitDraft").get(screen);
                 if (composition != null && field(composition.getClass(), "configuration").get(composition)
                         .equals(draft.configuration())) {
                     return;
@@ -3735,17 +3735,17 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(avatar.accelerationOwner().isCurrent(), "queued player preview remains alive until GUI completion");
             LibraryPreviewBinding.finishFrame();
             require(!avatar.accelerationOwner().isCurrent(), "closing player preview retires its own model resources");
-            var outfit = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+            var outfit = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
             field(outfit.getClass(), "preview").set(outfit, preview);
-            var widget = new top.aihmc.omnimorph.gui.widgets.EntityPreview(0, 0, 180, 180, 40, -15, 30, player, outfit);
+            var widget = new org.figuramc.figura.gui.widgets.EntityPreview(0, 0, 180, 180, 40, -15, 30, player, outfit);
             field(outfit.getClass(), "previewWidget").set(outfit, widget);
             Path selectedDirectory = Files.createDirectories(Path.of(System.getProperty("figura.test.directory")).resolve("outfit-selected"));
             Files.writeString(selectedDirectory.resolve("avatar.json"), "{\"name\":\"selected outfit fixture\"}");
             var selectLocal = outfit.getClass().getDeclaredMethod("selectLocal",
-                    top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath.class);
+                    org.figuramc.figura.avatar.local.LocalAvatarFetcher.AvatarPath.class);
             selectLocal.setAccessible(true);
             Avatar worldAvatar = AvatarManager.getAvatar(player);
-            selectLocal.invoke(outfit, new top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath(selectedDirectory, selectedDirectory));
+            selectLocal.invoke(outfit, new org.figuramc.figura.avatar.local.LocalAvatarFetcher.AvatarPath(selectedDirectory, selectedDirectory));
             await((CompletableFuture<?>) field(outfit.getClass(), "changingDraftBase").get(outfit), drain);
             awaitDraftComposition(outfit, preview, drain);
             require(preview.status().stage() == LibraryPreviewSession.Stage.READY && preview.entity() == player,
@@ -3762,7 +3762,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var ysmEntity = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
             ysmEntity.setUUID((UUID) field(LibraryPreviewSession.class, "owner").get(preview));
             field(LibraryPreviewSession.class, "detachedEntity").set(preview, ysmEntity);
-            selectLocal.invoke(outfit, new top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath(encrypted, encrypted.getParent()));
+            selectLocal.invoke(outfit, new org.figuramc.figura.avatar.local.LocalAvatarFetcher.AvatarPath(encrypted, encrypted.getParent()));
             await((CompletableFuture<?>) field(outfit.getClass(), "changingDraftBase").get(outfit), drain);
             awaitDraftComposition(outfit, preview, drain);
             var ysm = new java.util.concurrent.atomic.AtomicReference<Avatar>();
@@ -3786,7 +3786,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
     }
 
     private static final class CurrentPreviewPlayer extends net.minecraft.client.player.LocalPlayer
-            implements top.aihmc.omnimorph.mixin.EntityAccessor {
+            implements org.figuramc.figura.mixin.EntityAccessor {
         private CurrentPreviewPlayer() {
             super(null, null, null, null, null, null, false, null);
         }
@@ -3894,17 +3894,17 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     "script body visibility remains authoritative while render animation continues");
             require(model.body.visible, "shared native mesh visibility is restored after drawing");
             vertices.clear();
-            boolean previousPaperdoll = top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll;
+            boolean previousPaperdoll = org.figuramc.figura.utils.ui.UIHelper.paperdoll;
             var previousMode = avatar.renderMode;
             var part = avatar.renderer.root;
             try {
                 PreviewBoneHighlight.capture(avatar, part);
-                top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = false;
+                org.figuramc.figura.utils.ui.UIHelper.paperdoll = false;
                 require(!PreviewBoneHighlight.selected(avatar, part), "bone feedback cannot affect world rendering");
-                top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = true;
-                avatar.renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI;
+                org.figuramc.figura.utils.ui.UIHelper.paperdoll = true;
+                avatar.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
                 require(PreviewBoneHighlight.selected(avatar, part), "the GUI targets the selected part identity");
-                PreviewBoneHighlight.figura(part, new top.aihmc.omnimorph.model.PartCustomization(), type -> consumer);
+                PreviewBoneHighlight.figura(part, new org.figuramc.figura.model.PartCustomization(), type -> consumer);
                 int figuraLines = vertices.size();
                 require(figuraLines == 24, "empty Figura groups receive a visible pivot box without model geometry edits");
                 var bone = new top.aihmc.omnimorph.model.ysm.YsmGeometry.Bone("selected", null, new float[3], new float[3]);
@@ -3915,7 +3915,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 require(!PreviewBoneHighlight.selected(avatar, part), "selection feedback cannot leak into later frames");
             } finally {
                 PreviewBoneHighlight.finishFrame();
-                top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = previousPaperdoll;
+                org.figuramc.figura.utils.ui.UIHelper.paperdoll = previousPaperdoll;
                 avatar.renderMode = previousMode;
             }
             top.aihmc.omnimorph.model.outfit.NativeSkeletonSmokeTest.testFigura(avatar);
@@ -3941,8 +3941,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 Map.of(resource.identity(), 1), false);
         UUID account = UUID.randomUUID();
         UUID outfit = UUID.randomUUID();
-        var permissions = new top.aihmc.omnimorph.permissions.PermissionPack.PlayerPermissionPack(
-                new top.aihmc.omnimorph.permissions.PermissionPack.CategoryPermissionPack(Permissions.Category.DEFAULT),
+        var permissions = new org.figuramc.figura.permissions.PermissionPack.PlayerPermissionPack(
+                new org.figuramc.figura.permissions.PermissionPack.CategoryPermissionPack(Permissions.Category.DEFAULT),
                 account.toString());
         var source = model("prepared accessory");
         source.getCompoundOrEmpty("metadata").putString("resource_kind", "ACCESSORY");
@@ -4108,7 +4108,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
     private static void testWardrobeDefaultPreview(Unsafe unsafe) throws Exception {
         var player = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
         player.setUUID(UUID.randomUUID());
-        var wardrobe = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+        var wardrobe = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
         wardrobe.width = 640;
         wardrobe.height = 360;
         field(wardrobe.getClass(), "layout").set(wardrobe,
@@ -4118,7 +4118,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var buildPreview = wardrobe.getClass().getDeclaredMethod("buildPreview");
             buildPreview.setAccessible(true);
             buildPreview.invoke(wardrobe);
-            var actual = (top.aihmc.omnimorph.gui.widgets.EntityPreview) field(wardrobe.getClass(), "previewWidget").get(wardrobe);
+            var actual = (org.figuramc.figura.gui.widgets.EntityPreview) field(wardrobe.getClass(), "previewWidget").get(wardrobe);
             actual.tick();
             require(field(actual.getClass(), "libraryPreview").get(actual) == null
                             && field(actual.getClass(), "localPreview").get(actual) == null,
@@ -4129,22 +4129,22 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(selectionPreview.status().stage() == LibraryPreviewSession.Stage.IDLE,
                     "outfit selection does not prepare a model copy or publish equipment");
         }
-        var widget = new top.aihmc.omnimorph.gui.widgets.EntityPreview(0, 0, 200, 200,
+        var widget = new org.figuramc.figura.gui.widgets.EntityPreview(0, 0, 200, 200,
                 40, -15, 30, player, wardrobe);
         try {
             widget.tick();
             require(field(widget.getClass(), "localPreview").get(widget) == null
                             && field(widget.getClass(), "entity").get(widget) == player,
                     "wardrobe default preview must retain the actual player without loading an isolated copy");
-            var expanded = new top.aihmc.omnimorph.gui.screens.AvatarScreen(40, -15, 30, player, wardrobe);
+            var expanded = new org.figuramc.figura.gui.screens.AvatarScreen(40, -15, 30, player, wardrobe);
             expanded.width = 640;
             expanded.height = 360;
             var initialize = expanded.getClass().getDeclaredMethod("init");
             initialize.setAccessible(true);
             initialize.invoke(expanded);
             try {
-                var full = (top.aihmc.omnimorph.gui.widgets.EntityPreview) expanded.children().stream()
-                        .filter(top.aihmc.omnimorph.gui.widgets.EntityPreview.class::isInstance).findFirst().orElseThrow();
+                var full = (org.figuramc.figura.gui.widgets.EntityPreview) expanded.children().stream()
+                        .filter(org.figuramc.figura.gui.widgets.EntityPreview.class::isInstance).findFirst().orElseThrow();
                 full.tick();
                 require(field(full.getClass(), "localPreview").get(full) == null
                                 && field(full.getClass(), "entity").get(full) == player,
@@ -4154,20 +4154,20 @@ public final class LibraryPreviewRuntimeSmokeTest {
             }
             var controls = new top.aihmc.omnimorph.gui.screens.AvatarControlsScreen(wardrobe,
                     (Avatar) unsafe.allocateInstance(Avatar.class), "root");
-            var settings = new top.aihmc.omnimorph.gui.widgets.EntityPreview(0, 0, 200, 200,
+            var settings = new org.figuramc.figura.gui.widgets.EntityPreview(0, 0, 200, 200,
                     40, 0, 0, player, controls);
             try {
                 settings.tick();
                 require(field(settings.getClass(), "localPreview").get(settings) == null
                                 && field(settings.getClass(), "entity").get(settings) == player,
                         "model settings must show the live player/model being edited instead of waiting for an unticked copy");
-                var fullSettings = new top.aihmc.omnimorph.gui.screens.AvatarScreen(40, 0, 0, player, controls);
+                var fullSettings = new org.figuramc.figura.gui.screens.AvatarScreen(40, 0, 0, player, controls);
                 fullSettings.width = 640;
                 fullSettings.height = 360;
                 initialize.invoke(fullSettings);
                 try {
-                    var full = (top.aihmc.omnimorph.gui.widgets.EntityPreview) fullSettings.children().stream()
-                            .filter(top.aihmc.omnimorph.gui.widgets.EntityPreview.class::isInstance).findFirst().orElseThrow();
+                    var full = (org.figuramc.figura.gui.widgets.EntityPreview) fullSettings.children().stream()
+                            .filter(org.figuramc.figura.gui.widgets.EntityPreview.class::isInstance).findFirst().orElseThrow();
                     full.tick();
                     require(field(full.getClass(), "localPreview").get(full) == null
                                     && field(full.getClass(), "entity").get(full) == player,
@@ -4271,12 +4271,12 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var permissions = (Map<?, ?>) field(PermissionManager.class, "PLAYERS").get(null);
         boolean hadPermissions = permissions.containsKey(player);
         @SuppressWarnings("unchecked")
-        var users = (Map<UUID, top.aihmc.omnimorph.avatar.UserData>) field(AvatarManager.class, "LOADED_USERS").get(null);
+        var users = (Map<UUID, org.figuramc.figura.avatar.UserData>) field(AvatarManager.class, "LOADED_USERS").get(null);
         @SuppressWarnings("unchecked")
         var fetched = (java.util.Set<UUID>) field(AvatarManager.class, "FETCHED_USERS").get(null);
         var previousUser = users.get(player);
         boolean alreadyFetched = fetched.contains(player);
-        var user = new top.aihmc.omnimorph.avatar.UserData(player);
+        var user = new org.figuramc.figura.avatar.UserData(player);
         Avatar equipped = new Avatar(player);
         equipped.nbt = model("equipped");
         user.getAvatars().add(equipped);
@@ -4330,9 +4330,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
             minecraft.level = (net.minecraft.client.multiplayer.ClientLevel) unsafe.allocateInstance(net.minecraft.client.multiplayer.ClientLevel.class);
             users.put(player, user);
             fetched.add(player);
-            var screenType = top.aihmc.omnimorph.gui.screens.WardrobeScreen.class;
+            var screenType = org.figuramc.figura.gui.screens.WardrobeScreen.class;
             // Supply the vanilla renderable accessor normally installed by the game's mixin runtime.
-            var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null) {
+            var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null) {
                 private final java.util.List<net.minecraft.client.gui.components.Renderable> renderables = new java.util.ArrayList<>();
 
                 @Override
@@ -4348,7 +4348,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             constructor.setAccessible(true);
             field(screenType, "selected").set(screen, constructor.newInstance(null, null, false,
                     UUID.randomUUID(), net.minecraft.network.chat.Component.literal("unrelated preview")));
-            var button = new top.aihmc.omnimorph.gui.widgets.SwitchButton(0, 0, 24, 24,
+            var button = new org.figuramc.figura.gui.widgets.SwitchButton(0, 0, 24, 24,
                     net.minecraft.network.chat.Component.literal("show"), false);
             field(screenType, "showModel").set(screen, button);
             var refresh = screenType.getDeclaredMethod("refreshVisibility");
@@ -4418,7 +4418,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 "the existing default-off cache preference appears once in global Misc settings");
         Path cache = Path.of(System.getProperty("figura.test.directory")).resolve("collection-actions");
         try (var collection = new LibraryCollectionService(client, cache)) {
-            var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+            var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
             field(screen.getClass(), "client").set(screen, client);
             field(screen.getClass(), "collection").set(screen, collection);
             field(collection.getClass(), "authoritative").setBoolean(collection, true);
@@ -4448,7 +4448,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     selection.newInstance(null, null, false, id, net.minecraft.network.chat.Component.literal("selected")));
             field(collection.getClass(), "entries").set(collection, java.util.List.of(
                     new top.aihmc.omnimorph.backend2.library.LibraryModels.CollectionEntry(id, 1, "UPLOAD", false, model)));
-            var showModel = new top.aihmc.omnimorph.gui.widgets.SwitchButton(0, 0, 24, 24,
+            var showModel = new org.figuramc.figura.gui.widgets.SwitchButton(0, 0, 24, 24,
                     net.minecraft.network.chat.Component.literal("show"), false);
             field(screen.getClass(), "showModel").set(screen, showModel);
             UUID equippedModel = UUID.randomUUID();
@@ -4467,11 +4467,11 @@ public final class LibraryPreviewRuntimeSmokeTest {
             build.invoke(screen, actions);
             for (String name : java.util.List.of("cacheSelectedButton", "removeCollectionButton",
                     "editCollectionButton", "collectionGrantsButton", "collectionAuthorizationButton", "collectionPublicationButton")) {
-                var button = (top.aihmc.omnimorph.gui.widgets.Button) field(screen.getClass(), name).get(screen);
+                var button = (org.figuramc.figura.gui.widgets.Button) field(screen.getClass(), name).get(screen);
                 require(button.isVisible() && button.isActive() && actions.children().contains(button),
                         "authorized personal actions belong to the preview action bar: " + name);
             }
-            var remove = (top.aihmc.omnimorph.gui.widgets.Button) field(screen.getClass(), "removeCollectionButton").get(screen);
+            var remove = (org.figuramc.figura.gui.widgets.Button) field(screen.getClass(), "removeCollectionButton").get(screen);
             remove.onPress(null);
             require(id.equals(field(screen.getClass(), "deleteCollectionArmed").get(screen))
                             && field(screen.getClass(), "collectionMutation").get(screen) == null,
@@ -4487,10 +4487,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(remove.isActive(), "another author's model can be removed from the account collection");
             for (String name : java.util.List.of("editCollectionButton", "collectionGrantsButton",
                     "collectionAuthorizationButton", "collectionPublicationButton")) {
-                require(!((top.aihmc.omnimorph.gui.widgets.Button) field(screen.getClass(), name).get(screen)).isVisible(),
+                require(!((org.figuramc.figura.gui.widgets.Button) field(screen.getClass(), name).get(screen)).isVisible(),
                         "unavailable personal model actions remain hidden: " + name);
             }
-            require(!((top.aihmc.omnimorph.gui.widgets.Button) field(screen.getClass(), "cacheSelectedButton").get(screen)).isActive(),
+            require(!((org.figuramc.figura.gui.widgets.Button) field(screen.getClass(), "cacheSelectedButton").get(screen)).isActive(),
                     "preview-only resources cannot use the formal cache button");
             field(collection.getClass(), "authoritative").setBoolean(collection, false);
             update.invoke(screen);
@@ -4513,12 +4513,12 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(grid.mouseClicked(click, false) && chosen.get() == a, "collection pointer hit testing selects the first card");
             require(grid.keyPressed(new net.minecraft.client.input.KeyEvent(262, 0, 0)) && chosen.get() == b,
                     "collection arrow navigation uses the same two-column card layout");
-            var search = (top.aihmc.omnimorph.gui.widgets.SearchBar) grid.children().stream()
-                    .filter(top.aihmc.omnimorph.gui.widgets.SearchBar.class::isInstance).findFirst().orElseThrow();
+            var search = (org.figuramc.figura.gui.widgets.SearchBar) grid.children().stream()
+                    .filter(org.figuramc.figura.gui.widgets.SearchBar.class::isInstance).findFirst().orElseThrow();
             var format = (top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown) grid.children().stream()
                     .filter(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::isInstance).findFirst().orElseThrow();
-            var toggle = (top.aihmc.omnimorph.gui.widgets.Button) grid.children().stream()
-                    .filter(child -> child instanceof top.aihmc.omnimorph.gui.widgets.Button button
+            var toggle = (org.figuramc.figura.gui.widgets.Button) grid.children().stream()
+                    .filter(child -> child instanceof org.figuramc.figura.gui.widgets.Button button
                             && button.getMessage().getString().equals("+")).findFirst().orElseThrow();
             require(!format.isVisible() && grid.scissorsY == 30, "filters start collapsed with card space reclaimed");
             toggle.onPress(null);
@@ -4531,16 +4531,16 @@ public final class LibraryPreviewRuntimeSmokeTest {
             search.getField().setValue("no such model");
             require(!grid.mouseClicked(click, false) && chosen.get() == b, "filtered empty space cannot select a hidden card");
         }
-        var child = new top.aihmc.omnimorph.model.FiguraModelPart(null, "deep-".repeat(40),
-                new top.aihmc.omnimorph.model.PartCustomization(), Map.of(), new java.util.ArrayList<>());
-        var root = new top.aihmc.omnimorph.model.FiguraModelPart(null, "root",
-                new top.aihmc.omnimorph.model.PartCustomization(), Map.of(), new java.util.ArrayList<>(java.util.List.of(child)));
+        var child = new org.figuramc.figura.model.FiguraModelPart(null, "deep-".repeat(40),
+                new org.figuramc.figura.model.PartCustomization(), Map.of(), new java.util.ArrayList<>());
+        var root = new org.figuramc.figura.model.FiguraModelPart(null, "root",
+                new org.figuramc.figura.model.PartCustomization(), Map.of(), new java.util.ArrayList<>(java.util.List.of(child)));
         var tree = new BoneTreeState();
         tree.replace(PreviewHierarchy.fromFigura(root));
         var widget = new top.aihmc.omnimorph.gui.widgets.wardrobe.BoneTreeWidget(0, 0, 180, 180, tree);
         var update = widget.getClass().getDeclaredMethod("updateScrollbars");
         update.setAccessible(true);
-        var bar = (top.aihmc.omnimorph.gui.widgets.ScrollBarWidget) field(widget.getClass(), "horizontalBar").get(widget);
+        var bar = (org.figuramc.figura.gui.widgets.ScrollBarWidget) field(widget.getClass(), "horizontalBar").get(widget);
         update.invoke(widget);
         require(!bar.isVisible(), "collapsed short roots need no horizontal scrollbar");
         tree.toggle(0);
@@ -4554,17 +4554,17 @@ public final class LibraryPreviewRuntimeSmokeTest {
     }
 
     private static void testAllResourceSources(LibraryClient client) throws Exception {
-        var fetcher = top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.class;
-        top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.reloadAvatars().get(5, TimeUnit.SECONDS);
-        var originals = java.util.List.copyOf(top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.ALL_AVATARS);
+        var fetcher = org.figuramc.figura.avatar.local.LocalAvatarFetcher.class;
+        org.figuramc.figura.avatar.local.LocalAvatarFetcher.reloadAvatars().get(5, TimeUnit.SECONDS);
+        var originals = java.util.List.copyOf(org.figuramc.figura.avatar.local.LocalAvatarFetcher.ALL_AVATARS);
         boolean reload = field(fetcher, "requireReload").getBoolean(null);
         Path root = Files.createTempDirectory(Path.of(System.getProperty("figura.test.directory")), "all-sources-");
         Path first = Files.createDirectories(root.resolve("included"));
         Path second = Files.createDirectories(root.resolve("excluded"));
         Files.writeString(first.resolve("avatar.json"), "{\"name\":\"included\"}");
         Files.writeString(second.resolve("avatar.json"), "{\"name\":\"excluded\"}");
-        var local = new top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath(first, first);
-        var other = new top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath(second, second);
+        var local = new org.figuramc.figura.avatar.local.LocalAvatarFetcher.AvatarPath(first, first);
+        var other = new org.figuramc.figura.avatar.local.LocalAvatarFetcher.AvatarPath(second, second);
         var member = new top.aihmc.omnimorph.backend2.library.LibraryModels.CollectionEntry(UUID.randomUUID(), 1, "UPLOAD", true, null);
         var notInOutfit = new top.aihmc.omnimorph.backend2.library.LibraryModels.CollectionEntry(UUID.randomUUID(), 1, "DOWNLOAD", false, null);
         Path accessory = Files.createDirectories(root.resolve("cosmetics/星翼"));
@@ -4582,14 +4582,14 @@ public final class LibraryPreviewRuntimeSmokeTest {
                      new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.View(), null, ignored -> {},
                      ignored -> net.minecraft.network.chat.Component.empty())) {
             field(fetcher, "requireReload").setBoolean(null, false);
-            top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.ALL_AVATARS.clear();
-            top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.ALL_AVATARS.addAll(java.util.List.of(local, other));
+            org.figuramc.figura.avatar.local.LocalAvatarFetcher.ALL_AVATARS.clear();
+            org.figuramc.figura.avatar.local.LocalAvatarFetcher.ALL_AVATARS.addAll(java.util.List.of(local, other));
             field(collection.getClass(), "entries").set(collection, java.util.List.of(member, notInOutfit));
             var candidates = LocalOutfitCandidates.forDirectory(root);
             require(candidates.set(first, true).get(5, TimeUnit.SECONDS), "fixture candidate is persisted");
             require(candidates.set(accessory, true).get(5, TimeUnit.SECONDS), "accessory candidate uses the existing local membership store");
             require(await(catalog.refresh(), deliver).size() == 1, "actual accessory inventory is available for card and row filtering");
-            var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+            var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
             var type = screen.getClass();
             field(type, "client").set(screen, client);
             field(type, "collection").set(screen, collection);
@@ -4662,15 +4662,15 @@ public final class LibraryPreviewRuntimeSmokeTest {
             }
             System.out.println("PASS All source/use defaults: actual accessory inventory, independent Avatar/accessory filters, collection cards and candidate-only rows; GUI MANUAL/PENDING");
         } finally {
-            top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.ALL_AVATARS.clear();
-            top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.ALL_AVATARS.addAll(originals);
+            org.figuramc.figura.avatar.local.LocalAvatarFetcher.ALL_AVATARS.clear();
+            org.figuramc.figura.avatar.local.LocalAvatarFetcher.ALL_AVATARS.addAll(originals);
             field(fetcher, "requireReload").setBoolean(null, reload);
         }
     }
 
     private static void testResourceFilterPanels() throws Exception {
         for (int width : new int[]{160, 460}) {
-            var local = new top.aihmc.omnimorph.gui.widgets.lists.AvatarList(10, 54, width, 220, null,
+            var local = new org.figuramc.figura.gui.widgets.lists.AvatarList(10, 54, width, 220, null,
                     ignored -> {}, ignored -> true);
             local.setActionsVisible(false);
             try (var cloud = new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList(10, 54, width, 220,
@@ -4679,7 +4679,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                  var cards = new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid(10, 54, width, 220,
                     new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.View(), null, ignored -> {},
                     ignored -> net.minecraft.network.chat.Component.empty())) {
-                for (var panel : java.util.List.<top.aihmc.omnimorph.gui.widgets.lists.AbstractList>of(local, cloud, cards)) {
+                for (var panel : java.util.List.<org.figuramc.figura.gui.widgets.lists.AbstractList>of(local, cloud, cards)) {
                     var open = new java.util.concurrent.atomic.AtomicBoolean();
                     var source = new java.util.concurrent.atomic.AtomicInteger();
                     var mode = new java.util.concurrent.atomic.AtomicInteger();
@@ -4695,14 +4695,14 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     var dropdowns = panel.children().stream()
                             .filter(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::isInstance)
                             .map(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::cast).toList();
-                    var toggle = (top.aihmc.omnimorph.gui.widgets.Button) panel.children().stream()
-                            .filter(child -> child instanceof top.aihmc.omnimorph.gui.widgets.Button button
+                    var toggle = (org.figuramc.figura.gui.widgets.Button) panel.children().stream()
+                            .filter(child -> child instanceof org.figuramc.figura.gui.widgets.Button button
                                     && button.getMessage().getString().equals("+")).findFirst().orElseThrow();
                     int collapsed = panel.scissorsY;
-                    require(dropdowns.size() == 3 && dropdowns.stream().noneMatch(top.aihmc.omnimorph.gui.widgets.Button::isVisible),
+                    require(dropdowns.size() == 3 && dropdowns.stream().noneMatch(org.figuramc.figura.gui.widgets.Button::isVisible),
                             "source, mode and format are all owned by the collapsed plus panel");
                     toggle.onPress(null);
-                    require(open.get() && dropdowns.stream().allMatch(top.aihmc.omnimorph.gui.widgets.Button::isVisible)
+                    require(open.get() && dropdowns.stream().allMatch(org.figuramc.figura.gui.widgets.Button::isVisible)
                                     && panel.scissorsY == collapsed + 24,
                             "plus reveals all selectors together and reserves one filter row");
                     for (int index = 0; index < dropdowns.size(); index++) {
@@ -4718,12 +4718,12 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     ((java.util.function.IntConsumer) field(modeControl.getClass(), "changed").get(modeControl)).accept(1);
                     toggle.onPress(null);
                     require(!open.get() && source.get() == 1 && mode.get() == 1 && panel.scissorsY == collapsed
-                                    && dropdowns.stream().noneMatch(top.aihmc.omnimorph.gui.widgets.Button::isVisible),
+                                    && dropdowns.stream().noneMatch(org.figuramc.figura.gui.widgets.Button::isVisible),
                             "collapse retains both selections while reclaiming list space");
                 }
             }
         }
-        var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+        var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
         screen.width = 640;
         screen.height = 360;
         field(screen.getClass(), "layout").set(screen,
@@ -4736,21 +4736,21 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 "production wardrobe no longer creates standalone source or mode selectors above search");
         var placeholder = (top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList) screen.children().stream()
                 .filter(top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList.class::isInstance).findFirst().orElseThrow();
-        var toggle = (top.aihmc.omnimorph.gui.widgets.Button) placeholder.children().stream()
-                .filter(child -> child instanceof top.aihmc.omnimorph.gui.widgets.Button button
+        var toggle = (org.figuramc.figura.gui.widgets.Button) placeholder.children().stream()
+                .filter(child -> child instanceof org.figuramc.figura.gui.widgets.Button button
                         && button.getMessage().getString().equals("+")).findFirst().orElseThrow();
         toggle.onPress(null);
         require(field(screen.getClass(), "resourceFiltersExpanded").getBoolean(screen)
                         && placeholder.children().stream().filter(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::isInstance)
                         .map(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::cast)
-                        .allMatch(top.aihmc.omnimorph.gui.widgets.Button::isVisible),
+                        .allMatch(org.figuramc.figura.gui.widgets.Button::isVisible),
                 "2.0 placeholder mode retains access to the collapsed source and mode selectors");
         placeholder.close();
         System.out.println("PASS wardrobe plus panels: all resource selectors, independent values, bounded geometry and parts-mode access; GUI MANUAL/PENDING");
     }
 
     private static void testWardrobeActionMenus() throws Exception {
-        var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+        var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
         screen.width = 640;
         screen.height = 360;
         field(screen.getClass(), "layout").set(screen,
@@ -4776,15 +4776,15 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 if (slot != null) {
                     var texture = slot instanceof top.aihmc.omnimorph.gui.widgets.library.LibraryIconButton
                             ? field(slot.getClass(), "icon").get(slot)
-                            : field(top.aihmc.omnimorph.gui.widgets.Button.class, "texture").get(slot);
+                            : field(org.figuramc.figura.gui.widgets.Button.class, "texture").get(slot);
                     require(texture.toString().endsWith("/" + expected.get(index++) + ".png"),
                             "common operations precede sound/keybind/clear, without local creation or tree refresh");
                 }
             }
-            require(!((top.aihmc.omnimorph.gui.widgets.Button) field(screen.getClass(), "cosmeticSettingsButton")
+            require(!((org.figuramc.figura.gui.widgets.Button) field(screen.getClass(), "cosmeticSettingsButton")
                     .get(screen)).isActive(), "settings are disabled when no enabled instance registers controls");
             for (String name : java.util.List.of("uploadButton", "retryDraftButton", "refreshDraftButton")) {
-                require(!((top.aihmc.omnimorph.gui.widgets.Button) field(screen.getClass(), name).get(screen)).isActive(),
+                require(!((org.figuramc.figura.gui.widgets.Button) field(screen.getClass(), name).get(screen)).isActive(),
                         "formal outfit actions are disabled without negotiated Apply capability: " + name);
             }
             var groups = screen.getClass().getDeclaredMethod("refreshActionGroups");
@@ -4795,10 +4795,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(accessorySlots.size() == 11 && accessorySlots.get(0) == field(screen.getClass(), "uploadButton").get(screen),
                     "accessory mode keeps the shared publish action before its own controls and shared draft operations");
             for (Object button : (java.util.List<?>) field(screen.getClass(), "avatarActions").get(screen)) {
-                require(!((top.aihmc.omnimorph.gui.widgets.Button) button).isVisible(),
+                require(!((org.figuramc.figura.gui.widgets.Button) button).isVisible(),
                         "avatar operations are hidden in accessory mode");
             }
-            require(((top.aihmc.omnimorph.gui.widgets.Button) field(screen.getClass(), "addInstanceButton")
+            require(((org.figuramc.figura.gui.widgets.Button) field(screen.getClass(), "addInstanceButton")
                     .get(screen)).isVisible(), "accessory mode exposes instance addition");
             field(screen.getClass(), "parts").setBoolean(screen, false);
             groups.invoke(screen);
@@ -4829,10 +4829,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var refreshed = new java.util.concurrent.atomic.AtomicInteger();
         var tree = new top.aihmc.omnimorph.gui.widgets.wardrobe.BoneTreeWidget(10, 20, 180, 180,
                 new BoneTreeState(), refreshed::incrementAndGet);
-        var refresh = (top.aihmc.omnimorph.gui.widgets.Button) tree.children().stream()
-                .filter(top.aihmc.omnimorph.gui.widgets.Button.class::isInstance).findFirst().orElseThrow();
-        var search = (top.aihmc.omnimorph.gui.widgets.SearchBar) tree.children().stream()
-                .filter(top.aihmc.omnimorph.gui.widgets.SearchBar.class::isInstance).findFirst().orElseThrow();
+        var refresh = (org.figuramc.figura.gui.widgets.Button) tree.children().stream()
+                .filter(org.figuramc.figura.gui.widgets.Button.class::isInstance).findFirst().orElseThrow();
+        var search = (org.figuramc.figura.gui.widgets.SearchBar) tree.children().stream()
+                .filter(org.figuramc.figura.gui.widgets.SearchBar.class::isInstance).findFirst().orElseThrow();
         refresh.onPress(null);
         require(refreshed.get() == 1 && search.getX() + search.getWidth() < refresh.getX()
                         && refresh.getX() + refresh.getWidth() <= tree.getX() + tree.getWidth(),
@@ -4850,11 +4850,11 @@ public final class LibraryPreviewRuntimeSmokeTest {
         windowField.set(minecraft, viewport);
         minecraft.screen = screen;
         try {
-            var clearingMenu = new top.aihmc.omnimorph.gui.widgets.ContextMenu() {
+            var clearingMenu = new org.figuramc.figura.gui.widgets.ContextMenu() {
                 @Override
                 public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
                     // Replay the action without the native audio engine; the screen dispatch remains real.
-                    ((top.aihmc.omnimorph.gui.widgets.Button) getEntries().getFirst()).onPress(null);
+                    ((org.figuramc.figura.gui.widgets.Button) getEntries().getFirst()).onPress(null);
                     return true;
                 }
             };
@@ -4872,25 +4872,25 @@ public final class LibraryPreviewRuntimeSmokeTest {
             testCreationMenuAndForm(screen);
             var selected = new java.util.concurrent.atomic.AtomicInteger();
             var removed = new java.util.concurrent.atomic.AtomicReference<Object>();
-            var local = new top.aihmc.omnimorph.gui.widgets.lists.AvatarList(0, 0, 180, 180, screen,
+            var local = new org.figuramc.figura.gui.widgets.lists.AvatarList(0, 0, 180, 180, screen,
                     ignored -> selected.incrementAndGet(), ignored -> true);
             local.setActionsVisible(false);
             local.showSourceBadge(true);
             local.setOutfitRemoval(removed::set);
             Path path = Files.createDirectories(Path.of(System.getProperty("figura.test.directory")).resolve("outfit-menu-avatar"));
             Files.writeString(path.resolve("avatar.json"), "{\"name\":\"Menu avatar\"}");
-            var avatar = new top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath(path, path);
-            var localRow = new top.aihmc.omnimorph.gui.widgets.avatar.AvatarWidget(0, 160, avatar, local);
+            var avatar = new org.figuramc.figura.avatar.local.LocalAvatarFetcher.AvatarPath(path, path);
+            var localRow = new org.figuramc.figura.gui.widgets.avatar.AvatarWidget(0, 160, avatar, local);
             localRow.setX(4);
             localRow.setY(30);
             var rightClick = new net.minecraft.client.input.MouseButtonEvent(8, 36,
                     new net.minecraft.client.input.MouseButtonInfo(1, 0));
             require(localRow.getHeight() == 28 && localRow.mouseClicked(rightClick, false),
                     "taller local outfit rows retain their existing right-click context menu");
-            var menu = top.aihmc.omnimorph.utils.ui.UIHelper.getContext();
-            var removeLabel = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.remove_outfit").getString();
-            var remove = (top.aihmc.omnimorph.gui.widgets.Button) menu.children().stream()
-                    .filter(child -> child instanceof top.aihmc.omnimorph.gui.widgets.Button button
+            var menu = org.figuramc.figura.utils.ui.UIHelper.getContext();
+            var removeLabel = org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.remove_outfit").getString();
+            var remove = (org.figuramc.figura.gui.widgets.Button) menu.children().stream()
+                    .filter(child -> child instanceof org.figuramc.figura.gui.widgets.Button button
                             && button.getMessage().getString().equals(removeLabel)).findFirst().orElseThrow();
             remove.onPress(null);
             require(removed.get() == avatar && selected.get() == 0 && !menu.isVisible(),
@@ -4905,26 +4905,26 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 var rowType = Class.forName("top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList$Row");
                 var constructor = rowType.getDeclaredConstructors()[0];
                 constructor.setAccessible(true);
-                var row = (top.aihmc.omnimorph.gui.widgets.Button) constructor.newInstance(cloud, 4, 30, 160,
+                var row = (org.figuramc.figura.gui.widgets.Button) constructor.newInstance(cloud, 4, 30, 160,
                         new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(null, entry),
-                        (top.aihmc.omnimorph.gui.widgets.Button.OnPress) ignored -> selected.incrementAndGet());
+                        (org.figuramc.figura.gui.widgets.Button.OnPress) ignored -> selected.incrementAndGet());
                 require(row.getHeight() == 28 && row.mouseClicked(rightClick, false), "cloud rows share the taller context-menu interaction");
-                menu = top.aihmc.omnimorph.utils.ui.UIHelper.getContext();
-                remove = (top.aihmc.omnimorph.gui.widgets.Button) menu.children().stream()
-                        .filter(child -> child instanceof top.aihmc.omnimorph.gui.widgets.Button button
+                menu = org.figuramc.figura.utils.ui.UIHelper.getContext();
+                remove = (org.figuramc.figura.gui.widgets.Button) menu.children().stream()
+                        .filter(child -> child instanceof org.figuramc.figura.gui.widgets.Button button
                                 && button.getMessage().getString().equals(removeLabel)).findFirst().orElseThrow();
                 remove.onPress(null);
                 require(removed.get() == entry && selected.get() == 0 && !menu.isVisible(),
                         "cloud removal captures the clicked member without invoking selection/equipment");
                 removed.set(null);
                 cloud.localEntries(java.util.List.of(avatar), ignored -> selected.incrementAndGet(), removed::set, null);
-                var mixedLocalRow = (top.aihmc.omnimorph.gui.widgets.Button) constructor.newInstance(cloud, 4, 30, 160,
+                var mixedLocalRow = (org.figuramc.figura.gui.widgets.Button) constructor.newInstance(cloud, 4, 30, 160,
                         new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(avatar, null),
-                        (top.aihmc.omnimorph.gui.widgets.Button.OnPress) ignored -> selected.incrementAndGet());
+                        (org.figuramc.figura.gui.widgets.Button.OnPress) ignored -> selected.incrementAndGet());
                 require(mixedLocalRow.mouseClicked(rightClick, false), "All-source local rows expose outfit removal");
-                menu = top.aihmc.omnimorph.utils.ui.UIHelper.getContext();
-                remove = (top.aihmc.omnimorph.gui.widgets.Button) menu.children().stream()
-                        .filter(child -> child instanceof top.aihmc.omnimorph.gui.widgets.Button button
+                menu = org.figuramc.figura.utils.ui.UIHelper.getContext();
+                remove = (org.figuramc.figura.gui.widgets.Button) menu.children().stream()
+                        .filter(child -> child instanceof org.figuramc.figura.gui.widgets.Button button
                                 && button.getMessage().getString().equals(removeLabel)).findFirst().orElseThrow();
                 remove.onPress(null);
                 require(removed.get() == avatar && selected.get() == 0 && !menu.isVisible(),
@@ -4954,35 +4954,35 @@ public final class LibraryPreviewRuntimeSmokeTest {
         System.out.println("PASS wardrobe action groups, native local/cloud removal menus, taller rows, tree refresh and type text; GUI MANUAL/PENDING");
     }
 
-    private static void testCreationMenuAndForm(top.aihmc.omnimorph.gui.screens.WardrobeScreen parent)
+    private static void testCreationMenuAndForm(org.figuramc.figura.gui.screens.WardrobeScreen parent)
             throws Exception {
         Minecraft minecraft = Minecraft.getInstance();
         var open = parent.getClass().getDeclaredMethod("openCreateMenu", net.minecraft.client.gui.components.Button.class);
         open.setAccessible(true);
-        var anchor = new top.aihmc.omnimorph.gui.widgets.Button(20, 20, 24, 24,
+        var anchor = new org.figuramc.figura.gui.widgets.Button(20, 20, 24, 24,
                 net.minecraft.network.chat.Component.literal("+"), null, ignored -> {});
         open.invoke(parent, anchor);
         var menu = parent.contextMenu;
         require(menu.isVisible() && menu.getX() == anchor.getX()
                         && menu.getY() == anchor.getY() + anchor.getHeight(),
                 "Create opens a visible menu anchored below the clicked button");
-        var labels = menu.children().stream().filter(top.aihmc.omnimorph.gui.widgets.Button.class::isInstance)
-                .map(top.aihmc.omnimorph.gui.widgets.Button.class::cast)
+        var labels = menu.children().stream().filter(org.figuramc.figura.gui.widgets.Button.class::isInstance)
+                .map(org.figuramc.figura.gui.widgets.Button.class::cast)
                 .map(button -> button.getMessage().getString()).toList();
-        require(labels.contains(top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.create_figura").getString())
-                        && labels.contains(top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.create_ysm").getString())
-                        && labels.contains(top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.create_cosmetic").getString())
+        require(labels.contains(org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.create_figura").getString())
+                        && labels.contains(org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.create_ysm").getString())
+                        && labels.contains(org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.create_cosmetic").getString())
                         && labels.size() == 3,
                 "Existing create icon opens exactly the three requested resource creation entries");
         parent.contextMenu = null;
         menu.setVisible(false);
         Path root = Path.of(System.getProperty("figura.test.directory")).resolve("uncreated-form-root");
         var ysm = new top.aihmc.omnimorph.wizards.YsmAvatarWizard(root);
-        var list = new top.aihmc.omnimorph.gui.widgets.lists.AvatarWizardList(20, 20, 240, 200, ysm);
-        var fields = list.children().stream().filter(top.aihmc.omnimorph.gui.widgets.TextField.class::isInstance)
-                .map(top.aihmc.omnimorph.gui.widgets.TextField.class::cast).toList();
+        var list = new org.figuramc.figura.gui.widgets.lists.AvatarWizardList(20, 20, 240, 200, ysm);
+        var fields = list.children().stream().filter(org.figuramc.figura.gui.widgets.TextField.class::isInstance)
+                .map(org.figuramc.figura.gui.widgets.TextField.class::cast).toList();
         require(fields.size() == 3 && list.children().stream()
-                .noneMatch(top.aihmc.omnimorph.gui.widgets.SwitchButton.class::isInstance),
+                .noneMatch(org.figuramc.figura.gui.widgets.SwitchButton.class::isInstance),
                 "Actual YSM wizard list contains three metadata fields and no Figura model/script options");
         fields.get(0).getField().setValue("中文/形象");
         fields.get(1).getField().setValue("描述");
@@ -4991,10 +4991,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 "Native field callbacks update the displayed target without creating files");
         var cosmetic = new top.aihmc.omnimorph.wizards.CosmeticWizard(root.resolve("cosmetics"));
         cosmetic.template(top.aihmc.omnimorph.wizards.CosmeticTemplate.FEET);
-        var cosmeticList = new top.aihmc.omnimorph.gui.widgets.lists.AvatarWizardList(20, 20, 240, 200, cosmetic);
+        var cosmeticList = new org.figuramc.figura.gui.widgets.lists.AvatarWizardList(20, 20, 240, 200, cosmetic);
         var cosmeticFields = cosmeticList.children().stream()
-                .filter(top.aihmc.omnimorph.gui.widgets.TextField.class::isInstance)
-                .map(top.aihmc.omnimorph.gui.widgets.TextField.class::cast).toList();
+                .filter(org.figuramc.figura.gui.widgets.TextField.class::isInstance)
+                .map(org.figuramc.figura.gui.widgets.TextField.class::cast).toList();
         require(cosmeticFields.size() == 13 && cosmetic.anchor().equals("left_foot_anchor"),
                 "Accessory form exposes metadata, explicit attachment and all nine local transform components");
         cosmeticFields.get(0).getField().setValue("右足饰");
@@ -5013,16 +5013,16 @@ public final class LibraryPreviewRuntimeSmokeTest {
 
         var calls = new java.util.concurrent.atomic.AtomicInteger();
         var job = new CompletableFuture<Void>();
-        var wizard = new top.aihmc.omnimorph.wizards.AvatarWizard() {
+        var wizard = new org.figuramc.figura.wizards.AvatarWizard() {
             @Override
             public CompletableFuture<Void> buildAsync() {
                 calls.incrementAndGet();
                 return job;
             }
         };
-        wizard.changeEntry(top.aihmc.omnimorph.wizards.WizardEntry.NAME, "保留输入");
-        var screenType = top.aihmc.omnimorph.gui.screens.AvatarWizardScreen.class;
-        var screen = new top.aihmc.omnimorph.gui.screens.AvatarWizardScreen(parent, wizard) {
+        wizard.changeEntry(org.figuramc.figura.wizards.WizardEntry.NAME, "保留输入");
+        var screenType = org.figuramc.figura.gui.screens.AvatarWizardScreen.class;
+        var screen = new org.figuramc.figura.gui.screens.AvatarWizardScreen(parent, wizard) {
             private final java.util.List<net.minecraft.client.gui.components.Renderable> widgets =
                     new java.util.ArrayList<>();
 
@@ -5031,9 +5031,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 return widgets;
             }
         };
-        var build = new top.aihmc.omnimorph.gui.widgets.Button(0, 0, 100, 20,
+        var build = new org.figuramc.figura.gui.widgets.Button(0, 0, 100, 20,
                 net.minecraft.network.chat.Component.empty(), null, ignored -> {});
-        var cancel = new top.aihmc.omnimorph.gui.widgets.Button(0, 0, 100, 20,
+        var cancel = new org.figuramc.figura.gui.widgets.Button(0, 0, 100, 20,
                 net.minecraft.network.chat.Component.empty(), null, ignored -> {});
         field(screenType, "build").set(screen, build);
         field(screenType, "cancel").set(screen, cancel);
@@ -5049,7 +5049,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             job.completeExceptionally(new java.io.IOException("Expected creation failure fixture"));
             screen.tick();
             require(minecraft.screen == screen && build.isActive() && cancel.isActive()
-                            && wizard.getEntry(top.aihmc.omnimorph.wizards.WizardEntry.NAME, "").equals("保留输入"),
+                            && wizard.getEntry(org.figuramc.figura.wizards.WizardEntry.NAME, "").equals("保留输入"),
                     "Actual failure callback preserves the form and restores retry/cancel controls");
         } finally {
             minecraft.screen = parent;
@@ -5094,10 +5094,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
             select.setAccessible(true);
             select.invoke(screen, source);
             awaitCondition(() -> field(type, "outfitReady").getBoolean(screen), drain);
-            require(((top.aihmc.omnimorph.gui.widgets.TextField) field(type, "name").get(screen))
+            require(((org.figuramc.figura.gui.widgets.TextField) field(type, "name").get(screen))
                             .getField().getValue().equals("Native preset")
                             && session.outfitComposition() != null && field(type, "prepared").get(screen) == null
-                            && ((top.aihmc.omnimorph.gui.widgets.Button) field(type, "upload").get(screen)).isActive(),
+                            && ((org.figuramc.figura.gui.widgets.Button) field(type, "upload").get(screen)).isActive(),
                     "JSON metadata prefill and actual isolated composition enable publication without preparing model bytes");
             var draft = new top.aihmc.omnimorph.model.outfit.OutfitDraft(OutfitConfig.empty(), budget);
             var missing = new OutfitConfig.ResourceRef(OutfitConfig.Source.LOCAL, UUID.randomUUID(), null, null, null,
@@ -5109,7 +5109,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var resources = (OutfitPresetResources.Prepared) field(type, "outfitResources").get(screen);
             require(resources.issues().size() == 1 && !field(type, "outfitReady").getBoolean(screen)
                             && !field(type, "outfitDistributable").getBoolean(screen)
-                            && !((top.aihmc.omnimorph.gui.widgets.Button) field(type, "upload").get(screen)).isActive(),
+                            && !((org.figuramc.figura.gui.widgets.Button) field(type, "upload").get(screen)).isActive(),
                     "the actual local dependency failure blocks publication and retains its explicit issue");
             purpose.invoke(screen, 0);
             require(field(type, "outfitPrepared").get(screen) == null && session.outfitComposition() == null,
@@ -5173,7 +5173,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(composition.editorSnapshot(null).configuration().instances().size() == 1,
                     "upload accessory preview contains exactly its declared isolated instance");
             @SuppressWarnings("unchecked")
-            var fields = (java.util.List<top.aihmc.omnimorph.gui.widgets.TextField>) field(type, "editableFields").get(screen);
+            var fields = (java.util.List<org.figuramc.figura.gui.widgets.TextField>) field(type, "editableFields").get(screen);
             fields.stream().filter(widget -> widget.getField().getValue().equals("hip")).findFirst().orElseThrow()
                     .getField().setValue("head_anchor");
             var declaration = type.getDeclaredMethod("accessoryDeclaration");
@@ -5287,7 +5287,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         }
     }
 
-    private static final class ArmorPreviewPlayer extends RemotePlayer implements top.aihmc.omnimorph.mixin.EntityAccessor {
+    private static final class ArmorPreviewPlayer extends RemotePlayer implements org.figuramc.figura.mixin.EntityAccessor {
         private int equipmentReads;
         private int capeReads;
 

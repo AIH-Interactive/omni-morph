@@ -4,7 +4,7 @@ import net.minecraft.client.gui.render.pip.PictureInPictureRenderer;
 import net.minecraft.client.renderer.state.gui.pip.GuiEntityRenderState;
 import net.minecraft.client.renderer.MultiBufferSource;
 import top.aihmc.omnimorph.ducks.GuiEntityRenderStateExtension;
-import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
+import org.figuramc.figura.model.rendering.EntityRenderMode;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 

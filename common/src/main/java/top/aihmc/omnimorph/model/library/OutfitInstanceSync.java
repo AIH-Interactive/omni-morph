@@ -1,8 +1,8 @@
 package top.aihmc.omnimorph.model.library;
 
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.avatar.AvatarManager;
-import top.aihmc.omnimorph.avatar.UserData;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.avatar.AvatarManager;
+import org.figuramc.figura.avatar.UserData;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.backend2.library.OutfitInstanceState;
 import top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext;

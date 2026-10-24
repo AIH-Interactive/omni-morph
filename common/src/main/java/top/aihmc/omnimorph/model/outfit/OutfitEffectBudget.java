@@ -1,8 +1,8 @@
 package top.aihmc.omnimorph.model.outfit;
 
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.permissions.Permissions;
-import top.aihmc.omnimorph.utils.RefilledNumber;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.permissions.Permissions;
+import org.figuramc.figura.utils.RefilledNumber;
 
 import java.util.function.Supplier;
 

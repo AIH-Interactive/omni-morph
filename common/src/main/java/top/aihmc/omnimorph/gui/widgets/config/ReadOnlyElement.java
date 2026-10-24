@@ -2,10 +2,12 @@ package top.aihmc.omnimorph.gui.widgets.config;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.MutableComponent;
-import top.aihmc.omnimorph.config.ConfigType;
-import top.aihmc.omnimorph.gui.widgets.ParentedButton;
-import top.aihmc.omnimorph.gui.widgets.lists.ConfigList;
+import org.figuramc.figura.config.ConfigType;
+import org.figuramc.figura.gui.widgets.ParentedButton;
+import org.figuramc.figura.gui.widgets.lists.ConfigList;
 
+import org.figuramc.figura.gui.widgets.config.AbstractConfigElement;
+import org.figuramc.figura.gui.widgets.config.CategoryWidget;
 /** Uses the existing row/button layout; there is no editable or persisted status value. */
 public final class ReadOnlyElement extends AbstractConfigElement {
     private final ConfigType.ReadOnlyConfig status;

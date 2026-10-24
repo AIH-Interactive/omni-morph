@@ -10,13 +10,13 @@ import net.minecraft.world.phys.Vec3;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaFunction;
 import org.luaj.vm2.LuaTable;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import top.aihmc.omnimorph.model.outfit.OutfitLimits;
 import top.aihmc.omnimorph.model.outfit.OutfitInstructionBudget;
 import top.aihmc.omnimorph.model.outfit.TrailBuffer;
 import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
-import top.aihmc.omnimorph.permissions.Permissions;
+import org.figuramc.figura.permissions.Permissions;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -85,7 +85,7 @@ public final class CustomParticle extends SingleQuadParticle {
         return level;
     }
 
-    PreviewParticleScope preview() {
+    public PreviewParticleScope preview() {
         return preview;
     }
 

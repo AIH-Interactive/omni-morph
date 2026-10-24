@@ -11,10 +11,10 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import sun.misc.Unsafe;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
-import top.aihmc.omnimorph.permissions.PermissionPack;
-import top.aihmc.omnimorph.permissions.Permissions;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.model.rendering.EntityRenderMode;
+import org.figuramc.figura.permissions.PermissionPack;
+import org.figuramc.figura.permissions.Permissions;
 
 import java.util.List;
 import java.util.Map;
@@ -35,7 +35,7 @@ public final class OutfitTrailRuntimeSmokeTest {
         }
     }
 
-    private static final class Wearer extends RemotePlayer implements top.aihmc.omnimorph.mixin.EntityAccessor {
+    private static final class Wearer extends RemotePlayer implements org.figuramc.figura.mixin.EntityAccessor {
         World world;
 
         private Wearer() {

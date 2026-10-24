@@ -5,13 +5,13 @@ import net.minecraft.network.chat.Component;
 import top.aihmc.omnimorph.backend2.library.LibraryAdminSession;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.gui.screens.ModelLibraryScreen;
-import top.aihmc.omnimorph.gui.widgets.Button;
-import top.aihmc.omnimorph.gui.widgets.SearchBar;
+import org.figuramc.figura.gui.widgets.Button;
+import org.figuramc.figura.gui.widgets.SearchBar;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryRowList;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryManagementPreview;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
-import top.aihmc.omnimorph.utils.FiguraText;
-import top.aihmc.omnimorph.utils.ui.UIHelper;
+import org.figuramc.figura.utils.FiguraText;
+import org.figuramc.figura.utils.ui.UIHelper;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;

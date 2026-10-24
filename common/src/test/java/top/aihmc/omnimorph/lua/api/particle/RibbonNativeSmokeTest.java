@@ -25,17 +25,17 @@ import org.joml.Quaternionf;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.lua.LuaTypeManager;
-import top.aihmc.omnimorph.mixin.particle.ParticleEngineMixin;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.lua.LuaTypeManager;
+import org.figuramc.figura.mixin.particle.ParticleEngineMixin;
 import top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 import top.aihmc.omnimorph.model.outfit.OutfitLimits;
 import top.aihmc.omnimorph.model.outfit.OutfitTrailBudget;
 import top.aihmc.omnimorph.model.outfit.TrailBuffer;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
-import top.aihmc.omnimorph.permissions.Permissions;
+import org.figuramc.figura.permissions.Permissions;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.figuramc.figura.lua.api.particle.LuaParticle;
 /** Actual Lua settings, production extraction hook, native node submission and native PARTICLE vertex bytes. */
 final class RibbonNativeSmokeTest {
     static void run(Avatar first, Avatar second, Runnable drain) throws Exception {
@@ -95,14 +96,14 @@ final class RibbonNativeSmokeTest {
                     "culled history consumes no submitted vertex budget");
             require(frustum.bounds.minX <= 9.8 && frustum.bounds.maxX >= 11.2,
                     "culling considers the tail and head with half-width padding, not just the current head");
-            owner.permissions.insert(Permissions.COMPLEXITY, 1, top.aihmc.omnimorph.FiguraMod.MOD_ID);
+            owner.permissions.insert(Permissions.COMPLEXITY, 1, org.figuramc.figura.FiguraMod.MOD_ID);
             try {
                 require(extract(new FixtureCamera(), 1).particles.isEmpty()
                                 && "RIBBON_FACE_LIMIT".equals(particle.getRenderError())
                                 && CustomParticleRuntime.availableRibbonVertices(particle) == beforeCull,
                         "incomplete layered face allowance rejects before spending any vertices");
             } finally {
-                owner.permissions.insert(Permissions.COMPLEXITY, 10000, top.aihmc.omnimorph.FiguraMod.MOD_ID);
+                owner.permissions.insert(Permissions.COMPLEXITY, 10000, org.figuramc.figura.FiguraMod.MOD_ID);
             }
             YsmRenderFrameClock.beginFrame();
             var state = extract(new FixtureCamera(), 1);

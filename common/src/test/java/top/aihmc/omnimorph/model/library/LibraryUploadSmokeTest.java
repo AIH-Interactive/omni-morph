@@ -5,7 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;

@@ -1,0 +1,484 @@
+package org.figuramc.figura.gui.widgets;
+
+import top.aihmc.omnimorph.model.library.PreviewBoneHighlight;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.LivingEntity;
+import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.avatar.AvatarManager;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import org.figuramc.figura.gui.screens.AvatarScreen;
+import top.aihmc.omnimorph.gui.screens.AvatarControlsScreen;
+import org.figuramc.figura.gui.screens.WardrobeScreen;
+import org.figuramc.figura.model.rendering.EntityRenderMode;
+import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
+import top.aihmc.omnimorph.model.library.OutfitPresetResources;
+import top.aihmc.omnimorph.gui.widgets.library.LibraryRowList;
+import org.figuramc.figura.utils.FiguraIdentifier;
+import org.figuramc.figura.utils.FiguraText;
+import org.figuramc.figura.utils.ui.UIHelper;
+import org.joml.Matrix3x2fStack;
+import org.joml.Vector3f;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class EntityPreview extends AbstractContainerElement {
+
+    public static final Identifier UNKNOWN = new FiguraIdentifier("textures/gui/unknown_entity.png");
+    public static final Identifier OVERLAY = new FiguraIdentifier("textures/gui/entity_overlay.png");
+
+    // properties
+    private LivingEntity entity;
+    private LibraryPreviewSession libraryPreview;
+    private LibraryPreviewSession localPreview;
+    private LivingEntity sourceEntity;
+    private Avatar sourceAvatar;
+    private CompoundTag sourceNbt;
+    private final boolean liveEntityPreview;
+    private final float pitch, yaw, scale;
+    private SwitchButton button;
+    private LibraryRowList dependencyIssues;
+    private List<OutfitPresetResources.Issue> shownIssues = List.of();
+
+    // transformation data
+
+    // rot
+    private boolean isRotating = false;
+    private float anchorX = 0f, anchorY = 0f;
+    private float anchorAngleX = 0f, anchorAngleY = 0f;
+    private float angleX, angleY;
+
+    // scale
+    private float scaledValue = 0f, scaledPrecise = 0f;
+    private Object selectedBone;
+    private static final float SCALE_FACTOR = 1.1F;
+
+    // pos
+    private boolean isDragging = false;
+    private int modelX, modelY;
+    private float dragDeltaX, dragDeltaY;
+    private float dragAnchorX, dragAnchorY;
+
+    public EntityPreview(int x, int y, int width, int height, float scale, float pitch, float yaw, LivingEntity entity, Screen parentScreen) {
+        super(x, y, width, height);
+
+        this.scale = scale;
+        this.pitch = pitch;
+        this.yaw = yaw;
+        this.entity = entity;
+        this.sourceEntity = entity;
+        // Wardrobe and model controls show the live model, including immediate control edits.
+        // AvatarScreen retains the originating parent so expansion uses the same mechanism.
+        this.liveEntityPreview = parentScreen instanceof WardrobeScreen
+                || parentScreen instanceof AvatarControlsScreen;
+
+        modelX = width / 2;
+        modelY = height / 2;
+        angleX = pitch;
+        angleY = yaw;
+
+        // button
+        children.add(button = new SwitchButton(
+                x + 4, y + 4, 16, 16,
+                0, 0, 16,
+                new FiguraIdentifier("textures/gui/expand.png"),
+                48, 32,
+                FiguraText.of("gui.expand"),
+                bx -> {
+                    if (button.isToggled()) {
+                        if (libraryPreview != null) {
+                            libraryPreview.setExpanded(true);
+                        }
+                        Minecraft.getInstance().setScreen(new AvatarScreen(scale, pitch, yaw,
+                                localPreview == null ? this.entity : sourceEntity, parentScreen, libraryPreview, selectedBone));
+                    } else {
+                        if (libraryPreview != null && Minecraft.getInstance().screen instanceof AvatarScreen avatarScreen) {
+                            avatarScreen.onClose();
+                        } else {
+                            Minecraft.getInstance().setScreen(parentScreen);
+                        }
+                    }
+                }));
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        updateConfigurationIssues();
+        if (libraryPreview != null || liveEntityPreview || sourceEntity == null) {
+            return;
+        }
+        Avatar current = AvatarManager.getAvatar(sourceEntity);
+        CompoundTag nbt = current == null ? null : current.nbt;
+        if (localPreview == null) {
+            localPreview = new LibraryPreviewSession();
+            sourceAvatar = current;
+            sourceNbt = nbt;
+            localPreview.selectDraft(nbt == null ? new CompoundTag() : nbt);
+        }
+        if (current != sourceAvatar || nbt != sourceNbt) {
+            sourceAvatar = current;
+            sourceNbt = nbt;
+            if (nbt == null) {
+                localPreview.selectDraft(new CompoundTag());
+            } else {
+                localPreview.selectDraft(nbt);
+            }
+        }
+        localPreview.tick();
+    }
+
+    /** Only widget-owned local copies are retired here; library screens own their sessions. */
+    public void closeLocalPreview() {
+        if (localPreview != null) {
+            localPreview.close();
+            localPreview = null;
+        }
+        sourceAvatar = null;
+        sourceNbt = null;
+    }
+
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+        if (!this.isVisible())
+            return;
+
+        if (libraryPreview != null) {
+            libraryPreview.beforeExtract(delta);
+            entity = libraryPreview.entity();
+        } else if (liveEntityPreview) {
+            entity = sourceEntity;
+        } else if (localPreview != null) {
+            localPreview.beforeExtract(delta);
+            entity = localPreview.entity();
+            synchronizeLocalAppearance();
+        } else {
+            // Wait for the detached copy instead of briefly displaying the live animation.
+            entity = null;
+        }
+        updateConfigurationIssues();
+
+        int x = getX();
+        int y = getY();
+        int width = getWidth();
+        int height = getHeight();
+
+        if (!button.isToggled()) {
+            // border
+            UIHelper.blitSliced(gui, x, y, width, height, UIHelper.OUTLINE_FILL);
+            // overlay
+            UIHelper.blit(gui, x + 1, y + 1, width - 2, height, OVERLAY);
+        }
+
+        // scissors
+        gui.enableScissor(x + 1, y + 1, x + width - 1, y + height - 1);
+
+        // render entity
+        Matrix3x2fStack pose = gui.pose();
+        if (entity != null) {
+            if (libraryPreview != null) {
+                libraryPreview.selectedBone(selectedBone);
+            }
+            if (libraryPreview == null && liveEntityPreview) {
+                PreviewBoneHighlight.capture(AvatarManager.getAvatar(entity), selectedBone);
+            }
+            pose.pushMatrix();
+            scaledValue = Mth.lerp((float) (1f - Math.pow(0.5f, delta)), scaledValue, scaledPrecise);
+            boolean independent = libraryPreview != null && libraryPreview.submitIndependentFigura(gui,
+                    x + modelX, y + modelY, scale + scaledValue, angleX, angleY, delta,
+                    x, y, x + width, y + height);
+            if (!independent) {
+                Runnable draw = () -> {
+                    // Library contexts resolve the selected Avatar only inside this scoped lookup.
+                    PreviewBoneHighlight.capture(AvatarManager.getAvatar(entity), selectedBone);
+                    UIHelper.drawEntity(x + modelX, y + modelY, scale + scaledValue,
+                        angleX, angleY, entity, gui, new Vector3f(), EntityRenderMode.FIGURA_GUI,
+                        x, y, x + width, y + height);
+                };
+                if (libraryPreview != null) {
+                    libraryPreview.withPlayerContext(draw);
+                } else if (localPreview != null) {
+                    localPreview.withPlayerContext(draw);
+                } else {
+                    draw.run();
+                }
+            }
+            pose.popMatrix();
+        } else if (shownIssues.isEmpty()) {
+            // draw
+            int s = Math.min(width, height) * 2 / 3;
+            UIHelper.enableBlend();
+            gui.blit(RenderPipelines.GUI_TEXTURED, UNKNOWN, x + (width - s) / 2, y + (height - s) / 2, 0f, 64 * ((int) (FiguraMod.ticks / 3f) % 8), s, s,64, 64, 64, 512);
+        }
+
+        gui.disableScissor();
+
+        super.extractRenderState(gui, mouseX, mouseY, delta);
+    }
+
+    private List<OutfitPresetResources.Issue> operationIssues = List.of();
+
+    /** Formal Apply failures use the same scrollable source/instance rows without destroying the preview. */
+    public void setDependencyIssues(List<OutfitPresetResources.Issue> issues) {
+        operationIssues = List.copyOf(issues);
+        updateConfigurationIssues();
+    }
+
+    /** Every preview surface, including the expanded view, exposes the exact failed dependencies. */
+    private void updateConfigurationIssues() {
+        List<OutfitPresetResources.Issue> issues = !operationIssues.isEmpty() ? operationIssues : libraryPreview == null
+                ? List.of() : libraryPreview.configurationIssues();
+        if (!issues.equals(shownIssues)) {
+            shownIssues = issues;
+            if (!issues.isEmpty() && dependencyIssues == null) {
+                dependencyIssues = new LibraryRowList(
+                        getX() + 4, getY() + 24, Math.max(1, getWidth() - 8), Math.max(1, getHeight() - 28));
+                children.add(dependencyIssues);
+            }
+            if (dependencyIssues != null) {
+                var rows = new ArrayList<LibraryRowList.Row>();
+                for (var issue : issues) {
+                    var owners = new ArrayList<Component>();
+                    if (issue.base()) {
+                        owners.add(FiguraText.of("gui.wardrobe.preset_base"));
+                    }
+                    for (var instance : issue.instances()) {
+                        owners.add(FiguraText.of("gui.wardrobe.preset_instance").append(" · " + instance));
+                    }
+                    for (var owner : owners) {
+                        var label = owner.copy().append(" · ").append(FiguraText.of("gui.library.failure", issue.code()));
+                        var tooltip = label.copy().append("\n" + issue.resource().identity()
+                                + "\n" + issue.resource().contentHash());
+                        rows.add(new LibraryRowList.Row(
+                                label, tooltip, true, () -> {}));
+                    }
+                }
+                dependencyIssues.rows(rows);
+            }
+        }
+        if (dependencyIssues != null) {
+            dependencyIssues.setVisible(!issues.isEmpty());
+            dependencyIssues.setX(getX() + 4);
+            dependencyIssues.setY(getY() + 24);
+            dependencyIssues.setWidth(Math.max(1, getWidth() - 8));
+            dependencyIssues.setHeight(Math.max(1, getHeight() - 28));
+        }
+    }
+
+    @Override
+    public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean bl) {
+        double mouseX = mouseButtonEvent.x();
+        double mouseY = mouseButtonEvent.y();
+        int button = mouseButtonEvent.button();
+
+        if (!this.isVisible() || !this.isMouseOver(mouseX, mouseY))
+            return false;
+
+        if (super.mouseClicked(mouseButtonEvent, bl))
+            return true;
+
+        switch (button) {
+            // left click - rotate
+            case 0 -> {
+                // set anchor rotation
+
+                // get starter mouse pos
+                anchorX = (float) mouseX;
+                anchorY = (float) mouseY;
+
+                // get starter rotation angles
+                anchorAngleX = angleX;
+                anchorAngleY = angleY;
+
+                isRotating = true;
+                return true;
+            }
+
+            // right click - move
+            case 1 -> {
+                // get starter mouse pos
+                dragDeltaX = (float) mouseX;
+                dragDeltaY = (float) mouseY;
+
+                // also get start node pos
+                dragAnchorX = modelX;
+                dragAnchorY = modelY;
+
+                isDragging = true;
+                return true;
+            }
+
+            // middle click - reset pos
+            case 2 -> {
+                isRotating = false;
+                isDragging = false;
+                anchorX = 0f;
+                anchorY = 0f;
+                anchorAngleX = 0f;
+                anchorAngleY = 0f;
+                angleX = pitch;
+                angleY = yaw;
+                scaledValue = 0f;
+                scaledPrecise = 0f;
+                modelX = getWidth() / 2;
+                modelY = getHeight() / 2;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean mouseReleased(MouseButtonEvent mouseButtonEvent) {
+        int button = mouseButtonEvent.button();
+        // left click - stop rotating
+        if (button == 0) {
+            isRotating = false;
+            return true;
+        }
+
+        // right click - stop dragging
+        else if (button == 1) {
+            isDragging = false;
+            return true;
+        }
+
+        return super.mouseReleased(mouseButtonEvent);
+    }
+
+    @Override
+    public boolean mouseDragged(MouseButtonEvent mouseButtonEvent, double deltaX, double deltaY) {
+        double mouseX = mouseButtonEvent.x();
+        double mouseY = mouseButtonEvent.y();
+        // left click - rotate
+        if (isRotating) {
+            // get starter rotation angle then get hot much is moved and divided by a slow factor
+            // as of 1.21.6 gui scale is an int, this must be a float or else it may be Nan and that is a big nono
+            angleX = (float) (anchorAngleX + (anchorY - mouseY) / (3d / Minecraft.getInstance().getWindow().getGuiScale()));
+            angleY = (float) (anchorAngleY - (anchorX - mouseX) / (3d / Minecraft.getInstance().getWindow().getGuiScale()));
+
+            // cap to 360, so we don't get extremely high unnecessary rotation values
+            if (angleX >= 360 || angleX <= -360) {
+                anchorY = (float) mouseY;
+                anchorAngleX = 0;
+                angleX = 0;
+            }
+            if (angleY >= 360 || angleY <= -360) {
+                anchorX = (float) mouseX;
+                anchorAngleY = 0;
+                angleY = 0;
+            }
+
+            return true;
+        }
+
+        // right click - move
+        else if (isDragging) {
+            // get how much it should move
+            // get actual pos of the mouse, then subtract starter X,Y
+            float x = (float) (mouseX - dragDeltaX);
+            float y = (float) (mouseY - dragDeltaY);
+
+            // move it
+            modelX = (int) (dragAnchorX + x);
+            modelY = (int) (dragAnchorY + y);
+
+            return true;
+        }
+
+        return super.mouseDragged(mouseButtonEvent, deltaX, deltaY);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double amount, double d) {
+        if (!this.isVisible())
+            return false;
+
+        if (super.mouseScrolled(mouseX, mouseY, amount, d))
+            return true;
+
+        // scroll - scale
+
+        // set scale direction
+        float scaleDir = ((amount+d) > 0) ? SCALE_FACTOR : 1 / SCALE_FACTOR;
+
+        // determine scale
+        scaledPrecise = ((scale + scaledPrecise) * scaleDir) - scale;
+
+        return true;
+    }
+
+    public void setEntity(LivingEntity entity) {
+        if (sourceEntity == entity) {
+            return;
+        }
+        closeLocalPreview();
+        sourceEntity = entity;
+        this.entity = entity;
+    }
+
+    public void setSelectedBone(Object part) {
+        selectedBone = part;
+        if (libraryPreview != null) {
+            libraryPreview.selectedBone(part);
+        }
+    }
+
+    private void synchronizeLocalAppearance() {
+        Avatar detached = entity == null ? null : AvatarManager.getAvatar(entity);
+        if (detached == null || sourceAvatar == null) {
+            return;
+        }
+        for (var control : detached.controls.all()) {
+            var source = sourceAvatar.controls.get(control.id());
+            if (source != null && !java.util.Objects.equals(control.getValue(), source.getValue())) {
+                control.setValue(source.getValue());
+            }
+        }
+        var target = detached.getYsmRuntime();
+        var source = sourceAvatar.getYsmRuntime();
+        if (target != null && source != null && !target.textureId().equals(source.textureId())) {
+            target.setTexture(source.textureId());
+        }
+    }
+
+    public void setLibraryPreview(LibraryPreviewSession preview) {
+        closeLocalPreview();
+        libraryPreview = preview;
+        entity = preview == null ? null : preview.entity();
+    }
+
+    public record View(float pitch, float yaw, float zoom, float x, float y) {}
+
+    public View view() {
+        return new View(angleX, angleY, scale == 0 ? 1 : (scale + scaledPrecise) / scale,
+                (float) modelX / Math.max(1, getWidth()), (float) modelY / Math.max(1, getHeight()));
+    }
+
+    public void restoreView(View view) {
+        if (view != null) {
+            angleX = view.pitch();
+            angleY = view.yaw();
+            scaledPrecise = scaledValue = scale * (view.zoom() - 1);
+            modelX = Math.round(view.x() * getWidth());
+            modelY = Math.round(view.y() * getHeight());
+        }
+    }
+
+    public void setToggled(boolean toggled) {
+        this.button.setToggled(toggled);
+        this.button.setTooltip(toggled ? FiguraText.of("gui.minimise") : FiguraText.of("gui.expand"));
+    }
+}

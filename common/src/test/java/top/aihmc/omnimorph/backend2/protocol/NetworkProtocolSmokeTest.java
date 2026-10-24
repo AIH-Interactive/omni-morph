@@ -3,7 +3,7 @@ package top.aihmc.omnimorph.backend2.protocol;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import top.aihmc.omnimorph.backend2.protocol.generated.Cloud;
-import top.aihmc.omnimorph.backend2.websocket.C2SMessageHandler;
+import org.figuramc.figura.backend2.websocket.C2SMessageHandler;
 
 import java.io.ByteArrayInputStream;
 import java.nio.file.Files;

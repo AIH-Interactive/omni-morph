@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.model.library;
 
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.model.FiguraModelPart;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.model.FiguraModelPart;
 import top.aihmc.omnimorph.model.ysm.YsmModelPart;
 
 import java.util.ArrayDeque;

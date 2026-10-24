@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.config.neoforge;
 
-import top.aihmc.omnimorph.config.ConfigKeyBind;
+import org.figuramc.figura.config.ConfigKeyBind;
 import top.aihmc.omnimorph.neoforge.FiguraModClientNeoForge;
 
 public class ConfigKeyBindImpl {

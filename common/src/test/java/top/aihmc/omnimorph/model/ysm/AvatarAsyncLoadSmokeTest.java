@@ -8,11 +8,11 @@ import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.Identifier;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
-import top.aihmc.omnimorph.avatar.UserData;
+import org.figuramc.figura.avatar.UserData;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;
-import top.aihmc.omnimorph.ducks.ParticleEngineAccessor;
+import org.figuramc.figura.ducks.ParticleEngineAccessor;
 import sun.misc.Unsafe;
 
 import java.util.UUID;

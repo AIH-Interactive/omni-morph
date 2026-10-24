@@ -9,8 +9,8 @@ import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.Bootstrap;
-import top.aihmc.omnimorph.math.matrix.FiguraMat3;
-import top.aihmc.omnimorph.math.matrix.FiguraMat4;
+import org.figuramc.figura.math.matrix.FiguraMat3;
+import org.figuramc.figura.math.matrix.FiguraMat4;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;

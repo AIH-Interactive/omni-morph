@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.avatar.ysm;
 
-import top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher;
-import top.aihmc.omnimorph.avatar.local.LocalAvatarLoader;
+import org.figuramc.figura.avatar.local.LocalAvatarFetcher;
+import org.figuramc.figura.avatar.local.LocalAvatarLoader;
 import top.aihmc.omnimorph.model.ysm.YsmGeometry;
 
 import java.io.IOException;

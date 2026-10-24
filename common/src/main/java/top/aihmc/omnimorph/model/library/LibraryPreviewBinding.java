@@ -3,7 +3,7 @@ package top.aihmc.omnimorph.model.library;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.model.outfit.OutfitComposition;
 import top.aihmc.omnimorph.model.outfit.OutfitLimits;
 import top.aihmc.omnimorph.lua.api.particle.PreviewParticleScope;

@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.wizards;
 
-import top.aihmc.omnimorph.FiguraMod;
+import org.figuramc.figura.FiguraMod;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 
@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
+import org.figuramc.figura.wizards.AvatarWizard;
+import org.figuramc.figura.wizards.WizardEntry;
 /** Authoring fields contain resource-local values, never a temporary player bone ID. */
 public final class CosmeticWizard extends AvatarWizard {
     private static final WizardEntry ANCHOR = new WizardEntry("COSMETIC_ANCHOR", WizardEntry.Type.TEXT);

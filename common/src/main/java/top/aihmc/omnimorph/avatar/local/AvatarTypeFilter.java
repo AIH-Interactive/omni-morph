@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.avatar.local;
 
+
+import org.figuramc.figura.avatar.local.LocalAvatarFetcher;
 /** Shared wardrobe type filter; operates only on already discovered list metadata. */
 public enum AvatarTypeFilter {
     ALL("all"),

@@ -2,7 +2,7 @@ package top.aihmc.omnimorph.model.ysm;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.LivingEntity;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 
 /** Formal hand queries share native per-hand state and owner-restricted device pulses. */
 public final class YsmHandQuery {

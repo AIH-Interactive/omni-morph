@@ -18,7 +18,7 @@ import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.TriState;
 import net.minecraft.util.Util;
-import top.aihmc.omnimorph.utils.FiguraIdentifier;
+import org.figuramc.figura.utils.FiguraIdentifier;
 
 import java.util.Optional;
 import java.util.OptionalDouble;

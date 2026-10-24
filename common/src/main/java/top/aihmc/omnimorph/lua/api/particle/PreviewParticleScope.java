@@ -3,7 +3,7 @@ package top.aihmc.omnimorph.lua.api.particle;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import org.luaj.vm2.LuaError;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.model.outfit.OutfitInstructionBudget;
 import top.aihmc.omnimorph.model.outfit.OutfitLimits;
 import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;

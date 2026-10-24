@@ -13,16 +13,17 @@ import org.joml.Quaternionf;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.lua.LuaTypeManager;
-import top.aihmc.omnimorph.math.vector.FiguraVec4;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.lua.LuaTypeManager;
+import org.figuramc.figura.math.vector.FiguraVec4;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.figuramc.figura.lua.api.particle.LuaParticle;
 public final class CustomParticleLayeredSmokeTest {
     public static void run(Avatar owner, FiguraTexture foreign, Runnable drain) throws Exception {
         var base = new FiguraTexture(owner, "layer-base", new NativeImage(16, 8, true));

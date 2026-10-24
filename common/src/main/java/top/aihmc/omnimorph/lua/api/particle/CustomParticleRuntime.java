@@ -5,11 +5,11 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.state.level.ParticlesRenderState;
 import org.luaj.vm2.LuaError;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext;
 import top.aihmc.omnimorph.model.outfit.OutfitLimits;
 import top.aihmc.omnimorph.model.outfit.OutfitTrailBudget;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
 
 import java.util.IdentityHashMap;

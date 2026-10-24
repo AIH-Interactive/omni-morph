@@ -6,14 +6,14 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import top.aihmc.omnimorph.gui.widgets.Button;
-import top.aihmc.omnimorph.gui.widgets.ScrollBarWidget;
-import top.aihmc.omnimorph.gui.widgets.SearchBar;
-import top.aihmc.omnimorph.gui.widgets.lists.AbstractList;
+import org.figuramc.figura.gui.widgets.Button;
+import org.figuramc.figura.gui.widgets.ScrollBarWidget;
+import org.figuramc.figura.gui.widgets.SearchBar;
+import org.figuramc.figura.gui.widgets.lists.AbstractList;
 import top.aihmc.omnimorph.model.library.BoneTreeState;
-import top.aihmc.omnimorph.utils.FiguraIdentifier;
-import top.aihmc.omnimorph.utils.FiguraText;
-import top.aihmc.omnimorph.utils.ui.UIHelper;
+import org.figuramc.figura.utils.FiguraIdentifier;
+import org.figuramc.figura.utils.FiguraText;
+import org.figuramc.figura.utils.ui.UIHelper;
 
 /** Read-only model hierarchy; only the search, scrollbar and visible text rows participate in the GUI. */
 public final class BoneTreeWidget extends AbstractList {

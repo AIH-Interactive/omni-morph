@@ -9,15 +9,15 @@ import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.entity.player.PlayerModelType;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.math.matrix.FiguraMat4;
-import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
-import top.aihmc.omnimorph.model.rendering.PartFilterScheme;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.math.matrix.FiguraMat4;
+import org.figuramc.figura.model.rendering.EntityRenderMode;
+import org.figuramc.figura.model.rendering.PartFilterScheme;
 import top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
-import top.aihmc.omnimorph.permissions.Permissions;
-import top.aihmc.omnimorph.utils.ui.UIHelper;
+import org.figuramc.figura.permissions.Permissions;
+import org.figuramc.figura.utils.ui.UIHelper;
 
 /** Direct Figura geometry plus a native skinned body, without EntityRenderDispatcher or render layers. */
 public final class LibraryFiguraPreviewRenderer extends PictureInPictureRenderer<LibraryFiguraPreviewState> {

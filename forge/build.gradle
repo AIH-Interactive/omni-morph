@@ -16,6 +16,8 @@ loom {
 
         mixinConfig "omni-morph-common.mixins.json"
         mixinConfig "omni-morph.mixins.json"
+        mixinConfig "figura.mixins.json"
+        mixinConfig "figura-common.mixins.json"
     }
 }
 

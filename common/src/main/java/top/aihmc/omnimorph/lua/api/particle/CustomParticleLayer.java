@@ -4,13 +4,14 @@ import net.minecraft.client.particle.SingleQuadParticle;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.math.vector.FiguraVec3;
-import top.aihmc.omnimorph.math.vector.FiguraVec4;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.math.vector.FiguraVec3;
+import org.figuramc.figura.math.vector.FiguraVec4;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 
 import java.util.Set;
 
+import org.figuramc.figura.lua.api.particle.ParticleAPI;
 /** One copied, bounded author layer declaration; a null sheet inherits particle-wide playback. */
 record CustomParticleLayer(FiguraTexture texture, ParticleSpriteSheet sheet, ParticleSpriteSheet.Uv crop,
                            Tint tint, Boolean emissive, SingleQuadParticle.Layer renderLayer) {

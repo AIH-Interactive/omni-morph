@@ -5,9 +5,9 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
-import top.aihmc.omnimorph.gui.widgets.Button;
-import top.aihmc.omnimorph.gui.widgets.EntityPreview;
-import top.aihmc.omnimorph.gui.widgets.TextField;
+import org.figuramc.figura.gui.widgets.Button;
+import org.figuramc.figura.gui.widgets.EntityPreview;
+import org.figuramc.figura.gui.widgets.TextField;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryRowList;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
@@ -17,9 +17,9 @@ import top.aihmc.omnimorph.model.library.OutfitPresetResources;
 import top.aihmc.omnimorph.model.outfit.LocalOutfitPresets;
 import top.aihmc.omnimorph.model.outfit.OutfitDraft;
 import top.aihmc.omnimorph.model.outfit.OutfitLimits;
-import top.aihmc.omnimorph.permissions.PermissionManager;
-import top.aihmc.omnimorph.utils.FiguraText;
-import top.aihmc.omnimorph.utils.ui.UIHelper;
+import org.figuramc.figura.permissions.PermissionManager;
+import org.figuramc.figura.utils.FiguraText;
+import org.figuramc.figura.utils.ui.UIHelper;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -29,6 +29,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Consumer;
 
+import org.figuramc.figura.gui.screens.AbstractPanelScreen;
+import org.figuramc.figura.gui.screens.WardrobeScreen;
 /** Local preset documents and an independent private preview. Import edits the retained wardrobe draft only. */
 public final class OutfitPresetsScreen extends AbstractPanelScreen {
     private final WardrobeScreen wardrobe;
@@ -560,7 +562,7 @@ public final class OutfitPresetsScreen extends AbstractPanelScreen {
         }
     }
 
-    void previewAbandoned() {
+    public void previewAbandoned() {
         close();
         wardrobe.closeOutfitPresets(false);
     }

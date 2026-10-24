@@ -1,9 +1,9 @@
 package top.aihmc.omnimorph.model.outfit;
 
 import org.joml.Matrix4fc;
-import top.aihmc.omnimorph.model.FiguraModelPart;
+import org.figuramc.figura.model.FiguraModelPart;
 import top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer;
-import top.aihmc.omnimorph.model.rendering.PartFilterScheme;
+import org.figuramc.figura.model.rendering.PartFilterScheme;
 
 import java.util.List;
 import java.util.UUID;

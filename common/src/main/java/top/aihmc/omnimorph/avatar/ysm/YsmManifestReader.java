@@ -3,7 +3,7 @@ package top.aihmc.omnimorph.avatar.ysm;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import top.aihmc.omnimorph.utils.IOUtils;
+import org.figuramc.figura.utils.IOUtils;
 
 import java.io.IOException;
 import java.nio.file.Path;

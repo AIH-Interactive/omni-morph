@@ -16,15 +16,15 @@ import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import sun.misc.Unsafe;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.lua.LuaTypeManager;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.lua.LuaTypeManager;
 import top.aihmc.omnimorph.mixin.particle.ParticleLightRegionAccessor;
 import top.aihmc.omnimorph.mixin.particle.ParticleWorldLightMixin;
 import top.aihmc.omnimorph.mixin.particle.ParticleEntityLightMixin;
 import top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 import top.aihmc.omnimorph.model.outfit.OutfitLimits;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 
 import java.lang.reflect.Proxy;
 import java.util.HashSet;
@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.figuramc.figura.lua.api.particle.LuaParticle;
 /** Production light registry and hook body, native particle lifecycle and recorded native section invalidation. */
 final class ParticleLightNativeSmokeTest {
     static void run(Unsafe unsafe, Avatar first, Avatar second, Runnable drain) throws Exception {

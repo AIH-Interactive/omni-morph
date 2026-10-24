@@ -2,9 +2,9 @@ package top.aihmc.omnimorph.parsers;
 
 import com.google.gson.*;
 import net.minecraft.nbt.*;
-import top.aihmc.omnimorph.FiguraMod;
-import top.aihmc.omnimorph.math.vector.FiguraVec3;
-import top.aihmc.omnimorph.utils.IOUtils;
+import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.math.vector.FiguraVec3;
+import org.figuramc.figura.utils.IOUtils;
 
 import java.io.IOException;
 import java.nio.file.FileSystems;
@@ -12,6 +12,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
+import org.figuramc.figura.parsers.BlockbenchCommonTypes;
+import org.figuramc.figura.parsers.ModelParseResult;
 //main class to convert a blockbench model (json) into nbt
 //default fields are omitted from the nbt to save up space
 //note: use the same instance for parsing multiple models for the same avatar

@@ -1,13 +1,13 @@
 package top.aihmc.omnimorph.model.outfit;
 
-import top.aihmc.omnimorph.avatar.local.LocalAvatarLoader;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.local.LocalAvatarLoader;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.control.AvatarControlDefinition;
 import top.aihmc.omnimorph.avatar.control.AvatarControlType;
-import top.aihmc.omnimorph.animation.Animation;
-import top.aihmc.omnimorph.lua.FiguraLuaRuntime;
-import top.aihmc.omnimorph.permissions.PermissionPack;
-import top.aihmc.omnimorph.permissions.Permissions;
+import org.figuramc.figura.animation.Animation;
+import org.figuramc.figura.lua.FiguraLuaRuntime;
+import org.figuramc.figura.permissions.PermissionPack;
+import org.figuramc.figura.permissions.Permissions;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.backend2.library.LibrarySession;
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
@@ -109,8 +109,8 @@ public final class CosmeticSourceSmokeTest {
         var observerContext = context(account, outfit, wearer, resource, CosmeticInstanceContext.Scope.OBSERVER);
         var category = new PermissionPack.CategoryPermissionPack(Permissions.Category.DEFAULT);
         var permissions = new PermissionPack.PlayerPermissionPack(category, wearer.toString());
-        permissions.insert(Permissions.NETWORKING, 1, top.aihmc.omnimorph.FiguraMod.MOD_ID);
-        permissions.insert(Permissions.VANILLA_MODEL_EDIT, 1, top.aihmc.omnimorph.FiguraMod.MOD_ID);
+        permissions.insert(Permissions.NETWORKING, 1, org.figuramc.figura.FiguraMod.MOD_ID);
+        permissions.insert(Permissions.VANILLA_MODEL_EDIT, 1, org.figuramc.figura.FiguraMod.MOD_ID);
         Avatar first = Avatar.createCosmetic(firstContext, permissions, "first");
         Avatar second = Avatar.createCosmetic(secondContext, permissions, "second");
         Avatar observer = Avatar.createCosmetic(observerContext, permissions, "observer");

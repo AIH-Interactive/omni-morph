@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
-import top.aihmc.omnimorph.config.Configs;
+import org.figuramc.figura.config.Configs;
 import top.aihmc.omnimorph.model.cache.ModelCacheCodec;
 import top.aihmc.omnimorph.model.cache.ModelCacheLayout;
 

@@ -9,13 +9,13 @@ import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.nbt.CompoundTag;
 import org.joml.Matrix4f;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.model.FiguraModelPart;
-import top.aihmc.omnimorph.model.PartCustomization;
-import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.model.FiguraModelPart;
+import org.figuramc.figura.model.PartCustomization;
+import org.figuramc.figura.model.rendering.EntityRenderMode;
 import top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer;
-import top.aihmc.omnimorph.permissions.PermissionPack;
-import top.aihmc.omnimorph.permissions.Permissions;
+import org.figuramc.figura.permissions.PermissionPack;
+import org.figuramc.figura.permissions.Permissions;
 import top.aihmc.omnimorph.render.acceleration.AccelerationBackend;
 import top.aihmc.omnimorph.render.acceleration.AccelerationService;
 import top.aihmc.omnimorph.render.acceleration.JavaAccelerationBackend;
@@ -269,8 +269,8 @@ public final class CosmeticBoneOverrideSmokeTest {
         Object selected = ysm ? first.getYsmRuntime().getPart("Body") : first.renderer.root.children.getFirst();
         Object other = ysm ? second.getYsmRuntime().getPart("Body") : second.renderer.root.children.getFirst();
         composition.editorSnapshot(null);
-        boolean previous = top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll;
-        top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = true;
+        boolean previous = org.figuramc.figura.utils.ui.UIHelper.paperdoll;
+        org.figuramc.figura.utils.ui.UIHelper.paperdoll = true;
         try (var left = composition.retain(); var right = composition.retain(); var empty = composition.retain()) {
             top.aihmc.omnimorph.model.library.PreviewBoneHighlight.capture(first, selected);
             require(top.aihmc.omnimorph.model.library.PreviewBoneHighlight.selected(first, selected),
@@ -295,10 +295,10 @@ public final class CosmeticBoneOverrideSmokeTest {
                 empty.withPreviewSelection(() -> require(
                         top.aihmc.omnimorph.model.library.PreviewBoneHighlight.opacity(second, other) == 1,
                         "an explicitly empty selection does not borrow another preview's highlight"));
-                top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = false;
+                org.figuramc.figura.utils.ui.UIHelper.paperdoll = false;
                 require(top.aihmc.omnimorph.model.library.PreviewBoneHighlight.opacity(second, other) == 1,
                         "world rendering ignores GUI highlight state");
-                top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = true;
+                org.figuramc.figura.utils.ui.UIHelper.paperdoll = true;
             });
             var positions = new ArrayList<float[]>();
             var normals = new ArrayList<float[]>();
@@ -328,7 +328,7 @@ public final class CosmeticBoneOverrideSmokeTest {
             left.close();
             require(left.previewHelpers(basePose).isEmpty(), "closed frames release their helper state");
         } finally {
-            top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = previous;
+            org.figuramc.figura.utils.ui.UIHelper.paperdoll = previous;
         }
         System.out.println("PASS native preview bone helpers: instance scope, opaque selection, nested/interleaved frames, "
                 + "frozen native pivots and submitted helper lines; YSM=" + ysm + "; GUI/GPU MANUAL/PENDING");
@@ -387,8 +387,8 @@ public final class CosmeticBoneOverrideSmokeTest {
         var virtual = new OutfitConfig.VirtualAnchor(UUID.randomUUID(), "共享头部挂点", parent, offset);
         var configuration = new OutfitConfig(1, 0, null, List.of(), List.of(virtual), Map.of(), false);
         var virtualRef = new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.VIRTUAL, null, null, virtual.id(), null, null);
-        boolean previous = top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll;
-        top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = true;
+        boolean previous = org.figuramc.figura.utils.ui.UIHelper.paperdoll;
+        org.figuramc.figura.utils.ui.UIHelper.paperdoll = true;
         try (var composition = new OutfitComposition(configuration, limits, null, Map.of(), new SkeletonIndex.Cache())) {
             composition.editorSnapshot(null);
             var state = new net.minecraft.client.renderer.entity.state.AvatarRenderState();
@@ -436,7 +436,7 @@ public final class CosmeticBoneOverrideSmokeTest {
                 require(missing.previewHelpers(basePose).isEmpty(), "vanilla has no fabricated tail-tip helper");
             }
         } finally {
-            top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = previous;
+            org.figuramc.figura.utils.ui.UIHelper.paperdoll = previous;
         }
         System.out.println("PASS typed anchor helpers: virtual T/R/S, standard offsets, animated vanilla pivots, "
                 + "actual native line submission and unavailable target rejection; GUI/GPU MANUAL/PENDING");

@@ -7,15 +7,15 @@ import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.Bootstrap;
 import sun.misc.Unsafe;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.math.matrix.FiguraMat4;
-import top.aihmc.omnimorph.math.vector.FiguraVec3;
-import top.aihmc.omnimorph.model.FiguraModelPart;
-import top.aihmc.omnimorph.model.PartCustomization;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.math.matrix.FiguraMat4;
+import org.figuramc.figura.math.vector.FiguraVec3;
+import org.figuramc.figura.model.FiguraModelPart;
+import org.figuramc.figura.model.PartCustomization;
 import top.aihmc.omnimorph.model.rendering.FiguraRenderer;
 import top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer;
-import top.aihmc.omnimorph.model.rendering.Vertex;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTextureSet;
+import org.figuramc.figura.model.rendering.Vertex;
+import org.figuramc.figura.model.rendering.texture.FiguraTextureSet;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
@@ -131,10 +131,10 @@ public final class FiguraAccelerationReplay {
             var selected = (FiguraModelPart) unsafe.allocateInstance(FiguraModelPart.class);
             var child = (FiguraModelPart) unsafe.allocateInstance(FiguraModelPart.class);
             child.parent = selected;
-            boolean paperdoll = top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll;
+            boolean paperdoll = org.figuramc.figura.utils.ui.UIHelper.paperdoll;
             var materials = new ArrayList<net.minecraft.client.renderer.rendertype.RenderType>();
             try {
-                top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = true;
+                org.figuramc.figura.utils.ui.UIHelper.paperdoll = true;
                 top.aihmc.omnimorph.model.library.PreviewBoneHighlight.capture(owner, selected);
                 colors.clear();
                 push.invoke(renderer, 1, data, customization, textures, vertices, part, null);
@@ -154,7 +154,7 @@ public final class FiguraAccelerationReplay {
                         "selected descendants retain authored alpha without modifying model customization");
             } finally {
                 top.aihmc.omnimorph.model.library.PreviewBoneHighlight.finishFrame();
-                top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = paperdoll;
+                org.figuramc.figura.utils.ui.UIHelper.paperdoll = paperdoll;
             }
         }
         positions.clear();

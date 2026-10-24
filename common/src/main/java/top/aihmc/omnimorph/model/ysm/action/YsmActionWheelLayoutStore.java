@@ -3,7 +3,7 @@ package top.aihmc.omnimorph.model.ysm.action;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import top.aihmc.omnimorph.utils.IOUtils;
+import org.figuramc.figura.utils.IOUtils;
 
 import java.util.HashMap;
 import java.util.LinkedHashSet;

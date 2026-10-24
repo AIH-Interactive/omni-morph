@@ -19,9 +19,9 @@ import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.gui.widgets.permissions.PlayerPermPackElement;
-import top.aihmc.omnimorph.utils.ui.UIHelper;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.gui.widgets.permissions.PlayerPermPackElement;
+import org.figuramc.figura.utils.ui.UIHelper;
 
 import java.util.HashMap;
 import java.util.Map;

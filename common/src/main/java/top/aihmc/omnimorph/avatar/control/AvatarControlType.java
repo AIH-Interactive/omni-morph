@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.avatar.control;
 
-import top.aihmc.omnimorph.lua.LuaWhitelist;
-import top.aihmc.omnimorph.lua.docs.LuaTypeDoc;
+import org.figuramc.figura.lua.LuaWhitelist;
+import org.figuramc.figura.lua.docs.LuaTypeDoc;
 
 @LuaWhitelist
 @LuaTypeDoc(

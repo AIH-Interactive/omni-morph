@@ -3,8 +3,8 @@ package top.aihmc.omnimorph.render.acceleration;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.blaze3d.vertex.PoseStack;
-import top.aihmc.omnimorph.math.matrix.FiguraMat3;
-import top.aihmc.omnimorph.math.matrix.FiguraMat4;
+import org.figuramc.figura.math.matrix.FiguraMat3;
+import org.figuramc.figura.math.matrix.FiguraMat4;
 import top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest;
 
 import java.io.IOException;

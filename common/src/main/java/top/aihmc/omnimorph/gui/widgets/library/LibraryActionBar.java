@@ -1,8 +1,8 @@
 package top.aihmc.omnimorph.gui.widgets.library;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import top.aihmc.omnimorph.gui.widgets.AbstractContainerElement;
-import top.aihmc.omnimorph.gui.widgets.Button;
+import org.figuramc.figura.gui.widgets.AbstractContainerElement;
+import org.figuramc.figura.gui.widgets.Button;
 
 import java.util.ArrayList;
 import java.util.List;

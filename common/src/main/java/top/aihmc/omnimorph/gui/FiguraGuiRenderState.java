@@ -3,7 +3,7 @@ package top.aihmc.omnimorph.gui;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState;
 import net.minecraft.world.entity.Entity;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import org.jetbrains.annotations.Nullable;
 
 public record FiguraGuiRenderState(

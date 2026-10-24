@@ -17,7 +17,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.molang.runtime.ExecutionContext;
 import top.aihmc.omnimorph.molang.runtime.Function;
 import top.aihmc.omnimorph.molang.runtime.Variable;
@@ -195,7 +195,7 @@ public final class QueryVariables {
             }
             Avatar.MolangContext context = mc(execution);
             if (context != null && context.owner != null
-                    && context.owner.renderMode == top.aihmc.omnimorph.model.rendering.EntityRenderMode.PAPERDOLL) {
+                    && context.owner.renderMode == org.figuramc.figura.model.rendering.EntityRenderMode.PAPERDOLL) {
                 return 0f;
             }
             net.minecraft.client.Camera camera = activeCamera();
@@ -641,7 +641,7 @@ public final class QueryVariables {
     // ===== Functions =====
 
     static boolean canEmitDebugOutput(ExecutionContext<?> execution) {
-        if (!top.aihmc.omnimorph.FiguraMod.debugModeEnabled()) {
+        if (!org.figuramc.figura.FiguraMod.debugModeEnabled()) {
             return false;
         }
         Avatar.MolangContext context = mc(execution);
@@ -664,7 +664,7 @@ public final class QueryVariables {
             for (int index = 0; index < arguments.size(); index++) {
                 message.append(arguments.getValue(execution, index));
             }
-            top.aihmc.omnimorph.FiguraMod.LOGGER.warn("[Molang Debug] {}", message);
+            org.figuramc.figura.FiguraMod.LOGGER.warn("[Molang Debug] {}", message);
             return null;
         }
 

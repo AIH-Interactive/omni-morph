@@ -3,8 +3,8 @@ package top.aihmc.omnimorph.parsers.ysm;
 import com.google.gson.*;
 import top.aihmc.omnimorph.avatar.ysm.YsmAvatarMetadataParser;
 import top.aihmc.omnimorph.avatar.ysm.YsmTextureOption;
-import top.aihmc.omnimorph.parsers.BlockbenchCommonTypes;
-import top.aihmc.omnimorph.utils.IOUtils;
+import org.figuramc.figura.parsers.BlockbenchCommonTypes;
+import org.figuramc.figura.utils.IOUtils;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

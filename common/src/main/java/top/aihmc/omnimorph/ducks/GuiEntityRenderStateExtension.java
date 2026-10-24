@@ -1,7 +1,7 @@
 
 package top.aihmc.omnimorph.ducks;
 
-import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
+import org.figuramc.figura.model.rendering.EntityRenderMode;
 
 import java.util.UUID;
 

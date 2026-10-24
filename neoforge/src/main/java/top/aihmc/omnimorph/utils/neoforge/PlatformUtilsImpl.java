@@ -2,7 +2,7 @@ package top.aihmc.omnimorph.utils.neoforge;
 
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLPaths;
-import top.aihmc.omnimorph.FiguraMod;
+import org.figuramc.figura.FiguraMod;
 
 import java.nio.file.Path;
 

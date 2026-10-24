@@ -12,11 +12,11 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.world.entity.LivingEntity;
-import top.aihmc.omnimorph.FiguraMod;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.avatar.AvatarManager;
-import top.aihmc.omnimorph.avatar.UserData;
-import top.aihmc.omnimorph.backend2.NetworkStuff;
+import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.avatar.AvatarManager;
+import org.figuramc.figura.avatar.UserData;
+import org.figuramc.figura.backend2.NetworkStuff;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.backend2.library.LibrarySession;
@@ -270,7 +270,7 @@ public final class OutfitApplyServiceSmokeTest {
     }
 
     private static final class ObserverWearer extends net.minecraft.world.entity.decoration.ArmorStand
-            implements top.aihmc.omnimorph.mixin.EntityAccessor {
+            implements org.figuramc.figura.mixin.EntityAccessor {
         private ObserverWearer() {
             super(net.minecraft.world.entity.EntityType.ARMOR_STAND, null);
         }
@@ -526,7 +526,7 @@ public final class OutfitApplyServiceSmokeTest {
     }
 
     private static final class ObserverLevel extends net.minecraft.client.multiplayer.ClientLevel
-            implements top.aihmc.omnimorph.mixin.ClientLevelInvoker {
+            implements org.figuramc.figura.mixin.ClientLevelInvoker {
         private LivingEntity visible;
 
         private ObserverLevel() {
@@ -575,13 +575,13 @@ public final class OutfitApplyServiceSmokeTest {
                 page:newAction(1):onLeftClick(function() hud_budget(); hud_clicks = hud_clicks + 1 end)
                 action_wheel:setPage(page)
                 """), new Avatar.Instructions(4096)) != null && !base.scriptError, "base HUD fixture initializes");
-        boolean initialEnabled = top.aihmc.omnimorph.gui.ActionWheel.isEnabled();
+        boolean initialEnabled = org.figuramc.figura.gui.ActionWheel.isEnabled();
         try {
-            top.aihmc.omnimorph.gui.ActionWheel.setEnabled(true);
-            top.aihmc.omnimorph.gui.ActionWheel.hotbarKeyPressed(0);
+            org.figuramc.figura.gui.ActionWheel.setEnabled(true);
+            org.figuramc.figura.gui.ActionWheel.hotbarKeyPressed(0);
             require(!base.scriptError, "formal outfits without active animation entries still budget base HUD callbacks");
         } finally {
-            top.aihmc.omnimorph.gui.ActionWheel.setEnabled(initialEnabled);
+            org.figuramc.figura.gui.ActionWheel.setEnabled(initialEnabled);
         }
         var reference = new OutfitConfig.ResourceRef(OutfitConfig.Source.LOCAL, UUID.randomUUID(), null, null,
                 null, "0".repeat(64), OutfitConfig.Format.FIGURA);
@@ -610,29 +610,29 @@ public final class OutfitApplyServiceSmokeTest {
                 wearer, Map.of(declaration.instanceId(), instance), new top.aihmc.omnimorph.model.outfit.SkeletonIndex.Cache());
         await(user.publishOutfit(configuration, base, composition, user.ysmLoads.begin(), () -> true), drain);
         var wheel = composition.actionWheel();
-        boolean wasEnabled = top.aihmc.omnimorph.gui.ActionWheel.isEnabled();
-        var selected = field(top.aihmc.omnimorph.gui.ActionWheel.class, "selected");
+        boolean wasEnabled = org.figuramc.figura.gui.ActionWheel.isEnabled();
+        var selected = field(org.figuramc.figura.gui.ActionWheel.class, "selected");
         int previousSelected = selected.getInt(null);
         try {
-            top.aihmc.omnimorph.gui.ActionWheel.setEnabled(true);
-            top.aihmc.omnimorph.gui.ActionWheel.hotbarKeyPressed(0);
+            org.figuramc.figura.gui.ActionWheel.setEnabled(true);
+            org.figuramc.figura.gui.ActionWheel.hotbarKeyPressed(0);
             require(base.luaRuntime.run(base.luaRuntime.load("HUD base count", "assert(hud_clicks == 2)"),
                     new Avatar.Instructions(4096)) != null && !base.scriptError, "actual HUD retains base actions");
             var page = wheel.page(base);
             int navigation = page.getGreatestSlot();
             page.setSlotsShift(navigation / 8 + 1);
-            top.aihmc.omnimorph.gui.ActionWheel.hotbarKeyPressed(navigation % 8);
-            top.aihmc.omnimorph.gui.ActionWheel.hotbarKeyPressed(1);
+            org.figuramc.figura.gui.ActionWheel.hotbarKeyPressed(navigation % 8);
+            org.figuramc.figura.gui.ActionWheel.hotbarKeyPressed(1);
             require(wheel.selectedOwner(base) == instance, "actual HUD enters the formal instance page");
-            top.aihmc.omnimorph.gui.ActionWheel.hotbarKeyPressed(0);
+            org.figuramc.figura.gui.ActionWheel.hotbarKeyPressed(0);
             selected.setInt(null, 0);
-            top.aihmc.omnimorph.gui.ActionWheel.scroll(2);
+            org.figuramc.figura.gui.ActionWheel.scroll(2);
             require(instance.luaRuntime.run(instance.luaRuntime.load("HUD instance counts", "assert(clicks == 1 and scrolls == 2)"),
                     new Avatar.Instructions(4096)) != null && !instance.scriptError,
                     "actual HUD click and scroll reach the selected instance VM");
         } finally {
-            top.aihmc.omnimorph.gui.ActionWheel.setEnabled(false);
-            top.aihmc.omnimorph.gui.ActionWheel.setEnabled(wasEnabled);
+            org.figuramc.figura.gui.ActionWheel.setEnabled(false);
+            org.figuramc.figura.gui.ActionWheel.setEnabled(wasEnabled);
             selected.setInt(null, previousSelected);
             base.luaRuntime.action_wheel.setPage(previousPage);
         }
@@ -758,7 +758,7 @@ public final class OutfitApplyServiceSmokeTest {
         require(top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.composition(state) != null
                         && AvatarManager.getAvatar(state) == base && AvatarManager.getEntity(state) == wearer
                         && top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.renderMode(state)
-                        == top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER,
+                        == org.figuramc.figura.model.rendering.EntityRenderMode.RENDER,
                 "world extraction captures the actual resident base/composition pair without a GUI binding");
         user.clear();
         require(base.accelerationOwner().isCurrent() && AvatarManager.getAvatar(state) == base,
@@ -768,7 +768,7 @@ public final class OutfitApplyServiceSmokeTest {
                         && !top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.hasFrame(state),
                 "frame completion releases retired bases and frozen composition leases");
         var vanilla = top.aihmc.omnimorph.model.outfit.OutfitPreparation.prepare(OutfitConfig.empty(), OutfitLimits.defaults(),
-                wearer.getUUID(), UUID.randomUUID(), wearer, top.aihmc.omnimorph.permissions.PermissionManager.get(wearer.getUUID()),
+                wearer.getUUID(), UUID.randomUUID(), wearer, org.figuramc.figura.permissions.PermissionManager.get(wearer.getUUID()),
                 new top.aihmc.omnimorph.model.outfit.SkeletonIndex.Cache(),
                 (reference, cancelled) -> { throw new AssertionError("no vanilla dependencies"); }, () -> false,
                 top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext.Scope.OWNER, null, reference -> false, reference -> false);
@@ -807,7 +807,7 @@ public final class OutfitApplyServiceSmokeTest {
         var player = (WardrobePlayer) unsafe.allocateInstance(WardrobePlayer.class);
         player.setUUID(server.player);
         minecraft.player = player;
-        var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+        var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
         var type = screen.getClass();
         field(type, "client").set(screen, client);
         var capabilities = client.capabilities();
@@ -898,7 +898,7 @@ public final class OutfitApplyServiceSmokeTest {
     }
 
     private static final class WardrobePlayer extends net.minecraft.client.player.LocalPlayer
-            implements top.aihmc.omnimorph.mixin.EntityAccessor {
+            implements org.figuramc.figura.mixin.EntityAccessor {
         private WardrobePlayer() {
             super(null, null, null, null, null, null, false, null);
         }

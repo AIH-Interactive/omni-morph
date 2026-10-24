@@ -1,10 +1,10 @@
 package top.aihmc.omnimorph.render.acceleration;
 
 import com.google.gson.JsonParser;
-import top.aihmc.omnimorph.config.ConfigManager;
-import top.aihmc.omnimorph.config.Configs;
-import top.aihmc.omnimorph.math.matrix.FiguraMat3;
-import top.aihmc.omnimorph.math.matrix.FiguraMat4;
+import org.figuramc.figura.config.ConfigManager;
+import org.figuramc.figura.config.Configs;
+import org.figuramc.figura.math.matrix.FiguraMat3;
+import org.figuramc.figura.math.matrix.FiguraMat4;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

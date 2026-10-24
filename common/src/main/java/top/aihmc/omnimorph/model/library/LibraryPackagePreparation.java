@@ -2,7 +2,7 @@ package top.aihmc.omnimorph.model.library;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
-import top.aihmc.omnimorph.avatar.local.LocalAvatarLoader;
+import org.figuramc.figura.avatar.local.LocalAvatarLoader;
 import top.aihmc.omnimorph.avatar.ysm.YsmAvatarLoader;
 import top.aihmc.omnimorph.avatar.ysm.YsmModelData;
 import top.aihmc.omnimorph.avatar.ysm.YsmPackage;

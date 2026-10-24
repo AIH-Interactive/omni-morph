@@ -5,7 +5,7 @@ import net.minecraft.client.renderer.SubmitNodeCollection;
 import net.minecraft.client.renderer.SubmitNodeStorage;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import org.apache.commons.lang3.function.TriFunction;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.ducks.NodeCollectorExtension;
 import top.aihmc.omnimorph.model.rendering.nodeRenderer.FiguraSubmission;
 import org.spongepowered.asm.mixin.Mixin;

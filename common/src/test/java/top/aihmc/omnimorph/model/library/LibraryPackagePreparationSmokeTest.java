@@ -2,8 +2,8 @@ package top.aihmc.omnimorph.model.library;
 
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
-import top.aihmc.omnimorph.avatar.AvatarManager;
-import top.aihmc.omnimorph.avatar.local.LocalAvatarLoader;
+import org.figuramc.figura.avatar.AvatarManager;
+import org.figuramc.figura.avatar.local.LocalAvatarLoader;
 import top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload;
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
 

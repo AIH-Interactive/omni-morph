@@ -1,10 +1,10 @@
 package top.aihmc.omnimorph.avatar.control;
 
-import top.aihmc.omnimorph.lua.LuaNotNil;
-import top.aihmc.omnimorph.lua.LuaWhitelist;
-import top.aihmc.omnimorph.lua.docs.LuaMethodDoc;
-import top.aihmc.omnimorph.lua.docs.LuaMethodOverload;
-import top.aihmc.omnimorph.lua.docs.LuaTypeDoc;
+import org.figuramc.figura.lua.LuaNotNil;
+import org.figuramc.figura.lua.LuaWhitelist;
+import org.figuramc.figura.lua.docs.LuaMethodDoc;
+import org.figuramc.figura.lua.docs.LuaMethodOverload;
+import org.figuramc.figura.lua.docs.LuaTypeDoc;
 import org.luaj.vm2.LuaFunction;
 
 import java.util.ArrayList;

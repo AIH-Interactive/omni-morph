@@ -2,9 +2,9 @@ package top.aihmc.omnimorph.mixin.font;
 
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.gui.font.glyphs.BakedSheetGlyph;
-import top.aihmc.omnimorph.ducks.BakedGlyphAccessor;
-import top.aihmc.omnimorph.font.EmojiContainer;
-import top.aihmc.omnimorph.font.EmojiMetadata;
+import org.figuramc.figura.ducks.BakedGlyphAccessor;
+import org.figuramc.figura.font.EmojiContainer;
+import org.figuramc.figura.font.EmojiMetadata;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4fc;
 import org.spongepowered.asm.mixin.Final;

@@ -10,7 +10,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.projectile.arrow.Arrow;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
 import sun.misc.Unsafe;
 

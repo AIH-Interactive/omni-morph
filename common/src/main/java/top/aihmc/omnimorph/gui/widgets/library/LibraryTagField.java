@@ -7,10 +7,10 @@ import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.PreeditEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import top.aihmc.omnimorph.gui.widgets.AbstractContainerElement;
-import top.aihmc.omnimorph.gui.widgets.Button;
-import top.aihmc.omnimorph.gui.widgets.TextField;
-import top.aihmc.omnimorph.utils.FiguraText;
+import org.figuramc.figura.gui.widgets.AbstractContainerElement;
+import org.figuramc.figura.gui.widgets.Button;
+import org.figuramc.figura.gui.widgets.TextField;
+import org.figuramc.figura.utils.FiguraText;
 
 import java.util.ArrayList;
 import java.util.List;

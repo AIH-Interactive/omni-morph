@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.wizards;
 
-import top.aihmc.omnimorph.FiguraMod;
+import org.figuramc.figura.FiguraMod;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
 
 import java.io.IOException;
@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
+import org.figuramc.figura.wizards.AvatarWizard;
+import org.figuramc.figura.wizards.WizardEntry;
 /** Metadata-only form; the complete bundled YSM package is prepared on the model worker. */
 public final class YsmAvatarWizard extends AvatarWizard {
     private final Path root;

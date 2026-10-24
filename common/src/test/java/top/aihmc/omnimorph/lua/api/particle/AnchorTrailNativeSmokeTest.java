@@ -26,8 +26,8 @@ import org.joml.Quaternionf;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaValue;
 import sun.misc.Unsafe;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.lua.LuaTypeManager;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.lua.LuaTypeManager;
 import top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext;
 import top.aihmc.omnimorph.model.outfit.OutfitComposition;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;
@@ -36,11 +36,11 @@ import top.aihmc.omnimorph.model.outfit.OutfitTrailBudget;
 import top.aihmc.omnimorph.model.outfit.SkeletonIndex;
 import top.aihmc.omnimorph.model.outfit.SkeletonPose;
 import top.aihmc.omnimorph.model.outfit.VanillaSkeletonAdapter;
-import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.model.rendering.EntityRenderMode;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
-import top.aihmc.omnimorph.permissions.PermissionPack;
-import top.aihmc.omnimorph.permissions.Permissions;
+import org.figuramc.figura.permissions.PermissionPack;
+import org.figuramc.figura.permissions.Permissions;
 
 import java.nio.ByteOrder;
 import java.util.Arrays;
@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.figuramc.figura.lua.api.particle.LuaParticle;
 /** Production controller samples become native particle vertices; no rendered game pixels are asserted. */
 final class AnchorTrailNativeSmokeTest {
     static void run(Unsafe unsafe, Runnable drain) throws Exception {
@@ -72,7 +73,7 @@ final class AnchorTrailNativeSmokeTest {
                 instance, limits, CosmeticInstanceContext.Scope.OWNER);
         var permissions = new PermissionPack.PlayerPermissionPack(
                 new PermissionPack.CategoryPermissionPack(Permissions.Category.DEFAULT), wearer.getUUID().toString());
-        permissions.insert(Permissions.COMPLEXITY, 10000, top.aihmc.omnimorph.FiguraMod.MOD_ID);
+        permissions.insert(Permissions.COMPLEXITY, 10000, org.figuramc.figura.FiguraMod.MOD_ID);
         Avatar owner = Avatar.createCosmetic(context, permissions, "anchor ribbon native fixture");
         var data = new CompoundTag();
         var metadata = new CompoundTag();
@@ -250,7 +251,7 @@ final class AnchorTrailNativeSmokeTest {
         }
     }
 
-    private static final class Wearer extends RemotePlayer implements top.aihmc.omnimorph.mixin.EntityAccessor {
+    private static final class Wearer extends RemotePlayer implements org.figuramc.figura.mixin.EntityAccessor {
         private World world;
 
         private Wearer() {

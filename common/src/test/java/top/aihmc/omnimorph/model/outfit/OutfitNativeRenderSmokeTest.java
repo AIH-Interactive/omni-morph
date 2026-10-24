@@ -7,15 +7,15 @@ import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.Identifier;
 import org.joml.Matrix4f;
-import top.aihmc.omnimorph.avatar.Avatar;
-import top.aihmc.omnimorph.model.FiguraModelPart;
-import top.aihmc.omnimorph.model.PartCustomization;
-import top.aihmc.omnimorph.model.TextureCustomization;
-import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
-import top.aihmc.omnimorph.model.rendering.Vertex;
-import top.aihmc.omnimorph.model.rendering.texture.FiguraTextureSet;
-import top.aihmc.omnimorph.permissions.PermissionPack;
-import top.aihmc.omnimorph.permissions.Permissions;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.model.FiguraModelPart;
+import org.figuramc.figura.model.PartCustomization;
+import org.figuramc.figura.model.TextureCustomization;
+import org.figuramc.figura.model.rendering.EntityRenderMode;
+import org.figuramc.figura.model.rendering.Vertex;
+import org.figuramc.figura.model.rendering.texture.FiguraTextureSet;
+import org.figuramc.figura.permissions.PermissionPack;
+import org.figuramc.figura.permissions.Permissions;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
@@ -141,7 +141,7 @@ public final class OutfitNativeRenderSmokeTest {
                             "native mounted drawing restores each instance mode");
                 }
                 for (Avatar avatar : avatars.values()) {
-                    avatar.permissions.insert(Permissions.COMPLEXITY, 1, top.aihmc.omnimorph.FiguraMod.MOD_ID);
+                    avatar.permissions.insert(Permissions.COMPLEXITY, 1, org.figuramc.figura.FiguraMod.MOD_ID);
                     avatar.complexity.reset(1);
                 }
                 top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
@@ -402,7 +402,7 @@ public final class OutfitNativeRenderSmokeTest {
         var avatars = new LinkedHashMap<UUID, Avatar>();
         try (var textures = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.recordingTextureDevice()) {
             require(service.accelerated() == accelerated, "fixture selects the actual mesh preparation branch");
-            base.permissions.insert(Permissions.COMPLEXITY, 8, top.aihmc.omnimorph.FiguraMod.MOD_ID);
+            base.permissions.insert(Permissions.COMPLEXITY, 8, org.figuramc.figura.FiguraMod.MOD_ID);
             base.load(ysmCube());
             base.initializePreviewPlayer(null);
             base.renderMode = EntityRenderMode.FIGURA_GUI;
@@ -554,7 +554,7 @@ public final class OutfitNativeRenderSmokeTest {
                         var pose = frame.captureFiguraBase(base, new Matrix4f(), () -> base.render(
                                 null, 0, .5f, 1, new com.mojang.blaze3d.vertex.PoseStack(), type -> sink,
                                 state.lightCoords, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,
-                                null, top.aihmc.omnimorph.model.rendering.PartFilterScheme.MODEL, false, false));
+                                null, org.figuramc.figura.model.rendering.PartFilterScheme.MODEL, false, false));
                         OutfitNativeRenderer.draw(frame, pose, state, .5f, new Matrix4f(), type -> sink,
                                 EntityRenderMode.FIGURA_GUI);
                         base.run(afterDraw, base.render);

@@ -8,7 +8,7 @@ import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
-import top.aihmc.omnimorph.avatar.Avatar;
+import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationParser;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationSampler;
 import top.aihmc.omnimorph.molang.MolangEngine;
