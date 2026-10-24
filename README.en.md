@@ -26,7 +26,7 @@ It supports both Lua and Molang: Lua handles scripting and interaction, while Mo
 | Minecraft Java | 26.1.2 |
 | Mod loader | Fabric |
 | Java | 25 |
-| Mod version | 1.0.0-alpha.3 |
+| Mod version | 1.0.0-alpha.4 |
 
 Build dependency versions are listed in [gradle.properties](gradle.properties). This is a client mod; multiplayer resource distribution and state synchronization require a compatible backend.
 

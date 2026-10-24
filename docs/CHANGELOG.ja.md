@@ -4,6 +4,12 @@
 
 [プロジェクト紹介](../README.ja.md)
 
+## 1.0.0-alpha.4
+
+- 独立した装飾インスタンス、アンカー、軌跡、CustomParticle/Ribbon、任意の動的光源を追加。上限はバックエンドの `outfit.limits` で設定します。
+- 衣装の原子的な適用、閲覧権限、インスタンス状態の保存と再接続を実装。旧クライアント向けの基本モデル投影と v1 を維持します。
+- 実際の Minecraft 2クライアント、GUI/GPU、照明、性能は `MANUAL/PENDING`。[検証記録](ALPHA4_ACCEPTANCE.md)を参照。報告済みの alpha.3 YSM 問題3件は別途修正予定です。
+
 ## 1.0.0-alpha.3
 
 ### 追加

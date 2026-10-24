@@ -17,13 +17,13 @@
 | 项目 | 当前状态 |
 | --- | --- |
 | S1～S4 | 已完成、提交并推送 |
-| S5 | 自动验收 PASS；业务实现收口，正在文档/diff/提交推送检查点 |
-| S6 | NOT STARTED；必须等 S5 两仓库远端 SHA 核对后进入 |
-| 版本 | 当前仍 1.0.0-alpha.3，仅 S6 更新 alpha.4 |
-| 主仓库 HEAD | main@6ec3b09c4f090da3f956951b8d25740ac2938919（提交前） |
-| 后端 HEAD | master@1117d0efce98f18711d6f9c0e63a4614b78341db（提交前） |
+| S5 | 自动验收 PASS，已提交推送，两个远端 SHA 均核对一致 |
+| S6 | 自动验收/测试包完成，正在当前 main 阶段提交推送；人工项 MANUAL/PENDING |
+| 版本 | 已在 S6 调整为 1.0.0-alpha.4，README/更新日志同步 |
+| 主仓库 HEAD | main@508656b876743a59b40e255ca6c81e16cad492e0 |
+| 后端 HEAD | master@656652ec11c436dbaf014d5bace16ea414122202 |
 
-两仓库当前大量修改/新文件均为尚未提交的 S5 工作；没有正在执行的编译/测试进程。S5 提交尚未发生，不能把自动验证通过当作已推送。
+S5 的全部源文件已提交推送；后端仅原有未跟踪 build.log、spm-cloud/ 保留。主仓库当前改动为 S6 版本/README/更新日志/验收与交接文档。S6 前台 Gradle PASS（stage6-fabric-acceptance.log，1分47秒/39 tasks），产物校验 stage6-artifact-check.log PASS。当前无运行中的构建/测试，准备 S6 main 提交推送并核对远端 SHA。
 
 ## 已完成与已验证
 
@@ -50,8 +50,7 @@
 
 - 主仓库改动集中在 avatar/UserData、backend2/NetworkStuff、library 的 Apply/Observer/Events/InstanceState、model/library 正式准备/同步、model/outfit、衣柜/控件/轮盘、正式渲染 Mixin、Lua API、测试及三份 ACCESSORY_SYSTEM 文档。新增源文件尚未跟踪，提交不能漏掉。
 - 后端改动在 src/api/library、src/storage/outfit_*、旧装备/分发事务衔接、独立事件、对应 tests 和部署文档；原 build.log/spm-cloud 不提交。
-- 当前下一步只做：更新进度与契约/交接；限定格式检查（含新文件）、检查两仓库 diff/冻结资源；提交 S5 并 push main/master，核对远端 HEAD；不再新增 S5 优化。
-- 随后 S6：按计划第10节验收/性能矩阵和实际支持目标构建，更新 alpha.4/README/元数据/更新日志，整理 MANUAL/PENDING 清单与测试产物；执行规定自动门禁，再阶段提交推送。
+- 当前下一步：S6 限定 diff/格式检查后提交推送当前 main，核对远端 SHA；后端无 S6 新代码，沿用已推送 S5 检查点。docs/ALPHA4_ACCEPTANCE.md 已逐域对应第10节，实际目标 Fabric 26.1.2/Java25，42资源/19依赖/清单版本/hash 已检查，真实窗口/双客户端/光照/0/1/8/32性能 MANUAL/PENDING。不要重跑已通过无关测试或增加优化。
 - S1～S6 完成后依次修复三项 alpha.3 公共 YSM Bug，参考 Sparkle-Morpher，必须通用修复：DS鲸鱼娘.ysm 第一人称手；少女-哥伦比娅.ysm 第三人称正面仰头的头部/头发；任意 .ysm 睡姿。模型/截图路径见进度记录末尾。当前尚未着手，不标完成。
 
 ## 相关文档
