@@ -2304,6 +2304,9 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 new top.aihmc.omnimorph.wizards.YsmAvatarWizard())));
         menu.addAction(text("create_cosmetic"), null,
                 button -> minecraft.setScreen(new CosmeticWizardScreen(this)));
+        menu.setX(parent.getX());
+        menu.setY(parent.getY() + parent.getHeight());
+        menu.setVisible(true);
         UIHelper.setContext(menu);
     }
 
