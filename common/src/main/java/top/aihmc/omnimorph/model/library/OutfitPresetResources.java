@@ -31,6 +31,21 @@ public final class OutfitPresetResources implements AutoCloseable {
     private record Dependency(OutfitConfig.ResourceRef resource, boolean base) {}
     private record Resource(CompoundTag data, CosmeticMetadata metadata, LocalCosmeticInventory.Entry local) {}
 
+    /** Formal preparation may supply already authorized fixed native input, including a precise failure per source. */
+    public record LocalInput(CompoundTag data, String error) {
+        public LocalInput {
+            if ((data == null) == (error == null) || error != null && !error.matches("[A-Z_]{1,64}")) {
+                throw new IllegalArgumentException("INVALID_OUTFIT_LOCAL_INPUT");
+            }
+            data = data == null ? null : data.copy();
+        }
+
+        @Override
+        public CompoundTag data() {
+            return data == null ? null : data.copy();
+        }
+    }
+
     public static final class Prepared {
         private final OutfitConfig configuration;
         private final Map<OutfitConfig.ResourceRef, Resource> resources;
@@ -51,6 +66,11 @@ public final class OutfitPresetResources implements AutoCloseable {
 
         public boolean ready() {
             return current.getAsBoolean() && issues.isEmpty();
+        }
+
+        public boolean contains(OutfitConfig.ResourceRef reference) {
+            requireCurrent();
+            return resources.containsKey(reference);
         }
 
         public CompoundTag base() throws IOException {
@@ -103,6 +123,7 @@ public final class OutfitPresetResources implements AutoCloseable {
     private final BooleanSupplier active;
     private final List<Dependency> dependencies;
     private final boolean requiresCloud;
+    private final Map<OutfitConfig.ResourceRef, LocalInput> fixedLocal;
     private final Map<OutfitConfig.ResourceRef, Resource> resources = new LinkedHashMap<>();
     private final List<Issue> issues = new ArrayList<>();
     private final CompletableFuture<Prepared> future = new CompletableFuture<>();
@@ -114,6 +135,12 @@ public final class OutfitPresetResources implements AutoCloseable {
     public OutfitPresetResources(OutfitConfig configuration, OutfitLimits limits, UUID account, Path directory,
                                 LibraryClient client, LibraryTransferService transfers, Executor publisher,
                                 BooleanSupplier active) {
+        this(configuration, limits, account, directory, client, transfers, publisher, active, null);
+    }
+
+    public OutfitPresetResources(OutfitConfig configuration, OutfitLimits limits, UUID account, Path directory,
+                                LibraryClient client, LibraryTransferService transfers, Executor publisher,
+                                BooleanSupplier active, Map<OutfitConfig.ResourceRef, LocalInput> fixedLocal) {
         OutfitCodec.encode(configuration, limits);
         this.configuration = configuration;
         this.account = account;
@@ -122,6 +149,7 @@ public final class OutfitPresetResources implements AutoCloseable {
         this.transfers = transfers;
         this.publisher = publisher;
         this.active = active;
+        this.fixedLocal = fixedLocal == null ? null : Map.copyOf(fixedLocal);
         var requested = new LinkedHashMap<OutfitConfig.ResourceRef, Dependency>();
         if (configuration.base() != null) {
             requested.put(configuration.base(), new Dependency(configuration.base(), true));
@@ -221,6 +249,23 @@ public final class OutfitPresetResources implements AutoCloseable {
             throw new CancellationException("OUTFIT_PRESET_RETIRED");
         }
         var reference = dependency.resource();
+        if (fixedLocal != null) {
+            LocalInput input = fixedLocal.get(reference);
+            if (input == null) {
+                throw new IOException("OUTFIT_PRESET_DEPENDENCY_MISSING");
+            }
+            if (input.error() != null) {
+                throw new IOException(input.error());
+            }
+            CompoundTag data = input.data();
+            String kind = data.getCompoundOrEmpty("metadata").getStringOr("resource_kind", "AVATAR");
+            if (!kind.equals(dependency.base() ? "AVATAR" : "ACCESSORY")) {
+                throw new IOException("OUTFIT_PRESET_RESOURCE_KIND_MISMATCH");
+            }
+            CosmeticMetadata metadata = dependency.base() ? null : CosmeticMetadata.read(
+                    data.getCompoundOrEmpty("metadata").getStringOr("cosmetic_json", ""));
+            return new Resource(data, metadata, null);
+        }
         if (dependency.base()) {
             CompoundTag data = new LocalAvatarSource(directory).prepare(reference, account, () -> !current());
             return new Resource(data, null, null);

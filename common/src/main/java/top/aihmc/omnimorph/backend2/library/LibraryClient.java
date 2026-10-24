@@ -16,6 +16,8 @@ import java.io.InputStream;
 import java.net.URLEncoder;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Set;
@@ -52,6 +54,7 @@ public final class LibraryClient implements AutoCloseable {
     private final Map<Lane, ThreadPoolExecutor> executors;
     private final Set<Request<?>> requests = ConcurrentHashMap.newKeySet();
     private volatile boolean closed;
+    private OutfitEvents outfitEvents;
 
     public LibraryClient(LibraryAccess access, LibrarySession session, Executor clientThread) {
         this.access = access;
@@ -84,6 +87,16 @@ public final class LibraryClient implements AutoCloseable {
         return !closed && session.current();
     }
 
+    public synchronized OutfitEvents outfitEvents(OutfitEvents.Listener listener) {
+        if (!current()) {
+            throw new CancellationException("LIBRARY_RETIRED");
+        }
+        if (outfitEvents == null) {
+            outfitEvents = new OutfitEvents(access, session, listener);
+        }
+        return outfitEvents;
+    }
+
     public Request<LibraryModels.Capabilities> capabilities() {
         return submit(Lane.CONTROL, exchange -> {
             try {
@@ -112,6 +125,176 @@ public final class LibraryClient implements AutoCloseable {
     public Request<OutfitConfig> currentOutfit() {
         return submit(Lane.CONTROL, exchange -> OutfitCodec.decode(
                 exchange.json("GET", ROOT + "outfits/current", null, JsonObject.class).toString()));
+    }
+
+    public Request<OutfitObserverSnapshot> observerOutfit(UUID owner) {
+        java.util.Objects.requireNonNull(owner);
+        return submit(Lane.CONTROL, exchange -> exchange.observerOutfit(owner));
+    }
+
+    public Request<OutfitInstanceState> instanceState(UUID owner, UUID instance) {
+        return submit(Lane.CONTROL, exchange -> OutfitInstanceState.decode(exchange.json("GET",
+                ROOT + "outfits/players/" + owner + "/instances/" + instance + "/state", null, JsonObject.class)));
+    }
+
+    public Request<OutfitInstanceState> publishInstanceState(OutfitInstanceState state) {
+        return submit(Lane.CONTROL, exchange -> OutfitInstanceState.decode(exchange.json("POST",
+                ROOT + "outfits/instances/" + state.instanceId() + "/state", state.encode(), JsonObject.class)));
+    }
+
+    public Request<OutfitApplyResult> applyOutfit(UUID operation, OutfitConfig configuration) {
+        java.util.Objects.requireNonNull(operation);
+        OutfitConfig prepared = OutfitCodec.decode(OutfitCodec.encode(configuration));
+        if (prepared.revision() == Long.MAX_VALUE) {
+            throw new IllegalArgumentException("OUTFIT_REVISION_EXHAUSTED");
+        }
+        return submit(Lane.CONTROL, exchange -> {
+            LibraryModels.Capabilities capabilities;
+            try {
+                capabilities = exchange.json("GET", ROOT + "capabilities", null, LibraryModels.Capabilities.class);
+            } catch (Failure failure) {
+                if (failure.status == 404 || failure.status == 405) {
+                    throw new Failure(415, "UNSUPPORTED_FORMAT");
+                }
+                throw failure;
+            }
+            var outfits = capabilities.outfitsV1();
+            if (!capabilities.enabled() || outfits == null || !outfits.configuration() || !outfits.apply()) {
+                throw new Failure(415, "UNSUPPORTED_FORMAT");
+            }
+            JsonObject body = OutfitApplyResult.request(operation, prepared, outfits.limits());
+            byte[] encoded = body.toString().getBytes(StandardCharsets.UTF_8);
+            if (encoded.length > OutfitApplyResult.JSON_BYTES) {
+                throw new Failure(0, "CONTROL_LIMIT");
+            }
+            var response = exchange.send("PUT", ROOT + "outfits/current",
+                    HttpRequest.BodyPublishers.ofByteArray(encoded), "application/json");
+            byte[] bytes;
+            try (InputStream input = response.body()) {
+                bytes = CloudHttp.readBounded(input, OutfitApplyResult.JSON_BYTES);
+            }
+            exchange.requireCurrent();
+            if (response.statusCode() != 200 && response.statusCode() != 409) {
+                throw responseFailure(response.statusCode(), bytes);
+            }
+            try {
+                String mediaType = response.headers().firstValue("content-type").orElse("").split(";", 2)[0].trim();
+                if (!mediaType.equalsIgnoreCase("application/json")) {
+                    throw new IllegalArgumentException("INVALID_OUTFIT_APPLY_MEDIA_TYPE");
+                }
+                String json = StandardCharsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(bytes)).toString();
+                return OutfitApplyResult.decode(response.statusCode(), json,
+                        operation, prepared, outfits.limits());
+            } catch (RuntimeException | CharacterCodingException malformed) {
+                throw new Failure(0, "INVALID_OUTFIT_APPLY_RESPONSE");
+            }
+        });
+    }
+
+    /** Only a successful explicit null means unbound; HTTP failures must never trigger an upload fallback. */
+    public Request<java.util.Optional<OutfitPrivateUpload.Binding>> resolveOutfitSource(
+            OutfitConfig.ResourceRef reference, OutfitConfig.ResourceKind kind) {
+        OutfitPrivateUpload.lookup(reference, kind);
+        return submit(Lane.CONTROL, exchange -> resolveOutfitSource(exchange, reference, kind, outfitSourceLimits(exchange)));
+    }
+
+    private java.util.Optional<OutfitPrivateUpload.Binding> resolveOutfitSource(
+            Exchange exchange, OutfitConfig.ResourceRef reference, OutfitConfig.ResourceKind kind,
+            OutfitLimits limits) throws Exception {
+        var response = privateUploadJson(exchange, ROOT + "outfits/resources/local/resolve",
+                OutfitPrivateUpload.lookup(reference, kind));
+        try {
+            if (!response.has("resource")) {
+                throw new IllegalArgumentException();
+            }
+            if (response.get("resource").isJsonNull()) {
+                return java.util.Optional.empty();
+            }
+            return java.util.Optional.of(OutfitPrivateUpload.resolved(response.getAsJsonObject("resource"),
+                    reference, kind, limits));
+        } catch (RuntimeException malformed) {
+            throw new Failure(0, "INVALID_OUTFIT_UPLOAD_RESPONSE");
+        }
+    }
+
+    /** Explicit private preparation only: does not equip, publish a catalog entry or activate a runtime. */
+    public Request<OutfitPrivateUpload.Binding> uploadOutfitSource(OutfitPrivateUpload upload,
+                                                                 java.util.function.LongConsumer progress) {
+        java.util.Objects.requireNonNull(upload);
+        java.util.Objects.requireNonNull(progress);
+        return submit(Lane.TRANSFER, exchange -> {
+            OutfitLimits limits = outfitSourceLimits(exchange);
+            JsonObject input = upload.request(limits);
+            var existing = resolveOutfitSource(exchange, upload.reference(), upload.resourceKind(), limits);
+            if (existing.isPresent()) {
+                if (!upload.matches(existing.get())) {
+                    // The source already has immutable distributed bytes. Reload those before preparing a runtime.
+                    throw new Failure(409, "CONFLICT");
+                }
+                return existing.get();
+            }
+            String path = ROOT + "outfits/resources/uploads";
+            JsonObject reservation = privateUploadJson(exchange, path, input);
+            try {
+                upload.checkReservation(reservation);
+                if (reservation.get("completed").getAsBoolean()) {
+                    return upload.binding(reservation.getAsJsonObject("resource"));
+                }
+            } catch (RuntimeException malformed) {
+                throw new Failure(0, "INVALID_OUTFIT_UPLOAD_RESPONSE");
+            }
+            exchange.binary("PUT", upload.bodyPath(), CloudHttp.uploadBody(upload.bytes(), progress),
+                    "application/octet-stream", 204);
+            var receipt = privateUploadJson(exchange, path + "/" + upload.operation() + "/commit", null);
+            try {
+                return upload.binding(receipt);
+            } catch (RuntimeException malformed) {
+                throw new Failure(0, "INVALID_OUTFIT_UPLOAD_RESPONSE");
+            }
+        });
+    }
+
+    private OutfitLimits outfitSourceLimits(Exchange exchange) throws Exception {
+        LibraryModels.Capabilities capabilities;
+        try {
+            capabilities = exchange.json("GET", ROOT + "capabilities", null, LibraryModels.Capabilities.class);
+        } catch (Failure failure) {
+            if (failure.status == 404 || failure.status == 405) {
+                throw new Failure(415, "UNSUPPORTED_FORMAT");
+            }
+            throw failure;
+        }
+        var outfits = capabilities.outfitsV1();
+        if (!capabilities.enabled() || outfits == null || !outfits.configuration() || !outfits.apply()) {
+            throw new Failure(415, "UNSUPPORTED_FORMAT");
+        }
+        return outfits.limits();
+    }
+
+    private JsonObject privateUploadJson(Exchange exchange, String path, JsonObject body) throws Exception {
+        byte[] encoded = body == null ? new byte[0] : body.toString().getBytes(StandardCharsets.UTF_8);
+        if (encoded.length > CloudHttp.CONTROL_BYTES) {
+            throw new Failure(0, "CONTROL_LIMIT");
+        }
+        var response = exchange.send("POST", path, HttpRequest.BodyPublishers.ofByteArray(encoded), "application/json");
+        byte[] bytes;
+        try (InputStream input = response.body()) {
+            bytes = CloudHttp.readBounded(input, CloudHttp.CONTROL_BYTES);
+        }
+        exchange.requireCurrent();
+        if (response.statusCode() != 200) {
+            throw responseFailure(response.statusCode(), bytes);
+        }
+        try {
+            String media = response.headers().firstValue("content-type").orElse("").split(";", 2)[0].trim();
+            if (!media.equalsIgnoreCase("application/json")) {
+                throw new IllegalArgumentException();
+            }
+            return JsonParser.parseString(StandardCharsets.UTF_8.newDecoder()
+                    .decode(ByteBuffer.wrap(bytes)).toString()).getAsJsonObject();
+        } catch (RuntimeException | CharacterCodingException malformed) {
+            throw new Failure(0, "INVALID_OUTFIT_UPLOAD_RESPONSE");
+        }
     }
 
     public Request<JsonObject> outfitPresets() {
@@ -230,6 +413,11 @@ public final class LibraryClient implements AutoCloseable {
         synchronized (requests) {
             closed = true;
         }
+        synchronized (this) {
+            if (outfitEvents != null) {
+                outfitEvents.close();
+            }
+        }
         for (Request<?> request : Set.copyOf(requests)) {
             request.cancel();
         }
@@ -297,6 +485,85 @@ public final class LibraryClient implements AutoCloseable {
 
         public void requireCurrent() {
             request.requireCurrent();
+        }
+
+        public java.util.Optional<OutfitPrivateUpload.Binding> resolveOutfitSource(
+                OutfitConfig.ResourceRef reference, OutfitConfig.ResourceKind kind) throws Exception {
+            return LibraryClient.this.resolveOutfitSource(this, reference, kind, outfitSourceLimits(this));
+        }
+
+        public byte[] outfitSourceBody(OutfitPrivateUpload.Binding binding) throws Exception {
+            var query = OutfitPrivateUpload.lookup(binding.reference(), binding.resourceKind());
+            query.addProperty("raw_sha256", binding.rawSha256());
+            var response = send("POST", ROOT + "outfits/resources/local/body",
+                    HttpRequest.BodyPublishers.ofString(query.toString()), "application/json");
+            try (InputStream input = response.body()) {
+                if (response.statusCode() != 200) {
+                    throw responseFailure(response.statusCode(), CloudHttp.readBounded(input, CloudHttp.CONTROL_BYTES));
+                }
+                String media = response.headers().firstValue("content-type").orElse("");
+                long length = response.headers().firstValueAsLong("content-length").orElse(-1);
+                if (!media.equals("application/octet-stream") || length <= 0 || length > CloudHttp.FILE_BYTES
+                        || !response.headers().firstValue("x-omnimorph-sha256").orElse("").equals(binding.rawSha256())) {
+                    throw new Failure(0, "INVALID_OUTFIT_SOURCE_BODY");
+                }
+                byte[] bytes = CloudHttp.readBounded(input, (int) length);
+                requireCurrent();
+                if (bytes.length != length || !CloudHttp.sha256(bytes).equals(binding.rawSha256())) {
+                    throw new Failure(0, "DISTRIBUTION_HASH_MISMATCH");
+                }
+                return bytes;
+            }
+        }
+
+        public OutfitObserverSnapshot observerOutfit(UUID owner) throws Exception {
+            OutfitLimits limits = outfitSourceLimits(this);
+            var response = send("GET", ROOT + "outfits/players/" + owner, HttpRequest.BodyPublishers.noBody(), null);
+            byte[] bytes;
+            try (InputStream input = response.body()) {
+                bytes = CloudHttp.readBounded(input, response.statusCode() == 200
+                        ? OutfitObserverSnapshot.JSON_BYTES : CloudHttp.CONTROL_BYTES);
+            }
+            requireCurrent();
+            if (response.statusCode() != 200) {
+                throw responseFailure(response.statusCode(), bytes);
+            }
+            try {
+                String media = response.headers().firstValue("content-type").orElse("").split(";", 2)[0].trim();
+                if (!media.equalsIgnoreCase("application/json")) {
+                    throw new IllegalArgumentException();
+                }
+                String json = StandardCharsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(bytes)).toString();
+                return OutfitObserverSnapshot.decode(json, owner, origin(), limits);
+            } catch (RuntimeException | CharacterCodingException malformed) {
+                throw new Failure(0, "INVALID_OUTFIT_OBSERVER_SNAPSHOT");
+            }
+        }
+
+        public byte[] observerOutfitBody(OutfitObserverSnapshot snapshot, OutfitObserverSnapshot.Resource resource) throws Exception {
+            if (!snapshot.resources().contains(resource) || !resource.relativePath().equals(
+                    OutfitObserverSnapshot.resourcePath(snapshot.owner(), snapshot.revision(), resource.id()))) {
+                throw new Failure(0, "INVALID_OUTFIT_OBSERVER_SOURCE");
+            }
+            var response = send("GET", resource.relativePath(), HttpRequest.BodyPublishers.noBody(), null);
+            try (InputStream input = response.body()) {
+                if (response.statusCode() != 200) {
+                    throw responseFailure(response.statusCode(), CloudHttp.readBounded(input, CloudHttp.CONTROL_BYTES));
+                }
+                String media = response.headers().firstValue("content-type").orElse("");
+                long length = response.headers().firstValueAsLong("content-length").orElse(-1);
+                if (!media.equals("application/octet-stream") || length <= 0 || length > CloudHttp.FILE_BYTES
+                        || length != resource.byteLength()
+                        || !response.headers().firstValue("x-omnimorph-sha256").orElse("").equals(resource.rawSha256())) {
+                    throw new Failure(0, "INVALID_OUTFIT_OBSERVER_BODY");
+                }
+                byte[] bytes = CloudHttp.readBounded(input, (int) length);
+                requireCurrent();
+                if (bytes.length != length || !CloudHttp.sha256(bytes).equals(resource.rawSha256())) {
+                    throw new Failure(0, "DISTRIBUTION_HASH_MISMATCH");
+                }
+                return bytes;
+            }
         }
 
         public long previewCacheSeconds() {

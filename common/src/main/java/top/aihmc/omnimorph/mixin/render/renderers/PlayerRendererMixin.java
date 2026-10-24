@@ -30,7 +30,7 @@ import top.aihmc.omnimorph.ducks.FiguraSubmitCallBackExtension;
 import top.aihmc.omnimorph.ducks.NodeCollectorExtension;
 import top.aihmc.omnimorph.lua.api.nameplate.EntityNameplateCustomization;
 import top.aihmc.omnimorph.lua.api.vanilla_model.VanillaPart;
-import top.aihmc.omnimorph.model.library.LibraryPreviewBinding;
+import top.aihmc.omnimorph.model.outfit.OutfitRenderBinding;
 import top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer;
 import top.aihmc.omnimorph.model.outfit.OutfitComposition;
 import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
@@ -215,12 +215,12 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
         var submittedPose = ysm.captureRenderPose(true);
         var player = Minecraft.getInstance().player;
         OutfitComposition.Frame retainedOutfit = null;
-        if (LibraryPreviewBinding.hasComposition(player)) {
+        if (OutfitRenderBinding.hasComposition(player)) {
             float delta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
             AvatarRenderState outfitState = this.createRenderState(player, delta);
             outfitState.lightCoords = light;
-            LibraryPreviewBinding.capture(player, outfitState);
-            var outfit = LibraryPreviewBinding.composition(outfitState);
+            OutfitRenderBinding.capture(player, outfitState);
+            var outfit = OutfitRenderBinding.composition(outfitState);
             retainedOutfit = outfit;
             var basePose = outfit.captureYsmArm(ysm, new Matrix4f(), left, submittedPose);
             ((NodeCollectorExtension) submitNodeCollector).submitFiguraModel(localAvatar, outfitState,
@@ -258,13 +258,13 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
         Avatar localAvatar = avatar;
         var player = Minecraft.getInstance().player;
         float delta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
-        AvatarRenderState outfitState = localAvatar == null && player != null && LibraryPreviewBinding.hasComposition(player)
+        AvatarRenderState outfitState = localAvatar == null && player != null && OutfitRenderBinding.hasComposition(player)
                 ? this.createRenderState(player, delta) : null;
         if (outfitState != null) {
             outfitState.lightCoords = i;
-            LibraryPreviewBinding.capture(player, outfitState);
+            OutfitRenderBinding.capture(player, outfitState);
         }
-        var outfit = outfitState == null ? null : LibraryPreviewBinding.composition(outfitState);
+        var outfit = outfitState == null ? null : OutfitRenderBinding.composition(outfitState);
         Matrix4f armToDraw = new Matrix4f(poseStack.last().pose());
         BiFunction<MultiBufferSource, PoseStack, Boolean> lambda = (bufferSource, stack) -> {
             if (outfit != null && localAvatar == null) {
@@ -312,14 +312,14 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
         Map<ModelPart, PartPose> modelState = RenderUtils.captureModelState(playerModel);
 
         var player = Minecraft.getInstance().player;
-        AvatarRenderState outfitState = player != null && LibraryPreviewBinding.hasComposition(player)
+        AvatarRenderState outfitState = player != null && OutfitRenderBinding.hasComposition(player)
                 ? this.createRenderState(player, delta) : null;
         if (outfitState != null) {
             outfitState.lightCoords = light;
-            LibraryPreviewBinding.capture(player, outfitState);
+            OutfitRenderBinding.capture(player, outfitState);
         }
 
-        var submittedArmOutfit = outfitState == null ? null : LibraryPreviewBinding.composition(outfitState);
+        var submittedArmOutfit = outfitState == null ? null : OutfitRenderBinding.composition(outfitState);
         if (submittedArmOutfit != null) {
             submittedArmOutfit.prepareFiguraBase(avatar);
         }
@@ -343,7 +343,7 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
 
                 Runnable drawArm = () -> playerAvatar.firstPersonRender(copy, bufferSource,
                         Minecraft.getInstance().player, playerModel, arm, light, delta);
-                var outfit = LibraryPreviewBinding.composition(state);
+                var outfit = OutfitRenderBinding.composition(state);
                 if (outfit == null) {
                     drawArm.run();
                 } else {

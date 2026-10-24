@@ -82,9 +82,13 @@ public class AvatarManager {
         // tick the avatars
         for (UserData user : LOADED_USERS.values()) {
             Avatar avatar = user.getMainAvatar();
-            if (avatar != null) {
+            if (avatar != null || user.getOutfit() != null) {
+                if (avatar == null) {
+                    user.tick();
+                    continue;
+                }
                 FiguraMod.pushProfiler(avatar);
-                avatar.tick();
+                user.tick();
                 FiguraMod.popProfiler();
             }
         }
@@ -127,7 +131,10 @@ public class AvatarManager {
 
         for (UserData user : LOADED_USERS.values()) {
             Avatar avatar = user.getMainAvatar();
-            if (avatar != null) {
+            UserData.OutfitState outfit = user.getOutfit();
+            if (outfit != null) {
+                outfit.composition().executeAll(outfit.base(), consumer);
+            } else if (avatar != null) {
                 FiguraMod.pushProfiler(avatar);
                 consumer.accept(avatar);
                 FiguraMod.popProfiler();
@@ -146,6 +153,16 @@ public class AvatarManager {
     }
 
     // -- avatar getters -- // 
+
+    public static UserData.OutfitState getLoadedOutfit(UUID owner) {
+        UserData user = LOADED_USERS.get(owner);
+        return user == null || panic ? null : user.getOutfit();
+    }
+
+    /** Inspect the resident loading identity without fetching a profile or creating a user. */
+    public static UserData getLoadedUser(UUID owner) {
+        return LOADED_USERS.get(owner);
+    }
 
     // player will also attempt to load from network, if possible
     public static Avatar getAvatarForPlayer(UUID player) {
@@ -185,6 +202,9 @@ public class AvatarManager {
         if (preview != null && !panic) {
             return preview;
         }
+        if (top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.hasFrame(state)) {
+            return panic ? null : top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.avatar(state);
+        }
         if (panic || Minecraft.getInstance().level == null || state == null) return null;
 
         if (state instanceof AvatarRenderState playerRenderState) {
@@ -199,6 +219,10 @@ public class AvatarManager {
         Entity preview = LibraryPreviewBinding.entity(state);
         if (preview != null) {
             return preview;
+        }
+        Entity captured = top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.entity(state);
+        if (captured != null) {
+            return captured;
         }
         if (Minecraft.getInstance().level == null || state == null) return null;
 
@@ -331,6 +355,35 @@ public class AvatarManager {
         if (user != null) {
             user.ysmLoads.begin();
         }
+    }
+
+    /** One client-thread preparation generation, including vanilla outfits without a base Avatar. */
+    public record OutfitLoad(UserData user, long generation) {
+        public boolean current() {
+            return user.id.equals(FiguraMod.getLocalPlayerUUID()) && LOADED_USERS.get(user.id) == user
+                    && user.ysmLoads.current(generation);
+        }
+
+        public CompletableFuture<Boolean> publish(top.aihmc.omnimorph.model.outfit.OutfitConfig configuration,
+                                                   Avatar base, top.aihmc.omnimorph.model.outfit.OutfitComposition composition,
+                                                   BooleanSupplier current) {
+            return user.publishOutfit(configuration, base, composition, generation,
+                    () -> current() && current.getAsBoolean()).thenApply(published -> {
+                if (published) {
+                    LocalAvatarLoader.loadAvatar(null, null);
+                    AvatarList.selectedEntry = null;
+                    FETCHED_USERS.add(user.id);
+                    localUploaded = true;
+                }
+                return published;
+            });
+        }
+    }
+
+    public static OutfitLoad beginOutfitLoad() {
+        UUID player = FiguraMod.getLocalPlayerUUID();
+        UserData user = LOADED_USERS.computeIfAbsent(player, UserData::new);
+        return new OutfitLoad(user, user.ysmLoads.begin());
     }
 
     /** Client-thread publication after a source-bound equip commit and successful worker preparation. */

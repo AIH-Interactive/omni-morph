@@ -126,7 +126,7 @@ public final class LibraryClientSmokeTest {
             failure(client.submit(LibraryClient.Lane.CONTROL, exchange -> exchange.json("GET",
                     "https://example.invalid/api/library/v1/capabilities", null, LibraryModels.Capabilities.class)).future(), callbacks, 0, "LIBRARY_REQUEST_FAILED");
             require(server.redirectTarget.get() == 0 && server.authErrors.get() == 0,
-                    "redirects never receive credentials and each adapter uses only its own authentication mode");
+                    "redirects never receive credentials; adapter credentials and origin stay bound to the endpoint");
             require(await(client.capabilities().future(), callbacks).enabled(), "HTTP boundary failures do not retire the shared adapter");
 
             var queued = client.capabilities();
@@ -215,7 +215,9 @@ public final class LibraryClientSmokeTest {
                         : "Bearer synthetic-original-token".equals(headers.getFirst("Authorization"))
                             && "figura".equals(headers.getFirst("x-omnimorph-auth-mode"))
                             && headers.getFirst("x-omnimorph-epoch") == null;
-                if (!valid) {
+                boolean validOrigin = origin().equals(headers.getFirst("x-omnimorph-origin"))
+                        && headers.get("x-omnimorph-origin").size() == 1;
+                if (!valid || !validOrigin) {
                     authErrors.incrementAndGet();
                 }
                 int status = 200;

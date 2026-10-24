@@ -17,6 +17,8 @@ import net.minecraft.world.item.ItemStack;
 import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.AvatarManager;
+import top.aihmc.omnimorph.avatar.UserData;
+import top.aihmc.omnimorph.model.outfit.OutfitActionWheel;
 import top.aihmc.omnimorph.config.Configs;
 import top.aihmc.omnimorph.font.Emojis;
 import top.aihmc.omnimorph.lua.api.action_wheel.Action;
@@ -45,6 +47,25 @@ public class ActionWheel {
     private static int selected = -1;
     private static final YsmActionRuntime.Press YSM_PRESS =
             new YsmActionRuntime.Press();
+    private static OutfitActionWheel outfitWheel;
+
+    private static UserData.OutfitState currentOutfit() {
+        var state = AvatarManager.getLoadedOutfit(FiguraMod.getLocalPlayerUUID());
+        var next = state == null ? null : state.composition().actionWheel();
+        if (outfitWheel != next && outfitWheel != null) {
+            outfitWheel.release();
+        }
+        outfitWheel = next;
+        return state;
+    }
+
+    private static void withOutfitBudget(UserData.OutfitState outfit, Runnable action) {
+        if (outfit.base() == null) {
+            action.run();
+        } else {
+            outfit.composition().withBaseBudget(outfit.base(), action);
+        }
+    }
 
     // rendering data
     private static Minecraft minecraft;
@@ -132,9 +153,11 @@ public class ActionWheel {
         scale = Configs.ACTION_WHEEL_SCALE.value;
         pose.scale(scale, scale);
 
-        Avatar avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
-        Page currentPage;
-        if (avatar == null || avatar.luaRuntime == null || (currentPage = avatar.luaRuntime.action_wheel.currentPage) == null) {
+        var outfit = currentOutfit();
+        Avatar avatar = outfit == null ? AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID()) : outfit.base();
+        Page currentPage = outfit != null ? outfitWheel.page(avatar)
+                : avatar == null || avatar.luaRuntime == null ? null : avatar.luaRuntime.action_wheel.currentPage;
+        if (currentPage == null) {
             // this also pops the stack
             renderEmpty(gui, avatar == null);
             return;
@@ -416,6 +439,14 @@ public class ActionWheel {
     // -- functions -- // 
 
     public static void execute(int index, boolean left) {
+        if (isEnabled()) {
+            var outfit = currentOutfit();
+            if (outfit != null) {
+                withOutfitBudget(outfit, () -> outfitWheel.execute(outfit.base(), index, left));
+                selected = -1;
+                return;
+            }
+        }
         Avatar avatar;
         if (!isEnabled() || (avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID())) == null || avatar.luaRuntime == null) {
             selected = -1;
@@ -444,6 +475,13 @@ public class ActionWheel {
     }
 
     public static void scroll(double delta) {
+        if (isEnabled()) {
+            var outfit = currentOutfit();
+            if (outfit != null) {
+                withOutfitBudget(outfit, () -> outfitWheel.scroll(outfit.base(), selected, delta));
+                return;
+            }
+        }
         Avatar avatar;
         if (!isEnabled() || (avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID())) == null || avatar.luaRuntime == null)
             return;
@@ -478,6 +516,9 @@ public class ActionWheel {
 
     public static void releaseYsmPress() {
         YSM_PRESS.release();
+        if (outfitWheel != null) {
+            outfitWheel.release();
+        }
     }
 
     public static boolean isEnabled() {

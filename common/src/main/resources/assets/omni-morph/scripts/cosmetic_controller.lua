@@ -105,6 +105,18 @@ function controller.tick()
     end
 end
 
+-- Snapshot the trusted active set before Java dispatches callbacks, allowing nested sound/resource events.
+function controller.activeInstances()
+    local active = {}
+    for _, declaration in ipairs(declarations) do
+        local id = declaration.id
+        if declaration.enabled and mounted[id] and not failed[id] then
+            active[#active + 1] = id
+        end
+    end
+    return active
+end
+
 function controller.beginFrame()
     mounted = {}
     attempted = {}

@@ -120,7 +120,7 @@ public final class YsmMaterialNativeSmokeTest {
                 try {
                     particles.set(client, unsafe.allocateInstance(AvatarAsyncLoadSmokeTest.RecordingParticles.class));
                     if (args[0].equals("--cosmetic-sources")) {
-                        top.aihmc.omnimorph.model.outfit.CosmeticSourceSmokeTest.run(Path.of(args[1]));
+                        top.aihmc.omnimorph.model.outfit.CosmeticSourceSmokeTest.run(Path.of(args[1]), client::drain);
                     } else if (args[0].equals("--library-upload")) {
                         top.aihmc.omnimorph.model.library.LibraryUploadSmokeTest.run(client::drain);
                     } else if (args[0].equals("--library-catalog")) {

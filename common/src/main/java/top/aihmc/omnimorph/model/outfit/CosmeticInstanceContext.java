@@ -103,6 +103,18 @@ public final class CosmeticInstanceContext {
         return Map.copyOf(luaState);
     }
 
+    /** Snapshot hydration never invokes author callbacks or writes per-avatar preferences. */
+    public synchronized void restoreState(Map<String, Object> restoredControls, Map<String, Object> restoredLua) {
+        var checkedControls = new LinkedHashMap<String, Object>();
+        var checkedLua = new LinkedHashMap<String, Object>();
+        copyState(checkedControls, restoredControls, limits.maxControls());
+        copyState(checkedLua, restoredLua, limits.maxLuaStateEntries());
+        controls.clear();
+        controls.putAll(checkedControls);
+        luaState.clear();
+        luaState.putAll(checkedLua);
+    }
+
     public synchronized void saveControl(String id, Object value) {
         if (scope != Scope.OBSERVER) {
             putState(controls, id, value, limits.maxControls());

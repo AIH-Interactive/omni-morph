@@ -28,7 +28,7 @@ import top.aihmc.omnimorph.FiguraMod;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.model.ysm.YsmPartMask;
 import top.aihmc.omnimorph.model.ysm.YsmRenderPass;
-import top.aihmc.omnimorph.model.library.LibraryPreviewBinding;
+import top.aihmc.omnimorph.model.outfit.OutfitRenderBinding;
 import top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer;
 import top.aihmc.omnimorph.avatar.AvatarManager;
 import top.aihmc.omnimorph.config.Configs;
@@ -95,7 +95,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
         top.aihmc.omnimorph.gui.AvatarLoadingRenderer.submit(livingEntityRenderState, poseStack, submitNodeCollector, cameraRenderState);
         currentAvatar = AvatarManager.getAvatar(livingEntityRenderState);
         if (currentAvatar == null) {
-            lastPose = LibraryPreviewBinding.composition(livingEntityRenderState) == null
+            lastPose = OutfitRenderBinding.composition(livingEntityRenderState) == null
                     ? null : new Matrix4f(poseStack.last().pose());
             return;
         }
@@ -122,7 +122,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
                 }
             }
             var submittedPose = runtime == null ? null : runtime.captureRenderPose(false);
-            var outfit = LibraryPreviewBinding.composition(livingEntityRenderState);
+            var outfit = OutfitRenderBinding.composition(livingEntityRenderState);
             Matrix4f entityToDraw = new Matrix4f(poseStack.last().pose());
             var outfitPose = outfit == null || runtime == null ? null : outfit.captureYsmBase(runtime,
                     new Matrix4f(entityToDraw).invert().mul(ysmStack.last().pose()), submittedPose);
@@ -167,14 +167,14 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
     @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/SubmitNodeCollector;submitModel(Lnet/minecraft/client/model/Model;Ljava/lang/Object;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/rendertype/RenderType;IIILnet/minecraft/client/renderer/texture/TextureAtlasSprite;ILnet/minecraft/client/renderer/feature/ModelFeatureRenderer$CrumblingOverlay;)V", shift = At.Shift.BEFORE), method = "submit(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V", cancellable = true)
     private void setFiguraCallbacks(S livingEntityRenderState, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState cameraRenderState, CallbackInfo ci) {
         if (currentAvatar == null) {
-            var outfit = LibraryPreviewBinding.composition(livingEntityRenderState);
-            if (outfit != null && LibraryPreviewBinding.isVanilla(livingEntityRenderState) && lastPose != null
+            var outfit = OutfitRenderBinding.composition(livingEntityRenderState);
+            if (outfit != null && OutfitRenderBinding.isVanilla(livingEntityRenderState) && lastPose != null
                     && !Avatar.firstPerson && getModel() instanceof net.minecraft.client.model.player.PlayerModel playerModel) {
                 Matrix4f entityToDraw = new Matrix4f(lastPose);
                 float delta = ((FiguraEntityRenderStateExtension) livingEntityRenderState).figura$getTickDelta();
                 ((FiguraSubmitCallBackExtension) playerModel).figura$addPreRenderingCallback((buffers, pose) -> {
                     OutfitNativeRenderer.drawVanilla(outfit, playerModel, livingEntityRenderState, delta,
-                            entityToDraw, pose.last().pose(), buffers, EntityRenderMode.FIGURA_GUI);
+                            entityToDraw, pose.last().pose(), buffers, OutfitRenderBinding.renderMode(livingEntityRenderState));
                     return true;
                 });
             }
@@ -249,14 +249,14 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
 
         int overlay = getOverlayCoords(livingEntityRenderState, getWhiteOverlayProgress(livingEntityRenderState));
 
-        Entity entity = Minecraft.getInstance().level.getEntity(entityId);
+        Entity entity = AvatarManager.getEntity(livingEntityRenderState);
         // actually do the render here
 
         // populate pivot customizations BEFORE the layers loop so pivotPartRender()
         // uses current-frame transforms instead of stale ones from the previous frame
         localAvatar.updateMatrices(model, poseStack);
 
-        var submittedOutfit = LibraryPreviewBinding.composition(livingEntityRenderState);
+        var submittedOutfit = OutfitRenderBinding.composition(livingEntityRenderState);
         if (submittedOutfit != null) {
             submittedOutfit.prepareFiguraBase(localAvatar);
         }
@@ -291,7 +291,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
 
                 Runnable drawBase = () -> avatar.render(entity, livingEntityState.yRot, tickDelta, translucent ? 0.15f : 1f,
                         poseStack2, bufferSource, livingEntityState.lightCoords, overlay, model, filter, translucent, glowing);
-                var outfit = LibraryPreviewBinding.composition(livingEntityState);
+                var outfit = OutfitRenderBinding.composition(livingEntityState);
                 if (outfit == null) {
                     drawBase.run();
                 } else {

@@ -227,9 +227,17 @@ public class EntityPreview extends AbstractContainerElement {
         super.extractRenderState(gui, mouseX, mouseY, delta);
     }
 
+    private List<OutfitPresetResources.Issue> operationIssues = List.of();
+
+    /** Formal Apply failures use the same scrollable source/instance rows without destroying the preview. */
+    public void setDependencyIssues(List<OutfitPresetResources.Issue> issues) {
+        operationIssues = List.copyOf(issues);
+        updateConfigurationIssues();
+    }
+
     /** Every preview surface, including the expanded view, exposes the exact failed dependencies. */
     private void updateConfigurationIssues() {
-        List<OutfitPresetResources.Issue> issues = libraryPreview == null
+        List<OutfitPresetResources.Issue> issues = !operationIssues.isEmpty() ? operationIssues : libraryPreview == null
                 ? List.of() : libraryPreview.configurationIssues();
         if (!issues.equals(shownIssues)) {
             shownIssues = issues;
