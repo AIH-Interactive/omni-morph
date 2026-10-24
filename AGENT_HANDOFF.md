@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-24（Asia/Seoul，重进配装页自动草稿修复及验证完成）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
+更新时间：2026-10-24（Asia/Seoul，重进配装页自动草稿修复已推送；发布按钮禁用诊断包待用户复现）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
 
 ## 接续入口与约束
 
@@ -198,3 +198,15 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 主仓库 main，提交前基线 59f34fcc；本轮源码/测试/进度/交接纳入随后提交推送，最终以 git rev-parse HEAD 与 git ls-remote origin refs/heads/main 一致为准。后端 master 未修改，原未跟踪 build.log/spm-cloud 与 .omc/ 保留；未新建分支、未改版本。最终 JAR：fabric/build/libs/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar，18273350 字节，SHA256 9a780a3d9be982977dfa6b6c7d6f5515cb757716c05c4759e2fcef5caf1abf3a。
 
 最小下一步：用户换新包重启客户端，重进后直接打开衣柜配装页，确认骨骼树/预览显示已提交装饰（MANUAL/PENDING）；若仍缺失，提供 latest.log 从实际恢复与草稿生成接续。另一独立未决问题保留：同一会话内手动挂载的装饰在真实游戏不可见，既有诊断均未触发，离线顶点计数与测试渲染坐标不能证明真实窗口位置/尺寸，需真实窗口确认。额度未可靠读取，未推测。
+
+## 当前有效交接：发布当前形象（第一个按钮）禁用诊断包（2026-10-24）
+
+用户新报：有时“装备成功”后第一个按钮（发布当前形象）禁用。复现步骤（用户确认）：选择装饰 → 添加新副本 → 选择实例 → 挂载骨骼。用户实际游戏目录为 `D:\Program Files\AIHMC\.minecraft\versions\纯净大区(26.1.2)`；该目录 latest.log 目前只有登录恢复（revision 117 / 1 实例）和 wing_anchor 装饰绘制告警，没有提交/失败记录，无法判断是草稿未修改、草稿授权不匹配、能力未就绪、冲突还是基础不可持久化，所以本轮只加诊断，不改按钮语义。
+
+诊断：WardrobeScreen 每帧计算第一个按钮的禁用原因（outfitPublishBlocker），状态变化时输出一行 `Outfit publish disabled: <原因> (apply=…, dirty=…, authority=…, conflict=…, basePersistent=…, busy=…)`，恢复可用时输出 `Outfit publish enabled …`；不含模型名/路径。原启用条件保持不变。
+
+验证：alpha4-publish-disabled-diagnostics-build.log PASS（44 秒）：libraryPreviewRuntimeSmokeTest、fabric:build。
+
+诊断包：fabric/build/libs/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar，18274045 字节，SHA256 a24b157e44b9cc3a2a3e410966bdcf1ad7c4d967bff570930f8d86fa8d45d7b1。主仓库 main，提交前基线 4ddaf955；本轮源码/文档纳入随后提交推送，最终以 git rev-parse HEAD 与 origin/main 一致为准。后端 master 未修改，`build.log`/`spm-cloud`/`.omc/` 原未跟踪内容保留。
+
+最小下一步：用户换上诊断包重启，按上述步骤复现一次，提供 latest.log 中全部 `Outfit publish` 行；据此定位原因并做最小修复后再评估是否保留诊断行。真实界面/世界显示仍 MANUAL/PENDING，不宣称已修复。

@@ -214,6 +214,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private Component observedMotd;
     private Button candidateButton;
     private Button uploadButton;
+    private String publishStateTrace;
     private Button deleteButton;
     private SwitchButton showModel;
     private Button cacheSelectedButton;
@@ -2902,6 +2903,46 @@ public class WardrobeScreen extends AbstractPanelScreen {
         watchOutfitApply(applyingOutfit, applyingOutfit.future(), draft, generation);
     }
 
+    /** The first action only submits an unsaved draft created under the current library session. */
+    private String outfitPublishBlocker() {
+        if (outfitOperationBusy()) {
+            return "an outfit operation is still running";
+        }
+        if (outfitDraft == null) {
+            return "there is no draft";
+        }
+        if (!outfitDraft.dirty()) {
+            return "the draft has no unsaved changes";
+        }
+        if (draftAuthority != client) {
+            return "the draft was created under another library session";
+        }
+        if (outfitConflict != null) {
+            return "a conflict is still pending";
+        }
+        if (!presetBaseCanPersist()) {
+            return "the draft base cannot be persisted";
+        }
+        return null;
+    }
+
+    /** Diagnostic only: one line per distinct publish state explains a disabled first action without spam. */
+    private void tracePublishBlocker(String blocker, boolean apply) {
+        String state = (blocker == null ? "enabled" : "disabled: " + blocker) + " (apply=" + apply
+                + ", dirty=" + (outfitDraft != null && outfitDraft.dirty())
+                + ", authority=" + (draftAuthority == client) + ", conflict=" + (outfitConflict != null)
+                + ", basePersistent=" + presetBaseCanPersist() + ", busy=" + outfitOperationBusy() + ")";
+        if (state.equals(publishStateTrace)) {
+            return;
+        }
+        publishStateTrace = state;
+        if (blocker == null) {
+            FiguraMod.LOGGER.info("Outfit publish {}", state);
+        } else {
+            FiguraMod.LOGGER.warn("Outfit publish {}", state);
+        }
+    }
+
     private void retryOutfitDraft() {
         if (!outfitApplyAvailable() || outfitOperationBusy() || applyingOutfit == null
                 || outfitDraft != applyingDraft || outfitDraft.generation() != applyingDraftGeneration
@@ -3654,10 +3695,10 @@ public class WardrobeScreen extends AbstractPanelScreen {
                     : NetworkStuff.canUpload() && !AvatarManager.localUploaded
                         && current != null && current.loaded && current.nbt != null;
             // Legacy enable/upload would replace the committed outfit with one base, so outfit servers publish via Apply.
-            uploadButton.setActive(outfitApplyAvailable()
-                    ? !outfitOperationBusy() && outfitDraft != null && outfitDraft.dirty() && draftAuthority == client
-                    && outfitConflict == null && presetBaseCanPersist()
-                    : canPublish);
+            boolean apply = outfitApplyAvailable();
+            String blocker = apply ? outfitPublishBlocker() : canPublish ? null : "legacy publish is unavailable";
+            uploadButton.setActive(blocker == null);
+            tracePublishBlocker(blocker, apply);
         }
         if (deleteButton != null) {
             deleteButton.setActive(NetworkStuff.isConnected() && AvatarManager.localUploaded && !uploading);

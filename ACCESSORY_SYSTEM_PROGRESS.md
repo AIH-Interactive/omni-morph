@@ -1206,3 +1206,11 @@ alpha4-figura-draft-budget-red.log 复现（base=11936 composed=11936）；alpha
 alpha4-outfit-tab-restored-final.log PASS（54 秒）：libraryPreviewRuntimeSmokeTest（新用例断言草稿=已提交配置、骨骼树含实例、预览有运行实例）、outfitApplyClientSmokeTest、fabric:build。真实游戏衣柜/世界显示 MANUAL/PENDING；同会话手动挂载装饰在真实游戏不可见的问题仍未解决（既有诊断均未触发），需真实窗口确认。
 
 JAR 18273350 字节，SHA256 9a780a3d9be982977dfa6b6c7d6f5515cb757716c05c4759e2fcef5caf1abf3a。main 提交前基线 59f34fcc；后端未修改。
+
+## 2026-10-24：发布当前形象（第一个按钮）有时禁用，先加原因诊断
+
+用户报告：有时“装备成功”后第一个按钮（发布当前形象）禁用。复现步骤（用户确认）：选择装饰 → 添加新副本 → 选择实例 → 挂载骨骼。现装 `D:\Program Files\AIHMC\.minecraft\versions\纯净大区(26.1.2)` 的 latest.log 只有登录恢复与装饰绘制告警，没有提交/失败记录，无法判断是草稿未修改、草稿授权不匹配、能力未就绪、冲突还是基础不可持久化，因此本轮只加诊断，不改按钮语义。
+
+诊断：WardrobeScreen 每帧计算第一个按钮的禁用原因（outfitPublishBlocker）并在状态变化时输出一行 `Outfit publish disabled: <原因> (apply=…, dirty=…, authority=…, conflict=…, basePersistent=…, busy=…)`，恢复可用时输出 `Outfit publish enabled …`；不含模型名/路径。原启用条件不变。
+
+alpha4-publish-disabled-diagnostics-build.log：libraryPreviewRuntimeSmokeTest、fabric:build PASS（44 秒）。JAR 18274045 字节，SHA256 a24b157e44b9cc3a2a3e410966bdcf1ad7c4d967bff570930f8d86fa8d45d7b1。下一步：用户装上该诊断包，按上述步骤复现一次并提供 latest.log 中 `Outfit publish` 行，再按原因做最小修复。
