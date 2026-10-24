@@ -1,10 +1,12 @@
 package top.aihmc.omnimorph.gui.screens;
 
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.control.AvatarControlDefinition;
 import top.aihmc.omnimorph.avatar.control.AvatarControlType;
 import top.aihmc.omnimorph.gui.widgets.Button;
+import top.aihmc.omnimorph.gui.widgets.ScrollBarWidget;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
 import top.aihmc.omnimorph.model.outfit.OutfitComposition;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;
@@ -23,7 +25,9 @@ import java.util.UUID;
  */
 public final class CosmeticControlsScreen extends AvatarControlsScreen {
     private static final int MAX_TAB_WIDTH = 160;
-    private static final int MIN_TAB_WIDTH = 48;
+    private static final int MIN_TAB_WIDTH = 72;
+    private static final int TAB_ROW_Y = 4;
+    private static final int TAB_ROW_MARGIN = 20;
 
     private final WardrobeScreen wardrobe;
     private final LibraryPreviewSession session;
@@ -36,6 +40,11 @@ public final class CosmeticControlsScreen extends AvatarControlsScreen {
     private long definitions;
     private boolean returning;
     private final CosmeticAnimationScreen wheelParent;
+    private final List<Button> tabButtons = new ArrayList<>();
+    private ScrollBarWidget tabScrollbar;
+    private int tabScroll;
+    private int tabOverflow;
+    private int tabRowStart;
 
     public CosmeticControlsScreen(WardrobeScreen wardrobe, LibraryPreviewSession session,
                                   OutfitComposition composition, OutfitDraft draft, UUID account) {
@@ -88,23 +97,81 @@ public final class CosmeticControlsScreen extends AvatarControlsScreen {
     }
 
     @Override
+    protected boolean framedLayout() {
+        return resource != null;
+    }
+
+    @Override
     protected void buildAdditionalControls() {
+        tabButtons.clear();
+        tabScrollbar = null;
         if (resource == null) {
             return;
         }
         var tabs = resourceTabs(groups);
-        int available = Math.max(1, width - 40);
+        int left = TAB_ROW_MARGIN;
+        int right = width - TAB_ROW_MARGIN;
+        int available = Math.max(1, right - left);
         int tabWidth = Math.max(MIN_TAB_WIDTH, Math.min(MAX_TAB_WIDTH, available / tabs.size()));
-        int x = (width - tabWidth * tabs.size()) / 2;
+        int rowWidth = tabWidth * tabs.size() - 4;
+        tabOverflow = Math.max(0, rowWidth - available);
+        tabRowStart = tabOverflow > 0 ? left : left + (available - rowWidth) / 2;
+        tabScroll = Math.clamp(tabScroll, 0, tabOverflow);
+        int selected = List.copyOf(tabs.keySet()).indexOf(resource) * tabWidth;
+        if (selected < tabScroll) {
+            tabScroll = selected;
+        } else if (selected + tabWidth - 4 > tabScroll + available) {
+            tabScroll = Math.min(tabOverflow, selected + tabWidth - 4 - available);
+        }
         for (var entry : tabs.entrySet()) {
             var target = entry.getKey();
             var members = entry.getValue();
-            Button tab = new Button(x, 4, tabWidth - 4, 20, wardrobe.cosmeticResourceName(target), null,
-                    button -> selectTab(target, members));
+            Button tab = new Button(left, TAB_ROW_Y, tabWidth - 4, 20, wardrobe.cosmeticResourceName(target), null,
+                    button -> selectTab(target, members)) {
+                @Override
+                public boolean isMouseOver(double mouseX, double mouseY) {
+                    return mouseX >= left && mouseX < right && super.isMouseOver(mouseX, mouseY);
+                }
+
+                @Override
+                public void extractContents(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+                    gui.enableScissor(left, TAB_ROW_Y, right, TAB_ROW_Y + 20);
+                    super.extractContents(gui, mouseX, mouseY, delta);
+                    gui.disableScissor();
+                }
+            };
             tab.setActive(!target.equals(resource));
+            tabButtons.add(tab);
             addRenderableWidget(tab);
-            x += tabWidth;
         }
+        updateTabPositions();
+        if (tabOverflow > 0) {
+            tabScrollbar = new ScrollBarWidget(left, TAB_ROW_Y + 24, available, 10,
+                    (double) tabScroll / tabOverflow, false);
+            tabScrollbar.setAction(bar -> {
+                tabScroll = (int) Math.round(bar.getScrollProgress() * tabOverflow);
+                updateTabPositions();
+            });
+            addRenderableWidget(tabScrollbar);
+        }
+    }
+
+    private void updateTabPositions() {
+        int x = tabRowStart - tabScroll;
+        for (Button tab : tabButtons) {
+            tab.setX(x);
+            x += tab.getWidth() + 4;
+        }
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double amount, double horizontalAmount) {
+        if (tabScrollbar != null && mouseY < TAB_ROW_Y + 36) {
+            tabScrollbar.setScrollProgress(tabScrollbar.getScrollProgress()
+                    - (amount + horizontalAmount) * MAX_TAB_WIDTH / 2d / tabOverflow);
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, amount, horizontalAmount);
     }
 
     private void selectTab(OutfitConfig.ResourceRef target, List<OutfitComposition.ControlGroup> members) {
