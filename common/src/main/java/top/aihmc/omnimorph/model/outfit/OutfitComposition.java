@@ -1149,6 +1149,9 @@ public final class OutfitComposition implements AutoCloseable {
         public boolean tick(String id) {
             Avatar avatar = initialized(id);
             avatar.tick();
+            if (avatar.scriptError) {
+                diagnose("accessory script error during tick; the controller stops this instance");
+            }
             return !avatar.scriptError;
         }
 
