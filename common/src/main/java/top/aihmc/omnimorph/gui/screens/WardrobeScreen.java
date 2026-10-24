@@ -215,7 +215,6 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private Component observedMotd;
     private Button candidateButton;
     private Button uploadButton;
-    private String publishStateTrace;
     private Button deleteButton;
     private SwitchButton showModel;
     private Button cacheSelectedButton;
@@ -2954,23 +2953,6 @@ public class WardrobeScreen extends AbstractPanelScreen {
         return null;
     }
 
-    /** Diagnostic only: one line per distinct publish state explains a disabled first action without spam. */
-    private void tracePublishBlocker(String blocker, boolean apply) {
-        String state = (blocker == null ? "enabled" : "disabled: " + blocker) + " (apply=" + apply
-                + ", dirty=" + (outfitDraft != null && outfitDraft.dirty())
-                + ", authority=" + (draftAuthority == client) + ", conflict=" + (outfitConflict != null)
-                + ", basePersistent=" + presetBaseCanPersist() + ", busy=" + outfitOperationBusy() + ")";
-        if (state.equals(publishStateTrace)) {
-            return;
-        }
-        publishStateTrace = state;
-        if (blocker == null) {
-            FiguraMod.LOGGER.info("Outfit publish {}", state);
-        } else {
-            FiguraMod.LOGGER.warn("Outfit publish {}", state);
-        }
-    }
-
     private void retryOutfitDraft() {
         if (!outfitApplyAvailable() || outfitOperationBusy() || applyingOutfit == null
                 || outfitDraft != applyingDraft || outfitDraft.generation() != applyingDraftGeneration
@@ -3726,7 +3708,6 @@ public class WardrobeScreen extends AbstractPanelScreen {
             boolean apply = outfitApplyAvailable();
             String blocker = apply ? outfitPublishBlocker() : canPublish ? null : "legacy publish is unavailable";
             uploadButton.setActive(blocker == null);
-            tracePublishBlocker(blocker, apply);
         }
         if (deleteButton != null) {
             deleteButton.setActive(NetworkStuff.isConnected() && AvatarManager.localUploaded && !uploading);

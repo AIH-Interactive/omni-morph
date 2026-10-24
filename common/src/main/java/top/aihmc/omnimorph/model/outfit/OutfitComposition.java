@@ -975,9 +975,6 @@ public final class OutfitComposition implements AutoCloseable {
                 for (var target : StandardAnchors.resolve(skeleton, configuration.base() == null, name)) {
                     result.add(new BoneHandle(target.bone(), target.offset()));
                 }
-                if (result.size() != 1) {
-                    diagnose("standard anchor '" + name + "' matched " + result.size() + " base bones");
-                }
             }
             return result;
         }
@@ -1046,13 +1043,6 @@ public final class OutfitComposition implements AutoCloseable {
                     : activeFrame.instancePoses.get(bone.reference.instanceId());
             var matrix = pose == null ? null : pose.matrix(bone.reference)
                     .map(value -> FiguraMat4.of().set(value.mul(bone.offset.modelMatrix()))).orElse(null);
-            if (matrix == null) {
-                diagnose(pose == null ? "mount bone has no captured pose this frame"
-                        : "mount bone has no captured matrix this frame: bone index="
-                        + pose.definition().resolve(bone.reference).map(String::valueOf).orElse("?")
-                        + ", captured=" + pose.capturedCount() + "/" + pose.definition().nodes().size()
-                        + ", mode=" + activeFrame.mode);
-            }
             return matrix;
         }
 
@@ -1116,12 +1106,6 @@ public final class OutfitComposition implements AutoCloseable {
             }
             if (bone.reference.instanceId() == null) {
                 boolean defined = activeFrame.basePose != null && activeFrame.basePose.defines(bone.reference);
-                if (!defined) {
-                    diagnose("base bone unresolved: path=" + bone.reference.path().size() + " segments, anchorHash="
-                            + bone.reference.skeletonHash().substring(0, 12) + ", baseHash="
-                            + (activeFrame.basePose == null ? "<no base pose>"
-                            : activeFrame.basePose.definition().hash().substring(0, 12)));
-                }
                 return defined;
             }
             return exportedBones.getOrDefault(bone.reference.instanceId(), Set.of()).contains(bone.reference);
