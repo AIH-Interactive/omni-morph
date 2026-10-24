@@ -119,6 +119,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private UUID draftAccount;
     private final Map<OutfitConfig.ResourceRef, LocalCosmeticInventory.Entry> draftResources = new HashMap<>();
     private final Map<OutfitConfig.ResourceRef, CloudCosmeticSource.Descriptor> draftCloudResources = new HashMap<>();
+    private Map<OutfitConfig.ResourceRef, CompoundTag> draftPreparedResources = new java.util.concurrent.ConcurrentHashMap<>();
     private CloudCosmeticSource.Operation cloudCosmeticSelection;
     private CloudCosmeticSource.Prepared selectedCloudCosmetic;
     private CloudCosmeticSource.Batch draftCloudBatch;
@@ -130,6 +131,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private long draftPreviewGeneration;
     private long resourceSelectionGeneration;
     private boolean draftPreviewActive;
+    private boolean localPreviewEnabled;
     private OutfitConfig.ResourceRef draftPreviewBase;
     private final List<Button> avatarActions = new ArrayList<>();
     private Button addInstanceButton;
@@ -226,6 +228,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
 
     public WardrobeScreen(Screen parentScreen) {
         super(parentScreen, FiguraText.of("gui.panels.title.wardrobe"));
+        localPreviewEnabled = top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.active();
     }
 
     private Context context() {
@@ -535,6 +538,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
             cloudList.setResourceFilters(sourceFilter, modeFilter, resourceFiltersExpanded,
                     expanded -> resourceFiltersExpanded = expanded);
             cloudList.setOutfitRemoval(this::removeCloudOutfit);
+            cloudList.setAccessoryActions(this::addQuickMountMenu);
             cloudList.thumbnails(client == null ? null : thumbnails);
             refreshCloudRows();
             addRenderableOnly((gui, mouseX, mouseY, delta) -> UIHelper.renderScrollingText(gui,
@@ -590,6 +594,16 @@ public class WardrobeScreen extends AbstractPanelScreen {
                     ? FiguraText.of("gui.library.failure", preview.status().errorCode()) : message;
             Component footer = !state.getString().isEmpty() ? state : !bones.selectedName().isEmpty()
                     ? text("selected_bone").copy().append(bones.selectedName()) : name;
+            if (state.getString().isEmpty() && draftPreviewActive && outfitDraft != null
+                    && outfitDraft.selectedInstance() != null) {
+                var composition = preview.outfitComposition();
+                UUID instance = outfitDraft.selectedInstance();
+                String status = composition == null ? "preview_loading"
+                        : !composition.runtimeInstances().containsKey(instance) ? "preview_unavailable"
+                        : !composition.hasPreviewFrame() ? "preview_waiting"
+                        : composition.previewMountTarget(instance) == null ? "preview_unresolved" : "preview_mounted";
+                footer = text(status).copy().append(" · ").append(footer);
+            }
             UIHelper.renderScrollingText(gui, footer, x + 4, actionsY - 12, w - 8, 0xffd3e7e1);
             if (AvatarManager.panic) {
                 gui.text(font, FiguraText.of("gui.panic", Configs.PANIC_BUTTON.keyBind.getTranslatedKeyMessage()),
@@ -653,6 +667,22 @@ public class WardrobeScreen extends AbstractPanelScreen {
             cancelDraftButton = actions.action(outfitIcon("wardrobe_draft_cancel", "draft_cancel", button -> cancelOutfitDraft()));
             resetDraftButton = actions.action(outfitIcon("wardrobe_draft_reset", "draft_reset", button -> resetOutfitDraft()));
             actions.action(outfitIcon("wardrobe_outfit_presets", "outfit_presets", button -> openOutfitPresets()));
+            var localPreview = actions.option(new SwitchButton(0, 0, w, 20,
+                    text("local_preview"), text("local_preview_help"), button -> {
+                localPreviewEnabled = ((SwitchButton) button).isToggled();
+                if (localPreviewEnabled) {
+                    beginOutfitDraft().whenComplete((draft, failure) -> {
+                        if (!removed && localPreviewEnabled && failure == null) {
+                            previewOutfitDraft();
+                        } else if (failure != null) {
+                            error(failure);
+                        }
+                    });
+                } else {
+                    top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.clear();
+                }
+            }));
+            localPreview.setToggled(localPreviewEnabled);
             refreshActionGroups();
         }
     }
@@ -1785,9 +1815,15 @@ public class WardrobeScreen extends AbstractPanelScreen {
 
     private void selectCloud(LibraryModels.CollectionEntry entry) {
         deleteCollectionArmed = null;
+        if (selected != null && entry.modelId().equals(selected.cloud())
+                && entry.model() != null && entry.model().allows("preview")
+                && preview != null && preview.status().stage() == LibraryPreviewSession.Stage.READY) {
+            return;
+        }
         if (client == null || collection == null || !collection.available()
                 || entry.model() == null || !entry.model().allows("preview")) {
             message = text("unavailable");
+            selectedCloudCosmetic = null;
             selected = new Selection(null, null, false, entry.modelId(), text("unavailable"));
             selections.put(context(), selected);
             preview.clear();
@@ -1807,6 +1843,33 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private void previewSelection() {
+        if (tab == Tab.OUTFIT && draftPreviewActive && outfitDraft != null && selectedIsAccessory()
+                && preview.status().stage() == LibraryPreviewSession.Stage.READY && preview.outfitComposition() != null) {
+            resourceSelectionGeneration++;
+            message = Component.empty();
+            if (selected.cloud() != null) {
+                var model = selectedCollectionModel();
+                long generation = ++selectionGeneration;
+                if (cloudCosmeticSelection != null) {
+                    cloudCosmeticSelection.close();
+                }
+                selectedCloudCosmetic = null;
+                var expectedClient = client;
+                cloudCosmeticSelection = new CloudCosmeticSource(client, transfers, minecraft::execute).select(model);
+                cloudCosmeticSelection.future().whenComplete((prepared, failure) -> {
+                    if (!removed && generation == selectionGeneration && client == expectedClient
+                            && expectedClient.current()) {
+                        if (failure != null) {
+                            error(failure);
+                        } else {
+                            selectedCloudCosmetic = prepared;
+                            draftPreparedResources.put(prepared.descriptor().reference(), prepared.nbt());
+                        }
+                    }
+                });
+            }
+            return;
+        }
         setOutfitIssues(List.of());
         resourceSelectionGeneration++;
         draftPreviewGeneration++;
@@ -2225,6 +2288,109 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private void addSelectedInstance() {
+        addSelectedInstance(null);
+    }
+
+    private void addQuickMountMenu(WardrobeCollectionGrid.Entry entry,
+                                  top.aihmc.omnimorph.gui.widgets.ContextMenu parent) {
+        var tree = preview.outfitHierarchy();
+        PreviewHierarchy hierarchy;
+        var anchors = new HashMap<Integer, OutfitConfig.AnchorRef>();
+        if (draftPreviewActive && tree != top.aihmc.omnimorph.model.library.OutfitHierarchy.EMPTY) {
+            hierarchy = tree.hierarchy();
+            for (var node : hierarchy.nodes()) {
+                var target = tree.target(node.id());
+                if (target != null && target.mountable()) {
+                    OutfitConfig.AnchorRef anchor = switch (target.kind()) {
+                        case BASE_BONE -> new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.BASE_BONE,
+                                null, target.bone(), null, null, null);
+                        case INSTANCE_BONE -> new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.ACCESSORY_BONE,
+                                null, target.bone(), null, null, null);
+                        case STANDARD -> OutfitConfig.AnchorRef.authorDefault(target.standard());
+                        case VIRTUAL -> new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.VIRTUAL,
+                                null, null, target.anchorId(), null, null);
+                        default -> null;
+                    };
+                    if (anchor != null) {
+                        anchors.put(node.id(), anchor);
+                    }
+                }
+            }
+        } else {
+            var base = AvatarManager.getLoadedAvatar(FiguraMod.getLocalPlayerUUID());
+            top.aihmc.omnimorph.model.outfit.SkeletonIndex.Binding<?> binding;
+            if (base == null) {
+                binding = top.aihmc.omnimorph.model.outfit.VanillaSkeletonAdapter.describe(outfitLimits);
+            } else if (base.isYsmNative()) {
+                binding = top.aihmc.omnimorph.model.outfit.SkeletonIndex.capture(null,
+                        base.getYsmRuntime().rootParts(), top.aihmc.omnimorph.model.ysm.YsmModelPart::getName,
+                        top.aihmc.omnimorph.model.ysm.YsmModelPart::getChildren, outfitLimits);
+            } else {
+                binding = top.aihmc.omnimorph.model.outfit.SkeletonIndex.capture(null, List.of(base.renderer.root),
+                        part -> part.name, part -> part.children, outfitLimits);
+            }
+            var nodes = new ArrayList<PreviewHierarchy.Node>();
+            var definition = binding.definition();
+            for (int index = 0; index < definition.nodes().size(); index++) {
+                var node = definition.nodes().get(index);
+                nodes.add(new PreviewHierarchy.Node(index, node.parent(), node.name(), node.children()));
+                anchors.put(index, new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.BASE_BONE, null,
+                        definition.reference(null, index), null, null, null));
+            }
+            hierarchy = new PreviewHierarchy(nodes, definition.roots(), new ArrayList<>(binding.parts()));
+        }
+        var menu = new top.aihmc.omnimorph.gui.widgets.ContextMenu();
+        for (int root : hierarchy.roots()) {
+            addQuickMountNode(menu, entry, hierarchy, anchors, root);
+        }
+        parent.addTab(text("quick_mount"), text("quick_mount_help"), menu);
+    }
+
+    private void addQuickMountNode(top.aihmc.omnimorph.gui.widgets.ContextMenu menu,
+                                  WardrobeCollectionGrid.Entry entry, PreviewHierarchy hierarchy,
+                                  Map<Integer, OutfitConfig.AnchorRef> anchors, int id) {
+        var node = hierarchy.nodes().get(id);
+        var anchor = anchors.get(id);
+        if (node.children().isEmpty()) {
+            if (anchor != null) {
+                menu.addAction(Component.literal(node.name()), null, button -> quickMount(entry, anchor));
+            }
+            return;
+        }
+        var children = new top.aihmc.omnimorph.gui.widgets.ContextMenu();
+        if (anchor != null) {
+            children.addAction(text("quick_mount_here"), Component.literal(node.name()),
+                    button -> quickMount(entry, anchor));
+        }
+        for (int child : node.children()) {
+            addQuickMountNode(children, entry, hierarchy, anchors, child);
+        }
+        if (!children.getEntries().isEmpty()) {
+            menu.addTab(Component.literal(node.name()), null, children);
+        }
+    }
+
+    private void quickMount(WardrobeCollectionGrid.Entry entry, OutfitConfig.AnchorRef anchor) {
+        if (entry.cosmetic() != null) {
+            selectCosmetic(entry.cosmetic());
+            addSelectedInstance(anchor);
+        } else if (entry.cloud() != null) {
+            selectCloud(entry.cloud());
+            if (selectedCloudCosmetic != null) {
+                addSelectedInstance(anchor);
+            } else if (cloudCosmeticSelection != null) {
+                long generation = resourceSelectionGeneration;
+                cloudCosmeticSelection.future().thenAccept(prepared -> {
+                    if (!removed && generation == resourceSelectionGeneration && selected != null
+                            && entry.cloud().modelId().equals(selected.cloud())) {
+                        addSelectedInstance(anchor);
+                    }
+                });
+            }
+        }
+    }
+
+    private void addSelectedInstance(OutfitConfig.AnchorRef requestedAnchor) {
         if (tab != Tab.OUTFIT || !selectedIsAccessory()) {
             return;
         }
@@ -2250,7 +2416,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 return;
             }
             try {
-                var anchor = metadata.category().equals("Trail")
+                var anchor = requestedAnchor != null ? requestedAnchor : metadata.category().equals("Trail")
                         ? new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.AUTO_TRAIL, null, null, null, null, null)
                         : metadata.defaultAnchor();
                 clearAnchorSelection();
@@ -2440,6 +2606,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private void cancelOutfitDraft() {
+        top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.clear(this);
         if (applyingOutfit != null) {
             applyingOutfit.close();
             applyingOutfit = null;
@@ -2614,6 +2781,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
             applyingOutfit = null;
         }
         message = text("downloading");
+        draftPreparedResources = new java.util.concurrent.ConcurrentHashMap<>();
         readServerOutfitDraft().whenComplete((draft, failure) -> {
             if (removed) {
                 return;
@@ -2679,6 +2847,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         draftAccount = null;
         draftResources.clear();
         draftCloudResources.clear();
+        draftPreparedResources = new java.util.concurrent.ConcurrentHashMap<>();
         draftIdentity = UUID.randomUUID();
         draftPreviewGeneration++;
         draftPreviewActive = false;
@@ -2714,17 +2883,21 @@ public class WardrobeScreen extends AbstractPanelScreen {
         var configuration = outfitDraft.configuration();
         var resources = Map.copyOf(draftResources);
         var fixed = draftFixedResources;
+        var cachedSources = draftPreparedResources;
+        boolean usesCloud = configuration.base() != null && configuration.base().source() == OutfitConfig.Source.CLOUD
+                || configuration.instances().stream().anyMatch(instance -> instance.resource().source() == OutfitConfig.Source.CLOUD);
         var cloudReferences = configuration.instances().stream().map(OutfitConfig.Instance::resource)
                 .filter(reference -> reference.source() == OutfitConfig.Source.CLOUD
+                        && !cachedSources.containsKey(reference)
                         && (fixed == null || !fixed.ready() || !fixed.contains(reference))).distinct().toList();
-        if (!cloudReferences.isEmpty() && (client == null || !client.current())) {
+        if (usesCloud && (client == null || !client.current())) {
             preview.clear();
             message = FiguraText.of("gui.library.state.offline");
             return;
         }
         UUID owner = FiguraMod.getLocalPlayerUUID();
         OutfitLimits limits = client == null ? OutfitLimits.defaults() : outfitLimits;
-        bindPreview(cloudReferences.isEmpty() ? null : client);
+        bindPreview(usesCloud ? client : null);
         var session = preview;
         boolean reuseBase = draftPreviewActive && java.util.Objects.equals(draftPreviewBase, configuration.base())
                 && session.status().stage() == LibraryPreviewSession.Stage.READY;
@@ -2770,6 +2943,10 @@ public class WardrobeScreen extends AbstractPanelScreen {
             var prepared = new HashMap<OutfitConfig.ResourceRef, CompoundTag>();
             session.prepareComposition(configuration, limits, owner, draftIdentity, PermissionManager.get(owner),
                     (reference, cancelled) -> {
+                        CompoundTag resident = cachedSources.get(reference);
+                        if (resident != null) {
+                            return resident.copy();
+                        }
                         CompoundTag cached = prepared.get(reference);
                         if (cached != null) {
                             return cached;
@@ -2777,6 +2954,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
                         if (fixed != null && fixed.ready() && fixed.contains(reference)) {
                             CompoundTag data = fixed.read(reference, cancelled);
                             prepared.put(reference, data);
+                            cachedSources.put(reference, data.copy());
                             return data;
                         }
                         if (reference.source() == OutfitConfig.Source.CLOUD) {
@@ -2786,6 +2964,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
                             }
                             CompoundTag data = source.nbt();
                             prepared.put(reference, data);
+                            cachedSources.put(reference, data.copy());
                             return data;
                         }
                         var entry = resources.get(reference);
@@ -2794,10 +2973,14 @@ public class WardrobeScreen extends AbstractPanelScreen {
                         }
                         CompoundTag data = LocalCosmeticSource.prepare(entry.path(), owner, reference.contentHash(), cancelled).nbt();
                         prepared.put(reference, data);
+                        cachedSources.put(reference, data.copy());
                         return data;
                     }).whenComplete((complete, error) -> {
                         if (!removed && generation == draftPreviewGeneration && error != null) {
                             message = FiguraText.of("gui.library.failure", "OUTFIT_DRAFT_PREPARATION_FAILED");
+                        } else if (!removed && generation == draftPreviewGeneration && Boolean.TRUE.equals(complete)
+                                && localPreviewEnabled) {
+                            top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.show(this, session);
                         }
                     });
         });
@@ -2805,6 +2988,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
 
     private void bindPreview(LibraryClient requiredClient) {
         if (previewClient != requiredClient || preview.status().stage() == LibraryPreviewSession.Stage.CLOSED) {
+            top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.clear(this);
             preview.close();
             preview = new LibraryPreviewSession(requiredClient);
             previewClient = requiredClient;
@@ -3431,7 +3615,12 @@ public class WardrobeScreen extends AbstractPanelScreen {
             if (previewWidget != null) {
                 previewWidget.setSelectedBone(null);
             }
-            preview.close();
+            if (localPreviewEnabled && draftPreviewActive
+                    && top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.uses(preview)) {
+                top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.detach(this);
+            } else {
+                preview.close();
+            }
         }
         if (equipment != null) {
             equipment.close();

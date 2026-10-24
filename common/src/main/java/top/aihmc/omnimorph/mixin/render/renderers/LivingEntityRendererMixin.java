@@ -139,7 +139,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
                     if (outfitPose != null) {
                         OutfitNativeRenderer.draw(outfit, outfitPose, state,
                                 ((FiguraEntityRenderStateExtension) state).figura$getTickDelta(), entityToDraw,
-                                bufferSource, avatar.renderMode);
+                                bufferSource, OutfitRenderBinding.renderMode(state));
                     }
                 }
                 return null;

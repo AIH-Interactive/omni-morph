@@ -1108,3 +1108,11 @@ openCreateMenu 只注册菜单但未设置位置/可见；ContextMenu 默认隐�
 - 最终 alpha4-accessory-render-final.log PASS（28秒/21 tasks），libraryPreviewRuntimeSmokeTest + fabric:build。设 OMNIMORPH_TEST_COSMETICS 为上述目录执行实际来源原生加载/挂载；缺省/null/显式mesh/显式未知type和新导出type均有常驻回归。临时 DEBUG 已移除。
 - test 为粒子拖尾，空几何正常，此回放未证明运动粒子视觉。真实窗口菜单、YSM/其他基础下装饰效果、实际世界/双客户端和拖尾移动效果仍 MANUAL/PENDING；不把CPU顶点回放冒充GPU/端到端PASS。
 - 全局 C:/Users/eryth/.codex/AGENTS.md 已增加安全点额度查询、仅阈值时委派 GPT-6 Luna 写交接、任务提前完成也更新手册。最后可靠读数 Plus：5小时剩余76%、周剩余19%；未到阈值，未调用 Luna。
+
+## 2026-10-24：本地实时配装与快捷骨骼挂载
+
+完成用户增量要求：保留衣柜草稿组合和已准备资源；新增“本地实时配装预览”开关，同步预览衣柜及仅自己的世界渲染，关闭衣柜可保留，关闭开关/换世界/账号清理。正式应用与观察者同步状态不变。右键装饰新增按已加载骨骼层级快捷挂载，不为骨骼菜单重新请求云端。补充挂载状态提示，修正 YSM 延迟渲染模式及本地世界帧实际玩家参照。
+
+自动验证：alpha4-live-outfit-red.log 先复现选择装饰清除组合；alpha4-local-world-preview-final.log 最终 PASS（1分钟/23 tasks），libraryPreviewRuntimeSmokeTest、outfitApplyClientSmokeTest、cosmeticSourceSmokeTest、fabric:build。验证局部渲染隔离、恢复/释放、菜单复用、缓存及正式应用。实际外部 cosmetics：hattest48/test1 24/test2 48顶点，test拖尾0静态顶点。真实世界与 GUI、双客户端、动态光照/性能 MANUAL/PENDING，记录式渲染不能证明像素正确。未覆盖安装包，未改后端、版本或架构。
+
+最终 JAR 18,265,408字节，SHA256 c340998138539b40a0acf95f4a1b17ceddff33e0b77af5c27371da8866ac6307。主分支 main，基线20f27ad3，本轮随后提交推送；接续以 AGENT_HANDOFF.md 最新有效节及实际 Git 为准。

@@ -6,6 +6,7 @@ import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.AvatarManager;
 import top.aihmc.omnimorph.avatar.UserData;
 import top.aihmc.omnimorph.model.library.LibraryPreviewBinding;
+import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
 import top.aihmc.omnimorph.model.rendering.EntityRenderMode;
 
 import java.util.Collections;
@@ -21,6 +22,7 @@ public final class OutfitRenderBinding {
     private static final Map<EntityRenderState, Captured> FRAMES = new IdentityHashMap<>();
     private static final Set<Avatar> BASE_FRAMES = Collections.newSetFromMap(new IdentityHashMap<>());
     private static final Set<Avatar> RETIRED_BASES = Collections.newSetFromMap(new IdentityHashMap<>());
+    private static final Set<LibraryPreviewSession> RETIRED_PREVIEWS = Collections.newSetFromMap(new IdentityHashMap<>());
 
     private OutfitRenderBinding() {}
 
@@ -29,11 +31,15 @@ public final class OutfitRenderBinding {
         if (entity == null || frame == null || FRAMES.containsKey(frame) || LibraryPreviewBinding.entity(frame) != null) {
             return;
         }
-        UserData.OutfitState state = AvatarManager.getLoadedOutfit(entity.getUUID());
+        UserData.OutfitState state = LocalOutfitPreview.state(entity);
+        if (state == null) {
+            state = AvatarManager.getLoadedOutfit(entity.getUUID());
+        }
         if (state == null) {
             return;
         }
-        var retained = state.composition().retain();
+        var retained = entity instanceof net.minecraft.world.entity.LivingEntity living
+                ? state.composition().retain(living) : state.composition().retain();
         FRAMES.put(frame, new Captured(entity, state, retained));
         if (state.base() != null) {
             BASE_FRAMES.add(state.base());
@@ -73,7 +79,7 @@ public final class OutfitRenderBinding {
         if (LibraryPreviewBinding.isVanilla(entity) || LibraryPreviewBinding.avatar(entity) != null) {
             return LibraryPreviewBinding.hasComposition(entity);
         }
-        return AvatarManager.getLoadedOutfit(entity.getUUID()) != null;
+        return LocalOutfitPreview.state(entity) != null || AvatarManager.getLoadedOutfit(entity.getUUID()) != null;
     }
 
     public static boolean isVanilla(EntityRenderState frame) {
@@ -94,6 +100,14 @@ public final class OutfitRenderBinding {
         }
     }
 
+    static void retirePreview(LibraryPreviewSession session) {
+        if (FRAMES.isEmpty()) {
+            session.close();
+        } else {
+            RETIRED_PREVIEWS.add(session);
+        }
+    }
+
     public static void finishFrame() {
         List<Captured> captured = List.copyOf(FRAMES.values());
         FRAMES.clear();
@@ -108,6 +122,9 @@ public final class OutfitRenderBinding {
             for (Avatar base : retired) {
                 base.clean();
             }
+            var previews = List.copyOf(RETIRED_PREVIEWS);
+            RETIRED_PREVIEWS.clear();
+            previews.forEach(LibraryPreviewSession::close);
         }
     }
 }
