@@ -98,6 +98,11 @@ public final class SkeletonPose {
                 .map(index -> new Matrix4f(matrices.get(index)));
     }
 
+    /** Diagnostic only: how many defined nodes received a native matrix this frame. */
+    public int capturedCount() {
+        return available == null ? matrices.size() : available.cardinality();
+    }
+
     public boolean defines(OutfitConfig.BoneRef bone) {
         return Objects.equals(instanceId, bone.instanceId()) && definition.resolve(bone).isPresent();
     }

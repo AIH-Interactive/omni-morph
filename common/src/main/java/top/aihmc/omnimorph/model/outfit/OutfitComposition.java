@@ -1047,7 +1047,11 @@ public final class OutfitComposition implements AutoCloseable {
             var matrix = pose == null ? null : pose.matrix(bone.reference)
                     .map(value -> FiguraMat4.of().set(value.mul(bone.offset.modelMatrix()))).orElse(null);
             if (matrix == null) {
-                diagnose("mount bone has no captured matrix this frame");
+                diagnose(pose == null ? "mount bone has no captured pose this frame"
+                        : "mount bone has no captured matrix this frame: bone index="
+                        + pose.definition().resolve(bone.reference).map(String::valueOf).orElse("?")
+                        + ", captured=" + pose.capturedCount() + "/" + pose.definition().nodes().size()
+                        + ", mode=" + activeFrame.mode);
             }
             return matrix;
         }
