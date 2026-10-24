@@ -1388,12 +1388,12 @@ public final class YsmFunctionContractSmokeTest {
             unsafeField.setAccessible(true);
             encrypted.context.entity = (net.minecraft.world.entity.Entity) ((Unsafe) unsafeField.get(null))
                     .allocateInstance(net.minecraft.world.entity.decoration.ArmorStand.class);
-            int modReads = org.figuramc.figura.utils.fabric.PlatformUtilsImpl.loadedModReads;
+            int modReads = top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl.loadedModReads;
             for (String name : List.of("dump_mods", "dump_effects", "dump_biome")) {
                 require(encrypted.evalValue("ysm." + name + ";") == null && messages.isEmpty(),
                         "encrypted runtime metadata suppresses dump diagnostics before native state access: " + name);
             }
-            require(org.figuramc.figura.utils.fabric.PlatformUtilsImpl.loadedModReads == modReads,
+            require(top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl.loadedModReads == modReads,
                     "encrypted runtime diagnostic does not enumerate the platform");
             require(ExpressionEvaluator.evaluator(encrypted.context.owner)
                             .eval(encrypted.engine.parse("q.debug_output('PRIVATE_DIRECT_OWNER');").getFirst()) == null

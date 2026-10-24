@@ -17,7 +17,7 @@ public class FiguraResourceListener {
     @ExpectPlatform
     public static FiguraResourceListener createResourceListener(String id, Consumer<ResourceManager> reloadConsumer) {
         try {
-            return (FiguraResourceListener) Class.forName("org.figuramc.figura.utils.fabric.FiguraResourceListenerImpl")
+            return (FiguraResourceListener) Class.forName("top.aihmc.omnimorph.utils.fabric.FiguraResourceListenerImpl")
                 .getMethod("createResourceListener", String.class, Consumer.class).invoke(null, id, reloadConsumer);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);

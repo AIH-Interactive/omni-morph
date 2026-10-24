@@ -21,7 +21,7 @@ public abstract class FiguraModMetadata {
     @ExpectPlatform
     public static FiguraModMetadata getMetadataForMod(String modID) {
         try {
-            return (FiguraModMetadata) Class.forName("org.figuramc.figura.utils.fabric.FiguraModMetadataImpl")
+            return (FiguraModMetadata) Class.forName("top.aihmc.omnimorph.utils.fabric.FiguraModMetadataImpl")
                 .getMethod("getMetadataForMod", String.class).invoke(null, modID);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);

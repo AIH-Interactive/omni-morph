@@ -1211,7 +1211,7 @@ public final class YsmVanillaStateSmokeTest {
                     "reference dump is a scalar variable: " + name);
         }
         boolean previousDebug = org.figuramc.figura.config.Configs.DEBUG_MODE.value;
-        int previousReads = org.figuramc.figura.utils.fabric.PlatformUtilsImpl.loadedModReads;
+        int previousReads = top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl.loadedModReads;
         var logger = (org.apache.logging.log4j.core.Logger) org.apache.logging.log4j.LogManager
                 .getLogger(org.figuramc.figura.FiguraMod.LOGGER.getName());
         var previousLevel = logger.getLevel();
@@ -1236,7 +1236,7 @@ public final class YsmVanillaStateSmokeTest {
                 require(eval(engine, context, "ysm." + name + ";") == null, "disabled dump returns raw null: " + name);
             }
             require(messages.isEmpty() && world.biomePosition == null
-                            && org.figuramc.figura.utils.fabric.PlatformUtilsImpl.loadedModReads == previousReads,
+                            && top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl.loadedModReads == previousReads,
                     "disabled diagnostics perform no logging or platform enumeration");
             org.figuramc.figura.config.Configs.DEBUG_MODE.value = true;
             require(eval(engine, context, "ysm.dump_mods;") == null, "mod enumeration returns raw null");
@@ -1276,11 +1276,11 @@ public final class YsmVanillaStateSmokeTest {
             var cipher = new net.minecraft.nbt.CompoundTag();
             cipher.putInt("crypto_version", 3);
             owner.nbt.put("ysm", cipher);
-            int reads = org.figuramc.figura.utils.fabric.PlatformUtilsImpl.loadedModReads;
+            int reads = top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl.loadedModReads;
             for (String name : names) {
                 require(eval(engine, context, "ysm." + name + ";") == null, "private diagnostic returns raw null: " + name);
             }
-            require(messages.isEmpty() && org.figuramc.figura.utils.fabric.PlatformUtilsImpl.loadedModReads == reads,
+            require(messages.isEmpty() && top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl.loadedModReads == reads,
                     "encrypted payload diagnostics log nothing and do not enumerate the platform");
             owner.nbt = null;
             context.entity = null;
@@ -1290,7 +1290,7 @@ public final class YsmVanillaStateSmokeTest {
         } finally {
             activeEffects.set(entity, previousEffects);
             org.figuramc.figura.config.Configs.DEBUG_MODE.value = previousDebug;
-            org.figuramc.figura.utils.fabric.PlatformUtilsImpl.loadedModReads = previousReads;
+            top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl.loadedModReads = previousReads;
             logger.removeAppender(appender);
             logger.setLevel(previousLevel);
             appender.stop();

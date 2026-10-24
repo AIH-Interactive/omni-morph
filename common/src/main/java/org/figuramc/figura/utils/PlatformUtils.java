@@ -14,7 +14,7 @@ public class PlatformUtils {
     @ExpectPlatform
     public static Path getGameDir() {
         try {
-            return (Path) Class.forName("org.figuramc.figura.utils.fabric.PlatformUtilsImpl")
+            return (Path) Class.forName("top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl")
                 .getMethod("getGameDir").invoke(null);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
@@ -24,7 +24,7 @@ public class PlatformUtils {
     @ExpectPlatform
     public static String getFiguraModVersionString(){
         try {
-            return (String) Class.forName("org.figuramc.figura.utils.fabric.PlatformUtilsImpl")
+            return (String) Class.forName("top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl")
                 .getMethod("getFiguraModVersionString").invoke(null);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
@@ -34,7 +34,7 @@ public class PlatformUtils {
     @ExpectPlatform
     public static Path getConfigDir() {
         try {
-            return (Path) Class.forName("org.figuramc.figura.utils.fabric.PlatformUtilsImpl")
+            return (Path) Class.forName("top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl")
                 .getMethod("getConfigDir").invoke(null);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
@@ -44,7 +44,7 @@ public class PlatformUtils {
     @ExpectPlatform
     public static boolean isModLoaded(String modId) {
         try {
-            return (boolean) Class.forName("org.figuramc.figura.utils.fabric.PlatformUtilsImpl")
+            return (boolean) Class.forName("top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl")
                 .getMethod("isModLoaded", String.class).invoke(null, modId);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
@@ -54,7 +54,7 @@ public class PlatformUtils {
     @ExpectPlatform
     public static String getModVersion(String modId) {
         try {
-            return (String) Class.forName("org.figuramc.figura.utils.fabric.PlatformUtilsImpl")
+            return (String) Class.forName("top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl")
                 .getMethod("getModVersion", String.class).invoke(null, modId);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
@@ -65,7 +65,7 @@ public class PlatformUtils {
     @SuppressWarnings("unchecked")
     public static Map<String, String> getLoadedMods() {
         try {
-            return (Map<String, String>) Class.forName("org.figuramc.figura.utils.fabric.PlatformUtilsImpl")
+            return (Map<String, String>) Class.forName("top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl")
                     .getMethod("getLoadedMods").invoke(null);
         } catch (ReflectiveOperationException error) {
             throw new RuntimeException(error);
@@ -99,7 +99,7 @@ public class PlatformUtils {
     @ExpectPlatform
     public static ModLoader getModLoader(){
         try {
-            return (ModLoader) Class.forName("org.figuramc.figura.utils.fabric.PlatformUtilsImpl")
+            return (ModLoader) Class.forName("top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl")
                 .getMethod("getModLoader").invoke(null);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
@@ -109,7 +109,7 @@ public class PlatformUtils {
     @ExpectPlatform
     public static InputStream loadFileFromRoot(String file) throws FileNotFoundException {
         try {
-            return (InputStream) Class.forName("org.figuramc.figura.utils.fabric.PlatformUtilsImpl")
+            return (InputStream) Class.forName("top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl")
                 .getMethod("loadFileFromRoot", String.class).invoke(null, file);
         } catch (java.lang.reflect.InvocationTargetException e) {
             if (e.getCause() instanceof FileNotFoundException fnfe) throw fnfe;
