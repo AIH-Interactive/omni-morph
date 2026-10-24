@@ -51,7 +51,7 @@ S1～S6 自动实施已收口并推送。后端仅原有未跟踪 build.log、sp
 - 主仓库实施涉及 avatar/UserData、backend2/NetworkStuff、library 的 Apply/Observer/Events/InstanceState、model/library 正式准备/同步、model/outfit、衣柜/控件/轮盘、正式渲染 Mixin、Lua API 及测试/文档；源文件均已纳入阶段提交。
 - 后端改动在 src/api/library、src/storage/outfit_*、旧装备/分发事务衔接、独立事件、对应 tests 和部署文档；原 build.log/spm-cloud 不提交。
 - 当前下一步由用户安排真实验收：按 docs/ALPHA4_ACCEPTANCE.md 在实际窗口、双客户端及相同场景中验证；此前不重复已通过无关门禁、不追加 S5 优化。YsmPublicPoseSmokeTest.java 已提交，临时 DEBUG 已移除。接手时先核对 Git/产物和未验项，不重启计划。
-- 最新 JAR 为 fabric/build/libs/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar（18,256,486字节，SHA256 a3022195a226a88fd804bb8f4e0f7af4224252d08ea92e84c115098b083ef4b5），已包含睡姿/手/Head/滤波修正。根因/红绿日志和参考路径见进度记录末尾。DS 模型另有加密控制器解析警告，未证明与本次缺陷有关，作为跟进记录，不扩张解析器重构。
+- 最新 JAR 为 fabric/build/libs/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar（18,256,498字节，SHA256 931479b3724e4fd9890cdb8ce578df64e02aae457a7eedd240bfbe97d02478e4），已包含睡姿/手/Head/滤波修正。根因/红绿日志和参考路径见进度记录末尾。DS 模型另有加密控制器解析警告，未证明与本次缺陷有关，作为跟进记录，不扩张解析器重构。
 
 ## 相关文档
 
@@ -70,3 +70,7 @@ S1～S6 自动实施已收口并推送。后端仅原有未跟踪 build.log、sp
 ## 最新增量：YSM 高亮（2026-10-24）
 
 源运行时与独立 GUI 预览身份不一致造成高亮失效；已仅修 YSM 选择身份映射，Figura 保持原实现。alpha4-bone-highlight-red.log 确认 RED；alpha4-bone-highlight-final.log 回归/构建 PASS（56秒），实际 GPU 高亮 MANUAL/PENDING。上方 JAR 哈希/大小已更新。当前下一步是用户刚报告的创建按钮无响应；优先检查 openCreateMenu 的菜单可见状态与定位，不扩张向导功能。
+
+## 最新检查点：创建菜单（2026-10-24）
+
+创建按钮无响应已修复：补齐菜单位置和可见状态，仅三行业务改动。alpha4-create-menu-red.log RED；alpha4-create-menu-final.log 回归/构建 PASS（30秒）。高亮修复 main@3bba0c0f 已推送核对；本菜单改动随后独立提交。上方 JAR 大小/哈希为最终同时含两项修复的新包。当前无新增实施任务；真实 YSM 描边/其他部件半透明、创建菜单点击及其余既有人工项仍 MANUAL/PENDING，等用户实际游戏反馈。

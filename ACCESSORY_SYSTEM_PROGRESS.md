@@ -1086,3 +1086,11 @@
 - PASS：alpha4-bone-highlight-final.log，56秒/22 tasks，YSM 原生材质回归和 Fabric build（附带正式预览回归）。覆盖普通/加速输出，选中子树255/其他76 alpha、独立预览、帧清理及世界绘制不受影响。
 - 实际游戏描边与透明视觉：MANUAL/PENDING，CPU 顶点/材质证据不冒充真实 GPU 画面。
 - 下一项用户已授权：创建本地形象/装饰按钮无响应，检查点后继续。
+
+## 2026-10-24：创建资源按钮无响应
+
+openCreateMenu 只注册菜单但未设置位置/可见；ContextMenu 默认隐藏。补齐按钮下方定位和 setVisible(true)，沿用原菜单屏幕边界处理，不重构通用菜单或向导。
+
+- RED：alpha4-create-menu-red.log，15秒，真实创建菜单调用后可见/定位断言失败。
+- PASS：alpha4-create-menu-final.log，30秒/21 tasks，正式菜单可见/定位、三个创建入口、原向导表单/预览回归及 Fabric build。
+- 实际窗口点击/布局及 YSM 高亮视觉仍 MANUAL/PENDING。该包同时包含已推送 main@3bba0c0f 的 YSM 高亮修复。

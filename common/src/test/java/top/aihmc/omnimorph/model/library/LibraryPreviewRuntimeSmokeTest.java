@@ -3939,6 +3939,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 net.minecraft.network.chat.Component.literal("+"), null, ignored -> {});
         open.invoke(parent, anchor);
         var menu = parent.contextMenu;
+        require(menu.isVisible() && menu.getX() == anchor.getX()
+                        && menu.getY() == anchor.getY() + anchor.getHeight(),
+                "Create opens a visible menu anchored below the clicked button");
         var labels = menu.children().stream().filter(top.aihmc.omnimorph.gui.widgets.Button.class::isInstance)
                 .map(top.aihmc.omnimorph.gui.widgets.Button.class::cast)
                 .map(button -> button.getMessage().getString()).toList();
@@ -3948,6 +3951,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                         && labels.size() == 3,
                 "Existing create icon opens exactly the three requested resource creation entries");
         parent.contextMenu = null;
+        menu.setVisible(false);
         Path root = Path.of(System.getProperty("figura.test.directory")).resolve("uncreated-form-root");
         var ysm = new top.aihmc.omnimorph.wizards.YsmAvatarWizard(root);
         var list = new top.aihmc.omnimorph.gui.widgets.lists.AvatarWizardList(20, 20, 240, 200, ysm);
