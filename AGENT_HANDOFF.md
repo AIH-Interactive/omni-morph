@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-24（Asia/Seoul，粒子动态光源超上限时只保留前 N 个光源；自动门禁 PASS，真实光照 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
+更新时间：2026-10-24（Asia/Seoul，第一人称装饰脚本世界帧、Iris 粒子管线与拖尾矩阵；自动门禁 PASS，真实第一人称/Iris 画面 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
 
 ## 接续入口与约束
 
@@ -298,3 +298,21 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 主仓库 main，提交前基线 79d435d3；本轮源码/测试/进度/交接纳入随后提交推送，最终以 `git rev-parse HEAD` 与 `git ls-remote origin refs/heads/main` 一致为准。后端 master 未修改，`.omc/` 保留。JAR 18291064 字节，SHA256 13adf5bd667781a85a4c0bd5d08198ebe323db566dd9cb38e2ccc8e345d50301。
 
 最小下一步：用户换新包，用多发光的装饰（如拖尾）确认只有前面 N 个发光、其余粒子仍正常显示；真实光照/性能仍 MANUAL/PENDING。
+## 当前有效交接：第一人称装饰脚本世界帧、Iris 粒子管线与拖尾矩阵（2026-10-24）
+
+第一人称粒子消失的根因：原版不绘制本地玩家身体，模组只用**手臂子集姿态**重放配装组合；身体骨骼（如 tail4→seg42→seg12）上的装饰不满足 hasBone，控制器不 prepare，其 RENDER/POST_RENDER 不再执行，拖尾停止生成；且 allowMatrixUpdate 只在 RENDER 开启，第一人称手臂帧的 partToWorldMatrix 不更新，粒子可能落在旧位置（表现为只在特定视角看到）。
+
+已实现（未提交前）：
+- 新 `OutfitFirstPersonScripts`：第一人称每帧在 ItemInHandRendererMixin.renderHandsWithItems 的 RETURN，用相机相对全身姿态（玩家插值位置 − 相机位置，身体 yaw，与实体渲染一致的 rotate/scale）重放配装组合，模式 FIRST_PERSON_WORLD，几何全部写入丢弃缓冲；YSM 基础 captureYsmBase（无需绘制），Figura 基础 captureFiguraBase + 丢弃绘制。脚本/RENDER/POST_RENDER/粒子/拖尾正常，partToWorldMatrix 为当前帧；可见的第一人称手臂仍由原路径绘制。
+- `OutfitNativeRenderer` 的 allowMatrixUpdate 扩展到 RENDER、FIRST_PERSON、FIRST_PERSON_WORLD（GUI 不开）。
+- `IrisCompat` 将全部自定义粒子管线按 blend 映射到 IrisProgram.PARTICLES（OPAQUE）/ PARTICLES_TRANSLUCENT（ALPHA/ADDITIVE）；此前未分配，Iris 下走未修补着色器。
+
+验证：真实数据门禁（环境变量数据）Figura 基础 + test2@Seg13：draft/owner/firstPersonWorld 均 27704（基础 27656）；YSM 基础：63640（基础 63592）。日志 alpha4-first-person-scripts-figura.log / -ysm.log。门禁 alpha4-first-person-iris-gate.log：libraryPreviewRuntimeSmokeTest、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS（1 分 18 秒），git diff --check PASS。真实第一人称画面与 Iris 光影 MANUAL/PENDING。
+
+已确认限制/跟进：Figura 基础每帧多一次丢弃身体绘制（性能未评估，可后续做矩阵-only 捕获）；手部挂点实例第一人称会在手臂帧与身体脚本帧各跑一次脚本（拖尾脚本按 tick 去重）；configuration.base==null 的 vanilla 基础暂不重放；LambDynamicLights 联动**尚未实现**，用户最新需求待确认（见下）。
+
+待确认：用户要求“LambDynamicLights 作为仅粒子动态光源部分前置，没有安装只需发个警告”。需要先确认是（A）实际把粒子光源注册到 LDL API（需新增 LDL 版本依赖并适配其 dynamic light handler）还是（B）仅检测 LDL 未安装时输出一次警告并关闭粒子动态光源、保留现有内置光场。未确认前不改动依赖与光照语义。
+
+主仓库 main，提交前基线 56fb83df；本轮源码/测试/文档纳入随后提交推送，最终以 `git rev-parse HEAD` 与 origin/main 一致为准。后端未改，`.omc/` 保留。JAR 18296237 字节，SHA256 b7b098c2d58595b5c536e1b2199a81186f27b482fd62171b2feffeabbffb2f90。
+
+最小下一步：①用户换包实测第一人称拖尾、Iris 光影（若仍异常提供 latest.log 中 Outfit accessory draw / FIRST_PERSON_WORLD 行和截图）；②确认 LDL 是 A 还是 B 后实施。

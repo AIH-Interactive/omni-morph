@@ -1272,3 +1272,16 @@ alpha4-publish-disabled-diagnostics-build.log：libraryPreviewRuntimeSmokeTest�
 验证：更新 ParticleLightNativeSmokeTest——首个发光粒子点亮、后续发光粒子存活但不发光、无空余容量时重复启用不报错、释放容量后下一个接管、后端调低上限时保留较早源并停用较晚源。`ysmMaterialNativeSmokeTest`（含 CustomParticle/ParticleLight 原生）PASS 17 秒；`libraryPreviewRuntimeSmokeTest` PASS 27 秒；`fabric:build` PASS 28 秒。日志 alpha4-particle-light-first-capacity.log、alpha4-particle-light-first-capacity-build.log。真实游戏光照画面 MANUAL/PENDING。
 
 用户另行确认 YSM 装饰实例实测没有问题，关闭上一轮 YSM 同类矩阵待验证项。JAR 18291064 字节，SHA256 13adf5bd667781a85a4c0bd5d08198ebe323db566dd9cb38e2ccc8e345d50301。main 提交前基线 79d435d3；后端未改。
+## 2026-10-24：第一人称装饰脚本世界帧、Iris 粒子管线与拖尾矩阵
+
+用户报告：第一人称看不到装饰粒子（拖尾仅在特定视角可见），且粒子不兼容 Iris 光影。根因（代码与日志核对）：第一人称原版不绘制本地玩家身体，模组只用手臂子集姿态（captureFiguraArm/captureYsmArm 会 restrict 到手臂分支）重放配装组合；挂在 tail4→seg42→seg12 等身体骨骼的装饰永远不满足 hasBone，控制器不调用 prepare，其 RENDER/POST_RENDER 不再执行，粒子停止生成；同时 OutfitNativeRenderer 只在 mode==RENDER 时开启 allowMatrixUpdate，第一人称手臂帧的 partToWorldMatrix 不更新。
+
+实现：
+- 新增 OutfitFirstPersonScripts：第一人称每帧（ItemInHandRendererMixin 的 renderHandsWithItems RETURN）用相机相对全身姿态（玩家位置减相机位置 + 身体 yaw，与实体渲染一致的 rotate/scale）重放配装组合，模式 FIRST_PERSON_WORLD，所有几何提交到丢弃缓冲；YSM 基础用 captureYsmBase（无需绘制），Figura 基础用 captureFiguraBase + 丢弃绘制捕获全身姿态。脚本、RENDER/POST_RENDER、粒子与拖尾采样正常运行，partToWorldMatrix 按当前帧更新；可见的第一人称手臂仍由原手臂路径绘制。
+- OutfitNativeRenderer 的 allowMatrixUpdate 扩展到 RENDER、FIRST_PERSON、FIRST_PERSON_WORLD；GUI 仍不开（GUI 栈不是相机相对坐标）。
+- IrisCompat 把 CustomParticlePipelines 的全部自定义管线按 blend 映射到 IrisProgram.PARTICLES（OPAQUE）/ PARTICLES_TRANSLUCENT（ALPHA/ADDITIVE）；此前未分配程序，光影下会走未修补着色器。
+- 未实现：LambDynamicLights 联动（用户随后提出，待确认是实际注册光源还是仅检测+警告）。
+
+验证：真实数据门禁用例（环境变量数据）Figura 基础 + test2@Seg13：draft/owner/firstPersonWorld 均 27704（基础 27656，+48）；YSM 基础：63640（基础 63592，+48，回退根 Player_size）。日志 alpha4-first-person-scripts-figura.log / -ysm.log。门禁 alpha4-first-person-iris-gate.log：libraryPreviewRuntimeSmokeTest、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS（1 分 18 秒）；git diff --check PASS。真实第一人称画面与 Iris 光影仍 MANUAL/PENDING。
+
+限制/跟进：Figura 基础每帧多一次丢弃身体绘制（未评估性能，后续可做矩阵-only 捕获）；手部挂点实例会在第一人称手臂帧和身体脚本帧各跑一次脚本（拖尾脚本按 tick 去重）；configuration.base==null 的 vanilla 基础暂不重放。JAR 18296237 字节，SHA256 b7b098c2d58595b5c536e1b2199a81186f27b482fd62171b2feffeabbffb2f90。main 提交前基线 56fb83df；后端未改。

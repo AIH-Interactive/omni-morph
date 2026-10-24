@@ -109,7 +109,11 @@ public final class OutfitNativeRenderer {
                             return;
                         }
                         boolean previousMatrixUpdate = renderer.allowMatrixUpdate;
-                        renderer.allowMatrixUpdate = mode == EntityRenderMode.RENDER;
+                        // Camera-relative world draws (third person and first-person hands/scripts) need fresh
+                        // part-to-world matrices for trails and particles; GUI draws are not camera-relative.
+                        renderer.allowMatrixUpdate = mode == EntityRenderMode.RENDER
+                                || mode == EntityRenderMode.FIRST_PERSON
+                                || mode == EntityRenderMode.FIRST_PERSON_WORLD;
                         try {
                             avatar.render(wearer, 0, delta, 1, stack, target, light,
                                     OverlayTexture.NO_OVERLAY, null, PartFilterScheme.MODEL, false, false);

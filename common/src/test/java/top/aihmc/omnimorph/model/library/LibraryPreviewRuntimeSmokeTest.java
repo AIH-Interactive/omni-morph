@@ -1137,18 +1137,27 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 state.lightCoords = 0x00f000f0;
                 avatar.renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER;
                 int draftBase = ysm ? countYsmVertices(avatar) : countFiguraVertices(avatar, state);
-                int draft = ysm ? countComposedYsmVertices(preview.outfitComposition(), avatar)
-                        : countComposedFiguraVertices(preview.outfitComposition(), avatar, state);
+                int draft = ysm ? countComposedYsmVertices(preview.outfitComposition(), avatar,
+                        top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER)
+                        : countComposedFiguraVertices(preview.outfitComposition(), avatar, state,
+                        top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER);
                 ownerBase.renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER;
                 int ownerBaseOnly = ysm ? countYsmVertices(ownerBase) : countFiguraVertices(ownerBase, state);
-                int owner = ysm ? countComposedYsmVertices(ownerComposition, ownerBase)
-                        : countComposedFiguraVertices(ownerComposition, ownerBase, state);
+                int owner = ysm ? countComposedYsmVertices(ownerComposition, ownerBase,
+                        top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER)
+                        : countComposedFiguraVertices(ownerComposition, ownerBase, state,
+                        top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER);
+                int firstPerson = ysm ? countComposedYsmVertices(ownerComposition, ownerBase,
+                        top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIRST_PERSON_WORLD)
+                        : countComposedFiguraVertices(ownerComposition, ownerBase, state,
+                        top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIRST_PERSON_WORLD);
                 System.out.println("Reported local " + (ysm ? "YSM" : "Figura") + " base/accessory: draft base="
                         + draftBase + " draft=" + draft + " owner base=" + ownerBaseOnly + " owner=" + owner
-                        + " anchor=" + bone.path().getLast().name());
-                require(draft > draftBase && owner > ownerBaseOnly,
-                        "the reported local accessory draws in both the draft and restored owner frame: draft base="
-                                + draftBase + " draft=" + draft + " owner base=" + ownerBaseOnly + " owner=" + owner);
+                        + " firstPersonWorld=" + firstPerson + " anchor=" + bone.path().getLast().name());
+                require(draft > draftBase && owner > ownerBaseOnly && firstPerson > ownerBaseOnly,
+                        "the reported local accessory draws in the draft, owner and first-person world frames: draft base="
+                                + draftBase + " draft=" + draft + " owner base=" + ownerBaseOnly + " owner=" + owner
+                                + " firstPersonWorld=" + firstPerson);
             } finally {
                 ownerBase.clean();
             }
@@ -1159,7 +1168,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             ((Map<?, ?>) field(PermissionManager.class, "PLAYERS").get(null)).remove(player.getUUID());
             controlsLoaded.setBoolean(null, previousControlsLoaded);
         }
-        System.out.println("PASS reported local base draws its local accessory in both the draft and owner world frame; real window MANUAL/PENDING");
+        System.out.println("PASS reported local base draws its local accessory in the draft, owner and first-person world frames; real window MANUAL/PENDING");
     }
 
     /** Prefer the reported tail bone, then the body, then the root. */
@@ -1189,7 +1198,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
     }
 
     private static int countComposedFiguraVertices(top.aihmc.omnimorph.model.outfit.OutfitComposition composition,
-                                                   Avatar avatar, AvatarRenderState state) {
+                                                   Avatar avatar, AvatarRenderState state,
+                                                   top.aihmc.omnimorph.model.rendering.EntityRenderMode mode) {
         require(composition != null, "the reported composition is active");
         var vertices = new java.util.concurrent.atomic.AtomicInteger();
         try (var frame = composition.retain()) {
@@ -1201,10 +1211,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
                         type -> countingSink(vertices), state.lightCoords,
                         net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, null,
                         top.aihmc.omnimorph.model.rendering.PartFilterScheme.MODEL, false, false));
-                frame.draw(pose, state, .5f, top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER,
+                frame.draw(pose, state, .5f, mode,
                         command -> top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer.drawInstance(command, .5f,
-                                new org.joml.Matrix4f(), type -> countingSink(vertices), state.lightCoords,
-                                top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER));
+                                new org.joml.Matrix4f(), type -> countingSink(vertices), state.lightCoords, mode));
             });
         }
         return vertices.get();
@@ -1221,7 +1230,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
     }
 
     private static int countComposedYsmVertices(top.aihmc.omnimorph.model.outfit.OutfitComposition composition,
-                                                Avatar avatar) {
+                                                Avatar avatar,
+                                                top.aihmc.omnimorph.model.rendering.EntityRenderMode mode) {
         require(composition != null, "the reported composition is active");
         var vertices = new java.util.concurrent.atomic.AtomicInteger();
         try (var frame = composition.retain()) {
@@ -1233,10 +1243,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     new com.mojang.blaze3d.vertex.PoseStack(), type -> countingSink(vertices), 0x00f000f0, pose));
             var state = new AvatarRenderState();
             state.lightCoords = 0x00f000f0;
-            frame.draw(skeleton, state, .5f, top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER,
+            frame.draw(skeleton, state, .5f, mode,
                     command -> top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer.drawInstance(command, .5f,
-                            new org.joml.Matrix4f(), type -> countingSink(vertices), state.lightCoords,
-                            top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER));
+                            new org.joml.Matrix4f(), type -> countingSink(vertices), state.lightCoords, mode));
         }
         return vertices.get();
     }
