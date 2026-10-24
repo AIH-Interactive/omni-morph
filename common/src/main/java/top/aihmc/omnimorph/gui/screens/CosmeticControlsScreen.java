@@ -4,24 +4,34 @@ import net.minecraft.network.chat.Component;
 import top.aihmc.omnimorph.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.control.AvatarControlDefinition;
 import top.aihmc.omnimorph.avatar.control.AvatarControlType;
-import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
+import top.aihmc.omnimorph.gui.widgets.Button;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
 import top.aihmc.omnimorph.model.outfit.OutfitComposition;
+import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 import top.aihmc.omnimorph.model.outfit.OutfitDraft;
 import top.aihmc.omnimorph.utils.FiguraText;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
-/** Reuses the avatar control widgets while retaining the draft preview and each callback's real owner. */
+/**
+ * Reuses the avatar control widgets while retaining the draft preview and each callback's real owner.
+ * One tab per cosmetic resource lists every instance of that resource, separated by its ordinal.
+ */
 public final class CosmeticControlsScreen extends AvatarControlsScreen {
+    private static final int MAX_TAB_WIDTH = 160;
+    private static final int MIN_TAB_WIDTH = 48;
+
     private final WardrobeScreen wardrobe;
     private final LibraryPreviewSession session;
     private final OutfitComposition composition;
     private final OutfitDraft draft;
     private final UUID account;
-    private OutfitComposition.ControlGroup group;
+    /** The selected tab, or {@code null} for an owner opened from the wheel without a control group. */
+    private OutfitConfig.ResourceRef resource;
     private List<OutfitComposition.ControlGroup> groups;
     private long definitions;
     private boolean returning;
@@ -44,31 +54,77 @@ public final class CosmeticControlsScreen extends AvatarControlsScreen {
         this.account = account;
         this.wheelParent = wheelParent;
         groups = composition.controlGroups();
-        group = groups.stream().filter(value -> value.avatar() == owner).findFirst().orElse(null);
-        definitions = group == null ? owner.controls.definitionRevision() : composition.controlGroupsRevision();
+        var group = groupOf(owner);
+        resource = group == null ? null : group.instance().resource();
+        definitions = resource == null ? owner.controls.definitionRevision() : composition.controlGroupsRevision();
+    }
+
+    /** Groups instances into one tab per cosmetic resource, keeping the composition's instance order. */
+    static Map<OutfitConfig.ResourceRef, List<OutfitComposition.ControlGroup>> resourceTabs(
+            List<OutfitComposition.ControlGroup> groups) {
+        var tabs = new LinkedHashMap<OutfitConfig.ResourceRef, List<OutfitComposition.ControlGroup>>();
+        for (var group : groups) {
+            tabs.computeIfAbsent(group.instance().resource(), ignored -> new ArrayList<>()).add(group);
+        }
+        return tabs;
     }
 
     @Override
     public Component getTitle() {
-        return FiguraText.of(group == null ? "gui.controls.title" : "gui.wardrobe.cosmetic_settings");
+        return FiguraText.of(resource == null ? "gui.controls.title" : "gui.wardrobe.cosmetic_settings");
+    }
+
+    @Override
+    protected List<ControlSection> controlSections() {
+        if (resource == null) {
+            return super.controlSections();
+        }
+        var sections = new ArrayList<ControlSection>();
+        for (var group : resourceTabs(groups).getOrDefault(resource, List.of())) {
+            Component header = Component.literal("#" + group.instance().displayOrdinal());
+            sections.add(new ControlSection(group.avatar(), header));
+        }
+        return sections;
     }
 
     @Override
     protected void buildAdditionalControls() {
-        if (group == null) {
+        if (resource == null) {
             return;
         }
-        List<OutfitComposition.ControlGroup> choices = groups;
-        int selectorWidth = Math.min(360, Math.max(1, width - 40));
-        addRenderableWidget(new LibraryDropdown((width - selectorWidth) / 2, 4, selectorWidth,
-                () -> choices.stream().map(wardrobe::cosmeticControlName).toList(),
-                () -> choices.indexOf(group), selected -> {
-            var next = choices.get(selected);
-            if (wardrobe.cosmeticControlsActive(composition, draft, account, next)) {
-                group = next;
-                selectControlAvatar(next.avatar());
+        var tabs = resourceTabs(groups);
+        int available = Math.max(1, width - 40);
+        int tabWidth = Math.max(MIN_TAB_WIDTH, Math.min(MAX_TAB_WIDTH, available / tabs.size()));
+        int x = (width - tabWidth * tabs.size()) / 2;
+        for (var entry : tabs.entrySet()) {
+            var target = entry.getKey();
+            var members = entry.getValue();
+            Button tab = new Button(x, 4, tabWidth - 4, 20, wardrobe.cosmeticResourceName(target), null,
+                    button -> selectTab(target, members));
+            tab.setActive(!target.equals(resource));
+            addRenderableWidget(tab);
+            x += tabWidth;
+        }
+    }
+
+    private void selectTab(OutfitConfig.ResourceRef target, List<OutfitComposition.ControlGroup> members) {
+        for (var member : members) {
+            if (wardrobe.cosmeticControlsActive(composition, draft, account, member)) {
+                resource = target;
+                selectControlAvatar(member.avatar());
+                return;
             }
-        }, 6));
+        }
+    }
+
+    /** The control group of {@code owner}; control callbacks bind {@link #avatar} to the row's owner. */
+    private OutfitComposition.ControlGroup groupOf(Avatar owner) {
+        for (var group : groups) {
+            if (group.avatar() == owner) {
+                return group;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -76,14 +132,16 @@ public final class CosmeticControlsScreen extends AvatarControlsScreen {
         if (returning) {
             return false;
         }
-        if (group == null) {
+        if (resource == null) {
             return wheelParent != null && wheelParent.acceptsControls(avatar);
         }
-        return wardrobe.cosmeticControlsActive(composition, draft, account, group);
+        var group = groupOf(avatar);
+        return group != null && wardrobe.cosmeticControlsActive(composition, draft, account, group);
     }
 
     @Override
     protected void controlsChanged() {
+        var group = groupOf(avatar);
         if (group != null && controlsActive()) {
             wardrobe.saveCosmeticControls(group);
         }
@@ -103,7 +161,7 @@ public final class CosmeticControlsScreen extends AvatarControlsScreen {
             }
             var values = new LinkedHashMap<>(avatar.cosmeticContext.controls());
             values.put(control.id(), normalized);
-            draft.validateControls(group.instance().instanceId(), values);
+            draft.validateControls(groupOf(avatar).instance().instanceId(), values);
         }
     }
 
@@ -126,7 +184,7 @@ public final class CosmeticControlsScreen extends AvatarControlsScreen {
             onClose();
             return;
         }
-        long current = group == null ? avatar.controls.definitionRevision() : composition.controlGroupsRevision();
+        long current = resource == null ? avatar.controls.definitionRevision() : composition.controlGroupsRevision();
         if (current != definitions) {
             definitions = current;
             groups = composition.controlGroups();

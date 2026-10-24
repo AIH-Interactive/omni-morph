@@ -2751,36 +2751,79 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var before = draft.configuration();
         long generation = field(wardrobeType, "draftPreviewGeneration").getLong(wardrobe);
         build.invoke(settings);
-        var select = settings.children().stream()
-                .filter(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::isInstance)
-                .map(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::cast).findFirst().orElseThrow();
-        @SuppressWarnings("unchecked")
-        var labels = (java.util.function.Supplier<java.util.List<net.minecraft.network.chat.Component>>)
-                field(select.getClass(), "choices").get(select);
-        require(labels.get().stream().anyMatch(label -> label.getString().contains("插槽尾巴 #1"))
-                        && labels.get().stream().anyMatch(label -> label.getString().contains("插槽尾巴 #2")),
-                "the real group selector preserves the ordered duplicate names");
-        var choose = (java.util.function.IntConsumer) field(select.getClass(), "changed").get(select);
-        choose.accept(groups.indexOf(firstGroup));
-        require(draft.configuration().equals(before), "opening and switching groups do not persist factory defaults");
-        var firstSwitch = (top.aihmc.omnimorph.gui.widgets.SwitchButton) settings.children().stream()
-                .filter(widget -> widget.getClass().getSimpleName().equals("ControlSwitch")).findFirst().orElseThrow();
-        firstSwitch.onPress(null);
-        require(Boolean.FALSE.equals(draft.instance(first).controls().get("visible"))
-                        && !draft.instance(second).controls().containsKey("visible")
-                        && Boolean.FALSE.equals(firstGroup.avatar().controls.getValue("visible"))
-                        && Boolean.TRUE.equals(secondGroup.avatar().controls.getValue("visible")),
-                "native control callbacks save only the chosen instance in the draft and its actual runtime");
-        choose.accept(groups.indexOf(secondGroup));
-        var valid = draft.configuration();
-        firstSwitch.onPress(null);
-        require(draft.configuration().equals(valid), "a retained old control cannot edit another group's owner after switching");
-        var secondSwitch = (top.aihmc.omnimorph.gui.widgets.SwitchButton) settings.children().stream()
-                .filter(widget -> widget.getClass().getSimpleName().equals("ControlSwitch")).findFirst().orElseThrow();
+        var tabs = settings.children().stream()
+                .filter(widget -> widget.getClass() == top.aihmc.omnimorph.gui.widgets.Button.class)
+                .map(top.aihmc.omnimorph.gui.widgets.Button.class::cast)
+                .filter(button -> button.getY() == 4).toList();
+        require(tabs.size() == 1 && tabs.getFirst().getMessage().getString().contains("插槽尾巴")
+                        && !tabs.getFirst().getMessage().getString().contains("#"),
+                "duplicate instances of one resource share a single resource-named tab: "
+                        + tabs.stream().map(tab -> tab.getMessage().getString()).toList());
+        var resourceTabs = top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen.class
+                .getDeclaredMethod("resourceTabs", java.util.List.class);
+        resourceTabs.setAccessible(true);
+        var copied = firstGroup.instance();
+        var otherResource = new OutfitConfig.ResourceRef(copied.resource().source(),
+                copied.resource().localId() == null ? null : UUID.randomUUID(), copied.resource().origin(),
+                copied.resource().resourceId() == null ? null : UUID.randomUUID(), copied.resource().revision(),
+                copied.resource().contentHash(), copied.resource().format());
+        var otherGroup = new top.aihmc.omnimorph.model.outfit.OutfitComposition.ControlGroup(
+                new OutfitConfig.Instance(UUID.randomUUID(), otherResource, 1, true, copied.anchor(),
+                        copied.transform(), copied.boneOverrides(), Map.of(), Map.of()), firstGroup.avatar());
+        var grouped = (Map<?, ?>) resourceTabs.invoke(null, java.util.List.of(firstGroup, otherGroup, secondGroup));
+        require(grouped.size() == 2
+                        && grouped.get(copied.resource()).equals(java.util.List.of(firstGroup, secondGroup))
+                        && grouped.get(otherResource).equals(java.util.List.of(otherGroup)),
+                "two same-resource instances and one other resource form two ordered tabs");
+        var rowsField = field(top.aihmc.omnimorph.gui.screens.AvatarControlsScreen.class, "rows");
+        var headers = new java.util.ArrayList<String>();
+        var headerOwners = new java.util.ArrayList<Object>();
+        for (Object row : (java.util.List<?>) rowsField.get(settings)) {
+            var header = row.getClass().getDeclaredMethod("header");
+            var owner = row.getClass().getDeclaredMethod("owner");
+            header.setAccessible(true);
+            owner.setAccessible(true);
+            if (header.invoke(row) != null) {
+                headers.add(((net.minecraft.network.chat.Component) header.invoke(row)).getString());
+                headerOwners.add(owner.invoke(row));
+            }
+        }
+        require(headers.equals(java.util.List.of("#" + firstGroup.instance().displayOrdinal(),
+                        "#" + secondGroup.instance().displayOrdinal()))
+                        && headerOwners.equals(java.util.List.of(firstGroup.avatar(), secondGroup.avatar())),
+                "one tab lists every instance under its own ordinal separator: " + headers);
+        require(draft.configuration().equals(before), "opening the merged tab does not persist factory defaults");
+        var switches = settings.children().stream()
+                .filter(widget -> widget.getClass().getSimpleName().equals("ControlSwitch"))
+                .map(top.aihmc.omnimorph.gui.widgets.SwitchButton.class::cast).toList();
+        var switchOwner = field(switches.getFirst().getClass(), "owner");
+        var firstSwitch = switches.stream().filter(widget -> {
+            try {
+                return switchOwner.get(widget) == firstGroup.avatar();
+            } catch (IllegalAccessException exception) {
+                throw new IllegalStateException(exception);
+            }
+        }).findFirst().orElseThrow();
+        var secondSwitch = switches.stream().filter(widget -> {
+            try {
+                return switchOwner.get(widget) == secondGroup.avatar();
+            } catch (IllegalAccessException exception) {
+                throw new IllegalStateException(exception);
+            }
+        }).findFirst().orElseThrow();
         secondSwitch.onPress(null);
         require(Boolean.FALSE.equals(draft.instance(second).controls().get("visible"))
+                        && !draft.instance(first).controls().containsKey("visible")
+                        && Boolean.FALSE.equals(secondGroup.avatar().cosmeticContext.controls().get("visible"))
+                        && !Boolean.FALSE.equals(firstGroup.avatar().cosmeticContext.controls().get("visible"))
+                        && Boolean.TRUE.equals(firstGroup.avatar().controls.getValue("visible")),
+                "the second instance's row edits only its own execution context and draft values");
+        firstSwitch.onPress(null);
+        require(Boolean.FALSE.equals(draft.instance(first).controls().get("visible"))
+                        && Boolean.FALSE.equals(firstGroup.avatar().controls.getValue("visible"))
                         && firstGroup.avatar().cosmeticContext != secondGroup.avatar().cosmeticContext,
-                "the second copy edits its own execution context and persistent draft values");
+                "the first instance's row on the same page edits its own owner");
+        var valid = draft.configuration();
         var scene = (top.aihmc.omnimorph.gui.widgets.EntityPreview) settings.children().stream()
                 .filter(top.aihmc.omnimorph.gui.widgets.EntityPreview.class::isInstance).findFirst().orElseThrow();
         require(field(scene.getClass(), "libraryPreview").get(scene) == session,
@@ -2838,7 +2881,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 .findFirst().orElseThrow().controls());
         draft.setControls(second, before.instances().stream().filter(instance -> instance.instanceId().equals(second))
                 .findFirst().orElseThrow().controls());
-        System.out.println("PASS cosmetic settings: native reused controls/group selector, two-copy values, draft persistence, "
+        System.out.println("PASS cosmetic settings: native reused controls/resource tabs with ordinal separators, two-copy values, draft persistence, "
                 + "retained preview, definition versions and stale/disabled/closed callback rejection; GUI MANUAL/PENDING");
     }
 
@@ -3046,7 +3089,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             baseControls.height = 360;
             build.invoke(baseControls);
             require(field(top.aihmc.omnimorph.gui.screens.AvatarControlsScreen.class, "avatar").get(baseControls)
-                            == session.outfitBase() && field(baseControls.getClass(), "group").get(baseControls) == null,
+                            == session.outfitBase() && field(baseControls.getClass(), "resource").get(baseControls) == null,
                     "base controls keep their real preview Avatar instead of editing the first cosmetic");
             baseControls.onClose();
             require(minecraft.screen == preview && session.outfitComposition() == composition,

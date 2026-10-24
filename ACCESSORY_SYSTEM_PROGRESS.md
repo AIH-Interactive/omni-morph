@@ -1238,3 +1238,11 @@ alpha4-publish-disabled-diagnostics-build.log：libraryPreviewRuntimeSmokeTest�
 用户拖尾 cosmetics/test（两实例，挂 tail4→seg42→seg12）不渲染。附带错误原文的诊断显示：`script:43 PARTICLE_DYNAMIC_LIGHT_COUNT_LIMIT`（newCustomParticle 链式调用中的 setDynamicLight，用户开启了“动态光源”控件）。两实例各约 6 颗存活粒子共约 12 > 默认每穿戴者 8，第 9 颗开灯时 CustomParticle.setLightSettings 向脚本抛错，装饰被标记 scriptError 后停止，拖尾全部消失；而每帧策略对同一超限只 disableLightFromPolicy。
 
 用户决定：引擎降级。仅“容量已满”（PARTICLE_DYNAMIC_LIGHT_COUNT_LIMIT）时保留粒子与亮度/半径设置但不发光、不抛错；服务端禁用/上限为 0（PARTICLE_DYNAMIC_LIGHT_DISABLED）、亮度/半径越界、世界不可用仍报错。未越界分配光源，符合契约第 472 行。ParticleLightNativeSmokeTest/PreviewParticleNativeSmokeTest 的满额断言改为“粒子存活且未发光、计数不变”。alpha4-particle-light-degrade-final.log PASS（40秒：ysmMaterialNativeSmokeTest 含粒子套件、libraryPreviewRuntimeSmokeTest、fabric:build）。另：装饰脚本错误诊断现附 Lua 原文（4fb3cade）。真实游戏 MANUAL/PENDING。JAR 18277479 字节，SHA256 2e4154919adf7e90dbbea6150cc491d9b860523b8b2afab2e02cd50940699f2b。
+
+## 2026-10-24：装饰专用设置改为按装饰资源分 tab、同页按实例编号分界
+
+用户要求把顶部逐实例下拉框（如 `test1 #3`）改为按 tab 选择：同一装饰资源只占一个 tab，同页列出其全部实例，用 `#编号`（displayOrdinal）分界。AvatarControlsScreen 新增 `controlSections()`（默认仅当前形象，形象设置页与 OutfitControlsScreen 行为不变），行列表带所属 Avatar；每个控件/重置/按键绑定/“重置所有”在回调期间把 `avatar` 绑定到该行所属实例，因此 controlsActive、validateControl/draft.validateControls 与 saveCosmeticControls 均作用于该行自己的实例。CosmeticControlsScreen 用 `resourceTabs` 按 `instance().resource()` 归组（保持组合顺序），tab 名为装饰名（WardrobeScreen.cosmeticResourceName，去掉旧 cosmeticControlName）；“重置所有”覆盖当前 tab 全部实例；右侧草稿预览与动作轮盘入口（wheelParent）不变。
+
+测试（testCosmeticControls）：真实两个同资源实例→1 个装饰名 tab；`resourceTabs` 对两同资源+一个其他资源（合成组）→2 个有序 tab；同页两段分隔 `#1`/`#2` 各绑定自己的 Avatar；按第二实例的开关只改第二实例的 cosmeticContext.controls() 与草稿，再按第一实例只改第一实例。旧“切换后旧控件不能改别的实例”断言因同页多实例设计移除，禁用/关闭后拒绝回调仍保留。三实例跨资源的真实组合未在夹具中构建，tab 归组由合成组验证。
+
+门禁：build/reports/outfit/alpha4-cosmetic-resource-tabs.log：libraryPreviewRuntimeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS（18 秒）；git diff --check PASS。JAR 18282405 字节，SHA256 b5cdc8915041c5820a68ebe66120efced3167eef62f44fcbb528c38fd65611d5。真实窗口界面（tab 排布、分隔标题、CJK、tab 过多时溢出）MANUAL/PENDING；tab 数量很多时无横向滚动，记为跟进。

@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-24（Asia/Seoul，发布按钮禁用诊断已推送；重进后装饰不可见完成 Figura/YSM 真实数据模拟，待真实绘制计数）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
+更新时间：2026-10-24（Asia/Seoul，装饰专用设置已改为按装饰资源分 tab、同页按实例编号分界，自动门禁 PASS，真实窗口 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
 
 ## 接续入口与约束
 
@@ -250,3 +250,9 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 
 拖尾 test 不渲染根因：动态光源满额时 setDynamicLight 向脚本抛 PARTICLE_DYNAMIC_LIGHT_COUNT_LIMIT 使装饰停止；按用户选择改为满额时粒子不发光、不报错（配置类错误仍报错）。见 ACCESSORY_SYSTEM_PROGRESS.md 末节。JAR SHA256 2e4154919adf7e90dbbea6150cc491d9b860523b8b2afab2e02cd50940699f2b。额度：5 小时 48%、周 19%。
 仍待用户：①重新部署后端 master@afef2cc5 并发布一次以替换 test/test1/test2 的空副本；②验证拖尾粒子显示（开启动态光源时超额粒子不发光属预期）。后续项：手动挂点“未解析”误报；诊断日志待确认后评估移除。
+
+## 最新：装饰专用设置按资源分 tab（2026-10-24）
+
+- 已完成并通过自动门禁：CosmeticControlsScreen 顶部按装饰资源分 tab，同页按 `#displayOrdinal` 分段列出该资源全部实例；每行回调绑定所属实例（校验/保存/重置）。详见 ACCESSORY_SYSTEM_PROGRESS.md 末节与 build/reports/outfit/alpha4-cosmetic-resource-tabs.log。
+- 未验证：真实窗口界面 MANUAL/PENDING；跨资源三实例只用合成组验证归组。跟进：tab 过多时无横向滚动。
+- 下一步：用户在真实游戏中打开衣柜装饰专用设置确认排布与编辑归属。

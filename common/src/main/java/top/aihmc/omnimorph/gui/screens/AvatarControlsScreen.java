@@ -41,9 +41,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public class AvatarControlsScreen extends Screen {
     private static final int ROW_HEIGHT = 26;
+    private static final int SECTION_HEADER_HEIGHT = 22;
     private static final int WHEEL_ROW_HEIGHT = 42;
     private static final int HEADER_HEIGHT = 52;
     private static final int TAB_HEIGHT = 28;
@@ -54,10 +56,12 @@ public class AvatarControlsScreen extends Screen {
     private final Screen parentScreen;
     protected Avatar avatar;
     private String page;
-    private final List<AvatarControlDefinition> controls = new ArrayList<>();
+    private List<ControlSection> sections = List.of();
+    private final List<ControlRow> rows = new ArrayList<>();
     private final List<String> pages = new ArrayList<>();
     private final List<ControlSlider> sliders = new ArrayList<>();
     private AvatarControlDefinition focusedKeybind;
+    private Avatar focusedKeybindOwner;
     private EntityPreview preview;
     private ContextMenu openDropdown;
     private int scroll;
@@ -72,6 +76,12 @@ public class AvatarControlsScreen extends Screen {
     private boolean focusedWheelKeybindToggle;
     private final Map<String, ItemStack> wheelItemCache = new HashMap<>();
     private boolean buildingControls;
+
+    /** One owner's controls on the page; a non-null header separates owners that share the page. */
+    protected record ControlSection(Avatar owner, Component header) {}
+
+    /** A rendered row: either a section header ({@code control == null}) or one control of {@code owner}. */
+    private record ControlRow(Avatar owner, Component header, AvatarControlDefinition control) {}
 
     public AvatarControlsScreen(Screen parentScreen, Avatar avatar, String page) {
         super(FiguraText.of("gui.controls.title"));
@@ -115,12 +125,14 @@ public class AvatarControlsScreen extends Screen {
     }
 
     private void buildControls() {
-        avatar.controls.hydrateLiveValues(avatar);
+        sections = List.copyOf(controlSections());
+        for (ControlSection section : sections)
+            section.owner().controls.hydrateLiveValues(section.owner());
         this.clearWidgets();
         pageTabs.clear();
         pageTabScrollbar = null;
         sliders.clear();
-        controls.clear();
+        rows.clear();
         pages.clear();
         openDropdown = null;
         collectPages();
@@ -131,25 +143,26 @@ public class AvatarControlsScreen extends Screen {
         if (isWheelPage()) {
             addWheelEditorWidgets();
         } else {
-            for (AvatarControlDefinition control : avatar.controls.all()) {
-                if (page.equals(control.page()) && control.targetPage() == null)
-                    controls.add(control);
-            }
+            collectRows();
         }
 
         int controlsWidth = controlsWidth();
         int controlsX = controlsX();
         int y = contentTop() - scroll;
-        for (AvatarControlDefinition control : controls) {
-            int widgetX = controlsX + controlsWidth - 238;
-            int widgetWidth = 180;
-            addControlWidget(widgetX, y + 3, widgetWidth, control);
-            if (canReset(control))
-                this.addRenderableWidget(new Button(widgetX + widgetWidth + 8, y + 3, 42, 20, FiguraText.of("gui.controls.reset"), null, button -> {
-                    setControlValue(control, control.getDefault());
-                    rebuild();
-                }));
-            y += rowHeight(control);
+        for (ControlRow row : rows) {
+            AvatarControlDefinition control = row.control();
+            if (control != null) {
+                Avatar owner = row.owner();
+                int widgetX = controlsX + controlsWidth - 238;
+                int widgetWidth = 180;
+                addControlWidget(widgetX, y + 3, widgetWidth, owner, control);
+                if (canReset(control))
+                    this.addRenderableWidget(new Button(widgetX + widgetWidth + 8, y + 3, 42, 20, FiguraText.of("gui.controls.reset"), null, button -> {
+                        setControlValue(owner, control, control.getDefault());
+                        rebuild();
+                    }));
+            }
+            y += rowHeight(row);
         }
 
         if (previewWidth() > 0) {
@@ -170,9 +183,11 @@ public class AvatarControlsScreen extends Screen {
                 refreshYsmWheel();
                 return;
             }
-            for (var control : List.copyOf(avatar.controls.all())) {
-                if (canReset(control)) {
-                    setControlValue(control, control.getDefault());
+            for (ControlSection section : sections) {
+                for (var control : List.copyOf(section.owner().controls.all())) {
+                    if (canReset(control)) {
+                        setControlValue(section.owner(), control, control.getDefault());
+                    }
                 }
             }
             rebuild();
@@ -184,6 +199,27 @@ public class AvatarControlsScreen extends Screen {
     }
 
     protected void buildAdditionalControls() {
+    }
+
+    /** The owners shown together on this page; the plain avatar settings show only {@link #avatar}. */
+    protected List<ControlSection> controlSections() {
+        return List.of(new ControlSection(avatar, null));
+    }
+
+    private void collectRows() {
+        for (ControlSection section : sections) {
+            List<AvatarControlDefinition> pageControls = new ArrayList<>();
+            for (AvatarControlDefinition control : section.owner().controls.all()) {
+                if (page.equals(control.page()) && control.targetPage() == null)
+                    pageControls.add(control);
+            }
+            if (pageControls.isEmpty())
+                continue;
+            if (section.header() != null)
+                rows.add(new ControlRow(section.owner(), section.header(), null));
+            for (AvatarControlDefinition control : pageControls)
+                rows.add(new ControlRow(section.owner(), null, control));
+        }
     }
 
     protected boolean controlsActive() {
@@ -217,28 +253,45 @@ public class AvatarControlsScreen extends Screen {
         page = "root";
         scroll = 0;
         focusedKeybind = null;
+        focusedKeybindOwner = null;
         rebuild();
     }
 
-    private boolean setControlValue(AvatarControlDefinition control, Object value) {
-        if (!controlsActive() || avatar.controls.get(control.id()) != control
-                || buildingControls && avatar.cosmeticContext != null) {
-            return false;
-        }
-        boolean changed;
+    /**
+     * Runs a control callback with {@link #avatar} bound to the control's owner, so the activity,
+     * validation, apply and save hooks all address the instance whose row was edited.
+     */
+    private <T> T asControlOwner(Avatar owner, Supplier<T> action) {
+        Avatar selected = avatar;
+        avatar = owner;
         try {
-            validateControlChange(control, value);
-            changed = applyControlValue(control, value);
-        } catch (IllegalArgumentException invalid) {
-            if (avatar.cosmeticContext == null) {
-                throw invalid;
+            return action.get();
+        } finally {
+            avatar = selected;
+        }
+    }
+
+    private boolean setControlValue(Avatar owner, AvatarControlDefinition control, Object value) {
+        return asControlOwner(owner, () -> {
+            if (!controlsActive() || avatar.controls.get(control.id()) != control
+                    || buildingControls && avatar.cosmeticContext != null) {
+                return false;
             }
-            return false;
-        }
-        if (changed) {
-            controlsChanged();
-        }
-        return changed;
+            boolean changed;
+            try {
+                validateControlChange(control, value);
+                changed = applyControlValue(control, value);
+            } catch (IllegalArgumentException invalid) {
+                if (avatar.cosmeticContext == null) {
+                    throw invalid;
+                }
+                return false;
+            }
+            if (changed) {
+                controlsChanged();
+            }
+            return changed;
+        });
     }
 
     @Override
@@ -246,26 +299,29 @@ public class AvatarControlsScreen extends Screen {
         minecraft.setScreen(parentScreen);
     }
 
-    private void addControlWidget(int x, int y, int width, AvatarControlDefinition control) {
+    private void addControlWidget(int x, int y, int width, Avatar owner, AvatarControlDefinition control) {
         AvatarControlType type = control.type();
         switch (type) {
-            case TOGGLE -> addToggle(x, y, width, control);
-            case SLIDER -> addSlider(x, y + 5, width, control);
-            case ENUM -> addEnum(x, y, width, control);
-            case COLOR -> addTextInput(x, y, width, control, TextField.HintType.HEX_COLOR, true);
-            case TEXT -> addTextInput(x, y, width, control, TextField.HintType.ANY, false);
-            case NUMBER -> addTextInput(x, y, width, control, TextField.HintType.FLOAT, false);
-            case KEYBIND -> addKeybind(x, y, width, control);
+            case TOGGLE -> addToggle(x, y, width, owner, control);
+            case SLIDER -> addSlider(x, y + 5, width, owner, control);
+            case ENUM -> addEnum(x, y, width, owner, control);
+            case COLOR -> addTextInput(x, y, width, owner, control, TextField.HintType.HEX_COLOR, true);
+            case TEXT -> addTextInput(x, y, width, owner, control, TextField.HintType.ANY, false);
+            case NUMBER -> addTextInput(x, y, width, owner, control, TextField.HintType.FLOAT, false);
+            case KEYBIND -> addKeybind(x, y, width, owner, control);
             case BUTTON -> this.addRenderableWidget(new Button(x, y, width, 20, FiguraText.of(control.targetPage() == null ? "gui.controls.run" : "gui.controls.open"), null, button -> {
                 if (control.targetPage() != null) {
                     page = control.targetPage();
                     scroll = 0;
                     rebuild();
                 } else {
-                    if (controlsActive() && avatar.controls.get(control.id()) == control) {
-                        pressControl(control);
-                        controlsChanged();
-                    }
+                    asControlOwner(owner, () -> {
+                        if (controlsActive() && avatar.controls.get(control.id()) == control) {
+                            pressControl(control);
+                            controlsChanged();
+                        }
+                        return null;
+                    });
                 }
             }));
             default -> {
@@ -273,33 +329,33 @@ public class AvatarControlsScreen extends Screen {
         }
     }
 
-    private void addToggle(int x, int y, int width, AvatarControlDefinition control) {
-        this.addRenderableWidget(new ControlSwitch(x + Math.max(0, width - 92), y, 92, 20, control));
+    private void addToggle(int x, int y, int width, Avatar owner, AvatarControlDefinition control) {
+        this.addRenderableWidget(new ControlSwitch(x + Math.max(0, width - 92), y, 92, 20, owner, control));
     }
 
-    private void addSlider(int x, int y, int width, AvatarControlDefinition control) {
-        ControlSlider slider = new ControlSlider(x, y, width, 20, control);
+    private void addSlider(int x, int y, int width, Avatar owner, AvatarControlDefinition control) {
+        ControlSlider slider = new ControlSlider(x, y, width, 20, owner, control);
         sliders.add(slider);
         this.addRenderableWidget(slider);
     }
 
-    private void addEnum(int x, int y, int width, AvatarControlDefinition control) {
-        this.addRenderableWidget(new ControlDropdown(x, y, width, control));
+    private void addEnum(int x, int y, int width, Avatar owner, AvatarControlDefinition control) {
+        this.addRenderableWidget(new ControlDropdown(x, y, width, owner, control));
     }
 
-    private void addTextInput(int x, int y, int width, AvatarControlDefinition control, TextField.HintType hint, boolean colorPreview) {
+    private void addTextInput(int x, int y, int width, Avatar owner, AvatarControlDefinition control, TextField.HintType hint, boolean colorPreview) {
         TextField field = new TextField(x, y, width, 20, hint, ignored -> {});
         field.getField().setValue(valueText(control));
         field.getField().setResponder(text -> {
             boolean accepted;
             if (control.type() == AvatarControlType.NUMBER) {
                 try {
-                    accepted = setControlValue(control, Double.parseDouble(text));
+                    accepted = setControlValue(owner, control, Double.parseDouble(text));
                 } catch (NumberFormatException ignored) {
                     accepted = false;
                 }
             } else {
-                accepted = setControlValue(control, text);
+                accepted = setControlValue(owner, control, text);
             }
             field.setBorderColour(accepted ? 0xffffffff : 0xffff5555);
         });
@@ -308,9 +364,10 @@ public class AvatarControlsScreen extends Screen {
         this.addRenderableWidget(field);
     }
 
-    private void addKeybind(int x, int y, int width, AvatarControlDefinition control) {
+    private void addKeybind(int x, int y, int width, Avatar owner, AvatarControlDefinition control) {
         this.addRenderableWidget(new Button(x, y, width, 20, Component.literal(keybindText(control)), null, button -> {
             focusedKeybind = control;
+            focusedKeybindOwner = owner;
             button.setMessage(Component.literal("> press key <"));
         }));
     }
@@ -323,9 +380,11 @@ public class AvatarControlsScreen extends Screen {
     }
 
     private boolean hasResettableControls() {
-        for (AvatarControlDefinition control : avatar.controls.all()) {
-            if (canReset(control))
-                return true;
+        for (ControlSection section : sections) {
+            for (AvatarControlDefinition control : section.owner().controls.all()) {
+                if (canReset(control))
+                    return true;
+            }
         }
         return false;
     }
@@ -339,11 +398,13 @@ public class AvatarControlsScreen extends Screen {
         if (focusedKeybind != null) {
             if (keyEvent.key() == 256) {
                 focusedKeybind = null;
+                focusedKeybindOwner = null;
                 rebuild();
                 return true;
             }
-            setControlValue(focusedKeybind, "key." + keyEvent.key());
+            setControlValue(focusedKeybindOwner, focusedKeybind, "key." + keyEvent.key());
             focusedKeybind = null;
+            focusedKeybindOwner = null;
             rebuild();
             return true;
         }
@@ -359,8 +420,9 @@ public class AvatarControlsScreen extends Screen {
             openDropdown = null;
         }
         if (focusedKeybind != null && event.button() != 0) {
-            setControlValue(focusedKeybind, "mouse." + event.button());
+            setControlValue(focusedKeybindOwner, focusedKeybind, "mouse." + event.button());
             focusedKeybind = null;
+            focusedKeybindOwner = null;
             rebuild();
             return true;
         }
@@ -410,24 +472,31 @@ public class AvatarControlsScreen extends Screen {
             renderDropdown(gui, mouseX, mouseY, delta);
             return;
         }
-        if (controls.isEmpty()) {
+        if (rows.isEmpty()) {
             UIHelper.renderOutlineText(gui, minecraft.font, FiguraText.of("gui.controls.empty"), controlsX + 10, contentTop() + 8, 0xAAAAAA, 0);
             return;
         }
 
         int y = contentTop() - scroll;
-        for (AvatarControlDefinition control : controls) {
+        for (ControlRow row : rows) {
+            AvatarControlDefinition control = row.control();
+            if (control == null) {
+                if (y > contentTop() - SECTION_HEADER_HEIGHT && y < height - FOOTER_HEIGHT)
+                    renderSectionHeader(gui, row.header(), controlsX + 10, y);
+                y += rowHeight(row);
+                continue;
+            }
             if (y > contentTop() - ROW_HEIGHT && y < height - FOOTER_HEIGHT) {
                 renderControlLabel(gui, control, controlsX + 10, y);
                 String description = control.getDescription();
                 if (description != null && !description.isBlank() && mouseX >= controlsX
-                        && mouseX < controlsX + controlsWidth && mouseY >= y && mouseY < y + rowHeight(control)) {
+                        && mouseX < controlsX + controlsWidth && mouseY >= y && mouseY < y + rowHeight(row)) {
                     gui.setTooltipForNextFrame(minecraft.font, Component.literal(description), mouseX, mouseY);
                 }
                 if (control.type() == AvatarControlType.COLOR)
                     renderColorPreview(gui, controlsX + controlsWidth - 214, y + 5, valueText(control));
             }
-            y += rowHeight(control);
+            y += rowHeight(row);
         }
         renderDropdown(gui, mouseX, mouseY, delta);
     }
@@ -437,6 +506,12 @@ public class AvatarControlsScreen extends Screen {
             return;
         gui.nextStratum();
         openDropdown.extractRenderState(gui, mouseX, mouseY, delta);
+    }
+
+    private void renderSectionHeader(GuiGraphicsExtractor gui, Component header, int x, int y) {
+        UIHelper.renderOutlineText(gui, minecraft.font, header, x, y + 6, 0xFFFFD27F, 0);
+        int lineX = x + minecraft.font.width(header) + 8;
+        gui.fill(lineX, y + 10, x + controlsWidth() - 20, y + 11, 0x66FFFFFF);
     }
 
     private void renderControlLabel(GuiGraphicsExtractor gui, AvatarControlDefinition control, int x, int y) {
@@ -510,16 +585,18 @@ public class AvatarControlsScreen extends Screen {
         return Math.max(28f, Math.min(54f, previewHeight() / 4.2f));
     }
 
-    private int rowHeight(AvatarControlDefinition control) {
-        return control.type() == AvatarControlType.SEPARATOR ? 18 : ROW_HEIGHT;
+    private int rowHeight(ControlRow row) {
+        if (row.control() == null)
+            return SECTION_HEADER_HEIGHT;
+        return row.control().type() == AvatarControlType.SEPARATOR ? 18 : ROW_HEIGHT;
     }
 
     private int maxScroll() {
         if (isWheelPage())
             return Math.max(0, wheelActions().size() * WHEEL_ROW_HEIGHT - Math.max(0, height - wheelEditorListTop() - FOOTER_HEIGHT));
         int content = 0;
-        for (AvatarControlDefinition control : controls)
-            content += rowHeight(control);
+        for (ControlRow row : rows)
+            content += rowHeight(row);
         return Math.max(0, content - Math.max(0, height - contentTop() - FOOTER_HEIGHT));
     }
 
@@ -534,8 +611,10 @@ public class AvatarControlsScreen extends Screen {
 
     private void collectPages() {
         addPage("root");
-        for (AvatarControlDefinition control : avatar.controls.all())
-            addPage(control.page());
+        for (ControlSection section : sections) {
+            for (AvatarControlDefinition control : section.owner().controls.all())
+                addPage(control.page());
+        }
         if (includeWheelEditor() && avatar.getYsmRuntime() != null && !wheelActions().isEmpty())
             addPage(YSM_WHEEL_PAGE);
     }
@@ -611,11 +690,13 @@ public class AvatarControlsScreen extends Screen {
             return FiguraText.of("gui.controls.wheel").getString();
         if ("root".equals(id))
             return FiguraText.of("gui.controls.settings").getString();
-        for (AvatarControlDefinition control : avatar.controls.all()) {
-            if (id.equals(control.targetPage()))
-                return control.getTitle();
-            if (id.equals(control.page()) && control.type() == AvatarControlType.LABEL)
-                return control.getTitle();
+        for (ControlSection section : sections) {
+            for (AvatarControlDefinition control : section.owner().controls.all()) {
+                if (id.equals(control.targetPage()))
+                    return control.getTitle();
+                if (id.equals(control.page()) && control.type() == AvatarControlType.LABEL)
+                    return control.getTitle();
+            }
         }
         return id;
     }
@@ -1273,13 +1354,15 @@ public class AvatarControlsScreen extends Screen {
     }
 
     private class ControlSlider extends SliderWidget {
+        private final Avatar owner;
         private final AvatarControlDefinition control;
         private double lastValue = Double.NaN;
 
-        private ControlSlider(int x, int y, int width, int height, AvatarControlDefinition control) {
+        private ControlSlider(int x, int y, int width, int height, Avatar owner, AvatarControlDefinition control) {
             super(x, y, width, height, progress(control), steps(control), steps(control) <= 21);
+            this.owner = owner;
             this.control = control;
-            if (avatar.cosmeticContext != null) {
+            if (owner.cosmeticContext != null) {
                 lastValue = currentValue();
             }
         }
@@ -1307,7 +1390,7 @@ public class AvatarControlsScreen extends Screen {
             }
             if (Double.isNaN(lastValue) || Math.abs(lastValue - value) > 0.0001d) {
                 lastValue = value;
-                setControlValue(control, value);
+                setControlValue(owner, control, value);
             }
         }
 
@@ -1321,10 +1404,12 @@ public class AvatarControlsScreen extends Screen {
     }
 
     private class ControlSwitch extends SwitchButton {
+        private final Avatar owner;
         private final AvatarControlDefinition control;
 
-        private ControlSwitch(int x, int y, int width, int height, AvatarControlDefinition control) {
+        private ControlSwitch(int x, int y, int width, int height, Avatar owner, AvatarControlDefinition control) {
             super(x, y, width, height, Boolean.TRUE.equals(control.getValue()) ? SwitchButton.ON : SwitchButton.OFF, Boolean.TRUE.equals(control.getValue()));
+            this.owner = owner;
             this.control = control;
             setUnderline(false);
         }
@@ -1332,7 +1417,7 @@ public class AvatarControlsScreen extends Screen {
         @Override
         public void onPress(InputWithModifiers inputWithModifiers) {
             boolean next = !isToggled();
-            if (!setControlValue(control, next)) {
+            if (!setControlValue(owner, control, next)) {
                 return;
             }
             setMessage(next ? SwitchButton.ON : SwitchButton.OFF);
@@ -1359,13 +1444,13 @@ public class AvatarControlsScreen extends Screen {
         private final AvatarControlDefinition control;
         private final ContextMenu context;
 
-        private ControlDropdown(int x, int y, int width, AvatarControlDefinition control) {
+        private ControlDropdown(int x, int y, int width, Avatar owner, AvatarControlDefinition control) {
             super(x, y, width, 20, Component.literal(valueText(control)), null, button -> ((ControlDropdown) button).toggleDropdown());
             this.control = control;
             this.context = new ContextMenu(this, width);
             for (String option : control.options()) {
                 this.context.addAction(Component.literal(control.optionLabel(option)), null, button -> {
-                    if (!setControlValue(control, option)) {
+                    if (!setControlValue(owner, control, option)) {
                         return;
                     }
                     this.setMessage(Component.literal(control.optionLabel(option)));
