@@ -139,7 +139,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
                     if (outfitPose != null) {
                         OutfitNativeRenderer.draw(outfit, outfitPose, state,
                                 ((FiguraEntityRenderStateExtension) state).figura$getTickDelta(), entityToDraw,
-                                bufferSource, OutfitRenderBinding.renderMode(state));
+                                bufferSource, EntityRenderMode.RENDER);
                     }
                 }
                 return null;
@@ -175,7 +175,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
                 float delta = ((FiguraEntityRenderStateExtension) livingEntityRenderState).figura$getTickDelta();
                 ((FiguraSubmitCallBackExtension) playerModel).figura$addPreRenderingCallback((buffers, pose) -> {
                     OutfitNativeRenderer.drawVanilla(outfit, playerModel, livingEntityRenderState, delta,
-                            entityToDraw, pose.last().pose(), buffers, OutfitRenderBinding.renderMode(livingEntityRenderState));
+                            entityToDraw, pose.last().pose(), buffers, EntityRenderMode.RENDER);
                     return true;
                 });
             }
@@ -298,7 +298,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
                 } else {
                     var basePose = outfit.captureFiguraBase(avatar, new Matrix4f(lastPs).invert(), drawBase);
                     OutfitNativeRenderer.draw(outfit, basePose, livingEntityState, tickDelta, lastPs, bufferSource,
-                            OutfitRenderBinding.renderMode(livingEntityState));
+                            EntityRenderMode.RENDER);
                 }
 
                 // Submit deferred items using fresh pivot transforms from commonRender()

@@ -1317,3 +1317,10 @@ alpha4-publish-disabled-diagnostics-build.log：libraryPreviewRuntimeSmokeTest�
 修复：`Avatar.worldRender` 对世界空间绘制始终更新矩阵（`update = true`，保留 renderMode 的保存/恢复）。这样第三人称身体绘制期间基础的 part-to-world 矩阵每帧更新；第一人称仍由 `OutfitFirstPersonScripts` 单独开启。
 
 验证：alpha4-worldrender-matrix-gate.log（libraryPreviewRuntimeSmokeTest、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS 55 秒）；git diff --check PASS。新包 JAR 18299954 字节，SHA256 60898ea06ad81117a728a6a1b7a7f65374aeca31b8241d6aa384c17f86d779bb，已覆盖安装。真实客户端复测 MANUAL/PENDING。
+## 2026-10-25：世界预览泄漏导致第三人称矩阵冻结（第三轮）
+
+用户补充关键线索：“点一下装饰就这样了”“重进存档后恢复正常”。这说明点击装饰后激活了本地草稿预览，预览绑定（`LibraryPreviewBinding`）泄漏到世界身体绘制；身体绘制用 `OutfitRenderBinding.renderMode(state)` 时返回 `FIGURA_GUI`，于是 `allowMatrixUpdate` 关闭，基础/装饰的 part-to-world 矩阵冻结，拖尾停在旧点、光源停在旧位置。重进存档后预览绑定清空，模式恢复 RENDER，所以“恢复正常”。
+
+修复：`LivingEntityRendererMixin` 的三处世界身体绘制（YSM 基础、vanilla 基础、Figura 基础）不再从状态绑定推断模式，统一使用 `EntityRenderMode.RENDER`；GUI 预览仍由 `LibraryFiguraPreviewRenderer` 显式传 `FIGURA_GUI`。配合此前 `worldRender` 始终更新矩阵、第一人称基础矩阵更新，覆盖三种路径。
+
+验证：alpha4-worldpreview-mode-gate.log（libraryPreviewRuntimeSmokeTest、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS 58 秒）；git diff --check PASS。新包 JAR 18299953 字节，SHA256 53f087c92adcf4aed0a1d6e7af00b749bfabd594379fec843c5f1bd063db64e5，已覆盖安装。真实客户端复测 MANUAL/PENDING。
