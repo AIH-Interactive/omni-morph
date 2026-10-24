@@ -84,3 +84,11 @@ PASS：alpha4-local-draft-final.log（35秒/23 tasks），配装/骨骼树/正�
 MANUAL/PENDING：安装新 JAR 重启并进服，第一人称左右手及排除分支模型不崩溃；分别从已启用形象和新选形象配装、立即切装饰/调整位置/关闭衣柜观察世界；第二客户端不得看到草稿；提交后应收到正式同步。授权骨骼显示策略保持；作者隐藏或无骨骼资源显示状态项。真实 GPU、GUI、动态光源/性能及原有睡姿等未验项不标 PASS。
 
 产物 18268287 字节，SHA256 f264e8a4a9b39be19b9b0aaea1c56afa9c1fb0f5d3a04e83ba06925dc99327a8。未覆盖用户 mods；按当前主分支检查点交付。
+
+## 2026-10-24：骨骼树右键取消挂载
+
+新增骨骼树装饰实例/内部骨骼的右键“取消挂载”，定位所属实例 UUID，复用 removeDraftInstance 和现有依赖删除确认；基础形象骨骼不提供该入口，陈旧菜单不影响其他副本。操作仅修改本地草稿并刷新预览，提交才写云端。
+
+alpha4-tree-unmount-final.log：libraryPreviewRuntimeSmokeTest 与 fabric:build PASS（47秒/21 tasks）；覆盖内部骨骼取消所属实例、保留另一副本和重复旧菜单无效。git diff --check PASS。真实GUI右键/世界显示 MANUAL/PENDING。main基线18fe80ff，随后检查点提交推送；无后端/版本/架构变化。
+
+JAR18269043字节，SHA256 ffff06e3d734922f6833ea4c319ad88a39583a681c57c39e8b0c99219b0e8a8a。额度剩5%已触发交接，AGENT_HANDOFF.md由用户指定gpt-6-luna整理，主Agent核对。无新开发工作。

@@ -1130,3 +1130,11 @@ openCreateMenu 只注册菜单但未设置位置/可见；ContextMenu 默认隐�
 主仓库 main，提交前基线79d2026e；本轮源码/测试/语言/3份记录纳入随后提交推送，最终以 git HEAD 与远端 main 一致性为准。后端 master 未修改，原 build.log/spm-cloud 保留；不新建分支、不改版本。最终 JAR：fabric/build/libs/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar，18268287 字节，SHA256 f264e8a4a9b39be19b9b0aaea1c56afa9c1fb0f5d3a04e83ba06925dc99327a8。日志在 build/reports/outfit/。本轮无运行中构建。
 
 额度安全检查点：Plus 5小时剩余10%、周剩余9%，重置 UTC 秒1792825679/1793382104；进入预警，没有启动新阶段，尚未到≤5% Luna交接阈值。正常完成手册由当前 Agent 更新。后续到阈值才授权 gpt-6-luna 整理本文，失败则先保存最小事实。约束仍为 main 提交推送、JDK25、前台 PowerShell Tee 日志、有限范围、人工项不得标 PASS。
+
+## 2026-10-24：骨骼树右键取消挂载
+
+新增骨骼树装饰实例/内部骨骼的右键“取消挂载”，定位所属实例 UUID，复用 removeDraftInstance 和现有依赖删除确认；基础形象骨骼不提供该入口，陈旧菜单不影响其他副本。操作仅修改本地草稿并刷新预览，提交才写云端。
+
+alpha4-tree-unmount-final.log：libraryPreviewRuntimeSmokeTest 与 fabric:build PASS（47秒/21 tasks）；覆盖内部骨骼取消所属实例、保留另一副本和重复旧菜单无效。git diff --check PASS。真实GUI右键/世界显示 MANUAL/PENDING。main基线18fe80ff，随后检查点提交推送；无后端/版本/架构变化。
+
+JAR18269043字节，SHA256 ffff06e3d734922f6833ea4c319ad88a39583a681c57c39e8b0c99219b0e8a8a。额度剩5%已触发交接，AGENT_HANDOFF.md由用户指定gpt-6-luna整理，主Agent核对。无新开发工作。

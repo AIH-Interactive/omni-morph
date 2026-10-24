@@ -2387,5 +2387,6 @@
   "omni-morph.gui.wardrobe.preview_waiting": "Waiting for preview drawing…",
   "omni-morph.gui.wardrobe.preview_unresolved": "Mount unresolved: choose a valid bone",
   "omni-morph.gui.wardrobe.preview_mounted": "Mounted",
-  "omni-morph.gui.wardrobe.local_preview_missing": "This resource is not cached. Acquire it in your collection before editing locally."
+  "omni-morph.gui.wardrobe.local_preview_missing": "This resource is not cached. Acquire it in your collection before editing locally.",
+  "omni-morph.gui.wardrobe.instance_unmount": "Unmount accessory"
 }

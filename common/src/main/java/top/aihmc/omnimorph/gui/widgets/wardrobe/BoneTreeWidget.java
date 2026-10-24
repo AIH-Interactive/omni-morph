@@ -26,6 +26,11 @@ public final class BoneTreeWidget extends AbstractList {
     private int horizontalMaximum;
     private long modelVersion;
     private final java.util.function.Consumer<top.aihmc.omnimorph.model.library.OutfitHierarchy.Target> selectionChanged;
+    private java.util.function.BiConsumer<top.aihmc.omnimorph.model.library.OutfitHierarchy.Target, MouseButtonEvent> contextAction;
+
+    public void setContextAction(java.util.function.BiConsumer<top.aihmc.omnimorph.model.library.OutfitHierarchy.Target, MouseButtonEvent> action) {
+        contextAction = action;
+    }
 
     public BoneTreeWidget(int x, int y, int width, int height, BoneTreeState state) {
         this(x, y, width, height, state, null);
@@ -176,7 +181,7 @@ public final class BoneTreeWidget extends AbstractList {
         if (super.mouseClicked(event, doubleClick)) {
             return true;
         }
-        if (!isInsideScissors(event.x(), event.y()) || event.button() != 0) {
+        if (!isInsideScissors(event.x(), event.y()) || event.button() != 0 && event.button() != 1) {
             return false;
         }
         int index = ((int) event.y() - getY() - 28 + offset()) / ROW_HEIGHT;
@@ -187,6 +192,12 @@ public final class BoneTreeWidget extends AbstractList {
         var row = state.rows().get(index);
         state.select(row.node().id());
         notifySelection();
+        if (event.button() == 1) {
+            if (contextAction != null) {
+                contextAction.accept(state.selectedTarget(), event);
+            }
+            return true;
+        }
         int arrowX = getX() + 4 + indent(row) - horizontalOffset();
         if (row.expandable() && event.x() >= arrowX && event.x() < arrowX + 14) {
             state.toggle(row.node().id());
