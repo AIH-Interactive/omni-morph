@@ -17,12 +17,14 @@
 | 2 解析/原生渲染/Lua 实例 | 自动验收 PASS；人工项按用户要求跳过 | PASS | MANUAL/PENDING：真实游戏/GPU/性能矩阵 | main@7d26956，远端 SHA 已核对；后端无改动 |
 | 3 挂载/骨骼/拖尾/粒子 | 自动验收 PASS；含 CustomParticle 和 Ribbon 增量要求 | PASS | MANUAL/PENDING：真实游戏/GUI/GPU/光照/性能，按用户要求跳过 | main/master 阶段三检查点，见本阶段验收记录 |
 | 4 衣柜/投稿/预设/创建 | 自动验收 PASS；人工项按用户要求跳过 | PASS：最终 Fabric 构建、阶段四测试组、语言键、后端全量 | MANUAL/PENDING：真实窗口/CJK/GPU/双客户端 | main@6ec3b09 / master@1117d0e 已推送，远端 SHA 均已核对 |
-| 5 原子应用/权限/同步 | 自动验收 PASS，局部收敛；原子应用、观察者、实例状态及恢复接通，apply/events 已开启 | PASS，见下方最终检查点 | MANUAL/PENDING：真实 Minecraft 双客户端、窗口/GPU/光照/性能，移交 S6 | 当前 main/master 检查点待提交推送 |
-| 6 整体验收/性能/交付 | NOT STARTED | PENDING | MANUAL/PENDING：第 10 节真实渲染/性能矩阵 | PENDING |
+| 5 原子应用/权限/同步 | 自动验收 PASS，局部收敛；原子应用、观察者、实例状态及恢复接通，apply/events 已开启 | PASS，见下方最终检查点 | MANUAL/PENDING：真实 Minecraft 双客户端、窗口/GPU/光照/性能，移交 S6 | main@508656b8 / master@656652e 已推送并核对远端 SHA |
+| 6 整体验收/性能/交付 | 自动验收与测试包完成；alpha.4，真实未验限制明确 | PASS：1分47秒/39 tasks；JAR清单/依赖/42资源/hash校验 | MANUAL/PENDING：第 10 节真实渲染/性能矩阵，见 docs/ALPHA4_ACCEPTANCE.md | main 检查点待提交推送；后端沿用已推送 656652e |
 
 人工项只标记未验证，不冒充 PASS，也不宣称 alpha.4 全部完成。
 
 ### 当前范围与执行收口（2026-10-24）
+
+阶段六检查点：S5 main@508656b8/master@656652e 均已推送并核对 SHA 后开始。仅调整 alpha.4 版本、四语 README/更新日志、验收记录与交接；未改业务架构。`stage6-fabric-acceptance.log` PASS（1分47秒/39 tasks），`stage6-artifact-check.log` PASS（19内嵌依赖、42默认资源逐字节、清单与运行时类）。测试包与 SHA256 见 `docs/ALPHA4_ACCEPTANCE.md`。第10节真实游戏/GUI/GPU/光照及0/1/8/32性能矩阵全部明确 MANUAL/PENDING，不伪造帧时间或阈值。自动部分完成后不增加验收门槛；当前提交推送后，按用户原要求处理三项全局 YSM Bug。
 
 最新用户确认采用局部收敛，继续原 S5。以下最终检查点覆盖本节历史“未接入”快照；缓存辅助整理、批量授权与额外进程恢复均列后续优化，不构成完成条件。
 
