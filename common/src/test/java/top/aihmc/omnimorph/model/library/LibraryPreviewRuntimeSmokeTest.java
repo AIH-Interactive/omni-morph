@@ -1338,6 +1338,41 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     var acquired = transfers.preview(entry.modelId());
                     await(acquired.request().future(), drain);
                     int acquiredDetails = server.details.get();
+                    // Collection summaries omit byte_length; acquired sources must still serve local edits.
+                    var detail = server.model();
+                    var summary = new top.aihmc.omnimorph.backend2.library.LibraryModels.Model(detail.modelId(),
+                            detail.revision(), detail.policyRevision(), detail.displayName(), detail.internalName(),
+                            detail.authors(), detail.uploader(), detail.modelType(), detail.imageRevision(),
+                            detail.imageAvailable(), detail.downloads(), detail.favorites(), detail.favorited(),
+                            detail.visibility(), detail.requiresAuthorization(), detail.allowedActions(),
+                            detail.description(), detail.categoryId(), detail.tags(), detail.moderationStatus(),
+                            0L, 0L, detail.metadataSource(), detail.metadataValidation(), detail.resourceKind(),
+                            detail.accessoryMetadata());
+                    require(await(new CloudCosmeticSource(client, transfers, minecraft::execute)
+                                    .selectCached(summary).future().handle((value, failure) -> failure), drain) == null
+                                    && server.details.get() == acquiredDetails && server.files.get() == 1,
+                            "a collection summary without byte length reuses the acquired source offline");
+                    byte[] formalBytes = new byte[(int) detail.byteLength()];
+                    java.util.Arrays.fill(formalBytes, (byte) 7);
+                    var formalCache = new LibraryResourceCache(cache, client.session());
+                    Path encryptedFormal = Files.createTempFile(cache, "formal-", ".part");
+                    new top.aihmc.omnimorph.model.cache.ModelCacheCodec(cache).write(encryptedFormal, formalBytes);
+                    UUID formalTransferId = UUID.randomUUID();
+                    var formalTransfer = new top.aihmc.omnimorph.backend2.library.LibraryModels.Transfer(formalTransferId,
+                            "download", detail.revision(), detail.policyRevision(),
+                            "/api/library/v1/transfers/" + formalTransferId,
+                            java.time.Instant.now().getEpochSecond() + 600);
+                    formalCache.publish(detail, formalCache.stage(detail, encryptedFormal, formalBytes,
+                            top.aihmc.omnimorph.backend2.protocol.CloudHttp.sha256(formalBytes), formalTransfer));
+                    require(java.util.Arrays.equals(formalCache.read(summary), formalBytes)
+                                    && formalCache.present(summary),
+                            "a formally cached resource is readable from a collection summary without byte length");
+                    Path mismatchedFormal = Files.createTempFile(cache, "formal-", ".part");
+                    new top.aihmc.omnimorph.model.cache.ModelCacheCodec(cache).write(mismatchedFormal, formalBytes);
+                    formalCache.publish(detail, formalCache.stage(detail, mismatchedFormal, formalBytes,
+                            "0".repeat(64), formalTransfer));
+                    require(formalCache.read(summary) == null,
+                            "a summary without byte length still rejects a package whose hash differs from its index");
                     var select = type.getDeclaredMethod("selectCloud", entry.getClass());
                     select.setAccessible(true);
                     select.invoke(screen, entry);

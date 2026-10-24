@@ -126,3 +126,9 @@ S1～S6 自动实施已收口并推送。后端仅原有未跟踪 build.log、sp
 自动验证已完成并通过：`build/reports/outfit/alpha4-tree-unmount-final.log` 显示 `BUILD SUCCESSFUL in 47s`、21 actionable tasks（10 executed、11 up-to-date）；其中 `:common:libraryPreviewRuntimeSmokeTest` 与 `:fabric:build` 均通过。前台构建日志为根目录 `build.log`，包含相同成功结果。日志中的 remap/deprecation 提示未导致构建失败。真实窗口/世界视觉验证未执行，必须保持 MANUAL/PENDING。
 
 最小下一步：主 Agent 按用户已有授权检查本次 `git status`/`git diff`，将本检查点相关代码/测试/语言文件及进度、验收、交接文档一并提交并推送当前 `main`，确认远端 `main` SHA 与本地 HEAD 一致，然后停止；没有其他实施任务。不得新建/切换分支或扩张范围。后续仍遵守 JDK 25、所有构建/测试前台 PowerShell `2>&1 | Tee-Object -FilePath "build.log"` 并立即检查 `$LASTEXITCODE`、禁止 Qt offscreen、保留真实 GUI 人工待验状态和后端原未跟踪数据。
+
+## 当前有效交接：摘要缺长度导致配装误报未缓存（2026-10-24）
+
+本节覆盖上方“最小下一步”。骨骼树取消挂载检查点已推送 main@eee74801。随后修复用户报告的“已缓存却提示未缓存”：形象集摘要 byteLength=0，cachedPreview/LibraryResourceCache.read 改为长度未知时依赖索引长度与 SHA256，revision/policy 照旧校验。RED/最终日志 alpha4-summary-cache-red.log / alpha4-summary-cache-final.log（PASS，1分1秒/23 tasks）。JAR 18269101 字节，SHA256 2be284c4b2fad6a2a52bff3e7f73cceb254d9a06f62e0dee064dce9ec77ca8bd。本修复随后提交推送 main，以 HEAD 与 origin/main 一致为准。
+
+最小下一步：用户换新包重启，在配装中选中已缓存云端形象/装饰确认可加载；真实 GUI/世界/双客户端等仍 MANUAL/PENDING。后端未改；`.omc/` 未跟踪保留。额度当前不可读取，未推测。

@@ -1138,3 +1138,11 @@ openCreateMenu 只注册菜单但未设置位置/可见；ContextMenu 默认隐�
 alpha4-tree-unmount-final.log：libraryPreviewRuntimeSmokeTest 与 fabric:build PASS（47秒/21 tasks）；覆盖内部骨骼取消所属实例、保留另一副本和重复旧菜单无效。git diff --check PASS。真实GUI右键/世界显示 MANUAL/PENDING。main基线18fe80ff，随后检查点提交推送；无后端/版本/架构变化。
 
 JAR18269043字节，SHA256 ffff06e3d734922f6833ea4c319ad88a39583a681c57c39e8b0c99219b0e8a8a。额度剩5%已触发交接，AGENT_HANDOFF.md由用户指定gpt-6-luna整理，主Agent核对。无新开发工作。
+
+## 2026-10-24：已缓存云端资源在配装中误报未缓存
+
+用户报告形象集显示“已缓存”，配装选中时却提示“该资源尚未缓存”。根因：形象集列表摘要不返回 byte_length（客户端为0），本地编辑的 cachedPreview 和 LibraryResourceCache.read 却要求缓存长度等于摘要长度，任何从形象集选中的云端资源都必然判为未命中；present() 只比 revision，所以列表显示已缓存。已用用户实际缓存核对：AI Hobbyist Founder 的 resource 文件解密后长度42711、SHA256 与索引一致，摘要 byteLength=0。
+
+修复：摘要长度为0时跳过长度比较，仍校验 revision/policyRevision 及索引长度+SHA256；详情模型（正式下载已要求 byteLength≥1）行为不变。未改后端/协议/版本，编辑仍零 HTTP。
+
+alpha4-summary-cache-red.log 复现 RED；alpha4-summary-cache-final.log PASS（1分1秒/23 tasks）：libraryPreviewRuntimeSmokeTest、cosmeticSourceSmokeTest、outfitApplyClientSmokeTest、fabric:build；覆盖摘要模型离线复用已获取资源、正式缓存摘要读取、哈希不符仍拒绝。真实客户端配装加载 MANUAL/PENDING。JAR 18269101字节，SHA256 2be284c4b2fad6a2a52bff3e7f73cceb254d9a06f62e0dee064dce9ec77ca8bd。

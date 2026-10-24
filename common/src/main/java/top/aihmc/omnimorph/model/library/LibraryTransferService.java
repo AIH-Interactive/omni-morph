@@ -90,7 +90,8 @@ public final class LibraryTransferService {
                 }
             }
         }
-        if (bytes == null || bytes.length != model.byteLength()) {
+        // Collection summaries carry no byte length; cached packages were already hash-verified on read.
+        if (bytes == null || model.byteLength() > 0 && bytes.length != model.byteLength()) {
             throw new IOException("LOCAL_PREVIEW_CACHE_MISS");
         }
         client.session().requireCurrent();
