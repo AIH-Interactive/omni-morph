@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-25（Asia/Seoul，按 refs/Figura 恢复上游包名、设置 upstream；自动门禁 PASS，真实客户端混入画面 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
+更新时间：2026-10-25（Asia/Seoul，平台模块统一 top.aihmc.omnimorph，仅 common 保留上游包名；fabric 构建 PASS，真实客户端混入画面 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
 
 ## 接续入口与约束
 
@@ -403,3 +403,10 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 验证：三个 smoke test PASS；`:fabric:build` PASS；`git diff --check` 无错误。JAR 18306318 字节，SHA256 54a38f6d30849a390ea55fec401dc8df14b4f4f01240b2c4094d95902927a890，已安装。提交 f91dcc7f，HEAD=origin/main。
 - 未验证/跟进：真实客户端 mixin 加载与画面 MANUAL/PENDING；forge/neoforge 未在 settings.gradle 启用，未构建；`refs/Figura` 是快照，路径映射不覆盖重命名重写的类（如 `ImmediateFiguraRenderer` 视为新代码保留 top）；`patch/`、`.omc/` 未跟踪。
 重建说明（2026-10-25 08:50）：在上游包名提交与交接提交之后重新执行 `:fabric:build` 并覆盖安装。最终 JAR 18306319 字节，SHA256 a14e53343e0055df983b41c233863d50f715192578e1efb8d8dda79ee4dabfd3（内嵌版本 1.0.0-alpha.4+26.1.2-5d7e28f9）。代码与 f91dcc7f 相同，仅构建元数据更新。
+## 当前有效交接：平台模块包名统一（2026-10-25）
+
+- 最终规则：**common** 中与 `refs/Figura` 同相对路径的 386 个上游文件保留 `org.figuramc.figura`；fabric/forge/neoforge 的 **全部** 平台代码（22 个类，含 mixin 与平台实现）使用 `top.aihmc.omnimorph`。仅 fabric 参与编译（settings.gradle 只含 common/fabric），forge/neoforge 只做包名/引用同步。
+- 入口与 mixin：fabric 入口 `top.aihmc.omnimorph.fabric.FiguraModFabric`；平台 mixin 已并入 `omni-morph.mixins.json`（fabric package `top.aihmc.omnimorph.mixin.fabric` 5 项；forge 6 项），`figura.mixins.json` 已删除；common 上游 mixin 仍在 `figura-common.mixins.json`（78 项，package `org.figuramc.figura.mixin`），common 新 mixin 在 `omni-morph-common.mixins.json`。
+- common 对平台的反射/ExpectPlatform FQN 与测试 stub 已回到 top（`FiguraModMetadata` 加载 `top.aihmc.omnimorph.utils.fabric.FiguraModMetadataImpl`）。
+- 验证：`libraryPreviewRuntimeSmokeTest`、`ysmMaterialNativeSmokeTest`、`outfitApplyClientSmokeTest` PASS；`:fabric:build` PASS；`git diff --check` 无错误。JAR 18306329 字节，SHA256 756e9e0bc863bd552e832e51afec902b4263c80ee595aeb7c861d1a7f2c3fb6a，已安装。提交 bbc7c2e5，HEAD=origin/main。
+- upstream remote：`upstream https://github.com/FiguraMC/Figura.git`；**未 fetch/pull**。`patch/`、`.omc/` 未跟踪。真实客户端 mixin/画面仍 MANUAL/PENDING；forge/neoforge 未构建。

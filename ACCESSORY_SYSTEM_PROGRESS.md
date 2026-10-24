@@ -1352,3 +1352,11 @@ alpha4-publish-disabled-diagnostics-build.log：libraryPreviewRuntimeSmokeTest�
 - 上游 remote 已添加为 `upstream https://github.com/FiguraMC/Figura.git`，**未执行 fetch/pull**。
 - 验证：`libraryPreviewRuntimeSmokeTest`、`ysmMaterialNativeSmokeTest`、`outfitApplyClientSmokeTest` PASS；`:fabric:build` PASS；`git diff --check` 无错误。JAR 18306318 字节，SHA256 54a38f6d30849a390ea55fec401dc8df14b4f4f01240b2c4094d95902927a890，已安装。
 - 提交 f91dcc7f。真实客户端混入/GUI 画面 MANUAL/PENDING；`refs/Figura` 与未启用的 forge/neoforge 模块未拉取/未构建。
+## 2026-10-25：平台模块统一回到 top.aihmc.omnimorph
+
+- 按要求：只有 **common** 保留上游 `org.figuramc.figura` 包；fabric/forge/neoforge 的 22 个平台类（含平台 mixin、元数据/工具实现）全部移回 `top.aihmc.omnimorph`，仅修改包名与引用。
+- fabric 入口恢复 `top.aihmc.omnimorph.fabric.FiguraModFabric`；平台 mixin 合并回 `omni-morph.mixins.json`（fabric 5 项 / forge 6 项，package `top.aihmc.omnimorph.mixin.fabric|forge`），删除 `figura.mixins.json`；fabric.mod.json、forge/build.gradle、neoforge.mods.toml 同步。common 的 `figura-common.mixins.json` 保留 78 项上游 mixin。
+- common 内对平台类的反射/ExpectPlatform 字符串与测试 stub 同步回到 top；`FiguraModMetadata` 的 fabric 实现 FQN 改为 `top.aihmc.omnimorph.utils.fabric.FiguraModMetadataImpl`。
+- 仅编译 fabric（forge/neoforge 不在 settings.gradle，按“其余只改包名”处理）；平台 org 目录与旧包空目录共删除 32 个。
+- 验证：三个 smoke test PASS；`:fabric:build` PASS；`git diff --check` 无错误。JAR 18306329 字节，SHA256 756e9e0bc863bd552e832e51afec902b4263c80ee595aeb7c861d1a7f2c3fb6a，已安装。提交 bbc7c2e5，HEAD=origin/main。
+- 真实客户端混入加载 MANUAL/PENDING；`patch/`、`.omc/` 未跟踪；upstream remote 仍未 fetch/pull。
