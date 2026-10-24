@@ -166,6 +166,7 @@ public final class OutfitComposition implements AutoCloseable {
     }
     private final Set<UUID> editableInstances = new HashSet<>();
     private final Map<UUID, UUID> automaticTailSelections = new HashMap<>();
+    private final Set<String> diagnosed = new HashSet<>();
     private final Map<UUID, TrailBuffer> trails = new HashMap<>();
     private long frameSequence;
 
@@ -974,6 +975,9 @@ public final class OutfitComposition implements AutoCloseable {
                 for (var target : StandardAnchors.resolve(skeleton, configuration.base() == null, name)) {
                     result.add(new BoneHandle(target.bone(), target.offset()));
                 }
+                if (result.size() != 1) {
+                    diagnose("standard anchor '" + name + "' matched " + result.size() + " base bones");
+                }
             }
             return result;
         }
@@ -1040,8 +1044,12 @@ public final class OutfitComposition implements AutoCloseable {
             }
             SkeletonPose pose = bone.reference.instanceId() == null ? activeFrame.basePose
                     : activeFrame.instancePoses.get(bone.reference.instanceId());
-            return pose == null ? null : pose.matrix(bone.reference)
-                    .map(matrix -> FiguraMat4.of().set(matrix.mul(bone.offset.modelMatrix()))).orElse(null);
+            var matrix = pose == null ? null : pose.matrix(bone.reference)
+                    .map(value -> FiguraMat4.of().set(value.mul(bone.offset.modelMatrix()))).orElse(null);
+            if (matrix == null) {
+                diagnose("mount bone has no captured matrix this frame");
+            }
+            return matrix;
         }
 
         @LuaWhitelist
@@ -1103,9 +1111,23 @@ public final class OutfitComposition implements AutoCloseable {
                 return true;
             }
             if (bone.reference.instanceId() == null) {
-                return activeFrame.basePose.defines(bone.reference);
+                boolean defined = activeFrame.basePose != null && activeFrame.basePose.defines(bone.reference);
+                if (!defined) {
+                    diagnose("base bone unresolved: path=" + bone.reference.path().size() + " segments, anchorHash="
+                            + bone.reference.skeletonHash().substring(0, 12) + ", baseHash="
+                            + (activeFrame.basePose == null ? "<no base pose>"
+                            : activeFrame.basePose.definition().hash().substring(0, 12)));
+                }
+                return defined;
             }
             return exportedBones.getOrDefault(bone.reference.instanceId(), Set.of()).contains(bone.reference);
+        }
+
+        /** Diagnostic only: each distinct mount failure is logged once per composition. */
+        private void diagnose(String reason) {
+            if (diagnosed.add(reason)) {
+                top.aihmc.omnimorph.FiguraMod.LOGGER.warn("Outfit accessory not drawn: {}", reason);
+            }
         }
 
         private Avatar initialized(String id) {
@@ -1146,6 +1168,7 @@ public final class OutfitComposition implements AutoCloseable {
                     ysm.updateAnimations(activeFrame.renderState, activeFrame.viewWearer);
                 }
                 if (avatar.scriptError) {
+                    diagnose("accessory script error during prepare");
                     return false;
                 }
                 var overrides = boneOverrides.get(avatar.cosmeticContext.instanceId());
@@ -1162,6 +1185,7 @@ public final class OutfitComposition implements AutoCloseable {
                 }
                 return true;
             } catch (MolangExecutionBudget.Exceeded exhausted) {
+                diagnose("accessory instruction budget exhausted during prepare");
                 return false;
             } finally {
                 avatar.renderMode = previousMode;
