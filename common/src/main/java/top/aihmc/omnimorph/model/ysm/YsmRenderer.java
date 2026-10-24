@@ -47,9 +47,15 @@ public class YsmRenderer {
         this.runtime = runtime;
     }
 
-    /** Root rotation shared by the body, held items and attached outfit frame. */
+    /** Entity root transform shared by the body, held items and attached outfit frame. */
     public static void applyEntityRotation(PoseStack stack, LivingEntityRenderState state, float bodyYaw) {
         if (state.hasPose(Pose.SLEEPING)) {
+            if (state.bedOrientation != null) {
+                // Vanilla performs this before setupRotations; our HEAD interception skips it.
+                float offset = state.eyeHeight - 0.1f;
+                stack.translate(-state.bedOrientation.getStepX() * offset, 0f,
+                        -state.bedOrientation.getStepZ() * offset);
+            }
             float angle = state.bedOrientation == null ? bodyYaw : switch (state.bedOrientation) {
                 case SOUTH -> 90f;
                 case WEST -> 0f;
