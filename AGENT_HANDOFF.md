@@ -144,3 +144,5 @@ S1～S6 自动实施已收口并推送。后端仅原有未跟踪 build.log、sp
 YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后装饰消失：服务器已保存（提交前有 currentOutfit 相等校验），怀疑登录 OWNER 恢复未装入本地（NetworkStuff.restoreOwner 在选中本地形象文件时跳过，且多数失败无日志）。本轮只加 WARN 诊断日志，未改语义；详见 ACCESSORY_SYSTEM_PROGRESS.md 末节。JAR SHA256 ea5bce28b183d52f2f9c5442df641a5664c9f2787549bd096c0068185b930e55。
 
 最小下一步：用户新包提交→退出重进→提供 latest.log 中 “Outfit owner restore” 行；据此决定修复（跳过条件或具体失败）。未经日志证实不改恢复语义。云端 YSM 显示仍 MANUAL/PENDING。额度不可读取。
+
+更新（同日）：用户装入诊断包 ea5bce28 复现后，两条诊断均未出现，说明恢复停在其他无日志分支。已扩展为全分支追踪（协调器创建、能力未就绪、库选择仍活动、本地形象文件、身份不匹配、服务器无配装、读取期间选择变化、已加载、开始/完成、失败代码），仍不改语义。alpha4-owner-restore-trace.log PASS（40秒/22 tasks）。JAR 18270283 字节，SHA256 ab4895c0686b761e6929c59887f79e38fca969d4c4cbe94fbd7585b9ef0e4091。下一步：用户复现后搜索 “Outfit owner restore”。
