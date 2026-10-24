@@ -224,3 +224,17 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 验证：alpha4-reported-accessory-figura-sim.log、alpha4-reported-accessory-ysm-sim.log、alpha4-reported-accessory-gate.log（不设变量跳过新用例），libraryPreviewRuntimeSmokeTest + fabric:build PASS。main 提交前基线 fe1546db；本轮仅测试与文档，未改生产代码/版本/后端。JAR 18274044 字节，SHA256 53eeb4300c5daef44fad481175c64af84186bc6422ea1de12b9b14dd08517048（生产代码与诊断包 a24b157e 相同）。
 
 最小下一步：用户复现时确认装饰设置里的“Visible / 显示”是否为开；若为开仍不可见，再出按实例统计 draw 顶点的诊断包定位是隐藏还是位置/缩放。真实界面/世界仍 MANUAL/PENDING，不宣称已修复。
+
+## 当前有效交接：装饰逐实例绘制计数诊断包（2026-10-24 19:18）
+
+接续 73b968aa（他人已完成：配装页自动显示已提交配装 4ddaf955；发布按钮禁用原因诊断 fe1546db；真实数据重放 Figura/YSM 草稿与 OWNER 组合均绘制 test2 48 顶点）。额度可靠读取：Pro 5 小时 0%、周 13%。
+
+核对：cosmetic_controls:get 在控件已注册时回退默认值，只有控件未注册才返回 null，夹具读到 null 不能证明游戏内被隐藏。为一次复现同时区分“被隐藏”与“已绘制但位置/缩放异常”，OutfitNativeRenderer.drawInstance 在每个实例×渲染模式首次绘制时包一层计数 MultiBufferSource，结束后记录一次 “Outfit accessory draw: mode=…, vertices=…, mountModelUnits=…, drawOrigin=…”；之后不再包装，不改绘制语义。vertices=0 → 被隐藏/空几何；>0 → 已绘制，看 drawOrigin 是否远离基础。
+
+验证：alpha4-accessory-draw-count-diagnostics.log PASS（1 分钟）：libraryPreviewRuntimeSmokeTest、outfitApplyClientSmokeTest、fabric:build；夹具中各实例均输出计数与坐标。JAR 18275337 字节，SHA256 7f0db04853c7f16c5606a9841a717dc6de51acd2fc22777b6f858c530c98b825，同时包含 fe1546db 的发布按钮诊断。
+
+最小下一步：用户换包，①确认 test2 设置里 “Visible / 显示” 为开；②手动挂到 Body，衣柜与世界各看一次；③提供 latest.log 中全部 “Outfit accessory draw” 与 “Outfit publish” 行。据此定位后再做最小修复并评估移除诊断。真实界面 MANUAL/PENDING。约束不变。
+
+更新（19:25）：用户日志确认游戏内 test2 每个实例在 RENDER 与 FIGURA_GUI 下 vertices=0（离线同数据 48），截图 WingRoot 显示 Gizmo（挂载位置已解析）。结论：装饰自身渲染输出 0 面；剩余两种可能：脚本隐藏（Visible/恢复控件值）或面数 allowance=0。新增仅在 0 顶点时记录一次 “Outfit accessory empty draw: complexityRemaining/max, complexityPermission, hiddenParts/total, rootVisible”。回归 PASS（alpha4-accessory-empty-draw-diagnostics.log，34秒），JAR 18276289 字节，SHA256 137d5dc22b0dacfc6e84109782ff42f71629fd08cdbcacbf6b112c7c2a4f0038。发布按钮日志显示正常门控（无改动时禁用、提交中忙碌），无异常。下一步：用户复现并提供 “Outfit accessory empty draw” 行与 Visible 开关状态。
+
+更新（19:30）：用户日志：test2 两实例在 RENDER/FIGURA_GUI 均 vertices=0，empty draw 显示 hiddenParts=0/8、rootVisible=true、实例自身 complexity 计数 2147483647/2147483647 未扣减——未被隐藏，且一个面都没提交。FiguraModelPart.pushVerticesImmediate 在组合共享额度（OutfitInstructionBudget.allowance：min(实例,基础权限) − 本帧共享已用，含由基础计数 max−remaining 导入的用量）≤0 时直接返回，与此一致。新增：共享额度对装饰为 0 时每实例记录一次 “Outfit accessory allowance exhausted: permission, accessoryMax, accessoryRemaining, basePermission, baseCounter=remaining/max, sharedUsed, observedBase”。回归 PASS（alpha4-accessory-allowance-diagnostics.log，30秒；现有预算夹具按预期触发），JAR 18276953 字节，SHA256 75c6bcdebc11e90b9aa13312a2cd67c1bd27729bd04517d80beff9be0e4f6014。下一步：用户复现并提供该前缀行；若触发即按数值修正额度计算，若不触发则排查纹理/渲染类型导致的面跳过。
