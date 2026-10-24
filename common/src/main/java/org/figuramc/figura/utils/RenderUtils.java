@@ -152,7 +152,7 @@ public class RenderUtils {
     @ExpectPlatform
     public static Identifier getPlayerSkinTexture(WingsLayer<?, ?> wingsLayer, HumanoidRenderState renderState) {
         try {
-            return (Identifier) Class.forName("org.figuramc.figura.utils.fabric.RenderUtilsImpl")
+            return (Identifier) Class.forName("top.aihmc.omnimorph.utils.fabric.RenderUtilsImpl")
                 .getMethod("getPlayerSkinTexture", WingsLayer.class, HumanoidRenderState.class).invoke(null, wingsLayer, renderState);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);

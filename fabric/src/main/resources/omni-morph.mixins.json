@@ -7,7 +7,8 @@
     "ElytraLayerAccessor",
     "GuiMixin",
     "HumanoidArmorLayerMixinFabric",
-    "LevelRendererMixinFabric"
+    "LevelRendererMixinFabric",
+    "CommandSuggestionsMixinFabric"
   ],
   "mixins": [],
   "injectors": {
