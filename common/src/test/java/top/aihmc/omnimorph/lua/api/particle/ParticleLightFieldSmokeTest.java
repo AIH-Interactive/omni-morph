@@ -30,6 +30,11 @@ final class ParticleLightFieldSmokeTest {
         var overlapping = new ParticleLightField.Snapshot(world, List.of(
                 new ParticleLightField.Source(Vec3.ZERO, 4, 8), new ParticleLightField.Source(Vec3.ZERO, 15, 8)));
         require(overlapping.apply(world, 0, 0, 0, 0) == 240, "overlap uses maximum light rather than unbounded addition");
+        require(snapshot.luminanceAt(0, 0, 0) == 15.0 && snapshot.luminanceAt(4, 0, 0) == 7.5,
+                "continuous luminance matches the falloff shared with the LambDynamicLights bridge");
+        require(snapshot.luminanceAt(8, 0, 0) == 0.0 && snapshot.luminanceAt(Double.NaN, 0, 0) == 0.0,
+                "radius boundary and invalid probes emit no continuous light");
+        require(overlapping.luminanceAt(0, 0, 0) == 15.0, "bridge overlap uses the maximum source");
         var sections = new HashSet<ParticleLightField.Section>();
         new ParticleLightField.Source(new Vec3(.5, .5, .5), 15, 32).sections(sections::add);
         require(sections.size() <= 216 && sections.contains(new ParticleLightField.Section(0, 0, 0)),

@@ -80,6 +80,10 @@ public class FiguraMod {
         if (PlatformUtils.isModLoaded("iris")) {
             IrisCompat.assignPipelinesToIrisPrograms();
         }
+        if (!PlatformUtils.isModLoaded("lambdynlights")) {
+            LOGGER.warn("LambDynamicLights is not installed; particle dynamic lights fall back to the built-in "
+                    + "light field instead of the external dynamic light provider");
+        }
     }
 
     public static List<FiguraResourceListener> getResourceListeners() {

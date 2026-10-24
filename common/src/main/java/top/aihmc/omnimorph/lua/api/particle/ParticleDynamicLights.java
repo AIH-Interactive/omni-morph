@@ -31,8 +31,29 @@ public final class ParticleDynamicLights {
     private static boolean pending;
     private static volatile ParticleLightField.Snapshot published = new ParticleLightField.Snapshot(null, List.of());
     private static volatile ParticleLightField.Snapshot terrainPublished = published;
+    private static volatile long publishedVersion;
+    private static volatile boolean externalProvider;
 
     private ParticleDynamicLights() {
+    }
+
+    /** Read-only per-frame snapshot consumed by the optional LambDynamicLights bridge. */
+    public static ParticleLightField.Snapshot publishedSnapshot() {
+        return published;
+    }
+
+    /** Monotonic version of the published snapshot; the bridge uses it for {@code hasChanged()}. */
+    public static long publishedVersion() {
+        return publishedVersion;
+    }
+
+    /** When LambDynamicLights owns particle illumination, the built-in light field stops injecting light. */
+    public static void useExternalProvider(boolean external) {
+        externalProvider = external;
+    }
+
+    public static boolean externalProvider() {
+        return externalProvider;
     }
 
     /** Validation only: a full light capacity keeps the particle alive and simply leaves it unlit. */
@@ -163,9 +184,10 @@ public final class ParticleDynamicLights {
             entityField = Map.copyOf(interpolated);
             entityWorld = world;
             published = new ParticleLightField.Snapshot(world, List.copyOf(interpolated.values()));
+            publishedVersion++;
         }
         long tick = OutfitInstructionBudget.particleTick();
-        if (pending || terrainWorld != world || terrainTick != tick) {
+        if (!externalProvider && (pending || terrainWorld != world || terrainTick != tick)) {
             var dirty = new HashSet<ParticleLightField.Section>();
             if (terrainWorld == world) {
                 terrain.forEach((particle, source) -> {
@@ -194,12 +216,15 @@ public final class ParticleDynamicLights {
     }
 
     public static int apply(BlockAndLightGetter getter, BlockPos position, int original) {
+        if (externalProvider) {
+            return original;
+        }
         Object world = getter instanceof ClientLevel level ? level
                 : getter instanceof ParticleLightRegionAccessor region ? region.figura$lightLevel() : null;
         return terrainPublished.apply(world, position.getX() + .5, position.getY() + .5, position.getZ() + .5, original);
     }
 
     public static int apply(Object world, double x, double y, double z, int original) {
-        return published.apply(world, x, y, z, original);
+        return externalProvider ? original : published.apply(world, x, y, z, original);
     }
 }

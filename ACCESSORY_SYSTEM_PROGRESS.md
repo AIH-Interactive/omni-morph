@@ -1285,3 +1285,14 @@ alpha4-publish-disabled-diagnostics-build.log：libraryPreviewRuntimeSmokeTest�
 验证：真实数据门禁用例（环境变量数据）Figura 基础 + test2@Seg13：draft/owner/firstPersonWorld 均 27704（基础 27656，+48）；YSM 基础：63640（基础 63592，+48，回退根 Player_size）。日志 alpha4-first-person-scripts-figura.log / -ysm.log。门禁 alpha4-first-person-iris-gate.log：libraryPreviewRuntimeSmokeTest、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS（1 分 18 秒）；git diff --check PASS。真实第一人称画面与 Iris 光影仍 MANUAL/PENDING。
 
 限制/跟进：Figura 基础每帧多一次丢弃身体绘制（未评估性能，后续可做矩阵-only 捕获）；手部挂点实例会在第一人称手臂帧和身体脚本帧各跑一次脚本（拖尾脚本按 tick 去重）；configuration.base==null 的 vanilla 基础暂不重放。JAR 18296237 字节，SHA256 b7b098c2d58595b5c536e1b2199a81186f27b482fd62171b2feffeabbffb2f90。main 提交前基线 56fb83df；后端未改。
+## 2026-10-25：LambDynamicLights 粒子动态光源桥接
+
+用户选择方案 A：真正注册到 LambDynamicLights（LDL），且不改动 LDL 代码。实现仅使用其公开 API，并把 LDL 作为粒子动态光源的前置；未安装时仅警告一次。
+
+- 依赖：Gegy Maven `dev.lambdaurora.lambdynamiclights:lambdynamiclights-api:4.11.2+26.1.2`，compileOnly（不打包进产物，运行时由已安装的 LDL 提供 JiJ API）。
+- 入口：fabric.mod.json 新增 `lambdynlights:initializer` → `LambDynamicLightsCompat`；通过 `DynamicLightsContext.dynamicLightBehaviorManager().add(...)` 注册单个 `ParticleLightBehavior`，覆盖当前帧全部粒子光源。
+- 行为：`lightAtPos` 复用 `ParticleLightField.Snapshot.luminanceAt`（level×(1−distance/radius)，半径截止，取最大值），包围盒覆盖全部光源并加 1 格 padding；`hasChanged` 使用快照版本号。
+- 世界切换：LDL 的 `onChangeWorld` 会清空 behavior 源，故在 `MinecraftMixin.setLevel` RETURN 且检测到 LDL 时重新注册。
+- 双倍光照：LDL 存在时 `ParticleDynamicLights.useExternalProvider(true)`，内置光场停止注入并停止区块标脏；LDL 缺席时启动打印一次警告，继续使用内置光场兜底。
+- 验证：ParticleLightFieldSmokeTest 新增连续亮度断言（中心 15、4 格 7.5、半径边界 0、无效值 0、重叠取最大）；alpha4-ldl-final-gate.log：libraryPreviewRuntimeSmokeTest、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS（54 秒）；git diff --check PASS。真实客户端 + Iris + LDL 光照画面 MANUAL/PENDING。
+- 产物：JAR 18299784 字节，SHA256 1a908bee7a262c17b274d30bbeca15b1163207ebb7b4c585fb363826e1d8ab47；确认 entrypoint 与两个 compat class 已打包、未打包 LDL API。main 提交前基线 3469d4cd；后端未改。
