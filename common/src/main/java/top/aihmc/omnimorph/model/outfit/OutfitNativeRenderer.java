@@ -66,18 +66,28 @@ public final class OutfitNativeRenderer {
                     : avatar.scriptError ? "instance script error" : "instance acceleration owner retired");
             return;
         }
+        // Diagnostic only: count this instance's submitted vertices once per instance and render mode.
+        String drawKey = System.identityHashCode(avatar) + ":draw:" + mode;
+        int[] drawnVertices = DIAGNOSED.contains(drawKey) ? null : new int[1];
+        MultiBufferSource target = drawnVertices == null ? buffers : countingBuffers(buffers, drawnVertices);
+        org.joml.Vector3f mountPosition = null;
+        org.joml.Vector3f drawOrigin = null;
         EntityRenderMode previous = avatar.renderMode;
         avatar.renderMode = mode;
         try {
             PoseStack stack = new PoseStack();
             Matrix4f mounted = new Matrix4f(entityToDraw).scale(1f / 16).mul(command.matrix());
+            if (drawnVertices != null) {
+                mountPosition = command.matrix().getTranslation(new org.joml.Vector3f());
+                drawOrigin = new Matrix4f(mounted).getTranslation(new org.joml.Vector3f());
+            }
             if (avatar.isYsmNative()) {
                 if (frame != null) {
                     frame.captureYsmInstance(command);
                 }
                 // YSM's original renderer consumes block-space geometry and keeps its own model scale.
                 stack.mulPose(mounted.scale(16));
-                avatar.getYsmRuntime().renderer().renderWithAttachments(stack, buffers, light, command.ysmPose());
+                avatar.getYsmRuntime().renderer().renderWithAttachments(stack, target, light, command.ysmPose());
                 avatar.postRenderEvent(delta, FiguraMat4.of());
             } else {
                 // Figura normally prepends T(0,1.5,0) * Rz(180) * S(1/16) to authored geometry.
@@ -91,7 +101,7 @@ public final class OutfitNativeRenderer {
                     wearer = avatar.luaRuntime == null ? null : avatar.luaRuntime.getUser();
                 }
                 command.figuraPose().draw(() -> {
-                    Runnable nativeDrawing = () -> avatar.render(wearer, 0, delta, 1, stack, buffers, light,
+                    Runnable nativeDrawing = () -> avatar.render(wearer, 0, delta, 1, stack, target, light,
                             OverlayTexture.NO_OVERLAY, null, PartFilterScheme.MODEL, false, false);
                     if (frame == null) {
                         nativeDrawing.run();
@@ -103,6 +113,32 @@ public final class OutfitNativeRenderer {
             }
         } finally {
             avatar.renderMode = previous;
+            if (drawnVertices != null && DIAGNOSED.add(drawKey)) {
+                top.aihmc.omnimorph.FiguraMod.LOGGER.warn(
+                        "Outfit accessory draw: mode={}, vertices={}, mountModelUnits={}, drawOrigin={}",
+                        mode, drawnVertices[0], mountPosition, drawOrigin);
+            }
         }
+    }
+
+    /** Diagnostic only: forwards every call and counts submitted vertices. */
+    private static MultiBufferSource countingBuffers(MultiBufferSource buffers, int[] vertices) {
+        return type -> {
+            var consumer = buffers.getBuffer(type);
+            return (com.mojang.blaze3d.vertex.VertexConsumer) java.lang.reflect.Proxy.newProxyInstance(
+                    OutfitNativeRenderer.class.getClassLoader(),
+                    new Class<?>[]{com.mojang.blaze3d.vertex.VertexConsumer.class}, (proxy, method, args) -> {
+                        if (method.getName().equals("addVertex")) {
+                            vertices[0]++;
+                        }
+                        Object result;
+                        try {
+                            result = method.invoke(consumer, args);
+                        } catch (java.lang.reflect.InvocationTargetException failure) {
+                            throw failure.getCause();
+                        }
+                        return result == consumer ? proxy : result;
+                    });
+        };
     }
 }
