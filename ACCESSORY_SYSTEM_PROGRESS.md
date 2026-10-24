@@ -1324,3 +1324,10 @@ alpha4-publish-disabled-diagnostics-build.log：libraryPreviewRuntimeSmokeTest�
 修复：`LivingEntityRendererMixin` 的三处世界身体绘制（YSM 基础、vanilla 基础、Figura 基础）不再从状态绑定推断模式，统一使用 `EntityRenderMode.RENDER`；GUI 预览仍由 `LibraryFiguraPreviewRenderer` 显式传 `FIGURA_GUI`。配合此前 `worldRender` 始终更新矩阵、第一人称基础矩阵更新，覆盖三种路径。
 
 验证：alpha4-worldpreview-mode-gate.log（libraryPreviewRuntimeSmokeTest、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS 58 秒）；git diff --check PASS。新包 JAR 18299953 字节，SHA256 53f087c92adcf4aed0a1d6e7af00b749bfabd594379fec843c5f1bd063db64e5，已覆盖安装。真实客户端复测 MANUAL/PENDING。
+## 2026-10-25：关闭衣柜时结束本地草稿预览（修复点装饰后拖尾/光源冻结）
+
+用户反馈“点一下装饰就这样、重进存档恢复”。代码路径：点击装饰（尤其 OUTFIT 页的装饰实例）会 previewOutfitDraft() → LocalOutfitPreview.show(...)，关闭衣柜时 WardrobeScreen.removed() 走 LocalOutfitPreview.detach(this)，把**草稿预览**继续留在世界里。草稿组合的粒子绑定的是 PreviewParticleScope（为 GUI 预览设计），世界绘制时 drawLocalParticles 仍以预览方式提取，拖尾/粒子停在预览姿态，粒子动态光源也不进入世界光场；重进存档清空预览后恢复。
+
+修复：emoved() 真实关闭时改为 LocalOutfitPreview.clear(this) 并 preview.close()，不再 detach。关闭衣柜后世界回到已提交（live）组合，与“重进存档”一致；衣柜打开时的 GUI/世界预览不受影响。若后续需要“关闭后仍在世界预览草稿”，应单独让草稿的粒子/光源走世界运行时，而不是复用 GUI 预览 scope。
+
+验证：alpha4-preview-close-gate.log（libraryPreviewRuntimeSmokeTest、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS 59 秒）；git diff --check PASS。新包 JAR 18299924 字节，SHA256 6ffee683f41a8872bdb4b9e5821aff7051c8900470f92499fe63118e8eaea486，已覆盖安装。真实客户端复测 MANUAL/PENDING。

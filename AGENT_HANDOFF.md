@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-25（Asia/Seoul，世界预览泄漏修复；自动门禁 PASS，真实客户端粒子/光源画面 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
+更新时间：2026-10-25（Asia/Seoul，关闭衣柜结束草稿世界预览；自动门禁 PASS，真实客户端粒子/光源画面 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
 
 ## 接续入口与约束
 
@@ -368,3 +368,12 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 验证：alpha4-worldpreview-mode-gate.log（libraryPreviewRuntimeSmokeTest、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS 58 秒）；git diff --check PASS。JAR 18299953 字节，SHA256 53f087c92adcf4aed0a1d6e7af00b749bfabd594379fec843c5f1bd063db64e5，已安装。真实客户端复测 MANUAL/PENDING。
 
 复测步骤：重启游戏（新包），点装饰触发预览，在第三人称走动，确认拖尾新段落跟随、动态光源随粒子；再关闭预览/重进存档确认无回归。若仍异常，记录点击的是哪个装饰、拖尾由基础还是装饰脚本生成，并抓 latest.log 中 `Outfit accessory draw` 的 mode 与 mountModelUnits。
+## 当前有效交接：关闭衣柜结束草稿世界预览（2026-10-25，第四轮）
+
+用户线索：“点一下装饰就这样”“重进存档恢复正常”。点击装饰（OUTFIT 页的装饰实例）会走 `previewOutfitDraft()` → `LocalOutfitPreview.show`；`WardrobeScreen.removed()` 原本在 `draftPreviewActive` 时 `detach`，把**草稿预览**保留在世界中。草稿组合绑定的是 `PreviewParticleScope`（GUI 预览用），世界绘制 `drawLocalParticles` 仍按预览方式提取，拖尾/粒子停在预览姿态，粒子动态光源也不进入世界光场；重进存档清空预览后恢复。
+
+修复：`removed()` 真实关闭时改为 `LocalOutfitPreview.clear(this)` + `preview.close()`，不再 detach。关闭后世界回到已提交组合；打开衣柜时的 GUI/世界预览不受影响。`removed()` 在 cosmetic 子界面打开时提前返回，所以子界面流程不变。`LocalOutfitPreview.detach` 现在无调用方（保留 API，未删）。
+
+验证：alpha4-preview-close-gate.log（libraryPreviewRuntimeSmokeTest、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS 59 秒）；git diff --check PASS。JAR 18299924 字节，SHA256 6ffee683f41a8872bdb4b9e5821aff7051c8900470f92499fe63118e8eaea486，已安装。真实客户端复测 MANUAL/PENDING。
+
+若用户希望“关闭衣柜后仍在世界看草稿”，不要恢复 detach；应让草稿实例在 RENDER 模式下把粒子/光源接入世界运行时（PreviewParticleScope 只用于 GUI），这是后续独立任务。复测：点任意装饰→关闭衣柜→第三人称走动，拖尾应跟随、光源应随粒子；若仍异常，请提供 latest.log 与本轮点击的装饰类型。
