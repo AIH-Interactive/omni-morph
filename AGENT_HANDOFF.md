@@ -265,3 +265,8 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 ## 当前有效交接：按基础形象分别保存装饰（2026-10-24 21:05）
 
 已完成：每个基础形象本机各记一套装饰（`LocalBaseOutfits`，`wardrobe-base-outfits.json`），衣柜配装页切换基础自动换上该形象的那套，首次选用为空；已提交基础无本机记录时用已提交配装；发布只提交当前基础与其装饰。详见 ACCESSORY_SYSTEM_PROGRESS.md 末节。自动门禁 PASS（alpha4-per-base-outfits.log）。未验证：真实游戏切换后装饰显示、恢复的云端装饰名称/预览，MANUAL/PENDING。额度：5 小时 78%、周 23%。
+
+## 当前有效交接：Figura 第一人称手臂崩溃与拖尾粒子（2026-10-24 21:15）
+
+- 已修：用户按 F5 切到第一人称崩溃 `INVALID_OUTFIT_CONFIGURATION` @ bindBaseBudget ← prepareFiguraBase ← PlayerRendererMixin.postRenderHand。与 351ef088 的 YSM 手臂同因：Figura 手臂用正式装备形象，组合预算属于本地配装预览形象。postRenderHand 有组合时改用 OutfitRenderBinding.avatar(outfitState)。门禁 alpha4-figura-arm-composition-base.log PASS（27 秒），JAR SHA256 f13159224a0bd41d64a68e11d1b6a40a0714c194b0057fb4ebacd485189998f9；真实游戏 MANUAL/PENDING。
+- 未解决：拖尾 `cosmetics/test` 仍无脚本粒子。用户日志 21:08 显示该装饰 vertices=0（hiddenParts 0/3，没有可绘制的方块），没有粒子或脚本错误日志，原因未定位。下一步：确认 test 的 script.lua 粒子 API 调用路径（CustomParticle/Ribbon）在组合实例中是否被调用，以及发布副本是否为空副本（需先重新部署后端 afef2cc5 后重新发布）。
