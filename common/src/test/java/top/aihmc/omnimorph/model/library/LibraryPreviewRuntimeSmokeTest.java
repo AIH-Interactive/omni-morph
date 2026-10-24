@@ -1700,6 +1700,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
         top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.clear();
         Path selectedBase = Files.createTempDirectory(root.getParent(), "selected-avatar-");
         Files.writeString(selectedBase.resolve("avatar.json"), "{\"name\":\"Selected outfit base\"}");
+        Path otherBase = Files.createTempDirectory(root.getParent(), "other-avatar-");
+        Files.writeString(otherBase.resolve("avatar.json"), "{\"name\":\"Other outfit base\"}");
         var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
         var type = screen.getClass();
         try (var preview = new LibraryPreviewSession()) {
@@ -1729,11 +1731,56 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(preview.outfitHierarchy() == hierarchy && preview.hierarchyRevision() == revision
                             && top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.active(),
                     "switching accessory candidates retains the current base and instance bone tree without rebuilding it");
+            testPerBaseOutfits(screen, chooseBase, chooseAccessory, add, accessory, selectedBase, otherBase, root, preview, drain);
         } finally {
             top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.clear();
             Files.deleteIfExists(selectedBase.resolve("avatar.json"));
             Files.deleteIfExists(selectedBase);
+            Files.deleteIfExists(otherBase.resolve("avatar.json"));
+            Files.deleteIfExists(otherBase);
         }
+    }
+
+    /** Each base keeps its own accessory set: anchors belong to one skeleton and must not follow another base. */
+    private static void testPerBaseOutfits(top.aihmc.omnimorph.gui.screens.WardrobeScreen screen,
+            java.lang.reflect.Method chooseBase, java.lang.reflect.Method chooseAccessory, java.lang.reflect.Method add,
+            top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory.Entry accessory,
+            Path baseA, Path baseB, Path root, LibraryPreviewSession preview, Runnable drain) throws Exception {
+        var type = screen.getClass();
+        var draft = (top.aihmc.omnimorph.model.outfit.OutfitDraft) field(type, "outfitDraft").get(screen);
+        var sources = new top.aihmc.omnimorph.avatar.local.LocalAvatarSource(FiguraMod.getFiguraDirectory());
+        var referenceA = sources.describe(baseA, () -> false);
+        var referenceB = sources.describe(baseB, () -> false);
+        var instancesA = draft.configuration().instances();
+        require(instancesA.size() == 1, "base A starts with its own accessory");
+
+        chooseBase.invoke(screen, new top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath(baseB, root));
+        await((CompletableFuture<?>) field(type, "changingDraftBase").get(screen), drain);
+        awaitDraftComposition(screen, preview, drain);
+        require(field(type, "outfitDraft").get(screen) == draft
+                        && draft.configuration().base().equals(referenceB)
+                        && draft.configuration().instances().isEmpty()
+                        && draft.configuration().virtualAnchors().isEmpty(),
+                "a base never dressed on this device starts without the previous base's accessories");
+
+        chooseAccessory.invoke(screen, accessory);
+        add.invoke(screen);
+        awaitDraftComposition(screen, preview, drain);
+        var instancesB = draft.configuration().instances();
+        require(instancesB.size() == 1 && !instancesB.getFirst().instanceId().equals(instancesA.getFirst().instanceId()),
+                "base B is dressed independently");
+
+        chooseBase.invoke(screen, new top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath(baseA, root));
+        await((CompletableFuture<?>) field(type, "changingDraftBase").get(screen), drain);
+        awaitDraftComposition(screen, preview, drain);
+        require(draft.configuration().base().equals(referenceA) && draft.configuration().instances().equals(instancesA),
+                "returning to base A restores its own instances, anchors, transforms and controls");
+        // Publishing sends the draft configuration as one outfit: only the current base and its accessories.
+        require(draft.configuration().instances().stream().noneMatch(instancesB::contains),
+                "the published outfit contains only the current base's accessories");
+        var remembered = top.aihmc.omnimorph.model.outfit.LocalBaseOutfits.forDirectory(FiguraMod.getFiguraDirectory());
+        require(remembered.get(referenceB).instances().equals(instancesB),
+                "the base left behind keeps its accessory set in the device-local record");
     }
 
     private static void testLocalDraftPreview(Unsafe unsafe, Runnable drain, Object editor,
