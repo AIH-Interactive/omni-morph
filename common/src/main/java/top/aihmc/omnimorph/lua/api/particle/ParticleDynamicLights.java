@@ -35,14 +35,14 @@ public final class ParticleDynamicLights {
     private ParticleDynamicLights() {
     }
 
+    /** Validation only: a full light capacity keeps the particle alive and simply leaves it unlit. */
     static boolean canActivate(CustomParticle particle) {
         if (particle.preview() != null) {
             return particle.preview().canActivateLight(particle);
         }
-        var settings = particle.lightSettings();
         try {
-            settings.validate(particle.limits());
-            return !settings.enabled() || liveCount(wearer(particle)) < particle.limits().maxDynamicLights();
+            particle.lightSettings().validate(particle.limits());
+            return true;
         } catch (org.luaj.vm2.LuaError rejected) {
             return false;
         }
@@ -116,15 +116,25 @@ public final class ParticleDynamicLights {
         }
         var current = new IdentityHashMap<CustomParticle, ParticleLightField.Source>();
         var interpolated = new IdentityHashMap<CustomParticle, ParticleLightField.Source>();
+        var retained = new HashMap<UUID, Integer>();
         var iterator = SOURCES.entrySet().iterator();
         while (iterator.hasNext()) {
             var entry = iterator.next();
             CustomParticle particle = entry.getKey();
             var settings = entry.getValue().settings();
+            UUID entryWearer = entry.getValue().wearer();
             boolean valid = world != null && particle.active() && particle.world() == world;
             try {
                 settings.validate(particle.limits());
-                valid &= liveCount(entry.getValue().wearer()) <= particle.limits().maxDynamicLights();
+                if (valid) {
+                    // Keep the first negotiated number of sources per wearer; later ones stay alive but unlit.
+                    int limit = particle.limits().maxDynamicLights();
+                    int used = retained.getOrDefault(entryWearer, 0);
+                    valid = used < limit;
+                    if (valid) {
+                        retained.put(entryWearer, used + 1);
+                    }
+                }
                 if (valid) {
                     var currentPosition = particle.lightPosition(1);
                     var interpolatedPosition = particle.lightPosition(partialTick);
@@ -144,7 +154,7 @@ public final class ParticleDynamicLights {
                 iterator.remove();
                 current.remove(particle);
                 interpolated.remove(particle);
-                COUNTS.computeIfPresent(entry.getValue().wearer(), (key, count) -> count == 1 ? null : count - 1);
+                COUNTS.computeIfPresent(entryWearer, (key, count) -> count == 1 ? null : count - 1);
                 particle.disableLightFromPolicy();
                 pending = true;
             }

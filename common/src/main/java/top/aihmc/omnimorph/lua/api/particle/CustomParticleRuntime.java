@@ -69,7 +69,16 @@ public final class CustomParticleRuntime {
             if (preview != null) {
                 preview.activated(particle);
             } else if (particle.lightSettings().enabled()) {
-                ParticleDynamicLights.update(particle, particle.lightSettings());
+                try {
+                    ParticleDynamicLights.update(particle, particle.lightSettings());
+                } catch (LuaError rejected) {
+                    if (!"PARTICLE_DYNAMIC_LIGHT_COUNT_LIMIT".equals(rejected.getMessage())) {
+                        throw rejected;
+                    }
+                    // The wearer already lights the first negotiated number of particles: keep this particle
+                    // alive without illumination instead of rejecting it or failing the script.
+                    particle.disableLightFromPolicy();
+                }
             }
         } catch (RuntimeException | Error failure) {
             particle.remove();

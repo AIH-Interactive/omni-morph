@@ -166,21 +166,21 @@ final class ParticleLightNativeSmokeTest {
                 particle.setLightRadius(4);
                 particle.setDynamicLight(true);
             }
-            require(a.activate() && !b.activate() && ParticleDynamicLights.liveCount(wearer) == 1,
-                    "pending sources share the negotiated wearer capacity before activation");
+            require(a.activate() && b.activate() && ParticleDynamicLights.liveCount(wearer) == 1,
+                    "the negotiated wearer capacity lights only the first glowing particle");
+            require(a.dynamicLight() && b.active() && !b.dynamicLight(),
+                    "later glowing particles stay alive and unlit instead of being rejected");
             reject(() -> a.setLightLevel(13));
             reject(() -> a.setLightRadius(5));
             require(a.lightLevel() == 12 && a.lightRadius() == 4, "rejected settings preserve the active source");
-            b.setDynamicLight(false);
-            require(b.activate(), "another execution can remain alive without a light");
             b.setDynamicLight(true);
             require(b.active() && !b.dynamicLight() && ParticleDynamicLights.liveCount(wearer) == 1,
-                    "a full light capacity keeps the particle unlit instead of failing its script");
+                    "re-enabling a later particle without free capacity keeps it alive and unlit");
             a.remove();
             b.setDynamicLight(true);
             CustomParticleRuntime.clearOwner(first.owner);
             require(b.dynamicLight() && ParticleDynamicLights.liveCount(wearer) == 1,
-                    "cleanup of one execution does not clear a sibling's light");
+                    "the next particle takes the freed capacity while sibling cleanup keeps its light");
             context(first, wearer, policy(true, 2, 12, 4));
             context(second, wearer, policy(true, 2, 12, 4));
             var extra = new CustomParticle(first, Minecraft.getInstance().level, texture, Vec3.ZERO, Vec3.ZERO);
@@ -193,9 +193,8 @@ final class ParticleLightNativeSmokeTest {
                 context(first, wearer, limits);
                 context(second, wearer, limits);
                 ParticleDynamicLights.updateFrame(1);
-                require(ParticleDynamicLights.liveCount(wearer) == 1
-                                && (b.dynamicLight() ? 1 : 0) + (extra.dynamicLight() ? 1 : 0) == 1,
-                        "lowering the negotiated count retires excess actual sources");
+                require(ParticleDynamicLights.liveCount(wearer) == 1 && b.dynamicLight() && !extra.dynamicLight(),
+                        "lowering the negotiated count keeps the earlier source and retires the later excess");
             } finally {
                 extra.remove();
             }
