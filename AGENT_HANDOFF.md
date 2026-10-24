@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-25（Asia/Seoul，LambDynamicLights 粒子光源桥接完成；自动门禁 PASS，真实 LDL/Iris 光照画面 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
+更新时间：2026-10-25（Asia/Seoul，第一人称基础矩阵/模式泄漏修复；自动门禁 PASS，真实客户端粒子/光源画面 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
 
 ## 接续入口与约束
 
@@ -334,3 +334,17 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 主仓库 main，提交前基线 3469d4cd；本轮源码/依赖/文档随后提交推送，最终以 `git rev-parse HEAD` 与 origin/main 一致为准。后端未改，`.omc/` 保留。
 
 最小下一步：用户装 LDL（4.11.2+26.1.2）与 Iris，进世界验证开启动态光源的粒子能照亮地面/实体；若没有光照，检查 latest.log 是否有 LDL 缺席警告，并提供日志确认 behavior 是否注册（必要时加一次性诊断）。
+## 当前有效交接：第一人称基础矩阵与 renderMode 泄漏修复（2026-10-25）
+
+用户报告“调整装饰设置后原版粒子固定、不再跟随玩家，自定义粒子动态光源失效”。根因不是设置界面本身，而是第一人称没有身体渲染：本地基础从未执行 `worldRender`，`savedPartToWorldMat` 冻结在最后一次第三人称姿态；第一人称脚本帧仅给装饰实例开启 `allowMatrixUpdate`，基础未开启。另有两处模式泄漏会放大问题：`UIHelper.drawEntity`（纸娃娃/设置预览）把 `avatar.renderMode` 设为 PAPERDOLL/FIGURA_GUI 后不恢复；`LivingEntityRendererMixin` 世界身体绘制直接使用 `avatar.renderMode`。
+
+修复（commit 见下）：
+- `OutfitFirstPersonScripts.render` 重放期间开启基础 `renderer.allowMatrixUpdate`（finally 恢复），基础 part-to-world 每帧按相机相对全身姿态更新；基础 RENDER/POST_RENDER 的粒子与光源随之跟随。
+- `UIHelper.drawEntity` 保存/恢复原 renderMode。
+- 世界身体绘制改用 `OutfitRenderBinding.renderMode(state)`，不再继承 PAPERDOLL/OTHER。
+
+验证：alpha4-first-person-matrix-gate.log（libraryPreviewRuntimeSmokeTest、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS 48 秒）；git diff --check PASS。JAR 18299970 字节，SHA256 266aa96f32a82d2a79ecc305ac735355e267c9e722729b0283f1ec380d61d3c0。真实客户端（设置调整→第一人称→原版粒子跟随→动态光源位置）MANUAL/PENDING。
+
+若用户复测后光源仍完全不亮，下一步只做定点诊断：在 `LambDynamicLightsCompat.onInitializeDynamicLights` / `onWorldJoin` 加一次性日志，确认 behavior 已注册；再检查 `ParticleLightBehavior.lightAtPos` 的 world 身份与包围盒。不要回退内置光场，除非用户确认。
+
+已知遗留：Iris 在 pack 首次使用时打印一次 `Missing program omni-morph:pipeline/custom_particle/0/alpha in override list`（随后仍能匹配 PARTICLES_TRANS），暂未定位；Figura 第一人称每帧两次丢弃身体绘制（性能未评估）；手部挂点脚本双跑；vanilla 基础不重放。主仓库 main，提交前基线 5e514b38；后端未改，`.omc/` 保留。

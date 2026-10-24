@@ -1296,3 +1296,17 @@ alpha4-publish-disabled-diagnostics-build.log：libraryPreviewRuntimeSmokeTest�
 - 双倍光照：LDL 存在时 `ParticleDynamicLights.useExternalProvider(true)`，内置光场停止注入并停止区块标脏；LDL 缺席时启动打印一次警告，继续使用内置光场兜底。
 - 验证：ParticleLightFieldSmokeTest 新增连续亮度断言（中心 15、4 格 7.5、半径边界 0、无效值 0、重叠取最大）；alpha4-ldl-final-gate.log：libraryPreviewRuntimeSmokeTest、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS（54 秒）；git diff --check PASS。真实客户端 + Iris + LDL 光照画面 MANUAL/PENDING。
 - 产物：JAR 18299784 字节，SHA256 1a908bee7a262c17b274d30bbeca15b1163207ebb7b4c585fb363826e1d8ab47；确认 entrypoint 与两个 compat class 已打包、未打包 LDL API。main 提交前基线 3469d4cd；后端未改。
+## 2026-10-25：修复调整装饰设置后第一人称粒子冻结与光源失效
+
+用户报告：调整装饰设置后，原版粒子固定在一点不再跟随玩家，自定义粒子的动态光源失效。
+
+根因（代码路径）：第一人称不绘制本地身体，`Avatar.worldRender` 不会为本地基础运行，`savedPartToWorldMat` 不再更新；新增的第一人称脚本帧虽然用全身姿态重放了组合，但只给装饰实例开启了 `allowMatrixUpdate`，**基础**没有开启，因此基础/装饰脚本里的 `partToWorldMatrix` 冻结在最后一次第三人称姿态（设置界面重建组合后甚至停在原点）。此外 `UIHelper.drawEntity`（纸娃娃/预览）把 `avatar.renderMode` 设为 PAPERDOLL/FIGURA_GUI 后未恢复，而世界身体绘制直接使用 `avatar.renderMode`，会把泄漏的模式带入绘制，`allowMatrixUpdate` 随之关闭。
+
+修复：
+- `OutfitFirstPersonScripts.render` 在重放期间临时开启基础 `renderer.allowMatrixUpdate` 并在 finally 恢复，使基础的 part-to-world 矩阵每帧按相机相对全身姿态更新；下一帧基础 RENDER/POST_RENDER 的粒子与光源位置正确。
+- `UIHelper.drawEntity` 保存并恢复头像原来的 `renderMode`，不再把 PAPERDOLL/FIGURA_GUI 泄漏到世界渲染。
+- `LivingEntityRendererMixin` 的世界身体绘制改用 `OutfitRenderBinding.renderMode(livingEntityState)`（世界=RENDER，库预览=FIGURA_GUI），不再继承可变的 `avatar.renderMode`。
+
+验证：`alpha4-first-person-matrix-gate.log`：libraryPreviewRuntimeSmokeTest、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS（48 秒）；`git diff --check` PASS。真实客户端（第一人称 + 粒子 + 动态光源 + 设置调整）MANUAL/PENDING。
+
+产物：JAR 18299970 字节，SHA256 266aa96f32a82d2a79ecc305ac735355e267c9e722729b0283f1ec380d61d3c0。主分支提交前基线 5e514b38；后端未改。

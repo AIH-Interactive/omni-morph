@@ -297,7 +297,8 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
                     drawBase.run();
                 } else {
                     var basePose = outfit.captureFiguraBase(avatar, new Matrix4f(lastPs).invert(), drawBase);
-                    OutfitNativeRenderer.draw(outfit, basePose, livingEntityState, tickDelta, lastPs, bufferSource, avatar.renderMode);
+                    OutfitNativeRenderer.draw(outfit, basePose, livingEntityState, tickDelta, lastPs, bufferSource,
+                            OutfitRenderBinding.renderMode(livingEntityState));
                 }
 
                 // Submit deferred items using fresh pivot transforms from commonRender()
