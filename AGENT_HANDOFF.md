@@ -402,3 +402,4 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - upstream remote：`upstream https://github.com/FiguraMC/Figura.git`；按用户要求**没有 fetch/pull**，后续同步由人工执行。
 - 验证：三个 smoke test PASS；`:fabric:build` PASS；`git diff --check` 无错误。JAR 18306318 字节，SHA256 54a38f6d30849a390ea55fec401dc8df14b4f4f01240b2c4094d95902927a890，已安装。提交 f91dcc7f，HEAD=origin/main。
 - 未验证/跟进：真实客户端 mixin 加载与画面 MANUAL/PENDING；forge/neoforge 未在 settings.gradle 启用，未构建；`refs/Figura` 是快照，路径映射不覆盖重命名重写的类（如 `ImmediateFiguraRenderer` 视为新代码保留 top）；`patch/`、`.omc/` 未跟踪。
+重建说明（2026-10-25 08:50）：在上游包名提交与交接提交之后重新执行 `:fabric:build` 并覆盖安装。最终 JAR 18306319 字节，SHA256 a14e53343e0055df983b41c233863d50f715192578e1efb8d8dda79ee4dabfd3（内嵌版本 1.0.0-alpha.4+26.1.2-5d7e28f9）。代码与 f91dcc7f 相同，仅构建元数据更新。
