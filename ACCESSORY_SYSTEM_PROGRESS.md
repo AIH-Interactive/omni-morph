@@ -1246,3 +1246,11 @@ alpha4-publish-disabled-diagnostics-build.log：libraryPreviewRuntimeSmokeTest�
 测试（testCosmeticControls）：真实两个同资源实例→1 个装饰名 tab；`resourceTabs` 对两同资源+一个其他资源（合成组）→2 个有序 tab；同页两段分隔 `#1`/`#2` 各绑定自己的 Avatar；按第二实例的开关只改第二实例的 cosmeticContext.controls() 与草稿，再按第一实例只改第一实例。旧“切换后旧控件不能改别的实例”断言因同页多实例设计移除，禁用/关闭后拒绝回调仍保留。三实例跨资源的真实组合未在夹具中构建，tab 归组由合成组验证。
 
 门禁：build/reports/outfit/alpha4-cosmetic-resource-tabs.log：libraryPreviewRuntimeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS（18 秒）；git diff --check PASS。JAR 18282405 字节，SHA256 b5cdc8915041c5820a68ebe66120efced3167eef62f44fcbb528c38fd65611d5。真实窗口界面（tab 排布、分隔标题、CJK、tab 过多时溢出）MANUAL/PENDING；tab 数量很多时无横向滚动，记为跟进。
+
+## 2026-10-24：装饰专用设置布局重叠与 tab/内容滚动
+
+用户在真实游戏中反馈（7e09b77d）：顶部装饰 tab 与面板上边框、“模型专用设置：设置”/“预览”标题重叠；“重置所有”“完成”压在面板下边框上；tab 过多时一行放不下。AvatarControlsScreen 新增 `framedLayout()`（默认 false，形象设置页与 OutfitControlsScreen 布局不变；装饰页为 true）：面板下移 40 像素给 tab 行（tab y=4～24，横向滚动条 y=28～38，面板从 y=60 开始），面板底边上移 12 像素使底部按钮完全位于面板之下；控件超出内容区时出现纵向滚动条（拖动结束后重建行），内容区外的行不再创建控件或绘制标题。CosmeticControlsScreen 的 tab 宽 72～160，超宽时启用横向滚动条与滚轮滚动、剪裁绘制，并自动滚到选中 tab。控件行为、协议、其他界面未改。
+
+测试 testCosmeticSettingsLayout：960x540、640x360、480x270、427x240 四种尺寸，分别用真实 2 实例与 14 个 tab（含合成资源组）验证 tab 行（含滚动条）底边 ≤ 面板顶、底部两按钮顶边 ≥ 面板底、面板高度为正；14 个 tab 时有横向滚动范围，滚动条拉到底时最后一个 tab 完整位于行内；427x240 下长控件列表出现纵向滚动条。原 testCosmeticControls 的晚注册文本控件用例改为高窗口，使该行处于可见内容区。
+
+门禁：build/reports/outfit/alpha4-cosmetic-settings-layout.log：libraryPreviewRuntimeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS（35 秒）；git diff --check PASS。JAR 18285861 字节，SHA256 d7530c531b305df8575c82c58c2ccf7df71ab4ffc248afeb4e7fbe09e66a3d0c。真实窗口画面 MANUAL/PENDING。

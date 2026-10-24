@@ -51,6 +51,11 @@ public class AvatarControlsScreen extends Screen {
     private static final int TAB_HEIGHT = 28;
     private static final int TAB_SCROLLBAR_SPACE = 14;
     private static final int FOOTER_HEIGHT = 42;
+    /** Space reserved above the panel for a subclass's own row (tabs plus their scrollbar) in the framed layout. */
+    protected static final int FRAMED_TOP_ROW_HEIGHT = 40;
+    /** Gap that keeps the footer buttons below the panel border in the framed layout. */
+    private static final int FRAMED_FOOTER_GAP = 12;
+    private static final int CONTENT_SCROLLBAR_WIDTH = 10;
     private static final String YSM_WHEEL_PAGE = "__ysm_wheel";
 
     private final Screen parentScreen;
@@ -76,6 +81,7 @@ public class AvatarControlsScreen extends Screen {
     private boolean focusedWheelKeybindToggle;
     private final Map<String, ItemStack> wheelItemCache = new HashMap<>();
     private boolean buildingControls;
+    private boolean contentScrollDirty;
 
     /** One owner's controls on the page; a non-null header separates owners that share the page. */
     protected record ControlSection(Avatar owner, Component header) {}
@@ -151,7 +157,7 @@ public class AvatarControlsScreen extends Screen {
         int y = contentTop() - scroll;
         for (ControlRow row : rows) {
             AvatarControlDefinition control = row.control();
-            if (control != null) {
+            if (control != null && rowWidgetsVisible(y, rowHeight(row))) {
                 Avatar owner = row.owner();
                 int widgetX = controlsX + controlsWidth - 238;
                 int widgetWidth = 180;
@@ -164,6 +170,7 @@ public class AvatarControlsScreen extends Screen {
             }
             y += rowHeight(row);
         }
+        addContentScrollbar();
 
         if (previewWidth() > 0) {
             preview = new EntityPreview(previewX(), previewY(), previewWidth(), previewHeight(), previewScale(), 0f, 0f, minecraft == null ? null : minecraft.player, this);
@@ -175,7 +182,7 @@ public class AvatarControlsScreen extends Screen {
 
         int footerWidth = panelWidth();
         Avatar expectedAvatar = avatar;
-        Button resetAll = new Button(panelX(), height - 32, footerWidth / 2 - 4, 20, FiguraText.of(isWheelPage() ? "gui.controls.refresh_wheel" : "gui.reset_all"), null, button -> {
+        Button resetAll = new Button(panelX(), footerY(), footerWidth / 2 - 4, 20, FiguraText.of(isWheelPage() ? "gui.controls.refresh_wheel" : "gui.reset_all"), null, button -> {
             if (!controlsActive() || avatar != expectedAvatar) {
                 return;
             }
@@ -194,11 +201,69 @@ public class AvatarControlsScreen extends Screen {
         });
         resetAll.setActive(isWheelPage() ? avatar.getYsmRuntime() != null : hasResettableControls());
         this.addRenderableWidget(resetAll);
-        this.addRenderableWidget(new Button(panelX() + footerWidth / 2 + 4, height - 32, footerWidth / 2 - 4, 20, Component.translatable("gui.done"), null, button -> onClose()));
+        this.addRenderableWidget(new Button(panelX() + footerWidth / 2 + 4, footerY(), footerWidth / 2 - 4, 20, Component.translatable("gui.done"), null, button -> onClose()));
         buildAdditionalControls();
     }
 
     protected void buildAdditionalControls() {
+    }
+
+    /**
+     * The framed layout reserves a row above the panel for the subclass, keeps the footer below the
+     * panel border, shows a vertical scrollbar for long control lists and hides rows outside the content.
+     */
+    protected boolean framedLayout() {
+        return false;
+    }
+
+    private int topInset() {
+        return framedLayout() ? FRAMED_TOP_ROW_HEIGHT : 0;
+    }
+
+    private int headerTop() {
+        return HEADER_HEIGHT + topInset();
+    }
+
+    private int panelY() {
+        return 20 + topInset();
+    }
+
+    private int panelHeight() {
+        return height - 48 - topInset() - (framedLayout() ? FRAMED_FOOTER_GAP : 0);
+    }
+
+    private int footerY() {
+        return height - 32;
+    }
+
+    private boolean rowWidgetsVisible(int y, int rowHeight) {
+        if (!framedLayout())
+            return true;
+        return y >= contentTop() && y + rowHeight <= height - FOOTER_HEIGHT;
+    }
+
+    private boolean rowLabelVisible(int y, int rowHeight) {
+        if (framedLayout())
+            return rowWidgetsVisible(y, rowHeight);
+        return y > contentTop() - rowHeight && y < height - FOOTER_HEIGHT;
+    }
+
+    private void addContentScrollbar() {
+        int max = maxScroll();
+        if (!framedLayout() || isWheelPage() || max <= 0)
+            return;
+        int top = contentTop();
+        int scrollbarHeight = Math.max(20, height - FOOTER_HEIGHT - top);
+        ScrollBarWidget scrollbar = new ScrollBarWidget(controlsX() + controlsWidth() - 4, top,
+                CONTENT_SCROLLBAR_WIDTH, scrollbarHeight, (double) scroll / max, true);
+        scrollbar.setAction(bar -> {
+            int next = (int) Math.round(bar.getScrollProgress() * max);
+            if (next != scroll) {
+                scroll = next;
+                contentScrollDirty = true;
+            }
+        });
+        this.addRenderableWidget(scrollbar);
     }
 
     /** The owners shown together on this page; the plain avatar settings show only {@link #avatar}. */
@@ -434,16 +499,33 @@ public class AvatarControlsScreen extends Screen {
     }
 
     @Override
+    public boolean mouseReleased(MouseButtonEvent event) {
+        boolean handled = super.mouseReleased(event);
+        rebuildDirtyContentScroll();
+        return handled;
+    }
+
+    /** Dragging the content scrollbar only records the offset; the rows are rebuilt once the drag ends. */
+    private void rebuildDirtyContentScroll() {
+        if (!contentScrollDirty)
+            return;
+        contentScrollDirty = false;
+        rebuild();
+    }
+
+    @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double amount, double horizontalAmount) {
         if (pageTabScrollbar != null && mouseX >= controlsX() + 8
                 && mouseX < controlsX() + controlsWidth() - 8
-                && mouseY >= HEADER_HEIGHT && mouseY < contentTop()) {
+                && mouseY >= headerTop() && mouseY < contentTop()) {
             pageTabScrollbar.setScrollProgress(pageTabScrollbar.getScrollProgress()
                     - (amount + horizontalAmount) * 72d / pageTabOverflow);
             return true;
         }
-        if (super.mouseScrolled(mouseX, mouseY, amount, horizontalAmount))
+        if (super.mouseScrolled(mouseX, mouseY, amount, horizontalAmount)) {
+            rebuildDirtyContentScroll();
             return true;
+        }
         int max = maxScroll();
         int next = Mth.clamp(scroll + (int) Math.signum(-amount - horizontalAmount) * scrollStep(), 0, max);
         if (next == scroll)
@@ -464,9 +546,9 @@ public class AvatarControlsScreen extends Screen {
 
         int controlsX = controlsX();
         int controlsWidth = controlsWidth();
-        UIHelper.renderOutlineText(gui, minecraft.font, FiguraText.of("gui.controls.page", pageTitle(page)), controlsX + 10, 28, 0xFFFFFF, 0);
+        UIHelper.renderOutlineText(gui, minecraft.font, FiguraText.of("gui.controls.page", pageTitle(page)), controlsX + 10, panelY() + 8, 0xFFFFFF, 0);
         if (previewWidth() > 0)
-            UIHelper.renderOutlineText(gui, minecraft.font, FiguraText.of("gui.controls.preview"), previewX() + 8, 28, 0xFFD0D0D0, 0);
+            UIHelper.renderOutlineText(gui, minecraft.font, FiguraText.of("gui.controls.preview"), previewX() + 8, panelY() + 8, 0xFFD0D0D0, 0);
         if (isWheelPage()) {
             renderWheelEditor(gui, controlsX, controlsWidth);
             renderDropdown(gui, mouseX, mouseY, delta);
@@ -481,12 +563,12 @@ public class AvatarControlsScreen extends Screen {
         for (ControlRow row : rows) {
             AvatarControlDefinition control = row.control();
             if (control == null) {
-                if (y > contentTop() - SECTION_HEADER_HEIGHT && y < height - FOOTER_HEIGHT)
+                if (rowLabelVisible(y, SECTION_HEADER_HEIGHT))
                     renderSectionHeader(gui, row.header(), controlsX + 10, y);
                 y += rowHeight(row);
                 continue;
             }
-            if (y > contentTop() - ROW_HEIGHT && y < height - FOOTER_HEIGHT) {
+            if (rowLabelVisible(y, ROW_HEIGHT)) {
                 renderControlLabel(gui, control, controlsX + 10, y);
                 String description = control.getDescription();
                 if (description != null && !description.isBlank() && mouseX >= controlsX
@@ -533,9 +615,9 @@ public class AvatarControlsScreen extends Screen {
 
     private void renderPanel(GuiGraphicsExtractor gui) {
         int x = panelX();
-        int y = 20;
+        int y = panelY();
         int w = panelWidth();
-        int h = height - 48;
+        int h = panelHeight();
         UIHelper.blitSliced(gui, x, y, w, h, UIHelper.OUTLINE_FILL);
         if (previewWidth() > 0)
             gui.fill(previewX() - 8, y + 1, previewX() - 7, y + h - 1, 0x66777777);
@@ -605,7 +687,7 @@ public class AvatarControlsScreen extends Screen {
     }
 
     private int contentTop() {
-        return HEADER_HEIGHT + (pages.size() > 1 ? TAB_HEIGHT : 0)
+        return headerTop() + (pages.size() > 1 ? TAB_HEIGHT : 0)
                 + (pageTabScrollbar == null ? 0 : TAB_SCROLLBAR_SPACE);
     }
 
@@ -632,6 +714,7 @@ public class AvatarControlsScreen extends Screen {
         }
         int left = controlsX() + 8;
         int right = controlsX() + controlsWidth() - 8;
+        int top = headerTop();
         int available = Math.max(1, right - left);
         int tabWidth = Math.max(72, Math.min(132, available / pages.size()));
         pageTabOverflow = Math.max(0, pages.size() * tabWidth - 4 - available);
@@ -643,7 +726,7 @@ public class AvatarControlsScreen extends Screen {
             pageTabScroll = Math.min(pageTabOverflow, selected + tabWidth - 4 - available);
         }
         for (String target : pages) {
-            Button tab = new Button(left, HEADER_HEIGHT, tabWidth - 4, 20,
+            Button tab = new Button(left, top, tabWidth - 4, 20,
                     Component.literal(pageTitle(target)), null, button -> {
                         page = target;
                         scroll = 0;
@@ -656,7 +739,7 @@ public class AvatarControlsScreen extends Screen {
 
                 @Override
                 public void extractContents(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
-                    gui.enableScissor(left, HEADER_HEIGHT, right, HEADER_HEIGHT + 20);
+                    gui.enableScissor(left, top, right, top + 20);
                     super.extractContents(gui, mouseX, mouseY, delta);
                     gui.disableScissor();
                 }
@@ -667,7 +750,7 @@ public class AvatarControlsScreen extends Screen {
         }
         updatePageTabPositions();
         if (pageTabOverflow > 0) {
-            pageTabScrollbar = new ScrollBarWidget(left, HEADER_HEIGHT + 24, available, 10,
+            pageTabScrollbar = new ScrollBarWidget(left, top + 24, available, 10,
                     (double) pageTabScroll / pageTabOverflow, false);
             pageTabScrollbar.setAction(bar -> {
                 pageTabScroll = (int) Math.round(bar.getScrollProgress() * pageTabOverflow);

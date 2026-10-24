@@ -2751,10 +2751,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var before = draft.configuration();
         long generation = field(wardrobeType, "draftPreviewGeneration").getLong(wardrobe);
         build.invoke(settings);
-        var tabs = settings.children().stream()
-                .filter(widget -> widget.getClass() == top.aihmc.omnimorph.gui.widgets.Button.class)
-                .map(top.aihmc.omnimorph.gui.widgets.Button.class::cast)
-                .filter(button -> button.getY() == 4).toList();
+        var settingsType = top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen.class;
+        @SuppressWarnings("unchecked")
+        var tabs = (java.util.List<top.aihmc.omnimorph.gui.widgets.Button>)
+                field(settingsType, "tabButtons").get(settings);
         require(tabs.size() == 1 && tabs.getFirst().getMessage().getString().contains("插槽尾巴")
                         && !tabs.getFirst().getMessage().getString().contains("#"),
                 "duplicate instances of one resource share a single resource-named tab: "
@@ -2775,6 +2775,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
                         && grouped.get(copied.resource()).equals(java.util.List.of(firstGroup, secondGroup))
                         && grouped.get(otherResource).equals(java.util.List.of(otherGroup)),
                 "two same-resource instances and one other resource form two ordered tabs");
+        testCosmeticSettingsLayout(settings, build, groups, firstGroup);
+        settings.width = 640;
+        settings.height = 360;
+        build.invoke(settings);
         var rowsField = field(top.aihmc.omnimorph.gui.screens.AvatarControlsScreen.class, "rows");
         var headers = new java.util.ArrayList<String>();
         var headerOwners = new java.util.ArrayList<Object>();
@@ -2844,6 +2848,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
         controls.register(added);
         require(controls.definitionRevision() > revision && composition.controlGroups() != groups,
                 "late control registration invalidates groups through definition versions");
+        // Tall enough that the second instance's late row is inside the scrolled content area.
+        settings.height = 1200;
         build.invoke(settings);
         var text = (top.aihmc.omnimorph.gui.widgets.TextField) settings.children().stream()
                 .filter(top.aihmc.omnimorph.gui.widgets.TextField.class::isInstance).findFirst().orElseThrow();
@@ -2883,6 +2889,94 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 .findFirst().orElseThrow().controls());
         System.out.println("PASS cosmetic settings: native reused controls/resource tabs with ordinal separators, two-copy values, draft persistence, "
                 + "retained preview, definition versions and stale/disabled/closed callback rejection; GUI MANUAL/PENDING");
+    }
+
+    private static void testCosmeticSettingsLayout(top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen settings,
+                                                   java.lang.reflect.Method build,
+                                                   java.util.List<top.aihmc.omnimorph.model.outfit.OutfitComposition.ControlGroup> groups,
+                                                   top.aihmc.omnimorph.model.outfit.OutfitComposition.ControlGroup firstGroup)
+            throws Exception {
+        var settingsType = top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen.class;
+        var baseType = top.aihmc.omnimorph.gui.screens.AvatarControlsScreen.class;
+        var panelX = baseType.getDeclaredMethod("panelX");
+        var panelY = baseType.getDeclaredMethod("panelY");
+        var panelWidth = baseType.getDeclaredMethod("panelWidth");
+        var panelHeight = baseType.getDeclaredMethod("panelHeight");
+        for (var method : java.util.List.of(panelX, panelY, panelWidth, panelHeight)) {
+            method.setAccessible(true);
+        }
+        var groupsField = field(settingsType, "groups");
+        var tabsField = field(settingsType, "tabButtons");
+        var copied = firstGroup.instance();
+        var many = new java.util.ArrayList<>(groups);
+        for (int index = 0; index < 12; index++) {
+            var other = new OutfitConfig.ResourceRef(copied.resource().source(),
+                    copied.resource().localId() == null ? null : UUID.randomUUID(), copied.resource().origin(),
+                    copied.resource().resourceId() == null ? null : UUID.randomUUID(), copied.resource().revision(),
+                    copied.resource().contentHash(), copied.resource().format());
+            many.add(new top.aihmc.omnimorph.model.outfit.OutfitComposition.ControlGroup(
+                    new OutfitConfig.Instance(UUID.randomUUID(), other, 1, true, copied.anchor(),
+                            copied.transform(), copied.boneOverrides(), Map.of(), Map.of()), firstGroup.avatar()));
+        }
+        // 1920x1080 at GUI scales 2/3/4 and a small window; fourteen resource tabs overflow every width.
+        int[][] sizes = {{960, 540}, {640, 360}, {480, 270}, {427, 240}};
+        for (int[] size : sizes) {
+            for (var tabGroups : java.util.List.of(groups, many)) {
+                groupsField.set(settings, tabGroups);
+                settings.width = size[0];
+                settings.height = size[1];
+                build.invoke(settings);
+                var panel = new int[]{(int) panelX.invoke(settings), (int) panelY.invoke(settings),
+                        (int) panelWidth.invoke(settings), (int) panelHeight.invoke(settings)};
+                var footer = settings.children().stream()
+                        .filter(widget -> widget instanceof top.aihmc.omnimorph.gui.widgets.Button button
+                                && button.getY() == size[1] - 32)
+                        .map(net.minecraft.client.gui.components.AbstractWidget.class::cast).toList();
+                @SuppressWarnings("unchecked")
+                var tabRow = new java.util.ArrayList<net.minecraft.client.gui.components.AbstractWidget>(
+                        (java.util.List<top.aihmc.omnimorph.gui.widgets.Button>) tabsField.get(settings));
+                var tabScrollbar = (net.minecraft.client.gui.components.AbstractWidget)
+                        field(settingsType, "tabScrollbar").get(settings);
+                if (tabScrollbar != null) {
+                    tabRow.add(tabScrollbar);
+                }
+                require(footer.size() == 2 && !tabRow.isEmpty(), "framed settings expose a tab row and two footer buttons");
+                for (var widget : tabRow) {
+                    require(widget.getY() + widget.getHeight() <= panel[1],
+                            "tab row stays above the panel at " + size[0] + "x" + size[1]);
+                }
+                for (var widget : footer) {
+                    require(widget.getY() >= panel[1] + panel[3],
+                            "footer buttons stay below the panel border at " + size[0] + "x" + size[1]);
+                }
+                require(panel[3] > 0, "the panel keeps a positive height at " + size[0] + "x" + size[1]);
+                if (tabGroups == many) {
+                    int overflow = field(settingsType, "tabOverflow").getInt(settings);
+                    require(overflow > 0 && tabScrollbar != null,
+                            "too many resource tabs create a horizontal scroll range at " + size[0] + "x" + size[1]);
+                    var bar = (top.aihmc.omnimorph.gui.widgets.ScrollBarWidget) tabScrollbar;
+                    bar.setScrollProgress(1d);
+                    var last = tabRow.get(tabRow.size() - 2);
+                    require(field(settingsType, "tabScroll").getInt(settings) == overflow
+                                    && last.getX() + last.getWidth() <= size[0] - 20 && last.getX() >= 20,
+                            "the tab scrollbar reaches the last tab inside the row");
+                }
+            }
+        }
+        groupsField.set(settings, groups);
+        field(settingsType, "tabScroll").setInt(settings, 0);
+        // A long control list shows a vertical scrollbar inside the content area.
+        settings.width = 427;
+        settings.height = 240;
+        build.invoke(settings);
+        var maxScroll = baseType.getDeclaredMethod("maxScroll");
+        maxScroll.setAccessible(true);
+        boolean scrollable = (int) maxScroll.invoke(settings) > 0;
+        boolean scrollbar = settings.children().stream().anyMatch(widget ->
+                widget instanceof top.aihmc.omnimorph.gui.widgets.ScrollBarWidget bar && bar.getHeight() > bar.getWidth());
+        require(scrollable && scrollbar, "a long multi-instance list gets a vertical content scrollbar");
+        System.out.println("PASS cosmetic settings layout: tab row/panel/footer separation at four sizes, "
+                + "horizontal tab scrolling to the last tab and vertical content scrollbar; GUI MANUAL/PENDING");
     }
 
     private static void testCosmeticWheelCallbacks(top.aihmc.omnimorph.gui.screens.WardrobeScreen wardrobe,
