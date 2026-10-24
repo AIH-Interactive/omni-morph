@@ -51,6 +51,7 @@ public final class YsmDeferredPoseSmokeTest {
         require(bodyPose.part("Root").animPosRaw().x == 16, "returned render view cannot mutate immutable snapshot");
         testHiddenHierarchy();
         testStaleSubmission();
+        testSleepingRoot();
         System.out.println("M3 deferred body/arm matrices, owned scale/visibility and immutable submission pose checks passed.");
     }
 
@@ -67,6 +68,34 @@ public final class YsmDeferredPoseSmokeTest {
         } catch (ReflectiveOperationException failure) {
             throw new AssertionError("production bone transform failed", failure);
         }
+    }
+
+    private static void testSleepingRoot() {
+        var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
+        state.pose = net.minecraft.world.entity.Pose.SLEEPING;
+        for (var direction : net.minecraft.core.Direction.Plane.HORIZONTAL) {
+            state.bedOrientation = direction;
+            var stack = new PoseStack();
+            YsmRenderer.applyEntityRotation(stack, state, 37f);
+            var up = stack.last().pose().transformDirection(new org.joml.Vector3f(0, 1, 0));
+            require(Math.abs(up.y) < 0.0001f && Math.abs(up.length() - 1f) < 0.0001f,
+                    "all bed directions rotate the native body onto the bed plane");
+            float expected = switch (direction) {
+                case SOUTH -> 90f;
+                case WEST -> 0f;
+                case NORTH -> 270f;
+                case EAST -> 180f;
+                default -> throw new AssertionError("horizontal bed required");
+            };
+            var reference = new Matrix4f().rotateY((float) Math.toRadians(expected))
+                    .rotateZ((float) Math.toRadians(90)).rotateY((float) Math.toRadians(270));
+            require(stack.last().pose().equals(reference, 0.0001f), "bed heading matches the reference root convention");
+        }
+        state.pose = net.minecraft.world.entity.Pose.STANDING;
+        var standing = new PoseStack();
+        YsmRenderer.applyEntityRotation(standing, state, 37f);
+        require(standing.last().pose().equals(new Matrix4f().rotateY((float) Math.toRadians(143)), 0.0001f),
+                "standing keeps its original root transform");
     }
 
     private static void testStaleSubmission() {

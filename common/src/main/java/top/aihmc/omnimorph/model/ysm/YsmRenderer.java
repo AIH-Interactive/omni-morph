@@ -7,6 +7,8 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import net.minecraft.world.entity.Pose;
 import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.resources.Identifier;
 import net.minecraft.client.renderer.rendertype.RenderType;
@@ -43,6 +45,24 @@ public class YsmRenderer {
 
     public YsmRenderer(YsmModelRuntime runtime) {
         this.runtime = runtime;
+    }
+
+    /** Root rotation shared by the body, held items and attached outfit frame. */
+    public static void applyEntityRotation(PoseStack stack, LivingEntityRenderState state, float bodyYaw) {
+        if (state.hasPose(Pose.SLEEPING)) {
+            float angle = state.bedOrientation == null ? bodyYaw : switch (state.bedOrientation) {
+                case SOUTH -> 90f;
+                case WEST -> 0f;
+                case NORTH -> 270f;
+                case EAST -> 180f;
+                default -> bodyYaw;
+            };
+            stack.mulPose(Axis.YP.rotationDegrees(angle));
+            stack.mulPose(Axis.ZP.rotationDegrees(90f));
+            stack.mulPose(Axis.YP.rotationDegrees(270f));
+        } else {
+            stack.mulPose(Axis.YP.rotationDegrees(180f - bodyYaw));
+        }
     }
 
     void clearAccelerationMeshes() {
