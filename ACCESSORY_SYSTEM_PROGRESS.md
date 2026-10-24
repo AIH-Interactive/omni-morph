@@ -1310,3 +1310,10 @@ alpha4-publish-disabled-diagnostics-build.log：libraryPreviewRuntimeSmokeTest�
 验证：`alpha4-first-person-matrix-gate.log`：libraryPreviewRuntimeSmokeTest、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS（48 秒）；`git diff --check` PASS。真实客户端（第一人称 + 粒子 + 动态光源 + 设置调整）MANUAL/PENDING。
 
 产物：JAR 18299970 字节，SHA256 266aa96f32a82d2a79ecc305ac735355e267c9e722729b0283f1ec380d61d3c0。主分支提交前基线 5e514b38；后端未改。
+## 2026-10-25：第三人称基础矩阵冻结修复（补充）
+
+用户复测（截图：玩家本体可见，绿色拖尾与黄色粒子停在玩家侧后方一个固定点）说明问题主要出现在**第三人称基础脚本**：`Avatar.worldRender` 的矩阵更新条件为 `prevRenderMode != OTHER || mode == FIRST_PERSON_WORLD`，而 `postRenderEvent` 每次都把 `renderMode` 重置为 `OTHER`；当 `renderLevelRenderEntity` 的 RENDER 赋值未在该帧 `worldRender` 之前生效时，`update` 为 false，基础 `allowMatrixUpdate` 关闭，`savedPartToWorldMat` 冻结，基础脚本生成的拖尾/粒子与光源停在旧位置。
+
+修复：`Avatar.worldRender` 对世界空间绘制始终更新矩阵（`update = true`，保留 renderMode 的保存/恢复）。这样第三人称身体绘制期间基础的 part-to-world 矩阵每帧更新；第一人称仍由 `OutfitFirstPersonScripts` 单独开启。
+
+验证：alpha4-worldrender-matrix-gate.log（libraryPreviewRuntimeSmokeTest、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS 55 秒）；git diff --check PASS。新包 JAR 18299954 字节，SHA256 60898ea06ad81117a728a6a1b7a7f65374aeca31b8241d6aa384c17f86d779bb，已覆盖安装。真实客户端复测 MANUAL/PENDING。

@@ -1413,7 +1413,10 @@ public class Avatar {
 
         EntityRenderMode prevRenderMode = renderMode;
         renderMode = mode;
-        boolean update = prevRenderMode != EntityRenderMode.OTHER || renderMode == EntityRenderMode.FIRST_PERSON_WORLD;
+        // worldRender is only used for world-space submissions, so matrices must always follow the entity.
+        // Depending on the previous script render mode made the whole skeleton freeze whenever the last
+        // render ended in OTHER (postRenderEvent always resets to OTHER).
+        boolean update = true;
 
         renderer.pivotCustomizations.values().clear();
         renderer.allowMatrixUpdate = renderer.updateLight = update;

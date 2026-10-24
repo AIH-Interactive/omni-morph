@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-25（Asia/Seoul，第一人称基础矩阵/模式泄漏修复；自动门禁 PASS，真实客户端粒子/光源画面 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
+更新时间：2026-10-25（Asia/Seoul，第三人称基础矩阵冻结修复；自动门禁 PASS，真实客户端粒子/光源画面 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
 
 ## 接续入口与约束
 
@@ -348,3 +348,14 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 若用户复测后光源仍完全不亮，下一步只做定点诊断：在 `LambDynamicLightsCompat.onInitializeDynamicLights` / `onWorldJoin` 加一次性日志，确认 behavior 已注册；再检查 `ParticleLightBehavior.lightAtPos` 的 world 身份与包围盒。不要回退内置光场，除非用户确认。
 
 已知遗留：Iris 在 pack 首次使用时打印一次 `Missing program omni-morph:pipeline/custom_particle/0/alpha in override list`（随后仍能匹配 PARTICLES_TRANS），暂未定位；Figura 第一人称每帧两次丢弃身体绘制（性能未评估）；手部挂点脚本双跑；vanilla 基础不重放。主仓库 main，提交前基线 5e514b38；后端未改，`.omc/` 保留。
+## 当前有效交接：第三人称基础矩阵冻结修复（2026-10-25，第二轮）
+
+用户用截图复测：玩家本体可见（第三人称），绿色拖尾和黄色粒子停在玩家侧后方固定点。上一轮只开启了第一人称基础的 `allowMatrixUpdate`，没有覆盖第三人称。
+
+根因：`Avatar.worldRender` 的 `update = prevRenderMode != OTHER || mode == FIRST_PERSON_WORLD`；`postRenderEvent` 每次把 `renderMode` 置为 OTHER，而 `renderLevelRenderEntity` 的 RENDER 赋值与 `worldRender` 的调用顺序不保证 RENDER 先生效。一旦 `worldRender` 看到 prev=OTHER，基础 `allowMatrixUpdate` 关闭，身体绘制期间 `savedPartToWorldMat` 不更新，基础脚本的粒子/拖尾/光源停在最后有效位置。
+
+修复：`Avatar.worldRender` 对世界空间绘制始终 `update = true`（保留 renderMode 的保存/恢复）。第一人称仍由 `OutfitFirstPersonScripts` 单独开启矩阵更新；其余修复（UIHelper 恢复 renderMode、世界身体绘制用 `renderMode(state)`）保留。
+
+验证：alpha4-worldrender-matrix-gate.log（libraryPreviewRuntimeSmokeTest、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS 55 秒）；git diff --check PASS。新包 JAR 18299954 字节，SHA256 60898ea06ad81117a728a6a1b7a7f65374aeca31b8241d6aa384c17f86d779bb，已安装到游戏 mods。真实客户端复测 MANUAL/PENDING。
+
+若复测仍冻结：下一步记录一次「基础 RENDER 的 partToWorldMatrix 与玩家位置」的日志，确认是矩阵未更新还是脚本在 GUI/预览模式下运行；同时检查绿色拖尾是基础脚本还是装饰（test/test2）脚本生成，避免继续盲改。
