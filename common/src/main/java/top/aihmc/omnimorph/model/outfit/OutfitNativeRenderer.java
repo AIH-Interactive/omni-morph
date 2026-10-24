@@ -15,7 +15,16 @@ import top.aihmc.omnimorph.model.rendering.PartFilterScheme;
 
 /** Converts the controller's model-unit matrices into each existing native renderer's input space. */
 public final class OutfitNativeRenderer {
+    private static final java.util.Set<String> DIAGNOSED = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+
     private OutfitNativeRenderer() {}
+
+    /** Diagnostic only: each skipped instance/reason pair is logged once per client session. */
+    private static void diagnoseSkipped(Avatar avatar, String reason) {
+        if (DIAGNOSED.add(System.identityHashCode(avatar) + ":" + reason)) {
+            top.aihmc.omnimorph.FiguraMod.LOGGER.warn("Outfit accessory not drawn: {}", reason);
+        }
+    }
 
     public static void drawVanilla(OutfitComposition.Frame frame, PlayerModel model, LivingEntityRenderState state,
                                    float delta, Matrix4fc entityToDraw, Matrix4fc modelToDraw,
@@ -53,6 +62,8 @@ public final class OutfitNativeRenderer {
                                      Matrix4fc entityToDraw, MultiBufferSource buffers, int light, EntityRenderMode mode) {
         Avatar avatar = command.avatar();
         if (!avatar.loaded || avatar.scriptError || !avatar.accelerationOwner().isCurrent()) {
+            diagnoseSkipped(avatar, !avatar.loaded ? "instance not loaded"
+                    : avatar.scriptError ? "instance script error" : "instance acceleration owner retired");
             return;
         }
         EntityRenderMode previous = avatar.renderMode;
