@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-24（Asia/Seoul，装饰专用设置已改为按装饰资源分 tab、同页按实例编号分界，自动门禁 PASS，真实窗口 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
+更新时间：2026-10-24（Asia/Seoul，粒子动态光源超上限时只保留前 N 个光源；自动门禁 PASS，真实光照 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
 
 ## 接续入口与约束
 
@@ -281,3 +281,20 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 22:45 追加：已在工作区加入临时诊断日志（未提交）：CustomParticleRuntime.rejected（全进程最多 40 行 `Custom particle rejected: <原因> (cosmetic=, scope=)`），在 activate 各拒绝分支、LuaParticle.spawn 的权限预算耗尽/activate 失败、ParticleAPI.newCustomParticle 调用处记录。:fabric:build PASS（44 秒，未跑冒烟测试）。待用户用新 JAR 进世界复现后读日志定位；定位并修复后必须删除这些临时日志再提交。已发现的候选：Avatar.usesPreviewParticles 对 scope=DRAFT 的装饰实例返回 true，无预览渲染器时 activate 静默拒绝。
 - 22:52 定位：诊断日志显示装饰脚本正常调用 newCustomParticle、没有任何拒绝，但位置恒为 {0,0,0}。根因：OutfitNativeRenderer 用 avatar.render(...) 绘制 Figura 装饰实例时 renderer.allowMatrixUpdate 保持 false，savedPartToWorldMat 从不更新，脚本 root:partToWorldMatrix():apply() 得到原点，粒子生成在世界 0,0,0。修复（未提交）：世界绘制（mode==RENDER）期间临时开启 allowMatrixUpdate，GUI 绘制不开（GUI 栈不是相机相对坐标）。冒烟测试两项 + fabric:build PASS（37 秒）。临时诊断日志仍在工作区，待用户确认粒子出现、坐标非零后删除诊断再提交。
 - 22:58 收口：用户实测拖尾粒子已显示。临时诊断日志已删除；仅保留 OutfitNativeRenderer 世界绘制期间开启 allowMatrixUpdate 的修复。冒烟测试两项 + fabric:build PASS（52 秒，alpha4-accessory-world-matrix.log），git diff --check PASS。5 小时额度剩 10%，按规则暂停，不再领取新工作。后续项：FiguraRenderPose.matches 比较世界矩阵，世界绘制后每帧矩阵变化可能使姿态缓存失效（性能未评估）；YSM 装饰实例是否有同类问题未验证；ACCESSORY_SYSTEM_PROGRESS.md 本次未追加条目。
+
+## 当前有效交接：粒子动态光源按前 N 个保留（2026-10-24）
+
+用户要求：发光粒子超过后端 `max_dynamic_lights` 时，只让前面几个启用光源，其余粒子保留但不发光。已完成（未改协议/版本/后端）：
+
+- `ParticleDynamicLights.canActivate` 只校验设置，不再因容量拒绝粒子激活。
+- `CustomParticleRuntime.activate` 在容量已满时捕获 `PARTICLE_DYNAMIC_LIGHT_COUNT_LIMIT` 并 `disableLightFromPolicy()`：粒子存活、不发光、脚本不中断；其他错误仍移除并抛出。
+- `updateFrame` 按光源启用顺序（`SOURCES` 插入顺序）为每个穿戴者保留前 `maxDynamicLights` 个源，超出者移除光源但保留粒子；后端调低上限时同样保留较早的源。
+- 配置类超限（亮度/半径/后端禁用/零值）语义不变；预览 scope 未改。
+
+验证：ParticleLightNativeSmokeTest 更新（首个点亮、后续存活不发光、无容量时重复启用不报错、释放后下一个接管、调低上限保留较早源）；`ysmMaterialNativeSmokeTest` PASS 17 秒（含 CustomParticle/ParticleLight 原生）、`libraryPreviewRuntimeSmokeTest` PASS 27 秒、`fabric:build` PASS 28 秒；`git diff --check` PASS。真实游戏光照画面 MANUAL/PENDING。
+
+用户另行确认 YSM 装饰实例实测没有问题，YSM 同类矩阵待验证项关闭。仍保留跟进：`FiguraRenderPose.matches` 比较世界矩阵，世界绘制后每帧矩阵变化可能使姿态缓存失效（性能未评估）；手动 BASE_BONE 挂点状态“未解析”误报；真实窗口/双客户端/GPU/性能 MANUAL/PENDING。
+
+主仓库 main，提交前基线 79d435d3；本轮源码/测试/进度/交接纳入随后提交推送，最终以 `git rev-parse HEAD` 与 `git ls-remote origin refs/heads/main` 一致为准。后端 master 未修改，`.omc/` 保留。JAR 18291064 字节，SHA256 13adf5bd667781a85a4c0bd5d08198ebe323db566dd9cb38e2ccc8e345d50301。
+
+最小下一步：用户换新包，用多发光的装饰（如拖尾）确认只有前面 N 个发光、其余粒子仍正常显示；真实光照/性能仍 MANUAL/PENDING。

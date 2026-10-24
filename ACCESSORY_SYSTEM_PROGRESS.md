@@ -1262,3 +1262,13 @@ alpha4-publish-disabled-diagnostics-build.log：libraryPreviewRuntimeSmokeTest�
 测试 testPerBaseOutfits（接在 testSelectedOutfitBase 后）：基础 A 挂装饰 → 切到 B 为空 → B 挂另一实例 → 切回 A 实例列表（含挂点/变换/控件）完全恢复且不含 B 的实例 → B 的一套留在本机记录中。
 
 门禁：build/reports/outfit/alpha4-per-base-outfits.log：libraryPreviewRuntimeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS（54 秒）；git diff --check PASS。真实游戏切换形象与云端装饰在记录恢复后的名称/预览显示 MANUAL/PENDING。
+
+## 2026-10-24：粒子动态光源超上限时只保留前 N 个
+
+用户要求：发光粒子数超过后端 `max_dynamic_lights` 时，只让前面几个启用光源，其余粒子保留但不发光。此前世界路径在容量满时会在激活前拒绝粒子（`ParticleDynamicLights.canActivate` 返回 false，粒子根本不生成）；后端调低上限时 `updateFrame` 还会因 `liveCount > max` 一次停用该穿戴者的全部光源。
+
+实现：`canActivate` 只做设置校验，不再因容量拒绝激活；`CustomParticleRuntime.activate` 在容量已满时捕获 `PARTICLE_DYNAMIC_LIGHT_COUNT_LIMIT` 并对该粒子 `disableLightFromPolicy()`（粒子正常存活、脚本不中断，其他错误仍移除并抛出）；`updateFrame` 按 `SOURCES` 插入顺序（即光源启用顺序）为每个穿戴者保留前 `maxDynamicLights` 个源，超出者移除光源但保留粒子，符合契约“停用该源、保留寿命”。配置类超限（亮度/半径/后端禁用/零值）仍按原逻辑报错或停用；预览 scope 未改。
+
+验证：更新 ParticleLightNativeSmokeTest——首个发光粒子点亮、后续发光粒子存活但不发光、无空余容量时重复启用不报错、释放容量后下一个接管、后端调低上限时保留较早源并停用较晚源。`ysmMaterialNativeSmokeTest`（含 CustomParticle/ParticleLight 原生）PASS 17 秒；`libraryPreviewRuntimeSmokeTest` PASS 27 秒；`fabric:build` PASS 28 秒。日志 alpha4-particle-light-first-capacity.log、alpha4-particle-light-first-capacity-build.log。真实游戏光照画面 MANUAL/PENDING。
+
+用户另行确认 YSM 装饰实例实测没有问题，关闭上一轮 YSM 同类矩阵待验证项。JAR 18291064 字节，SHA256 13adf5bd667781a85a4c0bd5d08198ebe323db566dd9cb38e2ccc8e345d50301。main 提交前基线 79d435d3；后端未改。
