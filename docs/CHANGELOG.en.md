@@ -9,6 +9,12 @@
 - Adds isolated accessory instances, anchors, trails, controls, CustomParticle/Ribbon and optional dynamic lights with server-defined `outfit.limits`.
 - Connects wardrobe creation/presets to atomic outfit Apply, authorized observer projection, persistent instance state and reconnect recovery; preserves legacy base projection and frozen v1.
 - Fixes shared-root arm filtering, post-animation head tracking, sleeping root rotation and filter initialization through common YSM paths. No model-specific exceptions.
+- First person: replay the outfit composition once per frame with a camera-relative full-body pose (geometry discarded), so body-mounted accessory RENDER/POST_RENDER, particles and trails keep running; refresh local body/arm part-to-world matrices every frame.
+- Shaders: map custom particle pipelines to the matching Iris particle programs by blend mode; keep the Figura solid pipeline mapping.
+- LambDynamicLights: register particle dynamic lights as one world light behavior through its public DynamicLightBehavior API. When installed, stop injecting the built-in light field to avoid double lighting and re-register after world changes; when absent, log one fallback warning and keep the built-in field.
+- Particle light cap: above the per-wearer limit in `outfit.limits`, only the first N enabled sources stay lit; later particles stay alive but unlit.
+- Fixes trails and vanilla particles freezing after adjusting/clicking cosmetics and particle dynamic lights stopping (no draft world preview after closing the wardrobe; world body draws always use RENDER; part-to-world matrices refresh every frame; paperdoll previews no longer leak their render mode).
+- Remove temporary wardrobe/outfit render diagnostics; script errors are still reported.
 - Real Minecraft dual-client, GUI/GPU, lighting, performance and reported pose visual comparisons remain `MANUAL/PENDING`; see [acceptance evidence](ALPHA4_ACCEPTANCE.md).
 
 ## 1.0.0-alpha.3

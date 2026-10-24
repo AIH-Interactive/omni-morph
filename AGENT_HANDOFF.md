@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-25（Asia/Seoul，关闭衣柜结束草稿世界预览；自动门禁 PASS，真实客户端粒子/光源画面 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
+更新时间：2026-10-25（Asia/Seoul，alpha.4 日志清理与更新日志补全；自动门禁 PASS，真实客户端粒子/光源画面 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
 
 ## 接续入口与约束
 
@@ -377,3 +377,12 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 验证：alpha4-preview-close-gate.log（libraryPreviewRuntimeSmokeTest、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS 59 秒）；git diff --check PASS。JAR 18299924 字节，SHA256 6ffee683f41a8872bdb4b9e5821aff7051c8900470f92499fe63118e8eaea486，已安装。真实客户端复测 MANUAL/PENDING。
 
 若用户希望“关闭衣柜后仍在世界看草稿”，不要恢复 detach；应让草稿实例在 RENDER 模式下把粒子/光源接入世界运行时（PreviewParticleScope 只用于 GUI），这是后续独立任务。复测：点任意装饰→关闭衣柜→第三人称走动，拖尾应跟随、光源应随粒子；若仍异常，请提供 latest.log 与本轮点击的装饰类型。
+## 当前有效交接：alpha.4 日志清理与更新日志补全（2026-10-25）
+
+- 已删除临时诊断：	racePublishBlocker/publishStateTrace（Outfit publish 行）、OutfitNativeRenderer 的 accessory draw / empty draw / 顶点计数 / diagnoseSkipped、OutfitComposition 的挂点缺失与基础骨骼未解析诊断。脚本错误和指令预算仍通过 diagnose 输出。
+- 四个更新日志（docs/CHANGELOG.md、.en.md、.ja.md、.ko.md）的 1.0.0-alpha.4 已补第一人称脚本帧/矩阵、Iris 粒子管线、LambDynamicLights 桥接与回退警告、每穿戴者光源上限、点击装饰后的拖尾/粒子/光源修复、日志清理。
+- 验证：lpha4-debug-cleanup-gate.log（四项目 PASS 1 分 6 秒）；git diff --check PASS。
+- 产物：JAR 18296203 字节，SHA256 3ce488de8cf1a54c6d105deb0349bad1257c1a056c3c65072694af3b5e8d55c1，已安装。
+- 提交：611a3da（清理）、ee6deec（更新日志），HEAD=origin/main。后端未改，.omc/ 保留。
+
+若后续还有日志噪音，优先检查 OutfitComposition.diagnose（现在只用于脚本错误/预算）与 FiguraMod 的 LambDynamicLights 缺席警告；前者不应删除，后者是用户要求的一次性提示。
