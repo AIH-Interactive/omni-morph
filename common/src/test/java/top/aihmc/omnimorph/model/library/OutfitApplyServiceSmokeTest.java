@@ -821,11 +821,12 @@ public final class OutfitApplyServiceSmokeTest {
             require(draft.committed().equals(server.committed) && draft.committed().revision() > 0
                             && draft.committed().instances().getFirst().instanceId().equals(new UUID(0, 41)),
                     "wardrobe captures the whole server outfit and exact revision instead of an empty revision-zero draft");
-            var fixed = (OutfitPresetResources.Prepared) field(type, "draftFixedResources").get(screen);
-            require(fixed.ready() && fixed.contains(server.accessory.reference())
-                            && fixed.read(server.accessory.reference(), () -> false).getCompoundOrEmpty("metadata")
+            var cached = (Map<OutfitConfig.ResourceRef, net.minecraft.nbt.CompoundTag>)
+                    field(type, "draftPreparedResources").get(screen);
+            require(cached.containsKey(server.accessory.reference())
+                            && cached.get(server.accessory.reference()).getCompoundOrEmpty("metadata")
                             .getStringOr("resource_kind", "").equals("ACCESSORY"),
-                    "current outfit editing recovers fixed local dependencies without the original device files");
+                    "editing reuses the resident outfit dependencies without source requests or original device files");
             Avatar retained = user.getMainAvatar();
             draft.setEnabled(new UUID(0, 41), false);
             server.loseResponse = true;

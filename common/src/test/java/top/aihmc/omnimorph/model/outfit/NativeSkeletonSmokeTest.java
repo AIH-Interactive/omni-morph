@@ -49,6 +49,12 @@ public final class NativeSkeletonSmokeTest {
         hidden.savedPartToWorldMat.translate(9999, 9999, 9999);
         root.children.add(empty);
         root.children.add(hidden);
+        var prunedChild = new FiguraModelPart(avatar, "pruned_child", new PartCustomization(), Map.of(),
+                new java.util.ArrayList<>());
+        prunedChild.facesByTexture = List.of();
+        prunedChild.textures = List.of();
+        prunedChild.parent = hidden;
+        hidden.children.add(prunedChild);
         root.preRender = avatar.loadScript("native pose pre", """
                 return function()
                     models:setPos(2,3,5):setRot(0,0,90):setScale(2,3,4)
@@ -118,7 +124,12 @@ public final class NativeSkeletonSmokeTest {
         }, new com.mojang.blaze3d.vertex.PoseStack(), .5f, 0x00f000f0, 1, 0, false, false);
         renderer.posMat.reset();
         renderer.normalMat.reset();
+        hidden.parentType = top.aihmc.omnimorph.model.ParentType.World;
         SkeletonPose leftArm = adapter.captureArm(new Matrix4f(), true, renderer::render);
+        var prunedReference = adapter.binding().definition().reference(null,
+                adapter.binding().definition().uniqueNamed("pruned_child").orElseThrow());
+        require(leftArm.matrix(prunedReference).isEmpty(),
+                "first-person arm capture prunes descendants of a rejected separate branch without unboxing null");
         require(leftArm.matrix(visibleReference).isPresent() && leftArm.matrix(hiddenReference).isEmpty(),
                 "Figura arm capture uses native draw-time parent types before post-render edits");
         require(empty.parentType == top.aihmc.omnimorph.model.ParentType.RightArm,

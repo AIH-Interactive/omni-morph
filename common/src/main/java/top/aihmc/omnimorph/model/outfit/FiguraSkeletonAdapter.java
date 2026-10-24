@@ -41,7 +41,8 @@ public final class FiguraSkeletonAdapter {
         Boolean[] accepted = new Boolean[binding.parts().size()];
         for (int index = 0; index < accepted.length; index++) {
             int parent = binding.definition().nodes().get(index).parent();
-            Boolean inherited = parent < 0 ? filter.initialValue : accepted[parent];
+            // Null means the native filter pruned this entire branch; do not unbox it.
+            Boolean inherited = parent < 0 ? Boolean.valueOf(filter.initialValue) : accepted[parent];
             accepted[index] = inherited == null ? null
                     : filter.test(captured.parentTypes().get(binding.parts().get(index)), inherited);
         }

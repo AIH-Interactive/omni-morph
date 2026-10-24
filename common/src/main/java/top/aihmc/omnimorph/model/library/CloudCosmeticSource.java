@@ -47,7 +47,9 @@ public final class CloudCosmeticSource {
         @Override
         public void close() {
             future.cancel(false);
-            transfer.close();
+            if (transfer != null) {
+                transfer.close();
+            }
         }
     }
 
@@ -66,6 +68,18 @@ public final class CloudCosmeticSource {
             throw failure("COSMETIC_RESOURCE_KIND_REQUIRED");
         }
         return fetch(selected.modelId(), selected.revision(), null);
+    }
+
+    /** Reuse a previously acquired source for private editing; fresh admission belongs to Apply. */
+    public Operation selectCached(LibraryModels.Model selected) {
+        var future = AvatarLoadExecutor.submit(() -> {
+            try {
+                return prepare(transfers.cachedPreview(selected), null);
+            } catch (Exception failure) {
+                throw new CompletionException(failure);
+            }
+        });
+        return new Operation(null, future.thenApplyAsync(value -> value, publisher));
     }
 
     public Operation read(OutfitConfig.ResourceRef reference) {
