@@ -331,11 +331,17 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
         }
 
         var submittedArmOutfit = outfitState == null ? null : OutfitRenderBinding.composition(outfitState);
+        // The composition's budget belongs to its own base, which is the local draft preview while editing.
+        Avatar armAvatar = avatar;
         if (submittedArmOutfit != null) {
-            submittedArmOutfit.prepareFiguraBase(avatar);
+            Avatar compositionBase = OutfitRenderBinding.avatar(outfitState);
+            if (compositionBase != null) {
+                armAvatar = compositionBase;
+            }
+            submittedArmOutfit.prepareFiguraBase(armAvatar);
         }
 
-        nodeCollectorExt.submitFiguraModel(avatar, outfitState, (playerAvatar, state, bufferSource) -> {
+        nodeCollectorExt.submitFiguraModel(armAvatar, outfitState, (playerAvatar, state, bufferSource) -> {
             Runnable drawSubmittedArm = () -> {
 
                 RenderUtils.restoreModelPoseState(playerModel, modelState);
