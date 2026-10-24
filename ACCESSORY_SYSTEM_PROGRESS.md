@@ -1146,3 +1146,13 @@ JAR18269043字节，SHA256 ffff06e3d734922f6833ea4c319ad88a39583a681c57c39e8b0c9
 修复：摘要长度为0时跳过长度比较，仍校验 revision/policyRevision 及索引长度+SHA256；详情模型（正式下载已要求 byteLength≥1）行为不变。未改后端/协议/版本，编辑仍零 HTTP。
 
 alpha4-summary-cache-red.log 复现 RED；alpha4-summary-cache-final.log PASS（1分1秒/23 tasks）：libraryPreviewRuntimeSmokeTest、cosmeticSourceSmokeTest、outfitApplyClientSmokeTest、fabric:build；覆盖摘要模型离线复用已获取资源、正式缓存摘要读取、哈希不符仍拒绝。真实客户端配装加载 MANUAL/PENDING。JAR 18269101字节，SHA256 2be284c4b2fad6a2a52bff3e7f73cceb254d9a06f62e0dee064dce9ec77ca8bd。
+
+## 2026-10-24：云端 YSM 配装预览截断（衣柜秒消失/世界只剩头或缺部位）
+
+根因：配装草稿中 YSM 基础始终在隔离预览形象（Avatar.createParticlePreview，DEFAULT 权限）加载；组合帧 drawYsmBase 按 min(基础, 预算) 的 COMPLEXITY 计面，默认档约 2048 面，渲染在骨骼遍历中途截断（实测 52704 顶点只画 8192）。截断位置随骨骼顺序变化，表现为只剩头、缺头发/手臂或整体消失。Figura 草稿基础用玩家权限，正式装备 YSM 用玩家权限，均不受影响。加密 controller-parse/execution 警告仅为诊断记录，未卸载模型，与本缺陷无关。
+
+修复：LibraryPreviewSession.prepareComposition 对 YSM 基础预览形象写入穿戴者 PermissionPack 的 COMPLEXITY（与正式装备一致），其余权限保持隔离默认。未改协议/后端/版本。
+
+验证：用户缓存中 4 个真实云端 YSM 包（解密至隔离临时目录，经 OMNIMORPH_TEST_YSM_PACKAGES 提供）走 selectDraft→prepareComposition→captureYsmBase/drawYsmBase。alpha4-ysm-draft-budget-red.log 复现 52704→8192；alpha4-ysm-draft-budget-final.log PASS（1分21秒/24 tasks）：四包 composed=direct（52704/27480/45168/33360），libraryPreviewRuntimeSmokeTest、cosmeticSourceSmokeTest、outfitApplyClientSmokeTest、ysmPublicPoseSmokeTest、fabric:build。未设该变量时测试跳过。CPU 顶点计数不等于真实窗口画面，衣柜/世界显示 MANUAL/PENDING。JAR 18269266 字节，SHA256 e538d530d4a25096987f98b2c413f5e7fbaf8194d70f9afc1a3bd0080e356ce7。
+
+未处理：用户报告“提交后装饰未同步云端”尚未排查，日志无提交请求/失败记录，待下一步定位。
