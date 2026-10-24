@@ -17,6 +17,8 @@ import java.util.function.Supplier;
 public final class OutfitInstructionBudget {
     private static final ThreadLocal<OutfitInstructionBudget> CURRENT = new ThreadLocal<>();
     private static final Map<Avatar, ParticleFaces> PARTICLE_FACES = new IdentityHashMap<>();
+    private static final java.util.Set<String> DIAGNOSED =
+            java.util.Collections.synchronizedSet(new java.util.HashSet<>());
     private static long particleTick;
 
     private static final class ParticleFaces {
@@ -184,6 +186,16 @@ public final class OutfitInstructionBudget {
         }
         long available = (long) maximum - value.instructions;
         int remaining = (int) Math.max(0, Math.min(instructions.remaining, available));
+        if (remaining == 0 && avatar.cosmeticContext != null && DIAGNOSED.add(System.identityHashCode(avatar) + ":" + permission)) {
+            // Diagnostic only: an accessory found no shared allowance; record every input of the computation.
+            var baseInstructions = baseAvatar == null ? null : instructions(baseAvatar, permission);
+            top.aihmc.omnimorph.FiguraMod.LOGGER.warn("Outfit accessory allowance exhausted: permission={}, accessoryMax={}, "
+                            + "accessoryRemaining={}, basePermission={}, baseCounter={}/{}, sharedUsed={}, observedBase={}",
+                    permission.name, avatar.permissions.get(permission), instructions.remaining,
+                    baseAvatar == null ? -1 : baseAvatar.permissions.get(permission),
+                    baseInstructions == null ? -1 : baseInstructions.remaining,
+                    baseInstructions == null ? -1 : baseInstructions.max, value.instructions, value.observedBase);
+        }
         if (remaining == 0) {
             avatar.noPermissions.add(permission);
         } else {
