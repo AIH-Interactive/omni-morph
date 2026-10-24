@@ -112,6 +112,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private LocalOutfitCandidates localCandidates;
     private LocalCosmeticCatalog cosmetics;
     private List<LocalCosmeticInventory.Entry> observedCosmetics = List.of();
+    private final java.util.Set<UUID> autoCachedModels = new java.util.HashSet<>();
     private LibraryClient.Request<LibraryModels.Capabilities> outfitCapabilitiesRequest;
     private OutfitLimits outfitLimits = OutfitLimits.defaults();
     private OutfitDraft outfitDraft;
@@ -139,7 +140,6 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private Button editInstancesButton;
     private Button cancelDraftButton;
     private Button resetDraftButton;
-    private Button applyDraftButton;
     private Button retryDraftButton;
     private Button refreshDraftButton;
     private OutfitApplyService outfitApplications;
@@ -274,7 +274,6 @@ public class WardrobeScreen extends AbstractPanelScreen {
         editInstancesButton = null;
         cancelDraftButton = null;
         resetDraftButton = null;
-        applyDraftButton = null;
         retryDraftButton = null;
         refreshDraftButton = null;
         cosmeticSettingsButton = null;
@@ -625,8 +624,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
             }
         }
         if (tab == Tab.OUTFIT) {
+            // Shared by avatar and accessory modes: with outfit support it commits the base and accessories together.
             uploadButton = actions.action(icon(0, 0, "upload", "publish_current", button -> publishCurrent()));
-            avatarActions.add(uploadButton);
             avatarActions.add(actions.action(icon(0, 0, "reload", "reload_current",
                     button -> AvatarManager.reloadCloudAvatar())));
             showModel = actions.action(new SwitchButton(0, 0, 24, 24, 0, 0, 24,
@@ -658,10 +657,9 @@ public class WardrobeScreen extends AbstractPanelScreen {
                     text("cosmetic_settings"), null, button -> openCosmeticControls()));
             refreshCosmeticSettings();
             actions.separator();
-            applyDraftButton = actions.action(outfitIcon("wardrobe_draft_apply", "draft_apply", button -> applyOutfitDraft()));
             retryDraftButton = actions.action(outfitIcon("wardrobe_draft_retry", "draft_retry", button -> retryOutfitDraft()));
             refreshDraftButton = actions.action(outfitIcon("wardrobe_draft_refresh", "draft_refresh", button -> refreshOutfitDraft()));
-            applyDraftButton.setActive(false);
+            uploadButton.setActive(false);
             retryDraftButton.setActive(false);
             refreshDraftButton.setActive(outfitApplyAvailable() && !outfitOperationBusy());
             cancelDraftButton = actions.action(outfitIcon("wardrobe_draft_cancel", "draft_cancel", button -> cancelOutfitDraft()));
@@ -1784,6 +1782,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
 
     private void publishCurrent() {
         if (outfitApplyAvailable()) {
+            // The draft already holds the selected base and its accessories; Apply commits them as one outfit.
+            applyOutfitDraft();
             return;
         }
         if (selected != null) {
@@ -1989,10 +1989,48 @@ public class WardrobeScreen extends AbstractPanelScreen {
             previewOutfitDraft();
         }, minecraft::execute);
         changingDraftBase.whenComplete((ignored, failure) -> minecraft.execute(() -> {
-            if (!removed && selectionToken == baseSelectionGeneration && failure != null) {
+            if (!removed && selectionToken == baseSelectionGeneration && failure != null
+                    && !cacheThenRetry(failure, selection.cloud(), () -> selectionToken == baseSelectionGeneration,
+                            () -> {
+                                if (selected == selection) {
+                                    selectOutfitBase();
+                                }
+                            })) {
                 error(failure);
             }
         }));
+    }
+
+    /**
+     * Selecting an uncached cloud entry acquires it once through the collection, then repeats the local selection.
+     * Editing itself still reads only the local cache; a second miss is reported normally.
+     */
+    private boolean cacheThenRetry(Throwable failure, UUID model, java.util.function.BooleanSupplier current,
+                                   Runnable retry) {
+        while (failure instanceof java.util.concurrent.CompletionException && failure.getCause() != null) {
+            failure = failure.getCause();
+        }
+        if (model == null || collection == null || client == null || !client.current()
+                || !(failure instanceof java.io.IOException) || !"LOCAL_PREVIEW_CACHE_MISS".equals(failure.getMessage())
+                || !autoCachedModels.add(model)) {
+            return false;
+        }
+        message = text("downloading");
+        cachingModel = model;
+        var operation = collection.add(model);
+        selectionCaching = operation;
+        operation.request().future().whenComplete((value, error) -> minecraft.execute(() -> {
+            if (removed || !current.getAsBoolean()) {
+                return;
+            }
+            message = Component.empty();
+            if (error != null) {
+                error(error);
+            } else {
+                retry.run();
+            }
+        }));
+        return true;
     }
 
     private void selectOutfitAccessory() {
@@ -2006,13 +2044,21 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }
         if (selected.cloud() != null) {
             var expectedClient = client;
+            var selection = selected;
             cloudCosmeticSelection = new CloudCosmeticSource(client, transfers, minecraft::execute)
                     .selectCached(selectedCollectionModel());
             cloudCosmeticSelection.future().whenComplete((prepared, failure) -> {
                 if (!removed && generation == resourceSelectionGeneration && client == expectedClient
                         && expectedClient.current()) {
                     if (failure != null) {
-                        error(failure);
+                        if (!cacheThenRetry(failure, selection.cloud(), () -> generation == resourceSelectionGeneration,
+                                () -> {
+                                    if (selected == selection) {
+                                        selectOutfitAccessory();
+                                    }
+                                })) {
+                            error(failure);
+                        }
                     } else {
                         selectedCloudCosmetic = prepared;
                         draftPreparedResources.put(prepared.descriptor().reference(), prepared.nbt());
@@ -3466,8 +3512,6 @@ public class WardrobeScreen extends AbstractPanelScreen {
             cancelDraftButton.setActive(outfitOperationBusy() || outfitDraft != null && outfitDraft.dirty());
             resetDraftButton.setActive(outfitDraft != null && !outfitOperationBusy());
             boolean canApply = outfitApplyAvailable() && !outfitOperationBusy();
-            applyDraftButton.setActive(canApply && outfitDraft != null && outfitDraft.dirty()
-                    && draftAuthority == client && outfitConflict == null && presetBaseCanPersist());
             retryDraftButton.setActive(canApply && applyingOutfit != null && outfitDraft == applyingDraft
                     && outfitDraft.generation() == applyingDraftGeneration && applyingOutfit.future().isCompletedExceptionally()
                     && !applyingOutfit.future().isCancelled());
@@ -3584,8 +3628,11 @@ public class WardrobeScreen extends AbstractPanelScreen {
                     && (selected.path() != null || client != null && client.current())
                     : NetworkStuff.canUpload() && !AvatarManager.localUploaded
                         && current != null && current.loaded && current.nbt != null;
-            // Legacy enable/upload replaces the whole committed outfit with one base; outfits use Apply instead.
-            uploadButton.setActive(canPublish && !outfitApplyAvailable());
+            // Legacy enable/upload would replace the committed outfit with one base, so outfit servers publish via Apply.
+            uploadButton.setActive(outfitApplyAvailable()
+                    ? !outfitOperationBusy() && outfitDraft != null && outfitDraft.dirty() && draftAuthority == client
+                    && outfitConflict == null && presetBaseCanPersist()
+                    : canPublish);
         }
         if (deleteButton != null) {
             deleteButton.setActive(NetworkStuff.isConnected() && AvatarManager.localUploaded && !uploading);

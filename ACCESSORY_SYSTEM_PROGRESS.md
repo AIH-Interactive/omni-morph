@@ -1180,3 +1180,9 @@ alpha4-restored-local-draft-red.log 复现“资源不可用”；alpha4-restore
 用户决定：配装页禁用“启用”。实现：服务器支持配装提交（outfitApplyAvailable）时 publish_current 按钮不可用且 publishCurrent 直接返回；不支持配装的旧后端保留原启用/上传。基础切换统一经草稿 + Apply。另：手动 BASE_BONE 挂点从不调用 recordMountTarget（仅 AUTO_TRAIL），预览状态对手动挂点恒显示“未解析到挂载目标”为误报，作为后续项记录，本轮未改。曾验证 AI Hobbyist 骨架哈希在加载/初始化/40 tick、预览与正式加载间均稳定（8ee7fd659389/196），排除骨架变化假设；探针未提交。
 
 alpha4-outfit-legacy-enable-final.log PASS（54秒/23 tasks：libraryPreviewRuntimeSmokeTest、outfitApplyClientSmokeTest、cosmeticSourceSmokeTest、fabric:build），旧后端启用用例仍通过；新禁用分支无可观察测试点，仅代码审查，真实界面 MANUAL/PENDING。JAR 18270574 字节，SHA256 7b38b87434042a4264da7cf08217ff79bb0972c3214f9fbf18ccc5a1365e46e1。
+
+## 2026-10-24：发布当前形象统一提交形象与装饰；云端未缓存条目点击自动缓存
+
+用户决定（覆盖上一节“配装页禁用启用”）：配装编辑全部本地，只有“发布当前形象”把基础形象与装饰一并提交；删除“应用整套装扮”按钮；“发布当前形象”在形象模式与装饰模式都显示。实现：服务器支持配装提交时 publishCurrent 直接走 applyOutfitDraft（原 Apply 条件决定可用），不再走旧启用/上传；旧后端保留原行为；按钮移出形象控件组，两种模式共用；删除 applyDraftButton。云端条目选中时若本地缓存未命中（LOCAL_PREVIEW_CACHE_MISS），经形象集 collection.add 自动获取一次后重新执行选择；同一模型每个衣柜会话只自动获取一次，再次未命中正常提示。
+
+alpha4-publish-outfit-final.log PASS（48秒/23 tasks：libraryPreviewRuntimeSmokeTest、outfitApplyClientSmokeTest、cosmeticSourceSmokeTest、fabric:build）；工具栏槽位更新（形象 15 / 装饰 11，装饰模式首位为发布），自动获取发起一次、不重复、非未命中不触发。测试服务器无下载回执，完整自动下载→重选链路未端到端验证，真实界面 MANUAL/PENDING。JAR 18271342 字节，SHA256 a5d5f59a5450318c4afdcbb321c175d29c9e1e9bf30d947d239ad436f578259c。

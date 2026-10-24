@@ -1533,7 +1533,28 @@ public final class LibraryPreviewRuntimeSmokeTest {
                                     && reloaded.configuration().instances().isEmpty()
                                     && server.details.get() == beforeEdit && server.files.get() == 1,
                             "refresh before submission restores the enabled local outfit without a cloud read");
-
+                    // Clicking an uncached cloud entry acquires it once through the collection instead of only failing.
+                    var cacheThenRetry = type.getDeclaredMethod("cacheThenRetry", Throwable.class, UUID.class,
+                            java.util.function.BooleanSupplier.class, Runnable.class);
+                    cacheThenRetry.setAccessible(true);
+                    var miss = new java.util.concurrent.CompletionException(new java.io.IOException("LOCAL_PREVIEW_CACHE_MISS"));
+                    int detailsBeforeAcquire = server.details.get();
+                    require((boolean) cacheThenRetry.invoke(screen, miss, entry.modelId(),
+                                    (java.util.function.BooleanSupplier) () -> false, (Runnable) () -> { }),
+                            "an uncached cloud selection starts one automatic acquisition");
+                    long acquireDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+                    while (server.details.get() == detailsBeforeAcquire && System.nanoTime() < acquireDeadline) {
+                        drain.run();
+                        Thread.sleep(1);
+                    }
+                    require(server.details.get() > detailsBeforeAcquire,
+                            "automatic acquisition requests the authorized cloud resource");
+                    require(!(boolean) cacheThenRetry.invoke(screen, miss, entry.modelId(),
+                                    (java.util.function.BooleanSupplier) () -> false, (Runnable) () -> { }),
+                            "a repeated miss after one acquisition is reported instead of looping");
+                    require(!(boolean) cacheThenRetry.invoke(screen, new java.io.IOException("OTHER"), UUID.randomUUID(),
+                                    (java.util.function.BooleanSupplier) () -> false, (Runnable) () -> { }),
+                            "only cache misses trigger acquisition");
                 }
             }
             System.out.println("PASS wardrobe cloud accessories: actual HTTP/portable Figura and encrypted YSM, scoped selection/Add, fixed references, shared cached body, revocation and stale selection cleanup; GUI MANUAL/PENDING");
@@ -4139,11 +4160,11 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var visible = actions.getClass().getDeclaredMethod("visibleActions");
             visible.setAccessible(true);
             var slots = (java.util.List<?>) visible.invoke(actions);
-            require(field(screen.getClass(), "candidateButton").get(screen) == null && slots.size() == 16
+            require(field(screen.getClass(), "candidateButton").get(screen) == null && slots.size() == 15
                             && slots.get(5) == null && slots.get(9) == null,
                     "avatar actions hide accessory-only controls and retain shared draft operations");
             var expected = java.util.List.of("upload", "reload", "wardrobe_visibility", "wardrobe_appeal", "delete",
-                    "sound", "keybind", "unselect", "wardrobe_draft_apply", "wardrobe_draft_retry",
+                    "sound", "keybind", "unselect", "wardrobe_draft_retry",
                     "wardrobe_draft_refresh", "wardrobe_draft_cancel", "wardrobe_draft_reset", "wardrobe_outfit_presets");
             int index = 0;
             for (Object slot : slots) {
@@ -4157,7 +4178,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             }
             require(!((top.aihmc.omnimorph.gui.widgets.Button) field(screen.getClass(), "cosmeticSettingsButton")
                     .get(screen)).isActive(), "settings are disabled when no enabled instance registers controls");
-            for (String name : java.util.List.of("applyDraftButton", "retryDraftButton", "refreshDraftButton")) {
+            for (String name : java.util.List.of("uploadButton", "retryDraftButton", "refreshDraftButton")) {
                 require(!((top.aihmc.omnimorph.gui.widgets.Button) field(screen.getClass(), name).get(screen)).isActive(),
                         "formal outfit actions are disabled without negotiated Apply capability: " + name);
             }
@@ -4166,8 +4187,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
             field(screen.getClass(), "parts").setBoolean(screen, true);
             groups.invoke(screen);
             var accessorySlots = (java.util.List<?>) visible.invoke(actions);
-            require(accessorySlots.size() == 10 && accessorySlots.get(3) == null,
-                    "accessory controls form their own group before shared draft operations");
+            require(accessorySlots.size() == 11 && accessorySlots.get(0) == field(screen.getClass(), "uploadButton").get(screen),
+                    "accessory mode keeps the shared publish action before its own controls and shared draft operations");
             for (Object button : (java.util.List<?>) field(screen.getClass(), "avatarActions").get(screen)) {
                 require(!((top.aihmc.omnimorph.gui.widgets.Button) button).isVisible(),
                         "avatar operations are hidden in accessory mode");
@@ -4176,7 +4197,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     .get(screen)).isVisible(), "accessory mode exposes instance addition");
             field(screen.getClass(), "parts").setBoolean(screen, false);
             groups.invoke(screen);
-            require(((java.util.List<?>) visible.invoke(actions)).size() == 16,
+            require(((java.util.List<?>) visible.invoke(actions)).size() == 15,
                     "returning to avatar mode restores its controls without rebuilding callbacks");
             var selectionType = field(screen.getClass(), "selected").getType();
             var selectionConstructor = selectionType.getDeclaredConstructor(java.nio.file.Path.class,
@@ -4190,14 +4211,14 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     accessory.path(), accessory.path(), false, null,
                     net.minecraft.network.chat.Component.literal("Accessory"), accessory));
             groups.invoke(screen);
-            require(((java.util.List<?>) visible.invoke(actions)).size() == 10,
+            require(((java.util.List<?>) visible.invoke(actions)).size() == 11,
                     "an accessory selected in All switches the actual controls to the accessory group");
             field(screen.getClass(), "selected").set(screen, selectionConstructor.newInstance(
                     java.nio.file.Path.of("avatar"), java.nio.file.Path.of("avatar"), false,
                     null, net.minecraft.network.chat.Component.literal("Avatar"), null));
             field(screen.getClass(), "parts").setBoolean(screen, true);
             groups.invoke(screen);
-            require(((java.util.List<?>) visible.invoke(actions)).size() == 16,
+            require(((java.util.List<?>) visible.invoke(actions)).size() == 15,
                     "the selected avatar takes priority over an accessory filter fallback");
         }
         var refreshed = new java.util.concurrent.atomic.AtomicInteger();
