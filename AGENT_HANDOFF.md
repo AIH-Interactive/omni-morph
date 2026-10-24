@@ -270,3 +270,11 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 
 - 已修：用户按 F5 切到第一人称崩溃 `INVALID_OUTFIT_CONFIGURATION` @ bindBaseBudget ← prepareFiguraBase ← PlayerRendererMixin.postRenderHand。与 351ef088 的 YSM 手臂同因：Figura 手臂用正式装备形象，组合预算属于本地配装预览形象。postRenderHand 有组合时改用 OutfitRenderBinding.avatar(outfitState)。门禁 alpha4-figura-arm-composition-base.log PASS（27 秒），JAR SHA256 f13159224a0bd41d64a68e11d1b6a40a0714c194b0057fb4ebacd485189998f9；真实游戏 MANUAL/PENDING。
 - 未解决：拖尾 `cosmetics/test` 仍无脚本粒子。用户日志 21:08 显示该装饰 vertices=0（hiddenParts 0/3，没有可绘制的方块），没有粒子或脚本错误日志，原因未定位。下一步：确认 test 的 script.lua 粒子 API 调用路径（CustomParticle/Ribbon）在组合实例中是否被调用，以及发布副本是否为空副本（需先重新部署后端 afef2cc5 后重新发布）。
+
+## 当前有效交接：装饰 test 粒子排查（2026-10-24 22:40，额度 5 小时剩 14%）
+
+- 已确认：test_a 作为普通形象直接加载时，newCustomParticle 的静态图和精灵图都能显示（用户实测）；作为装饰时不显示。
+- 本地 cosmetics/test 内容正常：model.bbmodel 只有空组 Cosmetic（无 elements），内嵌纹理 sakura_petal、twinkle_star_sheet；LocalCosmeticSource 与普通形象走同一个 LocalAvatarLoader.compileFiguraAvatar，按代码不应丢掉 `model`。
+- 用户日志 22:33:35、22:35:37 两次报 `script:5 attempt to index ? (a nil value) with key 'Cosmetic'`（root = models.model.Cosmetic），堆栈来自 LibraryPreviewSession.prepare → Avatar.initializePreviewPlayer，即衣柜里单独选中装饰时的预览，不是配装组合实例。配装组合实例没有记录到脚本错误，但仍是 vertices=0（空组，属正常），粒子不显示。
+- 待查（按顺序）：①单独预览为何拿到没有 `model` 的 models（是否加载的是云端空副本，需重新部署后端 afef2cc5 后重新发布替换）；②配装组合实例里 POST_RENDER 中的 newCustomParticle 是否被调用、粒子是否被预览抑制（usesPreviewParticles）或归属/预算拦截——建议在 ParticleAPI.newCustomParticle 与 CustomParticle 入队处加临时诊断日志，或写离线测试用该目录作为装饰组合实例驱动一次 POST_RENDER。
+- 本轮未改代码；工作区除 .omc/ 外无未提交改动（本文件更新待提交）。
