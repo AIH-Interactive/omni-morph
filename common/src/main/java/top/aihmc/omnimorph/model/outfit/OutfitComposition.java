@@ -1127,6 +1127,13 @@ public final class OutfitComposition implements AutoCloseable {
             return exportedBones.getOrDefault(bone.reference.instanceId(), Set.of()).contains(bone.reference);
         }
 
+        /** Accessory errors are not printed for non-local execution identities; surface the author's message here. */
+        private static String scriptErrorText(Avatar avatar) {
+            String text = avatar.errorText == null ? "<no error text>" : avatar.errorText.getString();
+            text = text.replace('\n', ' ').replace('\t', ' ');
+            return text.length() > 400 ? text.substring(0, 400) + "…" : text;
+        }
+
         /** Diagnostic only: each distinct mount failure is logged once per composition. */
         private void diagnose(String reason) {
             if (diagnosed.add(reason)) {
@@ -1150,7 +1157,8 @@ public final class OutfitComposition implements AutoCloseable {
             Avatar avatar = initialized(id);
             avatar.tick();
             if (avatar.scriptError) {
-                diagnose("accessory script error during tick; the controller stops this instance");
+                diagnose("accessory script error during tick; the controller stops this instance: "
+                        + scriptErrorText(avatar));
             }
             return !avatar.scriptError;
         }
@@ -1175,7 +1183,7 @@ public final class OutfitComposition implements AutoCloseable {
                     ysm.updateAnimations(activeFrame.renderState, activeFrame.viewWearer);
                 }
                 if (avatar.scriptError) {
-                    diagnose("accessory script error during prepare");
+                    diagnose("accessory script error during prepare: " + scriptErrorText(avatar));
                     return false;
                 }
                 var overrides = boneOverrides.get(avatar.cosmeticContext.instanceId());
