@@ -3760,12 +3760,12 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var visible = actions.getClass().getDeclaredMethod("visibleActions");
             visible.setAccessible(true);
             var slots = (java.util.List<?>) visible.invoke(actions);
-            require(field(screen.getClass(), "candidateButton").get(screen) == null && slots.size() == 19
+            require(field(screen.getClass(), "candidateButton").get(screen) == null && slots.size() == 16
                             && slots.get(5) == null && slots.get(9) == null,
-                    "outfit actions retain their existing groups and add a separate draft editing group");
+                    "avatar actions hide accessory-only controls and retain shared draft operations");
             var expected = java.util.List.of("upload", "reload", "wardrobe_visibility", "wardrobe_appeal", "delete",
-                    "sound", "keybind", "unselect", "friend_add", "library_edit", "upload", "reload", "reload",
-                    "unselect", "reload", "cosmetic_settings", "library_edit");
+                    "sound", "keybind", "unselect", "wardrobe_draft_apply", "wardrobe_draft_retry",
+                    "wardrobe_draft_refresh", "wardrobe_draft_cancel", "wardrobe_draft_reset", "wardrobe_outfit_presets");
             int index = 0;
             for (Object slot : slots) {
                 if (slot != null) {
@@ -3782,6 +3782,44 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 require(!((top.aihmc.omnimorph.gui.widgets.Button) field(screen.getClass(), name).get(screen)).isActive(),
                         "formal outfit actions are disabled without negotiated Apply capability: " + name);
             }
+            var groups = screen.getClass().getDeclaredMethod("refreshActionGroups");
+            groups.setAccessible(true);
+            field(screen.getClass(), "parts").setBoolean(screen, true);
+            groups.invoke(screen);
+            var accessorySlots = (java.util.List<?>) visible.invoke(actions);
+            require(accessorySlots.size() == 10 && accessorySlots.get(3) == null,
+                    "accessory controls form their own group before shared draft operations");
+            for (Object button : (java.util.List<?>) field(screen.getClass(), "avatarActions").get(screen)) {
+                require(!((top.aihmc.omnimorph.gui.widgets.Button) button).isVisible(),
+                        "avatar operations are hidden in accessory mode");
+            }
+            require(((top.aihmc.omnimorph.gui.widgets.Button) field(screen.getClass(), "addInstanceButton")
+                    .get(screen)).isVisible(), "accessory mode exposes instance addition");
+            field(screen.getClass(), "parts").setBoolean(screen, false);
+            groups.invoke(screen);
+            require(((java.util.List<?>) visible.invoke(actions)).size() == 16,
+                    "returning to avatar mode restores its controls without rebuilding callbacks");
+            var selectionType = field(screen.getClass(), "selected").getType();
+            var selectionConstructor = selectionType.getDeclaredConstructor(java.nio.file.Path.class,
+                    java.nio.file.Path.class, boolean.class, java.util.UUID.class,
+                    net.minecraft.network.chat.Component.class,
+                    top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory.Entry.class);
+            selectionConstructor.setAccessible(true);
+            var accessory = new top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory.Entry(
+                    java.nio.file.Path.of("accessory"), java.util.UUID.randomUUID(), null, "fixture");
+            field(screen.getClass(), "selected").set(screen, selectionConstructor.newInstance(
+                    accessory.path(), accessory.path(), false, null,
+                    net.minecraft.network.chat.Component.literal("Accessory"), accessory));
+            groups.invoke(screen);
+            require(((java.util.List<?>) visible.invoke(actions)).size() == 10,
+                    "an accessory selected in All switches the actual controls to the accessory group");
+            field(screen.getClass(), "selected").set(screen, selectionConstructor.newInstance(
+                    java.nio.file.Path.of("avatar"), java.nio.file.Path.of("avatar"), false,
+                    null, net.minecraft.network.chat.Component.literal("Avatar"), null));
+            field(screen.getClass(), "parts").setBoolean(screen, true);
+            groups.invoke(screen);
+            require(((java.util.List<?>) visible.invoke(actions)).size() == 16,
+                    "the selected avatar takes priority over an accessory filter fallback");
         }
         var refreshed = new java.util.concurrent.atomic.AtomicInteger();
         var tree = new top.aihmc.omnimorph.gui.widgets.wardrobe.BoneTreeWidget(10, 20, 180, 180,

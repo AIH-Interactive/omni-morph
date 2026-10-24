@@ -56,10 +56,11 @@ GUI 验证须使用真实可见窗口，等待稳定后检查中文、布局、�
 
 ## 交付产物
 
-- 本机测试包（含计划后公共 Bug 修正）：`fabric/build/libs/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar`，18,251,373 字节。
-- SHA256：`a0ffa9b7f8079db2b614a359206b271cda0d553dc665a783d906b88169037fac`。
+- 本机测试包（含计划后公共 Bug 修正）：`fabric/build/libs/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar`，18,256,342 字节。
+- SHA256：`3a6c4637f1d65b8493cb7ade798f57b938ec0c1dcfe2f80f4080e2e387c64a9a`。
 - `stage6-artifact-check.log` PASS：ID `omni-morph`、清单版本 `1.0.0-alpha.4+26.1.2`、无重复 ZIP entry、19个内嵌依赖均存在、42个默认文件逐字节一致、新实例同步/Lua API 类齐全。
 - S6 初始产物后重建已重新核对（`alpha3-public-bugs-artifact.log` PASS）；最终相关构建/回归 `alpha3-public-bugs-checkpoint.log` PASS（1分44秒/24 tasks）。保留原 S6 日志作为历史证据，当前交付使用上方新哈希。
 
 睡眠位置补充：共享根旋转前恢复床方向平移；alpha4-sleep-anchor-final.log PASS（52秒），四床向/眼高/父坐标/无床/站姿覆盖。真实床面截图复测仍 MANUAL/PENDING。
 
+工具栏补充：按所选形象/装饰切换，配装事务组共用，8 个功能图标自绘；alpha4-wardrobe-action-groups-final.log PASS（27秒）。实际 GUI 布局/悬停/CJK MANUAL/PENDING。本页 SHA256 和大小已更新为包含睡眠平移及工具栏的新包。

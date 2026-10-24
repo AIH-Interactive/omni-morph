@@ -22,6 +22,14 @@ $icons = @{
     'wardrobe_type_ysm' = @('wardrobe-type-ysm.svg')
     'wardrobe_outfit' = @('wardrobe-outfit-add.svg', 'wardrobe-outfit-remove.svg')
     'wardrobe_cache' = @('wardrobe-cache-off.svg', 'wardrobe-cache-on.svg')
+    'wardrobe_draft_apply' = @('wardrobe-draft-apply.svg')
+    'wardrobe_draft_cancel' = @('wardrobe-draft-cancel.svg')
+    'wardrobe_draft_refresh' = @('wardrobe-draft-refresh.svg')
+    'wardrobe_draft_reset' = @('wardrobe-draft-reset.svg')
+    'wardrobe_draft_retry' = @('wardrobe-draft-retry.svg')
+    'wardrobe_instance_add' = @('wardrobe-instance-add.svg')
+    'wardrobe_instances' = @('wardrobe-instances.svg')
+    'wardrobe_outfit_presets' = @('wardrobe-outfit-presets.svg')
 }
 $colors = @('#777777', '#ffffff', '#55ffff')
 foreach ($icon in $icons.GetEnumerator()) {
