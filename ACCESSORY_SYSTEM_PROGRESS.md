@@ -1254,3 +1254,11 @@ alpha4-publish-disabled-diagnostics-build.log：libraryPreviewRuntimeSmokeTest�
 测试 testCosmeticSettingsLayout：960x540、640x360、480x270、427x240 四种尺寸，分别用真实 2 实例与 14 个 tab（含合成资源组）验证 tab 行（含滚动条）底边 ≤ 面板顶、底部两按钮顶边 ≥ 面板底、面板高度为正；14 个 tab 时有横向滚动范围，滚动条拉到底时最后一个 tab 完整位于行内；427x240 下长控件列表出现纵向滚动条。原 testCosmeticControls 的晚注册文本控件用例改为高窗口，使该行处于可见内容区。
 
 门禁：build/reports/outfit/alpha4-cosmetic-settings-layout.log：libraryPreviewRuntimeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS（35 秒）；git diff --check PASS。JAR 18285861 字节，SHA256 d7530c531b305df8575c82c58c2ccf7df71ab4ffc248afeb4e7fbe09e66a3d0c。真实窗口画面 MANUAL/PENDING。
+
+## 2026-10-24：按基础形象分别保存与关联装饰配置
+
+起因（真实日志）：拖尾挂在 AI Hobbyist Founder 的 tail4→seg42→seg12 后切换基础形象，反复出现 `Outfit accessory not drawn: base bone unresolved`——挂点 BoneRef.skeletonHash 属于旧形象骨架。实现：新增本机记录 `LocalBaseOutfits`（Figura 目录 `wardrobe-base-outfits.json`，按 `ResourceRef.identity()` 作键，最多 64 个基础，最近编辑优先保留，异步原子写）。衣柜配装页切换基础（`selectOutfitBase` → `switchDraftBase`）时：先记住当前基础的整套配置（实例、挂点、变换、骨骼覆盖、控件/Lua 状态、虚拟挂点），再换上新基础的记录；无记录且新基础即已提交配装的基础时用已提交配装；否则从空配装开始。同一基础（仅内容变化）仍只更新基础引用。`installCapturedDraft`（打开配装页读取服务器/已加载配装、发布成功后刷新）会把该配装记为其基础的最新一套。`OutfitDraft.replaceBase` 合并编号水位，后缀不复用。发布仍提交草稿整体，即只有当前基础及其那套装饰；后端/协议/版本未改。
+
+测试 testPerBaseOutfits（接在 testSelectedOutfitBase 后）：基础 A 挂装饰 → 切到 B 为空 → B 挂另一实例 → 切回 A 实例列表（含挂点/变换/控件）完全恢复且不含 B 的实例 → B 的一套留在本机记录中。
+
+门禁：build/reports/outfit/alpha4-per-base-outfits.log：libraryPreviewRuntimeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS（54 秒）；git diff --check PASS。真实游戏切换形象与云端装饰在记录恢复后的名称/预览显示 MANUAL/PENDING。

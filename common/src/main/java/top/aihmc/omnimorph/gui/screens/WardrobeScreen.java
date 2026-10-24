@@ -58,6 +58,7 @@ import top.aihmc.omnimorph.model.library.OutfitApplyResources;
 import top.aihmc.omnimorph.model.library.OutfitApplyService;
 import top.aihmc.omnimorph.model.outfit.CosmeticMetadata;
 import top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory;
+import top.aihmc.omnimorph.model.outfit.LocalBaseOutfits;
 import top.aihmc.omnimorph.model.outfit.LocalCosmeticSource;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 import top.aihmc.omnimorph.model.outfit.OutfitComposition;
@@ -2009,7 +2010,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
                     || !owner.equals(FiguraMod.getLocalPlayerUUID())) {
                 return;
             }
-            outfitDraft.setBase(captured.configuration().base());
+            switchDraftBase(captured.configuration().base());
             draftBase = captured.base();
             draftBasePersistent = captured.persistent();
             previewOutfitDraft();
@@ -2025,6 +2026,30 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 error(failure);
             }
         }));
+    }
+
+    /**
+     * Anchors and bone references are tied to one base skeleton, so each base keeps its own accessory set locally.
+     * Leaving a base remembers its set; entering a base wears its remembered set, the committed outfit when that
+     * base is the committed one, or nothing for a base never dressed on this device.
+     */
+    private void switchDraftBase(OutfitConfig.ResourceRef base) {
+        var current = outfitDraft.configuration();
+        if (current.base() != null && base != null && current.base().identity().equals(base.identity())) {
+            outfitDraft.setBase(base);
+            return;
+        }
+        var outfits = LocalBaseOutfits.forDirectory(FiguraMod.getFiguraDirectory());
+        outfits.remember(current);
+        var remembered = outfits.get(base);
+        var committed = outfitDraft.committed();
+        if (remembered == null && committed.base() != null && base != null
+                && committed.base().identity().equals(base.identity())) {
+            remembered = committed;
+        }
+        outfitDraft.replaceBase(base, remembered == null ? OutfitConfig.empty() : remembered);
+        clearAnchorSelection();
+        bindLocalDraftResources();
     }
 
     /**
@@ -2363,6 +2388,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
 
     private void installCapturedDraft(CapturedDraft captured, OutfitLimits limits, UUID owner) {
         outfitDraft = new OutfitDraft(captured.configuration(), limits);
+        // The committed (or currently loaded) outfit is the latest set for its base.
+        LocalBaseOutfits.forDirectory(FiguraMod.getFiguraDirectory()).remember(captured.configuration());
         draftBase = captured.base();
         committedDraftBase = draftBase;
         draftBasePersistent = captured.persistent();

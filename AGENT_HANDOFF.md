@@ -261,3 +261,7 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 
 用户报：YSM 基础加载装饰后崩溃 `INVALID_OUTFIT_CONFIGURATION` @ OutfitComposition.bindBaseBudget ← Frame.captureYsmArm ← PlayerRendererMixin.ysm$renderHand，重启后正常。根因：第一人称手臂使用 AvatarManager.getAvatarForPlayer（正式装备形象），而 OutfitRenderBinding.capture 在本地配装预览期间取到的组合帧属于预览形象，组合预算已绑定预览形象，换另一形象绑定即报错；重启后无本地预览两者一致。修复：有组合时手臂改用 OutfitRenderBinding.avatar(outfitState)（组合自身基础，与第三人称 AvatarManager.getAvatar(state) 一致），无组合仍用正式形象；组合基础非 YSM 时不走 YSM 手臂路径。Mixin 入口无离线测试，仅编译与回归：alpha4-ysm-arm-composition-base.log PASS（42秒：libraryPreviewRuntimeSmokeTest、outfitApplyClientSmokeTest、ysmPublicPoseSmokeTest、fabric:build）。真实游戏 MANUAL/PENDING。并行会话已提交 7e09b77d（装饰设置分 tab）。JAR 18282500 字节，SHA256 dbabff5b565f47d2b6eb214a5461d2dac1a1efa19cedbbdc870eb3f942d11be6（含 7e09b77d）。额度 5 小时 62%、周 21%。
 - 后续（同日）：装饰设置页 tab 行/面板/底部按钮不再重叠，tab 过多横向滚动、长列表纵向滚动条；自动门禁 PASS（alpha4-cosmetic-settings-layout.log），真实窗口 MANUAL/PENDING。详见进度记录末节。
+
+## 当前有效交接：按基础形象分别保存装饰（2026-10-24 21:05）
+
+已完成：每个基础形象本机各记一套装饰（`LocalBaseOutfits`，`wardrobe-base-outfits.json`），衣柜配装页切换基础自动换上该形象的那套，首次选用为空；已提交基础无本机记录时用已提交配装；发布只提交当前基础与其装饰。详见 ACCESSORY_SYSTEM_PROGRESS.md 末节。自动门禁 PASS（alpha4-per-base-outfits.log）。未验证：真实游戏切换后装饰显示、恢复的云端装饰名称/预览，MANUAL/PENDING。额度：5 小时 78%、周 23%。

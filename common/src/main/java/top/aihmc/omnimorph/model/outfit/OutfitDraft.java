@@ -63,6 +63,17 @@ public final class OutfitDraft {
         selectedInstance = null;
     }
 
+    /**
+     * Switch to another base and wear the accessory set remembered for it. Numbering watermarks are merged so
+     * suffixes already used by either set are never reused.
+     */
+    public void replaceBase(OutfitConfig.ResourceRef base, OutfitConfig remembered) {
+        var watermarks = new LinkedHashMap<>(configuration.displayOrdinals());
+        remembered.displayOrdinals().forEach((identity, ordinal) -> watermarks.merge(identity, ordinal, Math::max));
+        accept(copy(base, remembered.instances(), remembered.virtualAnchors(), watermarks));
+        selectedInstance = null;
+    }
+
     public UUID add(OutfitConfig.ResourceRef resource, OutfitConfig.AnchorRef anchor, OutfitConfig.Transform transform) {
         Objects.requireNonNull(resource);
         var watermarks = new LinkedHashMap<>(configuration.displayOrdinals());
