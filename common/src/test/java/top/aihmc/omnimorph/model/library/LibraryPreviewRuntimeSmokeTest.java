@@ -2117,12 +2117,26 @@ public final class LibraryPreviewRuntimeSmokeTest {
             cancel.onPress(null);
             require(draft.configuration().equals(valid) && field(type, "attachingInstance").get(screen) == null,
                     "canceling tree targeting preserves the outfit configuration");
+            var context = type.getDeclaredMethod("openBoneContext", OutfitHierarchy.Target.class, double.class, double.class);
+            context.setAccessible(true);
+            context.invoke(screen, firstTip, 100d, 100d);
+            var unmount = top.aihmc.omnimorph.utils.ui.UIHelper.getContext().getEntries().stream()
+                    .filter(button -> button.getMessage().getString().equals(
+                            top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.instance_unmount").getString()))
+                    .map(top.aihmc.omnimorph.gui.widgets.Button.class::cast).findFirst().orElseThrow();
+            unmount.onPress(null);
+            awaitDraftComposition(screen, preview, drain);
+            require(draft.configuration().instances().stream().noneMatch(value -> value.instanceId().equals(first))
+                            && draft.instance(second).equals(parentBefore),
+                    "bone context unmount removes its owning instance and preserves the other copy");
+            var afterUnmount = draft.configuration();
+            unmount.onPress(null);
+            require(draft.configuration().equals(afterUnmount), "a stale unmount menu cannot remove another instance");
         } finally {
             screen.contextMenu = null;
             minecraft.screen = previousScreen;
             windowField.set(minecraft, previousWindow);
         }
-        draft.remove(first);
         draft.remove(second);
         resources.remove(entry.reference());
         draft.select(previousSelection);

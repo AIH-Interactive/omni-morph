@@ -114,3 +114,15 @@ S1～S6 自动实施已收口并推送。后端仅原有未跟踪 build.log、sp
 主仓库 main，提交前基线79d2026e；本轮源码/测试/语言/3份记录纳入随后提交推送，最终以 git HEAD 与远端 main 一致性为准。后端 master 未修改，原 build.log/spm-cloud 保留；不新建分支、不改版本。最终 JAR：fabric/build/libs/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar，18268287 字节，SHA256 f264e8a4a9b39be19b9b0aaea1c56afa9c1fb0f5d3a04e83ba06925dc99327a8。日志在 build/reports/outfit/。本轮无运行中构建。
 
 额度安全检查点：Plus 5小时剩余10%、周剩余9%，重置 UTC 秒1792825679/1793382104；进入预警，没有启动新阶段，尚未到≤5% Luna交接阈值。正常完成手册由当前 Agent 更新。后续到阈值才授权 gpt-6-luna 整理本文，失败则先保存最小事实。约束仍为 main 提交推送、JDK25、前台 PowerShell Tee 日志、有限范围、人工项不得标 PASS。
+
+## 当前有效交接：骨骼树右键取消挂载（2026-10-24）
+
+用户需求：在骨骼树中对装饰骨骼使用右键菜单，支持取消挂载。实现仅限此需求，沿用 `removeDraftInstance` 和现有确认流程；行为作用于完全本地的草稿预览，只有提交配装时才写入云端。未改变协议、后端或版本。真实游戏中的右键菜单、骨骼挂载及世界画面仍为 MANUAL/PENDING。
+
+额度交接记录：可靠额度接口显示 Plus 5 小时额度 used 95% / 剩余 5%，周额度 used 92% / 剩余 8%；重置时间分别为 UTC Unix 秒 1792825679 / 1793382104。已触发额度交接阈值，本手册由 GPT-6 Luna 整理。最终 JAR 为 fabric/build/libs/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar，18,269,043 字节，SHA256 fff06e3d734922f6833ea4c319ad88a39583a681c57c39e8b0c99219b0e8a8a。
+
+当前主仓库分支为 `main`，检查时 HEAD/基线为 `18fe80ffc09a1a7e89d4e79da125c5aed2129006`。本轮已有5个代码/测试/语言文件修改，另有本交接及主 Agent 将更新的进度/验收文档纳入本检查点：`WardrobeScreen.java`（`openBoneContext` 与菜单回调）、`BoneTreeWidget.java`（右键回调）、`en_us.json`、`zh_cn.json`（`instance_unmount` 文案）、`LibraryPreviewRuntimeSmokeTest.java`（取消指定内部骨骼挂载、另一副本保留、陈旧菜单不生效的验证）。检查时除交接及后续进度/验收文档外，`git diff --check` 通过。后端原有未跟踪内容保留，不处理。
+
+自动验证已完成并通过：`build/reports/outfit/alpha4-tree-unmount-final.log` 显示 `BUILD SUCCESSFUL in 47s`、21 actionable tasks（10 executed、11 up-to-date）；其中 `:common:libraryPreviewRuntimeSmokeTest` 与 `:fabric:build` 均通过。前台构建日志为根目录 `build.log`，包含相同成功结果。日志中的 remap/deprecation 提示未导致构建失败。真实窗口/世界视觉验证未执行，必须保持 MANUAL/PENDING。
+
+最小下一步：主 Agent 按用户已有授权检查本次 `git status`/`git diff`，将本检查点相关代码/测试/语言文件及进度、验收、交接文档一并提交并推送当前 `main`，确认远端 `main` SHA 与本地 HEAD 一致，然后停止；没有其他实施任务。不得新建/切换分支或扩张范围。后续仍遵守 JDK 25、所有构建/测试前台 PowerShell `2>&1 | Tee-Object -FilePath "build.log"` 并立即检查 `$LASTEXITCODE`、禁止 Qt offscreen、保留真实 GUI 人工待验状态和后端原未跟踪数据。

@@ -1063,7 +1063,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
             treeTop += 24;
         }
         addRenderableWidget(new BoneTreeWidget(x, treeTop, w, Math.max(40, height - 140 - (treeTop - layout.top())), bones,
-                this::refreshBones, this::selectTreeTarget));
+                this::refreshBones, this::selectTreeTarget)).setContextAction(
+                        (target, event) -> openBoneContext(target, event.x(), event.y()));
         if (outfitDraft != null && draftPreviewActive) {
             addRenderableWidget(new Button(x, height - 60, w, 20,
                     text(attachingInstance == null ? "anchor_actions" : "anchor_target_actions"), null,
@@ -1271,6 +1272,27 @@ public class WardrobeScreen extends AbstractPanelScreen {
             input.setBorderColour(0xffff5555);
             message = text("instance_transform_invalid");
         }
+    }
+
+    private void openBoneContext(top.aihmc.omnimorph.model.library.OutfitHierarchy.Target target, double x, double y) {
+        if (outfitDraft == null || !draftPreviewActive || target == null || target.instanceId() == null
+                || target.kind() != top.aihmc.omnimorph.model.library.OutfitHierarchy.Kind.INSTANCE
+                && target.kind() != top.aihmc.omnimorph.model.library.OutfitHierarchy.Kind.INSTANCE_BONE) {
+            return;
+        }
+        var expected = outfitDraft;
+        UUID instance = target.instanceId();
+        var menu = new top.aihmc.omnimorph.gui.widgets.ContextMenu();
+        menu.addAction(text("instance_unmount"), null, button -> {
+            if (!removed && outfitDraft == expected && expected.configuration().instances().stream()
+                    .anyMatch(value -> value.instanceId().equals(instance))) {
+                removeDraftInstance(instance);
+            }
+        });
+        menu.setX((int) x);
+        menu.setY((int) y);
+        menu.setVisible(true);
+        UIHelper.setContext(menu);
     }
 
     private void openAnchorActions(net.minecraft.client.gui.components.Button parent) {
