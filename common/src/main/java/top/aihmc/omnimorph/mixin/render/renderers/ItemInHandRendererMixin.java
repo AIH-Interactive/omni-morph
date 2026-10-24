@@ -55,15 +55,17 @@ public abstract class ItemInHandRendererMixin {
 
     @Inject(method = "renderHandsWithItems", at = @At(value = "RETURN"))
     private void afterRenderHandsWithItems(float tickDelta, PoseStack matrices, SubmitNodeCollector submitNodeCollector, LocalPlayer player, int light, CallbackInfo ci) {
-        if (avatar == null)
-            return;
-
-        FiguraMod.pushProfiler(FiguraMod.MOD_ID);
-        FiguraMod.pushProfiler(avatar);
-        FiguraMod.pushProfiler("postRenderEvent");
-        avatar.postRenderEvent(tickDelta, new FiguraMat4().set(matrices.last().pose()));
-        avatar = null;
-        FiguraMod.popProfiler(3);
+        if (avatar != null) {
+            FiguraMod.pushProfiler(FiguraMod.MOD_ID);
+            FiguraMod.pushProfiler(avatar);
+            FiguraMod.pushProfiler("postRenderEvent");
+            avatar.postRenderEvent(tickDelta, new FiguraMat4().set(matrices.last().pose()));
+            avatar = null;
+            FiguraMod.popProfiler(3);
+        }
+        // The body render is skipped in first person; replay the outfit composition with a full-body pose so
+        // body-mounted accessory scripts (particles, trails) keep running. Geometry is discarded.
+        top.aihmc.omnimorph.model.outfit.OutfitFirstPersonScripts.render(Minecraft.getInstance(), player, tickDelta);
     }
 
     @Inject(method = "renderArmWithItem", at = @At("HEAD"), cancellable = true)

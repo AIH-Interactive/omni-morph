@@ -37,6 +37,17 @@ public final class CustomParticlePipelines {
         return Pipelines.VALUES[layer][blend.ordinal()];
     }
 
+    /** Every registered pipeline with its blend, so Iris can map it to the matching particle program. */
+    public static Map<RenderPipeline, Blend> registered() {
+        var pipelines = new java.util.LinkedHashMap<RenderPipeline, Blend>();
+        for (int layer = 0; layer < HARD_MAX_LAYERS; layer++) {
+            for (Blend blend : Blend.values()) {
+                pipelines.put(Pipelines.VALUES[layer][blend.ordinal()], blend);
+            }
+        }
+        return pipelines;
+    }
+
     /** Only custom entries exchange slots. All vanilla entries keep their existing relative positions. */
     public static <V> Set<Map.Entry<SingleQuadParticle.Layer, V>> orderedEntries(
             Set<Map.Entry<SingleQuadParticle.Layer, V>> entries) {
