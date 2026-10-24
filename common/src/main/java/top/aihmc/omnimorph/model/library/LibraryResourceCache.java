@@ -80,8 +80,11 @@ public final class LibraryResourceCache {
                 return null;
             }
             Index index = JSON.fromJson(Files.readString(indexFile), Index.class);
+            // Collection summaries omit byte_length (0); the index length and hash below still verify the package.
+            boolean lengthKnown = model.byteLength() > 0;
             if (index == null || index.revision() != model.revision()
-                    || index.policyRevision() != model.policyRevision() || index.length() != model.byteLength()) {
+                    || index.policyRevision() != model.policyRevision()
+                    || lengthKnown && index.length() != model.byteLength()) {
                 return null;
             }
             byte[] bytes = codec.read(data, CloudHttp.FILE_BYTES);
