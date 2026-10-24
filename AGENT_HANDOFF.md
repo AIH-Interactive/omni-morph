@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-25（Asia/Seoul，第三人称基础矩阵冻结修复；自动门禁 PASS，真实客户端粒子/光源画面 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
+更新时间：2026-10-25（Asia/Seoul，世界预览泄漏修复；自动门禁 PASS，真实客户端粒子/光源画面 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
 
 ## 接续入口与约束
 
@@ -359,3 +359,12 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 验证：alpha4-worldrender-matrix-gate.log（libraryPreviewRuntimeSmokeTest、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS 55 秒）；git diff --check PASS。新包 JAR 18299954 字节，SHA256 60898ea06ad81117a728a6a1b7a7f65374aeca31b8241d6aa384c17f86d779bb，已安装到游戏 mods。真实客户端复测 MANUAL/PENDING。
 
 若复测仍冻结：下一步记录一次「基础 RENDER 的 partToWorldMatrix 与玩家位置」的日志，确认是矩阵未更新还是脚本在 GUI/预览模式下运行；同时检查绿色拖尾是基础脚本还是装饰（test/test2）脚本生成，避免继续盲改。
+## 当前有效交接：世界预览模式泄漏修复（2026-10-25，第三轮）
+
+决定性线索：用户“点一下装饰就这样了”“重进存档后恢复正常”。点击装饰会激活本地草稿预览并给玩家状态绑定 `LibraryPreviewBinding`；世界身体绘制原先用 `OutfitRenderBinding.renderMode(state)`，该函数看到预览绑定就返回 `FIGURA_GUI`。世界绘制因此关闭 `allowMatrixUpdate`，基础/装饰的 part-to-world 矩阵冻结，拖尾与光源停在旧点。重进存档清空预览绑定后恢复 RENDER，所以“恢复正常”。
+
+修复：`LivingEntityRendererMixin` 三处世界身体绘制（YSM 基础、vanilla 基础、Figura 基础，约 142/178/301 行）统一传 `EntityRenderMode.RENDER`，不再从预览绑定推断；GUI 预览由 `LibraryFiguraPreviewRenderer` 显式传 `FIGURA_GUI`。`Avatar.worldRender` 仍无条件更新矩阵；第一人称基础矩阵由 `OutfitFirstPersonScripts` 更新。
+
+验证：alpha4-worldpreview-mode-gate.log（libraryPreviewRuntimeSmokeTest、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS 58 秒）；git diff --check PASS。JAR 18299953 字节，SHA256 53f087c92adcf4aed0a1d6e7af00b749bfabd594379fec843c5f1bd063db64e5，已安装。真实客户端复测 MANUAL/PENDING。
+
+复测步骤：重启游戏（新包），点装饰触发预览，在第三人称走动，确认拖尾新段落跟随、动态光源随粒子；再关闭预览/重进存档确认无回归。若仍异常，记录点击的是哪个装饰、拖尾由基础还是装饰脚本生成，并抓 latest.log 中 `Outfit accessory draw` 的 mode 与 mountModelUnits。
