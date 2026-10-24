@@ -73,6 +73,7 @@ public final class YsmDeferredPoseSmokeTest {
     private static void testSleepingRoot() {
         var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
         state.pose = net.minecraft.world.entity.Pose.SLEEPING;
+        state.eyeHeight = 1.62f;
         for (var direction : net.minecraft.core.Direction.Plane.HORIZONTAL) {
             state.bedOrientation = direction;
             var stack = new PoseStack();
@@ -87,10 +88,28 @@ public final class YsmDeferredPoseSmokeTest {
                 case EAST -> 180f;
                 default -> throw new AssertionError("horizontal bed required");
             };
-            var reference = new Matrix4f().rotateY((float) Math.toRadians(expected))
+            float offset = state.eyeHeight - 0.1f;
+            var reference = new Matrix4f().translation(-direction.getStepX() * offset, 0,
+                    -direction.getStepZ() * offset).rotateY((float) Math.toRadians(expected))
                     .rotateZ((float) Math.toRadians(90)).rotateY((float) Math.toRadians(270));
-            require(stack.last().pose().equals(reference, 0.0001f), "bed heading matches the reference root convention");
+            require(stack.last().pose().equals(reference, 0.0001f),
+                    "sleeping root includes the bed anchor translation for " + direction);
+            state.eyeHeight = 0.81f;
+            var scaled = new PoseStack();
+            scaled.translate(4, 2, -3);
+            YsmRenderer.applyEntityRotation(scaled, state, 37f);
+            var expectedPosition = new org.joml.Vector3f(4 - direction.getStepX() * 0.71f,
+                    2, -3 - direction.getStepZ() * 0.71f);
+            require(scaled.last().pose().getTranslation(new org.joml.Vector3f()).distance(expectedPosition) < 0.0001f,
+                    "bed offset uses the extracted standing eye height and preserves the parent position");
+            state.eyeHeight = 1.62f;
         }
+        state.bedOrientation = null;
+        var unanchored = new PoseStack();
+        YsmRenderer.applyEntityRotation(unanchored, state, 37f);
+        require(unanchored.last().pose().getTranslation(new org.joml.Vector3f()).length() == 0,
+                "sleep without a bed orientation does not invent an anchor offset");
+        state.bedOrientation = net.minecraft.core.Direction.SOUTH;
         state.pose = net.minecraft.world.entity.Pose.STANDING;
         var standing = new PoseStack();
         YsmRenderer.applyEntityRotation(standing, state, 37f);
