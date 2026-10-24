@@ -255,6 +255,13 @@ public class BlockbenchCommonTypes {
     }
 
     public static class ArmatureElement extends Element {
+        @Override
+        public @Nullable CompoundTag toNBT(BlockbenchParser2.Intermediary context) {
+            CompoundTag tag = super.toNBT(context);
+            if (tag == null) return null;
+            tag.putBoolean("armature", true);
+            return tag;
+        }
     }
 
     public static class ArmatureBoneElement extends Element {
@@ -267,6 +274,8 @@ public class BlockbenchCommonTypes {
         public @Nullable CompoundTag toNBT(BlockbenchParser2.Intermediary context) {
             CompoundTag tag = super.toNBT(context);
             if (tag == null) return null;
+
+            tag.putBoolean("bone", true);
 
             if (vertex_weights != null && !vertex_weights.isEmpty()) {
                 CompoundTag weightsTag = new CompoundTag();
