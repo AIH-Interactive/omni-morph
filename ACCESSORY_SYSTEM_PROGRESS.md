@@ -1056,3 +1056,5 @@
 - bug 3 已在 S1～S6 之后修复根旋转并单独提交推送 main@8d439ddb；床向矩阵和站立回归 PASS。真实床面/睡眠动画仍 MANUAL/PENDING。
 
 公共 Bug 最终检查点：`alpha3-public-bugs-checkpoint.log` PASS（1分44秒/24 tasks），指定两模型原生回放、受控基础几何、装饰/默认动作/隔离预览和 Fabric build 均通过；`alpha3-head-tracking-final.log` PASS（44秒）覆盖骨骼查询/滤波/延迟帧。`alpha3-public-bugs-artifact.log` PASS，新 alpha.4 测试包 SHA256 见验收记录。诊断 DEBUG 已移除。仅修共同渲染/动画/滤波路径，无模型特化、冻结协议和默认资产改动。自动证据不等于真实客户端画面，后者保留 MANUAL/PENDING；不继续追加无关优化。
+
+代码交付已确认：睡姿 main@8d439ddb、手/Head/滤波 main@72be764d 均提交推送并核对远端 SHA；主仓库自动实施收口，后端维持已推送 master@656652e。交接手册记录最终测试包和全部人工待验项，等待用户安排真实验收，不自动增加实现任务。
