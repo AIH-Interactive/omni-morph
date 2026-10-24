@@ -225,6 +225,7 @@ public class NetworkStuff {
         private Object ownerWorld;
         private boolean ownerDirty = true;
         private boolean ownerLoading;
+        private boolean ownerSkipLogged;
         private long ownerRetryAt;
         private long ownerGeneration;
         private LibraryClient.Request<?> ownerRead;
@@ -295,10 +296,17 @@ public class NetworkStuff {
             var outfits = capabilities == null ? null : capabilities.outfitsV1();
             if (!ownerDirty || ownerLoading || tick < ownerRetryAt || world == null || outfits == null
                     || !outfits.apply() || !outfits.configuration()
-                    || activeLibrarySelection != null && librarySelectionCurrent(activeLibrarySelection)
-                    || top.aihmc.omnimorph.avatar.local.LocalAvatarLoader.getLastLoadedPath() != null) {
+                    || activeLibrarySelection != null && librarySelectionCurrent(activeLibrarySelection)) {
                 return;
             }
+            if (top.aihmc.omnimorph.avatar.local.LocalAvatarLoader.getLastLoadedPath() != null) {
+                if (!ownerSkipLogged) {
+                    ownerSkipLogged = true;
+                    FiguraMod.LOGGER.warn("Outfit owner restore skipped: a local avatar file is selected");
+                }
+                return;
+            }
+            ownerSkipLogged = false;
             var wearer = Minecraft.getInstance().player;
             if (wearer == null || !wearer.getUUID().equals(client.session().player())) {
                 return;
@@ -354,6 +362,10 @@ public class NetworkStuff {
             ownerLoading = false;
             while (failure instanceof java.util.concurrent.CompletionException && failure.getCause() != null) {
                 failure = failure.getCause();
+            }
+            if (failure != null) {
+                FiguraMod.LOGGER.warn("Outfit owner restore failed: {}", failure instanceof LibraryClient.Failure typed
+                        ? typed.code : failure.getClass().getSimpleName() + ": " + failure.getMessage());
             }
             if (failure != null && (retryObserver(failure)
                     || failure instanceof LibraryClient.Failure changed

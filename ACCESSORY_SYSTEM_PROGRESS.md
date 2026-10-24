@@ -1156,3 +1156,11 @@ alpha4-summary-cache-red.log 复现 RED；alpha4-summary-cache-final.log PASS（
 验证：用户缓存中 4 个真实云端 YSM 包（解密至隔离临时目录，经 OMNIMORPH_TEST_YSM_PACKAGES 提供）走 selectDraft→prepareComposition→captureYsmBase/drawYsmBase。alpha4-ysm-draft-budget-red.log 复现 52704→8192；alpha4-ysm-draft-budget-final.log PASS（1分21秒/24 tasks）：四包 composed=direct（52704/27480/45168/33360），libraryPreviewRuntimeSmokeTest、cosmeticSourceSmokeTest、outfitApplyClientSmokeTest、ysmPublicPoseSmokeTest、fabric:build。未设该变量时测试跳过。CPU 顶点计数不等于真实窗口画面，衣柜/世界显示 MANUAL/PENDING。JAR 18269266 字节，SHA256 e538d530d4a25096987f98b2c413f5e7fbaf8194d70f9afc1a3bd0080e356ce7。
 
 未处理：用户报告“提交后装饰未同步云端”尚未排查，日志无提交请求/失败记录，待下一步定位。
+
+## 2026-10-24：配装提交成功但重进/重开衣柜后装饰消失（排查中）
+
+现象：提交显示成功，重进或重开衣柜后装饰不在。提交链路在成功前会重读服务器 currentOutfit 并要求与提交配置完全一致，故服务器已保存含装饰的配置。改为“完全本地编辑”后，衣柜开草稿只读 LocalOutfitPreview / AvatarManager.getLoadedOutfit，不再读服务器；登录后若 OWNER 恢复未把服务器配装装入本地，衣柜只剩基础，此前被打开衣柜读服务器所掩盖。
+
+NetworkStuff.restoreOwner 两处静默失效：选中本地形象文件（LocalAvatarLoader.getLastLoadedPath()!=null）时完全跳过恢复；除 OUTFIT_CHANGED/LIMITS_CHANGED/可重试错误外的失败既不重试也不记录。用户 avatar-resource-ids.json 存在本地 YSM 路径，跳过分支可能成立，但未证实。
+
+本轮仅加诊断：跳过时记录一次 “Outfit owner restore skipped: a local avatar file is selected”，失败时记录 “Outfit owner restore failed: <code>”（不含模型名/路径）。未改恢复语义。alpha4-owner-restore-diagnostics.log PASS（40秒/22 tasks：outfitApplyClientSmokeTest、libraryPreviewRuntimeSmokeTest、fabric:build）。JAR 18269689 字节，SHA256 ea5bce28b183d52f2f9c5442df641a5664c9f2787549bd096c0068185b930e55。下一步待用户用新包提交→重进后提供 latest.log 中上述日志再定修复。
