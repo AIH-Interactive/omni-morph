@@ -63,6 +63,10 @@ public final class OutfitPrivateUpload {
         return kind;
     }
 
+    public String rawSha256() {
+        return rawHash;
+    }
+
     public int byteLength() {
         return bytes.length;
     }

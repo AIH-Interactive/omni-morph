@@ -1226,3 +1226,9 @@ alpha4-publish-disabled-diagnostics-build.log：libraryPreviewRuntimeSmokeTest�
 下一步证据方向：在真实渲染路径按实例统计本帧 draw 顶点数并记录一次（0=被脚本隐藏/空几何，48=已绘制但位置/缩放异常）；或让用户检查 test2 的“Visible / 显示”控制项——其脚本每 tick 调用 `root:setVisible(visible)`，恢复后的该控制值在夹具中读到 null。未改生产语义、版本或后端。
 
 门禁：alpha4-reported-accessory-gate.log（不设环境变量时新用例跳过）：libraryPreviewRuntimeSmokeTest、fabric:build PASS（24 秒）。当前 JAR 18274044 字节，SHA256 53eeb4300c5daef44fad481175c64af84186bc6422ea1de12b9b14dd08517048（仅测试变更，生产代码与诊断包 a24b157e 相同）。
+
+## 2026-10-24：本地装饰旧打包副本导致游戏内装饰 0 面（发布时替换）
+
+诊断链：游戏内 test2 绘制 vertices=0；部件全部可见、共享额度未耗尽（无 allowance exhausted），实例自身计数未扣减，说明部件没有面数据。解密用户缓存的服务器私有副本：test/test1/test2 的 cube_data=0（11:05～11:33 由修复 20f27ad3 之前的旧解析器打包上传），hattest（12:06）=2。服务器按 owner+local_id+content_hash+format 固定绑定且拒绝替换，客户端发现已有副本即直接读取，源文件未改便永远沿用空副本；登录恢复与草稿均使用该副本，离线现场解析则为 48 顶点。
+
+用户决定：发布时校验并替换旧副本。后端（omnm-cloud master@afef2cc5）：outfit_resources::bind 在同一本地源已有不同绑定时，于原生身份与封禁校验后以新绑定替换（原为 Conflict）；新增用例同源旧包→新包替换成功并解析到新资产；调整直接绑定用例为可替换。cargo test 188 passed / 0 failed / 1 ignored。客户端：OutfitApplyResources 发布（允许上传）时总在本地重新打包，与服务器副本 raw_sha256 相同则读取、不同则上传替换；恢复路径不上传；LibraryClient.uploadOutfitSource 不再在不一致时 409；OutfitPrivateUpload.rawSha256()。OutfitPrivateUploadSmokeTest 改为断言发起替换预留且夹具保留旧字节时不报告成功。alpha4-private-source-replace-final.log PASS（37秒/25 tasks：outfitPrivateUploadSmokeTest、outfitApplyClientSmokeTest、outfitObserverClientSmokeTest、cloudOutfitPresetsSmokeTest、libraryPreviewRuntimeSmokeTest、fabric:build）。不一致分支在客户端无端到端用例，替换效果由后端测试证明。需重新部署后端。真实游戏 MANUAL/PENDING。JAR 18277115 字节，SHA256 0f2db19c121a6ae81ad250f5ac92941e3343d2dd48cc8bfdc2c47f25bc73355f。

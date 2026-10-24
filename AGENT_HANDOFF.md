@@ -238,3 +238,8 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 更新（19:25）：用户日志确认游戏内 test2 每个实例在 RENDER 与 FIGURA_GUI 下 vertices=0（离线同数据 48），截图 WingRoot 显示 Gizmo（挂载位置已解析）。结论：装饰自身渲染输出 0 面；剩余两种可能：脚本隐藏（Visible/恢复控件值）或面数 allowance=0。新增仅在 0 顶点时记录一次 “Outfit accessory empty draw: complexityRemaining/max, complexityPermission, hiddenParts/total, rootVisible”。回归 PASS（alpha4-accessory-empty-draw-diagnostics.log，34秒），JAR 18276289 字节，SHA256 137d5dc22b0dacfc6e84109782ff42f71629fd08cdbcacbf6b112c7c2a4f0038。发布按钮日志显示正常门控（无改动时禁用、提交中忙碌），无异常。下一步：用户复现并提供 “Outfit accessory empty draw” 行与 Visible 开关状态。
 
 更新（19:30）：用户日志：test2 两实例在 RENDER/FIGURA_GUI 均 vertices=0，empty draw 显示 hiddenParts=0/8、rootVisible=true、实例自身 complexity 计数 2147483647/2147483647 未扣减——未被隐藏，且一个面都没提交。FiguraModelPart.pushVerticesImmediate 在组合共享额度（OutfitInstructionBudget.allowance：min(实例,基础权限) − 本帧共享已用，含由基础计数 max−remaining 导入的用量）≤0 时直接返回，与此一致。新增：共享额度对装饰为 0 时每实例记录一次 “Outfit accessory allowance exhausted: permission, accessoryMax, accessoryRemaining, basePermission, baseCounter=remaining/max, sharedUsed, observedBase”。回归 PASS（alpha4-accessory-allowance-diagnostics.log，30秒；现有预算夹具按预期触发），JAR 18276953 字节，SHA256 75c6bcdebc11e90b9aa13312a2cd67c1bd27729bd04517d80beff9be0e4f6014。下一步：用户复现并提供该前缀行；若触发即按数值修正额度计算，若不触发则排查纹理/渲染类型导致的面跳过。
+
+## 当前有效交接：发布时替换旧打包的本地装饰副本（2026-10-24）
+
+覆盖上方诊断节。根因与实现见 ACCESSORY_SYSTEM_PROGRESS.md 末节。后端 master@afef2cc5 已推送（需用户重新部署后端）；客户端本次提交推送后以 HEAD 与 origin/main 一致为准。JAR 18277115 字节，SHA256 0f2db19c121a6ae81ad250f5ac92941e3343d2dd48cc8bfdc2c47f25bc73355f。额度：5 小时 36%、周 18%（可靠接口）。
+最小下一步：①用户重新部署后端并换客户端包；②在配装中保留 test2 实例并点“发布当前形象”（草稿需有改动才可点，可微调一次位置），触发重新打包替换；③重进验证衣柜/世界显示装饰，日志中 “Outfit accessory draw” 应 vertices>0。诊断日志（draw/empty draw/allowance/not drawn/publish/owner restore）确认修复后再评估移除。后续项：手动挂点状态栏“未解析”误报。
