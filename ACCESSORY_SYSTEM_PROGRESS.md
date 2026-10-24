@@ -1338,3 +1338,9 @@ alpha4-publish-disabled-diagnostics-build.log：libraryPreviewRuntimeSmokeTest�
 - docs/CHANGELOG.md、.en.md、.ja.md、.ko.md 的 1.0.0-alpha.4 增补：第一人称装饰脚本帧与矩阵刷新、Iris 粒子管线映射、LambDynamicLights 公开 API 桥接与回退警告、每穿戴者粒子光源上限、点击装饰后拖尾/粒子/光源冻结修复（关闭衣柜结束草稿世界预览）、日志清理。
 - 验证：lpha4-debug-cleanup-gate.log（libraryPreviewRuntimeSmokeTest、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS 1 分 6 秒）；git diff --check PASS。
 - 产物：JAR 18296203 字节，SHA256 3ce488de8cf1a54c6d105deb0349bad1257c1a056c3c65072694af3b5e8d55c1，已覆盖安装。提交 611a3da（清理）、ee6deec（更新日志）；HEAD=origin/main。
+## 2026-10-25：应用 Blockbench 骨架蒙皮补丁
+
+- 应用 `patch/figura-armature-skinning.patch`（无冲突）：新增 `FiguraSkinning`，解析 armature/bone 标记、按名字解析蒙皮骨骼、把网格静止变换烘焙到骨架空间，并以 `boneWorld * inverse(bindWorld)` 变形；Blockbench v5 与 NBT 读取保留 rig 节点标记，骨架节点不再套用 vanilla parent。
+- 手动调整（补丁原样会破坏既有蒙皮测试）：蒙皮数据在加载后附加时延迟解析，并对缺失 indices/weights 的网格做完整性保护；outfit 骨骼覆盖改为在骨架空间应用，保持原有 pivot 语义（补丁原本把覆盖放进骨骼局部动画后再乘回，产生双重 pivot）。
+- 验证：`libraryPreviewRuntimeSmokeTest`（含 weighted Figura internal bone overlay，加速/非加速）PASS；完整门禁 `alpha4-armature-skinning-gate2.log` PASS 52 秒。真实 Blockbench 骨架模型视觉验证 MANUAL/PENDING。
+- 提交 3da7058。`patch/` 保持未跟踪。

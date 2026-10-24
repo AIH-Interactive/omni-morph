@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-25（Asia/Seoul，alpha.4 日志清理与更新日志补全；自动门禁 PASS，真实客户端粒子/光源画面 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
+更新时间：2026-10-25（Asia/Seoul，应用 Blockbench 骨架蒙皮补丁；自动门禁 PASS，真实骨架模型画面 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
 
 ## 接续入口与约束
 
@@ -386,3 +386,11 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 提交：611a3da（清理）、ee6deec（更新日志），HEAD=origin/main。后端未改，.omc/ 保留。
 
 若后续还有日志噪音，优先检查 OutfitComposition.diagnose（现在只用于脚本错误/预算）与 FiguraMod 的 LambDynamicLights 缺席警告；前者不应删除，后者是用户要求的一次性提示。
+## 当前有效交接：Blockbench 骨架蒙皮补丁（2026-10-25）
+
+- 应用 `patch/figura-armature-skinning.patch`，无冲突。新增 `FiguraSkinning`：解析 armature/bone 标记、按名称解析蒙皮骨骼、把网格静止变换烘焙到骨架空间、按 `boneWorld * inverse(bindWorld)` 变形。`BlockbenchCommonTypes` 写入 rig 标记，`BlockbenchV5Model` 不再给骨架节点套 vanilla parent；`ImmediateFiguraRenderer` 在读取根节点后调用 `FiguraSkinning.setup`。
+- 两处手动修正：①蒙皮数据在加载后附加时（测试/动态构建）延迟解析，且要求 indices/weights 完整，避免静默不蒙皮或烘焙坏网格；②outfit 骨骼覆盖改为骨架空间应用（`world = P * world`），保持原有 pivot 语义；补丁原实现把覆盖放进骨骼局部动画后再乘回，导致双重 pivot（测试 first vertex 变成 (10,5,-2)/16）。
+- 验证：`libraryPreviewRuntimeSmokeTest` 的 weighted Figura internal bone overlay（加速/非加速）PASS；`alpha4-armature-skinning-gate2.log` 四项目 PASS 52 秒；`git diff --check` PASS。
+- 提交 3da7058。`patch/` 与 `.omc/` 保持未跟踪；后端未改。
+
+真实 Blockbench 骨架模型（带非单位静止旋转/偏移与多骨骼权重）视觉验证仍 MANUAL/PENDING；若出现网格错位，优先检查 `bakeMeshTransform` 的父链假设（当前只把网格自身 customization 归零，未重挂到 armature）与 `findArmature` 的归属选择。
