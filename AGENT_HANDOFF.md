@@ -146,3 +146,7 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 最小下一步：用户新包提交→退出重进→提供 latest.log 中 “Outfit owner restore” 行；据此决定修复（跳过条件或具体失败）。未经日志证实不改恢复语义。云端 YSM 显示仍 MANUAL/PENDING。额度不可读取。
 
 更新（同日）：用户装入诊断包 ea5bce28 复现后，两条诊断均未出现，说明恢复停在其他无日志分支。已扩展为全分支追踪（协调器创建、能力未就绪、库选择仍活动、本地形象文件、身份不匹配、服务器无配装、读取期间选择变化、已加载、开始/完成、失败代码），仍不改语义。alpha4-owner-restore-trace.log PASS（40秒/22 tasks）。JAR 18270283 字节，SHA256 ab4895c0686b761e6929c59887f79e38fca969d4c4cbe94fbd7585b9ef0e4091。下一步：用户复现后搜索 “Outfit owner restore”。
+
+## 当前有效交接：重开衣柜本地装饰“资源不可用”已修复（2026-10-24）
+
+覆盖上方“排查中”。诊断证实提交/保存/恢复均成功、后端无问题；客户端重建草稿未登记本地装饰。已加 bindLocalDraftResources 并回归 PASS（alpha4-restored-local-draft-final.log）。JAR SHA256 9564127bafc3b77bf69baf852c6ae17d2f8d335645a98cde41867da8ff8a3643。最小下一步：用户换包重进验证衣柜骨骼树显示本地装饰；云端 YSM 显示同属 MANUAL/PENDING。“Outfit owner restore” 诊断日志保留（低频、无敏感信息）。额度不可读取。

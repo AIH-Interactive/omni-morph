@@ -1166,6 +1166,23 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(field(type, "draftPreviewActive").getBoolean(screen)
                             && preview.outfitComposition() == residentDraft,
                     "selecting an accessory must not replace the active outfit preview or its loaded bone tree");
+            // A draft rebuilt from the restored outfit has the local reference but no inventory entry yet.
+            @SuppressWarnings("unchecked")
+            var boundResources = (Map<OutfitConfig.ResourceRef, top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory.Entry>)
+                    field(type, "draftResources").get(screen);
+            boundResources.clear();
+            var nameOf = type.getDeclaredMethod("instanceName", OutfitConfig.Instance.class);
+            nameOf.setAccessible(true);
+            String unavailable = top.aihmc.omnimorph.utils.FiguraText.of("gui.wardrobe.unavailable").getString();
+            require(((net.minecraft.network.chat.Component) nameOf.invoke(screen, first)).getString().startsWith(unavailable),
+                    "fixture reproduces a restored local instance without its inventory entry");
+            field(type, "observedCosmetics").set(screen, java.util.List.of(entry));
+            var bind = type.getDeclaredMethod("bindLocalDraftResources");
+            bind.setAccessible(true);
+            require((boolean) bind.invoke(screen) && boundResources.get(first.resource()) == entry
+                            && !((net.minecraft.network.chat.Component) nameOf.invoke(screen, first)).getString().startsWith(unavailable),
+                    "restored local instances rebind their exact inventory source for names and preview reads");
+            require(!(boolean) bind.invoke(screen), "rebinding is idempotent once every local source is resolved");
             testLocalDraftPreview(unsafe, drain, screen, preview, player);
             var mountMenu = new top.aihmc.omnimorph.gui.widgets.ContextMenu();
             var quickMenu = type.getDeclaredMethod("addQuickMountMenu",
