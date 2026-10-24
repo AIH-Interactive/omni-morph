@@ -256,3 +256,7 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 已完成并通过自动门禁：CosmeticControlsScreen 顶部按装饰资源分 tab，同页按 `#displayOrdinal` 分段列出该资源全部实例；每行回调绑定所属实例（校验/保存/重置）。详见 ACCESSORY_SYSTEM_PROGRESS.md 末节与 build/reports/outfit/alpha4-cosmetic-resource-tabs.log。
 - 未验证：真实窗口界面 MANUAL/PENDING；跨资源三实例只用合成组验证归组。跟进：tab 过多时无横向滚动。
 - 下一步：用户在真实游戏中打开衣柜装饰专用设置确认排布与编辑归属。
+
+## 当前有效交接：YSM 第一人称手臂与本地配装预览崩溃（2026-10-24 20:50）
+
+用户报：YSM 基础加载装饰后崩溃 `INVALID_OUTFIT_CONFIGURATION` @ OutfitComposition.bindBaseBudget ← Frame.captureYsmArm ← PlayerRendererMixin.ysm$renderHand，重启后正常。根因：第一人称手臂使用 AvatarManager.getAvatarForPlayer（正式装备形象），而 OutfitRenderBinding.capture 在本地配装预览期间取到的组合帧属于预览形象，组合预算已绑定预览形象，换另一形象绑定即报错；重启后无本地预览两者一致。修复：有组合时手臂改用 OutfitRenderBinding.avatar(outfitState)（组合自身基础，与第三人称 AvatarManager.getAvatar(state) 一致），无组合仍用正式形象；组合基础非 YSM 时不走 YSM 手臂路径。Mixin 入口无离线测试，仅编译与回归：alpha4-ysm-arm-composition-base.log PASS（42秒：libraryPreviewRuntimeSmokeTest、outfitApplyClientSmokeTest、ysmPublicPoseSmokeTest、fabric:build）。真实游戏 MANUAL/PENDING。并行会话已提交 7e09b77d（装饰设置分 tab）。JAR 18282500 字节，SHA256 dbabff5b565f47d2b6eb214a5461d2dac1a1efa19cedbbdc870eb3f942d11be6（含 7e09b77d）。额度 5 小时 62%、周 21%。

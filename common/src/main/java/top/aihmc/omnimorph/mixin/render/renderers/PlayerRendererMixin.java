@@ -193,7 +193,22 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
         if (Minecraft.getInstance().player == null)
             return;
 
-        Avatar localAvatar = AvatarManager.getAvatarForPlayer(Minecraft.getInstance().player.getUUID());
+        var player = Minecraft.getInstance().player;
+        float delta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
+        Avatar localAvatar = AvatarManager.getAvatarForPlayer(player.getUUID());
+        AvatarRenderState outfitState = null;
+        OutfitComposition.Frame outfit = null;
+        if (OutfitRenderBinding.hasComposition(player)) {
+            outfitState = this.createRenderState(player, delta);
+            outfitState.lightCoords = light;
+            OutfitRenderBinding.capture(player, outfitState);
+            outfit = OutfitRenderBinding.composition(outfitState);
+            // The composition's budget belongs to its own base, which is the local draft preview while editing.
+            Avatar compositionBase = OutfitRenderBinding.avatar(outfitState);
+            if (compositionBase != null) {
+                localAvatar = compositionBase;
+            }
+        }
         if (localAvatar == null || !localAvatar.isYsmNative())
             return;
 
@@ -213,28 +228,24 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
                 ? RenderTypes.entityTranslucent(ysm.texture().getLocation())
                 : RenderTypes.entityCutout(ysm.texture().getLocation());
         var submittedPose = ysm.captureRenderPose(true);
-        var player = Minecraft.getInstance().player;
         OutfitComposition.Frame retainedOutfit = null;
-        if (OutfitRenderBinding.hasComposition(player)) {
-            float delta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
-            AvatarRenderState outfitState = this.createRenderState(player, delta);
-            outfitState.lightCoords = light;
-            OutfitRenderBinding.capture(player, outfitState);
-            var outfit = OutfitRenderBinding.composition(outfitState);
-            retainedOutfit = outfit;
-            var basePose = outfit.captureYsmArm(ysm, new Matrix4f(), left, submittedPose);
+        if (outfit != null) {
+            var frame = outfit;
+            retainedOutfit = frame;
+            var basePose = frame.captureYsmArm(ysm, new Matrix4f(), left, submittedPose);
             ((NodeCollectorExtension) submitNodeCollector).submitFiguraModel(localAvatar, outfitState,
                     (owner, state, buffers) -> {
                         if (owner.getYsmRuntime() == ysm) {
-                            OutfitNativeRenderer.draw(outfit, basePose, state, delta,
+                            OutfitNativeRenderer.draw(frame, basePose, state, delta,
                                     copy.last().pose(), buffers, EntityRenderMode.FIRST_PERSON);
                         }
                         return null;
                     });
         }
         var outfitFrame = retainedOutfit;
+        var armAvatar = localAvatar;
         submitNodeCollector.submitCustomGeometry(copy, renderType, (pose, buffer) -> {
-            if (localAvatar.getYsmRuntime() == ysm) {
+            if (armAvatar.getYsmRuntime() == ysm) {
                 if (outfitFrame == null) {
                     ysm.renderFirstPersonArm(copy, figura$singleBuffer(buffer), light, left, submittedPose);
                 } else {
