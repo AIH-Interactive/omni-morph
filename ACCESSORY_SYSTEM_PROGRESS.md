@@ -1214,3 +1214,15 @@ JAR 18273350 字节，SHA256 9a780a3d9be982977dfa6b6c7d6f5515cb757716c05c4759e2f
 诊断：WardrobeScreen 每帧计算第一个按钮的禁用原因（outfitPublishBlocker）并在状态变化时输出一行 `Outfit publish disabled: <原因> (apply=…, dirty=…, authority=…, conflict=…, basePersistent=…, busy=…)`，恢复可用时输出 `Outfit publish enabled …`；不含模型名/路径。原启用条件不变。
 
 alpha4-publish-disabled-diagnostics-build.log：libraryPreviewRuntimeSmokeTest、fabric:build PASS（44 秒）。JAR 18274045 字节，SHA256 a24b157e44b9cc3a2a3e410966bdcf1ad7c4d967bff570930f8d86fa8d45d7b1。下一步：用户装上该诊断包，按上述步骤复现一次并提供 latest.log 中 `Outfit publish` 行，再按原因做最小修复。
+
+## 2026-10-24：重进后装饰骨骼在但模型不渲染——Figura 与 YSM 真实数据模拟
+
+用户要求用真实模型（装饰 test2，挂载 Seg13）验证重进后“骨骼在、模型不渲染”。将用户 `omnimorph` 目录中的基础、test2 与索引复制到 `build/tmp/reported-omnimorph`（不改用户目录），新增环境变量门禁用例 testReportedAccessoryOnLocalBase：`OMNIMORPH_TEST_OMNIMORPH_DIR`、`OMNIMORPH_TEST_BASE_AVATAR`、`OMNIMORPH_TEST_ACCESSORY`。用例同时构建草稿（DRAFT）与重进恢复等价的正式（OWNER）组合，在 RENDER 模式下按生产路径 capture/draw 并统计顶点。
+
+结果：Figura 基础 `AI Hobbyist Founder Public Server` + test2 于 Seg13：base=27656，draft=27704，owner=27704，两者均多 48 顶点。YSM 基础 `碧蓝航线——雪风Nanoda.ysm`：base=63592，draft=63640，owner=63640（该基础无 Seg13，回退到根 `Player_size`）。两种格式、草稿与恢复后的正式组合都确实绘制了装饰顶点，说明组合、scope、锚点解析与 native draw 不是“骨骼在但模型不见”的原因。
+
+测试局限：录制 sink 直接接收 addVertex，绕过绘制时的 PoseStack，夹具中捕获的骨骼矩阵与顶点坐标恒为 0（与上一轮“坐标恒 0”一致，是夹具事实而非渲染结论），离线无法判断世界位置/缩放。
+
+下一步证据方向：在真实渲染路径按实例统计本帧 draw 顶点数并记录一次（0=被脚本隐藏/空几何，48=已绘制但位置/缩放异常）；或让用户检查 test2 的“Visible / 显示”控制项——其脚本每 tick 调用 `root:setVisible(visible)`，恢复后的该控制值在夹具中读到 null。未改生产语义、版本或后端。
+
+门禁：alpha4-reported-accessory-gate.log（不设环境变量时新用例跳过）：libraryPreviewRuntimeSmokeTest、fabric:build PASS（24 秒）。当前 JAR 18274044 字节，SHA256 53eeb4300c5daef44fad481175c64af84186bc6422ea1de12b9b14dd08517048（仅测试变更，生产代码与诊断包 a24b157e 相同）。

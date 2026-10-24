@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-24（Asia/Seoul，重进配装页自动草稿修复已推送；发布按钮禁用诊断包待用户复现）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
+更新时间：2026-10-24（Asia/Seoul，发布按钮禁用诊断已推送；重进后装饰不可见完成 Figura/YSM 真实数据模拟，待真实绘制计数）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
 
 ## 接续入口与约束
 
@@ -210,3 +210,17 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 诊断包：fabric/build/libs/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar，18274045 字节，SHA256 a24b157e44b9cc3a2a3e410966bdcf1ad7c4d967bff570930f8d86fa8d45d7b1。主仓库 main，提交前基线 4ddaf955；本轮源码/文档纳入随后提交推送，最终以 git rev-parse HEAD 与 origin/main 一致为准。后端 master 未修改，`build.log`/`spm-cloud`/`.omc/` 原未跟踪内容保留。
 
 最小下一步：用户换上诊断包重启，按上述步骤复现一次，提供 latest.log 中全部 `Outfit publish` 行；据此定位原因并做最小修复后再评估是否保留诊断行。真实界面/世界显示仍 MANUAL/PENDING，不宣称已修复。
+
+## 当前有效交接：重进后装饰骨骼在但模型不渲染（Figura/YSM 模拟，2026-10-24）
+
+用户要求用真实模型验证：装饰 test2 挂到 Seg13 后，退出重进，骨骼树有装饰骨骼但模型不渲染。已将用户 `omnimorph` 下的基础、test2 和索引复制到 `build/tmp/reported-omnimorph`（用户目录未改），新增环境变量门禁用例 `testReportedAccessoryOnLocalBase`：`OMNIMORPH_TEST_OMNIMORPH_DIR`、`OMNIMORPH_TEST_BASE_AVATAR`、`OMNIMORPH_TEST_ACCESSORY`；用例同时构建草稿（DRAFT）与重进恢复等价的正式（OWNER）组合，在 RENDER 模式按生产路径统计顶点。
+
+结论：Figura 基础 `AI Hobbyist Founder Public Server` + test2@Seg13：base=27656，draft=27704，owner=27704；YSM 基础 `碧蓝航线——雪风Nanoda.ysm`：base=63592，draft=63640，owner=63640（该基础无 Seg13，回退到根 `Player_size`）。两种格式、草稿与重进恢复组合都确实绘制了 48 个装饰顶点，排除组合、锚点解析、scope 与 native draw。
+
+局限：录制 sink 绕过绘制时的 PoseStack，夹具中捕获的骨骼矩阵/顶点坐标恒为 0（上一轮“坐标恒 0”同一夹具事实），离线不能判断世界位置与缩放。
+
+下一步证据方向：在真实渲染路径按实例统计本帧 draw 顶点数并记录一次（0=被脚本隐藏/空几何，≥1=已绘制但位置/缩放异常）；或让用户检查 test2 的“Visible / 显示”控制项（脚本每 tick 调用 `root:setVisible(visible)`，恢复后的控制值在夹具读到 null）。
+
+验证：alpha4-reported-accessory-figura-sim.log、alpha4-reported-accessory-ysm-sim.log、alpha4-reported-accessory-gate.log（不设变量跳过新用例），libraryPreviewRuntimeSmokeTest + fabric:build PASS。main 提交前基线 fe1546db；本轮仅测试与文档，未改生产代码/版本/后端。JAR 18274044 字节，SHA256 53eeb4300c5daef44fad481175c64af84186bc6422ea1de12b9b14dd08517048（生产代码与诊断包 a24b157e 相同）。
+
+最小下一步：用户复现时确认装饰设置里的“Visible / 显示”是否为开；若为开仍不可见，再出按实例统计 draw 顶点的诊断包定位是隐藏还是位置/缩放。真实界面/世界仍 MANUAL/PENDING，不宣称已修复。

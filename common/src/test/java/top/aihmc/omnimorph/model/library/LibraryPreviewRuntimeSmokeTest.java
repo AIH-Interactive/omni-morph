@@ -73,6 +73,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             testProvidedCosmetics(unsafe, drain);
             testPackagedYsmDraftBases(unsafe, drain);
             testPackagedFiguraDraftAccessory(unsafe, drain);
+            testReportedAccessoryOnLocalBase(unsafe, drain);
             testCatalogOutfitPreview(unsafe, drain);
             testWardrobeDraftActions(unsafe, drain);
             testOutfitTabShowsLoadedOutfit(unsafe, drain);
@@ -1048,6 +1049,196 @@ public final class LibraryPreviewRuntimeSmokeTest {
             field(Minecraft.class, "gameRenderer").set(minecraft, previousRenderer);
         }
         System.out.println("PASS actual packaged Figura draft base keeps faces for its actual accessory; GUI/GPU MANUAL/PENDING");
+    }
+
+    /**
+     * The reported local Figura base with the reported local accessory: the composed world frame must draw the
+     * accessory, so an empty world render cannot be blamed on the base consuming every vertex.
+     */
+    private static void testReportedAccessoryOnLocalBase(Unsafe unsafe, Runnable drain) throws Exception {
+        String dataRoot = System.getenv("OMNIMORPH_TEST_OMNIMORPH_DIR");
+        String basePath = System.getenv("OMNIMORPH_TEST_BASE_AVATAR");
+        String accessoryDirectory = System.getenv("OMNIMORPH_TEST_ACCESSORY");
+        if (dataRoot == null || dataRoot.isBlank() || basePath == null || basePath.isBlank()
+                || accessoryDirectory == null || accessoryDirectory.isBlank()) {
+            return;
+        }
+        var minecraft = Minecraft.getInstance();
+        var previousPlayer = minecraft.player;
+        var previousDebug = minecraft.debugEntries;
+        var previousRenderer = minecraft.gameRenderer;
+        var controlsLoaded = field(top.aihmc.omnimorph.avatar.control.AvatarControlValueStore.class, "loaded");
+        boolean previousControlsLoaded = controlsLoaded.getBoolean(null);
+        var player = (CurrentPreviewPlayer) unsafe.allocateInstance(CurrentPreviewPlayer.class);
+        player.setUUID(UUID.randomUUID());
+        minecraft.player = player;
+        var debug = (net.minecraft.client.gui.components.debug.DebugScreenEntryList) unsafe.allocateInstance(
+                net.minecraft.client.gui.components.debug.DebugScreenEntryList.class);
+        field(debug.getClass(), "allStatuses").set(debug, new java.util.HashMap<>());
+        field(debug.getClass(), "currentlyEnabled").set(debug, new java.util.ArrayList<>());
+        field(Minecraft.class, "debugEntries").set(minecraft, debug);
+        var renderer = (net.minecraft.client.renderer.GameRenderer) unsafe.allocateInstance(
+                net.minecraft.client.renderer.GameRenderer.class);
+        field(renderer.getClass(), "mainCamera").set(renderer, new net.minecraft.client.Camera());
+        field(Minecraft.class, "gameRenderer").set(minecraft, renderer);
+        var wearer = new PermissionPack.PlayerPermissionPack(
+                new PermissionPack.CategoryPermissionPack(Permissions.Category.MAX), player.getUUID().toString());
+        var limits = OutfitLimits.defaults();
+        var source = new top.aihmc.omnimorph.avatar.local.LocalAvatarSource(Path.of(dataRoot));
+        var base = source.describe(Path.of(basePath), () -> false);
+        var baseData = source.prepare(base, player.getUUID(), () -> false);
+        var accessorySource = top.aihmc.omnimorph.model.outfit.LocalCosmeticSource.describe(
+                Path.of(accessoryDirectory), () -> false);
+        var accessory = new OutfitConfig.ResourceRef(OutfitConfig.Source.LOCAL, UUID.randomUUID(), null, null, null,
+                accessorySource.contentHash(), accessorySource.format());
+        try (var device = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.recordingTextureDevice();
+             var preview = new LibraryPreviewSession(null, true)) {
+            var detachedEntity = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
+            detachedEntity.setUUID((UUID) field(LibraryPreviewSession.class, "owner").get(preview));
+            field(LibraryPreviewSession.class, "entity").set(preview, detachedEntity);
+            require(await(preview.selectDraft(baseData), drain), "the reported local base loads as a draft");
+            var avatar = (Avatar) field(LibraryPreviewSession.class, "avatar").get(preview);
+            boolean ysm = avatar.isYsmNative();
+            var ownerBase = new Avatar(player.getUUID());
+            ownerBase.load(baseData.copy());
+            ownerBase.bindOutfitSource(base);
+            require(ownerBase.loaded && !ownerBase.scriptError, "the reported local base reloads as the owner base");
+            var definition = ysm
+                    ? top.aihmc.omnimorph.model.outfit.SkeletonIndex.capture(null,
+                            avatar.getYsmRuntime().rootParts(), top.aihmc.omnimorph.model.ysm.YsmModelPart::getName,
+                            top.aihmc.omnimorph.model.ysm.YsmModelPart::getChildren, limits).definition()
+                    : new top.aihmc.omnimorph.model.outfit.FiguraSkeletonAdapter(
+                            (top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer) avatar.renderer, base, null,
+                            new top.aihmc.omnimorph.model.outfit.SkeletonIndex.Cache(), limits).binding().definition();
+            var bone = reportedBone(definition);
+            var anchor = new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.BASE_BONE, null, bone, null, null, null);
+            var instance = new OutfitConfig.Instance(UUID.randomUUID(), accessory, 1, true, anchor,
+                    OutfitConfig.Transform.identity(), java.util.List.of(), Map.of(), Map.of());
+            var config = new OutfitConfig(1, 0, base, java.util.List.of(instance), java.util.List.of(),
+                    Map.of(accessory.identity(), 1), false);
+            top.aihmc.omnimorph.model.outfit.OutfitPreparation.Resources resources = (reference, cancelled) ->
+                    top.aihmc.omnimorph.model.outfit.LocalCosmeticSource.prepare(
+                            Path.of(accessoryDirectory), player.getUUID(), accessorySource.contentHash(),
+                            cancelled).nbt();
+            require(await(preview.prepareComposition(config, limits, player.getUUID(), UUID.randomUUID(), wearer,
+                            resources), drain), "the reported draft composition with the actual accessory prepares");
+            try (var ownerComposition = top.aihmc.omnimorph.model.outfit.OutfitPreparation.prepare(config, limits,
+                    player.getUUID(), UUID.randomUUID(), player, wearer,
+                    new top.aihmc.omnimorph.model.outfit.SkeletonIndex.Cache(), resources, () -> false,
+                    top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext.Scope.OWNER, ownerBase,
+                    reference -> true, reference -> true)) {
+                preview.tick();
+                ownerComposition.tick();
+                avatar.tick();
+                avatar.tick();
+                ownerBase.tick();
+                ownerBase.tick();
+                var state = new AvatarRenderState();
+                state.lightCoords = 0x00f000f0;
+                avatar.renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER;
+                int draftBase = ysm ? countYsmVertices(avatar) : countFiguraVertices(avatar, state);
+                int draft = ysm ? countComposedYsmVertices(preview.outfitComposition(), avatar)
+                        : countComposedFiguraVertices(preview.outfitComposition(), avatar, state);
+                ownerBase.renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER;
+                int ownerBaseOnly = ysm ? countYsmVertices(ownerBase) : countFiguraVertices(ownerBase, state);
+                int owner = ysm ? countComposedYsmVertices(ownerComposition, ownerBase)
+                        : countComposedFiguraVertices(ownerComposition, ownerBase, state);
+                System.out.println("Reported local " + (ysm ? "YSM" : "Figura") + " base/accessory: draft base="
+                        + draftBase + " draft=" + draft + " owner base=" + ownerBaseOnly + " owner=" + owner
+                        + " anchor=" + bone.path().getLast().name());
+                require(draft > draftBase && owner > ownerBaseOnly,
+                        "the reported local accessory draws in both the draft and restored owner frame: draft base="
+                                + draftBase + " draft=" + draft + " owner base=" + ownerBaseOnly + " owner=" + owner);
+            } finally {
+                ownerBase.clean();
+            }
+        } finally {
+            minecraft.player = previousPlayer;
+            field(Minecraft.class, "debugEntries").set(minecraft, previousDebug);
+            field(Minecraft.class, "gameRenderer").set(minecraft, previousRenderer);
+            ((Map<?, ?>) field(PermissionManager.class, "PLAYERS").get(null)).remove(player.getUUID());
+            controlsLoaded.setBoolean(null, previousControlsLoaded);
+        }
+        System.out.println("PASS reported local base draws its local accessory in both the draft and owner world frame; real window MANUAL/PENDING");
+    }
+
+    /** Prefer the reported tail bone, then the body, then the root. */
+    private static OutfitConfig.BoneRef reportedBone(top.aihmc.omnimorph.model.outfit.SkeletonIndex definition) {
+        int seg13 = -1;
+        int body = -1;
+        for (int index = 0; index < definition.nodes().size(); index++) {
+            String name = definition.nodes().get(index).name();
+            if (seg13 < 0 && name.equals("Seg13")) {
+                seg13 = index;
+            }
+            if (body < 0 && name.equals("Body")) {
+                body = index;
+            }
+        }
+        return definition.reference(null, seg13 >= 0 ? seg13 : body >= 0 ? body : 0);
+    }
+
+    private static int countFiguraVertices(Avatar avatar, AvatarRenderState state) {
+        var vertices = new java.util.concurrent.atomic.AtomicInteger();
+        avatar.render.reset(65536);
+        avatar.render(null, 0, .5f, 1, new com.mojang.blaze3d.vertex.PoseStack(),
+                type -> countingSink(vertices), state.lightCoords,
+                net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, null,
+                top.aihmc.omnimorph.model.rendering.PartFilterScheme.MODEL, false, false);
+        return vertices.get();
+    }
+
+    private static int countComposedFiguraVertices(top.aihmc.omnimorph.model.outfit.OutfitComposition composition,
+                                                   Avatar avatar, AvatarRenderState state) {
+        require(composition != null, "the reported composition is active");
+        var vertices = new java.util.concurrent.atomic.AtomicInteger();
+        try (var frame = composition.retain()) {
+            avatar.render.reset(65536);
+            frame.prepareFiguraBase(avatar);
+            frame.drawFiguraBase(avatar, () -> {
+                var pose = frame.captureFiguraBase(avatar, new org.joml.Matrix4f(), () -> avatar.render(
+                        null, 0, .5f, 1, new com.mojang.blaze3d.vertex.PoseStack(),
+                        type -> countingSink(vertices), state.lightCoords,
+                        net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, null,
+                        top.aihmc.omnimorph.model.rendering.PartFilterScheme.MODEL, false, false));
+                frame.draw(pose, state, .5f, top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER,
+                        command -> top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer.drawInstance(command, .5f,
+                                new org.joml.Matrix4f(), type -> countingSink(vertices), state.lightCoords,
+                                top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER));
+            });
+        }
+        return vertices.get();
+    }
+
+    private static int countYsmVertices(Avatar avatar) {
+        var runtime = avatar.getYsmRuntime().forRenderPass();
+        var vertices = new java.util.concurrent.atomic.AtomicInteger();
+        var pose = runtime.captureRenderPose(false);
+        top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
+        runtime.renderer().renderWithAttachments(new com.mojang.blaze3d.vertex.PoseStack(),
+                type -> countingSink(vertices), 0x00f000f0, pose);
+        return vertices.get();
+    }
+
+    private static int countComposedYsmVertices(top.aihmc.omnimorph.model.outfit.OutfitComposition composition,
+                                                Avatar avatar) {
+        require(composition != null, "the reported composition is active");
+        var vertices = new java.util.concurrent.atomic.AtomicInteger();
+        try (var frame = composition.retain()) {
+            var runtime = avatar.getYsmRuntime().forRenderPass();
+            var pose = runtime.captureRenderPose(false);
+            var skeleton = frame.captureYsmBase(runtime, new org.joml.Matrix4f(), pose);
+            top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
+            frame.drawYsmBase(runtime.renderBudgetOwner(), () -> runtime.renderer().renderWithAttachments(
+                    new com.mojang.blaze3d.vertex.PoseStack(), type -> countingSink(vertices), 0x00f000f0, pose));
+            var state = new AvatarRenderState();
+            state.lightCoords = 0x00f000f0;
+            frame.draw(skeleton, state, .5f, top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER,
+                    command -> top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer.drawInstance(command, .5f,
+                            new org.joml.Matrix4f(), type -> countingSink(vertices), state.lightCoords,
+                            top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER));
+        }
+        return vertices.get();
     }
 
     private static com.mojang.blaze3d.vertex.VertexConsumer countingSink(java.util.concurrent.atomic.AtomicInteger vertices) {
