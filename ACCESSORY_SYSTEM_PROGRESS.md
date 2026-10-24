@@ -1172,3 +1172,11 @@ NetworkStuff.restoreOwner 两处静默失效：选中本地形象文件（LocalA
 修复：新增 bindLocalDraftResources，按完全相同的 LOCAL ResourceRef（localId+内容哈希+格式）从本地装饰库登记；草稿重建时立即执行，异步扫描结果更新后补登记并重新准备预览。不改提交/协议/后端。诊断日志保留（仅原因代码）。
 
 alpha4-restored-local-draft-red.log 复现“资源不可用”；alpha4-restored-local-draft-final.log PASS（49秒/23 tasks：libraryPreviewRuntimeSmokeTest、outfitApplyClientSmokeTest、cosmeticSourceSmokeTest、fabric:build）。真实重进后衣柜显示 MANUAL/PENDING。JAR 18270550 字节，SHA256 9564127bafc3b77bf69baf852c6ae17d2f8d335645a98cde41867da8ff8a3643。
+
+## 2026-10-24：提交后装饰被“启用/上传”清空
+
+诊断日志：重进恢复第 71 版（1 实例）正常；随后出现“a library selection is still active”，服务器变为第 72 版 0 实例（16:03 第 70 版同理），恢复为“started”而非“already loaded”，说明非本地 Apply 产生。客户端配装页工具栏 publish_current（选中时 enableSelection→LibraryEquipmentService.enable，未选中时 uploadCurrent）走旧装备/上传接口；后端 normalize_native→replace_configuration 按既定“旧装备入口归一化”把整套配装替换为单一基础并清空 instances。后端按设计执行，无缺陷。
+
+用户决定：配装页禁用“启用”。实现：服务器支持配装提交（outfitApplyAvailable）时 publish_current 按钮不可用且 publishCurrent 直接返回；不支持配装的旧后端保留原启用/上传。基础切换统一经草稿 + Apply。另：手动 BASE_BONE 挂点从不调用 recordMountTarget（仅 AUTO_TRAIL），预览状态对手动挂点恒显示“未解析到挂载目标”为误报，作为后续项记录，本轮未改。曾验证 AI Hobbyist 骨架哈希在加载/初始化/40 tick、预览与正式加载间均稳定（8ee7fd659389/196），排除骨架变化假设；探针未提交。
+
+alpha4-outfit-legacy-enable-final.log PASS（54秒/23 tasks：libraryPreviewRuntimeSmokeTest、outfitApplyClientSmokeTest、cosmeticSourceSmokeTest、fabric:build），旧后端启用用例仍通过；新禁用分支无可观察测试点，仅代码审查，真实界面 MANUAL/PENDING。JAR 18270574 字节，SHA256 7b38b87434042a4264da7cf08217ff79bb0972c3214f9fbf18ccc5a1365e46e1。
