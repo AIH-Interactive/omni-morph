@@ -1511,6 +1511,16 @@ public final class YsmMaterialNativeSmokeTest {
                                 && alphas.stream().filter(alpha -> alpha == 255).count() == 48,
                         "YSM parent fades while selected bone and child retain opacity, including deferred pose copies");
                 alphas.clear();
+                runtime.owner().renderMode = top.aihmc.omnimorph.model.rendering.EntityRenderMode.FIGURA_GUI;
+                var detached = runtime.forRenderPass();
+                require(detached != runtime && detached.owner() != runtime.owner(),
+                        "bone selection regression exercises the actual detached GUI runtime");
+                detached.renderer().render(new com.mojang.blaze3d.vertex.PoseStack(), source, 0, null,
+                        detached.captureRenderPose(false));
+                require(alphas.stream().filter(alpha -> alpha == 76).count() == 24
+                                && alphas.stream().filter(alpha -> alpha == 255).count() == 48,
+                        "the tree's source selection highlights the detached preview and fades other bones");
+                alphas.clear();
                 top.aihmc.omnimorph.utils.ui.UIHelper.paperdoll = false;
                 runtime.renderer().render(new com.mojang.blaze3d.vertex.PoseStack(), source, 0, null);
                 require(alphas.size() == 72 && alphas.stream().allMatch(alpha -> alpha == 255),

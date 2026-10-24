@@ -363,12 +363,14 @@ public class YsmRenderer {
         stack.pushPose();
         applyBoneTransform(bone, part, stack);
         if (renderSelf) {
-            float opacity = PreviewBoneHighlight.opacity(runtime.owner(), runtime.getPart(bone.name));
+            var selectionSource = runtime.selectionSource();
+            var selectedPart = selectionSource.getPart(bone.name);
+            float opacity = PreviewBoneHighlight.opacity(selectionSource.owner(), selectedPart);
             DrawTarget target = opacity < 1f
                     ? new DrawTarget(vertices.source(), renderType(pose, true), vertices.texture(),
                             vertices.channel(), vertices.order(), opacity) : vertices;
             renderGeometry(bone.cubes, stack, target, light);
-            if (PreviewBoneHighlight.selected(runtime.owner(), runtime.getPart(bone.name))) {
+            if (PreviewBoneHighlight.selected(selectionSource.owner(), selectedPart)) {
                 PreviewBoneHighlight.ysm(bone, stack, vertices.source());
             }
         }
