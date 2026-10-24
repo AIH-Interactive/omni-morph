@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-24 09:11（Asia/Seoul）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
+更新时间：2026-10-24（Asia/Seoul，S6 已推送，公共 Bug 修复中）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
 
 ## 接续入口与约束
 
@@ -18,12 +18,12 @@
 | --- | --- |
 | S1～S4 | 已完成、提交并推送 |
 | S5 | 自动验收 PASS，已提交推送，两个远端 SHA 均核对一致 |
-| S6 | 自动验收/测试包完成，正在当前 main 阶段提交推送；人工项 MANUAL/PENDING |
+| S6 | 自动验收/测试包完成，已提交推送并核对远端；人工项 MANUAL/PENDING |
 | 版本 | 已在 S6 调整为 1.0.0-alpha.4，README/更新日志同步 |
-| 主仓库 HEAD | main@508656b876743a59b40e255ca6c81e16cad492e0 |
+| 主仓库 HEAD | main@b5b72a4c193d24fd83aed5d32e6a02f4a3922244（S6检查点，已推送） |
 | 后端 HEAD | master@656652ec11c436dbaf014d5bace16ea414122202 |
 
-S5 的全部源文件已提交推送；后端仅原有未跟踪 build.log、spm-cloud/ 保留。主仓库当前改动为 S6 版本/README/更新日志/验收与交接文档。S6 前台 Gradle PASS（stage6-fabric-acceptance.log，1分47秒/39 tasks），产物校验 stage6-artifact-check.log PASS。当前无运行中的构建/测试，准备 S6 main 提交推送并核对远端 SHA。
+S1～S6 自动实施已收口并推送。后端仅原有未跟踪 build.log、spm-cloud/ 保留。S6 前台 Gradle PASS（stage6-fabric-acceptance.log，1分47秒/39 tasks），产物校验 stage6-artifact-check.log PASS。当前处理计划后的全局 YSM Bug。睡姿根因确认：自行提交绕过原版睡眠根旋转；YsmRenderer 共用根旋转接入 LivingEntityRendererMixin，身体/持物/组合共用。四床方向/站立回归在 YsmDeferredPoseSmokeTest：红灯 alpha3-sleep-root-red.log，修复后 Fabric编译+回归 alpha3-sleep-root-final.log PASS（19秒）。真实床面位置/画面 MANUAL/PENDING。当前无运行中进程，正在提交此独立修复；手/头发未修，无模型特化。
 
 ## 已完成与已验证
 
@@ -50,7 +50,7 @@ S5 的全部源文件已提交推送；后端仅原有未跟踪 build.log、spm-
 
 - 主仓库改动集中在 avatar/UserData、backend2/NetworkStuff、library 的 Apply/Observer/Events/InstanceState、model/library 正式准备/同步、model/outfit、衣柜/控件/轮盘、正式渲染 Mixin、Lua API、测试及三份 ACCESSORY_SYSTEM 文档。新增源文件尚未跟踪，提交不能漏掉。
 - 后端改动在 src/api/library、src/storage/outfit_*、旧装备/分发事务衔接、独立事件、对应 tests 和部署文档；原 build.log/spm-cloud 不提交。
-- 当前下一步：S6 限定 diff/格式检查后提交推送当前 main，核对远端 SHA；后端无 S6 新代码，沿用已推送 S5 检查点。docs/ALPHA4_ACCEPTANCE.md 已逐域对应第10节，实际目标 Fabric 26.1.2/Java25，42资源/19依赖/清单版本/hash 已检查，真实窗口/双客户端/光照/0/1/8/32性能 MANUAL/PENDING。不要重跑已通过无关测试或增加优化。
+- 当前下一步：睡姿修复提交推送后继续两项原始 Bug 的最小诊断。refs/Sparkle-Morpher 和 refs/avatars 下两个指定模型均存在。第一人称已确认 ItemInHandRendererMixin 会调用 updateAnimations(...,true)，不能未经证据归因于“完全未求值”；YsmRenderer 当前只对 arm geometry 根节点做左右手筛选，子树筛选和第一人称控制器/可见性待实际回放。头部当前 ysm_head_pitch=-rawPitch、ysm_head_yaw=-clamp(relativeYaw)，与参考 query 命名/负号相同；尚未确认头发/俯仰根因，不盲改符号。继续用原生回放构造红灯，不记录加密作者表达式。S6 JAR 尚未包含睡姿修复；后续重建须更新验收产物 hash。
 - S1～S6 完成后依次修复三项 alpha.3 公共 YSM Bug，参考 Sparkle-Morpher，必须通用修复：DS鲸鱼娘.ysm 第一人称手；少女-哥伦比娅.ysm 第三人称正面仰头的头部/头发；任意 .ysm 睡姿。模型/截图路径见进度记录末尾。当前尚未着手，不标完成。
 
 ## 相关文档

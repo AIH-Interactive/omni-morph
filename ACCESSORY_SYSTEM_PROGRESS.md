@@ -18,7 +18,7 @@
 | 3 挂载/骨骼/拖尾/粒子 | 自动验收 PASS；含 CustomParticle 和 Ribbon 增量要求 | PASS | MANUAL/PENDING：真实游戏/GUI/GPU/光照/性能，按用户要求跳过 | main/master 阶段三检查点，见本阶段验收记录 |
 | 4 衣柜/投稿/预设/创建 | 自动验收 PASS；人工项按用户要求跳过 | PASS：最终 Fabric 构建、阶段四测试组、语言键、后端全量 | MANUAL/PENDING：真实窗口/CJK/GPU/双客户端 | main@6ec3b09 / master@1117d0e 已推送，远端 SHA 均已核对 |
 | 5 原子应用/权限/同步 | 自动验收 PASS，局部收敛；原子应用、观察者、实例状态及恢复接通，apply/events 已开启 | PASS，见下方最终检查点 | MANUAL/PENDING：真实 Minecraft 双客户端、窗口/GPU/光照/性能，移交 S6 | main@508656b8 / master@656652e 已推送并核对远端 SHA |
-| 6 整体验收/性能/交付 | 自动验收与测试包完成；alpha.4，真实未验限制明确 | PASS：1分47秒/39 tasks；JAR清单/依赖/42资源/hash校验 | MANUAL/PENDING：第 10 节真实渲染/性能矩阵，见 docs/ALPHA4_ACCEPTANCE.md | main 检查点待提交推送；后端沿用已推送 656652e |
+| 6 整体验收/性能/交付 | 自动验收与测试包完成；alpha.4，真实未验限制明确 | PASS：1分47秒/39 tasks；JAR清单/依赖/42资源/hash校验 | MANUAL/PENDING：第 10 节真实渲染/性能矩阵，见 docs/ALPHA4_ACCEPTANCE.md | main@b5b72a4c 已推送并核对 SHA；后端沿用已推送 656652e |
 
 人工项只标记未验证，不冒充 PASS，也不宣称 alpha.4 全部完成。
 
@@ -1051,6 +1051,6 @@
 - bug 2 图一（当前项目）：`D:/Temp/User/codex-clipboard-c4cf7ec3-2c75-4c00-b0b2-bdfaece9f8ed.png`；图二（Sparkle-Morpher）：`D:/Temp/User/codex-clipboard-093afd31-c649-4933-b180-8b91b7f973b4.png`。
 - bug 2 同样排在阶段 1～6 完成后定位修复；使用同一模型、第三人称正面视角及相同俯仰/动作条件，与 Sparkle-Morpher 对照头部朝向和头发姿态。当前仅登记，不提前修改 YSM 动画、头部旋转或头发物理行为。
 
-- **公共 bug 3：YSM 睡姿异常 — OPEN / MANUAL/PENDING。** 用户说明任意 `.ysm` 模型均可测试。图一为当前项目，睡眠界面中模型仍呈竖起/倾斜姿态；图二为 Sparkle-Morpher，参考模型横卧于床上。当前只记录现象，尚未确认通用睡眠状态、动画或整体变换中的根因。
+- **公共 bug 3：YSM 睡姿异常 — 根旋转已全局修复，真实画面 MANUAL/PENDING。** 计划1～6完成并推送后确认：原生世界 submit 自行接管 YSM 绘制，仅做 body yaw，绕过原版睡眠整模变换。共用 YsmRenderer.applyEntityRotation 对 sleeping pose 按床方向旋转；身体/持物/装饰组合共用，无模型名/hash/作者判断。四床方向卧姿与参考矩阵、站立不变回归先红后绿（alpha3-sleep-root-red.log / alpha3-sleep-root-final.log），Fabric编译与回归19秒 PASS。实际床面位置/动画画面待真实 Minecraft。
 - bug 3 图一（当前项目）：`D:/Temp/User/codex-clipboard-05148e6b-2485-497c-a2af-0a112be5132e.png`；图二（Sparkle-Morpher）：`D:/Temp/User/codex-clipboard-db986dde-1796-42f6-b716-fd6478958ffa.png`。
 - bug 3 在阶段 1～6 完成后，与前两项一起按通用路径定位修复；以相同模型、床朝向和睡眠条件对照 Sparkle-Morpher，并用不同 YSM 模型回归，禁止模型特化。当前不提前修改睡眠状态或姿态行为。

@@ -107,7 +107,8 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
             PoseStack ysmStack = new PoseStack();
             ysmStack.pushPose();
             ysmStack.last().set(poseStack.last());
-            ysmStack.mulPose(Axis.YP.rotationDegrees(figura$getYsmBodyRotation(livingEntityRenderState, livingEntity)));
+            top.aihmc.omnimorph.model.ysm.YsmRenderer.applyEntityRotation(ysmStack, livingEntityRenderState,
+                    figura$getYsmBodyYaw(livingEntityRenderState, livingEntity));
             var attachedRuntime = localAvatar.getYsmRuntime();
             var runtime = attachedRuntime == null ? null : attachedRuntime.forRenderPass();
             if (runtime != null) {
@@ -387,10 +388,10 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
     }
 
     @Unique
-    float figura$getYsmBodyRotation(S livingEntityRenderState, LivingEntity livingEntity) {
+    float figura$getYsmBodyYaw(S livingEntityRenderState, LivingEntity livingEntity) {
         float tickDelta = ((FiguraEntityRenderStateExtension) livingEntityRenderState).figura$getTickDelta();
         float bodyYaw = livingEntity != null ? Mth.rotLerp(tickDelta, livingEntity.yBodyRotO, livingEntity.yBodyRot) : livingEntityRenderState.yRot;
-        return 180.0f - bodyYaw;
+        return bodyYaw;
     }
 
     @Unique
