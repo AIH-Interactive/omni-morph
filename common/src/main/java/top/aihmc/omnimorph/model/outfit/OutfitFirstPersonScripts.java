@@ -62,7 +62,7 @@ public final class OutfitFirstPersonScripts {
         OutfitRenderBinding.capture(player, state, delta);
         var composition = OutfitRenderBinding.composition(state);
         Avatar base = OutfitRenderBinding.avatar(state);
-        if (composition == null || base == null) {
+        if (composition == null || base == null || base.renderer == null) {
             return;
         }
         Vec3 camera = minecraft.gameRenderer.getMainCamera().position();
@@ -74,7 +74,11 @@ public final class OutfitFirstPersonScripts {
                 OutfitFirstPersonScripts.class.getClassLoader(),
                 new Class<?>[]{VertexConsumer.class}, DISCARD);
         EntityRenderMode previousMode = base.renderMode;
+        boolean previousMatrixUpdate = base.renderer.allowMatrixUpdate;
         base.renderMode = EntityRenderMode.FIRST_PERSON_WORLD;
+        // The base is not drawn in first person, so its part-to-world matrices would stay frozen at the last
+        // third-person pose. Updating them here lets the base scripts emit particles and lights at the body.
+        base.renderer.allowMatrixUpdate = true;
         try {
             if (base.isYsmNative()) {
                 drawYsm(composition, base, state, player, delta, entityToDraw, bodyYaw, discard);
@@ -82,6 +86,7 @@ public final class OutfitFirstPersonScripts {
                 drawFigura(composition, base, state, player, delta, entityToDraw, bodyYaw, discard);
             }
         } finally {
+            base.renderer.allowMatrixUpdate = previousMatrixUpdate;
             base.renderMode = previousMode;
         }
     }

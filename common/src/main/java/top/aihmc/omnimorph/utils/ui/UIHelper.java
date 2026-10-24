@@ -270,6 +270,7 @@ public final class UIHelper {
         fireRot = -yRot;
         dollScale = scale;
 
+        EntityRenderMode previousRenderMode = avatar == null ? null : avatar.renderMode;
         if (avatar != null) avatar.renderMode = renderMode;
 
         EntityRenderDispatcher entityRenderDispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
@@ -298,6 +299,7 @@ public final class UIHelper {
         entity.setXRot(headX);
         entity.yHeadRot = headY;
         entity.setInvisible(invisible);
+        if (avatar != null) avatar.renderMode = previousRenderMode;
     }
 
     public static void enableBlend() {
