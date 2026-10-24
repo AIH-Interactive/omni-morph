@@ -246,6 +246,8 @@ public class FiguraAPIManager {
         if (cosmetic) {
             runtime.registerClass(CosmeticPlayerAPI.class);
             runtime.registerClass(CosmeticAnimationsAPI.class);
+            runtime.registerClass(CosmeticStateAPI.class);
+            runtime.setGlobal("cosmetic_state", new CosmeticStateAPI(runtime.owner.cosmeticContext));
             runtime.setGlobal("cosmetic_controls", runtime.avatar_controls);
             runtime.setGlobal("cosmetic_animations", new CosmeticAnimationsAPI(runtime.owner));
             return;

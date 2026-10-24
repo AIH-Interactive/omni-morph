@@ -16,11 +16,32 @@
 | 1 资源/配置契约和后端数据 | 含用户补充，自动验收 PASS | PASS | MANUAL/PENDING：旧业务真实界面回归 | 客户端 81dcbe1 / 后端 f404a5b 已确认推送 |
 | 2 解析/原生渲染/Lua 实例 | 自动验收 PASS；人工项按用户要求跳过 | PASS | MANUAL/PENDING：真实游戏/GPU/性能矩阵 | main@7d26956，远端 SHA 已核对；后端无改动 |
 | 3 挂载/骨骼/拖尾/粒子 | 自动验收 PASS；含 CustomParticle 和 Ribbon 增量要求 | PASS | MANUAL/PENDING：真实游戏/GUI/GPU/光照/性能，按用户要求跳过 | main/master 阶段三检查点，见本阶段验收记录 |
-| 4 衣柜/投稿/预设/创建 | 自动验收 PASS；人工项按用户要求跳过 | PASS：最终 Fabric 构建、阶段四测试组、语言键、后端全量 | MANUAL/PENDING：真实窗口/CJK/GPU/双客户端 | main 本记录所在阶段四检查点；master@1117d0e 已确认推送，main 按检查点核对远端 SHA |
-| 5 原子应用/权限/同步 | NOT STARTED | PENDING | MANUAL/PENDING：双真实客户端 | PENDING |
+| 4 衣柜/投稿/预设/创建 | 自动验收 PASS；人工项按用户要求跳过 | PASS：最终 Fabric 构建、阶段四测试组、语言键、后端全量 | MANUAL/PENDING：真实窗口/CJK/GPU/双客户端 | main@6ec3b09 / master@1117d0e 已推送，远端 SHA 均已核对 |
+| 5 原子应用/权限/同步 | 自动验收 PASS，局部收敛；原子应用、观察者、实例状态及恢复接通，apply/events 已开启 | PASS，见下方最终检查点 | MANUAL/PENDING：真实 Minecraft 双客户端、窗口/GPU/光照/性能，移交 S6 | 当前 main/master 检查点待提交推送 |
 | 6 整体验收/性能/交付 | NOT STARTED | PENDING | MANUAL/PENDING：第 10 节真实渲染/性能矩阵 | PENDING |
 
 人工项只标记未验证，不冒充 PASS，也不宣称 alpha.4 全部完成。
+
+### 当前范围与执行收口（2026-10-24）
+
+最新用户确认采用局部收敛，继续原 S5。以下最终检查点覆盖本节历史“未接入”快照；缓存辅助整理、批量授权与额外进程恢复均列后续优化，不构成完成条件。
+
+### 阶段五最终自动检查点（2026-10-24）
+
+- NetworkStuff 正式事件协调与 OWNER 恢复：拒绝旧修订，策略/预算通知重新鉴权，原世界/用户/连接退休；恢复复用准备与发布，不重复 Apply，不补传缺失来源。`stage5-outfit-coordinator.log` PASS。
+- 实例状态复用 metadata 存储、原库认证/同源 HTTP 和既有通知通道。按装扮修订、实例、固定来源、发布 generation/sequence 和状态 revision 隔离；持久 controls/Lua scalar，YSM 复用有界 M7 快照及事件。恢复/缺号读取基线并跳过历史一次性事件；观察者不发布，草稿不广播。新包装携带模板版本/签名，不改变冻结 v1 作者 clip 表；装饰不注入整个人形默认状态机。
+- 修复实际验证问题：HTTP 夹具与 Rust nullable 字段一致；明文 YSM 夹具补真实加载器内容身份；Lua 数字字符串保持字符串；事件水位未变不重复发送；旧 HTTP 回应不能吞掉新状态通知。无模型特化或认证/网络架构重写。
+- `stage5-instance-state-client-final.log` PASS（29秒）：三格式实际 OWNER 保存/新会话恢复、OBSERVER 原生控件/YSM 状态消费、无回传及通知在途回归。
+- `stage5-instance-state-java-rust-final.log` PASS（真实测试2.29秒）：Java OWNER 写入 Rust、原 Figura/Protobuf 观察者通知/读取、越权拒绝及断线重连；同资源双副本的隔离、CAS 重放/缺号、关闭展示、配置变化恢复在真实 Rust HTTP/WS 夹具执行。
+- `stage5-final-client.log` PASS（41秒/20 tasks）：Fabric 编译、Apply/观察者/私有上传/旧库装备、装扮契约、原适配器/冻结协议、真实端点/TLS 与重连。`stage5-final-backend.log` PASS（编译32.61秒、测试26.11秒）：187 passed / 0 failed / 1 ignored；设置真实 Java classpath，原适配器矩阵执行。原外部上传目录、旧进程发布环境等未设置项仍 SKIPPED，不能冒充 PASS。
+- 真实 Minecraft 双客户端三种组合、Mixin/GPU、界面/CJK、照明与性能统一 **MANUAL/PENDING**，按用户要求移交 S6；组件与真实 HTTP/WS 联测不等同游戏端到端验证。
+- 能力公开 `apply=true`、`events=true`；原旧基础投影/写入归一化、Figura Ping、冻结 Protobuf v1 保持兼容。通过既定门禁即收口，待提交推送核对后进入 S6。
+
+用户要求先核查是否过度扩张。核对原阶段五范围和第7节后，确认独立事件、观察者权限、配置/实例状态和断线恢复均在原范围内；“未完成上传的跨进程恢复”不是原计划明确交付项，移为后续，不再作为阶段五/六门槛，保留已有会话内幂等重试。历史接续段落中对此项的“待完成”不再定义交付要求。
+
+执行存在过度拆分和文档流水化：当前阶段五已有126份构建/测试日志，阶段进度仍未闭环。本次核查不新增实现、不运行新构建、不回滚已完成工作；后续按原验收收口，仅为必要改动/实际失败运行相关门禁，整阶段通过即提交推送，人工项不阻塞。
+
+核查前最新在途修改：NetworkStuff 新增 OutfitEventCoordinator，接能力协商、远端修订/恢复/上限回调和既有观察者 tick，OutfitEvents.Listener 新增携带 revision 的默认回调。尚未编译或测试，上一检查点 PASS 不覆盖这些修改；本人 OWNER 恢复仍未接。较旧 revision 通知不得清理较新驻留，当前处理须在继续开发时验证修正。工作区全部保留，main/master 未切换、未提交。
 
 ## 阶段一验证（2026-10-21，Asia/Seoul）
 
@@ -736,6 +757,285 @@
 - 语言键检查 PASS：新增123组，日志 stage4-checkpoint-language.log。最终后端 `cargo test -- --nocapture` PASS：133 passed / 1 ignored（编译12.30秒、测试11.74秒），stage4-checkpoint-backend.log；设置了本轮 Java 导出的装饰产物，实际 Java→Rust 投稿用例执行通过。未配置旧 Java listener 类路径、生产主入口/回滚可执行文件的用例仍 SKIPPED，worker 饱和按原规则 ignored；它们不是阶段四已通过的真实场景证据。
 - 阶段四自动验收 DONE，不继续向本阶段追加要求。真实窗口/不同GUI缩放/CJK/窄栏/tooltip/粒子画面/GPU/双客户端均 MANUAL/PENDING，按用户要求跳过。真实同步和原子应用属于阶段五，alpha.4及最终性能矩阵属于阶段六；三项用户登记的公共YSM缺陷继续排在阶段1～6之后，不能提前处理或模型特化。
 - 提交范围已核对：根仓库仅本阶段源/测试/模板/自绘资源/工具及三份计划记录；后端18个阶段四文件，保留既有未跟踪 build.log/spm-cloud。git diff --check 通过。后端 master 阶段四提交 1117d0efce98f18711d6f9c0e63a4614b78341db 已推送，ls-remote 与 HEAD 一致，日志 stage4-backend-push.log；根仓库 main 由本记录所在阶段四提交交付，须完成推送并同样核对远端后才开始阶段五。
+
+### 阶段五：内部 Apply 原子事务基础（2026-10-24）
+
+- 阶段四检查点已实际推送并完成 ls-remote/HEAD 核对：客户端 main@6ec3b09c4f090da3f956951b8d25740ac2938919，后端 master@1117d0efce98f18711d6f9c0e63a4614b78341db；root 工作区在进入本阶段前干净，既有后端 build.log/spm-cloud 保留。日志 stage4-client-push.log 与 stage4-backend-push.log。按原顺序开始阶段五，未新建或切换分支。
+- 新 storage/outfit_apply.rs 只提供尚未路由的内部 ApplyInput/Applied 与事务方法。输入固定 operation_id、expected_revision、configuration；校验 schema/图/当前预算和固定云端资源的源站、用途、修订、hash、格式及当前使用权限。提交前再次在事务中复核依赖；采用现有 transaction_with_library_result 同时发布配置、原生资源来源别名/展示设置和旧装备投影，不先逐件 equip 再另写配置。
+- 基础别名沿用 lib_<资源UUID>_<修订> 和现有资源绑定，不造资源正文或新模型格式。基础不变只推进 outfit revision，原 equipment revision/YSM 发布代际保持；换基础或清空基础按原 select 语义更新 primary/兼容槽。已有别名须匹配原来源与正文，不能覆盖其他资产历史。修订递增后重新检查序列化预算，避免9→10等边界把超过后端上限的配置写入。操作指纹覆盖原输入和源站，相同操作重试返回原结果而不回滚更晚配置，不同载荷或旧 CAS 拒绝。
+- 新测试通过真实 HTTP 上传建立原生资源，随后直接调用内部存储事务；不是已开放 PUT 接口的端到端证据。覆盖换基础/原版、基础不变、旧响应重放、旧 CAS/操作参数冲突、私有资源不可见、hash/格式/源站不匹配，以及用 SQLite 临时触发器强制配置写入失败后的 manifest/装备/来源绑定/配置一起回滚和同操作重试恢复。另用有界 Tokio 并发测试证明同一 CAS 的不同操作只有一个成功、相同操作双重请求只推进一次配置且结果相同。
+- 首轮编译误用了本项目未启用的 Uuid::new_v4，已改用原 library::random_id；失败日志 stage5-atomic-apply-foundation.log 保留。首个事务测试 PASS（编译48.36秒、测试0.12秒），stage5-atomic-apply-foundation-fixed.log。预算反例实际正确返回既有 InvalidMessage，新增测试错误期待 LimitExceeded 导致一次失败，stage5-atomic-apply-validation.log；仅修正断言，不更换既有错误语义或放宽校验。
+- 生产新增方法/测试已用 rustfmt 排版，基础投影收为本模块单一小函数以保持事务可读性。全量 cargo test -- --nocapture PASS：135 passed / 1 ignored（编译22.95秒、测试12.29秒），stage5-atomic-apply-foundation-regression.log；设置实际 Java 装饰产物目录，Java→Rust 投稿用例确实执行。随后新增并发用例的定向 outfit_apply 测试3项全部 PASS（编译34.40秒、测试0.15秒），stage5-atomic-apply-concurrency.log；未据此虚增全量同次执行数量。旧 listener 类路径/生产交付和回滚可执行文件缺失的用例仍 SKIPPED，worker 饱和仍按原规则 ignored。
+- 未完成边界：Apply 能力仍 false，PUT/客户端应用按钮未接，不把内部云端事务子集当完整功能。本地引用暂 UnsupportedCapability，需先接现有原生上传/私有来源绑定，不能隐式公开到社区库；装饰作者能力最终检查、旧 equip/clear 的同事务归一化、冲突最新修订响应与通知、观察者授权投影、事件通道、实例状态和客户端正式组合运行时仍须本阶段继续。当前无阶段五提交，人工双客户端仍 MANUAL/PENDING；未提前进入阶段六或处理公共YSM缺陷。
+
+### 阶段五：本人私有来源绑定与本地基础投影（2026-10-24）
+
+- 新认证 PUT /api/library/v1/outfits/resources/local 接受已有本人原生资源的固定修订与 LOCAL 来源引用。沿用原生上传服务和 library_ensure_verified_blob 的正文/格式验证，来源 content_hash 与 raw_sha256 分别记录；不上传文件、不发表目录、不改变装备。来源 UUID/hash/格式与本人共同确定不可变绑定，相同载荷重试返回原绑定，不同资源/声明冲突；社区库资源和来源别名禁止转为 LOCAL，避免绕过原目录授权。删除、当前封禁、错误正文或格式均拒绝。
+- 装饰元数据沿用现有验证和后端动态预算，统一降为 CLIENT_EXTRACTED，明确服务器不验证加密骨骼。schema 9 使用新 outfit_resources.sql 增量创建独立来源表，不修改已发布迁移。来源记录与现有 library_resource_bindings 一样不依赖 manifest 全量重写的临时行生命周期；每次使用在当前 SQLite 事务中重检实际修订、tombstone、正文、格式与封禁。原衣柜 banned 查询仅扩大到相邻存储模块复用，没有改变规则。
+- 内部 Apply 接入本地引用解析；本地基础保持已有原生资产 ID/修订，云端仍使用来源别名。基础展示设置与配置/旧装备投影同事务提交，保留 CAS、操作指纹、失败回滚和旧结果重放语义。装饰依赖可解析绑定及结构预算，但作者能力/骨骼组合的最终检查继续后续步骤，不宣称正式装扮运行时已完成。
+- 新测试实际调用私有原生 grant/receive/commit 服务，再经真实 HTTP 绑定并直接调用内部 Apply；覆盖未绑定拒绝、来源 hash 与正文 hash 不同、本人重试、跨账号、原生身份保留、清除后旧 Apply 重放、封禁后重新绑定/Apply 拒绝、删除失效、无目录条目及无绑定阶段装备副作用。装饰声明缺失拒绝、验证来源归一化也有 HTTP 证据。新增真实 v8→v9 升级、保留配置、升级前备份与再次重启验证；旧版本夹具显式移除新表以恢复真实旧结构，不放松生产迁移冲突检查。
+- 首轮绑定 HTTP 2项 PASS（编译56.79秒、测试0.14秒），日志 build/reports/outfit/stage5-local-binding-http.log。新增本地 Apply 测试首次编译误用 compatibility 字段及 u64 SQL 参数，失败日志 stage5-local-binding-and-apply.log 保留；改用真实 figura_compatibility 和受检 i64 参数，未改协议或放宽校验。定向 outfit 25项 PASS（编译27.70秒、测试0.52秒），stage5-local-binding-and-apply-fixed.log。
+- 新增文件及此前本阶段 Apply 文件限定范围 rustfmt；已检查新代码可读性和 diff。最终前台 cargo test -- --nocapture 全量 PASS：140 passed / 1 ignored（编译23.49秒、测试11.92秒），完整日志 build/reports/outfit/stage5-local-binding-regression.log；实际 Java 装饰夹具目录已设置，跨语言装饰发表用例确实执行。旧 Java listener 类路径、生产交付及旧进程回滚可执行文件未提供的可选用例仍 SKIPPED，worker 饱和按原规则 ignored，不计作本轮实际执行。
+- 阶段五仍 IN PROGRESS：客户端显式准备/私有上传接续、装饰作者能力最终检查、旧 equip/clear 同事务归一化、公开 Apply/最新冲突修订、观察者授权分发、事件与实例状态及客户端正式运行时未完成。apply 能力保持 false，没有提前提交半成品阶段或进入阶段六；main/master 保持，既有后端 build.log/spm-cloud 保留。真实双客户端与 GUI/GPU 项继续 MANUAL/PENDING。
+
+### 阶段五：旧原生 Equip/clear 同事务归一化（2026-10-24）
+
+- 新 outfit_legacy 存储模块复用已有私有来源绑定；旧客户端没有来源 UUID 时，以本人/原生资产/固定修订建立稳定 UUID，来源 hash 明确使用原生正文 hash，不伪称原始来源树。原生装备的新操作在 transaction_with_library_result 中同时写入仅基础/空基础配置、清空实例/虚拟点/编号水位并推进 outfit revision；展示意图保留原生衣柜设置及原有默认值。
+- Equip 原操作回执带内部 fresh 标记，仅新操作调用归一化；旧请求重放只返回原 EquippedState，不能覆盖后来装扮。相同基础的新操作及原版基础仅有装饰时的新 clear 仍执行整套替换，不能因旧 equipment revision 未变化而留下隐藏装饰。独立 outfit 通知须随本阶段事件通道继续接通，当前未把这部分后续工作当完成。
+- 生产 Protobuf HTTP 适配器读取当前 outfit.limits，传给同事务方法；原 Storage::equip 保留默认预算便利入口用于既有内部调用。配置预算失败、SQLite 触发器故障及 i64 修订溢出均回滚原生装备、来源绑定与操作记录，同一操作可在错误消除后重试。没有修改冻结 Protobuf 字段或旧 Ping。
+- 两项定向存储测试通过（编译43.03秒、测试0.10秒），build/reports/outfit/stage5-legacy-normalization.log。随后加入“原版基础仅有装饰时 clear”与其旧操作重放场景，限定方法范围格式化；最终前台 cargo test -- --nocapture 全量 PASS：142 passed / 1 ignored（编译33.71秒、测试13.00秒），stage5-legacy-normalization-regression.log。实际 Java 装饰发表夹具启用并通过；缺旧 listener 类路径、交付/回滚可执行文件的可选项仍 SKIPPED，worker 饱和仍 ignored。存储夹具不冒充已运行两个真实游戏客户端。
+- 阶段五仍 IN PROGRESS。云端目录装备缺少可直接持久化的规范 origin 上下文，当前 LibraryAccess 普通装备请求也未统一携带该头；后续须接来源上下文并保持旧接口兼容，不能凭空补源站或把社区来源转为 LOCAL。旧 HTTP 上传/启用/删除及原生 Delete 路径、公开 Apply、授权观察者投影、实例状态/事件及正式客户端组合运行时继续按既定范围推进。根 main 与内嵌 master 保持；未达阶段提交点，未进入阶段六，人工项 MANUAL/PENDING。
+
+### 阶段五：原生 Delete 与旧 HTTP 清除（2026-10-24）
+
+- 普通原生 Delete 改用已有共同事务结果回调：仅新操作且实际删除当前基础时写入空装扮；删除其他资产保留配置。旧回执重放不再次清空后来的装扮。删除当前基础时的 tombstone、装备、配置和操作记录共同提交；配置故障会回滚这些状态。原文件回收/删除清理链路保留，不为本阶段扩展其他清理行为。
+- 旧 delete_legacy_owner 在原授权及导入检查之后按完整替换执行。有本人原生来源时删除/回收该资源并在同事务清空所有装备与配置；没有本地 avatar 文件（含原版仅装饰）或当前为目录来源别名时执行原 Equip clear，不要求删除不存在的文件，也不删除社区目录和别名资产。完整清除与普通 Delete 使用不同操作指纹，避免同一操作在不同语义下被当成重试。生产 Protobuf Delete 和旧 HTTP 清除均使用当前 outfit.limits。
+- 新真实 HTTP 测试经 /api/v1/avatar/:uuid 的原管理员 token 校验，验证错误凭证不改配置，随后依次清除仅装饰配置、实际私有上传/装备的 Figura 资源、实际目录发表/装备的来源别名。验证原生资源删除、云端目录及别名仍存在、装备与配置正确清空。另加存储测试，以真实 NBT 正文文件覆盖删除未装备资源、删除当前基础、配置触发器失败时原基础未 tombstone、同操作恢复重试以及旧响应不覆盖新配置。
+- 定向 outfit_legacy 4项 PASS（编译39.40秒、测试0.18秒），build/reports/outfit/stage5-legacy-delete-clear.log。最终前台全量 cargo test -- --nocapture PASS：144 passed / 1 ignored（编译检查0.38秒、测试11.08秒），stage5-legacy-delete-clear-regression.log。实际 Java 装饰发表夹具启用；旧 Java listener/交付与回滚可执行文件缺失项仍 SKIPPED，worker 饱和仍 ignored。只格式化新文件和修改的方法范围，并检查 diff；无客户端 Java 改动，不额外触发无关客户端构建。
+- 阶段五保持 IN PROGRESS。旧 HTTP 导入/上传及启用的配置归一化、云端目录装备来源上下文、公开 Apply/冲突修订、正式客户端原子组合、观察者授权、实例状态与事件继续原范围；清除用例不替代导入发生时的整个旧写链路验收。main/master 未切换，未达阶段提交点，真实双客户端与 GUI/GPU 继续 MANUAL/PENDING。可靠10080分钟额度池当前已用33%、剩余67%，ordinaryUsageAllowed=true，未触发预警或交接；不由 planType 推断订阅类型。
+
+### 阶段五：旧上传/导入的配置归一化与原权限语义（2026-10-24）
+
+- import_legacy 增加显式预算入口，并通过原共同事务结果标记实际替换/force_equipped。只有新基础或主动强制操作才归一化配置；相同正文的非强制读取保持当前装扮、配置修订及装饰。原入口保留默认预算便利调用，生产 ensure_legacy_import 传入当前 outfit.limits。相同正文主动重传只推进配置修订，不重复创建原生修订。
+- 新存储测试覆盖首次导入、重复非强制读取、主动替换、配置预算拒绝、SQLite 配置故障及恢复；新真实 /api/v1/avatar/:uuid 上传测试使用独立31031账号，验证已有装饰被主动上传替换、普通导入读取不清装饰、同正文重传及最终清理。该测试覆盖真实文件/正文分类与 HTTP 上传，不替代所有失败发布时序和独立启用入口。
+- 首轮编译失败为新增配置 read().await 放在文件锁之后，std::sync::MutexGuard 跨 await 使 Axum 处理器 Future 非 Send，日志 build/reports/outfit/stage5-legacy-import.log。配置读取移到加锁前后，定向6项 PASS（编译33.90秒、测试0.20秒），stage5-legacy-import-send-fixed.log；没有改变锁类型或放宽运行时要求。
+- 首次全量为144 passed/2 failed/1 ignored（测试12.95秒），stage5-legacy-import-regression.log：既有封禁 NBT 重打包和加密旧上传测试明确复现200变403。根因是配置归一化调用了现代 Apply 的使用准入检查，扩张了旧上传的策略；旧路径原本允许本人保存/读取，同时限制他人分发。拆分既有 LocalBinding 的原生身份检查和当前使用策略：归一化仅校验本人/正文/格式/非目录来源；显式绑定和现代 Apply 继续执行 banned，观察者原封禁测试及断流规则不变。未修改既有测试断言或解除封禁。
+- 最终前台 cargo test -- --nocapture 全量 PASS：146 passed / 1 ignored（编译16.98秒、测试11.87秒），stage5-legacy-import-policy-fixed.log。实际 Java 装饰发表夹具启用，既有两项封禁回归和本地 Apply 封禁拒绝一起通过。缺旧 listener 类路径及交付/回滚二进制的可选项仍 SKIPPED，worker 饱和仍 ignored；新增文件和修改方法限定范围排版并核对 diff。
+- 未完成边界保留：旧上传仍沿用“固定 .moon 文件替换→ensure_legacy_import”的原顺序，静态路径显示配置提交失败后的文件恢复/后续重读需专门补回归，不能以 SQLite 回滚用例声称整个文件发布已原子化。独立 Figura equip 通知仍须接归一化，云端目录来源上下文、公开 Apply、观察者/实例状态/事件及客户端正式组合继续阶段五。main/master 保持，未到整阶段提交点；人工双客户端/GUI/GPU 仍 MANUAL/PENDING，未提前处理公共 YSM 缺陷。
+
+### 阶段五：旧固定文件发布的失败恢复（2026-10-24）
+
+- 新真实 /api/v1/avatar/:uuid 上传故障用例先以 SQLite 临时触发器拒绝配置提交，保持原装备和配置的断言通过，但旧 .moon 已变为被拒绝的新正文，复现日志 build/reports/outfit/stage5-legacy-file-rollback-repro.log（编译20.57秒、测试0.09秒，FAILED）。随后解除故障进行普通读取，测试同时检查不得启用被拒绝上传；不能只用数据库回滚声称整个旧发布保持原状。
+- 新 storage/legacy_publication.rs 限定于旧发布：复用原 blob_publication 锁和 metadata 表的 legacy_publication:<本人UUID> 恢复记录，无 schema 变更。原文件备份和新镜像位于本存储 recycle/legacy-publications/<本人>/<操作>/，从受检 UUID 重建路径。记录在固定文件替换之前提交；原生资源/装备/配置事务同时删除匹配操作的恢复记录。失败恢复原文件，原本无文件则删除未提交镜像；恢复成功后才删除记录和备份。清理均为指定文件及空操作目录，不递归清理其他文件。
+- 启动 open_paths 在正常服务前恢复未提交发布；恢复中保留备份直到数据库记录删除成功，可重复执行。没有恢复记录的孤立备份不覆盖已提交新文件。一次成功提交后的文件清理失败只记录待清理，不把已提交状态报告为回滚。上传正文仍通过原扫描器和独立 immutable 正文发布，失败遗留的未引用正文不伪造可访问资产。
+- resource::upload_legacy 和非临时 write_legacy 复用 bounded library::work 内的同步发布事务；暂存/扫描继续原路径，临时上传保持原行为。旧管理员及内部适配器移除额外 ensure_legacy_import，避免同次上传重复归一化。普通导入快照在获得发布锁后有界重核当前文件 hash，丢弃已经被替换/回滚的过期快照。没有持同步锁跨 await，也没有引入服务端插件或协议字段。
+- 首轮恢复实现编译为 rusqlite MappedRows 尾表达式生命周期错误，stage5-legacy-file-rollback-fixed.log；改用局部 rows 明确借用释放后，原失败回归 PASS（编译36.03秒、测试0.10秒），stage5-legacy-file-rollback-lifetime-fixed.log。补充实际持久恢复状态后重开 Storage 的有旧文件/首次上传两分支，并验证无记录的旧备份不会回滚成功提交；这是存储重开恢复证据，不是新的 OS 进程强杀或断电实验。
+- 定向 outfit_legacy 8项 PASS（编译20.00秒、测试0.23秒），stage5-legacy-publication-recovery.log。最终前台 cargo test -- --nocapture 全量 PASS：148 passed / 1 ignored（编译检查0.39秒、测试12.10秒），stage5-legacy-publication-regression.log。实际 Java 装饰发表夹具启用，旧 NBT/加密封禁、原生协议/回收和已有 SQLite 进程终止回归通过。旧 listener 类路径、交付/回滚二进制缺失的可选项仍 SKIPPED，worker 饱和仍 ignored。新文件及修改方法已限定范围 rustfmt 并核对 diff。
+- 阶段五仍 IN PROGRESS；独立 Figura equip 通知归一化、云端目录来源上下文、公开 Apply/冲突修订、正式客户端组合、授权观察者、实例状态及事件通道继续原任务。main/master 保持，无新分支，未达整阶段提交点；人工 GUI/GPU/双客户端仍 MANUAL/PENDING，未提前进入阶段六或公共 YSM 修复。
+
+### 阶段五：独立 Figura 启用/空列表清除入口（2026-10-24）
+
+- 先通过 CodeGraph 核对 FiguraCloudProtocol.equip 的实际原始请求：POST /api/equip，JSON 为 owner/id 列表。后端此前只发通知；现按既有单基础能力处理本人原生选择或空列表清除，调用已有 Equip CAS/配置共同事务并使用当前 outfit.limits。非法选择、外人来源及目录来源别名拒绝，目录别名必须走原库授权路径。无正文的历史通知保留，只发原事件，不清配置。
+- 原生资源按已入库最新修订选取，无需旧 .moon 文件。avatar 的首次旧文件导入复用现有导入路径并返回是否已实际替换；若已替换/归一化，不再额外执行一次 Equip。既有 ensure_legacy_import 仍保留原返回接口，普通读取不重置已有装扮。源资源路径、旧 JSON 字段、冻结 Protobuf、Ping 和客户端 FiguraCloudProtocol 均未修改。
+- 新真实 HTTP 用例覆盖已上传源的显式启用、空列表清除后普通读取不复活、再次启用保留原生资源修订、无正文通知保留配置、预算失败保持装备/装扮、非法/外人/多基础选择拒绝、已入库独立原生资产启用、目录别名拒绝绕过及清除保留其资产。首次旧文件导入另用真实文件/认证入口验证配置只推进一次。共享 Server 测试路由增加生产 equip_avatar 处理器对应的 /api/equip。
+- 定向 outfit_legacy 11项 PASS（编译36.03秒、测试0.35秒），build/reports/outfit/stage5-legacy-equip-selection.log。最终前台全量 cargo test -- --nocapture PASS：151 passed / 1 ignored（编译检查0.37秒、测试11.92秒），stage5-legacy-equip-selection-regression.log。实际 Java 装饰发表夹具启用，旧 NBT/加密封禁、原生协议、回收和已有进程终止测试仍通过；可选旧 listener/交付/回滚缺参数的用例仍 SKIPPED，worker 饱和仍 ignored。只排版本轮修改方法及新增测试，核对 diff，未做无关重构。
+- 阶段五继续 IN PROGRESS，main/master 保持，未达整阶段提交点。下一步仍须接云端目录装备的规范来源与归一化、整套 Apply 的完整作者能力检查/公开 API/冲突修订、客户端原子激活、授权观察者投影及实例状态/事件通道。无正文请求不是主动选择，不将其通知语义改成清除；人工 GUI/GPU/双客户端继续 MANUAL/PENDING。
+
+### 阶段五：云端目录装备来源与同事务归一化（2026-10-24）
+
+- library_equip 接入经规范化的请求源站与当前 outfit.limits，在原 library::operation 的授权、来源别名和展示设置事务中写入仅基础 CLOUD 配置，清除实例/虚拟点/编号水位并推进配置修订。引用为真实目录 UUID、精确模型修订、原生分发正文 SHA256 和格式；不把社区来源转成本地绑定。原操作指纹/响应保持，旧回执重放不改后来配置。原生与目录归一化共用本阶段的配置写函数，避免复制修订/预算/SQL逻辑。
+- 展示规则保持原行为：公共资源沿用已有衣柜设置、无设置默认展示，私有资源按原本人展示意图。配置故障、预算拒绝和旧 CAS 拒绝不发布配置/装备/别名/设置的部分状态。新增真实 HTTP 测试先用配置写触发器拒绝，验证旧配置和空装备保留、别名未创建，再用原操作恢复重试；验证精确云端引用、同基础展示修改、旧响应不覆盖、换资源、旧 CAS 及预算失败。
+- 客户端 LibraryAccess 通过既有 Figura/Protobuf 认证适配器，为所有库请求固定附加当前端点的 x-omnimorph-origin；可变请求头白名单仍不能覆盖源站。后端目录装备优先复用原 origin/Host 校验；旧请求没有该头时使用唯一 Host 和单一 http/https 的 X-Forwarded-Proto，直连原生 HTTP 监听缺省 http。该字段只标记资源命名空间，绝不用于认证或放宽策略；异常协议、重复代理协议、外站/异常显式源站拒绝。docs/DEPLOYMENT.md 补代理保留 Host/覆盖外部协议的要求，未改实际部署或其他认证边界。
+- 新测试覆盖显式源站、旧直连请求、模拟代理 HTTPS 元数据、显式头优先、不同合法来源标签下同操作返回原回执不改配置，以及私有默认隐藏/本人允许展示。测试只用本机 HTTP 验证元数据，不宣称已经通过真实 HTTPS 代理部署。旧独立启用用例的配置计数随原目录装备现在也推进修订而更新，未放宽其来源别名绕过拒绝断言。
+- 后端定向 outfit 38项 PASS（编译33.11秒、测试0.96秒），build/reports/outfit/stage5-catalog-outfit-normalization.log。最终前台 cargo test -- --nocapture 全量 PASS：153 passed / 1 ignored（编译检查0.43秒、测试11.75秒），stage5-catalog-outfit-regression.log；实际 Java 装饰发表夹具启用，既有封禁/旧协议/SQLite 进程终止回归通过。缺旧 listener 类路径及交付/回滚可执行文件项仍 SKIPPED，worker 饱和仍 ignored。
+- 前台 JDK25 :fabric:compileJava :common:libraryClientSmokeTest :common:libraryEquipmentSmokeTest :common:libraryEquipmentVisibilitySmokeTest PASS（44秒，14 tasks），stage5-catalog-origin-client.log。LibraryClientSmokeTest 在两种生产认证适配器的真实 HTTP 请求中检查唯一源站与端点一致；重定向、凭证模式、装备丢回执重试、取消和展示回归保留。日志的 YSM main model is empty 为既有 server.broken 负例，源码明确验证 MODEL_PREPARATION_FAILED、没有装备提交且保留原模型，不误报为新渲染缺陷。
+- 本轮只修改源站附带、目录装备归一化及配套测试/部署说明；限方法范围格式化并检查 diff。main/master 保持，阶段五仍 IN PROGRESS，未达整阶段提交点。接下来继续完整作者能力检查、公开 Apply/冲突修订、正式客户端组合激活、授权观察者及实例状态/事件通道；真实 HTTPS 代理、GUI/GPU 和双客户端继续 MANUAL/PENDING，不提前进入阶段六或公共 YSM 修复。
+
+### 阶段五：Apply 的作者能力与精确骨骼声明（2026-10-24）
+
+- 新 service/outfit_capabilities.rs 只校验声明，不读取/解密原生几何。内部 Apply 的资源校验返回有类型的基础来源或装饰元数据；云端按已授权精确修订读取 library_accessory_metadata，本地复用本人 immutable 绑定。完整资源引用去重后按 instanceId 传递声明，准备阶段与最终 SQLite 事务都重新核对，拒绝过期准备结果，不以缓存跳过权限或声明预算。
+- 核对 VANILLA/FIGURA/YSM 基础家族；骨骼覆盖要求 has_bones/edit_bones 和 editable_bones 精确路径、同名序号、骨架 hash；装饰挂点和虚拟父级要求 exported_bones 对应声明。显示树标记不充当编辑/导出授权，作者版本文字不代替骨架 hash。停用实例仍验证保留配置；停用父级的合法引用可保留，不自行迁移挂点，运行时停用规则负责停止依赖。自动拖尾继续允许既定回退；仅启用的 Trail 实例计入当前拖尾实例预算。
+- 纯声明测试覆盖合法导出/编辑、私有路径、同名序号、过期 hash、编辑关闭、虚拟父级、停用实例，以及三类基础和两种 YSM 格式、动态导出/拖尾预算。它们不是实际骨架/GUI 证明。额外真实 HTTP 用例复用实际 Java Figura 装饰产物，经过目录发表及本人私有上传/绑定后构成四副本；验证跨账号私有绑定拒绝、无骨骼来源禁止内部覆盖/导出和虚拟父级、超限拒绝及成功提交。
+- 同一用例在 Native manifest 写入触发器中临时改变云端声明的 supported_bases，实际复现准备通过但提交阶段须拒绝的窗口；最终事务检查拒绝并回滚触发器所改元数据，GET 仍读回原声明。移除触发器后，同操作可以正常重试。这是事务故障/变更注入，不宣称生产已有任意改写固定修订作者声明的接口。
+- 后端定向 outfit 42项 PASS（编译35.89秒、测试0.91秒），build/reports/outfit/stage5-apply-author-capabilities.log；实际 Java 作者声明用例的产物目录已设置，确实执行。随后补齐 Figura 家族与 YSM plain 分类断言，最终前台 cargo test -- --nocapture 全量 PASS：157 passed / 1 ignored（编译19.81秒、测试12.30秒），stage5-apply-author-capabilities-regression.log。Java 装饰投稿跨语言回归也启用；旧 listener/交付/回滚缺环境的可选项仍 SKIPPED，worker 饱和仍 ignored。新代码/测试限定范围 rustfmt 并核对 diff，无客户端 Java 行为变化。
+- 服务器仍不能证明加密实际骨架、运行时节点/编辑支持或作者 Lua 注册后的控制行为；这些继续由客户端原生加载与本阶段正式准备检查承担。Apply 公开能力保持 false，公开 API/冲突修订、客户端原子激活、授权观察者投影、实例状态与事件通道继续。main/master 未切换，未达整阶段提交点，真实 GUI/GPU/双客户端仍 MANUAL/PENDING。可靠10080分钟额度池当前已用1%、剩余99%，ordinaryUsageAllowed=true，未触发交接；不推断订阅类型或额度变化原因。
+
+### 阶段五：内部观察者授权快照（2026-10-24）
+
+- 新 outfit_sources 复用 Apply 的固定引用、本人使用权限和声明校验，并解析同一数据库快照中的原生正文身份；目录来源还核对有效原生修订、正文 hash 与现有全局封禁。Apply 继续在准备及提交事务分别调用该解析器，原 CAS/幂等和基础别名事务保持。未更改旧独立下载策略，也未开放公开 Apply。
+- outfit_project 在单次 SQLite 事务中读取配置、原生装备、策略和双方实际授权。先验证穿戴者仍能使用，再以观察者自己的授权逐项决定是否保留；不继承管理员上下文或穿戴者授权。展示关闭仅返回版本与空投影，基础不可用或配置与当前原生基础不一致时隐藏整套。云端基础还核对固定来源绑定、原生正文及旧展示设置；私有展示只允许当前装扮渲染，不授予目录查看/获取权。
+- 投影只保留启用且获准的实例，资源按固定来源去重，实例 UUID、display_ordinal 和保留来源的编号水位不变。手动挂点及虚拟父级随被移除的父实例逐级移除；AutoTrail 仅清除失效的优先实例，继续原自动回退语义。不输出已隐藏来源的编号水位或 canonical native asset 名称；本人配置管理入口仍读回完整原配置。稳定资源 ID 不随仅展示设置变化而改变。
+- 新认证上传/目录发表及内部 Apply 测试覆盖观察者与穿戴者授权各自撤销/恢复、私有展示开关、目录仍不可见、双副本去重/稳定编号、停用副本过滤、当前预算收紧和旧基础不一致；实际 Java Figura 装饰正文用例额外证明云端依赖拒绝时本地依赖仍保留，授权恢复后固定身份不变。手动链/虚拟父级的逐级移除及 AutoTrail 回退由纯配置用例验证，未冒充实际骨架或 GPU 验证。
+- 初轮 3 项观察者测试中 1 项因测试封禁 UPDATE 未同时设 PRIVATE 而触发已有 SQL CHECK；已按现有约束修正测试数据，没有放宽生产规则，失败日志保留 stage5-observer-projection.log。定向 outfit_ 37项 PASS（编译23.36秒、测试0.85秒），stage5-observer-projection-fixed.log；最终前台全量 cargo test -- --nocapture：161 passed / 1 ignored（编译9.38秒、测试12.42秒），stage5-observer-projection-regression.log，均位于 build/reports/outfit/。实际 Java 装饰夹具环境已设置，相关用例实际执行；旧 listener/交付/回滚可选环境缺失项仍 SKIPPED，worker 饱和仍 ignored。
+- 此为内部元数据投影，尚无公开快照/正文路由或事件发布。接公开分发前，必须补显式私有来源的原生旧正文读取边界、当前配置作用域及逐段授权重检，并处理旧来源正文身份验证预热；不得把本次投影通过视为整个分发链已安全接通。客户端准备/服务端确认/正式激活、实例状态与事件仍继续阶段五；apply/events 保持 false，main/master 不变，尚未达整阶段提交点。真实 GUI/GPU/双客户端仍 MANUAL/PENDING。
+
+### 阶段五：显式私有来源的旧正文读取边界（2026-10-24）
+
+- schema 10 增加独立 outfit_private_sources：只有本人显式绑定原生修订时才写入，绑定与私有标记同事务；已有相同绑定重试仍补齐标记，失败回滚二者。自动旧装备归一化不写此标记；历史来源不因升级而被推断为私有。新表不引用会被 manifest 重写的原生行，8/9 升级、备份、数据保留及重开用例已更新/补齐。
+- 在原 source-bound resource_access 中追加当前装扮检查，显式私有原生修订的观察者只能读取当前获准投影中仍使用的正文；历史 URL、停用/移除副本、失效父级或隐藏展示不能绕过。本人私有读取与未标记历史资源保持原规则。原生 DownloadRequest、真实资源 GET、旧下载初始检查和 guarded_body 的每个分块传入当前 outfit.limits；共同正文入口复用原会话认证、bounded worker、并发许可及分块重检，不扩展冻结 Protobuf。
+- 内部投影先收集获准候选，再在数据库锁外复用已有正文身份检验，最后重新读取配置/权限并要求来源已有服务端验证身份。最终重检前发现的另一包身份封禁会隐藏该依赖，未知身份不能在提交后新配置中直接放行；无磁盘操作跨 SQLite 锁。新增实际有效 Figura 正文用例删除身份索引来模拟旧导入，证明重建 NBT 身份后再次执行全局封禁，未把第一轮候选返回给调用方。
+- 真实认证原生 GET 覆盖显式绑定前后、本人读取、展示开关、整套移除和历史未标记资源；TEMP 触发器注入私有标记写失败，验证绑定一并回滚后同请求可重试。另使用约70KB有效 NBT 上传/GET，并按实际 blob 逐次轮询生产 guarded_body：停用、移除、隐藏及当前实例预算收紧均在下一分块拒绝，随后新 GET 返回404，本人读取仍成功。逐次轮询避免 HTTP 预取掩盖检查边界，不冒充双客户端视觉验收。
+- 初轮正文夹具100000字节随机数组压缩后超过现有100KB上传上限，grant 返回 LIMIT_EXCEEDED；改为70000字节数组并保留多分块大小，未调整生产限制，失败日志保留 stage5-private-read-gate.log。定向40项 PASS（编译21.76秒、测试1.11秒），stage5-private-read-gate-fixed.log。补身份预热/封禁回归后，最终前台 cargo test -- --nocapture 全量165 passed / 1 ignored（编译20.13秒、测试12.35秒），stage5-private-read-gate-regression.log；日志均在 build/reports/outfit/。实际 Java 装饰夹具已设置并执行；旧 listener/交付/回滚环境缺失项仍 SKIPPED，worker 饱和仍 ignored。
+- 已完成的是显式绑定后的正文边界。正式私有上传流程仍须在原生正文首次提交前声明用途，并在原生提交事务中带上私有标记；不能把先使用历史普通上传、之后再绑定视为从上传开始即私有。该接续属于原客户端私有来源准备能力，安排在公开 Apply/快照/作用域正文接口开启前。公开快照及按配置修订读取、实例状态/事件、客户端准备/确认/正式激活仍继续阶段五，apply/events 保持 false；main/master 不变，未达整阶段提交点，真实 GUI/GPU/双客户端仍 MANUAL/PENDING。
+
+### 阶段五：首次提交即私有的上传准备入口（2026-10-24）
+
+- 新增本人认证 JSON 入口 POST /api/library/v1/outfits/resources/uploads、PUT /:operation/body、POST /:operation/commit。输入为固定 LOCAL 引用、用途/声明、正文长度及 raw/content/schema 摘要；使用原原生分发正文，复用原会话、限流/上传并发、流式长度/摘要和包检查，不生成目录、集合或装备记录。预留按现有原生上传权限、字节及账户资产预算接纳，计入尚未提交的来源预留；装饰声明使用当前 outfit.limits，保持 CLIENT_EXTRACTED。
+- schema 11 独立持久化本人/操作/资源名/冻结输入，在发放原生 grant 前已有私有用途。资源名由操作 UUID 生成，仅用于稳定身份；实际保护由持久预留、提交事务和私有标记执行。原生 grant 防止改写同操作字段或占用别的私有预留资源名；提交在共同事务再次核对预留与实际 descriptor，原生正文、验证身份、LocalBinding 及私有标记原子提交。即使通过原 Protobuf/原生服务入口提交，也不能绕过该用途。绑定公共写入逻辑仅抽取为同一事务 helper，无关旧模型处理保持。
+- 已完成源按不可变绑定恢复，普通原生操作回执过期/缺失后仍可重读预留与完成状态；同操作变更输入冲突。已完成的原生重放会释放多余 grant，不占用原并发槽。上传不自动应用草稿，失败不改变旧装备/配置；不把可恢复上传预留当作已准备好的客户端模型或实际骨架验证。
+- 真实 HTTP 覆盖认证、外人上传/提交拒绝、预留/PUT/commit、首次提交后旧资源 GET 即404、未发表/未装备、重复预留/提交与冲突。TEMP 触发器令首次私有标记写失败，证明原生 avatar、绑定及回执不发布，原正文可按同操作重试成功。预留前已发出的普通原生 grant 在私有用途出现后提交会被拒绝，不能抢占该资源；新 grant 更换正文也拒绝。删除普通回执后重新打开实际 SQLite，预留与完成状态仍可恢复。
+- 实际 Java Figura 和加密 YSM 装饰产物均经新 HTTP PUT，再由原生提交服务完成，得到 CLIENT_EXTRACTED 私有绑定且目录计数保持0；临时收紧 position_limit 后原生提交拒绝，恢复预算同操作重试成功。10→11 升级/备份/重开用例保留已有配置和私有标记；旧8/9及旧回执降级夹具同步恢复实际旧结构。定向7项 PASS（编译31.43秒、测试0.41秒），stage5-private-upload-api-budgets.log。全量169 passed/1 ignored 后补齐多余 grant 清理回归，最终前台 cargo test -- --nocapture 再次169 passed/1 ignored（编译28.22秒、测试12.35秒），stage5-private-upload-replay-regression.log。日志均位于 build/reports/outfit/；实际 Java 夹具已设置并执行，旧 listener/交付/回滚可选环境缺失项仍 SKIPPED，worker 饱和仍 ignored。
+- 后端已关闭“先普通上传、后绑定”的正式私有准备窗口；客户端尚未调用新入口，显式来源准备、确认后激活、公开 Apply/冲突及观察者快照/作用域正文、实例状态和事件仍继续阶段五。apply/events 保持 false，main/master 未切换，未达整阶段提交点。真实 GUI/GPU/双客户端仍 MANUAL/PENDING。可靠10080分钟额度池已用3%、剩余97%，ordinaryUsageAllowed=true，未触发交接，不推断订阅类型。
+
+### 阶段五：观察者 HTTP 快照与配置修订作用域正文（2026-10-24）
+
+- 新 GET /api/library/v1/outfits/players/:owner 以实际普通玩家身份和已校验源站读取授权快照，不使用管理员上下文。schema_version=1，包含 owner/revision/equipment_revision、可空 configuration 及获准 resources。资源仍按固定来源去重，补充分发格式、正文长度、raw/content/schema 摘要及 relative_path；不输出 canonical native descriptor/资产名。来源 hash 与分发摘要保持区别，仅配置变化不改变资源 ID/正文 hash。
+- GET /api/library/v1/outfits/players/:owner/resources/:id?revision=N 只读取该玩家当前修订内仍获准的依赖。配置修订已变化返回409，资源已失效/隐藏/无权返回404；资源 ID 不能跨穿戴者借用。每段以原会话再次核对观察者、当前配置修订、双方权限/封禁、当前 outfit.limits 及固定 descriptor，复用原 DownloadPermit 的并发边界和 bounded worker，单段32KiB/既有30秒超时。该读取不创建目录 transfer/入集回执、不计下载，不向观察者授予私有目录权限。
+- 实际 HTTP 用例覆盖认证/源站头、私有作者明确展示后的正文读取、目录详情/正式 transfer 仍拒绝、原生内部名不外露、错误穿戴者不可借用、仅配置变化后旧 URL 失效且资源身份/正文摘要/基础代际不变、展示关闭返回空快照，以及双方授权各自撤销/恢复作用于已知 URL。目录回执和下载计数均保持0。
+- 多分块用例复用新私有上传 HTTP 完成真实约70KB Figura 正文，再核对快照/实际 HTTP 正文。逐次轮询生产 handler 的 body，避免 HTTP 预取掩盖边界：即使基础字节未变，仅配置修订推进、全局正文 hash 封禁或会话撤销都会令下一分块拒绝。该组件流测试与 HTTP 正文检查证明读取边界，不声称实际客户端已经接入或模型在真实 GPU 正确显示。
+- 定向3项 PASS（编译31.15秒、测试0.30秒），build/reports/outfit/stage5-observer-http.log；最终前台全量 cargo test -- --nocapture：172 passed / 1 ignored（编译7.97秒、测试12.23秒），stage5-observer-http-regression.log。实际 Java 装饰夹具设置并执行；旧 listener/交付/回滚可选项仍因缺环境 SKIPPED，worker 饱和仍 ignored。新增代码限定范围 rustfmt，根目录和后端 diff --check 通过，无客户端 Java 行为变化。
+- 本阶段读取接口已接公开路由，公开 Apply/冲突、客户端显式准备/确认后激活、状态/事件和授权变化推送尚继续；apply/events 仍 false，不能把读取接口完成视为正式装扮同步完成。客户端接续须覆盖旧数据库只有 native 基础、尚无现代配置行的情况，沿用既有 profile 基础加载，不能把缺失现代配置误当作用户清除。真实 GUI/GPU/双客户端仍 MANUAL/PENDING，main/master 不变，尚未达整阶段提交点。
+
+### 阶段五：公开 Apply、冲突状态与 JSON 信封边界（2026-10-24）
+
+- PUT /api/library/v1/outfits/current 已接普通本人认证、规范源站和内部共同事务，输入仍为 operation_id/expected_revision/configuration，不接受指定他人 owner 或管理员上下文。成功响应 schema_version=1、operation_id、applied（原不可变 configuration/equipment_revision 回执）及 current_revision。旧操作重放仍返回原 applied，同时报告较新 current_revision，不恢复旧状态；客户端接续必须拒绝激活已被新修订替代的回执。冲突409沿用既有错误字段及 request_id，附本人当前 configuration/current_revision，不自动合并或覆盖草稿。
+- 内部 Apply 增加不持久化的 fresh 状态，原 outfit_apply 的 Applied 接口/回执序列化不变。只有实际新提交后发送原基础兼容 AvatarChanged；重放、冲突和失败不再重复通知。原 CAS、本人来源权限、当前声明预算、原生基础别名、展示及配置继续同事务提交/回滚，公开入口不直接执行 Lua、原生加载或客户端激活。新的装扮事件通道尚未接入。
+- 新 HTTP 证明：认证/源站头、旧回执与最新修订、冲突当前配置/错误字段、未知 owner 字段拒绝、跨账号私有绑定隔离、真实私有上传源应用、触发器写失败后配置/装备完整回滚且同操作可重试；相同操作及不同操作并发只发布一次。事件总线检查表明只有新提交有兼容通知，旧重放和失败无额外通知，不冒充新 WS/真实客户端完成。
+- 已复现本阶段必要的响应边界问题：符合后端契约且接近64KiB的配置加资源声明后，旧统一 json_response 返回500。红例日志 build/reports/outfit/stage5-outfit-response-budget-red.log（编译21.08秒、失败0.57秒）。现仅装扮快照与 Apply 信封使用独立有界输出：Apply 为 MAX_JSON_BYTES+4096，快照为 MAX_JSON_BYTES+8192+MAX_INSTANCES*(MAX_JSON_BYTES+4096)，覆盖配置、固定声明及资源字段；其他接口保持64KiB，配置本身仍执行当前 outfit.limits.max_json_bytes。Apply 请求 extractor 和请求中间件仅对该 PUT 使用同样的信封上界，仍计实际请求字节并保留超时/限流。
+- 初轮4项公开 Apply HTTP 测试有3项通过，大配置在第二层请求中间件被413拒绝，日志 stage5-public-apply-http.log；查明独立64KiB to_bytes 限制后仅扩展该 PUT。修正后定向4项 PASS（编译17.11秒、测试0.61秒），stage5-public-apply-http-fixed.log。近预算配置/快照、较大请求/回执/冲突响应真实通过；配置超限仍400，信封超限仍413，未静默截断。最终前台全量 cargo test -- --nocapture：177 passed / 1 ignored（编译18.30秒、测试12.14秒），stage5-public-apply-regression.log。实际 Java 装饰夹具启用，旧 listener/交付/回滚缺环境项仍 SKIPPED，worker 饱和仍 ignored。
+- 本次无客户端 Java 行为修改；客户端显式准备、回执验证/原子激活、状态/事件及跨客户端恢复仍继续阶段五。公开路由已有实现，apply/events 能力继续 false，避免将服务端子集当作完整同步能力。真实 GUI/GPU/双客户端仍 MANUAL/PENDING，main/master 不变，未达整阶段提交点。
+
+### 阶段五：客户端 Apply 传输与回执激活守卫（2026-10-24）
+
+- 先用 CodeGraph 核对 LibraryClient/LibraryModels、OutfitCodec/OutfitPreparation 和现有适配器。新增 LibraryClient.applyOutfit，复用原 CONTROL worker、认证、请求取消/超时及客户端线程投递，不开新线程池或另一个网络客户端。提交前冻结配置，在同一请求流程重新获取能力与 outfit.limits；缺配置/Apply 能力或旧后端404/405时拒绝变更，不回退成旧单形象装备。现有后端 apply=false 时仍不允许正式客户端提交。
+- 新 OutfitApplyResult 明确分离 Accepted 和 Conflict。成功按规范向量数组、固定操作 UUID、配置修订/完整内容、精确64位计数、媒体类型及严格 UTF-8 解码校验；配置 raw tree 和 typed record 双检，避免整数截断或 JSON 数字比较转 double 掩盖固定资源修订差异。被新 current_revision 取代的原回执保留可读，但 canActivate 拒绝。该方法仅为回执守卫，仍需正式控制器持有已验证准备代际，不能单独据此发布模型。
+- 冲突作为独立类型返回本人当前配置和 request_id，不自动合并或覆盖草稿；预算已收紧时，旧当前配置只按协议硬边界保留用于检查/重新绑定，不能当作满足新预算并激活。其他错误沿用原状态/安全 code，不显示任意服务端文本。已有普通控制 JSON 的64KiB限制不变；Apply 单独使用 MAX_JSON_BYTES+4096 的输入/输出信封，未改冻结 Protobuf。
+- 仅 Apply 序列化补齐所选 Rust 分支的可空字段（base、BoneRef.instance_id、AutoTrail.preferred_instance_id），不全局打开 serializeNulls 而向 tagged union 填入无效字段；提交前计入规范可空字段及下一修订号的 UTF-8 字节。原本地预设/预览的 OutfitCodec 格式不变。
+- 新 outfitApplyClientSmokeTest 使用实际本机 HTTP、生产 Figura/Protobuf 两种凭证适配器和契约响应夹具，覆盖能力缺失/关闭、动态实例预算收紧前不发 PUT、向量数组/可空字段、操作与配置篡改、分数序号、2^53以上固定资源修订改变、过期回执、预算变化后的冲突、错误媒体/UTF-8、超长响应、普通错误文本隔离、合法大信封及账号/连接退役后拒绝旧投递。此为客户端传输组件验证，不是实际 Rust Listener 全链路、原生 Avatar 或真实窗口/GPU 验收。
+- 首轮真实 HTTP 夹具按 Java 省略空字段的配置恰好填满64KiB，响应补 base:null 后配置本身超限，客户端正确拒绝；失败保留 build/reports/outfit/stage5-client-apply-transport.log。已修正夹具为服务端也有效的近预算配置，并加入客户端规范字段预检，未放宽回执验证。第一次修正及最终精确回执回归均前台 JDK25通过：:fabric:compileJava :common:outfitApplyClientSmokeTest :common:libraryClientSmokeTest :common:outfitContractSmokeTest；最终15秒、14 tasks，stage5-client-apply-exact-receipts.log。既有 Unsafe/Gradle警告保持，未为测试改生产 UI。
+- 私有来源客户端准备、正式控制器/原子激活、观察者客户端读取及状态/事件尚继续。下一检查点先核对现有本人来源和原生缓存能否解析已上传但停用或不在当前配置的 LOCAL 引用：观察者快照只含启用依赖，不能当作本人全部库存；据现有读取能力安排最小必要接续，不在本次已验证传输中强行扩展接口。真实 GUI/GPU/双客户端仍 MANUAL/PENDING；后端本轮未修改，上次全量177 passed/1 ignored不替代新客户端整链路验证。apply/events 仍 false，main/master 不变，尚未达整阶段提交点。
+
+### 阶段五：客户端私有来源解析与冻结上传（2026-10-24）
+
+- 重新核对 main/master 工作区及原计划，保留全部阶段五修改，未切换分支。CodeGraph 核对现有来源/库存/上传和压缩路径：基础 LocalAvatarSource 持久索引可按引用重新打开目录/ZIP/密文源，装饰库存可扫描未应用来源。没有把启用依赖快照当作全部本人库存，也没有新增库存查询接口。
+- 新 OutfitPrivatePreparation worker 准备固定 LOCAL 基础或装饰，复用原本地读取、来源变化复核和声明预算；共用原有分发压缩及 YSM 内容/schema 身份计算。私人分发保留原生元数据（含格式代码）和原始加密密文，独立复制 NBT，不走社区目录纯文本字段覆盖，不修改源文件或正式玩家。LibraryPackagePreparation 仅抽取必要共用压缩段，原投稿路径语义保持。
+- 新 OutfitPrivateUpload 冻结操作、引用、声明、正文及摘要；同操作网络重试复用输入。LibraryClient.uploadOutfitSource 复用原 TRANSFER worker、端点认证、取消/超时和客户端线程投递；提交前重新检查配置/Apply 能力及 outfit.limits，私有预留已完成时只核验绑定而跳过正文和 commit。预留只允许当前操作本站路径，回执严格核对固定引用、用途、声明、正文 hash、派生资产和整数修订。服务端错误沿用安全 code，错误媒体/UTF-8、过小/分数 grant、篡改/跨操作路径均拒绝；账号退休后拒绝旧投递。不发表、不装备、不调用原子激活。
+- 核对发现社区库 max_upload_bytes 与原生私有上传限制是不同配置；客户端不以社区投稿额度替代私有 grant。新增回归明确覆盖这一差异，实际字节接纳继续由原生私有预留/grant 和有界正文承担，声明则使用每次新协商的 outfit.limits。
+- 新本机真实 HTTP 用例使用生产 Figura/Protobuf 凭证适配器和契约服务夹具：失败 commit 后相同冻结输入重试、已完成预留复用、已完成/新提交回执篡改、来源/声明/格式字段、路径/媒体/UTF-8、动态声明预算、会话退休和安全错误均通过。实际本地原生准备覆盖 Figura/明文YSM/加密YSM基础、未应用加密装饰、原始密文、独立 NBT、来源修改、字节超限与取消。原准备器既有目录/嵌套包/资源/原文件回归保持。HTTP 夹具与原生准备分别证明其覆盖内容，不冒充实际 Rust Listener/窗口/GPU 整链路。
+- 全部通过前台 JDK25：:fabric:compileJava :common:libraryPackagePreparationSmokeTest :common:outfitPrivateUploadSmokeTest :common:outfitApplyClientSmokeTest :common:libraryClientSmokeTest :common:outfitContractSmokeTest，最终23秒、16 tasks，build/reports/outfit/stage5-client-private-source-regression.log。先前两轮也通过，分别为 stage5-client-private-upload.log（24秒）和 stage5-client-private-source-preparation.log（21秒）；既有 Unsafe/Gradle/原生访问警告保持。未重跑未变后端，其上次177 passed/1 ignored不替代本轮客户端或整链路证据。
+- 尚须恢复跨重启/再次应用的既有私有绑定：现有持久本地索引保存来源 UUID，不保存私有上传操作/绑定；服务端当前预留按操作恢复，固定 LOCAL 来源不允许换绑新资产。正式控制器不能每次为同一来源生成新上传操作，启用快照也不能解决停用/移除来源的恢复；下一检查点完成该最小接续，再接正式准备/确认/激活、观察者缓存及状态/事件。本轮只完成来源解析和同操作上传组件，阶段五仍 IN PROGRESS，apply/events 保持 false。main/master 未变，未到整阶段提交点；真实 GUI/GPU/双客户端仍 MANUAL/PENDING。
+
+### 阶段五：已有私有来源的本人解析与重复上传抑制（2026-10-24）
+
+- 核对现有本人来源持久索引、私有预留和绑定表后，确认已完成绑定只能在旧操作预留或启用快照中读取，客户端没有未穿戴来源解析入口。新增最小只读 POST /api/library/v1/outfits/resources/local/resolve，请求仅固定 LOCAL 引用/用途，认证 owner 不能由请求指定；复用现有 outfit_local_resources 表和当前原生身份/封禁/声明预算，无 schema、缓存布局或冻结 Protobuf 变化。
+- 返回 resource:null 仅表示本人该固定来源从未绑定。已有绑定但原生被删除、封禁、用途不符或声明不满足新预算仍返回404/403/409/400，不能被客户端当作空库存而触发重传。查询不要求来源启用、不创建预留或目录、不修改配置/装备；数据库重新打开后仍可按原引用恢复。
+- 新 LibraryClient.resolveOutfitSource 使用原 CONTROL、认证和会话退休机制，严格区分缺失字段/非法响应与成功显式 null。上传路径在原 TRANSFER 内先查询，固定正文/声明一致时直接复用旧绑定，即使本次操作 UUID 不同；字节不符保留固定绑定并返回 CONFLICT，不能上传新资产冒充相同来源。原生资产名/修订属于已有绑定，不再错误要求匹配新上传操作；新上传回执仍保留原操作派生身份校验。
+- 实际 Rust HTTP 回归覆盖未绑定/未穿戴来源、重复读取、外人只看自己的空结果、禁止指定 owner、用途冲突、封禁、删除及 SQLite 重开；现有装饰声明用例新增动态 position_limit 收紧/恢复读取。定向1项通过（编译43.19秒、测试0.11秒），stage5-private-binding-lookup.log；前台全量 cargo test -- --nocapture 178 passed/1 ignored（编译18.97秒、测试12.03秒），stage5-private-binding-recovery-regression.log。实际 Java 装饰产物环境已设置并执行；旧 listener/交付/回滚可选环境仍缺失 SKIPPED，worker 饱和用例仍 ignored。
+- 客户端真实本机 HTTP/生产两种适配器回归新增：新操作复用旧绑定且无 reserve/PUT/commit、新 LibraryClient 不依赖本地上传状态恢复、固定正文不匹配不重传、非法 lookup/分数修订/错误来源拒绝、已删除来源404不降级上传。前台 JDK25 :fabric:compileJava :common:outfitPrivateUploadSmokeTest :common:outfitApplyClientSmokeTest :common:libraryClientSmokeTest :common:libraryPackagePreparationSmokeTest 全通过（23秒、15 tasks），stage5-client-private-binding-recovery.log。该客户端测试是契约服务夹具，不能替代 Java→实际 Rust Listener 整链路或真实窗口/GPU 验收。
+- 下一检查点仍须固定旧分发正文的授权读取/缓存及正式准备/确认/激活控制器。已核对原 Figura/Protobuf download 均要求 profile 先登记资源，未穿戴固定来源不能直接使用；已有绑定正文与重新编译输出不同时应重新加载固定正文，不把当前 CONFLICT 当最终可用行为。跨重启本人绑定元数据恢复已具备，未完成上传操作的持久恢复和正文准备不可据此宣称完成。观察者客户端、状态/事件继续阶段五，apply/events 仍 false；main/master 不变，未到整阶段提交点，真实 GUI/GPU/双客户端 MANUAL/PENDING。
+
+### 阶段五：本人固定正文授权读取与受保护缓存（2026-10-24）
+
+- 保留 main/master 现有修改，先核对原 profile/download 的未穿戴依赖缺口、绑定解析、DownloadPermit/观察者流和已有缓存封装。新增本人 POST /api/library/v1/outfits/resources/local/body：仅固定 LOCAL 引用、用途和 raw hash，不接受他人 owner/原生路径；复用原生身份验证和持久绑定，hash pin 冲突409、未绑定/删除404、封禁/预算等原错误保持，不发表、不装备或计目录下载。
+- 正文按32KiB/30秒读取，复用全局32/每玩家2的 DownloadPermit。读取前和每段重新检查本人会话、当前绑定、封禁、当前 outfit.limits 声明预算及相同 descriptor；返回明确 octet-stream/长度/摘要，结束与错误均释放句柄/并发。真实HTTP回归核对未穿戴正文、摘要、跨账号拒绝、错误 pin、封禁/删除拒绝。新增大原生装饰正文的生产 handler 逐段轮询，排除 HTTP 预取影响，分别证明会话撤销、删除、正文 hash 封禁和 position_limit 收紧后下一段失败；无真实模型渲染声明。
+- 客户端 Exchange 增加相同认证/退休边界内的绑定解析和固定正文读取，严格媒体/长度/摘要，控制错误仍有界且安全。新 OutfitSourceService 在原 TRANSFER 准备原生 NBT；缓存沿用 ModelCacheCodec 保护及既有 .oma/.oms，账号/源站/服务实例/固定来源/用途/格式/原生修订/raw hash 都进入缓存键，无新缓存格式或明文临时正文。解析前后都重新鉴权，命中缓存不延长权限；绑定变化拒绝，损坏缓存重取，失败不发布。核对原生格式/用途、加密分发形态及装饰作者声明，返回独立 NBT，尚不启动正式运行时或 Lua。
+- 原 LibraryPackagePreparationSmokeTest 接入新缓存组件 HTTP 回归，使用实际准备出的 Figura、明文/加密YSM基础和加密装饰正文：精确原生数据、独立 NBT、缓存命中无重复正文、新 LibraryClient 复用、容器损坏重取、当前拒绝不得借缓存旁路、错误摘要头/正文和最终鉴权撤销均通过。客户端服务为契约夹具，后端为真实 Rust HTTP/生产流 handler；两者分别证明覆盖范围，不冒充 Java→真实 Rust Listener 全链路或真实窗口/GPU。
+- 首轮 Rust 编译发现 validate_hash 的模块引用写错，失败日志 stage5-private-source-body.log；修正后定向4项通过（45.42秒编译/0.18秒测试），stage5-private-source-body-fixed.log。客户端首轮编译发现长度参数需在64MiB边界检查后显式转 int，失败日志 stage5-private-source-cache.log；修正后的三类缓存及相关回归通过（26秒），stage5-private-source-cache-fixed.log。未放宽任何预算或校验。
+- 最终前台全量 cargo test -- --nocapture：179 passed/1 ignored（编译22.87秒、测试11.41秒），stage5-private-source-body-regression.log。实际 Java 装饰产物环境已设置并执行；旧 listener/交付/回滚可选环境仍 SKIPPED，worker 饱和仍 ignored。最终前台 JDK25 :fabric:compileJava :common:libraryPackagePreparationSmokeTest :common:outfitPrivateUploadSmokeTest :common:outfitApplyClientSmokeTest :common:libraryClientSmokeTest :common:outfitContractSmokeTest 全通过（19秒、16 tasks），stage5-private-source-cache-regression.log，包含新增明文 YSM 缓存。日志均在 build/reports/outfit/；既有警告保持，新增 Rust 源及用例 rustfmt，根目录/后端及新增源文件 diff --check 均通过。
+- 固定正文读取/缓存组件已具备，正式控制器尚未调用；下一检查点把已有绑定优先接入来源准备，复用固定正文而非重新编译换绑，并完成未完成上传的操作恢复、正式原生骨架/权限准备、确认后原子激活。观察者客户端、状态/事件仍继续阶段五，apply/events 仍 false；main/master 未变，未到整阶段提交点，真实 GUI/GPU/双客户端仍 MANUAL/PENDING。
+
+### 阶段五：正式 OWNER/OBSERVER 原生准备与作者骨架校验（2026-10-24）
+
+- CodeGraph 核对 OutfitPreparation/OutfitComposition、CosmeticInstanceContext、Avatar 的原生加载/Lua 初始化、UserData/AvatarManager 发布路径。现有准备入口固定 DRAFT，正式世界组合尚无发布登记；Avatar.load 将装饰 Lua 初始化排入事件队列，未 tick 的原生准备可以保持无装饰脚本副作用。明确该组件不等于完整应用控制器或世界激活。
+- 原准备入口委托显式重载并保持 DRAFT/原本地策略。新正式重载传 OWNER/OBSERVER、借用的准备基础及当前来源导出/编辑策略；OWNER 账号不匹配穿戴者在加载前拒绝。每副本沿用独立执行身份、wearer 权限和状态隔离；三格式分别校验，不把明文/加密 YSM 混为同一类型。已构造组合后的验证失败会关闭本次控制器和副本，基础始终归调用方，取消沿用原代际边界。
+- 新 validatePreparedBase 验证基础是仍存活的 AVATAR、固定来源相符、格式匹配；实际基础节点加入总节点预算。每副本重新检查作者默认变换/声明上限、支持基础家族，并在 has_bones 时要求实际骨架 hash 和所有导出/编辑路径成立，即使用户没有内部覆盖也不能接纳过期能力。原内部覆盖的作者白名单和显式云端策略继续生效，不升级 CLIENT_EXTRACTED 为服务端验证。缺失手动挂点不被全套拒绝或自动改挂，保持计划6.3规定的依赖暂停行为。
+- 新 OutfitFormalPreparationSmokeTest 接入原 cosmeticSourceSmokeTest 的真实原生加载夹具，覆盖 Figura/明文YSM/加密YSM、OWNER/OBSERVER、两个相同来源副本、启用与停用声明、无预激活装饰 Lua、显式云端导出/编辑及拒绝、实际 hash/路径/基础家族/缺元数据、总节点含基础、错误账号加载前拒绝和明密文格式错配。过期 hash/路径用无内部覆盖配置验证，避免仅由旧覆盖检查使测试变绿。借用基础通过、拒绝和组合关闭后仍保留，错误用途/来源不能通过正式准备。此为 CPU 原生准备/生命周期证据，不是实际 Apply、正式渲染或真实窗口/GPU 验收。
+- 首轮前台 JDK25 :fabric:compileJava :common:cosmeticSourceSmokeTest :common:outfitContractSmokeTest :common:outfitApplyClientSmokeTest 通过（20秒、14 tasks），stage5-formal-native-preparation.log。补齐格式/用途及无覆盖过期声明后，最终增加 :common:libraryPackagePreparationSmokeTest 再通过（26秒、15 tasks），stage5-formal-native-preparation-regression.log；原创建模板、骨架/控制器/多副本/缓存/契约与 Apply 组件回归保持。日志均在 build/reports/outfit/，既有 Unsafe/Gradle 等警告保持，新增源和修改范围已人工检查可读性，根目录/后端及新增源文件 diff --check 均通过。
+- 后端本轮未改，未重复运行；上次179 passed/1 ignored不作为新客户端整链路证明。下一检查点仍须汇总固定来源、处理未完成上传恢复，并把正式准备、CAS/回执当前代际、原子发布/基础不变复用接为实际控制器，再接世界渲染、观察者与状态/事件；不能以本次原生准备完成宣称阶段五完成。apply/events 保持 false，main/master 未变，尚未到整阶段提交点。真实 GUI/GPU/双客户端 MANUAL/PENDING。可靠10080分钟额度池已用6%、剩余94%、ordinaryUsageAllowed=true，未触发交接，不推断订阅类型。
+
+### 阶段五：正式固定依赖汇总与会话内上传重试（2026-10-24）
+
+- 核对当前 main 工作区、来源准备/缓存和 CodeGraph 的 OutfitPresetResources。原预设准备已有云端固定修订/原生格式核对、取消和失败副本清单；本轮仅增加可选 LocalInput 输入，传已授权固定 NBT 或安全错误，原构造器仍走原本地来源路径。LocalInput/读取保持独立 NBT，真实用途不符拒绝，没有改共享云端分发或缓存格式。
+- 新 OutfitApplyResources 固定配置、先协商当前配置/Apply 能力与动态预算；唯一 LOCAL 来源串行处理，包含停用副本。先本人解析绑定，已有时不依赖原文件，未绑定才在 AvatarLoadExecutor 原生准备并私有上传，成功后走固定正文读取/缓存。随后委托原 OutfitPresetResources 汇总云端及本地已验证输入。每个失败来源复用原基础/受影响副本/安全 code，ready=false 不会误作完整结果。相同引用不能同时当基础和装饰，加载前拒绝。
+- 显式重试退休上一结果并重新协商/鉴权，当前会话仅保留冻结上传输入；不会因本地文件改变重建同一操作正文。回调按草稿/连接/尝试代际检查；当前代际退休会取消 future 而不悬置，旧代际不能取消较新尝试。关闭取消当前句柄/worker 并使准备结果失效。此为单次显式准备会话，不声称已提供跨进程未完成上传持久恢复。
+- 实际本机 HTTP/原生正文集成覆盖已有绑定但原文件不可用、两副本（含停用）共用固定输入、失败来源对应全部副本、不完整结果拒绝、显式重试恢复且旧结果退休。新增真正读取本地 Figura 源→私有预留/原生正文上传→首次 commit503→修改原文件→同操作/同正文重试→固定正文读回，确认得到修改前模型，后续准备不再预留。草稿退休前排队的能力回调会取消汇总且不请求正文。HTTP 为契约服务夹具，仍不冒充实际 Rust Listener 整链路、Apply CAS或正式模型激活。
+- 首轮前台 JDK25 :fabric:compileJava :common:libraryPackagePreparationSmokeTest :common:outfitPrivateUploadSmokeTest :common:outfitApplyClientSmokeTest :common:outfitContractSmokeTest 通过（19秒、15 tasks），stage5-apply-resource-aggregation.log。补首次上传与退休后加入 :common:libraryPreviewRuntimeSmokeTest，最终全部通过（26秒、16 tasks），stage5-apply-resource-aggregation-regression.log。原预设/目录/形象集/多副本/管理预览等 CPU 原生回归保持；日志内 Expected creation failure fixture 是原创建失败用例的预期记录，任务成功，不视为新生产错误。日志在 build/reports/outfit/；既有警告保持，未执行真实 GUI/GPU，人工项仍 MANUAL/PENDING。
+- 本轮后端未改，未重复运行；上一全量179 passed/1 ignored不替代本轮客户端或整链路验证。下一检查点继续把固定依赖、正式 OWNER 准备、CAS/回执代际和原子发布接成实际应用控制器，保持基础不变时原运行时；另补未完成上传的进程间恢复、世界渲染、观察者和状态/事件。apply/events 保持 false，阶段五 IN PROGRESS，main/master 不变，未到整阶段提交点。已审查限定范围 diff 和可读性，根目录/后端及新增文件 diff --check 均通过。
+
+### 阶段五：正式驻留原子发布与基础复用（2026-10-24）
+
+- 接续上一轮固定依赖汇总，保留 main/master 和全部已验证修改。UserData 新增配置、基础和组合的驻留快照，客户端线程短交换沿用 YsmLoadGeneration；校验候选配置除 revision 外一致、相同穿戴者、存活基础及固定来源，旧 revision 不覆盖新驻留。基础对象不变时不清理 Lua/YSM/控制运行时；过期代际、内容或穿戴者不符只释放候选自有资源，借用基础保持存活。
+- 组合替换保留原 Frame 租约，旧副本在最后在途帧关闭后释放。旧 publishAvatar 和 clear 退休组合。AvatarManager.tick 接入 UserData.tick，组合预算包含基础且只 tick 一次；原版基础的装饰组合允许 base=null，无需伪造空 Avatar。
+- OutfitFormalPreparationSmokeTest 通过真实 UserData 发布路径，分别使用 Figura、明文/加密 YSM 检查原子快照、同基础 Lua/YSM 身份、一次 tick、过期代际/配置不符/穿戴者不符拒绝、帧租约以及旧单形象/原版/clear 清理。仅证明原生 CPU 生命周期组件；没有 CAS 请求、世界提取/绘制或 GUI/GPU 证明。
+- 恢复上轮日志确认测试已失败。后续定位 CPU 实体未安装 EntityAccessor/ClientLevelInvoker，以及数据包未绑定轮盘图标物品组件；使用显式测试实体/注册表世界与两个所需图标组件，保留正常默认轮盘初始化，不修改生产实体、Lua 或物品解析行为。各失败/诊断日志保留在 build/reports/outfit/stage5-resident-*.log。补齐夹具后 components 日志通过（13秒/14 tasks），最终补齐穿戴者拒绝回归及客户端世界/WorldAPI 缓存恢复。
+- 最终前台 JDK25 :fabric:compileJava :common:cosmeticSourceSmokeTest :common:outfitApplyClientSmokeTest :common:outfitContractSmokeTest :common:libraryPackagePreparationSmokeTest 全通过（29秒/15 tasks），日志 build/reports/outfit/stage5-resident-outfit-publication-final.log。既有 Unsafe/Gradle 等警告与原超时负例保持。后端本轮未改，未重复构建。
+- 当前尚未把固定依赖、正式准备、CAS/有效回执与驻留发布接为实际控制器；世界渲染、正式控件/轮盘、观察者、同步/事件和未完成上传跨进程恢复仍待实现。阶段五保持 IN PROGRESS，apply/events 仍 false，未到整阶段提交点，真实窗口/GPU/双客户端仍 MANUAL/PENDING。下一步连接实际应用控制器，不将本次驻留组件当完整 Apply 已完成。
+
+### 阶段五：正式 Apply 控制器与当前回执激活（2026-10-24）
+
+- 核对阶段五现状、固定来源汇总、正式准备、驻留发布、原库装备及连接选择生命周期，保留 main/master 和既有修改。新增 OutfitApplyService，冻结配置/操作 ID/装扮执行身份，顺序接通 OutfitApplyResources、实际原生基础与正式 OWNER 组合、提交前当前能力/预算、Apply CAS、回执守卫、当前配置/账号装备修订和回执后能力/预算复核，最后发布驻留配对。基础来源相同复用现有 Avatar；构造新基础不运行预激活脚本，失败只销毁新基础与候选组合。
+- AvatarManager.OutfitLoad 捕获 UserData/原生代际，拒绝映射已被替换、代际失效或切换账号的结果；发布后沿用原本地加载/选中项/已上传标记。NetworkStuff 新发布入口复用原连接/本地选择守卫和 YSM 快照请求，原库装备流程保持。控制器显式取消、草稿/世界/账号/连接退休均不激活；冲突返回独立 Conflict，不自动合并。会话内重试使用原操作与 CAS 配置并重新准备/鉴权，继续保留来源汇总器冻结的上传操作。
+- 新 OutfitApplyServiceSmokeTest 由原正式原生夹具接入，三种格式均执行真实 Java 控制器→本机 HTTP 契约服务→实际 AvatarManager/UserData：准备后才 CAS、新基础发布、同基础 YSM 身份保留、commit503 后原操作重放无重复提交、旧 revision 冲突、回执后配置变化、装备修订变化、预算收紧、来源撤销前置拒绝及草稿退休。该 HTTP 服务不是生产 Rust Listener，也没有真实 GUI/GPU/世界渲染证据；不把连接代理当真实后端同步。
+- 首轮编译因 Consumer 回调不能抛出检查型 Failure 失败，改为本服务的明确 Step 回调契约；日志 stage5-apply-controller-compile.log。首轮集成定位测试 session 缺必填 name，修正夹具；随后加密分发夹具直接压缩运行时 NBT 被现有便携正文校验拒绝，改走原 YsmSourcePayload.forOutput，未放宽生产校验。失败/诊断日志 native、native-fixed、source-diagnosis 保留，修正后 regression 通过（22秒/15 tasks）。
+- 最终前台 JDK25 :fabric:compileJava :common:cosmeticSourceSmokeTest :common:libraryEquipmentSmokeTest :common:outfitApplyClientSmokeTest :common:outfitContractSmokeTest :common:libraryPackagePreparationSmokeTest 全通过（32秒/16 tasks），build/reports/outfit/stage5-apply-controller-final.log。旧库坏模型等预期失败夹具仍按原断言通过；既有 Unsafe/Gradle 等警告保持。审查新增源可读性，根目录/后端及新增源 diff --check 均通过。后端本轮未改，未重复构建。
+- 衣柜尚未调用此控制器，须接当前服务端 revision、Apply/取消/重试和冲突刷新交互及来源问题展示；之后继续世界渲染、正式控件/轮盘、观察者、同步/事件和未完成上传跨进程恢复。apply/events 仍 false；阶段五 IN PROGRESS，未到整阶段提交点，main/master 不变。人工验收仍 MANUAL/PENDING，不提前开始阶段六或三个公共 YSM 修复。
+
+### 阶段五：衣柜 Apply、当前基线与冲突刷新（2026-10-24）
+
+- 核对实际衣柜后确认旧 beginOutfitDraft 只捕获当前基础并固定 revision 0，不能编辑服务器既有整套装扮。新增在线整套基线读取：当前配置→固定来源汇总→worker 基础快照→再读取相同当前配置后安装，失败保持原草稿。旧 revision 0 单形象账户保持原基础捕获，未知来源仍只有编辑临时身份；离线/不支持 Apply 仍走原预览和预设。当前来源和所有副本的编号/ID/停用状态不被预设式重写。
+- 草稿持有独立固定来源读取器，预览和作者声明优先复用已验证固定 NBT，本地原文件缺失也可编辑；来源错误沿原 EntityPreview 滚动列表逐基础及副本显示。切换资源/编辑、取消和新尝试清理过期错误，原预设错误入口不变。成功替换才关闭旧来源读取器；当前页面/账号/连接退休关闭候选及旧读取句柄。
+- 衣柜新增整套 Apply、同操作重试、服务器当前装扮刷新，保留原动作组、候选/单形象/声音/按键/清空入口。正式 Apply 使用已接控制器并捕获草稿代际；能力未协商、不支持、未知基础来源或缺服务器基线时不提交。Conflict 保留未应用编辑与当前修订提示，不自动合并或允许旧基线继续覆盖；显式刷新放弃未应用编辑前通过原确认页确认，失败保留草稿，返回取消不退休原草稿资源。成功后读取新编辑基线，刷新失败明确提示已应用需刷新，不宣称撤销服务器提交。中英七项文本补齐。
+- 扩展实际 OutfitApplyServiceSmokeTest：三格式均以真正 WardrobeScreen 处理器检查完整当前基线/非零修订、原文件缺失的固定输入、Apply503 保留草稿、原操作重试及成功刷新、Conflict 保留编辑、明确刷新仅替换编辑基线、读取撤权错误清单及取消不改正式装备。CPU 处理器/HTTP 契约夹具不冒充真实窗口、Rust Listener 或世界渲染。原预览回归补来源错误基础+双副本滚动行、无能力按钮禁用及新增动作位置；原语言完整性任务覆盖新增 draft_* 文本。
+- 首轮前台编译通过，原动作菜单结构断言仍预期16槽而失败，日志 stage5-wardrobe-apply-first.log；按本次明确新增的三入口更新为19槽并保留原分组断言。新处理器与相关回归随后通过（30秒/14 tasks），stage5-wardrobe-apply-handlers.log。整理本轮新异步读取链的错误完成与层次，补错误行/无能力入口回归后通过（38秒/16 tasks），stage5-wardrobe-apply-final.log。
+- 最终前台 JDK25 :fabric:compileJava :common:libraryPreviewRuntimeSmokeTest :common:cosmeticSourceSmokeTest :common:outfitContractSmokeTest :common:outfitApplyClientSmokeTest :common:libraryPackagePreparationSmokeTest 全通过（36秒/16 tasks），build/reports/outfit/stage5-wardrobe-apply-regression.log。原 Expected creation failure fixture 与超时负例按断言通过，既有 Unsafe/Gradle 等警告保持。限定范围代码可读性和 diff 已审查，根目录/后端及新增源 diff --check 均通过；后端本轮未改未重跑。真实 Windows 窗口/CJK/布局与 GPU 仍 MANUAL/PENDING。
+- 阶段五保持 IN PROGRESS，main/master 不变，apply/events 仍 false，未到整阶段提交点。下一检查点连接正式组合世界渲染（含原版基础/第一人称）与正式控件/轮盘，继续观察者、同步/事件、未完成上传跨进程恢复及完整后端整链路；不能以本次衣柜处理器通过宣称整阶段完成。
+
+### 阶段五：正式世界/双手帧绑定与旧基础延迟释放（2026-10-24）
+
+- CodeGraph 核对预览绑定、AvatarManager、实体提取、LivingEntity/PlayerRenderer 与 GameRenderer finally。组合已有原版/Figura/YSM 及左右手原生绘制，但入口只读取 LibraryPreviewBinding，正式驻留未捕获；旧基础在 UserData 替换时立即 clean，也不能支撑已提取的正式帧。
+- 新 OutfitRenderBinding 捕获正式 OutfitState/实体/组合 Frame，保留原隔离预览优先级，预览明确选原版或无组合时不泄漏正式装扮。实体提取 Hook 登记帧；AvatarManager 对捕获状态直接返回配对的基础/实体，即使后来驻留切换或清空也不重新查当前 Avatar。原世界与第一人称组合入口共用此查询，原版世界绘制采用 RENDER，双手保持 FIRST_PERSON；原 Figura/YSM 几何和姿态算法保持，未提前处理三个 alpha.3 公共缺陷。
+- UserData 的旧基础退休进入按帧持有的清理集合，无引用时仍立即 clean；已提取帧可继续使用旧基础，完整 GameRenderer.render finally 关闭正式组合租约并清理退休基础，嵌套 finally 保留原预览和粒子结束处理。第一人称已有创建状态时同样捕获，采用原生混合组合绘制，不新增占位 Avatar。Figura 绘制实体也改取捕获实体，避免读取后来的世界映射。
+- 三种格式均由现有正式 Apply/衣柜原生测试接入实际注册的 UserData 捕获：基础/组合身份、RENDER 域、驻留 clear 后旧基础仍存活、帧结束才清理、原版 null 基础、隔离预览在作用域结束后仍不继承正式装扮。原预览回归中的原生 Figura 顶点/交错帧、左右原版手部、YSM 空骨骼及混合挂载回归保持。测试没有运行 Mixin 或真实窗口/GPU，不能据此宣称世界画面已经验收。
+- 首轮前台 JDK25 :fabric:compileJava :common:cosmeticSourceSmokeTest :common:libraryPreviewRuntimeSmokeTest :common:outfitContractSmokeTest 全通过（33秒/14 tasks），stage5-world-outfit-binding.log。最终补捕获实体消费并增加 :common:libraryEquipmentSmokeTest，再全通过（37秒/15 tasks），build/reports/outfit/stage5-world-outfit-binding-final.log。旧库坏模型/原创建错误等预期夹具按断言通过，既有 Unsafe/Gradle 等警告保持；新增源和范围内可读性/diff 已检查，根目录/后端及新增源 diff --check 通过，后端本轮未改未重跑。
+- 阶段五保持 IN PROGRESS，main/master 不变，未到整阶段提交点；apply/events 仍 false。下一检查点核对正式全局 render/worldRender 等事件的组合预算和实例派发、正式轮盘/控件，再接观察者/实例状态与事件同步、未完成上传跨进程恢复和真实后端整链路。实际 Mixin/世界/双手 GPU 画面按用户要求 MANUAL/PENDING，不阻塞当前局部推进，不以 CPU 证据宣称全部完成。
+
+### 阶段五：正式全局事件、组合预算与主轮盘处理器（2026-10-24）
+
+- AvatarManager.executeAll 对正式驻留调用组合分发；基础与可信控制器已挂载且已初始化的副本共用 Lua/Molang 预算。控制器先返回活动快照再执行作者回调，允许声音/资源事件嵌套分发，不重入正在运行的控制器。停用、未解析或失败副本不因全局事件启动脚本。正式实例 WORLD_RENDER 改由全局入口触发，逐视图准备只执行原 RENDER/动画准备；DRAFT 保留原隔离预览行为。
+- 主 ActionWheel 接当前驻留组合的页面、热栏点击、滚轮及释放，沿用阶段四的基础槽位投影、资源/副本分组和真实回调所有者。基础回调同样进入组合预算。补回归发现没有可用装饰动画页时曾回退旧入口绕过组合预算：先由实际 HUD→Lua→预算断言复现，再取消该回退条件；空装饰页仍保留原基础页面与行为。
+- OutfitCompositionSmokeTest 检查一对全局事件、两次逐视图事件、共享基础/双副本账本、停用/未解析不初始化及嵌套分发。原失败因测试未提供实体，Figura 原 RENDER 门槛正确跳过；补实际实体和 JVM 所需 EntityAccessor，不放宽生产门槛。OutfitApplyServiceSmokeTest 在实际注册 UserData 上检查三类基础的 HUD 查询/基础预算、实例导航、点击和滚轮；装饰使用脚本 Figura 夹具，不能把该结果当三种装饰渲染证据。
+- 前台 JDK25 事件/轮盘/契约组通过（22秒/14 tasks），stage5-formal-events-entity.log；HUD 处理器组通过（22秒/14 tasks），stage5-formal-hud-handlers.log。空动画页预算负例按预期失败（12秒/10 tasks），stage5-formal-hud-empty-entries-red.log。最终 :fabric:compileJava :common:cosmeticSourceSmokeTest :common:ysmActionRuntimeSmokeTest :common:libraryPreviewRuntimeSmokeTest :common:outfitContractSmokeTest 全通过（30秒/15 tasks），build/reports/outfit/stage5-formal-events-hud-final.log。既有超时/创建失败负例与 Unsafe/Gradle 警告保持。
+- 本轮后端未改未重跑；正式控件/持久值、观察者客户端、实例状态/事件、未完成上传跨进程恢复及真实后端整链路仍待接续。实际窗口、输入、Mixin/GPU 和双客户端仍 MANUAL/PENDING；apply/events 继续 false，阶段五 IN PROGRESS，main/master 不变，尚未达到整阶段提交/推送点，不提前进入阶段六或三个公共 YSM 修复。
+
+### 阶段五：正式控件入口与驻留生命周期（2026-10-24）
+
+- 原 AvatarControlsScreen.open 优先保留草稿动画页入口，再按请求模型的穿戴者查询当前正式驻留。仅当前本地基础或启用的 OWNER 控件副本进入 OutfitControlsScreen；非正式模型继续原单形象入口，失效正式实例和观察实例不能回退为可编辑页面。先查正式驻留再读取本地账号，兼容无正式驻留的旧实体/无账号 CPU 回归。
+- 新页面复用原控件/预览/页签，选择器按基础和副本显示；基础保留原 YSM 轮盘编辑，装饰不进入旧的按模型共享布局编辑。值修改和按钮回调在同一正式基础/组合预算内执行，保持真实回调所有者；允许持久的实例值继续写入其 CosmeticInstanceContext，不写旧 avatar_controls 文件。捕获账号、连接 epoch、世界和精确 OutfitState；替换、停用/退休、移除页面后拒绝遗留输入，正常返回页面重新校验，控件定义变化触发重建。
+- 实际 OutfitApplyServiceSmokeTest 在三类基础下检查基础/两同源 Figura 副本的同 ID 控件、值与按钮预算、回调所有者、实例上下文保存、停用副本拒绝、错副本定义、世界变化、页面移除及驻留替换。测试使用 CPU 构造页面/实际处理器，不运行窗口初始化/下拉绘制；不据此声称布局、CJK、真实输入或 GPU 通过，也不把三类基础当三类装饰控件的渲染证据。
+- 首轮编译发现 Dropdown 需要 Component 列表而非 String，修正类型（stage5-formal-controls-handlers.log）。后续旧动作回归暴露新增入口过早依赖账号，以及无穿戴者身份模型进入 UUID 查询的问题，分别按正式驻留匹配顺序和正式身份要求修正；失败日志 handlers-fixed、regression 保留。修正后原组通过（32秒/15 tasks），stage5-formal-controls-final.log；再补按钮、页面移除与定义版本处理后的最终前台 JDK25 :fabric:compileJava :common:cosmeticSourceSmokeTest :common:libraryPreviewRuntimeSmokeTest :common:ysmActionRuntimeSmokeTest :common:outfitContractSmokeTest 全通过（34秒/15 tasks），build/reports/outfit/stage5-formal-controls-lifecycle-final.log。
+- 已审查本轮范围内代码与 diff，根目录及新增源 diff --check 通过。后端本轮未改未重跑，main/master 保持，阶段五仍 IN PROGRESS，未到整阶段提交点。正式控件的跨端持久化/恢复依赖下一状态通道检查点，不能把上下文保存称为跨进程保存；观察者客户端、状态/事件、未完成上传恢复和真实后端整链路仍待实现。apply/events 继续 false；窗口、双客户端等人工项 MANUAL/PENDING。
+
+### 阶段五：观察者客户端快照、作用域正文与原生缓存（2026-10-24）
+
+- 核对已有 Rust 观察者路由及真实投影契约后，新增 OutfitObserverSnapshot：严格核对穿戴者、数值修订、配置修订、精确来源集合、用途/格式/摘要、作者声明和逐资源路径。独立有界信封与后端上限一致，普通控制响应预算不扩大；正文沿穿戴者/配置修订/资源 ID 的固定地址读取，不使用目录获取/入集路径。revision 0 保留旧账号降级标记；现代隐藏配置不能降级泄露旧基础。来源去重使用完整固定引用，同一资源不同修订保持独立。
+- LibraryClient 新增协商后观察者读取与受限二进制读取，复用两个原有认证适配器、worker、会话退休和请求取消机制。校验 MIME、UTF-8、长度、原始摘要与配置修订路径，拒绝跨源地址、错误穿戴者、缺失/多余/重复来源、过期正文和错误格式；不修改冻结 Protobuf。暂未接观察者驻留/订阅调用，不能称跨端展示已经完成。
+- OutfitObserverSources 在缓存命中和原生解析前后均重新读取当前授权投影，变化/隐藏不发布结果。复用原 ModelCacheCodec 与 avatar/cosmetic 缓存格式；键包括源站/服务实例/观察账号/穿戴者/完整资源身份和摘要，配置修订不进入正文键，因此只改配置可复用相同正文。损坏重取、临时文件原子替换、失败不发布保持。只将原 OutfitSourceService 的相同 NBT 用途/格式/加密便携性/作者声明检查提取为包内重载供两类来源复用，无其他重构。
+- 新独立 HTTP 回归覆盖两种现有凭据、快照/正文、超过普通64KiB但在专用预算内的信封、身份/数字/来源集合/路径/格式/MIME/UTF-8错误、超限、隐藏与旧账号、过期正文、摘要错误、能力关闭及退休前置拒绝。原生准备回归增加 Figura/明文YSM/加密YSM基础与加密装饰的实际 NBT 缓存、重新鉴权、配置修订复用、损坏恢复、缓存命中隐藏和正文后撤销；装饰另检查同资源两固定修订。CPU/HTTP 契约夹具不是生产 Rust Listener、观察者正式激活或双客户端渲染证据。
+- 首轮前台 Fabric 编译/观察者/Apply/契约组通过（18秒/14 tasks），stage5-observer-client-transport.log。增加原生缓存后通过（22秒/15 tasks），stage5-observer-native-cache.log；补配置数值/作者声明检查后通过（21秒/15 tasks），stage5-observer-source-final.log。最终 :fabric:compileJava :common:outfitObserverClientSmokeTest :common:libraryPackagePreparationSmokeTest :common:outfitApplyClientSmokeTest :common:outfitContractSmokeTest 全通过（21秒/15 tasks），build/reports/outfit/stage5-observer-source-versions-final.log。既有警告保持，后端本轮未改未重跑。
+- 范围内代码与 diff 已审查，根目录及新/修改的未跟踪源 diff --check 通过。main/master 保持，apply/events 仍 false，阶段五 IN PROGRESS，未到整阶段提交点。下一检查点将授权来源用于 OBSERVER 原生组合、按服务器修订发布/退休并接通知；实例状态/事件、正式控件跨端保存、上传跨进程恢复及真实后端整链路继续。实际窗口、GPU、双客户端验收仍 MANUAL/PENDING，不阻塞局部实施，也不据此提前开始阶段六。
+
+### 阶段五：观察者原生准备与驻留发布组件（2026-10-24）
+
+- 新 OutfitObserverService 连接上一检查点授权快照/固定缓存与实际原生加载 worker，按远端 UserData 代际、世界、会话及调用方订阅身份守卫准备；基础/实例原生准备使用 OBSERVER 作用域，实际骨架和作者声明仍经原 OutfitPreparation 校验。服务不装备、不投稿、不发送旧基础选择通知。完整投影中的渲染授权用于已声明的导出/覆盖绘制，不授予观察者编辑 UI 权。
+- 同一固定基础来源复用驻留 Avatar/Lua/YSM；新基础由候选独占，失败只清理候选，组合继续拥有实例。发布前复核能力/上限、当前完整投影，再次复核最终上限，调用原 UserData.publishOutfit 原子交换并保留原帧退休机制。普通正文/准备错误保持旧驻留；当前授权隐藏/撤销时清理旧组合及基础，旧 revision 的可见或隐藏快照均不能覆盖/清除较新驻留。旧账号/不支持返回 LEGACY 给尚待接通的协调器沿原 profile 路径处理。
+- 三种基础格式均以真实 Java HTTP 契约服务、原生 Avatar/OBSERVER 组合和实际远端 UserData 检查非 host 基础、副本作用域、预激活不运行 Lua、同基础运行时身份、普通正文错误保留、订阅退休、授权隐藏清理、旧账号结果、最终快照后预算收紧及较旧可见/隐藏修订拒绝。测试没有运行连接订阅调度、真实 Rust Listener、世界 Mixin/GPU 或双客户端，不将组件发布当整套观察者展示已完成。
+- 首轮测试夹具误用 Source.nbt()（实际字段为 data）导致编译失败，日志 stage5-observer-native-publication.log；只修夹具后通过（16秒/14 tasks），stage5-observer-native-publication-fixed.log。补最终预算与较旧配置回归后通过（26秒/15 tasks），stage5-observer-native-publication-final.log。最终增加旧隐藏修订早期保护，前台 JDK25 :fabric:compileJava :common:cosmeticSourceSmokeTest :common:outfitObserverClientSmokeTest :common:libraryPackagePreparationSmokeTest :common:outfitContractSmokeTest 全通过（28秒/15 tasks），build/reports/outfit/stage5-observer-native-stale-final.log。
+- 新/修改代码可读性及范围内 diff 已审查，根目录及未跟踪源 diff --check 通过。后端本轮未改未重跑；main/master 保持，apply/events 仍 false，阶段五 IN PROGRESS，未到整阶段提交点。下一检查点接现有连接、可见玩家订阅与 profile 读取的协调入口，包含账号/切服/离开及策略/上限更新的驻留退休；之后继续状态/事件、正式控件跨端保存、未完成上传恢复和真实后端整链路。真实窗口/GPU/双客户端仍 MANUAL/PENDING。
+
+### 阶段五：观察者连接/profile 协调与有界临时恢复（2026-10-24）
+
+- NetworkStuff.getUser 对现有订阅内、已出现实体的远端玩家优先接 OutfitObserverService；当前本地用户不走观察者路径。原 profile 仍读取徽章，现代路径只更新徽章，不能将空 equipped 当清空正式组合。明确 LEGACY 结果才回原装备 profile 加载，实体未出现仍沿原 profile；实体后来出现由既有 tick 启动观察者准备。AvatarManager 新只读 getLoadedUser 用于用户映射身份核对，不拉取/创建对象。
+- 观察者加载捕获连接/世界/用户映射/订阅/实体及原请求代际。启动前退休旧 profile/body 回调，防止旧基础加载覆盖现代组合；原 reloadAvatar/changed/ready 路径复用协调器且不预清基础。Network.clear 取消候选但保留旧驻留；实体离开、世界/连接/用户身份变化、取消订阅及连接/库服务退休时关闭观察者并清理正式驻留，同时退休队列代际。原未采用现代组合的单形象驻留保持既有生命周期。
+- 新三格式 CPU/HTTP 集成通过实际 NetworkStuff.getUser、AvatarManager.reloadAvatar 与 tickOutfitObservers，验证实际注册的远端 UserData、徽章 profile 不清现代组合、基础复用、实体消失/再出现、订阅退休。客户端世界和云连接为显式契约夹具，没有真实 socket、Minecraft Mixin/GPU 或双客户端证据；断线/策略广播和 outfit-events 整链路仍需后续检查点。
+- 临时503回归先复现观察者失败后不会再尝试（13秒/10 tasks，stage5-observer-transient-retry-red.log）。修正为仅临时 HTTP/队列/网络错误20 tick后重试，格式/摘要/权限等永久失败不自动循环；tick 恢复/实体到达每次最多启动两个加载，仍受原128订阅和 LibraryClient 预算约束。此为调度限制，不声称已通过真实拥塞/性能矩阵。旧装备和新协调回归通过（29秒/15 tasks），stage5-observer-network-retry.log；首次协调组通过（31秒/15 tasks），stage5-observer-network-dispatch.log。
+- 最终前台 JDK25 :fabric:compileJava :common:cosmeticSourceSmokeTest :common:outfitObserverClientSmokeTest :common:libraryEquipmentSmokeTest :common:outfitContractSmokeTest :common:networkProtocolSmokeTest :common:avatarCloudRefreshSmokeTest 全通过（31秒/17 tasks），build/reports/outfit/stage5-observer-network-regression-final.log。旧坏模型/503/429为原负例，冻结协议向量与旧 profile/异步加载/本地广播回归保持。范围内新/修改源可读性和 diff 已审查，根目录及未跟踪源 diff --check 通过；后端本轮未改未重跑。
+- main/master 保持，阶段五仍 IN PROGRESS、apply/events 仍 false，未到整阶段提交点。下一检查点接独立 outfit-events、授权变化/上限更新通知和实例状态命名空间，再完成控件跨端保存/恢复、未完成上传跨进程恢复和真实后端整链路。真实窗口/GPU/双客户端等人工项继续 MANUAL/PENDING，不提前进入阶段六或公共 YSM 修复。
+
+### 阶段五：独立 outfit-events 修订通知通道（2026-10-24）
+
+- 新增后端 outfit_events 模块和路由，使用独立 JSON/subprotocol、原 Figura/Protobuf 认证及规范源站，冻结 v1 未改。HELLO 校验原 epoch；配置/策略通知只发 owner/revision/equipment_revision，发送前重新鉴权并读取当前授权投影，不携带私有元数据或旧协议载荷。
+- 复用既有账号速率、8连接注册、32项/256KiB队列与 EventHub，128订阅初始通知顺序直发以避免初始化自身溢出。广播缺口/慢消费者要求重新快照并关闭，断开只清理自身注册/worker，不撤销主连接凭据；20秒心跳检测热更新上限，发送 LIMITS_CHANGED。Java 通道和实例状态尚未接入，events/apply 继续 false。
+- 首轮编译成功，5项测试3通过/2夹具失败（stage5-outfit-events-first.log）；修正误用登录 insert 模拟封禁及无在途帧假设后6项5通过，暴露通用 HTTP 映射将 SnapshotRequired 变为普通无效请求（stage5-outfit-events-recovery.log）。限定在新通道增加明确恢复错误，补 schema/epoch/未知字段和共享凭据生命周期回归；7项真实 axum/tokio-tungstenite 测试全通过（编译35.17秒/测试20.11秒），build/reports/outfit/stage5-outfit-events-resync.log。
+- 覆盖两种认证、真实 HTTP 提交后通知/策略广播、取消订阅、128初始通知/上限/重连基线、队列溢出/其他连接保留、旧管理字节隔离、封禁前发送复核、共享速率和真实20秒上限通知。只证明后端修订通道，不证明 Java→Rust 整链路、实例恢复或实际双客户端画面。阶段五 IN PROGRESS，未到阶段提交点，main/master 不变，人工项仍 MANUAL/PENDING。
+- 后端全量前台 cargo test 通过（186 passed、0 failed、1 ignored，21.86秒），build/reports/outfit/stage5-outfit-events-regression.log。原 Java Listener/原生装饰上传/旧进程回滚/发布二进制外部环境变量未设置，日志中对应 SKIPPED 不计为联测完成；本轮未修改 Java，不重复其既有组件门禁。新代码限定格式化并审查，下一步接 Java 通道与断线/缺号/新 epoch 的快照恢复。
+
+### 阶段五：Java outfit-events 组件与真实 Rust 联测（2026-10-24）
+
+- LibraryAccess 在现有认证闭包内增加固定同源握手，凭据不传出 wire adapter；CloudSocket 增加文本模式并复用原分片/写队列/5秒超时/退休检查，原二进制构造保持。LibraryClient 持有并清理 OutfitEvents；组件由客户端 tick 驱动，能力缺失不连接，严格验证字段/数值/epoch/sequence/实例和握手顺序，32帧/tick派发及132帧/256KiB收件预算可容纳完整128初始通知。断线/缺号/恢复/超时采用有界退避，重建通知基线；同 revision 的策略通知不忽略，心跳按周期发送避免回声循环。
+- 纯组件测试覆盖 UTF-8分片/字节上限、二进制隔离、严格事件字段/数值/序号/服务器epoch、同修订通知及退休。首轮 Gradle/Fabric 和原适配器门禁通过（13秒/14 tasks），stage5-outfit-events-java-first.log。真实 Java→Rust 首轮已收到提交事件，但夹具探针 /api/ 未挂载，改用原 library/session；后续发现原 Protobuf.instance 同样带源站前缀，按 Figura 的 figura:<origin> 和 Protobuf 的 <origin>/<instanceId> 正确复用身份边界，保留对应 java-rust-first/namespace 失败日志及 java-namespace/scoped 编译证据。
+- Rust 门禁使用真正 FiguraCloudProtocol/ProtobufCloudProtocol 和真实 HTTP提交，验证完整128玩家通知、实际事件 socket abort 后的超时/退避/重新握手/通知基线及主连接认证、客户端退休和后端连接清理。内部 fixture 仅为本组件协商 events=true；生产开关不变。8项后端 outfit_events 组（含真实 Java 联测）全通过（20.11秒），stage5-outfit-events-java-rust-final.log。此通知基线不是已安装正式 OutfitConfig，尚未连接实际快照准备/发布。
+- 代码审查补握手权限变化/同步拒绝的连接名额清理及对应回归；最终前台 JDK25 :fabric:compileJava :common:outfitEventsSmokeTest :common:cloudAdapterSmokeTest :common:cloudEndpointSmokeTest :common:networkProtocolSmokeTest :common:outfitObserverClientSmokeTest :common:libraryEquipmentSmokeTest :common:writeCloudIntegrationClasspath 全通过（16秒/18 tasks），stage5-outfit-events-java-final.log。随后真实 Java/Rust 门禁再次通过（1.31秒），stage5-outfit-events-java-rust-cleanup-final.log。旧坏模型负例及 Unsafe/Gradle警告保持，冻结协议/原网络与端点回归通过。
+- 正式 NetworkStuff 尚未调用此服务；下一步将协商结果/可见订阅集合与失效/恢复/预算回调连接实际授权快照和驻留生命周期，并继续本人跨端恢复、实例状态、控件持久化及未完成上传恢复。main/master、阶段五 IN PROGRESS 和 apply/events=false 保持，未到整阶段提交点；真实 Mixin/GPU/窗口和双客户端人工项仍 MANUAL/PENDING。
 
 ## alpha.3 已知公共 bug（用户指定在阶段 1～6 完成后修复）
 

@@ -87,6 +87,15 @@ public class AvatarControlsScreen extends Screen {
         if (minecraft.screen instanceof CosmeticAnimationScreen preview && preview.openControls(avatar, page)) {
             return;
         }
+        var formal = OutfitControlsScreen.create(minecraft.screen, avatar, page);
+        if (formal != null) {
+            minecraft.setScreen(formal);
+            return;
+        }
+        if (avatar.cosmeticContext != null && avatar.cosmeticContext.scope()
+                != top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext.Scope.DRAFT) {
+            return;
+        }
         minecraft.setScreen(new AvatarControlsScreen(minecraft.screen, avatar, page));
     }
 
@@ -187,6 +196,14 @@ public class AvatarControlsScreen extends Screen {
     protected void validateControlChange(AvatarControlDefinition control, Object value) {
     }
 
+    protected boolean applyControlValue(AvatarControlDefinition control, Object value) {
+        return avatar.controls.setValue(avatar, control.id(), value);
+    }
+
+    protected void pressControl(AvatarControlDefinition control) {
+        avatar.controls.press(avatar, control.id());
+    }
+
     protected boolean includeWheelEditor() {
         return true;
     }
@@ -211,7 +228,7 @@ public class AvatarControlsScreen extends Screen {
         boolean changed;
         try {
             validateControlChange(control, value);
-            changed = avatar.controls.setValue(avatar, control.id(), value);
+            changed = applyControlValue(control, value);
         } catch (IllegalArgumentException invalid) {
             if (avatar.cosmeticContext == null) {
                 throw invalid;
@@ -246,7 +263,7 @@ public class AvatarControlsScreen extends Screen {
                     rebuild();
                 } else {
                     if (controlsActive() && avatar.controls.get(control.id()) == control) {
-                        avatar.controls.press(avatar, control.id());
+                        pressControl(control);
                         controlsChanged();
                     }
                 }

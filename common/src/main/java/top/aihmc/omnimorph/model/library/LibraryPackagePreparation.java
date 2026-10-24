@@ -11,6 +11,7 @@ import top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload;
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
 import top.aihmc.omnimorph.model.outfit.CosmeticMetadata;
 import top.aihmc.omnimorph.model.outfit.LocalCosmeticSource;
+import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -213,6 +214,23 @@ public final class LibraryPackagePreparation {
         // Preserve declared authors; do not serialize the wardrobe's display-only '?' fallback.
         nbt.getCompoundOrEmpty("metadata").putString("name", metadata.internalName());
         nbt.getCompoundOrEmpty("metadata").putString("authors", String.join("\n", metadata.authors()));
+        return compress(metadata, nbt, uploadLimit, cancelled, phase);
+    }
+
+    /** Fixed local inputs have already been parsed; preserve their native metadata, including formatting. */
+    static Prepared fromNative(CompoundTag source, OutfitConfig.Format format,
+                               long uploadLimit, BooleanSupplier cancelled) throws IOException {
+        YsmResourceLimits.checkCancelled(cancelled);
+        CompoundTag nbt = source.copy();
+        var tag = nbt.getCompoundOrEmpty("metadata");
+        var metadata = new LibraryMetadataReader.Metadata(format.name(), tag.getStringOr("name", ""),
+                java.util.List.of(tag.getStringOr("authors", "").split("\n")),
+                tag.getStringOr("description", ""), false);
+        return compress(metadata, nbt, uploadLimit, cancelled, ignored -> {});
+    }
+
+    private static Prepared compress(LibraryMetadataReader.Metadata metadata, CompoundTag nbt, long uploadLimit,
+                                     BooleanSupplier cancelled, java.util.function.Consumer<Phase> phase) throws IOException {
         nbt = YsmSourcePayload.forOutput(nbt);
         phase.accept(Phase.COMPRESSING);
         var bytes = new ByteArrayOutputStream();

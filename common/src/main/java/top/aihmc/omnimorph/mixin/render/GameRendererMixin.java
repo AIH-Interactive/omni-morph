@@ -94,7 +94,11 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
             try {
                 LibraryPreviewBinding.finishFrame();
             } finally {
-                top.aihmc.omnimorph.lua.api.particle.CustomParticleRuntime.finishFrame();
+                try {
+                    top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.finishFrame();
+                } finally {
+                    top.aihmc.omnimorph.lua.api.particle.CustomParticleRuntime.finishFrame();
+                }
             }
         }
     }

@@ -123,6 +123,10 @@ public final class LibraryPackagePreparationSmokeTest {
                     && java.util.Arrays.equals(Files.readAllBytes(encrypted),
                     cipher.nbt().getCompoundOrEmpty("ysm").getByteArray("source_ciphertext").orElseThrow()),
                     "encrypted distribution retains original ciphertext only");
+            testPrivatePreparation(directory, owner, figura, plain, encrypted);
+            OutfitSourceCacheSmokeTest.run(directory, prepared);
+            OutfitSourceCacheSmokeTest.run(directory, ysm);
+            OutfitSourceCacheSmokeTest.run(directory, cipher);
             reject(() -> LibraryPackagePreparation.prepare(figura, owner, 1, () -> false));
             reject(() -> LibraryPackagePreparation.prepare(figura, owner, 1024, () -> true));
             Path unsafe = zip(directory.resolve("unsafe.zip"), Map.of("avatar.json", "{}", "../escape", "x"));
@@ -187,6 +191,7 @@ public final class LibraryPackagePreparationSmokeTest {
         Files.write(encryptedFolder.resolve("payload.ysm"), ciphertext);
         var encrypted = LibraryPackagePreparation.prepareAccessory(encryptedFolder, owner, 1024 * 1024,
                 () -> false, ignored -> {});
+        OutfitSourceCacheSmokeTest.run(directory, encrypted);
         var encryptedDeclaration = encrypted.accessoryMetadata();
         encryptedDeclaration.addProperty("cosmetic_anchor", "head_anchor");
         var editedEncrypted = LibraryPackagePreparation.withAccessoryMetadata(encrypted, encryptedDeclaration,
@@ -204,6 +209,75 @@ public final class LibraryPackagePreparationSmokeTest {
                 () -> false, ignored -> {}));
         reject(() -> LibraryPackagePreparation.prepareAccessory(folder, owner, 1, () -> false, ignored -> {}));
         reject(() -> LibraryPackagePreparation.prepareAccessory(folder, owner, 1024, () -> true, ignored -> {}));
+    }
+
+    private static void testPrivatePreparation(Path directory, UUID owner, Path figura, Path plain, Path encrypted)
+            throws Exception {
+        var limits = top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults();
+        var avatarKind = top.aihmc.omnimorph.model.outfit.OutfitConfig.ResourceKind.AVATAR;
+        var accessoryKind = top.aihmc.omnimorph.model.outfit.OutfitConfig.ResourceKind.ACCESSORY;
+        var index = new top.aihmc.omnimorph.avatar.local.LocalAvatarSource(directory);
+        for (Path input : java.util.List.of(figura, plain, encrypted)) {
+            var reference = index.describe(input, () -> false);
+            UUID operation = UUID.randomUUID();
+            var prepared = OutfitPrivatePreparation.prepare(operation, reference, avatarKind, owner,
+                    directory, limits, 1024 * 1024, () -> false);
+            var request = prepared.upload().request(limits);
+            require(prepared.upload().operation().equals(operation)
+                            && request.getAsJsonObject("reference").get("content_hash").getAsString()
+                            .equals(reference.contentHash())
+                            && request.get("raw_sha256").getAsString().equals(CloudHttp.sha256(prepared.upload().bytes()))
+                            && request.get("accessory_metadata").isJsonNull(),
+                    "fixed source provenance and native body hash stay distinct in private preparation");
+            require(NbtIo.readCompressed(new ByteArrayInputStream(prepared.upload().bytes()),
+                            NbtAccounter.create(256L * 1024 * 1024)).equals(prepared.nbt()),
+                    "private preparation returns the exact frozen native distribution");
+            var mutable = prepared.nbt();
+            mutable.putString("injected", "not shared");
+            require(!prepared.nbt().contains("injected"), "prepared consumers receive isolated NBT");
+            if (reference.format() != top.aihmc.omnimorph.model.outfit.OutfitConfig.Format.FIGURA) {
+                require(request.get("content_sha256").getAsString().matches("[0-9a-f]{64}")
+                                && request.get("schema_sha256").getAsString().matches("[0-9a-f]{64}"),
+                        "both YSM formats reuse the actual native content and schema inventory");
+            }
+            reject(() -> OutfitPrivatePreparation.prepare(operation, reference, avatarKind, owner,
+                    directory, limits, 1, () -> false));
+            reject(() -> OutfitPrivatePreparation.prepare(operation, reference, avatarKind, owner,
+                    directory, limits, 1024, () -> true));
+        }
+        Path privateBase = Files.createDirectories(directory.resolve("private-base"));
+        Files.writeString(privateBase.resolve("avatar.json"), "{\"name\":\"§bOriginal\",\"author\":\"§cAuthor\"}");
+        var formattedReference = index.describe(privateBase, () -> false);
+        var formatted = OutfitPrivatePreparation.prepare(UUID.randomUUID(), formattedReference, avatarKind, owner,
+                directory, limits, 1024 * 1024, () -> false);
+        require(formatted.nbt().getCompoundOrEmpty("metadata").getStringOr("name", "").equals("§bOriginal"),
+                "private native packaging preserves existing runtime metadata instead of catalog plain text");
+        Files.writeString(privateBase.resolve("avatar.json"), "{\"name\":\"Changed\"}");
+        reject(() -> OutfitPrivatePreparation.prepare(UUID.randomUUID(), formattedReference, avatarKind, owner,
+                directory, limits, 1024 * 1024, () -> false));
+
+        Path accessory = Files.createDirectories(directory.resolve("cosmetics/private-accessory"));
+        String authored = "{\"name\":\"Private\",\"category\":\"Hair\",\"cosmetic_anchor\":\"head\"}";
+        Files.writeString(accessory.resolve("cosmetic.json"), authored);
+        Files.writeString(accessory.resolve("script.lua"), "return 1");
+        Files.copy(encrypted, accessory.resolve("payload.ysm"));
+        top.aihmc.omnimorph.model.outfit.OutfitConfig.ResourceRef reference;
+        try (var inventory = new top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory(directory)) {
+            reference = inventory.scan(() -> false).stream().filter(entry -> entry.path().equals(accessory))
+                    .findFirst().orElseThrow().reference();
+        }
+        var prepared = OutfitPrivatePreparation.prepare(UUID.randomUUID(), reference, accessoryKind, owner,
+                directory, limits, 1024 * 1024, () -> false);
+        require(prepared.upload().request(limits).get("resource_kind").getAsString().equals("ACCESSORY")
+                        && java.util.Arrays.equals(Files.readAllBytes(encrypted), prepared.nbt().getCompoundOrEmpty("ysm")
+                        .getByteArray("source_ciphertext").orElseThrow())
+                        && Files.readString(accessory.resolve("cosmetic.json")).equals(authored),
+                "unapplied local accessory resolves from inventory and retains encrypted source and author declaration");
+        Files.writeString(accessory.resolve("script.lua"), "return 2");
+        reject(() -> OutfitPrivatePreparation.prepare(UUID.randomUUID(), reference, accessoryKind, owner,
+                directory, limits, 1024 * 1024, () -> false));
+        System.out.println("PASS private local sources: fixed Figura/plain/encrypted inputs, unapplied accessory, "
+                + "native hashes, immutable data, source changes, byte budget and cancellation");
     }
 
     private static Path zip(Path path, Map<String, String> files) throws IOException {

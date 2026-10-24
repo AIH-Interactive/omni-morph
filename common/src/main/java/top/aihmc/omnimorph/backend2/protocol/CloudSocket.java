@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.http.WebSocket;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -15,7 +16,9 @@ public final class CloudSocket implements WebSocket.Listener, AutoCloseable {
     private final Consumer<String> failure;
     private final int limit;
     private final CloudEndpoint endpoint;
+    private final boolean textOnly;
     private final ByteArrayOutputStream incoming = new ByteArrayOutputStream();
+    private final StringBuilder incomingText = new StringBuilder();
     private CompletableFuture<WebSocket> writes;
     private WebSocket socket;
     private boolean closed;
@@ -27,7 +30,13 @@ public final class CloudSocket implements WebSocket.Listener, AutoCloseable {
     }
 
     public CloudSocket(int limit, Consumer<byte[]> receive, Consumer<String> failure, CloudEndpoint endpoint) {
+        this(limit, receive, failure, endpoint, false);
+    }
+
+    public CloudSocket(int limit, Consumer<byte[]> receive, Consumer<String> failure,
+                       CloudEndpoint endpoint, boolean textOnly) {
         this.endpoint = endpoint;
+        this.textOnly = textOnly;
         this.limit = limit;
         this.receive = receive;
         this.failure = failure;
@@ -51,10 +60,18 @@ public final class CloudSocket implements WebSocket.Listener, AutoCloseable {
     }
 
     public synchronized boolean send(byte[] bytes) throws IOException {
+        return send(bytes, false);
+    }
+
+    public synchronized void sendText(String text) throws IOException {
+        send(text.getBytes(StandardCharsets.UTF_8), true);
+    }
+
+    private boolean send(byte[] bytes, boolean text) throws IOException {
         if (endpoint != null) {
             endpoint.requireAllowed();
         }
-        if (closed || socket == null || bytes.length > limit) {
+        if (closed || socket == null || bytes.length > limit || text != textOnly) {
             throw new IOException("Socket unavailable or message exceeds budget");
         }
         if (queuedMessages >= 32 || queuedBytes + bytes.length > 262144) {
@@ -72,7 +89,8 @@ public final class CloudSocket implements WebSocket.Listener, AutoCloseable {
                     if (endpoint != null) {
                         endpoint.requireAllowed();
                     }
-                    return current.sendBinary(ByteBuffer.wrap(copy), true);
+                    return text ? current.sendText(new String(copy, StandardCharsets.UTF_8), true)
+                            : current.sendBinary(ByteBuffer.wrap(copy), true);
                 }
             } catch (IOException rejected) {
                 return CompletableFuture.failedFuture(rejected);
@@ -99,6 +117,9 @@ public final class CloudSocket implements WebSocket.Listener, AutoCloseable {
     @Override
     public CompletableFuture<?> onBinary(WebSocket socket, ByteBuffer bytes, boolean last) {
         try {
+            if (textOnly) {
+                throw new IOException("Unexpected binary message");
+            }
             if (endpoint != null) {
                 endpoint.requireAllowed();
             }
@@ -130,7 +151,37 @@ public final class CloudSocket implements WebSocket.Listener, AutoCloseable {
 
     @Override
     public CompletableFuture<?> onText(WebSocket socket, CharSequence text, boolean last) {
-        fail("Unexpected text message");
+        try {
+            if (!textOnly) {
+                throw new IOException("Unexpected text message");
+            }
+            if (endpoint != null) {
+                endpoint.requireAllowed();
+            }
+            byte[] complete = null;
+            synchronized (this) {
+                if (closed) {
+                    return CompletableFuture.completedFuture(null);
+                }
+                if (text.length() > limit - incomingText.length()) {
+                    throw new IOException("Socket message exceeds budget");
+                }
+                incomingText.append(text);
+                if (last) {
+                    complete = incomingText.toString().getBytes(StandardCharsets.UTF_8);
+                    incomingText.setLength(0);
+                    if (complete.length > limit) {
+                        throw new IOException("Socket message exceeds budget");
+                    }
+                }
+            }
+            if (complete != null) {
+                receive.accept(complete);
+            }
+        } catch (Exception exception) {
+            fail("Invalid socket message");
+        }
+        socket.request(1);
         return CompletableFuture.completedFuture(null);
     }
 
@@ -160,6 +211,7 @@ public final class CloudSocket implements WebSocket.Listener, AutoCloseable {
     public synchronized void close() {
         closed = true;
         incoming.reset();
+        incomingText.setLength(0);
         if (socket != null) {
             socket.abort();
         }

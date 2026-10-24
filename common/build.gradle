@@ -425,6 +425,30 @@ tasks.register('libraryClientSmokeTest', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.backend2.library.LibraryClientSmokeTest'
 }
 
+tasks.register('outfitObserverClientSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks authorized observer snapshots, revision-scoped bodies and legacy fallback boundaries.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.backend2.library.OutfitObserverClientSmokeTest'
+}
+
+tasks.register('outfitApplyClientSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks outfit Apply HTTP codecs, receipt/conflict activation guards, negotiated budgets and session retirement.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.backend2.library.OutfitApplyClientSmokeTest'
+}
+
+tasks.register('outfitPrivateUploadSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks private source HTTP upload, frozen retries, completed receipts and session retirement.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.backend2.library.OutfitPrivateUploadSmokeTest'
+}
+
 tasks.register('libraryPreviewCacheSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Checks independent preview storage, authorization, checksums, leases and TTL/LRU budgets.'
@@ -1031,6 +1055,14 @@ tasks.register('writeCloudIntegrationClasspath') {
         output.parentFile.mkdirs()
         output.text = (sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath).asPath
     }
+}
+
+tasks.register('outfitEventsSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks bounded outfit text frames and strict revision notification parsing.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.backend2.library.OutfitEventsSmokeTest'
 }
 
 tasks.register('cloudUploadProgressSmokeTest', JavaExec) {

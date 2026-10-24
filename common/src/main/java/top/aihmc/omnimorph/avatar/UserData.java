@@ -9,6 +9,7 @@ import top.aihmc.omnimorph.backend2.NetworkStuff;
 import top.aihmc.omnimorph.avatar.ysm.YsmLoadGeneration;
 import top.aihmc.omnimorph.avatar.ysm.YsmModelData;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;
+import top.aihmc.omnimorph.model.outfit.OutfitComposition;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -26,6 +27,8 @@ public class UserData {
     public final AvatarLoadProgress loading = new AvatarLoadProgress();
     private final Queue<Avatar> avatars = new ConcurrentLinkedQueue<>();
     private Pair<BitSet, BitSet> badges;
+    public record OutfitState(OutfitConfig configuration, Avatar base, OutfitComposition composition) {}
+    private volatile OutfitState outfit;
 
     public UserData(UUID id) {
         this.id = id;
@@ -114,8 +117,9 @@ public class UserData {
         Minecraft.getInstance().execute(() -> {
             try {
                 boolean published = current.getAsBoolean() && ysmLoads.publish(generation, () -> {
+                    retireOutfit();
                     for (Avatar previous : avatars) {
-                        previous.clean();
+                        top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.retireBase(previous);
                     }
                     avatars.clear();
                     avatars.add(prepared);
@@ -148,12 +152,96 @@ public class UserData {
         return avatars.peek();
     }
 
+    public OutfitState getOutfit() {
+        return outfit;
+    }
+
+    /** Caller has verified current server authority and native preparation; only the pair swap runs here. */
+    public CompletableFuture<Boolean> publishOutfit(OutfitConfig committed, Avatar base,
+                                                     OutfitComposition prepared, long generation,
+                                                     BooleanSupplier current) {
+        java.util.Objects.requireNonNull(committed);
+        java.util.Objects.requireNonNull(prepared);
+        var result = new CompletableFuture<Boolean>();
+        var candidate = new OutfitState(committed, base, prepared);
+        Minecraft.getInstance().execute(() -> {
+            try {
+                boolean valid = current.getAsBoolean() && prepared.matchesConfiguration(committed, id)
+                        && (outfit == null || committed.revision() >= outfit.configuration().revision())
+                        && ((committed.base() == null && base == null)
+                        || committed.base() != null && base != null && id.equals(base.owner) && base.loaded && base.nbt != null
+                        && base.accelerationOwner().isCurrent() && committed.base().equals(base.outfitSource()));
+                OutfitState previous = outfit;
+                var previousAvatars = new ArrayList<>(avatars);
+                boolean published = valid && ysmLoads.publish(generation, () -> {
+                    avatars.clear();
+                    if (base != null) {
+                        avatars.add(base);
+                    }
+                    outfit = candidate;
+                });
+                if (published) {
+                    if (previous != null && previous.composition() != prepared) {
+                        previous.composition().close();
+                    }
+                    for (Avatar previousAvatar : previousAvatars) {
+                        if (previousAvatar != base) {
+                            top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.retireBase(previousAvatar);
+                        }
+                    }
+                } else {
+                    discardOutfitCandidate(base, prepared);
+                }
+                result.complete(published);
+            } catch (Exception failure) {
+                if (outfit == candidate) {
+                    FiguraMod.LOGGER.error("Previous outfit retirement failed for {}", id, failure);
+                    result.complete(true);
+                } else {
+                    discardOutfitCandidate(base, prepared);
+                    result.completeExceptionally(failure);
+                }
+            }
+        });
+        return result;
+    }
+
+    private void discardOutfitCandidate(Avatar base, OutfitComposition prepared) {
+        if (outfit == null || outfit.composition() != prepared) {
+            prepared.close();
+        }
+        if (base != null && !avatars.contains(base)) {
+            base.clean();
+        }
+    }
+
+    private void retireOutfit() {
+        OutfitState previous = outfit;
+        outfit = null;
+        if (previous != null) {
+            previous.composition().close();
+        }
+    }
+
+    public void tick() {
+        OutfitState current = outfit;
+        if (current != null) {
+            current.composition().tick(current.base());
+        } else {
+            Avatar base = getMainAvatar();
+            if (base != null) {
+                base.tick();
+            }
+        }
+    }
+
     public void clear() {
         loading.clear();
         long generation = ysmLoads.begin();
         ysmLoads.publish(generation, () -> {
+            retireOutfit();
             for (Avatar avatar : avatars) {
-                avatar.clean();
+                top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.retireBase(avatar);
             }
             avatars.clear();
         });

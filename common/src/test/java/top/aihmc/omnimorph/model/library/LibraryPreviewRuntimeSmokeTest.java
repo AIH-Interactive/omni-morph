@@ -562,6 +562,13 @@ public final class LibraryPreviewRuntimeSmokeTest {
                             && issueRows.getFirst().text().getString().contains(draft.configuration().instances()
                                     .getFirst().instanceId().toString()),
                     "actual shared preview widget exposes the failed resource and its affected copy in scrollable rows");
+            widget.setDependencyIssues(java.util.List.of(new OutfitPresetResources.Issue(missing, true,
+                    java.util.List.of(UUID.randomUUID(), UUID.randomUUID()), "FORBIDDEN")));
+            @SuppressWarnings("unchecked")
+            var applyRows = (java.util.List<LibraryRowList.Row>) field(LibraryRowList.class, "rows").get(issueList);
+            require(applyRows.size() == 3 && issueList.isVisible(),
+                    "formal Apply failures retain separate base and duplicate-instance rows without replacing the preview");
+            widget.setDependencyIssues(java.util.List.of());
             var pending = preview.select(modelId, new LibraryTransferService(client, cache.resolve("cancelled")));
             preview.clear();
             widget.tick();
@@ -3753,11 +3760,12 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var visible = actions.getClass().getDeclaredMethod("visibleActions");
             visible.setAccessible(true);
             var slots = (java.util.List<?>) visible.invoke(actions);
-            require(field(screen.getClass(), "candidateButton").get(screen) == null && slots.size() == 16
+            require(field(screen.getClass(), "candidateButton").get(screen) == null && slots.size() == 19
                             && slots.get(5) == null && slots.get(9) == null,
                     "outfit actions retain their existing groups and add a separate draft editing group");
             var expected = java.util.List.of("upload", "reload", "wardrobe_visibility", "wardrobe_appeal", "delete",
-                    "sound", "keybind", "unselect", "friend_add", "library_edit", "unselect", "reload", "cosmetic_settings", "library_edit");
+                    "sound", "keybind", "unselect", "friend_add", "library_edit", "upload", "reload", "reload",
+                    "unselect", "reload", "cosmetic_settings", "library_edit");
             int index = 0;
             for (Object slot : slots) {
                 if (slot != null) {
@@ -3770,6 +3778,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
             }
             require(!((top.aihmc.omnimorph.gui.widgets.Button) field(screen.getClass(), "cosmeticSettingsButton")
                     .get(screen)).isActive(), "settings are disabled when no enabled instance registers controls");
+            for (String name : java.util.List.of("applyDraftButton", "retryDraftButton", "refreshDraftButton")) {
+                require(!((top.aihmc.omnimorph.gui.widgets.Button) field(screen.getClass(), name).get(screen)).isActive(),
+                        "formal outfit actions are disabled without negotiated Apply capability: " + name);
+            }
         }
         var refreshed = new java.util.concurrent.atomic.AtomicInteger();
         var tree = new top.aihmc.omnimorph.gui.widgets.wardrobe.BoneTreeWidget(10, 20, 180, 180,

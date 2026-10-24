@@ -66,7 +66,37 @@ public final class OutfitComposition implements AutoCloseable {
     }
 
     private final OutfitConfig configuration;
+
+    /** The server assigns the revision; all other prepared fields must remain identical. */
+    public boolean matchesConfiguration(OutfitConfig committed, UUID wearerId) {
+        if (closed || committed == null || wearer == null || !wearer.getUUID().equals(wearerId)) {
+            return false;
+        }
+        return configuration.equals(new OutfitConfig(committed.schemaVersion(), configuration.revision(),
+                committed.base(), committed.instances(), committed.virtualAnchors(), committed.displayOrdinals(),
+                committed.showEquipment()));
+    }
+
     private final OutfitLimits limits;
+
+    public OutfitLimits limits() {
+        return limits;
+    }
+
+    public Map<UUID, Avatar> runtimeInstances() {
+        if (closed) {
+            return Map.of();
+        }
+        var active = new LinkedHashMap<UUID, Avatar>();
+        for (var instance : configuration.instances()) {
+            Avatar avatar = instances.get(instance.instanceId());
+            if (instance.enabled() && avatar != null && !avatar.scriptError) {
+                active.put(instance.instanceId(), avatar);
+            }
+        }
+        return Map.copyOf(active);
+    }
+
     private final LivingEntity wearer;
     private final Map<UUID, Avatar> instances;
     public record ControlGroup(OutfitConfig.Instance instance, Avatar avatar) {}
@@ -323,6 +353,55 @@ public final class OutfitComposition implements AutoCloseable {
         }
     }
 
+    /** Formal preparation only: validate author capabilities against loaded geometry before committing Apply. */
+    public void validatePreparedBase(Avatar base) {
+        OutfitConfig.require(!closed);
+        if (configuration.base() == null) {
+            OutfitConfig.require(base == null);
+        } else {
+            OutfitConfig.require(base != null && base.loaded && base.nbt != null && !base.scriptError
+                    && base.cosmeticContext == null && base.accelerationOwner().isCurrent()
+                    && base.nbt.getCompoundOrEmpty("metadata").getStringOr("resource_kind", "AVATAR").equals("AVATAR")
+                    && configuration.base().equals(base.outfitSource())
+                    && top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload.isEncrypted(base.nbt.getCompoundOrEmpty("ysm"))
+                    == (configuration.base().format() == OutfitConfig.Format.YSM_ENCRYPTED)
+                    && base.isYsmNative() == (configuration.base().format() != OutfitConfig.Format.FIGURA));
+        }
+        if (base == null && instances.isEmpty() && configuration.virtualAnchors().isEmpty()) {
+            return;
+        }
+        var baseSkeleton = base == null ? VanillaSkeletonAdapter.describe(limits)
+                : editorSkeleton(base, configuration.base(), null);
+        OutfitConfig.require(instanceNodes + baseSkeleton.definition().nodes().size() <= limits.maxTotalNodes());
+        String family = base == null ? "VANILLA" : base.isYsmNative() ? "YSM" : "FIGURA";
+        for (var declaration : configuration.instances()) {
+            CosmeticMetadata metadata = editorMetadata.get(declaration.instanceId());
+            if (metadata == null) {
+                throw new IllegalArgumentException("COSMETIC_METADATA_REQUIRED");
+            }
+            metadata.validateLimits(limits);
+            if (!metadata.supportedBases().contains(family)) {
+                throw new IllegalArgumentException("COSMETIC_BASE_UNSUPPORTED");
+            }
+            if (!metadata.hasBones()) {
+                continue;
+            }
+            var skeleton = editorSkeleton(instances.get(declaration.instanceId()), declaration.resource(),
+                    declaration.instanceId()).definition();
+            if (!skeleton.hash().equals(metadata.skeletonHash())) {
+                throw new IllegalArgumentException("COSMETIC_DECLARATION_STALE");
+            }
+            for (var range : List.of(metadata.exportedBones(), metadata.editableBones())) {
+                for (var bone : range) {
+                    if (skeleton.resolve(bone).isEmpty()) {
+                        throw new IllegalArgumentException("COSMETIC_DECLARATION_STALE");
+                    }
+                }
+            }
+        }
+        // Missing manual targets remain paused by the controller. Preparation must not invent a fallback.
+    }
+
     /** Called only when publishing/explicitly refreshing a GUI snapshot; no source parsing or IO. */
     public EditorSnapshot editorSnapshot(Avatar base) {
         OutfitConfig.require(!closed);
@@ -422,7 +501,7 @@ public final class OutfitComposition implements AutoCloseable {
         }
     }
 
-    /** Retain at GUI extraction; release only when the native deferred frame has finished. */
+    /** Retain at render extraction; release only when the native deferred frame has finished. */
     public Frame retain() {
         if (closed) {
             throw new IllegalStateException("OUTFIT_COMPOSITION_CLOSED");
@@ -431,12 +510,46 @@ public final class OutfitComposition implements AutoCloseable {
         return new Frame();
     }
 
-    private void runController(String method, float delta) {
+    /** Global events share the same quotas and only reach instances accepted by the trusted mount selector. */
+    public void executeAll(Avatar base, Consumer<Avatar> consumer) {
+        if (closed) {
+            return;
+        }
+        if (base != null) {
+            bindBaseBudget(base);
+        }
+        try (var instructions = instructionBudget.enter();
+             var budget = molangBudget().beginFrame(YsmRenderFrameClock.currentFrame())) {
+            var eligible = runController("activeInstances", 0).arg1().checktable();
+            var active = new ArrayList<Avatar>();
+            for (int index = 1; index <= eligible.length(); index++) {
+                UUID id = UUID.fromString(eligible.get(index).checkjstring());
+                Avatar avatar = instances.get(id);
+                if (avatar != null && initialized.contains(id)) {
+                    active.add(avatar);
+                }
+            }
+            if (base != null) {
+                consumer.accept(base);
+            }
+            for (Avatar avatar : active) {
+                if (closed) {
+                    break;
+                }
+                if (avatar.accelerationOwner().isCurrent() && !avatar.scriptError) {
+                    consumer.accept(avatar);
+                }
+            }
+        }
+    }
+
+    private Varargs runController(String method, float delta) {
         controllerOwner.tick.reset(controllerOwner.permissions.get(Permissions.TICK_INST));
-        if (controllerRuntime.run(controller.get(method), controllerOwner.tick, delta) == null
-                || controllerOwner.scriptError) {
+        Varargs result = controllerRuntime.run(controller.get(method), controllerOwner.tick, delta);
+        if (result == null || controllerOwner.scriptError) {
             throw new IllegalStateException("COSMETIC_CONTROLLER_FAILED");
         }
+        return result;
     }
 
     @Override
@@ -984,7 +1097,9 @@ public final class OutfitComposition implements AutoCloseable {
             EntityRenderMode previousMode = avatar.renderMode;
             avatar.renderMode = activeFrame.mode;
             try {
-                avatar.render(delta);
+                if (avatar.cosmeticContext.scope() == CosmeticInstanceContext.Scope.DRAFT) {
+                    avatar.render(delta);
+                }
                 avatar.renderEvent(delta, FiguraMat4.of());
                 avatar.clearAnimations();
                 avatar.applyAnimations();

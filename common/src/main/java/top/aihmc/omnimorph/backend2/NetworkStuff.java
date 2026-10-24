@@ -22,10 +22,15 @@ import top.aihmc.omnimorph.backend2.protocol.*;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.backend2.library.LibrarySession;
+import top.aihmc.omnimorph.backend2.library.OutfitEvents;
 import top.aihmc.omnimorph.config.Configs;
 import top.aihmc.omnimorph.font.Emojis;
 import top.aihmc.omnimorph.gui.FiguraToast;
 import top.aihmc.omnimorph.model.library.LibraryCollectionService;
+import top.aihmc.omnimorph.model.library.OutfitObserverService;
+import top.aihmc.omnimorph.model.library.OutfitApplyService;
+import top.aihmc.omnimorph.model.library.LibraryTransferService;
+import top.aihmc.omnimorph.model.library.OutfitInstanceSync;
 import top.aihmc.omnimorph.model.ysm.YsmModelRuntime;
 import top.aihmc.omnimorph.model.ysm.sync.*;
 import top.aihmc.omnimorph.utils.FiguraText;
@@ -67,6 +72,9 @@ public class NetworkStuff {
     private static volatile CloudConnection connection;
     private static LibraryClient libraryClient;
     private static LibraryCollectionService wardrobeCollection;
+    private static OutfitEventCoordinator outfitEvents;
+    private static final Map<UUID, ObserverLoad> outfitObservers = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> outfitObserverRetries = new ConcurrentHashMap<>();
     private static volatile CloudHttp authenticationWork;
     private static volatile CloudHttp resourceWork;
     private static volatile CloudProtocol.Kind connectedKind;
@@ -99,6 +107,380 @@ public class NetworkStuff {
 
     private record Request(UUID owner, long generation, Operation operation, BiConsumer<Integer, String> callback) {}
 
+    private record ObserverLoad(UserData user, net.minecraft.world.entity.LivingEntity wearer, Object world,
+                                CloudConnection connection, long generation, OutfitObserverService service) {
+        private boolean current() {
+            return outfitObservers.get(user.id) == this && NetworkStuff.connection == connection && connection.active()
+                    && SUBSCRIPTIONS.contains(user.id) && Minecraft.getInstance().level == world
+                    && AvatarManager.getLoadedUser(user.id) == user && !wearer.isRemoved()
+                    && generation == requestGenerations.getOrDefault(user.id, 0L);
+        }
+    }
+
+    private static boolean observeOutfit(UserData user, boolean refresh) {
+        if (!isConnected() || FiguraMod.isLocal(user.id) || !SUBSCRIPTIONS.contains(user.id)) {
+            return false;
+        }
+        var entity = top.aihmc.omnimorph.utils.EntityUtils.getEntityByUUID(user.id);
+        if (!(entity instanceof net.minecraft.world.entity.LivingEntity wearer) || wearer.isRemoved()) {
+            return false;
+        }
+        ObserverLoad previous = outfitObservers.get(user.id);
+        if (!refresh && previous != null && previous.current() && previous.wearer() == wearer) {
+            return true;
+        }
+        LibraryClient library;
+        try {
+            library = libraryClient();
+        } catch (java.io.IOException unavailable) {
+            return false;
+        }
+        // Retire any earlier profile/body callbacks before this preparation begins its native generation.
+        clear(user.id);
+        var service = new OutfitObserverService(library, FiguraMod.getCacheDirectory());
+        var selected = new ObserverLoad(user, wearer, Minecraft.getInstance().level, connection,
+                requestGenerations.getOrDefault(user.id, 0L), service);
+        outfitObservers.put(user.id, selected);
+        service.refresh(user, wearer, selected::current).future().whenComplete((result, failure) -> {
+            if (!selected.current()) {
+                return;
+            }
+            if (failure == null && result == OutfitObserverService.Result.LEGACY) {
+                getProfileUser(user, true);
+            } else if (failure != null && !(failure instanceof java.util.concurrent.CancellationException)) {
+                if (retryObserver(failure)) {
+                    outfitObserverRetries.put(user.id, Integer.toUnsignedLong(FiguraMod.ticks) + 20);
+                }
+                FiguraMod.debug("Observer outfit preparation failed for {}", user.id);
+            }
+        });
+        getProfileUser(user, false);
+        return true;
+    }
+
+    private static void retireObserver(UUID owner, boolean clearResident) {
+        outfitObserverRetries.remove(owner);
+        ObserverLoad previous = outfitObservers.remove(owner);
+        if (previous != null) {
+            previous.service().close();
+            if (clearResident) {
+                requestGenerations.merge(owner, 1L, Long::sum);
+                API_REQUESTS.removeIf(request -> request.owner().equals(owner));
+            }
+            if (clearResident && previous.user().getOutfit() != null) {
+                previous.user().clear();
+            }
+        }
+    }
+
+    private static void retireObservers() {
+        for (UUID owner : List.copyOf(outfitObservers.keySet())) {
+            retireObserver(owner, true);
+        }
+    }
+
+    private static void tickOutfitObservers() {
+        for (ObserverLoad selected : List.copyOf(outfitObservers.values())) {
+            if (!selected.current() || top.aihmc.omnimorph.utils.EntityUtils.getEntityByUUID(selected.user().id) != selected.wearer()) {
+                retireObserver(selected.user().id, true);
+            } else {
+                Long retry = outfitObserverRetries.get(selected.user().id);
+                if (retry != null && Integer.toUnsignedLong(FiguraMod.ticks) >= retry) {
+                    retireObserver(selected.user().id, false);
+                }
+            }
+        }
+        if (isConnected()) {
+            int started = 0;
+            for (UUID owner : List.copyOf(SUBSCRIPTIONS)) {
+                UserData user = AvatarManager.getLoadedUser(owner);
+                if (user != null && !outfitObservers.containsKey(owner)) {
+                    if (observeOutfit(user, false) && ++started == 2) {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    private static boolean retryObserver(Throwable failure) {
+        while (failure instanceof java.util.concurrent.CompletionException && failure.getCause() != null) {
+            failure = failure.getCause();
+        }
+        return failure instanceof LibraryClient.Failure request && (request.status == 429 || request.status >= 500
+                || Set.of("LIBRARY_BUSY", "LIBRARY_UNAVAILABLE", "LIBRARY_REQUEST_FAILED").contains(request.code));
+    }
+
+    /** The event stream carries invalidations; existing observer operations load authoritative snapshots. */
+    private static final class OutfitEventCoordinator implements OutfitEvents.Listener, AutoCloseable {
+        private final LibraryClient client;
+        private final CloudConnection selected = connection;
+        private final OutfitEvents events;
+        private final OutfitInstanceSync instanceSync;
+        private LibraryClient.Request<LibraryModels.Capabilities> pending;
+        private LibraryModels.Capabilities capabilities;
+        private long capabilityGeneration;
+        private long retryAt;
+        private Object world = Minecraft.getInstance().level;
+        private Object ownerWorld;
+        private boolean ownerDirty = true;
+        private boolean ownerLoading;
+        private long ownerRetryAt;
+        private long ownerGeneration;
+        private LibraryClient.Request<?> ownerRead;
+        private OutfitApplyService ownerRestore;
+
+        private OutfitEventCoordinator(LibraryClient client) {
+            this.client = client;
+            events = client.outfitEvents(this);
+            instanceSync = new OutfitInstanceSync(client, owner -> {
+                if (FiguraMod.isLocal(owner)) {
+                    UserData user = AvatarManager.getLoadedUser(owner);
+                    if (user != null && user.getOutfit() != null) {
+                        user.clear();
+                    }
+                    ownerWorld = null;
+                }
+                changed(owner);
+            });
+        }
+
+        private boolean current() {
+            return outfitEvents == this && libraryClient == client && client.current()
+                    && connection == selected && isConnected();
+        }
+
+        private void tick() {
+            if (world != Minecraft.getInstance().level) {
+                world = Minecraft.getInstance().level;
+                instanceSync.close();
+                retireObservers();
+                retireOwner();
+                ownerDirty = true;
+            }
+            long tick = Integer.toUnsignedLong(FiguraMod.ticks);
+            if (capabilities == null && pending == null && tick >= retryAt) {
+                long generation = ++capabilityGeneration;
+                pending = client.capabilities();
+                pending.future().whenComplete((value, failure) -> {
+                    if (!current() || generation != capabilityGeneration) {
+                        return;
+                    }
+                    pending = null;
+                    if (failure == null) {
+                        capabilities = value;
+                        var outfits = value.outfitsV1();
+                        if (!value.enabled() || outfits == null || !outfits.configuration() || !outfits.apply()) {
+                            retireObservers();
+                        }
+                    } else {
+                        retryAt = Integer.toUnsignedLong(FiguraMod.ticks) + 20;
+                        if (!retryObserver(failure)) {
+                            capabilities = LibraryModels.Capabilities.unsupported();
+                            retireObservers();
+                        }
+                    }
+                });
+            }
+            Set<UUID> owners = world == null ? Set.of() : Set.copyOf(SUBSCRIPTIONS);
+            events.tick(Util.getMillis(), capabilities, owners);
+            restoreOwner(tick);
+            var configured = capabilities == null ? null : capabilities.outfitsV1();
+            if (world != null && configured != null && configured.apply() && configured.events()) {
+                instanceSync.tick(tick, owners);
+            }
+        }
+
+        private void restoreOwner(long tick) {
+            var outfits = capabilities == null ? null : capabilities.outfitsV1();
+            if (!ownerDirty || ownerLoading || tick < ownerRetryAt || world == null || outfits == null
+                    || !outfits.apply() || !outfits.configuration()
+                    || activeLibrarySelection != null && librarySelectionCurrent(activeLibrarySelection)
+                    || top.aihmc.omnimorph.avatar.local.LocalAvatarLoader.getLastLoadedPath() != null) {
+                return;
+            }
+            var wearer = Minecraft.getInstance().player;
+            if (wearer == null || !wearer.getUUID().equals(client.session().player())) {
+                return;
+            }
+            long generation = ++ownerGeneration;
+            long selection = localSelections.get();
+            Object selectedWorld = world;
+            ownerDirty = false;
+            ownerLoading = true;
+            ownerRead = client.currentOutfit();
+            @SuppressWarnings("unchecked")
+            var read = (LibraryClient.Request<top.aihmc.omnimorph.model.outfit.OutfitConfig>) ownerRead;
+            read.future().whenComplete((configuration, failure) -> {
+                if (!current() || generation != ownerGeneration || selectedWorld != Minecraft.getInstance().level) {
+                    return;
+                }
+                ownerRead = null;
+                if (failure != null) {
+                    ownerFinished(generation, failure);
+                    return;
+                }
+                if (selection != localSelections.get() || configuration.revision() == 0) {
+                    ownerLoading = false;
+                    return;
+                }
+                UserData user = AvatarManager.getLoadedUser(wearer.getUUID());
+                if (ownerWorld == selectedWorld && user != null && user.getOutfit() != null && user.getOutfit().configuration().equals(configuration)
+                        && user.getOutfit().composition().limits().equals(outfits.limits())) {
+                    ownerLoading = false;
+                    return;
+                }
+                if (ownerRestore != null) {
+                    ownerRestore.close();
+                }
+                ownerRestore = new OutfitApplyService(client,
+                        new LibraryTransferService(client, FiguraMod.getCacheDirectory()),
+                        FiguraMod.getFiguraDirectory(), FiguraMod.getCacheDirectory());
+                ownerRestore.restore(configuration, wearer,
+                        () -> current() && generation == ownerGeneration && selectedWorld == Minecraft.getInstance().level)
+                        .whenComplete((restored, error) -> {
+                            if (current() && generation == ownerGeneration && error == null) {
+                                ownerWorld = selectedWorld;
+                            }
+                            ownerFinished(generation, error);
+                        });
+            });
+        }
+
+        private void ownerFinished(long generation, Throwable failure) {
+            if (!current() || generation != ownerGeneration) {
+                return;
+            }
+            ownerLoading = false;
+            while (failure instanceof java.util.concurrent.CompletionException && failure.getCause() != null) {
+                failure = failure.getCause();
+            }
+            if (failure != null && (retryObserver(failure)
+                    || failure instanceof LibraryClient.Failure changed
+                    && Set.of("OUTFIT_CHANGED", "OUTFIT_LIMITS_CHANGED").contains(changed.code))) {
+                ownerDirty = true;
+                ownerRetryAt = Integer.toUnsignedLong(FiguraMod.ticks) + 20;
+            }
+        }
+
+        private void retireOwner() {
+            ++ownerGeneration;
+            if (ownerRead != null) {
+                ownerRead.cancel();
+                ownerRead = null;
+            }
+            if (ownerRestore != null) {
+                ownerRestore.close();
+                ownerRestore = null;
+            }
+            ownerLoading = false;
+        }
+
+        @Override
+        public void changed(UUID owner) {
+            changed(owner, -1, -1);
+        }
+
+        @Override
+        public void changed(UUID owner, long revision, long equipmentRevision) {
+            if (!current()) {
+                return;
+            }
+            if (FiguraMod.isLocal(owner)) {
+                ownerDirty = true;
+                return;
+            }
+            if (!SUBSCRIPTIONS.contains(owner)) {
+                return;
+            }
+            UserData user = AvatarManager.getLoadedUser(owner);
+            var resident = user == null ? null : user.getOutfit();
+            if (resident != null && revision >= 0 && revision < resident.configuration().revision()) {
+                return;
+            }
+            // Same-revision notifications can revoke policy without changing configuration.
+            boolean invalidate = resident != null && revision <= resident.configuration().revision();
+            retireObserver(owner, invalidate);
+            if (invalidate && user.getOutfit() != null) {
+                user.clear();
+            }
+            // The existing tick starts at most two missing observers, including late entities.
+        }
+
+        @Override
+        public void reset() {
+            if (current()) {
+                instanceSync.close();
+                retireObservers();
+                retireOwner();
+                ownerDirty = true;
+            }
+        }
+
+        @Override
+        public void limitsChanged() {
+            if (!current()) {
+                return;
+            }
+            ++capabilityGeneration;
+            instanceSync.close();
+            if (pending != null) {
+                pending.cancel();
+                pending = null;
+            }
+            capabilities = null;
+            retryAt = 0;
+            retireObservers();
+            retireOwner();
+            ownerDirty = true;
+        }
+
+        @Override
+        public void close() {
+            instanceSync.close();
+            retireOwner();
+            ++capabilityGeneration;
+            if (pending != null) {
+                pending.cancel();
+                pending = null;
+            }
+            events.close();
+        }
+
+        @Override
+        public void stateChanged(UUID owner, UUID instance, long outfitRevision, long stateRevision) {
+            if (current()) {
+                instanceSync.changed(owner, instance, outfitRevision, stateRevision);
+            }
+        }
+    }
+
+    private static void retireOutfitEvents() {
+        OutfitEventCoordinator previous = outfitEvents;
+        outfitEvents = null;
+        if (previous != null) {
+            previous.close();
+        }
+    }
+
+    private static void tickOutfitEvents() {
+        if (!isConnected()) {
+            retireOutfitEvents();
+            retireObservers();
+            return;
+        }
+        try {
+            LibraryClient selected = libraryClient();
+            if (outfitEvents == null || !outfitEvents.current()) {
+                retireOutfitEvents();
+                outfitEvents = new OutfitEventCoordinator(selected);
+            }
+            outfitEvents.tick();
+        } catch (java.io.IOException unavailable) {
+            // The selected adapter's existing connection lifecycle owns authentication and reconnect.
+        }
+    }
+
     public static long connectionEpoch() {
         return epochs.get();
     }
@@ -109,6 +491,8 @@ public class NetworkStuff {
             throw new java.io.IOException("LIBRARY_OFFLINE");
         }
         if (libraryClient == null || !libraryClient.current()) {
+            retireObservers();
+            retireOutfitEvents();
             if (wardrobeCollection != null) {
                 wardrobeCollection.close();
                 wardrobeCollection = null;
@@ -145,6 +529,8 @@ public class NetworkStuff {
             wardrobeCollection = null;
         }
         if (libraryClient != null && !libraryClient.current()) {
+            retireObservers();
+            retireOutfitEvents();
             libraryClient.close();
             libraryClient = null;
         }
@@ -201,6 +587,8 @@ public class NetworkStuff {
             AuthHandler.auth(true);
         }
         tickSubscriptions();
+        tickOutfitEvents();
+        tickOutfitObservers();
         if (isConnected()) {
             processRequests();
         }
@@ -598,6 +986,8 @@ public class NetworkStuff {
     }
 
     private static synchronized void retire(String reason, boolean stopRetry) {
+        retireObservers();
+        retireOutfitEvents();
         if (wardrobeCollection != null) {
             wardrobeCollection.close();
             wardrobeCollection = null;
@@ -646,6 +1036,7 @@ public class NetworkStuff {
     }
 
     public static void clear(UUID owner) {
+        retireObserver(owner, false);
         AvatarManager.clearLoadingProgress(owner);
         requestGenerations.merge(owner, 1L, Long::sum);
         API_REQUESTS.removeIf(request -> request.owner().equals(owner));
@@ -698,6 +1089,13 @@ public class NetworkStuff {
         if (checkUUID(user.id))
             return;
 
+        if (!observeOutfit(user, true)) {
+            getProfileUser(user, true);
+        }
+    }
+
+    private static void getProfileUser(UserData user, boolean equipment) {
+
         long progress = user.loading.begin(top.aihmc.omnimorph.avatar.AvatarLoadProgress.Stage.PROFILE);
         boolean queued = queueString(user.id, api -> api.profile(user.id), (code, data) -> {
             try {
@@ -708,9 +1106,11 @@ public class NetworkStuff {
                 if (code != 200) {
                     if (code == 404) {
                         // A player without a cloud profile has no equipped model.
-                        user.clear();
+                        if (equipment) {
+                            user.clear();
+                        }
                         user.loadBadges(Badges.emptyBadges());
-                        if (FiguraMod.isLocal(user.id)) {
+                        if (equipment && FiguraMod.isLocal(user.id)) {
                             AvatarManager.localUploaded = false;
                         }
                     }
@@ -747,9 +1147,13 @@ public class NetworkStuff {
 
                 CloudConnection selected = connection;
                 long generation = requestGenerations.getOrDefault(user.id, 0L);
-                user.loadData(avatars, badgesPair, () -> selected == connection && selected.active()
-                        && generation == requestGenerations.getOrDefault(user.id, 0L));
-                if (FiguraMod.isLocal(user.id)
+                if (equipment) {
+                    user.loadData(avatars, badgesPair, () -> selected == connection && selected.active()
+                            && generation == requestGenerations.getOrDefault(user.id, 0L));
+                } else {
+                    user.loadBadges(badgesPair);
+                }
+                if (equipment && FiguraMod.isLocal(user.id)
                         && top.aihmc.omnimorph.avatar.local.LocalAvatarLoader.getLastLoadedPath() == null) {
                     AvatarManager.localUploaded = !avatars.isEmpty();
                 }
@@ -856,6 +1260,22 @@ public class NetworkStuff {
         if (librarySelectionCurrent(selection)) {
             localSelectionChanged();
         }
+    }
+
+    /** Only an acknowledged, still-current outfit may replace the resident base/composition pair. */
+    public static CompletableFuture<Boolean> publishOutfitEquipment(LibrarySelection selection,
+            AvatarManager.OutfitLoad load, top.aihmc.omnimorph.model.outfit.OutfitConfig configuration,
+            Avatar base, top.aihmc.omnimorph.model.outfit.OutfitComposition composition,
+            java.util.function.BooleanSupplier current) {
+        return load.publish(configuration, base, composition,
+                () -> librarySelectionCurrent(selection) && current.getAsBoolean()).thenApply(published -> {
+            if (published) {
+                clear(selection.player);
+                localSelectionChanged();
+                YSM_SYNC.requestSnapshot();
+            }
+            return published;
+        });
     }
 
     /** Worker-only profile refresh updates adapter identity and returns the official source-alias cache key. */
@@ -1051,6 +1471,7 @@ public class NetworkStuff {
     }
 
     private static void unsubscribe(UUID owner) {
+        retireObserver(owner, true);
         if (!checkUUID(owner) && isConnected()) {
             queueString(Util.NIL_UUID, protocol -> {
                 protocol.unsubscribe(owner);

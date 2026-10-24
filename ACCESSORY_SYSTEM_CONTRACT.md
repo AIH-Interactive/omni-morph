@@ -10,6 +10,8 @@
 
 LOCAL 引用为稳定 UUID、格式及 SHA256，无绝对路径；CLOUD 为规范 origin（无结尾斜线、凭证、路径、查询）、资源 UUID、精确正修订号、SHA256 及格式。本人预设保存允许稳定本地引用；云端发布/应用阶段另外检查合法可分发依赖，不隐式上传本地文件。
 
+阶段五的本人私有来源绑定使用认证 `PUT /api/library/v1/outfits/resources/local`：请求为 `reference`（仅 LOCAL）、`asset_id`、正 `asset_revision`、`raw_sha256`、`resource_kind`（AVATAR/ACCESSORY）及 `accessory_metadata`（AVATAR 为 null，ACCESSORY 必填）。LOCAL 的 content_hash 表示客户端来源身份，raw_sha256 表示已经通过原生上传检查的分发正文，二者不能相互替代。绑定只接受本人已有且未删除/封禁的固定原生修订；社区库来源及其装备别名不能转为 LOCAL。相同来源四元组（本人、UUID、来源 hash、格式）只允许重试同一绑定，改变正文或声明返回冲突；装饰声明统一标为 CLIENT_EXTRACTED，不声称验证加密骨骼。schema 9 独立来源表保留这些关系，每次内部 Apply 在同一事务中重检修订、正文 hash、用途、格式、当前预算和封禁；本地基础投影保留实际原生资产 ID/修订。绑定不会发表到目录或改变装备。客户端显式上传接续、公开 Apply 和观察者分发仍须阶段五后续接通，当前 apply 能力保持 false。
+
 本地资源根为 OmniMorph 数据根下 `cosmetics/`；下载缓存为 `cache/cosmetic/*.oms`。不得混用目录。`cosmetic.json` 复用 Avatar 的 name/authors/version/description/autoScripts/autoAnims 公共字段；默认符号唯一字段为 `cosmetic_anchor`。缺失默认符号/自定义未知符号留待绑定。双 manifest 无明确用途时拒绝；明确用途才选择对应 manifest。未知分类保留原标识，显示通用标签。
 
 配置保存 schema_version、revision、可空 base、instances、virtual_anchors、show_equipment 和 display_ordinals。后者是每个资源身份的编号水位，删除最后一个副本也保留；instance_id 才是永久身份。控制项/Lua 声明状态只允许 bool/有限数值/短字符串。controls 键的完整作用域为账号/装扮 + instance_id + control_id；资源修订用于定义兼容检查。草稿与观察端恢复不保存本地正式偏好、不触发主动修改回调。
@@ -24,6 +26,34 @@ BoneRef 为 instance_id（null 为基础）、完整 path 段（name + 同名兄
 
 ## 坐标、预算与错误
 
+阶段五旧原生 Protobuf Equip/clear 使用整套替换语义：新操作在原生装备/操作回执的同一 SQLite 事务中写入仅基础或空基础配置，清空实例、虚拟锚点和编号水位，递增配置修订；重复操作只返回旧回执，不覆盖较新的装扮。配置写失败、预算拒绝或修订溢出会回滚装备、来源绑定和操作记录。现有本人原生绑定优先复用；没有来源 UUID 的旧客户端使用按本人/原生资产/修订确定的稳定 UUID 和原生正文 hash，明确不表示已恢复原始本地来源树。生产 Protobuf 适配器传入当前 outfit.limits；此接续尚不代表旧 HTTP 上传/删除和云端目录装备入口已全部归一化。
+
+普通原生 Delete 仅在删去当前基础时，同事务清空装扮配置并推进修订；删除未装备资源不重置整套配置，原操作重放也不覆盖后续配置。旧 HTTP 清除走完整替换：有本人原生资源时保留原删除/回收路径并在同事务清空全部装备与配置；当前为社区来源别名或没有本地 avatar 文件时，使用原 Equip clear 事务清除，不删除目录资源或来源别名资产。两条生产删除适配器均传当前 outfit.limits。旧 HTTP 的导入/上传和启用路径仍需后续核对，不把清除路径通过当作全部旧写入完成。
+
+旧导入在实际替换基础或 force_equipped 主动启用时，使用原生装备的共同事务归一化配置；相同正文的非强制读取不重置已有装扮。生产导入传入当前预算。归一化仅核对本人原生身份，保持旧写入和本人读取的既有封禁语义；它不授予观察者分发权。显式私有来源绑定、现代 Apply 及分发检查仍执行当前封禁，不因旧写入生成 LOCAL 投影而放行。旧固定 .moon 文件发布失败恢复、独立启用入口与云端来源上下文仍属于阶段五待验收边界。
+
+旧非临时文件发布已改为同一存储发布锁下的可恢复替换：先保留原文件，再在现有 metadata 表记入本人/操作关联的待恢复记录，替换固定文件；原生装备、装扮配置提交时在同一 SQLite 事务中删除该记录。提交失败恢复原文件，首次上传失败则移除未提交的固定文件；启动时重复执行同样恢复。没有待恢复记录的遗留清理文件不回滚已提交版本。恢复备份保留到记录删除成功，恢复本身可再次重试。读取时的旧快照在发布锁内重核当前固定文件 hash，防止读取并激活已经回滚的临时替换。原临时上传路径保持；旧管理员/内部上传不再额外重复导入，独立启用入口及云端来源上下文继续阶段五。
+
+旧 `POST /api/equip` 接受原客户端的 `[{owner,id}]` 选择列表，遵守既有单基础数量与原生资源 ID 范围；一项本人资源执行完整基础替换，空列表执行完整清除，均复用当前预算和同事务配置归一化。目录来源别名仍须经原目录授权装备入口，不能通过旧原生入口直接启用。首次旧文件导入若已完成替换，本次请求不再重复推进配置修订；已入库的原生资源可在没有旧文件时启用。无正文的历史调用继续只发送通知，不把通知误当选择/清除。云端目录装备来源归一化仍待阶段五后续接通。
+
+旧目录装备接口已在原权限/来源别名/展示意图/幂等事务中写入仅基础的 CLOUD 配置，清除旧装饰并推进配置修订。引用使用目录资源 UUID、精确修订、原生正文 SHA256 和格式，不转为 LOCAL。原操作指纹和回执保持，重放不覆盖后来的装扮；预算或配置写失败回滚装备与全部来源/配置写入。公共模型展示沿用资源设置及原默认可见，私有模型沿用本人展示意图。
+
+LibraryAccess 的原认证适配器为所有本机库请求发送固定端点的 x-omnimorph-origin，调用方不能通过可变请求头覆盖。后端目录装备优先使用原 Host 匹配校验的显式源站；缺少该头的旧请求使用唯一 Host 与单一 http/https 的 X-Forwarded-Proto，原生直连监听缺省 http。代理须保留外部 Host 并覆盖正确外部协议；该协议只标记来源命名空间，不用于认证、授权或选择其他主机。异常/重复源站或代理协议拒绝，其他身份与资源策略保持原路径。
+
+内部整套 Apply 在准备和提交事务内分别读取精确修订的装饰声明；本地声明来自本人私有绑定，云端声明来自对应元数据修订，均先执行原使用权限和预算检查。同一完整资源引用在单次检查中只读取一次，再按 instanceId 校验各副本。supported_bases 按 VANILLA/FIGURA/YSM 家族匹配；内部覆盖要求 has_bones、edit_bones 及 editable_bones 的完整路径/同级序号/骨架 hash；装饰挂点及虚拟父级仅允许 exported_bones 的同样精确引用。display_bones 只控制树显示，不能隐式授予或撤销导出/编辑能力。停用实例仍检查声明和保留的覆盖，停用父级的合法绑定可保留，其实际渲染由运行时停用规则决定；拖尾实例预算只计启用且声明为 Trail 的实例。基础骨架、实际节点存在性和解密后骨架仍由客户端加载检查，服务器不把 CLIENT_EXTRACTED 声明升级为实际骨架验证。Apply 公开能力继续关闭直到本阶段其余链路完成。
+
+阶段五内部观察者快照按一次 SQLite 读取快照解析配置、当前原生基础及双方权限。穿戴者先保有使用权，观察者再以自己的实际授权判断；私有来源仅按当前装扮展示意图允许渲染，不获得目录查看或获取资格。隐藏配置、基础不可用或旧原生投影不一致时只保留版本/空投影。实例过滤不改 UUID、显示序号或可见来源编号水位；手动父级/虚拟挂点缺失时逐级退休依赖，自动拖尾仅撤销失效优先实例。固定来源去重且资源 ID 不随仅配置变化而改变，不序列化 canonical native descriptor；本人配置管理仍返回完整原配置。该方法尚未接公开快照/正文/事件路由；显式私有来源旧正文读取边界、当前配置作用域、逐段授权及来源身份预热是公开分发前的必要检查点，不能用元数据投影代替正文授权。apply/events 继续关闭。
+
+schema 10 的 outfit_private_sources 只记录本人显式绑定的原生修订，绑定与标记同事务；自动旧归一化及迁移不推断历史私有意图。观察者通过既有原生正文入口读取此类修订时，须仍在当前获准装扮投影内，初始检查及每段均复核当前上限、展示、实例启停/依赖和权限；本人读取保持原私有资源行为。内部快照的来源检验在锁外计算实际正文身份，最终配置/权限检查要求已验证身份并重新执行封禁。该接续尚未提供正式私有上传准备：正式客户端必须在正文首次提交前声明用途，并与原生提交原子写入私有标记，不能用先普通上传、后绑定的窗口声称全程私有。公开快照、按配置修订作用域读取及事件仍未开启。
+
+正式私有来源的后端准备入口为 POST /api/library/v1/outfits/resources/uploads，请求含 operation_id、LOCAL reference、resource_kind、accessory_metadata、raw_sha256、byte_length、可选 content_sha256/schema_sha256；YSM 两类摘要均必填。预留在 schema 11 中冻结输入，正文经返回的 relative_path PUT（application/octet-stream），随后 POST /api/library/v1/outfits/resources/uploads/:operation/commit 返回 LocalBinding。重复预留返回 completed=true 和 resource 时可复用已提交源；原操作不得换输入。原生首次提交与正文验证身份、绑定、私有标记共用事务，旧原生入口不能绕过用途，重复完成释放多余 grant；不生成目录/集合条目或改变装备。使用现有原生上传权限、字节及账户资产预算，并在 grant/提交重核当前装饰声明预算。普通操作回执退役后，持久预留与固定源仍可恢复；CLIENT_EXTRACTED 不表示实际骨架已验证。客户端尚未调用该入口，公开整套 Apply/快照/作用域正文及事件仍未开启。
+
+观察者读取接口为 GET /api/library/v1/outfits/players/:owner，要求普通玩家认证及 x-omnimorph-origin/Host 匹配。schema_version=1 的快照包含 owner、revision、equipment_revision、可空 configuration、resources；每个资源含 id/reference/resource_kind/accessory_metadata、原生 distribution_format、byte_length、raw_sha256/content_sha256/schema_sha256、relative_path，不序列化 canonical native descriptor。relative_path 指向 GET /api/library/v1/outfits/players/:owner/resources/:id?revision=N；资源 ID 按穿戴者与固定引用/用途生成，不因仅配置变化而变。正文仅为当前该修订内获准依赖，修订改变409，失效/无权404；每段复核原会话、当前双方权限/封禁/上限及相同 descriptor。渲染读取不创建目录下载回执或授权入集，私有目录仍保持原策略。客户端尚未调用；仅配置变化可在重新授权后复用同一摘要的已缓存正文。缺失现代配置的旧账户须沿用原 profile 基础加载，不能直接视为用户清除。公开 Apply 和状态/事件继续未开启。
+
+PUT /api/library/v1/outfits/current 只操作当前普通认证玩家，输入 operation_id、expected_revision、configuration，并要求规范源站。成功响应 schema_version=1、operation_id、applied（configuration/equipment_revision）、current_revision；applied 是原不可变操作回执，current_revision 是响应准备时的最新配置修订。客户端必须验证操作与修订，回执已落后不得激活，并重新取得当前状态；旧回执重放不会恢复旧配置或再次广播基础兼容变更。冲突409包含原错误字段、request_id、current_revision 和本人当前 configuration，禁止自动合并/覆盖草稿。该路由尚未由正式客户端调用，apply/events 继续 false。Apply 请求/回执/冲突信封限 MAX_JSON_BYTES+4096，快照限 MAX_JSON_BYTES+8192+MAX_INSTANCES*(MAX_JSON_BYTES+4096)；配置仍严格受当前 max_json_bytes 约束，其他 API 仍保持原64KiB，不以信封容量扩大配置能力。
+
+客户端 Apply 传输已有 LibraryClient.applyOutfit：冻结输入并按当前能力/上限提交，使用独立有界信封，普通 JSON 和旧协议限制保持。Accepted 精确绑定操作、准备配置/下一修订及最新修订，完整字段与64位资源修订须相符；落后回执不能激活。Conflict 独立保留本人当前配置用于检查，不自动覆盖草稿，也不以旧配置适合协议硬边界推断符合新动态预算。激活守卫只是必要条件，正式控制器仍须持有合法原生准备、权限和当前代际。仅对所选 tagged 分支补规范 null，计入提交后修订的字节预算，不改变本地预设格式。客户端传输已做生产适配器本机 HTTP 组件验证，尚未接正式原子激活、私有来源准备/观察者运行时或事件，apply/events 仍关闭。
+
 适配器输出实体根局部空间、列向量矩阵；位置单位为模型单位（16/方块），角度为度，局部矩阵固定 `T * Rx * Ry * Rz * S`，缩放必须为正。组合为实体外层 × 目标姿态 × 锚点偏移 × 实例偏移 × 装饰姿态。原生 Figura/YSM 的轴及枢轴转换须由阶段二的原生姿态用例验证；阶段一矩阵测试仅冻结局部配置乘法约定，不冒充已验证原生适配。
 
 硬上限：32 实例、128 虚拟点、层级深度 64、单资源节点 8192、整套节点 32768、内部覆盖 1024、配置 65536 UTF-8 字节、8 拖尾/每条 256 采样。位置各轴 ±4096、旋转各轴 ±36000、缩放 [0.001,64]。现有三角形/纹理/Lua/粒子/声音权限按穿戴者汇总；服务器只能收紧。无效值/图/预算明确拒绝，不静默截断。
@@ -33,6 +63,20 @@ BoneRef 为 instance_id（null 为基础）、完整 path 段（name + 同名兄
 沿用 HTTP 错误：INVALID_REQUEST（结构/值/图）、CONFLICT（CAS/幂等参数冲突）、NOT_FOUND（本人作用域外预设）、UNAUTHENTICATED、FORBIDDEN、RATE_LIMITED、INTERNAL。Apply 阶段补充冲突的最新 revision 响应；目前不开放 Apply。
 
 ## 接口与迁移
+
+OutfitApplyResources 只在显式应用准备中协调固定配置依赖，不提交配置或激活模型。开始及重试协商当前配置/Apply 能力与 outfit.limits；LOCAL 引用按资源去重，包括停用副本，优先读取本人已有固定绑定，未绑定才读取设备原来源并私有上传，上传确认后读取服务器固定正文。准备数据以受保护缓存及当前鉴权为准，源文件随后变化不替换已经冻结的上传输入。复用 OutfitPresetResources 的云端固定依赖/修订/格式检查和逐来源错误清单，每个失败指明基础或受影响 instance_id，含失败来源的结果 ready=false。固定本地输入和错误为该准备代际私有，不影响预设原本地/云端行为。重试退休原结果、重新解析所有来源；当前会话保留已冻结操作供重试，未完成操作的跨进程恢复仍待接。账号、草稿、连接或关闭使旧回调/结果失效；完整依赖就绪仍不能代替原生骨架准备、CAS确认及正式发布。
+
+OutfitPreparation 原入口保留 DRAFT 及本地导出/编辑默认策略，正式重载要求显式 OWNER/OBSERVER、调用方持有的准备基础，以及基于当前授权来源的导出/内部编辑策略；不由作者声明自行授予云端能力。OWNER 的账号须匹配穿戴者。正式准备核对 AVATAR 基础的存活、固定来源身份和三格式，装饰须区分 Figura/明文YSM/加密YSM；不依赖 GUI 的只读骨骼开关授予能力。OutfitComposition.validatePreparedBase 在原内部覆盖校验外，核对实际基础/实例总节点、作者支持基础、实际骨架 hash 与所有导出/编辑路径（包括无用户覆盖的声明），元数据缺失或过期拒绝提交前准备。准备完成前不执行装饰 Lua，不注册正式玩家；失败关闭本次组合，基础仍归调用方所有。缺失手动挂点继续按既定控制器暂停依赖，自动模式才可使用既定回退；此原生校验不代替来源权限重检、Apply 回执代际守卫或正式激活。
+
+固定本人正文为 POST /api/library/v1/outfits/resources/local/body，请求为 reference/resource_kind/raw_sha256，不接受其他 owner 或原生路径。绑定和正文摘要不符返回409，未绑定/删除返回404，封禁等沿用既有错误；本人未穿戴、停用或已移除的来源仍可按当前授权准备。响应为 application/octet-stream、实际 Content-Length、x-omnimorph-sha256 和 private,no-store，正文不创建目录 transfer、下载计数或装备。原 DownloadPermit（全局32/每玩家2）、每段32KiB/30秒预算保持；每段重新验证当前会话、绑定、封禁/声明预算和同一 descriptor，撤销停止后续段。
+
+OutfitSourceService 使用原 LibraryClient TRANSFER 与会话退休检查，先本人解析绑定，再校验缓存/读取正文，原生 NBT 解析后重新解析绑定。缓存复用 ModelCacheCodec 的受保护容器及既有按用途的 avatars/*.oma、cosmetic/*.oms；文件名按源站、服务实例、账号、固定来源/格式/用途、原生资产/修订及 raw hash 计算，无新的明文正文或缓存后缀。缓存命中仍需当前授权，来源不变的配置变化不要求重传；损坏容器或摘要不符重取，正文头/摘要/NBT格式/用途/装饰声明不符或最终鉴权失败时不发布缓存。解析核对 YSM 密文可分发形态，但不据此声称实际骨架/运行时已准备。返回 NBT 独立复制，不加载正式 Avatar 或启动 Lua；正式准备/确认/激活控制器仍须后续接入，不能以固定正文缓存完成替代阶段五完成。
+
+本人既有来源解析为 POST /api/library/v1/outfits/resources/local/resolve，请求仅 reference（固定 LOCAL）与 resource_kind（AVATAR/ACCESSORY），owner 来自原认证，不接受指定他人身份或管理员替代。只读复用 schema 9 的现有绑定和当前原生身份/封禁/声明预算校验，不生成操作、上传预留、目录或装备；绑定不存在返回200和 resource:null，已有绑定但原生删除/封禁、用途冲突或预算拒绝仍是原错误，不能降格为空后重复上传。响应 resource 为原 LocalBinding，资产名和正整数修订允许现有旧归一化绑定，不要求与本次新上传操作派生名相同。客户端 resolveOutfitSource 严格核对引用/用途/正文摘要形状/声明及当前预算，缺 resource、错误数值和 HTTP 失败均不当作未绑定；uploadOutfitSource 预留前查询，固定正文和声明相符直接复用，已绑定但正文不同返回 CONFLICT，必须改为准备已绑定的固定正文，不能换绑。独立客户端不需要保存原上传操作来找回已完成绑定；未完成上传仍须保留原冻结操作用于重试。固定正文授权加载/缓存和正式原子激活尚未由本接口完成。
+
+客户端私有来源准备复用 LocalAvatarSource 的固定来源索引、LocalCosmeticInventory/LocalCosmeticSource 的固定声明和前后 hash 复核，不要求依赖已在当前启用快照。OutfitPrivatePreparation 仅在 worker 解析并返回独立 NBT 和冻结上传；复用 LibraryPackagePreparation 的有界分发压缩及 LibraryUploadIdentity 的 YSM 摘要计算，不改本地源文件、原生元数据或密文。OutfitPrivateUpload 固定操作 UUID、LOCAL 引用、用途/声明、raw/content/schema 摘要及正文，网络重试必须复用同一对象；不把分发 raw hash 当作来源 content_hash。LibraryClient.uploadOutfitSource 使用原 TRANSFER、认证与会话退休检查，先协商 Apply/配置能力和 outfit.limits，再走私有预留/正文/提交；已完成预留只核验绑定，不重传正文。预留路径必须严格等于当前操作的本站相对路径；回执须匹配引用、用途、声明、正文 hash、操作派生资产名及整数修订1。私有原生上传按服务端原生 grant 字节预算，不使用社区库 max_upload_bytes 替代。该组件不应用配置、不激活模型；跨重启/再次应用的既有绑定恢复及正式运行时控制器尚须接通，不能把同操作重试支持当作完整私有来源缓存。客户端目前仍尊重关闭的 apply/events，未作实际 Rust Listener 或真实 GUI/GPU 整链路声明。
+
+阶段五接续：内部 Apply 事务输入为 operation_id、expected_revision、configuration，配置自身 revision 必须等于 CAS；返回 configuration（新修订）与 equipment_revision。配置、来源别名/展示设置及基础旧投影共用现有 SQLite/manifest 提交，基础未变化不推进旧装备修订；同操作重放不覆盖更晚配置，失败不得发布候选投影。此为尚未路由的内部实现，能力 apply 保持 false；本地私有绑定、作者能力、旧写归一化和授权同步接通前不开放组合应用，不改变下列阶段五公开接口仍待接通的状态。
 
 capabilities.outfits_v1 分别声明 configuration/presets/apply/events。阶段一只开放前两项。缺失能力保持旧单形象行为，不能显示组合已同步。
 
@@ -156,3 +200,54 @@ Outfit 社区投稿的后端分支为 POST /api/library/v1/uploads/outfit：共�
 OutfitPresetsScreen 复用 AbstractPanelScreen 的背景、上下文菜单、tooltip 和输入，使用自己的 LibraryPreviewSession；父衣柜的未应用草稿/预览会话保留。保存使用当前衣柜草稿，选择预设仅预览，来源未解析的临时基础引用不能保存。只有固定依赖和原生组合准备都成功才允许导入；失败项按基础或每个副本的 ordinal/instanceId 显示，原文档和草稿保留。导入后取消恢复原基础 NBT/来源标记；关闭、账号或草稿代际变化拒绝旧控件/异步结果，展开预览的放弃同样结束该会话。自动控件派发与确定性字体度量不是实际窗口、字体或 GPU 的验收证据。
 
 本地基础资源的设备索引为数据根目录下 avatar-resource-ids.json：保存规范文件/ZIP 内目录 URI 到稳定 UUID 的映射，URI 不进入 ResourceRef 或预设。目录/普通归档按排序后的资源名与原始字节计算 hash；加密 YSM 按原始密文计算 SHA-256，不为标识而解密。加载前捕获、原生编译后复核，源变化拒绝该次发布。索引不可用可继续旧模型加载，但来源保持未知；未知来源的编辑器临时引用不能作为可重载依赖。重载 ZIP 引用时只关闭本次拥有的文件系统，借用的库存文件系统保持开放。此来源映射不表示预设依赖准备、保存/导入或正式装扮应用已经完成。
+
+正式驻留接口由 UserData.publishOutfit 接收已核对回执与正式准备的候选，在客户端线程发布 OutfitState(configuration, base, composition)。调用方仍负责服务端 CAS、回执当前性及会话权限；接口检查加载代际、穿戴者、固定基础来源及配置内容（仅允许服务端分配 revision），拒绝比驻留配置更旧的 revision。基础对象相同不清理或重载其 Lua/YSM；失败保留旧驻留且只清理本次拥有的候选。旧组合沿用 Frame 租约延迟释放，原单形象替换/clear 会退休组合；正式 tick 在同一组合预算中只 tick 基础一次，原版基础允许 base=null。当前仅有实际 UserData 原生 CPU 组件证据，尚无衣柜 Apply→CAS→激活或世界渲染整链路证据。
+
+OutfitApplyService 是显式应用控制器：冻结配置和操作 ID，固定来源汇总成功后在原模型 worker 构造正式 OWNER 组合及必要的新基础，相同固定基础来源借用驻留 Avatar；源声明、实际骨架、作者导出/编辑和当前动态预算继续校验。提交前及回执后复核能力/预算，CAS 成功还须当前 revision 等于回执、当前配置完全相同且当前账号/装备修订匹配。有效结果经捕获的 OutfitLoad 用户/代际和原连接选择守卫发布；失败或冲突不替换驻留，冲突只返回待 UI 处理。会话内重试重新鉴权/准备但保留同一操作与 CAS 配置，防止丢回执导致重复提交。仅有实际 Java 控制器、HTTP 契约夹具与原生驻留的集成证据；真实 Rust Listener、世界画面和跨端同步仍未据此验收。
+
+衣柜的正式草稿基线来自当前服务器整套配置与真实 revision，固定依赖读取后再复核配置相同才安装；失败保持原编辑基线，原版旧账户的 revision 0 单形象捕获路径保持，未知来源仍不能 Apply/导出。固定来源的 NBT/作者声明可供原预览与编辑器读取，不要求原本地文件存在。正式 Apply 与重试分别进入新操作/相同冻结操作，成功后重新读取当前编辑基线；成功提交后的刷新失败明确提示已应用，不能假报回滚。Conflict 保留编辑和原配置，禁用继续覆盖，用户确认放弃未应用编辑后才显式刷新，不自动合并。取消仅取消未完成操作和草稿编辑；已提交服务端状态不会被宣称撤销。连接/账号/世界/页面及编辑代际继续约束异步结果，来源错误在原预览滚动区逐基础/副本展示。能力未协商或 Apply=false 时正式入口不可用，离线草稿仍沿原预览/预设路径。
+
+OutfitRenderBinding 在实体状态提取时冻结正式 OutfitState、实体和组合 Frame；若状态属于隔离预览则完全沿原 LibraryPreviewBinding，预览无基础/无组合也不能回退到正式装扮。AvatarManager 的状态查询优先取已捕获基础/实体，原版正式组合允许基础为 null。世界及第一人称共用原组合原生矩阵/姿态与绘制入口，不修改 YSM 本体手部或动画行为。UserData 替换/清空时保留被本帧引用的旧基础，组合继续使用原 Frame 租约；GameRenderer.render finally 在普通/无GUI/异常结束路径关闭正式帧并清理已退休基础。编译和 CPU 原生生命周期回归不替代实际 Mixin 注入、GPU 或世界/双手画面验收。
+
+正式全局事件在组合 Lua/Molang 预算内先执行基础，再分发到可信控制器当前已挂载且已初始化的存活副本；停用、未解析或失败副本不因此启动作者脚本。先结束活动集合查询再调用作者，嵌套声音/资源分发不重入控制器。正式 WORLD_RENDER/POST_WORLD_RENDER 沿原全局入口，逐视图保留 RENDER 和动画准备，DRAFT 仍沿原预览行为。主 ActionWheel 对正式驻留采用原组合投影与实际所有者；热栏、滚轮、释放均接通，基础回调在没有可用装饰动画页时也不能回退到无组合预算的入口。无正式驻留时保留原单形象入口。正式控件/持久值与跨端状态/事件尚待阶段五后续接续。
+
+正式控件沿原 AvatarControlsScreen.open 进入捕获当前本地 OutfitState 的页面，草稿专用入口保持优先。只编辑当前基础或启用、存活的 OWNER 副本；观察者/退休副本不得回退到普通可编辑页面。基础/实例值和按钮回调共用组合预算，控件定义与实际所有者一致才执行。账号、世界、连接 epoch、驻留配对或页面生命周期变化使旧回调失效；副本值按原 CosmeticInstanceContext 隔离，装饰不进入旧按模型共享的轮盘布局编辑。本入口不承担尚未接通的跨端状态持久化/恢复，不能将上下文值当已提交服务器的配置值。
+
+OutfitObserverSnapshot 是授权渲染投影，来源集合必须与投影配置的基础/启用实例完整固定引用及用途相符，同资源不同修订分别保留。资源 URL 必须精确匹配穿戴者、配置修订与资源 ID，不接受外站地址；读取不会获取目录权或触发入集。revision 0 标记旧账号降级条件，现代隐藏配置不能回退原基础。OutfitObserverSources 使用已有保护缓存；即使命中也在解析前后重新鉴权并比较当前完整投影，配置或权限变化拒绝旧结果。正文缓存按源站/服务实例/观察账号/穿戴者/固定来源与摘要隔离，配置修订改变不要求重复下载未变正文。该读取组件尚未代表观察者正式驻留、事件订阅或跨端状态恢复已接通。
+
+OutfitObserverService 的调用方必须提供当前连接/用户映射/订阅身份守卫；服务同时约束会话、世界、远端穿戴者和原生加载代际。授权来源只用于 OBSERVER 原生组合，基础保持非 host，发布前重新核对完整投影与最终上限。相同固定基础借用旧运行时，失败不清理借用基础；新基础与组合遵守候选所有权。当前隐藏可退休旧驻留，较旧可见/隐藏快照不得影响较新驻留；LEGACY 结果交回原 profile 协调器。该组件尚待连接订阅调度、策略/上限通知和状态/事件接线，不替代这些阶段五要求。
+
+NetworkStuff 对已订阅且有实体的远端用户调用观察者服务；原 profile 的现代分支仅更新徽章，只有明确 LEGACY 才加载其旧基础。实体迟到时由 tick 接续；刷新先退休旧请求代际，旧 profile/body 不能覆盖新组合。观察者记录还核对用户映射、连接、世界、实体和订阅身份，离开/取消/服务退休释放正式驻留；显式刷新只取消候选，保留可复用基础。临时请求失败20 tick后恢复，tick 每次最多补充两个加载，永久格式/摘要/权限错误不自动循环。独立 outfit-events、策略/上限通知及实例状态/控件恢复仍须接通，不能用现有旧 changed 通知替代。
+
+### 阶段五：独立修订通知线协议（2026-10-24）
+
+后端新增 `GET /api/library/v1/outfit-events` WebSocket，子协议 `omnimorph.outfit.v1`，使用现有 Figura Bearer 或 Protobuf scoped Bearer/epoch 请求头，要求规范 `x-omnimorph-origin`；拒绝 query 参数，token 不进入 URL。此检查点只实现配置失效通知，尚无实例状态写入，客户端未接入，`events` 仍 false。
+
+- 客户端文本 JSON 字段为 `schema_version=1`、正整数 `connection_epoch`、`type` 和可选 `owners` UUID数组；拒绝未知字段、重复 UUID、超出128项及超过16KiB的消息。连接 epoch 不超过有符号64位正整数；Protobuf HELLO 必须匹配已有认证 epoch。首帧10秒内必须为无 owners 的 HELLO，后续支持 SUBSCRIBE、UNSUBSCRIBE、无 owners 的 HEARTBEAT。
+- 服务端每帧含 `schema_version`、`connection_epoch`、连接内递增 `sequence` 和字符串 `server_epoch`。既有随机 u64 服务器 epoch 作为不透明十进制字符串，避免 Java 有符号 long 溢出。HELLO_ACK 另含现有 `instance_id`，不创建新身份。
+- SUBSCRIBE/UNSUBSCRIBE 回复 ACK（command 指明操作）。初始订阅顺序直接发送每个 owner 的 CHANGED，不把128项初始通知塞进32项队列；重复订阅可重新取得当前修订。CHANGED 仅含 owner、revision、equipment_revision，不携带资源名称、固定引用、脚本或正文。发送前读取当前观察者投影，原认证在读取前和发送前均复核；通知后由 HTTP 授权快照决定可见内容。
+- 复用 EventHub 的提交后/策略变更失效广播、SessionRegistry 的每账号8连接限制、每连接32消息/256KiB共享队列及每账号32消息/秒、256KiB/秒预算。只转换 AvatarChanged，不转发旧管理字节、Figura ping 或冻结 YSM 消息。队列溢出或广播缺口要求 RESYNC_REQUIRED（code=SNAPSHOT_REQUIRED）并关闭；普通无效命令返回 ERROR，其他可恢复错误返回 RESYNC_REQUIRED。封禁/认证失效直接关闭，不能借错误响应继续泄漏消息。
+- 每20秒认证心跳并比较当前后端 outfit.limits，变化发送 LIMITS_CHANGED，客户端需重新读取能力/预算及当前快照；60秒无有效存活响应关闭，单次发送最多等待5秒。旧已在途帧可能先到，客户端仍必须在缺号/重同步/断线后重建快照基线，不能仅依赖事件保存状态。连接退休只删除自身注册及订阅 worker，不退休原主连接的 Protobuf 凭据。
+
+该协议的真实后端 WebSocket 夹具已有7项通过；完整 Java 通道、自动重连/基线恢复和受限实例状态仍待阶段五后续检查点，不能以本段声明其完成。
+
+### 阶段五：Java 修订通道组件接续（2026-10-24）
+
+LibraryAccess 新增固定同源 outfit-events 连接，原 wire adapter 的认证闭包只在内部为握手写请求头，不向 GUI/脚本公开凭据；每个 access 最多一个事件连接，拒绝/退休的握手释放名额。CloudSocket 增加明确文本模式，保留旧二进制构造与冻结消息语义，共用32项/256KiB写队列、分片大小、5秒写超时及实时源站权限检查。
+
+LibraryClient 持有 OutfitEvents，close 时退休。服务由客户端 tick 驱动，仅在 capabilities.enabled、configuration、events 同时支持时连接，缺失能力不连接。文本每帧16KiB；客户端收件队列最多132帧/256KiB，容纳完整128玩家初始通知及 ACK，每 tick 最多派发32帧，超限恢复。所有业务回调发生在调用 tick 的客户端线程；过期建连代际不能继续投递。
+
+解析严格验证字段、数值类型/64位范围、schema、连接 epoch、逐帧 sequence、字符串 server epoch 和 HELLO 顺序；新 HELLO/断线/缺号/实例不符/RESYNC_REQUIRED/超时重新建立通知基线，采用1～30秒有界退避。服务不按 revision 去重，同修订策略失效仍发 changed 回调；未知 owner（当前集合外且非本人）不驱动加载。HEARTBEAT 按20秒周期发送，收到 HEARTBEAT 不立即回发，避免命令回复形成循环。LIMITS_CHANGED 发专门回调，由协调器重新读预算。
+
+身份沿用原命名空间：Figura 的 LibrarySession.instance 为 `figura:<origin>`，通过已有认证和同源握手接受服务端实例；Protobuf 为 `<origin>/<instanceId>`，与 HELLO 的服务实例组合后核对，也接受直接实例标识的既有组件会话。每次重连都要求重新取授权快照，服务自身只输出失效/恢复回调，不假称已安装正式配置。
+
+原 Figura/Protobuf 适配器→真实 Rust Listener 已验证完整128玩家通知、HTTP 提交后的失效、实际事件 socket 断开及超时/退避/重新握手/通知基线、原主连接认证保留和退休清理。后续正式协调及实例状态已按下节接通，S5 自动门禁后公开 apply/events 能力。真实 Minecraft 双客户端仍 MANUAL/PENDING。
+
+### 阶段五：正式实例状态（2026-10-24）
+
+- `GET /api/library/v1/outfits/players/{owner}/instances/{instance}/state` 按当前观察者投影读取；`POST /api/library/v1/outfits/instances/{instance}/state` 仅写入认证本人。复用原 Bearer/epoch、origin、库 CONTROL lane 和共享账号预算，不新增认证/协议框架。
+- JSON 顶层为 `outfit_revision, instance_id, resource, revision, state`；state 为 `generation, sequence, controls, lua_state, animation, template_version, template_signature`。animation 为 nullable 的既有有界 YSM M7 full snapshot Base64；模板字段成对为空或版本（≤64字节）与64位小写十六进制签名。固定资源/作者索引/content/schema 不相容时拒绝消费，不改冻结 v1 字段。
+- 单实例 revision CAS；同 generation 的 sequence 连续，新 generation 从1开始；完全相同的上一请求可重放回执。保存到现有 metadata 表，配置 revision 改变回到声明基线；双副本分别存储。读写均在同一数据库快照检查当前资源使用/展示/观察权限。
+- controls/Lua state 只接受布尔、有限数值、受限字符串，使用当前 `outfit.limits` 条目数与字符串预算；state 序列化≤64KiB。Lua 显式 `cosmetic_state:get/set` 声明 scalar，不遍历作者全局/函数/对象图；OBSERVER 输入不写回。
+- 提交后发送 `STATE_CHANGED`（公共帧头加 owner/instance_id/outfit_revision/state_revision），不在 WS 广播正文。发送前重新授权；旧 Figura Ping/Protobuf 事件适配器忽略新业务事件。客户端按在途通知修订继续读取，旧回应不清除较新失效。
+- 新驻留、断线/缺号/epoch变化后读取授权配置和实例基线；基线跳过历史一次性事件，正常增量仅在对应实例执行，粒子由本地授权事件生成。OWNER 动画继续本地时间线，持久 scalar 从基线恢复；OBSERVER 通过原 YsmSyncModel 应用动画/控件，不产生 OWNER 回传。

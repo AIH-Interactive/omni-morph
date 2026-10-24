@@ -25,6 +25,7 @@ import java.util.UUID;
 public final class OutfitCompositionSmokeTest {
     public static void run(CompoundTag prepared) throws Exception {
         OutfitAnchorSmokeTest.run();
+        testFormalGlobalEvents();
         PlayerModel model = new PlayerModel(LayerDefinition.create(
                 PlayerModel.createMesh(CubeDeformation.NONE, false), 64, 64).bakeRoot(), false);
         var base = new VanillaSkeletonAdapter(model, OutfitLimits.defaults());
@@ -164,6 +165,101 @@ public final class OutfitCompositionSmokeTest {
             } else {
                 instances.values().forEach(Avatar::clean);
             }
+        }
+    }
+
+    private static void testFormalGlobalEvents() throws Exception {
+        UUID account = UUID.randomUUID();
+        var wearer = new EventWearer();
+        wearer.setUUID(account);
+        var permissions = new PermissionPack.PlayerPermissionPack(
+                new PermissionPack.CategoryPermissionPack(Permissions.Category.DEFAULT), account.toString());
+        String counters = """
+                worlds, posts, renders = 0, 0, 0
+                function events.world_render() worlds = worlds + 1 end
+                function events.post_world_render() posts = posts + 1 end
+                function events.render() renders = renders + 1 end
+                """;
+        CompoundTag data = new CompoundTag();
+        var scripts = new CompoundTag();
+        scripts.putByteArray("counters", counters.getBytes(StandardCharsets.UTF_8));
+        data.put("scripts", scripts);
+        Avatar base = Avatar.createLibraryPreview(account, "formal global base");
+        base.load(data.copy());
+        base.initializePreviewPlayer(wearer);
+        var baseResource = resource(OutfitConfig.Format.FIGURA);
+        var skeleton = new FiguraSkeletonAdapter((top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer) base.renderer,
+                baseResource, null, new SkeletonIndex.Cache(), OutfitLimits.defaults());
+        var anchor = new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.BASE_BONE, null,
+                skeleton.binding().definition().reference(null, skeleton.binding().definition().roots().getFirst()), null, null, null);
+        var resource = resource(OutfitConfig.Format.FIGURA);
+        var declarations = List.of(instance(resource, 1, true, anchor, 0), instance(resource, 2, true, anchor, 0),
+                instance(resource, 3, false, anchor, 0), instance(resource, 4, true, OutfitConfig.AnchorRef.authorDefault("missing"), 0));
+        var instances = new LinkedHashMap<UUID, Avatar>();
+        UUID identity = UUID.randomUUID();
+        for (var declaration : declarations) {
+            var context = new CosmeticInstanceContext(account, identity, account, declaration,
+                    OutfitLimits.defaults(), CosmeticInstanceContext.Scope.OWNER);
+            Avatar avatar = Avatar.createCosmetic(context, permissions, "formal global instance");
+            avatar.load(data.copy());
+            instances.put(declaration.instanceId(), avatar);
+        }
+        var configuration = new OutfitConfig(1, 0, baseResource, declarations, List.of(), Map.of(resource.identity(), 4), false);
+        try (var composition = new OutfitComposition(configuration, OutfitLimits.defaults(), wearer, instances, new SkeletonIndex.Cache())) {
+            var matrices = new java.util.IdentityHashMap<top.aihmc.omnimorph.model.FiguraModelPart, Matrix4f>();
+            skeleton.binding().parts().forEach(part -> matrices.put(part, new Matrix4f()));
+            var pose = SkeletonPose.fromNative(skeleton.binding(), matrices, new Matrix4f(), SkeletonPose.NativeUnits.MODEL_UNITS);
+            var views = new int[1];
+            for (int index = 0; index < 2; index++) {
+                try (var frame = composition.retain()) {
+                    composition.withBaseBudget(base, () -> frame.draw(pose, null, 0.5f,
+                            top.aihmc.omnimorph.model.rendering.EntityRenderMode.RENDER, draw -> views[0]++));
+                }
+            }
+            require(views[0] == 4, "two formal views prepare both mounted instances");
+            var scopes = new ArrayList<OutfitInstructionBudget>();
+            composition.executeAll(base, avatar -> {
+                scopes.add(OutfitInstructionBudget.current(avatar));
+                avatar.render(0.5f);
+            });
+            composition.executeAll(base, avatar -> avatar.postWorldRenderEvent(0.5f));
+            require(scopes.size() == 3 && scopes.getFirst() != null
+                            && scopes.stream().allMatch(value -> value == scopes.getFirst()),
+                    "global base and each mounted instance use one instruction ledger");
+            require(base.luaRuntime.run(base.luaRuntime.load("base global counts", "assert(worlds == 1 and posts == 1)"),
+                    new Avatar.Instructions(4096)) != null && !base.scriptError, "base receives one global event pair");
+            for (int index = 0; index < 2; index++) {
+                Avatar avatar = instances.get(declarations.get(index).instanceId());
+                require(avatar.luaRuntime.run(avatar.luaRuntime.load("formal global counts",
+                                "assert(worlds == 1 and posts == 1 and renders == 2)"), new Avatar.Instructions(4096)) != null
+                                && !avatar.scriptError, "formal per-view preparation does not duplicate global world events");
+            }
+            require(instances.get(declarations.get(2).instanceId()).luaRuntime == null
+                            && instances.get(declarations.get(3).instanceId()).luaRuntime == null,
+                    "global callbacks never initialize disabled or unresolved instances");
+            var nested = new int[1];
+            composition.executeAll(base, avatar -> {
+                if (avatar == base) {
+                    composition.executeAll(base, ignored -> nested[0]++);
+                }
+            });
+            require(nested[0] == 3, "nested global callbacks query a trusted snapshot outside its running controller VM");
+        } finally {
+            base.clean();
+        }
+        System.out.println("PASS formal global events: trusted active set, shared base/instance scope, one world pair, multiple views, paused copies and nested dispatch");
+    }
+
+    /** Supply the entity accessor normally installed by Mixins in the plain JVM fixture. */
+    private static final class EventWearer extends net.minecraft.world.entity.decoration.ArmorStand
+            implements top.aihmc.omnimorph.mixin.EntityAccessor {
+        private EventWearer() {
+            super(net.minecraft.world.entity.EntityType.ARMOR_STAND, null);
+        }
+
+        @Override
+        public net.minecraft.world.level.Level getLevel() {
+            return net.minecraft.client.Minecraft.getInstance().level;
         }
     }
 

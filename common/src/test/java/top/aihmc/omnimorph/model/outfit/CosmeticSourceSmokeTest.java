@@ -26,10 +26,10 @@ import java.util.zip.ZipOutputStream;
 
 /** Native preparation/data/cache checks only; this does not validate GUI or world rendering. */
 public final class CosmeticSourceSmokeTest {
-    public static void run(Path workspace) throws Exception {
+    public static void run(Path workspace, Runnable drain) throws Exception {
         Path data = Files.createTempDirectory("cosmetic-source-test-");
         try {
-            testSources(data, workspace);
+            testSources(data, workspace, drain);
             top.aihmc.omnimorph.wizards.CosmeticCreationSmokeTest.run(data);
             top.aihmc.omnimorph.model.library.LocalCosmeticCatalogSmokeTest.run(data);
             testIndexes();
@@ -44,7 +44,7 @@ public final class CosmeticSourceSmokeTest {
         }
     }
 
-    private static void testSources(Path data, Path workspace) throws Exception {
+    private static void testSources(Path data, Path workspace, Runnable drain) throws Exception {
         Path root = Files.createDirectories(data.resolve("cosmetics"));
         Path figura = Files.createDirectories(root.resolve("星翼"));
         Files.writeString(figura.resolve("cosmetic.json"),
@@ -77,6 +77,7 @@ public final class CosmeticSourceSmokeTest {
             require(LocalAvatarLoader.getLoadState().equals(loadState), "detached preparation does not change wardrobe loading state");
             var cipher = entries.stream().filter(value -> value.path().equals(wrapper)).findFirst().orElseThrow();
             var wrapped = LocalCosmeticSource.prepare(wrapper, UUID.randomUUID(), cipher.source().contentHash(), () -> false);
+            OutfitFormalPreparationSmokeTest.run(prepared.nbt(), wrapped.nbt(), drain);
             require(wrapped.description().format() == OutfitConfig.Format.YSM_ENCRYPTED
                     && wrapped.nbt().getCompoundOrEmpty("metadata").getStringOr("format", "").equals("ysm-native"),
                     "encrypted wrapper keeps the original native YSM path");
