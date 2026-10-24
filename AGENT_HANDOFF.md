@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-24（Asia/Seoul，计划自动实施及公共 Bug 代码修复已推送）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
+更新时间：2026-10-24（Asia/Seoul，重进配装页自动草稿修复及验证完成）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
 
 ## 接续入口与约束
 
@@ -173,3 +173,28 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 
 证据：JAR 9d1a6fd8 全部诊断（基础骨骼未解析/标准挂点/位置缺失/准备与 tick 脚本错误/指令预算/绘制跳过）在手动挂点时均未触发，仅剩第一人称手臂分支与 AI Hobbyist 无 wing_anchor 两条预期日志；离线真实数据生产路径确认 test2 绘制 48 顶点。测试环境记录渲染器顶点坐标全为 0，无法离线判断位置/尺寸，bounds 探针已撤回未提交。用户新报：重进后骨骼树搜索不到 test（上一轮重进仍显示 test2 于 Seg13），而恢复日志为 revision 93 / 1 实例完成。
 未验证假设：①装饰已绘制但位置/尺寸不可见（需真实窗口）；②重进后从已恢复配装重建草稿时实例未进入预览层级（需离线回放恢复→重建草稿链路）。不再盲目增加诊断轮次。诊断日志全部保留于 main@7636e4af。
+
+## 当前有效交接：重进后配装页骨骼树无装饰（2026-10-24 17:50，额度预警暂停）
+
+额度：可靠接口 Pro，5 小时已用 92%（约 1h10m 后重置，UTC 2026-10-24T09:59:59Z），周已用 13%；已进入 ≤10% 预警，停止新任务。
+
+已定位根因（代码阅读确认，未经真实游戏验证）：打开衣柜/切到配装页不会自动生成草稿；草稿只在选中条目、添加实例、预设、刷新等操作后才从已加载配装（AvatarManager.getLoadedOutfit）生成。因此重进后默认骨骼树只显示当前形象，搜不到装饰；服务器保存与登录恢复均正常（日志 revision 93 / 1 实例完成）。
+
+未提交的工作区修改（main@59f34fcc 之上）：
+- WardrobeScreen.java：新增 showLoadedOutfitDraft()，在 init（新建预览会话且无选中、无草稿预览时）与 switchTab（切到配装页且无选中、无草稿预览时）调用；仅当本地存在已加载配装或本地预览状态时 beginOutfitDraft() 后 previewOutfitDraft()，纯本地、不读服务器。
+- LibraryPreviewRuntimeSmokeTest.java：新增 testOutfitTabShowsLoadedOutfit（构造已加载 OWNER 配装放入 LOADED_USERS，switchTab(COLLECTION→OUTFIT)，断言草稿=提交配置、骨骼树含实例、预览有运行实例），并在 run() 中于 testWardrobeDraftActions 之后调用。
+验证状态：失败（测试夹具问题，非修复本身）。alpha4-outfit-tab-restored-final.log：switchTab 末尾 rebuildWidgets 触发 Minecraft.getLastInputType() 为 null 的 NPE。
+
+最小下一步：①测试中改为直接反射调用 showLoadedOutfitDraft()（避开 rebuildWidgets），或为测试设置 Minecraft lastInputType 替身；②前台跑 libraryPreviewRuntimeSmokeTest/outfitApplyClientSmokeTest/fabric:build；③通过后更新进度/验收文档并提交推送；④用户换包验证重进后配装页直接显示装饰。另一独立未决问题：同一会话内手动挂上的装饰在真实游戏不可见，全部诊断未触发，离线确认绘制 48 顶点但测试渲染器坐标恒为 0，需真实窗口确认位置/尺寸（见上一节）。约束不变：main 分支、JDK25、前台 PowerShell Tee 日志、人工项不得标 PASS、后端未改。
+
+## 当前有效交接：重进后配装页自动显示已提交配装（2026-10-24）
+
+本节覆盖上方“17:50 额度预警暂停”及其最小下一步。根因已确认（代码阅读，未经真实游戏验证）：打开衣柜或切到配装页不会自动生成草稿（草稿只在选中条目、添加实例、预设、刷新等操作后才从已加载配装生成），重进后默认骨骼树只显示当前形象；服务器保存与 OWNER 恢复均正常（revision 93 / 1 实例）。
+
+修复：WardrobeScreen 新增 showLoadedOutfitDraft()，在新建预览会话的 init 与切到配装页（无选中、无草稿预览）时调用；仅当本地存在 AvatarManager.getLoadedOutfit 或 LocalOutfitPreview.state 时 beginOutfitDraft 后 previewOutfitDraft；纯本地、不读服务器。未改提交/恢复/协议/后端/版本。
+
+测试：新用例 testOutfitTabShowsLoadedOutfit 走真实 switchTab；按既有测试做法抑制 widget 重建并设置 Minecraft lastInputType，避开 headless fixture 的 getLastInputType NPE；awaitDraftComposition 改从声明类读取 outfitDraft；用例结束恢复 LOADED_USERS、PermissionManager PLAYERS、lastInputType 与当前玩家。alpha4-outfit-tab-restored-final.log PASS（54 秒）：libraryPreviewRuntimeSmokeTest（草稿=已提交配置、骨骼树含实例、预览有运行实例）、outfitApplyClientSmokeTest、fabric:build；git diff --check PASS。
+
+主仓库 main，提交前基线 59f34fcc；本轮源码/测试/进度/交接纳入随后提交推送，最终以 git rev-parse HEAD 与 git ls-remote origin refs/heads/main 一致为准。后端 master 未修改，原未跟踪 build.log/spm-cloud 与 .omc/ 保留；未新建分支、未改版本。最终 JAR：fabric/build/libs/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar，18273350 字节，SHA256 9a780a3d9be982977dfa6b6c7d6f5515cb757716c05c4759e2fcef5caf1abf3a。
+
+最小下一步：用户换新包重启客户端，重进后直接打开衣柜配装页，确认骨骼树/预览显示已提交装饰（MANUAL/PENDING）；若仍缺失，提供 latest.log 从实际恢复与草稿生成接续。另一独立未决问题保留：同一会话内手动挂载的装饰在真实游戏不可见，既有诊断均未触发，离线顶点计数与测试渲染坐标不能证明真实窗口位置/尺寸，需真实窗口确认。额度未可靠读取，未推测。
