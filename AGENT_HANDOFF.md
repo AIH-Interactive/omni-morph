@@ -150,3 +150,7 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 ## 当前有效交接：重开衣柜本地装饰“资源不可用”已修复（2026-10-24）
 
 覆盖上方“排查中”。诊断证实提交/保存/恢复均成功、后端无问题；客户端重建草稿未登记本地装饰。已加 bindLocalDraftResources 并回归 PASS（alpha4-restored-local-draft-final.log）。JAR SHA256 9564127bafc3b77bf69baf852c6ae17d2f8d335645a98cde41867da8ff8a3643。最小下一步：用户换包重进验证衣柜骨骼树显示本地装饰；云端 YSM 显示同属 MANUAL/PENDING。“Outfit owner restore” 诊断日志保留（低频、无敏感信息）。额度不可读取。
+
+## 当前有效交接：配装页禁用旧“启用/上传”（2026-10-24）
+
+覆盖上方下一步。根因：提交后点配装页 publish_current 走旧装备接口，后端按设计用单一基础替换配装、清空装饰。按用户选择，服务器支持配装提交时禁用该按钮（旧后端保留）。回归 PASS，JAR SHA256 7b38b87434042a4264da7cf08217ff79bb0972c3214f9fbf18ccc5a1365e46e1。后续项（未实施，待用户决定）：手动 BASE_BONE 挂点状态恒显示“未解析到挂载目标”的误报（cosmetic_controller.lua 仅对 AUTO_TRAIL recordMountTarget）。最小下一步：用户换包确认提交→重进后装饰保留；云端 YSM 显示、诊断日志现状同上。额度不可读取。

@@ -1783,6 +1783,9 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private void publishCurrent() {
+        if (outfitApplyAvailable()) {
+            return;
+        }
         if (selected != null) {
             enableSelection();
         } else {
@@ -3581,7 +3584,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
                     && (selected.path() != null || client != null && client.current())
                     : NetworkStuff.canUpload() && !AvatarManager.localUploaded
                         && current != null && current.loaded && current.nbt != null;
-            uploadButton.setActive(canPublish);
+            // Legacy enable/upload replaces the whole committed outfit with one base; outfits use Apply instead.
+            uploadButton.setActive(canPublish && !outfitApplyAvailable());
         }
         if (deleteButton != null) {
             deleteButton.setActive(NetworkStuff.isConnected() && AvatarManager.localUploaded && !uploading);
