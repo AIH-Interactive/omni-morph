@@ -817,8 +817,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
                                 && instance.resource().equals(group.instance().resource()));
     }
 
-    Component cosmeticControlName(OutfitComposition.ControlGroup group) {
-        return instanceName(group.instance());
+    Component cosmeticResourceName(OutfitConfig.ResourceRef resource) {
+        return resourceName(resource);
     }
 
     void saveCosmeticControls(OutfitComposition.ControlGroup group) {
@@ -2638,17 +2638,18 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private Component instanceName(OutfitConfig.Instance instance) {
-        var resource = draftResources.get(instance.resource());
-        var cloud = draftCloudResources.get(instance.resource());
-        Component name;
+        return resourceName(instance.resource()).copy().append(" #" + instance.displayOrdinal());
+    }
+
+    private Component resourceName(OutfitConfig.ResourceRef reference) {
+        var resource = draftResources.get(reference);
+        var cloud = draftCloudResources.get(reference);
         if (resource != null) {
-            name = new WardrobeCollectionGrid.Entry(null, null, resource).name();
-        } else {
-            var metadata = draftMetadata(instance.resource());
-            name = cloud != null ? Component.literal(cloud.name())
-                    : metadata == null ? text("unavailable") : Component.literal(metadata.common().name);
+            return new WardrobeCollectionGrid.Entry(null, null, resource).name();
         }
-        return name.copy().append(" #" + instance.displayOrdinal());
+        var metadata = draftMetadata(reference);
+        return cloud != null ? Component.literal(cloud.name())
+                : metadata == null ? text("unavailable") : Component.literal(metadata.common().name);
     }
 
     private CosmeticMetadata draftMetadata(OutfitConfig.ResourceRef reference) {
