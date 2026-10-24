@@ -1147,5 +1147,15 @@
   "omni-morph.gui.wardrobe.instance_auto_trail": "自动拖尾挂点",
   "omni-morph.gui.wardrobe.instance_unbound": "待重新绑定",
   "omni-morph.gui.wardrobe.instance_bound_target": "当前绑定目标",
-  "omni-morph.gui.wardrobe.instance_transform_invalid": "请输入允许变换范围内的有限数值。"
+  "omni-morph.gui.wardrobe.instance_transform_invalid": "请输入允许变换范围内的有限数值。",
+  "omni-morph.gui.wardrobe.local_preview": "本地实时配装预览",
+  "omni-morph.gui.wardrobe.local_preview_help": "仅在衣柜和自己的游戏世界预览草稿，不上传；关闭后恢复已装备配装。",
+  "omni-morph.gui.wardrobe.quick_mount": "一键挂载到骨骼…",
+  "omni-morph.gui.wardrobe.quick_mount_help": "复用已加载骨骼，将装饰新副本挂载到所选目标。",
+  "omni-morph.gui.wardrobe.quick_mount_here": "挂载到此骨骼",
+  "omni-morph.gui.wardrobe.preview_loading": "正在准备本地预览…",
+  "omni-morph.gui.wardrobe.preview_unavailable": "实例已停用或脚本失败",
+  "omni-morph.gui.wardrobe.preview_waiting": "等待预览绘制…",
+  "omni-morph.gui.wardrobe.preview_unresolved": "未解析到挂载目标，请选择有效骨骼",
+  "omni-morph.gui.wardrobe.preview_mounted": "已挂载"
 }

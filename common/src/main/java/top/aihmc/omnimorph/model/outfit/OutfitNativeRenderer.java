@@ -39,6 +39,8 @@ public final class OutfitNativeRenderer {
                         drawInstance(frame, command, delta, entityToDraw, buffers, state.lightCoords, mode))));
         if (mode == EntityRenderMode.FIGURA_GUI) {
             PreviewBoneHighlight.drawSkeleton(frame.previewHelpers(basePose), entityToDraw, buffers);
+        } else {
+            frame.drawLocalParticles(entityToDraw, buffers, delta);
         }
     }
 
@@ -71,7 +73,12 @@ public final class OutfitNativeRenderer {
                 // Cancel that basis at its input, leaving the mount matrix followed by authored transforms.
                 mounted.scale(16).rotateZ((float) Math.PI).translate(0, -1.5f, 0);
                 stack.mulPose(mounted);
-                var wearer = avatar.luaRuntime == null ? null : avatar.luaRuntime.getUser();
+                net.minecraft.world.entity.Entity wearer;
+                if (frame != null) {
+                    wearer = frame.renderWearer();
+                } else {
+                    wearer = avatar.luaRuntime == null ? null : avatar.luaRuntime.getUser();
+                }
                 command.figuraPose().draw(() -> {
                     Runnable nativeDrawing = () -> avatar.render(wearer, 0, delta, 1, stack, buffers, light,
                             OverlayTexture.NO_OVERLAY, null, PartFilterScheme.MODEL, false, false);

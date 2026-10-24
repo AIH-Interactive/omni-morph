@@ -83,6 +83,10 @@ public final class OutfitComposition implements AutoCloseable {
         return limits;
     }
 
+    public OutfitConfig configuration() {
+        return configuration;
+    }
+
     public Map<UUID, Avatar> runtimeInstances() {
         if (closed) {
             return Map.of();
@@ -155,6 +159,10 @@ public final class OutfitComposition implements AutoCloseable {
 
     public MountTarget previewMountTarget(UUID instance) {
         return closed ? null : previewMountTargets.get(instance);
+    }
+
+    public boolean hasPreviewFrame() {
+        return !closed && previewMountSequence > 0;
     }
     private final Set<UUID> editableInstances = new HashSet<>();
     private final Map<UUID, UUID> automaticTailSelections = new HashMap<>();
@@ -503,11 +511,15 @@ public final class OutfitComposition implements AutoCloseable {
 
     /** Retain at render extraction; release only when the native deferred frame has finished. */
     public Frame retain() {
+        return retain(wearer);
+    }
+
+    Frame retain(LivingEntity viewWearer) {
         if (closed) {
             throw new IllegalStateException("OUTFIT_COMPOSITION_CLOSED");
         }
         retainedFrames++;
-        return new Frame();
+        return new Frame(viewWearer);
     }
 
     /** Global events share the same quotas and only reach instances accepted by the trusted mount selector. */
@@ -589,10 +601,12 @@ public final class OutfitComposition implements AutoCloseable {
 
     public final class Frame implements AutoCloseable {
         private final long sequence = ++frameSequence;
-        private final Object world = wearer == null ? null : wearer.level();
-        private final double worldTick = world == null ? 0 : wearer.level().getGameTime();
-        private final Vec3 previousPosition = world == null ? Vec3.ZERO : wearer.getPosition(0);
-        private final Vec3 currentPosition = world == null ? Vec3.ZERO : wearer.getPosition(1);
+        private final LivingEntity viewWearer;
+        private final Object world;
+        private final double worldTick;
+        private final Vec3 previousPosition;
+        private final Vec3 currentPosition;
+
         private float delta;
         private SkeletonPose basePose;
         private LivingEntityRenderState renderState;
@@ -617,6 +631,18 @@ public final class OutfitComposition implements AutoCloseable {
         private boolean previewRoot;
         private final Map<UUID, MountTarget> mountTargets = new HashMap<>();
         private List<PreviewBoneHighlight.Segment> previewHelpers;
+
+        private Frame(LivingEntity viewWearer) {
+            this.viewWearer = viewWearer;
+            world = viewWearer == null ? null : viewWearer.level();
+            worldTick = world == null ? 0 : viewWearer.level().getGameTime();
+            previousPosition = world == null ? Vec3.ZERO : viewWearer.getPosition(0);
+            currentPosition = world == null ? Vec3.ZERO : viewWearer.getPosition(1);
+        }
+
+        public LivingEntity renderWearer() {
+            return viewWearer;
+        }
 
         public void capturePreviewSelection(Object part) {
             OutfitConfig.require(!frameClosed && !evaluated && !previewSelectionCaptured);
@@ -662,6 +688,15 @@ public final class OutfitComposition implements AutoCloseable {
                 }
             }
             return previewHelpers;
+        }
+
+        public void drawLocalParticles(Matrix4fc entityToDraw, net.minecraft.client.renderer.MultiBufferSource buffers,
+                                       float partialTick) {
+            if (previewParticles != null && LocalOutfitPreview.shows(OutfitComposition.this) && viewWearer != null) {
+                previewParticles.extract(viewWearer.getPosition(partialTick),
+                        net.minecraft.client.Minecraft.getInstance().gameRenderer.getMainCamera().rotation(), partialTick)
+                        .draw(new Matrix4f(entityToDraw), buffers);
+            }
         }
 
         /** Capture before deferring the base's renderEvent/native draw/postRenderEvent callback. */
@@ -1017,8 +1052,9 @@ public final class OutfitComposition implements AutoCloseable {
                 return;
             }
             var policy = new TrailBuffer.Policy(minDistance, intervalTicks, lifetimeTicks, teleportDistance);
-            if (wearer.isRemoved() || wearer.level() != activeFrame.world || !hasBone(bone)
-                    || wearer.level().getGameTime() - (activeFrame.worldTick + activeFrame.delta) >= policy.lifetimeTicks()) {
+            var viewWearer = activeFrame.viewWearer;
+            if (viewWearer.isRemoved() || viewWearer.level() != activeFrame.world || !hasBone(bone)
+                    || viewWearer.level().getGameTime() - (activeFrame.worldTick + activeFrame.delta) >= policy.lifetimeTicks()) {
                 invalidateTrail(buffer, activeFrame.sequence);
                 return;
             }
@@ -1051,9 +1087,11 @@ public final class OutfitComposition implements AutoCloseable {
             if (activeFrame == null || activeFrame.world == null || wearer == null || closed) {
                 return false;
             }
-            return previewParticles == null
-                    ? activeFrame.mode == EntityRenderMode.RENDER || activeFrame.mode == EntityRenderMode.WORLD
-                    : activeFrame.mode == EntityRenderMode.FIGURA_GUI && previewParticles.isActive();
+            if (previewParticles == null) {
+                return activeFrame.mode == EntityRenderMode.RENDER || activeFrame.mode == EntityRenderMode.WORLD;
+            }
+            return (activeFrame.mode == EntityRenderMode.FIGURA_GUI
+                    || LocalOutfitPreview.shows(OutfitComposition.this)) && previewParticles.isActive();
         }
 
         @LuaWhitelist
@@ -1105,7 +1143,7 @@ public final class OutfitComposition implements AutoCloseable {
                 avatar.applyAnimations();
                 var ysm = avatar.getYsmRuntime();
                 if (ysm != null && activeFrame.renderState != null) {
-                    ysm.updateAnimations(activeFrame.renderState, wearer);
+                    ysm.updateAnimations(activeFrame.renderState, activeFrame.viewWearer);
                 }
                 if (avatar.scriptError) {
                     return false;

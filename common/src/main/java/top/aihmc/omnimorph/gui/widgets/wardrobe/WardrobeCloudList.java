@@ -36,6 +36,11 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
     public static final int ROW_HEIGHT = 28;
     private static final int ROW_STRIDE = ROW_HEIGHT + 2;
     private Consumer<LibraryModels.CollectionEntry> outfitRemoval;
+    private java.util.function.BiConsumer<WardrobeCollectionGrid.Entry, ContextMenu> accessoryActions;
+
+    public void setAccessoryActions(java.util.function.BiConsumer<WardrobeCollectionGrid.Entry, ContextMenu> actions) {
+        accessoryActions = actions;
+    }
     private final View view;
     private final Consumer<LibraryModels.CollectionEntry> select;
     private final java.util.function.Function<UUID, Component> cacheState;
@@ -317,6 +322,10 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
                     : entry.local() != null ? removeLocal != null : outfitRemoval != null;
             if (event.button() == 1 && removable && isMouseOver(event.x(), event.y())) {
                 var menu = new ContextMenu(this);
+                if (accessoryActions != null && entry.resourceKind().equals("ACCESSORY")) {
+                    accessoryActions.accept(entry, menu);
+                    menu.addDivisor();
+                }
                 menu.addAction(FiguraText.of("gui.wardrobe.remove_outfit"), null, ignored -> {
                     if (entry.cosmetic() != null) {
                         removeCosmetic.accept(entry.cosmetic());

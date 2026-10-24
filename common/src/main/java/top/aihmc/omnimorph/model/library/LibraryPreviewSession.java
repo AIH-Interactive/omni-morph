@@ -233,6 +233,13 @@ public final class LibraryPreviewSession implements AutoCloseable {
         }
     }
 
+    /** Read-only render state; this does not publish equipment or register synchronization. */
+    public top.aihmc.omnimorph.avatar.UserData.OutfitState outfitState() {
+        return closed || previewComposition == null || entity() == null ? null
+                : new top.aihmc.omnimorph.avatar.UserData.OutfitState(
+                        previewComposition.configuration(), avatar, previewComposition);
+    }
+
     public OutfitComposition.MountTarget previewMountTarget(UUID instance) {
         return previewComposition == null ? null : previewComposition.previewMountTarget(instance);
     }

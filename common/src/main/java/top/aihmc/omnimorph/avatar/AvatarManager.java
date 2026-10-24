@@ -76,6 +76,7 @@ public class AvatarManager {
     // -- avatar events -- // 
 
     public static void tickLoadedAvatars() {
+        top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.tick();
         if (panic)
             return;
 

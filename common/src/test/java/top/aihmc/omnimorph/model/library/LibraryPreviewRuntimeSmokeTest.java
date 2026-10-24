@@ -1073,6 +1073,34 @@ public final class LibraryPreviewRuntimeSmokeTest {
             add.invoke(screen);
             awaitDraftComposition(screen, preview, drain);
             var second = draft.configuration().instances().getLast();
+            var residentDraft = preview.outfitComposition();
+            choose.invoke(screen, entry);
+            require(field(type, "draftPreviewActive").getBoolean(screen)
+                            && preview.outfitComposition() == residentDraft,
+                    "selecting an accessory must not replace the active outfit preview or its loaded bone tree");
+            testLocalDraftPreview(unsafe, drain, screen, preview, player);
+            var mountMenu = new top.aihmc.omnimorph.gui.widgets.ContextMenu();
+            var quickMenu = type.getDeclaredMethod("addQuickMountMenu",
+                    top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry.class,
+                    top.aihmc.omnimorph.gui.widgets.ContextMenu.class);
+            quickMenu.setAccessible(true);
+            long preparedGeneration = field(type, "draftPreviewGeneration").getLong(screen);
+            var previousFont = minecraft.font;
+            field(Minecraft.class, "font").set(minecraft, new net.minecraft.client.gui.Font(null) {
+                @Override
+                public int width(net.minecraft.network.chat.FormattedText text) {
+                    return text.getString().length() * 6;
+                }
+            });
+            try {
+                quickMenu.invoke(screen, new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(
+                        null, null, entry), mountMenu);
+            } finally {
+                field(Minecraft.class, "font").set(minecraft, previousFont);
+            }
+            require(!mountMenu.getEntries().isEmpty() && preview.outfitComposition() == residentDraft
+                            && field(type, "draftPreviewGeneration").getLong(screen) == preparedGeneration,
+                    "quick mount menu reuses the loaded hierarchy without preparing or requesting the base again");
             var tree = preview.outfitHierarchy();
             require(tree.targets().values().stream().filter(target -> target.kind() == OutfitHierarchy.Kind.INSTANCE).count() == 2
                             && tree.targets().values().stream().anyMatch(target -> first.instanceId().equals(target.instanceId()))
@@ -1146,6 +1174,58 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 for (Path path : files.sorted(java.util.Comparator.reverseOrder()).toList()) {
                     Files.deleteIfExists(path);
                 }
+            }
+        }
+    }
+
+    private static void testLocalDraftPreview(Unsafe unsafe, Runnable drain, Object editor,
+                                             LibraryPreviewSession preview, CurrentPreviewPlayer player) throws Exception {
+        var local = top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.class;
+        var entities = (Map<?, ?>) field(LibraryPreviewBinding.class, "ENTITIES").get(null);
+        Object original = entities.remove(player);
+        var formal = AvatarManager.getLoadedOutfit(player.getUUID());
+        try {
+            top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.show(editor, preview);
+            var worldFrame = new AvatarRenderState();
+            top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.capture(player, worldFrame);
+            require(AvatarManager.getAvatar(worldFrame) == preview.outfitState().base()
+                            && top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.composition(worldFrame) != null,
+                    "local draft replaces only the current player's extracted render frame");
+            var other = (CurrentPreviewPlayer) unsafe.allocateInstance(CurrentPreviewPlayer.class);
+            other.setUUID(UUID.randomUUID());
+            require(top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.state(other) == null
+                            && AvatarManager.getLoadedOutfit(player.getUUID()) == formal,
+                    "world preview does not alter other players or committed/synchronized equipment");
+            top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.clear(editor);
+            require(top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.state(player) == null
+                            && preview.status().stage() == LibraryPreviewSession.Stage.READY,
+                    "disabling local world preview restores equipment without closing the editor");
+            top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.finishFrame();
+            try (var owned = new LibraryPreviewSession()) {
+                require(owned.selectVanilla(), "world preview lifetime fixture starts");
+                var empty = new OutfitConfig(1, 0, null, java.util.List.of(), java.util.List.of(), Map.of(), false);
+                require(await(owned.prepareComposition(empty, OutfitLimits.defaults(), player.getUUID(), UUID.randomUUID(),
+                        preview.outfitState().base().permissions, (reference, cancelled) -> {
+                            throw new AssertionError("empty draft must not load sources");
+                        }), drain), "world preview lifetime fixture is prepared");
+                top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.show(editor, owned);
+                top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.detach(editor);
+                var retained = new AvatarRenderState();
+                top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.capture(player, retained);
+                top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.clear(editor);
+                require(owned.status().stage() == LibraryPreviewSession.Stage.READY,
+                        "closing a world preview preserves already extracted frames");
+                top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.finishFrame();
+                require(owned.status().stage() == LibraryPreviewSession.Stage.CLOSED,
+                        "the detached session closes after its final world frame releases");
+            }
+        } finally {
+            top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.clear(editor);
+            top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.finishFrame();
+            if (original != null) {
+                @SuppressWarnings("unchecked")
+                var writable = (Map<Object, Object>) entities;
+                writable.put(player, original);
             }
         }
     }
@@ -1225,14 +1305,16 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     require(baseReference.equals(draft.configuration().base()),
                             "wardrobe draft captures the loaded Avatar's exact source rather than creating a random local identity");
                     awaitDraftComposition(screen, preview, drain);
+                    int detailsAfterFirstAdd = server.details.get();
                     add.invoke(screen);
                     awaitDraftComposition(screen, preview, drain);
                     var reference = authorized.descriptor().reference();
                     require(draft.configuration().instances().size() == 2
                                     && draft.configuration().instances().stream().allMatch(instance -> instance.resource().equals(reference))
                                     && !draft.configuration().instances().getFirst().instanceId().equals(draft.configuration().instances().getLast().instanceId())
-                                    && server.files.get() == 1 && server.details.get() >= 3,
-                            "cloud Add preserves the authorized origin/revision/hash and uses fresh policy checks with one cached body");
+                                    && server.files.get() == 1 && detailsAfterFirstAdd > 0
+                                    && server.details.get() == detailsAfterFirstAdd,
+                            "cloud draft edits preserve authorized source identity and reuse the loaded body and bone data");
                     Object binding = field(LibraryPreviewSession.class, "binding").get(preview);
                     Object composition = field(LibraryPreviewBinding.class, "composition").get(binding);
                     @SuppressWarnings("unchecked")
@@ -1241,6 +1323,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
                                     && avatar.cosmeticContext.resource().equals(reference)),
                             "authorized cloud packages reach the correct native Figura/encrypted YSM instance runtime");
                     server.revoked.set(true);
+                    // Explicit policy/source refresh invalidates the local edit cache; ordinary edits do not reread it.
+                    field(type, "draftPreparedResources").set(screen, new java.util.concurrent.ConcurrentHashMap<>());
                     var refresh = type.getDeclaredMethod("previewOutfitDraft");
                     refresh.setAccessible(true);
                     refresh.invoke(screen);

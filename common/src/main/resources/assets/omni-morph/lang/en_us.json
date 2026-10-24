@@ -2378,5 +2378,15 @@
   "omni-morph.gui.wardrobe.instance_auto_trail": "Automatic trail anchor",
   "omni-morph.gui.wardrobe.instance_unbound": "Needs binding",
   "omni-morph.gui.wardrobe.instance_bound_target": "Current bound target",
-  "omni-morph.gui.wardrobe.instance_transform_invalid": "Enter a finite value within the allowed transform limits."
+  "omni-morph.gui.wardrobe.instance_transform_invalid": "Enter a finite value within the allowed transform limits.",
+  "omni-morph.gui.wardrobe.local_preview": "Local live outfit preview",
+  "omni-morph.gui.wardrobe.local_preview_help": "Show this draft in the wardrobe and your game world only. No upload. Disable to restore the equipped outfit.",
+  "omni-morph.gui.wardrobe.quick_mount": "Mount to bone…",
+  "omni-morph.gui.wardrobe.quick_mount_help": "Use the already loaded skeleton; add a new accessory instance at the chosen bone.",
+  "omni-morph.gui.wardrobe.quick_mount_here": "Mount here",
+  "omni-morph.gui.wardrobe.preview_loading": "Preparing local preview…",
+  "omni-morph.gui.wardrobe.preview_unavailable": "Instance disabled or script failed",
+  "omni-morph.gui.wardrobe.preview_waiting": "Waiting for preview drawing…",
+  "omni-morph.gui.wardrobe.preview_unresolved": "Mount unresolved: choose a valid bone",
+  "omni-morph.gui.wardrobe.preview_mounted": "Mounted"
 }
