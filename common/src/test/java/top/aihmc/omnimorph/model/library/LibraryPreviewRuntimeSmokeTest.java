@@ -980,14 +980,15 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var choose = screenType.getDeclaredMethod("selectCosmetic", entry.getClass());
             choose.setAccessible(true);
             choose.invoke(screen, entry);
-            @SuppressWarnings("unchecked")
-            var pending = (CompletableFuture<Boolean>) field(LibraryPreviewSession.class, "pendingComposition").get(preview);
-            require(pending != null && await(pending, drain), "production accessory selection prepares an actual local source");
+            var add = screenType.getDeclaredMethod("addSelectedInstance");
+            add.setAccessible(true);
+            add.invoke(screen);
+            awaitDraftComposition(screen, preview, drain);
             var frame = new AvatarRenderState();
             preview.withPlayerContext(() -> LibraryPreviewBinding.capture(Minecraft.getInstance().player, frame));
-            require(LibraryPreviewBinding.composition(frame) != null && preview.showsVanillaPlayer()
-                            && field(LibraryPreviewSession.class, "avatar").get(preview) == null,
-                    "selection mounts a private composition over vanilla instead of loading the accessory as a base Avatar");
+            require(LibraryPreviewBinding.composition(frame) != null && preview.outfitBase() != null
+                            && preview.outfitBase().nbt.equals(equipped.nbt),
+                    "accessory editing uses the enabled model instead of replacing it with vanilla");
             require(AvatarManager.getAvatar(Minecraft.getInstance().player) == equipped
                             && java.util.Objects.equals(LocalAvatarLoader.getLastLoadedPath(), loadedPath)
                             && java.util.Objects.equals(top.aihmc.omnimorph.gui.widgets.lists.AvatarList.selectedEntry, selectedPath)
@@ -1007,10 +1008,12 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var unavailable = new top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory.Entry(root,
                     entry.localId(), null, "INVALID_COSMETIC_SOURCE");
             choose.invoke(screen, unavailable);
-            require(preview.status().stage() == LibraryPreviewSession.Stage.IDLE,
-                    "invalid accessory selection stays unavailable without starting an Avatar load");
+            require(preview.status().stage() == LibraryPreviewSession.Stage.IDLE
+                            && AvatarManager.getAvatarForPlayer(owner) == equipped,
+                    "an unavailable candidate does not publish or replace the equipped model");
             System.out.println("PASS wardrobe accessory selection: actual cosmetic source, private async composition, no base load/publication, deferred retirement and unavailable entry; GUI MANUAL/PENDING");
         } finally {
+            top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.clear();
             LibraryPreviewBinding.finishFrame();
             if (!hadPermissions) {
                 packs.remove(owner);
@@ -1058,7 +1061,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var choose = type.getDeclaredMethod("selectCosmetic", entry.getClass());
             choose.setAccessible(true);
             choose.invoke(screen, entry);
-            require(field(type, "outfitDraft").get(screen) == null, "resource selection creates no outfit instance");
+            var selectedDraft = (top.aihmc.omnimorph.model.outfit.OutfitDraft) field(type, "outfitDraft").get(screen);
+            require(selectedDraft == null || selectedDraft.configuration().instances().isEmpty(),
+                    "resource selection creates no outfit instance");
             var add = type.getDeclaredMethod("addSelectedInstance");
             add.setAccessible(true);
             add.invoke(screen);
@@ -1068,6 +1073,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(draft.committed().base() != null && draft.committed().instances().isEmpty(),
                     "draft creation captures the equipped custom base instead of silently selecting vanilla");
             awaitDraftComposition(screen, preview, drain);
+            require(top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.active(),
+                    "editing automatically previews the local player in the world without a toggle");
             var first = draft.configuration().instances().getFirst();
             require(first.transform().equals(source.metadata().defaultTransform()), "instance starts from the author's local transform");
             add.invoke(screen);
@@ -1163,6 +1170,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                             && AvatarManager.getAvatarForPlayer(owner) == equipped,
                     "account mismatch discards private editor state and its preview without touching actual equipment");
             testStaleDraftStart(entry, drain);
+            testSelectedOutfitBase(root, entry, equipped, drain);
             System.out.println("PASS wardrobe draft actions: actual base snapshot/source loading, independent copies, author transform, stable suffixes, remove/reset/cancel and unchanged equipment; GUI MANUAL/PENDING");
         } finally {
             LibraryPreviewBinding.finishFrame();
@@ -1175,6 +1183,48 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     Files.deleteIfExists(path);
                 }
             }
+        }
+    }
+
+    private static void testSelectedOutfitBase(Path root,
+            top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory.Entry accessory,
+            Avatar equipped, Runnable drain) throws Exception {
+        top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.clear();
+        Path selectedBase = Files.createTempDirectory(root.getParent(), "selected-avatar-");
+        Files.writeString(selectedBase.resolve("avatar.json"), "{\"name\":\"Selected outfit base\"}");
+        var screen = new top.aihmc.omnimorph.gui.screens.WardrobeScreen(null);
+        var type = screen.getClass();
+        try (var preview = new LibraryPreviewSession()) {
+            field(type, "preview").set(screen, preview);
+            var chooseBase = type.getDeclaredMethod("selectLocal",
+                    top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath.class);
+            chooseBase.setAccessible(true);
+            chooseBase.invoke(screen, new top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath(selectedBase, root));
+            var chooseAccessory = type.getDeclaredMethod("selectCosmetic", accessory.getClass());
+            chooseAccessory.setAccessible(true);
+            chooseAccessory.invoke(screen, accessory);
+            var add = type.getDeclaredMethod("addSelectedInstance");
+            add.setAccessible(true);
+            add.invoke(screen);
+            await((CompletableFuture<?>) field(type, "changingDraftBase").get(screen), drain);
+            awaitDraftComposition(screen, preview, drain);
+            var draft = (top.aihmc.omnimorph.model.outfit.OutfitDraft) field(type, "outfitDraft").get(screen);
+            var reference = new top.aihmc.omnimorph.avatar.local.LocalAvatarSource(FiguraMod.getFiguraDirectory())
+                    .describe(selectedBase, () -> false);
+            require(draft.configuration().base().equals(reference)
+                            && draft.configuration().instances().size() == 1
+                            && AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID()) == equipped,
+                    "selecting a new avatar then immediately choosing an accessory edits the selected base locally");
+            var hierarchy = preview.outfitHierarchy();
+            long revision = preview.hierarchyRevision();
+            chooseAccessory.invoke(screen, accessory);
+            require(preview.outfitHierarchy() == hierarchy && preview.hierarchyRevision() == revision
+                            && top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.active(),
+                    "switching accessory candidates retains the current base and instance bone tree without rebuilding it");
+        } finally {
+            top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.clear();
+            Files.deleteIfExists(selectedBase.resolve("avatar.json"));
+            Files.deleteIfExists(selectedBase);
         }
     }
 
@@ -1265,7 +1315,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                      var client = new LibraryClient(access, new LibrarySession(server.origin(), owner, 1, live::get), minecraft::execute);
                      var collection = new LibraryCollectionService(client, cache);
                      var original = new LibraryPreviewBinding(player, equipped);
-                     var preview = new LibraryPreviewSession(client)) {
+                     var preview = new LibraryPreviewSession()) {
                     var capabilities = client.capabilities();
                     await(capabilities.future(), drain);
                     var entry = new top.aihmc.omnimorph.backend2.library.LibraryModels.CollectionEntry(
@@ -1279,7 +1329,15 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     field(type, "transfers").set(screen, new LibraryTransferService(client, cache));
                     field(type, "outfitCapabilitiesRequest").set(screen, capabilities);
                     field(type, "preview").set(screen, preview);
-                    field(type, "previewClient").set(screen, client);
+                    // Acquiring a resource is separate from private outfit editing.
+                    var transfers = (LibraryTransferService) field(type, "transfers").get(screen);
+                    require(await(new CloudCosmeticSource(client, transfers, minecraft::execute)
+                            .selectCached(entry.model()).future().handle((value, failure) -> failure), drain) != null
+                                    && server.details.get() == 0 && server.files.get() == 0,
+                            "an uncached edit reports a cache miss without requesting the cloud");
+                    var acquired = transfers.preview(entry.modelId());
+                    await(acquired.request().future(), drain);
+                    int acquiredDetails = server.details.get();
                     var select = type.getDeclaredMethod("selectCloud", entry.getClass());
                     select.setAccessible(true);
                     select.invoke(screen, entry);
@@ -1292,9 +1350,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     }
                     var selectedFrame = new AvatarRenderState();
                     preview.withPlayerContext(() -> LibraryPreviewBinding.capture(player, selectedFrame));
-                    require(field(type, "outfitDraft").get(screen) == null && LibraryPreviewBinding.composition(selectedFrame) != null
-                                    && field(LibraryPreviewSession.class, "avatar").get(preview) == null,
-                            "cloud selection is a private mounted preview and does not create a draft instance or base Avatar: "
+                    require(field(type, "outfitDraft").get(screen) != null && LibraryPreviewBinding.composition(selectedFrame) != null
+                                    && field(LibraryPreviewSession.class, "avatar").get(preview) != null
+                                    && server.details.get() == acquiredDetails,
+                            "cached accessory selection retains the equipped base and only prepares a local draft: "
                                     + preview.status() + ", " + field(type, "message").get(screen));
                     var add = type.getDeclaredMethod("addSelectedInstance");
                     add.setAccessible(true);
@@ -1323,34 +1382,25 @@ public final class LibraryPreviewRuntimeSmokeTest {
                                     && avatar.cosmeticContext.resource().equals(reference)),
                             "authorized cloud packages reach the correct native Figura/encrypted YSM instance runtime");
                     server.revoked.set(true);
-                    // Explicit policy/source refresh invalidates the local edit cache; ordinary edits do not reread it.
-                    field(type, "draftPreparedResources").set(screen, new java.util.concurrent.ConcurrentHashMap<>());
+                    int beforeEdit = server.details.get();
                     var refresh = type.getDeclaredMethod("previewOutfitDraft");
                     refresh.setAccessible(true);
                     refresh.invoke(screen);
-                    var denied = (CloudCosmeticSource.Batch) field(type, "draftCloudBatch").get(screen);
-                    require(await(denied.future().handle((value, failure) -> failure), drain) != null
-                                    && preview.status().stage() == LibraryPreviewSession.Stage.IDLE
-                                    && !hasPrivateComposition(preview)
-                                    && AvatarManager.getAvatarForPlayer(owner) == equipped && server.files.get() == 1,
-                            "known revocation retires cached private composition while preserving actual equipment and draft data");
-                    server.revoked.set(false);
-                    server.gate.set(true);
-                    select.invoke(screen, entry);
-                    var obsolete = (CloudCosmeticSource.Operation) field(type, "cloudCosmeticSelection").get(screen);
-                    try {
-                        require(server.entered.await(5, TimeUnit.SECONDS), "native screen preview reaches its controlled HTTP gate");
-                        var clear = type.getDeclaredMethod("selectLocal", top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath.class);
-                        clear.setAccessible(true);
-                        clear.invoke(screen, new Object[]{null});
-                    } finally {
-                        server.release.countDown();
-                    }
-                    var clearedPreview = (LibraryPreviewSession) field(type, "preview").get(screen);
-                    require(obsolete.future().isCancelled() && clearedPreview.status().stage() == LibraryPreviewSession.Stage.IDLE
-                                    && AvatarManager.getAvatarForPlayer(owner) == equipped && server.unexpected.get() == 0,
-                            "new selection cancels real cloud preparation without uploads, equip calls or receipts");
-                    clearedPreview.close();
+                    awaitDraftComposition(screen, preview, drain);
+                    require(server.details.get() == beforeEdit && server.files.get() == 1
+                                    && AvatarManager.getAvatarForPlayer(owner) == equipped,
+                            "private edits do not seek cloud admission; formal Apply performs the fresh permission check");
+                    var reload = type.getDeclaredMethod("reloadOutfitDraft");
+                    reload.setAccessible(true);
+                    reload.invoke(screen);
+                    await((CompletableFuture<?>) field(type, "draftStart").get(screen), drain);
+                    awaitDraftComposition(screen, preview, drain);
+                    var reloaded = (top.aihmc.omnimorph.model.outfit.OutfitDraft) field(type, "outfitDraft").get(screen);
+                    require(reloaded.configuration().base().equals(baseReference)
+                                    && reloaded.configuration().instances().isEmpty()
+                                    && server.details.get() == beforeEdit && server.files.get() == 1,
+                            "refresh before submission restores the enabled local outfit without a cloud read");
+
                 }
             }
             System.out.println("PASS wardrobe cloud accessories: actual HTTP/portable Figura and encrypted YSM, scoped selection/Add, fixed references, shared cached body, revocation and stale selection cleanup; GUI MANUAL/PENDING");
@@ -1778,8 +1828,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
             @SuppressWarnings("unchecked")
             var pending = (CompletableFuture<top.aihmc.omnimorph.model.outfit.OutfitDraft>) field(type, "draftStart").get(screen);
             var draft = await(pending, drain);
-            require(draft.configuration().instances().isEmpty() && preview.status().stage() == LibraryPreviewSession.Stage.IDLE,
-                    "late draft preparation cannot add an old resource or override a newer selection");
+            awaitDraftComposition(screen, preview, drain);
+            require(draft.configuration().instances().isEmpty() && preview.outfitBase() != null,
+                    "late preparation cannot add an old resource; candidate changes retain the current base");
         }
     }
 
@@ -2922,13 +2973,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
             selectLocal.setAccessible(true);
             Avatar worldAvatar = AvatarManager.getAvatar(player);
             selectLocal.invoke(outfit, new top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath(selectedDirectory, selectedDirectory));
-            require(preview.status().stage() != LibraryPreviewSession.Stage.IDLE,
-                    "clicking an outfit entry must start preview loading rather than leave the equipped model unchanged");
-            long previewDeadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
-            while (preview.status().stage() == LibraryPreviewSession.Stage.LOADING && System.nanoTime() < previewDeadline) {
-                drain.run();
-                Thread.sleep(5);
-            }
+            await((CompletableFuture<?>) field(outfit.getClass(), "changingDraftBase").get(outfit), drain);
+            awaitDraftComposition(outfit, preview, drain);
             require(preview.status().stage() == LibraryPreviewSession.Stage.READY && preview.entity() == player,
                     "outfit selection prepares a model through Figura's original real-player preview path");
             require(field(widget.getClass(), "libraryPreview").get(widget) == preview
@@ -2944,11 +2990,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
             ysmEntity.setUUID((UUID) field(LibraryPreviewSession.class, "owner").get(preview));
             field(LibraryPreviewSession.class, "detachedEntity").set(preview, ysmEntity);
             selectLocal.invoke(outfit, new top.aihmc.omnimorph.avatar.local.LocalAvatarFetcher.AvatarPath(encrypted, encrypted.getParent()));
-            previewDeadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
-            while (preview.status().stage() == LibraryPreviewSession.Stage.LOADING && System.nanoTime() < previewDeadline) {
-                drain.run();
-                Thread.sleep(5);
-            }
+            await((CompletableFuture<?>) field(outfit.getClass(), "changingDraftBase").get(outfit), drain);
+            awaitDraftComposition(outfit, preview, drain);
             var ysm = new java.util.concurrent.atomic.AtomicReference<Avatar>();
             preview.withPlayerContext(() -> ysm.set(AvatarManager.getAvatar(preview.entity())));
             require(preview.status().stage() == LibraryPreviewSession.Stage.READY,

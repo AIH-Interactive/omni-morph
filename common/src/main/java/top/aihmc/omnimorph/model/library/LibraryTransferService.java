@@ -72,6 +72,31 @@ public final class LibraryTransferService {
         return fetch(model, false);
     }
 
+    /** Device-only wardrobe editing. A miss is explicit; this never downloads or admits an Apply. */
+    public Package cachedPreview(LibraryModels.Model model) throws Exception {
+        client.session().requireCurrent();
+        if (!model.allows("preview") || model.resourceKind().equals("OUTFIT")) {
+            throw new IOException("LOCAL_PREVIEW_RESOURCE_UNAVAILABLE");
+        }
+        byte[] bytes = resources.read(model);
+        if (bytes == null) {
+            var scope = new LibraryPreviewCache.Scope(client.session().instance(), client.session().player(),
+                    model.modelId(), model.revision(), model.policyRevision());
+            var cached = preview.forResourceKind(model.resourceKind()).find(scope,
+                    LibraryPreviewCache.Kind.MODEL, client.session()::requireCurrent);
+            if (cached.isPresent()) {
+                try (var lease = cached.get()) {
+                    bytes = lease.read();
+                }
+            }
+        }
+        if (bytes == null || bytes.length != model.byteLength()) {
+            throw new IOException("LOCAL_PREVIEW_CACHE_MISS");
+        }
+        client.session().requireCurrent();
+        return parse(model, bytes, CloudHttp.sha256(bytes), "preview", null);
+    }
+
     /** A draft's fixed revision must not silently follow an updated catalog card. */
     public Operation preview(UUID model, long revision) {
         if (revision < 1) {

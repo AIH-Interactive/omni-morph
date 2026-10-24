@@ -51,6 +51,10 @@ final class OutfitHierarchySmokeTest {
         require(tree.hierarchy().roots().size() == 4, "Base, standards, instances and virtuals are separate groups");
         require(count(tree, OutfitHierarchy.Kind.STANDARD) == 11 && count(tree, OutfitHierarchy.Kind.INSTANCE) == 5,
                 "All eleven standard anchors and every duplicate instance have independent entries");
+        require(tree.hierarchy().nodes().stream()
+                        .filter(node -> tree.target(node.id()).kind() == OutfitHierarchy.Kind.INSTANCE)
+                        .allMatch(node -> tree.target(node.parent()).kind() == OutfitHierarchy.Kind.BASE_BONE),
+                "mounted instances and their internal bones appear beneath the corresponding base bone");
         require(tree.hierarchy().nodes().stream().anyMatch(node -> node.name().equals("星尾 #1"))
                         && tree.hierarchy().nodes().stream().anyMatch(node -> node.name().equals("星尾 #2 · 停用")),
                 "Stable duplicate suffixes and disabled state are displayed");

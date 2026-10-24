@@ -100,3 +100,17 @@ S1～S6 自动实施已收口并推送。后端仅原有未跟踪 build.log、sp
 产物：fabric/build/libs/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar，18,265,408 字节；SHA256 c340998138539b40a0acf95f4a1b17ceddff33e0b77af5c27371da8866ac6307。未覆盖用户安装包、未重启游戏。没有剩余自动实施任务；最小下一步是使用新包在真实客户端检查：右键装饰选择骨骼、修改位置、启用本地实时配装预览，在衣柜和第三人称世界对照，并用第二客户端确认草稿不可见。异常时保留最新日志与所选资源继续定位，不扩张架构。
 
 额度检查：Plus 5小时剩余35%、周剩余13%，均未到交接阈值；重置UTC秒1792825679/1793382104。后续在安全检查点查询；达到阈值按全局 AGENTS 委派 gpt-6-luna 整理交接。约束：当前分支提交推送、前台 PowerShell Tee 日志、JDK25、禁止无关重构、真实 GUI 未验不得标 PASS。
+
+## 当前有效交接：自动本地配装及进服手臂崩溃（2026-10-24）
+
+本节覆盖上述历史“实时预览开关”及下一步描述。本轮用户目标：未选新形象使用已启用形象，选了新形象使用选中基础；编辑配装完全本地，移除实时预览开关；切换装饰保留树，挂载实例内部骨骼显示在对应挂载树下。已实现：草稿读取已加载配装/形象与实例 NBT，不再开始编辑就读取 currentOutfit；选择形象写入草稿基础，独立代次保护“立即切装饰”异步顺序；衣柜及自己的世界自动预览。已缓存云端资源只读原有缓存，缺失时提示去形象集获取，不在编辑中下载。筛选/普通刷新本地读取；提交冲突恢复及成功后刷新仍属于提交事务的云端处理。正式 Apply 权限、上传、CAS、观察者路径保留。形象集主动获取/浏览属于资源获取，不是草稿编辑。
+
+用户另报进服第一人称崩溃：FiguraSkeletonAdapter.captureArm 的三元表达式混用 boolean/Boolean，将过滤器合法 null 状态自动拆箱。最小全局修复为初始值显式装箱，保持 null 分支剪枝语义；无模型名特判。NativeSkeletonSmokeTest 增加被排除分支的子节点，经实际 native renderer 捕获，alpha4-arm-null-red.log 已复现与用户相同 NPE/行44，再修复。
+
+验证已完成：alpha4-local-draft-final.log PASS（35秒/23 tasks），libraryPreviewRuntimeSmokeTest、boneTreeSmokeTest、outfitApplyClientSmokeTest、fabric:build；覆盖实际 Figura/加密YSM、选中基础后立即选装饰、未选基础复用已装备形象、骨骼树保留及实例挂载层级、仅自己预览、缓存命中/缺失编辑零 HTTP、普通刷新不读云端、实际 native 手臂 null 剪枝及正式 Apply 新鲜权限门禁。cosmeticSourceSmokeTest 在本轮也 PASS（16秒），曾因旧用例期待服务器源解析而失败，已改为验证 resident 配装依赖，不删除提交/权限测试。初始回归中的旧“必须单资源原版预览”和同步加载断言按用户新语义调整；测试目录不再嵌套在装饰资源中，避免自身改变资源 hash。未触碰用户资源或安装包。
+
+真实进服/第一人称、衣柜及第三人称外观、第二客户端看不到草稿、YSM高亮/睡姿、粒子动态光源/性能仍 MANUAL/PENDING；自动 native CPU/记录式绘制不证明真实窗口像素。没有新增自动实施任务。最小下一步：用新包重启客户端进服，先验第一人称不崩溃，再验已启用/选中新形象两条配装流程与树层级；若有问题提供新日志继续定位，禁止重启计划或架构重构。
+
+主仓库 main，提交前基线79d2026e；本轮源码/测试/语言/3份记录纳入随后提交推送，最终以 git HEAD 与远端 main 一致性为准。后端 master 未修改，原 build.log/spm-cloud 保留；不新建分支、不改版本。最终 JAR：fabric/build/libs/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar，18268287 字节，SHA256 f264e8a4a9b39be19b9b0aaea1c56afa9c1fb0f5d3a04e83ba06925dc99327a8。日志在 build/reports/outfit/。本轮无运行中构建。
+
+额度安全检查点：Plus 5小时剩余10%、周剩余9%，重置 UTC 秒1792825679/1793382104；进入预警，没有启动新阶段，尚未到≤5% Luna交接阈值。正常完成手册由当前 Agent 更新。后续到阈值才授权 gpt-6-luna 整理本文，失败则先保存最小事实。约束仍为 main 提交推送、JDK25、前台 PowerShell Tee 日志、有限范围、人工项不得标 PASS。

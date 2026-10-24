@@ -2364,11 +2364,11 @@
   "omni-morph.gui.wardrobe.instance_remove_dependents": "Remove this instance? These dependent accessories will need rebinding.",
   "omni-morph.gui.wardrobe.draft_apply": "Apply the entire outfit",
   "omni-morph.gui.wardrobe.draft_retry": "Retry this Apply with the same operation",
-  "omni-morph.gui.wardrobe.draft_refresh": "Read the current server outfit again",
-  "omni-morph.gui.wardrobe.draft_refresh_confirm": "Discard unapplied edits and read the current server outfit?",
+  "omni-morph.gui.wardrobe.draft_refresh": "Reload the enabled outfit",
+  "omni-morph.gui.wardrobe.draft_refresh_confirm": "Discard unsubmitted edits and reload the enabled outfit? A submission conflict reloads the server version.",
   "omni-morph.gui.wardrobe.draft_applying": "Preparing and applying the entire outfit…",
   "omni-morph.gui.wardrobe.draft_conflict": "The server outfit changed. Your draft is retained; refresh before editing again. Current revision",
-  "omni-morph.gui.wardrobe.draft_applied_refresh": "Outfit applied, but the editor could not refresh. Read the current server outfit again.",
+  "omni-morph.gui.wardrobe.draft_applied_refresh": "Outfit applied, but the editor could not refresh. Reload the enabled outfit.",
   "omni-morph.gui.wardrobe.draft_cancel": "Cancel outfit edits and return to current equipment",
   "omni-morph.gui.wardrobe.draft_reset": "Reset the entire draft to vanilla and remove all accessory instances",
   "omni-morph.gui.wardrobe.draft_preview": "Outfit draft preview",
@@ -2379,8 +2379,6 @@
   "omni-morph.gui.wardrobe.instance_unbound": "Needs binding",
   "omni-morph.gui.wardrobe.instance_bound_target": "Current bound target",
   "omni-morph.gui.wardrobe.instance_transform_invalid": "Enter a finite value within the allowed transform limits.",
-  "omni-morph.gui.wardrobe.local_preview": "Local live outfit preview",
-  "omni-morph.gui.wardrobe.local_preview_help": "Show this draft in the wardrobe and your game world only. No upload. Disable to restore the equipped outfit.",
   "omni-morph.gui.wardrobe.quick_mount": "Mount to bone…",
   "omni-morph.gui.wardrobe.quick_mount_help": "Use the already loaded skeleton; add a new accessory instance at the chosen bone.",
   "omni-morph.gui.wardrobe.quick_mount_here": "Mount here",
@@ -2388,5 +2386,6 @@
   "omni-morph.gui.wardrobe.preview_unavailable": "Instance disabled or script failed",
   "omni-morph.gui.wardrobe.preview_waiting": "Waiting for preview drawing…",
   "omni-morph.gui.wardrobe.preview_unresolved": "Mount unresolved: choose a valid bone",
-  "omni-morph.gui.wardrobe.preview_mounted": "Mounted"
+  "omni-morph.gui.wardrobe.preview_mounted": "Mounted",
+  "omni-morph.gui.wardrobe.local_preview_missing": "This resource is not cached. Acquire it in your collection before editing locally."
 }

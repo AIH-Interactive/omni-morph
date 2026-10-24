@@ -110,6 +110,34 @@ public record OutfitHierarchy(PreviewHierarchy hierarchy, Map<Integer, Target> t
         for (var anchor : snapshot.configuration().virtualAnchors()) {
             builder.add(virtuals, anchor.name(), new Target(Kind.VIRTUAL, null, null, anchor.id(), null, true, true), null);
         }
+        // Keep each instance's internal skeleton beneath its actual attachment in the combined tree.
+        for (var declaration : snapshot.configuration().instances()) {
+            int instance = -1;
+            int parent = -1;
+            var anchor = declaration.anchor();
+            OutfitConfig.BoneRef bone = anchor.bone();
+            if (anchor.type() == OutfitConfig.AnchorType.STANDARD) {
+                var resolved = StandardAnchors.resolve(snapshot.base().definition(),
+                        snapshot.configuration().base() == null, anchor.name());
+                if (resolved.size() == 1) {
+                    bone = resolved.getFirst().bone();
+                }
+            }
+            for (var target : builder.targets.entrySet()) {
+                if (target.getValue().kind() == Kind.INSTANCE
+                        && declaration.instanceId().equals(target.getValue().instanceId())) {
+                    instance = target.getKey();
+                }
+                if (bone != null && bone.equals(target.getValue().bone())
+                        || anchor.type() == OutfitConfig.AnchorType.VIRTUAL
+                        && anchor.anchorId().equals(target.getValue().anchorId())) {
+                    parent = target.getKey();
+                }
+            }
+            if (instance >= 0 && parent >= 0) {
+                builder.reparent(instance, parent);
+            }
+        }
         return builder.build();
     }
 
@@ -139,6 +167,17 @@ public record OutfitHierarchy(PreviewHierarchy hierarchy, Map<Integer, Target> t
                 children.get(parent).add(id);
             }
             return id;
+        }
+
+        private void reparent(int id, int parent) {
+            for (int ancestor = parent; ancestor >= 0; ancestor = parents.get(ancestor)) {
+                if (ancestor == id) {
+                    return;
+                }
+            }
+            children.get(parents.get(id)).remove(Integer.valueOf(id));
+            parents.set(id, parent);
+            children.get(parent).add(id);
         }
 
         private void skeleton(int parent, SkeletonIndex.Binding<?> binding, UUID instance,
