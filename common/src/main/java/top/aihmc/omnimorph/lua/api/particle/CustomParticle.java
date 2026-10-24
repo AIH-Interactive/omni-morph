@@ -157,18 +157,27 @@ public final class CustomParticle extends SingleQuadParticle {
 
     private void setLightSettings(ParticleLightSettings replacement) {
         replacement.validate(limits());
-        if (preview != null) {
-            preview.validateLight(this, replacement);
-            lightSettings = replacement;
-            return;
-        }
-        if (active()) {
-            if (replacement.enabled() && level != net.minecraft.client.Minecraft.getInstance().level) {
-                throw new LuaError("PARTICLE_DYNAMIC_LIGHT_WORLD_UNAVAILABLE");
+        try {
+            if (preview != null) {
+                preview.validateLight(this, replacement);
+                lightSettings = replacement;
+                return;
             }
-            ParticleDynamicLights.update(this, replacement);
+            if (active()) {
+                if (replacement.enabled() && level != net.minecraft.client.Minecraft.getInstance().level) {
+                    throw new LuaError("PARTICLE_DYNAMIC_LIGHT_WORLD_UNAVAILABLE");
+                }
+                ParticleDynamicLights.update(this, replacement);
+            }
+            lightSettings = replacement;
+        } catch (LuaError rejected) {
+            if (!replacement.enabled() || !"PARTICLE_DYNAMIC_LIGHT_COUNT_LIMIT".equals(rejected.getMessage())) {
+                throw rejected;
+            }
+            // The wearer's light capacity is full: keep the particle and its settings, but without illumination,
+            // as the per-frame policy does. A busy budget must not stop the whole accessory script.
+            lightSettings = new ParticleLightSettings(false, replacement.level(), replacement.radius());
         }
-        lightSettings = replacement;
     }
 
     void runFrameCallback(float partialTick) {

@@ -173,8 +173,9 @@ final class ParticleLightNativeSmokeTest {
             require(a.lightLevel() == 12 && a.lightRadius() == 4, "rejected settings preserve the active source");
             b.setDynamicLight(false);
             require(b.activate(), "another execution can remain alive without a light");
-            reject(() -> b.setDynamicLight(true));
-            require(!b.dynamicLight() && ParticleDynamicLights.liveCount(wearer) == 1, "failed enable is atomic");
+            b.setDynamicLight(true);
+            require(b.active() && !b.dynamicLight() && ParticleDynamicLights.liveCount(wearer) == 1,
+                    "a full light capacity keeps the particle unlit instead of failing its script");
             a.remove();
             b.setDynamicLight(true);
             CustomParticleRuntime.clearOwner(first.owner);
