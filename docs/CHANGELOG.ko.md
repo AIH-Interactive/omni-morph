@@ -8,7 +8,8 @@
 
 - 독립 장식 인스턴스, 앵커, 궤적, CustomParticle/Ribbon과 선택적 동적 광원을 추가했습니다. 상한은 백엔드 `outfit.limits`로 설정합니다.
 - 의상 원자 적용, 관찰자 권한, 인스턴스 상태 저장 및 재접속을 연결하고 기존 클라이언트 기본 모델 투영과 v1을 유지합니다.
-- 실제 Minecraft 두 클라이언트, GUI/GPU, 조명 및 성능 검증은 `MANUAL/PENDING`입니다. [검증 기록](ALPHA4_ACCEPTANCE.md)을 참고하세요. alpha.3의 YSM 문제 3건은 별도 수정 예정입니다.
+- YSM 공통 경로에서 좌우 팔 하위 계층 필터, 애니메이션 이후 머리 추적, 수면 전체 회전 및 필터 초기값을 수정했습니다. 모델별 예외는 추가하지 않았습니다.
+- 실제 Minecraft 두 클라이언트, GUI/GPU, 조명, 성능 및 해당 자세 화면 비교는 `MANUAL/PENDING`입니다. [검증 기록](ALPHA4_ACCEPTANCE.md)을 참고하세요.
 
 ## 1.0.0-alpha.3
 

@@ -20,10 +20,10 @@
 | S5 | 自动验收 PASS，已提交推送，两个远端 SHA 均核对一致 |
 | S6 | 自动验收/测试包完成，已提交推送并核对远端；人工项 MANUAL/PENDING |
 | 版本 | 已在 S6 调整为 1.0.0-alpha.4，README/更新日志同步 |
-| 主仓库 HEAD | main@b5b72a4c193d24fd83aed5d32e6a02f4a3922244（S6检查点，已推送） |
+| 主仓库 HEAD | S6 main@b5b72a4c 已推送；随后睡姿 main@8d439ddb 已推送。余下通用修复正准备提交，提交后以 git rev-parse HEAD 为准 |
 | 后端 HEAD | master@656652ec11c436dbaf014d5bace16ea414122202 |
 
-S1～S6 自动实施已收口并推送。后端仅原有未跟踪 build.log、spm-cloud/ 保留。S6 前台 Gradle PASS（stage6-fabric-acceptance.log，1分47秒/39 tasks），产物校验 stage6-artifact-check.log PASS。当前处理计划后的全局 YSM Bug。睡姿根因确认：自行提交绕过原版睡眠根旋转；YsmRenderer 共用根旋转接入 LivingEntityRendererMixin，身体/持物/组合共用。四床方向/站立回归在 YsmDeferredPoseSmokeTest：红灯 alpha3-sleep-root-red.log，修复后 Fabric编译+回归 alpha3-sleep-root-final.log PASS（19秒）。真实床面位置/画面 MANUAL/PENDING。当前无运行中进程，正在提交此独立修复；手/头发未修，无模型特化。
+S1～S6 自动实施已收口并推送。后端仅原有未跟踪 build.log、spm-cloud/ 保留。计划后通用修正均已实施：睡姿共享根旋转（8d439ddb已推送）；递归第一人称左右手筛选；标准 Head 的动画后玩家跟随，先捕获作者查询基线避免物理反馈；一/二阶滤波初值从实际输入开始。用户确认头发/朝向是持续保持仍异常，稳态根因为缺失后置头部跟随，不冒称滤波启动问题就是其根因。没有模型名/hash/作者分支。最新相关回归和最终 Fabric build PASS（alpha3-public-bugs-checkpoint.log，1分44秒/24 tasks），最终产物校验 alpha3-public-bugs-artifact.log PASS；Head/骨骼查询/滤波/延迟帧此前44秒 PASS。指定两模型、其他受控基础几何/装饰/默认动画/预览均回归。真实手/头发/床面画面对照及全部 S6 人工项仍 MANUAL/PENDING。当前无运行中进程，业务已收口，只余 diff/提交推送核对。
 
 ## 已完成与已验证
 
@@ -50,8 +50,8 @@ S1～S6 自动实施已收口并推送。后端仅原有未跟踪 build.log、sp
 
 - 主仓库改动集中在 avatar/UserData、backend2/NetworkStuff、library 的 Apply/Observer/Events/InstanceState、model/library 正式准备/同步、model/outfit、衣柜/控件/轮盘、正式渲染 Mixin、Lua API、测试及三份 ACCESSORY_SYSTEM 文档。新增源文件尚未跟踪，提交不能漏掉。
 - 后端改动在 src/api/library、src/storage/outfit_*、旧装备/分发事务衔接、独立事件、对应 tests 和部署文档；原 build.log/spm-cloud 不提交。
-- 当前下一步：睡姿修复提交推送后继续两项原始 Bug 的最小诊断。refs/Sparkle-Morpher 和 refs/avatars 下两个指定模型均存在。第一人称已确认 ItemInHandRendererMixin 会调用 updateAnimations(...,true)，不能未经证据归因于“完全未求值”；YsmRenderer 当前只对 arm geometry 根节点做左右手筛选，子树筛选和第一人称控制器/可见性待实际回放。头部当前 ysm_head_pitch=-rawPitch、ysm_head_yaw=-clamp(relativeYaw)，与参考 query 命名/负号相同；尚未确认头发/俯仰根因，不盲改符号。继续用原生回放构造红灯，不记录加密作者表达式。S6 JAR 尚未包含睡姿修复；后续重建须更新验收产物 hash。
-- S1～S6 完成后依次修复三项 alpha.3 公共 YSM Bug，参考 Sparkle-Morpher，必须通用修复：DS鲸鱼娘.ysm 第一人称手；少女-哥伦比娅.ysm 第三人称正面仰头的头部/头发；任意 .ysm 睡姿。模型/截图路径见进度记录末尾。当前尚未着手，不标完成。
+- 当前下一步仅为余下修复的 main 提交推送及远端 SHA 核对；测试/产物已通过，不重复无关门禁。提交后自动实施结束，待用户安排真实验收。新增未跟踪 YsmPublicPoseSmokeTest.java 必须纳入提交；DEBUG 已移除。
+- 最新 JAR 为 fabric/build/libs/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar（18,251,257字节，SHA256 f64d1748b3a1046b442b325cabd57252983cba9c71fc20096cc539cdc4bb0fe0），已包含睡姿/手/Head/滤波修正。根因/红绿日志和参考路径见进度记录末尾。DS 模型另有加密控制器解析警告，未证明与本次缺陷有关，作为跟进记录，不扩张解析器重构。
 
 ## 相关文档
 

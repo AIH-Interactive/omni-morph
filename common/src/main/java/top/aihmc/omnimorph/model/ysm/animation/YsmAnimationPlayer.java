@@ -695,6 +695,15 @@ public class YsmAnimationPlayer {
              var boneQueries = runtime.boneQueries().beginEvaluation()) {
             updateFrame(state, entity, firstPerson);
             runtime.boneQueries().captureOutput(firstPerson);
+            if (!firstPerson && context != null && !runtime.isSubEntityRuntime()
+                    && runtime.owner().cosmeticContext == null) {
+                var head = runtime.getPart("Head");
+                if (head != null) {
+                    // Track after authored poses, without feeding this offset back into bone queries.
+                    // Rendered X/Y axes invert the model-degree animation channels.
+                    head.addAnimRot(-context.ysm_head_pitch, -context.ysm_head_yaw, 0);
+                }
+            }
         } catch (MolangExecutionBudget.Exceeded exhausted) {
             runtime.particles().discardPending();
             if (runtime.owner().cosmeticAnimations != null) {

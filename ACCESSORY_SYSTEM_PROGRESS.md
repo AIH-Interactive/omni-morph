@@ -1043,14 +1043,16 @@
 
 - **共同修复约束（用户明确要求）：必须全局修复，禁止特化修复。** 所有已登记缺陷均须定位通用 YSM 运行时、动画或渲染路径的根因并在共享路径修正；禁止按模型名称、文件路径/哈希、作者或指定模型添加专用分支、参数补丁或白名单。`DS鲸鱼娘.ysm` 与 `少女-哥伦比娅.ysm` 仅作为复现/回归样本，修复后同时验证其他 YSM 模型，确认共享行为正确且无回归。执行顺序不变，仍在阶段 1～6 完成后处理。
 
-- **YSM 第一人称手部异常 — OPEN / MANUAL/PENDING。** 测试模型：`DS鲸鱼娘.ysm`。用户提供图一为 Sparkle-Morpher 加载该模型的参考效果，图二为当前项目效果，第一人称手部姿态/位置异常。截图仅作为现象证据，根因尚未确认。
+- **YSM 第一人称手部异常 — 共根子树筛选已全局修复，真实画面 MANUAL/PENDING。** `DS鲸鱼娘.ysm` 手臂几何为公共根下两分支；原代码只筛选根，右手路径同时绘制两手（2112顶点），临时隐藏反侧分支仅1056顶点。实际原生用例先红（alpha3-shared-arm-red.log）；修复在递归绘制时传递左右手选择，通用排除反侧子树。左右手实际模型回归通过，不按文件名/hash/作者分支。图一为 Sparkle-Morpher，图二为原项目；完整姿态/位置/画面对照仍待真实 Minecraft。该模型另有加密控制器解析警告，未证明是此双手缺陷的根因，记录跟进，不扩张为解析器重构。
 - 图一：`D:/Temp/User/codex-clipboard-34c0b41f-8917-487b-bf0c-e6f47cc2fcfe.png`；图二：`D:/Temp/User/codex-clipboard-82ca8016-c362-4ac0-b8b8-f75fb90f4dcc.png`。
-- 执行顺序：先完成本计划阶段 1～6 及各阶段检查点，再参考 Sparkle-Morpher 定位并修复；使用同一模型、相同视角与动作条件对照验证。当前仅登记，不将该 bug 修复并入阶段二或扩张当前阶段验收范围。
+- 执行顺序已遵守：S1～S6 提交推送后处理此项；测试模型只用于复现/回归，生产实现为共用路径。
 
-- **公共 bug 2：YSM 仰头等动作的头发及头部朝向异常 — OPEN / MANUAL/PENDING。** 测试模型：`少女-哥伦比娅.ysm`；视角：第三人称正面。用户反馈仰头等动作时头发表现不正常，且头部未像参考效果一样面朝玩家/镜头。图一为当前项目，图二为 Sparkle-Morpher；截图中的头发姿态和面部可见情况存在差异，根因尚未确认。
+- **公共 bug 2：YSM 仰头等动作的头发及头部朝向异常 — 通用后置头部跟随已接，真实头发/画面 MANUAL/PENDING。** 用户确认持续仰头超过1秒仍异常，因此滤波初始零值不是稳态根因。`少女-哥伦比娅.ysm` 原生稳态父链中，作者身体/头部俯仰会抵消；参考 LivingAnimatable 在动画后对标准 Head 叠加玩家跟随，当前路径原先缺失。现全局补齐该步骤，保留作者动画；骨骼查询先捕获作者基线，再添加仅渲染跟随，避免物理反馈累加；不向独立装饰/子实体注入人形跟随。向上用例先红（alpha3-head-tracking-red.log），修复后相关原生/编译/骨骼查询/滤波/延迟帧44秒 PASS（alpha3-head-tracking-final.log）。另修正已证实的一阶/二阶滤波初值为输入姿态，不将其冒称稳态根因。真实头发动态和截图对比仍待 Minecraft。
 - bug 2 图一（当前项目）：`D:/Temp/User/codex-clipboard-c4cf7ec3-2c75-4c00-b0b2-bdfaece9f8ed.png`；图二（Sparkle-Morpher）：`D:/Temp/User/codex-clipboard-093afd31-c649-4933-b180-8b91b7f973b4.png`。
-- bug 2 同样排在阶段 1～6 完成后定位修复；使用同一模型、第三人称正面视角及相同俯仰/动作条件，与 Sparkle-Morpher 对照头部朝向和头发姿态。当前仅登记，不提前修改 YSM 动画、头部旋转或头发物理行为。
+- bug 2 已在 S1～S6 之后处理；用户确认持续保持仍异常。最终原生回归增加稳态俯仰/偏航、同帧重复求值不累加、作者骨骼查询不受渲染偏移污染。真实第三人称正面头发/脸部与参考截图对照仍 MANUAL/PENDING。
 
 - **公共 bug 3：YSM 睡姿异常 — 根旋转已全局修复，真实画面 MANUAL/PENDING。** 计划1～6完成并推送后确认：原生世界 submit 自行接管 YSM 绘制，仅做 body yaw，绕过原版睡眠整模变换。共用 YsmRenderer.applyEntityRotation 对 sleeping pose 按床方向旋转；身体/持物/装饰组合共用，无模型名/hash/作者判断。四床方向卧姿与参考矩阵、站立不变回归先红后绿（alpha3-sleep-root-red.log / alpha3-sleep-root-final.log），Fabric编译与回归19秒 PASS。实际床面位置/动画画面待真实 Minecraft。
 - bug 3 图一（当前项目）：`D:/Temp/User/codex-clipboard-05148e6b-2485-497c-a2af-0a112be5132e.png`；图二（Sparkle-Morpher）：`D:/Temp/User/codex-clipboard-db986dde-1796-42f6-b716-fd6478958ffa.png`。
-- bug 3 在阶段 1～6 完成后，与前两项一起按通用路径定位修复；以相同模型、床朝向和睡眠条件对照 Sparkle-Morpher，并用不同 YSM 模型回归，禁止模型特化。当前不提前修改睡眠状态或姿态行为。
+- bug 3 已在 S1～S6 之后修复根旋转并单独提交推送 main@8d439ddb；床向矩阵和站立回归 PASS。真实床面/睡眠动画仍 MANUAL/PENDING。
+
+公共 Bug 最终检查点：`alpha3-public-bugs-checkpoint.log` PASS（1分44秒/24 tasks），指定两模型原生回放、受控基础几何、装饰/默认动作/隔离预览和 Fabric build 均通过；`alpha3-head-tracking-final.log` PASS（44秒）覆盖骨骼查询/滤波/延迟帧。`alpha3-public-bugs-artifact.log` PASS，新 alpha.4 测试包 SHA256 见验收记录。诊断 DEBUG 已移除。仅修共同渲染/动画/滤波路径，无模型特化、冻结协议和默认资产改动。自动证据不等于真实客户端画面，后者保留 MANUAL/PENDING；不继续追加无关优化。
