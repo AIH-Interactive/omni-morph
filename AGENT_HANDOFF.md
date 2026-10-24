@@ -234,3 +234,5 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 验证：alpha4-accessory-draw-count-diagnostics.log PASS（1 分钟）：libraryPreviewRuntimeSmokeTest、outfitApplyClientSmokeTest、fabric:build；夹具中各实例均输出计数与坐标。JAR 18275337 字节，SHA256 7f0db04853c7f16c5606a9841a717dc6de51acd2fc22777b6f858c530c98b825，同时包含 fe1546db 的发布按钮诊断。
 
 最小下一步：用户换包，①确认 test2 设置里 “Visible / 显示” 为开；②手动挂到 Body，衣柜与世界各看一次；③提供 latest.log 中全部 “Outfit accessory draw” 与 “Outfit publish” 行。据此定位后再做最小修复并评估移除诊断。真实界面 MANUAL/PENDING。约束不变。
+
+更新（19:25）：用户日志确认游戏内 test2 每个实例在 RENDER 与 FIGURA_GUI 下 vertices=0（离线同数据 48），截图 WingRoot 显示 Gizmo（挂载位置已解析）。结论：装饰自身渲染输出 0 面；剩余两种可能：脚本隐藏（Visible/恢复控件值）或面数 allowance=0。新增仅在 0 顶点时记录一次 “Outfit accessory empty draw: complexityRemaining/max, complexityPermission, hiddenParts/total, rootVisible”。回归 PASS（alpha4-accessory-empty-draw-diagnostics.log，34秒），JAR 18276289 字节，SHA256 137d5dc22b0dacfc6e84109782ff42f71629fd08cdbcacbf6b112c7c2a4f0038。发布按钮日志显示正常门控（无改动时禁用、提交中忙碌），无异常。下一步：用户复现并提供 “Outfit accessory empty draw” 行与 Visible 开关状态。

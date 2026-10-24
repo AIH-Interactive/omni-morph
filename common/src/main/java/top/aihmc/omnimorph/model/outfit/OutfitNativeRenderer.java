@@ -117,8 +117,37 @@ public final class OutfitNativeRenderer {
                 top.aihmc.omnimorph.FiguraMod.LOGGER.warn(
                         "Outfit accessory draw: mode={}, vertices={}, mountModelUnits={}, drawOrigin={}",
                         mode, drawnVertices[0], mountPosition, drawOrigin);
+                if (drawnVertices[0] == 0 && !avatar.isYsmNative()) {
+                    reportEmptyFiguraDraw(avatar);
+                }
             }
         }
+    }
+
+    /** Diagnostic only: separates hidden geometry from an exhausted face allowance for an empty accessory draw. */
+    private static void reportEmptyFiguraDraw(Avatar avatar) {
+        int hiddenParts = 0;
+        int totalParts = 0;
+        var pending = new java.util.ArrayDeque<top.aihmc.omnimorph.model.FiguraModelPart>();
+        if (avatar.renderer != null && avatar.renderer.root != null) {
+            pending.add(avatar.renderer.root);
+        }
+        while (!pending.isEmpty()) {
+            var part = pending.pop();
+            totalParts++;
+            if (!part.customization.visible) {
+                hiddenParts++;
+            }
+            pending.addAll(part.children);
+        }
+        top.aihmc.omnimorph.FiguraMod.LOGGER.warn(
+                "Outfit accessory empty draw: complexityRemaining={}/{}, complexityPermission={}, hiddenParts={}/{}, rootVisible={}",
+                avatar.complexity == null ? -1 : avatar.complexity.remaining,
+                avatar.complexity == null ? -1 : avatar.complexity.max,
+                avatar.permissions == null ? -1
+                        : avatar.permissions.get(top.aihmc.omnimorph.permissions.Permissions.COMPLEXITY),
+                hiddenParts, totalParts,
+                avatar.renderer != null && avatar.renderer.root != null && avatar.renderer.root.customization.visible);
     }
 
     /** Diagnostic only: forwards every call and counts submitted vertices. */
