@@ -101,8 +101,22 @@ public final class OutfitNativeRenderer {
                     wearer = avatar.luaRuntime == null ? null : avatar.luaRuntime.getUser();
                 }
                 command.figuraPose().draw(() -> {
-                    Runnable nativeDrawing = () -> avatar.render(wearer, 0, delta, 1, stack, target, light,
-                            OverlayTexture.NO_OVERLAY, null, PartFilterScheme.MODEL, false, false);
+                    Runnable nativeDrawing = () -> {
+                        // World draws use the camera-relative stack, so part-to-world matrices are valid here and
+                        // scripts sampling partToWorldMatrix (trails, particles) need them; GUI draws are not.
+                        var renderer = avatar.renderer;
+                        if (renderer == null) {
+                            return;
+                        }
+                        boolean previousMatrixUpdate = renderer.allowMatrixUpdate;
+                        renderer.allowMatrixUpdate = mode == EntityRenderMode.RENDER;
+                        try {
+                            avatar.render(wearer, 0, delta, 1, stack, target, light,
+                                    OverlayTexture.NO_OVERLAY, null, PartFilterScheme.MODEL, false, false);
+                        } finally {
+                            renderer.allowMatrixUpdate = previousMatrixUpdate;
+                        }
+                    };
                     if (frame == null) {
                         nativeDrawing.run();
                     } else {
