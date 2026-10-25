@@ -128,11 +128,11 @@ public final class CustomParticle extends SingleQuadParticle {
     }
 
     void disableLightFromPolicy() {
-        lightSettings = new ParticleLightSettings(false, lightSettings.level(), lightSettings.radius());
+        lightSettings = new ParticleLightSettings(false, lightSettings.level(), lightSettings.radius(), lightSettings.interval());
     }
 
     public void setDynamicLight(boolean enabled) {
-        setLightSettings(new ParticleLightSettings(enabled, lightSettings.level(), lightSettings.radius()));
+        setLightSettings(new ParticleLightSettings(enabled, lightSettings.level(), lightSettings.radius(), lightSettings.interval()));
     }
 
     public boolean dynamicLight() {
@@ -140,7 +140,7 @@ public final class CustomParticle extends SingleQuadParticle {
     }
 
     public void setLightLevel(int level) {
-        setLightSettings(new ParticleLightSettings(lightSettings.enabled(), level, lightSettings.radius()));
+        setLightSettings(new ParticleLightSettings(lightSettings.enabled(), level, lightSettings.radius(), lightSettings.interval()));
     }
 
     public int lightLevel() {
@@ -148,11 +148,20 @@ public final class CustomParticle extends SingleQuadParticle {
     }
 
     public void setLightRadius(double radius) {
-        setLightSettings(new ParticleLightSettings(lightSettings.enabled(), lightSettings.level(), radius));
+        setLightSettings(new ParticleLightSettings(lightSettings.enabled(), lightSettings.level(), radius, lightSettings.interval()));
     }
 
     public double lightRadius() {
         return lightSettings.radius();
+    }
+
+    public void setLightInterval(int interval) {
+        setLightSettings(new ParticleLightSettings(lightSettings.enabled(), lightSettings.level(),
+                lightSettings.radius(), interval));
+    }
+
+    public int lightInterval() {
+        return lightSettings.interval();
     }
 
     private void setLightSettings(ParticleLightSettings replacement) {
@@ -167,6 +176,12 @@ public final class CustomParticle extends SingleQuadParticle {
                 if (replacement.enabled() && level != net.minecraft.client.Minecraft.getInstance().level) {
                     throw new LuaError("PARTICLE_DYNAMIC_LIGHT_WORLD_UNAVAILABLE");
                 }
+                if (replacement.enabled() && !lightSettings.enabled()
+                        && !ParticleDynamicLights.intervalSelects(this, replacement.interval())) {
+                    lightSettings = new ParticleLightSettings(false, replacement.level(), replacement.radius(),
+                            replacement.interval());
+                    return;
+                }
                 ParticleDynamicLights.update(this, replacement);
             }
             lightSettings = replacement;
@@ -176,7 +191,7 @@ public final class CustomParticle extends SingleQuadParticle {
             }
             // The wearer's light capacity is full: keep the particle and its settings, but without illumination,
             // as the per-frame policy does. A busy budget must not stop the whole accessory script.
-            lightSettings = new ParticleLightSettings(false, replacement.level(), replacement.radius());
+            lightSettings = new ParticleLightSettings(false, replacement.level(), replacement.radius(), replacement.interval());
         }
     }
 
@@ -252,6 +267,7 @@ public final class CustomParticle extends SingleQuadParticle {
         light.set("enabled", org.luaj.vm2.LuaValue.valueOf(lightSettings.enabled()));
         light.set("level", lightSettings.level());
         light.set("radius", org.luaj.vm2.LuaValue.valueOf(lightSettings.radius()));
+        light.set("interval", lightSettings.interval());
         result.set("light", light);
         return result;
     }

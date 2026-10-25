@@ -5,15 +5,16 @@ import org.luaj.vm2.LuaValue;
 import top.aihmc.omnimorph.model.outfit.OutfitLimits;
 
 /** Dynamic illumination is independent of the particle material's emissive/full-bright setting. */
-record ParticleLightSettings(boolean enabled, int level, double radius) {
+record ParticleLightSettings(boolean enabled, int level, double radius, int interval) {
     ParticleLightSettings {
-        if (level < 0 || level > 15 || !Double.isFinite(radius) || radius <= 0 || radius > 32) {
-            throw new LuaError("Invalid custom particle light level or radius");
+        if (level < 0 || level > 15 || !Double.isFinite(radius) || radius <= 0 || radius > 32
+                || interval < 1 || interval > 64) {
+            throw new LuaError("Invalid custom particle light level, radius or interval");
         }
     }
 
     static ParticleLightSettings defaults() {
-        return new ParticleLightSettings(false, 15, 7.5);
+        return new ParticleLightSettings(false, 15, 7.5, 1);
     }
 
     void validate(OutfitLimits limits) {
@@ -33,7 +34,7 @@ record ParticleLightSettings(boolean enabled, int level, double radius) {
             return this;
         }
         if (value.isboolean()) {
-            return new ParticleLightSettings(value.toboolean(), level, radius);
+            return new ParticleLightSettings(value.toboolean(), level, radius, interval);
         }
         if (!value.istable()) {
             throw new LuaError("Ribbon light must be a boolean or a settings table");
@@ -49,8 +50,13 @@ record ParticleLightSettings(boolean enabled, int level, double radius) {
             throw new LuaError("Custom particle light level must be an integer from 0 to 15");
         }
         var suppliedRadius = table.rawget("radius");
+        var suppliedInterval = table.rawget("interval");
+        double newInterval = suppliedInterval.isnil() ? interval : number(suppliedInterval);
+        if (newInterval != Math.rint(newInterval) || newInterval < 1 || newInterval > 64) {
+            throw new LuaError("Custom particle light interval must be an integer from 1 to 64");
+        }
         return new ParticleLightSettings(suppliedEnabled.isnil() || suppliedEnabled.toboolean(), (int) newLevel,
-                suppliedRadius.isnil() ? radius : number(suppliedRadius));
+                suppliedRadius.isnil() ? radius : number(suppliedRadius), (int) newInterval);
     }
 
     private static double number(LuaValue value) {

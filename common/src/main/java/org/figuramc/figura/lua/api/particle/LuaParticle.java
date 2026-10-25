@@ -286,6 +286,20 @@ public class LuaParticle {
     }
 
     @LuaWhitelist
+    public LuaParticle setLightInterval(double interval) {
+        if (!Double.isFinite(interval) || interval != Math.rint(interval) || interval < 1 || interval > 64) {
+            throw new LuaError("Custom particle light interval must be an integer from 1 to 64");
+        }
+        custom().setLightInterval((int) interval);
+        return this;
+    }
+
+    @LuaWhitelist
+    public int getLightInterval() {
+        return custom().lightInterval();
+    }
+
+    @LuaWhitelist
     @LuaMethodDoc("particle.remove")
     public LuaParticle remove() {
         particle.remove();

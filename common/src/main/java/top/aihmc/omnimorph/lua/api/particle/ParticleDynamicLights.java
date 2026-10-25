@@ -22,6 +22,9 @@ public final class ParticleDynamicLights {
 
     private static final Map<CustomParticle, Entry> SOURCES = new LinkedHashMap<>();
     private static final Map<UUID, Integer> COUNTS = new HashMap<>();
+    /** Per-accessory emission sequence used by {@link ParticleLightSettings#interval()}. */
+    private static final Map<Object, Integer> INTERVAL_COUNTS =
+            java.util.Collections.synchronizedMap(new java.util.WeakHashMap<>());
     private static Map<CustomParticle, ParticleLightField.Source> terrain = Map.of();
     private static Map<CustomParticle, ParticleLightField.Source> entityField = Map.of();
     private static Object entityWorld;
@@ -67,6 +70,25 @@ public final class ParticleDynamicLights {
         } catch (org.luaj.vm2.LuaError rejected) {
             return false;
         }
+    }
+
+    /**
+     * One light per {@code interval} light-capable emissions of an accessory. The particle that is
+     * not selected stays alive and visible, it simply does not contribute dynamic illumination.
+     */
+    static boolean intervalSelects(CustomParticle particle) {
+        return intervalSelects(particle, particle.lightSettings().interval());
+    }
+
+    static boolean intervalSelects(CustomParticle particle, int interval) {
+        if (interval <= 1) {
+            return true;
+        }
+        int sequence;
+        synchronized (INTERVAL_COUNTS) {
+            sequence = INTERVAL_COUNTS.merge(particle.owner(), 1, Integer::sum);
+        }
+        return sequence % interval == 0;
     }
 
     static void update(CustomParticle particle, ParticleLightSettings settings) {

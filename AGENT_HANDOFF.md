@@ -432,3 +432,10 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 ### 配装脚本阴影发射修复（2026-10-25 09:50）
 
 进一步发现：`test` 的星光粒子在 `POST_RENDER` 用 `root:partToWorldMatrix()` 发射，而 Iris 阴影 pass 也会渲染实体并触发配装脚本；阴影 pass 先发射并占用 `emittedTick` 后，主 pass 不再发射，粒子被建在阴影视图位置，移动后即偏移。`OutfitNativeRenderer.draw` / `drawInstance` 现在在 `IrisCompat.isShadowPass()` 时直接跳过，阴影中不再执行配装脚本/粒子发射。新包 18307551 字节，SHA256 d6f78c6088baf810bbc979dfa2bd9fb434e457d56febc10f5c40256243b61b00，已安装。真实 Iris 画面 MANUAL/PENDING。
+### CustomParticle 动态光源间隔（2026-10-25 10:03）
+
+- 新增 Lua API：`particle:setLightInterval(n)` / `getLightInterval()`，以及 `light = { interval = n }`；n 范围 1–64，默认 1。
+- 语义：每个配饰每 n 个“可发光”粒子仅第 n、2n… 个成为动态光源，其余粒子正常存活/显示但不发光；按 Avatar 维护弱引用计数，不占额外光源额度。
+- 启用时机：模板先 `setLightInterval` 再 `setDynamicLight`；对已激活粒子的“从无光到有光”切换也会走同一间隔选择（`CustomParticle.setLightSettings`）。
+- 拖尾模板 `trail.lua` 增加 `Light interval` 滑块（1–64，默认 1），并先设间隔后开动态光。
+- 测试：`ysmMaterialNativeSmokeTest` PASS（含 1/3 选择、API 往返/非法值拒绝）；建立 alpha.4.1 包 18308389 字节，SHA256 12b4a637561bb631b51f0addb3764342ac616656a94bd1f2a7daef3598049cbe，已安装。
