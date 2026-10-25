@@ -35,6 +35,8 @@
 
 - 모델 라이브러리 장식 미리보기에서 `cosmetic_controls`가 nil이라 `newToggle` 등 컨트롤 선언이 실패하는 문제를 수정했습니다. 미리보기에서도 실제 컨트롤 API를 제공하지만 값을 저장하지 않습니다.
 
+- YSM/비-Figura 베이스의 1인칭 손 렌더링에서 `prepareFiguraBase`를 호출해 `INVALID_OUTFIT_CONFIGURATION`으로 충돌하는 문제를 수정했습니다. 의상 손 경로는 이제 Figura 베이스에만 적용됩니다.
+
 ## 1.0.0-alpha.4
 
 - 독립 장식 인스턴스, 앵커, 궤적, CustomParticle/Ribbon과 선택적 동적 광원을 추가했습니다. 상한은 백엔드 `outfit.limits`로 설정합니다.

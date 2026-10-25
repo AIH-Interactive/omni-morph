@@ -331,15 +331,17 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
         }
 
         var submittedArmOutfit = outfitState == null ? null : OutfitRenderBinding.composition(outfitState);
-        // The composition's budget belongs to its own base, which is the local draft preview while editing.
         Avatar armAvatar = avatar;
-        if (submittedArmOutfit != null) {
-            Avatar compositionBase = OutfitRenderBinding.avatar(outfitState);
-            if (compositionBase != null) {
-                armAvatar = compositionBase;
-            }
+        Avatar armCompositionBase = outfitState == null ? null : OutfitRenderBinding.avatar(outfitState);
+        // The first-person arm path only knows how to capture a Figura base skeleton. A YSM base has its own
+        // hand renderer; prepareFiguraBase would reject it and crash the frame.
+        boolean figuraArmBase = submittedArmOutfit != null && armCompositionBase != null
+                && !armCompositionBase.isYsmNative() && armCompositionBase.renderer != null;
+        if (figuraArmBase) {
+            armAvatar = armCompositionBase;
             submittedArmOutfit.prepareFiguraBase(armAvatar);
         }
+        var preparedArmOutfit = figuraArmBase ? submittedArmOutfit : null;
 
         nodeCollectorExt.submitFiguraModel(armAvatar, outfitState, (playerAvatar, state, bufferSource) -> {
             Runnable drawSubmittedArm = () -> {
@@ -360,7 +362,7 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
 
                 Runnable drawArm = () -> playerAvatar.firstPersonRender(copy, bufferSource,
                         Minecraft.getInstance().player, playerModel, arm, light, delta);
-                var outfit = OutfitRenderBinding.composition(state);
+                var outfit = figuraArmBase ? OutfitRenderBinding.composition(state) : null;
                 if (outfit == null) {
                     drawArm.run();
                 } else {
@@ -373,10 +375,10 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
                 if (playerAvatar.luaRuntime != null)
                     playerAvatar.luaRuntime.vanilla_model.PLAYER.restore(playerModel);
             };
-            if (submittedArmOutfit == null) {
+            if (preparedArmOutfit == null) {
                 drawSubmittedArm.run();
             } else {
-                submittedArmOutfit.drawFiguraBase(playerAvatar, drawSubmittedArm);
+                preparedArmOutfit.drawFiguraBase(playerAvatar, drawSubmittedArm);
             }
             return null;
         });

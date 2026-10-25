@@ -35,6 +35,8 @@
 
 - モデルライブラリの装飾プレビューで `cosmetic_controls` が nil になり、`newToggle` などのコントロール宣言が失敗する問題を修正。プレビューでも実際のコントロール API を利用できますが、値は保存されません。
 
+- YSM/非 Figura ベースの一人称手描画で `prepareFiguraBase` を呼び、`INVALID_OUTFIT_CONFIGURATION` でクラッシュする問題を修正。装飾の手パスは Figura ベースのみに限定しました。
+
 ## 1.0.0-alpha.4
 
 - 独立した装飾インスタンス、アンカー、軌跡、CustomParticle/Ribbon、任意の動的光源を追加。上限はバックエンドの `outfit.limits` で設定します。

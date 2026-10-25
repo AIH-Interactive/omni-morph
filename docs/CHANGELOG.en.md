@@ -35,6 +35,8 @@
 
 - Fix model-library cosmetic previews where `cosmetic_controls` was nil, causing `newToggle` and other control declarations to fail; previews now expose the real controls API without persisting values.
 
+- Fix first-person hand rendering calling `prepareFiguraBase` for YSM/non-Figura bases and crashing with `INVALID_OUTFIT_CONFIGURATION`; the outfit arm path is now limited to Figura bases.
+
 ## 1.0.0-alpha.4
 
 - Adds isolated accessory instances, anchors, trails, controls, CustomParticle/Ribbon and optional dynamic lights with server-defined `outfit.limits`.

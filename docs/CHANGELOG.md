@@ -35,6 +35,8 @@
 
 - 修复模型库预览加载装饰脚本时 `cosmetic_controls` 为 nil，导致 `newToggle` 等控件声明报错的问题；预览环境现在提供真实控件 API，但不写入本地持久化。
 
+- 修复 YSM/非 Figura 基础在第一人称手部渲染时仍调用 `prepareFiguraBase`，触发 `INVALID_OUTFIT_CONFIGURATION` 崩溃；现在只有 Figura 基础才走该配装手臂路径。
+
 ## 1.0.0-alpha.4
 
 - 支持原版/Figura/YSM 基础上的多实例装饰、独立控件/轮盘、稳定骨架挂点、虚拟挂点、内部骨骼覆盖及拖尾。
