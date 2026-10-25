@@ -291,6 +291,7 @@ CASE WHEN m.visibility = 'PRIVATE'
 
 ## 10. 验证状态
 
-- 本文只分析 omnm-cloud，未改代码。
+- 本文分析实际部署目标 omnm-cloud；修复计划 Phase 0 已实施，Phase 1～4 尚未实施。
+- 已验证 Phase 0：上传 PUBLIC/PRIVATE 持久化状态回执、缺失/非法 visibility 的 INVALID_VISIBILITY、已封禁内容再上传后的 PRIVATE/BLOCKED 回执；客户端保留服务端状态并显示。后端全套 191 passed / 1 ignored，客户端上传回归与 Fabric build PASS。日志见 `build/reports/multiplayer-sync/phase0-*.log`。
 - 没有在真实生产服务上确认实际请求/响应和观察者分发结果；相关结论需联调核对。
 - 真实双客户端、生产后端、审核/发布流程仍为 `MANUAL/PENDING`。

@@ -52,7 +52,11 @@ public final class LibraryUploadService implements AutoCloseable {
         }
     }
 
-    public record Published(UUID modelId, boolean published) {}
+    public record Published(UUID modelId, boolean published, String visibility, String moderationStatus) {
+        public Published(UUID modelId, boolean published) {
+            this(modelId, published, null, null);
+        }
+    }
     public record ImageResult(UUID modelId, long imageRevision, long policyRevision) {}
     private record OutfitPublished(UUID modelId, boolean published, long revision, long policyRevision) {}
 

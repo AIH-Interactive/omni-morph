@@ -801,7 +801,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
             started.future().whenComplete((result, failure) -> {
                 if (!closed && operation == started) {
                     message = failure != null && started.outfitPublished() ? FiguraText.of("gui.library.outfit_cover_retry")
-                            : failure == null ? FiguraText.of("gui.library.upload_success")
+                            : failure == null ? publicationMessage(result)
                             : FiguraText.of("gui.library.failure", failure instanceof LibraryClient.Failure typed
                             ? typed.code : "UPLOAD_FAILED");
                     if (failure == null) {
@@ -821,6 +821,14 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
             message = FiguraText.of("gui.library.metadata_error");
         }
         updateButtons();
+    }
+
+    private Component publicationMessage(LibraryUploadService.Published result) {
+        if (result.visibility() == null || result.moderationStatus() == null) {
+            return FiguraText.of("gui.library.upload_success");
+        }
+        return FiguraText.of("gui.library.upload_status", result.visibility(), result.published(),
+                LibraryLabels.status(result.moderationStatus()));
     }
 
     private void cancelUpload() {

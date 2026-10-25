@@ -69,8 +69,14 @@ public final class LibraryUploadSmokeTest {
                 server.dropBody.set(true);
                 var bodyLost = uploads.upload(snapshot, null);
                 reject(bodyLost.future(), drain);
-                require(await(bodyLost.retry(), drain).published() && server.published.get() == 1,
+                var publication = await(bodyLost.retry(), drain);
+                require(publication.published() && server.published.get() == 1,
                         "lost body acknowledgement retries same draft and commits verified bytes");
+                var publicationJson = new Gson().toJsonTree(publication).getAsJsonObject();
+                require(publicationJson.has("visibility")
+                                && publicationJson.get("visibility").getAsString().equals("PRIVATE")
+                                && publicationJson.get("moderationStatus").getAsString().equals("BLOCKED"),
+                        "upload result preserves server policy even when a public draft is moderated private");
 
                 server.dropImage.set(true);
                 var image = new BufferedImage(16, 8, BufferedImage.TYPE_INT_RGB);
@@ -460,7 +466,8 @@ public final class LibraryUploadSmokeTest {
                             published.incrementAndGet();
                         }
                         transaction.committed = true;
-                        result = Map.of("model_id", transaction.model, "published", true);
+                        result = Map.of("model_id", transaction.model, "published", true,
+                                "visibility", "PRIVATE", "moderation_status", "BLOCKED");
                         if (dropCommit.getAndSet(false)) {
                             status = 503;
                         }

@@ -525,3 +525,15 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
   - omnm-cloud 修复计划未实施：Figura/装饰资产投影、本地依赖上传/转换、`OutfitStateChanged` 事件、visibility 诊断、真实双客户端联调均未做；后端代码未改。
   - 安装新 JAR 时游戏可能仍在运行；测试前必须完全退出并重启，避免 ZIP/资源缓存错误。
   - `.omc/`、`mod_log/`、`patch/` 未跟踪；不要 reset/clean。
+
+## 当前有效交接：多人同步修复 Phase 0（2026-10-25）
+
+- 当前任务：仅按 `docs/MULTIPLAYER_SYNC_FIX_PLAN.md` Phase 0～4 顺序修复；用户再次明确禁止任何无关修改。历史 S1～S6 不重启，既有优化和遗留问题不纳入本任务。
+- Phase 0 自动实施已完成：上传 reserve/commit 返回服务端持久化 visibility、published、moderation_status；缺失/非法 visibility 为 400 INVALID_VISIBILITY。诊断 distribution_code 区分 MODERATION_PRIVATE、NOT_DISTRIBUTABLE。客户端保留并显示返回状态；观察者隐藏/权限失败与后端装备/实例投影增加诊断日志，未改变分发权限或默认可见性。
+- 已验证：新增 HTTP 契约先红后绿；PUBLIC/PRIVATE 回执、缺失/非法 visibility、封禁内容重传后的 PRIVATE/BLOCKED 回执。`cargo test -- --test-threads=4`：191 passed / 0 failed / 1 ignored；`:common:libraryUploadSmokeTest :fabric:build` PASS（42秒）；两仓库 git diff --check PASS。日志 `build/reports/multiplayer-sync/phase0-backend.log`、`phase0-client.log`。既有 ignored 不算通过，外部环境门禁没有提供环境时仍可能跳过，不冒称真实互操作验证。
+- MANUAL/PENDING 并按用户要求跳过：真实 Minecraft GUI、生产上传/审核与双客户端联调；不阻塞自动阶段检查点，不宣称人工验收完成。
+- Git：后端 master@7bacfb37bacab3598b5f07e63b7d402942cc03b3 已提交推送并核对远端 SHA。主仓库 main，提交前基线 7e411a899f992d83725be37104f5cea9af9af6e2；Phase 0 客户端、计划、分析与本文纳入随后同阶段提交，以实际 HEAD/远端核对为准。
+- 工作区：仅本阶段所列源码/测试/语言/文档修改；原有 `.omc/`、`mod_log/`、`patch/` 与后端未跟踪 build.log 保留。未安装新包、未部署后端、未切分支、未升级版本。
+- 未完成：Phase 1～4；最小下一步先完成主仓库 Phase 0 提交推送与远端 SHA 核对，再从 Phase 1 的既有 Figura 投影/事件路径核对开始。优先复用已有观察者资源和独立 JSON 扩展，不修改冻结 Protobuf v1，不重复实现已有能力。
+- 额度：可靠接口 Plus，最近安全检查点 5小时剩余92%、周剩余99%；尚未触发阈值。后续在较大任务开始/验证/提交等安全检查点查询；触发时只委派 gpt-6-luna 整理交接，不能因此切换日常开发模型；接口不可用不猜测。
+- 必须遵守：当前分支分阶段提交推送并核对 SHA；前台 PowerShell Tee build.log、立即检查 LASTEXITCODE 并读取日志；JDK25；不改用户资源；Qt offscreen 禁止；人工验证仅标 MANUAL/PENDING；正常交付也更新本文。

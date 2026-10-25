@@ -288,6 +288,7 @@
   "omni-morph.gui.no": "否",
   "omni-morph.gui.library.upload_drop_hint": "点击选择或拖入 .zip / .ysm 模型文件。服务器上限：%s。",
   "omni-morph.gui.library.upload_success": "模型已发布",
+  "omni-morph.gui.library.upload_status": "服务端结果：可见性 %s；已发布 %s；审核 %s",
   "omni-morph.gui.library.retry_upload": "重试同一次上传",
   "omni-morph.gui.library.cancelled": "已取消，可继续编辑草稿。",
   "omni-morph.gui.library.file_picker": "选择文件",
