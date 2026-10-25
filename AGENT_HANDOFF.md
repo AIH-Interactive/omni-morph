@@ -439,3 +439,12 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 启用时机：模板先 `setLightInterval` 再 `setDynamicLight`；对已激活粒子的“从无光到有光”切换也会走同一间隔选择（`CustomParticle.setLightSettings`）。
 - 拖尾模板 `trail.lua` 增加 `Light interval` 滑块（1–64，默认 1），并先设间隔后开动态光。
 - 测试：`ysmMaterialNativeSmokeTest` PASS（含 1/3 选择、API 往返/非法值拒绝）；建立 alpha.4.1 包 18308389 字节，SHA256 12b4a637561bb631b51f0addb3764342ac616656a94bd1f2a7daef3598049cbe，已安装。
+### 崩溃修复（2026-10-25 10:19，mod_log）
+
+- `10:11` 崩溃：`OUTFIT_INSTANCE_MISSING`，栈为 `WardrobeScreen.buildInstanceTransform` 的 `LibraryDropdown` 选中项 supplier → `OutfitDraft.instance(id)`。旧下拉在实例被移除/切换后仍被渲染。修复：
+  - `OutfitDraft.findInstance(UUID)` 可空查询；`instance` 仍抛错给强约束调用方。
+  - `buildInstanceTransform` 找不到实例直接返回。
+  - 下拉 selected supplier 先检查 `outfitDraft == expectedDraft && id.equals(selectedInstance())`，再 `findInstance`，缺失返回 0。
+- `09:09` 崩溃：`INVALID_OUTFIT_CONFIGURATION`，第一人称 hand 的 `prepareFiguraBase` → `SkeletonIndex.capture`。共享/重复 `FiguraModelPart` 在捕捉时按首次路径去重，不再让整帧失败（其子树已由首次路径表示）。
+- 测试：`outfitDraftSmokeTest` PASS；`libraryPreviewRuntimeSmokeTest` PASS；`OutfitAnchorSmokeTest` 新增重复节点断言（随组合测试执行）。
+- JAR 18308424 字节，SHA256 3fdabcfeb99f12c706bb282b0cfe2f6904132584011411868bbb8c39767f2f92，已安装。真实客户端崩溃路径复测 MANUAL/PENDING。

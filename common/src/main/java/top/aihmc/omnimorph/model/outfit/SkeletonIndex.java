@@ -140,7 +140,12 @@ public final class SkeletonIndex {
         var rootIds = new ArrayList<Integer>();
         while (!pending.isEmpty()) {
             Pending<T> entry = pending.pop();
-            OutfitConfig.require(seen.add(entry.part()) && parts.size() < limits.maxResourceNodes());
+            // A native hand/arm pass can expose the same part through two paths. Keep the first path
+            // instead of failing the whole frame; its children are already represented by that path.
+            if (!seen.add(entry.part())) {
+                continue;
+            }
+            OutfitConfig.require(parts.size() < limits.maxResourceNodes());
             int id = parts.size();
             parts.add(entry.part());
             names.add(name.apply(entry.part()));

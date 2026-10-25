@@ -61,6 +61,11 @@ public final class OutfitAnchorSmokeTest {
                 OutfitLimits.defaults()).definition();
         require(StandardAnchors.resolve(unnamedHead, false, "head_anchor").size() == 1,
                 "custom rigs without a named head fall back to the first authored rig node");
+        var shared = new Node("Shared", List.of());
+        var deduplicated = SkeletonIndex.capture(null, List.of(new Node("Root", List.of(shared, shared))),
+                Node::name, Node::children, OutfitLimits.defaults()).definition();
+        require(deduplicated.nodes().size() == 2,
+                "a native part exposed through two paths is captured once instead of failing the frame");
         testExportDeclarations(custom);
         var head = pose.definition().reference(null, pose.definition().uniqueNamed("Head").orElseThrow());
         UUID virtualId = UUID.randomUUID();

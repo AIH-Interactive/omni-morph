@@ -17,6 +17,8 @@
 - 게임 내 버전 표시를 “1.0 Alpha 3”에서 “1.0 Alpha 4.1”로 수정했습니다.
 - 실제 클라이언트 셰이더, 믹스인 로딩 및 화면 검증은 `MANUAL/PENDING`입니다.
 
+- 편집 인스턴스가 제거/교체된 뒤 오래된 앵커 드롭다운이 렌더링되어 `OUTFIT_INSTANCE_MISSING`으로 옷장이 충돌하는 문제를 수정했습니다. 공유 스켈레톤 노드는 첫 경로 기준으로 중복 제거하여 1인칭 손 캡처가 `INVALID_OUTFIT_CONFIGURATION`으로 실패하지 않게 했습니다.
+
 ## 1.0.0-alpha.4
 
 - 독립 장식 인스턴스, 앵커, 궤적, CustomParticle/Ribbon과 선택적 동적 광원을 추가했습니다. 상한은 백엔드 `outfit.limits`로 설정합니다.
