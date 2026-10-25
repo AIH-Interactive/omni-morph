@@ -28,6 +28,8 @@ import org.figuramc.figura.gui.widgets.BackendMotdWidget;
 import org.figuramc.figura.gui.widgets.Button;
 import org.figuramc.figura.gui.widgets.EntityPreview;
 import org.figuramc.figura.gui.widgets.Label;
+import org.figuramc.figura.gui.widgets.LoadingErrorWidget;
+import org.figuramc.figura.gui.widgets.StatusWidget;
 import org.figuramc.figura.gui.widgets.SwitchButton;
 import org.figuramc.figura.gui.widgets.TextField;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar;
@@ -218,6 +220,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private AvatarList localList;
     private WardrobeCloudList cloudList;
     private AvatarInfoWidget infoWidget;
+    private StatusWidget statusWidget;
+    private LoadingErrorWidget loadingErrorWidget;
     private BackendMotdWidget motdWidget;
     private Component observedMotd;
     private Button candidateButton;
@@ -267,6 +271,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
         localList = null;
         cloudList = null;
         infoWidget = null;
+        statusWidget = null;
+        loadingErrorWidget = null;
         motdWidget = null;
         avatarActions.clear();
         candidateButton = null;
@@ -612,6 +618,14 @@ public class WardrobeScreen extends AbstractPanelScreen {
         previewWidget.setDependencyIssues(tab == Tab.OUTFIT ? outfitIssues : List.of());
         previewWidget.setSelectedBone(previewBoneSelection());
         addRenderableWidget(previewWidget);
+        var statusFont = Minecraft.getInstance().font;
+        if (statusFont != null) {
+            int statusHeight = statusFont.lineHeight + 5;
+            statusWidget = new StatusWidget(x + w - 64, layout.top() + size - statusHeight - 4, 64);
+            addRenderableOnly(statusWidget);
+            loadingErrorWidget = new LoadingErrorWidget(statusWidget.getX() - 18, statusWidget.getY(), 14);
+            addRenderableOnly(loadingErrorWidget);
+        }
         addRenderableOnly((gui, mouseX, mouseY, delta) -> {
             Component name;
             if (tab == Tab.OUTFIT && draftPreviewActive) {

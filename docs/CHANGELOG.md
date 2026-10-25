@@ -37,6 +37,8 @@
 
 - 修复 YSM/非 Figura 基础在第一人称手部渲染时仍调用 `prepareFiguraBase`，触发 `INVALID_OUTFIT_CONFIGURATION` 崩溃；现在只有 Figura 基础才走该配装手臂路径。
 
+- 恢复衣柜预览底部原有状态栏（模型大小、纹理、脚本、后端连接四点）及加载错误指示，重新加入 `StatusWidget` / `LoadingErrorWidget`。
+
 ## 1.0.0-alpha.4
 
 - 支持原版/Figura/YSM 基础上的多实例装饰、独立控件/轮盘、稳定骨架挂点、虚拟挂点、内部骨骼覆盖及拖尾。
