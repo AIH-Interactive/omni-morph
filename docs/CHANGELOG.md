@@ -19,6 +19,8 @@
 
 - 修复衣柜在编辑实例被移除/切换后仍渲染旧挂点下拉导致 `OUTFIT_INSTANCE_MISSING` 崩溃；共享骨架节点按首次路径去重，避免第一人称手部捕捉重复节点时 `INVALID_OUTFIT_CONFIGURATION` 崩溃。
 
+- 修复滑块保存值在控件定义注册阶段被临时 0..1 范围钳成 1（如 interval、lifetime、frame_ticks、light_interval），以及云端/外部状态更新后滑块位置不跟随的问题；恢复原始保存值并在 `setRange` 后重新规范化，滑块现在会同步外部控件值。
+
 ## 1.0.0-alpha.4
 
 - 支持原版/Figura/YSM 基础上的多实例装饰、独立控件/轮盘、稳定骨架挂点、虚拟挂点、内部骨骼覆盖及拖尾。

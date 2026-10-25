@@ -19,6 +19,8 @@
 
 - Fix the wardrobe crashing with `OUTFIT_INSTANCE_MISSING` when a stale anchor dropdown renders after its edited instance was removed or replaced; shared skeleton nodes are now deduplicated by first path instead of failing first-person hand capture with `INVALID_OUTFIT_CONFIGURATION`.
 
+- Fix saved slider values being clamped to 1 by the temporary 0..1 definition range before the author's `setRange` (for example interval, lifetime, frame_ticks and light_interval), and sliders not following cloud/external state updates. The raw restored value is retained and re-normalized after `setRange`, and sliders now sync from externally changed control values.
+
 ## 1.0.0-alpha.4
 
 - Adds isolated accessory instances, anchors, trails, controls, CustomParticle/Ribbon and optional dynamic lights with server-defined `outfit.limits`.

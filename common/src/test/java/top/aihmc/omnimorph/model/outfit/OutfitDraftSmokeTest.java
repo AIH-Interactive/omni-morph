@@ -1,6 +1,8 @@
 package top.aihmc.omnimorph.model.outfit;
 
 import com.google.gson.Gson;
+import top.aihmc.omnimorph.avatar.control.AvatarControlDefinition;
+import top.aihmc.omnimorph.avatar.control.AvatarControlType;
 
 import java.util.List;
 import java.util.Map;
@@ -15,6 +17,7 @@ public final class OutfitDraftSmokeTest {
         presetCopies();
         rejectedEditsAreAtomic();
         sharedSkeletonNodes();
+        restoredSliderValues();
         System.out.println("PASS outfit draft: duplicate ordinals, immutable committed state, selection, edits/cancel/reset, "
                 + "dependent removal, virtual anchors, preset identity rewrite and atomic limit failures; UI wiring separate");
     }
@@ -152,6 +155,18 @@ public final class OutfitDraftSmokeTest {
                 Node::name, Node::children, OutfitLimits.defaults());
         require(binding.definition().nodes().size() == 2 && binding.parts().size() == 2,
                 "duplicate native part identity is captured once");
+    }
+
+    private static void restoredSliderValues() {
+        var slider = new AvatarControlDefinition("interval", AvatarControlType.SLIDER);
+        slider.restoreValue(4d);
+        slider.setRange(1d, 40d, 1d);
+        require(((Number) slider.getValue()).doubleValue() == 4d,
+                "saved slider value survives the temporary 0..1 definition range");
+        slider.setValue(30d);
+        slider.setRange(1d, 64d, 1d);
+        require(((Number) slider.getValue()).doubleValue() == 30d,
+                "an explicit later value is not replaced by the restored value");
     }
 
     private static void rejectedEditsAreAtomic() {

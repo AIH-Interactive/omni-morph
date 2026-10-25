@@ -19,6 +19,8 @@
 
 - 편집 인스턴스가 제거/교체된 뒤 오래된 앵커 드롭다운이 렌더링되어 `OUTFIT_INSTANCE_MISSING`으로 옷장이 충돌하는 문제를 수정했습니다. 공유 스켈레톤 노드는 첫 경로 기준으로 중복 제거하여 1인칭 손 캡처가 `INVALID_OUTFIT_CONFIGURATION`으로 실패하지 않게 했습니다.
 
+- 컨트롤 정의의 임시 0..1 범위 때문에 `setRange` 전에 저장된 슬라이더 값(interval, lifetime, frame_ticks, light_interval 등)이 1로 클램프되는 문제와, 클라우드/외부 상태 변경에 슬라이더가 따라가지 않는 문제를 수정했습니다. 복원된 원본 값을 유지하고 `setRange` 후 다시 정규화하며, 외부에서 변경된 컨트롤 값에 슬라이더를 동기화합니다.
+
 ## 1.0.0-alpha.4
 
 - 독립 장식 인스턴스, 앵커, 궤적, CustomParticle/Ribbon과 선택적 동적 광원을 추가했습니다. 상한은 백엔드 `outfit.limits`로 설정합니다.

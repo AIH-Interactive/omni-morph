@@ -1446,9 +1446,7 @@ public class AvatarControlsScreen extends Screen {
             super(x, y, width, height, progress(control), steps(control), steps(control) <= 21);
             this.owner = owner;
             this.control = control;
-            if (owner.cosmeticContext != null) {
-                lastValue = currentValue();
-            }
+            lastValue = currentValue();
         }
 
         @Override
@@ -1467,15 +1465,30 @@ public class AvatarControlsScreen extends Screen {
         }
 
         private void syncValue() {
-            double value = currentValue();
+            double sliderValue = currentValue();
+            if (control.getValue() instanceof Number number) {
+                double external = Math.max(control.min(), Math.min(control.max(), number.doubleValue()));
+                if (!Double.isNaN(lastValue) && Math.abs(external - lastValue) > 0.0001d
+                        && Math.abs(external - sliderValue) > 0.0001d) {
+                    // A cloud/remote state or another UI wrote the control; move this slider to it.
+                    setScrollProgress(progressFor(external));
+                    lastValue = external;
+                    return;
+                }
+            }
             if (!control.hasStoredValue() && Double.isNaN(lastValue)) {
-                lastValue = value;
+                lastValue = sliderValue;
                 return;
             }
-            if (Double.isNaN(lastValue) || Math.abs(lastValue - value) > 0.0001d) {
-                lastValue = value;
-                setControlValue(owner, control, value);
+            if (Double.isNaN(lastValue) || Math.abs(lastValue - sliderValue) > 0.0001d) {
+                lastValue = sliderValue;
+                setControlValue(owner, control, sliderValue);
             }
+        }
+
+        private double progressFor(double number) {
+            double range = control.max() - control.min();
+            return range <= 0d ? 0d : Math.clamp((number - control.min()) / range, 0d, 1d);
         }
 
         private double currentValue() {
