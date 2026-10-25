@@ -612,6 +612,7 @@
   "omni-morph.gui.wardrobe.anchor_remove_confirm": "确认删除",
   "omni-morph.gui.wardrobe.anchor_affected": "删除后失去绑定的实例：",
   "omni-morph.gui.wardrobe.anchor_back": "返回骨骼树",
+    "omni-morph.gui.wardrobe.anchor_confirm": "确定",
   "omni-morph.gui.wardrobe.anchor_next": "下一页挂点 →",
   "omni-morph.gui.wardrobe.create_figura": "创建 Figura 形象",
   "omni-morph.gui.wardrobe.create_ysm": "创建 YSM 形象",

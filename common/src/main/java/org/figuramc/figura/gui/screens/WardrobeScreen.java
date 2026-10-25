@@ -1787,7 +1787,12 @@ public class WardrobeScreen extends AbstractPanelScreen {
             }
         }), 2, 198);
         remove.setTooltip(virtualAnchorDependents(id));
-        fields.add(new Button(0, 0, contentWidth, 20, text("anchor_back"), null, button -> switchRightPane(true)), 2, 222);
+        fields.add(new Button(0, 0, contentWidth, 20, text("anchor_confirm"), null, button -> {
+            if (outfitDraft == expected && id.equals(editingVirtualAnchor)) {
+                switchRightPane(true);
+            }
+        }), 2, 246);
+        fields.add(new Button(0, 0, contentWidth, 20, text("anchor_back"), null, button -> switchRightPane(true)), 2, 270);
     }
 
     private OutfitConfig.BoneRef anchorParent(UUID id) {

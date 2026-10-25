@@ -482,3 +482,7 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - UI：COLLECTION 本地分支 action 数量 4→5；异步导出并通过状态栏显示成功/失败；选择本地源时启用按钮。
 - 测试：`outfitDraftSmokeTest` 新增目录 ZIP 内容、命名 `avatar_Test.zip`、重名 ` (2)` 断言 PASS；`libraryPreviewRuntimeSmokeTest` PASS；`:fabric:build` PASS。
 - JAR 18315425 字节，SHA256 8083054eb05897d29992a4c76e74cbcfc051a7e5fa1ee6e7b80eea6f93fba529，已安装。真实 GUI/文件系统复测 MANUAL/PENDING。
+### 虚拟锚点确定按钮（2026-10-25 11:30）
+
+- `buildVirtualAnchorEditor` 在“删除锚点”“返回骨骼树”之外补充“确定”按钮（`anchor_confirm`，中/英），应用当前编辑并返回骨骼树；按钮位于面板 y=246，返回下移到 y=270。
+- 验证：`libraryPreviewRuntimeSmokeTest` PASS；`:fabric:build` PASS。JAR 18315540 字节，SHA256 41dda398ba3d7eee3c180fe0e5882b79dcc5a8abe3eb15bcb7c952e81777f501，已安装。真实 GUI 位置复测 MANUAL/PENDING。
