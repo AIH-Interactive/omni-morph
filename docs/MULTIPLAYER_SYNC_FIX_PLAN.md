@@ -285,6 +285,9 @@ visibility / requires_authorization
 
 ## 10. 当前状态
 
-- 本文件为计划，未修改任何代码。
+- Phase 0 自动实施完成：上传 reserve/commit 返回持久化 visibility/published/moderation_status；缺失/非法 visibility 返回 400 INVALID_VISIBILITY；distribution_code 区分 MODERATION_PRIVATE/NOT_DISTRIBUTABLE；客户端显示服务端结果，新增观察者/资源投影诊断日志。
+- Phase 0 自动验证：后端 `cargo test -- --test-threads=4`，191 passed / 0 failed / 1 ignored；客户端 `:common:libraryUploadSmokeTest :fabric:build` PASS（42 秒）。日志在 `build/reports/multiplayer-sync/phase0-backend.log`、`phase0-client.log`。
+- Phase 0 真实 GUI、生产上传/审核与双客户端验证：`MANUAL/PENDING`，按用户要求注明并跳过，不阻塞后续阶段；不得视为通过。
+- Phase 1～4 尚未实施；不重复实施既有 S1～S6，不进行无关修复、重构、优化或版本调整。
 - 生产环境实际部署为 `omnm-cloud`；`spm-cloud` 不在目标内。
-- 需要产品确认的唯一前置决策：**公开上传默认可见性** 是 PUBLIC 还是“先私有、审核后公开”；两种语义对应不同的 UI 与验收，但都不应在服务端静默覆盖客户端明确选择。
+- **公开上传默认可见性** 仍保留现有客户端显式选择，不在修复中自行改变默认值；审核封禁仍可强制私有，响应明确报告实际状态。

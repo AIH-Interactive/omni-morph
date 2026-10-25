@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.LivingEntity;
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.FiguraMod;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
 import org.figuramc.figura.avatar.UserData;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
@@ -109,6 +110,7 @@ public final class OutfitObserverService implements AutoCloseable {
                     if (snapshot.legacyFallback()) {
                         legacy();
                     } else if (snapshot.configuration() == null) {
+                        FiguraMod.LOGGER.debug("Outfit observer unavailable: owner={}, reason=HIDDEN_OR_NOT_EQUIPPED", user.id);
                         user.clear();
                         result.complete(Result.HIDDEN);
                     } else {
@@ -246,6 +248,8 @@ public final class OutfitObserverService implements AutoCloseable {
             inputs.clear();
             if (current() && failure instanceof LibraryClient.Failure denied
                     && (denied.status == 403 || denied.status == 404 || denied.code.equals("OUTFIT_CHANGED"))) {
+                FiguraMod.LOGGER.debug("Outfit observer unavailable: owner={}, status={}, code={}",
+                        user.id, denied.status, denied.code);
                 user.clear();
             }
             result.completeExceptionally(failure);
