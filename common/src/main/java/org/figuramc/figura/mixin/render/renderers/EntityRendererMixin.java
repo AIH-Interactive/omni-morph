@@ -33,7 +33,7 @@ public abstract class EntityRendererMixin<T extends Entity, S extends EntityRend
     private void extractRenderState(T entity, S entityRenderState, float f, CallbackInfo ci) {
         ((FiguraEntityRenderStateExtension)entityRenderState).figura$setEntityId(entity.getId());
         ((FiguraEntityRenderStateExtension)entityRenderState).figura$setTickDelta(f);
-        top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.capture(entity, entityRenderState, f);
+        top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.capture(entity, entityRenderState, f, true);
     }
 
 

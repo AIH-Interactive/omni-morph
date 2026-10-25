@@ -23,6 +23,8 @@ public final class LibraryPreviewBinding implements AutoCloseable {
     private static final Map<UUID, LibraryPreviewBinding> PLAYERS = new HashMap<>();
     private static final Map<EntityRenderState, LibraryPreviewBinding> FRAMES = new IdentityHashMap<>();
     private static final Map<EntityRenderState, OutfitComposition.Frame> OUTFIT_FRAMES = new IdentityHashMap<>();
+    private static final java.util.Set<EntityRenderState> WORLD_FRAMES =
+            java.util.Collections.newSetFromMap(new IdentityHashMap<>());
     private static final Map<EntityRenderState, Vec3> PARTICLE_ORIGINS = new IdentityHashMap<>();
     private static final Map<EntityRenderState, PreviewParticleFrame> PARTICLE_FRAMES = new IdentityHashMap<>();
     private final LivingEntity entity;
@@ -176,11 +178,18 @@ public final class LibraryPreviewBinding implements AutoCloseable {
     }
 
     public static void capture(Entity entity, EntityRenderState frame, float partialTick) {
+        capture(entity, frame, partialTick, false);
+    }
+
+    public static void capture(Entity entity, EntityRenderState frame, float partialTick, boolean world) {
         LibraryPreviewBinding binding = ENTITIES.get(entity);
         if (binding == null || FRAMES.containsKey(frame)) {
             return;
         }
         FRAMES.put(frame, binding);
+        if (world) {
+            WORLD_FRAMES.add(frame);
+        }
         // UIHelper binds before native extraction, while the independent Figura state has no world coordinates.
         if (binding.particles != null) {
             PARTICLE_ORIGINS.put(frame, entity.getPosition(partialTick));
@@ -193,10 +202,15 @@ public final class LibraryPreviewBinding implements AutoCloseable {
         }
     }
 
+    public static boolean worldFrame(EntityRenderState frame) {
+        return WORLD_FRAMES.contains(frame);
+    }
+
     /** Runs after actual GUI drawing, including exceptional completion and renderer shutdown. */
     public static void finishFrame() {
         PARTICLE_FRAMES.clear();
         PARTICLE_ORIGINS.clear();
+        WORLD_FRAMES.clear();
         PreviewBoneHighlight.finishFrame();
         LibraryThumbnailService.finishFrame();
         List<OutfitComposition.Frame> outfits = List.copyOf(OUTFIT_FRAMES.values());

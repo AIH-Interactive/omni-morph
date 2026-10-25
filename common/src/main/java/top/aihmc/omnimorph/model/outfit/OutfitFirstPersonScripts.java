@@ -59,7 +59,7 @@ public final class OutfitFirstPersonScripts {
             return;
         }
         state.lightCoords = dispatcher.getPackedLightCoords(player, delta);
-        OutfitRenderBinding.capture(player, state, delta);
+        OutfitRenderBinding.capture(player, state, delta, true);
         var composition = OutfitRenderBinding.composition(state);
         Avatar base = OutfitRenderBinding.avatar(state);
         if (composition == null || base == null || base.renderer == null) {

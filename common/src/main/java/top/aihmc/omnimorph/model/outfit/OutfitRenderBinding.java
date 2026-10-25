@@ -27,7 +27,11 @@ public final class OutfitRenderBinding {
     private OutfitRenderBinding() {}
 
     public static void capture(Entity entity, EntityRenderState frame, float partialTick) {
-        LibraryPreviewBinding.capture(entity, frame, partialTick);
+        capture(entity, frame, partialTick, false);
+    }
+
+    public static void capture(Entity entity, EntityRenderState frame, float partialTick, boolean world) {
+        LibraryPreviewBinding.capture(entity, frame, partialTick, world);
         if (entity == null || frame == null || FRAMES.containsKey(frame) || LibraryPreviewBinding.entity(frame) != null) {
             return;
         }
@@ -88,7 +92,8 @@ public final class OutfitRenderBinding {
     }
 
     public static EntityRenderMode renderMode(EntityRenderState frame) {
-        return LibraryPreviewBinding.entity(frame) != null ? EntityRenderMode.FIGURA_GUI : EntityRenderMode.RENDER;
+        return LibraryPreviewBinding.entity(frame) != null && !LibraryPreviewBinding.worldFrame(frame)
+                ? EntityRenderMode.FIGURA_GUI : EntityRenderMode.RENDER;
     }
 
     /** UserData gives up ownership immediately; native resources remain alive for previously extracted frames. */
