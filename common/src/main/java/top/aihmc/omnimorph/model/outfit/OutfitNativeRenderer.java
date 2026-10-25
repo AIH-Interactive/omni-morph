@@ -17,6 +17,12 @@ import org.figuramc.figura.model.rendering.PartFilterScheme;
 public final class OutfitNativeRenderer {
     private OutfitNativeRenderer() {}
 
+    /** Iris shadow rendering must not run outfit scripts: POST_RENDER emission would use the shadow view. */
+    private static boolean shadowPass() {
+        return org.figuramc.figura.utils.PlatformUtils.isModLoaded("iris")
+                && top.aihmc.omnimorph.compat.IrisCompat.isShadowPass();
+    }
+
     public static void drawVanilla(OutfitComposition.Frame frame, PlayerModel model, LivingEntityRenderState state,
                                    float delta, Matrix4fc entityToDraw, Matrix4fc modelToDraw,
                                    MultiBufferSource buffers, EntityRenderMode mode) {
@@ -34,6 +40,9 @@ public final class OutfitNativeRenderer {
     public static void draw(OutfitComposition.Frame frame, SkeletonPose basePose,
                             LivingEntityRenderState state, float delta, Matrix4fc entityToDraw,
                             MultiBufferSource buffers, EntityRenderMode mode) {
+        if (shadowPass()) {
+            return;
+        }
         frame.withPreviewSelection(() -> frame.draw(basePose, state, delta, mode,
                 command -> frame.withPreviewSelection(() ->
                         drawInstance(frame, command, delta, entityToDraw, buffers, state.lightCoords, mode))));
@@ -51,6 +60,9 @@ public final class OutfitNativeRenderer {
 
     private static void drawInstance(OutfitComposition.Frame frame, OutfitComposition.Draw command, float delta,
                                      Matrix4fc entityToDraw, MultiBufferSource buffers, int light, EntityRenderMode mode) {
+        if (shadowPass()) {
+            return;
+        }
         Avatar avatar = command.avatar();
         if (!avatar.loaded || avatar.scriptError || !avatar.accelerationOwner().isCurrent()) {
             return;

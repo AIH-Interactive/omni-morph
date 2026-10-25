@@ -429,3 +429,6 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 ### Billboard 光影偏移修复（2026-10-25 09:40）
 
 截图显示 Ribbon 链状拖尾已跟随触手，偏移的是右侧黄色 **Billboard 自定义粒子**。对 `QuadParticleRenderState.prepare` 增加 MixinExtras `@ModifyExpressionValue`：把 `RenderSystem.getModelViewMatrix()` 的相机平移剔除后再 `writeTransform`；粒子顶点本身是相机相对坐标，光影包若在 model-view 保留相机平移会把整组粒子平移。已用 javap 确认 `prepare(ParticleFeatureBufferCache,boolean)` 确实调用该矩阵。新包 18307381 字节，SHA256 1839960bf52ffc5f183ed5be140c36ae608c3019104ea1409e6cd9846a09474f，已安装；提交 6a2ece0c。真实 Iris 画面 MANUAL/PENDING。
+### 配装脚本阴影发射修复（2026-10-25 09:50）
+
+进一步发现：`test` 的星光粒子在 `POST_RENDER` 用 `root:partToWorldMatrix()` 发射，而 Iris 阴影 pass 也会渲染实体并触发配装脚本；阴影 pass 先发射并占用 `emittedTick` 后，主 pass 不再发射，粒子被建在阴影视图位置，移动后即偏移。`OutfitNativeRenderer.draw` / `drawInstance` 现在在 `IrisCompat.isShadowPass()` 时直接跳过，阴影中不再执行配装脚本/粒子发射。新包 18307551 字节，SHA256 d6f78c6088baf810bbc979dfa2bd9fb434e457d56febc10f5c40256243b61b00，已安装。真实 Iris 画面 MANUAL/PENDING。
