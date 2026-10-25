@@ -621,3 +621,9 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - ZIP 实际只有 `avatar.json`、`avatar.png`（20×20）、`model.bbmodel`、`script.lua`，`model.bbmodel` 引用的 `fs2000.png` 缺失，所以模型无法准备；之前界面保留旧预览，看起来像“没有生效”。
 - 修复：`selectOutfitBase` 开始加载前清除旧 GUI/世界预览；失败时再次清除并显示错误，不再展示上一个模型。有效的本地源仍会在 base/composition 完成后自动进入世界预览。
 - 验证：`libraryPreviewRuntimeSmokeTest` PASS、`:fabric:build` PASS；该具体 ZIP 需补回 `fs2000.png`（或重新导出）后才能显示真实模型。
+### 关闭衣柜保留本地配装世界预览（2026-10-26 00:35）
+
+- `WardrobeScreen.removed` 不再对当前 active 的 `LocalOutfitPreview` 调用 `clear` + `preview.close`；改为 `detach(this)` 并保留 session，让本地配装世界预览在关闭衣柜后继续显示。
+- 需要替换/提交时由 `LocalOutfitPreview.clear`/session 生命周期回收；不会装备、上传或广播。
+- 注意：`苍梧吟月Pro.zip` 仍缺 `fs2000.png`，该源会准备失败；不能拿它判断世界预览是否生效。
+- `libraryPreviewRuntimeSmokeTest`/`:fabric:build` PASS；真实关闭衣柜后的世界画面 MANUAL/PENDING。

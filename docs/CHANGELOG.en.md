@@ -41,6 +41,8 @@
 
 - When a local outfit base fails to load, clear the previous GUI/world preview and show the error instead of leaving the previous model visible; successful bases still enter the world preview automatically.
 
+- Keep the current local outfit world preview visible after closing the wardrobe (without committing or broadcasting); it is retired by the preview lifecycle on reopen or clear.
+
 ## 1.0.0-alpha.4
 
 - Adds isolated accessory instances, anchors, trails, controls, CustomParticle/Ribbon and optional dynamic lights with server-defined `outfit.limits`.
