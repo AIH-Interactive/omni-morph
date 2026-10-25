@@ -295,6 +295,17 @@ visibility / requires_authorization
 - Phase 3 自动实施完成：上传表单显式确认后复用 OutfitApplyResources 私有准备依赖；服务端 convert_local_dependencies=true 才把已绑定来源克隆为独立目录别名，并在同一原生/SQLite事务中发布依赖和套装，套装引用改为 CLOUD。原来源/绑定/本地文件不改；缺失/未确认为 OUTFIT_DEPENDENCY_NOT_DISTRIBUTABLE。复用现有 blob/ACL/审核/限额，不新增表或依赖；旧 cloud-only 请求指纹保持兼容。
 - Phase 3 已验证：真实 Java 本地基础+装饰→Rust私有准备→目录转换/发布→Apply→观察者下载两份资产，原文件不变；最终写入故障注入不留下半发布目录或原生别名；幂等重试与未确认拒绝。联调还修复了私有上传回执对 Rust 省略空 editable_bones 的错误拒绝，仅统一该可选默认值。后端全套196 passed / 0 failed / 1 ignored（Java/装饰夹具启用）；客户端上传、私有准备、Apply与Fabric build PASS（42秒）。日志 `build/reports/multiplayer-sync/phase3-*.log`。
 - Phase 3 真实GUI确认/取消、生产发布与真实双客户端渲染：MANUAL/PENDING，按用户要求注明并跳过；自动数据链路不等同于画面验收。
-- Phase 4 尚未实施；不重复实施既有 S1～S6，不进行无关修复、重构、优化或版本调整。
+- Phase 4 自动实施/回归完成：新增默认开启的 OUTFIT_ASSET_DISTRIBUTION 环境开关；false/0时停止观察者装饰资源分发、新装饰上传/绑定及本地依赖转换，owner既有来源/状态与主模型路径保留，恢复开关可重新读取。通过共享来源授权投影及逐块重鉴权拒绝旧资源URL，不删除资产/本地文件；能力响应暴露开关。部署说明见 `omnm-cloud/docs/DEPLOYMENT.md`。
+- Phase 4 自动验证：开关测试在隔离子进程中先红后绿，覆盖关闭后的观察者投影/旧URL/实例状态拒绝、owner读取与原资源保留、新绑定拒绝、再次开启恢复。最终后端197 passed / 0 failed / 1 ignored，实际Java互操作和原双协议/三格式矩阵执行；客户端上传/观察者/私有准备/Apply与Fabric build PASS（34秒）。日志 `build/reports/multiplayer-sync/phase4-*.log`。原有限额、通知大小、blob复用及缓存授权路径保留，没有新增清理/缓存优化。
+- Phase 0～4 的授权自动工作已收口；未进行计划外修复、重构、优化、版本调整、生产部署或安装包覆盖。GUI/真实双客户端/GPU/生产验证统一为 MANUAL/PENDING，按用户要求注明并跳过；不代表这些人工验收通过。没有新增自动实施阶段。
 - 生产环境实际部署为 `omnm-cloud`；`spm-cloud` 不在目标内。
 - **公开上传默认可见性** 仍保留现有客户端显式选择，不在修复中自行改变默认值；审核封禁仍可强制私有，响应明确报告实际状态。
+
+### 最终证据边界
+
+| 范围 | 自动证据 | 人工状态 |
+| --- | --- | --- |
+| Figura/装饰资源 | 实际Java→Rust快照、绑定、原始资产下载；Figura空schema回归 | 真实游戏渲染 MANUAL/PENDING，跳过 |
+| 本地套装发布 | 实际本地基础+装饰私有准备、事务转换/发布、Apply、观察者下载；文件不变 | 真实GUI确认/取消 MANUAL/PENDING，跳过 |
+| 可见性/撤权/封禁/换装 | 既有装备、观察者HTTP、逐块撤权、订阅与独立实例状态事件矩阵通过 | 公网/双游戏联调 MANUAL/PENDING，跳过 |
+| 回滚/限额/协议 | 开关关闭/恢复通过；既有限额与双协议/三格式矩阵通过，冻结v1未修改 | 大规模真实游戏性能 MANUAL/PENDING，跳过 |
