@@ -107,6 +107,10 @@ public final class OutfitObserverService implements AutoCloseable {
                         throw new LibraryClient.Failure(409, "OUTFIT_STALE");
                     }
                     snapshot = observed;
+                    if (snapshot.configuration() != null && snapshot.distributionCode() != null) {
+                        FiguraMod.LOGGER.debug("Outfit observer partially available: owner={}, reason={}",
+                                user.id, snapshot.distributionCode());
+                    }
                     if (snapshot.legacyFallback()) {
                         legacy();
                     } else if (snapshot.configuration() == null) {

@@ -33,6 +33,26 @@ public final class OutfitObserverClientSmokeTest {
     private static final Gson JSON = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES).create();
 
     public static void main(String[] args) throws Exception {
+        if (args.length == 4 && args[0].equals("--rust")) {
+            var endpoint = CloudEndpoint.parse(args[1], () -> true);
+            try (var access = new top.aihmc.omnimorph.backend2.protocol.LibraryAccess(endpoint,
+                    HttpClient.newHttpClient(), builder -> builder
+                            .header("Authorization", "Bearer synthetic-token-2")
+                            .header("x-omnimorph-auth-mode", "figura"));
+                 var client = new LibraryClient(access,
+                         new LibrarySession(args[1], new UUID(0, 2), 77, () -> true), Runnable::run)) {
+                var snapshot = await(client.observerOutfit(UUID.fromString(args[2])).future());
+                require(snapshot.configuration() != null && !snapshot.resources().isEmpty(),
+                        "Rust projects the equipped Figura asset to the Java observer");
+                for (var resource : snapshot.resources()) {
+                    byte[] bytes = await(client.submit(LibraryClient.Lane.TRANSFER,
+                            exchange -> exchange.observerOutfitBody(snapshot, resource)).future());
+                    require(CloudHttp.sha256(bytes).equals(args[3]), "actual Rust body matches the uploaded asset");
+                }
+            }
+            System.out.println("PASS actual Rust to Java Figura observer snapshot and asset download");
+            return;
+        }
         for (boolean protobuf : new boolean[]{false, true}) {
             try (var server = new Server(protobuf)) {
                 run(server, protobuf);
@@ -59,11 +79,15 @@ public final class OutfitObserverClientSmokeTest {
             byte[] bytes = await(client.submit(LibraryClient.Lane.TRANSFER,
                     exchange -> exchange.observerOutfitBody(snapshot, snapshot.resources().getFirst())).future());
             require(java.util.Arrays.equals(bytes, server.body), "scoped body uses the actual binary route and verifies its hash");
+            server.mode = "figura-no-schema";
+            require(await(client.observerOutfit(server.owner).future()).resources().getFirst().schemaSha256().isEmpty(),
+                    "Figura assets do not require a YSM schema hash");
             server.mode = "large-valid";
             require(await(client.observerOutfit(server.owner).future()).revision() == 7,
                     "observer envelopes larger than the ordinary 64KiB control boundary have their own bounded reader");
             for (String invalid : List.of("wrong-owner", "wrong-revision", "string-revision", "missing-source",
-                    "duplicate-source", "extra-source", "foreign-path", "wrong-format", "string-config-revision", "bad-media", "bad-utf8")) {
+                    "duplicate-source", "extra-source", "foreign-path", "wrong-format", "ysm-no-schema",
+                    "string-config-revision", "bad-media", "bad-utf8")) {
                 server.mode = invalid;
                 failure(client.observerOutfit(server.owner).future(), "INVALID_OUTFIT_OBSERVER_SNAPSHOT");
             }
@@ -181,6 +205,13 @@ public final class OutfitObserverClientSmokeTest {
                 }
                 case "foreign-path" -> source.addProperty("relative_path", "https://example.invalid/source");
                 case "wrong-format" -> source.addProperty("distribution_format", 2);
+                case "figura-no-schema" -> source.addProperty("schema_sha256", "");
+                case "ysm-no-schema" -> {
+                    snapshot.getAsJsonObject("configuration").getAsJsonObject("base").addProperty("format", "YSM_PLAIN");
+                    source.getAsJsonObject("reference").addProperty("format", "YSM_PLAIN");
+                    source.addProperty("distribution_format", 2);
+                    source.addProperty("schema_sha256", "");
+                }
                 case "large-valid" -> snapshot.addProperty("padding", "x".repeat(70000));
                 case "oversized" -> snapshot.addProperty("padding", "x".repeat(OutfitObserverSnapshot.JSON_BYTES));
                 case "hidden", "legacy", "not-distributable" -> {

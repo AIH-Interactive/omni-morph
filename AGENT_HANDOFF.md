@@ -547,3 +547,13 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 后端 master@c88e847c0ffcc7b0b5fd2901ac5c7b62be22e311 已推送并核对 SHA。主仓库 main 本阶段修改纳入随后检查点；提交前 HEAD=b6c34491，最终以实际 HEAD/远端核对为准。仅本阶段源码/测试/语言与计划/分析/交接文档；原未跟踪内容保留。
 - 最小下一步：完成 main 阶段提交推送并核对 SHA，再开始计划 Phase 2。不能重复实现现有独立 JSON outfit 观察者资源/状态链路；先以实际调用链确定缺口。Phase 2～4 尚未实施，无其他任务授权。
 - 最近额度安全检查点：Plus，5小时剩余77%、周剩余96%，未触发交接。所有既定约束继续适用；人工验证按用户要求注明跳过，不能冒充 PASS。
+
+## 当前有效交接：多人同步修复 Phase 2（2026-10-25）
+
+- Phase 1 检查点已核对推送：main@90b8873a、master@c88e847c。Phase 2 自动实施/核对完成，范围仍仅为同步计划。
+- 已修实际阻断点：Rust Figura descriptor 的空 schema_sha256 合法，Java 观察者却强制所有格式都为64位，导致 Figura 基础/装饰快照整体失败。新增空 schema 回归先红后绿；只对 Figura 放行空 schema，YSM 仍严格拒绝。本地装饰缺失绑定显示 NOT_DISTRIBUTABLE（部分可用时也记日志）。
+- 已有能力复用并验证：ACCESSORY 上传/绑定，ResourceRef+snapshot 资源描述，按当前配装修订下载，实例状态的固定 resource 校验，以及独立 outfit-events 发送前鉴权；未新增重复表/下载端点或改冻结 v1/owner-only 本地源接口。
+- 自动验证：实际 Java→Rust 的 Figura 基础，以及云端/本地绑定 Figura 装饰快照和资产下载 PASS。设置 OMNIMORPH_CLIENT_CLASSPATH_FILE=build/cloud-integration-classpath.txt、OMNIMORPH_TEST_ACCESSORY_UPLOAD_DIRECTORY=build/tmp/multiplayer-sync-accessory-upload 后，cargo test 全套194 passed / 0 failed / 1 ignored；原双协议/三格式矩阵也实际执行。客户端上传/观察者及 fabric:build PASS，最后门禁28秒。日志 build/reports/multiplayer-sync/phase2-client.log、phase2-backend.log。真实GUI/双客户端/GPU/生产部署仍 MANUAL/PENDING 并按用户要求跳过。
+- Git：后端 master@36c7f70b15a22e52610565365e0acd9c7034edd7 已推送并核对 SHA。主仓库 main 本阶段纳入随后检查点，提交前90b8873a，最终以实际HEAD/远端核对为准。无用户资源/安装目录改动、无版本调整；原未跟踪内容保留。
+- 最小下一步：先完成 main Phase 2 提交推送与核对，再开始 Phase 3 本地依赖套装发布；Phase 3～4 尚未实施，不能扩张到无关优化。真实人工项已明确允许跳过，不阻塞自动阶段。
+- 可靠额度最新检查：Plus，5小时剩余68%、周剩余95%；未触发交接。阶段/验证/提交安全点继续查，不轮询；阈值触发只委派gpt-6-luna整理手册。既有当前分支、前台Tee日志/JDK25、冻结协议、范围控制与真实窗口约束继续适用。
