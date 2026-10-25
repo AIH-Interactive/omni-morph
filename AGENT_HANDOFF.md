@@ -426,3 +426,6 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - `RibbonRenderState` 保留阴影提交跳过与 model-view 相机平移剔除。
 
 重建 JAR 18307149 字节，SHA256 7b6ae547f8409b989f1a0e72c4572c663278e919d76dd83e07d294f611de44ff，已安装；提交 ee9b4a1a。真实 Iris 画面仍 MANUAL/PENDING；若仍偏移，下一步记录主/阴影 pass、camera 与 model-view 各一份。
+### Billboard 光影偏移修复（2026-10-25 09:40）
+
+截图显示 Ribbon 链状拖尾已跟随触手，偏移的是右侧黄色 **Billboard 自定义粒子**。对 `QuadParticleRenderState.prepare` 增加 MixinExtras `@ModifyExpressionValue`：把 `RenderSystem.getModelViewMatrix()` 的相机平移剔除后再 `writeTransform`；粒子顶点本身是相机相对坐标，光影包若在 model-view 保留相机平移会把整组粒子平移。已用 javap 确认 `prepare(ParticleFeatureBufferCache,boolean)` 确实调用该矩阵。新包 18307381 字节，SHA256 1839960bf52ffc5f183ed5be140c36ae608c3019104ea1409e6cd9846a09474f，已安装；提交 6a2ece0c。真实 Iris 画面 MANUAL/PENDING。
