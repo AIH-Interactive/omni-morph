@@ -25,6 +25,8 @@
 
 - 修复加载部分模型后，同一资源身份缓存的骨架与当前原生 part 图不一致，`SkeletonIndex.bindParts` 抛 `INVALID_OUTFIT_CONFIGURATION` 的问题；缓存绑定失败时会重新捕捉当前图，而不是让实体渲染崩溃。
 
+- 网络配置默认改为允许网络访问（`allow_networking=true`），访问限制默认改为“无限制”（`networking_restriction=2`，NONE）。
+
 ## 1.0.0-alpha.4
 
 - 支持原版/Figura/YSM 基础上的多实例装饰、独立控件/轮盘、稳定骨架挂点、虚拟挂点、内部骨骼覆盖及拖尾。

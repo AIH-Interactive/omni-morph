@@ -25,6 +25,8 @@
 
 - 일부 모델을 로드한 뒤 동일 리소스 ID의 캐시된 스켈레톤이 현재 네이티브 part 그래프와 일치하지 않아 `SkeletonIndex.bindParts`가 `INVALID_OUTFIT_CONFIGURATION`을 던지는 문제를 수정했습니다. 캐시 바인딩 실패 시 현재 그래프를 다시 캡처하여 엔티티 렌더링이 충돌하지 않도록 했습니다.
 
+- 네트워크 설정 기본값을 “허용”(`allow_networking=true`), 제한을 “없음”(`networking_restriction=2`, NONE)으로 변경했습니다.
+
 ## 1.0.0-alpha.4
 
 - 독립 장식 인스턴스, 앵커, 궤적, CustomParticle/Ribbon과 선택적 동적 광원을 추가했습니다. 상한은 백엔드 `outfit.limits`로 설정합니다.
