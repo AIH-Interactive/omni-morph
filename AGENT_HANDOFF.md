@@ -654,3 +654,10 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 原因：世界预览切到 worldParticles 后，YSM 基础仍走 `usePlayer=false` 的 detached `LibraryPreviewPlayer`，YSM/原生 Particle 以该固定实体为坐标原点，所以粒子停在预览原点。
 - 修复：`LibraryPreviewSession.prepare` 在 worldParticles 模式下，即使基础为 YSM 也使用当前玩家实体（`usePlayer = !isolated && (figura || worldParticles)`），让原生粒子/事件以真实玩家位置发射。
 - 验证：`libraryPreviewRuntimeSmokeTest` PASS、`:fabric:build` PASS；真实 YSM 世界粒子 MANUAL/PENDING。
+### particle.lua 世界帧修复（2026-10-26 01:30）
+
+- 用户脚本 `particle.lua` 使用 `tails[i][11]:partToWorldMatrix():apply()` 生成粒子位置。
+- 之前世界预览仍把帧标记为 `FIGURA_GUI`（`OutfitRenderBinding.renderMode` 只看 binding entity），导致 `partToWorldMatrix` 沿用 GUI/固定预览矩阵；粒子位置因此固定在预览原点。
+- 修复：世界渲染调用 `OutfitRenderBinding.capture(..., true)` 标记 world frame；`LibraryPreviewBinding` 记录 WORLD_FRAMES；`renderMode` 对 world frame 返回 `RENDER`，使骨架/partToWorldMatrix 每帧按真实玩家更新。
+- 涉及 EntityRendererMixin、PlayerRendererMixin、OutfitFirstPersonScripts、OutfitRenderBinding、LibraryPreviewBinding。
+- 验证：`libraryPreviewRuntimeSmokeTest`、`:fabric:build` PASS；真实 particle.lua 世界粒子 MANUAL/PENDING。

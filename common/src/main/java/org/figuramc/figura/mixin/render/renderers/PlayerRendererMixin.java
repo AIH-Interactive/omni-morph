@@ -201,7 +201,7 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
         if (OutfitRenderBinding.hasComposition(player)) {
             outfitState = this.createRenderState(player, delta);
             outfitState.lightCoords = light;
-            OutfitRenderBinding.capture(player, outfitState);
+            OutfitRenderBinding.capture(player, outfitState, 1, true);
             outfit = OutfitRenderBinding.composition(outfitState);
             // The composition's budget belongs to its own base, which is the local draft preview while editing.
             Avatar compositionBase = OutfitRenderBinding.avatar(outfitState);
@@ -273,7 +273,7 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
                 ? this.createRenderState(player, delta) : null;
         if (outfitState != null) {
             outfitState.lightCoords = i;
-            OutfitRenderBinding.capture(player, outfitState);
+            OutfitRenderBinding.capture(player, outfitState, 1, true);
         }
         var outfit = outfitState == null ? null : OutfitRenderBinding.composition(outfitState);
         Matrix4f armToDraw = new Matrix4f(poseStack.last().pose());
@@ -327,7 +327,7 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
                 ? this.createRenderState(player, delta) : null;
         if (outfitState != null) {
             outfitState.lightCoords = light;
-            OutfitRenderBinding.capture(player, outfitState);
+            OutfitRenderBinding.capture(player, outfitState, 1, true);
         }
 
         var submittedArmOutfit = outfitState == null ? null : OutfitRenderBinding.composition(outfitState);
