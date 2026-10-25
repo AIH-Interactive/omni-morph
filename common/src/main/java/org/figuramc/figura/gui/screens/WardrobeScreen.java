@@ -51,6 +51,7 @@ import top.aihmc.omnimorph.model.library.LibraryEquipmentService;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
 import top.aihmc.omnimorph.model.library.LibraryTransferService;
 import top.aihmc.omnimorph.model.library.LocalOutfitCandidates;
+import top.aihmc.omnimorph.model.library.LocalSourceExport;
 import top.aihmc.omnimorph.model.library.LocalCosmeticCatalog;
 import top.aihmc.omnimorph.model.library.CloudCosmeticSource;
 import top.aihmc.omnimorph.model.library.OutfitPresetResources;
@@ -72,6 +73,8 @@ import org.figuramc.figura.utils.IOUtils;
 import org.figuramc.figura.utils.TextUtils;
 import org.figuramc.figura.utils.ui.UIHelper;
 
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -227,6 +230,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private Button collectionGrantsButton;
     private Button collectionAuthorizationButton;
     private Button collectionPublicationButton;
+    private Button exportZipButton;
     private UUID deleteCollectionArmed;
     private LibraryClient.Request<?> collectionMutation;
     private java.util.concurrent.CompletableFuture<?> collectionChange;
@@ -273,6 +277,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         collectionGrantsButton = null;
         collectionAuthorizationButton = null;
         collectionPublicationButton = null;
+        exportZipButton = null;
         uploadButton = null;
         deleteButton = null;
         addInstanceButton = null;
@@ -592,7 +597,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         int x = layout.previewX();
         int w = layout.previewWidth();
         boolean cloudActions = source == Source.CLOUD || source == Source.ALL && selected != null && selected.cloud() != null;
-        int actionCount = tab == Tab.OUTFIT ? 16 : cloudActions ? 8 : 4;
+        int actionCount = tab == Tab.OUTFIT ? 16 : cloudActions ? 8 : 5;
         int actionsHeight = LibraryActionBar.heightFor(w, actionCount);
         int actionsY = height - 28 - actionsHeight;
         int size = LibraryWorkspaceLayout.previewHeightBeforeActions(layout.top(), actionsY);
@@ -651,6 +656,10 @@ public class WardrobeScreen extends AbstractPanelScreen {
                         this::openCreateMenu));
                 actions.action(icon(0, 0, "folder", "local", button ->
                         net.minecraft.util.Util.getPlatform().openUri(LocalAvatarFetcher.getLocalAvatarDirectory().toUri())));
+                exportZipButton = actions.action(icon(0, 0, "export", "export_zip",
+                        button -> exportSelectedLocal()));
+                exportZipButton.setTooltip(text("export_zip.tooltip"));
+                exportZipButton.setActive(localExportSource(selected) != null);
             }
         }
         if (tab == Tab.OUTFIT) {
@@ -1035,6 +1044,9 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private void updateCollectionButtons() {
+        if (exportZipButton != null) {
+            exportZipButton.setActive(localExportSource(selected) != null);
+        }
         if (cacheSelectedButton == null) {
             return;
         }
@@ -1063,6 +1075,53 @@ public class WardrobeScreen extends AbstractPanelScreen {
         collectionPublicationButton.setActive(available && patch);
         collectionPublicationButton.setMessage(FiguraText.of(model != null && model.visibility().equals("PUBLIC")
                 ? "gui.library.make_private" : "gui.library.make_public"));
+    }
+
+    private Path localExportSource(Selection selection) {
+        if (selection == null || selection.cloud() != null || selection.path() == null) {
+            return null;
+        }
+        Path source = selection.path();
+        if (!source.getFileSystem().equals(FileSystems.getDefault())) {
+            source = selection.reference();
+        }
+        return source != null && Files.exists(source) ? source : null;
+    }
+
+    private void exportSelectedLocal() {
+        if (tab != Tab.COLLECTION) {
+            return;
+        }
+        Path source = localExportSource(selected);
+        if (source == null) {
+            message = text("export_missing");
+            return;
+        }
+        String name = selected.name().getString();
+        String kind = selected.cosmetic() != null ? "cosmetic" : "avatar";
+        message = text("exporting");
+        AvatarLoadExecutor.submit(() -> {
+            try {
+                return LocalSourceExport.export(source, name, kind);
+            } catch (java.io.IOException failure) {
+                throw new java.io.UncheckedIOException(failure);
+            }
+        })
+                .whenComplete((exported, failure) -> minecraft.execute(() -> {
+                    if (removed) {
+                        return;
+                    }
+                    if (failure != null) {
+                        Throwable cause = failure;
+                        while (cause.getCause() != null) {
+                            cause = cause.getCause();
+                        }
+                        message = FiguraText.of("gui.wardrobe.export_failed",
+                                cause.getMessage() == null ? cause.getClass().getSimpleName() : cause.getMessage());
+                    } else {
+                        message = FiguraText.of("gui.wardrobe.export_done", exported.getFileName().toString());
+                    }
+                }));
     }
 
     private Component collectionRemovalLabel(UUID id) {
@@ -1847,6 +1906,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         if (source == Source.ALL && tab == Tab.COLLECTION) {
             rebuild();
         }
+        updateCollectionButtons();
     }
 
     private void selectCosmetic(LocalCosmeticInventory.Entry entry) {
@@ -1859,6 +1919,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         if (source == Source.ALL && tab == Tab.COLLECTION) {
             rebuild();
         }
+        updateCollectionButtons();
     }
 
     private void selectCloud(LibraryModels.CollectionEntry entry) {

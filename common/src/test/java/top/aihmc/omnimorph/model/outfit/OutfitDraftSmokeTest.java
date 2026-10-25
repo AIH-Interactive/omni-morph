@@ -1,17 +1,21 @@
 package top.aihmc.omnimorph.model.outfit;
 
 import com.google.gson.Gson;
+import top.aihmc.omnimorph.model.library.LocalSourceExport;
 import top.aihmc.omnimorph.avatar.control.AvatarControlDefinition;
 import top.aihmc.omnimorph.avatar.control.AvatarControlType;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.zip.ZipFile;
 
 /** Public edit operations and immutable snapshots, without a game client or equipment publication. */
 public final class OutfitDraftSmokeTest {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         editsAndCancellation();
         dependenciesAndVirtuals();
         presetCopies();
@@ -19,6 +23,7 @@ public final class OutfitDraftSmokeTest {
         sharedSkeletonNodes();
         skeletonCacheRebindsChangedGraph();
         restoredSliderValues();
+        localSourceExports();
         System.out.println("PASS outfit draft: duplicate ordinals, immutable committed state, selection, edits/cancel/reset, "
                 + "dependent removal, virtual anchors, preset identity rewrite and atomic limit failures; UI wiring separate");
     }
@@ -156,6 +161,24 @@ public final class OutfitDraftSmokeTest {
                 Node::name, Node::children, OutfitLimits.defaults());
         require(binding.definition().nodes().size() == 2 && binding.parts().size() == 2,
                 "duplicate native part identity is captured once");
+    }
+
+    private static void localSourceExports() throws Exception {
+        Path source = Files.createTempDirectory("omnimorph-export-source");
+        Path output = Files.createTempDirectory("omnimorph-export-output");
+        Files.writeString(source.resolve("avatar.json"), "{}");
+        Files.createDirectories(source.resolve("textures"));
+        Files.write(source.resolve("textures/avatar.png"), new byte[] {1, 2, 3});
+        Path archive = LocalSourceExport.export(source, "Test", "avatar", output);
+        require(archive.getFileName().toString().equals("avatar_Test.zip"),
+                "local source export uses the type_name.zip format");
+        try (var zip = new ZipFile(archive.toFile())) {
+            require(zip.getEntry("avatar.json") != null && zip.getEntry("textures/avatar.png") != null,
+                    "local source export preserves the source directory contents");
+        }
+        Path second = LocalSourceExport.export(source, "Test", "avatar", output);
+        require(second.getFileName().toString().equals("avatar_Test (2).zip"),
+                "local source export does not overwrite an existing archive");
     }
 
     private static void skeletonCacheRebindsChangedGraph() {

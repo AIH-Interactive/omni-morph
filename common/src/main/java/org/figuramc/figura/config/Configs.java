@@ -292,6 +292,8 @@ public class Configs {
             EMOJIS = new ConfigType.EnumConfig("emojis", MISC, 1, 3);
     public static final ConfigType.BoolConfig
             EASTER_EGGS = new ConfigType.BoolConfig("easter_eggs", MISC, true);
+    public static final ConfigType.FolderConfig EXPORT_DIRECTORY =
+            new ConfigType.FolderConfig("export_directory", MISC, "export");
 
 
     // -- DEV -- //
