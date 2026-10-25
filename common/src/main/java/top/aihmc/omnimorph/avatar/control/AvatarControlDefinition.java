@@ -30,6 +30,7 @@ public class AvatarControlDefinition {
     private String category;
     private Object defaultValue;
     private Object value;
+    private Object restoredValue;
     private boolean explicitValue;
     private double min;
     private double max = 1d;
@@ -453,6 +454,19 @@ public class AvatarControlDefinition {
             value = "avatar_control.set_value"
     )
     public AvatarControlDefinition setValue(Object value) {
+        this.restoredValue = null;
+        this.value = normalizeValue(value);
+        explicitValue = true;
+        return this;
+    }
+
+    /**
+     * Restores a persisted value while the author's chained {@code setRange} may still be pending. The
+     * raw value is retained so {@link #setRange} can re-normalise it against the final bounds instead of
+     * leaving it clamped to the control's temporary 0..1 factory range.
+     */
+    public AvatarControlDefinition restoreValue(Object value) {
+        this.restoredValue = value;
         this.value = normalizeValue(value);
         explicitValue = true;
         return this;
@@ -556,6 +570,14 @@ public class AvatarControlDefinition {
         this.min = min;
         this.max = Math.max(min, max);
         this.step = step == null || step <= 0d ? this.step : step;
+        if (defaultValue != null) {
+            defaultValue = normalizeValue(defaultValue);
+        }
+        if (restoredValue != null) {
+            value = normalizeValue(restoredValue);
+        } else if (value != null) {
+            value = normalizeValue(value);
+        }
         definitionChanged();
         return this;
     }

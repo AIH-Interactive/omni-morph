@@ -30,7 +30,7 @@ public final class AvatarControlValueStore {
             if (value == null) {
                 return false;
             }
-            control.setValue(value);
+            control.restoreValue(value);
             return true;
         }
         if (avatar.isLibraryPreview) {
@@ -39,7 +39,7 @@ public final class AvatarControlValueStore {
         load();
         StoredValue value = VALUES.getOrDefault(key(avatar), Map.of()).get(controlKey(avatar, control));
         if (value != null) {
-            control.setValue(value.value());
+            control.restoreValue(value.value());
             return true;
         }
         return false;
