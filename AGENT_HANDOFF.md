@@ -637,3 +637,9 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 为定位“选中本地源不替换世界预览”，在 `WardrobeScreen.selectLocal` / `selectOutfitBase` / base 成功与失败路径加入 INFO/WARN 日志，输出名称、路径、tab、source、draft 状态、base/instances 或异常。
 - 已安装诊断 JAR；请复现后检查 latest.log 中 `Wardrobe selectLocal` 与 `Wardrobe selectOutfitBase` 行，可区分“点击未进入 selectLocal / draft 卡住 / base 准备失败 / composition 失败”。
 - `fs2000.png` 的 FileNotFoundException 是 BlockbenchParser2 的 base64 fallback 预检日志，不一定代表加载失败；不再据此判断模型无效。
+### Iris 阴影盔甲崩溃修复（2026-10-26 00:53）
+
+- 崩溃：`NoClassDefFoundError: HumanoidArmorLayer$...`，调用链 `HumanoidArmorLayer.figura` → Iris ShadowRenderer。
+- 根因：Fabric 盔甲 mixin 的 `switch (slot)` 生成 switch-map 匿名内部类；Iris 阴影渲染触发时该类未解析。改为直接 `if/else` 比较 `EquipmentSlot`，不再生成 synthetic 匿名类。
+- 构建确认 JAR 中只剩 `HumanoidArmorLayerMixinFabric.class`，不再包含 ``。
+- `:fabric:build` PASS；真实 Iris 阴影画面 MANUAL/PENDING。
