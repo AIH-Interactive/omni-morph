@@ -2180,6 +2180,8 @@
   "omni-morph.gui.library.upload_drop_hint": "Choose or drop a .zip / .ysm model. Server limit: %s.",
   "omni-morph.gui.library.upload_success": "Model published",
   "omni-morph.gui.library.upload_status": "Server result: visibility %s; published %s; moderation %s",
+  "omni-morph.gui.library.local_dependencies_title": "Upload local dependencies?",
+  "omni-morph.gui.library.local_dependencies_confirm": "Local resources will become cloud assets using this form's visibility and authorization settings, then the outfit will be published. Cancelling or failure preserves your local files.",
   "omni-morph.gui.wardrobe.local_preview_only": "Local preview (only you); share through Publish or Library upload",
   "omni-morph.gui.library.retry_upload": "Retry same upload",
   "omni-morph.gui.library.cancelled": "Cancelled. The draft can be edited.",

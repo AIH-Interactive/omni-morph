@@ -83,6 +83,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
     private OutfitPresetResources.Prepared outfitResources;
     private boolean outfitReady;
     private boolean outfitDistributable;
+    private boolean outfitLocalConfirmed;
     private String cosmeticCategory = "Unknown";
     private String cosmeticAnchor = "";
     private final String[] cosmeticTransform = {"0, 0, 0", "0, 0, 0", "1, 1, 1"};
@@ -507,14 +508,15 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
                 message = FiguraText.of("gui.library.preparation_error");
             } else {
                 outfitPrepared = value;
+                outfitLocalConfirmed = false;
                 var configuration = value.configuration();
                 var references = new ArrayList<OutfitConfig.ResourceRef>();
                 if (configuration.base() != null) {
                     references.add(configuration.base());
                 }
                 configuration.instances().forEach(instance -> references.add(instance.resource()));
-                outfitDistributable = references.stream().allMatch(reference -> reference.source() == OutfitConfig.Source.CLOUD
-                        && client.origin().equals(reference.origin()));
+                outfitDistributable = references.stream().allMatch(reference -> reference.source() == OutfitConfig.Source.LOCAL
+                        || client.origin().equals(reference.origin()));
                 draft.metadata(draftGeneration, new top.aihmc.omnimorph.model.library.LibraryMetadataReader.Metadata(
                         "", value.name(), List.of(), "", true));
                 previewDraft();
@@ -781,13 +783,30 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
             return;
         }
         try {
+            var configuration = outfitSource && outfitPrepared != null ? outfitPrepared.configuration() : null;
+            boolean localBase = configuration != null && configuration.base() != null
+                    && configuration.base().source() == OutfitConfig.Source.LOCAL;
+            boolean localAccessory = configuration != null && configuration.instances().stream()
+                    .anyMatch(instance -> instance.resource().source() == OutfitConfig.Source.LOCAL);
+            if (!outfitLocalConfirmed && (localBase || localAccessory)) {
+                retainingChild = true;
+                minecraft.setScreen(new net.minecraft.client.gui.screens.ConfirmScreen(confirmed -> {
+                    minecraft.setScreen(this);
+                    if (confirmed) {
+                        outfitLocalConfirmed = true;
+                        submit();
+                    }
+                }, FiguraText.of("gui.library.local_dependencies_title"),
+                        FiguraText.of("gui.library.local_dependencies_confirm")));
+                return;
+            }
             if (operation != null && operation.future().isCompletedExceptionally()) {
                 operation.retry();
             } else if (operation == null) {
                 if (outfitSource) {
                     operation = uploads.uploadOutfit(OutfitUploadDraft.snapshot(outfitPrepared, draft.displayName(),
                             draft.description(), draft.category(), LibraryUploadDraft.normalizeTags(tags), draft.isPublic(),
-                            draft.requiresAuthorization(), limits, client.origin()), image);
+                            draft.requiresAuthorization(), limits, client.origin(), outfitLocalConfirmed), image);
                 } else {
                     if (accessorySource) {
                         draft.resourceKind("ACCESSORY", accessoryDeclaration());

@@ -39,6 +39,61 @@ import java.util.zip.ZipOutputStream;
 
 /** Production upload pipeline and real HTTP; no GUI widgets, rendering, or wardrobe publication. */
 public final class LibraryUploadSmokeTest {
+    public static void localOutfitPublication(String origin, Runnable drain) throws Exception {
+        var root = org.figuramc.figura.FiguraMod.getFiguraDirectory();
+        Path baseDirectory = Files.createDirectories(root.resolve("avatars/publication-base"));
+        String baseJson = "{\"name\":\"Local base\",\"authors\":[\"Author\"]}";
+        Files.writeString(baseDirectory.resolve("avatar.json"), baseJson);
+        Path accessoryDirectory = Files.createDirectories(root.resolve("cosmetics/publication-accessory"));
+        String accessoryJson = "{\"name\":\"Local accessory\",\"authors\":[\"Author\"],\"category\":\"Trail\",\"cosmetic_anchor\":\"hip\"}";
+        Files.writeString(accessoryDirectory.resolve("cosmetic.json"), accessoryJson);
+        var base = new top.aihmc.omnimorph.avatar.local.LocalAvatarSource(root).describe(baseDirectory, () -> false);
+        top.aihmc.omnimorph.model.outfit.OutfitConfig.ResourceRef accessory;
+        try (var inventory = new top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory(root)) {
+            accessory = inventory.scan(() -> false).stream()
+                    .filter(entry -> entry.path().equals(accessoryDirectory)).findFirst().orElseThrow().reference();
+        }
+        var instance = new top.aihmc.omnimorph.model.outfit.OutfitConfig.Instance(UUID.randomUUID(), accessory,
+                1, true, top.aihmc.omnimorph.model.outfit.OutfitConfig.AnchorRef.authorDefault("hip"),
+                top.aihmc.omnimorph.model.outfit.OutfitConfig.Transform.identity(), java.util.List.of(), Map.of(), Map.of());
+        var configuration = new top.aihmc.omnimorph.model.outfit.OutfitConfig(1, 0, base,
+                java.util.List.of(instance), java.util.List.of(), Map.of(accessory.identity(), 1), true);
+        var endpoint = CloudEndpoint.parse(origin, () -> true);
+        try (var access = new LibraryAccess(endpoint, HttpClient.newHttpClient(), builder -> builder
+                .header("Authorization", "Bearer synthetic-token-1").header("x-omnimorph-auth-mode", "figura"));
+             var client = new LibraryClient(access, new LibrarySession(origin, new UUID(0, 1), 77, () -> true),
+                     net.minecraft.client.Minecraft.getInstance()::execute);
+             var uploads = new LibraryUploadService(client)) {
+            var capabilities = await(client.capabilities().future(), drain);
+            var draft = OutfitUploadDraft.snapshot(new OutfitUploadDraft.Prepared("Local outfit", configuration),
+                    "Local outfit", "", "general", java.util.List.of(), true, false, capabilities, origin, true);
+            var published = await(uploads.uploadOutfit(draft, null).future(), drain);
+            JsonObject document = await(client.submit(LibraryClient.Lane.CONTROL, exchange -> exchange.json("GET",
+                    "/api/library/v1/models/" + published.modelId() + "/outfit?revision=1", null, JsonObject.class)).future(), drain);
+            var converted = top.aihmc.omnimorph.model.outfit.OutfitCodec.decode(document.getAsJsonObject("configuration").toString());
+            require(converted.base().source() == top.aihmc.omnimorph.model.outfit.OutfitConfig.Source.CLOUD
+                            && converted.instances().getFirst().resource().source()
+                            == top.aihmc.omnimorph.model.outfit.OutfitConfig.Source.CLOUD,
+                    "both local dependencies become cloud references in the published outfit");
+            await(client.applyOutfit(UUID.randomUUID(), converted).future(), drain);
+        }
+        try (var access = new LibraryAccess(endpoint, HttpClient.newHttpClient(), builder -> builder
+                .header("Authorization", "Bearer synthetic-token-2").header("x-omnimorph-auth-mode", "figura"));
+             var observer = new LibraryClient(access, new LibrarySession(origin, new UUID(0, 2), 77, () -> true),
+                     net.minecraft.client.Minecraft.getInstance()::execute)) {
+            var snapshot = await(observer.observerOutfit(new UUID(0, 1)).future(), drain);
+            require(snapshot.resources().size() == 2, "observer receives the converted base and accessory");
+            for (var resource : snapshot.resources()) {
+                await(observer.submit(LibraryClient.Lane.TRANSFER,
+                        exchange -> exchange.observerOutfitBody(snapshot, resource)).future(), drain);
+            }
+        }
+        require(Files.readString(baseDirectory.resolve("avatar.json")).equals(baseJson)
+                        && Files.readString(accessoryDirectory.resolve("cosmetic.json")).equals(accessoryJson),
+                "publication preserves the original local files");
+        System.out.println("PASS Java to Rust local outfit: private staging, atomic cloud conversion, publication, Apply and observer asset download");
+    }
+
     private static final UUID VIEWER = new UUID(0, 1);
 
     public static void run(Runnable drain) throws Exception {
@@ -177,6 +232,24 @@ public final class LibraryUploadSmokeTest {
              var uploads = new LibraryUploadService(client)) {
             var snapshot = OutfitUploadDraft.snapshot(prepared, "Published JSON", "Summary", "general",
                     java.util.List.of("preset"), true, true, server.limits(), server.origin());
+            var local = new top.aihmc.omnimorph.model.outfit.OutfitConfig.ResourceRef(
+                    top.aihmc.omnimorph.model.outfit.OutfitConfig.Source.LOCAL, UUID.randomUUID(),
+                    null, null, null, "d".repeat(64), top.aihmc.omnimorph.model.outfit.OutfitConfig.Format.FIGURA);
+            var localConfiguration = new top.aihmc.omnimorph.model.outfit.OutfitConfig(1, 0, local,
+                    java.util.List.of(), java.util.List.of(), Map.of(), false);
+            var unconfirmed = new OutfitUploadDraft.Snapshot(localConfiguration, snapshot.metadata());
+            try {
+                unconfirmed.validate(server.limits(), server.origin());
+                throw new AssertionError("Local publication requires explicit conversion consent");
+            } catch (IllegalArgumentException expected) {
+                require(expected.getMessage().equals("OUTFIT_DEPENDENCY_NOT_DISTRIBUTABLE"),
+                        "unconfirmed local resources remain non-distributable");
+            }
+            var confirmed = new OutfitUploadDraft.Snapshot(localConfiguration, snapshot.metadata(), true);
+            confirmed.validate(server.limits(), server.origin());
+            require(confirmed.input(UUID.randomUUID(), top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults())
+                            .get("convert_local_dependencies").getAsBoolean(),
+                    "confirmed publication transmits explicit conversion consent");
             var pixels = new BufferedImage(16, 8, BufferedImage.TYPE_INT_RGB);
             var bytes = new ByteArrayOutputStream();
             ImageIO.write(pixels, "png", bytes);
