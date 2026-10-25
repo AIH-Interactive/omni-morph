@@ -329,24 +329,22 @@ public abstract class HumanoidArmorLayerMixinFabric<S extends HumanoidRenderStat
         bipedModel.rightLeg.visible = false;
         bipedModel.leftLeg.visible = false;
         // Show parts for the given slot
-        switch (slot) {
-            case HEAD:
-                bipedModel.head.visible = true;
-                bipedModel.hat.visible = true;
-                break;
-            case CHEST:
-                bipedModel.body.visible = true;
-                bipedModel.rightArm.visible = true;
-                bipedModel.leftArm.visible = true;
-                break;
-            case LEGS:
-                bipedModel.body.visible = true;
-                bipedModel.rightLeg.visible = true;
-                bipedModel.leftLeg.visible = true;
-                break;
-            case FEET:
-                bipedModel.rightLeg.visible = true;
-                bipedModel.leftLeg.visible = true;
+        // Compare the enum directly instead of emitting a switch-map inner class. Mixin
+        // can otherwise leave a synthetic anonymous class unresolved under Iris shadows.
+        if (slot == EquipmentSlot.HEAD) {
+            bipedModel.head.visible = true;
+            bipedModel.hat.visible = true;
+        } else if (slot == EquipmentSlot.CHEST) {
+            bipedModel.body.visible = true;
+            bipedModel.rightArm.visible = true;
+            bipedModel.leftArm.visible = true;
+        } else if (slot == EquipmentSlot.LEGS) {
+            bipedModel.body.visible = true;
+            bipedModel.rightLeg.visible = true;
+            bipedModel.leftLeg.visible = true;
+        } else if (slot == EquipmentSlot.FEET) {
+            bipedModel.rightLeg.visible = true;
+            bipedModel.leftLeg.visible = true;
         }
     }
 }
