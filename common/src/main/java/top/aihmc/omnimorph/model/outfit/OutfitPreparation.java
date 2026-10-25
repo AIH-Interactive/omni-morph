@@ -41,6 +41,18 @@ public final class OutfitPreparation {
                                              CosmeticInstanceContext.Scope scope, Avatar preparedBase,
                                              Predicate<OutfitConfig.ResourceRef> mayUseExportedBones,
                                              Predicate<OutfitConfig.ResourceRef> mayEditBones) throws Exception {
+        return prepare(configuration, limits, account, outfit, wearer, wearerPermissions, indexes,
+                resources, cancelled, scope, preparedBase, mayUseExportedBones, mayEditBones, false);
+    }
+
+    public static OutfitComposition prepare(OutfitConfig configuration, OutfitLimits limits,
+                                             UUID account, UUID outfit, LivingEntity wearer,
+                                             PermissionPack.PlayerPermissionPack wearerPermissions, SkeletonIndex.Cache indexes,
+                                             Resources resources, BooleanSupplier cancelled,
+                                             CosmeticInstanceContext.Scope scope, Avatar preparedBase,
+                                             Predicate<OutfitConfig.ResourceRef> mayUseExportedBones,
+                                             Predicate<OutfitConfig.ResourceRef> mayEditBones,
+                                             boolean worldParticles) throws Exception {
         java.util.Objects.requireNonNull(scope);
         java.util.Objects.requireNonNull(mayUseExportedBones);
         java.util.Objects.requireNonNull(mayEditBones);
@@ -61,8 +73,11 @@ public final class OutfitPreparation {
                     throw new IOException("COSMETIC_RESOURCE_KIND_REQUIRED");
                 }
                 var context = new CosmeticInstanceContext(account, outfit, wearer.getUUID(), declaration,
-                        limits, scope);
+                        limits, scope, worldParticles);
                 Avatar avatar = Avatar.createCosmetic(context, wearerPermissions, "CosmeticPreview");
+                if (worldParticles) {
+                    avatar.enableWorldParticles();
+                }
                 avatars.put(declaration.instanceId(), avatar);
                 avatar.load(data.copy(), null, cancelled);
                 requireCurrent(cancelled);

@@ -26,6 +26,7 @@ public final class CosmeticInstanceContext {
     private final OutfitConfig.ResourceRef resource;
     private final OutfitLimits limits;
     private final Scope scope;
+    private final boolean worldParticles;
     private final Map<String, Object> controls = new LinkedHashMap<>();
     private final Map<String, Object> luaState = new LinkedHashMap<>();
     private Supplier<MolangExecutionBudget> outfitMolangBudget;
@@ -35,6 +36,12 @@ public final class CosmeticInstanceContext {
 
     public CosmeticInstanceContext(UUID accountId, UUID outfitId, UUID wearerId,
                                    OutfitConfig.Instance instance, OutfitLimits limits, Scope scope) {
+        this(accountId, outfitId, wearerId, instance, limits, scope, false);
+    }
+
+    public CosmeticInstanceContext(UUID accountId, UUID outfitId, UUID wearerId,
+                                   OutfitConfig.Instance instance, OutfitLimits limits, Scope scope,
+                                   boolean worldParticles) {
         this.accountId = Objects.requireNonNull(accountId);
         this.outfitId = Objects.requireNonNull(outfitId);
         this.wearerId = Objects.requireNonNull(wearerId);
@@ -42,6 +49,7 @@ public final class CosmeticInstanceContext {
         this.resource = instance.resource();
         this.limits = Objects.requireNonNull(limits);
         this.scope = Objects.requireNonNull(scope);
+        this.worldParticles = worldParticles;
         copyState(controls, instance.controls(), limits.maxControls());
         copyState(luaState, instance.luaState(), limits.maxLuaStateEntries());
     }
@@ -54,6 +62,7 @@ public final class CosmeticInstanceContext {
     public OutfitConfig.ResourceRef resource() { return resource; }
     public OutfitLimits limits() { return limits; }
     public Scope scope() { return scope; }
+    public boolean worldParticles() { return worldParticles; }
 
     void bindTrailSource(Function<Float, TrailBuffer.Snapshot> source) {
         trailSource = Objects.requireNonNull(source);

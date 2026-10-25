@@ -171,6 +171,9 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private Selection selected;
     private LibraryPreviewSession preview;
     private LibraryClient previewClient;
+    private boolean previewWorldParticles;
+    private boolean previewWorldMode;
+    private boolean previewOwned;
     private EntityPreview previewWidget;
     private Tab previewTab;
     private WardrobeCollectionGrid collectionGrid;
@@ -309,6 +312,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         if (preview == null || preview.status().stage() == LibraryPreviewSession.Stage.CLOSED) {
             preview = new LibraryPreviewSession();
             previewClient = null;
+            previewOwned = true;
             if (draftPreviewActive) {
                 previewOutfitDraft();
             } else if (selected != null) {
@@ -1975,6 +1979,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private void previewSelection() {
+        previewWorldParticles = tab == Tab.OUTFIT && selected != null && selected.path() != null;
         if (tab == Tab.OUTFIT && selectedIsAvatar()) {
             selectOutfitBase();
             return;
@@ -3273,6 +3278,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         var cachedSources = draftPreparedResources;
         UUID owner = FiguraMod.getLocalPlayerUUID();
         OutfitLimits limits = outfitLimits;
+        previewWorldParticles = true;
         bindPreview(null);
         var session = preview;
         boolean reuseBase = draftPreviewActive && java.util.Objects.equals(draftPreviewBase, configuration.base())
@@ -3330,11 +3336,13 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private void bindPreview(LibraryClient requiredClient) {
-        if (previewClient != requiredClient || preview.status().stage() == LibraryPreviewSession.Stage.CLOSED) {
+        if (previewOwned && (previewClient != requiredClient || previewWorldMode != previewWorldParticles
+                || preview.status().stage() == LibraryPreviewSession.Stage.CLOSED)) {
             top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.clear(this);
             preview.close();
-            preview = new LibraryPreviewSession(requiredClient);
+            preview = new LibraryPreviewSession(requiredClient, false, previewWorldParticles);
             previewClient = requiredClient;
+            previewWorldMode = previewWorldParticles;
             if (previewWidget != null) {
                 previewWidget.setLibraryPreview(preview);
             }

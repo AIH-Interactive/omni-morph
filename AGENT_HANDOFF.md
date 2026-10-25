@@ -643,3 +643,9 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 根因：Fabric 盔甲 mixin 的 `switch (slot)` 生成 switch-map 匿名内部类；Iris 阴影渲染触发时该类未解析。改为直接 `if/else` 比较 `EquipmentSlot`，不再生成 synthetic 匿名类。
 - 构建确认 JAR 中只剩 `HumanoidArmorLayerMixinFabric.class`，不再包含 ``。
 - `:fabric:build` PASS；真实 Iris 阴影画面 MANUAL/PENDING。
+### 方案 B：本地配装世界粒子运行时（2026-10-26 01:18）
+
+- 世界预览不再使用 GUI 的 `PreviewParticleScope`：`LibraryPreviewSession` 新增 worldParticles 模式，`LibraryPreviewBinding` 在该模式下不创建/绑定 preview scope。
+- `OutfitPreparation` 为世界预览实例创建带 worldParticles 的 `CosmeticInstanceContext`；`Avatar.enableWorldParticles` 使 `usesPreviewParticles` 返回 false，原生粒子走正常 ParticleEngine，CustomParticle 走 CustomParticleRuntime 并注册动态光。
+- Wardrobe 仅在本地配装/本地源预览时切换到 worldParticles session；云预览仍使用 GUI scope。`previewOwned` 防止测试注入的 session 被重建。
+- 验证：`libraryPreviewRuntimeSmokeTest` PASS、`:fabric:build` PASS。真实世界粒子/动态光 MANUAL/PENDING。
