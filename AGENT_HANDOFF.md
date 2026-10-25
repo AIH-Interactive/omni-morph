@@ -607,3 +607,9 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 衣柜预览底部重新加入 StatusWidget（4 点：大小/纹理/脚本/后端）与 LoadingErrorWidget；位置在预览右下，Minecraft.getInstance().font 为空时跳过（headless 测试）。
 - 首次加入时 headless 测试 NPE（uildPreview 读取 font），已加字体空值保护；第二次 libraryPreviewRuntimeSmokeTest PASS、:fabric:build PASS。
 - 构建 JAR 18,319,574 字节；客户端当前安装包为 18,659,734 字节带 natives 的 1ad3d0e 包，**是否覆盖安装需保留 natives**，否则会丢失原生加速。真实 GUI 位置/显示 MANUAL/PENDING。
+### 状态栏恢复与并发同步实现（2026-10-25 22:52）
+
+- 状态栏：`WardrobeScreen.buildPreview` 恢复 `StatusWidget`（大小/纹理/脚本/后端 4 点）与 `LoadingErrorWidget`，位置为预览右下；`Minecraft.getInstance().font == null` 时跳过以兼容 headless 测试。提交 `2b8e7057`，`libraryPreviewRuntimeSmokeTest` 与 `:fabric:build` PASS。
+- 并发同步实现：当前历史已包含 `b6c34491`（Phase 0 上传状态）、`90b8873a`（本地源分发状态）、`3d21325f`（原生 Figura 资产不带 YSM schema）、`5febb34d`（本地依赖确认/发布）、`b769d5aa`（Phase 0–4 收口文档）；按这些提交，修复计划中的 Phase 0–4 已有客户端/后端实现与自动验证记录，真实 GUI/双客户端仍 MANUAL/PENDING。此前 18:29 交接中“计划未实施”的表述已过时，以本段为准。
+- 安装包：将最新 `fabric/build/libs`（含状态栏与同步代码）与旧安装包中的 `natives/*` 合并后安装：18,629,322 字节，SHA256 `6bb7c110f7eb0d3010d37263bb2759aed950ccb42c90a92f0cac3001cc84ecb4`；旧安装包备份在 `build/tmp/omni-morph-alpha4.1-native-before-status.jar`（18,663,187 字节）。合并包 zip 校验通过，含 10 个 natives；尚未启动游戏验证。
+- 当前 HEAD `2b8e7057` 与 origin/main 一致；后续只需再更新文档时注意 docs 被 .gitignore 忽略（`git add -f`）。
