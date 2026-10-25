@@ -601,3 +601,9 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 可靠接口：Plus，最近最终安全检查点5小时剩余31%、周剩余89%，重置UTC Unix秒1792938691/1793525491。未触发阈值，未委派Luna；本文按正常任务完成规则由当前Agent更新。若后续达到交接阈值，仅委派gpt-6-luna整理事实手册，不切换日常开发模型。接口不可用时不猜测。
 
 继续遵守：范围仅限用户当前授权；当前分支逐阶段提交推送并核对；JDK25；所有构建/测试前台PowerShell 2>&1 | Tee-Object -FilePath build.log，立即检查LASTEXITCODE并读取日志；冻结Protobuf v1/默认资产不改；保留未提交与未跟踪数据；禁止Qt offscreen；人工项不得标PASS；不安装额外MySQL实例；不自动领取历史遗留或优化任务。
+
+### 状态栏恢复（2026-10-25 22:47）
+
+- 衣柜预览底部重新加入 StatusWidget（4 点：大小/纹理/脚本/后端）与 LoadingErrorWidget；位置在预览右下，Minecraft.getInstance().font 为空时跳过（headless 测试）。
+- 首次加入时 headless 测试 NPE（uildPreview 读取 font），已加字体空值保护；第二次 libraryPreviewRuntimeSmokeTest PASS、:fabric:build PASS。
+- 构建 JAR 18,319,574 字节；客户端当前安装包为 18,659,734 字节带 natives 的 1ad3d0e 包，**是否覆盖安装需保留 natives**，否则会丢失原生加速。真实 GUI 位置/显示 MANUAL/PENDING。

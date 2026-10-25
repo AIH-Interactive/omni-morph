@@ -37,6 +37,8 @@
 
 - Fix first-person hand rendering calling `prepareFiguraBase` for YSM/non-Figura bases and crashing with `INVALID_OUTFIT_CONFIGURATION`; the outfit arm path is now limited to Figura bases.
 
+- Restore the wardrobe preview status bar (model size, texture, script and backend connection indicators) and the loading-error indicator by re-adding `StatusWidget` / `LoadingErrorWidget`.
+
 ## 1.0.0-alpha.4
 
 - Adds isolated accessory instances, anchors, trails, controls, CustomParticle/Ribbon and optional dynamic lights with server-defined `outfit.limits`.

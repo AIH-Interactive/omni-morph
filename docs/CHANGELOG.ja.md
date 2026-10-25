@@ -37,6 +37,8 @@
 
 - YSM/非 Figura ベースの一人称手描画で `prepareFiguraBase` を呼び、`INVALID_OUTFIT_CONFIGURATION` でクラッシュする問題を修正。装飾の手パスは Figura ベースのみに限定しました。
 
+- 衣装棚プレビュー下部のステータスバー（サイズ・テクスチャ・スクリプト・バックエンド接続の 4 点）と読み込みエラー表示を復元し、`StatusWidget` / `LoadingErrorWidget` を再追加しました。
+
 ## 1.0.0-alpha.4
 
 - 独立した装飾インスタンス、アンカー、軌跡、CustomParticle/Ribbon、任意の動的光源を追加。上限はバックエンドの `outfit.limits` で設定します。

@@ -37,6 +37,8 @@
 
 - YSM/비-Figura 베이스의 1인칭 손 렌더링에서 `prepareFiguraBase`를 호출해 `INVALID_OUTFIT_CONFIGURATION`으로 충돌하는 문제를 수정했습니다. 의상 손 경로는 이제 Figura 베이스에만 적용됩니다.
 
+- 의상실 미리보기 하단의 상태 표시줄(모델 크기, 텍스처, 스크립트, 백엔드 연결 4개 지점)과 로딩 오류 표시를 복원하고 `StatusWidget` / `LoadingErrorWidget`을 다시 추가했습니다.
+
 ## 1.0.0-alpha.4
 
 - 독립 장식 인스턴스, 앵커, 궤적, CustomParticle/Ribbon과 선택적 동적 광원을 추가했습니다. 상한은 백엔드 `outfit.limits`로 설정합니다.
