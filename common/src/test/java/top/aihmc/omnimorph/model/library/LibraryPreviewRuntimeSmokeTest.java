@@ -1723,6 +1723,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     org.figuramc.figura.avatar.local.LocalAvatarFetcher.AvatarPath.class);
             chooseBase.setAccessible(true);
             chooseBase.invoke(screen, new org.figuramc.figura.avatar.local.LocalAvatarFetcher.AvatarPath(selectedBase, root));
+            await((CompletableFuture<?>) field(type, "changingDraftBase").get(screen), drain);
+            awaitDraftComposition(screen, preview, drain);
+            require(top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.active(),
+                    "selecting a local outfit candidate immediately previews it in the world");
             var chooseAccessory = type.getDeclaredMethod("selectCosmetic", accessory.getClass());
             chooseAccessory.setAccessible(true);
             chooseAccessory.invoke(screen, accessory);
