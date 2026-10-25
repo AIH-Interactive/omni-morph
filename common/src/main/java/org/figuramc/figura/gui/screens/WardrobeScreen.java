@@ -1685,7 +1685,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
         if (!validVirtualParent(parent)) {
             throw new IllegalArgumentException("OUTFIT_ANCHOR_PARENT_UNAVAILABLE");
         }
-        outfitDraft.updateVirtualAnchor(id, name, parent, transform);
+        outfitDraft.updateVirtualAnchor(id, name, parent, new OutfitConfig.Transform(transform.position(),
+                transform.rotation(), new OutfitConfig.Vector(1, 1, 1)));
         virtualRemovalArmed = null;
         previewOutfitDraft();
     }
@@ -1745,10 +1746,10 @@ public class WardrobeScreen extends AbstractPanelScreen {
             }
         }, 6), 2, 52);
         var transform = anchor.transform();
-        var vectors = List.of(transform.position(), transform.rotation(), transform.scale());
-        var labels = List.of("instance_position", "instance_rotation", "instance_scale");
+        var vectors = List.of(transform.position(), transform.rotation());
+        var labels = List.of("instance_position", "instance_rotation");
         int fieldWidth = Math.max(1, (width - 24) / 3);
-        for (int row = 0; row < 3; row++) {
+        for (int row = 0; row < vectors.size(); row++) {
             int y = 80 + row * 38;
             fields.add(new Label(text(labels.get(row)), 0, 0, TextUtils.Alignment.LEFT), 2, y);
             var vector = vectors.get(row);
@@ -1785,14 +1786,14 @@ public class WardrobeScreen extends AbstractPanelScreen {
             if (outfitDraft == expected && id.equals(editingVirtualAnchor)) {
                 removeVirtualAnchor(id, button);
             }
-        }), 2, 198);
+        }), 2, 160);
         remove.setTooltip(virtualAnchorDependents(id));
         fields.add(new Button(0, 0, contentWidth, 20, text("anchor_confirm"), null, button -> {
             if (outfitDraft == expected && id.equals(editingVirtualAnchor)) {
                 switchRightPane(true);
             }
-        }), 2, 246);
-        fields.add(new Button(0, 0, contentWidth, 20, text("anchor_back"), null, button -> switchRightPane(true)), 2, 270);
+        }), 2, 184);
+        fields.add(new Button(0, 0, contentWidth, 20, text("anchor_back"), null, button -> switchRightPane(true)), 2, 208);
     }
 
     private OutfitConfig.BoneRef anchorParent(UUID id) {
@@ -3806,7 +3807,16 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private Object previewBoneSelection() {
-        if (tab != Tab.OUTFIT || !boneHelpersShown) {
+        if (tab != Tab.OUTFIT) {
+            return null;
+        }
+        if (editingVirtualAnchor != null && outfitDraft != null
+                && outfitDraft.configuration().virtualAnchors().stream()
+                        .anyMatch(anchor -> anchor.id().equals(editingVirtualAnchor))) {
+            return new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.VIRTUAL, null, null,
+                    editingVirtualAnchor, null, null);
+        }
+        if (!boneHelpersShown) {
             return null;
         }
         if (automaticAnchorFocus != null) {
