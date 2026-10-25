@@ -410,6 +410,7 @@
     "omni-morph.gui.wardrobe.anchor_remove_confirm": "Confirm deletion",
     "omni-morph.gui.wardrobe.anchor_affected": "Instances that will become unbound:",
     "omni-morph.gui.wardrobe.anchor_back": "Back to hierarchy",
+    "omni-morph.gui.wardrobe.anchor_confirm": "Confirm",
     "omni-morph.gui.wardrobe.anchor_next": "Next targets →",
     "omni-morph.gui.wardrobe.create_figura": "Create Figura avatar",
     "omni-morph.gui.wardrobe.create_ysm": "Create YSM avatar",
