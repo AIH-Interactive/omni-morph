@@ -21,6 +21,8 @@
 
 - 컨트롤 정의의 임시 0..1 범위 때문에 `setRange` 전에 저장된 슬라이더 값(interval, lifetime, frame_ticks, light_interval 등)이 1로 클램프되는 문제와, 클라우드/외부 상태 변경에 슬라이더가 따라가지 않는 문제를 수정했습니다. 복원된 원본 값을 유지하고 `setRange` 후 다시 정규화하며, 외부에서 변경된 컨트롤 값에 슬라이더를 동기화합니다.
 
+- Iris 그림자 패스에서도 엔티티의 의상 스켈레톤을 캡처/바인딩하여 `SkeletonIndex.bindParts`가 그림자 뷰에서 `INVALID_OUTFIT_CONFIGURATION`을 던지며 충돌하는 문제를 수정했습니다. 그림자 패스에서는 의상 제출을 건너뛰고 메인 뷰 렌더링은 유지합니다.
+
 ## 1.0.0-alpha.4
 
 - 독립 장식 인스턴스, 앵커, 궤적, CustomParticle/Ribbon과 선택적 동적 광원을 추가했습니다. 상한은 백엔드 `outfit.limits`로 설정합니다.

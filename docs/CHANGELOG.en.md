@@ -21,6 +21,8 @@
 
 - Fix saved slider values being clamped to 1 by the temporary 0..1 definition range before the author's `setRange` (for example interval, lifetime, frame_ticks and light_interval), and sliders not following cloud/external state updates. The raw restored value is retained and re-normalized after `setRange`, and sliders now sync from externally changed control values.
 
+- Fix the Iris shadow pass still capturing/binding outfit skeletons for entities, which made `SkeletonIndex.bindParts` throw `INVALID_OUTFIT_CONFIGURATION` against the shadow view. Outfit submission is now skipped in the shadow pass while the main view keeps rendering normally.
+
 ## 1.0.0-alpha.4
 
 - Adds isolated accessory instances, anchors, trails, controls, CustomParticle/Ribbon and optional dynamic lights with server-defined `outfit.limits`.

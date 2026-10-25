@@ -219,6 +219,14 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
     private void submitFiguraModel(S livingEntityRenderState, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState cameraRenderState, CallbackInfo ci) {
         if (currentAvatar == null)
             return;
+        if (org.figuramc.figura.utils.PlatformUtils.isModLoaded("iris")
+                && top.aihmc.omnimorph.compat.IrisCompat.isShadowPass()) {
+            // Iris renders entities again with the shadow camera. Capturing/binding the outfit
+            // skeleton against that pass can observe a different native part graph and fail the frame.
+            currentAvatar = null;
+            lastPose = null;
+            return;
+        }
 
         Avatar localAvatar = currentAvatar;
 
