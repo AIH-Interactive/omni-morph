@@ -33,6 +33,8 @@
 
 - Improve virtual anchor creation/editing: position and rotation fields now update an anchor-axis marker in the preview in real time, the scale fields are removed and anchor scale is fixed at 1, and the Confirm button still returns to the bone hierarchy.
 
+- Fix model-library cosmetic previews where `cosmetic_controls` was nil, causing `newToggle` and other control declarations to fail; previews now expose the real controls API without persisting values.
+
 ## 1.0.0-alpha.4
 
 - Adds isolated accessory instances, anchors, trails, controls, CustomParticle/Ribbon and optional dynamic lights with server-defined `outfit.limits`.

@@ -282,6 +282,12 @@ public class FiguraAPIManager {
             runtime.setGlobal("cosmetic_animations", new CosmeticAnimationsAPI(runtime.owner));
             return;
         }
+        if (runtime.owner.isLibraryPreview) {
+            // Model-library previews load cosmetic scripts without an outfit instance context. They still
+            // need the real controls API to declare their settings; persistence is already disabled for
+            // previews by AvatarControlValueStore.
+            runtime.setGlobal("cosmetic_controls", runtime.avatar_controls);
+        }
         for (FiguraAPI api : ENTRYPOINTS) {
             String name = api.getName();
             if (name != null)

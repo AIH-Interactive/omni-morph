@@ -493,3 +493,9 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 面板压缩：删除 y=160、确定 y=184、返回 y=208。
 - 更新 `LibraryPreviewRuntimeSmokeTest.testVirtualAnchorEditor`：7 个输入、位置/名称非法校验、scale 固定为 1；PASS。
 - `libraryPreviewRuntimeSmokeTest`、`:fabric:build` PASS。JAR 18315665 字节，SHA256 640f27d29f7a8c0e0a5be851965966e367fc661e07d3aaa27abcb2f37cabbb50，已安装。真实 GUI 标记/布局 MANUAL/PENDING。
+### 模型库装饰预览 cosmetic_controls（2026-10-25 12:23）
+
+- 报错：script10 attempt to index ? (a nil value) with key 'newToggle'，脚本 cosmetic_controls:newToggle("enabled")...，发生在模型库预览拖尾。
+- 原因：FiguraAPIManager.setupTypesAndAPIs 只在 cosmeticContext != null 时设置 `cosmetic_controls`；模型库用 `createParticlePreview`（isLibraryPreview，无 cosmeticContext）加载装饰脚本，全局为 nil。
+- 修复：library preview 也暴露 `runtime.avatar_controls` 作为 `cosmetic_controls`；`AvatarControlValueStore` 对 preview 不持久化，默认值仍生效。
+- 验证：`libraryPreviewRuntimeSmokeTest` PASS；`:fabric:build` PASS。JAR 18315707 字节，SHA256 2f86419db29a12c1040a3b84603c9a18b033588fb696e853b99fc988034554bd，已安装。真实模型库预览 MANUAL/PENDING。
