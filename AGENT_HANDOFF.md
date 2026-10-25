@@ -613,3 +613,11 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 并发同步实现：当前历史已包含 `b6c34491`（Phase 0 上传状态）、`90b8873a`（本地源分发状态）、`3d21325f`（原生 Figura 资产不带 YSM schema）、`5febb34d`（本地依赖确认/发布）、`b769d5aa`（Phase 0–4 收口文档）；按这些提交，修复计划中的 Phase 0–4 已有客户端/后端实现与自动验证记录，真实 GUI/双客户端仍 MANUAL/PENDING。此前 18:29 交接中“计划未实施”的表述已过时，以本段为准。
 - 安装包：将最新 `fabric/build/libs`（含状态栏与同步代码）与旧安装包中的 `natives/*` 合并后安装：18,629,322 字节，SHA256 `6bb7c110f7eb0d3010d37263bb2759aed950ccb42c90a92f0cac3001cc84ecb4`；旧安装包备份在 `build/tmp/omni-morph-alpha4.1-native-before-status.jar`（18,663,187 字节）。合并包 zip 校验通过，含 10 个 natives；尚未启动游戏验证。
 - 当前 HEAD `2b8e7057` 与 origin/main 一致；后续只需再更新文档时注意 docs 被 .gitignore 忽略（`git add -f`）。
+### 本地配装预览失败原因与清理（2026-10-26 00:26）
+
+- 用户截图中的 `苍梧吟月Pro.zip` 选择后未切换预览；客户端日志明确：
+  `java.io.FileNotFoundException: Could not locate texture 'fs2000.png'`
+  位于 `LocalAvatarSource.prepare` → `WardrobeScreen.selectOutfitBase`。
+- ZIP 实际只有 `avatar.json`、`avatar.png`（20×20）、`model.bbmodel`、`script.lua`，`model.bbmodel` 引用的 `fs2000.png` 缺失，所以模型无法准备；之前界面保留旧预览，看起来像“没有生效”。
+- 修复：`selectOutfitBase` 开始加载前清除旧 GUI/世界预览；失败时再次清除并显示错误，不再展示上一个模型。有效的本地源仍会在 base/composition 完成后自动进入世界预览。
+- 验证：`libraryPreviewRuntimeSmokeTest` PASS、`:fabric:build` PASS；该具体 ZIP 需补回 `fs2000.png`（或重新导出）后才能显示真实模型。
