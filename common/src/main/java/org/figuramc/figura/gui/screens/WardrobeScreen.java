@@ -2488,7 +2488,12 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private void installCapturedDraft(CapturedDraft captured, OutfitLimits limits, UUID owner) {
-        outfitDraft = new OutfitDraft(captured.configuration(), limits);
+        installCapturedDraft(captured, limits, owner, captured.configuration());
+    }
+
+    private void installCapturedDraft(CapturedDraft captured, OutfitLimits limits, UUID owner,
+                                      OutfitConfig committed) {
+        outfitDraft = new OutfitDraft(committed, captured.configuration(), limits);
         // The committed (or currently loaded) outfit is the latest set for its base.
         LocalBaseOutfits.forDirectory(FiguraMod.getFiguraDirectory()).remember(captured.configuration());
         draftBase = captured.base();
@@ -2530,7 +2535,12 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 }
             }
             draftAuthority = client;
-            installCapturedDraft(captured, outfitLimits, owner);
+            OutfitConfig committed = state.configuration();
+            if (localState != null) {
+                var persistent = AvatarManager.getLoadedOutfit(owner);
+                committed = persistent == null ? OutfitConfig.empty() : persistent.configuration();
+            }
+            installCapturedDraft(captured, outfitLimits, owner, committed);
             bindLocalDraftResources();
             draftStart = java.util.concurrent.CompletableFuture.completedFuture(outfitDraft);
             return draftStart;
