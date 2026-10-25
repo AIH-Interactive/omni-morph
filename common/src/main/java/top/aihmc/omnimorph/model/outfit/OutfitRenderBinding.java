@@ -92,7 +92,9 @@ public final class OutfitRenderBinding {
     }
 
     public static EntityRenderMode renderMode(EntityRenderState frame) {
-        return LibraryPreviewBinding.entity(frame) != null && !LibraryPreviewBinding.worldFrame(frame)
+        return LibraryPreviewBinding.entity(frame) != null
+                && !LibraryPreviewBinding.worldPreview(frame)
+                && !LibraryPreviewBinding.worldFrame(frame)
                 ? EntityRenderMode.FIGURA_GUI : EntityRenderMode.RENDER;
     }
 
