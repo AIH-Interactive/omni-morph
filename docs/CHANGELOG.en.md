@@ -43,6 +43,8 @@
 
 - Keep the current local outfit world preview visible after closing the wardrobe (without committing or broadcasting); it is retired by the preview lifecycle on reopen or clear.
 
+- When reopening the wardrobe restores a local outfit world preview, use the server-committed outfit as the clean baseline while preserving the local draft as unsaved, so the publish button is no longer incorrectly disabled.
+
 ## 1.0.0-alpha.4
 
 - Adds isolated accessory instances, anchors, trails, controls, CustomParticle/Ribbon and optional dynamic lights with server-defined `outfit.limits`.

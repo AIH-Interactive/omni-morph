@@ -627,3 +627,8 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 需要替换/提交时由 `LocalOutfitPreview.clear`/session 生命周期回收；不会装备、上传或广播。
 - 注意：`苍梧吟月Pro.zip` 仍缺 `fs2000.png`，该源会准备失败；不能拿它判断世界预览是否生效。
 - `libraryPreviewRuntimeSmokeTest`/`:fabric:build` PASS；真实关闭衣柜后的世界画面 MANUAL/PENDING。
+### 重开衣柜发布按钮修复（2026-10-26 00:46）
+
+- 原因：`LocalOutfitPreview` 保留后重开衣柜，`beginLocalOutfitDraft` 用该预览配置构造 `OutfitDraft` 时把 committed 也设成了预览配置，`dirty() == false`，`outfitPublishBlocker` 返回 “the draft has no unsaved changes”，发布按钮禁用。
+- 修复：`OutfitDraft` 增加 committed/current 双配置构造；本地预览恢复时 committed 取服务器已提交配装（无则空），current 取本地预览配置，从而保留未保存状态。服务器加载路径仍以自身为 committed。
+- 验证：`libraryPreviewRuntimeSmokeTest`、`:fabric:build` PASS；真实重开衣柜发布按钮 MANUAL/PENDING。

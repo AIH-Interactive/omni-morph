@@ -20,10 +20,16 @@ public final class OutfitDraft {
     private long generation;
 
     public OutfitDraft(OutfitConfig committed, OutfitLimits limits) {
+        this(committed, committed, limits);
+    }
+
+    /** A draft restored from an uncommitted local world preview keeps the server snapshot as its base. */
+    public OutfitDraft(OutfitConfig committed, OutfitConfig configuration, OutfitLimits limits) {
         this.committed = Objects.requireNonNull(committed);
         this.limits = Objects.requireNonNull(limits);
         OutfitCodec.encode(committed, limits);
-        configuration = committed;
+        OutfitCodec.encode(configuration, limits);
+        this.configuration = Objects.requireNonNull(configuration);
     }
 
     public OutfitConfig committed() {
