@@ -25,6 +25,8 @@
 
 - Fix `SkeletonIndex.bindParts` throwing `INVALID_OUTFIT_CONFIGURATION` after loading some models when the cached skeleton for a resource identity no longer matches the current native part graph; a failed cache bind now re-captures the current graph instead of crashing entity rendering.
 
+- Networking now defaults to enabled (`allow_networking=true`) with no host restriction (`networking_restriction=2`, NONE).
+
 ## 1.0.0-alpha.4
 
 - Adds isolated accessory instances, anchors, trails, controls, CustomParticle/Ribbon and optional dynamic lights with server-defined `outfit.limits`.

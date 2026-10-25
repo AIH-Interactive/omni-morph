@@ -469,3 +469,8 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 修复：`Cache.bind` 捕获 bind/limit 失败后重新 `capture` 当前图并替换缓存；重复节点由 capture 去重，新增 `skeletonCacheRebindsChangedGraph` 回归测试。
 - 验证：`outfitDraftSmokeTest`、`libraryPreviewRuntimeSmokeTest`、`:fabric:build` PASS。JAR 18308978 字节，SHA256 0c0c625e4649511ecf2b5a061206655d554c5505355a24a103f12f0efe2177be，已安装。真实多模型加载复测 MANUAL/PENDING。
 - 其他类似点审计：WardrobeScreen/CosmeticCreator 直接 capture（capture 已去重）；YSM/Vanilla adapter 走 Cache.bind（同样获得重捕捉保护）；SkeletonPose 仍要求捕捉矩阵齐全，属另一类问题。
+### 网络配置默认值（2026-10-25 11:08）
+
+- `Configs.ALLOW_NETWORKING` 默认 false → true；`Configs.NETWORKING_RESTRICTION` 默认 0（WHITELIST）→ 2（NONE，无限制）。
+- 已存在配置文件中的显式值不会被覆盖；新配置/缺省键使用新默认。当前 `config/omni-morph.json` 已是 true/2。
+- JAR 18308985 字节，SHA256 bac735712850498139b6e8f2d0bd3b1cedb467a87679857635f100cb051f6581，已安装。构建 PASS；配置 GUI/真实网络行为 MANUAL/PENDING。
