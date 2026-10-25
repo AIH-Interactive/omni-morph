@@ -499,3 +499,10 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 原因：FiguraAPIManager.setupTypesAndAPIs 只在 cosmeticContext != null 时设置 `cosmetic_controls`；模型库用 `createParticlePreview`（isLibraryPreview，无 cosmeticContext）加载装饰脚本，全局为 nil。
 - 修复：library preview 也暴露 `runtime.avatar_controls` 作为 `cosmetic_controls`；`AvatarControlValueStore` 对 preview 不持久化，默认值仍生效。
 - 验证：`libraryPreviewRuntimeSmokeTest` PASS；`:fabric:build` PASS。JAR 18315707 字节，SHA256 2f86419db29a12c1040a3b84603c9a18b033588fb696e853b99fc988034554bd，已安装。真实模型库预览 MANUAL/PENDING。
+### 第一人称 YSM 基础崩溃（2026-10-25 12:34）
+
+- 崩溃：`crash-2026-10-25_12.31.23-client.txt`，`PlayerRendererMixin.postRenderHand` → `prepareFiguraBase` → `INVALID_OUTFIT_CONFIGURATION`（line 706）。
+- 原因：第一人称手臂无条件对配装组合调用 Figura 专用 `prepareFiguraBase`；YSM/非 Figura 基础不满足 base.format()==FIGURA。
+- 修复：只有 `armCompositionBase != null && !isYsmNative() && renderer != null` 才走 Figura 手臂配装；否则跳过手臂 outfit，避免误用 YSM 基础。
+- 验证：`libraryPreviewRuntimeSmokeTest` PASS；`:fabric:build` PASS。JAR 18315842 字节，SHA256 14b35bdc8b104804e77177512d94fcb23464648ae968aab4135ae3eab7d3081e，已安装。真实 YSM 第一人称复测 MANUAL/PENDING。
+- 注意：安装发生在游戏运行期间，必须完全退出并重启后再测试。
