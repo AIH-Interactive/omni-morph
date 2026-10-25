@@ -3960,11 +3960,12 @@ public class WardrobeScreen extends AbstractPanelScreen {
             }
             if (draftPreviewActive
                     && top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.uses(preview)) {
-                // Closing the wardrobe ends the world preview. Keeping the draft alive in the world also kept
-                // its preview-only particle scope, so trails froze and particle dynamic lights stopped working.
-                top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.clear(this);
+                // Keep the selected local outfit visible after the wardrobe closes. The detached
+                // session owns its preview scope and is retired by LocalOutfitPreview.clear/tick.
+                top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.detach(this);
+            } else {
+                preview.close();
             }
-            preview.close();
         }
         if (equipment != null) {
             equipment.close();
