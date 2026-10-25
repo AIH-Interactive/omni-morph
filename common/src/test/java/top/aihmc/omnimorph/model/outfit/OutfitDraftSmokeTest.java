@@ -14,6 +14,7 @@ public final class OutfitDraftSmokeTest {
         dependenciesAndVirtuals();
         presetCopies();
         rejectedEditsAreAtomic();
+        sharedSkeletonNodes();
         System.out.println("PASS outfit draft: duplicate ordinals, immutable committed state, selection, edits/cancel/reset, "
                 + "dependent removal, virtual anchors, preset identity rewrite and atomic limit failures; UI wiring separate");
     }
@@ -141,6 +142,16 @@ public final class OutfitDraftSmokeTest {
                         && preset.instance(child).displayOrdinal() == 2
                         && preset.instance(child).anchor().bone().instanceId().equals(parent),
                 "copy preserves authored scalar state and never edits the preset itself");
+    }
+
+    private static void sharedSkeletonNodes() {
+        record Node(String name, List<Node> children) {
+        }
+        var shared = new Node("Shared", List.of());
+        var binding = SkeletonIndex.capture(null, List.of(new Node("Root", List.of(shared, shared))),
+                Node::name, Node::children, OutfitLimits.defaults());
+        require(binding.definition().nodes().size() == 2 && binding.parts().size() == 2,
+                "duplicate native part identity is captured once");
     }
 
     private static void rejectedEditsAreAtomic() {
