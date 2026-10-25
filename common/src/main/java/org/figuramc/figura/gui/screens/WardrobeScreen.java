@@ -2073,6 +2073,10 @@ public class WardrobeScreen extends AbstractPanelScreen {
 
     private void selectOutfitBase() {
         var selection = selected;
+        top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.clear(this);
+        if (preview != null) {
+            preview.clear();
+        }
         resourceSelectionGeneration++;
         long selectionToken = ++baseSelectionGeneration;
         var model = selectedCollectionModel();
@@ -2116,6 +2120,10 @@ public class WardrobeScreen extends AbstractPanelScreen {
                                     selectOutfitBase();
                                 }
                             })) {
+                top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.clear(this);
+                if (preview != null) {
+                    preview.clear();
+                }
                 error(failure);
             }
         }));
