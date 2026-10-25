@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-25（Asia/Seoul，alpha.4.1：hat 挂点回退、光影粒子偏移、版本显示；构建/门禁 PASS，真实客户端光影 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
+更新时间：2026-10-25 18:29（Asia/Seoul，alpha.4.1；最新交接在文末：YSM 第一人称、锚点 UX、导出 ZIP、omnm-cloud 分析与修复计划。构建/门禁 PASS，真实客户端与多人联调 MANUAL/PENDING。）
 
 ## 接续入口与约束
 
@@ -506,3 +506,22 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 修复：只有 `armCompositionBase != null && !isYsmNative() && renderer != null` 才走 Figura 手臂配装；否则跳过手臂 outfit，避免误用 YSM 基础。
 - 验证：`libraryPreviewRuntimeSmokeTest` PASS；`:fabric:build` PASS。JAR 18315842 字节，SHA256 14b35bdc8b104804e77177512d94fcb23464648ae968aab4135ae3eab7d3081e，已安装。真实 YSM 第一人称复测 MANUAL/PENDING。
 - 注意：安装发生在游戏运行期间，必须完全退出并重启后再测试。
+
+## 当前有效交接：alpha.4.1 最新（2026-10-25 18:29）
+
+- Git：HEAD `0aee5939`（omnm-cloud 修复计划），origin/main 同 SHA；最近提交链：`6146748c`（omnm-cloud 分析重写）、`310607b8`（初版分析）、`1ad3d0e6`（YSM 第一人称修复）、`c7bd1ac8`（模型库预览 cosmetic_controls）、`2f87ccf8`（锚点 UX）、`c45cb13b`（锚点确定按钮）、`13338092`（本地源导出 ZIP）、`1aaa82d8`（网络默认值）。
+- 客户端 JAR（当前已安装）：18,659,734 字节，SHA256 `58d2e949d6c1ac49f9c27d0c3bea7208778364ac24b35a57533afd16464832bd`，2026-10-25 12:43，元数据 `1.0.0-alpha.4.1+26.1.2-1ad3d0e`。仓库 `fabric/build/libs` 最新为 18,315,842 字节 / `14b35bdc...`；两者代码提交相同，差 10 个 `natives/*`（Windows/Linux/macOS/Android 加速库）。若用户安装包来自另一次带 native 的构建，需确认后再判断版本；常规重建会得到不带 natives 的 JAR。
+- 已完成：
+  - YSM 第一人称：`PlayerRendererMixin.postRenderHand` 只对非 YSM、renderer 非空的 Figura 基础调用 `prepareFiguraBase`，避免 YSM 基础 `INVALID_OUTFIT_CONFIGURATION`；YSM 手部走自身路径。
+  - 模型库装饰预览：`FiguraAPIManager` 对 `isLibraryPreview` 暴露 `cosmetic_controls = runtime.avatar_controls`；预览不持久化。
+  - 虚拟锚点 UX：移除 scale 行（名称 + 位置/旋转共 7 输入），scale 固定 1；编辑时 `previewBoneSelection` 返回该 VIRTUAL AnchorRef，预览实时绘制坐标轴/父骨骼连线；删除 y=160、确定 y=184、返回 y=208；`anchor_confirm` 中/英。
+  - 本地源导出 ZIP：COLLECTION 本地源动作；`avatar_名称.zip` / `cosmetic_名称.zip`（`.ysm` 保留扩展名，重名 ` (2)`），保留目录结构；默认 `FiguraMod.getFiguraDirectory()/export` 即 `omnimorph/export`，MISC `export_directory`；异步导出，图标 `export.png`（#777/#fff/#55ffff 三态）。
+  - 滑块：`restoredValue/restoreValue` 保留 raw，`setRange` 后重算，修复保存值被临时 0..1 钳成 1；`ControlSlider.syncValue` 跟随云端/外部值。
+  - 网络默认：`ALLOW_NETWORKING=true`，`NETWORKING_RESTRICTION=2`（NONE）。
+  - 崩溃修复：`OUTFIT_INSTANCE_MISSING`（`findInstance`/下拉 supplier）、`SkeletonIndex` 重复/变体缓存重捕捉、Iris 阴影 pass 跳过配装提交、YSM 第一人称。
+- 文档：`docs/MULTIPLAYER_SYNC_ANALYSIS.md`（只分析实际部署 `omnm-cloud`，spm-cloud 仅参考）与 `docs/MULTIPLAYER_SYNC_FIX_PLAN.md` 已提交；docs 被 .gitignore 忽略，使用 `git add -f`。
+- 未完成/待验证：
+  - 真实客户端：YSM 第一人称、锚点实时标记/布局、模型库 trail 预览、导出 ZIP 实际文件、滑块/云端、Iris 阴影仍 MANUAL/PENDING。
+  - omnm-cloud 修复计划未实施：Figura/装饰资产投影、本地依赖上传/转换、`OutfitStateChanged` 事件、visibility 诊断、真实双客户端联调均未做；后端代码未改。
+  - 安装新 JAR 时游戏可能仍在运行；测试前必须完全退出并重启，避免 ZIP/资源缓存错误。
+  - `.omc/`、`mod_log/`、`patch/` 未跟踪；不要 reset/clean。
