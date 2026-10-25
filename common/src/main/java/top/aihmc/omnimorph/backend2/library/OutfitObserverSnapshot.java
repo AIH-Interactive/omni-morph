@@ -17,7 +17,11 @@ import java.util.UUID;
 
 /** Authorized render projection only: these sources do not confer catalog acquisition or inventory rights. */
 public record OutfitObserverSnapshot(UUID owner, long revision, long equipmentRevision,
-                                     OutfitConfig configuration, List<Resource> resources) {
+                                     OutfitConfig configuration, List<Resource> resources, String distributionCode) {
+    public OutfitObserverSnapshot(UUID owner, long revision, long equipmentRevision,
+                                  OutfitConfig configuration, List<Resource> resources) {
+        this(owner, revision, equipmentRevision, configuration, resources, null);
+    }
     private record SourceKey(OutfitConfig.ResourceKind kind, OutfitConfig.ResourceRef reference) {}
     public static final int JSON_BYTES = OutfitConfig.MAX_JSON_BYTES + 8192
             + 32 * (OutfitConfig.MAX_JSON_BYTES + 4096);
@@ -48,6 +52,7 @@ public record OutfitObserverSnapshot(UUID owner, long revision, long equipmentRe
 
     public boolean sameProjection(OutfitObserverSnapshot other) {
         return other != null && owner.equals(other.owner) && revision == other.revision
+                && Objects.equals(distributionCode, other.distributionCode)
                 && equipmentRevision == other.equipmentRevision && Objects.equals(configuration, other.configuration)
                 && resources.size() == other.resources.size() && resources.stream().allMatch(resource ->
                 other.resources.stream().anyMatch(resource::sameSource));
@@ -124,7 +129,9 @@ public record OutfitObserverSnapshot(UUID owner, long revision, long equipmentRe
             }
             require(expected.equals(references));
         }
-        return new OutfitObserverSnapshot(owner, revision, equipment, configuration, resources);
+        String distributionCode = body.has("distribution_code") ? text(body, "distribution_code") : null;
+        require(distributionCode == null || distributionCode.equals("NOT_DISTRIBUTABLE"));
+        return new OutfitObserverSnapshot(owner, revision, equipment, configuration, resources, distributionCode);
     }
 
     private static long integer(JsonObject body, String field) {

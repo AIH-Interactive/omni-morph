@@ -622,7 +622,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 name = FiguraText.of("gui.library.select_model");
             } else {
                 name = text("previewing").copy().append(selected.name()).append(" · ")
-                        .append(text(selected.cloud() == null ? "local" : "cloud"));
+                        .append(text(selected.cloud() == null ? "local_preview_only" : "cloud"));
             }
             Component state = selectionPreview() && preview.status().stage() == LibraryPreviewSession.Stage.FAILED
                     ? FiguraText.of("gui.library.failure", preview.status().errorCode()) : message;

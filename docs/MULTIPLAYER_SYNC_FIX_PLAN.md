@@ -288,6 +288,8 @@ visibility / requires_authorization
 - Phase 0 自动实施完成：上传 reserve/commit 返回持久化 visibility/published/moderation_status；缺失/非法 visibility 返回 400 INVALID_VISIBILITY；distribution_code 区分 MODERATION_PRIVATE/NOT_DISTRIBUTABLE；客户端显示服务端结果，新增观察者/资源投影诊断日志。
 - Phase 0 自动验证：后端 `cargo test -- --test-threads=4`，191 passed / 0 failed / 1 ignored；客户端 `:common:libraryUploadSmokeTest :fabric:build` PASS（42 秒）。日志在 `build/reports/multiplayer-sync/phase0-backend.log`、`phase0-client.log`。
 - Phase 0 真实 GUI、生产上传/审核与双客户端验证：`MANUAL/PENDING`，按用户要求注明并跳过，不阻塞后续阶段；不得视为通过。
-- Phase 1～4 尚未实施；不重复实施既有 S1～S6，不进行无关修复、重构、优化或版本调整。
+- Phase 1 自动实施/核对完成：复用既有 Figura 双槽可见性过滤、AvatarChanged、下载及模型库本地 ZIP 投稿/绑定入口；未删除只约束 YSM 状态包的类型检查。已补本地缺失来源 NOT_DISTRIBUTABLE 回执及客户端读取/日志、本地预览仅本人提示。未新增重复协议/入口或改默认可见性。
+- Phase 1 自动验证：`cargo test -- --test-threads=4`，193 passed / 0 failed / 1 ignored；`:common:outfitObserverClientSmokeTest :fabric:build` PASS（36秒）。新增真实 HTTP/WebSocket Figura 通知+下载且不依赖 YSM 状态、本地缺失来源状态测试。日志 `build/reports/multiplayer-sync/phase1-*.log`。真实双客户端/GUI 为 MANUAL/PENDING，按用户要求跳过。
+- Phase 2～4 尚未实施；不重复实施既有 S1～S6，不进行无关修复、重构、优化或版本调整。
 - 生产环境实际部署为 `omnm-cloud`；`spm-cloud` 不在目标内。
 - **公开上传默认可见性** 仍保留现有客户端显式选择，不在修复中自行改变默认值；审核封禁仍可强制私有，响应明确报告实际状态。
