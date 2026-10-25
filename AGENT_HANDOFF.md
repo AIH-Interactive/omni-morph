@@ -456,3 +456,9 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 第二：`ControlSlider.syncValue` 检测控件外部值（云端/其他 UI）变化，滑到对应位置；用户拖动仍反向写控件；初始化 `lastValue` 统一为当前滑块值。
 - 验证：`outfitDraftSmokeTest`（新增 4→setRange→4、显式 30 保持）、`libraryPreviewRuntimeSmokeTest`、`ysmMaterialNativeSmokeTest` PASS；`:fabric:build` PASS。
 - JAR 18308766 字节，SHA256 4e3e6c37fcec3cbab81405bf258e638b5e4adfe65618fe4adee4833601b68515，已安装。真实 GUI 滑块/云端复测 MANUAL/PENDING。
+### Iris 阴影 pass 配装崩溃（2026-10-25 10:54）
+
+- 崩溃：`crash-2026-10-25_10.51.06-client.txt`，Iris `ShadowRenderer.renderEntities` → `LivingEntityRenderer.submit` → `prepareFiguraBase` → `SkeletonIndex.bindParts` → `INVALID_OUTFIT_CONFIGURATION`。
+- 原因：阴影 pass 仍会提交实体并执行配装骨架捕捉/绑定；阴影视图的原生 part 图与缓存定义不一致时 bindParts 失败。
+- 修复：`LivingEntityRendererMixin.submitFiguraModel` 在 `IrisCompat.isShadowPass()` 时清空 currentAvatar/lastPose 并直接返回；`OutfitNativeRenderer.draw` 之前已有阴影跳过。主视图不变。
+- 验证：`libraryPreviewRuntimeSmokeTest` PASS；`:fabric:build` PASS。JAR 18308896 字节，SHA256 4fa1a103db8dea343621133805faf12174ae79764b1f0f0ad93d0241490962cb，已安装。真实 Iris 阴影复测 MANUAL/PENDING。

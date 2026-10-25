@@ -21,6 +21,8 @@
 
 - 修复滑块保存值在控件定义注册阶段被临时 0..1 范围钳成 1（如 interval、lifetime、frame_ticks、light_interval），以及云端/外部状态更新后滑块位置不跟随的问题；恢复原始保存值并在 `setRange` 后重新规范化，滑块现在会同步外部控件值。
 
+- 修复 Iris 阴影 pass 仍对实体执行配装骨架捕捉/绑定，导致 `SkeletonIndex.bindParts` 在阴影视图上抛出 `INVALID_OUTFIT_CONFIGURATION` 崩溃；阴影阶段现在跳过配装提交，主视图渲染不受影响。
+
 ## 1.0.0-alpha.4
 
 - 支持原版/Figura/YSM 基础上的多实例装饰、独立控件/轮盘、稳定骨架挂点、虚拟挂点、内部骨骼覆盖及拖尾。
