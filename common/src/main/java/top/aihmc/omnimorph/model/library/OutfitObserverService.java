@@ -110,7 +110,8 @@ public final class OutfitObserverService implements AutoCloseable {
                     if (snapshot.legacyFallback()) {
                         legacy();
                     } else if (snapshot.configuration() == null) {
-                        FiguraMod.LOGGER.debug("Outfit observer unavailable: owner={}, reason=HIDDEN_OR_NOT_EQUIPPED", user.id);
+                        FiguraMod.LOGGER.debug("Outfit observer unavailable: owner={}, reason={}", user.id,
+                                snapshot.distributionCode() == null ? "HIDDEN_OR_NOT_EQUIPPED" : snapshot.distributionCode());
                         user.clear();
                         result.complete(Result.HIDDEN);
                     } else {

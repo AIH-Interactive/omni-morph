@@ -537,3 +537,13 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 未完成：Phase 1～4；最小下一步先完成主仓库 Phase 0 提交推送与远端 SHA 核对，再从 Phase 1 的既有 Figura 投影/事件路径核对开始。优先复用已有观察者资源和独立 JSON 扩展，不修改冻结 Protobuf v1，不重复实现已有能力。
 - 额度：可靠接口 Plus，最近安全检查点 5小时剩余92%、周剩余99%；尚未触发阈值。后续在较大任务开始/验证/提交等安全检查点查询；触发时只委派 gpt-6-luna 整理交接，不能因此切换日常开发模型；接口不可用不猜测。
 - 必须遵守：当前分支分阶段提交推送并核对 SHA；前台 PowerShell Tee build.log、立即检查 LASTEXITCODE 并读取日志；JDK25；不改用户资源；Qt offscreen 禁止；人工验证仅标 MANUAL/PENDING；正常交付也更新本文。
+
+## 当前有效交接：多人同步修复 Phase 1（2026-10-25）
+
+- Phase 0 两仓库检查点已推送核对：main@b6c34491、master@7bacfb37。
+- Phase 1 自动实施/核对完成：现有 primary 已支持 Figura、两个槽已有 resource_access 过滤、AvatarChanged 与下载不依赖 YSM 状态；保留只针对 YSM Body 的类型限制。现有模型库本地 ZIP 投稿与绑定入口复用，无需另建重复入口。新增持久本地来源缺失的 NOT_DISTRIBUTABLE 回执、客户端读取/日志与本地预览仅本人提示。
+- 已验证：后端全套 193 passed / 0 failed / 1 ignored；新增公开 Figura HTTP/WebSocket 通知及真实资产 body 下载、无 YSM 状态依赖；本地缺失来源测试先红后绿且不暴露本地引用。客户端 outfitObserverClientSmokeTest 与 fabric:build PASS（36秒）；git diff --check PASS。日志 build/reports/multiplayer-sync/phase1-backend.log、phase1-client.log。
+- MANUAL/PENDING 并跳过：真实双客户端 Figura 渲染、GUI 提示、生产服务联调。无部署或用户安装目录修改。
+- 后端 master@c88e847c0ffcc7b0b5fd2901ac5c7b62be22e311 已推送并核对 SHA。主仓库 main 本阶段修改纳入随后检查点；提交前 HEAD=b6c34491，最终以实际 HEAD/远端核对为准。仅本阶段源码/测试/语言与计划/分析/交接文档；原未跟踪内容保留。
+- 最小下一步：完成 main 阶段提交推送并核对 SHA，再开始计划 Phase 2。不能重复实现现有独立 JSON outfit 观察者资源/状态链路；先以实际调用链确定缺口。Phase 2～4 尚未实施，无其他任务授权。
+- 最近额度安全检查点：Plus，5小时剩余77%、周剩余96%，未触发交接。所有既定约束继续适用；人工验证按用户要求注明跳过，不能冒充 PASS。

@@ -69,6 +69,11 @@ public final class OutfitObserverClientSmokeTest {
             }
             server.mode = "oversized";
             failure(client.observerOutfit(server.owner).future(), "LIBRARY_REQUEST_FAILED");
+            server.mode = "not-distributable";
+            var unavailable = await(client.observerOutfit(server.owner).future());
+            require(unavailable.configuration() == null
+                            && "NOT_DISTRIBUTABLE".equals(unavailable.distributionCode()),
+                    "missing local assets retain an explicit distribution status without exposing their source");
             server.mode = "hidden";
             var hidden = await(client.observerOutfit(server.owner).future());
             require(hidden.configuration() == null && !hidden.legacyFallback(), "hidden modern equipment must not fall back to the legacy base");
@@ -178,9 +183,12 @@ public final class OutfitObserverClientSmokeTest {
                 case "wrong-format" -> source.addProperty("distribution_format", 2);
                 case "large-valid" -> snapshot.addProperty("padding", "x".repeat(70000));
                 case "oversized" -> snapshot.addProperty("padding", "x".repeat(OutfitObserverSnapshot.JSON_BYTES));
-                case "hidden", "legacy" -> {
+                case "hidden", "legacy", "not-distributable" -> {
                     snapshot.add("configuration", JsonNull.INSTANCE);
                     sources.remove(0);
+                    if (mode.equals("not-distributable")) {
+                        snapshot.addProperty("distribution_code", "NOT_DISTRIBUTABLE");
+                    }
                     if (mode.equals("legacy")) {
                         snapshot.addProperty("revision", 0);
                     }
