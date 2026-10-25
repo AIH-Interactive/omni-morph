@@ -60,6 +60,12 @@ final class RibbonRenderState implements ParticleGroupRenderState, SubmitNodeCol
 
     @Override
     public void submit(SubmitNodeCollector collector, CameraRenderState cameraState) {
+        // Particles are already camera-relative; shader packs render a separate shadow view and would
+        // apply their shadow camera a second time.
+        if (org.figuramc.figura.utils.PlatformUtils.isModLoaded("iris")
+                && top.aihmc.omnimorph.compat.IrisCompat.isShadowPass()) {
+            return;
+        }
         if (!isEmpty()) {
             collector.submitParticleGroup(this);
         }
@@ -82,7 +88,12 @@ final class RibbonRenderState implements ParticleGroupRenderState, SubmitNodeCol
                 cache.write(data.vertexBuffer());
                 int indexCount = data.drawState().indexCount();
                 RenderSystem.getSequentialBuffer(VertexFormat.Mode.QUADS).getBuffer(indexCount);
-                var transforms = RenderSystem.getDynamicUniforms().writeTransform(RenderSystem.getModelViewMatrix(),
+                // Ribbon vertices below already subtract the camera. Keep only the rotation/view part:
+                // a shader pack may leave a camera translation in the model-view matrix, which would
+                // otherwise shift the frozen trail away from the wearer.
+                Matrix4f modelView = new Matrix4f(RenderSystem.getModelViewMatrix());
+                modelView.setTranslation(0f, 0f, 0f);
+                var transforms = RenderSystem.getDynamicUniforms().writeTransform(modelView,
                         new Vector4f(1, 1, 1, 1), new Vector3f(), new Matrix4f());
                 var prepared = new LinkedHashMap<SingleQuadParticle.Layer, QuadParticleRenderState.PreparedLayer>();
                 int verticesPerLayer = mesh.quads().size() * 4;

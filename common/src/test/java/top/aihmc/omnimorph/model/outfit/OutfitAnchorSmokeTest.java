@@ -51,6 +51,16 @@ public final class OutfitAnchorSmokeTest {
         require(StandardAnchors.resolve(custom, false, "tailtip").size() == 1
                         && StandardAnchors.resolve(custom, false, "hip").isEmpty(),
                 "empty author tail tip is retained; absent custom points are not invented");
+        var aliased = SkeletonIndex.capture(null, List.of(new Node("Root", List.of(
+                new Node("HEAD", List.of()), new Node("Seg1", List.of())))), Node::name, Node::children,
+                OutfitLimits.defaults()).definition();
+        require(StandardAnchors.resolve(aliased, false, "head_anchor").size() == 1,
+                "custom rigs resolve standard anchors by case-insensitive alias");
+        var unnamedHead = SkeletonIndex.capture(null, List.of(new Node("Root", List.of(
+                new Node("HairChip", List.of()), new Node("Seg1", List.of())))), Node::name, Node::children,
+                OutfitLimits.defaults()).definition();
+        require(StandardAnchors.resolve(unnamedHead, false, "head_anchor").size() == 1,
+                "custom rigs without a named head fall back to the first authored rig node");
         testExportDeclarations(custom);
         var head = pose.definition().reference(null, pose.definition().uniqueNamed("Head").orElseThrow());
         UUID virtualId = UUID.randomUUID();
