@@ -112,7 +112,8 @@ public final class YsmMaterialNativeSmokeTest {
                     || (args.length == 1 && args[0].equals("--library-equipment"))
                     || (args.length == 1 && args[0].equals("--library-preparation"))
                     || (args.length == 1 && args[0].equals("--library-catalog"))
-                    || (args.length == 1 && args[0].equals("--library-upload"))) {
+                    || (args.length == 1 && args[0].equals("--library-upload"))
+                    || (args.length == 2 && args[0].equals("--local-outfit-publication"))) {
                 client.sounds = YsmStabilitySmokeTest.soundManager(unsafe, true);
                 Field particles = Minecraft.class.getDeclaredField("particleEngine");
                 particles.setAccessible(true);
@@ -121,6 +122,8 @@ public final class YsmMaterialNativeSmokeTest {
                     particles.set(client, unsafe.allocateInstance(AvatarAsyncLoadSmokeTest.RecordingParticles.class));
                     if (args[0].equals("--cosmetic-sources")) {
                         top.aihmc.omnimorph.model.outfit.CosmeticSourceSmokeTest.run(Path.of(args[1]), client::drain);
+                    } else if (args[0].equals("--local-outfit-publication")) {
+                        top.aihmc.omnimorph.model.library.LibraryUploadSmokeTest.localOutfitPublication(args[1], client::drain);
                     } else if (args[0].equals("--library-upload")) {
                         top.aihmc.omnimorph.model.library.LibraryUploadSmokeTest.run(client::drain);
                     } else if (args[0].equals("--library-catalog")) {

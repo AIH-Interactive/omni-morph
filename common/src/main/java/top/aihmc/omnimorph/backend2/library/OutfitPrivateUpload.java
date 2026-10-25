@@ -101,7 +101,14 @@ public final class OutfitPrivateUpload {
         require(referenceJson().equals(body.getAsJsonObject("reference")));
         require(kind.name().equals(text(body, "resource_kind")));
         require(rawHash.equals(text(body, "raw_sha256")));
-        require(declaration().equals(body.get("accessory_metadata")));
+        var returnedDeclaration = body.get("accessory_metadata");
+        if (returnedDeclaration != null && returnedDeclaration.isJsonObject()
+                && !returnedDeclaration.getAsJsonObject().has("editable_bones")) {
+            // Rust omits an empty optional bone list; compare its declared default, not JSON spelling.
+            returnedDeclaration = returnedDeclaration.deepCopy();
+            returnedDeclaration.getAsJsonObject().add("editable_bones", new com.google.gson.JsonArray());
+        }
+        require(declaration().equals(returnedDeclaration));
         String asset = "outfit_" + operation.toString().replace("-", "");
         require(asset.equals(text(body, "asset_id")) && integer(body, "asset_revision") == 1);
         return new Binding(reference, asset, 1, rawHash, kind, metadata);

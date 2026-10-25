@@ -5115,7 +5115,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             awaitCondition(() -> field(type, "outfitResources").get(screen) != null, drain);
             var resources = (OutfitPresetResources.Prepared) field(type, "outfitResources").get(screen);
             require(resources.issues().size() == 1 && !field(type, "outfitReady").getBoolean(screen)
-                            && !field(type, "outfitDistributable").getBoolean(screen)
+                            && field(type, "outfitDistributable").getBoolean(screen)
                             && !((org.figuramc.figura.gui.widgets.Button) field(type, "upload").get(screen)).isActive(),
                     "the actual local dependency failure blocks publication and retains its explicit issue");
             purpose.invoke(screen, 0);

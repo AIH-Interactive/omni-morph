@@ -557,3 +557,14 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - Git：后端 master@36c7f70b15a22e52610565365e0acd9c7034edd7 已推送并核对 SHA。主仓库 main 本阶段纳入随后检查点，提交前90b8873a，最终以实际HEAD/远端核对为准。无用户资源/安装目录改动、无版本调整；原未跟踪内容保留。
 - 最小下一步：先完成 main Phase 2 提交推送与核对，再开始 Phase 3 本地依赖套装发布；Phase 3～4 尚未实施，不能扩张到无关优化。真实人工项已明确允许跳过，不阻塞自动阶段。
 - 可靠额度最新检查：Plus，5小时剩余68%、周剩余95%；未触发交接。阶段/验证/提交安全点继续查，不轮询；阈值触发只委派gpt-6-luna整理手册。既有当前分支、前台Tee日志/JDK25、冻结协议、范围控制与真实窗口约束继续适用。
+
+## 当前有效交接：多人同步修复 Phase 3（2026-10-25）
+
+- Phase 2 检查点已推送核对：main@3d21325f、master@36c7f70b。Phase 3 自动实施完成，仅处理计划中的本地依赖套装发布。
+- 表单新增明确确认：本地依赖按表单 visibility/authorization 转为云端资产；取消不创建上传操作。确认后复用 OutfitApplyResources 私有准备与冻结重试；服务端只在 convert_local_dependencies=true 时转换已绑定来源，建立独立原生目录别名/模型库记录，并与套装在同一原生+SQLite事务提交，套装引用转为 CLOUD。原来源/本地绑定/文件不改，未确认或缺失来源返回 OUTFIT_DEPENDENCY_NOT_DISTRIBUTABLE。无新表/第三方依赖，复用blob/限额/审核/ACL；false字段不进入序列化，保留旧cloud-only操作指纹。
+- 真正联调发现并最小修复：Rust省略空editable_bones，Java私有上传回执用原始JSON严格比较而拒绝；只把该可选空列表统一后比较，身份/哈希/非空声明仍检查。临时DEBUG已删除，LibraryClient.java没有残留diff。
+- 已验证：Java本地基础+装饰→Rust私有准备→事务转换/发布→Apply→观察者两份资产下载完整数据链路PASS，原本地文件文本不变；最终套装写入故障注入验证无半发布目录/原生别名，幂等与无确认拒绝通过。后端全套196 passed / 0 failed / 1 ignored（Java classpath、实际装饰夹具启用）；客户端上传/私有准备/Apply及fabric:build PASS（42秒）。git diff --check PASS。日志build/reports/multiplayer-sync/phase3-client.log、phase3-backend.log。
+- MANUAL/PENDING并按用户要求跳过：真实GUI确认/取消/布局、生产发布、真实双客户端渲染。CPU/数据链路不是GPU验收，无部署或安装目录改动。
+- 后端master@971492fc2d573b36a233d5121ef74982f45d5bff已推送并核对SHA。主仓库main本阶段纳入随后提交（提交前3d21325f），最终以实际HEAD/远端核对为准。原未跟踪.omc/mod_log/patch和后端build.log保留，无版本调整。
+- 最小下一步：完成main Phase 3提交推送/核对后进入Phase 4，只做本计划的一致性、边界回归及OUTFIT_ASSET_DISTRIBUTION回滚开关。不得新增无关优化或重启旧阶段。
+- 可靠额度最新安全检查点：Plus，5小时剩余40%、周剩余91%，未触发交接。后续安全点查；阈值触发时仅委派gpt-6-luna整理手册。当前分支、前台PowerShell Tee日志/JDK25、冻结协议、真实窗口/禁止offscreen等约束不变。

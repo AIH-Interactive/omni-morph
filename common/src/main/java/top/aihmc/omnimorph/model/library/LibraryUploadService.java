@@ -110,6 +110,8 @@ public final class LibraryUploadService implements AutoCloseable {
         private long progressGeneration;
         private volatile OutfitPublished outfitPublished;
         private boolean imagePrepared;
+        private OutfitApplyResources outfitDependencies;
+        private boolean outfitDependenciesReady;
 
         private record Preparation(LibraryPackagePreparation.Prepared distribution, LibraryUploadIdentity identity) {}
 
@@ -210,6 +212,35 @@ public final class LibraryUploadService implements AutoCloseable {
         }
 
         private void prepareOutfit(long generation) {
+            if (outfit.convertLocalDependencies() && !outfitDependenciesReady) {
+                var completion = future;
+                if (outfitDependencies == null) {
+                    outfitDependencies = new OutfitApplyResources(outfit.configuration(), client,
+                            new LibraryTransferService(client, org.figuramc.figura.FiguraMod.getCacheDirectory()),
+                            org.figuramc.figura.FiguraMod.getFiguraDirectory(),
+                            org.figuramc.figura.FiguraMod.getCacheDirectory(), Minecraft.getInstance()::execute,
+                            () -> !closed && client.current());
+                } else {
+                    outfitDependencies.retry();
+                }
+                outfitDependencies.future().whenComplete((dependencies, failure) -> {
+                    if (!current(generation)) {
+                        completion.cancel(false);
+                    } else if (failure != null) {
+                        progress.finish(progressGeneration);
+                        completion.completeExceptionally(failure);
+                    } else if (!dependencies.ready()) {
+                        progress.finish(progressGeneration);
+                        var issues = dependencies.resources().issues();
+                        String code = issues.isEmpty() ? "OUTFIT_DEPENDENCY_NOT_DISTRIBUTABLE" : issues.getFirst().code();
+                        completion.completeExceptionally(new LibraryClient.Failure(400, code));
+                    } else {
+                        outfitDependenciesReady = true;
+                        prepareOutfit(generation);
+                    }
+                });
+                return;
+            }
             if (image == null || imagePrepared) {
                 sendOutfit(generation);
                 return;
@@ -396,6 +427,9 @@ public final class LibraryUploadService implements AutoCloseable {
             attempt++;
             if (preparing != null) {
                 preparing.cancel(false);
+            }
+            if (outfitDependencies != null) {
+                outfitDependencies.close();
             }
             if (request != null) {
                 request.cancel();

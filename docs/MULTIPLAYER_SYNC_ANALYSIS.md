@@ -291,7 +291,8 @@ CASE WHEN m.visibility = 'PRIVATE'
 
 ## 10. 验证状态
 
-- 本文分析实际部署目标 omnm-cloud；修复计划 Phase 0～2 自动实施/核对完成，Phase 3～4 尚未实施。真实人工验收仍未完成。
+- 本文分析实际部署目标 omnm-cloud；修复计划 Phase 0～3 自动实施/核对完成，Phase 4 尚未实施。真实人工验收仍未完成。
+- Phase 3：本地依赖已支持明确确认后私有准备、原生/目录/套装单事务发布与CLOUD引用转换；原本地来源及绑定保留，失败无半发布目录。实际Java→Rust完整数据链路与事务故障注入通过，后端196 passed / 1 ignored；客户端上传/私有准备/Apply及Fabric build通过。实际联调发现并修复 Rust 可省略空 editable_bones 与 Java 严格JSON回执比较不兼容。GUI确认/取消和真实双客户端仍MANUAL/PENDING并跳过。
 - Phase 2 实际阻断点：Rust Figura 描述符没有 YSM schema_sha256 是合法行为，Java OutfitObserverSnapshot 却要求所有格式该字段均为64位哈希，导致整个观察者配装被 INVALID_OUTFIT_OBSERVER_SNAPSHOT 拒绝。已红绿验证并仅对 Figura 接受空 schema；YSM 仍严格校验。实际 Java→Rust 基础与装饰资产读取通过，后端194 passed / 1 ignored（启用Java与装饰夹具）；客户端构建/回归通过。既有独立JSON资源/状态事件链路已具备资产分发，旧协议的 OutfitStateChanged 过滤不能等同于扩展通道不分发。
 - Phase 1 核对修正：既有 primary 支持 Figura，figura_compatibility 已参与 resource_access 过滤，AvatarChanged 不依赖 YSM 状态；不能把仅针对 YSM Body 的类型检查误认为 Figura 资产通知被拒绝。实际 HTTP/WebSocket 回归覆盖公开 Figura 通知与下载；193 passed / 1 ignored。新增本地缺失来源 NOT_DISTRIBUTABLE 与客户端提示/状态读取。现有模型库本地 ZIP 投稿已写 library_models 与 library_resource_bindings，复用而非另建入口。
 - 已验证 Phase 0：上传 PUBLIC/PRIVATE 持久化状态回执、缺失/非法 visibility 的 INVALID_VISIBILITY、已封禁内容再上传后的 PRIVATE/BLOCKED 回执；客户端保留服务端状态并显示。后端全套 191 passed / 1 ignored，客户端上传回归与 Fabric build PASS。日志见 `build/reports/multiplayer-sync/phase0-*.log`。

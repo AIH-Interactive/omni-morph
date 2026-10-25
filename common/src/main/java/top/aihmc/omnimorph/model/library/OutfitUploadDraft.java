@@ -19,7 +19,11 @@ import java.util.Map;
 public final class OutfitUploadDraft {
     public record Prepared(String name, OutfitConfig configuration) {}
 
-    public record Snapshot(OutfitConfig configuration, Map<String, Object> metadata) {
+    public record Snapshot(OutfitConfig configuration, Map<String, Object> metadata, boolean convertLocalDependencies) {
+        public Snapshot(OutfitConfig configuration, Map<String, Object> metadata) {
+            this(configuration, metadata, false);
+        }
+
         public Snapshot {
             metadata = Map.copyOf(metadata);
         }
@@ -32,10 +36,10 @@ public final class OutfitUploadDraft {
             }
             OutfitCodec.encode(configuration, capabilities.outfitsV1().limits());
             if (configuration.base() != null) {
-                cloudDependency(configuration.base(), origin);
+                distributableDependency(configuration.base(), origin, convertLocalDependencies);
             }
             for (var instance : configuration.instances()) {
-                cloudDependency(instance.resource(), origin);
+                distributableDependency(instance.resource(), origin, convertLocalDependencies);
             }
         }
 
@@ -44,6 +48,9 @@ public final class OutfitUploadDraft {
             value.addProperty("operation_id", operation.toString());
             value.add("metadata", new com.google.gson.Gson().toJsonTree(metadata));
             value.add("configuration", JsonParser.parseString(OutfitCodec.encode(configuration, limits)));
+            if (convertLocalDependencies) {
+                value.addProperty("convert_local_dependencies", true);
+            }
             return value;
         }
     }
@@ -68,17 +75,26 @@ public final class OutfitUploadDraft {
     public static Snapshot snapshot(Prepared source, String name, String description, String category,
                                     List<String> tags, boolean visible, boolean authorization,
                                     LibraryModels.Capabilities capabilities, String origin) {
+        return snapshot(source, name, description, category, tags, visible, authorization, capabilities, origin, false);
+    }
+
+    public static Snapshot snapshot(Prepared source, String name, String description, String category,
+                                    List<String> tags, boolean visible, boolean authorization,
+                                    LibraryModels.Capabilities capabilities, String origin, boolean convertLocalDependencies) {
         LibraryUploadDraft.validateEditable(name, description, tags);
         var metadata = Map.<String, Object>of("resource_kind", "OUTFIT", "display_name", name,
                 "internal_name", source.name(), "authors", List.of(), "description", description,
                 "category_id", category, "tags", List.copyOf(tags), "visibility", visible ? "PUBLIC" : "PRIVATE",
                 "requires_authorization", authorization);
-        var snapshot = new Snapshot(source.configuration(), metadata);
+        var snapshot = new Snapshot(source.configuration(), metadata, convertLocalDependencies);
         snapshot.validate(capabilities, origin);
         return snapshot;
     }
 
-    private static void cloudDependency(OutfitConfig.ResourceRef reference, String origin) {
+    private static void distributableDependency(OutfitConfig.ResourceRef reference, String origin, boolean convertLocal) {
+        if (reference.source() == OutfitConfig.Source.LOCAL && convertLocal) {
+            return;
+        }
         if (reference.source() != OutfitConfig.Source.CLOUD || !origin.equals(reference.origin())) {
             throw new IllegalArgumentException("OUTFIT_DEPENDENCY_NOT_DISTRIBUTABLE");
         }
