@@ -1360,3 +1360,9 @@ alpha4-publish-disabled-diagnostics-build.log：libraryPreviewRuntimeSmokeTest�
 - 仅编译 fabric（forge/neoforge 不在 settings.gradle，按“其余只改包名”处理）；平台 org 目录与旧包空目录共删除 32 个。
 - 验证：三个 smoke test PASS；`:fabric:build` PASS；`git diff --check` 无错误。JAR 18306329 字节，SHA256 756e9e0bc863bd552e832e51afec902b4263c80ee595aeb7c861d1a7f2c3fb6a，已安装。提交 bbc7c2e5，HEAD=origin/main。
 - 真实客户端混入加载 MANUAL/PENDING；`patch/`、`.omc/` 未跟踪；upstream remote 仍未 fetch/pull。
+## 2026-10-25：alpha.4.1（hat 挂点回退、光影粒子偏移、版本显示）
+
+- 版本：`mod_version` 升至 `1.0.0-alpha.4.1`；游戏内 `DISPLAY_VERSION` 从 “1.0 Alpha 3” 修正为 “1.0 Alpha 4.1”；README 四种语言同步；新增四语言 `1.0.0-alpha.4.1` 更新记录（不含包名迁移内容）。
+- hat 无法渲染：模拟确认根因是标准挂点 `head_anchor` 在自定义 Figura 骨架（AI Hobbyist Founder，节点为 HairChip/Seg1…，无 Head）解析为 0 个目标，组合输出 0 顶点；改为非 vanilla 骨架的标准挂点先按大小写别名（Head/Body/…），仍缺失时 Head 类挂点回退到首个作者骨架节点，组合恢复 +48 顶点（draft/owner/firstPersonWorld）。新增 anchor smoke 断言（别名与首节点回退）。
+- 光影粒子偏移：`RibbonRenderState` 在 Iris 阴影阶段跳过粒子组，并在提交前剔除 model-view 的相机平移（粒子顶点本身已相机相对），避免光影下拖尾偏移；真实客户端光影仍 MANUAL/PENDING。
+- 验证：alpha41-gate.log（三个 smoke test + 真实 hat 数据门禁）PASS；`:fabric:build` PASS；JAR 18307030 字节，SHA256 22fe4455ed2f4e9a69c3ca919e3332ccfa59ef10ffc23e03fa53d04d16a82b30，已安装 alpha.4.1 并移除旧 alpha.4。提交 006e1fd2，HEAD=origin/main。
