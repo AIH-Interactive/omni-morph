@@ -111,8 +111,12 @@ public record OutfitObserverSnapshot(UUID owner, long revision, long equipmentRe
             }
             String path = text(item, "relative_path");
             require(path.equals(resourcePath(owner, revision, id)));
+            String schema = text(item, "schema_sha256");
+            // Figura has no YSM animation schema; its native descriptor legitimately leaves this empty.
+            require(schema.matches("[a-f0-9]{64}")
+                    || reference.format() == OutfitConfig.Format.FIGURA && schema.isEmpty());
             resources.add(new Resource(id, reference, kind, metadata, (int) format, length,
-                    digest(item, "raw_sha256"), digest(item, "content_sha256"), digest(item, "schema_sha256"), path));
+                    digest(item, "raw_sha256"), digest(item, "content_sha256"), schema, path));
         }
         if (configuration != null) {
             var expected = new HashSet<SourceKey>();

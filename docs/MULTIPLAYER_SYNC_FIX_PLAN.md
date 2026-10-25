@@ -290,6 +290,8 @@ visibility / requires_authorization
 - Phase 0 真实 GUI、生产上传/审核与双客户端验证：`MANUAL/PENDING`，按用户要求注明并跳过，不阻塞后续阶段；不得视为通过。
 - Phase 1 自动实施/核对完成：复用既有 Figura 双槽可见性过滤、AvatarChanged、下载及模型库本地 ZIP 投稿/绑定入口；未删除只约束 YSM 状态包的类型检查。已补本地缺失来源 NOT_DISTRIBUTABLE 回执及客户端读取/日志、本地预览仅本人提示。未新增重复协议/入口或改默认可见性。
 - Phase 1 自动验证：`cargo test -- --test-threads=4`，193 passed / 0 failed / 1 ignored；`:common:outfitObserverClientSmokeTest :fabric:build` PASS（36秒）。新增真实 HTTP/WebSocket Figura 通知+下载且不依赖 YSM 状态、本地缺失来源状态测试。日志 `build/reports/multiplayer-sync/phase1-*.log`。真实双客户端/GUI 为 MANUAL/PENDING，按用户要求跳过。
-- Phase 2～4 尚未实施；不重复实施既有 S1～S6，不进行无关修复、重构、优化或版本调整。
+- Phase 2 自动实施/核对完成：复用现有 ACCESSORY 上传、固定 ResourceRef、observer snapshot 的资源描述与按修订下载端点、独立 outfit-events 的鉴权状态通知；没有新增重复表/协议/下载接口，也没有放开 owner-only 本地源接口。修复客户端误要求 Figura 必须有 YSM schema_sha256，保持 YSM 严格校验；缺失本地装饰来源返回 NOT_DISTRIBUTABLE 并记录部分不可用。
+- Phase 2 自动验证：实际 Java 客户端→Rust 服务的 Figura 基础及云端/本地绑定装饰快照与 body 下载 PASS；完整后端（设置 Java classpath 与实际装饰上传夹具）194 passed / 0 failed / 1 ignored，包含原双协议矩阵、状态通知、撤权/封禁等。客户端上传/观察者与 Fabric build PASS；最后门禁28秒。日志 `build/reports/multiplayer-sync/phase2-*.log`。真实游戏渲染/双客户端为 MANUAL/PENDING 并跳过。
+- Phase 3～4 尚未实施；不重复实施既有 S1～S6，不进行无关修复、重构、优化或版本调整。
 - 生产环境实际部署为 `omnm-cloud`；`spm-cloud` 不在目标内。
 - **公开上传默认可见性** 仍保留现有客户端显式选择，不在修复中自行改变默认值；审核封禁仍可强制私有，响应明确报告实际状态。
