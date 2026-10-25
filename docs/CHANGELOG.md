@@ -17,6 +17,8 @@
 - 游戏内版本显示由 “1.0 Alpha 3” 修正为 “1.0 Alpha 4.1”。
 - 真实客户端光影、混入加载与画面仍 `MANUAL/PENDING`。
 
+- 修复衣柜在编辑实例被移除/切换后仍渲染旧挂点下拉导致 `OUTFIT_INSTANCE_MISSING` 崩溃；共享骨架节点按首次路径去重，避免第一人称手部捕捉重复节点时 `INVALID_OUTFIT_CONFIGURATION` 崩溃。
+
 ## 1.0.0-alpha.4
 
 - 支持原版/Figura/YSM 基础上的多实例装饰、独立控件/轮盘、稳定骨架挂点、虚拟挂点、内部骨骼覆盖及拖尾。

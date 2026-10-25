@@ -44,6 +44,8 @@ public final class OutfitDraftSmokeTest {
         draft.remove(first);
         require(draft.selectedInstance() == null && draft.instance(second).displayOrdinal() == 2,
                 "removal clears only the deleted selection and does not renumber its sibling");
+        require(draft.findInstance(first) == null,
+                "stale UI callbacks can query a removed instance without throwing");
         UUID third = draft.add(resource, anchor(), OutfitConfig.Transform.identity());
         require(draft.instance(third).displayOrdinal() == 3, "new duplicates advance the resource watermark");
         draft.remove(third);

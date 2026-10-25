@@ -17,6 +17,8 @@
 - Correct the in-game version display from “1.0 Alpha 3” to “1.0 Alpha 4.1”.
 - Real-client shader, mixin-loading and visual validation remain `MANUAL/PENDING`.
 
+- Fix the wardrobe crashing with `OUTFIT_INSTANCE_MISSING` when a stale anchor dropdown renders after its edited instance was removed or replaced; shared skeleton nodes are now deduplicated by first path instead of failing first-person hand capture with `INVALID_OUTFIT_CONFIGURATION`.
+
 ## 1.0.0-alpha.4
 
 - Adds isolated accessory instances, anchors, trails, controls, CustomParticle/Ribbon and optional dynamic lights with server-defined `outfit.limits`.

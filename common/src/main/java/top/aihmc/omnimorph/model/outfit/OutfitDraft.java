@@ -54,8 +54,17 @@ public final class OutfitDraft {
     }
 
     public OutfitConfig.Instance instance(UUID id) {
+        var instance = findInstance(id);
+        if (instance == null) {
+            throw new IllegalArgumentException("OUTFIT_INSTANCE_MISSING");
+        }
+        return instance;
+    }
+
+    /** UI callbacks may outlive a replaced draft and must be able to render a missing instance safely. */
+    public OutfitConfig.Instance findInstance(UUID id) {
         return configuration.instances().stream().filter(instance -> instance.instanceId().equals(id)).findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("OUTFIT_INSTANCE_MISSING"));
+                .orElse(null);
     }
 
     public void setBase(OutfitConfig.ResourceRef base) {

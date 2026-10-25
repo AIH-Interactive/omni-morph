@@ -1199,7 +1199,10 @@ public class WardrobeScreen extends AbstractPanelScreen {
 
     private void buildInstanceTransform() {
         UUID id = outfitDraft.selectedInstance();
-        var instance = outfitDraft.instance(id);
+        var instance = outfitDraft.findInstance(id);
+        if (instance == null) {
+            return;
+        }
         int x = layout.treeX();
         int width = layout.treeWidth();
         int top = layout.top();
@@ -1227,7 +1230,13 @@ public class WardrobeScreen extends AbstractPanelScreen {
         OutfitDraft expectedDraft = outfitDraft;
         addRenderableWidget(new LibraryDropdown(x, top + 18, width,
                 () -> anchors.stream().map(anchor -> anchorNames.getOrDefault(anchor, anchorLabel(anchor))).toList(),
-                () -> anchors.indexOf(expectedDraft.instance(id).anchor()), index -> {
+                () -> {
+                    if (outfitDraft != expectedDraft || !id.equals(outfitDraft.selectedInstance())) {
+                        return 0;
+                    }
+                    var current = expectedDraft.findInstance(id);
+                    return current == null ? 0 : anchors.indexOf(current.anchor());
+                }, index -> {
             if (outfitDraft != expectedDraft || !id.equals(outfitDraft.selectedInstance())) {
                 return;
             }
