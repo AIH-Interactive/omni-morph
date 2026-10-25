@@ -23,6 +23,8 @@
 
 - 修复 Iris 阴影 pass 仍对实体执行配装骨架捕捉/绑定，导致 `SkeletonIndex.bindParts` 在阴影视图上抛出 `INVALID_OUTFIT_CONFIGURATION` 崩溃；阴影阶段现在跳过配装提交，主视图渲染不受影响。
 
+- 修复加载部分模型后，同一资源身份缓存的骨架与当前原生 part 图不一致，`SkeletonIndex.bindParts` 抛 `INVALID_OUTFIT_CONFIGURATION` 的问题；缓存绑定失败时会重新捕捉当前图，而不是让实体渲染崩溃。
+
 ## 1.0.0-alpha.4
 
 - 支持原版/Figura/YSM 基础上的多实例装饰、独立控件/轮盘、稳定骨架挂点、虚拟挂点、内部骨骼覆盖及拖尾。

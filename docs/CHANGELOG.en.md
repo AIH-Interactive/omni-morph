@@ -23,6 +23,8 @@
 
 - Fix the Iris shadow pass still capturing/binding outfit skeletons for entities, which made `SkeletonIndex.bindParts` throw `INVALID_OUTFIT_CONFIGURATION` against the shadow view. Outfit submission is now skipped in the shadow pass while the main view keeps rendering normally.
 
+- Fix `SkeletonIndex.bindParts` throwing `INVALID_OUTFIT_CONFIGURATION` after loading some models when the cached skeleton for a resource identity no longer matches the current native part graph; a failed cache bind now re-captures the current graph instead of crashing entity rendering.
+
 ## 1.0.0-alpha.4
 
 - Adds isolated accessory instances, anchors, trails, controls, CustomParticle/Ribbon and optional dynamic lights with server-defined `outfit.limits`.

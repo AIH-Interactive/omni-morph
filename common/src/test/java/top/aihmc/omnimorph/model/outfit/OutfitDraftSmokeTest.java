@@ -17,6 +17,7 @@ public final class OutfitDraftSmokeTest {
         presetCopies();
         rejectedEditsAreAtomic();
         sharedSkeletonNodes();
+        skeletonCacheRebindsChangedGraph();
         restoredSliderValues();
         System.out.println("PASS outfit draft: duplicate ordinals, immutable committed state, selection, edits/cancel/reset, "
                 + "dependent removal, virtual anchors, preset identity rewrite and atomic limit failures; UI wiring separate");
@@ -155,6 +156,20 @@ public final class OutfitDraftSmokeTest {
                 Node::name, Node::children, OutfitLimits.defaults());
         require(binding.definition().nodes().size() == 2 && binding.parts().size() == 2,
                 "duplicate native part identity is captured once");
+    }
+
+    private static void skeletonCacheRebindsChangedGraph() {
+        record Node(String name, List<Node> children) {
+        }
+        var cache = new SkeletonIndex.Cache();
+        var resource = resource();
+        var first = cache.bind(resource, null, List.of(new Node("Root", List.of(new Node("A", List.of())))),
+                Node::name, Node::children, OutfitLimits.defaults());
+        var changed = cache.bind(resource, null, List.of(new Node("Root", List.of(new Node("B", List.of())))),
+                Node::name, Node::children, OutfitLimits.defaults());
+        require(changed.definition() != first.definition() && changed.definition().nodes().size() == 2
+                        && changed.definition().hash() != first.definition().hash(),
+                "a variant native part graph re-captures the cached skeleton instead of failing bindParts");
     }
 
     private static void restoredSliderValues() {

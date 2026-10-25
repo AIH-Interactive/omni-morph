@@ -23,6 +23,8 @@
 
 - Iris のシャドウパスでもエンティティの装飾スケルトンをキャプチャ/バインドしていたため、`SkeletonIndex.bindParts` がシャドウビューで `INVALID_OUTFIT_CONFIGURATION` を投げてクラッシュする問題を修正。シャドウパスでは装飾の送信をスキップし、メインビューの描画は維持します。
 
+- 一部のモデル読み込み後、同じリソース ID のキャッシュ済みスケルトンが現在のネイティブ part グラフと一致せず、`SkeletonIndex.bindParts` が `INVALID_OUTFIT_CONFIGURATION` を投げる問題を修正。キャッシュバインド失敗時は現在のグラフを再キャプチャし、エンティティ描画をクラッシュさせません。
+
 ## 1.0.0-alpha.4
 
 - 独立した装飾インスタンス、アンカー、軌跡、CustomParticle/Ribbon、任意の動的光源を追加。上限はバックエンドの `outfit.limits` で設定します。
