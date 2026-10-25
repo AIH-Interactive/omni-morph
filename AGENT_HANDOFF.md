@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-25 18:29（Asia/Seoul，alpha.4.1；最新交接在文末：YSM 第一人称、锚点 UX、导出 ZIP、omnm-cloud 分析与修复计划。构建/门禁 PASS，真实客户端与多人联调 MANUAL/PENDING。）
+更新时间：2026-10-25（Asia/Seoul；最新有效交接在文末：MULTIPLAYER_SYNC_FIX_PLAN Phase 0～4 授权自动实施已收口，人工项 MANUAL/PENDING 并按用户要求跳过。）
 
 ## 接续入口与约束
 
@@ -568,3 +568,36 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 后端master@971492fc2d573b36a233d5121ef74982f45d5bff已推送并核对SHA。主仓库main本阶段纳入随后提交（提交前3d21325f），最终以实际HEAD/远端核对为准。原未跟踪.omc/mod_log/patch和后端build.log保留，无版本调整。
 - 最小下一步：完成main Phase 3提交推送/核对后进入Phase 4，只做本计划的一致性、边界回归及OUTFIT_ASSET_DISTRIBUTION回滚开关。不得新增无关优化或重启旧阶段。
 - 可靠额度最新安全检查点：Plus，5小时剩余40%、周剩余91%，未触发交接。后续安全点查；阈值触发时仅委派gpt-6-luna整理手册。当前分支、前台PowerShell Tee日志/JDK25、冻结协议、真实窗口/禁止offscreen等约束不变。
+
+## 当前有效交接：多人同步修复最终交付 Phase 0～4（2026-10-25）
+
+本节覆盖上方历史“下一步”。用户本轮授权仅为 docs/MULTIPLAYER_SYNC_FIX_PLAN.md 内的阶段，反复明确禁止无关修改；人工验证注明并跳过。Phase 0～4 的自动实施与验证已收口，没有剩余自动实施任务，不再追加新阶段或优化。
+
+### 完成内容与最终验证
+
+- Phase 0：上传返回实际 visibility/published/moderation_status，缺失/非法可见性拒绝并区分诊断；客户端显示服务端状态。
+- Phase 1～2：复用既有 Figura/装饰观察者资产路径，补不可分发状态；修复 Figura 空 YSM schema 哈希被错误拒绝。真实 Java→Rust 资产快照/下载已验证。
+- Phase 3：本地依赖需明确确认后私有准备；独立原生目录别名、模型库依赖与套装同一事务提交，引用转 CLOUD。原来源/本地绑定/文件保留。最终写入故障不留半发布记录；同时修复私有上传回执对省略空 editable_bones 的错误拒绝。真实 Java 本地基础+装饰→Rust准备/转换/发布→Apply→观察者两份资产下载 PASS，原文件文本不变。
+- Phase 4：默认开启 OUTFIT_ASSET_DISTRIBUTION；设 false/0 并重启可关闭观察者装饰分发、新装饰上传/绑定及本地依赖转换。owner既有来源/状态与主模型路径保留；不删除资产，恢复开关可恢复读取。逐块下载沿用当前授权；能力响应反映开关。回滚测试隔离子进程先红后绿。
+- 最终后端 cargo test -- --test-threads=4：197 passed / 0 failed / 1 ignored。已设置真实 Java classpath 和实际装饰上传夹具，原双协议/三格式矩阵、实例事件、撤权/封禁/换装等门禁实际执行。既有 ignored 不算通过。
+- 最终客户端 libraryUploadSmokeTest、outfitObserverClientSmokeTest、outfitPrivateUploadSmokeTest、outfitApplyClientSmokeTest、fabric:build PASS（34秒/25 tasks，含内置预览CPU回归）；两仓库 git diff --check PASS。日志 build/reports/multiplayer-sync/phase0-*.log 至 phase4-*.log。既有私有上传负向夹具会输出线程断言日志，任务最终退出成功；未将其扩大为无关测试修复。
+
+### 未验证与明确跳过
+
+真实 Minecraft GUI确认/取消/布局、双游戏客户端渲染、GPU/CJK/光影/性能、生产后端部署及生产审核/上传全部为 MANUAL/PENDING，按用户要求跳过，不阻塞本次自动交付，也不宣称通过。未部署公网、未覆盖用户安装包、未修改用户模型源。没有使用 Qt offscreen。历史已记录的独立遗留项仍不在本次范围，不自动处理。
+
+### Git、产物与后续最小操作
+
+- 当前分支保持主仓库 main、后端 master，未新建或切换。每阶段均独立提交推送并核对远端SHA后才继续。
+- 已完成阶段检查点：main Phase 0 b6c34491、Phase 1 90b8873a、Phase 2 3d21325f、Phase 3 5febb34d；后端 Phase 0 7bacfb37、Phase 1 c88e847c、Phase 2 36c7f70b、Phase 3 971492fc、Phase 4 b0ea3798e9c76bb5e8297dc0b6450b5030e06fd9 均已推送核对。
+- main 最终文档检查点包含计划、分析与本文，提交号以 git rev-parse HEAD 为准（提交本身不能自引自身SHA）；交付前执行 push 并核对 origin/main。最终具体SHA亦见当前任务工具记录。
+- 原有未跟踪 .omc/、mod_log/、patch/ 与后端 build.log 保留，无其他未提交源码。最终文档提交后再次核对实际状态。
+- 最新客户端产物 fabric/build/libs/omni-morph-1.0.0-alpha.4.1+26.1.2-fabric-mc.jar：18,319,286字节，SHA256 c58843d1a4ab7b4af11a32fcd629358ba7b7ce8ec04ba260a93c5c04753ea918。未升级版本，未替换游戏安装包。
+- 没有剩余自动实施任务。用户后续若安排部署/真实客户端复测，使用本轮已构建产物及后端最终提交，并按计划验收矩阵记录；这些步骤本轮已明确跳过，不自行启动。
+- 相关记录：docs/MULTIPLAYER_SYNC_FIX_PLAN.md 第10节最终状态/证据边界；docs/MULTIPLAYER_SYNC_ANALYSIS.md 第10节；后端 omnm-cloud/docs/DEPLOYMENT.md 的回滚开关说明。
+
+### 额度与约束
+
+可靠接口：Plus，最近最终安全检查点5小时剩余31%、周剩余89%，重置UTC Unix秒1792938691/1793525491。未触发阈值，未委派Luna；本文按正常任务完成规则由当前Agent更新。若后续达到交接阈值，仅委派gpt-6-luna整理事实手册，不切换日常开发模型。接口不可用时不猜测。
+
+继续遵守：范围仅限用户当前授权；当前分支逐阶段提交推送并核对；JDK25；所有构建/测试前台PowerShell 2>&1 | Tee-Object -FilePath build.log，立即检查LASTEXITCODE并读取日志；冻结Protobuf v1/默认资产不改；保留未提交与未跟踪数据；禁止Qt offscreen；人工项不得标PASS；不安装额外MySQL实例；不自动领取历史遗留或优化任务。

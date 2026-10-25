@@ -291,7 +291,8 @@ CASE WHEN m.visibility = 'PRIVATE'
 
 ## 10. 验证状态
 
-- 本文分析实际部署目标 omnm-cloud；修复计划 Phase 0～3 自动实施/核对完成，Phase 4 尚未实施。真实人工验收仍未完成。
+- 本文分析实际部署目标 omnm-cloud；修复计划 Phase 0～4 授权自动实施/核对完成。真实人工验收仍未完成，按用户要求注明MANUAL/PENDING并跳过，无剩余自动实施阶段。
+- Phase 4：默认开启的OUTFIT_ASSET_DISTRIBUTION回滚开关已经隔离子进程红绿验证；关闭后观察者装饰投影、旧下载URL及实例状态拒绝，owner来源/状态保留且重新开启可恢复，新装饰绑定/上传和本地依赖转换受开关控制。最终后端197 passed / 1 ignored（实际Java/装饰夹具启用），客户端门禁和Fabric build通过。blob/缓存/限额与原独立事件复用，未做计划外优化。详细记录见修复计划第10节与phase4日志。
 - Phase 3：本地依赖已支持明确确认后私有准备、原生/目录/套装单事务发布与CLOUD引用转换；原本地来源及绑定保留，失败无半发布目录。实际Java→Rust完整数据链路与事务故障注入通过，后端196 passed / 1 ignored；客户端上传/私有准备/Apply及Fabric build通过。实际联调发现并修复 Rust 可省略空 editable_bones 与 Java 严格JSON回执比较不兼容。GUI确认/取消和真实双客户端仍MANUAL/PENDING并跳过。
 - Phase 2 实际阻断点：Rust Figura 描述符没有 YSM schema_sha256 是合法行为，Java OutfitObserverSnapshot 却要求所有格式该字段均为64位哈希，导致整个观察者配装被 INVALID_OUTFIT_OBSERVER_SNAPSHOT 拒绝。已红绿验证并仅对 Figura 接受空 schema；YSM 仍严格校验。实际 Java→Rust 基础与装饰资产读取通过，后端194 passed / 1 ignored（启用Java与装饰夹具）；客户端构建/回归通过。既有独立JSON资源/状态事件链路已具备资产分发，旧协议的 OutfitStateChanged 过滤不能等同于扩展通道不分发。
 - Phase 1 核对修正：既有 primary 支持 Figura，figura_compatibility 已参与 resource_access 过滤，AvatarChanged 不依赖 YSM 状态；不能把仅针对 YSM Body 的类型检查误认为 Figura 资产通知被拒绝。实际 HTTP/WebSocket 回归覆盖公开 Figura 通知与下载；193 passed / 1 ignored。新增本地缺失来源 NOT_DISTRIBUTABLE 与客户端提示/状态读取。现有模型库本地 ZIP 投稿已写 library_models 与 library_resource_bindings，复用而非另建入口。
