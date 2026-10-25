@@ -76,6 +76,23 @@ final class ParticleLightNativeSmokeTest {
                             && wrapper.get("getLightLevel").call(wrapper).toint() == 15
                             && wrapper.get("getLightRadius").call(wrapper).todouble() == 7.5 && !particle.emissive(),
                     "public Lua switch and defaults illuminate independently of emissive");
+
+            require(wrapper.get("getLightInterval").call(wrapper).toint() == 1,
+                    "light interval defaults to one particle per light");
+            wrapper.get("setLightInterval").call(wrapper, LuaValue.valueOf(4));
+            require(wrapper.get("getLightInterval").call(wrapper).toint() == 4,
+                    "public Lua light interval round-trips");
+            reject(() -> wrapper.get("setLightInterval").call(wrapper, LuaValue.valueOf(0)));
+            reject(() -> wrapper.get("setLightInterval").call(wrapper, LuaValue.valueOf(65)));
+            reject(() -> wrapper.get("setLightInterval").call(wrapper, LuaValue.valueOf(2.5)));
+            for (int index = 0; index < 3; index++) {
+                var intervalParticle = new CustomParticle(owner, world, texture,
+                        new Vec3(.5, .5, .5), Vec3.ZERO);
+                intervalParticle.setLightInterval(3);
+                intervalParticle.setDynamicLight(true);
+                require(ParticleDynamicLights.intervalSelects(intervalParticle) == (index == 2),
+                        "one of every three light-capable particles contributes a light");
+            }
             int sky = 8 << 20;
             require(worldHook(world, BlockPos.ZERO, sky) == (sky | 240) && !renderer.dirty.isEmpty(),
                     "production world hook adds actual block light and schedules terrain recompilation");

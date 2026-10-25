@@ -15,6 +15,7 @@ cosmetic_controls:newToggle("star"):setTitle("Star sheet / 星光精灵图"):set
    :setOnChange(function(value) cosmetic_controls:set("emissive", value) end)
 cosmetic_controls:newToggle("emissive"):setTitle("Full bright / 自发光"):setDefault(false)
 cosmetic_controls:newToggle("light"):setTitle("Dynamic light / 动态光源"):setDefault(false)
+cosmetic_controls:newSlider("light_interval"):setTitle("Light interval / 发光间隔"):setRange(1, 64, 1):setDefault(1)
 cosmetic_controls:newSlider("frame_ticks"):setTitle("Frame ticks / 帧间隔"):setRange(1, 10, 1):setDefault(2)
 cosmetic_controls:newToggle("random_start"):setTitle("Random start / 随机起帧"):setDefault(true)
 cosmetic_controls:newToggle("paused"):setTitle("Pause new stars / 暂停新星光"):setDefault(false)
@@ -42,7 +43,8 @@ events.POST_RENDER:register(function(delta, context)
    local velocity = star and vectors.vec3(0, .005, 0) or vectors.vec3(.008, -.012, 0)
    local particle = particles:newCustomParticle(texture, position, velocity)
       :setLifetime(cosmetic_controls:get("lifetime")):setScale(cosmetic_controls:get("size"))
-      :setEmissive(cosmetic_controls:get("emissive")):setDynamicLight(cosmetic_controls:get("light"))
+      :setEmissive(cosmetic_controls:get("emissive")):setLightInterval(cosmetic_controls:get("light_interval"))
+      :setDynamicLight(cosmetic_controls:get("light"))
    if star then
       particle:setSpriteSheet({columns=4, rows=2, frameCount=8, startFrame=0, endFrame=7,
          frameTimeTicks=cosmetic_controls:get("frame_ticks"), playback="loop",

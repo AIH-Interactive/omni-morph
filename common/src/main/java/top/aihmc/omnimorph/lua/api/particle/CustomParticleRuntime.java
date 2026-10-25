@@ -68,7 +68,7 @@ public final class CustomParticleRuntime {
         try {
             if (preview != null) {
                 preview.activated(particle);
-            } else if (particle.lightSettings().enabled()) {
+            } else if (particle.lightSettings().enabled() && ParticleDynamicLights.intervalSelects(particle)) {
                 try {
                     ParticleDynamicLights.update(particle, particle.lightSettings());
                 } catch (LuaError rejected) {

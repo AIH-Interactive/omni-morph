@@ -9,7 +9,7 @@
 - 第一人称：配装组合按相机相对全身姿态每帧重放一次（几何丢弃），身体挂点装饰的 RENDER/POST_RENDER、粒子与拖尾保持运行；基础与手臂的 part-to-world 矩阵按当前帧更新。
 - 光影：自定义粒子管线按混合模式映射到 Iris 粒子程序；Iris 阴影阶段跳过自定义粒子的回调/提取、粒子组提交以及配装脚本的 POST_RENDER 发射，并剔除模型视图中的相机平移，修复开光影后拖尾/粒子偏离原位。
 - LambDynamicLights：粒子动态光源通过公开 DynamicLightBehavior API 注册为世界光源；安装时内置光场停止注入以避免双重照明，世界切换后自动重新注册；未安装时输出一次回退警告并继续使用内置光场。
-- 动态光源上限：超过后端 `outfit.limits` 的每穿戴者光源数时，只保留先前启用的前 N 个，其余粒子存活但不发光。
+- 动态光源上限：超过后端 `outfit.limits` 的每穿戴者光源数时，只保留先前启用的前 N 个，其余粒子存活但不发光。`CustomParticle` 新增 `setLightInterval(n)` / `getLightInterval()` 及 `light = { interval = n }`：每隔 n 个可发光粒子只让一个成为动态光源，其余粒子仍正常显示；拖尾创建模板新增 Light interval 控件。
 - 修复：点击/调整装饰后原版粒子与拖尾停在固定位置、粒子动态光源失效（关闭衣柜不再保留草稿世界预览；世界身体绘制固定 RENDER；part-to-world 矩阵每帧刷新；纸娃娃预览不再泄漏渲染模式）。
 - Blockbench 骨架蒙皮：识别 armature/bone 节点，网格静止变换烘焙到骨架空间，按 boneWorld × inverse(bindWorld) 变形；支持加载后补充的蒙皮数据与骨架空间骨骼覆盖。
 - 标准挂点回退：自定义 Figura/YSM 骨架缺少标准 Head/Body 名称时，按大小写别名或首个骨架节点回退，修复 Head 类装饰在自定义基础形象上不渲染。
