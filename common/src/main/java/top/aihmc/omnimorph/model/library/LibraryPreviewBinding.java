@@ -31,6 +31,7 @@ public final class LibraryPreviewBinding implements AutoCloseable {
     private final Avatar avatar;
     private final UUID player;
     private final PreviewParticleScope particles;
+    private final boolean worldParticles;
     private OutfitComposition composition;
     private Object selectedBone;
     private int frames;
@@ -48,6 +49,7 @@ public final class LibraryPreviewBinding implements AutoCloseable {
         this.entity = entity;
         this.avatar = avatar;
         this.player = avatar == null ? entity.getUUID() : avatar.owner;
+        this.worldParticles = worldParticles;
         if (persistent && (ENTITIES.containsKey(entity) || PLAYERS.containsKey(player))) {
             throw new IllegalStateException("PREVIEW_ALREADY_BOUND");
         }
@@ -204,6 +206,11 @@ public final class LibraryPreviewBinding implements AutoCloseable {
 
     public static boolean worldFrame(EntityRenderState frame) {
         return WORLD_FRAMES.contains(frame);
+    }
+
+    public static boolean worldPreview(EntityRenderState frame) {
+        LibraryPreviewBinding binding = FRAMES.get(frame);
+        return binding != null && binding.worldParticles;
     }
 
     /** Runs after actual GUI drawing, including exceptional completion and renderer shutdown. */

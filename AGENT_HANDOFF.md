@@ -661,3 +661,9 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 修复：世界渲染调用 `OutfitRenderBinding.capture(..., true)` 标记 world frame；`LibraryPreviewBinding` 记录 WORLD_FRAMES；`renderMode` 对 world frame 返回 `RENDER`，使骨架/partToWorldMatrix 每帧按真实玩家更新。
 - 涉及 EntityRendererMixin、PlayerRendererMixin、OutfitFirstPersonScripts、OutfitRenderBinding、LibraryPreviewBinding。
 - 验证：`libraryPreviewRuntimeSmokeTest`、`:fabric:build` PASS；真实 particle.lua 世界粒子 MANUAL/PENDING。
+### particle.lua 世界矩阵二次修复（2026-10-26 01:35）
+
+- 仅靠 world frame 捕获仍可能被同一帧的 GUI capture 先占用；`OutfitRenderBinding.renderMode` 改为同时检查 preview binding 的 `worldParticles` 标记。
+- `LibraryPreviewBinding` 保存 worldParticles 并提供 `worldPreview(frame)`；世界本地预览一律返回 `RENDER`，不再依赖 capture 顺序。
+- 这样 `particle.lua` 的 `partToWorldMatrix` 走世界骨架矩阵，尾巴 tip 粒子跟随玩家。
+- 验证：`libraryPreviewRuntimeSmokeTest`、`:fabric:build` PASS；真实粒子 MANUAL/PENDING。
