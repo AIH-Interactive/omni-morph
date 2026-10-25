@@ -31,6 +31,7 @@ import top.aihmc.omnimorph.model.library.OutfitUploadDraft;
 import top.aihmc.omnimorph.model.library.OutfitPresetResources;
 import top.aihmc.omnimorph.model.library.LibraryTransferService;
 import top.aihmc.omnimorph.model.outfit.CosmeticMetadata;
+import top.aihmc.omnimorph.model.outfit.LocalOutfitPreview;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 import top.aihmc.omnimorph.model.outfit.OutfitLimits;
 import org.figuramc.figura.permissions.PermissionManager;
@@ -371,6 +372,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         if (outfitPreparation != null) {
             outfitPreparation.close();
         }
+        LocalOutfitPreview.clear(this);
         preview.clear();
         message = Component.empty();
         rebuildWidgets();
@@ -410,6 +412,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
             operation.close();
         }
         operation = null;
+        LocalOutfitPreview.clear(this);
         preview.clear();
         if (sourceRequest != null) {
             sourceRequest.cancel();
@@ -494,6 +497,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         outfitResources = null;
         outfitReady = false;
         outfitDistributable = false;
+        LocalOutfitPreview.clear(this);
         preview.clear();
         message = FiguraText.of("gui.library.phase.reading");
         updateSourceFields();
@@ -534,6 +538,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         if (outfitPreparation != null) {
             outfitPreparation.close();
         }
+        LocalOutfitPreview.clear(this);
         preview.clear();
         preview.setIndependentFigura(true);
         var result = new java.util.concurrent.CompletableFuture<Boolean>();
@@ -590,6 +595,11 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
 
     private void finishOutfitPreview(java.util.concurrent.CompletableFuture<Boolean> result, boolean ready) {
         outfitReady = ready;
+        if (ready) {
+            LocalOutfitPreview.show(this, preview);
+        } else {
+            LocalOutfitPreview.clear(this);
+        }
         message = FiguraText.of(!outfitDistributable ? "gui.library.outfit_dependency_mapping"
                 : ready ? "gui.library.outfit_ready" : "gui.library.preparation_error");
         result.complete(ready);
@@ -866,6 +876,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         if (outfitPreparation != null) {
             outfitPreparation.close();
         }
+        LocalOutfitPreview.clear(this);
         preview.clear();
         if (sourceRequest != null) {
             sourceRequest.cancel();
@@ -939,6 +950,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
                 sessionRequest.cancel();
             }
             uploads.close();
+            LocalOutfitPreview.clear(this);
             preview.close();
             thumbnails.close();
         }

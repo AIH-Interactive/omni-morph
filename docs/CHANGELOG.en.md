@@ -39,6 +39,8 @@
 
 - Restore the wardrobe preview status bar (model size, texture, script and backend connection indicators) and the loading-error indicator by re-adding `StatusWidget` / `LoadingErrorWidget`.
 
+- After selecting a local outfit in the model-library upload form, a successful local preview is also shown on the current player in the world; cancelling, changing the source or closing clears it without uploading or broadcasting.
+
 ## 1.0.0-alpha.4
 
 - Adds isolated accessory instances, anchors, trails, controls, CustomParticle/Ribbon and optional dynamic lights with server-defined `outfit.limits`.
