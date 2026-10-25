@@ -547,6 +547,12 @@ public final class CustomParticle extends SingleQuadParticle {
         if (!active() || ribbon()) {
             return;
         }
+        // Iris shadow extraction uses the shadow camera; custom particles are camera-relative to the
+        // main view and must not contribute a second, offset copy.
+        if (org.figuramc.figura.utils.PlatformUtils.isModLoaded("iris")
+                && top.aihmc.omnimorph.compat.IrisCompat.isShadowPass()) {
+            return;
+        }
         if (layerCount() > limits().maxParticleLayers()) {
             remove();
             return;

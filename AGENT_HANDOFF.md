@@ -417,3 +417,12 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 光影粒子偏移：`RibbonRenderState.submit` 在 Iris 阴影阶段跳过；`prepare` 剔除 model-view 的相机平移（顶点已相机相对）。这是修复尝试，真实 Iris 画面仍 MANUAL/PENDING；如果仍有偏移，下一步记录主/阴影 pass 与 model-view 矩阵。
 - 验证：`alpha41-gate.log`（libraryPreviewRuntimeSmokeTest + 真实 hat 门禁、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest）PASS；`:fabric:build` PASS。JAR 18307030 字节，SHA256 22fe4455ed2f4e9a69c3ca919e3332ccfa59ef10ffc23e03fa53d04d16a82b30；已安装 alpha.4.1（旧 alpha.4 已移除）。提交 006e1fd2，HEAD=origin/main。
 - 未验证：真实客户端 hat 位置（回退到首个节点，可能不在理想头部位置）、Iris 光影粒子、mixin 加载；forge/neoforge 仍未构建；upstream 未 fetch/pull。
+### 光影粒子偏移补充（2026-10-25 09:36）
+
+进一步定位：Iris 的阴影 pass 也会调用 `ParticleEngine.extract`。此前只跳过 Ribbon 的 **提交**，但自定义粒子的 **帧回调、Ribbon 提取和 Billboard 提取** 仍在阴影相机下运行，会把阴影相对坐标写入拖尾历史/状态，表现为移动后粒子整体偏移。现已：
+
+- `ParticleEngineMixin` 在 `isShadowPass()` 时跳过 `runFrameCallbacks` 与 `extractRibbons`；
+- `CustomParticle.extract`（Billboard）在阴影 pass 直接返回；
+- `RibbonRenderState` 保留阴影提交跳过与 model-view 相机平移剔除。
+
+重建 JAR 18307149 字节，SHA256 7b6ae547f8409b989f1a0e72c4572c663278e919d76dd83e07d294f611de44ff，已安装；提交 ee9b4a1a。真实 Iris 画面仍 MANUAL/PENDING；若仍偏移，下一步记录主/阴影 pass、camera 与 model-view 各一份。
