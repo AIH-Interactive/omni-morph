@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-25（Asia/Seoul，平台模块统一 top.aihmc.omnimorph，仅 common 保留上游包名；fabric 构建 PASS，真实客户端混入画面 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
+更新时间：2026-10-25（Asia/Seoul，alpha.4.1：hat 挂点回退、光影粒子偏移、版本显示；构建/门禁 PASS，真实客户端光影 MANUAL/PENDING）。用户要求随进度维护，防止会话或额度中断。未可靠读取套餐/额度，不推测。
 
 ## 接续入口与约束
 
@@ -410,3 +410,10 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - common 对平台的反射/ExpectPlatform FQN 与测试 stub 已回到 top（`FiguraModMetadata` 加载 `top.aihmc.omnimorph.utils.fabric.FiguraModMetadataImpl`）。
 - 验证：`libraryPreviewRuntimeSmokeTest`、`ysmMaterialNativeSmokeTest`、`outfitApplyClientSmokeTest` PASS；`:fabric:build` PASS；`git diff --check` 无错误。JAR 18306329 字节，SHA256 756e9e0bc863bd552e832e51afec902b4263c80ee595aeb7c861d1a7f2c3fb6a，已安装。提交 bbc7c2e5，HEAD=origin/main。
 - upstream remote：`upstream https://github.com/FiguraMC/Figura.git`；**未 fetch/pull**。`patch/`、`.omc/` 未跟踪。真实客户端 mixin/画面仍 MANUAL/PENDING；forge/neoforge 未构建。
+## 当前有效交接：alpha.4.1（2026-10-25）
+
+- 版本：`gradle.properties mod_version = 1.0.0-alpha.4.1`；`FiguraMod.DISPLAY_VERSION = "1.0 Alpha 4.1"`（修复游戏内仍显示 Alpha 3）；`NativeLibraryLoader` 缓存目录同步 4.1；README 四语言与四个 `docs/CHANGELOG*` 已加 `1.0.0-alpha.4.1` 段落（按用户要求不含包名迁移内容）。
+- hat：真实数据模拟（AI Hobbyist Founder + cosmetics/hat，`OMNIMORPH_TEST_ANCHOR=head_anchor`）复现 0 顶点；根因是标准挂点只做精确同名匹配，自定义骨架没有 Head。`StandardAnchors` 现在对非 vanilla 骨架做大小写别名，仍缺失时 Head 类挂点回退首个作者节点；同一模拟恢复 +48 顶点（draft/owner/firstPersonWorld）。`OutfitAnchorSmokeTest` 增加别名/首节点断言。
+- 光影粒子偏移：`RibbonRenderState.submit` 在 Iris 阴影阶段跳过；`prepare` 剔除 model-view 的相机平移（顶点已相机相对）。这是修复尝试，真实 Iris 画面仍 MANUAL/PENDING；如果仍有偏移，下一步记录主/阴影 pass 与 model-view 矩阵。
+- 验证：`alpha41-gate.log`（libraryPreviewRuntimeSmokeTest + 真实 hat 门禁、ysmMaterialNativeSmokeTest、outfitApplyClientSmokeTest）PASS；`:fabric:build` PASS。JAR 18307030 字节，SHA256 22fe4455ed2f4e9a69c3ca919e3332ccfa59ef10ffc23e03fa53d04d16a82b30；已安装 alpha.4.1（旧 alpha.4 已移除）。提交 006e1fd2，HEAD=origin/main。
+- 未验证：真实客户端 hat 位置（回退到首个节点，可能不在理想头部位置）、Iris 光影粒子、mixin 加载；forge/neoforge 仍未构建；upstream 未 fetch/pull。
