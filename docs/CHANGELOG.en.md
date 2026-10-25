@@ -31,6 +31,8 @@
 
 - Add a Confirm button to the virtual anchor editor to apply the current edits and return to the bone hierarchy.
 
+- Improve virtual anchor creation/editing: position and rotation fields now update an anchor-axis marker in the preview in real time, the scale fields are removed and anchor scale is fixed at 1, and the Confirm button still returns to the bone hierarchy.
+
 ## 1.0.0-alpha.4
 
 - Adds isolated accessory instances, anchors, trails, controls, CustomParticle/Ribbon and optional dynamic lights with server-defined `outfit.limits`.

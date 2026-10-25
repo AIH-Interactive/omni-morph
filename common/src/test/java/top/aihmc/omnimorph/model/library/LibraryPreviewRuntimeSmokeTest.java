@@ -3599,7 +3599,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 .map(top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeEditorPanel.class::cast).toList().getLast();
         var inputs = panel.children().stream().filter(org.figuramc.figura.gui.widgets.TextField.class::isInstance)
                 .map(org.figuramc.figura.gui.widgets.TextField.class::cast).toList();
-        require(inputs.size() == 10, "virtual anchor editor exposes name and nine local transform components");
+        require(inputs.size() == 7, "virtual anchor editor exposes name and six position/rotation components");
         var parentSelector = panel.children().stream()
                 .filter(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::isInstance)
                 .map(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::cast).findFirst().orElseThrow();
@@ -3613,16 +3613,19 @@ public final class LibraryPreviewRuntimeSmokeTest {
         inputs.getFirst().getField().setValue("共享尾尖");
         inputs.get(1).getField().setValue("4");
         var current = draft.configuration().virtualAnchors().getFirst();
-        require(current.name().equals("共享尾尖") && current.transform().position().x() == 4,
-                "native field responders rename and move the virtual anchor");
+        require(current.name().equals("共享尾尖") && current.transform().position().x() == 4
+                        && current.transform().scale().x() == 1
+                        && current.transform().scale().y() == 1
+                        && current.transform().scale().z() == 1,
+                "native field responders rename and move the virtual anchor without a scale control");
         var valid = draft.configuration();
         inputs.getFirst().getField().setValue("");
-        inputs.get(7).getField().setValue("0");
+        inputs.get(1).getField().setValue("NaN");
         require(draft.configuration().equals(valid) && inputs.getFirst().getBorderColour() == 0xffff5555
-                        && inputs.get(7).getBorderColour() == 0xffff5555,
-                "invalid names and scales preserve the last valid anchor and mark their inputs");
+                        && inputs.get(1).getBorderColour() == 0xffff5555,
+                "invalid names and positions preserve the last valid anchor and mark their inputs");
         inputs.getFirst().getField().setValue("共享尾尖");
-        inputs.get(7).getField().setValue("1");
+        inputs.get(1).getField().setValue("4");
         var originalFirst = draft.instance(first);
         var originalSibling = draft.instance(sibling);
         var shared = new top.aihmc.omnimorph.model.outfit.OutfitConfig.AnchorRef(

@@ -486,3 +486,10 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 
 - `buildVirtualAnchorEditor` 在“删除锚点”“返回骨骼树”之外补充“确定”按钮（`anchor_confirm`，中/英），应用当前编辑并返回骨骼树；按钮位于面板 y=246，返回下移到 y=270。
 - 验证：`libraryPreviewRuntimeSmokeTest` PASS；`:fabric:build` PASS。JAR 18315540 字节，SHA256 41dda398ba3d7eee3c180fe0e5882b79dcc5a8abe3eb15bcb7c952e81777f501，已安装。真实 GUI 位置复测 MANUAL/PENDING。
+### 虚拟锚点 UX（2026-10-25 11:38）
+
+- 移除虚拟锚点编辑器的缩放行（位置/旋转各 3 个输入，共 6 个 + 名称）；`changeVirtualAnchor` 强制 scale=1。
+- 编辑时 `previewBoneSelection` 返回该虚拟锚点的 `AnchorRef`，复用 `PreviewBoneHighlight.anchor` 在预览中实时绘制锚点坐标轴与父骨骼连线；字段每次响应都会重建预览。
+- 面板压缩：删除 y=160、确定 y=184、返回 y=208。
+- 更新 `LibraryPreviewRuntimeSmokeTest.testVirtualAnchorEditor`：7 个输入、位置/名称非法校验、scale 固定为 1；PASS。
+- `libraryPreviewRuntimeSmokeTest`、`:fabric:build` PASS。JAR 18315665 字节，SHA256 640f27d29f7a8c0e0a5be851965966e367fc661e07d3aaa27abcb2f37cabbb50，已安装。真实 GUI 标记/布局 MANUAL/PENDING。
