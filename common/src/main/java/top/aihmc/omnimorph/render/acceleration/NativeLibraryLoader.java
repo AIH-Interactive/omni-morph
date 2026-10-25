@@ -69,7 +69,7 @@ public final class NativeLibraryLoader {
         if (!sha256(library).equals(hash)) {
             throw new LoadFailure(FallbackReason.INTEGRITY_FAILURE, "Native resource hash mismatch");
         }
-        Path directory = cache.toAbsolutePath().resolve("1.0.0-alpha.3").resolve("abi-" + NativeBindings.ABI).resolve(hash);
+        Path directory = cache.toAbsolutePath().resolve("1.0.0-alpha.4.1").resolve("abi-" + NativeBindings.ABI).resolve(hash);
         rejectSymbolicParents(directory);
         Files.createDirectories(directory);
         rejectSymbolicParents(directory);

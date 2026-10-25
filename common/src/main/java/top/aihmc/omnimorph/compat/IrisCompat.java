@@ -8,6 +8,10 @@ import top.aihmc.omnimorph.model.rendering.texture.FiguraRenderTypes;
 import top.aihmc.omnimorph.model.ysm.YsmMaterialTexture;
 
 public class IrisCompat {
+    public static boolean isShadowPass() {
+        return IrisApi.getInstance().isRenderingShadowPass();
+    }
+
     public static void assignPipelinesToIrisPrograms() {
         IrisApi.getInstance().assignPipeline(FiguraRenderTypes.FiguraRenderPipelines.FIGURA_SOLID, IrisProgram.ENTITIES);
         // Custom particle layers use dedicated pipelines; without an Iris program they fall back to the

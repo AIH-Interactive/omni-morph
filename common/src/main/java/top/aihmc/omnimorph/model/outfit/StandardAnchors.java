@@ -18,7 +18,7 @@ public final class StandardAnchors {
                 targets.add(new Target(skeleton.reference(null, index), OutfitConfig.Transform.identity()));
             }
         }
-        if (!targets.isEmpty() || !vanilla) {
+        if (!targets.isEmpty()) {
             return List.copyOf(targets);
         }
         String parent;
@@ -50,10 +50,42 @@ public final class StandardAnchors {
             }
         }
         var index = skeleton.uniqueNamed(parent);
-        if (index.isEmpty()) {
+        if (index.isPresent()) {
+            return List.of(new Target(skeleton.reference(null, index.get()), new OutfitConfig.Transform(position,
+                    new OutfitConfig.Vector(0, 0, 0), new OutfitConfig.Vector(1, 1, 1))));
+        }
+        if (vanilla) {
             return List.of();
         }
-        return List.of(new Target(skeleton.reference(null, index.get()), new OutfitConfig.Transform(position,
-                new OutfitConfig.Vector(0, 0, 0), new OutfitConfig.Vector(1, 1, 1))));
+        // Custom Figura/YSM rigs often have a localized or aliased head/body bone instead of the vanilla name.
+        // Resolve it by a case-insensitive alias before falling back to the model's first rig node.
+        int alias = aliasIndex(skeleton, parent);
+        if (alias >= 0) {
+            return List.of(new Target(skeleton.reference(null, alias), new OutfitConfig.Transform(position,
+                    new OutfitConfig.Vector(0, 0, 0), new OutfitConfig.Vector(1, 1, 1))));
+        }
+        boolean headLike = name.equals("head_anchor") || name.equals("hair_anchor") || name.equals("face_anchor");
+        if (headLike && skeleton.nodes().size() > 1) {
+            // No named head at all: the first authored rig node is the closest stable attachment.
+            return List.of(new Target(skeleton.reference(null, 1), OutfitConfig.Transform.identity()));
+        }
+        return List.of();
+    }
+
+    private static int aliasIndex(SkeletonIndex skeleton, String canonical) {
+        for (int index = 0; index < skeleton.nodes().size(); index++) {
+            String name = skeleton.nodes().get(index).name();
+            if (name.equalsIgnoreCase(canonical)) {
+                return index;
+            }
+        }
+        for (int index = 0; index < skeleton.nodes().size(); index++) {
+            String name = skeleton.nodes().get(index).name().toLowerCase(java.util.Locale.ROOT);
+            String target = canonical.toLowerCase(java.util.Locale.ROOT);
+            if (name.contains(target) || (target.contains(name) && name.length() > 2)) {
+                return index;
+            }
+        }
+        return -1;
     }
 }

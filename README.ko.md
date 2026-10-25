@@ -26,7 +26,7 @@ Lua와 Molang 런타임을 함께 지원합니다. Lua는 스크립트와 상호
 | Minecraft Java | 26.1.2 |
 | 모드 로더 | Fabric |
 | Java | 25 |
-| 모드 버전 | 1.0.0-alpha.4 |
+| 모드 버전 | 1.0.0-alpha.4.1 |
 
 빌드 의존성 버전은 [gradle.properties](gradle.properties)를 참고하세요. 클라이언트용 모드이며, 멀티플레이 리소스 배포와 상태 동기화에는 호환 백엔드가 필요합니다.
 

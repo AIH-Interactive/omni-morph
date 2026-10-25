@@ -1111,7 +1111,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
                             (top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer) avatar.renderer, base, null,
                             new top.aihmc.omnimorph.model.outfit.SkeletonIndex.Cache(), limits).binding().definition();
             var bone = reportedBone(definition);
-            var anchor = new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.BASE_BONE, null, bone, null, null, null);
+            String requestedAnchor = System.getenv("OMNIMORPH_TEST_ANCHOR");
+            var anchor = requestedAnchor == null || requestedAnchor.isBlank()
+                    ? new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.BASE_BONE, null, bone, null, null, null)
+                    : OutfitConfig.AnchorRef.authorDefault(requestedAnchor);
             var instance = new OutfitConfig.Instance(UUID.randomUUID(), accessory, 1, true, anchor,
                     OutfitConfig.Transform.identity(), java.util.List.of(), Map.of(), Map.of());
             var config = new OutfitConfig(1, 0, base, java.util.List.of(instance), java.util.List.of(),
@@ -1153,7 +1156,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
                         org.figuramc.figura.model.rendering.EntityRenderMode.FIRST_PERSON_WORLD);
                 System.out.println("Reported local " + (ysm ? "YSM" : "Figura") + " base/accessory: draft base="
                         + draftBase + " draft=" + draft + " owner base=" + ownerBaseOnly + " owner=" + owner
-                        + " firstPersonWorld=" + firstPerson + " anchor=" + bone.path().getLast().name());
+                        + " firstPersonWorld=" + firstPerson + " anchor="
+                        + (anchor.name() != null ? anchor.name() : bone.path().getLast().name()));
                 require(draft > draftBase && owner > ownerBaseOnly && firstPerson > ownerBaseOnly,
                         "the reported local accessory draws in the draft, owner and first-person world frames: draft base="
                                 + draftBase + " draft=" + draft + " owner base=" + ownerBaseOnly + " owner=" + owner

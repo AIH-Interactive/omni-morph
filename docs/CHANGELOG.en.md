@@ -4,6 +4,19 @@
 
 [Project overview](../README.en.md)
 
+## 1.0.0-alpha.4.1
+
+- First person: replay the outfit composition once per frame with a camera-relative full-body pose (geometry discarded), so body-mounted accessory RENDER/POST_RENDER, particles and trails keep running; refresh body and arm part-to-world matrices for the current frame.
+- Shaders: map custom particle pipelines to the matching Iris particle programs by blend mode; skip particle groups in the Iris shadow pass and remove the camera translation from the model-view matrix, fixing trails and particles drifting away from their world position with shader packs.
+- LambDynamicLights: register particle dynamic lights as world lights through its public DynamicLightBehavior API. When installed, stop injecting the built-in field to avoid double lighting and re-register after world changes; when absent, log one fallback warning and keep the built-in field.
+- Particle light cap: above the per-wearer limit in `outfit.limits`, only the first N enabled sources stay lit; later particles stay alive but unlit.
+- Fixes trails and vanilla particles freezing after adjusting/clicking cosmetics, and particle dynamic lights stopping (no draft world preview after closing the wardrobe; world body draws always use RENDER; part-to-world matrices refresh every frame; paperdoll previews no longer leak their render mode).
+- Blockbench armature skinning: recognize armature/bone nodes, bake the mesh rest transform into armature space and deform by boneWorld × inverse(bindWorld); support skinning data attached after loading and armature-space bone overrides.
+- Standard anchor fallback: custom Figura/YSM rigs without standard Head/Body names resolve through case-insensitive aliases or the first rig node, fixing head cosmetics (for example a hat) on custom bases.
+- Diagnostics: remove the temporary publish/accessory draw/missing-mount logs; script errors are still reported.
+- Correct the in-game version display from “1.0 Alpha 3” to “1.0 Alpha 4.1”.
+- Real-client shader, mixin-loading and visual validation remain `MANUAL/PENDING`.
+
 ## 1.0.0-alpha.4
 
 - Adds isolated accessory instances, anchors, trails, controls, CustomParticle/Ribbon and optional dynamic lights with server-defined `outfit.limits`.
