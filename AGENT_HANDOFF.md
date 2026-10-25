@@ -649,3 +649,8 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - `OutfitPreparation` 为世界预览实例创建带 worldParticles 的 `CosmeticInstanceContext`；`Avatar.enableWorldParticles` 使 `usesPreviewParticles` 返回 false，原生粒子走正常 ParticleEngine，CustomParticle 走 CustomParticleRuntime 并注册动态光。
 - Wardrobe 仅在本地配装/本地源预览时切换到 worldParticles session；云预览仍使用 GUI scope。`previewOwned` 防止测试注入的 session 被重建。
 - 验证：`libraryPreviewRuntimeSmokeTest` PASS、`:fabric:build` PASS。真实世界粒子/动态光 MANUAL/PENDING。
+### 原生 Particle 修复补充（2026-10-26 01:26）
+
+- 原因：世界预览切到 worldParticles 后，YSM 基础仍走 `usePlayer=false` 的 detached `LibraryPreviewPlayer`，YSM/原生 Particle 以该固定实体为坐标原点，所以粒子停在预览原点。
+- 修复：`LibraryPreviewSession.prepare` 在 worldParticles 模式下，即使基础为 YSM 也使用当前玩家实体（`usePlayer = !isolated && (figura || worldParticles)`），让原生粒子/事件以真实玩家位置发射。
+- 验证：`libraryPreviewRuntimeSmokeTest` PASS、`:fabric:build` PASS；真实 YSM 世界粒子 MANUAL/PENDING。
