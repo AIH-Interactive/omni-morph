@@ -448,3 +448,4 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - `09:09` 崩溃：`INVALID_OUTFIT_CONFIGURATION`，第一人称 hand 的 `prepareFiguraBase` → `SkeletonIndex.capture`。共享/重复 `FiguraModelPart` 在捕捉时按首次路径去重，不再让整帧失败（其子树已由首次路径表示）。
 - 测试：`outfitDraftSmokeTest` PASS；`libraryPreviewRuntimeSmokeTest` PASS；`OutfitAnchorSmokeTest` 新增重复节点断言（随组合测试执行）。
 - JAR 18308424 字节，SHA256 3fdabcfeb99f12c706bb282b0cfe2f6904132584011411868bbb8c39767f2f92，已安装。真实客户端崩溃路径复测 MANUAL/PENDING。
+- 追加回归：`OutfitDraftSmokeTest.sharedSkeletonNodes` 直接验证重复节点只捕捉一次（PASS）；崩溃修复提交 0ecd27f2，HEAD=origin/main。
