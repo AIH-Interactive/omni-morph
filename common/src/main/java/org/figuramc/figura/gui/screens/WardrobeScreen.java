@@ -1919,6 +1919,9 @@ public class WardrobeScreen extends AbstractPanelScreen {
 
     private void selectLocal(LocalAvatarFetcher.AvatarPath avatar) {
         deleteCollectionArmed = null;
+        FiguraMod.LOGGER.info("Wardrobe selectLocal name={} path={} reference={} tab={} source={}",
+                avatar == null ? null : avatar.getName(), avatar == null ? null : avatar.getPath(),
+                avatar == null ? null : avatar.getTheActualPathForThis(), tab, source);
         selected = avatar == null ? null : new Selection(avatar.getPath(), avatar.getTheActualPathForThis(), avatar.isYsm(), null,
                 Component.literal(avatar.getName()));
         selections.put(context(), selected);
@@ -2077,6 +2080,10 @@ public class WardrobeScreen extends AbstractPanelScreen {
         if (preview != null) {
             preview.clear();
         }
+        FiguraMod.LOGGER.info("Wardrobe selectOutfitBase path={} cloud={} selection={} draft={} draftStartDone={}",
+                selection == null ? null : selection.path(), selection == null ? null : selection.cloud(),
+                selection == null ? null : selection.name(), outfitDraft,
+                draftStart == null ? null : draftStart.isDone());
         resourceSelectionGeneration++;
         long selectionToken = ++baseSelectionGeneration;
         var model = selectedCollectionModel();
@@ -2110,6 +2117,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
             switchDraftBase(captured.configuration().base());
             draftBase = captured.base();
             draftBasePersistent = captured.persistent();
+            FiguraMod.LOGGER.info("Wardrobe selectOutfitBase ready base={} instances={}",
+                    captured.configuration().base(), captured.configuration().instances().size());
             previewOutfitDraft();
         }, minecraft::execute);
         changingDraftBase.whenComplete((ignored, failure) -> minecraft.execute(() -> {
@@ -2124,6 +2133,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 if (preview != null) {
                     preview.clear();
                 }
+                FiguraMod.LOGGER.warn("Wardrobe selectOutfitBase failed for {}: {}", selection.path(), failure.toString());
                 error(failure);
             }
         }));
