@@ -27,6 +27,8 @@
 
 - 网络配置默认改为允许网络访问（`allow_networking=true`），访问限制默认改为“无限制”（`networking_restriction=2`，NONE）。
 
+- 我的形象集本地源新增“导出为 ZIP”：支持本地形象与装饰，默认写入 `omnimorph/export`（MISC 的“导出目录”可修改），文件名为 `avatar_名称.zip` / `cosmetic_名称.zip`（`.ysm` 保留扩展名，重名追加 `(2)`），保留源目录结构；导出在后台执行并显示结果。
+
 ## 1.0.0-alpha.4
 
 - 支持原版/Figura/YSM 基础上的多实例装饰、独立控件/轮盘、稳定骨架挂点、虚拟挂点、内部骨骼覆盖及拖尾。

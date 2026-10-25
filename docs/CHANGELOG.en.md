@@ -27,6 +27,8 @@
 
 - Networking now defaults to enabled (`allow_networking=true`) with no host restriction (`networking_restriction=2`, NONE).
 
+- Local sources in My Collection now offer Export as ZIP for avatars and cosmetics. Files default to `omnimorph/export` (configurable as Export directory in MISC) and use `avatar_name.zip` / `cosmetic_name.zip` (`.ysm` keeps its extension, collisions get `(2)`), preserving the source directory structure; export runs in the background and reports its result.
+
 ## 1.0.0-alpha.4
 
 - Adds isolated accessory instances, anchors, trails, controls, CustomParticle/Ribbon and optional dynamic lights with server-defined `outfit.limits`.

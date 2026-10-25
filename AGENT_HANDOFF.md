@@ -474,3 +474,11 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - `Configs.ALLOW_NETWORKING` 默认 false → true；`Configs.NETWORKING_RESTRICTION` 默认 0（WHITELIST）→ 2（NONE，无限制）。
 - 已存在配置文件中的显式值不会被覆盖；新配置/缺省键使用新默认。当前 `config/omni-morph.json` 已是 true/2。
 - JAR 18308985 字节，SHA256 bac735712850498139b6e8f2d0bd3b1cedb467a87679857635f100cb051f6581，已安装。构建 PASS；配置 GUI/真实网络行为 MANUAL/PENDING。
+### 本地源导出 ZIP（2026-10-25 11:21）
+
+- 我的形象集 COLLECTION 本地源新增导出按钮（export.png，3 态与 GUI 图标同配色 #777/#fff/#55ffff），支持本地形象与装饰。
+- 新增 `LocalSourceExport`：目录导出为 ZIP（保留相对路径，最多 16384 项，拒绝符号链接/路径穿越），已有 .zip 复制，.ysm 保留扩展名；命名格式 `avatar_<名称>.zip` / `cosmetic_<名称>.zip`，非法字符替换、重名追加 ` (2)`；临时文件写入系统临时目录后原子移动。
+- 默认输出 `FiguraMod.getFiguraDirectory()/export`（默认即 `omnimorph/export`）；MISC 新增 `export_directory` FolderConfig。
+- UI：COLLECTION 本地分支 action 数量 4→5；异步导出并通过状态栏显示成功/失败；选择本地源时启用按钮。
+- 测试：`outfitDraftSmokeTest` 新增目录 ZIP 内容、命名 `avatar_Test.zip`、重名 ` (2)` 断言 PASS；`libraryPreviewRuntimeSmokeTest` PASS；`:fabric:build` PASS。
+- JAR 18315425 字节，SHA256 8083054eb05897d29992a4c76e74cbcfc051a7e5fa1ee6e7b80eea6f93fba529，已安装。真实 GUI/文件系统复测 MANUAL/PENDING。
