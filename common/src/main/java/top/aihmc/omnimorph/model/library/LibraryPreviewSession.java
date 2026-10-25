@@ -14,6 +14,7 @@ import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
 import org.figuramc.figura.avatar.AvatarManager;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.mixin.gui.GuiGraphicsAccessor;
+import top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext;
 import top.aihmc.omnimorph.model.outfit.OutfitComposition;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 import top.aihmc.omnimorph.model.outfit.OutfitLimits;
@@ -53,6 +54,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
     private volatile boolean closed;
     private boolean expanded;
     private boolean independentFigura;
+    private final boolean worldParticles;
     private UUID previewPlayer;
     private LivingEntity livePlayer;
     private Runnable preparePlayerFallback;
@@ -91,8 +93,14 @@ public final class LibraryPreviewSession implements AutoCloseable {
 
     /** Detached mode is reserved for management rendering and native regression fixtures. */
     public LibraryPreviewSession(LibraryClient client, boolean detachedMode) {
+        this(client, detachedMode, false);
+    }
+
+    /** World previews use the normal particle engine instead of a GUI particle scope. */
+    public LibraryPreviewSession(LibraryClient client, boolean detachedMode, boolean worldParticles) {
         this.client = client;
         this.detachedMode = detachedMode;
+        this.worldParticles = worldParticles;
         world = Minecraft.getInstance().level;
         if (detachedMode && world != null) {
             detachedEntity = new LibraryPreviewPlayer(world, owner, () -> Minecraft.getInstance().player);
@@ -207,7 +215,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
             return false;
         }
         currentPlayerFigura = !isolated;
-        binding = new LibraryPreviewBinding(entity, null, isolated);
+        binding = new LibraryPreviewBinding(entity, null, isolated, worldParticles);
         status = new Status(Stage.READY, "");
         return true;
     }
@@ -532,7 +540,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
             } else if (detachedEntity != null) {
                 entity = detachedEntity;
             }
-            binding = new LibraryPreviewBinding(entity, prepared, !currentPlayerFigura);
+            binding = new LibraryPreviewBinding(entity, prepared, !currentPlayerFigura, worldParticles);
             binding.withPlayerContext(() -> prepared.initializePreviewPlayer(entity));
             refreshHierarchy();
             status = new Status(Stage.READY, "");
@@ -613,7 +621,10 @@ public final class LibraryPreviewSession implements AutoCloseable {
         AvatarLoadExecutor.submit(() -> {
             try {
                 return OutfitPreparation.prepare(configuration, limits, account, outfit,
-                        wearer, permissions, outfitIndexes, resources, cancelled);
+                        wearer, permissions, outfitIndexes, resources, cancelled,
+                        CosmeticInstanceContext.Scope.DRAFT, null,
+                        resource -> resource.source() == OutfitConfig.Source.LOCAL,
+                        resource -> resource.source() == OutfitConfig.Source.LOCAL, worldParticles);
             } catch (Exception failure) {
                 throw new java.util.concurrent.CompletionException(failure);
             }

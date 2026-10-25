@@ -1717,8 +1717,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
         Files.writeString(otherBase.resolve("avatar.json"), "{\"name\":\"Other outfit base\"}");
         var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
         var type = screen.getClass();
-        try (var preview = new LibraryPreviewSession()) {
+        try (var preview = new LibraryPreviewSession(null, false, true)) {
             field(type, "preview").set(screen, preview);
+            field(type, "previewWorldParticles").set(screen, true);
+            field(type, "previewWorldMode").set(screen, true);
             var chooseBase = type.getDeclaredMethod("selectLocal",
                     org.figuramc.figura.avatar.local.LocalAvatarFetcher.AvatarPath.class);
             chooseBase.setAccessible(true);

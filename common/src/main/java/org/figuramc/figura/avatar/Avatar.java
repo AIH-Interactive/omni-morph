@@ -163,6 +163,8 @@ public class Avatar {
     public FiguraLuaRuntime luaRuntime;
     public top.aihmc.omnimorph.lua.api.CosmeticAnimationsAPI cosmeticAnimations;
     public top.aihmc.omnimorph.lua.api.particle.PreviewParticleScope previewParticles;
+    /** World-preview instances use the normal particle engine and light registration. */
+    private boolean worldParticlesEnabled;
     public final AvatarControlRuntime controls = new AvatarControlRuntime(this);
     public final CosmeticInstanceContext cosmeticContext;
     public EntityRenderMode renderMode = EntityRenderMode.OTHER;
@@ -876,10 +878,17 @@ public class Avatar {
     }
 
     public boolean usesPreviewParticles() {
+        if (worldParticlesEnabled) {
+            return false;
+        }
         if (previewParticles != null || playerModelPreview) {
             return true;
         }
         return cosmeticContext == null ? isLibraryPreview : cosmeticContext.scope() == CosmeticInstanceContext.Scope.DRAFT;
+    }
+
+    public void enableWorldParticles() {
+        worldParticlesEnabled = true;
     }
 
     /** A private execution identity prevents cleanup, preferences and events crossing instances. */

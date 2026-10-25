@@ -39,13 +39,20 @@ public final class LibraryPreviewBinding implements AutoCloseable {
     }
 
     LibraryPreviewBinding(LivingEntity entity, Avatar avatar, boolean persistent) {
+        this(entity, avatar, persistent, false);
+    }
+
+    LibraryPreviewBinding(LivingEntity entity, Avatar avatar, boolean persistent, boolean worldParticles) {
         this.entity = entity;
         this.avatar = avatar;
         this.player = avatar == null ? entity.getUUID() : avatar.owner;
         if (persistent && (ENTITIES.containsKey(entity) || PLAYERS.containsKey(player))) {
             throw new IllegalStateException("PREVIEW_ALREADY_BOUND");
         }
-        this.particles = entity.level() instanceof net.minecraft.client.multiplayer.ClientLevel level
+        if (avatar != null && worldParticles) {
+            avatar.enableWorldParticles();
+        }
+        this.particles = !worldParticles && entity.level() instanceof net.minecraft.client.multiplayer.ClientLevel level
                 ? new PreviewParticleScope(level, OutfitLimits.defaults()) : null;
         if (avatar != null && particles != null) {
             particles.bind(avatar);
