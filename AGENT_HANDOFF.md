@@ -462,3 +462,10 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 原因：阴影 pass 仍会提交实体并执行配装骨架捕捉/绑定；阴影视图的原生 part 图与缓存定义不一致时 bindParts 失败。
 - 修复：`LivingEntityRendererMixin.submitFiguraModel` 在 `IrisCompat.isShadowPass()` 时清空 currentAvatar/lastPose 并直接返回；`OutfitNativeRenderer.draw` 之前已有阴影跳过。主视图不变。
 - 验证：`libraryPreviewRuntimeSmokeTest` PASS；`:fabric:build` PASS。JAR 18308896 字节，SHA256 4fa1a103db8dea343621133805faf12174ae79764b1f0f0ad93d0241490962cb，已安装。真实 Iris 阴影复测 MANUAL/PENDING。
+### 缓存骨架与当前 part 图不一致崩溃（2026-10-25 10:59）
+
+- 崩溃：`crash-2026-10-25_10.56.42-client.txt`，主视图 `LivingEntityRenderer.submitFiguraModel` → `prepareFiguraBase` → `SkeletonIndex.bindParts` → `INVALID_OUTFIT_CONFIGURATION`（加载部分模型后）。
+- 原因：`SkeletonIndex.Cache` 只按 ResourceRef 缓存定义，但同一资源可能因加载/变体产生不同原生 part 图；旧定义 bindParts 失败。
+- 修复：`Cache.bind` 捕获 bind/limit 失败后重新 `capture` 当前图并替换缓存；重复节点由 capture 去重，新增 `skeletonCacheRebindsChangedGraph` 回归测试。
+- 验证：`outfitDraftSmokeTest`、`libraryPreviewRuntimeSmokeTest`、`:fabric:build` PASS。JAR 18308978 字节，SHA256 0c0c625e4649511ecf2b5a061206655d554c5505355a24a103f12f0efe2177be，已安装。真实多模型加载复测 MANUAL/PENDING。
+- 其他类似点审计：WardrobeScreen/CosmeticCreator 直接 capture（capture 已去重）；YSM/Vanilla adapter 走 Cache.bind（同样获得重捕捉保护）；SkeletonPose 仍要求捕捉矩阵齐全，属另一类问题。

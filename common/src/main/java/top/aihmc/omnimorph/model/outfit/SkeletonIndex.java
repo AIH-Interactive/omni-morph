@@ -47,14 +47,19 @@ public final class SkeletonIndex {
                                     Function<T, String> name, Function<T, List<T>> children,
                                     OutfitLimits limits) {
             SkeletonIndex definition = definitions.get(resource);
-            if (definition == null) {
-                Binding<T> captured = capture(instanceId, roots, name, children, limits);
-                definitions.put(resource, captured.definition());
-                parses++;
-                return captured;
+            if (definition != null) {
+                try {
+                    definition.checkLimits(limits);
+                    return new Binding<>(definition, instanceId, definition.bindParts(roots, name, children));
+                } catch (IllegalArgumentException changedNativeGraph) {
+                    // A reloaded or variant avatar can expose a different native part graph for the same
+                    // resource identity. Re-capture instead of failing the whole entity render.
+                }
             }
-            definition.checkLimits(limits);
-            return new Binding<>(definition, instanceId, definition.bindParts(roots, name, children));
+            Binding<T> captured = capture(instanceId, roots, name, children, limits);
+            definitions.put(resource, captured.definition());
+            parses++;
+            return captured;
         }
 
         public synchronized int parseCount() {
