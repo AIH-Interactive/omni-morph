@@ -258,6 +258,7 @@ public class YsmModelRuntime implements AutoCloseable {
                     ? data.identity().binaryFormatVersion()
                     : YsmAnimationPlayer.PLAINTEXT_FORMAT_VERSION);
             runtime.animationPlayer.registerAnimations(readAnimations(tag, ysmMolangEngine));
+            runtime.animationPlayer.registerArmAnimations(readAnimations(tag, ysmMolangEngine, true));
             YsmModelRuntime loadedRuntime = runtime;
             runtime.animationPlayer.registerControllers(readAnimationControllers(tag, ysmMolangEngine, (path, diagnostic) -> {
                 loadedRuntime.recordControllerDiagnostic(controllerDiagnostic(loadedRuntime.modelKey,
@@ -300,6 +301,7 @@ public class YsmModelRuntime implements AutoCloseable {
             return;
         }
         Set<String> declared = new LinkedHashSet<>();
+        Set<String> armDeclared = new LinkedHashSet<>();
         try {
             for (Tag value : tag.getListOrEmpty("animations")) {
                 if (!(value instanceof CompoundTag animation)) {
@@ -311,7 +313,8 @@ public class YsmModelRuntime implements AutoCloseable {
                 }
                 var root = com.google.gson.JsonParser.parseString(json).getAsJsonObject();
                 if (root.has("animations")) {
-                    declared.addAll(root.getAsJsonObject("animations").keySet());
+                    (isFirstPersonAnimation(animation, root) ? armDeclared : declared)
+                            .addAll(root.getAsJsonObject("animations").keySet());
                 }
             }
         } catch (RuntimeException invalid) {
@@ -319,6 +322,7 @@ public class YsmModelRuntime implements AutoCloseable {
             return;
         }
         Set<String> excluded = animationPlayer.defaultExcludedNames(declared);
+        Set<String> armExcluded = animationPlayer.defaultExcludedNames(armDeclared, true);
         if (declared.stream().anyMatch(name -> !animationPlayer.getClips().containsKey(name))) {
             defaultAnimationDiagnostics.add("DEFAULT_FALLBACK_SKIPPED_DAMAGED_AUTHOR_ANIMATION");
         }
@@ -340,7 +344,7 @@ public class YsmModelRuntime implements AutoCloseable {
                 geometry.bones.keySet(), Map.of(), excluded, Set.of(), !handsControlled);
         var arms = YsmDefaultAnimationResolver.resolve(modelKey, YsmDefaultAnimationResolver.Domain.ARM,
                 armGeometry == null ? geometry.bones.keySet() : armGeometry.bones.keySet(),
-                Map.of(), excluded, Set.of(), !armsControlled);
+                Map.of(), armExcluded, Set.of(), !armsControlled);
         Map<String, YsmAnimationClip> effective = new LinkedHashMap<>(main.compile(engine));
         effective.putAll(hands.compile(engine));
         animationPlayer.registerDefaultAnimations(effective, arms.compile(engine));
@@ -431,6 +435,11 @@ public class YsmModelRuntime implements AutoCloseable {
     }
 
     private static Map<String, YsmAnimationClip> readAnimations(CompoundTag tag, MolangEngine engine) {
+        return readAnimations(tag, engine, false);
+    }
+
+    private static Map<String, YsmAnimationClip> readAnimations(CompoundTag tag, MolangEngine engine,
+                                                                     boolean firstPerson) {
         Map<String, YsmAnimationClip> result = new HashMap<>();
         for (Tag animationTag : tag.getListOrEmpty("animations")) {
             if (!(animationTag instanceof CompoundTag animation))
@@ -438,10 +447,24 @@ public class YsmModelRuntime implements AutoCloseable {
             String json = new String(animation.getByteArray("data").orElse(new byte[0]), StandardCharsets.UTF_8);
             if (json.isBlank())
                 continue;
+            boolean arm = false;
+            try {
+                arm = isFirstPersonAnimation(animation, com.google.gson.JsonParser.parseString(json).getAsJsonObject());
+            } catch (RuntimeException invalid) {
+                // Let the existing animation parser report malformed author JSON.
+            }
+            if (arm != firstPerson) {
+                continue;
+            }
             mergeAnimations(result, YsmAnimationParser.parse(json, true, engine,
                     tag.getBooleanOr("merge_multiline_expr", false)));
         }
         return result;
+    }
+
+    private static boolean isFirstPersonAnimation(CompoundTag animation, com.google.gson.JsonObject root) {
+        return animation.getBooleanOr("first_person", false)
+                || root.has("ysm_animation_type") && root.get("ysm_animation_type").getAsInt() == 11;
     }
 
     private static void mergeAnimations(Map<String, YsmAnimationClip> target, Map<String, YsmAnimationClip> source) {
@@ -1429,6 +1452,7 @@ public class YsmModelRuntime implements AutoCloseable {
             MolangEngine engine = MolangEngine.fromCustomBinding(previewOwner.getAvatarBindings());
             result.animationPlayer.setModelFormatVersion(animationPlayer.modelFormatVersion());
             result.animationPlayer.registerAnimations(readAnimations(previewInput, engine));
+            result.animationPlayer.registerArmAnimations(readAnimations(previewInput, engine, true));
             result.animationPlayer.registerControllers(readAnimationControllers(previewInput, engine,
                     (path, diagnostic) -> result.recordControllerDiagnostic(controllerDiagnostic(
                             result.modelKey, result.encryptedSource, path, diagnostic)), result.controllerSources));

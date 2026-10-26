@@ -40,8 +40,7 @@ public final class YsmSyncModel {
         controllers = runtime.animations().getControllers().keySet().stream().sorted().toList();
         states = controllers.stream().map(name -> runtime.animations().getControllers().get(name)
                 .states().keySet().stream().sorted().toList()).toList();
-        clips = runtime.animations().getClips().values().stream().distinct()
-                .sorted(Comparator.comparing(clip -> clip.name)).toList();
+        clips = runtime.animations().syncClips();
         if (textures.size() > 65536 || clips.size() > 65536 || controls.size() > YsmSyncMessage.MAX_ENTRIES
                 || actions.size() > YsmSyncMessage.MAX_ENTRIES || controllers.size() > YsmSyncMessage.MAX_ENTRIES
                 || states.stream().anyMatch(values -> values.size() > 65536)) {

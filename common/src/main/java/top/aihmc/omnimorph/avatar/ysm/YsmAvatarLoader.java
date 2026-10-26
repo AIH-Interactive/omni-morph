@@ -123,11 +123,13 @@ public final class YsmAvatarLoader {
         }
 
         ListTag animations = new ListTag();
+        List<String> firstPersonAnimations = YsmManifestReader.firstPersonAnimationPaths(ysmPackage);
         for (String animationPath : index.animationPaths()) {
             if (!ysmPackage.exists(animationPath))
                 continue;
             CompoundTag animation = new CompoundTag();
             animation.putString("path", animationPath);
+            animation.putBoolean("first_person", firstPersonAnimations.contains(animationPath));
             animation.putByteArray("data", ysmPackage.readString(animationPath).getBytes(java.nio.charset.StandardCharsets.UTF_8));
             animations.add(animation);
         }

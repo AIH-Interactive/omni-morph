@@ -368,10 +368,10 @@ public class MolangBindings implements ObjectBinding {
                         return null;
                     }
                     var player = context.owner.getYsmRuntime().animations();
-                    YsmAnimationClip.LoopMode fallback = player.loopModeFor(animation, YsmAnimationClip.LoopMode.ONCE);
+                    String controller = controllerName(context);
+                    YsmAnimationClip.LoopMode fallback = player.loopModeFor(controller, animation, YsmAnimationClip.LoopMode.ONCE);
                     YsmAnimationClip.LoopMode mode = arguments.size() == 2
                             ? loopModeFromCtrlValue(arguments.getAsInt(execution, 1), fallback) : fallback;
-                    String controller = controllerName(context);
                     player.playControllerFunctionAnimation(controller, animation, mode, 1f,
                             player.controllerFunctionTransitionLength(controller));
                     return null;
