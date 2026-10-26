@@ -1158,3 +1158,8 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 用户要求只读分析后写入计划。新增 `docs/YSM_D025_SYNC_PLAN.md`：参考 `PlayerDisplayState`/presence 发布机制、Omni 现状差距表、设计要点、S1–S7 分阶段（客户端记录/读取入口 → 同步段与编解码 v2 → cloud.proto 重新发布 → omnm-cloud 校验合并 → 发布接收接线 → 读取点切换 → 设置项）、兼容风险与 5 项待用户决策。计划表 D025 行注明已立项。未改代码、协议或后端。
 - 下一步：等待用户就计划第 7 节决策；未授权前不实施。
 - 续：用户追加要求“可查询内容与 YSM 状态机，若 Figura 无平替则同时封装为 Lua API”。已在 `docs/YSM_D025_SYNC_PLAN.md` 新增第 8 节：平替核对表（health/blocking/isUsingItem 已有平替；food/经验/飞行/效果/移动输入/动作状态/手部动作槽/控制器状态时间需封装）、新增 API 设计（全局 `ysm_display`、`ysm_model` 只读状态机扩展、远端只读查询、可选状态变化事件；不提供强制切换状态写接口）、阶段归属（S1/S6 追加、S8 事件）与 3 项新增待决策。仍未改代码。
+
+## 当前有效交接：D025 S1～S7 执行中（Claude，2026-10-27）
+
+- 用户目标：依次执行 `docs/YSM_D025_SYNC_PLAN.md` 的 S1～S7，每阶段测试编译提交、查额度，达阈值交接。用户未逐项回答计划第 7/8 节决策，本 Agent 按计划推荐默认执行：全局 `ysm_display`（不改 PlayerAPI）；字段为原版不同步的五项（饥饿/经验/飞行/移动输入/效果等级）；默认分享、可设置关闭；Figura Cloud 与 Protobuf 两路都支持；后端在 `omnm-cloud` master 实施；允许只读查询他人模型控制器状态；D 组事件（S8）不在本目标内。
+- **S1 完成（`ysm-alignment@2b44384c`，已推送）：** `model/ysm/sync/YsmDisplayState`（参考范围校验，效果≤64项）、`model/ysm/YsmDisplayQuery`（本地读实体/远端读已接收状态/否则 null，远端表 S5 才写入）、全局 Lua `ysm_display`（get/isSynced/getFood/getExperienceLevel/isFlying/getMovementInput/getEffectLevel，未知为 nil）、`ysm_model` 只读扩展（getActionState/getNativeAnimation/getHandActions/getControllerState/getControllerStateTime/getControllerStateNames）；`YsmAnimationPlayer` 记录 `lastActionState/lastNativeState`。测试 DisplayState（新）、NativeState（加 nativeAnimation/actionState 一致断言）、HandAnimation、VanillaState、FirstPersonController + `:fabric:build` PASS。额度：5 小时剩 68%。
