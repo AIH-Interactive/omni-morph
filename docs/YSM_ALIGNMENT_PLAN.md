@@ -229,7 +229,7 @@ D023/D012 是状态机转移与起播时刻。前一项不稳，后一项的行�
 | D018 手持物挂点解析/多挂点 | 待决策（I 批） | 多链各画一份与 sword 锚点可对齐；删除按骨名回退名单会失去兼容手段，需确认 |
 | D019 Molang 步数预算仅 Omni 有 | 不对齐 | Omni 更严的防护，删除无收益且有风险；可另评估阈值 |
 | D020 `math.*` 实现体语义 | 已完成（709c2416） | 黄金值/独立随机流/预算单测及 Fabric build PASS；按模型上下文使用 Xoroshiro 随机源，sin/cos 保留现有微差 |
-| D021 骨骼可见键/visible_bounds | 待决策（I 批） | 取消骨骼 `visible/hidden` 初始隐藏会改变既有显示，需确认 |
+| D021 骨骼可见键/visible_bounds | 已完成（ae173dfc，用户 2026-10-26 同意尝试；visible_bounds 无消费者未解析） | 取消骨骼 `visible/hidden` 初始隐藏会改变既有显示，需确认 |
 | D022 `time_of_day` 相位 +0.25 日 | 已完成（4738d6ab） | 参考 float 相位与负时间取余一致，timestamp 不移相；原生查询单测和 Fabric build PASS |
 | D023 自转移与环路处理 | 已完成（a3f3541c） | 自转移重入、visited 终止搜索、声明槽边界与声音门控顺序对齐；D007 持续播放停声问题仍独立待实施 |
 | D024 `is_close_eyes` 恒假 | 不对齐 | 是 Sparkle 缺陷（条件互斥永不眨眼），对齐等于关掉 Omni 现有眨眼 |
