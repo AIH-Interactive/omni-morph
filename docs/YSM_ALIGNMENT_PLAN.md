@@ -72,10 +72,13 @@ D023/D012 是状态机转移与起播时刻。前一项不稳，后一项的行�
   “同手使用优先于挥手”“松弓重拉重新起播”两条回归，不得回退。
 
 ### P0-6　D023：控制器转移的自转移与环路
-- 对齐 Sparkle `evaluateTransitions`：visited 不含当前状态；条件为真且目标已访问 → **终止本轮搜索**；
+- 对齐 Sparkle `evaluateTransitions`：常规更新的 visited 不含当前状态；初次进入状态本身记为已访问，
+  有声明动画槽时首帧停止转移链。声音门控先于 visited 检查；门控允许且目标已访问 → **终止本轮搜索**；
   自转移允许重入一次（重置片段、`on_exit/on_entry`、声音）；链仅在新状态无动画槽时继续。
+- 动画槽按声明计数，条件为零、片段缺失或 `empty` 名称仍使链停止；子控制器入口不占父控制器动画槽。
 - 改点：`YsmControllerRuntime.update/firstTransition/transition`（`:133-342`）。
-- 风险：自转移重入会重复触发 `on_entry`，需配合 D007（声音）一起验证。
+- 验证：`ysmControllerTransitionSmokeTest` 覆盖自转移起播/状态时钟/退出进入顺序、同帧环路、槽边界和声音门控，
+  `ysmControllerSoundSmokeTest` 按参考空状态链更新期望。D007 的持续片段刷新停声问题独立待实施，不在 D023 中修改。
 
 ### P0-7　D012：`blend_transition`/`set_beginning_transition_length` 的起播时刻
 - Sparkle：新片段在 BEGINNING_TRANSITION 期间时钟冻结在 0、事件被抑制，过渡结束后才起跑；
@@ -224,7 +227,7 @@ D023/D012 是状态机转移与起播时刻。前一项不稳，后一项的行�
 | D020 `math.*` 实现体语义 | 待实施（A 批） | 纯函数、确定性、零耦合，最先做 |
 | D021 骨骼可见键/visible_bounds | 待决策（I 批） | 取消骨骼 `visible/hidden` 初始隐藏会改变既有显示，需确认 |
 | D022 `time_of_day` 相位 +0.25 日 | 待实施（A 批） | 单点改动，已确认无其它写入点 |
-| D023 自转移与环路处理 | 待实施（E 批） | 影响状态机转移，需配合 D007 验证声音重入，属 P0 |
+| D023 自转移与环路处理 | 已完成（本次 D023 检查点） | 自转移重入、visited 终止搜索、声明槽边界与声音门控顺序对齐；D007 持续播放停声问题仍独立待实施 |
 | D024 `is_close_eyes` 恒假 | 不对齐 | 是 Sparkle 缺陷（条件互斥永不眨眼），对齐等于关掉 Omni 现有眨眼 |
 | D025 远端玩家输入/饥饿/盾牌取值 | 范围外 | 需扩展 `YsmSyncMessage`，涉及协议与后端，另行立项 |
 | D026 纹理半透明判定（黑色半透明像素） | 待实施（I 批） | 去掉 RGB 非零条件即可对齐，属 P2 |
