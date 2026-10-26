@@ -45,6 +45,9 @@ public class LuaParticle {
         if (particle instanceof ParticleAPI.SuppressedPreviewParticle) {
             return this;
         }
+        if (top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.suppressesParticles(owner)) {
+            return this;
+        }
         if (owner.previewParticles != null
                 && !(particle instanceof CustomParticle custom && custom.preview() == owner.previewParticles)) {
             throw new LuaError("Only this preview's custom particles can be spawned in its isolated scope");

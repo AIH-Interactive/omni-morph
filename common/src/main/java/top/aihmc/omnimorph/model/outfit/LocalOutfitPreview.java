@@ -44,6 +44,24 @@ public final class LocalOutfitPreview {
         return local != null && local.composition() == composition;
     }
 
+    /** The replaced resident still ticks for synchronization, but its undrawn bones have stale positions. */
+    public static boolean suppressesParticles(org.figuramc.figura.avatar.Avatar avatar) {
+        var local = state(Minecraft.getInstance().player);
+        if (local == null) {
+            return false;
+        }
+        var resident = AvatarManager.getLoadedUser(account);
+        if (resident == null) {
+            return false;
+        }
+        if (resident.getMainAvatar() == avatar) {
+            return local.base() != avatar;
+        }
+        var formal = resident.getOutfit();
+        return formal != null && formal.composition() != local.composition()
+                && formal.composition().runtimeInstances().containsValue(avatar);
+    }
+
     /** The editor gives up its session only when closing with world preview enabled. */
     public static void detach(Object owner) {
         if (session != null && editor == owner) {

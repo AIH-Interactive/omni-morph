@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-26 11:18（Asia/Seoul；衣柜与世界延迟绘制模式串扰已复现并修正，构建/安装完成，等待重启复测。以文末最新章节为准。）
+更新时间：2026-10-26 11:26（Asia/Seoul；隐藏正式运行时继续发射已通过真实Lua/记录引擎复现并抑制，构建与安装完成；真实客户端仍待复测，以文末为准。）
 
 ## 接续入口与约束
 
@@ -727,3 +727,13 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - Git：继续main，本轮前8acc4ecf；仅2个生产文件、1个回归文件及交接/进度记录纳入本检查点，随后提交推送核对HEAD与远端main。后端无本轮修改。主仓库未跟踪.omc/、mod_log/、patch/及后端原文件保留不提交。无运行中构建/测试；无额外自动实施任务。
 - 最小下一步：重启当前客户端后复测上述完整路径；当前自动回归/构建/安装已结束。文档源 ACCESSORY_SYSTEM_PROGRESS.md 文末；正式范围仍遵守 ACCESSORY_SYSTEM_IMPLEMENTATION_PLAN.md。
 - 修复验证后额度：Plus 5小时剩余70%、周剩余84%，重置Unix UTC秒1792996496/1793525491；未到阈值。当前Agent正常更新手册，不委派Luna。继续遵守当前分支提交推送、JDK25、前台PowerShell Tee日志、CodeGraph优先、范围冻结、禁止Qt offscreen与真实未验不得标PASS。
+## 当前有效交接：旧正式形象继续从旧矩阵发射（2026-10-26 11:26）
+
+- 用户复测8c1308cf后仍有黄色/绿色粒子停在旁边；截图 D:/Temp/User/codex-clipboard-dd695e97-ccb6-42fc-8fd7-dc269b331546.png。此前GUI矩阵保护和延迟绘制上下文修正没有解决用户实际反馈，不能将它们称为最终根因修复。
+- 本轮发现并复现另一条完整路径：LocalOutfitPreview 替换了绘制用Avatar，但 AvatarManager.tickLoadedAvatars 仍调用正式 UserData.tick；正式基础/实例仍在运行，未被绘制的骨骼世界矩阵停在最后位置，tick仍可经 LuaParticle.spawn 提交原版/Custom粒子。回归实际注册一个正式UserData、真实Avatar/Lua events.tick及同账号本地预览，以记录式ParticleEngine验证隐藏正式运行时的粒子提交。修复前精确断言 hidden formal avatar must not keep emitting... 失败，非源码文本猜测。真实截图中每个粒子的来源尚未直接采样，因此不声称已经完成真实客户端根因确认。
+- 最小修复：LocalOutfitPreview.suppressesParticles 按当前本地预览及正式驻留对象身份，识别被替换的正式基础/装饰；LuaParticle.spawn 在权限/预算和引擎提交前安静跳过。当前预览自身、借用同一基础及其他玩家不匹配此条件。正式tick/同步、Lua状态、服务端配装均不修改；退出本地覆盖后自动恢复原发射。不清除已有长寿命粒子来掩盖问题，不改用户脚本/模型/版本/后端。
+- 回归：正式Lua tick隐藏后引擎提交为0；当前预览可提交；detach关闭衣柜后正式发射仍被抑制；clear覆盖后正式发射恢复且Lua未重载。RED日志 build/reports/outfit/alpha4-hidden-formal-emitter-red.log（13秒）。:common:libraryPreviewRuntimeSmokeTest + :fabric:build PASS（28秒/21 tasks），日志 alpha4-hidden-formal-emitter-final.log；:common:ysmMaterialNativeSmokeTest PASS（11秒），实际CustomParticle、作者脚本、生成拖尾、独立GUI、动态光/生命周期等回归，日志 alpha4-hidden-formal-emitter-custom-regression.log。git diff --check PASS。记录式引擎/控制矩阵不是截图/GPU验收。
+- 安装：新产物合并10个既有natives，粒子接口检查与安装SHA核对PASS；18,686,303字节，SHA256 35145d25c36bde1050ef03a2a7b52766dbb49a956a5cbb1795d75cb890c7d869。目标仍为客户端mods中旧alpha4文件名，内部最新Alpha4.1代码。备份 build/tmp/omni-morph-before-custom-api-20261026-112537.jar，合并包 build/tmp/omni-morph-custom-particle-api-native.jar，日志 alpha4-hidden-formal-emitter-install.log。未结束用户进程，必须重启才加载新代码。
+- 未验证/最小下一步：真实客户端重启后复测进服/移动/开关衣柜/移动，观察旧位置是否持续生成新黄色绿色粒子；已有粒子按作者寿命自然消失，不能据它们仍存在就断言新发射仍失败。真实世界原版/Custom/GPU/光照全部MANUAL/PENDING。若仍持续新发射，应采样实际发射Avatar身份、粒子坐标及正式/本地归属再继续，不盲目叠加矩阵改动。自动实现/回归/安装已完成，无新增阶段。
+- Git：main本轮前8c1308cf；2生产文件、1回归文件及当前记录随后提交推送核对。后端无本轮修改；.omc/、mod_log/、patch/与后端原未跟踪数据保留。所有构建/打包/测试前台PowerShell Tee，JDK25，检查退出码并读日志；无运行中测试构建。
+- 修复验证后可靠额度：Plus 5小时剩余63%、周剩余83%，重置UTC Unix秒1792996496/1793525491，未触发Luna交接。继续遵守当前分支、范围控制、CodeGraph优先、冻结协议、保留用户数据、禁止Qt offscreen及真实未验不得标PASS。正式计划 ACCESSORY_SYSTEM_IMPLEMENTATION_PLAN.md；当前缺陷记录 ACCESSORY_SYSTEM_PROGRESS.md 文末。
