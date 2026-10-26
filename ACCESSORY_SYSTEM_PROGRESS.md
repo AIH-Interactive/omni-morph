@@ -1414,3 +1414,13 @@ alpha4-publish-disabled-diagnostics-build.log：libraryPreviewRuntimeSmokeTest�
 - 未验证/最小下一步：真实客户端重启后复测进服/移动/开关衣柜/移动，观察旧位置是否持续生成新黄色绿色粒子；已有粒子按作者寿命自然消失，不能据它们仍存在就断言新发射仍失败。真实世界原版/Custom/GPU/光照全部MANUAL/PENDING。若仍持续新发射，应采样实际发射Avatar身份、粒子坐标及正式/本地归属再继续，不盲目叠加矩阵改动。自动实现/回归/安装已完成，无新增阶段。
 - Git：main本轮前8c1308cf；2生产文件、1回归文件及当前记录随后提交推送核对。后端无本轮修改；.omc/、mod_log/、patch/与后端原未跟踪数据保留。所有构建/打包/测试前台PowerShell Tee，JDK25，检查退出码并读日志；无运行中测试构建。
 - 修复验证后可靠额度：Plus 5小时剩余63%、周剩余83%，重置UTC Unix秒1792996496/1793525491，未触发Luna交接。继续遵守当前分支、范围控制、CodeGraph优先、冻结协议、保留用户数据、禁止Qt offscreen及真实未验不得标PASS。正式计划 ACCESSORY_SYSTEM_IMPLEMENTATION_PLAN.md；当前缺陷记录 ACCESSORY_SYSTEM_PROGRESS.md 文末。
+## 当前有效交接：保留当前基础形象的粒子开关（2026-10-26 11:37）
+
+- 用户已确认8769d35b旧正式发射源抑制成功，进一步明确当前可见形象的原版粒子不再发射。该抑制的真实效果已获用户确认；此前其它矩阵/GUI人工项不由此自动变成PASS。
+- 根因复现：衣柜从正式配装创建本地草稿时 selectDraft(draftBase) 重建Avatar/Lua。用户 E:/AI Hobbyist Founder Public Server/lib/particle.lua 的局部global_enabled和tail_switches初始均false；原运行时已开启的开关在副本中丢失。回归以真实衣柜切Tab/恢复配装路径、真实Lua局部enabled先开启再打开衣柜，精确断言 opening wardrobe reset the active particle toggle 已RED（14秒），日志 build/reports/outfit/alpha4-resident-particle-state-red.log。
+- 最小修复：仅本地世界配装、未选不同基础且固定来源完全匹配时，LibraryPreviewSession.selectResidentBase 借用当前正式Avatar，保留Lua局部状态、动作轮盘和骨骼对象。WardrobeScreen在重新加载前尝试该路径；不同资源/隔离浏览仍走原加载。LibraryPreviewBinding明确ownsAvatar，借用基座的tick仍由正式UserData负责，只tick草稿实例；beforeExtract不重复运行正式基座帧准备；close和延迟帧退休均不clean借用对象。失效lease会使session不再current。不复制Lua私有状态、不改作者脚本/模型，不撤掉已验证的隐藏实例发射抑制。
+- 验证：真实恢复衣柜后仍是原Avatar且Lua开关为true；preview.tick不重复tick基座、UserData.tick恰好运行一次；不同固定资源拒绝借用；关闭会话/释放已捕获帧后正式acceleration owner仍current、Lua状态仍在。:common:libraryPreviewRuntimeSmokeTest + :common:ysmMaterialNativeSmokeTest + :fabric:build 全PASS（34秒/22 tasks），包含此前隐藏正式发射源、延迟世界/GUI矩阵、原版/Custom/独立GUI生命周期回归，日志 alpha4-resident-particle-state-final.log；git diff --check PASS。仅CPU/记录式引擎与Lua证据，不冒充真实游戏像素验证。
+- 安装已完成：18,687,049字节，SHA256 9e6740ddb0e5c4d3054172dcbe3a1c181d78557fab5913b69e78c60c8cdaa6e7，保留10个natives且公开粒子接口/安装SHA检查PASS。目标为当前客户端mods中原alpha4文件名（内部最新Alpha4.1）；备份 build/tmp/omni-morph-before-custom-api-20261026-113654.jar；合并包 build/tmp/omni-morph-custom-particle-api-native.jar，安装日志 alpha4-resident-particle-state-install.log。未结束游戏进程，需重启加载。
+- 未验证/最小下一步：重启后启用作者尾巴粒子，确认原本发射，再打开/关闭衣柜并移动，验证开关不被重置、粒子继续跟随尾尖；真实原版/Custom/光照/GPU仍MANUAL/PENDING。若失败读取新日志与实际当前基础身份，不回退已获确认的旧发射源抑制，不扩大到其它架构整理。无新增自动实施任务。
+- Git：继续main，本轮前8769d35b；3生产文件、1回归文件及本文/进度记录纳入随后检查点，提交推送核对远端HEAD。后端无本轮修改；原未跟踪.omc/、mod_log/、patch/和后端数据保留不提交。未改版本/后端/冻结协议/用户资源。前台PowerShell Tee/JDK25、退出码及日志检查均执行。
+- 修复完成安全点额度：Plus5小时剩余53%、周剩余81%，重置UTC Unix秒1792996496/1793525491；未触发Luna交接。继续遵守当前分支、范围、CodeGraph优先、真实窗口及禁止Qt offscreen、真实未验不得标PASS。正式范围 ACCESSORY_SYSTEM_IMPLEMENTATION_PLAN.md，缺陷记录 ACCESSORY_SYSTEM_PROGRESS.md 文末。

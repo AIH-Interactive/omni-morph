@@ -3293,6 +3293,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
             baseReady = java.util.concurrent.CompletableFuture.completedFuture(true);
         } else if (configuration.base() == null) {
             baseReady = java.util.concurrent.CompletableFuture.completedFuture(session.selectVanilla());
+        } else if (session.selectResidentBase(configuration.base())) {
+            baseReady = java.util.concurrent.CompletableFuture.completedFuture(true);
         } else {
             baseReady = session.selectDraft(draftBase);
         }
