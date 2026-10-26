@@ -1810,6 +1810,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var formal = AvatarManager.getLoadedOutfit(player.getUUID());
         try {
             top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.show(editor, preview);
+            testHiddenFormalParticleEmitter(unsafe, preview, player, editor);
             var worldFrame = new AvatarRenderState();
             top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.capture(player, worldFrame);
             require(AvatarManager.getAvatar(worldFrame) == preview.outfitState().base()
@@ -5395,6 +5396,98 @@ public final class LibraryPreviewRuntimeSmokeTest {
             Thread.sleep(1);
         }
         return future.get(1, TimeUnit.SECONDS);
+    }
+
+    private static void testHiddenFormalParticleEmitter(Unsafe unsafe, LibraryPreviewSession preview,
+                                                       CurrentPreviewPlayer player, Object editor) throws Exception {
+        @SuppressWarnings("unchecked")
+        var users = (Map<UUID, org.figuramc.figura.avatar.UserData>) field(AvatarManager.class, "LOADED_USERS").get(null);
+        var user = new org.figuramc.figura.avatar.UserData(player.getUUID());
+        var previousUser = users.put(player.getUUID(), user);
+        var engineField = field(Minecraft.class, "particleEngine");
+        var previousEngine = engineField.get(Minecraft.getInstance());
+        var engine = (PreviewParticleEngine) unsafe.allocateInstance(PreviewParticleEngine.class);
+        var formal = new Avatar(player.getUUID());
+        formal.load(model("hidden formal particle emitter"));
+        formal.initializePreviewPlayer(player);
+        user.getAvatars().add(formal);
+        var nativeParticle = (net.minecraft.client.particle.Particle) unsafe.allocateInstance(
+                net.minecraft.client.particle.WakeParticle.class);
+        formal.luaRuntime.setGlobal("native_probe",
+                new org.figuramc.figura.lua.api.particle.LuaParticle("firework", nativeParticle, formal));
+        formal.loadScript("old world particle emitter", """
+                events.tick:register(function()
+                    native_probe:spawn()
+                end)
+                """).call();
+        try {
+            engineField.set(Minecraft.getInstance(), engine);
+            formal.particlesRemaining.set(100);
+            formal.particlesRemaining.tick();
+            formal.tick();
+            require(engine.submissions == 0 && !formal.scriptError,
+                    "the hidden formal avatar must not keep emitting at its last rendered position during local preview");
+            var visible = preview.outfitBase();
+            visible.particlesRemaining.set(100);
+            visible.particlesRemaining.tick();
+            new org.figuramc.figura.lua.api.particle.LuaParticle("firework", nativeParticle, visible).spawn();
+            require(engine.submissions == 1, "the visible local preview keeps its native particle emission");
+            top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.detach(editor);
+            formal.tick();
+            require(engine.submissions == 1 && !formal.scriptError,
+                    "closing the wardrobe does not restart the hidden formal emitter");
+            // Return session ownership before temporarily disabling the override.
+            top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.show(editor, preview);
+            top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.clear(editor);
+            formal.tick();
+            require(engine.submissions == 2 && !formal.scriptError,
+                    "restoring the formal outfit restores its particle emitter without reloading Lua");
+        } finally {
+            top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.show(editor, preview);
+            engineField.set(Minecraft.getInstance(), previousEngine);
+            if (previousUser == null) {
+                users.remove(player.getUUID());
+            } else {
+                users.put(player.getUUID(), previousUser);
+            }
+            formal.clean();
+        }
+    }
+
+    private static final class PreviewParticleEngine extends net.minecraft.client.particle.ParticleEngine
+            implements org.figuramc.figura.ducks.ParticleEngineAccessor {
+        private int submissions;
+
+        private PreviewParticleEngine() {
+            super(null, null);
+        }
+
+        @Override
+        public void figura$spawnParticle(net.minecraft.client.particle.Particle particle, UUID owner) {
+            submissions++;
+        }
+
+        @Override
+        public void figura$clearParticles(UUID owner) {}
+
+        @Override
+        public <T extends net.minecraft.core.particles.ParticleOptions> net.minecraft.client.particle.Particle
+                figura$makeParticle(T options, double x, double y, double z, double vx, double vy, double vz) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public net.minecraft.client.particle.SpriteSet figura$getParticleSprite(net.minecraft.resources.Identifier id) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void figura$removeParticle(net.minecraft.client.particle.Particle particle) {}
+
+        @Override
+        public net.minecraft.client.particle.ParticleResources figura$getParticleResources() {
+            throw new UnsupportedOperationException();
+        }
     }
 
     private static void testDeferredWorldMatrices(Avatar avatar,
