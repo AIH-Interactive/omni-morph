@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-最新有效状态：见文末“D027 默认动画回退资源对齐完成（2026-10-26）”。本目标已结束，未启动下一项目标。
+最新有效状态：见文末“D023 控制器自转移与环路对齐完成（2026-10-26）”。本目标已结束，未启动下一项目标。
 
 更新时间：2026-10-26（Asia/Seoul；用户实测确认问题已解决，本次会话结束，无剩余实施任务。以文末最终验收为准。）
 
@@ -847,3 +847,18 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - **Git 与文件：** 分支 `ysm-alignment`，实施提交 `cf7c233738afa3d23877ce2646a5a872399b82b5` 已推送，核对 origin/ysm-alignment 与本地 HEAD 一致。随后仅本手册与计划表的提交号补记进入文档收尾提交，最终 HEAD 以实际 Git 为准。本轮修改仅默认回退 resolver、14 个独立资源、相关测试入口/测试、`.gitattributes`、计划与本手册。原未跟踪 `.omc/`、`mod_log/`、`patch/` 保留；后端 master 未改，实际未跟踪 `build.log`、`build/` 保留。
 - **额度：** 目标完成后可靠接口显示 Plus，5 小时 used 14% / 剩 86%，周 used 2% / 剩 98%；重置分别为 2026-10-26 20:38:18 +09:00（Unix 1793014698）、2026-11-02 15:38:18 +09:00（Unix 1793601498）。未触发额度交接，手册由当前 Agent 更新，未委派 Luna。
 - **实际下一步：** 本目标无剩余实施，等待用户指定下一目标。若继续 P0，按 `docs/YSM_ALIGNMENT_PLAN.md` 的依赖先 D023（E 批相关项），再 D012；其余待决策项不自动开工。相关文档：`docs/YSM_ANIMATION_ENGINE_COMPARISON.md`（原静态审计基线）、`docs/YSM_ALIGNMENT_PLAN.md`（D027 状态已更新）。继续遵守当前分支检查点、CodeGraph 优先、前台构建日志、有限范围、禁止 Qt offscreen 和原有未验证项证据边界。
+
+## 当前有效交接：D023 控制器自转移与环路对齐完成（2026-10-26）
+
+本节为最新状态。用户目标“对齐 D023”已达到相关单测成功、编译通过的完成条件，检查点已提交推送并核对远端，Goal 已标 complete；之后查询额度并更新本手册。没有本目标剩余实施，不自动启动 D007/D008/D009/D012。
+
+- **实现与参考：** 两仓库 CodeGraph 优先核对。参考 `refs/Sparkle-Morpher` 的 `AnimationControllerRuntime.process/evaluateTransitions/transitionToEntry` 与 `SoundTransitionGate`：常规更新不将当前状态预填 visited；自转移可重入一次。目标通过声音门控后，若已访问则结束整个搜索，不再求值后续转移条件；声音门控在 visited 检查前消费。初次进入状态本身记为 visited，有声明动画槽时首帧停链；之后每次转换只有目标无动画槽时才继续同帧转移。条件零、片段缺失、empty 名称都仍占声明槽；子控制器入口不占父槽。未实施此前用户排除的 D002 builtin 特殊来源互斥。
+- **生产改动：** 仅 `common/src/main/java/top/aihmc/omnimorph/model/ysm/controller/YsmControllerRuntime.java` 的 update/firstTransition/transition。移除对自身目标的跳过，使既有转换流程完成声音停止、旧 on_exit、新 on_entry、状态时钟归零、旧片段退休及新片段重启。保留原混合/子控制器/同步边界，不修改动画资源或版本，不修改后端。D027 的 default_animation 与 ysm_default 分工保留，模组仍通过符号链接接入 mods，无复制覆盖。
+- **测试与失败复现：** 新增 `YsmControllerTransitionSmokeTest.java` 与 `:common:ysmControllerTransitionSmokeTest` 入口，通过生产 JSON 解析器/控制器/播放器验证七组状态图：自转移重启已完成 ONCE 片段及保留淡出实例、初始槽边界、环路阻止后续条件求值、missing/empty/零权重声明槽、子控制器入口、声音自转移重入与 false 重新武装、声音门控先于 visited。RED 日志 `build/reports/outfit/alpha4-d023-red.log` 明确失败于 self-transition restarts even a completed ONCE clip。原 `YsmControllerSoundSmokeTest` 的空状态链期望同步改为同帧 next 后重入 default，未删除声音门控覆盖。
+- **最终验证 PASS：** JDK25，前台 PowerShell，Tee build.log 并立即检查退出码/读取日志。`alpha4-d023-final.log`：BUILD SUCCESSFUL in 45s，33 tasks。12 项显式 YSM 单测为 ControllerTransition、ControllerSound、ChildController、ControllerIsolation、ControllerPoseLayer、ControllerContext、ControllerPhase、FirstPersonController、FunctionStage、ControllerDiagnostic、SoundNative、MaterialNative；`:fabric:build` 成功，附带 LibraryPreviewRuntime 单测也通过。代码/diff 可读性已检查，未发现适用的独立 Java formatter 配置；`git diff --cached --check` PASS。
+- **既有失败，非本次回归：** 额外 `:common:ysmPlayerTimelineSmokeTest` 在第72行初始化事件时失败，夹具 `cpuRuntime()` 的 owner 为 null，`YsmAnimationPlayer.notifyAnimationEvent:1236` 解引用 owner 引发 NPE。临时将唯一改动的生产 runtime 恢复为任务基线 HEAD `91791ded5add082857e5e26a3e80e4ed97b0db58` 复跑，得到同栈同位置失败；随后 finally 恢复本轮源码，再完成最终绿色验证。证据 `alpha4-d023-regression-initial.log`、`alpha4-d023-timeline-baseline.log`。未改该无关夹具或生产通知逻辑，不能声称所有历史单测通过。`alpha4-d023-green.log` 是旧声音期望尚未更新时的中间失败，最终结果以 final.log 为准。
+- **未验证与范围：** 新状态图为受控 JSON 经生产解析路径执行，不是实际作者模型的游戏复现。声音测试证明请求/归属和 CPU 生命周期，不证明设备听感；真实游戏画面/音频/GPU/双客户端仍 MANUAL/PENDING。D007 每帧保持片段时无条件停声问题独立待实施，本项不冒称修复。既有 FunctionContract 滤波预览失败仍按旧交接记录保留。
+- **Git：** 当前分支 `ysm-alignment`，实施提交 `a3f3541cfd41f55f7da3ce29ef60dc40f80f8836` 已推送，已核对 origin/ysm-alignment 与当时本地 HEAD 完全一致。之后只有本手册和计划表提交号补记进入文档收尾提交，最终 HEAD 以实际 Git 为准。实施涉及 4 个代码/测试/Gradle 文件和计划；原未跟踪 `.omc/`、`mod_log/`、`patch/` 保留，无分支切换、无后端改动。
+- **产物：** `fabric/build/libs/omni-morph-1.0.0-alpha.4.1+26.1.2-fabric-mc.jar`，18,997,169 字节，SHA256 `01501176edeaf287af139c865441bb7a561eae15b85305243b377d9c627877eb`。本轮未升级版本、未重启游戏，无运行中构建/测试。
+- **额度：** 目标完成后可靠接口显示 Plus，5 小时 used 24% / 剩 76%，周 used 4% / 剩 96%；重置 Unix UTC 秒分别为 1793014699 / 1793601499。未触发交接阈值，当前 Agent 正常更新手册，未委派 Luna。
+- **最小下一步：** 本目标无剩余实施，等待用户指定下一目标。E 批 D007/D008/D009 尚未完成；D012 按计划依赖 E，不自动越过。先读 `AGENTS.md`、本节、`docs/YSM_ALIGNMENT_PLAN.md` 及原审计 `docs/YSM_ANIMATION_ENGINE_COMPARISON.md`，核对真实 Git 状态后再继续。保持 CodeGraph 优先、范围控制、当前分支提交推送检查点、JDK25/前台日志、禁止 Qt offscreen 和已验证/未验证证据边界。
