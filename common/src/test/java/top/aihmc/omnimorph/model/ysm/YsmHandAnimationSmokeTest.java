@@ -16,9 +16,12 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.KineticWeapon;
 import sun.misc.Unsafe;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationClip;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationParser;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationPlayer;
+import top.aihmc.omnimorph.model.ysm.controller.YsmAnimationControllerParser;
+import top.aihmc.omnimorph.model.ysm.controller.YsmControllerSlot;
 import top.aihmc.omnimorph.molang.MolangEngine;
 import top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator;
 
@@ -79,6 +82,7 @@ public final class YsmHandAnimationSmokeTest {
         verifyHoldPause(entity, update);
         verifyLegacyLoopOverride(entity, update);
         verifyLocalInputPulse(entity, update);
+        verifyControllerStageInterleaving(update);
         entity.mainArm = HumanoidArm.RIGHT;
         entity.usedHand = InteractionHand.MAIN_HAND;
         entity.offhand = ItemStack.EMPTY;
@@ -239,6 +243,9 @@ public final class YsmHandAnimationSmokeTest {
         var mainHold = animations.getActiveAnimation("hold_mainhand$minecraft:bow");
         var offHold = animations.getActiveAnimation("hold_offhand:empty");
         require(mainHold != null && offHold != null, "both hands start their own hold");
+        require(mainHold.poseOrder == YsmControllerSlot.executionOrder("hold_mainhand")
+                        && offHold.poseOrder == YsmControllerSlot.executionOrder("hold_offhand"),
+                "each hold belongs to its reference hold stage");
 
         entity.using = true;
         update.invoke(animations, entity);
@@ -326,6 +333,9 @@ public final class YsmHandAnimationSmokeTest {
         require(hands.using(entity, InteractionHand.MAIN_HAND, true), "the fixture starts a pending use pulse");
         update.invoke(animations, entity);
         require(targeted(animations, "use_mainhand:bow"), "a pending use pulse alone starts the drawing animation");
+        require(animations.getActiveAnimation("use_mainhand:bow").poseOrder
+                        == YsmControllerSlot.executionOrder("use"),
+                "a use clip belongs to the reference use stage");
         require(hold.paused, "a pending use pulse pauses its own hold like a native use");
 
         hands.mouseEvent(1, 0);
@@ -338,6 +348,9 @@ public final class YsmHandAnimationSmokeTest {
         require(hands.swinging(entity, InteractionHand.MAIN_HAND, true), "the fixture starts a pending swing pulse");
         update.invoke(animations, entity);
         require(targeted(animations, "swing:bow"), "a pending swing pulse alone starts the swing animation");
+        require(animations.getActiveAnimation("swing:bow").poseOrder
+                        == YsmControllerSlot.executionOrder("swing"),
+                "a swing clip belongs to the reference swing stage");
 
         var observer = player("hold_mainhand:bow", "use_mainhand:bow");
         // A fresh device state keeps the pulse sequence apart from the swing above.
@@ -352,6 +365,83 @@ public final class YsmHandAnimationSmokeTest {
         update.invoke(animations, entity);
         require(!targeted(animations, "swing:bow"), "clearing the device state retires the pulse swing");
         System.out.println("PASS local input pulses: native hand selection shares the query layer's pending use and swing");
+    }
+
+    /**
+     * The reference registers post_main (30) before use (41), so an author post_main idle pose must
+     * not overwrite the arms a later native use stage writes. Both write RightArm here.
+     */
+    private static void verifyControllerStageInterleaving(Method update) throws ReflectiveOperationException {
+        YsmModelRuntime runtime = stageRuntime();
+        YsmAnimationPlayer player = runtime.animations();
+        player.registerAnimations(YsmAnimationParser.parse("""
+                {"animations":{
+                  "post_idle":{"loop":true,"animation_length":1,
+                    "bones":{"RightArm":{"rotation":[-90,0,0]}}},
+                  "use_mainhand:bow":{"loop":true,"animation_length":1,
+                    "bones":{"RightArm":{"rotation":[45,0,0]}}}
+                }}
+                """, MolangEngine.fromCustomBinding(key -> null)));
+        player.registerControllers(YsmAnimationControllerParser.parse("""
+                {"animation_controllers":{
+                  "player.post_main":{"initial_state":"active","states":{
+                    "active":{"animations":["post_idle"]}}}
+                }}
+                """, MolangEngine.fromCustomBinding(key -> null)));
+        var evaluator = ExpressionEvaluator.evaluator(new org.figuramc.figura.avatar.Avatar.MolangContext(null));
+        player.controllerRuntime().update(evaluator, 0f, false);
+
+        HandEntity draw = newHandEntity();
+        draw.usedHand = InteractionHand.MAIN_HAND;
+        draw.mainArm = HumanoidArm.RIGHT;
+        draw.main = new ItemStack(Items.BOW);
+        draw.using = true;
+        update.invoke(player, draw);
+        var use = player.getActiveAnimation("use_mainhand:bow");
+        require(use != null && use.poseOrder > YsmControllerSlot.executionOrder("player.post_main"),
+                "the use stage follows post_main");
+        use.weight = 1f;
+        use.targetWeight = 1f;
+        sample(player, evaluator);
+        require(Math.abs(runtime.getPart("RightArm").animRotRaw().x - 45f) < 0.001f,
+                "post_main must not overwrite the later native use arm pose: "
+                        + runtime.getPart("RightArm").animRotRaw().x);
+        require(Math.abs(player.getControllerAnimation("player.post_main", "post_idle").weight - 1f) < 0.001f,
+                "the declared post_main clip still runs");
+        System.out.println("PASS hand stages: the native use arm pose survives the post_main layer");
+    }
+
+    private static YsmModelRuntime stageRuntime() throws ReflectiveOperationException {
+        var constructor = YsmModelRuntime.class.getDeclaredConstructor(org.figuramc.figura.avatar.Avatar.class,
+                YsmGeometry.class, YsmGeometry.class, FiguraTexture.class, String.class, boolean.class,
+                String.class, String.class, Map.class, float.class, float.class, boolean.class);
+        constructor.setAccessible(true);
+        return constructor.newInstance(null, stageGeometry(), stageGeometry(), null, "fixture", false,
+                "NEW", "hand-stage-fixture", Map.of(), 1f, 1f, true);
+    }
+
+    private static YsmGeometry stageGeometry() {
+        YsmGeometry geometry = new YsmGeometry();
+        var root = new YsmGeometry.Bone("root", null, new float[3], new float[3]);
+        var arm = new YsmGeometry.Bone("RightArm", "root", new float[3], new float[3]);
+        geometry.bones.put(root.name, root);
+        geometry.bones.put(arm.name, arm);
+        geometry.roots.add(root);
+        return geometry;
+    }
+
+    private static HandEntity newHandEntity() throws ReflectiveOperationException {
+        var unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+        unsafeField.setAccessible(true);
+        return (HandEntity) ((Unsafe) unsafeField.get(null)).allocateInstance(HandEntity.class);
+    }
+
+    private static void sample(YsmAnimationPlayer player, ExpressionEvaluator<?> evaluator)
+            throws ReflectiveOperationException {
+        Method sample = YsmAnimationPlayer.class.getDeclaredMethod("sampleAnimations",
+                ExpressionEvaluator.class, boolean.class);
+        sample.setAccessible(true);
+        sample.invoke(player, evaluator, false);
     }
 
     private static YsmAnimationPlayer onceClips(String... names) {

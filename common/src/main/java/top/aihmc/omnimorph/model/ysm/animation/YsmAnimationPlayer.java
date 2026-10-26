@@ -82,6 +82,15 @@ public class YsmAnimationPlayer {
     private final Map<String, String> nativeHandAnimations = new HashMap<>();
     /** Per-arm hold, kept separately so an action pauses rather than replaces it. */
     private final Map<String, String> nativeHoldAnimations = new HashMap<>();
+    /**
+     * Reference stage orders for native clips. The main movement slot comes first; hold, swing and
+     * use are separate stages the declared controller layers interleave with.
+     */
+    private static final int NATIVE_MAIN_STAGE = YsmControllerSlot.executionOrder("player.main");
+    private static final int HOLD_OFFHAND_STAGE = YsmControllerSlot.executionOrder("player.hold_offhand");
+    private static final int HOLD_MAINHAND_STAGE = YsmControllerSlot.executionOrder("player.hold_mainhand");
+    private static final int SWING_STAGE = YsmControllerSlot.executionOrder("player.swing");
+    private static final int USE_STAGE = YsmControllerSlot.executionOrder("player.use");
     private final Set<String> disabledNativeAnimations = new HashSet<>();
     private final Set<String> baseHiddenBones = new HashSet<>();
     private final YsmAnimationFrameClock frameClock = new YsmAnimationFrameClock();
@@ -111,6 +120,11 @@ public class YsmAnimationPlayer {
         public boolean loop;
         public YsmAnimationClip.LoopMode loopMode;
         public final boolean isNative;
+        /**
+         * Reference stage order this clip is applied at. Native movement, native hand actions and
+         * declared controller layers are merged by this order, so a later stage still wins.
+         */
+        public int poseOrder = NATIVE_MAIN_STAGE;
         public boolean initialEventsDispatched;
         private final java.util.List<YsmAnimationEvent> pendingInitialSounds = new java.util.ArrayList<>();
         private final List<LuaSound> sounds = new java.util.ArrayList<>();
@@ -1076,7 +1090,8 @@ public class YsmAnimationPlayer {
         applyBaseHiddenDefaults();
 
         Map<String, Map<String, YsmBonePose>> controllerPoses = new LinkedHashMap<>();
-        Map<String, YsmBonePose> nativePoses = new LinkedHashMap<>();
+        Map<Integer, Map<String, YsmBonePose>> nativePoses = new TreeMap<>();
+        Map<Integer, List<WeightedPose>> handPoses = new TreeMap<>();
         List<DirectPose> directPoses = new ArrayList<>();
         for (PlayingAnimation anim : activeAnimations.values()) {
             if (anim.retired) {
@@ -1143,8 +1158,13 @@ public class YsmAnimationPlayer {
                     }
 
                     if (anim.isNative) {
-                        nativePoses.put(boneAnim.boneName,
-                                YsmBonePose.accumulate(nativePoses.get(boneAnim.boneName), pose, effectiveWeight));
+                        Map<String, YsmBonePose> stage = nativePoses.computeIfAbsent(anim.poseOrder,
+                                ignored -> new LinkedHashMap<>());
+                        stage.put(boneAnim.boneName,
+                                YsmBonePose.accumulate(stage.get(boneAnim.boneName), pose, effectiveWeight));
+                    } else if (anim.poseOrder > NATIVE_MAIN_STAGE) {
+                        handPoses.computeIfAbsent(anim.poseOrder, ignored -> new ArrayList<>())
+                                .add(new WeightedPose(targetParts, pose, effectiveWeight));
                     } else {
                         directPoses.add(new DirectPose(targetParts, pose, effectiveWeight, baseAnimation,
                                 baseAnimation && normalizeName(anim.clip.name).contains("pre_parallel")));
@@ -1171,18 +1191,16 @@ public class YsmAnimationPlayer {
                 applyDirectPose(pose);
             }
         }
-        applyControllerLayers(controllerPoses, firstPerson, true);
-        for (var bone : nativePoses.entrySet()) {
-            for (YsmModelPart part : runtime.getAnimationParts(bone.getKey(), firstPerson)) {
-                applyControllerPose(part, bone.getValue());
-            }
-        }
+        applyControllerLayers(controllerPoses, nativePoses, handPoses, firstPerson, true);
+        applyNativePoses(nativePoses.remove(NATIVE_MAIN_STAGE), firstPerson);
         for (DirectPose pose : directPoses) {
             if (!pose.beforeMain()) {
                 applyDirectPose(pose);
             }
         }
-        applyControllerLayers(controllerPoses, firstPerson, false);
+        // Holds, swings and use are their own reference stages, so declared controllers such as
+        // post_main or parallel interleave with them instead of always overriding them.
+        applyControllerLayers(controllerPoses, nativePoses, handPoses, firstPerson, false);
     }
 
     /**
@@ -1259,31 +1277,123 @@ public class YsmAnimationPlayer {
         }
     }
 
+    private record WeightedPose(List<YsmModelPart> parts, YsmBonePose pose, float weight) {
+    }
+
+    private record PoseStage(int order, Runnable apply) {
+    }
+
+    /**
+     * Applies native, native-hand and declared layers in reference stage order. Inside one stage
+     * native clips come first and declared controllers last, so a later stage still wins.
+     */
     private void applyControllerLayers(Map<String, Map<String, YsmBonePose>> controllerPoses,
+                                       Map<Integer, Map<String, YsmBonePose>> nativePoses,
+                                       Map<Integer, List<WeightedPose>> handPoses,
                                        boolean firstPerson, boolean beforeMain) {
-        Map<String, YsmControllerPoseLayer> poseLayers = firstPerson ? armControllerPoseLayers : controllerPoseLayers;
-        // Later stages replace the channels they write, so apply in stage order rather than first-play order.
-        List<Map.Entry<String, YsmControllerPoseLayer>> orderedLayers = new ArrayList<>(poseLayers.entrySet());
-        orderedLayers.sort(Comparator.comparingInt(entry -> YsmControllerSlot.executionOrder(entry.getKey())));
-        for (var entry : orderedLayers) {
-            if (controllers.keySet().stream().anyMatch(name -> normalizeControllerName(name).equals(entry.getKey()))
-                    && usesBuiltinController(entry.getKey()) && !functionEventControllers.contains(entry.getKey())) {
-                continue;
+        List<PoseStage> stages = new ArrayList<>();
+        nativePoses.forEach((order, poses) -> {
+            if ((order < NATIVE_MAIN_STAGE) == beforeMain) {
+                stages.add(new PoseStage(order, () -> applyNativePoses(poses, firstPerson)));
             }
-            if ((YsmControllerSlot.executionOrder(entry.getKey()) < 20) != beforeMain) {
+        });
+        handPoses.forEach((order, poses) -> {
+            if ((order < NATIVE_MAIN_STAGE) == beforeMain) {
+                stages.add(new PoseStage(order, () -> {
+                    for (WeightedPose pose : poses) {
+                        applyWeightedPose(pose);
+                    }
+                }));
+            }
+        });
+        Map<String, YsmControllerPoseLayer> poseLayers = firstPerson ? armControllerPoseLayers : controllerPoseLayers;
+        for (var entry : poseLayers.entrySet()) {
+            int order = YsmControllerSlot.executionOrder(entry.getKey());
+            if ((order < NATIVE_MAIN_STAGE) != beforeMain) {
                 continue;
             }
             if (!firstPerson && isFirstPersonController(entry.getKey())) {
                 continue;
             }
-            Map<String, YsmBonePose> pose = entry.getValue().compose(controllerPoses.getOrDefault(entry.getKey(), Map.of()),
-                    bone -> boneRestRotation(bone, firstPerson));
-            boolean declaredController = controllers.keySet().stream()
-                    .anyMatch(name -> normalizeControllerName(name).equals(entry.getKey()));
-            for (var bone : pose.entrySet()) {
-                for (YsmModelPart part : runtime.getAnimationParts(bone.getKey(), firstPerson)) {
-                    applyControllerPose(part, bone.getValue(), declaredController);
-                }
+            Map.Entry<String, YsmControllerPoseLayer> layer = entry;
+            stages.add(new PoseStage(order, () -> applyControllerLayer(
+                    layer.getKey(), layer.getValue(), controllerPoses, firstPerson)));
+        }
+        // Later stages replace the channels they write, so stable-sort by stage rather than by play order.
+        stages.sort(Comparator.comparingInt(PoseStage::order));
+        for (PoseStage stage : stages) {
+            stage.apply().run();
+        }
+    }
+
+    private void applyNativePoses(Map<String, YsmBonePose> poses, boolean firstPerson) {
+        if (poses == null) {
+            return;
+        }
+        for (var bone : poses.entrySet()) {
+            for (YsmModelPart part : runtime.getAnimationParts(bone.getKey(), firstPerson)) {
+                applyControllerPose(part, bone.getValue());
+            }
+        }
+    }
+
+    /**
+     * Reference controller blend: a hand action replaces the channels it writes, scaled by its
+     * weight so a fading action still interpolates from the pose below it.
+     */
+    private static void applyWeightedPose(WeightedPose contribution) {
+        float weight = Math.clamp(contribution.weight(), 0f, 1f);
+        if (weight <= 0f) {
+            return;
+        }
+        for (YsmModelPart part : contribution.parts()) {
+            if (weight >= 1f) {
+                applyControllerPose(part, contribution.pose());
+            } else {
+                blendControllerPose(part, contribution.pose(), weight);
+            }
+        }
+    }
+
+    private static void blendControllerPose(YsmModelPart part, YsmBonePose pose, float weight) {
+        float[] position = pose.position();
+        if (position != null) {
+            FiguraVec3 current = part.animPosRaw();
+            part.animPosRaw().set(blend(current.x, position[0], weight),
+                    blend(current.y, position[1], weight), blend(current.z, position[2], weight));
+        }
+        float[] rotation = pose.rotation();
+        if (rotation != null) {
+            FiguraVec3 current = part.animRotRaw();
+            part.animRotRaw().set(blend(current.x, rotation[0], weight),
+                    blend(current.y, rotation[1], weight), blend(current.z, rotation[2], weight));
+        }
+        float[] scale = pose.scale();
+        if (scale != null) {
+            FiguraVec3 current = part.animScaleRaw();
+            part.animScaleRaw().set(blend(current.x, scale[0], weight),
+                    blend(current.y, scale[1], weight), blend(current.z, scale[2], weight));
+        }
+    }
+
+    private static float blend(double from, float to, float weight) {
+        return (float) (from + (to - from) * weight);
+    }
+
+    private void applyControllerLayer(String controllerName, YsmControllerPoseLayer layer,
+                                      Map<String, Map<String, YsmBonePose>> controllerPoses,
+                                      boolean firstPerson) {
+        boolean declaredController = controllers.keySet().stream()
+                .anyMatch(name -> normalizeControllerName(name).equals(controllerName));
+        if (declaredController && usesBuiltinController(controllerName)
+                && !functionEventControllers.contains(controllerName)) {
+            return;
+        }
+        Map<String, YsmBonePose> pose = layer.compose(controllerPoses.getOrDefault(controllerName, Map.of()),
+                bone -> boneRestRotation(bone, firstPerson));
+        for (var bone : pose.entrySet()) {
+            for (YsmModelPart part : runtime.getAnimationParts(bone.getKey(), firstPerson)) {
+                applyControllerPose(part, bone.getValue(), declaredController);
             }
         }
     }
@@ -1815,9 +1925,9 @@ public class YsmAnimationPlayer {
                 // Legacy :spear clips describe a trident throw. Keep the authored grip
                 // when this model has no kinetic charge pose; the item handles its use orientation.
                 keepHoldWhileUsing = true;
-                syncNativeHandAnimation(useSlot, false);
+                syncNativeHandAnimation(useSlot, false, USE_STAGE);
             } else {
-                syncNativeHandAnimation(useSlot, true, names);
+                syncNativeHandAnimation(useSlot, true, USE_STAGE, names);
                 sampleKineticChargeAnimation(useSlot, entity, item);
             }
         }
@@ -1835,7 +1945,7 @@ public class YsmAnimationPlayer {
             boolean left = handSlotIsLeft(swingingHand, mainArm);
             ItemStack item = entity.getItemInHand(swingingHand);
             String[] names = swingAnimationNames(swingingHand, item);
-            playNativeHandOnce(left ? "left" : "right", names);
+            playNativeHandOnce(left ? "left" : "right", SWING_STAGE, names);
             sampleKineticSwingAnimation(left ? "left" : "right", entity, item);
         }
         String swingSlot = anySwinging && !swingUsesActiveHand
@@ -1843,7 +1953,7 @@ public class YsmAnimationPlayer {
                 : null;
         for (String slot : new String[]{"left", "right"}) {
             if (!slot.equals(useSlot) && !slot.equals(swingSlot)) {
-                syncNativeHandAnimation(slot, false);
+                syncNativeHandAnimation(slot, false, USE_STAGE);
             }
         }
         wasSwinging = anySwinging;
@@ -1891,17 +2001,18 @@ public class YsmAnimationPlayer {
         }
         ItemStack item = entity.getItemInHand(hand);
         String prefix = hand == InteractionHand.MAIN_HAND ? "hold_mainhand" : "hold_offhand";
+        int poseOrder = hand == InteractionHand.MAIN_HAND ? HOLD_MAINHAND_STAGE : HOLD_OFFHAND_STAGE;
         if (item.isEmpty()) {
-            syncNativeHoldAnimation(slot, prefix + ":empty");
+            syncNativeHoldAnimation(slot, poseOrder, prefix + ":empty");
             return;
         }
         if (item.is(Items.CROSSBOW) && CrossbowItem.isCharged(item)) {
-            syncNativeHoldAnimation(slot, prefix + ":charged_crossbow", prefix);
+            syncNativeHoldAnimation(slot, poseOrder, prefix + ":charged_crossbow", prefix);
             return;
         }
         if (hand == InteractionHand.MAIN_HAND && item.is(Items.FISHING_ROD)
                 && entity instanceof Player player && player.fishing != null && !player.fishing.isRemoved()) {
-            syncNativeHoldAnimation(slot, prefix + ":fishing", prefix);
+            syncNativeHoldAnimation(slot, poseOrder, prefix + ":fishing", prefix);
             return;
         }
         if (isKineticSpear(item)) {
@@ -1911,10 +2022,10 @@ public class YsmAnimationPlayer {
             names.add("lance_stand");
             names.add(prefix + ":lance");
             names.addAll(Arrays.asList(conditionalAnimationNames(prefix, item, false)));
-            syncNativeHoldAnimation(slot, names.toArray(String[]::new));
+            syncNativeHoldAnimation(slot, poseOrder, names.toArray(String[]::new));
             return;
         }
-        syncNativeHoldAnimation(slot, conditionalAnimationNames(prefix, item, false));
+        syncNativeHoldAnimation(slot, poseOrder, conditionalAnimationNames(prefix, item, false));
     }
 
     private String[] useAnimationNames(LivingEntity entity, boolean left, ItemStack item) {
@@ -2060,18 +2171,18 @@ public class YsmAnimationPlayer {
     }
 
     /** Use actions: the reference use predicate passes LOOP to its format validator. */
-    private void syncNativeHandAnimation(String slot, boolean active, String... names) {
+    private void syncNativeHandAnimation(String slot, boolean active, int poseOrder, String... names) {
         String selected = active ? firstHandAnimation(names) : null;
-        syncNativeSlotAnimation(nativeHandAnimations, slot, selected, YsmAnimationClip.LoopMode.LOOP);
+        syncNativeSlotAnimation(nativeHandAnimations, slot, selected, YsmAnimationClip.LoopMode.LOOP, poseOrder);
     }
 
     /** Holds: LOOP, except a declared *:lance hold, which the reference holds on its last frame. */
-    private void syncNativeHoldAnimation(String slot, String... names) {
+    private void syncNativeHoldAnimation(String slot, int poseOrder, String... names) {
         String selected = firstHandAnimation(names);
         YsmAnimationClip.LoopMode predicateLoop = selected != null && selected.endsWith(":lance")
                 ? YsmAnimationClip.LoopMode.HOLD_ON_LAST_FRAME
                 : YsmAnimationClip.LoopMode.LOOP;
-        syncNativeSlotAnimation(nativeHoldAnimations, slot, selected, predicateLoop);
+        syncNativeSlotAnimation(nativeHoldAnimations, slot, selected, predicateLoop, poseOrder);
     }
 
     /**
@@ -2088,7 +2199,7 @@ public class YsmAnimationPlayer {
     }
 
     private void syncNativeSlotAnimation(Map<String, String> owners, String slot, String selected,
-                                         YsmAnimationClip.LoopMode predicateLoop) {
+                                         YsmAnimationClip.LoopMode predicateLoop, int poseOrder) {
         String previous = owners.get(slot);
         if (Objects.equals(previous, selected))
             return;
@@ -2105,18 +2216,21 @@ public class YsmAnimationPlayer {
             playing.builtinSource = owners == nativeHoldAnimations
                     ? "player." + (selected.startsWith("hold_offhand") ? "hold_offhand" : "hold_mainhand")
                     : "player.use";
+            playing.poseOrder = poseOrder;
             owners.put(slot, selected);
         }
     }
 
-    private void playNativeHandOnce(String slot, String... names) {
+    private void playNativeHandOnce(String slot, int poseOrder, String... names) {
         String selected = firstHandAnimation(names);
         if (selected == null)
             return;
         String previous = nativeHandAnimations.put(slot, selected);
         if (previous != null && !previous.equals(selected))
             fadeOut(previous, 0.05f);
-        play(selected, YsmAnimationClip.LoopMode.ONCE, 1f, 0f).builtinSource = "player.swing";
+        PlayingAnimation playing = play(selected, YsmAnimationClip.LoopMode.ONCE, 1f, 0f);
+        playing.builtinSource = "player.swing";
+        playing.poseOrder = poseOrder;
     }
 
     private String firstHandAnimation(String... names) {
