@@ -330,9 +330,6 @@ public class YsmModelRuntime implements AutoCloseable {
         boolean mainControlled = animationPlayer.getControllers().values().stream()
                 .anyMatch(controller -> controller.slot() == top.aihmc.omnimorph.model.ysm.controller.YsmControllerSlot.MAIN
                         && controller.states().values().stream().noneMatch(top.aihmc.omnimorph.model.ysm.controller.YsmControllerState::isBuiltin));
-        boolean handsControlled = animationPlayer.getControllers().values().stream()
-                .anyMatch(controller -> controller.slot() == top.aihmc.omnimorph.model.ysm.controller.YsmControllerSlot.POST_SWING
-                        && controller.states().values().stream().noneMatch(top.aihmc.omnimorph.model.ysm.controller.YsmControllerState::isBuiltin));
         boolean armsControlled = animationPlayer.getControllers().values().stream()
                 .anyMatch(controller -> controller.slot() == top.aihmc.omnimorph.model.ysm.controller.YsmControllerSlot.FIRST_PERSON_ARM);
         if (mainControlled) {
@@ -341,7 +338,7 @@ public class YsmModelRuntime implements AutoCloseable {
         var main = YsmDefaultAnimationResolver.resolve(modelKey, YsmDefaultAnimationResolver.Domain.MAIN,
                 geometry.bones.keySet(), Map.of(), mainExcluded, Set.of(), true);
         var hands = YsmDefaultAnimationResolver.resolve(modelKey, YsmDefaultAnimationResolver.Domain.ARM,
-                geometry.bones.keySet(), Map.of(), excluded, Set.of(), !handsControlled);
+                geometry.bones.keySet(), Map.of(), excluded, Set.of(), true);
         var arms = YsmDefaultAnimationResolver.resolve(modelKey, YsmDefaultAnimationResolver.Domain.ARM,
                 armGeometry == null ? geometry.bones.keySet() : armGeometry.bones.keySet(),
                 Map.of(), armExcluded, Set.of(), !armsControlled);

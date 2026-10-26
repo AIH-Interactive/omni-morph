@@ -6,8 +6,8 @@
 
 | 阶段 | 范围 | 状态 |
 | --- | --- | --- |
-| 1 | B1/B3：SPEAR 兼容候选、未解析 use 保持 hold | 完成，本检查点 |
-| 2 | B2：post_swing 不再关闭整个默认手部域 | 待实施 |
+| 1 | B1/B3：SPEAR 兼容候选、未解析 use 保持 hold | 完成 bb962baf |
+| 2 | B2：post_swing 不再关闭整个默认手部域 | 完成，本检查点 |
 | 3 | B4/B5：武器分类与 charge 家族时钟边界 | 待实施 |
 | 4 | B6/B7：手部阶段归属判定与一次性诊断 | 待实施 |
 | 5 | B8：空候选只排除自身，不阻断其它默认候选；最终回归 | 待实施 |
@@ -19,3 +19,9 @@
 - 仅当成功解析 use 才暂停该手 hold，缺失时维持同一持握实例；未改旧默认/空片段语义。
 - HandAnimation（含真实模型回放、弓/三叉戟/矛）、NativeState、DefaultAnimation 及 Fabric build PASS，`spear-b1-b3-final.log`，1分10秒/24 tasks；附带 LibraryPreviewRuntime PASS。
 - 自动结果不证明实际游戏/GPU/听感；人工验收 MANUAL/PENDING。
+
+## 阶段 2
+
+- RED `spear-b2-red.log`：实际 Avatar 存在post_swing时缺少hold_mainhand:spear默认。
+- 移除POST_SWING对整份手部默认资源的加载禁用。资源准备与运行时具体stage的builtin/作者互斥分离，原精确阶段播放门控保留。
+- `spear-b2-final.log`：DefaultAnimation、BuiltinController、HandAnimation及Fabric build PASS，56秒/24 tasks（附带LibraryPreviewRuntime PASS）。未改资源或作者控制器，不将CPU结果冒称实机画面通过。
