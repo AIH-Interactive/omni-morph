@@ -35,6 +35,11 @@ public final class YsmHandQuery {
         return YsmInputState.device().hands().anySwinging((LivingEntity) context.entity, localOwner(context));
     }
 
+    /** Reference getSwingingHand: a local pulse wins for the owned model, else the entity's arm. */
+    public static net.minecraft.world.InteractionHand swingingHand(Avatar.MolangContext context) {
+        return YsmInputState.device().hands().swingingHand((LivingEntity) context.entity, localOwner(context));
+    }
+
     public static float swingTicks(Avatar.MolangContext context) {
         return YsmInputState.device().hands().swingTime(
                 (LivingEntity) context.entity, context.ysm_partial_tick, localOwner(context));

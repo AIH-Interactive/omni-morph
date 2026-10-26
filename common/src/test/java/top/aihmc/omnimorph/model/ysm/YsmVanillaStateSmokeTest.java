@@ -155,6 +155,7 @@ public final class YsmVanillaStateSmokeTest {
         Avatar.MolangContext other = new Avatar.MolangContext(null);
         require(eval(engine, other, "ysm.is_close_eyes;") == null, "another context does not inherit entity/blink state");
         testWeaponQueries(engine, context, entity);
+        testReferenceQueries(engine, context, entity);
         testRelativeBlocks(engine, context, entity);
         testWorldQueries(engine, context, entity);
         testLivingQueries(engine, context, entity);
@@ -257,6 +258,70 @@ public final class YsmVanillaStateSmokeTest {
         entity.using = entity.swinging = entity.spinAttack = false;
         entity.fallDistance = 0;
         entity.sleeping = true;
+    }
+
+    /** D015: the 56 reference YSMBinding names that were missing after the weapon batch. */
+    private static final List<String> REFERENCE_NAMES = List.of(
+            "arrow_count", "attack_damage", "attack_knockback", "attack_speed", "biome_category", "block_reach",
+            "boat_chest_passenger_offset", "boat_is_chest", "boat_is_raft", "delta_movement_length",
+            "dump_equipped_item", "dump_relative_block", "effect_level", "entity_gravity", "entity_reach",
+            "get_equipped_item_name", "get_root_locator_offset", "has_left_shoulder_parrot",
+            "has_right_shoulder_parrot", "hit_target_id", "hit_target_type", "hooked_in", "in_ground", "is_biting",
+            "is_fishing", "is_holding_left", "is_holding_right", "is_maid", "is_riptide", "is_spectral_arrow",
+            "item_is_charged", "item_use_normalized", "knockback_resistance", "ladder_facing",
+            "left_shoulder_parrot_variant", "luck", "mainhand_charged_crossbow", "map_angle", "modified_move_speed",
+            "movement_speed", "nametag_distance", "offhand_charged_crossbow", "on_ground_time", "on_ladder",
+            "projectile_owner", "right_shoulder_parrot_variant", "sleep_rotation", "step_height_addition",
+            "stinger_count", "swim_amount", "swim_speed", "swinging_arm", "target_x_rotation", "target_y_rotation",
+            "tcos0", "throwable_item");
+
+    private static void testReferenceQueries(MolangEngine engine, Avatar.MolangContext context,
+                                             FixtureEntity entity) throws Exception {
+        ObjectBinding registry = (ObjectBinding) Avatar.createMolangBindings(context).getProperty("ysm");
+        require(REFERENCE_NAMES.size() == 56, "remaining reference name count");
+        for (String name : REFERENCE_NAMES) {
+            require(!registry.getProperty(name).getClass().getSimpleName().equals("UnavailableBinding"),
+                    "reference name is registered: " + name);
+        }
+        context.entity = entity;
+        entity.equipment = new java.util.EnumMap<>(EquipmentSlot.class);
+        Items.CROSSBOW.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
+        entity.equipment.put(EquipmentSlot.MAINHAND, new ItemStack(Items.CROSSBOW));
+        entity.equipment.put(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
+        entity.spinAttack = true;
+        entity.climbable = true;
+        entity.swimming = true;
+        entity.using = true;
+        entity.moveDist = 0.5f;
+        context.life_time = 0f;
+        context.ysm_head_pitch = 22.55f;
+        require(Boolean.TRUE.equals(eval(engine, context, "ysm.is_riptide;")), "riptide reads auto spin attack");
+        require(Boolean.TRUE.equals(eval(engine, context, "ysm.on_ladder;")), "on_ladder reads climbable");
+        require(Float.valueOf(1f).equals(eval(engine, context, "ysm.swim_amount;")), "swim_amount is binary");
+        require(Float.valueOf(1f).equals(eval(engine, context, "ysm.item_use_normalized;")), "item use is binary");
+        require(Float.valueOf(1f).equals(eval(engine, context, "ysm.is_holding_right;")), "main hand is the right hand");
+        require(Float.valueOf(0f).equals(eval(engine, context, "ysm.is_holding_left;")), "empty off hand");
+        require("crossbow".equals(eval(engine, context, "ysm.get_equipped_item_name('main_hand');")),
+                "equipped item name is the registry path");
+        require("empty".equals(eval(engine, context, "ysm.get_equipped_item_name('off_hand');")), "empty off hand name");
+        require(Float.valueOf(0f).equals(eval(engine, context, "ysm.get_root_locator_offset();")), "root locator offset is 0");
+        // map_angle = clamp(1 - headPitch / 45.1); tcos0 = cos(0) * min(1, 0.5 * 4) * 20.
+        require(Math.abs(((Number) eval(engine, context, "ysm.map_angle;")).floatValue() - 0.5f) < 1e-5f, "map angle");
+        require(Math.abs(((Number) eval(engine, context, "ysm.tcos0;")).floatValue() - 20f) < 1e-5f, "tcos0");
+        require(Math.abs(((Number) eval(engine, context, "ysm.modified_move_speed;")).floatValue() - 10f) < 1e-5f,
+                "modified move speed is moveDist * 20");
+        require(eval(engine, context, "ysm.target_x_rotation;") == null, "player-only names are null for other entities");
+        require(eval(engine, context, "ysm.block_reach;") == null, "attribute names are player-only");
+        require(eval(engine, context, "ysm.in_ground;") == null, "arrow-only names are null for living entities");
+        require(eval(engine, context, "ysm.biome_category;") == null, "biome_category is deprecated and null");
+        require(Boolean.FALSE.equals(eval(engine, context, "ysm.is_fishing;")), "non-player is not fishing");
+        context.entity = null;
+        require(eval(engine, context, "ysm.is_riptide;") == null, "living names are null without an entity");
+        entity.spinAttack = entity.climbable = entity.swimming = entity.using = false;
+        entity.moveDist = 0f;
+        entity.equipment.clear();
+        context.ysm_head_pitch = 0f;
+        context.entity = entity;
     }
 
     private static void testProjectileFiringItem(MolangEngine engine, Avatar.MolangContext context,
