@@ -1442,3 +1442,11 @@ alpha4-publish-disabled-diagnostics-build.log：libraryPreviewRuntimeSmokeTest�
 - Git：main，开始基线 d5d11313794180fe7b09db67a7c22dff1558a35e。生产1文件、回归1文件、Gradle任务1文件及交接/进度记录同一检查点提交推送；最终提交号以本节所属提交和 git log 为准，交付前核对远端main与HEAD一致。后端无改动，原未跟踪build.log、build/保留；主仓库.omc/、mod_log/、patch/保留。git diff --check PASS，无运行中构建测试。
 - 开发环境：本会话profile不再提供usejdk，已确认Gradle测试子进程实际为 D:/Program Files/Java/25/bin/java.exe，后续显式JAVA_HOME使用JDK25。所有构建/打包/测试前台PowerShell Tee至build.log、立即检查退出码并读日志。未使用Qt offscreen。
 - 最近可靠额度：Plus，5小时剩余41%、周剩余79%，重置UTC Unix秒1792996496/1793525491，未触发交接阈值，不委派Luna。保持安全点查询；阈值触发仅委派gpt-6-luna整理手册。当前Goal保持未完成，等待真实验收，不编造下一开发阶段。历史计划 ACCESSORY_SYSTEM_IMPLEMENTATION_PLAN.md；本缺陷进度见 ACCESSORY_SYSTEM_PROGRESS.md 同节。
+
+## YSM 拉弓验收方式确认（2026-10-26）
+
+- 用户明确要求“人工验收，不需要 computer use”。立即停止Computer Use，后续不得自动操作或重启游戏；本次没有启动新游戏或进行游戏输入。
+- 代码检查点 main@48d7b93368a80348b001d99b027b465a2c8b56ce 已推送。重新核对当前已安装JAR SHA256仍为ddcf0b18da288f8cb837b0f7678113d577e11666182e9ff660a6640ee6580fc4，与本轮构建/安装记录一致；原40秒自动回归及构建PASS，无新增生产修改或重复构建。
+- 目前唯一阻塞：尚未收到用户对新包首次拉弓、持续拉弓及松弓后快速重拉的人工验收结果。此前CPU回归不能证明用户整体画面问题已解决。该条件已连续跨原修复交付、自动续跑和人工验收确认保留；Goal设为blocked等待人工反馈，未标完成。没有运行中任务可轮询，不通过重复自动续跑或新增无关代码消耗额度。
+- 最小下一步：用户重启新包并反馈验收结果。通过则记录真实验收后关闭Goal；仍异常则使用反馈中的视角/使用状态及新日志继续定位首次拉弓完整路径，遵守人工验收方式。保留现有未跟踪.omc/、mod_log/、patch/。
+- 最新可靠额度：Plus5小时剩余37%、周剩余79%，重置Unix UTC秒1792996496/1793525491；未达额度交接阈值。本记录由当前Agent维护，未委派Luna。
