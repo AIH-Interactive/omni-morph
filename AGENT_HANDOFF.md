@@ -1,6 +1,8 @@
 # 当前任务交接手册
 
-更新时间：2026-10-26（Asia/Seoul；用户实测确认问题已解决，本次会话结束，无剩余实施任务。以文末最终验收为准。）
+最新有效状态：见文末“当前有效交接：宇航员模型移动时备用狐狸头盔显露（2026-10-26）”。已建立针对真实 refs/avatars/03_astronaut 的最小失败回归，RED已复现；生产代码尚未修改，根因写入者仍待定位。额度触发安全交接，保留未提交改动。
+
+更新时间：2026-10-26（Asia/Seoul；Plus五小时额度剩8%，已进入交接模式。）
 
 ## 接续入口与约束
 
@@ -807,3 +809,368 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 续：新增 D027（内置默认动画资源 4/14 文件内容不同：main/arm/boat/extra）。
 - 续：新增 D028（keyboard/mouse 输入归属门控）；骨骼变换矩阵、sync/defer 函数体核对一致。报告35项。
 - 续：新增 D029（动画 particle_effects：仅 Omni 触发）。报告36项。覆盖清单各行均已落到具体差异或一致结论；仍属静态源码对比，未做数值回放或游戏验证。
+
+## 当前有效交接：YSM 动画引擎对比审计收口与对齐分支（2026-10-26）
+
+本节覆盖此前“YSM 动画引擎对比审计”节的暂停状态。
+
+- **分支变更（用户明确要求）：** 审计成果已提交推送到 `main@23a067d5`（远端 SHA 核对一致）。随后新建并切换到 `ysm-alignment`（跟踪 `origin/ysm-alignment`），**后续对齐开发在此分支进行**，不再直接改 `main`。AGENTS.md 中“当前开发分支为 main”的描述对本任务暂不适用，合并回 `main` 需用户另行决定。
+- **已完成：** 静态对比审计覆盖清单 9 个范围，报告 `docs/YSM_ANIMATION_ENGINE_COMPARISON.md` 共 36 项差异（D001–D029、SAMP-01–07），均为源码静态对比，无数值回放、无游戏验证。优先级与批次计划见 `docs/YSM_ALIGNMENT_PLAN.md`（目标：OmniMorph 动画实际行为与 `refs/Sparkle-Morpher` 一致）。两份文档因 `.gitignore` 的 `/docs/*` 需 `git add -f`，已强制纳入版本库。
+- **未完成 / 未开始：** 对齐计划尚未实施任何一项，代码零改动。计划第 7 节 6 条决策事项（D027 的 Omni 独有条目、D011 撤销多周期事件窗口、D010 的 `blend_via_shortest_path`、D021 骨骼可见键、“不建议对齐”各项、D025 是否立项）均待用户回答；未决前不要开工相关批次。
+- **最小下一步：** 向用户确认第 7 节决策；建议先做 A 批（D020 `math.*` 函数 + D022 `time_of_day`，纯函数、零耦合），每项先写 RED 黄金值测试（期望值取自 Sparkle 源码，不用 Omni 自身输出），再最小修改，前台 PowerShell `Tee-Object` 构建/测试，逐批提交推送并核对远端 SHA。
+- **未验证 / 风险：** 差异是否造成用户可见 BUG 均未证实；D024/D028/D029/D019/SAMP-02/Kipfel 对齐会复制 Sparkle 缺陷或删除 Omni 能力，默认不做。真实窗口/GPU/双客户端验收仍 `MANUAL/PENDING`。
+- **工作区：** 原有未跟踪 `.omc/`、`mod_log/`、`patch/` 保留未提交；后端 `omnm-cloud` 本节无改动。conda base 的 Python 在 `D:/ProgramData/miniconda3/python.exe`（bash 中先 `source /d/ProgramData/miniconda3/etc/profile.d/conda.sh && conda activate base`）。
+- **约束不变：** JDK 25；构建/测试前台 PowerShell 且 `2>&1 | Tee-Object -FilePath build.log`；禁止 Qt offscreen；CodeGraph 优先；范围控制与里程碑检查点（每批提交推送、核对远端 SHA）；版本号不自动升级。
+- 续（`ysm-alignment`）：`docs/YSM_ALIGNMENT_PLAN.md` 新增第 8 节“差异处理记录表”（差异｜状态｜决策理由，39 行：D001–D029、SAMP-01–07、3 条设计差异）。状态取值 待实施/待决策/不对齐/范围外，全部仍未实施；某项完成后在该表把状态改为“已完成（提交号）”并在本手册记录。仅文档改动，无代码/构建/测试。
+- **目标完成约定（用户 2026-10-26）：** 每个目标以“相关单元测试通过 + 编译通过”为完成条件，完成后写本手册，再查额度，剩余 <10% 触发交接。
+- **D001 已完成（`ysm-alignment@d26fb8ae`，已推送，远端 SHA 一致）：** `YsmControllerSlot.executionOrder` 新增 `postMainStageOrder`，按 Sparkle `PlayerAnimationController.registerControllers` 给 post_main(30)→pre_hold→hold_offhand→hold_mainhand→post_hold→fire→pre_swing→swing→post_swing→pre_use→use→post_use→passenger→carry_on→cap→gui_hover→gui_focus(47)→parallel(50)→armor_<槽>(55) 各自序号（阶段名取最后一段并去掉 `_数字` 后缀），不再落入 UNKNOWN(80)；`YsmAnimationPlayer.applyControllerLayers` 改为按 executionOrder 稳定排序后应用姿态层（原为首次起播的插入顺序）。`fromName` 槽位分类未改。RED/GREEN：`YsmControllerPhaseSmokeTest.requireReferenceStageOrder`。验证 PASS：ysmControllerPhase/Isolation/PoseLayer/Sound/Context/FirstPersonController/FunctionStage/ControllerDiagnostic/MaterialNative/HandAnimation 共 10 项 + `:fabric:build`（1分32秒）。未验证：真实模型游戏内画面 `MANUAL/PENDING`；fp.arm 阶段内部顺序未按参考细分（不在 D001 范围）。
+- **D002：** 用户决定不考虑（无内置模型），记录表标“不对齐”。
+- **D003 已完成（`ysm-alignment@f0342ef0`，已推送，远端 SHA 一致）：** `YsmAnimationPlayer` 新增 `nativeHoldAnimations`（按 left/right 的 hold），与 use/swing 的 `nativeHandAnimations` 分开；`PlayingAnimation.paused`（参考 PlayState.PAUSE：时钟照走、采样时不提交姿态，事件分发未改）。`updateNativeHandAnimations` 先处理 use/swing 动作，未在动作中的槽清掉动作，再对两只手分别 `syncHoldingAnimation(..., paused)`：仅本手 swing 或 use 时暂停且不重选片段，另一只手照常；松开后恢复同一实例与时钟。动能长矛无 charge 片段时 use 期间 hold 不暂停（保留原“保持作者握姿”回归）。原生手臂回退姿势判断改为两张表任一存在。RED/GREEN：`YsmHandAnimationSmokeTest.verifyHoldPause`；原有拉弓两条回归仍过。验证 PASS：同 D001 的 10 项 YSM 单测 + `:fabric:build`（1分17秒）。未验证：真实模型双手持物画面 `MANUAL/PENDING`；PAUSE 期间事件是否应抑制未与参考逐行核对。行为变化：另一只手的 swing 在本手 use 期间不再被清除。
+- **D004 已完成（`ysm-alignment@4259a113`，已推送，远端 SHA 一致）：** 参考 `AnimationFormatValidator`：格式版本 ≥19 或片段来自 primary assembly（经核为内置 `default` 模型，对应 Omni `defaultClips`）时保留作者 loop，否则用谓词 loop。Omni：`YsmAnimationPlayer.modelFormatVersion`（默认 `PLAINTEXT_FORMAT_VERSION=65535`，与参考明文目录一致），`YsmModelRuntime.assemble` 对加密包设为 `data.identity().binaryFormatVersion()`，预览运行时复制该值；`nativeHandLoopMode` 在 `syncNativeSlotAnimation` 播放时应用：use→LOOP，hold→LOOP、`*:lance` hold→HOLD_ON_LAST_FRAME。swing 参考也强制 PLAY_ONCE，与 Omni 现状一致未改。RED/GREEN：`YsmHandAnimationSmokeTest.verifyLegacyLoopOverride`（版本18/19/65535）。验证 PASS：同前 10 项 YSM 单测 + `:fabric:build`（1分19秒）。未验证：真实旧格式（<19）加密包的游戏内表现 `MANUAL/PENDING`；Omni 独有的 `lance_stand/lance_riding_idle` 等 hold 名在旧格式下按 LOOP 处理（参考无对应名，按通用 hold 规则）。
+- **额度（D004 完成后）：** Pro 5 小时窗口已用 89%（剩 11%，2026-10-26T08:50Z 重置），周 36%。已逼近 <10% 交接阈值，下一目标开工前应先复查额度。
+- **D005 已完成（`ysm-alignment@d2f1c34e`，已推送，远端 SHA 一致）：** `YsmAnimationPlayer.updateNativeHandAnimations` 不再直接读 `entity.isUsingItem/getUsedItemHand/getUseItem` 与 `entity.swinging/swingingArm`，改经 `YsmHandActionState`（`usedHand/using/anySwinging/swingingHand/swingPulseActive/swingSequence`）取值，与 `YsmHandQuery` 的 Molang 查询共用同一本地输入脉冲。原先私有于 `YsmHandQuery` 的归属判定提取为公共 `ownsDeviceInput(owner, entity)`；播放层经可覆写的 `YsmAnimationPlayer.ownsDeviceHandInput` 复用同一规则（无运行时/非 host/预览/非本地玩家→不借脉冲）。本手脉冲 use 同时暂停本手 hold（避免 hold+use 叠加采样）；swing 起播以脉冲序号去重（`lastSwingPulseSequence`），避免 vanilla 随后镜像同一次点击时重复起播。动能长矛/三叉戟的采样 tick 覆盖仍读原生 `getTicksUsingItem/getAttackAnim`，未纳入本项。RED/GREEN：`YsmHandAnimationSmokeTest.verifyLocalInputPulse`（脉冲 use 起播并暂停本手 hold、松开恢复同一 hold 实例、脉冲 swing 起播、非归属模型不借脉冲、清空设备状态后退休）；fixture 补 `isSleeping/getMainHandItem/getOffhandItem`。验证 PASS：ysmHandAnimation、ysmInput、ysmVanillaState、ysmControllerPhase、Isolation、PoseLayer、Sound、Context、FirstPersonController、FunctionStage、ControllerDiagnostic、MaterialNative 共 12 项 + `:fabric:build`（1分28秒），日志 `build/reports/outfit/alpha4-d005-red.log`、`alpha4-d005-green.log`、`alpha4-d005-final.log`。未验证：真实模型游戏内脉冲首帧画面 `MANUAL/PENDING`；`applyNativeHandPose` 的原生回退手臂姿势仍按实体原生标志，未纳入本项。
+- **模组安装方式（用户 2026-10-26 说明）：** 当前模组已通过符号链接指向 mods 文件夹，构建产物无需再复制/覆盖安装。
+- **D006 已完成（`ysm-alignment@c7a343c8`，已推送，远端 SHA 一致）：** 原生状态机不再自维护弱化状态表，改为与 Molang `ctrl.*` 共用参考动作表。新增 `YsmPlayerActionState`（`State` 枚举 + `Snapshot`/`snapshot(entity, groundSpeed, verticalSpeed)` + 纯函数 `resolve`），顺序照参考 `ControllerActionResolver`：ride → death → riptide → sleep → swim → crawling(climb/climbing) → ladder_up/stillness/down(±0.01) → elytra_fly → fly → swim_stand → attacked → jump(非水非地面) → sneak/sneaking(需 onGround) → run/walk(需 onGround) → idle。`MolangBindings.CtrlBinding` 删除自有 `ActionState` 与重复判定，改为委托同一 resolver（`ctrl.*` 名称不变，预览仍返回 NONE）。`YsmAnimationPlayer.updateNativeStateMachine` 用 `YsmPlayerActionState.snapshot` + `resolve` 选状态，再把状态映射到片段（`nativeStateName`，参考名优先；缺失时保留原有兼容回退：sit→ride、swim→swim_stand、jump→fall→fly、sneak↔sneaking、run↔walk、elytra_fly→fly）。输入改为移动上下文 `ground_speed`/`vertical_speed`（与 `ctrl.*` 同源），并以渲染状态 `walkAnimationSpeed` 取较大值作为参考的 limb 回退；`entity == null` 时保留渲染状态快照（无 death/riptide/climb/hurt 标志）。行为变化：死亡/激流/受击/攀爬/梯子/飞行/爬行按参考选择；空中优先 `jump` 而非 `fall`；游泳恒 `swim`（不再按速度切 `swim_stand`）；sneak/run/walk 需要 onGround。RED/GREEN：新增 `YsmNativeStateSmokeTest`（`common:ysmNativeStateSmokeTest`），覆盖 19 个状态与优先级（death>ladder、riptide>sleep、ladder>elytra、ride 最先），RED 为 `native action must be death but was idle`。验证 PASS：ysmNativeState、ysmHandAnimation、ysmInput、ysmVanillaState、ysmSoundNative、ysmControllerPhase、Isolation、PoseLayer、Sound、Context、FirstPersonController、FunctionStage、ControllerDiagnostic、MaterialNative 共 14 项 + `:fabric:build`（1分53秒），日志 `build/reports/outfit/alpha4-d006-red.log`、`alpha4-d006-green.log`、`alpha4-d006-final.log`。未验证：真实模型游戏内基础动作画面 `MANUAL/PENDING`；`ysm-first-person` 手臂状态未纳入；远程玩家飞行仍读本地 `abilities.flying`（沿用原 `ctrl.fly` 实现，参考用同步 tracker，D025 范围）。
+- **既有失败（非本目标引入）：** `:common:ysmFunctionContractSmokeTest` 在 `testFilterPreviewDomain` 的 `preview advances its own state` 断言恒失败（`first_order` 返回 90 而非 4.5）。已在分支基线 `23a067d5`、D004 `8dc36cd4`、D005 `d2f1c34e` 与 `c6bb3b0b` 逐一复现，确认早于对齐工作；仅本地临时跳过该调用后整个契约测试 PASS（诊断日志 `alpha4-d006-fncontract-diagnostic.log`），因此 D006 未引入新失败。该项属 P2 滤波器（D013/D014）范围，记为后续项，未修改。
+- **下一步：** 按计划继续 P0 剩余 D023（自转移/环路）或 D012（起播延迟）；第 7 节决策项仍待用户回答。
+
+## 当前有效交接：D027 默认动画回退资源对齐完成（2026-10-26）
+
+本节覆盖上文的 D027 待决策状态与历史下一步。用户目标“对齐 D027”已达到相关单测成功、编译通过的完成条件，Goal 已标 complete；随后查询额度并更新本手册。没有本目标剩余实施，不自动领取 D023/D012 或其他差异。
+
+- **用户最终要求：** 已有 YSM 缺失对应动画时使用默认动画回退；运行时资源放 `assets/omni-morph/default_animation`。`ysm_default` 主要用于新建 YSM，原样保留，不能将对齐后的资源覆盖进去。模组已通过符号链接接入 mods，不复制或覆盖安装包。
+- **已完成：** 新增 `common/src/main/resources/assets/omni-morph/default_animation/` 下 14 份完整动画，与参考 `refs/Sparkle-Morpher@87823951d7f51d08eed5817bb803291cd1da3309` 逐字节相同。运行时 `YsmDefaultAnimationResolver` 改读新路径并更新 MAIN/ARM 钉死哈希，MAIN_ACTIONS 移除参考不存在的 gui。原有作者优先、缺失回退、空动画优先、禁用动作与损坏诊断规则保留。new、vehicle$… 及其他条目完整保存在资源中，本项不扩张既有自动选片范围（主动作白名单与 ARM 手部域）。创建向导及 `protocol/outfit-v1/template-manifest.json`、全部 42 项 ysm_default 新建模板没有修改；不改版本、协议或后端。
+- **单测入口：** 新增 `:common:ysmDefaultAnimationSmokeTest`，复用现有 native CPU 测试环境，直接运行默认资源/解析/回退测试，避免依赖无关的配装来源夹具。新测试检查 14/14 字节一致、主动作/手部选片的逐骨数值通道（0/25/50/75/100% 时刻，容差 0.0001）、参考拉弓 RightArm 三个独立黄金关键帧；保留实际 Avatar 加载后作者空 idle 优先、缺失 walk 实际起播并改变骨姿、禁用与冻结 v1 inventory 等检查。数值通道对比用 Omni 解析/采样两份资源且不执行动态表达式，不冒称 Sparkle 运行时或 GPU 的行为等价。
+- **已验证：** `:common:ysmDefaultAnimationSmokeTest`、`:common:ysmAvatarCreationSmokeTest`、`:common:ysmHandAnimationSmokeTest`、`:common:ysmNativeStateSmokeTest` 与 `:fabric:build` 同轮 PASS，构建附带 `libraryPreviewRuntimeSmokeTest` 也 PASS。日志 `build/reports/outfit/alpha4-d027-final.log`：BUILD SUCCESSFUL in 1m 1s，25 tasks。RED 日志 `alpha4-d027-red.log` 在替换资源前确实失败于 arm.animation.json 字节不一致。所有构建/测试为 JDK25、前台 PowerShell、Tee build.log，立即检查退出码并读取日志。`git diff --cached --check` PASS。
+- **成品核验：** `build/reports/outfit/alpha4-d027-artifact.log` PASS：最终 Fabric JAR 内 default_animation 14/14 与参考一致，ysm_default 42/42 与未修改清单的长度/哈希一致。产物 `fabric/build/libs/omni-morph-1.0.0-alpha.4.1+26.1.2-fabric-mc.jar`，18,997,133 字节，SHA256 `29eb080064ce4b23f0652bdbab29f350f08f231f22059befded28815973c5505`。alpha.4.1 是本轮开始时已有版本，本轮未调整。
+- **失败与限制：** 最初尝试旧 `cosmeticSourceSmokeTest` 入口时，在本项测试被调用前因配装夹具 OUTFIT_BASE_SOURCE_MISSING / OUTFIT_PRIVATE_SOURCE_MISSING 失败；当时尚无生产代码改动。未修复或跳过该无关夹具，改用直接入口执行本目标全部默认动画回归。新增对比测试调试时发现旧别名夹具假定 walk 含 root，而参考实际为 AllBody，已改为 allbody 验证规范化映射；molang/Molang 伪骨排除同步修正。真实游戏画面、动态表达式的双引擎回放和其他既有 GUI/GPU/双客户端验收仍 MANUAL/PENDING，不影响用户约定的本目标自动完成条件。
+- **Git 与文件：** 分支 `ysm-alignment`，实施提交 `cf7c233738afa3d23877ce2646a5a872399b82b5` 已推送，核对 origin/ysm-alignment 与本地 HEAD 一致。随后仅本手册与计划表的提交号补记进入文档收尾提交，最终 HEAD 以实际 Git 为准。本轮修改仅默认回退 resolver、14 个独立资源、相关测试入口/测试、`.gitattributes`、计划与本手册。原未跟踪 `.omc/`、`mod_log/`、`patch/` 保留；后端 master 未改，实际未跟踪 `build.log`、`build/` 保留。
+- **额度：** 目标完成后可靠接口显示 Plus，5 小时 used 14% / 剩 86%，周 used 2% / 剩 98%；重置分别为 2026-10-26 20:38:18 +09:00（Unix 1793014698）、2026-11-02 15:38:18 +09:00（Unix 1793601498）。未触发额度交接，手册由当前 Agent 更新，未委派 Luna。
+- **实际下一步：** 本目标无剩余实施，等待用户指定下一目标。若继续 P0，按 `docs/YSM_ALIGNMENT_PLAN.md` 的依赖先 D023（E 批相关项），再 D012；其余待决策项不自动开工。相关文档：`docs/YSM_ANIMATION_ENGINE_COMPARISON.md`（原静态审计基线）、`docs/YSM_ALIGNMENT_PLAN.md`（D027 状态已更新）。继续遵守当前分支检查点、CodeGraph 优先、前台构建日志、有限范围、禁止 Qt offscreen 和原有未验证项证据边界。
+
+## 当前有效交接：D023 控制器自转移与环路对齐完成（2026-10-26）
+
+本节为最新状态。用户目标“对齐 D023”已达到相关单测成功、编译通过的完成条件，检查点已提交推送并核对远端，Goal 已标 complete；之后查询额度并更新本手册。没有本目标剩余实施，不自动启动 D007/D008/D009/D012。
+
+- **实现与参考：** 两仓库 CodeGraph 优先核对。参考 `refs/Sparkle-Morpher` 的 `AnimationControllerRuntime.process/evaluateTransitions/transitionToEntry` 与 `SoundTransitionGate`：常规更新不将当前状态预填 visited；自转移可重入一次。目标通过声音门控后，若已访问则结束整个搜索，不再求值后续转移条件；声音门控在 visited 检查前消费。初次进入状态本身记为 visited，有声明动画槽时首帧停链；之后每次转换只有目标无动画槽时才继续同帧转移。条件零、片段缺失、empty 名称都仍占声明槽；子控制器入口不占父槽。未实施此前用户排除的 D002 builtin 特殊来源互斥。
+- **生产改动：** 仅 `common/src/main/java/top/aihmc/omnimorph/model/ysm/controller/YsmControllerRuntime.java` 的 update/firstTransition/transition。移除对自身目标的跳过，使既有转换流程完成声音停止、旧 on_exit、新 on_entry、状态时钟归零、旧片段退休及新片段重启。保留原混合/子控制器/同步边界，不修改动画资源或版本，不修改后端。D027 的 default_animation 与 ysm_default 分工保留，模组仍通过符号链接接入 mods，无复制覆盖。
+- **测试与失败复现：** 新增 `YsmControllerTransitionSmokeTest.java` 与 `:common:ysmControllerTransitionSmokeTest` 入口，通过生产 JSON 解析器/控制器/播放器验证七组状态图：自转移重启已完成 ONCE 片段及保留淡出实例、初始槽边界、环路阻止后续条件求值、missing/empty/零权重声明槽、子控制器入口、声音自转移重入与 false 重新武装、声音门控先于 visited。RED 日志 `build/reports/outfit/alpha4-d023-red.log` 明确失败于 self-transition restarts even a completed ONCE clip。原 `YsmControllerSoundSmokeTest` 的空状态链期望同步改为同帧 next 后重入 default，未删除声音门控覆盖。
+- **最终验证 PASS：** JDK25，前台 PowerShell，Tee build.log 并立即检查退出码/读取日志。`alpha4-d023-final.log`：BUILD SUCCESSFUL in 45s，33 tasks。12 项显式 YSM 单测为 ControllerTransition、ControllerSound、ChildController、ControllerIsolation、ControllerPoseLayer、ControllerContext、ControllerPhase、FirstPersonController、FunctionStage、ControllerDiagnostic、SoundNative、MaterialNative；`:fabric:build` 成功，附带 LibraryPreviewRuntime 单测也通过。代码/diff 可读性已检查，未发现适用的独立 Java formatter 配置；`git diff --cached --check` PASS。
+- **既有失败，非本次回归：** 额外 `:common:ysmPlayerTimelineSmokeTest` 在第72行初始化事件时失败，夹具 `cpuRuntime()` 的 owner 为 null，`YsmAnimationPlayer.notifyAnimationEvent:1236` 解引用 owner 引发 NPE。临时将唯一改动的生产 runtime 恢复为任务基线 HEAD `91791ded5add082857e5e26a3e80e4ed97b0db58` 复跑，得到同栈同位置失败；随后 finally 恢复本轮源码，再完成最终绿色验证。证据 `alpha4-d023-regression-initial.log`、`alpha4-d023-timeline-baseline.log`。未改该无关夹具或生产通知逻辑，不能声称所有历史单测通过。`alpha4-d023-green.log` 是旧声音期望尚未更新时的中间失败，最终结果以 final.log 为准。
+- **未验证与范围：** 新状态图为受控 JSON 经生产解析路径执行，不是实际作者模型的游戏复现。声音测试证明请求/归属和 CPU 生命周期，不证明设备听感；真实游戏画面/音频/GPU/双客户端仍 MANUAL/PENDING。D007 每帧保持片段时无条件停声问题独立待实施，本项不冒称修复。既有 FunctionContract 滤波预览失败仍按旧交接记录保留。
+- **Git：** 当前分支 `ysm-alignment`，实施提交 `a3f3541cfd41f55f7da3ce29ef60dc40f80f8836` 已推送，已核对 origin/ysm-alignment 与当时本地 HEAD 完全一致。之后只有本手册和计划表提交号补记进入文档收尾提交，最终 HEAD 以实际 Git 为准。实施涉及 4 个代码/测试/Gradle 文件和计划；原未跟踪 `.omc/`、`mod_log/`、`patch/` 保留，无分支切换、无后端改动。
+- **产物：** `fabric/build/libs/omni-morph-1.0.0-alpha.4.1+26.1.2-fabric-mc.jar`，18,997,169 字节，SHA256 `01501176edeaf287af139c865441bb7a561eae15b85305243b377d9c627877eb`。本轮未升级版本、未重启游戏，无运行中构建/测试。
+- **额度：** 目标完成后可靠接口显示 Plus，5 小时 used 24% / 剩 76%，周 used 4% / 剩 96%；重置 Unix UTC 秒分别为 1793014699 / 1793601499。未触发交接阈值，当前 Agent 正常更新手册，未委派 Luna。
+- **最小下一步：** 本目标无剩余实施，等待用户指定下一目标。E 批 D007/D008/D009 尚未完成；D012 按计划依赖 E，不自动越过。先读 `AGENTS.md`、本节、`docs/YSM_ALIGNMENT_PLAN.md` 及原审计 `docs/YSM_ANIMATION_ENGINE_COMPARISON.md`，核对真实 Git 状态后再继续。保持 CodeGraph 优先、范围控制、当前分支提交推送检查点、JDK25/前台日志、禁止 Qt offscreen 和已验证/未验证证据边界。
+
+## 当前有效交接：D002 / D012 对齐完成（2026-10-26）
+
+本节覆盖上文 D002“不对齐”和 D012 待实施状态。用户本次明确要求两项均对齐，执行顺序为 D002 → 自动验证/提交推送/核对远端 → D012。两个阶段检查点均已完成，Goal“对齐D002，D012”已标 complete；随后查额度并更新本手册。没有本目标剩余实施，不自动启动其他差异。
+
+- **D002 已完成：** `c10d3feec0549cfb2037780219983e000d19d26d`。`YsmControllerState.isBuiltin()` 识别精确状态名 ysm-builtin；该状态没有作者片段槽，允许同帧继续状态搜索。播放器按控制器阶段选择 builtin/作者来源，规范化 controller.animation 前缀与编号槽，不将隐式函数事件控制器当作作者替代。native main、hold/use/swing 与自动基础片段记录来源；进入作者状态清理原生实例/声音，返回 builtin 重建原生时钟；builtin 不提交该作者姿态层，原生回退手臂姿态也按相应手部阶段门控。
+- **D002 调度/默认资源：** 玩家先评估控制器状态再选择/推进原生片段，避免同帧继续提交刚退出的来源。新建控制器实例跳过创建帧已消耗的 delta，保留此前首帧时钟语义。子实体保留原执行顺序及“显式控制器拥有槽”的规则；早期回归曾发现 projectile ground 过渡停在上一帧，已在 D002 内修复。存在 builtin 状态的主控制器仍可准备默认动作，主控制器不全局禁止另一手的默认资源。保留全局原生开关原语义、D027 两资源目录分工、原版本/协议/后端。
+- **D002 证据：** 新增 `YsmBuiltinControllerSmokeTest`，验证 builtin 忽略声明动画、native/作者互斥、返回 builtin 重启原生时钟；`YsmDefaultAnimationSmokeTest.testBuiltinFallback` 经实际 Avatar 加载及逐帧更新，验证缺失 walk 在 builtin 中回退、作者状态同帧清除、回到 builtin 后恢复。RED `build/reports/outfit/alpha4-d002-red.log` 失败于 builtin state ignores its declared animation slots。D002 最终六项单测（BuiltinController/ControllerTransition/HandAnimation/MaterialNative/DefaultAnimation/FunctionStage）均通过，`alpha4-d002-final.log` 当轮仅最终 remapJar 因运行中程序占用 JAR 失败。用户已确认关闭客户端，随后 `alpha4-d002-build.log` 为 Fabric BUILD SUCCESSFUL in 21s，21 tasks；之后才提交推送 D002 并开始 D012。D002 检查点额度剩余57%，未触发交接。
+- **D012 已完成：** `1190585ae333fd5853b9690ed9204700555ee496`。PlayingAnimation 增加 beginningTransitionRemaining，仅新建声明/函数控制器片段时设置；过渡期间动画时间保持0，跳过片段事件，重复保持/刷新不重置延迟。过渡终点分发零时刻事件一次；若 delta 跨越终点，只用剩余时间按 speed 推进片段。声明状态机传递 blend_transition 时长；函数换片/显式 reload 退休旧片段并从已有控制器姿态快照混合到新首帧。普通直接播放的淡入语义保留，没有修改 D010 旋转算法或 D011 事件窗口规则。
+- **D012 自动验证 PASS：** 新增 `YsmBeginningTransitionSmokeTest`，覆盖声明状态机/函数两入口、on_entry 立即但片段事件等待、精确终点、零时长、刷新、reload、speed/长步长跨界及取消；RED `alpha4-d012-red.log` 失败于 entry expressions run now but clip events wait for beginning transition。`YsmDefaultAnimationSmokeTest.testBeginningTransitionPose` 经实际 Avatar/播放器采样：0.5s 过渡期间时钟0、骨骼逐帧0→5→10→15→20度，过渡结束零时刻指令计数一次，后续0.125s时骨骼30度并触发相应指令。中间 `alpha4-d012-green.log` 为4项 PASS；最终 `alpha4-d012-final.log` 为15项显式相关 YSM 单测 + Fabric build PASS，BUILD SUCCESSFUL in 1m 10s，36 tasks；附带 LibraryPreviewRuntime 单测也 PASS。
+- **最终15项单测：** BeginningTransition、BuiltinController、ControllerTransition、ControllerSound、ChildController、ControllerIsolation、ControllerPoseLayer、ControllerContext、ControllerPhase、FirstPersonController、FunctionStage、DefaultAnimation、SoundNative、HandAnimation、MaterialNative。全部构建/测试为 JDK25、前台 PowerShell，经 Tee build.log，立即检查退出码并读取日志。相关新增/修改代码已检查可读性，`git diff --cached --check` PASS。既有 PlayerTimeline owner-null 与 FunctionContract filter-preview 失败仍按旧交接记录保留，本轮未修改或将其冒称通过。
+- **未验证/边界：** 实际游戏画面、设备声音、动态双引擎整体回放与双客户端仍 MANUAL/PENDING；CPU/Avatar 测试不证明 GPU 或听感。D007 持续片段刷新停声、D008 作者身体/手臂资源隔离、D009 解析失败语义仍独立待实施。本轮不修改同步协议；不把本地时钟/姿态测试推广为多人过渡验证。
+- **Git/文件：** 当前分支 ysm-alignment。两阶段提交均已 push 并各自核对 origin/ysm-alignment 与当时本地 HEAD 一致；随后仅本手册与计划提交号补记做文档收尾提交，最终 HEAD 以实际 Git 为准。本轮文件：YsmAnimationPlayer、YsmControllerRuntime、YsmControllerState、YsmModelRuntime、common/build.gradle，两个新增 SmokeTest、DefaultAnimationSmokeTest、计划和本手册。原未跟踪 .omc/、mod_log/、patch/ 保留，未切换分支、未改后端、未升级版本。
+- **产物与安装：** `fabric/build/libs/omni-morph-1.0.0-alpha.4.1+26.1.2-fabric-mc.jar`，18,999,523 字节，SHA256 `85cac7b7ee9e82c138c34d0207410e6cd16eb4d9af2e4def785c2cc287a71700`。用户模组通过符号链接接入 mods，无复制覆盖安装。用户为释放 JAR 锁关闭了客户端；本 Agent 未重启游戏，目前无运行中构建/测试。
+- **额度与下一步：** Goal 完成后可靠接口显示 Plus，5小时 used49% / 剩51%，周 used8% / 剩92%，重置 Unix UTC 秒1793014699 / 1793601499；未触发阈值，当前 Agent 正常更新手册，未委派 Luna。当前目标无剩余实施，等待用户指定下一目标。相关文档 `docs/YSM_ALIGNMENT_PLAN.md`、`docs/YSM_ANIMATION_ENGINE_COMPARISON.md`；继续遵守 CodeGraph 优先、当前分支阶段提交推送检查点、前台日志、有限范围及禁止 Qt offscreen。
+
+## 当前额度交接：P1 动画对齐进行中（2026-10-26）
+
+本节为当前有效入口，覆盖上文关于 P1 尚未开始或已结束的历史状态。用户目标是完成 `docs/YSM_ALIGNMENT_PLAN.md` 中已授权的全部 P1 对齐项。D010 与 D011 已获用户对全部 P1 的授权；按计划实施 D011 时接受撤销其现有多周期/倒播事件窗口语义。P2 和“不建议对齐”项不在本目标范围内。P1 整体尚未完成，Goal 在额度连续三轮阻塞后标为 blocked；P1未完成，不标为 complete 或 paused。
+
+- **额度交接原因：** 可靠额度结果为 ChatGPT Plus 五小时 used 91% / 剩 9%，周 used 14% / 剩 86%；重置 Unix UTC 秒 `1793014698` / `1793601498`。AGENTS.md 规定低于10%触发安全交接，并授权仅将交接手册编写委派给 GPT-6 Luna。无运行中的构建或测试。Luna 只负责整理本手册，不承担开发；调用方须核对手册与实际仓库状态。
+- **当前分支和提交：** 沿任务开始时的 `ysm-alignment` 分支继续，不切换到 `main`。当前 HEAD `8d5d33913656fec2f3b7229f2eb6da08a9cd39c0`；已推送，`git ls-remote origin refs/heads/ysm-alignment` 返回同一 SHA。代码与计划检查点已无未提交修改；本次手册为本地修改，另保留原未跟踪 `.omc/`、`mod_log/`、`patch/`，不要清理。
+- **本次交接手册状态：** `AGENT_HANDOFF.md` 当前为本地未提交修改；本次只更新该文件，不提交或推送手册。最终工作区应显示 `M AGENT_HANDOFF.md` 和原有三个未跟踪目录。
+- **已完成并逐项提交推送的 P1 检查点：**
+  - D020：`709c2416ddd03be90c88149f82ee48374a5135f6`。独立黄金值、上下文独立 Xoroshiro 随机源、NaN 语义与预算验证；`alpha4-d020-final.log` 中 math、budget、Fabric PASS（46秒/23 tasks）。
+  - D022：`4738d6abda764f189971ae91845b9cbd00618fac`。`time_of_day=((float)(dayTime+6000L)/24000f)%1f`，负时间按参考余数语义处理，timestamp 不额外移相；`alpha4-d022-final.log` 中 VanillaState、Fabric PASS（36秒/22 tasks）。
+  - D015 武器批次：`43e5d60787188d6843919016ae363237e0d8d06b`。补充 weapon/trident/lance/mace 共43个标量名；原计划“42”是计数错误，D015 整体仍未完成，剩余名字须逐项核对，不推算数量。验证覆盖主手、0.35 lunge、1.5 mace、partial tick 与受限本地脉冲；`alpha4-d015-weapon-final.log` 中 VanillaState、HandAnimation、Fabric PASS（47秒/23 tasks）。
+  - D007：`b4886573e7341bab3c28bdf1d20ae70458771e6c`。控制器逐帧保持片段时不再停声或递增 `playbackGeneration`，新播放/重新激活和退出清理仍保留。使用真实 LuaSound 与录制声道验证重复刷新、退出重入及 reset；`alpha4-d007-final.log` 中 SoundNative、ControllerSound、BeginningTransition、ControllerTransition、Fabric PASS（38秒/25 tasks）。
+  - D008：`8d5d33913656fec2f3b7229f2eb6da08a9cd39c0`。作者身体和第一人称名称表分开；binary JSON type 11 或 manifest 的 `animation.fp_arm` / `fp.arm` 进入 arm 域，旧 arm type 2 仍属 body；正式装配与预览、控制器查片/声音门控/loop 缺省和采样均按域区分。线协议 DTO 未改，同名片段继续共享既有排序去重名称索引，并按既有 controller 身份恢复正确域。`alpha4-d008-final.log` 中 FirstPersonController、DefaultAnimation、Sync、BeginningTransition、HandAnimation、ControllerTransition、FunctionStage 七项与 Fabric PASS（1分2秒/28 tasks），附带 LibraryPreviewRuntime PASS；`git diff --check` PASS。测试期间的 play 参数遗漏及误调用不存在的 SyncModel 任务已修正；最终结果以 final 日志为准。
+- **未完成的 P1 和最小续接顺序：** E 批 D009（条件解析失败应得到 false/0，而非退化为无条件/满权重）尚未修改，是下一最小项。之后依 `docs/YSM_ALIGNMENT_PLAN.md` 继续 G 批 SAMP-01/03/04/05/06 与 D010，再做 H 批 D015 剩余名字、D016 `this`、D011。逐名核对 D015，不猜剩余数量。每项执行相关单测和 Fabric 编译、更新计划记录、检查 diff，再提交并推送当前分支、核对远端 SHA，然后才开始下一项；在安全检查点查询额度。P1 全部完成前不得结束 Goal。
+- **验证边界与既有问题：** 游戏内模型/GPU 画面、实际设备声音、双客户端行为仍为 `MANUAL/PENDING`。此前记录的 `PlayerTimeline` owner-null NPE 与 `FunctionContract` filter-preview expected 4.5 / actual 90 仍存在，均非本轮修复范围，不能宣称所有历史测试通过。D008 中间失败已在本轮纠正，D015 MACE 夹具缺组件的中间失败已修正；最终验证按上述 final 日志记录。无运行中构建/测试。
+- **文件与版本边界：** 对齐计划和静态审计分别见 `docs/YSM_ALIGNMENT_PLAN.md`、`docs/YSM_ANIMATION_ENGINE_COMPARISON.md`。默认运行时资产为 `assets/omni-morph/default_animation` 14 项；`ysm_default` 的42项仅用于新建模板。未改版本、后端或资源覆盖；模组通过符号链接接入，不复制安装包。
+- **后续执行约束：** 新 Agent 接手先读 `AGENTS.md`、本文最新一节及上述计划/审计，再检查 Git 状态和实际源码。根目录存在 `.codegraph/`，查代码前优先使用 CodeGraph。Java 开发环境先加载 `D:/UserData/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1` 并执行 `usejdk 25`。构建/测试须在前台 PowerShell 执行，输出走 `2>&1 | Tee-Object -FilePath "build.log"`，立即捕获 `$LASTEXITCODE` 并读取日志。禁止 Qt offscreen；不新建/切换分支、不擅自提交未完成检查点、不升级版本、不扩展到 P2 或不建议对齐项；保留所有既有工作区数据。
+
+接续安全检查（2026-10-26）：可靠额度接口复查为 Plus 五小时 used94% / 剩6%、周 used15% / 剩85%，重置时间未变。Git HEAD仍为8d5d33913656fec2f3b7229f2eb6da08a9cd39c0，工作区仅手册修改与原三个未跟踪目录。额度尚未恢复，不启动D009；本次无代码变更、无构建测试，P1仍未完成。
+
+连续阻塞检查（2026-10-26）：五小时额度used95% / 剩5%，周used15% / 剩85%，重置Unix1793014698/1793601498。同一额度交接条件已连续三轮存在，Goal已标blocked，停止自动开发；恢复需额度变化或用户/接手方明确续接并重新核对工作区。下一实施仍为D009，无新增代码或验证结果。
+
+## 当前有效交接：P1 续接（Claude，2026-10-26）
+
+本节为最新入口，接续上节“P1 动画对齐进行中”。用户目标：按交接继续 P1，每个阶段完成后查额度。模组通过符号链接接入 mods，不复制/覆盖产物（用户再次确认）。
+
+- **D009 已完成（`ysm-alignment@4494c95b`，已推送，`git ls-remote` 与本地一致）：** `YsmAnimationControllerParser.compile` 解析失败时不再返回 null，改为常量 `0` 表达式（参考 `MolangParser.parseExpression` 失败返回 `MolangValue.failed`＝常量0），转移条件为 false、动画权重为 0；空白条件仍为 null（未改，参考空串行为未核）。RED/GREEN：`YsmControllerTransitionSmokeTest.testParseFailureIsFalse`，RED 失败于 unparsable transition condition is false, not unconditional。验证 PASS：ControllerTransition/Diagnostic/Sound/Isolation/Context/Phase、FunctionStage、BuiltinController、BeginningTransition、MaterialNative 共 10 项 + `:fabric:build`（43s）。未验证：真实作者模型游戏内表现 `MANUAL/PENDING`。
+- **额度（D009 开始前）：** Claude Pro 5 小时 used 5%、周 37%。
+- **G 批 SAMP-01/03/04/05/06 已完成（`ysm-alignment@f78953ed`，已推送，`git ls-remote` 一致）：** `YsmAnimationParser`：缺 `animation_length` 时取各骨骼 rotation/position/scale 最后关键帧起始时间的最大值，无关键帧为 `Float.MAX_VALUE`（参考 `calculateLength`，时间线事件不计入）；对象关键帧未写 lerp_mode/easing 默认 linear（原 step）。显式 `"catmullrom"` 字符串仍生效，未复制参考 JSON 路径带引号比较导致退化为 linear 的缺陷（审计已标参考侧问题）。`YsmAnimationSampler`：目标键 catmullrom 优先于前键 step；骨骼通道求值顺序改为 rotation→position→scale。`YsmAnimationPlayer.advanceAnimationTime`：LOOP 仅在 time 严格大于 length（或小于 0）时回绕。新增 `YsmSamplingAlignmentSmokeTest` + `:common:ysmSamplingAlignmentSmokeTest`，RED 失败于 missing length uses the latest keyframe: 0.0。验证 PASS：SamplingAlignment、AnimationWeight、PoseSampling、BlendTransition、ControllerPoseLayer、AnimationEventWindow、AnimationFrameClock、ControllerSound、ChildController、ControllerContext、ControllerPhase、FirstPersonController、FunctionStage、DeferredPose、BoneMatrix、MultilineExpression、BinaryResources、SoundNative、HandAnimation、NativeState、MaterialNative、DefaultAnimation、BeginningTransition、ControllerTransition、BuiltinController 共 25 项 + `:fabric:build`。
+- **新发现既有失败：** `:common:ysmBoneQuerySmokeTest` 失败于 `arm owns a separate previous-frame input: 0.0`；暂存本次生产改动、在基线 `b777cd32` 复跑得到同一断言失败，确认非本批引入，未修改。与 PlayerTimeline owner-null、FunctionContract filter-preview 一并作为既有问题保留。
+- **未验证：** `Float.MAX_VALUE` 长度片段在真实模型中的事件/完成查询表现、各采样差异的游戏画面 `MANUAL/PENDING`。
+- **D010 已完成（`ysm-alignment@94b68aa6`，已推送，`git ls-remote` 一致）：** `YsmBonePose.blend(outgoing, incoming, progress, restRotation)` 的旋转改为参考 `MathUtil.nlerpEulerAngles`：起止动画旋转连同骨骼初始旋转转为渲染用 ZYX 四元数（Omni 渲染约定 `(rest.x−anim.x, rest.y−anim.y, rest.z+anim.z)`，x/y 取负等价于绕 Z 180° 共轭，不影响 nlerp），JOML `nlerp` 后按参考 `getEulerAnglesZYX` 公式取回再换算为动画角；progress=0 原样返回起点；位置/缩放仍线性。`YsmControllerPoseLayer.compose(incoming, restRotation)` 新增按骨骼名取初始旋转，`YsmAnimationPlayer.applyControllerLayers` 用 `YsmModelPart.getOriginRot()`（来自几何 `bone.rotation`）。`beginTransition`/`beginControllerPoseTransition` 去掉 shortestRotation 参数；`YsmControllerState.blendViaShortestPath` 仍解析保留但对旋转不再生效（与参考一致，用户授权全部 P1 时已接受）。测试：`YsmPoseSamplingSmokeTest` 新增两轴手算黄金值（63.43495/41.81031/26.56505）、单轴 nlerp 闭式公式 `2·atan2(t·sinφ,(1−t)+t·cosφ)` 期望值、带中间轴初始旋转的渲染空间一致性；`YsmControllerPoseLayerSmokeTest`、`YsmBoneMatrixSmokeTest`（±180 两模式统一为 180）、`YsmDefaultAnimationSmokeTest.testBeginningTransitionPose`（0→20° 改为 nlerp 非匀速期望）同步更新。RED 说明：签名改变使旧代码无法编译新测试，未单独留行为 RED；首轮新代码下旧期望值失败（PoseSampling/DefaultAnimation）证明行为确实改变。验证 PASS：PoseSampling、ControllerPoseLayer、BoneMatrix、BlendTransition、ControllerTransition、BeginningTransition、BuiltinController、ControllerSound、ChildController、ControllerContext、ControllerPhase、FirstPersonController、FunctionStage、DeferredPose、DefaultAnimation、HandAnimation、MaterialNative、SamplingAlignment、Phase41、ControllerIsolation 共 20 项 + `:fabric:build`（42s）。未验证：过渡中间帧真实画面 `MANUAL/PENDING`。
+- **D015 全部完成（剩余名字 `ysm-alignment@bfabfe50`，已推送，`git ls-remote` 一致）：** 按审计方法重新从参考 `YSMBinding/QueryBinding/CtrlBinding/FnBinding/TLMBinding` 抽取 252 个注册名，对 omnimorph 全树整词字面量比对，武器批次后实际缺 56 个（原计划“98−42”估算不再使用），本次全部实现，复跑比对缺失为 0。实现按参考逐项：新类 `YsmReferenceQuery`（ladder_facing、充能弩、钓鱼、肩上鹦鹉、准星目标、钓钩/投掷物/箭矢状态、delta_movement_length、tcos0、get_equipped_item_name，以及 Fabric 无 Forge 属性时参考固定默认值 4.5/3.0/1.0/0.08/0.0/64.0）；`MolangBindings.YsmBinding.registerReferenceQueries` 按参考实体门控注册（`typedVariable` 对 Player/LocalPlayer/Projectile/ThrowableItemProjectile/FishingHook/AbstractArrow 不匹配返回 null；var 类名字对任意上下文求值）。`projectile_owner` 返回以主人实体为 entity 的子 `MolangContext`，配合 `->`。`swinging_arm` 经新增 `YsmHandQuery.swingingHand` 共用本地脉冲。`hit_target_type` 与参考一样恒为空串（参考 switch 无返回分支）；`biome_category` 与参考一样为 null（@Deprecated）；`is_fishing` 不含参考的车万女仆坐姿兼容分支（Omni 无该 mod 兼容）。`dump_equipped_item/dump_relative_block` 仅在 `QueryVariables.canEmitDebugOutput` 时写日志并返回 null。新增 mixin `FishingHookAccessor`（biting/hookedIn）、`ThrowableItemProjectileAccessor`（getDefaultItem），`AbstractArrowAccessor` 加 inGroundTime；已用 javap 核对 26.1.2 jar 中字段/方法名与签名存在。测试：`YsmVanillaStateSmokeTest.testReferenceQueries`（56 名全部注册、非 UnavailableBinding，及 riptide/ladder/swim/use/holding/装备名/map_angle/tcos0/modified_move_speed/实体门控 null 等取值）；`YsmSubEntitySmokeTest` 两个直接实现 AbstractArrowAccessor 的夹具补 `figura$getInGroundTime`。RED 说明：比对脚本先确认 56 个缺失（注册检查在旧代码下必失败），未单独留失败日志。验证 PASS：VanillaState、HandAnimation、Input、UnavailableBinding、MolangMath、MolangBudget、ControllerTransition、ControllerContext、FunctionStage、MaterialNative、DefaultAnimation、SoundNative、ParticleRequest、Sync、NativeState 共 15 项 + `:fabric:build`（1分16秒）。未验证：mixin 在真实游戏中的加载（CPU 测试不经 mixin）、各名字游戏内取值 `MANUAL/PENDING`。
+- **D016 已完成（`ysm-alignment@ef9bd496`，已推送，`git ls-remote` 一致）：** 新增 AST `ThisExpression`（`ExpressionVisitor.visitThis` 默认回落 visit）；`MolangParserImpl` 将标识符 `this`（区分大小写，与参考 THIS token 一致）解析为该节点而非绑定查找（原先会因找不到绑定导致整条表达式解析失败）。`ExpressionEvaluator` 增默认空实现的 `setCurrentAxis/setCurrentChannelValues`，`ExpressionEvaluatorImpl` 保存三分量与当前轴，`visitThis` 计预算后返回对应轴值，未写入为 0。`YsmAnimationSampler.sampleBone(bone, time, evaluator, current)` 在 rotation/position/scale 各通道求值前写入 current 对应通道（null 时位置/旋转 0、缩放 1），`sampleStatic` 每轴设置轴号。取值时机对齐参考：参考 `this` 读 `BoneAnimationQueue.controllerSnapshot`，即片段 `applyAnimation` 时的骨骼姿态快照，而非逐帧累计值；Omni `PlayingAnimation.startPose/armStartPose` 在该片段首次采样前（零件重置前）记录上一帧 `animPos/animRot/animScale`，身体与第一人称分开。**有意偏差：** 参考旋转关键帧经 `RotationValue` 把角度表达式结果转弧度并对 x/y 取负，而快照是弧度值，`this` 代入角度表达式单位不一致；Omni 统一用作者空间角度/作者符号，不复制该缺陷（同 SAMP-03 处理）。RED：仅加采样重载时测试失败于 an expression using this parses。新增 `YsmSamplingAlignmentSmokeTest.testThisKeyword`（每轴读取、位置通道、无快照为 0）。验证 PASS：SamplingAlignment、PoseSampling、ControllerPoseLayer、BoneMatrix、BlendTransition、ControllerTransition、BeginningTransition、BuiltinController、ControllerSound、ControllerContext、ControllerPhase、FirstPersonController、FunctionStage、DeferredPose、DefaultAnimation、HandAnimation、MaterialNative、MolangMath、MolangBudget、MultilineExpression、UnavailableBinding、VanillaState、AnimationWeight 共 23 项 + `:fabric:build`（1分11秒）。未验证：播放器层快照捕获未单独写 Avatar 级测试（逻辑仅在真实 runtime 下运行），游戏内 `-this` 叠加效果 `MANUAL/PENDING`。
+- **D011 已完成（`ysm-alignment@690f2422`，已推送，`git ls-remote` 一致）：** `YsmAnimationEventWindow` 改为参考单游标语义（`InstructionKeyFrameExecutor`/`SoundKeyFrameExecutor`）：新 API `window(clip, from, to, loop, initialDispatched)` 返回 `Window(beforeWrap, wrapped, afterWrap)`。事件时间 ≤ 运行时间（含端点）触发一次；LOOP 仅在运行时间严格大于片段长度时回绕：回绕前补跑游标后全部非声音事件（含时间超出片段长度者，对应 `executeRemaining`），声音事件不补播，并由 `YsmAnimationPlayer.dispatchEvents` 调 `stopPlaybackSounds`（对应 `SoundKeyFrameExecutor.reset→stopAll`），再触发新周期 ≤ 取模时间的事件；长步长跨多周期只回绕一次；倒放不触发任何事件。粒子事件（Omni 独有，D029 不对齐）按指令事件同样处理。撤销了原多周期/倒放窗口与 1048576 次上限（用户授权全部 P1 时已接受）。测试：`YsmAnimationEventWindowSmokeTest` 按参考游标规则重写（端点不回绕、严格回绕、尾部声音丢弃、单次回绕、倒放为空）；`YsmAnimationFrameClockSmokeTest` 第三帧恰到终点不再触发下一周期 start，期望改为 middle/end。RED 说明：API 改名使旧代码无法编译新测试，未单独留行为 RED。验证 PASS：AnimationEventWindow、AnimationFrameClock、ControllerSound、SoundNative、BeginningTransition、ControllerTransition、DefaultAnimation、FunctionStage、ParticleDispatch、ParticleNative、ParticleRequest、SyncDefer、Sync、MaterialNative、HandAnimation、ControllerContext、SamplingAlignment、PoseSampling、BuiltinController、ChildController 共 20 项 + `:fabric:build`（1分39秒）。未验证：真实音频回绕截断听感 `MANUAL/PENDING`。
+- **P1 全部完成：** 计划第 8 节 P1 项 D007、D008（补记提交号 8d5d3391）、D009、D010、D011、D015、D016、D020、D022、SAMP-01/03/04/05/06 均为“已完成（提交号）”。有意偏差两处已在表中注明：SAMP-03 不复制参考 JSON 插值字符串带引号比较缺陷；D016 `this` 取值用 Omni 作者单位，不复制参考弧度代入角度表达式的不一致。
+- **既有失败（非本轮引入，仍保留）：** `ysmBoneQuerySmokeTest`（arm previous-frame input 0.0，基线 b777cd32 同样失败）、`ysmPlayerTimelineSmokeTest`（owner-null NPE）、`ysmFunctionContractSmokeTest`（filter-preview 期望 4.5 实得 90）。
+- **剩余工作与下一步：** P1 无剩余。未开始：P2（D013、D014、D017 部分、D018 待决策、D021 待决策、D026、SAMP-07）、D025（范围外需立项）、“不对齐”项。是否继续 P2 及第 7 节剩余决策（D018、D021）需用户指定。所有真实游戏画面/声音/mixin 加载/双客户端验收 `MANUAL/PENDING`。模组经符号链接接入 mods，无需复制产物。
+
+## 当前有效交接：P2 进行中（Claude，2026-10-26）
+
+用户目标：完成 P2，每个阶段完成后查额度；D021、D018 先尝试对齐；D025 跳过（后续实现）。
+
+- **D013/D014 已完成（`ysm-alignment@b8307244`，已推送，远端一致）：** `YsmFilterRuntime.update` 渲染时间回退或间隔 > 8/60 s 时不再积分，标记各滤波器 `recovering`，下次 `sample` 收到有限输入即 `reset` 到该输入（一阶直接取值，二阶 snap，速度归零），对应参考 `PhysicsManager` 恢复分支；时间回退原先被忽略，现与参考一致按恢复处理。一阶/二阶 `update` 遇非有限 input/参数直接返回保持上值（原 `finite()` 置 0 会向 0 追赶）。未对齐的结构差异：参考在 sample 时用本帧参数积分，Omni 在帧首 update 用上一帧参数积分，本项未改。测试 `YsmFilterSmokeTest.testLongGapRecovery/testNonFiniteInputHoldsValue`，RED 失败于 long gap snaps first order to the current input: 22.5。验证 PASS：Filter、FunctionStage、MaterialNative、ControllerContext、DeferredPose + `:fabric:build`（--continue 下完成）。
+- **既有失败更新：** `ysmFunctionContractSmokeTest` 现失败于更早的断言 `quarter-second transition uses seconds: 0.0`（函数控制器 `set_beginning_transition_length` 期望 fadeSpeed=4）；暂存本次改动在基线 `b1b1d612` 复跑同样失败，非 D013/D014 引入，推测为 D012 把过渡改成“起播延迟”后旧期望未更新，未修改。`ysmBoneQuerySmokeTest` 既有失败仍在。
+- **D026 已完成（`ysm-alignment@8fd3184e`，已推送）：** `YsmGeometry.scanQuadAlpha` 去掉 RGB 非零条件，任何 0<alpha<255 像素即判需半透明层（参考 `TextureAlphaAnalyzer.scanPixels`）。多贴图遍历未做：Omni 每次只加载选中贴图，参考 `results[i]` 对选中贴图的判定与此等价。测试 `YsmAccelerationMeshesSmokeTest` 黑色半透明像素用例，RED 失败于 a black half-transparent pixel needs the translucent layer。验证 PASS：AccelerationMeshes、MaterialNative、ControlledBaseGeometry、HeldItemGeometry + `:fabric:build`（1分51秒）。未验证：真实贴图渲染层/排序画面 `MANUAL/PENDING`。
+- **D017 已完成（`ysm-alignment@210713a5`，已推送）：** `YsmAvatarDetector.kind` 目录旧格式需 `main.json` 与 `arm.json` 同时存在（参考 `YSMFolderDeserializer.isModelFolder`），仍保留 `minecraft:geometry` 内容检查。ZIP 判定未改（参考 ZIP 嗅探任一标记即可，比目录宽松，Omni 现状更接近）；`.bbmodel/.gltf/.glb` 范围外。**行为变化：** 用户本地只有 main.json、没有 arm.json 的旧格式文件夹将不再被识别为模型。测试 `YsmPackageSmokeTest` 加目录判定断言（RED 失败于 old folder without arm.json is not a model），`YsmBaselineSmokeTest` 夹具补合法 arm.json。验证 PASS：Package、Baseline、LocalCorpus、DataBoundary + `:fabric:build`。
+- **新记录的既有失败：** `ysmMaterialInputSmokeTest`（all plain and encrypted YSM materials audited）、`ysmAvifSmokeTest`（complete corpus includes actual AVIF）、`ysmStabilitySmokeTest`（complete frozen corpus categories）在基线（暂存 D017 生产改动）同样失败，依赖真实模型语料，非本轮引入，未修改。
+- **SAMP-07 已完成（`ysm-alignment@16db5f04`，已推送）：** `YsmAnimationSampler.holdFinite`：采样向量任一分量非有限时用同一播放片段、同一骨骼的上次有限向量（无历史时位置/旋转 0、缩放 1，即参考 `PoseValueCache` 初值）；`PlayingAnimation.lastValidPose/armLastValidPose` 身体与第一人称分开记录。未照搬参考 `EvaluationHealth` 序号检查与异常记录（采样异常本已由 `sampleStatic` 保留数字回退）。测试 `YsmSamplingAlignmentSmokeTest.testNonFiniteHoldsLastValid`。RED 说明：新方法签名使旧代码无法编译，未单独留行为 RED。验证 PASS：SamplingAlignment、PoseSampling、ControllerPoseLayer、BoneMatrix、BeginningTransition、ControllerTransition、DefaultAnimation、HandAnimation、FirstPersonController、MaterialNative、DeferredPose、AnimationWeight + `:fabric:build`（1分2秒）。
+- **D021 已完成（`ysm-alignment@ae173dfc`，用户同意尝试，已推送）：** `YsmGeometryParser` 不再读取骨骼 `visible/default_visible/hidden/neverRender`，几何骨骼初始一律可见（参考 `YsmGeometryParsing` 不读这些键）。`visible_bounds_*` JSON 路径仍不解析：Omni 无消费者，参考用途也未证实。**行为变化：** 依赖这些键做初始隐藏的模型，现在初始会显示该骨骼。测试 `YsmAccelerationMeshesSmokeTest` 四个键各一例，RED 失败于 geometry bone visibility keys are ignored: a。验证 PASS：AccelerationMeshes、MaterialNative、ControlledBaseGeometry、HeldItemGeometry、DefaultAnimation、Package、Baseline + `:fabric:build`（BoneQuery 既有失败不变）。
+- **D018 已完成（`ysm-alignment@32ad4275`，用户同意尝试，已推送）：** 核对参考后修正审计结论：参考 `GeometryBaker.buildBoneNameArrays` 同样按 `LeftHandLocator/LeftItem/LeftHand/LeftPalm/LeftWrist/LeftForeArm/LeftLowerArm/LeftArm` 首个存在者作直接锚点，与 Omni `findHandBone` 一致，**按名回退名单保留，不删除**；参考剑锚点 `usesSpecialHandLocatorSwordAnchor` 只在 Carry On 兼容 profile 启用，Omni 无该兼容，不适用。实际对齐的只有多链：`YsmModelRuntime.handItemChainAnchors` 在无直接锚点时返回 `<Side>HandLocator2..8`（`YsmBoneMapper` 会把这些链定位器也归为手部角色，判定时排除），`applyHandItemChainTransform` 逐链变换（隐藏链不画）；`ItemInHandLayerMixin` 与 `LivingEntityRendererMixin.figura$submitYsmHandItem` 有链时每链各提交一份物品，否则走原路径。测试 `YsmMaterialNativeSmokeTest.testHandLocatorChains`（两条右手链、各自位置不同、隐藏链不画、有直接锚点时为空）。验证 PASS：MaterialNative、HandAnimation、ControlledBaseGeometry + `:fabric:build`（1分4秒）。未验证：mixin 渲染路径的多份物品游戏画面 `MANUAL/PENDING`。
+- **P2 全部完成：** D013、D014、D017（部分）、D018、D021、D026、SAMP-07 均已完成并在计划表写入提交号。D025 按用户要求跳过（后续实现，涉及同步协议/后端）。
+- **既有失败汇总（均在基线复现，非 P2 引入，未修改）：** BoneQuery、PlayerTimeline、FunctionContract（现失败于 quarter-second transition）、MaterialInput、Avif、Stability（后三者依赖真实模型语料）。
+- **下一步：** P2 无剩余。剩余为“不对齐”项与 D025。请用户实机验收 P1/P2（重点见各项“未验证”），模组经符号链接接入，构建前需关闭客户端。
+
+## 当前额度交接：拉弓蓄力姿态与参考不一致（Claude，2026-10-26）
+
+本节为最新入口。触发原因：Claude Pro 5 小时窗口 used 94% / 剩 6%（< 10% 阈值，重置 2026-10-26T14:00Z），周 used 49%。按约定安全暂停，未开始生产代码修改。
+
+- **用户问题：** 芙宁娜模型（`refs/avatars/芙宁娜v3.14中文配音.ysm`，用户实机路径 `.minecraft/versions/纯净大区(26.1.2)/omnimorph/avatars/芙宁娜v3.14中文配音.ysm`）长按拉弓时，Omni 手臂下垂持弓（待机姿态），参考项目为举弓拉弦姿态。
+- **已定位根因（有证据）：** 该模型的 `player.post_main` 控制器的 待机/空闲/走路/奔跑 等状态，其动画（如 `默认姿态`、`走路前进`、`run`）写入 `RightArm/LeftArm/RightForeArm/LeftForeArm`；作者专门的 `主手拉弓走路` 只写腿和身体，不写手臂，说明作者预期手臂由后续 use 阶段驱动。参考 `PlayerAnimationController.registerControllers` 顺序为 `main → post_main → pre_hold → hold_offhand → hold_mainhand → post_hold → … → use → post_use`，原生 hold/use 谓词控制器在 post_main **之后**，覆盖其写入通道。Omni `YsmAnimationPlayer.sampleAnimationPoses`（约 1079–1185 行）把所有原生片段（含 `nativeHoldAnimations`/`nativeHandAnimations` 的 hold、swing、use，如 `use_mainhand:bow`）累积进单一 `nativePoses`，在 main 阶段（`applyControllerLayers(...,true)` 之后、post 控制器层之前）应用，于是 post_main 的待机姿态覆盖了拉弓手臂。D001 只给控制器层排了阶段序，没有把原生手部片段放进对应阶段，属 D001 遗漏。证据来自临时诊断（见下）：`use_mainhand:bow` LOOP 58s，骨骼含 RightArm 等；`默认姿态` 骨骼含 RightArm/LeftArm。
+- **建议修复（未实施）：** 在 `sampleAnimationPoses` 中按原生片段归属分阶段：主运动原生片段仍为 20；`nativeHoldAnimations` 中的片段用 hold 阶段序（offhand 32 / mainhand 33，或统一 33）；`nativeHandAnimations` 中 swing 类（名以 swing/attack 开头）用 37，其余 use 用 41。把这些原生阶段与 `applyControllerLayers(beforeMain=false)` 的控制器层合并成一个按 `YsmControllerSlot.executionOrder` 稳定排序的列表依次应用（同一骨骼后者替换所写通道，原生层用 `applyControllerPose(part, pose)` 同现有原生路径）。注意 D002 builtin 门控与 D003 paused hold（paused 不提交姿态）保持不变。
+- **建议测试：** `YsmHandAnimationSmokeTest` 增加用例：一个 `player.post_main` 声明控制器播放写 RightArm 的片段 + 原生 `use_mainhand:bow` 写 RightArm 不同角度，经完整 `sampleAnimations` 后 RightArm 应等于 use 片段值；并用真实模型（gradle 任务已传入模型路径参数）在 `verifyReferenceBow` 中先让 post_main 控制器进入待机状态再验证拉弓手臂角度。完成条件：相关单测 + `:fabric:build` 通过，提交推送当前分支并核对远端，更新本手册，查额度。
+- **工作区状态：** 分支 `ysm-alignment`，HEAD `b5c45a88`（已推送，远端一致）。未提交修改：`common/src/test/java/top/aihmc/omnimorph/model/ysm/YsmHandAnimationSmokeTest.java` 中的临时诊断代码（`-Dysm.dumpBow=true` 时打印片段/控制器/状态，及新增 `import java.util.List`），默认不触发，修复时可删除或保留；本手册本节为未提交修改。原未跟踪 `.omc/`、`mod_log/`、`patch/` 保留。无运行中构建/测试。
+- **约束：** JDK25（`usejdk 25`，需加载用户 PowerShell profile，`-NoProfile` 会丢失 usejdk）；构建测试前台 PowerShell `2>&1 | Tee-Object -FilePath build.log`，日志为 UTF-16 需 `iconv -f utf-16` 读取；模组经符号链接接入 mods，构建前关闭游戏客户端；禁止 Qt offscreen；范围控制；每阶段提交推送核对远端；不升级版本。
+
+## 当前有效交接：拉弓蓄力姿态已修复（2026-10-26 20:10）
+
+本节覆盖上方“拉弓蓄力姿态与参考不一致”的暂停状态。用户明确要求继续修复，实施、验证、提交推送已完成；真实游戏画面仍 `MANUAL/PENDING`。
+
+- **根因修正（与上节记录不同之处）：** 手部 hold/use/swing 片段在 Omni 中**不是** native 片段（`playInSlot` 以 `new PlayingAnimation(clip,false)` 创建），它们原本作为 additive 直接层在 `applyControllerLayers(...,false)` **之前**应用。真正的原因是已声明的 `player.post_main` 控制器层（阶段 30）在 additive 手部层之后应用并**替换**其写入通道，于是待机姿态抹掉了拉弓手臂。上节“nativePoses 累积”的描述与实际代码不符，已纠正，未按原建议对 `nativePoses` 做改动。
+- **实现（`ysm-alignment@3a67ecdc`，已推送，远端一致）：** `YsmAnimationPlayer` 新增 `PlayingAnimation.poseOrder`（参考阶段序，默认 main=20），在手部选片处写入：hold_offhand=32、hold_mainhand=33、swing=37、use=41（均取自 `YsmControllerSlot.executionOrder` 的既有阶段表，避免重复常量）。`sampleAnimationPoses` 把非 native 且 `poseOrder > main` 的手部片段收集为 `WeightedPose`，与 native 阶段、声明控制器层一起由 `applyControllerLayers` 稳定排序应用；同阶段内顺序为 native → 手部 → 声明控制器，因此 post_main(30) 先于 use(41)，而并行/护甲等更后阶段仍覆盖。主运动阶段（20）仍在直接层之前应用、额外的 direct/extra 动画仍保持原 additive 位置。手部片段改为参考语义的“替换所写通道”，并按片段权重从当前姿态插值（`blendControllerPose`），淡入不再瞬跳。
+- **保持不变：** D002 builtin 门控（`usesBuiltinController`）、D003 paused hold（不提交姿态）、D004 loop 覆盖、D005 本地脉冲选择、D006 状态表；未改版本、后端或资源。
+- **测试：** `YsmHandAnimationSmokeTest` 新增 `verifyControllerStageInterleaving`：声明 `player.post_main` 播放写 RightArm `-90°` 的片段 + `use_mainhand:bow` 写 `45°`，完整 `sampleAnimations` 后 RightArm 必须是 45°（修复前为 -45°，即被 -90° 覆盖后的结果）；另在既有 hold/swing/use 用例中断言 `poseOrder` 属于各自参考阶段。RED：以旧应用顺序复跑得到 `post_main must not overwrite the later native use arm pose: -45.0`（`build/reports/outfit/alpha4-bowstage-red.log`）。同时删除上一轮遗留的 `-Dysm.dumpBow` 临时诊断（含模型专用片段名），测试文件不再含该分支。GREEN：`alpha4-bowstage-green.log`、清理后 `alpha4-bowstage-green-clean.log`。
+- **最终验证 PASS：** 22 项 YSM 单测（HandAnimation、NativeState、Input、VanillaState、SoundNative、DefaultAnimation、MaterialNative、FirstPersonController、BeginningTransition、BuiltinController、ControllerTransition、ControllerSound、PoseSampling、SamplingAlignment、AccelerationMeshes、DeferredPose、BoneMatrix、FunctionStage、ControllerPoseLayer、ControllerPhase、ControllerContext、ControllerIsolation）+ `:fabric:build`，`alpha4-bowstage-final.log`：BUILD SUCCESSFUL in 2m 1s。真实模型回放用例 `verifyReferenceBow` 仍通过：拉弓改变手臂姿态、松开/重拉时钟与姿态一致，说明替换语义未破坏真实模型拉弓。
+- **行为变化：** 手部 hold/use/swing 由 additive 叠加改为按参考阶段替换所写通道。CPU/Avatar 测试不能证明真实游戏像素与手感，实际游戏画面（首次拉弓、持续蓄力、第一/第三人称、持物观感）仍 `MANUAL/PENDING`，需要用户实机确认。
+- **既有失败（非本次引入，保留）：** `ysmBoneQuerySmokeTest`、`ysmPlayerTimelineSmokeTest`、`ysmFunctionContractSmokeTest`（现失败于 quarter-second transition）、`ysmMaterialInputSmokeTest`、`ysmAvifSmokeTest`、`ysmStabilitySmokeTest`。
+- **Git/工作区：** 分支 `ysm-alignment`，HEAD `3a67ecdc`（`fix: apply YSM hand actions at their reference stages (post_main omission)`），已推送并核对 `git ls-remote` 一致；本轮只改 `YsmAnimationPlayer` 与 `YsmHandAnimationSmokeTest`，本手册随后单独提交。原未跟踪 `.omc/`、`mod_log/`、`patch/` 保留，未切换分支、未改后端、未升级版本。无运行中构建/测试。
+- **下一步：** 用户重启客户端（构建前已关闭游戏、模组经符号链接接入）实机确认芙宁娜拉弓蓄力为举弓拉弦；若仍有偏差，优先对照该模型 `player.post_main` 各状态与 `use_mainhand:bow` 的实际骨骼值，而不是再调整阶段序。
+
+## 当前有效交接：右键矛无动作 —— 通配选择链缺陷分析与修复入口（2026-10-26 20:45）
+
+本节覆盖上节“下一步”。用户报告芙宁娜模型**右键矛没有动作**；本轮只做分析，**未改任何代码**。拉弓修复（`3a67ecdc`）与本题无关：那个修的是“选到片段后被后层覆盖”，本题是“根本没选到片段”。
+
+### 一、可复核的证据（来自该模型自己的 dump）
+
+上一轮为拉弓临时加过的 `-Dysm.dumpBow` 诊断（已在 `3a67ecdc` 中删除）曾在 `build.log` 留下该模型的片段与控制器清单（时间 19:33）。要点：
+
+- 模型**有**：`use_mainhand:spear`（`HOLD_ON_LAST_FRAME`，60s）、`use_mainhand`（通用，`ONCE` 0.375s）、`hold_mainhand:spear`（`LOOP` 10000s）、`hold_offhand:spear`、`use_mainhand:bow`、`use_mainhand:crossbow/drink/eat/shield/spyglass/slashblade/gohei` 等。
+- 模型**没有**：`use_mainhand:lance`、`use_mainhand:trident`、以及 `lance_*`/`swing:lance` 之类别名（dump 过滤条件只含 bow/use/hold，`lance_*` 未直接列出，但 `use_mainhand:*` 全量可见，故 use 侧缺失是确定的）。
+- 控制器：`player.post_main`（中文状态，写手臂）、`player.post_use`（状态为“主手/副手三叉戟蓄力/投出”，**只覆盖三叉戟**）、`player.post_swing`（`default/挖掘/普通`，**无 `ysm-builtin` 状态**）、`player.post_hold`、`player.parallel_6/7/9`、`player.pre_parallel_5/6/7`、`player.armor_chest`。
+
+### 二、复现链（右键矛为什么没有动作）
+
+1. 原版矛是 `ItemUseAnimation.SPEAR` + `KINETIC_WEAPON` → `isKineticSpear` 为真，进 kinetic 分支（[YsmAnimationPlayer.java](common/src/main/java/top/aihmc/omnimorph/model/ysm/animation/YsmAnimationPlayer.java) `isKineticSpear` :2071）。
+2. `useAnimationNames`（:2031-2048）候选为 `lance_riding_charge`/`lance_fall_flying_charge`/`lance_charge` → `use_mainhand$minecraft:<id>` → `#tag` → `use_mainhand:lance`；kinetic 分支**不追加**通用 `use_mainhand`（:2044）。
+3. 该模型这些名字全部不存在，`use_mainhand:spear` **永远不会进入候选**（见 B1）。
+4. `firstHandAnimation` 返回 null → use 槽被清空；但同手 hold 已因 `ownHandActs` 被暂停 → 手臂完全静止。
+5. 三叉戟能工作：`itemTypes` 对 trident 给 `trident`+`spear`，候选含 `use_mainhand:spear` → 命中该模型片段。
+6. 若物品**不带** `KINETIC_WEAPON`，则走非 kinetic 分支，候选里会追加通用 `use_mainhand`（模型有），不会完全无动作。**用户报告“完全没动作”指向 kinetic 分支候选为空这一条。**
+
+### 三、暴露的通用缺陷（按修复优先级）
+
+- **B1（根因，影响所有采用 `:spear` 命名约定的模型）** `itemTypes(item, use=true)` 对 SPEAR 只产出 `lance`，且 :2165-2169 显式压掉 `spear` 后缀 `!(use && useAnimation.equals("spear"))`；而 hold/swing 对 SPEAR 用 `spear`。结果：`use_mainhand:spear` 对矛永远选不中、对三叉戟可选。参考实现 `ConditionUse.doExtraTest` 对 SPEAR 动画**先试 `use_mainhand:spear`**（[ConditionUse.java:130-135](refs/Sparkle-Morpher/common/src/main/java/com/micaftic/morpher/client/animation/condition/ConditionUse.java)），lance 名只作为 kinetic 兜底（[LanceAnimationTiming.java:17-25](refs/Sparkle-Morpher/common/src/main/java/com/micaftic/morpher/client/animation/predicate/LanceAnimationTiming.java)）。这不是模型特化问题：默认资源 `assets/omni-morph/default_animation/arm.animation.json` 本身也同时有 `use_mainhand:spear` 与 `use_mainhand:lance`，标准命名就是 `:spear`。
+- **B2（影响面最大）** 任意一个非 builtin 的 `player.post_swing` 控制器会让**整个 ARM 默认动画集**被关闭：`YsmModelRuntime.resolveDefaultAnimations` 的 `handsControlled` 只看 POST_SWING 槽位（[YsmModelRuntime.java:333-344](common/src/main/java/top/aihmc/omnimorph/model/ysm/YsmModelRuntime.java)），一旦为真就把 `Domain.ARM` 的 `enabled` 置 false（[YsmDefaultAnimationResolver.java:86-117](common/src/main/java/top/aihmc/omnimorph/model/ysm/animation/YsmDefaultAnimationResolver.java)），所有 `hold_*`、`use_*:spear/lance`、`swing:*` 默认片段消失。芙宁娜正好有 `player.post_swing`。门控范围也不匹配：post_swing（阶段 38）关掉了 hold（32/33）与 use（41）。通用 `use_mainhand`/`use_offhand`/`swing_hand`/`swing_offhand` 因为同时存在于 `main` 域而侥幸保留（已核对默认 `main.animation.json`），但所有带冒号的武器专用名都没有。
+- **B3** 选片失败仍暂停同手 hold：`ownHandActs` 只看 `usingItem`，不看是否真的选中 use 片段（`updateNativeHandAnimations` :1967），于是“缺片段”表现成“手臂卡住/没动作”，静默掩盖 B1/B2。
+- **B4** kinetic 时间覆盖劫持任意选中的 use 片段：`sampleKineticChargeAnimation`（:2050-2060）对所有 `isKineticSpear` 片段强制 `sampledTime = useTicks/duration*length`，包括通用/默认兜底片段；`sampledTime` 一次采样即消费并置 NaN（:1042-1044），长片段会显得极慢或静止。参考只对 lance charge 片段做 tick override。
+- **B5** `isKineticSpear`（:2071）按数据组件分类，参考按 `WeaponKind`（`minecraft:*_spear` 或 `#sparkle_morpher:pike`，[InnerClassify.java:72-90](refs/Sparkle-Morpher/common/src/main/java/com/micaftic/morpher/client/animation/condition/InnerClassify.java)）；带组件的任意 SPEAR 物品会进 lance 命名并丢通用回退，不带组件的 pike 又不进 kinetic 路径。
+- **B6** “作者是否拥有 use 阶段”判定不完整：`usesBuiltinController` 只认名字恰好为 `player.use` 的控制器（:301-311），`handsControlled` 只看 POST_SWING；该模型把三叉戟蓄力/投掷放在 `player.post_use`（阶段 42），两套门控都看不到 → 原生 use 保持开启却选不到片段，作者 post_use 又只覆盖三叉戟。
+- **B7** 选片失败零诊断：`firstHandAnimation` 返回 null 后静默清槽，日志没有“某动作未解析到片段”的记录；默认资源诊断只覆盖资源/骨骼映射。
+- **B8** 名称排除是全局的：`defaultExcludedNames` 排除模型全部片段名，且 `firstHandAnimation` 只要任一候选是作者声明的空片段就设 `authoredEmpty` 跳过整条默认回退（:2236）。占位/空片段会让该动作的默认资源永久失效。
+
+### 四、建议修复顺序（未实施，需按 AGENTS 范围控制先确认）
+
+1. **最小修复 B1+B3**：`useAnimationNames` 对 SPEAR 动画加入 `use_mainhand:spear`/`use_offhand:spear`（顺序建议：kinetic charge 名 → `$id` → tag → `:spear` → `:lance` → 通用 `use_mainhand` 仅在没有任何专用片段可用时）；并让“暂停 hold”只在确实选出 use 片段时发生（否则保持握姿并记一次诊断）。这样单改一处即可让该模型有动作，且对所有使用 `:spear` 命名的模型生效。
+2. **B2 门控范围**：把 `handsControlled` 改为按 hold/use/swing 各自相关的槽位判定（或至少 post_swing 只影响 swing 默认），不要因一个阶段关闭只手整域默认。
+3. **B4/B5**：tick 覆盖只作用于 charge 家族；kinetic 判定与参考的 `WeaponKind` 对齐（或明确保留组件判定并在注释/文档中记录差异）。
+4. **B6/B7**：为 hand 阶段补“作者接管”的完整判定与失败诊断（每模型每动作一次），便于以后定位。
+5. **B8** 是否要让空片段回退到默认，需要用户决定（会影响作者“有意占位”的语义）。
+
+### 五、修复时的验证要求
+
+- 先写 RED：`YsmHandAnimationSmokeTest` 增加“kinetic spear + 模型只有 `use_mainhand:spear`”用例（当前应失败于无 use 片段），以及“trident 仍命中 `use_mainhand:spear`”“无 use 片段时 hold 不被暂停”；`YsmDefaultAnimationSmokeTest` 增加“存在非 builtin post_swing 时 hold/use 默认仍可用”（覆盖 B2）。
+- 回归：`ysmHandAnimation`、`ysmNativeState`、`ysmDefaultAnimation`、`ysmMaterialNative`、`ysmFirstPersonController`、`ysmVanillaState`、`ysmSoundNative`、`ysmInput`、`ysmBuiltinController` + `:fabric:build`。
+- 真实游戏仍需用户实机确认右键矛、三叉戟投掷、持矛待机、第一/第三人称；CPU/夹具不能替代画面。
+- 已知既有失败（非本轮引入）：`ysmBoneQuerySmokeTest`、`ysmPlayerTimelineSmokeTest`、`ysmFunctionContractSmokeTest`、`ysmMaterialInputSmokeTest`、`ysmAvifSmokeTest`、`ysmStabilitySmokeTest`。
+
+### 六、工作区与操作约束
+
+- 分支 `ysm-alignment`，HEAD `7efa9960`（`docs: record the YSM hand-stage fix and bow handoff`），已推送、`git ls-remote` 与本地一致；本轮分析未改代码，只追加本节。原未跟踪 `.omc/`、`mod_log/`、`patch/` 保留；根目录 `build.log` 含上述 dump，未纳入版本库，供复核。
+- 重新 dump 模型信息需要临时恢复 `YsmHandAnimationSmokeTest` 中的诊断块（已在 `3a67ecdc` 删除）；若只做分析，直接读 `build.log` 即可。
+- 约束不变：JDK25（需加载 `D:/UserData/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1` 后 `usejdk 25`）；构建/测试前台 PowerShell `2>&1 | Tee-Object -FilePath build.log` 并立即检查退出码；构建前关闭游戏客户端；模组经符号链接接入 mods，不复制产物；禁止 Qt offscreen；不升级版本、不改后端；每阶段提交推送并核对远端 SHA。
+
+## 当前有效交接：右键矛 B1～B8 修复完成（2026-10-26）
+
+本节覆盖上方右键矛“只分析、未实施”的状态。用户最初要求B1～B7，随后明确更正为B1～B8，已全部纳入本次范围。P1/P2此前完成状态保留，不重新实施。按相关单测成功且编译通过的约定，本次Goal已标complete，然后更新本手册；没有剩余自动实施任务。
+
+### 完成检查点
+
+| 阶段 | 已完成内容 | 已提交推送且核对远端 |
+| --- | --- | --- |
+| 1 B1/B3 | SPEAR候选加入旧:spear兼容，专用charge及:lance仍支持；use未解析时维持原握姿而不暂停hold，亦覆盖非kinetic物品 | bb962bafbb3ab3cf5580746823d18f9465dbb15f |
+| 2 B2 | 移除post_swing对整个手部默认资源域的加载禁用；默认准备与具体核心阶段的运行时接管分离 | d65510d568c1b93611cef82fe8106244071835e2 |
+| 3 B4/B5 | 原版SPEAR/pike标签分类复用YsmHandItemType，组件本身不决定武器家族；charge时钟只覆盖charge家族，:spear/物品ID/通用use用自身时钟；专用缺失可用通用use | 8f128a38e2fbe25b512b1317b5d7cbc16a463b4a |
+| 4 B6/B7 | 编号use/swing/hold声明参与核心阶段接管，任一custom阶段能阻止对应builtin；按播放器/动作去重NO_HAND_ANIMATION诊断并记录物品与候选 | 9b25ec4a0729ec1eaec847109a0b2fff3b17ebd1 |
+| 5 B8/最终回归 | 手部空占位允许同名默认资源及后续默认候选回退；有效作者仍优先，显式禁用仍有效，非手部空idle原语义保留；实际模型矛回放通过 | 00af009f0cdc51577625ac4bd534724ca7e2ae24 |
+
+### 分析纠正与边界
+
+- 旧分析B1称参考ConditionUse对SPEAR先试:spear，与当前源码不符：其MC_SPEAR_ANIMATION实际为lance。本次保留:lance及charge优先，在其后加:spear兼容，不以错误引用冒称参考完全相同。
+- 旧B6把post_use存在视为核心use全面接管也不准确：前/后hook是独立阶段，后置层仅覆盖其写入通道。此次补的是编号核心声明的实际遗漏，不因post_use只覆盖三叉戟就禁止矛的native use。
+- B8按用户追加授权改变手部空占位语义；不改变非手部空idle优先、损坏作者诊断、显式禁用或冻结协议。未增加模型名/作者/哈希分支，未改默认资源文件、版本或后端。
+
+### 验证结果
+
+- RED日志：build/reports/outfit/spear-b1-b3-red.log（tick1选不到作者:spear）、spear-b2-red.log（post_swing导致缺默认hold）、spear-b4-b5-red.log（旧spear时钟被覆盖）、spear-b6-b7-red.log（编号use未接管）、spear-b8-red.log（空lance阻止默认加载）。B6最初无函数运行时的CPU夹具失败已修正为跳过夹具无关函数入口，再获得目标断言RED。
+- 阶段final/green日志均在build/reports/outfit：spear-b1-b3-final.log（1分10秒/24 tasks），spear-b2-final.log（56秒/24 tasks），spear-b4-b5-final.log（51秒/24 tasks），spear-b6-b7-green.log（1分2秒/25 tasks）。
+- **最终PASS：** spear-b8-final.log，BUILD SUCCESSFUL in 1m 28s，30 tasks。九项显式单测HandAnimation、DefaultAnimation、NativeState、MaterialNative、FirstPersonController、VanillaState、SoundNative、Input、BuiltinController，以及Fabric build；附带LibraryPreviewRuntime也PASS。
+- HandAnimation通过实际芙宁娜模型解码/正式播放器/骨骼采样回放：作者use_mainhand:spear非空并被选中，sampledTime无charge覆盖，推进0.5秒后time=0.5，RightArm姿态确实改变；持续使用保留实例，松开退休。原bow首次/重拉、trident、左右握持、阶段覆盖等回归保留通过。生产源码无模型特化。
+- 使用JDK25、前台PowerShell Tee build.log，立即读取LASTEXITCODE与日志；git diff --check/cached --check均PASS。没有引入适用范围外的格式化或重构。
+- 真实Minecraft右键输入、第一/第三人称GPU画面、设备声音、双客户端仍MANUAL/PENDING。既有BoneQuery、PlayerTimeline、FunctionContract、MaterialInput、Avif、Stability失败不在本轮修复范围，不宣称所有历史测试通过。
+
+### Git、产物、额度与下一步
+
+- 当前分支ysm-alignment，代码/计划HEAD为00af009f0cdc51577625ac4bd534724ca7e2ae24，五阶段均逐次push且ls-remote核对一致；本手册和计划提交号补记随后独立文档收尾提交，最终HEAD以git为准。原未跟踪.omc/、mod_log/、patch/保留，无分支切换，无运行中构建/测试。
+- 本次主要文件：YsmAnimationPlayer、YsmModelRuntime、YsmHandAnimationSmokeTest、YsmDefaultAnimationSmokeTest、docs/YSM_SPEAR_FIX_PLAN.md、本手册。
+- 产物fabric/build/libs/omni-morph-1.0.0-alpha.4.1+26.1.2-fabric-mc.jar，19035687字节，SHA256 ec39b8f5ca64f770fe7a68584e4f95c772ae7eba8d5358090830f3491792fd2d。mods使用用户已有符号链接，无复制覆盖、无客户端自动操作。
+- 每阶段都可靠查额度：Plus五小时剩92%→88%→84%→80%→75%；最终周剩81%，重置Unix1793032806/1793601498。未达交接阈值，手册由当前Agent更新，未委派Luna。Goal约19分钟达到自动完成条件。
+- 下一步只有用户实机验收：重启客户端后测试右键矛持续使用/松开/再使用、三叉戟及拉弓、第一/第三人称。无新增实施阶段；若仍异常，使用新日志中的[YSM hand]信息和当前模型实际控制器/骨骼值继续定位。
+- 相关文档：docs/YSM_SPEAR_FIX_PLAN.md（本轮阶段及证据）、docs/YSM_ALIGNMENT_PLAN.md、docs/YSM_ANIMATION_ENGINE_COMPARISON.md。保持CodeGraph优先、当前分支提交推送检查点、JDK25、前台PowerShell日志、符号链接安装、禁止Qt offscreen、范围控制和真实未验不得标PASS。
+
+## 当前有效交接：末影龙娘矛姿态参考差异修复（2026-10-26）
+
+用户新报末影龙娘右键矛姿态与参考不符：图一参考近水平前持，图二Omni斜向上；指定资源refs/avatars/末影龙娘.ysm。用户要求对比哪里不一致。本轮按diagnosing-bugs技能先建立实际资源RED，再修正两个已证实路径；本节覆盖前节B1把旧:spear兼容当作原版矛正确行为的结论。
+
+- **差异1 / 已修复：** 当前参考InteractionHandAnimationPredicate.playUseAnimation:71-90和LanceAnimationTiming.selectChargeNames只选择charge家族，原版SPEAR无可用charge时STOP，不能转入TRIDENT旧:spear或短generic。Omni上轮B1兼容过宽；实际末影龙娘回放确实选中0.5秒use_mainhand:spear（含双臂/前臂/RightHandLocator），spear-pose-red.log断言失败。现SPEAR候选限定lance_riding_charge / lance_fall_flying_charge / lance_charge / use_*:lance；无charge保留握姿。TRIDENT旧:spear保留，非SPEAR条件/generic及B8默认空占位规则保留，没有按模型名称分支。检查点27db42ce12af6586e3a78a414096c10ae8653c56，已push并核对远端一致。
+- **差异2 / 已修复：** 参考CustomPlayerItemInHandLayer.applyAuthoredSpearUseItemTransform使用YSM专属显示枢轴(0,.125,.125)和三阶段smoothStep旋转；Omni调用的是vanilla SpearAnimations.thirdPersonUseItem，公式不同。现改为参考X补偿60*(1-engaged)、Y前转handSign*(90+90*tired)、X下垂6*disengaged，仅原版SPEAR类型应用。握持基座/弓归一化未变。检查点ad0105cf30f4b5467f4c50f4788a06be87940922，已push并核对远端一致。
+- **新增/更新测试：** HandAnimation任务同时加载芙宁娜及末影龙娘。末影龙娘无charge的原生夹具验证STOP而不选旧:spear，并保留作者hold；芙宁娜夹具显式调用正式默认准备入口（原生replay夹具没有Avatar NBT，装配时没有准备默认），验证default lance charge能产生姿态、按charge进度采样和正确释放。pike夹具从固定BOW使用动画的弓改为真实可使用SPEAR动画的普通物品，不修改生产分类来满足错误夹具。
+- **黄金矩阵：** 旧测试只断言等于vanilla，无法捕捉参考差异；spear-pose-transform-red.log在tick0/左主惯用手/主手失败。现用手算角度表验证ticks0/1/5/10/25/40/55/70/100，覆盖两主惯用手、主/副手、活动/非活动手以及三叉戟，容差0.00001。临时DEBUG-spear-pose探针已删除。
+- **验证PASS：** build/reports/outfit/spear-pose-selection-final.log：HandAnimation、DefaultAnimation、BuiltinController及Fabric build，1分2秒/24 tasks。spear-pose-transform-final.log：HandAnimation、DefaultAnimation、HeldItemGeometry、MaterialNative、BuiltinController、Input六项及Fabric build，2分22秒/27 tasks；附带LibraryPreviewRuntime也PASS。JDK25、前台PowerShell Tee build.log、立即检查LASTEXITCODE并读日志，diff/cached diff检查通过。
+- **未验证：** 用户真实右键输入、第一/第三人称GPU画面/听感/双客户端仍MANUAL/PENDING，不把CPU矩阵当作两图逐像素一致。持物效果沿用原实体整数tick入口，分数帧/本地输入脉冲的持物时序不在本轮黄金矩阵证据内。旧BoneQuery/PlayerTimeline/FunctionContract/MaterialInput/Avif/Stability等独立已知失败保留，不宣称全历史测试通过。两个截图环境/视角不同，未据此推断其它翼/全身差异。
+- **文件与Git：** 沿ysm-alignment，代码检查点HEAD ad0105cf30f4b5467f4c50f4788a06be87940922；本手册及计划提交号随后单独文档收尾，最终HEAD以实际git为准。范围仅YsmAnimationPlayer、YsmHeldItemTransforms、YsmHandAnimationSmokeTest、common/build.gradle、docs/YSM_SPEAR_POSE_FIX.md、本手册；未改版本、后端、用户模型或默认资源文件。原未跟踪.omc/、mod_log/、patch/保留，无运行中构建/测试。
+- **产物：** fabric/build/libs/omni-morph-1.0.0-alpha.4.1+26.1.2-fabric-mc.jar，19036816字节，SHA256 e2e4544bca02356cd3de08352bbd73a6732638d820ee35770fef1618394f4441。用户mods通过符号链接，无复制覆盖、无客户端自动操作。
+- **额度：** 两阶段后可靠Plus五小时剩60%/54%，最终周剩78%，重置Unix1793032806/1793601498，未触发阈值，当前Agent正常更新手册，未委派Luna。
+- **下一步：** 两处已证实差异的自动修复完成，无新增开发阶段。用户重启后使用末影龙娘测试矛抬起/持续持握/疲劳末段/松开与三叉戟，兼验芙宁娜和拉弓。若仍有差异，以新日志/使用tick/当前片段和骨骼矩阵定位，不能再次把原版SPEAR误配到legacy TRIDENT动画。
+- **约束与文档：** docs/YSM_SPEAR_POSE_FIX.md为本轮记录，docs/YSM_SPEAR_FIX_PLAN.md为上一轮历史记录（其中B1/SPEAR兼容结论已被本节纠正）。保持CodeGraph优先、当前分支检查点、JDK25/前台日志、禁止Qt offscreen、符号链接安装和有限范围。
+
+
+## 当前有效交接：战术酒狐资源激活范围修复（2026-10-26）
+
+本节覆盖当前任务状态，P1/P2、B1～B8及末影龙娘矛修复已完成状态保留，不重启历史计划。
+用户先要求只读分析16_tactics截图，随后授权开始修复并查询额度。当前任务单阶段自动验收完成，无剩余自动实施阶段。
+
+- **已完成/已验证：** 新格式玩家动画/控制器只激活清单声明的资源，不再扫描备用控制器、投射物/载具动画进入玩家域。同名作者动画按声明顺序后者覆盖，包括显式空动画，移除骨骼数/事件数评分。旧格式发现机制及子实体独立装配未改；默认fallback策略未改，未改用户模型或默认资源。
+- **原始RED：** build/reports/outfit/resource-scope-red.log。真实refs/avatars/16_tactics正式加载后，备用parallel_0控制器压掉身体parallel0；箭矢同名片段12骨骼得24分，覆盖身体3骨骼得6分。枪gun和定位条纹dingwei连续三次采样均未隐藏；同名优先级/空片段断言失败。
+- **GREEN：** build/reports/outfit/resource-scope-final.log，BUILD SUCCESSFUL in 1m 27s，26 tasks。ResourceScope、Package、DefaultAnimation、MaterialNative、HandAnimation五项显式单测和Fabric build全部通过，附带LibraryPreviewRuntime通过。真实模型枪/定位条纹连续隐藏、变量开关枪有效、定位条纹不随枪开关显示、箭矢资源仍保留；文件夹/ZIP忽略未声明资源、旧格式回归通过；末影龙娘/芙宁娜矛和弓回归通过。
+- **中途失败/已处理：** 新增变量切换断言未捕获ParseException导致一次测试编译失败，已修正；材质测试新格式夹具未在清单声明其动画，造成preview idle为空，resource-scope-fixture-failure.log保留该失败；仅补齐夹具声明后重跑通过。没有恢复错误目录扫描来绕过测试。
+- **真实未验证：** 游戏GPU画面/实际控件输入仍MANUAL/PENDING，不把CPU显隐断言当作画面验收。用户重启客户端并重新加载16_tactics后确认默认枪/脚下条纹消失、作者枪开关有效，兼验持矛。此前独立BoneQuery/PlayerTimeline/FunctionContract/MaterialInput/Avif/Stability已知失败保留，未宣称全历史测试通过。
+- **Git：** 当前ysm-alignment。代码提交1f9fdea4997bff444879a4c9817cdd95b4887c5f，已push origin并用ls-remote核对与本地HEAD一致。当前手册/记录在随后文档收尾提交，最终HEAD以git为准；不新建/切换分支。原未跟踪.omc/、mod_log/、patch/保留，无后台构建或测试。
+- **文件：** YsmManifestReader、YsmModelRuntime、common/build.gradle、新增YsmResourceScopeSmokeTest，更新YsmPackageSmokeTest及YsmMaterialNativeSmokeTest夹具。正式记录docs/YSM_RESOURCE_SCOPE_FIX.md；AGENT_HANDOFF.md已更新入口和当前节。未改版本、后端、用户资源，无模型名/作者/哈希生产特化。
+- **产物：** fabric/build/libs/omni-morph-1.0.0-alpha.4.1+26.1.2-fabric-mc.jar，19036473字节，SHA256 004a2e62114f85701ca804f6d3f81ea0c5ccf16a8d675ea6ab366fd9c035b795。用户mods通过符号链接接入，没有复制覆盖或自动操作Minecraft。
+- **额度：** Plus主要五小时池剩43%→38%→34%，最终周剩75%，重置Unix1793032806/1793601498；未触发阈值，当前Agent正常更新手册，未委派Luna。
+- **最小下一步：** 仅用户实机验收；当前没有待继续的实施或新增阶段。若仍异常，先核对实际加载JAR/重新加载资源，再采集具体骨骼/片段证据，不直接扩展为其它渲染重构。
+- **约束：** CodeGraph优先；JDK25；所有测试/编译前台PowerShell经Tee build.log、立即检查退出码并读日志；diff/cached diff检查；当前分支提交推送并核对远端；禁止Qt offscreen。保留工作区，达到额度阈值才委派gpt-6-luna整理交接，不猜额度。
+- **关联文档：** docs/YSM_RESOURCE_SCOPE_FIX.md、docs/YSM_ANIMATION_ENGINE_COMPARISON.md、docs/YSM_ALIGNMENT_PLAN.md、docs/YSM_SPEAR_POSE_FIX.md。新格式作者必须明确声明要激活的动画/控制器；旧格式资源扫描隔离未在本任务扩展修改。
+
+
+## 当前有效交接：战术酒狐移动及持续使用统一修复（2026-10-26）
+
+用户授权统一修复walk#错选、弓/三叉戟长按动作重播问题。单阶段自动验收完成，无剩余自动实施阶段；此前资源范围修复、末影龙娘、P1/P2、B1～B8已完成状态保留。
+
+- **已完成：** literalAnimationName保留完整作者名，walk#精确命中而非空walk；firstHandAnimation按候选具体程度逐项尝试作者/默认，不再让作者通用use抢占默认专用弓/三叉戟动作；已完成ONCE use在连续请求期间保留零权重停止实例，释放或选片变化后正常清理，不重复创建，松开后再用正常重启。生产修改仅YsmAnimationPlayer，无模型名/作者/哈希特化。
+- **RED：** build/reports/outfit/tactics-actions-red.log，真实16_tactics载入和正式播放器回放，完整walk#、腿部变化、专用弓/三叉戟选片、ONCE长按停止均失败。首次夹具物品Components not bound已按既有手部测试初始化后得到目标RED，不把夹具失败当功能证据。
+- **GREEN/已验证：** build/reports/outfit/tactics-actions-final.log，BUILD SUCCESSFUL in 1m 26s，26 tasks。ResourceScope、HandAnimation、DefaultAnimation、BuiltinController、MaterialNative五项和Fabric build通过；附带LibraryPreviewRuntime通过。walk#在0.125/0.375秒LeftLeg旋转变化超过5度；弓/三叉戟各持续40次0.05秒更新保持同一专用HOLD实例和连续时钟；无默认的作者ONCE对照持续60次后同一实例零权重停止，释放后重用新实例从0开始。原枪/条纹显隐、手部作者/空占位/禁用/旧格式/双手、末影龙娘/芙宁娜回归保留通过。
+- **未验证：** 游戏画面/真实按键输入/声音/双客户端MANUAL/PENDING，CPU回放不等于真实端到端通过。低速walk_slow没有被此次静态证据判定为独立BUG；若实机仍异常需具体状态/权重/时钟证据。既有独立BoneQuery/PlayerTimeline/FunctionContract/MaterialInput/Avif/Stability失败未扩展修复，不宣称全历史测试通过。
+- **Git/文件：** 当前ysm-alignment，代码b32d2e1a978145ecb546962698a362a2f40b12bb已提交push origin并核对远端SHA一致。本节及docs/YSM_TACTICS_ACTION_FIX.md随后文档收尾提交，最终HEAD以git为准。修改YsmAnimationPlayer、YsmResourceScopeSmokeTest、YsmHandAnimationSmokeTest；未改默认资源、用户模型、版本、后端。原未跟踪.omc/、mod_log/、patch/保留，无运行中构建/测试。
+- **产物：** fabric/build/libs/omni-morph-1.0.0-alpha.4.1+26.1.2-fabric-mc.jar，19036479字节，SHA256 1115d5c5c6d756466215fe4d8eb14f76ef67423f0830c11cd7e6bbe5adb436a9。mods已有符号链接，无复制覆盖/自动游戏操作。
+- **额度：** 可靠Plus五小时剩26%→22%→20%，最终周剩72%，重置Unix1793032806/1793601498；未触发阈值，当前Agent正常更新手册，未委派Luna。
+- **下一步：** 仅用户重启客户端并重新加载16_tactics实机验证正常步行摆腿、长按弓/三叉戟持续蓄力、松开及再次使用；没有剩余自动实施阶段。若仍失败先核对实际JAR/片段/使用时间，不盲目重开此前计划。
+- **文档与约束：** docs/YSM_TACTICS_ACTION_FIX.md、docs/YSM_RESOURCE_SCOPE_FIX.md、docs/YSM_ALIGNMENT_PLAN.md、docs/YSM_ANIMATION_ENGINE_COMPARISON.md。CodeGraph优先、JDK25、前台PowerShell Tee build.log并立即检查退出码和读日志、diff检查、当前分支提交推送/远端核对；禁止Qt offscreen、保持有限范围。额度达阈值后才委派gpt-6-luna整理交接。
+
+
+## 当前有效交接：宇航员模型移动时备用狐狸头盔显露（2026-10-26）
+
+本节覆盖前一节“战术酒狐移动及持续使用统一修复”的下一步；此前阶段结论保留。用户先要求只读分析 `refs/avatars/03_astronaut` 的多余部件，参考图为正常人形而 Omni 人形前下方出现备用狐狸头盔。用户随后授权修复，并要求先查额度决定是否交接。当前已达到额度阈值，暂停生产实现；仅有最小回归测试改动，不能将任务标记为完成。
+
+- **额度及交接：** 可靠额度接口首查 Plus 五小时剩11%（used 89%）、周剩71%；最新五小时剩8%（used 92%）、周剩71%，resetUnix `1793032806` / `1793601498`。已触发安全暂停。交接文档由 GPT-6 Luna 整理；这不代表日常开发模型切换为 Luna。
+- **Git与工作区：** 分支 `ysm-alignment`，HEAD `8fec63ca024b5ba1ada351f1cbe8c3e2783a9343`，这是上一轮战术动作修复收尾且已推送的检查点。当前未提交改动仅包括 `common/build.gradle` 新增 `ysmAstronautVisibilitySmokeTest` JavaExec，以及新增 `common/src/test/java/top/aihmc/omnimorph/model/ysm/YsmAstronautVisibilitySmokeTest.java`。原未跟踪 `.omc/`、`mod_log/`、`patch/` 保留且未处理。无运行中的构建或测试。额度交接不自动提交、推送或切换分支。
+- **已验证的RED：** 使用现有 `YsmMaterialNativeSmokeTest.replayAcceleration` 正式读取实际模型资源，设置 `v.roaming.a=0`、`v.roaming.helmet=0`。`LivingEntityRenderState` 的 age 为 frame；前10帧 `walkAnimationSpeed=0`，从frame10起为`.2`；每帧调用 `YsmRenderFrameClock.beginFrame` 和 `runtime.updateAnimations(state, null)`。`usejdk 25` 后前台运行 `./gradlew.bat :common:ysmAstronautVisibilitySmokeTest --console=plain`，PowerShell 经 `2>&1 | Tee-Object -FilePath "build.log"` 捕获日志并立即检查退出码。确定RED：frame0–9 `a=0`、`FOX.visible=false`、scale为`{0,0,0}`、`AllBody.visible=true`；frame10仍`a=0`，但 `FOX.visible=true`、scale为`{1,1,1}`、`AllBody.visible=true`，断言 `FOX branch exposed in human mode at frame10` 失败。结果 `BUILD FAILED in 24s / 10 tasks`，退出码1。测试编译成功，生产编译为UP-TO-DATE。日志：`build/reports/outfit/astronaut-visibility-probe.log` 和根目录 `build.log`。`git diff --check` PASS。无完整Fabric构建或修复验证。
+- **根因边界：** CodeGraph已优先用于两侧已索引代码。实际模型层级为 `FOX -> AllBody2 -> ... -> Head2 -> FoxHelmet`。作者 `animations/main.animation.json` 中 parallel1 写入 `AllBody.scale=!v.roaming.a`、`FOX.scale=v.roaming.a`；pre_parallel2 中 `Backgrounds.scale=0`、`SpaceHelmet.scale=v.roaming.helmet`。manifest明确声明main/extra/tac/carryon/arm和controller/controller.json；未发现上轮未声明资源污染证据。静态顺序差异是：`YsmAnimationPlayer.sampleAnimationPoses` 将auto parallel directPoses在主native(main20)后、声明的post_main/手部阶段前统一应用；参考 `PlayerAnimationController` 将parallel注册在后。动态隐藏不属于baseHidden静态集合；采样reset默认可见和单位缩放，异常中断/表达式失败理论上可能显露，但本轮没有异常证据，不可据此宣称根因。最新RED仅将症状缩窄为移动开始时最终FOX隐藏被撤销，具体写入者尚未定位。
+- **下一步：** 接续Agent先核对本手册、实际Git状态和上述日志，再运行现有RED确认基线；追踪frame10活跃片段、native/controller pose及scale写入者，定位最终提交路径。基于证据做最小修复，让该RED转绿并通过相关单测及Fabric编译，再按项目检查点提交、推送当前分支并核对远端SHA；之后更新本手册。没有修复前不宣称完成。
+- **未验证/范围：** 真实游戏GPU画面和真实输入仍为`MANUAL/PENDING`；CPU夹具使用`null` entity，不冒充端到端。不得复制mods（使用现有symlink），不改模型/默认资源/版本/后端，不新建分支，不重开P1/P2或B1–B8历史阶段。Qt offscreen禁止。保留所有已有工作区改动。任务文档：`docs/YSM_TACTICS_ACTION_FIX.md`、`docs/YSM_RESOURCE_SCOPE_FIX.md`、`docs/YSM_ALIGNMENT_PLAN.md`、`docs/YSM_ANIMATION_ENGINE_COMPARISON.md`。
+
+## 当前有效交接：宇航员移动露出狐狸头盔已修复（2026-10-26 22:55）
+
+本节覆盖上一节“宇航员模型移动时备用狐狸头盔显露”的暂停状态。用户要求接手续修；修复、验证、提交推送已完成，本目标无剩余实施。上一节“静态顺序差异”的猜测被本轮证据否定。
+
+- **根因（已证实）：** 该模型没有 action schema，`YsmActionRuntime.buildDefaultsFromAnimations` 会把所有“非 native、非内部”片段注册成默认 action，`parallel0..7` 不在既有内部名单（`pre_parallel` 已在）→ `parallel0/1` 进入 action 表。`YsmAnimationPlayer.updateNativeStateMachine` 对非 `idle` 的 native 目标状态调用 `runtime.actions().stopAll()`（移动时每帧），`stopAll` 逐个 `animations().stop(...)`，把始终在播的作者 base 层 `parallel1` 移除。`parallel1` 正是 `AllBody.scale=!v.roaming.a`、`FOX.scale=v.roaming.a` 的写入者；层被移除后采样 reset 让 `FOX` 回到可见/单位缩放，于是移动瞬间露出狐狸头盔。`pre_parallel*` 因前缀被排除所以一直正常。这不是 `sampleAnimationPoses` 的阶段顺序问题。
+- **证据：** 真实资源探针 `YsmAstronautVisibilitySmokeTest` 的活跃片段打印：frame 8/9 有 `parallel0`、`parallel1`（weight 1）；frame 10（idle→walk）二者从 `activeAnimations` 消失，同时 `idle` target 0、`walk` target 1。RED 两处断言：`engine base/native animation must not become a default action: parallel0`（`YsmActionRuntimeSmokeTest`）与 `FOX branch exposed in human mode at frame 10 (scale {1, 1, 1})`。
+- **修复（`ysm-alignment@e4ae1553`，已推送，远端一致）：** `YsmActionRuntime.isInternalAnimation` 增加 `parallel[0-7]` 判定（与既有 `pre_parallel` 排除一致），`parallelN` 不再注册为默认 action，`stopAll()` 不再触达引擎 base 层。未改模型/默认资源/版本/后端，无模型名/作者/哈希特化；action wheel 只是不再列出 `parallelN` 这类引擎层。
+- **测试：** 新增 `common:ysmAstronautVisibilitySmokeTest`（真实 `refs/avatars/03_astronaut`，40 帧 idle→walk，断言 `FOX` 最终 scale 始终为 0、`AllBody` 可见；task 在 `common/build.gradle`）。`YsmActionRuntimeSmokeTest` 新增 `testDefaultActionFilter`：`parallel0/1`、`pre_parallel1`、`idle`、`walk` 不得成为默认 action，`extra_animation.extra0` 与 `dance` 仍保留。RED/GREEN 日志：`build/reports/outfit/astronaut-visibility-red.log`、`astronaut-visibility-green.log`。
+- **最终回归 PASS：** `astronaut-visibility-final.log`，BUILD SUCCESSFUL in 3m 10s；17 项显式单测（ActionRuntime、AstronautVisibility、ResourceScope、HandAnimation、DefaultAnimation、BuiltinController、MaterialNative、ControllerTransition、ControllerSound、SoundNative、VanillaState、NativeState、Input、FirstPersonController、Package、ControlRuntime、LibraryPreviewRuntime）+ `:fabric:build` 全部通过。JDK25、前台 PowerShell Tee build.log、立即检查退出码并读日志；`git diff --check` PASS。
+- **行为/范围：** 仅默认 action 表不再包含 `parallelN`（引擎 base 层本就不是用户动作）；`pre_parallel`、native 状态、`extraN`、自定义片段与显式 schema 行为不变。模组经符号链接接入 mods，本轮未复制/覆盖、未重启游戏、未改版本或后端。
+- **未验证：** 真实 GPU 画面/真实按键输入/双客户端仍 `MANUAL/PENDING`；CPU 探针不冒充端到端。既有独立失败（BoneQuery、PlayerTimeline、FunctionContract、MaterialInput、Avif、Stability）不在本轮范围，不宣称全历史测试通过。
+- **后续观察（未实施）：** `buildDefaultsFromAnimations` 仍是“无 schema 时全量注册”的兜底，其他引擎管理的片段仍可能进入 action 表；冒号类名字经 `normalize` 截断后 id 与 `stop()` 目标不同，风险表现与 base 层不同。若再遇到“移动后隐藏/常驻层失效”，先查该片段是否被 `stopAll()` 移除。是否把默认 action 收窄到 `ysm.json` 的 `extra_animation` 声明（参考做法）属行为变更，需用户决定。
+- **Git/工作区：** 分支 `ysm-alignment`，代码提交 `e4ae1553` 已 push 并核对 `git ls-remote` 一致；随后本手册与 `docs/YSM_ASTRONAUT_VISIBILITY_FIX.md` 独立文档提交，最终 HEAD 以实际 git 为准。原未跟踪 `.omc/`、`mod_log/`、`patch/` 保留，无运行中构建/测试。
+- **下一步：** 用户重启客户端后实机确认：人形模式静止与移动均不再露出狐狸头盔；同时可兼验此前拉弓、矛/三叉戟、战术酒狐动作回归。无新增自动实施阶段。
+
+## 当前有效交接：芙宁娜起步/停步露出茶会道具已修复（2026-10-26 23:30）
+
+本节覆盖上一节“下一步”。用户报告起步/停止瞬间出现不该出现的部件；已用 `YSMParser` 解包 + 真实资源 CPU 回放定位并修复，提交推送完成，真实画面仍 `MANUAL/PENDING`。
+
+- **现象与部件：** 腿部周围闪出的不是腿部件，而是茶会/沙龙道具骨骼：`Cake1..7`、`Cup1`、`Book`、`Star4`、`Bubble`、`ysmGlow_CakeTurntable`、`SalonSolitaire` 四个召唤物。解包数据：`pre_parallel2` 用 `scale: 0.0` 隐藏它们；`player.post_main` 的 `待机` 状态片段 `默认姿态` 把这些骨骼 scale 写成 `0`，`走路前进` 完全不写；`parallel2` 只管 `v.roaming.WB` 的 B/W 形态，与本问题无关。
+- **证据（修复前）：** CPU 回放 idle 0–5 帧、第 6 帧起走路：frame 1 道具 `visible=true, scale=1`，frame 2 `scale=0.5`，frame 3 恢复隐藏；frame 8（刚开始走路）再次 `visible=true, scale=0.5`，frame 9 恢复。参考 `AnimationControllerInstance.processBeginningTransition` 只对 incoming 实际有通道的骨骼混合，且以 `boneSnapshot`（上一帧实际姿态，已含 base 隐藏）为基准，所以 `0→0` 不露。
+- **根因：** `YsmControllerPoseLayer.compose` / `YsmBonePose.blend` 在 `blend_transition` 中把单侧缺失的骨骼/通道用 **identity** 补齐（scale=1），并把旧片段独有的骨骼向 identity 渐隐；于是任何“状态片段把隐藏部件 scale 写成 0”的转移都会从 1→0 / 0→1 走过，隐藏道具在 0.1s 过渡窗口内闪现。另外 base 静态隐藏骨骼的 `animScaleRaw` 仍为 1（仅 `visible=false`），不能拿原始 scale 当过渡起点。
+- **修复（`ysm-alignment@eec68b5`，已推送，远端 `eec68b50` 一致）：**
+  - `YsmBonePose.fillMissingChannels` / `keepWrittenChannels`：缺省通道取当前骨骼姿态；只保留 incoming 写入的通道。
+  - `YsmControllerPoseLayer.compose` 增加 `currentPose` 参数；过渡期间只遍历 **incoming** 骨骼（新片段不写的骨骼立即交还 base 层，对齐参考），缺失通道以当前姿态为起点，不再用 identity。
+  - `YsmAnimationPlayer.currentBonePose`：控制器应用前读取骨骼姿态，`visible=false` 时按 scale 0 处理。
+  - 未改模型/默认资源/版本/后端，无模型名/作者/哈希特化。
+- **测试：** `YsmControllerPoseLayerSmokeTest` 新增“incoming scale-0 hide 必须从当前姿态开始”（RED `... instead of identity: 0.5`）、“只写 incoming 自己拥有的通道”；原“移除骨骼向 identity 渐隐”断言改为参考语义“立即释放”。真实模型临时探针（未提交）修复后 0–23 帧 `exposed=[]`，起停帧不再闪。回归 PASS：ControllerPoseLayer、BoneMatrix、PoseSampling、SamplingAlignment、BeginningTransition、ControllerTransition、ControllerPhase、Isolation、Context、ControllerSound、BuiltinController、FirstPersonController、HandAnimation、AstronautVisibility、DefaultAnimation、MaterialNative + `:fabric:build`（`furina-transition-final.log`，2m 2s）。
+- **行为变化：** 控制器切换时新片段不写的骨骼不再向 identity 渐隐，而是立即回到下层；部分通道的骨骼也只写自己拥有的通道。这是参考语义；若其他模型因此出现姿态跳变，先核对该状态 `blend_transition` 与片段通道覆盖。
+- **未验证：** 真实 GPU 画面/输入仍 `MANUAL/PENDING`；既有失败（BoneQuery、PlayerTimeline、FunctionContract、MaterialInput、Avif、Stability）不在范围。
+- **工具与文档：** `AGENTS.md` 已记录 `YSMParser` 解包流程（提交 `a401c3f9`）；解包产物与逐帧分析在 `build/tmp/furina-out`、`build/reports/outfit/furina-analysis|furina-dump`（均被忽略，未提交）。临时 dump/probe 测试类已删除、`common/build.gradle` 已还原。详细记录：`docs/YSM_TRANSITION_VISIBILITY_FIX.md`。
+- **Git/工作区：** 分支 `ysm-alignment`，HEAD `eec68b50`，push 曾遇 GitHub 500（`Internal Server Error`），用 `--no-thin` 重试后成功并核对远端；文档随后独立提交。原未跟踪 `.omc/`、`mod_log/`、`patch/` 保留。无运行中构建/测试。
+- **下一步：** 用户重启客户端实机确认起步/停止不再闪道具，并兼验拉弓、矛/三叉戟、战术酒狐、宇航员回归；无新增自动实施阶段。
+
+## 当前有效交接：YSM 开启第一人称 Matrices 后视角被遮挡已修复（2026-10-27）
+
+- **现象：** 选 YSM 模型并开启“第一人称 Matrices”时视野被模型内部挡住；关闭正常（用户确认）。
+- **根因：** Fabric `LevelRendererMixinFabric` 在该开关下设 `Avatar.firstPerson=true`，从摄像机位置 `entityRenderer.submit` 玩家一遍，只为刷新 Figura 部件矩阵。普通 Figura 路径在 `LivingEntityRendererMixin` 的 `Avatar.firstPerson` 分支只更新矩阵并 cancel；YSM 分支（HEAD 注入 `onRender`）没有该判断，直接提交整模+手持物。入口处虽有 `avatar.isYsmNative()` 早退，但入口按实体取 avatar（`getAvatar(entity)`），渲染分支按渲染帧取（`getAvatar(state)`，优先装扮/整套组合或预览绑定），两者不一致时会漏过。用户的具体加载方式未取证。
+- **修复（`ysm-alignment@12276f4f`，已推送，远端一致）：** YSM 分支开头，若 `Avatar.firstPerson` 则清 `currentAvatar/lastPose` 并 cancel，不提交模型。YSM 无 Figura 部件矩阵需刷新；第一人称手臂走独立路径不受影响。Fabric 入口的 avatar 取法未改（门控已在渲染分支兜底）。
+- **验证：** HandAnimation、MaterialNative、DefaultAnimation、FirstPersonController + `:fabric:build` PASS（1分14秒）。mixin 渲染分支无 CPU 夹具可覆盖，未加专门单测；真实画面（开关开/关、第一/第三人称、手持物、装扮组合）`MANUAL/PENDING`。
+- **下一步：** 用户关客户端已构建完成，重启后开启第一人称 Matrices 实机确认视野不再被遮挡、第一人称手臂与第三人称正常。
+
+## 当前有效交接：D025 远端显示状态同步计划（2026-10-27）
+
+- 用户要求只读分析后写入计划。新增 `docs/YSM_D025_SYNC_PLAN.md`：参考 `PlayerDisplayState`/presence 发布机制、Omni 现状差距表、设计要点、S1–S7 分阶段（客户端记录/读取入口 → 同步段与编解码 v2 → cloud.proto 重新发布 → omnm-cloud 校验合并 → 发布接收接线 → 读取点切换 → 设置项）、兼容风险与 5 项待用户决策。计划表 D025 行注明已立项。未改代码、协议或后端。
+- 下一步：等待用户就计划第 7 节决策；未授权前不实施。
+- 续：用户追加要求“可查询内容与 YSM 状态机，若 Figura 无平替则同时封装为 Lua API”。已在 `docs/YSM_D025_SYNC_PLAN.md` 新增第 8 节：平替核对表（health/blocking/isUsingItem 已有平替；food/经验/飞行/效果/移动输入/动作状态/手部动作槽/控制器状态时间需封装）、新增 API 设计（全局 `ysm_display`、`ysm_model` 只读状态机扩展、远端只读查询、可选状态变化事件；不提供强制切换状态写接口）、阶段归属（S1/S6 追加、S8 事件）与 3 项新增待决策。仍未改代码。
+
+## 当前有效交接：D025 S1～S7 执行中（Claude，2026-10-27）
+
+- 用户目标：依次执行 `docs/YSM_D025_SYNC_PLAN.md` 的 S1～S7，每阶段测试编译提交、查额度，达阈值交接。用户未逐项回答计划第 7/8 节决策，本 Agent 按计划推荐默认执行：全局 `ysm_display`（不改 PlayerAPI）；字段为原版不同步的五项（饥饿/经验/飞行/移动输入/效果等级）；默认分享、可设置关闭；Figura Cloud 与 Protobuf 两路都支持；后端在 `omnm-cloud` master 实施；允许只读查询他人模型控制器状态；D 组事件（S8）不在本目标内。
+- **S1 完成（`ysm-alignment@2b44384c`，已推送）：** `model/ysm/sync/YsmDisplayState`（参考范围校验，效果≤64项）、`model/ysm/YsmDisplayQuery`（本地读实体/远端读已接收状态/否则 null，远端表 S5 才写入）、全局 Lua `ysm_display`（get/isSynced/getFood/getExperienceLevel/isFlying/getMovementInput/getEffectLevel，未知为 nil）、`ysm_model` 只读扩展（getActionState/getNativeAnimation/getHandActions/getControllerState/getControllerStateTime/getControllerStateNames）；`YsmAnimationPlayer` 记录 `lastActionState/lastNativeState`。测试 DisplayState（新）、NativeState（加 nativeAnimation/actionState 一致断言）、HandAnimation、VanillaState、FirstPersonController + `:fabric:build` PASS。额度：5 小时剩 68%。
+- **S2 完成（`ysm-alignment@f7dcd0fc`，已推送）：** `YsmSyncMessage.State` 新增可选 `display`（增量缺省保留旧值，不计入 complete；保留 5 参构造器，现有调用不改）；`YsmSyncCodec` 仅在带 display 时写 VERSION 2 并加段位 32，否则仍为字节一致的 v1；解码接受 v1/v2，v1 仍拒绝段位 32。display 编码为字段存在标志 + 各字段 + 效果 (UTF id, level-1)，解码经 `YsmDisplayState` 校验。旧客户端遇到 v2 会按“不支持的协议”丢弃该消息——S5 发布时需按对端能力决定是否附带 display（见计划第 6 节）。测试 `YsmSyncSmokeTest.testDisplaySection`（v1 不变、v2 往返、截断、增量保留/替换、越界饥饿/未知字段拒绝）、SyncDefer、DisplayState、cloudAdapter + `:fabric:build` PASS。
+- **AGENTS.md 新增“第三方模组状态机联动规范”**（用户 2026-10-27 要求，`ysm-alignment@1ea5f0f1`）：Integration Bridge 统一采集、Molang/Lua 同一快照、无 Lua 平替须同步实现、可选依赖、只读优先、五类场景验证。
+- **S3 完成：** 主仓库 `ysm-alignment@35bf5534`：`cloud.proto` 的 `YsmState` 新增 `YsmDisplay display = 6`（optional 各字段 + `has_effects` 区分未知/空列表 + `repeated YsmDisplayEffect`），`release.sha256` 更新，`verify-release.ps1` 两仓库 PASS；`YsmProtobuf` 双向映射与非法值拒绝；`CloudAdapterSmokeTest.testDisplayState`。后端 `omnm-cloud@3baba31`（master，已推送）：同步 proto 副本与哈希，7 处 `YsmState` 字面量补 `display: None`，`cargo test` 200 passed/1 ignored。验证 PASS：cloudAdapter、ysmSync + `:fabric:build`。
+- **S4 完成：** 后端 `omnm-cloud@adf6c75`（master，已推送）：`validate_display`（与客户端同范围：饥饿≤20、输入有限且 −1..1、效果≤64 且 id 命名空间格式/等级 1..256/不重复、无 has_effects 时不得有效果；经验 ≤ i32::MAX）、`merge` 合并 display、`hello_ack` 声明 `Capability::YsmDisplay`；更新 capabilities 断言；新增 `display_state_is_validated_and_merged`；`cargo test` 201 passed/1 ignored。主仓库 `ysm-alignment@80e652f0`：proto `Capability` 新增 `YSM_DISPLAY = 6`，两仓库哈希一致，verify-release PASS；客户端 cloudAdapter、ysmSync + `:fabric:build` PASS。
+- **对默认决策 4 的调整（有理由）：** display 只经 Protobuf 路径发布（以 `YSM_DISPLAY` 能力协商）。Figura Cloud（ping/M7）路径无能力协商：旧服务端 `legacy::decode` 对 v2 返回 UnsupportedVersion 会丢整条状态，服务端向旧客户端转发也无法判断其能否读 v2；故该路径继续 v1、不带 display（服务端 `legacy::encode` 本就不写 display）。如需 Figura Cloud 支持，需先给该路径加能力协商，另行立项。
+- **S5 完成（`ysm-alignment@ee4e81bd`，已推送）：** `YsmSyncConnection.setDisplaySource`（`NetworkStuff` 每 tick 设置为本机玩家 `YsmDisplayQuery.of`，S7 将接用户开关），快照与变化增量带 display（停止分享由下一快照≤40 tick 清除）；接收端在状态变化时 `YsmDisplayQuery.acceptRemote`，peer 退休 `forget`、连接重置 `clear`。`YsmSyncMessage.withoutDisplay`：M7（Figura Cloud 与非 typed 路径）总是剥离；`ProtobufCloudProtocol.publish` 仅在服务端声明 `YSM_DISPLAY` 时保留。新增 `YsmDisplayQuery.remote(UUID)`。测试 `YsmSyncConnectionSmokeTest.displaySync`（经 MaterialNative 调用：观察端存储、M7 剥离、重置清空）、Sync、SyncDefer、DisplayState、cloudAdapter + `:fabric:build` PASS。
+- **S6 完成（`ysm-alignment@237a44a7`，已推送）：** `YsmDisplayQuery` 增 `flying/foodLevel/experienceLevel/input/remoteEffectLevel`（远端已发布值优先，否则读实体）；切换读取点：`MolangBindings` 的 xxa/yya/zza、food_level、effect_level，`QueryVariables` 的 player_level 与 IS_JUMPING 的飞行判定，`YsmPlayerActionState.snapshot` 的 fly。Lua C 组：`ysm_display:getActionState(entity)`、`getControllerStates(entity)`（经 `AvatarManager.getAvatar` 取该实体已加载 YSM 运行时，只读）。测试 `YsmDisplayStateSmokeTest.testRemoteMolangLuaAgree`：远端 RemotePlayer 发布状态后 Molang 与 Lua 的饥饿/输入/效果/经验/飞行一致，未发布时 Lua 为 nil；VanillaState、NativeState、HandAnimation、Input、MaterialNative、Sync + `:fabric:build` PASS。**未覆盖：** C 组远端查询依赖 `Minecraft.getInstance()`，CPU 夹具无客户端实例，未在单测中断言（未为测试改生产代码），记 `MANUAL/PENDING`。
+- **S7 完成（`ysm-alignment@2dbe6712`，已推送）：** `Configs.SHARE_YSM_DISPLAY`（`share_ysm_display`，NETWORKING，默认开），`NetworkStuff` 仅在开启时提供 display 来源；中/英文案。测试 `YsmDisplayStateSmokeTest.testShareSetting`（默认开、分类、两语言键）、cloudProtocolConfig + `:fabric:build` PASS。**D025 S1～S7 全部完成**；S8（状态变化事件）未在本目标内。
+- **版本 1.0.0-alpha.5（用户要求，`ysm-alignment@4f31e922`，已推送）：** `gradle.properties` mod_version、`FiguraMod.DISPLAY_VERSION="1.0 Alpha 5"`、四语 README 版本行（中文 README 说明句同步）、四语 `docs/CHANGELOG*.md` 新增 1.0.0-alpha.5 节（YSM 对齐、99 个查询名与 `this`、各模型修复、D025 同步与设置、新 Lua API）。`:fabric:build` PASS，产物 `fabric/build/libs/omni-morph-1.0.0-alpha.5+26.1.2-fabric-mc.jar`。
+- **重要发现（未处理，需用户决定）：** 游戏 mods 目录中的 `omni-morph-1.0.0-alpha.4.1+26.1.2-fabric-mc.jar` 不是符号链接也不是硬链接（`fsutil hardlink list` 仅 1 条，LinkType 空），是 00:00 的独立拷贝；之后的构建（第一人称 Matrices 修复、D025）未进入游戏。版本改名后旧文件名也不再生成。游戏目录在仓库外，Agent 未擅自修改。
+- **后端部署：** `omnm-cloud@adf6c75` 需重新部署服务端后，客户端才会看到 `YSM_DISPLAY` 能力并开始发布 display。

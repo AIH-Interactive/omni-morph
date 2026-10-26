@@ -386,6 +386,11 @@ final class YsmSubEntitySmokeTest {
         }
 
         @Override
+        public int figura$getInGroundTime() {
+            return 0;
+        }
+
+        @Override
         public boolean isInWaterOrRain() {
             return false;
         }
@@ -457,6 +462,11 @@ final class YsmSubEntitySmokeTest {
         @Override
         public boolean figura$isInGround() {
             return embedded;
+        }
+
+        @Override
+        public int figura$getInGroundTime() {
+            return 0;
         }
 
         @Override

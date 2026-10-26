@@ -54,7 +54,9 @@ public class YsmAnimationParser {
                 if (!animElement.isJsonObject()) continue;
                 JsonObject animObj = animElement.getAsJsonObject();
 
-                float length = animObj.has("animation_length") ? animObj.get("animation_length").getAsFloat() : 0f;
+                float length = animObj.has("animation_length")
+                        ? animObj.get("animation_length").getAsFloat()
+                        : derivedLength(animObj.get("bones"));
                 YsmAnimationClip.LoopMode loopMode = YsmAnimationClip.LoopMode.ONCE;
                 if (animObj.has("loop")) {
                     JsonElement loopElem = animObj.get("loop");
@@ -107,6 +109,40 @@ public class YsmAnimationParser {
             // Ignore parse errors, downgrade gracefully
         }
         return clips;
+    }
+
+    /**
+     * Sparkle JsonAnimationUtils.calculateLength: without animation_length the clip lasts until the
+     * latest bone keyframe start; a clip with no keyframes at all is unbounded.
+     */
+    private static float derivedLength(JsonElement bones) {
+        float longest = 0f;
+        if (bones != null && bones.isJsonObject()) {
+            for (JsonElement bone : bones.getAsJsonObject().asMap().values()) {
+                if (!bone.isJsonObject()) {
+                    continue;
+                }
+                for (String channel : List.of("rotation", "position", "scale")) {
+                    longest = Math.max(longest, lastKeyframeTime(bone.getAsJsonObject().get(channel)));
+                }
+            }
+        }
+        return longest == 0f ? Float.MAX_VALUE : longest;
+    }
+
+    private static float lastKeyframeTime(JsonElement channel) {
+        float last = 0f;
+        if (channel == null || !channel.isJsonObject()) {
+            return last;
+        }
+        for (String time : channel.getAsJsonObject().keySet()) {
+            try {
+                last = Math.max(last, Float.parseFloat(time));
+            } catch (NumberFormatException ignored) {
+                // Non-numeric keys are not keyframes.
+            }
+        }
+        return last;
     }
 
     private static YsmAnimationClip.LoopMode parseLoopMode(String value) {
@@ -223,7 +259,7 @@ public class YsmAnimationParser {
                     String interpolation = "linear";
                     if (kfVal.isJsonObject()) {
                         JsonObject kfObj = kfVal.getAsJsonObject();
-                        interpolation = "step";
+                        // Sparkle RawBoneKeyFrame defaults an unspecified easing to LINEAR.
                         if (kfObj.has("pre") && kfObj.has("post")) {
                             preVal = kfObj.get("pre");
                             actualVal = kfObj.get("post");

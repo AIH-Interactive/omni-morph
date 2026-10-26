@@ -18,6 +18,11 @@ public final class YsmBaselineSmokeTest {
                     {"minecraft:geometry":[{"description":{"identifier":"fixture"},
                       "bones":[{"name":"root","pivot":[0,0,0]}]}]}
                     """);
+            // An old-format folder is recognised only with both main.json and arm.json (D017).
+            Files.writeString(model.resolve("arm.json"), """
+                    {"minecraft:geometry":[{"description":{"identifier":"fixture.arm"},
+                      "bones":[{"name":"root","pivot":[0,0,0]}]}]}
+                    """);
             YsmModelScanner.ScanSummary valid = YsmModelScanner.scan(root);
             require(valid.reports().size() == 1 && valid.validCount() == 1, "valid minimal model");
             YsmModelScanner.validateGate(root, valid, null);

@@ -271,7 +271,7 @@ public final class QueryVariables {
         if (context == null || !(context.entity instanceof Player player)) {
             return null;
         }
-        return !player.getAbilities().flying && !player.isPassenger() && !player.onGround() && !player.isInWater();
+        return !top.aihmc.omnimorph.model.ysm.YsmDisplayQuery.flying(player) && !player.isPassenger() && !player.onGround() && !player.isInWater();
     };
 
     public static final Variable IS_SNEAKING = entityVariable((context, entity) ->
@@ -628,7 +628,7 @@ public final class QueryVariables {
 
     public static final Variable PLAYER_LEVEL = ctx -> {
         Avatar.MolangContext context = mc(ctx);
-        return context != null && context.entity instanceof Player player ? player.experienceLevel : null;
+        return context != null && context.entity instanceof Player player ? top.aihmc.omnimorph.model.ysm.YsmDisplayQuery.experienceLevel(player) : null;
     };
 
     // ===== Geometry =====

@@ -4,6 +4,15 @@
 
 [Project overview](../README.en.md)
 
+## 1.0.0-alpha.5
+
+- YSM animation aligned with the reference implementation: controller stage order, hand hold/use/swing applied by stage with pause and resume, legacy-format loop override, local input pulses, native action state table, default fallback animations, self-transitions and cycles, beginning transitions, parse-failure semantics, `math.*` functions, `time_of_day` phase, sound lifetime, separate body/first-person animation domains, quaternion rotation blending, event wrapping, keyframe sampling details, filter recovery and non-finite values, texture translucency, legacy folder detection, bone visibility keys and multiple hand locator chains.
+- Adds the 99 missing names of the reference's 252 `ysm.*` queries (including the weapon/trident/lance/mace family) and the Bedrock `this` keyword.
+- Fixes: Furina bow draw pose, spear right-click with no animation and spear pose, Tactics fox walk/held-action replay and resource activation scope, astronaut spare helmet showing while moving, hidden props flashing when starting/stopping, and YSM models covering the view with "First Person Matrices" on.
+- Remote player state sync (D025): other players' YSM models can read your food, experience level, flying, movement input and potion effect levels. Sent only over the Protobuf protocol to servers advertising `YSM_DISPLAY`; turn off "Share Player State with YSM Models" under Networking. The protocol's `YsmState` gains an optional `display` field (requires the matching backend).
+- Lua API: new global `ysm_display` (reads those values plus any player's YSM action and controller states; unknown is nil); `ysm_model` gains read-only state machine queries (action state, native animation, hand actions, controller state/time/state names).
+- Real game rendering, sound and two-client checks remain `MANUAL/PENDING`.
+
 ## 1.0.0-alpha.4.1
 
 - First person: replay the outfit composition once per frame with a camera-relative full-body pose (geometry discarded), so body-mounted accessory RENDER/POST_RENDER, particles and trails keep running; refresh body and arm part-to-world matrices for the current frame.

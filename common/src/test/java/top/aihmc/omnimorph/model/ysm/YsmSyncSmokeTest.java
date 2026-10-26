@@ -61,6 +61,7 @@ public final class YsmSyncSmokeTest {
         malformed = encoded.clone();
         ByteBuffer.wrap(malformed).putShort(160, (short) 0); // duplicate control index
         expectDecodeFailure(malformed);
+        testDisplaySection(initial, encoded);
         expectInvalid(() -> new YsmSyncMessage.Control(0, YsmSyncMessage.ControlType.NUMBER, Double.NaN));
         expectInvalid(() -> new YsmSyncMessage.Control(0, YsmSyncMessage.ControlType.BOOLEAN, 2));
         expectInvalid(() -> new YsmSyncMessage.Control(0, YsmSyncMessage.ControlType.COLOR, -1));
@@ -150,6 +151,43 @@ public final class YsmSyncSmokeTest {
         testPackets(encoded);
         testPingBudget();
         System.out.println("YSM sync codec/replay PASS: bounded DTO, truncation, ordered/late/reconnect state and event deduplication");
+    }
+
+    /** D025/S2: the optional display section uses version 2; messages without it stay byte-identical v1. */
+    private static void testDisplaySection(YsmSyncMessage.State initial, byte[] v1) throws IOException {
+        require(v1[4] == 1, "a message without display stays version 1");
+        var display = new top.aihmc.omnimorph.model.ysm.sync.YsmDisplayState(17, 30, true, -1f, 0.5f, 1f,
+                java.util.Map.of("minecraft:speed", 2, "minecraft:haste", 256));
+        var withDisplay = new YsmSyncMessage.State(initial.texture(), initial.controls(), initial.actions(),
+                initial.controllers(), initial.playbacks(), display);
+        var message = message(SESSION, 0, 0, -1, true, 8, withDisplay, List.of());
+        byte[] encoded = YsmSyncCodec.encode(message);
+        require(encoded[4] == 2, "a message with display uses version 2");
+        require(message.equals(YsmSyncCodec.decode(encoded)), "display section round trip");
+        for (int i = 0; i < encoded.length; i++) {
+            expectDecodeFailure(Arrays.copyOf(encoded, i));
+        }
+        var partial = new YsmSyncMessage.State(null, null, null, null, null,
+                new top.aihmc.omnimorph.model.ysm.sync.YsmDisplayState(null, null, false, null, null, null, null));
+        require(withDisplay.apply(new YsmSyncMessage.State(null, null, null, null, null)).display() == display,
+                "a delta without display keeps the previous display");
+        require(withDisplay.apply(partial).display().flying() == Boolean.FALSE, "a display delta replaces it");
+        byte[] invalidFood = encoded.clone();
+        int displayStart = encoded.length - 1 - displayBytes(display);
+        invalidFood[displayStart + 1] = 21;
+        expectDecodeFailure(invalidFood);
+        byte[] unknownField = encoded.clone();
+        unknownField[displayStart] = (byte) 0xff;
+        expectDecodeFailure(unknownField);
+    }
+
+    /** flags + food + experience + flying + three inputs + count + effects (UTF length + id + level). */
+    private static int displayBytes(top.aihmc.omnimorph.model.ysm.sync.YsmDisplayState display) {
+        int size = 1 + 1 + 4 + 1 + 12 + 1;
+        for (String id : display.effectLevels().keySet()) {
+            size += 2 + id.length() + 1;
+        }
+        return size;
     }
 
     private static void testPingBudget() {

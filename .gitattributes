@@ -3,3 +3,5 @@ Plans/evidence/acceleration/h7-cpu-preparation.csv text eol=lf
 
 # Bundled YSM templates are verified byte-for-byte against template-manifest.json.
 common/src/main/resources/assets/omni-morph/ysm_default/** -text whitespace=cr-at-eol
+# Runtime fallback animations preserve the reference bytes independently of creation templates.
+common/src/main/resources/assets/omni-morph/default_animation/** -text whitespace=cr-at-eol

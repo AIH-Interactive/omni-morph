@@ -15,6 +15,9 @@ public final class YsmSyncCodec {
     public static final int MAX_BYTES = 32768;
     private static final int MAGIC = 0x59534d53;
     private static final int VERSION = 1;
+    /** D025: adds the optional display section. Messages without display are still written as version 1. */
+    private static final int DISPLAY_VERSION = 2;
+    private static final int DISPLAY_SECTION = 32;
 
     private YsmSyncCodec() {
     }
@@ -22,8 +25,9 @@ public final class YsmSyncCodec {
     public static byte[] encode(YsmSyncMessage message) throws IOException {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(bytes)) {
+            boolean display = message.state().display() != null;
             out.writeInt(MAGIC);
-            out.writeByte(VERSION);
+            out.writeByte(display ? DISPLAY_VERSION : VERSION);
             writeUuid(out, message.owner());
             writeUuid(out, message.session());
             out.write(HexFormat.of().parseHex(message.contentHash()));
@@ -37,7 +41,7 @@ public final class YsmSyncCodec {
             var state = message.state();
             int mask = (state.texture() != null ? 1 : 0) | (state.controls() != null ? 2 : 0)
                     | (state.actions() != null ? 4 : 0) | (state.controllers() != null ? 8 : 0)
-                    | (state.playbacks() != null ? 16 : 0);
+                    | (state.playbacks() != null ? 16 : 0) | (display ? DISPLAY_SECTION : 0);
             out.writeByte(mask);
             if (state.texture() != null) {
                 out.writeInt(state.texture());
@@ -71,6 +75,9 @@ public final class YsmSyncCodec {
                 stream.writeFloat(value.fadeSpeed());
                 stream.writeByte(value.flags());
             });
+            if (display) {
+                writeDisplay(out, state.display());
+            }
             out.writeByte(message.events().size());
             for (var event : message.events()) {
                 out.writeLong(event.sequence());
@@ -92,7 +99,11 @@ public final class YsmSyncCodec {
             throw new IOException("Sync message exceeds budget");
         }
         try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(bytes))) {
-            if (in.readInt() != MAGIC || in.readUnsignedByte() != VERSION) {
+            if (in.readInt() != MAGIC) {
+                throw new IOException("Unsupported sync protocol");
+            }
+            int version = in.readUnsignedByte();
+            if (version != VERSION && version != DISPLAY_VERSION) {
                 throw new IOException("Unsupported sync protocol");
             }
             UUID owner = readUuid(in);
@@ -108,7 +119,8 @@ public final class YsmSyncCodec {
             boolean snapshot = readBoolean(in);
             long watermark = in.readLong();
             int mask = in.readUnsignedByte();
-            if ((mask & ~31) != 0) {
+            int known = version == DISPLAY_VERSION ? 31 | DISPLAY_SECTION : 31;
+            if ((mask & ~known) != 0) {
                 throw new IOException("Unknown sync section");
             }
             Integer texture = (mask & 1) != 0 ? in.readInt() : null;
@@ -129,6 +141,7 @@ public final class YsmSyncCodec {
                     new YsmSyncMessage.Playback(stream.readUnsignedShort(), stream.readUnsignedShort(), stream.readInt(),
                             stream.readFloat(), stream.readFloat(), stream.readFloat(), stream.readFloat(), stream.readUnsignedByte(),
                             stream.readFloat(), stream.readUnsignedByte()));
+            YsmDisplayState display = (mask & DISPLAY_SECTION) != 0 ? readDisplay(in) : null;
             int count = in.readUnsignedByte();
             if (count > YsmSyncMessage.MAX_EVENTS || count > in.available() / 10) {
                 throw new IOException("Invalid sync event count");
@@ -155,10 +168,68 @@ public final class YsmSyncCodec {
             }
             return new YsmSyncMessage(owner, session, HexFormat.of().formatHex(content), HexFormat.of().formatHex(schema),
                     generation, sequence, base, tick, snapshot, watermark,
-                    new YsmSyncMessage.State(texture, controls, actions, controllers, playbacks), events);
+                    new YsmSyncMessage.State(texture, controls, actions, controllers, playbacks, display), events);
         } catch (IllegalArgumentException exception) {
             throw new IOException("Invalid sync value", exception);
         }
+    }
+
+    /** Presence flags, then each present field; effects are (id, level - 1) pairs. */
+    private static void writeDisplay(DataOutputStream out, YsmDisplayState display) throws IOException {
+        int flags = (display.foodLevel() != null ? 1 : 0) | (display.experienceLevel() != null ? 2 : 0)
+                | (display.flying() != null ? 4 : 0) | (display.strafeInput() != null ? 8 : 0)
+                | (display.verticalInput() != null ? 16 : 0) | (display.forwardInput() != null ? 32 : 0)
+                | (display.effectLevels() != null ? 64 : 0);
+        out.writeByte(flags);
+        if (display.foodLevel() != null) {
+            out.writeByte(display.foodLevel());
+        }
+        if (display.experienceLevel() != null) {
+            out.writeInt(display.experienceLevel());
+        }
+        if (display.flying() != null) {
+            out.writeBoolean(display.flying());
+        }
+        for (Float input : new Float[]{display.strafeInput(), display.verticalInput(), display.forwardInput()}) {
+            if (input != null) {
+                out.writeFloat(input);
+            }
+        }
+        if (display.effectLevels() != null) {
+            out.writeByte(display.effectLevels().size());
+            for (var effect : display.effectLevels().entrySet()) {
+                out.writeUTF(effect.getKey());
+                out.writeByte(effect.getValue() - 1);
+            }
+        }
+    }
+
+    private static YsmDisplayState readDisplay(DataInputStream in) throws IOException {
+        int flags = in.readUnsignedByte();
+        if ((flags & ~127) != 0) {
+            throw new IOException("Unknown sync display field");
+        }
+        Integer food = (flags & 1) != 0 ? in.readUnsignedByte() : null;
+        Integer experience = (flags & 2) != 0 ? in.readInt() : null;
+        Boolean flying = (flags & 4) != 0 ? readBoolean(in) : null;
+        Float strafe = (flags & 8) != 0 ? in.readFloat() : null;
+        Float vertical = (flags & 16) != 0 ? in.readFloat() : null;
+        Float forward = (flags & 32) != 0 ? in.readFloat() : null;
+        java.util.Map<String, Integer> effects = null;
+        if ((flags & 64) != 0) {
+            int count = in.readUnsignedByte();
+            if (count > YsmDisplayState.MAX_EFFECTS || count > in.available() / 4) {
+                throw new IOException("Invalid sync display effect count");
+            }
+            effects = new java.util.LinkedHashMap<>();
+            for (int i = 0; i < count; i++) {
+                String id = in.readUTF();
+                if (effects.put(id, in.readUnsignedByte() + 1) != null) {
+                    throw new IOException("Duplicate sync display effect");
+                }
+            }
+        }
+        return new YsmDisplayState(food, experience, flying, strafe, vertical, forward, effects);
     }
 
     private static boolean readBoolean(DataInputStream in) throws IOException {

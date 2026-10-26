@@ -101,6 +101,15 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
         }
 
         if (currentAvatar.isYsmNative()) {
+            if (Avatar.firstPerson) {
+                // The first-person matrices pass submits the player from the camera position only to refresh
+                // part matrices. A YSM body has no Figura part matrices to refresh, and drawing it here would
+                // put the whole model around the camera. Like the Figura first-person path, submit nothing.
+                currentAvatar = null;
+                lastPose = null;
+                ci.cancel();
+                return;
+            }
             Avatar localAvatar = currentAvatar;
             Entity entity = AvatarManager.getEntity(livingEntityRenderState);
             LivingEntity livingEntity = entity instanceof LivingEntity value ? value : null;
@@ -416,12 +425,30 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
             return;
 
         boolean left = arm == HumanoidArm.LEFT;
-        ItemDisplayContext context = left ? ItemDisplayContext.THIRD_PERSON_LEFT_HAND : ItemDisplayContext.THIRD_PERSON_RIGHT_HAND;
-        PoseStack itemStackPose = new PoseStack();
-        itemStackPose.pushPose();
-        itemStackPose.last().set(baseStack.last());
-        if (!avatar.getYsmRuntime().applyHandItemTransform(itemStackPose, entity, itemStack, left))
+        var runtime = avatar.getYsmRuntime();
+        var chains = runtime.handItemChainAnchors(left);
+        if (chains.isEmpty()) {
+            PoseStack itemStackPose = new PoseStack();
+            itemStackPose.pushPose();
+            itemStackPose.last().set(baseStack.last());
+            if (runtime.applyHandItemTransform(itemStackPose, entity, itemStack, left))
+                figura$submitYsmHandItemAt(entity, itemStack, left, itemStackPose, submitNodeCollector, light, outlineColor);
             return;
+        }
+        // D018: without a direct hand anchor the item is drawn once per extra hand chain.
+        for (var anchor : chains) {
+            PoseStack itemStackPose = new PoseStack();
+            itemStackPose.pushPose();
+            itemStackPose.last().set(baseStack.last());
+            if (runtime.applyHandItemChainTransform(itemStackPose, entity, itemStack, left, anchor))
+                figura$submitYsmHandItemAt(entity, itemStack, left, itemStackPose, submitNodeCollector, light, outlineColor);
+        }
+    }
+
+    @Unique
+    void figura$submitYsmHandItemAt(LivingEntity entity, ItemStack itemStack, boolean left, PoseStack itemStackPose,
+                                    SubmitNodeCollector submitNodeCollector, int light, int outlineColor) {
+        ItemDisplayContext context = left ? ItemDisplayContext.THIRD_PERSON_LEFT_HAND : ItemDisplayContext.THIRD_PERSON_RIGHT_HAND;
         // Resolve an ItemStackRenderState for every native YSM hand item
         // before submitting it. Simple items also work through
         // ItemInHandRenderer, but special-rendered items such as tridents

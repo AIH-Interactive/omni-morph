@@ -107,7 +107,8 @@ public class YsmGeometry {
                     visible = true;
                 if (alpha < 255)
                     translucent = true;
-                if (alpha > 0 && alpha < 255 && (argb & 0x00ffffff) != 0)
+                // Sparkle TextureAlphaAnalyzer: any partially transparent pixel counts, black included.
+                if (alpha > 0 && alpha < 255)
                     coloredTranslucent = true;
                 if (visible && translucent && coloredTranslucent) {
                     quad.setAlphaState(true, true);

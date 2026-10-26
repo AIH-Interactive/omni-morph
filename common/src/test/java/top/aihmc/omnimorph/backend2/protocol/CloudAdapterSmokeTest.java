@@ -15,6 +15,28 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public final class CloudAdapterSmokeTest {
+    /** D025/S3: the optional display message keeps presence (unknown vs known) and rejects invalid values. */
+    private static void testDisplayState() throws Exception {
+        var full = new top.aihmc.omnimorph.model.ysm.sync.YsmDisplayState(12, 40, false, 0.25f, -1f, 1f,
+                java.util.Map.of("minecraft:speed", 3));
+        var partial = new top.aihmc.omnimorph.model.ysm.sync.YsmDisplayState(null, null, true, null, null, null, java.util.Map.of());
+        for (var display : java.util.List.of(full, partial)) {
+            var state = new YsmSyncMessage.State(null, null, null, null, null, display);
+            require(YsmProtobuf.state(YsmProtobuf.state(state)).equals(state), "display presence round trip");
+        }
+        var none = new YsmSyncMessage.State(null, null, null, null, null);
+        require(!YsmProtobuf.state(none).hasDisplay() && YsmProtobuf.state(YsmProtobuf.state(none)).display() == null,
+                "absent display stays absent");
+        var bad = top.aihmc.omnimorph.backend2.protocol.generated.Cloud.YsmState.newBuilder()
+                .setDisplay(top.aihmc.omnimorph.backend2.protocol.generated.Cloud.YsmDisplay.newBuilder().setFoodLevel(21)).build();
+        try {
+            YsmProtobuf.state(bad);
+            throw new AssertionError("out-of-range display food must be rejected");
+        } catch (java.io.IOException expected) {
+            // Invalid owner values never reach the display store.
+        }
+    }
+
     public static void main(String[] args) throws Exception {
         Path protocol = Path.of(args[0]);
         for (String line : Files.readAllLines(protocol.resolve("m7-vectors.tsv"))) {
@@ -26,6 +48,7 @@ public final class CloudAdapterSmokeTest {
             require(YsmProtobuf.state(YsmProtobuf.state(message.state())).equals(message.state()),
                     "All state fields/presence preserve M7 semantics: " + parts[0]);
         }
+        testDisplayState();
         byte[] snapshotWire = Files.readAllLines(protocol.resolve("m7-vectors.tsv")).stream()
                 .filter(line -> line.startsWith("snapshot\t")).map(line -> HexFormat.of().parseHex(line.split("\t")[1]))
                 .findFirst().orElseThrow();

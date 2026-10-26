@@ -26,14 +26,14 @@ import java.util.regex.Pattern;
 /** Immutable template selection; compiled Molang and mutable playback still belong to each native runtime. */
 public final class YsmDefaultAnimationResolver {
     public static final String VERSION = "ysm-default-1";
-    public static final List<String> MAIN_ACTIONS = List.of("gui", "idle", "walk", "run", "jump", "sneak",
+    public static final List<String> MAIN_ACTIONS = List.of("idle", "walk", "run", "jump", "sneak",
             "sneaking", "swim", "swim_stand", "fly", "elytra_fly", "sit", "ride", "ride_pig", "boat",
             "climb", "climbing", "attacked", "death", "sleep", "riptide", "use_mainhand", "use_offhand",
             "swing_hand", "swing_offhand", "ladder_up", "ladder_stillness", "ladder_down");
 
     public enum Domain {
-        MAIN("main.animation.json", "47f07b6b0506e47a1b1963ae568cabb83fea82ac33b0ba2671ca26a0c4005e02"),
-        ARM("arm.animation.json", "239e2dadcc57f8fa08e8087c9eb2e3db9fafef289c787421caa77f2dce09538e");
+        MAIN("main.animation.json", "9114e10f69c50cd2c7a44719aa39c4882a82f8b5098a37bbbf8ba7e5ba4d04f2"),
+        ARM("arm.animation.json", "e39935ced020d067b45e581ce11d64f9c576bdfbc8d78d278dd55e7999f483f5");
 
         private final String file;
         private final String hash;
@@ -135,7 +135,7 @@ public final class YsmDefaultAnimationResolver {
         if (source != null) {
             return source;
         }
-        String path = "/assets/omni-morph/ysm_default/animations/" + domain.file;
+        String path = "/assets/omni-morph/default_animation/" + domain.file;
         try (var stream = YsmDefaultAnimationResolver.class.getResourceAsStream(path)) {
             if (stream == null) {
                 throw new IOException("DEFAULT_ANIMATION_RESOURCE_MISSING");

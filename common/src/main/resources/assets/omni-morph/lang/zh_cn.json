@@ -470,6 +470,8 @@
   "omni-morph.config.chat_messages.tooltip.3": "OmniMorph不负责这个功能带来的任何风险",
   "omni-morph.config.chat_nameplate": "自定义聊天栏名称",
   "omni-morph.config.chat_nameplate.tooltip": "设置在聊天栏内名称自定义的等级",
+  "omni-morph.config.share_ysm_display": "向 YSM 模型分享玩家状态",
+  "omni-morph.config.share_ysm_display.tooltip": "允许其他玩家的 YSM 模型读取你的饥饿值、经验等级、飞行状态、移动输入和药水效果等级。仅发送给支持该功能的服务器",
   "omni-morph.config.connection_toasts": "后台服务器连接消息框",
   "omni-morph.config.connection_toasts.tooltip": "开/关游戏是否显示后台服务器连接情况的消息框",
   "omni-morph.config.dev": "开发",

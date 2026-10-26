@@ -177,6 +177,7 @@ public final class YsmSoundNativeSmokeTest {
         lua.setVolume(12);
         require(lua.getVolume() == 1, "original Figura Lua volume limit preserved");
         testAvatarVolumeGain(engine);
+        testControllerRefreshSounds(engine);
         testAnimationBgmLifetime(engine);
         testModelAudio(engine);
         System.out.println("M4 sound binding native dispatch, ID/flags, scopes, real owner quota, stop and close passed; audible playback manual.");
@@ -248,6 +249,42 @@ public final class YsmSoundNativeSmokeTest {
         @Override
         public float figura$getVolume(SoundSource source) {
             return 1f;
+        }
+    }
+
+    private static void testControllerRefreshSounds(RecordingEngine engine) throws Exception {
+        Fixture fixture = new Fixture();
+        var player = fixture.runtime.animations();
+        player.registerAnimations(top.aihmc.omnimorph.model.ysm.animation.YsmAnimationParser.parse("""
+                {"animations":{"voice":{"loop":true,"animation_length":10,
+                  "timeline":{"0":"ysm.play_sound('voice','tone',4);"},
+                  "sound_effects":{"0":{"effect":"tone","loop":true}}}}}
+                """, fixture.engine));
+        set(player.getClass(), player, "currentEntity", fixture.context.entity);
+        try {
+            var playing = player.playControllerAnimation("player.main", "voice", null, 1f, 0f);
+            List<LuaSound> voices = List.copyOf(engine.submitted.subList(engine.submitted.size() - 2, engine.submitted.size()));
+            require(voices.stream().allMatch(sound -> sound.getHandle() != null), "controller initial voices started");
+            long generation = playing.playbackGeneration;
+            playing.time = 2f;
+            for (int frame = 0; frame < 3; frame++) {
+                require(player.playControllerAnimation("player.main", "voice", null, .5f, 0f) == playing,
+                        "refresh retains playback instance");
+                require(voices.stream().allMatch(sound -> sound.getHandle() != null),
+                        "controller refresh preserves native and timeline sound handles");
+                require(playing.playbackGeneration == generation && playing.time == 2f,
+                        "refresh preserves async sound generation and playback clock");
+            }
+            player.retireControllerAnimation("player.main", "voice", 0f);
+            require(voices.stream().allMatch(sound -> sound.getHandle() == null), "controller exit stops retained voices");
+            var replacement = player.playControllerAnimation("player.main", "voice", null, 1f, 0f);
+            require(replacement != playing && replacement.time == 0f, "reentry creates another playback");
+            List<LuaSound> next = List.copyOf(engine.submitted.subList(engine.submitted.size() - 2, engine.submitted.size()));
+            player.resetControllerAnimations("player.main");
+            require(next.stream().allMatch(sound -> sound.getHandle() == null), "reset stops new voices");
+        } finally {
+            player.closeSounds();
+            fixture.runtime.sounds().close();
         }
     }
 

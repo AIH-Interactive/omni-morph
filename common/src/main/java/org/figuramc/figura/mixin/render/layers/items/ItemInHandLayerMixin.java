@@ -60,14 +60,25 @@ public abstract class ItemInHandLayerMixin<S extends ArmedEntityRenderState, M e
         if (av != null && av.isYsmNative()) {
             YsmModelRuntime ysm = av.getYsmRuntime();
             if (ysm != null) {
-                poseStack.pushPose();
                 Entity entity = AvatarManager.getEntity(state);
                 LivingEntity livingEntity = entity instanceof LivingEntity value ? value : null;
-                boolean transformed = ysm.applyHandItemTransform(poseStack, livingEntity, itemStack, left);
-                if (transformed) {
-                    figura$submitItemWithEvents(state, itemStackRenderState, itemStack, left, poseStack, submitNodeCollector, light, OverlayTexture.NO_OVERLAY);
+                var chains = ysm.handItemChainAnchors(left);
+                if (chains.isEmpty()) {
+                    poseStack.pushPose();
+                    if (ysm.applyHandItemTransform(poseStack, livingEntity, itemStack, left)) {
+                        figura$submitItemWithEvents(state, itemStackRenderState, itemStack, left, poseStack, submitNodeCollector, light, OverlayTexture.NO_OVERLAY);
+                    }
+                    poseStack.popPose();
+                } else {
+                    // D018: without a direct hand anchor the item is drawn once per extra hand chain.
+                    for (var anchor : chains) {
+                        poseStack.pushPose();
+                        if (ysm.applyHandItemChainTransform(poseStack, livingEntity, itemStack, left, anchor)) {
+                            figura$submitItemWithEvents(state, itemStackRenderState, itemStack, left, poseStack, submitNodeCollector, light, OverlayTexture.NO_OVERLAY);
+                        }
+                        poseStack.popPose();
+                    }
                 }
-                poseStack.popPose();
                 ci.cancel();
                 return;
             }

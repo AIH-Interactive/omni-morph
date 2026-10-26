@@ -243,11 +243,22 @@ public final class YsmAnimationControllerParser {
     private static Expression compile(String value, MolangEngine engine) {
         if (value == null || value.isBlank())
             return null;
+        MolangEngine molang = engine == null ? Avatar.getMolangEngine() : engine;
         try {
-            List<Expression> parsed = (engine == null ? Avatar.getMolangEngine() : engine).parse(value);
+            List<Expression> parsed = molang.parse(value);
             return parsed.isEmpty() ? null : parsed.get(0);
         } catch (Exception ignored) {
-            return null;
+            // Sparkle keeps a failed parse as MolangValue.failed, a constant 0: the transition
+            // is false and the animation weight is 0. A null condition would mean "always".
+            return failedExpression(molang);
+        }
+    }
+
+    private static Expression failedExpression(MolangEngine molang) {
+        try {
+            return molang.parse("0").get(0);
+        } catch (Exception unexpected) {
+            throw new IllegalStateException("Molang engine cannot parse a constant", unexpected);
         }
     }
 

@@ -40,18 +40,16 @@ public final class YsmBoneMatrixSmokeTest {
         }
         var outgoing = YsmAnimationSampler.sampleBone(clips.get("outgoing").boneAnimations.get("root"), 0.5f, null);
         var incoming = YsmAnimationSampler.sampleBone(clips.get("incoming").boneAnimations.get("root"), 0.5f, null);
-        for (boolean shortest : new boolean[]{false, true}) {
-            YsmControllerPoseLayer layer = new YsmControllerPoseLayer();
-            layer.compose(Map.of("root", outgoing));
-            layer.beginTransition(YsmBlendTransition.linear(1f), shortest);
-            layer.advance(0.5f);
-            Matrix4f actual = matrix(layer.compose(Map.of("root", incoming)).get("root"), new float[]{0, 0, 0});
-            assertZMatrix(actual, shortest ? 180f : 0f, 2f, -3f, 0f,
-                    "controller matrix across +/-180 degrees, shortest=" + shortest);
-            layer.advance(0.5f);
-            assertZMatrix(matrix(layer.compose(Map.of("root", incoming)).get("root"), new float[]{0, 0, 0}),
-                    -170f, 1f, -4f, 0f, "transition endpoint matrix");
-        }
+        // D010: the reference nlerps rendered quaternions, so 170 -> -170 always passes through 180.
+        YsmControllerPoseLayer layer = new YsmControllerPoseLayer();
+        layer.compose(Map.of("root", outgoing));
+        layer.beginTransition(YsmBlendTransition.linear(1f));
+        layer.advance(0.5f);
+        Matrix4f actual = matrix(layer.compose(Map.of("root", incoming)).get("root"), new float[]{0, 0, 0});
+        assertZMatrix(actual, 180f, 2f, -3f, 0f, "controller matrix across +/-180 degrees");
+        layer.advance(0.5f);
+        assertZMatrix(matrix(layer.compose(Map.of("root", incoming)).get("root"), new float[]{0, 0, 0}),
+                -170f, 1f, -4f, 0f, "transition endpoint matrix");
         // Pivot (1,1,0), translated -2 on X, rotated 90 degrees and scaled by 3:
         // pivot + translation - transformed pivot = (2,-2,0).
         assertZMatrix(matrix(sample, new float[]{16, 16, 0}), 90f, 3f, 2f, -2f,

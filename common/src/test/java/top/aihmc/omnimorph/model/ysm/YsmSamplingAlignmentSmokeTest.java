@@ -1,0 +1,159 @@
+package top.aihmc.omnimorph.model.ysm;
+
+import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationClip;
+import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationParser;
+import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationPlayer;
+import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationSampler;
+import top.aihmc.omnimorph.molang.MolangEngine;
+import top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator;
+import top.aihmc.omnimorph.molang.runtime.Function;
+
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * SAMP-01/03/04/05/06: expected values come from Sparkle's JsonAnimationUtils.calculateLength,
+ * RawBoneKeyFrame (LINEAR default), BoneKeyFrameProcessor.process, AnimationControllerInstance
+ * (wrap only when runningTick > length) and AnimationProcessor (rotation, position, scale order).
+ */
+public final class YsmSamplingAlignmentSmokeTest {
+    private static final MolangEngine PLAIN = MolangEngine.fromCustomBinding(name -> null);
+
+    private YsmSamplingAlignmentSmokeTest() {
+    }
+
+    public static void main(String[] args) throws ReflectiveOperationException {
+        testDerivedLength();
+        testObjectKeyframeDefaultsToLinear();
+        testCatmullRomTargetWinsOverStep();
+        testLoopKeepsExactEnd();
+        testChannelEvaluationOrder();
+        testThisKeyword();
+        testNonFiniteHoldsLastValid();
+        System.out.println("PASS sampling alignment: derived length, linear default, catmullrom priority, loop end, channel order");
+    }
+
+    private static void testDerivedLength() {
+        Map<String, YsmAnimationClip> clips = parse("""
+                {"keyed":{"bones":{
+                   "a":{"rotation":{"0":[0,0,0],"1.5":[10,0,0]}},
+                   "b":{"position":{"0.25":[0,0,0],"0.75":[1,0,0]},"scale":{"2.0":[1,1,1]}}}},
+                 "static":{"bones":{"a":{"rotation":[5,0,0]}}},
+                 "declared":{"animation_length":0.5,"bones":{"a":{"rotation":{"0":[0,0,0],"3":[1,0,0]}}}}}
+                """);
+        require(clips.get("keyed").length == 2.0f, "missing length uses the latest keyframe: " + clips.get("keyed").length);
+        require(clips.get("static").length == Float.MAX_VALUE,
+                "a clip without keyframes is unbounded: " + clips.get("static").length);
+        require(clips.get("declared").length == 0.5f, "a declared length is kept");
+    }
+
+    private static void testObjectKeyframeDefaultsToLinear() {
+        YsmAnimationClip clip = parse("""
+                {"clip":{"animation_length":1,"bones":{"a":{"rotation":{
+                   "0":{"post":[0,0,0]},"1":{"post":[10,0,0]}}}}}}
+                """).get("clip");
+        float[] sampled = YsmAnimationSampler.sampleChannel(clip.boneAnimations.get("a").rotation, 0.5f, null, new float[3]);
+        require(Math.abs(sampled[0] - 5f) < 0.0001f, "object keyframe without lerp_mode is linear: " + sampled[0]);
+    }
+
+    private static void testCatmullRomTargetWinsOverStep() {
+        YsmAnimationClip clip = parse("""
+                {"clip":{"animation_length":1,"bones":{"a":{"rotation":{
+                   "0":{"post":[0,0,0],"lerp_mode":"step"},
+                   "1":{"post":[10,0,0],"lerp_mode":"catmullrom"}}}}}}
+                """).get("clip");
+        float[] sampled = YsmAnimationSampler.sampleChannel(clip.boneAnimations.get("a").rotation, 0.5f, null, new float[3]);
+        // Catmull-Rom with p0 = p1 = 0 and p2 = p3 = 10 at t = 0.5.
+        require(Math.abs(sampled[0] - 5f) < 0.0001f, "a catmullrom target overrides a step source: " + sampled[0]);
+    }
+
+    private static void testLoopKeepsExactEnd() throws ReflectiveOperationException {
+        Method advance = YsmAnimationPlayer.class.getDeclaredMethod("advanceAnimationTime",
+                YsmAnimationPlayer.PlayingAnimation.class);
+        advance.setAccessible(true);
+        var player = new YsmAnimationPlayer(null);
+        var playing = new YsmAnimationPlayer.PlayingAnimation(
+                new YsmAnimationClip("loop", 1f, YsmAnimationClip.LoopMode.LOOP), false);
+        playing.loopMode = YsmAnimationClip.LoopMode.LOOP;
+        playing.time = 1f;
+        advance.invoke(player, playing);
+        require(playing.time == 1f, "a loop landing exactly on its end samples the end frame: " + playing.time);
+        playing.time = 1.25f;
+        advance.invoke(player, playing);
+        require(Math.abs(playing.time - 0.25f) < 0.0001f, "a loop past its end wraps: " + playing.time);
+    }
+
+    private static void testChannelEvaluationOrder() {
+        List<String> order = new ArrayList<>();
+        Function mark = (context, arguments) -> {
+            order.add(arguments.getAsString(context, 0));
+            return 0f;
+        };
+        MolangEngine engine = MolangEngine.fromCustomBinding(name -> name.equals("mark") ? mark : null);
+        YsmAnimationClip clip = YsmAnimationParser.parse("""
+                {"animations":{"clip":{"animation_length":1,"bones":{"a":{
+                   "position":["mark('position')",0,0],
+                   "rotation":["mark('rotation')",0,0],
+                   "scale":["mark('scale')",1,1]}}}}}
+                """, engine).get("clip");
+        YsmAnimationSampler.sampleBone(clip.boneAnimations.get("a"), 0f, ExpressionEvaluator.evaluator(order));
+        require(order.equals(List.of("rotation", "position", "scale")),
+                "channels are evaluated rotation, position, scale: " + order);
+    }
+
+    /**
+     * D016: Bedrock {@code this} reads the evaluated channel's current value per axis (Sparkle ThisExpression
+     * with setCurrentChannelValues/setCurrentAxis); without a written value it is 0.
+     */
+    private static void testThisKeyword() {
+        YsmAnimationClip clip = parse("""
+                {"clip":{"animation_length":1,"bones":{"a":{
+                   "rotation":["this + 5","-this","this * 2"],
+                   "position":["this",0,"this - 1"]}}}}
+                """).get("clip");
+        var bone = clip.boneAnimations.get("a");
+        require(bone != null && bone.rotation != null && bone.rotation.staticExpressions != null
+                        && bone.rotation.staticExpressions[0] != null,
+                "an expression using this parses");
+        var evaluator = ExpressionEvaluator.evaluator(new Object());
+        var current = new top.aihmc.omnimorph.model.ysm.animation.YsmBonePose(
+                new float[]{7, 0, 4}, new float[]{10, 3, -2}, null);
+        var pose = YsmAnimationSampler.sampleBone(bone, 0f, evaluator, current);
+        float[] rotation = pose.rotation();
+        float[] position = pose.position();
+        require(rotation[0] == 15f && rotation[1] == -3f && rotation[2] == -4f,
+                "rotation this reads each rotation axis: " + java.util.Arrays.toString(rotation));
+        require(position[0] == 7f && position[2] == 3f,
+                "position this reads the position channel: " + java.util.Arrays.toString(position));
+        var unset = YsmAnimationSampler.sampleBone(bone, 0f, evaluator).rotation();
+        require(unset[0] == 5f && unset[1] == 0f, "this without a current pose is 0: " + java.util.Arrays.toString(unset));
+    }
+
+    /** SAMP-07: Sparkle PoseValueCache keeps the last finite vector of a channel. */
+    private static void testNonFiniteHoldsLastValid() {
+        var good = new top.aihmc.omnimorph.model.ysm.animation.YsmBonePose(
+                new float[]{1, 2, 3}, new float[]{10, 20, 30}, new float[]{2, 2, 2});
+        var bad = new top.aihmc.omnimorph.model.ysm.animation.YsmBonePose(
+                new float[]{Float.NaN, 0, 0}, new float[]{5, Float.POSITIVE_INFINITY, 5}, new float[]{3, 3, 3});
+        var held = YsmAnimationSampler.holdFinite(bad, good);
+        require(java.util.Arrays.equals(held.position(), new float[]{1, 2, 3}), "NaN position keeps the last vector");
+        require(java.util.Arrays.equals(held.rotation(), new float[]{10, 20, 30}), "infinite rotation keeps the last vector");
+        require(java.util.Arrays.equals(held.scale(), new float[]{3, 3, 3}), "a finite channel is not held");
+        var first = YsmAnimationSampler.holdFinite(bad, null);
+        require(java.util.Arrays.equals(first.position(), new float[]{0, 0, 0})
+                        && java.util.Arrays.equals(first.rotation(), new float[]{0, 0, 0}),
+                "without history a non-finite channel starts from the reference initial value");
+    }
+
+    private static Map<String, YsmAnimationClip> parse(String animations) {
+        return YsmAnimationParser.parse("{\"animations\":" + animations + "}", PLAIN);
+    }
+
+    private static void require(boolean condition, String message) {
+        if (!condition) {
+            throw new AssertionError(message);
+        }
+    }
+}
