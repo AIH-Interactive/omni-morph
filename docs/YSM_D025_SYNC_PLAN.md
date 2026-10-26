@@ -86,3 +86,78 @@ Protobuf 走 `protocol/omnimorph/cloud/v1/cloud.proto` 的 `YsmState`（冻结�
 3. 隐私：默认开启还是默认关闭“分享显示状态”；是否仅对已授权观看者可见。
 4. Figura Cloud（ping）路径是否也要支持，还是只做 Protobuf。
 5. 后端改动是否由本 Agent 在 `omnm-cloud` 的 `master` 上实施并推送。
+
+## 8. Figura Lua API 封装（用户 2026-10-27 追加）
+
+原则：可查询的显示状态与 YSM 状态机，若 Figura 现有 Lua API 没有等价能力（平替），同时封装为
+Figura 可调用的 Lua API。已有平替的不重复封装，只在文档中指明。Lua 读取与 Molang 读取共用
+第 4 节的 `YsmDisplayQuery` / 同一份 `YsmPlayerActionState`，保证脚本、Molang 与实际动画不会互相矛盾。
+
+### 8.1 现有 Figura / OmniMorph API 平替核对（已查源码）
+
+| 能力 | 现有 API | 能否用于远端玩家 | 结论 |
+| --- | --- | --- | --- |
+| 生命/最大生命 | `LivingEntityAPI.getHealth/getMaxHealth` | 原版同步，可用 | 平替，不新增 |
+| 格挡 | `LivingEntityAPI.isBlocking` | 使用物品状态同步，可用 | 平替，不新增 |
+| 正在使用物品 | `LivingEntityAPI.isUsingItem` | 可用 | 平替，不新增 |
+| 饥饿 | `PlayerAPI.getFood` | 读本地实体，远端为默认值 | **需封装**（同步值） |
+| 经验等级 | `PlayerAPI.getExperienceLevel` | 同上 | **需封装** |
+| 飞行 | `host:isFlying`、`ViewerAPI.isFlying` | 仅本机（`isHost`） | **需封装** |
+| 状态效果 | `host:getStatusEffects` | 仅本机 | **需封装**（只含 id 与等级） |
+| 移动输入 xxa/yya/zza | 无 | — | **需封装** |
+| YSM 动作状态（ride/death/…/idle） | 无（仅 Molang `ctrl.*`） | — | **需封装** |
+| 声明控制器当前状态 | `ysm_model:getControllerStates()` | 仅本模型 | 已有；补远端读取 |
+| 原生状态机开关 / 播放 | `ysm_model:set/isNativeStateMachineEnabled`、`playAnimation/stopAnimation` | 本模型 | 已有，不新增 |
+| 手部动作槽（hold/use/swing 当前片段） | 无 | — | **需封装** |
+| 控制器状态时间、状态列表 | 无 | — | **需封装**（只读） |
+
+不新增“强制切换控制器状态”的写接口：状态转换由作者控制器与条件决定，外部强写会破坏 D023 的
+转换语义与同步一致性；需要时用已有 `playAnimation`/控件变量驱动条件。
+
+### 8.2 新增 API（建议命名，开工前可调整）
+
+全部 `@LuaWhitelist`，补 `LuaMethodDoc` 中/英文档条目（`assets/omni-morph/lang`）。
+
+**A. `ysm_display`（新全局，读取任意玩家的显示状态）**
+
+- `ysm_display:get(entity)` → 表 `{food, experience_level, flying, strafe, vertical, forward, effects = {[id]=level}}`；
+  本地玩家读实体，远端读同步值，无数据的字段为 nil。
+- 单项便捷方法：`getFood(entity)`、`getExperienceLevel(entity)`、`isFlying(entity)`、
+  `getMovementInput(entity)`（返回 `FiguraVec3(strafe, vertical, forward)`）、`getEffectLevel(entity, id)`。
+- `isSynced(entity)`：该玩家是否有有效同步值（区分“为 0”与“未知”）。
+- 隐私：只返回对方已选择分享且服务端已转发的值；不新增任何发布/写入接口。
+
+**B. `ysm_model` 扩展（本模型的状态机只读查询）**
+
+- `getActionState()` → 当前原生动作状态名（`YsmPlayerActionState.State.animationName()`，与 `ctrl.*` 同源）。
+- `getControllerState(name)`、`getControllerStateTime(name)`、`getControllerStateNames(name)`。
+- `getHandActions()` → `{left = {hold=, action=, paused=}, right = {...}}`（`nativeHoldAnimations` /
+  `nativeHandAnimations` / `PlayingAnimation.paused`）。
+- `getNativeAnimation()` → 当前原生运动片段名。
+
+**C. 远端玩家的 YSM 状态（只读）**
+
+- `ysm_display:getActionState(entity)`、`ysm_display:getControllerStates(entity)`：从该玩家已加载的
+  YSM 运行时读取（复用 `YsmSyncModel` 已同步的 controllers），无运行时返回 nil。
+
+**D. 事件（可选，按需）**
+
+- `events.YSM_ACTION_STATE_CHANGE(old, new)`、`events.YSM_CONTROLLER_STATE_CHANGE(controller, old, new)`：
+  在状态机实际切换处触发，仅对本模型脚本；默认不开，避免每帧开销。
+
+### 8.3 阶段归属
+
+| 阶段 | 内容 |
+| --- | --- |
+| S1 追加 | B 组（本模型状态机只读查询）与 `ysm_display` 的本地读取路径；不依赖同步，可先交付 |
+| S6 追加 | `ysm_display` 远端路径接入同步值；C 组远端只读查询 |
+| S8（新） | D 组事件（若用户需要） |
+
+验证：Lua API 单测覆盖本地/远端/无数据三路与 nil 语义；`FiguraDocsManager` 文档生成检查；
+相关 YSM 单测 + `:fabric:build`；脚本实机调用 `MANUAL/PENDING`。
+
+### 8.4 新增待决策
+
+6. Lua API 命名：新增全局 `ysm_display`，还是并入 `ysm_model` / 扩展 `PlayerAPI`（扩展原版 API 会改变 Figura 既有语义，不建议）。
+7. 是否需要 D 组状态变化事件。
+8. B/C 组是否允许查询他人模型的控制器状态（只读，但会暴露对方模型的状态名）。
