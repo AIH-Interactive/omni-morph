@@ -1435,8 +1435,16 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var input = field(Minecraft.class, "lastInputType");
         var previousInput = input.get(minecraft);
         input.set(minecraft, net.minecraft.client.InputType.MOUSE);
-        try (var preview = new LibraryPreviewSession()) {
+        try (var preview = new LibraryPreviewSession(null, false, true)) {
             var baseData = model("restored base");
+            var scripts = new CompoundTag();
+            scripts.putByteArray("particle toggle", """
+                    local enabled = false
+                    function enable_particle_runtime() enabled = true end
+                    function particle_runtime_enabled() return enabled end
+                    function events.tick() particle_ticks = (particle_ticks or 0) + 1 end
+                    """.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            baseData.put("scripts", scripts);
             var baseRoot = new CompoundTag();
             var baseChildren = new net.minecraft.nbt.ListTag();
             var head = new CompoundTag();
@@ -1445,6 +1453,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
             baseRoot.put("chld", baseChildren);
             baseData.put("models", baseRoot);
             base.load(baseData);
+            base.initializePreviewPlayer(player);
+            base.loadScript("enable existing particle emitter", "enable_particle_runtime()").call();
             var baseReference = new OutfitConfig.ResourceRef(OutfitConfig.Source.LOCAL, UUID.randomUUID(), null,
                     null, null, "7".repeat(64), OutfitConfig.Format.FIGURA);
             base.bindOutfitSource(baseReference);
@@ -1487,6 +1497,17 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(start != null, "opening the outfit tab starts a draft from the restored outfit");
             await(start, drain);
             awaitDraftComposition(screen, preview, drain);
+            preview.outfitBase().loadScript("preserve live particle toggle",
+                    "assert(particle_runtime_enabled(), 'opening wardrobe reset the active particle toggle')").call();
+            require(preview.outfitBase() == base,
+                    "an unchanged equipped base retains its actual Lua emitter state during wardrobe editing");
+            base.loadScript("reset particle tick count", "particle_ticks = 0").call();
+            preview.tick();
+            base.loadScript("preview does not double tick base", "assert(particle_ticks == 0)").call();
+            user.tick();
+            base.loadScript("resident remains tick owner", "assert(particle_ticks == 1)").call();
+            require(!preview.selectResidentBase(entry.reference()) && preview.outfitBase() == base,
+                    "a different fixed resource cannot borrow the equipped runtime");
             var draft = (top.aihmc.omnimorph.model.outfit.OutfitDraft) field(type, "outfitDraft").get(screen);
             require(draft != null && draft.configuration().equals(config),
                     "the outfit tab draft is the committed restored configuration");
@@ -1501,7 +1522,13 @@ public final class LibraryPreviewRuntimeSmokeTest {
             }
             require(listed && preview.outfitComposition().runtimeInstances().containsKey(instance.instanceId()),
                     "the restored accessory appears in the bone tree and preview without selecting an entry");
-            System.out.println("PASS outfit tab opens on the restored outfit: draft, bone tree instance and preview; GUI MANUAL/PENDING");
+            preview.withPlayerContext(() -> LibraryPreviewBinding.capture(player, new AvatarRenderState()));
+            preview.close();
+            LibraryPreviewBinding.finishFrame();
+            require(base.accelerationOwner().isCurrent() && base.luaRuntime != null,
+                    "closing and retiring a borrowed preview never cleans the resident base");
+            base.loadScript("retained live particle toggle", "assert(particle_runtime_enabled())").call();
+            System.out.println("PASS outfit tab opens on the restored outfit: draft, bone tree instance, retained Lua toggle, single tick owner and borrowed cleanup; GUI MANUAL/PENDING");
         } finally {
             top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.clear();
             LibraryPreviewBinding.finishFrame();

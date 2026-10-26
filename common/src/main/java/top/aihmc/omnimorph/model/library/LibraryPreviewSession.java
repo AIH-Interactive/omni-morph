@@ -45,6 +45,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
     private LivingEntity detachedEntity;
     private final boolean detachedMode;
     private boolean currentPlayerFigura;
+    private boolean borrowedBase;
     private final AtomicLong generations = new AtomicLong();
     private LibraryTransferService.Operation transfer;
     private LibraryClient.Request<CompoundTag> resource;
@@ -126,6 +127,35 @@ public final class LibraryPreviewSession implements AutoCloseable {
 
     public Avatar outfitBase() {
         return closed ? null : avatar;
+    }
+
+    /** Preserve the live Lua state when editing accessories on the unchanged resident base. */
+    public boolean selectResidentBase(OutfitConfig.ResourceRef reference) {
+        var player = Minecraft.getInstance().player;
+        if (!worldParticles || detachedMode || independentFigura || player == null || reference == null
+                || !current(generations.get())) {
+            return false;
+        }
+        var user = AvatarManager.getLoadedUser(player.getUUID());
+        var state = user == null ? null : user.getOutfit();
+        Avatar resident = null;
+        if (user != null) {
+            resident = state == null ? user.getMainAvatar() : state.base();
+        }
+        if (resident == null || !resident.loaded || resident.nbt == null
+                || !reference.equals(resident.outfitSource()) || !resident.accelerationOwner().isCurrent()) {
+            return false;
+        }
+        resetPlayerPreview();
+        begin();
+        avatar = resident;
+        entity = player;
+        currentPlayerFigura = true;
+        borrowedBase = true;
+        binding = new LibraryPreviewBinding(player, resident, false, true, false);
+        refreshHierarchy();
+        status = new Status(Stage.READY, "");
+        return true;
     }
 
     public long hierarchyRevision() {
@@ -563,7 +593,8 @@ public final class LibraryPreviewSession implements AutoCloseable {
     private boolean current(long generation) {
         return !closed && generations.get() == generation && (client == null || client.current())
                 && Minecraft.getInstance().level == world
-                && (!currentPlayerFigura || Minecraft.getInstance().player == entity);
+                && (!currentPlayerFigura || Minecraft.getInstance().player == entity)
+                && (!borrowedBase || avatar != null && avatar.accelerationOwner().isCurrent());
     }
 
     public void tick() {
@@ -663,7 +694,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
 
     public void beforeExtract(float delta) {
         refreshPlayerPreview();
-        if (current(generations.get()) && avatar != null && !AvatarManager.panic) {
+        if (current(generations.get()) && avatar != null && !borrowedBase && !AvatarManager.panic) {
             binding.withPlayerContext(() -> binding.withBaseBudget(() -> {
                 avatar.render(delta);
                 avatar.clearAnimations();
@@ -701,6 +732,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
             binding = null;
         }
         avatar = null;
+        borrowedBase = false;
         currentPlayerFigura = false;
     }
 

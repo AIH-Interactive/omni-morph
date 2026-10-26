@@ -29,6 +29,7 @@ public final class LibraryPreviewBinding implements AutoCloseable {
     private static final Map<EntityRenderState, PreviewParticleFrame> PARTICLE_FRAMES = new IdentityHashMap<>();
     private final LivingEntity entity;
     private final Avatar avatar;
+    private final boolean ownsAvatar;
     private final UUID player;
     private final PreviewParticleScope particles;
     private final boolean worldParticles;
@@ -46,8 +47,14 @@ public final class LibraryPreviewBinding implements AutoCloseable {
     }
 
     LibraryPreviewBinding(LivingEntity entity, Avatar avatar, boolean persistent, boolean worldParticles) {
+        this(entity, avatar, persistent, worldParticles, true);
+    }
+
+    LibraryPreviewBinding(LivingEntity entity, Avatar avatar, boolean persistent, boolean worldParticles,
+                          boolean ownsAvatar) {
         this.entity = entity;
         this.avatar = avatar;
+        this.ownsAvatar = ownsAvatar;
         this.player = avatar == null ? entity.getUUID() : avatar.owner;
         this.worldParticles = worldParticles;
         if (persistent && (ENTITIES.containsKey(entity) || PLAYERS.containsKey(player))) {
@@ -147,8 +154,8 @@ public final class LibraryPreviewBinding implements AutoCloseable {
             withBaseBudget(particles::tick);
         }
         if (composition != null) {
-            composition.tick(avatar);
-        } else if (avatar != null) {
+            composition.tick(ownsAvatar ? avatar : null);
+        } else if (avatar != null && ownsAvatar) {
             avatar.tick();
         }
     }
@@ -229,7 +236,7 @@ public final class LibraryPreviewBinding implements AutoCloseable {
         FRAMES.clear();
         for (LibraryPreviewBinding binding : retained) {
             binding.frames--;
-            if (binding.closed && binding.frames == 0 && binding.avatar != null) {
+            if (binding.closed && binding.frames == 0 && binding.avatar != null && binding.ownsAvatar) {
                 binding.avatar.clean();
             }
         }
@@ -265,7 +272,7 @@ public final class LibraryPreviewBinding implements AutoCloseable {
             composition.close();
             composition = null;
         }
-        if (frames == 0 && avatar != null) {
+        if (frames == 0 && avatar != null && ownsAvatar) {
             avatar.clean();
         }
     }
