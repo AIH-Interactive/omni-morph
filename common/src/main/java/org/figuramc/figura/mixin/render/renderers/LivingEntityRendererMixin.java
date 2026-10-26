@@ -416,12 +416,30 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
             return;
 
         boolean left = arm == HumanoidArm.LEFT;
-        ItemDisplayContext context = left ? ItemDisplayContext.THIRD_PERSON_LEFT_HAND : ItemDisplayContext.THIRD_PERSON_RIGHT_HAND;
-        PoseStack itemStackPose = new PoseStack();
-        itemStackPose.pushPose();
-        itemStackPose.last().set(baseStack.last());
-        if (!avatar.getYsmRuntime().applyHandItemTransform(itemStackPose, entity, itemStack, left))
+        var runtime = avatar.getYsmRuntime();
+        var chains = runtime.handItemChainAnchors(left);
+        if (chains.isEmpty()) {
+            PoseStack itemStackPose = new PoseStack();
+            itemStackPose.pushPose();
+            itemStackPose.last().set(baseStack.last());
+            if (runtime.applyHandItemTransform(itemStackPose, entity, itemStack, left))
+                figura$submitYsmHandItemAt(entity, itemStack, left, itemStackPose, submitNodeCollector, light, outlineColor);
             return;
+        }
+        // D018: without a direct hand anchor the item is drawn once per extra hand chain.
+        for (var anchor : chains) {
+            PoseStack itemStackPose = new PoseStack();
+            itemStackPose.pushPose();
+            itemStackPose.last().set(baseStack.last());
+            if (runtime.applyHandItemChainTransform(itemStackPose, entity, itemStack, left, anchor))
+                figura$submitYsmHandItemAt(entity, itemStack, left, itemStackPose, submitNodeCollector, light, outlineColor);
+        }
+    }
+
+    @Unique
+    void figura$submitYsmHandItemAt(LivingEntity entity, ItemStack itemStack, boolean left, PoseStack itemStackPose,
+                                    SubmitNodeCollector submitNodeCollector, int light, int outlineColor) {
+        ItemDisplayContext context = left ? ItemDisplayContext.THIRD_PERSON_LEFT_HAND : ItemDisplayContext.THIRD_PERSON_RIGHT_HAND;
         // Resolve an ItemStackRenderState for every native YSM hand item
         // before submitting it. Simple items also work through
         // ItemInHandRenderer, but special-rendered items such as tridents

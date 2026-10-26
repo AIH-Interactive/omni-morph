@@ -1678,6 +1678,42 @@ public final class YsmMaterialNativeSmokeTest {
                     "zero-scale authored locator suppresses its native hand item");
             require(runtime.applyHandItemTransform(new com.mojang.blaze3d.vertex.PoseStack(), false),
                     "hiding the left locator preserves the independent right-hand item");
+            require(runtime.handItemChainAnchors(false).isEmpty(), "a direct hand locator suppresses extra chains");
+        } finally {
+            runtime.close();
+            client.drain();
+        }
+        testHandLocatorChains(unsafe, client);
+    }
+
+    /**
+     * D018: Sparkle renders one item per extra hand chain (LeftHandLocator2..8) only when the model has no
+     * direct hand anchor (none of LeftHandLocator/LeftItem/LeftHand/.../LeftArm).
+     */
+    private static void testHandLocatorChains(Unsafe unsafe, RecordingClient client) throws Exception {
+        String geometry = """
+                {"minecraft:geometry":[{"description":{"texture_width":1,"texture_height":1},"bones":[
+                  {"name":"root"},
+                  {"name":"RightHandLocator2","parent":"root","pivot":[16,0,0]},
+                  {"name":"RightHandLocator3","parent":"root","pivot":[-16,0,0]}]}]}
+                """;
+        Fixture fixture = new Fixture(unsafe, 34, null, geometry);
+        var runtime = fixture.runtime;
+        try {
+            var chains = runtime.handItemChainAnchors(false);
+            require(chains.size() == 2 && chains.get(0).name.equals("RightHandLocator2")
+                            && chains.get(1).name.equals("RightHandLocator3"),
+                    "every extra right-hand chain is an anchor, in locator order");
+            require(runtime.handItemChainAnchors(true).isEmpty(), "no left chains were declared");
+            var first = new com.mojang.blaze3d.vertex.PoseStack();
+            var second = new com.mojang.blaze3d.vertex.PoseStack();
+            require(runtime.applyHandItemChainTransform(first, null, net.minecraft.world.item.ItemStack.EMPTY, false, chains.get(0))
+                            && runtime.applyHandItemChainTransform(second, null, net.minecraft.world.item.ItemStack.EMPTY, false, chains.get(1)),
+                    "each chain anchor transforms its own item");
+            require(!first.last().pose().equals(second.last().pose(), 0.00001f), "chain anchors place items separately");
+            runtime.getPart("RightHandLocator3").setVisible(false);
+            require(!runtime.applyHandItemChainTransform(new com.mojang.blaze3d.vertex.PoseStack(), null,
+                    net.minecraft.world.item.ItemStack.EMPTY, false, chains.get(1)), "a hidden chain anchor draws nothing");
         } finally {
             runtime.close();
             client.drain();
