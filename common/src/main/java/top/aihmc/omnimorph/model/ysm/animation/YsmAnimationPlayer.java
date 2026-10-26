@@ -554,11 +554,11 @@ public class YsmAnimationPlayer {
             playing.deferTimelineAdvance = updatingControllerFrame;
             playing.beginningTransitionRemaining = controllerName == null ? 0f : Math.max(0f, fadeSeconds);
         }
-        stopPlaybackSounds(playing);
-        playing.playbackGeneration++;
-        // Controllers refresh weights on an existing clock every frame. Only a new slot, an explicit
-        // direct play, or reactivation after cancellation starts another notification generation.
+        // A controller refresh keeps both its clock and owned voices, including pending async playback.
+        // New slots, direct play and reactivation invalidate the previous sound/notification generation.
         if (created || controllerName == null || !playing.notificationsActive) {
+            stopPlaybackSounds(playing);
+            playing.playbackGeneration++;
             playing.notificationGeneration = ++notificationSequence;
             playing.endNotificationDispatched = false;
             playing.notificationsActive = true;
