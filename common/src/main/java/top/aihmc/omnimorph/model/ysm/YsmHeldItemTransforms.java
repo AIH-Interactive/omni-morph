@@ -2,9 +2,8 @@ package top.aihmc.omnimorph.model.ysm;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
-import net.minecraft.client.model.effects.SpearAnimations;
-import net.minecraft.client.renderer.entity.state.ArmedEntityRenderState;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
@@ -16,8 +15,8 @@ import org.joml.Matrix4f;
 /**
  * Shared third-person item transforms for native YSM hand locators.
  *
- * <p>Authored locators own the grip, while item-space use effects follow the
- * current Minecraft implementation. This applies to every YSM model without
+ * <p>Authored locators own the grip. Spear use effects follow the reference YSM
+ * display-space pivots and phase rotations. This applies to every YSM model without
  * encoding model or bone names.</p>
  */
 public final class YsmHeldItemTransforms {
@@ -63,7 +62,7 @@ public final class YsmHeldItemTransforms {
 
     private static void applyKineticSpearUseTransform(PoseStack stack, LivingEntity entity, ItemStack itemStack, boolean leftHand) {
         if (entity == null || itemStack == null || itemStack.isEmpty()
-                || itemStack.getUseAnimation() != ItemUseAnimation.SPEAR
+                || !isVanillaSpear(itemStack)
                 || !itemStack.has(DataComponents.KINETIC_WEAPON))
             return;
 
@@ -73,13 +72,39 @@ public final class YsmHeldItemTransforms {
         if (!entity.isUsingItem() || entity.getUsedItemHand() != hand)
             return;
 
-        // Use the current game's item-space transform after the authored YSM grip.
-        // Its pivots, charge phases, movement and hit feedback must stay in sync with vanilla.
-        var state = new ArmedEntityRenderState();
-        state.attackTime = entity.getAttackAnim(0f);
-        state.ticksSinceKineticHitFeedback = entity.getTicksSinceLastKineticHitFeedback(0f);
-        SpearAnimations.thirdPersonUseItem(state, stack, entity.getTicksUsingItem(),
-                leftHand ? HumanoidArm.LEFT : HumanoidArm.RIGHT, itemStack);
+        var weapon = itemStack.get(DataComponents.KINETIC_WEAPON);
+        float ticks = entity.getTicksUsingItem();
+        float raised = weapon.delayTicks();
+        float tired = raised + weapon.dismountConditions()
+                .map(net.minecraft.world.item.component.KineticWeapon.Condition::maxDurationTicks).orElse(0);
+        float disengaged = Math.max(tired, raised + weapon.damageConditions()
+                .map(net.minecraft.world.item.component.KineticWeapon.Condition::maxDurationTicks).orElse(0));
+        float engagedProgress = smoothStep(progress(ticks, 0f, raised));
+        float tiredProgress = smoothStep(progress(ticks, raised, tired));
+        float disengagedProgress = smoothStep(progress(ticks, tired, disengaged));
+        float handSign = leftHand ? -1f : 1f;
+        // Reference authored-YSM transforms pivot around the third-person item display origin.
+        stack.rotateAround(Axis.XP.rotationDegrees(60f * (1f - engagedProgress)), 0f, .125f, .125f);
+        stack.rotateAround(Axis.YP.rotationDegrees(handSign * (90f + 90f * tiredProgress)), 0f, .125f, .125f);
+        stack.rotateAround(Axis.XP.rotationDegrees(6f * disengagedProgress), 0f, .125f, .125f);
+    }
+
+    private static boolean isVanillaSpear(ItemStack itemStack) {
+        var id = BuiltInRegistries.ITEM.getKey(itemStack.getItem());
+        return id.getNamespace().equals("minecraft") && id.getPath().endsWith("_spear")
+                && itemStack.getUseAnimation() == ItemUseAnimation.SPEAR
+                && YsmHandItemType.matches(itemStack, "lance");
+    }
+
+    private static float progress(float value, float start, float end) {
+        if (end <= start) {
+            return value >= end ? 1f : 0f;
+        }
+        return Math.clamp((value - start) / (end - start), 0f, 1f);
+    }
+
+    private static float smoothStep(float value) {
+        return value * value * (3f - 2f * value);
     }
 
     /**

@@ -2,8 +2,6 @@ package top.aihmc.omnimorph.model.ysm;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.SharedConstants;
-import net.minecraft.client.model.effects.SpearAnimations;
-import net.minecraft.client.renderer.entity.state.ArmedEntityRenderState;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.Bootstrap;
@@ -682,8 +680,11 @@ public final class YsmHandAnimationSmokeTest {
                 Optional.of(new KineticWeapon.Condition(30, 0f, 0f)), Optional.empty(),
                 Optional.of(new KineticWeapon.Condition(60, 0f, 0f)), 0.5f, 1f,
                 Optional.empty(), Optional.empty()));
-        var state = new ArmedEntityRenderState();
-        state.ticksSinceKineticHitFeedback = Float.MAX_VALUE;
+        // Independent reference golden angles: raising, tired and disengaged phase boundaries/midpoints.
+        int[] ticks = {0, 1, 5, 10, 25, 40, 55, 70, 100};
+        float[] compensation = {60f, 58.32f, 30f, 0f, 0f, 0f, 0f, 0f, 0f};
+        float[] forward = {90f, 90f, 90f, 90f, 135f, 180f, 180f, 180f, 180f};
+        float[] down = {0f, 0f, 0f, 0f, 0f, 0f, 3f, 6f, 6f};
         for (HumanoidArm mainArm : HumanoidArm.values()) {
             entity.mainArm = mainArm;
             for (InteractionHand hand : InteractionHand.values()) {
@@ -695,18 +696,20 @@ public final class YsmHandAnimationSmokeTest {
                     var held = new PoseStack();
                     YsmHeldItemTransforms.apply(held, entity, spear, left, false);
                     entity.using = true;
-                    for (int ticks : new int[]{0, 1, 10, 25, 40, 70, 100}) {
-                        entity.useTicks = ticks;
+                    for (int index = 0; index < ticks.length; index++) {
+                        entity.useTicks = ticks[index];
                         var expected = new PoseStack();
                         expected.last().pose().set(held.last().pose());
                         if (left == activeLeft) {
-                            SpearAnimations.thirdPersonUseItem(state, expected, ticks,
-                                    left ? HumanoidArm.LEFT : HumanoidArm.RIGHT, spear);
+                            expected.rotateAround(com.mojang.math.Axis.XP.rotationDegrees(compensation[index]), 0f, .125f, .125f);
+                            expected.rotateAround(com.mojang.math.Axis.YP.rotationDegrees((left ? -1f : 1f) * forward[index]),
+                                    0f, .125f, .125f);
+                            expected.rotateAround(com.mojang.math.Axis.XP.rotationDegrees(down[index]), 0f, .125f, .125f);
                         }
                         var actual = new PoseStack();
                         YsmHeldItemTransforms.apply(actual, entity, spear, left, false);
                         require(actual.last().pose().equals(expected.last().pose(), 0.00001f),
-                                "spear orientation/grip must match native use at tick " + ticks
+                                "spear orientation/grip must match reference YSM use at tick " + ticks[index]
                                         + ", mainArm=" + mainArm + ", hand=" + hand + ", left=" + left);
                     }
                     ItemStack trident = new ItemStack(Items.TRIDENT);
