@@ -83,6 +83,7 @@ public final class YsmHandAnimationSmokeTest {
         verifyLegacyLoopOverride(entity, update);
         verifyLocalInputPulse(entity, update);
         verifyControllerStageInterleaving(update);
+        verifyHandStageOwnership(entity, update);
         entity.mainArm = HumanoidArm.RIGHT;
         entity.usedHand = InteractionHand.MAIN_HAND;
         entity.offhand = ItemStack.EMPTY;
@@ -159,6 +160,54 @@ public final class YsmHandAnimationSmokeTest {
                 "offhand trident returns to its grip after release");
         verifyUseTransforms(entity);
         System.out.println("PASS native hand state: holding, using and release preserve conditional clip ownership");
+    }
+
+    private static void verifyHandStageOwnership(HandEntity entity, Method update) throws ReflectiveOperationException {
+        entity.using = true;
+        entity.swinging = false;
+        entity.mainArm = HumanoidArm.RIGHT;
+        entity.usedHand = InteractionHand.MAIN_HAND;
+        entity.main = new ItemStack(Items.BOW);
+        entity.offhand = ItemStack.EMPTY;
+        var evaluator = ExpressionEvaluator.evaluator(new org.figuramc.figura.avatar.Avatar.MolangContext(null));
+        var owned = new YsmAnimationPlayer(null) {
+            @Override
+            public void runFunctionEventsForController(
+                    top.aihmc.omnimorph.model.ysm.controller.YsmAnimationController controller,
+                    ExpressionEvaluator<?> evaluation) {
+                // This fixture has no function program; state ownership uses the production runtime.
+            }
+        };
+        owned.registerAnimations(clips("use_mainhand:bow", "hold_mainhand:bow"));
+        owned.registerControllers(YsmAnimationControllerParser.parse("""
+                {"animation_controllers":{
+                  "controller.animation.player.use_0":{"initial_state":"ysm-builtin","states":{"ysm-builtin":{}}},
+                  "player.use_1":{"states":{"default":{}}},
+                  "player.post_use":{"states":{"default":{}}}}}
+                """, MolangEngine.fromCustomBinding(key -> null)));
+        owned.controllerRuntime().update(evaluator, .1f, false);
+        update.invoke(owned, entity);
+        require(!targeted(owned, "use_mainhand:bow"), "numbered custom use controller owns the native use stage");
+        require(owned.usesBuiltinController("player.swing") && owned.usesBuiltinController("player.hold_mainhand"),
+                "use ownership leaves other core stages independent");
+        var missing = player("hold_mainhand:bow");
+        for (int frame = 0; frame < 3; frame++) {
+            update.invoke(missing, entity);
+        }
+        @SuppressWarnings("unchecked")
+        var diagnostics = (java.util.List<String>) missing.getClass().getMethod("handAnimationDiagnostics").invoke(missing);
+        require(diagnostics.size() == 1 && diagnostics.getFirst().contains("player.use.mainhand")
+                        && diagnostics.getFirst().contains("minecraft:bow"),
+                "unresolved use is diagnosed once with action and item");
+        var separate = player("hold_mainhand:bow");
+        update.invoke(separate, entity);
+        require(((java.util.List<?>) separate.getClass().getMethod("handAnimationDiagnostics").invoke(separate)).size() == 1,
+                "diagnostic deduplication is per player instance");
+        var success = player("use_mainhand:bow");
+        update.invoke(success, entity);
+        require(((java.util.List<?>) success.getClass().getMethod("handAnimationDiagnostics").invoke(success)).isEmpty(),
+                "resolved actions are not reported as missing");
+        entity.using = false;
     }
 
     private static void verifySpearClassification(HandEntity entity, Method update) throws ReflectiveOperationException {

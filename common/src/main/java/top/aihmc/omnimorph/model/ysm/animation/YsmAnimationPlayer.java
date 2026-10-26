@@ -82,6 +82,7 @@ public class YsmAnimationPlayer {
     private final Map<String, String> nativeHandAnimations = new HashMap<>();
     /** Per-arm hold, kept separately so an action pauses rather than replaces it. */
     private final Map<String, String> nativeHoldAnimations = new HashMap<>();
+    private final Map<String, String> handAnimationDiagnostics = new LinkedHashMap<>();
     /**
      * Reference stage orders for native clips. The main movement slot comes first; hold, swing and
      * use are separate stages the declared controller layers interleave with.
@@ -302,12 +303,39 @@ public class YsmAnimationPlayer {
         String canonical = canonicalController(source);
         for (YsmAnimationController controller : controllers.values()) {
             if (!functionEventControllers.contains(controller.name())
-                    && canonicalController(controller.name()).equals(canonical)) {
+                    && ownsBuiltinSource(controller.name(), canonical)) {
                 YsmControllerState state = controller.states().get(controllerRuntime.currentState(controller.name()));
-                return state != null && state.isBuiltin();
+                if (state == null || !state.isBuiltin()) {
+                    return false;
+                }
             }
         }
         return true;
+    }
+
+    private static boolean ownsBuiltinSource(String controllerName, String source) {
+        String candidate = canonicalController(controllerName);
+        if (candidate.equals(source)) {
+            return true;
+        }
+        // Numbered controllers share their core hand stage. Pre/post hooks are separate stages.
+        return Set.of("player.use", "player.swing", "player.hold_mainhand", "player.hold_offhand").contains(source)
+                && candidate.matches(java.util.regex.Pattern.quote(source) + "[0-9]+");
+    }
+
+    public List<String> handAnimationDiagnostics() {
+        return List.copyOf(handAnimationDiagnostics.values());
+    }
+
+    private String selectHandAnimation(String action, ItemStack item, String... names) {
+        String selected = firstHandAnimation(names);
+        if (selected == null && !item.isEmpty() && !handAnimationDiagnostics.containsKey(action)) {
+            String message = "NO_HAND_ANIMATION:" + action + ":" + BuiltInRegistries.ITEM.getKey(item.getItem())
+                    + ":candidates=" + Arrays.toString(names);
+            handAnimationDiagnostics.put(action, message);
+            FiguraMod.LOGGER.warn("[YSM hand] model={} {}", runtime == null ? "detached" : runtime.contentHash(), message);
+        }
+        return selected;
     }
 
     private void reconcileBuiltinSources() {
@@ -1921,8 +1949,10 @@ public class YsmAnimationPlayer {
             useSlot = left ? "left" : "right";
             ItemStack item = entity.getItemInHand(usedHand);
             String[] names = useAnimationNames(entity, left, item);
-            keepHoldWhileUsing = firstHandAnimation(names) == null;
-            syncNativeHandAnimation(useSlot, !keepHoldWhileUsing, USE_STAGE, names);
+            String selected = selectHandAnimation("player.use." + usedHand.name().toLowerCase(Locale.ROOT).replace("_", ""),
+                    item, names);
+            keepHoldWhileUsing = selected == null;
+            syncNativeSlotAnimation(nativeHandAnimations, useSlot, selected, YsmAnimationClip.LoopMode.LOOP, USE_STAGE);
             sampleKineticChargeAnimation(useSlot, entity, item);
         }
 
@@ -1939,7 +1969,7 @@ public class YsmAnimationPlayer {
             boolean left = handSlotIsLeft(swingingHand, mainArm);
             ItemStack item = entity.getItemInHand(swingingHand);
             String[] names = swingAnimationNames(swingingHand, item);
-            playNativeHandOnce(left ? "left" : "right", SWING_STAGE, names);
+            playNativeHandOnce(left ? "left" : "right", SWING_STAGE, item, names);
             sampleKineticSwingAnimation(left ? "left" : "right", entity, item);
         }
         String swingSlot = anySwinging && !swingUsesActiveHand
@@ -1997,16 +2027,16 @@ public class YsmAnimationPlayer {
         String prefix = hand == InteractionHand.MAIN_HAND ? "hold_mainhand" : "hold_offhand";
         int poseOrder = hand == InteractionHand.MAIN_HAND ? HOLD_MAINHAND_STAGE : HOLD_OFFHAND_STAGE;
         if (item.isEmpty()) {
-            syncNativeHoldAnimation(slot, poseOrder, prefix + ":empty");
+            syncNativeHoldAnimation(slot, poseOrder, item, prefix + ":empty");
             return;
         }
         if (item.is(Items.CROSSBOW) && CrossbowItem.isCharged(item)) {
-            syncNativeHoldAnimation(slot, poseOrder, prefix + ":charged_crossbow", prefix);
+            syncNativeHoldAnimation(slot, poseOrder, item, prefix + ":charged_crossbow", prefix);
             return;
         }
         if (hand == InteractionHand.MAIN_HAND && item.is(Items.FISHING_ROD)
                 && entity instanceof Player player && player.fishing != null && !player.fishing.isRemoved()) {
-            syncNativeHoldAnimation(slot, poseOrder, prefix + ":fishing", prefix);
+            syncNativeHoldAnimation(slot, poseOrder, item, prefix + ":fishing", prefix);
             return;
         }
         if (isLanceWeapon(item)) {
@@ -2016,10 +2046,10 @@ public class YsmAnimationPlayer {
             names.add("lance_stand");
             names.add(prefix + ":lance");
             names.addAll(Arrays.asList(conditionalAnimationNames(prefix, item, false)));
-            syncNativeHoldAnimation(slot, poseOrder, names.toArray(String[]::new));
+            syncNativeHoldAnimation(slot, poseOrder, item, names.toArray(String[]::new));
             return;
         }
-        syncNativeHoldAnimation(slot, poseOrder, conditionalAnimationNames(prefix, item, false));
+        syncNativeHoldAnimation(slot, poseOrder, item, conditionalAnimationNames(prefix, item, false));
     }
 
     private String[] useAnimationNames(LivingEntity entity, boolean left, ItemStack item) {
@@ -2172,8 +2202,9 @@ public class YsmAnimationPlayer {
     }
 
     /** Holds: LOOP, except a declared *:lance hold, which the reference holds on its last frame. */
-    private void syncNativeHoldAnimation(String slot, int poseOrder, String... names) {
-        String selected = firstHandAnimation(names);
+    private void syncNativeHoldAnimation(String slot, int poseOrder, ItemStack item, String... names) {
+        String action = poseOrder == HOLD_MAINHAND_STAGE ? "player.hold_mainhand" : "player.hold_offhand";
+        String selected = selectHandAnimation(action, item, names);
         YsmAnimationClip.LoopMode predicateLoop = selected != null && selected.endsWith(":lance")
                 ? YsmAnimationClip.LoopMode.HOLD_ON_LAST_FRAME
                 : YsmAnimationClip.LoopMode.LOOP;
@@ -2216,8 +2247,8 @@ public class YsmAnimationPlayer {
         }
     }
 
-    private void playNativeHandOnce(String slot, int poseOrder, String... names) {
-        String selected = firstHandAnimation(names);
+    private void playNativeHandOnce(String slot, int poseOrder, ItemStack item, String... names) {
+        String selected = selectHandAnimation("player.swing." + slot, item, names);
         if (selected == null)
             return;
         String previous = nativeHandAnimations.put(slot, selected);
