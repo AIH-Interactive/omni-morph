@@ -1055,7 +1055,10 @@ public class YsmAnimationPlayer {
     private void applyControllerLayers(Map<String, Map<String, YsmBonePose>> controllerPoses,
                                        boolean firstPerson, boolean beforeMain) {
         Map<String, YsmControllerPoseLayer> poseLayers = firstPerson ? armControllerPoseLayers : controllerPoseLayers;
-        for (var entry : poseLayers.entrySet()) {
+        // Later stages replace the channels they write, so apply in stage order rather than first-play order.
+        List<Map.Entry<String, YsmControllerPoseLayer>> orderedLayers = new ArrayList<>(poseLayers.entrySet());
+        orderedLayers.sort(Comparator.comparingInt(entry -> YsmControllerSlot.executionOrder(entry.getKey())));
+        for (var entry : orderedLayers) {
             if ((YsmControllerSlot.executionOrder(entry.getKey()) < 20) != beforeMain) {
                 continue;
             }

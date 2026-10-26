@@ -88,7 +88,33 @@ public final class YsmControllerPhaseSmokeTest {
         require(YsmControllerSlotBinder.eventNamesForController("player.main", YsmControllerSlot.MAIN)
                 .equals(Set.of("player_ctrl_main")), "main cannot consume pre-main event");
         require(bus.unboundEvents(events).isEmpty(), "all declared bound events consumed by their owner");
+        requireReferenceStageOrder();
         System.out.println("M3 reference phase order, fp.arm classification and function-event ownership checks passed.");
+    }
+
+    /** Sparkle PlayerAnimationController.registerControllers registration order for body stages. */
+    private static void requireReferenceStageOrder() {
+        List<String> referenceOrder = List.of("player.pre_parallel", "player.vehicle", "player.pre_main",
+                "player.main", "player.post_main", "player.pre_hold", "player.hold_offhand",
+                "player.hold_mainhand", "player.post_hold", "player.fire", "player.pre_swing", "player.swing",
+                "player.post_swing", "player.pre_use", "player.use", "player.post_use", "player.passenger",
+                "player.carry_on", "player.cap", "player.gui_hover", "player.gui_focus", "player.parallel",
+                "player.armor_head");
+        for (int i = 1; i < referenceOrder.size(); i++) {
+            String previous = referenceOrder.get(i - 1);
+            String current = referenceOrder.get(i);
+            require(YsmControllerSlot.executionOrder(previous) < YsmControllerSlot.executionOrder(current),
+                    "reference stage " + previous + " runs before " + current);
+        }
+        require(YsmControllerSlot.executionOrder("controller.animation.player.post_use")
+                        == YsmControllerSlot.executionOrder("player.post_use"),
+                "stage order ignores the controller.animation prefix");
+        require(YsmControllerSlot.executionOrder("player.post_main_1")
+                        == YsmControllerSlot.executionOrder("player.post_main"),
+                "numbered post_main keeps its stage order");
+        for (String stage : referenceOrder.subList(referenceOrder.indexOf("player.post_main"), referenceOrder.size())) {
+            require(YsmControllerSlot.executionOrder(stage) >= 20, stage + " is applied after main");
+        }
     }
 
     private static void require(boolean condition, String message) {
