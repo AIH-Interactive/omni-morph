@@ -173,6 +173,11 @@ public final class YsmNativeStateSmokeTest {
         update.invoke(player, renderState, entity);
         String actual = activeNative(player);
         require(expected.equals(actual), "native action must be " + expected + " but was " + actual);
+        // D025/S1: the Lua-visible native animation and action state come from the same decision.
+        require(expected.equals(player.nativeAnimation()), "Lua native animation must be " + expected
+                + " but was " + player.nativeAnimation());
+        require(player.actionState() != top.aihmc.omnimorph.model.ysm.YsmPlayerActionState.State.NONE,
+                "Lua action state is resolved for " + expected);
     }
 
     private static void baseline(NativeEntity entity, Avatar.MolangContext context) {

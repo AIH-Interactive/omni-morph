@@ -82,6 +82,8 @@ public class YsmAnimationPlayer {
     private final Map<String, String> nativeHandAnimations = new HashMap<>();
     /** Per-arm hold, kept separately so an action pauses rather than replaces it. */
     private final Map<String, String> nativeHoldAnimations = new HashMap<>();
+    private YsmPlayerActionState.State lastActionState = YsmPlayerActionState.State.NONE;
+    private String lastNativeState = "";
     private final Map<String, String> handAnimationDiagnostics = new LinkedHashMap<>();
     /**
      * Reference stage orders for native clips. The main movement slot comes first; hold, swing and
@@ -2466,8 +2468,35 @@ public class YsmAnimationPlayer {
      * Reference AnimationManager: the played base action comes from the same resolver that backs
      * the {@code ctrl.*} Molang states, so a query and the native animation cannot disagree.
      */
+    /** Base action resolved on the last native update; NONE before the first update. */
+    public YsmPlayerActionState.State actionState() {
+        return lastActionState;
+    }
+
+    /** Native movement clip selected on the last update; empty when none applies. */
+    public String nativeAnimation() {
+        return lastNativeState;
+    }
+
+    /** Per arm ("left"/"right"): the selected hold clip, the use/swing action clip and whether the hold is paused. */
+    public Map<String, Map<String, Object>> handActions() {
+        Map<String, Map<String, Object>> result = new LinkedHashMap<>();
+        for (String side : List.of("left", "right")) {
+            Map<String, Object> hand = new LinkedHashMap<>();
+            String hold = nativeHoldAnimations.get(side);
+            PlayingAnimation holdAnimation = hold == null ? null : activeAnimations.get(hold);
+            hand.put("hold", hold);
+            hand.put("action", nativeHandAnimations.get(side));
+            hand.put("paused", holdAnimation != null && holdAnimation.paused);
+            result.put(side, hand);
+        }
+        return result;
+    }
+
     private void updateNativeStateMachine(LivingEntityRenderState state, LivingEntity entity) {
         if (!usesBuiltinController("player.main")) {
+            lastActionState = YsmPlayerActionState.State.NONE;
+            lastNativeState = "";
             activeAnimations.values().removeIf(animation -> {
                 if (!animation.isNative) {
                     return false;
@@ -2490,7 +2519,9 @@ public class YsmAnimationPlayer {
         YsmPlayerActionState.Snapshot snapshot = entity != null
                 ? YsmPlayerActionState.snapshot(entity, groundSpeed, verticalSpeed)
                 : renderStateActionState(state, groundSpeed, verticalSpeed);
-        String idealState = nativeStateName(YsmPlayerActionState.resolve(snapshot));
+        lastActionState = YsmPlayerActionState.resolve(snapshot);
+        String idealState = nativeStateName(lastActionState);
+        lastNativeState = idealState;
         if (runtime != null && shouldInterruptActions(idealState))
             runtime.actions().stopAll();
         for (Map.Entry<String, PlayingAnimation> entry : activeAnimations.entrySet()) {

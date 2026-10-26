@@ -66,6 +66,7 @@ import org.figuramc.figura.lua.api.vanilla_model.VanillaModelAPI;
 import org.figuramc.figura.lua.api.vanilla_model.VanillaModelPart;
 import org.figuramc.figura.lua.api.vanilla_model.VanillaPart;
 import top.aihmc.omnimorph.lua.api.ysm_model.YsmModelAPI;
+import top.aihmc.omnimorph.lua.api.ysm_model.YsmDisplayAPI;
 import top.aihmc.omnimorph.lua.api.ysm_actions.YsmActionsAPI;
 import org.figuramc.figura.lua.api.world.BiomeAPI;
 import org.figuramc.figura.lua.api.world.BlockStateAPI;
@@ -137,6 +138,7 @@ public class FiguraAPIManager {
         add(VanillaGroupPart.class);
         add(VanillaModelPart.class);
         add(YsmModelAPI.class);
+        add(YsmDisplayAPI.class);
         add(YsmModelPart.class);
         add(YsmActionsAPI.class);
         add(YsmActionDefinition.class);
@@ -219,6 +221,7 @@ public class FiguraAPIManager {
         put("vanilla_model", r -> r.vanilla_model = new VanillaModelAPI(r.owner));
         put("ysm_model", r -> r.ysm_model = new YsmModelAPI(r.owner));
         put("ysm_actions", r -> new YsmActionsAPI(r.owner));
+        put("ysm_display", r -> new YsmDisplayAPI());
         put("keybinds", r -> r.keybinds = new KeybindAPI(r.owner));
         put("host", r -> r.host = new HostAPI(r.owner));
         put("nameplate", r -> r.nameplate = new NameplateAPI());
