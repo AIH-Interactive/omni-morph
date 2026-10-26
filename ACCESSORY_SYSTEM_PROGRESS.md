@@ -1382,3 +1382,14 @@ alpha4-publish-disabled-diagnostics-build.log：libraryPreviewRuntimeSmokeTest�
 - 最小下一步：在真实客户端用新包验证目录模型 E:/AI Hobbyist Founder Public Server 的 particle.lua：开衣柜、关闭衣柜、第一/第三人称移动后，黄色/绿色粒子是否跟随尾尖。若仍异常，捕获实际尾尖 savedPartToWorldMat 与粒子发射坐标再定位；不要重启旧计划或继续盲改 renderMode。
 - 修复验证后按用户要求查询额度：可靠接口 Plus，5小时剩余90%、周剩余87%；重置 Unix UTC 秒1792996496/1793525491。未触发阈值，未委派 Luna。正常完成由当前 Agent 更新本文。
 - 继续遵守当前分支提交推送/远端SHA核对、JDK25、前台Tee日志、保留未提交数据、CodeGraph优先、禁止Qt offscreen、真实未验不得标PASS、范围与冻结协议约束。相关正式范围见 ACCESSORY_SYSTEM_IMPLEMENTATION_PLAN.md，当前缺陷记录见 ACCESSORY_SYSTEM_PROGRESS.md 文末。
+## 当前有效交接：CustomParticle 进服不显示与安装包纠正（2026-10-26 11:06）
+
+- 用户实际反馈：原版粒子已正常，CustomParticle 刚进服不显示。前轮世界矩阵修复保留，不回退。
+- 实际运行证据：PID9008 的 gameDir 为 D:/Program Files/AIHMC/.minecraft/versions/纯净大区(26.1.2)。latest.log 10:57:11/10:58:53 报 Outfit accessory not drawn / script:44 attempt to call a nil value。日志实际加载版本 1.0.0-alpha.4+26.1.2-f1d2a514，安装 JAR 为18,306,329字节，属于旧包；此前新构建尚未安装。
+- 已证实的安装接口不匹配：实际 cosmetics/trail/script.lua 的粒子链调用 setLightInterval；用 javap 对安装 JAR 的 LuaParticle 核对缺失该方法，检查明确 FAIL installed LuaParticle missing authored methods: setLightInterval。当前源码及最新 Alpha4.1 构建已有该接口（9fbaf1da 引入），无需新增生产修复或修改用户脚本。日志中的行号覆盖整条链，不能仅凭显示 newCustomParticle 的片段断言构造器缺失。
+- 本轮处理为安装纠正：使用 main@34c6742d 的最新构建，合并前次已验证备份 build/tmp/omni-morph-preview-world-mode-native.jar 中10个 natives/* 文件，保留原生加速；检查 setLightInterval/setLifetime/setScale/setEmissive/setDynamicLight 全存在，合并包与安装包 SHA256 一致 PASS。安装过程前台 PowerShell + Tee build.log 并立即检查退出码，日志 build/reports/outfit/alpha4-custom-particle-api-install.log。未修改生产代码、版本、后端或用户模型/脚本。
+- 安装目标仍为 mods/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar（旧文件名保持，内部为最新 Alpha4.1）；18,685,299字节，SHA256 3e6ba0973183ce1f7af93dffa48d7d35ef48ba40d830a0fe59180cbac40fec75。合并包 build/tmp/omni-morph-custom-particle-api-native.jar；旧安装包完整备份 build/tmp/omni-morph-before-custom-api-20261026-110532.jar。未结束用户游戏进程。
+- 当前状态：安装与静态接口检查已完成；未重新编译无变化的生产代码，沿用上一轮52秒构建和18秒原生/Lua回归结果。真实 CustomParticle 发射/光照/贴图/原版粒子仍需重启后复测，MANUAL/PENDING。仅安装接口一致性 PASS，不冒充游戏端到端 PASS。若仍失败，应读取重启后的日志，不能继续用旧进程日志判断新包。
+- 最小下一步：用户重启客户端，确认日志加载 Alpha4.1 后验证进服装饰粒子；如仍无显示，保留新日志并定位实际失败 API/运行时。不要修改作者脚本来兼容误装旧包，也不扩张旧阶段。
+- Git：main 源码检查点34c6742d已推送核对；本轮仅更新交接与进度记录并纳入随后文档检查点，交付前推送核对实际HEAD与远端main。后端master@c69e3c08无本轮修改。主仓库 .omc/、mod_log/、patch/ 和后端 build.log、build/ 保留不提交。
+- 修复处理后可靠额度查询：Plus 5小时剩余79%、周剩余85%，重置Unix UTC秒1792996496/1793525491；未到阈值，不委派Luna。继续遵守当前分支、前台Tee日志、JDK25、范围控制、CodeGraph优先、真实窗口/禁止offscreen及未验不得标PASS。
