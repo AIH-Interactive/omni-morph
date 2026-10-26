@@ -916,3 +916,10 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - **P1 全部完成：** 计划第 8 节 P1 项 D007、D008（补记提交号 8d5d3391）、D009、D010、D011、D015、D016、D020、D022、SAMP-01/03/04/05/06 均为“已完成（提交号）”。有意偏差两处已在表中注明：SAMP-03 不复制参考 JSON 插值字符串带引号比较缺陷；D016 `this` 取值用 Omni 作者单位，不复制参考弧度代入角度表达式的不一致。
 - **既有失败（非本轮引入，仍保留）：** `ysmBoneQuerySmokeTest`（arm previous-frame input 0.0，基线 b777cd32 同样失败）、`ysmPlayerTimelineSmokeTest`（owner-null NPE）、`ysmFunctionContractSmokeTest`（filter-preview 期望 4.5 实得 90）。
 - **剩余工作与下一步：** P1 无剩余。未开始：P2（D013、D014、D017 部分、D018 待决策、D021 待决策、D026、SAMP-07）、D025（范围外需立项）、“不对齐”项。是否继续 P2 及第 7 节剩余决策（D018、D021）需用户指定。所有真实游戏画面/声音/mixin 加载/双客户端验收 `MANUAL/PENDING`。模组经符号链接接入 mods，无需复制产物。
+
+## 当前有效交接：P2 进行中（Claude，2026-10-26）
+
+用户目标：完成 P2，每个阶段完成后查额度；D021、D018 先尝试对齐；D025 跳过（后续实现）。
+
+- **D013/D014 已完成（`ysm-alignment@b8307244`，已推送，远端一致）：** `YsmFilterRuntime.update` 渲染时间回退或间隔 > 8/60 s 时不再积分，标记各滤波器 `recovering`，下次 `sample` 收到有限输入即 `reset` 到该输入（一阶直接取值，二阶 snap，速度归零），对应参考 `PhysicsManager` 恢复分支；时间回退原先被忽略，现与参考一致按恢复处理。一阶/二阶 `update` 遇非有限 input/参数直接返回保持上值（原 `finite()` 置 0 会向 0 追赶）。未对齐的结构差异：参考在 sample 时用本帧参数积分，Omni 在帧首 update 用上一帧参数积分，本项未改。测试 `YsmFilterSmokeTest.testLongGapRecovery/testNonFiniteInputHoldsValue`，RED 失败于 long gap snaps first order to the current input: 22.5。验证 PASS：Filter、FunctionStage、MaterialNative、ControllerContext、DeferredPose + `:fabric:build`（--continue 下完成）。
+- **既有失败更新：** `ysmFunctionContractSmokeTest` 现失败于更早的断言 `quarter-second transition uses seconds: 0.0`（函数控制器 `set_beginning_transition_length` 期望 fadeSpeed=4）；暂存本次改动在基线 `b1b1d612` 复跑同样失败，非 D013/D014 引入，推测为 D012 把过渡改成“起播延迟”后旧期望未更新，未修改。`ysmBoneQuerySmokeTest` 既有失败仍在。
