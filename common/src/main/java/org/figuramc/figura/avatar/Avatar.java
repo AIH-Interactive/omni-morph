@@ -567,6 +567,11 @@ public class Avatar {
             this.owner = owner;
         }
 
+        public void captureWorldTime(long dayTime) {
+            time_of_day = ((float) (dayTime + 6000L) / 24000f) % 1f;
+            time_stamp = dayTime;
+        }
+
         /**
          * Populates all query fields from a Minecraft Entity and the game state.
          * Called every frame before Molang evaluation.
@@ -689,8 +694,7 @@ public class Avatar {
             // Level / world data
             if (mc.level != null) {
                 long dayTime = mc.level.getDefaultClockTime();
-                time_of_day = dayTime % 24000L / 24000.0f;
-                time_stamp = dayTime;
+                captureWorldTime(dayTime);
                 moon_phase = mc.level.environmentAttributes().getDimensionValue(EnvironmentAttributes.MOON_PHASE).index();
                 // Cardinal facing (0=South, 1=West, 2=North, 3=East)
                 cardinal_facing_2d = entity.getDirection().get2DDataValue();
