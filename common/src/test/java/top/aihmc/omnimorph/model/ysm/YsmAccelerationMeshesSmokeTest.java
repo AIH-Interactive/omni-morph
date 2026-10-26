@@ -42,6 +42,13 @@ public final class YsmAccelerationMeshesSmokeTest {
         geometry.applyTextureAlpha(png.toByteArray());
         require(cache.get(cubes).isEmpty(), "texture alpha visibility changes remove cached faces");
         geometry.applyTextureAlpha(null);
+        // D026: Sparkle TextureAlphaAnalyzer treats any 0 < alpha < 255 pixel as translucent, black included.
+        var blackSoftEdge = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+        blackSoftEdge.setRGB(0, 0, 0x80000000);
+        var blackPng = new ByteArrayOutputStream();
+        ImageIO.write(blackSoftEdge, "png", blackPng);
+        require(geometry.applyTextureAlpha(blackPng.toByteArray()), "a black half-transparent pixel needs the translucent layer");
+        geometry.applyTextureAlpha(null);
         require(cache.get(cubes).getFirst().faceCount() == 1, "faces can become visible and accelerate again");
         faces.clear();
         for (int index = 0; index < 16_385; index++) {
