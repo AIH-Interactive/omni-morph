@@ -352,8 +352,11 @@ public final class YsmDefaultAnimationSmokeTest {
                 var playing = runtime.animations().getControllerAnimation("player.main", "incoming");
                 float expectedTime = frame <= 5 ? 0f : .125f;
                 require(playing.time == expectedTime, "real Avatar transition clock at frame " + frame);
-                float expectedRotation = frame <= 5 ? (frame - 1) * 5f : 30f;
-                require(Math.abs(runtime.getPart("LeftLeg").animRotRaw().x - expectedRotation) < .0001,
+                // D010: the pose transition nlerps rotations, so 0 -> 20 degrees is not linear in angle.
+                float expectedRotation = frame <= 5
+                        ? YsmPoseSamplingSmokeTest.singleAxisNlerpDegrees(20f, (frame - 1) / 4f)
+                        : 30f;
+                require(Math.abs(runtime.getPart("LeftLeg").animRotRaw().x - expectedRotation) < .001,
                         "real Avatar snapshot-to-first-key pose at frame " + frame);
                 require(((Number) context.variables.getPath("zero")).floatValue() == (frame >= 5 ? 1f : 0f),
                         "real Avatar zero-time instruction waits for transition completion");

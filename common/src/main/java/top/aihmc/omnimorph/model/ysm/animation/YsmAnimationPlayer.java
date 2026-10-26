@@ -636,11 +636,11 @@ public class YsmAnimationPlayer {
         return playing;
     }
 
-    public void beginControllerPoseTransition(String controllerName, YsmBlendTransition curve, boolean shortestRotation) {
+    public void beginControllerPoseTransition(String controllerName, YsmBlendTransition curve) {
         controllerPoseLayers.computeIfAbsent(normalizeControllerName(controllerName), ignored -> new YsmControllerPoseLayer())
-                .beginTransition(curve, shortestRotation);
+                .beginTransition(curve);
         armControllerPoseLayers.computeIfAbsent(normalizeControllerName(controllerName), ignored -> new YsmControllerPoseLayer())
-                .beginTransition(curve, shortestRotation);
+                .beginTransition(curve);
     }
 
     public void inheritControllerPose(String parentName, String childName) {
@@ -710,7 +710,7 @@ public class YsmAnimationPlayer {
             retireSlot(previous, fadeSeconds);
         }
         if (created) {
-            beginControllerPoseTransition(controller, YsmBlendTransition.linear(fadeSeconds), false);
+            beginControllerPoseTransition(controller, YsmBlendTransition.linear(fadeSeconds));
         }
         PlayingAnimation playing = playInSlot(slot, animationName, loopMode, speed, fadeSeconds, controller);
         if (playing != null)
@@ -1231,7 +1231,8 @@ public class YsmAnimationPlayer {
             if (!firstPerson && isFirstPersonController(entry.getKey())) {
                 continue;
             }
-            Map<String, YsmBonePose> pose = entry.getValue().compose(controllerPoses.getOrDefault(entry.getKey(), Map.of()));
+            Map<String, YsmBonePose> pose = entry.getValue().compose(controllerPoses.getOrDefault(entry.getKey(), Map.of()),
+                    bone -> boneRestRotation(bone, firstPerson));
             boolean declaredController = controllers.keySet().stream()
                     .anyMatch(name -> normalizeControllerName(name).equals(entry.getKey()));
             for (var bone : pose.entrySet()) {
@@ -1240,6 +1241,19 @@ public class YsmAnimationPlayer {
                 }
             }
         }
+    }
+
+    /** Geometry rest rotation (degrees) used as the reference's nlerp offset; null when the bone is unknown. */
+    private float[] boneRestRotation(String bone, boolean firstPerson) {
+        if (runtime == null) {
+            return null;
+        }
+        List<YsmModelPart> parts = runtime.getAnimationParts(bone, firstPerson);
+        if (parts.isEmpty()) {
+            return null;
+        }
+        FiguraVec3 rest = parts.getFirst().getOriginRot();
+        return new float[]{(float) rest.x, (float) rest.y, (float) rest.z};
     }
 
     private boolean isFirstPersonController(String controllerName) {
@@ -2202,7 +2216,7 @@ public class YsmAnimationPlayer {
         }
         if (previous != null) {
             stopControllerSounds(controller);
-            beginControllerPoseTransition(controller, YsmBlendTransition.linear(0.1f), false);
+            beginControllerPoseTransition(controller, YsmBlendTransition.linear(0.1f));
             retireControllerAnimation(controller, previous, 0f);
         }
         if (selected == null) {

@@ -144,7 +144,7 @@ public class YsmControllerRuntime {
             boolean initialEntry = enteredInitialStates.add(controller.name());
             if (initialEntry) {
                 visitedStates.add(state.name());
-                player.beginControllerPoseTransition(controller.name(), state.blendCurve(), state.blendViaShortestPath());
+                player.beginControllerPoseTransition(controller.name(), state.blendCurve());
                 execute(state.onEntry(), evaluator);
                 player.playControllerSounds(controller.name(), state);
                 applyControllerContext(controller, context);
@@ -328,7 +328,7 @@ public class YsmControllerRuntime {
         currentStates.put(controller.name(), target.name());
         stateTimes.put(controller.name(), 0f);
         float fadeSeconds = target.blendCurve().duration();
-        player.beginControllerPoseTransition(controller.name(), target.blendCurve(), target.blendViaShortestPath());
+        player.beginControllerPoseTransition(controller.name(), target.blendCurve());
         for (String animation : activeByController.computeIfAbsent(controller.name(), ignored -> new HashSet<>()))
             player.retireControllerAnimation(controller.name(), animation, fadeSeconds);
         activeByController.get(controller.name()).clear();
