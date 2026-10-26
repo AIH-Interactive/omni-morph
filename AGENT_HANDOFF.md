@@ -932,3 +932,28 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - **P2 全部完成：** D013、D014、D017（部分）、D018、D021、D026、SAMP-07 均已完成并在计划表写入提交号。D025 按用户要求跳过（后续实现，涉及同步协议/后端）。
 - **既有失败汇总（均在基线复现，非 P2 引入，未修改）：** BoneQuery、PlayerTimeline、FunctionContract（现失败于 quarter-second transition）、MaterialInput、Avif、Stability（后三者依赖真实模型语料）。
 - **下一步：** P2 无剩余。剩余为“不对齐”项与 D025。请用户实机验收 P1/P2（重点见各项“未验证”），模组经符号链接接入，构建前需关闭客户端。
+
+## 当前额度交接：拉弓蓄力姿态与参考不一致（Claude，2026-10-26）
+
+本节为最新入口。触发原因：Claude Pro 5 小时窗口 used 94% / 剩 6%（< 10% 阈值，重置 2026-10-26T14:00Z），周 used 49%。按约定安全暂停，未开始生产代码修改。
+
+- **用户问题：** 芙宁娜模型（`refs/avatars/芙宁娜v3.14中文配音.ysm`，用户实机路径 `.minecraft/versions/纯净大区(26.1.2)/omnimorph/avatars/芙宁娜v3.14中文配音.ysm`）长按拉弓时，Omni 手臂下垂持弓（待机姿态），参考项目为举弓拉弦姿态。
+- **已定位根因（有证据）：** 该模型的 `player.post_main` 控制器的 待机/空闲/走路/奔跑 等状态，其动画（如 `默认姿态`、`走路前进`、`run`）写入 `RightArm/LeftArm/RightForeArm/LeftForeArm`；作者专门的 `主手拉弓走路` 只写腿和身体，不写手臂，说明作者预期手臂由后续 use 阶段驱动。参考 `PlayerAnimationController.registerControllers` 顺序为 `main → post_main → pre_hold → hold_offhand → hold_mainhand → post_hold → … → use → post_use`，原生 hold/use 谓词控制器在 post_main **之后**，覆盖其写入通道。Omni `YsmAnimationPlayer.sampleAnimationPoses`（约 1079–1185 行）把所有原生片段（含 `nativeHoldAnimations`/`nativeHandAnimations` 的 hold、swing、use，如 `use_mainhand:bow`）累积进单一 `nativePoses`，在 main 阶段（`applyControllerLayers(...,true)` 之后、post 控制器层之前）应用，于是 post_main 的待机姿态覆盖了拉弓手臂。D001 只给控制器层排了阶段序，没有把原生手部片段放进对应阶段，属 D001 遗漏。证据来自临时诊断（见下）：`use_mainhand:bow` LOOP 58s，骨骼含 RightArm 等；`默认姿态` 骨骼含 RightArm/LeftArm。
+- **建议修复（未实施）：** 在 `sampleAnimationPoses` 中按原生片段归属分阶段：主运动原生片段仍为 20；`nativeHoldAnimations` 中的片段用 hold 阶段序（offhand 32 / mainhand 33，或统一 33）；`nativeHandAnimations` 中 swing 类（名以 swing/attack 开头）用 37，其余 use 用 41。把这些原生阶段与 `applyControllerLayers(beforeMain=false)` 的控制器层合并成一个按 `YsmControllerSlot.executionOrder` 稳定排序的列表依次应用（同一骨骼后者替换所写通道，原生层用 `applyControllerPose(part, pose)` 同现有原生路径）。注意 D002 builtin 门控与 D003 paused hold（paused 不提交姿态）保持不变。
+- **建议测试：** `YsmHandAnimationSmokeTest` 增加用例：一个 `player.post_main` 声明控制器播放写 RightArm 的片段 + 原生 `use_mainhand:bow` 写 RightArm 不同角度，经完整 `sampleAnimations` 后 RightArm 应等于 use 片段值；并用真实模型（gradle 任务已传入模型路径参数）在 `verifyReferenceBow` 中先让 post_main 控制器进入待机状态再验证拉弓手臂角度。完成条件：相关单测 + `:fabric:build` 通过，提交推送当前分支并核对远端，更新本手册，查额度。
+- **工作区状态：** 分支 `ysm-alignment`，HEAD `b5c45a88`（已推送，远端一致）。未提交修改：`common/src/test/java/top/aihmc/omnimorph/model/ysm/YsmHandAnimationSmokeTest.java` 中的临时诊断代码（`-Dysm.dumpBow=true` 时打印片段/控制器/状态，及新增 `import java.util.List`），默认不触发，修复时可删除或保留；本手册本节为未提交修改。原未跟踪 `.omc/`、`mod_log/`、`patch/` 保留。无运行中构建/测试。
+- **约束：** JDK25（`usejdk 25`，需加载用户 PowerShell profile，`-NoProfile` 会丢失 usejdk）；构建测试前台 PowerShell `2>&1 | Tee-Object -FilePath build.log`，日志为 UTF-16 需 `iconv -f utf-16` 读取；模组经符号链接接入 mods，构建前关闭游戏客户端；禁止 Qt offscreen；范围控制；每阶段提交推送核对远端；不升级版本。
+
+## 当前有效交接：拉弓蓄力姿态已修复（2026-10-26 20:10）
+
+本节覆盖上方“拉弓蓄力姿态与参考不一致”的暂停状态。用户明确要求继续修复，实施、验证、提交推送已完成；真实游戏画面仍 `MANUAL/PENDING`。
+
+- **根因修正（与上节记录不同之处）：** 手部 hold/use/swing 片段在 Omni 中**不是** native 片段（`playInSlot` 以 `new PlayingAnimation(clip,false)` 创建），它们原本作为 additive 直接层在 `applyControllerLayers(...,false)` **之前**应用。真正的原因是已声明的 `player.post_main` 控制器层（阶段 30）在 additive 手部层之后应用并**替换**其写入通道，于是待机姿态抹掉了拉弓手臂。上节“nativePoses 累积”的描述与实际代码不符，已纠正，未按原建议对 `nativePoses` 做改动。
+- **实现（`ysm-alignment@3a67ecdc`，已推送，远端一致）：** `YsmAnimationPlayer` 新增 `PlayingAnimation.poseOrder`（参考阶段序，默认 main=20），在手部选片处写入：hold_offhand=32、hold_mainhand=33、swing=37、use=41（均取自 `YsmControllerSlot.executionOrder` 的既有阶段表，避免重复常量）。`sampleAnimationPoses` 把非 native 且 `poseOrder > main` 的手部片段收集为 `WeightedPose`，与 native 阶段、声明控制器层一起由 `applyControllerLayers` 稳定排序应用；同阶段内顺序为 native → 手部 → 声明控制器，因此 post_main(30) 先于 use(41)，而并行/护甲等更后阶段仍覆盖。主运动阶段（20）仍在直接层之前应用、额外的 direct/extra 动画仍保持原 additive 位置。手部片段改为参考语义的“替换所写通道”，并按片段权重从当前姿态插值（`blendControllerPose`），淡入不再瞬跳。
+- **保持不变：** D002 builtin 门控（`usesBuiltinController`）、D003 paused hold（不提交姿态）、D004 loop 覆盖、D005 本地脉冲选择、D006 状态表；未改版本、后端或资源。
+- **测试：** `YsmHandAnimationSmokeTest` 新增 `verifyControllerStageInterleaving`：声明 `player.post_main` 播放写 RightArm `-90°` 的片段 + `use_mainhand:bow` 写 `45°`，完整 `sampleAnimations` 后 RightArm 必须是 45°（修复前为 -45°，即被 -90° 覆盖后的结果）；另在既有 hold/swing/use 用例中断言 `poseOrder` 属于各自参考阶段。RED：以旧应用顺序复跑得到 `post_main must not overwrite the later native use arm pose: -45.0`（`build/reports/outfit/alpha4-bowstage-red.log`）。同时删除上一轮遗留的 `-Dysm.dumpBow` 临时诊断（含模型专用片段名），测试文件不再含该分支。GREEN：`alpha4-bowstage-green.log`、清理后 `alpha4-bowstage-green-clean.log`。
+- **最终验证 PASS：** 22 项 YSM 单测（HandAnimation、NativeState、Input、VanillaState、SoundNative、DefaultAnimation、MaterialNative、FirstPersonController、BeginningTransition、BuiltinController、ControllerTransition、ControllerSound、PoseSampling、SamplingAlignment、AccelerationMeshes、DeferredPose、BoneMatrix、FunctionStage、ControllerPoseLayer、ControllerPhase、ControllerContext、ControllerIsolation）+ `:fabric:build`，`alpha4-bowstage-final.log`：BUILD SUCCESSFUL in 2m 1s。真实模型回放用例 `verifyReferenceBow` 仍通过：拉弓改变手臂姿态、松开/重拉时钟与姿态一致，说明替换语义未破坏真实模型拉弓。
+- **行为变化：** 手部 hold/use/swing 由 additive 叠加改为按参考阶段替换所写通道。CPU/Avatar 测试不能证明真实游戏像素与手感，实际游戏画面（首次拉弓、持续蓄力、第一/第三人称、持物观感）仍 `MANUAL/PENDING`，需要用户实机确认。
+- **既有失败（非本次引入，保留）：** `ysmBoneQuerySmokeTest`、`ysmPlayerTimelineSmokeTest`、`ysmFunctionContractSmokeTest`（现失败于 quarter-second transition）、`ysmMaterialInputSmokeTest`、`ysmAvifSmokeTest`、`ysmStabilitySmokeTest`。
+- **Git/工作区：** 分支 `ysm-alignment`，HEAD `3a67ecdc`（`fix: apply YSM hand actions at their reference stages (post_main omission)`），已推送并核对 `git ls-remote` 一致；本轮只改 `YsmAnimationPlayer` 与 `YsmHandAnimationSmokeTest`，本手册随后单独提交。原未跟踪 `.omc/`、`mod_log/`、`patch/` 保留，未切换分支、未改后端、未升级版本。无运行中构建/测试。
+- **下一步：** 用户重启客户端（构建前已关闭游戏、模组经符号链接接入）实机确认芙宁娜拉弓蓄力为举弓拉弦；若仍有偏差，优先对照该模型 `player.post_main` 各状态与 `use_mainhand:bow` 的实际骨骼值，而不是再调整阶段序。
