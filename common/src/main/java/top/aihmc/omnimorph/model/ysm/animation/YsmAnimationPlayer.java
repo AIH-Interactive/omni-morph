@@ -69,6 +69,10 @@ public class YsmAnimationPlayer {
     private final Set<String> controllerFunctionReloads = new HashSet<>();
     private final Map<String, YsmControllerPoseLayer> controllerPoseLayers = new LinkedHashMap<>();
     private final Map<String, YsmControllerPoseLayer> armControllerPoseLayers = new LinkedHashMap<>();
+    public static final int PLAINTEXT_FORMAT_VERSION = 65535;
+    /** Reference AnimationFormatValidator: from this binary format on, authored hold/use loops are kept. */
+    private static final int AUTHORED_LOOP_FORMAT_VERSION = 19;
+    private int modelFormatVersion = PLAINTEXT_FORMAT_VERSION;
     /** Per-arm use/swing action ("left"/"right"). */
     private final Map<String, String> nativeHandAnimations = new HashMap<>();
     /** Per-arm hold, kept separately so an action pauses rather than replaces it. */
@@ -200,6 +204,18 @@ public class YsmAnimationPlayer {
             result.add(simpleName(normalized));
         }
         return Set.copyOf(result);
+    }
+
+    /**
+     * YSM binary format version of the loaded model. Plaintext folders have no binary
+     * version; the reference reports them as 65535, so they keep authored loops.
+     */
+    public void setModelFormatVersion(int version) {
+        modelFormatVersion = version;
+    }
+
+    public int modelFormatVersion() {
+        return modelFormatVersion;
     }
 
     private YsmAnimationClip nativeClip(String name) {
@@ -1780,15 +1796,36 @@ public class YsmAnimationPlayer {
         return result;
     }
 
+    /** Use actions: the reference use predicate passes LOOP to its format validator. */
     private void syncNativeHandAnimation(String slot, boolean active, String... names) {
-        syncNativeSlotAnimation(nativeHandAnimations, slot, active ? firstHandAnimation(names) : null);
+        String selected = active ? firstHandAnimation(names) : null;
+        syncNativeSlotAnimation(nativeHandAnimations, slot, selected, YsmAnimationClip.LoopMode.LOOP);
     }
 
+    /** Holds: LOOP, except a declared *:lance hold, which the reference holds on its last frame. */
     private void syncNativeHoldAnimation(String slot, String... names) {
-        syncNativeSlotAnimation(nativeHoldAnimations, slot, firstHandAnimation(names));
+        String selected = firstHandAnimation(names);
+        YsmAnimationClip.LoopMode predicateLoop = selected != null && selected.endsWith(":lance")
+                ? YsmAnimationClip.LoopMode.HOLD_ON_LAST_FRAME
+                : YsmAnimationClip.LoopMode.LOOP;
+        syncNativeSlotAnimation(nativeHoldAnimations, slot, selected, predicateLoop);
     }
 
-    private void syncNativeSlotAnimation(Map<String, String> owners, String slot, String selected) {
+    /**
+     * Reference AnimationFormatValidator: a modern format or a clip from the built-in default
+     * model keeps its authored loop; otherwise the predicate's loop replaces it.
+     */
+    private YsmAnimationClip.LoopMode nativeHandLoopMode(String selected, YsmAnimationClip clip,
+                                                          YsmAnimationClip.LoopMode predicateLoop) {
+        boolean defaultClip = clips.get(selected) == null;
+        if (clip != null && (modelFormatVersion >= AUTHORED_LOOP_FORMAT_VERSION || defaultClip)) {
+            return clip.loopMode;
+        }
+        return predicateLoop;
+    }
+
+    private void syncNativeSlotAnimation(Map<String, String> owners, String slot, String selected,
+                                         YsmAnimationClip.LoopMode predicateLoop) {
         String previous = owners.get(slot);
         if (Objects.equals(previous, selected))
             return;
@@ -1801,7 +1838,7 @@ public class YsmAnimationPlayer {
             // This is a new hand action, even if the previous instance is still fading.
             // Reusing that instance would resume the previous draw's clock and events.
             fadeOut(selected, 0f);
-            play(selected, clip == null ? YsmAnimationClip.LoopMode.ONCE : clip.loopMode, 1f, 0.1f);
+            play(selected, nativeHandLoopMode(selected, clip, predicateLoop), 1f, 0.1f);
             owners.put(slot, selected);
         }
     }

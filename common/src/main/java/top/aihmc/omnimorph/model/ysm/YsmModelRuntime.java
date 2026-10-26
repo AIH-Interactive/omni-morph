@@ -254,6 +254,9 @@ public class YsmModelRuntime implements AutoCloseable {
             runtime.guiResources.load(tag);
             runtime.readSubEntities(tag, selectedTexture, data);
             MolangEngine ysmMolangEngine = MolangEngine.fromCustomBinding(owner.getAvatarBindings());
+            runtime.animationPlayer.setModelFormatVersion(data != null && data.encrypted()
+                    ? data.identity().binaryFormatVersion()
+                    : YsmAnimationPlayer.PLAINTEXT_FORMAT_VERSION);
             runtime.animationPlayer.registerAnimations(readAnimations(tag, ysmMolangEngine));
             YsmModelRuntime loadedRuntime = runtime;
             runtime.animationPlayer.registerControllers(readAnimationControllers(tag, ysmMolangEngine, (path, diagnostic) -> {
@@ -1422,6 +1425,7 @@ public class YsmModelRuntime implements AutoCloseable {
             result.renderLayersFirst = renderLayersFirst;
             result.previewRotationDisabled = previewRotationDisabled;
             MolangEngine engine = MolangEngine.fromCustomBinding(previewOwner.getAvatarBindings());
+            result.animationPlayer.setModelFormatVersion(animationPlayer.modelFormatVersion());
             result.animationPlayer.registerAnimations(readAnimations(previewInput, engine));
             result.animationPlayer.registerControllers(readAnimationControllers(previewInput, engine,
                     (path, diagnostic) -> result.recordControllerDiagnostic(controllerDiagnostic(
