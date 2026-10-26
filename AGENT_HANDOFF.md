@@ -1144,3 +1144,11 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - **工具与文档：** `AGENTS.md` 已记录 `YSMParser` 解包流程（提交 `a401c3f9`）；解包产物与逐帧分析在 `build/tmp/furina-out`、`build/reports/outfit/furina-analysis|furina-dump`（均被忽略，未提交）。临时 dump/probe 测试类已删除、`common/build.gradle` 已还原。详细记录：`docs/YSM_TRANSITION_VISIBILITY_FIX.md`。
 - **Git/工作区：** 分支 `ysm-alignment`，HEAD `eec68b50`，push 曾遇 GitHub 500（`Internal Server Error`），用 `--no-thin` 重试后成功并核对远端；文档随后独立提交。原未跟踪 `.omc/`、`mod_log/`、`patch/` 保留。无运行中构建/测试。
 - **下一步：** 用户重启客户端实机确认起步/停止不再闪道具，并兼验拉弓、矛/三叉戟、战术酒狐、宇航员回归；无新增自动实施阶段。
+
+## 当前有效交接：YSM 开启第一人称 Matrices 后视角被遮挡已修复（2026-10-27）
+
+- **现象：** 选 YSM 模型并开启“第一人称 Matrices”时视野被模型内部挡住；关闭正常（用户确认）。
+- **根因：** Fabric `LevelRendererMixinFabric` 在该开关下设 `Avatar.firstPerson=true`，从摄像机位置 `entityRenderer.submit` 玩家一遍，只为刷新 Figura 部件矩阵。普通 Figura 路径在 `LivingEntityRendererMixin` 的 `Avatar.firstPerson` 分支只更新矩阵并 cancel；YSM 分支（HEAD 注入 `onRender`）没有该判断，直接提交整模+手持物。入口处虽有 `avatar.isYsmNative()` 早退，但入口按实体取 avatar（`getAvatar(entity)`），渲染分支按渲染帧取（`getAvatar(state)`，优先装扮/整套组合或预览绑定），两者不一致时会漏过。用户的具体加载方式未取证。
+- **修复（`ysm-alignment@12276f4f`，已推送，远端一致）：** YSM 分支开头，若 `Avatar.firstPerson` 则清 `currentAvatar/lastPose` 并 cancel，不提交模型。YSM 无 Figura 部件矩阵需刷新；第一人称手臂走独立路径不受影响。Fabric 入口的 avatar 取法未改（门控已在渲染分支兜底）。
+- **验证：** HandAnimation、MaterialNative、DefaultAnimation、FirstPersonController + `:fabric:build` PASS（1分14秒）。mixin 渲染分支无 CPU 夹具可覆盖，未加专门单测；真实画面（开关开/关、第一/第三人称、手持物、装扮组合）`MANUAL/PENDING`。
+- **下一步：** 用户关客户端已构建完成，重启后开启第一人称 Matrices 实机确认视野不再被遮挡、第一人称手臂与第三人称正常。
