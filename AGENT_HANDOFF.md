@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-25（Asia/Seoul；最新有效交接在文末：MULTIPLAYER_SYNC_FIX_PLAN Phase 0～4 授权自动实施已收口，人工项 MANUAL/PENDING 并按用户要求跳过。）
+更新时间：2026-10-26 10:32（Asia/Seoul；当前阻塞：particle.lua 尾巴粒子仍停在预览原点。交接见文末最新章节。）
 
 ## 接续入口与约束
 
@@ -667,3 +667,24 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - `LibraryPreviewBinding` 保存 worldParticles 并提供 `worldPreview(frame)`；世界本地预览一律返回 `RENDER`，不再依赖 capture 顺序。
 - 这样 `particle.lua` 的 `partToWorldMatrix` 走世界骨架矩阵，尾巴 tip 粒子跟随玩家。
 - 验证：`libraryPreviewRuntimeSmokeTest`、`:fabric:build` PASS；真实粒子 MANUAL/PENDING。
+
+## 当前有效交接：particle.lua 预览原点问题（2026-10-26 10:32）
+
+- 当前 HEAD：`84743af5`（force world matrix mode for local outfit previews）。origin/main 同 SHA。
+- 当前已安装 JAR：18,630,614 字节，SHA256 `616b11bdda3fc58e9129311a180c9d4687e35c2e3ef1140d04431a1d232446a9`；旧包备份 `build/tmp/omni-morph-before-preview-world-mode.jar`。
+- **工作区有未提交改动**：`OutfitRenderBinding.renderMode` 增加 `if (LocalOutfitPreview.active()) return RENDER;`。这是最后一次尝试，已通过 `libraryPreviewRuntimeSmokeTest` 与 `:fabric:build`，但**未安装、未提交**。若继续，先决定是否保留此改动。
+- 用户实际模型：`E:\AI Hobbyist Founder Public Server`，是**目录形式本地 avatar**（avatar.json / model.bbmodel / script.lua / lib/particle.lua）。`script.lua` 在 `events.tick` 中调用 `tail_fx.tail_particle(tails, ...)`；`lib/particle.lua` 用：
+  ```lua
+  local tip_pos = tails[i][11]:partToWorldMatrix():apply()
+  particles["firework"]:pos(tip_pos):spawn()
+  ```
+- 现象：黄色/绿色原生 Particle 粒子固定在预览原点；用户确认其它光照/粒子运行时正常，仅此类 `partToWorldMatrix` 粒子固定。
+- 已做但**未解决**：
+  1. `LibraryPreviewSession` worldParticles 模式，避免 GUI PreviewParticleScope；
+  2. YSM base 在 worldParticles 下用真实玩家实体；
+  3. `OutfitRenderBinding.capture(..., true)` 标记 world frame；
+  4. `renderMode` 优先看 binding.worldParticles；
+  5. 最后尝试 `LocalOutfitPreview.active()` 强制 RENDER（未提交）。
+- 仍固定的关键疑点：`script.lua` 在 **tick** 阶段读取 `partToWorldMatrix`，此时矩阵可能来自 GUI preview / `OutfitComposition.captureFiguraBase` 的临时绘制，而不是世界帧；或者 `tails[i][11]` 的 base part 矩阵未被 `OutfitComposition.drawFiguraBase` 更新。下一步应先加日志/断言记录 `savedPartToWorldMat` 与该粒子实际坐标，而非继续切 renderMode。
+- 真实游戏世界中的粒子位置仍为 `MANUAL/PENDING`；不能宣称已修复。
+- 工作区未跟踪：`.omc/`、`mod_log/`、`patch/`；不要提交。
