@@ -672,6 +672,14 @@ tasks.register('ysmControllerTransitionSmokeTest', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.model.ysm.YsmControllerTransitionSmokeTest'
 }
 
+tasks.register('ysmBuiltinControllerSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks builtin/custom controller source exclusivity and native restart.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmBuiltinControllerSmokeTest'
+}
+
 tasks.register("ysmBlendTransitionSmokeTest", JavaExec) {
     group = "verification"
     description = "Checks reference-shaped transition curve parsing and immutable interpolation for M3."

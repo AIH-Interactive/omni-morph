@@ -116,6 +116,7 @@ public final class YsmDefaultAnimationSmokeTest {
                             bones, Map.of(), Set.of("idle"), Set.of("run"), true).signature()),
                     "resource cache invalidation preserves deterministic template identity");
             testNativeRuntime();
+            testBuiltinFallback();
             System.out.println("PASS default animation resolution: bundled hashes/whitelist, author/disabled priority, native parsing, domains, timeline dependencies, aliases and cache identity");
         } finally {
             owner.clean();
@@ -242,6 +243,38 @@ public final class YsmDefaultAnimationSmokeTest {
             damaged.clean();
         }
         System.out.println("PASS native YSM default playback: real assembly/pose, author-empty priority, disable controls, damage diagnostics and frozen v1 inventory");
+    }
+
+    private static void testBuiltinFallback() {
+        CompoundTag source = fullAvatarSource("{}");
+        var controllers = new net.minecraft.nbt.ListTag();
+        var controller = new CompoundTag();
+        controller.putByteArray("data", """
+                {"animation_controllers":{"player.main":{"initial_state":"ysm-builtin","states":{
+                  "ysm-builtin":{"transitions":[{"custom":"v.custom"}]},
+                  "custom":{"transitions":[{"ysm-builtin":"!v.custom"}]}
+                }}}}
+                """.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        controllers.add(controller);
+        source.getCompoundOrEmpty("ysm").put("animation_controllers", controllers);
+        Avatar avatar = Avatar.createLibraryPreview(UUID.randomUUID(), "builtin fallback fixture");
+        try {
+            avatar.load(source);
+            avatar.initializePreviewPlayer(null);
+            var runtime = avatar.getYsmRuntime();
+            var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
+            state.walkAnimationSpeed = .8f;
+            for (int frame = 0; frame < 3; frame++) {
+                avatar.getMolangContext().variables.setPath("custom", frame == 1 ? 1f : 0f);
+                state.ageInTicks = frame * 2;
+                top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
+                runtime.updateAnimations(state, null);
+                require((runtime.animations().getActiveAnimation("walk") != null) == (frame != 1),
+                        "same-frame builtin/custom switching controls missing-walk fallback: " + frame);
+            }
+        } finally {
+            avatar.clean();
+        }
     }
 
     private static CompoundTag fullAvatarSource(String clips) {

@@ -324,9 +324,11 @@ public class YsmModelRuntime implements AutoCloseable {
         }
         Set<String> mainExcluded = new LinkedHashSet<>(excluded);
         boolean mainControlled = animationPlayer.getControllers().values().stream()
-                .anyMatch(controller -> controller.slot() == top.aihmc.omnimorph.model.ysm.controller.YsmControllerSlot.MAIN);
-        boolean handsControlled = mainControlled || animationPlayer.getControllers().values().stream()
-                .anyMatch(controller -> controller.slot() == top.aihmc.omnimorph.model.ysm.controller.YsmControllerSlot.POST_SWING);
+                .anyMatch(controller -> controller.slot() == top.aihmc.omnimorph.model.ysm.controller.YsmControllerSlot.MAIN
+                        && controller.states().values().stream().noneMatch(top.aihmc.omnimorph.model.ysm.controller.YsmControllerState::isBuiltin));
+        boolean handsControlled = animationPlayer.getControllers().values().stream()
+                .anyMatch(controller -> controller.slot() == top.aihmc.omnimorph.model.ysm.controller.YsmControllerSlot.POST_SWING
+                        && controller.states().values().stream().noneMatch(top.aihmc.omnimorph.model.ysm.controller.YsmControllerState::isBuiltin));
         boolean armsControlled = animationPlayer.getControllers().values().stream()
                 .anyMatch(controller -> controller.slot() == top.aihmc.omnimorph.model.ysm.controller.YsmControllerSlot.FIRST_PERSON_ARM);
         if (mainControlled) {

@@ -151,7 +151,8 @@ public class YsmControllerRuntime {
             }
             // Initial entry consumes a slot-bearing state's turn just like any later transition.
             // On subsequent updates the current state is not visited yet, so self re-entry is allowed.
-            boolean mayTransition = !initialEntry || state.animations().isEmpty() || childName(controller, state) != null;
+            boolean mayTransition = !initialEntry || state.isBuiltin()
+                    || state.animations().isEmpty() || childName(controller, state) != null;
             YsmControllerTransition transition;
             while (mayTransition && (transition = firstTransition(controller, state, evaluator, visitedStates)) != null) {
                 visitedStates.add(transition.targetState());
@@ -160,7 +161,7 @@ public class YsmControllerRuntime {
                 if (state == null)
                     return;
                 // Declared slots count even if their condition is zero or their clip is unavailable.
-                mayTransition = state.animations().isEmpty() || childName(controller, state) != null;
+                mayTransition = state.isBuiltin() || state.animations().isEmpty() || childName(controller, state) != null;
             }
 
             String childName = childName(controller, state);
@@ -179,7 +180,7 @@ public class YsmControllerRuntime {
                 if (player.isControllerAnimationFinished(controller.name(), animation))
                     completed.add(normalize(animation));
             }
-            for (YsmControllerAnimationRef ref : state.animations()) {
+            for (YsmControllerAnimationRef ref : state.isBuiltin() ? List.<YsmControllerAnimationRef>of() : state.animations()) {
                 if (ref.animation() == null || ref.animation().isBlank() || "empty".equals(ref.animation()))
                     continue;
                 float weight = animationWeight(ref.condition(), evaluator);
