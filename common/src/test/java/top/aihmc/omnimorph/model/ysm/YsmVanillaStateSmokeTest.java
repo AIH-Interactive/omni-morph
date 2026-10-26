@@ -80,6 +80,17 @@ public final class YsmVanillaStateSmokeTest {
         Avatar.MolangContext context = new Avatar.MolangContext(null);
         var bindings = Avatar.createMolangBindings(context);
         MolangEngine engine = MolangEngine.fromCustomBinding(bindings);
+        long[] clocks = {0L, 6000L, 12000L, 18000L, 24000L, -6000L, -12000L};
+        double[] phases = {.25, .5, .75, 0, .25, 0, -.25};
+        for (int index = 0; index < clocks.length; index++) {
+            context.captureWorldTime(clocks[index]);
+            Object phase = eval(engine, context, "q.time_of_day;");
+            Object timestamp = eval(engine, context, "q.time_stamp;");
+            require(phase instanceof Number value && Math.abs(value.doubleValue() - phases[index]) < .00001,
+                    "reference time-of-day phase: " + phase);
+            require(timestamp instanceof Number value && value.longValue() == clocks[index],
+                    "world timestamp is not phase shifted: " + timestamp);
+        }
         ObjectBinding stateBindings = (ObjectBinding) bindings.getProperty("ysm");
         for (String name : new String[]{"has_elytra", "elytra_rot_x", "elytra_rot_y", "elytra_rot_z", "is_close_eyes", "in_shield_block_cooldown"}) {
             require(eval(engine, context, "ysm." + name + ";") == null, "living entity gate: " + name);
