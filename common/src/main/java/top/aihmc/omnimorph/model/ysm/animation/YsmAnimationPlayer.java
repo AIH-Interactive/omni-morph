@@ -1548,7 +1548,11 @@ public class YsmAnimationPlayer {
             syncHoldingAnimation(entity, InteractionHand.OFF_HAND, mainArm != HumanoidArm.LEFT);
         }
 
-        if (entity.swinging && !wasSwinging) {
+        // The use slot follows the swing slot in YSM. A swing pulse must not replace
+        // the drawing pose of the same hand while the item is still being used.
+        boolean swingUsesActiveHand = entity.isUsingItem()
+                && entity.swingingArm == entity.getUsedItemHand();
+        if (entity.swinging && !wasSwinging && !swingUsesActiveHand) {
             boolean left = entity.swingingArm == InteractionHand.MAIN_HAND
                     ? mainArm == HumanoidArm.LEFT
                     : mainArm != HumanoidArm.LEFT;
@@ -1745,6 +1749,9 @@ public class YsmAnimationPlayer {
             nativeHandAnimations.remove(slot);
         } else {
             YsmAnimationClip clip = nativeClip(selected);
+            // This is a new hand action, even if the previous instance is still fading.
+            // Reusing that instance would resume the previous draw's clock and events.
+            fadeOut(selected, 0f);
             play(selected, clip == null ? YsmAnimationClip.LoopMode.ONCE : clip.loopMode, 1f, 0.1f);
             nativeHandAnimations.put(slot, selected);
         }

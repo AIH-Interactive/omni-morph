@@ -20,8 +20,10 @@ import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationClip;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationParser;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationPlayer;
 import top.aihmc.omnimorph.molang.MolangEngine;
+import top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator;
 
 import java.lang.reflect.Method;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
 
@@ -42,6 +44,18 @@ public final class YsmHandAnimationSmokeTest {
         entity.mainArm = HumanoidArm.RIGHT;
         entity.main = new ItemStack(Items.BOW);
 
+        if (args.length > 0) {
+            YsmMaterialNativeSmokeTest.replayAcceleration(Path.of(args[0]), runtime -> {
+                try {
+                    verifyReferenceBow(runtime, entity, update);
+                } catch (ReflectiveOperationException failure) {
+                    throw new RuntimeException(failure);
+                } finally {
+                    entity.using = false;
+                }
+            });
+        }
+
         YsmAnimationPlayer player = player("use_mainhand:bow");
         update.invoke(player, entity);
         require(!targeted(player, "use_mainhand:bow"), "holding a bow must not start its drawing animation");
@@ -61,6 +75,10 @@ public final class YsmHandAnimationSmokeTest {
         require(targeted(player, "use_mainhand$minecraft:bow"), "using selects the exact item-ID drawing clip");
         entity.using = false;
 
+        verifyBowHands(entity, update);
+        entity.mainArm = HumanoidArm.RIGHT;
+        entity.usedHand = InteractionHand.MAIN_HAND;
+        entity.offhand = ItemStack.EMPTY;
         entity.main = new ItemStack(Items.DIAMOND_SPEAR);
         entity.main.set(DataComponents.KINETIC_WEAPON, new KineticWeapon(10, 10,
                 Optional.empty(), Optional.empty(), Optional.empty(), 1f, 1f,
@@ -115,6 +133,87 @@ public final class YsmHandAnimationSmokeTest {
                 "offhand trident returns to its grip after release");
         verifyUseTransforms(entity);
         System.out.println("PASS native hand state: holding, using and release preserve conditional clip ownership");
+    }
+
+    private static void verifyReferenceBow(YsmModelRuntime runtime, HandEntity entity, Method update)
+            throws ReflectiveOperationException {
+        var animations = runtime.animations();
+        var evaluator = ExpressionEvaluator.evaluator(runtime.owner().getMolangContext());
+        Method advance = YsmAnimationPlayer.class.getDeclaredMethod("advanceAnimationTimeline",
+                float.class, ExpressionEvaluator.class);
+        Method sample = YsmAnimationPlayer.class.getDeclaredMethod("sampleAnimations",
+                ExpressionEvaluator.class, boolean.class);
+        advance.setAccessible(true);
+        sample.setAccessible(true);
+
+        entity.using = true;
+        update.invoke(animations, entity);
+        var drawing = animations.getActiveAnimation("use_mainhand:bow");
+        require(drawing != null && !drawing.clip.boneAnimations.isEmpty(),
+                "reference model must select its authored bow drawing clip");
+        advance.invoke(animations, 0.5f, evaluator);
+        sample.invoke(animations, evaluator, false);
+        double drawnPitch = runtime.getPart("RightArm").animRotRaw().x;
+        drawing.weight = 0f;
+        sample.invoke(animations, evaluator, false);
+        require(Math.abs(drawnPitch - runtime.getPart("RightArm").animRotRaw().x) > 45f,
+                "reference bow clip must change the rendered arm pose");
+        drawing.weight = 1f;
+
+        entity.swinging = true;
+        entity.swingingArm = InteractionHand.MAIN_HAND;
+        update.invoke(animations, entity);
+        require(targeted(animations, "use_mainhand:bow"),
+                "simultaneous swing must not replace the active bow draw");
+        entity.swinging = false;
+        update.invoke(animations, entity);
+        require(animations.getActiveAnimation("use_mainhand:bow") == drawing && drawing.time == 0.5f,
+                "holding use must preserve the current drawing clock");
+
+        entity.using = false;
+        update.invoke(animations, entity);
+        advance.invoke(animations, 0.025f, evaluator);
+        require(!targeted(animations, "use_mainhand:bow"), "release must retire the bow draw");
+        entity.using = true;
+        update.invoke(animations, entity);
+        var nextDraw = animations.getActiveAnimation("use_mainhand:bow");
+        require(nextDraw != drawing && nextDraw.time == 0f,
+                "redraw during release fade must restart instead of flashing to the previous draw");
+        advance.invoke(animations, 0.5f, evaluator);
+        require(nextDraw.time == 0.5f && nextDraw.weight == 1f,
+                "the second draw must reach the same time and weight as the first");
+        sample.invoke(animations, evaluator, false);
+        require(Math.abs(runtime.getPart("RightArm").animRotRaw().x - drawnPitch) < 0.001f,
+                "the second draw must reproduce the first draw's arm pose");
+        System.out.println("PASS reference YSM bow: arm pose, swing priority, held clock, release and redraw");
+    }
+
+    private static void verifyBowHands(HandEntity entity, Method update) throws ReflectiveOperationException {
+        for (HumanoidArm mainArm : HumanoidArm.values()) {
+            for (InteractionHand hand : InteractionHand.values()) {
+                entity.mainArm = mainArm;
+                entity.usedHand = hand;
+                entity.main = hand == InteractionHand.MAIN_HAND ? new ItemStack(Items.BOW) : ItemStack.EMPTY;
+                entity.offhand = hand == InteractionHand.OFF_HAND ? new ItemStack(Items.BOW) : ItemStack.EMPTY;
+                boolean left = hand == InteractionHand.MAIN_HAND
+                        ? mainArm == HumanoidArm.LEFT : mainArm == HumanoidArm.RIGHT;
+                String name = left ? "use_offhand:bow" : "use_mainhand:bow";
+                var animations = player("use_mainhand:bow", "use_offhand:bow", "swing:bow", "swing_offhand:bow");
+                entity.using = true;
+                entity.swinging = true;
+                entity.swingingArm = hand;
+                update.invoke(animations, entity);
+                require(targeted(animations, name), "first bow draw must survive a swing: " + mainArm + "/" + hand);
+                entity.swinging = false;
+                entity.using = false;
+                update.invoke(animations, entity);
+                entity.using = true;
+                update.invoke(animations, entity);
+                require(targeted(animations, name) && animations.getActiveAnimation(name).time == 0f,
+                        "bow redraw must restart for " + mainArm + "/" + hand);
+                entity.using = false;
+            }
+        }
     }
 
     private static void verifyUseTransforms(HandEntity entity) {
