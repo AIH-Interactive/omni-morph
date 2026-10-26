@@ -215,7 +215,7 @@ D023/D012 是状态机转移与起播时刻。前一项不稳，后一项的行�
 | D004 原生 hand 缺 loop 覆盖分支 | 已完成（4259a113） | 决定持握/使用片段是否循环，属 P0 |
 | D005 hand 选择绕过本地输入脉冲 | 已完成（d2f1c34e） | 查询层与播放层输入不一致，属 P0；P1-2 批 1 的武器名仍待补 |
 | D006 原生运动状态覆盖少、优先级不同 | 已完成（c7a343c8） | 原生状态机改用与 `ctrl.*` 同一张参考动作表；P0 仅余 D023/D012，D015 批 1 的武器名仍待补 |
-| D007 控制器每帧刷新无条件停声 | 待实施（E 批） | 声音被反复打断，确定性差异，属 P1 |
+| D007 控制器每帧刷新无条件停声 | 已完成（本次 D007 检查点） | 声音被反复打断，确定性差异，属 P1 |
 | D008 身体与第一人称混表 | 待实施（E 批） | 两套名称表混用会串动画，属 P1 |
 | D009 条件解析失败退化为无条件/满权重 | 待实施（E 批） | 失败时 Sparkle 与 Omni 行为相反，属 P1 |
 | D010 过渡旋转混合算法不同 | 待实施（G 批，P1 全部已授权） | 对齐后 `blend_via_shortest_path` 对旋转不再生效，字段可保留为元数据 |
@@ -255,3 +255,9 @@ D023/D012 是状态机转移与起播时刻。前一项不稳，后一项的行�
 - 主手分类区分 trident=1、tagged lance=2、mace=3、native spear=4；长矛状态、0.35突进边界、重锤下落/1.5下砸边界、速度/进度和partial tick时钟按参考 Fabric bridge。复用原受限本地脉冲，不放宽设备输入归属。
 - RED alpha4-d015-weapon-red.log：weapon_type unknown binding。中间green日志因CPU夹具缺少MACE组件初始化失败，已补夹具。最终 alpha4-d015-weapon-final.log：VanillaState、HandAnimation、附带LibraryPreviewRuntime及Fabric build PASS，47秒/23 tasks。真实游戏画面/音频仍 MANUAL/PENDING。
 - 新增YsmWeaponQuery，绑定注册、手部浮点使用时钟及现有VanillaState测试为本批最小范围；default_animation/ysm_default分工、符号链接安装、版本与后端均保持原约束。
+
+## P1 D007 检查点（2026-10-26）
+
+- 控制器保持当前片段时不再停止声音或递增playbackGeneration，保留待完成异步播放；新槽、直接play和取消后重新激活仍停止旧声音并重建代次。退出/退休/reset原清理路径保留。
+- SoundNative新增实际LuaSound/录制原生声道测试：3次刷新同时保留timeline和sound_effects声音、实例/时钟/代次；退出和reset关闭句柄，重入新建实例。RED alpha4-d007-red.log明确失败于刷新声音句柄；最终alpha4-d007-final.log四项显式单测（SoundNative、ControllerSound、BeginningTransition、ControllerTransition）及Fabric build PASS，38秒/25 tasks，附带LibraryPreviewRuntime PASS。设备听感/真实游戏仍MANUAL/PENDING。
+- D015批1提交43e5d607已推送并核对远端。D007验证后Plus五小时剩19%、周剩87%，未触发交接；其余P1继续按计划。
