@@ -161,9 +161,8 @@ public final class YsmManifestReader {
         readPathField(result, ysmPackage, player.get("animation"), warnings);
         readPathField(result, ysmPackage, player.get("extra_animation"), warnings);
         readPathField(result, ysmPackage, player.get("animation_extra"), warnings);
-        addExisting(result, ysmPackage, "animations/main.animation.json");
-        addExisting(result, ysmPackage, "animations/extra.animation.json");
-        collectAnimationFiles(result, ysmPackage);
+        // A manifest owns resource activation. Other files can belong to projectiles,
+        // vehicles or unused author drafts, even when they share player animation names.
         return result;
     }
 
@@ -184,9 +183,6 @@ public final class YsmManifestReader {
         List<String> result = new ArrayList<>();
         readPathField(result, ysmPackage, player.get("animation_controllers"), warnings);
         readPathField(result, ysmPackage, player.get("animation_controller"), warnings);
-        collectDirectoryJson(result, ysmPackage, "controller/");
-        collectDirectoryJson(result, ysmPackage, "controllers/");
-        collectAnimationControllerFiles(result, ysmPackage);
         return result;
     }
 

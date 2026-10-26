@@ -1922,7 +1922,8 @@ public final class YsmMaterialNativeSmokeTest {
             Avatar owner = owner(unsafe, id);
             Map<String, byte[]> resources = new HashMap<>();
             resources.put("ysm.json", bytes("""
-                    {"files":{"player":{"model":{"main":"main.json"},"texture":[
+                    {"files":{"player":{"model":{"main":"main.json"},
+                     "animation":{"main":"animations/main.animation.json"},"texture":[
                      {"id":"a","uv":"textures/a.png","normal":"textures/a_n.png","specular":"textures/a_s.png"},
                      {"id":"plain","uv":"textures/plain.png"},
                      {"id":"clear","uv":"textures/clear.png"},

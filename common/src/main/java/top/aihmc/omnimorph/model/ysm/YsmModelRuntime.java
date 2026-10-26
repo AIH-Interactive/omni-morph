@@ -472,28 +472,10 @@ public class YsmModelRuntime implements AutoCloseable {
             YsmAnimationClip incoming = entry.getValue();
             if (name == null || incoming == null)
                 continue;
-            YsmAnimationClip existing = target.get(name);
-            if (existing == null || shouldReplaceAnimation(existing, incoming))
-                target.put(name, incoming);
+            // Match the reference's ordered putAll: a later declared resource owns the
+            // name, including an explicit empty animation. Size does not imply priority.
+            target.put(name, incoming);
         }
-    }
-
-    private static boolean shouldReplaceAnimation(YsmAnimationClip existing, YsmAnimationClip incoming) {
-        if (isEmptyAnimation(existing))
-            return !isEmptyAnimation(incoming);
-        if (isEmptyAnimation(incoming))
-            return false;
-        return animationWeight(incoming) > animationWeight(existing);
-    }
-
-    private static boolean isEmptyAnimation(YsmAnimationClip clip) {
-        return clip == null || clip.boneAnimations.isEmpty() && clip.events.isEmpty();
-    }
-
-    private static int animationWeight(YsmAnimationClip clip) {
-        if (clip == null)
-            return 0;
-        return clip.boneAnimations.size() * 2 + clip.events.size();
     }
 
     private static Map<String, YsmAnimationController> readAnimationControllers(CompoundTag tag) {

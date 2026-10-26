@@ -51,12 +51,19 @@ public final class YsmPackageSmokeTest {
         Files.writeString(folder.resolve("models/arrow.json"), "{}", StandardCharsets.UTF_8);
         Files.writeString(folder.resolve("models/boat.json"), "{}", StandardCharsets.UTF_8);
         Files.writeString(folder.resolve("animations/main.animation.json"), "{}", StandardCharsets.UTF_8);
+        Files.writeString(folder.resolve("animations/unused.animation.json"), "{}", StandardCharsets.UTF_8);
+        Files.createDirectories(folder.resolve("controller"));
+        Files.writeString(folder.resolve("controller/unused.animation_controllers.json"), "{}", StandardCharsets.UTF_8);
         Files.writeString(folder.resolve("lang/en_us.json"), "{}", StandardCharsets.UTF_8);
         Files.write(folder.resolve("Textures/body.png"), new byte[]{1, 2, 3});
         Files.write(folder.resolve("textures/arrow.png"), new byte[]{7, 8, 9});
 
         YsmManifest folderManifest = YsmManifestReader.read(folder);
         equals(YsmAvatarKind.NEW, folderManifest.kind(), "new folder kind");
+        equals(List.of("animations/main.animation.json"), folderManifest.resourceIndex().animationPaths(),
+                "new folder ignores undeclared animations");
+        equals(List.of(), folderManifest.resourceIndex().animationControllerPaths(),
+                "new folder ignores undeclared controllers");
         equals("models/main.json", folderManifest.resourceIndex().mainModelPath(), "new folder main model");
         equals("models/arm.json", folderManifest.resourceIndex().armModelPath(), "new folder arm model");
         contains(folderManifest.resourceIndex().texturePaths(), "textures/body.png", "new folder case-insensitive texture");
@@ -70,6 +77,10 @@ public final class YsmPackageSmokeTest {
         writeZip(folder, zip, "wrapper");
         YsmManifest zipManifest = YsmManifestReader.read(zip);
         equals(YsmAvatarKind.NEW, zipManifest.kind(), "new zip kind");
+        equals(folderManifest.resourceIndex().animationPaths(), zipManifest.resourceIndex().animationPaths(),
+                "new zip uses the same declared animation scope");
+        equals(folderManifest.resourceIndex().animationControllerPaths(), zipManifest.resourceIndex().animationControllerPaths(),
+                "new zip uses the same declared controller scope");
         equals(folderManifest.resourceIndex().mainModelPath(), zipManifest.resourceIndex().mainModelPath(), "new zip main model");
         equals(folderManifest.resourceIndex().armModelPath(), zipManifest.resourceIndex().armModelPath(), "new zip arm model");
         equals(folderManifest.resourceIndex().texturePaths(), zipManifest.resourceIndex().texturePaths(), "new zip textures");
