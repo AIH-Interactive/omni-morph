@@ -2068,15 +2068,19 @@ public class YsmAnimationPlayer {
     private String[] useAnimationNames(LivingEntity entity, boolean left, ItemStack item) {
         String prefix = left ? "use_offhand" : "use_mainhand";
         List<String> names = new ArrayList<>();
-        if (isLanceWeapon(item)) {
-            if (entity.isPassenger())
+        if (isLanceWeapon(item) && item.getUseAnimation() == ItemUseAnimation.SPEAR) {
+            if (entity.isPassenger()) {
                 names.add("lance_riding_charge");
-            if (entity.isFallFlying())
+            } else if (entity.isFallFlying()) {
                 names.add("lance_fall_flying_charge");
+            }
             names.add("lance_charge");
+            names.add(prefix + ":lance");
+            // SPEAR charge must not borrow legacy TRIDENT or short generic use poses.
+            // Missing charge resources leave this hand's authored hold in control.
+            return names.toArray(String[]::new);
         }
         names.addAll(Arrays.asList(conditionalAnimationNames(prefix, item, true)));
-        // A generic authored use is the final fallback after all specialized candidates.
         names.add(prefix);
         return names.toArray(String[]::new);
     }
