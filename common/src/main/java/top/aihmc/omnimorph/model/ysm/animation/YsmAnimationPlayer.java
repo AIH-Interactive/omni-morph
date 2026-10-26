@@ -1378,9 +1378,17 @@ public class YsmAnimationPlayer {
                 }
                 animation.pendingInitialSounds.clear();
             }
-            for (YsmAnimationEvent event : YsmAnimationEventWindow.crossed(animation.clip,
-                    animation.previousTime, animation.eventWindowEnd, animation.loop,
-                    animation.initialEventsDispatched)) {
+            var window = YsmAnimationEventWindow.window(animation.clip, animation.previousTime,
+                    animation.eventWindowEnd, animation.loop, animation.initialEventsDispatched);
+            for (YsmAnimationEvent event : window.beforeWrap()) {
+                notifyAnimationEvent(animation, event.type(), event.params().getOrDefault("marker", ""), event.time());
+                handleEvent(event, evaluator, animation.controllerName);
+            }
+            if (window.wrapped()) {
+                // Sparkle SoundKeyFrameExecutor.reset: a loop wrap stops the clip's sounds.
+                stopPlaybackSounds(animation);
+            }
+            for (YsmAnimationEvent event : window.afterWrap()) {
                 notifyAnimationEvent(animation, event.type(), event.params().getOrDefault("marker", ""), event.time());
                 handleEvent(event, evaluator, animation.controllerName);
             }
