@@ -1,8 +1,8 @@
 # 当前任务交接手册
 
-最新有效状态：见文末“当前有效交接：战术酒狐移动及持续使用统一修复（2026-10-26）”。完整片名/专用fallback优先/一次性use请求生命周期已修复，五项单测及Fabric构建通过，代码已提交推送；真实游戏画面待用户确认。
+最新有效状态：见文末“当前有效交接：宇航员模型移动时备用狐狸头盔显露（2026-10-26）”。已建立针对真实 refs/avatars/03_astronaut 的最小失败回归，RED已复现；生产代码尚未修改，根因写入者仍待定位。额度触发安全交接，保留未提交改动。
 
-更新时间：2026-10-26（Asia/Seoul；统一动作修复自动验收完成，最近可靠五小时额度剩20%，未触发交接阈值。）
+更新时间：2026-10-26（Asia/Seoul；Plus五小时额度剩8%，已进入交接模式。）
 
 ## 接续入口与约束
 
@@ -1098,3 +1098,30 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - **额度：** 可靠Plus五小时剩26%→22%→20%，最终周剩72%，重置Unix1793032806/1793601498；未触发阈值，当前Agent正常更新手册，未委派Luna。
 - **下一步：** 仅用户重启客户端并重新加载16_tactics实机验证正常步行摆腿、长按弓/三叉戟持续蓄力、松开及再次使用；没有剩余自动实施阶段。若仍失败先核对实际JAR/片段/使用时间，不盲目重开此前计划。
 - **文档与约束：** docs/YSM_TACTICS_ACTION_FIX.md、docs/YSM_RESOURCE_SCOPE_FIX.md、docs/YSM_ALIGNMENT_PLAN.md、docs/YSM_ANIMATION_ENGINE_COMPARISON.md。CodeGraph优先、JDK25、前台PowerShell Tee build.log并立即检查退出码和读日志、diff检查、当前分支提交推送/远端核对；禁止Qt offscreen、保持有限范围。额度达阈值后才委派gpt-6-luna整理交接。
+
+
+## 当前有效交接：宇航员模型移动时备用狐狸头盔显露（2026-10-26）
+
+本节覆盖前一节“战术酒狐移动及持续使用统一修复”的下一步；此前阶段结论保留。用户先要求只读分析 `refs/avatars/03_astronaut` 的多余部件，参考图为正常人形而 Omni 人形前下方出现备用狐狸头盔。用户随后授权修复，并要求先查额度决定是否交接。当前已达到额度阈值，暂停生产实现；仅有最小回归测试改动，不能将任务标记为完成。
+
+- **额度及交接：** 可靠额度接口首查 Plus 五小时剩11%（used 89%）、周剩71%；最新五小时剩8%（used 92%）、周剩71%，resetUnix `1793032806` / `1793601498`。已触发安全暂停。交接文档由 GPT-6 Luna 整理；这不代表日常开发模型切换为 Luna。
+- **Git与工作区：** 分支 `ysm-alignment`，HEAD `8fec63ca024b5ba1ada351f1cbe8c3e2783a9343`，这是上一轮战术动作修复收尾且已推送的检查点。当前未提交改动仅包括 `common/build.gradle` 新增 `ysmAstronautVisibilitySmokeTest` JavaExec，以及新增 `common/src/test/java/top/aihmc/omnimorph/model/ysm/YsmAstronautVisibilitySmokeTest.java`。原未跟踪 `.omc/`、`mod_log/`、`patch/` 保留且未处理。无运行中的构建或测试。额度交接不自动提交、推送或切换分支。
+- **已验证的RED：** 使用现有 `YsmMaterialNativeSmokeTest.replayAcceleration` 正式读取实际模型资源，设置 `v.roaming.a=0`、`v.roaming.helmet=0`。`LivingEntityRenderState` 的 age 为 frame；前10帧 `walkAnimationSpeed=0`，从frame10起为`.2`；每帧调用 `YsmRenderFrameClock.beginFrame` 和 `runtime.updateAnimations(state, null)`。`usejdk 25` 后前台运行 `./gradlew.bat :common:ysmAstronautVisibilitySmokeTest --console=plain`，PowerShell 经 `2>&1 | Tee-Object -FilePath "build.log"` 捕获日志并立即检查退出码。确定RED：frame0–9 `a=0`、`FOX.visible=false`、scale为`{0,0,0}`、`AllBody.visible=true`；frame10仍`a=0`，但 `FOX.visible=true`、scale为`{1,1,1}`、`AllBody.visible=true`，断言 `FOX branch exposed in human mode at frame10` 失败。结果 `BUILD FAILED in 24s / 10 tasks`，退出码1。测试编译成功，生产编译为UP-TO-DATE。日志：`build/reports/outfit/astronaut-visibility-probe.log` 和根目录 `build.log`。`git diff --check` PASS。无完整Fabric构建或修复验证。
+- **根因边界：** CodeGraph已优先用于两侧已索引代码。实际模型层级为 `FOX -> AllBody2 -> ... -> Head2 -> FoxHelmet`。作者 `animations/main.animation.json` 中 parallel1 写入 `AllBody.scale=!v.roaming.a`、`FOX.scale=v.roaming.a`；pre_parallel2 中 `Backgrounds.scale=0`、`SpaceHelmet.scale=v.roaming.helmet`。manifest明确声明main/extra/tac/carryon/arm和controller/controller.json；未发现上轮未声明资源污染证据。静态顺序差异是：`YsmAnimationPlayer.sampleAnimationPoses` 将auto parallel directPoses在主native(main20)后、声明的post_main/手部阶段前统一应用；参考 `PlayerAnimationController` 将parallel注册在后。动态隐藏不属于baseHidden静态集合；采样reset默认可见和单位缩放，异常中断/表达式失败理论上可能显露，但本轮没有异常证据，不可据此宣称根因。最新RED仅将症状缩窄为移动开始时最终FOX隐藏被撤销，具体写入者尚未定位。
+- **下一步：** 接续Agent先核对本手册、实际Git状态和上述日志，再运行现有RED确认基线；追踪frame10活跃片段、native/controller pose及scale写入者，定位最终提交路径。基于证据做最小修复，让该RED转绿并通过相关单测及Fabric编译，再按项目检查点提交、推送当前分支并核对远端SHA；之后更新本手册。没有修复前不宣称完成。
+- **未验证/范围：** 真实游戏GPU画面和真实输入仍为`MANUAL/PENDING`；CPU夹具使用`null` entity，不冒充端到端。不得复制mods（使用现有symlink），不改模型/默认资源/版本/后端，不新建分支，不重开P1/P2或B1–B8历史阶段。Qt offscreen禁止。保留所有已有工作区改动。任务文档：`docs/YSM_TACTICS_ACTION_FIX.md`、`docs/YSM_RESOURCE_SCOPE_FIX.md`、`docs/YSM_ALIGNMENT_PLAN.md`、`docs/YSM_ANIMATION_ENGINE_COMPARISON.md`。
+
+## 当前有效交接：宇航员移动露出狐狸头盔已修复（2026-10-26 22:55）
+
+本节覆盖上一节“宇航员模型移动时备用狐狸头盔显露”的暂停状态。用户要求接手续修；修复、验证、提交推送已完成，本目标无剩余实施。上一节“静态顺序差异”的猜测被本轮证据否定。
+
+- **根因（已证实）：** 该模型没有 action schema，`YsmActionRuntime.buildDefaultsFromAnimations` 会把所有“非 native、非内部”片段注册成默认 action，`parallel0..7` 不在既有内部名单（`pre_parallel` 已在）→ `parallel0/1` 进入 action 表。`YsmAnimationPlayer.updateNativeStateMachine` 对非 `idle` 的 native 目标状态调用 `runtime.actions().stopAll()`（移动时每帧），`stopAll` 逐个 `animations().stop(...)`，把始终在播的作者 base 层 `parallel1` 移除。`parallel1` 正是 `AllBody.scale=!v.roaming.a`、`FOX.scale=v.roaming.a` 的写入者；层被移除后采样 reset 让 `FOX` 回到可见/单位缩放，于是移动瞬间露出狐狸头盔。`pre_parallel*` 因前缀被排除所以一直正常。这不是 `sampleAnimationPoses` 的阶段顺序问题。
+- **证据：** 真实资源探针 `YsmAstronautVisibilitySmokeTest` 的活跃片段打印：frame 8/9 有 `parallel0`、`parallel1`（weight 1）；frame 10（idle→walk）二者从 `activeAnimations` 消失，同时 `idle` target 0、`walk` target 1。RED 两处断言：`engine base/native animation must not become a default action: parallel0`（`YsmActionRuntimeSmokeTest`）与 `FOX branch exposed in human mode at frame 10 (scale {1, 1, 1})`。
+- **修复（`ysm-alignment@e4ae1553`，已推送，远端一致）：** `YsmActionRuntime.isInternalAnimation` 增加 `parallel[0-7]` 判定（与既有 `pre_parallel` 排除一致），`parallelN` 不再注册为默认 action，`stopAll()` 不再触达引擎 base 层。未改模型/默认资源/版本/后端，无模型名/作者/哈希特化；action wheel 只是不再列出 `parallelN` 这类引擎层。
+- **测试：** 新增 `common:ysmAstronautVisibilitySmokeTest`（真实 `refs/avatars/03_astronaut`，40 帧 idle→walk，断言 `FOX` 最终 scale 始终为 0、`AllBody` 可见；task 在 `common/build.gradle`）。`YsmActionRuntimeSmokeTest` 新增 `testDefaultActionFilter`：`parallel0/1`、`pre_parallel1`、`idle`、`walk` 不得成为默认 action，`extra_animation.extra0` 与 `dance` 仍保留。RED/GREEN 日志：`build/reports/outfit/astronaut-visibility-red.log`、`astronaut-visibility-green.log`。
+- **最终回归 PASS：** `astronaut-visibility-final.log`，BUILD SUCCESSFUL in 3m 10s；17 项显式单测（ActionRuntime、AstronautVisibility、ResourceScope、HandAnimation、DefaultAnimation、BuiltinController、MaterialNative、ControllerTransition、ControllerSound、SoundNative、VanillaState、NativeState、Input、FirstPersonController、Package、ControlRuntime、LibraryPreviewRuntime）+ `:fabric:build` 全部通过。JDK25、前台 PowerShell Tee build.log、立即检查退出码并读日志；`git diff --check` PASS。
+- **行为/范围：** 仅默认 action 表不再包含 `parallelN`（引擎 base 层本就不是用户动作）；`pre_parallel`、native 状态、`extraN`、自定义片段与显式 schema 行为不变。模组经符号链接接入 mods，本轮未复制/覆盖、未重启游戏、未改版本或后端。
+- **未验证：** 真实 GPU 画面/真实按键输入/双客户端仍 `MANUAL/PENDING`；CPU 探针不冒充端到端。既有独立失败（BoneQuery、PlayerTimeline、FunctionContract、MaterialInput、Avif、Stability）不在本轮范围，不宣称全历史测试通过。
+- **后续观察（未实施）：** `buildDefaultsFromAnimations` 仍是“无 schema 时全量注册”的兜底，其他引擎管理的片段仍可能进入 action 表；冒号类名字经 `normalize` 截断后 id 与 `stop()` 目标不同，风险表现与 base 层不同。若再遇到“移动后隐藏/常驻层失效”，先查该片段是否被 `stopAll()` 移除。是否把默认 action 收窄到 `ysm.json` 的 `extra_animation` 声明（参考做法）属行为变更，需用户决定。
+- **Git/工作区：** 分支 `ysm-alignment`，代码提交 `e4ae1553` 已 push 并核对 `git ls-remote` 一致；随后本手册与 `docs/YSM_ASTRONAUT_VISIBILITY_FIX.md` 独立文档提交，最终 HEAD 以实际 git 为准。原未跟踪 `.omc/`、`mod_log/`、`patch/` 保留，无运行中构建/测试。
+- **下一步：** 用户重启客户端后实机确认：人形模式静止与移动均不再露出狐狸头盔；同时可兼验此前拉弓、矛/三叉戟、战术酒狐动作回归。无新增自动实施阶段。
