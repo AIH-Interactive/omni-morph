@@ -54,7 +54,8 @@ public final class YsmControllerSoundSmokeTest {
         require(sounds.equals(List.of("initial", "initial.object")), "initial sounds fire once while staying in a state");
         context[0] = 1f;
         player.controllerRuntime().update(evaluator, 0.1f);
-        require(sounds.equals(List.of("initial", "initial.object", "next.sound")), "target entry sound fires once");
+        require(sounds.equals(List.of("initial", "initial.object", "next.sound", "initial", "initial.object")),
+                "empty-state chain enters the target and re-enters the original state in the same update");
         player.controllerRuntime().update(evaluator, 0.1f);
         require(player.controllerRuntime().currentState("fixture").equals("default"), "return transition happened");
         int count = sounds.size();

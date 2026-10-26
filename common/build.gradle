@@ -664,6 +664,14 @@ tasks.register("ysmControllerIsolationSmokeTest", JavaExec) {
     mainClass = "top.aihmc.omnimorph.model.ysm.YsmControllerIsolationSmokeTest"
 }
 
+tasks.register('ysmControllerTransitionSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks reference self-transitions, cycle search, animation-slot boundaries and sound gates.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmControllerTransitionSmokeTest'
+}
+
 tasks.register("ysmBlendTransitionSmokeTest", JavaExec) {
     group = "verification"
     description = "Checks reference-shaped transition curve parsing and immutable interpolation for M3."

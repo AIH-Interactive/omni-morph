@@ -140,26 +140,27 @@ public class YsmControllerRuntime {
         try (ContextScope contextScope = openControllerContext(controller.name(), evaluator)) {
             player.runFunctionEventsForController(controller, evaluator);
             applyControllerContext(controller, context);
-            if (enteredInitialStates.add(controller.name())) {
+            Set<String> visitedStates = new HashSet<>();
+            boolean initialEntry = enteredInitialStates.add(controller.name());
+            if (initialEntry) {
+                visitedStates.add(state.name());
                 player.beginControllerPoseTransition(controller.name(), state.blendCurve(), state.blendViaShortestPath());
                 execute(state.onEntry(), evaluator);
                 player.playControllerSounds(controller.name(), state);
                 applyControllerContext(controller, context);
             }
-            Set<String> visitedStates = new HashSet<>();
-            visitedStates.add(state.name());
+            // Initial entry consumes a slot-bearing state's turn just like any later transition.
+            // On subsequent updates the current state is not visited yet, so self re-entry is allowed.
+            boolean mayTransition = !initialEntry || state.animations().isEmpty() || childName(controller, state) != null;
             YsmControllerTransition transition;
-            while ((transition = firstTransition(controller, state, evaluator, visitedStates)) != null) {
-                if (!visitedStates.add(transition.targetState())) {
-                    break;
-                }
+            while (mayTransition && (transition = firstTransition(controller, state, evaluator, visitedStates)) != null) {
+                visitedStates.add(transition.targetState());
                 transition(controller, state, transition.targetState(), evaluator);
                 state = state(controller);
                 if (state == null)
                     return;
-                if (!state.animations().isEmpty() && childName(controller, state) == null) {
-                    break;
-                }
+                // Declared slots count even if their condition is zero or their clip is unavailable.
+                mayTransition = state.animations().isEmpty() || childName(controller, state) != null;
             }
 
             String childName = childName(controller, state);
@@ -275,15 +276,11 @@ public class YsmControllerRuntime {
     private YsmControllerTransition firstTransition(YsmAnimationController controller, YsmControllerState state,
                                                      ExpressionEvaluator<?> evaluator, Set<String> visitedStates) {
         for (YsmControllerTransition transition : state.transitions()) {
-            boolean condition = transition.condition() == null || evalBool(transition.condition(), evaluator);
             YsmControllerState target = controller.states().get(transition.targetState());
-            if (target == null || target == state) {
+            if (target == null) {
                 continue;
             }
-            // A rejected cycle edge must not consume the sound gate for a later frame.
-            if (condition && visitedStates.contains(target.name())) {
-                continue;
-            }
+            boolean condition = transition.condition() == null || evalBool(transition.condition(), evaluator);
             if (hasSoundTrigger(target)) {
                 SoundTransitionKey key = new SoundTransitionKey(controller.name(), state.name(), target.name());
                 if (!condition) {
@@ -295,7 +292,8 @@ public class YsmControllerRuntime {
                 }
             }
             if (condition) {
-                return transition;
+                // Sparkle applies its sound gate first, then stops the search on a visited target.
+                return visitedStates.contains(target.name()) ? null : transition;
             }
         }
         return null;
@@ -316,7 +314,7 @@ public class YsmControllerRuntime {
 
     private void transition(YsmAnimationController controller, YsmControllerState oldState, String newState, ExpressionEvaluator<?> evaluator) {
         YsmControllerState target = controller.states().get(newState);
-        if (target == null || target == oldState)
+        if (target == null)
             return;
         player.stopControllerSounds(controller.name());
         preserveChildPose(controller);
