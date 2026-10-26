@@ -98,8 +98,8 @@ public final class YsmHandAnimationSmokeTest {
         for (int useTicks : new int[]{1, 10, 40, 100}) {
             entity.useTicks = useTicks;
             update.invoke(player, entity);
-            require(!targeted(player, "use_mainhand:spear"),
-                    "kinetic spear must not use the legacy trident throwing pose at tick " + useTicks);
+            require(targeted(player, "use_mainhand:spear"),
+                    "kinetic spear selects the authored SPEAR use pose at tick " + useTicks);
             require(!targeted(player, "use_mainhand"), "kinetic spear must not use an unrelated generic action");
             require(targeted(player, "hold_mainhand:spear"), "missing kinetic charge clip retains the authored grip");
         }
@@ -110,9 +110,25 @@ public final class YsmHandAnimationSmokeTest {
         require(Float.isFinite(player.getActiveAnimation("lance_charge").sampledTime),
                 "dedicated kinetic charge uses the weapon timeline");
 
-        player = player("use_mainhand:lance", "use_mainhand:spear");
+        player = player("use_mainhand:lance");
         update.invoke(player, entity);
         require(targeted(player, "use_mainhand:lance"), "declared lance use clip remains supported");
+
+        entity.using = false;
+        player = player("hold_mainhand:spear");
+        update.invoke(player, entity);
+        var missingUseHold = player.getActiveAnimation("hold_mainhand:spear");
+        entity.using = true;
+        update.invoke(player, entity);
+        require(missingUseHold != null && !missingUseHold.paused, "unresolved spear use preserves its grip");
+        entity.main = new ItemStack(Items.BOW);
+        entity.using = false;
+        player = player("hold_mainhand:bow");
+        update.invoke(player, entity);
+        var bowHold = player.getActiveAnimation("hold_mainhand:bow");
+        entity.using = true;
+        update.invoke(player, entity);
+        require(bowHold != null && !bowHold.paused, "unresolved non-kinetic use also preserves its grip");
 
         entity.main = new ItemStack(Items.TRIDENT);
         player = player("hold_mainhand:spear", "use_mainhand:spear");

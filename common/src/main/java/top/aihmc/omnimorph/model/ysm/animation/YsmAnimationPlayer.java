@@ -1915,21 +1915,15 @@ public class YsmAnimationPlayer {
         InteractionHand usedHand = hands.usedHand(entity, localOwner);
         boolean usingItem = hands.using(entity, usedHand, localOwner);
         String useSlot = null;
-        boolean keepHoldWhileUsing = false;
+        boolean keepHoldWhileUsing = true;
         if (usingItem && usesBuiltinController("player.use")) {
             boolean left = handSlotIsLeft(usedHand, mainArm);
             useSlot = left ? "left" : "right";
             ItemStack item = entity.getItemInHand(usedHand);
             String[] names = useAnimationNames(entity, left, item);
-            if (isKineticSpear(item) && firstHandAnimation(names) == null) {
-                // Legacy :spear clips describe a trident throw. Keep the authored grip
-                // when this model has no kinetic charge pose; the item handles its use orientation.
-                keepHoldWhileUsing = true;
-                syncNativeHandAnimation(useSlot, false, USE_STAGE);
-            } else {
-                syncNativeHandAnimation(useSlot, true, USE_STAGE, names);
-                sampleKineticChargeAnimation(useSlot, entity, item);
-            }
+            keepHoldWhileUsing = firstHandAnimation(names) == null;
+            syncNativeHandAnimation(useSlot, !keepHoldWhileUsing, USE_STAGE, names);
+            sampleKineticChargeAnimation(useSlot, entity, item);
         }
 
         // The use slot follows the swing slot in YSM. A swing pulse must not replace
@@ -2153,6 +2147,9 @@ public class YsmAnimationPlayer {
                 result.add("spear");
         } else if (item.getUseAnimation() == ItemUseAnimation.SPEAR) {
             result.add(use ? "lance" : "spear");
+            if (use) {
+                result.add("spear");
+            }
         } else if (item.is(Items.MACE)) {
             result.add("mace");
         } else {
