@@ -680,6 +680,14 @@ tasks.register('ysmBuiltinControllerSmokeTest', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.model.ysm.YsmBuiltinControllerSmokeTest'
 }
 
+tasks.register('ysmBeginningTransitionSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks beginning transition clocks and event suppression for state/function controllers.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmBeginningTransitionSmokeTest'
+}
+
 tasks.register("ysmBlendTransitionSmokeTest", JavaExec) {
     group = "verification"
     description = "Checks reference-shaped transition curve parsing and immutable interpolation for M3."

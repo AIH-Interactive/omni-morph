@@ -123,6 +123,7 @@ public class YsmAnimationPlayer {
         private boolean retired;
         private String builtinSource;
         private boolean deferTimelineAdvance;
+        private float beginningTransitionRemaining;
         private String controllerName;
         private YsmSyncMessage.Playback remoteState;
 
@@ -551,6 +552,7 @@ public class YsmAnimationPlayer {
         PlayingAnimation playing = activeAnimations.computeIfAbsent(slot, k -> new PlayingAnimation(clip, false));
         if (created) {
             playing.deferTimelineAdvance = updatingControllerFrame;
+            playing.beginningTransitionRemaining = controllerName == null ? 0f : Math.max(0f, fadeSeconds);
         }
         stopPlaybackSounds(playing);
         playing.playbackGeneration++;
@@ -566,7 +568,7 @@ public class YsmAnimationPlayer {
         playing.loop = playing.loopMode == YsmAnimationClip.LoopMode.LOOP;
         playing.speed = speed;
         playing.targetWeight = 1f;
-        if (fadeSeconds > 0f) {
+        if (fadeSeconds > 0f && controllerName == null) {
             if (created)
                 playing.weight = 0f;
             playing.fadeSpeed = 1f / fadeSeconds;
@@ -574,7 +576,7 @@ public class YsmAnimationPlayer {
             playing.weight = 1f;
             playing.fadeSpeed = 0f;
         }
-        if (created && !clip.events.isEmpty())
+        if (created && playing.beginningTransitionRemaining == 0f && !clip.events.isEmpty())
             dispatchInitialEvents(playing, initialEvaluator == null ? evaluatorForEvents() : initialEvaluator);
         return playing;
     }
@@ -589,7 +591,7 @@ public class YsmAnimationPlayer {
                                                      YsmAnimationClip.LoopMode loopMode, float weight,
                                                      float fadeSeconds, ExpressionEvaluator<?> evaluator) {
         PlayingAnimation playing = playInSlot(controllerSlotKey(controllerName, animationName),
-                animationName, loopMode, 1f, 0f, normalizeControllerName(controllerName), evaluator);
+                animationName, loopMode, 1f, fadeSeconds, normalizeControllerName(controllerName), evaluator);
         if (playing != null) {
             playing.controllerName = normalizeControllerName(controllerName);
             controllerPoseLayers.computeIfAbsent(playing.controllerName, ignored -> new YsmControllerPoseLayer());
@@ -669,8 +671,13 @@ public class YsmAnimationPlayer {
             }
             previous = null;
         }
-        if (previous != null && !previous.equals(slot))
-            fadeOutSlot(previous, fadeSeconds);
+        boolean created = !activeAnimations.containsKey(slot);
+        if (previous != null && !previous.equals(slot)) {
+            retireSlot(previous, fadeSeconds);
+        }
+        if (created) {
+            beginControllerPoseTransition(controller, YsmBlendTransition.linear(fadeSeconds), false);
+        }
         PlayingAnimation playing = playInSlot(slot, animationName, loopMode, speed, fadeSeconds, controller);
         if (playing != null)
             controllerFunctionAnimations.put(controller, slot);
@@ -955,12 +962,26 @@ public class YsmAnimationPlayer {
             }
 
             // Advance time
+            float runningDelta = deltaTime;
+            boolean beginningEnded = false;
+            if (anim.beginningTransitionRemaining > 0f) {
+                float remaining = anim.beginningTransitionRemaining;
+                anim.beginningTransitionRemaining = Math.max(0f, remaining - Math.max(0f, deltaTime));
+                anim.time = 0f;
+                anim.previousTime = 0f;
+                anim.eventWindowEnd = 0d;
+                if (anim.beginningTransitionRemaining > 0f) {
+                    continue;
+                }
+                runningDelta = Math.max(0f, deltaTime - remaining);
+                beginningEnded = true;
+            }
             anim.previousTime = anim.time;
             if (Float.isFinite(anim.sampledTime)) {
                 anim.time = anim.sampledTime;
                 anim.sampledTime = Float.NaN;
             } else {
-                anim.time += deltaTime * anim.speed;
+                anim.time += runningDelta * anim.speed;
             }
             anim.eventWindowEnd = anim.time;
             // The reference keeps this flag after loop wrapping or hold-time clamping, until playback resets.
@@ -974,6 +995,9 @@ public class YsmAnimationPlayer {
                     anim.fadeSpeed = 5f;
             }
             if (!observerControlled) {
+                if (beginningEnded) {
+                    dispatchInitialEvents(anim, evaluator);
+                }
                 dispatchEvents(anim, evaluator);
                 if (!anim.endNotificationDispatched && !anim.loop
                         && anim.loopMode != YsmAnimationClip.LoopMode.LOOP && anim.clip.length > 0f

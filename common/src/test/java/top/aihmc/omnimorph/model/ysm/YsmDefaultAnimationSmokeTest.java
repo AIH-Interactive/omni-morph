@@ -117,6 +117,7 @@ public final class YsmDefaultAnimationSmokeTest {
                     "resource cache invalidation preserves deterministic template identity");
             testNativeRuntime();
             testBuiltinFallback();
+            testBeginningTransitionPose();
             System.out.println("PASS default animation resolution: bundled hashes/whitelist, author/disabled priority, native parsing, domains, timeline dependencies, aliases and cache identity");
         } finally {
             owner.clean();
@@ -271,6 +272,56 @@ public final class YsmDefaultAnimationSmokeTest {
                 runtime.updateAnimations(state, null);
                 require((runtime.animations().getActiveAnimation("walk") != null) == (frame != 1),
                         "same-frame builtin/custom switching controls missing-walk fallback: " + frame);
+            }
+        } finally {
+            avatar.clean();
+        }
+    }
+
+    private static void testBeginningTransitionPose() {
+        CompoundTag source = fullAvatarSource("""
+                {"old":{"loop":true,"bones":{"LeftLeg":{"rotation":[0,0,0]}}},
+                 "incoming":{"loop":true,"animation_length":1,
+                   "bones":{"LeftLeg":{"rotation":{"0":[20,0,0],"1":[100,0,0]}}},
+                   "timeline":{"0":"v.zero=v.zero+1;","0.125":"v.mid=v.mid+1;"}}}
+                """);
+        var controllers = new net.minecraft.nbt.ListTag();
+        var controller = new CompoundTag();
+        controller.putByteArray("data", """
+                {"animation_controllers":{"player.main":{"states":{
+                  "default":{"animations":["old"],"transitions":[{"target":"v.custom"}]},
+                  "target":{"animations":["incoming"],"blend_transition":0.5}
+                }}}}
+                """.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        controllers.add(controller);
+        source.getCompoundOrEmpty("ysm").put("animation_controllers", controllers);
+        Avatar avatar = Avatar.createLibraryPreview(UUID.randomUUID(), "beginning transition pose fixture");
+        try {
+            avatar.load(source);
+            avatar.initializePreviewPlayer(null);
+            var runtime = avatar.getYsmRuntime();
+            var context = avatar.getMolangContext();
+            context.variables.setPath("zero", 0f);
+            context.variables.setPath("mid", 0f);
+            var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
+            for (int frame = 0; frame <= 6; frame++) {
+                context.variables.setPath("custom", frame == 0 ? 0f : 1f);
+                state.ageInTicks = frame * 2.5f;
+                top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
+                runtime.updateAnimations(state, null);
+                if (frame == 0) {
+                    continue;
+                }
+                var playing = runtime.animations().getControllerAnimation("player.main", "incoming");
+                float expectedTime = frame <= 5 ? 0f : .125f;
+                require(playing.time == expectedTime, "real Avatar transition clock at frame " + frame);
+                float expectedRotation = frame <= 5 ? (frame - 1) * 5f : 30f;
+                require(Math.abs(runtime.getPart("LeftLeg").animRotRaw().x - expectedRotation) < .0001,
+                        "real Avatar snapshot-to-first-key pose at frame " + frame);
+                require(((Number) context.variables.getPath("zero")).floatValue() == (frame >= 5 ? 1f : 0f),
+                        "real Avatar zero-time instruction waits for transition completion");
+                require(((Number) context.variables.getPath("mid")).floatValue() == (frame == 6 ? 1f : 0f),
+                        "real Avatar later instruction retains its relative time");
             }
         } finally {
             avatar.clean();
