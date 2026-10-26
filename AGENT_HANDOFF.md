@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-最新有效状态：见文末“D023 控制器自转移与环路对齐完成（2026-10-26）”。本目标已结束，未启动下一项目标。
+最新有效状态：见文末“D002 / D012 对齐完成（2026-10-26）”。本目标已结束，未启动下一项目标。
 
 更新时间：2026-10-26（Asia/Seoul；用户实测确认问题已解决，本次会话结束，无剩余实施任务。以文末最终验收为准。）
 
@@ -862,3 +862,18 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - **产物：** `fabric/build/libs/omni-morph-1.0.0-alpha.4.1+26.1.2-fabric-mc.jar`，18,997,169 字节，SHA256 `01501176edeaf287af139c865441bb7a561eae15b85305243b377d9c627877eb`。本轮未升级版本、未重启游戏，无运行中构建/测试。
 - **额度：** 目标完成后可靠接口显示 Plus，5 小时 used 24% / 剩 76%，周 used 4% / 剩 96%；重置 Unix UTC 秒分别为 1793014699 / 1793601499。未触发交接阈值，当前 Agent 正常更新手册，未委派 Luna。
 - **最小下一步：** 本目标无剩余实施，等待用户指定下一目标。E 批 D007/D008/D009 尚未完成；D012 按计划依赖 E，不自动越过。先读 `AGENTS.md`、本节、`docs/YSM_ALIGNMENT_PLAN.md` 及原审计 `docs/YSM_ANIMATION_ENGINE_COMPARISON.md`，核对真实 Git 状态后再继续。保持 CodeGraph 优先、范围控制、当前分支提交推送检查点、JDK25/前台日志、禁止 Qt offscreen 和已验证/未验证证据边界。
+
+## 当前有效交接：D002 / D012 对齐完成（2026-10-26）
+
+本节覆盖上文 D002“不对齐”和 D012 待实施状态。用户本次明确要求两项均对齐，执行顺序为 D002 → 自动验证/提交推送/核对远端 → D012。两个阶段检查点均已完成，Goal“对齐D002，D012”已标 complete；随后查额度并更新本手册。没有本目标剩余实施，不自动启动其他差异。
+
+- **D002 已完成：** `c10d3feec0549cfb2037780219983e000d19d26d`。`YsmControllerState.isBuiltin()` 识别精确状态名 ysm-builtin；该状态没有作者片段槽，允许同帧继续状态搜索。播放器按控制器阶段选择 builtin/作者来源，规范化 controller.animation 前缀与编号槽，不将隐式函数事件控制器当作作者替代。native main、hold/use/swing 与自动基础片段记录来源；进入作者状态清理原生实例/声音，返回 builtin 重建原生时钟；builtin 不提交该作者姿态层，原生回退手臂姿态也按相应手部阶段门控。
+- **D002 调度/默认资源：** 玩家先评估控制器状态再选择/推进原生片段，避免同帧继续提交刚退出的来源。新建控制器实例跳过创建帧已消耗的 delta，保留此前首帧时钟语义。子实体保留原执行顺序及“显式控制器拥有槽”的规则；早期回归曾发现 projectile ground 过渡停在上一帧，已在 D002 内修复。存在 builtin 状态的主控制器仍可准备默认动作，主控制器不全局禁止另一手的默认资源。保留全局原生开关原语义、D027 两资源目录分工、原版本/协议/后端。
+- **D002 证据：** 新增 `YsmBuiltinControllerSmokeTest`，验证 builtin 忽略声明动画、native/作者互斥、返回 builtin 重启原生时钟；`YsmDefaultAnimationSmokeTest.testBuiltinFallback` 经实际 Avatar 加载及逐帧更新，验证缺失 walk 在 builtin 中回退、作者状态同帧清除、回到 builtin 后恢复。RED `build/reports/outfit/alpha4-d002-red.log` 失败于 builtin state ignores its declared animation slots。D002 最终六项单测（BuiltinController/ControllerTransition/HandAnimation/MaterialNative/DefaultAnimation/FunctionStage）均通过，`alpha4-d002-final.log` 当轮仅最终 remapJar 因运行中程序占用 JAR 失败。用户已确认关闭客户端，随后 `alpha4-d002-build.log` 为 Fabric BUILD SUCCESSFUL in 21s，21 tasks；之后才提交推送 D002 并开始 D012。D002 检查点额度剩余57%，未触发交接。
+- **D012 已完成：** `1190585ae333fd5853b9690ed9204700555ee496`。PlayingAnimation 增加 beginningTransitionRemaining，仅新建声明/函数控制器片段时设置；过渡期间动画时间保持0，跳过片段事件，重复保持/刷新不重置延迟。过渡终点分发零时刻事件一次；若 delta 跨越终点，只用剩余时间按 speed 推进片段。声明状态机传递 blend_transition 时长；函数换片/显式 reload 退休旧片段并从已有控制器姿态快照混合到新首帧。普通直接播放的淡入语义保留，没有修改 D010 旋转算法或 D011 事件窗口规则。
+- **D012 自动验证 PASS：** 新增 `YsmBeginningTransitionSmokeTest`，覆盖声明状态机/函数两入口、on_entry 立即但片段事件等待、精确终点、零时长、刷新、reload、speed/长步长跨界及取消；RED `alpha4-d012-red.log` 失败于 entry expressions run now but clip events wait for beginning transition。`YsmDefaultAnimationSmokeTest.testBeginningTransitionPose` 经实际 Avatar/播放器采样：0.5s 过渡期间时钟0、骨骼逐帧0→5→10→15→20度，过渡结束零时刻指令计数一次，后续0.125s时骨骼30度并触发相应指令。中间 `alpha4-d012-green.log` 为4项 PASS；最终 `alpha4-d012-final.log` 为15项显式相关 YSM 单测 + Fabric build PASS，BUILD SUCCESSFUL in 1m 10s，36 tasks；附带 LibraryPreviewRuntime 单测也 PASS。
+- **最终15项单测：** BeginningTransition、BuiltinController、ControllerTransition、ControllerSound、ChildController、ControllerIsolation、ControllerPoseLayer、ControllerContext、ControllerPhase、FirstPersonController、FunctionStage、DefaultAnimation、SoundNative、HandAnimation、MaterialNative。全部构建/测试为 JDK25、前台 PowerShell，经 Tee build.log，立即检查退出码并读取日志。相关新增/修改代码已检查可读性，`git diff --cached --check` PASS。既有 PlayerTimeline owner-null 与 FunctionContract filter-preview 失败仍按旧交接记录保留，本轮未修改或将其冒称通过。
+- **未验证/边界：** 实际游戏画面、设备声音、动态双引擎整体回放与双客户端仍 MANUAL/PENDING；CPU/Avatar 测试不证明 GPU 或听感。D007 持续片段刷新停声、D008 作者身体/手臂资源隔离、D009 解析失败语义仍独立待实施。本轮不修改同步协议；不把本地时钟/姿态测试推广为多人过渡验证。
+- **Git/文件：** 当前分支 ysm-alignment。两阶段提交均已 push 并各自核对 origin/ysm-alignment 与当时本地 HEAD 一致；随后仅本手册与计划提交号补记做文档收尾提交，最终 HEAD 以实际 Git 为准。本轮文件：YsmAnimationPlayer、YsmControllerRuntime、YsmControllerState、YsmModelRuntime、common/build.gradle，两个新增 SmokeTest、DefaultAnimationSmokeTest、计划和本手册。原未跟踪 .omc/、mod_log/、patch/ 保留，未切换分支、未改后端、未升级版本。
+- **产物与安装：** `fabric/build/libs/omni-morph-1.0.0-alpha.4.1+26.1.2-fabric-mc.jar`，18,999,523 字节，SHA256 `85cac7b7ee9e82c138c34d0207410e6cd16eb4d9af2e4def785c2cc287a71700`。用户模组通过符号链接接入 mods，无复制覆盖安装。用户为释放 JAR 锁关闭了客户端；本 Agent 未重启游戏，目前无运行中构建/测试。
+- **额度与下一步：** Goal 完成后可靠接口显示 Plus，5小时 used49% / 剩51%，周 used8% / 剩92%，重置 Unix UTC 秒1793014699 / 1793601499；未触发阈值，当前 Agent 正常更新手册，未委派 Luna。当前目标无剩余实施，等待用户指定下一目标。相关文档 `docs/YSM_ALIGNMENT_PLAN.md`、`docs/YSM_ANIMATION_ENGINE_COMPARISON.md`；继续遵守 CodeGraph 优先、当前分支阶段提交推送检查点、前台日志、有限范围及禁止 Qt offscreen。
