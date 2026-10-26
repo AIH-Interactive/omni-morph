@@ -76,6 +76,7 @@ public final class YsmHandAnimationSmokeTest {
         entity.using = false;
 
         verifyBowHands(entity, update);
+        verifyHoldPause(entity, update);
         entity.mainArm = HumanoidArm.RIGHT;
         entity.usedHand = InteractionHand.MAIN_HAND;
         entity.offhand = ItemStack.EMPTY;
@@ -214,6 +215,56 @@ public final class YsmHandAnimationSmokeTest {
                 entity.using = false;
             }
         }
+    }
+
+    /**
+     * Sparkle registers hold_offhand and hold_mainhand as separate controllers; each returns PAUSE only
+     * while its own hand swings or uses an item. PAUSE keeps the clock running and resumes the same clip.
+     */
+    private static void verifyHoldPause(HandEntity entity, Method update) throws ReflectiveOperationException {
+        Method advance = YsmAnimationPlayer.class.getDeclaredMethod("advanceAnimationTimeline",
+                float.class, ExpressionEvaluator.class);
+        advance.setAccessible(true);
+        var evaluator = ExpressionEvaluator.evaluator(new org.figuramc.figura.avatar.Avatar.MolangContext(null));
+        entity.mainArm = HumanoidArm.RIGHT;
+        entity.usedHand = InteractionHand.MAIN_HAND;
+        entity.main = new ItemStack(Items.BOW);
+        entity.offhand = ItemStack.EMPTY;
+        entity.using = false;
+        entity.swinging = false;
+        var animations = player("use_mainhand:bow", "hold_mainhand$minecraft:bow", "hold_offhand:empty");
+        update.invoke(animations, entity);
+        var mainHold = animations.getActiveAnimation("hold_mainhand$minecraft:bow");
+        var offHold = animations.getActiveAnimation("hold_offhand:empty");
+        require(mainHold != null && offHold != null, "both hands start their own hold");
+
+        entity.using = true;
+        update.invoke(animations, entity);
+        require(targeted(animations, "use_mainhand:bow"), "main-hand use starts its action");
+        require(animations.getActiveAnimation("hold_offhand:empty") == offHold && targeted(animations, "hold_offhand:empty")
+                        && !offHold.paused,
+                "main-hand use must not fade or pause the off-hand hold");
+        require(animations.getActiveAnimation("hold_mainhand$minecraft:bow") == mainHold && mainHold.paused,
+                "main-hand use pauses its own hold instead of replacing it");
+        float heldTime = mainHold.time;
+        advance.invoke(animations, 0.25f, evaluator);
+        require(mainHold.time > heldTime, "a paused hold keeps advancing its clock");
+
+        entity.using = false;
+        update.invoke(animations, entity);
+        require(animations.getActiveAnimation("hold_mainhand$minecraft:bow") == mainHold && !mainHold.paused
+                        && targeted(animations, "hold_mainhand$minecraft:bow"),
+                "releasing use resumes the same hold clip and clock");
+
+        entity.swinging = true;
+        entity.swingingArm = InteractionHand.OFF_HAND;
+        update.invoke(animations, entity);
+        require(offHold.paused && !mainHold.paused, "an off-hand swing pauses only the off-hand hold");
+        entity.swinging = false;
+        update.invoke(animations, entity);
+        require(!offHold.paused && animations.getActiveAnimation("hold_offhand:empty") == offHold,
+                "the off-hand hold resumes after its swing");
+        System.out.println("PASS hand holds: independent per hand, paused only by their own swing/use");
     }
 
     private static void verifyUseTransforms(HandEntity entity) {
