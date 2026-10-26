@@ -696,6 +696,14 @@ tasks.register("ysmBlendTransitionSmokeTest", JavaExec) {
     mainClass = "top.aihmc.omnimorph.model.ysm.YsmBlendTransitionSmokeTest"
 }
 
+tasks.register("ysmSamplingAlignmentSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks SAMP-01/03/04/05/06 sampling semantics against the reference."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmSamplingAlignmentSmokeTest"
+}
+
 tasks.register("ysmPoseSamplingSmokeTest", JavaExec) {
     group = "verification"
     description = "Checks shared pose sampling, owned snapshots and shortest rotation blending for M3."

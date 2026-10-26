@@ -1387,6 +1387,10 @@ public class YsmAnimationPlayer {
 
     private void advanceAnimationTime(PlayingAnimation animation) {
         if (animation.loopMode == YsmAnimationClip.LoopMode.LOOP || animation.loop) {
+            // Sparkle wraps only once the running time is strictly past the end.
+            if (animation.time >= 0f && animation.time <= animation.clip.length) {
+                return;
+            }
             animation.time %= animation.clip.length;
             if (animation.time < 0f) {
                 animation.time += animation.clip.length;

@@ -238,12 +238,12 @@ D023/D012 是状态机转移与起播时刻。前一项不稳，后一项的行�
 | D027 内置默认动画资源不同 | 已完成（cf7c2337） | 独立 default_animation 与 Sparkle 14/14 字节一致，运行时哈希/主动作名单同步；ysm_default 创建模板保留 |
 | D028 `keyboard/mouse` 输入归属门控 | 不对齐 | Sparkle 对任何模型返回本机按键，Omni 仅本地玩家更安全 |
 | D029 动画 `particle_effects` 事件 | 不对齐 | Sparkle 实际不发射，对齐等于删除 Omni 现有功能 |
-| SAMP-01 缺省 `animation_length` 推导 | 待实施（G 批） | 采样层确定性数值，黄金值测试 |
+| SAMP-01 缺省 `animation_length` 推导 | 已完成（f78953ed） | 采样层确定性数值，黄金值测试 |
 | SAMP-02 明文 JSON 字符串 loop 解析 | 不对齐 | 报告判为 Sparkle 侧解析问题候选，不应复制 |
-| SAMP-03 关键帧缺省/字符串插值 | 待实施（G 批） | 同 SAMP-01 |
-| SAMP-04 前键 step 与目标键 catmullrom 优先级 | 待实施（G 批） | 两侧优先级相反，影响中间采样 |
-| SAMP-05 LOOP 恰到终点采样 | 待实施（G 批） | 边界帧差异，确定性 |
-| SAMP-06 通道表达式求值顺序 | 待实施（G 批） | 条件性影响（表达式有副作用时） |
+| SAMP-03 关键帧缺省/字符串插值 | 已完成（f78953ed，仅缺省 linear；参考字符串引号比较缺陷不复制） | 同 SAMP-01 |
+| SAMP-04 前键 step 与目标键 catmullrom 优先级 | 已完成（f78953ed） | 两侧优先级相反，影响中间采样 |
+| SAMP-05 LOOP 恰到终点采样 | 已完成（f78953ed） | 边界帧差异，确定性 |
+| SAMP-06 通道表达式求值顺序 | 已完成（f78953ed） | 条件性影响（表达式有副作用时） |
 | SAMP-07 非有限采样值恢复策略 | 待实施（I 批，有限范围） | 仅对齐“保持上次有效值”语义，不照搬 `PoseValueCache` 实现 |
 | 设计差异：Kipfel 按内容指纹白名单特化 | 不对齐 | 违背 Omni“无模型名/hash/作者分支”约束 |
 | 设计差异：AnimationProgramAnalyzer 优化层 | 不对齐 | Sparkle 性能优化，无行为语义要对齐 |
