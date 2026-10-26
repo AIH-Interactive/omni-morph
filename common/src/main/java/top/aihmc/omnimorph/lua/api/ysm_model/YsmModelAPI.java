@@ -240,6 +240,51 @@ public class YsmModelAPI {
     }
 
     @LuaWhitelist
+    @LuaMethodDoc("ysm_model.get_action_state")
+    public String getActionState() {
+        YsmModelRuntime runtime = owner.getYsmRuntime();
+        return runtime == null ? "" : runtime.animations().actionState().animationName();
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_model.get_native_animation")
+    public String getNativeAnimation() {
+        YsmModelRuntime runtime = owner.getYsmRuntime();
+        return runtime == null ? "" : runtime.animations().nativeAnimation();
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_model.get_hand_actions")
+    public Map<String, Map<String, Object>> getHandActions() {
+        YsmModelRuntime runtime = owner.getYsmRuntime();
+        return runtime == null ? java.util.Map.of() : runtime.animations().handActions();
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_model.get_controller_state")
+    public String getControllerState(String controller) {
+        YsmModelRuntime runtime = owner.getYsmRuntime();
+        return runtime == null || controller == null ? null : runtime.animations().controllerRuntime().currentState(controller);
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_model.get_controller_state_time")
+    public float getControllerStateTime(String controller) {
+        YsmModelRuntime runtime = owner.getYsmRuntime();
+        return runtime == null || controller == null ? 0f : runtime.animations().controllerRuntime().stateTime(controller);
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_model.get_controller_state_names")
+    public List<String> getControllerStateNames(String controller) {
+        YsmModelRuntime runtime = owner.getYsmRuntime();
+        if (runtime == null || controller == null)
+            return java.util.List.of();
+        YsmAnimationController found = runtime.animations().getControllers().get(controller);
+        return found == null ? java.util.List.of() : new ArrayList<>(found.states().keySet());
+    }
+
+    @LuaWhitelist
     @LuaMethodDoc("ysm_model.get_active_animations")
     public Map<String, Map<String, Object>> getActiveAnimations() {
         YsmModelRuntime runtime = owner.getYsmRuntime();

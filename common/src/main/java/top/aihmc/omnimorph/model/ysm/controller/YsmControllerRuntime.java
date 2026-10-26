@@ -140,26 +140,28 @@ public class YsmControllerRuntime {
         try (ContextScope contextScope = openControllerContext(controller.name(), evaluator)) {
             player.runFunctionEventsForController(controller, evaluator);
             applyControllerContext(controller, context);
-            if (enteredInitialStates.add(controller.name())) {
-                player.beginControllerPoseTransition(controller.name(), state.blendCurve(), state.blendViaShortestPath());
+            Set<String> visitedStates = new HashSet<>();
+            boolean initialEntry = enteredInitialStates.add(controller.name());
+            if (initialEntry) {
+                visitedStates.add(state.name());
+                player.beginControllerPoseTransition(controller.name(), state.blendCurve());
                 execute(state.onEntry(), evaluator);
                 player.playControllerSounds(controller.name(), state);
                 applyControllerContext(controller, context);
             }
-            Set<String> visitedStates = new HashSet<>();
-            visitedStates.add(state.name());
+            // Initial entry consumes a slot-bearing state's turn just like any later transition.
+            // On subsequent updates the current state is not visited yet, so self re-entry is allowed.
+            boolean mayTransition = !initialEntry || state.isBuiltin()
+                    || state.animations().isEmpty() || childName(controller, state) != null;
             YsmControllerTransition transition;
-            while ((transition = firstTransition(controller, state, evaluator, visitedStates)) != null) {
-                if (!visitedStates.add(transition.targetState())) {
-                    break;
-                }
+            while (mayTransition && (transition = firstTransition(controller, state, evaluator, visitedStates)) != null) {
+                visitedStates.add(transition.targetState());
                 transition(controller, state, transition.targetState(), evaluator);
                 state = state(controller);
                 if (state == null)
                     return;
-                if (!state.animations().isEmpty() && childName(controller, state) == null) {
-                    break;
-                }
+                // Declared slots count even if their condition is zero or their clip is unavailable.
+                mayTransition = state.isBuiltin() || state.animations().isEmpty() || childName(controller, state) != null;
             }
 
             String childName = childName(controller, state);
@@ -178,7 +180,7 @@ public class YsmControllerRuntime {
                 if (player.isControllerAnimationFinished(controller.name(), animation))
                     completed.add(normalize(animation));
             }
-            for (YsmControllerAnimationRef ref : state.animations()) {
+            for (YsmControllerAnimationRef ref : state.isBuiltin() ? List.<YsmControllerAnimationRef>of() : state.animations()) {
                 if (ref.animation() == null || ref.animation().isBlank() || "empty".equals(ref.animation()))
                     continue;
                 float weight = animationWeight(ref.condition(), evaluator);
@@ -186,7 +188,7 @@ public class YsmControllerRuntime {
                     completed.remove(normalize(ref.animation()));
                     continue;
                 }
-                YsmAnimationClip clip = clip(ref.animation());
+                YsmAnimationClip clip = clip(controller.name(), ref.animation());
                 if (clip == null)
                     continue;
                 if (clip.loopMode == YsmAnimationClip.LoopMode.ONCE && completed.contains(normalize(ref.animation())))
@@ -275,16 +277,12 @@ public class YsmControllerRuntime {
     private YsmControllerTransition firstTransition(YsmAnimationController controller, YsmControllerState state,
                                                      ExpressionEvaluator<?> evaluator, Set<String> visitedStates) {
         for (YsmControllerTransition transition : state.transitions()) {
-            boolean condition = transition.condition() == null || evalBool(transition.condition(), evaluator);
             YsmControllerState target = controller.states().get(transition.targetState());
-            if (target == null || target == state) {
+            if (target == null) {
                 continue;
             }
-            // A rejected cycle edge must not consume the sound gate for a later frame.
-            if (condition && visitedStates.contains(target.name())) {
-                continue;
-            }
-            if (hasSoundTrigger(target)) {
+            boolean condition = transition.condition() == null || evalBool(transition.condition(), evaluator);
+            if (hasSoundTrigger(controller.name(), target)) {
                 SoundTransitionKey key = new SoundTransitionKey(controller.name(), state.name(), target.name());
                 if (!condition) {
                     heldSoundTransitions.remove(key);
@@ -295,18 +293,19 @@ public class YsmControllerRuntime {
                 }
             }
             if (condition) {
-                return transition;
+                // Sparkle applies its sound gate first, then stops the search on a visited target.
+                return visitedStates.contains(target.name()) ? null : transition;
             }
         }
         return null;
     }
 
-    private boolean hasSoundTrigger(YsmControllerState state) {
+    private boolean hasSoundTrigger(String controllerName, YsmControllerState state) {
         if (!state.soundEffects().isEmpty()) {
             return true;
         }
         for (YsmControllerAnimationRef reference : state.animations()) {
-            YsmAnimationClip clip = clip(reference.animation());
+            YsmAnimationClip clip = clip(controllerName, reference.animation());
             if (clip != null && clip.events.stream().anyMatch(event -> "sound".equals(event.type()))) {
                 return true;
             }
@@ -316,7 +315,7 @@ public class YsmControllerRuntime {
 
     private void transition(YsmAnimationController controller, YsmControllerState oldState, String newState, ExpressionEvaluator<?> evaluator) {
         YsmControllerState target = controller.states().get(newState);
-        if (target == null || target == oldState)
+        if (target == null)
             return;
         player.stopControllerSounds(controller.name());
         preserveChildPose(controller);
@@ -329,7 +328,7 @@ public class YsmControllerRuntime {
         currentStates.put(controller.name(), target.name());
         stateTimes.put(controller.name(), 0f);
         float fadeSeconds = target.blendCurve().duration();
-        player.beginControllerPoseTransition(controller.name(), target.blendCurve(), target.blendViaShortestPath());
+        player.beginControllerPoseTransition(controller.name(), target.blendCurve());
         for (String animation : activeByController.computeIfAbsent(controller.name(), ignored -> new HashSet<>()))
             player.retireControllerAnimation(controller.name(), animation, fadeSeconds);
         activeByController.get(controller.name()).clear();
@@ -570,17 +569,17 @@ public class YsmControllerRuntime {
         return value.toLowerCase(Locale.US);
     }
 
-    private YsmAnimationClip clip(String name) {
-        YsmAnimationClip clip = player.getClips().get(name);
+    private YsmAnimationClip clip(String controllerName, String name) {
+        YsmAnimationClip clip = player.clipsForController(controllerName).get(name);
         if (clip != null)
             return clip;
         String normalized = normalize(name);
-        clip = player.getClips().get(normalized);
+        clip = player.clipsForController(controllerName).get(normalized);
         if (clip != null)
             return clip;
         int dot = normalized.lastIndexOf('.');
         if (dot >= 0 && dot + 1 < normalized.length()) {
-            clip = player.getClips().get(normalized.substring(dot + 1));
+            clip = player.clipsForController(controllerName).get(normalized.substring(dot + 1));
             if (clip != null)
                 return clip;
         }

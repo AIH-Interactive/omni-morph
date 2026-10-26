@@ -9,11 +9,19 @@ public final class YsmHandQuery {
     private YsmHandQuery() {
     }
 
-    private static boolean localOwner(Avatar.MolangContext context) {
+    /**
+     * One owner rule for the client's device input. Molang queries and native hand selection
+     * must agree about whether a pending local pulse belongs to the rendered model.
+     */
+    public static boolean ownsDeviceInput(Avatar owner, Object entity) {
         Minecraft client = Minecraft.getInstance();
-        return context.owner != null && context.owner.isHost && client != null
-                && YsmInputState.ownsInput(true, context.entity, client.player)
-                && !YsmParticleRuntime.isPreview(context.owner.renderMode);
+        return owner != null && owner.isHost && client != null
+                && YsmInputState.ownsInput(true, entity, client.player)
+                && !YsmParticleRuntime.isPreview(owner.renderMode);
+    }
+
+    private static boolean localOwner(Avatar.MolangContext context) {
+        return ownsDeviceInput(context.owner, context.entity);
     }
 
     public static boolean using(Avatar.MolangContext context) {
@@ -25,6 +33,11 @@ public final class YsmHandQuery {
 
     public static boolean swinging(Avatar.MolangContext context) {
         return YsmInputState.device().hands().anySwinging((LivingEntity) context.entity, localOwner(context));
+    }
+
+    /** Reference getSwingingHand: a local pulse wins for the owned model, else the entity's arm. */
+    public static net.minecraft.world.InteractionHand swingingHand(Avatar.MolangContext context) {
+        return YsmInputState.device().hands().swingingHand((LivingEntity) context.entity, localOwner(context));
     }
 
     public static float swingTicks(Avatar.MolangContext context) {

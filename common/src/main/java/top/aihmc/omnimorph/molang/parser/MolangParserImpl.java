@@ -93,6 +93,11 @@ public final class MolangParserImpl implements MolangParser {
                 lexer.next();
                 return new StatementExpression(StatementExpression.Op.CONTINUE);
             case IDENTIFIER: {
+                if ("this".equals(token.value())) {
+                    // Bedrock keyword, not a binding lookup (Sparkle THIS token).
+                    lexer.next();
+                    return ThisExpression.INSTANCE;
+                }
                 Object lastTarget = binding.getProperty(token.value());
                 if (lastTarget == null) {
                     throw new ParseException("Failed to get property: " + token.value(), lexer.cursor());

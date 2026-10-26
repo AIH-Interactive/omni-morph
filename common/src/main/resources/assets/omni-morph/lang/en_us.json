@@ -703,6 +703,8 @@
     "omni-morph.config.debug_mode.tooltip": "Toggles OmniMorph's debug mode. Only has a few features, mostly tools for the mod's development",
     "omni-morph.config.local_assets": "Local Assets",
     "omni-morph.config.local_assets.tooltip": "Toggle whether OmniMorph will load assets from the backend, or a local folder.\nThis local folder is called \"local_cache\"",
+    "omni-morph.config.share_ysm_display": "Share Player State with YSM Models",
+    "omni-morph.config.share_ysm_display.tooltip": "Lets other players' YSM models see your food, experience level, flying, movement input and potion effect levels. Only sent to servers that support it",
     "omni-morph.config.connection_toasts": "Cloud Connection Toasts",
     "omni-morph.config.connection_toasts.tooltip": "Toggles if the game should show up toasts related with the cloud connection status",
     "omni-morph.config.log_others": "Log non-host scripts",

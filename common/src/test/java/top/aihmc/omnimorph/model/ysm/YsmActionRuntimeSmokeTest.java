@@ -52,6 +52,7 @@ public final class YsmActionRuntimeSmokeTest {
             SharedConstants.tryDetectVersion();
             Bootstrap.bootStrap();
             testModes();
+            testDefaultActionFilter();
             testCallbacks();
             testLayout();
             testOutfitWheel();
@@ -230,6 +231,27 @@ public final class YsmActionRuntimeSmokeTest {
         require(authored.getActions(null).equals(original), "aggregation never mutates original base actions");
         System.out.println("PASS outfit wheel/native YSM: full base slots, no-base navigation, duplicate grouping, real owner/cooldown, "
                 + "hold generations, script page changes and removed/retired cleanup; HUD/input/GPU MANUAL/PENDING");
+    }
+
+    /**
+     * The default action table is a user-action fallback. Parallel slots and native states are
+     * engine layers; listing them lets stopAll destroy an always-on author body layer.
+     */
+    private static void testDefaultActionFilter() throws Exception {
+        Fixture fixture = new Fixture("filter-fixture");
+        Map<String, YsmAnimationClip> clips = new LinkedHashMap<>();
+        for (String name : List.of("parallel0", "parallel1", "pre_parallel1", "idle", "walk", "extra0", "dance")) {
+            clips.put(name, new YsmAnimationClip(name, 1f, YsmAnimationClip.LoopMode.LOOP));
+        }
+        fixture.runtime.animations().registerAnimations(clips);
+        fixture.runtime.actions().buildDefaultsFromAnimations();
+        for (String name : List.of("parallel0", "parallel1", "pre_parallel1", "idle", "walk")) {
+            require(fixture.runtime.actions().get(name) == null,
+                    "engine base/native animation must not become a default action: " + name);
+        }
+        require(fixture.runtime.actions().get("extra_animation.extra0") != null,
+                "legacy extra clip stays a default action");
+        require(fixture.runtime.actions().get("dance") != null, "custom clip stays a default action");
     }
 
     private static void testCallbacks() throws Exception {

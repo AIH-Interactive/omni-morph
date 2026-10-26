@@ -39,8 +39,22 @@ public record YsmSyncMessage(UUID owner, UUID session, String contentHash, Strin
     }
 
     /** Null sections in a delta mean unchanged; a present empty list clears that section. */
+    /** The same message without the D025 display section, for transports or servers that do not carry it. */
+    public YsmSyncMessage withoutDisplay() {
+        if (state.display() == null) {
+            return this;
+        }
+        State plain = new State(state.texture(), state.controls(), state.actions(), state.controllers(), state.playbacks());
+        return new YsmSyncMessage(owner, session, contentHash, schemaHash, generation, sequence, baseSequence,
+                ownerTick, snapshot, eventWatermark, plain, events);
+    }
+
+    /**
+     * {@code display} (D025) is optional: it is not required for a complete snapshot, so publishers that
+     * do not share display values still produce complete states.
+     */
     public record State(Integer texture, List<Control> controls, List<Action> actions,
-                        List<Controller> controllers, List<Playback> playbacks) {
+                        List<Controller> controllers, List<Playback> playbacks, YsmDisplayState display) {
         public State {
             if (texture != null) {
                 requireIndex(texture, true);
@@ -49,6 +63,11 @@ public record YsmSyncMessage(UUID owner, UUID session, String contentHash, Strin
             actions = copySection(actions, Action::index);
             controllers = copySection(controllers, Controller::index);
             playbacks = copySection(playbacks, Playback::slot);
+        }
+
+        public State(Integer texture, List<Control> controls, List<Action> actions,
+                     List<Controller> controllers, List<Playback> playbacks) {
+            this(texture, controls, actions, controllers, playbacks, null);
         }
 
         public boolean complete() {
@@ -60,7 +79,8 @@ public record YsmSyncMessage(UUID owner, UUID session, String contentHash, Strin
                     delta.controls != null ? delta.controls : controls,
                     delta.actions != null ? delta.actions : actions,
                     delta.controllers != null ? delta.controllers : controllers,
-                    delta.playbacks != null ? delta.playbacks : playbacks);
+                    delta.playbacks != null ? delta.playbacks : playbacks,
+                    delta.display != null ? delta.display : display);
         }
     }
 

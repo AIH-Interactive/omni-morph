@@ -44,6 +44,10 @@ public enum YsmControllerSlot {
         if (normalized.contains("pre_main")) {
             return 10;
         }
+        Integer stageOrder = postMainStageOrder(normalized);
+        if (stageOrder != null) {
+            return stageOrder;
+        }
         return switch (slot) {
             case MAIN -> 20;
             case POST_MAIN -> 30;
@@ -52,6 +56,38 @@ public enum YsmControllerSlot {
             case VEHICLE -> 5;
             case PROJECTILE -> 70;
             default -> 80;
+        };
+    }
+
+    /**
+     * Stages the reference registers between post_main and parallel (PlayerAnimationController
+     * registerControllers). Each keeps its own position instead of falling into the late UNKNOWN phase.
+     */
+    private static Integer postMainStageOrder(String normalized) {
+        String stage = normalized.substring(normalized.lastIndexOf('.') + 1).replaceFirst("_\\d+$", "");
+        // ArmorSlotProcessor registers one controller per slot as "armor_<slot>".
+        if (stage.startsWith("armor_")) {
+            return 55;
+        }
+        return switch (stage) {
+            case "post_main" -> 30;
+            case "pre_hold" -> 31;
+            case "hold_offhand" -> 32;
+            case "hold_mainhand" -> 33;
+            case "post_hold" -> 34;
+            case "fire" -> 35;
+            case "pre_swing" -> 36;
+            case "swing" -> 37;
+            case "post_swing" -> 38;
+            case "pre_use" -> 39;
+            case "use" -> 41;
+            case "post_use" -> 42;
+            case "passenger" -> 43;
+            case "carry_on" -> 44;
+            case "cap" -> 45;
+            case "gui_hover" -> 46;
+            case "gui_focus" -> 47;
+            default -> null;
         };
     }
 }

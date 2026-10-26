@@ -6,6 +6,12 @@ import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationEventWindow;
 
 import java.util.List;
 
+/**
+ * D011: expectations follow Sparkle's single-cursor executors. Events at or before the running time fire
+ * once; a loop wraps only when the time is strictly past the end, then instructions after the cursor run
+ * (executeRemaining), sounds after the cursor are dropped (SoundKeyFrameExecutor.reset), and the new cycle
+ * runs up to the wrapped time once, however many cycles the step covered. Reverse playback fires nothing.
+ */
 public final class YsmAnimationEventWindowSmokeTest {
     private YsmAnimationEventWindowSmokeTest() {
     }
@@ -14,78 +20,43 @@ public final class YsmAnimationEventWindowSmokeTest {
         var clip = new YsmAnimationClip("fixture", 1f, true);
         clip.events.add(new YsmAnimationEvent(0f, "timeline", "start"));
         clip.events.add(new YsmAnimationEvent(0.5f, "timeline", "middle"));
+        clip.events.add(new YsmAnimationEvent(0.75f, "sound", "bell"));
         clip.events.add(new YsmAnimationEvent(1f, "timeline", "end"));
-        equal(List.of("start", "middle"), values(clip, 0d, 0.5d, false), "initial event and midpoint");
-        equal(List.of("middle"), values(clip, 0d, 0.5d, true), "explicit initial event is not duplicated");
-        equal(List.of("end", "start"), values(clip, 0.75d, 1d, true), "endpoint precedes next cycle zero event");
-        equal(List.of("end", "start", "middle", "end", "start", "middle"),
-                values(clip, 0.75d, 2.75d, true), "multiple elapsed cycles retain every crossing in order");
-        equal(List.of(), values(clip, 0.5d, 0.5d, true), "zero delta has no event");
-        equal(List.of("middle", "start", "end"), values(clip, 0.75d, -0.25d, true), "reverse crossings have reverse temporal order");
-        equal(List.of("end"), YsmAnimationEventWindow.crossed(clip, 0.75d, 2d, false, true)
-                .stream().map(YsmAnimationEvent::value).toList(), "once playback has one end event");
-        equal(List.of(), YsmAnimationEventWindow.crossed(clip, 1d, 2d, false, true), "finished once has no repeat event");
-        reject(() -> YsmAnimationEventWindow.crossed(clip, Double.NaN, 1d, true, true));
-        reject(() -> YsmAnimationEventWindow.crossed(clip, 0d, 1048577d, true, true));
-        verifyIndexedWindows();
-        System.out.println("M3 chronological event windows, loop endpoints, reverse order and bounded crossings passed.");
+        clip.events.add(new YsmAnimationEvent(1.5f, "timeline", "beyond"));
+
+        expect(clip, 0d, 0.5d, false, List.of("start", "middle"), false, List.of(), "initial event and midpoint");
+        expect(clip, 0d, 0.5d, true, List.of("middle"), false, List.of(), "explicit initial event is not duplicated");
+        expect(clip, 0.6d, 1d, true, List.of("bell", "end"), false, List.of(), "landing exactly on the end does not wrap");
+        expect(clip, 1d, 1.25d, true, List.of("beyond"), true, List.of("start"),
+                "past the end: remaining instructions, then the new cycle");
+        expect(clip, 0.6d, 1.25d, true, List.of("end", "beyond"), true, List.of("start"),
+                "tail sounds are dropped on wrap while tail instructions still run");
+        expect(clip, 0.6d, 2.8d, true, List.of("end", "beyond"), true, List.of("start", "middle", "bell"),
+                "a step over several cycles wraps once");
+        expect(clip, 0.5d, 0.5d, true, List.of(), false, List.of(), "zero delta has no event");
+        expect(clip, 0.75d, -0.25d, true, List.of(), false, List.of(), "reverse playback fires nothing");
+
+        var once = new YsmAnimationClip("once", 1f, false);
+        once.events.add(new YsmAnimationEvent(1f, "timeline", "end"));
+        var noLoop = YsmAnimationEventWindow.window(once, 0.75d, 2d, false, true);
+        equal(List.of("end"), values(noLoop.events()), "once playback has one end event");
+        require(!noLoop.wrapped(), "once playback never wraps");
+        equal(List.of(), values(YsmAnimationEventWindow.window(once, 1d, 2d, false, true).events()),
+                "finished once has no repeat event");
+        reject(() -> YsmAnimationEventWindow.window(clip, Double.NaN, 1d, true, true));
+        System.out.println("PASS reference event cursor: inclusive end, strict wrap, tail sounds dropped, one wrap per step.");
     }
 
-    private static void verifyIndexedWindows() {
-        var random = new java.util.Random(341);
-        for (int trial = 0; trial < 2000; trial++) {
-            var clip = new YsmAnimationClip("indexed", 1f, true);
-            for (int index = 0; index < 24; index++) {
-                clip.events.add(new YsmAnimationEvent(random.nextInt(21) / 16f, "timeline", "event" + index));
-            }
-            // Exercise cache invalidation, stable ties, unsorted input and loop boundaries.
-            YsmAnimationEventWindow.crossed(clip, 0d, .25d, false, false);
-            clip.events.set(0, new YsmAnimationEvent(.25f, "timeline", "changed"));
-            clip.events.add(new YsmAnimationEvent(0f, "timeline", "added"));
-            clip.events.subList(1, 3).clear();
-            double from = random.nextInt(97) / 16d - 3d;
-            double to = random.nextInt(97) / 16d - 3d;
-            boolean loop = random.nextBoolean();
-            boolean initial = random.nextBoolean();
-            var expected = reference(clip, from, to, loop, initial);
-            equal(expected, YsmAnimationEventWindow.crossed(clip, from, to, loop, initial),
-                    "indexed event selection preserves original crossings trial=" + trial);
-        }
-        System.out.println("PASS indexed event windows: 2000 differential cases, mutable lists and stable event order");
+    private static void expect(YsmAnimationClip clip, double from, double to, boolean initialDispatched,
+                               List<String> before, boolean wrapped, List<String> after, String message) {
+        var window = YsmAnimationEventWindow.window(clip, from, to, true, initialDispatched);
+        equal(before, values(window.beforeWrap()), message + " (before wrap)");
+        require(window.wrapped() == wrapped, message + " (wrapped)");
+        equal(after, values(window.afterWrap()), message + " (after wrap)");
     }
 
-    private record ExpectedCrossing(double time, int cycle, int index, YsmAnimationEvent event) {}
-
-    private static List<YsmAnimationEvent> reference(YsmAnimationClip clip, double from, double to,
-                                                    boolean loop, boolean initial) {
-        if (from == to) {
-            return List.of();
-        }
-        boolean forward = to > from;
-        var crossings = new java.util.ArrayList<ExpectedCrossing>();
-        for (int index = 0; index < clip.events.size(); index++) {
-            var event = clip.events.get(index);
-            if (loop && event.time() > clip.length) {
-                continue;
-            }
-            for (int cycle = loop ? -10 : 0; cycle <= (loop ? 10 : 0); cycle++) {
-                double time = cycle * clip.length + event.time();
-                boolean crossed = forward ? time > from && time <= to : time < from && time >= to;
-                boolean first = forward && !initial && from == 0d && event.time() == 0f && cycle == 0;
-                if (crossed || first) {
-                    crossings.add(new ExpectedCrossing(time, cycle, index, event));
-                }
-            }
-        }
-        var order = java.util.Comparator.comparingDouble(ExpectedCrossing::time)
-                .thenComparingInt(ExpectedCrossing::cycle).thenComparingInt(ExpectedCrossing::index);
-        crossings.sort(forward ? order : order.reversed());
-        return crossings.stream().map(ExpectedCrossing::event).toList();
-    }
-
-    private static List<String> values(YsmAnimationClip clip, double from, double to, boolean initialDispatched) {
-        return YsmAnimationEventWindow.crossed(clip, from, to, true, initialDispatched)
-                .stream().map(YsmAnimationEvent::value).toList();
+    private static List<String> values(List<YsmAnimationEvent> events) {
+        return events.stream().map(YsmAnimationEvent::value).toList();
     }
 
     private static void equal(Object expected, Object actual, String message) {
@@ -94,12 +65,18 @@ public final class YsmAnimationEventWindowSmokeTest {
         }
     }
 
+    private static void require(boolean condition, String message) {
+        if (!condition) {
+            throw new AssertionError(message);
+        }
+    }
+
     private static void reject(Runnable action) {
         try {
             action.run();
             throw new AssertionError("Invalid event window accepted");
         } catch (IllegalArgumentException expected) {
-            // Event windows reject nonfinite time and unbounded dispatch work.
+            // Event windows reject nonfinite time.
         }
     }
 }

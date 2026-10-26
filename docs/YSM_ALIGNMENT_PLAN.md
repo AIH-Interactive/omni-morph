@@ -3,6 +3,9 @@
 日期：2026-10-26。依据：`docs/YSM_ANIMATION_ENGINE_COMPARISON.md`（36 项静态差异，编号沿用）。
 目标：OmniMorph 的 YSM 动画**实际行为**与 `refs/Sparkle-Morpher` 一致。
 
+用户 2026-10-26 已要求对齐 P1 全部项，并在每项完成后查询额度；这包含 D010、D011 此前列出的行为取舍。
+按依赖逐项实施、验证及提交推送；P2 与“不建议对齐”范围不因本次要求扩大。
+
 > 本文只是计划，不授权实施。按 AGENTS.md 的范围控制，每一档/每一项开工前需用户确认；
 > 每项完成后单独提交推送（阶段检查点规则）。`docs/*` 被 `.gitignore` 忽略，本文需 `git add -f`
 > 才会进入版本库。
@@ -36,6 +39,11 @@
 D023/D012 是状态机转移与起播时刻。前一项不稳，后一项的行为对比没有意义。
 
 ### P0-1　D027：内置默认动画资源与 Sparkle 同步
+本项已按用户 2026-10-26 更正完成：运行时回退资源位于 `assets/omni-morph/default_animation/`，
+14 份动画与 Sparkle 逐字节一致；`ysm_default` 及其 42 项创建模板清单保持原样，专用于新建 YSM。
+已有作者动画优先，缺失的受支持主动作/手部动作回退到新资源；显式空动画、禁用与损坏诊断规则保留。
+主动作白名单移除参考中不存在的 `gui`；`new`、`vehicle$…` 等仍保留在资源中，不在本项扩张自动选片机制。
+以下差异数量为对齐前的审计记录。
 - 内容：`main`(57 vs 50)、`arm`(56 vs 57)、`boat`(仅 `water`)、`extra`(17 vs 8) 四个文件与 Sparkle
   `assets/sparkle_morpher/builtin/default/animations/` 不同；其余 10 个字节相同。
 - 做法：评估是否直接采用 Sparkle 的四份文件（含中文命名片段、`totem_of_undying`、`minecart`、
@@ -67,16 +75,20 @@ D023/D012 是状态机转移与起播时刻。前一项不稳，后一项的行�
   “同手使用优先于挥手”“松弓重拉重新起播”两条回归，不得回退。
 
 ### P0-6　D023：控制器转移的自转移与环路
-- 对齐 Sparkle `evaluateTransitions`：visited 不含当前状态；条件为真且目标已访问 → **终止本轮搜索**；
+- 对齐 Sparkle `evaluateTransitions`：常规更新的 visited 不含当前状态；初次进入状态本身记为已访问，
+  有声明动画槽时首帧停止转移链。声音门控先于 visited 检查；门控允许且目标已访问 → **终止本轮搜索**；
   自转移允许重入一次（重置片段、`on_exit/on_entry`、声音）；链仅在新状态无动画槽时继续。
+- 动画槽按声明计数，条件为零、片段缺失或 `empty` 名称仍使链停止；子控制器入口不占父控制器动画槽。
 - 改点：`YsmControllerRuntime.update/firstTransition/transition`（`:133-342`）。
-- 风险：自转移重入会重复触发 `on_entry`，需配合 D007（声音）一起验证。
+- 验证：`ysmControllerTransitionSmokeTest` 覆盖自转移起播/状态时钟/退出进入顺序、同帧环路、槽边界和声音门控，
+  `ysmControllerSoundSmokeTest` 按参考空状态链更新期望。D007 的持续片段刷新停声问题独立待实施，不在 D023 中修改。
 
 ### P0-7　D012：`blend_transition`/`set_beginning_transition_length` 的起播时刻
 - Sparkle：新片段在 BEGINNING_TRANSITION 期间时钟冻结在 0、事件被抑制，过渡结束后才起跑；
   状态机路径（`transitionToEntry`）与函数控制器路径都如此。
-- Omni：新片段立即起播并淡入。对齐需要给 `PlayingAnimation` 增加“起播延迟”，
-  `playInSlot` 的 `fadeSeconds` 语义由“权重淡入”改为“延迟起播 + 姿态快照混合”。
+- 已实现：声明状态机与函数控制器的新片段在起播延迟结束前保持时钟 0、抑制片段事件，
+  姿态由原快照混合到首帧；精确终点分发零时刻事件，跨越终点只推进剩余时间。持续刷新不重置延迟，
+  显式 reload 重新开始；函数换片退休旧实例。普通直接播放的淡入语义保留。
 - 这是 P0 里改动面最大的一项，建议放在 D001–D006 稳定之后单独一档。
 
 ## 3. P1：作者表达式/过渡/事件的确定性语义
@@ -94,8 +106,8 @@ D023/D012 是状态机转移与起播时刻。前一项不稳，后一项的行�
   用 Sparkle 源码手算/运行得到常量，不依赖 Omni 自己的输出）。
 
 ### P1-2　D015：补齐 98 个缺失的 `ysm.*` 名字（按价值分批）
-- 批 1（与 P0 手部/武器强相关，**建议随 P0-5 一起**）：`weapon_*`(11)、`trident_*`、`lance_*`、
-  `mace_*`（共 42），数据源已在 Omni 的 `YsmHandQuery/YsmHandItemType`，只需暴露为 `ysm.` 变量。
+- 批 1（与 P0 手部/武器强相关，**建议随 P0-5 一起**）：`weapon_*`(12)、`trident_*`、`lance_*`、
+  `mace_*`（实际 43），数据源已在 Omni 的 `YsmHandQuery/YsmHandItemType`，只需暴露为 `ysm.` 变量。
 - 批 2（简单查询）：`on_ladder`、`ladder_facing`、`is_riptide`、`arrow_count`、`stinger_count`、
   `swinging_arm`、`swim_amount`、`item_use_normalized`、`map_angle`、`is_holding_left/right`、
   `tcos0`、`item_is_charged`、`mainhand/offhand_charged_crossbow`、`is_maid`、`sleep_rotation`。
@@ -183,9 +195,77 @@ D023/D012 是状态机转移与起播时刻。前一项不稳，后一项的行�
 
 ## 7. 需要用户先决定的事项
 
-1. D027：Omni 独有的默认条目（`gui`、`swing:fishing_rod`、`use_*$brush/goat_horn`、`extra6`）保留还是随 Sparkle 删除？
+1. D027：已决定运行时回退资源完整采用 Sparkle；`ysm_default` 新建模板保留原样（2026-10-26）。
 2. P1-6 D011：是否接受撤销多周期/倒播事件窗口能力以换取与 Sparkle 一致？
 3. P1-5 D010：对齐后 `blend_via_shortest_path` 对旋转不再生效，是否接受？
 4. D021：骨骼 `visible/hidden` 初始隐藏是否取消？
 5. 第 5 节“不建议对齐”的各项是否维持不做？
 6. D025（远端输入同步）是否立项，涉及协议/后端。
+
+## 8. 差异处理记录表
+
+状态取值：`待实施`＝已纳入计划、等待开工；`待决策`＝需用户先回答第 7 节问题；`不对齐`＝默认不做（需用户明确要求才改）；`范围外`＝超出本任务，需单独立项。
+当前已完成项在“状态”列标 `已完成（提交号）`，其余项尚未实施。批次对应第 6 节。
+
+| 差异 | 状态 | 决策理由 |
+| --- | --- | --- |
+| D001 hold/use 前后阶段缺独立排序 | 已完成（d26fb8ae；补 3a67ecdc） | 决定原生槽执行顺序，影响所有持物/使用动画，属 P0；3a67ecdc 补齐手部 hold/use/swing 片段按阶段与控制器层合并，修复 post_main 覆盖拉弓手臂 |
+| D002 缺 `ysm-builtin` 原生/作者控制器互斥 | 已完成（c10d3fee） | 用户重新要求对齐；按控制器阶段切换原生/作者来源，builtin 忽略声明片段，缺失动作仍可默认回退 |
+| D003 使用时另一只手 hold 被淡出、同手无 PAUSE | 已完成（f0342ef0） | 直接影响双手持物观感；须保留拉弓两条回归，属 P0 |
+| D004 原生 hand 缺 loop 覆盖分支 | 已完成（4259a113） | 决定持握/使用片段是否循环，属 P0 |
+| D005 hand 选择绕过本地输入脉冲 | 已完成（d2f1c34e） | 查询层与播放层输入不一致，属 P0；P1-2 批 1 的武器名仍待补 |
+| D006 原生运动状态覆盖少、优先级不同 | 已完成（c7a343c8） | 原生状态机改用与 `ctrl.*` 同一张参考动作表；P0 仅余 D023/D012，D015 批 1 的武器名仍待补 |
+| D007 控制器每帧刷新无条件停声 | 已完成（b4886573） | 声音被反复打断，确定性差异，属 P1 |
+| D008 身体与第一人称混表 | 已完成（8d5d3391） | 两套名称表混用会串动画，属 P1 |
+| D009 条件解析失败退化为无条件/满权重 | 已完成（4494c95b） | 失败时 Sparkle 与 Omni 行为相反，属 P1 |
+| D010 过渡旋转混合算法不同 | 已完成（94b68aa6） | 对齐后 `blend_via_shortest_path` 对旋转不再生效，字段可保留为元数据 |
+| D011 回绕/长步长事件语义 | 已完成（690f2422） | 对齐会撤销 `YsmAnimationEventWindow` 多周期/倒播能力及其测试 |
+| D012 过渡期新片段时钟冻结/事件抑制 | 已完成（1190585a） | 用户指定在 D002 后实施；声明状态机和函数路径覆盖冻结时钟、抑制事件、首帧快照混合及过渡终点 |
+| D013 滤波器长间隔恢复策略 | 已完成（b8307244） | 仅影响使用 first/second_order 的模型，属 P2，与 D014 同文件 |
+| D014 滤波器非有限输入归零 | 已完成（b8307244） | 同上；对齐为“保持上值” |
+| D015 98 个 `ysm.*` 名字缺失 | 已完成（武器 43e5d607；其余 56 个 bfabfe50） | 未知名求值会抛异常，条件变 false/权重变 0；武器实际 43 个已完成本次检查点，其余 H 批待实施 |
+| D016 缺 Bedrock `this` 关键字 | 已完成（ef9bd496，取值用 Omni 作者单位；参考弧度代入角度表达式的缺陷不复制） | 改动涉解析/求值/采样三处，放在 SAMP 之后单独做 |
+| D017 包识别矩阵 | 已完成（210713a5，仅目录判定；ZIP 与 bbmodel/gltf 未改） | `main.json`+`arm.json` 判定可对齐；`.bbmodel/.gltf/.glb` 属范围外，不做 |
+| D018 手持物挂点解析/多挂点 | 已完成（32ad4275，仅多链；参考同样有按名回退名单，保留；剑锚点仅 Carry On 兼容使用，不适用） | 多链各画一份与 sword 锚点可对齐；删除按骨名回退名单会失去兼容手段，需确认 |
+| D019 Molang 步数预算仅 Omni 有 | 不对齐 | Omni 更严的防护，删除无收益且有风险；可另评估阈值 |
+| D020 `math.*` 实现体语义 | 已完成（709c2416） | 黄金值/独立随机流/预算单测及 Fabric build PASS；按模型上下文使用 Xoroshiro 随机源，sin/cos 保留现有微差 |
+| D021 骨骼可见键/visible_bounds | 已完成（ae173dfc，用户 2026-10-26 同意尝试；visible_bounds 无消费者未解析） | 取消骨骼 `visible/hidden` 初始隐藏会改变既有显示，需确认 |
+| D022 `time_of_day` 相位 +0.25 日 | 已完成（4738d6ab） | 参考 float 相位与负时间取余一致，timestamp 不移相；原生查询单测和 Fabric build PASS |
+| D023 自转移与环路处理 | 已完成（a3f3541c） | 自转移重入、visited 终止搜索、声明槽边界与声音门控顺序对齐；D007 持续播放停声问题仍独立待实施 |
+| D024 `is_close_eyes` 恒假 | 不对齐 | 是 Sparkle 缺陷（条件互斥永不眨眼），对齐等于关掉 Omni 现有眨眼 |
+| D025 远端玩家输入/饥饿/盾牌取值 | 范围外（已立项计划 docs/YSM_D025_SYNC_PLAN.md，待用户决策） | 需扩展 `YsmSyncMessage`，涉及协议与后端，另行立项 |
+| D026 纹理半透明判定（黑色半透明像素） | 已完成（8fd3184e；多贴图遍历不适用：Omni 每次只加载选中贴图，判定即参考 results[选中]） | 去掉 RGB 非零条件即可对齐，属 P2 |
+| D027 内置默认动画资源不同 | 已完成（cf7c2337） | 独立 default_animation 与 Sparkle 14/14 字节一致，运行时哈希/主动作名单同步；ysm_default 创建模板保留 |
+| D028 `keyboard/mouse` 输入归属门控 | 不对齐 | Sparkle 对任何模型返回本机按键，Omni 仅本地玩家更安全 |
+| D029 动画 `particle_effects` 事件 | 不对齐 | Sparkle 实际不发射，对齐等于删除 Omni 现有功能 |
+| SAMP-01 缺省 `animation_length` 推导 | 已完成（f78953ed） | 采样层确定性数值，黄金值测试 |
+| SAMP-02 明文 JSON 字符串 loop 解析 | 不对齐 | 报告判为 Sparkle 侧解析问题候选，不应复制 |
+| SAMP-03 关键帧缺省/字符串插值 | 已完成（f78953ed，仅缺省 linear；参考字符串引号比较缺陷不复制） | 同 SAMP-01 |
+| SAMP-04 前键 step 与目标键 catmullrom 优先级 | 已完成（f78953ed） | 两侧优先级相反，影响中间采样 |
+| SAMP-05 LOOP 恰到终点采样 | 已完成（f78953ed） | 边界帧差异，确定性 |
+| SAMP-06 通道表达式求值顺序 | 已完成（f78953ed） | 条件性影响（表达式有副作用时） |
+| SAMP-07 非有限采样值恢复策略 | 已完成（16db5f04） | 仅对齐“保持上次有效值”语义，不照搬 `PoseValueCache` 实现 |
+| 设计差异：Kipfel 按内容指纹白名单特化 | 不对齐 | 违背 Omni“无模型名/hash/作者分支”约束 |
+| 设计差异：AnimationProgramAnalyzer 优化层 | 不对齐 | Sparkle 性能优化，无行为语义要对齐 |
+| 设计差异：多人同步协议（peer/cloud vs YsmSync） | 不对齐 | 两套协议与后端互不相通，无互通要求 |
+
+## P1 D015 批 1 检查点（2026-10-26）
+
+- 已补参考 YSMBinding 的 43 个 weapon/trident/lance/mace 标量名字；原表的42为计数误差，整体缺失总数留待其余批次逐名复核。D015 整项仍未完成。
+- 主手分类区分 trident=1、tagged lance=2、mace=3、native spear=4；长矛状态、0.35突进边界、重锤下落/1.5下砸边界、速度/进度和partial tick时钟按参考 Fabric bridge。复用原受限本地脉冲，不放宽设备输入归属。
+- RED alpha4-d015-weapon-red.log：weapon_type unknown binding。中间green日志因CPU夹具缺少MACE组件初始化失败，已补夹具。最终 alpha4-d015-weapon-final.log：VanillaState、HandAnimation、附带LibraryPreviewRuntime及Fabric build PASS，47秒/23 tasks。真实游戏画面/音频仍 MANUAL/PENDING。
+- 新增YsmWeaponQuery，绑定注册、手部浮点使用时钟及现有VanillaState测试为本批最小范围；default_animation/ysm_default分工、符号链接安装、版本与后端均保持原约束。
+
+## P1 D007 检查点（2026-10-26）
+
+- 控制器保持当前片段时不再停止声音或递增playbackGeneration，保留待完成异步播放；新槽、直接play和取消后重新激活仍停止旧声音并重建代次。退出/退休/reset原清理路径保留。
+- SoundNative新增实际LuaSound/录制原生声道测试：3次刷新同时保留timeline和sound_effects声音、实例/时钟/代次；退出和reset关闭句柄，重入新建实例。RED alpha4-d007-red.log明确失败于刷新声音句柄；最终alpha4-d007-final.log四项显式单测（SoundNative、ControllerSound、BeginningTransition、ControllerTransition）及Fabric build PASS，38秒/25 tasks，附带LibraryPreviewRuntime PASS。设备听感/真实游戏仍MANUAL/PENDING。
+- D015批1提交43e5d607已推送并核对远端。D007验证后Plus五小时剩19%、周剩87%，未触发交接；其余P1继续按计划。
+
+## P1 D008 检查点（2026-10-26）
+
+- 作者身体与第一人称名称表、别名和默认排除名单分离；JSON ysm_animation_type=11 / manifest animation的fp_arm、fp.arm资源标记为第一人称。旧arm类别2仍属于身体。正式装配和预览都分别注册，声明/函数控制器的查片、声音门控及loop缺省按控制器域取值，第一人称采样不再取身体同名片段。
+- 同步DTO/协议未修改，保留按片段名排序去重的既有线索引；同名两域共享名称索引，恢复时用既有controller身份选择正确资源。默认片段仍不进入作者线索引。
+- RED alpha4-d008-red.log：身体表排除更重的同名第一人称资源断言失败。FirstPersonController新增同名不同长度/loop/独立实例及线索引恢复；DefaultAnimation新增真实Avatar双几何装配并采样身体10度/手臂90度、身体结果不被手臂覆盖。
+- 最终alpha4-d008-final.log：FirstPersonController、DefaultAnimation、Sync、BeginningTransition、HandAnimation、ControllerTransition、FunctionStage七项相关单测与Fabric build PASS，1分2秒/28 tasks；附带LibraryPreviewRuntime PASS。中间曾因测试play参数遗漏、误用不存在的独立SyncModel任务失败，已修正测试和运行入口。最后仅两处换行排版，git diff --check PASS。
+- 真实游戏画面/设备声音/双客户端仍MANUAL/PENDING。P1整体未完成，D009为下一最小项。额度达到Plus五小时剩10%阈值，完成当前验证/检查点后不启动下一阶段，按授权委派GPT-6 Luna整理交接。

@@ -3,6 +3,14 @@ package top.aihmc.omnimorph.molang.runtime.binding;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.projectile.FishingHook;
+import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
+import net.minecraft.world.entity.projectile.arrow.SpectralArrow;
+import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrowableItemProjectile;
+import top.aihmc.omnimorph.model.ysm.YsmReferenceQuery;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -28,6 +36,7 @@ import top.aihmc.omnimorph.model.ysm.YsmBoneQuery;
 import top.aihmc.omnimorph.model.ysm.YsmInputState;
 import top.aihmc.omnimorph.model.ysm.YsmParticleRuntime;
 import top.aihmc.omnimorph.model.ysm.YsmHandItemType;
+import top.aihmc.omnimorph.model.ysm.YsmPlayerActionState;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.vehicle.boat.AbstractBoat;
 import net.minecraft.world.entity.vehicle.boat.AbstractChestBoat;
@@ -247,14 +256,14 @@ public class MolangBindings implements ObjectBinding {
         private final Map<String, Object> states = new HashMap<>();
 
         public CtrlBinding() {
-            for (ActionState state : ActionState.values()) {
-                if (state != ActionState.NONE && state != ActionState.RIDE) {
+            for (YsmPlayerActionState.State state : YsmPlayerActionState.State.values()) {
+                if (state != YsmPlayerActionState.State.NONE && state != YsmPlayerActionState.State.RIDE) {
                     states.put(state.name().toLowerCase(java.util.Locale.ROOT), actionState(state));
                 }
             }
             states.put("fall", (Variable) ctx -> ctx.entity() instanceof Avatar.MolangContext context
                     && context.entity instanceof LivingEntity living
-                    ? resolveActionState(context, living) == ActionState.JUMP && context.vertical_speed < -0.05f : null);
+                    ? resolveActionState(context, living) == YsmPlayerActionState.State.JUMP && context.vertical_speed < -0.05f : null);
             states.put("ride", new Function() {
                 @Override
                 public Object evaluate(ExecutionContext<?> context, ArgumentCollection arguments) {
@@ -266,7 +275,7 @@ public class MolangBindings implements ObjectBinding {
                     return size == 2 || size == 3;
                 }
             });
-            states.put("riding", actionState(ActionState.RIDE));
+            states.put("riding", actionState(YsmPlayerActionState.State.RIDE));
             states.put("hold", equipmentFunction(HandMode.HOLD));
             states.put("use", equipmentFunction(HandMode.USE));
             states.put("swing", equipmentFunction(HandMode.SWING));
@@ -367,10 +376,10 @@ public class MolangBindings implements ObjectBinding {
                         return null;
                     }
                     var player = context.owner.getYsmRuntime().animations();
-                    YsmAnimationClip.LoopMode fallback = player.loopModeFor(animation, YsmAnimationClip.LoopMode.ONCE);
+                    String controller = controllerName(context);
+                    YsmAnimationClip.LoopMode fallback = player.loopModeFor(controller, animation, YsmAnimationClip.LoopMode.ONCE);
                     YsmAnimationClip.LoopMode mode = arguments.size() == 2
                             ? loopModeFromCtrlValue(arguments.getAsInt(execution, 1), fallback) : fallback;
-                    String controller = controllerName(context);
                     player.playControllerFunctionAnimation(controller, animation, mode, 1f,
                             player.controllerFunctionTransitionLength(controller));
                     return null;
@@ -418,17 +427,7 @@ public class MolangBindings implements ObjectBinding {
             return 0f;
         }
 
-        private static boolean isMoving(Avatar.MolangContext context) {
-            return Float.isFinite(context.ground_speed) && context.ground_speed > 0.05f;
-        }
-
-        private enum ActionState {
-            NONE, RIDE, DEATH, RIPTIDE, SLEEP, SWIM, CLIMB, CLIMBING,
-            LADDER_UP, LADDER_STILLNESS, LADDER_DOWN, ELYTRA_FLY, FLY,
-            SWIM_STAND, ATTACKED, JUMP, SNEAK, SNEAKING, RUN, WALK, IDLE
-        }
-
-        private static Variable actionState(ActionState expected) {
+        private static Variable actionState(YsmPlayerActionState.State expected) {
             return execution -> {
                 if (!(execution.entity() instanceof Avatar.MolangContext context)
                         || !(context.entity instanceof LivingEntity living)) {
@@ -438,60 +437,12 @@ public class MolangBindings implements ObjectBinding {
             };
         }
 
-        private static ActionState resolveActionState(Avatar.MolangContext context, LivingEntity living) {
+        private static YsmPlayerActionState.State resolveActionState(Avatar.MolangContext context, LivingEntity living) {
             if (context.owner != null && YsmParticleRuntime.isPreview(context.owner.renderMode)) {
-                return ActionState.NONE;
+                return YsmPlayerActionState.State.NONE;
             }
-            Entity vehicle = living.getVehicle();
-            if (vehicle != null && vehicle.isAlive()) {
-                return ActionState.RIDE;
-            }
-            if (living.isDeadOrDying()) {
-                return ActionState.DEATH;
-            }
-            if (living.isAutoSpinAttack()) {
-                return ActionState.RIPTIDE;
-            }
-            if (living.getPose() == Pose.SLEEPING) {
-                return ActionState.SLEEP;
-            }
-            if (living.isSwimming()) {
-                return ActionState.SWIM;
-            }
-            if (living.getPose() == Pose.SWIMMING) {
-                return isMoving(context) ? ActionState.CLIMB : ActionState.CLIMBING;
-            }
-            if (living.onClimbable()) {
-                if (context.vertical_speed > 0.01f) {
-                    return ActionState.LADDER_UP;
-                }
-                if (context.vertical_speed < -0.01f) {
-                    return ActionState.LADDER_DOWN;
-                }
-                return ActionState.LADDER_STILLNESS;
-            }
-            if (living.getPose() == Pose.FALL_FLYING && living.isFallFlying()) {
-                return ActionState.ELYTRA_FLY;
-            }
-            if (living instanceof Player player && player.getAbilities().flying) {
-                return ActionState.FLY;
-            }
-            if (living.isInWater() && !living.onGround()) {
-                return ActionState.SWIM_STAND;
-            }
-            if (living.hurtTime > 0) {
-                return ActionState.ATTACKED;
-            }
-            if (!living.onGround() && !living.isInWater()) {
-                return ActionState.JUMP;
-            }
-            if (living.onGround() && living.getPose() == Pose.CROUCHING) {
-                return isMoving(context) ? ActionState.SNEAK : ActionState.SNEAKING;
-            }
-            if (living.onGround() && living.isSprinting() && isMoving(context)) {
-                return ActionState.RUN;
-            }
-            return living.onGround() && isMoving(context) ? ActionState.WALK : ActionState.IDLE;
+            return YsmPlayerActionState.resolve(YsmPlayerActionState.snapshot(
+                    living, context.ground_speed, context.vertical_speed));
         }
 
         private static boolean playingExtraAnimation(ExecutionContext<?> ctx) {
@@ -780,6 +731,11 @@ public class MolangBindings implements ObjectBinding {
             values.put("has_chest_plate", (Variable) ctx -> equipmentPresent(ctx, EquipmentSlot.CHEST));
             values.put("has_leggings", (Variable) ctx -> equipmentPresent(ctx, EquipmentSlot.LEGS));
             values.put("has_boots", (Variable) ctx -> equipmentPresent(ctx, EquipmentSlot.FEET));
+            for (String name : top.aihmc.omnimorph.model.ysm.YsmWeaponQuery.NAMES) {
+                values.put(name, livingVariable((context, entity) ->
+                        top.aihmc.omnimorph.model.ysm.YsmWeaponQuery.evaluate(name, context, entity)));
+            }
+            registerReferenceQueries();
             values.put("armor_value", livingVariable((context, entity) -> entity.getArmorValue()));
             values.put("hurt_time", livingVariable((context, entity) -> entity.hurtTime));
             values.put("swinging", livingVariable((context, entity) ->
@@ -892,6 +848,274 @@ public class MolangBindings implements ObjectBinding {
         public Object getProperty(String name) {
             Object value = values.get(name.toLowerCase());
             return value != null ? value : new UnavailableBinding("ysm." + name, "unknown binding");
+        }
+
+        /**
+         * D015: the remaining reference YSMBinding names. Registration order and entity gates follow
+         * Sparkle (var = any context, entityVar/livingEntityVar/playerEntityVar/... = typed entity or null).
+         */
+        private void registerReferenceQueries() {
+            // Bedrock direct-read compatibility values; the reference evaluates these for any context.
+            values.put("get_equipped_item_name", new Function() {
+                @Override
+                public Object evaluate(ExecutionContext<?> ctx, ArgumentCollection args) {
+                    if (!(context(ctx).entity instanceof LivingEntity living)) {
+                        return null;
+                    }
+                    return YsmReferenceQuery.equippedItemName(living, args.getAsString(ctx, 0));
+                }
+
+                @Override
+                public boolean validateArgumentSize(int size) {
+                    return size == 1;
+                }
+            });
+            values.put("get_root_locator_offset", (Function) (ctx, args) -> 0f);
+            values.put("tcos0", (Variable) ctx -> YsmReferenceQuery.tcos0(context(ctx).entity, context(ctx).life_time));
+            values.put("swim_amount", (Variable) ctx ->
+                    context(ctx).entity instanceof LivingEntity living && living.isSwimming() ? 1f : 0f);
+            values.put("item_use_normalized", (Variable) ctx ->
+                    context(ctx).entity instanceof LivingEntity living && living.isUsingItem() ? 1f : 0f);
+            values.put("map_angle", (Variable) ctx ->
+                    Math.max(0f, Math.min(1f, 1f - context(ctx).ysm_head_pitch / 45.1f)));
+            values.put("is_holding_right", (Variable) ctx ->
+                    context(ctx).entity instanceof LivingEntity living && !living.getMainHandItem().isEmpty() ? 1f : 0f);
+            values.put("is_holding_left", (Variable) ctx ->
+                    context(ctx).entity instanceof LivingEntity living && !living.getOffhandItem().isEmpty() ? 1f : 0f);
+            values.put("target_x_rotation", typedVariable(Player.class, (context, player) -> context.ysm_head_pitch));
+            values.put("target_y_rotation", typedVariable(Player.class, (context, player) -> context.ysm_head_yaw));
+            values.put("sleep_rotation", typedVariable(Player.class, (context, player) -> 0f));
+            values.put("item_is_charged", typedVariable(Player.class,
+                    (context, player) -> YsmReferenceQuery.offhandItemCharged(player)));
+            values.put("modified_move_speed", entityVariable(entity -> entity.moveDist * 20f));
+
+            // Effects and debug dumps.
+            values.put("effect_level", new Function() {
+                @Override
+                public Object evaluate(ExecutionContext<?> ctx, ArgumentCollection args) {
+                    return effectLevel(ctx, args);
+                }
+
+                @Override
+                public boolean validateArgumentSize(int size) {
+                    return size >= 1;
+                }
+            });
+            values.put("dump_equipped_item", new Function() {
+                @Override
+                public Object evaluate(ExecutionContext<?> ctx, ArgumentCollection args) {
+                    return dumpEquippedItem(ctx, args);
+                }
+
+                @Override
+                public boolean validateArgumentSize(int size) {
+                    return size == 1;
+                }
+            });
+            values.put("dump_relative_block", new Function() {
+                @Override
+                public Object evaluate(ExecutionContext<?> ctx, ArgumentCollection args) {
+                    return dumpRelativeBlock(ctx, args);
+                }
+
+                @Override
+                public boolean validateArgumentSize(int size) {
+                    return size == 3;
+                }
+            });
+
+            // World, boat and movement.
+            values.put("biome_category", entityVariable(entity -> null));
+            values.put("delta_movement_length", entityVariable(YsmReferenceQuery::deltaMovementLength));
+            values.put("boat_is_chest", entityVariable(entity -> boat(entity) instanceof AbstractChestBoat));
+            values.put("boat_is_raft", entityVariable(entity -> {
+                AbstractBoat boat = boat(entity);
+                return boat instanceof Raft || boat instanceof ChestRaft;
+            }));
+            values.put("boat_chest_passenger_offset", entityVariable(entity ->
+                    boat(entity) instanceof AbstractChestBoat ? 0.15f * 16f : 0f));
+
+            // Living entity state.
+            values.put("is_riptide", livingVariable((context, entity) -> entity.isAutoSpinAttack()));
+            values.put("on_ladder", livingVariable((context, entity) -> entity.onClimbable()));
+            values.put("ladder_facing", livingVariable((context, entity) -> YsmReferenceQuery.ladderFacing(entity)));
+            values.put("arrow_count", livingVariable((context, entity) -> entity.getArrowCount()));
+            values.put("stinger_count", livingVariable((context, entity) -> entity.getStingerCount()));
+            values.put("is_maid", livingVariable((context, entity) -> "maid".equals(entityTypeName(entity))));
+            values.put("mainhand_charged_crossbow", livingVariable((context, entity) ->
+                    YsmReferenceQuery.chargedCrossbow(entity, InteractionHand.MAIN_HAND)));
+            values.put("offhand_charged_crossbow", livingVariable((context, entity) ->
+                    YsmReferenceQuery.chargedCrossbow(entity, InteractionHand.OFF_HAND)));
+            values.put("is_fishing", livingVariable((context, entity) -> YsmReferenceQuery.fishing(entity)));
+            values.put("swinging_arm", livingVariable((context, entity) ->
+                    top.aihmc.omnimorph.model.ysm.YsmHandQuery.swingingHand(context) == InteractionHand.MAIN_HAND ? 0 : 1));
+
+            // Player attributes; Fabric has no Forge attributes, so the reference reports fixed defaults.
+            values.put("attack_damage", typedVariable(Player.class,
+                    (context, player) -> player.getAttributeValue(Attributes.ATTACK_DAMAGE)));
+            values.put("attack_speed", typedVariable(Player.class,
+                    (context, player) -> player.getAttributeValue(Attributes.ATTACK_SPEED)));
+            values.put("attack_knockback", typedVariable(Player.class,
+                    (context, player) -> player.getAttributeValue(Attributes.ATTACK_KNOCKBACK)));
+            values.put("movement_speed", typedVariable(Player.class,
+                    (context, player) -> player.getAttributeValue(Attributes.MOVEMENT_SPEED)));
+            values.put("knockback_resistance", typedVariable(Player.class,
+                    (context, player) -> player.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE)));
+            values.put("luck", typedVariable(Player.class, (context, player) -> player.getAttributeValue(Attributes.LUCK)));
+            values.put("block_reach", typedVariable(Player.class, (context, player) -> YsmReferenceQuery.BLOCK_REACH));
+            values.put("entity_reach", typedVariable(Player.class, (context, player) -> YsmReferenceQuery.ENTITY_REACH));
+            values.put("swim_speed", typedVariable(Player.class, (context, player) -> YsmReferenceQuery.SWIM_SPEED));
+            values.put("entity_gravity", typedVariable(Player.class, (context, player) -> YsmReferenceQuery.ENTITY_GRAVITY));
+            values.put("step_height_addition", typedVariable(Player.class,
+                    (context, player) -> YsmReferenceQuery.STEP_HEIGHT_ADDITION));
+            values.put("nametag_distance", typedVariable(Player.class,
+                    (context, player) -> YsmReferenceQuery.NAMETAG_DISTANCE));
+
+            // Shoulder parrots.
+            values.put("has_left_shoulder_parrot", typedVariable(Player.class,
+                    (context, player) -> YsmReferenceQuery.hasShoulderParrot(player, true)));
+            values.put("has_right_shoulder_parrot", typedVariable(Player.class,
+                    (context, player) -> YsmReferenceQuery.hasShoulderParrot(player, false)));
+            values.put("left_shoulder_parrot_variant", typedVariable(Player.class,
+                    (context, player) -> YsmReferenceQuery.shoulderParrotVariant(player, true)));
+            values.put("right_shoulder_parrot_variant", typedVariable(Player.class,
+                    (context, player) -> YsmReferenceQuery.shoulderParrotVariant(player, false)));
+
+            // Local player crosshair target.
+            values.put("hit_target_id", typedVariable(LocalPlayer.class,
+                    (context, player) -> YsmReferenceQuery.hitTargetId(player)));
+            values.put("hit_target_type", typedVariable(LocalPlayer.class,
+                    (context, player) -> YsmReferenceQuery.hitTargetType(player)));
+
+            // Projectiles and fishing hooks.
+            values.put("projectile_owner", typedVariable(Projectile.class, (context, projectile) -> {
+                Entity owner = projectile.getOwner();
+                if (owner == null) {
+                    return null;
+                }
+                // The reference returns a child context, so `ysm.projectile_owner->...` reads the owner.
+                Avatar.MolangContext child = new Avatar.MolangContext(context.owner);
+                child.entity = owner;
+                return child;
+            }));
+            values.put("throwable_item", typedVariable(ThrowableItemProjectile.class,
+                    (context, projectile) -> YsmReferenceQuery.throwableItem(projectile)));
+            values.put("hooked_in", typedVariable(FishingHook.class, (context, hook) -> YsmReferenceQuery.hookedIn(hook)));
+            values.put("is_biting", typedVariable(FishingHook.class, (context, hook) -> YsmReferenceQuery.biting(hook)));
+            values.put("on_ground_time", typedVariable(AbstractArrow.class,
+                    (context, arrow) -> YsmReferenceQuery.inGroundTime(arrow)));
+            values.put("in_ground", typedVariable(AbstractArrow.class, (context, arrow) -> YsmReferenceQuery.inGround(arrow)));
+            values.put("is_spectral_arrow", typedVariable(AbstractArrow.class,
+                    (context, arrow) -> arrow instanceof SpectralArrow));
+        }
+
+        /** Reference typed entity variables evaluate only for a matching entity and are null otherwise. */
+        private static <T> Variable typedVariable(Class<T> type,
+                                                  java.util.function.BiFunction<Avatar.MolangContext, T, Object> getter) {
+            return execution -> {
+                Avatar.MolangContext context = context(execution);
+                return type.isInstance(context.entity) ? getter.apply(context, type.cast(context.entity)) : null;
+            };
+        }
+
+        /** EffectLevel: sum of (amplifier + 1) for each listed effect present on a living entity or arrow. */
+        private static Object effectLevel(ExecutionContext<?> ctx, Function.ArgumentCollection args) {
+            Entity entity = context(ctx).entity;
+            if (entity == null) {
+                return null;
+            }
+            int effects = 0;
+            for (int index = 0; index < args.size(); index++) {
+                String name = args.getAsString(ctx, index);
+                Identifier id = name == null ? null : Identifier.tryParse(name);
+                var effect = id == null ? null : BuiltInRegistries.MOB_EFFECT.get(id).map(ref -> ref.value()).orElse(null);
+                if (effect == null) {
+                    continue;
+                }
+                var holder = BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect);
+                Integer published = top.aihmc.omnimorph.model.ysm.YsmDisplayQuery.remoteEffectLevel(entity, id.toString());
+                if (published != null) {
+                    effects += published;
+                } else if (entity instanceof LivingEntity living) {
+                    var instance = living.getEffect(holder);
+                    if (instance != null) {
+                        effects += instance.getAmplifier() + 1;
+                    }
+                } else if (entity instanceof net.minecraft.world.entity.projectile.arrow.Arrow arrow) {
+                    ItemStack pickup = arrow.getPickupItemStackOrigin();
+                    var contents = pickup == null ? null : pickup.get(DataComponents.POTION_CONTENTS);
+                    if (contents == null) {
+                        continue;
+                    }
+                    for (var instance : contents.getAllEffects()) {
+                        if (instance.getEffect().value() == effect) {
+                            effects += instance.getAmplifier() + 1;
+                            break;
+                        }
+                    }
+                } else {
+                    return null;
+                }
+            }
+            return effects;
+        }
+
+        private static Object dumpEquippedItem(ExecutionContext<?> ctx, Function.ArgumentCollection args) {
+            if (!(context(ctx).entity instanceof LivingEntity living) || !QueryVariables.canEmitDebugOutput(ctx)) {
+                return null;
+            }
+            EquipmentSlot slot = CtrlBinding.parseSlot(args.getAsString(ctx, 0));
+            ItemStack stack = slot == null ? ItemStack.EMPTY : living.getItemBySlot(slot);
+            Identifier key = stack.isEmpty() ? null : BuiltInRegistries.ITEM.getKey(stack.getItem());
+            if (key == null) {
+                return null;
+            }
+            org.figuramc.figura.FiguraMod.LOGGER.warn("Display {}", stack.getItem().getName(stack).getString(99));
+            org.figuramc.figura.FiguraMod.LOGGER.warn("Name {}", key);
+            for (var entry : stack.getEnchantments().entrySet()) {
+                org.figuramc.figura.FiguraMod.LOGGER.warn("Enchantment: display {}  name {}",
+                        net.minecraft.world.item.enchantment.Enchantment.getFullname(entry.getKey(), entry.getIntValue())
+                                .getString(99),
+                        entry.getKey().unwrapKey().map(key2 -> key2.registry().toString()).orElse("unknown"));
+            }
+            return null;
+        }
+
+        private static Object dumpRelativeBlock(ExecutionContext<?> ctx, Function.ArgumentCollection args) {
+            Entity entity = context(ctx).entity;
+            if (entity == null || entity.level() == null || !QueryVariables.canEmitDebugOutput(ctx)) {
+                return null;
+            }
+            double x = args.getAsDouble(ctx, 0);
+            double y = args.getAsDouble(ctx, 1);
+            double z = args.getAsDouble(ctx, 2);
+            if (Math.abs(x) > 5d || Math.abs(y) > 5d || Math.abs(z) > 5d) {
+                return null;
+            }
+            BlockPos position = new BlockPos((int) Math.round(entity.getX() + x - 0.5d),
+                    (int) Math.round(entity.getY() + y - 0.5d),
+                    (int) Math.round(entity.getZ() + z - 0.5d));
+            var block = entity.level().getBlockState(position).getBlock();
+            Identifier key = BuiltInRegistries.BLOCK.getKey(block);
+            if (key == null) {
+                return null;
+            }
+            org.figuramc.figura.FiguraMod.LOGGER.warn("Display {}", block.getName().getString(99));
+            org.figuramc.figura.FiguraMod.LOGGER.warn("Name {}", key);
+            return null;
+        }
+
+        /** Reference getEntityTypeName: "player", "maid" for Touhou Little Maid, otherwise the type id. */
+        private static String entityTypeName(LivingEntity entity) {
+            if (entity instanceof Player) {
+                return "player";
+            }
+            Identifier type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+            if (type == null) {
+                return "";
+            }
+            return "touhou_little_maid".equals(type.getNamespace()) && "maid".equals(type.getPath())
+                    ? "maid" : type.toString();
         }
 
         private static Avatar.MolangContext context(ExecutionContext<?> ctx) {
@@ -1091,7 +1315,7 @@ public class MolangBindings implements ObjectBinding {
             if (!(entity instanceof LivingEntity)) {
                 return null;
             }
-            return entity instanceof Player player ? player.getFoodData().getFoodLevel() : 20;
+            return entity instanceof Player player ? top.aihmc.omnimorph.model.ysm.YsmDisplayQuery.foodLevel(player) : 20;
         }
 
         private static Object input(ExecutionContext<?> ctx, String field) {
@@ -1100,9 +1324,9 @@ public class MolangBindings implements ObjectBinding {
                 return null;
             }
             return switch (field) {
-                case "xxa" -> living.xxa;
-                case "yya" -> living.yya;
-                case "zza" -> living.zza;
+                case "xxa" -> top.aihmc.omnimorph.model.ysm.YsmDisplayQuery.input(living, 0);
+                case "yya" -> top.aihmc.omnimorph.model.ysm.YsmDisplayQuery.input(living, 1);
+                case "zza" -> top.aihmc.omnimorph.model.ysm.YsmDisplayQuery.input(living, 2);
                 default -> throw new IllegalArgumentException("Unknown living input axis: " + field);
             };
         }

@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.model.ysm.animation;
 
+import org.joml.Quaternionf;
+
 /** Owned pose sample: callers cannot mutate a transition snapshot through its vectors. */
 public record YsmBonePose(float[] position, float[] rotation, float[] scale) {
     public YsmBonePose {
@@ -23,15 +25,19 @@ public record YsmBonePose(float[] position, float[] rotation, float[] scale) {
         return copy(scale);
     }
 
+    /**
+     * Transition blend matching Sparkle TransitionVector3f: position and scale are linear; rotation is
+     * the nlerp of the rendered ZYX quaternions including the bone's rest rotation (degrees, may be null).
+     */
     public static YsmBonePose blend(YsmBonePose outgoing, YsmBonePose incoming,
-                                    float progress, boolean shortestRotation) {
+                                    float progress, float[] restRotation) {
         if (!Float.isFinite(progress)) {
             throw new IllegalArgumentException("Invalid pose transition progress");
         }
         return new YsmBonePose(
-                blendVector(outgoing.position, incoming.position, progress, 0f, false),
-                blendVector(outgoing.rotation, incoming.rotation, progress, 0f, shortestRotation),
-                blendVector(outgoing.scale, incoming.scale, progress, 1f, false));
+                blendVector(outgoing.position, incoming.position, progress, 0f),
+                blendRotation(outgoing.rotation, incoming.rotation, progress, restRotation),
+                blendVector(outgoing.scale, incoming.scale, progress, 1f));
     }
 
     public static YsmBonePose accumulate(YsmBonePose previous, YsmBonePose sample, float weight) {
@@ -43,6 +49,29 @@ public record YsmBonePose(float[] position, float[] rotation, float[] scale) {
                 accumulateVector(base.position, sample.position, weight, false),
                 accumulateVector(base.rotation, sample.rotation, weight, false),
                 accumulateVector(base.scale, sample.scale, weight, true));
+    }
+
+    /**
+     * Channels the primary pose does not write take the fallback pose's value. Transition blending
+     * needs this so a channel this controller never wrote starts from the bone's current pose
+     * instead of identity (scale 1), which would lift scale-0 hides into view.
+     */
+    public static YsmBonePose fillMissingChannels(YsmBonePose primary, YsmBonePose fallback) {
+        if (fallback == null) {
+            return primary;
+        }
+        return new YsmBonePose(
+                primary.position == null ? fallback.position : primary.position,
+                primary.rotation == null ? fallback.rotation : primary.rotation,
+                primary.scale == null ? fallback.scale : primary.scale);
+    }
+
+    /** Drops channels the written pose does not contain, so a layer writes only what it owns. */
+    public static YsmBonePose keepWrittenChannels(YsmBonePose pose, YsmBonePose written) {
+        return new YsmBonePose(
+                written.position == null ? null : pose.position,
+                written.rotation == null ? null : pose.rotation,
+                written.scale == null ? null : pose.scale);
     }
 
     private static float[] accumulateVector(float[] previous, float[] sample, float weight, boolean scale) {
@@ -58,8 +87,7 @@ public record YsmBonePose(float[] position, float[] rotation, float[] scale) {
         return result;
     }
 
-    private static float[] blendVector(float[] outgoing, float[] incoming, float progress,
-                                       float defaultValue, boolean shortestRotation) {
+    private static float[] blendVector(float[] outgoing, float[] incoming, float progress, float defaultValue) {
         if (outgoing == null && incoming == null) {
             return null;
         }
@@ -67,13 +95,44 @@ public record YsmBonePose(float[] position, float[] rotation, float[] scale) {
         for (int axis = 0; axis < 3; axis++) {
             double from = outgoing == null ? defaultValue : outgoing[axis];
             double to = incoming == null ? defaultValue : incoming[axis];
-            double delta = to - from;
-            if (shortestRotation) {
-                delta = ((delta % 360d) + 540d) % 360d - 180d;
-            }
-            result[axis] = (float) (from + delta * progress);
+            result[axis] = (float) (from + (to - from) * progress);
         }
         return result;
+    }
+
+    /** Sparkle MathUtil.nlerpEulerAngles, expressed in OmniMorph's rendered rotation convention. */
+    private static float[] blendRotation(float[] outgoing, float[] incoming, float progress, float[] restRotation) {
+        if (outgoing == null && incoming == null) {
+            return null;
+        }
+        float[] from = outgoing == null ? new float[3] : outgoing;
+        float[] to = incoming == null ? new float[3] : incoming;
+        if (progress == 0f) {
+            return from.clone();
+        }
+        float[] rest = restRotation == null ? new float[3] : restRotation;
+        Quaternionf start = renderedRotation(from, rest);
+        Quaternionf end = renderedRotation(to, rest);
+        start.nlerp(end, progress, end);
+        float[] rendered = eulerZYXDegrees(end);
+        return new float[]{rest[0] - rendered[0], rest[1] - rendered[1], rendered[2] - rest[2]};
+    }
+
+    /** The renderer applies Z, then Y, then X of (rest.x - anim.x, rest.y - anim.y, rest.z + anim.z). */
+    private static Quaternionf renderedRotation(float[] animation, float[] rest) {
+        return new Quaternionf().rotateZYX(
+                (float) Math.toRadians(rest[2] + animation[2]),
+                (float) Math.toRadians(rest[1] - animation[1]),
+                (float) Math.toRadians(rest[0] - animation[0]));
+    }
+
+    /** Same extraction as Sparkle MathUtil.getEulerAnglesZYX, returned in degrees. */
+    private static float[] eulerZYXDegrees(Quaternionf q) {
+        double x = Math.atan2(q.y * q.z + q.w * q.x, 0.5d - q.x * q.x - q.y * q.y);
+        double sinY = Math.max(-1d, Math.min(1d, -2d * (q.x * q.z - q.w * q.y)));
+        double y = Math.asin(sinY);
+        double z = Math.atan2(q.x * q.y + q.w * q.z, 0.5d - q.y * q.y - q.z * q.z);
+        return new float[]{(float) Math.toDegrees(x), (float) Math.toDegrees(y), (float) Math.toDegrees(z)};
     }
 
     private static float[] copy(float[] vector) {

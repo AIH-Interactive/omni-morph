@@ -148,6 +148,9 @@ public final class ExpressionEvaluatorImpl<TEntity>
     private StatementExpression.Op op;
     private int cnt = 0;
     private int working = 0;
+    /** Values read by the Bedrock {@code this} keyword; default 0 when no channel was written. */
+    private final float[] channelCurrentValues = new float[3];
+    private int currentAxis;
 
     public ExpressionEvaluatorImpl(TEntity entity) {
         this(entity, entity instanceof MolangExecutionBudget.Owner owner
@@ -235,6 +238,10 @@ public final class ExpressionEvaluatorImpl<TEntity>
         budget.consume();
         if (expr instanceof FloatExpression fe) {
             return fe.value();
+        }
+        if (expr instanceof CallExpression call) {
+            budget.consume();
+            return call.function().evaluateFloat(this, call.arguments());
         }
         if (expr instanceof BinaryExpression be) {
             switch (be.op()) {
@@ -338,6 +345,24 @@ public final class ExpressionEvaluatorImpl<TEntity>
     public Object visitCall(CallExpression expression) {
         budget.consume();
         return expression.function().evaluate(this, expression.arguments());
+    }
+
+    @Override
+    public void setCurrentAxis(int axis) {
+        this.currentAxis = axis;
+    }
+
+    @Override
+    public void setCurrentChannelValues(float x, float y, float z) {
+        this.channelCurrentValues[0] = x;
+        this.channelCurrentValues[1] = y;
+        this.channelCurrentValues[2] = z;
+    }
+
+    @Override
+    public Object visitThis(ThisExpression expression) {
+        budget.consume();
+        return this.channelCurrentValues[this.currentAxis];
     }
 
     @Override

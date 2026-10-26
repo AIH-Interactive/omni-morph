@@ -1,99 +1,83 @@
 package top.aihmc.omnimorph.model.ysm.animation;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
-/** Selects chronological crossings before loop wrapping discards elapsed cycles. */
+/**
+ * Event selection for one playback step, matching Sparkle's single-cursor executors
+ * (AnimationControllerInstance with InstructionKeyFrameExecutor and SoundKeyFrameExecutor):
+ * <ul>
+ *   <li>events at or before the running time fire once, in time order;</li>
+ *   <li>a loop wraps only when the running time is strictly past the clip end. Instructions after the
+ *       cursor then run ({@code executeRemaining}), but sounds after the cursor are dropped and owned
+ *       sounds stop ({@code SoundKeyFrameExecutor.reset}); the new cycle runs up to the wrapped time once,
+ *       even if the step covered several cycles;</li>
+ *   <li>reverse playback fires nothing, as the reference cursor only moves forward.</li>
+ * </ul>
+ */
 public final class YsmAnimationEventWindow {
-    private static final int MAX_CROSSINGS = 1048576;
-
     private YsmAnimationEventWindow() {
     }
 
-    private record Crossing(double time, double cycle, int index, YsmAnimationEvent event) {
+    /**
+     * @param beforeWrap events of the cycle being left (or the only cycle), in time order
+     * @param wrapped    whether a loop wrapped during this step; owned sounds must stop before {@code afterWrap}
+     * @param afterWrap  events of the new cycle up to the wrapped time, in time order
+     */
+    public record Window(List<YsmAnimationEvent> beforeWrap, boolean wrapped, List<YsmAnimationEvent> afterWrap) {
+        private static final Window EMPTY = new Window(List.of(), false, List.of());
+
+        public List<YsmAnimationEvent> events() {
+            if (afterWrap.isEmpty()) {
+                return beforeWrap;
+            }
+            List<YsmAnimationEvent> all = new ArrayList<>(beforeWrap);
+            all.addAll(afterWrap);
+            return all;
+        }
     }
 
-    public static List<YsmAnimationEvent> crossed(YsmAnimationClip clip, double from, double to,
-                                                 boolean loop, boolean initialDispatched) {
+    /**
+     * @param from              the running time after the previous step (already wrapped)
+     * @param to                the running time after this step, before loop wrapping
+     * @param initialDispatched whether the clip's time-zero events already fired
+     */
+    public static Window window(YsmAnimationClip clip, double from, double to,
+                                boolean loop, boolean initialDispatched) {
         if (!Double.isFinite(from) || !Double.isFinite(to)) {
             throw new IllegalArgumentException("Invalid animation event window");
         }
-        if (from == to || clip.events.isEmpty()) {
-            return List.of();
+        if (to <= from || clip.events.isEmpty()) {
+            return Window.EMPTY;
         }
-        boolean forward = to > from;
-        boolean looping = loop && Float.isFinite(clip.length) && clip.length > 0f;
         List<YsmAnimationEvent> events = clip.orderedEvents();
-        // Most render frames move forward without crossing a loop boundary. The
-        // index excludes unrelated timeline events and avoids sorting crossings.
-        if (forward && (!looping || Math.floor(from / clip.length) == Math.floor(to / clip.length))) {
-            double cycleStart = looping ? Math.floor(from / clip.length) * clip.length : 0d;
-            int start = bound(events, from - cycleStart, !initialDispatched && from == 0d);
-            int end = bound(events, looping ? Math.min(clip.length, to - cycleStart) : to, false);
-            if (end - start > MAX_CROSSINGS) {
-                throw new IllegalArgumentException("Animation event crossing budget exceeded");
-            }
-            return events.subList(start, end);
+        boolean includeFrom = !initialDispatched && from == 0d;
+        boolean looping = loop && Float.isFinite(clip.length) && clip.length > 0f;
+        if (!looping || to <= clip.length) {
+            return new Window(between(events, from, includeFrom, to, true), false, List.of());
         }
-        List<Crossing> crossings = new ArrayList<>();
-        for (int index = 0; index < clip.events.size(); index++) {
-            YsmAnimationEvent event = clip.events.get(index);
-            if (!Float.isFinite(event.time()) || event.time() < 0f) {
-                throw new IllegalArgumentException("Invalid animation event time");
-            }
-            if (!looping) {
-                boolean crossed = forward ? event.time() > from && event.time() <= to
-                        : event.time() < from && event.time() >= to;
-                if (crossed || forward && !initialDispatched && from == 0d && event.time() == 0f) {
-                    add(crossings, new Crossing(event.time(), 0, index, event));
-                }
-                continue;
-            }
-            if (event.time() > clip.length) {
-                continue;
-            }
-            double first = forward ? Math.floor((from - event.time()) / clip.length) + 1d
-                    : Math.ceil((to - event.time()) / clip.length);
-            double last = forward ? Math.floor((to - event.time()) / clip.length)
-                    : Math.ceil((from - event.time()) / clip.length) - 1d;
-            if (last - first + 1d > MAX_CROSSINGS - crossings.size()) {
-                throw new IllegalArgumentException("Animation event crossing budget exceeded");
-            }
-            int count = (int) Math.max(0d, last - first + 1d);
-            for (int occurrence = 0; occurrence < count; occurrence++) {
-                double cycle = first + occurrence;
-                add(crossings, new Crossing(cycle * clip.length + event.time(), cycle, index, event));
-            }
-            if (forward && !initialDispatched && from == 0d && event.time() == 0f) {
-                add(crossings, new Crossing(0, 0, index, event));
+        List<YsmAnimationEvent> remaining = new ArrayList<>();
+        for (YsmAnimationEvent event : between(events, from, includeFrom, Double.POSITIVE_INFINITY, false)) {
+            if (!"sound".equals(event.type())) {
+                remaining.add(event);
             }
         }
-        Comparator<Crossing> order = Comparator.comparingDouble(Crossing::time)
-                .thenComparingDouble(Crossing::cycle).thenComparingInt(Crossing::index);
-        crossings.sort(forward ? order : order.reversed());
-        return crossings.stream().map(Crossing::event).toList();
+        double wrappedTime = to - Math.floor(to / clip.length) * clip.length;
+        return new Window(remaining, true, between(events, 0d, true, wrappedTime, true));
     }
 
-    private static int bound(List<YsmAnimationEvent> events, double time, boolean inclusive) {
-        int low = 0;
-        int high = events.size();
-        while (low < high) {
-            int middle = (low + high) >>> 1;
-            double eventTime = events.get(middle).time();
-            if (eventTime < time || !inclusive && eventTime == time) {
-                low = middle + 1;
-            } else {
-                high = middle;
+    /** Events with {@code from < time <= to} (or {@code from <= time} when {@code includeFrom}). */
+    private static List<YsmAnimationEvent> between(List<YsmAnimationEvent> events, double from, boolean includeFrom,
+                                                   double to, boolean includeTo) {
+        List<YsmAnimationEvent> result = new ArrayList<>();
+        for (YsmAnimationEvent event : events) {
+            double time = event.time();
+            boolean afterFrom = includeFrom ? time >= from : time > from;
+            boolean beforeTo = includeTo ? time <= to : time < to;
+            if (afterFrom && beforeTo) {
+                result.add(event);
             }
         }
-        return low;
-    }
-
-    private static void add(List<Crossing> crossings, Crossing crossing) {
-        if (crossings.size() >= MAX_CROSSINGS) {
-            throw new IllegalArgumentException("Animation event crossing budget exceeded");
-        }
-        crossings.add(crossing);
+        return result;
     }
 }

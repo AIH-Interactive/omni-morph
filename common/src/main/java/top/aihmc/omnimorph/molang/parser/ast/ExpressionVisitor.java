@@ -62,4 +62,8 @@ public interface ExpressionVisitor<R> {
     default R visitBinaryOperation(BinaryOperationExpression expression) {
         return visit(expression);
     }
+
+    default R visitThis(ThisExpression expression) {
+        return visit(expression);
+    }
 }

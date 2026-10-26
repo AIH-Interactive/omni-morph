@@ -15,6 +15,10 @@ public record YsmControllerState(
         YsmBlendTransition blendCurve,
         List<String> soundEffects
 ) {
+    public boolean isBuiltin() {
+        return "ysm-builtin".equals(name);
+    }
+
     public YsmControllerState {
         animations = animations == null ? List.of() : List.copyOf(animations);
         transitions = transitions == null ? List.of() : List.copyOf(transitions);

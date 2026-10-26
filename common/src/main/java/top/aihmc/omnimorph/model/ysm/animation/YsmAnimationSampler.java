@@ -13,12 +13,66 @@ public final class YsmAnimationSampler {
     }
 
     public static YsmBonePose sampleBone(YsmBoneAnimation bone, float time, ExpressionEvaluator<?> evaluator) {
+        return sampleBone(bone, time, evaluator, null);
+    }
+
+    /**
+     * @param current the bone pose the {@code this} keyword reads per channel (Sparkle writes the clip-start
+     *                bone snapshot before each channel); null reads 0 for position/rotation and 1 for scale
+     */
+    public static YsmBonePose sampleBone(YsmBoneAnimation bone, float time, ExpressionEvaluator<?> evaluator,
+                                         YsmBonePose current) {
         Avatar.MolangContext context = evaluator != null && evaluator.entity() instanceof Avatar.MolangContext value ? value : null;
         try (var boneScope = context == null ? null : context.filters.beginBone(bone.boneName)) {
-            return new YsmBonePose(
-                    bone.position == null ? null : sampleChannel(bone.position, time, evaluator, new float[3]),
-                    bone.rotation == null ? null : sampleChannel(bone.rotation, time, evaluator, new float[3]),
-                    bone.scale == null ? null : sampleChannel(bone.scale, time, evaluator, new float[]{1f, 1f, 1f}));
+            // Sparkle AnimationProcessor evaluates rotation, then position, then scale.
+            float[] rotation = null;
+            if (bone.rotation != null) {
+                setChannelValues(evaluator, current == null ? null : current.rotation(), 0f);
+                rotation = sampleChannel(bone.rotation, time, evaluator, new float[3]);
+            }
+            float[] position = null;
+            if (bone.position != null) {
+                setChannelValues(evaluator, current == null ? null : current.position(), 0f);
+                position = sampleChannel(bone.position, time, evaluator, new float[3]);
+            }
+            float[] scale = null;
+            if (bone.scale != null) {
+                setChannelValues(evaluator, current == null ? null : current.scale(), 1f);
+                scale = sampleChannel(bone.scale, time, evaluator, new float[]{1f, 1f, 1f});
+            }
+            return new YsmBonePose(position, rotation, scale);
+        }
+    }
+
+    /**
+     * SAMP-07, Sparkle PoseValueCache: a channel whose sampled vector has a non-finite component keeps the
+     * last finite vector of that source (initially 0 for position/rotation and 1 for scale).
+     */
+    public static YsmBonePose holdFinite(YsmBonePose sampled, YsmBonePose lastValid) {
+        return new YsmBonePose(
+                holdFinite(sampled.position(), lastValid == null ? null : lastValid.position(), 0f),
+                holdFinite(sampled.rotation(), lastValid == null ? null : lastValid.rotation(), 0f),
+                holdFinite(sampled.scale(), lastValid == null ? null : lastValid.scale(), 1f));
+    }
+
+    private static float[] holdFinite(float[] sampled, float[] lastValid, float initial) {
+        if (sampled == null) {
+            return null;
+        }
+        if (Float.isFinite(sampled[0]) && Float.isFinite(sampled[1]) && Float.isFinite(sampled[2])) {
+            return sampled;
+        }
+        return lastValid != null ? lastValid : new float[]{initial, initial, initial};
+    }
+
+    private static void setChannelValues(ExpressionEvaluator<?> evaluator, float[] values, float defaultValue) {
+        if (evaluator == null) {
+            return;
+        }
+        if (values == null) {
+            evaluator.setCurrentChannelValues(defaultValue, defaultValue, defaultValue);
+        } else {
+            evaluator.setCurrentChannelValues(values[0], values[1], values[2]);
         }
     }
 
@@ -68,7 +122,8 @@ public final class YsmAnimationSampler {
             ratio = 1;
         }
 
-        if ("step".equalsIgnoreCase(k1.interpolation)) {
+        // Sparkle BoneKeyFrameProcessor: a catmullrom target wins; otherwise the source easing applies.
+        if (!"catmullrom".equalsIgnoreCase(k2.interpolation) && "step".equalsIgnoreCase(k1.interpolation)) {
             return v1;
         }
         if ("catmullrom".equalsIgnoreCase(k2.interpolation)) {
@@ -102,6 +157,7 @@ public final class YsmAnimationSampler {
         if (staticExprs != null && evaluator != null) {
             for (int i = 0; i < 3; i++) {
                 if (staticExprs[i] != null) {
+                    evaluator.setCurrentAxis(i);
                     try {
                         result[i] = evaluator.evalAsFloat(staticExprs[i]);
                     } catch (MolangExecutionBudget.Exceeded exhausted) {

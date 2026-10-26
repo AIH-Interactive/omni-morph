@@ -48,6 +48,8 @@ enum Capability {
   YSM_ENCRYPTED = 3;
   YSM_RECOVERY = 4;
   ENTITY_AUTHORITY = 5;
+  // D025: the server validates, stores and forwards YsmState.display.
+  YSM_DISPLAY = 6;
 }
 
 enum ModelType {
@@ -294,6 +296,24 @@ message YsmState {
   Actions actions = 3;
   Controllers controllers = 4;
   Playbacks playbacks = 5;
+  // D025: owner-published values vanilla does not share. Absent = unchanged/unknown.
+  YsmDisplay display = 6;
+}
+message YsmDisplayEffect {
+  string id = 1;
+  uint32 level = 2;
+}
+// Each field is optional; presence means known. Ranges match the client YsmDisplayState.
+message YsmDisplay {
+  optional uint32 food_level = 1;
+  optional uint32 experience_level = 2;
+  optional bool flying = 3;
+  optional float strafe_input = 4;
+  optional float vertical_input = 5;
+  optional float forward_input = 6;
+  // has_effects distinguishes an unknown effect list from a known empty one.
+  bool has_effects = 7;
+  repeated YsmDisplayEffect effects = 8;
 }
 enum EventKind {
   EVENT_KIND_UNSPECIFIED = 0;

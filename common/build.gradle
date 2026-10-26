@@ -65,6 +65,15 @@ processResources {
     }
 }
 
+tasks.register('ysmDefaultAnimationSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks reference default animation resources, native fallback and author priority.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest'
+    args '--default-animations', rootProject.projectDir.path
+}
+
 tasks.register('ysmAvatarCreationSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Checks bundled YSM creation, complete resources, provenance, conflicts and cleanup.'
@@ -386,6 +395,24 @@ tasks.register("ysmPhase41SmokeTest", JavaExec) {
     mainClass = "top.aihmc.omnimorph.model.ysm.YsmPhase41SmokeTest"
 }
 
+tasks.register("ysmResourceScopeSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks declared YSM resource scope and authored hidden geometry."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmResourceScopeSmokeTest"
+    args rootProject.file("refs/avatars/16_tactics").path
+}
+
+tasks.register("ysmAstronautVisibilitySmokeTest", JavaExec) {
+    group = "verification"
+    description = "Probes authored astronaut alternate-form visibility with real resources."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmAstronautVisibilitySmokeTest"
+    args rootProject.file("refs/avatars/03_astronaut").path
+}
+
 tasks.register("ysmPackageSmokeTest", JavaExec) {
     group = "verification"
     description = "Runs YSM folder and zip resource package smoke checks."
@@ -655,12 +682,52 @@ tasks.register("ysmControllerIsolationSmokeTest", JavaExec) {
     mainClass = "top.aihmc.omnimorph.model.ysm.YsmControllerIsolationSmokeTest"
 }
 
+tasks.register('ysmControllerTransitionSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks reference self-transitions, cycle search, animation-slot boundaries and sound gates.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmControllerTransitionSmokeTest'
+}
+
+tasks.register('ysmBuiltinControllerSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks builtin/custom controller source exclusivity and native restart.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmBuiltinControllerSmokeTest'
+}
+
+tasks.register('ysmBeginningTransitionSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks beginning transition clocks and event suppression for state/function controllers.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmBeginningTransitionSmokeTest'
+}
+
 tasks.register("ysmBlendTransitionSmokeTest", JavaExec) {
     group = "verification"
     description = "Checks reference-shaped transition curve parsing and immutable interpolation for M3."
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = "top.aihmc.omnimorph.model.ysm.YsmBlendTransitionSmokeTest"
+}
+
+tasks.register("ysmDisplayStateSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks D025 display state ranges, remote store and Lua unknown semantics."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmDisplayStateSmokeTest"
+}
+
+tasks.register("ysmSamplingAlignmentSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks SAMP-01/03/04/05/06 sampling semantics against the reference."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmSamplingAlignmentSmokeTest"
 }
 
 tasks.register("ysmPoseSamplingSmokeTest", JavaExec) {
@@ -1046,9 +1113,17 @@ tasks.register("ysmHandAnimationSmokeTest", JavaExec) {
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = "top.aihmc.omnimorph.model.ysm.YsmHandAnimationSmokeTest"
-    args rootProject.file("refs/avatars/芙宁娜v3.14中文配音.ysm").path
+    args rootProject.file("refs/avatars/芙宁娜v3.14中文配音.ysm").path,
+            rootProject.file("refs/avatars/末影龙娘.ysm").path
 }
 
+tasks.register("ysmNativeStateSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks native player action states against the reference resolver table."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmNativeStateSmokeTest"
+}
 
 tasks.register('cloudAdapterSmokeTest', JavaExec) {
     group = 'verification'

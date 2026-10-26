@@ -1,5 +1,6 @@
 package top.aihmc.omnimorph.model.ysm.sync;
 
+import top.aihmc.omnimorph.model.ysm.YsmDisplayQuery;
 import top.aihmc.omnimorph.model.ysm.YsmModelRuntime;
 
 import java.io.IOException;
@@ -22,6 +23,7 @@ public final class YsmSyncConnection {
     private final ArrayDeque<Inbound> queued = new ArrayDeque<>();
     private final YsmSyncPackets packets = new YsmSyncPackets();
     private final Map<UUID, Peer> peers = new HashMap<>();
+    private volatile java.util.function.Supplier<YsmDisplayState> displaySource;
     private final LinkedHashMap<UUID, History> histories = new LinkedHashMap<>();
     private volatile Object connection;
     private volatile long currentTick;
@@ -153,7 +155,7 @@ public final class YsmSyncConnection {
                 return;
             }
             lastBuild = tick;
-            YsmSyncMessage.State state = hostModel.capture();
+            YsmSyncMessage.State state = withDisplay(hostModel.capture());
             List<YsmSyncMessage.Event> events = local.functions().drainSyncEvents();
             long watermark = local.functions().syncWatermark();
             boolean snapshot = lastState == null || lastSnapshot == Long.MIN_VALUE || tick - lastSnapshot >= SNAPSHOT_TICKS;
@@ -167,7 +169,8 @@ public final class YsmSyncConnection {
             YsmSyncMessage.State body = snapshot ? state : delta(lastState, state);
             pendingMessage = new YsmSyncMessage(local.owner().owner, session, hostModel.contentHash(), hostModel.schemaHash(),
                     generation, sequence + 1, snapshot ? -1 : sequence, tick, snapshot, watermark, body, events);
-            outgoing = typedSend == null ? YsmSyncPackets.fragment(++messageId, YsmSyncCodec.encode(pendingMessage)) : List.of();
+            outgoing = typedSend == null
+                    ? YsmSyncPackets.fragment(++messageId, YsmSyncCodec.encode(pendingMessage.withoutDisplay())) : List.of();
             pendingState = state;
             outgoingIndex = 0;
             outgoingStarted = tick;
@@ -239,6 +242,8 @@ public final class YsmSyncConnection {
                 List<YsmSyncMessage.Event> events = peer.receiver().accept(input.owner(), decoded);
                 if (peer.receiver().state() != null && peer.receiver().state() != before) {
                     peer.model().apply(peer.receiver().state(), events);
+                    // D025: the owner's published display values (null = not shared).
+                    YsmDisplayQuery.acceptRemote(input.owner(), peer.receiver().state().display());
                 }
             } catch (IOException | IllegalArgumentException | IllegalStateException exception) {
                 rejected.incrementAndGet();
@@ -255,6 +260,7 @@ public final class YsmSyncConnection {
             if (peer.runtime().isClosed() || models.apply(entry.getKey()) != peer.runtime()) {
                 // Retain only indices/clocks for replay rejection, never the retired model or its resources.
                 histories.put(entry.getKey(), new History(peer.model().contentHash(), peer.model().schemaHash(), peer.receiver(), tick));
+                YsmDisplayQuery.forget(entry.getKey());
                 iterator.remove();
             }
         }
@@ -291,6 +297,7 @@ public final class YsmSyncConnection {
         }
         packets.clear();
         peers.clear();
+        YsmDisplayQuery.clear();
         histories.clear();
         session = UUID.randomUUID();
         host = null;
@@ -313,11 +320,31 @@ public final class YsmSyncConnection {
     }
 
     private static YsmSyncMessage.State delta(YsmSyncMessage.State previous, YsmSyncMessage.State next) {
+        // A display that stopped being shared is cleared by the next snapshot (at most SNAPSHOT_TICKS later).
         return new YsmSyncMessage.State(Objects.equals(previous.texture(), next.texture()) ? null : next.texture(),
                 previous.controls().equals(next.controls()) ? null : next.controls(),
                 previous.actions().equals(next.actions()) ? null : next.actions(),
                 previous.controllers().equals(next.controllers()) ? null : next.controllers(),
-                previous.playbacks().equals(next.playbacks()) ? null : next.playbacks());
+                previous.playbacks().equals(next.playbacks()) ? null : next.playbacks(),
+                Objects.equals(previous.display(), next.display()) ? null : next.display());
+    }
+
+    /**
+     * D025: the local player's display values, when sharing is allowed. Set by the network layer; null
+     * (the default) shares nothing.
+     */
+    public void setDisplaySource(java.util.function.Supplier<YsmDisplayState> source) {
+        displaySource = source;
+    }
+
+    private YsmSyncMessage.State withDisplay(YsmSyncMessage.State state) {
+        java.util.function.Supplier<YsmDisplayState> source = displaySource;
+        YsmDisplayState display = source == null ? null : source.get();
+        if (display == null) {
+            return state;
+        }
+        return new YsmSyncMessage.State(state.texture(), state.controls(), state.actions(), state.controllers(),
+                state.playbacks(), display);
     }
 
     public long rejectedMessages() {

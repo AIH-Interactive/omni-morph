@@ -143,14 +143,26 @@ public final class YsmManifestReader {
                 YsmJson.bool(extra, "free", false));
     }
 
+    static List<String> firstPersonAnimationPaths(YsmResourceSource source) throws IOException {
+        List<String> paths = new ArrayList<>();
+        if (!source.exists("ysm.json")) {
+            return paths;
+        }
+        JsonObject root = YsmJson.parseObject(source.readString("ysm.json"));
+        JsonObject player = YsmJson.obj(YsmJson.obj(root, "files"), "player");
+        JsonObject animations = YsmJson.obj(player, "animation");
+        readPathField(paths, source, animations.get("fp_arm"), new ArrayList<>());
+        readPathField(paths, source, animations.get("fp.arm"), new ArrayList<>());
+        return paths;
+    }
+
     private static List<String> readNewAnimations(YsmResourceSource ysmPackage, JsonObject player, List<String> warnings) throws IOException {
         List<String> result = new ArrayList<>();
         readPathField(result, ysmPackage, player.get("animation"), warnings);
         readPathField(result, ysmPackage, player.get("extra_animation"), warnings);
         readPathField(result, ysmPackage, player.get("animation_extra"), warnings);
-        addExisting(result, ysmPackage, "animations/main.animation.json");
-        addExisting(result, ysmPackage, "animations/extra.animation.json");
-        collectAnimationFiles(result, ysmPackage);
+        // A manifest owns resource activation. Other files can belong to projectiles,
+        // vehicles or unused author drafts, even when they share player animation names.
         return result;
     }
 
@@ -171,9 +183,6 @@ public final class YsmManifestReader {
         List<String> result = new ArrayList<>();
         readPathField(result, ysmPackage, player.get("animation_controllers"), warnings);
         readPathField(result, ysmPackage, player.get("animation_controller"), warnings);
-        collectDirectoryJson(result, ysmPackage, "controller/");
-        collectDirectoryJson(result, ysmPackage, "controllers/");
-        collectAnimationControllerFiles(result, ysmPackage);
         return result;
     }
 
