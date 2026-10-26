@@ -28,6 +28,7 @@ import top.aihmc.omnimorph.model.ysm.YsmBoneQuery;
 import top.aihmc.omnimorph.model.ysm.YsmInputState;
 import top.aihmc.omnimorph.model.ysm.YsmParticleRuntime;
 import top.aihmc.omnimorph.model.ysm.YsmHandItemType;
+import top.aihmc.omnimorph.model.ysm.YsmPlayerActionState;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.vehicle.boat.AbstractBoat;
 import net.minecraft.world.entity.vehicle.boat.AbstractChestBoat;
@@ -247,14 +248,14 @@ public class MolangBindings implements ObjectBinding {
         private final Map<String, Object> states = new HashMap<>();
 
         public CtrlBinding() {
-            for (ActionState state : ActionState.values()) {
-                if (state != ActionState.NONE && state != ActionState.RIDE) {
+            for (YsmPlayerActionState.State state : YsmPlayerActionState.State.values()) {
+                if (state != YsmPlayerActionState.State.NONE && state != YsmPlayerActionState.State.RIDE) {
                     states.put(state.name().toLowerCase(java.util.Locale.ROOT), actionState(state));
                 }
             }
             states.put("fall", (Variable) ctx -> ctx.entity() instanceof Avatar.MolangContext context
                     && context.entity instanceof LivingEntity living
-                    ? resolveActionState(context, living) == ActionState.JUMP && context.vertical_speed < -0.05f : null);
+                    ? resolveActionState(context, living) == YsmPlayerActionState.State.JUMP && context.vertical_speed < -0.05f : null);
             states.put("ride", new Function() {
                 @Override
                 public Object evaluate(ExecutionContext<?> context, ArgumentCollection arguments) {
@@ -266,7 +267,7 @@ public class MolangBindings implements ObjectBinding {
                     return size == 2 || size == 3;
                 }
             });
-            states.put("riding", actionState(ActionState.RIDE));
+            states.put("riding", actionState(YsmPlayerActionState.State.RIDE));
             states.put("hold", equipmentFunction(HandMode.HOLD));
             states.put("use", equipmentFunction(HandMode.USE));
             states.put("swing", equipmentFunction(HandMode.SWING));
@@ -418,17 +419,7 @@ public class MolangBindings implements ObjectBinding {
             return 0f;
         }
 
-        private static boolean isMoving(Avatar.MolangContext context) {
-            return Float.isFinite(context.ground_speed) && context.ground_speed > 0.05f;
-        }
-
-        private enum ActionState {
-            NONE, RIDE, DEATH, RIPTIDE, SLEEP, SWIM, CLIMB, CLIMBING,
-            LADDER_UP, LADDER_STILLNESS, LADDER_DOWN, ELYTRA_FLY, FLY,
-            SWIM_STAND, ATTACKED, JUMP, SNEAK, SNEAKING, RUN, WALK, IDLE
-        }
-
-        private static Variable actionState(ActionState expected) {
+        private static Variable actionState(YsmPlayerActionState.State expected) {
             return execution -> {
                 if (!(execution.entity() instanceof Avatar.MolangContext context)
                         || !(context.entity instanceof LivingEntity living)) {
@@ -438,60 +429,12 @@ public class MolangBindings implements ObjectBinding {
             };
         }
 
-        private static ActionState resolveActionState(Avatar.MolangContext context, LivingEntity living) {
+        private static YsmPlayerActionState.State resolveActionState(Avatar.MolangContext context, LivingEntity living) {
             if (context.owner != null && YsmParticleRuntime.isPreview(context.owner.renderMode)) {
-                return ActionState.NONE;
+                return YsmPlayerActionState.State.NONE;
             }
-            Entity vehicle = living.getVehicle();
-            if (vehicle != null && vehicle.isAlive()) {
-                return ActionState.RIDE;
-            }
-            if (living.isDeadOrDying()) {
-                return ActionState.DEATH;
-            }
-            if (living.isAutoSpinAttack()) {
-                return ActionState.RIPTIDE;
-            }
-            if (living.getPose() == Pose.SLEEPING) {
-                return ActionState.SLEEP;
-            }
-            if (living.isSwimming()) {
-                return ActionState.SWIM;
-            }
-            if (living.getPose() == Pose.SWIMMING) {
-                return isMoving(context) ? ActionState.CLIMB : ActionState.CLIMBING;
-            }
-            if (living.onClimbable()) {
-                if (context.vertical_speed > 0.01f) {
-                    return ActionState.LADDER_UP;
-                }
-                if (context.vertical_speed < -0.01f) {
-                    return ActionState.LADDER_DOWN;
-                }
-                return ActionState.LADDER_STILLNESS;
-            }
-            if (living.getPose() == Pose.FALL_FLYING && living.isFallFlying()) {
-                return ActionState.ELYTRA_FLY;
-            }
-            if (living instanceof Player player && player.getAbilities().flying) {
-                return ActionState.FLY;
-            }
-            if (living.isInWater() && !living.onGround()) {
-                return ActionState.SWIM_STAND;
-            }
-            if (living.hurtTime > 0) {
-                return ActionState.ATTACKED;
-            }
-            if (!living.onGround() && !living.isInWater()) {
-                return ActionState.JUMP;
-            }
-            if (living.onGround() && living.getPose() == Pose.CROUCHING) {
-                return isMoving(context) ? ActionState.SNEAK : ActionState.SNEAKING;
-            }
-            if (living.onGround() && living.isSprinting() && isMoving(context)) {
-                return ActionState.RUN;
-            }
-            return living.onGround() && isMoving(context) ? ActionState.WALK : ActionState.IDLE;
+            return YsmPlayerActionState.resolve(YsmPlayerActionState.snapshot(
+                    living, context.ground_speed, context.vertical_speed));
         }
 
         private static boolean playingExtraAnimation(ExecutionContext<?> ctx) {
