@@ -25,6 +25,7 @@ public final class YsmControllerTransitionSmokeTest {
         testChildEntryHasNoSlots();
         testSoundSelfTransition();
         testSoundGateBeforeVisited();
+        testParseFailureIsFalse();
         System.out.println("PASS reference controller transitions: self re-entry, clocks, slot boundaries, cycles and sound gates");
     }
 
@@ -143,6 +144,24 @@ public final class YsmControllerTransitionSmokeTest {
         require(fixture.state().equals("middle"), "a newly gated visited target ends the current search");
         fixture.update();
         require(fixture.state().equals("tail"), "the sound gate is consumed before visited rejection and skips its held edge");
+    }
+
+    /** D009: Sparkle MolangParser returns MolangValue.failed (constant 0) for an unparsable expression. */
+    private static void testParseFailureIsFalse() {
+        Fixture fixture = new Fixture("""
+                {"default":{"transitions":[{"broken":"((("}]},
+                 "broken":{"animations":[{"clip":"((("}]}}
+                """);
+        fixture.update();
+        fixture.update();
+        require(fixture.state().equals("default"), "an unparsable transition condition is false, not unconditional");
+
+        Fixture weighted = new Fixture("""
+                {"default":{"animations":[{"clip":"((("}]}}
+                """);
+        weighted.update();
+        var clip = weighted.player.getControllerAnimation("fixture", "clip");
+        require(clip == null || clip.targetWeight == 0f, "an unparsable animation weight is 0, not full weight");
     }
 
     private static final class Fixture {

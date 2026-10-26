@@ -1,8 +1,8 @@
 # 当前任务交接手册
 
-最新有效状态：见文末“D002 / D012 对齐完成（2026-10-26）”。本目标已结束，未启动下一项目标。
+最新有效状态：见文末“当前额度交接：P1 动画对齐进行中（2026-10-26）”。P1 尚未完成；因 Plus 五小时额度达到交接阈值，当前 Goal 因额度连续阻塞已标 blocked；P1 未完成，不标 complete 或 paused。
 
-更新时间：2026-10-26（Asia/Seoul；用户实测确认问题已解决，本次会话结束，无剩余实施任务。以文末最终验收为准。）
+更新时间：2026-10-26（Asia/Seoul；接续复查显示 Plus 五小时 used 94% / 剩余 6%，周 used 15% / 剩余 85%。本次只整理交接手册；最新状态与下一最小实施项见文末。）
 
 ## 接续入口与约束
 
@@ -877,3 +877,32 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - **Git/文件：** 当前分支 ysm-alignment。两阶段提交均已 push 并各自核对 origin/ysm-alignment 与当时本地 HEAD 一致；随后仅本手册与计划提交号补记做文档收尾提交，最终 HEAD 以实际 Git 为准。本轮文件：YsmAnimationPlayer、YsmControllerRuntime、YsmControllerState、YsmModelRuntime、common/build.gradle，两个新增 SmokeTest、DefaultAnimationSmokeTest、计划和本手册。原未跟踪 .omc/、mod_log/、patch/ 保留，未切换分支、未改后端、未升级版本。
 - **产物与安装：** `fabric/build/libs/omni-morph-1.0.0-alpha.4.1+26.1.2-fabric-mc.jar`，18,999,523 字节，SHA256 `85cac7b7ee9e82c138c34d0207410e6cd16eb4d9af2e4def785c2cc287a71700`。用户模组通过符号链接接入 mods，无复制覆盖安装。用户为释放 JAR 锁关闭了客户端；本 Agent 未重启游戏，目前无运行中构建/测试。
 - **额度与下一步：** Goal 完成后可靠接口显示 Plus，5小时 used49% / 剩51%，周 used8% / 剩92%，重置 Unix UTC 秒1793014699 / 1793601499；未触发阈值，当前 Agent 正常更新手册，未委派 Luna。当前目标无剩余实施，等待用户指定下一目标。相关文档 `docs/YSM_ALIGNMENT_PLAN.md`、`docs/YSM_ANIMATION_ENGINE_COMPARISON.md`；继续遵守 CodeGraph 优先、当前分支阶段提交推送检查点、前台日志、有限范围及禁止 Qt offscreen。
+
+## 当前额度交接：P1 动画对齐进行中（2026-10-26）
+
+本节为当前有效入口，覆盖上文关于 P1 尚未开始或已结束的历史状态。用户目标是完成 `docs/YSM_ALIGNMENT_PLAN.md` 中已授权的全部 P1 对齐项。D010 与 D011 已获用户对全部 P1 的授权；按计划实施 D011 时接受撤销其现有多周期/倒播事件窗口语义。P2 和“不建议对齐”项不在本目标范围内。P1 整体尚未完成，Goal 在额度连续三轮阻塞后标为 blocked；P1未完成，不标为 complete 或 paused。
+
+- **额度交接原因：** 可靠额度结果为 ChatGPT Plus 五小时 used 91% / 剩 9%，周 used 14% / 剩 86%；重置 Unix UTC 秒 `1793014698` / `1793601498`。AGENTS.md 规定低于10%触发安全交接，并授权仅将交接手册编写委派给 GPT-6 Luna。无运行中的构建或测试。Luna 只负责整理本手册，不承担开发；调用方须核对手册与实际仓库状态。
+- **当前分支和提交：** 沿任务开始时的 `ysm-alignment` 分支继续，不切换到 `main`。当前 HEAD `8d5d33913656fec2f3b7229f2eb6da08a9cd39c0`；已推送，`git ls-remote origin refs/heads/ysm-alignment` 返回同一 SHA。代码与计划检查点已无未提交修改；本次手册为本地修改，另保留原未跟踪 `.omc/`、`mod_log/`、`patch/`，不要清理。
+- **本次交接手册状态：** `AGENT_HANDOFF.md` 当前为本地未提交修改；本次只更新该文件，不提交或推送手册。最终工作区应显示 `M AGENT_HANDOFF.md` 和原有三个未跟踪目录。
+- **已完成并逐项提交推送的 P1 检查点：**
+  - D020：`709c2416ddd03be90c88149f82ee48374a5135f6`。独立黄金值、上下文独立 Xoroshiro 随机源、NaN 语义与预算验证；`alpha4-d020-final.log` 中 math、budget、Fabric PASS（46秒/23 tasks）。
+  - D022：`4738d6abda764f189971ae91845b9cbd00618fac`。`time_of_day=((float)(dayTime+6000L)/24000f)%1f`，负时间按参考余数语义处理，timestamp 不额外移相；`alpha4-d022-final.log` 中 VanillaState、Fabric PASS（36秒/22 tasks）。
+  - D015 武器批次：`43e5d60787188d6843919016ae363237e0d8d06b`。补充 weapon/trident/lance/mace 共43个标量名；原计划“42”是计数错误，D015 整体仍未完成，剩余名字须逐项核对，不推算数量。验证覆盖主手、0.35 lunge、1.5 mace、partial tick 与受限本地脉冲；`alpha4-d015-weapon-final.log` 中 VanillaState、HandAnimation、Fabric PASS（47秒/23 tasks）。
+  - D007：`b4886573e7341bab3c28bdf1d20ae70458771e6c`。控制器逐帧保持片段时不再停声或递增 `playbackGeneration`，新播放/重新激活和退出清理仍保留。使用真实 LuaSound 与录制声道验证重复刷新、退出重入及 reset；`alpha4-d007-final.log` 中 SoundNative、ControllerSound、BeginningTransition、ControllerTransition、Fabric PASS（38秒/25 tasks）。
+  - D008：`8d5d33913656fec2f3b7229f2eb6da08a9cd39c0`。作者身体和第一人称名称表分开；binary JSON type 11 或 manifest 的 `animation.fp_arm` / `fp.arm` 进入 arm 域，旧 arm type 2 仍属 body；正式装配与预览、控制器查片/声音门控/loop 缺省和采样均按域区分。线协议 DTO 未改，同名片段继续共享既有排序去重名称索引，并按既有 controller 身份恢复正确域。`alpha4-d008-final.log` 中 FirstPersonController、DefaultAnimation、Sync、BeginningTransition、HandAnimation、ControllerTransition、FunctionStage 七项与 Fabric PASS（1分2秒/28 tasks），附带 LibraryPreviewRuntime PASS；`git diff --check` PASS。测试期间的 play 参数遗漏及误调用不存在的 SyncModel 任务已修正；最终结果以 final 日志为准。
+- **未完成的 P1 和最小续接顺序：** E 批 D009（条件解析失败应得到 false/0，而非退化为无条件/满权重）尚未修改，是下一最小项。之后依 `docs/YSM_ALIGNMENT_PLAN.md` 继续 G 批 SAMP-01/03/04/05/06 与 D010，再做 H 批 D015 剩余名字、D016 `this`、D011。逐名核对 D015，不猜剩余数量。每项执行相关单测和 Fabric 编译、更新计划记录、检查 diff，再提交并推送当前分支、核对远端 SHA，然后才开始下一项；在安全检查点查询额度。P1 全部完成前不得结束 Goal。
+- **验证边界与既有问题：** 游戏内模型/GPU 画面、实际设备声音、双客户端行为仍为 `MANUAL/PENDING`。此前记录的 `PlayerTimeline` owner-null NPE 与 `FunctionContract` filter-preview expected 4.5 / actual 90 仍存在，均非本轮修复范围，不能宣称所有历史测试通过。D008 中间失败已在本轮纠正，D015 MACE 夹具缺组件的中间失败已修正；最终验证按上述 final 日志记录。无运行中构建/测试。
+- **文件与版本边界：** 对齐计划和静态审计分别见 `docs/YSM_ALIGNMENT_PLAN.md`、`docs/YSM_ANIMATION_ENGINE_COMPARISON.md`。默认运行时资产为 `assets/omni-morph/default_animation` 14 项；`ysm_default` 的42项仅用于新建模板。未改版本、后端或资源覆盖；模组通过符号链接接入，不复制安装包。
+- **后续执行约束：** 新 Agent 接手先读 `AGENTS.md`、本文最新一节及上述计划/审计，再检查 Git 状态和实际源码。根目录存在 `.codegraph/`，查代码前优先使用 CodeGraph。Java 开发环境先加载 `D:/UserData/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1` 并执行 `usejdk 25`。构建/测试须在前台 PowerShell 执行，输出走 `2>&1 | Tee-Object -FilePath "build.log"`，立即捕获 `$LASTEXITCODE` 并读取日志。禁止 Qt offscreen；不新建/切换分支、不擅自提交未完成检查点、不升级版本、不扩展到 P2 或不建议对齐项；保留所有既有工作区数据。
+
+接续安全检查（2026-10-26）：可靠额度接口复查为 Plus 五小时 used94% / 剩6%、周 used15% / 剩85%，重置时间未变。Git HEAD仍为8d5d33913656fec2f3b7229f2eb6da08a9cd39c0，工作区仅手册修改与原三个未跟踪目录。额度尚未恢复，不启动D009；本次无代码变更、无构建测试，P1仍未完成。
+
+连续阻塞检查（2026-10-26）：五小时额度used95% / 剩5%，周used15% / 剩85%，重置Unix1793014698/1793601498。同一额度交接条件已连续三轮存在，Goal已标blocked，停止自动开发；恢复需额度变化或用户/接手方明确续接并重新核对工作区。下一实施仍为D009，无新增代码或验证结果。
+
+## 当前有效交接：P1 续接（Claude，2026-10-26）
+
+本节为最新入口，接续上节“P1 动画对齐进行中”。用户目标：按交接继续 P1，每个阶段完成后查额度。模组通过符号链接接入 mods，不复制/覆盖产物（用户再次确认）。
+
+- **D009 已完成（`ysm-alignment@4494c95b`，已推送，`git ls-remote` 与本地一致）：** `YsmAnimationControllerParser.compile` 解析失败时不再返回 null，改为常量 `0` 表达式（参考 `MolangParser.parseExpression` 失败返回 `MolangValue.failed`＝常量0），转移条件为 false、动画权重为 0；空白条件仍为 null（未改，参考空串行为未核）。RED/GREEN：`YsmControllerTransitionSmokeTest.testParseFailureIsFalse`，RED 失败于 unparsable transition condition is false, not unconditional。验证 PASS：ControllerTransition/Diagnostic/Sound/Isolation/Context/Phase、FunctionStage、BuiltinController、BeginningTransition、MaterialNative 共 10 项 + `:fabric:build`（43s）。未验证：真实作者模型游戏内表现 `MANUAL/PENDING`。
+- **额度（D009 开始前）：** Claude Pro 5 小时 used 5%、周 37%。
