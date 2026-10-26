@@ -773,3 +773,37 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 目前唯一阻塞：尚未收到用户对新包首次拉弓、持续拉弓及松弓后快速重拉的人工验收结果。此前CPU回归不能证明用户整体画面问题已解决。该条件已连续跨原修复交付、自动续跑和人工验收确认保留；Goal设为blocked等待人工反馈，未标完成。没有运行中任务可轮询，不通过重复自动续跑或新增无关代码消耗额度。
 - 最小下一步：用户重启新包并反馈验收结果。通过则记录真实验收后关闭Goal；仍异常则使用反馈中的视角/使用状态及新日志继续定位首次拉弓完整路径，遵守人工验收方式。保留现有未跟踪.omc/、mod_log/、patch/。
 - 最新可靠额度：Plus5小时剩余37%、周剩余79%，重置Unix UTC秒1792996496/1793525491；未达额度交接阈值。本记录由当前Agent维护，未委派Luna。
+
+## 当前有效交接：YSM 动画引擎对比审计（2026-10-26）
+
+- **任务与阶段：** 新 Goal 为静态对照 OmniMorph 全部 YSM 相关动画引擎与 `refs/Sparkle-Morpher`。本次额度阈值已触发，Goal 应暂停；这不是审计完成，也不是人工验收受阻。报告见 `docs/YSM_ANIMATION_ENGINE_COMPARISON.md`。
+- **交接作者：** 本节由 GPT-6 Luna 仅依据调用方提供的事实整理；未承担新增开发或研究。
+- **已完成且已记录：** root 已按两个仓库各自 CodeGraph 优先的方式审计并创建报告，含 D001-D009 与 SAMP01-07，共16项已确认差异。各项记录双侧来源、触发条件及证据限制。研究子代理的 `build/tmp/ysm-sampling-audit.md` 内容已合入报告，子任务已完成。已覆盖控制器槽排序/生命周期、原生手部与运动谓词、来源格式循环规则、输入脉冲接线、声音刷新、身体/第一人称资源混表、条件解析失败和基础关键帧采样。
+- **未完成：** 全范围审计仍在进行，不得称全部 YSM 代码已排查。待核对范围包括函数/查询绑定全集、FilterRuntime/physics/Kipfel/AnimationProgramRuntime、各过渡混合路径、所有事件类型及长步长/倒播/同步、骨骼矩阵/locator/渲染提交、动作轮盘/子实体/载具/投射物，以及默认加载格式矩阵。外部 Avatar/Mixin/renderer 和参考项目资源 loader/audio 也需扩展检查。报告当前矩阵中的“审计中/待核对”仍有效。
+- **覆盖规模限制：** 目录盘点为主仓 `model/ysm`、`avatar/ysm`、`molang`、`lua/api/ysm_model` 共167个 Java 文件；参考仓 `geckolib3`、`client/animation`、`client/model/processor` 共309个 Java 文件。该数量只是目录库存，不是逐文件审计完成证明。后续逐步补稳定源码索引与逐文件覆盖表。
+- **基线与 Git：** 主仓分支 `main`，HEAD `4ea5a38181e2aa495672bbed3eed7414c71b292a`；参考仓 HEAD `87823951d7f51d08eed5817bb803291cd1da3309`。报告因 `.gitignore` 中 `/docs/*` 被忽略，已 `git add -N -f` 仅设 intent-to-add 以便审阅 diff；本审计尚未提交或推送。当前未跟踪 `.omc/`、`mod_log/`、`patch/` 均为原有工作区数据，必须保留；参考仓 clean。当前记录整理后需由调用方复查 git 状态，不得自动提交/推送。
+- **验证状态：** 本轮无代码、测试或构建配置改动，无构建、测试或 GUI 操作；`git diff --check` PASS。报告是静态源码对照，不证明游戏端行为、具体作者模型或 GPU 表现。前一拉弓修复的人工验收仍独立为 MANUAL/PENDING，本审计不能代替验收。
+- **额度与暂停：** 最近可靠额度为 ChatGPT Plus 5小时剩余10%（used 90%）、周剩余74%；重置时间分别为 UTC Unix 秒 `1792996496` 和 `1793525491`。用户规定阈值触发后暂停 Goal，并授权仅将交接手册编写交给 GPT-6 Luna。调用方完成一致性检查后将 Goal 标为 paused。
+- **最小续接顺序：** 恢复时先读本手册和报告矩阵，再核对 Git 状态；不要重复报告已有16项。按剩余范围继续两侧 CodeGraph 只读对照，发现一项就及时写入报告，并同步维护源码索引/逐文件覆盖清单。不得运行 GUI 或修改任何代码，除非用户后续明确改变范围。
+- **项目约束：** 保持当前 `main` 分支；保留未跟踪工作；CodeGraph 优先；禁止 Qt offscreen；本审计仅静态比较且严格限于明确授权范围。未验证的行为明确标注证据缺口，不能冒称 PASS 或完整覆盖。
+
+## 审计续接记录（2026-10-26）
+
+- 已读本手册并续做 YSM 动画引擎静态对比：新增 D010（过渡旋转混合：Omni 逐轴线性/可选折返，Sparkle 始终 ZYX 四元数 nlerp，blend_via_shortest_path 在 Sparkle 无消费者）；`set_beginning_transition_length` 单位两侧一致，不计差异。报告已更新为17项。
+- 剩余未审计范围同上节“未完成”清单（函数/查询全集、FilterRuntime/physics/Kipfel、事件长步长/倒播、骨骼矩阵/locator、子实体/载具、加载格式矩阵）。仅静态只读，无代码/构建/GUI 操作，未提交推送。
+- 续（同日）：conda base 的 python 在 /d/ProgramData/miniconda3/python.exe（3.13.12，bash 中 conda 命令不在 PATH，WindowsApps 的 python 是商店占位）。新增 D011（循环回绕/长步长事件语义：Omni 逐周期全触发含声音；Sparkle 回绕仅补跑指令事件、声音只 reset+stopAll）。报告现18项。剩余未审计：函数/查询全集、FilterRuntime/physics/Kipfel、骨骼矩阵/locator、子实体/载具/投射物、加载格式矩阵、BEGINNING_TRANSITION 期间事件抑制对照。
+- 续：新增 D012（函数控制器 set_beginning_transition_length：Omni 淡入期间时钟/事件照常，Sparkle BEGINNING_TRANSITION 冻结时钟并抑制事件）。报告19项；状态机 blend_transition 路径与 Sparkle 过渡完整对照仍未核。
+- 续（conda base 已激活：source /d/ProgramData/miniconda3/etc/profile.d/conda.sh && conda activate base）：新增 D013（滤波器长间隔恢复：Sparkle >8/60s 贴合输入，Omni 仍有限步积分）、D014（滤波器非有限输入：Sparkle 保持上值，Omni 归0）。报告21项。first/second_order 默认参数与积分公式两侧一致。剩余未审计：函数/查询全集、骨骼矩阵/locator、子实体/载具/投射物、加载格式矩阵、状态机 blend_transition 完整对照。
+- 续（审计本轮收口）：新增 D015（Molang 注册名缺口）、D016（Bedrock this 关键字）、D017（包识别/加载格式矩阵），D012 补状态机路径；子实体谓词、控制器间组合一致；Kipfel 为 Sparkle 内容指纹白名单特化，记为设计差异。报告共24项（D001—D017、SAMP-01—07）。覆盖清单已按实际深度改写：二进制映射/默认动画、骨骼矩阵/locator/最终提交、自定义动作/同步、执行预算与函数实现体仍未逐项核，不得称全覆盖。无代码改动，未提交推送。
+- 续：新增 D018（手持物挂点解析/多挂点/剑锚点）、D019（Molang 步数预算仅 Omni 有）；二进制动画映射与 Bezier 回退两侧一致；多人同步记为设计差异。报告26项。仍未核：默认动画/几何/纹理映射、骨骼矩阵 captureBonePivots 与最终提交、函数实现体逐个比对、AnimationProgramAnalyzer 纯度判定、自定义动作/同步逐场景。
+- 续：新增 D020（math.* 实现体：min_angle 参数个数、hermite_blend 量化、random_integer 区间、die_roll 签名等）。报告27项。
+- 续：新增 D021（visible_bounds/骨骼可见键）；修正 D015 后果（ysm.* 未知名求值抛 UnsupportedOperationException）；perlin_noise/bone_* 一致。报告28项。
+- 续：新增 D022（time_of_day 相位）；ctrl.*、relative_block、大部分 query 变量与 Sparkle 逐项对应一致。报告29项。
+- 续：新增 D023（转移自转移/环路）；particle 函数、bone_* 查询与 Sparkle 对应一致。报告30项。
+- 续：D015 范围更正为 98 个 Omni 完全缺失的 ysm.* 名字（含42个 weapon/trident/lance/mace 状态族）；首轮提取漏了包装注册函数。
+- 续：新增 D024（is_close_eyes：Sparkle 条件恒假）；两侧共有 ysm.* 变量逐项核对完成，其余一致。
+- 续：新增 D025（远端玩家 xxa/yya/zza/food_level/盾牌取值来源）。
+- 续：新增 D026（纹理半透明：黑色半透明像素）。
+- 续：新增 D027（内置默认动画资源 4/14 文件内容不同：main/arm/boat/extra）。
+- 续：新增 D028（keyboard/mouse 输入归属门控）；骨骼变换矩阵、sync/defer 函数体核对一致。报告35项。
+- 续：新增 D029（动画 particle_effects：仅 Omni 触发）。报告36项。覆盖清单各行均已落到具体差异或一致结论；仍属静态源码对比，未做数值回放或游戏验证。
