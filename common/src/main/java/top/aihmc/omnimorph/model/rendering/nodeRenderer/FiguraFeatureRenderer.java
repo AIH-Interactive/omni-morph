@@ -20,11 +20,19 @@ public class FiguraFeatureRenderer {
             if (figuraSubmission.avatar() == null)
                 continue;
 
-            figuraSubmission.renderer().apply(
-                    figuraSubmission.avatar(),
-                    figuraSubmission.renderState(),
-                    bufferSource
-            );
+            var avatar = figuraSubmission.avatar();
+            var previousMode = avatar.renderMode;
+            boolean previousPaperdoll = UIHelper.paperdoll;
+            // World and wardrobe submissions can share an Avatar but execute after both
+            // views have been submitted. Use the context captured by this command.
+            avatar.renderMode = figuraSubmission.renderMode();
+            UIHelper.paperdoll = figuraSubmission.paperdoll();
+            try {
+                figuraSubmission.renderer().apply(avatar, figuraSubmission.renderState(), bufferSource);
+            } finally {
+                avatar.renderMode = previousMode;
+                UIHelper.paperdoll = previousPaperdoll;
+            }
         }
 
         if (UIHelper.paperdoll) {
