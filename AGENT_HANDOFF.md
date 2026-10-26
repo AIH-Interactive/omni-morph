@@ -1,8 +1,8 @@
 # 当前任务交接手册
 
-最新有效状态：见文末“当前有效交接：末影龙娘矛姿态参考差异修复（2026-10-26）”。两处已证实差异已修复，相关单测及Fabric构建通过并已提交推送；真实游戏画面待用户确认。
+最新有效状态：见文末“当前有效交接：战术酒狐资源激活范围修复（2026-10-26）”。资源范围/同名覆盖已修复，五项相关单测及Fabric构建通过，代码已提交推送；真实游戏画面待用户确认。
 
-更新时间：2026-10-26（Asia/Seoul；选片与持物矩阵两个检查点完成，额度剩54%，未触发交接阈值。）
+更新时间：2026-10-26（Asia/Seoul；战术酒狐修复自动验收完成，最近可靠五小时额度剩34%，未触发交接阈值。）
 
 ## 接续入口与约束
 
@@ -1064,3 +1064,22 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - **额度：** 两阶段后可靠Plus五小时剩60%/54%，最终周剩78%，重置Unix1793032806/1793601498，未触发阈值，当前Agent正常更新手册，未委派Luna。
 - **下一步：** 两处已证实差异的自动修复完成，无新增开发阶段。用户重启后使用末影龙娘测试矛抬起/持续持握/疲劳末段/松开与三叉戟，兼验芙宁娜和拉弓。若仍有差异，以新日志/使用tick/当前片段和骨骼矩阵定位，不能再次把原版SPEAR误配到legacy TRIDENT动画。
 - **约束与文档：** docs/YSM_SPEAR_POSE_FIX.md为本轮记录，docs/YSM_SPEAR_FIX_PLAN.md为上一轮历史记录（其中B1/SPEAR兼容结论已被本节纠正）。保持CodeGraph优先、当前分支检查点、JDK25/前台日志、禁止Qt offscreen、符号链接安装和有限范围。
+
+
+## 当前有效交接：战术酒狐资源激活范围修复（2026-10-26）
+
+本节覆盖当前任务状态，P1/P2、B1～B8及末影龙娘矛修复已完成状态保留，不重启历史计划。
+用户先要求只读分析16_tactics截图，随后授权开始修复并查询额度。当前任务单阶段自动验收完成，无剩余自动实施阶段。
+
+- **已完成/已验证：** 新格式玩家动画/控制器只激活清单声明的资源，不再扫描备用控制器、投射物/载具动画进入玩家域。同名作者动画按声明顺序后者覆盖，包括显式空动画，移除骨骼数/事件数评分。旧格式发现机制及子实体独立装配未改；默认fallback策略未改，未改用户模型或默认资源。
+- **原始RED：** build/reports/outfit/resource-scope-red.log。真实refs/avatars/16_tactics正式加载后，备用parallel_0控制器压掉身体parallel0；箭矢同名片段12骨骼得24分，覆盖身体3骨骼得6分。枪gun和定位条纹dingwei连续三次采样均未隐藏；同名优先级/空片段断言失败。
+- **GREEN：** build/reports/outfit/resource-scope-final.log，BUILD SUCCESSFUL in 1m 27s，26 tasks。ResourceScope、Package、DefaultAnimation、MaterialNative、HandAnimation五项显式单测和Fabric build全部通过，附带LibraryPreviewRuntime通过。真实模型枪/定位条纹连续隐藏、变量开关枪有效、定位条纹不随枪开关显示、箭矢资源仍保留；文件夹/ZIP忽略未声明资源、旧格式回归通过；末影龙娘/芙宁娜矛和弓回归通过。
+- **中途失败/已处理：** 新增变量切换断言未捕获ParseException导致一次测试编译失败，已修正；材质测试新格式夹具未在清单声明其动画，造成preview idle为空，resource-scope-fixture-failure.log保留该失败；仅补齐夹具声明后重跑通过。没有恢复错误目录扫描来绕过测试。
+- **真实未验证：** 游戏GPU画面/实际控件输入仍MANUAL/PENDING，不把CPU显隐断言当作画面验收。用户重启客户端并重新加载16_tactics后确认默认枪/脚下条纹消失、作者枪开关有效，兼验持矛。此前独立BoneQuery/PlayerTimeline/FunctionContract/MaterialInput/Avif/Stability已知失败保留，未宣称全历史测试通过。
+- **Git：** 当前ysm-alignment。代码提交1f9fdea4997bff444879a4c9817cdd95b4887c5f，已push origin并用ls-remote核对与本地HEAD一致。当前手册/记录在随后文档收尾提交，最终HEAD以git为准；不新建/切换分支。原未跟踪.omc/、mod_log/、patch/保留，无后台构建或测试。
+- **文件：** YsmManifestReader、YsmModelRuntime、common/build.gradle、新增YsmResourceScopeSmokeTest，更新YsmPackageSmokeTest及YsmMaterialNativeSmokeTest夹具。正式记录docs/YSM_RESOURCE_SCOPE_FIX.md；AGENT_HANDOFF.md已更新入口和当前节。未改版本、后端、用户资源，无模型名/作者/哈希生产特化。
+- **产物：** fabric/build/libs/omni-morph-1.0.0-alpha.4.1+26.1.2-fabric-mc.jar，19036473字节，SHA256 004a2e62114f85701ca804f6d3f81ea0c5ccf16a8d675ea6ab366fd9c035b795。用户mods通过符号链接接入，没有复制覆盖或自动操作Minecraft。
+- **额度：** Plus主要五小时池剩43%→38%→34%，最终周剩75%，重置Unix1793032806/1793601498；未触发阈值，当前Agent正常更新手册，未委派Luna。
+- **最小下一步：** 仅用户实机验收；当前没有待继续的实施或新增阶段。若仍异常，先核对实际加载JAR/重新加载资源，再采集具体骨骼/片段证据，不直接扩展为其它渲染重构。
+- **约束：** CodeGraph优先；JDK25；所有测试/编译前台PowerShell经Tee build.log、立即检查退出码并读日志；diff/cached diff检查；当前分支提交推送并核对远端；禁止Qt offscreen。保留工作区，达到额度阈值才委派gpt-6-luna整理交接，不猜额度。
+- **关联文档：** docs/YSM_RESOURCE_SCOPE_FIX.md、docs/YSM_ANIMATION_ENGINE_COMPARISON.md、docs/YSM_ALIGNMENT_PLAN.md、docs/YSM_SPEAR_POSE_FIX.md。新格式作者必须明确声明要激活的动画/控制器；旧格式资源扫描隔离未在本任务扩展修改。
