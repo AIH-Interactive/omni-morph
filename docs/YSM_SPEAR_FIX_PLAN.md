@@ -9,8 +9,8 @@
 | 1 | B1/B3：SPEAR 兼容候选、未解析 use 保持 hold | 完成 bb962baf |
 | 2 | B2：post_swing 不再关闭整个默认手部域 | 完成 d65510d5 |
 | 3 | B4/B5：武器分类与 charge 家族时钟边界 | 完成 8f128a38 |
-| 4 | B6/B7：手部阶段归属判定与一次性诊断 | 完成，本检查点 |
-| 5 | B8：空候选只排除自身，不阻断其它默认候选；最终回归 | 待实施 |
+| 4 | B6/B7：手部阶段归属判定与一次性诊断 | 完成 9b25ec4a |
+| 5 | B8：手部空占位默认回退；最终回归 | 完成，本检查点 |
 
 ## 阶段 1
 
@@ -40,3 +40,11 @@
 - 核心use/swing/hold编号声明与原阶段共同决定builtin归属，任一明确custom状态接管该核心阶段；前置/后置hook保持独立层，不把post_use出现等同于全面禁止native use。
 - handAnimationDiagnostics与[YSM hand]日志按播放器实例、动作去重，包含动作/物品ID/候选。成功选片不报缺失，空手hold不报缺失。
 - `spear-b6-b7-green.log`：HandAnimation、BuiltinController、DefaultAnimation、ControllerPhase和Fabric build PASS，1分2秒/25 tasks，附带LibraryPreviewRuntime PASS。
+
+## 阶段 5 / 最终验收
+
+- 用户追加B8后，手部空占位允许同名默认回退，且空ID/标签等候选不再全局封死其它默认候选。有效作者片段仍优先，显式禁用仍生效，非手部空idle等原语义保留。默认排除表、实际nativeClip播放和第一人称采样一并处理。
+- RED `spear-b8-red.log`：实际Avatar中的空use_mainhand:lance阻止同名默认加载。HandAnimation另覆盖空ID候选→默认lance、有效作者覆盖默认及显式禁用；DefaultAnimation覆盖真实装配后空手部同名默认播放，原空idle优先和冻结线索引测试仍通过。
+- 实际芙宁娜模型新增回放：作者use_mainhand:spear真实选中且非空，sampledTime保持NaN，推进0.5秒时钟为0.5秒，采样确实改变RightArm；持续使用保留实例，松开退休。`spear-b8-final.log`明确输出PASS real model spear；原弓、三叉戟测试保留并通过。测试按格式/片段/动作声明处理，不添加模型专用生产分支。
+- 最终九项显式单测：HandAnimation、DefaultAnimation、NativeState、MaterialNative、FirstPersonController、VanillaState、SoundNative、Input、BuiltinController，加Fabric build全部PASS，1分28秒/30 tasks，附带LibraryPreviewRuntime PASS。已按JDK25前台PowerShell Tee记录并检查退出码/日志。git diff --check PASS。
+- B1～B8实施范围已完成。人工游戏右键输入/GPU画面/听感/双客户端仍MANUAL/PENDING，CPU回放不能代替实机验收。既有BoneQuery/PlayerTimeline/FunctionContract/MaterialInput/Avif/Stability失败不在本轮修复范围，不宣称全项目历史测试通过。
