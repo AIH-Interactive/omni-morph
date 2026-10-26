@@ -7,8 +7,8 @@
 | 阶段 | 范围 | 状态 |
 | --- | --- | --- |
 | 1 | B1/B3：SPEAR 兼容候选、未解析 use 保持 hold | 完成 bb962baf |
-| 2 | B2：post_swing 不再关闭整个默认手部域 | 完成，本检查点 |
-| 3 | B4/B5：武器分类与 charge 家族时钟边界 | 待实施 |
+| 2 | B2：post_swing 不再关闭整个默认手部域 | 完成 d65510d5 |
+| 3 | B4/B5：武器分类与 charge 家族时钟边界 | 完成，本检查点 |
 | 4 | B6/B7：手部阶段归属判定与一次性诊断 | 待实施 |
 | 5 | B8：空候选只排除自身，不阻断其它默认候选；最终回归 | 待实施 |
 
@@ -25,3 +25,11 @@
 - RED `spear-b2-red.log`：实际 Avatar 存在post_swing时缺少hold_mainhand:spear默认。
 - 移除POST_SWING对整份手部默认资源的加载禁用。资源准备与运行时具体stage的builtin/作者互斥分离，原精确阶段播放门控保留。
 - `spear-b2-final.log`：DefaultAnimation、BuiltinController、HandAnimation及Fabric build PASS，56秒/24 tasks（附带LibraryPreviewRuntime PASS）。未改资源或作者控制器，不将CPU结果冒称实机画面通过。
+
+## 阶段 3
+
+- RED `spear-b4-b5-red.log`：旧spear use的sampledTime被覆盖。
+- charge时间覆盖仅适用于lance_charge/riding_charge/fall_flying_charge及use_*:lance；作者:spear、物品ID和通用use保留自有时间线。专用候选缺失时允许通用use，专用作者仍优先。
+- 复用YsmHandItemType的lance分类：原版*_spear（SPEAR使用动画）或pike标签，组件本身不再决定武器家族。有组件才可进行charge时间映射；无组件仍能选相应片段。
+- 新用例覆盖原版矛无组件、pike无组件、任意有组件物品不进lance_charge、generic回退和旧:spear时钟。
+- `spear-b4-b5-final.log`：HandAnimation、VanillaState、Input和Fabric build PASS，51秒/24 tasks，附带LibraryPreviewRuntime PASS。
