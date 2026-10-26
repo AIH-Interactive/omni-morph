@@ -23,6 +23,10 @@ public interface Function {
      */
     Object evaluate(ExecutionContext<?> context, ArgumentCollection arguments);
 
+    default float evaluateFloat(ExecutionContext<?> context, ArgumentCollection arguments) {
+        return top.aihmc.omnimorph.molang.runtime.binding.ValueConversions.asFloat(evaluate(context, arguments));
+    }
+
     /**
      * Validates the argument count for this function.
      * Override to enforce specific argument counts.
