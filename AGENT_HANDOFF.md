@@ -1125,3 +1125,22 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - **后续观察（未实施）：** `buildDefaultsFromAnimations` 仍是“无 schema 时全量注册”的兜底，其他引擎管理的片段仍可能进入 action 表；冒号类名字经 `normalize` 截断后 id 与 `stop()` 目标不同，风险表现与 base 层不同。若再遇到“移动后隐藏/常驻层失效”，先查该片段是否被 `stopAll()` 移除。是否把默认 action 收窄到 `ysm.json` 的 `extra_animation` 声明（参考做法）属行为变更，需用户决定。
 - **Git/工作区：** 分支 `ysm-alignment`，代码提交 `e4ae1553` 已 push 并核对 `git ls-remote` 一致；随后本手册与 `docs/YSM_ASTRONAUT_VISIBILITY_FIX.md` 独立文档提交，最终 HEAD 以实际 git 为准。原未跟踪 `.omc/`、`mod_log/`、`patch/` 保留，无运行中构建/测试。
 - **下一步：** 用户重启客户端后实机确认：人形模式静止与移动均不再露出狐狸头盔；同时可兼验此前拉弓、矛/三叉戟、战术酒狐动作回归。无新增自动实施阶段。
+
+## 当前有效交接：芙宁娜起步/停步露出茶会道具已修复（2026-10-26 23:30）
+
+本节覆盖上一节“下一步”。用户报告起步/停止瞬间出现不该出现的部件；已用 `YSMParser` 解包 + 真实资源 CPU 回放定位并修复，提交推送完成，真实画面仍 `MANUAL/PENDING`。
+
+- **现象与部件：** 腿部周围闪出的不是腿部件，而是茶会/沙龙道具骨骼：`Cake1..7`、`Cup1`、`Book`、`Star4`、`Bubble`、`ysmGlow_CakeTurntable`、`SalonSolitaire` 四个召唤物。解包数据：`pre_parallel2` 用 `scale: 0.0` 隐藏它们；`player.post_main` 的 `待机` 状态片段 `默认姿态` 把这些骨骼 scale 写成 `0`，`走路前进` 完全不写；`parallel2` 只管 `v.roaming.WB` 的 B/W 形态，与本问题无关。
+- **证据（修复前）：** CPU 回放 idle 0–5 帧、第 6 帧起走路：frame 1 道具 `visible=true, scale=1`，frame 2 `scale=0.5`，frame 3 恢复隐藏；frame 8（刚开始走路）再次 `visible=true, scale=0.5`，frame 9 恢复。参考 `AnimationControllerInstance.processBeginningTransition` 只对 incoming 实际有通道的骨骼混合，且以 `boneSnapshot`（上一帧实际姿态，已含 base 隐藏）为基准，所以 `0→0` 不露。
+- **根因：** `YsmControllerPoseLayer.compose` / `YsmBonePose.blend` 在 `blend_transition` 中把单侧缺失的骨骼/通道用 **identity** 补齐（scale=1），并把旧片段独有的骨骼向 identity 渐隐；于是任何“状态片段把隐藏部件 scale 写成 0”的转移都会从 1→0 / 0→1 走过，隐藏道具在 0.1s 过渡窗口内闪现。另外 base 静态隐藏骨骼的 `animScaleRaw` 仍为 1（仅 `visible=false`），不能拿原始 scale 当过渡起点。
+- **修复（`ysm-alignment@eec68b5`，已推送，远端 `eec68b50` 一致）：**
+  - `YsmBonePose.fillMissingChannels` / `keepWrittenChannels`：缺省通道取当前骨骼姿态；只保留 incoming 写入的通道。
+  - `YsmControllerPoseLayer.compose` 增加 `currentPose` 参数；过渡期间只遍历 **incoming** 骨骼（新片段不写的骨骼立即交还 base 层，对齐参考），缺失通道以当前姿态为起点，不再用 identity。
+  - `YsmAnimationPlayer.currentBonePose`：控制器应用前读取骨骼姿态，`visible=false` 时按 scale 0 处理。
+  - 未改模型/默认资源/版本/后端，无模型名/作者/哈希特化。
+- **测试：** `YsmControllerPoseLayerSmokeTest` 新增“incoming scale-0 hide 必须从当前姿态开始”（RED `... instead of identity: 0.5`）、“只写 incoming 自己拥有的通道”；原“移除骨骼向 identity 渐隐”断言改为参考语义“立即释放”。真实模型临时探针（未提交）修复后 0–23 帧 `exposed=[]`，起停帧不再闪。回归 PASS：ControllerPoseLayer、BoneMatrix、PoseSampling、SamplingAlignment、BeginningTransition、ControllerTransition、ControllerPhase、Isolation、Context、ControllerSound、BuiltinController、FirstPersonController、HandAnimation、AstronautVisibility、DefaultAnimation、MaterialNative + `:fabric:build`（`furina-transition-final.log`，2m 2s）。
+- **行为变化：** 控制器切换时新片段不写的骨骼不再向 identity 渐隐，而是立即回到下层；部分通道的骨骼也只写自己拥有的通道。这是参考语义；若其他模型因此出现姿态跳变，先核对该状态 `blend_transition` 与片段通道覆盖。
+- **未验证：** 真实 GPU 画面/输入仍 `MANUAL/PENDING`；既有失败（BoneQuery、PlayerTimeline、FunctionContract、MaterialInput、Avif、Stability）不在范围。
+- **工具与文档：** `AGENTS.md` 已记录 `YSMParser` 解包流程（提交 `a401c3f9`）；解包产物与逐帧分析在 `build/tmp/furina-out`、`build/reports/outfit/furina-analysis|furina-dump`（均被忽略，未提交）。临时 dump/probe 测试类已删除、`common/build.gradle` 已还原。详细记录：`docs/YSM_TRANSITION_VISIBILITY_FIX.md`。
+- **Git/工作区：** 分支 `ysm-alignment`，HEAD `eec68b50`，push 曾遇 GitHub 500（`Internal Server Error`），用 `--no-thin` 重试后成功并核对远端；文档随后独立提交。原未跟踪 `.omc/`、`mod_log/`、`patch/` 保留。无运行中构建/测试。
+- **下一步：** 用户重启客户端实机确认起步/停止不再闪道具，并兼验拉弓、矛/三叉戟、战术酒狐、宇航员回归；无新增自动实施阶段。
