@@ -2,12 +2,15 @@ package top.aihmc.omnimorph.backend2.protocol;
 
 import com.google.protobuf.ByteString;
 import top.aihmc.omnimorph.backend2.protocol.generated.Cloud;
+import top.aihmc.omnimorph.model.ysm.sync.YsmDisplayState;
 import top.aihmc.omnimorph.model.ysm.sync.YsmSyncMessage;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /** Maps model state objects to generated protobuf fields; no M7 bytes enter the new wire. */
@@ -55,7 +58,58 @@ public final class YsmProtobuf {
             }
             result.setPlaybacks(playbacks);
         }
+        if (state.display() != null) {
+            result.setDisplay(display(state.display()));
+        }
         return result.build();
+    }
+
+    /** D025: optional owner-published display values; absent fields stay unknown. */
+    static Cloud.YsmDisplay display(YsmDisplayState display) {
+        var result = Cloud.YsmDisplay.newBuilder();
+        if (display.foodLevel() != null) result.setFoodLevel(display.foodLevel());
+        if (display.experienceLevel() != null) result.setExperienceLevel(display.experienceLevel());
+        if (display.flying() != null) result.setFlying(display.flying());
+        if (display.strafeInput() != null) result.setStrafeInput(display.strafeInput());
+        if (display.verticalInput() != null) result.setVerticalInput(display.verticalInput());
+        if (display.forwardInput() != null) result.setForwardInput(display.forwardInput());
+        if (display.effectLevels() != null) {
+            result.setHasEffects(true);
+            display.effectLevels().forEach((id, level) ->
+                    result.addEffects(Cloud.YsmDisplayEffect.newBuilder().setId(id).setLevel(level)));
+        }
+        return result.build();
+    }
+
+    static YsmDisplayState display(Cloud.YsmDisplay display) throws IOException {
+        if (display.getEffectsCount() > YsmDisplayState.MAX_EFFECTS
+                || (!display.getHasEffects() && display.getEffectsCount() > 0)) {
+            throw new IOException("Invalid display effects");
+        }
+        Map<String, Integer> effects = null;
+        if (display.getHasEffects()) {
+            effects = new LinkedHashMap<>();
+            for (var effect : display.getEffectsList()) {
+                if (effect.getLevel() > 256 || effects.put(effect.getId(), effect.getLevel()) != null) {
+                    throw new IOException("Invalid display effect");
+                }
+            }
+        }
+        if (display.hasExperienceLevel() && display.getExperienceLevel() < 0) { // uint32 above Integer.MAX_VALUE
+            throw new IOException("Invalid display experience");
+        }
+        try {
+            return new YsmDisplayState(
+                    display.hasFoodLevel() ? display.getFoodLevel() : null,
+                    display.hasExperienceLevel() ? display.getExperienceLevel() : null,
+                    display.hasFlying() ? display.getFlying() : null,
+                    display.hasStrafeInput() ? display.getStrafeInput() : null,
+                    display.hasVerticalInput() ? display.getVerticalInput() : null,
+                    display.hasForwardInput() ? display.getForwardInput() : null,
+                    effects);
+        } catch (IllegalArgumentException invalid) {
+            throw new IOException("Invalid display state", invalid);
+        }
     }
 
     public static YsmSyncMessage.State state(Cloud.YsmState state) throws IOException {
@@ -81,7 +135,8 @@ public final class YsmProtobuf {
                         value.getFadeSpeed(), value.getFlags())).toList();
         return new YsmSyncMessage.State(state.hasTexture() ? state.getTexture() : null,
                 state.hasControls() ? controls : null, state.hasActions() ? actions : null,
-                state.hasControllers() ? controllers : null, state.hasPlaybacks() ? playbacks : null);
+                state.hasControllers() ? controllers : null, state.hasPlaybacks() ? playbacks : null,
+                state.hasDisplay() ? display(state.getDisplay()) : null);
     }
 
     private static Cloud.YsmIdentity.Builder identity(YsmSyncMessage message, long revision, long sequence,
