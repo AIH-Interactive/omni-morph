@@ -56,9 +56,23 @@ public class YsmActionRuntime implements AutoCloseable {
                 || normalized.equals("attack_empty")
                 || normalized.startsWith("pre_main")
                 || normalized.startsWith("pre_parallel")
+                || isParallelSlot(normalized)
                 || normalized.startsWith("player_ctrl")
                 || normalized.contains("@player_ctrl")
                 || normalized.contains("locator");
+    }
+
+    /**
+     * Parallel slots are engine base layers played by the animation player, never user actions.
+     * Registering them here let {@link #stopAll()} stop the author's always-on body layers.
+     */
+    private static boolean isParallelSlot(String normalized) {
+        String prefix = "parallel";
+        if (!normalized.startsWith(prefix))
+            return false;
+        int index = prefix.length();
+        return normalized.length() == index + 1
+                && normalized.charAt(index) >= '0' && normalized.charAt(index) <= '7';
     }
 
     public Collection<YsmActionDefinition> all() {
