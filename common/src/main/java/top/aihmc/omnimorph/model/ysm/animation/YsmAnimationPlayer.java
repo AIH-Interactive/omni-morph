@@ -2009,7 +2009,7 @@ public class YsmAnimationPlayer {
             syncNativeHoldAnimation(slot, poseOrder, prefix + ":fishing", prefix);
             return;
         }
-        if (isKineticSpear(item)) {
+        if (isLanceWeapon(item)) {
             List<String> names = new ArrayList<>();
             if (entity.isPassenger())
                 names.add("lance_riding_idle");
@@ -2025,7 +2025,7 @@ public class YsmAnimationPlayer {
     private String[] useAnimationNames(LivingEntity entity, boolean left, ItemStack item) {
         String prefix = left ? "use_offhand" : "use_mainhand";
         List<String> names = new ArrayList<>();
-        if (isKineticSpear(item)) {
+        if (isLanceWeapon(item)) {
             if (entity.isPassenger())
                 names.add("lance_riding_charge");
             if (entity.isFallFlying())
@@ -2033,28 +2033,28 @@ public class YsmAnimationPlayer {
             names.add("lance_charge");
         }
         names.addAll(Arrays.asList(conditionalAnimationNames(prefix, item, true)));
-        // Kinetic weapons need a dedicated charge pose. Generic legacy actions
-        // can point the authored grip in an unrelated direction.
-        if (!isKineticSpear(item)) {
-            names.add(prefix);
-        }
+        // A generic authored use is the final fallback after all specialized candidates.
+        names.add(prefix);
         return names.toArray(String[]::new);
     }
 
     private void sampleKineticChargeAnimation(String slot, LivingEntity entity, ItemStack item) {
-        if (!isKineticSpear(item))
+        if (!isLanceWeapon(item))
             return;
         String name = nativeHandAnimations.get(slot);
         PlayingAnimation animation = name == null ? null : activeAnimations.get(name);
         KineticWeapon weapon = item.get(DataComponents.KINETIC_WEAPON);
-        if (animation == null || weapon == null || animation.clip.length <= 0f)
+        if (animation == null || weapon == null || animation.clip.length <= 0f
+                || !Set.of("lance_charge", "lance_riding_charge", "lance_fall_flying_charge",
+                        "use_mainhand:lance", "use_offhand:lance").contains(normalizeName(name))) {
             return;
+        }
         float duration = Math.max(1f, weapon.computeDamageUseDuration());
         animation.sampledTime = Math.clamp(entity.getTicksUsingItem() / duration, 0f, 1f) * animation.clip.length;
     }
 
     private void sampleKineticSwingAnimation(String slot, LivingEntity entity, ItemStack item) {
-        if (!isKineticSpear(item))
+        if (!isLanceWeapon(item))
             return;
         String name = nativeHandAnimations.get(slot);
         PlayingAnimation animation = name == null ? null : activeAnimations.get(name);
@@ -2062,16 +2062,14 @@ public class YsmAnimationPlayer {
             animation.sampledTime = Math.clamp(entity.getAttackAnim(0f), 0f, 1f) * animation.clip.length;
     }
 
-    private static boolean isKineticSpear(ItemStack item) {
-        return item != null && !item.isEmpty()
-                && item.getUseAnimation() == ItemUseAnimation.SPEAR
-                && item.get(DataComponents.KINETIC_WEAPON) != null;
+    private static boolean isLanceWeapon(ItemStack item) {
+        return top.aihmc.omnimorph.model.ysm.YsmHandItemType.matches(item, "lance");
     }
 
     private String[] swingAnimationNames(InteractionHand hand, ItemStack item) {
         String prefix = hand == InteractionHand.MAIN_HAND ? "swing" : "swing_offhand";
         List<String> names = new ArrayList<>();
-        if (hand == InteractionHand.MAIN_HAND && isKineticSpear(item)) {
+        if (hand == InteractionHand.MAIN_HAND && isLanceWeapon(item)) {
             if (currentEntity instanceof LivingEntity living && living.isFallFlying())
                 names.add("lance_lunge");
             names.add("lance_jab");

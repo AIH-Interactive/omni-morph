@@ -100,7 +100,9 @@ public final class YsmHandAnimationSmokeTest {
             update.invoke(player, entity);
             require(targeted(player, "use_mainhand:spear"),
                     "kinetic spear selects the authored SPEAR use pose at tick " + useTicks);
-            require(!targeted(player, "use_mainhand"), "kinetic spear must not use an unrelated generic action");
+            require(!targeted(player, "use_mainhand"), "specialized spear use precedes the generic action");
+            require(Float.isNaN(player.getActiveAnimation("use_mainhand:spear").sampledTime),
+                    "legacy spear use keeps its authored timeline");
             require(targeted(player, "hold_mainhand:spear"), "missing kinetic charge clip retains the authored grip");
         }
 
@@ -130,6 +132,7 @@ public final class YsmHandAnimationSmokeTest {
         update.invoke(player, entity);
         require(bowHold != null && !bowHold.paused, "unresolved non-kinetic use also preserves its grip");
 
+        verifySpearClassification(entity, update);
         entity.main = new ItemStack(Items.TRIDENT);
         player = player("hold_mainhand:spear", "use_mainhand:spear");
         update.invoke(player, entity);
@@ -156,6 +159,47 @@ public final class YsmHandAnimationSmokeTest {
                 "offhand trident returns to its grip after release");
         verifyUseTransforms(entity);
         System.out.println("PASS native hand state: holding, using and release preserve conditional clip ownership");
+    }
+
+    private static void verifySpearClassification(HandEntity entity, Method update) throws ReflectiveOperationException {
+        entity.using = true;
+        entity.main = new ItemStack(Items.DIAMOND_SPEAR);
+        entity.main.set(DataComponents.KINETIC_WEAPON, new KineticWeapon(10, 10,
+                Optional.empty(), Optional.empty(), Optional.empty(), 1f, 1f, Optional.empty(), Optional.empty()));
+        var generic = player("use_mainhand");
+        update.invoke(generic, entity);
+        require(targeted(generic, "use_mainhand") && Float.isNaN(generic.getActiveAnimation("use_mainhand").sampledTime),
+                "missing specialized kinetic use may fall back to the generic authored clock");
+        entity.main = new ItemStack(Items.BOW);
+        entity.main.set(DataComponents.KINETIC_WEAPON, new KineticWeapon(10, 10,
+                Optional.empty(), Optional.empty(), Optional.empty(), 1f, 1f, Optional.empty(), Optional.empty()));
+        var arbitrary = player("lance_charge", "use_mainhand$literal", "use_mainhand$minecraft:bow");
+        update.invoke(arbitrary, entity);
+        require(targeted(arbitrary, "use_mainhand$minecraft:bow") && !targeted(arbitrary, "lance_charge"),
+                "a component alone does not classify arbitrary items as a lance");
+        entity.main = new ItemStack(Items.DIAMOND_SPEAR);
+        entity.main.set(DataComponents.CONSUMABLE, net.minecraft.world.item.component.Consumable.builder()
+                .animation(net.minecraft.world.item.ItemUseAnimation.SPEAR).build());
+        var noKinetic = player("lance_charge");
+        update.invoke(noKinetic, entity);
+        require(targeted(noKinetic, "lance_charge") && Float.isNaN(noKinetic.getActiveAnimation("lance_charge").sampledTime),
+                "native spear classification does not require a kinetic component for selection");
+        var holder = Items.BOW.builtInRegistryHolder();
+        var previous = holder.tags().toList();
+        Method bindTags = holder.getClass().getDeclaredMethod("bindTags", java.util.Collection.class);
+        bindTags.setAccessible(true);
+        try {
+            bindTags.invoke(holder, java.util.List.of(net.minecraft.tags.TagKey.create(
+                    net.minecraft.core.registries.Registries.ITEM, net.minecraft.resources.Identifier.parse("sparkle_morpher:pike"))));
+            entity.main = new ItemStack(Items.BOW);
+            entity.main.set(DataComponents.CONSUMABLE, net.minecraft.world.item.component.Consumable.builder()
+                    .animation(net.minecraft.world.item.ItemUseAnimation.SPEAR).build());
+            var pike = player("lance_charge");
+            update.invoke(pike, entity);
+            require(targeted(pike, "lance_charge"), "pike tags select lance actions without a kinetic component");
+        } finally {
+            bindTags.invoke(holder, previous);
+        }
     }
 
     private static void verifyReferenceBow(YsmModelRuntime runtime, HandEntity entity, Method update)
