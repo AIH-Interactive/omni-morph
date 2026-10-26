@@ -43,3 +43,17 @@
   ```
 - 使用约束：解包产物只放在 `build/` 等被忽略目录，不提交、不修改 `refs/avatars` 源文件；生产代码和测试不得依赖 YSMParser，它只是离线分析工具。
 - 解包后按需解析（动画名、骨骼 scale/position/rotation 通道与 Molang 表达式、controller 状态/转移/blend_transition），不要把数 MB 的 JSON 全量打印到终端。
+
+## 第三方模组状态机联动规范
+
+OmniMorph 后续接入 TaCZ、载具、战斗及其他第三方模组时，应遵循以下原则：
+
+1. 第三方模组状态统一通过独立的 Integration Bridge 采集和标准化，不得为 YSM Molang 与 Figura Lua 分别维护重复的状态采集逻辑。
+2. 凡是新增供 YSM Molang 状态机使用的第三方模组状态、查询能力或事件，必须检查 Figura Lua 是否已有等价 API；没有等价能力时，应同步设计并实现 Figura Lua API。
+3. Molang 与 Lua 必须使用同一份标准化状态快照，保证状态含义、生命周期和缺省语义一致。
+4. 优先复用 Minecraft 原版同步数据；需要额外同步的状态应遵循能力协商、身份验证、隐私设置及带宽限制。
+5. 第三方模组联动必须为可选依赖，未安装对应模组时不得影响 OmniMorph 核心功能。
+6. Lua API 优先提供只读状态查询及必要事件，不直接暴露危险的第三方内部操作或强制修改状态机的接口。
+7. 每项联动均需覆盖本地、远端、缺失模组、无同步数据及版本兼容场景，并验证 Molang 与 Lua 读取结果的一致性。
+
+目标：让 YSM 模型和 Figura 模型平等使用 OmniMorph 支持的全部第三方模组联动能力。
