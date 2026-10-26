@@ -69,7 +69,10 @@ public class YsmAnimationPlayer {
     private final Set<String> controllerFunctionReloads = new HashSet<>();
     private final Map<String, YsmControllerPoseLayer> controllerPoseLayers = new LinkedHashMap<>();
     private final Map<String, YsmControllerPoseLayer> armControllerPoseLayers = new LinkedHashMap<>();
+    /** Per-arm use/swing action ("left"/"right"). */
     private final Map<String, String> nativeHandAnimations = new HashMap<>();
+    /** Per-arm hold, kept separately so an action pauses rather than replaces it. */
+    private final Map<String, String> nativeHoldAnimations = new HashMap<>();
     private final Set<String> disabledNativeAnimations = new HashSet<>();
     private final Set<String> baseHiddenBones = new HashSet<>();
     private final YsmAnimationFrameClock frameClock = new YsmAnimationFrameClock();
@@ -105,6 +108,8 @@ public class YsmAnimationPlayer {
         public float targetWeight = 0f;
         public float fadeSpeed = 0f;
         public float sampledTime = Float.NaN;
+        /** Reference PlayState.PAUSE: the clock keeps running but no pose is submitted. */
+        public boolean paused;
         private boolean retired;
         private String controllerName;
         private YsmSyncMessage.Playback remoteState;
@@ -916,7 +921,7 @@ public class YsmAnimationPlayer {
             if (!firstPerson && isFirstPersonController(anim.controllerName)) {
                 continue;
             }
-            if (anim.weight <= 0f) continue;
+            if (anim.weight <= 0f || anim.paused) continue;
 
             float t = anim.time;
             boolean baseAnimation = isBaseAnimation(anim.clip.name);
@@ -1503,16 +1508,20 @@ public class YsmAnimationPlayer {
 
         // Native YSM locators already encode their own authored hand pose.
         // Only use the vanilla-like fallback when that side has no locator.
-        if (!nativeHandAnimations.containsKey("right") && !hasHandLocator(false)) {
+        if (!hasNativeHandAnimation("right") && !hasHandLocator(false)) {
             applyNativeArmPose(false, itemForArm(entity, false, mainLeft),
                     usingItem && isHandForArm(usedHand, false, mainLeft),
                     isHandForArm(swingingHand, false, mainLeft), swingAmount, firstPerson);
         }
-        if (!nativeHandAnimations.containsKey("left") && !hasHandLocator(true)) {
+        if (!hasNativeHandAnimation("left") && !hasHandLocator(true)) {
             applyNativeArmPose(true, itemForArm(entity, true, mainLeft),
                     usingItem && isHandForArm(usedHand, true, mainLeft),
                     isHandForArm(swingingHand, true, mainLeft), swingAmount, firstPerson);
         }
+    }
+
+    private boolean hasNativeHandAnimation(String slot) {
+        return nativeHandAnimations.containsKey(slot) || nativeHoldAnimations.containsKey(slot);
     }
 
     private boolean hasHandLocator(boolean left) {
@@ -1531,59 +1540,89 @@ public class YsmAnimationPlayer {
         }
 
         HumanoidArm mainArm = entity.getMainArm();
-        if (entity.isUsingItem()) {
-            boolean left = entity.getUsedItemHand() == InteractionHand.MAIN_HAND
-                    ? mainArm == HumanoidArm.LEFT
-                    : mainArm != HumanoidArm.LEFT;
+        boolean usingItem = entity.isUsingItem();
+        InteractionHand usedHand = usingItem ? entity.getUsedItemHand() : null;
+        String useSlot = null;
+        boolean keepHoldWhileUsing = false;
+        if (usingItem) {
+            boolean left = handSlotIsLeft(usedHand, mainArm);
+            useSlot = left ? "left" : "right";
             ItemStack item = entity.getUseItem();
             String[] names = useAnimationNames(entity, left, item);
             if (isKineticSpear(item) && firstHandAnimation(names) == null) {
                 // Legacy :spear clips describe a trident throw. Keep the authored grip
                 // when this model has no kinetic charge pose; the item handles its use orientation.
-                syncHoldingAnimation(entity, entity.getUsedItemHand(), left);
+                keepHoldWhileUsing = true;
+                syncNativeHandAnimation(useSlot, false);
             } else {
-                syncNativeHandAnimation(left ? "left" : "right", true, names);
-                sampleKineticChargeAnimation(left ? "left" : "right", entity, item);
+                syncNativeHandAnimation(useSlot, true, names);
+                sampleKineticChargeAnimation(useSlot, entity, item);
             }
-            syncNativeHandAnimation(left ? "right" : "left", false);
-        } else {
-            syncHoldingAnimation(entity, InteractionHand.MAIN_HAND, mainArm == HumanoidArm.LEFT);
-            syncHoldingAnimation(entity, InteractionHand.OFF_HAND, mainArm != HumanoidArm.LEFT);
         }
 
         // The use slot follows the swing slot in YSM. A swing pulse must not replace
         // the drawing pose of the same hand while the item is still being used.
-        boolean swingUsesActiveHand = entity.isUsingItem()
-                && entity.swingingArm == entity.getUsedItemHand();
+        boolean swingUsesActiveHand = usingItem && entity.swingingArm == usedHand;
         if (entity.swinging && !wasSwinging && !swingUsesActiveHand) {
-            boolean left = entity.swingingArm == InteractionHand.MAIN_HAND
-                    ? mainArm == HumanoidArm.LEFT
-                    : mainArm != HumanoidArm.LEFT;
+            boolean left = handSlotIsLeft(entity.swingingArm, mainArm);
             ItemStack item = entity.getItemInHand(entity.swingingArm);
             String[] names = swingAnimationNames(entity.swingingArm, item);
             playNativeHandOnce(left ? "left" : "right", names);
             sampleKineticSwingAnimation(left ? "left" : "right", entity, item);
         }
+        String swingSlot = entity.swinging && !swingUsesActiveHand
+                ? (handSlotIsLeft(entity.swingingArm, mainArm) ? "left" : "right")
+                : null;
+        for (String slot : new String[]{"left", "right"}) {
+            if (!slot.equals(useSlot) && !slot.equals(swingSlot)) {
+                syncNativeHandAnimation(slot, false);
+            }
+        }
         wasSwinging = entity.swinging;
+
+        // Sparkle registers hold_offhand and hold_mainhand as separate controllers. Each one
+        // pauses only while its own hand swings or uses an item; the other hand keeps holding.
+        for (InteractionHand hand : InteractionHand.values()) {
+            boolean ownHandActs = (entity.swinging && entity.swingingArm == hand)
+                    || (usingItem && usedHand == hand && !keepHoldWhileUsing);
+            syncHoldingAnimation(entity, hand, handSlotIsLeft(hand, mainArm), ownHandActs);
+        }
     }
 
-    private void syncHoldingAnimation(LivingEntity entity, InteractionHand hand, boolean left) {
-        if (entity.swinging && entity.swingingArm == hand)
-            return;
-        ItemStack item = entity.getItemInHand(hand);
+    private static boolean handSlotIsLeft(InteractionHand hand, HumanoidArm mainArm) {
+        return hand == InteractionHand.MAIN_HAND
+                ? mainArm == HumanoidArm.LEFT
+                : mainArm != HumanoidArm.LEFT;
+    }
+
+    private void syncHoldingAnimation(LivingEntity entity, InteractionHand hand, boolean left, boolean paused) {
         String slot = left ? "left" : "right";
+        String current = nativeHoldAnimations.get(slot);
+        PlayingAnimation currentHold = current == null ? null : activeAnimations.get(current);
+        if (paused) {
+            // PAUSE keeps the selected hold and its clock; the reference predicate does not
+            // re-select a clip until its hand is free again.
+            if (currentHold != null) {
+                currentHold.paused = true;
+            }
+            return;
+        }
+        if (currentHold != null) {
+            currentHold.paused = false;
+        }
+        ItemStack item = entity.getItemInHand(hand);
         String prefix = hand == InteractionHand.MAIN_HAND ? "hold_mainhand" : "hold_offhand";
         if (item.isEmpty()) {
-            syncNativeHandAnimation(slot, true, prefix + ":empty");
+            syncNativeHoldAnimation(slot, prefix + ":empty");
             return;
         }
         if (item.is(Items.CROSSBOW) && CrossbowItem.isCharged(item)) {
-            syncNativeHandAnimation(slot, true, prefix + ":charged_crossbow", prefix);
+            syncNativeHoldAnimation(slot, prefix + ":charged_crossbow", prefix);
             return;
         }
         if (hand == InteractionHand.MAIN_HAND && item.is(Items.FISHING_ROD)
                 && entity instanceof Player player && player.fishing != null && !player.fishing.isRemoved()) {
-            syncNativeHandAnimation(slot, true, prefix + ":fishing", prefix);
+            syncNativeHoldAnimation(slot, prefix + ":fishing", prefix);
             return;
         }
         if (isKineticSpear(item)) {
@@ -1593,10 +1632,10 @@ public class YsmAnimationPlayer {
             names.add("lance_stand");
             names.add(prefix + ":lance");
             names.addAll(Arrays.asList(conditionalAnimationNames(prefix, item, false)));
-            syncNativeHandAnimation(slot, true, names.toArray(String[]::new));
+            syncNativeHoldAnimation(slot, names.toArray(String[]::new));
             return;
         }
-        syncNativeHandAnimation(slot, true, conditionalAnimationNames(prefix, item, false));
+        syncNativeHoldAnimation(slot, conditionalAnimationNames(prefix, item, false));
     }
 
     private String[] useAnimationNames(LivingEntity entity, boolean left, ItemStack item) {
@@ -1742,21 +1781,28 @@ public class YsmAnimationPlayer {
     }
 
     private void syncNativeHandAnimation(String slot, boolean active, String... names) {
-        String previous = nativeHandAnimations.get(slot);
-        String selected = active ? firstHandAnimation(names) : null;
+        syncNativeSlotAnimation(nativeHandAnimations, slot, active ? firstHandAnimation(names) : null);
+    }
+
+    private void syncNativeHoldAnimation(String slot, String... names) {
+        syncNativeSlotAnimation(nativeHoldAnimations, slot, firstHandAnimation(names));
+    }
+
+    private void syncNativeSlotAnimation(Map<String, String> owners, String slot, String selected) {
+        String previous = owners.get(slot);
         if (Objects.equals(previous, selected))
             return;
         if (previous != null)
             fadeOut(previous, 0.1f);
         if (selected == null) {
-            nativeHandAnimations.remove(slot);
+            owners.remove(slot);
         } else {
             YsmAnimationClip clip = nativeClip(selected);
             // This is a new hand action, even if the previous instance is still fading.
             // Reusing that instance would resume the previous draw's clock and events.
             fadeOut(selected, 0f);
             play(selected, clip == null ? YsmAnimationClip.LoopMode.ONCE : clip.loopMode, 1f, 0.1f);
-            nativeHandAnimations.put(slot, selected);
+            owners.put(slot, selected);
         }
     }
 
@@ -1795,6 +1841,9 @@ public class YsmAnimationPlayer {
         for (String animation : nativeHandAnimations.values())
             fadeOut(animation, 0.1f);
         nativeHandAnimations.clear();
+        for (String animation : nativeHoldAnimations.values())
+            fadeOut(animation, 0.1f);
+        nativeHoldAnimations.clear();
     }
 
     private static String itemKind(ItemStack item) {
