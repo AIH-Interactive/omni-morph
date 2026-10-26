@@ -42,6 +42,15 @@ public final class YsmAccelerationMeshesSmokeTest {
         geometry.applyTextureAlpha(png.toByteArray());
         require(cache.get(cubes).isEmpty(), "texture alpha visibility changes remove cached faces");
         geometry.applyTextureAlpha(null);
+        // D021: Sparkle YsmGeometryParsing does not read bone visible/default_visible/hidden/neverRender.
+        var parsed = YsmGeometryParser.parse("""
+                {"minecraft:geometry":[{"description":{"identifier":"g"},"bones":[
+                  {"name":"a","visible":false},{"name":"b","default_visible":false},
+                  {"name":"c","hidden":true},{"name":"d","neverRender":true}]}]}
+                """);
+        for (String name : List.of("a", "b", "c", "d")) {
+            require(parsed.bones.get(name).visible, "geometry bone visibility keys are ignored: " + name);
+        }
         // D026: Sparkle TextureAlphaAnalyzer treats any 0 < alpha < 255 pixel as translucent, black included.
         var blackSoftEdge = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
         blackSoftEdge.setRGB(0, 0, 0x80000000);
