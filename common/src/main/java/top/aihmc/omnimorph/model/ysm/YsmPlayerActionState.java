@@ -79,7 +79,7 @@ public final class YsmPlayerActionState {
                 pose == Pose.SWIMMING,
                 entity.onClimbable(),
                 elytraFlying,
-                !elytraFlying && entity instanceof Player player && player.getAbilities().flying,
+                !elytraFlying && entity instanceof Player player && YsmDisplayQuery.flying(player),
                 entity.isInWater(),
                 entity.onGround(),
                 pose == Pose.CROUCHING,

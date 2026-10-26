@@ -30,6 +30,57 @@ public final class YsmDisplayQuery {
         return REMOTE.get(player.getUUID());
     }
 
+    /*
+     * Field reads used by Molang. A remote player's published value wins; otherwise the entity's own
+     * value is used, which is exact for the local player and the vanilla default for other players.
+     */
+
+    public static boolean flying(Player player) {
+        YsmDisplayState state = remoteState(player);
+        return state != null && state.flying() != null ? state.flying() : player.getAbilities().flying;
+    }
+
+    public static int foodLevel(Player player) {
+        YsmDisplayState state = remoteState(player);
+        return state != null && state.foodLevel() != null ? state.foodLevel() : player.getFoodData().getFoodLevel();
+    }
+
+    public static int experienceLevel(Player player) {
+        YsmDisplayState state = remoteState(player);
+        return state != null && state.experienceLevel() != null ? state.experienceLevel() : player.experienceLevel;
+    }
+
+    /** Movement input axis: 0 = xxa (strafe), 1 = yya (vertical), 2 = zza (forward). */
+    public static float input(net.minecraft.world.entity.LivingEntity entity, int axis) {
+        YsmDisplayState state = entity instanceof Player player ? remoteState(player) : null;
+        Float published = state == null ? null : switch (axis) {
+            case 0 -> state.strafeInput();
+            case 1 -> state.verticalInput();
+            default -> state.forwardInput();
+        };
+        if (published != null) {
+            return published;
+        }
+        return switch (axis) {
+            case 0 -> entity.xxa;
+            case 1 -> entity.yya;
+            default -> entity.zza;
+        };
+    }
+
+    /** Published effect level for a remote player, or null to read the entity's own effects. */
+    public static Integer remoteEffectLevel(Entity entity, String effectId) {
+        YsmDisplayState state = entity instanceof Player player ? remoteState(player) : null;
+        if (state == null || state.effectLevels() == null || effectId == null) {
+            return null;
+        }
+        return state.effectLevels().getOrDefault(effectId, 0);
+    }
+
+    private static YsmDisplayState remoteState(Player player) {
+        return isLocal(player) ? null : REMOTE.get(player.getUUID());
+    }
+
     /** True when the values come from the local entity or from a received owner publication. */
     public static boolean isKnown(Entity entity) {
         return of(entity) != null;
