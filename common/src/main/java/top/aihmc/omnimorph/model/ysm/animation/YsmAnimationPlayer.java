@@ -1439,7 +1439,8 @@ public class YsmAnimationPlayer {
             return;
         }
         Map<String, YsmBonePose> pose = layer.compose(controllerPoses.getOrDefault(controllerName, Map.of()),
-                bone -> boneRestRotation(bone, firstPerson));
+                bone -> boneRestRotation(bone, firstPerson),
+                bone -> currentBonePose(bone, firstPerson));
         for (var bone : pose.entrySet()) {
             for (YsmModelPart part : runtime.getAnimationParts(bone.getKey(), firstPerson)) {
                 applyControllerPose(part, bone.getValue(), declaredController);
@@ -1458,6 +1459,26 @@ public class YsmAnimationPlayer {
         }
         FiguraVec3 rest = parts.getFirst().getOriginRot();
         return new float[]{(float) rest.x, (float) rest.y, (float) rest.z};
+    }
+
+    /**
+     * The bone's pose before this controller layer applies. Controller transitions use it as the
+     * start value for channels the outgoing snapshot never wrote, so a scale-0 hide stays hidden
+     * instead of blending up from identity.
+     */
+    private YsmBonePose currentBonePose(String bone, boolean firstPerson) {
+        if (runtime == null) {
+            return null;
+        }
+        List<YsmModelPart> parts = runtime.getAnimationParts(bone, firstPerson);
+        if (parts.isEmpty()) {
+            return null;
+        }
+        YsmModelPart part = parts.getFirst();
+        // A base-hidden bone keeps identity scale while visible=false. Its effective transition
+        // start is a zero scale, otherwise an incoming scale-0 hide would blend up from 1.
+        float[] scale = part.visibleRaw() ? vector(part.animScaleRaw()) : new float[]{0f, 0f, 0f};
+        return new YsmBonePose(vector(part.animPosRaw()), vector(part.animRotRaw()), scale);
     }
 
     private boolean isFirstPersonController(String controllerName) {

@@ -51,6 +51,29 @@ public record YsmBonePose(float[] position, float[] rotation, float[] scale) {
                 accumulateVector(base.scale, sample.scale, weight, true));
     }
 
+    /**
+     * Channels the primary pose does not write take the fallback pose's value. Transition blending
+     * needs this so a channel this controller never wrote starts from the bone's current pose
+     * instead of identity (scale 1), which would lift scale-0 hides into view.
+     */
+    public static YsmBonePose fillMissingChannels(YsmBonePose primary, YsmBonePose fallback) {
+        if (fallback == null) {
+            return primary;
+        }
+        return new YsmBonePose(
+                primary.position == null ? fallback.position : primary.position,
+                primary.rotation == null ? fallback.rotation : primary.rotation,
+                primary.scale == null ? fallback.scale : primary.scale);
+    }
+
+    /** Drops channels the written pose does not contain, so a layer writes only what it owns. */
+    public static YsmBonePose keepWrittenChannels(YsmBonePose pose, YsmBonePose written) {
+        return new YsmBonePose(
+                written.position == null ? null : pose.position,
+                written.rotation == null ? null : pose.rotation,
+                written.scale == null ? null : pose.scale);
+    }
+
     private static float[] accumulateVector(float[] previous, float[] sample, float weight, boolean scale) {
         if (previous == null && sample == null) {
             return null;

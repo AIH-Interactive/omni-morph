@@ -31,7 +31,8 @@ public final class YsmControllerPoseLayerSmokeTest {
         YsmPoseSamplingSmokeTest.equalAngle(170f + YsmPoseSamplingSmokeTest.singleAxisNlerpDegrees(156f, 0.2f),
                 middle.get("root").rotation()[0], "nlerp rotation of weighted controller layer");
         equal(1.88f, middle.get("root").scale()[0], "controller scale blend");
-        equal(3.2f, middle.get("old-only").position()[0], "removed bone fades toward identity");
+        require(!middle.containsKey("old-only"),
+                "a bone the incoming clip no longer animates is released immediately");
         equal(1.2f, middle.get("new-only").position()[0], "new bone blends from identity");
         incoming.put("root", pose(50, -170, 4));
         var changedInput = layer.compose(incoming);
@@ -47,6 +48,21 @@ public final class YsmControllerPoseLayerSmokeTest {
         require(!layer.compose(Map.of("root", pose(0, 0, 1))).containsKey("old-only"), "completed transition releases obsolete bones");
         layer.beginTransition(YsmBlendTransition.linear(0f));
         equal(7f, layer.compose(Map.of("root", pose(7, 0, 1))).get("root").position()[0], "immediate transition");
+        var hide = new YsmControllerPoseLayer();
+        hide.beginTransition(YsmBlendTransition.linear(0.2f));
+        hide.advance(0.1f);
+        var hidden = hide.compose(Map.of("prop", pose(0, 0, 0)), bone -> null, bone -> pose(0, 0, 0));
+        equal(0f, hidden.get("prop").scale()[0],
+                "an incoming scale-0 hide starts from the bone's current pose instead of identity");
+        var partial = new YsmControllerPoseLayer();
+        partial.beginTransition(YsmBlendTransition.linear(0.2f));
+        partial.advance(0.1f);
+        var partialResult = partial.compose(Map.of("limb", new YsmBonePose(null, null, new float[]{0, 0, 0})),
+                bone -> null, bone -> new YsmBonePose(new float[]{5, 0, 0}, new float[]{20, 0, 0},
+                        new float[]{0.4f, 0.4f, 0.4f}));
+        equal(0.2f, partialResult.get("limb").scale()[0], "a new scale channel starts from the current scale");
+        require(partialResult.get("limb").position() == null,
+                "a controller writes only the channels its incoming clip owns");
         System.out.println("M3 controller layer snapshots, live inputs, curve blending and transition interruption passed.");
     }
 
