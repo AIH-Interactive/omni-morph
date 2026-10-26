@@ -5,6 +5,7 @@ import top.aihmc.omnimorph.model.ysm.animation.YsmBonePose;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.function.Function;
 
 /** Per-controller output and transition snapshot, independent of clip definitions. */
 public final class YsmControllerPoseLayer {
@@ -12,13 +13,15 @@ public final class YsmControllerPoseLayer {
     private Map<String, YsmBonePose> outgoing = Map.of();
     private YsmBlendTransition curve;
     private float elapsed;
-    private boolean shortestRotation;
 
-    public void beginTransition(YsmBlendTransition curve, boolean shortestRotation) {
+    /**
+     * Starts a pose transition. Like the reference, the state's blend_via_shortest_path flag is parsed
+     * but does not affect rotation: rotations always blend by quaternion nlerp.
+     */
+    public void beginTransition(YsmBlendTransition curve) {
         this.outgoing = lastPose;
         this.curve = curve;
         this.elapsed = 0f;
-        this.shortestRotation = shortestRotation;
     }
 
     public void inheritOutput(YsmControllerPoseLayer child) {
@@ -38,6 +41,12 @@ public final class YsmControllerPoseLayer {
     }
 
     public Map<String, YsmBonePose> compose(Map<String, YsmBonePose> incoming) {
+        return compose(incoming, bone -> null);
+    }
+
+    /** @param restRotation the bone's rest rotation in degrees, or null when unknown */
+    public Map<String, YsmBonePose> compose(Map<String, YsmBonePose> incoming,
+                                            Function<String, float[]> restRotation) {
         if (curve == null || elapsed >= curve.duration()) {
             lastPose = Map.copyOf(incoming);
             outgoing = Map.of();
@@ -51,7 +60,7 @@ public final class YsmControllerPoseLayer {
         YsmBonePose identity = new YsmBonePose(null, null, null);
         for (String bone : bones) {
             result.put(bone, YsmBonePose.blend(outgoing.getOrDefault(bone, identity),
-                    incoming.getOrDefault(bone, identity), progress, shortestRotation));
+                    incoming.getOrDefault(bone, identity), progress, restRotation.apply(bone)));
         }
         lastPose = Map.copyOf(result);
         return lastPose;
