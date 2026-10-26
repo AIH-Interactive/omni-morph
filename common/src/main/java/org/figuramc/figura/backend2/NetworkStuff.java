@@ -661,7 +661,7 @@ public class NetworkStuff {
         YsmModelRuntime local = minecraft.player == null || !AvatarManager.localUploaded
                 ? null : loadedYsmModel(minecraft.player.getUUID());
         // D025: share the local player's display values; the protocol drops them where unsupported.
-        YSM_SYNC.setDisplaySource(() -> minecraft.player == null ? null
+        YSM_SYNC.setDisplaySource(() -> minecraft.player == null || !Configs.SHARE_YSM_DISPLAY.value ? null
                 : top.aihmc.omnimorph.model.ysm.YsmDisplayQuery.of(minecraft.player));
         YSM_SYNC.tickTyped(ysmEpoch, tick, local, NetworkStuff::loadedYsmModel, message -> {
             if (current == null || !current.active()) {

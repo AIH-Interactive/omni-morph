@@ -19,6 +19,7 @@ public final class YsmDisplayStateSmokeTest {
         testRanges();
         testRemoteStore();
         testLuaUnknown();
+        testShareSetting();
         try {
             testRemoteMolangLuaAgree();
         } catch (ReflectiveOperationException exception) {
@@ -96,6 +97,33 @@ public final class YsmDisplayStateSmokeTest {
                 "experience agrees");
         require(YsmDisplayQuery.flying(player) && Boolean.TRUE.equals(api.isFlying(wrapped)), "flying agrees");
         YsmDisplayQuery.clear();
+    }
+
+    /** D025/S7: the sharing switch defaults on, lives under networking and has both translations. */
+    private static void testShareSetting() {
+        try {
+            // Configs load from the Figura directory; keep the fixture out of the user's real one.
+            System.setProperty("figura.test.directory",
+                    java.nio.file.Files.createTempDirectory("figura-display-config-").toString());
+        } catch (java.io.IOException exception) {
+            throw new AssertionError(exception);
+        }
+        var setting = org.figuramc.figura.config.Configs.SHARE_YSM_DISPLAY;
+        require(Boolean.TRUE.equals(setting.defaultValue), "sharing defaults on");
+        require(setting.parent == org.figuramc.figura.config.Configs.NETWORKING, "sharing is a networking setting");
+        for (String language : java.util.List.of("en_us", "zh_cn")) {
+            String path = "/assets/omni-morph/lang/" + language + ".json";
+            try (var stream = YsmDisplayStateSmokeTest.class.getResourceAsStream(path)) {
+                require(stream != null, "language file " + path);
+                var json = com.google.gson.JsonParser.parseReader(new java.io.InputStreamReader(stream,
+                        java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+                require(json.has("omni-morph.config.share_ysm_display")
+                                && json.has("omni-morph.config.share_ysm_display.tooltip"),
+                        "sharing setting text in " + language);
+            } catch (java.io.IOException exception) {
+                throw new AssertionError(path, exception);
+            }
+        }
     }
 
     private static void reject(Runnable action, String message) {
