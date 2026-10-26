@@ -819,3 +819,4 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - **未验证 / 风险：** 差异是否造成用户可见 BUG 均未证实；D024/D028/D029/D019/SAMP-02/Kipfel 对齐会复制 Sparkle 缺陷或删除 Omni 能力，默认不做。真实窗口/GPU/双客户端验收仍 `MANUAL/PENDING`。
 - **工作区：** 原有未跟踪 `.omc/`、`mod_log/`、`patch/` 保留未提交；后端 `omnm-cloud` 本节无改动。conda base 的 Python 在 `D:/ProgramData/miniconda3/python.exe`（bash 中先 `source /d/ProgramData/miniconda3/etc/profile.d/conda.sh && conda activate base`）。
 - **约束不变：** JDK 25；构建/测试前台 PowerShell 且 `2>&1 | Tee-Object -FilePath build.log`；禁止 Qt offscreen；CodeGraph 优先；范围控制与里程碑检查点（每批提交推送、核对远端 SHA）；版本号不自动升级。
+- 续（`ysm-alignment`）：`docs/YSM_ALIGNMENT_PLAN.md` 新增第 8 节“差异处理记录表”（差异｜状态｜决策理由，39 行：D001–D029、SAMP-01–07、3 条设计差异）。状态取值 待实施/待决策/不对齐/范围外，全部仍未实施；某项完成后在该表把状态改为“已完成（提交号）”并在本手册记录。仅文档改动，无代码/构建/测试。
