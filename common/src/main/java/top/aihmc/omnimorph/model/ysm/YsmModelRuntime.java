@@ -1714,6 +1714,44 @@ public class YsmModelRuntime implements AutoCloseable {
         return true;
     }
 
+    /**
+     * D018, Sparkle CustomPlayerItemInHandLayer: without a direct hand anchor (an attachment point or one of
+     * the {@link #findHandBone} names), the item is drawn once per extra hand chain {@code <Side>HandLocator2..8}.
+     *
+     * @return the extra chain anchors in locator order, or an empty list when the direct anchor applies
+     */
+    public List<YsmGeometry.Bone> handItemChainAnchors(boolean left) {
+        String side = left ? "Left" : "Right";
+        List<YsmGeometry.Bone> anchors = new ArrayList<>();
+        for (int index = 2; index <= 8; index++) {
+            YsmGeometry.Bone bone = getBoneIgnoreCase(side + "HandLocator" + index);
+            if (bone != null) {
+                anchors.add(bone);
+            }
+        }
+        if (anchors.isEmpty()) {
+            return anchors;
+        }
+        // The bone-role mapper also classifies the chain locators as hand bones; they are not direct anchors.
+        YsmGeometry.Bone direct = findAttachmentBone(handAttachment(ItemStack.EMPTY, left));
+        if (direct == null) {
+            direct = findHandBone(left);
+        }
+        return direct == null || anchors.contains(direct) ? anchors : List.of();
+    }
+
+    /** Places one hand item on an extra chain anchor; false when that chain is hidden. */
+    public boolean applyHandItemChainTransform(PoseStack stack, LivingEntity entity, ItemStack itemStack,
+                                               boolean left, YsmGeometry.Bone anchor) {
+        if (!isBoneVisibleInHierarchy(anchor.name)) {
+            return false;
+        }
+        applyModelScale(stack);
+        applyBoneChain(stack, anchor, true);
+        YsmHeldItemTransforms.apply(stack, entity, itemStack, left, false);
+        return true;
+    }
+
     private YsmAttachmentPoint handAttachment(ItemStack itemStack, boolean left) {
         return getHandAttachmentPoint(left);
     }
