@@ -106,8 +106,8 @@ D023/D012 是状态机转移与起播时刻。前一项不稳，后一项的行�
   用 Sparkle 源码手算/运行得到常量，不依赖 Omni 自己的输出）。
 
 ### P1-2　D015：补齐 98 个缺失的 `ysm.*` 名字（按价值分批）
-- 批 1（与 P0 手部/武器强相关，**建议随 P0-5 一起**）：`weapon_*`(11)、`trident_*`、`lance_*`、
-  `mace_*`（共 42），数据源已在 Omni 的 `YsmHandQuery/YsmHandItemType`，只需暴露为 `ysm.` 变量。
+- 批 1（与 P0 手部/武器强相关，**建议随 P0-5 一起**）：`weapon_*`(12)、`trident_*`、`lance_*`、
+  `mace_*`（实际 43），数据源已在 Omni 的 `YsmHandQuery/YsmHandItemType`，只需暴露为 `ysm.` 变量。
 - 批 2（简单查询）：`on_ladder`、`ladder_facing`、`is_riptide`、`arrow_count`、`stinger_count`、
   `swinging_arm`、`swim_amount`、`item_use_normalized`、`map_angle`、`is_holding_left/right`、
   `tcos0`、`item_is_charged`、`mainhand/offhand_charged_crossbow`、`is_maid`、`sleep_rotation`。
@@ -223,14 +223,14 @@ D023/D012 是状态机转移与起播时刻。前一项不稳，后一项的行�
 | D012 过渡期新片段时钟冻结/事件抑制 | 已完成（1190585a） | 用户指定在 D002 后实施；声明状态机和函数路径覆盖冻结时钟、抑制事件、首帧快照混合及过渡终点 |
 | D013 滤波器长间隔恢复策略 | 待实施（I 批） | 仅影响使用 first/second_order 的模型，属 P2，与 D014 同文件 |
 | D014 滤波器非有限输入归零 | 待实施（I 批） | 同上；对齐为“保持上值” |
-| D015 98 个 `ysm.*` 名字缺失 | 待实施（D/H 批） | 未知名求值会抛异常，条件变 false/权重变 0；武器 42 个随手部做，其余分批 |
+| D015 98 个 `ysm.*` 名字缺失 | 待实施（D/H 批） | 未知名求值会抛异常，条件变 false/权重变 0；武器实际 43 个已完成本次检查点，其余 H 批待实施 |
 | D016 缺 Bedrock `this` 关键字 | 待实施（H 批） | 改动涉解析/求值/采样三处，放在 SAMP 之后单独做 |
 | D017 包识别矩阵 | 待实施（I 批，部分） | `main.json`+`arm.json` 判定可对齐；`.bbmodel/.gltf/.glb` 属范围外，不做 |
 | D018 手持物挂点解析/多挂点 | 待决策（I 批） | 多链各画一份与 sword 锚点可对齐；删除按骨名回退名单会失去兼容手段，需确认 |
 | D019 Molang 步数预算仅 Omni 有 | 不对齐 | Omni 更严的防护，删除无收益且有风险；可另评估阈值 |
 | D020 `math.*` 实现体语义 | 已完成（709c2416） | 黄金值/独立随机流/预算单测及 Fabric build PASS；按模型上下文使用 Xoroshiro 随机源，sin/cos 保留现有微差 |
 | D021 骨骼可见键/visible_bounds | 待决策（I 批） | 取消骨骼 `visible/hidden` 初始隐藏会改变既有显示，需确认 |
-| D022 `time_of_day` 相位 +0.25 日 | 已完成（本次 D022 检查点） | 参考 float 相位与负时间取余一致，timestamp 不移相；原生查询单测和 Fabric build PASS |
+| D022 `time_of_day` 相位 +0.25 日 | 已完成（4738d6ab） | 参考 float 相位与负时间取余一致，timestamp 不移相；原生查询单测和 Fabric build PASS |
 | D023 自转移与环路处理 | 已完成（a3f3541c） | 自转移重入、visited 终止搜索、声明槽边界与声音门控顺序对齐；D007 持续播放停声问题仍独立待实施 |
 | D024 `is_close_eyes` 恒假 | 不对齐 | 是 Sparkle 缺陷（条件互斥永不眨眼），对齐等于关掉 Omni 现有眨眼 |
 | D025 远端玩家输入/饥饿/盾牌取值 | 范围外 | 需扩展 `YsmSyncMessage`，涉及协议与后端，另行立项 |
@@ -248,3 +248,10 @@ D023/D012 是状态机转移与起播时刻。前一项不稳，后一项的行�
 | 设计差异：Kipfel 按内容指纹白名单特化 | 不对齐 | 违背 Omni“无模型名/hash/作者分支”约束 |
 | 设计差异：AnimationProgramAnalyzer 优化层 | 不对齐 | Sparkle 性能优化，无行为语义要对齐 |
 | 设计差异：多人同步协议（peer/cloud vs YsmSync） | 不对齐 | 两套协议与后端互不相通，无互通要求 |
+
+## P1 D015 批 1 检查点（2026-10-26）
+
+- 已补参考 YSMBinding 的 43 个 weapon/trident/lance/mace 标量名字；原表的42为计数误差，整体缺失总数留待其余批次逐名复核。D015 整项仍未完成。
+- 主手分类区分 trident=1、tagged lance=2、mace=3、native spear=4；长矛状态、0.35突进边界、重锤下落/1.5下砸边界、速度/进度和partial tick时钟按参考 Fabric bridge。复用原受限本地脉冲，不放宽设备输入归属。
+- RED alpha4-d015-weapon-red.log：weapon_type unknown binding。中间green日志因CPU夹具缺少MACE组件初始化失败，已补夹具。最终 alpha4-d015-weapon-final.log：VanillaState、HandAnimation、附带LibraryPreviewRuntime及Fabric build PASS，47秒/23 tasks。真实游戏画面/音频仍 MANUAL/PENDING。
+- 新增YsmWeaponQuery，绑定注册、手部浮点使用时钟及现有VanillaState测试为本批最小范围；default_animation/ysm_default分工、符号链接安装、版本与后端均保持原约束。

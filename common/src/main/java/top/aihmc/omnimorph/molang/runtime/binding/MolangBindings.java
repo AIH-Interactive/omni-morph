@@ -723,6 +723,10 @@ public class MolangBindings implements ObjectBinding {
             values.put("has_chest_plate", (Variable) ctx -> equipmentPresent(ctx, EquipmentSlot.CHEST));
             values.put("has_leggings", (Variable) ctx -> equipmentPresent(ctx, EquipmentSlot.LEGS));
             values.put("has_boots", (Variable) ctx -> equipmentPresent(ctx, EquipmentSlot.FEET));
+            for (String name : top.aihmc.omnimorph.model.ysm.YsmWeaponQuery.NAMES) {
+                values.put(name, livingVariable((context, entity) ->
+                        top.aihmc.omnimorph.model.ysm.YsmWeaponQuery.evaluate(name, context, entity)));
+            }
             values.put("armor_value", livingVariable((context, entity) -> entity.getArmorValue()));
             values.put("hurt_time", livingVariable((context, entity) -> entity.hurtTime));
             values.put("swinging", livingVariable((context, entity) ->

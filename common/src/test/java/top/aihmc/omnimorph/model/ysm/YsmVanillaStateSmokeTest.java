@@ -154,6 +154,7 @@ public final class YsmVanillaStateSmokeTest {
         require(Boolean.TRUE.equals(eval(engine, context, "ysm.is_close_eyes;")), "sleep forces closed eyes outside blink interval");
         Avatar.MolangContext other = new Avatar.MolangContext(null);
         require(eval(engine, other, "ysm.is_close_eyes;") == null, "another context does not inherit entity/blink state");
+        testWeaponQueries(engine, context, entity);
         testRelativeBlocks(engine, context, entity);
         testWorldQueries(engine, context, entity);
         testLivingQueries(engine, context, entity);
@@ -181,6 +182,81 @@ public final class YsmVanillaStateSmokeTest {
         require(context.ysm_render_ticks == 0f && context.ysm_partial_tick == 0f && context.entity == null,
                 "context reset releases entity and render timing");
         System.out.println("M4 vanilla state bindings: native glider components, native elytra interpolation/degrees, blink boundaries/types and context isolation passed.");
+    }
+
+    private static void testWeaponQueries(MolangEngine engine, Avatar.MolangContext context,
+                                          FixtureEntity entity) throws Exception {
+        context.entity = null;
+        ObjectBinding registry = (ObjectBinding) Avatar.createMolangBindings(context).getProperty("ysm");
+        require(YsmWeaponQuery.NAMES.size() == 43, "reference weapon family has 43 names");
+        for (String name : YsmWeaponQuery.NAMES) {
+            require(registry.getProperty(name) instanceof Variable && !(registry.getProperty(name) instanceof Function),
+                    "weapon scalar binding: " + name);
+            require(eval(engine, context, "ysm." + name + ";") == null, "weapon living gate: " + name);
+        }
+        context.entity = entity;
+        entity.equipment = new java.util.EnumMap<>(EquipmentSlot.class);
+        entity.equipment.put(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+        Field movement = Entity.class.getDeclaredField("deltaMovement");
+        movement.setAccessible(true);
+        movement.set(entity, new Vec3(0.35, -0.1, 0));
+        require(Integer.valueOf(0).equals(eval(engine, context, "ysm.weapon_type;")), "empty hand has no weapon kind");
+        Items.TRIDENT.builtInRegistryHolder().bindComponents(net.minecraft.core.component.DataComponentMap.EMPTY);
+        ItemStack trident = new ItemStack(Items.TRIDENT);
+        trident.set(DataComponents.CONSUMABLE, net.minecraft.world.item.component.Consumable.builder()
+                .animation(net.minecraft.world.item.ItemUseAnimation.TRIDENT).build());
+        entity.equipment.put(EquipmentSlot.MAINHAND, trident);
+        entity.sleeping = false;
+        entity.using = true;
+        entity.usedHand = net.minecraft.world.InteractionHand.MAIN_HAND;
+        entity.fixtureUseTicks = 7;
+        entity.swinging = true;
+        entity.swingingArm = net.minecraft.world.InteractionHand.MAIN_HAND;
+        entity.swingTime = 3;
+        entity.spinAttack = true;
+        context.ysm_partial_tick = 0.5f;
+        require(Integer.valueOf(1).equals(eval(engine, context, "ysm.weapon_type;")), "trident weapon kind");
+        for (String name : List.of("weapon_is_trident", "weapon_attacking", "weapon_using",
+                "trident_holding", "trident_using", "trident_throwing", "trident_riptide", "trident_attack")) {
+            require(Boolean.TRUE.equals(eval(engine, context, "ysm." + name + ";")), "active trident: " + name);
+        }
+        require(Math.abs(((Number) eval(engine, context, "ysm.trident_attack_ticks;")).floatValue() - 3.5f) < .0001f,
+                "weapon attack ticks retain partial tick");
+        var kinetic = new net.minecraft.world.item.component.KineticWeapon(0, 0,
+                java.util.Optional.empty(), java.util.Optional.empty(), java.util.Optional.empty(),
+                1f, 1f, java.util.Optional.empty(), java.util.Optional.empty());
+        Items.WOODEN_SPEAR.builtInRegistryHolder().bindComponents(
+                DataComponentMap.builder().set(DataComponents.KINETIC_WEAPON, kinetic).build());
+        entity.equipment.put(EquipmentSlot.MAINHAND, new ItemStack(Items.WOODEN_SPEAR));
+        require(Integer.valueOf(4).equals(eval(engine, context, "ysm.weapon_type;")), "native spear has distinct kind 4");
+        for (String name : List.of("weapon_is_spear", "lance_holding", "lance_using", "lance_charging", "lance_lunging")) {
+            require(Boolean.TRUE.equals(eval(engine, context, "ysm." + name + ";")), "spear uses lance state: " + name);
+        }
+        require(Boolean.FALSE.equals(eval(engine, context, "ysm.weapon_is_lance;")), "spear is not tagged lance kind");
+        require(Boolean.FALSE.equals(eval(engine, context, "ysm.lance_jabbing;")), "lunge wins over jab at .35");
+        movement.set(entity, new Vec3(.349, 0, 0));
+        require(Boolean.TRUE.equals(eval(engine, context, "ysm.lance_jabbing;")), "below lunge threshold is jab");
+        entity.usedHand = net.minecraft.world.InteractionHand.OFF_HAND;
+        entity.swingingArm = net.minecraft.world.InteractionHand.OFF_HAND;
+        require(Boolean.FALSE.equals(eval(engine, context, "ysm.weapon_using;"))
+                        && Boolean.FALSE.equals(eval(engine, context, "ysm.weapon_attacking;")), "offhand actions do not activate main weapon");
+        entity.usedHand = net.minecraft.world.InteractionHand.MAIN_HAND;
+        entity.swingingArm = net.minecraft.world.InteractionHand.MAIN_HAND;
+        movement.set(entity, new Vec3(.35, -.1, 0));
+        Items.MACE.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
+        entity.equipment.put(EquipmentSlot.MAINHAND, new ItemStack(Items.MACE));
+        entity.grounded = false;
+        entity.fallDistance = 1.5;
+        for (String name : List.of("weapon_is_mace", "mace_falling", "mace_can_smash", "mace_smashing", "mace_attacking")) {
+            require(Boolean.TRUE.equals(eval(engine, context, "ysm." + name + ";")), "mace smash boundary: " + name);
+        }
+        require(Float.valueOf(.5f).equals(eval(engine, context, "ysm.mace_smash_progress;")), "mace smash progress");
+        entity.fallDistance = 1.49;
+        require(Boolean.FALSE.equals(eval(engine, context, "ysm.mace_can_smash;")), "below smash threshold");
+        entity.equipment.clear();
+        entity.using = entity.swinging = entity.spinAttack = false;
+        entity.fallDistance = 0;
+        entity.sleeping = true;
     }
 
     private static void testProjectileFiringItem(MolangEngine engine, Avatar.MolangContext context,
