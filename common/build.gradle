@@ -404,6 +404,15 @@ tasks.register("ysmResourceScopeSmokeTest", JavaExec) {
     args rootProject.file("refs/avatars/16_tactics").path
 }
 
+tasks.register("ysmAstronautVisibilitySmokeTest", JavaExec) {
+    group = "verification"
+    description = "Probes authored astronaut alternate-form visibility with real resources."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmAstronautVisibilitySmokeTest"
+    args rootProject.file("refs/avatars/03_astronaut").path
+}
+
 tasks.register("ysmPackageSmokeTest", JavaExec) {
     group = "verification"
     description = "Runs YSM folder and zip resource package smoke checks."
