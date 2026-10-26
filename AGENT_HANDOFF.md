@@ -807,3 +807,15 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 续：新增 D027（内置默认动画资源 4/14 文件内容不同：main/arm/boat/extra）。
 - 续：新增 D028（keyboard/mouse 输入归属门控）；骨骼变换矩阵、sync/defer 函数体核对一致。报告35项。
 - 续：新增 D029（动画 particle_effects：仅 Omni 触发）。报告36项。覆盖清单各行均已落到具体差异或一致结论；仍属静态源码对比，未做数值回放或游戏验证。
+
+## 当前有效交接：YSM 动画引擎对比审计收口与对齐分支（2026-10-26）
+
+本节覆盖此前“YSM 动画引擎对比审计”节的暂停状态。
+
+- **分支变更（用户明确要求）：** 审计成果已提交推送到 `main@23a067d5`（远端 SHA 核对一致）。随后新建并切换到 `ysm-alignment`（跟踪 `origin/ysm-alignment`），**后续对齐开发在此分支进行**，不再直接改 `main`。AGENTS.md 中“当前开发分支为 main”的描述对本任务暂不适用，合并回 `main` 需用户另行决定。
+- **已完成：** 静态对比审计覆盖清单 9 个范围，报告 `docs/YSM_ANIMATION_ENGINE_COMPARISON.md` 共 36 项差异（D001–D029、SAMP-01–07），均为源码静态对比，无数值回放、无游戏验证。优先级与批次计划见 `docs/YSM_ALIGNMENT_PLAN.md`（目标：OmniMorph 动画实际行为与 `refs/Sparkle-Morpher` 一致）。两份文档因 `.gitignore` 的 `/docs/*` 需 `git add -f`，已强制纳入版本库。
+- **未完成 / 未开始：** 对齐计划尚未实施任何一项，代码零改动。计划第 7 节 6 条决策事项（D027 的 Omni 独有条目、D011 撤销多周期事件窗口、D010 的 `blend_via_shortest_path`、D021 骨骼可见键、“不建议对齐”各项、D025 是否立项）均待用户回答；未决前不要开工相关批次。
+- **最小下一步：** 向用户确认第 7 节决策；建议先做 A 批（D020 `math.*` 函数 + D022 `time_of_day`，纯函数、零耦合），每项先写 RED 黄金值测试（期望值取自 Sparkle 源码，不用 Omni 自身输出），再最小修改，前台 PowerShell `Tee-Object` 构建/测试，逐批提交推送并核对远端 SHA。
+- **未验证 / 风险：** 差异是否造成用户可见 BUG 均未证实；D024/D028/D029/D019/SAMP-02/Kipfel 对齐会复制 Sparkle 缺陷或删除 Omni 能力，默认不做。真实窗口/GPU/双客户端验收仍 `MANUAL/PENDING`。
+- **工作区：** 原有未跟踪 `.omc/`、`mod_log/`、`patch/` 保留未提交；后端 `omnm-cloud` 本节无改动。conda base 的 Python 在 `D:/ProgramData/miniconda3/python.exe`（bash 中先 `source /d/ProgramData/miniconda3/etc/profile.d/conda.sh && conda activate base`）。
+- **约束不变：** JDK 25；构建/测试前台 PowerShell 且 `2>&1 | Tee-Object -FilePath build.log`；禁止 Qt offscreen；CodeGraph 优先；范围控制与里程碑检查点（每批提交推送、核对远端 SHA）；版本号不自动升级。
