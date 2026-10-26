@@ -19,6 +19,11 @@ public final class YsmDisplayStateSmokeTest {
         testRanges();
         testRemoteStore();
         testLuaUnknown();
+        try {
+            testRemoteMolangLuaAgree();
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError(exception);
+        }
         System.out.println("PASS YSM display state: ranges, remote store, local/remote/unknown read path");
     }
 
@@ -48,6 +53,49 @@ public final class YsmDisplayStateSmokeTest {
         require(api.get(null) == null && !api.isSynced(null) && api.getFood(null) == null
                         && api.getMovementInput(null) == null && api.getEffectLevel(null, "minecraft:speed") == null,
                 "the Lua API reports unknown values as nil");
+    }
+
+    /**
+     * D025/S6 and AGENTS third-party rule 7: for a remote player with a published state, Molang bindings and
+     * the Lua API read the same values; without a published state Lua reports unknown.
+     */
+    private static void testRemoteMolangLuaAgree() throws ReflectiveOperationException {
+        var unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+        unsafeField.setAccessible(true);
+        var unsafe = (sun.misc.Unsafe) unsafeField.get(null);
+        var player = (net.minecraft.client.player.RemotePlayer) unsafe.allocateInstance(net.minecraft.client.player.RemotePlayer.class);
+        UUID owner = UUID.randomUUID();
+        var uuid = net.minecraft.world.entity.Entity.class.getDeclaredField("uuid");
+        uuid.setAccessible(true);
+        uuid.set(player, owner);
+        var api = new YsmDisplayAPI();
+        var wrapped = org.figuramc.figura.lua.api.entity.EntityAPI.wrap(player);
+        require(!api.isSynced(wrapped) && api.get(wrapped) == null, "no published state is unknown to Lua");
+
+        var published = new YsmDisplayState(6, 42, true, -1f, 0f, 1f, Map.of("minecraft:speed", 3));
+        YsmDisplayQuery.acceptRemote(owner, published);
+        var engine = top.aihmc.omnimorph.molang.MolangEngine.fromCustomBinding(
+                new top.aihmc.omnimorph.molang.runtime.binding.MolangBindings());
+        var context = new org.figuramc.figura.avatar.Avatar.MolangContext(null);
+        context.entity = player;
+        var evaluator = top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator.evaluator(context);
+        java.util.function.Function<String, Float> molang = source -> {
+            try {
+                return ((Number) evaluator.eval(engine.parse(source).getFirst())).floatValue();
+            } catch (Exception exception) {
+                throw new AssertionError(source, exception);
+            }
+        };
+        require(molang.apply("ysm.food_level;") == 6f && api.getFood(wrapped) == 6, "food agrees");
+        require(molang.apply("ysm.xxa;") == -1f && molang.apply("ysm.zza;") == 1f
+                        && api.getMovementInput(wrapped).x == -1d && api.getMovementInput(wrapped).z == 1d,
+                "movement input agrees");
+        require(molang.apply("ysm.effect_level('minecraft:speed');") == 3f
+                        && api.getEffectLevel(wrapped, "minecraft:speed") == 3, "effect level agrees");
+        require(YsmDisplayQuery.experienceLevel(player) == 42 && api.getExperienceLevel(wrapped) == 42,
+                "experience agrees");
+        require(YsmDisplayQuery.flying(player) && Boolean.TRUE.equals(api.isFlying(wrapped)), "flying agrees");
+        YsmDisplayQuery.clear();
     }
 
     private static void reject(Runnable action, String message) {

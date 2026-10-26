@@ -1033,7 +1033,10 @@ public class MolangBindings implements ObjectBinding {
                     continue;
                 }
                 var holder = BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect);
-                if (entity instanceof LivingEntity living) {
+                Integer published = top.aihmc.omnimorph.model.ysm.YsmDisplayQuery.remoteEffectLevel(entity, id.toString());
+                if (published != null) {
+                    effects += published;
+                } else if (entity instanceof LivingEntity living) {
                     var instance = living.getEffect(holder);
                     if (instance != null) {
                         effects += instance.getAmplifier() + 1;
@@ -1312,7 +1315,7 @@ public class MolangBindings implements ObjectBinding {
             if (!(entity instanceof LivingEntity)) {
                 return null;
             }
-            return entity instanceof Player player ? player.getFoodData().getFoodLevel() : 20;
+            return entity instanceof Player player ? top.aihmc.omnimorph.model.ysm.YsmDisplayQuery.foodLevel(player) : 20;
         }
 
         private static Object input(ExecutionContext<?> ctx, String field) {
@@ -1321,9 +1324,9 @@ public class MolangBindings implements ObjectBinding {
                 return null;
             }
             return switch (field) {
-                case "xxa" -> living.xxa;
-                case "yya" -> living.yya;
-                case "zza" -> living.zza;
+                case "xxa" -> top.aihmc.omnimorph.model.ysm.YsmDisplayQuery.input(living, 0);
+                case "yya" -> top.aihmc.omnimorph.model.ysm.YsmDisplayQuery.input(living, 1);
+                case "zza" -> top.aihmc.omnimorph.model.ysm.YsmDisplayQuery.input(living, 2);
                 default -> throw new IllegalArgumentException("Unknown living input axis: " + field);
             };
         }

@@ -85,6 +85,38 @@ public class YsmDisplayAPI {
         return state.effectLevels().getOrDefault(effect, 0);
     }
 
+    /** Base action of the entity's loaded YSM model (same value as its {@code ctrl.*} states), or nil. */
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_display.get_action_state")
+    public String getActionState(EntityAPI<?> entity) {
+        var runtime = runtime(entity);
+        return runtime == null ? null : runtime.animations().actionState().animationName();
+    }
+
+    /** Current state of each declared controller of the entity's loaded YSM model, or nil. Read-only. */
+    @LuaWhitelist
+    @LuaMethodDoc("ysm_display.get_controller_states")
+    public Map<String, String> getControllerStates(EntityAPI<?> entity) {
+        var runtime = runtime(entity);
+        if (runtime == null) {
+            return null;
+        }
+        Map<String, String> result = new LinkedHashMap<>();
+        for (var controller : runtime.animations().getControllers().values()) {
+            result.put(controller.name(), runtime.animations().controllerRuntime().currentState(controller.name()));
+        }
+        return result;
+    }
+
+    private static top.aihmc.omnimorph.model.ysm.YsmModelRuntime runtime(EntityAPI<?> entity) {
+        if (entity == null) {
+            return null;
+        }
+        var avatar = org.figuramc.figura.avatar.AvatarManager.getAvatar(entity.getEntity());
+        var runtime = avatar == null ? null : avatar.getYsmRuntime();
+        return runtime == null || runtime.isClosed() ? null : runtime;
+    }
+
     private static YsmDisplayState state(EntityAPI<?> entity) {
         if (entity == null) {
             return null;
