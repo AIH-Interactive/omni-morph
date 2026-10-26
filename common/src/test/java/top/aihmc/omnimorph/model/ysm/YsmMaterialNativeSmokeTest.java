@@ -108,6 +108,7 @@ public final class YsmMaterialNativeSmokeTest {
             instance.set(null, client);
             org.figuramc.figura.permissions.PermissionManager.init();
             if ((args.length == 2 && args[0].equals("--library-preview"))
+                    || (args.length == 2 && args[0].equals("--default-animations"))
                     || (args.length == 2 && args[0].equals("--cosmetic-sources"))
                     || (args.length == 1 && args[0].equals("--library-equipment"))
                     || (args.length == 1 && args[0].equals("--library-preparation"))
@@ -120,7 +121,9 @@ public final class YsmMaterialNativeSmokeTest {
                 Object previousParticles = particles.get(client);
                 try {
                     particles.set(client, unsafe.allocateInstance(AvatarAsyncLoadSmokeTest.RecordingParticles.class));
-                    if (args[0].equals("--cosmetic-sources")) {
+                    if (args[0].equals("--default-animations")) {
+                        YsmDefaultAnimationSmokeTest.run(Path.of(args[1]));
+                    } else if (args[0].equals("--cosmetic-sources")) {
                         top.aihmc.omnimorph.model.outfit.CosmeticSourceSmokeTest.run(Path.of(args[1]), client::drain);
                     } else if (args[0].equals("--local-outfit-publication")) {
                         top.aihmc.omnimorph.model.library.LibraryUploadSmokeTest.localOutfitPublication(args[1], client::drain);
