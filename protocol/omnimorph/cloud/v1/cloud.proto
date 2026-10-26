@@ -48,6 +48,8 @@ enum Capability {
   YSM_ENCRYPTED = 3;
   YSM_RECOVERY = 4;
   ENTITY_AUTHORITY = 5;
+  // D025: the server validates, stores and forwards YsmState.display.
+  YSM_DISPLAY = 6;
 }
 
 enum ModelType {
