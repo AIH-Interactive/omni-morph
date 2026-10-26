@@ -1049,6 +1049,13 @@ tasks.register("ysmHandAnimationSmokeTest", JavaExec) {
     args rootProject.file("refs/avatars/芙宁娜v3.14中文配音.ysm").path
 }
 
+tasks.register("ysmNativeStateSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks native player action states against the reference resolver table."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmNativeStateSmokeTest"
+}
 
 tasks.register('cloudAdapterSmokeTest', JavaExec) {
     group = 'verification'

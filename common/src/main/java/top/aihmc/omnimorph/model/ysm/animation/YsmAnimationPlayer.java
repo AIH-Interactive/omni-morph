@@ -37,6 +37,7 @@ import top.aihmc.omnimorph.model.ysm.YsmInputState;
 import top.aihmc.omnimorph.model.ysm.YsmModelPart;
 import top.aihmc.omnimorph.model.ysm.YsmModelRuntime;
 import top.aihmc.omnimorph.model.ysm.YsmParticleRuntime;
+import top.aihmc.omnimorph.model.ysm.YsmPlayerActionState;
 import top.aihmc.omnimorph.model.ysm.YsmMolangFunctionRuntime;
 import top.aihmc.omnimorph.model.ysm.YsmFilterRuntime;
 import top.aihmc.omnimorph.model.ysm.controller.YsmAnimationController;
@@ -2044,43 +2045,26 @@ public class YsmAnimationPlayer {
         }
     }
 
+    /**
+     * Reference AnimationManager: the played base action comes from the same resolver that backs
+     * the {@code ctrl.*} Molang states, so a query and the native animation cannot disagree.
+     */
     private void updateNativeStateMachine(LivingEntityRenderState state, LivingEntity entity) {
         if (state == null) return;
 
-        boolean isPassenger = false;
-        boolean isSleeping = false;
-        boolean isFallFlying = false;
-        boolean isSwimming = false;
-        boolean isSneaking = false;
-        boolean isSprinting = false;
-        boolean isOnGround = true;
-        boolean isInWater = false;
-        float speed = 0f;
+        Avatar.MolangContext context = runtime == null || runtime.owner() == null
+                ? null : runtime.owner().getMolangContext();
+        // The render state limb amount is the reference's limb-swing fallback; the movement
+        // context already folds it in once updateFrame captured the frame.
+        float groundSpeed = Math.max(finite(context == null ? 0f : context.ground_speed),
+                finite(readFloat(state, "walkAnimationSpeed", 0f)));
+        float verticalSpeed = finite(context == null ? 0f : context.vertical_speed);
 
-        try {
-            speed = state.walkAnimationSpeed;
-        } catch (Throwable ignored) {}
-
-        if (entity != null) {
-            isPassenger = entity.isPassenger();
-            isSleeping = entity.getPose() == Pose.SLEEPING;
-            isFallFlying = entity.isFallFlying();
-            isSwimming = entity.isVisuallySwimming() || entity.getPose() == Pose.SWIMMING;
-            isSneaking = entity.isCrouching() || entity.getPose() == Pose.CROUCHING;
-            isSprinting = entity.isSprinting();
-            isOnGround = entity.onGround();
-            isInWater = entity.isInWater();
-        } else {
-            isPassenger = readBoolean(state, "isPassenger", false);
-            isSleeping = readBoolean(state, "isSleeping", false);
-            isFallFlying = readBoolean(state, "isFallFlying", false);
-            isSprinting = readBoolean(state, "isSprinting", false);
-            isSneaking = readBoolean(state, "isCrouching", readBoolean(state, "isSneaking", readBoolean(state, "crouching", false)));
-            isSwimming = readFloat(state, "swimAmount", 0f) > 0.1f || readBoolean(state, "isSwimming", readBoolean(state, "swimming", false));
-        }
-
-        String idealState = selectState(isPassenger, isSleeping, isFallFlying, isSwimming, isSneaking, isSprinting, isOnGround, isInWater, speed);
-        if (shouldInterruptActions(idealState))
+        YsmPlayerActionState.Snapshot snapshot = entity != null
+                ? YsmPlayerActionState.snapshot(entity, groundSpeed, verticalSpeed)
+                : renderStateActionState(state, groundSpeed, verticalSpeed);
+        String idealState = nativeStateName(YsmPlayerActionState.resolve(snapshot));
+        if (runtime != null && shouldInterruptActions(idealState))
             runtime.actions().stopAll();
         for (Map.Entry<String, PlayingAnimation> entry : activeAnimations.entrySet()) {
             PlayingAnimation anim = entry.getValue();
@@ -2097,28 +2081,66 @@ public class YsmAnimationPlayer {
         }
     }
 
-    private String selectState(boolean isPassenger, boolean isSleeping, boolean isFallFlying, boolean isSwimming, boolean isSneaking,
-                               boolean isSprinting, boolean isOnGround, boolean isInWater, float speed) {
-        final float minSpeed = 0.05f;
-        if (isPassenger)
-            return firstEnabled("sit", "ride");
-        if (isSleeping)
-            return firstEnabled("sleep");
-        if (isFallFlying)
-            return firstEnabled("elytra_fly", "fly");
-        if (isSwimming)
-            return firstEnabled(speed > minSpeed ? "swim" : "swim_stand", "swim", "swim_stand");
-        if (isInWater && !isOnGround)
-            return firstEnabled("swim_stand", "swim");
-        if (!isOnGround)
-            return firstEnabled("fall", "jump", "fly");
-        if (isSneaking)
-            return firstEnabled(speed > minSpeed ? "sneak" : "sneaking", "sneaking", "sneak");
-        if (isSprinting && speed > minSpeed)
-            return firstEnabled("run", "walk");
-        if (speed > minSpeed)
-            return firstEnabled("walk", "run");
-        return firstEnabled("idle");
+    /**
+     * Render-state fallback for callers without a live entity. A render state carries no death,
+     * riptide, climb or hurt flags, so those stay false.
+     */
+    private YsmPlayerActionState.Snapshot renderStateActionState(LivingEntityRenderState state,
+                                                                 float groundSpeed, float verticalSpeed) {
+        boolean swimming = readFloat(state, "swimAmount", 0f) > 0.1f
+                || readBoolean(state, "isSwimming", readBoolean(state, "swimming", false));
+        return new YsmPlayerActionState.Snapshot(
+                readBoolean(state, "isPassenger", false),
+                false,
+                false,
+                readBoolean(state, "isSleeping", false),
+                swimming,
+                swimming,
+                false,
+                readBoolean(state, "isFallFlying", false),
+                false,
+                false,
+                true,
+                readBoolean(state, "isCrouching",
+                        readBoolean(state, "isSneaking", readBoolean(state, "crouching", false))),
+                readBoolean(state, "isSprinting", false),
+                false,
+                groundSpeed,
+                verticalSpeed);
+    }
+
+    private static float finite(float value) {
+        return Float.isFinite(value) ? value : 0f;
+    }
+
+    /**
+     * The reference plays exactly the resolved state's clip. The extra names after the first keep
+     * OmniMorph's previous behaviour for models that do not author that clip.
+     */
+    private String nativeStateName(YsmPlayerActionState.State state) {
+        return switch (state) {
+            case NONE -> "";
+            case RIDE -> firstEnabled("sit", "ride");
+            case DEATH -> firstEnabled("death");
+            case RIPTIDE -> firstEnabled("riptide");
+            case SLEEP -> firstEnabled("sleep");
+            case SWIM -> firstEnabled("swim", "swim_stand");
+            case CLIMB -> firstEnabled("climb");
+            case CLIMBING -> firstEnabled("climbing");
+            case LADDER_UP -> firstEnabled("ladder_up");
+            case LADDER_STILLNESS -> firstEnabled("ladder_stillness");
+            case LADDER_DOWN -> firstEnabled("ladder_down");
+            case ELYTRA_FLY -> firstEnabled("elytra_fly", "fly");
+            case FLY -> firstEnabled("fly");
+            case SWIM_STAND -> firstEnabled("swim_stand", "swim");
+            case ATTACKED -> firstEnabled("attacked");
+            case JUMP -> firstEnabled("jump", "fall", "fly");
+            case SNEAK -> firstEnabled("sneak", "sneaking");
+            case SNEAKING -> firstEnabled("sneaking", "sneak");
+            case RUN -> firstEnabled("run", "walk");
+            case WALK -> firstEnabled("walk", "run");
+            case IDLE -> firstEnabled("idle");
+        };
     }
 
     private static boolean shouldInterruptActions(String state) {
