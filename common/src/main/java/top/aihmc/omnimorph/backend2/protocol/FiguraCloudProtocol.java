@@ -319,7 +319,8 @@ public final class FiguraCloudProtocol implements CloudProtocol {
     @Override
     public synchronized boolean publish(YsmSyncMessage message) throws Exception {
         endpoint.requireAllowed();
-        List<byte[]> packets = YsmSyncPackets.fragment(++messageId, YsmSyncCodec.encode(message));
+        // D025: the M7 ping path has no capability negotiation, so it always carries version 1.
+        List<byte[]> packets = YsmSyncPackets.fragment(++messageId, YsmSyncCodec.encode(message.withoutDisplay()));
         int size = packets.stream().mapToInt(packet -> packet.length + 6).sum();
         if (pending.size() + packets.size() > 1024 || pendingBytes + size > 262144) {
             throw new IOException("M7 queue requires recovery");

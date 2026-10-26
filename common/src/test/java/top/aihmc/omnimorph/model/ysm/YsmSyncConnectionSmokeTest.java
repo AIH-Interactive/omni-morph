@@ -111,6 +111,7 @@ final class YsmSyncConnectionSmokeTest {
         require(link.sender.rejectedMessages() == 0, "normal owner generation/reconnect transfer has no rejected application messages");
         typedReplay(newSource, replacement);
         idleContinuity(newSource, replacement);
+        displaySync(newSource, replacement);
         try {
             CloudProtocolLifecycleSmokeTest.run(newSource);
         } catch (Exception exception) {
@@ -167,6 +168,33 @@ final class YsmSyncConnectionSmokeTest {
     private static float counter(YsmModelRuntime runtime) {
         Object value = runtime.owner().getMolangContext().variables.getPath("preview_events");
         return value instanceof Number number ? number.floatValue() : 0;
+    }
+
+    /** D025/S5: a published display state reaches the observer's display store; the M7 path drops it. */
+    private static void displaySync(YsmModelRuntime source, YsmModelRuntime observer) {
+        var sender = new YsmSyncConnection();
+        var receiver = new YsmSyncConnection();
+        Object epoch = new Object();
+        var display = new top.aihmc.omnimorph.model.ysm.sync.YsmDisplayState(7, 12, true, 1f, 0f, -1f,
+                java.util.Map.of("minecraft:speed", 2));
+        sender.setDisplaySource(() -> display);
+        receiver.tickTyped(epoch, 400, null, uuid -> observer, message -> false);
+        java.util.List<YsmSyncMessage> sent = new java.util.ArrayList<>();
+        java.util.function.Predicate<YsmSyncMessage> transfer = message -> {
+            sent.add(message);
+            return receiver.enqueueTyped(epoch, message);
+        };
+        sender.tickTyped(epoch, 400, source, uuid -> null, transfer);
+        receiver.tickTyped(epoch, 400, null, uuid -> observer, message -> false);
+        java.util.UUID owner = source.owner().owner;
+        require(display.equals(top.aihmc.omnimorph.model.ysm.YsmDisplayQuery.remote(owner)),
+                "the observer stores the owner's published display state");
+        require(!sent.isEmpty() && sent.getFirst().state().display() != null
+                        && sent.getFirst().withoutDisplay().state().display() == null,
+                "the M7 path can drop display while keeping the rest of the state");
+        receiver.tickTyped(null, 401, null, uuid -> null, message -> false);
+        require(top.aihmc.omnimorph.model.ysm.YsmDisplayQuery.remote(owner) == null,
+                "a connection reset forgets remote display values");
     }
 
     private static void idleContinuity(YsmModelRuntime source, YsmModelRuntime observer) {

@@ -35,6 +35,11 @@ public final class YsmDisplayQuery {
         return of(entity) != null;
     }
 
+    /** The state another player published, or null when none was received. */
+    public static YsmDisplayState remote(UUID owner) {
+        return owner == null ? null : REMOTE.get(owner);
+    }
+
     public static void acceptRemote(UUID owner, YsmDisplayState state) {
         if (owner == null) {
             return;

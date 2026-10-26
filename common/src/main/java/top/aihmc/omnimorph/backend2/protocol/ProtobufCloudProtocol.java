@@ -705,6 +705,10 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
                 ByteString.copyFrom(HexFormat.of().parseHex(message.contentHash())))) {
             return false;
         }
+        if (capabilities == null || !capabilities.getCapabilitiesList().contains(Cloud.Capability.YSM_DISPLAY)) {
+            // D025: only servers that validate and forward display values receive them.
+            message = message.withoutDisplay();
+        }
         for (var body : publisher.encode(message, descriptor.getRevision())) {
             validateYsmBudget(body.build());
             if (!send(body)) {
