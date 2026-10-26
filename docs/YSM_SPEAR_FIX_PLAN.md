@@ -8,8 +8,8 @@
 | --- | --- | --- |
 | 1 | B1/B3：SPEAR 兼容候选、未解析 use 保持 hold | 完成 bb962baf |
 | 2 | B2：post_swing 不再关闭整个默认手部域 | 完成 d65510d5 |
-| 3 | B4/B5：武器分类与 charge 家族时钟边界 | 完成，本检查点 |
-| 4 | B6/B7：手部阶段归属判定与一次性诊断 | 待实施 |
+| 3 | B4/B5：武器分类与 charge 家族时钟边界 | 完成 8f128a38 |
+| 4 | B6/B7：手部阶段归属判定与一次性诊断 | 完成，本检查点 |
 | 5 | B8：空候选只排除自身，不阻断其它默认候选；最终回归 | 待实施 |
 
 ## 阶段 1
@@ -33,3 +33,10 @@
 - 复用YsmHandItemType的lance分类：原版*_spear（SPEAR使用动画）或pike标签，组件本身不再决定武器家族。有组件才可进行charge时间映射；无组件仍能选相应片段。
 - 新用例覆盖原版矛无组件、pike无组件、任意有组件物品不进lance_charge、generic回退和旧:spear时钟。
 - `spear-b4-b5-final.log`：HandAnimation、VanillaState、Input和Fabric build PASS，51秒/24 tasks，附带LibraryPreviewRuntime PASS。
+
+## 阶段 4
+
+- RED `spear-b6-b7-red.log`：编号custom use控制器不能接管核心use。最初CPU夹具没有函数运行时，先按现有fixture方式禁用其无关function event入口后获得目标断言RED，未修改生产函数执行。
+- 核心use/swing/hold编号声明与原阶段共同决定builtin归属，任一明确custom状态接管该核心阶段；前置/后置hook保持独立层，不把post_use出现等同于全面禁止native use。
+- handAnimationDiagnostics与[YSM hand]日志按播放器实例、动作去重，包含动作/物品ID/候选。成功选片不报缺失，空手hold不报缺失。
+- `spear-b6-b7-green.log`：HandAnimation、BuiltinController、DefaultAnimation、ControllerPhase和Fabric build PASS，1分2秒/25 tasks，附带LibraryPreviewRuntime PASS。
