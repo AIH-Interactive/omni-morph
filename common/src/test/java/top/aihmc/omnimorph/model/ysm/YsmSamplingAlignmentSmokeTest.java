@@ -30,6 +30,7 @@ public final class YsmSamplingAlignmentSmokeTest {
         testCatmullRomTargetWinsOverStep();
         testLoopKeepsExactEnd();
         testChannelEvaluationOrder();
+        testThisKeyword();
         System.out.println("PASS sampling alignment: derived length, linear default, catmullrom priority, loop end, channel order");
     }
 
@@ -99,6 +100,34 @@ public final class YsmSamplingAlignmentSmokeTest {
         YsmAnimationSampler.sampleBone(clip.boneAnimations.get("a"), 0f, ExpressionEvaluator.evaluator(order));
         require(order.equals(List.of("rotation", "position", "scale")),
                 "channels are evaluated rotation, position, scale: " + order);
+    }
+
+    /**
+     * D016: Bedrock {@code this} reads the evaluated channel's current value per axis (Sparkle ThisExpression
+     * with setCurrentChannelValues/setCurrentAxis); without a written value it is 0.
+     */
+    private static void testThisKeyword() {
+        YsmAnimationClip clip = parse("""
+                {"clip":{"animation_length":1,"bones":{"a":{
+                   "rotation":["this + 5","-this","this * 2"],
+                   "position":["this",0,"this - 1"]}}}}
+                """).get("clip");
+        var bone = clip.boneAnimations.get("a");
+        require(bone != null && bone.rotation != null && bone.rotation.staticExpressions != null
+                        && bone.rotation.staticExpressions[0] != null,
+                "an expression using this parses");
+        var evaluator = ExpressionEvaluator.evaluator(new Object());
+        var current = new top.aihmc.omnimorph.model.ysm.animation.YsmBonePose(
+                new float[]{7, 0, 4}, new float[]{10, 3, -2}, null);
+        var pose = YsmAnimationSampler.sampleBone(bone, 0f, evaluator, current);
+        float[] rotation = pose.rotation();
+        float[] position = pose.position();
+        require(rotation[0] == 15f && rotation[1] == -3f && rotation[2] == -4f,
+                "rotation this reads each rotation axis: " + java.util.Arrays.toString(rotation));
+        require(position[0] == 7f && position[2] == 3f,
+                "position this reads the position channel: " + java.util.Arrays.toString(position));
+        var unset = YsmAnimationSampler.sampleBone(bone, 0f, evaluator).rotation();
+        require(unset[0] == 5f && unset[1] == 0f, "this without a current pose is 0: " + java.util.Arrays.toString(unset));
     }
 
     private static Map<String, YsmAnimationClip> parse(String animations) {

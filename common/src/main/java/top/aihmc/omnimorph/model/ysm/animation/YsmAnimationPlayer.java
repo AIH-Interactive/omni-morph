@@ -121,6 +121,12 @@ public class YsmAnimationPlayer {
         public float sampledTime = Float.NaN;
         /** Reference PlayState.PAUSE: the clock keeps running but no pose is submitted. */
         public boolean paused;
+        /**
+         * Bone poses when this clip started (Sparkle BoneAnimationQueue.controllerSnapshot), read by the
+         * Bedrock {@code this} keyword. Captured on the first sample, separately for body and arm parts.
+         */
+        private Map<String, YsmBonePose> startPose;
+        private Map<String, YsmBonePose> armStartPose;
         private boolean retired;
         private String builtinSource;
         private boolean deferTimelineAdvance;
@@ -1058,6 +1064,7 @@ public class YsmAnimationPlayer {
     private void sampleAnimationPoses(ExpressionEvaluator<?> evaluator, boolean firstPerson) {
         Avatar.MolangContext molangContext = evaluator != null && evaluator.entity() instanceof Avatar.MolangContext context
                 ? context : null;
+        captureStartPoses(firstPerson);
         // 3. Reset and apply animations to parts
         for (YsmModelPart part : runtime.uniqueParts(firstPerson)) {
             part.resetAnimPose();
@@ -1112,7 +1119,9 @@ public class YsmAnimationPlayer {
                     List<YsmModelPart> targetParts = runtime.getAnimationParts(boneAnim.boneName, firstPerson);
                     if (targetParts.isEmpty()) continue;
 
-                    YsmBonePose pose = YsmAnimationSampler.sampleBone(boneAnim, t, evaluator);
+                    Map<String, YsmBonePose> startPoses = firstPerson ? anim.armStartPose : anim.startPose;
+                    YsmBonePose pose = YsmAnimationSampler.sampleBone(boneAnim, t, evaluator,
+                            startPoses == null ? null : startPoses.get(boneAnim.boneName));
                     float[] posVal = pose.position();
                     float[] rotVal = pose.rotation();
                     float[] scaleVal = pose.scale();
@@ -1169,6 +1178,37 @@ public class YsmAnimationPlayer {
             }
         }
         applyControllerLayers(controllerPoses, firstPerson, false);
+    }
+
+    /**
+     * Records, once per playing clip, the bones' animated pose from the previous frame. The parts still hold
+     * that pose because this runs before they are reset for the new frame.
+     */
+    private void captureStartPoses(boolean firstPerson) {
+        for (PlayingAnimation anim : activeAnimations.values()) {
+            if ((firstPerson ? anim.armStartPose : anim.startPose) != null) {
+                continue;
+            }
+            Map<String, YsmBonePose> poses = new HashMap<>();
+            for (String bone : anim.clip.boneAnimations.keySet()) {
+                List<YsmModelPart> parts = runtime.getAnimationParts(bone, firstPerson);
+                if (parts.isEmpty()) {
+                    continue;
+                }
+                YsmModelPart part = parts.getFirst();
+                poses.put(bone, new YsmBonePose(vector(part.animPosRaw()), vector(part.animRotRaw()),
+                        vector(part.animScaleRaw())));
+            }
+            if (firstPerson) {
+                anim.armStartPose = poses;
+            } else {
+                anim.startPose = poses;
+            }
+        }
+    }
+
+    private static float[] vector(FiguraVec3 value) {
+        return new float[]{(float) value.x, (float) value.y, (float) value.z};
     }
 
     private record DirectPose(List<YsmModelPart> parts, YsmBonePose pose, float weight,
