@@ -285,7 +285,7 @@ public final class YsmDefaultAnimationSmokeTest {
     }
 
     private static void testPostSwingFallback() throws Exception {
-        CompoundTag source = fullAvatarSource("{}");
+        CompoundTag source = fullAvatarSource("{\"use_mainhand:lance\":{}}");
         var controllers = new net.minecraft.nbt.ListTag();
         var controller = new CompoundTag();
         controller.putByteArray("data", """
@@ -301,9 +301,13 @@ public final class YsmDefaultAnimationSmokeTest {
             var field = player.getClass().getDeclaredField("defaultClips");
             field.setAccessible(true);
             var defaults = (Map<?, ?>) field.get(player);
-            for (String name : List.of("hold_mainhand:spear", "hold_offhand:spear", "use_mainhand:spear", "use_offhand:spear")) {
+            for (String name : List.of("hold_mainhand:spear", "hold_offhand:spear", "use_mainhand:spear", "use_offhand:spear", "use_mainhand:lance")) {
                 require(defaults.containsKey(name), "post_swing preserves independent hand fallback: " + name);
             }
+            var fallback = player.play("use_mainhand:lance", true, 1f);
+            require(fallback != null && !fallback.clip.boneAnimations.isEmpty()
+                            && fallback.clip != player.getClips().get("use_mainhand:lance"),
+                    "an empty hand placeholder can resolve to its default resource at playback");
             require(player.usesBuiltinController("player.use") && player.usesBuiltinController("player.hold_mainhand"),
                     "a post stage does not replace the core hold/use provider");
         } finally {

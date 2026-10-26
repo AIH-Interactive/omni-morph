@@ -256,8 +256,18 @@ public class YsmAnimationPlayer {
     }
 
     public Set<String> defaultExcludedNames(Collection<String> declared, boolean firstPerson) {
-        Set<String> result = new HashSet<>((firstPerson ? authoredArmClips : clips).keySet());
+        Map<String, YsmAnimationClip> authored = firstPerson ? authoredArmClips : clips;
+        Set<String> result = new HashSet<>();
+        authored.forEach((name, clip) -> {
+            if (!isEmptyClip(clip) || !isHandFallbackName(name)) {
+                result.add(name);
+            }
+        });
         for (String name : declared) {
+            YsmAnimationClip clip = authored.get(name);
+            if (clip != null && isEmptyClip(clip) && isHandFallbackName(name)) {
+                continue;
+            }
             result.add(literalAnimationName(name));
             String normalized = normalizeName(name);
             result.add(normalized);
@@ -280,7 +290,10 @@ public class YsmAnimationPlayer {
 
     private YsmAnimationClip nativeClip(String name) {
         YsmAnimationClip authored = clips.get(name);
-        return authored == null ? defaultClips.get(name) : authored;
+        if (authored == null || isEmptyClip(authored) && isHandFallbackName(name)) {
+            return defaultClips.getOrDefault(name, authored);
+        }
+        return authored;
     }
 
     public void registerControllers(Map<String, YsmAnimationController> newControllers) {
@@ -1149,7 +1162,7 @@ public class YsmAnimationPlayer {
                 YsmAnimationClip sampledClip = anim.clip;
                 if (firstPerson && !isFirstPersonController(anim.controllerName)) {
                     sampledClip = authoredArmClips.get(resolveAnimationName(anim.clip.name));
-                    if (sampledClip == null) {
+                    if (sampledClip == null || isEmptyClip(sampledClip) && isHandFallbackName(anim.clip.name)) {
                         sampledClip = defaultArmClips.get(anim.clip.name);
                     }
                     if (sampledClip == null) {
@@ -2260,16 +2273,14 @@ public class YsmAnimationPlayer {
     }
 
     private String firstHandAnimation(String... names) {
-        boolean authoredEmpty = false;
         for (String name : names) {
             String normalized = resolveAnimationName(name);
             YsmAnimationClip clip = clips.get(normalized);
             if (!isEmptyClip(clip)) {
                 return normalized;
             }
-            authoredEmpty |= clip != null;
         }
-        if (!authoredEmpty && nativeStateMachineEnabled) {
+        if (nativeStateMachineEnabled) {
             for (String name : names) {
                 String normalized = resolveAnimationName(name);
                 if (isNativeAnimationEnabled(normalized) && !isEmptyClip(defaultClips.get(normalized))) {
@@ -2591,6 +2602,18 @@ public class YsmAnimationPlayer {
             normalized = stripReferenceSuffix(normalized);
         }
         return normalized.toLowerCase(Locale.US);
+    }
+
+    private boolean isHandFallbackName(String name) {
+        String normalized = normalizeName(name);
+        if (isConditionalHandName(normalized)) {
+            return true;
+        }
+        return switch (simpleName(normalized)) {
+            case "hold_mainhand", "hold_offhand", "use_mainhand", "use_offhand",
+                    "swing", "swing_hand", "swing_offhand", "attack_empty" -> true;
+            default -> normalized.startsWith("lance_");
+        };
     }
 
     private boolean isConditionalHandName(String name) {
