@@ -186,6 +186,14 @@ public final class YsmHandActionState {
                 ? Math.max(1, useAge) : 0;
     }
 
+    public float useTime(LivingEntity entity, float partialTick, boolean localOwner) {
+        if (entity.isUsingItem()) {
+            return entity.getTicksUsingItem(partialTick);
+        }
+        return localOwner && entity == player && ready && !entity.isSleeping() && validUse(entity, useHand)
+                ? Math.max(1f, useAge + partialTick) : 0f;
+    }
+
     public int remainingUseTime(LivingEntity entity, boolean localOwner) {
         if (entity.isUsingItem()) {
             return entity.getUseItemRemainingTicks();
