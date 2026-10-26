@@ -78,6 +78,7 @@ public final class YsmHandAnimationSmokeTest {
         verifyBowHands(entity, update);
         verifyHoldPause(entity, update);
         verifyLegacyLoopOverride(entity, update);
+        verifyLocalInputPulse(entity, update);
         entity.mainArm = HumanoidArm.RIGHT;
         entity.usedHand = InteractionHand.MAIN_HAND;
         entity.offhand = ItemStack.EMPTY;
@@ -301,6 +302,58 @@ public final class YsmHandAnimationSmokeTest {
         System.out.println("PASS hand loop override: legacy binary formats use predicate loops, modern keep authored");
     }
 
+    /**
+     * Sparkle's use and swing predicates read the local input pulse through InputStateKey, so a
+     * pending click starts the authored action before vanilla mirrors the same state. OmniMorph's
+     * Molang queries already work that way; native hand selection must agree with them.
+     */
+    private static void verifyLocalInputPulse(HandEntity entity, Method update) throws ReflectiveOperationException {
+        YsmHandActionState hands = YsmInputState.device().hands();
+        entity.mainArm = HumanoidArm.RIGHT;
+        entity.usedHand = InteractionHand.MAIN_HAND;
+        entity.main = new ItemStack(Items.BOW);
+        entity.offhand = ItemStack.EMPTY;
+        entity.using = false;
+        entity.swinging = false;
+        hands.prepare(entity, true);
+
+        var animations = localPlayer("hold_mainhand:bow", "use_mainhand:bow", "swing:bow");
+        update.invoke(animations, entity);
+        var hold = animations.getActiveAnimation("hold_mainhand:bow");
+        require(targeted(animations, "hold_mainhand:bow"), "the holding hand starts its authored grip");
+
+        hands.mouseEvent(1, 1);
+        require(hands.using(entity, InteractionHand.MAIN_HAND, true), "the fixture starts a pending use pulse");
+        update.invoke(animations, entity);
+        require(targeted(animations, "use_mainhand:bow"), "a pending use pulse alone starts the drawing animation");
+        require(hold.paused, "a pending use pulse pauses its own hold like a native use");
+
+        hands.mouseEvent(1, 0);
+        require(!hands.using(entity, InteractionHand.MAIN_HAND, true), "releasing the button clears the use pulse");
+        update.invoke(animations, entity);
+        require(!targeted(animations, "use_mainhand:bow") && targeted(animations, "hold_mainhand:bow") && !hold.paused,
+                "ending the use pulse resumes the same authored grip");
+
+        hands.mouseEvent(0, 1);
+        require(hands.swinging(entity, InteractionHand.MAIN_HAND, true), "the fixture starts a pending swing pulse");
+        update.invoke(animations, entity);
+        require(targeted(animations, "swing:bow"), "a pending swing pulse alone starts the swing animation");
+
+        var observer = player("hold_mainhand:bow", "use_mainhand:bow");
+        // A fresh device state keeps the pulse sequence apart from the swing above.
+        hands.prepare(entity, false);
+        hands.prepare(entity, true);
+        hands.mouseEvent(1, 1);
+        update.invoke(observer, entity);
+        require(!targeted(observer, "use_mainhand:bow"),
+                "a pending local pulse never selects an action for a model without device input");
+
+        hands.prepare(entity, false);
+        update.invoke(animations, entity);
+        require(!targeted(animations, "swing:bow"), "clearing the device state retires the pulse swing");
+        System.out.println("PASS local input pulses: native hand selection shares the query layer's pending use and swing");
+    }
+
     private static YsmAnimationPlayer onceClips(String... names) {
         String definitions = java.util.Arrays.stream(names)
                 .map(name -> "\"" + name + "\":{\"loop\":false,\"animation_length\":1,"
@@ -362,15 +415,30 @@ public final class YsmHandAnimationSmokeTest {
     }
 
     private static YsmAnimationPlayer player(String... names) {
+        var player = new YsmAnimationPlayer(null);
+        player.registerAnimations(clips(names));
+        return player;
+    }
+
+    /** A player that owns the client's device input, as the rendered local model does. */
+    private static YsmAnimationPlayer localPlayer(String... names) {
+        var player = new YsmAnimationPlayer(null) {
+            @Override
+            protected boolean ownsDeviceHandInput(LivingEntity entity) {
+                return true;
+            }
+        };
+        player.registerAnimations(clips(names));
+        return player;
+    }
+
+    private static Map<String, YsmAnimationClip> clips(String... names) {
         String definitions = java.util.Arrays.stream(names)
                 .map(name -> "\"" + name + "\":{\"loop\":true,\"animation_length\":1,"
                         + "\"bones\":{\"RightArm\":{\"rotation\":[-90,0,0]}}}")
                 .collect(java.util.stream.Collectors.joining(","));
         String json = "{\"animations\":{" + definitions + "}}";
-        Map<String, YsmAnimationClip> clips = YsmAnimationParser.parse(json, MolangEngine.fromCustomBinding(key -> null));
-        var player = new YsmAnimationPlayer(null);
-        player.registerAnimations(clips);
-        return player;
+        return YsmAnimationParser.parse(json, MolangEngine.fromCustomBinding(key -> null));
     }
 
     private static boolean targeted(YsmAnimationPlayer player, String name) {
@@ -408,11 +476,26 @@ public final class YsmHandAnimationSmokeTest {
         }
 
         @Override
+        public boolean isSleeping() {
+            return false;
+        }
+
+        @Override
         public ItemStack getItemInHand(InteractionHand hand) {
             if (hand == InteractionHand.MAIN_HAND) {
                 return main;
             }
             return offhand == null ? ItemStack.EMPTY : offhand;
+        }
+
+        @Override
+        public ItemStack getMainHandItem() {
+            return getItemInHand(InteractionHand.MAIN_HAND);
+        }
+
+        @Override
+        public ItemStack getOffhandItem() {
+            return getItemInHand(InteractionHand.OFF_HAND);
         }
 
         @Override

@@ -31,6 +31,9 @@ import org.figuramc.figura.lua.api.particle.ParticleAPI;
 import org.figuramc.figura.lua.api.sound.LuaSound;
 import org.figuramc.figura.math.vector.FiguraVec3;
 import top.aihmc.omnimorph.model.ysm.YsmBoneRole;
+import top.aihmc.omnimorph.model.ysm.YsmHandActionState;
+import top.aihmc.omnimorph.model.ysm.YsmHandQuery;
+import top.aihmc.omnimorph.model.ysm.YsmInputState;
 import top.aihmc.omnimorph.model.ysm.YsmModelPart;
 import top.aihmc.omnimorph.model.ysm.YsmModelRuntime;
 import top.aihmc.omnimorph.model.ysm.YsmParticleRuntime;
@@ -86,6 +89,8 @@ public class YsmAnimationPlayer {
     private final Map<String, String> subEntityAnimations = new LinkedHashMap<>();
     private final Set<String> functionEventControllers = new HashSet<>();
     private boolean wasSwinging;
+    /** The local swing pulse already turned into a native swing action. */
+    private int lastSwingPulseSequence;
     private long lastBudgetFailureFrame = Long.MIN_VALUE;
     private long notificationSequence;
 
@@ -1548,22 +1553,39 @@ public class YsmAnimationPlayer {
         return point != null && point.locator() != null;
     }
 
+    /**
+     * Device input belongs to the local player model only. Overridable so callers can supply the
+     * ownership decision without a live client.
+     */
+    protected boolean ownsDeviceHandInput(LivingEntity entity) {
+        return runtime != null && YsmHandQuery.ownsDeviceInput(runtime.owner(), entity);
+    }
+
+    /**
+     * Resolves native hand actions from the same local input pulses that Molang queries read.
+     * Sparkle's use and swing predicates accept a pending device pulse before vanilla mirrors it,
+     * so selection must not read raw entity flags here.
+     */
     private void updateNativeHandAnimations(LivingEntity entity) {
         if (entity == null || entity.getPose() == Pose.SLEEPING) {
             clearNativeHandAnimations();
             wasSwinging = false;
+            lastSwingPulseSequence = 0;
             return;
         }
 
+        YsmHandActionState hands = YsmInputState.device().hands();
+        boolean localOwner = ownsDeviceHandInput(entity);
         HumanoidArm mainArm = entity.getMainArm();
-        boolean usingItem = entity.isUsingItem();
-        InteractionHand usedHand = usingItem ? entity.getUsedItemHand() : null;
+
+        InteractionHand usedHand = hands.usedHand(entity, localOwner);
+        boolean usingItem = hands.using(entity, usedHand, localOwner);
         String useSlot = null;
         boolean keepHoldWhileUsing = false;
         if (usingItem) {
             boolean left = handSlotIsLeft(usedHand, mainArm);
             useSlot = left ? "left" : "right";
-            ItemStack item = entity.getUseItem();
+            ItemStack item = entity.getItemInHand(usedHand);
             String[] names = useAnimationNames(entity, left, item);
             if (isKineticSpear(item) && firstHandAnimation(names) == null) {
                 // Legacy :spear clips describe a trident throw. Keep the authored grip
@@ -1578,28 +1600,36 @@ public class YsmAnimationPlayer {
 
         // The use slot follows the swing slot in YSM. A swing pulse must not replace
         // the drawing pose of the same hand while the item is still being used.
-        boolean swingUsesActiveHand = usingItem && entity.swingingArm == usedHand;
-        if (entity.swinging && !wasSwinging && !swingUsesActiveHand) {
-            boolean left = handSlotIsLeft(entity.swingingArm, mainArm);
-            ItemStack item = entity.getItemInHand(entity.swingingArm);
-            String[] names = swingAnimationNames(entity.swingingArm, item);
+        InteractionHand swingingHand = hands.swingingHand(entity, localOwner);
+        boolean anySwinging = hands.anySwinging(entity, localOwner);
+        boolean swingUsesActiveHand = usingItem && swingingHand == usedHand;
+        boolean newSwingPulse = localOwner && hands.swingPulseActive(entity, true)
+                && hands.swingSequence() != lastSwingPulseSequence;
+        lastSwingPulseSequence = hands.swingSequence();
+        if ((anySwinging && !wasSwinging || newSwingPulse) && !swingUsesActiveHand) {
+            boolean left = handSlotIsLeft(swingingHand, mainArm);
+            ItemStack item = entity.getItemInHand(swingingHand);
+            String[] names = swingAnimationNames(swingingHand, item);
             playNativeHandOnce(left ? "left" : "right", names);
             sampleKineticSwingAnimation(left ? "left" : "right", entity, item);
         }
-        String swingSlot = entity.swinging && !swingUsesActiveHand
-                ? (handSlotIsLeft(entity.swingingArm, mainArm) ? "left" : "right")
+        String swingSlot = anySwinging && !swingUsesActiveHand
+                ? (handSlotIsLeft(swingingHand, mainArm) ? "left" : "right")
                 : null;
         for (String slot : new String[]{"left", "right"}) {
             if (!slot.equals(useSlot) && !slot.equals(swingSlot)) {
                 syncNativeHandAnimation(slot, false);
             }
         }
-        wasSwinging = entity.swinging;
+        wasSwinging = anySwinging;
 
         // Sparkle registers hold_offhand and hold_mainhand as separate controllers. Each one
         // pauses only while its own hand swings or uses an item; the other hand keeps holding.
+        boolean pulseSwinging = localOwner && hands.swingPulseActive(entity, true);
+        InteractionHand pulseHand = pulseSwinging ? hands.swingingHand(entity, true) : null;
         for (InteractionHand hand : InteractionHand.values()) {
-            boolean ownHandActs = (entity.swinging && entity.swingingArm == hand)
+            boolean swingOwnHand = (entity.swinging && entity.swingingArm == hand) || pulseHand == hand;
+            boolean ownHandActs = swingOwnHand
                     || (usingItem && usedHand == hand && !keepHoldWhileUsing);
             syncHoldingAnimation(entity, hand, handSlotIsLeft(hand, mainArm), ownHandActs);
         }

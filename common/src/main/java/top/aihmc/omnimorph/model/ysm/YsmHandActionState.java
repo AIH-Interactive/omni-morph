@@ -18,6 +18,7 @@ public final class YsmHandActionState {
     private int rawAttackDedupTicks;
     private int swingTicks;
     private int swingAge;
+    private int swingSequence;
     private InteractionHand swingHand = InteractionHand.MAIN_HAND;
     private int useTicks;
     private int useAge;
@@ -126,6 +127,21 @@ public final class YsmHandActionState {
         swingHand = hand;
         swingTicks = 10;
         swingAge = 0;
+        swingSequence++;
+    }
+
+    /** Identifies one local swing pulse so playback can start it exactly once. */
+    public int swingSequence() {
+        return swingSequence;
+    }
+
+    public boolean swingPulseActive(LivingEntity entity, boolean localOwner) {
+        return localPulse(entity, localOwner);
+    }
+
+    /** The hand an in-progress swing belongs to, preferring a pending local pulse. */
+    public InteractionHand swingingHand(LivingEntity entity, boolean localOwner) {
+        return localPulse(entity, localOwner) ? swingHand : entity.swingingArm;
     }
 
     public boolean anySwinging(LivingEntity entity, boolean localOwner) {
