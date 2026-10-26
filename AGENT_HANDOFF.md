@@ -1152,3 +1152,8 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - **修复（`ysm-alignment@12276f4f`，已推送，远端一致）：** YSM 分支开头，若 `Avatar.firstPerson` 则清 `currentAvatar/lastPose` 并 cancel，不提交模型。YSM 无 Figura 部件矩阵需刷新；第一人称手臂走独立路径不受影响。Fabric 入口的 avatar 取法未改（门控已在渲染分支兜底）。
 - **验证：** HandAnimation、MaterialNative、DefaultAnimation、FirstPersonController + `:fabric:build` PASS（1分14秒）。mixin 渲染分支无 CPU 夹具可覆盖，未加专门单测；真实画面（开关开/关、第一/第三人称、手持物、装扮组合）`MANUAL/PENDING`。
 - **下一步：** 用户关客户端已构建完成，重启后开启第一人称 Matrices 实机确认视野不再被遮挡、第一人称手臂与第三人称正常。
+
+## 当前有效交接：D025 远端显示状态同步计划（2026-10-27）
+
+- 用户要求只读分析后写入计划。新增 `docs/YSM_D025_SYNC_PLAN.md`：参考 `PlayerDisplayState`/presence 发布机制、Omni 现状差距表、设计要点、S1–S7 分阶段（客户端记录/读取入口 → 同步段与编解码 v2 → cloud.proto 重新发布 → omnm-cloud 校验合并 → 发布接收接线 → 读取点切换 → 设置项）、兼容风险与 5 项待用户决策。计划表 D025 行注明已立项。未改代码、协议或后端。
+- 下一步：等待用户就计划第 7 节决策；未授权前不实施。
