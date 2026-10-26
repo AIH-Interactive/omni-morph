@@ -1049,6 +1049,14 @@ public class YsmAnimationPlayer {
                 // If animation faded out, remove it to save CPU
                 if (anim.weight <= 0f && anim.targetWeight <= 0f) {
                     stopPlaybackSounds(anim);
+                    // A continuous use request remembers its completed ONCE clip, just as
+                    // the reference controller retains lastRequestedAnimation. Release or
+                    // selection change removes ownership and lets ordinary cleanup retire it.
+                    if (anim.loopMode == YsmAnimationClip.LoopMode.ONCE && anim.time >= anim.clip.length
+                            && anim.poseOrder == USE_STAGE && anim.controllerName == null
+                            && nativeHandAnimations.containsValue(entry.getKey())) {
+                        continue;
+                    }
                     it.remove();
                     continue;
                 }
@@ -2283,13 +2291,11 @@ public class YsmAnimationPlayer {
             if (!isEmptyClip(clip)) {
                 return normalized;
             }
-        }
-        if (nativeStateMachineEnabled) {
-            for (String name : names) {
-                String normalized = resolveAnimationName(name);
-                if (isNativeAnimationEnabled(normalized) && !isEmptyClip(defaultClips.get(normalized))) {
-                    return normalized;
-                }
+            // Candidate specificity precedes source: an authored generic use must not
+            // hide a missing item's specific default draw. Same-name author still wins.
+            if (nativeStateMachineEnabled && isNativeAnimationEnabled(normalized)
+                    && !isEmptyClip(defaultClips.get(normalized))) {
+                return normalized;
             }
         }
         return null;
@@ -2643,7 +2649,8 @@ public class YsmAnimationPlayer {
         String normalized = name;
         if (normalized.startsWith("animation."))
             normalized = normalized.substring("animation.".length());
-        return (isConditionalHandName(normalized) ? normalized : stripReferenceSuffix(normalized)).toLowerCase(Locale.US);
+        // Preserve exact authored identity before trying compatibility aliases.
+        return normalized.toLowerCase(Locale.US);
     }
 
     private String resolveAnimationName(String name) {

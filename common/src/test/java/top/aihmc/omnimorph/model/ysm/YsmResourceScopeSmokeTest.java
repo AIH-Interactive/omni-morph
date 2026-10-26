@@ -56,6 +56,8 @@ public final class YsmResourceScopeSmokeTest {
                 sample.invoke(player, evaluator, false);
                 check(!runtime.getPart("gun").visibleRaw(), "author control can hide gun again", failures);
                 verifyDeclaredOrder(runtime, failures);
+                verifyWalking(runtime, evaluator, sample, failures);
+                YsmHandAnimationSmokeTest.verifyTacticsSustainedUse(runtime, failures);
             } catch (Exception exception) {
                 throw new AssertionError(exception);
             }
@@ -87,6 +89,21 @@ public final class YsmResourceScopeSmokeTest {
                 "later declared animation must win regardless of bone count", failures);
         check(clips.get("idle").boneAnimations.isEmpty(),
                 "later explicitly empty author animation must remain authoritative", failures);
+    }
+
+    private static void verifyWalking(YsmModelRuntime runtime, ExpressionEvaluator<?> evaluator,
+                                      Method sample, List<String> failures) throws ReflectiveOperationException {
+        var player = runtime.animations();
+        var walking = player.playControllerAnimation("player.post_main", "walk#", null, 1f, 0f);
+        check(walking.clip.name.equals("walk#"), "exact walk# must not resolve to empty walk", failures);
+        walking.time = 0.125f;
+        sample.invoke(player, evaluator, false);
+        double first = runtime.getPart("LeftLeg").animRotRaw().x;
+        walking.time = 0.375f;
+        sample.invoke(player, evaluator, false);
+        check(Math.abs(runtime.getPart("LeftLeg").animRotRaw().x - first) > 5f,
+                "authored walk# must move the rendered leg across samples", failures);
+        player.fadeOutControllerAnimation("player.post_main", "walk#", 0f);
     }
 
     private static void addAnimation(ListTag resources, String json) {

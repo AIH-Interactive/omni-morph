@@ -223,6 +223,80 @@ public final class YsmHandAnimationSmokeTest {
         entity.using = false;
     }
 
+    static void verifyTacticsSustainedUse(YsmModelRuntime runtime, java.util.List<String> failures)
+            throws ReflectiveOperationException {
+        Items.BOW.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
+        Items.TRIDENT.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
+        var input = YsmModelRuntime.class.getDeclaredField("previewInput");
+        input.setAccessible(true);
+        var defaults = YsmModelRuntime.class.getDeclaredMethod("loadDefaultAnimations",
+                net.minecraft.nbt.CompoundTag.class, MolangEngine.class);
+        defaults.setAccessible(true);
+        defaults.invoke(runtime, input.get(runtime), MolangEngine.fromCustomBinding(runtime.owner().getAvatarBindings()));
+        var player = runtime.animations();
+        var evaluator = ExpressionEvaluator.evaluator(runtime.owner().getMolangContext());
+        Method update = YsmAnimationPlayer.class.getDeclaredMethod("updateNativeHandAnimations", LivingEntity.class);
+        Method advance = YsmAnimationPlayer.class.getDeclaredMethod("advanceAnimationTimeline", float.class, ExpressionEvaluator.class);
+        Method reconcile = YsmAnimationPlayer.class.getDeclaredMethod("reconcileBuiltinSources");
+        update.setAccessible(true);
+        advance.setAccessible(true);
+        reconcile.setAccessible(true);
+        HandEntity entity = newHandEntity();
+        entity.mainArm = HumanoidArm.RIGHT;
+        entity.usedHand = InteractionHand.MAIN_HAND;
+        entity.offhand = ItemStack.EMPTY;
+        for (var item : new net.minecraft.world.item.Item[]{Items.BOW, Items.TRIDENT}) {
+            String name = item == Items.BOW ? "use_mainhand:bow" : "use_mainhand:spear";
+            entity.main = new ItemStack(item);
+            entity.using = true;
+            update.invoke(player, entity);
+            var draw = player.getActiveAnimation(name);
+            if (draw == null) {
+                failures.add("specific default " + name + " must beat author's generic use");
+            } else {
+                for (int frame = 0; frame < 40; frame++) {
+                    reconcile.invoke(player);
+                    update.invoke(player, entity);
+                    advance.invoke(player, 0.05f, evaluator);
+                }
+                if (player.getActiveAnimation(name) != draw || Math.abs(draw.time - 2f) > 0.001f
+                        || draw.loopMode != YsmAnimationClip.LoopMode.HOLD_ON_LAST_FRAME) {
+                    failures.add(name + " must keep one continuous held draw");
+                }
+            }
+            entity.using = false;
+            update.invoke(player, entity);
+            advance.invoke(player, 0.25f, evaluator);
+        }
+        // Without default resources, a genuine authored ONCE use still must not retrigger
+        // until the continuous use request ends, matching reference lastRequestedAnimation.
+        player.setNativeStateMachineEnabled(false);
+        entity.main = new ItemStack(Items.BOW);
+        entity.using = true;
+        update.invoke(player, entity);
+        var once = player.getActiveAnimation("use_mainhand");
+        for (int frame = 0; frame < 60; frame++) {
+            reconcile.invoke(player);
+            update.invoke(player, entity);
+            advance.invoke(player, 0.05f, evaluator);
+        }
+        if (once == null || player.getActiveAnimation("use_mainhand") != once || once.weight != 0f) {
+            failures.add("completed one-shot use must remain stopped while right click stays held");
+        }
+        entity.using = false;
+        update.invoke(player, entity);
+        advance.invoke(player, 0.25f, evaluator);
+        entity.using = true;
+        update.invoke(player, entity);
+        var restarted = player.getActiveAnimation("use_mainhand");
+        if (restarted == null || restarted == once || restarted.time != 0f) {
+            failures.add("release and reuse must start a fresh authored one-shot");
+        }
+        entity.using = false;
+        update.invoke(player, entity);
+        player.setNativeStateMachineEnabled(true);
+    }
+
     private static void verifyReferenceSpear(YsmModelRuntime runtime, HandEntity entity, Method update)
             throws ReflectiveOperationException {
         // This native replay fixture has no Avatar NBT, so explicitly run the same default
