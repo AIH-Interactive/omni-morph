@@ -3965,6 +3965,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 org.figuramc.figura.utils.ui.UIHelper.paperdoll = previousPaperdoll;
                 avatar.renderMode = previousMode;
             }
+            testDeferredWorldMatrices(avatar, model);
             top.aihmc.omnimorph.model.outfit.NativeSkeletonSmokeTest.testFigura(avatar);
             top.aihmc.omnimorph.model.outfit.OutfitNativeRenderSmokeTest.run();
             testCompositionPreparation(session, drain, gui);
@@ -5394,6 +5395,70 @@ public final class LibraryPreviewRuntimeSmokeTest {
             Thread.sleep(1);
         }
         return future.get(1, TimeUnit.SECONDS);
+    }
+
+    private static void testDeferredWorldMatrices(Avatar avatar,
+                                                  net.minecraft.client.model.player.PlayerModel model) {
+        var previousMode = avatar.renderMode;
+        boolean previousPaperdoll = org.figuramc.figura.utils.ui.UIHelper.paperdoll;
+        try {
+            for (int frame = 0; frame < 2; frame++) {
+                var queue = new DeferredFiguraQueue();
+                double worldX = 140 + frame * 12;
+                avatar.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.RENDER;
+                org.figuramc.figura.utils.ui.UIHelper.paperdoll = false;
+                queue.submitFiguraModel(avatar, new AvatarRenderState(), (owner, state, buffers) -> {
+                    var stack = new com.mojang.blaze3d.vertex.PoseStack();
+                    stack.translate(worldX, 64, -48);
+                    owner.updateMatrices(model, stack);
+                    require(Math.abs(owner.renderer.root.partToWorldMatrix().apply(0d, 0d, 0d).x - worldX) < .001,
+                            "deferred world drawing must update particle coordinates after wardrobe submission/close");
+                    owner.postRenderEvent(.5f, org.figuramc.figura.math.matrix.FiguraMat4.of());
+                    return null;
+                });
+                if (frame == 0) {
+                    avatar.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
+                    org.figuramc.figura.utils.ui.UIHelper.paperdoll = true;
+                    queue.submitFiguraModel(avatar, new AvatarRenderState(), (owner, state, buffers) -> {
+                        owner.updateMatrices(model, new com.mojang.blaze3d.vertex.PoseStack());
+                        require(Math.abs(owner.renderer.root.partToWorldMatrix().apply(0d, 0d, 0d).x - worldX) < .001,
+                                "deferred wardrobe drawing must preserve the preceding world particle position");
+                        return null;
+                    });
+                } else {
+                    avatar.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.OTHER;
+                }
+                org.figuramc.figura.utils.ui.UIHelper.paperdoll = false;
+                new top.aihmc.omnimorph.model.rendering.nodeRenderer.FiguraFeatureRenderer().render(queue, null);
+            }
+        } finally {
+            avatar.renderMode = previousMode;
+            org.figuramc.figura.utils.ui.UIHelper.paperdoll = previousPaperdoll;
+        }
+    }
+
+    private static final class DeferredFiguraQueue extends net.minecraft.client.renderer.SubmitNodeCollection
+            implements top.aihmc.omnimorph.ducks.NodeCollectorExtension {
+        private final java.util.List<top.aihmc.omnimorph.model.rendering.nodeRenderer.FiguraSubmission> submissions =
+                new java.util.ArrayList<>();
+
+        private DeferredFiguraQueue() {
+            super(null);
+        }
+
+        @Override
+        public <S extends net.minecraft.client.renderer.entity.state.EntityRenderState> void submitFiguraModel(
+                Avatar avatar, S state,
+                org.apache.commons.lang3.function.TriFunction<Avatar, S,
+                        net.minecraft.client.renderer.MultiBufferSource, Void> renderer) {
+            submissions.add(new top.aihmc.omnimorph.model.rendering.nodeRenderer.FiguraSubmission(
+                    avatar, state, (owner, captured, buffers) -> renderer.apply(owner, state, buffers)));
+        }
+
+        @Override
+        public java.util.List<top.aihmc.omnimorph.model.rendering.nodeRenderer.FiguraSubmission> getFiguraSubmissions() {
+            return submissions;
+        }
     }
 
     private static void require(boolean condition, String message) {

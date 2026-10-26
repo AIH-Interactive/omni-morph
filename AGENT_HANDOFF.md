@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-26 11:06（Asia/Seoul；原版粒子用户确认正常，CustomParticle 发现安装旧包缺接口，已安装最新包并保留 natives；等待重启复测。以文末最新章节为准。）
+更新时间：2026-10-26 11:18（Asia/Seoul；衣柜与世界延迟绘制模式串扰已复现并修正，构建/安装完成，等待重启复测。以文末最新章节为准。）
 
 ## 接续入口与约束
 
@@ -716,3 +716,14 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 最小下一步：用户重启客户端，确认日志加载 Alpha4.1 后验证进服装饰粒子；如仍无显示，保留新日志并定位实际失败 API/运行时。不要修改作者脚本来兼容误装旧包，也不扩张旧阶段。
 - Git：main 源码检查点34c6742d已推送核对；本轮仅更新交接与进度记录并纳入随后文档检查点，交付前推送核对实际HEAD与远端main。后端master@c69e3c08无本轮修改。主仓库 .omc/、mod_log/、patch/ 和后端 build.log、build/ 保留不提交。
 - 修复处理后可靠额度查询：Plus 5小时剩余79%、周剩余85%，重置Unix UTC秒1792996496/1793525491；未到阈值，不委派Luna。继续遵守当前分支、前台Tee日志、JDK25、范围控制、CodeGraph优先、真实窗口/禁止offscreen及未验不得标PASS。
+## 当前有效交接：衣柜关闭后粒子再次停留原点（2026-10-26 11:18）
+
+- 用户反馈：打开衣柜后关闭，黄色/绿色原版粒子再次留在旧位置；截图 D:/Temp/User/codex-clipboard-b06dc2b2-218f-481b-8789-ef4c244ed2ff.png。上轮直接 GUI 绘制回归没有覆盖延迟提交消费时序，不能据其证明完整生命周期已通过。
+- 已复现机制：FiguraSubmission 原先只存 Avatar/state/callback，FiguraFeatureRenderer 消费时直接读取共享 Avatar.renderMode/UIHelper.paperdoll。世界命令提交后 GUI 可把 mode 改为 FIGURA_GUI；世界命令稍后执行会被矩阵保护跳过。此前 renderMode 辅助函数未接入此原生消费路径，不能代替绘制命令的上下文。
+- 修复：FiguraSubmission 保持原3参数构造调用，额外捕获提交时 EntityRenderMode 与 paperdoll；FiguraFeatureRenderer 对每条命令临时恢复二者，并在 finally 还原。保留上轮 GUI 世界矩阵保护，不修改粒子引擎、模型/作者脚本、后端或版本，不扩大到独立帧预算整理。
+- 回归：真实 FiguraFeatureRenderer 消费测试队列，真实 Avatar.updateMatrices 读取根部件世界坐标。第1帧世界 x=140 排队后提交 GUI，验证世界写入140且GUI不覆盖；第2帧不再提交GUI，提交后共享mode置OTHER，验证消费后世界位置移到152。fixture仅替代未加载Mixin的队列接口，不是截图/GPU证据。alpha4-deferred-matrix-red.log 的精确断言 deferred world drawing must update particle coordinates after wardrobe submission/close 已失败（15秒）；修复后 :common:libraryPreviewRuntimeSmokeTest + :fabric:build PASS（30秒/21 tasks），日志 alpha4-deferred-matrix-final.log。原生矩阵/Lua、配装、默认预览和原有渲染回归均随任务运行；git diff --check PASS。
+- 安装：新构建合并此前备份中的10个 natives/*，公开粒子接口检查PASS，并备份后替换现有mods JAR，安装SHA与合并包一致。新安装18,685,881字节，SHA256 5277dec92fb0b7a45d5b8427a1e6618887e30b3dc032694529dc10d8385dcbbf；旧包备份 build/tmp/omni-morph-before-custom-api-20261026-111708.jar，合并包 build/tmp/omni-morph-custom-particle-api-native.jar。安装日志 build/reports/outfit/alpha4-deferred-matrix-install.log。未结束或重启用户游戏，旧进程继续使用原代码。
+- 未验证：真实游戏重启后“进服→移动→打开衣柜→关闭→继续移动”的原版/Custom粒子、光照和尾尖跟随仍 MANUAL/PENDING。需要用户重启复测；若再次失败，从新日志和实际坐标接续，不宣称已完成真实端到端修复，不盲目继续切renderMode。
+- Git：继续main，本轮前8acc4ecf；仅2个生产文件、1个回归文件及交接/进度记录纳入本检查点，随后提交推送核对HEAD与远端main。后端无本轮修改。主仓库未跟踪.omc/、mod_log/、patch/及后端原文件保留不提交。无运行中构建/测试；无额外自动实施任务。
+- 最小下一步：重启当前客户端后复测上述完整路径；当前自动回归/构建/安装已结束。文档源 ACCESSORY_SYSTEM_PROGRESS.md 文末；正式范围仍遵守 ACCESSORY_SYSTEM_IMPLEMENTATION_PLAN.md。
+- 修复验证后额度：Plus 5小时剩余70%、周剩余84%，重置Unix UTC秒1792996496/1793525491；未到阈值。当前Agent正常更新手册，不委派Luna。继续遵守当前分支提交推送、JDK25、前台PowerShell Tee日志、CodeGraph优先、范围冻结、禁止Qt offscreen与真实未验不得标PASS。
