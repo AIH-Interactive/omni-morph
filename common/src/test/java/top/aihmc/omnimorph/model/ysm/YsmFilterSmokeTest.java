@@ -53,6 +53,8 @@ public final class YsmFilterSmokeTest {
         testSecondOrder();
         testBoneAndAvatarIsolation();
         testRenderFrameDomains();
+        testLongGapRecovery();
+        testNonFiniteInputHoldsValue();
         Function first = (Function) new MolangBindings.YsmBinding().getProperty("first_order");
         Function second = (Function) new MolangBindings.YsmBinding().getProperty("second_order");
         require(!first.validateArgumentSize(1) && first.validateArgumentSize(2) && first.validateArgumentSize(5),
@@ -72,6 +74,44 @@ public final class YsmFilterSmokeTest {
         filters.update(domain, 101f, 2L, null);
         equal(80f, filters.firstOrder(domain, "head", 80f, 1f), "constant head input cannot drift to zero");
         equal(-35f, filters.secondOrder(domain, "hair", -35f, 1f, 0.5f, 0f), "resting hair has no artificial startup impulse");
+    }
+
+    /** D013: Sparkle PhysicsManager rebuilds a filter at the current input after a gap > 8/60 s or time going back. */
+    private static void testLongGapRecovery() {
+        var filters = new YsmFilterRuntime();
+        var domain = YsmFilterRuntime.Domain.BODY;
+        filters.update(domain, 100f, 1L, null);
+        filters.firstOrder(domain, "first", 0f, 1f);
+        filters.secondOrder(domain, "second", 0f, 1f, 0.5f, 0f);
+        filters.update(domain, 101f, 2L, null);
+        require(filters.firstOrder(domain, "first", 50f, 1f) == 0f, "short step keeps the filtered value");
+        filters.secondOrder(domain, "second", 50f, 1f, 0.5f, 0f);
+        filters.update(domain, 110f, 3L, null);
+        equal(80f, filters.firstOrder(domain, "first", 80f, 1f), "long gap snaps first order to the current input");
+        equal(80f, filters.secondOrder(domain, "second", 80f, 1f, 0.5f, 0f), "long gap snaps second order");
+        filters.update(domain, 105f, 4L, null);
+        equal(-20f, filters.firstOrder(domain, "first", -20f, 1f), "time going backwards snaps to the current input");
+        filters.update(domain, 106f, 5L, null);
+        float next = filters.firstOrder(domain, "first", 30f, 1f);
+        require(next == -20f, "a normal step after recovery resumes filtering: " + next);
+    }
+
+    /** D014: Sparkle FirstOrder/SecondOrder keep their last value for a non-finite input instead of chasing 0. */
+    private static void testNonFiniteInputHoldsValue() {
+        var filters = new YsmFilterRuntime();
+        var domain = YsmFilterRuntime.Domain.BODY;
+        filters.update(domain, 100f, 1L, null);
+        filters.firstOrder(domain, "first", 10f, 1f);
+        filters.secondOrder(domain, "second", 10f, 1f, 0.5f, 0f);
+        filters.update(domain, 101f, 2L, null);
+        filters.firstOrder(domain, "first", Float.NaN, 1f);
+        filters.secondOrder(domain, "second", Float.POSITIVE_INFINITY, 1f, 0.5f, 0f);
+        filters.update(domain, 102f, 3L, null);
+        equal(10f, filters.firstOrder(domain, "first", Float.NaN, 1f), "first order holds on NaN input");
+        equal(10f, filters.secondOrder(domain, "second", Float.POSITIVE_INFINITY, 1f, 0.5f, 0f),
+                "second order holds on infinite input");
+        filters.update(domain, 103f, 4L, null);
+        equal(10f, filters.firstOrder(domain, "first", 10f, Float.NaN), "first order holds on NaN response");
     }
 
     private static void testFirstOrder() throws Exception {

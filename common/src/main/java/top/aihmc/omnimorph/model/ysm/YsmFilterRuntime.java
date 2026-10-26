@@ -15,6 +15,8 @@ public final class YsmFilterRuntime {
     }
 
     private static final int MAX_FILTERS_PER_DOMAIN = 16_384;
+    /** Sparkle PhysicsManager.RECOVERY_SECONDS. */
+    private static final float RECOVERY_SECONDS = 8f / 60f;
     private final Map<Domain, Manager> managers = new EnumMap<>(Domain.class);
     private String bone;
     private long generation;
@@ -46,6 +48,11 @@ public final class YsmFilterRuntime {
             return filter.value;
         }
         filter.setArguments(input, first, second, third);
+        if (filter.recovering && Float.isFinite(input)) {
+            // Sparkle PhysicsManager rebuilds the filter at the current input after a recovery gap.
+            filter.recovering = false;
+            filter.reset(input);
+        }
         return filter.value;
     }
 
@@ -56,14 +63,20 @@ public final class YsmFilterRuntime {
         Manager manager = managers.computeIfAbsent(domain, ignored -> new Manager());
         if (manager.lastRenderTicks <= 0f) {
             manager.lastRenderTicks = renderTicks;
-        } else if (renderTicks > manager.lastRenderTicks) {
+        } else if (renderTicks != manager.lastRenderTicks) {
             float seconds = (renderTicks - manager.lastRenderTicks) / 20f;
             manager.lastRenderTicks = renderTicks;
+            // Time going back or a gap longer than RECOVERY_SECONDS rebuilds instead of integrating.
+            boolean recovery = seconds < 0f || seconds > RECOVERY_SECONDS;
             for (Filter filter : manager.filters.values()) {
                 if (budget != null) {
                     budget.consume();
                 }
-                filter.update(seconds, budget);
+                if (recovery) {
+                    filter.recovering = true;
+                } else {
+                    filter.update(seconds, budget);
+                }
             }
         }
     }
@@ -124,6 +137,7 @@ public final class YsmFilterRuntime {
         protected float second;
         protected float third;
         protected float value;
+        private boolean recovering;
 
         private void setArguments(float input, float first, float second, float third) {
             this.input = input;
@@ -133,6 +147,8 @@ public final class YsmFilterRuntime {
         }
 
         protected abstract void update(float seconds, MolangExecutionBudget budget);
+
+        protected abstract void reset(float input);
     }
 
     private static final class FirstOrder extends Filter {
@@ -141,9 +157,18 @@ public final class YsmFilterRuntime {
         }
 
         @Override
+        protected void reset(float input) {
+            value = input;
+        }
+
+        @Override
         protected void update(float seconds, MolangExecutionBudget budget) {
-            float target = finite(input);
-            float response = finite(first);
+            // Sparkle FirstOrder: a non-finite input or response keeps the last value.
+            if (!Float.isFinite(input) || !Float.isFinite(first)) {
+                return;
+            }
+            float target = input;
+            float response = first;
             if (!Float.isFinite(seconds) || seconds <= 0f || response <= 0f) {
                 value = target;
                 return;
@@ -162,8 +187,17 @@ public final class YsmFilterRuntime {
         }
 
         @Override
+        protected void reset(float input) {
+            snap(input);
+        }
+
+        @Override
         protected void update(float seconds, MolangExecutionBudget budget) {
-            float target = finite(input);
+            // Sparkle SecondOrder: any non-finite argument keeps the last value.
+            if (!Float.isFinite(input) || !Float.isFinite(first) || !Float.isFinite(second) || !Float.isFinite(third)) {
+                return;
+            }
+            float target = input;
             if (!Float.isFinite(seconds) || seconds <= 0f) {
                 previousInput = target;
                 if (!Float.isFinite(value) || !Float.isFinite(velocity)) {
