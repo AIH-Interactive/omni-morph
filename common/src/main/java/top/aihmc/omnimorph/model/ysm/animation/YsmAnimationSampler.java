@@ -44,6 +44,27 @@ public final class YsmAnimationSampler {
         }
     }
 
+    /**
+     * SAMP-07, Sparkle PoseValueCache: a channel whose sampled vector has a non-finite component keeps the
+     * last finite vector of that source (initially 0 for position/rotation and 1 for scale).
+     */
+    public static YsmBonePose holdFinite(YsmBonePose sampled, YsmBonePose lastValid) {
+        return new YsmBonePose(
+                holdFinite(sampled.position(), lastValid == null ? null : lastValid.position(), 0f),
+                holdFinite(sampled.rotation(), lastValid == null ? null : lastValid.rotation(), 0f),
+                holdFinite(sampled.scale(), lastValid == null ? null : lastValid.scale(), 1f));
+    }
+
+    private static float[] holdFinite(float[] sampled, float[] lastValid, float initial) {
+        if (sampled == null) {
+            return null;
+        }
+        if (Float.isFinite(sampled[0]) && Float.isFinite(sampled[1]) && Float.isFinite(sampled[2])) {
+            return sampled;
+        }
+        return lastValid != null ? lastValid : new float[]{initial, initial, initial};
+    }
+
     private static void setChannelValues(ExpressionEvaluator<?> evaluator, float[] values, float defaultValue) {
         if (evaluator == null) {
             return;

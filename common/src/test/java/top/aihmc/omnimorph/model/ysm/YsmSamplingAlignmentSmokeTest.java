@@ -31,6 +31,7 @@ public final class YsmSamplingAlignmentSmokeTest {
         testLoopKeepsExactEnd();
         testChannelEvaluationOrder();
         testThisKeyword();
+        testNonFiniteHoldsLastValid();
         System.out.println("PASS sampling alignment: derived length, linear default, catmullrom priority, loop end, channel order");
     }
 
@@ -128,6 +129,22 @@ public final class YsmSamplingAlignmentSmokeTest {
                 "position this reads the position channel: " + java.util.Arrays.toString(position));
         var unset = YsmAnimationSampler.sampleBone(bone, 0f, evaluator).rotation();
         require(unset[0] == 5f && unset[1] == 0f, "this without a current pose is 0: " + java.util.Arrays.toString(unset));
+    }
+
+    /** SAMP-07: Sparkle PoseValueCache keeps the last finite vector of a channel. */
+    private static void testNonFiniteHoldsLastValid() {
+        var good = new top.aihmc.omnimorph.model.ysm.animation.YsmBonePose(
+                new float[]{1, 2, 3}, new float[]{10, 20, 30}, new float[]{2, 2, 2});
+        var bad = new top.aihmc.omnimorph.model.ysm.animation.YsmBonePose(
+                new float[]{Float.NaN, 0, 0}, new float[]{5, Float.POSITIVE_INFINITY, 5}, new float[]{3, 3, 3});
+        var held = YsmAnimationSampler.holdFinite(bad, good);
+        require(java.util.Arrays.equals(held.position(), new float[]{1, 2, 3}), "NaN position keeps the last vector");
+        require(java.util.Arrays.equals(held.rotation(), new float[]{10, 20, 30}), "infinite rotation keeps the last vector");
+        require(java.util.Arrays.equals(held.scale(), new float[]{3, 3, 3}), "a finite channel is not held");
+        var first = YsmAnimationSampler.holdFinite(bad, null);
+        require(java.util.Arrays.equals(first.position(), new float[]{0, 0, 0})
+                        && java.util.Arrays.equals(first.rotation(), new float[]{0, 0, 0}),
+                "without history a non-finite channel starts from the reference initial value");
     }
 
     private static Map<String, YsmAnimationClip> parse(String animations) {

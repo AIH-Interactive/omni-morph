@@ -127,6 +127,9 @@ public class YsmAnimationPlayer {
          */
         private Map<String, YsmBonePose> startPose;
         private Map<String, YsmBonePose> armStartPose;
+        /** Last finite pose per bone (SAMP-07, Sparkle PoseValueCache), separately for body and arm parts. */
+        private final Map<String, YsmBonePose> lastValidPose = new HashMap<>();
+        private final Map<String, YsmBonePose> armLastValidPose = new HashMap<>();
         private boolean retired;
         private String builtinSource;
         private boolean deferTimelineAdvance;
@@ -1120,8 +1123,10 @@ public class YsmAnimationPlayer {
                     if (targetParts.isEmpty()) continue;
 
                     Map<String, YsmBonePose> startPoses = firstPerson ? anim.armStartPose : anim.startPose;
-                    YsmBonePose pose = YsmAnimationSampler.sampleBone(boneAnim, t, evaluator,
-                            startPoses == null ? null : startPoses.get(boneAnim.boneName));
+                    Map<String, YsmBonePose> lastValid = firstPerson ? anim.armLastValidPose : anim.lastValidPose;
+                    YsmBonePose pose = YsmAnimationSampler.holdFinite(YsmAnimationSampler.sampleBone(boneAnim, t, evaluator,
+                            startPoses == null ? null : startPoses.get(boneAnim.boneName)), lastValid.get(boneAnim.boneName));
+                    lastValid.put(boneAnim.boneName, pose);
                     float[] posVal = pose.position();
                     float[] rotVal = pose.rotation();
                     float[] scaleVal = pose.scale();
