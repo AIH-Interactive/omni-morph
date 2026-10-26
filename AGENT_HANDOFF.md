@@ -1,8 +1,8 @@
 # 当前任务交接手册
 
-最新有效状态：见文末“当前有效交接：战术酒狐资源激活范围修复（2026-10-26）”。资源范围/同名覆盖已修复，五项相关单测及Fabric构建通过，代码已提交推送；真实游戏画面待用户确认。
+最新有效状态：见文末“当前有效交接：战术酒狐移动及持续使用统一修复（2026-10-26）”。完整片名/专用fallback优先/一次性use请求生命周期已修复，五项单测及Fabric构建通过，代码已提交推送；真实游戏画面待用户确认。
 
-更新时间：2026-10-26（Asia/Seoul；战术酒狐修复自动验收完成，最近可靠五小时额度剩34%，未触发交接阈值。）
+更新时间：2026-10-26（Asia/Seoul；统一动作修复自动验收完成，最近可靠五小时额度剩20%，未触发交接阈值。）
 
 ## 接续入口与约束
 
@@ -1083,3 +1083,18 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - **最小下一步：** 仅用户实机验收；当前没有待继续的实施或新增阶段。若仍异常，先核对实际加载JAR/重新加载资源，再采集具体骨骼/片段证据，不直接扩展为其它渲染重构。
 - **约束：** CodeGraph优先；JDK25；所有测试/编译前台PowerShell经Tee build.log、立即检查退出码并读日志；diff/cached diff检查；当前分支提交推送并核对远端；禁止Qt offscreen。保留工作区，达到额度阈值才委派gpt-6-luna整理交接，不猜额度。
 - **关联文档：** docs/YSM_RESOURCE_SCOPE_FIX.md、docs/YSM_ANIMATION_ENGINE_COMPARISON.md、docs/YSM_ALIGNMENT_PLAN.md、docs/YSM_SPEAR_POSE_FIX.md。新格式作者必须明确声明要激活的动画/控制器；旧格式资源扫描隔离未在本任务扩展修改。
+
+
+## 当前有效交接：战术酒狐移动及持续使用统一修复（2026-10-26）
+
+用户授权统一修复walk#错选、弓/三叉戟长按动作重播问题。单阶段自动验收完成，无剩余自动实施阶段；此前资源范围修复、末影龙娘、P1/P2、B1～B8已完成状态保留。
+
+- **已完成：** literalAnimationName保留完整作者名，walk#精确命中而非空walk；firstHandAnimation按候选具体程度逐项尝试作者/默认，不再让作者通用use抢占默认专用弓/三叉戟动作；已完成ONCE use在连续请求期间保留零权重停止实例，释放或选片变化后正常清理，不重复创建，松开后再用正常重启。生产修改仅YsmAnimationPlayer，无模型名/作者/哈希特化。
+- **RED：** build/reports/outfit/tactics-actions-red.log，真实16_tactics载入和正式播放器回放，完整walk#、腿部变化、专用弓/三叉戟选片、ONCE长按停止均失败。首次夹具物品Components not bound已按既有手部测试初始化后得到目标RED，不把夹具失败当功能证据。
+- **GREEN/已验证：** build/reports/outfit/tactics-actions-final.log，BUILD SUCCESSFUL in 1m 26s，26 tasks。ResourceScope、HandAnimation、DefaultAnimation、BuiltinController、MaterialNative五项和Fabric build通过；附带LibraryPreviewRuntime通过。walk#在0.125/0.375秒LeftLeg旋转变化超过5度；弓/三叉戟各持续40次0.05秒更新保持同一专用HOLD实例和连续时钟；无默认的作者ONCE对照持续60次后同一实例零权重停止，释放后重用新实例从0开始。原枪/条纹显隐、手部作者/空占位/禁用/旧格式/双手、末影龙娘/芙宁娜回归保留通过。
+- **未验证：** 游戏画面/真实按键输入/声音/双客户端MANUAL/PENDING，CPU回放不等于真实端到端通过。低速walk_slow没有被此次静态证据判定为独立BUG；若实机仍异常需具体状态/权重/时钟证据。既有独立BoneQuery/PlayerTimeline/FunctionContract/MaterialInput/Avif/Stability失败未扩展修复，不宣称全历史测试通过。
+- **Git/文件：** 当前ysm-alignment，代码b32d2e1a978145ecb546962698a362a2f40b12bb已提交push origin并核对远端SHA一致。本节及docs/YSM_TACTICS_ACTION_FIX.md随后文档收尾提交，最终HEAD以git为准。修改YsmAnimationPlayer、YsmResourceScopeSmokeTest、YsmHandAnimationSmokeTest；未改默认资源、用户模型、版本、后端。原未跟踪.omc/、mod_log/、patch/保留，无运行中构建/测试。
+- **产物：** fabric/build/libs/omni-morph-1.0.0-alpha.4.1+26.1.2-fabric-mc.jar，19036479字节，SHA256 1115d5c5c6d756466215fe4d8eb14f76ef67423f0830c11cd7e6bbe5adb436a9。mods已有符号链接，无复制覆盖/自动游戏操作。
+- **额度：** 可靠Plus五小时剩26%→22%→20%，最终周剩72%，重置Unix1793032806/1793601498；未触发阈值，当前Agent正常更新手册，未委派Luna。
+- **下一步：** 仅用户重启客户端并重新加载16_tactics实机验证正常步行摆腿、长按弓/三叉戟持续蓄力、松开及再次使用；没有剩余自动实施阶段。若仍失败先核对实际JAR/片段/使用时间，不盲目重开此前计划。
+- **文档与约束：** docs/YSM_TACTICS_ACTION_FIX.md、docs/YSM_RESOURCE_SCOPE_FIX.md、docs/YSM_ALIGNMENT_PLAN.md、docs/YSM_ANIMATION_ENGINE_COMPARISON.md。CodeGraph优先、JDK25、前台PowerShell Tee build.log并立即检查退出码和读日志、diff检查、当前分支提交推送/远端核对；禁止Qt offscreen、保持有限范围。额度达阈值后才委派gpt-6-luna整理交接。
