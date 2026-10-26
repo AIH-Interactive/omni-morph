@@ -118,6 +118,7 @@ public final class YsmDefaultAnimationSmokeTest {
             testNativeRuntime();
             testBuiltinFallback();
             testBeginningTransitionPose();
+            testAuthoredDomains();
             System.out.println("PASS default animation resolution: bundled hashes/whitelist, author/disabled priority, native parsing, domains, timeline dependencies, aliases and cache identity");
         } finally {
             owner.clean();
@@ -244,6 +245,42 @@ public final class YsmDefaultAnimationSmokeTest {
             damaged.clean();
         }
         System.out.println("PASS native YSM default playback: real assembly/pose, author-empty priority, disable controls, damage diagnostics and frozen v1 inventory");
+    }
+
+    private static void testAuthoredDomains() throws Exception {
+        CompoundTag source = fullAvatarSource("""
+                {"shared":{"loop":true,"bones":{"LeftArm":{"rotation":[10,0,0]}}}}
+                """);
+        CompoundTag tag = source.getCompoundOrEmpty("ysm");
+        tag.putByteArray("arm_model", tag.getByteArray("main_model").orElseThrow());
+        var arm = new CompoundTag();
+        arm.putByteArray("data", """
+                {"ysm_animation_type":11,"animations":{"shared":{"loop":true,
+                  "bones":{"LeftArm":{"rotation":[90,0,0]},"RightArm":{"rotation":[90,0,0]}}}}}
+                """.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        tag.getListOrEmpty("animations").add(arm);
+        Avatar avatar = Avatar.createLibraryPreview(UUID.randomUUID(), "authored domain fixture");
+        try {
+            avatar.load(source);
+            avatar.initializePreviewPlayer(null);
+            var runtime = avatar.getYsmRuntime();
+            var player = runtime.animations();
+            player.play("shared", true, 1f);
+            var sample = player.getClass().getDeclaredMethod("sampleAnimationPoses",
+                    top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator.class, boolean.class);
+            sample.setAccessible(true);
+            var evaluator = top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator.evaluator(avatar.getMolangContext());
+            sample.invoke(player, evaluator, false);
+            require(Math.abs(runtime.getPart("LeftArm").animRotRaw().x - 10f) < .0001f,
+                    "body geometry samples its own same-name authored clip");
+            sample.invoke(player, evaluator, true);
+            require(Math.abs(runtime.getAnimationParts("LeftArm", true).getFirst().animRotRaw().x - 90f) < .0001f,
+                    "arm geometry samples independent authored clip despite body resource weight");
+            require(Math.abs(runtime.getPart("LeftArm").animRotRaw().x - 10f) < .0001f,
+                    "arm sampling preserves body geometry");
+        } finally {
+            avatar.clean();
+        }
     }
 
     private static void testBuiltinFallback() {

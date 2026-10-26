@@ -143,6 +143,19 @@ public final class YsmManifestReader {
                 YsmJson.bool(extra, "free", false));
     }
 
+    static List<String> firstPersonAnimationPaths(YsmResourceSource source) throws IOException {
+        List<String> paths = new ArrayList<>();
+        if (!source.exists("ysm.json")) {
+            return paths;
+        }
+        JsonObject root = YsmJson.parseObject(source.readString("ysm.json"));
+        JsonObject player = YsmJson.obj(YsmJson.obj(root, "files"), "player");
+        JsonObject animations = YsmJson.obj(player, "animation");
+        readPathField(paths, source, animations.get("fp_arm"), new ArrayList<>());
+        readPathField(paths, source, animations.get("fp.arm"), new ArrayList<>());
+        return paths;
+    }
+
     private static List<String> readNewAnimations(YsmResourceSource ysmPackage, JsonObject player, List<String> warnings) throws IOException {
         List<String> result = new ArrayList<>();
         readPathField(result, ysmPackage, player.get("animation"), warnings);

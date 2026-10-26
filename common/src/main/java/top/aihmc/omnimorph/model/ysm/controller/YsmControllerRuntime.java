@@ -188,7 +188,7 @@ public class YsmControllerRuntime {
                     completed.remove(normalize(ref.animation()));
                     continue;
                 }
-                YsmAnimationClip clip = clip(ref.animation());
+                YsmAnimationClip clip = clip(controller.name(), ref.animation());
                 if (clip == null)
                     continue;
                 if (clip.loopMode == YsmAnimationClip.LoopMode.ONCE && completed.contains(normalize(ref.animation())))
@@ -282,7 +282,7 @@ public class YsmControllerRuntime {
                 continue;
             }
             boolean condition = transition.condition() == null || evalBool(transition.condition(), evaluator);
-            if (hasSoundTrigger(target)) {
+            if (hasSoundTrigger(controller.name(), target)) {
                 SoundTransitionKey key = new SoundTransitionKey(controller.name(), state.name(), target.name());
                 if (!condition) {
                     heldSoundTransitions.remove(key);
@@ -300,12 +300,12 @@ public class YsmControllerRuntime {
         return null;
     }
 
-    private boolean hasSoundTrigger(YsmControllerState state) {
+    private boolean hasSoundTrigger(String controllerName, YsmControllerState state) {
         if (!state.soundEffects().isEmpty()) {
             return true;
         }
         for (YsmControllerAnimationRef reference : state.animations()) {
-            YsmAnimationClip clip = clip(reference.animation());
+            YsmAnimationClip clip = clip(controllerName, reference.animation());
             if (clip != null && clip.events.stream().anyMatch(event -> "sound".equals(event.type()))) {
                 return true;
             }
@@ -569,17 +569,17 @@ public class YsmControllerRuntime {
         return value.toLowerCase(Locale.US);
     }
 
-    private YsmAnimationClip clip(String name) {
-        YsmAnimationClip clip = player.getClips().get(name);
+    private YsmAnimationClip clip(String controllerName, String name) {
+        YsmAnimationClip clip = player.clipsForController(controllerName).get(name);
         if (clip != null)
             return clip;
         String normalized = normalize(name);
-        clip = player.getClips().get(normalized);
+        clip = player.clipsForController(controllerName).get(normalized);
         if (clip != null)
             return clip;
         int dot = normalized.lastIndexOf('.');
         if (dot >= 0 && dot + 1 < normalized.length()) {
-            clip = player.getClips().get(normalized.substring(dot + 1));
+            clip = player.clipsForController(controllerName).get(normalized.substring(dot + 1));
             if (clip != null)
                 return clip;
         }

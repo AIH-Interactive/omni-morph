@@ -215,8 +215,8 @@ D023/D012 是状态机转移与起播时刻。前一项不稳，后一项的行�
 | D004 原生 hand 缺 loop 覆盖分支 | 已完成（4259a113） | 决定持握/使用片段是否循环，属 P0 |
 | D005 hand 选择绕过本地输入脉冲 | 已完成（d2f1c34e） | 查询层与播放层输入不一致，属 P0；P1-2 批 1 的武器名仍待补 |
 | D006 原生运动状态覆盖少、优先级不同 | 已完成（c7a343c8） | 原生状态机改用与 `ctrl.*` 同一张参考动作表；P0 仅余 D023/D012，D015 批 1 的武器名仍待补 |
-| D007 控制器每帧刷新无条件停声 | 已完成（本次 D007 检查点） | 声音被反复打断，确定性差异，属 P1 |
-| D008 身体与第一人称混表 | 待实施（E 批） | 两套名称表混用会串动画，属 P1 |
+| D007 控制器每帧刷新无条件停声 | 已完成（b4886573） | 声音被反复打断，确定性差异，属 P1 |
+| D008 身体与第一人称混表 | 已完成（本次 D008 检查点） | 两套名称表混用会串动画，属 P1 |
 | D009 条件解析失败退化为无条件/满权重 | 待实施（E 批） | 失败时 Sparkle 与 Omni 行为相反，属 P1 |
 | D010 过渡旋转混合算法不同 | 待实施（G 批，P1 全部已授权） | 对齐后 `blend_via_shortest_path` 对旋转不再生效，字段可保留为元数据 |
 | D011 回绕/长步长事件语义 | 待实施（H 批，P1 全部已授权） | 对齐会撤销 `YsmAnimationEventWindow` 多周期/倒播能力及其测试 |
@@ -261,3 +261,11 @@ D023/D012 是状态机转移与起播时刻。前一项不稳，后一项的行�
 - 控制器保持当前片段时不再停止声音或递增playbackGeneration，保留待完成异步播放；新槽、直接play和取消后重新激活仍停止旧声音并重建代次。退出/退休/reset原清理路径保留。
 - SoundNative新增实际LuaSound/录制原生声道测试：3次刷新同时保留timeline和sound_effects声音、实例/时钟/代次；退出和reset关闭句柄，重入新建实例。RED alpha4-d007-red.log明确失败于刷新声音句柄；最终alpha4-d007-final.log四项显式单测（SoundNative、ControllerSound、BeginningTransition、ControllerTransition）及Fabric build PASS，38秒/25 tasks，附带LibraryPreviewRuntime PASS。设备听感/真实游戏仍MANUAL/PENDING。
 - D015批1提交43e5d607已推送并核对远端。D007验证后Plus五小时剩19%、周剩87%，未触发交接；其余P1继续按计划。
+
+## P1 D008 检查点（2026-10-26）
+
+- 作者身体与第一人称名称表、别名和默认排除名单分离；JSON ysm_animation_type=11 / manifest animation的fp_arm、fp.arm资源标记为第一人称。旧arm类别2仍属于身体。正式装配和预览都分别注册，声明/函数控制器的查片、声音门控及loop缺省按控制器域取值，第一人称采样不再取身体同名片段。
+- 同步DTO/协议未修改，保留按片段名排序去重的既有线索引；同名两域共享名称索引，恢复时用既有controller身份选择正确资源。默认片段仍不进入作者线索引。
+- RED alpha4-d008-red.log：身体表排除更重的同名第一人称资源断言失败。FirstPersonController新增同名不同长度/loop/独立实例及线索引恢复；DefaultAnimation新增真实Avatar双几何装配并采样身体10度/手臂90度、身体结果不被手臂覆盖。
+- 最终alpha4-d008-final.log：FirstPersonController、DefaultAnimation、Sync、BeginningTransition、HandAnimation、ControllerTransition、FunctionStage七项相关单测与Fabric build PASS，1分2秒/28 tasks；附带LibraryPreviewRuntime PASS。中间曾因测试play参数遗漏、误用不存在的独立SyncModel任务失败，已修正测试和运行入口。最后仅两处换行排版，git diff --check PASS。
+- 真实游戏画面/设备声音/双客户端仍MANUAL/PENDING。P1整体未完成，D009为下一最小项。额度达到Plus五小时剩10%阈值，完成当前验证/检查点后不启动下一阶段，按授权委派GPT-6 Luna整理交接。
