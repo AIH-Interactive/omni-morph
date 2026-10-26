@@ -3892,8 +3892,29 @@ public final class LibraryPreviewRuntimeSmokeTest {
                         return method.getReturnType() == void.class ? null : proxy;
                     });
             var model = LibraryFiguraPreviewRenderer.createModel(false);
+            var worldStack = new com.mojang.blaze3d.vertex.PoseStack();
+            worldStack.translate(120, 64, -48);
+            avatar.enableWorldParticles();
+            avatar.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.RENDER;
+            avatar.updateMatrices(model, worldStack);
+            var worldMatrix = avatar.renderer.root.partToWorldMatrix().toMatrix4f();
+            avatar.renderer.allowMatrixUpdate = true;
             session.beforeExtract(0.5f);
             LibraryFiguraPreviewRenderer.draw(state, new com.mojang.blaze3d.vertex.PoseStack(), type -> consumer, model);
+            require(avatar.renderer.root.partToWorldMatrix().toMatrix4f().equals(worldMatrix),
+                    "GUI preview must preserve the world position read by next tick's particle script");
+            avatar.loadScript("particle position tick", """
+                    events.tick:register(function()
+                        particle_tick_reads = (particle_tick_reads or 0) + 1
+                        local tip_pos = models:partToWorldMatrix():apply()
+                        assert(math.abs(tip_pos.x - expected_world_x) < 0.001,
+                            "tick particle position was replaced by the GUI origin")
+                    end, "particle world position regression")
+                    expected_world_x = 120
+                    """).call();
+            session.tick();
+            avatar.loadScript("verify first particle tick", "assert(particle_tick_reads == 1)").call();
+            require(!avatar.scriptError, "Lua tick reads the world position after GUI drawing");
             require(!vertices.isEmpty(), "direct preview emits native skinned player vertices without a level or dispatcher");
             require(avatar.renderer.root.getTrueRot().y == 5 && !avatar.scriptError,
                     "direct geometry drawing invokes the real Lua render event");
@@ -3901,8 +3922,21 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     "direct preview never enters entity armor/cape layers");
             avatar.loadScript("hide body", "vanilla_model.PLAYER:setVisible(false)").call();
             vertices.clear();
+            worldStack.translate(12, 0, -7);
+            avatar.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.RENDER;
+            avatar.updateMatrices(model, worldStack);
+            worldMatrix = avatar.renderer.root.partToWorldMatrix().toMatrix4f();
+            avatar.loadScript("move particle origin", "expected_world_x = 132").call();
             session.beforeExtract(0.5f);
             LibraryFiguraPreviewRenderer.draw(state, new com.mojang.blaze3d.vertex.PoseStack(), type -> consumer, model);
+            require(avatar.renderer.root.partToWorldMatrix().toMatrix4f().equals(worldMatrix),
+                    "a moved world pose survives the next GUI pass even when the body is hidden");
+            session.tick();
+            avatar.loadScript("verify moved particle tick", "assert(particle_tick_reads == 2)").call();
+            require(!avatar.scriptError, "Lua tick particle position follows world movement");
+            avatar.loadScript("remove particle probe",
+                    "events.tick:remove('particle world position regression')").call();
+            avatar.renderer.allowMatrixUpdate = false;
             require(vertices.isEmpty() && avatar.renderer.root.getTrueRot().y == 10,
                     "script body visibility remains authoritative while render animation continues");
             require(model.body.visible, "shared native mesh visibility is restored after drawing");

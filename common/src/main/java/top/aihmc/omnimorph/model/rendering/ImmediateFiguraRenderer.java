@@ -456,7 +456,8 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         if (thisPassedPredicate) {
             // recalculate world matrices
             FiguraMod.popPushProfiler("worldMatrices");
-            if (allowMatrixUpdate) {
+            if (allowMatrixUpdate && (avatar.usesPreviewParticles()
+                    || !UIHelper.paperdoll && avatar.renderMode != EntityRenderMode.FIGURA_GUI)) {
                 FiguraMat4 mat = partToWorldMatrices(custom);
                 part.savedPartToWorldMat.set(mat);
             }
@@ -765,8 +766,13 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         if (thisPassedPredicate) {
             // part to world matrices
             FiguraMod.popPushProfiler("worldMatrices");
-            FiguraMat4 mat = partToWorldMatrices(custom);
-            part.savedPartToWorldMat.set(mat);
+            // The wardrobe shares this Avatar with the local world preview. Its GUI pose
+            // must not replace the world coordinates consumed by Lua during the next tick.
+            if (avatar.usesPreviewParticles()
+                    || !UIHelper.paperdoll && avatar.renderMode != EntityRenderMode.FIGURA_GUI) {
+                FiguraMat4 mat = partToWorldMatrices(custom);
+                part.savedPartToWorldMat.set(mat);
+            }
 
             // save pivot transforms so they are available during the layers loop
             if (part.parentType.isPivot && allowPivotParts) {

@@ -1,6 +1,6 @@
 # 当前任务交接手册
 
-更新时间：2026-10-26 10:32（Asia/Seoul；当前阻塞：particle.lua 尾巴粒子仍停在预览原点。交接见文末最新章节。）
+更新时间：2026-10-26 10:44（Asia/Seoul；GUI 覆盖世界矩阵已修正并通过原生 Java/Lua 回归；真实粒子画面仍 MANUAL/PENDING。以文末最新章节为准。）
 
 ## 接续入口与约束
 
@@ -688,3 +688,20 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 仍固定的关键疑点：`script.lua` 在 **tick** 阶段读取 `partToWorldMatrix`，此时矩阵可能来自 GUI preview / `OutfitComposition.captureFiguraBase` 的临时绘制，而不是世界帧；或者 `tails[i][11]` 的 base part 矩阵未被 `OutfitComposition.drawFiguraBase` 更新。下一步应先加日志/断言记录 `savedPartToWorldMat` 与该粒子实际坐标，而非继续切 renderMode。
 - 真实游戏世界中的粒子位置仍为 `MANUAL/PENDING`；不能宣称已修复。
 - 工作区未跟踪：`.omc/`、`mod_log/`、`patch/`；不要提交。
+
+## 当前有效交接：保护 tick 粒子的世界矩阵（2026-10-26 10:44）
+
+本节覆盖上方历史下一步。本轮代码修复与自动验证已完成；实际用户模型的游戏粒子是否恢复仍 MANUAL/PENDING，不能宣称真实端到端已修复。
+
+- 已复现的故障：真实 LibraryFiguraPreviewRenderer.draw 会调用 Avatar.updateMatrices，ImmediateFiguraRenderer.calculatePartMatrices 无条件把 GUI 坐标写入 savedPartToWorldMat；下一次 Lua tick 的 partToWorldMatrix():apply() 因而读取预览坐标。此前改 renderMode 不能阻止这条写入路径。
+- 最小修复：ImmediateFiguraRenderer 的矩阵计算与绘制两条写入路径，禁止 GUI/paperdoll 覆盖使用世界粒子的 Avatar 的世界矩阵；usesPreviewParticles 为 true 的隔离预览保留原行为，骨架捕获与 pivot 更新继续执行。不修改作者脚本/模型、不重构粒子引擎、不改版本/后端。
+- 已撤掉接手时 OutfitRenderBinding.renderMode 中未提交的 LocalOutfitPreview.active() 全局强制 RENDER 尝试；该文件已回到提交基线。既有已提交 renderMode/worldParticles 修改保留。
+- 回归：真实 Avatar 世界矩阵写入 (120,64,-48) → GUI 原生绘制 → Lua events.tick 读取；随后世界移动至 x=132 → 再次 GUI 绘制 → 第二次 tick。断言矩阵不被 GUI 改写、Lua 坐标随移动更新、两次 tick 确实运行，且开启 allowMatrixUpdate 覆盖普通绘制写入路径。原生绘制使用记录式顶点，不是 GPU/截图验证。
+- RED 已运行：:common:libraryPreviewRuntimeSmokeTest 在 GUI 覆盖矩阵断言失败，日志 build/reports/outfit/alpha4-particle-world-matrix-red.log。最终同任务 PASS（18秒）；最终生产代码 libraryPreviewRuntimeSmokeTest + :fabric:build PASS（52秒/21 tasks）。日志 alpha4-particle-world-matrix-final-test.log / alpha4-particle-world-matrix-final-build.log；git diff --check PASS。既有 Unsafe/映射告警未扩张处理。
+- 环境：起初 pwsh 默认 profile 路径不存在，已定位并加载 D:/UserData/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1，后续 usejdk 25 正常。首次 Gradle 也实际使用 JAVA_HOME 的 JDK25。所有构建/测试前台 PowerShell Tee build.log，检查退出码并读取日志。
+- Git：主仓库 main，本轮前 HEAD=d9b1f269（84743af5 后仅手册提交）；源码/测试/记录纳入本次检查点，交付前提交推送并以实际 HEAD/远端 main 核对。后端 master@c69e3c0827fd020ff11645e59b8d32f32ac7a69a，本轮未修改；后端相较旧手册另有既有提交，不回退。
+- 工作区：主仓库原有未跟踪 .omc/、mod_log/、patch/，后端原有 build.log、build/ 均保留且不提交。无运行中构建/测试；无新增自动实施任务。
+- 新产物 fabric/build/libs/omni-morph-1.0.0-alpha.4.1+26.1.2-fabric-mc.jar，18,320,918 字节，SHA256 9cf3497ddf577fc59e1c0962498376f7fa9766589da7bc67db18b8249b5a58eb。未安装、未合并 natives、未重启游戏；上方旧安装包信息不是本轮新包。若安装，仍需保留现有 natives。
+- 最小下一步：在真实客户端用新包验证目录模型 E:/AI Hobbyist Founder Public Server 的 particle.lua：开衣柜、关闭衣柜、第一/第三人称移动后，黄色/绿色粒子是否跟随尾尖。若仍异常，捕获实际尾尖 savedPartToWorldMat 与粒子发射坐标再定位；不要重启旧计划或继续盲改 renderMode。
+- 修复验证后按用户要求查询额度：可靠接口 Plus，5小时剩余90%、周剩余87%；重置 Unix UTC 秒1792996496/1793525491。未触发阈值，未委派 Luna。正常完成由当前 Agent 更新本文。
+- 继续遵守当前分支提交推送/远端SHA核对、JDK25、前台Tee日志、保留未提交数据、CodeGraph优先、禁止Qt offscreen、真实未验不得标PASS、范围与冻结协议约束。相关正式范围见 ACCESSORY_SYSTEM_IMPLEMENTATION_PLAN.md，当前缺陷记录见 ACCESSORY_SYSTEM_PROGRESS.md 文末。
