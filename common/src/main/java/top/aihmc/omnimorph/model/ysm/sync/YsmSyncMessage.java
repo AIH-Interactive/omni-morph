@@ -39,6 +39,16 @@ public record YsmSyncMessage(UUID owner, UUID session, String contentHash, Strin
     }
 
     /** Null sections in a delta mean unchanged; a present empty list clears that section. */
+    /** The same message without the D025 display section, for transports or servers that do not carry it. */
+    public YsmSyncMessage withoutDisplay() {
+        if (state.display() == null) {
+            return this;
+        }
+        State plain = new State(state.texture(), state.controls(), state.actions(), state.controllers(), state.playbacks());
+        return new YsmSyncMessage(owner, session, contentHash, schemaHash, generation, sequence, baseSequence,
+                ownerTick, snapshot, eventWatermark, plain, events);
+    }
+
     /**
      * {@code display} (D025) is optional: it is not required for a complete snapshot, so publishers that
      * do not share display values still produce complete states.
