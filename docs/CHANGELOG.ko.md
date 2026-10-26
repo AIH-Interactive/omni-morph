@@ -67,7 +67,7 @@
 - 파티클 광원 상한: `outfit.limits`의 착용자당 상한을 초과하면 먼저 활성화된 N개만 점등되고 나머지는 살아 있지만 꺼진 상태를 유지합니다. `CustomParticle`에 `setLightInterval(n)` / `getLightInterval()` 및 `light = { interval = n }`을 추가해 광원 가능한 파티클 n개마다 하나만 동적 광원이 되도록 했습니다(나머지는 계속 표시). 트레일 생성 템플릿에 Light interval 컨트롤을 추가했습니다.
 - 의상 조정/클릭 후 트레일과 바닐라 파티클이 고정 위치에 멈추고 파티클 동적 광원이 꺼지는 문제를 수정했습니다(옷장을 닫은 뒤 드래프트 월드 프리뷰를 유지하지 않음, 월드 신체 렌더는 항상 RENDER, part-to-world 행렬 매 프레임 갱신, 종이인형 프리뷰가 렌더 모드를 누출하지 않음).
 - 옷장/의상 렌더의 임시 진단 로그를 제거했습니다. 스크립트 오류는 계속 보고됩니다.
-- 실제 Minecraft 두 클라이언트, GUI/GPU, 조명, 성능 및 해당 자세 화면 비교는 `MANUAL/PENDING`입니다. [검증 기록](ALPHA4_ACCEPTANCE.md)을 참고하세요.
+- 실제 Minecraft 두 클라이언트, GUI/GPU, 조명, 성능 및 해당 자세 화면 비교는 `MANUAL/PENDING`입니다.
 
 ## 1.0.0-alpha.3
 

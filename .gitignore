@@ -65,3 +65,11 @@ libs/*
 # Local build and transformation logs
 /build.log
 /.architectury-transformer/
+
+# Project documents kept only locally (README, changelogs and the Figura README stay tracked).
+/ACCESSORY_SYSTEM_*.md
+/AGENTS.md
+/AGENT_HANDOFF.md
+/WARDROBE_TRANSITION_IMPLEMENTATION_PLAN.md
+/.agents/
+/.github/instructions/

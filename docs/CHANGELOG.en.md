@@ -67,7 +67,7 @@
 - Particle light cap: above the per-wearer limit in `outfit.limits`, only the first N enabled sources stay lit; later particles stay alive but unlit. `CustomParticle` now exposes `setLightInterval(n)` / `getLightInterval()` and `light = { interval = n }`: one in every n light-capable particles contributes a dynamic light while the rest remain visible; the trail template gains a Light interval control.
 - Fixes trails and vanilla particles freezing after adjusting/clicking cosmetics and particle dynamic lights stopping (no draft world preview after closing the wardrobe; world body draws always use RENDER; part-to-world matrices refresh every frame; paperdoll previews no longer leak their render mode).
 - Remove temporary wardrobe/outfit render diagnostics; script errors are still reported.
-- Real Minecraft dual-client, GUI/GPU, lighting, performance and reported pose visual comparisons remain `MANUAL/PENDING`; see [acceptance evidence](ALPHA4_ACCEPTANCE.md).
+- Real Minecraft dual-client, GUI/GPU, lighting, performance and reported pose visual comparisons remain `MANUAL/PENDING`.
 
 ## 1.0.0-alpha.3
 
