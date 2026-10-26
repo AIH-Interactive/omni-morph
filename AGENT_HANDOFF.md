@@ -753,3 +753,15 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 最终生产源码检查点 main@348600a9c61d2e422b9a50491524e67058aff11e 已提交推送并核对远端；本次仅追加用户验收记录，不新增开发、构建、安装或测试。
 - 用户确认解决当前报告的问题，不将此前未覆盖的其它GUI/GPU/光照/性能/双客户端验收一并标PASS。当前任务已结束，没有剩余实施任务或自动跟进阶段；后续仅按用户新指令行动。
 - 最终安装包、备份、自动验证日志及约束见上一节。保留主仓库 .omc/、mod_log/、patch/和后端原未跟踪数据，不清理、不回退。
+
+## 当前有效交接：YSM 拉弓缺失与闪回（2026-10-26）
+
+- 当前任务：修复 YSM 只有挥手/挥弓、无拉弓及闪回。用户进一步确认首次和再次拉弓都异常。参考 refs/avatars/芙宁娜v3.14中文配音.ysm。此前粒子任务已由用户验收结束，本节为新任务，不重启旧阶段。
+- 已复现并修复的两条路径：updateNativeHandAnimations 在使用同手物品时仍接受 swing 上升沿，playNativeHandOnce 将正在拉弓的片段淡出，换成挥弓；syncNativeHandAnimation 在快速松弓再拉弓时复用仍在0.1秒淡出的旧播放对象，时钟未归零。生产修改仅 YsmAnimationPlayer：同手使用优先于挥手；新手部动作移除同名淡出实例后重新播放，持续使用保持同一时钟。不改作者资源、后端、版本或控制器架构。
+- RED：build/reports/outfit/alpha4-bow-red.log，实际指定模型加载后两条断言均为false（14秒）。参考模型本身含91骨骼拉弓片段，单独采样可产生明显手臂转动，不能认定资源缺失。
+- PASS：:common:ysmHandAnimationSmokeTest、:common:ysmAnimationEventWindowSmokeTest、:common:ysmAnimationFrameClockSmokeTest、:common:ysmControllerIsolationSmokeTest、:fabric:build，40秒/25 tasks，日志 build/reports/outfit/alpha4-bow-final.log。真实解码/运行时/原生CPU采样验证主手初次姿势、持续按住时钟、同手挥手优先级、松开后25毫秒重拉、新旧对象和两次0.5秒手臂姿势一致；受控实体覆盖左右主惯用手与主副手组合，原有长矛/三叉戟回归PASS。没有运行真实游戏输入/GPU画面，不将这些CPU证据视作端到端验收。尝试控制器全链探针时受控实体缺失游戏上下文，出现 runtime/controller-execution 警告，已撤除该探针；未将其宣称为生产缺陷。最终验证无此新增探针。
+- 安装PASS：新Fabric产物合并10个既有natives，保留粒子公开API并核对安装SHA；18,687,113字节，SHA256 ddcf0b18da288f8cb837b0f7678113d577e11666182e9ff660a6640ee6580fc4。目标 D:/Program Files/AIHMC/.minecraft/versions/纯净大区(26.1.2)/mods/omni-morph-1.0.0-alpha.4+26.1.2-fabric-mc.jar，内部仍Alpha4.1。备份 build/tmp/omni-morph-before-custom-api-20261026-115714.jar；合并包 build/tmp/omni-morph-custom-particle-api-native.jar；日志 build/reports/outfit/alpha4-bow-install.log。未结束或重启用户游戏。
+- 未完成/最小下一步：用户重启后用指定模型验证首次按住右键、持续拉弓、松开及快速重拉，主副手及第一/第三人称。真实首次缺失是否完全由上述同手挥手冲突造成尚未确认，全部真实画面项 MANUAL/PENDING，当前只能称已修复两处已复现缺陷，不能称用户整体问题已经验收解决。若仍异常，从新日志、视角、实际使用/挥手状态及控制器最终骨骼姿势接续；不重复无关门禁、不盲目扩张架构。
+- Git：main，开始基线 d5d11313794180fe7b09db67a7c22dff1558a35e。生产1文件、回归1文件、Gradle任务1文件及交接/进度记录同一检查点提交推送；最终提交号以本节所属提交和 git log 为准，交付前核对远端main与HEAD一致。后端无改动，原未跟踪build.log、build/保留；主仓库.omc/、mod_log/、patch/保留。git diff --check PASS，无运行中构建测试。
+- 开发环境：本会话profile不再提供usejdk，已确认Gradle测试子进程实际为 D:/Program Files/Java/25/bin/java.exe，后续显式JAVA_HOME使用JDK25。所有构建/打包/测试前台PowerShell Tee至build.log、立即检查退出码并读日志。未使用Qt offscreen。
+- 最近可靠额度：Plus，5小时剩余41%、周剩余79%，重置UTC Unix秒1792996496/1793525491，未触发交接阈值，不委派Luna。保持安全点查询；阈值触发仅委派gpt-6-luna整理手册。当前Goal保持未完成，等待真实验收，不编造下一开发阶段。历史计划 ACCESSORY_SYSTEM_IMPLEMENTATION_PLAN.md；本缺陷进度见 ACCESSORY_SYSTEM_PROGRESS.md 同节。

@@ -1046,6 +1046,7 @@ tasks.register("ysmHandAnimationSmokeTest", JavaExec) {
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = "top.aihmc.omnimorph.model.ysm.YsmHandAnimationSmokeTest"
+    args rootProject.file("refs/avatars/芙宁娜v3.14中文配音.ysm").path
 }
 
 
