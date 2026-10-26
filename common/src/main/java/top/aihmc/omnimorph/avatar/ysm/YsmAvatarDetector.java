@@ -23,7 +23,8 @@ public final class YsmAvatarDetector {
                 return YsmAvatarKind.NEW;
             }
             Path main = path.resolve("main.json");
-            if (Files.isRegularFile(main)) {
+            // Sparkle YSMFolderDeserializer.isModelFolder: an old folder needs both main.json and arm.json.
+            if (Files.isRegularFile(main) && Files.isRegularFile(path.resolve("arm.json"))) {
                 try (var reader = Files.newBufferedReader(main)) {
                     char[] header = new char[16384];
                     String suffix = "";

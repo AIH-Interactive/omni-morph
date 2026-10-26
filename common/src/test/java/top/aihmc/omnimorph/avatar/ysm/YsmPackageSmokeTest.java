@@ -85,6 +85,10 @@ public final class YsmPackageSmokeTest {
         Files.writeString(folder.resolve("main.json"), "{\"minecraft:geometry\":[]}", StandardCharsets.UTF_8);
         Files.writeString(folder.resolve("main.animation.json"), "{}", StandardCharsets.UTF_8);
         Files.write(folder.resolve("body.png"), new byte[]{4, 5, 6});
+        // D017: Sparkle YSMFolderDeserializer.isModelFolder needs main.json and arm.json for an old folder.
+        equals(YsmAvatarKind.NONE, YsmAvatarDetector.kind(folder), "old folder without arm.json is not a model");
+        Files.writeString(folder.resolve("arm.json"), "{\"minecraft:geometry\":[]}", StandardCharsets.UTF_8);
+        equals(YsmAvatarKind.OLD, YsmAvatarDetector.kind(folder), "old folder with main.json and arm.json");
 
         YsmManifest folderManifest = YsmManifestReader.read(folder);
         equals(YsmAvatarKind.OLD, folderManifest.kind(), "old folder kind");
