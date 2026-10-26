@@ -121,6 +121,8 @@ public class YsmAnimationPlayer {
         /** Reference PlayState.PAUSE: the clock keeps running but no pose is submitted. */
         public boolean paused;
         private boolean retired;
+        private String builtinSource;
+        private boolean deferTimelineAdvance;
         private String controllerName;
         private YsmSyncMessage.Playback remoteState;
 
@@ -141,6 +143,8 @@ public class YsmAnimationPlayer {
     private boolean nativeStateMachineEnabled = true;
     private boolean observerControlled;
     private long retiredControllerSequence;
+    private boolean updatingControllerFrame;
+    private final Map<String, Boolean> builtinSources = new HashMap<>();
 
     public YsmAnimationPlayer(YsmModelRuntime runtime) {
         this.runtime = runtime;
@@ -238,6 +242,46 @@ public class YsmAnimationPlayer {
 
     public Map<String, YsmAnimationController> getControllers() {
         return controllers;
+    }
+
+    private static String canonicalController(String name) {
+        return name.toLowerCase(Locale.ROOT).replaceFirst("^controller\\.animation\\.", "")
+                .replaceFirst("_([0-9]+)$", "$1");
+    }
+
+    public boolean usesBuiltinController(String source) {
+        String canonical = canonicalController(source);
+        for (YsmAnimationController controller : controllers.values()) {
+            if (!functionEventControllers.contains(controller.name())
+                    && canonicalController(controller.name()).equals(canonical)) {
+                YsmControllerState state = controller.states().get(controllerRuntime.currentState(controller.name()));
+                return state != null && state.isBuiltin();
+            }
+        }
+        return true;
+    }
+
+    private void reconcileBuiltinSources() {
+        boolean restartBase = false;
+        for (YsmAnimationController controller : controllers.values()) {
+            String source = canonicalController(controller.name());
+            boolean builtin = usesBuiltinController(source);
+            Boolean previous = builtinSources.put(source, builtin);
+            restartBase |= builtin && !Boolean.TRUE.equals(previous);
+        }
+        activeAnimations.values().removeIf(animation -> {
+            if (animation.builtinSource == null || usesBuiltinController(animation.builtinSource)) {
+                return false;
+            }
+            invalidateNotifications(animation);
+            stopPlaybackSounds(animation);
+            return true;
+        });
+        nativeHandAnimations.values().removeIf(name -> !activeAnimations.containsKey(name));
+        nativeHoldAnimations.values().removeIf(name -> !activeAnimations.containsKey(name));
+        if (restartBase) {
+            startBaseAnimations();
+        }
     }
 
     public void registerFunctionEventControllers(Collection<String> events) {
@@ -444,7 +488,10 @@ public class YsmAnimationPlayer {
         }
         for (Map.Entry<String, YsmAnimationClip> entry : clips.entrySet()) {
             String normalized = normalizeName(entry.getKey());
-            if (!isBaseAnimation(normalized, entry.getValue()) || controlledClips.contains(entry.getValue()))
+            String source = "player." + canonicalController(simpleName(normalized));
+            boolean explicit = controllers.keySet().stream().anyMatch(name -> canonicalController(name).equals(source));
+            if (!isBaseAnimation(normalized, entry.getValue()) || !usesBuiltinController(source)
+                    || controlledClips.contains(entry.getValue()) && !explicit)
                 continue;
             // Explicit controller references own playback and gating; legacy autoplay is only a fallback.
             String activeKey = baseSlotKey(normalized);
@@ -452,6 +499,7 @@ public class YsmAnimationPlayer {
             if (activeAnimations.containsKey(activeKey))
                 continue;
             PlayingAnimation playing = new PlayingAnimation(entry.getValue(), false);
+            playing.builtinSource = source;
             playing.loop = true;
             playing.speed = 1f;
             playing.targetWeight = 1f;
@@ -501,6 +549,9 @@ public class YsmAnimationPlayer {
 
         boolean created = !activeAnimations.containsKey(slot);
         PlayingAnimation playing = activeAnimations.computeIfAbsent(slot, k -> new PlayingAnimation(clip, false));
+        if (created) {
+            playing.deferTimelineAdvance = updatingControllerFrame;
+        }
         stopPlaybackSounds(playing);
         playing.playbackGeneration++;
         // Controllers refresh weights on an existing clock every frame. Only a new slot, an explicit
@@ -799,7 +850,26 @@ public class YsmAnimationPlayer {
             }
         }
 
+        Avatar.MolangContext molangContext = runtime.owner().getMolangContext();
+        ExpressionEvaluator<?> evaluator = molangContext != null ? ExpressionEvaluator.evaluator(molangContext)
+                : ExpressionEvaluator.evaluator(runtime.owner());
+        if (!controllerInitialHiddenResolved) {
+            collectControllerBaseHiddenBones(evaluator);
+            collectControllerInitialHiddenBones(evaluator);
+            controllerInitialHiddenResolved = true;
+        }
         if (step.advance()) {
+            runtime.functions().beginControllerFrame();
+            if (!runtime.isSubEntityRuntime()) {
+                advanceControllerPoseLayers(deltaTime);
+                updatingControllerFrame = true;
+                try {
+                    controllerRuntime.update(evaluator, deltaTime, firstPersonActive);
+                } finally {
+                    updatingControllerFrame = false;
+                }
+                reconcileBuiltinSources();
+            }
             if (!firstPersonActive) {
                 controllerRuntime.deactivateFirstPersonControllers(evaluatorForEvents());
             }
@@ -825,17 +895,11 @@ public class YsmAnimationPlayer {
             advanceAnimationTimeline(deltaTime, evaluatorForEvents());
         }
 
-        Avatar.MolangContext molangContext = runtime.owner().getMolangContext();
-        ExpressionEvaluator<?> evaluator = molangContext != null ? ExpressionEvaluator.evaluator(molangContext) : ExpressionEvaluator.evaluator(runtime.owner());
-        if (!controllerInitialHiddenResolved) {
-            collectControllerBaseHiddenBones(evaluator);
-            collectControllerInitialHiddenBones(evaluator);
-            controllerInitialHiddenResolved = true;
-        }
         if (step.advance()) {
-            runtime.functions().beginControllerFrame();
-            advanceControllerPoseLayers(deltaTime);
-            controllerRuntime.update(evaluator, deltaTime, firstPersonActive);
+            if (runtime.isSubEntityRuntime()) {
+                advanceControllerPoseLayers(deltaTime);
+                controllerRuntime.update(evaluator, deltaTime, firstPersonActive);
+            }
             runtime.functions().runUnboundControllerEvents(evaluator, controllers.values());
 
         }
@@ -882,6 +946,11 @@ public class YsmAnimationPlayer {
 
             // Retired states keep their last sampled pose and never advance or emit events.
             if (anim.retired) {
+                continue;
+            }
+
+            if (anim.deferTimelineAdvance) {
+                anim.deferTimelineAdvance = false;
                 continue;
             }
 
@@ -1086,6 +1155,10 @@ public class YsmAnimationPlayer {
         List<Map.Entry<String, YsmControllerPoseLayer>> orderedLayers = new ArrayList<>(poseLayers.entrySet());
         orderedLayers.sort(Comparator.comparingInt(entry -> YsmControllerSlot.executionOrder(entry.getKey())));
         for (var entry : orderedLayers) {
+            if (controllers.keySet().stream().anyMatch(name -> normalizeControllerName(name).equals(entry.getKey()))
+                    && usesBuiltinController(entry.getKey()) && !functionEventControllers.contains(entry.getKey())) {
+                continue;
+            }
             if ((YsmControllerSlot.executionOrder(entry.getKey()) < 20) != beforeMain) {
                 continue;
             }
@@ -1530,12 +1603,14 @@ public class YsmAnimationPlayer {
 
         // Native YSM locators already encode their own authored hand pose.
         // Only use the vanilla-like fallback when that side has no locator.
-        if (!hasNativeHandAnimation("right") && !hasHandLocator(false)) {
+        if (!hasNativeHandAnimation("right") && !hasHandLocator(false)
+                && usesBuiltinArmPose(false, mainLeft, usingItem, usedHand, entity.swinging, swingingHand)) {
             applyNativeArmPose(false, itemForArm(entity, false, mainLeft),
                     usingItem && isHandForArm(usedHand, false, mainLeft),
                     isHandForArm(swingingHand, false, mainLeft), swingAmount, firstPerson);
         }
-        if (!hasNativeHandAnimation("left") && !hasHandLocator(true)) {
+        if (!hasNativeHandAnimation("left") && !hasHandLocator(true)
+                && usesBuiltinArmPose(true, mainLeft, usingItem, usedHand, entity.swinging, swingingHand)) {
             applyNativeArmPose(true, itemForArm(entity, true, mainLeft),
                     usingItem && isHandForArm(usedHand, true, mainLeft),
                     isHandForArm(swingingHand, true, mainLeft), swingAmount, firstPerson);
@@ -1544,6 +1619,17 @@ public class YsmAnimationPlayer {
 
     private boolean hasNativeHandAnimation(String slot) {
         return nativeHandAnimations.containsKey(slot) || nativeHoldAnimations.containsKey(slot);
+    }
+
+    private boolean usesBuiltinArmPose(boolean left, boolean mainLeft, boolean using, InteractionHand usedHand,
+                                       boolean swinging, InteractionHand swingHand) {
+        if (using && isHandForArm(usedHand, left, mainLeft)) {
+            return usesBuiltinController("player.use");
+        }
+        if (swinging && isHandForArm(swingHand, left, mainLeft)) {
+            return usesBuiltinController("player.swing");
+        }
+        return usesBuiltinController(left == mainLeft ? "player.hold_mainhand" : "player.hold_offhand");
     }
 
     private boolean hasHandLocator(boolean left) {
@@ -1583,7 +1669,7 @@ public class YsmAnimationPlayer {
         boolean usingItem = hands.using(entity, usedHand, localOwner);
         String useSlot = null;
         boolean keepHoldWhileUsing = false;
-        if (usingItem) {
+        if (usingItem && usesBuiltinController("player.use")) {
             boolean left = handSlotIsLeft(usedHand, mainArm);
             useSlot = left ? "left" : "right";
             ItemStack item = entity.getItemInHand(usedHand);
@@ -1607,7 +1693,8 @@ public class YsmAnimationPlayer {
         boolean newSwingPulse = localOwner && hands.swingPulseActive(entity, true)
                 && hands.swingSequence() != lastSwingPulseSequence;
         lastSwingPulseSequence = hands.swingSequence();
-        if ((anySwinging && !wasSwinging || newSwingPulse) && !swingUsesActiveHand) {
+        if ((anySwinging && !wasSwinging || newSwingPulse) && !swingUsesActiveHand
+                && usesBuiltinController("player.swing")) {
             boolean left = handSlotIsLeft(swingingHand, mainArm);
             ItemStack item = entity.getItemInHand(swingingHand);
             String[] names = swingAnimationNames(swingingHand, item);
@@ -1643,6 +1730,14 @@ public class YsmAnimationPlayer {
     }
 
     private void syncHoldingAnimation(LivingEntity entity, InteractionHand hand, boolean left, boolean paused) {
+        String source = hand == InteractionHand.MAIN_HAND ? "player.hold_mainhand" : "player.hold_offhand";
+        if (!usesBuiltinController(source)) {
+            String previous = nativeHoldAnimations.remove(left ? "left" : "right");
+            if (previous != null) {
+                fadeOut(previous, 0f);
+            }
+            return;
+        }
         String slot = left ? "left" : "right";
         String current = nativeHoldAnimations.get(slot);
         PlayingAnimation currentHold = current == null ? null : activeAnimations.get(current);
@@ -1869,7 +1964,10 @@ public class YsmAnimationPlayer {
             // This is a new hand action, even if the previous instance is still fading.
             // Reusing that instance would resume the previous draw's clock and events.
             fadeOut(selected, 0f);
-            play(selected, nativeHandLoopMode(selected, clip, predicateLoop), 1f, 0.1f);
+            PlayingAnimation playing = play(selected, nativeHandLoopMode(selected, clip, predicateLoop), 1f, 0.1f);
+            playing.builtinSource = owners == nativeHoldAnimations
+                    ? "player." + (selected.startsWith("hold_offhand") ? "hold_offhand" : "hold_mainhand")
+                    : "player.use";
             owners.put(slot, selected);
         }
     }
@@ -1881,7 +1979,7 @@ public class YsmAnimationPlayer {
         String previous = nativeHandAnimations.put(slot, selected);
         if (previous != null && !previous.equals(selected))
             fadeOut(previous, 0.05f);
-        play(selected, YsmAnimationClip.LoopMode.ONCE, 1f, 0f);
+        play(selected, YsmAnimationClip.LoopMode.ONCE, 1f, 0f).builtinSource = "player.swing";
     }
 
     private String firstHandAnimation(String... names) {
@@ -2050,6 +2148,16 @@ public class YsmAnimationPlayer {
      * the {@code ctrl.*} Molang states, so a query and the native animation cannot disagree.
      */
     private void updateNativeStateMachine(LivingEntityRenderState state, LivingEntity entity) {
+        if (!usesBuiltinController("player.main")) {
+            activeAnimations.values().removeIf(animation -> {
+                if (!animation.isNative) {
+                    return false;
+                }
+                stopPlaybackSounds(animation);
+                return true;
+            });
+            return;
+        }
         if (state == null) return;
 
         Avatar.MolangContext context = runtime == null || runtime.owner() == null
@@ -2075,6 +2183,7 @@ public class YsmAnimationPlayer {
             PlayingAnimation anim = activeAnimations.get(idealState);
             if (anim == null) {
                 anim = new PlayingAnimation(nativeClip(idealState), true);
+                anim.builtinSource = "player.main";
                 activeAnimations.put(idealState, anim);
             }
             anim.targetWeight = 1f;
