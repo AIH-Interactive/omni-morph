@@ -957,3 +957,56 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - **既有失败（非本次引入，保留）：** `ysmBoneQuerySmokeTest`、`ysmPlayerTimelineSmokeTest`、`ysmFunctionContractSmokeTest`（现失败于 quarter-second transition）、`ysmMaterialInputSmokeTest`、`ysmAvifSmokeTest`、`ysmStabilitySmokeTest`。
 - **Git/工作区：** 分支 `ysm-alignment`，HEAD `3a67ecdc`（`fix: apply YSM hand actions at their reference stages (post_main omission)`），已推送并核对 `git ls-remote` 一致；本轮只改 `YsmAnimationPlayer` 与 `YsmHandAnimationSmokeTest`，本手册随后单独提交。原未跟踪 `.omc/`、`mod_log/`、`patch/` 保留，未切换分支、未改后端、未升级版本。无运行中构建/测试。
 - **下一步：** 用户重启客户端（构建前已关闭游戏、模组经符号链接接入）实机确认芙宁娜拉弓蓄力为举弓拉弦；若仍有偏差，优先对照该模型 `player.post_main` 各状态与 `use_mainhand:bow` 的实际骨骼值，而不是再调整阶段序。
+
+## 当前有效交接：右键矛无动作 —— 通配选择链缺陷分析与修复入口（2026-10-26 20:45）
+
+本节覆盖上节“下一步”。用户报告芙宁娜模型**右键矛没有动作**；本轮只做分析，**未改任何代码**。拉弓修复（`3a67ecdc`）与本题无关：那个修的是“选到片段后被后层覆盖”，本题是“根本没选到片段”。
+
+### 一、可复核的证据（来自该模型自己的 dump）
+
+上一轮为拉弓临时加过的 `-Dysm.dumpBow` 诊断（已在 `3a67ecdc` 中删除）曾在 `build.log` 留下该模型的片段与控制器清单（时间 19:33）。要点：
+
+- 模型**有**：`use_mainhand:spear`（`HOLD_ON_LAST_FRAME`，60s）、`use_mainhand`（通用，`ONCE` 0.375s）、`hold_mainhand:spear`（`LOOP` 10000s）、`hold_offhand:spear`、`use_mainhand:bow`、`use_mainhand:crossbow/drink/eat/shield/spyglass/slashblade/gohei` 等。
+- 模型**没有**：`use_mainhand:lance`、`use_mainhand:trident`、以及 `lance_*`/`swing:lance` 之类别名（dump 过滤条件只含 bow/use/hold，`lance_*` 未直接列出，但 `use_mainhand:*` 全量可见，故 use 侧缺失是确定的）。
+- 控制器：`player.post_main`（中文状态，写手臂）、`player.post_use`（状态为“主手/副手三叉戟蓄力/投出”，**只覆盖三叉戟**）、`player.post_swing`（`default/挖掘/普通`，**无 `ysm-builtin` 状态**）、`player.post_hold`、`player.parallel_6/7/9`、`player.pre_parallel_5/6/7`、`player.armor_chest`。
+
+### 二、复现链（右键矛为什么没有动作）
+
+1. 原版矛是 `ItemUseAnimation.SPEAR` + `KINETIC_WEAPON` → `isKineticSpear` 为真，进 kinetic 分支（[YsmAnimationPlayer.java](common/src/main/java/top/aihmc/omnimorph/model/ysm/animation/YsmAnimationPlayer.java) `isKineticSpear` :2071）。
+2. `useAnimationNames`（:2031-2048）候选为 `lance_riding_charge`/`lance_fall_flying_charge`/`lance_charge` → `use_mainhand$minecraft:<id>` → `#tag` → `use_mainhand:lance`；kinetic 分支**不追加**通用 `use_mainhand`（:2044）。
+3. 该模型这些名字全部不存在，`use_mainhand:spear` **永远不会进入候选**（见 B1）。
+4. `firstHandAnimation` 返回 null → use 槽被清空；但同手 hold 已因 `ownHandActs` 被暂停 → 手臂完全静止。
+5. 三叉戟能工作：`itemTypes` 对 trident 给 `trident`+`spear`，候选含 `use_mainhand:spear` → 命中该模型片段。
+6. 若物品**不带** `KINETIC_WEAPON`，则走非 kinetic 分支，候选里会追加通用 `use_mainhand`（模型有），不会完全无动作。**用户报告“完全没动作”指向 kinetic 分支候选为空这一条。**
+
+### 三、暴露的通用缺陷（按修复优先级）
+
+- **B1（根因，影响所有采用 `:spear` 命名约定的模型）** `itemTypes(item, use=true)` 对 SPEAR 只产出 `lance`，且 :2165-2169 显式压掉 `spear` 后缀 `!(use && useAnimation.equals("spear"))`；而 hold/swing 对 SPEAR 用 `spear`。结果：`use_mainhand:spear` 对矛永远选不中、对三叉戟可选。参考实现 `ConditionUse.doExtraTest` 对 SPEAR 动画**先试 `use_mainhand:spear`**（[ConditionUse.java:130-135](refs/Sparkle-Morpher/common/src/main/java/com/micaftic/morpher/client/animation/condition/ConditionUse.java)），lance 名只作为 kinetic 兜底（[LanceAnimationTiming.java:17-25](refs/Sparkle-Morpher/common/src/main/java/com/micaftic/morpher/client/animation/predicate/LanceAnimationTiming.java)）。这不是模型特化问题：默认资源 `assets/omni-morph/default_animation/arm.animation.json` 本身也同时有 `use_mainhand:spear` 与 `use_mainhand:lance`，标准命名就是 `:spear`。
+- **B2（影响面最大）** 任意一个非 builtin 的 `player.post_swing` 控制器会让**整个 ARM 默认动画集**被关闭：`YsmModelRuntime.resolveDefaultAnimations` 的 `handsControlled` 只看 POST_SWING 槽位（[YsmModelRuntime.java:333-344](common/src/main/java/top/aihmc/omnimorph/model/ysm/YsmModelRuntime.java)），一旦为真就把 `Domain.ARM` 的 `enabled` 置 false（[YsmDefaultAnimationResolver.java:86-117](common/src/main/java/top/aihmc/omnimorph/model/ysm/animation/YsmDefaultAnimationResolver.java)），所有 `hold_*`、`use_*:spear/lance`、`swing:*` 默认片段消失。芙宁娜正好有 `player.post_swing`。门控范围也不匹配：post_swing（阶段 38）关掉了 hold（32/33）与 use（41）。通用 `use_mainhand`/`use_offhand`/`swing_hand`/`swing_offhand` 因为同时存在于 `main` 域而侥幸保留（已核对默认 `main.animation.json`），但所有带冒号的武器专用名都没有。
+- **B3** 选片失败仍暂停同手 hold：`ownHandActs` 只看 `usingItem`，不看是否真的选中 use 片段（`updateNativeHandAnimations` :1967），于是“缺片段”表现成“手臂卡住/没动作”，静默掩盖 B1/B2。
+- **B4** kinetic 时间覆盖劫持任意选中的 use 片段：`sampleKineticChargeAnimation`（:2050-2060）对所有 `isKineticSpear` 片段强制 `sampledTime = useTicks/duration*length`，包括通用/默认兜底片段；`sampledTime` 一次采样即消费并置 NaN（:1042-1044），长片段会显得极慢或静止。参考只对 lance charge 片段做 tick override。
+- **B5** `isKineticSpear`（:2071）按数据组件分类，参考按 `WeaponKind`（`minecraft:*_spear` 或 `#sparkle_morpher:pike`，[InnerClassify.java:72-90](refs/Sparkle-Morpher/common/src/main/java/com/micaftic/morpher/client/animation/condition/InnerClassify.java)）；带组件的任意 SPEAR 物品会进 lance 命名并丢通用回退，不带组件的 pike 又不进 kinetic 路径。
+- **B6** “作者是否拥有 use 阶段”判定不完整：`usesBuiltinController` 只认名字恰好为 `player.use` 的控制器（:301-311），`handsControlled` 只看 POST_SWING；该模型把三叉戟蓄力/投掷放在 `player.post_use`（阶段 42），两套门控都看不到 → 原生 use 保持开启却选不到片段，作者 post_use 又只覆盖三叉戟。
+- **B7** 选片失败零诊断：`firstHandAnimation` 返回 null 后静默清槽，日志没有“某动作未解析到片段”的记录；默认资源诊断只覆盖资源/骨骼映射。
+- **B8** 名称排除是全局的：`defaultExcludedNames` 排除模型全部片段名，且 `firstHandAnimation` 只要任一候选是作者声明的空片段就设 `authoredEmpty` 跳过整条默认回退（:2236）。占位/空片段会让该动作的默认资源永久失效。
+
+### 四、建议修复顺序（未实施，需按 AGENTS 范围控制先确认）
+
+1. **最小修复 B1+B3**：`useAnimationNames` 对 SPEAR 动画加入 `use_mainhand:spear`/`use_offhand:spear`（顺序建议：kinetic charge 名 → `$id` → tag → `:spear` → `:lance` → 通用 `use_mainhand` 仅在没有任何专用片段可用时）；并让“暂停 hold”只在确实选出 use 片段时发生（否则保持握姿并记一次诊断）。这样单改一处即可让该模型有动作，且对所有使用 `:spear` 命名的模型生效。
+2. **B2 门控范围**：把 `handsControlled` 改为按 hold/use/swing 各自相关的槽位判定（或至少 post_swing 只影响 swing 默认），不要因一个阶段关闭只手整域默认。
+3. **B4/B5**：tick 覆盖只作用于 charge 家族；kinetic 判定与参考的 `WeaponKind` 对齐（或明确保留组件判定并在注释/文档中记录差异）。
+4. **B6/B7**：为 hand 阶段补“作者接管”的完整判定与失败诊断（每模型每动作一次），便于以后定位。
+5. **B8** 是否要让空片段回退到默认，需要用户决定（会影响作者“有意占位”的语义）。
+
+### 五、修复时的验证要求
+
+- 先写 RED：`YsmHandAnimationSmokeTest` 增加“kinetic spear + 模型只有 `use_mainhand:spear`”用例（当前应失败于无 use 片段），以及“trident 仍命中 `use_mainhand:spear`”“无 use 片段时 hold 不被暂停”；`YsmDefaultAnimationSmokeTest` 增加“存在非 builtin post_swing 时 hold/use 默认仍可用”（覆盖 B2）。
+- 回归：`ysmHandAnimation`、`ysmNativeState`、`ysmDefaultAnimation`、`ysmMaterialNative`、`ysmFirstPersonController`、`ysmVanillaState`、`ysmSoundNative`、`ysmInput`、`ysmBuiltinController` + `:fabric:build`。
+- 真实游戏仍需用户实机确认右键矛、三叉戟投掷、持矛待机、第一/第三人称；CPU/夹具不能替代画面。
+- 已知既有失败（非本轮引入）：`ysmBoneQuerySmokeTest`、`ysmPlayerTimelineSmokeTest`、`ysmFunctionContractSmokeTest`、`ysmMaterialInputSmokeTest`、`ysmAvifSmokeTest`、`ysmStabilitySmokeTest`。
+
+### 六、工作区与操作约束
+
+- 分支 `ysm-alignment`，HEAD `7efa9960`（`docs: record the YSM hand-stage fix and bow handoff`），已推送、`git ls-remote` 与本地一致；本轮分析未改代码，只追加本节。原未跟踪 `.omc/`、`mod_log/`、`patch/` 保留；根目录 `build.log` 含上述 dump，未纳入版本库，供复核。
+- 重新 dump 模型信息需要临时恢复 `YsmHandAnimationSmokeTest` 中的诊断块（已在 `3a67ecdc` 删除）；若只做分析，直接读 `build.log` 即可。
+- 约束不变：JDK25（需加载 `D:/UserData/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1` 后 `usejdk 25`）；构建/测试前台 PowerShell `2>&1 | Tee-Object -FilePath build.log` 并立即检查退出码；构建前关闭游戏客户端；模组经符号链接接入 mods，不复制产物；禁止 Qt offscreen；不升级版本、不改后端；每阶段提交推送并核对远端 SHA。
