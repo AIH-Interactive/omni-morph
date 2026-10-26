@@ -375,6 +375,9 @@ public class Configs {
     // -- NETWORKING -- //
     public static final ConfigType.BoolConfig ALLOW_NETWORKING =
             new ConfigType.BoolConfig("allow_networking", NETWORKING, true);
+    /** D025: publish this player's food, experience, flying, movement input and effect levels to YSM viewers. */
+    public static final ConfigType.BoolConfig SHARE_YSM_DISPLAY =
+            new ConfigType.BoolConfig("share_ysm_display", NETWORKING, true);
     public static final ConfigType.EnumConfig NETWORKING_RESTRICTION = new ConfigType.EnumConfig("networking_restriction", NETWORKING, 2, 3);
 
     public static final ConfigType.NetworkFilterConfig NETWORK_FILTER = new ConfigType.NetworkFilterConfig("network_filter", NETWORKING);
