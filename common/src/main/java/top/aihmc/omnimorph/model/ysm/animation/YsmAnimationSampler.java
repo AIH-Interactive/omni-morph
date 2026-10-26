@@ -15,10 +15,11 @@ public final class YsmAnimationSampler {
     public static YsmBonePose sampleBone(YsmBoneAnimation bone, float time, ExpressionEvaluator<?> evaluator) {
         Avatar.MolangContext context = evaluator != null && evaluator.entity() instanceof Avatar.MolangContext value ? value : null;
         try (var boneScope = context == null ? null : context.filters.beginBone(bone.boneName)) {
-            return new YsmBonePose(
-                    bone.position == null ? null : sampleChannel(bone.position, time, evaluator, new float[3]),
-                    bone.rotation == null ? null : sampleChannel(bone.rotation, time, evaluator, new float[3]),
-                    bone.scale == null ? null : sampleChannel(bone.scale, time, evaluator, new float[]{1f, 1f, 1f}));
+            // Sparkle AnimationProcessor evaluates rotation, then position, then scale.
+            float[] rotation = bone.rotation == null ? null : sampleChannel(bone.rotation, time, evaluator, new float[3]);
+            float[] position = bone.position == null ? null : sampleChannel(bone.position, time, evaluator, new float[3]);
+            float[] scale = bone.scale == null ? null : sampleChannel(bone.scale, time, evaluator, new float[]{1f, 1f, 1f});
+            return new YsmBonePose(position, rotation, scale);
         }
     }
 
@@ -68,7 +69,8 @@ public final class YsmAnimationSampler {
             ratio = 1;
         }
 
-        if ("step".equalsIgnoreCase(k1.interpolation)) {
+        // Sparkle BoneKeyFrameProcessor: a catmullrom target wins; otherwise the source easing applies.
+        if (!"catmullrom".equalsIgnoreCase(k2.interpolation) && "step".equalsIgnoreCase(k1.interpolation)) {
             return v1;
         }
         if ("catmullrom".equalsIgnoreCase(k2.interpolation)) {
