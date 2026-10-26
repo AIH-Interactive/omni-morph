@@ -34,7 +34,7 @@ public final class YsmAnimationFrameClockSmokeTest {
                 if (step.advance()) {
                     advances++;
                     double next = cursor + step.deltaSeconds();
-                    trace.addAll(YsmAnimationEventWindow.crossed(clip, cursor, next, true, true)
+                    trace.addAll(YsmAnimationEventWindow.window(clip, cursor, next, true, true).events()
                             .stream().map(YsmAnimationEvent::value).toList());
                     cursor = next;
                 } else {
@@ -44,7 +44,8 @@ public final class YsmAnimationFrameClockSmokeTest {
             require(independent.step(identity, age).advance(), "players do not share advancement state");
         }
         require(advances == 3 && samples == 9, "three frames advance once and all nine passes can sample");
-        require(trace.equals(List.of("middle", "end", "start")), "loop events remain single-dispatch across repeated passes");
+        // D011: reaching the end exactly does not wrap, so the next cycle's start has not fired yet.
+        require(trace.equals(List.of("middle", "end")), "loop events remain single-dispatch across repeated passes");
         equal(0.1f, (float) cursor, "equal age in a new frame does not invent another tick");
         var fallback = new YsmAnimationFrameClock();
         equal(0.05f, fallback.step(1, Float.NaN).deltaSeconds(), "missing age initial fallback");
