@@ -1,8 +1,8 @@
 # 当前任务交接手册
 
-最新有效状态：见文末“当前额度交接：P1 动画对齐进行中（2026-10-26）”。P1 尚未完成；因 Plus 五小时额度达到交接阈值，当前 Goal 因额度连续阻塞已标 blocked；P1 未完成，不标 complete 或 paused。
+最新有效状态：见文末“当前有效交接：右键矛 B1～B8 修复完成（2026-10-26）”。本目标已达到相关单测与编译通过的完成条件并标记 complete；真实游戏验收仍 MANUAL/PENDING。旧顶部 P1 阻塞记录及后续分析状态均已被新记录覆盖。
 
-更新时间：2026-10-26（Asia/Seoul；接续复查显示 Plus 五小时 used 94% / 剩余 6%，周 used 15% / 剩余 85%。本次只整理交接手册；最新状态与下一最小实施项见文末。）
+更新时间：2026-10-26（Asia/Seoul；B1～B8 五阶段已完成并分别提交推送、核对远端；本手册随后做独立文档收尾提交。）
 
 ## 接续入口与约束
 
@@ -1010,3 +1010,41 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 分支 `ysm-alignment`，HEAD `7efa9960`（`docs: record the YSM hand-stage fix and bow handoff`），已推送、`git ls-remote` 与本地一致；本轮分析未改代码，只追加本节。原未跟踪 `.omc/`、`mod_log/`、`patch/` 保留；根目录 `build.log` 含上述 dump，未纳入版本库，供复核。
 - 重新 dump 模型信息需要临时恢复 `YsmHandAnimationSmokeTest` 中的诊断块（已在 `3a67ecdc` 删除）；若只做分析，直接读 `build.log` 即可。
 - 约束不变：JDK25（需加载 `D:/UserData/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1` 后 `usejdk 25`）；构建/测试前台 PowerShell `2>&1 | Tee-Object -FilePath build.log` 并立即检查退出码；构建前关闭游戏客户端；模组经符号链接接入 mods，不复制产物；禁止 Qt offscreen；不升级版本、不改后端；每阶段提交推送并核对远端 SHA。
+
+## 当前有效交接：右键矛 B1～B8 修复完成（2026-10-26）
+
+本节覆盖上方右键矛“只分析、未实施”的状态。用户最初要求B1～B7，随后明确更正为B1～B8，已全部纳入本次范围。P1/P2此前完成状态保留，不重新实施。按相关单测成功且编译通过的约定，本次Goal已标complete，然后更新本手册；没有剩余自动实施任务。
+
+### 完成检查点
+
+| 阶段 | 已完成内容 | 已提交推送且核对远端 |
+| --- | --- | --- |
+| 1 B1/B3 | SPEAR候选加入旧:spear兼容，专用charge及:lance仍支持；use未解析时维持原握姿而不暂停hold，亦覆盖非kinetic物品 | bb962bafbb3ab3cf5580746823d18f9465dbb15f |
+| 2 B2 | 移除post_swing对整个手部默认资源域的加载禁用；默认准备与具体核心阶段的运行时接管分离 | d65510d568c1b93611cef82fe8106244071835e2 |
+| 3 B4/B5 | 原版SPEAR/pike标签分类复用YsmHandItemType，组件本身不决定武器家族；charge时钟只覆盖charge家族，:spear/物品ID/通用use用自身时钟；专用缺失可用通用use | 8f128a38e2fbe25b512b1317b5d7cbc16a463b4a |
+| 4 B6/B7 | 编号use/swing/hold声明参与核心阶段接管，任一custom阶段能阻止对应builtin；按播放器/动作去重NO_HAND_ANIMATION诊断并记录物品与候选 | 9b25ec4a0729ec1eaec847109a0b2fff3b17ebd1 |
+| 5 B8/最终回归 | 手部空占位允许同名默认资源及后续默认候选回退；有效作者仍优先，显式禁用仍有效，非手部空idle原语义保留；实际模型矛回放通过 | 00af009f0cdc51577625ac4bd534724ca7e2ae24 |
+
+### 分析纠正与边界
+
+- 旧分析B1称参考ConditionUse对SPEAR先试:spear，与当前源码不符：其MC_SPEAR_ANIMATION实际为lance。本次保留:lance及charge优先，在其后加:spear兼容，不以错误引用冒称参考完全相同。
+- 旧B6把post_use存在视为核心use全面接管也不准确：前/后hook是独立阶段，后置层仅覆盖其写入通道。此次补的是编号核心声明的实际遗漏，不因post_use只覆盖三叉戟就禁止矛的native use。
+- B8按用户追加授权改变手部空占位语义；不改变非手部空idle优先、损坏作者诊断、显式禁用或冻结协议。未增加模型名/作者/哈希分支，未改默认资源文件、版本或后端。
+
+### 验证结果
+
+- RED日志：build/reports/outfit/spear-b1-b3-red.log（tick1选不到作者:spear）、spear-b2-red.log（post_swing导致缺默认hold）、spear-b4-b5-red.log（旧spear时钟被覆盖）、spear-b6-b7-red.log（编号use未接管）、spear-b8-red.log（空lance阻止默认加载）。B6最初无函数运行时的CPU夹具失败已修正为跳过夹具无关函数入口，再获得目标断言RED。
+- 阶段final/green日志均在build/reports/outfit：spear-b1-b3-final.log（1分10秒/24 tasks），spear-b2-final.log（56秒/24 tasks），spear-b4-b5-final.log（51秒/24 tasks），spear-b6-b7-green.log（1分2秒/25 tasks）。
+- **最终PASS：** spear-b8-final.log，BUILD SUCCESSFUL in 1m 28s，30 tasks。九项显式单测HandAnimation、DefaultAnimation、NativeState、MaterialNative、FirstPersonController、VanillaState、SoundNative、Input、BuiltinController，以及Fabric build；附带LibraryPreviewRuntime也PASS。
+- HandAnimation通过实际芙宁娜模型解码/正式播放器/骨骼采样回放：作者use_mainhand:spear非空并被选中，sampledTime无charge覆盖，推进0.5秒后time=0.5，RightArm姿态确实改变；持续使用保留实例，松开退休。原bow首次/重拉、trident、左右握持、阶段覆盖等回归保留通过。生产源码无模型特化。
+- 使用JDK25、前台PowerShell Tee build.log，立即读取LASTEXITCODE与日志；git diff --check/cached --check均PASS。没有引入适用范围外的格式化或重构。
+- 真实Minecraft右键输入、第一/第三人称GPU画面、设备声音、双客户端仍MANUAL/PENDING。既有BoneQuery、PlayerTimeline、FunctionContract、MaterialInput、Avif、Stability失败不在本轮修复范围，不宣称所有历史测试通过。
+
+### Git、产物、额度与下一步
+
+- 当前分支ysm-alignment，代码/计划HEAD为00af009f0cdc51577625ac4bd534724ca7e2ae24，五阶段均逐次push且ls-remote核对一致；本手册和计划提交号补记随后独立文档收尾提交，最终HEAD以git为准。原未跟踪.omc/、mod_log/、patch/保留，无分支切换，无运行中构建/测试。
+- 本次主要文件：YsmAnimationPlayer、YsmModelRuntime、YsmHandAnimationSmokeTest、YsmDefaultAnimationSmokeTest、docs/YSM_SPEAR_FIX_PLAN.md、本手册。
+- 产物fabric/build/libs/omni-morph-1.0.0-alpha.4.1+26.1.2-fabric-mc.jar，19035687字节，SHA256 ec39b8f5ca64f770fe7a68584e4f95c772ae7eba8d5358090830f3491792fd2d。mods使用用户已有符号链接，无复制覆盖、无客户端自动操作。
+- 每阶段都可靠查额度：Plus五小时剩92%→88%→84%→80%→75%；最终周剩81%，重置Unix1793032806/1793601498。未达交接阈值，手册由当前Agent更新，未委派Luna。Goal约19分钟达到自动完成条件。
+- 下一步只有用户实机验收：重启客户端后测试右键矛持续使用/松开/再使用、三叉戟及拉弓、第一/第三人称。无新增实施阶段；若仍异常，使用新日志中的[YSM hand]信息和当前模型实际控制器/骨骼值继续定位。
+- 相关文档：docs/YSM_SPEAR_FIX_PLAN.md（本轮阶段及证据）、docs/YSM_ALIGNMENT_PLAN.md、docs/YSM_ANIMATION_ENGINE_COMPARISON.md。保持CodeGraph优先、当前分支提交推送检查点、JDK25、前台PowerShell日志、符号链接安装、禁止Qt offscreen、范围控制和真实未验不得标PASS。
