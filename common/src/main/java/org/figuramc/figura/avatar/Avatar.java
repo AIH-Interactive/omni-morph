@@ -359,6 +359,8 @@ public class Avatar {
     public static class MolangContext implements MolangExecutionBudget.Owner {
         private final MolangExecutionBudget executionBudget = new MolangExecutionBudget();
         public final YsmFilterRuntime filters = new YsmFilterRuntime();
+        public final net.minecraft.util.RandomSource random = new net.minecraft.world.level.levelgen.XoroshiroRandomSource(
+                net.minecraft.world.level.levelgen.RandomSupport.generateUniqueSeed());
 
         @Override
         public MolangExecutionBudget executionBudget() {

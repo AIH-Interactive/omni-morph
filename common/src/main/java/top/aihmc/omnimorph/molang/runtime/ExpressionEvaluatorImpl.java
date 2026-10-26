@@ -236,6 +236,10 @@ public final class ExpressionEvaluatorImpl<TEntity>
         if (expr instanceof FloatExpression fe) {
             return fe.value();
         }
+        if (expr instanceof CallExpression call) {
+            budget.consume();
+            return call.function().evaluateFloat(this, call.arguments());
+        }
         if (expr instanceof BinaryExpression be) {
             switch (be.op()) {
                 case ADD: return evalFloat(be.left()) + evalFloat(be.right());
