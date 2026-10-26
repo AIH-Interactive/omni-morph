@@ -116,6 +116,7 @@ public final class YsmDefaultAnimationSmokeTest {
                             bones, Map.of(), Set.of("idle"), Set.of("run"), true).signature()),
                     "resource cache invalidation preserves deterministic template identity");
             testNativeRuntime();
+            testPostSwingFallback();
             testBuiltinFallback();
             testBeginningTransitionPose();
             testAuthoredDomains();
@@ -278,6 +279,33 @@ public final class YsmDefaultAnimationSmokeTest {
                     "arm geometry samples independent authored clip despite body resource weight");
             require(Math.abs(runtime.getPart("LeftArm").animRotRaw().x - 10f) < .0001f,
                     "arm sampling preserves body geometry");
+        } finally {
+            avatar.clean();
+        }
+    }
+
+    private static void testPostSwingFallback() throws Exception {
+        CompoundTag source = fullAvatarSource("{}");
+        var controllers = new net.minecraft.nbt.ListTag();
+        var controller = new CompoundTag();
+        controller.putByteArray("data", """
+                {"animation_controllers":{"player.post_swing":{"states":{"default":{}}}}}
+                """.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        controllers.add(controller);
+        source.getCompoundOrEmpty("ysm").put("animation_controllers", controllers);
+        Avatar avatar = Avatar.createLibraryPreview(UUID.randomUUID(), "post swing fallback fixture");
+        try {
+            avatar.load(source);
+            avatar.initializePreviewPlayer(null);
+            var player = avatar.getYsmRuntime().animations();
+            var field = player.getClass().getDeclaredField("defaultClips");
+            field.setAccessible(true);
+            var defaults = (Map<?, ?>) field.get(player);
+            for (String name : List.of("hold_mainhand:spear", "hold_offhand:spear", "use_mainhand:spear", "use_offhand:spear")) {
+                require(defaults.containsKey(name), "post_swing preserves independent hand fallback: " + name);
+            }
+            require(player.usesBuiltinController("player.use") && player.usesBuiltinController("player.hold_mainhand"),
+                    "a post stage does not replace the core hold/use provider");
         } finally {
             avatar.clean();
         }
