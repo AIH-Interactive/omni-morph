@@ -9,7 +9,7 @@
 - 新回归读取该真实模型，无charge资源的原生重放夹具中STOP并保留作者hold。芙宁娜回归显式执行正式默认资源准备（原夹具无Avatar NBT、默认未加载），验证默认lance选择、charge时钟、手臂姿态和释放。pike夹具从固定BOW使用动画的弓改为可消费SPEAR动画的普通物品，以真实覆盖pike规则。
 - `spear-pose-selection-final.log`：HandAnimation（两真实模型）、DefaultAnimation、BuiltinController和Fabric build PASS，1分2秒/24 tasks，附带LibraryPreviewRuntime PASS。git diff --check PASS，临时DEBUG探针已删除。
 
-## 阶段 2：持物矩阵（完成，本检查点）
+## 阶段 2：持物矩阵（完成 ad0105cf）
 
 - 当前参考CustomPlayerItemInHandLayer:283-385 使用YSM专属旋转：smoothStep阶段进度、X补偿60*(1-engaged)、Y为handSign*(90+90*tired)、X下垂6*disengaged，均绕(0,.125,.125)。Omni YsmHeldItemTransforms目前仍调用vanilla SpearAnimations.thirdPersonUseItem，公式不一致。
 - 写独立黄金矩阵验证边界/中点/左右手和非活动手，再最小替换公式，回归相关hand/default/material/geometry/input/builtin和Fabric构建。

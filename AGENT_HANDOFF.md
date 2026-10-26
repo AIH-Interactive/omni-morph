@@ -1,8 +1,8 @@
 # 当前任务交接手册
 
-最新有效状态：见文末“当前有效交接：右键矛 B1～B8 修复完成（2026-10-26）”。本目标已达到相关单测与编译通过的完成条件并标记 complete；真实游戏验收仍 MANUAL/PENDING。旧顶部 P1 阻塞记录及后续分析状态均已被新记录覆盖。
+最新有效状态：见文末“当前有效交接：末影龙娘矛姿态参考差异修复（2026-10-26）”。两处已证实差异已修复，相关单测及Fabric构建通过并已提交推送；真实游戏画面待用户确认。
 
-更新时间：2026-10-26（Asia/Seoul；B1～B8 五阶段已完成并分别提交推送、核对远端；本手册随后做独立文档收尾提交。）
+更新时间：2026-10-26（Asia/Seoul；选片与持物矩阵两个检查点完成，额度剩54%，未触发交接阈值。）
 
 ## 接续入口与约束
 
@@ -1048,3 +1048,19 @@ YSM 截断修复已推送 main@03e143c6。提交成功但重进/重开衣柜后�
 - 每阶段都可靠查额度：Plus五小时剩92%→88%→84%→80%→75%；最终周剩81%，重置Unix1793032806/1793601498。未达交接阈值，手册由当前Agent更新，未委派Luna。Goal约19分钟达到自动完成条件。
 - 下一步只有用户实机验收：重启客户端后测试右键矛持续使用/松开/再使用、三叉戟及拉弓、第一/第三人称。无新增实施阶段；若仍异常，使用新日志中的[YSM hand]信息和当前模型实际控制器/骨骼值继续定位。
 - 相关文档：docs/YSM_SPEAR_FIX_PLAN.md（本轮阶段及证据）、docs/YSM_ALIGNMENT_PLAN.md、docs/YSM_ANIMATION_ENGINE_COMPARISON.md。保持CodeGraph优先、当前分支提交推送检查点、JDK25、前台PowerShell日志、符号链接安装、禁止Qt offscreen、范围控制和真实未验不得标PASS。
+
+## 当前有效交接：末影龙娘矛姿态参考差异修复（2026-10-26）
+
+用户新报末影龙娘右键矛姿态与参考不符：图一参考近水平前持，图二Omni斜向上；指定资源refs/avatars/末影龙娘.ysm。用户要求对比哪里不一致。本轮按diagnosing-bugs技能先建立实际资源RED，再修正两个已证实路径；本节覆盖前节B1把旧:spear兼容当作原版矛正确行为的结论。
+
+- **差异1 / 已修复：** 当前参考InteractionHandAnimationPredicate.playUseAnimation:71-90和LanceAnimationTiming.selectChargeNames只选择charge家族，原版SPEAR无可用charge时STOP，不能转入TRIDENT旧:spear或短generic。Omni上轮B1兼容过宽；实际末影龙娘回放确实选中0.5秒use_mainhand:spear（含双臂/前臂/RightHandLocator），spear-pose-red.log断言失败。现SPEAR候选限定lance_riding_charge / lance_fall_flying_charge / lance_charge / use_*:lance；无charge保留握姿。TRIDENT旧:spear保留，非SPEAR条件/generic及B8默认空占位规则保留，没有按模型名称分支。检查点27db42ce12af6586e3a78a414096c10ae8653c56，已push并核对远端一致。
+- **差异2 / 已修复：** 参考CustomPlayerItemInHandLayer.applyAuthoredSpearUseItemTransform使用YSM专属显示枢轴(0,.125,.125)和三阶段smoothStep旋转；Omni调用的是vanilla SpearAnimations.thirdPersonUseItem，公式不同。现改为参考X补偿60*(1-engaged)、Y前转handSign*(90+90*tired)、X下垂6*disengaged，仅原版SPEAR类型应用。握持基座/弓归一化未变。检查点ad0105cf30f4b5467f4c50f4788a06be87940922，已push并核对远端一致。
+- **新增/更新测试：** HandAnimation任务同时加载芙宁娜及末影龙娘。末影龙娘无charge的原生夹具验证STOP而不选旧:spear，并保留作者hold；芙宁娜夹具显式调用正式默认准备入口（原生replay夹具没有Avatar NBT，装配时没有准备默认），验证default lance charge能产生姿态、按charge进度采样和正确释放。pike夹具从固定BOW使用动画的弓改为真实可使用SPEAR动画的普通物品，不修改生产分类来满足错误夹具。
+- **黄金矩阵：** 旧测试只断言等于vanilla，无法捕捉参考差异；spear-pose-transform-red.log在tick0/左主惯用手/主手失败。现用手算角度表验证ticks0/1/5/10/25/40/55/70/100，覆盖两主惯用手、主/副手、活动/非活动手以及三叉戟，容差0.00001。临时DEBUG-spear-pose探针已删除。
+- **验证PASS：** build/reports/outfit/spear-pose-selection-final.log：HandAnimation、DefaultAnimation、BuiltinController及Fabric build，1分2秒/24 tasks。spear-pose-transform-final.log：HandAnimation、DefaultAnimation、HeldItemGeometry、MaterialNative、BuiltinController、Input六项及Fabric build，2分22秒/27 tasks；附带LibraryPreviewRuntime也PASS。JDK25、前台PowerShell Tee build.log、立即检查LASTEXITCODE并读日志，diff/cached diff检查通过。
+- **未验证：** 用户真实右键输入、第一/第三人称GPU画面/听感/双客户端仍MANUAL/PENDING，不把CPU矩阵当作两图逐像素一致。持物效果沿用原实体整数tick入口，分数帧/本地输入脉冲的持物时序不在本轮黄金矩阵证据内。旧BoneQuery/PlayerTimeline/FunctionContract/MaterialInput/Avif/Stability等独立已知失败保留，不宣称全历史测试通过。两个截图环境/视角不同，未据此推断其它翼/全身差异。
+- **文件与Git：** 沿ysm-alignment，代码检查点HEAD ad0105cf30f4b5467f4c50f4788a06be87940922；本手册及计划提交号随后单独文档收尾，最终HEAD以实际git为准。范围仅YsmAnimationPlayer、YsmHeldItemTransforms、YsmHandAnimationSmokeTest、common/build.gradle、docs/YSM_SPEAR_POSE_FIX.md、本手册；未改版本、后端、用户模型或默认资源文件。原未跟踪.omc/、mod_log/、patch/保留，无运行中构建/测试。
+- **产物：** fabric/build/libs/omni-morph-1.0.0-alpha.4.1+26.1.2-fabric-mc.jar，19036816字节，SHA256 e2e4544bca02356cd3de08352bbd73a6732638d820ee35770fef1618394f4441。用户mods通过符号链接，无复制覆盖、无客户端自动操作。
+- **额度：** 两阶段后可靠Plus五小时剩60%/54%，最终周剩78%，重置Unix1793032806/1793601498，未触发阈值，当前Agent正常更新手册，未委派Luna。
+- **下一步：** 两处已证实差异的自动修复完成，无新增开发阶段。用户重启后使用末影龙娘测试矛抬起/持续持握/疲劳末段/松开与三叉戟，兼验芙宁娜和拉弓。若仍有差异，以新日志/使用tick/当前片段和骨骼矩阵定位，不能再次把原版SPEAR误配到legacy TRIDENT动画。
+- **约束与文档：** docs/YSM_SPEAR_POSE_FIX.md为本轮记录，docs/YSM_SPEAR_FIX_PLAN.md为上一轮历史记录（其中B1/SPEAR兼容结论已被本节纠正）。保持CodeGraph优先、当前分支检查点、JDK25/前台日志、禁止Qt offscreen、符号链接安装和有限范围。
