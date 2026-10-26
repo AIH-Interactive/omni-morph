@@ -395,6 +395,15 @@ tasks.register("ysmPhase41SmokeTest", JavaExec) {
     mainClass = "top.aihmc.omnimorph.model.ysm.YsmPhase41SmokeTest"
 }
 
+tasks.register("ysmResourceScopeSmokeTest", JavaExec) {
+    group = "verification"
+    description = "Checks declared YSM resource scope and authored hidden geometry."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = "top.aihmc.omnimorph.model.ysm.YsmResourceScopeSmokeTest"
+    args rootProject.file("refs/avatars/16_tactics").path
+}
+
 tasks.register("ysmPackageSmokeTest", JavaExec) {
     group = "verification"
     description = "Runs YSM folder and zip resource package smoke checks."
