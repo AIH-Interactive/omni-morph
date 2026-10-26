@@ -77,6 +77,7 @@ public final class YsmHandAnimationSmokeTest {
 
         verifyBowHands(entity, update);
         verifyHoldPause(entity, update);
+        verifyLegacyLoopOverride(entity, update);
         entity.mainArm = HumanoidArm.RIGHT;
         entity.usedHand = InteractionHand.MAIN_HAND;
         entity.offhand = ItemStack.EMPTY;
@@ -265,6 +266,51 @@ public final class YsmHandAnimationSmokeTest {
         require(!offHold.paused && animations.getActiveAnimation("hold_offhand:empty") == offHold,
                 "the off-hand hold resumes after its swing");
         System.out.println("PASS hand holds: independent per hand, paused only by their own swing/use");
+    }
+
+    /**
+     * Sparkle AnimationFormatValidator: format version >= 19 (plaintext folders report 65535) or a clip from
+     * the built-in default model keeps the authored loop; older binary models use the predicate's loop
+     * (LOOP for hold/use, HOLD_ON_LAST_FRAME for a *:lance hold).
+     */
+    private static void verifyLegacyLoopOverride(HandEntity entity, Method update) throws ReflectiveOperationException {
+        entity.mainArm = HumanoidArm.RIGHT;
+        entity.usedHand = InteractionHand.MAIN_HAND;
+        entity.main = new ItemStack(Items.BOW);
+        entity.offhand = ItemStack.EMPTY;
+        entity.swinging = false;
+        String hold = "hold_mainhand$minecraft:bow";
+        String use = "use_mainhand:bow";
+        for (int version : new int[]{18, 19, 65535}) {
+            var animations = onceClips(hold, use);
+            if (version != 65535) {
+                animations.setModelFormatVersion(version);
+            }
+            YsmAnimationClip.LoopMode expected = version < 19
+                    ? YsmAnimationClip.LoopMode.LOOP : YsmAnimationClip.LoopMode.ONCE;
+            entity.using = false;
+            update.invoke(animations, entity);
+            require(animations.getActiveAnimation(hold).loopMode == expected,
+                    "hold loop for format " + version + " must be " + expected);
+            entity.using = true;
+            update.invoke(animations, entity);
+            require(animations.getActiveAnimation(use).loopMode == expected,
+                    "use loop for format " + version + " must be " + expected);
+        }
+        entity.using = false;
+        System.out.println("PASS hand loop override: legacy binary formats use predicate loops, modern keep authored");
+    }
+
+    private static YsmAnimationPlayer onceClips(String... names) {
+        String definitions = java.util.Arrays.stream(names)
+                .map(name -> "\"" + name + "\":{\"loop\":false,\"animation_length\":1,"
+                        + "\"bones\":{\"RightArm\":{\"rotation\":[-90,0,0]}}}")
+                .collect(java.util.stream.Collectors.joining(","));
+        Map<String, YsmAnimationClip> clips = YsmAnimationParser.parse("{\"animations\":{" + definitions + "}}",
+                MolangEngine.fromCustomBinding(key -> null));
+        var player = new YsmAnimationPlayer(null);
+        player.registerAnimations(clips);
+        return player;
     }
 
     private static void verifyUseTransforms(HandEntity entity) {
