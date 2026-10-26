@@ -4,12 +4,16 @@ import com.google.gson.JsonParser;
 import net.minecraft.nbt.CompoundTag;
 import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.molang.MolangEngine;
+import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationClip;
+import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationParser;
+import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationSampler;
 import top.aihmc.omnimorph.model.ysm.animation.YsmDefaultAnimationResolver;
 import top.aihmc.omnimorph.model.ysm.animation.YsmDefaultAnimationResolver.Domain;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +22,14 @@ import java.util.UUID;
 
 /** Real bundled templates and native parser; no rendered-pixel assertions. */
 public final class YsmDefaultAnimationSmokeTest {
+    public static void run(Path workspace) throws Exception {
+        CompoundTag accessory = fullAvatarSource("{}");
+        accessory.getCompoundOrEmpty("metadata").putString("resource_kind", "ACCESSORY");
+        run(workspace, accessory);
+    }
+
     public static void run(Path workspace, CompoundTag prepared) throws Exception {
+        testReferenceResources(workspace);
         Avatar owner = Avatar.createLibraryPreview(UUID.randomUUID(), "default-animation-test");
         try {
             owner.load(prepared.copy());
@@ -26,7 +37,7 @@ public final class YsmDefaultAnimationSmokeTest {
             require(owner.getYsmRuntime().defaultAnimationTemplateVersion().isEmpty(),
                     "an accessory wrapper does not automatically receive a humanoid movement machine");
             MolangEngine engine = MolangEngine.fromCustomBinding(owner.getAvatarBindings());
-            var templateRoot = workspace.resolve("common/src/main/resources/assets/omni-morph/ysm_default/animations");
+            var templateRoot = workspace.resolve("common/src/main/resources/assets/omni-morph/default_animation");
             var main = JsonParser.parseString(Files.readString(templateRoot.resolve("main.animation.json")))
                     .getAsJsonObject().getAsJsonObject("animations");
             var arm = JsonParser.parseString(Files.readString(templateRoot.resolve("arm.animation.json")))
@@ -40,12 +51,9 @@ public final class YsmDefaultAnimationSmokeTest {
                     }
                 }
             }
-            bones.remove("molang");
-            var manifest = JsonParser.parseString(Files.readString(workspace.resolve("protocol/outfit-v1/template-manifest.json")))
-                    .getAsJsonObject();
-            var whitelist = new ArrayList<String>();
-            manifest.getAsJsonArray("base_action_whitelist").forEach(value -> whitelist.add(value.getAsString()));
-            require(whitelist.equals(YsmDefaultAnimationResolver.MAIN_ACTIONS), "runtime whitelist matches the locked phase-one manifest");
+            bones.removeIf(name -> name.equalsIgnoreCase("molang"));
+            require(main.keySet().containsAll(YsmDefaultAnimationResolver.MAIN_ACTIONS),
+                    "every runtime main fallback action exists in the reference resources");
             YsmDefaultAnimationResolver.clear();
             int reads = YsmDefaultAnimationResolver.sourceReads();
             int mappings = YsmDefaultAnimationResolver.mappings();
@@ -59,7 +67,7 @@ public final class YsmDefaultAnimationSmokeTest {
                     "only the basic main whitelist is selected");
             var first = selected.compile(engine);
             var second = selected.compile(engine);
-            require(first.size() == 26 && first.get("walk") != second.get("walk"),
+            require(first.size() == 25 && first.get("walk") != second.get("walk"),
                     "every selected template compiles through the native parser with private clip objects");
             first.get("walk").boneAnimations.clear();
             require(!second.get("walk").boneAnimations.isEmpty(), "runtime edits cannot mutate another native clip");
@@ -78,16 +86,26 @@ public final class YsmDefaultAnimationSmokeTest {
                             && hands.definitions().keySet().stream().noneMatch(name -> name.contains("parallel")),
                     "one authored hand action does not suppress the other side or import fp.arm parallel clips");
             var handClips = hands.compile(engine);
+            testReferenceSamples(workspace, engine, second, handClips);
+            // Independent golden values from Sparkle's use_mainhand:bow / RightArm keys.
+            var bow = YsmDefaultAnimationResolver.resolve("bow-golden", Domain.ARM, bones,
+                    Map.of(), Set.of(), Set.of(), true).compile(engine).get("use_mainhand:bow");
+            requireVector(YsmAnimationSampler.sampleBone(bow.boneAnimations.get("RightArm"), 0f, null).rotation(),
+                    new float[]{-51.470402f, 7.4448f, -28.9102f}, "reference bow initial rotation");
+            requireVector(YsmAnimationSampler.sampleBone(bow.boneAnimations.get("RightArm"), .5f, null).rotation(),
+                    new float[]{-112.6097f, 29.4633f, -11.3843f}, "reference bow half-second rotation");
+            requireVector(YsmAnimationSampler.sampleBone(bow.boneAnimations.get("RightArm"), 1f, null).rotation(),
+                    new float[]{-77.0228f, 61.5595f, -5.0828f}, "reference bow final rotation");
             require(handClips.get("swing:sword").events.size() >= 3
                             && hands.definitions().get("swing:sword").json().contains("variable.omnimorph_default.qh")
                             && hands.definitions().get("swing$minecraft:mace").json().contains("variable.omnimorph_default.mace"),
                     "arm timeline initialization and its private variable dependency closure survive selection");
             var alias = YsmDefaultAnimationResolver.resolve("revision-2", Domain.MAIN,
-                    List.of("root", "author_upper_arm", "tentacle"), Map.of("LeftArm", "author_upper_arm"),
+                    List.of("allbody", "author_upper_arm", "tentacle"), Map.of("LeftArm", "author_upper_arm"),
                     Set.of(), Set.of(), true);
             var aliasClips = alias.compile(engine);
             require(aliasClips.get("walk").boneAnimations.containsKey("author_upper_arm")
-                            && aliasClips.get("walk").boneAnimations.containsKey("root")
+                            && aliasClips.get("walk").boneAnimations.containsKey("allbody")
                             && !aliasClips.get("walk").boneAnimations.containsKey("tentacle")
                             && alias.definitions().get("walk").missingBones().contains("RightArm"),
                     "exact/normalized names precede explicit aliases; missing bones are diagnosed without inventing channels");
@@ -102,6 +120,60 @@ public final class YsmDefaultAnimationSmokeTest {
         } finally {
             owner.clean();
             YsmDefaultAnimationResolver.clear();
+        }
+    }
+
+    private static void testReferenceResources(Path workspace) throws Exception {
+        Path bundled = workspace.resolve("common/src/main/resources/assets/omni-morph/default_animation");
+        Path reference = workspace.resolve("refs/Sparkle-Morpher/common/src/main/resources/assets/"
+                + "sparkle_morpher/builtin/default/animations");
+        try (var files = Files.list(reference)) {
+            var animations = files.filter(path -> path.getFileName().toString().endsWith(".animation.json")).toList();
+            require(animations.size() == 14, "reference default animation inventory contains fourteen files");
+            for (Path file : animations) {
+                require(Arrays.equals(Files.readAllBytes(file), Files.readAllBytes(bundled.resolve(file.getFileName()))),
+                        "bundled default animation matches Sparkle byte for byte: " + file.getFileName());
+            }
+        }
+    }
+
+    private static void testReferenceSamples(Path workspace, MolangEngine engine, Map<String, YsmAnimationClip> main,
+                                             Map<String, YsmAnimationClip> hands) throws Exception {
+        Path reference = workspace.resolve("refs/Sparkle-Morpher/common/src/main/resources/assets/"
+                + "sparkle_morpher/builtin/default/animations");
+        for (var domain : Map.of("main", main, "arm", hands).entrySet()) {
+            // This checks resource selection/mapping through our parser, not Sparkle's runtime semantics.
+            var expected = YsmAnimationParser.parse(
+                    Files.readString(reference.resolve(domain.getKey() + ".animation.json")), true, engine, true);
+            for (var entry : domain.getValue().entrySet()) {
+                YsmAnimationClip actual = entry.getValue();
+                YsmAnimationClip source = expected.get(entry.getKey());
+                require(source != null && actual.length == source.length && actual.loopMode == source.loopMode,
+                        "selected default preserves reference length/loop: " + entry.getKey());
+                for (var bone : actual.boneAnimations.entrySet()) {
+                    require(source.boneAnimations.containsKey(bone.getKey()),
+                            "reference contains mapped bone: " + entry.getKey() + "/" + bone.getKey());
+                    for (float fraction : new float[]{0f, .25f, .5f, .75f, 1f}) {
+                        float time = source.length * fraction;
+                        var actualPose = YsmAnimationSampler.sampleBone(bone.getValue(), time, null);
+                        var sourcePose = YsmAnimationSampler.sampleBone(source.boneAnimations.get(bone.getKey()), time, null);
+                        String label = entry.getKey() + "/" + bone.getKey() + " at " + time;
+                        requireVector(actualPose.position(), sourcePose.position(), label + " position");
+                        requireVector(actualPose.rotation(), sourcePose.rotation(), label + " rotation");
+                        requireVector(actualPose.scale(), sourcePose.scale(), label + " scale");
+                    }
+                }
+            }
+        }
+    }
+
+    private static void requireVector(float[] actual, float[] expected, String message) {
+        if (actual == null || expected == null) {
+            require(actual == expected, message + " channel presence");
+            return;
+        }
+        for (int axis = 0; axis < 3; axis++) {
+            require(Math.abs(actual[axis] - expected[axis]) < .0001f, message + " axis " + axis);
         }
     }
 
@@ -172,7 +244,7 @@ public final class YsmDefaultAnimationSmokeTest {
         System.out.println("PASS native YSM default playback: real assembly/pose, author-empty priority, disable controls, damage diagnostics and frozen v1 inventory");
     }
 
-    private static Avatar loadFullAvatar(String clips) {
+    private static CompoundTag fullAvatarSource(String clips) {
         var source = new CompoundTag();
         var metadata = new CompoundTag();
         metadata.putString("format", "ysm-native");
@@ -191,8 +263,12 @@ public final class YsmDefaultAnimationSmokeTest {
         animations.add(animation);
         ysm.put("animations", animations);
         source.put("ysm", ysm);
+        return source;
+    }
+
+    private static Avatar loadFullAvatar(String clips) {
         Avatar avatar = Avatar.createLibraryPreview(UUID.randomUUID(), "full default fixture");
-        avatar.load(source);
+        avatar.load(fullAvatarSource(clips));
         avatar.initializePreviewPlayer(null);
         require(avatar.loaded && avatar.getYsmRuntime() != null && !avatar.scriptError,
                 "default fixture loads through the actual Avatar/native YSM path");

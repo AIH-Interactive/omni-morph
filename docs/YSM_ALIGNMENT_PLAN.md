@@ -36,6 +36,11 @@
 D023/D012 是状态机转移与起播时刻。前一项不稳，后一项的行为对比没有意义。
 
 ### P0-1　D027：内置默认动画资源与 Sparkle 同步
+本项已按用户 2026-10-26 更正完成：运行时回退资源位于 `assets/omni-morph/default_animation/`，
+14 份动画与 Sparkle 逐字节一致；`ysm_default` 及其 42 项创建模板清单保持原样，专用于新建 YSM。
+已有作者动画优先，缺失的受支持主动作/手部动作回退到新资源；显式空动画、禁用与损坏诊断规则保留。
+主动作白名单移除参考中不存在的 `gui`；`new`、`vehicle$…` 等仍保留在资源中，不在本项扩张自动选片机制。
+以下差异数量为对齐前的审计记录。
 - 内容：`main`(57 vs 50)、`arm`(56 vs 57)、`boat`(仅 `water`)、`extra`(17 vs 8) 四个文件与 Sparkle
   `assets/sparkle_morpher/builtin/default/animations/` 不同；其余 10 个字节相同。
 - 做法：评估是否直接采用 Sparkle 的四份文件（含中文命名片段、`totem_of_undying`、`minecart`、
@@ -183,7 +188,7 @@ D023/D012 是状态机转移与起播时刻。前一项不稳，后一项的行�
 
 ## 7. 需要用户先决定的事项
 
-1. D027：Omni 独有的默认条目（`gui`、`swing:fishing_rod`、`use_*$brush/goat_horn`、`extra6`）保留还是随 Sparkle 删除？
+1. D027：已决定运行时回退资源完整采用 Sparkle；`ysm_default` 新建模板保留原样（2026-10-26）。
 2. P1-6 D011：是否接受撤销多周期/倒播事件窗口能力以换取与 Sparkle 一致？
 3. P1-5 D010：对齐后 `blend_via_shortest_path` 对旋转不再生效，是否接受？
 4. D021：骨骼 `visible/hidden` 初始隐藏是否取消？
@@ -223,7 +228,7 @@ D023/D012 是状态机转移与起播时刻。前一项不稳，后一项的行�
 | D024 `is_close_eyes` 恒假 | 不对齐 | 是 Sparkle 缺陷（条件互斥永不眨眼），对齐等于关掉 Omni 现有眨眼 |
 | D025 远端玩家输入/饥饿/盾牌取值 | 范围外 | 需扩展 `YsmSyncMessage`，涉及协议与后端，另行立项 |
 | D026 纹理半透明判定（黑色半透明像素） | 待实施（I 批） | 去掉 RGB 非零条件即可对齐，属 P2 |
-| D027 内置默认动画资源不同 | 待决策（B 批） | 数据层，须先于逻辑对齐；Omni 独有条目保留或删除需确认，并同步更新钉死哈希 |
+| D027 内置默认动画资源不同 | 已完成（本次 D027 检查点） | 独立 default_animation 与 Sparkle 14/14 字节一致，运行时哈希/主动作名单同步；ysm_default 创建模板保留 |
 | D028 `keyboard/mouse` 输入归属门控 | 不对齐 | Sparkle 对任何模型返回本机按键，Omni 仅本地玩家更安全 |
 | D029 动画 `particle_effects` 事件 | 不对齐 | Sparkle 实际不发射，对齐等于删除 Omni 现有功能 |
 | SAMP-01 缺省 `animation_length` 推导 | 待实施（G 批） | 采样层确定性数值，黄金值测试 |
