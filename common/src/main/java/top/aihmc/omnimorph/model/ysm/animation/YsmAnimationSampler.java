@@ -13,13 +13,45 @@ public final class YsmAnimationSampler {
     }
 
     public static YsmBonePose sampleBone(YsmBoneAnimation bone, float time, ExpressionEvaluator<?> evaluator) {
+        return sampleBone(bone, time, evaluator, null);
+    }
+
+    /**
+     * @param current the bone pose the {@code this} keyword reads per channel (Sparkle writes the clip-start
+     *                bone snapshot before each channel); null reads 0 for position/rotation and 1 for scale
+     */
+    public static YsmBonePose sampleBone(YsmBoneAnimation bone, float time, ExpressionEvaluator<?> evaluator,
+                                         YsmBonePose current) {
         Avatar.MolangContext context = evaluator != null && evaluator.entity() instanceof Avatar.MolangContext value ? value : null;
         try (var boneScope = context == null ? null : context.filters.beginBone(bone.boneName)) {
             // Sparkle AnimationProcessor evaluates rotation, then position, then scale.
-            float[] rotation = bone.rotation == null ? null : sampleChannel(bone.rotation, time, evaluator, new float[3]);
-            float[] position = bone.position == null ? null : sampleChannel(bone.position, time, evaluator, new float[3]);
-            float[] scale = bone.scale == null ? null : sampleChannel(bone.scale, time, evaluator, new float[]{1f, 1f, 1f});
+            float[] rotation = null;
+            if (bone.rotation != null) {
+                setChannelValues(evaluator, current == null ? null : current.rotation(), 0f);
+                rotation = sampleChannel(bone.rotation, time, evaluator, new float[3]);
+            }
+            float[] position = null;
+            if (bone.position != null) {
+                setChannelValues(evaluator, current == null ? null : current.position(), 0f);
+                position = sampleChannel(bone.position, time, evaluator, new float[3]);
+            }
+            float[] scale = null;
+            if (bone.scale != null) {
+                setChannelValues(evaluator, current == null ? null : current.scale(), 1f);
+                scale = sampleChannel(bone.scale, time, evaluator, new float[]{1f, 1f, 1f});
+            }
             return new YsmBonePose(position, rotation, scale);
+        }
+    }
+
+    private static void setChannelValues(ExpressionEvaluator<?> evaluator, float[] values, float defaultValue) {
+        if (evaluator == null) {
+            return;
+        }
+        if (values == null) {
+            evaluator.setCurrentChannelValues(defaultValue, defaultValue, defaultValue);
+        } else {
+            evaluator.setCurrentChannelValues(values[0], values[1], values[2]);
         }
     }
 
@@ -104,6 +136,7 @@ public final class YsmAnimationSampler {
         if (staticExprs != null && evaluator != null) {
             for (int i = 0; i < 3; i++) {
                 if (staticExprs[i] != null) {
+                    evaluator.setCurrentAxis(i);
                     try {
                         result[i] = evaluator.evalAsFloat(staticExprs[i]);
                     } catch (MolangExecutionBudget.Exceeded exhausted) {

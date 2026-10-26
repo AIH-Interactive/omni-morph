@@ -22,4 +22,12 @@ public interface ExpressionEvaluator<TEntity> extends ExecutionContext<TEntity> 
     default boolean evalAsBoolean(Expression expression) {
         return ValueConversions.asBoolean(eval(expression));
     }
+
+    /** Selects the channel axis (0 = x, 1 = y, 2 = z) that the {@code this} keyword reads. */
+    default void setCurrentAxis(int axis) {
+    }
+
+    /** Sets the current channel value read by the {@code this} keyword. */
+    default void setCurrentChannelValues(float x, float y, float z) {
+    }
 }
