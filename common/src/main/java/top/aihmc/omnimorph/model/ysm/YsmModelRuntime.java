@@ -1599,7 +1599,7 @@ public class YsmModelRuntime implements AutoCloseable {
         }
         selected = selected || role == ownHand || role == YsmBoneRole.FIRST_PERSON_ARM;
         YsmModelPart part = pose == null ? (armParts ? getArmPart(bone.name) : getPart(bone.name))
-                : pose.part(bone.name);
+                : pose.readOnlyPart(bone.name);
         // Bind only an existing body bone of the same name. An unrelated arm-only bone is unresolved.
         YsmModelPart bodyPart = getPart(bone.name);
         if (selected && bodyPart != null) {
@@ -1625,7 +1625,7 @@ public class YsmModelRuntime implements AutoCloseable {
     private void captureBonePivots(YsmGeometry.Bone bone, PoseStack stack, YsmRenderPose pose,
                                     Map<YsmModelPart, Matrix4f> matrices) {
         YsmModelPart part = getPart(bone.name);
-        YsmModelPart transformPart = pose == null ? part : pose.part(bone.name);
+        YsmModelPart transformPart = pose == null ? part : pose.readOnlyPart(bone.name);
         stack.pushPose();
         try {
             applyBoneTransform(stack, bone, true, transformPart);
@@ -1990,7 +1990,7 @@ public class YsmModelRuntime implements AutoCloseable {
 
     private void updateWorldMatrix(YsmGeometry.Bone bone, PoseStack stack, YsmRenderPose pose) {
         YsmModelPart part = getPart(bone.name);
-        YsmModelPart transformPart = pose == null ? part : pose.part(bone.name);
+        YsmModelPart transformPart = pose == null ? part : pose.readOnlyPart(bone.name);
         stack.pushPose();
         applyBoneTransform(stack, bone, true, transformPart);
         locatorWorldMatrices.put(bone.name, FiguraMat4.of().set(stack.last().pose()));

@@ -8,6 +8,7 @@ import org.joml.Matrix4f;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** Immutable submission-time pose, independent of later animation passes and Lua part edits. */
 public final class YsmRenderPose {
@@ -16,6 +17,8 @@ public final class YsmRenderPose {
     private final boolean unlit;
     private final AccelerationService.Lease lease;
     private final Map<String, Matrix4f> boneOverrides;
+    // Per pose instance; a captured pose may be consumed later, so the lazy map stays thread-safe.
+    private final Map<String, YsmModelPart> readOnlyParts = new ConcurrentHashMap<>();
 
     private record Vector(double x, double y, double z) {
         private static Vector capture(FiguraVec3 value) {
@@ -95,14 +98,30 @@ public final class YsmRenderPose {
         return lease == null || AccelerationService.INSTANCE.isCurrent(lease);
     }
 
+    /** A fresh detached copy; callers may modify it without affecting this snapshot. */
     YsmModelPart part(String name) {
+        PartPose pose = find(name);
+        return pose == null ? null : detach(pose);
+    }
+
+    /**
+     * Shared detached view for renderer traversal, built once per pose and part. Only for call sites that
+     * read the part (visibility, scale and bone transform); anything that may modify it must use part().
+     */
+    YsmModelPart readOnlyPart(String name) {
+        PartPose pose = find(name);
+        return pose == null ? null : readOnlyParts.computeIfAbsent(pose.name(), ignored -> detach(pose));
+    }
+
+    private PartPose find(String name) {
         PartPose pose = parts.get(name);
         if (pose == null && name != null) {
             pose = parts.get(name.toLowerCase(Locale.US));
         }
-        if (pose == null) {
-            return null;
-        }
+        return pose;
+    }
+
+    private YsmModelPart detach(PartPose pose) {
         var part = pose.detachedPart();
         part.setOutfitTransform(boneOverrides.get(pose.name()));
         return part;
@@ -115,7 +134,7 @@ public final class YsmRenderPose {
     boolean visibleInHierarchy(String name, YsmGeometry geometry) {
         YsmGeometry.Bone bone = geometry.bones.get(name);
         while (bone != null) {
-            YsmModelPart part = part(bone.name);
+            YsmModelPart part = readOnlyPart(bone.name);
             if (part != null && (!part.visibleRaw() || part.hiddenScaleRaw())) {
                 return false;
             }
