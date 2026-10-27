@@ -48,9 +48,11 @@ public final class AccelerationPreparationBenchmark {
                 System.out.println("Explicit CPU preparation sample: " + selected);
                 YsmMaterialNativeSmokeTest.replayAcceleration(selected,
                         runtime -> measure(runtime, selected.getFileName().toString()));
-            } else for (int index : QUICK ? new int[]{35} : new int[]{0, 35}) {
-                String sample = index == 0 ? "ordinary" : "heavy";
-                YsmMaterialNativeSmokeTest.replayAcceleration(models.get(index), runtime -> measure(runtime, sample));
+            } else {
+                for (int index : QUICK ? new int[]{35} : new int[]{0, 35}) {
+                    String sample = index == 0 ? "ordinary" : "heavy";
+                    YsmMaterialNativeSmokeTest.replayAcceleration(models.get(index), runtime -> measure(runtime, sample));
+                }
             }
         } finally {
             Files.createDirectories(output.getParent());
