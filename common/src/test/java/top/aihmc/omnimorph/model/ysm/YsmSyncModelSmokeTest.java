@@ -157,6 +157,7 @@ final class YsmSyncModelSmokeTest {
                         && source.functions().droppedSyncEvents() == 6,
                 "owner event backlog is bounded and overflow is counted");
         testContinuousRemotePlayback(source, observer);
+        testShortNativeIdle(source, observer);
         System.out.println("M7 independent native model sync: content/schema identity, control/texture/action/controller/pose and observer authority PASS");
     }
 
@@ -222,6 +223,61 @@ final class YsmSyncModelSmokeTest {
         var restarted = remotePlayer.getControllerAnimation("remote.clock", "remote_loop");
         require(restarted != oldControllerSlot && restarted.time == 0f,
                 "a real controller state change restarts its clip instead of smoothing across states");
+    }
+
+    private static void testShortNativeIdle(YsmModelRuntime source, YsmModelRuntime observer) throws Exception {
+        var ownerPlayer = new YsmAnimationPlayer(source);
+        var remotePlayer = new YsmAnimationPlayer(observer);
+        var clips = top.aihmc.omnimorph.model.ysm.animation.YsmAnimationParser.parse("""
+                {"animations":{
+                  "idle":{"animation_length":0.0101,"bones":{"root":{"rotation":[12.5,0,0]}}},
+                  "walk":{"loop":true,"animation_length":1,"bones":{"root":{"rotation":[30,0,0]}}}
+                }}
+                """, MolangEngine.createEmpty());
+        ownerPlayer.registerAnimations(clips);
+        remotePlayer.registerAnimations(clips);
+        var inventory = ownerPlayer.syncClips();
+        var updateNative = YsmAnimationPlayer.class.getDeclaredMethod("updateNativeStateMachine",
+                LivingEntityRenderState.class, net.minecraft.world.entity.LivingEntity.class);
+        var advance = YsmAnimationPlayer.class.getDeclaredMethod("advanceAnimationTimeline", float.class,
+                ExpressionEvaluator.class);
+        var sample = YsmAnimationPlayer.class.getDeclaredMethod("sampleAnimations", ExpressionEvaluator.class,
+                boolean.class);
+        updateNative.setAccessible(true);
+        advance.setAccessible(true);
+        sample.setAccessible(true);
+        var ownerEvaluator = ExpressionEvaluator.evaluator(source.owner().getMolangContext());
+        var observerEvaluator = ExpressionEvaluator.evaluator(observer.owner().getMolangContext());
+        var state = new LivingEntityRenderState();
+        source.owner().getMolangContext().ground_speed = 0f;
+        // Settle the owner's initial fade-in before comparing stationary observer poses.
+        for (int frame = 0; frame < 6; frame++) {
+            updateNative.invoke(ownerPlayer, state, null);
+            advance.invoke(ownerPlayer, 0.05f, ownerEvaluator);
+        }
+        for (int frame = 0; frame < 40; frame++) {
+            updateNative.invoke(ownerPlayer, state, null);
+            advance.invoke(ownerPlayer, 0.05f, ownerEvaluator);
+            if (frame % 4 == 0) {
+                remotePlayer.applyRemotePlaybacks(ownerPlayer.captureRemotePlaybacks(inventory, List.of()),
+                        inventory, List.of());
+            }
+            advance.invoke(remotePlayer, 0.05f, observerEvaluator);
+            sample.invoke(remotePlayer, observerEvaluator, false);
+            var idle = remotePlayer.getActiveAnimation("idle");
+            require(idle != null && idle.weight == 1f && idle.targetWeight == 1f,
+                    "a completed short native idle remains fully weighted between owner samples at frame " + frame);
+            require(Math.abs(observer.captureRenderPose(false).part("root").animRotRaw().x - 12.5) < 0.0001,
+                    "the actual stationary observer bone never drops its authored idle rotation");
+        }
+        state.walkAnimationSpeed = 1f;
+        for (int frame = 0; frame < 6; frame++) {
+            updateNative.invoke(ownerPlayer, state, null);
+            advance.invoke(ownerPlayer, 0.05f, ownerEvaluator);
+        }
+        remotePlayer.applyRemotePlaybacks(ownerPlayer.captureRemotePlaybacks(inventory, List.of()), inventory, List.of());
+        require(remotePlayer.getActiveAnimation("idle") == null && remotePlayer.getActiveAnimation("walk") != null,
+                "leaving idle still fades out and removes the old native state");
     }
 
     private static void require(boolean condition, String message) {

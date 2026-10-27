@@ -1173,7 +1173,9 @@ public class YsmAnimationPlayer {
             anim.completedCycle |= anim.time > Math.max(0f, anim.clip.length);
             if (anim.clip.length > 0)
                 advanceAnimationTime(anim);
-            if (anim.loopMode == YsmAnimationClip.LoopMode.ONCE && anim.clip.length > 0f
+            // Native movement poses belong to the selected state, even after an ONCE clip ends.
+            // Only the native state selector releases them; observers follow its published target weight.
+            if (!anim.isNative && anim.loopMode == YsmAnimationClip.LoopMode.ONCE && anim.clip.length > 0f
                     && (anim.controllerName != null ? anim.hasCompletedCycle() : anim.time >= anim.clip.length)) {
                 anim.targetWeight = 0f;
                 if (!anim.declaredControllerSlot && anim.fadeSpeed <= 0f) {
