@@ -49,6 +49,7 @@ public final class YsmDeferredPoseSmokeTest {
         YsmModelPart detached = bodyPose.part("Root");
         detached.addAnimPos(999, 0, 0);
         require(bodyPose.part("Root").animPosRaw().x == 16, "returned render view cannot mutate immutable snapshot");
+        testReadOnlyPartReuse();
         testHiddenHierarchy();
         testStaleSubmission();
         testSleepingRoot();
@@ -115,6 +116,32 @@ public final class YsmDeferredPoseSmokeTest {
         YsmRenderer.applyEntityRotation(standing, state, 37f);
         require(standing.last().pose().equals(new Matrix4f().rotateY((float) Math.toRadians(143)), 0.0001f),
                 "standing keeps its original root transform");
+    }
+
+    private static void testReadOnlyPartReuse() {
+        YsmModelPart live = new YsmModelPart("Root", null, new float[3], new float[3]);
+        live.addAnimPos(4, 0, 0);
+        YsmRenderPose first = YsmRenderPose.capture(List.of(live), new Matrix4f());
+        live.resetAnimPose();
+        live.addAnimPos(8, 0, 0);
+        YsmRenderPose second = YsmRenderPose.capture(List.of(live), new Matrix4f());
+
+        YsmModelPart view = first.readOnlyPart("Root");
+        require(view == first.readOnlyPart("root"), "renderer lookups of one pose share a single detached view");
+        require(view != first.part("Root"), "part() keeps returning independent copies");
+        // A pose captured earlier but consumed after a newer capture still reports its own values.
+        require(second.readOnlyPart("Root").animPosRaw().x == 8 && first.readOnlyPart("Root").animPosRaw().x == 4,
+                "each pose instance owns its views; delayed consumption of A still yields A");
+
+        Matrix4f outfit = new Matrix4f().translation(1, 0, 0);
+        YsmRenderPose overridden = first.withBoneOverrides(java.util.Map.of(live, outfit));
+        PoseStack plain = new PoseStack();
+        first.readOnlyPart("Root").applyOutfitTransform(plain);
+        PoseStack moved = new PoseStack();
+        overridden.readOnlyPart("Root").applyOutfitTransform(moved);
+        require(overridden.readOnlyPart("Root") != view && plain.last().pose().m30() == 0
+                        && moved.last().pose().m30() != 0,
+                "outfit overrides get their own views without leaking into the original pose");
     }
 
     private static void testStaleSubmission() {

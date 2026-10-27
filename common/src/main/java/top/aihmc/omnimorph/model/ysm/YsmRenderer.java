@@ -217,7 +217,7 @@ public class YsmRenderer {
             ancestors.addFirst(parent);
         }
         for (var parent : ancestors) {
-            applyBoneTransform(parent, pose == null ? runtime.getPart(parent.name) : pose.part(parent.name), stack);
+            applyBoneTransform(parent, pose == null ? runtime.getPart(parent.name) : pose.readOnlyPart(parent.name), stack);
         }
         renderBone(bone, stack, vertices, light, null, false, pose);
         stack.popPose();
@@ -351,7 +351,7 @@ public class YsmRenderer {
             return;
         }
         YsmModelPart part = pose == null
-                ? (useArmParts ? runtime.getArmPart(bone.name) : runtime.getPart(bone.name)) : pose.part(bone.name);
+                ? (useArmParts ? runtime.getArmPart(bone.name) : runtime.getPart(bone.name)) : pose.readOnlyPart(bone.name);
         YsmBoneRole role = useArmParts ? runtime.armRoleOf(bone.name) : runtime.roleOf(bone.name);
         if (!useArmParts && mask != YsmPartMask.FIRST_PERSON_ARM) {
             role = worldGeometryRole(bone, role);
@@ -446,7 +446,7 @@ public class YsmRenderer {
     private void updateTrackedPivot(YsmGeometry.Bone bone, PoseStack local, boolean firstPerson,
                                     boolean armParts, YsmRenderPose pose) {
         YsmModelPart original = armParts ? runtime.getArmPart(bone.name) : runtime.getPart(bone.name);
-        YsmModelPart part = pose == null ? original : pose.part(bone.name);
+        YsmModelPart part = pose == null ? original : pose.readOnlyPart(bone.name);
         if (part == null || !part.visibleRaw()
                 || part.animScaleRaw().x * part.scaleRaw().x == 0d
                 || part.animScaleRaw().y * part.scaleRaw().y == 0d

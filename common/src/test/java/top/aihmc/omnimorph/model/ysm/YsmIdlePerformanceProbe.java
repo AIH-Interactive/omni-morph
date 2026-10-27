@@ -52,30 +52,40 @@ public final class YsmIdlePerformanceProbe {
         int warmup = 30;
         int frames = 300;
         long[][] times = new long[3][frames];
+        long[] allocated = new long[3];
+        var threads = (com.sun.management.ThreadMXBean) java.lang.management.ManagementFactory.getThreadMXBean();
+        long thread = Thread.currentThread().threadId();
         var state = new LivingEntityRenderState();
         var vertices = new DiscardingVertices();
         for (int frame = 0; frame < warmup + frames; frame++) {
             state.ageInTicks = frame / 3f;
             YsmRenderFrameClock.beginFrame();
+            long startBytes = threads.getThreadAllocatedBytes(thread);
             long start = System.nanoTime();
             runtime.updateAnimations(state, null);
             long animated = System.nanoTime();
+            long animatedBytes = threads.getThreadAllocatedBytes(thread);
             var pose = runtime.captureRenderPose(false);
             long captured = System.nanoTime();
+            long capturedBytes = threads.getThreadAllocatedBytes(thread);
             runtime.renderer().renderWithAttachments(new PoseStack(), type -> vertices, 0x00f000a0, pose);
             long rendered = System.nanoTime();
+            long renderedBytes = threads.getThreadAllocatedBytes(thread);
             if (frame >= warmup) {
                 times[0][frame - warmup] = animated - start;
                 times[1][frame - warmup] = captured - animated;
                 times[2][frame - warmup] = rendered - captured;
+                allocated[0] += animatedBytes - startBytes;
+                allocated[1] += capturedBytes - animatedBytes;
+                allocated[2] += renderedBytes - capturedBytes;
             }
         }
         String[] phases = {"animation", "pose", "cpu_vertex_submission"};
         for (int index = 0; index < times.length; index++) {
             Arrays.sort(times[index]);
-            System.out.printf("CPU %s p50_ms=%.3f p95_ms=%.3f max_ms=%.3f%n", phases[index],
+            System.out.printf("CPU %s p50_ms=%.3f p95_ms=%.3f max_ms=%.3f alloc_kb_per_frame=%.1f%n", phases[index],
                     times[index][frames / 2] / 1e6, times[index][(int) (frames * .95)] / 1e6,
-                    times[index][frames - 1] / 1e6);
+                    times[index][frames - 1] / 1e6, allocated[index] / 1024.0 / frames);
         }
         System.out.println("ACTIVE " + runtime.animations().getActiveAnimations().keySet());
         runtime.animations().getActiveAnimations().values().forEach(animation ->
