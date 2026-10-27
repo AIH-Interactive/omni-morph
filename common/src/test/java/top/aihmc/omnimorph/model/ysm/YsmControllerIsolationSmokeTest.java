@@ -63,7 +63,12 @@ public final class YsmControllerIsolationSmokeTest {
         require(player.getActiveAnimations().containsValue(functionSecond), "clearing one function slot keeps the other");
         variables[0] = 0f;
         player.controllerRuntime().update(evaluator, 0.1f);
-        require(player.getControllerAnimation("first", clip.name) == null, "zero reference contribution stops only its slot");
+        require(player.getControllerAnimation("first", clip.name) == first, "zero reference contribution keeps its playback clock");
+        equal(0f, first.weight, "inactive reference submits no pose");
+        variables[0] = 0.7f;
+        player.controllerRuntime().update(evaluator, 0f);
+        require(player.getControllerAnimation("first", clip.name) == first, "reactivation preserves its playback instance");
+        equal(0.25f, first.time, "reactivation does not restart the animation");
         require(player.getControllerAnimation("second", clip.name) == second, "zero weight preserves other controller");
         require(player.getActiveAnimations().containsValue(ordinary), "controller changes preserve ordinary playback");
         second.time = 1f;
@@ -71,10 +76,63 @@ public final class YsmControllerIsolationSmokeTest {
         second.time = 1.001f;
         require(player.isControllerAnimationFinished("second", clip.name), "completion belongs to the controller slot");
         require(!player.isFinishedOnce(clip.name), "ordinary completion remains independent");
-        require(callbacks.size() == 6, "each controller callback runs once per explicit update");
+        require(callbacks.size() == 8, "each controller callback runs once per explicit update");
+        testConditionalVariants();
         testFunctionClock();
         testStateRestart();
         System.out.println("M3 real controller numeric weights, playback slots, function slots and completion isolation passed.");
+    }
+
+    private static void testConditionalVariants() {
+        YsmAnimationPlayer player = new YsmAnimationPlayer(null) {
+            @Override
+            public void runFunctionEventsForController(YsmAnimationController controller, ExpressionEvaluator<?> evaluator) {
+            }
+        };
+        var idle = new YsmAnimationClip("idle_attack", 3f, YsmAnimationClip.LoopMode.ONCE);
+        var moving = new YsmAnimationClip("moving_attack", 3f, YsmAnimationClip.LoopMode.ONCE);
+        player.registerAnimations(Map.of(idle.name, idle, moving.name, moving));
+        Variable movingVariable = context -> ((float[]) context.entity())[0];
+        ObjectBinding query = name -> name.equals("moving") ? movingVariable : null;
+        MolangEngine engine = MolangEngine.fromCustomBinding(name -> name.equals("q") ? query : null);
+        player.registerControllers(YsmAnimationControllerParser.parse("""
+                {"animation_controllers":{"fixture":{"states":{"default":{"animations":[
+                  {"idle_attack":"!q.moving"},{"moving_attack":"q.moving"}]}}}}}
+                """, engine));
+        float[] variables = {0f};
+        var evaluator = ExpressionEvaluator.evaluator(variables);
+        player.controllerRuntime().update(evaluator, 0f);
+        var idleSlot = player.getControllerAnimation("fixture", idle.name);
+        var movingSlot = player.getControllerAnimation("fixture", moving.name);
+        require(movingSlot != null && movingSlot.weight == 0f, "inactive variant is initialized without pose");
+        try {
+            var advance = YsmAnimationPlayer.class.getDeclaredMethod("advanceAnimationTimeline", float.class,
+                    ExpressionEvaluator.class);
+            advance.setAccessible(true);
+            advance.invoke(player, 1f, evaluator);
+        } catch (ReflectiveOperationException error) {
+            throw new AssertionError(error);
+        }
+        equal(1f, movingSlot.time, "inactive variant clock advances with the active variant");
+        variables[0] = 1f;
+        player.controllerRuntime().update(evaluator, 0f);
+        require(player.getControllerAnimation("fixture", moving.name) == movingSlot, "moving variant is not restarted");
+        equal(1f, movingSlot.time, "walking continues the attack at the elapsed time");
+        equal(0f, idleSlot.weight, "inactive idle variant no longer contributes a pose");
+        equal(1f, movingSlot.weight, "moving variant contributes a pose");
+        try {
+            var advance = YsmAnimationPlayer.class.getDeclaredMethod("advanceAnimationTimeline", float.class,
+                    ExpressionEvaluator.class);
+            advance.setAccessible(true);
+            advance.invoke(player, 2.1f, evaluator);
+        } catch (ReflectiveOperationException error) {
+            throw new AssertionError(error);
+        }
+        variables[0] = 0f;
+        player.controllerRuntime().update(evaluator, 0f);
+        require(player.getControllerAnimation("fixture", idle.name) == idleSlot, "completed variant is retained");
+        require(idleSlot.hasCompletedCycle() && idleSlot.weight == 0f,
+                "switching to a completed variant does not replay it");
     }
 
     private static void testFunctionClock() {

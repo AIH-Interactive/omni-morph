@@ -184,14 +184,8 @@ public class YsmControllerRuntime {
                 if (ref.animation() == null || ref.animation().isBlank() || "empty".equals(ref.animation()))
                     continue;
                 float weight = animationWeight(ref.condition(), evaluator);
-                if (weight <= 0f) {
-                    completed.remove(normalize(ref.animation()));
-                    continue;
-                }
                 YsmAnimationClip clip = clip(controller.name(), ref.animation());
                 if (clip == null)
-                    continue;
-                if (clip.loopMode == YsmAnimationClip.LoopMode.ONCE && completed.contains(normalize(ref.animation())))
                     continue;
                 desired.add(ref.animation());
                 player.playControllerAnimation(controller.name(), ref.animation(), clip.loopMode, weight,
@@ -401,16 +395,15 @@ public class YsmControllerRuntime {
             return;
         float maxTime = 0f;
         float maxLength = 0f;
-        Set<String> completed = completedOnceByController.getOrDefault(controller.name(), Set.of());
-        boolean any = !completed.isEmpty();
+        boolean any = false;
         boolean all = true;
-        boolean hasAnimation = !completed.isEmpty();
+        boolean hasAnimation = false;
         java.util.List<YsmAnimationPlayer.PlayingAnimation> instances = new java.util.ArrayList<>();
         Set<String> animations = activeByController.get(controller.name());
         if (animations != null) {
             for (String animation : animations) {
                 YsmAnimationPlayer.PlayingAnimation playing = player.getControllerAnimation(controller.name(), animation);
-                if (playing != null) {
+                if (playing != null && playing.controllerConditionActive) {
                     instances.add(playing);
                 }
             }
