@@ -11,6 +11,18 @@ public final class MeshHandle {
     private final int verticesPerFace;
     private final List<Influences> influences;
     private final int geometryHash;
+    // Lazily derived from the immutable arrays above; racy publication is safe for an immutable record.
+    private StaticSummary staticSummary;
+
+    /**
+     * Pose-independent facts about the authored vertices, used by GPU validation.
+     * Pose-dependent checks (matrices, joint count, normal policy) remain per submission.
+     */
+    record StaticSummary(boolean componentsValid, double positionMagnitude, double normalMagnitude,
+                         double uvMagnitude, int maxInfluences, boolean weightsValid,
+                         int minWeightedJoint, int maxWeightedJoint, boolean totalsFinite,
+                         float maxTotalWeight) {
+    }
 
     /** Variable-length weights; no backend may silently truncate this list. */
     public static final class Influences {
@@ -63,6 +75,66 @@ public final class MeshHandle {
 
     public int geometryHash() {
         return geometryHash;
+    }
+
+    /** Scans the immutable geometry once per handle; repeated submissions reuse the result. */
+    StaticSummary staticSummary() {
+        StaticSummary summary = staticSummary;
+        if (summary == null) {
+            summary = summarize();
+            staticSummary = summary;
+        }
+        return summary;
+    }
+
+    private StaticSummary summarize() {
+        boolean componentsValid = true;
+        double positionMagnitude = 1;
+        double normalMagnitude = 0;
+        double uvMagnitude = 1;
+        int maxInfluences = 0;
+        boolean weightsValid = true;
+        int minWeightedJoint = Integer.MAX_VALUE;
+        int maxWeightedJoint = Integer.MIN_VALUE;
+        boolean totalsFinite = true;
+        float maxTotalWeight = 1;
+        for (int vertex = 0; vertex < vertexCount(); vertex++) {
+            int base = vertex * STRIDE;
+            for (int component = 0; component < STRIDE; component++) {
+                if (!Float.isFinite((float) vertices[base + component])) {
+                    componentsValid = false;
+                }
+            }
+            if (vertices[base + 3] != 1) {
+                componentsValid = false;
+            }
+            for (int component = 0; component < 3; component++) {
+                positionMagnitude = Math.max(positionMagnitude, Math.abs(vertices[base + component]));
+                normalMagnitude = Math.max(normalMagnitude, Math.abs(vertices[base + component + 4]));
+            }
+            uvMagnitude = Math.max(uvMagnitude, Math.max(Math.abs(vertices[base + 7]), Math.abs(vertices[base + 8])));
+
+            Influences vertexInfluences = influences(vertex);
+            maxInfluences = Math.max(maxInfluences, vertexInfluences.size());
+            float total = 0;
+            for (int influence = 0; influence < vertexInfluences.size(); influence++) {
+                float weight = vertexInfluences.weight(influence);
+                if (!Float.isFinite(weight) || weight < 0) {
+                    weightsValid = false;
+                }
+                if (weight > 0) {
+                    minWeightedJoint = Math.min(minWeightedJoint, vertexInfluences.joint(influence));
+                    maxWeightedJoint = Math.max(maxWeightedJoint, vertexInfluences.joint(influence));
+                }
+                total += weight;
+            }
+            if (!Float.isFinite(total)) {
+                totalsFinite = false;
+            }
+            maxTotalWeight = Math.max(maxTotalWeight, total);
+        }
+        return new StaticSummary(componentsValid, positionMagnitude, normalMagnitude, uvMagnitude, maxInfluences,
+                weightsValid, minWeightedJoint, maxWeightedJoint, totalsFinite, maxTotalWeight);
     }
 
     /** Collision-safe cache comparison of immutable geometry, independent of per-frame pose/material. */

@@ -76,6 +76,72 @@ public final class GpuRigidDataSmokeTest {
             // Invalid indices cannot reach a GPU upload.
         }
         System.out.println("PASS rigid palette deduplication, 64-part ranges, exact face order, packed remap, bounds and frame accounting");
+        testStaticValidationReuse(service, owner, material);
+    }
+
+    private static void testStaticValidationReuse(AccelerationService service, AccelerationOwner owner,
+                                                  net.minecraft.client.renderer.rendertype.RenderType material) {
+        var semantics = new DrawSemantics(material, Identifier.parse("omni-morph:static_validation"),
+                DrawSemantics.Layer.PRIMARY, "world", 0, 1, 0x00f000a0, 0, 1, 1, 1, 1, 0, true);
+        var mesh = new MeshHandle(quad(1), 4);
+        var identity = new PoseSnapshot(FiguraMat4.of(), FiguraMat3.of());
+        require(GpuBatchData.supports(new DrawBatch(service.capture(owner, "world"), mesh, identity, semantics)),
+                "valid immutable mesh is accepted");
+        var summary = mesh.staticSummary();
+        var moved = new PoseSnapshot(FiguraMat4.of().translate(3, 0, 0), FiguraMat3.of());
+        require(GpuBatchData.supports(new DrawBatch(service.capture(owner, "world"), mesh, moved, semantics))
+                        && mesh.staticSummary() == summary,
+                "repeated submissions of the same mesh reuse one static scan");
+
+        // Dynamic checks still run against a cached valid mesh.
+        var invalidPose = FiguraMat4.of();
+        invalidPose.v11 = Double.NaN;
+        require(!GpuBatchData.supports(new DrawBatch(service.capture(owner, "world"), mesh,
+                        new PoseSnapshot(invalidPose, FiguraMat3.of()), semantics)),
+                "non-finite pose is rejected even when static geometry is cached");
+
+        // Invalid static data stays rejected.
+        double[] badW = quad(1);
+        badW[3] = 2;
+        require(!GpuBatchData.supports(new DrawBatch(service.capture(owner, "world"), new MeshHandle(badW, 4),
+                identity, semantics)), "non-unit w is rejected");
+        double[] nan = quad(1);
+        nan[MeshHandle.STRIDE + 7] = Double.NaN;
+        require(!GpuBatchData.supports(new DrawBatch(service.capture(owner, "world"), new MeshHandle(nan, 4),
+                identity, semantics)), "non-finite UV is rejected");
+
+        // Joint bounds depend on the pose's joint count, so one cached mesh can pass or fail per submission.
+        var weights = new ArrayList<MeshHandle.Influences>();
+        for (int vertex = 0; vertex < 4; vertex++) {
+            weights.add(new MeshHandle.Influences(new int[]{0, 1}, new float[]{.5f, .5f}));
+        }
+        var skinned = new MeshHandle(quad(1), 4, weights);
+        var twoJoints = new PoseSnapshot(FiguraMat4.of(), FiguraMat3.of(), FiguraMat3.of(),
+                new FiguraMat4[]{FiguraMat4.of(), FiguraMat4.of()});
+        var oneJoint = new PoseSnapshot(FiguraMat4.of(), FiguraMat3.of(), FiguraMat3.of(),
+                new FiguraMat4[]{FiguraMat4.of()});
+        require(GpuBatchData.supports(new DrawBatch(service.capture(owner, "world"), skinned, twoJoints, semantics)),
+                "weighted joints inside the pose palette are accepted");
+        require(!GpuBatchData.supports(new DrawBatch(service.capture(owner, "world"), skinned, oneJoint, semantics)),
+                "the same cached mesh rejects a pose without its weighted joint");
+        var negative = new ArrayList<MeshHandle.Influences>();
+        for (int vertex = 0; vertex < 4; vertex++) {
+            negative.add(new MeshHandle.Influences(new int[]{0}, new float[]{-1}));
+        }
+        require(!GpuBatchData.supports(new DrawBatch(service.capture(owner, "world"),
+                new MeshHandle(quad(1), 4, negative), twoJoints, semantics)), "negative weights are rejected");
+        System.out.println("PASS static mesh validation reuse with per-submission pose and joint checks");
+    }
+
+    private static double[] quad(double size) {
+        double[] vertices = new double[4 * MeshHandle.STRIDE];
+        for (int vertex = 0; vertex < 4; vertex++) {
+            vertices[vertex * MeshHandle.STRIDE] = vertex % 2 * size;
+            vertices[vertex * MeshHandle.STRIDE + 1] = vertex / 2 * size;
+            vertices[vertex * MeshHandle.STRIDE + 3] = 1;
+            vertices[vertex * MeshHandle.STRIDE + 5] = 1;
+        }
+        return vertices;
     }
 
     private static void require(boolean condition, String message) {
