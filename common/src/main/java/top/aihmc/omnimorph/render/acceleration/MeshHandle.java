@@ -77,6 +77,14 @@ public final class MeshHandle {
         return geometryHash;
     }
 
+    /** True when this rigid handle holds exactly the first {@code length} values of {@code candidate}. */
+    public boolean sameRigidVertices(double[] candidate, int length) {
+        if (!influences.isEmpty() || length != vertices.length || verticesPerFace != 4) {
+            return false;
+        }
+        return Arrays.equals(vertices, 0, length, candidate, 0, length);
+    }
+
     /** Scans the immutable geometry once per handle; repeated submissions reuse the result. */
     StaticSummary staticSummary() {
         StaticSummary summary = staticSummary;

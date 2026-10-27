@@ -365,6 +365,14 @@ tasks.register('accelerationPreparationBenchmark', JavaExec) {
     }
 }
 
+tasks.register('figuraStaticMeshCacheSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks content-verified reuse of rigid Figura meshes and immediate vertex edits.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.rendering.FiguraStaticMeshCacheSmokeTest'
+}
+
 tasks.register('figuraAccelerationReplay', JavaExec) {
     group = 'verification'
     description = 'Checks actual deferred Figura vertex output and stale Avatar rejection.'
