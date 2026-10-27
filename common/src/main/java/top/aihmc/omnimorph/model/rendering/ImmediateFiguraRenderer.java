@@ -161,6 +161,8 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
 
     private static final PartCustomization pivotOffsetter = new PartCustomization();
     protected static final VertexBuffer VERTEX_BUFFER = new VertexBuffer();
+    // Owned by this Avatar's renderer, so unloading the Avatar releases every cached mesh with it.
+    private final FiguraStaticMeshCache staticMeshes = new FiguraStaticMeshCache();
 
     public ImmediateFiguraRenderer(Avatar avatar) {
         super(avatar);
@@ -926,31 +928,9 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
                 }
                 return;
             }
-            double[] input = new double[Math.multiplyExact(vertCount, MeshHandle.STRIDE)];
-            List<MeshHandle.Influences> influences = useSkinning ? new ArrayList<>(vertCount) : List.of();
-            for (int i = 0; i < vertCount; i++) {
-                Vertex vertex = vertices.get(i);
-                int offset = i * MeshHandle.STRIDE;
-                input[offset] = vertex.x;
-                input[offset + 1] = vertex.y;
-                input[offset + 2] = vertex.z;
-                input[offset + 3] = 1;
-                input[offset + 4] = vertex.nx;
-                input[offset + 5] = vertex.ny;
-                input[offset + 6] = vertex.nz;
-                input[offset + 7] = vertex.u / uvFixer.x;
-                input[offset + 8] = vertex.v / uvFixer.y;
-                if (useSkinning) {
-                    int original = vertex.origIdx;
-                    int[] joints = original >= 0 && original < part.skinBoneIndices.length
-                            ? part.skinBoneIndices[original] : null;
-                    float[] weights = joints == null ? null : part.skinBoneWeights[original];
-                    influences.add(joints == null || weights == null
-                            ? new MeshHandle.Influences(new int[0], new float[0])
-                            : new MeshHandle.Influences(joints, weights));
-                }
-            }
-            MeshHandle mesh = new MeshHandle(input, 4, influences);
+            MeshHandle mesh = useSkinning
+                    ? skinnedMesh(vertices, vertCount, uvFixer, part)
+                    : staticMeshes.mesh(vertices, vertCount, uvFixer.x, uvFixer.y);
             PoseSnapshot pose = new PoseSnapshot(customization.positionMatrix, customization.normalMatrix,
                     customization.uvMatrix, boneDeltas);
             DrawSemantics semantics = new DrawSemantics(rt, vertexData.texture,
@@ -987,6 +967,33 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
                 fallback.emit(buffers.getBuffer(rt), 0, vertCount);
             }
         });
+    }
+
+    /** Weighted meshes are rebuilt every submission; only rigid meshes go through the static cache. */
+    private static MeshHandle skinnedMesh(List<Vertex> vertices, int vertCount, FiguraVec3 uvFixer, FiguraModelPart part) {
+        double[] input = new double[Math.multiplyExact(vertCount, MeshHandle.STRIDE)];
+        List<MeshHandle.Influences> influences = new ArrayList<>(vertCount);
+        for (int i = 0; i < vertCount; i++) {
+            Vertex vertex = vertices.get(i);
+            int offset = i * MeshHandle.STRIDE;
+            input[offset] = vertex.x;
+            input[offset + 1] = vertex.y;
+            input[offset + 2] = vertex.z;
+            input[offset + 3] = 1;
+            input[offset + 4] = vertex.nx;
+            input[offset + 5] = vertex.ny;
+            input[offset + 6] = vertex.nz;
+            input[offset + 7] = vertex.u / uvFixer.x;
+            input[offset + 8] = vertex.v / uvFixer.y;
+            int original = vertex.origIdx;
+            int[] joints = original >= 0 && original < part.skinBoneIndices.length
+                    ? part.skinBoneIndices[original] : null;
+            float[] weights = joints == null ? null : part.skinBoneWeights[original];
+            influences.add(joints == null || weights == null
+                    ? new MeshHandle.Influences(new int[0], new float[0])
+                    : new MeshHandle.Influences(joints, weights));
+        }
+        return new MeshHandle(input, 4, influences);
     }
 
     private static final FiguraVec4 skinTempPos = FiguraVec4.of();

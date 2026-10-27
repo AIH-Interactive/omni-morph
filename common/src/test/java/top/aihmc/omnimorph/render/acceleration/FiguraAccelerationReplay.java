@@ -41,6 +41,13 @@ public final class FiguraAccelerationReplay {
         Field avatarField = FiguraRenderer.class.getDeclaredField("avatar");
         avatarField.setAccessible(true);
         avatarField.set(renderer, owner);
+        // allocateInstance skips field initializers; install the renderer-owned static mesh cache.
+        var cacheType = Class.forName("top.aihmc.omnimorph.model.rendering.FiguraStaticMeshCache");
+        var cacheConstructor = cacheType.getDeclaredConstructor();
+        cacheConstructor.setAccessible(true);
+        Field cacheField = ImmediateFiguraRenderer.class.getDeclaredField("staticMeshes");
+        cacheField.setAccessible(true);
+        cacheField.set(renderer, cacheConstructor.newInstance());
 
         Class<?> dataType = Class.forName(ImmediateFiguraRenderer.class.getName() + "$VertexData");
         var constructor = dataType.getDeclaredConstructor();
@@ -113,6 +120,26 @@ public final class FiguraAccelerationReplay {
                 "actual Figura draw preserves separate normal matrix");
         require(uvs.size() == 4 && uvs.getFirst()[0] == 0.5f && uvs.getFirst()[1] == 0.25f,
                 "actual Figura UV channel remains unchanged");
+
+        // Lua edits vertices in place; the next submission of the same list must show them immediately.
+        vertices.getFirst().x = 2;
+        vertices.getFirst().u = 0;
+        positions.clear();
+        uvs.clear();
+        push.invoke(renderer, 1, data, customization, textures, vertices, null, null);
+        consume.invoke(buffer, true, destination);
+        flush(destination);
+        require(positions.size() == 4 && positions.getFirst()[0] == 5 && uvs.getFirst()[0] == 0,
+                "in-place vertex position and UV edits take effect on the next draw");
+        vertices.getFirst().x = 1;
+        vertices.getFirst().u = 8;
+        positions.clear();
+        uvs.clear();
+        push.invoke(renderer, 1, data, customization, textures, vertices, null, null);
+        consume.invoke(buffer, true, destination);
+        flush(destination);
+        require(positions.size() == 4 && positions.getFirst()[0] == 4 && uvs.getFirst()[0] == 0.5f,
+                "restoring the original vertex values restores the original output");
 
         positions.clear();
         FiguraModelPart part = (FiguraModelPart) unsafe.allocateInstance(FiguraModelPart.class);

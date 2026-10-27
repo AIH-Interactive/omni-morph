@@ -37,7 +37,7 @@ public final class DualEngineGpuReplay {
                 device.sink = sink;
                 return MultiBufferSource.immediate(memory);
             });
-            require(device.vertices == 8, "Figura rigid and weighted draws actually reach the GPU boundary");
+            require(device.vertices == 16, "Figura rigid, edited, restored and weighted draws actually reach the GPU boundary");
             for (String argument : args) {
                 YsmMaterialNativeSmokeTest.replayAcceleration(Path.of(argument), runtime -> {
                     var expected = new ArrayList<float[]>();
