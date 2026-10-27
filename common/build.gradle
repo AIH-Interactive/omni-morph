@@ -340,6 +340,9 @@ tasks.register('accelerationPreparationBenchmark', JavaExec) {
     args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-fabric-mc-windows-local.jar").path,
             rootProject.file('refs/avatars').path,
             rootProject.file('build/reports/acceleration/h7-preparation.csv').path
+    if (providers.gradleProperty('preparationSample').isPresent()) {
+        args rootProject.file(providers.gradleProperty('preparationSample').get()).path
+    }
 }
 
 ['nativeActivationSmokeTest': 'allow', 'nativeAccessDeniedSmokeTest': 'deny'].each { taskName, policy ->

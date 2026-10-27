@@ -43,7 +43,12 @@ public final class AccelerationPreparationBenchmark {
         // Same deterministic corpus ordering as the full renderer/JNI replay.
         Path output = Path.of(args[2]);
         try {
-            for (int index : QUICK ? new int[]{35} : new int[]{0, 35}) {
+            if (args.length > 3) {
+                Path selected = Path.of(args[3]).toRealPath();
+                System.out.println("Explicit CPU preparation sample: " + selected);
+                YsmMaterialNativeSmokeTest.replayAcceleration(selected,
+                        runtime -> measure(runtime, selected.getFileName().toString()));
+            } else for (int index : QUICK ? new int[]{35} : new int[]{0, 35}) {
                 String sample = index == 0 ? "ordinary" : "heavy";
                 YsmMaterialNativeSmokeTest.replayAcceleration(models.get(index), runtime -> measure(runtime, sample));
             }
