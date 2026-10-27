@@ -109,7 +109,30 @@ final class GpuRigidData {
     }
 
     long frameBytes() {
-        return (long) order.length * 6 * Integer.BYTES + (long) ranges.size() * POSE_BYTES;
+        return indexBytes() + poseBytes();
+    }
+
+    long indexBytes() {
+        return (long) order.length * 6 * Integer.BYTES;
+    }
+
+    long poseBytes() {
+        return (long) ranges.size() * POSE_BYTES;
+    }
+
+    /** True when faces follow batch then local face order, which the group geometry alone determines. */
+    boolean authoredOrder() {
+        int index = 0;
+        for (int batch = 0; batch < batches.size(); batch++) {
+            int faceCount = batches.get(batch).mesh().faceCount();
+            for (int face = 0; face < faceCount; face++) {
+                if (index >= order.length || order[index] != ((long) batch << 32 | Integer.toUnsignedLong(face))) {
+                    return false;
+                }
+                index++;
+            }
+        }
+        return index == order.length;
     }
 
     ByteBuffer vertices() {

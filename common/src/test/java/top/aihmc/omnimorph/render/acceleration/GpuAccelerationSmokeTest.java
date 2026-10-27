@@ -32,6 +32,7 @@ public final class GpuAccelerationSmokeTest {
         failureRouting(true);
         initializationFailure();
         allocationAndDeviceFailure();
+        authoredGroupIndexReuse();
         System.out.println("PASS H4 CPU contracts: raw cached geometry, frame poses, material/shader recipe, bounds, generations, fences and partial-draw fallback; real GPU pixels MANUAL/PENDING");
     }
 
@@ -230,6 +231,61 @@ public final class GpuAccelerationSmokeTest {
                     "resource and device failures have accurate reasons");
             retirement.poll();
             require(device.liveBytes == 0, "partially allocated GPU state is retired");
+        }
+    }
+
+    private static void authoredGroupIndexReuse() {
+        var device = new IndexCountingDevice();
+        var retirement = new GpuRetirement();
+        var gpu = ready(device, retirement, 1_000_000);
+        var service = new AccelerationService();
+        var owner = new AccelerationOwner();
+        var batches = List.of(batch(service, owner, quad(1), 0, material()), batch(service, owner, quad(4), 2, material()));
+        // Compile the rigid group material through the normal pending-material frame step.
+        gpu.supports(AccelerationBackend.Operation.GPU_DRAW, batches.getFirst());
+        gpu.beginFrame();
+        gpu.beginFrame();
+        long[] authored = {0, 1L << 32};
+        long[] reversed = {1L << 32, 0};
+
+        var first = gpu.prepareGroup(batches, authored, () -> true);
+        require(first != null && device.indexUploads == 1, "first authored group uploads its index buffer");
+        gpu.beginFrame();
+        var moved = List.of(batch(service, owner, quad(1), 5, material()), batch(service, owner, quad(4), 7, material()));
+        var second = gpu.prepareGroup(moved, authored, () -> true);
+        require(second != null && device.indexUploads == 1 && gpu.geometryUploads() == 1,
+                "stable authored group reuses geometry and indices when only poses change");
+
+        gpu.beginFrame();
+        require(gpu.prepareGroup(batches, reversed, () -> true) != null && device.indexUploads == 2,
+                "a sorted order still uploads its own per-frame index buffer");
+        gpu.beginFrame();
+        require(gpu.prepareGroup(batches, reversed, () -> true) != null && device.indexUploads == 3,
+                "sorted indices are not cached across frames");
+        require(gpu.prepareGroup(batches, authored, () -> true) != null && device.indexUploads == 3,
+                "the authored buffer survives interleaved sorted frames");
+
+        var changed = List.of(batch(service, owner, quad(1), 0, material()), batch(service, owner, quad(9), 0, material()));
+        require(gpu.prepareGroup(changed, authored, () -> true) != null && device.indexUploads == 4
+                        && gpu.geometryUploads() == 2, "different group geometry gets its own entry and indices");
+
+        owner.retire();
+        gpu.beginFrame();
+        require(gpu.residentBytes() == 0, "retired owner releases group geometry and authored indices");
+        gpu.close();
+        device.complete = true;
+        retirement.poll();
+        require(device.liveBytes == 0, "every group mesh and index buffer is released exactly once");
+        System.out.println("PASS authored rigid group index reuse, sorted per-frame indices and retirement");
+    }
+
+    private static final class IndexCountingDevice extends RigidDevice {
+        int indexUploads;
+
+        @Override
+        public Indices uploadIndices(ByteBuffer data) {
+            indexUploads++;
+            return super.uploadIndices(data);
         }
     }
 

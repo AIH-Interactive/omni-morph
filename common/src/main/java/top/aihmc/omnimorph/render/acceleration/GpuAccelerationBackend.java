@@ -126,6 +126,8 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         final GpuDeviceAdapter.Mesh mesh;
         final int indices;
         long lastFrame;
+        // Rigid groups only: the authored-order index buffer, owned and retired with the mesh.
+        GpuDeviceAdapter.Indices authoredIndices;
 
         Entry(DrawBatch batch, GpuDeviceAdapter.Mesh mesh, int indices, long frame) {
             owner = batch.lease().owner();
@@ -327,8 +329,12 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         var key = new GroupKey(batches);
         Entry entry = groups.get(key);
         long geometryBytes = entry == null ? data.geometryBytes() : 0;
-        if (frameUploadBytes + data.frameBytes() > frameUploadBudget
-                || residentBytes + retirement.bytes() + geometryBytes + data.frameBytes() > memoryBudget
+        // Authored order is fixed by the cached geometry, so its index buffer is uploaded once per group.
+        boolean authored = data.authoredOrder();
+        boolean reuseIndices = authored && entry != null && entry.authoredIndices != null;
+        long indexBytes = reuseIndices ? 0 : data.indexBytes();
+        if (frameUploadBytes + indexBytes + data.poseBytes() > frameUploadBudget
+                || residentBytes + retirement.bytes() + geometryBytes + indexBytes + data.poseBytes() > memoryBudget
                 || !current.getAsBoolean()) {
             return null;
         }
@@ -343,8 +349,18 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
                 cacheHits++;
             }
             entry.lastFrame = frame;
-            GpuDeviceAdapter.Indices indices = device.uploadIndices(data.indices());
-            ownFrameResource(indices);
+            GpuDeviceAdapter.Indices indices;
+            if (reuseIndices) {
+                indices = entry.authoredIndices;
+            } else if (authored) {
+                indices = device.uploadIndices(data.indices());
+                entry.authoredIndices = indices;
+                residentBytes += indices.bytes();
+                frameUploadBytes += indices.bytes();
+            } else {
+                indices = device.uploadIndices(data.indices());
+                ownFrameResource(indices);
+            }
             List<PreparedRange> result = new ArrayList<>();
             for (GpuRigidData.Range range : data.ranges()) {
                 GpuDeviceAdapter.Pose pose = device.uploadPose(data.pose(range));
@@ -421,7 +437,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         while (groupIterator.hasNext()) {
             Entry entry = groupIterator.next().getValue();
             if (!entry.owner.isCurrent() || frame - entry.lastFrame > 120) {
-                retired.add(entry.mesh);
+                retireGroup(entry, retired);
                 groupIterator.remove();
             }
         }
@@ -463,7 +479,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
             retired.add(entry.mesh);
         }
         for (Entry entry : groups.values()) {
-            retired.add(entry.mesh);
+            retireGroup(entry, retired);
         }
         retire(retired);
         meshes.clear();
@@ -505,6 +521,13 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         frameResources.add(resource);
         residentBytes += resource.bytes();
         frameUploadBytes += resource.bytes();
+    }
+
+    private static void retireGroup(Entry entry, List<GpuDeviceAdapter.Resource> retired) {
+        retired.add(entry.mesh);
+        if (entry.authoredIndices != null) {
+            retired.add(entry.authoredIndices);
+        }
     }
 
     private void retire(List<GpuDeviceAdapter.Resource> resources) {
