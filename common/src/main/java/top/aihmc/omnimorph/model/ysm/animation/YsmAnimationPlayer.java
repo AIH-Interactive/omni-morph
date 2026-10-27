@@ -138,6 +138,9 @@ public class YsmAnimationPlayer {
         public float sampledTime = Float.NaN;
         /** Reference PlayState.PAUSE: the clock keeps running but no pose is submitted. */
         public boolean paused;
+        /** A declared controller slot retains its clock even while its condition is false. */
+        public boolean controllerConditionActive = true;
+        private boolean declaredControllerSlot;
         /**
          * Bone poses when this clip started (Sparkle BoneAnimationQueue.controllerSnapshot), read by the
          * Bedrock {@code this} keyword. Captured on the first sample, separately for body and arm parts.
@@ -637,12 +640,13 @@ public class YsmAnimationPlayer {
 
     private PlayingAnimation playInSlot(String slot, String name, YsmAnimationClip.LoopMode loopMode,
                                          float speed, float fadeSeconds, String controllerName) {
-        return playInSlot(slot, name, loopMode, speed, fadeSeconds, controllerName, null);
+        return playInSlot(slot, name, loopMode, speed, fadeSeconds, controllerName, null, 1f, false);
     }
 
     private PlayingAnimation playInSlot(String slot, String name, YsmAnimationClip.LoopMode loopMode,
                                          float speed, float fadeSeconds, String controllerName,
-                                         ExpressionEvaluator<?> initialEvaluator) {
+                                         ExpressionEvaluator<?> initialEvaluator, float initialWeight,
+                                         boolean declaredControllerSlot) {
         String normalized = resolveAnimationName(name);
         YsmAnimationClip clip = isFirstPersonController(controllerName)
                 ? authoredArmClips.get(normalized) : nativeClip(normalized);
@@ -676,7 +680,17 @@ public class YsmAnimationPlayer {
             playing.weight = 1f;
             playing.fadeSpeed = 0f;
         }
-        if (created && playing.beginningTransitionRemaining == 0f && !clip.events.isEmpty())
+        if (created && declaredControllerSlot) {
+            playing.declaredControllerSlot = true;
+            playing.controllerConditionActive = initialWeight > 0f;
+            playing.weight = initialWeight;
+            playing.targetWeight = initialWeight;
+            if (!playing.controllerConditionActive) {
+                playing.initialEventsDispatched = true;
+            }
+        }
+        if (created && playing.beginningTransitionRemaining == 0f && !clip.events.isEmpty()
+                && playing.controllerConditionActive)
             dispatchInitialEvents(playing, initialEvaluator == null ? evaluatorForEvents() : initialEvaluator);
         return playing;
     }
@@ -690,13 +704,17 @@ public class YsmAnimationPlayer {
     public PlayingAnimation playControllerAnimation(String controllerName, String animationName,
                                                      YsmAnimationClip.LoopMode loopMode, float weight,
                                                      float fadeSeconds, ExpressionEvaluator<?> evaluator) {
+        float contribution = Float.isFinite(weight) ? Math.max(0f, weight) : 0f;
         PlayingAnimation playing = playInSlot(controllerSlotKey(controllerName, animationName),
-                animationName, loopMode, 1f, fadeSeconds, normalizeControllerName(controllerName), evaluator);
+                animationName, loopMode, 1f, fadeSeconds, normalizeControllerName(controllerName), evaluator,
+                contribution, true);
         if (playing != null) {
             playing.controllerName = normalizeControllerName(controllerName);
             controllerPoseLayers.computeIfAbsent(playing.controllerName, ignored -> new YsmControllerPoseLayer());
             armControllerPoseLayers.computeIfAbsent(playing.controllerName, ignored -> new YsmControllerPoseLayer());
-            playing.targetWeight = Float.isFinite(weight) ? Math.max(0f, weight) : 0f;
+            playing.controllerConditionActive = contribution > 0f;
+            playing.targetWeight = playing.loopMode == YsmAnimationClip.LoopMode.ONCE && playing.hasCompletedCycle()
+                    ? 0f : contribution;
             playing.weight = playing.targetWeight;
         }
         return playing;
@@ -752,6 +770,7 @@ public class YsmAnimationPlayer {
         }
         playing.targetWeight = 0f;
         playing.fadeSpeed = 1f / fadeSeconds;
+        playing.declaredControllerSlot = false;
         playing.retired = true;
         activeAnimations.put("controller-retired/" + ++retiredControllerSequence, playing);
     }
@@ -854,6 +873,7 @@ public class YsmAnimationPlayer {
         if (animation == null)
             return;
         invalidateNotifications(animation);
+        animation.declaredControllerSlot = false;
         if (fadeSeconds <= 0f) {
             activeAnimations.remove(slot);
             stopPlaybackSounds(animation);
@@ -1040,7 +1060,7 @@ public class YsmAnimationPlayer {
             PlayingAnimation anim = entry.getValue();
 
             // Handle transition weight
-            if (anim.isNative || anim.fadeSpeed > 0f) {
+            if (!anim.declaredControllerSlot && (anim.isNative || anim.fadeSpeed > 0f)) {
                 float fadeSpeed = anim.fadeSpeed > 0f ? anim.fadeSpeed : 5f;
                 if (anim.weight < anim.targetWeight) {
                     anim.weight = Math.min(anim.targetWeight, anim.weight + deltaTime * fadeSpeed);
@@ -1104,11 +1124,12 @@ public class YsmAnimationPlayer {
             if (anim.loopMode == YsmAnimationClip.LoopMode.ONCE && anim.clip.length > 0f
                     && (anim.controllerName != null ? anim.hasCompletedCycle() : anim.time >= anim.clip.length)) {
                 anim.targetWeight = 0f;
-                if (anim.fadeSpeed <= 0f)
+                if (!anim.declaredControllerSlot && anim.fadeSpeed <= 0f) {
                     anim.fadeSpeed = 5f;
+                }
             }
             if (!observerControlled) {
-                if (beginningEnded) {
+                if (beginningEnded && anim.controllerConditionActive) {
                     dispatchInitialEvents(anim, evaluator);
                 }
                 dispatchEvents(anim, evaluator);
@@ -1116,8 +1137,14 @@ public class YsmAnimationPlayer {
                         && anim.loopMode != YsmAnimationClip.LoopMode.LOOP && anim.clip.length > 0f
                         && (anim.speed >= 0 ? anim.eventWindowEnd >= anim.clip.length : anim.eventWindowEnd <= 0f)) {
                     anim.endNotificationDispatched = true;
-                    notifyAnimationEvent(anim, "end", "", anim.speed >= 0 ? anim.clip.length : 0f);
+                    if (anim.controllerConditionActive) {
+                        notifyAnimationEvent(anim, "end", "", anim.speed >= 0 ? anim.clip.length : 0f);
+                    }
                 }
+            }
+            if (anim.declaredControllerSlot && anim.loopMode == YsmAnimationClip.LoopMode.ONCE
+                    && anim.hasCompletedCycle()) {
+                anim.weight = 0f;
             }
         }
     }
