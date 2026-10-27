@@ -29,45 +29,21 @@ final class GpuBatchData {
                 return false;
             }
         }
-        double positionMagnitude = 1;
-        double normalMagnitude = 0;
-        double uvMagnitude = 1;
+        // Static vertex facts are cached on the immutable mesh; only the pose-dependent checks run every time.
+        MeshHandle.StaticSummary geometry = mesh.staticSummary();
+        if (!geometry.componentsValid()) {
+            return false;
+        }
+        double positionMagnitude = geometry.positionMagnitude();
+        double normalMagnitude = geometry.normalMagnitude();
+        double uvMagnitude = geometry.uvMagnitude();
         float maximumWeight = 1;
-        for (int vertex = 0; vertex < mesh.vertexCount(); vertex++) {
-            for (int component = 0; component < MeshHandle.STRIDE; component++) {
-                if (!Float.isFinite((float) mesh.component(vertex, component))) {
-                    return false;
-                }
-            }
-            if (mesh.component(vertex, 3) != 1) {
+        if (!pose.usesFloatPrecision() && pose.skinJointCount() > 0) {
+            if (geometry.maxInfluences() > 4 || !geometry.weightsValid() || !geometry.totalsFinite()
+                    || geometry.minWeightedJoint() < 0 || geometry.maxWeightedJoint() >= pose.skinJointCount()) {
                 return false;
             }
-            for (int component = 0; component < 3; component++) {
-                positionMagnitude = Math.max(positionMagnitude, Math.abs(mesh.component(vertex, component)));
-                normalMagnitude = Math.max(normalMagnitude, Math.abs(mesh.component(vertex, component + 4)));
-            }
-            uvMagnitude = Math.max(uvMagnitude, Math.max(Math.abs(mesh.component(vertex, 7)), Math.abs(mesh.component(vertex, 8))));
-            MeshHandle.Influences influences = mesh.influences(vertex);
-            if (!pose.usesFloatPrecision() && pose.skinJointCount() > 0) {
-                if (influences.size() > 4) {
-                    return false;
-                }
-                float total = 0;
-                for (int influence = 0; influence < influences.size(); influence++) {
-                    float weight = influences.weight(influence);
-                    if (!Float.isFinite(weight) || weight < 0) {
-                        return false;
-                    }
-                    if (weight > 0 && (influences.joint(influence) < 0 || influences.joint(influence) >= pose.skinJointCount())) {
-                        return false;
-                    }
-                    total += weight;
-                }
-                if (!Float.isFinite(total)) {
-                    return false;
-                }
-                maximumWeight = Math.max(maximumWeight, total);
-            }
+            maximumWeight = geometry.maxTotalWeight();
         }
         double skinnedMagnitude = positionMagnitude;
         for (int joint = 0; joint < pose.skinJointCount(); joint++) {
