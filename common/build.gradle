@@ -341,7 +341,10 @@ tasks.register('accelerationPreparationBenchmark', JavaExec) {
             rootProject.file('refs/avatars').path,
             rootProject.file('build/reports/acceleration/h7-preparation.csv').path
     if (providers.gradleProperty('preparationSample').isPresent()) {
-        args rootProject.file(providers.gradleProperty('preparationSample').get()).path
+        // Semicolon-separated so sample names may contain spaces.
+        providers.gradleProperty('preparationSample').get().split(';').each { sample ->
+            args rootProject.file(sample.trim()).path
+        }
     }
 }
 
