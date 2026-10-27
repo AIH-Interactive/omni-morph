@@ -156,7 +156,72 @@ final class YsmSyncModelSmokeTest {
         require(source.functions().drainSyncEvents().size() == YsmSyncMessage.MAX_EVENTS
                         && source.functions().droppedSyncEvents() == 6,
                 "owner event backlog is bounded and overflow is counted");
+        testContinuousRemotePlayback(source, observer);
         System.out.println("M7 independent native model sync: content/schema identity, control/texture/action/controller/pose and observer authority PASS");
+    }
+
+    private static void testContinuousRemotePlayback(YsmModelRuntime source, YsmModelRuntime observer) throws Exception {
+        for (var runtime : List.of(source, observer)) {
+            var engine = MolangEngine.fromCustomBinding(runtime.owner().getAvatarBindings());
+            runtime.animations().registerAnimations(
+                    top.aihmc.omnimorph.model.ysm.animation.YsmAnimationParser.parse("""
+                            {"animations":{
+                              "pre_parallel7":{"animation_length":0.2083,
+                                "bones":{"root":{"scale":"v.remote_wing/100"}}},
+                              "remote_loop":{"loop":true,"animation_length":2,
+                                "bones":{"root":{"position":["q.anim_time*16",0,0]}}}
+                            }}
+                            """, engine));
+            runtime.animations().registerControllers(YsmAnimationControllerParser.parse("""
+                    {"animation_controllers":{"remote.clock":{"initial_state":"a","states":{
+                      "a":{"animations":["remote_loop"],"transitions":[{"b":"v.remote_switch"}]},
+                      "b":{"animations":["remote_loop"]}
+                    }}}}
+                    """, engine));
+            runtime.animations().startBaseAnimations();
+        }
+        source.animations().controllerRuntime().update(
+                ExpressionEvaluator.evaluator(source.owner().getMolangContext()), 0f);
+        var ownerPlayer = source.animations();
+        var remotePlayer = observer.animations();
+        var localLoop = ownerPlayer.play("remote_loop", true, 1f);
+        localLoop.time = 0.5f;
+        var ownerModel = new YsmSyncModel(source);
+        var remoteModel = new YsmSyncModel(observer);
+        remoteModel.apply(ownerModel.capture());
+        var base = remotePlayer.getActiveAnimation("pre_parallel7");
+        require(base != null && base.loop, "remote base layer retains its effective forced loop");
+        var advance = YsmAnimationPlayer.class.getDeclaredMethod("advanceAnimationTimeline", float.class,
+                ExpressionEvaluator.class);
+        advance.setAccessible(true);
+        var evaluator = ExpressionEvaluator.evaluator(observer.owner().getMolangContext());
+        advance.invoke(remotePlayer, 0.3f, evaluator);
+        advance.invoke(remotePlayer, 0.3f, evaluator);
+        require(remotePlayer.getActiveAnimation("pre_parallel7") == base && base.weight == 1f,
+                "short setup layer never fades between network samples");
+        var sample = YsmAnimationPlayer.class.getDeclaredMethod("sampleAnimations", ExpressionEvaluator.class,
+                boolean.class);
+        sample.setAccessible(true);
+        sample.invoke(remotePlayer, evaluator, false);
+        require(observer.captureRenderPose(false).part("root").animScaleRaw().x == 0,
+                "a dynamic zero-scale setup layer keeps the actual observer part hidden");
+        var remoteLoop = remotePlayer.getActiveAnimation("remote_loop");
+        float before = remoteLoop.time;
+        localLoop.time = 0.9f;
+        remoteModel.apply(ownerModel.capture());
+        require(remotePlayer.getActiveAnimation("remote_loop") == remoteLoop,
+                "a new sample preserves the running instance and its pose caches");
+        require(Math.abs(remoteLoop.time - before) < 0.0001f,
+                "receiving a continuous sample does not snap the render clock");
+        advance.invoke(remotePlayer, 0.05f, evaluator);
+        require(remoteLoop.time > before, "bounded correction keeps forward playback continuous");
+        var oldControllerSlot = remotePlayer.getControllerAnimation("remote.clock", "remote_loop");
+        source.owner().getMolangContext().variables.setPath("remote_switch", 1f);
+        ownerPlayer.controllerRuntime().update(ExpressionEvaluator.evaluator(source.owner().getMolangContext()), 0f);
+        remoteModel.apply(ownerModel.capture());
+        var restarted = remotePlayer.getControllerAnimation("remote.clock", "remote_loop");
+        require(restarted != oldControllerSlot && restarted.time == 0f,
+                "a real controller state change restarts its clip instead of smoothing across states");
     }
 
     private static void require(boolean condition, String message) {
