@@ -6,10 +6,14 @@ import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
 import top.aihmc.omnimorph.avatar.ysm.YsmAvatarDetector;
+import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.math.matrix.FiguraMat3;
 import org.figuramc.figura.math.matrix.FiguraMat4;
+import org.figuramc.figura.model.rendering.EntityRenderMode;
+import org.figuramc.figura.model.rendering.PartFilterScheme;
 import top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest;
 import top.aihmc.omnimorph.model.ysm.YsmModelRuntime;
 import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
@@ -22,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.function.Consumer;
 
 /** Diagnoses CPU preparation only. Fake draw commands cannot establish GPU or total-frame performance. */
 public final class AccelerationPreparationBenchmark {
@@ -44,14 +49,14 @@ public final class AccelerationPreparationBenchmark {
         Path output = Path.of(args[2]);
         try {
             if (args.length > 3) {
-                Path selected = Path.of(args[3]).toRealPath();
-                System.out.println("Explicit CPU preparation sample: " + selected);
-                YsmMaterialNativeSmokeTest.replayAcceleration(selected,
-                        runtime -> measure(runtime, selected.getFileName().toString()));
+                for (int argument = 3; argument < args.length; argument++) {
+                    measureExplicit(Path.of(args[argument]).toRealPath());
+                }
             } else {
                 for (int index : QUICK ? new int[]{35} : new int[]{0, 35}) {
                     String sample = index == 0 ? "ordinary" : "heavy";
-                    YsmMaterialNativeSmokeTest.replayAcceleration(models.get(index), runtime -> measure(runtime, sample));
+                    YsmMaterialNativeSmokeTest.replayAcceleration(models.get(index),
+                            runtime -> measure(source -> renderYsm(runtime, source), sample));
                 }
             }
         } finally {
@@ -62,14 +67,70 @@ public final class AccelerationPreparationBenchmark {
         System.out.println("CPU preparation raw samples saved; actual GPU/whole-frame acceptance is still pending.");
     }
 
-    private static void measure(YsmModelRuntime runtime, String sample) {
+    private static void measureExplicit(Path selected) throws Exception {
+        String sample = selected.getFileName().toString();
+        if (YsmAvatarDetector.isYsmAvatar(selected)) {
+            System.out.println("Explicit YSM CPU preparation sample: " + selected);
+            YsmMaterialNativeSmokeTest.replayAcceleration(selected,
+                    runtime -> measure(source -> renderYsm(runtime, source), sample));
+            return;
+        }
+        System.out.println("Explicit Figura CPU preparation sample: " + selected);
+        YsmMaterialNativeSmokeTest.replayFiguraAcceleration(selected, avatar -> {
+            avatar.renderMode = EntityRenderMode.FIGURA_GUI;
+            if (avatar.scriptError) {
+                // Some scripts need a client world during init; the authored geometry still renders without them.
+                System.out.println("Figura sample script init unavailable without a client world: " + scriptError(avatar));
+                measure(source -> renderFigura(avatar, source), sample + " static-no-script");
+                return;
+            }
+            measure(source -> renderFigura(avatar, source), sample);
+            // Lua edits every frame: part transforms plus a UV change on actual authored geometry.
+            var edit = avatar.loadScript("preparation dynamic edit", """
+                    local frame = 0
+                    return function()
+                        frame = frame + 1
+                        for _, part in ipairs(models:getChildren()) do
+                            for _, child in ipairs(part:getChildren()) do
+                                child:setPos(0, math.sin(frame * 0.1), 0)
+                                child:setUV(frame % 16 / 256, 0)
+                            end
+                        end
+                    end
+                    """).call().checkfunction();
+            measure(source -> {
+                avatar.render.reset(Integer.MAX_VALUE);
+                avatar.run(edit, avatar.render);
+                renderFigura(avatar, source);
+            }, sample + " lua-dynamic");
+        });
+    }
+
+    private static void renderYsm(YsmModelRuntime runtime, MultiBufferSource source) {
+        runtime.renderer().renderWithAttachments(new PoseStack(), source, 0x00f000a0, runtime.captureRenderPose(false));
+    }
+
+    private static void renderFigura(Avatar avatar, MultiBufferSource source) {
+        boolean failedBefore = avatar.scriptError;
+        avatar.render(null, 0, .5f, 1, new PoseStack(), source, 0x00f000a0, OverlayTexture.NO_OVERLAY,
+                null, PartFilterScheme.MODEL, false, false);
+        if (avatar.scriptError && !failedBefore) {
+            throw new AssertionError("Figura preparation sample raised a script error: " + scriptError(avatar));
+        }
+    }
+
+    private static String scriptError(Avatar avatar) {
+        return avatar.errorText == null ? "unknown" : avatar.errorText.getString();
+    }
+
+    private static void measure(Consumer<MultiBufferSource> render, String sample) {
         try (ByteBufferBuilder memory = new ByteBufferBuilder(1 << 20)) {
             var recipes = new LinkedHashMap<RenderType, DiscardingMaterial>();
             var nativeSource = MultiBufferSource.immediate(memory);
             MultiBufferSource javaSource = original -> nativeSource.getBuffer(
                     recipes.computeIfAbsent(original, DiscardingMaterial::new));
             SERVICE.useBackend(null);
-            frame(runtime, javaSource, nativeSource);
+            frame(render, javaSource, nativeSource);
             long expectedVertices = recipes.values().stream().mapToLong(value -> value.vertices).sum();
             if (expectedVertices == 0) {
                 throw new AssertionError("Benchmark model must produce actual geometry");
@@ -102,12 +163,12 @@ public final class AccelerationPreparationBenchmark {
                     try {
                         MultiBufferSource source = mode.equals("GPU_PREPARATION") ? nativeSource : javaSource;
                         for (int warmup = 0; warmup < (QUICK ? 1 : 30); warmup++) {
-                            frame(runtime, source, nativeSource);
+                            frame(render, source, nativeSource);
                         }
                         long[] times = new long[QUICK ? 2 : 90];
                         for (int index = 0; index < times.length; index++) {
                             long before = System.nanoTime();
-                            frame(runtime, source, nativeSource);
+                            frame(render, source, nativeSource);
                             times[index] = System.nanoTime() - before;
                             CSV.add("cpu_preparation_only," + sample + ',' + round + ',' + mode + ',' + index
                                     + ',' + times[index] + ',' + expectedVertices + ',' + device.drawCalls + ',' + device.uploads);
@@ -134,11 +195,12 @@ public final class AccelerationPreparationBenchmark {
         }
     }
 
-    private static void frame(YsmModelRuntime runtime, MultiBufferSource source, MultiBufferSource.BufferSource nativeSource) {
+    private static void frame(Consumer<MultiBufferSource> render, MultiBufferSource source,
+                              MultiBufferSource.BufferSource nativeSource) {
         YsmRenderFrameClock.beginFrame();
         GpuSubmission.beginFrame();
         SERVICE.beginFrame();
-        runtime.renderer().renderWithAttachments(new PoseStack(), source, 0x00f000a0, runtime.captureRenderPose(false));
+        render.accept(source);
         nativeSource.endBatch();
     }
 

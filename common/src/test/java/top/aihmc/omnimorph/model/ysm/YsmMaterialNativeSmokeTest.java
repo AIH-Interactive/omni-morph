@@ -47,6 +47,11 @@ public final class YsmMaterialNativeSmokeTest {
         run(new String[]{"--acceleration", path.toString()}, replay);
     }
 
+    /** Loads an actual Figura model through formal compilation into a detached preview Avatar. */
+    public static void replayFiguraAcceleration(Path path, java.util.function.Consumer<Avatar> replay) throws Exception {
+        run(new String[]{"--figura-acceleration", path.toString()}, null, replay);
+    }
+
     /** Texture allocation recorder for native vertex tests; supplies no real GPU or visual evidence. */
     public static AutoCloseable recordingTextureDevice() throws ReflectiveOperationException {
         Field device = RenderSystem.class.getDeclaredField("DEVICE");
@@ -65,6 +70,11 @@ public final class YsmMaterialNativeSmokeTest {
     }
 
     private static void run(String[] args, java.util.function.Consumer<YsmModelRuntime> replay) throws Exception {
+        run(args, replay, null);
+    }
+
+    private static void run(String[] args, java.util.function.Consumer<YsmModelRuntime> replay,
+                            java.util.function.Consumer<Avatar> figuraReplay) throws Exception {
         Path directory = Files.createTempDirectory("figura-native-material-").toAbsolutePath().normalize();
         String previousDirectory = System.getProperty("figura.test.directory");
         System.setProperty("figura.test.directory", directory.toString());
@@ -167,6 +177,47 @@ public final class YsmMaterialNativeSmokeTest {
                 } finally {
                     client.drain();
                     device.set(null, previousDevice);
+                }
+                return;
+            }
+            if (args.length == 2 && args[0].equals("--figura-acceleration")) {
+                client.sounds = YsmStabilitySmokeTest.soundManager(unsafe, true);
+                Field device = RenderSystem.class.getDeclaredField("DEVICE");
+                device.setAccessible(true);
+                Object previousDevice = device.get(null);
+                Field debugEntries = Minecraft.class.getDeclaredField("debugEntries");
+                debugEntries.setAccessible(true);
+                Object previousDebug = debugEntries.get(client);
+                Avatar avatar = null;
+                try {
+                    // Figura reads the hitbox debug toggle each frame; an empty list keeps pivots disabled.
+                    var debug = (net.minecraft.client.gui.components.debug.DebugScreenEntryList) unsafe.allocateInstance(
+                            net.minecraft.client.gui.components.debug.DebugScreenEntryList.class);
+                    Field statuses = debug.getClass().getDeclaredField("allStatuses");
+                    statuses.setAccessible(true);
+                    statuses.set(debug, new HashMap<>());
+                    Field enabled = debug.getClass().getDeclaredField("currentlyEnabled");
+                    enabled.setAccessible(true);
+                    enabled.set(debug, new ArrayList<>());
+                    debugEntries.set(client, debug);
+                    device.set(null, new PublicationDevice());
+                    var nbt = org.figuramc.figura.avatar.local.LocalAvatarLoader.compileFiguraAvatar(
+                            Path.of(args[1]), new java.util.UUID(0, 2));
+                    avatar = Avatar.createLibraryPreview(java.util.UUID.randomUUID(), "figura preparation sample");
+                    // Preview defaults cap faces; a preparation baseline must render the complete authored model.
+                    avatar.permissions.insert(org.figuramc.figura.permissions.Permissions.COMPLEXITY,
+                            Integer.MAX_VALUE, org.figuramc.figura.FiguraMod.MOD_ID);
+                    avatar.load(nbt);
+                    avatar.initializePreviewPlayer(null);
+                    require(avatar.loaded && avatar.renderer != null, "actual Figura sample loads a formal renderer");
+                    java.util.Objects.requireNonNull(figuraReplay).accept(avatar);
+                } finally {
+                    if (avatar != null) {
+                        avatar.clean();
+                    }
+                    client.drain();
+                    device.set(null, previousDevice);
+                    debugEntries.set(client, previousDebug);
                 }
                 return;
             }
