@@ -26,7 +26,7 @@ OmniMorph 是基于 [Figura](https://github.com/FiguraMC/Figura) 的 Minecraft J
 | Minecraft Java | 26.1.2 |
 | 模组加载器 | Fabric |
 | Java | 25 |
-| 模组版本 | 1.0.0-alpha.5 |
+| 模组版本 | 1.0.0-alpha.6 |
 
 构建依赖版本见 [gradle.properties](gradle.properties)。这是客户端模组；多人资源分发与状态同步需要兼容的后端服务。
 

@@ -26,7 +26,7 @@ Lua と Molang の両ランタイムに対応しています。Lua はスクリ�
 | Minecraft Java | 26.1.2 |
 | Mod ローダー | Fabric |
 | Java | 25 |
-| Mod バージョン | 1.0.0-alpha.5 |
+| Mod バージョン | 1.0.0-alpha.6 |
 
 ビルド依存関係のバージョンは [gradle.properties](gradle.properties) を参照してください。本 Mod はクライアント用です。マルチプレイでのリソース配信と状態同期には、対応バックエンドが必要です。
 
