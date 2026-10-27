@@ -151,11 +151,12 @@ public final class GpuSubmission {
             }
             if (!original.sortOnUpload()) {
                 if (service.gpuRigidGroupsEnabled() && batches.size() > 1) {
-                    List<Face> order = faces(batches, false);
+                    // Opaque groups keep authored order; per-face objects are only built for a Java fallback.
+                    long[] order = authoredOrder(batches);
                     int remaining = drawGroup(batches, order);
                     if (remaining >= 0) {
-                        if (remaining < order.size()) {
-                            drawJava(original, batches, order, remaining);
+                        if (remaining < order.length) {
+                            drawJava(original, batches, faces(batches, false), remaining);
                         }
                         return;
                     }
@@ -172,7 +173,8 @@ public final class GpuSubmission {
         private void drawBatches(List<Queued> batches) {
             var prepared = new GpuAccelerationBackend.Prepared[batches.size()];
             List<Face> order = faces(batches, original.sortOnUpload());
-            int groupedRemaining = drawGroup(batches, order);
+            int groupedRemaining = batches.size() < 2 || !service.gpuRigidGroupsEnabled()
+                    ? -1 : drawGroup(batches, packed(order));
             if (groupedRemaining >= 0) {
                 if (groupedRemaining < order.size()) {
                     drawJava(original, batches, order, groupedRemaining);
@@ -216,14 +218,9 @@ public final class GpuSubmission {
         }
 
         /** Returns -1 when the ordinary per-batch path should handle this material. */
-        private int drawGroup(List<Queued> batches, List<Face> order) {
+        private int drawGroup(List<Queued> batches, long[] sorted) {
             if (batches.size() < 2 || !service.gpuRigidGroupsEnabled()) {
                 return -1;
-            }
-            long[] sorted = new long[order.size()];
-            for (int index = 0; index < order.size(); index++) {
-                Face face = order.get(index);
-                sorted[index] = (long) face.batch() << 32 | Integer.toUnsignedLong(face.face());
             }
             var prepared = service.prepareGpuGroup(batches.stream().map(Queued::batch).toList(), sorted);
             if (prepared == null) {
@@ -246,6 +243,32 @@ public final class GpuSubmission {
             }
             return remaining;
         }
+    }
+
+    /** Batch index in the high word and local face in the low word, in authored submission order. */
+    private static long[] authoredOrder(List<Queued> batches) {
+        int total = 0;
+        for (Queued batch : batches) {
+            total = Math.addExact(total, batch.batch().mesh().faceCount());
+        }
+        long[] order = new long[total];
+        int index = 0;
+        for (int batch = 0; batch < batches.size(); batch++) {
+            int faceCount = batches.get(batch).batch().mesh().faceCount();
+            for (int face = 0; face < faceCount; face++) {
+                order[index++] = (long) batch << 32 | Integer.toUnsignedLong(face);
+            }
+        }
+        return order;
+    }
+
+    private static long[] packed(List<Face> order) {
+        long[] packed = new long[order.size()];
+        for (int index = 0; index < order.size(); index++) {
+            Face face = order.get(index);
+            packed[index] = (long) face.batch() << 32 | Integer.toUnsignedLong(face.face());
+        }
+        return packed;
     }
 
     private List<Face> faces(List<Queued> batches, boolean sorted) {
