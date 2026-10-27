@@ -156,6 +156,7 @@ public class YsmAnimationPlayer {
         private float beginningTransitionRemaining;
         private String controllerName;
         private YsmSyncMessage.Playback remoteState;
+        private float remoteTimeCorrection;
 
         public PlayingAnimation(YsmAnimationClip clip, boolean isNative) {
             this.clip = clip;
@@ -468,7 +469,8 @@ public class YsmAnimationPlayer {
             }
             result.add(new YsmSyncMessage.Playback(result.size(),
                     clipIndex.stream().map(clip -> clip.name).toList().indexOf(playing.clip.name), controller,
-                    playing.time, playing.speed, playing.weight, playing.targetWeight, playing.loopMode.ordinal(),
+                    playing.time, playing.speed, playing.weight, playing.targetWeight,
+                    (playing.loop ? YsmAnimationClip.LoopMode.LOOP : playing.loopMode).ordinal(),
                     playing.fadeSpeed, flags));
         }
         return List.copyOf(result);
@@ -479,6 +481,11 @@ public class YsmAnimationPlayer {
     }
 
     public void applyRemotePlaybacks(List<YsmSyncMessage.Playback> values, List<YsmAnimationClip> clips, List<String> controllers) {
+        applyRemotePlaybacks(values, clips, controllers, Set.of());
+    }
+
+    public void applyRemotePlaybacks(List<YsmSyncMessage.Playback> values, List<YsmAnimationClip> clips,
+                                     List<String> controllers, Set<String> changedControllers) {
         Map<String, PlayingAnimation> restored = buildRemotePlaybacks(values, clips, controllers);
         if (!observerControlled) {
             controllerSounds.close();
@@ -486,9 +493,24 @@ public class YsmAnimationPlayer {
         }
         activeAnimations.forEach((slot, previous) -> {
             PlayingAnimation next = restored.get(slot);
-            if (observerControlled && next != null && previous.clip == next.clip) {
+            if (observerControlled && next != null && previous.clip == next.clip
+                    && (previous.controllerName == null || !changedControllers.contains(previous.controllerName))) {
                 if (previous.playbackGeneration == 0 && Objects.equals(previous.remoteState, next.remoteState)) {
                     // A repeated owner sample must not undo the observer's frame-by-frame advancement.
+                    restored.put(slot, previous);
+                } else if (continuesRemotePlayback(previous, next)) {
+                    float correction = next.time - previous.time;
+                    if (next.loop && next.clip.length > 0f) {
+                        float length = next.clip.length;
+                        correction -= Math.round(correction / length) * length;
+                    }
+                    previous.remoteTimeCorrection = correction;
+                    previous.remoteState = next.remoteState;
+                    previous.speed = next.speed;
+                    previous.weight = next.weight;
+                    previous.targetWeight = next.targetWeight;
+                    previous.fadeSpeed = next.fadeSpeed;
+                    previous.controllerConditionActive = next.controllerConditionActive;
                     restored.put(slot, previous);
                 } else {
                     next.sounds.addAll(previous.sounds);
@@ -502,8 +524,14 @@ public class YsmAnimationPlayer {
         activeAnimations.clear();
         activeAnimations.putAll(restored);
         controllerFunctionAnimations.clear();
-        controllerPoseLayers.clear();
-        armControllerPoseLayers.clear();
+        Set<String> restoredControllers = new HashSet<>();
+        for (PlayingAnimation playing : restored.values()) {
+            if (playing.controllerName != null) {
+                restoredControllers.add(playing.controllerName);
+            }
+        }
+        controllerPoseLayers.keySet().retainAll(restoredControllers);
+        armControllerPoseLayers.keySet().retainAll(restoredControllers);
         for (var entry : restored.entrySet()) {
             PlayingAnimation playing = entry.getValue();
             if (playing.controllerName != null) {
@@ -517,6 +545,16 @@ public class YsmAnimationPlayer {
             }
         }
         observerControlled = true;
+    }
+
+    private static boolean continuesRemotePlayback(PlayingAnimation previous, PlayingAnimation next) {
+        if (previous.remoteState == null || previous.retired || next.retired
+                || previous.playbackGeneration != 0 || previous.loopMode != next.loopMode
+                || previous.remoteState.flags() != next.remoteState.flags()) {
+            return false;
+        }
+        // A non-looping clip whose owner time moves backwards represents a new play request.
+        return next.loop || next.time >= previous.remoteState.time();
     }
 
     private Map<String, PlayingAnimation> buildRemotePlaybacks(List<YsmSyncMessage.Playback> values,
@@ -549,6 +587,13 @@ public class YsmAnimationPlayer {
             playing.retired = (value.flags() & 4) != 0;
             playing.loopMode = YsmAnimationClip.LoopMode.values()[value.loopMode()];
             playing.loop = playing.loopMode == YsmAnimationClip.LoopMode.LOOP;
+            playing.declaredControllerSlot = controllerName != null && (value.flags() & 6) == 0;
+            playing.controllerConditionActive = value.weight() > 0f;
+            // Legacy publishers wrote the authored ONCE mode for their forced-loop setup layers.
+            if (controllerName == null && !playing.isNative && isBaseAnimation(clip.name)) {
+                playing.loop = true;
+                playing.loopMode = YsmAnimationClip.LoopMode.LOOP;
+            }
             String key;
             if (playing.retired) {
                 key = "controller-retired/remote/" + value.slot();
@@ -1115,6 +1160,13 @@ public class YsmAnimationPlayer {
                 anim.sampledTime = Float.NaN;
             } else {
                 anim.time += runningDelta * anim.speed;
+            }
+            if (observerControlled && anim.remoteTimeCorrection != 0f) {
+                // Bound correction to half the running speed: forward clips never snap or run backwards.
+                float limit = Math.max(0f, runningDelta) * Math.abs(anim.speed) * 0.5f;
+                float correction = Mth.clamp(anim.remoteTimeCorrection, -limit, limit);
+                anim.time += correction;
+                anim.remoteTimeCorrection -= correction;
             }
             anim.eventWindowEnd = anim.time;
             // The reference keeps this flag after loop wrapping or hold-time clamping, until playback resets.

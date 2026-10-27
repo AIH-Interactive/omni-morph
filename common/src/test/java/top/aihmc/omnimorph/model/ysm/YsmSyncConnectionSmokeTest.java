@@ -239,9 +239,9 @@ final class YsmSyncConnectionSmokeTest {
         source.animations().getActiveAnimation("gui").speed = 0.5f;
         sender.tickTyped(epoch, 348, source, uuid -> null, transfer);
         receiver.tickTyped(epoch, 348, null, uuid -> observer, message -> false);
-        require(observer.animations().getActiveAnimation("gui").time == 0.75f
+        require(observer.animations().getActiveAnimation("gui").time == time
                         && observer.animations().getActiveAnimation("gui").speed == 0.5f,
-                "changed owner playback time and speed still reach the observer");
+                "changed owner speed applies immediately while clock correction remains continuous");
         source.animations().stop("gui");
         sender.tickTyped(epoch, 352, source, uuid -> null, transfer);
         receiver.tickTyped(epoch, 352, null, uuid -> observer, message -> false);

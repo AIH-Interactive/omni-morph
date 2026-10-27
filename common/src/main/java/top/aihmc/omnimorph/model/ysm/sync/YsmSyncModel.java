@@ -134,11 +134,15 @@ public final class YsmSyncModel {
         events.forEach(this::validateEvent);
         Map<String, String> controllerStates = new HashMap<>();
         Map<String, Float> controllerTimes = new HashMap<>();
+        java.util.Set<String> changedControllers = new java.util.HashSet<>();
         for (var value : state.controllers()) {
             String name = controllers.get(value.index());
             String target = states.get(value.index()).get(value.state());
             if (!target.equals(runtime.animations().controllerRuntime().currentState(name))) {
                 runtime.animations().stopControllerSounds(name);
+                changedControllers.add(name.toLowerCase(java.util.Locale.US));
+                runtime.animations().beginControllerPoseTransition(name,
+                        runtime.animations().getControllers().get(name).states().get(target).blendCurve());
             }
             controllerStates.put(name, target);
             controllerTimes.put(name, value.time());
@@ -162,7 +166,7 @@ public final class YsmSyncModel {
         }
         events.forEach(this::replay);
         runtime.animations().controllerRuntime().applyRemoteState(controllerStates, controllerTimes);
-        runtime.animations().applyRemotePlaybacks(state.playbacks(), clips, controllers);
+        runtime.animations().applyRemotePlaybacks(state.playbacks(), clips, controllers, changedControllers);
     }
 
     public void validateEvent(YsmSyncMessage.Event event) {
