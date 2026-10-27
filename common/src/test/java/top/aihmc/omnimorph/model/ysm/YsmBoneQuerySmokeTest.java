@@ -188,6 +188,8 @@ public final class YsmBoneQuerySmokeTest {
                 """, fixture.engine);
         YsmAnimationPlayer player = fixture.runtime.animations();
         player.registerAnimations(clips);
+        // Body and first-person clips are separate domains; the arm pass samples only authored arm clips.
+        player.registerArmAnimations(clips);
         player.play("query_loop", true, 1f, 0f);
         Method sample = YsmAnimationPlayer.class.getDeclaredMethod("sampleAnimations", ExpressionEvaluator.class, boolean.class);
         sample.setAccessible(true);
