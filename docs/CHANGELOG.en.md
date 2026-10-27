@@ -4,6 +4,10 @@
 
 [Project overview](../README.en.md)
 
+## 1.0.0-alpha.6
+
+- Development milestone: prioritize shared YSM and Figura rendering performance. Stage validation and real-game performance acceptance are pending.
+
 ## 1.0.0-alpha.5
 
 - YSM animation aligned with the reference implementation: controller stage order, hand hold/use/swing applied by stage with pause and resume, legacy-format loop override, local input pulses, native action state table, default fallback animations, self-transitions and cycles, beginning transitions, parse-failure semantics, `math.*` functions, `time_of_day` phase, sound lifetime, separate body/first-person animation domains, quaternion rotation blending, event wrapping, keyframe sampling details, filter recovery and non-finite values, texture translucency, legacy folder detection, bone visibility keys and multiple hand locator chains.
