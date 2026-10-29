@@ -14,6 +14,7 @@ import org.figuramc.figura.math.matrix.FiguraMat4;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -28,6 +29,8 @@ public final class GpuAccelerationSmokeTest {
         shaderContract();
         cacheAndRetirement();
         poseReuseAfterFence();
+        poseBlockVariants(false);
+        poseBlockVariants(true);
         boundsAndLifetimes();
         failureRouting(false);
         failureRouting(true);
@@ -326,6 +329,57 @@ public final class GpuAccelerationSmokeTest {
 
     private static GpuAccelerationBackend backend(FakeDevice device, GpuRetirement retirement, long budget) {
         return new GpuAccelerationBackend(device, retirement, budget, 100_000);
+    }
+
+    private static void poseBlockVariants(boolean failVariant) {
+        var device = new VariantDevice();
+        device.failVariant = failVariant;
+        var retirement = new GpuRetirement();
+        var gpu = ready(device, retirement, 1_000_000);
+        var service = new AccelerationService();
+        var owner = new AccelerationOwner();
+        service.useBackend(gpu);
+
+        require(service.tryDraw(batch(service, owner, quad(1), 5, material()), CONTEXT)
+                == GpuAccelerationBackend.DrawResult.DRAWN, "first draw uses the full pose block");
+        require(device.lastPose.data.capacity() == GpuBatchData.POSE_BYTES && device.variantRequests.isEmpty(),
+                "a missing variant is never compiled inside model submission");
+        service.beginFrame();
+        service.beginFrame();
+        require(device.variantRequests.equals(List.of("entity:1")),
+                "one rigid-transform variant is compiled once, outside traversal");
+        require(service.tryDraw(batch(service, owner, quad(1), 7, material()), CONTEXT)
+                == GpuAccelerationBackend.DrawResult.DRAWN, "draw after the variant step");
+        if (failVariant) {
+            require(device.lastPose.data.capacity() == GpuBatchData.POSE_BYTES,
+                    "a failed variant keeps drawing with the full layout");
+        } else {
+            int parameters = GpuBatchData.parameterOffset(1);
+            require(device.lastPose.data.capacity() == GpuBatchData.poseBytes(1)
+                            && device.lastPose.data.getFloat(12 * 4) == 7
+                            && device.lastPose.data.getFloat(parameters) == 127 / 255f
+                            && device.lastPose.data.getInt(parameters + 20) == 10,
+                    "a one-part variant uploads 208 bytes with its parameters right after the part");
+        }
+
+        service.useBackend(null);
+        device.complete = true;
+        retirement.poll();
+        require(device.liveBytes == 0, "variant pose buffers are released with the backend");
+    }
+
+    private static final class VariantDevice extends FakeDevice {
+        final List<String> variantRequests = new ArrayList<>();
+        boolean failVariant;
+
+        @Override
+        public Material compileVariant(RenderPipeline original, boolean grouped, int parts) {
+            variantRequests.add((grouped ? "group:" : "entity:") + parts);
+            if (failVariant) {
+                throw new IllegalStateException("variant shader rejected");
+            }
+            return new Material(original, original);
+        }
     }
 
     private static GpuAccelerationBackend ready(FakeDevice device, GpuRetirement retirement, long budget) {
