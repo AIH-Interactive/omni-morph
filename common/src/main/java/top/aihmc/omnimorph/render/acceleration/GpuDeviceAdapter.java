@@ -46,6 +46,11 @@ interface GpuDeviceAdapter {
 
     Pose uploadPose(ByteBuffer data);
 
+    /** Returns false when this device does not support updating a retired pose buffer. */
+    default boolean updatePose(Pose pose, ByteBuffer data) {
+        return false;
+    }
+
     default Indices uploadIndices(ByteBuffer data) {
         throw new UnsupportedOperationException("Sorted index upload unavailable");
     }

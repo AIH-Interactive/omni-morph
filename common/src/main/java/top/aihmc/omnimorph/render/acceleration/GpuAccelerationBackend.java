@@ -5,6 +5,8 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import com.mojang.blaze3d.vertex.MeshData;
 
+import java.nio.ByteBuffer;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -147,6 +149,15 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
     private final Map<RenderPipeline, GpuDeviceAdapter.Material> groupMaterials = new IdentityHashMap<>();
     private final Map<RenderPipeline, Boolean> pendingMaterials = new LinkedHashMap<>();
     private final List<GpuDeviceAdapter.Resource> frameResources = new ArrayList<>();
+    // Pose buffers return here only after their retirement fence completed; idle ones count as resident.
+    private static final int MAX_POOLED_POSES = 256;
+    private static final int POSE_DEMAND_WINDOW = 120;
+    private final List<GpuDeviceAdapter.Pose> framePoses = new ArrayList<>();
+    private final Map<GpuDeviceAdapter.Resource, AccelerationOwner> poseOwners = new IdentityHashMap<>();
+    private final Map<AccelerationOwner, Map<Long, ArrayDeque<GpuDeviceAdapter.Pose>>> freePoses =
+            new IdentityHashMap<>();
+    private int pooledPoses;
+    private int poseDemand;
     private long residentBytes;
     private long frameUploadBytes;
     private long frame;
@@ -263,10 +274,12 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
 
     Prepared prepare(DrawBatch batch, BooleanSupplier current) {
         device.assertThread();
+        AccelerationFrameDiagnostics.prepare(batch);
         if (!current.getAsBoolean()) {
             return null;
         }
         if (!supports(Operation.GPU_DRAW, batch)) {
+            AccelerationFrameDiagnostics.fallback("PREPARE_UNSUPPORTED");
             return null;
         }
         if (!device.isCurrent()) {
@@ -278,6 +291,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
                 + (long) batch.mesh().faceCount() * (batch.mesh().verticesPerFace() - 2) * 3 * Integer.BYTES : 0;
         if (frameUploadBytes + GpuBatchData.POSE_BYTES > frameUploadBudget
                 || residentBytes + retirement.bytes() + geometryBytes + GpuBatchData.POSE_BYTES > memoryBudget) {
+            AccelerationFrameDiagnostics.fallback(FallbackReason.RESOURCE_EXHAUSTED.name());
             return null;
         }
         if (entry == null) {
@@ -298,8 +312,8 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         entry.lastFrame = frame;
         GpuDeviceAdapter.Pose pose;
         try {
-            pose = device.uploadPose(GpuBatchData.pose(batch));
-            ownFrameResource(pose);
+            pose = acquirePose(batch.lease().owner(), GpuBatchData.pose(batch));
+            AccelerationFrameDiagnostics.poseUpload(pose.bytes(), 0, false);
         } catch (RuntimeException failure) {
             throw new Failure(FallbackReason.RESOURCE_EXHAUSTED, false, failure);
         }
@@ -308,6 +322,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
 
     List<PreparedRange> prepareGroup(List<DrawBatch> batches, long[] order, BooleanSupplier current) {
         device.assertThread();
+        AccelerationFrameDiagnostics.prepareGroup(batches);
         if (!current.getAsBoolean() || !ready || closed || invalidated || !device.supportsRigidGroups()
                 || !GpuRigidData.supports(batches)) {
             return null;
@@ -326,6 +341,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
             throw new Failure(FallbackReason.GPU_UNAVAILABLE, false, null);
         }
         var data = new GpuRigidData(batches, order);
+        AccelerationFrameDiagnostics.rigidDataCreated();
         var key = new GroupKey(batches);
         Entry entry = groups.get(key);
         long geometryBytes = entry == null ? data.geometryBytes() : 0;
@@ -347,6 +363,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
                 uploads++;
             } else {
                 cacheHits++;
+                AccelerationFrameDiagnostics.groupGeometryCacheHit();
             }
             entry.lastFrame = frame;
             GpuDeviceAdapter.Indices indices;
@@ -363,8 +380,8 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
             }
             List<PreparedRange> result = new ArrayList<>();
             for (GpuRigidData.Range range : data.ranges()) {
-                GpuDeviceAdapter.Pose pose = device.uploadPose(data.pose(range));
-                ownFrameResource(pose);
+                GpuDeviceAdapter.Pose pose = acquirePose(first.lease().owner(), data.pose(range));
+                AccelerationFrameDiagnostics.poseUpload(pose.bytes(), range.parts().size(), true);
                 var prepared = new Prepared(this, first, material, entry.mesh, pose, entry.indices, indices);
                 result.add(new PreparedRange(prepared, range.firstFace(), range.faceCount()));
             }
@@ -403,6 +420,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
                         context, firstIndex, indexCount, issuing);
             }
             draws++;
+            AccelerationFrameDiagnostics.draw(prepared.batch.semantics().material());
             return DrawResult.DRAWN;
         } catch (Stale ignored) {
             return DrawResult.STALE;
@@ -422,6 +440,8 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
             return;
         }
         frame++;
+        updatePoseDemand();
+        retirePoses();
         List<GpuDeviceAdapter.Resource> retired = new ArrayList<>(frameResources);
         frameResources.clear();
         frameUploadBytes = 0;
@@ -475,6 +495,12 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         ready = false;
         cpuBackend = null;
         List<GpuDeviceAdapter.Resource> retired = new ArrayList<>(frameResources);
+        retired.addAll(framePoses);
+        for (Map<Long, ArrayDeque<GpuDeviceAdapter.Pose>> ownerPool : freePoses.values()) {
+            for (ArrayDeque<GpuDeviceAdapter.Pose> free : ownerPool.values()) {
+                retired.addAll(free);
+            }
+        }
         for (Entry entry : meshes.values()) {
             retired.add(entry.mesh);
         }
@@ -485,6 +511,10 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         meshes.clear();
         groups.clear();
         frameResources.clear();
+        framePoses.clear();
+        freePoses.clear();
+        poseOwners.clear();
+        pooledPoses = 0;
         materials.clear();
         groupMaterials.clear();
         pendingMaterials.clear();
@@ -521,6 +551,96 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         frameResources.add(resource);
         residentBytes += resource.bytes();
         frameUploadBytes += resource.bytes();
+    }
+
+    /** Overwrites a fence-completed buffer of the same owner and layout size, or uploads a new one. */
+    private GpuDeviceAdapter.Pose acquirePose(AccelerationOwner owner, ByteBuffer data) {
+        long size = data.remaining();
+        Map<Long, ArrayDeque<GpuDeviceAdapter.Pose>> ownerPool = freePoses.get(owner);
+        ArrayDeque<GpuDeviceAdapter.Pose> free = ownerPool == null ? null : ownerPool.get(size);
+        GpuDeviceAdapter.Pose pooled = free == null ? null : free.pollFirst();
+        if (pooled != null) {
+            pooledPoses--;
+            boolean updated;
+            try {
+                updated = device.updatePose(pooled, data.duplicate());
+            } catch (RuntimeException failure) {
+                retire(List.of(pooled));
+                throw failure;
+            }
+            if (updated) {
+                // Already counted in residentBytes while idle; only the transfer counts toward this frame.
+                ownFramePose(owner, pooled);
+                frameUploadBytes += size;
+                return pooled;
+            }
+            retire(List.of(pooled));
+        }
+        GpuDeviceAdapter.Pose pose = device.uploadPose(data);
+        ownFramePose(owner, pose);
+        residentBytes += pose.bytes();
+        frameUploadBytes += pose.bytes();
+        return pose;
+    }
+
+    private void ownFramePose(AccelerationOwner owner, GpuDeviceAdapter.Pose pose) {
+        framePoses.add(pose);
+        poseOwners.put(pose, owner);
+    }
+
+    /**
+     * The pool never holds more buffers than one recent frame used. Demand restarts every window,
+     * so an idle surplus is released instead of being kept indefinitely.
+     */
+    private void updatePoseDemand() {
+        if (frame % POSE_DEMAND_WINDOW == 0) {
+            poseDemand = framePoses.size();
+        } else {
+            poseDemand = Math.max(poseDemand, framePoses.size());
+        }
+        List<GpuDeviceAdapter.Resource> released = new ArrayList<>();
+        var owners = freePoses.entrySet().iterator();
+        while (owners.hasNext()) {
+            var ownerPool = owners.next();
+            boolean retiredOwner = !ownerPool.getKey().isCurrent();
+            for (ArrayDeque<GpuDeviceAdapter.Pose> free : ownerPool.getValue().values()) {
+                while (!free.isEmpty() && (retiredOwner || pooledPoses > poseDemand)) {
+                    released.add(free.pollFirst());
+                    pooledPoses--;
+                }
+            }
+            ownerPool.getValue().values().removeIf(ArrayDeque::isEmpty);
+            if (ownerPool.getValue().isEmpty()) {
+                owners.remove();
+            }
+        }
+        retire(released);
+    }
+
+    private void retirePoses() {
+        if (framePoses.isEmpty()) {
+            return;
+        }
+        List<GpuDeviceAdapter.Resource> retired = new ArrayList<>(framePoses);
+        framePoses.clear();
+        retirement.retire(device, retired, this::recyclePose);
+        residentBytes -= retired.stream().mapToLong(GpuDeviceAdapter.Resource::bytes).sum();
+    }
+
+    /** Runs from retirement after the fence completed; may run after close, when it declines. */
+    private boolean recyclePose(GpuDeviceAdapter.Resource resource) {
+        AccelerationOwner owner = poseOwners.remove(resource);
+        if (closed || invalidated || owner == null || !owner.isCurrent()
+                || pooledPoses >= Math.min(MAX_POOLED_POSES, poseDemand)
+                || !(resource instanceof GpuDeviceAdapter.Pose pose)) {
+            return false;
+        }
+        freePoses.computeIfAbsent(owner, key -> new HashMap<>())
+                .computeIfAbsent(pose.bytes(), size -> new ArrayDeque<>())
+                .addLast(pose);
+        pooledPoses++;
+        residentBytes += pose.bytes();
+        return true;
     }
 
     private static void retireGroup(Entry entry, List<GpuDeviceAdapter.Resource> retired) {

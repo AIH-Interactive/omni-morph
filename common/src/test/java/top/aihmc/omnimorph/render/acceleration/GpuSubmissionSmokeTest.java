@@ -14,6 +14,10 @@ import org.figuramc.figura.math.matrix.FiguraMat3;
 import org.figuramc.figura.math.matrix.FiguraMat4;
 
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import jdk.jfr.Recording;
+import jdk.jfr.consumer.RecordingFile;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +43,36 @@ public final class GpuSubmissionSmokeTest {
         groupedCacheAndLifetimes();
         repeatedGroupedBackends();
         retirementBeforeFlush();
+        diagnosticRecording();
         System.out.println("PASS actual BufferSource ordering, rigid palettes, bounded fallback, owner retirement and 100 backend cycles; GPU pixels MANUAL/PENDING");
+    }
+
+    private static void diagnosticRecording() throws Exception {
+        Path recordingPath = Files.createTempFile("omnimorph-acceleration", ".jfr");
+        try {
+            try (Recording recording = new Recording()) {
+                recording.enable(AccelerationFrameDiagnostics.FrameEvent.class).withoutStackTrace();
+                recording.start();
+                AccelerationFrameDiagnostics.beginFrame();
+                groupedBoundary(0);
+                AccelerationFrameDiagnostics.beginFrame();
+                recording.stop();
+                recording.dump(recordingPath);
+            }
+            var events = RecordingFile.readAllEvents(recordingPath);
+            require(events.size() == 1, "one completed diagnostic frame");
+            var event = events.getFirst();
+            require(event.getLong("groupPrepareCalls") > 0 && event.getLong("rigidDataCreated") > 0,
+                    "group preparation is counted");
+            require(event.getLong("poseUploads") > 0 && event.getLong("poseBytes") > 0
+                            && event.getLong("draws") > 0,
+                    "actual pose uploads and GPU draws are counted");
+            require(!event.getString("paletteSizes").equals("{}") && !event.getString("materials").equals("{}"),
+                    "palette and material distributions are recorded");
+        } finally {
+            Files.deleteIfExists(recordingPath);
+            AccelerationFrameDiagnostics.beginFrame();
+        }
     }
 
     private static void opaqueBoundary() {

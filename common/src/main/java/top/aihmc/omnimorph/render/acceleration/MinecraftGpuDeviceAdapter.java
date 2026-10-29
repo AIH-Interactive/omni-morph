@@ -131,7 +131,19 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
     public Pose uploadPose(ByteBuffer data) {
         assertThread();
         long size = data.remaining();
-        return new BufferPose(device.createBuffer(() -> "OmniMorph frame pose", GpuBuffer.USAGE_UNIFORM, data), size);
+        return new BufferPose(device.createBuffer(() -> "OmniMorph frame pose",
+                GpuBuffer.USAGE_UNIFORM | GpuBuffer.USAGE_COPY_DST, data), size);
+    }
+
+    @Override
+    public boolean updatePose(Pose pose, ByteBuffer data) {
+        assertThread();
+        BufferPose existing = (BufferPose) pose;
+        if (existing.bytes() != data.remaining() || existing.buffer().isClosed()) {
+            return false;
+        }
+        device.createCommandEncoder().writeToBuffer(existing.buffer().slice(), data);
+        return true;
     }
 
     @Override

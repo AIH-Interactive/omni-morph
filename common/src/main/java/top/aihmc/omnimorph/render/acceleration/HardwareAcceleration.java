@@ -39,6 +39,7 @@ public final class HardwareAcceleration {
     }
 
     public static void beginFrame() {
+        AccelerationFrameDiagnostics.beginFrame();
         GpuSubmission.beginFrame();
         try {
             GpuRetirement.GLOBAL.poll();

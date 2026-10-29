@@ -99,6 +99,7 @@ public final class GpuSubmission {
                 || material.mode() != VertexFormat.Mode.QUADS || material.format() != DefaultVertexFormat.ENTITY
                 || !GpuShaderProgram.supports(material.pipeline()) || nativeSource.fixedBuffers.containsKey(material)
                 || batch.semantics().texture() == null || batch.semantics().texture().getNamespace().equals("minecraft")) {
+            AccelerationFrameDiagnostics.fallback("OFFER_INELIGIBLE");
             return false;
         }
         if (!service.isCurrent(batch.lease())) {
@@ -108,6 +109,7 @@ public final class GpuSubmission {
         Boundary boundary = boundaries.get(material);
         if (boundary == null) {
             if (boundaries.size() >= 256) {
+                AccelerationFrameDiagnostics.fallback(FallbackReason.RESOURCE_EXHAUSTED.name());
                 return false;
             }
             boundary = new Boundary(material);
