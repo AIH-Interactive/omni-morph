@@ -78,7 +78,61 @@ public final class GpuRigidDataSmokeTest {
         System.out.println("PASS rigid palette deduplication, 64-part ranges, exact face order, packed remap, bounds and frame accounting");
         testLayoutReuse(batches, data);
         testPoseViews(batches.get(1));
+        testRangeVariants(batches);
         testStaticValidationReuse(service, owner, material);
+    }
+
+    private static void testRangeVariants(List<DrawBatch> batches) {
+        var pair = new GpuRigidData(batches.subList(0, 2), new long[]{0, 1L << 32});
+        var range = pair.ranges().getFirst();
+        require(range.parts().size() == 2 && GpuBatchData.tierFor(range.parts().size()) == 8,
+                "a two-part palette selects the eight-part variant");
+        var full = pair.pose(range);
+        var small = pair.pose(range, 8);
+        require(small.remaining() == GpuRigidData.poseBytes(8) && small.remaining() < full.remaining(),
+                "the eight-part variant uploads fewer bytes than the full block");
+        for (int slot = 0; slot < range.parts().size(); slot++) {
+            for (int offset = 0; offset < GpuBatchData.PART_BYTES; offset += Float.BYTES) {
+                int position = slot * GpuBatchData.PART_BYTES + offset;
+                require(small.getFloat(position) == full.getFloat(position), "palette parts are packed identically");
+            }
+        }
+        for (int offset = 0; offset < 48; offset += Integer.BYTES) {
+            require(small.getInt(GpuBatchData.parameterOffset(8) + offset)
+                            == full.getInt(GpuBatchData.PARAMETER_OFFSET + offset),
+                    "parameters follow the variant's last part");
+        }
+        for (int offset = 0; offset < GpuRigidData.MAX_BATCHES; offset += Integer.BYTES) {
+            require(small.getInt(GpuRigidData.remapOffset(8) + offset) == full.getInt(GpuRigidData.REMAP_OFFSET + offset),
+                    "the remap table follows the variant parameters unchanged");
+        }
+        try {
+            pair.pose(range, 1);
+            throw new AssertionError("A variant smaller than the palette must reject");
+        } catch (IllegalArgumentException expected) {
+            // The backend never selects a variant that cannot hold the palette.
+        }
+        require(GpuBatchData.tierFor(1) == 1 && GpuBatchData.tierFor(9) == 32 && GpuBatchData.tierFor(64) == 64,
+                "tiers select the smallest holding variant");
+        try {
+            GpuBatchData.tierFor(65);
+            throw new AssertionError("More than 64 parts must reject");
+        } catch (IllegalArgumentException expected) {
+            // Palettes are split at 64 parts before reaching a pose block.
+        }
+        String shader = GpuShaderProgram.wrapRigidEntitySource("""
+                #version 330
+                in vec3 Position;
+                in vec3 Normal;
+                in vec2 UV0;
+                in vec4 Color;
+                in ivec2 UV1;
+                in ivec2 UV2;
+                void main() { gl_Position = vec4(Position, 1.0); }
+                """, 8);
+        require(shader.contains("OmniParts[8];") && shader.contains("OmniRemap[256];"),
+                "the variant shader declares exactly the packed part capacity");
+        System.out.println("PASS pose block variants: tier selection, packed sizes, parameter/remap offsets and shader capacity");
     }
 
     private static void testPoseViews(DrawBatch batch) {

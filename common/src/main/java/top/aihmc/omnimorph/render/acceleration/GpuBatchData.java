@@ -10,9 +10,34 @@ final class GpuBatchData {
     static final int VERTEX_BYTES = 64;
     static final int PARAMETER_OFFSET = MAX_PARTS * PART_BYTES;
     static final int POSE_BYTES = PARAMETER_OFFSET + 48;
+    /** Part capacities of the pose block variants; the last one is the full layout every material has. */
+    static final int[] PART_TIERS = {1, 8, 32, MAX_PARTS};
     private static final int[] ATTRIBUTES = {0, 1, 2, 4, 5, 6, 7, 8};
 
     private GpuBatchData() {
+    }
+
+    /** Smallest variant holding the given number of parts. */
+    static int tierFor(int parts) {
+        for (int tier : PART_TIERS) {
+            if (parts <= tier) {
+                return tier;
+            }
+        }
+        throw new IllegalArgumentException("Pose block exceeds " + MAX_PARTS + " parts: " + parts);
+    }
+
+    static int parameterOffset(int tier) {
+        return tier * PART_BYTES;
+    }
+
+    static int poseBytes(int tier) {
+        return parameterOffset(tier) + 48;
+    }
+
+    /** Parts one ordinary batch reads: the model transform plus, when skinned in double precision, its joints. */
+    static int partsUsed(PoseSnapshot pose) {
+        return pose.skinJointCount() > 0 && !pose.usesFloatPrecision() ? pose.skinJointCount() + 1 : 1;
     }
 
     static boolean supports(DrawBatch batch) {
@@ -100,14 +125,24 @@ final class GpuBatchData {
     }
 
     static ByteBuffer pose(DrawBatch batch) {
-        ByteBuffer data = direct(POSE_BYTES);
+        return pose(batch, MAX_PARTS);
+    }
+
+    /** Packs the pose block for a variant of {@code tier} parts; the tier must hold {@link #partsUsed}. */
+    static ByteBuffer pose(DrawBatch batch, int tier) {
         PoseSnapshot pose = batch.pose();
+        if (partsUsed(pose) > tier) {
+            throw new IllegalArgumentException("Pose block variant too small for the batch joints");
+        }
+        ByteBuffer data = direct(poseBytes(tier));
         writePart(data, pose);
-        for (int joint = 0; joint < pose.skinJointCount(); joint++) {
+        // Float-precision joints are never read by the shader; smaller variants simply omit them.
+        int joints = Math.min(pose.skinJointCount(), tier - 1);
+        for (int joint = 0; joint < joints; joint++) {
             data.position((joint + 1) * PART_BYTES);
             write(data, pose.skinDelta(joint));
         }
-        data.position(PARAMETER_OFFSET);
+        data.position(parameterOffset(tier));
         writeParameters(data, batch);
         return data.flip();
     }

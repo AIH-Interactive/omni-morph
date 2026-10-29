@@ -42,6 +42,14 @@ interface GpuDeviceAdapter {
         throw new UnsupportedOperationException("Rigid group pipeline unavailable");
     }
 
+    /**
+     * Compiles a pose block variant holding {@code parts} parts (one of {@link GpuBatchData#PART_TIERS}).
+     * Devices without smaller variants keep using the full layout.
+     */
+    default Material compileVariant(RenderPipeline original, boolean grouped, int parts) {
+        throw new UnsupportedOperationException("Pose block variants unavailable");
+    }
+
     Mesh uploadGeometry(ByteBuffer vertices, ByteBuffer indices);
 
     Pose uploadPose(ByteBuffer data);

@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.function.BiFunction;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.List;
@@ -31,6 +32,8 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
     private final BiFunction<Identifier, ShaderType, String> sources;
     private final Map<RenderPipeline, Material> compiled = new IdentityHashMap<>();
     private final Map<RenderPipeline, Material> compiledGroups = new IdentityHashMap<>();
+    // Smaller pose block variants: at most three per full-layout pipeline, under their own budget.
+    private final Map<VariantKey, Material> compiledVariants = new HashMap<>();
     private RenderPipeline diagnosticPipeline;
     private RenderPipeline diagnosticGroupPipeline;
 
@@ -89,6 +92,25 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         return compile(original, true);
     }
 
+    @Override
+    public Material compileVariant(RenderPipeline original, boolean grouped, int parts) {
+        if (parts == GpuBatchData.MAX_PARTS) {
+            return compile(original, grouped);
+        }
+        assertThread();
+        var key = new VariantKey(original, grouped, parts);
+        Material existing = compiledVariants.get(key);
+        if (existing != null) {
+            return existing;
+        }
+        if (compiledVariants.size() >= 3 * 64) {
+            throw new IllegalStateException("Acceleration pose variant cache budget exhausted");
+        }
+        Material material = build(original, grouped, parts);
+        compiledVariants.put(key, material);
+        return material;
+    }
+
     private Material compile(RenderPipeline original, boolean grouped) {
         assertThread();
         Map<RenderPipeline, Material> cache = grouped ? compiledGroups : compiled;
@@ -99,18 +121,28 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         if (compiled.size() + compiledGroups.size() >= 64) {
             throw new IllegalStateException("Acceleration pipeline cache budget exhausted");
         }
+        Material material = build(original, grouped, GpuBatchData.MAX_PARTS);
+        cache.put(original, material);
+        return material;
+    }
+
+    private Material build(RenderPipeline original, boolean grouped, int parts) {
+        String variant = parts == GpuBatchData.MAX_PARTS ? "" : "/parts_" + parts;
         Identifier location = Identifier.fromNamespaceAndPath("omni-morph", "acceleration/" + original.getLocation().getNamespace()
-                + "/" + original.getLocation().getPath() + (grouped ? "/rigid_group" : ""));
+                + "/" + original.getLocation().getPath() + (grouped ? "/rigid_group" : "") + variant);
         String originalSource = sources.apply(original.getVertexShader(), ShaderType.VERTEX);
-        String source = grouped ? GpuShaderProgram.wrapRigidEntitySource(originalSource) : GpuShaderProgram.wrapEntitySource(originalSource);
+        String source = grouped
+                ? GpuShaderProgram.wrapRigidEntitySource(originalSource, parts)
+                : GpuShaderProgram.wrapEntitySource(originalSource, parts);
         RenderPipeline accelerated = GpuShaderProgram.pipeline(original, location);
         if (!device.precompilePipeline(accelerated, (id, type) -> id.equals(location) && type == ShaderType.VERTEX
                 ? source : sources.apply(id, type)).isValid()) {
             throw new IllegalStateException("Acceleration entity shader validation failed");
         }
-        Material material = new Material(original, accelerated);
-        cache.put(original, material);
-        return material;
+        return new Material(original, accelerated);
+    }
+
+    private record VariantKey(RenderPipeline original, boolean grouped, int parts) {
     }
 
     @Override

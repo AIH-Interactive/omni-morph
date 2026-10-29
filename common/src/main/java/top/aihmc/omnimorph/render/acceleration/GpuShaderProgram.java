@@ -29,7 +29,7 @@ final class GpuShaderProgram {
                 vec4 uv2;
             };
             layout(std140) uniform OmniMorphPose {
-                OmniPart OmniParts[64];
+                OmniPart OmniParts[OMNI_PARTS];
                 vec4 OmniTint;
                 ivec4 OmniOverlayLight;
                 vec4 OmniOptions;
@@ -118,12 +118,29 @@ final class GpuShaderProgram {
     }
 
     static String wrapEntitySource(String original) {
-        return wrapEntitySource(original, DECLARATIONS, MAIN_BODY);
+        return wrapEntitySource(original, GpuBatchData.MAX_PARTS);
+    }
+
+    /** {@code parts} sizes the pose block; it must be one of {@link GpuBatchData#PART_TIERS}. */
+    static String wrapEntitySource(String original, int parts) {
+        return wrapEntitySource(original, declarations(parts), MAIN_BODY);
     }
 
     static String wrapRigidEntitySource(String original) {
-        String declarations = DECLARATIONS.replace("vec4 OmniOptions;", "vec4 OmniOptions;\n    ivec4 OmniRemap[256];");
+        return wrapRigidEntitySource(original, GpuBatchData.MAX_PARTS);
+    }
+
+    static String wrapRigidEntitySource(String original, int parts) {
+        String declarations = declarations(parts)
+                .replace("vec4 OmniOptions;", "vec4 OmniOptions;\n    ivec4 OmniRemap[256];");
         return wrapEntitySource(original, declarations, RIGID_MAIN_BODY);
+    }
+
+    private static String declarations(int parts) {
+        if (GpuBatchData.tierFor(parts) != parts) {
+            throw new IllegalArgumentException("Unsupported pose block variant: " + parts);
+        }
+        return DECLARATIONS.replace("OMNI_PARTS", Integer.toString(parts));
     }
 
     private static String wrapEntitySource(String original, String declarations, String body) {

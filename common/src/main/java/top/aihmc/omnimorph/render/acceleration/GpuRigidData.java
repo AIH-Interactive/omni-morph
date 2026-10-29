@@ -14,6 +14,14 @@ final class GpuRigidData {
     static final int MAX_BATCHES = 4096;
     static final int REMAP_OFFSET = GpuBatchData.POSE_BYTES;
     static final int POSE_BYTES = REMAP_OFFSET + MAX_BATCHES;
+
+    static int remapOffset(int tier) {
+        return GpuBatchData.poseBytes(tier);
+    }
+
+    static int poseBytes(int tier) {
+        return remapOffset(tier) + MAX_BATCHES;
+    }
     private static final int[] ATTRIBUTES = {0, 1, 2, 4, 5, 6, 7, 8};
 
     record Range(int firstFace, int faceCount, List<Integer> parts) {
@@ -223,7 +231,15 @@ final class GpuRigidData {
     }
 
     ByteBuffer pose(Range range) {
-        ByteBuffer data = direct(POSE_BYTES);
+        return pose(range, GpuBatchData.MAX_PARTS);
+    }
+
+    /** Packs one range for a pose block variant of {@code tier} parts; the tier must hold the range palette. */
+    ByteBuffer pose(Range range, int tier) {
+        if (range.parts().size() > tier) {
+            throw new IllegalArgumentException("Pose block variant too small for the range palette");
+        }
+        ByteBuffer data = direct(poseBytes(tier));
         int[] slots = new int[parts.size()];
         for (int slot = 0; slot < range.parts().size(); slot++) {
             int part = range.parts().get(slot);
@@ -231,14 +247,14 @@ final class GpuRigidData {
             data.position(slot * GpuBatchData.PART_BYTES);
             data.put(parts.get(part).duplicate());
         }
-        data.position(GpuBatchData.PARAMETER_OFFSET);
+        data.position(GpuBatchData.parameterOffset(tier));
         GpuBatchData.writeParameters(data, batches.getFirst());
         // Four byte-sized slots share one integer; four integers share each std140 ivec4.
         int[] packed = new int[MAX_BATCHES / 4];
         for (int batch = 0; batch < batchParts.length; batch++) {
             packed[batch / 4] |= slots[batchParts[batch]] << ((batch % 4) * 8);
         }
-        data.position(REMAP_OFFSET);
+        data.position(remapOffset(tier));
         for (int value : packed) {
             data.putInt(value);
         }

@@ -89,6 +89,9 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         }
     }
 
+    private record VariantKey(RenderPipeline pipeline, boolean grouped, int parts) {
+    }
+
     private static final class GroupKey {
         private final long owner;
         private final List<MeshHandle> meshes;
@@ -150,6 +153,9 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
     private final Map<RenderPipeline, GpuDeviceAdapter.Material> materials = new IdentityHashMap<>();
     private final Map<RenderPipeline, GpuDeviceAdapter.Material> groupMaterials = new IdentityHashMap<>();
     private final Map<RenderPipeline, Boolean> pendingMaterials = new LinkedHashMap<>();
+    // Smaller pose block variants: false waits for compilation, true marks a failed compile.
+    private final Map<VariantKey, GpuDeviceAdapter.Material> variants = new HashMap<>();
+    private final Map<VariantKey, Boolean> pendingVariants = new LinkedHashMap<>();
     private final List<GpuDeviceAdapter.Resource> frameResources = new ArrayList<>();
     // Pose buffers return here only after their retirement fence completed; idle ones count as resident.
     private static final int MAX_POOLED_POSES = 256;
@@ -314,14 +320,18 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
             cacheHits++;
         }
         entry.lastFrame = frame;
+        RenderPipeline pipeline = batch.semantics().material().pipeline();
+        int tier = variantTier(pipeline, false, GpuBatchData.partsUsed(batch.pose()));
+        GpuDeviceAdapter.Material material = tier == GpuBatchData.MAX_PARTS
+                ? materials.get(pipeline) : variants.get(new VariantKey(pipeline, false, tier));
         GpuDeviceAdapter.Pose pose;
         try {
-            pose = acquirePose(batch.lease().owner(), GpuBatchData.pose(batch));
+            pose = acquirePose(batch.lease().owner(), GpuBatchData.pose(batch, tier));
             AccelerationFrameDiagnostics.poseUpload(pose.bytes(), 0, false);
         } catch (RuntimeException failure) {
             throw new Failure(FallbackReason.RESOURCE_EXHAUSTED, false, failure);
         }
-        return new Prepared(this, batch, materials.get(batch.semantics().material().pipeline()), entry.mesh, pose, entry.indices);
+        return new Prepared(this, batch, material, entry.mesh, pose, entry.indices);
     }
 
     List<PreparedRange> prepareGroup(List<DrawBatch> batches, long[] order, BooleanSupplier current) {
@@ -391,9 +401,13 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
             }
             List<PreparedRange> result = new ArrayList<>();
             for (GpuRigidData.Range range : data.ranges()) {
-                GpuDeviceAdapter.Pose pose = acquirePose(first.lease().owner(), data.pose(range));
+                RenderPipeline pipeline = first.semantics().material().pipeline();
+                int tier = variantTier(pipeline, true, range.parts().size());
+                GpuDeviceAdapter.Material rangeMaterial = tier == GpuBatchData.MAX_PARTS
+                        ? material : variants.get(new VariantKey(pipeline, true, tier));
+                GpuDeviceAdapter.Pose pose = acquirePose(first.lease().owner(), data.pose(range, tier));
                 AccelerationFrameDiagnostics.poseUpload(pose.bytes(), range.parts().size(), true);
-                var prepared = new Prepared(this, first, material, entry.mesh, pose, entry.indices, indices);
+                var prepared = new Prepared(this, first, rangeMaterial, entry.mesh, pose, entry.indices, indices);
                 result.add(new PreparedRange(prepared, range.firstFace(), range.faceCount()));
             }
             return List.copyOf(result);
@@ -485,9 +499,40 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
                 } catch (RuntimeException failure) {
                     material.setValue(true);
                 }
-                break;
+                return;
             }
         }
+        compilePendingVariant();
+    }
+
+    /** Smaller pose block variants share the same one-compile-per-frame bound; failures keep the full layout. */
+    private void compilePendingVariant() {
+        for (var variant : pendingVariants.entrySet()) {
+            if (!variant.getValue()) {
+                VariantKey key = variant.getKey();
+                try {
+                    variants.put(key, device.compileVariant(key.pipeline(), key.grouped(), key.parts()));
+                    pendingVariants.remove(key);
+                } catch (RuntimeException failure) {
+                    variant.setValue(true);
+                }
+                return;
+            }
+        }
+    }
+
+    /** Smallest compiled variant for the parts; a missing one is queued while the full layout draws. */
+    private int variantTier(RenderPipeline pipeline, boolean grouped, int parts) {
+        int tier = GpuBatchData.tierFor(parts);
+        if (tier == GpuBatchData.MAX_PARTS) {
+            return tier;
+        }
+        var key = new VariantKey(pipeline, grouped, tier);
+        if (variants.containsKey(key)) {
+            return tier;
+        }
+        pendingVariants.putIfAbsent(key, false);
+        return GpuBatchData.MAX_PARTS;
     }
 
     @Override
@@ -529,6 +574,8 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         materials.clear();
         groupMaterials.clear();
         pendingMaterials.clear();
+        variants.clear();
+        pendingVariants.clear();
     }
 
     long drawCount() {
