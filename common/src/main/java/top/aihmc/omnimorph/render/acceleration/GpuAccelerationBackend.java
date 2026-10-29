@@ -130,6 +130,8 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         long lastFrame;
         // Rigid groups only: the authored-order index buffer, owned and retired with the mesh.
         GpuDeviceAdapter.Indices authoredIndices;
+        // Rigid groups only: pose-independent order structure, retired with the entry.
+        GpuRigidData.Layout layout;
 
         Entry(DrawBatch batch, GpuDeviceAdapter.Mesh mesh, int indices, long frame) {
             owner = batch.lease().owner();
@@ -164,6 +166,8 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
     private long draws;
     private long uploads;
     private long cacheHits;
+    private long groupLayoutBuilds;
+    private long groupRangeBuilds;
     private int initializationStep;
     private boolean ready;
     private boolean closed;
@@ -340,10 +344,16 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         if (!device.isCurrent()) {
             throw new Failure(FallbackReason.GPU_UNAVAILABLE, false, null);
         }
-        var data = new GpuRigidData(batches, order);
-        AccelerationFrameDiagnostics.rigidDataCreated();
         var key = new GroupKey(batches);
         Entry entry = groups.get(key);
+        var data = new GpuRigidData(batches, order, entry == null ? null : entry.layout);
+        AccelerationFrameDiagnostics.rigidDataCreated();
+        if (!data.layoutReused()) {
+            groupLayoutBuilds++;
+        }
+        if (!data.rangesReused()) {
+            groupRangeBuilds++;
+        }
         long geometryBytes = entry == null ? data.geometryBytes() : 0;
         // Authored order is fixed by the cached geometry, so its index buffer is uploaded once per group.
         boolean authored = data.authoredOrder();
@@ -366,6 +376,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
                 AccelerationFrameDiagnostics.groupGeometryCacheHit();
             }
             entry.lastFrame = frame;
+            entry.layout = data.layout();
             GpuDeviceAdapter.Indices indices;
             if (reuseIndices) {
                 indices = entry.authoredIndices;
@@ -530,6 +541,14 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
 
     long cacheHits() {
         return cacheHits;
+    }
+
+    long groupLayoutBuilds() {
+        return groupLayoutBuilds;
+    }
+
+    long groupRangeBuilds() {
+        return groupRangeBuilds;
     }
 
     boolean supportsRigidGroups() {

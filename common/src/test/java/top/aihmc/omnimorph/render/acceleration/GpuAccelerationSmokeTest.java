@@ -287,6 +287,8 @@ public final class GpuAccelerationSmokeTest {
         var second = gpu.prepareGroup(moved, authored, () -> true);
         require(second != null && device.indexUploads == 1 && gpu.geometryUploads() == 1,
                 "stable authored group reuses geometry and indices when only poses change");
+        require(gpu.groupLayoutBuilds() == 1 && gpu.groupRangeBuilds() == 1,
+                "a stable group rebuilds neither its layout nor its ranges when only poses change");
 
         gpu.beginFrame();
         require(gpu.prepareGroup(batches, reversed, () -> true) != null && device.indexUploads == 2,
@@ -294,6 +296,7 @@ public final class GpuAccelerationSmokeTest {
         gpu.beginFrame();
         require(gpu.prepareGroup(batches, reversed, () -> true) != null && device.indexUploads == 3,
                 "sorted indices are not cached across frames");
+        require(gpu.groupLayoutBuilds() == 2, "a changed sort order rebuilds the layout once, then reuses it");
         require(gpu.prepareGroup(batches, authored, () -> true) != null && device.indexUploads == 3,
                 "the authored buffer survives interleaved sorted frames");
 
