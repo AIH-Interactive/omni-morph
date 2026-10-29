@@ -17,6 +17,10 @@ public final class PoseSnapshot {
     private final FiguraMat3 uv;
     private final FiguraMat4[] skinDeltas;
     private final int normalPolicy;
+    private volatile double[] positionView;
+    private volatile double[] normalView;
+    private volatile double[] uvView;
+    private volatile double[][] skinViews;
 
     public PoseSnapshot(FiguraMat4 position, FiguraMat3 normal) {
         this(position, normal, FiguraMat3.of(), null);
@@ -195,23 +199,63 @@ public final class PoseSnapshot {
     }
 
     public double[] copyPositionMatrix() {
-        if (floatPose == null) {
-            return matrix4(position);
-        }
-        float[] values = floatPose.pose().get(new float[16]);
-        return widen(values);
+        return positionMatrix().clone();
     }
 
     public double[] copyNormalMatrix() {
-        return floatPose == null ? matrix3(normal) : widen(floatPose.normal().get(new float[9]));
+        return normalMatrix().clone();
     }
 
     public double[] copyUvMatrix() {
-        return matrix3(uv);
+        return uvMatrix().clone();
     }
 
     public double[] copySkinDelta(int joint) {
-        return matrix4(skinDeltas[joint]);
+        return skinDelta(joint).clone();
+    }
+
+    /*
+     * Read-only views for this package's validation and packing. The snapshot is immutable, so each view is
+     * built at most once per snapshot and published through a volatile field. Callers must not modify them.
+     */
+
+    double[] positionMatrix() {
+        double[] view = positionView;
+        if (view == null) {
+            view = floatPose == null ? matrix4(position) : widen(floatPose.pose().get(new float[16]));
+            positionView = view;
+        }
+        return view;
+    }
+
+    double[] normalMatrix() {
+        double[] view = normalView;
+        if (view == null) {
+            view = floatPose == null ? matrix3(normal) : widen(floatPose.normal().get(new float[9]));
+            normalView = view;
+        }
+        return view;
+    }
+
+    double[] uvMatrix() {
+        double[] view = uvView;
+        if (view == null) {
+            view = matrix3(uv);
+            uvView = view;
+        }
+        return view;
+    }
+
+    double[] skinDelta(int joint) {
+        double[][] views = skinViews;
+        if (views == null) {
+            views = new double[skinDeltas.length][];
+            for (int index = 0; index < skinDeltas.length; index++) {
+                views[index] = matrix4(skinDeltas[index]);
+            }
+            skinViews = views;
+        }
+        return views[joint];
     }
 
     /** A detached copy retains vanilla's normal normalization policy. */

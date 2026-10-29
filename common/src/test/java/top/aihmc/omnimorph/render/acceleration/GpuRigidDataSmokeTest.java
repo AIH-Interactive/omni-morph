@@ -77,7 +77,28 @@ public final class GpuRigidDataSmokeTest {
         }
         System.out.println("PASS rigid palette deduplication, 64-part ranges, exact face order, packed remap, bounds and frame accounting");
         testLayoutReuse(batches, data);
+        testPoseViews(batches.get(1));
         testStaticValidationReuse(service, owner, material);
+    }
+
+    private static void testPoseViews(DrawBatch batch) {
+        PoseSnapshot pose = batch.pose();
+        require(pose.positionMatrix() == pose.positionMatrix() && pose.normalMatrix() == pose.normalMatrix()
+                        && pose.uvMatrix() == pose.uvMatrix(),
+                "validation and packing read one cached matrix view per snapshot");
+        double[] copy = pose.copyPositionMatrix();
+        require(copy != pose.positionMatrix() && copy[12] == pose.positionMatrix()[12], "public copies stay detached");
+        copy[12] = 1234;
+        require(pose.positionMatrix()[12] != 1234 && pose.copyPositionMatrix()[12] != 1234,
+                "modifying a public copy never reaches the immutable snapshot");
+
+        var nonFinite = new DrawBatch(batch.lease(), batch.mesh(),
+                new PoseSnapshot(FiguraMat4.of().translate(Double.NaN, 0, 0), FiguraMat3.of()), batch.semantics());
+        var overflow = new DrawBatch(batch.lease(), batch.mesh(),
+                new PoseSnapshot(FiguraMat4.of().translate(Float.MAX_VALUE, 0, 0), FiguraMat3.of()), batch.semantics());
+        require(GpuBatchData.supports(batch) && !GpuBatchData.supports(nonFinite) && !GpuBatchData.supports(overflow),
+                "NaN and out-of-range poses are still rejected through the cached views");
+        System.out.println("PASS read-only pose views, detached public copies and non-finite/overflow rejection");
     }
 
     private static void testLayoutReuse(List<DrawBatch> batches, GpuRigidData previous) {
