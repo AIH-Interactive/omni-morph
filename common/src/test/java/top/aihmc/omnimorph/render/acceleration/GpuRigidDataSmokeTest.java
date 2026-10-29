@@ -76,7 +76,39 @@ public final class GpuRigidDataSmokeTest {
             // Invalid indices cannot reach a GPU upload.
         }
         System.out.println("PASS rigid palette deduplication, 64-part ranges, exact face order, packed remap, bounds and frame accounting");
+        testLayoutReuse(batches, data);
         testStaticValidationReuse(service, owner, material);
+    }
+
+    private static void testLayoutReuse(List<DrawBatch> batches, GpuRigidData previous) {
+        long[] sorted = new long[batches.size()];
+        for (int index = 0; index < sorted.length; index++) {
+            sorted[index] = (long) (sorted.length - index - 1) << 32;
+        }
+        var stable = new GpuRigidData(batches, sorted, previous.layout());
+        require(stable.layoutReused() && stable.rangesReused() && stable.ranges() == previous.ranges(),
+                "an unchanged order and part sharing reuse layout and ranges");
+
+        List<DrawBatch> shared = new ArrayList<>(batches);
+        shared.set(1, new DrawBatch(batches.get(1).lease(), batches.get(1).mesh(),
+                batches.get(0).pose(), batches.get(0).semantics()));
+        var resharing = new GpuRigidData(shared, sorted, stable.layout());
+        require(resharing.layoutReused() && !resharing.rangesReused(),
+                "a changed part sharing pattern rebuilds ranges on the cached layout");
+        var restored = new GpuRigidData(batches, sorted, resharing.layout());
+        require(!restored.rangesReused() && restored.ranges().size() == 3,
+                "restored sharing rebuilds ranges again instead of keeping stale palettes");
+
+        long[] reordered = sorted.clone();
+        long swap = reordered[0];
+        reordered[0] = reordered[1];
+        reordered[1] = swap;
+        var moved = new GpuRigidData(batches, reordered, restored.layout());
+        require(!moved.layoutReused() && !moved.rangesReused() && moved.layout() != restored.layout(),
+                "a changed face order builds a new layout");
+        var indices = moved.indices();
+        require(indices.getInt(0) == 128 * 4, "the new layout drives index generation");
+        System.out.println("PASS rigid group layout reuse and invalidation by face order and part sharing");
     }
 
     private static void testStaticValidationReuse(AccelerationService service, AccelerationOwner owner,

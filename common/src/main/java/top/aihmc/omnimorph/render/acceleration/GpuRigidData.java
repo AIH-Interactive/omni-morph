@@ -3,6 +3,7 @@ package top.aihmc.omnimorph.render.acceleration;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -21,25 +22,61 @@ final class GpuRigidData {
         }
     }
 
+    /**
+     * Pose-independent structure of one cached group. It stays valid while the group geometry (enforced by
+     * the cache key) and the sorted face order are unchanged; ranges are reused while parts are shared the
+     * same way. Owned by a single render-thread cache entry.
+     */
+    static final class Layout {
+        private final long[] order;
+        private final int[] vertexOffsets;
+        private final int vertices;
+        private final boolean authored;
+        private int[] batchParts;
+        private List<Range> ranges;
+
+        private Layout(List<DrawBatch> batches, long[] order) {
+            this.order = order.clone();
+            vertexOffsets = new int[batches.size()];
+            int vertexCount = 0;
+            for (int index = 0; index < batches.size(); index++) {
+                vertexOffsets[index] = vertexCount;
+                vertexCount = Math.addExact(vertexCount, batches.get(index).mesh().vertexCount());
+            }
+            vertices = vertexCount;
+            for (long face : order) {
+                int batchIndex = (int) (face >>> 32);
+                int localFace = (int) face;
+                if (batchIndex < 0 || batchIndex >= batches.size() || localFace < 0
+                        || localFace >= batches.get(batchIndex).mesh().faceCount()) {
+                    throw new IllegalArgumentException("Sorted rigid face outside its authored batch");
+                }
+            }
+            authored = authoredOrder(batches, order);
+        }
+
+        private boolean matches(long[] candidate) {
+            return Arrays.equals(order, candidate);
+        }
+    }
+
     private final List<DrawBatch> batches;
-    private final long[] order;
-    private final int[] vertexOffsets;
+    private final Layout layout;
     private final int[] batchParts;
     private final List<ByteBuffer> parts = new ArrayList<>();
-    private final List<Range> ranges = new ArrayList<>();
-    private final int vertices;
+    private final boolean layoutReused;
+    private final boolean rangesReused;
 
     GpuRigidData(List<DrawBatch> batches, long[] order) {
+        this(batches, order, null);
+    }
+
+    GpuRigidData(List<DrawBatch> batches, long[] order, Layout previous) {
         this.batches = List.copyOf(batches);
-        this.order = order.clone();
-        vertexOffsets = new int[batches.size()];
         batchParts = new int[batches.size()];
         Map<ByteBuffer, Integer> unique = new HashMap<>();
-        int vertexCount = 0;
         for (int index = 0; index < batches.size(); index++) {
             DrawBatch batch = batches.get(index);
-            vertexOffsets[index] = vertexCount;
-            vertexCount = Math.addExact(vertexCount, batch.mesh().vertexCount());
             ByteBuffer part = ByteBuffer.allocate(GpuBatchData.PART_BYTES).order(ByteOrder.nativeOrder());
             GpuBatchData.writePart(part, batch.pose());
             // std140 padding carries options specific to this rigid part; xyz matrix components stay unchanged.
@@ -55,17 +92,21 @@ final class GpuRigidData {
             }
             batchParts[index] = id;
         }
-        vertices = vertexCount;
+        layoutReused = previous != null && previous.vertexOffsets.length == batches.size() && previous.matches(order);
+        layout = layoutReused ? previous : new Layout(batches, order);
+        rangesReused = Arrays.equals(layout.batchParts, batchParts);
+        if (!rangesReused) {
+            layout.ranges = buildRanges(layout.order, batchParts);
+            layout.batchParts = batchParts.clone();
+        }
+    }
+
+    private static List<Range> buildRanges(long[] order, int[] batchParts) {
+        List<Range> ranges = new ArrayList<>();
         Map<Integer, Integer> palette = new LinkedHashMap<>();
         int first = 0;
         for (int face = 0; face < order.length; face++) {
-            int batchIndex = (int) (order[face] >>> 32);
-            int localFace = (int) order[face];
-            if (batchIndex < 0 || batchIndex >= batches.size() || localFace < 0
-                    || localFace >= batches.get(batchIndex).mesh().faceCount()) {
-                throw new IllegalArgumentException("Sorted rigid face outside its authored batch");
-            }
-            int part = batchParts[batchIndex];
+            int part = batchParts[(int) (order[face] >>> 32)];
             if (!palette.containsKey(part) && palette.size() == GpuBatchData.MAX_PARTS) {
                 ranges.add(new Range(first, face - first, new ArrayList<>(palette.keySet())));
                 palette.clear();
@@ -76,8 +117,20 @@ final class GpuRigidData {
         if (!palette.isEmpty()) {
             ranges.add(new Range(first, order.length - first, new ArrayList<>(palette.keySet())));
         }
+        return List.copyOf(ranges);
     }
 
+    Layout layout() {
+        return layout;
+    }
+
+    boolean layoutReused() {
+        return layoutReused;
+    }
+
+    boolean rangesReused() {
+        return rangesReused;
+    }
     static boolean supports(List<DrawBatch> batches) {
         if (batches.isEmpty() || batches.size() > MAX_BATCHES) {
             return false;
@@ -101,11 +154,11 @@ final class GpuRigidData {
     }
 
     List<Range> ranges() {
-        return List.copyOf(ranges);
+        return layout.ranges;
     }
 
     long geometryBytes() {
-        return (long) vertices * GpuBatchData.VERTEX_BYTES + 6 * Integer.BYTES;
+        return (long) layout.vertices * GpuBatchData.VERTEX_BYTES + 6 * Integer.BYTES;
     }
 
     long frameBytes() {
@@ -113,15 +166,19 @@ final class GpuRigidData {
     }
 
     long indexBytes() {
-        return (long) order.length * 6 * Integer.BYTES;
+        return (long) layout.order.length * 6 * Integer.BYTES;
     }
 
     long poseBytes() {
-        return (long) ranges.size() * POSE_BYTES;
+        return (long) layout.ranges.size() * POSE_BYTES;
     }
 
     /** True when faces follow batch then local face order, which the group geometry alone determines. */
     boolean authoredOrder() {
+        return layout.authored;
+    }
+
+    private static boolean authoredOrder(List<DrawBatch> batches, long[] order) {
         int index = 0;
         for (int batch = 0; batch < batches.size(); batch++) {
             int faceCount = batches.get(batch).mesh().faceCount();
@@ -136,7 +193,7 @@ final class GpuRigidData {
     }
 
     ByteBuffer vertices() {
-        ByteBuffer data = direct(Math.multiplyExact(vertices, GpuBatchData.VERTEX_BYTES));
+        ByteBuffer data = direct(Math.multiplyExact(layout.vertices, GpuBatchData.VERTEX_BYTES));
         for (int index = 0; index < batches.size(); index++) {
             MeshHandle mesh = batches.get(index).mesh();
             for (int vertex = 0; vertex < mesh.vertexCount(); vertex++) {
@@ -151,9 +208,9 @@ final class GpuRigidData {
     }
 
     ByteBuffer indices() {
-        ByteBuffer data = direct(Math.multiplyExact(order.length, 6 * Integer.BYTES));
-        for (long face : order) {
-            int vertex = vertexOffsets[(int) (face >>> 32)] + (int) face * 4;
+        ByteBuffer data = direct(Math.multiplyExact(layout.order.length, 6 * Integer.BYTES));
+        for (long face : layout.order) {
+            int vertex = layout.vertexOffsets[(int) (face >>> 32)] + (int) face * 4;
             data.putInt(vertex).putInt(vertex + 1).putInt(vertex + 2);
             data.putInt(vertex).putInt(vertex + 2).putInt(vertex + 3);
         }
