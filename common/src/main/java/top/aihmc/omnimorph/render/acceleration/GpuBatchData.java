@@ -35,6 +35,27 @@ final class GpuBatchData {
         return parameterOffset(tier) + 48;
     }
 
+    /** std430 storage block header: the same 48 parameter bytes, placed before the unsized part array. */
+    static final int STORAGE_HEADER_BYTES = 48;
+
+    static int storagePoseBytes(int parts) {
+        return STORAGE_HEADER_BYTES + parts * PART_BYTES;
+    }
+
+    /** Writes the storage block of one batch at the target position and advances past it. */
+    static void writeStoragePose(ByteBuffer target, DrawBatch batch) {
+        PoseSnapshot pose = batch.pose();
+        int start = target.position();
+        writeParameters(target, batch);
+        writePart(target, pose);
+        int joints = partsUsed(pose) - 1;
+        for (int joint = 0; joint < joints; joint++) {
+            target.position(start + STORAGE_HEADER_BYTES + (joint + 1) * PART_BYTES);
+            write(target, pose.skinDelta(joint));
+        }
+        target.position(start + storagePoseBytes(partsUsed(pose)));
+    }
+
     /** Parts one ordinary batch reads: the model transform plus, when skinned in double precision, its joints. */
     static int partsUsed(PoseSnapshot pose) {
         return pose.skinJointCount() > 0 && !pose.usesFloatPrecision() ? pose.skinJointCount() + 1 : 1;

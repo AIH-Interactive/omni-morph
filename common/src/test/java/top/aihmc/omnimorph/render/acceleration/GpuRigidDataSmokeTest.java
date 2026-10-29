@@ -7,6 +7,8 @@ import net.minecraft.server.Bootstrap;
 import org.figuramc.figura.math.matrix.FiguraMat3;
 import org.figuramc.figura.math.matrix.FiguraMat4;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -79,7 +81,75 @@ public final class GpuRigidDataSmokeTest {
         testLayoutReuse(batches, data);
         testPoseViews(batches.get(1));
         testRangeVariants(batches);
+        testStorageLayout(batches);
         testStaticValidationReuse(service, owner, material);
+    }
+
+    private static final String PROBE_SOURCE = """
+            #version 330
+            in vec3 Position;
+            in vec3 Normal;
+            in vec2 UV0;
+            in vec4 Color;
+            in ivec2 UV1;
+            in ivec2 UV2;
+            void main() { gl_Position = vec4(Position, 1.0); }
+            """;
+
+    private static void testStorageLayout(List<DrawBatch> batches) {
+        String enabled = GpuShaderProgram.enableStorage(PROBE_SOURCE);
+        require(enabled.startsWith("#version 330\n#extension GL_ARB_shader_storage_buffer_object : require\n"
+                        + "#extension GL_ARB_shading_language_420pack : require\n"),
+                "storage extensions follow the original version directive before any declaration");
+        String modern = PROBE_SOURCE.replace("#version 330", "#version 430 core");
+        require(GpuShaderProgram.enableStorage(modern).equals(modern), "GLSL 4.30 sources need no extensions");
+        try {
+            GpuShaderProgram.enableStorage("void main() {}");
+            throw new AssertionError("A source without #version must reject");
+        } catch (IllegalArgumentException expected) {
+            // Extension placement is only defined relative to the version directive.
+        }
+
+        String entity = GpuShaderProgram.wrapStorageEntitySource(PROBE_SOURCE);
+        require(entity.contains("layout(std430, binding = 6) readonly buffer OmniMorphPoseBlock {")
+                        && entity.contains("OmniPart OmniParts[];") && !entity.contains("uniform OmniMorphPose")
+                        && !entity.contains("OmniMorphRemapBlock"),
+                "the entity storage variant declares only the unsized pose block");
+        String rigid = GpuShaderProgram.wrapStorageRigidEntitySource(PROBE_SOURCE);
+        require(rigid.contains("layout(std430, binding = 7) readonly buffer OmniMorphRemapBlock {")
+                        && rigid.contains("int packedRemap = int(OmniRemap[globalPart / 4]);")
+                        && !rigid.contains("OmniRemap[globalPart / 16]") && !rigid.contains("ivec4 OmniRemap[256]"),
+                "the rigid storage variant reads the packed remap block");
+
+        DrawBatch batch = batches.get(3);
+        ByteBuffer uniform = GpuBatchData.pose(batch);
+        ByteBuffer storage = ByteBuffer.allocate(GpuBatchData.storagePoseBytes(1)).order(ByteOrder.nativeOrder());
+        GpuBatchData.writeStoragePose(storage, batch);
+        require(storage.position() == 48 + 160, "an unskinned storage block is 208 bytes");
+        requireSame(storage, 0, uniform, GpuBatchData.PARAMETER_OFFSET, 48, "storage header holds the parameters");
+        requireSame(storage, 48, uniform, 0, GpuBatchData.PART_BYTES, "storage part follows the header");
+
+        var pair = new GpuRigidData(batches.subList(0, 2), new long[]{0, 1L << 32});
+        var range = pair.ranges().getFirst();
+        ByteBuffer groupUniform = pair.pose(range);
+        ByteBuffer groupStorage = ByteBuffer.allocate((int) pair.storagePoseBytes(range)).order(ByteOrder.nativeOrder());
+        pair.writeStoragePose(groupStorage, range);
+        require(groupStorage.position() == 48 + 2 * 160, "a two-part storage block holds exactly its palette");
+        requireSame(groupStorage, 0, groupUniform, GpuBatchData.PARAMETER_OFFSET, 48, "rigid header holds the parameters");
+        requireSame(groupStorage, 48, groupUniform, 0, 2 * GpuBatchData.PART_BYTES, "rigid palette follows the header");
+        ByteBuffer remap = ByteBuffer.allocate((int) pair.storageRemapBytes()).order(ByteOrder.nativeOrder());
+        pair.writeStorageRemap(remap, range);
+        require(remap.position() == Integer.BYTES, "two batches need one packed remap integer");
+        requireSame(remap, 0, groupUniform, GpuRigidData.REMAP_OFFSET, Integer.BYTES,
+                "storage remap bytes equal the uniform remap prefix");
+        System.out.println("PASS pose storage blocks: extension placement, std430 declarations, packed header/parts/remap bytes");
+    }
+
+    private static void requireSame(ByteBuffer actual, int actualOffset, ByteBuffer expected, int expectedOffset,
+                                    int bytes, String message) {
+        for (int offset = 0; offset < bytes; offset++) {
+            require(actual.get(actualOffset + offset) == expected.get(expectedOffset + offset), message);
+        }
     }
 
     private static void testRangeVariants(List<DrawBatch> batches) {
