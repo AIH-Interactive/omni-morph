@@ -27,6 +27,7 @@ public final class GpuAccelerationSmokeTest {
         Bootstrap.bootStrap();
         shaderContract();
         cacheAndRetirement();
+        poseReuseAfterFence();
         boundsAndLifetimes();
         failureRouting(false);
         failureRouting(true);
@@ -117,6 +118,37 @@ public final class GpuAccelerationSmokeTest {
         require(device.liveBytes == 0 && retirement.bytes() == 0, "fence completion releases every geometry and pose exactly once");
         controller.request(false, CapabilityReport.Mode.GPU);
         controller.beginFrame();
+    }
+
+    private static void poseReuseAfterFence() {
+        var device = new FakeDevice();
+        var retirement = new GpuRetirement();
+        var gpu = ready(device, retirement, 1_000_000);
+        var service = new AccelerationService();
+        var owner = new AccelerationOwner();
+        service.useBackend(gpu);
+
+        require(service.tryDraw(batch(service, owner, quad(1), 1, material()), CONTEXT)
+                == GpuAccelerationBackend.DrawResult.DRAWN, "first pose draws");
+        FakeResource firstPose = device.lastPose;
+        service.beginFrame();
+        require(service.tryDraw(batch(service, owner, quad(1), 2, material()), CONTEXT)
+                == GpuAccelerationBackend.DrawResult.DRAWN, "second pose draws");
+        FakeResource secondPose = device.lastPose;
+        require(secondPose != firstPose && firstPose.data.getFloat(12 * 4) == 1,
+                "unsignalled fence prevents reuse and preserves the first pose");
+
+        device.complete = true;
+        service.beginFrame();
+        require(service.tryDraw(batch(service, owner, quad(1), 3, material()), CONTEXT)
+                == GpuAccelerationBackend.DrawResult.DRAWN, "completed pose draws again");
+        require((device.lastPose == firstPose || device.lastPose == secondPose)
+                        && device.lastPose.data.getFloat(12 * 4) == 3,
+                "completed pose buffer is reused with updated contents");
+
+        service.useBackend(null);
+        retirement.poll();
+        require(device.liveBytes == 0, "closing the backend releases pooled and in-flight resources");
     }
 
     private static void boundsAndLifetimes() {
@@ -413,6 +445,18 @@ public final class GpuAccelerationSmokeTest {
                 throw new IllegalStateException("injected pose allocation failure");
             }
             return lastPose = new FakeResource(this, data, data.remaining());
+        }
+
+        @Override
+        public boolean updatePose(Pose pose, ByteBuffer data) {
+            FakeResource existing = (FakeResource) pose;
+            if (existing.closed || existing.data.capacity() != data.remaining()) {
+                return false;
+            }
+            existing.data.clear();
+            existing.data.put(data.duplicate()).flip();
+            lastPose = existing;
+            return true;
         }
 
         @Override

@@ -209,6 +209,9 @@ public final class AccelerationService {
         } catch (RuntimeException | LinkageError cleanupFailure) {
             failure.addSuppressed(cleanupFailure);
         }
+        FallbackReason reason = failure instanceof GpuAccelerationBackend.Failure gpuFailure
+                ? gpuFailure.reason : FallbackReason.RUNTIME_FAILURE;
+        AccelerationFrameDiagnostics.fallback(reason.name());
         notify.accept(failure);
     }
 }
