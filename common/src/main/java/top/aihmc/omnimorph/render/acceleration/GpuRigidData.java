@@ -240,25 +240,59 @@ final class GpuRigidData {
             throw new IllegalArgumentException("Pose block variant too small for the range palette");
         }
         ByteBuffer data = direct(poseBytes(tier));
-        int[] slots = new int[parts.size()];
         for (int slot = 0; slot < range.parts().size(); slot++) {
-            int part = range.parts().get(slot);
-            slots[part] = slot;
             data.position(slot * GpuBatchData.PART_BYTES);
-            data.put(parts.get(part).duplicate());
+            data.put(parts.get(range.parts().get(slot)).duplicate());
         }
         data.position(GpuBatchData.parameterOffset(tier));
         GpuBatchData.writeParameters(data, batches.getFirst());
         // Four byte-sized slots share one integer; four integers share each std140 ivec4.
-        int[] packed = new int[MAX_BATCHES / 4];
-        for (int batch = 0; batch < batchParts.length; batch++) {
-            packed[batch / 4] |= slots[batchParts[batch]] << ((batch % 4) * 8);
-        }
+        int[] packed = packedRemap(range, MAX_BATCHES / 4);
         data.position(remapOffset(tier));
         for (int value : packed) {
             data.putInt(value);
         }
         return data.flip();
+    }
+
+    long storagePoseBytes(Range range) {
+        return GpuBatchData.storagePoseBytes(range.parts().size());
+    }
+
+    /** The storage remap block holds only the integers this group's batches occupy. */
+    long storageRemapBytes() {
+        return (long) remapInts() * Integer.BYTES;
+    }
+
+    /** Writes the std430 pose block of one range (header, then its palette) and advances past it. */
+    void writeStoragePose(ByteBuffer target, Range range) {
+        GpuBatchData.writeParameters(target, batches.getFirst());
+        for (int slot = 0; slot < range.parts().size(); slot++) {
+            target.put(parts.get(range.parts().get(slot)).duplicate());
+        }
+    }
+
+    /** Writes the packed batch-to-slot remap of one range and advances past it. */
+    void writeStorageRemap(ByteBuffer target, Range range) {
+        for (int value : packedRemap(range, remapInts())) {
+            target.putInt(value);
+        }
+    }
+
+    private int remapInts() {
+        return (batchParts.length + 3) / 4;
+    }
+
+    private int[] packedRemap(Range range, int ints) {
+        int[] slots = new int[parts.size()];
+        for (int slot = 0; slot < range.parts().size(); slot++) {
+            slots[range.parts().get(slot)] = slot;
+        }
+        int[] packed = new int[ints];
+        for (int batch = 0; batch < batchParts.length; batch++) {
+            packed[batch / 4] |= slots[batchParts[batch]] << ((batch % 4) * 8);
+        }
+        return packed;
     }
 
     private static boolean same(float first, float second) {

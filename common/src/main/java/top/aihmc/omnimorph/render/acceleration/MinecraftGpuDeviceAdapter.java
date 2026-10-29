@@ -16,6 +16,7 @@ import org.figuramc.figura.math.matrix.FiguraMat3;
 import org.figuramc.figura.math.matrix.FiguraMat4;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
@@ -34,8 +35,11 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
     private final Map<RenderPipeline, Material> compiledGroups = new IdentityHashMap<>();
     // Smaller pose block variants: at most three per full-layout pipeline, under their own budget.
     private final Map<VariantKey, Material> compiledVariants = new HashMap<>();
+    private final Map<RenderPipeline, Material> compiledStorage = new IdentityHashMap<>();
+    private final Map<RenderPipeline, Material> compiledStorageGroups = new IdentityHashMap<>();
     private RenderPipeline diagnosticPipeline;
     private RenderPipeline diagnosticGroupPipeline;
+    private GpuStorageSupport.Limits storageLimits;
 
     private record BufferMesh(GpuBuffer vertices, GpuBuffer indices, long bytes) implements Mesh {
         @Override
@@ -108,6 +112,41 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         }
         Material material = build(original, grouped, parts);
         compiledVariants.put(key, material);
+        return material;
+    }
+
+    @Override
+    public GpuStorageSupport.Limits storageLimits() {
+        return storageLimits;
+    }
+
+    @Override
+    public Material compileStorage(RenderPipeline original, boolean grouped) {
+        assertThread();
+        if (storageLimits == null) {
+            throw new IllegalStateException("Pose storage blocks were not activated");
+        }
+        Map<RenderPipeline, Material> cache = grouped ? compiledStorageGroups : compiledStorage;
+        Material existing = cache.get(original);
+        if (existing != null) {
+            return existing;
+        }
+        if (compiledStorage.size() + compiledStorageGroups.size() >= 64) {
+            throw new IllegalStateException("Acceleration storage pipeline cache budget exhausted");
+        }
+        Identifier location = Identifier.fromNamespaceAndPath("omni-morph", "acceleration/" + original.getLocation().getNamespace()
+                + "/" + original.getLocation().getPath() + (grouped ? "/rigid_group" : "") + "/storage");
+        String originalSource = sources.apply(original.getVertexShader(), ShaderType.VERTEX);
+        String source = grouped
+                ? GpuShaderProgram.wrapStorageRigidEntitySource(originalSource)
+                : GpuShaderProgram.wrapStorageEntitySource(originalSource);
+        RenderPipeline accelerated = GpuShaderProgram.pipeline(original, location, false);
+        if (!device.precompilePipeline(accelerated, (id, type) -> id.equals(location) && type == ShaderType.VERTEX
+                ? source : sources.apply(id, type)).isValid()) {
+            throw new IllegalStateException("Acceleration storage entity shader validation failed");
+        }
+        Material material = new Material(original, accelerated);
+        cache.put(original, material);
         return material;
     }
 
@@ -232,6 +271,104 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
     public void selfTest() {
         selfTest(false);
         selfTest(true);
+        storageLimits = null;
+        if (!GpuStorageSupport.requested()) {
+            return;
+        }
+        // Storage blocks are an optional layer: any failure keeps the uniform pose blocks that just passed.
+        try {
+            GpuStorageSupport.Limits limits = GpuStorageSupport.probe();
+            if (limits != null) {
+                storageSelfTest(false);
+                storageSelfTest(true);
+                storageLimits = limits;
+                org.figuramc.figura.FiguraMod.LOGGER.info("GPU pose storage blocks active (alignment {}, max block {} bytes)",
+                        limits.offsetAlignment(), limits.maxBlockBytes());
+            } else {
+                org.figuramc.figura.FiguraMod.LOGGER.info("GPU pose storage blocks unavailable: {}",
+                        GpuStorageSupport.unavailableReason());
+            }
+        } catch (RuntimeException failure) {
+            org.figuramc.figura.FiguraMod.LOGGER.warn("GPU pose storage self-test failed; uniform pose blocks remain", failure);
+        }
+    }
+
+    private void storageSelfTest(boolean grouped) {
+        assertThread();
+        Identifier location = Identifier.fromNamespaceAndPath("omni-morph",
+                "acceleration/activation_probe_storage" + (grouped ? "_rigid" : ""));
+        RenderPipeline pipeline = RenderPipeline.builder().withLocation(location).withVertexShader(location).withFragmentShader(location)
+                .withColorTargetState(ColorTargetState.DEFAULT).withDepthStencilState(Optional.empty()).withCull(false)
+                .withVertexFormat(GpuShaderProgram.format(), VertexFormat.Mode.TRIANGLES).build();
+        String vertex = grouped
+                ? GpuShaderProgram.wrapStorageRigidEntitySource(PROBE_VERTEX)
+                : GpuShaderProgram.wrapStorageEntitySource(PROBE_VERTEX);
+        if (!device.precompilePipeline(pipeline, (id, type) -> type == ShaderType.VERTEX ? vertex : PROBE_FRAGMENT).isValid()) {
+            throw new IllegalStateException("Acceleration storage diagnostic shader rejected");
+        }
+        MeshHandle mesh = probeMesh();
+        DrawBatch batch = new DrawBatch(AccelerationService.INSTANCE.capture(new AccelerationOwner(), "activation-probe"),
+                mesh, new PoseSnapshot(FiguraMat4.of().translate(0.5, 0, 0), FiguraMat3.of()));
+        GpuRigidData group = grouped ? new GpuRigidData(List.of(batch), new long[]{0}) : null;
+        ByteBuffer vertexData = grouped ? group.vertices() : GpuBatchData.vertices(mesh, 0, false);
+        ByteBuffer poseData;
+        ByteBuffer remapData = null;
+        if (grouped) {
+            var range = group.ranges().getFirst();
+            poseData = ByteBuffer.allocateDirect((int) group.storagePoseBytes(range)).order(ByteOrder.nativeOrder());
+            group.writeStoragePose(poseData, range);
+            remapData = ByteBuffer.allocateDirect((int) group.storageRemapBytes()).order(ByteOrder.nativeOrder());
+            group.writeStorageRemap(remapData, range);
+            remapData.flip();
+        } else {
+            poseData = ByteBuffer.allocateDirect(GpuBatchData.storagePoseBytes(1)).order(ByteOrder.nativeOrder());
+            GpuBatchData.writeStoragePose(poseData, batch);
+        }
+        poseData.flip();
+        long poseBytes = poseData.remaining();
+        long remapBytes = remapData == null ? 0 : remapData.remaining();
+        GpuBuffer remap = remapData == null ? null
+                : device.createBuffer(() -> "OmniMorph storage remap probe", GpuBuffer.USAGE_UNIFORM, remapData);
+        try (BufferMesh geometry = (BufferMesh) uploadGeometry(vertexData, GpuBatchData.indices(mesh));
+             GpuBuffer pose = device.createBuffer(() -> "OmniMorph storage pose probe", GpuBuffer.USAGE_UNIFORM, poseData);
+             var target = device.createTexture("OmniMorph storage diagnostic", GpuTexture.USAGE_RENDER_ATTACHMENT | GpuTexture.USAGE_COPY_SRC,
+                     TextureFormat.RGBA8, 8, 8, 1, 1);
+             var view = device.createTextureView(target);
+             var readback = device.createBuffer(() -> "OmniMorph storage pixels", GpuBuffer.USAGE_COPY_DST | GpuBuffer.USAGE_MAP_READ, 8 * 8 * 4)) {
+            var encoder = device.createCommandEncoder();
+            try (var pass = encoder.createRenderPass(() -> "OmniMorph storage self-test", view, OptionalInt.of(0xff000000))) {
+                pass.setPipeline(pipeline);
+                pass.setVertexBuffer(0, geometry.vertices());
+                pass.setIndexBuffer(geometry.indices(), VertexFormat.IndexType.INT);
+                GpuStorageSupport.bind(GpuShaderProgram.STORAGE_BINDING, pose, 0, poseBytes);
+                if (remap != null) {
+                    GpuStorageSupport.bind(GpuShaderProgram.REMAP_BINDING, remap, 0, remapBytes);
+                }
+                try {
+                    pass.drawIndexed(0, 0, 6, 1);
+                } finally {
+                    GpuStorageSupport.unbind(GpuShaderProgram.STORAGE_BINDING);
+                    GpuStorageSupport.unbind(GpuShaderProgram.REMAP_BINDING);
+                }
+            }
+            encoder.copyTextureToBuffer(target, readback, 0, () -> {}, 0);
+            try (GpuFence completed = encoder.createFence()) {
+                if (!completed.awaitCompletion(1_000_000_000L)) {
+                    throw new IllegalStateException("Acceleration storage self-test timed out");
+                }
+            }
+            RenderSystem.executePendingTasks();
+            try (var mapped = encoder.mapBuffer(readback, true, false)) {
+                ByteBuffer pixels = mapped.data();
+                if (!green(pixels, 6, 4) || green(pixels, 2, 4)) {
+                    throw new IllegalStateException("Acceleration storage self-test pixel mismatch");
+                }
+            }
+        } finally {
+            if (remap != null) {
+                remap.close();
+            }
+        }
     }
 
     private void selfTest(boolean grouped) {
@@ -249,30 +386,11 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
                 diagnosticPipeline = pipeline;
             }
         }
-        String original = """
-                #version 330
-                in vec3 Position;
-                in vec3 Normal;
-                in vec2 UV0;
-                in vec4 Color;
-                in ivec2 UV1;
-                in ivec2 UV2;
-                void main() { gl_Position = vec4(Position, 1.0); }
-                """;
-        String vertex = grouped ? GpuShaderProgram.wrapRigidEntitySource(original) : GpuShaderProgram.wrapEntitySource(original);
-        String fragment = """
-                #version 330
-                out vec4 fragColor;
-                void main() { fragColor = vec4(0.125, 0.875, 0.25, 1.0); }
-                """;
-        if (!device.precompilePipeline(pipeline, (id, type) -> type == ShaderType.VERTEX ? vertex : fragment).isValid()) {
+        String vertex = grouped ? GpuShaderProgram.wrapRigidEntitySource(PROBE_VERTEX) : GpuShaderProgram.wrapEntitySource(PROBE_VERTEX);
+        if (!device.precompilePipeline(pipeline, (id, type) -> type == ShaderType.VERTEX ? vertex : PROBE_FRAGMENT).isValid()) {
             throw new IllegalStateException("Acceleration diagnostic shader rejected");
         }
-        MeshHandle mesh = new MeshHandle(new double[]{
-                -0.5, -0.5, 0, 1, 0, 1, 0, 0, 0,
-                0.5, -0.5, 0, 1, 0, 1, 0, 1, 0,
-                0.5, 0.5, 0, 1, 0, 1, 0, 1, 1,
-                -0.5, 0.5, 0, 1, 0, 1, 0, 0, 1}, 4);
+        MeshHandle mesh = probeMesh();
         DrawBatch batch = new DrawBatch(AccelerationService.INSTANCE.capture(new AccelerationOwner(), "activation-probe"),
                 mesh, new PoseSnapshot(FiguraMat4.of().translate(0.5, 0, 0), FiguraMat3.of()));
         GpuRigidData group = grouped ? new GpuRigidData(List.of(batch), new long[]{0}) : null;
@@ -306,6 +424,31 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
                 }
             }
         }
+    }
+
+    private static final String PROBE_VERTEX = """
+            #version 330
+            in vec3 Position;
+            in vec3 Normal;
+            in vec2 UV0;
+            in vec4 Color;
+            in ivec2 UV1;
+            in ivec2 UV2;
+            void main() { gl_Position = vec4(Position, 1.0); }
+            """;
+    private static final String PROBE_FRAGMENT = """
+            #version 330
+            out vec4 fragColor;
+            void main() { fragColor = vec4(0.125, 0.875, 0.25, 1.0); }
+            """;
+
+    /** A unit quad; the probe pose moves it right by half the viewport, so only the right side turns green. */
+    private static MeshHandle probeMesh() {
+        return new MeshHandle(new double[]{
+                -0.5, -0.5, 0, 1, 0, 1, 0, 0, 0,
+                0.5, -0.5, 0, 1, 0, 1, 0, 1, 0,
+                0.5, 0.5, 0, 1, 0, 1, 0, 1, 1,
+                -0.5, 0.5, 0, 1, 0, 1, 0, 0, 1}, 4);
     }
 
     private static boolean green(ByteBuffer pixels, int x, int y) {

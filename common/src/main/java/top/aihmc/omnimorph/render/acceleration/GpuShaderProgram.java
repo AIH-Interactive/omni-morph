@@ -13,6 +13,38 @@ import java.util.Optional;
 final class GpuShaderProgram {
     static final String UNIFORM = "OmniMorphPose";
     private static final Pattern MAIN = Pattern.compile("\\bvoid\\s+main\\s*\\(\\s*\\)");
+    private static final Pattern VERSION = Pattern.compile("^[ \\t]*#version[ \\t]+(\\d+)[^\\n]*\\n", Pattern.MULTILINE);
+    /** Storage binding points stay above the low indices other renderers commonly use. */
+    static final int STORAGE_BINDING = 6;
+    static final int REMAP_BINDING = 7;
+    private static final String STORAGE_EXTENSIONS = """
+            #extension GL_ARB_shader_storage_buffer_object : require
+            #extension GL_ARB_shading_language_420pack : require
+            """;
+    private static final String UNIFORM_BLOCK = """
+            layout(std140) uniform OmniMorphPose {
+                OmniPart OmniParts[OMNI_PARTS];
+                vec4 OmniTint;
+                ivec4 OmniOverlayLight;
+                vec4 OmniOptions;
+            };
+            """;
+    private static final String STORAGE_BLOCK = """
+            layout(std430, binding = %d) readonly buffer OmniMorphPoseBlock {
+                vec4 OmniTint;
+                ivec4 OmniOverlayLight;
+                vec4 OmniOptions;
+                OmniPart OmniParts[];
+            };
+            """.formatted(STORAGE_BINDING);
+    private static final String STORAGE_REMAP_BLOCK = """
+            layout(std430, binding = %d) readonly buffer OmniMorphRemapBlock {
+                uint OmniRemap[];
+            };
+            """.formatted(REMAP_BINDING);
+    private static final String UNIFORM_REMAP_READ = "int packedRemap = OmniRemap[globalPart / 16][(globalPart / 4) % 4];";
+    // The packed bytes are identical: std140 ivec4 elements are contiguous, so ivec4 [i / 16][(i / 4) % 4] is int i / 4.
+    private static final String STORAGE_REMAP_READ = "int packedRemap = int(OmniRemap[globalPart / 4]);";
     private static final String DECLARATIONS = """
             in vec3 OmniPosition;
             in vec3 OmniNormal;
@@ -136,6 +168,42 @@ final class GpuShaderProgram {
         return wrapEntitySource(original, declarations, RIGID_MAIN_BODY);
     }
 
+    /** Pose storage block variant: header first, then an unsized part array read through raw GL bindings. */
+    static String wrapStorageEntitySource(String original) {
+        return wrapEntitySource(enableStorage(original), storageDeclarations(false), MAIN_BODY);
+    }
+
+    static String wrapStorageRigidEntitySource(String original) {
+        String body = RIGID_MAIN_BODY.replace(UNIFORM_REMAP_READ, STORAGE_REMAP_READ);
+        if (body.equals(RIGID_MAIN_BODY)) {
+            throw new IllegalStateException("Rigid remap read changed; storage variant must be updated");
+        }
+        return wrapEntitySource(enableStorage(original), storageDeclarations(true), body);
+    }
+
+    private static String storageDeclarations(boolean grouped) {
+        String declarations = DECLARATIONS.replace(UNIFORM_BLOCK, STORAGE_BLOCK);
+        if (declarations.equals(DECLARATIONS)) {
+            throw new IllegalStateException("Pose uniform block changed; storage variant must be updated");
+        }
+        return grouped ? declarations + STORAGE_REMAP_BLOCK : declarations;
+    }
+
+    /**
+     * Storage blocks need GLSL 4.30 or the SSBO and binding-layout extensions. The vanilla source keeps
+     * its version; the extension directives go directly after it, before any declaration.
+     */
+    static String enableStorage(String source) {
+        var version = VERSION.matcher(source);
+        if (!version.find()) {
+            throw new IllegalArgumentException("Entity vertex shader has no #version directive");
+        }
+        if (Integer.parseInt(version.group(1)) >= 430) {
+            return source;
+        }
+        return source.substring(0, version.end()) + STORAGE_EXTENSIONS + source.substring(version.end());
+    }
+
     private static String declarations(int parts) {
         if (GpuBatchData.tierFor(parts) != parts) {
             throw new IllegalArgumentException("Unsupported pose block variant: " + parts);
@@ -167,6 +235,11 @@ final class GpuShaderProgram {
     }
 
     static RenderPipeline pipeline(RenderPipeline original, Identifier location) {
+        return pipeline(original, location, true);
+    }
+
+    /** Storage variants must not declare the pose uniform: Blaze3D skips draws whose declared uniforms are unbound. */
+    static RenderPipeline pipeline(RenderPipeline original, Identifier location, boolean uniformPose) {
         var builder = RenderPipeline.builder().withLocation(location).withVertexShader(location)
                 .withFragmentShader(original.getFragmentShader()).withCull(original.isCull())
                 .withPolygonMode(original.getPolygonMode()).withColorTargetState(original.getColorTargetState())
@@ -182,7 +255,9 @@ final class GpuShaderProgram {
         });
         original.getSamplers().forEach(builder::withSampler);
         original.getUniforms().forEach(uniform -> builder.withUniform(uniform.name(), uniform.type()));
-        builder.withUniform(UNIFORM, UniformType.UNIFORM_BUFFER);
+        if (uniformPose) {
+            builder.withUniform(UNIFORM, UniformType.UNIFORM_BUFFER);
+        }
         return builder.build();
     }
 

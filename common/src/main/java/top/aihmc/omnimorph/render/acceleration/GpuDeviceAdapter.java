@@ -50,6 +50,16 @@ interface GpuDeviceAdapter {
         throw new UnsupportedOperationException("Pose block variants unavailable");
     }
 
+    /** Limits of pose storage blocks once probing and the self-test passed; null keeps uniform pose blocks. */
+    default GpuStorageSupport.Limits storageLimits() {
+        return null;
+    }
+
+    /** Compiles the storage block variant of an entity pipeline; only called when {@link #storageLimits()} is set. */
+    default Material compileStorage(RenderPipeline original, boolean grouped) {
+        throw new UnsupportedOperationException("Pose storage blocks unavailable");
+    }
+
     Mesh uploadGeometry(ByteBuffer vertices, ByteBuffer indices);
 
     Pose uploadPose(ByteBuffer data);

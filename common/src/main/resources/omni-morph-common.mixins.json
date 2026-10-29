@@ -36,6 +36,7 @@
     "particle.QuadParticleRenderStateMixin",
     "particle.ParticleResourcesAccessor",
     "render.AtlasManagerAccessor",
+    "render.GlBufferAccessor",
     "render.CameraRenderStateMixin",
     "render.PlayerCapeModelMixin",
     "render.feature.FeatureRendererDispatcherMixin",
