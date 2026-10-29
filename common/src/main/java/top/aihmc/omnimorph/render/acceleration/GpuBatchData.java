@@ -20,12 +20,12 @@ final class GpuBatchData {
         PoseSnapshot pose = batch.pose();
         if (mesh.vertexCount() == 0 || mesh.vertexCount() > NativeBindings.MAX_VERTICES
                 || mesh.verticesPerFace() < 3 || pose.skinJointCount() >= MAX_PARTS || pose.normalPolicy() < 0
-                || !finiteMatrix(pose.copyPositionMatrix()) || !finiteMatrix(pose.copyNormalMatrix())
-                || !finiteMatrix(pose.copyUvMatrix())) {
+                || !finiteMatrix(pose.positionMatrix()) || !finiteMatrix(pose.normalMatrix())
+                || !finiteMatrix(pose.uvMatrix())) {
             return false;
         }
         for (int joint = 0; joint < pose.skinJointCount(); joint++) {
-            if (!finiteMatrix(pose.copySkinDelta(joint))) {
+            if (!finiteMatrix(pose.skinDelta(joint))) {
                 return false;
             }
         }
@@ -47,22 +47,22 @@ final class GpuBatchData {
         }
         double skinnedMagnitude = positionMagnitude;
         for (int joint = 0; joint < pose.skinJointCount(); joint++) {
-            skinnedMagnitude = Math.max(skinnedMagnitude, bound(pose.copySkinDelta(joint), 4, positionMagnitude));
+            skinnedMagnitude = Math.max(skinnedMagnitude, bound(pose.skinDelta(joint), 4, positionMagnitude));
         }
-        double positionBound = bound(pose.copyPositionMatrix(), 4, skinnedMagnitude);
+        double positionBound = bound(pose.positionMatrix(), 4, skinnedMagnitude);
         if (skinnedMagnitude * maximumWeight > Float.MAX_VALUE / 16.0
                 || positionBound + Math.abs(batch.semantics().vertexOffset()) > Float.MAX_VALUE / 16.0
-                || bound(pose.copyNormalMatrix(), 3, normalMagnitude) > Float.MAX_VALUE / 16.0
-                || bound(pose.copyUvMatrix(), 3, uvMagnitude) > Float.MAX_VALUE / 16.0
+                || bound(pose.normalMatrix(), 3, normalMagnitude) > Float.MAX_VALUE / 16.0
+                || bound(pose.uvMatrix(), 3, uvMagnitude) > Float.MAX_VALUE / 16.0
                 || (batch.semantics().vertexOffset() != 0 && positionBound > 1e15)) {
             return false;
         }
-        if (pose.normalPolicy() == 1 && !normalizationSafe(mesh, pose.copyNormalMatrix())) {
+        if (pose.normalPolicy() == 1 && !normalizationSafe(mesh, pose.normalMatrix())) {
             return false;
         }
         DrawSemantics draw = batch.semantics();
         if (!pose.usesFloatPrecision()) {
-            double[] position = pose.copyPositionMatrix();
+            double[] position = pose.positionMatrix();
             if (position[3] != 0 || position[7] != 0 || position[11] != 0 || Math.abs(position[15]) < 1e-10) {
                 // Figura's final vertex-offset normalization includes homogeneous w even for zero offset.
                 // Keep projective/zero-w cases on Java rather than relying on undefined GPU normalize(0).
@@ -105,7 +105,7 @@ final class GpuBatchData {
         writePart(data, pose);
         for (int joint = 0; joint < pose.skinJointCount(); joint++) {
             data.position((joint + 1) * PART_BYTES);
-            write(data, pose.copySkinDelta(joint));
+            write(data, pose.skinDelta(joint));
         }
         data.position(PARAMETER_OFFSET);
         writeParameters(data, batch);
@@ -113,9 +113,9 @@ final class GpuBatchData {
     }
 
     static void writePart(ByteBuffer data, PoseSnapshot pose) {
-        write(data, pose.copyPositionMatrix());
-        writePadded3(data, pose.copyNormalMatrix());
-        writePadded3(data, pose.copyUvMatrix());
+        write(data, pose.positionMatrix());
+        writePadded3(data, pose.normalMatrix());
+        writePadded3(data, pose.uvMatrix());
     }
 
     static void writeParameters(ByteBuffer data, DrawBatch batch) {

@@ -5,6 +5,8 @@ import java.nio.ByteOrder;
 
 /** Owned, bounded JNI workspace. Construction never loads a library or touches graphics state. */
 public final class NativeSimdBackend implements AccelerationBackend {
+    private static final double[] IDENTITY_3 = {1, 0, 0, 0, 1, 0, 0, 0, 1};
+
     private final int kernel;
     private ByteBuffer input = direct(0);
     private ByteBuffer output = direct(0);
@@ -41,13 +43,13 @@ public final class NativeSimdBackend implements AccelerationBackend {
         }
         batch.pose().writeNativeVertices(batch.mesh(), input);
         matrices.clear();
-        for (double value : batch.pose().copyPositionMatrix()) {
+        for (double value : batch.pose().positionMatrix()) {
             matrices.putFloat((float) value);
         }
         // Vanilla normal normalization is preserved during packing; Figura uses its separate matrix here.
-        writeMatrix3(batch.pose().usesFloatPrecision() ? new double[]{1, 0, 0, 0, 1, 0, 0, 0, 1}
-                : batch.pose().copyNormalMatrix());
-        writeMatrix3(batch.pose().copyUvMatrix());
+        writeMatrix3(batch.pose().usesFloatPrecision() ? IDENTITY_3
+                : batch.pose().normalMatrix());
+        writeMatrix3(batch.pose().uvMatrix());
         int status = NativeBindings.transform(input, 0, NativeBindings.STRIDE_BYTES, matrices, 0,
                 output, 0, NativeBindings.STRIDE_BYTES, count, kernel, batch.pose().usesFloatPrecision() ? 2 : 0);
         if (status != 0) {
