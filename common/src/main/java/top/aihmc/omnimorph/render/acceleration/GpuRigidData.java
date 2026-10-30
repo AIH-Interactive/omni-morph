@@ -74,24 +74,29 @@ final class GpuRigidData {
     private final List<ByteBuffer> parts = new ArrayList<>();
     private final boolean layoutReused;
     private final boolean rangesReused;
+    private boolean nativePacked;
+    private RuntimeException nativePackFailure;
 
     GpuRigidData(List<DrawBatch> batches, long[] order) {
         this(batches, order, null);
     }
 
     GpuRigidData(List<DrawBatch> batches, long[] order, Layout previous) {
+        this(batches, order, previous, null);
+    }
+
+    /**
+     * {@code packer} converts the part values with native SIMD when present; any native rejection falls back
+     * to Java casts for this group, which produce the same bytes, and is reported by {@link #nativePackFailure()}.
+     */
+    GpuRigidData(List<DrawBatch> batches, long[] order, Layout previous, NativeSimdBackend packer) {
         this.batches = List.copyOf(batches);
         batchParts = new int[batches.size()];
+        ByteBuffer packed = packParts(this.batches, packer);
         Map<ByteBuffer, Integer> unique = new HashMap<>();
         for (int index = 0; index < batches.size(); index++) {
-            DrawBatch batch = batches.get(index);
-            ByteBuffer part = ByteBuffer.allocate(GpuBatchData.PART_BYTES).order(ByteOrder.nativeOrder());
-            GpuBatchData.writePart(part, batch.pose());
-            // std140 padding carries options specific to this rigid part; xyz matrix components stay unchanged.
-            part.putFloat(76, batch.pose().normalPolicy());
-            part.putFloat(92, batch.pose().usesFloatPrecision() ? 1 : 0);
-            part.putFloat(108, (float) batch.semantics().vertexOffset());
-            part.flip();
+            ByteBuffer part = packed.slice(index * GpuBatchData.PART_BYTES, GpuBatchData.PART_BYTES)
+                    .order(ByteOrder.nativeOrder());
             Integer id = unique.get(part);
             if (id == null) {
                 id = parts.size();
@@ -107,6 +112,43 @@ final class GpuRigidData {
             layout.ranges = buildRanges(layout.order, batchParts);
             layout.batchParts = batchParts.clone();
         }
+    }
+
+    private ByteBuffer packParts(List<DrawBatch> source, NativeSimdBackend packer) {
+        int count = source.size() * GpuBatchData.PART_VALUES;
+        double[] values = new double[count];
+        for (int index = 0; index < source.size(); index++) {
+            DrawBatch batch = source.get(index);
+            int offset = index * GpuBatchData.PART_VALUES;
+            GpuBatchData.partValues(values, offset, batch.pose());
+            // std140 padding carries options specific to this rigid part; xyz matrix components stay unchanged.
+            values[offset + 19] = batch.pose().normalPolicy();
+            values[offset + 23] = batch.pose().usesFloatPrecision() ? 1 : 0;
+            values[offset + 27] = batch.semantics().vertexOffset();
+        }
+        ByteBuffer packed = ByteBuffer.allocateDirect(count * Float.BYTES).order(ByteOrder.nativeOrder());
+        if (packer != null) {
+            try {
+                packer.packPoses(values, count, packed);
+                nativePacked = true;
+                return packed.flip();
+            } catch (RuntimeException failure) {
+                nativePackFailure = failure;
+                packed.clear();
+            }
+        }
+        for (double value : values) {
+            packed.putFloat((float) value);
+        }
+        return packed.flip();
+    }
+
+    boolean nativePacked() {
+        return nativePacked;
+    }
+
+    RuntimeException nativePackFailure() {
+        return nativePackFailure;
     }
 
     private static List<Range> buildRanges(long[] order, int[] batchParts) {

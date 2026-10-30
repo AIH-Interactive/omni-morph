@@ -28,7 +28,7 @@ public final class NativeAccelerationSmokeTest {
         try (URLClassLoader resources = new URLClassLoader(new java.net.URL[]{jar.toUri().toURL()}, null)) {
             var loaded = NativeLibraryLoader.load(resources, jar.getParent().resolve("smoke-cache"));
             require(loaded.platform().equals("windows-x86_64"), "local Windows platform");
-            require(NativeBindings.handshake(1) == 1 && NativeBindings.handshake(2) == -1, "bidirectional ABI");
+            require(NativeBindings.handshake(2) == 2 && NativeBindings.handshake(1) == -1, "bidirectional ABI");
             System.out.println("Loaded actual packaged JNI; capability bits=" + loaded.capabilities());
         }
         if (args[2].equals("--timing-only")) {
@@ -38,6 +38,7 @@ public final class NativeAccelerationSmokeTest {
         }
         boundaryTests();
         differentialTests();
+        packDifferentialTests();
         NativeSimdBackend nativeBackend = new NativeSimdBackend();
         AccelerationService.INSTANCE.useBackend(new AccelerationBackend() {
             @Override
@@ -201,6 +202,67 @@ public final class NativeAccelerationSmokeTest {
             }
         }
         System.out.println("PASS Java differential: rigid, five weights, separate normal/UV, negative/zero scale; kernels=" + kernels);
+    }
+
+    /** Native pose packing must equal Java float casts bit for bit, alone and inside rigid group packing. */
+    private static void packDifferentialTests() {
+        Random random = new Random(0x50414b);
+        List<Integer> kernels = new ArrayList<>(List.of(0, -1));
+        if ((NativeBindings.capabilities() & 2) != 0) {
+            kernels.add(1);
+        }
+        if ((NativeBindings.capabilities() & 4) != 0) {
+            kernels.add(2);
+        }
+        for (int count : new int[]{0, 1, 3, 4, 7, 8, 9, 40, 41 * 40, NativeBindings.MAX_PACK_VALUES}) {
+            double[] values = new double[count];
+            for (int index = 0; index < count; index++) {
+                values[index] = switch (index % 6) {
+                    case 0 -> random.nextGaussian() * 1e6;
+                    case 1 -> Math.nextUp(1.0 + 1e-8 * random.nextDouble());
+                    case 2 -> 1e-40 * random.nextDouble();
+                    case 3 -> -0.0;
+                    case 4 -> (double) Float.MAX_VALUE;
+                    default -> index;
+                };
+            }
+            for (int kernel : kernels) {
+                ByteBuffer target = ByteBuffer.allocateDirect(count * Float.BYTES + 8).order(ByteOrder.nativeOrder());
+                target.position(4);
+                new NativeSimdBackend(kernel).packPoses(values, count, target);
+                require(target.position() == 4 + count * Float.BYTES, "pack advances exactly its output");
+                for (int index = 0; index < count; index++) {
+                    require(Float.floatToRawIntBits(target.getFloat(4 + index * Float.BYTES))
+                                    == Float.floatToRawIntBits((float) values[index]),
+                            "kernel " + kernel + " differs from a Java cast at " + index);
+                }
+            }
+        }
+        try {
+            new NativeSimdBackend().packPoses(new double[]{1e300}, 1, ByteBuffer.allocateDirect(4));
+            throw new AssertionError("overflowing pose values must reject");
+        } catch (NativeSimdBackend.NativeBatchException expected) {
+            require(expected.status() == 3, "overflow reports a numerical failure");
+        }
+
+        double[] vertices = new double[4 * MeshHandle.STRIDE];
+        MeshHandle mesh = new MeshHandle(vertices, 4);
+        List<DrawBatch> batches = new ArrayList<>();
+        long[] order = new long[300];
+        for (int index = 0; index < order.length; index++) {
+            batches.add(batch(mesh, new PoseSnapshot(FiguraMat4.of().scale(1 + random.nextDouble(), 1, 1)
+                    .translate(random.nextGaussian() * 100, index, -index * 0.1), FiguraMat3.of())));
+            order[index] = (long) index << 32;
+        }
+        var java = new GpuRigidData(batches, order, null, null);
+        var simd = new GpuRigidData(batches, order, null, new NativeSimdBackend());
+        require(simd.nativePacked() && !java.nativePacked() && simd.nativePackFailure() == null,
+                "the rigid group uses native packing only when given a packer");
+        require(java.ranges().equals(simd.ranges()), "native packing keeps part deduplication and ranges");
+        for (GpuRigidData.Range range : java.ranges()) {
+            require(java.pose(range).equals(simd.pose(range)), "rigid pose blocks are byte-identical");
+        }
+        System.out.println("PASS native pose packing equals Java float casts; rigid group blocks identical; kernels=" + kernels);
     }
 
     private static void compare(double[] expected, double[] actual) {

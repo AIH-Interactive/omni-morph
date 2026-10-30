@@ -92,7 +92,7 @@ try {
         }
     }
     $manifest = Read-ArtifactText $archive 'natives/manifest.json' | ConvertFrom-Json
-    if ($manifest.abi -ne 1 -or $manifest.buildKind -cne 'ci' -or
+    if ($manifest.abi -ne 2 -or $manifest.buildKind -cne 'ci' -or
             $manifest.sourceCommit -cne $ExpectedCommit -or [string] $manifest.runId -cne $ExpectedRun) {
         throw 'Final native manifest ABI/build kind/commit/run mismatch.'
     }
@@ -100,7 +100,7 @@ try {
     $seenPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     foreach ($library in $manifest.libraries) {
         if (-not $platforms.ContainsKey($library.platform) -or -not $seenPlatforms.Add($library.platform) -or
-                $library.abi -ne 1 -or $library.sourceCommit -cne $ExpectedCommit -or
+                $library.abi -ne 2 -or $library.sourceCommit -cne $ExpectedCommit -or
                 [string] $library.runId -cne $ExpectedRun -or $library.runAttempt -ne $manifest.runAttempt -or
                 $library.sourceDirty -isnot [bool] -or $library.sourceDirty) {
             throw 'Native platform set or source identity mismatch.'

@@ -1,4 +1,4 @@
-# OmniMorph native acceleration — ABI 1
+# OmniMorph native acceleration — ABI 2
 
 H2 implements Windows x86_64 numerical transforms. The Java path remains the default;
 this directory does not implement GPU drawing. Sources are independently written;
@@ -22,6 +22,9 @@ see `NOTICE.txt` for provenance.
   independently sliced direct buffers. Failed calls do not modify output, even on numeric overflow.
 - Degenerate finite matrices are accepted when the result is finite. A normal normalization
   producing NaN/Inf rejects the batch and preserves Java fallback semantics.
+- ABI 2 adds `pack`: converts 0..163840 native-order doubles at a byte offset to float32 with
+  round-to-nearest (bit-identical to a Java `(float)` cast) using scalar/SSE2/AVX2/NEON kernels.
+  Same direct-buffer, capacity, alias and status rules; any non-finite result rejects without writing.
 - No JNI references, pointers or graphics objects survive the call. Temporary native output is bounded
   by 65536 * 36 bytes; only a complete validated result is published.
 

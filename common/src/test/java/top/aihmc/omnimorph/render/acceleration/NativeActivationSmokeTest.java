@@ -64,7 +64,7 @@ public final class NativeActivationSmokeTest {
                     && (activation.effective() == CapabilityReport.Effective.SSE2
                     || activation.effective() == CapabilityReport.Effective.AVX2
                     || activation.effective() == CapabilityReport.Effective.NEON), "actual packaged SIMD self-test before readiness");
-            require(NativeBindings.handshake(1) == 1, "loaded native handshake");
+            require(NativeBindings.handshake(NativeBindings.ABI) == NativeBindings.ABI, "loaded native handshake");
             System.out.println("PASS native activation/self-test; actual effective=" + activation.effective());
         }
         System.out.println("PASS actual loader missing library, bad ABI/hash and process architecture rejection");

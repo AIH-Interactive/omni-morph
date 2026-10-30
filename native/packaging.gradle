@@ -47,7 +47,7 @@ def assembleNative = { File baseDirectory, File artifacts, File destination, Str
     def metadata = new JsonSlurper().parse(new File(baseDirectory, 'base-manifest.json'))
     File base = new File(baseDirectory, metadata.jar as String)
     if (metadata.sourceCommit != commit || metadata.runId != runId || metadata.runAttempt != attempt
-            || metadata.sha256 != sha256(base) || metadata.abi != 1) {
+            || metadata.sha256 != sha256(base) || metadata.abi != 2) {
         throw new GradleException('Base JAR commit/run/hash/ABI mismatch')
     }
     def required = ['windows-x86_64': 'omnimorph_accel.dll', 'linux-x86_64': 'libomnimorph_accel.so',
@@ -62,13 +62,13 @@ def assembleNative = { File baseDirectory, File artifacts, File destination, Str
             throw new GradleException("Native artifact has no manifest: ${directory.name}")
         }
         def manifest = new JsonSlurper().parse(manifestFile)
-        if (manifest.abi != 1 || manifest.buildKind != 'ci' || manifest.libraries.size() != 1) {
+        if (manifest.abi != 2 || manifest.buildKind != 'ci' || manifest.libraries.size() != 1) {
             throw new GradleException('Expected one CI platform per native artifact')
         }
         def entry = manifest.libraries[0]
         String expectedPath = "natives/${entry.platform}/${required[entry.platform]}"
         if (!required.containsKey(entry.platform) || !seenPlatforms.add(entry.platform)
-                || entry.path != expectedPath || entry.abi != 1 || entry.sourceCommit != commit
+                || entry.path != expectedPath || entry.abi != 2 || entry.sourceCommit != commit
                 || entry.runId != runId || entry.runAttempt != attempt || entry.sourceDirty != false
                 || !entry.platform.endsWith('-' + entry.architecture)
                 || !(entry.sourceTreeSha256 ==~ /[0-9a-f]{64}/)
@@ -119,7 +119,7 @@ def assembleNative = { File baseDirectory, File artifacts, File destination, Str
         }
     }
     additions['natives/manifest.json'] = JsonOutput.prettyPrint(JsonOutput.toJson([
-            abi: 1, buildKind: 'ci', sourceCommit: commit, runId: runId, runAttempt: attempt,
+            abi: 2, buildKind: 'ci', sourceCommit: commit, runId: runId, runAttempt: attempt,
             libraries: entries.sort { it.platform }])).getBytes('UTF-8')
     additions['natives/NOTICE.txt'] = rootProject.file('native/NOTICE.txt').bytes
     writeNativeJar(base, destination, additions)
@@ -155,7 +155,7 @@ tasks.register('stageNativeBase') {
             identity = new JsonSlurper().parse(jar.getInputStream(jar.getEntry('fabric.mod.json')))
         }
         new File(directory, 'base-manifest.json').text = JsonOutput.prettyPrint(JsonOutput.toJson([
-                abi: 1, jar: original.name, version: identity.version, sourceCommit: commit,
+                abi: 2, jar: original.name, version: identity.version, sourceCommit: commit,
                 runId: System.getenv('GITHUB_RUN_ID') ?: '0', runAttempt: System.getenv('GITHUB_RUN_ATTEMPT') ?: '0',
                 sha256: sha256(original)]))
     }
@@ -192,7 +192,7 @@ tasks.register('nativePackagingSmokeTest') {
             File notice = new File(directory, 'natives/NOTICE.txt')
             notice.bytes = rootProject.file('native/NOTICE.txt').bytes
             def entry = [platform: platform, architecture: platform.endsWith('aarch64') ? 'aarch64' : 'x86_64',
-                         path: "natives/$platform/$name", abi: 1, sourceCommit: metadata.sourceCommit,
+                         path: "natives/$platform/$name", abi: 2, sourceCommit: metadata.sourceCommit,
                          sourceTreeSha256: '0' * 64, sourceDirty: false, toolchain: 'synthetic', minimumRuntime: 'synthetic',
                          dependencies: [], sha256: sha256(library), runId: metadata.runId, runAttempt: metadata.runAttempt]
             if (platform == 'android-aarch64') {
@@ -202,7 +202,7 @@ tasks.register('nativePackagingSmokeTest') {
                 license.text = 'synthetic license validation fixture'
                 entry.licenses = [[path: licensePath, sha256: sha256(license)]]
             }
-            new File(directory, 'natives/manifest.json').text = JsonOutput.toJson([abi: 1, buildKind: 'ci', libraries: [entry]])
+            new File(directory, 'natives/manifest.json').text = JsonOutput.toJson([abi: 2, buildKind: 'ci', libraries: [entry]])
         }
         def run = { String commit, File input = artifacts ->
             assembleNative(rootProject.file('build/native-base'), input, new File(root, 'synthetic.jar'),
@@ -283,7 +283,7 @@ tasks.register('packageLocalNative') {
         }
         def platform = manifest.libraries[0]
         def hash = HexFormat.of().formatHex(MessageDigest.getInstance('SHA-256').digest(library.bytes))
-        if (manifest.buildKind != 'local' || manifest.abi != 1 || platform.abi != 1 ||
+        if (manifest.buildKind != 'local' || manifest.abi != 2 || platform.abi != 2 ||
                 platform.platform != 'windows-x86_64' || platform.sha256 != hash ||
                 platform.path != 'natives/windows-x86_64/omnimorph_accel.dll') {
             throw new GradleException('Windows local native manifest/hash mismatch')

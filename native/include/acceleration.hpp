@@ -5,7 +5,7 @@
 
 namespace omnimorph {
 
-constexpr std::int32_t abi_version = 1;
+constexpr std::int32_t abi_version = 2;
 constexpr std::int32_t vertex_floats = 9;
 constexpr std::int32_t vertex_bytes = vertex_floats * sizeof(float);
 constexpr std::int32_t matrix_floats = 40;
@@ -62,5 +62,18 @@ void neon_kernel(const std::byte* input, std::int32_t input_stride, std::byte* o
                  std::int32_t output_stride, std::int32_t count, const Transform& transform);
 
 void finish_vertex(float* values, const Transform& transform);
+
+// ABI 2: pose packing converts double values to float32 with round-to-nearest, matching a Java (float) cast.
+constexpr std::int32_t max_pack_values = 4096 * matrix_floats;
+
+using PackKernel = void (*)(const double*, float*, std::int32_t);
+
+Status pack(Buffer input, std::int32_t input_offset, Buffer output, std::int32_t output_offset,
+            std::int32_t count, Kernel requested);
+
+void scalar_pack(const double* input, float* output, std::int32_t count);
+void sse2_pack(const double* input, float* output, std::int32_t count);
+void avx2_pack(const double* input, float* output, std::int32_t count);
+void neon_pack(const double* input, float* output, std::int32_t count);
 
 } // namespace omnimorph

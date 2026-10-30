@@ -232,6 +232,26 @@ final class GpuBatchData {
         return (int) (value * 255) / 255f;
     }
 
+    /** Values per std140/std430 part: position mat4, then normal and UV mat3 columns padded to four. */
+    static final int PART_VALUES = PART_BYTES / Float.BYTES;
+
+    /**
+     * Writes the 40 values {@link #writePart} would emit, still in double precision, so a later float cast
+     * (Java or native) produces identical bytes. Padding values are zero.
+     */
+    static void partValues(double[] target, int offset, PoseSnapshot pose) {
+        System.arraycopy(pose.positionMatrix(), 0, target, offset, 16);
+        padded3(target, offset + 16, pose.normalMatrix());
+        padded3(target, offset + 28, pose.uvMatrix());
+    }
+
+    private static void padded3(double[] target, int offset, double[] matrix) {
+        for (int column = 0; column < 3; column++) {
+            System.arraycopy(matrix, column * 3, target, offset + column * 4, 3);
+            target[offset + column * 4 + 3] = 0;
+        }
+    }
+
     private static void write(ByteBuffer data, double[] values) {
         for (double value : values) {
             data.putFloat((float) value);

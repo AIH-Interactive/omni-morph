@@ -62,3 +62,18 @@ void avx2_kernel(const std::byte* input, std::int32_t input_stride, std::byte* o
 }
 
 } // namespace omnimorph
+
+namespace omnimorph {
+
+void avx2_pack(const double* input, float* output, std::int32_t count) {
+    std::int32_t index = 0;
+    for (; index + 8 <= count; index += 8) {
+        const __m128 low = _mm256_cvtpd_ps(_mm256_loadu_pd(input + index));
+        const __m128 high = _mm256_cvtpd_ps(_mm256_loadu_pd(input + index + 4));
+        _mm256_storeu_ps(output + index, _mm256_set_m128(high, low));
+    }
+    _mm256_zeroupper();
+    scalar_pack(input + index, output + index, count - index);
+}
+
+} // namespace omnimorph

@@ -6,6 +6,7 @@ static_assert(omnimorph::abi_version == top_aihmc_omnimorph_render_acceleration_
 static_assert(omnimorph::vertex_bytes == top_aihmc_omnimorph_render_acceleration_NativeBindings_STRIDE_BYTES);
 static_assert(omnimorph::matrix_floats * sizeof(float) == top_aihmc_omnimorph_render_acceleration_NativeBindings_MATRIX_BYTES);
 static_assert(omnimorph::max_vertices == top_aihmc_omnimorph_render_acceleration_NativeBindings_MAX_VERTICES);
+static_assert(omnimorph::max_pack_values == top_aihmc_omnimorph_render_acceleration_NativeBindings_MAX_PACK_VALUES);
 #endif
 
 namespace {
@@ -76,4 +77,21 @@ Java_top_aihmc_omnimorph_render_acceleration_NativeBindings_transform(
     return static_cast<jint>(omnimorph::execute(source, input_offset, input_stride, matrix,
         matrix_offset, destination, output_offset, output_stride, count,
         static_cast<omnimorph::Kernel>(kernel), flags));
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_top_aihmc_omnimorph_render_acceleration_NativeBindings_pack(
+    JNIEnv* env, jclass, jobject input, jint input_offset, jobject output, jint output_offset,
+    jint count, jint kernel) {
+    const auto source = buffer(env, input, false);
+    const auto destination = buffer(env, output, true);
+    if (env->ExceptionCheck()) {
+        return static_cast<jint>(omnimorph::Status::invalid_argument);
+    }
+    if (input == nullptr || output == nullptr
+        || env->GetDirectBufferCapacity(input) < 0 || env->GetDirectBufferCapacity(output) < 0) {
+        return static_cast<jint>(omnimorph::Status::invalid_argument);
+    }
+    return static_cast<jint>(omnimorph::pack(source, input_offset, destination, output_offset, count,
+        static_cast<omnimorph::Kernel>(kernel)));
 }
