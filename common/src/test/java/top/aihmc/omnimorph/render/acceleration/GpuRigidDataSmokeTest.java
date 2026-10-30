@@ -81,6 +81,7 @@ public final class GpuRigidDataSmokeTest {
         testLayoutReuse(batches, data);
         testPoseViews(batches.get(1));
         testRangeVariants(batches);
+        testModelData(service, owner, material);
         testStorageLayout(batches);
         testStaticValidationReuse(service, owner, material);
     }
@@ -241,6 +242,114 @@ public final class GpuRigidDataSmokeTest {
         require(shader.contains("OmniParts[8];") && shader.contains("OmniRemap[256];"),
                 "the variant shader declares exactly the packed part capacity");
         System.out.println("PASS pose block variants: tier selection, packed sizes, parameter/remap offsets and shader capacity");
+    }
+
+    /**
+     * R4-3 M1: a model boundary mixing skinned, tinted and plain batches keeps one vertex/part/record layout whose
+     * decoded shader math reproduces the Java path for every vertex.
+     */
+    private static void testModelData(AccelerationService service, AccelerationOwner owner,
+                                      net.minecraft.client.renderer.rendertype.RenderType material) {
+        double[] vertices = new double[8 * MeshHandle.STRIDE];
+        List<MeshHandle.Influences> influences = new ArrayList<>();
+        for (int vertex = 0; vertex < 8; vertex++) {
+            vertices[vertex * MeshHandle.STRIDE] = vertex % 3 - 1;
+            vertices[vertex * MeshHandle.STRIDE + 1] = vertex * 0.25;
+            vertices[vertex * MeshHandle.STRIDE + 2] = 0.5 - vertex % 2;
+            vertices[vertex * MeshHandle.STRIDE + 3] = 1;
+            vertices[vertex * MeshHandle.STRIDE + 5] = 1;
+            influences.add(new MeshHandle.Influences(new int[]{0, 1}, new float[]{vertex % 4 + 1, 4 - vertex % 4}));
+        }
+        var skinnedMesh = new MeshHandle(vertices, 4, influences);
+        var plainMesh = new MeshHandle(vertices.clone(), 4);
+        FiguraMat4[] deltas = {FiguraMat4.of().translate(0, 1, 0), FiguraMat4.of().scale(1, 2, 1).translate(0.5, 0, 0)};
+        List<DrawBatch> model = new ArrayList<>();
+        model.add(modelBatch(service, owner, material, plainMesh,
+                new PoseSnapshot(FiguraMat4.of().translate(1, 2, 3), FiguraMat3.of()), 0x00f000a0, 1));
+        model.add(modelBatch(service, owner, material, skinnedMesh,
+                new PoseSnapshot(FiguraMat4.of().scale(2, 1, 1).translate(-1, 0, 4), FiguraMat3.of(), FiguraMat3.of(), deltas),
+                0x00f000a0, 1));
+        model.add(modelBatch(service, owner, material, plainMesh,
+                new PoseSnapshot(FiguraMat4.of().translate(0, -3, 1), FiguraMat3.of()), 0x000a00f0, 0.25f));
+        require(!GpuRigidData.supports(model) && GpuModelData.supports(model),
+                "skinning and differing light/tint reject rigid groups but not model draws");
+
+        long[] order = new long[6];
+        for (int index = 0; index < order.length; index++) {
+            order[index] = (long) (index % 3) << 32 | (index / 3);
+        }
+        var data = new GpuModelData(model, order);
+        require(data.partCount() == 3 + 2 && data.faceCount() == 6 && !data.authoredOrder()
+                        && java.util.Arrays.equals(data.encodingSignature(), new int[]{0, 2, 0}),
+                "three roots plus two skin deltas; interleaved order; joint counts in the cache signature");
+        ByteBuffer geometry = data.vertices();
+        ByteBuffer pose = ByteBuffer.allocate((int) data.storagePoseBytes()).order(ByteOrder.nativeOrder());
+        data.writeStoragePose(pose);
+        ByteBuffer records = ByteBuffer.allocate((int) data.recordBytes()).order(ByteOrder.nativeOrder());
+        data.writeRecords(records);
+        require(pose.position() == 48 + 5 * 160 && records.position() == 3 * 48, "pose and record block sizes");
+        ByteBuffer ordinary = GpuBatchData.pose(model.get(2));
+        requireSame(records, 2 * 48, ordinary, GpuBatchData.PARAMETER_OFFSET, 48,
+                "each record is exactly the ordinary batch parameter block");
+
+        int vertex = 0;
+        for (int batch = 0; batch < model.size(); batch++) {
+            double[] expected = new JavaAccelerationBackend().transform(model.get(batch));
+            for (int local = 0; local < model.get(batch).mesh().vertexCount(); local++, vertex++) {
+                int base = vertex * GpuBatchData.VERTEX_BYTES;
+                int encoded = geometry.getInt(base + 48);
+                require(encoded >>> 16 == batch, "vertex carries its batch index");
+                int record = (encoded >>> 16) * 48;
+                double[] point = {geometry.getFloat(base), geometry.getFloat(base + 4), geometry.getFloat(base + 8)};
+                if (records.getFloat(record + 40) != 0) {
+                    int[] joints = {encoded & 0xFFFF, geometry.getInt(base + 52), geometry.getInt(base + 56),
+                            geometry.getInt(base + 60)};
+                    double[] blended = new double[3];
+                    double total = 0;
+                    for (int influence = 0; influence < 4; influence++) {
+                        float weight = geometry.getFloat(base + 32 + influence * 4);
+                        if (weight > 0) {
+                            double[] moved = apply(pose, 48 + joints[influence] * 160, point);
+                            for (int axis = 0; axis < 3; axis++) {
+                                blended[axis] += moved[axis] * weight;
+                            }
+                            total += weight;
+                        }
+                    }
+                    for (int axis = 0; axis < 3; axis++) {
+                        point[axis] = blended[axis] / total;
+                    }
+                }
+                double[] transformed = apply(pose, 48 + batch * 160, point);
+                for (int axis = 0; axis < 3; axis++) {
+                    double reference = expected[local * MeshHandle.STRIDE + axis];
+                    require(Math.abs(transformed[axis] - reference) <= 1e-4 + 1e-5 * Math.abs(reference),
+                            "decoded model math matches the Java path: batch=" + batch + " vertex=" + local
+                                    + " axis=" + axis + " expected=" + reference + " actual=" + transformed[axis]);
+                }
+            }
+        }
+        var indices = data.indices();
+        require(indices.getInt(6 * Integer.BYTES) == 8, "interleaved order addresses the skinned batch's vertices");
+        System.out.println("PASS R4-3 model data: skinned/tinted/plain batches decode to the Java result in one layout");
+    }
+
+    private static DrawBatch modelBatch(AccelerationService service, AccelerationOwner owner,
+                                        net.minecraft.client.renderer.rendertype.RenderType material, MeshHandle mesh,
+                                        PoseSnapshot pose, int light, float red) {
+        var semantics = new DrawSemantics(material, Identifier.parse("omni-morph:rigid_contract"),
+                DrawSemantics.Layer.PRIMARY, "world", 0, mesh.faceCount(), light, 0, red, 1, 1, 1, 0, true);
+        return new DrawBatch(service.capture(owner, "world"), mesh, pose, semantics);
+    }
+
+    /** Column-major float mat4 at {@code offset} applied to (point, 1), as the shader does. */
+    private static double[] apply(ByteBuffer block, int offset, double[] point) {
+        double[] result = new double[3];
+        for (int row = 0; row < 3; row++) {
+            result[row] = block.getFloat(offset + row * 4) * point[0] + block.getFloat(offset + (4 + row) * 4) * point[1]
+                    + block.getFloat(offset + (8 + row) * 4) * point[2] + block.getFloat(offset + (12 + row) * 4);
+        }
+        return result;
     }
 
     private static void testPoseViews(DrawBatch batch) {
