@@ -14,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 /** Public GPU contract: immutable cached geometry, frame-owned poses and direct indexed draws. */
 public final class GpuAccelerationBackend implements AccelerationBackend {
@@ -174,6 +175,16 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
     private long cacheHits;
     private long groupLayoutBuilds;
     private long groupRangeBuilds;
+    // Pose storage blocks: optional layer above uniform pose blocks, created on first use.
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("OmniMorph/Acceleration");
+    private static final int STORAGE_VARIANT = 0;
+    private static final int MAX_STORAGE_FAILURES = 3;
+    private static final long ARENA_LIMIT_BYTES = 16L * 1024 * 1024;
+    private GpuPoseArena arena;
+    private boolean storageDisabled;
+    private int storageFailures;
+    private long storageDraws;
+    private long storageFallbacks;
     private int initializationStep;
     private boolean ready;
     private boolean closed;
@@ -300,7 +311,8 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         long geometryBytes = entry == null ? (long) batch.mesh().vertexCount() * GpuBatchData.VERTEX_BYTES
                 + (long) batch.mesh().faceCount() * (batch.mesh().verticesPerFace() - 2) * 3 * Integer.BYTES : 0;
         if (frameUploadBytes + GpuBatchData.POSE_BYTES > frameUploadBudget
-                || residentBytes + retirement.bytes() + geometryBytes + GpuBatchData.POSE_BYTES > memoryBudget) {
+                || residentBytes + storageResidentBytes() + retirement.bytes() + geometryBytes + GpuBatchData.POSE_BYTES
+                > memoryBudget) {
             AccelerationFrameDiagnostics.fallback(FallbackReason.RESOURCE_EXHAUSTED.name());
             return null;
         }
@@ -321,6 +333,15 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         }
         entry.lastFrame = frame;
         RenderPipeline pipeline = batch.semantics().material().pipeline();
+        GpuDeviceAdapter.Material storageMaterial = storageMaterial(pipeline, false);
+        if (storageMaterial != null) {
+            int bytes = GpuBatchData.storagePoseBytes(GpuBatchData.partsUsed(batch.pose()));
+            var storagePose = appendStorage(bytes, target -> GpuBatchData.writeStoragePose(target, batch), 0, null);
+            if (storagePose != null) {
+                AccelerationFrameDiagnostics.poseUpload(storagePose.bytes(), 0, false);
+                return new Prepared(this, batch, storageMaterial, entry.mesh, storagePose, entry.indices);
+            }
+        }
         int tier = variantTier(pipeline, false, GpuBatchData.partsUsed(batch.pose()));
         GpuDeviceAdapter.Material material = tier == GpuBatchData.MAX_PARTS
                 ? materials.get(pipeline) : variants.get(new VariantKey(pipeline, false, tier));
@@ -370,7 +391,8 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         boolean reuseIndices = authored && entry != null && entry.authoredIndices != null;
         long indexBytes = reuseIndices ? 0 : data.indexBytes();
         if (frameUploadBytes + indexBytes + data.poseBytes() > frameUploadBudget
-                || residentBytes + retirement.bytes() + geometryBytes + indexBytes + data.poseBytes() > memoryBudget
+                || residentBytes + storageResidentBytes() + retirement.bytes() + geometryBytes + indexBytes
+                + data.poseBytes() > memoryBudget
                 || !current.getAsBoolean()) {
             return null;
         }
@@ -400,8 +422,20 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
                 ownFrameResource(indices);
             }
             List<PreparedRange> result = new ArrayList<>();
+            RenderPipeline pipeline = first.semantics().material().pipeline();
+            GpuDeviceAdapter.Material storageMaterial = storageMaterial(pipeline, true);
             for (GpuRigidData.Range range : data.ranges()) {
-                RenderPipeline pipeline = first.semantics().material().pipeline();
+                if (storageMaterial != null) {
+                    var storagePose = appendStorage(Math.toIntExact(data.storagePoseBytes(range)),
+                            target -> data.writeStoragePose(target, range),
+                            Math.toIntExact(data.storageRemapBytes()), target -> data.writeStorageRemap(target, range));
+                    if (storagePose != null) {
+                        AccelerationFrameDiagnostics.poseUpload(storagePose.bytes(), range.parts().size(), true);
+                        var prepared = new Prepared(this, first, storageMaterial, entry.mesh, storagePose, entry.indices, indices);
+                        result.add(new PreparedRange(prepared, range.firstFace(), range.faceCount()));
+                        continue;
+                    }
+                }
                 int tier = variantTier(pipeline, true, range.parts().size());
                 GpuDeviceAdapter.Material rangeMaterial = tier == GpuBatchData.MAX_PARTS
                         ? material : variants.get(new VariantKey(pipeline, true, tier));
@@ -430,6 +464,19 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         if (!device.isCurrent()) {
             throw new Failure(FallbackReason.GPU_UNAVAILABLE, false, null);
         }
+        var storagePose = prepared.pose instanceof GpuDeviceAdapter.StoragePose arenaPose ? arenaPose : null;
+        if (storagePose != null) {
+            // Blaze3D rejects buffer writes inside a render pass, so the arena is flushed before the device opens one.
+            if (arena == null) {
+                return DrawResult.UNSUPPORTED;
+            }
+            try {
+                storagePose.storage = arena.flush();
+            } catch (RuntimeException failure) {
+                storageFailed(failure);
+                return DrawResult.UNSUPPORTED;
+            }
+        }
         boolean[] issued = {false};
         try {
             Runnable issuing = () -> {
@@ -445,11 +492,20 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
                         context, firstIndex, indexCount, issuing);
             }
             draws++;
+            if (storagePose != null) {
+                storageDraws++;
+                storageFailures = 0;
+            }
             AccelerationFrameDiagnostics.draw(prepared.batch.semantics().material());
             return DrawResult.DRAWN;
         } catch (Stale ignored) {
             return DrawResult.STALE;
         } catch (RuntimeException failure) {
+            if (storagePose != null && !issued[0]) {
+                // Nothing reached the GPU: only the storage layer is at fault, the rest falls back locally.
+                storageFailed(failure);
+                return DrawResult.UNSUPPORTED;
+            }
             throw new Failure(FallbackReason.RUNTIME_FAILURE, issued[0], failure);
         }
     }
@@ -487,6 +543,9 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
             }
         }
         retire(retired);
+        if (arena != null) {
+            arena.beginFrame();
+        }
         retirement.poll();
         // Unknown entity variants are compiled outside model traversal, one per frame; failures stay local.
         var pending = pendingMaterials.entrySet().iterator();
@@ -511,7 +570,9 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
             if (!variant.getValue()) {
                 VariantKey key = variant.getKey();
                 try {
-                    variants.put(key, device.compileVariant(key.pipeline(), key.grouped(), key.parts()));
+                    variants.put(key, key.parts() == STORAGE_VARIANT
+                            ? device.compileStorage(key.pipeline(), key.grouped())
+                            : device.compileVariant(key.pipeline(), key.grouped(), key.parts()));
                     pendingVariants.remove(key);
                 } catch (RuntimeException failure) {
                     variant.setValue(true);
@@ -533,6 +594,78 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         }
         pendingVariants.putIfAbsent(key, false);
         return GpuBatchData.MAX_PARTS;
+    }
+
+    /**
+     * The compiled storage variant of a pipeline, or null while storage blocks are inactive, disabled for this
+     * session, or the variant still waits for its compile step (it is queued here on first use).
+     */
+    private GpuDeviceAdapter.Material storageMaterial(RenderPipeline pipeline, boolean grouped) {
+        if (storageDisabled || device.storageLimits() == null) {
+            return null;
+        }
+        var key = new VariantKey(pipeline, grouped, STORAGE_VARIANT);
+        GpuDeviceAdapter.Material material = variants.get(key);
+        if (material == null) {
+            pendingVariants.putIfAbsent(key, false);
+        }
+        return material;
+    }
+
+    /** Stages a pose (and optional remap) block in the frame arena; null keeps the uniform pose path. */
+    private GpuDeviceAdapter.StoragePose appendStorage(int poseBytes, Consumer<ByteBuffer> poseWriter,
+                                                       int remapBytes, Consumer<ByteBuffer> remapWriter) {
+        if (frameUploadBytes + poseBytes + remapBytes > frameUploadBudget) {
+            storageFallbacks++;
+            return null;
+        }
+        if (arena == null) {
+            GpuStorageSupport.Limits limits = device.storageLimits();
+            arena = new GpuPoseArena(device, retirement, limits.offsetAlignment(), ARENA_LIMIT_BYTES);
+        }
+        GpuPoseArena.Slice pose = arena.append(poseBytes, poseWriter);
+        GpuPoseArena.Slice remap = null;
+        if (pose != null && remapWriter != null) {
+            remap = arena.append(remapBytes, remapWriter);
+        }
+        if (pose == null || (remapWriter != null && remap == null)) {
+            storageFallbacks++;
+            return null;
+        }
+        frameUploadBytes += poseBytes + remapBytes;
+        return new GpuDeviceAdapter.StoragePose(pose, remap);
+    }
+
+    /** Consecutive storage-only failures switch the layer off for the session; uniform pose blocks remain. */
+    private void storageFailed(RuntimeException failure) {
+        storageFallbacks++;
+        storageFailures++;
+        if (storageFailures < MAX_STORAGE_FAILURES || storageDisabled) {
+            return;
+        }
+        storageDisabled = true;
+        LOGGER.warn("GPU pose storage blocks disabled after {} failures; uniform pose blocks remain",
+                storageFailures, failure);
+        if (arena != null) {
+            arena.close();
+            arena = null;
+        }
+    }
+
+    private long storageResidentBytes() {
+        return arena == null ? 0 : arena.residentBytes();
+    }
+
+    boolean storageActive() {
+        return !storageDisabled && device.storageLimits() != null;
+    }
+
+    long storageDraws() {
+        return storageDraws;
+    }
+
+    long storageFallbacks() {
+        return storageFallbacks;
     }
 
     @Override
@@ -576,6 +709,10 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         pendingMaterials.clear();
         variants.clear();
         pendingVariants.clear();
+        if (arena != null) {
+            arena.close();
+            arena = null;
+        }
     }
 
     long drawCount() {

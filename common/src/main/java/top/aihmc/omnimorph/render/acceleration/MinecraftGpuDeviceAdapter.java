@@ -264,7 +264,8 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
                                 int firstIndex, int indexCount, Runnable issuingDraw) {
         assertThread();
         BufferMesh geometry = (BufferMesh) mesh;
-        BufferPose matrices = (BufferPose) pose;
+        StoragePose storagePose = pose instanceof StoragePose arenaPose ? arenaPose : null;
+        GpuBuffer arena = storagePose == null ? null : ((BufferStorage) storagePose.storage).buffer();
         var encoder = device.createCommandEncoder();
         try (var pass = encoder.createRenderPass(() -> "OmniMorph accelerated entity", Objects.requireNonNull(context.color()),
                 OptionalInt.empty(), context.depth(), OptionalDouble.empty())) {
@@ -274,14 +275,30 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
             }
             RenderSystem.bindDefaultUniforms(pass);
             pass.setUniform("DynamicTransforms", Objects.requireNonNull(context.dynamicTransform()));
-            pass.setUniform(GpuShaderProgram.UNIFORM, matrices.buffer());
+            if (storagePose == null) {
+                pass.setUniform(GpuShaderProgram.UNIFORM, ((BufferPose) pose).buffer());
+            }
             for (var binding : context.textures().entrySet()) {
                 pass.bindTexture(binding.getKey(), binding.getValue().textureView(), binding.getValue().sampler());
             }
             pass.setVertexBuffer(0, geometry.vertices());
             pass.setIndexBuffer(indices == null ? geometry.indices() : ((BufferIndices) indices).buffer(), VertexFormat.IndexType.INT);
             issuingDraw.run();
-            pass.drawIndexed(0, firstIndex, indexCount, 1);
+            if (storagePose == null) {
+                pass.drawIndexed(0, firstIndex, indexCount, 1);
+                return;
+            }
+            // drawIndexed executes synchronously in the GL backend, so these bindings cover exactly this draw.
+            GpuStorageSupport.bind(GpuShaderProgram.STORAGE_BINDING, arena, storagePose.pose.offset(), storagePose.pose.bytes());
+            if (storagePose.remap != null) {
+                GpuStorageSupport.bind(GpuShaderProgram.REMAP_BINDING, arena, storagePose.remap.offset(), storagePose.remap.bytes());
+            }
+            try {
+                pass.drawIndexed(0, firstIndex, indexCount, 1);
+            } finally {
+                GpuStorageSupport.unbind(GpuShaderProgram.STORAGE_BINDING);
+                GpuStorageSupport.unbind(GpuShaderProgram.REMAP_BINDING);
+            }
         }
     }
 

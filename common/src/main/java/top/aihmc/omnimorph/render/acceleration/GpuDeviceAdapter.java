@@ -59,6 +59,30 @@ interface GpuDeviceAdapter {
     interface Storage extends Resource {
     }
 
+    /**
+     * A pose living in the frame arena instead of its own buffer. The backend sets {@link #storage} after
+     * flushing the arena and before every draw; the arena owns the buffer, so closing this pose does nothing.
+     */
+    final class StoragePose implements Pose {
+        final GpuPoseArena.Slice pose;
+        final GpuPoseArena.Slice remap;
+        Storage storage;
+
+        StoragePose(GpuPoseArena.Slice pose, GpuPoseArena.Slice remap) {
+            this.pose = pose;
+            this.remap = remap;
+        }
+
+        @Override
+        public long bytes() {
+            return pose.bytes() + (remap == null ? 0 : remap.bytes());
+        }
+
+        @Override
+        public void close() {
+        }
+    }
+
     default Storage createStorage(long capacity) {
         throw new UnsupportedOperationException("Pose storage blocks unavailable");
     }
