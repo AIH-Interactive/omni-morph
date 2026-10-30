@@ -32,6 +32,7 @@ public final class GpuAccelerationSmokeTest {
         poseBlockVariants(false);
         poseBlockVariants(true);
         poseArena();
+        storageRouting();
         boundsAndLifetimes();
         failureRouting(false);
         failureRouting(true);
@@ -332,6 +333,63 @@ public final class GpuAccelerationSmokeTest {
         return new GpuAccelerationBackend(device, retirement, budget, 100_000);
     }
 
+    private static void storageRouting() {
+        var device = new FakeDevice();
+        device.storage = new GpuStorageSupport.Limits(256, 1 << 20);
+        var retirement = new GpuRetirement();
+        var gpu = ready(device, retirement, 1_000_000);
+        var service = new AccelerationService();
+        var owner = new AccelerationOwner();
+        service.useBackend(gpu);
+
+        require(service.tryDraw(batch(service, owner, quad(1), 5, material()), CONTEXT)
+                == GpuAccelerationBackend.DrawResult.DRAWN, "first draw before the storage variant compiles");
+        require(device.lastDrawnPose instanceof FakeResource && device.storageCompiles == 0,
+                "an uncompiled storage variant keeps uniform pose blocks and never compiles inside submission");
+        service.beginFrame();
+        require(device.storageCompiles == 1, "the storage variant compiles in the frame step");
+
+        require(service.tryDraw(batch(service, owner, quad(1), 7, material()), CONTEXT)
+                == GpuAccelerationBackend.DrawResult.DRAWN, "storage draw");
+        require(device.lastDrawnPose instanceof GpuDeviceAdapter.StoragePose, "the compiled variant draws from the arena");
+        var first = (GpuDeviceAdapter.StoragePose) device.lastDrawnPose;
+        var arena = (FakeResource) first.storage;
+        int header = first.pose.offset();
+        require(first.pose.bytes() == 208 && first.remap == null
+                        && arena.data.getFloat(header) == 127 / 255f
+                        && arena.data.getInt(header + 20) == 10
+                        && arena.data.getFloat(header + GpuBatchData.STORAGE_HEADER_BYTES + 12 * 4) == 7,
+                "the arena holds the std430 header followed by the batch transform");
+        require(service.tryDraw(batch(service, owner, quad(1), 9, material()), CONTEXT)
+                == GpuAccelerationBackend.DrawResult.DRAWN, "second storage draw in the same frame");
+        var second = (GpuDeviceAdapter.StoragePose) device.lastDrawnPose;
+        require(second.storage == arena && second.pose.offset() == 256 && device.storageCreates == 1
+                        && device.storageWrites.size() == 2 && device.storageWrites.get(1)[0] == 208
+                        && arena.data.getFloat(256 + GpuBatchData.STORAGE_HEADER_BYTES + 12 * 4) == 9
+                        && gpu.storageDraws() == 2,
+                "later draws share the frame arena and write only their own bytes");
+
+        device.failStorageWrite = true;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            service.beginFrame();
+            var failed = service.tryDraw(batch(service, owner, quad(1), 11, material()), CONTEXT);
+            require(failed == GpuAccelerationBackend.DrawResult.UNSUPPORTED,
+                    "a storage failure before issue stays local (attempt " + attempt + ": " + failed + ")");
+            require(service.gpuDrawEnabled(), "storage failures never disable the GPU backend");
+        }
+        require(!gpu.storageActive() && gpu.storageFallbacks() >= 3, "three consecutive failures switch storage off");
+        service.beginFrame();
+        require(service.tryDraw(batch(service, owner, quad(1), 13, material()), CONTEXT)
+                        == GpuAccelerationBackend.DrawResult.DRAWN && device.lastDrawnPose instanceof FakeResource,
+                "after storage is switched off, uniform pose blocks draw again");
+
+        service.useBackend(null);
+        device.complete = true;
+        retirement.poll();
+        require(device.liveBytes == 0, "closing releases arenas, pooled poses and geometry");
+        System.out.println("PASS pose storage routing: lazy variant, arena draws, incremental writes, local failures and fallback");
+    }
+
     private static void poseArena() {
         var device = new FakeDevice();
         var retirement = new GpuRetirement();
@@ -535,6 +593,10 @@ public final class GpuAccelerationSmokeTest {
         int drawCalls;
         boolean complete;
         int storageCreates;
+        int storageCompiles;
+        boolean failStorageWrite;
+        GpuStorageSupport.Limits storage;
+        Pose lastDrawnPose;
         final List<long[]> storageWrites = new ArrayList<>();
         boolean failCompile;
         boolean failBeforeDraw;
@@ -582,6 +644,17 @@ public final class GpuAccelerationSmokeTest {
         }
 
         @Override
+        public GpuStorageSupport.Limits storageLimits() {
+            return storage;
+        }
+
+        @Override
+        public Material compileStorage(RenderPipeline original, boolean grouped) {
+            storageCompiles++;
+            return new Material(original, original);
+        }
+
+        @Override
         public Storage createStorage(long capacity) {
             storageCreates++;
             return new FakeResource(this, ByteBuffer.allocate(Math.toIntExact(capacity)), capacity);
@@ -592,6 +665,9 @@ public final class GpuAccelerationSmokeTest {
             FakeResource arena = (FakeResource) storage;
             require(!arena.closed && offset >= 0 && offset + data.remaining() <= arena.data.capacity(),
                     "storage writes stay inside a live arena");
+            if (failStorageWrite) {
+                throw new IllegalStateException("injected storage write failure");
+            }
             storageWrites.add(new long[]{offset, data.remaining()});
             arena.data.clear();
             arena.data.position(Math.toIntExact(offset));
@@ -624,6 +700,7 @@ public final class GpuAccelerationSmokeTest {
             }
             issuingDraw.run();
             drawCalls++;
+            lastDrawnPose = pose;
             if (failAfterDraw) {
                 throw new IllegalStateException("injected post-issue failure");
             }
