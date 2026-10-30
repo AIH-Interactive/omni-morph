@@ -66,16 +66,23 @@ interface GpuDeviceAdapter {
     final class StoragePose implements Pose {
         final GpuPoseArena.Slice pose;
         final GpuPoseArena.Slice remap;
+        /** R4-3 model draws only: one record per batch. */
+        final GpuPoseArena.Slice records;
         Storage storage;
 
         StoragePose(GpuPoseArena.Slice pose, GpuPoseArena.Slice remap) {
+            this(pose, remap, null);
+        }
+
+        StoragePose(GpuPoseArena.Slice pose, GpuPoseArena.Slice remap, GpuPoseArena.Slice records) {
             this.pose = pose;
             this.remap = remap;
+            this.records = records;
         }
 
         @Override
         public long bytes() {
-            return pose.bytes() + (remap == null ? 0 : remap.bytes());
+            return pose.bytes() + (remap == null ? 0 : remap.bytes()) + (records == null ? 0 : records.bytes());
         }
 
         @Override
@@ -93,6 +100,11 @@ interface GpuDeviceAdapter {
      */
     default void writeStorage(Storage storage, long offset, ByteBuffer data) {
         throw new UnsupportedOperationException("Pose storage blocks unavailable");
+    }
+
+    /** Compiles the R4-3 model variant; only called when {@link #storageLimits()} reports model support. */
+    default Material compileStorageModel(RenderPipeline original) {
+        throw new UnsupportedOperationException("Model storage draws unavailable");
     }
 
     /** Compiles the storage block variant of an entity pipeline; only called when {@link #storageLimits()} is set. */
