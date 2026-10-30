@@ -184,11 +184,19 @@ public final class GpuSubmission {
                 return;
             }
             int remaining = 0;
-            try (Scope scope = context.apply(original)) {
+            try (Scope scope = context.apply(original);
+                 var merged = service.openMergedDraws(scope.context)) {
+                if (merged != null) {
+                    // A shared pass forbids buffer writes, so every pose is prepared before it opens.
+                    prepareInOrder(batches, order, prepared);
+                }
                 while (remaining < order.size()) {
                     Face first = order.get(remaining);
                     // Allocate in submission order. A later budget rejection must not discard earlier GPU work.
                     if (prepared[first.batch()] == null) {
+                        if (merged != null) {
+                            break;
+                        }
                         prepared[first.batch()] = service.prepareGpuDraw(batches.get(first.batch()).batch());
                         if (prepared[first.batch()] == null) {
                             break;
@@ -202,7 +210,8 @@ public final class GpuSubmission {
                         }
                         count++;
                     }
-                    var result = service.drawPrepared(prepared[first.batch()], scope.context, first.face() * 6, count * 6);
+                    var result = service.drawPrepared(prepared[first.batch()], scope.context, first.face() * 6, count * 6,
+                            merged);
                     if (result == GpuAccelerationBackend.DrawResult.UNSUPPORTED) {
                         break;
                     }
@@ -219,6 +228,22 @@ public final class GpuSubmission {
             }
         }
 
+        /**
+         * Prepares batches in the order their faces first appear and stops at the first rejection, exactly where
+         * the per-draw path would stop allocating; later faces then fall back to Java as before.
+         */
+        private void prepareInOrder(List<Queued> batches, List<Face> order, GpuAccelerationBackend.Prepared[] prepared) {
+            for (Face face : order) {
+                if (prepared[face.batch()] != null) {
+                    continue;
+                }
+                prepared[face.batch()] = service.prepareGpuDraw(batches.get(face.batch()).batch());
+                if (prepared[face.batch()] == null) {
+                    return;
+                }
+            }
+        }
+
         /** Returns -1 when the ordinary per-batch path should handle this material. */
         private int drawGroup(List<Queued> batches, long[] sorted) {
             if (batches.size() < 2 || !service.gpuRigidGroupsEnabled()) {
@@ -229,9 +254,12 @@ public final class GpuSubmission {
                 return -1;
             }
             int remaining = 0;
-            try (Scope scope = context.apply(original)) {
+            try (Scope scope = context.apply(original);
+                 var merged = service.openMergedDraws(scope.context)) {
+                // Group ranges are all prepared above, so they can share one pass.
                 for (GpuAccelerationBackend.PreparedRange range : prepared) {
-                    var result = service.drawPrepared(range.prepared(), scope.context, range.firstFace() * 6, range.faceCount() * 6);
+                    var result = service.drawPrepared(range.prepared(), scope.context, range.firstFace() * 6,
+                            range.faceCount() * 6, merged);
                     if (result == GpuAccelerationBackend.DrawResult.UNSUPPORTED) {
                         break;
                     }

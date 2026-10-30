@@ -72,6 +72,11 @@ final class GpuPoseArena {
      * Makes every staged slice readable by the GPU: creates this frame's arena on first use, sized for the
      * larger of this and the previous frame, then writes only the bytes staged since the last flush.
      */
+    /** True when slices were staged since the last flush, which a flush would write to the GPU. */
+    boolean hasPending() {
+        return !closed && flushedEnd < staging.position();
+    }
+
     GpuDeviceAdapter.Storage flush() {
         if (closed) {
             throw new IllegalStateException("Pose arena closed");

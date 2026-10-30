@@ -175,6 +175,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
     private long cacheHits;
     private long groupLayoutBuilds;
     private long groupRangeBuilds;
+    private long passes;
     // Pose storage blocks: optional layer above uniform pose blocks, created on first use.
     private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("OmniMorph/Acceleration");
     private static final int STORAGE_VARIANT = 0;
@@ -459,7 +460,59 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         }
     }
 
+    /**
+     * Consecutive draws of one material boundary sharing a render pass while their material stays the same.
+     * Opened after the boundary's preparations; any pending arena bytes close the pass before they are written.
+     */
+    final class MergedDraws implements AutoCloseable {
+        private final GpuDrawContext context;
+        private GpuDeviceAdapter.DrawPass pass;
+
+        private MergedDraws(GpuDrawContext context) {
+            this.context = context;
+        }
+
+        DrawResult draw(Prepared prepared, int firstIndex, int indexCount, BooleanSupplier current) {
+            return drawPrepared(prepared, context, firstIndex, indexCount, current, this);
+        }
+
+        private void issue(Prepared prepared, int firstIndex, int indexCount, Runnable issuing) {
+            if (pass != null && pass.material() != prepared.material) {
+                closePass();
+            }
+            if (pass == null) {
+                pass = device.openDrawPass(prepared.material, context);
+                passes++;
+                AccelerationFrameDiagnostics.pass();
+            }
+            pass.draw(prepared.mesh, prepared.pose, prepared.sortedIndices, firstIndex, indexCount, issuing);
+        }
+
+        private void closePass() {
+            if (pass != null) {
+                GpuDeviceAdapter.DrawPass open = pass;
+                pass = null;
+                open.close();
+            }
+        }
+
+        @Override
+        public void close() {
+            closePass();
+        }
+    }
+
+    MergedDraws openMergedDraws(GpuDrawContext context) {
+        device.assertThread();
+        return new MergedDraws(context);
+    }
+
     DrawResult drawPrepared(Prepared prepared, GpuDrawContext context, int firstIndex, int indexCount, BooleanSupplier current) {
+        return drawPrepared(prepared, context, firstIndex, indexCount, current, null);
+    }
+
+    private DrawResult drawPrepared(Prepared prepared, GpuDrawContext context, int firstIndex, int indexCount,
+                                    BooleanSupplier current, MergedDraws merged) {
         device.assertThread();
         if (!current.getAsBoolean()) {
             return DrawResult.STALE;
@@ -479,6 +532,9 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
             if (arena == null) {
                 return DrawResult.UNSUPPORTED;
             }
+            if (merged != null && arena.hasPending()) {
+                merged.closePass();
+            }
             try {
                 storagePose.storage = arena.flush();
             } catch (RuntimeException failure) {
@@ -494,7 +550,9 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
                 }
                 issued[0] = true;
             };
-            if (prepared.sortedIndices == null) {
+            if (merged != null) {
+                merged.issue(prepared, firstIndex, indexCount, issuing);
+            } else if (prepared.sortedIndices == null) {
                 device.draw(prepared.material, prepared.mesh, prepared.pose, context, firstIndex, indexCount, issuing);
             } else {
                 device.drawWithIndices(prepared.material, prepared.mesh, prepared.pose, prepared.sortedIndices,
@@ -511,6 +569,14 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         } catch (Stale ignored) {
             return DrawResult.STALE;
         } catch (RuntimeException failure) {
+            if (merged != null) {
+                // A failed draw must not leave its pass, or its GL state, open for the Java fallback.
+                try {
+                    merged.closePass();
+                } catch (RuntimeException closeFailure) {
+                    failure.addSuppressed(closeFailure);
+                }
+            }
             if (storagePose != null && !issued[0]) {
                 // Nothing reached the GPU: only the storage layer is at fault, the rest falls back locally.
                 storageFailed(failure);
@@ -750,6 +816,10 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
 
     long cacheHits() {
         return cacheHits;
+    }
+
+    long passCount() {
+        return passes;
     }
 
     long groupLayoutBuilds() {

@@ -33,6 +33,7 @@ final class AccelerationFrameDiagnostics {
         long arenaUploads;
         long ssboFallbacks;
         long simdPackedParts;
+        long passes;
         String skinJoints;
         String paletteSizes;
         String materials;
@@ -131,6 +132,12 @@ final class AccelerationFrameDiagnostics {
         if (onFrameThread()) {
             frame.arenaUploads++;
             frame.arenaBytes += bytes;
+        }
+    }
+
+    static void pass() {
+        if (onFrameThread()) {
+            frame.passes++;
         }
     }
 

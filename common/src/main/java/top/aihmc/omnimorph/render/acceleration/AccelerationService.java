@@ -2,6 +2,7 @@ package top.aihmc.omnimorph.render.acceleration;
 
 import java.util.Objects;
 import java.util.List;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import com.mojang.blaze3d.vertex.MeshData;
 import net.minecraft.client.renderer.rendertype.RenderType;
@@ -136,8 +137,26 @@ public final class AccelerationService {
         }
     }
 
+    /** Shared-pass draws stay opt-in until the real-window acceptance comparison decides the default. */
+    static final String MERGE_PASS_PROPERTY = "omnimorph.gpu.mergepass";
+
+    /** A shared-pass session for one material boundary, or null to keep one render pass per draw. */
+    GpuAccelerationBackend.MergedDraws openMergedDraws(GpuDrawContext context) {
+        if (!Boolean.getBoolean(MERGE_PASS_PROPERTY) || !(preferredBackend instanceof GpuAccelerationBackend gpu)) {
+            return null;
+        }
+        return gpu.openMergedDraws(context);
+    }
+
     public GpuAccelerationBackend.DrawResult drawPrepared(GpuAccelerationBackend.Prepared prepared,
                                                          GpuDrawContext context, int firstIndex, int indexCount) {
+        return drawPrepared(prepared, context, firstIndex, indexCount, null);
+    }
+
+    /** {@code merged} may be null; otherwise the draw reuses its open pass. Failure handling is identical. */
+    GpuAccelerationBackend.DrawResult drawPrepared(GpuAccelerationBackend.Prepared prepared, GpuDrawContext context,
+                                                  int firstIndex, int indexCount,
+                                                  GpuAccelerationBackend.MergedDraws merged) {
         if (!isCurrent(prepared.batch.lease())) {
             return GpuAccelerationBackend.DrawResult.STALE;
         }
@@ -145,8 +164,10 @@ public final class AccelerationService {
             return GpuAccelerationBackend.DrawResult.UNSUPPORTED;
         }
         try {
-            return prepared.backend.drawPrepared(prepared, context, firstIndex, indexCount,
-                    () -> isCurrent(prepared.batch.lease()));
+            BooleanSupplier current = () -> isCurrent(prepared.batch.lease());
+            return merged == null
+                    ? prepared.backend.drawPrepared(prepared, context, firstIndex, indexCount, current)
+                    : merged.draw(prepared, firstIndex, indexCount, current);
         } catch (GpuAccelerationBackend.Failure failure) {
             backendFailed(prepared.backend, failure);
             return failure.issued ? GpuAccelerationBackend.DrawResult.ISSUED_BEFORE_FAILURE

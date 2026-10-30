@@ -6,6 +6,7 @@ import com.mojang.blaze3d.pipeline.ColorTargetState;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.shaders.ShaderType;
 import com.mojang.blaze3d.systems.GpuDevice;
+import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.textures.TextureFormat;
@@ -262,24 +263,54 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
     @Override
     public void drawWithIndices(Material material, Mesh mesh, Pose pose, Indices indices, GpuDrawContext context,
                                 int firstIndex, int indexCount, Runnable issuingDraw) {
+        try (DrawPass pass = openDrawPass(material, context)) {
+            pass.draw(mesh, pose, indices, firstIndex, indexCount, issuingDraw);
+        }
+    }
+
+    @Override
+    public DrawPass openDrawPass(Material material, GpuDrawContext context) {
         assertThread();
-        BufferMesh geometry = (BufferMesh) mesh;
-        StoragePose storagePose = pose instanceof StoragePose arenaPose ? arenaPose : null;
-        GpuBuffer arena = storagePose == null ? null : ((BufferStorage) storagePose.storage).buffer();
-        var encoder = device.createCommandEncoder();
-        try (var pass = encoder.createRenderPass(() -> "OmniMorph accelerated entity", Objects.requireNonNull(context.color()),
-                OptionalInt.empty(), context.depth(), OptionalDouble.empty())) {
-            pass.setPipeline(material.accelerated());
-            if (context.scissorEnabled()) {
-                pass.enableScissor(context.scissorX(), context.scissorY(), context.scissorWidth(), context.scissorHeight());
+        return new BufferDrawPass(material, context);
+    }
+
+    /** Pipeline, scissor, default uniforms and textures are bound once; each draw binds only buffers and pose. */
+    private final class BufferDrawPass implements DrawPass {
+        private final Material material;
+        private final RenderPass pass;
+
+        BufferDrawPass(Material material, GpuDrawContext context) {
+            this.material = material;
+            pass = device.createCommandEncoder().createRenderPass(() -> "OmniMorph accelerated entity",
+                    Objects.requireNonNull(context.color()), OptionalInt.empty(), context.depth(), OptionalDouble.empty());
+            try {
+                pass.setPipeline(material.accelerated());
+                if (context.scissorEnabled()) {
+                    pass.enableScissor(context.scissorX(), context.scissorY(), context.scissorWidth(), context.scissorHeight());
+                }
+                RenderSystem.bindDefaultUniforms(pass);
+                pass.setUniform("DynamicTransforms", Objects.requireNonNull(context.dynamicTransform()));
+                for (var binding : context.textures().entrySet()) {
+                    pass.bindTexture(binding.getKey(), binding.getValue().textureView(), binding.getValue().sampler());
+                }
+            } catch (RuntimeException | Error failure) {
+                pass.close();
+                throw failure;
             }
-            RenderSystem.bindDefaultUniforms(pass);
-            pass.setUniform("DynamicTransforms", Objects.requireNonNull(context.dynamicTransform()));
+        }
+
+        @Override
+        public Material material() {
+            return material;
+        }
+
+        @Override
+        public void draw(Mesh mesh, Pose pose, Indices indices, int firstIndex, int indexCount, Runnable issuingDraw) {
+            assertThread();
+            BufferMesh geometry = (BufferMesh) mesh;
+            StoragePose storagePose = pose instanceof StoragePose arenaPose ? arenaPose : null;
             if (storagePose == null) {
                 pass.setUniform(GpuShaderProgram.UNIFORM, ((BufferPose) pose).buffer());
-            }
-            for (var binding : context.textures().entrySet()) {
-                pass.bindTexture(binding.getKey(), binding.getValue().textureView(), binding.getValue().sampler());
             }
             pass.setVertexBuffer(0, geometry.vertices());
             pass.setIndexBuffer(indices == null ? geometry.indices() : ((BufferIndices) indices).buffer(), VertexFormat.IndexType.INT);
@@ -289,6 +320,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
                 return;
             }
             // drawIndexed executes synchronously in the GL backend, so these bindings cover exactly this draw.
+            GpuBuffer arena = ((BufferStorage) storagePose.storage).buffer();
             GpuStorageSupport.bind(GpuShaderProgram.STORAGE_BINDING, arena, storagePose.pose.offset(), storagePose.pose.bytes());
             if (storagePose.remap != null) {
                 GpuStorageSupport.bind(GpuShaderProgram.REMAP_BINDING, arena, storagePose.remap.offset(), storagePose.remap.bytes());
@@ -299,6 +331,11 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
                 GpuStorageSupport.unbind(GpuShaderProgram.STORAGE_BINDING);
                 GpuStorageSupport.unbind(GpuShaderProgram.REMAP_BINDING);
             }
+        }
+
+        @Override
+        public void close() {
+            pass.close();
         }
     }
 
