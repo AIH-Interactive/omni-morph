@@ -37,3 +37,17 @@ void neon_kernel(const std::byte* input, std::int32_t input_stride, std::byte* o
 }
 
 } // namespace omnimorph
+
+namespace omnimorph {
+
+void neon_pack(const double* input, float* output, std::int32_t count) {
+    std::int32_t index = 0;
+    for (; index + 4 <= count; index += 4) {
+        const float32x2_t low = vcvt_f32_f64(vld1q_f64(input + index));
+        const float32x2_t high = vcvt_f32_f64(vld1q_f64(input + index + 2));
+        vst1q_f32(output + index, vcombine_f32(low, high));
+    }
+    scalar_pack(input + index, output + index, count - index);
+}
+
+} // namespace omnimorph

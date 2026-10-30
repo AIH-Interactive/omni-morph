@@ -42,3 +42,17 @@ void sse2_kernel(const std::byte* input, std::int32_t input_stride, std::byte* o
 }
 
 } // namespace omnimorph
+
+namespace omnimorph {
+
+void sse2_pack(const double* input, float* output, std::int32_t count) {
+    std::int32_t index = 0;
+    for (; index + 4 <= count; index += 4) {
+        const __m128 low = _mm_cvtpd_ps(_mm_loadu_pd(input + index));
+        const __m128 high = _mm_cvtpd_ps(_mm_loadu_pd(input + index + 2));
+        _mm_storeu_ps(output + index, _mm_movelh_ps(low, high));
+    }
+    scalar_pack(input + index, output + index, count - index);
+}
+
+} // namespace omnimorph

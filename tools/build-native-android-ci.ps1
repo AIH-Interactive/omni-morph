@@ -71,7 +71,7 @@ $entry = [ordered]@{
     architecture = 'aarch64'
     androidAbi = 'arm64-v8a'
     path = 'natives/android-aarch64/libomnimorph_accel.so'
-    abi = 1
+    abi = 2
     sourceCommit = $commit
     sourceTreeSha256 = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($sourceBytes)).ToLowerInvariant()
     sourceDirty = $false
@@ -84,6 +84,6 @@ $entry = [ordered]@{
     licenses = $licenses
     validation = 'NDK compile; Bionic/NEON core tests under qemu-user; ELF/JNI-export verification; device JNI/game MANUAL/PENDING'
 }
-@{ abi = 1; buildKind = 'ci'; libraries = @($entry) } | ConvertTo-Json -Depth 8 |
+@{ abi = 2; buildKind = 'ci'; libraries = @($entry) } | ConvertTo-Json -Depth 8 |
     Set-Content -LiteralPath (Join-Path $artifact 'natives/manifest.json') -Encoding utf8NoBOM
 Write-Output "Android native compiled and core-tested: $artifact; Android device JNI/game MANUAL/PENDING"

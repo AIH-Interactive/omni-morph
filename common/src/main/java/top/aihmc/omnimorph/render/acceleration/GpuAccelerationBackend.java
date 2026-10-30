@@ -181,6 +181,9 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
     private static final int MAX_STORAGE_FAILURES = 3;
     private static final long ARENA_LIMIT_BYTES = 16L * 1024 * 1024;
     private GpuPoseArena arena;
+    // Native SIMD pose packing stays opt-in until the real-window acceptance comparison decides the default.
+    static final String SIMD_PACK_PROPERTY = "omnimorph.gpu.simdpack";
+    private boolean simdPackDisabled;
     private boolean storageDisabled;
     private int storageFailures;
     private long storageDraws;
@@ -377,8 +380,15 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         }
         var key = new GroupKey(batches);
         Entry entry = groups.get(key);
-        var data = new GpuRigidData(batches, order, entry == null ? null : entry.layout);
+        var data = new GpuRigidData(batches, order, entry == null ? null : entry.layout, simdPacker());
         AccelerationFrameDiagnostics.rigidDataCreated();
+        if (data.nativePacked()) {
+            AccelerationFrameDiagnostics.simdPackedParts(batches.size());
+        } else if (data.nativePackFailure() != null) {
+            // Java casts already produced the identical bytes for this group; stop asking native this session.
+            simdPackDisabled = true;
+            LOGGER.warn("Native SIMD pose packing disabled; Java packing remains", data.nativePackFailure());
+        }
         if (!data.layoutReused()) {
             groupLayoutBuilds++;
         }
@@ -654,6 +664,18 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
             arena.close();
             arena = null;
         }
+    }
+
+    /** The SIMD backend packs rigid group poses only when requested, attached and not yet rejected. */
+    private NativeSimdBackend simdPacker() {
+        if (simdPackDisabled || !Boolean.getBoolean(SIMD_PACK_PROPERTY)) {
+            return null;
+        }
+        return cpuBackend instanceof NativeSimdBackend simd ? simd : null;
+    }
+
+    boolean simdPackActive() {
+        return simdPacker() != null;
     }
 
     private long storageResidentBytes() {

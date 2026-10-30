@@ -119,7 +119,7 @@ if ($Platform.StartsWith('windows-')) {
         platform = $Platform
         architecture = if ($Platform.EndsWith('aarch64')) { 'aarch64' } else { 'x86_64' }
         path = "natives/$Platform/$libraryName"
-        abi = 1
+        abi = 2
         sourceCommit = $commit
         sourceTreeSha256 = (Get-FileHash -LiteralPath native/include/acceleration.hpp -Algorithm SHA256).Hash.ToLowerInvariant()
         sourceDirty = $false
@@ -144,7 +144,7 @@ $resourceDirectory = Join-Path $artifact "natives/$Platform"
 New-Item -ItemType Directory -Force -Path $resourceDirectory | Out-Null
 Copy-Item -LiteralPath $library -Destination $resourceDirectory
 Copy-Item -LiteralPath native/NOTICE.txt -Destination (Join-Path $artifact 'natives/NOTICE.txt')
-@{ abi = 1; buildKind = 'ci'; libraries = @($entry) } | ConvertTo-Json -Depth 8 |
+@{ abi = 2; buildKind = 'ci'; libraries = @($entry) } | ConvertTo-Json -Depth 8 |
     Set-Content -LiteralPath (Join-Path $artifact 'natives/manifest.json') -Encoding utf8NoBOM
 Invoke-BuildStep 'package-smoke' 'jar' @('--create', '--file', (Join-Path $artifact 'platform-smoke.jar'), '-C', $artifact, 'natives')
 $classpath = @('build/native-interface/classes', 'build/native-interface/lib/*', (Join-Path $artifact 'platform-smoke.jar')) -join [IO.Path]::PathSeparator

@@ -32,6 +32,7 @@ final class AccelerationFrameDiagnostics {
         long arenaBytes;
         long arenaUploads;
         long ssboFallbacks;
+        long simdPackedParts;
         String skinJoints;
         String paletteSizes;
         String materials;
@@ -130,6 +131,12 @@ final class AccelerationFrameDiagnostics {
         if (onFrameThread()) {
             frame.arenaUploads++;
             frame.arenaBytes += bytes;
+        }
+    }
+
+    static void simdPackedParts(int parts) {
+        if (onFrameThread()) {
+            frame.simdPackedParts += parts;
         }
     }
 

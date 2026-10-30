@@ -94,13 +94,13 @@ try {
     $sha.Dispose()
 }
 $manifest = [ordered]@{
-    abi = 1
+    abi = 2
     buildKind = 'local'
     libraries = @([ordered]@{
         platform = 'windows-x86_64'
         architecture = 'x86_64'
         path = 'natives/windows-x86_64/omnimorph_accel.dll'
-        abi = 1
+        abi = 2
         sourceCommit = $sourceCommit
         sourceTreeSha256 = $sourceHash
         sourceDirty = [bool](& git status --porcelain -- native CMakeLists.txt CMakePresets.json)

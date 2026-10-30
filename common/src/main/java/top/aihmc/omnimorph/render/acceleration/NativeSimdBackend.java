@@ -11,6 +11,8 @@ public final class NativeSimdBackend implements AccelerationBackend {
     private ByteBuffer input = direct(0);
     private ByteBuffer output = direct(0);
     private final ByteBuffer matrices = direct(NativeBindings.MATRIX_BYTES);
+    private ByteBuffer packInput = direct(0);
+    private long packedValues;
     private long successfulBatches;
     private long transformedVertices;
 
@@ -62,6 +64,34 @@ public final class NativeSimdBackend implements AccelerationBackend {
         successfulBatches++;
         transformedVertices += count;
         return result;
+    }
+
+    /**
+     * Converts {@code count} pose values to floats at the target's position with the native SIMD kernel,
+     * byte-for-byte equal to Java {@code (float)} casts, and advances the target. Throws when native rejects.
+     */
+    public synchronized void packPoses(double[] values, int count, ByteBuffer target) {
+        if (count < 0 || count > NativeBindings.MAX_PACK_VALUES || count > values.length || !target.isDirect()
+                || target.remaining() < count * Float.BYTES) {
+            throw new IllegalArgumentException("Pose pack outside native ABI limits");
+        }
+        int bytes = count * Double.BYTES;
+        if (packInput.capacity() < bytes) {
+            packInput = direct(Math.max(bytes, Math.min(NativeBindings.MAX_PACK_VALUES * Double.BYTES,
+                    Math.max(64 * GpuBatchData.PART_VALUES * Double.BYTES, packInput.capacity() * 2))));
+        }
+        packInput.clear();
+        packInput.asDoubleBuffer().put(values, 0, count);
+        int status = NativeBindings.pack(packInput, 0, target, target.position(), count, kernel);
+        if (status != 0) {
+            throw new NativeBatchException(status);
+        }
+        target.position(target.position() + count * Float.BYTES);
+        packedValues += count;
+    }
+
+    public synchronized long packedValues() {
+        return packedValues;
     }
 
     public synchronized long successfulBatches() {

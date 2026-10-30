@@ -20,7 +20,7 @@ else()
     message(FATAL_ERROR "Unsupported native platform: ${CMAKE_SYSTEM_NAME}/${CMAKE_SYSTEM_PROCESSOR}")
 endif()
 
-add_library(accel_core STATIC src/dispatch.cpp src/transform.cpp src/scalar.cpp ${OMNIMORPH_KERNELS})
+add_library(accel_core STATIC src/dispatch.cpp src/transform.cpp src/pack.cpp src/scalar.cpp ${OMNIMORPH_KERNELS})
 target_include_directories(accel_core PUBLIC include)
 target_compile_definitions(accel_core PUBLIC ${OMNIMORPH_ARCH})
 

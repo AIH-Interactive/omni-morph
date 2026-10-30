@@ -20,7 +20,7 @@ if ($JarPath) {
         $reader = [IO.StreamReader]::new($jar.GetEntry('natives/manifest.json').Open())
         $manifest = $reader.ReadToEnd() | ConvertFrom-Json
         $reader.Dispose()
-        if ($manifest.abi -ne 1 -or $manifest.libraries.Count -ne 6 -or
+        if ($manifest.abi -ne 2 -or $manifest.libraries.Count -ne 6 -or
             $manifest.sourceCommit -ne $ExpectedCommit -or $manifest.runId -ne $ExpectedRun) {
             throw 'Final Android JAR platform set/ABI/source/run mismatch.'
         }
@@ -71,7 +71,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect Android JNI exports.' }
 foreach ($symbol in @('JNI_OnLoad',
     'Java_top_aihmc_omnimorph_render_acceleration_NativeBindings_handshake',
     'Java_top_aihmc_omnimorph_render_acceleration_NativeBindings_capabilities',
-    'Java_top_aihmc_omnimorph_render_acceleration_NativeBindings_transform')) {
+    'Java_top_aihmc_omnimorph_render_acceleration_NativeBindings_transform',
+    'Java_top_aihmc_omnimorph_render_acceleration_NativeBindings_pack')) {
     if (($symbols -join "`n") -notmatch "(?m)\b$symbol\s*$") { throw "Missing Android JNI ABI export: $symbol" }
 }
 $headers = & "$llvm/llvm-readelf" --program-headers --wide $LibraryPath 2>&1 | Tee-Object -FilePath "$reportDirectory/load-alignment.txt"

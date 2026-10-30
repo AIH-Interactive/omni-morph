@@ -125,13 +125,64 @@ void numeric_and_boundary_tests() {
     rejected(run(output, count, Kernel::automatic));
 }
 
+void pack_tests() {
+    constexpr int count = 163;
+    constexpr int offset = 3;
+    std::vector<std::byte> input(offset + count * sizeof(double));
+    std::mt19937 random(0x7151);
+    std::uniform_real_distribution<double> values(-1e6, 1e6);
+    std::vector<double> source(count);
+    for (int index = 0; index < count; ++index) {
+        // Include values that round, denormal-range values and exact integers.
+        source[index] = index % 7 == 0 ? 1e-40 * index : index % 5 == 0 ? index : values(random);
+    }
+    std::memcpy(input.data() + offset, source.data(), count * sizeof(double));
+    for (Kernel kernel : {Kernel::scalar, Kernel::sse2, Kernel::avx2, Kernel::neon, Kernel::automatic}) {
+        if (kernel != Kernel::automatic && !available(detect_cpu(), kernel)) {
+            continue;
+        }
+        for (int values_count : {0, 1, 3, 4, 7, 8, 9, 40, count}) {
+            std::vector<std::byte> output(offset + count * sizeof(float) + 4, std::byte{0x33});
+            require(pack(view(input, false), offset, view(output), offset, values_count, kernel) == Status::ok,
+                    "pack unaligned/tail");
+            for (int index = 0; index < values_count; ++index) {
+                const float expected = static_cast<float>(source[index]);
+                float actual;
+                std::memcpy(&actual, output.data() + offset + index * sizeof(float), sizeof(actual));
+                require(std::memcmp(&actual, &expected, sizeof(float)) == 0, "pack differs from a float cast");
+            }
+            require(output[offset + values_count * sizeof(float)] == std::byte{0x33}, "pack wrote past its range");
+        }
+    }
+    std::vector<std::byte> output(offset + count * sizeof(float), std::byte{0x33});
+    const auto sentinel = output;
+    auto rejected = [&](Status status) {
+        require(status != Status::ok, "invalid pack accepted");
+        require(output == sentinel, "failed pack mutated output");
+    };
+    rejected(pack(view(input), offset, view(output), offset, count + 1, Kernel::automatic));
+    rejected(pack(view(input), offset, view(output), offset, -1, Kernel::automatic));
+    rejected(pack(view(input), -1, view(output), offset, 1, Kernel::automatic));
+    rejected(pack(view(input), offset, view(output, false), offset, 1, Kernel::automatic));
+    rejected(pack(view(input), offset, view(output), offset, 1, static_cast<Kernel>(99)));
+    require(pack(view(input), offset, view(input), offset, 4, Kernel::automatic) == Status::invalid_argument,
+            "pack alias accepted");
+    const double overflow = 1e300;
+    std::memcpy(input.data() + offset + 5 * sizeof(double), &overflow, sizeof(overflow));
+    rejected(pack(view(input), offset, view(output), offset, count, Kernel::automatic));
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    std::memcpy(input.data() + offset + 5 * sizeof(double), &nan, sizeof(nan));
+    rejected(pack(view(input), offset, view(output), offset, count, Kernel::automatic));
+}
+
 } // namespace
 
 int main() {
     try {
         dispatch_tests();
         numeric_and_boundary_tests();
-        std::cout << "PASS native dispatch, scalar/available SSE2/AVX2/NEON, unaligned/tails, bounds, alias, finite publication; capabilities="
+        pack_tests();
+        std::cout << "PASS native dispatch, scalar/available SSE2/AVX2/NEON, unaligned/tails, bounds, alias, finite publication, pose pack; capabilities="
                   << capability_bits(detect_cpu()) << '\n';
         return 0;
     } catch (const std::exception& failure) {
