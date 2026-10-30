@@ -258,8 +258,8 @@ public final class GpuSubmission {
                  var merged = service.openMergedDraws(scope.context)) {
                 // Group ranges are all prepared above, so they can share one pass.
                 for (GpuAccelerationBackend.PreparedRange range : prepared) {
-                    var result = service.drawPrepared(range.prepared(), scope.context, range.firstFace() * 6,
-                            range.faceCount() * 6, merged);
+                    var result = service.drawPrepared(range.prepared(), scope.context, range.firstIndex(),
+                            range.indexCount(), merged);
                     if (result == GpuAccelerationBackend.DrawResult.UNSUPPORTED) {
                         break;
                     }

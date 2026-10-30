@@ -34,6 +34,8 @@ final class AccelerationFrameDiagnostics {
         long ssboFallbacks;
         long simdPackedParts;
         long passes;
+        long modelDraws;
+        long modelBatches;
         String skinJoints;
         String paletteSizes;
         String materials;
@@ -132,6 +134,13 @@ final class AccelerationFrameDiagnostics {
         if (onFrameThread()) {
             frame.arenaUploads++;
             frame.arenaBytes += bytes;
+        }
+    }
+
+    static void modelPrepared(int batches) {
+        if (onFrameThread()) {
+            frame.modelDraws++;
+            frame.modelBatches += batches;
         }
     }
 

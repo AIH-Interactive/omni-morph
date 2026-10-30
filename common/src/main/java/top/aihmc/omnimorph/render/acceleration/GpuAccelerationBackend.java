@@ -8,6 +8,7 @@ import com.mojang.blaze3d.vertex.MeshData;
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -48,7 +49,12 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         }
     }
 
-    record PreparedRange(Prepared prepared, int firstFace, int faceCount) {
+    /** Faces count toward Java fallback; indices address the draw (model draws may mix triangles and quads). */
+    record PreparedRange(Prepared prepared, int firstFace, int faceCount, int firstIndex, int indexCount) {
+        /** Rigid groups are quads only: six indices per face. */
+        PreparedRange(Prepared prepared, int firstFace, int faceCount) {
+            this(prepared, firstFace, faceCount, firstFace * 6, faceCount * 6);
+        }
     }
 
     static final class Failure extends RuntimeException {
@@ -151,6 +157,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
     private final long frameUploadBudget;
     private final Map<Key, Entry> meshes = new HashMap<>();
     private final Map<GroupKey, Entry> groups = new HashMap<>();
+    private final Map<ModelKey, Entry> models = new HashMap<>();
     private final Map<RenderPipeline, GpuDeviceAdapter.Material> materials = new IdentityHashMap<>();
     private final Map<RenderPipeline, GpuDeviceAdapter.Material> groupMaterials = new IdentityHashMap<>();
     private final Map<RenderPipeline, Boolean> pendingMaterials = new LinkedHashMap<>();
@@ -179,11 +186,10 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
     // Pose storage blocks: optional layer above uniform pose blocks, created on first use.
     private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("OmniMorph/Acceleration");
     private static final int STORAGE_VARIANT = 0;
+    private static final int MODEL_VARIANT = -1;
     private static final int MAX_STORAGE_FAILURES = 3;
     private static final long ARENA_LIMIT_BYTES = 16L * 1024 * 1024;
     private GpuPoseArena arena;
-    // Native SIMD pose packing stays opt-in until the real-window acceptance comparison decides the default.
-    static final String SIMD_PACK_PROPERTY = "omnimorph.gpu.simdpack";
     private boolean simdPackDisabled;
     private boolean storageDisabled;
     private int storageFailures;
@@ -362,9 +368,12 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
     List<PreparedRange> prepareGroup(List<DrawBatch> batches, long[] order, BooleanSupplier current) {
         device.assertThread();
         AccelerationFrameDiagnostics.prepareGroup(batches);
-        if (!current.getAsBoolean() || !ready || closed || invalidated || !device.supportsRigidGroups()
-                || !GpuRigidData.supports(batches)) {
+        if (!current.getAsBoolean() || !ready || closed || invalidated || !device.supportsRigidGroups()) {
             return null;
+        }
+        if (!GpuRigidData.supports(batches)) {
+            // Skinned or differently tinted/lit batches reject rigid groups; a model draw may still cover them all.
+            return prepareModel(batches, order, current);
         }
         DrawBatch first = batches.getFirst();
         GpuDeviceAdapter.Material material = groupMaterials.get(first.semantics().material().pipeline());
@@ -618,6 +627,14 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
                 groupIterator.remove();
             }
         }
+        var modelIterator = models.entrySet().iterator();
+        while (modelIterator.hasNext()) {
+            Entry entry = modelIterator.next().getValue();
+            if (!entry.owner.isCurrent() || frame - entry.lastFrame > 120) {
+                retireGroup(entry, retired);
+                modelIterator.remove();
+            }
+        }
         retire(retired);
         if (arena != null) {
             arena.beginFrame();
@@ -646,9 +663,11 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
             if (!variant.getValue()) {
                 VariantKey key = variant.getKey();
                 try {
-                    variants.put(key, key.parts() == STORAGE_VARIANT
-                            ? device.compileStorage(key.pipeline(), key.grouped())
-                            : device.compileVariant(key.pipeline(), key.grouped(), key.parts()));
+                    variants.put(key, switch (key.parts()) {
+                        case STORAGE_VARIANT -> device.compileStorage(key.pipeline(), key.grouped());
+                        case MODEL_VARIANT -> device.compileStorageModel(key.pipeline());
+                        default -> device.compileVariant(key.pipeline(), key.grouped(), key.parts());
+                    });
                     pendingVariants.remove(key);
                 } catch (RuntimeException failure) {
                     variant.setValue(true);
@@ -677,10 +696,18 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
      * session, or the variant still waits for its compile step (it is queued here on first use).
      */
     private GpuDeviceAdapter.Material storageMaterial(RenderPipeline pipeline, boolean grouped) {
+        return storageMaterial(pipeline, grouped, STORAGE_VARIANT);
+    }
+
+    private GpuDeviceAdapter.Material storageMaterial(RenderPipeline pipeline, int variant) {
+        return storageMaterial(pipeline, true, variant);
+    }
+
+    private GpuDeviceAdapter.Material storageMaterial(RenderPipeline pipeline, boolean grouped, int variant) {
         if (storageDisabled || device.storageLimits() == null) {
             return null;
         }
-        var key = new VariantKey(pipeline, grouped, STORAGE_VARIANT);
+        var key = new VariantKey(pipeline, grouped, variant);
         GpuDeviceAdapter.Material material = variants.get(key);
         if (material == null) {
             pendingVariants.putIfAbsent(key, false);
@@ -696,10 +723,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
             AccelerationFrameDiagnostics.ssboFallback("UPLOAD_BUDGET");
             return null;
         }
-        if (arena == null) {
-            GpuStorageSupport.Limits limits = device.storageLimits();
-            arena = new GpuPoseArena(device, retirement, limits.offsetAlignment(), ARENA_LIMIT_BYTES);
-        }
+        ensureArena();
         GpuPoseArena.Slice pose = arena.append(poseBytes, poseWriter);
         GpuPoseArena.Slice remap = null;
         if (pose != null && remapWriter != null) {
@@ -712,6 +736,115 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         }
         frameUploadBytes += poseBytes + remapBytes;
         return new GpuDeviceAdapter.StoragePose(pose, remap);
+    }
+
+    /**
+     * R4-3: one storage draw for a whole material boundary whose batches may be skinned or differ in tint and light.
+     * Returns null (the caller draws batch by batch) when model draws are off, unsupported, still compiling, or the
+     * arena cannot take the boundary this frame.
+     */
+    private List<PreparedRange> prepareModel(List<DrawBatch> batches, long[] order, BooleanSupplier current) {
+        if (!AccelerationOptions.modelMesh() || storageDisabled || device.storageLimits() == null
+                || !device.storageLimits().models()) {
+            return null;
+        }
+        if (!GpuModelData.supports(batches)) {
+            AccelerationFrameDiagnostics.fallback("MODEL_UNSUPPORTED");
+            return null;
+        }
+        DrawBatch first = batches.getFirst();
+        GpuDeviceAdapter.Material material = storageMaterial(first.semantics().material().pipeline(), MODEL_VARIANT);
+        if (material == null) {
+            return null;
+        }
+        if (!device.isCurrent()) {
+            throw new Failure(FallbackReason.GPU_UNAVAILABLE, false, null);
+        }
+        var data = new GpuModelData(batches, order);
+        var key = new ModelKey(new GroupKey(batches), data.encodingSignature());
+        Entry entry = models.get(key);
+        long geometryBytes = entry == null ? data.geometryBytes() : 0;
+        boolean authored = data.authoredOrder();
+        boolean reuseIndices = authored && entry != null && entry.authoredIndices != null;
+        long indexBytes = reuseIndices ? 0 : data.indexBytes();
+        if (frameUploadBytes + indexBytes > frameUploadBudget
+                || residentBytes + storageResidentBytes() + retirement.bytes() + geometryBytes + indexBytes > memoryBudget
+                || !current.getAsBoolean()) {
+            AccelerationFrameDiagnostics.fallback("MODEL_BUDGET");
+            return null;
+        }
+        try {
+            if (entry == null) {
+                GpuDeviceAdapter.Mesh geometry = device.uploadGeometry(data.vertices(), GpuRigidData.initialIndices());
+                entry = new Entry(first, geometry, data.indexCount(), frame);
+                models.put(key, entry);
+                residentBytes += geometry.bytes();
+                uploads++;
+            } else {
+                cacheHits++;
+            }
+            entry.lastFrame = frame;
+            GpuDeviceAdapter.Indices indices;
+            if (reuseIndices) {
+                indices = entry.authoredIndices;
+            } else if (authored) {
+                indices = device.uploadIndices(data.indices());
+                entry.authoredIndices = indices;
+                residentBytes += indices.bytes();
+                frameUploadBytes += indices.bytes();
+            } else {
+                indices = device.uploadIndices(data.indices());
+                ownFrameResource(indices);
+            }
+            var storagePose = appendModelStorage(data);
+            if (storagePose == null) {
+                AccelerationFrameDiagnostics.fallback("MODEL_ARENA");
+                return null;
+            }
+            AccelerationFrameDiagnostics.poseUpload(storagePose.bytes(), data.partCount(), true);
+            AccelerationFrameDiagnostics.modelPrepared(batches.size());
+            var prepared = new Prepared(this, first, material, entry.mesh, storagePose, data.indexCount(), indices);
+            return List.of(new PreparedRange(prepared, 0, data.faceCount(), 0, data.indexCount()));
+        } catch (RuntimeException failure) {
+            throw new Failure(FallbackReason.RESOURCE_EXHAUSTED, false, failure);
+        }
+    }
+
+    private GpuDeviceAdapter.StoragePose appendModelStorage(GpuModelData data) {
+        int poseBytes = Math.toIntExact(data.storagePoseBytes());
+        int recordBytes = Math.toIntExact(data.recordBytes());
+        if (frameUploadBytes + poseBytes + recordBytes > frameUploadBudget) {
+            storageFallbacks++;
+            return null;
+        }
+        ensureArena();
+        GpuPoseArena.Slice pose = arena.append(poseBytes, data::writeStoragePose);
+        GpuPoseArena.Slice records = pose == null ? null : arena.append(recordBytes, data::writeRecords);
+        if (records == null) {
+            storageFallbacks++;
+            return null;
+        }
+        frameUploadBytes += poseBytes + recordBytes;
+        return new GpuDeviceAdapter.StoragePose(pose, null, records);
+    }
+
+    private void ensureArena() {
+        if (arena == null) {
+            GpuStorageSupport.Limits limits = device.storageLimits();
+            arena = new GpuPoseArena(device, retirement, limits.offsetAlignment(), ARENA_LIMIT_BYTES);
+        }
+    }
+
+    private record ModelKey(GroupKey group, int[] signature) {
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof ModelKey key && group.equals(key.group) && Arrays.equals(signature, key.signature);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * group.hashCode() + Arrays.hashCode(signature);
+        }
     }
 
     /** Consecutive storage-only failures switch the layer off for the session; uniform pose blocks remain. */
@@ -733,7 +866,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
 
     /** The SIMD backend packs rigid group poses only when requested, attached and not yet rejected. */
     private NativeSimdBackend simdPacker() {
-        if (simdPackDisabled || !Boolean.getBoolean(SIMD_PACK_PROPERTY)) {
+        if (simdPackDisabled || !AccelerationOptions.simdPack()) {
             return null;
         }
         return cpuBackend instanceof NativeSimdBackend simd ? simd : null;
@@ -787,6 +920,10 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         for (Entry entry : groups.values()) {
             retireGroup(entry, retired);
         }
+        for (Entry entry : models.values()) {
+            retireGroup(entry, retired);
+        }
+        models.clear();
         retire(retired);
         meshes.clear();
         groups.clear();

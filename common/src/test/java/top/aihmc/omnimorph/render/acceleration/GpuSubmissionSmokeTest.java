@@ -35,7 +35,7 @@ public final class GpuSubmissionSmokeTest {
         opaqueBoundary();
         // R4-2: the same orderings and failure semantics must hold with and without the shared pass.
         for (boolean mergePass : new boolean[]{false, true}) {
-            System.setProperty(AccelerationService.MERGE_PASS_PROPERTY, Boolean.toString(mergePass));
+            AccelerationOptions.setMergePasses(mergePass);
             try {
                 transparentBoundary(0);
                 transparentBoundary(1);
@@ -45,7 +45,7 @@ public final class GpuSubmissionSmokeTest {
                     groupedBoundary(failure);
                 }
             } finally {
-                System.clearProperty(AccelerationService.MERGE_PASS_PROPERTY);
+                AccelerationOptions.setMergePasses(false);
             }
         }
         System.out.println("PASS R4-2 shared pass: identical face order, partial-draw and fallback semantics with merged passes");
@@ -117,9 +117,9 @@ public final class GpuSubmissionSmokeTest {
             total.addAll(fixture.javaFaces);
             require(total.equals(List.of(4f, 3f, 2f, 1f)), "transparent face order matches native distance sorting across model batches");
             require(fixture.device.passesOpened == fixture.device.passesClosed, "every shared pass is closed");
-            if (Boolean.getBoolean(AccelerationService.MERGE_PASS_PROPERTY) && failure == 0) {
+            if (AccelerationOptions.mergePasses() && failure == 0) {
                 require(fixture.device.passesOpened == 1, "one boundary of one material draws inside a single pass");
-            } else if (!Boolean.getBoolean(AccelerationService.MERGE_PASS_PROPERTY)) {
+            } else if (!AccelerationOptions.mergePasses()) {
                 require(fixture.device.passesOpened == 0, "without the flag no shared pass is opened");
             }
             if (failure == 0) {

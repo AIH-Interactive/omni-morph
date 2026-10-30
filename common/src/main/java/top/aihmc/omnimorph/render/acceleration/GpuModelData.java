@@ -58,7 +58,7 @@ final class GpuModelData {
     }
 
     /**
-     * Same owner generation, material and visibility, quad faces, ordinary GPU eligibility and the 16-bit batch and
+     * Same owner generation, material and visibility, triangle or quad faces, ordinary GPU eligibility and the 16-bit batch and
      * part encodings. Skinning and per-batch tint, light and overlay are allowed.
      */
     static boolean supports(List<DrawBatch> batches) {
@@ -71,7 +71,8 @@ final class GpuModelData {
         for (DrawBatch batch : batches) {
             if (batch.lease().ownerGeneration() != first.lease().ownerGeneration()
                     || batch.semantics().material() != first.semantics().material()
-                    || !batch.semantics().visible() || batch.mesh().verticesPerFace() != 4
+                    || !batch.semantics().visible() || batch.mesh().verticesPerFace() < 3
+                    || batch.mesh().verticesPerFace() > 4
                     || !GpuBatchData.supports(batch)) {
                 return false;
             }
@@ -113,8 +114,17 @@ final class GpuModelData {
         return (long) vertexCount * GpuBatchData.VERTEX_BYTES + 6 * Integer.BYTES;
     }
 
+    /** Fan-triangulated index count of the ordered faces: three per triangle face, six per quad face. */
+    int indexCount() {
+        long count = 0;
+        for (long face : order) {
+            count += (batches.get((int) (face >>> 32)).mesh().verticesPerFace() - 2) * 3L;
+        }
+        return Math.toIntExact(count);
+    }
+
     long indexBytes() {
-        return (long) order.length * 6 * Integer.BYTES;
+        return (long) indexCount() * Integer.BYTES;
     }
 
     /**
@@ -143,12 +153,16 @@ final class GpuModelData {
         return data.flip();
     }
 
+    /** The same fan winding as {@link MeshHandle#copyTriangleIndices()}, in the given face order. */
     ByteBuffer indices() {
-        ByteBuffer data = direct(Math.multiplyExact(order.length, 6 * Integer.BYTES));
+        ByteBuffer data = direct(Math.multiplyExact(indexCount(), Integer.BYTES));
         for (long face : order) {
-            int vertex = vertexOffsets[(int) (face >>> 32)] + (int) face * 4;
-            data.putInt(vertex).putInt(vertex + 1).putInt(vertex + 2);
-            data.putInt(vertex).putInt(vertex + 2).putInt(vertex + 3);
+            int batch = (int) (face >>> 32);
+            int corners = batches.get(batch).mesh().verticesPerFace();
+            int first = vertexOffsets[batch] + (int) face * corners;
+            for (int corner = 1; corner < corners - 1; corner++) {
+                data.putInt(first).putInt(first + corner).putInt(first + corner + 1);
+            }
         }
         return data.flip();
     }
