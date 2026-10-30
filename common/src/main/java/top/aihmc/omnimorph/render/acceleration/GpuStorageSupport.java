@@ -21,7 +21,8 @@ final class GpuStorageSupport {
     /** Pose storage blocks stay opt-in until the real-window acceptance comparison decides the default. */
     static final String PROPERTY = "omnimorph.gpu.ssbo";
 
-    record Limits(int offsetAlignment, long maxBlockBytes) {
+    /** {@code models}: a third vertex-stage block and binding {@link GpuShaderProgram#BATCH_BINDING} for R4-3. */
+    record Limits(int offsetAlignment, long maxBlockBytes, boolean models) {
     }
 
     private static volatile String unavailableReason = "not probed";
@@ -66,8 +67,10 @@ final class GpuStorageSupport {
         if (alignment <= 0 || Integer.bitCount(alignment) != 1 || maxBlock < GpuRigidData.POSE_BYTES) {
             return unavailable("storage limits alignment=" + alignment + " maxBlock=" + maxBlock);
         }
+        boolean models = GL11.glGetInteger(GL43.GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS) >= 3
+                && GL11.glGetInteger(GL43.GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS) > GpuShaderProgram.BATCH_BINDING;
         unavailableReason = null;
-        return new Limits(alignment, maxBlock);
+        return new Limits(alignment, maxBlock, models);
     }
 
     static void bind(int binding, GpuBuffer buffer, long offset, long size) {

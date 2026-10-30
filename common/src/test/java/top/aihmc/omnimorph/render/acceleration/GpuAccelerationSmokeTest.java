@@ -341,7 +341,7 @@ public final class GpuAccelerationSmokeTest {
 
     private static void storageRouting() throws Exception {
         var device = new FakeDevice();
-        device.storage = new GpuStorageSupport.Limits(256, 1 << 20);
+        device.storage = new GpuStorageSupport.Limits(256, 1 << 20, true);
         var retirement = new GpuRetirement();
         var gpu = ready(device, retirement, 1_000_000);
         var service = new AccelerationService();
@@ -417,7 +417,7 @@ public final class GpuAccelerationSmokeTest {
     /** R4-1: with storage blocks, a group of more than 64 interleaved parts prepares one range and one draw. */
     private static void storageSingleRangeGroup() {
         var device = new RigidDevice();
-        device.storage = new GpuStorageSupport.Limits(256, 1 << 20);
+        device.storage = new GpuStorageSupport.Limits(256, 1 << 20, true);
         var retirement = new GpuRetirement();
         var gpu = ready(device, retirement, 4_000_000);
         var service = new AccelerationService();
@@ -464,7 +464,7 @@ public final class GpuAccelerationSmokeTest {
     /** R4-2: a shared pass never stays open across an arena write. */
     private static void storageMergedPass() {
         var device = new FakeDevice();
-        device.storage = new GpuStorageSupport.Limits(256, 1 << 20);
+        device.storage = new GpuStorageSupport.Limits(256, 1 << 20, true);
         var retirement = new GpuRetirement();
         var gpu = ready(device, retirement, 1_000_000);
         var service = new AccelerationService();

@@ -42,6 +42,33 @@ final class GpuShaderProgram {
                 uint OmniRemap[];
             };
             """.formatted(REMAP_BINDING);
+    static final int BATCH_BINDING = 8;
+    private static final String MODEL_BATCH_BLOCK = """
+            struct OmniBatch {
+                vec4 tint;
+                ivec4 overlayLight;
+                vec4 options;
+            };
+            layout(std430, binding = %d) readonly buffer OmniMorphBatchBlock {
+                OmniBatch OmniBatches[];
+            };
+            """.formatted(BATCH_BINDING);
+    // Each vertex names its batch in the high 16 bits of OmniJoints.x; the batch index is also its root part.
+    private static final String[][] MODEL_REPLACEMENTS = {
+            {"""
+                vec3 point = OmniPosition;
+            """, """
+                int omniBatch = OmniJoints.x >> 16;
+                OmniBatch omniInfo = OmniBatches[omniBatch];
+                ivec4 omniJoints = ivec4(OmniJoints.x & 0xFFFF, OmniJoints.y, OmniJoints.z, OmniJoints.w);
+                vec3 point = OmniPosition;
+            """},
+            {"OmniParts[OmniJoints[influence]]", "OmniParts[omniJoints[influence]]"},
+            {"OmniParts[0]", "OmniParts[omniBatch]"},
+            {"OmniOptions", "omniInfo.options"},
+            {"OmniTint", "omniInfo.tint"},
+            {"OmniOverlayLight", "omniInfo.overlayLight"}
+    };
     private static final String UNIFORM_REMAP_READ = """
                 int packedRemap = OmniRemap[globalPart / 16][(globalPart / 4) % 4];
                 int part = (packedRemap >> ((globalPart % 4) * 8)) & 255;
@@ -184,6 +211,22 @@ final class GpuShaderProgram {
             throw new IllegalStateException("Rigid remap read changed; storage variant must be updated");
         }
         return wrapEntitySource(enableStorage(original), storageDeclarations(true), body);
+    }
+
+    /**
+     * R4-3 model variant: {@link #MAIN_BODY} with the root part, options, tint and overlay/light taken per batch.
+     * It is derived mechanically so the skinning, normal and UV math stays identical to ordinary batches.
+     */
+    static String wrapStorageModelEntitySource(String original) {
+        String body = MAIN_BODY;
+        for (String[] replacement : MODEL_REPLACEMENTS) {
+            String replaced = body.replace(replacement[0], replacement[1]);
+            if (replaced.equals(body)) {
+                throw new IllegalStateException("Ordinary pose body changed; model variant must be updated: " + replacement[0]);
+            }
+            body = replaced;
+        }
+        return wrapEntitySource(enableStorage(original), storageDeclarations(false) + MODEL_BATCH_BLOCK, body);
     }
 
     private static String storageDeclarations(boolean grouped) {

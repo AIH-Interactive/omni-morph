@@ -38,6 +38,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
     private final Map<VariantKey, Material> compiledVariants = new HashMap<>();
     private final Map<RenderPipeline, Material> compiledStorage = new IdentityHashMap<>();
     private final Map<RenderPipeline, Material> compiledStorageGroups = new IdentityHashMap<>();
+    private final Map<RenderPipeline, Material> compiledStorageModels = new IdentityHashMap<>();
     private RenderPipeline diagnosticPipeline;
     private RenderPipeline diagnosticGroupPipeline;
     private GpuStorageSupport.Limits storageLimits;
@@ -172,6 +173,32 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         }
         Material material = new Material(original, accelerated);
         cache.put(original, material);
+        return material;
+    }
+
+    @Override
+    public Material compileStorageModel(RenderPipeline original) {
+        assertThread();
+        if (storageLimits == null || !storageLimits.models()) {
+            throw new IllegalStateException("Model storage draws were not activated");
+        }
+        Material existing = compiledStorageModels.get(original);
+        if (existing != null) {
+            return existing;
+        }
+        if (compiledStorageModels.size() >= 64) {
+            throw new IllegalStateException("Acceleration model pipeline cache budget exhausted");
+        }
+        Identifier location = Identifier.fromNamespaceAndPath("omni-morph", "acceleration/" + original.getLocation().getNamespace()
+                + "/" + original.getLocation().getPath() + "/model");
+        String source = GpuShaderProgram.wrapStorageModelEntitySource(sources.apply(original.getVertexShader(), ShaderType.VERTEX));
+        RenderPipeline accelerated = GpuShaderProgram.pipeline(original, location, false);
+        if (!device.precompilePipeline(accelerated, (id, type) -> id.equals(location) && type == ShaderType.VERTEX
+                ? source : sources.apply(id, type)).isValid()) {
+            throw new IllegalStateException("Acceleration model entity shader validation failed");
+        }
+        Material material = new Material(original, accelerated);
+        compiledStorageModels.put(original, material);
         return material;
     }
 
@@ -325,11 +352,17 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
             if (storagePose.remap != null) {
                 GpuStorageSupport.bind(GpuShaderProgram.REMAP_BINDING, arena, storagePose.remap.offset(), storagePose.remap.bytes());
             }
+            if (storagePose.records != null) {
+                GpuStorageSupport.bind(GpuShaderProgram.BATCH_BINDING, arena, storagePose.records.offset(), storagePose.records.bytes());
+            }
             try {
                 pass.drawIndexed(0, firstIndex, indexCount, 1);
             } finally {
                 GpuStorageSupport.unbind(GpuShaderProgram.STORAGE_BINDING);
                 GpuStorageSupport.unbind(GpuShaderProgram.REMAP_BINDING);
+                if (storagePose.records != null) {
+                    GpuStorageSupport.unbind(GpuShaderProgram.BATCH_BINDING);
+                }
             }
         }
 
@@ -357,8 +390,19 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         try {
             GpuStorageSupport.Limits limits = GpuStorageSupport.probe();
             if (limits != null) {
-                storageSelfTest(false);
-                storageSelfTest(true);
+                storageSelfTest(StorageProbe.ENTITY);
+                storageSelfTest(StorageProbe.RIGID);
+                boolean models = limits.models();
+                if (models) {
+                    try {
+                        storageSelfTest(StorageProbe.MODEL);
+                    } catch (RuntimeException failure) {
+                        // Model draws are a further optional layer; plain storage blocks stay active.
+                        models = false;
+                        org.figuramc.figura.FiguraMod.LOGGER.warn("GPU model storage self-test failed; model draws stay off", failure);
+                    }
+                }
+                limits = new GpuStorageSupport.Limits(limits.offsetAlignment(), limits.maxBlockBytes(), models);
                 storageLimits = limits;
                 org.figuramc.figura.FiguraMod.LOGGER.info("GPU pose storage blocks active (alignment {}, max block {} bytes)",
                         limits.offsetAlignment(), limits.maxBlockBytes());
@@ -371,33 +415,49 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         }
     }
 
-    private void storageSelfTest(boolean grouped) {
+    private enum StorageProbe { ENTITY, RIGID, MODEL }
+
+    private void storageSelfTest(StorageProbe probe) {
         assertThread();
         Identifier location = Identifier.fromNamespaceAndPath("omni-morph",
-                "acceleration/activation_probe_storage" + (grouped ? "_rigid" : ""));
+                "acceleration/activation_probe_storage_" + probe.name().toLowerCase(java.util.Locale.ROOT));
         RenderPipeline pipeline = RenderPipeline.builder().withLocation(location).withVertexShader(location).withFragmentShader(location)
                 .withColorTargetState(ColorTargetState.DEFAULT).withDepthStencilState(Optional.empty()).withCull(false)
                 .withVertexFormat(GpuShaderProgram.format(), VertexFormat.Mode.TRIANGLES).build();
-        String vertex = grouped
-                ? GpuShaderProgram.wrapStorageRigidEntitySource(PROBE_VERTEX)
-                : GpuShaderProgram.wrapStorageEntitySource(PROBE_VERTEX);
+        String vertex = switch (probe) {
+            case ENTITY -> GpuShaderProgram.wrapStorageEntitySource(PROBE_VERTEX);
+            case RIGID -> GpuShaderProgram.wrapStorageRigidEntitySource(PROBE_VERTEX);
+            case MODEL -> GpuShaderProgram.wrapStorageModelEntitySource(PROBE_VERTEX);
+        };
         if (!device.precompilePipeline(pipeline, (id, type) -> type == ShaderType.VERTEX ? vertex : PROBE_FRAGMENT).isValid()) {
             throw new IllegalStateException("Acceleration storage diagnostic shader rejected");
         }
         MeshHandle mesh = probeMesh();
         DrawBatch batch = new DrawBatch(AccelerationService.INSTANCE.capture(new AccelerationOwner(), "activation-probe"),
                 mesh, new PoseSnapshot(FiguraMat4.of().translate(0.5, 0, 0), FiguraMat3.of()));
-        GpuRigidData group = grouped ? new GpuRigidData(List.of(batch), new long[]{0}) : null;
-        ByteBuffer vertexData = grouped ? group.vertices() : GpuBatchData.vertices(mesh, 0, false);
+        ByteBuffer vertexData;
         ByteBuffer poseData;
         ByteBuffer remapData = null;
-        if (grouped) {
+        int secondBinding = GpuShaderProgram.REMAP_BINDING;
+        if (probe == StorageProbe.RIGID) {
+            GpuRigidData group = new GpuRigidData(List.of(batch), new long[]{0});
+            vertexData = group.vertices();
             poseData = ByteBuffer.allocateDirect((int) group.storagePoseBytes()).order(ByteOrder.nativeOrder());
             group.writeStoragePose(poseData);
             remapData = ByteBuffer.allocateDirect((int) group.storageRemapBytes()).order(ByteOrder.nativeOrder());
             group.writeStorageRemap(remapData);
             remapData.flip();
+        } else if (probe == StorageProbe.MODEL) {
+            GpuModelData model = new GpuModelData(List.of(batch), new long[]{0});
+            vertexData = model.vertices();
+            poseData = ByteBuffer.allocateDirect((int) model.storagePoseBytes()).order(ByteOrder.nativeOrder());
+            model.writeStoragePose(poseData);
+            remapData = ByteBuffer.allocateDirect((int) model.recordBytes()).order(ByteOrder.nativeOrder());
+            model.writeRecords(remapData);
+            remapData.flip();
+            secondBinding = GpuShaderProgram.BATCH_BINDING;
         } else {
+            vertexData = GpuBatchData.vertices(mesh, 0, false);
             poseData = ByteBuffer.allocateDirect(GpuBatchData.storagePoseBytes(1)).order(ByteOrder.nativeOrder());
             GpuBatchData.writeStoragePose(poseData, batch);
         }
@@ -419,13 +479,15 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
                 pass.setIndexBuffer(geometry.indices(), VertexFormat.IndexType.INT);
                 GpuStorageSupport.bind(GpuShaderProgram.STORAGE_BINDING, pose, 0, poseBytes);
                 if (remap != null) {
-                    GpuStorageSupport.bind(GpuShaderProgram.REMAP_BINDING, remap, 0, remapBytes);
+                    GpuStorageSupport.bind(secondBinding, remap, 0, remapBytes);
                 }
                 try {
                     pass.drawIndexed(0, 0, 6, 1);
                 } finally {
                     GpuStorageSupport.unbind(GpuShaderProgram.STORAGE_BINDING);
-                    GpuStorageSupport.unbind(GpuShaderProgram.REMAP_BINDING);
+                    if (remap != null) {
+                        GpuStorageSupport.unbind(secondBinding);
+                    }
                 }
             }
             encoder.copyTextureToBuffer(target, readback, 0, () -> {}, 0);

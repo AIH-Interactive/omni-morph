@@ -121,6 +121,18 @@ public final class GpuRigidDataSmokeTest {
                         && rigid.contains("int part = int(OmniRemap[globalPart]);")
                         && !rigid.contains("packedRemap") && !rigid.contains("ivec4 OmniRemap[256]"),
                 "the rigid storage variant reads each batch's global part index");
+        String model = GpuShaderProgram.wrapStorageModelEntitySource(PROBE_SOURCE);
+        String modelMain = model.substring(model.indexOf("void main()", model.indexOf("omnimorph_original_main")));
+        require(model.contains("layout(std430, binding = 8) readonly buffer OmniMorphBatchBlock {")
+                        && model.contains("OmniBatch OmniBatches[];")
+                        && modelMain.contains("int omniBatch = OmniJoints.x >> 16;")
+                        && modelMain.contains("OmniParts[omniJoints[influence]].position")
+                        && modelMain.contains("OmniParts[omniBatch].position")
+                        && modelMain.contains("Color = omniInfo.tint;")
+                        && modelMain.contains("UV2 = omniInfo.overlayLight.zw;")
+                        && !modelMain.contains("OmniParts[0]") && !modelMain.contains("OmniOptions")
+                        && !modelMain.contains("OmniTint") && !modelMain.contains("OmniOverlayLight"),
+                "the model variant reads root part, options, tint and light per batch with the ordinary math");
         String uniformRigid = GpuShaderProgram.wrapRigidEntitySource(PROBE_SOURCE);
         require(uniformRigid.contains("int packedRemap = OmniRemap[globalPart / 16][(globalPart / 4) % 4];")
                         && uniformRigid.contains("int part = (packedRemap >> ((globalPart % 4) * 8)) & 255;"),
