@@ -56,6 +56,13 @@ final class GpuBatchData {
         target.position(start + storagePoseBytes(partsUsed(pose)));
     }
 
+    /** Writes one skin delta as a part (position matrix only, the rest zero) and advances past it. */
+    static void writeDeltaPart(ByteBuffer target, double[] matrix) {
+        int start = target.position();
+        write(target, matrix);
+        target.position(start + PART_BYTES);
+    }
+
     /** Parts one ordinary batch reads: the model transform plus, when skinned in double precision, its joints. */
     static int partsUsed(PoseSnapshot pose) {
         return pose.skinJointCount() > 0 && !pose.usesFloatPrecision() ? pose.skinJointCount() + 1 : 1;
