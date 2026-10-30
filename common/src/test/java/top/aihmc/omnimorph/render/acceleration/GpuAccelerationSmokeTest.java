@@ -38,6 +38,7 @@ public final class GpuAccelerationSmokeTest {
         poseArena();
         storageRouting();
         storageSingleRangeGroup();
+        storageMergedPass();
         boundsAndLifetimes();
         failureRouting(false);
         failureRouting(true);
@@ -458,6 +459,40 @@ public final class GpuAccelerationSmokeTest {
         retirement.poll();
         require(device.liveBytes == 0, "closing releases the arena, indices and group geometry");
         System.out.println("PASS R4-1 backend: interleaved 65-part group prepares one storage range and one draw");
+    }
+
+    /** R4-2: a shared pass never stays open across an arena write. */
+    private static void storageMergedPass() {
+        var device = new FakeDevice();
+        device.storage = new GpuStorageSupport.Limits(256, 1 << 20);
+        var retirement = new GpuRetirement();
+        var gpu = ready(device, retirement, 1_000_000);
+        var service = new AccelerationService();
+        var owner = new AccelerationOwner();
+        service.useBackend(gpu);
+        gpu.prepare(batch(service, owner, quad(1), 1, material()), () -> true);
+        service.beginFrame();
+        require(device.storageCompiles == 1, "storage variant ready");
+
+        var first = gpu.prepare(batch(service, owner, quad(1), 2, material()), () -> true);
+        var second = gpu.prepare(batch(service, owner, quad(1), 3, material()), () -> true);
+        try (var merged = gpu.openMergedDraws(CONTEXT)) {
+            require(merged.draw(first, 0, 6, () -> true) == GpuAccelerationBackend.DrawResult.DRAWN
+                            && merged.draw(second, 0, 6, () -> true) == GpuAccelerationBackend.DrawResult.DRAWN,
+                    "prepared-before-pass draws");
+            require(gpu.passCount() == 1 && device.storageWrites.size() == 1,
+                    "draws prepared before the pass share it after one arena write");
+            var late = gpu.prepare(batch(service, owner, quad(1), 4, material()), () -> true);
+            require(merged.draw(late, 0, 6, () -> true) == GpuAccelerationBackend.DrawResult.DRAWN,
+                    "a pose staged while the pass is open still draws");
+            require(gpu.passCount() == 2 && device.storageWrites.size() == 2,
+                    "pending arena bytes close the pass before they are written, then a new pass opens");
+        }
+        service.useBackend(null);
+        device.complete = true;
+        retirement.poll();
+        require(device.liveBytes == 0, "closing releases everything");
+        System.out.println("PASS R4-2 storage: shared pass reuse and closing before pending arena writes");
     }
 
     private static void poseArena() {

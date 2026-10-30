@@ -33,13 +33,22 @@ public final class GpuSubmissionSmokeTest {
         Bootstrap.bootStrap();
         RenderSystem.initRenderThread();
         opaqueBoundary();
-        transparentBoundary(0);
-        transparentBoundary(1);
-        transparentBoundary(2);
-        transparentBoundary(3);
-        for (int failure = 0; failure < 6; failure++) {
-            groupedBoundary(failure);
+        // R4-2: the same orderings and failure semantics must hold with and without the shared pass.
+        for (boolean mergePass : new boolean[]{false, true}) {
+            System.setProperty(AccelerationService.MERGE_PASS_PROPERTY, Boolean.toString(mergePass));
+            try {
+                transparentBoundary(0);
+                transparentBoundary(1);
+                transparentBoundary(2);
+                transparentBoundary(3);
+                for (int failure = 0; failure < 6; failure++) {
+                    groupedBoundary(failure);
+                }
+            } finally {
+                System.clearProperty(AccelerationService.MERGE_PASS_PROPERTY);
+            }
         }
+        System.out.println("PASS R4-2 shared pass: identical face order, partial-draw and fallback semantics with merged passes");
         groupedCacheAndLifetimes();
         repeatedGroupedBackends();
         retirementBeforeFlush();
@@ -107,6 +116,12 @@ public final class GpuSubmissionSmokeTest {
             List<Float> total = new ArrayList<>(fixture.device.drawn);
             total.addAll(fixture.javaFaces);
             require(total.equals(List.of(4f, 3f, 2f, 1f)), "transparent face order matches native distance sorting across model batches");
+            require(fixture.device.passesOpened == fixture.device.passesClosed, "every shared pass is closed");
+            if (Boolean.getBoolean(AccelerationService.MERGE_PASS_PROPERTY) && failure == 0) {
+                require(fixture.device.passesOpened == 1, "one boundary of one material draws inside a single pass");
+            } else if (!Boolean.getBoolean(AccelerationService.MERGE_PASS_PROPERTY)) {
+                require(fixture.device.passesOpened == 0, "without the flag no shared pass is opened");
+            }
             if (failure == 0) {
                 require(fixture.javaFaces.isEmpty() && fixture.device.drawCalls == 4, "all sorted GPU faces consumed directly");
             } else if (failure == 1) {
@@ -264,6 +279,31 @@ public final class GpuSubmissionSmokeTest {
         int attempts;
         int failBeforeAt;
         int failAfterAt;
+        int passesOpened;
+        int passesClosed;
+
+        @Override
+        public DrawPass openDrawPass(Material material, GpuDrawContext context) {
+            passesOpened++;
+            DrawPass delegate = super.openDrawPass(material, context);
+            return new DrawPass() {
+                @Override
+                public Material material() {
+                    return material;
+                }
+
+                @Override
+                public void draw(Mesh mesh, Pose pose, Indices indices, int firstIndex, int indexCount, Runnable issuingDraw) {
+                    delegate.draw(mesh, pose, indices, firstIndex, indexCount, issuingDraw);
+                }
+
+                @Override
+                public void close() {
+                    passesClosed++;
+                    delegate.close();
+                }
+            };
+        }
 
         @Override
         public void draw(Material material, Mesh mesh, Pose pose, GpuDrawContext context,

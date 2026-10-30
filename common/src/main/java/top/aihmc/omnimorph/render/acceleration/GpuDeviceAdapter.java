@@ -128,6 +128,44 @@ interface GpuDeviceAdapter {
         throw new UnsupportedOperationException("Sorted rigid group drawing unavailable");
     }
 
+    /**
+     * One render pass for consecutive draws of the same material: pipeline, scissor, default uniforms and textures
+     * are set once; each draw only binds its buffers and pose. No buffer may be written while it is open.
+     */
+    interface DrawPass extends AutoCloseable {
+        Material material();
+
+        /** Marks the draw immediately before issuing it, like {@link #draw}. */
+        void draw(Mesh mesh, Pose pose, Indices indices, int firstIndex, int indexCount, Runnable issuingDraw);
+
+        @Override
+        void close();
+    }
+
+    /** Devices without a shared pass issue each draw through {@link #draw} / {@link #drawWithIndices}. */
+    default DrawPass openDrawPass(Material material, GpuDrawContext context) {
+        GpuDeviceAdapter device = this;
+        return new DrawPass() {
+            @Override
+            public Material material() {
+                return material;
+            }
+
+            @Override
+            public void draw(Mesh mesh, Pose pose, Indices indices, int firstIndex, int indexCount, Runnable issuingDraw) {
+                if (indices == null) {
+                    device.draw(material, mesh, pose, context, firstIndex, indexCount, issuingDraw);
+                } else {
+                    device.drawWithIndices(material, mesh, pose, indices, context, firstIndex, indexCount, issuingDraw);
+                }
+            }
+
+            @Override
+            public void close() {
+            }
+        };
+    }
+
     GpuFence fence();
 
     /** Bounded activation-only diagnostic draw/readback. Never called in the per-model frame path. */
