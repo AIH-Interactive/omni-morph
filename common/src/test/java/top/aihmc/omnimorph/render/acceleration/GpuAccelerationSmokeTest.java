@@ -14,6 +14,10 @@ import org.figuramc.figura.math.matrix.FiguraMat4;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import jdk.jfr.Recording;
+import jdk.jfr.consumer.RecordingFile;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -333,7 +337,7 @@ public final class GpuAccelerationSmokeTest {
         return new GpuAccelerationBackend(device, retirement, budget, 100_000);
     }
 
-    private static void storageRouting() {
+    private static void storageRouting() throws Exception {
         var device = new FakeDevice();
         device.storage = new GpuStorageSupport.Limits(256, 1 << 20);
         var retirement = new GpuRetirement();
@@ -348,6 +352,12 @@ public final class GpuAccelerationSmokeTest {
                 "an uncompiled storage variant keeps uniform pose blocks and never compiles inside submission");
         service.beginFrame();
         require(device.storageCompiles == 1, "the storage variant compiles in the frame step");
+
+        Path recordingPath = Files.createTempFile("omnimorph-ssbo", ".jfr");
+        var recording = new Recording();
+        recording.enable(AccelerationFrameDiagnostics.FrameEvent.class).withoutStackTrace();
+        recording.start();
+        AccelerationFrameDiagnostics.beginFrame();
 
         require(service.tryDraw(batch(service, owner, quad(1), 7, material()), CONTEXT)
                 == GpuAccelerationBackend.DrawResult.DRAWN, "storage draw");
@@ -368,6 +378,18 @@ public final class GpuAccelerationSmokeTest {
                         && arena.data.getFloat(256 + GpuBatchData.STORAGE_HEADER_BYTES + 12 * 4) == 9
                         && gpu.storageDraws() == 2,
                 "later draws share the frame arena and write only their own bytes");
+        AccelerationFrameDiagnostics.beginFrame();
+        recording.stop();
+        recording.dump(recordingPath);
+        recording.close();
+        var events = RecordingFile.readAllEvents(recordingPath);
+        Files.deleteIfExists(recordingPath);
+        AccelerationFrameDiagnostics.beginFrame();
+        require(events.size() == 1 && events.getFirst().getLong("ssboDraws") == 2
+                        && events.getFirst().getLong("arenaUploads") == 2
+                        && events.getFirst().getLong("arenaBytes") == 208 + 256
+                        && events.getFirst().getLong("ssboFallbacks") == 0,
+                "the frame event counts storage draws and the incremental arena bytes");
 
         device.failStorageWrite = true;
         for (int attempt = 0; attempt < 3; attempt++) {

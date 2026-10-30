@@ -28,6 +28,10 @@ final class AccelerationFrameDiagnostics {
         long poseUploads;
         long poseBytes;
         long draws;
+        long ssboDraws;
+        long arenaBytes;
+        long arenaUploads;
+        long ssboFallbacks;
         String skinJoints;
         String paletteSizes;
         String materials;
@@ -113,6 +117,26 @@ final class AccelerationFrameDiagnostics {
         if (onFrameThread()) {
             frame.draws++;
             materials.merge(String.valueOf(material), 1L, Long::sum);
+        }
+    }
+
+    static void ssboDraw() {
+        if (onFrameThread()) {
+            frame.ssboDraws++;
+        }
+    }
+
+    static void arenaUpload(long bytes) {
+        if (onFrameThread()) {
+            frame.arenaUploads++;
+            frame.arenaBytes += bytes;
+        }
+    }
+
+    static void ssboFallback(String reason) {
+        if (onFrameThread()) {
+            frame.ssboFallbacks++;
+            fallbacks.merge("SSBO_" + reason, 1L, Long::sum);
         }
     }
 

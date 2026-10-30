@@ -2043,6 +2043,8 @@
   "omni-morph.config.hardware_acceleration.state.disabled": "Java · disabled",
   "omni-morph.config.hardware_acceleration.state.probing": "Probing · Java",
   "omni-morph.config.hardware_acceleration.state.ready": "Ready · %s",
+  "omni-morph.config.hardware_acceleration.storage.active": "SSBO poses active",
+  "omni-morph.config.hardware_acceleration.storage.unavailable": "SSBO poses off (%s)",
   "omni-morph.config.hardware_acceleration.state.fallback": "Java · %s",
   "omni-morph.config.hardware_acceleration.chat.fallback": "[OmniMorph] Hardware acceleration unavailable: %s. Using Java rendering.",
   "omni-morph.config.hardware_acceleration.reason.unsupported_platform": "unsupported process platform or architecture",

@@ -150,6 +150,8 @@
   "omni-morph.config.hardware_acceleration.state.disabled": "Java · 已关闭",
   "omni-morph.config.hardware_acceleration.state.probing": "检测中 · Java",
   "omni-morph.config.hardware_acceleration.state.ready": "已就绪 · %s",
+  "omni-morph.config.hardware_acceleration.storage.active": "SSBO 姿态已启用",
+  "omni-morph.config.hardware_acceleration.storage.unavailable": "SSBO 姿态未启用（%s）",
   "omni-morph.config.hardware_acceleration.state.fallback": "Java · %s",
   "omni-morph.config.hardware_acceleration.chat.fallback": "[OmniMorph] 硬件加速不可用：%s，已回退 Java 渲染。",
   "omni-morph.config.hardware_acceleration.reason.unsupported_platform": "当前进程平台或架构不支持",

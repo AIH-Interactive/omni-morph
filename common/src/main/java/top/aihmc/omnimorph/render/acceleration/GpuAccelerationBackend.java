@@ -494,6 +494,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
             draws++;
             if (storagePose != null) {
                 storageDraws++;
+                AccelerationFrameDiagnostics.ssboDraw();
                 storageFailures = 0;
             }
             AccelerationFrameDiagnostics.draw(prepared.batch.semantics().material());
@@ -617,6 +618,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
                                                        int remapBytes, Consumer<ByteBuffer> remapWriter) {
         if (frameUploadBytes + poseBytes + remapBytes > frameUploadBudget) {
             storageFallbacks++;
+            AccelerationFrameDiagnostics.ssboFallback("UPLOAD_BUDGET");
             return null;
         }
         if (arena == null) {
@@ -630,6 +632,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         }
         if (pose == null || (remapWriter != null && remap == null)) {
             storageFallbacks++;
+            AccelerationFrameDiagnostics.ssboFallback("ARENA_FULL");
             return null;
         }
         frameUploadBytes += poseBytes + remapBytes;
@@ -639,6 +642,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
     /** Consecutive storage-only failures switch the layer off for the session; uniform pose blocks remain. */
     private void storageFailed(RuntimeException failure) {
         storageFallbacks++;
+        AccelerationFrameDiagnostics.ssboFallback("FAILURE");
         storageFailures++;
         if (storageFailures < MAX_STORAGE_FAILURES || storageDisabled) {
             return;

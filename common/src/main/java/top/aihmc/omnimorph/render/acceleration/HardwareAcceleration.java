@@ -105,9 +105,27 @@ public final class HardwareAcceleration {
         return switch (report.state()) {
             case DISABLED -> FiguraText.of("config.hardware_acceleration.state.disabled");
             case PROBING -> FiguraText.of("config.hardware_acceleration.state.probing");
-            case READY -> FiguraText.of("config.hardware_acceleration.state.ready", report.effective().name());
+            case READY -> FiguraText.of("config.hardware_acceleration.state.ready", readyDetail(report));
             case FALLBACK_JAVA -> FiguraText.of("config.hardware_acceleration.state.fallback", reasonText(report.reason()));
         };
+    }
+
+    /** The effective backend, plus the pose storage block state when that opt-in layer was requested. */
+    private static Component readyDetail(CapabilityReport report) {
+        Component effective = Component.literal(report.effective().name());
+        if (report.effective() != Effective.GPU || !GpuStorageSupport.requested()) {
+            return effective;
+        }
+        GpuAccelerationBackend gpu = AccelerationService.INSTANCE.activeGpu();
+        Component storage;
+        if (gpu != null && gpu.storageActive()) {
+            storage = FiguraText.of("config.hardware_acceleration.storage.active");
+        } else {
+            String reason = gpu == null || GpuStorageSupport.unavailableReason() == null
+                    ? "disabled after failures" : GpuStorageSupport.unavailableReason();
+            storage = FiguraText.of("config.hardware_acceleration.storage.unavailable", reason);
+        }
+        return Component.empty().append(effective).append(" · ").append(storage);
     }
 
     public static void flushChat() {
