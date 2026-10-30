@@ -88,6 +88,7 @@ final class GpuPoseArena {
             device.writeStorage(current, flushedEnd, pending);
             uploads++;
             uploadedBytes += staged - flushedEnd;
+            AccelerationFrameDiagnostics.arenaUpload(staged - flushedEnd);
             flushedEnd = staged;
         }
         return current;

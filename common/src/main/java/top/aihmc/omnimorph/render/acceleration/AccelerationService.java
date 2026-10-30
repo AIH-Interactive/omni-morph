@@ -84,6 +84,11 @@ public final class AccelerationService {
         return preferredBackend instanceof GpuAccelerationBackend;
     }
 
+    /** The active GPU backend, or null while Java or SIMD draws. */
+    GpuAccelerationBackend activeGpu() {
+        return preferredBackend instanceof GpuAccelerationBackend gpu ? gpu : null;
+    }
+
     boolean gpuRigidGroupsEnabled() {
         return preferredBackend instanceof GpuAccelerationBackend gpu && gpu.supportsRigidGroups();
     }
