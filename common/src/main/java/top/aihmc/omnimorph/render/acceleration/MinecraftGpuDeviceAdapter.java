@@ -115,6 +115,30 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         return material;
     }
 
+    record BufferStorage(GpuBuffer buffer, long bytes) implements Storage {
+        @Override
+        public void close() {
+            buffer.close();
+        }
+    }
+
+    @Override
+    public Storage createStorage(long capacity) {
+        assertThread();
+        return new BufferStorage(device.createBuffer(() -> "OmniMorph pose storage arena",
+                GpuBuffer.USAGE_UNIFORM | GpuBuffer.USAGE_COPY_DST, capacity), capacity);
+    }
+
+    @Override
+    public void writeStorage(Storage storage, long offset, ByteBuffer data) {
+        assertThread();
+        BufferStorage arena = (BufferStorage) storage;
+        if (offset < 0 || offset + data.remaining() > arena.bytes() || arena.buffer().isClosed()) {
+            throw new IllegalStateException("Pose storage write exceeds its arena");
+        }
+        device.createCommandEncoder().writeToBuffer(arena.buffer().slice(offset, data.remaining()), data);
+    }
+
     @Override
     public GpuStorageSupport.Limits storageLimits() {
         return storageLimits;

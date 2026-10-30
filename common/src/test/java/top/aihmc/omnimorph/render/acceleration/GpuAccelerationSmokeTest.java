@@ -31,6 +31,7 @@ public final class GpuAccelerationSmokeTest {
         poseReuseAfterFence();
         poseBlockVariants(false);
         poseBlockVariants(true);
+        poseArena();
         boundsAndLifetimes();
         failureRouting(false);
         failureRouting(true);
@@ -331,6 +332,79 @@ public final class GpuAccelerationSmokeTest {
         return new GpuAccelerationBackend(device, retirement, budget, 100_000);
     }
 
+    private static void poseArena() {
+        var device = new FakeDevice();
+        var retirement = new GpuRetirement();
+        var arena = new GpuPoseArena(device, retirement, 256, 300_000);
+
+        var first = arena.append(208, buffer -> buffer.put(new byte[208]));
+        var second = arena.append(368, buffer -> {
+            buffer.putInt(7);
+            buffer.put(new byte[364]);
+        });
+        require(first.offset() == 0 && second.offset() == 256 && second.bytes() == 368,
+                "slices start at the storage offset alignment");
+        require(arena.append(300_000, buffer -> {
+            throw new AssertionError("a rejected slice must not run the writer");
+        }) == null, "a slice beyond the arena limit falls back");
+        var arenaBuffer = (FakeResource) arena.flush();
+        require(device.storageCreates == 1 && arenaBuffer.bytes() == GpuPoseArena.MIN_CAPACITY
+                        && arenaBuffer.data.getInt(256) == 7 && device.storageWrites.size() == 1
+                        && device.storageWrites.getFirst()[0] == 0 && device.storageWrites.getFirst()[1] == 624,
+                "the first flush creates the frame arena and writes every staged slice once");
+        require(arena.flush() == arenaBuffer && device.storageWrites.size() == 1, "a flush without new slices writes nothing");
+
+        var third = arena.append(16, buffer -> buffer.putInt(9).put(new byte[12]));
+        require(third.offset() == 768 && arena.flush() == arenaBuffer && device.storageWrites.size() == 2
+                        && device.storageWrites.get(1)[0] == 624 && device.storageWrites.get(1)[1] == 160
+                        && arenaBuffer.data.getInt(768) == 9 && arenaBuffer.data.getInt(256) == 7,
+                "a later material boundary writes only its new bytes into the same arena");
+        require(arena.append(70_000, buffer -> {
+            throw new AssertionError("an overflowing slice must not run the writer");
+        }) == null, "a slice beyond this frame's arena capacity falls back");
+        require(arena.residentBytes() == GpuPoseArena.MIN_CAPACITY && arena.uploads() == 2 && arena.uploadedBytes() == 784,
+                "the active arena counts as resident and uploads count written bytes");
+
+        arena.beginFrame();
+        require(arena.residentBytes() == 0 && retirement.bytes() == GpuPoseArena.MIN_CAPACITY,
+                "a finished frame's arena moves behind its fence");
+        arena.append(208, buffer -> buffer.put(new byte[208]));
+        arena.flush();
+        require(device.storageCreates == 2 && !arenaBuffer.closed, "an arena still in flight is never reused or closed");
+
+        device.complete = true;
+        arena.beginFrame();
+        retirement.poll();
+        require(arena.residentBytes() == 2L * GpuPoseArena.MIN_CAPACITY && retirement.bytes() == 0,
+                "completed arenas return to the bounded free list");
+        arena.append(208, buffer -> buffer.put(new byte[208]));
+        require(arena.flush() != null && device.storageCreates == 2, "a recycled arena serves the next frame");
+
+        arena.beginFrame();
+        var large = arena.append(100_000, buffer -> buffer.put(new byte[100_000]));
+        var grown = (FakeResource) arena.flush();
+        require(large.offset() == 0 && grown.bytes() == 128 * 1024 && device.storageCreates == 3,
+                "a larger frame grows to the next power of two and retires arenas that are too small");
+
+        arena.beginFrame();
+        arena.append(208, buffer -> buffer.put(new byte[208]));
+        var reserved = (FakeResource) arena.flush();
+        require(reserved.bytes() == 128 * 1024 && device.storageCreates == 4,
+                "a new frame reserves at least the previous frame's size for later boundaries");
+
+        arena.beginFrame();
+        try {
+            arena.append(32, buffer -> buffer.put(new byte[16]));
+            throw new AssertionError("a short write must reject");
+        } catch (IllegalStateException expected) {
+            // A writer that disagrees with its declared size would corrupt neighbouring slices.
+        }
+        arena.close();
+        retirement.poll();
+        require(arena.residentBytes() == 0 && device.liveBytes == 0, "closing releases idle and in-flight arenas");
+        System.out.println("PASS pose storage arena: alignment, limit fallback, incremental flushes, fence reuse, growth and release");
+    }
+
     private static void poseBlockVariants(boolean failVariant) {
         var device = new VariantDevice();
         device.failVariant = failVariant;
@@ -407,7 +481,8 @@ public final class GpuAccelerationSmokeTest {
                 x, 3, 3, 1, 0, 1, 0, 0, 1}, 4);
     }
 
-    static final class FakeResource implements GpuDeviceAdapter.Mesh, GpuDeviceAdapter.Pose, GpuDeviceAdapter.Indices {
+    static final class FakeResource implements GpuDeviceAdapter.Mesh, GpuDeviceAdapter.Pose, GpuDeviceAdapter.Indices,
+            GpuDeviceAdapter.Storage {
         final FakeDevice owner;
         final ByteBuffer data;
         final long bytes;
@@ -459,6 +534,8 @@ public final class GpuAccelerationSmokeTest {
         int uploads;
         int drawCalls;
         boolean complete;
+        int storageCreates;
+        final List<long[]> storageWrites = new ArrayList<>();
         boolean failCompile;
         boolean failBeforeDraw;
         boolean failAfterDraw;
@@ -502,6 +579,24 @@ public final class GpuAccelerationSmokeTest {
                 throw new IllegalStateException("injected pose allocation failure");
             }
             return lastPose = new FakeResource(this, data, data.remaining());
+        }
+
+        @Override
+        public Storage createStorage(long capacity) {
+            storageCreates++;
+            return new FakeResource(this, ByteBuffer.allocate(Math.toIntExact(capacity)), capacity);
+        }
+
+        @Override
+        public void writeStorage(Storage storage, long offset, ByteBuffer data) {
+            FakeResource arena = (FakeResource) storage;
+            require(!arena.closed && offset >= 0 && offset + data.remaining() <= arena.data.capacity(),
+                    "storage writes stay inside a live arena");
+            storageWrites.add(new long[]{offset, data.remaining()});
+            arena.data.clear();
+            arena.data.position(Math.toIntExact(offset));
+            arena.data.put(data.duplicate());
+            arena.data.clear();
         }
 
         @Override

@@ -55,6 +55,22 @@ interface GpuDeviceAdapter {
         return null;
     }
 
+    /** One frame arena of pose storage blocks; draws bind ranges of it. */
+    interface Storage extends Resource {
+    }
+
+    default Storage createStorage(long capacity) {
+        throw new UnsupportedOperationException("Pose storage blocks unavailable");
+    }
+
+    /**
+     * Writes {@code data} at {@code offset} of an arena. The region is either in an arena whose fence completed
+     * or not yet bound by any draw of the current frame.
+     */
+    default void writeStorage(Storage storage, long offset, ByteBuffer data) {
+        throw new UnsupportedOperationException("Pose storage blocks unavailable");
+    }
+
     /** Compiles the storage block variant of an entity pipeline; only called when {@link #storageLimits()} is set. */
     default Material compileStorage(RenderPipeline original, boolean grouped) {
         throw new UnsupportedOperationException("Pose storage blocks unavailable");
