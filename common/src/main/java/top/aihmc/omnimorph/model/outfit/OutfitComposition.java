@@ -199,6 +199,8 @@ public final class OutfitComposition implements AutoCloseable {
     }
     private boolean released;
     private Frame activeFrame;
+    // Reusable base pose snapshots; only a released frame returns them, so overlapping frames never share.
+    private final FiguraRenderPose.Spare baseSpare = new FiguraRenderPose.Spare();
     private top.aihmc.omnimorph.lua.api.particle.PreviewParticleScope previewParticles;
     private final MolangExecutionBudget vanillaMolangBudget = new MolangExecutionBudget();
     private Avatar budgetBase;
@@ -713,7 +715,7 @@ public final class OutfitComposition implements AutoCloseable {
                     null, indexes, limits).binding().parts();
             var lease = top.aihmc.omnimorph.render.acceleration.AccelerationService.INSTANCE.capture(
                     base.accelerationOwner(), String.valueOf(base.renderMode));
-            figuraBasePose = new FiguraRenderPose(parts, lease);
+            figuraBasePose = new FiguraRenderPose(parts, lease, null, java.util.Map.of(), baseSpare);
             figuraBase = base;
         }
 
@@ -903,6 +905,10 @@ public final class OutfitComposition implements AutoCloseable {
                 prepared.clear();
                 figuraPoses.clear();
                 instancePoses.clear();
+                if (figuraBasePose != null) {
+                    // Drawn or abandoned for good: its snapshot objects can serve the next frame of this base.
+                    figuraBasePose.release();
+                }
                 figuraBasePose = null;
                 figuraBase = null;
                 previewPart = null;

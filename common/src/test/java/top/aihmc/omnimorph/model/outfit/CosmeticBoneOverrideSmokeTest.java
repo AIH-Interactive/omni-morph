@@ -252,6 +252,8 @@ public final class CosmeticBoneOverrideSmokeTest {
                             EntityRenderMode.FIGURA_GUI);
                     require(positions.size() == 4, "a draw without configured offsets uses the original mesh");
                     near(positions.getFirst(), 7 + 23f / 16, 11 + 2f / 16, 13 + 3f / 16);
+                    retainedPoseSnapshots(parts, service.capture(parent.accelerationOwner(), "p1"),
+                            parent.renderer.root.children.getFirst());
                 }
                 previewSelection(composition, parent, avatars.get(second.instanceId()), base, model, state, ysm);
             }
@@ -261,6 +263,44 @@ public final class CosmeticBoneOverrideSmokeTest {
         }
         System.out.println("PASS internal native overlays: local pivot T/R/S, child sockets, two-copy isolation, immutable source and retained pose; YSM="
                 + ysm + ", accelerated preparation=" + accelerated + "; GUI/GPU MANUAL/PENDING");
+    }
+
+    /**
+     * P1: an unchanged retained pose draws without restoring anything; a pose changed between submit and draw
+     * still draws the submit-time state and then returns the newer one; released snapshots are reused.
+     */
+    private static void retainedPoseSnapshots(List<FiguraModelPart> parts, AccelerationService.Lease lease,
+                                              FiguraModelPart child) {
+        child.customization.setPos(1, 2, 3);
+        var spare = new FiguraRenderPose.Spare();
+        var unchanged = new FiguraRenderPose(parts, lease, null, java.util.Map.of(), spare);
+        PartCustomization customization = child.customization;
+        PartCustomization saved = child.savedCustomization;
+        boolean[] drawn = {false};
+        unchanged.draw(() -> drawn[0] = child.customization.getPos().x == 1);
+        require(drawn[0] && child.customization == customization && child.savedCustomization == saved,
+                "an unchanged retained pose draws as is and leaves the part's objects untouched");
+
+        var changed = new FiguraRenderPose(parts, lease, null, java.util.Map.of(), spare);
+        require(!changed.sharesSnapshotsWith(unchanged), "a pose still in use never lends its snapshots");
+        child.customization.setPos(5, 6, 7);
+        changed.draw(() -> drawn[0] = child.customization.getPos().x == 1 && child.customization.getPos().z == 3);
+        require(drawn[0] && child.customization.getPos().x == 5 && child.customization.getPos().z == 7,
+                "a pose changed after submit draws the submit-time state and restores the newer one");
+        try {
+            changed.draw(() -> {
+                child.customization.setPos(9, 9, 9);
+                throw new IllegalStateException("retained draw failure");
+            });
+            throw new AssertionError("retained draw failure was swallowed");
+        } catch (IllegalStateException expected) {
+            require(child.customization.getPos().x == 5, "a failed borrowed draw still restores the newer pose");
+        }
+
+        unchanged.release();
+        var reused = new FiguraRenderPose(parts, lease, null, java.util.Map.of(), spare);
+        require(reused.sharesSnapshotsWith(unchanged), "a released pose's snapshots serve the next pose");
+        child.customization.setPos(4, 0, 0);
     }
 
     private static void previewSelection(OutfitComposition composition, Avatar first, Avatar second,

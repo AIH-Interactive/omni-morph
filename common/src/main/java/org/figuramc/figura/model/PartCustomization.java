@@ -362,13 +362,35 @@ public class PartCustomization {
                 && sameVector(animPos, other.animPos) && sameVector(animRot, other.animRot)
                 && sameVector(animScale, other.animScale) && sameVector(stackScale, other.stackScale)
                 && sameVector(color, other.color) && sameVector(color2, other.color2)
-                && positionMatrix.toMatrix4f().equals(other.positionMatrix.toMatrix4f())
-                && normalMatrix.toMatrix3f().equals(other.normalMatrix.toMatrix3f())
-                && uvMatrix.toMatrix3f().equals(other.uvMatrix.toMatrix3f());
+                && sameMatrix(positionMatrix, other.positionMatrix)
+                && sameMatrix(normalMatrix, other.normalMatrix)
+                && sameMatrix(uvMatrix, other.uvMatrix);
+    }
+
+    /*
+     * Bit-exact double comparison without allocating float copies. It is stricter than comparing float
+     * conversions, so "matches" still guarantees that copying the pose over would change nothing.
+     */
+
+    public static boolean sameMatrix(FiguraMat4 a, FiguraMat4 b) {
+        return same(a.v11, b.v11) && same(a.v12, b.v12) && same(a.v13, b.v13) && same(a.v14, b.v14)
+                && same(a.v21, b.v21) && same(a.v22, b.v22) && same(a.v23, b.v23) && same(a.v24, b.v24)
+                && same(a.v31, b.v31) && same(a.v32, b.v32) && same(a.v33, b.v33) && same(a.v34, b.v34)
+                && same(a.v41, b.v41) && same(a.v42, b.v42) && same(a.v43, b.v43) && same(a.v44, b.v44);
+    }
+
+    private static boolean sameMatrix(FiguraMat3 a, FiguraMat3 b) {
+        return same(a.v11, b.v11) && same(a.v12, b.v12) && same(a.v13, b.v13)
+                && same(a.v21, b.v21) && same(a.v22, b.v22) && same(a.v23, b.v23)
+                && same(a.v31, b.v31) && same(a.v32, b.v32) && same(a.v33, b.v33);
+    }
+
+    private static boolean same(double a, double b) {
+        return Double.doubleToRawLongBits(a) == Double.doubleToRawLongBits(b);
     }
 
     private static boolean sameVector(FiguraVec3 first, FiguraVec3 second) {
-        return first.x == second.x && first.y == second.y && first.z == second.z;
+        return same(first.x, second.x) && same(first.y, second.y) && same(first.z, second.z);
     }
 
     // Modify this object using the information contained in the other object
