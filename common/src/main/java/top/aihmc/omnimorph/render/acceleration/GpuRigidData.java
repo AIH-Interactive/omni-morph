@@ -297,32 +297,42 @@ final class GpuRigidData {
         return data.flip();
     }
 
-    long storagePoseBytes(Range range) {
-        return GpuBatchData.storagePoseBytes(range.parts().size());
+    /*
+     * Storage groups have no 64-part palette: the unsized std430 part array holds every distinct part, so the
+     * whole group draws as one range in its original face order, and the remap names global part indices.
+     */
+
+    int partCount() {
+        return parts.size();
     }
 
-    /** The storage remap block holds only the integers this group's batches occupy. */
+    long storagePoseBytes() {
+        return GpuBatchData.storagePoseBytes(parts.size());
+    }
+
+    /** One uint per batch: its global part index. */
     long storageRemapBytes() {
-        return (long) remapInts() * Integer.BYTES;
+        return (long) batchParts.length * Integer.BYTES;
     }
 
-    /** Writes the std430 pose block of one range (header, then its palette) and advances past it. */
-    void writeStoragePose(ByteBuffer target, Range range) {
+    /** Writes the std430 pose block of the whole group (header, then every distinct part) and advances past it. */
+    void writeStoragePose(ByteBuffer target) {
         GpuBatchData.writeParameters(target, batches.getFirst());
-        for (int slot = 0; slot < range.parts().size(); slot++) {
-            target.put(parts.get(range.parts().get(slot)).duplicate());
+        for (ByteBuffer part : parts) {
+            target.put(part.duplicate());
         }
     }
 
-    /** Writes the packed batch-to-slot remap of one range and advances past it. */
-    void writeStorageRemap(ByteBuffer target, Range range) {
-        for (int value : packedRemap(range, remapInts())) {
-            target.putInt(value);
+    /** Writes each batch's global part index and advances past them. */
+    void writeStorageRemap(ByteBuffer target) {
+        for (int part : batchParts) {
+            target.putInt(part);
         }
     }
 
-    private int remapInts() {
-        return (batchParts.length + 3) / 4;
+    /** Face count of the whole group, drawn as one storage range. */
+    int faceCount() {
+        return layout.order.length;
     }
 
     private int[] packedRemap(Range range, int ints) {
