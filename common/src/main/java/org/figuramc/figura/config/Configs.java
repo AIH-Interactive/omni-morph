@@ -100,13 +100,42 @@ public class Configs {
                     value = tempValue = defaultValue;
                 }
             };
+    public static final ConfigType.BoolConfig HARDWARE_ACCELERATION_SSBO =
+            accelerationOption("hardware_acceleration.ssbo");
+    public static final ConfigType.BoolConfig HARDWARE_ACCELERATION_SIMD_PACK =
+            accelerationOption("hardware_acceleration.simd_pack");
+    public static final ConfigType.BoolConfig HARDWARE_ACCELERATION_MERGE_PASS =
+            accelerationOption("hardware_acceleration.merge_pass");
+    public static final ConfigType.BoolConfig HARDWARE_ACCELERATION_MODEL_MESH =
+            accelerationOption("hardware_acceleration.model_mesh");
     public static final ConfigType.ReadOnlyConfig HARDWARE_ACCELERATION_STATUS =
             new ConfigType.ReadOnlyConfig("hardware_acceleration.status", HARDWARE_ACCELERATION, HardwareAcceleration::statusText);
+
+    /** Experimental acceleration layers: off by default, applied like the other acceleration settings. */
+    private static ConfigType.BoolConfig accelerationOption(String name) {
+        return new ConfigType.BoolConfig(name, HARDWARE_ACCELERATION, false) {
+            @Override
+            public void onChange() {
+                if (!ConfigManager.isInitializing()) {
+                    HardwareAcceleration.applySettings();
+                }
+            }
+
+            @Override
+            public void setDefault() {
+                value = tempValue = defaultValue;
+            }
+        };
+    }
 
     /** Missing fields in old/reloaded configuration always mean disabled and automatic. */
     static void prepareAccelerationLoad() {
         HARDWARE_ACCELERATION_ENABLED.value = HARDWARE_ACCELERATION_ENABLED.tempValue = false;
         HARDWARE_ACCELERATION_MODE.value = HARDWARE_ACCELERATION_MODE.tempValue = 0;
+        for (ConfigType.BoolConfig option : new ConfigType.BoolConfig[]{HARDWARE_ACCELERATION_SSBO,
+                HARDWARE_ACCELERATION_SIMD_PACK, HARDWARE_ACCELERATION_MERGE_PASS, HARDWARE_ACCELERATION_MODEL_MESH}) {
+            option.value = option.tempValue = false;
+        }
     }
 
     // -- nameplate -- // 

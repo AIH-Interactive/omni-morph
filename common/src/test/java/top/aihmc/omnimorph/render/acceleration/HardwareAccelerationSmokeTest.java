@@ -2,6 +2,7 @@ package top.aihmc.omnimorph.render.acceleration;
 
 import com.google.gson.JsonParser;
 import org.figuramc.figura.config.ConfigManager;
+import org.figuramc.figura.config.ConfigType;
 import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.math.matrix.FiguraMat3;
 import org.figuramc.figura.math.matrix.FiguraMat4;
@@ -62,7 +63,25 @@ public final class HardwareAccelerationSmokeTest {
         require(!Configs.HARDWARE_ACCELERATION_ENABLED.value && !Configs.HARDWARE_ACCELERATION_ENABLED.tempValue
                 && HardwareAcceleration.report().state() == State.DISABLED, "reset defaults also disables active/pending acceleration");
         require(Configs.HARDWARE_ACCELERATION_STATUS.isDefault()
-                && Configs.HARDWARE_ACCELERATION.children.size() == 3, "same settings category with two controls and read-only status");
+                && Configs.HARDWARE_ACCELERATION.children.size() == 7,
+                "same settings category: enable, mode, four experimental toggles and read-only status");
+        for (var option : new ConfigType.BoolConfig[]{Configs.HARDWARE_ACCELERATION_SSBO, Configs.HARDWARE_ACCELERATION_SIMD_PACK,
+                Configs.HARDWARE_ACCELERATION_MERGE_PASS, Configs.HARDWARE_ACCELERATION_MODEL_MESH}) {
+            require(!option.value && !option.defaultValue, "experimental acceleration toggles default to off");
+        }
+        Configs.HARDWARE_ACCELERATION_MERGE_PASS.setTempValue("true");
+        Configs.HARDWARE_ACCELERATION_MODEL_MESH.setTempValue("true");
+        ConfigManager.applyConfig();
+        require(AccelerationOptions.mergePasses() && !AccelerationOptions.modelMesh(),
+                "applied toggles reach the renderer; model draws stay off without storage blocks");
+        Configs.HARDWARE_ACCELERATION_SSBO.setTempValue("true");
+        ConfigManager.applyConfig();
+        require(AccelerationOptions.storageBlocks() && AccelerationOptions.modelMesh(), "model draws follow storage blocks");
+        Files.writeString(file, "{\"CONFIG_VERSION\":1}");
+        ConfigManager.loadConfig();
+        require(!AccelerationOptions.storageBlocks() && !AccelerationOptions.mergePasses() && !AccelerationOptions.modelMesh()
+                        && !Configs.HARDWARE_ACCELERATION_SSBO.value,
+                "missing fields in old configurations turn every experimental toggle off");
     }
 
     private static void controllerTests() throws Exception {

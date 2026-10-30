@@ -137,12 +137,9 @@ public final class AccelerationService {
         }
     }
 
-    /** Shared-pass draws stay opt-in until the real-window acceptance comparison decides the default. */
-    static final String MERGE_PASS_PROPERTY = "omnimorph.gpu.mergepass";
-
     /** A shared-pass session for one material boundary, or null to keep one render pass per draw. */
     GpuAccelerationBackend.MergedDraws openMergedDraws(GpuDrawContext context) {
-        if (!Boolean.getBoolean(MERGE_PASS_PROPERTY) || !(preferredBackend instanceof GpuAccelerationBackend gpu)) {
+        if (!AccelerationOptions.mergePasses() || !(preferredBackend instanceof GpuAccelerationBackend gpu)) {
             return null;
         }
         return gpu.openMergedDraws(context);

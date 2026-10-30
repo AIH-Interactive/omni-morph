@@ -32,9 +32,18 @@ public final class HardwareAcceleration {
     }
 
     public static void applySettings() {
+        boolean reprobe = AccelerationOptions.update(
+                Boolean.TRUE.equals(Configs.HARDWARE_ACCELERATION_SSBO.value),
+                Boolean.TRUE.equals(Configs.HARDWARE_ACCELERATION_SIMD_PACK.value),
+                Boolean.TRUE.equals(Configs.HARDWARE_ACCELERATION_MERGE_PASS.value),
+                Boolean.TRUE.equals(Configs.HARDWARE_ACCELERATION_MODEL_MESH.value));
         if (CONTROLLER.request(Boolean.TRUE.equals(Configs.HARDWARE_ACCELERATION_ENABLED.value),
                 Mode.values()[Configs.HARDWARE_ACCELERATION_MODE.value])) {
             resetPendingGpu = true;
+        } else if (reprobe) {
+            // Storage blocks and model draws are probed during GPU activation, so an active backend activates again.
+            resetPendingGpu = true;
+            CONTROLLER.retryAfterResourceReload();
         }
     }
 

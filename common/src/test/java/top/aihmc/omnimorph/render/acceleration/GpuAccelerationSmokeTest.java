@@ -39,6 +39,7 @@ public final class GpuAccelerationSmokeTest {
         storageRouting();
         storageSingleRangeGroup();
         storageMergedPass();
+        modelRouting();
         boundsAndLifetimes();
         failureRouting(false);
         failureRouting(true);
@@ -495,6 +496,67 @@ public final class GpuAccelerationSmokeTest {
         System.out.println("PASS R4-2 storage: shared pass reuse and closing before pending arena writes");
     }
 
+    /** R4-3 M3: skinned, differently lit and triangle batches of one boundary prepare one model range. */
+    private static void modelRouting() {
+        var device = new RigidDevice();
+        device.storage = new GpuStorageSupport.Limits(256, 1 << 20, true);
+        var retirement = new GpuRetirement();
+        var gpu = ready(device, retirement, 4_000_000);
+        var service = new AccelerationService();
+        var owner = new AccelerationOwner();
+        var triangle = new MeshHandle(new double[]{
+                0, 0, 0, 1, 0, 1, 0, 0, 0,
+                1, 0, 0, 1, 0, 1, 0, 1, 0,
+                0, 1, 0, 1, 0, 1, 0, 0, 1,
+                1, 1, 0, 1, 0, 1, 0, 1, 1,
+                2, 1, 0, 1, 0, 1, 0, 1, 1,
+                1, 2, 0, 1, 0, 1, 0, 0, 1}, 3);
+        List<DrawBatch> batches = new ArrayList<>(List.of(
+                batch(service, owner, quad(1), 1, material()),
+                batch(service, owner, triangle, 2, material()),
+                batch(service, owner, quad(2), 3, material())));
+        var tinted = batches.get(2);
+        var semantics = tinted.semantics();
+        batches.set(2, new DrawBatch(tinted.lease(), tinted.mesh(), tinted.pose(), new DrawSemantics(semantics.material(),
+                semantics.texture(), semantics.layer(), "world", 0, tinted.mesh().faceCount(), 0x00f000f0,
+                semantics.overlay(), 1, 0, 0, 1, 0, true)));
+        long[] order = {0, 1L << 32, (1L << 32) | 1, 2L << 32};
+        require(!GpuRigidData.supports(batches) && GpuModelData.supports(batches),
+                "triangles and a differently lit batch reject rigid groups but fit one model draw");
+        gpu.supports(AccelerationBackend.Operation.GPU_DRAW, batches.getFirst());
+        gpu.beginFrame();
+        gpu.beginFrame();
+
+        AccelerationOptions.setStorageBlocks(true);
+        AccelerationOptions.setModelMesh(false);
+        try {
+            require(gpu.prepareGroup(batches, order, () -> true) == null, "with model draws off the boundary goes batch by batch");
+            AccelerationOptions.setModelMesh(true);
+            require(gpu.prepareGroup(batches, order, () -> true) == null && device.modelCompiles == 0,
+                    "the model variant is never compiled inside submission");
+            gpu.beginFrame();
+            require(device.modelCompiles == 1, "the model variant compiles in the frame step");
+            var ranges = gpu.prepareGroup(batches, order, () -> true);
+            require(ranges != null && ranges.size() == 1 && ranges.getFirst().faceCount() == 4
+                            && ranges.getFirst().indexCount() == 6 + 3 + 3 + 6,
+                    "one model range covers quads and fan-triangulated triangles");
+            require(gpu.drawPrepared(ranges.getFirst().prepared(), CONTEXT, 0, ranges.getFirst().indexCount(), () -> true)
+                            == GpuAccelerationBackend.DrawResult.DRAWN
+                            && device.lastDrawnPose instanceof GpuDeviceAdapter.StoragePose storagePose
+                            && storagePose.records != null && storagePose.records.bytes() == 3 * 48
+                            && storagePose.remap == null && storagePose.pose.bytes() == 48 + 3 * 160,
+                    "the single draw binds the part table and one record per batch");
+        } finally {
+            AccelerationOptions.setStorageBlocks(false);
+            AccelerationOptions.setModelMesh(false);
+        }
+        gpu.close();
+        device.complete = true;
+        retirement.poll();
+        require(device.liveBytes == 0, "closing releases model geometry, indices and the arena");
+        System.out.println("PASS R4-3 routing: skinned-capable model draw for lit/tinted quad and triangle batches, gated by options");
+    }
+
     private static void poseArena() {
         var device = new FakeDevice();
         var retirement = new GpuRetirement();
@@ -764,6 +826,14 @@ public final class GpuAccelerationSmokeTest {
         @Override
         public Material compileStorage(RenderPipeline original, boolean grouped) {
             storageCompiles++;
+            return new Material(original, original);
+        }
+
+        int modelCompiles;
+
+        @Override
+        public Material compileStorageModel(RenderPipeline original) {
+            modelCompiles++;
             return new Material(original, original);
         }
 

@@ -18,9 +18,6 @@ import java.util.Locale;
  * Render thread only.
  */
 final class GpuStorageSupport {
-    /** Pose storage blocks stay opt-in until the real-window acceptance comparison decides the default. */
-    static final String PROPERTY = "omnimorph.gpu.ssbo";
-
     /** {@code models}: a third vertex-stage block and binding {@link GpuShaderProgram#BATCH_BINDING} for R4-3. */
     record Limits(int offsetAlignment, long maxBlockBytes, boolean models) {
     }
@@ -30,8 +27,9 @@ final class GpuStorageSupport {
     private GpuStorageSupport() {
     }
 
+    /** Pose storage blocks stay opt-in (hardware acceleration settings) until acceptance decides the default. */
     static boolean requested() {
-        return Boolean.getBoolean(PROPERTY);
+        return AccelerationOptions.storageBlocks();
     }
 
     static String unavailableReason() {
