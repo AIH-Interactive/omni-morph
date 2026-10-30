@@ -117,9 +117,13 @@ public final class GpuRigidDataSmokeTest {
                 "the entity storage variant declares only the unsized pose block");
         String rigid = GpuShaderProgram.wrapStorageRigidEntitySource(PROBE_SOURCE);
         require(rigid.contains("layout(std430, binding = 7) readonly buffer OmniMorphRemapBlock {")
-                        && rigid.contains("int packedRemap = int(OmniRemap[globalPart / 4]);")
-                        && !rigid.contains("OmniRemap[globalPart / 16]") && !rigid.contains("ivec4 OmniRemap[256]"),
-                "the rigid storage variant reads the packed remap block");
+                        && rigid.contains("int part = int(OmniRemap[globalPart]);")
+                        && !rigid.contains("packedRemap") && !rigid.contains("ivec4 OmniRemap[256]"),
+                "the rigid storage variant reads each batch's global part index");
+        String uniformRigid = GpuShaderProgram.wrapRigidEntitySource(PROBE_SOURCE);
+        require(uniformRigid.contains("int packedRemap = OmniRemap[globalPart / 16][(globalPart / 4) % 4];")
+                        && uniformRigid.contains("int part = (packedRemap >> ((globalPart % 4) * 8)) & 255;"),
+                "the uniform rigid variant keeps its 64-part palette slots");
 
         DrawBatch batch = batches.get(3);
         ByteBuffer uniform = GpuBatchData.pose(batch);
@@ -130,19 +134,53 @@ public final class GpuRigidDataSmokeTest {
         requireSame(storage, 48, uniform, 0, GpuBatchData.PART_BYTES, "storage part follows the header");
 
         var pair = new GpuRigidData(batches.subList(0, 2), new long[]{0, 1L << 32});
-        var range = pair.ranges().getFirst();
-        ByteBuffer groupUniform = pair.pose(range);
-        ByteBuffer groupStorage = ByteBuffer.allocate((int) pair.storagePoseBytes(range)).order(ByteOrder.nativeOrder());
-        pair.writeStoragePose(groupStorage, range);
-        require(groupStorage.position() == 48 + 2 * 160, "a two-part storage block holds exactly its palette");
+        ByteBuffer groupUniform = pair.pose(pair.ranges().getFirst());
+        ByteBuffer groupStorage = ByteBuffer.allocate((int) pair.storagePoseBytes()).order(ByteOrder.nativeOrder());
+        pair.writeStoragePose(groupStorage);
+        require(groupStorage.position() == 48 + 2 * 160, "a two-part storage block holds exactly its distinct parts");
         requireSame(groupStorage, 0, groupUniform, GpuBatchData.PARAMETER_OFFSET, 48, "rigid header holds the parameters");
-        requireSame(groupStorage, 48, groupUniform, 0, 2 * GpuBatchData.PART_BYTES, "rigid palette follows the header");
-        ByteBuffer remap = ByteBuffer.allocate((int) pair.storageRemapBytes()).order(ByteOrder.nativeOrder());
-        pair.writeStorageRemap(remap, range);
-        require(remap.position() == Integer.BYTES, "two batches need one packed remap integer");
-        requireSame(remap, 0, groupUniform, GpuRigidData.REMAP_OFFSET, Integer.BYTES,
-                "storage remap bytes equal the uniform remap prefix");
-        System.out.println("PASS pose storage blocks: extension placement, std430 declarations, packed header/parts/remap bytes");
+        requireSame(groupStorage, 48, groupUniform, 0, 2 * GpuBatchData.PART_BYTES, "rigid parts follow the header");
+        System.out.println("PASS pose storage blocks: extension placement, std430 declarations, packed header and parts");
+        testStorageSingleRange(batches);
+    }
+
+    /**
+     * R4-1: a storage group of more than 64 distinct parts, sorted so its faces alternate between them, still
+     * draws as one range, and every face's batch resolves through the remap to its own transform.
+     */
+    private static void testStorageSingleRange(List<DrawBatch> batches) {
+        long[] interleaved = new long[batches.size()];
+        for (int index = 0; index < interleaved.length; index++) {
+            // Alternate ends of the batch list, the worst case for 64-part palettes.
+            int batch = index % 2 == 0 ? index / 2 : batches.size() - 1 - index / 2;
+            interleaved[index] = (long) batch << 32;
+        }
+        var group = new GpuRigidData(batches, interleaved);
+        require(group.ranges().size() > 1, "the uniform path still splits more than 64 parts into palette ranges");
+        require(group.partCount() == 65 && group.faceCount() == batches.size(),
+                "the storage group covers every distinct part and face");
+
+        ByteBuffer pose = ByteBuffer.allocate((int) group.storagePoseBytes()).order(ByteOrder.nativeOrder());
+        group.writeStoragePose(pose);
+        ByteBuffer remap = ByteBuffer.allocate((int) group.storageRemapBytes()).order(ByteOrder.nativeOrder());
+        group.writeStorageRemap(remap);
+        require(pose.position() == 48 + 65 * 160 && remap.position() == batches.size() * Integer.BYTES,
+                "one pose block with every part and one uint per batch");
+
+        var geometry = group.vertices();
+        var indices = group.indices();
+        for (int face = 0; face < group.faceCount(); face++) {
+            int vertex = indices.getInt(face * 6 * Integer.BYTES);
+            int batch = geometry.getInt(vertex * GpuBatchData.VERTEX_BYTES + 48);
+            int part = remap.getInt(batch * Integer.BYTES);
+            require(part >= 0 && part < group.partCount(), "every face resolves to a stored part");
+            int partOffset = GpuBatchData.STORAGE_HEADER_BYTES + part * GpuBatchData.PART_BYTES;
+            require(pose.getFloat(partOffset + 48) == batch % 65,
+                    "the global remap selects the authored transform in the single range");
+            require(pose.getFloat(partOffset + 108) == (float) (batch % 65 * .001),
+                    "part-specific vertex offset survives the single range");
+        }
+        System.out.println("PASS R4-1 storage groups: 65 interleaved parts draw as one range with global part remap");
     }
 
     private static void requireSame(ByteBuffer actual, int actualOffset, ByteBuffer expected, int expectedOffset,

@@ -434,18 +434,17 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
             List<PreparedRange> result = new ArrayList<>();
             RenderPipeline pipeline = first.semantics().material().pipeline();
             GpuDeviceAdapter.Material storageMaterial = storageMaterial(pipeline, true);
-            for (GpuRigidData.Range range : data.ranges()) {
-                if (storageMaterial != null) {
-                    var storagePose = appendStorage(Math.toIntExact(data.storagePoseBytes(range)),
-                            target -> data.writeStoragePose(target, range),
-                            Math.toIntExact(data.storageRemapBytes()), target -> data.writeStorageRemap(target, range));
-                    if (storagePose != null) {
-                        AccelerationFrameDiagnostics.poseUpload(storagePose.bytes(), range.parts().size(), true);
-                        var prepared = new Prepared(this, first, storageMaterial, entry.mesh, storagePose, entry.indices, indices);
-                        result.add(new PreparedRange(prepared, range.firstFace(), range.faceCount()));
-                        continue;
-                    }
+            if (storageMaterial != null) {
+                // The unsized part array needs no palette split: the whole group is one range and one draw.
+                var storagePose = appendStorage(Math.toIntExact(data.storagePoseBytes()), data::writeStoragePose,
+                        Math.toIntExact(data.storageRemapBytes()), data::writeStorageRemap);
+                if (storagePose != null) {
+                    AccelerationFrameDiagnostics.poseUpload(storagePose.bytes(), data.partCount(), true);
+                    var prepared = new Prepared(this, first, storageMaterial, entry.mesh, storagePose, entry.indices, indices);
+                    return List.of(new PreparedRange(prepared, 0, data.faceCount()));
                 }
+            }
+            for (GpuRigidData.Range range : data.ranges()) {
                 int tier = variantTier(pipeline, true, range.parts().size());
                 GpuDeviceAdapter.Material rangeMaterial = tier == GpuBatchData.MAX_PARTS
                         ? material : variants.get(new VariantKey(pipeline, true, tier));

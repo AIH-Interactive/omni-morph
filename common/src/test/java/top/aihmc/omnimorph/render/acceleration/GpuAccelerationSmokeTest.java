@@ -37,6 +37,7 @@ public final class GpuAccelerationSmokeTest {
         poseBlockVariants(true);
         poseArena();
         storageRouting();
+        storageSingleRangeGroup();
         boundsAndLifetimes();
         failureRouting(false);
         failureRouting(true);
@@ -412,6 +413,53 @@ public final class GpuAccelerationSmokeTest {
         System.out.println("PASS pose storage routing: lazy variant, arena draws, incremental writes, local failures and fallback");
     }
 
+    /** R4-1: with storage blocks, a group of more than 64 interleaved parts prepares one range and one draw. */
+    private static void storageSingleRangeGroup() {
+        var device = new RigidDevice();
+        device.storage = new GpuStorageSupport.Limits(256, 1 << 20);
+        var retirement = new GpuRetirement();
+        var gpu = ready(device, retirement, 4_000_000);
+        var service = new AccelerationService();
+        var owner = new AccelerationOwner();
+        List<DrawBatch> batches = new ArrayList<>();
+        for (int index = 0; index < 130; index++) {
+            batches.add(batch(service, owner, quad(1), index % 65, material()));
+        }
+        long[] interleaved = new long[batches.size()];
+        for (int index = 0; index < interleaved.length; index++) {
+            int batch = index % 2 == 0 ? index / 2 : batches.size() - 1 - index / 2;
+            interleaved[index] = (long) batch << 32;
+        }
+        // Compile the rigid group material through the normal pending-material frame step.
+        gpu.supports(AccelerationBackend.Operation.GPU_DRAW, batches.getFirst());
+        gpu.beginFrame();
+        gpu.beginFrame();
+
+        var uniform = gpu.prepareGroup(batches, interleaved, () -> true);
+        require(uniform != null && uniform.size() > 1,
+                "before the storage variant compiles, the group keeps 64-part palette ranges");
+        gpu.beginFrame();
+        require(device.storageCompiles == 1, "the rigid storage variant compiles in the frame step");
+
+        var single = gpu.prepareGroup(batches, interleaved, () -> true);
+        require(single != null && single.size() == 1 && single.getFirst().firstFace() == 0
+                        && single.getFirst().faceCount() == batches.size(),
+                "with storage blocks the whole interleaved group is one range");
+        require(gpu.drawPrepared(single.getFirst().prepared(), CONTEXT, 0, batches.size() * 6, () -> true)
+                        == GpuAccelerationBackend.DrawResult.DRAWN
+                        && device.lastDrawnPose instanceof GpuDeviceAdapter.StoragePose,
+                "the single range draws once from the arena");
+        var drawn = (GpuDeviceAdapter.StoragePose) device.lastDrawnPose;
+        require(drawn.pose.bytes() == 48 + 65 * 160 && drawn.remap.bytes() == 130 * Integer.BYTES,
+                "one pose block holds all 65 parts and the remap one uint per batch");
+
+        gpu.close();
+        device.complete = true;
+        retirement.poll();
+        require(device.liveBytes == 0, "closing releases the arena, indices and group geometry");
+        System.out.println("PASS R4-1 backend: interleaved 65-part group prepares one storage range and one draw");
+    }
+
     private static void poseArena() {
         var device = new FakeDevice();
         var retirement = new GpuRetirement();
@@ -603,6 +651,14 @@ public final class GpuAccelerationSmokeTest {
         @Override
         public Indices uploadIndices(ByteBuffer data) {
             return new FakeResource(this, data, data.remaining());
+        }
+
+        @Override
+        public void drawWithIndices(Material material, Mesh mesh, Pose pose, Indices indices, GpuDrawContext context,
+                                    int firstIndex, int indexCount, Runnable issuingDraw) {
+            issuingDraw.run();
+            drawCalls++;
+            lastDrawnPose = pose;
         }
     }
 

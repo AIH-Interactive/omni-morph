@@ -42,9 +42,14 @@ final class GpuShaderProgram {
                 uint OmniRemap[];
             };
             """.formatted(REMAP_BINDING);
-    private static final String UNIFORM_REMAP_READ = "int packedRemap = OmniRemap[globalPart / 16][(globalPart / 4) % 4];";
-    // The packed bytes are identical: std140 ivec4 elements are contiguous, so ivec4 [i / 16][(i / 4) % 4] is int i / 4.
-    private static final String STORAGE_REMAP_READ = "int packedRemap = int(OmniRemap[globalPart / 4]);";
+    private static final String UNIFORM_REMAP_READ = """
+                int packedRemap = OmniRemap[globalPart / 16][(globalPart / 4) % 4];
+                int part = (packedRemap >> ((globalPart % 4) * 8)) & 255;
+            """;
+    // Storage groups have no 64-part palette: each batch maps straight to its global part index.
+    private static final String STORAGE_REMAP_READ = """
+                int part = int(OmniRemap[globalPart]);
+            """;
     private static final String DECLARATIONS = """
             in vec3 OmniPosition;
             in vec3 OmniNormal;

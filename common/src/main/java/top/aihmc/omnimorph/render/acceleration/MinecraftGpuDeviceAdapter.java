@@ -355,11 +355,10 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         ByteBuffer poseData;
         ByteBuffer remapData = null;
         if (grouped) {
-            var range = group.ranges().getFirst();
-            poseData = ByteBuffer.allocateDirect((int) group.storagePoseBytes(range)).order(ByteOrder.nativeOrder());
-            group.writeStoragePose(poseData, range);
+            poseData = ByteBuffer.allocateDirect((int) group.storagePoseBytes()).order(ByteOrder.nativeOrder());
+            group.writeStoragePose(poseData);
             remapData = ByteBuffer.allocateDirect((int) group.storageRemapBytes()).order(ByteOrder.nativeOrder());
-            group.writeStorageRemap(remapData, range);
+            group.writeStorageRemap(remapData);
             remapData.flip();
         } else {
             poseData = ByteBuffer.allocateDirect(GpuBatchData.storagePoseBytes(1)).order(ByteOrder.nativeOrder());
