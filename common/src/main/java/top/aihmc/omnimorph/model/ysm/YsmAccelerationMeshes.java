@@ -4,25 +4,38 @@ import top.aihmc.omnimorph.render.acceleration.AccelerationService;
 import top.aihmc.omnimorph.render.acceleration.MeshHandle;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Runtime-owned immutable snapshots; mutable authored arrays are checked before reuse. */
+/**
+ * Runtime-owned immutable snapshots; mutable authored arrays are checked before reuse. Each snapshot keeps a flat
+ * float copy of its visible faces (positions, UVs, normal), compared range by range with {@link Arrays#equals}, so
+ * the per-frame check reads the authored arrays directly instead of going through the mesh one value at a time.
+ */
 final class YsmAccelerationMeshes {
     private static final int MAXIMUM_FACES = AccelerationService.MAX_BATCH_VERTICES / 4;
     private static final long MEMORY_BUDGET = 64L << 20;
-    private final Map<List<YsmGeometry.Cube>, List<MeshHandle>> snapshots = new IdentityHashMap<>();
+    private static final int POSITIONS = 12;
+    private static final int UVS = 8;
+    private static final int NORMAL = 3;
+    private static final int FACE_FLOATS = POSITIONS + UVS + NORMAL;
+
+    private record Snapshot(List<MeshHandle> meshes, float[] source, int faces) {
+    }
+
+    private final Map<List<YsmGeometry.Cube>, Snapshot> snapshots = new IdentityHashMap<>();
     private long bytes;
 
     synchronized List<MeshHandle> get(List<YsmGeometry.Cube> cubes) {
-        List<MeshHandle> existing = snapshots.get(cubes);
+        Snapshot existing = snapshots.get(cubes);
         if (existing != null && matches(cubes, existing)) {
-            return existing;
+            return existing.meshes();
         }
         if (existing != null) {
             snapshots.remove(cubes);
-            bytes -= bytes(existing);
+            bytes -= bytes(existing.meshes());
         }
         List<YsmGeometry.Quad> faces = new ArrayList<>();
         for (YsmGeometry.Cube cube : cubes) {
@@ -57,10 +70,22 @@ final class YsmAccelerationMeshes {
             if (bytes + size > MEMORY_BUDGET || snapshots.size() >= 4096) {
                 clear();
             }
-            snapshots.put(cubes, result);
+            snapshots.put(cubes, new Snapshot(result, source(faces), faces.size()));
             bytes += size;
         }
         return result;
+    }
+
+    private static float[] source(List<YsmGeometry.Quad> faces) {
+        float[] source = new float[Math.multiplyExact(faces.size(), FACE_FLOATS)];
+        for (int face = 0; face < faces.size(); face++) {
+            YsmGeometry.Quad quad = faces.get(face);
+            int offset = face * FACE_FLOATS;
+            System.arraycopy(quad.positions(), 0, source, offset, POSITIONS);
+            System.arraycopy(quad.uvs(), 0, source, offset + POSITIONS, UVS);
+            System.arraycopy(quad.normal(), 0, source, offset + POSITIONS + UVS, NORMAL);
+        }
+        return source;
     }
 
     synchronized void clear() {
@@ -70,43 +95,29 @@ final class YsmAccelerationMeshes {
         bytes = 0;
     }
 
-    private static boolean matches(List<YsmGeometry.Cube> cubes, List<MeshHandle> meshes) {
+    /** The visible faces, in order, still hold exactly the floats the meshes were built from. */
+    private static boolean matches(List<YsmGeometry.Cube> cubes, Snapshot snapshot) {
+        float[] source = snapshot.source();
         int face = 0;
-        int expected = meshes.stream().mapToInt(MeshHandle::faceCount).sum();
         for (YsmGeometry.Cube cube : cubes) {
             for (YsmGeometry.Quad quad : cube.quads) {
                 if (!quad.visible()) {
                     continue;
                 }
-                if (face >= expected) {
+                if (face >= snapshot.faces()) {
                     return false;
                 }
-                MeshHandle mesh = meshes.get(face / MAXIMUM_FACES);
-                int firstVertex = face % MAXIMUM_FACES * 4;
-                for (int vertex = 0; vertex < 4; vertex++) {
-                    for (int component = 0; component < 3; component++) {
-                        if (!same(mesh.component(firstVertex + vertex, component), quad.positions()[vertex * 3 + component])) {
-                            return false;
-                        }
-                    }
-                    if (!same(mesh.component(firstVertex + vertex, 7), quad.uvs()[vertex * 2])
-                            || !same(mesh.component(firstVertex + vertex, 8), quad.uvs()[vertex * 2 + 1])) {
-                        return false;
-                    }
-                }
-                for (int component = 0; component < 3; component++) {
-                    if (!same(mesh.component(firstVertex, 4 + component), quad.normal()[component])) {
-                        return false;
-                    }
+                int offset = face * FACE_FLOATS;
+                if (!Arrays.equals(source, offset, offset + POSITIONS, quad.positions(), 0, POSITIONS)
+                        || !Arrays.equals(source, offset + POSITIONS, offset + POSITIONS + UVS, quad.uvs(), 0, UVS)
+                        || !Arrays.equals(source, offset + POSITIONS + UVS, offset + FACE_FLOATS,
+                        quad.normal(), 0, NORMAL)) {
+                    return false;
                 }
                 face++;
             }
         }
-        return face == expected;
-    }
-
-    private static boolean same(double snapshot, float current) {
-        return Double.doubleToLongBits(snapshot) == Double.doubleToLongBits(current);
+        return face == snapshot.faces();
     }
 
     private static long bytes(List<MeshHandle> meshes) {
