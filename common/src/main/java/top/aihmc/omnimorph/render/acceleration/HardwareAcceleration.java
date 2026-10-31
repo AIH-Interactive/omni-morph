@@ -212,6 +212,8 @@ public final class HardwareAcceleration {
             pendingGpu = null;
             return new AccelerationController.Activation(ready, Effective.GPU, capabilities);
         } catch (GpuAccelerationBackend.Failure failure) {
+            // The report only carries the reason; keep the underlying exception for diagnosis.
+            FiguraMod.LOGGER.warn("GPU acceleration probe failed: {}", failure.reason, failure.getCause());
             pendingGpu.close();
             pendingGpu = null;
             throw new AccelerationController.ProbeFailure(failure.reason);
