@@ -8,7 +8,7 @@ evaluationDependsOn ':common'
 
 dependencies {
 	minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
-	mappings loom.layered {}
+	mappings loom.officialMojangMappings()
 
 	// Libraries
 	implementation("com.github.FiguraMC.luaj:luaj-core:$luaj-figura")

@@ -406,6 +406,8 @@
 | protobuf / luaj / nv-websocket | 现状 | 不变 | 与 MC 无关 |
 
 > 表中"建议"均需在 M0 用实际依赖解析验证；未验证项不得写入发布说明。
+>
+> **M0 实测校准（2026-10-31）**：Loom 1.14-SNAPSHOT + Gradle 9.4.1 可直接用于 1.21.1，无需降级。实际锁定的版本为 Fabric Loader 0.16.14、Iris 1.8.8、ImmediatelyFast 1.6.15、ModMenu 11.0.5、LambDynamicLights 4.8.11；另外 `aircompressor-v3` 换成 `aircompressor:0.27`（前者要求 Java 22 以上）。详见 [mc-1.21.1-m0-baseline.md](mc-1.21.1-m0-baseline.md)。
 
 ---
 

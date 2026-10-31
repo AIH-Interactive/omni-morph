@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.avatar.ysm.crypto;
 
-import io.airlift.compress.v3.zstd.ZstdInputStream;
+import io.airlift.compress.zstd.ZstdInputStream;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

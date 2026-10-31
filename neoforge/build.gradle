@@ -1,5 +1,5 @@
 plugins {
-    id "com.github.johnrengelman.shadow" version "8.1.1"
+    id "com.gradleup.shadow" version "9.0.0-beta12"
 }
 
 architectury {
@@ -20,10 +20,7 @@ configurations {
 }
 
 dependencies {
-    mappings loom.layered {
-        mappings("org.quiltmc:quilt-mappings:$minecraft_version+build.$mappings:intermediary-v2")
-        officialMojangMappings()
-    }
+    mappings loom.officialMojangMappings()
 
     // Libraries
     include(forgeRuntimeLibrary("com.github.FiguraMC.luaj:luaj-core:$luaj-figura"))
@@ -89,7 +86,7 @@ components.java {
 publishing {
     publications {
         maven(MavenPublication) {
-            artifactId = "${project.archivesBaseName}-${project.name}"
+            artifactId = "${base.archivesName.get()}-${project.name}"
             version = project.version
             artifact(remapJar) {
                 builtBy remapJar

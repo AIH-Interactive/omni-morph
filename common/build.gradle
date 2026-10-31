@@ -22,20 +22,20 @@ repositories {
 
 dependencies {
     implementation 'com.google.protobuf:protobuf-java:4.31.1'
-    mappings loom.layered {}
+    mappings loom.officialMojangMappings()
 
     // Libraries
     implementation("com.github.FiguraMC.luaj:luaj-core:$luaj-figura")
     implementation("com.github.FiguraMC.luaj:luaj-jse:$luaj-figura")
     implementation("com.neovisionaries:nv-websocket-client:$nv_websocket")
-    implementation("io.airlift:aircompressor-v3:3.10")
+    implementation("io.airlift:aircompressor:0.27")
     implementation("io.github.jaredmdobson:concentus:1.0.2")
     implementation("org.gagravarr:vorbis-java-core:0.8")
     // Fixed upstream commit 6af2f277a8749a742f6b408458df63df1c66fcc4, including its native libraries/licenses.
     implementation("com.github.ustc-zzzz:avif-imageio-native-reader:master-6af2f277a8-1@jar")
     implementation("com.twelvemonkeys.imageio:imageio-webp:3.15.0")
 
-    modCompileOnly ("com.geckolib:geckolib-fabric-$geckolib_version") {
+    modCompileOnly ("software.bernie.geckolib:geckolib-fabric-$geckolib_version") {
         exclude group: "net.fabricmc"
     }
 
