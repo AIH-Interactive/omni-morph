@@ -11,13 +11,11 @@ import net.minecraft.commands.arguments.SlotArgument;
 import net.minecraft.commands.arguments.blocks.BlockStateArgument;
 import net.minecraft.commands.arguments.item.ItemArgument;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentMap;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.component.TypedDataComponent;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.*;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.datafix.fixes.ItemStackComponentizationFix;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
@@ -29,7 +27,6 @@ import net.minecraft.world.phys.HitResult;
 
 import java.util.*;
 
-import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.lua.NbtToLua;
 import org.figuramc.figura.lua.ReadOnlyLuaTable;
 import org.figuramc.figura.lua.api.json.FiguraJsonSerializer;
@@ -238,9 +235,9 @@ public class LuaUtils {
                 boolean oldLogic = string.contains("{") && string.contains("[") ? string.indexOf("{") < string.indexOf("[") && !string.contains("minecraft:attribute_modifiers"): string.contains("{");
                 if (oldLogic) {
                     String tagStr = string.substring(string.indexOf("{"));
-                    CompoundTag nbtItem = TagParser.parseCompoundFully(tagStr);
+                    CompoundTag nbtItem = new TagParser(new StringReader(tagStr)).readStruct();
                     CompoundTag tag = new CompoundTag();
-                    tag.putString("id", Identifier.read(new StringReader(string)).toString());
+                    tag.putString("id", ResourceLocation.read(new StringReader(string)).toString());
                     tag.putInt("Count", 1);
                     tag.put("tag", nbtItem);
                     Dynamic<Tag> ops = new Dynamic<>(NbtOps.INSTANCE, tag);
@@ -249,30 +246,25 @@ public class LuaUtils {
                         ItemStackComponentizationFix.ItemStackData data = optionalItemStackData.get();
                         ItemStackComponentizationFix.fixItemStack(data, data.tag);
 
-                        ItemStack stack = parse(level.registryAccess(), data.write().cast(NbtOps.INSTANCE)).orElse(ItemArgument.item(CommandBuildContext.simple(level.registryAccess(), level.enabledFeatures())).parse(new StringReader(string)).createItemStack(1));
+                        ItemStack stack = ItemStack.parse(level.registryAccess(), data.write().cast(NbtOps.INSTANCE)).orElse(ItemArgument.item(CommandBuildContext.simple(level.registryAccess(), level.enabledFeatures())).parse(new StringReader(string)).createItemStack(1, false));
                         LuaTable table = new LuaTable();
-                        for (String key : nbtItem.keySet())
+                        for (String key : nbtItem.getAllKeys())
                             table.set(key, NbtToLua.convert(nbtItem.get(key)));
                         CompoundTag itemTag = NbtToLua.convertToNbt(stack.getComponents());
-                        for (String key : itemTag.keySet())
+                        for (String key : itemTag.getAllKeys())
                             table.set(key, NbtToLua.convert(itemTag.get(key)));
 
                         table = new ReadOnlyLuaTable(table);
                         return new ItemStackAPI(stack, table);
                     }
                 }
-                return new ItemStackAPI(ItemArgument.item(CommandBuildContext.simple(level.registryAccess(), level.enabledFeatures())).parse(new StringReader(string)).createItemStack(1));
+                return new ItemStackAPI(ItemArgument.item(CommandBuildContext.simple(level.registryAccess(), level.enabledFeatures())).parse(new StringReader(string)).createItemStack(1, false));
             } catch (Exception e) {
                 throw new LuaError("Could not parse item stack from string: " + string);
             }
         }
 
         throw new LuaError("Illegal argument to " + methodName + "(): " + item);
-    }
-
-    public static Optional<ItemStack> parse(HolderLookup.Provider provider, Tag tag) {
-        return ItemStack.CODEC.parse(provider.createSerializationContext(NbtOps.INSTANCE), tag)
-                .resultOrPartial(string -> FiguraMod.LOGGER.error("Tried to load invalid item: '{}'", string));
     }
 
     public static void addLegacyNbtNames(LuaTable source, LuaTable dest) {
@@ -312,11 +304,13 @@ public class LuaUtils {
             dest.set("display", tab);
         }
         if (!source.get("minecraft:dyed_color").equals(LuaValue.NIL)) {
-            LuaTable tab = new LuaTable();
-            if (!dest.get("display").equals(LuaValue.NIL))
-                tab = (LuaTable) dest.get("display");
-            tab.set("color", source.get("minecraft:dyed_color"));
-            dest.set("display", tab);
+            if (!source.get("minecraft:dyed_color").get("rgb").equals(LuaValue.NIL)) {
+                LuaTable tab = new LuaTable();
+                if (!dest.get("display").equals(LuaValue.NIL))
+                    tab = (LuaTable) dest.get("display");
+                tab.set("color", source.get("minecraft:dyed_color").get("rgb"));
+                dest.set("display", tab);
+            }
         }
         if (!source.get("minecraft:map_color").equals(LuaValue.NIL)) {
             LuaTable tab = new LuaTable();
@@ -411,8 +405,8 @@ public class LuaUtils {
         throw new LuaError("Illegal argument to " + methodName + "(): " + block);
     }
 
-    public static Identifier parsePath(String path) {
-        DataResult<Identifier> res = Identifier.read(path);
+    public static ResourceLocation parsePath(String path) {
+        DataResult<ResourceLocation> res = ResourceLocation.read(path);
         return res.getOrThrow(s -> {
             throw new LuaError(s);
         });
@@ -439,20 +433,16 @@ public class LuaUtils {
 
             TypedDataComponent<?> typedDataComponent = iterator.next();
             Optional<Tag> optional = typedDataComponent.encodeValue(dynamicOps).result();
-            Identifier resourceLocation = BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(typedDataComponent.type());
-            // apparently sometimes the game will not return a string, go figure
-            String op = optional.map(tag -> tag.asString().orElse(tag.toString().isEmpty() ? "" : tag.toString())).orElse("");
-            if (typedDataComponent.type() == DataComponents.ITEM_NAME && optional.isPresent() && op.contains("translate"))
-                continue;
-
-            if (optional.isPresent() && resourceLocation != null && !op.isEmpty()) {
+            ResourceLocation resourceLocation = BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(typedDataComponent.type());
+            if (optional.isPresent() && resourceLocation != null){
                 builder.append(resourceLocation).append("=");
+                String op = optional.get().getAsString();
                 // minecraft gets super picky if you give it a resource location so this check has to be added, ew
-                Identifier flag = Identifier.tryParse(op);
+                ResourceLocation flag = ResourceLocation.tryParse(op);
                 if (optional.get().getType() == StringTag.TYPE && flag != null) {
-                    builder.append("\"").append(op).append("\"");
+                    builder.append("\"").append(optional.get().getAsString()).append("\"");
                 } else {
-                    builder.append(op);
+                    builder.append(optional.get().getAsString());
                 }
                 if (iterator.hasNext()) {
                     builder.append(",");

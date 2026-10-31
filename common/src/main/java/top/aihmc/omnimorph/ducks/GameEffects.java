@@ -1,13 +1,13 @@
 package top.aihmc.omnimorph.ducks;
 
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 // Mojang no longer ships the effects field in GameRenderer, instead statically calling the shaders themselves
 public interface GameEffects {
 
-    static Identifier[] getEffects() {
+    static ResourceLocation[] getEffects() {
         return EFFECTS;
     }
 
-    Identifier[] EFFECTS = new Identifier[]{Identifier.parse("shaders/post/blur.json"), Identifier.parse("shaders/post/entity_outline.json"), Identifier.parse("shaders/post/invert.json"), Identifier.parse("shaders/post/blur.json"), Identifier.parse("shaders/post/creeper.json"), Identifier.parse("shaders/post/spider.json")};
+    ResourceLocation[] EFFECTS = new ResourceLocation[]{ResourceLocation.parse("shaders/post/blur.json"), ResourceLocation.parse("shaders/post/entity_outline.json"), ResourceLocation.parse("shaders/post/invert.json"), ResourceLocation.parse("shaders/post/blur.json"), ResourceLocation.parse("shaders/post/creeper.json"), ResourceLocation.parse("shaders/post/spider.json")};
 }

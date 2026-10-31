@@ -3,7 +3,7 @@ package top.aihmc.omnimorph.gui;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.avatar.Avatar;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
@@ -11,7 +11,7 @@ import org.joml.Vector3f;
 
 public record FiguraPortraitRenderState(
         @Nullable Avatar avatar,
-        @Nullable Identifier fallbackSkin,
+        @Nullable ResourceLocation fallbackSkin,
         float modelScale,
         boolean upsideDown,
         int x0,
@@ -25,7 +25,7 @@ public record FiguraPortraitRenderState(
 
     public FiguraPortraitRenderState(
             @Nullable Avatar avatar,
-            @Nullable Identifier fallbackSkin,
+            @Nullable ResourceLocation fallbackSkin,
             float modelScale,
             boolean upsideDown,
             int x0,

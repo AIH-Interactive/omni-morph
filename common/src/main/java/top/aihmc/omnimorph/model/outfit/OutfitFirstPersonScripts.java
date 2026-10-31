@@ -65,7 +65,7 @@ public final class OutfitFirstPersonScripts {
         if (composition == null || base == null || base.renderer == null) {
             return;
         }
-        Vec3 camera = minecraft.gameRenderer.getMainCamera().position();
+        Vec3 camera = minecraft.gameRenderer.getMainCamera().getPosition();
         Vec3 feet = player.getPosition(delta);
         Matrix4f entityToDraw = new Matrix4f().translate(
                 (float) (feet.x - camera.x), (float) (feet.y - camera.y), (float) (feet.z - camera.z));

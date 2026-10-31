@@ -320,7 +320,7 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
                     Component.literal(Long.toString(model.downloads()))),
                 () -> {
                     var texture = image == null ? null : image.capture();
-                    return texture == null ? new FiguraIdentifier("textures/gui/library_placeholder.png") : texture;
+                    return texture == null ? FiguraIdentifier.of("textures/gui/library_placeholder.png") : texture;
                 }, actions);
     }
 

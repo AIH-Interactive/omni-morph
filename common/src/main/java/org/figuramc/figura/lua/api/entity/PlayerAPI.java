@@ -16,12 +16,9 @@ import org.figuramc.figura.lua.docs.LuaMethodDoc;
 import org.figuramc.figura.lua.docs.LuaMethodOverload;
 import org.figuramc.figura.lua.docs.LuaTypeDoc;
 import org.figuramc.figura.math.vector.FiguraVec3;
-import top.aihmc.omnimorph.mixin.FoodDataMixin;
-import top.aihmc.omnimorph.mixin.PlayerModelTypeAccessor;
 import org.figuramc.figura.utils.EntityUtils;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaTable;
-import org.luaj.vm2.LuaValue;
 
 import java.util.HashMap;
 import java.util.Locale;
@@ -70,7 +67,7 @@ public class PlayerAPI extends LivingEntityAPI<Player> {
     @LuaMethodDoc("player.get_exhaustion")
     public float getExhaustion() {
         checkEntity();
-        return ((FoodDataMixin)entity.getFoodData()).getExhaustionLevel();
+        return entity.getFoodData().getExhaustionLevel();
     }
 
     @LuaWhitelist
@@ -91,7 +88,7 @@ public class PlayerAPI extends LivingEntityAPI<Player> {
     @LuaMethodDoc("player.get_model_type")
     public String getModelType() {
         checkEntity();
-        return (checkPlayerInfo() ? playerInfo.getSkin().model().name().toUpperCase() : ((PlayerModelTypeAccessor)(Object)DefaultPlayerSkin.get(entity.getUUID()).model()).figura$getLegacyServicesId()).toUpperCase(Locale.US);
+        return (checkPlayerInfo() ? playerInfo.getSkin().model().id().toUpperCase() : DefaultPlayerSkin.get(entity.getUUID()).model().id()).toUpperCase(Locale.US);
     }
 
     @LuaWhitelist
@@ -109,14 +106,14 @@ public class PlayerAPI extends LivingEntityAPI<Player> {
     @LuaMethodDoc("player.has_cape")
     public boolean hasCape() {
         checkEntity();
-        return checkPlayerInfo() && playerInfo.getSkin().cape() != null;
+        return checkPlayerInfo() && playerInfo.getSkin().capeTexture() != null;
     }
 
     @LuaWhitelist
     @LuaMethodDoc("player.has_skin")
     public boolean hasSkin() {
         checkEntity();
-        return checkPlayerInfo() && playerInfo.getSkin().body() != null;
+        return checkPlayerInfo() && playerInfo.getSkin().texture() != null;
     }
 
     @LuaWhitelist
@@ -164,14 +161,7 @@ public class PlayerAPI extends LivingEntityAPI<Player> {
             value = "player.get_shoulder_entity")
     public LuaTable getShoulderEntity(boolean right) {
         checkEntity();
-        // best i can do
-        LuaTable table = new LuaTable();
-        if (right ? entity.getShoulderParrotRight().isEmpty() : entity.getShoulderParrotLeft().isEmpty()) {
-            table.set("ParrotVariant", LuaValue.NIL);
-            return new ReadOnlyLuaTable(table);
-        }
-        table.set("ParrotVariant", LuaValue.valueOf((right ? entity.getShoulderParrotRight() : entity.getShoulderParrotLeft()).get().toString()));
-        return new ReadOnlyLuaTable(table);
+        return new ReadOnlyLuaTable(NbtToLua.convert(right ? entity.getShoulderEntityRight() : entity.getShoulderEntityLeft()));
     }
 
     @LuaWhitelist
@@ -214,7 +204,7 @@ public class PlayerAPI extends LivingEntityAPI<Player> {
     public float getCooldownPercent(@LuaNotNil ItemStackAPI stack, Float delta) {
         checkEntity();
         if (delta == null) delta = 0f;
-        return this.entity.getCooldowns().getCooldownPercent(stack.itemStack, delta);
+        return this.entity.getCooldowns().getCooldownPercent(stack.itemStack.getItem(), delta);
     }
 
     @Override

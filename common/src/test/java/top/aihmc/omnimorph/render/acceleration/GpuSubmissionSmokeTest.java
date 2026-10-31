@@ -8,7 +8,7 @@ import net.minecraft.SharedConstants;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.Bootstrap;
 import org.figuramc.figura.math.matrix.FiguraMat3;
 import org.figuramc.figura.math.matrix.FiguraMat4;
@@ -26,7 +26,7 @@ import com.mojang.blaze3d.pipeline.RenderPipeline;
 
 /** Executes real native BufferSource/RenderType flush boundaries with command-recording device operations. */
 public final class GpuSubmissionSmokeTest {
-    private static final Identifier TEXTURE = Identifier.parse("omni-morph:submission_contract");
+    private static final ResourceLocation TEXTURE = ResourceLocation.parse("omni-morph:submission_contract");
     private static final GpuDrawContext CONTEXT = new GpuDrawContext(null, null, Map.of(), null, false, 0, 0, 0, 0);
 
     public static void main(String[] args) throws Exception {

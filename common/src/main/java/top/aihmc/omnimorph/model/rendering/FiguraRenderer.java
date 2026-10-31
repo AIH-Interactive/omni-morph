@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.model.rendering;
 
+import org.figuramc.figura.utils.NbtDefaults;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.client.Camera;
@@ -90,30 +92,30 @@ public abstract class FiguraRenderer {
 
         // textures
 
-        CompoundTag nbt = avatar.nbt.getCompoundOrEmpty("textures");
-        CompoundTag src = nbt.getCompoundOrEmpty("src");
+        CompoundTag nbt = avatar.nbt.getCompound("textures");
+        CompoundTag src = nbt.getCompound("src");
 
         // src files
-        for (String key : src.keySet()) {
+        for (String key : src.getAllKeys()) {
             byte[] bytes = src.getByteArray(key).get();
             if (bytes.length > 0) {
                 textures.put(key, new FiguraTexture(avatar, key, bytes));
             } else {
-                ListTag size = src.getListOrEmpty(key);
-                textures.put(key, new FiguraTexture(avatar, key, size.getIntOr(0, 0), size.getIntOr(1, 0)));
+                ListTag size = NbtDefaults.getListOrEmpty(src, key);
+                textures.put(key, new FiguraTexture(avatar, key, size.getInt(0), size.getInt(1)));
             }
         }
 
         // data files
-        ListTag texturesList = nbt.getListOrEmpty("data");
+        ListTag texturesList = NbtDefaults.getListOrEmpty(nbt, "data");
         for (Tag t : texturesList) {
             CompoundTag tag = (CompoundTag) t;
             textureSets.add(new FiguraTextureSet(
                     getTextureName(tag),
-                    textures.get(tag.getStringOr("d", "")),
-                    textures.get(tag.getStringOr("e", "")),
-                    textures.get(tag.getStringOr("s", "")),
-                    textures.get(tag.getStringOr("n", ""))
+                    textures.get(tag.getString("d")),
+                    textures.get(tag.getString("e")),
+                    textures.get(tag.getString("s")),
+                    textures.get(tag.getString("n"))
             ));
         }
 
@@ -121,13 +123,13 @@ public abstract class FiguraRenderer {
     }
 
     private String getTextureName(CompoundTag tag) {
-        String s = tag.getStringOr("d", "");
+        String s = tag.getString("d");
         if (!s.isEmpty()) return s;
-        s = tag.getStringOr("e", "");
+        s = tag.getString("e");
         if (!s.isEmpty()) return s.substring(0, s.length() - 2);
-        s = tag.getStringOr("s", "");
+        s = tag.getString("s");
         if (!s.isEmpty()) return s.substring(0, s.length() - 2);
-        s = tag.getStringOr("n", "");
+        s = tag.getString("n");
         if (!s.isEmpty()) return s.substring(0, s.length() - 2);
         return "";
     }
@@ -184,7 +186,7 @@ public abstract class FiguraRenderer {
      * @return A matrix which represents the transformation from entity space to part space.
      */
     public static FiguraMat4 entityToWorldMatrix(Entity e, float delta) {
-        double yaw = e instanceof LivingEntity le ? Mth.lerp(delta, le.yBodyRotO, le.yBodyRot) : e.getViewYRot(Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true));
+        double yaw = e instanceof LivingEntity le ? Mth.lerp(delta, le.yBodyRotO, le.yBodyRot) : e.getViewYRot(Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true));
         FiguraMat4 result = FiguraMat4.of();
         result.rotateX(180 - yaw);
         result.translate(e.getPosition(delta));
@@ -192,7 +194,7 @@ public abstract class FiguraRenderer {
     }
 
     public static double getYawOffsetRot(Entity e, float delta) {
-        double yaw = e instanceof LivingEntity le ? Mth.lerp(delta, le.yBodyRotO, le.yBodyRot) : e.getViewYRot(Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true));
+        double yaw = e instanceof LivingEntity le ? Mth.lerp(delta, le.yBodyRotO, le.yBodyRot) : e.getViewYRot(Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true));
         return 180 - yaw;
     }
 
@@ -225,7 +227,7 @@ public abstract class FiguraRenderer {
         Minecraft client = Minecraft.getInstance();
         Camera camera = client.gameRenderer.getMainCamera();
         FiguraMat4 result = FiguraMat4.of();
-        Vec3 cameraPos = camera.position().scale(-1);
+        Vec3 cameraPos = camera.getPosition().scale(-1);
         result.translate(cameraPos.x, cameraPos.y, cameraPos.z);
         return result;
     }

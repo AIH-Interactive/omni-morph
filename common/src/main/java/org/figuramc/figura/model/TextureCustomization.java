@@ -1,20 +1,19 @@
 package org.figuramc.figura.model;
 
-import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.platform.NativeImage;
-import com.mojang.blaze3d.systems.CommandEncoder;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.GpuTexture;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.texture.AbstractTexture;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.TextureAtlas;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
+import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.lua.api.TextureAPI;
 import org.figuramc.figura.mixin.render.MissingTextureAtlasSpriteAccessor;
 import org.figuramc.figura.mixin.render.TextureAtlasAccessor;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import org.figuramc.figura.model.rendering.texture.FiguraTextureSet;
+import org.figuramc.figura.utils.LuaUtils;
 import org.luaj.vm2.LuaError;
 
 import java.util.Optional;
@@ -40,7 +39,7 @@ public class TextureCustomization {
     public FiguraTexture getTexture(Avatar avatar, FiguraTextureSet textureSet) {
         if (avatar.render == null) return null;
 
-        Identifier resourceLocation = textureSet.getOverrideTexture(avatar.owner, this);
+        ResourceLocation resourceLocation = textureSet.getOverrideTexture(avatar.owner, this);
         String name = resourceLocation.toString();
         if (avatar.renderer.customTextures.containsKey(name)) {
             return avatar.renderer.customTextures.get(name);
@@ -48,30 +47,11 @@ public class TextureCustomization {
 
         // is there a way to check if an atlas exists without getAtlas? cause that is the only thing that will cause an error, and try catch blocks can be pricy
         try {
-            // will throw an error if the resource location is not a texture atlas, ignored anyway
-            AbstractTexture atlas = Minecraft.getInstance().getTextureManager().getTexture(resourceLocation);
-            if (!(atlas instanceof TextureAtlas))
-                throw new LuaError("Resource is not a texture atlas: " + resourceLocation);
-
-            GpuTexture atlasGpuTexture = atlas.getTexture();
+            TextureAtlas atlas = Minecraft.getInstance().getModelManager().getAtlas(resourceLocation);
+            atlas.bind();
             TextureAtlasAccessor atlasAccessor = (TextureAtlasAccessor) atlas;
             NativeImage nativeImage = new NativeImage(atlasAccessor.figura$getWidth(), atlasAccessor.figura$getHeight(), false);
-            int width = atlasAccessor.figura$getWidth();
-            int height = atlasAccessor.figura$getHeight();
-
-            CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
-            GpuBuffer gpuBuffer = RenderSystem.getDevice().createBuffer(() -> "Atlas Read Buffer", 9, width * height * atlasGpuTexture.getFormat().pixelSize());
-            encoder.copyTextureToBuffer(atlasGpuTexture, gpuBuffer, 0, () -> {
-                try (GpuBuffer.MappedView readView = encoder.mapBuffer(gpuBuffer, true, false)) {
-                    for (int k = 0; k < height; k++) {
-                        for (int l = 0; l < width; l++) {
-                            int m = readView.data().getInt((l + k * width) * atlasGpuTexture.getFormat().pixelSize());
-                            nativeImage.setPixelABGR(l, height - k - 1, m | 0xFF000000);
-                        }
-                    }
-                }
-                gpuBuffer.close();
-            }, 0);
+            nativeImage.downloadTexture(0, false);
             return avatar.registerTexture(name, nativeImage, false);
         } catch (Exception ignored) {}
         try {

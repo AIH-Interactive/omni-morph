@@ -17,7 +17,7 @@ import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import org.figuramc.figura.FiguraMod;
@@ -189,12 +189,12 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
 
 
     @Inject(at = @At("HEAD"), method = "renderHand", cancellable = true)
-    private void ysm$renderHand(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int light, Identifier resourceLocation, ModelPart arm, boolean renderSleeve, CallbackInfo ci) {
+    private void ysm$renderHand(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int light, ResourceLocation resourceLocation, ModelPart arm, boolean renderSleeve, CallbackInfo ci) {
         if (Minecraft.getInstance().player == null)
             return;
 
         var player = Minecraft.getInstance().player;
-        float delta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
+        float delta = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true);
         Avatar localAvatar = AvatarManager.getAvatarForPlayer(player.getUUID());
         AvatarRenderState outfitState = null;
         OutfitComposition.Frame outfit = null;
@@ -259,7 +259,7 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
     }
 
     @Inject(at = @At(value = "INVOKE", shift = At.Shift.BEFORE, target = "Lnet/minecraft/client/renderer/SubmitNodeCollector;submitModelPart(Lnet/minecraft/client/model/geom/ModelPart;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/rendertype/RenderType;IILnet/minecraft/client/renderer/texture/TextureAtlasSprite;)V"), method = "renderHand")
-    private void onRenderHand(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int i, Identifier resourceLocation, ModelPart modelPart, boolean bl, CallbackInfo ci) {
+    private void onRenderHand(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int i, ResourceLocation resourceLocation, ModelPart modelPart, boolean bl, CallbackInfo ci) {
         avatar = AvatarManager.getAvatarForPlayer(Minecraft.getInstance().player.getUUID());
 
 
@@ -268,7 +268,7 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
 
         Avatar localAvatar = avatar;
         var player = Minecraft.getInstance().player;
-        float delta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
+        float delta = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true);
         AvatarRenderState outfitState = localAvatar == null && player != null && OutfitRenderBinding.hasComposition(player)
                 ? this.createRenderState(player, delta) : null;
         if (outfitState != null) {
@@ -306,13 +306,13 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
     }
 
     @Inject(at = @At("RETURN"), method = "renderHand")
-    private void postRenderHand(PoseStack stack, SubmitNodeCollector submitNodeCollector, int light, Identifier resourceLocation, ModelPart arm, boolean bl, CallbackInfo ci) {
+    private void postRenderHand(PoseStack stack, SubmitNodeCollector submitNodeCollector, int light, ResourceLocation resourceLocation, ModelPart arm, boolean bl, CallbackInfo ci) {
         if (avatar == null)
             return;
 
         NodeCollectorExtension nodeCollectorExt = (NodeCollectorExtension) submitNodeCollector;
 
-        float delta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
+        float delta = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true);
 
         PoseStack copy = new PoseStack();
         copy.pushPose(); // save the current stack

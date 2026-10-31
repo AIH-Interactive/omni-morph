@@ -9,7 +9,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.gui.widgets.ContextMenu;
 import org.figuramc.figura.gui.widgets.EntityPreview;
@@ -26,10 +26,10 @@ import java.util.List;
 
 public abstract class AbstractPanelScreen extends Screen {
 
-    public static final List<Identifier> BACKGROUNDS = List.of(
-            new FiguraIdentifier("textures/gui/background/background_0.png"),
-            new FiguraIdentifier("textures/gui/background/background_1.png"),
-            new FiguraIdentifier("textures/gui/background/background_2.png")
+    public static final List<ResourceLocation> BACKGROUNDS = List.of(
+            FiguraIdentifier.of("textures/gui/background/background_0.png"),
+            FiguraIdentifier.of("textures/gui/background/background_1.png"),
+            FiguraIdentifier.of("textures/gui/background/background_2.png")
     );
 
     // variables
@@ -122,7 +122,7 @@ public abstract class AbstractPanelScreen extends Screen {
     public void renderBackground(GuiGraphicsExtractor gui, float delta) {
         // render
         float speed = Configs.BACKGROUND_SCROLL_SPEED.tempValue * 0.125f;
-        for (Identifier background : BACKGROUNDS) {
+        for (ResourceLocation background : BACKGROUNDS) {
             UIHelper.renderAnimatedBackground(gui, background, 0, 0, this.width, this.height, 64, 64, speed, delta);
             speed /= 0.5;
         }

@@ -28,7 +28,7 @@ public abstract class LivingEntityMixin extends Entity {
         Avatar avatar = AvatarManager.getAvatar(this);
         if (avatar == null) return;
         avatar.damageEvent(
-                source.typeHolder().unwrapKey().get().identifier().toString(),
+                source.typeHolder().unwrapKey().get().location().toString(),
                 EntityAPI.wrap(source.getEntity()),
                 EntityAPI.wrap(source.getDirectEntity()),
                 source.getSourcePosition() != null ? FiguraVec3.fromVec3(source.getSourcePosition()) : null

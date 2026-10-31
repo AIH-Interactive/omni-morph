@@ -1,9 +1,7 @@
 package org.figuramc.figura.utils.ui;
 
-import com.mojang.blaze3d.opengl.GlStateManager;
+import com.mojang.blaze3d.platform.GlStateManager;
 import org.lwjgl.opengl.GL11;
-
-// not used atm so i won't bother porting it lol
 
 public class StencilHelper {
     // -- Variables -- //
@@ -16,7 +14,7 @@ public class StencilHelper {
      *
      * Every pixel drawn in this rendering mode is set to the stencil layer ID.
      */
-  /*  public void setupStencilWrite() {
+    public void setupStencilWrite() {
         // Allow writing to stencil buffer
         GlStateManager._stencilMask(0xFF);
 
@@ -33,7 +31,7 @@ public class StencilHelper {
      * Sets the current rendering state to test all geometry against this card's stencil ID.
      *
      * If the pixel at a given location doesn't match the stencil ID, the pixel does not draw.
-     /
+     */
     public void setupStencilTest() {
         // Turn off writing to stecil buffer, we're only testing against it here.
         GlStateManager._stencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP);
@@ -45,7 +43,7 @@ public class StencilHelper {
 
     /**
      * Turns "off" stencil testing without actually disabling it.
-     /
+     */
     public void resetStencilState() {
         // Turn off writing to stecil buffer.
         GlStateManager._stencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP);
@@ -53,5 +51,5 @@ public class StencilHelper {
 
         // Always succeed in the stencil test, no matter what.
         GlStateManager._stencilFunc(GL11.GL_ALWAYS, 0, 0xFF);
-    }*/
+    }
 }

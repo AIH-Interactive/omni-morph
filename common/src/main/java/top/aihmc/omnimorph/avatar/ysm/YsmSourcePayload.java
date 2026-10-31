@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.avatar.ysm;
 
+import org.figuramc.figura.utils.NbtDefaults;
+
 import net.minecraft.nbt.CompoundTag;
 import top.aihmc.omnimorph.avatar.ysm.crypto.YsmDecodeException;
 
@@ -44,8 +46,8 @@ public final class YsmSourcePayload {
     }
 
     public static boolean isEncrypted(CompoundTag tag) {
-        return tag.contains("source_ciphertext") || tag.getIntOr("crypto_version", 0) > 0
-                || tag.getStringOr("container_kind", "").equals(YsmSourceIdentity.ContainerKind.YSGP.name());
+        return tag.contains("source_ciphertext") || tag.getInt("crypto_version") > 0
+                || tag.getString("container_kind").equals(YsmSourceIdentity.ContainerKind.YSGP.name());
     }
 
     public static YsmModelData openData(CompoundTag tag, BooleanSupplier cancelled) throws IOException {
@@ -54,11 +56,11 @@ public final class YsmSourcePayload {
         metadata.putString("format", "ysm-native");
         avatar.put("metadata", metadata);
         avatar.put("ysm", tag);
-        CompoundTag portable = forOutput(avatar).getCompoundOrEmpty("ysm");
-        YsmModelData data = YsmModelData.readEncrypted(portable.getByteArray("source_ciphertext").orElseThrow(),
-                portable.getStringOr("display_name", "ysm"), cancelled);
-        if (data.identity().cryptoVersion() != portable.getIntOr("crypto_version", 0)
-                || data.identity().binaryFormatVersion() != portable.getIntOr("binary_format_version", 0)) {
+        CompoundTag portable = forOutput(avatar).getCompound("ysm");
+        YsmModelData data = YsmModelData.readEncrypted(NbtDefaults.findByteArray(portable, "source_ciphertext").orElseThrow(),
+                NbtDefaults.getStringOr(portable, "display_name", "ysm"), cancelled);
+        if (data.identity().cryptoVersion() != portable.getInt("crypto_version")
+                || data.identity().binaryFormatVersion() != portable.getInt("binary_format_version")) {
             data.close();
             throw invalid("payload/source-version-mismatch");
         }
@@ -66,17 +68,17 @@ public final class YsmSourcePayload {
     }
 
     public static CompoundTag forOutput(CompoundTag avatar) throws IOException {
-        if (!avatar.getCompoundOrEmpty("metadata").getStringOr("format", "").equals("ysm-native")) {
+        if (!avatar.getCompound("metadata").getString("format").equals("ysm-native")) {
             return avatar;
         }
-        CompoundTag source = avatar.getCompoundOrEmpty("ysm");
+        CompoundTag source = avatar.getCompound("ysm");
         if (!isEncrypted(source)) {
             CompoundTag output = avatar.copy();
-            output.getCompoundOrEmpty("ysm").remove("source_path");
-            output.getCompoundOrEmpty("metadata").remove("source_path");
+            output.getCompound("ysm").remove("source_path");
+            output.getCompound("metadata").remove("source_path");
             return output;
         }
-        byte[] ciphertext = source.getByteArray("source_ciphertext").orElseThrow(() -> invalid("payload/missing-ciphertext"));
+        byte[] ciphertext = NbtDefaults.findByteArray(source, "source_ciphertext").orElseThrow(() -> invalid("payload/missing-ciphertext"));
         if (ciphertext.length == 0 || ciphertext.length > YsmResourceLimits.DEFAULT.fileBytes()) {
             throw invalid("payload/ciphertext-size");
         }
@@ -85,13 +87,13 @@ public final class YsmSourcePayload {
         }
         ciphertext = ciphertext.clone();
         String digest = sha256(ciphertext);
-        if (!digest.equals(source.getStringOr("content_sha256", ""))) {
+        if (!digest.equals(source.getString("content_sha256"))) {
             throw invalid("payload/content-hash");
         }
-        int crypto = source.getIntOr("crypto_version", 0);
-        int format = source.getIntOr("binary_format_version", 0);
+        int crypto = source.getInt("crypto_version");
+        int format = source.getInt("binary_format_version");
         if (crypto < 1 || crypto > 3 || crypto == 3 && (format < 1 || format > 32)
-                || crypto < 3 && format != 0 || source.getIntOr("engine_schema_version", 0) != YsmSourceIdentity.ENGINE_SCHEMA_VERSION) {
+                || crypto < 3 && format != 0 || source.getInt("engine_schema_version") != YsmSourceIdentity.ENGINE_SCHEMA_VERSION) {
             throw invalid("payload/version");
         }
         CompoundTag portable = new CompoundTag();
@@ -101,25 +103,25 @@ public final class YsmSourcePayload {
         portable.putInt("engine_schema_version", YsmSourceIdentity.ENGINE_SCHEMA_VERSION);
         portable.putInt("crypto_version", crypto);
         portable.putInt("binary_format_version", format);
-        portable.putString("kind", bounded(source.getStringOr("kind", "")));
-        portable.putString("texture_id", bounded(source.getStringOr("texture_id", "")));
-        String name = bounded(source.getStringOr("display_name", "ysm"));
+        portable.putString("kind", bounded(source.getString("kind")));
+        portable.putString("texture_id", bounded(source.getString("texture_id")));
+        String name = bounded(NbtDefaults.getStringOr(source, "display_name", "ysm"));
         if (name.contains("/") || name.contains("\\") || name.contains(":")) {
             throw invalid("payload/display-name");
         }
         portable.putString("display_name", name);
         CompoundTag metadata = new CompoundTag();
-        CompoundTag original = avatar.getCompoundOrEmpty("metadata");
+        CompoundTag original = avatar.getCompound("metadata");
         for (String key : DISPLAY_FIELDS) {
             if (original.contains(key)) {
-                metadata.putString(key, bounded(original.getStringOr(key, "")));
+                metadata.putString(key, bounded(original.getString(key)));
             }
         }
         CompoundTag output = new CompoundTag();
         output.put("metadata", metadata);
         output.put("ysm", portable);
-        if (original.getStringOr("resource_kind", "").equals("ACCESSORY")) {
-            String cosmeticJson = original.getStringOr("cosmetic_json", "");
+        if (original.getString("resource_kind").equals("ACCESSORY")) {
+            String cosmeticJson = original.getString("cosmetic_json");
             try {
                 top.aihmc.omnimorph.model.outfit.CosmeticMetadata.read(cosmeticJson);
             } catch (RuntimeException malformed) {

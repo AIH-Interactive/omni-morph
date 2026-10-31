@@ -4,16 +4,14 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.debug.DebugScreenEntries;
-import net.minecraft.client.gui.components.debug.DebugScreenEntryStatus;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
-import net.minecraft.client.renderer.entity.state.EntityRenderState;
-import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.TagParser;
-import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.ducks.LivingEntityRendererAccessor;
 import org.figuramc.figura.lua.LuaWhitelist;
@@ -26,7 +24,6 @@ import org.figuramc.figura.mixin.LivingEntityAccessor;
 import org.figuramc.figura.model.FiguraModelPart;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Quaternionf;
 import org.luaj.vm2.LuaError;
 
 import java.util.OptionalInt;
@@ -54,26 +51,20 @@ public class EntityTask extends RenderTask {
             assert Minecraft.getInstance().level != null;
             entity.tickCount = (int) (Minecraft.getInstance().level.getGameTime() - ticksSinceEntity);
             EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
-            Minecraft minecraft = Minecraft.getInstance();
-            DebugScreenEntryStatus h = minecraft.debugEntries.getStatus(DebugScreenEntries.ENTITY_HITBOXES);
-            minecraft.debugEntries.setStatus(DebugScreenEntries.ENTITY_HITBOXES, DebugScreenEntryStatus.NEVER);
+            boolean h = dispatcher.shouldRenderHitBoxes();
+            dispatcher.setRenderHitBoxes(false);
             OptionalInt prev = LivingEntityRendererAccessor.overrideOverlay;
             LivingEntityRendererAccessor.overrideOverlay = OptionalInt.of(this.customization.overlay != null ? this.customization.overlay : overlay);
-            float tickDelta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
             try {
-                CameraRenderState cameraRenderState = new CameraRenderState();
-                cameraRenderState.initialized = minecraft.gameRenderer.getMainCamera().isInitialized();
-                cameraRenderState.pos = minecraft.gameRenderer.getMainCamera().position();
-                cameraRenderState.blockPos = minecraft.gameRenderer.getMainCamera().blockPosition();
-                cameraRenderState.orientation = new Quaternionf(minecraft.gameRenderer.getMainCamera().rotation());
-
-                EntityRenderState state = dispatcher.extractEntity(entity, tickDelta);
-                state.lightCoords = this.customization.light != null ? this.customization.light : light;
-                dispatcher.submit(state, cameraRenderState, 0, 0, 0, stack, minecraft.gameRenderer.getSubmitNodeStorage());
+                Minecraft.getInstance().getEntityRenderDispatcher()
+                        .render(
+                                entity, 0.0, 0.0, 0.0, 0.0F, Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true), stack, buffer,
+                                this.customization.light != null ? this.customization.light : light
+                        );
             }
             finally {
                 LivingEntityRendererAccessor.overrideOverlay = prev;
-                minecraft.debugEntries.setStatus(DebugScreenEntries.ENTITY_HITBOXES, h);
+                dispatcher.setRenderHitBoxes(h);
             }
         }
     }
@@ -115,19 +106,19 @@ public class EntityTask extends RenderTask {
         try {
             CompoundTag finalNbt;
             if(nullOrNbt == null) {
-                finalNbt = (TagParser.parseCompoundFully(nbtOrId));
+                finalNbt = (new TagParser(new StringReader(nbtOrId))).readStruct();
 
-                if (!finalNbt.contains("id")) {
+                if (!finalNbt.contains("id", CompoundTag.TAG_STRING)) {
                     throw new LuaError("Nbt must contain id");
                 }
             }
             else {
-                finalNbt = (TagParser.parseCompoundFully(nullOrNbt));
+                finalNbt = (new TagParser(new StringReader(nullOrNbt))).readStruct();
                 finalNbt.put("id", StringTag.valueOf(nbtOrId));
             }
 
             assert Minecraft.getInstance().level != null;
-            entity = EntityType.loadEntityRecursive(finalNbt, Minecraft.getInstance().level, EntitySpawnReason.SPAWN_ITEM_USE, EntityProcessor.NOP);
+            entity = EntityType.loadEntityRecursive(finalNbt, Minecraft.getInstance().level, Function.identity());
             if (entity == null) {
                 throw new LuaError("Could not create entity");
             }

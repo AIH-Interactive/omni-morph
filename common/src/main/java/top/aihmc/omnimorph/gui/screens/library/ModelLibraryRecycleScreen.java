@@ -187,7 +187,7 @@ public final class ModelLibraryRecycleScreen extends LibraryFormScreen {
                         : Component.literal(String.join(", ", item.authors())),
                 Component.literal(item.uploaderName()), LibraryLabels.status(item.status()),
                 Component.literal(item.kind().equals("LIBRARY") ? Long.toString(item.downloads()) : "—"), Component.empty()),
-                () -> new FiguraIdentifier("textures/gui/library_placeholder.png"), List.of(
+                () -> FiguraIdentifier.of("textures/gui/library_placeholder.png"), List.of(
                 new LibraryRowList.Action(FiguraText.of("gui.library.restore"),
                         FiguraText.of(item.canRestore() ? "gui.library.restore" : "gui.library.restore_conflict"),
                         item.canRestore(), () -> change(false), LibraryRowList.Icon.RESTORE),

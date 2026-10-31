@@ -62,7 +62,7 @@ public final class ModelLibraryAdminLoginScreen extends LibraryFormScreen {
         addRenderableOnly((gui, mouseX, mouseY, delta) -> {
             UIHelper.blitSliced(gui, x, y, dialogWidth, dialogHeight, UIHelper.OUTLINE_FILL);
             gui.fill(x + 1, y + 26, x + dialogWidth - 1, y + 27, 0xff3c4b57);
-            gui.blit(RenderPipelines.GUI_TEXTURED, new FiguraIdentifier("textures/gui/panels.png"),
+            gui.blit(RenderPipelines.GUI_TEXTURED, FiguraIdentifier.of("textures/gui/panels.png"),
                     x + 6, y + 3, 60, 0, 20, 20, 140, 20);
             UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.admin_login"), x + 32, y + 9,
                     dialogWidth - 60, 0xffeeeeee);

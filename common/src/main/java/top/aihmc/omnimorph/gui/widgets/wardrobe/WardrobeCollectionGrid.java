@@ -5,7 +5,7 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.local.LocalAvatarFetcher;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
@@ -99,7 +99,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
         public boolean filtersExpanded;
     }
 
-    private static final Identifier PLACEHOLDER = new FiguraIdentifier("textures/gui/library_placeholder.png");
+    private static final ResourceLocation PLACEHOLDER = FiguraIdentifier.of("textures/gui/library_placeholder.png");
     private static final List<String> FORMATS = List.of("", "FIGURA", "YSM_PLAIN", "YSM_ENCRYPTED");
     private final View view;
     private final Consumer<Entry> select;
@@ -263,7 +263,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
         gui.fill(x, y, x + width, y + ModelLibraryLayout.CARD_HEIGHT, active ? 0xc0335566 : 0xb51a202c);
         UIHelper.fillOutline(gui, x, y, width, ModelLibraryLayout.CARD_HEIGHT,
                 UIHelper.adjustColor(active ? FiguraMod.getAccentColor().getColor().getValue() : 0x4b5569));
-        Identifier image = null;
+        ResourceLocation image = null;
         if (entry.local() != null) {
             var icon = entry.local().getIcon();
             image = icon == null ? null : icon.getLocation(); // The fetcher owns local icon textures.

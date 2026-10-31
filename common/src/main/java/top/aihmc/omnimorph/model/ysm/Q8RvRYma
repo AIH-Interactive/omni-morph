@@ -1,0 +1,158 @@
+package top.aihmc.omnimorph.model.ysm;
+
+import top.aihmc.omnimorph.render.acceleration.AccelerationService;
+import org.joml.Matrix4f;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
+import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.utils.FiguraText;
+import top.aihmc.omnimorph.avatar.AvatarTranslations;
+import org.figuramc.figura.avatar.Avatar;
+import top.aihmc.omnimorph.avatar.control.AvatarControlDefinition;
+import top.aihmc.omnimorph.avatar.control.AvatarControlType;
+import top.aihmc.omnimorph.avatar.ysm.YsmAvatarKind;
+import top.aihmc.omnimorph.avatar.ysm.YsmAvatarLoader;
+import top.aihmc.omnimorph.avatar.ysm.YsmModelData;
+import top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload;
+import top.aihmc.omnimorph.avatar.ysm.crypto.YsmDecodeException;
+import org.figuramc.figura.lua.api.action_wheel.Action;
+import org.figuramc.figura.lua.api.action_wheel.ActionWheelAPI;
+import org.figuramc.figura.lua.api.action_wheel.Page;
+import org.figuramc.figura.math.matrix.FiguraMat4;
+import org.figuramc.figura.math.vector.FiguraVec3;
+import top.aihmc.omnimorph.molang.MolangEngine;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
+import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationClip;
+import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationParser;
+import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationPlayer;
+import top.aihmc.omnimorph.model.ysm.animation.YsmDefaultAnimationResolver;
+import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
+import top.aihmc.omnimorph.model.ysm.controller.YsmAnimationController;
+import top.aihmc.omnimorph.model.ysm.controller.YsmAnimationControllerParser;
+import top.aihmc.omnimorph.model.ysm.action.YsmActionDefinition;
+import top.aihmc.omnimorph.model.ysm.action.YsmActionRuntime;
+import top.aihmc.omnimorph.model.ysm.action.YsmActionSchemaParser;
+import top.aihmc.omnimorph.model.ysm.action.YsmActionWheelLayoutStore;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class YsmModelRuntime implements AutoCloseable {
+    private static final float DEFAULT_YSM_SCALE = 0.7f;
+
+    private final Avatar owner;
+    private YsmModelRuntime previewSource;
+    private Avatar complexityOwner;
+    private final YsmGeometry geometry;
+    private YsmGeometry armGeometry;
+    private FiguraTexture texture;
+    private String textureId;
+    private boolean textureTranslucent;
+    private final Map<String, byte[]> textureData;
+    private final Map<byte[], FiguraTexture> particleTextures = new IdentityHashMap<>();
+    private Map<String, MaterialData> materialData = Map.of();
+    private final Map<String, YsmModelPart> parts = new LinkedHashMap<>();
+    private final Map<String, YsmModelPart> armParts = new LinkedHashMap<>();
+    private final Map<String, YsmBoneRole> boneRoles = new LinkedHashMap<>();
+    private final Map<String, YsmBoneRole> armBoneRoles = new LinkedHashMap<>();
+    private final Map<String, YsmLocator> locators = new LinkedHashMap<>();
+    private final Map<String, YsmAttachmentPoint> attachmentPoints = new LinkedHashMap<>();
+    private final Map<String, FiguraMat4> locatorWorldMatrices = new LinkedHashMap<>();
+    private final Map<String, YsmSubEntity> subEntities = new LinkedHashMap<>();
+    private final Map<String, String> controllerSources = new LinkedHashMap<>();
+    private final Set<String> controllerDiagnostics = new LinkedHashSet<>();
+    private final YsmRenderer renderer;
+    private final YsmBoneQueryRuntime boneQueries = new YsmBoneQueryRuntime(this);
+    private final YsmParticleRuntime particles = new YsmParticleRuntime(this);
+    private final YsmSoundRuntime sounds = new YsmSoundRuntime(this);
+    private final YsmAudioResources audio = new YsmAudioResources(this);
+    private final AvatarTranslations translations = new AvatarTranslations();
+    private final YsmGuiResources guiResources;
+    private final YsmAnimationPlayer animationPlayer;
+    private final YsmActionRuntime actions;
+    private final YsmMolangFunctionRuntime functions;
+    private final String kind;
+    private final boolean encryptedSource;
+    private boolean allCutout;
+    private boolean renderLayersFirst;
+    private boolean previewRotationDisabled;
+    private boolean guiNoLighting;
+    private boolean previewRuntime;
+    private boolean subEntityRuntime;
+    private long subEntityQueryFrame = Long.MIN_VALUE;
+    private boolean mergeMultilineExpressions;
+    private ListTag functionInput = new ListTag();
+    private YsmAudioResources sharedAudio;
+    private final YsmSubEntityInstances subEntityInstances = new YsmSubEntityInstances(this);
+    private boolean ownsTexture = true;
+    private volatile boolean closed;
+    private CompoundTag previewInput;
+    private YsmModelRuntime preview;
+    private FiguraTexture previewSourceTexture;
+    private Map<String, Object> previewControls;
+    private boolean previewAttempted;
+    private final String modelKey;
+    private String contentHash = "";
+    private final float defaultWidthScale;
+    private final float defaultHeightScale;
+    private String defaultAnimationSignature = "";
+    private final List<String> defaultAnimationDiagnostics = new ArrayList<>();
+
+    private YsmModelRuntime(Avatar owner, YsmGeometry geometry, YsmGeometry armGeometry, FiguraTexture texture, String textureId, boolean textureTranslucent, String kind, String modelKey, Map<String, byte[]> textureData, float defaultWidthScale, float defaultHeightScale, boolean encryptedSource) {
+        this.owner = owner;
+        this.complexityOwner = owner;
+        this.encryptedSource = encryptedSource;
+        this.geometry = geometry;
+        this.armGeometry = armGeometry;
+        this.texture = texture;
+        this.textureId = textureId;
+        this.textureTranslucent = textureTranslucent;
+        this.textureData = textureData == null ? Map.of() : Map.copyOf(textureData);
+        this.kind = kind != null ? kind : YsmAvatarKind.NONE.name();
+        this.modelKey = modelKey == null || modelKey.isBlank() ? this.kind + ":" + textureId : modelKey;
+        this.defaultWidthScale = sanitizeScale(defaultWidthScale);
+        this.defaultHeightScale = sanitizeScale(defaultHeightScale);
+        buildParts();
+        buildAttachmentPoints();
+        dumpDebugInfo();
+        this.renderer = new YsmRenderer(this);
+        this.guiResources = new YsmGuiResources(owner);
+        this.animationPlayer = new YsmAnimationPlayer(this);
+        this.actions = new YsmActionRuntime(this);
+        this.functions = new YsmMolangFunctionRuntime(this);
+        this.functions.setControllerEventDomain("projectile".equals(this.kind) || "vehicle".equals(this.kind)
+                ? this.kind : "player");
+    }
+
+    public static YsmModelRuntime fromNbt(Avatar owner, CompoundTag tag) throws java.io.IOException {
+        return fromNbt(owner, tag, () -> false);
+    }
+
+    public static YsmModelRuntime fromNbt(Avatar owner, CompoundTag tag,
+                                           java.util.function.BooleanSupplier cancelled) throws java.io.IOException {
+        return fromNbt(owner, tag, cancelled, stage -> {});
+    }
+
+    public static YsmModelRuntime fromNbt(Avatar owner, CompoundTag tag,
+            java.util.function.Bo

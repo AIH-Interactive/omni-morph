@@ -1,14 +1,11 @@
 package org.figuramc.figura.mixin.gui;
 
 import com.mojang.datafixers.util.Pair;
-import com.mojang.serialization.JsonOps;
-import net.minecraft.client.multiplayer.chat.GuiMessage;
-import net.minecraft.client.multiplayer.chat.GuiMessageSource;
-import net.minecraft.client.multiplayer.chat.GuiMessageTag;
+import net.minecraft.client.GuiMessage;
+import net.minecraft.client.GuiMessageTag;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.chat.MessageSignature;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
@@ -21,7 +18,10 @@ import org.figuramc.figura.lua.api.nameplate.NameplateCustomization;
 import org.figuramc.figura.permissions.Permissions;
 import org.figuramc.figura.utils.EntityUtils;
 import org.figuramc.figura.utils.TextUtils;
-import org.spongepowered.asm.mixin.*;
+import org.spongepowered.asm.mixin.Final;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
@@ -38,15 +38,14 @@ import java.util.regex.Pattern;
 
 // 400 Priority is used as messages must be modified before ChatPatches tries to.
 @Mixin(value = ChatComponent.class, priority = 400)
-@Debug(export = true, print = true)
 public class ChatComponentMixin {
 
     @Shadow @Final private Minecraft minecraft;
     @Unique private Integer color;
-    @Unique private static int currColor;
+    @Unique private int currColor;
 
-    @Inject(method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V", at = @At(value = "HEAD"), locals = LocalCapture.CAPTURE_FAILSOFT, cancellable = true)
-    private void injectAddMessage(Component message, MessageSignature signature, GuiMessageSource source, GuiMessageTag tag, CallbackInfo ci, @Local(argsOnly = true) LocalRef<Component> localMessageRef) {
+    @Inject(method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/GuiMessageTag;)V", at = @At(value = "HEAD"), locals = LocalCapture.CAPTURE_FAILSOFT, cancellable = true)
+    private void injectAddMessage(Component message, MessageSignature signature, GuiMessageTag tag, CallbackInfo ci, @Local(argsOnly = true) LocalRef<Component> localMessageRef) {
         Component modifiedMessage = modifyMessage(message);
         if (modifiedMessage == null) {
             ci.cancel();
@@ -64,7 +63,7 @@ public class ChatComponentMixin {
         Avatar localPlayer = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
         if (localPlayer != null) {
             TextUtils.allowScriptEvents = true;
-            String json = ComponentSerialization.CODEC.encodeStart(this.minecraft.player.registryAccess().createSerializationContext(JsonOps.INSTANCE), message).getOrThrow().toString();
+            String json = Component.Serializer.toJson(message, this.minecraft.player.registryAccess());
             TextUtils.allowScriptEvents = false;
 
             Pair<String, Integer> event = localPlayer.chatReceivedMessageEvent(message.getString(), json);
@@ -169,30 +168,30 @@ public class ChatComponentMixin {
             ci.cancel();
     }
 
-    @ModifyArg(at = @At(value = "INVOKE", target = "Ljava/util/List;addFirst(Ljava/lang/Object;)V"), method = "addMessageToDisplayQueue")
-    private Object addMessagesDisplayQueue(Object message) {
+    @ModifyArg(at = @At(value = "INVOKE", target = "Ljava/util/List;add(ILjava/lang/Object;)V"), method = "addMessageToDisplayQueue")
+    private Object addMessagesDisplayQueue(int index, Object message) {
         if (color != null) ((GuiMessageAccessor) message).figura$setColor(color);
         return message;
     }
 
-    @ModifyArg(at = @At(value = "INVOKE", target = "Ljava/util/List;addFirst(Ljava/lang/Object;)V"), method = "addMessageToQueue")
-    private Object addMessagesQueue(Object message) {
+    @ModifyArg(at = @At(value = "INVOKE", target = "Ljava/util/List;add(ILjava/lang/Object;)V"), method = "addMessageToQueue")
+    private Object addMessagesQueue(int index, Object message) {
         if (color != null) ((GuiMessageAccessor) message).figura$setColor(color);
         return message;
     }
 
-    @ModifyVariable(at = @At("HEAD"), method = "lambda$extractRenderState$1", argsOnly = true)
-    private static GuiMessage.Line grabColor(GuiMessage.Line value) {
-        currColor = ((GuiMessageAccessor) (Object) value).figura$getColor();
-        return value;
+    @ModifyVariable(at = @At("STORE"), method = "render")
+    private GuiMessage.Line grabColor(GuiMessage.Line line) {
+        currColor = ((GuiMessageAccessor) (Object) line).figura$getColor();
+        return line;
     }
 
-    @ModifyArg(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess;fill(IIIII)V", ordinal = 0), method = "extractRenderState(Lnet/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess;IILnet/minecraft/client/gui/components/ChatComponent$DisplayMode;)V", index = 4)
+    @ModifyArg(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;fill(IIIII)V", ordinal = 0), method = "render", index = 4)
     private int textBackgroundOnRender(int color) {
         return color + currColor;
     }
 
-    @ModifyVariable(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/components/ChatComponent;addMessageToDisplayQueue(Lnet/minecraft/client/multiplayer/chat/GuiMessage;)V"), method = "refreshTrimmedMessages")
+    @ModifyVariable(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/components/ChatComponent;addMessageToDisplayQueue(Lnet/minecraft/client/GuiMessage;)V"), method = "refreshTrimmedMessages")
     private GuiMessage refreshMessages(GuiMessage message) {
         color = ((GuiMessageAccessor) (Object) message).figura$getColor();
         return message;

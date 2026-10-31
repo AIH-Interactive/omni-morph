@@ -1,10 +1,7 @@
 package org.figuramc.figura.gui.widgets;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.resources.Identifier;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import org.figuramc.figura.utils.FiguraIdentifier;
 import org.figuramc.figura.utils.ui.UIHelper;
@@ -13,7 +10,7 @@ public class SliderWidget extends ScrollBarWidget {
 
     // -- fields -- // 
 
-    public static final Identifier SLIDER_TEXTURE = new FiguraIdentifier("textures/gui/slider.png");
+    public static final ResourceLocation SLIDER_TEXTURE = FiguraIdentifier.of("textures/gui/slider.png");
 
     protected final int headHeight = 11;
     protected final int headWidth = 11;
@@ -43,16 +40,15 @@ public class SliderWidget extends ScrollBarWidget {
     }
 
     @Override
-    public boolean keyPressed(KeyEvent keyEvent) {
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (!this.isActive()) return false;
 
-        int keyCode = keyEvent.key();
         if (keyCode > 261 && keyCode < 266) {
-            scroll(stepSize * (keyCode % 2 == 0 ? 1 : -1) * Math.max(keyEvent.modifiers() * 10, 1) * (getWidth() - headWidth + 2d));
+            scroll(stepSize * (keyCode % 2 == 0 ? 1 : -1) * Math.max(modifiers * 10, 1) * (getWidth() - headWidth + 2d));
             return true;
         }
 
-        return super.keyPressed(keyEvent);
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
@@ -78,7 +74,7 @@ public class SliderWidget extends ScrollBarWidget {
     }
 
     @Override
-    public void extractWidgetRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void renderWidget(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         // set hovered
         this.isHovered = this.isMouseOver(mouseX, mouseY);
 
@@ -89,18 +85,18 @@ public class SliderWidget extends ScrollBarWidget {
         int width = getWidth();
 
         // draw bar
-        gui.blit(RenderPipelines.GUI_TEXTURED, SLIDER_TEXTURE, x, y + 3,  isScrolling ? 10f : 0f, 0f, width, 5,5, 5, 33, 16);
+        gui.blit(SLIDER_TEXTURE, x, y + 3, width, 5, isScrolling ? 10f : 0f, 0f, 5, 5, 33, 16);
 
         // draw steps
         if (showSteps) {
             for (int i = 0; i < max; i++) {
-                gui.blit(RenderPipelines.GUI_TEXTURED, SLIDER_TEXTURE, (int) Math.floor(x + 3 + stepSize * i * (width - 11)), y + 3,  isScrolling ? 15f : 5f, 0f, 5, 5,5, 5, 33, 16);
+                gui.blit(SLIDER_TEXTURE, (int) Math.floor(x + 3 + stepSize * i * (width - 11)), y + 3, 5, 5, isScrolling ? 15f : 5f, 0f, 5, 5, 33, 16);
             }
         }
 
         // draw header
         lerpPos(delta);
-        gui.blit(RenderPipelines.GUI_TEXTURED, SLIDER_TEXTURE, (int) (x + Math.round(Mth.lerp(scrollPos, 0, width - headWidth))), y, isActive() ? (isHoveredOrFocused() || isScrolling ? headWidth * 2 : headWidth) : 0f, 5f, headWidth, headHeight, 33, 16);
+        gui.blit(SLIDER_TEXTURE, (int) (x + Math.round(Mth.lerp(scrollPos, 0, width - headWidth))), y, isActive() ? (isHoveredOrFocused() || isScrolling ? headWidth * 2 : headWidth) : 0f, 5f, headWidth, headHeight, 33, 16);
     }
 
     // -- getters and setters -- // 

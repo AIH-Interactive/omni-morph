@@ -4,7 +4,7 @@ import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.shaders.UniformType;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormatElement;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.regex.Pattern;
 import java.util.Optional;
@@ -177,8 +177,8 @@ final class GpuShaderProgram {
     }
 
     static boolean supports(RenderPipeline pipeline) {
-        return pipeline.getVertexShader().equals(Identifier.withDefaultNamespace("core/entity"))
-                && pipeline.getFragmentShader().equals(Identifier.withDefaultNamespace("core/entity"));
+        return pipeline.getVertexShader().equals(ResourceLocation.withDefaultNamespace("core/entity"))
+                && pipeline.getFragmentShader().equals(ResourceLocation.withDefaultNamespace("core/entity"));
     }
 
     static String wrapEntitySource(String original) {
@@ -282,12 +282,12 @@ final class GpuShaderProgram {
         return source + body;
     }
 
-    static RenderPipeline pipeline(RenderPipeline original, Identifier location) {
+    static RenderPipeline pipeline(RenderPipeline original, ResourceLocation location) {
         return pipeline(original, location, true);
     }
 
     /** Storage variants must not declare the pose uniform: Blaze3D skips draws whose declared uniforms are unbound. */
-    static RenderPipeline pipeline(RenderPipeline original, Identifier location, boolean uniformPose) {
+    static RenderPipeline pipeline(RenderPipeline original, ResourceLocation location, boolean uniformPose) {
         var builder = RenderPipeline.builder().withLocation(location).withVertexShader(location)
                 .withFragmentShader(original.getFragmentShader()).withCull(original.isCull())
                 .withPolygonMode(original.getPolygonMode()).withColorTargetState(original.getColorTargetState())

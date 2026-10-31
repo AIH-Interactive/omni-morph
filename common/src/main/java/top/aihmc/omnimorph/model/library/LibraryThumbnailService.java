@@ -4,7 +4,8 @@ import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.FastColor;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
@@ -203,7 +204,7 @@ public final class LibraryThumbnailService implements AutoCloseable {
     public final class Handle implements AutoCloseable {
         private final LibraryClient.Request<Pixels> request;
         private final CompletableFuture<Boolean> ready = new CompletableFuture<>();
-        private Identifier texture;
+        private ResourceLocation texture;
         private boolean retained;
         private boolean closed;
 
@@ -216,7 +217,7 @@ public final class LibraryThumbnailService implements AutoCloseable {
         }
 
         /** Call while extracting a card. Null means use the packaged ingame_logo placeholder. */
-        public Identifier capture() {
+        public ResourceLocation capture() {
             RenderSystem.assertOnRenderThread();
             if (closed || !client.current()) {
                 close();
@@ -248,11 +249,12 @@ public final class LibraryThumbnailService implements AutoCloseable {
             try {
                 for (int y = 0; y < pixels.height(); y++) {
                     for (int x = 0; x < pixels.width(); x++) {
-                        nativeImage.setPixel(x, y, pixels.argb[y * pixels.width() + x]);
+                        // NativeImage stores ABGR in MC 1.21.1.
+                        nativeImage.setPixelRGBA(x, y, FastColor.ABGR32.fromArgb32(pixels.argb[y * pixels.width() + x]));
                     }
                 }
-                uploaded = new DynamicTexture(() -> "OmniMorph library thumbnail", nativeImage);
-                Identifier identifier = Identifier.fromNamespaceAndPath("omni-morph", "library/" + UUID.randomUUID());
+                uploaded = new DynamicTexture(nativeImage);
+                ResourceLocation identifier = ResourceLocation.fromNamespaceAndPath("omni-morph", "library/" + UUID.randomUUID());
                 Minecraft.getInstance().getTextureManager().register(identifier, uploaded);
                 texture = identifier;
                 ready.complete(true);

@@ -2,7 +2,7 @@ package org.figuramc.figura.gui.widgets.lists;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.config.ConfigType;
 import org.figuramc.figura.gui.widgets.AbstractContainerElement;
@@ -187,7 +187,7 @@ public class NetworkFilterList extends AbstractList {
     }
 
     public static class NetworkFilterEntry extends AbstractContainerElement {
-        private static final Identifier deleteButtonLocation = new Identifier(FiguraMod.MOD_ID, "textures/gui/delete.png");
+        private static final ResourceLocation deleteButtonLocation = ResourceLocation.fromNamespaceAndPath(FiguraMod.MOD_ID, "textures/gui/delete.png");
         private final NetworkingAPI.Filter sourceFilter;
         private final IconButton deleteButton;
         private final TextField filterTextField;

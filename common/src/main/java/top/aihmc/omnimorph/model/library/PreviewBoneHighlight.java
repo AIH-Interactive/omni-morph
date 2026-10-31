@@ -9,7 +9,7 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.joml.Matrix4fc;
 import org.joml.Vector3f;
 import org.figuramc.figura.avatar.Avatar;
@@ -185,7 +185,7 @@ public final class PreviewBoneHighlight {
         }
     }
 
-    public static RenderType translucent(RenderType original, Identifier texture) {
+    public static RenderType translucent(RenderType original, ResourceLocation texture) {
         if (original.hasBlending() || texture == null) {
             return original;
         }
@@ -270,7 +270,7 @@ public final class PreviewBoneHighlight {
                     Optional.of(source.getPolygonMode()), Optional.of(source.isCull()),
                     Optional.of(source.getVertexFormat()), Optional.of(source.getVertexFormatMode()));
             var pipeline = RenderPipelines.register(RenderPipeline.builder(snippet)
-                    .withLocation(new FiguraIdentifier("pipeline/wardrobe_bone_selection"))
+                    .withLocation(FiguraIdentifier.of("pipeline/wardrobe_bone_selection"))
                     .withDepthStencilState(new DepthStencilState(CompareOp.ALWAYS_PASS, false))
                     .build());
             return new RenderType("wardrobe_bone_selection", RenderSetup.builder(pipeline).createRenderSetup());

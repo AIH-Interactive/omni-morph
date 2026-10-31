@@ -1,5 +1,7 @@
 package org.figuramc.figura.avatar;
 
+import org.figuramc.figura.utils.NbtDefaults;
+
 import com.mojang.blaze3d.audio.SoundBuffer;
 import com.mojang.blaze3d.opengl.GlStateManager;
 import com.mojang.blaze3d.platform.Lighting;
@@ -13,7 +15,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
-import net.minecraft.util.LightCoordsUtil;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
@@ -26,7 +28,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -588,7 +590,7 @@ public class Avatar {
             delta_time = 0.05f;
             var mc = Minecraft.getInstance();
             try {
-                delta_time = mc.getDeltaTracker().getGameTimeDeltaTicks() / 20.0f;
+                delta_time = mc.getTimer().getGameTimeDeltaTicks() / 20.0f;
             } catch (Throwable ignored) {
             }
             life_time += delta_time;
@@ -640,7 +642,7 @@ public class Avatar {
                 hurt_time = living.hurtTime;
                 is_sleeping = living.isSleeping() ? 1f : 0f;
                 is_using_item = living.isUsingItem() ? 1f : 0f;
-                is_eating = living.isUsingItem() && living.getUseItem().getUseAnimation() == net.minecraft.world.item.ItemUseAnimation.EAT ? 1f : 0f;
+                is_eating = living.isUsingItem() && living.getUseItem().getUseAnimation() == net.minecraft.world.item.UseAnim.EAT ? 1f : 0f;
                 item_in_use_duration = living.isUsingItem() ? (float) living.getTicksUsingItem() / 20.0f : 0f;
                 ItemStack useItem = living.getUseItem();
                 item_max_use_duration = useItem.isEmpty() ? 0f : (float) useItem.getUseDuration(living) / 20.0f;
@@ -693,7 +695,7 @@ public class Avatar {
 
             // Level / world data
             if (mc.level != null) {
-                long dayTime = mc.level.getDefaultClockTime();
+                long dayTime = mc.level.getDayTime();
                 captureWorldTime(dayTime);
                 moon_phase = mc.level.environmentAttributes().getDimensionValue(EnvironmentAttributes.MOON_PHASE).index();
                 // Cardinal facing (0=South, 1=West, 2=North, 3=East)
@@ -703,9 +705,9 @@ public class Avatar {
             // Camera distance
             if (mc.gameRenderer != null && mc.gameRenderer.getMainCamera() != null) {
                 var camera = mc.gameRenderer.getMainCamera();
-                float dxc = (float) (pos_x - camera.position().x);
-                float dyc = (float) (pos_y - camera.position().y);
-                float dzc = (float) (pos_z - camera.position().z);
+                float dxc = (float) (pos_x - camera.getPosition().x);
+                float dyc = (float) (pos_y - camera.getPosition().y);
+                float dzc = (float) (pos_z - camera.getPosition().z);
                 distance_from_camera = (float) Math.sqrt(dxc * dxc + dyc * dyc + dzc * dzc);
             }
 
@@ -1001,26 +1003,26 @@ public class Avatar {
         try {
             top.aihmc.omnimorph.avatar.ysm.YsmResourceLimits.checkCancelled(cancelled);
             // metadata
-            CompoundTag metadata = nbt.getCompoundOrEmpty("metadata");
-            name = metadata.getStringOr("name", "");
-            authors = metadata.getStringOr("authors", "");
-            version = new Version(metadata.getStringOr("ver", ""));
+            CompoundTag metadata = nbt.getCompound("metadata");
+            name = metadata.getString("name");
+            authors = metadata.getString("authors");
+            version = new Version(metadata.getString("ver"));
             if (metadata.contains("id"))
-                id = metadata.getStringOr("id", "");
+                id = metadata.getString("id");
             if (metadata.contains("color"))
-                color = metadata.getStringOr("color", "");
+                color = metadata.getString("color");
             if (metadata.contains("minify"))
-                minify = metadata.getBooleanOr("minify", false);
+                minify = metadata.getBoolean("minify");
             if (nbt.contains("resources")) {
-                CompoundTag res = nbt.getCompoundOrEmpty("resources");
+                CompoundTag res = nbt.getCompound("resources");
                 for (String k :
-                        res.keySet()) {
-                    resources.put(k, res.getByteArray(k).orElse(new byte[0]));
+                        res.getAllKeys()) {
+                    resources.put(k, res.getByteArray(k));
                 }
             }
-            for (String key : metadata.keySet()) {
+            for (String key : metadata.getAllKeys()) {
                 if (key.contains("badge_color_")) {
-                    badgeToColor.put(key.replace("badge_color_", ""), metadata.getStringOr(key, ""));
+                    badgeToColor.put(key.replace("badge_color_", ""), metadata.getString(key));
                 }
             }
             fileSize = getFileSize();
@@ -1028,12 +1030,12 @@ public class Avatar {
             if (entityName.isBlank())
                 entityName = name;
 
-            if (metadata.getStringOr("format", "").equals("ysm-native") && nbt.contains("ysm")) {
+            if (metadata.getString("format").equals("ysm-native") && nbt.contains("ysm")) {
                 progress.accept(AvatarLoadProgress.Stage.DECODING);
                 this.molangContext = new MolangContext(this);
                 ysmRuntime = ysmData == null
-                        ? YsmModelRuntime.fromNbt(this, nbt.getCompoundOrEmpty("ysm"), cancelled, progress)
-                        : YsmModelRuntime.fromData(this, ysmData, nbt.getCompoundOrEmpty("ysm"));
+                        ? YsmModelRuntime.fromNbt(this, nbt.getCompound("ysm"), cancelled, progress)
+                        : YsmModelRuntime.fromData(this, ysmData, nbt.getCompound("ysm"));
                 ysmRuntime.restoreControls();
                 renderer = null;
                 hasTexture = true;
@@ -1517,7 +1519,7 @@ public class Avatar {
         FiguraMod.pushProfiler("firstPersonWorldRender");
 
         int light = Minecraft.getInstance().getEntityRenderDispatcher().getPackedLightCoords(watcher, tickDelta);
-        Vec3 camPos = camera.position();
+        Vec3 camPos = camera.getPosition();
 
         worldRender(watcher, camPos.x, camPos.y, camPos.z, matrices, bufferSource, light, tickDelta, EntityRenderMode.FIRST_PERSON_WORLD);
 
@@ -1574,7 +1576,7 @@ public class Avatar {
 
         renderer.setupRenderer(
                 PartFilterScheme.HUD, bufferSource, stack,
-                tickDelta, LightCoordsUtil.FULL_BRIGHT, 1f, OverlayTexture.NO_OVERLAY,
+                tickDelta, LightTexture.FULL_BRIGHT, 1f, OverlayTexture.NO_OVERLAY,
                 false, false
         );
 
@@ -1639,7 +1641,7 @@ public class Avatar {
         return comp > 0 && luaRuntime != null && !luaRuntime.vanilla_model.HEAD.checkVisible();
     }
 
-    public boolean submitPortraitDraw(GuiGraphicsExtractor gui, Identifier fallback, int x, int y, int size, float modelScale, boolean upsideDown) {
+    public boolean submitPortraitDraw(GuiGraphicsExtractor gui, ResourceLocation fallback, int x, int y, int size, float modelScale, boolean upsideDown) {
         if (!Configs.AVATAR_PORTRAIT.value || renderer == null || !loaded)
             return false;
 
@@ -2024,15 +2026,15 @@ public class Avatar {
 
     private void createLuaRuntime() {
         Map<String, String> scripts = new HashMap<>();
-        CompoundTag scriptsNbt = nbt.getCompoundOrEmpty("scripts");
-        for (String s : scriptsNbt.keySet())
-            scripts.put(PathUtils.computeSafeString(s), new String(scriptsNbt.getByteArray(s).orElse(new byte[0]), StandardCharsets.UTF_8));
+        CompoundTag scriptsNbt = nbt.getCompound("scripts");
+        for (String s : scriptsNbt.getAllKeys())
+            scripts.put(PathUtils.computeSafeString(s), new String(scriptsNbt.getByteArray(s), StandardCharsets.UTF_8));
 
-        CompoundTag metadata = nbt.getCompoundOrEmpty("metadata");
+        CompoundTag metadata = nbt.getCompound("metadata");
 
         ListTag autoScripts;
         if (metadata.contains("autoScripts"))
-            autoScripts = metadata.getListOrEmpty("autoScripts");
+            autoScripts = NbtDefaults.getListOrEmpty(metadata, "autoScripts");
         else
             autoScripts = null;
 
@@ -2061,37 +2063,37 @@ public class Avatar {
         this.molangContext = new MolangContext(this);
 
         ArrayList<String> autoAnims = new ArrayList<>();
-        CompoundTag metadata = nbt.getCompoundOrEmpty("metadata");
+        CompoundTag metadata = nbt.getCompound("metadata");
         if (metadata.contains("autoAnims")) {
-            for (Tag name : metadata.getListOrEmpty("autoAnims"))
-                autoAnims.add(name.asString().orElse(""));
+            for (Tag name : NbtDefaults.getListOrEmpty(metadata, "autoAnims"))
+                autoAnims.add(name.getAsString());
         }
 
-        ListTag root = nbt.getListOrEmpty("animations");
+        ListTag root = NbtDefaults.getListOrEmpty(nbt, "animations");
         for (int i = 0; i < root.size(); i++) {
             try {
-                CompoundTag animNbt = root.getCompoundOrEmpty(i);
+                CompoundTag animNbt = root.getCompound(i);
 
                 if (!animNbt.contains("mdl") || !animNbt.contains("name"))
                     continue;
 
-                String mdl = animNbt.getStringOr("mdl", "");
-                String name = animNbt.getStringOr("name", "");
+                String mdl = animNbt.getString("mdl");
+                String name = animNbt.getString("name");
                 Animation.LoopMode loop = Animation.LoopMode.ONCE;
                 if (animNbt.contains("loop")) {
                     try {
-                        loop = Animation.LoopMode.valueOf(animNbt.getStringOr("loop", "").toUpperCase(Locale.US));
+                        loop = Animation.LoopMode.valueOf(animNbt.getString("loop").toUpperCase(Locale.US));
                     } catch (Exception ignored) {}
                 }
 
                 Animation animation = new Animation(this,
                         mdl, name, loop,
-                        animNbt.contains("ovr") && animNbt.getBooleanOr("ovr", false),
-                        animNbt.contains("len") ? animNbt.getFloatOr("len", 0.0f) : 0f,
-                        animNbt.contains("off") ? animNbt.getFloatOr("off", 0.0f) : 0f,
-                        animNbt.contains("bld") ? animNbt.getFloatOr("bld", 0.0f) : 1f,
-                        animNbt.contains("sdel") ? animNbt.getFloatOr("sdel", 0.0f) : 0f,
-                        animNbt.contains("ldel") ? animNbt.getFloatOr("ldel", 0.0f) : 0f
+                        animNbt.contains("ovr") && animNbt.getBoolean("ovr"),
+                        animNbt.contains("len") ? animNbt.getFloat("len") : 0f,
+                        animNbt.contains("off") ? animNbt.getFloat("off") : 0f,
+                        animNbt.contains("bld") ? animNbt.getFloat("bld") : 1f,
+                        animNbt.contains("sdel") ? animNbt.getFloat("sdel") : 0f,
+                        animNbt.contains("ldel") ? animNbt.getFloat("ldel") : 0f
                 );
 
                 // Parse Molang expression strings from NBT (keys: mau, mbw, msd, mld)
@@ -2104,25 +2106,25 @@ public class Avatar {
                 MolangBindings bindings = getAvatarBindings();
                 if (animNbt.contains("mau")) {
                     try {
-                        java.util.List<Expression> parsed = MolangEngine.fromCustomBinding(bindings).parse(animNbt.getStringOr("mau", ""));
+                        java.util.List<Expression> parsed = MolangEngine.fromCustomBinding(bindings).parse(animNbt.getString("mau"));
                         if (!parsed.isEmpty()) molangOffsetAst = parsed.get(0);
                     } catch (Exception ignored) {}
                 }
                 if (animNbt.contains("mbw")) {
                     try {
-                        java.util.List<Expression> parsed = MolangEngine.fromCustomBinding(bindings).parse(animNbt.getStringOr("mbw", ""));
+                        java.util.List<Expression> parsed = MolangEngine.fromCustomBinding(bindings).parse(animNbt.getString("mbw"));
                         if (!parsed.isEmpty()) molangBlendAst = parsed.get(0);
                     } catch (Exception ignored) {}
                 }
                 if (animNbt.contains("msd")) {
                     try {
-                        java.util.List<Expression> parsed = MolangEngine.fromCustomBinding(bindings).parse(animNbt.getStringOr("msd", ""));
+                        java.util.List<Expression> parsed = MolangEngine.fromCustomBinding(bindings).parse(animNbt.getString("msd"));
                         if (!parsed.isEmpty()) molangStartDelayAst = parsed.get(0);
                     } catch (Exception ignored) {}
                 }
                 if (animNbt.contains("mld")) {
                     try {
-                        java.util.List<Expression> parsed = MolangEngine.fromCustomBinding(bindings).parse(animNbt.getStringOr("mld", ""));
+                        java.util.List<Expression> parsed = MolangEngine.fromCustomBinding(bindings).parse(animNbt.getString("mld"));
                         if (!parsed.isEmpty()) molangLoopDelayAst = parsed.get(0);
                     } catch (Exception ignored) {}
                 }
@@ -2135,9 +2137,9 @@ public class Avatar {
                 }
 
                 if (animNbt.contains("code")) {
-                    for (Tag code : animNbt.getListOrEmpty("code")) {
+                    for (Tag code : NbtDefaults.getListOrEmpty(animNbt, "code")) {
                         CompoundTag compound = (CompoundTag) code;
-                        animation.newCode(compound.getFloatOr("time", 0.0f), compound.getStringOr("src", ""));
+                        animation.newCode(compound.getFloat("time"), compound.getString("src"));
                     }
                 }
 
@@ -2153,10 +2155,10 @@ public class Avatar {
         if (!nbt.contains("sounds"))
             return;
 
-        CompoundTag root = nbt.getCompoundOrEmpty("sounds");
-        for (String key : root.keySet()) {
+        CompoundTag root = nbt.getCompound("sounds");
+        for (String key : root.getAllKeys()) {
             try {
-                loadSound(key, root.getByteArray(key).orElse(new byte[0]));
+                loadSound(key, root.getByteArray(key));
             } catch (Exception e) {
                 FiguraMod.LOGGER.warn("Failed to load custom sound \"" + key + "\"", e);
             }

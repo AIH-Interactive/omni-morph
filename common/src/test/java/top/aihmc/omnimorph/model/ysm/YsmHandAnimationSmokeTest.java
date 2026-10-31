@@ -422,7 +422,7 @@ public final class YsmHandAnimationSmokeTest {
         bindTags.setAccessible(true);
         try {
             bindTags.invoke(holder, java.util.List.of(net.minecraft.tags.TagKey.create(
-                    net.minecraft.core.registries.Registries.ITEM, net.minecraft.resources.Identifier.parse("sparkle_morpher:pike"))));
+                    net.minecraft.core.registries.Registries.ITEM, net.minecraft.resources.ResourceLocation.parse("sparkle_morpher:pike"))));
             entity.main = new ItemStack(Items.STICK);
             entity.main.set(DataComponents.CONSUMABLE, net.minecraft.world.item.component.Consumable.builder()
                     .animation(net.minecraft.world.item.ItemUseAnimation.SPEAR).build());

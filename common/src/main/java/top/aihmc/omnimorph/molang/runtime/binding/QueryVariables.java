@@ -5,7 +5,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.core.Registry;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -182,7 +182,7 @@ public final class QueryVariables {
 
     public static final Variable DISTANCE_FROM_CAMERA = entityVariable((context, entity) -> {
         net.minecraft.client.Camera camera = activeCamera();
-        return camera == null ? null : net.minecraft.util.Mth.sqrt((float) entity.distanceToSqr(camera.position()));
+        return camera == null ? null : net.minecraft.util.Mth.sqrt((float) entity.distanceToSqr(camera.getPosition()));
     });
 
     /** query.rotation_to_camera(0/1) — 0 = xRot, 1 = yRot of the active camera */
@@ -199,7 +199,7 @@ public final class QueryVariables {
                 return 0f;
             }
             net.minecraft.client.Camera camera = activeCamera();
-            return camera == null ? null : axis == 0 ? camera.xRot() : camera.yRot();
+            return camera == null ? null : axis == 0 ? camera.getXRot() : camera.getYRot();
         }
 
         @Override
@@ -327,7 +327,7 @@ public final class QueryVariables {
             top.aihmc.omnimorph.model.ysm.YsmHandQuery.swinging(context));
 
     public static final Variable IS_EATING = livingVariable((context, entity) ->
-            entity.getUseItem().getUseAnimation() == net.minecraft.world.item.ItemUseAnimation.EAT);
+            entity.getUseItem().getUseAnimation() == net.minecraft.world.item.UseAnim.EAT);
 
     public static final Variable IS_PLAYING_DEAD = livingVariable((context, entity) -> entity.isDeadOrDying());
 
@@ -336,7 +336,7 @@ public final class QueryVariables {
         if (context == null || !(context.entity instanceof net.minecraft.client.player.AbstractClientPlayer player)) {
             return null;
         }
-        return player.getSkin().cape() != null && !player.isInvisible()
+        return player.getSkin().capeTexture() != null && !player.isInvisible()
                 && player.isModelPartShown(net.minecraft.world.entity.player.PlayerModelPart.CAPE);
     };
 
@@ -473,7 +473,7 @@ public final class QueryVariables {
                 }
                 Entity entity = context.entity;
                 Level level = entity.level();
-                java.util.function.Predicate<Identifier> matches;
+                java.util.function.Predicate<ResourceLocation> matches;
                 int firstTag;
                 if (relativeBlock) {
                     BlockPos position = relativeQueryPosition(entity, execution, arguments);
@@ -490,7 +490,7 @@ public final class QueryVariables {
                 }
                 for (int index = firstTag; index < arguments.size(); index++) {
                     String name = arguments.getAsString(execution, index);
-                    Identifier id = name == null ? null : Identifier.tryParse(name);
+                    ResourceLocation id = name == null ? null : ResourceLocation.tryParse(name);
                     if (id == null) {
                         return null;
                     }
@@ -574,13 +574,13 @@ public final class QueryVariables {
                 if (stack.isEmpty()) {
                     return false;
                 }
-                Identifier itemId = query == EquipmentQuery.NAME_ANY ? BuiltInRegistries.ITEM.getKey(stack.getItem()) : null;
+                ResourceLocation itemId = query == EquipmentQuery.NAME_ANY ? BuiltInRegistries.ITEM.getKey(stack.getItem()) : null;
                 if (query == EquipmentQuery.NAME_ANY && itemId == null) {
                     return false;
                 }
                 for (int index = 1; index < arguments.size(); index++) {
                     String name = arguments.getAsString(execution, index);
-                    Identifier expected = name == null ? null : Identifier.tryParse(name);
+                    ResourceLocation expected = name == null ? null : ResourceLocation.tryParse(name);
                     if (expected == null) {
                         return null;
                     }
@@ -651,7 +651,7 @@ public final class QueryVariables {
         }
         return owner == null || !((owner.getYsmRuntime() != null && owner.getYsmRuntime().encryptedSource())
                 || (owner.nbt != null && top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload
-                        .isEncrypted(owner.nbt.getCompoundOrEmpty("ysm"))));
+                        .isEncrypted(owner.nbt.getCompound("ysm"))));
     }
 
     public static final Function DEBUG_OUTPUT_FUNC = new Function() {
@@ -739,10 +739,10 @@ public final class QueryVariables {
      */
     private static boolean biomeHasTag(Level level, Biome biome, String tagStr) {
         if (tagStr == null) return false;
-        var registry = level.registryAccess().lookupOrThrow(Registries.BIOME);
+        var registry = level.registryAccess().registryOrThrow(Registries.BIOME);
         var key = registry.getResourceKey(biome);
         if (key.isEmpty()) return false;
-        var holder = registry.getOrThrow(key.get());
+        var holder = registry.getHolderOrThrow(key.get());
         var tag = createTagKey(Registries.BIOME, tagStr);
         return tag != null && holder.is(tag);
     }
@@ -752,10 +752,10 @@ public final class QueryVariables {
      */
     private static boolean blockHasTag(Level level, BlockState state, String tagStr) {
         if (tagStr == null) return false;
-        var registry = level.registryAccess().lookupOrThrow(Registries.BLOCK);
+        var registry = level.registryAccess().registryOrThrow(Registries.BLOCK);
         var key = registry.getResourceKey(state.getBlock());
         if (key.isEmpty()) return false;
-        var holder = registry.getOrThrow(key.get());
+        var holder = registry.getHolderOrThrow(key.get());
         var tag = createTagKey(Registries.BLOCK, tagStr);
         return tag != null && holder.is(tag);
     }
@@ -765,10 +765,10 @@ public final class QueryVariables {
      */
     private static boolean itemHasTag(Level level, ItemStack stack, String tagStr) {
         if (tagStr == null || stack.isEmpty()) return false;
-        var registry = level.registryAccess().lookupOrThrow(Registries.ITEM);
+        var registry = level.registryAccess().registryOrThrow(Registries.ITEM);
         var key = registry.getResourceKey(stack.getItem());
         if (key.isEmpty()) return false;
-        var holder = registry.getOrThrow(key.get());
+        var holder = registry.getHolderOrThrow(key.get());
         var tag = createTagKey(Registries.ITEM, tagStr);
         return tag != null && holder.is(tag);
     }
@@ -779,11 +779,11 @@ public final class QueryVariables {
      */
     private static <T> TagKey<T> createTagKey(ResourceKey<? extends Registry<T>> registryKey, String tagStr) {
         try {
-            Identifier loc;
+            ResourceLocation loc;
             if (tagStr.contains(":")) {
-                loc = Identifier.parse(tagStr);
+                loc = ResourceLocation.parse(tagStr);
             } else {
-                loc = Identifier.parse("minecraft:" + tagStr);
+                loc = ResourceLocation.parse("minecraft:" + tagStr);
             }
             return TagKey.create(registryKey, loc);
         } catch (Exception e) {

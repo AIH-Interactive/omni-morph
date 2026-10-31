@@ -18,7 +18,7 @@ public record LibraryUploadIdentity(String contentHash, String schemaHash) {
         Avatar owner = Avatar.createLibraryPreview(UUID.randomUUID(), "LibraryUpload");
         YsmModelRuntime runtime = null;
         try {
-            var payload = source.nbt().getCompoundOrEmpty("ysm");
+            var payload = source.nbt().getCompound("ysm");
             runtime = owner.createYsmPreviewRuntime(preview -> {
                 try {
                     return YsmModelRuntime.fromNbt(preview, payload, cancelled);

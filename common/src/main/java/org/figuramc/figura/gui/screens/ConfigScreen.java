@@ -1,10 +1,8 @@
 package org.figuramc.figura.gui.screens;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -90,31 +88,30 @@ public class ConfigScreen extends AbstractPanelScreen {
     }
 
     @Override
-    public void renderOverlays(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void renderOverlays(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         super.renderOverlays(gui, mouseX, mouseY, delta);
         if (renderPaperdoll)
             UIHelper.renderWithoutScissors(gui, g -> PaperDoll.render(g, true));
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean bl) {
-        return list.updateKey(InputConstants.Type.MOUSE.getOrCreate(mouseButtonEvent.button())) || super.mouseClicked(mouseButtonEvent, bl);
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        return list.updateKey(InputConstants.Type.MOUSE.getOrCreate(button)) || super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
-    public boolean keyPressed(KeyEvent keyEvent) {
-        int keyCode = keyEvent.key();
-        return list.updateKey(keyCode == 256 ? InputConstants.UNKNOWN : InputConstants.getKey(keyEvent)) || super.keyPressed(keyEvent);
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        return list.updateKey(keyCode == 256 ? InputConstants.UNKNOWN : InputConstants.getKey(keyCode, scanCode)) || super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     private static void loadNbt() {
         IOUtils.readCacheFile("settings", nbt -> {
-            ListTag groupList = nbt.getListOrEmpty("settings");
+            ListTag groupList = nbt.getList("settings", Tag.TAG_COMPOUND);
             for (Tag tag : groupList) {
                 CompoundTag compound = (CompoundTag) tag;
 
-                String config = compound.getString("config").get();
-                boolean expanded = compound.getBoolean("expanded").get();
+                String config = compound.getString("config");
+                boolean expanded = compound.getBoolean("expanded");
                 CATEGORY_DATA.put(ConfigManager.CATEGORIES_REGISTRY.get(config), expanded);
             }
         });

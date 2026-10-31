@@ -260,7 +260,7 @@ final class YsmSubEntitySmokeTest {
         var bind = net.minecraft.core.Holder.Reference.class.getDeclaredMethod("bindTags", java.util.Collection.class);
         bind.setAccessible(true);
         var vehicleTag = net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.ENTITY_TYPE,
-                net.minecraft.resources.Identifier.fromNamespaceAndPath("figura", "ysm_fixture_vehicles"));
+                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("figura", "ysm_fixture_vehicles"));
         var tags = new java.util.ArrayList<>(originalTags);
         tags.add(vehicleTag);
         try {

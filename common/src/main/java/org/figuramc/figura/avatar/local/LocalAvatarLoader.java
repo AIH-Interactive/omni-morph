@@ -1,10 +1,12 @@
 package org.figuramc.figura.avatar.local;
 
+import org.figuramc.figura.utils.NbtDefaults;
+
 
 import net.minecraft.nbt.*;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
-import net.minecraft.util.Util;
+import net.minecraft.Util;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.avatar.UserData;
@@ -46,14 +48,14 @@ public class LocalAvatarLoader {
 
     private static WatchService watcher;
 
-    public static final HashMap<Identifier, CompoundTag> CEM_AVATARS = new HashMap<>();
+    public static final HashMap<ResourceLocation, CompoundTag> CEM_AVATARS = new HashMap<>();
     public static final FiguraResourceListener AVATAR_LISTENER = FiguraResourceListener.createResourceListener("cem", manager -> {
         CEM_AVATARS.clear();
         AvatarManager.clearCEMAvatars();
 
-        for (Map.Entry<Identifier, Resource> cem : manager.listResources("cem", location -> location.getNamespace().equals(FiguraMod.MOD_ID) && location.getPath().endsWith(".nbt")).entrySet()) {
+        for (Map.Entry<ResourceLocation, Resource> cem : manager.listResources("cem", location -> location.getNamespace().equals(FiguraMod.MOD_ID) && location.getPath().endsWith(".nbt")).entrySet()) {
             // id
-            Identifier key = cem.getKey();
+            ResourceLocation key = cem.getKey();
             String[] split = key.getPath().split("/");
             if (split.length <= 1)
                 continue;
@@ -61,7 +63,7 @@ public class LocalAvatarLoader {
             String namespace = split[split.length - 2];
             String path = split[split.length - 1];
             // This is a 4 because .nbt has 4 characters
-            Identifier id = new Identifier(namespace, path.substring(0, path.length() - 4));
+            ResourceLocation id = ResourceLocation.fromNamespaceAndPath(namespace, path.substring(0, path.length() - 4));
 
             // nbt
             CompoundTag nbt;
@@ -220,9 +222,9 @@ public class LocalAvatarLoader {
             nbt.put("textures", textures);
         if (!animations.isEmpty())
             nbt.put("animations", animations);
-        CompoundTag metadataTag = nbt.getCompoundOrEmpty("metadata");
+        CompoundTag metadataTag = nbt.getCompound("metadata");
         if (metadataTag.contains("resources_paths")) {
-            loadResources(nbt, metadataTag.getListOrEmpty("resources_paths"), path);
+            loadResources(nbt, NbtDefaults.getListOrEmpty(metadataTag, "resources_paths"), path);
             metadataTag.remove("resource_paths");
         }
 
@@ -233,7 +235,7 @@ public class LocalAvatarLoader {
         ArrayList<PathMatcher> pathMatchers = new ArrayList<>();
         FileSystem fs = parentPath.getFileSystem();
         for (int i = 0; i < pathsTag.size(); i++) {
-            pathMatchers.add(fs.getPathMatcher("glob:".concat(pathsTag.getStringOr(i, ""))));
+            pathMatchers.add(fs.getPathMatcher("glob:".concat(pathsTag.getString(i))));
         }
         Map<String, Path> pathMap = new HashMap<>();
         matchPathsRecursive(pathMap, parentPath, parentPath, pathMatchers);
@@ -345,8 +347,8 @@ public class LocalAvatarLoader {
                         textures.put("src", new CompoundTag());
                     }
 
-                    textures.getListOrEmpty("data").addAll(dataTag.getListOrEmpty("data"));
-                    textures.getCompoundOrEmpty("src").merge(dataTag.getCompoundOrEmpty("src"));
+                    NbtDefaults.getListOrEmpty(textures, "data").addAll(NbtDefaults.getListOrEmpty(dataTag, "data"));
+                    textures.getCompound("src").merge(dataTag.getCompound("src"));
                 }
             }
 

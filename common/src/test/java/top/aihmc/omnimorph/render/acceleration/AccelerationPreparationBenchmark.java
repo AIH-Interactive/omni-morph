@@ -7,7 +7,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import top.aihmc.omnimorph.avatar.ysm.YsmAvatarDetector;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.math.matrix.FiguraMat3;
@@ -214,7 +214,7 @@ public final class AccelerationPreparationBenchmark {
             vertices[vertex * 9 + 3] = 1;
             vertices[vertex * 9 + 5] = 1;
         }
-        var semantics = new DrawSemantics(material, Identifier.parse("omni-morph:preparation"), DrawSemantics.Layer.PRIMARY,
+        var semantics = new DrawSemantics(material, ResourceLocation.parse("omni-morph:preparation"), DrawSemantics.Layer.PRIMARY,
                 "world", 0, 1, 0, 0, 1, 1, 1, 1, 0, true);
         return new DrawBatch(SERVICE.capture(owner, "world"), new MeshHandle(vertices, 4),
                 new PoseSnapshot(FiguraMat4.of(), FiguraMat3.of()), semantics);

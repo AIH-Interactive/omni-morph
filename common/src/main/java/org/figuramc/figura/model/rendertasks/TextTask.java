@@ -5,7 +5,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.network.chat.Component;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
@@ -73,7 +73,7 @@ public class TextTask extends RenderTask {
             int offset = alignment.apply(cacheWidth);
             float x1 = -1 - offset;
             float x2 = cacheWidth - offset;
-            VertexConsumer vertexConsumer = buffer.getBuffer(seeThrough ? RenderTypes.textBackgroundSeeThrough() : RenderTypes.textBackground());
+            VertexConsumer vertexConsumer = buffer.getBuffer(seeThrough ? RenderType.textBackgroundSeeThrough() : RenderType.textBackground());
             vertexConsumer.addVertex(matrix, x1, -1f, vertexOffset).setColor(bg).setLight(l);
             vertexConsumer.addVertex(matrix, x1, cacheHeight, vertexOffset).setColor(bg).setLight(l);
             vertexConsumer.addVertex(matrix, x2, cacheHeight, vertexOffset).setColor(bg).setLight(l);

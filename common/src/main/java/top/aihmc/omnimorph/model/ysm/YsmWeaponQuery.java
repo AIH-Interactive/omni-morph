@@ -1,14 +1,14 @@
 package top.aihmc.omnimorph.model.ysm;
 
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ItemUseAnimation;
+import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.item.Items;
 import org.figuramc.figura.avatar.Avatar;
 
@@ -35,8 +35,8 @@ public final class YsmWeaponQuery {
         if (stack.is(Items.TRIDENT) || tagged(stack, "tridents")) {
             return 1;
         }
-        Identifier id = BuiltInRegistries.ITEM.getKey(stack.getItem());
-        if (stack.getUseAnimation() == ItemUseAnimation.SPEAR && id.getNamespace().equals("minecraft")
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        if (stack.getUseAnimation() == UseAnim.SPEAR && id.getNamespace().equals("minecraft")
                 && id.getPath().endsWith("_spear")) {
             return 4;
         }
@@ -47,7 +47,7 @@ public final class YsmWeaponQuery {
     }
 
     private static boolean tagged(ItemStack stack, String tag) {
-        return stack.is(TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath("sparkle_morpher", tag)));
+        return stack.is(TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath("sparkle_morpher", tag)));
     }
 
     public static Object evaluate(String name, Avatar.MolangContext context, LivingEntity entity) {
@@ -61,7 +61,7 @@ public final class YsmWeaponQuery {
         boolean attacking = kind != 0 && !entity.isSleeping()
                 && hands.swinging(entity, InteractionHand.MAIN_HAND, local);
         boolean using = (trident || lance) && hands.using(entity, InteractionHand.MAIN_HAND, local)
-                && stack.getUseAnimation() == (trident ? ItemUseAnimation.TRIDENT : ItemUseAnimation.SPEAR);
+                && stack.getUseAnimation() == UseAnim.SPEAR;
         float partialTick = context.ysm_partial_tick;
         float attackTicks = attacking ? hands.swingTime(entity, partialTick, local) : 0f;
         float useTicks = using ? hands.useTime(entity, partialTick, local) : 0f;
@@ -106,8 +106,7 @@ public final class YsmWeaponQuery {
             case "mace_falling" -> falling;
             case "mace_can_smash" -> canSmash;
             case "mace_smashing" -> mace && attacking && canSmash;
-            case "mace_wind_bursting" -> mace && (entity.isInPostImpulseGraceTime()
-                    || entity.isIgnoringFallDamageFromCurrentImpulse());
+            case "mace_wind_bursting" -> mace && windImpulseActive(entity);
             case "mace_attacking" -> mace && attacking;
             case "mace_riding" -> mace && riding;
             case "mace_fall_flying" -> mace && flying;
@@ -119,9 +118,15 @@ public final class YsmWeaponQuery {
         };
     }
 
+    /** MC 1.21.1 tracks wind-charge impulses on players only; the grace timer is widened by the AW. */
+    private static boolean windImpulseActive(LivingEntity entity) {
+        return entity instanceof Player player
+                && (player.currentImpulseContextResetGraceTime > 0
+                || player.isIgnoringFallDamageFromCurrentImpulse());
+    }
+
     private static float chargeProgress(ItemStack stack, LivingEntity entity, float useTicks) {
-        var kinetic = stack.get(DataComponents.KINETIC_WEAPON);
-        int duration = kinetic == null ? stack.getUseDuration(entity) : kinetic.computeDamageUseDuration();
+        int duration = stack.getUseDuration(entity);
         return duration <= 0 ? 0f : Math.min(1f, useTicks / duration);
     }
 }

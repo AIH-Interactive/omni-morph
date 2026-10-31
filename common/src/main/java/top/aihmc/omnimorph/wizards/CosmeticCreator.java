@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.wizards;
 
+import org.figuramc.figura.utils.NbtDefaults;
+
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -66,9 +68,9 @@ public final class CosmeticCreator {
             Path manifest = staging.resolve("cosmetic.json");
             write(manifest, JSON.toJson(metadata).getBytes(StandardCharsets.UTF_8), created);
             CompoundTag prepared = LocalAvatarLoader.prepareCosmeticAvatar(staging, UUID.randomUUID());
-            CompoundTag rootModel = prepared.getCompoundOrEmpty("models");
-            var binding = SkeletonIndex.capture(null, List.of(rootModel), tag -> tag.getStringOr("name", ""),
-                    tag -> tag.getListOrEmpty("chld").stream().map(CompoundTag.class::cast).toList(),
+            CompoundTag rootModel = prepared.getCompound("models");
+            var binding = SkeletonIndex.capture(null, List.of(rootModel), tag -> tag.getString("name"),
+                    tag -> NbtDefaults.getListOrEmpty(tag, "chld").stream().map(CompoundTag.class::cast).toList(),
                     OutfitLimits.defaults());
             var skeleton = binding.definition();
             metadata.addProperty("has_bones", true);

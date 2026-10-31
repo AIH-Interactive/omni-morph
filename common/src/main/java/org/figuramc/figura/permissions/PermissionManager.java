@@ -1,5 +1,7 @@
 package org.figuramc.figura.permissions;
 
+import org.figuramc.figura.utils.NbtDefaults;
+
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -48,15 +50,15 @@ public class PermissionManager {
     // read permissions from nbt, adding them into the hash maps
     private static void readNbt(CompoundTag nbt) {
         // get nbt lists
-        ListTag groupList = nbt.getListOrEmpty("groups");
-        ListTag playerList = nbt.getListOrEmpty("players");
+        ListTag groupList = NbtDefaults.getListOrEmpty(nbt, "groups");
+        ListTag playerList = NbtDefaults.getListOrEmpty(nbt, "players");
 
         // groups
         for (Tag nbtElement : groupList) {
             CompoundTag compound = (CompoundTag) nbtElement;
 
             // parse permissions
-            String name = compound.getString("name").get();
+            String name = compound.getString("name");
 
             try {
                 Permissions.Category category = Permissions.Category.valueOf(name);
@@ -72,11 +74,11 @@ public class PermissionManager {
             CompoundTag compound = (CompoundTag) value;
 
             // parse permissions
-            String name = compound.getString("name").get();
+            String name = compound.getString("name");
 
             try {
                 UUID uuid = UUID.fromString(name);
-                String parent = compound.getString("category").get();
+                String parent = compound.getString("category");
                 Permissions.Category category = Permissions.Category.valueOf(parent);
 
                 PermissionPack.CategoryPermissionPack parentPack = CATEGORIES.get(category);

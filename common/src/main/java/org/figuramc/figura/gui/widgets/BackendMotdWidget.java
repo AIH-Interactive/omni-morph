@@ -1,27 +1,24 @@
 package org.figuramc.figura.gui.widgets;
 
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.AbstractScrollArea;
-import net.minecraft.client.gui.components.AbstractTextAreaWidget;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractScrollWidget;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.sounds.SoundManager;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.Mth;
 import org.figuramc.figura.utils.ClickableTextHelper;
 import org.figuramc.figura.utils.ui.UIHelper;
 
 import java.util.Objects;
 
-public class BackendMotdWidget extends AbstractTextAreaWidget {
+public class BackendMotdWidget extends AbstractScrollWidget {
     private final Font font;
     private final ClickableTextHelper textHelper;
     private int maxWidth;
 
     public BackendMotdWidget(int i, int j, int k, int l, Component text, Font font) {
-        super(i, j, k, l, text, AbstractScrollArea.defaultSettings(9));
+        super(i, j, k, l, text);
         this.font = font;
         this.textHelper = new ClickableTextHelper();
         this.maxWidth = this.getWidth() - this.totalInnerPadding();
@@ -52,34 +49,34 @@ public class BackendMotdWidget extends AbstractTextAreaWidget {
     }
 
     @Override
-    protected void extractBorder(GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
+    protected void renderBorder(GuiGraphics graphics, int x, int y, int width, int height) {
         UIHelper.blitSliced(graphics, this.getX() - this.innerPadding(), this.getY() - this.innerPadding(), this.getWidth() + this.totalInnerPadding(), this.getHeight() + this.totalInnerPadding(), UIHelper.OUTLINE_FILL);
     }
 
     @Override
-    protected void extractBackground(GuiGraphicsExtractor graphics) {
+    protected void renderBackground(GuiGraphics graphics) {
         UIHelper.blitSliced(graphics, this.getX() - this.innerPadding(), this.getY() - this.innerPadding(), this.getWidth() + this.totalInnerPadding(), this.getHeight() + this.totalInnerPadding(), UIHelper.OUTLINE_FILL);
     }
 
-    public void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+    public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
         if (this.visible) {
-            if (!scrollable()) {
-                extractBackground(graphics);
-                extractContents(graphics, mouseX, mouseY, delta);
+            if (!scrollbarVisible()) {
+                renderBackground(graphics);
+                renderContents(graphics, mouseX, mouseY, delta);
             } else {
-                super.extractWidgetRenderState(graphics, mouseX, mouseY, delta);
+                super.renderWidget(graphics, mouseX, mouseY, delta);
             }
         }
     }
 
-    protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+    protected void renderContents(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
         int xx = this.getX() + this.innerPadding();
         int yy = this.getY() + this.innerPadding();
 
         int scroll = (int)scrollAmount();
         textHelper.update(font, maxWidth);
 
-        textHelper.visit((text, style, x, y, textWidth, textHeight) -> graphics.text(font, Component.literal(text).setStyle(style), xx + x, yy + y, UIHelper.adjustColor(0xFFFFFFFF)));
+        textHelper.visit((text, style, x, y, textWidth, textHeight) -> graphics.drawString(font, Component.literal(text).setStyle(style), xx + x, yy + y, 0xFFFFFFFF));
 
         //textHelper.renderDebug(graphics, xx, yy, mouseX, mouseY + scroll);
 
@@ -106,8 +103,8 @@ public class BackendMotdWidget extends AbstractTextAreaWidget {
     private boolean mouseDown = false;
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean bl) {
-        mouseDown = super.mouseClicked(mouseButtonEvent, bl);
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        mouseDown = super.mouseClicked(mouseX, mouseY, button);
         return mouseDown;
     }
     protected void updateWidgetNarration(NarrationElementOutput builder) {
@@ -120,13 +117,5 @@ public class BackendMotdWidget extends AbstractTextAreaWidget {
 
     public boolean shouldRender() {
         return getScrollBarHeight() > 0 && this.height >= 48;
-    }
-
-    private int getScrollBarHeight() {
-        return Mth.clamp((int)((float)(this.height * this.height) / (float)this.contentHeight()), 32, this.height);
-    }
-
-    protected boolean withinContentAreaPoint(double d, double e) {
-        return d >= (double)this.getX() && d < (double)(this.getX() + this.width) && e >= (double)this.getY() && e < (double)(this.getY() + this.height);
     }
 }

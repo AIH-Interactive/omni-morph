@@ -53,7 +53,7 @@ public final class BoneTreeWidget extends AbstractList {
         children.add(search);
         if (refresh != null) {
             children.add(new Button(x + width - 28, y + 2, 24, 24, 0, 0, 24,
-                    new FiguraIdentifier("textures/gui/reload.png"), 72, 24,
+                    FiguraIdentifier.of("textures/gui/reload.png"), 72, 24,
                     FiguraText.of("gui.wardrobe.refresh_bones"), button -> refresh.run()));
         }
         horizontalBar = new ScrollBarWidget(x + 4, y + height - 12, Math.max(24, width - 22), 10,

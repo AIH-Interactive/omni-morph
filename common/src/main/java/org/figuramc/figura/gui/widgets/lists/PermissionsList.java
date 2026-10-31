@@ -3,10 +3,8 @@ package org.figuramc.figura.gui.widgets.lists;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.events.GuiEventListener;
-import net.minecraft.client.input.InputWithModifiers;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.TextColor;
@@ -22,7 +20,6 @@ import org.figuramc.figura.permissions.Permissions;
 import org.figuramc.figura.utils.ColorUtils;
 import org.figuramc.figura.utils.FiguraText;
 import org.figuramc.figura.utils.ui.UIHelper;
-import org.joml.Matrix3x2fStack;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -38,7 +35,7 @@ public class PermissionsList extends AbstractList {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         int x = getX();
         int y = getY();
         int width = getWidth();
@@ -73,7 +70,7 @@ public class PermissionsList extends AbstractList {
         for (Map.Entry<Component, List<GuiEventListener>> entry : permissions.entrySet()) {
             // titles
             if (titles) {
-                gui.centeredText(font, entry.getKey(), x + (width - xOffset) / 2, y + yOffset, UIHelper.adjustColor(0xFFFFFF));
+                gui.drawCenteredString(font, entry.getKey(), x + (width - xOffset) / 2, y + yOffset, 0xFFFFFF);
                 yOffset += titleHeight;
             }
 
@@ -86,7 +83,7 @@ public class PermissionsList extends AbstractList {
         }
 
         // render children
-        super.extractRenderState(gui, mouseX, mouseY, delta);
+        super.render(gui, mouseX, mouseY, delta);
 
         // reset scissor
         gui.disableScissor();
@@ -170,15 +167,15 @@ public class PermissionsList extends AbstractList {
         }
 
         @Override
-        public void extractWidgetRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
-            Matrix3x2fStack pose = gui.pose();
+        public void renderWidget(GuiGraphics gui, int mouseX, int mouseY, float delta) {
+            PoseStack pose = gui.pose();
             Font font = Minecraft.getInstance().font;
 
             // button
-            pose.pushMatrix();
-            pose.translate(0f, font.lineHeight);
-            super.extractWidgetRenderState(gui, mouseX, mouseY, delta);
-            pose.popMatrix();
+            pose.pushPose();
+            pose.translate(0f, font.lineHeight, 0f);
+            super.renderWidget(gui, mouseX, mouseY, delta);
+            pose.popPose();
 
             // texts
             MutableComponent name = Component.translatable(this.text);
@@ -190,25 +187,25 @@ public class PermissionsList extends AbstractList {
             int width = valueX - getX() - 2;
 
             UIHelper.renderScrollingText(gui, name, x, y, width, 0xFFFFFF);
-            gui.text(font, value.copy().setStyle(FiguraMod.getAccentColor()), valueX, getY() + 1, UIHelper.adjustColor(0xFFFFFF));
+            gui.drawString(font, value.copy().setStyle(FiguraMod.getAccentColor()), valueX, getY() + 1, 0xFFFFFF);
 
             if (parent.isInsideScissors(mouseX, mouseY) && UIHelper.isMouseOver(x, y, width, font.lineHeight, mouseX, mouseY))
                 UIHelper.setTooltip(Component.translatable(this.text + ".tooltip"));
         }
 
         @Override
-        public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean bl) {
-            if (!this.isActive() || !this.isHoveredOrFocused() || !this.isMouseOver(mouseButtonEvent.x(), mouseButtonEvent.y()))
+        public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            if (!this.isActive() || !this.isHoveredOrFocused() || !this.isMouseOver(mouseX, mouseY))
                 return false;
 
-            if (mouseButtonEvent.button() == 1) {
+            if (button == 1) {
                 container.reset(permissions);
                 this.parent.updateList(container);
                 playDownSound(Minecraft.getInstance().getSoundManager());
                 return true;
             }
 
-            return super.mouseClicked(mouseButtonEvent, bl);
+            return super.mouseClicked(mouseX, mouseY, button);
         }
 
         @Override
@@ -239,7 +236,7 @@ public class PermissionsList extends AbstractList {
         }
 
         @Override
-        public void onPress(InputWithModifiers inputWithModifiers) {
+        public void onPress() {
             // update permission
             boolean value = !this.isToggled();
 
@@ -249,30 +246,30 @@ public class PermissionsList extends AbstractList {
             // update text
             this.value = FiguraText.of("permissions." + (value ? "enabled" : "disabled"));
 
-            super.onPress(inputWithModifiers);
+            super.onPress();
         }
 
         @Override
-        public void extractContents(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
-            super.extractContents(gui, mouseX, mouseY, delta);
+        public void renderWidget(GuiGraphics gui, int mouseX, int mouseY, float delta) {
+            super.renderWidget(gui, mouseX, mouseY, delta);
             if (parent.isInsideScissors(mouseX, mouseY) && UIHelper.isMouseOver(getX() + 1, getY() + 1, getWidth() - 2, Minecraft.getInstance().font.lineHeight, mouseX, mouseY))
                 UIHelper.setTooltip(Component.translatable(this.text + ".tooltip"));
         }
 
         @Override
-        protected void renderDefaultTexture(GuiGraphicsExtractor gui, float delta) {
-            Matrix3x2fStack pose = gui.pose();
+        protected void renderDefaultTexture(GuiGraphics gui, float delta) {
+            PoseStack pose = gui.pose();
             Font font = Minecraft.getInstance().font;
 
             // button
-            pose.pushMatrix();
-            pose.translate(0f, font.lineHeight);
+            pose.pushPose();
+            pose.translate(0f, font.lineHeight, 0f);
             super.renderDefaultTexture(gui, delta);
-            pose.popMatrix();
+            pose.popPose();
         }
 
         @Override
-        protected void renderText(GuiGraphicsExtractor gui, float delta) {
+        protected void renderText(GuiGraphics gui, float delta) {
             Font font = Minecraft.getInstance().font;
 
             // texts
@@ -282,22 +279,22 @@ public class PermissionsList extends AbstractList {
             int valueY = getY() + font.lineHeight + 11 - font.lineHeight / 2;
 
             UIHelper.renderScrollingText(gui, name, getX() + 1, getY() + 1, getWidth() - 2, 0xFFFFFF);
-            gui.text(font, value.copy().setStyle(FiguraMod.getAccentColor()), valueX, valueY, UIHelper.adjustColor(0xFFFFFF));
+            gui.drawString(font, value.copy().setStyle(FiguraMod.getAccentColor()), valueX, valueY, 0xFFFFFF);
         }
 
         @Override
-        public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean bl) {
-            if (!this.isActive() || !this.isHoveredOrFocused() || !this.isMouseOver(mouseButtonEvent.x(), mouseButtonEvent.y()))
+        public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            if (!this.isActive() || !this.isHoveredOrFocused() || !this.isMouseOver(mouseX, mouseY))
                 return false;
 
-            if (mouseButtonEvent.button() == 1) {
+            if (button == 1) {
                 container.reset(permissions);
                 this.parent.updateList(container);
                 playDownSound(Minecraft.getInstance().getSoundManager());
                 return true;
             }
 
-            return super.mouseClicked(mouseButtonEvent, bl);
+            return super.mouseClicked(mouseX, mouseY, button);
         }
 
         @Override
@@ -351,7 +348,7 @@ public class PermissionsList extends AbstractList {
         }
 
         @Override
-        public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+        public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
             Font font = Minecraft.getInstance().font;
 
             // text colour
@@ -373,7 +370,7 @@ public class PermissionsList extends AbstractList {
             setBorderColour(0xFF000000 + color);
 
             // field
-            super.extractRenderState(gui, mouseX, mouseY, delta);
+            super.render(gui, mouseX, mouseY, delta);
 
             // texts
             MutableComponent name = Component.translatable(this.text);
@@ -385,25 +382,25 @@ public class PermissionsList extends AbstractList {
             int width = valueX - getX() - 2;
 
             UIHelper.renderScrollingText(gui, name, x, y, width, 0xFFFFFF);
-            gui.text(font, value.copy().setStyle(FiguraMod.getAccentColor()), valueX, getY() + 1 - font.lineHeight, UIHelper.adjustColor(0xFFFFFF));
+            gui.drawString(font, value.copy().setStyle(FiguraMod.getAccentColor()), valueX, getY() + 1 - font.lineHeight, 0xFFFFFF);
 
             if (parent.isInsideScissors(mouseX, mouseY) && UIHelper.isMouseOver(x, y, width, font.lineHeight, mouseX, mouseY))
                 UIHelper.setTooltip(Component.translatable(this.text + ".tooltip"));
         }
 
         @Override
-        public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean bl) {
-            if (!this.isEnabled() || !this.isMouseOver(mouseButtonEvent.x(), mouseButtonEvent.y()))
+        public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            if (!this.isEnabled() || !this.isMouseOver(mouseX, mouseY))
                 return false;
 
-            if (mouseButtonEvent.button() == 1) {
+            if (button == 1) {
                 container.reset(permissions);
                 this.parent.updateList(container);
                 this.getField().playDownSound(Minecraft.getInstance().getSoundManager());
                 return true;
             }
 
-            return super.mouseClicked(mouseButtonEvent, bl);
+            return super.mouseClicked(mouseX, mouseY, button);
         }
 
         @Override

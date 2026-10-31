@@ -4,8 +4,11 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.*;
-import net.minecraft.resources.Identifier;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.utils.FiguraIdentifier;
 import org.figuramc.figura.utils.FiguraText;
@@ -32,13 +35,13 @@ public class EmojiContainer {
     private static final Style STYLE = Style.EMPTY.withColor(ChatFormatting.WHITE);
 
     public final String name;
-    private final Identifier font;
+    private final ResourceLocation font;
     private final EmojiUnicodeLookup lookup = new EmojiUnicodeLookup();
     private final String blacklist;
 
     public EmojiContainer(String containerName, JsonObject data) {
         this.name = containerName;
-        this.font = new FiguraIdentifier("emoji_" + containerName);
+        this.font = FiguraIdentifier.of("emoji_" + containerName);
         this.blacklist = data.get("blacklist").getAsString();
 
         // key = emoji unicode, value = array of names
@@ -128,8 +131,8 @@ public class EmojiContainer {
     }
 
     private Component makeComponent(String unicode, MutableComponent hover) {
-        return Component.literal(unicode).withStyle(STYLE.withFont(new FontDescription.Resource(font)).withHoverEvent(
-                new HoverEvent.ShowText(hover
+        return Component.literal(unicode).withStyle(STYLE.withFont(font).withHoverEvent(
+                new HoverEvent(HoverEvent.Action.SHOW_TEXT, hover
                         .append("\n")
                         .append(FiguraText.of("emoji." + name).withStyle(ChatFormatting.DARK_GRAY)))
         ));
@@ -141,7 +144,7 @@ public class EmojiContainer {
         return TextUtils.replaceInText(text, "[" + blacklist + "]", TextUtils.UNKNOWN, (s, style) -> style.getFont().equals(font), Integer.MAX_VALUE);
     }
 
-    public Identifier getFont() {
+    public ResourceLocation getFont() {
         return font;
     }
 }

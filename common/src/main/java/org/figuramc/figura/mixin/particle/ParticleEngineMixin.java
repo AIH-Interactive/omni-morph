@@ -5,7 +5,7 @@ import net.minecraft.client.particle.ParticleEngine;
 import net.minecraft.client.particle.ParticleResources;
 import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.core.particles.ParticleOptions;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.ducks.ParticleEngineAccessor;
 import top.aihmc.omnimorph.lua.api.particle.CustomParticle;
 import top.aihmc.omnimorph.lua.api.particle.CustomParticleRuntime;

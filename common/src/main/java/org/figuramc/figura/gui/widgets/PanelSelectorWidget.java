@@ -7,7 +7,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.entries.FiguraScreen;
@@ -29,7 +29,7 @@ import java.util.function.Function;
 
 public class PanelSelectorWidget extends AbstractContainerElement {
 
-    public static final Identifier BACKGROUND = new FiguraIdentifier("textures/gui/panels_background.png");
+    public static final ResourceLocation BACKGROUND = FiguraIdentifier.of("textures/gui/panels_background.png");
 
     private static final List<Function<Screen, Pair<Screen, PanelIcon>>> PANELS = new ArrayList<>() {{
                 add(s -> Pair.of(new ProfileScreen(s), PanelIcon.PROFILE));
@@ -156,14 +156,14 @@ public class PanelSelectorWidget extends AbstractContainerElement {
 
     private static class PanelButton extends IconButton {
 
-        public static final Identifier TEXTURE = new FiguraIdentifier("textures/gui/panels_button.png");
-        public static final Identifier ICONS = new FiguraIdentifier("textures/gui/panels.png");
+        public static final ResourceLocation TEXTURE = FiguraIdentifier.of("textures/gui/panels_button.png");
+        public static final ResourceLocation ICONS = FiguraIdentifier.of("textures/gui/panels.png");
 
         private final PanelSelectorWidget parent;
 
         public PanelButton(int x, int y, int width, int height, Component text, PanelIcon icon, PanelSelectorWidget parent, OnPress pressAction) {
             super(x, y, width, height, 20 * icon.uv, 0, 20,
-                    icon == PanelIcon.LIBRARY ? new FiguraIdentifier("textures/gui/library.png") : ICONS,
+                    icon == PanelIcon.LIBRARY ? FiguraIdentifier.of("textures/gui/library.png") : ICONS,
                     icon == PanelIcon.LIBRARY ? 20 : 140, 20, text, null, pressAction);
             this.parent = parent;
         }

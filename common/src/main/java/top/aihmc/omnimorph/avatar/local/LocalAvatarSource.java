@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.avatar.local;
 
+import org.figuramc.figura.utils.NbtDefaults;
+
 import com.google.gson.Gson;
 import org.figuramc.figura.FiguraMod;
 import top.aihmc.omnimorph.avatar.ysm.YsmAvatarDetector;
@@ -147,7 +149,7 @@ public final class LocalAvatarSource {
             }
             YsmResourceLimits.checkCancelled(cancelled);
             verify(path, reference, cancelled);
-            if (!nbt.getCompoundOrEmpty("metadata").getStringOr("resource_kind", "AVATAR").equals("AVATAR")) {
+            if (!NbtDefaults.getStringOr(nbt.getCompound("metadata"), "resource_kind", "AVATAR").equals("AVATAR")) {
                 throw new IOException("OUTFIT_BASE_RESOURCE_KIND_REQUIRED");
             }
             return nbt;

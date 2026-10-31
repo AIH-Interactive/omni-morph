@@ -1,19 +1,21 @@
 package top.aihmc.omnimorph.model.ysm;
 
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.animal.parrot.Parrot;
+import net.minecraft.world.entity.animal.Parrot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.FishingHook;
-import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
-import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrowableItemProjectile;
+import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
 import net.minecraft.world.item.CrossbowItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -73,12 +75,21 @@ public final class YsmReferenceQuery {
     }
 
     public static String shoulderParrotVariant(Player player, boolean left) {
-        Parrot.Variant variant = (left ? player.getShoulderParrotLeft() : player.getShoulderParrotRight()).orElse(null);
+        Parrot.Variant variant = shoulderParrot(player, left).orElse(null);
         return variant != null ? variant.name().toLowerCase(Locale.ENGLISH) : "empty";
     }
 
     public static boolean hasShoulderParrot(Player player, boolean left) {
-        return (left ? player.getShoulderParrotLeft() : player.getShoulderParrotRight()).isPresent();
+        return shoulderParrot(player, left).isPresent();
+    }
+
+    /** MC 1.21.1 keeps shoulder riders as entity NBT; this mirrors ParrotOnShoulderLayer's parrot check. */
+    private static Optional<Parrot.Variant> shoulderParrot(Player player, boolean left) {
+        CompoundTag shoulder = left ? player.getShoulderEntityLeft() : player.getShoulderEntityRight();
+        boolean parrot = EntityType.byString(shoulder.getString("id"))
+                .filter(type -> type == EntityType.PARROT)
+                .isPresent();
+        return parrot ? Optional.of(Parrot.Variant.byId(shoulder.getInt("Variant"))) : Optional.empty();
     }
 
     /** Block or entity registry id under the client crosshair; empty when nothing is targeted. */
@@ -89,11 +100,11 @@ public final class YsmReferenceQuery {
             if (block.getType() == HitResult.Type.MISS || client.level == null) {
                 return "";
             }
-            Identifier key = BuiltInRegistries.BLOCK.getKey(client.level.getBlockState(block.getBlockPos()).getBlock());
+            ResourceLocation key = BuiltInRegistries.BLOCK.getKey(client.level.getBlockState(block.getBlockPos()).getBlock());
             return key == null ? "" : key.toString();
         }
         if (hit instanceof EntityHitResult entityHit) {
-            Identifier key = BuiltInRegistries.ENTITY_TYPE.getKey(entityHit.getEntity().getType());
+            ResourceLocation key = BuiltInRegistries.ENTITY_TYPE.getKey(entityHit.getEntity().getType());
             return key == null ? "" : key.toString();
         }
         return "";
@@ -106,7 +117,7 @@ public final class YsmReferenceQuery {
 
     public static String hookedIn(FishingHook hook) {
         Entity hooked = ((FishingHookAccessor) hook).figura$getHookedIn();
-        Identifier key = hooked == null ? null : BuiltInRegistries.ENTITY_TYPE.getKey(hooked.getType());
+        ResourceLocation key = hooked == null ? null : BuiltInRegistries.ENTITY_TYPE.getKey(hooked.getType());
         return key == null ? "" : key.toString();
     }
 
@@ -123,7 +134,7 @@ public final class YsmReferenceQuery {
     }
 
     public static String throwableItem(ThrowableItemProjectile projectile) {
-        Identifier key = BuiltInRegistries.ITEM.getKey(((ThrowableItemProjectileAccessor) projectile).figura$getDefaultItem());
+        ResourceLocation key = BuiltInRegistries.ITEM.getKey(((ThrowableItemProjectileAccessor) projectile).figura$getDefaultItem());
         return key == null ? "" : key.toString();
     }
 

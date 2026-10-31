@@ -1,5 +1,7 @@
 package org.figuramc.figura.parsers;
 
+import org.figuramc.figura.utils.NbtDefaults;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -117,7 +119,7 @@ public class AvatarMetadataParser {
             CompoundTag modelPart = getTag(models, entry.getKey(), true);
             CompoundTag targetPart = getTag(models, entry.getValue(), false);
 
-            ListTag list = !targetPart.contains("chld") ? new ListTag() : targetPart.getListOrEmpty("chld");
+            ListTag list = !targetPart.contains("chld") ? new ListTag() : NbtDefaults.getListOrEmpty(targetPart, "chld");
             list.add(modelPart);
             targetPart.put("chld", list);
         }
@@ -126,10 +128,10 @@ public class AvatarMetadataParser {
         if (metadata == null || metadata.ignoredTextures == null)
             return;
 
-        CompoundTag src = textures.getCompoundOrEmpty("src");
+        CompoundTag src = textures.getCompound("src");
 
         for (String texture : metadata.ignoredTextures) {
-            byte[] bytes = src.getByteArray(texture).orElse(new byte[0]);
+            byte[] bytes = src.getByteArray(texture);
             Vector2i size = BlockbenchCommonTypes.getPNGDimensions(bytes);
             ListTag list = new ListTag();
             list.add(IntTag.valueOf(size.x));
@@ -193,12 +195,12 @@ public class AvatarMetadataParser {
             if (!current.contains("chld"))
                 throw new IOException("Invalid part path: \"" + path + "\"");
 
-            ListTag children = current.getListOrEmpty("chld");
+            ListTag children = NbtDefaults.getListOrEmpty(current, "chld");
             int j = 0;
             for (; j < children.size(); j++) {
-                CompoundTag child = children.getCompoundOrEmpty(j);
+                CompoundTag child = children.getCompound(j);
 
-                if (child.getStringOr("name", "").equals(keys[i])) {
+                if (child.getString("name").equals(keys[i])) {
                     current = child;
                     break;
                 }

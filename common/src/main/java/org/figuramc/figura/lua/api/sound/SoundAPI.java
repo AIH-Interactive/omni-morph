@@ -5,7 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.Sound;
 import net.minecraft.client.sounds.SoundManager;
 import net.minecraft.client.sounds.WeighedSoundEvents;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.ducks.SoundEngineAccessor;
@@ -164,7 +164,7 @@ public class SoundAPI {
         if (modelBuffer(id) != null || owner.customSounds.get(id) != null)
             return true;
         try {
-            return Minecraft.getInstance().getSoundManager().getSoundEvent(Identifier.parse(id)) != null;
+            return Minecraft.getInstance().getSoundManager().getSoundEvent(ResourceLocation.parse(id)) != null;
         } catch (Exception ignored) {
             return false;
         }
@@ -204,7 +204,7 @@ public class SoundAPI {
         }
 
         try {
-            WeighedSoundEvents events = Minecraft.getInstance().getSoundManager().getSoundEvent(Identifier.parse(id));
+            WeighedSoundEvents events = Minecraft.getInstance().getSoundManager().getSoundEvent(ResourceLocation.parse(id));
             if (events != null) {
                 Sound sound = events.getSound(RandomSource.createThreadSafe());
                 if (sound != SoundManager.EMPTY_SOUND) {

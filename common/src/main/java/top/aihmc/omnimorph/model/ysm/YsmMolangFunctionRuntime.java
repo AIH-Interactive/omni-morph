@@ -68,8 +68,8 @@ public class YsmMolangFunctionRuntime {
         for (Tag tag : tags) {
             if (!(tag instanceof CompoundTag functionTag))
                 continue;
-            String path = functionTag.getStringOr("path", "");
-            String source = new String(functionTag.getByteArray("data").orElse(new byte[0]), StandardCharsets.UTF_8);
+            String path = functionTag.getString("path");
+            String source = new String(functionTag.getByteArray("data"), StandardCharsets.UTF_8);
             if (register(path, source))
                 loaded++;
         }

@@ -11,7 +11,7 @@ import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import org.figuramc.figura.FiguraMod;
@@ -191,7 +191,7 @@ public class AvatarManager {
             return loaded;
 
         // new avatar
-        Identifier type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+        ResourceLocation type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
         CompoundTag nbt = LocalAvatarLoader.CEM_AVATARS.get(type);
         return nbt == null ? null : loadEntityAvatar(entity, nbt);
     }

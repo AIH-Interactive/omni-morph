@@ -99,3 +99,50 @@ API 真值来源：minecraft-dev-mcp（1.21.1 mojmap 源码，以及 AW / mixin 
 | --- | --- |
 | 平台 API 与元数据对照 1.21.1 / NeoForge 21.1 真值 | ✅ 完成（静态核对 + MCP 校验） |
 | 两个加载器启动到标题界面、`/omnimorph` 注册成功、无 `Mixin apply failed` | **MANUAL/PENDING**：要等 `common` 在 M2–M4 编译通过后，用真实客户端窗口验证 |
+
+---
+
+# M2 基础 API 替换
+
+## 1. 参考基线
+
+- 上游 Figura `0.1.6-dev/1.21`（MC 1.21.1，Figura 0.1.6），与仓库基线 `641b23f`（Figura 0.1.6 / MC 1.21.11）功能版本一致。浅克隆在 `build/tmp/ref/`，只读，不入库。
+- **保护 OmniMorph 独有功能（用户要求）**：只有同时满足以下两个条件的文件才整文件采用上游 1.21.1 版本：
+  1. 仓库副本等于上游 1.21.11 基线；
+  2. 此后的改动（`641b23f → b5caa5c` 的 26.1 同步，以及之后的提交）经逐个审计全部是 MC API 适配。
+- 凡是 OmniMorph 改过的文件，都在当前代码上逐处移植，只接受 API 层面的差异。三方合并结果"干净"也必须看完整差异：例如 ParticleEngineMixin 的合并结果会把 OmniMorph 的 duck 方法换掉，因此没有采用。
+
+## 2. 改动汇总
+
+| 类别 | 改动 |
+| --- | --- |
+| `Identifier` | 全部改为 `ResourceLocation`（130 个文件）；`FiguraIdentifier` 改为工厂方法 `of(String)` |
+| NBT 取值 | 零值默认的 `getXxxOr` / `getXxxOrEmpty` 直接改为 1.21.1 的同语义方法；非零默认值及不限元素类型的列表改用新增的 `NbtDefaults`（`getStringOr` / `getIntOr` / `getFloatOr` / `getListOrEmpty` / `findByteArray`），语义与 26.1 一致 |
+| 包迁移 | `Util` → `net.minecraft.Util`；`LightCoordsUtil` → `LightTexture`；`ARGB` → `FastColor.ARGB32`；实体子包（`projectile.arrow`、`throwableitemprojectile`、`animal.parrot`、`vehicle.boat`）回到 1.21.1 的位置 |
+| 用途动画 | `ItemUseAnimation` → `UseAnim`。26.1 的 `SPEAR`（长矛）和 `TRIDENT` 都映射到 1.21.1 的 `UseAnim.SPEAR`，因为 1.21.1 上第三方长矛和三叉戟只能用这一个值 |
+| 船 / 木筏 | `AbstractBoat` → `Boat`，`AbstractChestBoat` → `ChestBoat`；木筏判断改为 `Boat.Type.BAMBOO` |
+| 注册表 | `lookupOrThrow` → `registryOrThrow`；`get(id)` / `getOrThrow(key)` 按 1.21.1 语义改为 `getHolder` / `getHolderOrThrow` |
+| 文本事件 | `HoverEvent.ShowText` / `ClickEvent.*` 的 record 写法 → `new HoverEvent/ClickEvent(Action, value)`；`FiguraClickEvent` 改为继承 `ClickEvent`，保留 `onClick()` |
+| 其他 | 权限等级 `hasPermissions(n)`；实体 NBT `saveWithoutId(new CompoundTag())`；`Camera.getPosition()`；`getTimer()`；`GameProfile.getName()`；`InputConstants.isKeyDown(long, int)`；按键分类改为字符串 `key.category.omni-morph.keys`（翻译键不变） |
+| 肩上鹦鹉 | PlayerAPI 恢复上游 1.21.1 行为（返回肩部实体 NBT）；YsmReferenceQuery 按 1.21.1 `ParrotOnShoulderLayer` 的规则解析变种，对外语义不变 |
+| 鞘翅角度 | Molang `elytra_rot_*` 按 1.21.1 `ElytraModel` 的逻辑取值（玩家读取平滑后的状态，其他实体直接计算） |
+| 音频 | `SoundBuffer` 在 1.21.1 没有 `size()`，YsmAudioResources 改为自行记录每个缓冲区的 PCM 字节数 |
+| 缩略图 | `NativeImage.setPixelRGBA` 写入时做 ARGB → ABGR 转换 |
+| 可选依赖 | LambDynamicLights API 改用 `modCompileOnly`（4.8.11 的 jar 是 intermediary 命名）；实现 4.8 版旧签名的入口方法 |
+| AW | 新增 `Player.currentImpulseContextResetGraceTime`（Molang `mace_wind_bursting`） |
+| 上游整文件采用 | 76 个审计通过的 Figura 文件，清单见 `build/tmp/adopt-upstream.txt`；`ClientAPI` / `PlayerAPI` 采用上游后把 import 指回 OmniMorph 迁移后的类；补回 `ModelManagerAccessor` |
+
+## 3. 1.21.1 不适用的 1.21.11+ 功能（已移除，不是遗漏）
+
+| 功能 | 原因 |
+| --- | --- |
+| 原版长矛 `KINETIC_WEAPON` 使用变换和蓄力动画采样 | 1.21.11 才引入的数据组件和物品；`lance_charge_progress` 退回到 `getUseDuration` |
+| F3 调试条目注册（`DebugScreenEntries`） | 26.1 的调试屏 API；1.21.1 上的 F3 信息在 M4 用 1.21.1 的方式恢复（**待办**） |
+
+## 4. M2 验收
+
+| 验收项 | 结果 |
+| --- | --- |
+| 非渲染 / 非 GUI 区域（backend、molang、ysm 数据、outfit、Lua 数据 API）的 API 错误 | ✅ 清零。剩余 7 处是 `Avatar` / `AvatarManager` 的 `EntityRenderState` 重载歧义引起的连带错误，随 M3 渲染状态重构一并消失 |
+| `common` 编译通过；backend / molang / ysm / outfit smoke 任务通过 | ⏸ 顺延：`common` 里的渲染层和 GUI 层（M3 / M4）修完之前无法整体编译 |
+| `:common:compileJava` 错误总数 | 1835（主要分布：`mixin/render` 417、`gui/widgets` 316、`render/acceleration` 135） |

@@ -2,7 +2,7 @@ package org.figuramc.figura.lua.api;
 
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.lua.LuaNotNil;
 import org.figuramc.figura.lua.LuaWhitelist;
 import org.figuramc.figura.lua.docs.LuaMethodDoc;
@@ -32,7 +32,7 @@ public class TextureAtlasAPI {
     @LuaMethodDoc("texture_atlas.list_sprites")
     public List<String> listSprites() {
         List<String> list = new ArrayList<>();
-        for (Identifier res : ((TextureAtlasAccessor) atlas).figura$getTexturesByName().keySet())
+        for (ResourceLocation res : ((TextureAtlasAccessor) atlas).figura$getTexturesByName().keySet())
             list.add(res.toString());
         return list;
     }
@@ -46,7 +46,7 @@ public class TextureAtlasAPI {
             value = "texture_atlas.get_sprite_uv"
     )
     public FiguraVec4 getSpriteUV(@LuaNotNil String sprite) {
-        Identifier spriteLocation = LuaUtils.parsePath(sprite);
+        ResourceLocation spriteLocation = LuaUtils.parsePath(sprite);
         TextureAtlasSprite s = atlas.getSprite(spriteLocation);
         return FiguraVec4.of(s.getU0(), s.getV0(), s.getU1(), s.getV1());
     }

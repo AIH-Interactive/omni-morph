@@ -10,7 +10,7 @@ import net.minecraft.client.input.InputWithModifiers;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import org.figuramc.figura.FiguraMod;
@@ -1430,7 +1430,7 @@ public class AvatarControlsScreen extends Screen {
 
     private void renderFiguraBackground(GuiGraphicsExtractor gui, float delta) {
         float speed = Configs.BACKGROUND_SCROLL_SPEED.tempValue * 0.125f;
-        for (Identifier background : AbstractPanelScreen.BACKGROUNDS) {
+        for (ResourceLocation background : AbstractPanelScreen.BACKGROUNDS) {
             UIHelper.renderAnimatedBackground(gui, background, 0, 0, this.width, this.height, 64, 64, speed, delta);
             speed /= 0.5f;
         }

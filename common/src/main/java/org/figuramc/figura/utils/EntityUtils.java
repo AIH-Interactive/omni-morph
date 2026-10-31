@@ -32,7 +32,7 @@ public class EntityUtils {
         Entity entity = Minecraft.getInstance().getCameraEntity();
         if (entity == null) return null;
 
-        float tickDelta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false);
+        float tickDelta = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(false);
         Vec3 entityEye = entity.getEyePosition(tickDelta);
         Vec3 viewVec = entity.getViewVector(tickDelta).scale(distance);
         AABB box = entity.getBoundingBox().expandTowards(viewVec).inflate(1f, 1f, 1f);
@@ -60,7 +60,7 @@ public class EntityUtils {
     public static String getNameForUUID(UUID uuid) {
         PlayerInfo player = getPlayerInfo(uuid);
         if (player != null)
-            return player.getProfile().name();
+            return player.getProfile().getName();
 
         Entity e = getEntityByUUID(uuid);
         if (e != null)
@@ -79,7 +79,7 @@ public class EntityUtils {
         for (UUID uuid : connection.getOnlinePlayerIds()) {
             PlayerInfo player = connection.getPlayerInfo(uuid);
             if (player != null)
-                playerList.put(player.getProfile().name(), uuid);
+                playerList.put(player.getProfile().getName(), uuid);
         }
 
         return playerList;
@@ -98,7 +98,7 @@ public class EntityUtils {
             return false;
 
         GameProfile profile = playerInfo.getProfile();
-        String name = profile.name();
+        String name = profile.getName();
         return name != null && (name.isBlank() || name.charAt(0) == '\u0000');
     }
 }

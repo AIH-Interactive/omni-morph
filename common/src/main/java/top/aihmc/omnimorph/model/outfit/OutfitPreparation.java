@@ -72,7 +72,7 @@ public final class OutfitPreparation {
                 CompoundTag data = resources.read(declaration.resource(), cancelled);
                 requireCurrent(cancelled);
                 String kind = data == null ? null
-                        : data.getCompoundOrEmpty("metadata").getStringOr("resource_kind", "");
+                        : data.getCompound("metadata").getString("resource_kind");
                 if (data == null || !"ACCESSORY".equals(kind)) {
                     LOGGER.debug("outfit instance {} source={} format={} metadata_kind='{}' bytes={}",
                             declaration.instanceId(), declaration.resource().localId(),
@@ -93,7 +93,7 @@ public final class OutfitPreparation {
                     throw new IOException("COSMETIC_PREPARATION_FAILED");
                 }
                 if (scope != CosmeticInstanceContext.Scope.DRAFT
-                        && YsmSourcePayload.isEncrypted(avatar.nbt.getCompoundOrEmpty("ysm"))
+                        && YsmSourcePayload.isEncrypted(avatar.nbt.getCompound("ysm"))
                         != (declaration.resource().format() == OutfitConfig.Format.YSM_ENCRYPTED)) {
                     throw new IOException("COSMETIC_PREPARATION_FAILED");
                 }

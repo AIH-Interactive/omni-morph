@@ -11,7 +11,7 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.RegistrationInfo;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.component.DataComponentMap;
@@ -416,9 +416,9 @@ public final class YsmVanillaStateSmokeTest {
         MappedRegistry<Enchantment> registry = new MappedRegistry<>(Registries.ENCHANTMENT, Lifecycle.stable());
         var definition = Enchantment.definition(HolderSet.direct(Items.DIAMOND_CHESTPLATE.builtInRegistryHolder()),
                 1, 5, Enchantment.constantCost(1), Enchantment.constantCost(1), 1, EquipmentSlotGroup.CHEST);
-        var first = registry.register(ResourceKey.create(Registries.ENCHANTMENT, Identifier.parse("fixture:first")),
+        var first = registry.register(ResourceKey.create(Registries.ENCHANTMENT, ResourceLocation.parse("fixture:first")),
                 new Enchantment(Component.literal("first"), definition, HolderSet.direct(), DataComponentMap.EMPTY), RegistrationInfo.BUILT_IN);
-        var second = registry.register(ResourceKey.create(Registries.ENCHANTMENT, Identifier.parse("fixture:second")),
+        var second = registry.register(ResourceKey.create(Registries.ENCHANTMENT, ResourceLocation.parse("fixture:second")),
                 new Enchantment(Component.literal("second"), definition, HolderSet.direct(), DataComponentMap.EMPTY), RegistrationInfo.BUILT_IN);
         registry.freeze();
         world.registries = new RegistryAccess.ImmutableRegistryAccess(List.of(registry));
@@ -566,7 +566,7 @@ public final class YsmVanillaStateSmokeTest {
         var bindTags = holder.getClass().getDeclaredMethod("bindTags", java.util.Collection.class);
         bindTags.setAccessible(true);
         try {
-            var tag = net.minecraft.tags.TagKey.create(Registries.ENTITY_TYPE, Identifier.parse("fixture:ride_target"));
+            var tag = net.minecraft.tags.TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.parse("fixture:ride_target"));
             bindTags.invoke(holder, List.of(tag));
             require(Integer.valueOf(1).equals(eval(engine, context, "ctrl.ride('vehicle','#fixture:ride_target');"))
                             && Integer.valueOf(0).equals(eval(engine, context, "ctrl.ride('passenger','#fixture:ride_target');")),
@@ -760,12 +760,12 @@ public final class YsmVanillaStateSmokeTest {
                     Map.entry("fishing_rods", "fishing_rod"), Map.entry("throwable_potion", "throwable_potion"));
             for (var entry : compat.entrySet()) {
                 var tag = net.minecraft.tags.TagKey.create(Registries.ITEM,
-                        Identifier.fromNamespaceAndPath("sparkle_morpher", entry.getKey()));
+                        ResourceLocation.fromNamespaceAndPath("sparkle_morpher", entry.getKey()));
                 bindTags.invoke(holder, List.of(tag));
                 require(Integer.valueOf(1).equals(eval(engine, context, "ctrl.hold('mainhand',':" + entry.getValue() + "');")),
                         "current reference compatibility tag: " + entry.getKey());
             }
-            var trident = net.minecraft.tags.TagKey.create(Registries.ITEM, Identifier.parse("sparkle_morpher:tridents"));
+            var trident = net.minecraft.tags.TagKey.create(Registries.ITEM, ResourceLocation.parse("sparkle_morpher:tridents"));
             bindTags.invoke(holder, List.of(trident, net.minecraft.tags.ItemTags.SWORDS));
             require(Integer.valueOf(1).equals(eval(engine, context, "ctrl.hold('mainhand',':spear');"))
                             && Integer.valueOf(0).equals(eval(engine, context, "ctrl.hold('mainhand',':sword');")),
@@ -813,7 +813,7 @@ public final class YsmVanillaStateSmokeTest {
         require(context.variables.getPath("controller_item_side_effect") == null, "invalid slot and unused third parameter remain unevaluated");
         require(Integer.valueOf(0).equals(eval(engine, context, "ctrl.armor('head','$stone');")), "ctrl ID prefix uses exact native ID, not convenience short-ID matching");
         require(Integer.valueOf(0).equals(eval(engine, context, "ctrl.armor('head',':stone');")), "armor has no hand-item type-prefix semantics");
-        var tag = net.minecraft.tags.TagKey.create(Registries.ITEM, Identifier.parse("fixture:controller_armor"));
+        var tag = net.minecraft.tags.TagKey.create(Registries.ITEM, ResourceLocation.parse("fixture:controller_armor"));
         var holder = Items.STONE.builtInRegistryHolder();
         var previousTags = holder.tags().toList();
         var bindTags = holder.getClass().getDeclaredMethod("bindTags", java.util.Collection.class);
@@ -1242,14 +1242,14 @@ public final class YsmVanillaStateSmokeTest {
         Unsafe unsafe = (Unsafe) unsafeField.get(null);
         FixtureLevel world = (FixtureLevel) unsafe.allocateInstance(FixtureLevel.class);
         var biomes = new MappedRegistry<net.minecraft.world.level.biome.Biome>(Registries.BIOME, Lifecycle.stable());
-        var biomeKey = ResourceKey.create(Registries.BIOME, Identifier.parse("fixture:forest"));
+        var biomeKey = ResourceKey.create(Registries.BIOME, ResourceLocation.parse("fixture:forest"));
         var biome = biomes.register(biomeKey,
                 (net.minecraft.world.level.biome.Biome) unsafe.allocateInstance(net.minecraft.world.level.biome.Biome.class),
                 RegistrationInfo.BUILT_IN);
         var biomeTags = biome.getClass().getDeclaredMethod("bindTags", java.util.Collection.class);
         biomeTags.setAccessible(true);
-        biomeTags.invoke(biome, List.of(net.minecraft.tags.TagKey.create(Registries.BIOME, Identifier.parse("minecraft:forest")),
-                net.minecraft.tags.TagKey.create(Registries.BIOME, Identifier.parse("fixture:temperate"))));
+        biomeTags.invoke(biome, List.of(net.minecraft.tags.TagKey.create(Registries.BIOME, ResourceLocation.parse("minecraft:forest")),
+                net.minecraft.tags.TagKey.create(Registries.BIOME, ResourceLocation.parse("fixture:temperate"))));
         world.biome = biome;
         world.block = Blocks.STONE.defaultBlockState();
         var blockHolder = Blocks.STONE.builtInRegistryHolder();
@@ -1267,8 +1267,8 @@ public final class YsmVanillaStateSmokeTest {
         Object previousBlockPosition = blockPosition.get(entity);
         BlockPos subject = new BlockPos(-1, 64, 2);
         try {
-            bindTags.invoke(blockHolder, List.of(net.minecraft.tags.TagKey.create(Registries.BLOCK, Identifier.parse("fixture:solid")),
-                    net.minecraft.tags.TagKey.create(Registries.BLOCK, Identifier.parse("minecraft:stone_like"))));
+            bindTags.invoke(blockHolder, List.of(net.minecraft.tags.TagKey.create(Registries.BLOCK, ResourceLocation.parse("fixture:solid")),
+                    net.minecraft.tags.TagKey.create(Registries.BLOCK, ResourceLocation.parse("minecraft:stone_like"))));
             context.entity = entity;
             level.set(entity, world);
             position.set(entity, new Vec3(-0.25d, 64.75d, 2.5d));
@@ -1318,7 +1318,7 @@ public final class YsmVanillaStateSmokeTest {
             require(new BlockPos(4, 59, 7).equals(world.position), "boundary lookup uses reference world coordinates");
             biomeTags.invoke(biome, List.of());
             require(Boolean.FALSE.equals(eval(engine, context, "q.biome_has_any_tag('forest');")), "biome tag state changes immediately");
-            biomeTags.invoke(biome, List.of(net.minecraft.tags.TagKey.create(Registries.BIOME, Identifier.parse("minecraft:forest"))));
+            biomeTags.invoke(biome, List.of(net.minecraft.tags.TagKey.create(Registries.BIOME, ResourceLocation.parse("minecraft:forest"))));
             Entity nonLiving = (net.minecraft.world.entity.item.ItemEntity) unsafe.allocateInstance(net.minecraft.world.entity.item.ItemEntity.class);
             level.set(nonLiving, world);
             position.set(nonLiving, new Vec3(-0.25d, 64.75d, 2.5d));
@@ -1463,8 +1463,8 @@ public final class YsmVanillaStateSmokeTest {
         world.dimensionKey = net.minecraft.world.level.Level.NETHER;
         require("minecraft:dimension".equals(eval(engine, context, "ysm.dimension_name;")),
                 "reference dimension registry remains the same in the Nether");
-        world.dimensionKey = ResourceKey.create(ResourceKey.createRegistryKey(Identifier.parse("fixture:worlds")),
-                Identifier.parse("fixture:test"));
+        world.dimensionKey = ResourceKey.create(ResourceKey.createRegistryKey(ResourceLocation.parse("fixture:worlds")),
+                ResourceLocation.parse("fixture:test"));
         require("fixture:worlds".equals(eval(engine, context, "ysm.dimension_name;")),
                 "dimension query reads the current key registry");
         world.rainingAtSubject = true;
@@ -1560,8 +1560,8 @@ public final class YsmVanillaStateSmokeTest {
         var bindTags = holder.getClass().getDeclaredMethod("bindTags", java.util.Collection.class);
         bindTags.setAccessible(true);
         try {
-            var firstTag = net.minecraft.tags.TagKey.create(Registries.ITEM, Identifier.parse("fixture:one"));
-            var secondTag = net.minecraft.tags.TagKey.create(Registries.ITEM, Identifier.parse("fixture:two"));
+            var firstTag = net.minecraft.tags.TagKey.create(Registries.ITEM, ResourceLocation.parse("fixture:one"));
+            var secondTag = net.minecraft.tags.TagKey.create(Registries.ITEM, ResourceLocation.parse("fixture:two"));
             bindTags.invoke(holder, List.of(firstTag, secondTag));
             require(Boolean.TRUE.equals(eval(engine, context,
                             "q.equipped_item_all_tags('mainhand','fixture:one','fixture:two');")), "native holder satisfies both tags");

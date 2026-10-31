@@ -11,8 +11,8 @@ import net.minecraft.client.gui.components.debug.DebugScreenEntries;
 import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.resources.Identifier;
-import net.minecraft.util.LightCoordsUtil;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LightLayer;
 import org.figuramc.figura.FiguraMod;
@@ -168,7 +168,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         super(avatar);
 
         // Vertex data, read model parts
-        root = FiguraModelPartReader.read(avatar, avatar.nbt.getCompoundOrEmpty("models"), textureSets, false);
+        root = FiguraModelPartReader.read(avatar, avatar.nbt.getCompound("models"), textureSets, false);
         // Capture the armature rest pose and bake skinned meshes into armature space
         FiguraSkinning.setup(root);
 
@@ -475,7 +475,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
                 FiguraVec3 pos = part.savedPartToWorldMat.apply(0d, 0d, 0d);
                 int block = l.getBrightness(LightLayer.BLOCK, pos.asBlockPos());
                 int sky = l.getBrightness(LightLayer.SKY, pos.asBlockPos());
-                customizationStack.peek().light = LightCoordsUtil.pack(block, sky);
+                customizationStack.peek().light = LightTexture.pack(block, sky);
             }
 
             if (custom.alpha != null)
@@ -840,7 +840,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
             return ret;
 
         // get texture
-        Identifier id = textureSet.getOverrideTexture(avatar.owner, texture);
+        ResourceLocation id = textureSet.getOverrideTexture(avatar.owner, texture);
         ret.texture = id;
 
         // color
@@ -898,7 +898,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         uvFixer.set(textureSet.getWidth(), textureSet.getHeight(), 1); // Dividing by this makes uv 0 to 1
 
         int overlay = customization.overlay;
-        int light = vertexData.fullBright ? LightCoordsUtil.FULL_BRIGHT : customization.light;
+        int light = vertexData.fullBright ? LightTexture.FULL_BRIGHT : customization.light;
 
         boolean useSkinning = boneDeltas != null && boneDeltas.length > 0 && part.skinBoneIndices != null && part.skinBoneWeights != null;
         AccelerationService acceleration = AccelerationService.INSTANCE;
@@ -1034,7 +1034,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
 
     private static class VertexData {
         public RenderType renderType;
-        public Identifier texture;
+        public ResourceLocation texture;
         public boolean fullBright;
         public float vertexOffset;
         public FiguraVec3 color;

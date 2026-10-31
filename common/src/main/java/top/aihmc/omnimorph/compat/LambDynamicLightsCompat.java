@@ -3,6 +3,7 @@ package top.aihmc.omnimorph.compat;
 import dev.lambdaurora.lambdynlights.api.DynamicLightsContext;
 import dev.lambdaurora.lambdynlights.api.DynamicLightsInitializer;
 import dev.lambdaurora.lambdynlights.api.behavior.DynamicLightBehaviorManager;
+import dev.lambdaurora.lambdynlights.api.item.ItemLightSourceManager;
 import top.aihmc.omnimorph.lua.api.particle.ParticleDynamicLights;
 
 /**
@@ -18,6 +19,11 @@ public final class LambDynamicLightsCompat implements DynamicLightsInitializer {
         manager = context.dynamicLightBehaviorManager();
         register();
         ParticleDynamicLights.useExternalProvider(true);
+    }
+
+    /** Legacy LambDynamicLights 4.8 item-light entrypoint; particle lights only use the context overload. */
+    @Override
+    public void onInitializeDynamicLights(ItemLightSourceManager itemLightSourceManager) {
     }
 
     /** LambDynamicLights clears behavior sources on world change, so register again after joining a world. */

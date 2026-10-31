@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.model.library;
 
+import org.figuramc.figura.utils.NbtDefaults;
+
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import org.figuramc.figura.avatar.local.LocalAvatarLoader;
@@ -61,18 +63,18 @@ public final class LibraryPackagePreparation {
             return switch (metadata.modelType()) {
                 case "FIGURA" -> "avatar.json";
                 case "YSM_ENCRYPTED" -> "encrypted_manifest";
-                default -> nbt.getCompoundOrEmpty("metadata").getStringOr("ysm_kind", "").equals("old")
+                default -> nbt.getCompound("metadata").getString("ysm_kind").equals("old")
                         ? "main.json" : "ysm.json";
             };
         }
 
         public String resourceKind() {
-            return nbt.getCompoundOrEmpty("metadata").getStringOr("resource_kind", "AVATAR");
+            return NbtDefaults.getStringOr(nbt.getCompound("metadata"), "resource_kind", "AVATAR");
         }
 
         public JsonObject accessoryMetadata() {
             return resourceKind().equals("ACCESSORY") ? JsonParser.parseString(
-                    nbt.getCompoundOrEmpty("metadata").getStringOr("cosmetic_json", "")).getAsJsonObject() : null;
+                    nbt.getCompound("metadata").getString("cosmetic_json")).getAsJsonObject() : null;
         }
     }
 
@@ -202,9 +204,9 @@ public final class LibraryPackagePreparation {
             return source;
         }
         CompoundTag nbt = source.nbt();
-        nbt.getCompoundOrEmpty("metadata").putString("cosmetic_json", declaration.toString());
-        if (nbt.contains("ysm") && nbt.getCompoundOrEmpty("ysm").contains("cosmetic_json")) {
-            nbt.getCompoundOrEmpty("ysm").putString("cosmetic_json", declaration.toString());
+        nbt.getCompound("metadata").putString("cosmetic_json", declaration.toString());
+        if (nbt.contains("ysm") && nbt.getCompound("ysm").contains("cosmetic_json")) {
+            nbt.getCompound("ysm").putString("cosmetic_json", declaration.toString());
         }
         return finish(source.metadata(), nbt, uploadLimit, cancelled, ignored -> {});
     }
@@ -212,8 +214,8 @@ public final class LibraryPackagePreparation {
     private static Prepared finish(LibraryMetadataReader.Metadata metadata, CompoundTag nbt, long uploadLimit,
                                      BooleanSupplier cancelled, java.util.function.Consumer<Phase> phase) throws IOException {
         // Preserve declared authors; do not serialize the wardrobe's display-only '?' fallback.
-        nbt.getCompoundOrEmpty("metadata").putString("name", metadata.internalName());
-        nbt.getCompoundOrEmpty("metadata").putString("authors", String.join("\n", metadata.authors()));
+        nbt.getCompound("metadata").putString("name", metadata.internalName());
+        nbt.getCompound("metadata").putString("authors", String.join("\n", metadata.authors()));
         return compress(metadata, nbt, uploadLimit, cancelled, phase);
     }
 
@@ -222,10 +224,10 @@ public final class LibraryPackagePreparation {
                                long uploadLimit, BooleanSupplier cancelled) throws IOException {
         YsmResourceLimits.checkCancelled(cancelled);
         CompoundTag nbt = source.copy();
-        var tag = nbt.getCompoundOrEmpty("metadata");
-        var metadata = new LibraryMetadataReader.Metadata(format.name(), tag.getStringOr("name", ""),
-                java.util.List.of(tag.getStringOr("authors", "").split("\n")),
-                tag.getStringOr("description", ""), false);
+        var tag = nbt.getCompound("metadata");
+        var metadata = new LibraryMetadataReader.Metadata(format.name(), tag.getString("name"),
+                java.util.List.of(tag.getString("authors").split("\n")),
+                tag.getString("description"), false);
         return compress(metadata, nbt, uploadLimit, cancelled, ignored -> {});
     }
 

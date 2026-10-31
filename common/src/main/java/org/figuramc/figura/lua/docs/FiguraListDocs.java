@@ -9,11 +9,11 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.player.PlayerModelPart;
 import net.minecraft.world.item.ItemDisplayContext;
-import net.minecraft.world.item.ItemUseAnimation;
+import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.ClipContext;
 
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -69,7 +69,7 @@ public class FiguraListDocs {
             add(value.name());
     }};
     private static final LinkedHashSet<String> POST_EFFECTS = new LinkedHashSet<>() {{
-        for (Identifier effect : GameEffects.getEffects()) {
+        for (ResourceLocation effect : GameEffects.getEffects()) {
             String[] split = effect.getPath().split("/");
             String name = split[split.length - 1];
             add(name.split("\\.")[0]);
@@ -94,7 +94,7 @@ public class FiguraListDocs {
         }
     }};
     private static final LinkedHashSet<String> USE_ACTIONS = new LinkedHashSet<>() {{
-        for (ItemUseAnimation value : ItemUseAnimation.values())
+        for (UseAnim value : UseAnim.values())
             add(value.name());
     }};
     private static final LinkedHashSet<String> RENDER_MODES = new LinkedHashSet<>() {{
@@ -114,7 +114,7 @@ public class FiguraListDocs {
             add(value.name());
     }};
     private static final LinkedHashSet<String> REGISTRIES = new LinkedHashSet<>() {{
-        for (Identifier resourceLocation : BuiltInRegistries.REGISTRY.keySet())
+        for (ResourceLocation resourceLocation : BuiltInRegistries.REGISTRY.keySet())
             add(resourceLocation.getPath());
     }};
 

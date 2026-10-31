@@ -1,9 +1,11 @@
 package org.figuramc.figura.avatar.local;
 
+import org.figuramc.figura.utils.NbtDefaults;
+
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.util.Util;
+import net.minecraft.Util;
 import org.figuramc.figura.FiguraMod;
 import top.aihmc.omnimorph.avatar.AvatarTranslations;
 import top.aihmc.omnimorph.avatar.ysm.YsmAvatarDetector;
@@ -115,14 +117,14 @@ public class LocalAvatarFetcher {
     public static void load() {
         IOUtils.readCacheFile("avatars", nbt -> {
             // loading
-            ListTag list = nbt.getListOrEmpty("properties");
+            ListTag list = NbtDefaults.getListOrEmpty(nbt, "properties");
             for (Tag tag : list) {
                 CompoundTag compound = (CompoundTag) tag;
 
-                String path = compound.getStringOr("path", "");
+                String path = compound.getString("path");
                 Properties properties = new Properties();
-                properties.expanded = compound.getBooleanOr("expanded", false);
-                properties.favourite = compound.getBooleanOr("favourite", false);
+                properties.expanded = compound.getBoolean("expanded");
+                properties.favourite = compound.getBoolean("favourite");
 
                 SAVED_DATA.put(path, properties);
             }

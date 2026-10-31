@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.gui.screens;
 
+import org.figuramc.figura.utils.NbtDefaults;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -81,8 +83,11 @@ public final class OutfitControlsScreen extends AvatarControlsScreen {
         }
         for (var group : outfit.composition().controlGroups()) {
             if (eligible(outfit, group.avatar())) {
-                String name = group.avatar().nbt.getCompoundOrEmpty("metadata")
-                        .getStringOr("name", group.instance().resource().format().name());
+                String name = NbtDefaults.getStringOr(
+                        group.avatar().nbt.getCompound("metadata"),
+                        "name",
+                        group.instance().resource().format().name()
+                );
                 result.add(new Choice(group.avatar(), Component.literal(name + " #" + group.instance().displayOrdinal())));
             }
         }

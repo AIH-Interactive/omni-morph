@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.avatar.control;
 
+import org.figuramc.figura.utils.NbtDefaults;
+
 import com.google.common.hash.Hashing;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -85,17 +87,17 @@ public final class AvatarControlValueStore {
             return;
         loaded = true;
         IOUtils.readCacheFile("avatar_controls", nbt -> {
-            for (Tag avatarTag : nbt.getListOrEmpty("avatars")) {
+            for (Tag avatarTag : NbtDefaults.getListOrEmpty(nbt, "avatars")) {
                 if (!(avatarTag instanceof CompoundTag avatarNbt))
                     continue;
-                String avatar = avatarNbt.getStringOr("avatar", "");
+                String avatar = avatarNbt.getString("avatar");
                 if (avatar.isBlank())
                     continue;
                 Map<String, StoredValue> controls = VALUES.computeIfAbsent(avatar, ignored -> new HashMap<>());
-                for (Tag controlTag : avatarNbt.getListOrEmpty("controls")) {
+                for (Tag controlTag : NbtDefaults.getListOrEmpty(avatarNbt, "controls")) {
                     if (!(controlTag instanceof CompoundTag controlNbt))
                         continue;
-                    String id = controlNbt.getStringOr("id", "");
+                    String id = controlNbt.getString("id");
                     if (!id.isBlank())
                         controls.put(id, StoredValue.read(controlNbt));
                 }
@@ -161,10 +163,10 @@ public final class AvatarControlValueStore {
 
         static StoredValue read(CompoundTag tag) {
             return new StoredValue(
-                    tag.getStringOr("type", "string"),
-                    tag.getStringOr("string", ""),
-                    tag.getFloatOr("number", 0f),
-                    tag.getBooleanOr("boolean", false)
+                    NbtDefaults.getStringOr(tag, "type", "string"),
+                    tag.getString("string"),
+                    tag.getFloat("number"),
+                    tag.getBoolean("boolean")
             );
         }
 

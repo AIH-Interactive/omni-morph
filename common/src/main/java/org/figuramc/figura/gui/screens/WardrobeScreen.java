@@ -686,7 +686,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
             avatarActions.add(actions.action(icon(0, 0, "reload", "reload_current",
                     button -> AvatarManager.reloadCloudAvatar())));
             showModel = actions.action(new SwitchButton(0, 0, 24, 24, 0, 0, 24,
-                    new FiguraIdentifier("textures/gui/wardrobe_visibility.png"), 72, 48, text("show_others"),
+                    FiguraIdentifier.of("textures/gui/wardrobe_visibility.png"), 72, 48, text("show_others"),
                     button -> changeVisibility()));
             avatarActions.add(showModel);
             var appeals = actions.action(icon(0, 0, "wardrobe_appeal", "info", button -> openAppeals()));
@@ -1892,7 +1892,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
 
     private Button icon(int x, int y, String texture, String tooltip, Button.OnPress action) {
         return new Button(x, y, 24, 24, 0, 0, 24,
-                new FiguraIdentifier("textures/gui/" + texture + ".png"), 72, 24, text(tooltip), action);
+                FiguraIdentifier.of("textures/gui/" + texture + ".png"), 72, 24, text(tooltip), action);
     }
 
     private void uploadCurrent() {
@@ -2555,8 +2555,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 if (avatar != null && avatar.nbt != null) {
                     draftPreparedResources.put(instance.resource(), avatar.nbt.copy());
                     if (instance.resource().source() == OutfitConfig.Source.CLOUD) {
-                        var metadata = CosmeticMetadata.read(avatar.nbt.getCompoundOrEmpty("metadata")
-                                .getStringOr("cosmetic_json", ""));
+                        var metadata = CosmeticMetadata.read(avatar.nbt.getCompound("metadata")
+                                .getString("cosmetic_json"));
                         draftCloudResources.put(instance.resource(), new CloudCosmeticSource.Descriptor(
                                 instance.resource(), metadata, metadata.common().name));
                     }
@@ -2639,8 +2639,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 try (var output = new java.security.DigestOutputStream(java.io.OutputStream.nullOutputStream(), hash)) {
                     net.minecraft.nbt.NbtIo.writeCompressed(snapshot, output);
                 }
-                boolean ysm = snapshot.getCompoundOrEmpty("metadata").getStringOr("format", "").equals("ysm-native");
-                boolean encrypted = ysm && top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload.isEncrypted(snapshot.getCompoundOrEmpty("ysm"));
+                boolean ysm = snapshot.getCompound("metadata").getString("format").equals("ysm-native");
+                boolean encrypted = ysm && top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload.isEncrypted(snapshot.getCompound("ysm"));
                 OutfitConfig.Format format = !ysm ? OutfitConfig.Format.FIGURA
                         : encrypted ? OutfitConfig.Format.YSM_ENCRYPTED : OutfitConfig.Format.YSM_PLAIN;
                 // Temporary editor identity is never sufficient for Apply or export.

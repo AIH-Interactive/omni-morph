@@ -15,10 +15,10 @@ import net.minecraft.client.renderer.state.gui.BlitRenderState;
 import net.minecraft.client.renderer.state.gui.GuiRenderState;
 import net.minecraft.client.renderer.Projection;
 import net.minecraft.client.renderer.ProjectionMatrixBuffer;
-import net.minecraft.util.LightCoordsUtil;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.gui.widgets.permissions.PlayerPermPackElement;
 import org.figuramc.figura.utils.ui.UIHelper;
@@ -51,7 +51,7 @@ public class FiguraPortraitRenderer extends PictureInPictureRenderer<FiguraPortr
 
         Avatar avatar = portraitState.avatar();
         if (avatar != null) {
-            renderSkin = !avatar.renderHeadForPortrait(this.bufferSource, poseStack, LightCoordsUtil.FULL_BRIGHT, portraitState.modelScale(), portraitState.upsideDown());
+            renderSkin = !avatar.renderHeadForPortrait(this.bufferSource, poseStack, LightTexture.FULL_BRIGHT, portraitState.modelScale(), portraitState.upsideDown());
         } else {
             renderSkin = true;
         }
@@ -140,7 +140,7 @@ public class FiguraPortraitRenderer extends PictureInPictureRenderer<FiguraPortr
         }
 
         if (pictureInPictureRenderState.fallbackSkin() != null) {
-            Identifier texture = pictureInPictureRenderState.fallbackSkin();
+            ResourceLocation texture = pictureInPictureRenderState.fallbackSkin();
             // render skin
             UIHelper.enableBlend();
             GpuTextureView gpuTextureView = Minecraft.getInstance().getTextureManager().getTexture(texture).getTextureView();

@@ -2,9 +2,8 @@ package org.figuramc.figura.gui.widgets.lists;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.events.GuiEventListener;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.util.Mth;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.config.ConfigKeyBind;
@@ -34,7 +33,7 @@ public class ConfigList extends AbstractList {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         int x = getX();
         int y = getY();
         int width = getWidth();
@@ -71,25 +70,25 @@ public class ConfigList extends AbstractList {
         }
 
         // children
-        super.extractRenderState(gui, mouseX, mouseY, delta);
+        super.render(gui, mouseX, mouseY, delta);
 
         // reset scissor
         gui.disableScissor();
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean bl) {
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
         // fix mojang focusing for text fields
         for (CategoryWidget categoryWidget : configs) {
             for (GuiEventListener children : categoryWidget.children()) {
                 if (children instanceof InputElement inputElement) {
                     TextField field = inputElement.getTextField();
-                    field.getField().setFocused(field.isEnabled() && field.isMouseOver(mouseButtonEvent.x(), mouseButtonEvent.y()));
+                    field.getField().setFocused(field.isEnabled() && field.isMouseOver(mouseX, mouseY));
                 }
             }
         }
 
-        return super.mouseClicked(mouseButtonEvent, bl);
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     public void updateList() {

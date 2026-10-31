@@ -1,0 +1,373 @@
+package org.figuramc.figura.model;
+
+import com.google.common.collect.ImmutableMap;
+import com.mojang.datafixers.util.Pair;
+import net.minecraft.nbt.ByteTag;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.util.Mth;
+import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.animation.Animation;
+import org.figuramc.figura.animation.Interpolation;
+import org.figuramc.figura.animation.Keyframe;
+import org.figuramc.figura.animation.TransformType;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.config.Configs;
+import org.figuramc.figura.math.vector.FiguraVec2;
+import org.figuramc.figura.math.vector.FiguraVec3;
+import org.figuramc.figura.math.vector.FiguraVec4;
+import org.figuramc.figura.model.rendering.Vertex;
+import top.aihmc.omnimorph.model.rendering.texture.FiguraRenderTypes;
+import org.figuramc.figura.model.rendering.texture.FiguraTextureSet;
+import org.figuramc.figura.utils.MathUtils;
+
+import java.util.*;
+
+/**
+ * Take the reading code out of FiguraModelPart itself, since that class
+ * was becoming really massive. Reduces bloat slightly
+ */
+public class FiguraModelPartReader {
+
+    public static FiguraModelPart read(Avatar owner, CompoundTag partCompound, List<FiguraTextureSet> textureSets, boolean smoothNormals) {
+        // Read name
+        String name = partCompound.getString("name");
+
+        // Armature markers. Older cached models do not have them; skinning still resolves by name.
+        boolean isArmature = partCompound.contains("armature") && partCompound.getBoolean("armature");
+        boolean isBone = partCompound.contains("bone") && partCompound.getBoolean("bone");
+
+        // Read transformation
+        PartCustomization customization = new PartCustomization();
+        customization.needsMatrixRecalculation = true;
+
+        FiguraVec3 rot = FiguraVec3.of();
+        readVec3(rot, partCompound, "rot");
+        customization.setRot(rot);
+
+        FiguraVec3 piv = FiguraVec3.of();
+        readVec3(piv, partCompound, "piv");
+        customization.setPivot(piv);
+
+        if (partCompound.contains("primary")) {
+            try {
+                customization.setPrimaryRenderType(FiguraRenderTypes.valueOf(partCompound.getString("primary")));
+            } catch (Exception ignored) {}
+        }
+        if (partCompound.contains("secondary")) {
+            try {
+                customization.setSecondaryRenderType(FiguraRenderTypes.valueOf(partCompound.getString("secondary")));
+            } catch (Exception ignored) {}
+        }
+
+        if (partCompound.contains("vsb"))
+            customization.visible = partCompound.getBoolean("vsb");
+
+        // textures
+        List<Integer> facesByTexture = new ArrayList<>(0);
+        while (textureSets.size() > facesByTexture.size())
+            facesByTexture.add(0);
+
+        // Read vertex data
+        Map<Integer, List<Vertex>> vertices = new HashMap<>();
+        if (hasCubeData(partCompound)) {
+            readCuboid(facesByTexture, partCompound, vertices);
+            customization.partType = PartCustomization.PartType.CUBE;
+        } else if (hasMeshData(partCompound)) {
+            readMesh(facesByTexture, partCompound, vertices);
+            customization.partType = PartCustomization.PartType.MESH;
+        }
+
+        // smooth normals
+        if (partCompound.contains("smo"))
+            smoothNormals = partCompound.getBoolean("smo");
+
+        if (Configs.FORCE_SMOOTH_AVATAR.value || (smoothNormals && !vertices.isEmpty()))
+            smoothfy(vertices);
+
+        // Read children
+        ArrayList<FiguraModelPart> children = new ArrayList<>(0);
+        if (partCompound.contains("chld")) {
+            ListTag listTag = partCompound.getListOrEmpty("chld");
+            for (Tag tag : listTag)
+                children.add(read(owner, (CompoundTag) tag, textureSets, smoothNormals));
+        }
+
+        FiguraModelPart result = new FiguraModelPart(owner, name, customization, vertices, children);
+
+        for (FiguraModelPart child : children)
+            child.parent = result;
+
+        if (hasMeshData(partCompound))
+            readSkinData(result, partCompound.getCompound("mesh_data"));
+
+        result.facesByTexture = facesByTexture;
+        storeTextures(result, textureSets);
+        result.isArmature = isArmature;
+        result.isBone = isBone;
+        if (!isArmature && !isBone && partCompound.contains("pt")) {
+            try {
+                result.parentType = ParentType.valueOf(partCompound.getString("pt"));
+            } catch (Exception ignored) {}
+        }
+
+        // Read animations :D
+        if (partCompound.contains("anim")) {
+            ListTag nbt = partCompound.getListOrEmpty("anim");
+            for (Tag tag : nbt) {
+                CompoundTag compound = (CompoundTag) tag;
+                Animation animation;
+
+                if (!compound.contains("id") || !compound.contains("data") || (animation = owner.animations.get(compound.getInt("id"))) == null)
+                    continue;
+
+                CompoundTag animNbt = compound.getCompound("data");
+                for (String channelString : animNbt.keySet()) {
+                    TransformType type = switch (channelString) {
+                        case "pos" -> TransformType.POSITION;
+                        case "rot" -> TransformType.ROTATION;
+                        case "grot" -> TransformType.GLOBAL_ROT;
+                        case "scl" -> TransformType.SCALE;
+                        default -> null;
+                    };
+
+                    if (type == null)
+                        continue;
+
+                    List<Keyframe> keyframes = new ArrayList<>();
+                    ListTag keyframeList = animNbt.getListOrEmpty(channelString);
+
+                    for (Tag keyframeTag : keyframeList) {
+                        CompoundTag keyframeNbt = (CompoundTag) keyframeTag;
+                        float time = keyframeNbt.getFloat("time");
+                        Interpolation interpolation;
+                        try {
+                            interpolation = Interpolation.valueOf(keyframeNbt.getString("int").toUpperCase(Locale.US));
+                        } catch (Exception e) {
+                            FiguraMod.LOGGER.error("Invalid interpolation type in the model {}, something is wrong with this model!", keyframeNbt.getString("int"));
+                            FiguraMod.LOGGER.error("", e);
+                            continue;
+                        }
+
+                        Pair<FiguraVec3, String[]> pre = parseKeyframeData(keyframeNbt, "pre");
+                        if (pre == null) pre = Pair.of(FiguraVec3.of(), null);
+                        Pair<FiguraVec3, String[]> end = parseKeyframeData(keyframeNbt, "end");
+                        if (end == null) end = pre;
+
+                        FiguraVec3 bezierLeft = FiguraVec3.of();
+                        FiguraVec3 bezierRight = FiguraVec3.of();
+                        readVec3(bezierLeft, keyframeNbt, "bl");
+                        readVec3(bezierRight, keyframeNbt, "br");
+
+                        FiguraVec3 bezierLeftTime = FiguraVec3.of(-0.1, -0.1, -0.1);
+                        FiguraVec3 bezierRightTime = FiguraVec3.of(0.1, 0.1, 0.1);
+                        readVec3(bezierLeftTime, keyframeNbt, "blt");
+                        readVec3(bezierRightTime, keyframeNbt, "brt");
+                        bezierLeftTime.add(1, 1, 1);
+                        bezierLeftTime = MathUtils.clamp(bezierLeftTime, 0, 1);
+                        bezierRightTime = MathUtils.clamp(bezierRightTime, 0, 1);
+
+                        keyframes.add(new Keyframe(owner, animation, time, interpolation, pre, end, bezierLeft, bezierRight, bezierLeftTime, bezierRightTime));
+                    }
+
+                    keyframes.sort(Keyframe::compareTo);
+                    animation.addAnimation(result, new Animation.AnimationChannel(type, keyframes.toArray(new Keyframe[0])));
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private static Pair<FiguraVec3, String[]> parseKeyframeData(CompoundTag keyframeNbt, String tag) {
+        if (!keyframeNbt.contains(tag))
+            return null;
+
+        ListTag keyframeVec = keyframeNbt.getListOrEmpty(tag);
+        if (!keyframeVec.isEmpty() && isNumberList(keyframeVec)) {
+            FiguraVec3 ret = FiguraVec3.of();
+            readVec3(ret, keyframeVec);
+            return Pair.of(ret, null);
+        } else {
+            return Pair.of(null, new String[]{keyframeVec.getString(0), keyframeVec.getString(1), keyframeVec.getString(2)});
+        }
+    }
+
+    private static boolean isNumberList(ListTag list) {
+        for (Tag tag : list) {
+            if (tag.asNumber().isEmpty())
+                return false;
+        }
+        return true;
+    }
+
+    /**
+     * There's a lot of obscure cases to test this on, so... something might go wrong with it, and I can't test everything.
+     * Obviously I *think* it should work, and it has so far, but I still might be missing something.
+     */
+    private static void storeTextures(FiguraModelPart modelPart, List<FiguraTextureSet> textureSets) {
+        // textures
+        List<FiguraTextureSet> list = new ArrayList<>(0);
+        for (int j = 0; j < modelPart.facesByTexture.size(); j++)
+            list.add(textureSets.get(j));
+        modelPart.textures = list;
+
+        // size
+        int w = -1, h = -1;
+        for (FiguraModelPart child : modelPart.children) {
+            // If any child has multiple textures, then we know this parent must as well.
+            if (child.textureWidth == -1) {
+                modelPart.textureWidth = -1;
+                modelPart.textureHeight = -1;
+                return;
+            }
+            // If any child has a texture different than one we've already seen, this parent must have multiple textures.
+            if (child.textureWidth != w || child.textureHeight != h) {
+                if (w != -1) {
+                    modelPart.textureWidth = -1;
+                    modelPart.textureHeight = -1;
+                    return;
+                }
+                w = child.textureWidth;
+                h = child.textureHeight;
+            }
+        }
+        if (modelPart.customization.partType != PartCustomization.PartType.GROUP) {
+            int i = -1;
+            for (int j = 0; j < modelPart.facesByTexture.size(); j++) {
+                if (modelPart.facesByTexture.get(j) > 0) {
+                    int realTexWidth = textureSets.get(j).getWidth();
+                    int realTexHeight = textureSets.get(j).getHeight();
+                    if ((w != -1 && w != realTexWidth) || (h != -1 && h != realTexHeight)) {
+                        modelPart.textureWidth = -1;
+                        modelPart.textureHeight = -1;
+                        return;
+                    }
+                    if (i != -1) {
+                        modelPart.textureWidth = -1;
+                        modelPart.textureHeight = -1;
+                        return;
+                    }
+                    i = j;
+                    w = realTexWidth;
+                    h = realTexHeight;
+                }
+            }
+        }
+        modelPart.textureWidth = w;
+        modelPart.textureHeight = h;
+    }
+
+    private static void readVec3(FiguraVec3 target, CompoundTag tag, String name) {
+        if (tag.contains(name))
+            readVec3(target, (ListTag) tag.get(name));
+    }
+
+    private static void readVec3(FiguraVec3 target, ListTag list) {
+        switch (list.getFirst().getId()) {
+            case Tag.TAG_FLOAT -> target.set((Object) list.getFloat(0), list.getFloat(1), list.getFloat(2));
+            case Tag.TAG_INT -> target.set((Object) list.getInt(0), list.getInt(1), list.getInt(2));
+            case Tag.TAG_SHORT -> target.set((Object) list.getShort(0), list.getShort(1), list.getShort(2));
+            case Tag.TAG_BYTE -> target.set(
+                    ((ByteTag) list.get(0)).byteValue(),
+                    ((ByteTag) list.get(1)).byteValue(),
+                    ((ByteTag) list.get(2)).byteValue()
+            );
+        }
+    }
+
+    private static void readVec4(FiguraVec4 target, CompoundTag tag, String name) {
+        if (tag.contains(name)) {
+            ListTag list = (ListTag) tag.get(name);
+            switch (list.getFirst().getId()) {
+                case Tag.TAG_FLOAT -> target.set((Object) list.getFloat(0), list.getFloat(1), list.getFloat(2), list.getFloat(3));
+                case Tag.TAG_INT -> target.set((Object) list.getInt(0), list.getInt(1), list.getInt(2), list.getInt(3));
+                case Tag.TAG_SHORT -> target.set((Object) list.getShort(0), list.getShort(1), list.getShort(2), list.getShort(3));
+                case Tag.TAG_BYTE -> target.set(
+                        ((ByteTag) list.get(0)).byteValue(),
+                        ((ByteTag) list.get(1)).byteValue(),
+                        ((ByteTag) list.get(2)).byteValue(),
+                        ((ByteTag) list.get(3)).byteValue()
+                );
+            }
+        } else {
+            target.set(0, 0, 0, 0);
+        }
+    }
+
+    private static boolean hasCubeData(CompoundTag partCompound) {
+        if (partCompound.contains("cube_data") && partCompound.getCompound("cube_data").isPresent())
+            return !partCompound.getCompound("cube_data").get().isEmpty();
+        return false;
+    }
+
+    private static boolean hasMeshData(CompoundTag partCompound) {
+        if (partCompound.contains("mesh_data") && partCompound.getCompound("mesh_data").isPresent())
+            return !partCompound.getCompound("mesh_data").get().isEmpty();
+        return false;
+    }
+
+    private static final Map<String, FiguraVec3[]> faceData = ImmutableMap.of( // booze 🥴
+            "n", new FiguraVec3[] {
+                    FiguraVec3.of(1, 0, 0),
+                    FiguraVec3.of(0, 0, 0),
+                    FiguraVec3.of(0, 1, 0),
+                    FiguraVec3.of(1, 1, 0),
+                    FiguraVec3.of(0, 0, -1)
+            },
+            "s", new FiguraVec3[] {
+                    FiguraVec3.of(0, 0, 1),
+                    FiguraVec3.of(1, 0, 1),
+                    FiguraVec3.of(1, 1, 1),
+                    FiguraVec3.of(0, 1, 1),
+                    FiguraVec3.of(0, 0, 1)
+            },
+            "e", new FiguraVec3[] {
+                    FiguraVec3.of(1, 0, 1),
+                    FiguraVec3.of(1, 0, 0),
+                    FiguraVec3.of(1, 1, 0),
+                    FiguraVec3.of(1, 1, 1),
+                    FiguraVec3.of(1, 0, 0)
+            },
+            "w", new FiguraVec3[] {
+                    FiguraVec3.of(0, 0, 0),
+                    FiguraVec3.of(0, 0, 1),
+                    FiguraVec3.of(0, 1, 1),
+                    FiguraVec3.of(0, 1, 0),
+                    FiguraVec3.of(-1, 0, 0)
+            },
+            "u", new FiguraVec3[] {
+                    FiguraVec3.of(0, 1, 1),
+                    FiguraVec3.of(1, 1, 1),
+                    FiguraVec3.of(1, 1, 0),
+                    FiguraVec3.of(0, 1, 0),
+                    FiguraVec3.of(0, 1, 0)
+            },
+            "d", new FiguraVec3[] {
+                    FiguraVec3.of(0, 0, 0),
+                    FiguraVec3.of(1, 0, 0),
+                    FiguraVec3.of(1, 0, 1),
+                    FiguraVec3.of(0, 0, 1),
+                    FiguraVec3.of(0, -1, 0)
+            }
+    );
+
+    private static final FiguraVec2[] uvValues = {
+            FiguraVec2.of(0, 1),
+            FiguraVec2.of(1, 1),
+            FiguraVec2.of(1, 0),
+            FiguraVec2.of(0, 0)
+    };
+
+
+    private static void readCuboid(List<Integer> facesByTexture, CompoundTag data, Map<Integer, List<Vertex>> vertices) {
+        // Read from and to
+        FiguraVec3 from = FiguraVec3.of();
+        readVec3(from, data, "f");
+        FiguraVec3 to = FiguraVec3.of();
+        readVec3(to, data, "t");
+
+        // Read inflate
+        double inflate = 0;
+        if (data.contains("inf"

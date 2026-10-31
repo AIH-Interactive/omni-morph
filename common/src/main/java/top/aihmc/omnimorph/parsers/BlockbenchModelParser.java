@@ -429,24 +429,24 @@ public class BlockbenchModelParser {
     private static void readVectors(String[] vertexNames, Map<String, Integer> nameToIndex, ListTag vertices) {
         int i = nameToIndex.get(vertexNames[0]);
         float f0, f1, f2;
-        f0 = vertices.getFloat(3*i).get();
-        f1 = vertices.getFloat(3*i+1).get();
-        f2 = vertices.getFloat(3*i+2).get();
+        f0 = vertices.getFloat(3*i);
+        f1 = vertices.getFloat(3*i+1);
+        f2 = vertices.getFloat(3*i+2);
         v1.set(f0, f1, f2);
         i = nameToIndex.get(vertexNames[1]);
-        f0 = vertices.getFloat(3*i).get();
-        f1 = vertices.getFloat(3*i+1).get();
-        f2 = vertices.getFloat(3*i+2).get();
+        f0 = vertices.getFloat(3*i);
+        f1 = vertices.getFloat(3*i+1);
+        f2 = vertices.getFloat(3*i+2);
         v2.set(f0, f1, f2);
         i = nameToIndex.get(vertexNames[2]);
-        f0 = vertices.getFloat(3*i).get();
-        f1 = vertices.getFloat(3*i+1).get();
-        f2 = vertices.getFloat(3*i+2).get();
+        f0 = vertices.getFloat(3*i);
+        f1 = vertices.getFloat(3*i+1);
+        f2 = vertices.getFloat(3*i+2);
         v3.set(f0, f1, f2);
         i = nameToIndex.get(vertexNames[3]);
-        f0 = vertices.getFloat(3*i).get();
-        f1 = vertices.getFloat(3*i+1).get();
-        f2 = vertices.getFloat(3*i+2).get();
+        f0 = vertices.getFloat(3*i);
+        f1 = vertices.getFloat(3*i+1);
+        f2 = vertices.getFloat(3*i+2);
         v4.set(f0, f1, f2);
     }
 
@@ -643,7 +643,7 @@ public class BlockbenchModelParser {
                 if (elementMap.containsKey(key)) {
                     CompoundTag elementNbt = elementMap.get(key);
                     //fix children visibility (very jank)
-                    if (elementNbt.contains("vsb") && elementNbt.getBooleanOr("vsb", false) == parentVsb)
+                    if (elementNbt.contains("vsb") && elementNbt.getBoolean("vsb") == parentVsb)
                         elementNbt.remove("vsb");
                     children.add(elementNbt);
                 }

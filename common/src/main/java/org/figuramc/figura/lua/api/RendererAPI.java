@@ -1,7 +1,7 @@
 package org.figuramc.figura.lua.api;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import org.figuramc.figura.avatar.Avatar;
@@ -53,10 +53,10 @@ public class RendererAPI {
     public FiguraVec3 cameraRot, cameraOffsetRot;
     public FiguraMat4 cameraMat;
     public FiguraMat3 cameraNormal;
-    public Identifier postShader;
+    public ResourceLocation postShader;
     public FiguraVec2 crosshairOffset;
     public FiguraVec3 outlineColor;
-    public Identifier fireLayer1, fireLayer2;
+    public ResourceLocation fireLayer1, fireLayer2;
     public Boolean renderLeftArm, renderRightArm;
     public FiguraVec3 eyeOffset;
     public FiguraVec4 blockOutlineColor;
@@ -430,7 +430,7 @@ public class RendererAPI {
     public RendererAPI setPostEffect(String effect) {
         this.postShader = effect == null || effect.isBlank() ? null : LuaUtils.parsePath(effect);
         if (postShader != null && Minecraft.getInstance().getResourceManager().getResource(LuaUtils.parsePath("post_effect/" + effect + ".json")).isEmpty()) {
-            Identifier copy = postShader;
+            ResourceLocation copy = postShader;
             postShader = null;
             throw new LuaError("The post shader %s does not exist or could not be found".formatted(copy.toString()));
         }
@@ -560,7 +560,7 @@ public class RendererAPI {
 
         fireLayer1 = LuaUtils.parsePath(id);
         if (fireLayer1.getPath().startsWith("textures/"))
-            fireLayer1 = new Identifier(fireLayer1.getNamespace(), fireLayer1.getPath().substring("textures/".length()));
+            fireLayer1 = ResourceLocation.fromNamespaceAndPath(fireLayer1.getNamespace(), fireLayer1.getPath().substring("textures/".length()));
 
         return this;
     }
@@ -582,7 +582,7 @@ public class RendererAPI {
 
         fireLayer2 = LuaUtils.parsePath(id);
         if (fireLayer2.getPath().startsWith("textures/"))
-            fireLayer2 = new Identifier(fireLayer2.getNamespace(), fireLayer2.getPath().substring("textures/".length()));
+            fireLayer2 = ResourceLocation.fromNamespaceAndPath(fireLayer2.getNamespace(), fireLayer2.getPath().substring("textures/".length()));
 
         return this;
     }

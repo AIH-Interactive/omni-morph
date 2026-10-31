@@ -3,7 +3,7 @@ package top.aihmc.omnimorph.gui.widgets.library;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.gui.widgets.AbstractContainerElement;
 import org.figuramc.figura.gui.widgets.Button;
 import org.figuramc.figura.utils.FiguraIdentifier;
@@ -17,10 +17,10 @@ public final class LibraryUploadSource extends AbstractContainerElement {
     private final Button source;
     private final Button image;
     private final Button clear;
-    private final Supplier<Identifier> cover;
+    private final Supplier<ResourceLocation> cover;
     private Component sourceFormat = Component.literal(".zip / .ysm");
 
-    public LibraryUploadSource(int width, long maximumBytes, Supplier<Identifier> cover,
+    public LibraryUploadSource(int width, long maximumBytes, Supplier<ResourceLocation> cover,
                                Runnable chooseSource, Runnable chooseImage, Runnable clearImage) {
         super(0, 0, width, 84);
         this.cover = cover;
@@ -74,9 +74,9 @@ public final class LibraryUploadSource extends AbstractContainerElement {
         image.setY(getY() + 66);
         clear.setX(imageX + imageWidth - 18);
         clear.setY(getY() + 66);
-        Identifier texture = cover.get();
+        ResourceLocation texture = cover.get();
         if (texture == null) {
-            texture = new FiguraIdentifier("textures/gui/library_placeholder.png");
+            texture = FiguraIdentifier.of("textures/gui/library_placeholder.png");
         }
         UIHelper.blitSliced(gui, imageX, getY(), imageWidth, 64, UIHelper.OUTLINE_FILL);
         int size = Math.min(imageWidth - 4, 60);

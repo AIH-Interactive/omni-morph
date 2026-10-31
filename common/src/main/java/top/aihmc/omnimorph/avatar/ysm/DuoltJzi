@@ -1,0 +1,142 @@
+package top.aihmc.omnimorph.avatar.ysm;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.avatar.UserData;
+import top.aihmc.omnimorph.avatar.AvatarLoadProgress;
+import top.aihmc.omnimorph.avatar.local.LocalAvatarSource;
+import org.figuramc.figura.gui.FiguraToast;
+import org.figuramc.figura.parsers.AvatarMetadataParser;
+import org.figuramc.figura.utils.FiguraText;
+import org.figuramc.figura.utils.IOUtils;
+
+import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+public final class YsmAvatarLoader {
+    private static final float DEFAULT_YSM_SCALE = 0.7f;
+
+    private YsmAvatarLoader() {
+    }
+
+    public static CompletableFuture<YsmLoadResult> loadAvatar(Path path, UserData target) {
+        long generation = target.ysmLoads.begin();
+        long progress = target.loading.begin(AvatarLoadProgress.Stage.DECODING);
+        var prepared = new org.figuramc.figura.avatar.Avatar(target.id);
+        return top.aihmc.omnimorph.avatar.AvatarLoadExecutor.submit(() -> {
+            try {
+                var source = LocalAvatarSource.capture(path, () -> !target.ysmLoads.current(generation));
+                try (YsmModelData data = YsmModelData.read(path, () -> !target.ysmLoads.current(generation))) {
+                    YsmTextureOption texture = selectTexture(path, data.manifest().textures(), data.manifest().defaultTexture());
+                    target.loading.stage(progress, AvatarLoadProgress.Stage.BUILDING);
+                    CompoundTag nbt = toAvatarNbt(data, texture, target.id, path);
+                    var identity = data.identity();
+                    var diagnostics = data.diagnostics();
+                    LocalAvatarSource.verify(path, source, () -> !target.ysmLoads.current(generation));
+                    var publication = target.loadYsmAvatar(prepared, nbt, data, generation, source);
+                    target.loading.stage(progress, AvatarLoadProgress.Stage.APPLYING);
+                    return publication.thenApply(published -> {
+                        if (published) {
+                            org.figuramc.figura.backend2.NetworkStuff.localAvatarReady(prepared);
+                        }
+                        return new YsmLoadResult(published ? YsmLoadResult.Status.PUBLISHED : YsmLoadResult.Status.CANCELLED,
+                                identity, diagnostics);
+                    });
+                }
+            } catch (Exception failure) {
+                net.minecraft.client.Minecraft.getInstance().execute(prepared::clean);
+                if (failure instanceof java.io.InterruptedIOException || !target.ysmLoads.current(generation)) {
+                    return CompletableFuture.completedFuture(new YsmLoadResult(
+                            YsmLoadResult.Status.CANCELLED, null, List.of("CANCELLED")));
+                }
+                FiguraMod.LOGGER.error("Failed to load YSM avatar from " + path, failure);
+                net.minecraft.client.Minecraft.getInstance().execute(() -> {
+                    if (target.ysmLoads.current(generation)) {
+                        FiguraToast.sendToast(FiguraText.of("toast.load_error"),
+                                FiguraText.of("gui.load_error.models"), FiguraToast.ToastType.ERROR);
+                    }
+                });
+                return CompletableFuture.completedFuture(new YsmLoadResult(
+                        YsmLoadResult.Status.FAILED, null, List.of("RUNTIME_ASSEMBLY_FAILED")));
+            }
+        }).thenCompose(result -> result).exceptionally(failure -> {
+            net.minecraft.client.Minecraft.getInstance().execute(prepared::clean);
+            FiguraMod.LOGGER.error("YSM preparation could not complete for {}", target.id, failure);
+            return new YsmLoadResult(YsmLoadResult.Status.FAILED, null, List.of("RUNTIME_ASSEMBLY_FAILED"));
+        }).whenComplete((result, failure) -> target.loading.finish(progress));
+    }
+
+    public static CompoundTag toAvatarNbt(YsmModelData data, YsmTextureOption texture,
+                                          java.util.UUID owner, Path localPath) throws java.io.IOException {
+        YsmManifest manifest = data.manifest();
+        String avatarJson = YsmAvatarMetadataParser.toFiguraAvatarJson(new YsmAvatarMetadata(
+                manifest.name(), manifest.description(), manifest.authors(), manifest.textures()));
+        AvatarMetadataParser.Metadata figuraMetadata = AvatarMetadataParser.read(avatarJson);
+        CompoundTag metadata = AvatarMetadataParser.parse(figuraMetadata, avatarJson, data.resources().displayName());
+        metadata.putString("uuid", owner.toString());
+        metadata.putString("format", "ysm-native");
+        metadata.putString("ysm_kind", manifest.kind().name().toLowerCase(java.util.Locale.US));
+        if (texture != null) {
+            metadata.putString("ysm_texture", texture.id());
+            metadata.putString("ysm_texture_path", texture.path());
+        }
+        CompoundTag tag = new CompoundTag();
+        tag.put("metadata", metadata);
+        CompoundTag runtimeTag = data.encrypted() ? YsmSourcePayload.fromData(data, texture == null ? null : texture.id())
+                : toRuntimeTag(data, texture);
+        if (!data.encrypted() && localPath != null) {
+            runtimeTag.putString("source_path", localPath.toAbsolutePath().normalize().toString());
+        }
+        tag.put("ysm", runtimeTag);
+        return data.encrypted() ? YsmSourcePayload.forOutput(tag) : tag;
+    }
+
+    public static CompoundTag toRuntimeTag(YsmModelData data, YsmTextureOption texture) throws java.io.IOException {
+        YsmManifest manifest = data.manifest();
+        YsmResourceIndex index = manifest.resourceIndex();
+        YsmResourceSource ysmPackage = data.resources();
+        CompoundTag ysm = new CompoundTag();
+        ysm.putString("kind", manifest.kind().name());
+        ysm.putString("content_sha256", data.identity().contentSha256());
+        ysm.putInt("engine_schema_version", data.identity().engineSchemaVersion());
+        ysm.putString("container_kind", data.identity().containerKind().name());
+        addYsmProperties(ysm, ysmPackage);
+
+        String mainModelPath = index.hasMainModel() ? index.mainModelPath() : manifest.mainModelPath();
+        ysm.putString("main_model_path", mainModelPath);
+        if (ysmPackage.exists(mainModelPath)) {
+            ysm.putByteArray("main_model", ysmPackage.readBytes(mainModelPath));
+        }
+
+        if (index.hasArmModel() && ysmPackage.exists(index.armModelPath())) {
+            ysm.putString("arm_model_path", index.armModelPath());
+            ysm.putByteArray("arm_model", ysmPackage.readString(index.armModelPath()).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        }
+
+        ListTag animations = new ListTag();
+        List<String> firstPersonAnimations = YsmManifestReader.firstPersonAnimationPaths(ysmPackage);
+        for (String animationPath : index.animationPaths()) {
+            if (!ysmPackage.exists(animationPath))
+                continue;
+            CompoundTag animation = new CompoundTag();
+            animation.putString("path", animationPath);
+            animation.putBoolean("first_person", firstPersonAnimations.contains(animationPath));
+            animation.putByteArray("data", ysmPackage.readString(animationPath).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            animations.add(animation);
+        }
+        ysm.put("animations", animations);
+
+        ListTag controllers = new ListTag();
+        for (String controllerPath : index.animationControllerPaths()) {
+            if (!ysmPackage.exists(controllerPath))
+                continue;
+            CompoundTag controller = new CompoundTag();

@@ -3,7 +3,6 @@ package org.figuramc.figura.mixin.input;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.MouseHandler;
-import net.minecraft.client.input.MouseButtonInfo;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
@@ -27,9 +26,9 @@ public class MouseHandlerMixin {
 
     @Shadow private boolean mouseGrabbed;
 
-    @Inject(method = "onButton", at = @At("HEAD"), cancellable = true)
-    private void onPress(long window, MouseButtonInfo mouseButtonInfo, int action, CallbackInfo ci) {
-        if (window != this.minecraft.getWindow().handle())
+    @Inject(method = "onPress", at = @At("HEAD"), cancellable = true)
+    private void onPress(long window, int button, int action, int modifiers, CallbackInfo ci) {
+        if (window != this.minecraft.getWindow().getWindow())
             return;
 
         if (mouseButtonInfo.button() == 0 && action == 0) {
@@ -43,21 +42,21 @@ public class MouseHandlerMixin {
         if (avatar == null || avatar.luaRuntime == null)
             return;
 
-        if (avatar.mousePressEvent(mouseButtonInfo.button(), action, mouseButtonInfo.modifiers()) && (this.mouseGrabbed || this.minecraft.screen == null)) {
+        if (avatar.mousePressEvent(button, action, modifiers) && (this.mouseGrabbed || this.minecraft.screen == null)) {
             ci.cancel();
             return;
         }
 
         boolean pressed = action != 0;
 
-        if (avatar.luaRuntime != null && FiguraKeybind.set(avatar.luaRuntime.keybinds.keyBindings, InputConstants.Type.MOUSE.getOrCreate(mouseButtonInfo.button()), pressed, mouseButtonInfo.modifiers()))
+        if (avatar.luaRuntime != null && FiguraKeybind.set(avatar.luaRuntime.keybinds.keyBindings, InputConstants.Type.MOUSE.getOrCreate(button), pressed, modifiers))
             ci.cancel();
 
         if (avatar.luaRuntime != null && pressed && avatar.luaRuntime.host.unlockCursor && this.minecraft.screen == null)
             ci.cancel();
 
         if (avatar.luaRuntime != null && pressed && ActionWheel.isEnabled()) {
-            if (mouseButtonInfo.button() <= 1) ActionWheel.execute(ActionWheel.getSelected(), mouseButtonInfo.button() == 0);
+            if (button <= 1) ActionWheel.execute(ActionWheel.getSelected(), button == 0);
             ci.cancel();
         }
     }

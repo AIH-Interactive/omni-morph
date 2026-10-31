@@ -5,7 +5,7 @@ import net.minecraft.client.model.geom.builders.CubeDeformation;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.joml.Matrix4f;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.model.FiguraModelPart;
@@ -691,9 +691,9 @@ public final class OutfitNativeRenderSmokeTest {
             }
 
             @Override
-            public Identifier getOverrideTexture(UUID owner, TextureCustomization customization) {
+            public ResourceLocation getOverrideTexture(UUID owner, TextureCustomization customization) {
                 return customization.getOverrideType() == OverrideType.PRIMARY
-                        ? Identifier.parse("omni-morph:mounted-fixture") : null;
+                        ? ResourceLocation.parse("omni-morph:mounted-fixture") : null;
             }
         });
         part.parent = avatar.renderer.root;

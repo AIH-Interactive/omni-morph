@@ -3,10 +3,9 @@ package org.figuramc.figura.gui.widgets;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.FontDescription;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import org.figuramc.figura.FiguraMod;
@@ -78,7 +77,7 @@ public class StatusWidget implements FiguraWidget, FiguraTickable, GuiEventListe
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         if (!isVisible()) return;
 
         int x = getX();
@@ -101,7 +100,7 @@ public class StatusWidget implements FiguraWidget, FiguraTickable, GuiEventListe
             int xx = (int) (x + spacing * i + hSpacing);
 
             Component text = getStatusIcon(i);
-            gui.text(font, text, xx - font.width(text) / 2, y + (background ? 3 : 0), UIHelper.adjustColor(0xFFFFFF));
+            gui.drawString(font, text, xx - font.width(text) / 2, y + (background ? 3 : 0), 0xFFFFFF);
 
             if (hovered && mouseX >= xx - hSpacing && mouseX < xx + hSpacing && mouseY >= y && mouseY < y + font.lineHeight + (background ? 3 : 0))
                 UIHelper.setTooltip(getTooltipFor(i));
@@ -109,7 +108,7 @@ public class StatusWidget implements FiguraWidget, FiguraTickable, GuiEventListe
     }
 
     public MutableComponent getStatusIcon(int type) {
-        return Component.literal(String.valueOf(STATUS_INDICATORS.charAt(status >> (type * 2) & 3))).setStyle(Style.EMPTY.withFont(new FontDescription.Resource(UIHelper.UI_FONT)));
+        return Component.literal(String.valueOf(STATUS_INDICATORS.charAt(status >> (type * 2) & 3))).setStyle(Style.EMPTY.withFont(UIHelper.UI_FONT));
     }
 
     public Component getTooltipFor(int i) {

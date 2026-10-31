@@ -13,7 +13,7 @@ import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.textures.TextureFormat;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWErrorCallback;
@@ -81,9 +81,9 @@ public final class AccelerationGpuRouteProbe {
 
     private static void run(GpuDevice device, long window, Path report) throws Exception {
         RenderPipeline pipeline = RenderPipeline.builder()
-                .withLocation(Identifier.parse("omni-morph:h0_probe"))
-                .withVertexShader(Identifier.parse("omni-morph:h0_probe"))
-                .withFragmentShader(Identifier.parse("omni-morph:h0_probe"))
+                .withLocation(ResourceLocation.parse("omni-morph:h0_probe"))
+                .withVertexShader(ResourceLocation.parse("omni-morph:h0_probe"))
+                .withFragmentShader(ResourceLocation.parse("omni-morph:h0_probe"))
                 .withUniform("Pose", UniformType.UNIFORM_BUFFER)
                 .withColorTargetState(ColorTargetState.DEFAULT)
                 .withDepthStencilState(Optional.empty())

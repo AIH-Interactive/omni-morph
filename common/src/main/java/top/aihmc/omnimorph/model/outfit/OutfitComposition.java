@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.model.outfit;
 
+import org.figuramc.figura.utils.NbtDefaults;
+
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.world.entity.LivingEntity;
@@ -290,7 +292,7 @@ public final class OutfitComposition implements AutoCloseable {
                             declaration.instanceId(), indexes, limits).binding().definition();
             nodes += index.nodes().size();
             OutfitConfig.require(nodes <= limits.maxTotalNodes());
-            String manifest = avatar.nbt.getCompoundOrEmpty("metadata").getStringOr("cosmetic_json", "");
+            String manifest = avatar.nbt.getCompound("metadata").getString("cosmetic_json");
             var metadata = manifest.isEmpty() ? null : CosmeticMetadata.read(manifest);
             if (metadata != null) {
                 editorMetadata.put(declaration.instanceId(), metadata);
@@ -372,9 +374,9 @@ public final class OutfitComposition implements AutoCloseable {
         } else {
             OutfitConfig.require(base != null && base.loaded && base.nbt != null && !base.scriptError
                     && base.cosmeticContext == null && base.accelerationOwner().isCurrent()
-                    && base.nbt.getCompoundOrEmpty("metadata").getStringOr("resource_kind", "AVATAR").equals("AVATAR")
+                    && NbtDefaults.getStringOr(base.nbt.getCompound("metadata"), "resource_kind", "AVATAR").equals("AVATAR")
                     && configuration.base().equals(base.outfitSource())
-                    && top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload.isEncrypted(base.nbt.getCompoundOrEmpty("ysm"))
+                    && top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload.isEncrypted(base.nbt.getCompound("ysm"))
                     == (configuration.base().format() == OutfitConfig.Format.YSM_ENCRYPTED)
                     && base.isYsmNative() == (configuration.base().format() != OutfitConfig.Format.FIGURA));
         }

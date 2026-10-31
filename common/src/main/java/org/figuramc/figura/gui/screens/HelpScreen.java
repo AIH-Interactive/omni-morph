@@ -7,7 +7,7 @@ import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.animal.feline.CatSoundVariants;
 import org.figuramc.figura.FiguraMod;
@@ -23,7 +23,7 @@ import org.figuramc.figura.utils.ui.UIHelper;
 
 public class HelpScreen extends AbstractPanelScreen {
 
-    public static final Identifier ICONS = new FiguraIdentifier("textures/gui/help_icons.png");
+    public static final ResourceLocation ICONS = FiguraIdentifier.of("textures/gui/help_icons.png");
     public static final String LUA_VERSION = "5.2 - OmniMorph";
 
     public HelpScreen(Screen parentScreen) {

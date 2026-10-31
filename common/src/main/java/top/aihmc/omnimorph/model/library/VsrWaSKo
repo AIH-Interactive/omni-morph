@@ -1,0 +1,186 @@
+package top.aihmc.omnimorph.model.library;
+
+import net.minecraft.nbt.CompoundTag;
+import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
+import top.aihmc.omnimorph.avatar.local.LocalAvatarSource;
+import top.aihmc.omnimorph.backend2.library.LibraryClient;
+import top.aihmc.omnimorph.model.outfit.CosmeticMetadata;
+import top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory;
+import top.aihmc.omnimorph.model.outfit.LocalCosmeticSource;
+import top.aihmc.omnimorph.model.outfit.OutfitCodec;
+import top.aihmc.omnimorph.model.outfit.OutfitConfig;
+import top.aihmc.omnimorph.model.outfit.OutfitLimits;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
+import java.util.function.BooleanSupplier;
+
+/** Resolves the exact dependencies of one preset. No publication, source upgrade or implicit authorization. */
+public final class OutfitPresetResources implements AutoCloseable {
+    public record Issue(OutfitConfig.ResourceRef resource, boolean base, List<UUID> instances, String code) {}
+
+    private record Dependency(OutfitConfig.ResourceRef resource, boolean base) {}
+    private record Resource(CompoundTag data, CosmeticMetadata metadata, LocalCosmeticInventory.Entry local) {}
+
+    /** Formal preparation may supply already authorized fixed native input, including a precise failure per source. */
+    public record LocalInput(CompoundTag data, String error) {
+        public LocalInput {
+            if ((data == null) == (error == null) || error != null && !error.matches("[A-Z_]{1,64}")) {
+                throw new IllegalArgumentException("INVALID_OUTFIT_LOCAL_INPUT");
+            }
+            data = data == null ? null : data.copy();
+        }
+
+        @Override
+        public CompoundTag data() {
+            return data == null ? null : data.copy();
+        }
+    }
+
+    public static final class Prepared {
+        private final OutfitConfig configuration;
+        private final Map<OutfitConfig.ResourceRef, Resource> resources;
+        private final List<Issue> issues;
+        private final BooleanSupplier current;
+
+        private Prepared(OutfitConfig configuration, Map<OutfitConfig.ResourceRef, Resource> resources,
+                         List<Issue> issues, BooleanSupplier current) {
+            this.configuration = configuration;
+            this.resources = Map.copyOf(resources);
+            this.issues = List.copyOf(issues);
+            this.current = current;
+        }
+
+        public List<Issue> issues() {
+            return issues;
+        }
+
+        public boolean ready() {
+            return current.getAsBoolean() && issues.isEmpty();
+        }
+
+        public boolean contains(OutfitConfig.ResourceRef reference) {
+            requireCurrent();
+            return resources.containsKey(reference);
+        }
+
+        public CompoundTag base() throws IOException {
+            return configuration.base() == null ? null : read(configuration.base(), () -> false);
+        }
+
+        public CosmeticMetadata metadata(OutfitConfig.ResourceRef reference) {
+            requireCurrent();
+            Resource resource = resources.get(reference);
+            return resource == null ? null : resource.metadata();
+        }
+
+        public Map<OutfitConfig.ResourceRef, LocalCosmeticInventory.Entry> localAccessories() {
+            requireCurrent();
+            var result = new LinkedHashMap<OutfitConfig.ResourceRef, LocalCosmeticInventory.Entry>();
+            resources.forEach((reference, resource) -> {
+                if (resource.local() != null) {
+                    result.put(reference, resource.local());
+                }
+            });
+            return Map.copyOf(result);
+        }
+
+        /** Every runtime gets its own mutable NBT. A prepared result never extends the originating session's lifetime. */
+        public CompoundTag read(OutfitConfig.ResourceRef reference, BooleanSupplier cancelled) throws IOException {
+            requireCurrent();
+            if (cancelled.getAsBoolean()) {
+                throw new CancellationException("OUTFIT_PRESET_RETIRED");
+            }
+            Resource resource = resources.get(reference);
+            if (resource == null) {
+                throw new IOException("OUTFIT_PRESET_DEPENDENCY_UNAVAILABLE");
+            }
+            return resource.data().copy();
+        }
+
+        private void requireCurrent() {
+            if (!current.getAsBoolean()) {
+                throw new CancellationException("OUTFIT_PRESET_RETIRED");
+            }
+        }
+    }
+
+    private final OutfitConfig configuration;
+    private final UUID account;
+    private final Path directory;
+    private final LibraryClient client;
+    private final LibraryTransferService transfers;
+    private final Executor publisher;
+    private final BooleanSupplier active;
+    private final List<Dependency> dependencies;
+    private final boolean requiresCloud;
+    private final Map<OutfitConfig.ResourceRef, LocalInput> fixedLocal;
+    private final Map<OutfitConfig.ResourceRef, Resource> resources = new LinkedHashMap<>();
+    private final List<Issue> issues = new ArrayList<>();
+    private final CompletableFuture<Prepared> future = new CompletableFuture<>();
+    private Map<UUID, LocalCosmeticInventory.Entry> localAccessories;
+    private AutoCloseable pending;
+    private int next;
+    private volatile boolean closed;
+
+    public OutfitPresetResources(OutfitConfig configuration, OutfitLimits limits, UUID account, Path directory,
+                                LibraryClient client, LibraryTransferService transfers, Executor publisher,
+                                BooleanSupplier active) {
+        this(configuration, limits, account, directory, client, transfers, publisher, active, null);
+    }
+
+    public OutfitPresetResources(OutfitConfig configuration, OutfitLimits limits, UUID account, Path directory,
+                                LibraryClient client, LibraryTransferService transfers, Executor publisher,
+                                BooleanSupplier active, Map<OutfitConfig.ResourceRef, LocalInput> fixedLocal) {
+        OutfitCodec.encode(configuration, limits);
+        this.configuration = configuration;
+        this.account = account;
+        this.directory = directory;
+        this.client = client;
+        this.transfers = transfers;
+        this.publisher = publisher;
+        this.active = active;
+        this.fixedLocal = fixedLocal == null ? null : Map.copyOf(fixedLocal);
+        var requested = new LinkedHashMap<OutfitConfig.ResourceRef, Dependency>();
+        if (configuration.base() != null) {
+            requested.put(configuration.base(), new Dependency(configuration.base(), true));
+        }
+        for (var instance : configuration.instances()) {
+            requested.putIfAbsent(instance.resource(), new Dependency(instance.resource(), false));
+        }
+        dependencies = List.copyOf(requested.values());
+        requiresCloud = dependencies.stream().anyMatch(dependency -> dependency.resource().source() == OutfitConfig.Source.CLOUD);
+        future.whenComplete((value, failure) -> {
+            if (future.isCancelled()) {
+                close();
+            }
+        });
+        next();
+    }
+
+    public CompletableFuture<Prepared> future() {
+        return future;
+    }
+
+    private boolean current() {
+        return !closed && active.getAsBoolean()
+                && (!requiresCloud || client == null || client.current() && account.equals(client.session().player()));
+    }
+
+    /** One dependency at a time also bounds transfer handles and temporary decoded packages. */
+    private void next() {
+        if (future.isDone()) {
+            return;
+        }
+        if (!current()) {
+            future.cancel(false);
+       

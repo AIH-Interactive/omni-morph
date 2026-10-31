@@ -1,13 +1,13 @@
 package top.aihmc.omnimorph.model.ysm;
 
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ItemUseAnimation;
+import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.item.Items;
 
 /** Local interaction pulses plus native, per-hand queries. Pulses never belong to an observer. */
@@ -83,7 +83,7 @@ public final class YsmHandActionState {
                     && !offhand.isEmpty() && !offhand.is(Items.TOTEM_OF_UNDYING))
                     ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
             ItemStack stack = player.getItemInHand(hand);
-            if (stack.isEmpty() || stack.getUseAnimation() == ItemUseAnimation.NONE) {
+            if (stack.isEmpty() || stack.getUseAnimation() == UseAnim.NONE) {
                 clearUse();
             } else {
                 useHand = hand;
@@ -188,7 +188,7 @@ public final class YsmHandActionState {
 
     public float useTime(LivingEntity entity, float partialTick, boolean localOwner) {
         if (entity.isUsingItem()) {
-            return entity.getTicksUsingItem(partialTick);
+            return entity.getTicksUsingItem() + partialTick;
         }
         return localOwner && entity == player && ready && !entity.isSleeping() && validUse(entity, useHand)
                 ? Math.max(1f, useAge + partialTick) : 0f;
@@ -227,6 +227,6 @@ public final class YsmHandActionState {
 
     private static boolean isShield(ItemStack stack) {
         return !stack.isEmpty() && (stack.is(Items.SHIELD)
-                || stack.is(TagKey.create(Registries.ITEM, Identifier.parse("sparkle_morpher:shields"))));
+                || stack.is(TagKey.create(Registries.ITEM, ResourceLocation.parse("sparkle_morpher:shields"))));
     }
 }

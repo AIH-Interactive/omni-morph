@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
 import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.Objects;
 
@@ -9,7 +9,7 @@ import java.util.Objects;
  * Immutable per-channel values captured after engine visibility and budget rules.
  * Complexity is descriptive and already charged by the engine; layers may share it.
  */
-public record DrawSemantics(RenderType material, Identifier texture, Layer layer, String channel,
+public record DrawSemantics(RenderType material, ResourceLocation texture, Layer layer, String channel,
                             int submitOrder, int complexityCost, int light, int overlay,
                             float red, float green, float blue, float alpha,
                             double vertexOffset, boolean visible) {

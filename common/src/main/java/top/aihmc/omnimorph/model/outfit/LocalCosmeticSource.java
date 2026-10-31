@@ -94,7 +94,7 @@ public final class LocalCosmeticSource {
                             .findFirst().orElse(manifest.textures().isEmpty() ? null : manifest.textures().getFirst());
                     nbt = YsmAvatarLoader.toAvatarNbt(data, selected, executionOwner, null);
                 }
-                nbt.getCompoundOrEmpty("metadata").merge(wrapper.getCompoundOrEmpty("metadata"));
+                nbt.getCompound("metadata").merge(wrapper.getCompound("metadata"));
                 for (String key : List.of("scripts", "sounds", "resources")) {
                     if (wrapper.contains(key)) {
                         nbt.put(key, wrapper.get(key).copy());

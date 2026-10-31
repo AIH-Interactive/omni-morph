@@ -3,20 +3,17 @@ package org.figuramc.figura.gui.widgets.permissions;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.input.InputWithModifiers;
-import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.gui.widgets.lists.PlayerList;
 import org.figuramc.figura.permissions.PermissionPack;
 import org.figuramc.figura.utils.FiguraIdentifier;
 import org.figuramc.figura.utils.ui.UIHelper;
-import org.joml.Matrix3x2fStack;
 
 public class CategoryPermPackElement extends AbstractPermPackElement {
 
-    private static final Identifier BACKGROUND = new FiguraIdentifier("textures/gui/group_permissions.png");
+    private static final ResourceLocation BACKGROUND = FiguraIdentifier.of("textures/gui/group_permissions.png");
     private boolean enabled;
 
     public CategoryPermPackElement(int width, PermissionPack pack, PlayerList parent) {
@@ -25,14 +22,14 @@ public class CategoryPermPackElement extends AbstractPermPackElement {
     }
 
     @Override
-    public void extractContents(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
-        Matrix3x2fStack pose = gui.pose();
+    public void renderWidget(GuiGraphics gui, int mouseX, int mouseY, float delta) {
+        PoseStack pose = gui.pose();
         int width = getWidth();
         int height = getHeight();
 
-        pose.pushMatrix();
-        pose.translate(getX() + width / 2f, getY() + height / 2f);
-        pose.scale(scale, scale);
+        pose.pushPose();
+        pose.translate(getX() + width / 2f, getY() + height / 2f, 100);
+        pose.scale(scale, scale, 1f);
 
         animate(delta, this.isMouseOver(mouseX, mouseY) || this.isFocused());
 
@@ -53,16 +50,16 @@ public class CategoryPermPackElement extends AbstractPermPackElement {
         Font font = Minecraft.getInstance().font;
         UIHelper.renderOutlineText(gui, font, text, x + width / 2 - font.width(text) / 2, y + height / 2 - font.lineHeight / 2, 0xFFFFFF, 0);
 
-        pose.popMatrix();
+        pose.popPose();
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean bl) {
-        return this.isMouseOver(mouseButtonEvent.x(), mouseButtonEvent.y()) && super.mouseClicked(mouseButtonEvent, bl);
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        return this.isMouseOver(mouseX, mouseY) && super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
-    public void onPress(InputWithModifiers inputWithModifiers) {
+    public void onPress() {
         if (parent.selectedEntry == this) {
             enabled = !enabled;
             pack.setVisible(enabled);
@@ -70,7 +67,7 @@ public class CategoryPermPackElement extends AbstractPermPackElement {
             parent.updateScroll();
         }
 
-        super.onPress(inputWithModifiers);
+        super.onPress();
     }
 
     @Override

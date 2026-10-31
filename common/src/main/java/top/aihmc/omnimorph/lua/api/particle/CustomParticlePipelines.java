@@ -95,7 +95,7 @@ public final class CustomParticlePipelines {
                     // All custom layers share the translucent pass, with depth testing but no depth writes.
                     // Otherwise a later opaque layer would be moved before an earlier alpha layer.
                     RenderPipeline pipeline = RenderPipelines.register(RenderPipeline.builder(snippet)
-                            .withLocation(new FiguraIdentifier("pipeline/custom_particle/" + layer + "/"
+                            .withLocation(FiguraIdentifier.of("pipeline/custom_particle/" + layer + "/"
                                     + blend.name().toLowerCase(java.util.Locale.ROOT)))
                             .withColorTargetState(color)
                             .withDepthStencilState(new DepthStencilState(base.getDepthStencilState().depthTest(), false))

@@ -17,7 +17,7 @@ import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.state.level.ParticlesRenderState;
 import net.minecraft.client.renderer.state.level.QuadParticleRenderState;
 import net.minecraft.core.particles.ParticleOptions;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.AABB;
 import org.joml.Matrix4f;
@@ -372,7 +372,7 @@ final class RibbonNativeSmokeTest {
         }
 
         @Override
-        public SpriteSet figura$getParticleSprite(Identifier id) {
+        public SpriteSet figura$getParticleSprite(ResourceLocation id) {
             return null;
         }
     }

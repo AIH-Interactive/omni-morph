@@ -5,7 +5,7 @@ import com.google.gson.JsonParser;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.utils.FiguraResourceListener;
@@ -29,8 +29,8 @@ public class Emojis {
     public static final FiguraResourceListener RESOURCE_LISTENER = FiguraResourceListener.createResourceListener("emojis", manager -> {
         EMOJIS.clear();
 
-        for (Map.Entry<Identifier, Resource> emojis : manager.listResources("emojis", location -> location.getNamespace().equals(FiguraMod.MOD_ID) && location.getPath().endsWith(".json")).entrySet()) {
-            Identifier location = emojis.getKey();
+        for (Map.Entry<ResourceLocation, Resource> emojis : manager.listResources("emojis", location -> location.getNamespace().equals(FiguraMod.MOD_ID) && location.getPath().endsWith(".json")).entrySet()) {
+            ResourceLocation location = emojis.getKey();
             String[] split = location.getPath().split("/", 2);
 
             if (split.length <= 1)
@@ -234,7 +234,7 @@ public class Emojis {
         return null;
     }
 
-    public static EmojiContainer getCategoryByFont(Identifier location) {
+    public static EmojiContainer getCategoryByFont(ResourceLocation location) {
         for (EmojiContainer container : EMOJIS.values()) {
             if (location.equals(container.getFont())) {
                 return container;

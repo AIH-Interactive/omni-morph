@@ -13,7 +13,7 @@ import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.client.particle.WakeParticle;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.entity.Entity;
@@ -316,7 +316,7 @@ public final class YsmParticleNativeSmokeTest {
         }
 
         @Override
-        public SpriteSet figura$getParticleSprite(Identifier id) {
+        public SpriteSet figura$getParticleSprite(ResourceLocation id) {
             throw new UnsupportedOperationException("Not used by this fixture");
         }
 

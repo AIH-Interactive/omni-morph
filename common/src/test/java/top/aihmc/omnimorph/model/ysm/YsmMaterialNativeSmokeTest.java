@@ -6,7 +6,7 @@ import net.minecraft.SharedConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.Bootstrap;
 import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.control.AvatarControlRuntime;
@@ -2196,7 +2196,7 @@ public final class YsmMaterialNativeSmokeTest {
     }
 
     private static final class RecordingTextures extends TextureManager implements TextureManagerAccessor {
-        private Map<Identifier, AbstractTexture> textures;
+        private Map<ResourceLocation, AbstractTexture> textures;
         private boolean inspectRegistration;
 
         private RecordingTextures() {
@@ -2204,7 +2204,7 @@ public final class YsmMaterialNativeSmokeTest {
         }
 
         @Override
-        public void register(Identifier location, AbstractTexture texture) {
+        public void register(ResourceLocation location, AbstractTexture texture) {
             super.register(location, texture);
             if (inspectRegistration) {
                 net.minecraft.client.renderer.rendertype.RenderSetup.builder(
@@ -2214,12 +2214,12 @@ public final class YsmMaterialNativeSmokeTest {
         }
 
         @Override
-        public AbstractTexture getTexture(Identifier location) {
+        public AbstractTexture getTexture(ResourceLocation location) {
             return super.getTexture(location);
         }
 
         @Override
-        public Map<Identifier, AbstractTexture> getByPath() {
+        public Map<ResourceLocation, AbstractTexture> getByPath() {
             return textures;
         }
     }

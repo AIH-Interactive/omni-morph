@@ -3,7 +3,7 @@ package top.aihmc.omnimorph.mixin.gui;
 import net.minecraft.client.gui.components.debug.DebugScreenEntryList;
 import net.minecraft.client.gui.components.debug.DebugScreenEntryStatus;
 import net.minecraft.client.gui.components.debug.DebugScreenProfile;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.FiguraMod;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -16,7 +16,7 @@ import java.util.Map;
 @Mixin(DebugScreenEntryList.class)
 public class DebugScreenEntryListMixin {
     @Shadow
-    private Map<Identifier, DebugScreenEntryStatus> allStatuses;
+    private Map<ResourceLocation, DebugScreenEntryStatus> allStatuses;
 
     private void setFullDebugStatuses() {
         this.allStatuses.put(FiguraMod.FIGURA_DEBUG_KEY, DebugScreenEntryStatus.IN_OVERLAY);

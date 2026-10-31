@@ -5504,7 +5504,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         }
 
         @Override
-        public net.minecraft.client.particle.SpriteSet figura$getParticleSprite(net.minecraft.resources.Identifier id) {
+        public net.minecraft.client.particle.SpriteSet figura$getParticleSprite(net.minecraft.resources.ResourceLocation id) {
             throw new UnsupportedOperationException();
         }
 

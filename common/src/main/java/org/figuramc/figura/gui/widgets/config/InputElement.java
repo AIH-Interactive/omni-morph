@@ -1,6 +1,6 @@
 package org.figuramc.figura.gui.widgets.config;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextColor;
@@ -12,7 +12,6 @@ import org.figuramc.figura.gui.widgets.ParentedButton;
 import org.figuramc.figura.gui.widgets.TextField;
 import org.figuramc.figura.gui.widgets.lists.ConfigList;
 import org.figuramc.figura.utils.ColorUtils;
-import org.figuramc.figura.utils.IOUtils;
 import org.figuramc.figura.utils.ui.UIHelper;
 
 import java.util.function.Consumer;
@@ -35,7 +34,7 @@ public class InputElement extends AbstractConfigElement {
                 config.setTempValue(text);
         });
         updateTextFieldText(formatText(config.tempValue));
-        textField.getField().moveCursorToStart(IOUtils.hasShiftDown());
+        textField.getField().moveCursorToStart(Screen.hasShiftDown());
         textField.setEnabled(FiguraMod.debugModeEnabled() || !config.disabled);
 
         children.add(0, textField);
@@ -49,7 +48,7 @@ public class InputElement extends AbstractConfigElement {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         if (!this.isVisible()) return;
 
         // reset enabled
@@ -74,7 +73,7 @@ public class InputElement extends AbstractConfigElement {
         textField.setBorderColour(0xFF000000 + color);
 
         // super render
-        super.extractRenderState(gui, mouseX, mouseY, delta);
+        super.render(gui, mouseX, mouseY, delta);
 
         // hex colour preview
         if (inputType == InputType.HEX_COLOR) {

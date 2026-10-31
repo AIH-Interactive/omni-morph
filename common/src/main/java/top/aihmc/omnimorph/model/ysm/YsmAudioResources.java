@@ -22,6 +22,8 @@ import java.util.function.BooleanSupplier;
 public final class YsmAudioResources implements AutoCloseable {
     private final YsmModelRuntime runtime;
     private final Map<String, SoundBuffer> buffers = new LinkedHashMap<>();
+    // MC 1.21.1 SoundBuffer does not expose its PCM size, so track it per buffer.
+    private final Map<String, Integer> bufferBytes = new LinkedHashMap<>();
     private final List<String> diagnostics = new ArrayList<>();
     // Idle Lua objects may be retained by scripts; the model must not keep unused objects alive.
     private final Set<LuaSound> sounds = java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
@@ -42,7 +44,7 @@ public final class YsmAudioResources implements AutoCloseable {
             if (!(value instanceof CompoundTag entry)) {
                 continue;
             }
-            String path = entry.getStringOr("path", "");
+            String path = entry.getString("path");
             String name = soundName(path);
             if (name.isBlank() || name.contains(":")) {
                 recordFailure(path);
@@ -51,12 +53,14 @@ public final class YsmAudioResources implements AutoCloseable {
             try {
                 long available = Math.min(YsmResourceLimits.DEFAULT.singleResourceBytes(),
                         YsmResourceLimits.DEFAULT.totalResourceBytes() - pcmBytes);
-                var decoded = YsmAudioDecoder.decode(entry.getByteArray("data").orElse(new byte[0]), (int) available);
+                var decoded = YsmAudioDecoder.decode(entry.getByteArray("data"), (int) available);
+                int bufferSize = decoded.samples().remaining();
                 SoundBuffer buffer = new SoundBuffer(decoded.samples(), decoded.format());
                 SoundBuffer previous = buffers.put(name, buffer);
-                pcmBytes += buffer.size();
+                Integer previousSize = bufferBytes.put(name, bufferSize);
+                pcmBytes += bufferSize;
                 if (previous != null) {
-                    pcmBytes -= previous.size();
+                    pcmBytes -= previousSize == null ? 0 : previousSize;
                     SoundAPI.getSoundEngine().figura$releaseBuffer(previous);
                 }
             } catch (InterruptedIOException cancelled) {
@@ -125,6 +129,7 @@ public final class YsmAudioResources implements AutoCloseable {
         sounds.clear();
         List<SoundBuffer> released = new ArrayList<>(buffers.values());
         buffers.clear();
+        bufferBytes.clear();
         pcmBytes = 0;
         for (SoundBuffer buffer : released) {
             SoundAPI.getSoundEngine().figura$releaseBuffer(buffer);

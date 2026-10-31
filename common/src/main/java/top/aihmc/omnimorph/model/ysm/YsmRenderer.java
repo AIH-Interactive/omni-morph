@@ -10,7 +10,7 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.client.renderer.rendertype.RenderSetup;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.OverlayTexture;
@@ -28,13 +28,13 @@ import java.util.List;
 public class YsmRenderer {
     private final YsmModelRuntime runtime;
     private final YsmAccelerationMeshes accelerationMeshes = new YsmAccelerationMeshes();
-    private Identifier culledTranslucentTexture;
+    private ResourceLocation culledTranslucentTexture;
     private RenderType culledTranslucentType;
     private YsmPreviewRenderTypes previewTypes;
 
-    private record DrawTarget(MultiBufferSource source, RenderType material, Identifier texture,
+    private record DrawTarget(MultiBufferSource source, RenderType material, ResourceLocation texture,
                               String channel, int order, float alpha) {
-        DrawTarget(MultiBufferSource source, RenderType material, Identifier texture, String channel, int order) {
+        DrawTarget(MultiBufferSource source, RenderType material, ResourceLocation texture, String channel, int order) {
             this(source, material, texture, channel, order, 1f);
         }
 
@@ -295,7 +295,7 @@ public class YsmRenderer {
     }
 
     private RenderType renderType(YsmRenderPose pose, boolean forceTranslucent) {
-        Identifier texture = runtime.texture().getLocation();
+        ResourceLocation texture = runtime.texture().getLocation();
         boolean translucent = forceTranslucent || runtime.isTextureTranslucent();
         boolean unlit = pose == null
                 ? runtime.isGuiNoLighting() && runtime.owner().renderMode == EntityRenderMode.FIGURA_GUI

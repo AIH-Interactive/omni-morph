@@ -14,3 +14,6 @@ accessible field net/minecraft/util/datafix/fixes/ItemStackComponentizationFix$I
 
 # Read original material metadata at the acceleration draw boundary.
 accessible field net/minecraft/client/renderer/MultiBufferSource$BufferSource fixedBuffers Ljava/util/SequencedMap;
+
+# YSM mace query: wind-charge impulse grace timer (private on Player in 1.21.1).
+accessible field net/minecraft/world/entity/player/Player currentImpulseContextResetGraceTime I

@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.mixin.font;
 
 import net.minecraft.client.gui.font.GlyphStitcher;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.gen.Accessor;
@@ -9,6 +9,6 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 @Mixin(GlyphStitcher.class)
 public interface GlyphStitcherAccessor {
     @Accessor("texturePrefix")
-    Identifier getName();
+    ResourceLocation getName();
 
 }

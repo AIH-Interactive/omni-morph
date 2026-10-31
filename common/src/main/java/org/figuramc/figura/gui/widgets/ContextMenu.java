@@ -3,14 +3,12 @@ package org.figuramc.figura.gui.widgets;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.events.GuiEventListener;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.FontDescription;
 import net.minecraft.network.chat.Style;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.utils.FiguraIdentifier;
 import org.figuramc.figura.utils.ui.UIHelper;
 
@@ -19,7 +17,7 @@ import java.util.List;
 
 public class ContextMenu extends AbstractContainerElement {
 
-    public static final Identifier BACKGROUND = new FiguraIdentifier("textures/gui/context.png");
+    public static final ResourceLocation BACKGROUND = FiguraIdentifier.of("textures/gui/context.png");
 
     private final int minWidth;
     private final List<ContextButton> entries = new ArrayList<>();
@@ -44,7 +42,7 @@ public class ContextMenu extends AbstractContainerElement {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         if (!isVisible()) return;
 
         // outline
@@ -57,13 +55,13 @@ public class ContextMenu extends AbstractContainerElement {
             UIHelper.blitSliced(gui, getX() + 1, y, getWidth() - 2, height, i % 2 == 1 ? 32f : 16f, 0f, 16, 16, 48, 16, BACKGROUND);
 
             // button
-            entries.get(i).extractRenderState(gui, mouseX, mouseY, delta);
+            entries.get(i).render(gui, mouseX, mouseY, delta);
 
             y += height;
         }
 
         if (nestedContext != null) {
-            nestedContext.extractRenderState(gui, mouseX, mouseY, delta);
+            nestedContext.render(gui, mouseX, mouseY, delta);
             if (nestedContext.parent instanceof Button button)
                 button.setHovered(true);
         }
@@ -169,8 +167,8 @@ public class ContextMenu extends AbstractContainerElement {
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean bl) {
-        boolean result = super.mouseClicked(mouseButtonEvent, bl);
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        boolean result = super.mouseClicked(mouseX, mouseY, button);
         setFocused(null);
         return result;
     }
@@ -192,13 +190,13 @@ public class ContextMenu extends AbstractContainerElement {
         }
 
         @Override
-        protected void renderText(GuiGraphicsExtractor gui, float delta) {
+        protected void renderText(GuiGraphics gui, float delta) {
             // draw text
             Font font = Minecraft.getInstance().font;
-            gui.text(
+            gui.drawString(
                     font, getMessage(),
                     this.getX() + 3, (int) (this.getY() + this.getHeight() / 2f - font.lineHeight / 2f),
-                    UIHelper.adjustColor(getTextColor())
+                    getTextColor()
             );
         }
 
@@ -225,20 +223,20 @@ public class ContextMenu extends AbstractContainerElement {
         }
 
         @Override
-        public void extractContents(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+        public void renderWidget(GuiGraphics gui, int mouseX, int mouseY, float delta) {
             // draw line
             gui.fill(this.getX() + 4, getY() + 4, this.getX() + this.getWidth() - 4, getY() + 5, 0xFF000000 + ChatFormatting.DARK_GRAY.getColor());
         }
 
         @Override
-        public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean bl) {
+        public boolean mouseClicked(double mouseX, double mouseY, int button) {
             return false;
         }
     }
 
     private static class TabButton extends ContextButton {
 
-        private static final Component ARROW = Component.literal(">").setStyle(Style.EMPTY.withFont(new FontDescription.Resource(UIHelper.UI_FONT)));
+        private static final Component ARROW = Component.literal(">").setStyle(Style.EMPTY.withFont(UIHelper.UI_FONT));
         private final ContextMenu context;
 
         public TabButton(int x, int y, Component text, Component tooltip, ContextMenu parent, ContextMenu context) {
@@ -248,16 +246,16 @@ public class ContextMenu extends AbstractContainerElement {
         }
 
         @Override
-        public void extractContents(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+        public void renderWidget(GuiGraphics gui, int mouseX, int mouseY, float delta) {
             // super
-            super.extractContents(gui, mouseX, mouseY, delta);
+            super.renderWidget(gui, mouseX, mouseY, delta);
 
             // draw arrow
             Font font = Minecraft.getInstance().font;
-            gui.text(
+            gui.drawString(
                     font, ARROW,
                     this.getX() + this.getWidth() - font.width(ARROW) - 3, (int) (this.getY() + this.getHeight() / 2f - font.lineHeight / 2f),
-                    UIHelper.adjustColor(getTextColor())
+                    getTextColor()
             );
         }
 

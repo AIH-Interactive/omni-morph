@@ -304,7 +304,7 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
             var localIcon = entry.local() == null ? null : entry.local().getIcon();
             var icon = localIcon != null ? localIcon.getLocation() : handle == null ? null : handle.capture();
             UIHelper.blit(gui, getX() + 2, getY() + 4, 20, 20,
-                    icon == null ? new FiguraIdentifier("textures/gui/unknown_icon.png") : icon);
+                    icon == null ? FiguraIdentifier.of("textures/gui/unknown_icon.png") : icon);
             ModelResourceBadges.drawType(gui, getX() + 2, getY() + 4,
                     entry.format());
             UIHelper.renderScrollingText(gui, getMessage(), getX() + 24, getY() + 4, getWidth() - 26, 0xffffffff);

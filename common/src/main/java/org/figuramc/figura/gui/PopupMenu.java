@@ -37,8 +37,8 @@ import java.util.function.Consumer;
 
 public class PopupMenu {
 
-    private static final FiguraIdentifier BACKGROUND = new FiguraIdentifier("textures/gui/popup.png");
-    private static final FiguraIdentifier ICONS = new FiguraIdentifier("textures/gui/popup_icons.png");
+    private static final FiguraIdentifier BACKGROUND = FiguraIdentifier.of("textures/gui/popup.png");
+    private static final FiguraIdentifier ICONS = FiguraIdentifier.of("textures/gui/popup_icons.png");
 
     private static final MutableComponent VERSION_WARN = Component.empty()
             .append(Badges.System.WARNING.badge.copy().withStyle(Style.EMPTY.withFont(new FontDescription.Resource(Badges.FONT))))
@@ -99,7 +99,7 @@ public class PopupMenu {
         pose.pushMatrix();
 
         // world to screen space
-        FiguraVec3 worldPos = FiguraVec3.fromVec3(entity.getPosition(minecraft.getDeltaTracker().getGameTimeDeltaPartialTick(false)));
+        FiguraVec3 worldPos = FiguraVec3.fromVec3(entity.getPosition(minecraft.getTimer().getGameTimeDeltaPartialTick(false)));
         worldPos.add(0f, entity.getBbHeight() + 0.1f, 0f);
 
         FiguraVec4 vec = MathUtils.worldToScreenSpace(worldPos);

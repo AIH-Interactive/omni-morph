@@ -1,0 +1,335 @@
+package top.aihmc.omnimorph.model.outfit;
+
+import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix4f;
+import org.joml.Matrix4fc;
+import org.luaj.vm2.LuaTable;
+import org.luaj.vm2.Varargs;
+import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.lua.FiguraLuaRuntime;
+import org.figuramc.figura.lua.LuaWhitelist;
+import org.figuramc.figura.lua.docs.LuaTypeDoc;
+import org.figuramc.figura.math.matrix.FiguraMat4;
+import top.aihmc.omnimorph.model.library.PreviewBoneHighlight;
+import top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer;
+import org.figuramc.figura.model.rendering.EntityRenderMode;
+import top.aihmc.omnimorph.model.ysm.YsmRenderPose;
+import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
+import top.aihmc.omnimorph.molang.runtime.MolangExecutionBudget;
+import org.figuramc.figura.permissions.Permissions;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+
+/** One immutable draft generation. Ownership transfers only after successful construction. */
+public final class OutfitComposition implements AutoCloseable {
+    public record EditorInstance(OutfitConfig.Instance declaration, CosmeticMetadata metadata,
+                                 SkeletonIndex.Binding<?> skeleton, boolean mayEdit,
+                                 Set<OutfitConfig.BoneRef> exported) {
+        public EditorInstance {
+            exported = Set.copyOf(exported);
+        }
+    }
+
+    public record EditorSnapshot(OutfitConfig configuration, SkeletonIndex.Binding<?> base,
+                                 List<EditorInstance> instances) {
+        public EditorSnapshot {
+            instances = List.copyOf(instances);
+        }
+    }
+
+    public record Draw(UUID instanceId, Avatar avatar, Matrix4f matrix, YsmRenderPose ysmPose,
+                       FiguraRenderPose figuraPose) {
+        public Draw {
+            matrix = new Matrix4f(matrix);
+        }
+
+        @Override
+        public Matrix4f matrix() {
+            return new Matrix4f(matrix);
+        }
+    }
+
+    private final OutfitConfig configuration;
+
+    /** The server assigns the revision; all other prepared fields must remain identical. */
+    public boolean matchesConfiguration(OutfitConfig committed, UUID wearerId) {
+        if (closed || committed == null || wearer == null || !wearer.getUUID().equals(wearerId)) {
+            return false;
+        }
+        return configuration.equals(new OutfitConfig(committed.schemaVersion(), configuration.revision(),
+                committed.base(), committed.instances(), committed.virtualAnchors(), committed.displayOrdinals(),
+                committed.showEquipment()));
+    }
+
+    private final OutfitLimits limits;
+
+    public OutfitLimits limits() {
+        return limits;
+    }
+
+    public OutfitConfig configuration() {
+        return configuration;
+    }
+
+    public Map<UUID, Avatar> runtimeInstances() {
+        if (closed) {
+            return Map.of();
+        }
+        var active = new LinkedHashMap<UUID, Avatar>();
+        for (var instance : configuration.instances()) {
+            Avatar avatar = instances.get(instance.instanceId());
+            if (instance.enabled() && avatar != null && !avatar.scriptError) {
+                active.put(instance.instanceId(), avatar);
+            }
+        }
+        return Map.copyOf(active);
+    }
+
+    private final LivingEntity wearer;
+    private final Map<UUID, Avatar> instances;
+    public record ControlGroup(OutfitConfig.Instance instance, Avatar avatar) {}
+    private final Map<UUID, Long> controlDefinitions = new HashMap<>();
+    private List<ControlGroup> controlGroups = List.of();
+    private long controlGroupsRevision;
+
+    /** Compare registration versions only; do not scan every control on every GUI tick. */
+    public List<ControlGroup> controlGroups() {
+        if (closed) {
+            return List.of();
+        }
+        boolean changed = controlDefinitions.size() != instances.size();
+        for (var entry : instances.entrySet()) {
+            long revision = entry.getValue().controls.definitionRevision();
+            if (!java.util.Objects.equals(controlDefinitions.put(entry.getKey(), revision), revision)) {
+                changed = true;
+            }
+        }
+        if (changed) {
+            var groups = new ArrayList<ControlGroup>();
+            for (var instance : configuration.instances()) {
+                Avatar avatar = instances.get(instance.instanceId());
+                if (instance.enabled() && avatar != null && !avatar.controls.isEmpty()) {
+                    groups.add(new ControlGroup(instance, avatar));
+                }
+            }
+            controlGroups = List.copyOf(groups);
+            controlGroupsRevision++;
+        }
+        return controlGroups;
+    }
+
+    public long controlGroupsRevision() {
+        controlGroups();
+        return controlGroupsRevision;
+    }
+    private final Set<UUID> initialized = new HashSet<>();
+    private final Avatar controllerOwner;
+    private final FiguraLuaRuntime controllerRuntime;
+    private final LuaTable controller;
+    private final NativeBridge bridge = new NativeBridge();
+    private final int instanceNodes;
+    private final SkeletonIndex.Cache indexes;
+    private final Map<UUID, Set<OutfitConfig.BoneRef>> exportedBones = new HashMap<>();
+    private final Map<UUID, CosmeticBoneOverrides> boneOverrides = new HashMap<>();
+    private final Map<UUID, String> categories = new HashMap<>();
+    private final Map<UUID, CosmeticMetadata> editorMetadata = new HashMap<>();
+    private final Map<Object, OutfitConfig.BoneRef> previewBones = new IdentityHashMap<>();
+    private final Map<OutfitConfig.BoneRef, Object> previewParts = new HashMap<>();
+    private final Map<OutfitConfig.AnchorRef, BoneHandle> previewAnchors = new HashMap<>();
+    /** GUI diagnostic from the trusted selector; a null bone denotes its explicit entity-root fallback. */
+    public record MountTarget(OutfitConfig.BoneRef bone, OutfitConfig.Transform offset) {}
+    private final Map<UUID, MountTarget> previewMountTargets = new HashMap<>();
+    private long previewMountSequence;
+
+    public MountTarget previewMountTarget(UUID instance) {
+        return closed ? null : previewMountTargets.get(instance);
+    }
+
+    public boolean hasPreviewFrame() {
+        return !closed && previewMountSequence > 0;
+    }
+    private final Set<UUID> editableInstances = new HashSet<>();
+    private final Map<UUID, UUID> automaticTailSelections = new HashMap<>();
+    private final Set<String> diagnosed = new HashSet<>();
+    private final Map<UUID, TrailBuffer> trails = new HashMap<>();
+    private long frameSequence;
+
+    private int retainedFrames;
+    private boolean closed;
+    private OutfitActionWheel actionWheel;
+
+    public OutfitActionWheel actionWheel() {
+        OutfitConfig.require(!closed);
+        if (actionWheel == null) {
+            actionWheel = new OutfitActionWheel(this::animationEntries, () -> !closed);
+        }
+        return actionWheel;
+    }
+
+    private List<OutfitActionWheel.Entry> animationEntries() {
+        var entries = new ArrayList<OutfitActionWheel.Entry>();
+        for (var instance : configuration.instances()) {
+            Avatar avatar = instances.get(instance.instanceId());
+            if (instance.enabled() && avatar != null) {
+                var metadata = editorMetadata.get(instance.instanceId());
+                String name = metadata == null ? instance.resource().format().name() : metadata.common().name;
+                if (name == null || name.isBlank()) {
+                    name = instance.resource().format().name();
+                }
+                entries.add(new OutfitActionWheel.Entry(instance, name, avatar));
+            }
+        }
+        return List.copyOf(entries);
+    }
+    private boolean released;
+    private Frame activeFrame;
+    // Reusable base pose snapshots; only a released frame returns them, so overlapping frames never share.
+    private final FiguraRenderPose.Spare baseSpare = new FiguraRenderPose.Spare();
+    private top.aihmc.omnimorph.lua.api.particle.PreviewParticleScope previewParticles;
+    private final MolangExecutionBudget vanillaMolangBudget = new MolangExecutionBudget();
+    private Avatar budgetBase;
+    private final OutfitInstructionBudget instructionBudget = new OutfitInstructionBudget(() -> budgetBase);
+    private final OutfitEffectBudget effectBudget;
+
+    public List<TrailBuffer.Sample> trailSamples(UUID instanceId) {
+        TrailBuffer buffer = trails.get(instanceId);
+        return buffer == null ? List.of() : buffer.snapshot();
+    }
+
+    public void bindPreviewParticles(top.aihmc.omnimorph.lua.api.particle.PreviewParticleScope particles) {
+        OutfitConfig.require(!closed && (previewParticles == null || previewParticles == particles));
+        particles.bindAll(instances.values());
+        particles.useLimits(limits);
+        previewParticles = particles;
+    }
+
+    private static void clearTrail(TrailBuffer trail) {
+        trail.clear();
+        OutfitTrailBudget.release(trail);
+    }
+
+    private static void invalidateTrail(TrailBuffer trail, long sequence) {
+        trail.invalidate(sequence);
+        if (trail.isEmpty()) {
+            OutfitTrailBudget.release(trail);
+        }
+    }
+
+    /** Diagnostic/UI state reported by the trusted Lua selector; explicit preferences live in AnchorRef. */
+    public Map<UUID, UUID> automaticTailSelections() {
+        return Map.copyOf(automaticTailSelections);
+    }
+
+    private record TrailTarget(OutfitConfig.BoneRef bone, OutfitConfig.Transform offset) {}
+
+    private MolangExecutionBudget molangBudget() {
+        return budgetBase == null || budgetBase.getMolangContext() == null
+                ? vanillaMolangBudget : budgetBase.getMolangContext().executionBudget();
+    }
+
+    private void bindBaseBudget(Avatar base) {
+        OutfitConfig.require(base != null && base.cosmeticContext == null
+                && (budgetBase == null || budgetBase == base));
+        budgetBase = base;
+    }
+
+    public OutfitComposition(OutfitConfig configuration, OutfitLimits limits, LivingEntity wearer,
+                              Map<UUID, Avatar> instances, SkeletonIndex.Cache indexes) throws IOException {
+        this(configuration, limits, wearer, instances, indexes,
+                resource -> resource.source() == OutfitConfig.Source.LOCAL);
+    }
+
+    /** Cloud callers must supply the authorized resource policy; author declarations alone cannot grant access. */
+    public OutfitComposition(OutfitConfig configuration, OutfitLimits limits, LivingEntity wearer,
+                              Map<UUID, Avatar> instances, SkeletonIndex.Cache indexes,
+                              Predicate<OutfitConfig.ResourceRef> mayUseExportedBones) throws IOException {
+        this(configuration, limits, wearer, instances, indexes, mayUseExportedBones,
+                resource -> resource.source() == OutfitConfig.Source.LOCAL);
+    }
+
+    public OutfitComposition(OutfitConfig configuration, OutfitLimits limits, LivingEntity wearer,
+                              Map<UUID, Avatar> instances, SkeletonIndex.Cache indexes,
+                              Predicate<OutfitConfig.ResourceRef> mayUseExportedBones,
+                              Predicate<OutfitConfig.ResourceRef> mayEditBones) throws IOException {
+        configuration.validateLimits(limits);
+        this.configuration = configuration;
+        this.limits = limits;
+        this.wearer = wearer;
+        this.indexes = indexes;
+        this.instances = new LinkedHashMap<>(instances);
+        Set<Avatar> owners = Collections.newSetFromMap(new IdentityHashMap<>());
+        Set<UUID> executionIds = new HashSet<>();
+        int nodes = 0;
+        for (var declaration : configuration.instances()) {
+            Avatar avatar = instances.get(declaration.instanceId());
+            OutfitConfig.require(avatar != null && avatar.loaded && avatar.nbt != null
+                    && avatar.cosmeticContext != null && owners.add(avatar) && executionIds.add(avatar.owner)
+                    && declaration.instanceId().equals(avatar.cosmeticContext.instanceId())
+                    && declaration.resource().equals(avatar.cosmeticContext.resource())
+                    && (wearer == null || wearer.getUUID().equals(avatar.cosmeticContext.wearerId())));
+            SkeletonIndex index = avatar.isYsmNative()
+                    ? new YsmSkeletonAdapter(avatar.getYsmRuntime(), declaration.resource(), declaration.instanceId(),
+                            indexes, limits).binding().definition()
+                    : new FiguraSkeletonAdapter((ImmediateFiguraRenderer) avatar.renderer, declaration.resource(),
+                            declaration.instanceId(), indexes, limits).binding().definition();
+            nodes += index.nodes().size();
+            OutfitConfig.require(nodes <= limits.maxTotalNodes());
+            String manifest = avatar.nbt.getCompound("metadata").getString("cosmetic_json");
+            var metadata = manifest.isEmpty() ? null : CosmeticMetadata.read(manifest);
+            if (metadata != null) {
+                editorMetadata.put(declaration.instanceId(), metadata);
+            }
+            boolean boneEditAllowed = mayEditBones.test(declaration.resource());
+            if (boneEditAllowed) {
+                editableInstances.add(declaration.instanceId());
+            }
+            categories.put(declaration.instanceId(), metadata == null ? "Unknown" : metadata.category());
+            if (declaration.enabled() && metadata != null && metadata.category().equals("Trail")) {
+                OutfitConfig.require(trails.size() < limits.maxTrails());
+                trails.put(declaration.instanceId(), new TrailBuffer(limits));
+            }
+            boneOverrides.put(declaration.instanceId(), CosmeticBoneOverrides.bind(avatar, declaration, metadata,
+                    boneEditAllowed, indexes, limits));
+            if (metadata != null) {
+                OutfitConfig.require(metadata.exportedBones().size() <= limits.maxExportedBones());
+                for (var bone : metadata.exportedBones()) {
+                    OutfitConfig.require(bone.path().size() <= limits.maxDepth());
+                }
+                if (metadata.hasBones() && index.hash().equals(metadata.skeletonHash())
+                        && mayUseExportedBones.test(declaration.resource())) {
+                    var exports = new HashSet<OutfitConfig.BoneRef>();
+                    for (var bone : metadata.exportedBones()) {
+                        if (index.resolve(bone).isPresent()) {
+                            exports.add(new OutfitConfig.BoneRef(declaration.instanceId(), bone.path(), bone.skeletonHash()));
+                        }
+                    }
+                    exportedBones.put(declaration.instanceId(), Set.copyOf(exports));
+                }
+            }
+        }
+        OutfitConfig.require(owners.size() == instances.size());
+        instanceNodes = nodes;
+        instructionBudget.bindInstances(this.instances.values());
+        effectBudget = this.instances.isEmpty() ? null
+                : new OutfitEffectBudget(() -> budgetBase, this.instances.values().iterator().next());
+        for (Avatar avatar : this.instances.values()) {
+            avatar.cosmeticContext.bindMolangBudget(this::molangBudget);
+            avatar.cosmeticContext.bindInstructionBudget(instructionBudget);
+            avatar.cosmeticContext.bindEffectBudget(effectBudget);
+            TrailBuffer trail = trails.get(avatar.cosmet

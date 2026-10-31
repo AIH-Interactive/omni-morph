@@ -4,7 +4,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
+import org.figuramc.figura.mixin.render.layers.elytra.ElytraLayerAccessor;
 import org.figuramc.figura.model.TextureCustomization;
 import org.jetbrains.annotations.Nullable;
 
@@ -27,14 +28,14 @@ public class FiguraTextureSet {
     public void clean() {
         for (FiguraTexture texture : textures) {
             if (texture != null)
-                texture.closeFromRenderThread();
+                texture.close();
         }
     }
 
     public void uploadIfNeeded() {
         for (FiguraTexture texture : textures) {
             if (texture != null)
-                texture.uploadIfDirty(false, false);
+                texture.uploadIfDirty();
         }
     }
 
@@ -54,7 +55,7 @@ public class FiguraTextureSet {
         return -1;
     }
 
-    public Identifier getOverrideTexture(UUID owner, TextureCustomization pair) {
+    public ResourceLocation getOverrideTexture(UUID owner, TextureCustomization pair) {
         OverrideType type;
 
         if (pair == null || (type = pair.getOverrideType()) == null)
@@ -71,14 +72,14 @@ public class FiguraTextureSet {
                     yield null;
 
                 yield switch (type) {
-                    case CAPE -> info.getSkin().cape() == null ? null : info.getSkin().cape().texturePath();
-                    case ELYTRA -> info.getSkin().elytra() == null ? Identifier.withDefaultNamespace("elytra") : info.getSkin().elytra().texturePath();
-                    default -> info.getSkin().body().texturePath();
+                    case CAPE -> info.getSkin().capeTexture();
+                    case ELYTRA -> info.getSkin().elytraTexture() == null ? ElytraLayerAccessor.getWingsLocation() : info.getSkin().elytraTexture();
+                    default -> info.getSkin().texture();
                 };
             }
             case RESOURCE -> {
                 try {
-                    yield Identifier.parse(String.valueOf(pair.getValue()));
+                    yield ResourceLocation.parse(String.valueOf(pair.getValue()));
                 } catch (Exception ignored) {
                     yield MissingTextureAtlasSprite.getLocation();
                 }

@@ -7,7 +7,7 @@ import net.minecraft.client.renderer.ShaderDefines;
 import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.utils.FiguraIdentifier;
 
 import java.util.LinkedHashSet;
@@ -21,12 +21,12 @@ final class YsmPreviewRenderTypes {
     private static final RenderPipeline TRANSLUCENT = pipeline(false, true);
     private static final RenderPipeline TRANSLUCENT_CULL = pipeline(true, true);
 
-    private Identifier texture;
+    private ResourceLocation texture;
     private boolean cull;
     private boolean translucent;
     private RenderType cached;
 
-    RenderType get(Identifier texture, boolean cull, boolean translucent) {
+    RenderType get(ResourceLocation texture, boolean cull, boolean translucent) {
         if (cached == null || !texture.equals(this.texture) || cull != this.cull || translucent != this.translucent) {
             RenderPipeline pipeline;
             if (translucent) {
@@ -74,7 +74,7 @@ final class YsmPreviewRenderTypes {
                 Optional.of(source.getVertexFormatMode()));
         String suffix = (translucent ? "translucent" : "cutout") + (cull ? "_cull" : "");
         return RenderPipelines.register(RenderPipeline.builder(snippet)
-                .withLocation(new FiguraIdentifier("pipeline/ysm_gui_unlit_" + suffix))
+                .withLocation(FiguraIdentifier.of("pipeline/ysm_gui_unlit_" + suffix))
                 .withCull(cull)
                 .withDepthStencilState(material.getDepthStencilState())
                 .withColorTargetState(translucent ? source.getColorTargetState() : ColorTargetState.DEFAULT)

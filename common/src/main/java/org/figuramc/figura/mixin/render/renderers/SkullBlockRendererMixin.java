@@ -79,7 +79,7 @@ public abstract class SkullBlockRendererMixin implements BlockEntityRenderer<Sku
             return;
         }
 
-        float tickDelta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
+        float tickDelta = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true);
 
         FiguraSubmitCallBackExtension modelExtension = (FiguraSubmitCallBackExtension) model;
         modelExtension.figura$addPreRenderingCallback((bufferSource, poseStack) -> {

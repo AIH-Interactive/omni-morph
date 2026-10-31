@@ -2,7 +2,6 @@ package org.figuramc.figura.gui.screens;
 
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import org.figuramc.figura.FiguraMod;
@@ -58,13 +57,12 @@ public class FiguraConfirmScreen extends AbstractPanelScreen {
     }
 
     @Override
-    public boolean keyPressed(KeyEvent keyEvent) {
-        int keyCode = keyEvent.key();
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (keyCode == 256) {
             run(false);
             return true;
         } else {
-            return super.keyPressed(keyEvent);
+            return super.keyPressed(keyCode, scanCode, modifiers);
         }
     }
 

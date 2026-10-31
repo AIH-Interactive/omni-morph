@@ -3,7 +3,7 @@ package org.figuramc.figura.avatar;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.*;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.lua.api.sound.SoundAPI;
@@ -22,7 +22,7 @@ import java.util.UUID;
 
 public class Badges {
 
-    public static final Identifier FONT = new FiguraIdentifier("badges");
+    public static final ResourceLocation FONT = FiguraIdentifier.of("badges");
 
     public static Component fetchBadges(UUID id) {
         if (PermissionManager.get(id).getCategory() == Permissions.Category.BLOCKED)
@@ -33,7 +33,7 @@ public class Badges {
         if (pair == null)
             return Component.empty();
 
-        MutableComponent badges = Component.empty().withStyle(Style.EMPTY.withFont(new FontDescription.Resource(FONT)).withColor(ChatFormatting.WHITE).withObfuscated(false));
+        MutableComponent badges = Component.empty().withStyle(Style.EMPTY.withFont(FONT).withColor(ChatFormatting.WHITE).withObfuscated(false));
 
         // avatar badges
         Avatar avatar = AvatarManager.getAvatarForPlayer(id);
@@ -68,7 +68,7 @@ public class Badges {
                     if (avatar.errorText == null)
                         badges.append(System.ERROR.badge);
                     else
-                        badges.append(System.ERROR.badge.copy().withStyle(Style.EMPTY.withHoverEvent(new HoverEvent.ShowText(System.ERROR.desc.copy().append("\n\n").append(avatar.errorText)))));
+                        badges.append(System.ERROR.badge.copy().withStyle(Style.EMPTY.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, System.ERROR.desc.copy().append("\n\n").append(avatar.errorText)))));
                 }
 
                 // version
@@ -82,7 +82,7 @@ public class Badges {
                     for (Permissions t : avatar.noPermissions)
                         desc.append("\n• ").append(FiguraText.of("badges.no_permissions." + t.name.toLowerCase(Locale.US)));
 
-                    badges.append(badge.withStyle(Style.EMPTY.withHoverEvent(new HoverEvent.ShowText(desc))));
+                    badges.append(badge.withStyle(Style.EMPTY.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, desc))));
                 }
             }
         }
@@ -161,7 +161,7 @@ public class Badges {
 
         System(String unicode) {
             this.desc = FiguraText.of("badges.system." + this.name().toLowerCase(Locale.US));
-            this.badge = Component.literal(unicode).withStyle(Style.EMPTY.withHoverEvent(new HoverEvent.ShowText(desc)));
+            this.badge = Component.literal(unicode).withStyle(Style.EMPTY.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, desc)));
         }
     }
 
@@ -197,7 +197,7 @@ public class Badges {
 
         Pride(String unicode) {
             this.desc = FiguraText.of("badges.pride." + this.name().toLowerCase(Locale.US));
-            this.badge = Component.literal(unicode).withStyle(Style.EMPTY.withHoverEvent(new HoverEvent.ShowText(desc)));
+            this.badge = Component.literal(unicode).withStyle(Style.EMPTY.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, desc)));
         }
     }
 
@@ -220,7 +220,7 @@ public class Badges {
 
         Special(String unicode, Integer color) {
             this.desc = FiguraText.of("badges.special." + this.name().toLowerCase(Locale.US));
-            Style style = Style.EMPTY.withHoverEvent(new HoverEvent.ShowText(desc));
+            Style style = Style.EMPTY.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, desc));
             if (color != null) style = style.withColor(color);
             this.color = color;
             this.badge = Component.literal(unicode).withStyle(style);

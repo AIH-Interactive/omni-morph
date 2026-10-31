@@ -4,7 +4,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.gui.widgets.Button;
 import org.figuramc.figura.gui.widgets.lists.AbstractList;
 import org.figuramc.figura.utils.FiguraIdentifier;
@@ -33,7 +33,7 @@ public final class LibraryRowList extends AbstractList {
     }
 
     public record Row(Component text, Component tooltip, boolean enabled, Runnable action,
-                      List<Component> cells, Supplier<Identifier> thumbnail, List<Action> actions) {
+                      List<Component> cells, Supplier<ResourceLocation> thumbnail, List<Action> actions) {
         public Row(Component text, Component tooltip, boolean enabled, Runnable action) {
             this(text, tooltip, enabled, action, List.of(text), null, List.of());
         }
@@ -204,7 +204,7 @@ public final class LibraryRowList extends AbstractList {
         protected void renderText(GuiGraphicsExtractor gui, float delta) {
             if (cards) {
                 int size = Math.max(1, Math.min(getHeight() - 8, getWidth() / 3));
-                Identifier texture = row.thumbnail() == null ? null : row.thumbnail().get();
+                ResourceLocation texture = row.thumbnail() == null ? null : row.thumbnail().get();
                 if (texture != null) {
                     gui.blit(RenderPipelines.GUI_TEXTURED, texture, getX() + 4, getY() + 4,
                             0, 0, size, size, size, size);
@@ -224,7 +224,7 @@ public final class LibraryRowList extends AbstractList {
                 int left = columnX(column, getWidth());
                 int right = columnX(column + 1, getWidth());
                 if (column == 0 && row.thumbnail() != null) {
-                    Identifier texture = row.thumbnail().get();
+                    ResourceLocation texture = row.thumbnail().get();
                     if (texture != null) {
                         int size = Math.max(1, Math.min(18, right - left - 4));
                         gui.blit(RenderPipelines.GUI_TEXTURED, texture, getX() + left + 2,
@@ -290,7 +290,7 @@ public final class LibraryRowList extends AbstractList {
                     case EDIT -> "library_edit";
                     default -> "library_delete";
                 };
-                gui.blit(RenderPipelines.GUI_TEXTURED, new FiguraIdentifier("textures/gui/" + name + ".png"),
+                gui.blit(RenderPipelines.GUI_TEXTURED, FiguraIdentifier.of("textures/gui/" + name + ".png"),
                         x - 3, y - 3, frame * 24, 0, 16, 16, 24, 24, 72, 24);
             }
             case BLOCK -> {

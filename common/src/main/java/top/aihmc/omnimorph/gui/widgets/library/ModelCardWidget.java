@@ -5,7 +5,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.FiguraMod;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import org.figuramc.figura.gui.widgets.AbstractContainerElement;
@@ -20,9 +20,9 @@ import java.util.function.Consumer;
 
 /** One visible card. Its thumbnail belongs to the card and never to the wardrobe texture registry. */
 public final class ModelCardWidget extends AbstractContainerElement implements AutoCloseable {
-    private static final Identifier PLACEHOLDER = new FiguraIdentifier("textures/gui/library_placeholder.png");
-    private static final Identifier AUTHORIZATION = new FiguraIdentifier("textures/gui/library_authorization.png");
-    private static final Identifier VISIBILITY = new FiguraIdentifier("textures/gui/library_visibility.png");
+    private static final ResourceLocation PLACEHOLDER = FiguraIdentifier.of("textures/gui/library_placeholder.png");
+    private static final ResourceLocation AUTHORIZATION = FiguraIdentifier.of("textures/gui/library_authorization.png");
+    private static final ResourceLocation VISIBILITY = FiguraIdentifier.of("textures/gui/library_visibility.png");
     private final LibraryModels.Model model;
     private final LibraryThumbnailService.Handle thumbnail;
     private final Consumer<LibraryModels.Model> select;
@@ -62,7 +62,7 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
         gui.fill(x, y, x + getWidth(), y + getHeight(), selected ? 0xc0335566 : 0xb51a202c);
         int outline = selected ? FiguraMod.getAccentColor().getColor().getValue() : 0x4b5569;
         UIHelper.fillOutline(gui, x, y, getWidth(), getHeight(), UIHelper.adjustColor(outline));
-        Identifier texture = thumbnail == null ? null : thumbnail.capture();
+        ResourceLocation texture = thumbnail == null ? null : thumbnail.capture();
         if (texture == null) {
             texture = PLACEHOLDER;
         }
@@ -131,7 +131,7 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
         }
     }
 
-    private static void drawStatusIcon(GuiGraphicsExtractor gui, Identifier texture, int x, int y, int variant) {
+    private static void drawStatusIcon(GuiGraphicsExtractor gui, ResourceLocation texture, int x, int y, int variant) {
         gui.fill(x - 1, y - 1, x + 13, y + 13, 0xd0101820);
         gui.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 24, variant * 24,
                 12, 12, 24, 24, 72, 48);

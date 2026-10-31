@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.model.ysm;
 
+import org.figuramc.figura.utils.NbtDefaults;
+
 import net.minecraft.nbt.CompoundTag;
 import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.ysm.binary.YsmTextureDecoder;
@@ -30,19 +32,19 @@ public final class YsmGuiResources implements AutoCloseable {
         close();
         closed = false;
         invalidImages = 0;
-        names = tag.getCompoundOrEmpty("gui_image_names").copy();
-        foreground = tag.getStringOr("gui_foreground", "");
-        background = tag.getStringOr("gui_background", "");
+        names = tag.getCompound("gui_image_names").copy();
+        foreground = tag.getString("gui_foreground");
+        background = tag.getString("gui_background");
         YsmDecodeBudget budget = new YsmDecodeBudget();
-        for (var value : tag.getListOrEmpty("gui_entries")) {
+        for (var value : NbtDefaults.getListOrEmpty(tag, "gui_entries")) {
             if (!(value instanceof CompoundTag entry)) {
                 continue;
             }
-            String path = entry.getStringOr("path", "");
+            String path = entry.getString("path");
             if (path.isBlank() || images.containsKey(path)) {
                 continue;
             }
-            byte[] bytes = entry.getByteArray("data").orElse(new byte[0]).clone();
+            byte[] bytes = entry.getByteArray("data").clone();
             try {
                 images.put(path, YsmTextureDecoder.toPng(bytes, 0, 0, 0, budget));
             } catch (IOException failure) {
@@ -66,7 +68,7 @@ public final class YsmGuiResources implements AutoCloseable {
         if (closed || name == null || name.isBlank()) {
             return null;
         }
-        String path = names.getStringOr(name, name);
+        String path = NbtDefaults.getStringOr(names, name, name);
         byte[] bytes = images.get(path);
         if (bytes == null) {
             return null;

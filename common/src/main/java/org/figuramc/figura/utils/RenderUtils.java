@@ -21,7 +21,7 @@ import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.entity.layers.WingsLayer;
 import net.minecraft.client.renderer.entity.state.HumanoidRenderState;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -55,7 +55,7 @@ public class RenderUtils {
         if (!vanillaModelAndScript(avatar))
             return null;
 
-        Identifier layer = avatar.luaRuntime.renderer.fireLayer1;
+        ResourceLocation layer = avatar.luaRuntime.renderer.fireLayer1;
         return layer != null ? Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(TextureAtlas.LOCATION_BLOCKS).getSprite(layer) : null;
     }
 
@@ -63,8 +63,8 @@ public class RenderUtils {
         if (!vanillaModelAndScript(avatar))
             return null;
 
-        Identifier layer1 = avatar.luaRuntime.renderer.fireLayer1;
-        Identifier layer2 = avatar.luaRuntime.renderer.fireLayer2;
+        ResourceLocation layer1 = avatar.luaRuntime.renderer.fireLayer1;
+        ResourceLocation layer2 = avatar.luaRuntime.renderer.fireLayer2;
 
         if (layer2 != null)
             return Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(TextureAtlas.LOCATION_BLOCKS).getSprite(layer2);
@@ -150,9 +150,9 @@ public class RenderUtils {
     }
 
     @ExpectPlatform
-    public static Identifier getPlayerSkinTexture(WingsLayer<?, ?> wingsLayer, HumanoidRenderState renderState) {
+    public static ResourceLocation getPlayerSkinTexture(WingsLayer<?, ?> wingsLayer, HumanoidRenderState renderState) {
         try {
-            return (Identifier) Class.forName("top.aihmc.omnimorph.utils.fabric.RenderUtilsImpl")
+            return (ResourceLocation) Class.forName("top.aihmc.omnimorph.utils.fabric.RenderUtilsImpl")
                 .getMethod("getPlayerSkinTexture", WingsLayer.class, HumanoidRenderState.class).invoke(null, wingsLayer, renderState);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);

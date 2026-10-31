@@ -11,7 +11,7 @@ import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.Style;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import org.figuramc.figura.avatar.Avatar;
@@ -39,12 +39,12 @@ import java.util.UUID;
 
 public class PlayerPermPackElement extends AbstractPermPackElement {
 
-    public static final Identifier UNKNOWN = new FiguraIdentifier("textures/gui/unknown_portrait.png");
-    private static final Identifier BACKGROUND = new FiguraIdentifier("textures/gui/player_permissions.png");
+    public static final ResourceLocation UNKNOWN = FiguraIdentifier.of("textures/gui/unknown_portrait.png");
+    private static final ResourceLocation BACKGROUND = FiguraIdentifier.of("textures/gui/player_permissions.png");
     private static final Component DC_TEXT = FiguraText.of("gui.permissions.disconnected").withStyle(ChatFormatting.RED);
 
     private final String name;
-    private final Identifier skin;
+    private final ResourceLocation skin;
     private final UUID owner;
     private final ContextMenu context;
     private final Label nameLabel;
@@ -57,7 +57,7 @@ public class PlayerPermPackElement extends AbstractPermPackElement {
     public int anchorX, anchorY, initialY;
     public int index;
 
-    public PlayerPermPackElement(int width, String name, PermissionPack pack, Identifier skin, UUID owner, PlayerList parent) {
+    public PlayerPermPackElement(int width, String name, PermissionPack pack, ResourceLocation skin, UUID owner, PlayerList parent) {
         super(width, 40, pack, parent);
         this.name = name;
         this.skin = skin;
@@ -184,7 +184,7 @@ public class PlayerPermPackElement extends AbstractPermPackElement {
 
             name = TextUtils.replaceInText(name, "\\$\\{name\\}", ogName);
             name = TextUtils.splitText(name, "\n").get(0);
-            name = Component.empty().append(name.copy().withStyle(Style.EMPTY.withHoverEvent(new HoverEvent.ShowText(Component.literal(this.name + "\n" + this.owner)))));
+            name = Component.empty().append(name.copy().withStyle(Style.EMPTY.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(this.name + "\n" + this.owner)))));
 
             // badges
             name = Badges.appendBadges(name, owner, false);

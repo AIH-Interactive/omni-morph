@@ -15,7 +15,7 @@ import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.state.level.LevelRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.resources.model.ModelManager;
-import net.minecraft.util.ARGB;
+import net.minecraft.util.FastColor;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import org.figuramc.figura.FiguraMod;
@@ -114,6 +114,6 @@ public abstract class LevelRendererMixin {
         if (avatar == null || avatar.luaRuntime == null || (color = avatar.luaRuntime.renderer.blockOutlineColor) == null)
             return colorInt;
 
-        return ARGB.colorFromFloat((float) color.w, (float) color.x, (float) color.y, (float) color.z);
+        return FastColor.ARGB32.colorFromFloat((float) color.w, (float) color.x, (float) color.y, (float) color.z);
     }
 }

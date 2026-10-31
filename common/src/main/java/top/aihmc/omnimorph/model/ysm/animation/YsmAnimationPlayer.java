@@ -5,7 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
@@ -16,9 +16,8 @@ import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.CrossbowItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ItemUseAnimation;
+import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.KineticWeapon;
 import net.minecraft.util.Mth;
 import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.mixin.AbstractArrowAccessor;
@@ -2078,7 +2077,6 @@ public class YsmAnimationPlayer {
                     item, names);
             keepHoldWhileUsing = selected == null;
             syncNativeSlotAnimation(nativeHandAnimations, useSlot, selected, YsmAnimationClip.LoopMode.LOOP, USE_STAGE);
-            sampleKineticChargeAnimation(useSlot, entity, item);
         }
 
         // The use slot follows the swing slot in YSM. A swing pulse must not replace
@@ -2180,7 +2178,7 @@ public class YsmAnimationPlayer {
     private String[] useAnimationNames(LivingEntity entity, boolean left, ItemStack item) {
         String prefix = left ? "use_offhand" : "use_mainhand";
         List<String> names = new ArrayList<>();
-        if (isLanceWeapon(item) && item.getUseAnimation() == ItemUseAnimation.SPEAR) {
+        if (isLanceWeapon(item) && item.getUseAnimation() == UseAnim.SPEAR) {
             if (entity.isPassenger()) {
                 names.add("lance_riding_charge");
             } else if (entity.isFallFlying()) {
@@ -2195,21 +2193,6 @@ public class YsmAnimationPlayer {
         names.addAll(Arrays.asList(conditionalAnimationNames(prefix, item, true)));
         names.add(prefix);
         return names.toArray(String[]::new);
-    }
-
-    private void sampleKineticChargeAnimation(String slot, LivingEntity entity, ItemStack item) {
-        if (!isLanceWeapon(item))
-            return;
-        String name = nativeHandAnimations.get(slot);
-        PlayingAnimation animation = name == null ? null : activeAnimations.get(name);
-        KineticWeapon weapon = item.get(DataComponents.KINETIC_WEAPON);
-        if (animation == null || weapon == null || animation.clip.length <= 0f
-                || !Set.of("lance_charge", "lance_riding_charge", "lance_fall_flying_charge",
-                        "use_mainhand:lance", "use_offhand:lance").contains(normalizeName(name))) {
-            return;
-        }
-        float duration = Math.max(1f, weapon.computeDamageUseDuration());
-        animation.sampledTime = Math.clamp(entity.getTicksUsingItem() / duration, 0f, 1f) * animation.clip.length;
     }
 
     private void sampleKineticSwingAnimation(String slot, LivingEntity entity, ItemStack item) {
@@ -2272,15 +2255,15 @@ public class YsmAnimationPlayer {
             String normalized = literalAnimationName(animation);
             if (!normalized.startsWith(start))
                 continue;
-            Identifier tagId = identifier(normalized.substring(start.length()));
+            ResourceLocation tagId = identifier(normalized.substring(start.length()));
             if (tagId != null && item.is(TagKey.create(Registries.ITEM, tagId)))
                 names.add(animation);
         }
     }
 
-    private static Identifier identifier(String value) {
+    private static ResourceLocation identifier(String value) {
         try {
-            return Identifier.parse(value);
+            return ResourceLocation.parse(value);
         } catch (Exception ignored) {
             return null;
         }
@@ -2293,7 +2276,7 @@ public class YsmAnimationPlayer {
 
     private static boolean isWeaponItem(ItemStack item) {
         return item.is(Items.TRIDENT) || item.is(Items.MACE)
-                || item.getUseAnimation() == ItemUseAnimation.SPEAR;
+                || item.getUseAnimation() == UseAnim.SPEAR;
     }
 
     private static List<String> itemTypes(ItemStack item, boolean use) {
@@ -2302,7 +2285,7 @@ public class YsmAnimationPlayer {
             result.add(use ? "trident" : "spear");
             if (use)
                 result.add("spear");
-        } else if (item.getUseAnimation() == ItemUseAnimation.SPEAR) {
+        } else if (item.getUseAnimation() == UseAnim.SPEAR) {
             result.add(use ? "lance" : "spear");
             if (use) {
                 result.add("spear");
@@ -2421,7 +2404,7 @@ public class YsmAnimationPlayer {
             return "trident";
         if (item.is(Items.MACE))
             return "mace";
-        if (item.getUseAnimation() == ItemUseAnimation.SPEAR)
+        if (item.getUseAnimation() == UseAnim.SPEAR)
             return "spear";
         if (item.is(Items.SHIELD))
             return "shield";

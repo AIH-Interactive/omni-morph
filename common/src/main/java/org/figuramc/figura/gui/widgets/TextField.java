@@ -8,7 +8,7 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import org.figuramc.figura.utils.FiguraIdentifier;
 import org.figuramc.figura.utils.FiguraText;
@@ -20,7 +20,7 @@ import java.util.function.Consumer;
 
 public class TextField extends AbstractContainerElement {
 
-    public static final Identifier BACKGROUND = new FiguraIdentifier("textures/gui/text_field.png");
+    public static final ResourceLocation BACKGROUND = FiguraIdentifier.of("textures/gui/text_field.png");
     public static final int ENABLED_COLOR = ChatFormatting.WHITE.getColor();
     public static final int DISABLED_COLOR = ChatFormatting.DARK_GRAY.getColor();
 

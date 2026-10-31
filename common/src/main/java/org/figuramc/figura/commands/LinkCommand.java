@@ -8,7 +8,6 @@ import org.figuramc.figura.utils.ColorUtils;
 import org.figuramc.figura.utils.FiguraClientCommandSource;
 import org.figuramc.figura.utils.FiguraText;
 
-import java.net.URI;
 import java.util.List;
 
 class LinkCommand {
@@ -35,8 +34,8 @@ class LinkCommand {
 
                 message.append(Component.literal("• [" + link.name() + "]")
                         .withStyle(link.style)
-                        .withStyle(Style.EMPTY.withClickEvent(new ClickEvent.OpenUrl(URI.create(link.url))))
-                        .withStyle(Style.EMPTY.withHoverEvent(new HoverEvent.ShowText(Component.literal(link.url)))));
+                        .withStyle(Style.EMPTY.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, link.url)))
+                        .withStyle(Style.EMPTY.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(link.url)))));
             }
 
             FiguraMod.sendChatMessage(message);

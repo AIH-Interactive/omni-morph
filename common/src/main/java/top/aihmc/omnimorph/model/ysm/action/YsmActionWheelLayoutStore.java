@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.model.ysm.action;
 
+import org.figuramc.figura.utils.NbtDefaults;
+
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -168,28 +170,28 @@ public final class YsmActionWheelLayoutStore {
             return;
         loaded = true;
         IOUtils.readCacheFile("ysm_action_wheel", nbt -> {
-            for (Tag modelTag : nbt.getListOrEmpty("models")) {
+            for (Tag modelTag : NbtDefaults.getListOrEmpty(nbt, "models")) {
                 if (!(modelTag instanceof CompoundTag modelNbt))
                     continue;
-                String model = modelNbt.getStringOr("model", "");
+                String model = modelNbt.getString("model");
                 if (model.isBlank())
                     continue;
                 Set<String> pages = PAGES.computeIfAbsent(model, ignored -> new LinkedHashSet<>());
-                for (Tag pageTag : modelNbt.getListOrEmpty("pages")) {
+                for (Tag pageTag : NbtDefaults.getListOrEmpty(modelNbt, "pages")) {
                     if (pageTag instanceof CompoundTag pageNbt) {
-                        String page = pageNbt.getStringOr("page", "");
+                        String page = pageNbt.getString("page");
                         if (!page.isBlank())
                             pages.add(page);
                     }
                 }
                 Map<String, Entry> entries = LAYOUTS.computeIfAbsent(model, ignored -> new HashMap<>());
-                for (Tag entryTag : modelNbt.getListOrEmpty("entries")) {
+                for (Tag entryTag : NbtDefaults.getListOrEmpty(modelNbt, "entries")) {
                     if (!(entryTag instanceof CompoundTag entryNbt))
                         continue;
-                    String action = normalize(entryNbt.getStringOr("action", ""));
-                    int slot = entryNbt.getIntOr("slot", MIN_SLOT);
+                    String action = normalize(entryNbt.getString("action"));
+                    int slot = NbtDefaults.getIntOr(entryNbt, "slot", MIN_SLOT);
                     if (!action.isBlank() && isValidSlot(slot))
-                        entries.put(action, new Entry(entryNbt.getStringOr("page", "extra_animation"), slot));
+                        entries.put(action, new Entry(NbtDefaults.getStringOr(entryNbt, "page", "extra_animation"), slot));
                 }
             }
         });

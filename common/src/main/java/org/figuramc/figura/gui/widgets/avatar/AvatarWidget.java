@@ -5,7 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.avatar.local.LocalAvatarFetcher;
 import org.figuramc.figura.font.Emojis;
@@ -22,7 +22,7 @@ public class AvatarWidget extends AbstractAvatarWidget {
 
     private boolean outfitMenuAdded;
 
-    public static final Identifier MISSING_ICON = new FiguraIdentifier("textures/gui/unknown_icon.png");
+    public static final ResourceLocation MISSING_ICON = FiguraIdentifier.of("textures/gui/unknown_icon.png");
 
     public AvatarWidget(int depth, int width, LocalAvatarFetcher.AvatarPath avatar, AvatarList parent) {
         super(depth, width, 24, avatar, parent);
@@ -54,7 +54,7 @@ public class AvatarWidget extends AbstractAvatarWidget {
                 // icon
                 FileTexture texture = avatar.getIcon();
                 String format = avatar.isEncryptedYsm() ? "YSM_ENCRYPTED" : avatar.isYsm() ? "YSM_PLAIN" : "FIGURA";
-                Identifier icon = texture == null ? MISSING_ICON : texture.getLocation();
+                ResourceLocation icon = texture == null ? MISSING_ICON : texture.getLocation();
                 UIHelper.blit(gui, x, y, 20, 20, icon);
                 if (parent.showsSourceBadge()) {
                     ModelResourceBadges.drawType(gui, x, y, format);

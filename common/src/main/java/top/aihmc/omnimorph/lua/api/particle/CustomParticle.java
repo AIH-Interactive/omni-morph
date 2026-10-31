@@ -658,7 +658,7 @@ public final class CustomParticle extends SingleQuadParticle {
             var budget = OutfitInstructionBudget.currentFaces(owner);
             int remainingFaces = budget.allowance(owner, owner.complexity);
             var right = camera.rotation().transform(new org.joml.Vector3f(1, 0, 0));
-            var mesh = RibbonMesh.build(path, now, camera.position(), new Vec3(right.x, right.y, right.z),
+            var mesh = RibbonMesh.build(path, now, camera.getPosition(), new Vec3(right.x, right.y, right.z),
                     ribbonOptions.geometry(), limits(), layerCount(), availableVertices, remainingFaces,
                     oRoll + (double) partialTick * (roll - oRoll));
             if (mesh.quads().isEmpty()) {
@@ -675,7 +675,7 @@ public final class CustomParticle extends SingleQuadParticle {
             } finally {
                 drawingLayer = null;
             }
-            var state = new RibbonRenderState(mesh, materials, camera.position());
+            var state = new RibbonRenderState(mesh, materials, camera.getPosition());
             // Both complete geometry budgets are reserved before any upload or native submission.
             CustomParticleRuntime.chargeRibbonVertices(this, mesh.submittedVertices());
             budget.charge(owner, owner.complexity, mesh.submittedFaces());

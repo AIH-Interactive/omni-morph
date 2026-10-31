@@ -9,7 +9,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import org.figuramc.figura.FiguraMod;
@@ -35,8 +35,8 @@ import java.util.List;
 
 public class EntityPreview extends AbstractContainerElement {
 
-    public static final Identifier UNKNOWN = new FiguraIdentifier("textures/gui/unknown_entity.png");
-    public static final Identifier OVERLAY = new FiguraIdentifier("textures/gui/entity_overlay.png");
+    public static final ResourceLocation UNKNOWN = FiguraIdentifier.of("textures/gui/unknown_entity.png");
+    public static final ResourceLocation OVERLAY = FiguraIdentifier.of("textures/gui/entity_overlay.png");
 
     // properties
     private LivingEntity entity;
@@ -92,7 +92,7 @@ public class EntityPreview extends AbstractContainerElement {
         children.add(button = new SwitchButton(
                 x + 4, y + 4, 16, 16,
                 0, 0, 16,
-                new FiguraIdentifier("textures/gui/expand.png"),
+                FiguraIdentifier.of("textures/gui/expand.png"),
                 48, 32,
                 FiguraText.of("gui.expand"),
                 bx -> {

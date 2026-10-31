@@ -1,10 +1,10 @@
 package org.figuramc.figura.mixin.gui;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.PlayerTabOverlay;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.avatar.Badges;
@@ -36,9 +36,9 @@ public class PlayerTabOverlayMixin {
 
         // apply customization
         Component text = cir.getReturnValue();
-        Component name = Component.literal(playerInfo.getProfile().name());
+        Component name = Component.literal(playerInfo.getProfile().getName());
 
-        UUID uuid = playerInfo.getProfile().id();
+        UUID uuid = playerInfo.getProfile().getId();
         Avatar avatar = AvatarManager.getAvatarForPlayer(uuid);
         NameplateCustomization custom = avatar == null || avatar.luaRuntime == null ? null : avatar.luaRuntime.nameplate.LIST;
 
@@ -54,22 +54,22 @@ public class PlayerTabOverlayMixin {
         // trim
         replacement = TextUtils.trim(replacement);
 
-        text = TextUtils.replaceInText(text, "\\b" + Pattern.quote(playerInfo.getProfile().name()) + "\\b", replacement);
+        text = TextUtils.replaceInText(text, "\\b" + Pattern.quote(playerInfo.getProfile().getName()) + "\\b", replacement);
 
         cir.setReturnValue(text);
     }
 
-    @ModifyArg(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientLevel;getPlayerByUUID(Ljava/util/UUID;)Lnet/minecraft/world/entity/player/Player;"), method = "extractRenderState")
+    @ModifyArg(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientLevel;getPlayerByUUID(Ljava/util/UUID;)Lnet/minecraft/world/entity/player/Player;"), method = "render")
     private UUID getPlayerByUUID(UUID id) {
         uuid = id;
         return id;
     }
 
-    @ModifyArg(method = "extractRenderState", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/components/PlayerFaceExtractor;extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/resources/Identifier;IIIZZI)V"), index = 4)
-    private int doNotDrawFace(GuiGraphicsExtractor GuiGraphicsExtractor, Identifier id, int x, int y, int size, boolean hasHatLayer, boolean upsideDown, int color) {
+    @ModifyArg(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/components/PlayerFaceRenderer;draw(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/resources/ResourceLocation;IIIZZ)V"), index = 4)
+    private int doNotDrawFace(GuiGraphics guiGraphics, ResourceLocation id, int x, int y, int size, boolean hasHatLayer, boolean upsideDown) {
         if (uuid != null) {
             Avatar avatar = AvatarManager.getAvatarForPlayer(uuid);
-            if (avatar != null && avatar.submitPortraitDraw(GuiGraphicsExtractor, id, x, y, size, 16, upsideDown))
+            if (avatar != null && avatar.renderPortrait(guiGraphics, x, y, size, 16, upsideDown))
                 return 0;
         }
         return size;

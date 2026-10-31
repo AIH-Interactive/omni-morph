@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.avatar.ysm;
 
+import org.figuramc.figura.utils.NbtDefaults;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -231,7 +233,7 @@ public final class YsmAvatarLoader {
         }
         for (String key : List.of("gui_foreground", "gui_background")) {
             String value = YsmJson.string(properties, key, "");
-            String path = names.getStringOr(value, YsmPackage.normalize(value));
+            String path = NbtDefaults.getStringOr(names, value, YsmPackage.normalize(value));
             if (!path.isBlank() && source.exists(path)) {
                 tag.putString(key, path);
                 paths.add(path);

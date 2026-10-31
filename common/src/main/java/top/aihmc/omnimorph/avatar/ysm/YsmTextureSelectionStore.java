@@ -34,8 +34,8 @@ public final class YsmTextureSelectionStore {
             return;
         loaded = true;
         IOUtils.readCacheFile("ysm_textures", nbt -> {
-            for (String key : nbt.keySet())
-                SELECTIONS.put(key, nbt.getStringOr(key, ""));
+            for (String key : nbt.getAllKeys())
+                SELECTIONS.put(key, nbt.getString(key));
         });
     }
 

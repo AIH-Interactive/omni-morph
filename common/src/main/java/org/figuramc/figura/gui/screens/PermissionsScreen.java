@@ -148,7 +148,7 @@ public class PermissionsScreen extends AbstractPanelScreen {
         addRenderableWidget(back = new Button(middle + 6 + bottomButtonsWidth, height - 24, bottomButtonsWidth, 20, FiguraText.of("gui.done"), null, bx -> onClose()));
 
         // expand button
-        addRenderableWidget(expandButton = new SwitchButton( middle + listWidth - 18, height - 24, 20, 20, 0, 0, 20, new FiguraIdentifier("textures/gui/expand_v.png"), 60, 40, FiguraText.of("gui.permissions.expand_permissions.tooltip"), btn -> {
+        addRenderableWidget(expandButton = new SwitchButton( middle + listWidth - 18, height - 24, 20, 20, 0, 0, 20, FiguraIdentifier.of("textures/gui/expand_v.png"), 60, 40, FiguraText.of("gui.permissions.expand_permissions.tooltip"), btn -> {
             expanded = expandButton.isToggled();
 
             // hide widgets

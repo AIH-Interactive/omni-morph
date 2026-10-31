@@ -1,10 +1,12 @@
 package top.aihmc.omnimorph.model.ysm;
 
+import org.figuramc.figura.utils.NbtDefaults;
+
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.Entity;
 import org.figuramc.figura.avatar.Avatar;
@@ -46,7 +48,7 @@ public class YsmSubEntity implements AutoCloseable {
     }
 
     public static YsmSubEntity fromNbt(Avatar owner, CompoundTag tag, byte[] fallbackTexture) throws java.io.IOException {
-        String modelJson = new String(tag.getByteArray("model").orElse(new byte[0]), StandardCharsets.UTF_8);
+        String modelJson = new String(tag.getByteArray("model"), StandardCharsets.UTF_8);
         if (modelJson.isBlank())
             throw new java.io.IOException("YSM sub entity model is empty");
         YsmGeometry geometry = YsmGeometryParser.parse(modelJson);
@@ -55,29 +57,29 @@ public class YsmSubEntity implements AutoCloseable {
 
     public static YsmSubEntity fromGeometry(Avatar owner, CompoundTag tag, byte[] fallbackTexture,
                                            YsmGeometry geometry) throws java.io.IOException {
-        String texturePath = tag.getStringOr("texture_path", "");
-        byte[] textureBytes = tag.getByteArray("texture").orElse(fallbackTexture == null ? new byte[0] : fallbackTexture);
+        String texturePath = tag.getString("texture_path");
+        byte[] textureBytes = NbtDefaults.findByteArray(tag, "texture").orElse(fallbackTexture == null ? new byte[0] : fallbackTexture);
         boolean textureTranslucent = geometry.applyTextureAlpha(textureBytes);
         byte[] base = textureBytes.length == 0 ? onePixelPng() : textureBytes;
-        byte[] normal = tag.getByteArray("normal_texture").orElse(new byte[0]);
-        byte[] specular = tag.getByteArray("specular_texture").orElse(new byte[0]);
-        String textureName = "ysm_sub_entity/" + tag.getStringOr("id", "sub_entity");
+        byte[] normal = tag.getByteArray("normal_texture");
+        byte[] specular = tag.getByteArray("specular_texture");
+        String textureName = "ysm_sub_entity/" + NbtDefaults.getStringOr(tag, "id", "sub_entity");
         FiguraTexture texture = normal.length == 0 && specular.length == 0
                 ? new FiguraTexture(owner, textureName, base)
                 : new YsmMaterialTexture(owner, textureName, base, normal, specular);
         YsmSubEntity entity = new YsmSubEntity(
-                tag.getStringOr("kind", "sub_entity"),
-                tag.getStringOr("id", "sub_entity"),
+                NbtDefaults.getStringOr(tag, "kind", "sub_entity"),
+                NbtDefaults.getStringOr(tag, "id", "sub_entity"),
                 readStrings(tag),
-                tag.getStringOr("model_path", ""),
+                tag.getString("model_path"),
                 texturePath,
                 geometry,
                 texture,
                 textureTranslucent,
-                tag.getStringOr("animation_path", ""),
-                new String(tag.getByteArray("animation").orElse(new byte[0]), StandardCharsets.UTF_8),
-                tag.getStringOr("controller_path", ""),
-                new String(tag.getByteArray("controller").orElse(new byte[0]), StandardCharsets.UTF_8)
+                tag.getString("animation_path"),
+                new String(tag.getByteArray("animation"), StandardCharsets.UTF_8),
+                tag.getString("controller_path"),
+                new String(tag.getByteArray("controller"), StandardCharsets.UTF_8)
         );
         entity.animationResources = resourceStrings(tag, "animation_entries", entity.animationJson);
         entity.controllerResources = resourceStrings(tag, "controller_entries", entity.controllerJson);
@@ -86,9 +88,9 @@ public class YsmSubEntity implements AutoCloseable {
 
     private static List<String> resourceStrings(CompoundTag tag, String key, String fallback) {
         List<String> resources = new ArrayList<>();
-        for (Tag entry : tag.getListOrEmpty(key)) {
+        for (Tag entry : NbtDefaults.getListOrEmpty(tag, key)) {
             if (entry instanceof CompoundTag resource) {
-                resources.add(new String(resource.getByteArray("data").orElse(new byte[0]), StandardCharsets.UTF_8));
+                resources.add(new String(resource.getByteArray("data"), StandardCharsets.UTF_8));
             }
         }
         if (resources.isEmpty() && !fallback.isBlank()) {
@@ -107,8 +109,8 @@ public class YsmSubEntity implements AutoCloseable {
 
     private static List<String> readStrings(CompoundTag tag) {
         List<String> result = new ArrayList<>();
-        for (Tag value : tag.getListOrEmpty("match_ids")) {
-            String string = value.asString().orElse("");
+        for (Tag value : NbtDefaults.getListOrEmpty(tag, "match_ids")) {
+            String string = value.getAsString();
             if (string != null && !string.isBlank() && !result.contains(string))
                 result.add(string);
         }
@@ -145,7 +147,7 @@ public class YsmSubEntity implements AutoCloseable {
         if (!match.startsWith("#")) {
             return false;
         }
-        Identifier id = Identifier.tryParse(match.substring(1));
+        ResourceLocation id = ResourceLocation.tryParse(match.substring(1));
         return id != null && entity.getType().builtInRegistryHolder().is(TagKey.create(Registries.ENTITY_TYPE, id));
     }
 

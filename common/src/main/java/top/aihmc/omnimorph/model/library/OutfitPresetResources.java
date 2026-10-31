@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.model.library;
 
+import org.figuramc.figura.utils.NbtDefaults;
+
 import net.minecraft.nbt.CompoundTag;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
 import top.aihmc.omnimorph.avatar.local.LocalAvatarSource;
@@ -258,12 +260,12 @@ public final class OutfitPresetResources implements AutoCloseable {
                 throw new IOException(input.error());
             }
             CompoundTag data = input.data();
-            String kind = data.getCompoundOrEmpty("metadata").getStringOr("resource_kind", "AVATAR");
+            String kind = NbtDefaults.getStringOr(data.getCompound("metadata"), "resource_kind", "AVATAR");
             if (!kind.equals(dependency.base() ? "AVATAR" : "ACCESSORY")) {
                 throw new IOException("OUTFIT_PRESET_RESOURCE_KIND_MISMATCH");
             }
             CosmeticMetadata metadata = dependency.base() ? null : CosmeticMetadata.read(
-                    data.getCompoundOrEmpty("metadata").getStringOr("cosmetic_json", ""));
+                    data.getCompound("metadata").getString("cosmetic_json"));
             return new Resource(data, metadata, null);
         }
         if (dependency.base()) {
@@ -301,7 +303,7 @@ public final class OutfitPresetResources implements AutoCloseable {
             throw new IOException("OUTFIT_PRESET_DEPENDENCY_CHANGED");
         }
         if (!source.purpose().equals("preview") || !model.resourceKind().equals("AVATAR")
-                || !source.nbt().getCompoundOrEmpty("metadata").getStringOr("resource_kind", "AVATAR").equals("AVATAR")) {
+                || !NbtDefaults.getStringOr(source.nbt().getCompound("metadata"), "resource_kind", "AVATAR").equals("AVATAR")) {
             throw new IOException("OUTFIT_BASE_RESOURCE_KIND_REQUIRED");
         }
         return new Resource(source.nbt().copy(), null, null);

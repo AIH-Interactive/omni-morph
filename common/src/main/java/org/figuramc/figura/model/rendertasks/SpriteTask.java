@@ -4,7 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.lua.LuaNotNil;
 import org.figuramc.figura.lua.LuaWhitelist;
@@ -35,7 +35,7 @@ import java.util.Locale;
 )
 public class SpriteTask extends RenderTask {
 
-    private Identifier texture;
+    private ResourceLocation texture;
     private int textureW = -1, textureH = -1;
     private int width, height;
     private int regionW, regionH;
@@ -146,7 +146,7 @@ public class SpriteTask extends RenderTask {
         }
         if (texture instanceof String s) {
             try {
-                this.texture = Identifier.parse(s);
+                this.texture = ResourceLocation.parse(s);
             } catch (Exception e) {
                 this.texture = MissingTextureAtlasSprite.getLocation();
             }

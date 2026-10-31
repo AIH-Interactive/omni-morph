@@ -7,8 +7,6 @@ import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.arguments.blocks.BlockStateArgument;
 import net.minecraft.commands.arguments.item.ItemArgument;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.attribute.EnvironmentAttribute;
-import net.minecraft.world.attribute.EnvironmentAttributes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -288,7 +286,7 @@ public class WorldAPI {
         value = "world.get_time_of_day"
     )
     public static double getTimeOfDay(double delta) {
-        return getCurrentWorld().getDefaultClockTime() + delta;
+        return getCurrentWorld().getDayTime() + delta;
     }
 
     @LuaWhitelist
@@ -303,7 +301,7 @@ public class WorldAPI {
             value = "world.get_day_time"
     )
     public static double getDayTime(double delta) {
-        return (getCurrentWorld().getDefaultClockTime() + delta) % 24000;
+        return (getCurrentWorld().getDayTime() + delta) % 24000;
     }
 
     @LuaWhitelist
@@ -318,7 +316,7 @@ public class WorldAPI {
             value = "world.get_day"
     )
     public static double getDay(double delta) {
-        return Math.floor((getCurrentWorld().getDefaultClockTime() + delta) / 24000);
+        return Math.floor((getCurrentWorld().getDayTime() + delta) / 24000);
     }
 
     @LuaWhitelist
@@ -327,7 +325,7 @@ public class WorldAPI {
             value = "world.get_moon_phase"
     )
     public static int getMoonPhase() {
-        return getCurrentWorld().environmentAttributes().getDimensionValue(EnvironmentAttributes.MOON_PHASE).index();
+        return getCurrentWorld().getMoonPhase();
     }
 
     @LuaWhitelist
@@ -481,7 +479,7 @@ public class WorldAPI {
     @LuaMethodDoc("world.get_dimension")
     public static String getDimension() {
         Level world = getCurrentWorld();
-        return world.dimension().identifier().toString();
+        return world.dimension().location().toString();
     }
 
     @LuaWhitelist
@@ -617,14 +615,14 @@ public class WorldAPI {
     @LuaMethodDoc("world.get_build_height")
     public static int[] getBuildHeight() {
         Level world = getCurrentWorld();
-        return new int[]{world.getMinY(), world.getMaxY()};
+        return new int[]{world.getMinBuildHeight(), world.getMaxBuildHeight()};
     }
 
     @LuaWhitelist
     @LuaMethodDoc("world.get_spawn_point")
     public static FiguraVec3 getSpawnPoint() {
         Level world = getCurrentWorld();
-        return FiguraVec3.fromBlockPos(world.getRespawnData().pos());
+        return FiguraVec3.fromBlockPos(world.getSharedSpawnPos());
     }
 
     @Override

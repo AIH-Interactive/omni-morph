@@ -3,7 +3,7 @@ package org.figuramc.figura.gui.widgets;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import org.figuramc.figura.FiguraMod;
@@ -18,7 +18,7 @@ public class KeybindWidgetHelper {
     private Component tooltip;
     private boolean vanillaConflict, avatarConflict;
 
-    public void renderConflictBars(GuiGraphicsExtractor gui, int x, int y, int width, int height) {
+    public void renderConflictBars(GuiGraphics gui, int x, int y, int width, int height) {
         // conflict bars
         if (vanillaConflict || avatarConflict) {
             if (avatarConflict) {
@@ -141,7 +141,7 @@ public class KeybindWidgetHelper {
             if (key.saveString().equals(keyName)) {
                 this.vanillaConflict = true;
                 message.append(Component.literal("\n• ").withStyle(ChatFormatting.RED)
-                        .append(key.getCategory().label())
+                        .append(Component.translatable(key.getCategory()))
                         .append(": ")
                         .append(Component.translatable(key.getName()))
                 );
@@ -162,7 +162,7 @@ public class KeybindWidgetHelper {
             if (key != keybind && key.saveString().equals(keyName)) {
                 this.vanillaConflict = true;
                 message.append(Component.literal("\n• ").withStyle(ChatFormatting.RED)
-                        .append(key.getCategory().label())
+                        .append(Component.translatable(key.getCategory()))
                         .append(": ")
                         .append(Component.translatable(key.getName()))
                 );

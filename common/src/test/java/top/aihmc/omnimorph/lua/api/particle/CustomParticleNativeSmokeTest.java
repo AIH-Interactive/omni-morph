@@ -11,7 +11,7 @@ import net.minecraft.client.particle.SingleQuadParticle;
 import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.client.renderer.state.level.QuadParticleRenderState;
 import net.minecraft.core.particles.ParticleOptions;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
 import org.luaj.vm2.LuaError;
@@ -350,7 +350,7 @@ public final class CustomParticleNativeSmokeTest {
                 }
 
                 @Override
-                public SpriteSet figura$getParticleSprite(Identifier id) {
+                public SpriteSet figura$getParticleSprite(ResourceLocation id) {
                     return null;
                 }
             };
@@ -458,7 +458,7 @@ public final class CustomParticleNativeSmokeTest {
         }
 
         @Override
-        public SpriteSet figura$getParticleSprite(Identifier id) {
+        public SpriteSet figura$getParticleSprite(ResourceLocation id) {
             throw new UnsupportedOperationException();
         }
 

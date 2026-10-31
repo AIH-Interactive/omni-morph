@@ -12,7 +12,7 @@ public interface BiomeAccessor {
 
     @Intrinsic
     @Invoker("getTemperature")
-    float getTheTemperature(BlockPos blockPos, int i);
+    float getTheTemperature(BlockPos blockPos);
 
     @Intrinsic
     @Accessor("climateSettings")

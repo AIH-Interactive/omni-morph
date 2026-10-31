@@ -33,23 +33,23 @@ public abstract class PermissionPack {
     // read nbt
     public void loadNbt(CompoundTag nbt) {
         // default permissions
-        CompoundTag perms = nbt.getCompoundOrEmpty("permissions");
+        CompoundTag perms = nbt.getCompound("permissions");
         for (Permissions setting : Permissions.DEFAULT) {
             if (perms.contains(setting.name))
-                permissions.put(setting, perms.getIntOr(setting.name, 0));
+                permissions.put(setting, perms.getInt(setting.name));
         }
 
         // custom permissions
-        CompoundTag custom = nbt.getCompoundOrEmpty("custom");
+        CompoundTag custom = nbt.getCompound("custom");
         for (Map.Entry<String, Collection<Permissions>> entry : PermissionManager.CUSTOM_PERMISSIONS.entrySet()) {
             String key = entry.getKey();
 
             Map<Permissions, Integer> map = new HashMap<>();
-            CompoundTag customNbt = custom.getCompoundOrEmpty(key);
+            CompoundTag customNbt = custom.getCompound(key);
 
             for (Permissions setting : entry.getValue()) {
                 if (customNbt.contains(setting.name))
-                    map.put(setting, customNbt.getIntOr(setting.name, 0));
+                    map.put(setting, customNbt.getInt(setting.name));
             }
 
             customPermissions.put(key, map);

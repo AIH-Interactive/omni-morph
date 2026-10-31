@@ -7,15 +7,15 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.entity.projectile.Projectile;
-import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
-import net.minecraft.world.entity.projectile.arrow.SpectralArrow;
-import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrowableItemProjectile;
+import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.SpectralArrow;
+import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
 import top.aihmc.omnimorph.model.ysm.YsmReferenceQuery;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -24,7 +24,9 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ElytraItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.molang.runtime.AssignableVariable;
@@ -38,10 +40,8 @@ import top.aihmc.omnimorph.model.ysm.YsmParticleRuntime;
 import top.aihmc.omnimorph.model.ysm.YsmHandItemType;
 import top.aihmc.omnimorph.model.ysm.YsmPlayerActionState;
 import net.minecraft.world.entity.Pose;
-import net.minecraft.world.entity.vehicle.boat.AbstractBoat;
-import net.minecraft.world.entity.vehicle.boat.AbstractChestBoat;
-import net.minecraft.world.entity.vehicle.boat.ChestRaft;
-import net.minecraft.world.entity.vehicle.boat.Raft;
+import net.minecraft.world.entity.vehicle.Boat;
+import net.minecraft.world.entity.vehicle.ChestBoat;
 import top.aihmc.omnimorph.molang.runtime.Function;
 import top.aihmc.omnimorph.molang.runtime.Variable;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationClip;
@@ -570,7 +570,7 @@ public class MolangBindings implements ObjectBinding {
                 return actual.equals(expected.substring(1));
             }
             if (expected.startsWith("#")) {
-                Identifier id = identifier(expected.substring(1));
+                ResourceLocation id = identifier(expected.substring(1));
                 return id != null && !stack.isEmpty() && stack.is(TagKey.create(Registries.ITEM, id));
             }
             if (expected.startsWith(":")) {
@@ -583,21 +583,21 @@ public class MolangBindings implements ObjectBinding {
             if (type == null || expected == null || expected.isBlank())
                 return false;
             if (expected.startsWith("$")) {
-                Identifier id = identifier(expected.substring(1));
+                ResourceLocation id = identifier(expected.substring(1));
                 return id != null && id.equals(BuiltInRegistries.ENTITY_TYPE.getKey(type));
             }
             if (expected.startsWith("#")) {
-                Identifier id = identifier(expected.substring(1));
+                ResourceLocation id = identifier(expected.substring(1));
                 return id != null && type.builtInRegistryHolder().is(TagKey.create(Registries.ENTITY_TYPE, id));
             }
             return false;
         }
 
-        private static Identifier identifier(String value) {
+        private static ResourceLocation identifier(String value) {
             if (value == null || value.isBlank())
                 return null;
             try {
-                return Identifier.parse(value.contains(":") ? value : "minecraft:" + value);
+                return ResourceLocation.parse(value.contains(":") ? value : "minecraft:" + value);
             } catch (Exception ignored) {
                 return null;
             }
@@ -791,18 +791,18 @@ public class MolangBindings implements ObjectBinding {
                 return context.owner != null && context.owner.getYsmRuntime() != null && player.isBlocking();
             });
             values.put("boat_left_paddle", entityVariable(entity -> boat(entity) != null
-                    && boat(entity).getPaddleState(AbstractBoat.PADDLE_LEFT)));
+                    && boat(entity).getPaddleState(Boat.PADDLE_LEFT)));
             values.put("boat_right_paddle", entityVariable(entity -> boat(entity) != null
-                    && boat(entity).getPaddleState(AbstractBoat.PADDLE_RIGHT)));
-            values.put("boat_left_rowing_time", (Variable) ctx -> boatRowingTime(ctx, AbstractBoat.PADDLE_LEFT));
-            values.put("boat_right_rowing_time", (Variable) ctx -> boatRowingTime(ctx, AbstractBoat.PADDLE_RIGHT));
+                    && boat(entity).getPaddleState(Boat.PADDLE_RIGHT)));
+            values.put("boat_left_rowing_time", (Variable) ctx -> boatRowingTime(ctx, Boat.PADDLE_LEFT));
+            values.put("boat_right_rowing_time", (Variable) ctx -> boatRowingTime(ctx, Boat.PADDLE_RIGHT));
             values.put("boat_paddle_scale", entityVariable(entity -> 1f));
             values.put("boat_body_offset_y", entityVariable(entity -> {
-                AbstractBoat boat = boat(entity);
-                return boat instanceof Raft || boat instanceof ChestRaft
+                Boat boat = boat(entity);
+                return isRaft(boat)
                         ? -((0.8888889f - 1f / 3f) * 0.5625f * 16f + 1f) : 0f;
             }));
-            values.put("boat_body_offset_z", entityVariable(entity -> boat(entity) instanceof AbstractChestBoat
+            values.put("boat_body_offset_z", entityVariable(entity -> boat(entity) instanceof ChestBoat
                     ? -0.15f * 16f : 0f));
             values.put("shoot_item_id", (Variable) YsmBinding::shootItemId);
             values.put("is_player", (Variable) ctx -> context(ctx).entity instanceof LivingEntity
@@ -927,13 +927,13 @@ public class MolangBindings implements ObjectBinding {
             // World, boat and movement.
             values.put("biome_category", entityVariable(entity -> null));
             values.put("delta_movement_length", entityVariable(YsmReferenceQuery::deltaMovementLength));
-            values.put("boat_is_chest", entityVariable(entity -> boat(entity) instanceof AbstractChestBoat));
+            values.put("boat_is_chest", entityVariable(entity -> boat(entity) instanceof ChestBoat));
             values.put("boat_is_raft", entityVariable(entity -> {
-                AbstractBoat boat = boat(entity);
-                return boat instanceof Raft || boat instanceof ChestRaft;
+                Boat boat = boat(entity);
+                return isRaft(boat);
             }));
             values.put("boat_chest_passenger_offset", entityVariable(entity ->
-                    boat(entity) instanceof AbstractChestBoat ? 0.15f * 16f : 0f));
+                    boat(entity) instanceof ChestBoat ? 0.15f * 16f : 0f));
 
             // Living entity state.
             values.put("is_riptide", livingVariable((context, entity) -> entity.isAutoSpinAttack()));
@@ -1027,8 +1027,8 @@ public class MolangBindings implements ObjectBinding {
             int effects = 0;
             for (int index = 0; index < args.size(); index++) {
                 String name = args.getAsString(ctx, index);
-                Identifier id = name == null ? null : Identifier.tryParse(name);
-                var effect = id == null ? null : BuiltInRegistries.MOB_EFFECT.get(id).map(ref -> ref.value()).orElse(null);
+                ResourceLocation id = name == null ? null : ResourceLocation.tryParse(name);
+                var effect = id == null ? null : BuiltInRegistries.MOB_EFFECT.get(id);
                 if (effect == null) {
                     continue;
                 }
@@ -1041,7 +1041,7 @@ public class MolangBindings implements ObjectBinding {
                     if (instance != null) {
                         effects += instance.getAmplifier() + 1;
                     }
-                } else if (entity instanceof net.minecraft.world.entity.projectile.arrow.Arrow arrow) {
+                } else if (entity instanceof net.minecraft.world.entity.projectile.Arrow arrow) {
                     ItemStack pickup = arrow.getPickupItemStackOrigin();
                     var contents = pickup == null ? null : pickup.get(DataComponents.POTION_CONTENTS);
                     if (contents == null) {
@@ -1066,7 +1066,7 @@ public class MolangBindings implements ObjectBinding {
             }
             EquipmentSlot slot = CtrlBinding.parseSlot(args.getAsString(ctx, 0));
             ItemStack stack = slot == null ? ItemStack.EMPTY : living.getItemBySlot(slot);
-            Identifier key = stack.isEmpty() ? null : BuiltInRegistries.ITEM.getKey(stack.getItem());
+            ResourceLocation key = stack.isEmpty() ? null : BuiltInRegistries.ITEM.getKey(stack.getItem());
             if (key == null) {
                 return null;
             }
@@ -1096,7 +1096,7 @@ public class MolangBindings implements ObjectBinding {
                     (int) Math.round(entity.getY() + y - 0.5d),
                     (int) Math.round(entity.getZ() + z - 0.5d));
             var block = entity.level().getBlockState(position).getBlock();
-            Identifier key = BuiltInRegistries.BLOCK.getKey(block);
+            ResourceLocation key = BuiltInRegistries.BLOCK.getKey(block);
             if (key == null) {
                 return null;
             }
@@ -1110,7 +1110,7 @@ public class MolangBindings implements ObjectBinding {
             if (entity instanceof Player) {
                 return "player";
             }
-            Identifier type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+            ResourceLocation type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
             if (type == null) {
                 return "";
             }
@@ -1362,11 +1362,50 @@ public class MolangBindings implements ObjectBinding {
                 return null;
             }
             float radians = switch (axis) {
-                case 0 -> living.elytraAnimationState.getRotX(context.ysm_partial_tick);
-                case 1 -> living.elytraAnimationState.getRotY(context.ysm_partial_tick);
-                default -> living.elytraAnimationState.getRotZ(context.ysm_partial_tick);
+                case 0 -> elytraRotX(living);
+                case 1 -> elytraRotY(living);
+                default -> elytraRotZ(living);
             };
             return Math.toDegrees(radians);
+        }
+
+        // MC 1.21.1 ElytraModel smooths wing angles on AbstractClientPlayer and
+        // derives them directly for other entities; these mirror that logic.
+        private static float elytraRotX(LivingEntity living) {
+            if (living instanceof AbstractClientPlayer player) {
+                return player.elytraRotX;
+            }
+            if (living.isFallFlying()) {
+                float flying = elytraFlightBlend(living);
+                return flying * 0.34906584f + (1f - flying) * 0.2617994f;
+            }
+            return living.isCrouching() ? 0.6981317f : 0.2617994f;
+        }
+
+        private static float elytraRotY(LivingEntity living) {
+            if (living instanceof AbstractClientPlayer player) {
+                return player.elytraRotY;
+            }
+            return !living.isFallFlying() && living.isCrouching() ? 0.08726646f : 0f;
+        }
+
+        private static float elytraRotZ(LivingEntity living) {
+            if (living instanceof AbstractClientPlayer player) {
+                return player.elytraRotZ;
+            }
+            if (living.isFallFlying()) {
+                float flying = elytraFlightBlend(living);
+                return flying * -1.5707964f + (1f - flying) * -0.2617994f;
+            }
+            return living.isCrouching() ? -0.7853982f : -0.2617994f;
+        }
+
+        private static float elytraFlightBlend(LivingEntity living) {
+            Vec3 movement = living.getDeltaMovement();
+            if (movement.y >= 0.0) {
+                return 1f;
+            }
+            return 1f - (float) Math.pow(-movement.normalize().y, 1.5);
         }
 
         private static Object hasElytra(ExecutionContext<?> evaluation) {
@@ -1374,7 +1413,7 @@ public class MolangBindings implements ObjectBinding {
                 return null;
             }
             ItemStack chest = living.getItemBySlot(EquipmentSlot.CHEST);
-            return !chest.isEmpty() && chest.has(DataComponents.GLIDER);
+            return !chest.isEmpty() && chest.getItem() instanceof ElytraItem;
         }
 
         private static Function relativeBlockFunction(boolean any) {
@@ -1394,7 +1433,7 @@ public class MolangBindings implements ObjectBinding {
                     BlockPos position = new BlockPos((int) Math.round(entity.getX() + x - 0.5d),
                             (int) Math.round(entity.getY() + y - 0.5d),
                             (int) Math.round(entity.getZ() + z - 0.5d));
-                    Identifier actual = BuiltInRegistries.BLOCK.getKey(entity.level().getBlockState(position).getBlock());
+                    ResourceLocation actual = BuiltInRegistries.BLOCK.getKey(entity.level().getBlockState(position).getBlock());
                     if (actual == null) {
                         return null;
                     }
@@ -1403,7 +1442,7 @@ public class MolangBindings implements ObjectBinding {
                     }
                     for (int index = 3; index < arguments.size(); index++) {
                         String name = arguments.getAsString(execution, index);
-                        Identifier expected = name == null ? null : Identifier.tryParse(name);
+                        ResourceLocation expected = name == null ? null : ResourceLocation.tryParse(name);
                         if (actual.equals(expected)) {
                             return true;
                         }
@@ -1443,12 +1482,12 @@ public class MolangBindings implements ObjectBinding {
                         return 0;
                     }
                     int level = 0;
-                    var registry = living.level().registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
+                    var registry = living.level().registryAccess().registryOrThrow(Registries.ENCHANTMENT);
                     for (int index = 1; index < arguments.size(); index++) {
                         String enchantment = arguments.getAsString(execution, index);
-                        Identifier id = enchantment == null ? null : Identifier.tryParse(enchantment);
+                        ResourceLocation id = enchantment == null ? null : ResourceLocation.tryParse(enchantment);
                         if (id != null) {
-                            var holder = registry.get(id).orElse(null);
+                            var holder = registry.getHolder(id).orElse(null);
                             if (holder != null) {
                                 level += EnchantmentHelper.getItemEnchantmentLevel(holder, stack);
                             }
@@ -1469,15 +1508,20 @@ public class MolangBindings implements ObjectBinding {
             if (context.entity == null) {
                 return null;
             }
-            AbstractBoat boat = boat(context.entity);
+            Boat boat = boat(context.entity);
             return boat == null ? 0f : -boat.getRowingTime(paddle, context.ysm_partial_tick);
         }
 
-        private static AbstractBoat boat(Entity entity) {
-            if (entity instanceof AbstractBoat boat) {
+        private static Boat boat(Entity entity) {
+            if (entity instanceof Boat boat) {
                 return boat;
             }
-            return entity.getVehicle() instanceof AbstractBoat boat ? boat : null;
+            return entity.getVehicle() instanceof Boat boat ? boat : null;
+        }
+
+        /** MC 1.21.1 models rafts as the bamboo boat variant instead of dedicated classes. */
+        private static boolean isRaft(Boat boat) {
+            return boat != null && boat.getVariant() == Boat.Type.BAMBOO;
         }
 
         private static Object dumpMods(ExecutionContext<?> execution) {
@@ -1497,11 +1541,11 @@ public class MolangBindings implements ObjectBinding {
             java.util.List<net.minecraft.world.effect.MobEffectInstance> effects = new java.util.ArrayList<>();
             if (entity instanceof LivingEntity living) {
                 effects.addAll(living.getActiveEffects());
-            } else if (entity instanceof net.minecraft.world.entity.projectile.arrow.Arrow arrow) {
+            } else if (entity instanceof net.minecraft.world.entity.projectile.Arrow arrow) {
                 ItemStack pickup = arrow.getPickupItemStackOrigin();
                 var contents = pickup == null ? null : pickup.get(net.minecraft.core.component.DataComponents.POTION_CONTENTS);
                 if (contents != null) {
-                    contents.forEachEffect(effects::add, 1f);
+                    contents.forEachEffect(effects::add);
                 }
             }
             for (var effect : effects) {
@@ -1525,7 +1569,7 @@ public class MolangBindings implements ObjectBinding {
         }
 
         private static String shootItemId(ExecutionContext<?> ctx) {
-            if (!(context(ctx).entity instanceof net.minecraft.world.entity.projectile.arrow.AbstractArrow arrow)) {
+            if (!(context(ctx).entity instanceof net.minecraft.world.entity.projectile.AbstractArrow arrow)) {
                 return null;
             }
             // Use the native firing stack when present. Remote display overrides belong to M7.
@@ -1553,7 +1597,7 @@ public class MolangBindings implements ObjectBinding {
             if (entity instanceof Player) {
                 return "player";
             }
-            Identifier type = entity.getType() == null ? null : BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+            ResourceLocation type = entity.getType() == null ? null : BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
             if (type == null) {
                 return "";
             }

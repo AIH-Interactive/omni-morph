@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.model.library;
 
+import org.figuramc.figura.utils.NbtDefaults;
+
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
@@ -111,19 +113,19 @@ public final class OutfitSourceService {
     static CompoundTag parse(byte[] bytes, OutfitConfig.ResourceRef reference, OutfitConfig.ResourceKind kind,
                              CosmeticMetadata declaration) throws IOException {
         CompoundTag nbt = NbtIo.readCompressed(new ByteArrayInputStream(bytes), NbtAccounter.create(256L * 1024 * 1024));
-        var metadata = nbt.getCompoundOrEmpty("metadata");
-        boolean ysm = metadata.getStringOr("format", "").equals("ysm-native");
-        boolean encrypted = YsmSourcePayload.isEncrypted(nbt.getCompoundOrEmpty("ysm"));
+        var metadata = nbt.getCompound("metadata");
+        boolean ysm = metadata.getString("format").equals("ysm-native");
+        boolean encrypted = YsmSourcePayload.isEncrypted(nbt.getCompound("ysm"));
         if (ysm != (reference.format() != OutfitConfig.Format.FIGURA)
                 || encrypted != (reference.format() == OutfitConfig.Format.YSM_ENCRYPTED)
-                || !metadata.getStringOr("resource_kind", "AVATAR").equals(kind.name())) {
+                || !NbtDefaults.getStringOr(metadata, "resource_kind", "AVATAR").equals(kind.name())) {
             throw new IOException("DISTRIBUTION_TYPE_MISMATCH");
         }
         if (encrypted && !YsmSourcePayload.forOutput(nbt).equals(nbt)) {
             throw new IOException("NONPORTABLE_ENCRYPTED_DISTRIBUTION");
         }
         if (kind == OutfitConfig.ResourceKind.ACCESSORY) {
-            var authored = CosmeticMetadata.read(metadata.getStringOr("cosmetic_json", ""));
+            var authored = CosmeticMetadata.read(metadata.getString("cosmetic_json"));
             if (!OutfitCodec.encodeAccessoryMetadata(authored)
                     .equals(OutfitCodec.encodeAccessoryMetadata(declaration))) {
                 throw new IOException("COSMETIC_AUTHOR_DECLARATION_CHANGED");

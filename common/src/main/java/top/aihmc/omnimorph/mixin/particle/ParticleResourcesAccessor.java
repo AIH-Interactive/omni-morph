@@ -2,7 +2,7 @@ package top.aihmc.omnimorph.mixin.particle;
 
 import net.minecraft.client.particle.ParticleResources;
 import net.minecraft.client.particle.SpriteSet;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Intrinsic;
 import org.spongepowered.asm.mixin.Mixin;
@@ -15,6 +15,6 @@ import java.util.Map;
 public interface ParticleResourcesAccessor {
 
     @Accessor("spriteSets")
-    Map<Identifier, ParticleResources.MutableSpriteSet> figura$getSpriteSets();
+    Map<ResourceLocation, ParticleResources.MutableSpriteSet> figura$getSpriteSets();
 
 }

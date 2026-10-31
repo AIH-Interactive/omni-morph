@@ -517,7 +517,7 @@ public final class YsmFunctionContractSmokeTest {
             require(Boolean.FALSE.equals(owner.evalValue("q.has_cape;")), "missing cape texture is false");
             player.fixtureSkin = new net.minecraft.world.entity.player.PlayerSkin(null,
                     new net.minecraft.core.ClientAsset.ResourceTexture(
-                            net.minecraft.resources.Identifier.parse("fixture:cape")), null,
+                            net.minecraft.resources.ResourceLocation.parse("fixture:cape")), null,
                     net.minecraft.world.entity.player.PlayerModelType.WIDE, false);
             player.showCape = true;
             require(Boolean.TRUE.equals(owner.evalValue("q.has_cape;")), "visible native cape with model part enabled");

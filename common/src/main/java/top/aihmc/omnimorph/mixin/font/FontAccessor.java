@@ -6,7 +6,7 @@ import net.minecraft.client.gui.GlyphSource;
 import net.minecraft.client.gui.font.FontSet;
 import net.minecraft.client.gui.render.GuiRenderer;
 import net.minecraft.network.chat.FontDescription;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;

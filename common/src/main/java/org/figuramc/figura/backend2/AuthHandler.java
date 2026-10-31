@@ -47,7 +47,7 @@ public class AuthHandler {
                         endpoint.http("/api//auth/id?username=" + username)).build());
                 endpoint.requireAllowed();
                 try {
-                    minecraft.services().sessionService().joinServer(user.getProfileId(), user.getAccessToken(), serverID);
+                    minecraft.getMinecraftSessionService().joinServer(user.getProfileId(), user.getAccessToken(), serverID);
                 } catch (InvalidCredentialsException exception) {
                     FiguraMod.LOGGER.info("Mojang authentication failed; using backend offline mode");
                 } catch (AuthenticationUnavailableException exception) {

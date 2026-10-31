@@ -1,7 +1,7 @@
 package org.figuramc.figura.animation;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.util.Util;
+import net.minecraft.Util;
 import net.minecraft.world.TickRateManager;
 import net.minecraft.world.level.Level;
 import top.aihmc.omnimorph.mixin.MinecraftAccesor;

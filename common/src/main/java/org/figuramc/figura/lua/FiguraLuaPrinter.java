@@ -345,7 +345,7 @@ public class FiguraLuaPrinter {
         // table tooltip
         if (hasTooltip && (value.istable() || value.isuserdata())) {
             Component table = TextUtils.replaceTabs(tableToText(typeManager, value, 1, 1, false));
-            text.withStyle(Style.EMPTY.withHoverEvent(new HoverEvent.ShowText(table)));
+            text.withStyle(Style.EMPTY.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, table)));
         }
 
         return text;

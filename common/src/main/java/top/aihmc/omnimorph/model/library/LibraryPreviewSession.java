@@ -537,7 +537,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
                 return (PreparedModel) null;
             }
             CompoundTag data = nbt.get();
-            boolean figura = !data.getCompoundOrEmpty("metadata").getStringOr("format", "").equals("ysm-native");
+            boolean figura = !data.getCompound("metadata").getString("format").equals("ysm-native");
             boolean usePlayer = !isolated && (figura || worldParticles);
             if (usePlayer && player == null) {
                 return null;

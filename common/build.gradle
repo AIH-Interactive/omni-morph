@@ -53,7 +53,7 @@ dependencies {
     modCompileOnly "maven.modrinth:iris:$iris"
     modCompileOnly "maven.modrinth:immediatelyfast:$immediately_fast"
     // Optional LambDynamicLights API for the particle light bridge; the runtime comes from the installed mod.
-    compileOnly "dev.lambdaurora.lambdynamiclights:lambdynamiclights-api:$lambdynlights"
+    modCompileOnly "dev.lambdaurora.lambdynamiclights:lambdynamiclights-api:$lambdynlights"
 }
 
 sourceSets.main.proto.srcDir rootProject.file('protocol')

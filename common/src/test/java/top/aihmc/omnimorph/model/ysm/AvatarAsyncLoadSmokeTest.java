@@ -7,7 +7,7 @@ import net.minecraft.client.particle.ParticleResources;
 import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
 import org.figuramc.figura.avatar.UserData;
@@ -172,7 +172,7 @@ final class AvatarAsyncLoadSmokeTest {
         }
 
         @Override
-        public SpriteSet figura$getParticleSprite(Identifier id) {
+        public SpriteSet figura$getParticleSprite(ResourceLocation id) {
             throw new UnsupportedOperationException();
         }
 

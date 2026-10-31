@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.model.ysm;
 
+import org.figuramc.figura.utils.NbtDefaults;
+
 import top.aihmc.omnimorph.render.acceleration.AccelerationService;
 import org.joml.Matrix4f;
 
@@ -164,18 +166,18 @@ public class YsmModelRuntime implements AutoCloseable {
             }
         }
         progress.accept(top.aihmc.omnimorph.avatar.AvatarLoadProgress.Stage.BUILDING);
-        String mainJson = new String(tag.getByteArray("main_model").orElse(new byte[0]), StandardCharsets.UTF_8);
+        String mainJson = new String(tag.getByteArray("main_model"), StandardCharsets.UTF_8);
         if (mainJson.isBlank())
             throw new java.io.IOException("YSM main model is empty");
         YsmGeometry geometry = YsmGeometryParser.parse(mainJson);
-        YsmModelValidator.validateAndLog(tag.getStringOr("main_model_path", "main_model"), geometry);
+        YsmModelValidator.validateAndLog(NbtDefaults.getStringOr(tag, "main_model_path", "main_model"), geometry);
 
         YsmGeometry armGeometry = null;
-        String armJson = new String(tag.getByteArray("arm_model").orElse(new byte[0]), StandardCharsets.UTF_8);
+        String armJson = new String(tag.getByteArray("arm_model"), StandardCharsets.UTF_8);
         if (!armJson.isBlank()) {
             try {
                 armGeometry = YsmGeometryParser.parse(armJson);
-                YsmModelValidator.validateAndLog(tag.getStringOr("arm_model_path", "arm_model"), armGeometry);
+                YsmModelValidator.validateAndLog(NbtDefaults.getStringOr(tag, "arm_model_path", "arm_model"), armGeometry);
             } catch (Exception ignored) {
             }
         }
@@ -187,7 +189,7 @@ public class YsmModelRuntime implements AutoCloseable {
                                            CompoundTag tag) throws java.io.IOException {
         try {
             if (data.encrypted()) {
-                String requested = tag.getStringOr("texture_id", data.manifest().defaultTexture());
+                String requested = NbtDefaults.getStringOr(tag, "texture_id", data.manifest().defaultTexture());
                 var textures = data.manifest().textures();
                 var selected = textures.stream().filter(texture -> texture.id().equals(requested)).findFirst()
                         .orElse(textures.isEmpty() ? null : textures.getFirst());
@@ -210,47 +212,47 @@ public class YsmModelRuntime implements AutoCloseable {
 
     private static YsmModelRuntime assemble(Avatar owner, CompoundTag tag, YsmGeometry geometry,
                                              YsmGeometry armGeometry, YsmModelData data) throws java.io.IOException {
-        byte[] textureBytes = tag.getByteArray("texture").orElse(new byte[0]);
+        byte[] textureBytes = tag.getByteArray("texture");
         Map<String, byte[]> textureData = readTextureEntries(tag);
         Map<String, MaterialData> materials = readMaterialEntries(tag);
-        String textureId = tag.getStringOr("texture_id", "ysm_texture");
+        String textureId = NbtDefaults.getStringOr(tag, "texture_id", "ysm_texture");
         byte[] selectedTexture = textureData.getOrDefault(textureId, textureBytes);
         boolean textureTranslucent = geometry.applyTextureAlpha(selectedTexture);
         if (armGeometry != null)
             textureTranslucent |= armGeometry.applyTextureAlpha(selectedTexture);
         FiguraTexture texture = materialTexture(owner, textureId,
                 selectedTexture.length == 0 ? onePixelPng() : selectedTexture, materials.get(textureId));
-        String kind = tag.getStringOr("kind", YsmAvatarKind.NONE.name());
-        String modelKey = tag.getStringOr("source_path", tag.getStringOr("main_model_path", "ysm"));
+        String kind = NbtDefaults.getStringOr(tag, "kind", YsmAvatarKind.NONE.name());
+        String modelKey = NbtDefaults.getStringOr(tag, "source_path", NbtDefaults.getStringOr(tag, "main_model_path", "ysm"));
         if (tag.contains("content_sha256")) {
-            modelKey = "ysm:" + tag.getIntOr("engine_schema_version", 1) + ":" + tag.getStringOr("content_sha256", "");
+            modelKey = "ysm:" + NbtDefaults.getIntOr(tag, "engine_schema_version", 1) + ":" + tag.getString("content_sha256");
         }
-        float defaultWidthScale = tag.getFloatOr("width_scale", DEFAULT_YSM_SCALE);
-        float defaultHeightScale = tag.getFloatOr("height_scale", DEFAULT_YSM_SCALE);
+        float defaultWidthScale = NbtDefaults.getFloatOr(tag, "width_scale", DEFAULT_YSM_SCALE);
+        float defaultHeightScale = NbtDefaults.getFloatOr(tag, "height_scale", DEFAULT_YSM_SCALE);
         YsmModelRuntime runtime = null;
         try {
             runtime = new YsmModelRuntime(owner, geometry, armGeometry, texture, textureId,
                     textureTranslucent, kind, modelKey, textureData, defaultWidthScale, defaultHeightScale, data != null && data.encrypted());
-            runtime.contentHash = tag.getStringOr("content_sha256", "");
+            runtime.contentHash = tag.getString("content_sha256");
             runtime.previewInput = new CompoundTag();
             for (String key : List.of("animations", "animation_controllers", "functions", "action_schemas")) {
-                runtime.previewInput.put(key, tag.getListOrEmpty(key).copy());
+                runtime.previewInput.put(key, NbtDefaults.getListOrEmpty(tag, key).copy());
             }
             for (String key : List.of("main_model", "arm_model")) {
                 if (tag.contains(key)) {
-                    runtime.previewInput.putByteArray(key, tag.getByteArray(key).orElseThrow().clone());
+                    runtime.previewInput.putByteArray(key, NbtDefaults.findByteArray(tag, key).orElseThrow().clone());
                 }
             }
-            runtime.previewInput.putBoolean("merge_multiline_expr", tag.getBooleanOr("merge_multiline_expr", false));
-            runtime.functionInput = tag.getListOrEmpty("functions").copy();
-            runtime.mergeMultilineExpressions = tag.getBooleanOr("merge_multiline_expr", false);
-            runtime.guiNoLighting = tag.getBooleanOr("gui_no_lighting", false);
-            runtime.previewRotationDisabled = tag.getBooleanOr("disable_preview_rotation", false);
-            runtime.renderLayersFirst = tag.getBooleanOr("render_layers_first", false);
-            runtime.allCutout = tag.getBooleanOr("all_cutout", false);
+            runtime.previewInput.putBoolean("merge_multiline_expr", tag.getBoolean("merge_multiline_expr"));
+            runtime.functionInput = NbtDefaults.getListOrEmpty(tag, "functions").copy();
+            runtime.mergeMultilineExpressions = tag.getBoolean("merge_multiline_expr");
+            runtime.guiNoLighting = tag.getBoolean("gui_no_lighting");
+            runtime.previewRotationDisabled = tag.getBoolean("disable_preview_rotation");
+            runtime.renderLayersFirst = tag.getBoolean("render_layers_first");
+            runtime.allCutout = tag.getBoolean("all_cutout");
             runtime.materialData = Map.copyOf(materials);
-            runtime.audio.load(tag.getListOrEmpty("sound_entries"));
-            runtime.translations.load(tag.getListOrEmpty("language_entries"));
+            runtime.audio.load(NbtDefaults.getListOrEmpty(tag, "sound_entries"));
+            runtime.translations.load(NbtDefaults.getListOrEmpty(tag, "language_entries"));
             runtime.guiResources.load(tag);
             runtime.readSubEntities(tag, selectedTexture, data);
             MolangEngine ysmMolangEngine = MolangEngine.fromCustomBinding(owner.getAvatarBindings());
@@ -264,10 +266,10 @@ public class YsmModelRuntime implements AutoCloseable {
                 loadedRuntime.recordControllerDiagnostic(controllerDiagnostic(loadedRuntime.modelKey,
                         loadedRuntime.encryptedSource, path, diagnostic));
             }, runtime.controllerSources));
-            runtime.functions.load(tag.getListOrEmpty("functions"));
+            runtime.functions.load(NbtDefaults.getListOrEmpty(tag, "functions"));
             runtime.animationPlayer.registerFunctionEventControllers(runtime.functions.controllerEventNames());
             if (owner.cosmeticContext == null && owner.nbt != null
-                    && !"ACCESSORY".equals(owner.nbt.getCompoundOrEmpty("metadata").getStringOr("resource_kind", ""))) {
+                    && !"ACCESSORY".equals(owner.nbt.getCompound("metadata").getString("resource_kind"))) {
                 runtime.loadDefaultAnimations(tag, ysmMolangEngine);
             }
             runtime.animationPlayer.startBaseAnimations();
@@ -303,11 +305,11 @@ public class YsmModelRuntime implements AutoCloseable {
         Set<String> declared = new LinkedHashSet<>();
         Set<String> armDeclared = new LinkedHashSet<>();
         try {
-            for (Tag value : tag.getListOrEmpty("animations")) {
+            for (Tag value : NbtDefaults.getListOrEmpty(tag, "animations")) {
                 if (!(value instanceof CompoundTag animation)) {
                     continue;
                 }
-                String json = new String(animation.getByteArray("data").orElse(new byte[0]), StandardCharsets.UTF_8);
+                String json = new String(animation.getByteArray("data"), StandardCharsets.UTF_8);
                 if (json.isBlank()) {
                     continue;
                 }
@@ -370,31 +372,31 @@ public class YsmModelRuntime implements AutoCloseable {
 
     private static Map<String, byte[]> readTextureEntries(CompoundTag tag) {
         Map<String, byte[]> result = new LinkedHashMap<>();
-        for (Tag textureTag : tag.getListOrEmpty("texture_entries")) {
+        for (Tag textureTag : NbtDefaults.getListOrEmpty(tag, "texture_entries")) {
             if (!(textureTag instanceof CompoundTag texture))
                 continue;
-            byte[] data = texture.getByteArray("data").orElse(new byte[0]);
+            byte[] data = texture.getByteArray("data");
             if (data.length == 0)
                 continue;
-            registerTextureKey(result, texture.getStringOr("id", ""), data);
-            registerTextureKey(result, texture.getStringOr("path", ""), data);
+            registerTextureKey(result, texture.getString("id"), data);
+            registerTextureKey(result, texture.getString("path"), data);
         }
-        byte[] fallback = tag.getByteArray("texture").orElse(new byte[0]);
+        byte[] fallback = tag.getByteArray("texture");
         if (fallback.length > 0)
-            registerTextureKey(result, tag.getStringOr("texture_id", "ysm_texture"), fallback);
+            registerTextureKey(result, NbtDefaults.getStringOr(tag, "texture_id", "ysm_texture"), fallback);
         return result;
     }
 
     private static Map<String, MaterialData> readMaterialEntries(CompoundTag tag) {
         Map<String, MaterialData> result = new LinkedHashMap<>();
-        for (Tag value : tag.getListOrEmpty("texture_entries")) {
+        for (Tag value : NbtDefaults.getListOrEmpty(tag, "texture_entries")) {
             if (!(value instanceof CompoundTag texture)) {
                 continue;
             }
-            MaterialData material = new MaterialData(texture.getByteArray("normal_data").orElse(new byte[0]),
-                    texture.getByteArray("specular_data").orElse(new byte[0]));
-            registerTextureKey(result, texture.getStringOr("id", ""), material);
-            registerTextureKey(result, texture.getStringOr("path", ""), material);
+            MaterialData material = new MaterialData(texture.getByteArray("normal_data"),
+                    texture.getByteArray("specular_data"));
+            registerTextureKey(result, texture.getString("id"), material);
+            registerTextureKey(result, texture.getString("path"), material);
         }
         return result;
     }
@@ -438,10 +440,10 @@ public class YsmModelRuntime implements AutoCloseable {
     private static Map<String, YsmAnimationClip> readAnimations(CompoundTag tag, MolangEngine engine,
                                                                      boolean firstPerson) {
         Map<String, YsmAnimationClip> result = new HashMap<>();
-        for (Tag animationTag : tag.getListOrEmpty("animations")) {
+        for (Tag animationTag : NbtDefaults.getListOrEmpty(tag, "animations")) {
             if (!(animationTag instanceof CompoundTag animation))
                 continue;
-            String json = new String(animation.getByteArray("data").orElse(new byte[0]), StandardCharsets.UTF_8);
+            String json = new String(animation.getByteArray("data"), StandardCharsets.UTF_8);
             if (json.isBlank())
                 continue;
             boolean arm = false;
@@ -454,13 +456,13 @@ public class YsmModelRuntime implements AutoCloseable {
                 continue;
             }
             mergeAnimations(result, YsmAnimationParser.parse(json, true, engine,
-                    tag.getBooleanOr("merge_multiline_expr", false)));
+                    tag.getBoolean("merge_multiline_expr")));
         }
         return result;
     }
 
     private static boolean isFirstPersonAnimation(CompoundTag animation, com.google.gson.JsonObject root) {
-        return animation.getBooleanOr("first_person", false)
+        return animation.getBoolean("first_person")
                 || root.has("ysm_animation_type") && root.get("ysm_animation_type").getAsInt() == 11;
     }
 
@@ -495,16 +497,16 @@ public class YsmModelRuntime implements AutoCloseable {
             java.util.function.BiConsumer<String, YsmAnimationControllerParser.Diagnostic> diagnostics,
             Map<String, String> sources) {
         Map<String, YsmAnimationController> result = new LinkedHashMap<>();
-        for (Tag controllerTag : tag.getListOrEmpty("animation_controllers")) {
+        for (Tag controllerTag : NbtDefaults.getListOrEmpty(tag, "animation_controllers")) {
             if (!(controllerTag instanceof CompoundTag controller))
                 continue;
-            String json = new String(controller.getByteArray("data").orElse(new byte[0]), StandardCharsets.UTF_8);
+            String json = new String(controller.getByteArray("data"), StandardCharsets.UTF_8);
             if (json.isBlank())
                 continue;
-            String path = controller.getStringOr("path", "animation_controllers");
+            String path = NbtDefaults.getStringOr(controller, "path", "animation_controllers");
             Map<String, YsmAnimationController> parsed = YsmAnimationControllerParser.parse(json, engine,
                     diagnostics == null ? null : diagnostic -> diagnostics.accept(path, diagnostic),
-                    tag.getBooleanOr("merge_multiline_expr", false));
+                    tag.getBoolean("merge_multiline_expr"));
             result.putAll(parsed);
             if (sources != null) {
                 parsed.keySet().forEach(name -> sources.put(name, path));
@@ -1099,11 +1101,11 @@ public class YsmModelRuntime implements AutoCloseable {
     }
 
     private void readActionSchemas(CompoundTag tag) {
-        for (Tag schemaTag : tag.getListOrEmpty("action_schemas")) {
+        for (Tag schemaTag : NbtDefaults.getListOrEmpty(tag, "action_schemas")) {
             if (!(schemaTag instanceof CompoundTag schema))
                 continue;
-            String path = schema.getStringOr("path", "schema");
-            String json = new String(schema.getByteArray("data").orElse(new byte[0]), StandardCharsets.UTF_8);
+            String path = NbtDefaults.getStringOr(schema, "path", "schema");
+            String json = new String(schema.getByteArray("data"), StandardCharsets.UTF_8);
             YsmActionSchemaParser.apply(this, path, json);
         }
     }
@@ -1114,9 +1116,9 @@ public class YsmModelRuntime implements AutoCloseable {
     private void registerDiscoveredControls(CompoundTag tag) {
         Set<String> reads = new LinkedHashSet<>();
         Set<String> writes = new LinkedHashSet<>();
-        collectMolangVariables(tag.getListOrEmpty("action_schemas"), reads, writes);
-        collectMolangVariables(tag.getListOrEmpty("animation_controllers"), reads, writes);
-        collectMolangVariables(tag.getListOrEmpty("animations"), reads, writes);
+        collectMolangVariables(NbtDefaults.getListOrEmpty(tag, "action_schemas"), reads, writes);
+        collectMolangVariables(NbtDefaults.getListOrEmpty(tag, "animation_controllers"), reads, writes);
+        collectMolangVariables(NbtDefaults.getListOrEmpty(tag, "animations"), reads, writes);
 
         Set<String> existingBindings = new LinkedHashSet<>();
         for (AvatarControlDefinition control : owner.controls.all()) {
@@ -1150,7 +1152,7 @@ public class YsmModelRuntime implements AutoCloseable {
         for (Tag entryTag : tags) {
             if (!(entryTag instanceof CompoundTag entry))
                 continue;
-            String json = new String(entry.getByteArray("data").orElse(new byte[0]), StandardCharsets.UTF_8);
+            String json = new String(entry.getByteArray("data"), StandardCharsets.UTF_8);
             if (json.isBlank())
                 continue;
             Matcher readMatcher = MOLANG_VARIABLE.matcher(json);
@@ -1435,7 +1437,7 @@ public class YsmModelRuntime implements AutoCloseable {
             result.animationPlayer.registerControllers(readAnimationControllers(previewInput, engine,
                     (path, diagnostic) -> result.recordControllerDiagnostic(controllerDiagnostic(
                             result.modelKey, result.encryptedSource, path, diagnostic)), result.controllerSources));
-            result.functions.load(previewInput.getListOrEmpty("functions"));
+            result.functions.load(NbtDefaults.getListOrEmpty(previewInput, "functions"));
             result.animationPlayer.registerFunctionEventControllers(result.functions.controllerEventNames());
             if (!defaultAnimationSignature.isEmpty()) {
                 result.loadDefaultAnimations(previewInput, engine);
@@ -1743,7 +1745,7 @@ public class YsmModelRuntime implements AutoCloseable {
         subEntityInstances.close();
         for (Tag value : functionInput) {
             if (value instanceof CompoundTag entry) {
-                entry.getByteArray("data").ifPresent(bytes -> java.util.Arrays.fill(bytes, (byte) 0));
+                NbtDefaults.findByteArray(entry, "data").ifPresent(bytes -> java.util.Arrays.fill(bytes, (byte) 0));
             }
         }
         functionInput.clear();
@@ -1754,12 +1756,12 @@ public class YsmModelRuntime implements AutoCloseable {
         }
         if (previewInput != null) {
             for (String key : List.of("main_model", "arm_model")) {
-                previewInput.getByteArray(key).ifPresent(bytes -> java.util.Arrays.fill(bytes, (byte) 0));
+                NbtDefaults.findByteArray(previewInput, key).ifPresent(bytes -> java.util.Arrays.fill(bytes, (byte) 0));
             }
             for (String key : List.of("animations", "animation_controllers", "functions", "action_schemas")) {
-                for (Tag value : previewInput.getListOrEmpty(key)) {
+                for (Tag value : NbtDefaults.getListOrEmpty(previewInput, key)) {
                     if (value instanceof CompoundTag entry) {
-                        entry.getByteArray("data").ifPresent(bytes -> java.util.Arrays.fill(bytes, (byte) 0));
+                        NbtDefaults.findByteArray(entry, "data").ifPresent(bytes -> java.util.Arrays.fill(bytes, (byte) 0));
                     }
                 }
             }
@@ -1801,18 +1803,18 @@ public class YsmModelRuntime implements AutoCloseable {
     }
 
     private void readSubEntities(CompoundTag tag, byte[] fallbackTexture, YsmModelData data) {
-        for (Tag entityTag : tag.getListOrEmpty("sub_entities")) {
+        for (Tag entityTag : NbtDefaults.getListOrEmpty(tag, "sub_entities")) {
             if (!(entityTag instanceof CompoundTag subTag))
                 continue;
             try {
-                YsmGeometry direct = data == null ? null : data.geometry(subTag.getStringOr("model_path", ""));
+                YsmGeometry direct = data == null ? null : data.geometry(subTag.getString("model_path"));
                 addSubEntity(direct == null ? YsmSubEntity.fromNbt(owner, subTag, fallbackTexture)
                         : YsmSubEntity.fromGeometry(owner, subTag, fallbackTexture, direct));
             } catch (Exception e) {
                 if (encryptedSource) {
                     FiguraMod.LOGGER.warn("Encrypted YSM operation failed: runtime/subentity");
                 } else {
-                    FiguraMod.LOGGER.warn("Failed to load YSM sub entity {} from {}", subTag.getStringOr("id", "sub_entity"), modelKey, e);
+                    FiguraMod.LOGGER.warn("Failed to load YSM sub entity {} from {}", NbtDefaults.getStringOr(subTag, "id", "sub_entity"), modelKey, e);
                 }
             }
         }

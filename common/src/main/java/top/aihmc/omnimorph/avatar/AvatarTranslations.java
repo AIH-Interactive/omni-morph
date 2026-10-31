@@ -20,8 +20,8 @@ public final class AvatarTranslations implements AutoCloseable {
         Map<String, Map<String, String>> loaded = new LinkedHashMap<>();
         int invalid = 0;
         for (Tag value : entries) {
-            if (value instanceof CompoundTag entry && !add(loaded, entry.getStringOr("path", ""),
-                    entry.getByteArray("data").orElse(new byte[0]))) {
+            if (value instanceof CompoundTag entry && !add(loaded, entry.getString("path"),
+                    entry.getByteArray("data"))) {
                 invalid++;
             }
         }

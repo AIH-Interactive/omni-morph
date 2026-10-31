@@ -1,6 +1,5 @@
 package org.figuramc.figura.utils;
 
-import com.mojang.blaze3d.platform.Window;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.phys.Vec3;
@@ -75,7 +74,7 @@ public class MathUtils {
         Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
 
         FiguraMat3 transformMatrix = FiguraMat3.of().set(new Matrix3f().rotation(camera.rotation()));
-        Vec3 pos = camera.position();
+        Vec3 pos = camera.getPosition();
         transformMatrix.invert();
 
         FiguraVec3 ret = vec.copy();
@@ -93,16 +92,13 @@ public class MathUtils {
         transformMatrix.scale(-1, 1,-1);
         transformMatrix.invert();
 
-        Vec3 camPos = camera.position();
+        Vec3 camPos = camera.getPosition();
         FiguraVec3 posDiff = worldSpace.copy().subtract(camPos.x, camPos.y, camPos.z);
         Vector3f camSpace = posDiff.asVec3f();
         transformMatrix.transform(camSpace);
 
         Vector4f projectiveCamSpace = new Vector4f(camSpace, 1f);
-        float fov = camera.getFov();
-        Window window = minecraft.getWindow();
-        float aspectRatio = (float) window.getWidth() / (float) window.getHeight();
-        Matrix4f projMat = new Matrix4f().setPerspective((float) Math.toRadians(fov), aspectRatio, Camera.PROJECTION_Z_NEAR, minecraft.options.getEffectiveRenderDistance() * 16f * 4f);
+        Matrix4f projMat = minecraft.gameRenderer.getProjectionMatrix(((GameRendererAccessor) minecraft.gameRenderer).figura$getFov(camera, minecraft.getTimer().getGameTimeDeltaPartialTick(false), true));
         projMat.transform(projectiveCamSpace);
         float w = projectiveCamSpace.w();
 

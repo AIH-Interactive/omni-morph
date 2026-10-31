@@ -3,16 +3,16 @@ package top.aihmc.omnimorph.gui.widgets;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.utils.FiguraIdentifier;
 import org.figuramc.figura.utils.FiguraText;
 
 /** Source is independent of model format and the catalog's public/private visibility. */
 public final class ModelResourceBadges {
-    private static final Identifier LOCAL = new FiguraIdentifier("textures/gui/wardrobe_source_local.png");
-    private static final Identifier CLOUD = new FiguraIdentifier("textures/gui/wardrobe_source_cloud.png");
-    private static final Identifier FIGURA = new FiguraIdentifier("textures/gui/wardrobe_type_figura.png");
-    private static final Identifier YSM = new FiguraIdentifier("textures/gui/wardrobe_type_ysm.png");
+    private static final ResourceLocation LOCAL = FiguraIdentifier.of("textures/gui/wardrobe_source_local.png");
+    private static final ResourceLocation CLOUD = FiguraIdentifier.of("textures/gui/wardrobe_source_cloud.png");
+    private static final ResourceLocation FIGURA = FiguraIdentifier.of("textures/gui/wardrobe_type_figura.png");
+    private static final ResourceLocation YSM = FiguraIdentifier.of("textures/gui/wardrobe_type_ysm.png");
 
     private ModelResourceBadges() {}
 

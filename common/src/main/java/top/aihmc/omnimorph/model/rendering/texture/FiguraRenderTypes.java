@@ -15,9 +15,9 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.rendertype.*;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.TriState;
-import net.minecraft.util.Util;
+import net.minecraft.Util;
 import org.figuramc.figura.utils.FiguraIdentifier;
 
 import java.util.Optional;
@@ -53,18 +53,18 @@ public enum FiguraRenderTypes {
 
     BLURRY(FiguraRenderType.BLURRY);
 
-    private final Function<Identifier, RenderType> func;
+    private final Function<ResourceLocation, RenderType> func;
     private final boolean texture, offset;
 
-    FiguraRenderTypes(Function<Identifier, RenderType> func) {
+    FiguraRenderTypes(Function<ResourceLocation, RenderType> func) {
         this(func, true);
     }
 
-    FiguraRenderTypes(Function<Identifier, RenderType> func, boolean texture) {
+    FiguraRenderTypes(Function<ResourceLocation, RenderType> func, boolean texture) {
         this(func, texture, true);
     }
 
-    FiguraRenderTypes(Function<Identifier, RenderType> func, boolean texture, boolean offset) {
+    FiguraRenderTypes(Function<ResourceLocation, RenderType> func, boolean texture, boolean offset) {
         this.func = func;
         this.texture = texture;
         this.offset = offset;
@@ -74,7 +74,7 @@ public enum FiguraRenderTypes {
         return offset;
     }
 
-    public RenderType get(Identifier id) {
+    public RenderType get(ResourceLocation id) {
         if (!texture)
             return func.apply(id);
 
@@ -95,7 +95,7 @@ public enum FiguraRenderTypes {
                         .createRenderSetup()
         );
 
-        private static final BiFunction<Identifier, Boolean, RenderType> CUTOUT_EMISSIVE_SOLID = Util.memoize(
+        private static final BiFunction<ResourceLocation, Boolean, RenderType> CUTOUT_EMISSIVE_SOLID = Util.memoize(
                 (texture, affectsOutline) ->
                         new RenderType("figura_cutout_emissive_solid",
                                 RenderSetup.builder(RenderPipelines.BEACON_BEAM_TRANSLUCENT)
@@ -110,7 +110,7 @@ public enum FiguraRenderTypes {
         );
 
 
-        public static final Function<Identifier, RenderType> TEXTURED_PORTAL = Util.memoize(
+        public static final Function<ResourceLocation, RenderType> TEXTURED_PORTAL = Util.memoize(
                 texture -> new RenderType(
                         "figura_textured_portal",
                         RenderSetup.builder(RenderPipelines.END_GATEWAY)
@@ -122,7 +122,7 @@ public enum FiguraRenderTypes {
                 )
         );
 
-        public static final Function<Identifier, RenderType> BLURRY = Util.memoize(
+        public static final Function<ResourceLocation, RenderType> BLURRY = Util.memoize(
                 texture -> new RenderType(
                         "figura_blurry",
                         RenderSetup.builder(RenderPipelines.ENTITY_TRANSLUCENT)
@@ -143,7 +143,7 @@ public enum FiguraRenderTypes {
                 )
         );
 
-        public static final Function<Identifier, RenderType> TEXTURED_GLINT = Util.memoize(
+        public static final Function<ResourceLocation, RenderType> TEXTURED_GLINT = Util.memoize(
                 texture -> new RenderType(
                         "figura_textured_glint_direct",
                         RenderSetup.builder(RenderPipelines.GLINT)
@@ -158,6 +158,6 @@ public enum FiguraRenderTypes {
     public static class FiguraRenderPipelines extends RenderPipelines {
         protected static RenderPipeline.Snippet FIGURA_SOLID_SNIPPET = RenderPipeline.builder(MATRICES_FOG_SNIPPET, GLOBALS_SNIPPET).withVertexShader("core/rendertype_lines").withFragmentShader("core/rendertype_lines").withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT)).withDepthStencilState(DepthStencilState.DEFAULT).withCull(false).withVertexFormat(DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.QUADS).buildSnippet();
 
-        public static RenderPipeline FIGURA_SOLID = register(RenderPipeline.builder(FIGURA_SOLID_SNIPPET).withLocation(new FiguraIdentifier("pipeline/solid")).build());
+        public static RenderPipeline FIGURA_SOLID = register(RenderPipeline.builder(FIGURA_SOLID_SNIPPET).withLocation(FiguraIdentifier.of("pipeline/solid")).build());
     }
 }

@@ -39,11 +39,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FontDescription;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.Style;
-import net.minecraft.resources.Identifier;
-import net.minecraft.util.ARGB;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.FastColor;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
-import net.minecraft.util.Util;
+import net.minecraft.Util;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.phys.Vec3;
@@ -83,11 +83,11 @@ public final class UIHelper {
 
     // -- Variables -- // 
 
-    public static final Identifier OUTLINE_FILL = new FiguraIdentifier("textures/gui/outline_fill.png");
-    public static final Identifier OUTLINE = new FiguraIdentifier("textures/gui/outline.png");
-    public static final Identifier TOOLTIP = new FiguraIdentifier("textures/gui/tooltip.png");
-    public static final Identifier UI_FONT = new FiguraIdentifier("ui");
-    public static final Identifier SPECIAL_FONT = new FiguraIdentifier("special");
+    public static final ResourceLocation OUTLINE_FILL = FiguraIdentifier.of("textures/gui/outline_fill.png");
+    public static final ResourceLocation OUTLINE = FiguraIdentifier.of("textures/gui/outline.png");
+    public static final ResourceLocation TOOLTIP = FiguraIdentifier.of("textures/gui/tooltip.png");
+    public static final ResourceLocation UI_FONT = FiguraIdentifier.of("ui");
+    public static final ResourceLocation SPECIAL_FONT = FiguraIdentifier.of("special");
 
     public static final Component UP_ARROW = Component.literal("^").withStyle(Style.EMPTY.withFont(new FontDescription.Resource(UIHelper.UI_FONT)));
     public static final Component DOWN_ARROW = Component.literal("V").withStyle(Style.EMPTY.withFont(new FontDescription.Resource(UIHelper.UI_FONT)));
@@ -307,11 +307,11 @@ public final class UIHelper {
         GlStateManager._blendFuncSeparate(770, 771, 1, 0);
     }
 
-    public static void blit(GuiGraphicsExtractor gui, int x, int y, int width, int height, Identifier texture) {
+    public static void blit(GuiGraphicsExtractor gui, int x, int y, int width, int height, ResourceLocation texture) {
         gui.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 0f, 0f, width, height, 1, 1, 1, 1);
     }
 
-    public static void renderAnimatedBackground(GuiGraphicsExtractor gui, Identifier texture, float x, float y, float width, float height, float textureWidth, float textureHeight, double speed, float delta) {
+    public static void renderAnimatedBackground(GuiGraphicsExtractor gui, ResourceLocation texture, float x, float y, float width, float height, float textureWidth, float textureHeight, double speed, float delta) {
         if (speed != 0) {
             double d = (FiguraMod.ticks + delta) * speed;
             x -= d % textureWidth;
@@ -329,7 +329,7 @@ public final class UIHelper {
         renderBackgroundTexture(gui, texture, x, y, width, height, textureWidth, textureHeight);
     }
 
-    public static void renderBackgroundTexture(GuiGraphicsExtractor gui, Identifier texture, float x, float y, float width, float height, float textureWidth, float textureHeight) {
+    public static void renderBackgroundTexture(GuiGraphicsExtractor gui, ResourceLocation texture, float x, float y, float width, float height, float textureWidth, float textureHeight) {
         float u1 = width / textureWidth;
         float v1 = height / textureHeight;
         quad(gui, gui.pose(), x, y, width, height, -999f, 0f, u1, 0f, v1, texture);
@@ -349,11 +349,11 @@ public final class UIHelper {
         gui.fill(x + 1, y + height - 1, x + width - 1, y + height, color);
     }
 
-    public static void blitSliced(GuiGraphicsExtractor gui, int x, int y, int width, int height, Identifier texture) {
+    public static void blitSliced(GuiGraphicsExtractor gui, int x, int y, int width, int height, ResourceLocation texture) {
         blitSliced(gui, x, y, width, height, 0f, 0f, 15, 15, 15, 15, texture);
     }
 
-    public static void blitSliced(GuiGraphicsExtractor gui, int x, int y, int width, int height, float u, float v, int regionWidth, int regionHeight, int textureWidth, int textureHeight, Identifier texture) {
+    public static void blitSliced(GuiGraphicsExtractor gui, int x, int y, int width, int height, float u, float v, int regionWidth, int regionHeight, int textureWidth, int textureHeight, ResourceLocation texture) {
 
         Matrix3x2f pose = gui.pose();
 
@@ -383,11 +383,11 @@ public final class UIHelper {
 
     }
 
-    public static void renderHalfTexture(GuiGraphicsExtractor gui, int x, int y, int width, int height, int textureWidth, Identifier texture) {
+    public static void renderHalfTexture(GuiGraphicsExtractor gui, int x, int y, int width, int height, int textureWidth, ResourceLocation texture) {
         renderHalfTexture(gui, x, y, width, height, 0f, 0f, textureWidth, 1, textureWidth, 1, texture);
     }
 
-    public static void renderHalfTexture(GuiGraphicsExtractor gui, int x, int y, int width, int height, float u, float v, int regionWidth, int regionHeight, int textureWidth, int textureHeight, Identifier texture) {
+    public static void renderHalfTexture(GuiGraphicsExtractor gui, int x, int y, int width, int height, float u, float v, int regionWidth, int regionHeight, int textureWidth, int textureHeight, ResourceLocation texture) {
         enableBlend();
 
         // left
@@ -404,7 +404,7 @@ public final class UIHelper {
         gui.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, width, height, z);
     }
 
-    private static void quad(GuiGraphicsExtractor gui, Matrix3x2f pose, float x, float y, float width, float height, float u, float v, float regionWidth, float regionHeight, int textureWidth, int textureHeight, @Nullable Identifier texture) {
+    private static void quad(GuiGraphicsExtractor gui, Matrix3x2f pose, float x, float y, float width, float height, float u, float v, float regionWidth, float regionHeight, int textureWidth, int textureHeight, @Nullable ResourceLocation texture) {
         float u0 = u / textureWidth;
         float v0 = v / textureHeight;
         float u1 = (u + regionWidth) / textureWidth;
@@ -412,7 +412,7 @@ public final class UIHelper {
         quad(gui, pose, x, y, width, height, 0f, u0, u1, v0, v1, texture);
     }
 
-    private static void quad(GuiGraphicsExtractor gui, Matrix3x2f pose, float x, float y, float width, float height, float z, float u0, float u1, float v0, float v1, @Nullable Identifier texture) {
+    private static void quad(GuiGraphicsExtractor gui, Matrix3x2f pose, float x, float y, float width, float height, float z, float u0, float u1, float v0, float v1, @Nullable ResourceLocation texture) {
         float x1 = x + width;
         float y1 = y + height;
 
@@ -616,7 +616,7 @@ public final class UIHelper {
     }
 
     public static int adjustColor(int argbColor) {
-        return (argbColor & -67108864) == 0 ? ARGB.opaque(argbColor) : argbColor;
+        return (argbColor & -67108864) == 0 ? FastColor.ARGB32.opaque(argbColor) : argbColor;
     }
 
     public static Runnable openURL(String url) {
@@ -652,7 +652,7 @@ public final class UIHelper {
         if (style == null || style.getHoverEvent() == null)
             return;
 
-        Component text = style.getHoverEvent() instanceof HoverEvent.ShowText ? ((HoverEvent.ShowText) style.getHoverEvent()).value() : null;
+        Component text = style.getHoverEvent() != null ? style.getHoverEvent().getValue(HoverEvent.Action.SHOW_TEXT) : null;
         if (text != null)
             setTooltip(text);
     }

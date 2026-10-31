@@ -2,12 +2,12 @@ package top.aihmc.omnimorph.model.ysm;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ItemUseAnimation;
+import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.item.Items;
 
 import java.util.Locale;
@@ -25,8 +25,8 @@ public final class YsmHandItemType {
         if (item == Items.TRIDENT || compatTag(stack, "tridents")) {
             return expected.equals("spear") || expected.equals("trident");
         }
-        Identifier id = BuiltInRegistries.ITEM.getKey(item);
-        if (stack.getUseAnimation() == ItemUseAnimation.SPEAR && id != null
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+        if (stack.getUseAnimation() == UseAnim.SPEAR && id != null
                 && id.getNamespace().equals("minecraft") && id.getPath().endsWith("_spear")) {
             return expected.equals("lance");
         }
@@ -79,6 +79,6 @@ public final class YsmHandItemType {
 
     private static boolean compatTag(ItemStack stack, String name) {
         // This namespace comes from the current reference ItemTagsConstants, not this mod's ID.
-        return stack.is(TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath("sparkle_morpher", name)));
+        return stack.is(TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath("sparkle_morpher", name)));
     }
 }

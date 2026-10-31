@@ -4,7 +4,7 @@ import net.minecraft.client.renderer.entity.layers.EquipmentLayerRenderer;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.EquipmentAssetManager;
 import net.minecraft.client.resources.model.EquipmentClientInfo;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
@@ -17,7 +17,7 @@ public interface EquipmentLayerRendererAccessor {
     EquipmentAssetManager figura$getAssetsManager();
 
     @Accessor("layerTextureLookup")
-    Function<EquipmentLayerRenderer.LayerTextureKey, Identifier> layerTextureLookup();
+    Function<EquipmentLayerRenderer.LayerTextureKey, ResourceLocation> layerTextureLookup();
 
     @Accessor("trimSpriteLookup")
     Function<EquipmentLayerRenderer.TrimSpriteKey, TextureAtlasSprite> trimSpriteLookup();

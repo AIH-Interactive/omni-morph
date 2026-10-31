@@ -7,7 +7,7 @@ import net.minecraft.SharedConstants;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.Bootstrap;
 import org.figuramc.figura.math.matrix.FiguraMat3;
 import org.figuramc.figura.math.matrix.FiguraMat4;
@@ -73,7 +73,7 @@ public final class GpuAccelerationSmokeTest {
             }
         }
         RenderPipeline original = RenderPipelines.ENTITY_CUTOUT_CULL;
-        RenderPipeline accelerated = GpuShaderProgram.pipeline(original, Identifier.parse("omni-morph:gpu_contract"));
+        RenderPipeline accelerated = GpuShaderProgram.pipeline(original, ResourceLocation.parse("omni-morph:gpu_contract"));
         require(accelerated.getVertexFormat().getVertexSize() == GpuBatchData.VERTEX_BYTES, "actual VertexFormat stride");
         require(accelerated.isCull() == original.isCull()
                 && accelerated.getColorTargetState().equals(original.getColorTargetState())
@@ -176,7 +176,7 @@ public final class GpuAccelerationSmokeTest {
         require(service.tryDraw(stale, CONTEXT) == GpuAccelerationBackend.DrawResult.STALE && device.uploads == 0,
                 "old frame cannot allocate or draw");
         DrawBatch translucent = batch(service, owner, quad(1), 0,
-                RenderTypes.entityTranslucent(Identifier.parse("omni-morph:contract_texture")));
+                RenderTypes.entityTranslucent(ResourceLocation.parse("omni-morph:contract_texture")));
         require(service.tryDraw(translucent, CONTEXT) == GpuAccelerationBackend.DrawResult.UNSUPPORTED,
                 "H4 unsupported transparent sorting stays Java");
         var five = new MeshHandle.Influences(new int[]{0, 1, 2, 3, 4}, new float[]{1, 1, 1, 1, 1});
@@ -711,11 +711,11 @@ public final class GpuAccelerationSmokeTest {
     }
 
     private static RenderType material() {
-        return RenderTypes.entityCutout(Identifier.parse("omni-morph:contract_texture"));
+        return RenderTypes.entityCutout(ResourceLocation.parse("omni-morph:contract_texture"));
     }
 
     private static DrawBatch batch(AccelerationService service, AccelerationOwner owner, MeshHandle mesh, double translation, RenderType material) {
-        var semantics = new DrawSemantics(material, Identifier.parse("omni-morph:contract_texture"), DrawSemantics.Layer.PRIMARY,
+        var semantics = new DrawSemantics(material, ResourceLocation.parse("omni-morph:contract_texture"), DrawSemantics.Layer.PRIMARY,
                 "world", 0, mesh.faceCount(), 0x00a000a0, 0x000a0000, 0.5f, 1, 1, 1, 0, true);
         return new DrawBatch(service.capture(owner, "world"), mesh,
                 new PoseSnapshot(FiguraMat4.of().translate(translation, 0, 0), FiguraMat3.of()), semantics);

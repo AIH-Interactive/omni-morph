@@ -1,5 +1,7 @@
 package org.figuramc.figura.commands;
 
+import org.figuramc.figura.utils.NbtDefaults;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -76,7 +78,7 @@ class DebugCommand {
                     FiguraText.of("command.debug.success")
                             .append(" ")
                             .append(FiguraText.of("command.click_to_open")
-                                    .setStyle(Style.EMPTY.withClickEvent(new ClickEvent.OpenFile(targetPath.toString())).withUnderlined(true))
+                                    .setStyle(Style.EMPTY.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, targetPath.toString())).withUnderlined(true))
                             )
             );
             return 1;
@@ -274,36 +276,36 @@ class DebugCommand {
         JsonObject sizes = new JsonObject();
 
         // metadata
-        sizes.addProperty("metadata", parseSize(getBytesFromNbt(nbt.getCompoundOrEmpty("metadata"))));
+        sizes.addProperty("metadata", parseSize(getBytesFromNbt(nbt.getCompound("metadata"))));
 
         // models
-        CompoundTag modelsNbt = nbt.getCompoundOrEmpty("models");
-        ListTag childrenNbt = modelsNbt.getListOrEmpty("chld");
-        JsonObject models = parseListSize(childrenNbt, tag -> tag.getString("name").get());
+        CompoundTag modelsNbt = nbt.getCompound("models");
+        ListTag childrenNbt = NbtDefaults.getListOrEmpty(modelsNbt, "chld");
+        JsonObject models = parseListSize(childrenNbt, tag -> tag.getString("name"));
         sizes.add("models", models);
         sizes.addProperty("models_total", parseSize(getBytesFromNbt(modelsNbt)));
 
         // animations
-        ListTag animationsNbt = nbt.getListOrEmpty("animations");
+        ListTag animationsNbt = NbtDefaults.getListOrEmpty(nbt, "animations");
         JsonObject animations = parseListSize(animationsNbt, tag -> tag.getString("mdl") + "." + tag.getString("name"));
         sizes.add("animations", animations);
         sizes.addProperty("animations_total", parseSize(getBytesFromNbt(animationsNbt)));
 
         // textures
-        CompoundTag texturesNbt = nbt.getCompoundOrEmpty("textures");
-        CompoundTag textureSrc = texturesNbt.getCompoundOrEmpty("src");
+        CompoundTag texturesNbt = nbt.getCompound("textures");
+        CompoundTag textureSrc = texturesNbt.getCompound("src");
         JsonObject textures = parseCompoundSize(textureSrc);
         sizes.add("textures", textures);
         sizes.addProperty("textures_total", parseSize(getBytesFromNbt(texturesNbt)));
 
         // scripts
-        CompoundTag scriptsNbt = nbt.getCompoundOrEmpty("scripts");
+        CompoundTag scriptsNbt = nbt.getCompound("scripts");
         JsonElement scripts = parseCompoundSize(scriptsNbt);
         sizes.add("scripts", scripts);
         sizes.addProperty("scripts_total", parseSize(getBytesFromNbt(scriptsNbt)));
 
         // sounds
-        CompoundTag soundsNbt = nbt.getCompoundOrEmpty("sounds");
+        CompoundTag soundsNbt = nbt.getCompound("sounds");
         JsonObject sounds = parseCompoundSize(soundsNbt);
         sizes.add("sounds", sounds);
         sizes.addProperty("sounds_total", parseSize(getBytesFromNbt(soundsNbt)));
@@ -350,7 +352,7 @@ class DebugCommand {
         JsonObject target = new JsonObject();
         HashMap<String, Integer> sizesMap = new HashMap<>();
 
-        for (String key : compoundNbt.keySet())
+        for (String key : compoundNbt.getAllKeys())
             sizesMap.put(key, getBytesFromNbt(compoundNbt.get(key)));
         insertJsonSortedData(sizesMap, target);
 
@@ -361,7 +363,7 @@ class DebugCommand {
         if (tag instanceof CompoundTag compoundTag) {
             JsonObject obj = new JsonObject();
             HashMap<String, Integer> sizesMap = new HashMap<>();
-            for (String key : compoundTag.keySet()) {
+            for (String key : compoundTag.getAllKeys()) {
                 JsonElement value = parseTagRecursive(compoundTag.get(key));
                 if (value instanceof JsonPrimitive size && size.isNumber())
                     sizesMap.put(key, size.getAsInt());

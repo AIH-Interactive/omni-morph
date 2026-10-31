@@ -426,7 +426,7 @@ public class FiguraLuaRuntime {
             }
         } else {
             for (Tag name : autoScripts) {
-                initializeScript(name.asString().get());
+                initializeScript(name.getAsString());
             }
         }
     }

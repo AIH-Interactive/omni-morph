@@ -2,7 +2,7 @@ package top.aihmc.omnimorph.render.acceleration;
 
 import net.minecraft.SharedConstants;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.Bootstrap;
 import org.figuramc.figura.math.matrix.FiguraMat3;
 import org.figuramc.figura.math.matrix.FiguraMat4;
@@ -20,7 +20,7 @@ public final class GpuRigidDataSmokeTest {
         Bootstrap.bootStrap();
         var service = new AccelerationService();
         var owner = new AccelerationOwner();
-        var material = RenderTypes.entityTranslucent(Identifier.parse("omni-morph:rigid_contract"));
+        var material = RenderTypes.entityTranslucent(ResourceLocation.parse("omni-morph:rigid_contract"));
         double[] vertices = new double[4 * MeshHandle.STRIDE];
         for (int vertex = 0; vertex < 4; vertex++) {
             vertices[vertex * MeshHandle.STRIDE + 3] = 1;
@@ -31,7 +31,7 @@ public final class GpuRigidDataSmokeTest {
         long[] order = new long[130];
         for (int index = 0; index < order.length; index++) {
             int pose = index % 65;
-            var semantics = new DrawSemantics(material, Identifier.parse("omni-morph:rigid_contract"),
+            var semantics = new DrawSemantics(material, ResourceLocation.parse("omni-morph:rigid_contract"),
                     DrawSemantics.Layer.PRIMARY, "world", 0, 1, 0x00f000a0, 0, 1, 1, 1, 1, pose * .001, true);
             batches.add(new DrawBatch(service.capture(owner, "world"), mesh,
                     new PoseSnapshot(FiguraMat4.of().translate(pose, 0, 0), FiguraMat3.of()), semantics));
@@ -349,7 +349,7 @@ public final class GpuRigidDataSmokeTest {
     private static DrawBatch modelBatch(AccelerationService service, AccelerationOwner owner,
                                         net.minecraft.client.renderer.rendertype.RenderType material, MeshHandle mesh,
                                         PoseSnapshot pose, int light, float red) {
-        var semantics = new DrawSemantics(material, Identifier.parse("omni-morph:rigid_contract"),
+        var semantics = new DrawSemantics(material, ResourceLocation.parse("omni-morph:rigid_contract"),
                 DrawSemantics.Layer.PRIMARY, "world", 0, mesh.faceCount(), light, 0, red, 1, 1, 1, 0, true);
         return new DrawBatch(service.capture(owner, "world"), mesh, pose, semantics);
     }
@@ -417,7 +417,7 @@ public final class GpuRigidDataSmokeTest {
 
     private static void testStaticValidationReuse(AccelerationService service, AccelerationOwner owner,
                                                   net.minecraft.client.renderer.rendertype.RenderType material) {
-        var semantics = new DrawSemantics(material, Identifier.parse("omni-morph:static_validation"),
+        var semantics = new DrawSemantics(material, ResourceLocation.parse("omni-morph:static_validation"),
                 DrawSemantics.Layer.PRIMARY, "world", 0, 1, 0x00f000a0, 0, 1, 1, 1, 1, 0, true);
         var mesh = new MeshHandle(quad(1), 4);
         var identity = new PoseSnapshot(FiguraMat4.of(), FiguraMat3.of());

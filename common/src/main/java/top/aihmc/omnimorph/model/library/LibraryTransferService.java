@@ -341,8 +341,8 @@ public final class LibraryTransferService {
 
     private static Package parse(LibraryModels.Model model, InputStream input, String hash, String purpose) throws IOException {
         CompoundTag nbt = NbtIo.readCompressed(input, NbtAccounter.create(256L * 1024 * 1024));
-        boolean ysm = nbt.getCompoundOrEmpty("metadata").getStringOr("format", "").equals("ysm-native");
-        boolean encrypted = YsmSourcePayload.isEncrypted(nbt.getCompoundOrEmpty("ysm"));
+        boolean ysm = nbt.getCompound("metadata").getString("format").equals("ysm-native");
+        boolean encrypted = YsmSourcePayload.isEncrypted(nbt.getCompound("ysm"));
         if (ysm != !model.modelType().equals("FIGURA") || encrypted != model.modelType().equals("YSM_ENCRYPTED")) {
             throw new IOException("DISTRIBUTION_TYPE_MISMATCH");
         }

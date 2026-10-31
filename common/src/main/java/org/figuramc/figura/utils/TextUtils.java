@@ -10,7 +10,6 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.StringSplitter;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.TextAlignment;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.*;
@@ -552,20 +551,18 @@ public class TextUtils {
         public int apply(int width) {
             return integerFunction.apply(width);
         }
-
-        public TextAlignment toVanilla() {
-            return switch (this) {
-                case LEFT -> TextAlignment.LEFT;
-                case RIGHT -> TextAlignment.RIGHT;
-                case CENTER -> TextAlignment.CENTER;
-            };
-        }
     }
 
-    public record FiguraClickEvent(Runnable onClick) implements ClickEvent {
-        @Override
-        public @NotNull Action action() {
-            return Action.SUGGEST_COMMAND;
+    public static class FiguraClickEvent extends ClickEvent {
+        private final Runnable onClick;
+
+        public FiguraClickEvent(Runnable onClick) {
+            super(Action.SUGGEST_COMMAND, "");
+            this.onClick = onClick;
+        }
+
+        public Runnable onClick() {
+            return onClick;
         }
     }
 }

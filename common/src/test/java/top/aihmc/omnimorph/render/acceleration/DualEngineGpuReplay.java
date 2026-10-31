@@ -7,7 +7,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.math.matrix.FiguraMat3;
 import org.figuramc.figura.math.matrix.FiguraMat4;
 import top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest;
@@ -86,7 +86,7 @@ public final class DualEngineGpuReplay {
             vertices[vertex * 9 + 3] = 1;
             vertices[vertex * 9 + 5] = 1;
         }
-        var draw = new DrawSemantics(material, Identifier.parse("omni-morph:replay"), DrawSemantics.Layer.PRIMARY,
+        var draw = new DrawSemantics(material, ResourceLocation.parse("omni-morph:replay"), DrawSemantics.Layer.PRIMARY,
                 "world", 0, 1, 0, 0, 1, 1, 1, 1, 0, true);
         return new DrawBatch(service.capture(owner, "world"), new MeshHandle(vertices, 4),
                 new PoseSnapshot(FiguraMat4.of(), FiguraMat3.of()), draw);

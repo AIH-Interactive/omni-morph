@@ -9,7 +9,7 @@ import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.player.AvatarRenderer;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
 import top.aihmc.omnimorph.model.ysm.YsmModelRuntime;
@@ -41,7 +41,7 @@ public abstract class AvatarRendererMixin {
      */
     @Inject(method = "renderRightHand", at = @At("HEAD"), cancellable = true)
     private void ysm$renderRightHand(PoseStack poseStack, SubmitNodeCollector collector,
-                                      int packedLight, Identifier skinTexture, boolean renderSleeve,
+                                      int packedLight, ResourceLocation skinTexture, boolean renderSleeve,
                                       CallbackInfo ci) {
         if (ysm$renderArm(poseStack, collector, packedLight, false))
             ci.cancel();
@@ -52,7 +52,7 @@ public abstract class AvatarRendererMixin {
      */
     @Inject(method = "renderLeftHand", at = @At("HEAD"), cancellable = true)
     private void ysm$renderLeftHand(PoseStack poseStack, SubmitNodeCollector collector,
-                                     int packedLight, Identifier skinTexture, boolean renderSleeve,
+                                     int packedLight, ResourceLocation skinTexture, boolean renderSleeve,
                                      CallbackInfo ci) {
         if (ysm$renderArm(poseStack, collector, packedLight, true))
             ci.cancel();
@@ -76,7 +76,7 @@ public abstract class AvatarRendererMixin {
         try {
             // Ensure the YSM texture is uploaded and get its RenderType
             ysm.texture().uploadIfDirty(false, false);
-            Identifier texLocation = ysm.texture().getLocation();
+            ResourceLocation texLocation = ysm.texture().getLocation();
             RenderType renderType = RenderTypes.entityCutout(texLocation);
 
             // Copy the vanilla PoseStack state into a fresh stack.

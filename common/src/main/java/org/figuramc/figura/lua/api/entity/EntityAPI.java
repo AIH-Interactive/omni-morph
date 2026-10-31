@@ -4,18 +4,14 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.Identifier;
-import net.minecraft.server.permissions.PermissionSet;
-import net.minecraft.server.permissions.Permissions;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.entity.vehicle.ContainerEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -182,7 +178,7 @@ public class EntityAPI<T extends Entity> {
     @LuaMethodDoc("entity.get_dimension_name")
     public String getDimensionName() {
         checkEntity();
-        return getLevel().dimension().identifier().toString();
+        return getLevel().dimension().location().toString();
     }
 
     @LuaWhitelist
@@ -375,9 +371,8 @@ public class EntityAPI<T extends Entity> {
     @LuaMethodDoc("entity.get_nbt")
     public LuaTable getNbt() {
         checkEntity();
-        TagValueOutput tag = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, WorldAPI.getCurrentWorld().registryAccess());
-        entity.saveWithoutId(tag);
-        return (LuaTable) NbtToLua.convert(tag.buildResult());
+        CompoundTag tag = entity.saveWithoutId(new CompoundTag());
+        return (LuaTable) NbtToLua.convert(tag);
     }
 
     @LuaWhitelist
@@ -400,15 +395,10 @@ public class EntityAPI<T extends Entity> {
         checkEntity();
         // approx mapping check if it's correct laters
         if (entity instanceof Player p) {
-            PermissionSet permissionSet = p.permissions();
-            if (permissionSet.hasPermission(Permissions.COMMANDS_OWNER))
-                return 4;
-            if (permissionSet.hasPermission(Permissions.COMMANDS_ADMIN))
-                return 3;
-            if (permissionSet.hasPermission(Permissions.COMMANDS_GAMEMASTER))
-                return 2;
-            if (permissionSet.hasPermission(Permissions.COMMANDS_MODERATOR))
-                return 1;
+            for (int level = 4; level > 0; level--) {
+                if (p.hasPermissions(level))
+                    return level;
+            }
         }
         return 0;
     }
@@ -526,11 +516,11 @@ public class EntityAPI<T extends Entity> {
 
         EntityType<?> entityType;
         if (type != null) {
-            Identifier id = Identifier.tryParse(type);
+            ResourceLocation id = ResourceLocation.tryParse(type);
             if (id == null) {
                 throw new LuaError("Invalid entity type: " + type);
             }
-            entityType = BuiltInRegistries.ENTITY_TYPE.get(id).get().value();
+            entityType = BuiltInRegistries.ENTITY_TYPE.getHolder(id).get().value();
         } else {
             entityType = null;
         }

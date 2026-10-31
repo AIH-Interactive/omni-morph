@@ -1,10 +1,9 @@
 package org.figuramc.figura;
 
-import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
@@ -20,9 +19,6 @@ import org.figuramc.figura.entries.EntryPointManager;
 import org.figuramc.figura.font.Emojis;
 import org.figuramc.figura.lua.FiguraLuaPrinter;
 import org.figuramc.figura.lua.docs.FiguraDocsManager;
-import top.aihmc.omnimorph.mixin.gui.DebugScreenEntriesAccessor;
-import top.aihmc.omnimorph.mixin.MinecraftAccesor;
-import top.aihmc.omnimorph.gui.widgets.DebugEntryFigura;
 import org.figuramc.figura.permissions.PermissionManager;
 import org.figuramc.figura.resources.FiguraRuntimeResources;
 import top.aihmc.omnimorph.render.acceleration.HardwareAcceleration;
@@ -62,8 +58,8 @@ public class FiguraMod {
     public static Component splashText;
     public static boolean parseMessages = true;
     public static boolean processingKeybind;
-    public static KeyMapping.Category FIGURA_KEY_CATEGORY = new KeyMapping.Category(new FiguraIdentifier("keys"));
-    public static Identifier FIGURA_DEBUG_KEY = new Identifier(MOD_ID, "figura_debug_info");
+    public static final String FIGURA_KEY_CATEGORY = "key.category." + MOD_ID + ".keys";
+    public static ResourceLocation FIGURA_DEBUG_KEY = ResourceLocation.fromNamespaceAndPath(MOD_ID, "figura_debug_info");
 
     /* For some reason, the mod menu entrypoint (or something) is able to call this before the Config
     class can initialize, meaning Configs.DEBUG_MODE can be null when this is called.... Weird */
@@ -80,7 +76,6 @@ public class FiguraMod {
         CacheAvatarLoader.init();
         FiguraDocsManager.init();
         FiguraRuntimeResources.init();
-        DebugScreenEntriesAccessor.figura$invokeRegister(FIGURA_DEBUG_KEY, new DebugEntryFigura());
 
         GeckoLibCompat.init();
         SimpleVCCompat.init();
@@ -187,7 +182,7 @@ public class FiguraMod {
     public static void sendChatMessage(Component message) {
         if (Minecraft.getInstance().gui != null) {
             parseMessages = false;
-            Minecraft.getInstance().gui.getChat().addClientSystemMessage(TextUtils.replaceTabs(message));
+            Minecraft.getInstance().gui.getChat().addMessage(TextUtils.replaceTabs(message));
             parseMessages = true;
         } else {
             LOGGER.info(message.getString());
@@ -203,28 +198,28 @@ public class FiguraMod {
     // -- profiler -- //
 
     public static void pushProfiler(String name) {
-        ((MinecraftAccesor)Minecraft.getInstance()).figura$invokeGetMetricsRecorder().getProfiler().push(name);
+        Minecraft.getInstance().getProfiler().push(name);
     }
 
     public static void pushProfiler(Avatar avatar) {
-        ((MinecraftAccesor)Minecraft.getInstance()).figura$invokeGetMetricsRecorder().getProfiler().push(avatar.entityName.isBlank() ? avatar.owner.toString() : avatar.entityName);
+        Minecraft.getInstance().getProfiler().push(avatar.entityName.isBlank() ? avatar.owner.toString() : avatar.entityName);
     }
 
     public static void popPushProfiler(String name) {
-        ((MinecraftAccesor)Minecraft.getInstance()).figura$invokeGetMetricsRecorder().getProfiler().popPush(name);
+        Minecraft.getInstance().getProfiler().popPush(name);
     }
 
     public static void popProfiler() {
-        ((MinecraftAccesor)Minecraft.getInstance()).figura$invokeGetMetricsRecorder().getProfiler().pop();
+        Minecraft.getInstance().getProfiler().pop();
     }
 
     public static <T> T popReturnProfiler(T var) {
-        ((MinecraftAccesor)Minecraft.getInstance()).figura$invokeGetMetricsRecorder().getProfiler().pop();
+        Minecraft.getInstance().getProfiler().pop();
         return var;
     }
 
     public static void popProfiler(int times) {
-        var profiler = ((MinecraftAccesor)Minecraft.getInstance()).figura$invokeGetMetricsRecorder().getProfiler();
+        var profiler = Minecraft.getInstance().getProfiler();
         for (int i = 0; i < times; i++)
             profiler.pop();
     }

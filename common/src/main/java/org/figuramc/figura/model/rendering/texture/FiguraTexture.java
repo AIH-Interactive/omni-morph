@@ -17,7 +17,7 @@ import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.client.renderer.texture.SimpleTexture;
 import net.minecraft.client.renderer.texture.TextureContents;
 import net.minecraft.client.resources.metadata.texture.TextureMetadataSection;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
@@ -77,7 +77,7 @@ public class FiguraTexture extends SimpleTexture {
     private boolean blur;
 
     public FiguraTexture(Avatar owner, String name, byte[] data) {
-        super(new FiguraIdentifier("avatar_tex/" + owner.owner + "/" + UUID.randomUUID()));
+        super(FiguraIdentifier.of("avatar_tex/" + owner.owner + "/" + UUID.randomUUID()));
 
         // Read image from wrapper
         NativeImage image;
@@ -97,14 +97,14 @@ public class FiguraTexture extends SimpleTexture {
     }
 
     public FiguraTexture(Avatar owner, String name, int width, int height) {
-        super(new FiguraIdentifier("avatar_tex/" + owner.owner + "/" + UUID.randomUUID()));
+        super(FiguraIdentifier.of("avatar_tex/" + owner.owner + "/" + UUID.randomUUID()));
         this.nativeImageTexture = new NativeImage(width, height, true);
         this.name = name;
         this.owner = owner;
     }
 
     public FiguraTexture(Avatar owner, String name, NativeImage image) {
-        super(new FiguraIdentifier("avatar_tex/" + owner.owner + "/custom/" + UUID.randomUUID()));
+        super(FiguraIdentifier.of("avatar_tex/" + owner.owner + "/custom/" + UUID.randomUUID()));
         this.nativeImageTexture = image;
         this.name = name;
         this.owner = owner;
@@ -336,7 +336,7 @@ public class FiguraTexture extends SimpleTexture {
         return nativeImageTexture.getHeight();
     }
 
-    public Identifier getLocation() {
+    public ResourceLocation getLocation() {
         return this.resourceId();
     }
 

@@ -143,8 +143,8 @@ public final class CloudCosmeticSource {
 
     private Prepared prepare(LibraryTransferService.Package value, OutfitConfig.ResourceRef expected) {
         var model = value.model();
-        var header = value.nbt().getCompoundOrEmpty("metadata");
-        String headerKind = header.getStringOr("resource_kind", "");
+        var header = value.nbt().getCompound("metadata");
+        String headerKind = header.getString("resource_kind");
         if (!model.resourceKind().equals("ACCESSORY") || !headerKind.equals("ACCESSORY")
                 || !value.purpose().equals("preview")) {
             LOGGER.debug("cloud cosmetic package {} model_kind={} header_kind='{}' purpose={}",
@@ -158,7 +158,7 @@ public final class CloudCosmeticSource {
         }
         CosmeticMetadata metadata;
         try {
-            metadata = CosmeticMetadata.read(header.getStringOr("cosmetic_json", ""));
+            metadata = CosmeticMetadata.read(header.getString("cosmetic_json"));
         } catch (RuntimeException invalid) {
             LOGGER.debug("cloud cosmetic package {} has no readable cosmetic declaration", model.modelId());
             throw failure("COSMETIC_METADATA_MISMATCH");

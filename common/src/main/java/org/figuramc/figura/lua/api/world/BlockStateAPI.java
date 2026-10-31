@@ -1,11 +1,10 @@
 package org.figuramc.figura.lua.api.world;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.block.BlockStateModelSet;
-import net.minecraft.client.resources.model.geometry.BakedQuad;
-import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
-import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
+import net.minecraft.client.renderer.block.BlockRenderDispatcher;
+import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.commands.arguments.blocks.BlockStateParser;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -15,11 +14,9 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
-import net.minecraft.util.ProblemReporter;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.RenderShape;
@@ -27,7 +24,6 @@ import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.figuramc.figura.lua.LuaWhitelist;
@@ -129,13 +125,13 @@ public class BlockStateAPI {
     @LuaWhitelist
     @LuaMethodDoc("blockstate.is_translucent")
     public boolean isTranslucent() {
-        return blockState.propagatesSkylightDown();
+        return blockState.propagatesSkylightDown(WorldAPI.getCurrentWorld(), getBlockPos());
     }
 
     @LuaWhitelist
     @LuaMethodDoc("blockstate.get_opacity")
     public int getOpacity() {
-        return blockState.getLightDampening();
+        return blockState.getLightBlock(WorldAPI.getCurrentWorld(), getBlockPos());
     }
 
     @LuaWhitelist
@@ -171,7 +167,7 @@ public class BlockStateAPI {
     @LuaWhitelist
     @LuaMethodDoc("blockstate.get_comparator_output")
     public int getComparatorOutput() {
-        return blockState.getAnalogOutputSignal(WorldAPI.getCurrentWorld(), getBlockPos(), null);
+        return blockState.getAnalogOutputSignal(WorldAPI.getCurrentWorld(), getBlockPos());
     }
 
     @LuaWhitelist
@@ -233,13 +229,13 @@ public class BlockStateAPI {
     public List<String> getTags() {
         List<String> list = new ArrayList<>();
 
-        Registry<Block> registry = WorldAPI.getCurrentWorld().registryAccess().lookupOrThrow(Registries.BLOCK);
+        Registry<Block> registry = WorldAPI.getCurrentWorld().registryAccess().registryOrThrow(Registries.BLOCK);
         Optional<ResourceKey<Block>> key = registry.getResourceKey(blockState.getBlock());
 
         if (key.isEmpty())
             return list;
 
-        for (TagKey<Block> blockTagKey : registry.getOrThrow(key.get()).tags().toList())
+        for (TagKey<Block> blockTagKey : registry.getHolderOrThrow(key.get()).tags().toList())
             list.add(blockTagKey.location().toString());
 
         return list;
@@ -271,11 +267,11 @@ public class BlockStateAPI {
 
         sounds.put("pitch", snd.getPitch());
         sounds.put("volume", snd.getVolume());
-        sounds.put("break", snd.getBreakSound().location().toString());
-        sounds.put("fall", snd.getFallSound().location().toString());
-        sounds.put("hit", snd.getHitSound().location().toString());
-        sounds.put("place", snd.getPlaceSound().location().toString());
-        sounds.put("step", snd.getStepSound().location().toString());
+        sounds.put("break", snd.getBreakSound().getLocation().toString());
+        sounds.put("fall", snd.getFallSound().getLocation().toString());
+        sounds.put("hit", snd.getHitSound().getLocation().toString());
+        sounds.put("place", snd.getPlaceSound().getLocation().toString());
+        sounds.put("step", snd.getStepSound().getLocation().toString());
 
         return sounds;
     }
@@ -284,7 +280,7 @@ public class BlockStateAPI {
     @LuaMethodDoc("blockstate.get_fluid_tags")
     public List<String> getFluidTags() {
         List<String> list = new ArrayList<>();
-        for (TagKey<Fluid> fluidTagKey : blockState.getFluidState().typeHolder().tags().toList())
+        for (TagKey<Fluid> fluidTagKey : blockState.getFluidState().getTags().toList())
             list.add(fluidTagKey.location().toString());
         return list;
     }
@@ -295,11 +291,7 @@ public class BlockStateAPI {
         BlockEntity entity = WorldAPI.getCurrentWorld().getBlockEntity(getBlockPos());
         if (entity != null ){
             ItemStack stack = new ItemStack(entity.getBlockState().getBlock().asItem());
-            TagValueOutput output = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, WorldAPI.getCurrentWorld().registryAccess());
-            entity.saveCustomOnly(output);
-            entity.removeComponentsFromTag(output);
-            BlockItem.setBlockEntityData(stack, entity.getType(), output);
-            stack.applyComponents(entity.collectComponents());
+            entity.saveToItem(stack, WorldAPI.getCurrentWorld().registryAccess());
             LuaTable componentTable = (LuaTable) NbtToLua.convert(NbtToLua.convertToNbt(stack.getComponents()));
             LuaTable entityTable = (LuaTable) NbtToLua.convert(entity.saveWithoutMetadata(WorldAPI.getCurrentWorld().registryAccess()));
             LuaUtils.addLegacyNbtNames(componentTable, entityTable);
@@ -325,9 +317,9 @@ public class BlockStateAPI {
         RenderShape renderShape = blockState.getRenderShape();
 
         if (renderShape == RenderShape.MODEL) {
-            BlockStateModelSet blockStateModelSet = Minecraft.getInstance().getModelManager().getBlockStateModelSet();
+            BlockRenderDispatcher blockRenderer = Minecraft.getInstance().getBlockRenderer();
 
-            BlockStateModel bakedModel = blockStateModelSet.get(blockState);
+            BakedModel bakedModel = blockRenderer.getBlockModel(blockState);
             RandomSource randomSource = RandomSource.create();
             long seed = 42L;
 
@@ -335,8 +327,10 @@ public class BlockStateAPI {
                 map.put(direction.name(), getTexturesForFace(blockState, direction, randomSource, bakedModel, seed));
             map.put("NONE", getTexturesForFace(blockState, null, randomSource, bakedModel, seed));
 
-            TextureAtlasSprite particle = blockStateModelSet.getParticleMaterial(blockState).sprite();
+            TextureAtlasSprite particle = blockRenderer.getBlockModelShaper().getParticleIcon(blockState);
             map.put("PARTICLE", Set.of(getTextureName(particle)));
+        } else if (renderShape == RenderShape.ENTITYBLOCK_ANIMATED) {
+            map.put("PARTICLE", Set.of(getTextureName(Minecraft.getInstance().getItemRenderer().getModel(blockState.getBlock().asItem().getDefaultInstance(), WorldAPI.getCurrentWorld(), null, 42).getParticleIcon())));
         }
         return map;
     }
@@ -347,23 +341,19 @@ public class BlockStateAPI {
         return blockState.isAir();
     }
 
-    private static Set<String> getTexturesForFace(BlockState blockState, Direction direction, RandomSource randomSource, BlockStateModel bakedModel, long seed) {
+    private static Set<String> getTexturesForFace(BlockState blockState, Direction direction, RandomSource randomSource, BakedModel bakedModel, long seed) {
         randomSource.setSeed(seed);
-        List<BlockStateModelPart> blockModelParts = new ArrayList<>();
-        bakedModel.collectParts(randomSource, blockModelParts);
+        List<BakedQuad> quads = bakedModel.getQuads(blockState, direction, randomSource);
         Set<String> textures = new HashSet<>();
 
-        for (BlockStateModelPart part : blockModelParts) {
-            for (BakedQuad quad : part.getQuads(direction)) {
-                textures.add(getTextureName(quad.materialInfo().sprite()));
-            }
-        }
+        for (BakedQuad quad : quads)
+            textures.add(getTextureName(quad.getSprite()));
 
         return textures;
     }
 
     private static String getTextureName(TextureAtlasSprite sprite) {
-        Identifier location = sprite.contents().name(); // do not close it
+        ResourceLocation location = sprite.contents().name(); // do not close it
         return location.getNamespace() + ":textures/" + location.getPath();
     }
 

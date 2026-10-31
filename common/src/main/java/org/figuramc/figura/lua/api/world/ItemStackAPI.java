@@ -9,7 +9,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.*;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.*;
@@ -107,13 +107,13 @@ public class ItemStackAPI {
     public List<String> getTags() {
         List<String> list = new ArrayList<>();
 
-        Registry<Item> registry = WorldAPI.getCurrentWorld().registryAccess().lookupOrThrow(Registries.ITEM);
+        Registry<Item> registry = WorldAPI.getCurrentWorld().registryAccess().registryOrThrow(Registries.ITEM);
         Optional<ResourceKey<Item>> key = registry.getResourceKey(itemStack.getItem());
 
         if (key.isEmpty())
             return list;
 
-        for (TagKey<Item> itemTagKey : registry.getOrThrow(key.get()).tags().toList())
+        for (TagKey<Item> itemTagKey : registry.getHolderOrThrow(key.get()).tags().toList())
             list.add(itemTagKey.location().toString());
 
         return list;
@@ -206,13 +206,13 @@ public class ItemStackAPI {
     @LuaWhitelist
     @LuaMethodDoc("itemstack.is_armor")
     public boolean isArmor() {
-        return itemStack.getItem().components().has(DataComponents.EQUIPPABLE);
+        return itemStack.getItem() instanceof ArmorItem;
     }
 
     @LuaWhitelist
     @LuaMethodDoc("itemstack.is_tool")
     public boolean isTool() {
-        return itemStack.getItem().components().has(DataComponents.TOOL);
+        return itemStack.getItem() instanceof DiggerItem;
     }
 
     @LuaWhitelist

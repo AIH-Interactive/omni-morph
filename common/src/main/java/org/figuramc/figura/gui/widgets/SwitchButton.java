@@ -1,12 +1,9 @@
 package org.figuramc.figura.gui.widgets;
 
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.input.InputWithModifiers;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import org.figuramc.figura.utils.FiguraIdentifier;
 import org.figuramc.figura.utils.FiguraText;
@@ -14,7 +11,7 @@ import org.figuramc.figura.utils.ui.UIHelper;
 
 public class SwitchButton extends Button {
 
-    public static final Identifier SWITCH_TEXTURE = new FiguraIdentifier("textures/gui/switch.png");
+    public static final ResourceLocation SWITCH_TEXTURE = FiguraIdentifier.of("textures/gui/switch.png");
     public static final Component ON = FiguraText.of("gui.on");
     public static final Component OFF = FiguraText.of("gui.off");
 
@@ -29,7 +26,7 @@ public class SwitchButton extends Button {
     }
 
     // texture constructor
-    public SwitchButton(int x, int y, int width, int height, int u, int v, int interactionOffset, Identifier texture, int textureWidth, int textureHeight, Component tooltip, OnPress pressAction) {
+    public SwitchButton(int x, int y, int width, int height, int u, int v, int interactionOffset, ResourceLocation texture, int textureWidth, int textureHeight, Component tooltip, OnPress pressAction) {
         super(x, y, width, height, u, v, interactionOffset, texture, textureWidth, textureHeight, tooltip, pressAction);
     }
 
@@ -42,13 +39,13 @@ public class SwitchButton extends Button {
     }
 
     @Override
-    public void onPress(InputWithModifiers inputWithModifiers) {
+    public void onPress() {
         this.toggled = !this.toggled;
-        super.onPress(inputWithModifiers);
+        super.onPress();
     }
 
     @Override
-    protected void renderText(GuiGraphicsExtractor gui, float delta) {
+    protected void renderText(GuiGraphics gui, float delta) {
         // draw text
         Component text = this.toggled && underline ? getMessage().copy().withStyle(ChatFormatting.UNDERLINE) : getMessage();
         int x = getX() + 1;
@@ -63,7 +60,7 @@ public class SwitchButton extends Button {
     }
 
     @Override
-    protected void renderDefaultTexture(GuiGraphicsExtractor gui, float delta) {
+    protected void renderDefaultTexture(GuiGraphics gui, float delta) {
         if (!defaultTexture) {
             super.renderDefaultTexture(gui, delta);
             return;
@@ -75,11 +72,11 @@ public class SwitchButton extends Button {
         int y = getY();
 
         // render switch
-        gui.blit(RenderPipelines.GUI_TEXTURED, SWITCH_TEXTURE, x + 5, y + 5, 10f, (this.toggled ? 20f : 0f) + (this.isHoveredOrFocused() ? 10f : 0f),20, 10, 20, 10, 30, 40);
+        gui.blit(SWITCH_TEXTURE, x + 5, y + 5, 20, 10, 10f, (this.toggled ? 20f : 0f) + (this.isHoveredOrFocused() ? 10f : 0f), 20, 10, 30, 40);
 
         // render head
         headPos = (float) Mth.lerp(1f - Math.pow(0.2f, delta), headPos, this.toggled ? 20f : 0f);
-        gui.blit(RenderPipelines.GUI_TEXTURED, SWITCH_TEXTURE, Math.round(x + headPos), y, 0f, this.isHoveredOrFocused() ? 20f : 0f, 10, 20,10, 20, 30, 40);
+        gui.blit(SWITCH_TEXTURE, Math.round(x + headPos), y, 10, 20, 0f, this.isHoveredOrFocused() ? 20f : 0f, 10, 20, 30, 40);
     }
 
     @Override

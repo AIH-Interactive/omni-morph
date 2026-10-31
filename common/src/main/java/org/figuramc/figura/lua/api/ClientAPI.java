@@ -2,24 +2,21 @@ package org.figuramc.figura.lua.api;
 
 import com.google.common.base.Suppliers;
 import com.mojang.blaze3d.platform.Window;
-import net.minecraft.ChatFormatting;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.ClientBrandRetriever;
-import net.minecraft.client.CloudStatus;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.MouseHandler;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.multiplayer.ServerData;
-import net.minecraft.client.resources.model.sprite.AtlasManager;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.core.Registry;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.repository.Pack;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.*;
@@ -37,12 +34,8 @@ import org.figuramc.figura.math.vector.FiguraVec2;
 import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.mixin.gui.GuiAccessor;
 import org.figuramc.figura.mixin.gui.PlayerTabOverlayAccessor;
-import top.aihmc.omnimorph.mixin.render.AtlasManagerAccessor;
-import org.figuramc.figura.utils.EntityUtils;
-import org.figuramc.figura.utils.LuaUtils;
-import org.figuramc.figura.utils.PlatformUtils;
-import org.figuramc.figura.utils.TextUtils;
-import org.figuramc.figura.utils.Version;
+import org.figuramc.figura.mixin.render.ModelManagerAccessor;
+import org.figuramc.figura.utils.*;
 import org.joml.Vector3f;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaValue;
@@ -101,28 +94,7 @@ public class ClientAPI {
     @LuaWhitelist
     @LuaMethodDoc("client.get_fps_string")
     public static String getFPSString() {
-        int fps = Minecraft.getInstance().getFps();
-        int maxFps = Minecraft.getInstance().getFramerateLimitTracker().getFramerateLimit();
-        String gpuUtilization;
-        if (Minecraft.getInstance().getGpuUtilization() > 0.0) {
-            gpuUtilization = " GPU: " + (Minecraft.getInstance().getGpuUtilization() > 100.0 ? ChatFormatting.RED + "100%" :
-                    Math.round(Minecraft.getInstance().getGpuUtilization()) + "%");
-        } else {
-            gpuUtilization = "";
-        }
-
-        return String.format(
-                Locale.ROOT,
-                "%d fps T: %s%s%s%s B: %d%s",
-                fps,
-                maxFps == 260 ? "inf" : maxFps,
-                Minecraft.getInstance().options.enableVsync().get() ? " vsync " : " ",
-                Minecraft.getInstance().options.graphicsPreset().get(),
-                Minecraft.getInstance().options.cloudStatus().get() == CloudStatus.OFF ? "" :
-                        (Minecraft.getInstance().options.cloudStatus().get() == CloudStatus.FAST ? " fast-clouds" : " fancy-clouds"),
-                Minecraft.getInstance().options.biomeBlendRadius().get(),
-                gpuUtilization
-        );
+        return Minecraft.getInstance().fpsString;
     }
 
     @LuaWhitelist
@@ -134,19 +106,19 @@ public class ClientAPI {
     @LuaWhitelist
     @LuaMethodDoc("client.get_version")
     public static String getVersion() {
-        return SharedConstants.getCurrentVersion().id();
+        return SharedConstants.getCurrentVersion().getId();
     }
 
     @LuaWhitelist
     @LuaMethodDoc("client.get_version_name")
     public static String getVersionName() {
-        return SharedConstants.getCurrentVersion().name();
+        return SharedConstants.getCurrentVersion().getName();
     }
 
     @LuaWhitelist
     @LuaMethodDoc("client.is_snapshot")
     public static boolean isSnapshot() {
-        return !SharedConstants.getCurrentVersion().stable();
+        return !SharedConstants.getCurrentVersion().isStable();
     }
 
     @LuaWhitelist
@@ -179,7 +151,7 @@ public class ClientAPI {
     @LuaWhitelist
     @LuaMethodDoc("client.get_sound_statistics")
     public static String getSoundStatistics() {
-        return Minecraft.getInstance().getSoundManager().getChannelDebugString();
+        return Minecraft.getInstance().getSoundManager().getDebugString();
     }
 
     @LuaWhitelist
@@ -200,10 +172,10 @@ public class ClientAPI {
     @LuaWhitelist
     @LuaMethodDoc("client.get_current_effect")
     public static String getCurrentEffect() {
-        if (Minecraft.getInstance().gameRenderer.currentPostEffect() == null)
+        if (Minecraft.getInstance().gameRenderer.currentEffect() == null)
             return null;
 
-        return Minecraft.getInstance().gameRenderer.currentPostEffect().toString();
+        return Minecraft.getInstance().gameRenderer.currentEffect().getName();
     }
 
     @LuaWhitelist
@@ -245,7 +217,7 @@ public class ClientAPI {
     @LuaWhitelist
     @LuaMethodDoc("client.is_debug_overlay_enabled")
     public static boolean isDebugOverlayEnabled() {
-        return Minecraft.getInstance().debugEntries.isOverlayVisible();
+        return Minecraft.getInstance().getDebugOverlay().showDebugScreen();
     }
 
     @LuaWhitelist
@@ -290,7 +262,7 @@ public class ClientAPI {
     @LuaWhitelist
     @LuaMethodDoc("client.get_camera_pos")
     public static FiguraVec3 getCameraPos() {
-        Vec3 pos = Minecraft.getInstance().gameRenderer.getMainCamera().position();
+        Vec3 pos = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
         return FiguraVec3.fromVec3(pos);
     }
 
@@ -316,7 +288,7 @@ public class ClientAPI {
     @LuaWhitelist
     @LuaMethodDoc("client.get_camera_dir")
     public static FiguraVec3 getCameraDir() {
-        return FiguraVec3.fromVec3f(Minecraft.getInstance().gameRenderer.getMainCamera().forwardVector());
+        return FiguraVec3.fromVec3f(Minecraft.getInstance().gameRenderer.getMainCamera().getLookVector());
     }
 
     @LuaWhitelist
@@ -433,7 +405,7 @@ public class ClientAPI {
             value = "client.has_resource"
     )
     public static boolean hasResource(@LuaNotNil String path) {
-        Identifier resource = LuaUtils.parsePath(path);
+        ResourceLocation resource = LuaUtils.parsePath(path);
         try {
             return Minecraft.getInstance().getResourceManager().getResource(resource).isPresent();
         } catch (Exception ignored) {
@@ -594,7 +566,7 @@ public class ClientAPI {
     @LuaWhitelist
     @LuaMethodDoc("client.get_frame_time")
     public static double getFrameTime() {
-        return Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false);
+        return Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(false);
     }
 
     @LuaWhitelist
@@ -672,8 +644,8 @@ public class ClientAPI {
     @LuaMethodDoc("client.list_atlases")
     public static List<String> listAtlases() {
         List<String> list = new ArrayList<>();
-        for (AtlasManager.AtlasConfig config : AtlasManagerAccessor.getVanillaAtlases())
-            list.add(config.textureId().toString());
+        for (ResourceLocation res : ModelManagerAccessor.getVanillaAtlases().keySet())
+            list.add(res.toString());
         return list;
     }
 
@@ -686,9 +658,9 @@ public class ClientAPI {
             value = "client.get_atlas"
     )
     public static TextureAtlasAPI getAtlas(@LuaNotNil String atlas) {
-        Identifier path = LuaUtils.parsePath(atlas);
+        ResourceLocation path = LuaUtils.parsePath(atlas);
         try {
-            return new TextureAtlasAPI(Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(path));
+            return new TextureAtlasAPI(Minecraft.getInstance().getModelManager().getAtlas(path));
         } catch (Exception ignored) {
             return null;
         }
@@ -710,7 +682,7 @@ public class ClientAPI {
         // players
         List<String> list = new ArrayList<>();
         for (PlayerInfo entry : EntityUtils.getTabList())
-            list.add(entry.getTabListDisplayName() != null ? entry.getTabListDisplayName().getString() : entry.getProfile().name());
+            list.add(entry.getTabListDisplayName() != null ? entry.getTabListDisplayName().getString() : entry.getProfile().getName());
         map.put("players", list);
 
         // footer
@@ -761,14 +733,14 @@ public class ClientAPI {
     public static List<String> getRegistry(@LuaNotNil String registryName) {
         Registry<?> registry;
         try {
-            registry = BuiltInRegistries.REGISTRY.getValue(Identifier.parse(registryName));
+            registry = BuiltInRegistries.REGISTRY.get(ResourceLocation.parse(registryName));
         } catch (Error e) {
             throw new LuaError("Registry " + registryName + " does not exist");
         }
 
         if (registry != null) {
-            return registry.filterFeatures(WorldAPI.getCurrentWorld().enabledFeatures()).listElementIds().map(ResourceKey::identifier)
-                    .map(Identifier::toString)
+            return registry.asLookup().filterFeatures(WorldAPI.getCurrentWorld().enabledFeatures()).listElementIds().map(ResourceKey::location)
+                    .map(ResourceLocation::toString)
                     .collect(Collectors.toList());
         } else {
             throw new LuaError("Registry " + registryName + " does not exist");

@@ -12,7 +12,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.textures.TextureFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import org.figuramc.figura.math.matrix.FiguraMat3;
 import org.figuramc.figura.math.matrix.FiguraMat4;
@@ -32,7 +32,7 @@ import java.util.List;
 /** All production uploads/draws use Blaze3D. The only readback is the bounded activation diagnostic. */
 final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
     private final GpuDevice device;
-    private final BiFunction<Identifier, ShaderType, String> sources;
+    private final BiFunction<ResourceLocation, ShaderType, String> sources;
     private final Map<RenderPipeline, Material> compiled = new IdentityHashMap<>();
     private final Map<RenderPipeline, Material> compiledGroups = new IdentityHashMap<>();
     // Smaller pose block variants: at most three per full-layout pipeline, under their own budget.
@@ -69,7 +69,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         }
     }
 
-    MinecraftGpuDeviceAdapter(GpuDevice device, BiFunction<Identifier, ShaderType, String> sources) {
+    MinecraftGpuDeviceAdapter(GpuDevice device, BiFunction<ResourceLocation, ShaderType, String> sources) {
         this.device = Objects.requireNonNull(device);
         this.sources = Objects.requireNonNull(sources);
     }
@@ -166,7 +166,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         if (compiledStorage.size() + compiledStorageGroups.size() >= 64) {
             throw new IllegalStateException("Acceleration storage pipeline cache budget exhausted");
         }
-        Identifier location = Identifier.fromNamespaceAndPath("omni-morph", "acceleration/" + original.getLocation().getNamespace()
+        ResourceLocation location = ResourceLocation.fromNamespaceAndPath("omni-morph", "acceleration/" + original.getLocation().getNamespace()
                 + "/" + original.getLocation().getPath() + (grouped ? "/rigid_group" : "") + "/storage");
         String originalSource = sources.apply(original.getVertexShader(), ShaderType.VERTEX);
         String source = grouped
@@ -195,7 +195,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         if (compiledStorageModels.size() >= 64) {
             throw new IllegalStateException("Acceleration model pipeline cache budget exhausted");
         }
-        Identifier location = Identifier.fromNamespaceAndPath("omni-morph", "acceleration/" + original.getLocation().getNamespace()
+        ResourceLocation location = ResourceLocation.fromNamespaceAndPath("omni-morph", "acceleration/" + original.getLocation().getNamespace()
                 + "/" + original.getLocation().getPath() + "/model");
         String source = GpuShaderProgram.wrapStorageModelEntitySource(sources.apply(original.getVertexShader(), ShaderType.VERTEX));
         RenderPipeline accelerated = GpuShaderProgram.pipeline(original, location, false);
@@ -225,7 +225,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
 
     private Material build(RenderPipeline original, boolean grouped, int parts) {
         String variant = parts == GpuBatchData.MAX_PARTS ? "" : "/parts_" + parts;
-        Identifier location = Identifier.fromNamespaceAndPath("omni-morph", "acceleration/" + original.getLocation().getNamespace()
+        ResourceLocation location = ResourceLocation.fromNamespaceAndPath("omni-morph", "acceleration/" + original.getLocation().getNamespace()
                 + "/" + original.getLocation().getPath() + (grouped ? "/rigid_group" : "") + variant);
         String originalSource = sources.apply(original.getVertexShader(), ShaderType.VERTEX);
         String source = grouped
@@ -425,7 +425,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
 
     private void storageSelfTest(StorageProbe probe) {
         assertThread();
-        Identifier location = Identifier.fromNamespaceAndPath("omni-morph",
+        ResourceLocation location = ResourceLocation.fromNamespaceAndPath("omni-morph",
                 "acceleration/activation_probe_storage_" + probe.name().toLowerCase(java.util.Locale.ROOT));
         RenderPipeline pipeline = RenderPipeline.builder().withLocation(location).withVertexShader(location).withFragmentShader(location)
                 .withColorTargetState(ColorTargetState.DEFAULT).withDepthStencilState(Optional.empty()).withCull(false)
@@ -518,7 +518,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
 
     private void selfTest(boolean grouped) {
         assertThread();
-        Identifier location = Identifier.fromNamespaceAndPath("omni-morph", "acceleration/activation_probe" + (grouped ? "_rigid" : ""));
+        ResourceLocation location = ResourceLocation.fromNamespaceAndPath("omni-morph", "acceleration/activation_probe" + (grouped ? "_rigid" : ""));
         RenderPipeline pipeline = grouped ? diagnosticGroupPipeline : diagnosticPipeline;
         if (pipeline == null) {
             pipeline = RenderPipeline.builder().withLocation(location).withVertexShader(location).withFragmentShader(location)
