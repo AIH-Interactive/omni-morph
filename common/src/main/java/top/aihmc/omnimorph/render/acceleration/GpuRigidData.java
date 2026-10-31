@@ -93,15 +93,14 @@ final class GpuRigidData {
         this.batches = List.copyOf(batches);
         batchParts = new int[batches.size()];
         ByteBuffer packed = packParts(this.batches, packer);
-        Map<ByteBuffer, Integer> unique = new HashMap<>();
+        Map<PartKey, Integer> unique = new HashMap<>();
         for (int index = 0; index < batches.size(); index++) {
-            ByteBuffer part = packed.slice(index * GpuBatchData.PART_BYTES, GpuBatchData.PART_BYTES)
-                    .order(ByteOrder.nativeOrder());
-            Integer id = unique.get(part);
+            var key = new PartKey(packed, index * GpuBatchData.PART_BYTES);
+            Integer id = unique.get(key);
             if (id == null) {
                 id = parts.size();
-                parts.add(part.asReadOnlyBuffer());
-                unique.put(part, id);
+                parts.add(packed.slice(key.offset, GpuBatchData.PART_BYTES).order(ByteOrder.nativeOrder()).asReadOnlyBuffer());
+                unique.put(key, id);
             }
             batchParts[index] = id;
         }
@@ -111,6 +110,45 @@ final class GpuRigidData {
         if (!rangesReused) {
             layout.ranges = buildRanges(layout.order, batchParts);
             layout.batchParts = batchParts.clone();
+        }
+    }
+
+    /**
+     * Dedupe key over one packed part: the same float bytes as comparing the part buffers, read as 40 ints with
+     * absolute reads instead of the byte-by-byte path direct-buffer hashing and equality take.
+     */
+    private static final class PartKey {
+        private static final int INTS = GpuBatchData.PART_BYTES / Integer.BYTES;
+        private final ByteBuffer data;
+        private final int offset;
+        private final int hash;
+
+        private PartKey(ByteBuffer data, int offset) {
+            this.data = data;
+            this.offset = offset;
+            int result = 1;
+            for (int index = 0; index < INTS; index++) {
+                result = 31 * result + data.getInt(offset + index * Integer.BYTES);
+            }
+            hash = result;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof PartKey key) || key.hash != hash) {
+                return false;
+            }
+            for (int index = 0; index < INTS; index++) {
+                if (data.getInt(offset + index * Integer.BYTES) != key.data.getInt(key.offset + index * Integer.BYTES)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            return hash;
         }
     }
 
