@@ -1,10 +1,10 @@
 package top.aihmc.omnimorph.config.fabric;
 
-import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import org.figuramc.figura.config.ConfigKeyBind;
 
 public class ConfigKeyBindImpl {
     public static void addKeyBind(ConfigKeyBind keyBind) {
-        KeyMappingHelper.registerKeyMapping(keyBind);
+        KeyBindingHelper.registerKeyBinding(keyBind);
     }
 }

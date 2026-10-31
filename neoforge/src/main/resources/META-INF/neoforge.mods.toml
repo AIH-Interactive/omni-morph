@@ -1,5 +1,5 @@
 modLoader = "javafml"
-loaderVersion = "[1,)"
+loaderVersion = "[4,)"
 issueTrackerURL = "https://github.com/AIH-Interactive/omni-morph/issues"
 license = "PolyForm-Noncommercial-1.0.0"
 displayURL = "https://github.com/AIH-Interactive/omni-morph"
@@ -21,14 +21,14 @@ assets_version="${assets_version}"
 [[dependencies.omni-morph]]
 modId = "neoforge"
 mandatory = true
-versionRange = "[21.3,)"
+versionRange = "[21.1.185,21.2)"
 ordering = "NONE"
 side = "CLIENT"
 
 [[dependencies.omni-morph]]
 modId = "minecraft"
 mandatory = true
-versionRange = "[${minecraft_version},)"
+versionRange = "[${minecraft_version}]"
 ordering = "NONE"
 side = "CLIENT"
 
@@ -36,3 +36,5 @@ side = "CLIENT"
 config = "omni-morph-common.mixins.json"
 [[mixins]]
 config = "omni-morph.mixins.json"
+[[mixins]]
+config = "figura-common.mixins.json"

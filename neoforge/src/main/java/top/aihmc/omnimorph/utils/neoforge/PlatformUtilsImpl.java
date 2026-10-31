@@ -3,7 +3,11 @@ package top.aihmc.omnimorph.utils.neoforge;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLPaths;
 import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.utils.PlatformUtils;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.nio.file.Path;
 
 public class PlatformUtilsImpl {
@@ -30,5 +34,15 @@ public class PlatformUtilsImpl {
     public static java.util.Map<String, String> getLoadedMods() {
         return ModList.get().getMods().stream()
                 .collect(java.util.stream.Collectors.toUnmodifiableMap(mod -> mod.getModId(), mod -> mod.getDisplayName()));
+    }
+
+    public static PlatformUtils.ModLoader getModLoader() {
+        // ModLoader has no dedicated NeoForge entry; FORGE identifies the Forge-family loader.
+        return PlatformUtils.ModLoader.FORGE;
+    }
+
+    public static InputStream loadFileFromRoot(String path) throws FileNotFoundException {
+        Path file = ModList.get().getModFileById(FiguraMod.MOD_ID).getFile().findResource(path);
+        return new FileInputStream(file.toFile());
     }
 }

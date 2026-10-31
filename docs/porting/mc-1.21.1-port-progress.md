@@ -1,4 +1,4 @@
-# M0 实测基线（MC 1.21.1）
+# MC 1.21.1 移植进度记录（M0 起）
 
 > 日期：2026-10-31 · 分支：`1.21.1` · 基线标签：`pre-1.21.1-port`（= `c27f761`，本地标签）
 > 对应计划书：[mc-1.21.1-port-plan.md](mc-1.21.1-port-plan.md) §5 M0、§9
@@ -59,3 +59,43 @@
 | 1.21.1 客户端下载、重映射 | ✅ 通过 |
 | minecraft-dev-mcp 1.21.1 mojmap 索引 | ✅ 5363 个文件，耗时 14.6 秒 |
 | `:fabric:compileJava` / `:neoforge:compileJava` 骨架编译 | ⏸ 顺延：两个平台模块都依赖 `common`，而 `common` 要到 M2–M4 修完才能编译。如果现在建临时排除清单，几乎要排除全部 293 个文件，没有验证意义。改为在 M2 以 `common` 编译通过作为门槛 |
+
+---
+
+# M1 双加载器骨架
+
+## 1. 已完成
+
+| 项 | 改动 |
+| --- | --- |
+| Fabric 入口 | `ResourceLoader` 改为 `ResourceManagerHelper`；`FiguraResourceListenerImpl` 实现 `IdentifiableResourceReloadListener`，按 1.21.1 的 6 参数 `reload` 签名重写 |
+| Fabric 按键 | `KeyMappingHelper` 改为 `KeyBindingHelper.registerKeyBinding` |
+| Fabric `GuiMixin` | 注入点改为 1.21.1 的 `Gui.render(GuiGraphics, DeltaTracker)`（`analyze_mixin` 校验通过） |
+| NeoForge 入口 | `AddClientReloadListenersEvent`（21.1 没有这个类）改为 `RegisterClientReloadListenersEvent.registerReloadListener`；GUI 层 ID 改用 `FiguraIdentifier.of(...)` |
+| NeoForge `PlatformUtilsImpl` | 补上缺失的 `@ExpectPlatform` 实现：`getModLoader`、`loadFileFromRoot`（基于 FML 4 的 `IModFile.findResource`） |
+| `fabric.mod.json` | `minecraft` 约束收紧为 `${minecraft_version}`；`fabricloader >= 0.16` |
+| `neoforge.mods.toml` | `loaderVersion [4,)`、`neoforge [21.1.185,21.2)`、`minecraft [1.21.1]`；补上漏掉的 `figura-common.mixins.json` |
+| `pack.mcmeta` | `pack_format` 15 → 34（1.21.1） |
+| Access Widener | 35 条中有 27 条在 1.21.1 不存在，已删除；保留的 7 条经 `validate_access_widener` 校验全部通过 |
+
+API 真值来源：minecraft-dev-mcp（1.21.1 mojmap 源码，以及 AW / mixin 校验），NeoForge 21.1.185 的 sources jar，FML 4.0.41 的 `javap` 输出。
+
+## 2. 跨里程碑约定
+
+- 1.21.1 的 `ResourceLocation` 是 `final` 类、构造方法为 private，`FiguraIdentifier extends Identifier` 无法沿用。M2 改为工厂方法 `FiguraIdentifier.of(String)`，返回 `ResourceLocation`；M1 的平台代码已经按这个接口编写。
+
+## 3. 顺延到 M3 的平台渲染 mixin（`analyze_mixin` 判定失效）
+
+| 平台 | mixin | 原因 |
+| --- | --- | --- |
+| 两个平台 | `ElytraLayerAccessor` | 1.21.1 没有 `WingsLayer`，要改为 `ElytraLayer` |
+| 两个平台 | `HumanoidArmorLayerMixin*` | 1.21.1 没有 `submit` / `HumanoidRenderState` / `equipmentRenderer` |
+| 两个平台 | `LevelRendererMixin*` | 1.21.1 没有 `addMainPass` 的 lambda、`submitNodeStorage`、`featureRenderDispatcher` |
+| 两个平台 | `RenderUtilsImpl` | 依赖 `WingsLayer` / `HumanoidRenderState`，随 `common` 里的 `RenderUtils` 签名一起改 |
+
+## 4. M1 验收
+
+| 验收项 | 结果 |
+| --- | --- |
+| 平台 API 与元数据对照 1.21.1 / NeoForge 21.1 真值 | ✅ 完成（静态核对 + MCP 校验） |
+| 两个加载器启动到标题界面、`/omnimorph` 注册成功、无 `Mixin apply failed` | **MANUAL/PENDING**：要等 `common` 在 M2–M4 编译通过后，用真实客户端窗口验证 |

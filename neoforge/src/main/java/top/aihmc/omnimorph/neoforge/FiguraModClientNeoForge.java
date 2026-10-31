@@ -2,13 +2,13 @@ package top.aihmc.omnimorph.neoforge;
 
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
-import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent;
+import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
@@ -16,6 +16,7 @@ import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.config.ConfigManager;
+import org.figuramc.figura.utils.FiguraIdentifier;
 import top.aihmc.omnimorph.config.neoforge.ModConfig;
 import top.aihmc.omnimorph.gui.neoforge.GuiOverlay;
 import top.aihmc.omnimorph.gui.neoforge.GuiUnderlay;
@@ -36,17 +37,17 @@ public class FiguraModClientNeoForge extends FiguraMod {
     }
 
     @SubscribeEvent
-    public static void registerResourceListener(AddClientReloadListenersEvent event) {
-        getResourceListeners().forEach(figuraResourceListener -> event.addListener(new Identifier(FiguraMod.MOD_ID, figuraResourceListener.id()), (FiguraResourceListenerImpl)figuraResourceListener));
+    public static void registerResourceListener(RegisterClientReloadListenersEvent event) {
+        getResourceListeners().forEach(figuraResourceListener -> event.registerReloadListener((FiguraResourceListenerImpl) figuraResourceListener));
     }
 
     @SubscribeEvent
     public static void registerOverlays(RegisterGuiLayersEvent event) {
-        event.registerAboveAll(new Identifier(FiguraMod.MOD_ID, "figura_overlay"), new GuiOverlay());
-        event.registerBelowAll(new Identifier(FiguraMod.MOD_ID, "figura_underlay"), new GuiUnderlay());
+        event.registerAboveAll(FiguraIdentifier.of("figura_overlay"), new GuiOverlay());
+        event.registerBelowAll(FiguraIdentifier.of("figura_underlay"), new GuiUnderlay());
     }
 
-    private static final List<Identifier> vanillaOverlays = new ArrayList<>();
+    private static final List<ResourceLocation> vanillaOverlays = new ArrayList<>();
 
     public static void cancelVanillaOverlays(RenderGuiLayerEvent.Pre event) {
         if (event.getName().getNamespace().equals("minecraft")) {

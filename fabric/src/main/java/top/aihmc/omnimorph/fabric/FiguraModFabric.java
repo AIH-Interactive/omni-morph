@@ -1,12 +1,11 @@
 package top.aihmc.omnimorph.fabric;
 
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
+import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.minecraft.server.packs.PackType;
 import org.figuramc.figura.FiguraMod;
-import top.aihmc.omnimorph.commands.fabric.FiguraCommandsFabric;
 import org.figuramc.figura.config.ConfigManager;
-import org.figuramc.figura.utils.FiguraIdentifier;
+import top.aihmc.omnimorph.commands.fabric.FiguraCommandsFabric;
 import top.aihmc.omnimorph.utils.fabric.FiguraResourceListenerImpl;
 
 public class FiguraModFabric extends FiguraMod implements ClientModInitializer {
@@ -16,10 +15,10 @@ public class FiguraModFabric extends FiguraMod implements ClientModInitializer {
         onClientInit();
         FiguraCommandsFabric.init();
         // register reload listener
-        ResourceLoader resourceLoader = ResourceLoader.get(PackType.CLIENT_RESOURCES);
+        ResourceManagerHelper resourceManagerHelper = ResourceManagerHelper.get(PackType.CLIENT_RESOURCES);
         getResourceListeners().forEach(figuraResourceListener -> {
             FiguraResourceListenerImpl impl = (FiguraResourceListenerImpl) figuraResourceListener;
-            resourceLoader.registerReloadListener(impl.getFabricId(), impl);
+            resourceManagerHelper.registerReloadListener(impl);
         });
     }
 }

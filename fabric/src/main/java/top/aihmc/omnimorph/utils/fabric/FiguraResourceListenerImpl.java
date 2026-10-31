@@ -1,15 +1,18 @@
 package top.aihmc.omnimorph.utils.fabric;
 
-import net.minecraft.resources.Identifier;
+import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
 import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.util.profiling.ProfilerFiller;
 import org.figuramc.figura.utils.FiguraIdentifier;
 import org.figuramc.figura.utils.FiguraResourceListener;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 
-public class FiguraResourceListenerImpl extends FiguraResourceListener implements PreparableReloadListener {
+public class FiguraResourceListenerImpl extends FiguraResourceListener implements IdentifiableResourceReloadListener {
     public FiguraResourceListenerImpl(String id, Consumer<ResourceManager> reloadConsumer) {
         super(id, reloadConsumer);
     }
@@ -18,14 +21,22 @@ public class FiguraResourceListenerImpl extends FiguraResourceListener implement
         return new FiguraResourceListenerImpl(id, reloadConsumer);
     }
 
-    public Identifier getFabricId() {
-        return new FiguraIdentifier(this.id());
+    @Override
+    public ResourceLocation getFabricId() {
+        return FiguraIdentifier.of(this.id());
     }
 
     @Override
-    public java.util.concurrent.CompletableFuture<Void> reload(PreparableReloadListener.SharedState sharedState, java.util.concurrent.Executor prepareExecutor, PreparableReloadListener.PreparationBarrier barrier, java.util.concurrent.Executor applyExecutor) {
+    public CompletableFuture<Void> reload(
+            PreparableReloadListener.PreparationBarrier barrier,
+            ResourceManager resourceManager,
+            ProfilerFiller prepareProfiler,
+            ProfilerFiller applyProfiler,
+            Executor prepareExecutor,
+            Executor applyExecutor
+    ) {
         return CompletableFuture.supplyAsync(() -> null, prepareExecutor)
                 .thenCompose(barrier::wait)
-                .thenAcceptAsync(unused -> reloadConsumer().accept(sharedState.resourceManager()), applyExecutor);
+                .thenAcceptAsync(unused -> reloadConsumer().accept(resourceManager), applyExecutor);
     }
 }
