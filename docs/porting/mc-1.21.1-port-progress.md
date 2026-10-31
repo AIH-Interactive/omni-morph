@@ -146,3 +146,30 @@ API 真值来源：minecraft-dev-mcp（1.21.1 mojmap 源码，以及 AW / mixin 
 | 非渲染 / 非 GUI 区域（backend、molang、ysm 数据、outfit、Lua 数据 API）的 API 错误 | ✅ 清零。剩余 7 处是 `Avatar` / `AvatarManager` 的 `EntityRenderState` 重载歧义引起的连带错误，随 M3 渲染状态重构一并消失 |
 | `common` 编译通过；backend / molang / ysm / outfit smoke 任务通过 | ⏸ 顺延：`common` 里的渲染层和 GUI 层（M3 / M4）修完之前无法整体编译 |
 | `:common:compileJava` 错误总数 | 1835（主要分布：`mixin/render` 417、`gui/widgets` 316、`render/acceleration` 135） |
+
+---
+
+# M3 实体 / 模型渲染重建（进行中）
+
+## 1. 已完成（WIP 提交 `212c3ae`、`3cbc914`、`429ef23` 及其后续）
+
+| 项 | 1.21.1 做法 |
+| --- | --- |
+| 渲染帧键 | 新增 `top.aihmc.omnimorph.render.EntityFrame`：`begin` / `end` / `current` / `prepare`。renderer mixin 每次渲染新建一个帧，作为原 `EntityRenderState` 在 LibraryPreviewBinding、OutfitRenderBinding、`AvatarManager.getAvatar/getEntity(EntityFrame)` 中的身份键；GUI 预览通过 `prepare` 预先登记帧，其他渲染一律作为世界帧，并在 `begin` 中以 `world=true` 捕获装扮（等价于 26.1 的抽取钩子） |
+| YSM 动画输入 | `YsmEntityFrame.capture(entity, partialTick)`，按原版 `LivingEntityRenderer.render` 的 setupAnim 输入计算；去掉对渲染状态字段的反射读取 |
+| 渲染类型 | `FiguraRenderTypes` 采用上游 1.21.1 实现；YSM 映射：26.1 的 `entityCutout` 对应 1.21.1 的 `entityCutoutNoCull`，`entityCutoutCull` 对应 1.21.1 的 `entityCutout`，all_cutout 半透明使用 `entityTranslucentCull` |
+| 纹理 | `FiguraTexture` 保留 OmniMorph 的租约、延迟关闭、排队移除、退役回退和可重试上传，改用 GL 纹理模型；删除 26.1 的 NativeImage duck |
+| Iris | 保留 YSM PBR 材质注册和阴影通道判断；1.21.1 使用原版着色器程序，不需要 `assignPipeline` |
+| 装扮 | Composition / NativeRenderer / FirstPersonScripts 改用 `YsmEntityFrame` 加显式光照参数；VanillaSkeletonAdapter 适配 1.21.1 没有根部件的 `PlayerModel` |
+| 提交管线 | 删除继承自上游 Figura 1.21.11（MC 1.21.9+）的 submit-node 脚手架：feature renderer mixin、SubmitNodeStorage mixin、回调 duck、延迟枢轴物品。1.21.1 的图层是立即渲染的 |
+| LivingEntityRendererMixin | 按 1.21.1 的 `render(entity, yaw, partialTick, ...)` 重写，保留 OmniMorph 的全部钩子（加载指示、YSM 原生渲染与手持物品、`render_layers_first` 顺序、原版皮肤装扮、Figura 基础装扮的预算作用域、Iris 阴影跳过、第一人称矩阵刷新） |
+| EntityRendererMixin | 采用上游 1.21.1 版本，恢复 Figura 自定义名称牌（26.1 版本搬到了已删除的 NameTag feature mixin 里） |
+
+## 2. 剩余（按依赖顺序）
+
+1. `org/figuramc/figura/mixin/render/**` 的其余文件（逐个对照上游 1.21.1 合并，保留 OmniMorph 钩子）：PlayerRenderer、ItemInHandLayer、PlayerItemInHandLayer、CustomHeadLayer、CapeLayer、ElytraLayer、HumanoidArmorLayer、SkullBlockRenderer、ItemInHandRenderer、GameRenderer、LevelRenderer、EntityRenderDispatcher、TridentRenderer、ArrowRenderer 等。图层 mixin 通过 `EntityFrame.current()` 取当前帧。
+2. `top/aihmc/omnimorph/mixin/render/**`：35 个以 26.1 专属类为目标的 mixin，清单见 `build/tmp/mixins-omp.txt`（`sh build/tmp/mixin-targets.sh` 可重新生成）。
+3. 平台渲染 mixin（Fabric / NeoForge 的 Elytra、Armor、LevelRenderer）以及 `RenderUtils.getPlayerSkinTexture`。
+4. `AvatarLoadingRenderer.render(EntityFrame, PoseStack, MultiBufferSource, int)`：LivingEntityRendererMixin 已经调用，需要在 M4 的 GUI 部分实现。
+5. **YSM GUI 无光照着色器**：`YsmPreviewRenderTypes` 目前回退到有光照的原版类型。要还原，需要自带两个核心着色器（复制原版实体着色器并去掉 `minecraft_mix_light`），再通过 Fabric `CoreShaderRegistrationCallback` 和 NeoForge `RegisterShadersEvent` 注册。
+6. 粒子（`lua/api/particle/**`：`CustomParticlePipelines`、`RibbonRenderState` 等基于 26.1 管线的部分）。
