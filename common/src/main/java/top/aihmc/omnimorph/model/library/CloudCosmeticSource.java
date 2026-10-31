@@ -1,6 +1,8 @@
 package top.aihmc.omnimorph.model.library;
 
 import net.minecraft.nbt.CompoundTag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
@@ -19,6 +21,7 @@ import java.util.concurrent.Executor;
 
 /** Authorized accessory input for the existing private composition preparation path. */
 public final class CloudCosmeticSource {
+    private static final Logger LOGGER = LoggerFactory.getLogger("OmniMorph/Outfit");
     public record Descriptor(OutfitConfig.ResourceRef reference, CosmeticMetadata metadata, String name) {}
 
     public static final class Prepared {
@@ -65,6 +68,8 @@ public final class CloudCosmeticSource {
 
     public Operation select(LibraryModels.Model selected) {
         if (!selected.resourceKind().equals("ACCESSORY")) {
+            LOGGER.warn("cloud cosmetic selection {} kind={} name={}", selected.modelId(),
+                    selected.resourceKind(), selected.displayName());
             throw failure("COSMETIC_RESOURCE_KIND_REQUIRED");
         }
         return fetch(selected.modelId(), selected.revision(), null);
@@ -139,8 +144,11 @@ public final class CloudCosmeticSource {
     private Prepared prepare(LibraryTransferService.Package value, OutfitConfig.ResourceRef expected) {
         var model = value.model();
         var header = value.nbt().getCompoundOrEmpty("metadata");
-        if (!model.resourceKind().equals("ACCESSORY") || !header.getStringOr("resource_kind", "").equals("ACCESSORY")
-                || !value.purpose().equals("preview") || model.accessoryMetadata() == null) {
+        String headerKind = header.getStringOr("resource_kind", "");
+        if (!model.resourceKind().equals("ACCESSORY") || !headerKind.equals("ACCESSORY")
+                || !value.purpose().equals("preview")) {
+            LOGGER.warn("cloud cosmetic package {} model_kind={} header_kind='{}' purpose={}",
+                    model.modelId(), model.resourceKind(), headerKind, value.purpose());
             throw failure("COSMETIC_RESOURCE_KIND_REQUIRED");
         }
         var reference = new OutfitConfig.ResourceRef(OutfitConfig.Source.CLOUD, null, client.origin(), model.modelId(),
@@ -148,10 +156,23 @@ public final class CloudCosmeticSource {
         if (expected != null && !reference.equals(expected)) {
             throw failure("COSMETIC_RESOURCE_REFERENCE_MISMATCH");
         }
-        var metadata = CosmeticMetadata.read(header.getStringOr("cosmetic_json", ""));
-        var declaration = CosmeticMetadata.read(model.accessoryMetadata().toString());
-        if (!sameDeclaration(metadata, declaration)) {
+        CosmeticMetadata metadata;
+        try {
+            metadata = CosmeticMetadata.read(header.getStringOr("cosmetic_json", ""));
+        } catch (RuntimeException invalid) {
+            LOGGER.warn("cloud cosmetic package {} has no readable cosmetic declaration", model.modelId());
             throw failure("COSMETIC_METADATA_MISMATCH");
+        }
+        if (model.accessoryMetadata() != null) {
+            var declaration = CosmeticMetadata.read(model.accessoryMetadata().toString());
+            if (!sameDeclaration(metadata, declaration)) {
+                throw failure("COSMETIC_METADATA_MISMATCH");
+            }
+        } else {
+            // Older or private catalogue entries can omit the declared accessory metadata; the signed package
+            // header still carries the client-extracted declaration this preview has to use.
+            LOGGER.info("cloud cosmetic {} has no catalogue accessory metadata; using the package declaration",
+                    model.modelId());
         }
         return new Prepared(new Descriptor(reference, metadata, model.displayName()), value.nbt(), client.session());
     }
