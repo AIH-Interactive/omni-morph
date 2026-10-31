@@ -36,6 +36,7 @@ public final class GpuAccelerationSmokeTest {
         poseBlockVariants(false);
         poseBlockVariants(true);
         poseArena();
+        shaderSourcesPending();
         storageRouting();
         storageSingleRangeGroup();
         storageMergedPass();
@@ -555,6 +556,28 @@ public final class GpuAccelerationSmokeTest {
         retirement.poll();
         require(device.liveBytes == 0, "closing releases model geometry, indices and the arena");
         System.out.println("PASS R4-3 routing: skinned-capable model draw for lit/tinted quad and triangle batches, gated by options");
+    }
+
+    /** Missing game shader sources right after startup keep the probe pending instead of failing it. */
+    private static void shaderSourcesPending() {
+        boolean[] loaded = {false};
+        var device = new FakeDevice() {
+            @Override
+            public boolean shaderSourcesReady() {
+                return loaded[0];
+            }
+        };
+        var gpu = backend(device, new GpuRetirement(), 1_000_000);
+        require(!gpu.initializeStep() && device.selfTests == 1, "the self-test step does not need game shaders");
+        for (int frame = 0; frame < 3; frame++) {
+            require(!gpu.initializeStep(), "initialization stays pending while sources are missing");
+        }
+        require(device.compiles == 0, "no material is compiled from a missing source");
+        loaded[0] = true;
+        require(!gpu.initializeStep() && gpu.initializeStep() && device.compiles == 2,
+                "once the sources load, the remaining steps complete normally");
+        gpu.close();
+        System.out.println("PASS GPU probe waits for game shader sources instead of failing");
     }
 
     private static void poseArena() {

@@ -30,6 +30,11 @@ interface GpuDeviceAdapter {
 
     void assertThread();
 
+    /** False while the game's own entity shader sources are not loaded yet, so materials cannot be wrapped. */
+    default boolean shaderSourcesReady() {
+        return true;
+    }
+
     boolean isCurrent();
 
     Material compile(RenderPipeline original);

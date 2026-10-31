@@ -218,6 +218,10 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         if (ready) {
             return true;
         }
+        if (initializationStep > 0 && !device.shaderSourcesReady()) {
+            // Right after startup the game may still be loading shaders: keep probing instead of failing.
+            return false;
+        }
         try {
             switch (initializationStep) {
                 case 0 -> device.selfTest();

@@ -6,6 +6,7 @@ import com.mojang.blaze3d.pipeline.ColorTargetState;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.shaders.ShaderType;
 import com.mojang.blaze3d.systems.GpuDevice;
+import net.minecraft.client.renderer.RenderPipelines;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTexture;
@@ -86,6 +87,11 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
     @Override
     public Material compile(RenderPipeline original) {
         return compile(original, false);
+    }
+
+    @Override
+    public boolean shaderSourcesReady() {
+        return sources.apply(RenderPipelines.ENTITY_CUTOUT.getVertexShader(), ShaderType.VERTEX) != null;
     }
 
     @Override
