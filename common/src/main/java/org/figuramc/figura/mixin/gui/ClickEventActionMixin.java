@@ -1,13 +1,11 @@
 package org.figuramc.figura.mixin.gui;
 
-import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.Lifecycle;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.util.StringRepresentable;
-import top.aihmc.omnimorph.gui.FiguraFunctionClickEvent;
 import org.figuramc.figura.utils.TextUtils;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -31,26 +29,26 @@ public class ClickEventActionMixin {
     @Shadow @Final private String name;
 
     @Shadow @Final @Mutable
-    public static Codec<ClickEvent.Action> UNSAFE_CODEC;
+    public static MapCodec<ClickEvent.Action> UNSAFE_CODEC;
     @Shadow @Final @Mutable
-    public static Codec<ClickEvent.Action> CODEC;
+    public static MapCodec<ClickEvent.Action> CODEC;
 
     static {
-        figura$addVariant("FIGURA_FUNCTION", "figura_function", false, FiguraFunctionClickEvent.CODEC);
+        figura$addVariant("FIGURA_FUNCTION", "figura_function", false);
     }
 
     @Invoker("<init>")
-    public static ClickEvent.Action figura$invokeInit(String internalName, int internalId, String name, boolean user, MapCodec<? extends ClickEvent> codec) {
+    public static ClickEvent.Action figura$invokeInit(String internalName, int internalId, String name, boolean user) {
         throw new AssertionError();
     }
 
     @SuppressWarnings({"SameParameterValue"}) // technically right, but it's ugly to hardcode values here
-    private static ClickEvent.Action figura$addVariant(String internalName, String name, boolean user, MapCodec<? extends ClickEvent> codec) {
+    private static ClickEvent.Action figura$addVariant(String internalName, String name, boolean user) {
         ArrayList<ClickEvent.Action> variants = new ArrayList<>(Arrays.asList($VALUES));
-        ClickEvent.Action action = figura$invokeInit(internalName, variants.getLast().ordinal() + 1, name, user, codec);
+        ClickEvent.Action action = figura$invokeInit(internalName, variants.get(variants.size() - 1).ordinal() + 1, name, user);
         variants.add(action);
         $VALUES = variants.toArray(new ClickEvent.Action[0]);
-        UNSAFE_CODEC = StringRepresentable.fromEnum(ClickEvent.Action::values);
+        UNSAFE_CODEC = StringRepresentable.fromEnum(ClickEvent.Action::values).fieldOf("action");
         CODEC = UNSAFE_CODEC.validate(ClickEvent.Action::filterForSerialization);
         return action;
     }

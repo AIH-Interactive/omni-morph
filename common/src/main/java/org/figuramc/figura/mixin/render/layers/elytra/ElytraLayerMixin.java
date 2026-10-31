@@ -1,49 +1,31 @@
 package org.figuramc.figura.mixin.render.layers.elytra;
 
-import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.model.ElytraModel;
 import net.minecraft.client.model.EntityModel;
-import net.minecraft.client.model.geom.ModelPart;
-import net.minecraft.client.model.object.equipment.ElytraModel;
+import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.Sheets;
-import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
-import net.minecraft.client.renderer.entity.layers.EquipmentLayerRenderer;
+import net.minecraft.client.renderer.entity.layers.ElytraLayer;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
-import net.minecraft.client.renderer.entity.layers.WingsLayer;
-import net.minecraft.client.renderer.entity.state.AvatarRenderState;
-import net.minecraft.client.renderer.entity.state.HumanoidRenderState;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.model.EquipmentClientInfo;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.ItemTags;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.PlayerModelPart;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.DyedItemColor;
-import net.minecraft.world.item.equipment.EquipmentAsset;
-import net.minecraft.world.item.equipment.Equippable;
-import net.minecraft.world.item.equipment.trim.ArmorTrim;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
-import top.aihmc.omnimorph.ducks.FiguraEntityRenderStateExtension;
-import top.aihmc.omnimorph.ducks.FiguraSubmitCallBackExtension;
-import top.aihmc.omnimorph.ducks.NodeCollectorExtension;
 import org.figuramc.figura.lua.api.vanilla_model.VanillaPart;
-import top.aihmc.omnimorph.mixin.render.layers.EquipmentLayerRendererAccessor;
 import org.figuramc.figura.model.ParentType;
 import org.figuramc.figura.permissions.Permissions;
 import org.figuramc.figura.utils.PlatformUtils;
 import org.figuramc.figura.utils.RenderUtils;
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -52,18 +34,15 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.List;
-import java.util.Optional;
+@Mixin(ElytraLayer.class)
+public abstract class ElytraLayerMixin<T extends LivingEntity, M extends EntityModel<T>> extends RenderLayer<T, M> {
 
-@Mixin(WingsLayer.class)
-public abstract class ElytraLayerMixin<T extends LivingEntity, S extends HumanoidRenderState, M extends EntityModel<S>> extends RenderLayer<S, M> {
-
-    public ElytraLayerMixin(RenderLayerParent<S, M> context) {
+    public ElytraLayerMixin(RenderLayerParent<T, M> context) {
         super(context);
     }
 
-    @Shadow @Final private EquipmentLayerRenderer equipmentRenderer;
-
+    @Shadow @Final private ElytraModel<T> elytraModel;
+    @Shadow @Final private static ResourceLocation WINGS_LOCATION;
     @Unique
     private VanillaPart vanillaPart;
     @Unique
@@ -72,170 +51,92 @@ public abstract class ElytraLayerMixin<T extends LivingEntity, S extends Humanoi
     @Unique
     private boolean renderedPivot;
 
-    @Inject(at = @At(value = "HEAD"), method = "submit(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;ILnet/minecraft/client/renderer/entity/state/HumanoidRenderState;FF)V")
-    public void setAvatar(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int i, S humanoidRenderState, float f, float g, CallbackInfo ci) {
-        figura$avatar = AvatarManager.getAvatar(humanoidRenderState);
+    @Inject(at = @At(value = "HEAD"), method = "render(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;ILnet/minecraft/world/entity/LivingEntity;FFFFFF)V")
+    public void setAvatar(PoseStack poseStack, MultiBufferSource multiBufferSource, int i, T livingEntity, float f, float g, float h, float j, float k, float l, CallbackInfo ci) {
+        figura$avatar = AvatarManager.getAvatar(livingEntity);
     }
 
-    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/entity/layers/EquipmentLayerRenderer;renderLayers(Lnet/minecraft/client/resources/model/EquipmentClientInfo$LayerType;Lnet/minecraft/resources/ResourceKey;Lnet/minecraft/client/model/Model;Ljava/lang/Object;Lnet/minecraft/world/item/ItemStack;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;ILnet/minecraft/resources/ResourceLocation;II)V", shift = At.Shift.BEFORE),
-            method = "submit(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;ILnet/minecraft/client/renderer/entity/state/HumanoidRenderState;FF)V")
-    public void onRender(PoseStack pose, SubmitNodeCollector submitNodeCollector, int light, S humanoidRenderState, float f, float g, CallbackInfo ci, @Local ElytraModel elytraModel) {
+    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/model/ElytraModel;setupAnim(Lnet/minecraft/world/entity/LivingEntity;FFFFF)V", shift = At.Shift.AFTER), method = "render(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;ILnet/minecraft/world/entity/LivingEntity;FFFFFF)V")
+    public void onRender(PoseStack poseStack, MultiBufferSource multiBufferSource, int light, T livingEntity, float limbAngle, float limbDistance, float tickDelta, float animationProgress, float headYaw, float headPitch, CallbackInfo ci) {
         vanillaPart = null;
         if (figura$avatar == null)
             return;
 
-
-        FiguraSubmitCallBackExtension submitCallBackExtension = (FiguraSubmitCallBackExtension) elytraModel;
-        NodeCollectorExtension nodeCollectorExtension = (NodeCollectorExtension) submitNodeCollector;
-
-        nodeCollectorExtension.submitFiguraModel(figura$avatar, humanoidRenderState, (avatar, renderState, multiBufferSource) -> {
-            if (avatar.luaRuntime != null) {
-                VanillaPart part = avatar.luaRuntime.vanilla_model.ELYTRA;
-                part.save(elytraModel);
-                if (avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1) {
-                    vanillaPart = part;
-                    vanillaPart.preTransform(elytraModel);
-                }
+        if (figura$avatar.luaRuntime != null) {
+            VanillaPart part = figura$avatar.luaRuntime.vanilla_model.ELYTRA;
+            part.save(elytraModel);
+            if (figura$avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1) {
+                vanillaPart = part;
+                vanillaPart.preTransform(elytraModel);
             }
+        }
 
-            Integer id = humanoidRenderState instanceof AvatarRenderState playerRenderState ? playerRenderState.id : ((FiguraEntityRenderStateExtension)humanoidRenderState).figura$getEntityId();
-            if (id != null)
-                avatar.elytraRender(Minecraft.getInstance().level.getEntity(id), multiBufferSource, pose, light, ((FiguraEntityRenderStateExtension)humanoidRenderState).figura$getTickDelta(), elytraModel);
+        figura$avatar.elytraRender(livingEntity, multiBufferSource, poseStack, light, tickDelta, elytraModel);
 
-            if (vanillaPart != null)
-                vanillaPart.restore(elytraModel);
-            return null;
-        });
+        if (vanillaPart != null)
+            vanillaPart.posTransform(elytraModel);
 
-        Avatar avatar = figura$avatar;
-        submitCallBackExtension.figura$addPreRenderingCallback(((multiBufferSource, poseStack) -> {
-            if (avatar.luaRuntime != null) {
-                VanillaPart part = avatar.luaRuntime.vanilla_model.ELYTRA;
-                part.save(elytraModel);
-                if (avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1) {
-                    vanillaPart = part;
-                    vanillaPart.preTransform(elytraModel);
-                }
-            }
-
-            if (vanillaPart != null)
-                vanillaPart.posTransform(elytraModel);
-            return true;
-        }));
-
-        submitCallBackExtension.figura$addPostRenderingCallback((() -> {
-            if (vanillaPart != null)
-                vanillaPart.restore(elytraModel);
-        }));
     }
 
-    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/entity/layers/EquipmentLayerRenderer;renderLayers(Lnet/minecraft/client/resources/model/EquipmentClientInfo$LayerType;Lnet/minecraft/resources/ResourceKey;Lnet/minecraft/client/model/Model;Ljava/lang/Object;Lnet/minecraft/world/item/ItemStack;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;ILnet/minecraft/resources/ResourceLocation;II)V"), method = "submit(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;ILnet/minecraft/client/renderer/entity/state/HumanoidRenderState;FF)V", cancellable = true)
-    public void cancelVanillaPart(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int light, S humanoidRenderState, float f, float g, CallbackInfo ci, @Local ElytraModel elytraModel) {
+    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/model/ElytraModel;renderToBuffer(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;II)V"), method = "render(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;ILnet/minecraft/world/entity/LivingEntity;FFFFFF)V", cancellable = true)
+    public void cancelVanillaPart(PoseStack poseStack, MultiBufferSource multiBufferSource,  int light, T livingEntity, float limbAngle, float limbDistance, float tickDelta, float animationProgress, float headYaw, float headPitch, CallbackInfo ci) {
+        if (vanillaPart != null)
+            vanillaPart.restore(elytraModel);
         renderedPivot = true;
-        submitElytraPivot(humanoidRenderState, poseStack, submitNodeCollector, light, elytraModel);
 
+        renderElytraPivot(poseStack, multiBufferSource, light, livingEntity, limbAngle, limbDistance, tickDelta, animationProgress);
         if (renderedPivot) {
             poseStack.popPose();
             ci.cancel();
         }
     }
 
-    public void submitElytraPivot(S state, PoseStack poseStack, SubmitNodeCollector nodeCollector, int light, ElytraModel elytraModel) {
-        ItemStack itemStack = state.chestEquipment;
+    public void renderElytraPivot(PoseStack poseStack, MultiBufferSource multiBufferSource, int light, T livingEntity, float limbAngle, float limbDistance, float tickDelta, float animationProgress) {
+
+        ItemStack itemStack = livingEntity.getItemBySlot(EquipmentSlot.CHEST);
         if (!itemStack.is(Items.ELYTRA) && !PlatformUtils.isModLoaded("origins")) {
             return;
         }
-        Avatar figura$Avatar = figura$avatar;
-        if (figura$Avatar != null && figura$Avatar.luaRuntime != null && figura$Avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1 && figura$Avatar.luaRuntime.vanilla_model.ELYTRA.checkVisible()) {
+        if (figura$avatar != null && figura$avatar.luaRuntime != null && figura$avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1 && figura$avatar.luaRuntime.vanilla_model.ELYTRA.checkVisible()) {
             // Try to render the pivot part
-            ResourceLocation playerTexture =  RenderUtils.getPlayerSkinTexture((WingsLayer<?, ?>) (Object)this, state);
+            this.elytraModel.setupAnim(livingEntity, limbAngle, limbDistance, tickDelta, light, animationProgress);
 
-            VanillaPart part = RenderUtils.pivotToPart(figura$Avatar, ParentType.LeftElytraPivot);
+            VanillaPart part = RenderUtils.pivotToPart(figura$avatar, ParentType.LeftElytraPivot);
+
+            ResourceLocation resourceLocation = livingEntity instanceof AbstractClientPlayer abstractClientPlayer ? abstractClientPlayer.getSkin().elytraTexture() != null ? abstractClientPlayer.getSkin().elytraTexture() : (abstractClientPlayer.getSkin().capeTexture() != null && abstractClientPlayer.isModelPartShown(PlayerModelPart.CAPE) ? abstractClientPlayer.getSkin().capeTexture() : WINGS_LOCATION) : WINGS_LOCATION;
+            VertexConsumer vertexConsumer = ItemRenderer.getArmorFoilBuffer(multiBufferSource, RenderType.armorCutoutNoCull(resourceLocation), itemStack.hasFoil());
+
             if (part != null && part.checkVisible()) {
-                boolean leftWing = figura$Avatar.pivotPartRender(ParentType.LeftElytraPivot, stack -> {
-                        stack.pushPose();
-                        stack.scale(16, 16, 16);
-                        stack.mulPose(Axis.XP.rotationDegrees(180f));
-                        stack.mulPose(Axis.YP.rotationDegrees(180f));
-                        stack.translate(0.0f, 0.0f, 0.125f);
-                        figura$submitElytraPart(elytraModel, state, ((ElytraModelAccessor)elytraModel).getLeftWing(), stack, nodeCollector, light, state.outlineColor, itemStack, playerTexture);
-                        stack.popPose();
-                });
-                if (!leftWing) {
-                    figura$submitElytraPart(elytraModel, state, ((ElytraModelAccessor)elytraModel).getLeftWing(), poseStack, nodeCollector, light, state.outlineColor, itemStack, playerTexture);
-                }
-            }
-
-
-            part = RenderUtils.pivotToPart(figura$Avatar, ParentType.RightElytraPivot);
-            if (part != null && part.checkVisible()) {
-                boolean rightWing = figura$Avatar.pivotPartRender(ParentType.RightElytraPivot, stack -> {
+                boolean leftWing = figura$avatar.pivotPartRender(ParentType.LeftElytraPivot, stack -> {
                     stack.pushPose();
                     stack.scale(16, 16, 16);
                     stack.mulPose(Axis.XP.rotationDegrees(180f));
                     stack.mulPose(Axis.YP.rotationDegrees(180f));
                     stack.translate(0.0f, 0.0f, 0.125f);
-                    figura$submitElytraPart(elytraModel, state, ((ElytraModelAccessor)elytraModel).getRightWing(), stack, nodeCollector, light, state.outlineColor, itemStack, playerTexture);
+
+                    ((ElytraModelAccessor)this.elytraModel).getLeftWing().render(stack, vertexConsumer, light, OverlayTexture.NO_OVERLAY, -1);
+                    stack.popPose();
+                });
+                if (!leftWing) {
+                    ((ElytraModelAccessor)this.elytraModel).getLeftWing().render(poseStack, vertexConsumer, light, OverlayTexture.NO_OVERLAY, -1);
+                }
+            }
+            part = RenderUtils.pivotToPart(figura$avatar, ParentType.RightElytraPivot);
+            if (part != null && part.checkVisible()) {
+                    boolean rightWing = figura$avatar.pivotPartRender(ParentType.RightElytraPivot, stack -> {
+                    stack.pushPose();
+                    stack.scale(16, 16, 16);
+                    stack.mulPose(Axis.XP.rotationDegrees(180f));
+                    stack.mulPose(Axis.YP.rotationDegrees(180f));
+                    stack.translate(0.0f, 0.0f, 0.125f);
+
+                    ((ElytraModelAccessor)this.elytraModel).getRightWing().render(stack, vertexConsumer, light, OverlayTexture.NO_OVERLAY, -1);
                     stack.popPose();
                 });
                 if (!rightWing) {
-                    figura$submitElytraPart(elytraModel, state, ((ElytraModelAccessor)elytraModel).getRightWing(), poseStack, nodeCollector, light, state.outlineColor, itemStack, playerTexture);
+                    ((ElytraModelAccessor)this.elytraModel).getRightWing().render(poseStack, vertexConsumer, light, OverlayTexture.NO_OVERLAY, -1);
                 }
             }
-        } else renderedPivot = figura$Avatar != null && figura$Avatar.luaRuntime != null && figura$Avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1 && !figura$Avatar.luaRuntime.vanilla_model.ELYTRA.checkVisible();
-    }
-
-    // rewritten to work with mojang's shiny new layer system
-    @Unique
-    private void figura$submitElytraPart(ElytraModel elytraModel, S state, ModelPart modelPart, PoseStack poseStack, SubmitNodeCollector nodeCollector, int light, int outlineColor, ItemStack itemStack, @Nullable ResourceLocation playerLocation) {
-        boolean hasGlint = itemStack.hasFoil();
-
-        EquipmentClientInfo.LayerType layerType = EquipmentClientInfo.LayerType.WINGS;
-        Equippable equippable = itemStack.get(DataComponents.EQUIPPABLE);
-
-        if (equippable == null)
-            return;
-
-        Optional<ResourceKey<EquipmentAsset>> location = equippable.assetId();
-        if (location.isEmpty())
-            return;
-
-        List<EquipmentClientInfo.Layer> list = ((EquipmentLayerRendererAccessor)this.equipmentRenderer).figura$getAssetsManager().get(location.get()).getLayers(layerType);
-
-        int i = itemStack.has(net.minecraft.core.component.DataComponents.DYED_COLOR) ? DyedItemColor.getOrDefault(itemStack, -6265536) : -1;
-        int order = 0;
-
-        for(EquipmentClientInfo.Layer layer : list) {
-            int k = EquipmentLayerRendererAccessor.getColorForLayer(layer, i);
-
-            if (k != 0) {
-                ResourceLocation normalArmorResource = layer.usePlayerTexture() && playerLocation != null ? playerLocation : ((EquipmentLayerRendererAccessor)this.equipmentRenderer).layerTextureLookup().apply(new EquipmentLayerRenderer.LayerTextureKey(layerType, layer));
-                ((FiguraSubmitCallBackExtension)(Object)modelPart).figura$addPreRenderingCallback((multiBufferSource, stack) -> {
-                    elytraModel.setupAnim(state);
-                    return true;
-                });
-                nodeCollector.order(order++).submitModelPart(modelPart, poseStack, RenderTypes.armorCutoutNoCull(normalArmorResource), light, OverlayTexture.NO_OVERLAY, null, -1, null);
-                if (hasGlint) {
-                    ((FiguraSubmitCallBackExtension)(Object)modelPart).figura$addPreRenderingCallback((multiBufferSource, stack) -> {
-                        elytraModel.setupAnim(state);
-                        return true;
-                    });
-                    nodeCollector.order(order++).submitModelPart(modelPart, poseStack, RenderTypes.armorEntityGlint(), light, OverlayTexture.NO_OVERLAY, null, -1 , null);
-                }
-                hasGlint = false;
-            }
-        }
-
-        ArmorTrim trim = itemStack.get(DataComponents.TRIM);
-        if (trim != null) {
-            TextureAtlasSprite textureAtlasSprite = ((EquipmentLayerRendererAccessor)equipmentRenderer).trimSpriteLookup()
-                    .apply(new EquipmentLayerRenderer.TrimSpriteKey(trim, layerType, location.get()));
-            RenderType renderType = Sheets.armorTrimsSheet(trim.pattern().value().decal());
-            ((FiguraSubmitCallBackExtension)(Object)modelPart).figura$addPreRenderingCallback((multiBufferSource, stack) -> {
-                elytraModel.setupAnim(state);
-                return true;
-            });
-            nodeCollector.order(order).submitModelPart(modelPart, poseStack, renderType, light, OverlayTexture.NO_OVERLAY, textureAtlasSprite, -1, null);
-        }
+        } else renderedPivot = figura$avatar != null && figura$avatar.luaRuntime != null && figura$avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1 && !figura$avatar.luaRuntime.vanilla_model.ELYTRA.checkVisible();
     }
 }
