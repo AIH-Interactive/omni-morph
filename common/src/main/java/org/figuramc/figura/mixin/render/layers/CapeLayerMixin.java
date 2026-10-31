@@ -1,78 +1,61 @@
 package org.figuramc.figura.mixin.render.layers;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.EntityModel;
-import net.minecraft.client.model.HumanoidModel;
-import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
 import net.minecraft.client.renderer.entity.layers.CapeLayer;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
-import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
-import top.aihmc.omnimorph.ducks.FiguraEntityRenderStateExtension;
-import top.aihmc.omnimorph.ducks.FiguraSubmitCallBackExtension;
-import top.aihmc.omnimorph.ducks.NodeCollectorExtension;
 import top.aihmc.omnimorph.ducks.PlayerModelCapeAccessor;
 import org.figuramc.figura.lua.api.vanilla_model.VanillaPart;
-import top.aihmc.omnimorph.mixin.ClientAvatarStateAccessor;
 import org.figuramc.figura.permissions.Permissions;
 import org.figuramc.figura.utils.RenderUtils;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(CapeLayer.class)
-public abstract class CapeLayerMixin extends RenderLayer<AvatarRenderState, PlayerModel> {
+public abstract class CapeLayerMixin extends RenderLayer<AbstractClientPlayer, PlayerModel<AbstractClientPlayer>> {
 
-    @Shadow @Final private HumanoidModel<AvatarRenderState> model;
-
-    public CapeLayerMixin(RenderLayerParent<AvatarRenderState, PlayerModel> renderLayerParent) {
+    public CapeLayerMixin(RenderLayerParent<AbstractClientPlayer, PlayerModel<AbstractClientPlayer>> renderLayerParent) {
         super(renderLayerParent);
     }
 
     @Unique
     private Avatar avatar;
 
-    @Inject(method = "submit(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;ILnet/minecraft/client/renderer/entity/state/AvatarRenderState;FF)V", at = @At("HEAD"), cancellable = true)
-    private void preRender(PoseStack pose, SubmitNodeCollector submitNodeCollector, int i, AvatarRenderState playerRenderState, float f, float g, CallbackInfo ci) {
-        ItemStack itemStack = playerRenderState.chestEquipment;
-        if (playerRenderState.isInvisible || itemStack.is(Items.ELYTRA))
+    @Inject(method = "render(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;ILnet/minecraft/client/player/AbstractClientPlayer;FFFFFF)V", at = @At("HEAD"))
+    private void preRender(PoseStack poseStack, MultiBufferSource multiBufferSource, int light, AbstractClientPlayer entity, float limbAngle, float limbDistance, float tickDelta, float animationProgress, float headYaw, float headPitch, CallbackInfo ci) {
+        ItemStack itemStack = entity.getItemBySlot(EquipmentSlot.CHEST);
+        if (entity.isInvisible() || itemStack.is(Items.ELYTRA))
             return;
 
-        avatar = AvatarManager.getAvatar(playerRenderState);
+        avatar = AvatarManager.getAvatar(entity);
         if (avatar == null)
             return;
 
         // Acquire reference to fake cloak
-        ModelPart fakeCloak = ((PlayerModelCapeAccessor) model).figura$getFakeCloak();
-        ModelPart realCloak = ((PlayerModelCapeAccessor) model).figura$getCloak();
+        ModelPart fakeCloak = ((PlayerModelCapeAccessor) getParentModel()).figura$getFakeCloak();
+        ModelPart realCloak = ((PlayerModelCapeAccessor) getParentModel()).figura$getCloak();
 
         // Do math for fake cloak
-        fakeCloak.loadPose(realCloak.storePose());
+        fakeCloak.copyFrom(realCloak);
 
-        // REFERENCED FROM CODE IN CapeLayer (CapeFeatureRenderer for Yarn), logic now in ClientAvatarState
-        AbstractClientPlayer entity = (AbstractClientPlayer) (Minecraft.getInstance().level.getEntity(playerRenderState.id));
-        float tickDelta = ((FiguraEntityRenderStateExtension)playerRenderState).figura$getTickDelta();
-
-        ClientAvatarStateAccessor entityState = (ClientAvatarStateAccessor) entity.avatarState();
-        double d = Mth.lerp(tickDelta, entityState.figura$xCloakO(), entityState.figura$xCloak()) - Mth.lerp(tickDelta, entity.xo, entity.getX());
-        double e = Mth.lerp(tickDelta, entityState.figura$yCloakO(), entityState.figura$yCloak()) - Mth.lerp(tickDelta, entity.yo, entity.getY());
-        double m = Mth.lerp(tickDelta, entityState.figura$zCloakO(), entityState.figura$zCloak()) - Mth.lerp(tickDelta, entity.zo, entity.getZ());
+        // REFERENCED FROM CODE IN CapeLayer (CapeFeatureRenderer for Yarn)
+        double d = Mth.lerp(tickDelta, entity.xCloakO, entity.xCloak) - Mth.lerp(tickDelta, entity.xo, entity.getX());
+        double e = Mth.lerp(tickDelta, entity.yCloakO, entity.yCloak) - Mth.lerp(tickDelta, entity.yo, entity.getY());
+        double m = Mth.lerp(tickDelta, entity.zCloakO, entity.zCloak) - Mth.lerp(tickDelta, entity.zo, entity.getZ());
         float n = Mth.rotLerp(tickDelta, entity.yBodyRotO, entity.yBodyRot);
         n = (float) Math.toRadians(n);
         double o = Mth.sin(n);
@@ -84,8 +67,8 @@ public abstract class CapeLayerMixin extends RenderLayer<AvatarRenderState, Play
         float s = (float) (d * p - m * o) * 100f;
         s = Mth.clamp(s, -20f, 20f);
         r = Math.max(r, 0f);
-        float t = Mth.lerp(tickDelta, entityState.figura$bobO(), entityState.figura$bob());
-        q += Mth.sin(Mth.lerp(tickDelta, entityState.figura$walkDistO(), entityState.figura$walkDist()) * 6f) * 32f * t;
+        float t = Mth.lerp(tickDelta, entity.oBob, entity.bob);
+        q += Mth.sin(Mth.lerp(tickDelta, entity.walkDistO, entity.walkDist) * 6f) * 32f * t;
 
         // Just going to ignore the fact that vanilla uses XZY rotation order for capes...
         // As a result, the cape rotation is slightly off.
@@ -116,84 +99,37 @@ public abstract class CapeLayerMixin extends RenderLayer<AvatarRenderState, Play
             fakeCloak.z = 1f;
         }
 
+        // rot
+        fakeCloak.setRotation(
+                (float) Math.toRadians(6f + r / 2f + q),
+                (float) -Math.toRadians(s / 2f),
+                (float) Math.toRadians(s / 2f)
+        );
 
-        float finalR = r;
-        float finalS = s;
-        float finalQ = q;
-
-        Avatar localAvatar = avatar;
-        FiguraSubmitCallBackExtension submitCallBackExtension = (FiguraSubmitCallBackExtension) model;
-
-        submitCallBackExtension.figura$addPreRenderingCallback((multiBufferSource, poseStack) -> {
-            if (localAvatar == null)
-                return true;
-
-            // rot
-            fakeCloak.setRotation(
-                    (float) Math.toRadians(6f + finalR / 2f + finalQ),
-                    (float) -Math.toRadians(finalS / 2f),
-                    (float) Math.toRadians(finalS / 2f)
-            );
-
-            // Copy rotations from fake cloak
-            if (localAvatar.luaRuntime != null) {
-                VanillaPart part = localAvatar.luaRuntime.vanilla_model.CAPE;
-                part.save(model);
-                if (localAvatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1)
-                    part.preTransform(model);
-            }
-
-            // Setup visibility for real cloak
-            if (RenderUtils.vanillaModelAndScript(localAvatar)) {
-                localAvatar.luaRuntime.vanilla_model.CAPE.posTransform(model);
-                if (!localAvatar.luaRuntime.vanilla_model.CAPE.checkVisible())
-                    return false;
-            }
-
-            return true;
-        });
-
-        PoseStack poseStack = new PoseStack();
-        poseStack.pushPose();
-        poseStack.last().set(pose.last());
-
-        ((NodeCollectorExtension)submitNodeCollector).submitFiguraModel(localAvatar, playerRenderState, (av, renderState, multiBufferSource) -> {
-            // rot
-            fakeCloak.setRotation(
-                    (float) Math.toRadians(6f + finalR / 2f + finalQ),
-                    (float) -Math.toRadians(finalS / 2f),
-                    (float) Math.toRadians(finalS / 2f)
-            );
-
-            // Copy rotations from fake cloak
-            if (av.luaRuntime != null) {
-                VanillaPart part = av.luaRuntime.vanilla_model.CAPE;
-                part.save(model);
-                if (av.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1)
-                    part.preTransform(model);
-            }
-
-            av.capeRender(entity, multiBufferSource, poseStack, renderState.lightCoords, tickDelta, fakeCloak);
-            return null;
-
-        });
-        submitCallBackExtension.figura$addPostRenderingCallback(() -> {
-            if (localAvatar == null)
-                return;
-
-            if (localAvatar.luaRuntime != null)
-                localAvatar.luaRuntime.vanilla_model.CAPE.restore(model);
-
-            avatar = null;
-        });
-
-        // Cancel vanilla cape rendering if cape visibility is set to false
-        if (RenderUtils.vanillaModelAndScript(avatar) && !avatar.luaRuntime.vanilla_model.CAPE.checkVisible()) {
-            // Clear the callbacks since vanilla won't run them
-            submitCallBackExtension.figura$getPreRenderingCallbacks().clear();
-            submitCallBackExtension.figura$getPostRenderingCallbacks().clear();
-            avatar = null;
-            ci.cancel();
+        // Copy rotations from fake cloak
+        if (avatar.luaRuntime != null) {
+            VanillaPart part = avatar.luaRuntime.vanilla_model.CAPE;
+            EntityModel<?> model = getParentModel();
+            part.save(model);
+            if (avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1)
+                part.preTransform(model);
         }
+
+        avatar.capeRender(entity, multiBufferSource, poseStack, light, tickDelta, fakeCloak);
+
+        // Setup visibility for real cloak
+        if (RenderUtils.vanillaModelAndScript(avatar))
+            avatar.luaRuntime.vanilla_model.CAPE.posTransform(getParentModel());
+    }
+
+    @Inject(method = "render(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;ILnet/minecraft/client/player/AbstractClientPlayer;FFFFFF)V", at = @At("RETURN"))
+    private void postRender(PoseStack poseStack, MultiBufferSource multiBufferSource, int i, AbstractClientPlayer abstractClientPlayer, float f, float g, float h, float j, float k, float l, CallbackInfo ci) {
+        if (avatar == null)
+            return;
+
+        if (avatar.luaRuntime != null)
+            avatar.luaRuntime.vanilla_model.CAPE.restore(getParentModel());
+
+        avatar = null;
     }
 }

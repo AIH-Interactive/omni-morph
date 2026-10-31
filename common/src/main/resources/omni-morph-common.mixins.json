@@ -37,7 +37,6 @@
     "render.AtlasManagerAccessor",
     "render.GlBufferAccessor",
     "render.CameraRenderStateMixin",
-    "render.PlayerCapeModelMixin",
     "render.layers.EquipmentLayerRendererAccessor",
     "render.model.ModelMixin",
     "render.model.ModelPartMixin",
