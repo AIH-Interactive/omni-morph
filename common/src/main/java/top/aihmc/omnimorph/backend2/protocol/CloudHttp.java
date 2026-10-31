@@ -1,5 +1,8 @@
 package top.aihmc.omnimorph.backend2.protocol;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -15,6 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /** One connection owns its requests and streams; closing it cancels all remaining work. */
 public final class CloudHttp implements AutoCloseable {
+    private static final Logger LOGGER = LoggerFactory.getLogger("OmniMorph/Web");
     public static final int CONTROL_BYTES = 65536;
     public static final long FILE_BYTES = 64L * 1024 * 1024;
     private final HttpClient client;
@@ -64,6 +68,11 @@ public final class CloudHttp implements AutoCloseable {
             if (response.statusCode() >= 300 && response.statusCode() < 400) {
                 release(response.body());
                 throw new IOException("backend.endpoint.redirect_blocked");
+            }
+            if (response.statusCode() >= 400) {
+                // The endpoint path contains resource ids only; it is the only way to identify a rejected call.
+                LOGGER.warn("library HTTP {} {} -> {}", request.method(), request.uri().getPath(),
+                        response.statusCode());
             }
             return response;
         } finally {
