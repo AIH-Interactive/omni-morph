@@ -6,13 +6,11 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import net.minecraft.core.Direction;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
-import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.model.rendering.EntityRenderMode;
@@ -28,8 +26,6 @@ import java.util.List;
 public class YsmRenderer {
     private final YsmModelRuntime runtime;
     private final YsmAccelerationMeshes accelerationMeshes = new YsmAccelerationMeshes();
-    private ResourceLocation culledTranslucentTexture;
-    private RenderType culledTranslucentType;
     private YsmPreviewRenderTypes previewTypes;
 
     private record DrawTarget(MultiBufferSource source, RenderType material, ResourceLocation texture,
@@ -48,15 +44,16 @@ public class YsmRenderer {
     }
 
     /** Entity root transform shared by the body, held items and attached outfit frame. */
-    public static void applyEntityRotation(PoseStack stack, LivingEntityRenderState state, float bodyYaw) {
-        if (state.hasPose(Pose.SLEEPING)) {
-            if (state.bedOrientation != null) {
+    public static void applyEntityRotation(PoseStack stack, LivingEntity entity, float bodyYaw) {
+        if (entity.hasPose(Pose.SLEEPING)) {
+            Direction bedOrientation = entity.getBedOrientation();
+            if (bedOrientation != null) {
                 // Vanilla performs this before setupRotations; our HEAD interception skips it.
-                float offset = state.eyeHeight - 0.1f;
-                stack.translate(-state.bedOrientation.getStepX() * offset, 0f,
-                        -state.bedOrientation.getStepZ() * offset);
+                float offset = entity.getEyeHeight(Pose.STANDING) - 0.1f;
+                stack.translate(-bedOrientation.getStepX() * offset, 0f,
+                        -bedOrientation.getStepZ() * offset);
             }
-            float angle = state.bedOrientation == null ? bodyYaw : switch (state.bedOrientation) {
+            float angle = bedOrientation == null ? bodyYaw : switch (bedOrientation) {
                 case SOUTH -> 90f;
                 case WEST -> 0f;
                 case NORTH -> 270f;
@@ -132,8 +129,8 @@ public class YsmRenderer {
 
         entity.texture().uploadIfDirty(false, false);
         RenderType renderType = entity.isTextureTranslucent()
-                ? RenderTypes.entityTranslucent(entity.texture().getLocation())
-                : RenderTypes.entityCutout(entity.texture().getLocation());
+                ? RenderType.entityTranslucent(entity.texture().getLocation())
+                : RenderType.entityCutoutNoCull(entity.texture().getLocation());
         DrawTarget vertices = new DrawTarget(bufferSource, renderType,
                 entity.texture().getLocation(), "sub-entity", bodySubmitOrder());
 
@@ -308,28 +305,14 @@ public class YsmRenderer {
         }
         if (!runtime.isAllCutout()) {
             return translucent
-                    ? RenderTypes.entityTranslucent(texture) : RenderTypes.entityCutout(texture);
+                    ? RenderType.entityTranslucent(texture) : RenderType.entityCutoutNoCull(texture);
         }
         if (!translucent) {
-            return RenderTypes.entityCutoutCull(texture);
+            return RenderType.entityCutout(texture);
         }
-        if (!texture.equals(culledTranslucentTexture)) {
-            // all_cutout forces back-face culling, while retaining alpha blending and the world target.
-            // The vanilla translucent-cull helper uses the item target, so it cannot serve this pass.
-            RenderType base = RenderTypes.entityTranslucent(texture);
-            culledTranslucentType = new RenderType("ysm_entity_translucent_cull",
-                    RenderSetup.builder(RenderPipelines.ENTITY_TRANSLUCENT_CULL)
-                            .withTexture("Sampler0", texture)
-                            .setOutputTarget(base.outputTarget())
-                            .useLightmap()
-                            .useOverlay()
-                            .affectsCrumbling()
-                            .sortOnUpload()
-                            .setOutline(RenderSetup.OutlineProperty.AFFECTS_OUTLINE)
-                            .createRenderSetup());
-            culledTranslucentTexture = texture;
-        }
-        return culledTranslucentType;
+        // all_cutout forces back-face culling while keeping alpha blending; MC 1.21.1's
+        // translucent-cull entity type renders to the main target, as this pass requires.
+        return RenderType.entityTranslucentCull(texture);
     }
 
     private void renderBone(YsmGeometry.Bone bone, PoseStack stack, DrawTarget vertices, int light, YsmPartMask mask) {

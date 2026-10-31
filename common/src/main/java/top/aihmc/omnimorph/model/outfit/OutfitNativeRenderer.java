@@ -2,9 +2,9 @@ package top.aihmc.omnimorph.model.outfit;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.model.PlayerModel;
+import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
 import org.figuramc.figura.avatar.Avatar;
@@ -23,29 +23,29 @@ public final class OutfitNativeRenderer {
                 && top.aihmc.omnimorph.compat.IrisCompat.isShadowPass();
     }
 
-    public static void drawVanilla(OutfitComposition.Frame frame, PlayerModel model, LivingEntityRenderState state,
-                                   float delta, Matrix4fc entityToDraw, Matrix4fc modelToDraw,
+    public static void drawVanilla(OutfitComposition.Frame frame, PlayerModel<?> model, YsmEntityFrame state,
+                                   int light, float delta, Matrix4fc entityToDraw, Matrix4fc modelToDraw,
                                    MultiBufferSource buffers, EntityRenderMode mode) {
         var basePose = frame.captureVanillaBase(model, new Matrix4f(entityToDraw).invert().mul(modelToDraw));
-        draw(frame, basePose, state, delta, entityToDraw, buffers, mode);
+        draw(frame, basePose, state, light, delta, entityToDraw, buffers, mode);
     }
 
-    public static void drawVanillaArm(OutfitComposition.Frame frame, PlayerModel model,
-                                      LivingEntityRenderState state, float delta, Matrix4fc armToDraw,
+    public static void drawVanillaArm(OutfitComposition.Frame frame, PlayerModel<?> model,
+                                      YsmEntityFrame state, int light, float delta, Matrix4fc armToDraw,
                                       MultiBufferSource buffers, boolean left) {
         var basePose = frame.captureVanillaArm(model, new Matrix4f(), left);
-        draw(frame, basePose, state, delta, armToDraw, buffers, EntityRenderMode.FIRST_PERSON);
+        draw(frame, basePose, state, light, delta, armToDraw, buffers, EntityRenderMode.FIRST_PERSON);
     }
 
     public static void draw(OutfitComposition.Frame frame, SkeletonPose basePose,
-                            LivingEntityRenderState state, float delta, Matrix4fc entityToDraw,
+                            YsmEntityFrame state, int light, float delta, Matrix4fc entityToDraw,
                             MultiBufferSource buffers, EntityRenderMode mode) {
         if (shadowPass()) {
             return;
         }
         frame.withPreviewSelection(() -> frame.draw(basePose, state, delta, mode,
                 command -> frame.withPreviewSelection(() ->
-                        drawInstance(frame, command, delta, entityToDraw, buffers, state.lightCoords, mode))));
+                        drawInstance(frame, command, delta, entityToDraw, buffers, light, mode))));
         if (mode == EntityRenderMode.FIGURA_GUI) {
             PreviewBoneHighlight.drawSkeleton(frame.previewHelpers(basePose), entityToDraw, buffers);
         } else {

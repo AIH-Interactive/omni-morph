@@ -7,10 +7,8 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.debug.DebugScreenEntries;
 import net.minecraft.client.renderer.*;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.world.level.Level;
@@ -259,7 +257,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
 
         // Set shouldRenderPivots
         int config = Configs.RENDER_DEBUG_PARTS_PIVOT.value;
-        if (!Minecraft.getInstance().debugEntries.isCurrentlyEnabled(DebugScreenEntries.ENTITY_HITBOXES) || (!avatar.isHost && config < 2))
+        if (!Minecraft.getInstance().getEntityRenderDispatcher().shouldRenderHitBoxes() || (!avatar.isHost && config < 2))
             shouldRenderPivots = 0;
         else
             shouldRenderPivots = config;
@@ -686,7 +684,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
 
         PoseStack stack = customization.copyIntoGlobalPoseStack();
 
-        renderLineBox(stack.last(), bufferSource.getBuffer(RenderTypes.LINES),
+        renderLineBox(stack.last(), bufferSource.getBuffer(RenderType.lines()),
                 -boxSize, -boxSize, -boxSize,
                 boxSize, boxSize, boxSize,
                 (float) color.x, (float) color.y, (float) color.z, 1f);
@@ -714,8 +712,8 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
     }
 
     private static void line(VertexConsumer v, PoseStack.Pose pose, float x1, float y1, float z1, float x2, float y2, float z2, float r, float g, float b, float a, float nx, float ny, float nz) {
-        v.addVertex(pose, x1, y1, z1).setColor(r, g, b, a).setNormal(pose, nx, ny, nz).setLineWidth(1.0f);
-        v.addVertex(pose, x2, y2, z2).setColor(r, g, b, a).setNormal(pose, nx, ny, nz).setLineWidth(1.0f);
+        v.addVertex(pose, x1, y1, z1).setColor(r, g, b, a).setNormal(pose, nx, ny, nz);
+        v.addVertex(pose, x2, y2, z2).setColor(r, g, b, a).setNormal(pose, nx, ny, nz);
     }
 
     protected void savePivotTransform(ParentType parentType, PartCustomization customization) {
@@ -852,11 +850,11 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         // get render type
         if (id != null) {
             if (translucent) {
-                ret.renderType = RenderTypes.entityTranslucentCullItemTarget(id);
+                ret.renderType = RenderType.itemEntityTranslucentCull(id);
                 return ret;
             }
             if (glowing) {
-                ret.renderType = RenderTypes.outline(id);
+                ret.renderType = RenderType.outline(id);
                 return ret;
             }
         }
@@ -885,7 +883,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
                               FiguraModelPart part, @Nullable FiguraMat4[] boneDeltas) {
         int vertCount = faceCount * 4;
 
-        if (vertexData.renderType == RenderTypes.lines()) {
+        if (vertexData.renderType == RenderType.lines()) {
             return;
         }
         // Capture GUI selection before deferred emission; never edit the shared customization stack.

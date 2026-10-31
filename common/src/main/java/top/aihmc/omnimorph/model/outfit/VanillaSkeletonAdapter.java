@@ -2,7 +2,7 @@ package top.aihmc.omnimorph.model.outfit;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.model.geom.ModelPart;
-import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.model.PlayerModel;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
 
@@ -20,11 +20,11 @@ public final class VanillaSkeletonAdapter {
 
     private final SkeletonIndex.Binding<Part> binding;
 
-    public VanillaSkeletonAdapter(PlayerModel model, OutfitLimits limits) {
+    public VanillaSkeletonAdapter(PlayerModel<?> model, OutfitLimits limits) {
         this(model, limits, null);
     }
 
-    public VanillaSkeletonAdapter(PlayerModel model, OutfitLimits limits, SkeletonIndex.Cache cache) {
+    public VanillaSkeletonAdapter(PlayerModel<?> model, OutfitLimits limits, SkeletonIndex.Cache cache) {
         Part root = root(model);
         binding = cache == null ? SkeletonIndex.capture(null, List.of(root), Part::name, Part::children, limits)
                 : cache.bind(null, null, List.of(root), Part::name, Part::children, limits);
@@ -35,8 +35,9 @@ public final class VanillaSkeletonAdapter {
         return SkeletonIndex.capture(null, List.of(root(null)), Part::name, Part::children, limits);
     }
 
-    private static Part root(PlayerModel model) {
-        return new Part("Root", model == null ? null : model.root(), List.of(
+    private static Part root(PlayerModel<?> model) {
+        // MC 1.21.1 player models have no root part; limbs sit directly in model space.
+        return new Part("Root", null, List.of(
                 leaf("Body", model == null ? null : model.body),
                 leaf("Head", model == null ? null : model.head),
                 leaf("LeftArm", model == null ? null : model.leftArm),
@@ -68,7 +69,10 @@ public final class VanillaSkeletonAdapter {
             if (parent >= 0) {
                 stack.last().pose().set(matrices.get(binding.parts().get(parent)));
             }
-            part.nativePart().translateAndRotate(stack);
+            // Parts without a native counterpart (the 1.21.1 root) contribute an identity transform.
+            if (part.nativePart() != null) {
+                part.nativePart().translateAndRotate(stack);
+            }
             matrices.put(part, new Matrix4f(stack.last().pose()));
         }
         return SkeletonPose.fromNative(binding, matrices, nativeToEntity, SkeletonPose.NativeUnits.BLOCKS);

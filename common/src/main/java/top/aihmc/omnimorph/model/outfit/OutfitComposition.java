@@ -2,7 +2,7 @@ package top.aihmc.omnimorph.model.outfit;
 
 import org.figuramc.figura.utils.NbtDefaults;
 
-import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
@@ -614,7 +614,7 @@ public final class OutfitComposition implements AutoCloseable {
 
         private float delta;
         private SkeletonPose basePose;
-        private LivingEntityRenderState renderState;
+        private YsmEntityFrame renderState;
         private final Map<UUID, YsmRenderPose> prepared = new HashMap<>();
         private final Map<UUID, FiguraRenderPose> figuraPoses = new HashMap<>();
         private final List<Draw> commands = new ArrayList<>();
@@ -751,13 +751,13 @@ public final class OutfitComposition implements AutoCloseable {
             }
         }
 
-        public SkeletonPose captureVanillaBase(net.minecraft.client.model.player.PlayerModel model,
+        public SkeletonPose captureVanillaBase(net.minecraft.client.model.PlayerModel<?> model,
                                                Matrix4fc nativeToEntity) {
             OutfitConfig.require(configuration.base() == null);
             return new VanillaSkeletonAdapter(model, limits, indexes).capture(nativeToEntity);
         }
 
-        public SkeletonPose captureVanillaArm(net.minecraft.client.model.player.PlayerModel model,
+        public SkeletonPose captureVanillaArm(net.minecraft.client.model.PlayerModel<?> model,
                                               Matrix4fc nativeToEntity, boolean left) {
             OutfitConfig.require(configuration.base() == null);
             return new VanillaSkeletonAdapter(model, limits, indexes).captureArm(nativeToEntity, left);
@@ -799,11 +799,11 @@ public final class OutfitComposition implements AutoCloseable {
         }
 
         /** The base engine supplies the same frame's normalized pose before accessory native drawing. */
-        public void draw(SkeletonPose basePose, LivingEntityRenderState renderState, float delta, Consumer<Draw> renderer) {
+        public void draw(SkeletonPose basePose, YsmEntityFrame renderState, float delta, Consumer<Draw> renderer) {
             draw(basePose, renderState, delta, EntityRenderMode.FIGURA_GUI, renderer);
         }
 
-        public void draw(SkeletonPose basePose, LivingEntityRenderState renderState, float delta,
+        public void draw(SkeletonPose basePose, YsmEntityFrame renderState, float delta,
                          EntityRenderMode mode, Consumer<Draw> renderer) {
             if (frameClosed || drawing || activeFrame != null) {
                 throw new IllegalStateException("OUTFIT_FRAME_CLOSED_OR_REENTRANT");

@@ -6,9 +6,8 @@ import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.entity.LivingEntityRenderer;
-import net.minecraft.client.renderer.entity.state.AvatarRenderState;
-import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
+import top.aihmc.omnimorph.render.EntityFrame;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
@@ -49,19 +48,12 @@ public final class OutfitFirstPersonScripts {
             return;
         }
         var dispatcher = minecraft.getEntityRenderDispatcher();
-        var renderer = dispatcher.getRenderer(player);
-        if (!(renderer instanceof LivingEntityRenderer<?, ?, ?>)) {
-            return;
-        }
-        @SuppressWarnings({"rawtypes", "unchecked"})
-        EntityRenderState created = ((LivingEntityRenderer) renderer).createRenderState(player, delta);
-        if (!(created instanceof AvatarRenderState state)) {
-            return;
-        }
-        state.lightCoords = dispatcher.getPackedLightCoords(player, delta);
-        OutfitRenderBinding.capture(player, state, delta, true);
-        var composition = OutfitRenderBinding.composition(state);
-        Avatar base = OutfitRenderBinding.avatar(state);
+        EntityFrame frame = new EntityFrame(player, delta);
+        YsmEntityFrame state = YsmEntityFrame.capture(player, delta);
+        int light = dispatcher.getPackedLightCoords(player, delta);
+        OutfitRenderBinding.capture(player, frame, delta, true);
+        var composition = OutfitRenderBinding.composition(frame);
+        Avatar base = OutfitRenderBinding.avatar(frame);
         if (composition == null || base == null || base.renderer == null) {
             return;
         }
@@ -81,9 +73,9 @@ public final class OutfitFirstPersonScripts {
         base.renderer.allowMatrixUpdate = true;
         try {
             if (base.isYsmNative()) {
-                drawYsm(composition, base, state, player, delta, entityToDraw, bodyYaw, discard);
+                drawYsm(composition, base, state, light, player, delta, entityToDraw, bodyYaw, discard);
             } else {
-                drawFigura(composition, base, state, player, delta, entityToDraw, bodyYaw, discard);
+                drawFigura(composition, base, state, light, player, delta, entityToDraw, bodyYaw, discard);
             }
         } finally {
             base.renderer.allowMatrixUpdate = previousMatrixUpdate;
@@ -91,7 +83,7 @@ public final class OutfitFirstPersonScripts {
         }
     }
 
-    private static void drawYsm(OutfitComposition.Frame composition, Avatar base, AvatarRenderState state,
+    private static void drawYsm(OutfitComposition.Frame composition, Avatar base, YsmEntityFrame state, int light,
                                 LocalPlayer player, float delta, Matrix4f entityToDraw, float bodyYaw,
                                 MultiBufferSource discard) {
         YsmModelRuntime runtime = base.getYsmRuntime() == null ? null : base.getYsmRuntime().forRenderPass();
@@ -102,15 +94,15 @@ public final class OutfitFirstPersonScripts {
         PoseStack stack = new PoseStack();
         stack.last().pose().set(entityToDraw);
         stack.mulPose(Axis.YP.rotationDegrees(180.0f - bodyYaw));
-        YsmRenderer.applyEntityRotation(stack, state, bodyYaw);
+        YsmRenderer.applyEntityRotation(stack, player, bodyYaw);
         Matrix4f nativeToEntity = new Matrix4f(entityToDraw).invert().mul(stack.last().pose());
         var skeleton = composition.captureYsmBase(runtime, nativeToEntity, runtime.captureRenderPose(false));
         composition.draw(skeleton, state, delta, EntityRenderMode.FIRST_PERSON_WORLD,
                 command -> OutfitNativeRenderer.drawInstance(command, delta, entityToDraw, discard,
-                        state.lightCoords, EntityRenderMode.FIRST_PERSON_WORLD));
+                        light, EntityRenderMode.FIRST_PERSON_WORLD));
     }
 
-    private static void drawFigura(OutfitComposition.Frame composition, Avatar base, AvatarRenderState state,
+    private static void drawFigura(OutfitComposition.Frame composition, Avatar base, YsmEntityFrame state, int light,
                                    LocalPlayer player, float delta, Matrix4f entityToDraw, float bodyYaw,
                                    MultiBufferSource discard) {
         PoseStack stack = new PoseStack();
@@ -118,10 +110,10 @@ public final class OutfitFirstPersonScripts {
         stack.mulPose(Axis.YP.rotationDegrees(180.0f - bodyYaw));
         stack.scale(-1.0f, -1.0f, 1.0f);
         var pose = composition.captureFiguraBase(base, new Matrix4f(entityToDraw).invert(),
-                () -> base.render(player, 0, delta, 1.0f, stack, discard, state.lightCoords,
+                () -> base.render(player, 0, delta, 1.0f, stack, discard, light,
                         OverlayTexture.NO_OVERLAY, null, PartFilterScheme.MODEL, false, false));
         composition.draw(pose, state, delta, EntityRenderMode.FIRST_PERSON_WORLD,
                 command -> OutfitNativeRenderer.drawInstance(command, delta, entityToDraw, discard,
-                        state.lightCoords, EntityRenderMode.FIRST_PERSON_WORLD));
+                        light, EntityRenderMode.FIRST_PERSON_WORLD));
     }
 }
