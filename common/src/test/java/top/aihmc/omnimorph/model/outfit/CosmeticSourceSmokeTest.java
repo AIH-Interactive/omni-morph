@@ -29,6 +29,8 @@ public final class CosmeticSourceSmokeTest {
     public static void run(Path workspace, Runnable drain) throws Exception {
         Path data = Files.createTempDirectory("cosmetic-source-test-");
         try {
+            // Independent of the source fixtures below, so it still runs if a later step fails.
+            testBindingReuse();
             testSources(data, workspace, drain);
             top.aihmc.omnimorph.wizards.CosmeticCreationSmokeTest.run(data);
             top.aihmc.omnimorph.model.library.LocalCosmeticCatalogSmokeTest.run(data);
@@ -279,6 +281,40 @@ public final class CosmeticSourceSmokeTest {
             this.name = name;
             this.children.addAll(List.of(children));
         }
+    }
+
+    /** P2: an unchanged graph reuses its last binding; any structural change rebinds to the live parts. */
+    private static void testBindingReuse() {
+        var limits = OutfitLimits.defaults();
+        var cache = new SkeletonIndex.Cache();
+        var ref = new OutfitConfig.ResourceRef(OutfitConfig.Source.LOCAL, UUID.randomUUID(), null,
+                null, null, "b".repeat(64), OutfitConfig.Format.FIGURA);
+        Part wing = new Part("wing");
+        Part root = new Part("Cosmetic", wing, new Part("tail"));
+        UUID instance = UUID.randomUUID();
+        var first = cache.bind(ref, instance, List.of(root), part -> part.name, part -> part.children, limits);
+        var again = cache.bind(ref, instance, List.of(root), part -> part.name, part -> part.children, limits);
+        require(again == first && cache.parseCount() == 1, "an unchanged graph reuses its binding without rebinding");
+
+        Part replacement = new Part("wing");
+        root.children.set(0, replacement);
+        var replaced = cache.bind(ref, instance, List.of(root), part -> part.name, part -> part.children, limits);
+        require(replaced != first && replaced.parts().contains(replacement) && !replaced.parts().contains(wing),
+                "a replaced child object rebinds to the live part");
+
+        root.children.add(new Part("extra"));
+        var grown = cache.bind(ref, instance, List.of(root), part -> part.name, part -> part.children, limits);
+        require(grown.parts().size() == 4 && cache.parseCount() == 2, "an added part re-captures the graph");
+        root.children.removeLast();
+        var shrunk = cache.bind(ref, instance, List.of(root), part -> part.name, part -> part.children, limits);
+        require(shrunk.parts().size() == 3 && shrunk.parts().contains(replacement), "a removed part re-captures the graph");
+
+        var other = cache.bind(ref, UUID.randomUUID(), List.of(root), part -> part.name, part -> part.children, limits);
+        require(other != shrunk && other.parts().equals(shrunk.parts()), "each instance keeps its own binding");
+        cache.clear();
+        var cleared = cache.bind(ref, instance, List.of(root), part -> part.name, part -> part.children, limits);
+        require(cleared != shrunk, "clearing the cache drops reused bindings");
+        System.out.println("PASS skeleton binding reuse: unchanged graphs reuse, replaced/added/removed parts rebind");
     }
 
     private static void testIndexes() throws Exception {
