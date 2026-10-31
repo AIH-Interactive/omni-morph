@@ -71,7 +71,7 @@ public final class CloudHttp implements AutoCloseable {
             }
             if (response.statusCode() >= 400) {
                 // The endpoint path contains resource ids only; it is the only way to identify a rejected call.
-                LOGGER.warn("library HTTP {} {} -> {}", request.method(), request.uri().getPath(),
+                LOGGER.debug("library HTTP {} {} -> {}", request.method(), request.uri().getPath(),
                         response.statusCode());
             }
             return response;

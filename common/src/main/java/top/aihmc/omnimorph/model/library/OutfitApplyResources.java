@@ -196,7 +196,7 @@ public final class OutfitApplyResources implements AutoCloseable {
                 sendUnlessCurrent(dependency, attempt, prepared.upload(), existing);
             } else if (existing != null && localSourceMissing(error)) {
                 // The device-local copy was deleted after an earlier apply; the server still holds the package.
-                LOGGER.info("local outfit source {} is missing; loading the stored cloud package",
+                LOGGER.debug("local outfit source {} is missing; loading the stored cloud package",
                         dependency.reference().localId());
                 read(dependency, attempt);
             } else {
