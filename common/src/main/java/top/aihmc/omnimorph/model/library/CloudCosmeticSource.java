@@ -68,7 +68,7 @@ public final class CloudCosmeticSource {
 
     public Operation select(LibraryModels.Model selected) {
         if (!selected.resourceKind().equals("ACCESSORY")) {
-            LOGGER.warn("cloud cosmetic selection {} kind={} name={}", selected.modelId(),
+            LOGGER.debug("cloud cosmetic selection {} kind={} name={}", selected.modelId(),
                     selected.resourceKind(), selected.displayName());
             throw failure("COSMETIC_RESOURCE_KIND_REQUIRED");
         }
@@ -147,7 +147,7 @@ public final class CloudCosmeticSource {
         String headerKind = header.getStringOr("resource_kind", "");
         if (!model.resourceKind().equals("ACCESSORY") || !headerKind.equals("ACCESSORY")
                 || !value.purpose().equals("preview")) {
-            LOGGER.warn("cloud cosmetic package {} model_kind={} header_kind='{}' purpose={}",
+            LOGGER.debug("cloud cosmetic package {} model_kind={} header_kind='{}' purpose={}",
                     model.modelId(), model.resourceKind(), headerKind, value.purpose());
             throw failure("COSMETIC_RESOURCE_KIND_REQUIRED");
         }
@@ -160,7 +160,7 @@ public final class CloudCosmeticSource {
         try {
             metadata = CosmeticMetadata.read(header.getStringOr("cosmetic_json", ""));
         } catch (RuntimeException invalid) {
-            LOGGER.warn("cloud cosmetic package {} has no readable cosmetic declaration", model.modelId());
+            LOGGER.debug("cloud cosmetic package {} has no readable cosmetic declaration", model.modelId());
             throw failure("COSMETIC_METADATA_MISMATCH");
         }
         if (model.accessoryMetadata() != null) {
@@ -171,7 +171,7 @@ public final class CloudCosmeticSource {
         } else {
             // Older or private catalogue entries can omit the declared accessory metadata; the signed package
             // header still carries the client-extracted declaration this preview has to use.
-            LOGGER.info("cloud cosmetic {} has no catalogue accessory metadata; using the package declaration",
+            LOGGER.debug("cloud cosmetic {} has no catalogue accessory metadata; using the package declaration",
                     model.modelId());
         }
         return new Prepared(new Descriptor(reference, metadata, model.displayName()), value.nbt(), client.session());

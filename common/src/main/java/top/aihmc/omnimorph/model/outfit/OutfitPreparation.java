@@ -74,7 +74,7 @@ public final class OutfitPreparation {
                 String kind = data == null ? null
                         : data.getCompoundOrEmpty("metadata").getStringOr("resource_kind", "");
                 if (data == null || !"ACCESSORY".equals(kind)) {
-                    LOGGER.warn("outfit instance {} source={} format={} metadata_kind='{}' bytes={}",
+                    LOGGER.debug("outfit instance {} source={} format={} metadata_kind='{}' bytes={}",
                             declaration.instanceId(), declaration.resource().localId(),
                             declaration.resource().format(), kind, data == null ? -1 : data.sizeInBytes());
                     throw new IOException("COSMETIC_RESOURCE_KIND_REQUIRED");
