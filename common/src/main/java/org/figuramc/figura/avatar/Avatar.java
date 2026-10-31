@@ -13,13 +13,10 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.model.EntityModel;
-import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.SubmitNodeCollector;
-import net.minecraft.client.renderer.entity.state.AvatarRenderState;
-import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.sounds.JOrbisAudioStream;
 import net.minecraft.core.Direction;
@@ -44,8 +41,6 @@ import top.aihmc.omnimorph.avatar.control.AvatarControlRuntime;
 import top.aihmc.omnimorph.avatar.ysm.YsmModelData;
 import org.figuramc.figura.config.Configs;
 import top.aihmc.omnimorph.render.acceleration.AccelerationOwner;
-import top.aihmc.omnimorph.ducks.FiguraEntityRenderStateExtension;
-import top.aihmc.omnimorph.ducks.NodeCollectorExtension;
 import top.aihmc.omnimorph.gui.FiguraPortraitRenderState;
 import org.figuramc.figura.lua.FiguraLuaPrinter;
 import org.figuramc.figura.lua.FiguraLuaRuntime;
@@ -956,10 +951,6 @@ public class Avatar {
         this(entity.getUUID(), entity.getType(), entity.getName().getString());
     }
 
-    public Avatar(EntityRenderState entity) {
-        this(AvatarManager.ENTITY_CACHE.computeIfAbsent((int)(entity instanceof AvatarRenderState playerRenderState ? playerRenderState.id : ((FiguraEntityRenderStateExtension)entity).figura$getEntityId()), (id2) -> WorldAPI.getCurrentWorld().getEntity(id2)));
-    }
-
     public void load(CompoundTag nbt) {
         load(nbt, null);
     }
@@ -1265,38 +1256,6 @@ public class Avatar {
         Varargs result = null;
         if (loaded) result = run("TRIDENT_RENDER", render, delta, trident);
         return isCancelled(result);
-    }
-
-    public boolean itemRenderEvent(ItemStackAPI item, String mode, FiguraVec3 pos, FiguraVec3 rot, FiguraVec3 scale, boolean leftHanded, PoseStack stack, SubmitNodeCollector nodeCollector, int light, int overlay) {
-        if (!loaded || renderer == null || !renderer.interceptRendersIntoFigura) {
-            return false;
-        }
-        Varargs result = run("ITEM_RENDER", render, item, mode, pos, rot, scale, leftHanded);
-        NodeCollectorExtension extension = (NodeCollectorExtension) nodeCollector;
-
-        if(result == null)
-            return false;
-        PoseStack copy = new PoseStack();
-        copy.pushPose();
-        copy.last().set(stack.last());
-
-        boolean rendered = false;
-        for (int i = 1; i <= result.narg(); i++) {
-            if (result.arg(i).isuserdata(FiguraModelPart.class)) {
-                FiguraModelPart modelPart = (FiguraModelPart) result.arg(i).checkuserdata(FiguraModelPart.class);
-
-                boolean renderedPart = figuraItemRendered(modelPart);
-                rendered |= renderedPart;
-                if (renderedPart) {
-                    extension.submitFiguraModel(this, null, (avatar, entity, bufferSource) -> {
-                        renderItem(copy, bufferSource, modelPart, light, overlay);
-                        return null;
-                    });
-                }
-            }
-
-        }
-        return rendered;
     }
 
     public boolean itemRenderEventDirect(ItemStackAPI item, String mode, FiguraVec3 pos, FiguraVec3 rot, FiguraVec3 scale, boolean leftHanded, PoseStack stack, MultiBufferSource bufferSource, int light, int overlay) {

@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.model.library;
 
-import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import top.aihmc.omnimorph.render.EntityFrame;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import org.figuramc.figura.avatar.Avatar;
@@ -17,16 +17,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** Scoped player/model lookup and ownership retained by deferred GUI frames. */
+/** Scoped player/model lookup and ownership retained by per-render entity frames. */
 public final class LibraryPreviewBinding implements AutoCloseable {
     private static final Map<Entity, LibraryPreviewBinding> ENTITIES = new IdentityHashMap<>();
     private static final Map<UUID, LibraryPreviewBinding> PLAYERS = new HashMap<>();
-    private static final Map<EntityRenderState, LibraryPreviewBinding> FRAMES = new IdentityHashMap<>();
-    private static final Map<EntityRenderState, OutfitComposition.Frame> OUTFIT_FRAMES = new IdentityHashMap<>();
-    private static final java.util.Set<EntityRenderState> WORLD_FRAMES =
+    private static final Map<EntityFrame, LibraryPreviewBinding> FRAMES = new IdentityHashMap<>();
+    private static final Map<EntityFrame, OutfitComposition.Frame> OUTFIT_FRAMES = new IdentityHashMap<>();
+    private static final java.util.Set<EntityFrame> WORLD_FRAMES =
             java.util.Collections.newSetFromMap(new IdentityHashMap<>());
-    private static final Map<EntityRenderState, Vec3> PARTICLE_ORIGINS = new IdentityHashMap<>();
-    private static final Map<EntityRenderState, PreviewParticleFrame> PARTICLE_FRAMES = new IdentityHashMap<>();
+    private static final Map<EntityFrame, Vec3> PARTICLE_ORIGINS = new IdentityHashMap<>();
+    private static final Map<EntityFrame, PreviewParticleFrame> PARTICLE_FRAMES = new IdentityHashMap<>();
     private final LivingEntity entity;
     private final Avatar avatar;
     private final boolean ownsAvatar;
@@ -105,12 +105,12 @@ public final class LibraryPreviewBinding implements AutoCloseable {
         return binding == null ? null : binding.avatar;
     }
 
-    public static Avatar avatar(EntityRenderState frame) {
+    public static Avatar avatar(EntityFrame frame) {
         LibraryPreviewBinding binding = FRAMES.get(frame);
         return binding == null ? null : binding.avatar;
     }
 
-    public static Entity entity(EntityRenderState frame) {
+    public static Entity entity(EntityFrame frame) {
         LibraryPreviewBinding binding = FRAMES.get(frame);
         return binding == null ? null : binding.entity;
     }
@@ -126,7 +126,7 @@ public final class LibraryPreviewBinding implements AutoCloseable {
         return binding != null && binding.avatar == null;
     }
 
-    public static boolean isVanilla(EntityRenderState frame) {
+    public static boolean isVanilla(EntityFrame frame) {
         LibraryPreviewBinding binding = FRAMES.get(frame);
         return binding != null && binding.avatar == null;
     }
@@ -173,7 +173,7 @@ public final class LibraryPreviewBinding implements AutoCloseable {
     }
 
     /** The composition captured during extraction survives later selection changes. */
-    public static OutfitComposition.Frame composition(EntityRenderState frame) {
+    public static OutfitComposition.Frame composition(EntityFrame frame) {
         return OUTFIT_FRAMES.get(frame);
     }
 
@@ -182,15 +182,15 @@ public final class LibraryPreviewBinding implements AutoCloseable {
         return binding != null && !binding.closed && binding.composition != null;
     }
 
-    public static void capture(Entity entity, EntityRenderState frame) {
+    public static void capture(Entity entity, EntityFrame frame) {
         capture(entity, frame, 1);
     }
 
-    public static void capture(Entity entity, EntityRenderState frame, float partialTick) {
+    public static void capture(Entity entity, EntityFrame frame, float partialTick) {
         capture(entity, frame, partialTick, false);
     }
 
-    public static void capture(Entity entity, EntityRenderState frame, float partialTick, boolean world) {
+    public static void capture(Entity entity, EntityFrame frame, float partialTick, boolean world) {
         LibraryPreviewBinding binding = ENTITIES.get(entity);
         if (binding == null || FRAMES.containsKey(frame)) {
             return;
@@ -211,11 +211,11 @@ public final class LibraryPreviewBinding implements AutoCloseable {
         }
     }
 
-    public static boolean worldFrame(EntityRenderState frame) {
+    public static boolean worldFrame(EntityFrame frame) {
         return WORLD_FRAMES.contains(frame);
     }
 
-    public static boolean worldPreview(EntityRenderState frame) {
+    public static boolean worldPreview(EntityFrame frame) {
         LibraryPreviewBinding binding = FRAMES.get(frame);
         return binding != null && binding.worldParticles;
     }
@@ -243,7 +243,7 @@ public final class LibraryPreviewBinding implements AutoCloseable {
     }
 
     /** Each submitted view owns one frozen extraction, independent of later entity movement or selection. */
-    public static PreviewParticleFrame particles(EntityRenderState frame, Quaternionf viewRotation, float partialTick) {
+    public static PreviewParticleFrame particles(EntityFrame frame, Quaternionf viewRotation, float partialTick) {
         return PARTICLE_FRAMES.computeIfAbsent(frame, key -> {
             LibraryPreviewBinding binding = FRAMES.get(key);
             if (binding == null || binding.particles == null) {

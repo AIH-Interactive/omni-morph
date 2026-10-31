@@ -9,7 +9,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.nbt.ListTag;
@@ -922,9 +922,14 @@ public class YsmModelRuntime implements AutoCloseable {
             owner.getMolangContext().populateQueryContext(entity);
             subEntityQueryFrame = frame;
         }
-        LivingEntityRenderState state = new LivingEntityRenderState();
-        state.ageInTicks = entity.tickCount + partialTick;
-        state.walkAnimationSpeed = (float) entity.getDeltaMovement().horizontalDistance();
+        // Sub-entities carry only age and travel speed; head angles and attack progress stay neutral.
+        YsmEntityFrame state = new YsmEntityFrame(
+                entity.tickCount + partialTick,
+                (float) entity.getDeltaMovement().horizontalDistance(),
+                0f,
+                0f,
+                0f
+        );
         animationPlayer.update(state, entity instanceof LivingEntity living ? living : null, false);
     }
 
@@ -1454,11 +1459,11 @@ public class YsmModelRuntime implements AutoCloseable {
         });
     }
 
-    public void updateAnimations(LivingEntityRenderState state, LivingEntity entity) {
+    public void updateAnimations(YsmEntityFrame state, LivingEntity entity) {
         updateAnimations(state, entity, false);
     }
 
-    public void updateAnimations(LivingEntityRenderState state, LivingEntity entity, boolean firstPerson) {
+    public void updateAnimations(YsmEntityFrame state, LivingEntity entity, boolean firstPerson) {
         if (closed) {
             return;
         }

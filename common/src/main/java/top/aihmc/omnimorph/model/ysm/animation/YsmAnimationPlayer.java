@@ -1,6 +1,5 @@
 package top.aihmc.omnimorph.model.ysm.animation;
 
-import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -49,17 +48,9 @@ import top.aihmc.omnimorph.model.ysm.controller.YsmControllerPoseLayer;
 import top.aihmc.omnimorph.model.ysm.controller.YsmBlendTransition;
 import top.aihmc.omnimorph.model.ysm.sync.YsmSyncMessage;
 
-import java.lang.reflect.Field;
 import java.util.*;
 
 public class YsmAnimationPlayer {
-    private static final ClassValue<Map<String, Optional<Field>>> STATE_FIELDS =
-            new ClassValue<>() {
-                @Override
-                protected Map<String, Optional<Field>> computeValue(Class<?> type) {
-                    return new java.util.concurrent.ConcurrentHashMap<>();
-                }
-            };
     private final YsmModelRuntime runtime;
     private final Map<String, YsmAnimationClip> clips = new HashMap<>();
     private final Map<String, YsmAnimationClip> authoredArmClips = new HashMap<>();
@@ -936,11 +927,11 @@ public class YsmAnimationPlayer {
                 && animation.time >= animation.clip.length;
     }
 
-    public void update(LivingEntityRenderState state, LivingEntity entity) {
+    public void update(YsmEntityFrame state, LivingEntity entity) {
         update(state, entity, false);
     }
 
-    public void update(LivingEntityRenderState state, LivingEntity entity, boolean firstPerson) {
+    public void update(YsmEntityFrame state, LivingEntity entity, boolean firstPerson) {
         Avatar.MolangContext context = runtime.owner().getMolangContext();
         int previousCameraType = context == null ? 2 : context.ysm_camera_type;
         runtime.boneQueries().beginFrame(YsmRenderFrameClock.currentFrame());
@@ -980,14 +971,14 @@ public class YsmAnimationPlayer {
         }
     }
 
-    private void updateFrame(LivingEntityRenderState state, LivingEntity entity, boolean firstPerson) {
+    private void updateFrame(YsmEntityFrame state, LivingEntity entity, boolean firstPerson) {
         Avatar.MolangContext renderContext = runtime.owner().getMolangContext();
         currentEntity = runtime.isSubEntityRuntime() && renderContext != null ? renderContext.entity : entity;
         if (renderContext != null) {
-            renderContext.setYsmRenderTime(state == null ? Float.NaN : state.ageInTicks,
+            renderContext.setYsmRenderTime(state == null ? Float.NaN : state.ageInTicks(),
                     currentEntity == null ? 0 : currentEntity.tickCount);
             renderContext.updateYsmPositionContext(currentEntity);
-            renderContext.updateYsmMovementContext(state == null ? Float.NaN : state.walkAnimationSpeed);
+            renderContext.updateYsmMovementContext(state == null ? Float.NaN : state.walkAnimationSpeed());
             top.aihmc.omnimorph.model.ysm.YsmHandQuery.capture(renderContext);
         }
         Minecraft minecraft = Minecraft.getInstance();
@@ -998,7 +989,7 @@ public class YsmAnimationPlayer {
         boolean firstPersonActive = !runtime.isPreviewRuntime() && !runtime.isSubEntityRuntime() && (firstPerson || (entity != null && entity == minecraft.player
                 && minecraft.options.getCameraType().isFirstPerson()));
         YsmAnimationFrameClock.Step step = frameClock.step(YsmRenderFrameClock.currentFrame(),
-                state == null ? Float.NaN : state.ageInTicks);
+                state == null ? Float.NaN : state.ageInTicks());
         float deltaTime = step.deltaSeconds();
         updateYsmHeadRotation(state, entity);
         if (observerControlled) {
@@ -1014,13 +1005,13 @@ public class YsmAnimationPlayer {
         if (renderContext != null && state != null) {
             long renderFrame = YsmRenderFrameClock.currentFrame();
             if (YsmParticleRuntime.isPreview(runtime.owner().renderMode)) {
-                renderContext.filters.update(YsmFilterRuntime.Domain.PREVIEW, state.ageInTicks,
+                renderContext.filters.update(YsmFilterRuntime.Domain.PREVIEW, state.ageInTicks(),
                         renderFrame, renderContext.executionBudget());
             } else {
-                renderContext.filters.update(YsmFilterRuntime.Domain.BODY, state.ageInTicks,
+                renderContext.filters.update(YsmFilterRuntime.Domain.BODY, state.ageInTicks(),
                         renderFrame, renderContext.executionBudget());
                 if (firstPersonActive) {
-                    renderContext.filters.update(YsmFilterRuntime.Domain.FIRST_PERSON, state.ageInTicks,
+                    renderContext.filters.update(YsmFilterRuntime.Domain.FIRST_PERSON, state.ageInTicks(),
                             renderFrame, renderContext.executionBudget());
                 }
             }
@@ -1602,7 +1593,7 @@ public class YsmAnimationPlayer {
         }
     }
 
-    private void updateYsmHeadRotation(LivingEntityRenderState state, LivingEntity entity) {
+    private void updateYsmHeadRotation(YsmEntityFrame state, LivingEntity entity) {
         Avatar.MolangContext context = runtime.owner().getMolangContext();
         if (context == null)
             return;
@@ -1611,8 +1602,8 @@ public class YsmAnimationPlayer {
                 ? 0f
                 : Mth.wrapDegrees(entity.yHeadRot - entity.yBodyRot);
         float rawPitch = entity == null ? 0f : entity.getXRot();
-        relativeYaw = readFloat(state, "yRot", relativeYaw);
-        rawPitch = readFloat(state, "xRot", rawPitch);
+        relativeYaw = state == null ? relativeYaw : state.netHeadYaw();
+        rawPitch = state == null ? rawPitch : state.headPitch();
 
         // YSM exposes the clamped relative head angles with GeckoLib's inverted axes.
         context.ysm_head_yaw = -Mth.clamp(Mth.wrapDegrees(relativeYaw), -85f, 85f);
@@ -1988,7 +1979,7 @@ public class YsmAnimationPlayer {
         return boneName == null ? "" : boneName.toLowerCase(Locale.US);
     }
 
-    private void applyNativeHandPose(LivingEntityRenderState state, LivingEntity entity, boolean firstPerson) {
+    private void applyNativeHandPose(YsmEntityFrame state, LivingEntity entity, boolean firstPerson) {
         if (entity == null || entity.getPose() == Pose.SLEEPING)
             return;
 
@@ -1997,7 +1988,7 @@ public class YsmAnimationPlayer {
         boolean usingItem = entity.isUsingItem();
         InteractionHand usedHand = usingItem ? entity.getUsedItemHand() : null;
         InteractionHand swingingHand = entity.swinging ? entity.swingingArm : InteractionHand.MAIN_HAND;
-        float attackProgress = Math.max(readFloat(state, "attackAnim", 0f), entity.getAttackAnim(0f));
+        float attackProgress = Math.max(state == null ? 0f : state.attackAnim(), entity.getAttackAnim(0f));
         float swingAmount = attackProgress > 0f ? (float) Math.sin(Math.sqrt(attackProgress) * Math.PI) : 0f;
 
         // Native YSM locators already encode their own authored hand pose.
@@ -2557,7 +2548,7 @@ public class YsmAnimationPlayer {
         return result;
     }
 
-    private void updateNativeStateMachine(LivingEntityRenderState state, LivingEntity entity) {
+    private void updateNativeStateMachine(YsmEntityFrame state, LivingEntity entity) {
         if (!usesBuiltinController("player.main")) {
             lastActionState = YsmPlayerActionState.State.NONE;
             lastNativeState = "";
@@ -2570,19 +2561,17 @@ public class YsmAnimationPlayer {
             });
             return;
         }
-        if (state == null) return;
+        if (state == null || entity == null) return;
 
         Avatar.MolangContext context = runtime == null || runtime.owner() == null
                 ? null : runtime.owner().getMolangContext();
         // The render state limb amount is the reference's limb-swing fallback; the movement
         // context already folds it in once updateFrame captured the frame.
         float groundSpeed = Math.max(finite(context == null ? 0f : context.ground_speed),
-                finite(readFloat(state, "walkAnimationSpeed", 0f)));
+                finite(state.walkAnimationSpeed()));
         float verticalSpeed = finite(context == null ? 0f : context.vertical_speed);
 
-        YsmPlayerActionState.Snapshot snapshot = entity != null
-                ? YsmPlayerActionState.snapshot(entity, groundSpeed, verticalSpeed)
-                : renderStateActionState(state, groundSpeed, verticalSpeed);
+        YsmPlayerActionState.Snapshot snapshot = YsmPlayerActionState.snapshot(entity, groundSpeed, verticalSpeed);
         lastActionState = YsmPlayerActionState.resolve(snapshot);
         String idealState = nativeStateName(lastActionState);
         lastNativeState = idealState;
@@ -2602,34 +2591,6 @@ public class YsmAnimationPlayer {
             }
             anim.targetWeight = 1f;
         }
-    }
-
-    /**
-     * Render-state fallback for callers without a live entity. A render state carries no death,
-     * riptide, climb or hurt flags, so those stay false.
-     */
-    private YsmPlayerActionState.Snapshot renderStateActionState(LivingEntityRenderState state,
-                                                                 float groundSpeed, float verticalSpeed) {
-        boolean swimming = readFloat(state, "swimAmount", 0f) > 0.1f
-                || readBoolean(state, "isSwimming", readBoolean(state, "swimming", false));
-        return new YsmPlayerActionState.Snapshot(
-                readBoolean(state, "isPassenger", false),
-                false,
-                false,
-                readBoolean(state, "isSleeping", false),
-                swimming,
-                swimming,
-                false,
-                readBoolean(state, "isFallFlying", false),
-                false,
-                false,
-                true,
-                readBoolean(state, "isCrouching",
-                        readBoolean(state, "isSneaking", readBoolean(state, "crouching", false))),
-                readBoolean(state, "isSprinting", false),
-                false,
-                groundSpeed,
-                verticalSpeed);
     }
 
     private static float finite(float value) {
@@ -2677,37 +2638,6 @@ public class YsmAnimationPlayer {
                 return normalized;
         }
         return "";
-    }
-
-    private boolean readBoolean(LivingEntityRenderState state, String name, boolean fallback) {
-        try {
-            Field field = stateField(state, name);
-            return field == null ? fallback : field.getBoolean(state);
-        } catch (Throwable ignored) {
-            return fallback;
-        }
-    }
-
-    private float readFloat(LivingEntityRenderState state, String name, float fallback) {
-        try {
-            Field field = stateField(state, name);
-            return field == null ? fallback : field.getFloat(state);
-        } catch (Throwable ignored) {
-            return fallback;
-        }
-    }
-
-    private static Field stateField(LivingEntityRenderState state, String name) {
-        Class<?> type = state.getClass();
-        // Render-state fields differ across entity types. Cache absent fields as well
-        // as present ones instead of creating NoSuchFieldException every frame.
-        return STATE_FIELDS.get(type).computeIfAbsent(name, key -> {
-            try {
-                return Optional.of(type.getField(key));
-            } catch (NoSuchFieldException | SecurityException missing) {
-                return Optional.empty();
-            }
-        }).orElse(null);
     }
 
     private String normalizeName(String name) {

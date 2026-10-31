@@ -1,26 +1,12 @@
 package top.aihmc.omnimorph.model.rendering.texture;
 
-import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.pipeline.ColorTargetState;
-import com.mojang.blaze3d.pipeline.DepthStencilState;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.systems.GpuDevice;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.RenderPipelines;
-
-import net.minecraft.client.renderer.rendertype.*;
-import net.minecraft.client.renderer.texture.AbstractTexture;
-import net.minecraft.client.renderer.texture.TextureManager;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.TriState;
 import net.minecraft.Util;
-import org.figuramc.figura.utils.FiguraIdentifier;
+import net.minecraft.client.renderer.RenderStateShard;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.resources.ResourceLocation;
 
-import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -28,27 +14,27 @@ import java.util.function.Function;
 public enum FiguraRenderTypes {
     NONE(null),
 
-    CUTOUT(RenderTypes::entityCutout),
-    CUTOUT_CULL(RenderTypes::entityCutoutCull),
+    CUTOUT(RenderType::entityCutoutNoCull),
+    CUTOUT_CULL(RenderType::entityCutout),
     CUTOUT_EMISSIVE_SOLID(resourceLocation -> FiguraRenderType.CUTOUT_EMISSIVE_SOLID.apply(resourceLocation, true)),
 
-    TRANSLUCENT(RenderTypes::entityTranslucent),
-    TRANSLUCENT_CULL(RenderTypes::entityTranslucentCullItemTarget),
+    TRANSLUCENT(RenderType::entityTranslucent),
+    TRANSLUCENT_CULL(RenderType::entityTranslucentCull),
 
-    EMISSIVE(RenderTypes::eyes),
-    EMISSIVE_SOLID(resourceLocation -> RenderTypes.beaconBeam(resourceLocation, false)),
-    EYES(RenderTypes::eyes),
+    EMISSIVE(RenderType::eyes),
+    EMISSIVE_SOLID(resourceLocation -> RenderType.beaconBeam(resourceLocation, false)),
+    EYES(RenderType::eyes),
 
-    END_PORTAL(t -> RenderTypes.endPortal(), false),
-    END_GATEWAY(t -> RenderTypes.endGateway(), false),
+    END_PORTAL(t -> RenderType.endPortal(), false),
+    END_GATEWAY(t -> RenderType.endGateway(), false),
     TEXTURED_PORTAL(FiguraRenderType.TEXTURED_PORTAL),
 
-    GLINT(t -> RenderTypes.entityGlint(), false, false),
-    GLINT2(t -> RenderTypes.glint(), false, false),
+    GLINT(t -> RenderType.entityGlintDirect(), false, false),
+    GLINT2(t -> RenderType.glint(), false, false),
     TEXTURED_GLINT(FiguraRenderType.TEXTURED_GLINT, true, false),
 
-    LINES(t -> RenderTypes.lines(), false),
-    LINES_STRIP(t -> RenderTypes.lines(), false),
+    LINES(t -> RenderType.lines(), false),
+    LINES_STRIP(t -> RenderType.lineStrip(), false),
     SOLID(t -> FiguraRenderType.SOLID, false),
 
     BLURRY(FiguraRenderType.BLURRY);
@@ -81,83 +67,98 @@ public enum FiguraRenderTypes {
         return id == null || func == null ? null : func.apply(id);
     }
 
-    private abstract static class FiguraRenderType extends RenderType {
-        public FiguraRenderType(String name, RenderSetup setup) {
-            super(name, setup);
+    private static class FiguraRenderType extends RenderType {
+
+        public FiguraRenderType(String name, VertexFormat vertexFormat, VertexFormat.Mode drawMode, int expectedBufferSize, boolean hasCrumbling, boolean translucent, Runnable startAction, Runnable endAction) {
+            super(name, vertexFormat, drawMode, expectedBufferSize, hasCrumbling, translucent, startAction, endAction);
         }
 
-        public static final RenderType SOLID = new RenderType(
+        public static final RenderType SOLID = create(
                 "figura_solid",
-                RenderSetup.builder(FiguraRenderPipelines.FIGURA_SOLID).bufferSize(256)
-                        .setLayeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING)
-                        .setOutputTarget(OutputTarget.ITEM_ENTITY_TARGET)
-                        .setOutline(RenderSetup.OutlineProperty.NONE)
-                        .createRenderSetup()
+                DefaultVertexFormat.POSITION_COLOR_NORMAL,
+                VertexFormat.Mode.QUADS,
+                256,
+                RenderType.CompositeState.builder()
+                        .setShaderState(RENDERTYPE_LINES_SHADER)
+                        .setLineState(new LineStateShard(OptionalDouble.empty()))
+                        .setLayeringState(VIEW_OFFSET_Z_LAYERING)
+                        .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                        .setOutputState(ITEM_ENTITY_TARGET)
+                        .setWriteMaskState(COLOR_DEPTH_WRITE)
+                        .setCullState(NO_CULL)
+                        .createCompositeState(false)
         );
 
         private static final BiFunction<ResourceLocation, Boolean, RenderType> CUTOUT_EMISSIVE_SOLID = Util.memoize(
                 (texture, affectsOutline) ->
-                        new RenderType("figura_cutout_emissive_solid",
-                                RenderSetup.builder(RenderPipelines.BEACON_BEAM_TRANSLUCENT)
-                                        .bufferSize(256)
-                                        .withTexture("Sampler0", texture)
-                                        .affectsCrumbling()
-                                        .sortOnUpload()
-                                        .useOverlay()
-                                        .setOutline(affectsOutline ? RenderSetup.OutlineProperty.AFFECTS_OUTLINE : RenderSetup.OutlineProperty.NONE)
-                                        .createRenderSetup()
-                        )
-        );
+                        create("figura_cutout_emissive_solid", DefaultVertexFormat.BLOCK, VertexFormat.Mode.QUADS, 256, true, true,
+                                CompositeState.builder()
+                                        .setShaderState(RenderStateShard.RENDERTYPE_BEACON_BEAM_SHADER)
+                                        .setTextureState(new RenderStateShard.TextureStateShard(texture, false, false))
+                                        .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                                        .setCullState(NO_CULL)
+                                        .setWriteMaskState(COLOR_DEPTH_WRITE)
+                                        .setOverlayState(OVERLAY)
+                                        .createCompositeState(affectsOutline)));
 
 
         public static final Function<ResourceLocation, RenderType> TEXTURED_PORTAL = Util.memoize(
-                texture -> new RenderType(
+                texture -> create(
                         "figura_textured_portal",
-                        RenderSetup.builder(RenderPipelines.END_GATEWAY)
-                                .bufferSize(256)
-                                .withTexture("Sampler0", texture)
-                                .withTexture("Sampler1", texture)
-                                .setOutline(RenderSetup.OutlineProperty.NONE)
-                                .createRenderSetup()
+                        DefaultVertexFormat.POSITION,
+                        VertexFormat.Mode.QUADS,
+                        256,
+                        false,
+                        false,
+                        CompositeState.builder()
+                                .setShaderState(RENDERTYPE_END_GATEWAY_SHADER)
+                                .setTextureState(
+                                        MultiTextureStateShard.builder()
+                                                .add(texture, false, false)
+                                                .add(texture, false, false)
+                                                .build()
+                                )
+                                .createCompositeState(false)
                 )
         );
 
         public static final Function<ResourceLocation, RenderType> BLURRY = Util.memoize(
-                texture -> new RenderType(
+                texture -> create(
                         "figura_blurry",
-                        RenderSetup.builder(RenderPipelines.ENTITY_TRANSLUCENT)
-                                .bufferSize(256)
-                                .affectsCrumbling()
-                                .sortOnUpload()
-                                .useLightmap()
-                                .useOverlay()
-                                .withTexture("Sampler0", texture, () -> {
-                                    GpuDevice device = RenderSystem.getDevice();
-                                    AbstractTexture abstractTexture = Minecraft.getInstance().getTextureManager().getTexture(texture);
-                                    // basically copy it the sampler the texture set to linear to blur it
-                                    return device.createSampler(abstractTexture.getSampler().getAddressModeU(), abstractTexture.getSampler().getAddressModeV(),
-                                            FilterMode.LINEAR, FilterMode.LINEAR, abstractTexture.getSampler().getMaxAnisotropy(), abstractTexture.getSampler().getMaxLod());
-                                })
-                                .setOutline(RenderSetup.OutlineProperty.AFFECTS_OUTLINE)
-                                .createRenderSetup()
+                        DefaultVertexFormat.NEW_ENTITY,
+                        VertexFormat.Mode.QUADS,
+                        256,
+                        true,
+                        true,
+                        CompositeState.builder()
+                                .setShaderState(RENDERTYPE_ENTITY_TRANSLUCENT_SHADER)
+                                .setTextureState(new TextureStateShard(texture, true, false))
+                                .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                                .setCullState(NO_CULL)
+                                .setLightmapState(LIGHTMAP)
+                                .setOverlayState(OVERLAY)
+                                .createCompositeState(true)
                 )
         );
 
         public static final Function<ResourceLocation, RenderType> TEXTURED_GLINT = Util.memoize(
-                texture -> new RenderType(
+                texture -> create(
                         "figura_textured_glint_direct",
-                        RenderSetup.builder(RenderPipelines.GLINT)
-                                .bufferSize(256)
-                                .withTexture("Sampler0", texture)
-                                .setTextureTransform(TextureTransform.ENTITY_GLINT_TEXTURING)
-                                .createRenderSetup()
+                        DefaultVertexFormat.POSITION_TEX,
+                        VertexFormat.Mode.QUADS,
+                        256,
+                        false,
+                        false,
+                        RenderType.CompositeState.builder()
+                                .setShaderState(RENDERTYPE_ENTITY_GLINT_DIRECT_SHADER)
+                                .setTextureState(new TextureStateShard(texture, false, false))
+                                .setWriteMaskState(COLOR_WRITE)
+                                .setCullState(NO_CULL)
+                                .setDepthTestState(EQUAL_DEPTH_TEST)
+                                .setTransparencyState(GLINT_TRANSPARENCY)
+                                .setTexturingState(ENTITY_GLINT_TEXTURING)
+                                .createCompositeState(false)
                 )
         );
-    }
-
-    public static class FiguraRenderPipelines extends RenderPipelines {
-        protected static RenderPipeline.Snippet FIGURA_SOLID_SNIPPET = RenderPipeline.builder(MATRICES_FOG_SNIPPET, GLOBALS_SNIPPET).withVertexShader("core/rendertype_lines").withFragmentShader("core/rendertype_lines").withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT)).withDepthStencilState(DepthStencilState.DEFAULT).withCull(false).withVertexFormat(DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.QUADS).buildSnippet();
-
-        public static RenderPipeline FIGURA_SOLID = register(RenderPipeline.builder(FIGURA_SOLID_SNIPPET).withLocation(FiguraIdentifier.of("pipeline/solid")).build());
     }
 }

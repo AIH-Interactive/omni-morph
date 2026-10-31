@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.model.outfit;
 
-import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import top.aihmc.omnimorph.render.EntityFrame;
 import net.minecraft.world.entity.Entity;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
@@ -19,18 +19,18 @@ import java.util.Set;
 public final class OutfitRenderBinding {
     private record Captured(Entity entity, UserData.OutfitState state, OutfitComposition.Frame composition) {}
 
-    private static final Map<EntityRenderState, Captured> FRAMES = new IdentityHashMap<>();
+    private static final Map<EntityFrame, Captured> FRAMES = new IdentityHashMap<>();
     private static final Set<Avatar> BASE_FRAMES = Collections.newSetFromMap(new IdentityHashMap<>());
     private static final Set<Avatar> RETIRED_BASES = Collections.newSetFromMap(new IdentityHashMap<>());
     private static final Set<LibraryPreviewSession> RETIRED_PREVIEWS = Collections.newSetFromMap(new IdentityHashMap<>());
 
     private OutfitRenderBinding() {}
 
-    public static void capture(Entity entity, EntityRenderState frame, float partialTick) {
+    public static void capture(Entity entity, EntityFrame frame, float partialTick) {
         capture(entity, frame, partialTick, false);
     }
 
-    public static void capture(Entity entity, EntityRenderState frame, float partialTick, boolean world) {
+    public static void capture(Entity entity, EntityFrame frame, float partialTick, boolean world) {
         LibraryPreviewBinding.capture(entity, frame, partialTick, world);
         if (entity == null || frame == null || FRAMES.containsKey(frame) || LibraryPreviewBinding.entity(frame) != null) {
             return;
@@ -50,25 +50,25 @@ public final class OutfitRenderBinding {
         }
     }
 
-    public static void capture(Entity entity, EntityRenderState frame) {
+    public static void capture(Entity entity, EntityFrame frame) {
         capture(entity, frame, 1);
     }
 
-    public static boolean hasFrame(EntityRenderState frame) {
+    public static boolean hasFrame(EntityFrame frame) {
         return FRAMES.containsKey(frame);
     }
 
-    public static Avatar avatar(EntityRenderState frame) {
+    public static Avatar avatar(EntityFrame frame) {
         Captured captured = FRAMES.get(frame);
         return captured == null ? null : captured.state().base();
     }
 
-    public static Entity entity(EntityRenderState frame) {
+    public static Entity entity(EntityFrame frame) {
         Captured captured = FRAMES.get(frame);
         return captured == null ? null : captured.entity();
     }
 
-    public static OutfitComposition.Frame composition(EntityRenderState frame) {
+    public static OutfitComposition.Frame composition(EntityFrame frame) {
         if (LibraryPreviewBinding.entity(frame) != null) {
             return LibraryPreviewBinding.composition(frame);
         }
@@ -86,12 +86,12 @@ public final class OutfitRenderBinding {
         return LocalOutfitPreview.state(entity) != null || AvatarManager.getLoadedOutfit(entity.getUUID()) != null;
     }
 
-    public static boolean isVanilla(EntityRenderState frame) {
+    public static boolean isVanilla(EntityFrame frame) {
         return LibraryPreviewBinding.entity(frame) != null ? LibraryPreviewBinding.isVanilla(frame)
                 : hasFrame(frame) && avatar(frame) == null;
     }
 
-    public static EntityRenderMode renderMode(EntityRenderState frame) {
+    public static EntityRenderMode renderMode(EntityFrame frame) {
         return LibraryPreviewBinding.entity(frame) != null
                 && !LibraryPreviewBinding.worldPreview(frame)
                 && !LibraryPreviewBinding.worldFrame(frame)

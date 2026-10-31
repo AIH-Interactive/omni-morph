@@ -2,26 +2,15 @@ package org.figuramc.figura.model.rendering.texture;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.platform.TextureUtil;
-import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.AddressMode;
-import com.mojang.blaze3d.textures.FilterMode;
-import com.mojang.blaze3d.textures.GpuSampler;
-import com.mojang.blaze3d.textures.GpuTexture;
-import com.mojang.blaze3d.textures.GpuTextureView;
-import com.mojang.blaze3d.textures.TextureFormat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.AbstractTexture;
-import net.minecraft.client.renderer.texture.MipmapStrategy;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.client.renderer.texture.SimpleTexture;
-import net.minecraft.client.renderer.texture.TextureContents;
-import net.minecraft.client.resources.metadata.texture.TextureMetadataSection;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
-import top.aihmc.omnimorph.ducks.NativeImageExtension;
 import org.figuramc.figura.lua.LuaNotNil;
 import org.figuramc.figura.lua.LuaWhitelist;
 import org.figuramc.figura.lua.docs.LuaMethodDoc;
@@ -35,7 +24,6 @@ import org.figuramc.figura.mixin.render.TextureManagerAccessor;
 import org.figuramc.figura.utils.ColorUtils;
 import org.figuramc.figura.utils.FiguraIdentifier;
 import org.figuramc.figura.utils.LuaUtils;
-import org.jetbrains.annotations.NotNull;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaFunction;
 import org.luaj.vm2.LuaValue;
@@ -45,7 +33,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.Base64;
-import java.util.Objects;
 import java.util.UUID;
 
 @LuaWhitelist
@@ -74,7 +61,8 @@ public class FiguraTexture extends SimpleTexture {
     private int retainers;
     private boolean removalQueued;
     private boolean clamp;
-    private boolean blur;
+    // Named apart from AbstractTexture.blur, which only setFilter() maintains.
+    private boolean uploadBlur;
 
     public FiguraTexture(Avatar owner, String name, byte[] data) {
         super(FiguraIdentifier.of("avatar_tex/" + owner.owner + "/" + UUID.randomUUID()));
@@ -110,23 +98,21 @@ public class FiguraTexture extends SimpleTexture {
         this.owner = owner;
     }
 
+    /**
+     * Texture reloads re-upload the retained image instead of reading a resource pack file.
+     * A texture that was already closed only needs to leave the texture manager.
+     */
     @Override
-    public synchronized @NotNull TextureContents loadContents(ResourceManager resourceManager) throws IOException {
+    public synchronized void load(ResourceManager resourceManager) {
         if (isClosed) {
-            NativeImage dummy = new NativeImage(1, 1, true);
-            return new TextureContents(dummy, new TextureMetadataSection(false, false, MipmapStrategy.AUTO, 0));
+            queueRemoval();
+            return;
         }
-        return new TextureContents(copy(), new TextureMetadataSection(false, false, MipmapStrategy.AUTO, 0));
-    }
-
-    @Override
-    public void apply(TextureContents textureContents) {
-        try (textureContents) {
-            if (isClosed) {
-                queueRemoval();
-            } else {
-                uploadIfDirty(clamp, blur);
-            }
+        dirty = true;
+        if (RenderSystem.isOnRenderThreadOrInit()) {
+            uploadIfDirty(clamp, uploadBlur);
+        } else {
+            RenderSystem.recordRenderCall(() -> uploadIfDirty(clamp, uploadBlur));
         }
     }
 
@@ -200,7 +186,7 @@ public class FiguraTexture extends SimpleTexture {
         if (backup != null)
             backup.close();
 
-        super.close();
+        this.releaseId();
         registered = false;
         queueRemoval();
     }
@@ -220,26 +206,30 @@ public class FiguraTexture extends SimpleTexture {
 
     private void ensureUploaded() {
         RenderSystem.assertOnRenderThread();
-        if (dirty || textureView == null || textureView.isClosed() || (texture != null && texture.isClosed())) {
-            AddressMode addressMode = clamp ? AddressMode.CLAMP_TO_EDGE : AddressMode.REPEAT;
-            FilterMode filterMode = blur ? FilterMode.LINEAR : FilterMode.NEAREST;
-            this.sampler = RenderSystem.getSamplerCache().getSampler(addressMode, addressMode, filterMode, filterMode, false);
-
-            this.doLoad(nativeImageTexture);
-            dirty = false;
+        if (!dirty) {
+            return;
         }
+        int width = nativeImageTexture.getWidth();
+        int height = nativeImageTexture.getHeight();
+        TextureUtil.prepareImage(super.getId(), width, height);
+        nativeImageTexture.upload(0, 0, 0, 0, 0, width, height, uploadBlur, clamp, false, false);
+        // Clear the flag only after a successful upload so failures are retried.
+        dirty = false;
     }
 
     public void uploadIfDirty() {
-        uploadIfDirty(clamp, blur);
+        uploadIfDirty(clamp, uploadBlur);
     }
 
     public void uploadIfDirty(boolean clamp, boolean blur) {
         if (isClosed || nativeImageTexture == null) {
             return;
         }
+        if (this.clamp != clamp || this.uploadBlur != blur) {
+            dirty = true;
+        }
         this.clamp = clamp;
-        this.blur = blur;
+        this.uploadBlur = blur;
         ensureUploaded();
 
         // Registration may immediately expose the texture to rendering/PBR consumers.
@@ -255,61 +245,26 @@ public class FiguraTexture extends SimpleTexture {
         return Minecraft.getInstance().getTextureManager().getTexture(MissingTextureAtlasSprite.getLocation());
     }
 
+    /** Retired textures resolve to the missing texture; live ones upload pending pixels first. */
     @Override
-    public GpuTextureView getTextureView() {
+    public int getId() {
         if (isClosed) {
-            return retiredBinding().getTextureView();
+            return retiredBinding().getId();
         }
-        ensureUploaded();
-        return super.getTextureView();
+        if (RenderSystem.isOnRenderThread()) {
+            ensureUploaded();
+        }
+        return super.getId();
     }
 
     @Override
-    public GpuTexture getTexture() {
+    public void bind() {
         if (isClosed) {
-            return retiredBinding().getTexture();
-        }
-        ensureUploaded();
-        return super.getTexture();
-    }
-
-    @Override
-    public GpuSampler getSampler() {
-        if (isClosed) {
-            return retiredBinding().getSampler();
-        }
-        ensureUploaded();
-        return super.getSampler();
-    }
-
-    @Override
-    protected void doLoad(NativeImage nativeImage) {
-        GpuDevice gpuDevice = RenderSystem.getDevice();
-        if (texture != null && !texture.isClosed() && textureView != null && !textureView.isClosed()) {
-            gpuDevice.createCommandEncoder().writeToTexture(texture, nativeImage);
+            retiredBinding().bind();
             return;
         }
-        GpuTexture replacement = gpuDevice.createTexture(this.resourceId()::toString, 5, TextureFormat.RGBA8,
-                nativeImage.getWidth(), nativeImage.getHeight(), 1, 1);
-        GpuTextureView replacementView = null;
-        try {
-            replacementView = gpuDevice.createTextureView(replacement);
-            gpuDevice.createCommandEncoder().writeToTexture(replacement, nativeImage);
-        } catch (RuntimeException | Error failure) {
-            if (replacementView != null) {
-                replacementView.close();
-            }
-            replacement.close();
-            throw failure;
-        }
-        if (textureView != null) {
-            textureView.close();
-        }
-        if (texture != null) {
-            texture.close();
-        }
-        texture = replacement;
-        textureView = replacementView;
+        ensureUploaded();
+        super.bind();
     }
 
     public void writeTexture(Path dest) throws IOException {
@@ -337,7 +292,7 @@ public class FiguraTexture extends SimpleTexture {
     }
 
     public ResourceLocation getLocation() {
-        return this.resourceId();
+        return this.location;
     }
 
 
@@ -375,7 +330,7 @@ public class FiguraTexture extends SimpleTexture {
             value = "texture.get_pixel")
     public FiguraVec4 getPixel(int x, int y) {
         try {
-            return ColorUtils.abgrToRGBA(((NativeImageExtension)(Object) nativeImageTexture).figura$getPixelABGR(x, y));
+            return ColorUtils.abgrToRGBA(nativeImageTexture.getPixelRGBA(x, y));
         } catch (Exception e) {
             throw new LuaError(e.getMessage());
         }
@@ -402,7 +357,7 @@ public class FiguraTexture extends SimpleTexture {
     public FiguraTexture setPixel(int x, int y, Object r, Double g, Double b, Double a) {
         try {
             backupImage();
-            ((NativeImageExtension)(Object) nativeImageTexture).figura$setPixelABGR(x, y, ColorUtils.rgbaToIntABGR(parseColor("setPixel", r, g, b, a)));
+            nativeImageTexture.setPixelRGBA(x, y, ColorUtils.rgbaToIntABGR(parseColor("setPixel", r, g, b, a)));
             return this;
         } catch (Exception e) {
             throw new LuaError(e.getMessage());
@@ -462,7 +417,7 @@ public class FiguraTexture extends SimpleTexture {
     @LuaMethodDoc("texture.save")
     public String save() {
         try {
-            return Base64.getEncoder().encodeToString(((NativeImageExtension)(Object) nativeImageTexture).figura$asByteArray());
+            return Base64.getEncoder().encodeToString(nativeImageTexture.asByteArray());
         } catch (Exception e) {
             throw new LuaError(e.getMessage());
         }

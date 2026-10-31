@@ -80,7 +80,7 @@ public class FiguraMod {
         GeckoLibCompat.init();
         SimpleVCCompat.init();
         if (PlatformUtils.isModLoaded("iris")) {
-            IrisCompat.assignPipelinesToIrisPrograms();
+            IrisCompat.registerMaterialTextures();
         }
         if (!PlatformUtils.isModLoaded("lambdynlights")) {
             LOGGER.warn("LambDynamicLights is not installed; particle dynamic lights fall back to the built-in "

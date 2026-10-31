@@ -6,8 +6,6 @@ import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.datafixers.util.Pair;
 import it.unimi.dsi.fastutil.ints.*;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.entity.state.AvatarRenderState;
-import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -18,12 +16,11 @@ import org.figuramc.figura.FiguraMod;
 import top.aihmc.omnimorph.avatar.ysm.YsmAvatarDetector;
 import org.figuramc.figura.avatar.local.LocalAvatarLoader;
 import org.figuramc.figura.backend2.NetworkStuff;
-import top.aihmc.omnimorph.ducks.FiguraEntityRenderStateExtension;
+import top.aihmc.omnimorph.render.EntityFrame;
 import org.figuramc.figura.gui.FiguraToast;
 import org.figuramc.figura.gui.widgets.lists.AvatarList;
 import org.figuramc.figura.lua.api.particle.ParticleAPI;
 import org.figuramc.figura.lua.api.sound.SoundAPI;
-import org.figuramc.figura.lua.api.world.WorldAPI;
 import top.aihmc.omnimorph.model.library.LibraryPreviewBinding;
 import top.aihmc.omnimorph.render.acceleration.AccelerationService;
 import top.aihmc.omnimorph.render.acceleration.HardwareAcceleration;
@@ -196,7 +193,7 @@ public class AvatarManager {
         return nbt == null ? null : loadEntityAvatar(entity, nbt);
     }
 
-    public static Avatar getAvatar(EntityRenderState state) {
+    public static Avatar getAvatar(EntityFrame state) {
         if (LibraryPreviewBinding.isVanilla(state)) {
             return null;
         }
@@ -209,15 +206,10 @@ public class AvatarManager {
         }
         if (panic || Minecraft.getInstance().level == null || state == null) return null;
 
-        if (state instanceof AvatarRenderState playerRenderState) {
-            return getAvatar(Minecraft.getInstance().level.getEntity(playerRenderState.id));
-        }
-        Integer id = ((FiguraEntityRenderStateExtension)state).figura$getEntityId();
-        Entity entity = id != null ? Minecraft.getInstance().level.getEntity(id) : null;
-        return getAvatar(entity);
+        return getAvatar(state.entity());
     }
 
-    public static Entity getEntity(EntityRenderState state) {
+    public static Entity getEntity(EntityFrame state) {
         Entity preview = LibraryPreviewBinding.entity(state);
         if (preview != null) {
             return preview;
@@ -226,13 +218,7 @@ public class AvatarManager {
         if (captured != null) {
             return captured;
         }
-        if (Minecraft.getInstance().level == null || state == null) return null;
-
-        if (state instanceof AvatarRenderState playerRenderState) {
-            return Minecraft.getInstance().level.getEntity(playerRenderState.id);
-        }
-        Integer id = ((FiguraEntityRenderStateExtension)state).figura$getEntityId();
-        return id != null ? Minecraft.getInstance().level.getEntity(id) : null;
+        return state == null ? null : state.entity();
     }
 
     // tries to get data from an entity
@@ -452,16 +438,6 @@ public class AvatarManager {
         targetAvatar.load(nbt);
         LOADED_CEM.put(entity.getId(), targetAvatar);
         AvatarManager.ENTITY_CACHE.putIfAbsent(entity.getId(), entity);
-        return targetAvatar;
-    }
-
-    // load CEM avatar
-    public static Avatar loadEntityAvatar(EntityRenderState entity, CompoundTag nbt) {
-        Avatar targetAvatar = new Avatar(entity);
-        targetAvatar.load(nbt);
-        Integer id = entity instanceof AvatarRenderState playerRenderState ? playerRenderState.id : ((FiguraEntityRenderStateExtension)entity).figura$getEntityId();
-        LOADED_CEM.put(id, targetAvatar);
-        AvatarManager.ENTITY_CACHE.putIfAbsent(id, WorldAPI.getCurrentWorld().getEntity(id));
         return targetAvatar;
     }
 
