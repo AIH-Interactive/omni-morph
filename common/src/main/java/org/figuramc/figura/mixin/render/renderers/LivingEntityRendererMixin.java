@@ -1,53 +1,33 @@
 package org.figuramc.figura.mixin.render.renderers;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.EntityModel;
-import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.model.PlayerModel;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
-import net.minecraft.client.renderer.entity.state.AvatarRenderState;
-import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
-import net.minecraft.client.renderer.item.ItemModelResolver;
-import net.minecraft.client.renderer.item.ItemStackRenderState;
-import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.resources.model.cuboid.ItemTransform;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.util.Mth;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
-import top.aihmc.omnimorph.model.ysm.YsmPartMask;
-import top.aihmc.omnimorph.model.ysm.YsmRenderPass;
-import top.aihmc.omnimorph.model.outfit.OutfitRenderBinding;
-import top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.config.Configs;
-import top.aihmc.omnimorph.ducks.FiguraEntityRenderStateExtension;
-import top.aihmc.omnimorph.ducks.FiguraItemStackRenderStateExtension;
-import top.aihmc.omnimorph.ducks.FiguraSubmitCallBackExtension;
-import org.figuramc.figura.ducks.LivingEntityRendererAccessor;
-import top.aihmc.omnimorph.ducks.NodeCollectorExtension;
 import org.figuramc.figura.gui.PopupMenu;
 import org.figuramc.figura.lua.api.vanilla_model.VanillaPart;
-import org.figuramc.figura.lua.api.world.ItemStackAPI;
 import org.figuramc.figura.math.matrix.FiguraMat4;
-import org.figuramc.figura.math.vector.FiguraVec3;
-import org.figuramc.figura.model.rendering.PartFilterScheme;
 import org.figuramc.figura.model.rendering.EntityRenderMode;
+import org.figuramc.figura.model.rendering.PartFilterScheme;
 import org.figuramc.figura.permissions.Permissions;
 import org.figuramc.figura.utils.RenderUtils;
 import org.figuramc.figura.utils.ui.UIHelper;
-import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -58,103 +38,60 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import top.aihmc.omnimorph.gui.AvatarLoadingRenderer;
+import top.aihmc.omnimorph.mixin.render.renderers.LivingEntityRendererAccessor;
+import top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer;
+import top.aihmc.omnimorph.model.outfit.OutfitRenderBinding;
+import top.aihmc.omnimorph.model.ysm.YsmModelRuntime;
+import top.aihmc.omnimorph.model.ysm.YsmRenderer;
+import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
+import top.aihmc.omnimorph.render.EntityFrame;
 
 import java.util.List;
 
 @Mixin(LivingEntityRenderer.class)
-public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extends LivingEntityRenderState, M extends EntityModel<S>> extends EntityRenderer<T,S> implements RenderLayerParent<S, M> {
+public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extends EntityModel<T>> extends EntityRenderer<T> implements RenderLayerParent<T, M> {
 
     protected LivingEntityRendererMixin(EntityRendererProvider.Context context) {
         super(context);
     }
 
-    @Shadow @Final protected List<RenderLayer<S, M>> layers;
+    @Shadow @Final protected List<RenderLayer<T, M>> layers;
 
+    @Shadow protected abstract boolean isBodyVisible(T livingEntity);
 
     @Shadow
-    public static int getOverlayCoords(LivingEntityRenderState arg, float whiteOverlayProgress) {
+    public static int getOverlayCoords(LivingEntity entity, float whiteOverlayProgress) {
         return 0;
     }
 
-    @Shadow protected abstract float getWhiteOverlayProgress(S arg);
-
-    @Shadow protected abstract boolean isBodyVisible(S livingEntityRenderState);
-
-    @Shadow @Final protected ItemModelResolver itemModelResolver;
-
-    @Shadow
-    public abstract @NotNull M getModel();
+    @Shadow protected abstract float getWhiteOverlayProgress(T entity, float tickDelta);
 
     @Unique
     private Avatar currentAvatar;
     @Unique
     private Matrix4f lastPose;
+    @Unique
+    private EntityFrame currentFrame;
 
-    @Inject(at = @At("HEAD"), method = "submit(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V", cancellable = true)
-    private void onRender(S livingEntityRenderState, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState cameraRenderState, CallbackInfo ci) {
-        top.aihmc.omnimorph.gui.AvatarLoadingRenderer.submit(livingEntityRenderState, poseStack, submitNodeCollector, cameraRenderState);
-        currentAvatar = AvatarManager.getAvatar(livingEntityRenderState);
+    @Inject(at = @At("HEAD"), method = "render(Lnet/minecraft/world/entity/LivingEntity;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V", cancellable = true)
+    private void onRender(T entity, float yaw, float delta, PoseStack poseStack, MultiBufferSource bufferSource, int light, CallbackInfo ci) {
+        currentFrame = EntityFrame.begin(entity, delta);
+        AvatarLoadingRenderer.render(currentFrame, poseStack, bufferSource, light);
+        currentAvatar = AvatarManager.getAvatar(currentFrame);
         if (currentAvatar == null) {
-            lastPose = OutfitRenderBinding.composition(livingEntityRenderState) == null
+            lastPose = OutfitRenderBinding.composition(currentFrame) == null
                     ? null : new Matrix4f(poseStack.last().pose());
             return;
         }
 
         if (currentAvatar.isYsmNative()) {
-            if (Avatar.firstPerson) {
-                // The first-person matrices pass submits the player from the camera position only to refresh
-                // part matrices. A YSM body has no Figura part matrices to refresh, and drawing it here would
-                // put the whole model around the camera. Like the Figura first-person path, submit nothing.
-                currentAvatar = null;
-                lastPose = null;
-                ci.cancel();
-                return;
+            if (!Avatar.firstPerson) {
+                figura$renderYsmNative(currentAvatar, entity, delta, poseStack, bufferSource, light);
             }
-            Avatar localAvatar = currentAvatar;
-            Entity entity = AvatarManager.getEntity(livingEntityRenderState);
-            LivingEntity livingEntity = entity instanceof LivingEntity value ? value : null;
-            PoseStack ysmStack = new PoseStack();
-            ysmStack.pushPose();
-            ysmStack.last().set(poseStack.last());
-            top.aihmc.omnimorph.model.ysm.YsmRenderer.applyEntityRotation(ysmStack, livingEntityRenderState,
-                    figura$getYsmBodyYaw(livingEntityRenderState, livingEntity));
-            var attachedRuntime = localAvatar.getYsmRuntime();
-            var runtime = attachedRuntime == null ? null : attachedRuntime.forRenderPass();
-            if (runtime != null) {
-                runtime.updateAnimations(livingEntityRenderState, livingEntity);
-
-                // Resolve both ordinary and special-rendered items before deferred
-                // consumption. The body uses a separate native order bucket so
-                // render_layers_first applies to both item feature paths.
-                if (livingEntity != null) {
-                    figura$submitYsmHandItems(runtime.owner(), livingEntity, ysmStack, submitNodeCollector,
-                            livingEntityRenderState.lightCoords, livingEntityRenderState.outlineColor);
-                }
-            }
-            var submittedPose = runtime == null ? null : runtime.captureRenderPose(false);
-            var outfit = OutfitRenderBinding.composition(livingEntityRenderState);
-            Matrix4f entityToDraw = new Matrix4f(poseStack.last().pose());
-            var outfitPose = outfit == null || runtime == null ? null : outfit.captureYsmBase(runtime,
-                    new Matrix4f(entityToDraw).invert().mul(ysmStack.last().pose()), submittedPose);
-            int bodyOrder = runtime == null ? 0 : runtime.renderer().bodySubmitOrder();
-            ((NodeCollectorExtension) submitNodeCollector.order(bodyOrder)).submitFiguraModel(localAvatar, livingEntityRenderState, (avatar, state, bufferSource) -> {
-                if (runtime != null && !runtime.isClosed() && avatar.getYsmRuntime() == attachedRuntime) {
-                    if (outfitPose == null) {
-                        runtime.renderer().renderWithAttachments(ysmStack, bufferSource, state.lightCoords, submittedPose);
-                    } else {
-                        outfit.drawYsmBase(runtime.renderBudgetOwner(), () -> runtime.renderer().renderWithAttachments(
-                                ysmStack, bufferSource, state.lightCoords, submittedPose));
-                    }
-                    if (outfitPose != null) {
-                        OutfitNativeRenderer.draw(outfit, outfitPose, state,
-                                ((FiguraEntityRenderStateExtension) state).figura$getTickDelta(), entityToDraw,
-                                bufferSource, EntityRenderMode.RENDER);
-                    }
-                }
-                return null;
-            });
-            currentAvatar = null;
-            lastPose = null;
+            // The first-person matrices pass renders the player from the camera position only to refresh
+            // part matrices. A YSM body has no Figura part matrices to refresh, so it draws nothing there.
+            figura$finishFrame();
             ci.cancel();
             return;
         }
@@ -165,69 +102,22 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
     @ModifyArg(
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/renderer/SubmitNodeCollector;submitModel(Lnet/minecraft/client/model/Model;Ljava/lang/Object;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/rendertype/RenderType;IIILnet/minecraft/client/renderer/texture/TextureAtlasSprite;ILnet/minecraft/client/renderer/feature/ModelFeatureRenderer$CrumblingOverlay;)V"
+                    target = "Lnet/minecraft/client/model/EntityModel;renderToBuffer(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;III)V"
             ),
-            method = "submit(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V",
-            index = 5
+            method = "render(Lnet/minecraft/world/entity/LivingEntity;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
+            index = 3
     )
     private int customOverlay(int thing) {
         return LivingEntityRendererAccessor.overrideOverlay.orElse(thing);
     }
 
-    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/SubmitNodeCollector;submitModel(Lnet/minecraft/client/model/Model;Ljava/lang/Object;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/rendertype/RenderType;IIILnet/minecraft/client/renderer/texture/TextureAtlasSprite;ILnet/minecraft/client/renderer/feature/ModelFeatureRenderer$CrumblingOverlay;)V", shift = At.Shift.BEFORE), method = "submit(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V", cancellable = true)
-    private void setFiguraCallbacks(S livingEntityRenderState, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState cameraRenderState, CallbackInfo ci) {
+    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/model/EntityModel;setupAnim(Lnet/minecraft/world/entity/Entity;FFFFF)V", shift = At.Shift.AFTER), method = "render(Lnet/minecraft/world/entity/LivingEntity;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V", cancellable = true)
+    private void preRender(T entity, float yaw, float delta, PoseStack poseStack, MultiBufferSource bufferSource, int light, CallbackInfo ci) {
         if (currentAvatar == null) {
-            var outfit = OutfitRenderBinding.composition(livingEntityRenderState);
-            if (outfit != null && OutfitRenderBinding.isVanilla(livingEntityRenderState) && lastPose != null
-                    && !Avatar.firstPerson && getModel() instanceof net.minecraft.client.model.player.PlayerModel playerModel) {
-                Matrix4f entityToDraw = new Matrix4f(lastPose);
-                float delta = ((FiguraEntityRenderStateExtension) livingEntityRenderState).figura$getTickDelta();
-                ((FiguraSubmitCallBackExtension) playerModel).figura$addPreRenderingCallback((buffers, pose) -> {
-                    OutfitNativeRenderer.drawVanilla(outfit, playerModel, livingEntityRenderState, delta,
-                            entityToDraw, pose.last().pose(), buffers, EntityRenderMode.RENDER);
-                    return true;
-                });
-            }
+            figura$renderVanillaOutfit(entity, delta, poseStack, bufferSource, light);
             return;
         }
 
-        if (Avatar.firstPerson) {
-            M model = getModel();
-            model.setupAnim(livingEntityRenderState);
-            if (!currentAvatar.isYsmNative())
-                currentAvatar.updateMatrices(model, poseStack);
-            currentAvatar = null;
-            lastPose = null;
-            poseStack.popPose();
-            ci.cancel();
-            return;
-        }
-
-        Avatar localAvatar = currentAvatar;
-        M model = getModel();
-
-        // so basically set the figura callbacks up before the model is submitted
-        FiguraSubmitCallBackExtension submitCallBackExtension = (FiguraSubmitCallBackExtension) model;
-        submitCallBackExtension.figura$addPreRenderingCallback((bufferSource, pose) -> {
-            // transform parts so render layers see figura changes
-            // do pos/rot/scale, then visibility
-            figura$transformParts(localAvatar, model);
-            figura$doPosTransform(localAvatar, model);
-            return true;
-        });
-
-        submitCallBackExtension.figura$addPostRenderingCallback(() -> {
-            // Restore transform
-            if (localAvatar.luaRuntime != null)
-                localAvatar.luaRuntime.vanilla_model.PLAYER.restore(getModel());
-        });
-    }
-
-    // then submit the figura model once vanilla has set posing up
-    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/model/EntityModel;setupAnim(Ljava/lang/Object;)V", shift = At.Shift.AFTER), method = "submit(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V", cancellable = true)
-    private void submitFiguraModel(S livingEntityRenderState, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState cameraRenderState, CallbackInfo ci) {
-        if (currentAvatar == null)
-            return;
         if (org.figuramc.figura.utils.PlatformUtils.isModLoaded("iris")
                 && top.aihmc.omnimorph.compat.IrisCompat.isShadowPass()) {
             // Iris renders entities again with the shadow camera. Capturing/binding the outfit
@@ -237,143 +127,87 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
             return;
         }
 
-        Avatar localAvatar = currentAvatar;
-
         M model = getModel();
-        
         if (Avatar.firstPerson) {
-            if (!localAvatar.isYsmNative())
-                localAvatar.updateMatrices(model, poseStack);
+            currentAvatar.updateMatrices(model, poseStack);
             currentAvatar = null;
             lastPose = null;
             poseStack.popPose();
+            figura$finishFrame();
             ci.cancel();
             return;
         }
 
-        boolean showBody = isBodyVisible(livingEntityRenderState);
-        boolean translucent = !showBody && !livingEntityRenderState.isInvisibleToPlayer;
-        boolean glowing = !showBody && livingEntityRenderState.appearsGlowing();
+        Avatar avatar = currentAvatar;
+        figura$transformParts(avatar, model);
+
+        Minecraft minecraft = Minecraft.getInstance();
+        boolean showBody = this.isBodyVisible(entity);
+        boolean translucent = !showBody && minecraft.player != null && !entity.isInvisibleTo(minecraft.player);
+        boolean glowing = !showBody && minecraft.shouldEntityAppearGlowing(entity);
         boolean invisible = !translucent && !showBody && !glowing;
-        Integer id = livingEntityRenderState instanceof AvatarRenderState playerRenderState ? playerRenderState.id : ((FiguraEntityRenderStateExtension)livingEntityRenderState).figura$getEntityId();
-        if (id == null) return;
 
-        var modelState = RenderUtils.captureModelState(model);
+        // When viewed 3rd person, render all non-world parts.
+        PartFilterScheme filter = invisible ? PartFilterScheme.PIVOTS : PartFilterScheme.MODEL;
+        int overlay = getOverlayCoords(entity, getWhiteOverlayProgress(entity, delta));
 
-        Integer entityIdBoxed = ((FiguraEntityRenderStateExtension)livingEntityRenderState).figura$getEntityId();
-        if (entityIdBoxed == null) return;
-        int entityId = entityIdBoxed;
-        float tickDelta = ((FiguraEntityRenderStateExtension)livingEntityRenderState).figura$getTickDelta();
+        // Populate pivot customizations before the layers run so held items use this frame's transforms.
+        avatar.updateMatrices(model, poseStack);
 
-        int overlay = getOverlayCoords(livingEntityRenderState, getWhiteOverlayProgress(livingEntityRenderState));
-
-        Entity entity = AvatarManager.getEntity(livingEntityRenderState);
-        // actually do the render here
-
-        // populate pivot customizations BEFORE the layers loop so pivotPartRender()
-        // uses current-frame transforms instead of stale ones from the previous frame
-        localAvatar.updateMatrices(model, poseStack);
-
-        var submittedOutfit = OutfitRenderBinding.composition(livingEntityRenderState);
-        if (submittedOutfit != null) {
-            submittedOutfit.prepareFiguraBase(localAvatar);
+        var outfit = OutfitRenderBinding.composition(currentFrame);
+        if (outfit != null) {
+            outfit.prepareFiguraBase(avatar);
         }
 
-        NodeCollectorExtension nodeCollectorExtension = (NodeCollectorExtension) submitNodeCollector;
+        Matrix4f entityToDraw = new Matrix4f(lastPose);
+        Runnable drawFrame = () -> {
+            FiguraMod.pushProfiler(FiguraMod.MOD_ID);
+            FiguraMod.pushProfiler(avatar);
 
-        Matrix4f lastPs = new Matrix4f(lastPose);
-        PoseStack poseStack2 = new PoseStack();
-        poseStack2.pushPose();
-        poseStack2.last().set(poseStack.last());
+            FiguraMod.pushProfiler("calculateMatrix");
+            Matrix4f diff = new Matrix4f(entityToDraw).invert().mul(poseStack.last().pose());
+            FiguraMat4 poseMatrix = new FiguraMat4().set(diff);
 
-        nodeCollectorExtension.submitFiguraModel(localAvatar, livingEntityRenderState, ((avatar, livingEntityState, bufferSource) -> {
-            Runnable drawSubmitted = () -> {
-                // When viewed 3rd person, render all non-world parts.
-                RenderUtils.restoreModelPoseState(model, modelState);
+            FiguraMod.popPushProfiler("renderEvent");
+            avatar.renderEvent(delta, poseMatrix);
 
-                PartFilterScheme filter = invisible ? PartFilterScheme.PIVOTS : PartFilterScheme.MODEL;
-
-                FiguraMod.pushProfiler(FiguraMod.MOD_ID);
-                FiguraMod.pushProfiler(avatar);
-
-                FiguraMod.pushProfiler("calculateMatrix");
-                Matrix4f diff = new Matrix4f(lastPs).invert().mul(poseStack2.last().pose());
-                FiguraMat4 poseMatrix = new FiguraMat4().set(diff);
-
-                FiguraMod.popPushProfiler("render");
-
-                figura$transformParts(avatar, model);
-
-                FiguraMod.popPushProfiler("renderEvent");
-                avatar.renderEvent(tickDelta, poseMatrix);
-
-                Runnable drawBase = () -> avatar.render(entity, livingEntityState.yRot, tickDelta, translucent ? 0.15f : 1f,
-                        poseStack2, bufferSource, livingEntityState.lightCoords, overlay, model, filter, translucent, glowing);
-                var outfit = OutfitRenderBinding.composition(livingEntityState);
-                if (outfit == null) {
-                    drawBase.run();
-                } else {
-                    var basePose = outfit.captureFiguraBase(avatar, new Matrix4f(lastPs).invert(), drawBase);
-                    OutfitNativeRenderer.draw(outfit, basePose, livingEntityState, tickDelta, lastPs, bufferSource,
-                            EntityRenderMode.RENDER);
-                }
-
-                // Submit deferred items using fresh pivot transforms from commonRender()
-                FiguraMod.popPushProfiler("deferredItems");
-                var localRenderer = avatar.renderer;
-                if (localRenderer != null) {
-                    for (var deferredItem : localRenderer.deferredItems) {
-                        avatar.pivotPartRender(deferredItem.pivotType(), stack -> {
-                            final float s = 16f;
-                            stack.scale(s, s, s);
-                            stack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-90f));
-
-                            var ext = (FiguraItemStackRenderStateExtension) deferredItem.renderState();
-                            ItemTransform transform = ext.figura$getItemTransform();
-
-                            if (avatar == null || !avatar.itemRenderEventDirect(
-                                    ItemStackAPI.verify(ext.figura$getItemStack()),
-                                    ext.figura$getDisplayContext().name(),
-                                    FiguraVec3.fromVec3f(transform.translation()),
-                                    FiguraVec3.of(transform.rotation().z(), transform.rotation().y(), transform.rotation().x()),
-                                    FiguraVec3.fromVec3f(transform.scale()),
-                                    ext.figura$isLeftHanded(),
-                                    stack, bufferSource, deferredItem.light(), net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY))
-                                deferredItem.renderState().submit(stack, deferredItem.submitNodeCollector(), deferredItem.light(), net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, deferredItem.outlineColor());
-                        });
-                    }
-                    localRenderer.deferredItems.clear();
-                }
-
-                FiguraMod.popPushProfiler("postRenderEvent");
-                avatar.postRenderEvent(tickDelta, poseMatrix);
-
-                FiguraMod.popProfiler(3);
-
-                // undo transformations
-                if (avatar.luaRuntime != null)
-                    avatar.luaRuntime.vanilla_model.PLAYER.restore(model);
-            };
-            if (submittedOutfit == null) {
-                drawSubmitted.run();
+            FiguraMod.popPushProfiler("render");
+            Runnable drawBase = () -> avatar.render(entity, yaw, delta, translucent ? 0.15f : 1f, poseStack,
+                    bufferSource, light, overlay, model, filter, translucent, glowing);
+            if (outfit == null) {
+                drawBase.run();
             } else {
-                submittedOutfit.drawFiguraBase(avatar, drawSubmitted);
+                var basePose = outfit.captureFiguraBase(avatar, new Matrix4f(entityToDraw).invert(), drawBase);
+                OutfitNativeRenderer.draw(outfit, basePose, YsmEntityFrame.capture(entity, delta), light, delta,
+                        entityToDraw, bufferSource, EntityRenderMode.RENDER);
             }
-            return null;
-        }));
+
+            FiguraMod.popPushProfiler("postRenderEvent");
+            avatar.postRenderEvent(delta, poseMatrix);
+
+            FiguraMod.popProfiler(3);
+        };
+        // The outfit scopes the base avatar's script budget around its events and drawing.
+        if (outfit == null) {
+            drawFrame.run();
+        } else {
+            outfit.drawFiguraBase(avatar, drawFrame);
+        }
+
+        figura$doPosTransform(avatar, model);
     }
 
-    @Inject(at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;popPose()V"), method = "submit(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V")
-    private void nullifyAvatar(S livingEntityRenderState, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState cameraRenderState, CallbackInfo ci) {
-        if (currentAvatar == null)
-            return;
-
-        currentAvatar = null;
-        lastPose = null;
+    @Inject(at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;popPose()V"), method = "render(Lnet/minecraft/world/entity/LivingEntity;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V")
+    private void endRender(T entity, float yaw, float delta, PoseStack matrices, MultiBufferSource bufferSource, int light, CallbackInfo ci) {
+        if (currentAvatar != null && currentAvatar.luaRuntime != null
+                && currentAvatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1) {
+            currentAvatar.luaRuntime.vanilla_model.PLAYER.restore(getModel());
+        }
+        figura$finishFrame();
     }
 
-    @Inject(method = "shouldShowName(Lnet/minecraft/world/entity/LivingEntity;D)Z", at = @At("HEAD"), cancellable = true)
-    private void shouldShowName(T livingEntity, double d, CallbackInfoReturnable<Boolean> cir) {
+    @Inject(method = "shouldShowName(Lnet/minecraft/world/entity/LivingEntity;)Z", at = @At("HEAD"), cancellable = true)
+    private void shouldShowName(T livingEntity, CallbackInfoReturnable<Boolean> cir) {
         if (UIHelper.paperdoll)
             cir.setReturnValue(Configs.PREVIEW_NAMEPLATE.value);
         else if (!Minecraft.renderNames() || livingEntity.getUUID().equals(PopupMenu.getEntityId()))
@@ -383,6 +217,79 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
                 cir.setReturnValue(true);
             else if (Configs.NAMEPLATE_RENDER.value == 2 || (Configs.NAMEPLATE_RENDER.value == 1 && livingEntity != FiguraMod.extendedPickEntity))
                 cir.setReturnValue(false);
+        }
+    }
+
+    @Inject(method = "isEntityUpsideDown", at = @At("HEAD"), cancellable = true)
+    private static void isEntityUpsideDown(LivingEntity entity, CallbackInfoReturnable<Boolean> cir) {
+        Avatar avatar = AvatarManager.getAvatar(entity);
+        if (RenderUtils.vanillaModelAndScript(avatar)) {
+            Boolean upsideDown = avatar.luaRuntime.renderer.upsideDown;
+            if (upsideDown != null)
+                cir.setReturnValue(upsideDown);
+        }
+    }
+
+    @Unique
+    private void figura$finishFrame() {
+        if (currentFrame != null) {
+            EntityFrame.end(currentFrame);
+            currentFrame = null;
+        }
+        currentAvatar = null;
+        lastPose = null;
+    }
+
+    /** A vanilla skin wearing accessories draws them against the posed PlayerModel. */
+    @Unique
+    private void figura$renderVanillaOutfit(T entity, float delta, PoseStack poseStack, MultiBufferSource bufferSource, int light) {
+        var outfit = OutfitRenderBinding.composition(currentFrame);
+        if (outfit == null || !OutfitRenderBinding.isVanilla(currentFrame) || lastPose == null || Avatar.firstPerson
+                || !(getModel() instanceof PlayerModel<?> playerModel)) {
+            return;
+        }
+        OutfitNativeRenderer.drawVanilla(outfit, playerModel, YsmEntityFrame.capture(entity, delta), light, delta,
+                new Matrix4f(lastPose), poseStack.last().pose(), bufferSource, EntityRenderMode.RENDER);
+    }
+
+    @Unique
+    private void figura$renderYsmNative(Avatar avatar, T entity, float delta, PoseStack poseStack,
+                                        MultiBufferSource bufferSource, int light) {
+        PoseStack ysmStack = new PoseStack();
+        ysmStack.last().pose().set(poseStack.last().pose());
+        ysmStack.last().normal().set(poseStack.last().normal());
+        float bodyYaw = Mth.rotLerp(delta, entity.yBodyRotO, entity.yBodyRot);
+        YsmRenderer.applyEntityRotation(ysmStack, entity, bodyYaw);
+
+        var attachedRuntime = avatar.getYsmRuntime();
+        YsmModelRuntime runtime = attachedRuntime == null ? null : attachedRuntime.forRenderPass();
+        if (runtime == null) {
+            return;
+        }
+        runtime.updateAnimations(YsmEntityFrame.capture(entity, delta), entity);
+        var renderedPose = runtime.captureRenderPose(false);
+        var outfit = OutfitRenderBinding.composition(currentFrame);
+        Matrix4f entityToDraw = new Matrix4f(poseStack.last().pose());
+        var outfitPose = outfit == null ? null : outfit.captureYsmBase(runtime,
+                new Matrix4f(entityToDraw).invert().mul(ysmStack.last().pose()), renderedPose);
+
+        // render_layers_first draws the held items before the body; otherwise the body goes first.
+        boolean itemsFirst = runtime.renderer().bodySubmitOrder() > 0;
+        if (itemsFirst) {
+            figura$renderYsmHandItems(runtime.owner(), entity, ysmStack, bufferSource, light);
+        }
+        if (!runtime.isClosed() && avatar.getYsmRuntime() == attachedRuntime) {
+            if (outfitPose == null) {
+                runtime.renderer().renderWithAttachments(ysmStack, bufferSource, light, renderedPose);
+            } else {
+                outfit.drawYsmBase(runtime.renderBudgetOwner(), () -> runtime.renderer().renderWithAttachments(
+                        ysmStack, bufferSource, light, renderedPose));
+                OutfitNativeRenderer.draw(outfit, outfitPose, YsmEntityFrame.capture(entity, delta), light, delta,
+                        entityToDraw, bufferSource, EntityRenderMode.RENDER);
+            }
+        }
+        if (!itemsFirst) {
+            figura$renderYsmHandItems(runtime.owner(), entity, ysmStack, bufferSource, light);
         }
     }
 
@@ -406,21 +313,15 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
     }
 
     @Unique
-    float figura$getYsmBodyYaw(S livingEntityRenderState, LivingEntity livingEntity) {
-        float tickDelta = ((FiguraEntityRenderStateExtension) livingEntityRenderState).figura$getTickDelta();
-        float bodyYaw = livingEntity != null ? Mth.rotLerp(tickDelta, livingEntity.yBodyRotO, livingEntity.yBodyRot) : livingEntityRenderState.yRot;
-        return bodyYaw;
-    }
-
-    @Unique
-    void figura$submitYsmHandItems(Avatar avatar, LivingEntity entity, PoseStack baseStack, SubmitNodeCollector submitNodeCollector, int light, int outlineColor) {
+    void figura$renderYsmHandItems(Avatar avatar, LivingEntity entity, PoseStack baseStack, MultiBufferSource bufferSource, int light) {
         HumanoidArm mainArm = entity.getMainArm();
-        figura$submitYsmHandItem(avatar, entity, entity.getMainHandItem(), mainArm, baseStack, submitNodeCollector, light, outlineColor);
-        figura$submitYsmHandItem(avatar, entity, entity.getOffhandItem(), mainArm.getOpposite(), baseStack, submitNodeCollector, light, outlineColor);
+        figura$renderYsmHandItem(avatar, entity, entity.getMainHandItem(), mainArm, baseStack, bufferSource, light);
+        figura$renderYsmHandItem(avatar, entity, entity.getOffhandItem(), mainArm.getOpposite(), baseStack, bufferSource, light);
     }
 
     @Unique
-    void figura$submitYsmHandItem(Avatar avatar, LivingEntity entity, ItemStack itemStack, HumanoidArm arm, PoseStack baseStack, SubmitNodeCollector submitNodeCollector, int light, int outlineColor) {
+    void figura$renderYsmHandItem(Avatar avatar, LivingEntity entity, ItemStack itemStack, HumanoidArm arm,
+                                  PoseStack baseStack, MultiBufferSource bufferSource, int light) {
         if (itemStack.isEmpty() || avatar.getYsmRuntime() == null)
             return;
 
@@ -428,56 +329,33 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extend
         var runtime = avatar.getYsmRuntime();
         var chains = runtime.handItemChainAnchors(left);
         if (chains.isEmpty()) {
-            PoseStack itemStackPose = new PoseStack();
-            itemStackPose.pushPose();
-            itemStackPose.last().set(baseStack.last());
+            PoseStack itemStackPose = figura$copyPose(baseStack);
             if (runtime.applyHandItemTransform(itemStackPose, entity, itemStack, left))
-                figura$submitYsmHandItemAt(entity, itemStack, left, itemStackPose, submitNodeCollector, light, outlineColor);
+                figura$renderYsmHandItemAt(entity, itemStack, left, itemStackPose, bufferSource, light);
             return;
         }
         // D018: without a direct hand anchor the item is drawn once per extra hand chain.
         for (var anchor : chains) {
-            PoseStack itemStackPose = new PoseStack();
-            itemStackPose.pushPose();
-            itemStackPose.last().set(baseStack.last());
+            PoseStack itemStackPose = figura$copyPose(baseStack);
             if (runtime.applyHandItemChainTransform(itemStackPose, entity, itemStack, left, anchor))
-                figura$submitYsmHandItemAt(entity, itemStack, left, itemStackPose, submitNodeCollector, light, outlineColor);
+                figura$renderYsmHandItemAt(entity, itemStack, left, itemStackPose, bufferSource, light);
         }
     }
 
     @Unique
-    void figura$submitYsmHandItemAt(LivingEntity entity, ItemStack itemStack, boolean left, PoseStack itemStackPose,
-                                    SubmitNodeCollector submitNodeCollector, int light, int outlineColor) {
+    private static PoseStack figura$copyPose(PoseStack source) {
+        PoseStack copy = new PoseStack();
+        copy.last().pose().set(source.last().pose());
+        copy.last().normal().set(source.last().normal());
+        return copy;
+    }
+
+    @Unique
+    void figura$renderYsmHandItemAt(LivingEntity entity, ItemStack itemStack, boolean left, PoseStack itemStackPose,
+                                    MultiBufferSource bufferSource, int light) {
         ItemDisplayContext context = left ? ItemDisplayContext.THIRD_PERSON_LEFT_HAND : ItemDisplayContext.THIRD_PERSON_RIGHT_HAND;
-        // Resolve an ItemStackRenderState for every native YSM hand item
-        // before submitting it. Simple items also work through
-        // ItemInHandRenderer, but special-rendered items such as tridents
-        // require the resolved state to retain their renderer data.
-        ItemStackRenderState renderState = new ItemStackRenderState();
-        Minecraft.getInstance().getItemModelResolver().updateForTopItem(
-                renderState,
-                itemStack,
-                context,
-                entity.level(),
-                entity,
-                entity.getId() + context.ordinal()
-        );
-        renderState.submit(itemStackPose, submitNodeCollector, light, OverlayTexture.NO_OVERLAY, outlineColor);
-    }
-
-    // Add the skull item back in after it being cleared
-    @Inject(method = "extractRenderState(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/item/ItemStackRenderState;clear()V", ordinal = 0, shift = At.Shift.AFTER))
-    private void shouldShowName(T entity, S livingEntityRenderState, float f, CallbackInfo ci) {
-       this.itemModelResolver.updateForLiving(livingEntityRenderState.headItem, entity.getItemBySlot(EquipmentSlot.HEAD), ItemDisplayContext.HEAD, entity);
-    }
-
-    @Inject(method = "isEntityUpsideDown", at = @At("HEAD"), cancellable = true)
-    private void isEntityUpsideDown(T entity, CallbackInfoReturnable<Boolean> cir) {
-        Avatar avatar = AvatarManager.getAvatar(entity);
-        if (RenderUtils.vanillaModelAndScript(avatar)) {
-            Boolean upsideDown = avatar.luaRuntime.renderer.upsideDown;
-            if (upsideDown != null)
-                cir.setReturnValue(upsideDown);
-        }
+        // ItemRenderer.renderStatic also covers special-rendered items such as tridents in MC 1.21.1.
+        Minecraft.getInstance().getItemRenderer().renderStatic(entity, itemStack, context, left, itemStackPose,
+                bufferSource, entity.level(), light, OverlayTexture.NO_OVERLAY, entity.getId() + context.ordinal());
     }
 }
