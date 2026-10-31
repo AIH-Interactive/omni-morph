@@ -893,6 +893,11 @@ public class Avatar {
         return cosmeticContext == null ? isLibraryPreview : cosmeticContext.scope() == CosmeticInstanceContext.Scope.DRAFT;
     }
 
+    /** True for previews that reuse the real player entity, including wardrobe cosmetic drafts. */
+    public boolean isPlayerModelPreview() {
+        return playerModelPreview;
+    }
+
     public void enableWorldParticles() {
         worldParticlesEnabled = true;
     }
