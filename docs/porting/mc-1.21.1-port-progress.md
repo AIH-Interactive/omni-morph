@@ -167,7 +167,7 @@ API 真值来源：minecraft-dev-mcp（1.21.1 mojmap 源码，以及 AW / mixin 
 
 ## 2. 剩余（按依赖顺序）
 
-1. `org/figuramc/figura/mixin/render/**` 的其余文件（逐个对照上游 1.21.1 合并，保留 OmniMorph 钩子）：PlayerRenderer、ItemInHandLayer、PlayerItemInHandLayer、CustomHeadLayer、CapeLayer、ElytraLayer、HumanoidArmorLayer、SkullBlockRenderer、ItemInHandRenderer、GameRenderer、LevelRenderer、EntityRenderDispatcher、TridentRenderer、ArrowRenderer 等。图层 mixin 通过 `EntityFrame.current()` 取当前帧。
+1. `org/figuramc/figura/mixin/render/**` 的其余文件（逐个对照上游 1.21.1 合并，保留 OmniMorph 钩子）：PlayerRenderer、ItemInHandLayer、PlayerItemInHandLayer、CustomHeadLayer、CapeLayer、ElytraLayer、HumanoidArmorLayer、SkullBlockRenderer、ItemInHandRenderer、GameRenderer、LevelRenderer、EntityRenderDispatcher、TridentRenderer、ArrowRenderer 等。**GameRendererMixin 移植时必须带上上游 1.21.1 的 `extendedPickEntity` 更新**（它在 1.21.1 上从 MinecraftMixin 的 `pick` 移到了 `GameRenderer.pick`）。图层 mixin 通过 `EntityFrame.current()` 取当前帧。
 2. `top/aihmc/omnimorph/mixin/render/**`：35 个以 26.1 专属类为目标的 mixin，清单见 `build/tmp/mixins-omp.txt`（`sh build/tmp/mixin-targets.sh` 可重新生成）。
 3. 平台渲染 mixin（Fabric / NeoForge 的 Elytra、Armor、LevelRenderer）以及 `RenderUtils.getPlayerSkinTexture`。
 4. `AvatarLoadingRenderer.render(EntityFrame, PoseStack, MultiBufferSource, int)`：LivingEntityRendererMixin 已经调用，需要在 M4 的 GUI 部分实现。

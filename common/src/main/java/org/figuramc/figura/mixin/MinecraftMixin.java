@@ -3,6 +3,7 @@ package org.figuramc.figura.mixin;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.MouseHandler;
 import net.minecraft.client.Options;
+import net.minecraft.client.gui.screens.ReceivingLevelScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
@@ -12,15 +13,14 @@ import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.backend2.NetworkStuff;
+import top.aihmc.omnimorph.render.acceleration.HardwareAcceleration;
 import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.gui.ActionWheel;
 import org.figuramc.figura.gui.FiguraToast;
 import org.figuramc.figura.gui.PopupMenu;
 import org.figuramc.figura.gui.screens.WardrobeScreen;
 import org.figuramc.figura.lua.FiguraLuaPrinter;
-import top.aihmc.omnimorph.render.acceleration.HardwareAcceleration;
 import org.figuramc.figura.utils.FiguraText;
-import org.figuramc.figura.utils.EntityUtils;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -37,8 +37,7 @@ public abstract class MinecraftMixin {
     @Shadow @Final public MouseHandler mouseHandler;
     @Shadow @Final public Options options;
     @Shadow public LocalPlayer player;
-
-    @Shadow public abstract Entity getCameraEntity();
+    @Shadow public Entity cameraEntity;
 
     @Shadow public abstract void setScreen(@Nullable Screen screen);
 
@@ -92,7 +91,7 @@ public abstract class MinecraftMixin {
                 if (this.player != null && target instanceof Player && !target.isInvisibleTo(this.player)) {
                     PopupMenu.setEntity(target);
                 } else if (!this.options.getCameraType().isFirstPerson()) {
-                    PopupMenu.setEntity(this.getCameraEntity());
+                    PopupMenu.setEntity(this.cameraEntity);
                 }
             }
         } else if (PopupMenu.isEnabled()) {
@@ -135,13 +134,8 @@ public abstract class MinecraftMixin {
         NetworkStuff.unsubscribeAll();
     }
 
-    @Inject(at = @At("HEAD"), method = "close")
-    private void figura$closeAcceleration(CallbackInfo ci) {
-        HardwareAcceleration.shutdown();
-    }
-
     @Inject(at = @At("RETURN"), method = "setLevel")
-    private void setLevel(ClientLevel world, CallbackInfo ci) {
+    private void setLevel(ClientLevel world, ReceivingLevelScreen.Reason reason, CallbackInfo ci) {
         NetworkStuff.auth();
         // LambDynamicLights drops its behavior sources on world change; register the particle bridge again.
         if (org.figuramc.figura.utils.PlatformUtils.isModLoaded("lambdynlights")) {
@@ -159,20 +153,17 @@ public abstract class MinecraftMixin {
         AvatarManager.executeAll("clearBBAnimations", Avatar::clearAnimations);
     }
 
-    @Inject(at = @At("RETURN"), method = "pick(F)V")
-    private void pick(float tickDelta, CallbackInfo ci) {
-        FiguraMod.pushProfiler(FiguraMod.MOD_ID);
-        FiguraMod.pushProfiler("extendedPick");
-        FiguraMod.extendedPickEntity = EntityUtils.getViewedEntity(32);
-        FiguraMod.popProfiler(2);
-    }
-
     @Inject(at = @At("RETURN"), method = "tick")
     private void startTick(CallbackInfo ci) {
         FiguraMod.pushProfiler(FiguraMod.MOD_ID);
         FiguraMod.tick();
         top.aihmc.omnimorph.lua.api.particle.ParticleDynamicLights.updateFrame(1);
         FiguraMod.popProfiler();
+    }
+
+    @Inject(at = @At("HEAD"), method = "close")
+    private void figura$closeAcceleration(CallbackInfo ci) {
+        HardwareAcceleration.shutdown();
     }
 
     @Inject(at = @At("HEAD"), method = "tick")
