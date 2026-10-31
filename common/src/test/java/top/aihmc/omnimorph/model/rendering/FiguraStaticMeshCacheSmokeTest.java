@@ -37,6 +37,8 @@ public final class FiguraStaticMeshCacheSmokeTest {
         var truncated = cache.mesh(twoQuads, 4, 16, 16);
         require(complete.vertexCount() == 8 && truncated.vertexCount() == 4 && truncated != complete,
                 "a smaller remaining face budget does not reuse the complete mesh");
+        require(cache.mesh(twoQuads, 8, 16, 16).vertexCount() == 8,
+                "returning to the full face budget never reuses the truncated mesh");
 
         var copy = quad();
         require(cache.mesh(copy, 4, 16, 16) != cache.mesh(quad(), 4, 16, 16),
