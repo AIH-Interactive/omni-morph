@@ -3,6 +3,8 @@ package top.aihmc.omnimorph.model.outfit;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.LivingEntity;
 import org.figuramc.figura.avatar.Avatar;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload;
 import org.figuramc.figura.permissions.PermissionPack;
 
@@ -15,6 +17,7 @@ import java.util.function.Predicate;
 
 /** Worker preparation only. The caller publishes the returned generation on the client thread. */
 public final class OutfitPreparation {
+    private static final Logger LOGGER = LoggerFactory.getLogger("OmniMorph/Outfit");
     @FunctionalInterface
     public interface Resources {
         /** Existing source/cache readers verify the exact reference and preserve encrypted input bytes. */
@@ -68,8 +71,12 @@ public final class OutfitPreparation {
                 requireCurrent(cancelled);
                 CompoundTag data = resources.read(declaration.resource(), cancelled);
                 requireCurrent(cancelled);
-                if (data == null || !"ACCESSORY".equals(
-                        data.getCompoundOrEmpty("metadata").getStringOr("resource_kind", ""))) {
+                String kind = data == null ? null
+                        : data.getCompoundOrEmpty("metadata").getStringOr("resource_kind", "");
+                if (data == null || !"ACCESSORY".equals(kind)) {
+                    LOGGER.warn("outfit instance {} source={} format={} metadata_kind='{}' bytes={}",
+                            declaration.instanceId(), declaration.resource().localId(),
+                            declaration.resource().format(), kind, data == null ? -1 : data.sizeInBytes());
                     throw new IOException("COSMETIC_RESOURCE_KIND_REQUIRED");
                 }
                 var context = new CosmeticInstanceContext(account, outfit, wearer.getUUID(), declaration,
