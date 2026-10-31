@@ -41,16 +41,35 @@ public final class SkeletonIndex {
     /** Owned by one account/session; shared definitions cannot hold another instance's mutable parts. */
     public static final class Cache {
         private final Map<OutfitConfig.ResourceRef, SkeletonIndex> definitions = new HashMap<>();
+        // The last binding per resource and instance; bounded, and cleared together with the definitions.
+        private static final int MAX_RECENT = 256;
+        private final Map<RecentKey, Binding<?>> recent = new HashMap<>();
         private int parses;
+
+        private record RecentKey(OutfitConfig.ResourceRef resource, UUID instanceId) {
+        }
 
         public synchronized <T> Binding<T> bind(OutfitConfig.ResourceRef resource, UUID instanceId, List<T> roots,
                                     Function<T, String> name, Function<T, List<T>> children,
                                     OutfitLimits limits) {
             SkeletonIndex definition = definitions.get(resource);
             if (definition != null) {
+                var key = new RecentKey(resource, instanceId);
+                @SuppressWarnings("unchecked")
+                Binding<T> previous = (Binding<T>) recent.get(key);
                 try {
                     definition.checkLimits(limits);
-                    return new Binding<>(definition, instanceId, definition.bindParts(roots, name, children));
+                    // Scripts may add or remove parts, so a reused binding is re-validated, without allocating, each time.
+                    if (previous != null && previous.definition() == definition
+                            && definition.stillBound(previous.parts(), roots, name, children)) {
+                        return previous;
+                    }
+                    var binding = new Binding<>(definition, instanceId, definition.bindParts(roots, name, children));
+                    if (recent.size() >= MAX_RECENT) {
+                        recent.clear();
+                    }
+                    recent.put(key, binding);
+                    return binding;
                 } catch (IllegalArgumentException changedNativeGraph) {
                     // A reloaded or variant avatar can expose a different native part graph for the same
                     // resource identity. Re-capture instead of failing the whole entity render.
@@ -58,6 +77,10 @@ public final class SkeletonIndex {
             }
             Binding<T> captured = capture(instanceId, roots, name, children, limits);
             definitions.put(resource, captured.definition());
+            if (recent.size() >= MAX_RECENT) {
+                recent.clear();
+            }
+            recent.put(new RecentKey(resource, instanceId), captured);
             parses++;
             return captured;
         }
@@ -68,6 +91,7 @@ public final class SkeletonIndex {
 
         public synchronized void clear() {
             definitions.clear();
+            recent.clear();
         }
     }
 
@@ -191,6 +215,38 @@ public final class SkeletonIndex {
         for (int index = entries.size() - 1; index >= 0; index--) {
             pending.push(entries.get(index));
         }
+    }
+
+    /**
+     * True when {@code bound} still describes the live graph exactly: the same roots, and every node's children are
+     * the same objects, in the same order, with the expected names. Allocation-free, unlike {@link #bindParts}.
+     */
+    private <T> boolean stillBound(List<T> bound, List<T> parts, Function<T, String> name, Function<T, List<T>> children) {
+        if (bound.size() != nodes.size() || parts.size() != roots.size()) {
+            return false;
+        }
+        for (int index = 0; index < roots.size(); index++) {
+            if (bound.get(roots.get(index)) != parts.get(index)) {
+                return false;
+            }
+        }
+        for (int index = 0; index < nodes.size(); index++) {
+            Node node = nodes.get(index);
+            T part = bound.get(index);
+            if (!node.name().equals(name.apply(part))) {
+                return false;
+            }
+            List<T> values = children.apply(part);
+            if (values.size() != node.children().size()) {
+                return false;
+            }
+            for (int child = 0; child < values.size(); child++) {
+                if (values.get(child) != bound.get(node.children().get(child))) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     private <T> List<T> bindParts(List<T> parts, Function<T, String> name, Function<T, List<T>> children) {
