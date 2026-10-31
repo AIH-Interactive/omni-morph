@@ -13,6 +13,7 @@ import net.minecraft.server.Bootstrap;
 import org.figuramc.figura.math.matrix.FiguraMat3;
 import org.figuramc.figura.math.matrix.FiguraMat4;
 
+import com.mojang.blaze3d.vertex.VertexSorting;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -53,7 +54,35 @@ public final class GpuSubmissionSmokeTest {
         repeatedGroupedBackends();
         retirementBeforeFlush();
         diagnosticRecording();
+        faceSortingMatchesVanilla();
         System.out.println("PASS actual BufferSource ordering, rigid palettes, bounded fallback, owner retirement and 100 backend cycles; GPU pixels MANUAL/PENDING");
+    }
+
+    /** The primitive face sort must reproduce vanilla's order exactly, ties and signed zeros included. */
+    private static void faceSortingMatchesVanilla() {
+        java.util.Random random = new java.util.Random(0x50525446);
+        for (VertexSorting sorting : new VertexSorting[]{VertexSorting.DISTANCE_TO_ORIGIN, VertexSorting.ORTHOGRAPHIC_Z}) {
+            for (int count : new int[]{0, 1, 2, 7, 64, 1000, 5000}) {
+                var centers = new com.mojang.blaze3d.vertex.CompactVectorArray(count);
+                for (int index = 0; index < count; index++) {
+                    float x = switch (index % 5) {
+                        case 0 -> 0.0f;
+                        case 1 -> -0.0f;
+                        case 2 -> random.nextInt(4) - 2;
+                        case 3 -> (float) random.nextGaussian() * 1e4f;
+                        default -> (float) random.nextGaussian() * 1e-3f;
+                    };
+                    float y = index % 7 == 0 ? x : (float) random.nextGaussian();
+                    float z = index % 3 == 0 ? -x : random.nextInt(5) - 2;
+                    centers.set(index, x, y, z);
+                }
+                int[] expected = sorting.sort(centers);
+                int[] actual = GpuSubmission.sortFaces(sorting, centers);
+                require(java.util.Arrays.equals(expected, actual), "face order differs from vanilla: count=" + count
+                        + " perspective=" + (sorting == VertexSorting.DISTANCE_TO_ORIGIN));
+            }
+        }
+        System.out.println("PASS translucent face sorting equals vanilla order for perspective and orthographic projections");
     }
 
     private static void diagnosticRecording() throws Exception {

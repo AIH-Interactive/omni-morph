@@ -8,12 +8,15 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.vertex.VertexSorting;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import org.joml.Vector3f;
+import org.joml.Vector3fc;
 import org.joml.Vector4f;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -324,13 +327,46 @@ public final class GpuSubmission {
             centers.set(index, ((float) first[0] + (float) third[0]) / 2,
                     ((float) first[1] + (float) third[1]) / 2, ((float) first[2] + (float) third[2]) / 2);
         }
-        int[] sortedFaces = RenderSystem.getProjectionType().vertexSorting().sort(centers);
+        int[] sortedFaces = sortFaces(RenderSystem.getProjectionType().vertexSorting(), centers);
         List<Face> result = new ArrayList<>(faces.size());
         for (int index : sortedFaces) {
             result.add(faces.get(index));
         }
         return result;
     }
+
+    /**
+     * The same order as {@code sorting.sort(centers)} for vanilla's two projection sortings, without the boxed
+     * comparator merge sort: vanilla stable-sorts face indices by descending key with {@code Floats.compare}, where
+     * the key is {@code origin.distanceSquared(center)} (perspective) or {@code -center.z} (orthographic). Keys are
+     * computed with the same JOML call and mapped to ints in {@link Float#compare} order; packing the inverted key
+     * above the index makes a primitive ascending sort produce exactly that descending, index-stable order.
+     * Any other sorting is delegated unchanged.
+     */
+    static int[] sortFaces(VertexSorting sorting, CompactVectorArray centers) {
+        boolean perspective = sorting == VertexSorting.DISTANCE_TO_ORIGIN;
+        if (!perspective && sorting != VertexSorting.ORTHOGRAPHIC_Z) {
+            return sorting.sort(centers);
+        }
+        int count = centers.size();
+        long[] packed = new long[count];
+        Vector3f center = new Vector3f();
+        for (int index = 0; index < count; index++) {
+            centers.get(index, center);
+            float key = perspective ? ORIGIN.distanceSquared(center) : -center.z();
+            int bits = Float.floatToIntBits(key);
+            int ordered = bits ^ ((bits >> 31) & 0x7FFFFFFF);
+            packed[index] = (long) ~ordered << 32 | Integer.toUnsignedLong(index);
+        }
+        Arrays.sort(packed);
+        int[] result = new int[count];
+        for (int index = 0; index < count; index++) {
+            result[index] = (int) packed[index];
+        }
+        return result;
+    }
+
+    private static final Vector3fc ORIGIN = new Vector3f();
 
     private void drawJava(RenderType material, List<Queued> batches, List<Face> sorted, int firstFace) {
         int vertices = sorted == null ? batches.stream().mapToInt(value -> value.batch().mesh().vertexCount()).sum()
