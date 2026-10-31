@@ -2,6 +2,7 @@ package org.figuramc.figura.mixin.render;
 
 import net.minecraft.client.Camera;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.BlockGetter;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.math.vector.FiguraVec3;
@@ -21,21 +22,20 @@ public abstract class CameraMixin {
 
     @Shadow private float xRot;
     @Shadow private float yRot;
-    @Shadow private Entity entity;
 
     @Unique private Avatar avatar;
 
     @Shadow protected abstract void setRotation(float yaw, float pitch);
     @Shadow protected abstract void move(float x, float y, float z);
 
-    @Inject(method = "alignWithEntity", at = @At(value = "HEAD"))
-    private void setupAvatarVar(float f, CallbackInfo ci) {
-        avatar = AvatarManager.getAvatar(this.entity);
+    @Inject(method = "setup", at = @At(value = "HEAD"))
+    private void setupAvatarVar(BlockGetter area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickDelta, CallbackInfo ci) {
+        avatar = AvatarManager.getAvatar(focusedEntity);
     }
 
     // Neo adds roll in addition to pitch and yaw
-    @Inject(method = "alignWithEntity", at = {@At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setRotation(FF)V", shift = At.Shift.AFTER), @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setRotation(FF)V", shift = At.Shift.AFTER)}, require = 1)
-    private void setupRot(float f, CallbackInfo ci) {
+    @Inject(method = "setup", at = {@At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setRotation(FF)V", shift = At.Shift.AFTER), @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setRotation(FFF)V", shift = At.Shift.AFTER)}, require = 1)
+    private void setupRot(BlockGetter area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickDelta, CallbackInfo ci) {
         if (!RenderUtils.vanillaModelAndScript(avatar)) {
             avatar = null;
             return;
@@ -59,7 +59,7 @@ public abstract class CameraMixin {
         setRotation(y, x);
     }
 
-    @ModifyArg(method = "alignWithEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setPosition(DDD)V"), index = 0)
+    @ModifyArg(method = "setup", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setPosition(DDD)V"), index = 0)
     private double setupPivotX(double originalX) {
         if (RenderUtils.vanillaModelAndScript(avatar)) {
             double x = originalX;
@@ -78,7 +78,7 @@ public abstract class CameraMixin {
         return originalX;
     }
 
-    @ModifyArg(method = "alignWithEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setPosition(DDD)V"), index = 1)
+    @ModifyArg(method = "setup", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setPosition(DDD)V"), index = 1)
     private double setupPivotY(double originalY) {
         if (RenderUtils.vanillaModelAndScript(avatar)) {
             double y = originalY;
@@ -97,7 +97,7 @@ public abstract class CameraMixin {
         return originalY;
     }
 
-    @ModifyArg(method = "alignWithEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setPosition(DDD)V"), index = 2)
+    @ModifyArg(method = "setup", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setPosition(DDD)V"), index = 2)
     private double setupPivotZ(double originalZ) {
         if (RenderUtils.vanillaModelAndScript(avatar)) {
             double z = originalZ;
@@ -117,8 +117,8 @@ public abstract class CameraMixin {
     }
 
 
-    @Inject(method = "alignWithEntity", at = @At(value = "RETURN"))
-    private void setupPos(float f, CallbackInfo ci) {
+    @Inject(method = "setup", at = @At(value = "RETURN"))
+    private void setupPos(BlockGetter area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickDelta, CallbackInfo ci) {
         if (RenderUtils.vanillaModelAndScript(avatar)) {
             FiguraVec3 pos = avatar.luaRuntime.renderer.cameraPos;
             if (pos != null && pos.notNaN())
@@ -128,14 +128,14 @@ public abstract class CameraMixin {
         }
     }
 
-    @Inject(method = "xRot", at = @At("HEAD"), cancellable = true)
-    private void xRot(CallbackInfoReturnable<Float> cir) {
+    @Inject(method = "getXRot", at = @At("HEAD"), cancellable = true)
+    private void getXRot(CallbackInfoReturnable<Float> cir) {
         if (UIHelper.paperdoll)
             cir.setReturnValue(0f);
     }
 
-    @Inject(method = "yRot", at = @At("HEAD"), cancellable = true)
-    private void yRot(CallbackInfoReturnable<Float> cir) {
+    @Inject(method = "getYRot", at = @At("HEAD"), cancellable = true)
+    private void getYRot(CallbackInfoReturnable<Float> cir) {
         if (UIHelper.paperdoll)
             cir.setReturnValue(0f);
     }

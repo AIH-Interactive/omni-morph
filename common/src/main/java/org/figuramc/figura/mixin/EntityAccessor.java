@@ -13,4 +13,8 @@ public interface EntityAccessor {
     @Intrinsic
     @Accessor
     Level getLevel();
+
+    @Intrinsic
+    @Invoker("getPermissionLevel")
+    int getPermissionLevel();
 }

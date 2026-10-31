@@ -23,6 +23,13 @@ public abstract class LivingEntityMixin extends Entity {
         super(type, world);
     }
 
+    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/LivingEntity;isUsingItem()Z"), method = "triggerItemUseEffects", cancellable = true)
+    private void triggerItemUseEffects(ItemStack stack, int particleCount, CallbackInfo ci) {
+        Avatar avatar = AvatarManager.getAvatar(this);
+        if (avatar != null && avatar.useItemEvent(ItemStackAPI.verify(stack), stack.getUseAnimation().name(), particleCount))
+            ci.cancel();
+    }
+
     @Inject(at = @At("TAIL"), method = "handleDamageEvent")
     private void handleDamageEvent(DamageSource source, CallbackInfo ci) {
         Avatar avatar = AvatarManager.getAvatar(this);

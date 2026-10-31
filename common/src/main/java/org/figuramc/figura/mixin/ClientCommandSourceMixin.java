@@ -19,8 +19,8 @@ abstract class ClientCommandSourceMixin implements FiguraClientCommandSource {
 
     @Override
     public void figura$sendFeedback(Component message) {
-        this.minecraft.gui.getChat().addClientSystemMessage(message);
-        this.minecraft.getNarrator().saySystemNow(message);
+        this.minecraft.gui.getChat().addMessage(message);
+        this.minecraft.getNarrator().sayNow(message);
     }
 
     @Override

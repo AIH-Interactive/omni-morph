@@ -50,7 +50,7 @@ public class TextureCustomization {
             TextureAtlas atlas = Minecraft.getInstance().getModelManager().getAtlas(resourceLocation);
             atlas.bind();
             TextureAtlasAccessor atlasAccessor = (TextureAtlasAccessor) atlas;
-            NativeImage nativeImage = new NativeImage(atlasAccessor.figura$getWidth(), atlasAccessor.figura$getHeight(), false);
+            NativeImage nativeImage = new NativeImage(atlasAccessor.getWidth(), atlasAccessor.getHeight(), false);
             nativeImage.downloadTexture(0, false);
             return avatar.registerTexture(name, nativeImage, false);
         } catch (Exception ignored) {}
