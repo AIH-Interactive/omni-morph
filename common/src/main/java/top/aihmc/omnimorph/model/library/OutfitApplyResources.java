@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.model.library;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
 import top.aihmc.omnimorph.backend2.library.OutfitPrivateUpload;
@@ -22,6 +24,7 @@ import java.util.function.Consumer;
 
 /** Client-thread coordinator for explicit Apply preparation, before any configuration commit or activation. */
 public final class OutfitApplyResources implements AutoCloseable {
+    private static final Logger LOGGER = LoggerFactory.getLogger("OmniMorph/Outfit");
     public record Prepared(OutfitConfig configuration, OutfitLimits limits, OutfitPresetResources.Prepared resources) {
         public boolean ready() {
             return resources.ready();
@@ -188,11 +191,16 @@ public final class OutfitApplyResources implements AutoCloseable {
                 return;
             }
             pending = null;
-            if (error != null) {
-                failed(dependency, attempt, error);
-            } else {
+            if (error == null) {
                 uploads.put(dependency.reference(), prepared.upload());
                 sendUnlessCurrent(dependency, attempt, prepared.upload(), existing);
+            } else if (existing != null && localSourceMissing(error)) {
+                // The device-local copy was deleted after an earlier apply; the server still holds the package.
+                LOGGER.info("local outfit source {} is missing; loading the stored cloud package",
+                        dependency.reference().localId());
+                read(dependency, attempt);
+            } else {
+                failed(dependency, attempt, error);
             }
         }));
     }
@@ -230,6 +238,18 @@ public final class OutfitApplyResources implements AutoCloseable {
         }
         inputs.put(dependency.reference(), new OutfitPresetResources.LocalInput(null, code));
         next(attempt);
+    }
+
+    /** The local package is gone; only the source the server already stored can still supply this dependency. */
+    private static boolean localSourceMissing(Throwable error) {
+        while (error instanceof CompletionException && error.getCause() != null) {
+            error = error.getCause();
+        }
+        if (!(error instanceof IOException)) {
+            return false;
+        }
+        String message = error.getMessage();
+        return "OUTFIT_PRIVATE_SOURCE_MISSING".equals(message) || "OUTFIT_BASE_SOURCE_MISSING".equals(message);
     }
 
     private <T> void await(LibraryClient.Request<T> request, long attempt,

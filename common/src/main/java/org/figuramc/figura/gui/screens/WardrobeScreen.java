@@ -2449,13 +2449,26 @@ public class WardrobeScreen extends AbstractPanelScreen {
                     result.cancel(false);
                     return;
                 }
-                if (error != null || !prepared.ready()) {
-                    setOutfitIssues(prepared == null ? List.of() : prepared.resources().issues());
+                if (error != null || prepared == null) {
+                    setOutfitIssues(List.of());
                     sources.close();
                     pendingDraftSources = null;
                     result.completeExceptionally(error == null
                             ? new IllegalStateException("OUTFIT_DEPENDENCY_UNAVAILABLE") : error);
                     return;
+                }
+                if (!prepared.ready()) {
+                    try {
+                        // A broken accessory stays visible and removable; only an unresolvable base blocks the draft.
+                        prepared.resources().base();
+                    } catch (java.io.IOException unavailable) {
+                        setOutfitIssues(prepared.resources().issues());
+                        sources.close();
+                        pendingDraftSources = null;
+                        result.completeExceptionally(unavailable);
+                        return;
+                    }
+                    setOutfitIssues(prepared.resources().issues());
                 }
                 AvatarLoadExecutor.submit(() -> {
                     try {
@@ -2494,7 +2507,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
                     draftFixedResources = prepared.resources();
                     draftAuthority = expectedClient;
                     installCapturedDraft(captured, prepared.limits(), owner);
-                    setOutfitIssues(List.of());
+                    setOutfitIssues(prepared.resources().issues());
                     result.complete(outfitDraft);
                 }, minecraft::execute);
             }));
@@ -3037,9 +3050,57 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }
     }
 
+    private static boolean containsQuietly(OutfitPresetResources.Prepared prepared, OutfitConfig.ResourceRef reference) {
+        try {
+            return prepared.contains(reference);
+        } catch (RuntimeException retired) {
+            return false;
+        }
+    }
+
+    /** Keep only the issues whose instances still belong to the edited draft. */
+    private void retainOutfitIssues(OutfitConfig configuration) {
+        var live = new java.util.HashSet<UUID>();
+        for (var instance : configuration.instances()) {
+            live.add(instance.instanceId());
+        }
+        setOutfitIssues(outfitIssues.stream()
+                .filter(issue -> issue.instances().stream().anyMatch(live::contains))
+                .toList());
+    }
+
+    /** Broken accessories are left out of the 3D preview instead of failing the whole composition. */
+    private OutfitConfig previewableConfiguration(OutfitConfig configuration,
+                                                  java.util.function.Predicate<OutfitConfig.ResourceRef> resolvable) {
+        var instances = configuration.instances();
+        if (instances.isEmpty()) {
+            return configuration;
+        }
+        var previewable = instances.stream().filter(instance -> resolvable.test(instance.resource())).toList();
+        if (previewable.size() == instances.size()) {
+            return configuration;
+        }
+        try {
+            return new OutfitConfig(configuration.schemaVersion(), configuration.revision(), configuration.base(),
+                    previewable, configuration.virtualAnchors(), configuration.displayOrdinals(),
+                    configuration.showEquipment());
+        } catch (RuntimeException invalid) {
+            return configuration;
+        }
+    }
+
+    private boolean hasMissingOutfitSources() {
+        return outfitIssues.stream().anyMatch(issue -> issue.code().equals("OUTFIT_PRIVATE_SOURCE_MISSING")
+                || issue.code().equals("OUTFIT_BASE_SOURCE_MISSING"));
+    }
+
     private void applyOutfitDraft() {
         if (!outfitApplyAvailable() || outfitOperationBusy() || outfitDraft == null || !outfitDraft.dirty()
                 || draftAuthority != client || outfitConflict != null || !presetBaseCanPersist() || minecraft.player == null) {
+            return;
+        }
+        if (hasMissingOutfitSources()) {
+            message = FiguraText.of("gui.library.failure", "OUTFIT_DEPENDENCY_UNAVAILABLE");
             return;
         }
         if (outfitApplications == null) {
@@ -3076,6 +3137,9 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }
         if (!presetBaseCanPersist()) {
             return "the draft base cannot be persisted";
+        }
+        if (hasMissingOutfitSources()) {
+            return "the draft still references missing outfit sources";
         }
         return null;
     }
@@ -3271,11 +3335,14 @@ public class WardrobeScreen extends AbstractPanelScreen {
         long generation = ++draftPreviewGeneration;
         selectionGeneration++;
         message = Component.empty();
-        setOutfitIssues(List.of());
         var configuration = outfitDraft.configuration();
+        retainOutfitIssues(configuration);
         var resources = Map.copyOf(draftResources);
         var fixed = draftFixedResources;
         var cachedSources = draftPreparedResources;
+        var previewConfiguration = previewableConfiguration(configuration, reference ->
+                cachedSources.containsKey(reference) || resources.containsKey(reference)
+                        || fixed != null && containsQuietly(fixed, reference));
         UUID owner = FiguraMod.getLocalPlayerUUID();
         OutfitLimits limits = outfitLimits;
         previewWorldParticles = true;
@@ -3309,14 +3376,14 @@ public class WardrobeScreen extends AbstractPanelScreen {
             if (!Boolean.TRUE.equals(ready)) {
                 return;
             }
-            session.prepareComposition(configuration, limits, owner, draftIdentity, PermissionManager.get(owner),
+            session.prepareComposition(previewConfiguration, limits, owner, draftIdentity, PermissionManager.get(owner),
                     (reference, cancelled) -> {
                         CompoundTag resident = cachedSources.get(reference);
                         if (resident != null) {
                             return resident.copy();
                         }
                         CompoundTag data;
-                        if (fixed != null && fixed.ready() && fixed.contains(reference)) {
+                        if (fixed != null && containsQuietly(fixed, reference)) {
                             data = fixed.read(reference, cancelled);
                         } else {
                             var entry = resources.get(reference);
