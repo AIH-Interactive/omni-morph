@@ -22,4 +22,13 @@
 
 ## 交付状态
 
-修复和自动回归完成，双加载器完整 CI 产物待构建。当前分支 1.21.1，版本保持 1.0.0-alpha.7；不自动启动/关闭游戏，不改写用户 mods。
+修复提交 5f3aa264c989b73ce385f015c530e207b966346e 已推送当前 1.21.1 分支。[CI run 41294216406](https://github.com/AIH-Interactive/omni-morph/actions/runs/41294216406) completed/success，24/24 通过，两个基础构建均执行了新回归检查。六平台原生库、最终 JAR 五平台 Java21 JNI / Java25 拒绝检查和 Android ELF/导出/CPU 检查通过；未将 Android 设备 JNI 或游戏运行计为 PASS。
+
+两份最终 JAR 已下载并核对源码提交、CI run、ABI、六平台库、哈希、许可与加载器元数据。另通过最终字节码核对，两加载器的回调均只含三个 @Local 绑定，未启用全量局部捕获，GPU 后端仍在。报告 build/reports/acceleration/command-fix-ci-artifacts.json、command-fix-final-classes.json；日志 build/tmp/command-fix-artifacts.log。
+
+| 产物（build/distributions/1.21.1-chatfix/） | 字节 | SHA256 |
+| --- | ---: | --- |
+| omni-morph-1.0.0-alpha.7+1.21.1-fabric-mc.jar | 17190301 | 446f47faddd3cf9aceb041c476ba06d54629d489f8339484b4483f51ea66c00a |
+| omni-morph-1.0.0-alpha.7+1.21.1-neoforge-mc.jar | 16792500 | 27751b974c44e922343ad4545a0a394b114e5160a2db494f0fc89f493d417ff8 |
+
+本任务实施和规定自动验证完成，无剩余实施。版本保持 1.0.0-alpha.7；未启动/关闭游戏，未改写用户 mods。完整客户端聊天/表情人工验收按要求跳过，不阻塞。最终记录提交不改变上述 CI 产物构建源。
