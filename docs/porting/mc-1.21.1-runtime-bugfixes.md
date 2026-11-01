@@ -20,4 +20,19 @@
 - GPU检查点提交 fc02da2b9c64a1ef3460ed1c415dd03c470ef804 已推送，远端 HEAD 核对一致。
 - NeoForge实施/本地验证完成：AVIF dependency 不再作为独立 JarJar 模块，而是原包名并入主 JAR；ImageIO 服务合并，原 JNI 类名/native资源/许可保留，Fabric打包不变。未修改第三方源代码。
 - neoforgeModuleSmokeTest 从真实 JAR 各模块类读取包归属，使用 JVM Configuration.resolveAndBind 执行 split-package 供应者解析；原产物复现同包 ResolutionException（build/tmp/neoforge-module-red.log），修复后15模块解析通过。隔离类加载器从实际 NeoForge JAR 及嵌套依赖加载 AVIF SPI/适配器，真实 JNI 解码独立16×16向量，尺寸、RGBA及透明度通过（build/tmp/neoforge-module-green.log、runtime-fixes-acceptance.log）。该检查不是完整 ModLauncher/游戏启动验收。
-- Fabric/NeoForge/common聊天补全回归、metadata失效磁盘缓存、低分配排序、双加载器remapJar、actionlint/diff检查均通过；CI增加图片/排序回归和NeoForge模块/打包JNI检查。待提交推送并完成完整CI产物交付。
+- Fabric/NeoForge/common聊天补全回归、metadata失效磁盘缓存、低分配排序、双加载器remapJar、actionlint/diff检查均通过；CI增加图片/排序回归和NeoForge模块/打包JNI检查。实施检查点提交63fa34d394c9911c911794c91051bf6755b9d882已推送并核对远端一致。
+
+## 最终交付
+
+[Minecraft 1.21.1 Compact run 41301586634](https://github.com/AIH-Interactive/omni-morph/actions/runs/41301586634) completed/success，24/24 job通过。构建源63fa34d394c9911c911794c91051bf6755b9d882，包含三个修复检查点及此前聊天补全修复。两个基础构建均执行新图片/排序/聊天回归，NeoForge额外执行模块解析和实际打包AVIF JNI；六平台内核及最终五平台Java21 JNI/Java25拒绝、Android ELF/导出/CPU检查通过。Android设备JNI和完整游戏未验证。
+
+实际下载的最终NeoForge JAR再次独立运行模块解析与隔离加载器AVIF像素/JNI检查通过；AVIF五份native资源及三份许可均与原依赖逐字节相同，SPI保留，独立AVIF模块消失。两份最终JAR都包含新GpuFaceOrder与内存PNG输出。source/run/ABI/六平台hash/许可/加载器完整性验证通过。
+
+| 产物（build/distributions/1.21.1-runtime-fixes/） | 字节 | SHA256 |
+| --- | ---: | --- |
+| omni-morph-1.0.0-alpha.7+1.21.1-fabric-mc.jar | 17195076 | aada89358c37f9dd771a740aace550eb802f76ab545f87098dfc4d0419f8883d |
+| omni-morph-1.0.0-alpha.7+1.21.1-neoforge-mc.jar | 16837804 | 2e292b83872b83f2607f8ffe9bf30a33247476def86a0fc7444909d28e526065 |
+
+报告：build/reports/acceleration/runtime-fixes-ci-artifacts.json、runtime-fixes-final-content.json；日志build/tmp/runtime-fixes-final-module.log、runtime-fixes-final-artifacts.log。所有约定实施和自动验证完成，没有剩余实施阶段。当前记录提交不改变CI构建源。
+
+边界：原DS鲸鱼娘实例的底层异常已被旧代码丢弃，不能追溯确认其当时是否因磁盘缓存不可用；本次修复了已复现的同一路径失败类别并增加安全诊断。完整客户端/ModLauncher启动和实机性能按用户要求SKIPPED（MANUAL，未验证），不阻塞交付。598MiB配置未改，低堆夹具通过不能保证完整游戏有足够堆空间。没有覆盖用户mods，没有启动/关闭游戏。
