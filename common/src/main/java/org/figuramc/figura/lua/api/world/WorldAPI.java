@@ -16,7 +16,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.saveddata.maps.MapDecoration;
-import net.minecraft.world.level.saveddata.maps.MapId;
+
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 import net.minecraft.world.phys.AABB;
 import org.apache.commons.lang3.ArrayUtils;
@@ -185,7 +185,7 @@ public class WorldAPI {
 
         MapItemSavedData data;
         try {
-            data = getCurrentWorld().getMapData(new MapId(Integer.parseInt(id)));
+            data = getCurrentWorld().getMapData("map_" + Integer.parseInt(id));
         } catch (NumberFormatException e) {
             throw new LuaError("Invalid map id: " + id);
         }
@@ -202,12 +202,12 @@ public class WorldAPI {
         ArrayList<HashMap<String, Object>> decorations = new ArrayList<>();
         for (MapDecoration decoration : data.getDecorations()) {
                 HashMap<String, Object> decorationMap = new HashMap<>();
-                decorationMap.put("type", decoration.type().toString());
-                decorationMap.put("name",  decoration.name() == null || decoration.name().isEmpty() ? "" : decoration.name().get().getString());
-                decorationMap.put("x", decoration.x());
-                decorationMap.put("y", decoration.y());
-                decorationMap.put("rot", decoration.rot());
-                decorationMap.put("image", decoration.getSpriteLocation());
+                decorationMap.put("type", decoration.getType().toString());
+                decorationMap.put("name",  decoration.getName() == null ? "" : decoration.getName().getString());
+                decorationMap.put("x", decoration.getX());
+                decorationMap.put("y", decoration.getY());
+                decorationMap.put("rot", decoration.getRot());
+                decorationMap.put("image", decoration.getImage());
                 decorations.add(decorationMap);
         }
         map.put("decorations", decorations);

@@ -227,6 +227,6 @@ public final class YsmHandActionState {
 
     private static boolean isShield(ItemStack stack) {
         return !stack.isEmpty() && (stack.is(Items.SHIELD)
-                || stack.is(TagKey.create(Registries.ITEM, ResourceLocation.parse("sparkle_morpher:shields"))));
+                || stack.is(TagKey.create(Registries.ITEM, new ResourceLocation("sparkle_morpher:shields"))));
     }
 }

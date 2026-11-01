@@ -16,8 +16,8 @@ public final class CloudModelSwitchSmokeTest {
     public static void main(String[] args) throws Exception {
         for (var code : new Cloud.ErrorCode[]{Cloud.ErrorCode.UNSUPPORTED_CAPABILITY,
                 Cloud.ErrorCode.CONFLICT, Cloud.ErrorCode.NOT_FOUND, Cloud.ErrorCode.UNAUTHENTICATED}) {
-            try (var client = HttpClient.newHttpClient();
-                 var protocol = new ProtobufCloudProtocol(URI.create("https://127.0.0.1:1"), "synthetic", "test", 7, client)) {
+            var client = HttpClient.newHttpClient();
+            try (var protocol = new ProtobufCloudProtocol(URI.create("https://127.0.0.1:1"), "synthetic", "test", 7, client)) {
                 UUID owner = new UUID(0, 1);
                 var recovery = new AtomicInteger();
                 var closed = new AtomicInteger();

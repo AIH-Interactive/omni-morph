@@ -65,7 +65,7 @@ final class GpuModelData {
         if (batches.isEmpty() || batches.size() > MAX_BATCHES) {
             return false;
         }
-        DrawBatch first = batches.getFirst();
+        DrawBatch first = batches.get(0);
         long vertices = 0;
         long parts = batches.size();
         for (DrawBatch batch : batches) {
@@ -188,7 +188,7 @@ final class GpuModelData {
 
     /** Header (first batch's parameters), every batch root, then every skin delta, and advances past them. */
     void writeStoragePose(ByteBuffer target) {
-        GpuBatchData.writeParameters(target, batches.getFirst());
+        GpuBatchData.writeParameters(target, batches.get(0));
         for (DrawBatch batch : batches) {
             int start = target.position();
             GpuBatchData.writePart(target, batch.pose());

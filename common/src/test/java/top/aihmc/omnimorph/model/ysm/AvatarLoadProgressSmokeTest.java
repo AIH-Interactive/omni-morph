@@ -78,9 +78,7 @@ final class AvatarLoadProgressSmokeTest {
         player.id = id;
         var dimensionsField = net.minecraft.world.entity.Entity.class.getDeclaredField("dimensions");
         dimensionsField.setAccessible(true);
-        dimensionsField.set(player, net.minecraft.world.entity.EntityDimensions.fixed(1, 2)
-                .withAttachments(net.minecraft.world.entity.EntityAttachments.builder()
-                        .attach(net.minecraft.world.entity.EntityAttachment.NAME_TAG, new Vec3(0, 1.5, 0))));
+        dimensionsField.set(player, net.minecraft.world.entity.EntityDimensions.fixed(1, 2));
         var positionField = net.minecraft.world.entity.Entity.class.getDeclaredField("position");
         positionField.setAccessible(true);
         positionField.set(player, new Vec3(0, 0, 4));

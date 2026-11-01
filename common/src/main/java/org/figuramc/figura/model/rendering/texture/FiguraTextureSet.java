@@ -72,14 +72,14 @@ public class FiguraTextureSet {
                     yield null;
 
                 yield switch (type) {
-                    case CAPE -> info.getSkin().capeTexture();
-                    case ELYTRA -> info.getSkin().elytraTexture() == null ? ElytraLayerAccessor.getWingsLocation() : info.getSkin().elytraTexture();
-                    default -> info.getSkin().texture();
+                    case CAPE -> info.getCapeLocation();
+                    case ELYTRA -> info.getElytraLocation() == null ? ElytraLayerAccessor.getWingsLocation() : info.getElytraLocation();
+                    default -> info.getSkinLocation();
                 };
             }
             case RESOURCE -> {
                 try {
-                    yield ResourceLocation.parse(String.valueOf(pair.getValue()));
+                    yield new ResourceLocation(String.valueOf(pair.getValue()));
                 } catch (Exception ignored) {
                     yield MissingTextureAtlasSprite.getLocation();
                 }

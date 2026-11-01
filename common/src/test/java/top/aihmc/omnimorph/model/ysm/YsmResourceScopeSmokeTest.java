@@ -48,11 +48,11 @@ public final class YsmResourceScopeSmokeTest {
                     check(!runtime.getPart("dingwei").visibleRaw(), "locator strips hidden frame " + frame, failures);
                 }
                 var engine = MolangEngine.fromCustomBinding(runtime.owner().getAvatarBindings());
-                evaluator.evalAsFloat(engine.parse("v.roaming.gun = 1;").getFirst());
+                evaluator.evalAsFloat(engine.parse("v.roaming.gun = 1;").get(0));
                 sample.invoke(player, evaluator, false);
                 check(runtime.getPart("gun").visibleRaw(), "author control can show gun", failures);
                 check(!runtime.getPart("dingwei").visibleRaw(), "gun control must not show locator strips", failures);
-                evaluator.evalAsFloat(engine.parse("v.roaming.gun = 0;").getFirst());
+                evaluator.evalAsFloat(engine.parse("v.roaming.gun = 0;").get(0));
                 sample.invoke(player, evaluator, false);
                 check(!runtime.getPart("gun").visibleRaw(), "author control can hide gun again", failures);
                 verifyDeclaredOrder(runtime, failures);

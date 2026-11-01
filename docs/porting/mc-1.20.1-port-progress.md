@@ -2,7 +2,7 @@
 
 ## 当前状态（2026-11-01）
 
-M0 自动门槛已通过，正在完成提交推送检查点；M1–M4 尚未开始。当前分支 1.20.1，基线 3c31d6127fcce58631f8f1304c01153974be3dff。
+M0 已提交推送并核对远端；M1 自动门槛已通过，正在完成提交推送检查点，M2–M4 未开始。当前分支 1.20.1，HEAD 56e71954630126c9afdb49854aafc725d85e2ee0。下文早期检查点保留为历史证据，以最新检查点为准。
 
 ## M0 工具链与依赖证据
 
@@ -46,3 +46,45 @@ Modrinth API 1.20.1 过滤结果保存在 `build/tmp/port-m0/*-versions.json`：
 - 可选依赖元数据、URL与hash已固定到 `tools/porting/optional-dependencies.json`；四份JAR基础类最高major61，结果 `optional-class-inspection.json`，仅证明字节码版本，不宣称运行兼容。
 - 下一阶段采用一份forge平台实现，loaderCoordinate选择两套依赖，产物按加载器身份区分；M4前不声称同一JAR双兼容。保留现有构建架构，无需切换ForgeGradle。
 - 本阶段不要求未回迁生产源编译。此前AW四项错误是已记录M1/M2差距，不是本阶段配置失败。工具链有Gradle10弃用提示，本轮锁定9.4.1，不扩展整改。
+
+M0检查点：提交56e71954630126c9afdb49854aafc725d85e2ee0已推送，git ls-remote核对origin/1.20.1一致。M1现在开始。
+
+## M1 当前实施检查点（未完成）
+
+- 已调整目标Java17/MC1.20.1、仅forge构建、固定插件与loaderCoordinate；common可选GeckoLib改Forge依赖。原Fabric/现代NeoForge目录保留。
+- 已回迁模式switch、ItemStack/LuaUtils/NbtToLua及BlockState实体数据的原生NBT路径；音频改目标原生OggAudioStream；TimeController使用1.20.1固定20TPS的秒差。上述生产改动尚未通过完整编译或功能回归，不得标为完成。
+- 删除四条目标不存在AW；minecraft-dev复查11 entries / 0 errors / 0 warnings，仅源符号证据。
+- 编译命令：JDK21构建JVM `.\gradlew.bat :common:compileJava :forge:compileJava --console=plain`，release17。首次模式switch失败；修正后51 errors；最近一次40 errors，退出1，日志 `build/tmp/port-m0/m1-nbt-audio-compile.log`。错误数不是全部差距数量，编译器仍在类型解析前段。
+- 未解决：TextUtils/LuaTypeManager ComponentSerialization与codec；Molang/YsmAnimationPlayer组件；GameRenderer/LevelRenderer/ParticleWorldLight帧签名；GeckoLib类型/渲染签名；头颅/护甲；资源包；GPU BufferBuilder/顶点；PlayerSkin预览；Forge桥接与运行依赖、测试Java17。
+- M1所有修改未提交，须编译与规定非图形回归通过后才提交推送。不进入M2。
+- 最近git diff --check通过；原 .codex/config.toml未修改。没有正在执行的构建。
+
+
+## M1 最新编译检查点（未完成）
+
+- common 与 Forge 主源码、Forge 资源处理通过：`:common:compileJava :forge:compileJava :forge:processResources`，exit 0，日志 `build/tmp/port-m0/m1-forge-main-green.log`。构建 JVM21，编译 release17；尚无 Java17 运行回归证据。
+- 必要回迁覆盖原生顶点结束、帧签名、NBT、皮肤/预览、输入、Molang 状态、旧 Forge 事件与平台桥接。保留资源 namespace `omni-morph`，加载器 ID 为 `omni_morph`。
+- MixinExtras 从 M0 候选0.3.6改为0.4.1：实际 Forge 编译证明0.3.6不包含现有 WrapMethod API。没有通过删除 WrapMethod 行为规避。
+- 删除 Forge 两个过时重复绑定：LevelRendererMixinForge 的旧功能已经由启用的 common LevelRendererMixin 承担；ElytraLayerAccessor 针对目标不存在的 WingsLayer，1.20.1 皮肤/披风由 common ElytraLayerMixin 和 accessor 处理。没有 sourceSets 排除生产文件，也未删除历史平台目录。实际 Mixin 应用与行为仍待 M2。
+- 测试源最新编译失败125 errors，exit1，日志 `build/tmp/port-m0/m1-test-http-compile.log`。主要剩余为 BufferBuilder/原生图形夹具、PlayerSkin、附着点/实体尺寸、原版状态和注册表夹具。HTTP 测试已移出 Java17 不支持的 HttpClient try-with-resources，保留协议与流清理及原有断言。
+- 此日志之后又适配了 DiscardingVertices、箭矢 accessor 测试实现和 LanguageManager 构造，等待下轮编译确认；不得将这些未验证修改记为 PASS。
+- 尚未通过：完整测试源、历史 NeoForge 构建变体、领域 smoke、GL/native 回放、Mixin/AT正式映射、产物与 CI。M1 未完成，不提交未过门槛阶段，不开始 M2。
+- 可靠额度周窗口 usedPercent22/剩余78%，未触发阈值，未委派 Luna。完整客户端人工项：SKIPPED（MANUAL，用户要求跳过；未验证），不替代自动门槛。
+
+
+## M1 最终自动门槛（通过）
+
+- Forge47.1.3：common 主源/测试源、Forge主源、资源处理通过；Forge无独立测试源，compileTestJava NO-SOURCE只作编译任务事实，不作功能证据。日志 `build/tmp/port-m0/m1-forge-final-gate.log`，exit0，50s，34 tasks（23 executed）。
+- 历史NeoForge47.1.106：同一实现、独立 loaderCoordinate 下上述编译/资源任务通过，日志 `build/tmp/port-m0/m1-neoforge-final-gate.log`，exit0，4s；此前初次变体编译见 `m1-neoforge-domain-smoke-quoted.log`。PowerShell须引用完整 `'-PloaderCoordinate=net.neoforged:forge:1.20.1-47.1.106'`，未引用曾将坐标截为net，不能视为加载器不兼容。
+- 编译release17。所有common JavaExec显式使用Java17 toolchain；本机实际测试运行器 `C:/Users/eryth/.gradle/jdks/eclipse_adoptium-17-amd64-windows.2/bin/java.exe`。构建JVM21继续用于Gradle/Loom。
+- 最终Forge门槛实际运行22个非图形smoke：ysmCrypto、ysmBinaryInput、ysmBinaryFormat、ysmBinaryResources、ysmDataBoundary、ysmPayload、networkProtocol、cloudAdapter、cloudReconnect、cloudModelSwitch、cloudUploadProgress、outfitEvents、cloudEndpoint、ysmPackage、libraryPreviewCache、libraryTransfer、libraryClient、outfitContract、cloudProtocolConfig、omniMorphIdentity、ysmFunctionContract、ysmVanillaState（名称均以SmokeTest结尾）。全部任务返回0；包含真实HTTP/TLS、权限撤销、缓存授权、取消/过期交付、协议向量、加密负例和现有Zstd取消回归。
+- 验证发现并修正目标API语义：附魔使用1.20.1内建注册表与NBT；苹果使用32 ticks原生时长；耐久夹具使用原生石斧131上限；目标仅四个humanoid armor槽；mace通过已有兼容tag验证，wind impulse返回false；箭矢无发射武器历史，返回空字符串而不借用当前手持物。没有删API或降低断言。
+- M1已审查diff、保持现有格式；仓库未发现适用Java formatter配置。`git diff --check`通过。无源文件排除、无跳过测试编译、无Fabric输出、无修改refs。
+
+### 证据边界与后续
+
+- ysmDataBoundary 的符号链接逃逸子项：SKIPPED（MANUAL，用户要求跳过；未验证），主机无法创建符号链接；其余可执行数据边界项通过。
+- 额外尝试的 ysmResourceScopeSmokeTest 因 `refs/avatars/16_tactics` 专属语料缺失报UNRECOGNIZED_SOURCE，日志 `m1-neoforge-domain-smoke-quoted.log`。此为M3语料证据缺口，未改测试、未伪造PASS、不由其他模型替代。M1相关可执行解析/权限/取消门槛已通过。
+- M2仍须验证所有Mixin/AW/AT、真实patched字节码、CPU/native/GPU与实际窗口像素；M3仍须完整功能语料回归；M4仍须正式映射、JNI/SPI/许可/split-package、CI及最终产物。主编译不能证明这些已通过。
+- 完整客户端/人工画面验收：SKIPPED（MANUAL，用户要求跳过；未验证）。没有自动启动游戏或改mods/内存。
+- 当前额度周窗口剩余78%，未触发阈值，无Luna委派。M1提交推送并核对远端后，下一阶段为M2。

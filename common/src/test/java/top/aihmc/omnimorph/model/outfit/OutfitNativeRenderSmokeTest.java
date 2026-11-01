@@ -87,7 +87,7 @@ public final class OutfitNativeRenderSmokeTest {
                 require(indexes.parseCount() == 2, "one resource definition and one vanilla skeleton are parsed");
                 positions.clear();
                 for (Avatar avatar : avatars.values()) {
-                    var part = avatar.renderer.root.children.getFirst();
+                    var part = avatar.renderer.root.children.get(0);
                     part.customization.setPos(16, 0, 0);
                     part.customization.setAnimPos(8, 0, 0);
                     part.postRender = avatar.loadScript("native pose persistence", """
@@ -100,29 +100,29 @@ public final class OutfitNativeRenderSmokeTest {
                     OutfitNativeRenderer.drawVanilla(nextFrame, model, state, 0x00f000f0, .5f, entityToDraw, entityToDraw,
                             type -> sink, EntityRenderMode.FIGURA_GUI);
                     require(positions.size() == 8, "newer retained frame draws both native quads");
-                    near(positions.getFirst(), 6.8125f, 14.4375f, 14.25f);
+                    near(positions.get(0), 6.8125f, 14.4375f, 14.25f);
                     for (Avatar avatar : avatars.values()) {
-                        require(avatar.renderer.root.children.getFirst().customization.getPos().x == 32,
+                        require(avatar.renderer.root.children.get(0).customization.getPos().x == 32,
                                 "current-frame native post-render edits remain persistent");
                     }
                     positions.clear();
                     OutfitNativeRenderer.drawVanilla(frame, model, state, 0x00f000f0, .5f, entityToDraw, entityToDraw,
                             type -> sink, EntityRenderMode.FIGURA_GUI);
                     require(positions.size() == 8, "older retained frame remains drawable after the newer pass");
-                    near(positions.getFirst(), 6.8125f, 11.4375f, 14.25f);
+                    near(positions.get(0), 6.8125f, 11.4375f, 14.25f);
                     for (Avatar avatar : avatars.values()) {
-                        var custom = avatar.renderer.root.children.getFirst().customization;
+                        var custom = avatar.renderer.root.children.get(0).customization;
                         require(custom.getPos().x == 32 && custom.getAnimPos().x == 8,
                                 "old pose restores newer authored and animation channels after native drawing");
                     }
                     positions.clear();
                     OutfitNativeRenderer.drawVanilla(nextFrame, model, state, 0x00f000f0, .5f, entityToDraw, entityToDraw,
                             type -> sink, EntityRenderMode.FIGURA_GUI);
-                    near(positions.getFirst(), 6.8125f, 14.4375f, 14.25f);
+                    near(positions.get(0), 6.8125f, 14.4375f, 14.25f);
                     try {
                         frame.draw(base.capture(new Matrix4f()), state, .5f, command ->
                                 command.figuraPose().draw(() -> {
-                                    command.avatar().renderer.root.children.getFirst().customization.setPos(999, 0, 0);
+                                    command.avatar().renderer.root.children.get(0).customization.setPos(999, 0, 0);
                                     throw new IllegalStateException("fixture draw failure");
                                 }));
                         throw new AssertionError("fixture draw failure was swallowed");
@@ -131,7 +131,7 @@ public final class OutfitNativeRenderSmokeTest {
                                 "the original drawing failure reaches the caller");
                     }
                     require(avatars.values().stream().allMatch(avatar ->
-                                    avatar.renderer.root.children.getFirst().customization.getPos().x == 32),
+                                    avatar.renderer.root.children.get(0).customization.getPos().x == 32),
                             "failed old-pose drawing restores the newer native part state");
                 }
                 require(indexes.parseCount() == 2 && positions.size() == 8,
@@ -208,7 +208,7 @@ public final class OutfitNativeRenderSmokeTest {
                     OutfitConfig.Transform.identity(), List.of(), Map.of(), Map.of());
             var privateRoot = new OutfitConfig.Instance(UUID.randomUUID(), resource, 4, true,
                     new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.ACCESSORY_BONE, null,
-                            skeleton.reference(parent.instanceId(), skeleton.roots().getFirst()), null, null, null),
+                            skeleton.reference(parent.instanceId(), skeleton.roots().get(0)), null, null, null),
                     OutfitConfig.Transform.identity(), List.of(), Map.of(), Map.of());
             for (var declaration : List.of(child, grandchild, privateRoot)) {
                 avatars.put(declaration.instanceId(), mountAvatar(declaration, account, outfit, permissions));
@@ -230,7 +230,7 @@ public final class OutfitNativeRenderSmokeTest {
                 avatar.nbt.put("metadata", metadata);
             }
             parentAvatar.initializePreviewPlayer(null);
-            var part = parentAvatar.renderer.root.children.getFirst();
+            var part = parentAvatar.renderer.root.children.get(0);
             part.preRender = parentAvatar.loadScript("exported native pivot before draw", """
                     return function(_, _, part) part:setPos(8, 0, 0) end
                     """).call().checkfunction();
@@ -250,7 +250,7 @@ public final class OutfitNativeRenderSmokeTest {
                         type -> sink, EntityRenderMode.FIGURA_GUI);
                 int count = authorized && !staleDeclaration ? 12 : 4;
                 require(positions.size() == count, "only authorized, matching exported paths can submit dependants");
-                near(positions.getFirst(), 7 + 25f / 16, 11 + 2f / 16, 13 + 3f / 16);
+                near(positions.get(0), 7 + 25f / 16, 11 + 2f / 16, 13 + 3f / 16);
                 if (count == 12) {
                     near(positions.get(4), 7 + 25f / 16, 11 + 6f / 16, 13 + 3f / 16);
                     near(positions.get(8), 7 + 25f / 16, 11 + 6f / 16, 13 + 11f / 16);
@@ -373,7 +373,7 @@ public final class OutfitNativeRenderSmokeTest {
                     }
                     var frozen = new ArrayList<OutfitComposition.Draw>();
                     failedFrame.draw(base.capture(new Matrix4f()), state, .5f, frozen::add);
-                    require(frozen.size() == 1 && frozen.getFirst().instanceId().equals(parent.instanceId()),
+                    require(frozen.size() == 1 && frozen.get(0).instanceId().equals(parent.instanceId()),
                             "a first-draw failure freezes prepared parent commands without duplicate emit or child initialization");
                 }
                 require(indexes.parseCount() == 3, "native YSM socket frames do not reparse their definitions");
@@ -537,7 +537,7 @@ public final class OutfitNativeRenderSmokeTest {
             try (var composition = new OutfitComposition(config, limits, null,
                     Map.of(instance.instanceId(), accessory), indexes);
                  var oldFrame = composition.retain(); var newFrame = composition.retain()) {
-                var part = base.renderer.root.children.getFirst();
+                var part = base.renderer.root.children.get(0);
                 part.customization.setPos(16, 0, 0);
                 oldFrame.prepareFiguraBase(base);
                 part.customization.setPos(48, 0, 0);
@@ -654,11 +654,11 @@ public final class OutfitNativeRenderSmokeTest {
                 try (var left = composition.retain(); var right = composition.retain()) {
                     OutfitNativeRenderer.drawVanillaArm(left, model, state, 0x00f000f0, .5f, outer, type -> sink, true);
                     require(positions.size() == 4, "left pass excludes right and body attachments");
-                    near(positions.getFirst(), 7.4375f, 11.3125f, 13.0625f);
+                    near(positions.get(0), 7.4375f, 11.3125f, 13.0625f);
                     positions.clear();
                     OutfitNativeRenderer.drawVanillaArm(right, model, state, 0x00f000f0, .5f, outer, type -> sink, false);
                     require(positions.size() == 4, "right pass retains independent commands and excludes left/body");
-                    near(positions.getFirst(), 6.75f, 11.25f, 13.4375f);
+                    near(positions.get(0), 6.75f, 11.25f, 13.4375f);
                 }
             }
         } finally {
@@ -688,7 +688,7 @@ public final class OutfitNativeRenderSmokeTest {
             @Override
             public ResourceLocation getOverrideTexture(UUID owner, TextureCustomization customization) {
                 return customization.getOverrideType() == OverrideType.PRIMARY
-                        ? ResourceLocation.parse("omni-morph:mounted-fixture") : null;
+                        ? new ResourceLocation("omni-morph:mounted-fixture") : null;
             }
         });
         part.parent = avatar.renderer.root;

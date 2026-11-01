@@ -180,12 +180,12 @@ public final class YsmSyncModel {
                 }
             }
             case STOP -> {
-                if (values.size() != 1 || !isIndex(values.getFirst(), clips.size())) {
+                if (values.size() != 1 || !isIndex(values.get(0), clips.size())) {
                     throw new IllegalArgumentException("Invalid remote stop event");
                 }
             }
             case ACTION -> {
-                if (values.size() != 1 || !isIndex(values.getFirst(), actions.size())) {
+                if (values.size() != 1 || !isIndex(values.get(0), actions.size())) {
                     throw new IllegalArgumentException("Invalid remote action event");
                 }
             }
@@ -206,13 +206,13 @@ public final class YsmSyncModel {
             var values = event.arguments();
             switch (event.kind()) {
                 case PLAY -> {
-                    String clip = clips.get(values.getFirst().intValue()).name;
+                    String clip = clips.get(values.get(0).intValue()).name;
                     runtime.animations().stop(clip);
                     runtime.animations().play(clip, YsmAnimationClip.LoopMode.values()[values.get(1).intValue()],
                             values.get(2), values.get(3));
                 }
-                case STOP -> runtime.animations().stop(clips.get(values.getFirst().intValue()).name);
-                case ACTION -> runtime.actions().applyRemotePulse(actions.get(values.getFirst().intValue()));
+                case STOP -> runtime.animations().stop(clips.get(values.get(0).intValue()).name);
+                case ACTION -> runtime.actions().applyRemotePulse(actions.get(values.get(0).intValue()));
                 default -> throw new IllegalArgumentException("Unsupported remote event");
             }
         }

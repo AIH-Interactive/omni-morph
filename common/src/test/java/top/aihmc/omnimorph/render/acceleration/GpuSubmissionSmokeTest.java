@@ -1,9 +1,8 @@
 package top.aihmc.omnimorph.render.acceleration;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
+import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.blaze3d.vertex.VertexSorting;
 import jdk.jfr.Recording;
@@ -22,9 +21,9 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
-/** 1.21.1 MVP: rejected GPU submissions retain the caller's real native Java emission path. */
+/** 1.20.1 MVP: rejected GPU submissions retain the caller's real native Java emission path. */
 public final class GpuSubmissionSmokeTest {
-    private static final ResourceLocation TEXTURE = ResourceLocation.parse("omni-morph:submission_contract");
+    private static final ResourceLocation TEXTURE = new ResourceLocation("omni-morph:submission_contract");
 
     public static void main(String[] args) throws Exception {
         SharedConstants.tryDetectVersion();
@@ -68,18 +67,19 @@ public final class GpuSubmissionSmokeTest {
                 return true;
             }
         });
-        try (var memory = new ByteBufferBuilder(256)) {
+        try {
             var queue = new GpuBufferQueue();
             // Supply the accessor normally installed by Mixin in the plain JVM fixture.
             class Builder extends com.mojang.blaze3d.vertex.BufferBuilder
                     implements top.aihmc.omnimorph.mixin.render.GpuBufferBuilderAccessor {
                 private int count;
                 Builder() {
-                    super(memory, material.mode(), material.format());
+                    super(256);
+                    begin(material.mode(), material.format());
                 }
-                public com.mojang.blaze3d.vertex.VertexConsumer addVertex(float x, float y, float z) {
+                public void endVertex() {
+                    super.endVertex();
                     count++;
-                    return super.addVertex(x, y, z);
                 }
                 public int omniMorph$vertexCount() {
                     return count;
@@ -102,8 +102,8 @@ public final class GpuSubmissionSmokeTest {
             GpuSubmission.JavaEmitter fallback = (vertices, start, count) -> {
                 fallbacks[0]++;
                 for (int index = 0; index < count; index++) {
-                    vertices.addVertex(0, 0, fallbacks[0] == 1 ? 1 : 3).setColor(-1)
-                            .setUv(0, 0).setOverlay(0).setLight(0).setNormal(0, 1, 0);
+                    vertices.vertex(0, 0, fallbacks[0] == 1 ? 1 : 3).color(-1)
+                            .uv(0, 0).overlayCoords(0).uv2(0).normal(0, 1, 0).endVertex();
                 }
             };
             require(GpuSubmission.enqueue(source, first, fallback)
@@ -115,9 +115,7 @@ public final class GpuSubmissionSmokeTest {
                     && GpuSubmission.enqueue(source, second, fallback), "next GPU-only group accepted");
             source.getBuffer(material); // Native caller: replay before any later native vertices.
             require(fallbacks[0] == 2, "mixed native material falls back as one sort group");
-            var mesh = builder.buildOrThrow();
-            mesh.sortQuads(memory, VertexSorting.DISTANCE_TO_ORIGIN);
-            material.draw(mesh);
+            material.end(builder, VertexSorting.DISTANCE_TO_ORIGIN);
             queue.flush(material);
             require(material.depths.equals(List.of(3f, 1f)) && gpuDraws[0] == 2,
                     "mixed fallback keeps global native quad order without duplicate GPU draws");
@@ -137,16 +135,14 @@ public final class GpuSubmissionSmokeTest {
         var service = new AccelerationService();
         var owner = new AccelerationOwner();
         var material = new RecordingType(false);
-        try (var memory = new ByteBufferBuilder(256)) {
-            var source = MultiBufferSource.immediate(memory);
-            offer(service, source, batch(service, owner, material, 1, 2));
-            offer(service, source, batch(service, owner, material, 3));
-            require(material.draws == 0, "model preparation does not flush native geometry early");
-            source.endBatch();
-            require(material.draws == 1 && material.depths.equals(List.of(1f, 2f, 3f)),
-                    "native opaque flush emits every authored face exactly once in order");
-            material.requireReleased();
-        }
+        var source = MultiBufferSource.immediate(new BufferBuilder(256));
+        offer(service, source, batch(service, owner, material, 1, 2));
+        offer(service, source, batch(service, owner, material, 3));
+        require(material.draws == 0, "model preparation does not flush native geometry early");
+        source.endBatch();
+        require(material.draws == 1 && material.depths.equals(List.of(1f, 2f, 3f)),
+                "native opaque flush emits every authored face exactly once in order");
+        material.requireReleased();
     }
 
     private static void transparentBoundary(VertexSorting sorting, List<Float> expected) {
@@ -154,15 +150,13 @@ public final class GpuSubmissionSmokeTest {
         var service = new AccelerationService();
         var owner = new AccelerationOwner();
         var material = new RecordingType(true);
-        try (var memory = new ByteBufferBuilder(256)) {
-            var source = MultiBufferSource.immediate(memory);
-            offer(service, source, batch(service, owner, material, 1, 3));
-            offer(service, source, batch(service, owner, material, 4, 2));
-            source.endBatch();
-            require(material.draws == 1 && material.depths.equals(expected),
-                    "native translucent sorting spans rejected submissions without missing or duplicated faces");
-            material.requireReleased();
-        }
+        var source = MultiBufferSource.immediate(new BufferBuilder(256));
+        offer(service, source, batch(service, owner, material, 1, 3));
+        offer(service, source, batch(service, owner, material, 4, 2));
+        source.endBatch();
+        require(material.draws == 1 && material.depths.equals(expected),
+                "native translucent sorting spans rejected submissions without missing or duplicated faces");
+        material.requireReleased();
     }
 
     private static void groupedPoses() {
@@ -173,21 +167,19 @@ public final class GpuSubmissionSmokeTest {
             service.beginFrame();
             var material = new RecordingType(true);
             var expected = new ArrayList<Float>();
-            try (var memory = new ByteBufferBuilder(256)) {
-                var source = MultiBufferSource.immediate(memory);
-                for (int depth = 1; depth <= 65; depth++) {
-                    float authored = depth + (frame == 2 && depth == 1 ? .5f : 0);
-                    float translation = frame == 1 ? 130 - 2 * depth : depth / 1024f;
-                    var original = batch(service, owner, material, authored);
-                    var pose = new PoseSnapshot(FiguraMat4.of().translate(0, 0, translation), FiguraMat3.of());
-                    offer(service, source, new DrawBatch(original.lease(), original.mesh(), pose, original.semantics()));
-                    expected.add(authored + translation);
-                }
-                source.endBatch();
-                expected.sort(java.util.Comparator.reverseOrder());
-                require(material.depths.equals(expected), "65 independent poses and geometry edits preserve all sorted faces");
-                material.requireReleased();
+            var source = MultiBufferSource.immediate(new BufferBuilder(256));
+            for (int depth = 1; depth <= 65; depth++) {
+                float authored = depth + (frame == 2 && depth == 1 ? .5f : 0);
+                float translation = frame == 1 ? 130 - 2 * depth : depth / 1024f;
+                var original = batch(service, owner, material, authored);
+                var pose = new PoseSnapshot(FiguraMat4.of().translate(0, 0, translation), FiguraMat3.of());
+                offer(service, source, new DrawBatch(original.lease(), original.mesh(), pose, original.semantics()));
+                expected.add(authored + translation);
             }
+            source.endBatch();
+            expected.sort(java.util.Comparator.reverseOrder());
+            require(material.depths.equals(expected), "65 independent poses and geometry edits preserve all sorted faces");
+            material.requireReleased();
         }
     }
 
@@ -204,13 +196,11 @@ public final class GpuSubmissionSmokeTest {
                 case 3 -> service.useBackend(null);
                 default -> throw new AssertionError("unexpected invalidation");
             }
-            try (var memory = new ByteBufferBuilder(256)) {
-                var source = MultiBufferSource.immediate(memory);
-                offer(service, source, captured);
-                source.endBatch();
-                require(material.draws == 0 && material.depths.isEmpty(),
-                        "caller rejects retired owner/frame/resource/backend leases before native emission");
-            }
+            var source = MultiBufferSource.immediate(new BufferBuilder(256));
+            offer(service, source, captured);
+            source.endBatch();
+            require(material.draws == 0 && material.depths.isEmpty(),
+                    "caller rejects retired owner/frame/resource/backend leases before native emission");
         }
     }
 
@@ -224,16 +214,16 @@ public final class GpuSubmissionSmokeTest {
             require(first == 0 && count == batch.mesh().vertexCount(), "MVP fallback retains the complete batch");
             for (int vertex = first; vertex < first + count; vertex++) {
                 int offset = vertex * MeshHandle.STRIDE;
-                consumer.addVertex((float) transformed[offset], (float) transformed[offset + 1], (float) transformed[offset + 2])
-                        .setColor(255, 255, 255, 255)
-                        .setUv((float) transformed[offset + 7], (float) transformed[offset + 8])
-                        .setOverlay(0).setLight(0)
-                        .setNormal((float) transformed[offset + 4], (float) transformed[offset + 5], (float) transformed[offset + 6]);
+                consumer.vertex((float) transformed[offset], (float) transformed[offset + 1], (float) transformed[offset + 2])
+                        .color(255, 255, 255, 255)
+                        .uv((float) transformed[offset + 7], (float) transformed[offset + 8])
+                        .overlayCoords(0).uv2(0)
+                        .normal((float) transformed[offset + 4], (float) transformed[offset + 5], (float) transformed[offset + 6]).endVertex();
             }
         };
         int draws = material.draws;
         require(!service.gpuDrawEnabled() && !GpuSubmission.enqueue(source, batch, emitter),
-                "1.21.1 does not accept a GPU submission");
+                "1.20.1 does not accept a GPU submission");
         require(calls[0] == 0 && material.draws == draws, "rejection does not consume the caller's fallback or flush material");
         if (service.isCurrent(batch.lease())) {
             emitter.emit(source.getBuffer(material), 0, batch.mesh().vertexCount());
@@ -255,7 +245,7 @@ public final class GpuSubmissionSmokeTest {
             }
             var events = RecordingFile.readAllEvents(path);
             require(events.size() == 1, "one completed diagnostic frame");
-            var event = events.getFirst();
+            var event = events.get(0);
             require(event.getLong("draws") == 0 && event.getLong("poseUploads") == 0
                             && event.getLong("poseBytes") == 0 && event.getLong("passes") == 0,
                     "native CPU output does not masquerade as GPU work in diagnostics");
@@ -283,10 +273,10 @@ public final class GpuSubmissionSmokeTest {
                 new PoseSnapshot(FiguraMat4.of(), FiguraMat3.of()), semantics);
     }
 
-    /** The real BufferSource builds/sorts MeshData; only the final GPU draw is replaced by inspection. */
+    /** The real BufferSource builds/sorts RenderedBuffer; only the final GPU draw is replaced by inspection. */
     private static final class RecordingType extends RenderType {
         private final List<Float> depths = new ArrayList<>();
-        private final List<MeshData> meshes = new ArrayList<>();
+        private final List<BufferBuilder.RenderedBuffer> meshes = new ArrayList<>();
         private int draws;
 
         private RecordingType(boolean translucent) {
@@ -295,19 +285,23 @@ public final class GpuSubmissionSmokeTest {
         }
 
         @Override
-        public void draw(MeshData mesh) {
-            try (mesh) {
+        public void end(BufferBuilder builder, VertexSorting sorting) {
+            if (sortOnUpload) {
+                builder.setQuadSorting(sorting);
+            }
+            var mesh = builder.end();
+            try {
                 draws++;
                 meshes.add(mesh);
                 var vertices = mesh.vertexBuffer().order(ByteOrder.nativeOrder());
                 var indices = mesh.indexBuffer();
-                if (indices != null) {
+                if (!mesh.drawState().sequentialIndex()) {
                     indices.order(ByteOrder.nativeOrder());
                 }
                 int stride = mesh.drawState().format().getVertexSize();
                 for (int face = 0; face < mesh.drawState().vertexCount() / 4; face++) {
                     int firstVertex = face * 4;
-                    if (indices != null) {
+                    if (!mesh.drawState().sequentialIndex()) {
                         int index = face * 6;
                         firstVertex = mesh.drawState().indexType() == VertexFormat.IndexType.SHORT
                                 ? Short.toUnsignedInt(indices.getShort(index * Short.BYTES))
@@ -315,16 +309,18 @@ public final class GpuSubmissionSmokeTest {
                     }
                     depths.add(vertices.getFloat(firstVertex * stride + 8));
                 }
+            } finally {
+                mesh.release();
             }
         }
 
         private void requireReleased() {
             for (var mesh : meshes) {
                 try {
-                    mesh.vertexBuffer();
-                    throw new AssertionError("flushed native mesh must be released");
+                    mesh.release();
+                    throw new AssertionError("flushed native buffer must already be released");
                 } catch (IllegalStateException expected) {
-                    // ByteBufferBuilder.Result rejects access after MeshData.close().
+                    // Native RenderedBuffer rejects a second release.
                 }
             }
         }

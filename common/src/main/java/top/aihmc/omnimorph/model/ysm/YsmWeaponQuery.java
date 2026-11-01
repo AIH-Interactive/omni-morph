@@ -43,11 +43,11 @@ public final class YsmWeaponQuery {
         if (tagged(stack, "pike")) {
             return 2;
         }
-        return stack.is(Items.MACE) || tagged(stack, "mace") ? 3 : 0;
+        return tagged(stack, "mace") ? 3 : 0;
     }
 
     private static boolean tagged(ItemStack stack, String tag) {
-        return stack.is(TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath("sparkle_morpher", tag)));
+        return stack.is(TagKey.create(Registries.ITEM, new ResourceLocation("sparkle_morpher", tag)));
     }
 
     public static Object evaluate(String name, Avatar.MolangContext context, LivingEntity entity) {
@@ -118,15 +118,13 @@ public final class YsmWeaponQuery {
         };
     }
 
-    /** MC 1.21.1 tracks wind-charge impulses on players only; the grace timer is widened by the AW. */
+    /** Vanilla 1.20.1 has no wind-charge impulse state. Tagged weapons do not invent that state. */
     private static boolean windImpulseActive(LivingEntity entity) {
-        return entity instanceof Player player
-                && (player.currentImpulseContextResetGraceTime > 0
-                || player.isIgnoringFallDamageFromCurrentImpulse());
+        return false;
     }
 
     private static float chargeProgress(ItemStack stack, LivingEntity entity, float useTicks) {
-        int duration = stack.getUseDuration(entity);
+        int duration = stack.getUseDuration();
         return duration <= 0 ? 0f : Math.min(1f, useTicks / duration);
     }
 }

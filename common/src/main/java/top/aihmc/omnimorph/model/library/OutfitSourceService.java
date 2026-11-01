@@ -112,7 +112,7 @@ public final class OutfitSourceService {
 
     static CompoundTag parse(byte[] bytes, OutfitConfig.ResourceRef reference, OutfitConfig.ResourceKind kind,
                              CosmeticMetadata declaration) throws IOException {
-        CompoundTag nbt = NbtIo.readCompressed(new ByteArrayInputStream(bytes), NbtAccounter.create(256L * 1024 * 1024));
+        CompoundTag nbt = org.figuramc.figura.utils.IOUtils.readCompressedNbt(new ByteArrayInputStream(bytes), 256L * 1024 * 1024);
         var metadata = nbt.getCompound("metadata");
         boolean ysm = metadata.getString("format").equals("ysm-native");
         boolean encrypted = YsmSourcePayload.isEncrypted(nbt.getCompound("ysm"));

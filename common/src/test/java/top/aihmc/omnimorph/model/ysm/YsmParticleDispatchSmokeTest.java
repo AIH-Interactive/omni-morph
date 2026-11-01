@@ -71,7 +71,7 @@ public final class YsmParticleDispatchSmokeTest {
         }
         second.submit(executor::add, () -> true, () -> trace.add("recovered"));
         drain(executor);
-        require(trace.getLast().equals("recovered"), "task failure releases its pending allowance");
+        require(com.google.common.collect.Iterables.getLast(trace).equals("recovered"), "task failure releases its pending allowance");
 
         require(YsmParticleRuntime.isPreview(EntityRenderMode.FIGURA_GUI)
                 && YsmParticleRuntime.isPreview(EntityRenderMode.PAPERDOLL)
@@ -87,7 +87,7 @@ public final class YsmParticleDispatchSmokeTest {
             Function function = (Function) new MolangBindings.YsmBinding().getProperty(name);
             require(!function.validateArgumentSize(0) && function.validateArgumentSize(1)
                     && function.validateArgumentSize(10) && function.validateArgumentSize(11), "reference particle signature");
-            Object result = ExpressionEvaluator.evaluator(context).eval(engine.parse("ysm." + name + "(v.denied=1);").getFirst());
+            Object result = ExpressionEvaluator.evaluator(context).eval(engine.parse("ysm." + name + "(v.denied=1);").get(0));
             require(result == null && context.variables.getPath("denied") == null,
                     "formal binding rejects missing owner before argument evaluation");
         }

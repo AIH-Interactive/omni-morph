@@ -143,7 +143,7 @@ public final class LocalAvatarSource {
                 try (var data = YsmModelData.read(path, cancelled)) {
                     var texture = data.manifest().textures().stream()
                             .filter(option -> option.id().equals(data.manifest().defaultTexture()))
-                            .findFirst().orElse(data.manifest().textures().isEmpty() ? null : data.manifest().textures().getFirst());
+                            .findFirst().orElse(data.manifest().textures().isEmpty() ? null : data.manifest().textures().get(0));
                     nbt = YsmAvatarLoader.toAvatarNbt(data, texture, owner, path);
                 }
             }

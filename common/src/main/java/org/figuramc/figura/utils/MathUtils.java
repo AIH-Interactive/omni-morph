@@ -98,7 +98,7 @@ public class MathUtils {
         transformMatrix.transform(camSpace);
 
         Vector4f projectiveCamSpace = new Vector4f(camSpace, 1f);
-        Matrix4f projMat = minecraft.gameRenderer.getProjectionMatrix(((GameRendererAccessor) minecraft.gameRenderer).figura$getFov(camera, minecraft.getTimer().getGameTimeDeltaPartialTick(false), true));
+        Matrix4f projMat = minecraft.gameRenderer.getProjectionMatrix(((GameRendererAccessor) minecraft.gameRenderer).figura$getFov(camera, minecraft.getFrameTime(), true));
         projMat.transform(projectiveCamSpace);
         float w = projectiveCamSpace.w();
 

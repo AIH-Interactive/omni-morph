@@ -289,13 +289,8 @@ public class BlockStateAPI {
     @LuaMethodDoc("blockstate.get_entity_data")
     public LuaTable getEntityData() {
         BlockEntity entity = WorldAPI.getCurrentWorld().getBlockEntity(getBlockPos());
-        if (entity != null ){
-            ItemStack stack = new ItemStack(entity.getBlockState().getBlock().asItem());
-            entity.saveToItem(stack, WorldAPI.getCurrentWorld().registryAccess());
-            LuaTable componentTable = (LuaTable) NbtToLua.convert(NbtToLua.convertToNbt(stack.getComponents()));
-            LuaTable entityTable = (LuaTable) NbtToLua.convert(entity.saveWithoutMetadata(WorldAPI.getCurrentWorld().registryAccess()));
-            LuaUtils.addLegacyNbtNames(componentTable, entityTable);
-            return entityTable;
+        if (entity != null) {
+            return (LuaTable) NbtToLua.convert(entity.saveWithoutMetadata());
         }
         return null;
     }
@@ -304,7 +299,7 @@ public class BlockStateAPI {
     @LuaMethodDoc("blockstate.to_state_string")
     public String toStateString() {
         BlockEntity entity = WorldAPI.getCurrentWorld().getBlockEntity(getBlockPos());
-        CompoundTag tag = entity != null ? entity.saveWithoutMetadata(WorldAPI.getCurrentWorld().registryAccess()) : new CompoundTag();
+        CompoundTag tag = entity != null ? entity.saveWithoutMetadata() : new CompoundTag();
 
         return BlockStateParser.serialize(blockState) + tag;
     }

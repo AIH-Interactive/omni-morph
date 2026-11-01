@@ -47,7 +47,7 @@ public final class LibraryFormBody extends AbstractList {
         var visibleRows = rows.stream().filter(row -> row.widget().isVisible()).toList();
         int spacing = labeled ? 40 : 24;
         int maximum = Math.max(0, visibleRows.stream().mapToInt(row -> row.height(labeled)).sum() - getHeight() + 4);
-        int offset = Math.clamp((int) Math.round(scrollBar.getScrollProgress() * previousMaximum), 0, maximum);
+        int offset = net.minecraft.util.Mth.clamp((int) Math.round(scrollBar.getScrollProgress() * previousMaximum), 0, maximum);
         if (maximum != previousMaximum) {
             scrollBar.setScrollProgressNoAnim(maximum == 0 ? 0 : (double) offset / maximum);
             previousMaximum = maximum;
@@ -60,7 +60,7 @@ public final class LibraryFormBody extends AbstractList {
             if (input.isFocused() && input != previousFocus) {
                 int top = visibleRows.subList(0, i).stream().mapToInt(row -> row.height(labeled)).sum();
                 if (top < offset || top + visibleRows.get(i).height(labeled) - 2 > offset + getHeight()) {
-                    offset = Math.clamp(top, 0, maximum);
+                    offset = net.minecraft.util.Mth.clamp(top, 0, maximum);
                     scrollBar.setScrollProgressNoAnim(maximum == 0 ? 0 : (double) offset / maximum);
                 }
                 previousFocus = input;
@@ -100,7 +100,7 @@ public final class LibraryFormBody extends AbstractList {
     }
 
     @Override
-    public boolean mouseScrolled(double x, double y, double horizontal, double vertical) {
-        return isMouseOver(x, y) && super.mouseScrolled(x, y, horizontal, vertical);
+    public boolean mouseScrolled(double x, double y, double vertical) {
+        return isMouseOver(x, y) && super.mouseScrolled(x, y, vertical);
     }
 }

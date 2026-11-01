@@ -192,7 +192,7 @@ public final class YsmModelConverter {
             return false;
 
         JsonObject object = scale.getAsJsonObject();
-        if (object.isEmpty())
+        if (object.size() == 0)
             return false;
         for (JsonElement value : object.asMap().values()) {
             JsonElement target = value;

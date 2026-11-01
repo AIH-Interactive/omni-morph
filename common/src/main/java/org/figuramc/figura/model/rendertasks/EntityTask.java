@@ -58,7 +58,7 @@ public class EntityTask extends RenderTask {
             try {
                 Minecraft.getInstance().getEntityRenderDispatcher()
                         .render(
-                                entity, 0.0, 0.0, 0.0, 0.0F, Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true), stack, buffer,
+                                entity, 0.0, 0.0, 0.0, 0.0F, Minecraft.getInstance().getFrameTime(), stack, buffer,
                                 this.customization.light != null ? this.customization.light : light
                         );
             }

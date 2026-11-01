@@ -106,7 +106,8 @@ public final class CloudEndpointSmokeTest {
         });
         server.start();
         String origin = "http://127.0.0.1:" + server.getAddress().getPort();
-        try (HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build()) {
+        HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build();
+        try {
             for (CloudProtocol.Kind kind : CloudProtocol.Kind.values()) {
                 var disabled = CloudEndpoint.parse(origin, () -> false);
                 try (CloudProtocol protocol = CloudProtocol.create(kind, disabled, "synthetic-secret", "test", 1, client)) {
@@ -141,9 +142,8 @@ public final class CloudEndpointSmokeTest {
                 rejects(() -> http.control(slow), "Retry denied after revocation");
                 require(requests.get() == before, "No revoked retry sent");
             }
-            try (HttpClient redirects = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build()) {
-                rejects(() -> new CloudHttp(redirects, endpoint), "Redirect-enabled HTTP client rejected at construction");
-            }
+            HttpClient redirects = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build();
+            rejects(() -> new CloudHttp(redirects, endpoint), "Redirect-enabled HTTP client rejected at construction");
         } finally {
             release.countDown();
             server.stop(0);
@@ -157,8 +157,8 @@ public final class CloudEndpointSmokeTest {
             exchange.close();
         });
         ipv6.start();
-        try (HttpClient client = HttpClient.newHttpClient();
-             CloudHttp http = new CloudHttp(client, CloudEndpoint.parse("ws://[::1]:" + ipv6.getAddress().getPort(), () -> true))) {
+        HttpClient ipv6Client = HttpClient.newHttpClient();
+        try (CloudHttp http = new CloudHttp(ipv6Client, CloudEndpoint.parse("ws://[::1]:" + ipv6.getAddress().getPort(), () -> true))) {
             byte[] response = http.control(CloudHttp.request(URI.create("http://[::1]:" + ipv6.getAddress().getPort() + "/")).build());
             require(response.length == 1 && response[0] == 7, "Actual bracketed IPv6 HTTP");
         } finally {
@@ -240,29 +240,28 @@ public final class CloudEndpointSmokeTest {
             });
             server.start();
             int port = server.getAddress().getPort();
-            try (HttpClient client = HttpClient.newBuilder().sslContext(clientContext).connectTimeout(Duration.ofSeconds(3)).build()) {
-                for (boolean debug : new boolean[] {false, true}) {
-                    var endpoint = CloudEndpoint.parse("wss://localhost:" + port, () -> debug);
-                    try (CloudHttp http = new CloudHttp(client, endpoint)) {
-                        require(http.control(CloudHttp.request(endpoint.http("/ok")).build())[0] == 9,
-                                "Valid certificate uses HTTPS even with Debug enabled");
-                        rejects(() -> http.control(CloudHttp.request(endpoint.http("/redirect"))
-                                .header("token", "synthetic-secret").build()), "HTTPS cannot redirect credentials to plaintext");
-                        rejects(() -> client.newWebSocketBuilder().header("Authorization", "Bearer synthetic-secret")
-                                .buildAsync(endpoint.websocket("/ws"), new WebSocket.Listener() {}).get(5, TimeUnit.SECONDS),
-                                "WSS cannot redirect credentials to plaintext");
-                    }
+            HttpClient client = HttpClient.newBuilder().sslContext(clientContext).connectTimeout(Duration.ofSeconds(3)).build();
+            for (boolean debug : new boolean[] {false, true}) {
+                var endpoint = CloudEndpoint.parse("wss://localhost:" + port, () -> debug);
+                try (CloudHttp http = new CloudHttp(client, endpoint)) {
+                    require(http.control(CloudHttp.request(endpoint.http("/ok")).build())[0] == 9,
+                            "Valid certificate uses HTTPS even with Debug enabled");
+                    rejects(() -> http.control(CloudHttp.request(endpoint.http("/redirect"))
+                            .header("token", "synthetic-secret").build()), "HTTPS cannot redirect credentials to plaintext");
+                    rejects(() -> client.newWebSocketBuilder().header("Authorization", "Bearer synthetic-secret")
+                            .buildAsync(endpoint.websocket("/ws"), new WebSocket.Listener() {}).get(5, TimeUnit.SECONDS),
+                            "WSS cannot redirect credentials to plaintext");
                 }
-                var mismatch = CloudEndpoint.parse("https://127.0.0.1:" + port, () -> true);
-                try (CloudHttp http = new CloudHttp(client, mismatch)) {
-                    rejects(() -> http.control(CloudHttp.request(mismatch.http("/ok")).build()),
-                            "Debug preserves TLS hostname validation");
-                }
-                rejects(() -> client.newWebSocketBuilder().buildAsync(mismatch.websocket("/ws"), new WebSocket.Listener() {})
-                        .get(5, TimeUnit.SECONDS), "Debug preserves WSS hostname validation");
             }
-            try (HttpClient untrusted = HttpClient.newHttpClient();
-                 CloudHttp http = new CloudHttp(untrusted, CloudEndpoint.parse("https://localhost:" + port, () -> true))) {
+            var mismatch = CloudEndpoint.parse("https://127.0.0.1:" + port, () -> true);
+            try (CloudHttp http = new CloudHttp(client, mismatch)) {
+                rejects(() -> http.control(CloudHttp.request(mismatch.http("/ok")).build()),
+                        "Debug preserves TLS hostname validation");
+            }
+            rejects(() -> client.newWebSocketBuilder().buildAsync(mismatch.websocket("/ws"), new WebSocket.Listener() {})
+                    .get(5, TimeUnit.SECONDS), "Debug preserves WSS hostname validation");
+            HttpClient untrusted = HttpClient.newHttpClient();
+            try (CloudHttp http = new CloudHttp(untrusted, CloudEndpoint.parse("https://localhost:" + port, () -> true))) {
                 rejects(() -> http.control(CloudHttp.request(URI.create("https://localhost:" + port + "/ok")).build()),
                         "Debug does not trust arbitrary certificates");
             }

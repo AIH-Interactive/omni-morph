@@ -65,7 +65,7 @@ public final class YsmAnimationConverter {
             }
         }
 
-        if (animators.isEmpty())
+        if (animators.size() == 0)
             return null;
 
         JsonObject animation = new JsonObject();

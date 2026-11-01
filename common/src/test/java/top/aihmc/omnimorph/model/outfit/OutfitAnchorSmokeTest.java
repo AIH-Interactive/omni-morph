@@ -117,7 +117,7 @@ public final class OutfitAnchorSmokeTest {
     }
 
     private static Matrix4f standard(SkeletonPose pose, String name) {
-        var target = StandardAnchors.resolve(pose.definition(), true, name).getFirst();
+        var target = StandardAnchors.resolve(pose.definition(), true, name).get(0);
         return pose.matrix(target.bone()).orElseThrow().mul(target.offset().modelMatrix());
     }
 

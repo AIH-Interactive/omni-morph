@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.model.ysm.animation;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.component.DataComponents;
+
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -1340,7 +1340,7 @@ public class YsmAnimationPlayer {
                 if (parts.isEmpty()) {
                     continue;
                 }
-                YsmModelPart part = parts.getFirst();
+                YsmModelPart part = parts.get(0);
                 poses.put(bone, new YsmBonePose(vector(part.animPosRaw()), vector(part.animRotRaw()),
                         vector(part.animScaleRaw())));
             }
@@ -1464,7 +1464,7 @@ public class YsmAnimationPlayer {
      * weight so a fading action still interpolates from the pose below it.
      */
     private static void applyWeightedPose(WeightedPose contribution) {
-        float weight = Math.clamp(contribution.weight(), 0f, 1f);
+        float weight = net.minecraft.util.Mth.clamp(contribution.weight(), 0f, 1f);
         if (weight <= 0f) {
             return;
         }
@@ -1530,7 +1530,7 @@ public class YsmAnimationPlayer {
         if (parts.isEmpty()) {
             return null;
         }
-        FiguraVec3 rest = parts.getFirst().getOriginRot();
+        FiguraVec3 rest = parts.get(0).getOriginRot();
         return new float[]{(float) rest.x, (float) rest.y, (float) rest.z};
     }
 
@@ -1547,7 +1547,7 @@ public class YsmAnimationPlayer {
         if (parts.isEmpty()) {
             return null;
         }
-        YsmModelPart part = parts.getFirst();
+        YsmModelPart part = parts.get(0);
         // A base-hidden bone keeps identity scale while visible=false. Its effective transition
         // start is a zero scale, otherwise an incoming scale-0 hide would blend up from 1.
         float[] scale = part.visibleRaw() ? vector(part.animScaleRaw()) : new float[]{0f, 0f, 0f};
@@ -2192,7 +2192,7 @@ public class YsmAnimationPlayer {
         String name = nativeHandAnimations.get(slot);
         PlayingAnimation animation = name == null ? null : activeAnimations.get(name);
         if (animation != null && animation.clip.length > 0f)
-            animation.sampledTime = Math.clamp(entity.getAttackAnim(0f), 0f, 1f) * animation.clip.length;
+            animation.sampledTime = net.minecraft.util.Mth.clamp(entity.getAttackAnim(0f), 0f, 1f) * animation.clip.length;
     }
 
     private static boolean isLanceWeapon(ItemStack item) {
@@ -2254,7 +2254,7 @@ public class YsmAnimationPlayer {
 
     private static ResourceLocation identifier(String value) {
         try {
-            return ResourceLocation.parse(value);
+            return new ResourceLocation(value);
         } catch (Exception ignored) {
             return null;
         }
@@ -2266,7 +2266,7 @@ public class YsmAnimationPlayer {
     }
 
     private static boolean isWeaponItem(ItemStack item) {
-        return item.is(Items.TRIDENT) || item.is(Items.MACE)
+        return item.is(Items.TRIDENT) || top.aihmc.omnimorph.model.ysm.YsmHandItemType.matches(item, "mace")
                 || item.getUseAnimation() == UseAnim.SPEAR;
     }
 
@@ -2281,7 +2281,7 @@ public class YsmAnimationPlayer {
             if (use) {
                 result.add("spear");
             }
-        } else if (item.is(Items.MACE)) {
+        } else if (top.aihmc.omnimorph.model.ysm.YsmHandItemType.matches(item, "mace")) {
             result.add("mace");
         } else {
             String kind = itemKind(item);
@@ -2393,7 +2393,7 @@ public class YsmAnimationPlayer {
             return "empty";
         if (item.is(Items.TRIDENT))
             return "trident";
-        if (item.is(Items.MACE))
+        if (top.aihmc.omnimorph.model.ysm.YsmHandItemType.matches(item, "mace"))
             return "mace";
         if (item.getUseAnimation() == UseAnim.SPEAR)
             return "spear";

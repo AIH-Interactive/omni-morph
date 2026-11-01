@@ -427,7 +427,7 @@ public final class OutfitComposition implements AutoCloseable {
         for (String name : OutfitConfig.STANDARD_ANCHORS) {
             var targets = StandardAnchors.resolve(baseSkeleton.definition(), configuration.base() == null, name);
             if (targets.size() == 1) {
-                var target = targets.getFirst();
+                var target = targets.get(0);
                 previewAnchors.put(OutfitConfig.AnchorRef.authorDefault(name), new BoneHandle(target.bone(), target.offset()));
             }
         }
@@ -991,7 +991,7 @@ public final class OutfitComposition implements AutoCloseable {
         public List<BoneHandle> findExportedAnchors(String id, String name) {
             var result = new ArrayList<BoneHandle>();
             for (var bone : exportedBones.getOrDefault(UUID.fromString(id), Set.of())) {
-                if (bone.path().getLast().name().equals(name)) {
+                if (bone.path().get(bone.path().size() - 1).name().equals(name)) {
                     result.add(new BoneHandle(bone));
                 }
             }
@@ -1016,7 +1016,7 @@ public final class OutfitComposition implements AutoCloseable {
             var skeleton = activeFrame.basePose.definition();
             // Multi-root native models still have an entity root, without inventing a persistent bone path.
             return skeleton.roots().size() == 1
-                    ? new BoneHandle(skeleton.reference(null, skeleton.roots().getFirst())) : new BoneHandle(null);
+                    ? new BoneHandle(skeleton.reference(null, skeleton.roots().get(0))) : new BoneHandle(null);
         }
 
         @LuaWhitelist

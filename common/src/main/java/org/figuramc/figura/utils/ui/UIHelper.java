@@ -290,11 +290,12 @@ public final class UIHelper {
 
     public static void renderBackgroundTexture(GuiGraphics gui, ResourceLocation texture, float x, float y, float width, float height, float textureWidth, float textureHeight) {
         prepareTexture(gui, texture);
-        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+        BufferBuilder buffer = Tesselator.getInstance().getBuilder();
+        buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
         float u1 = width / textureWidth;
         float v1 = height / textureHeight;
         quad(buffer, gui.pose().last().pose(), x, y, width, height, -999f, 0f, u1, 0f, v1);
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
+        BufferUploader.drawWithShader(buffer.end());
 
     }
 
@@ -319,7 +320,8 @@ public final class UIHelper {
 
         prepareTexture(gui, texture);
         Matrix4f pose = gui.pose().last().pose();
-        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+        BufferBuilder buffer = Tesselator.getInstance().getBuilder();
+        buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
 
         float rWidthThird = regionWidth / 3f;
         float rHeightThird = regionHeight / 3f;
@@ -345,7 +347,7 @@ public final class UIHelper {
         // bottom right
         quad(buffer, pose, x + width - rWidthThird, y + height - rHeightThird, rWidthThird, rHeightThird, u + rWidthThird * 2, v + rHeightThird * 2, rWidthThird, rHeightThird, textureWidth, textureHeight);
 
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
+        BufferUploader.drawWithShader(buffer.end());
     }
 
     public static void renderHalfTexture(GuiGraphics gui, int x, int y, int width, int height, int textureWidth, ResourceLocation texture) {
@@ -389,10 +391,10 @@ public final class UIHelper {
                              float z, float u0, float u1, float v0, float v1) {
         float x1 = x + width;
         float y1 = y + height;
-        buffer.addVertex(pose, x, y1, z).setUv(u0, v1);
-        buffer.addVertex(pose, x1, y1, z).setUv(u1, v1);
-        buffer.addVertex(pose, x1, y, z).setUv(u1, v0);
-        buffer.addVertex(pose, x, y, z).setUv(u0, v0);
+        buffer.vertex(pose, x, y1, z).uv(u0, v1).endVertex();
+        buffer.vertex(pose, x1, y1, z).uv(u1, v1).endVertex();
+        buffer.vertex(pose, x1, y, z).uv(u1, v0).endVertex();
+        buffer.vertex(pose, x, y, z).uv(u0, v0).endVertex();
     }
 
     public static void renderWithoutScissors(GuiGraphics gui, Consumer<GuiGraphics> toRun) {
@@ -620,7 +622,7 @@ public final class UIHelper {
     }
 
     public static int adjustColor(int argbColor) {
-        return (argbColor & -67108864) == 0 ? FastColor.ARGB32.opaque(argbColor) : argbColor;
+        return (argbColor & -67108864) == 0 ? (argbColor | 0xff000000) : argbColor;
     }
 
     public static Runnable openURL(String url) {

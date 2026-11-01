@@ -126,7 +126,7 @@ public final class LibraryPackagePreparation {
                     var manifest = data.manifest();
                     var texture = manifest.textures().stream()
                             .filter(option -> option.id().equals(manifest.defaultTexture()))
-                            .findFirst().orElse(manifest.textures().isEmpty() ? null : manifest.textures().getFirst());
+                            .findFirst().orElse(manifest.textures().isEmpty() ? null : manifest.textures().get(0));
                     nbt = YsmAvatarLoader.toAvatarNbt(data, texture, owner, null);
                 }
             }

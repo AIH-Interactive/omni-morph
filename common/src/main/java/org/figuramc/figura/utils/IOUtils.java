@@ -10,6 +10,8 @@ import org.figuramc.figura.FiguraMod;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -23,8 +25,16 @@ import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.GZIPInputStream;
 
 public class IOUtils {
+
+    /** Target NbtIo has no compressed overload accepting the existing heap budget. */
+    public static CompoundTag readCompressedNbt(InputStream stream, long maximumBytes) throws IOException {
+        try (DataInputStream input = new DataInputStream(new BufferedInputStream(new GZIPInputStream(stream)))) {
+            return NbtIo.read(input, new NbtAccounter(maximumBytes));
+        }
+    }
 
     public static boolean hasControlDown() {
         return Util.getPlatform() == Util.OS.OSX
@@ -85,7 +95,7 @@ public class IOUtils {
 
             // read file
             InputStream fis = Files.newInputStream(path);
-            CompoundTag nbt = NbtIo.readCompressed(fis, NbtAccounter.unlimitedHeap());
+            CompoundTag nbt = NbtIo.readCompressed(fis);
             consumer.accept(nbt);
             fis.close();
         } catch (Exception e) {

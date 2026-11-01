@@ -281,7 +281,7 @@ public final class YsmFilterSmokeTest {
             unsafeField.setAccessible(true);
             context.entity = (ArmorStand) ((Unsafe) unsafeField.get(null)).allocateInstance(ArmorStand.class);
         }
-        return ExpressionEvaluator.evaluator(context).evalAsFloat(ENGINE.parse(source).getFirst());
+        return ExpressionEvaluator.evaluator(context).evalAsFloat(ENGINE.parse(source).get(0));
     }
 
     private static void equal(float expected, float actual, String message) {

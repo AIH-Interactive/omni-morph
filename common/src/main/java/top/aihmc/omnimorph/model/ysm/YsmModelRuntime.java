@@ -192,7 +192,7 @@ public class YsmModelRuntime implements AutoCloseable {
                 String requested = NbtDefaults.getStringOr(tag, "texture_id", data.manifest().defaultTexture());
                 var textures = data.manifest().textures();
                 var selected = textures.stream().filter(texture -> texture.id().equals(requested)).findFirst()
-                        .orElse(textures.isEmpty() ? null : textures.getFirst());
+                        .orElse(textures.isEmpty() ? null : textures.get(0));
                 tag = YsmAvatarLoader.toRuntimeTag(data, selected);
             }
             return assemble(owner, tag, data.mainGeometry(), data.armGeometry(), data);

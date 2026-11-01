@@ -372,7 +372,7 @@ public final class YsmModelScanner {
             if (!actual.equals(expected)) {
                 throw new IOException("YSM scan gate differs from the reviewed baseline: " + actual);
             }
-        } else if (!issues.isEmpty()) {
+        } else if (issues.size() != 0) {
             throw new IOException("YSM scan gate failed: " + actual);
         }
     }

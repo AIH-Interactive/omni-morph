@@ -712,8 +712,8 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
     }
 
     private static void line(VertexConsumer v, PoseStack.Pose pose, float x1, float y1, float z1, float x2, float y2, float z2, float r, float g, float b, float a, float nx, float ny, float nz) {
-        v.addVertex(pose, x1, y1, z1).setColor(r, g, b, a).setNormal(pose, nx, ny, nz);
-        v.addVertex(pose, x2, y2, z2).setColor(r, g, b, a).setNormal(pose, nx, ny, nz);
+        v.vertex(pose.pose(), x1, y1, z1).color(r, g, b, a).normal(pose.normal(), nx, ny, nz).endVertex();
+        v.vertex(pose.pose(), x2, y2, z2).color(r, g, b, a).normal(pose.normal(), nx, ny, nz).endVertex();
     }
 
     protected void savePivotTransform(ParentType parentType, PartCustomization customization) {
@@ -919,10 +919,10 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
                     pos.add(pos.normalized().scale(vertexData.vertexOffset));
                     normal.set(vertex.nx, vertex.ny, vertex.nz).transform(customization.normalMatrix);
                     uv.set(vertex.u, vertex.v, 1).divide(uvFixer).transform(customization.uvMatrix);
-                    vertexConsumer.addVertex((float) pos.x, (float) pos.y, (float) pos.z)
-                            .setColor((float) vertexData.color.x, (float) vertexData.color.y, (float) vertexData.color.z, alpha)
-                            .setUv((float) uv.x, (float) uv.y).setOverlay(overlay).setLight(light)
-                            .setNormal((float) normal.x, (float) normal.y, (float) normal.z);
+                    vertexConsumer.vertex((float) pos.x, (float) pos.y, (float) pos.z)
+                            .color((float) vertexData.color.x, (float) vertexData.color.y, (float) vertexData.color.z, alpha)
+                            .uv((float) uv.x, (float) uv.y).overlayCoords(overlay).uv2(light)
+                            .normal((float) normal.x, (float) normal.y, (float) normal.z).endVertex();
                 }
                 return;
             }
@@ -954,11 +954,11 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
                     pos.set(transformed[offset], transformed[offset + 1], transformed[offset + 2], transformed[offset + 3]);
                     pos.add(pos.normalized().scale(semantics.vertexOffset()));
                     normal.set(transformed[offset + 4], transformed[offset + 5], transformed[offset + 6]);
-                    vertexConsumer.addVertex((float) pos.x, (float) pos.y, (float) pos.z)
-                            .setColor(semantics.red(), semantics.green(), semantics.blue(), semantics.alpha())
-                            .setUv((float) transformed[offset + 7], (float) transformed[offset + 8])
-                            .setOverlay(semantics.overlay()).setLight(semantics.light())
-                            .setNormal((float) normal.x, (float) normal.y, (float) normal.z);
+                    vertexConsumer.vertex((float) pos.x, (float) pos.y, (float) pos.z)
+                            .color(semantics.red(), semantics.green(), semantics.blue(), semantics.alpha())
+                            .uv((float) transformed[offset + 7], (float) transformed[offset + 8])
+                            .overlayCoords(semantics.overlay()).uv2(semantics.light())
+                            .normal((float) normal.x, (float) normal.y, (float) normal.z).endVertex();
                 }
             };
             if (!GpuSubmission.enqueue(buffers, batch, fallback)) {

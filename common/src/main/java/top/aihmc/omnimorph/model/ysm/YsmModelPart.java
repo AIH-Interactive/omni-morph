@@ -39,7 +39,7 @@ public class YsmModelPart {
 
     void applyOutfitTransform(PoseStack stack) {
         if (outfitTransform != null) {
-            stack.mulPose(new Matrix4f().scale(1f / 16).mul(outfitTransform).scale(16));
+            stack.mulPoseMatrix(new Matrix4f().scale(1f / 16).mul(outfitTransform).scale(16));
         }
     }
 

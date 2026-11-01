@@ -179,7 +179,7 @@ public final class YsmMaterialNativeSmokeTest {
                     Avatar avatar = owner(unsafe, 918);
                     try (var data = YsmModelData.read(Path.of(args[1]), () -> false);
                          var runtime = YsmModelRuntime.fromData(avatar, data,
-                                 YsmAvatarLoader.toRuntimeTag(data, data.manifest().textures().getFirst()))) {
+                                 YsmAvatarLoader.toRuntimeTag(data, data.manifest().textures().get(0)))) {
                         install(avatar, "ysmRuntime", runtime);
                         java.util.Objects.requireNonNull(replay).accept(runtime);
                     }
@@ -648,7 +648,7 @@ public final class YsmMaterialNativeSmokeTest {
     private static void testControlledBaseGeometry(Unsafe unsafe, RecordingClient client, Path path) throws Exception {
         Avatar avatar = owner(unsafe, 58);
         try (var data = top.aihmc.omnimorph.avatar.ysm.YsmModelData.read(path, () -> false)) {
-            var tag = YsmAvatarLoader.toRuntimeTag(data, data.manifest().textures().getFirst());
+            var tag = YsmAvatarLoader.toRuntimeTag(data, data.manifest().textures().get(0));
             try (var runtime = YsmModelRuntime.fromData(avatar, data, tag)) {
                 install(avatar, "ysmRuntime", runtime);
                 auditMovementBindings(tag, avatar);
@@ -932,8 +932,8 @@ public final class YsmMaterialNativeSmokeTest {
                             && world.variables.getPath("preview_events") == null,
                     "default-pose preview never executes animation functions or timeline events");
             require(preview.setTexture("clear"), "preview accepts a transparent private skin");
-            require(preview.geometry().bones.get("root").cubes.getFirst().quads.stream().noneMatch(YsmGeometry.Quad::visible)
-                            && runtime.geometry().bones.get("root").cubes.getFirst().quads.stream().anyMatch(YsmGeometry.Quad::visible),
+            require(preview.geometry().bones.get("root").cubes.get(0).quads.stream().noneMatch(YsmGeometry.Quad::visible)
+                            && runtime.geometry().bones.get("root").cubes.get(0).quads.stream().anyMatch(YsmGeometry.Quad::visible),
                     "preview alpha updates never hide the world's geometry");
             var borrowed = runtime.texture();
             require(preview.setTexture("c"), "preview may select a private material through its existing model API");
@@ -949,7 +949,7 @@ public final class YsmMaterialNativeSmokeTest {
             require(runtime.setTexture("clear"), "world material may change while preview remains open");
             require(runtime.forRenderPass() == recreated && recreated.texture() == runtime.texture(),
                     "world skin changes update the borrowed preview material without changing the default pose");
-            require(recreated.geometry().bones.get("root").cubes.getFirst().quads.stream().noneMatch(YsmGeometry.Quad::visible),
+            require(recreated.geometry().bones.get("root").cubes.get(0).quads.stream().noneMatch(YsmGeometry.Quad::visible),
                     "borrowed material changes refresh the preview's own alpha metadata");
             var previousScreen = client.screen;
             try {
@@ -1150,7 +1150,7 @@ public final class YsmMaterialNativeSmokeTest {
         Avatar avatar = owner(unsafe, 100 + index);
         try (var data = YsmModelData.read(path, () -> false);
              var runtime = YsmModelRuntime.fromData(avatar, data,
-                     YsmAvatarLoader.toRuntimeTag(data, data.manifest().textures().getFirst()))) {
+                     YsmAvatarLoader.toRuntimeTag(data, data.manifest().textures().get(0)))) {
             install(avatar, "ysmRuntime", runtime);
             var roles = java.util.EnumSet.allOf(YsmBoneRole.class);
             roles.removeAll(java.util.EnumSet.of(YsmBoneRole.GUI, YsmBoneRole.BACKGROUND, YsmBoneRole.FIRST_PERSON_ARM));
@@ -1585,7 +1585,7 @@ public final class YsmMaterialNativeSmokeTest {
             var nativeBlended = net.minecraft.client.renderer.RenderType.entityTranslucent(runtime.texture().getLocation());
             require(blended == net.minecraft.client.renderer.RenderType.entityTranslucentCull(runtime.texture().getLocation())
                             && hasBlending(blended), "all_cutout preserves translucent alpha blending");
-            require(renderStateField(blended, "outputState") == renderStateField(nativeBlended, "outputState") && blended.sortOnUpload(),
+            require(renderStateField(blended, "outputState") == renderStateField(nativeBlended, "outputState") && blended.sortOnUpload,
                     "culled translucent models retain the world output target and transparency sorting");
             require(renderType.invoke(renderer) == blended, "repeated render passes reuse the model-owned render type");
             require(runtime.setTexture("c"), "skin switch succeeds under all_cutout");
@@ -1929,7 +1929,7 @@ public final class YsmMaterialNativeSmokeTest {
 
         @Override
         public net.minecraft.client.User getUser() {
-            return new net.minecraft.client.User("CPU preview fixture", UUID.fromString("10000000-0000-4000-8000-000000000999"), "",
+            return new net.minecraft.client.User("CPU preview fixture", UUID.fromString("10000000-0000-4000-8000-000000000999").toString(), "",
                     java.util.Optional.empty(), java.util.Optional.empty(), net.minecraft.client.User.Type.MSA);
         }
 

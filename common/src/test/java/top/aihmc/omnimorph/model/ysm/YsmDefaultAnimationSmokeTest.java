@@ -278,7 +278,7 @@ public final class YsmDefaultAnimationSmokeTest {
             require(Math.abs(runtime.getPart("LeftArm").animRotRaw().x - 10f) < .0001f,
                     "body geometry samples its own same-name authored clip");
             sample.invoke(player, evaluator, true);
-            require(Math.abs(runtime.getAnimationParts("LeftArm", true).getFirst().animRotRaw().x - 90f) < .0001f,
+            require(Math.abs(runtime.getAnimationParts("LeftArm", true).get(0).animRotRaw().x - 90f) < .0001f,
                     "arm geometry samples independent authored clip despite body resource weight");
             require(Math.abs(runtime.getPart("LeftArm").animRotRaw().x - 10f) < .0001f,
                     "arm sampling preserves body geometry");

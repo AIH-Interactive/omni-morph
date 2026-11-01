@@ -225,7 +225,7 @@ public abstract class AbstractPanelScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double amount, double d) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
         // hide previous context
         if (contextMenu != null)
             contextMenu.setVisible(false);
@@ -234,7 +234,7 @@ public abstract class AbstractPanelScreen extends Screen {
         boolean ret = false;
         for (GuiEventListener child : this.children()) {
             if (child.isMouseOver(mouseX, mouseY))
-                ret = ret || child.mouseScrolled(mouseX, mouseY, amount, d);
+                ret = ret || child.mouseScrolled(mouseX, mouseY, amount);
         }
         return ret;
     }
@@ -260,7 +260,6 @@ public abstract class AbstractPanelScreen extends Screen {
     }
 
     // No blur in our screens!
-    @Override
     protected void renderBlurredBackground(float delta) {
 
     }

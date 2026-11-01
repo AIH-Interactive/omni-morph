@@ -41,7 +41,7 @@ public final class LibraryDropdown extends Button {
 
     private void updateMessage() {
         var values = choices.get();
-        setMessage(values.isEmpty() ? Component.empty() : values.get(Math.clamp(selected.getAsInt(), 0, values.size() - 1)));
+        setMessage(values.isEmpty() ? Component.empty() : values.get(net.minecraft.util.Mth.clamp(selected.getAsInt(), 0, values.size() - 1)));
     }
 
     @Override
@@ -51,7 +51,7 @@ public final class LibraryDropdown extends Button {
 
     private void openPage(int requestedPage) {
         var values = choices.get();
-        int page = Math.clamp(requestedPage, 0, values.isEmpty() ? 0 : (values.size() - 1) / pageSize);
+        int page = net.minecraft.util.Mth.clamp(requestedPage, 0, values.isEmpty() ? 0 : (values.size() - 1) / pageSize);
         int start = page * pageSize;
         int end = (int) Math.min(values.size(), (long) start + pageSize);
         var menu = new ContextMenu(this, getWidth());

@@ -8,18 +8,14 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.core.RegistryAccess;
-import net.minecraft.core.RegistrationInfo;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.EquipmentSlotGroup;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.decoration.ArmorStand;
@@ -27,7 +23,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
@@ -197,7 +192,7 @@ public final class YsmVanillaStateSmokeTest {
         bindTags.setAccessible(true);
         try {
             var pike = net.minecraft.tags.TagKey.create(Registries.ITEM,
-                    ResourceLocation.parse("sparkle_morpher:pike"));
+                    new ResourceLocation("sparkle_morpher:pike"));
             bindTags.invoke(lanceHolder, List.of(pike));
             entity.equipment.put(EquipmentSlot.MAINHAND, new ItemStack(Items.STONE));
             require(Integer.valueOf(2).equals(eval(engine, context, "ysm.weapon_type;")), "tagged lance has kind 2");
@@ -221,16 +216,23 @@ public final class YsmVanillaStateSmokeTest {
         }
         entity.usedHand = net.minecraft.world.InteractionHand.MAIN_HAND;
         entity.swingingArm = net.minecraft.world.InteractionHand.MAIN_HAND;
-        movement.set(entity, new Vec3(.35, -.1, 0));
-        entity.equipment.put(EquipmentSlot.MAINHAND, new ItemStack(Items.MACE));
-        entity.grounded = false;
-        entity.fallDistance = 1.5f;
-        for (String name : List.of("weapon_is_mace", "mace_falling", "mace_can_smash", "mace_smashing", "mace_attacking")) {
-            require(Boolean.TRUE.equals(eval(engine, context, "ysm." + name + ";")), "mace smash boundary: " + name);
+        // 1.20.1 has no native mace; retain all smash-state assertions via the supported tag route.
+        try {
+            bindTags.invoke(lanceHolder, List.of(net.minecraft.tags.TagKey.create(Registries.ITEM,
+                    new ResourceLocation("sparkle_morpher:mace"))));
+            movement.set(entity, new Vec3(.35, -.1, 0));
+            entity.equipment.put(EquipmentSlot.MAINHAND, new ItemStack(Items.STONE));
+            entity.grounded = false;
+            entity.fallDistance = 1.5f;
+            for (String name : List.of("weapon_is_mace", "mace_falling", "mace_can_smash", "mace_smashing", "mace_attacking")) {
+                require(Boolean.TRUE.equals(eval(engine, context, "ysm." + name + ";")), "mace smash boundary: " + name);
+            }
+            require(Float.valueOf(.5f).equals(eval(engine, context, "ysm.mace_smash_progress;")), "mace smash progress");
+            entity.fallDistance = 1.49f;
+            require(Boolean.FALSE.equals(eval(engine, context, "ysm.mace_can_smash;")), "below smash threshold");
+        } finally {
+            bindTags.invoke(lanceHolder, previousTags);
         }
-        require(Float.valueOf(.5f).equals(eval(engine, context, "ysm.mace_smash_progress;")), "mace smash progress");
-        entity.fallDistance = 1.49f;
-        require(Boolean.FALSE.equals(eval(engine, context, "ysm.mace_can_smash;")), "below smash threshold");
         entity.equipment.clear();
         entity.using = entity.swinging = entity.spinAttack = false;
         entity.fallDistance = 0;
@@ -314,24 +316,22 @@ public final class YsmVanillaStateSmokeTest {
         Unsafe unsafe = (Unsafe) unsafeField.get(null);
         var arrow = (net.minecraft.world.entity.projectile.Arrow)
                 unsafe.allocateInstance(net.minecraft.world.entity.projectile.Arrow.class);
-        Field weapon = net.minecraft.world.entity.projectile.AbstractArrow.class.getDeclaredField("firedFromWeapon");
-        weapon.setAccessible(true);
         try {
             context.entity = arrow;
-            require("".equals(eval(engine, context, "ysm.shoot_item_id;")), "unassigned native firing stack returns empty String");
-            weapon.set(arrow, ItemStack.EMPTY);
-            require("".equals(eval(engine, context, "ysm.shoot_item_id;")), "empty native firing stack returns empty String");
-            weapon.set(arrow, new ItemStack(Items.BOW));
-            require("minecraft:bow".equals(eval(engine, context, "ysm.shoot_item_id;")), "native arrow retains its firing bow ID");
-            weapon.set(arrow, new ItemStack(Items.CROSSBOW));
-            require("minecraft:crossbow".equals(eval(engine, context, "ysm.shoot_item_id;")), "native firing stack changes are read directly");
+            require("".equals(eval(engine, context, "ysm.shoot_item_id;")),
+                    "1.20.1 arrows have no retained firing-weapon state");
+            entity.equipment.put(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+            require("".equals(eval(engine, context, "ysm.shoot_item_id;")), "empty shooter hand cannot invent a firing weapon");
+            entity.equipment.put(EquipmentSlot.MAINHAND, new ItemStack(Items.BOW));
+            require("".equals(eval(engine, context, "ysm.shoot_item_id;")), "current bow is not a retained arrow firing weapon");
+            entity.equipment.put(EquipmentSlot.MAINHAND, new ItemStack(Items.CROSSBOW));
+            require("".equals(eval(engine, context, "ysm.shoot_item_id;")), "later crossbow cannot fabricate arrow history");
             var spectral = (Entity) unsafe.allocateInstance(net.minecraft.world.entity.projectile.SpectralArrow.class);
-            weapon.set(spectral, new ItemStack(Items.BOW));
             Avatar.MolangContext other = new Avatar.MolangContext(null);
             other.entity = spectral;
-            require("minecraft:bow".equals(eval(engine, other, "ysm.shoot_item_id;"))
-                            && "minecraft:crossbow".equals(eval(engine, context, "ysm.shoot_item_id;")),
-                    "abstract-arrow subclasses and separate contexts retain independent firing items");
+            require("".equals(eval(engine, other, "ysm.shoot_item_id;"))
+                            && "".equals(eval(engine, context, "ysm.shoot_item_id;")),
+                    "abstract-arrow subclasses share the explicit unavailable-state default without borrowing context");
             other.entity = (Entity) unsafe.allocateInstance(net.minecraft.world.entity.item.ItemEntity.class);
             require(eval(engine, other, "ysm.shoot_item_id;") == null, "other projectile-like entities do not satisfy the arrow gate");
         } finally {
@@ -385,47 +385,64 @@ public final class YsmVanillaStateSmokeTest {
                 "reference exact-three/minimum-four signatures");
     }
 
+    private static final class DiagnosticArrow extends net.minecraft.world.entity.projectile.Arrow
+            implements top.aihmc.omnimorph.mixin.AbstractArrowAccessor {
+        private ItemStack pickup;
+
+        private DiagnosticArrow() {
+            super(EntityType.ARROW, null);
+        }
+
+        @Override
+        public ItemStack figura$getPickupItem() {
+            return pickup;
+        }
+
+        @Override
+        public boolean figura$isInGround() {
+            return false;
+        }
+
+        @Override
+        public int figura$getInGroundTime() {
+            return 0;
+        }
+    }
+
     private static void testEnchantments(MolangEngine engine, Avatar.MolangContext context, FixtureEntity entity) throws Exception {
-        FixtureLevel world = (FixtureLevel) entity.level();
-        MappedRegistry<Enchantment> registry = new MappedRegistry<>(Registries.ENCHANTMENT, Lifecycle.stable());
-        var definition = Enchantment.definition(HolderSet.direct(Items.DIAMOND_CHESTPLATE.builtInRegistryHolder()),
-                1, 5, Enchantment.constantCost(1), Enchantment.constantCost(1), 1, EquipmentSlotGroup.CHEST);
-        var first = registry.register(ResourceKey.create(Registries.ENCHANTMENT, ResourceLocation.parse("fixture:first")),
-                new Enchantment(Component.literal("first"), definition, HolderSet.direct(), DataComponentMap.EMPTY), RegistrationInfo.BUILT_IN);
-        var second = registry.register(ResourceKey.create(Registries.ENCHANTMENT, ResourceLocation.parse("fixture:second")),
-                new Enchantment(Component.literal("second"), definition, HolderSet.direct(), DataComponentMap.EMPTY), RegistrationInfo.BUILT_IN);
-        registry.freeze();
-        world.registries = new RegistryAccess.ImmutableRegistryAccess(List.of(registry));
+        // Enchantments are a built-in registry in 1.20.1, not a world data registry.
+        var first = net.minecraft.world.item.enchantment.Enchantments.ALL_DAMAGE_PROTECTION;
+        var second = net.minecraft.world.item.enchantment.Enchantments.UNBREAKING;
         context.entity = entity;
         entity.chest = ItemStack.EMPTY;
         require(Integer.valueOf(0).equals(eval(engine, context, "ysm.equipped_enchantment_level('chest',v.empty_names=1);")),
                 "empty equipment returns Integer zero before reading enchantment arguments");
         require(context.variables.getPath("empty_names") == null, "empty slot has no enchantment argument effects");
         entity.chest = new ItemStack(Items.DIAMOND_CHESTPLATE);
-        ItemEnchantments.Mutable enchantments = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
-        enchantments.set(first, 3);
-        enchantments.set(second, 2);
-        entity.chest.set(DataComponents.ENCHANTMENTS, enchantments.toImmutable());
-        require(EnchantmentHelper.getItemEnchantmentLevel(Holder.direct(first.value()), entity.chest) == 0,
-                "direct holder loses the registry key used by native item enchantments");
+        Map<Enchantment, Integer> enchantments = new java.util.LinkedHashMap<>();
+        enchantments.put(first, 3);
+        enchantments.put(second, 2);
+        EnchantmentHelper.setEnchantments(enchantments, entity.chest);
+        require(EnchantmentHelper.getItemEnchantmentLevel(first, entity.chest) == 3,
+                "native enchantment NBT resolves the registered enchantment identity");
         require(Integer.valueOf(5).equals(eval(engine, context,
-                        "ysm.equipped_enchantment_level('CHEST','fixture:first','fixture:second');")),
-                "native registry holders return summed levels and case-insensitive canonical slot");
+                        "ysm.equipped_enchantment_level('CHEST','minecraft:protection','minecraft:unbreaking');")),
+                "native registry IDs return summed levels and case-insensitive canonical slot");
         require(Integer.valueOf(6).equals(eval(engine, context,
-                        "ysm.equipped_enchantment_level('chest','fixture:first','fixture:first');")),
+                        "ysm.equipped_enchantment_level('chest','minecraft:protection','minecraft:protection');")),
                 "duplicate enchantment arguments are summed in reference order");
         require(Integer.valueOf(3).equals(eval(engine, context,
-                        "ysm.equipped_enchantment_level('chest',42,'bad id','fixture:missing','fixture:first');")),
+                        "ysm.equipped_enchantment_level('chest',42,'bad id','fixture:missing','minecraft:protection');")),
                 "invalid and missing IDs do not hide a later valid enchantment");
         require(eval(engine, context, "ysm.equipped_enchantment_level('helmet',v.invalid_slot=1);") == null
                         && context.variables.getPath("invalid_slot") == null,
                 "reference slot names do not accept unrelated armor aliases");
-        enchantments.set(first, 1);
-        entity.chest.set(DataComponents.ENCHANTMENTS, enchantments.toImmutable());
-        require(Integer.valueOf(1).equals(eval(engine, context, "ysm.equipped_enchantment_level('chest','fixture:first');")),
-                "updated item component is read live");
+        enchantments.put(first, 1);
+        EnchantmentHelper.setEnchantments(enchantments, entity.chest);
+        require(Integer.valueOf(1).equals(eval(engine, context, "ysm.equipped_enchantment_level('chest','minecraft:protection');")),
+                "updated item NBT is read live");
         context.entity = null;
-        require(eval(engine, context, "ysm.equipped_enchantment_level(v.no_entity=1,'fixture:first');") == null
+        require(eval(engine, context, "ysm.equipped_enchantment_level(v.no_entity=1,'minecraft:protection');") == null
                         && context.variables.getPath("no_entity") == null,
                 "living entity gate precedes all argument effects");
         Function function = (Function) ((ObjectBinding) Avatar.createMolangBindings(context).getProperty("ysm"))
@@ -540,7 +557,7 @@ public final class YsmVanillaStateSmokeTest {
         var bindTags = holder.getClass().getDeclaredMethod("bindTags", java.util.Collection.class);
         bindTags.setAccessible(true);
         try {
-            var tag = net.minecraft.tags.TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.parse("fixture:ride_target"));
+            var tag = net.minecraft.tags.TagKey.create(Registries.ENTITY_TYPE, new ResourceLocation("fixture:ride_target"));
             bindTags.invoke(holder, List.of(tag));
             require(Integer.valueOf(1).equals(eval(engine, context, "ctrl.ride('vehicle','#fixture:ride_target');"))
                             && Integer.valueOf(0).equals(eval(engine, context, "ctrl.ride('passenger','#fixture:ride_target');")),
@@ -684,7 +701,7 @@ public final class YsmVanillaStateSmokeTest {
                         && Integer.valueOf(1).equals(eval(engine, context, "ctrl.hold('offhand','$minecraft:dirt');")),
                 "hold ID matching reads the requested hand independently");
         Map<net.minecraft.world.item.Item, List<String>> nativeTypes = Map.of(
-                Items.TRIDENT, List.of("spear", "trident"), Items.MACE, List.of("mace"),
+                Items.TRIDENT, List.of("spear", "trident"),
                 Items.SHIELD, List.of("shield"), Items.CROSSBOW, List.of("crossbow"),
                 Items.BOW, List.of("bow"), Items.FISHING_ROD, List.of("fishing_rod"),
                 Items.SPLASH_POTION, List.of("throwable_potion"), Items.LINGERING_POTION, List.of("throwable_potion"));
@@ -733,12 +750,12 @@ public final class YsmVanillaStateSmokeTest {
                     Map.entry("fishing_rods", "fishing_rod"), Map.entry("throwable_potion", "throwable_potion"));
             for (var entry : compat.entrySet()) {
                 var tag = net.minecraft.tags.TagKey.create(Registries.ITEM,
-                        ResourceLocation.fromNamespaceAndPath("sparkle_morpher", entry.getKey()));
+                        new ResourceLocation("sparkle_morpher", entry.getKey()));
                 bindTags.invoke(holder, List.of(tag));
                 require(Integer.valueOf(1).equals(eval(engine, context, "ctrl.hold('mainhand',':" + entry.getValue() + "');")),
                         "current reference compatibility tag: " + entry.getKey());
             }
-            var trident = net.minecraft.tags.TagKey.create(Registries.ITEM, ResourceLocation.parse("sparkle_morpher:tridents"));
+            var trident = net.minecraft.tags.TagKey.create(Registries.ITEM, new ResourceLocation("sparkle_morpher:tridents"));
             bindTags.invoke(holder, List.of(trident, net.minecraft.tags.ItemTags.SWORDS));
             require(Integer.valueOf(1).equals(eval(engine, context, "ctrl.hold('mainhand',':spear');"))
                             && Integer.valueOf(0).equals(eval(engine, context, "ctrl.hold('mainhand',':sword');")),
@@ -749,7 +766,7 @@ public final class YsmVanillaStateSmokeTest {
         // Tagged compatibility lances use the same classification route as weapon state queries.
         try {
             var pike = net.minecraft.tags.TagKey.create(Registries.ITEM,
-                    ResourceLocation.parse("sparkle_morpher:pike"));
+                    new ResourceLocation("sparkle_morpher:pike"));
             bindTags.invoke(holder, List.of(pike));
             entity.equipment.put(EquipmentSlot.MAINHAND, new ItemStack(Items.STONE));
             require(Integer.valueOf(1).equals(eval(engine, context, "ctrl.hold('mainhand',':lance');"))
@@ -789,7 +806,7 @@ public final class YsmVanillaStateSmokeTest {
         require(context.variables.getPath("controller_item_side_effect") == null, "invalid slot and unused third parameter remain unevaluated");
         require(Integer.valueOf(0).equals(eval(engine, context, "ctrl.armor('head','$stone');")), "ctrl ID prefix uses exact native ID, not convenience short-ID matching");
         require(Integer.valueOf(0).equals(eval(engine, context, "ctrl.armor('head',':stone');")), "armor has no hand-item type-prefix semantics");
-        var tag = net.minecraft.tags.TagKey.create(Registries.ITEM, ResourceLocation.parse("fixture:controller_armor"));
+        var tag = net.minecraft.tags.TagKey.create(Registries.ITEM, new ResourceLocation("fixture:controller_armor"));
         var holder = Items.STONE.builtInRegistryHolder();
         var previousTags = holder.tags().toList();
         var bindTags = holder.getClass().getDeclaredMethod("bindTags", java.util.Collection.class);
@@ -932,7 +949,7 @@ public final class YsmVanillaStateSmokeTest {
     }
 
     private static Object eval(MolangEngine engine, Avatar.MolangContext context, String source) throws Exception {
-        return ExpressionEvaluator.evaluator(context).eval(engine.parse(source).getFirst());
+        return ExpressionEvaluator.evaluator(context).eval(engine.parse(source).get(0));
     }
 
     private static void testElytraQueries(MolangEngine engine, Avatar.MolangContext context,
@@ -1155,8 +1172,7 @@ public final class YsmVanillaStateSmokeTest {
         Field passengers = Entity.class.getDeclaredField("passengers");
         Field data = Entity.class.getDeclaredField("entityData");
         Field positions = net.minecraft.world.entity.vehicle.Boat.class.getDeclaredField("paddlePositions");
-        var defineData = net.minecraft.world.entity.vehicle.Boat.class.getDeclaredMethod("defineSynchedData",
-                net.minecraft.network.syncher.SynchedEntityData.Builder.class);
+        var defineData = net.minecraft.world.entity.vehicle.Boat.class.getDeclaredMethod("defineSynchedData");
         passengers.setAccessible(true);
         data.setAccessible(true);
         positions.setAccessible(true);
@@ -1177,9 +1193,10 @@ public final class YsmVanillaStateSmokeTest {
                         net.minecraft.world.entity.vehicle.Boat.Type.BAMBOO)) {
                     // Native boat/data/paddle methods run with explicit CPU passenger and interpolation inputs.
                     var boat = (net.minecraft.world.entity.vehicle.Boat) unsafe.allocateInstance(type);
-                    var builder = new net.minecraft.network.syncher.SynchedEntityData.Builder(boat);
+                    var builder = new net.minecraft.network.syncher.SynchedEntityData(boat);
+                    data.set(boat, builder);
                     // Entity's constructor normally defines these before the subclass hook.
-                    var define = net.minecraft.network.syncher.SynchedEntityData.Builder.class.getMethod("define",
+                    var define = net.minecraft.network.syncher.SynchedEntityData.class.getMethod("define",
                             net.minecraft.network.syncher.EntityDataAccessor.class, Object.class);
                     Map<String, Object> baseData = Map.of(
                             "DATA_SHARED_FLAGS_ID", (byte) 0, "DATA_AIR_SUPPLY_ID", 300,
@@ -1191,8 +1208,7 @@ public final class YsmVanillaStateSmokeTest {
                         accessor.setAccessible(true);
                         define.invoke(builder, accessor.get(null), entry.getValue());
                     }
-                    defineData.invoke(boat, builder);
-                    data.set(boat, builder.build());
+                    defineData.invoke(boat);
                     boat.setVariant(variant);
                     passengers.set(boat, com.google.common.collect.ImmutableList.of(entity));
                     positions.set(boat, new float[]{2f, 4f});
@@ -1310,14 +1326,15 @@ public final class YsmVanillaStateSmokeTest {
         Unsafe unsafe = (Unsafe) unsafeField.get(null);
         FixtureLevel world = (FixtureLevel) unsafe.allocateInstance(FixtureLevel.class);
         var biomes = new MappedRegistry<net.minecraft.world.level.biome.Biome>(Registries.BIOME, Lifecycle.stable());
-        var biomeKey = ResourceKey.create(Registries.BIOME, ResourceLocation.parse("fixture:forest"));
-        var biome = biomes.register(biomeKey,
+        var biomeKey = ResourceKey.create(Registries.BIOME, new ResourceLocation("fixture:forest"));
+        biomes.register(biomeKey,
                 (net.minecraft.world.level.biome.Biome) unsafe.allocateInstance(net.minecraft.world.level.biome.Biome.class),
-                RegistrationInfo.BUILT_IN);
+                Lifecycle.stable());
+        var biome = biomes.getHolderOrThrow(biomeKey);
         var biomeTags = biome.getClass().getDeclaredMethod("bindTags", java.util.Collection.class);
         biomeTags.setAccessible(true);
-        biomeTags.invoke(biome, List.of(net.minecraft.tags.TagKey.create(Registries.BIOME, ResourceLocation.parse("minecraft:forest")),
-                net.minecraft.tags.TagKey.create(Registries.BIOME, ResourceLocation.parse("fixture:temperate"))));
+        biomeTags.invoke(biome, List.of(net.minecraft.tags.TagKey.create(Registries.BIOME, new ResourceLocation("minecraft:forest")),
+                net.minecraft.tags.TagKey.create(Registries.BIOME, new ResourceLocation("fixture:temperate"))));
         world.biome = biome;
         world.block = Blocks.STONE.defaultBlockState();
         var blockHolder = Blocks.STONE.builtInRegistryHolder();
@@ -1335,8 +1352,8 @@ public final class YsmVanillaStateSmokeTest {
         Object previousBlockPosition = blockPosition.get(entity);
         BlockPos subject = new BlockPos(-1, 64, 2);
         try {
-            bindTags.invoke(blockHolder, List.of(net.minecraft.tags.TagKey.create(Registries.BLOCK, ResourceLocation.parse("fixture:solid")),
-                    net.minecraft.tags.TagKey.create(Registries.BLOCK, ResourceLocation.parse("minecraft:stone_like"))));
+            bindTags.invoke(blockHolder, List.of(net.minecraft.tags.TagKey.create(Registries.BLOCK, new ResourceLocation("fixture:solid")),
+                    net.minecraft.tags.TagKey.create(Registries.BLOCK, new ResourceLocation("minecraft:stone_like"))));
             context.entity = entity;
             level.set(entity, world);
             position.set(entity, new Vec3(-0.25d, 64.75d, 2.5d));
@@ -1386,7 +1403,7 @@ public final class YsmVanillaStateSmokeTest {
             require(new BlockPos(4, 59, 7).equals(world.position), "boundary lookup uses reference world coordinates");
             biomeTags.invoke(biome, List.of());
             require(Boolean.FALSE.equals(eval(engine, context, "q.biome_has_any_tag('forest');")), "biome tag state changes immediately");
-            biomeTags.invoke(biome, List.of(net.minecraft.tags.TagKey.create(Registries.BIOME, ResourceLocation.parse("minecraft:forest"))));
+            biomeTags.invoke(biome, List.of(net.minecraft.tags.TagKey.create(Registries.BIOME, new ResourceLocation("minecraft:forest"))));
             Entity nonLiving = (net.minecraft.world.entity.item.ItemEntity) unsafe.allocateInstance(net.minecraft.world.entity.item.ItemEntity.class);
             level.set(nonLiving, world);
             position.set(nonLiving, new Vec3(-0.25d, 64.75d, 2.5d));
@@ -1472,21 +1489,18 @@ public final class YsmVanillaStateSmokeTest {
             var speed = new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SPEED, 200, 2);
             activeEffects.set(entity, new java.util.HashMap<>(Map.of(speed.getEffect(), speed)));
             require(eval(engine, context, "ysm.dump_effects;") == null && messages.size() == 1
-                            && messages.getFirst().contains("name minecraft:speed  lv=3"),
+                            && messages.get(0).contains("name minecraft:speed  lv=3"),
                     "living diagnostics read native effects with display name, ID and one-based level: " + messages);
             messages.clear();
-            var arrow = (net.minecraft.world.entity.projectile.Arrow)
-                    unsafe.allocateInstance(net.minecraft.world.entity.projectile.Arrow.class);
+            var arrow = (DiagnosticArrow) unsafe.allocateInstance(DiagnosticArrow.class);
             ItemStack pickup = new ItemStack(Items.TIPPED_ARROW);
-            pickup.set(DataComponents.POTION_CONTENTS, net.minecraft.world.item.alchemy.PotionContents.EMPTY.withEffectAdded(
+            net.minecraft.world.item.alchemy.PotionUtils.setCustomEffects(pickup, List.of(
                     new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.POISON, 100, 1)));
-            Field pickupField = net.minecraft.world.entity.projectile.AbstractArrow.class.getDeclaredField("pickupItemStack");
-            pickupField.setAccessible(true);
-            pickupField.set(arrow, pickup);
+            arrow.pickup = pickup;
             context.entity = arrow;
             require(eval(engine, context, "ysm.dump_effects;") == null && messages.size() == 1
-                            && messages.getFirst().contains("name minecraft:poison  lv=2"),
-                    "arrow diagnostics use native pickup potion components: " + messages);
+                            && messages.get(0).contains("name minecraft:poison  lv=2"),
+                    "arrow diagnostics use native pickup potion NBT: " + messages);
             messages.clear();
             context.entity = (Entity) unsafe.allocateInstance(net.minecraft.world.entity.item.ItemEntity.class);
             require(eval(engine, context, "ysm.dump_effects;") == null && messages.isEmpty(), "unsupported effect subject emits nothing");
@@ -1530,8 +1544,8 @@ public final class YsmVanillaStateSmokeTest {
         world.dimensionKey = net.minecraft.world.level.Level.NETHER;
         require("minecraft:dimension".equals(eval(engine, context, "ysm.dimension_name;")),
                 "reference dimension registry remains the same in the Nether");
-        world.dimensionKey = ResourceKey.create(ResourceKey.createRegistryKey(ResourceLocation.parse("fixture:worlds")),
-                ResourceLocation.parse("fixture:test"));
+        world.dimensionKey = ResourceKey.create(ResourceKey.createRegistryKey(new ResourceLocation("fixture:worlds")),
+                new ResourceLocation("fixture:test"));
         require("fixture:worlds".equals(eval(engine, context, "ysm.dimension_name;")),
                 "dimension query reads the current key registry");
         world.rainingAtSubject = true;
@@ -1587,47 +1601,46 @@ public final class YsmVanillaStateSmokeTest {
         context.entity = entity;
         entity.chest = ItemStack.EMPTY;
         entity.equipment = new java.util.EnumMap<>(EquipmentSlot.class);
-        ItemStack damaged = new ItemStack(Items.STONE);
-        damaged.set(DataComponents.MAX_DAMAGE, 100);
-        damaged.set(DataComponents.DAMAGE, 25);
+        ItemStack damaged = new ItemStack(Items.STONE_AXE);
+        damaged.setDamageValue(25);
         for (EquipmentSlot slot : List.of(EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND, EquipmentSlot.FEET,
                 EquipmentSlot.LEGS, EquipmentSlot.CHEST, EquipmentSlot.HEAD)) {
             entity.equipment.clear();
             entity.equipment.put(slot, damaged);
-            String slotName = slot.getSerializedName().toUpperCase(java.util.Locale.ENGLISH);
-            require(Integer.valueOf(100).equals(eval(engine, context, "q.max_durability('" + slotName + "');")),
+            String slotName = slot.getName().toUpperCase(java.util.Locale.ENGLISH);
+            require(Integer.valueOf(131).equals(eval(engine, context, "q.max_durability('" + slotName + "');")),
                     "named-slot durability returns native Integer: " + slot);
-            require(Integer.valueOf(75).equals(eval(engine, context, "q.remaining_durability('" + slotName + "');")),
+            require(Integer.valueOf(106).equals(eval(engine, context, "q.remaining_durability('" + slotName + "');")),
                     "named-slot remaining durability: " + slot);
         }
         entity.equipment.clear();
         entity.equipment.put(EquipmentSlot.MAINHAND, damaged);
-        require(Integer.valueOf(100).equals(eval(engine, context, "q.max_durability(0);")),
+        require(Integer.valueOf(131).equals(eval(engine, context, "q.max_durability(0);")),
                 "existing project numeric main-hand slot remains supported");
-        damaged.set(DataComponents.DAMAGE, 70);
-        require(Integer.valueOf(30).equals(eval(engine, context, "q.remaining_durability('mainhand');")),
+        damaged.setDamageValue(70);
+        require(Integer.valueOf(61).equals(eval(engine, context, "q.remaining_durability('mainhand');")),
                 "native damage changes are visible immediately");
         require(Integer.valueOf(0).equals(eval(engine, context, "q.max_durability('offhand');")), "empty slot durability is zero");
         require(eval(engine, context, "q.is_item_name_any('invalid',v.invalid_slot_match=1);") == null
                         && context.variables.getPath("invalid_slot_match") == null,
                 "invalid slot returns null before matching arguments");
         require(Boolean.TRUE.equals(eval(engine, context,
-                        "q.is_item_name_any('mainhand','dirt','stone',v.after_item_match=1);")),
+                        "q.is_item_name_any('mainhand','dirt','stone_axe',v.after_item_match=1);")),
                 "native item IDs support default namespace and first-match short circuit");
         require(context.variables.getPath("after_item_match") == null, "item-name match does not evaluate later arguments");
         require(Boolean.FALSE.equals(eval(engine, context, "q.is_item_name_any('mainhand','minecraft:dirt');")),
                 "item-name mismatch returns raw Boolean false");
-        require(eval(engine, context, "q.is_item_name_any('mainhand','bad id','stone');") == null,
+        require(eval(engine, context, "q.is_item_name_any('mainhand','bad id','stone_axe');") == null,
                 "invalid item ID returns null before later candidate");
-        require(eval(engine, context, "q.is_item_name_any('mainhand',23,'stone');") == null,
+        require(eval(engine, context, "q.is_item_name_any('mainhand',23,'stone_axe');") == null,
                 "non-string item candidate is not coerced into an identifier");
-        var holder = Items.STONE.builtInRegistryHolder();
+        var holder = Items.STONE_AXE.builtInRegistryHolder();
         var previousTags = holder.tags().toList();
         var bindTags = holder.getClass().getDeclaredMethod("bindTags", java.util.Collection.class);
         bindTags.setAccessible(true);
         try {
-            var firstTag = net.minecraft.tags.TagKey.create(Registries.ITEM, ResourceLocation.parse("fixture:one"));
-            var secondTag = net.minecraft.tags.TagKey.create(Registries.ITEM, ResourceLocation.parse("fixture:two"));
+            var firstTag = net.minecraft.tags.TagKey.create(Registries.ITEM, new ResourceLocation("fixture:one"));
+            var secondTag = net.minecraft.tags.TagKey.create(Registries.ITEM, new ResourceLocation("fixture:two"));
             bindTags.invoke(holder, List.of(firstTag, secondTag));
             require(Boolean.TRUE.equals(eval(engine, context,
                             "q.equipped_item_all_tags('mainhand','fixture:one','fixture:two');")), "native holder satisfies both tags");
@@ -1651,12 +1664,12 @@ public final class YsmVanillaStateSmokeTest {
         }
         entity.equipment.clear();
         for (EquipmentSlot slot : EquipmentSlot.values()) {
-            entity.equipment.put(slot, new ItemStack(Items.STONE));
+            entity.equipment.put(slot, new ItemStack(Items.STONE_AXE));
         }
-        require(Integer.valueOf(5).equals(eval(engine, context, "q.equipment_count;")),
-                "native humanoid and body armor count, while hands and saddle do not");
-        entity.equipment.put(EquipmentSlot.BODY, ItemStack.EMPTY);
-        require(Integer.valueOf(4).equals(eval(engine, context, "q.equipment_count;")), "body armor removal changes native count");
+        require(Integer.valueOf(4).equals(eval(engine, context, "q.equipment_count;")),
+                "1.20.1 counts four humanoid armor slots and excludes both hands");
+        entity.equipment.put(EquipmentSlot.CHEST, ItemStack.EMPTY);
+        require(Integer.valueOf(3).equals(eval(engine, context, "q.equipment_count;")), "armor removal changes native count");
         entity.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR).setBaseValue(9d);
         require(Integer.valueOf(9).equals(eval(engine, context, "ysm.armor_value;")), "native armor attribute returns raw Integer");
         entity.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR).setBaseValue(3d);
@@ -1690,10 +1703,8 @@ public final class YsmVanillaStateSmokeTest {
         for (String name : names) {
             require(eval(engine, context, name + ";") == null, "non-living Entity cannot answer hand query: " + name);
         }
+        // Native 1.20.1 apples take 32 ticks; total and remaining seconds follow that runtime.
         ItemStack apple = new ItemStack(Items.APPLE);
-        // Native 1.21.1 food owns consumption duration; preserve this fixture's 40-tick contract.
-        apple.set(DataComponents.FOOD, new net.minecraft.world.food.FoodProperties(
-                4, 2.4f, false, 2f, java.util.Optional.empty(), List.of()));
         entity.equipment = new java.util.EnumMap<>(EquipmentSlot.class);
         entity.equipment.put(EquipmentSlot.MAINHAND, apple);
         entity.equipment.put(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
@@ -1701,7 +1712,7 @@ public final class YsmVanillaStateSmokeTest {
         entity.using = true;
         entity.sleeping = false;
         entity.fixtureUseTicks = 7;
-        entity.fixtureRemainingTicks = 33;
+        entity.fixtureRemainingTicks = 25;
         entity.swinging = true;
         entity.swingingArm = net.minecraft.world.InteractionHand.MAIN_HAND;
         entity.swingTime = 4;
@@ -1720,8 +1731,8 @@ public final class YsmVanillaStateSmokeTest {
         movementNumber(0.6f, eval(engine, context, "ysm.attack_time;"), "YSM attack progress shares the native value");
         require(Integer.valueOf(3).equals(eval(engine, context, "ysm.hurt_time;")), "YSM hurt time retains raw Integer");
         number(0.35d, eval(engine, context, "q.item_in_use_duration;"), "native use ticks convert to Double seconds");
-        number(2d, eval(engine, context, "q.item_max_use_duration;"), "native stack food defines total duration");
-        number(1.65d, eval(engine, context, "q.item_remaining_use_duration;"), "native remaining ticks convert to seconds");
+        number(1.6d, eval(engine, context, "q.item_max_use_duration;"), "native stack food defines total duration");
+        number(1.25d, eval(engine, context, "q.item_remaining_use_duration;"), "native remaining ticks convert to seconds");
         YsmHandQuery.capture(context);
         movementNumber(1f, context.is_using_item, "render capture publishes use state to controller consumers");
         movementNumber(1f, eval(engine, context, "ctrl.attack;"), "project ctrl.attack consumes current captured hand state");

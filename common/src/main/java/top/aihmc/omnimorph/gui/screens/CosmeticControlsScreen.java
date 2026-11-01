@@ -50,7 +50,7 @@ public final class CosmeticControlsScreen extends AvatarControlsScreen {
     public CosmeticControlsScreen(WardrobeScreen wardrobe, LibraryPreviewSession session,
                                   OutfitComposition composition, OutfitDraft draft, UUID account) {
         this(wardrobe, session, composition, draft, account, null,
-                composition.controlGroups().getFirst().avatar(), "root");
+                composition.controlGroups().get(0).avatar(), "root");
     }
 
     CosmeticControlsScreen(WardrobeScreen wardrobe, LibraryPreviewSession session,
@@ -117,7 +117,7 @@ public final class CosmeticControlsScreen extends AvatarControlsScreen {
         int rowWidth = tabWidth * tabs.size() - 4;
         tabOverflow = Math.max(0, rowWidth - available);
         tabRowStart = tabOverflow > 0 ? left : left + (available - rowWidth) / 2;
-        tabScroll = Math.clamp(tabScroll, 0, tabOverflow);
+        tabScroll = net.minecraft.util.Mth.clamp(tabScroll, 0, tabOverflow);
         int selected = List.copyOf(tabs.keySet()).indexOf(resource) * tabWidth;
         if (selected < tabScroll) {
             tabScroll = selected;
@@ -166,13 +166,13 @@ public final class CosmeticControlsScreen extends AvatarControlsScreen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double amount, double horizontalAmount) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
         if (tabScrollbar != null && mouseY < TAB_ROW_Y + 36) {
             tabScrollbar.setScrollProgress(tabScrollbar.getScrollProgress()
-                    - (amount + horizontalAmount) * MAX_TAB_WIDTH / 2d / tabOverflow);
+                    - amount * MAX_TAB_WIDTH / 2d / tabOverflow);
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, amount, horizontalAmount);
+        return super.mouseScrolled(mouseX, mouseY, amount);
     }
 
     private void selectTab(OutfitConfig.ResourceRef target, List<OutfitComposition.ControlGroup> members) {

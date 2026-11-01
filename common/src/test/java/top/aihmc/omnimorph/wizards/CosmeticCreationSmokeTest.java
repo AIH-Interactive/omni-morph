@@ -75,7 +75,7 @@ public final class CosmeticCreationSmokeTest {
                 if (template == CosmeticTemplate.TAIL) {
                     require(metadata.exportedBones().size() == 1
                                     && adapter.binding().parts().get(adapter.binding().definition()
-                                    .resolve(metadata.exportedBones().getFirst()).orElseThrow()).children.isEmpty(),
+                                    .resolve(metadata.exportedBones().get(0)).orElseThrow()).children.isEmpty(),
                             "Tailtip is an exported real empty group");
                 }
                 if (template == CosmeticTemplate.TRAIL) {

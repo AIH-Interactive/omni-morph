@@ -54,7 +54,7 @@ public final class YsmIdlePerformanceProbe {
         long[][] times = new long[3][frames];
         long[] allocated = new long[3];
         var threads = (com.sun.management.ThreadMXBean) java.lang.management.ManagementFactory.getThreadMXBean();
-        long thread = Thread.currentThread().threadId();
+        long thread = Thread.currentThread().getId();
         var vertices = new DiscardingVertices();
         for (int frame = 0; frame < warmup + frames; frame++) {
             var state = new YsmEntityFrame(frame / 3f, 0, 0, 0, 0);
@@ -96,40 +96,46 @@ public final class YsmIdlePerformanceProbe {
         private long count;
 
         @Override
-        public VertexConsumer addVertex(float x, float y, float z) {
+        public VertexConsumer vertex(double x, double y, double z) {
+            return this;
+        }
+
+        @Override
+        public VertexConsumer color(int red, int green, int blue, int alpha) {
+            return this;
+        }
+
+        @Override
+        public VertexConsumer uv(float u, float v) {
+            return this;
+        }
+
+        @Override
+        public VertexConsumer overlayCoords(int u, int v) {
+            return this;
+        }
+
+        @Override
+        public VertexConsumer uv2(int u, int v) {
+            return this;
+        }
+
+        @Override
+        public VertexConsumer normal(float x, float y, float z) {
+            return this;
+        }
+
+        @Override
+        public void endVertex() {
             count++;
-            return this;
         }
 
         @Override
-        public VertexConsumer setColor(int red, int green, int blue, int alpha) {
-            return this;
+        public void defaultColor(int red, int green, int blue, int alpha) {
         }
 
         @Override
-        public VertexConsumer setColor(int color) {
-            return this;
+        public void unsetDefaultColor() {
         }
-
-        @Override
-        public VertexConsumer setUv(float u, float v) {
-            return this;
-        }
-
-        @Override
-        public VertexConsumer setUv1(int u, int v) {
-            return this;
-        }
-
-        @Override
-        public VertexConsumer setUv2(int u, int v) {
-            return this;
-        }
-
-        @Override
-        public VertexConsumer setNormal(float x, float y, float z) {
-            return this;
-        }
-
     }
 }

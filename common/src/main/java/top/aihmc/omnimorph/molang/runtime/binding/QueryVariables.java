@@ -336,7 +336,7 @@ public final class QueryVariables {
         if (context == null || !(context.entity instanceof net.minecraft.client.player.AbstractClientPlayer player)) {
             return null;
         }
-        return player.getSkin().capeTexture() != null && !player.isInvisible()
+        return player.getCloakTextureLocation() != null && !player.isInvisible()
                 && player.isModelPartShown(net.minecraft.world.entity.player.PlayerModelPart.CAPE);
     };
 
@@ -406,7 +406,7 @@ public final class QueryVariables {
 
     public static final Variable ITEM_MAX_USE_DURATION = livingVariable((context, entity) -> {
         ItemStack stack = entity.getUseItem();
-        return stack.isEmpty() ? 0d : stack.getUseDuration(entity) / 20d;
+        return stack.isEmpty() ? 0d : stack.getUseDuration() / 20d;
     });
 
     public static final Variable ITEM_REMAINING_USE_DURATION = livingVariable((context, entity) ->
@@ -781,9 +781,9 @@ public final class QueryVariables {
         try {
             ResourceLocation loc;
             if (tagStr.contains(":")) {
-                loc = ResourceLocation.parse(tagStr);
+                loc = new ResourceLocation(tagStr);
             } else {
-                loc = ResourceLocation.parse("minecraft:" + tagStr);
+                loc = new ResourceLocation("minecraft:" + tagStr);
             }
             return TagKey.create(registryKey, loc);
         } catch (Exception e) {

@@ -160,7 +160,7 @@ final class YsmStabilitySmokeTest {
         try (YsmModelData data = YsmModelData.read(candidate.container(), () -> false)) {
             sourceReadMilliseconds = milliseconds(start);
             Avatar owner = owner(unsafe);
-            var selected = data.manifest().textures().getFirst();
+            var selected = data.manifest().textures().get(0);
             var portable = YsmAvatarLoader.toAvatarNbt(data, selected, owner.owner, candidate.container());
             runtime = previousVisits == 0 ? YsmModelRuntime.fromData(owner, data, portable.getCompound("ysm"))
                     : YsmModelRuntime.fromNbt(owner, YsmSourcePayload.forOutput(portable).getCompound("ysm"));
@@ -203,7 +203,7 @@ final class YsmStabilitySmokeTest {
             List<YsmAnimationClip> clips = runtime.animations().getClips().values().stream().distinct()
                     .sorted(Comparator.comparing(clip -> clip.name)).toList();
             if (!clips.isEmpty()) {
-                var playing = runtime.animations().play(clips.getFirst().name, true, 1);
+                var playing = runtime.animations().play(clips.get(0).name, true, 1);
                 playing.time = Math.min(0.25f, Math.max(0, playing.clip.length) * 0.5f);
             }
             for (int pass = 0; pass < 5; pass++) {

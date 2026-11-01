@@ -35,11 +35,11 @@ dependencies {
     implementation("com.github.ustc-zzzz:avif-imageio-native-reader:master-6af2f277a8-1@jar")
     implementation("com.twelvemonkeys.imageio:imageio-webp:3.15.0")
 
-    modCompileOnly ("software.bernie.geckolib:geckolib-fabric-$geckolib_version") {
+    modCompileOnly ("software.bernie.geckolib:geckolib-forge-$geckolib_version") {
         exclude group: "net.fabricmc"
     }
 
-    implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:0.3.6"))
+    implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1"))
 
     // We depend on fabric loader here to use the fabric @Environment annotations and get the mixin dependencies
     // Do NOT use other classes from fabric loader
@@ -57,6 +57,13 @@ dependencies {
 }
 
 sourceSets.main.proto.srcDir rootProject.file('protocol')
+
+// Gradle/Loom runs on JDK21; all verification programs exercise the Java17 target runtime.
+tasks.withType(JavaExec).configureEach {
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
 
 processResources {
     from(rootProject.file('protocol/outfit-v1/template-manifest.json')) {

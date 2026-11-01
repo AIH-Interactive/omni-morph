@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.compat;
 
 import net.irisshaders.iris.api.v0.IrisApi;
-import net.irisshaders.iris.pbr.loader.PBRTextureLoaderRegistry;
+import net.irisshaders.iris.texture.pbr.loader.PBRTextureLoaderRegistry;
 import top.aihmc.omnimorph.model.ysm.YsmMaterialTexture;
 
 public class IrisCompat {
@@ -12,7 +12,7 @@ public class IrisCompat {
     /**
      * Registers YSM normal and specular maps with Iris' PBR loader.
      * <p>
-     * MC 1.21.1 render types use vanilla shader programs, which Iris patches on its own,
+     * MC 1.20.1 render types use vanilla shader programs, which Iris patches on its own,
      * so no per-pipeline program assignment is needed here.
      */
     public static void registerMaterialTextures() {

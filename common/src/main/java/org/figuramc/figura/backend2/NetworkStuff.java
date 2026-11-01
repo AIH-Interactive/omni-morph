@@ -1467,7 +1467,7 @@ public class NetworkStuff {
                     if (!actual.equals(expected.replaceFirst("^legacy:", ""))) {
                         throw new java.io.IOException("Resource hash mismatch");
                     }
-                    CompoundTag nbt = NbtIo.readCompressed(new ByteArrayInputStream(bytes), NbtAccounter.create(256L * 1024 * 1024));
+                    CompoundTag nbt = org.figuramc.figura.utils.IOUtils.readCompressedNbt(new ByteArrayInputStream(bytes), 256L * 1024 * 1024);
                     selected.publishModel(() -> {
                         if (selected == connection && selected.active()
                                 && requestGeneration == requestGenerations.getOrDefault(target.id, 0L)) {

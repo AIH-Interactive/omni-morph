@@ -15,7 +15,7 @@ public final class FiguraIdentifier {
     }
 
     public static ResourceLocation of(String path) {
-        return ResourceLocation.fromNamespaceAndPath(FiguraMod.MOD_ID, path);
+        return new ResourceLocation(FiguraMod.MOD_ID, path);
     }
 
     public static String formatPath(String path) {

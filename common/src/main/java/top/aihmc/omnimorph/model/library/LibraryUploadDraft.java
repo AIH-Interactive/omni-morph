@@ -162,7 +162,7 @@ public final class LibraryUploadDraft {
             return;
         }
         String preferred = decorative ? "decorative_parts" : "full_model";
-        category = categories.contains(preferred) ? preferred : categories.getFirst();
+        category = categories.contains(preferred) ? preferred : categories.get(0);
     }
 
     public void tags(String commaSeparated) {

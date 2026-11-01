@@ -33,7 +33,7 @@ public final class LibraryIconButton extends Button {
     @Override
     protected void renderDefaultTexture(GuiGraphics gui, float delta) {
         super.renderDefaultTexture(gui, delta);
-        int row = Math.clamp(variant.getAsInt(), 0, variants - 1);
+        int row = net.minecraft.util.Mth.clamp(variant.getAsInt(), 0, variants - 1);
         gui.blit(icon, getX() + (getWidth() - 24) / 2,
                 getY() + (getHeight() - 24) / 2, getU() * 24, row * 24,
                 24, 24, 72, variants * 24);

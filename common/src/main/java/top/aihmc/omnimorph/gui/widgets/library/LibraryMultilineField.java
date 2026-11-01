@@ -13,7 +13,7 @@ import java.util.function.IntConsumer;
 
 /** Figura-skinned multiline input backed by Minecraft's native text editing. */
 public final class LibraryMultilineField extends AbstractContainerElement {
-    private final MultiLineEditBox input;
+    private final ResizableInput input;
     private boolean enabled = true;
     private int minimumHeight;
     private int maximumHeight;
@@ -24,18 +24,7 @@ public final class LibraryMultilineField extends AbstractContainerElement {
 
     public LibraryMultilineField(int width, int height, String value, Consumer<String> changed) {
         super(0, 0, width, height);
-        input = new MultiLineEditBox(Minecraft.getInstance().font, 0, 0, width - 4, height - 4,
-                Component.empty(), Component.empty()) {
-            @Override
-            protected void renderBackground(GuiGraphics gui) {
-                // The outer Figura control draws the field skin.
-            }
-
-            @Override
-            protected void renderDecorations(GuiGraphics gui) {
-                // The outer control owns decorations and the resize handle.
-            }
-        };
+        input = new ResizableInput(width - 4, height - 4);
         input.setCharacterLimit(4096);
         input.setValue(value);
         input.setValueListener(changed);
@@ -46,14 +35,34 @@ public final class LibraryMultilineField extends AbstractContainerElement {
         this.minimumHeight = minimumHeight;
         this.maximumHeight = Math.max(minimumHeight, maximumHeight);
         this.heightChanged = changed;
-        setHeight(Math.clamp(getHeight(), this.minimumHeight, this.maximumHeight));
+        setHeight(net.minecraft.util.Mth.clamp(getHeight(), this.minimumHeight, this.maximumHeight));
         return this;
     }
 
     @Override
     public void setHeight(int height) {
         super.setHeight(height);
-        input.setHeight(height - (heightChanged == null ? 4 : 12));
+        input.resizeHeight(height - (heightChanged == null ? 4 : 12));
+    }
+
+    private static final class ResizableInput extends MultiLineEditBox {
+        private ResizableInput(int width, int height) {
+            super(Minecraft.getInstance().font, 0, 0, width, height, Component.empty(), Component.empty());
+        }
+
+        private void resizeHeight(int height) {
+            this.height = height;
+        }
+
+        @Override
+        protected void renderBackground(GuiGraphics gui) {
+            // The outer Figura control draws the field skin.
+        }
+
+        @Override
+        protected void renderDecorations(GuiGraphics gui) {
+            // The outer control owns decorations and the resize handle.
+        }
     }
 
     private boolean overResizeHandle(double x, double y) {
@@ -92,7 +101,7 @@ public final class LibraryMultilineField extends AbstractContainerElement {
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
         if (resizing && enabled && button == 0) {
-            int height = Math.clamp(resizeStartHeight + (int) Math.round(mouseY - resizeStartY),
+            int height = net.minecraft.util.Mth.clamp(resizeStartHeight + (int) Math.round(mouseY - resizeStartY),
                     minimumHeight, maximumHeight);
             if (height != getHeight()) {
                 setHeight(height);

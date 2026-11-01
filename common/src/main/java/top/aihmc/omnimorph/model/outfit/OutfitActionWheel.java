@@ -157,12 +157,12 @@ public final class OutfitActionWheel implements AutoCloseable {
                     grouped.computeIfAbsent(entry.instance().resource().identity(), ignored -> new ArrayList<>()).add(entry);
                 }
                 for (var group : grouped.entrySet()) {
-                    Entry first = group.getValue().getFirst();
+                    Entry first = group.getValue().get(0);
                     resources.setAction(null, namedNavigation(first.name(), () -> {
                         resource = group.getKey();
                         copies = null;
                         if (matchingResource().size() == 1) {
-                            enter(matchingResource().getFirst());
+                            enter(matchingResource().get(0));
                         } else {
                             location = Location.COPIES;
                         }
@@ -329,7 +329,7 @@ public final class OutfitActionWheel implements AutoCloseable {
 
         @Override
         public Page setSlotsShift(int value) {
-            shift = Math.clamp(value - 1, 0, getGroupCount() - 1);
+            shift = net.minecraft.util.Mth.clamp(value - 1, 0, getGroupCount() - 1);
             return this;
         }
 

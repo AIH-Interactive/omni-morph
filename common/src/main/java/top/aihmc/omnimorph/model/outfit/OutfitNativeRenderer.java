@@ -77,14 +77,14 @@ public final class OutfitNativeRenderer {
                     frame.captureYsmInstance(command);
                 }
                 // YSM's original renderer consumes block-space geometry and keeps its own model scale.
-                stack.mulPose(mounted.scale(16));
+                stack.mulPoseMatrix(mounted.scale(16));
                 avatar.getYsmRuntime().renderer().renderWithAttachments(stack, buffers, light, command.ysmPose());
                 avatar.postRenderEvent(delta, FiguraMat4.of());
             } else {
                 // Figura normally prepends T(0,1.5,0) * Rz(180) * S(1/16) to authored geometry.
                 // Cancel that basis at its input, leaving the mount matrix followed by authored transforms.
                 mounted.scale(16).rotateZ((float) Math.PI).translate(0, -1.5f, 0);
-                stack.mulPose(mounted);
+                stack.mulPoseMatrix(mounted);
                 net.minecraft.world.entity.Entity wearer;
                 if (frame != null) {
                     wearer = frame.renderWearer();

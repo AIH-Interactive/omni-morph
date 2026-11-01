@@ -214,7 +214,7 @@ public class EntityAPI<T extends Entity> {
     public FiguraVec3 getBoundingBox() {
         checkEntity();
         EntityDimensions dim = entity.getDimensions(entity.getPose());
-        return FiguraVec3.of(dim.width(), dim.height(), dim.width());
+        return FiguraVec3.of(dim.width, dim.height, dim.width);
     }
 
     @LuaWhitelist
@@ -520,7 +520,7 @@ public class EntityAPI<T extends Entity> {
             if (id == null) {
                 throw new LuaError("Invalid entity type: " + type);
             }
-            entityType = BuiltInRegistries.ENTITY_TYPE.getHolder(id).get().value();
+            entityType = BuiltInRegistries.ENTITY_TYPE.get(id);
         } else {
             entityType = null;
         }

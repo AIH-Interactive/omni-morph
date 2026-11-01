@@ -86,7 +86,7 @@ public class ParticleAPI {
         }
         try {
             id = convertOldToNewParticleFormat(id);
-            ParticleOptions options = ParticleArgument.readParticle(new StringReader(id), WorldAPI.getCurrentWorld().registryAccess());
+            ParticleOptions options = ParticleArgument.readParticle(new StringReader(id), net.minecraft.core.registries.BuiltInRegistries.PARTICLE_TYPE.asLookup());
             Particle p = getParticleEngine().figura$makeParticle(options, x, y, z, w, t, h);
             if (p == null) throw new LuaError("Could not parse particle \"" + id + "\"");
             return new LuaParticle(id, p, owner);
@@ -321,7 +321,7 @@ public class ParticleAPI {
             return false;
         }
         try {
-            ParticleOptions options = ParticleArgument.readParticle(new StringReader(id), WorldAPI.getCurrentWorld().registryAccess());
+            ParticleOptions options = ParticleArgument.readParticle(new StringReader(id), net.minecraft.core.registries.BuiltInRegistries.PARTICLE_TYPE.asLookup());
             return getParticleEngine().figura$makeParticle(options, 0, 0, 0, 0, 0, 0) != null;
         } catch (Exception ignored) {
             return false;

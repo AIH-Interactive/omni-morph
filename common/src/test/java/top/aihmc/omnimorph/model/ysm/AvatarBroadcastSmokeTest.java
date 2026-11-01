@@ -62,7 +62,7 @@ final class AvatarBroadcastSmokeTest {
                             require(NetworkStuff.getUploadProgress().received() == bytes.length / 2
                                     && NetworkStuff.getUploadProgress().total() == bytes.length,
                                     "transport progress reaches the wardrobe snapshot with exact bytes");
-                            var nbt = NbtIo.readCompressed(new ByteArrayInputStream((byte[]) args[1]), NbtAccounter.unlimitedHeap());
+                            var nbt = net.minecraft.nbt.NbtIo.readCompressed(new ByteArrayInputStream((byte[]) args[1]));
                             uploads.add(nbt.getCompound("metadata").getString("name"));
                             if (switchDuringUpload.getAndSet(false)) {
                                 NetworkStuff.localSelectionChanged();
@@ -119,7 +119,7 @@ final class AvatarBroadcastSmokeTest {
             process.invoke(null);
             ((CompletableFuture<?>) tasks.get(null)).get(10, TimeUnit.SECONDS);
             scope.drain();
-            require(equipment.getLast() == 0, "clearing a selection publishes unequip");
+            require(com.google.common.collect.Iterables.getLast(equipment) == 0, "clearing a selection publishes unequip");
 
             uploadStatus.set(503);
             AvatarManager.localUploaded = false;

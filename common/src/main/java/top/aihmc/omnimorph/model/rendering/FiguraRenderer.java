@@ -180,7 +180,7 @@ public abstract class FiguraRenderer {
      * @return A matrix which represents the transformation from entity space to part space.
      */
     public static FiguraMat4 entityToWorldMatrix(Entity e, float delta) {
-        double yaw = e instanceof LivingEntity le ? Mth.lerp(delta, le.yBodyRotO, le.yBodyRot) : e.getViewYRot(Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true));
+        double yaw = e instanceof LivingEntity le ? Mth.lerp(delta, le.yBodyRotO, le.yBodyRot) : e.getViewYRot(Minecraft.getInstance().getFrameTime());
         FiguraMat4 result = FiguraMat4.of();
         result.rotateX(180 - yaw);
         result.translate(e.getPosition(delta));
@@ -188,7 +188,7 @@ public abstract class FiguraRenderer {
     }
 
     public static double getYawOffsetRot(Entity e, float delta) {
-        double yaw = e instanceof LivingEntity le ? Mth.lerp(delta, le.yBodyRotO, le.yBodyRot) : e.getViewYRot(Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true));
+        double yaw = e instanceof LivingEntity le ? Mth.lerp(delta, le.yBodyRotO, le.yBodyRot) : e.getViewYRot(Minecraft.getInstance().getFrameTime());
         return 180 - yaw;
     }
 

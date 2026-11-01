@@ -4,7 +4,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.gui.GuiGraphics;
 import com.mojang.blaze3d.platform.Lighting;
-import net.minecraft.client.resources.PlayerSkin;
 import net.minecraft.client.player.AbstractClientPlayer;
 import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
 import net.minecraft.client.model.geom.builders.CubeDeformation;
@@ -49,7 +48,7 @@ public final class LibraryFiguraPreviewRenderer {
             stack.translate((state.x0() + state.x1()) / 2f, (state.y0() + state.y1()) / 2f, 250);
             stack.scale(state.scale(), state.scale(), -state.scale());
             UIHelper.useFiguraLighting();
-            var model = state.playerPose().skin().model() == PlayerSkin.Model.SLIM ? INSTANCE.slim : INSTANCE.wide;
+            var model = state.playerPose().slim() ? INSTANCE.slim : INSTANCE.wide;
             draw(state, stack, gui.bufferSource(), model);
             gui.flush();
         } finally {
@@ -109,8 +108,8 @@ public final class LibraryFiguraPreviewRenderer {
                     if (vanilla != null && avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1) {
                         vanilla.posTransform(model);
                     }
-                    model.renderToBuffer(stack, source.getBuffer(model.renderType(state.playerPose().skin().texture())),
-                            0x00f000f0, OverlayTexture.NO_OVERLAY);
+                    model.renderToBuffer(stack, source.getBuffer(model.renderType(state.playerPose().skin())),
+                            0x00f000f0, OverlayTexture.NO_OVERLAY, 1, 1, 1, 1);
                     avatar.postRenderEvent(state.delta(), FiguraMat4.of());
                 } finally {
                     if (vanilla != null) {

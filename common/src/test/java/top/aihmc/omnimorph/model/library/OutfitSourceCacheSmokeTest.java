@@ -97,7 +97,7 @@ public final class OutfitSourceCacheSmokeTest {
                                              LibraryPackagePreparation.Prepared source) throws Exception {
         var reader = new OutfitObserverSources(client, root);
         var snapshot = client.observerOutfit(server.observedOwner).future().get(5, TimeUnit.SECONDS);
-        var resource = snapshot.resources().getFirst();
+        var resource = snapshot.resources().get(0);
         require(reader.read(snapshot, resource).future().get(5, TimeUnit.SECONDS).equals(source.nbt()),
                 "observer scoped source prepares the exact native NBT");
         reader.read(snapshot, resource).future().get(5, TimeUnit.SECONDS);
@@ -112,28 +112,28 @@ public final class OutfitSourceCacheSmokeTest {
                 "observer sources use the original protected avatar/cosmetic formats");
         server.observerRevision++;
         var next = client.observerOutfit(server.observedOwner).future().get(5, TimeUnit.SECONDS);
-        reader.read(next, next.resources().getFirst()).future().get(5, TimeUnit.SECONDS);
+        reader.read(next, next.resources().get(0)).future().get(5, TimeUnit.SECONDS);
         require(server.observerBodies.get() == 1, "a configuration-only revision change reuses the same authorized native bytes");
         Files.write(cache, new byte[40]);
-        reader.read(next, next.resources().getFirst()).future().get(5, TimeUnit.SECONDS);
+        reader.read(next, next.resources().get(0)).future().get(5, TimeUnit.SECONDS);
         require(server.observerBodies.get() == 2 && ModelCacheCodec.isWrapped(cache), "corrupt observer cache is fetched and replaced");
         server.observerMode = "hidden";
-        observerFailure(reader.read(next, next.resources().getFirst()).future());
+        observerFailure(reader.read(next, next.resources().get(0)).future());
         require(server.observerBodies.get() == 2, "hidden equipment cannot read cached observer bytes");
         Files.delete(cache);
         server.observerMode = "race";
         server.observerLookups.set(0);
-        observerFailure(reader.read(next, next.resources().getFirst()).future());
+        observerFailure(reader.read(next, next.resources().get(0)).future());
         require(!Files.exists(cache), "revocation after the body prevents observer cache publication");
         server.observerMode = "normal";
-        reader.read(next, next.resources().getFirst()).future().get(5, TimeUnit.SECONDS);
+        reader.read(next, next.resources().get(0)).future().get(5, TimeUnit.SECONDS);
         require(ModelCacheCodec.isWrapped(cache), "observer source recovers after a rejected generation");
         if (server.kind == OutfitConfig.ResourceKind.ACCESSORY) {
             server.observerMode = "versions";
             var versions = client.observerOutfit(server.observedOwner).future().get(5, TimeUnit.SECONDS);
             require(versions.configuration().instances().size() == 2 && versions.resources().size() == 2
-                            && versions.resources().getFirst().reference().identity().equals(versions.resources().getLast().reference().identity())
-                            && !versions.resources().getFirst().reference().revision().equals(versions.resources().getLast().reference().revision()),
+                            && versions.resources().get(0).reference().identity().equals(com.google.common.collect.Iterables.getLast(versions.resources()).reference().identity())
+                            && !versions.resources().get(0).reference().revision().equals(com.google.common.collect.Iterables.getLast(versions.resources()).reference().revision()),
                     "two revisions of the same resource retain separate exact source declarations");
             server.observerMode = "normal";
         }
@@ -171,7 +171,7 @@ public final class OutfitSourceCacheSmokeTest {
             server.mode = "unbound";
             var failed = operation.retry().get(5, TimeUnit.SECONDS);
             require(!failed.ready() && failed.resources().issues().size() == 1
-                            && failed.resources().issues().getFirst().instances().size() == instances.size(),
+                            && failed.resources().issues().get(0).instances().size() == instances.size(),
                     "one failed local source identifies every affected instance and cannot become ready");
             require(!prepared.ready(), "retry retires the preceding prepared source generation");
             server.mode = "normal";
@@ -207,7 +207,7 @@ public final class OutfitSourceCacheSmokeTest {
         var configuration = new OutfitConfig(1, 0, server.reference, List.of(), List.of(), java.util.Map.of(), false);
         try (var operation = new OutfitApplyResources(configuration, client, null, data, cacheRoot, Runnable::run, () -> true)) {
             var failed = operation.future().get(5, TimeUnit.SECONDS);
-            require(!failed.ready() && failed.resources().issues().getFirst().code().equals("INTERNAL"),
+            require(!failed.ready() && failed.resources().issues().get(0).code().equals("INTERNAL"),
                     "failed private commit is a dependency issue and cannot activate a partial configuration");
             Files.writeString(model.resolve("avatar.json"), "{\"name\":\"Changed after failed commit\"}");
             server.failCommit = false;

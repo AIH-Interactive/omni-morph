@@ -42,9 +42,9 @@ public final class YsmMolangBudgetSmokeTest {
         expectExceeded(() -> fixture.evaluate("for_each(v.item,items,{});"), "empty for_each over unbounded iterable is bounded");
         expectExceeded(() -> fixture.evaluate("loop(1024,{});"), "empty loop still consumes execution steps");
         var expensive = fixture.engine.parse("loop(1024,{});");
-        expectExceeded(() -> fixture.evaluator.evalSafe(expensive.getFirst()), "evalSafe cannot hide budget exhaustion");
+        expectExceeded(() -> fixture.evaluator.evalSafe(expensive.get(0)), "evalSafe cannot hide budget exhaustion");
         expectExceeded(() -> fixture.evaluator.evalAllSafe(expensive, true), "evalAllSafe cannot hide budget exhaustion");
-        var arithmetic = fixture.engine.parse(String.join("+", Collections.nCopies(100, "1"))).getFirst();
+        var arithmetic = fixture.engine.parse(String.join("+", Collections.nCopies(100, "1"))).get(0);
         expectExceeded(() -> fixture.evaluator.evalAsFloat(arithmetic), "optimized float evaluator consumes the same allowance");
         equal(2f, fixture.evaluator.evalAsFloat(new FloatExpression(2f)), "optimized path recovers for the next evaluation");
     }

@@ -97,7 +97,7 @@ public class CacheAvatarLoader {
             Path path = getAvatarCacheDirectory().resolve(hash + ModelCacheLayout.AVATAR_EXTENSION);
             try (var stream = new java.io.ByteArrayInputStream(
                     new ModelCacheCodec(FiguraMod.getCacheDirectory()).read(path, CloudHttp.FILE_BYTES))) {
-                var nbt = NbtIo.readCompressed(stream, NbtAccounter.create(256L * 1024 * 1024));
+                var nbt = org.figuramc.figura.utils.IOUtils.readCompressedNbt(stream, 256L * 1024 * 1024);
                 net.minecraft.client.Minecraft.getInstance().execute(() -> {
                     if (current.getAsBoolean()) {
                         target.loadAvatar(nbt, current);

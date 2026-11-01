@@ -1,8 +1,8 @@
 package top.aihmc.omnimorph.render.acceleration;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
-import com.mojang.blaze3d.vertex.MeshData;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.VertexSorting;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -121,42 +121,41 @@ public final class AccelerationPreparationBenchmark {
     }
 
     private static void measure(Consumer<MultiBufferSource> render, String sample) {
-        try (ByteBufferBuilder memory = new ByteBufferBuilder(1 << 20)) {
-            var recipes = new LinkedHashMap<RenderType, DiscardingMaterial>();
-            var nativeSource = MultiBufferSource.immediate(memory);
-            MultiBufferSource javaSource = original -> nativeSource.getBuffer(
-                    recipes.computeIfAbsent(original, DiscardingMaterial::new));
-            SERVICE.useBackend(null);
-            frame(render, javaSource, nativeSource);
-            long expectedVertices = recipes.values().stream().mapToLong(value -> value.vertices).sum();
-            if (expectedVertices == 0) {
-                throw new AssertionError("Benchmark model must produce actual geometry");
-            }
-            for (int round = 0; round < (QUICK ? 1 : 3); round++) {
-                // Rotate order to expose warmup/order sensitivity rather than selecting a favorable run.
-                String[] order = {"JAVA", "SIMD"};
-                for (int step = 0; step < order.length; step++) {
-                    String mode = order[(round + step) % order.length];
-                    SERVICE.useBackend(mode.equals("SIMD") ? new NativeSimdBackend() : null);
-                    try {
-                        for (int warmup = 0; warmup < (QUICK ? 1 : 30); warmup++) {
-                            frame(render, javaSource, nativeSource);
-                        }
-                        long[] times = new long[QUICK ? 2 : 90];
-                        for (int index = 0; index < times.length; index++) {
-                            long before = System.nanoTime();
-                            frame(render, javaSource, nativeSource);
-                            times[index] = System.nanoTime() - before;
-                            CSV.add("cpu_preparation_only," + sample + ',' + round + ',' + mode + ',' + index
-                                    + ',' + times[index] + ',' + expectedVertices + ",0,0");
-                        }
-                        Arrays.sort(times);
-                        System.out.println("CPU preparation only sample=" + sample + " round=" + round + " mode=" + mode
-                                + " vertices=" + expectedVertices + " p50/p95/p99 us=" + percentile(times, .50)
-                                + '/' + percentile(times, .95) + '/' + percentile(times, .99));
-                    } finally {
-                        SERVICE.useBackend(null);
+        var memory = new BufferBuilder(1 << 20);
+        var recipes = new LinkedHashMap<RenderType, DiscardingMaterial>();
+        var nativeSource = MultiBufferSource.immediate(memory);
+        MultiBufferSource javaSource = original -> nativeSource.getBuffer(
+                recipes.computeIfAbsent(original, DiscardingMaterial::new));
+        SERVICE.useBackend(null);
+        frame(render, javaSource, nativeSource);
+        long expectedVertices = recipes.values().stream().mapToLong(value -> value.vertices).sum();
+        if (expectedVertices == 0) {
+            throw new AssertionError("Benchmark model must produce actual geometry");
+        }
+        for (int round = 0; round < (QUICK ? 1 : 3); round++) {
+            // Rotate order to expose warmup/order sensitivity rather than selecting a favorable run.
+            String[] order = {"JAVA", "SIMD"};
+            for (int step = 0; step < order.length; step++) {
+                String mode = order[(round + step) % order.length];
+                SERVICE.useBackend(mode.equals("SIMD") ? new NativeSimdBackend() : null);
+                try {
+                    for (int warmup = 0; warmup < (QUICK ? 1 : 30); warmup++) {
+                        frame(render, javaSource, nativeSource);
                     }
+                    long[] times = new long[QUICK ? 2 : 90];
+                    for (int index = 0; index < times.length; index++) {
+                        long before = System.nanoTime();
+                        frame(render, javaSource, nativeSource);
+                        times[index] = System.nanoTime() - before;
+                        CSV.add("cpu_preparation_only," + sample + ',' + round + ',' + mode + ',' + index
+                                + ',' + times[index] + ',' + expectedVertices + ",0,0");
+                    }
+                    Arrays.sort(times);
+                    System.out.println("CPU preparation only sample=" + sample + " round=" + round + " mode=" + mode
+                            + " vertices=" + expectedVertices + " p50/p95/p99 us=" + percentile(times, .50)
+                            + '/' + percentile(times, .95) + '/' + percentile(times, .99));
+                } finally {
+                    SERVICE.useBackend(null);
                 }
             }
         }
@@ -179,13 +178,20 @@ public final class AccelerationPreparationBenchmark {
 
         DiscardingMaterial(RenderType original) {
             super("omnimorph_cpu_preparation_measurement", original.format(), original.mode(), original.bufferSize(),
-                    false, original.sortOnUpload(), () -> {}, () -> {});
+                    false, original.sortOnUpload, () -> {}, () -> {});
         }
 
         @Override
-        public void draw(MeshData geometry) {
-            vertices += geometry.drawState().vertexCount();
-            geometry.close();
+        public void end(BufferBuilder builder, VertexSorting sorting) {
+            if (sortOnUpload) {
+                builder.setQuadSorting(sorting);
+            }
+            var geometry = builder.end();
+            try {
+                vertices += geometry.drawState().vertexCount();
+            } finally {
+                geometry.release();
+            }
         }
     }
 

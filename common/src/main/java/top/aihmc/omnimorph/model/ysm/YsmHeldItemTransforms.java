@@ -36,7 +36,7 @@ public final class YsmHeldItemTransforms {
         if (itemStack.is(Items.TRIDENT)) {
             if (!directHandBone)
                 stack.translate(0d, 0d, -0.0125d);
-        } else if (itemStack.is(Items.MACE)) {
+        } else if (YsmHandItemType.matches(itemStack, "mace")) {
             stack.translate(0d, directHandBone ? -0.0125d : 0d, 0.01875d);
         } else if (isSpearHeldItem(itemStack)) {
             stack.translate(0d, directHandBone ? -0.01875d : -0.0125d, -0.025d);

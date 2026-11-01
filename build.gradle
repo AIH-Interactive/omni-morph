@@ -1,6 +1,6 @@
 plugins {
-	id "architectury-plugin" version "3.4-SNAPSHOT"
-	id "dev.architectury.loom" version "1.14-SNAPSHOT" apply false
+	id "architectury-plugin" version "3.4.164"
+	id "dev.architectury.loom" version "1.14.476" apply false
 }
 
 apply from: 'native/packaging.gradle'

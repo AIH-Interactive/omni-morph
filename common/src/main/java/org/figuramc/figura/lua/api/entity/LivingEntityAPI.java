@@ -187,14 +187,14 @@ public class LivingEntityAPI<T extends LivingEntity> extends EntityAPI<T> {
     public String getEntityCategory() {
         checkEntity();
 
-        EntityType<?> mobType = entity.getType(); // why it is not an enum
-        if (mobType.builtInRegistryHolder().is(EntityTypeTags.ARTHROPOD))
+        net.minecraft.world.entity.MobType mobType = entity.getMobType();
+        if (mobType == net.minecraft.world.entity.MobType.ARTHROPOD)
             return "ARTHROPOD";
-        if (mobType.builtInRegistryHolder().is(EntityTypeTags.UNDEAD))
+        if (mobType == net.minecraft.world.entity.MobType.UNDEAD)
             return "UNDEAD";
-        if (mobType.builtInRegistryHolder().is(EntityTypeTags.AQUATIC))
+        if (mobType == net.minecraft.world.entity.MobType.WATER)
             return "WATER";
-        if (mobType.builtInRegistryHolder().is(EntityTypeTags.ILLAGER))
+        if (mobType == net.minecraft.world.entity.MobType.ILLAGER)
             return "ILLAGER";
 
         return "UNDEFINED";

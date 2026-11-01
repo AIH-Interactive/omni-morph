@@ -78,8 +78,8 @@ final class OpenGlAccelerationBackend implements AccelerationBackend {
                 && material.format() == DefaultVertexFormat.NEW_ENTITY
                 && material.mode() == VertexFormat.Mode.QUADS
                 && material instanceof RenderType.CompositeRenderType composite
-                && (composite.state.transparencyState.toString().equals("no_transparency")
-                    || material.sortOnUpload());
+                && (composite.state.transparencyState == net.minecraft.client.renderer.RenderStateShard.NO_TRANSPARENCY
+                    || material.sortOnUpload);
     }
 
     @Override
@@ -93,7 +93,7 @@ final class OpenGlAccelerationBackend implements AccelerationBackend {
             AccelerationFrameDiagnostics.fallback("INCOMPATIBLE_PIPELINE");
             return false;
         }
-        DrawBatch batch = batches.getFirst();
+        DrawBatch batch = batches.get(0);
         RenderType material = batch.semantics().material();
         material.setupRenderState();
         try {
@@ -101,8 +101,7 @@ final class OpenGlAccelerationBackend implements AccelerationBackend {
             if (shader == null || !supportedShader(shader.getName())) {
                 return false;
             }
-            shader.setDefaultUniforms(material.mode(), RenderSystem.getModelViewMatrix(),
-                    RenderSystem.getProjectionMatrix(), Minecraft.getInstance().getWindow());
+            applyVanillaUniforms(shader);
             shader.apply();
             try {
                 return drawActive(batches, shader.getId());
@@ -112,6 +111,51 @@ final class OpenGlAccelerationBackend implements AccelerationBackend {
         } finally {
             material.clearRenderState();
         }
+    }
+
+    /** The target VertexBuffer sets these uniforms before applying an entity shader. */
+    private static void applyVanillaUniforms(ShaderInstance shader) {
+        for (int unit = 0; unit < 12; unit++) {
+            shader.setSampler("Sampler" + unit, RenderSystem.getShaderTexture(unit));
+        }
+        if (shader.MODEL_VIEW_MATRIX != null) {
+            shader.MODEL_VIEW_MATRIX.set(RenderSystem.getModelViewMatrix());
+        }
+        if (shader.PROJECTION_MATRIX != null) {
+            shader.PROJECTION_MATRIX.set(RenderSystem.getProjectionMatrix());
+        }
+        if (shader.INVERSE_VIEW_ROTATION_MATRIX != null) {
+            shader.INVERSE_VIEW_ROTATION_MATRIX.set(RenderSystem.getInverseViewRotationMatrix());
+        }
+        if (shader.COLOR_MODULATOR != null) {
+            shader.COLOR_MODULATOR.set(RenderSystem.getShaderColor());
+        }
+        if (shader.GLINT_ALPHA != null) {
+            shader.GLINT_ALPHA.set(RenderSystem.getShaderGlintAlpha());
+        }
+        if (shader.FOG_START != null) {
+            shader.FOG_START.set(RenderSystem.getShaderFogStart());
+        }
+        if (shader.FOG_END != null) {
+            shader.FOG_END.set(RenderSystem.getShaderFogEnd());
+        }
+        if (shader.FOG_COLOR != null) {
+            shader.FOG_COLOR.set(RenderSystem.getShaderFogColor());
+        }
+        if (shader.FOG_SHAPE != null) {
+            shader.FOG_SHAPE.set(RenderSystem.getShaderFogShape().getIndex());
+        }
+        if (shader.TEXTURE_MATRIX != null) {
+            shader.TEXTURE_MATRIX.set(RenderSystem.getTextureMatrix());
+        }
+        if (shader.GAME_TIME != null) {
+            shader.GAME_TIME.set(RenderSystem.getShaderGameTime());
+        }
+        if (shader.SCREEN_SIZE != null) {
+            var window = Minecraft.getInstance().getWindow();
+            shader.SCREEN_SIZE.set((float) window.getWidth(), (float) window.getHeight());
+        }
+        RenderSystem.setupShaderLights(shader);
     }
 
     private static boolean supportedShader(String name) {
@@ -131,7 +175,7 @@ final class OpenGlAccelerationBackend implements AccelerationBackend {
         boolean submitted = false;
         try (GlBindings bindings = new GlBindings()) {
             if (batches.isEmpty() || batches.size() > MAX_BATCHES
-                    || batches.getFirst().semantics().sortOnUpload()
+                    || batches.get(0).semantics().sortOnUpload()
                     && !GpuFaceOrder.supports(RenderSystem.getVertexSorting())) {
                 return false;
             }

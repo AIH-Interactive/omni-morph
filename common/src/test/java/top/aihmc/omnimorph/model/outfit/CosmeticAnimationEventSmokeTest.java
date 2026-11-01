@@ -42,7 +42,7 @@ public final class CosmeticAnimationEventSmokeTest {
             require(firstEvents.size() == 1 && secondEvents.isEmpty(), "native marker reaches only its execution instance: "
                     + firstEvents.size() + "/" + secondEvents.size() + ", error=" + first.cosmeticAnimations.getEventError()
                     + ", script=" + first.scriptError + ", remaining=" + first.tick.remaining);
-            LuaTable event = firstEvents.getFirst();
+            LuaTable event = firstEvents.get(0);
             require(event.get("animation").tojstring().equals("model.sparkle")
                             && event.get("type").tojstring().equals("keyframe") && event.get("marker").tojstring().isEmpty()
                             && event.get("time").todouble() == .25 && event.get("generation").todouble() > 0,
@@ -127,8 +127,8 @@ public final class CosmeticAnimationEventSmokeTest {
             fixture.tick();
             first.cosmeticAnimations.dispatch();
             require(once.isStopped() && completedEvents.size() == 1
-                            && completedEvents.getFirst().get("type").tojstring().equals("end")
-                            && completedEvents.getFirst().get("time").todouble() == 1,
+                            && completedEvents.get(0).get("type").tojstring().equals("end")
+                            && completedEvents.get(0).get("time").todouble() == 1,
                     "native one-shot completion queues an end notification from the same playback");
         }
         try (var fixture = new Fixture()) {
@@ -194,10 +194,10 @@ public final class CosmeticAnimationEventSmokeTest {
             require(events.isEmpty(), "YSM initial timeline never invokes Lua from inside playback traversal");
             fixture.tick();
             owner.cosmeticAnimations.dispatch();
-            require(events.size() == 1 && events.getFirst().get("type").tojstring().equals("timeline")
-                            && events.getFirst().get("marker").tojstring().isEmpty(),
+            require(events.size() == 1 && events.get(0).get("type").tojstring().equals("timeline")
+                            && events.get(0).get("marker").tojstring().isEmpty(),
                     "YSM initial event is delivered once without exposing its Molang expression");
-            double generation = events.getFirst().get("generation").todouble();
+            double generation = events.get(0).get("generation").todouble();
             advance.invoke(player, .6f, evaluator);
             fixture.tick();
             owner.cosmeticAnimations.dispatch();
@@ -206,15 +206,15 @@ public final class CosmeticAnimationEventSmokeTest {
                             && events.get(2).get("marker").tojstring().equals("puff")
                             && events.get(1).get("generation").todouble() == generation,
                     "real YSM crossing window delivers authored marker and particle event in order");
-            require(evaluator.evalAsFloat(engine.parse("v.marked").getFirst()) == 1,
+            require(evaluator.evalAsFloat(engine.parse("v.marked").get(0)) == 1,
                     "the original Molang timeline still executes in the owning instance");
             advance.invoke(player, .6f, evaluator);
             advance.invoke(player, .3f, evaluator);
             require(player.getActiveAnimation("notify") == null, "native completed playback fades out before Lua delivery");
             fixture.tick();
             owner.cosmeticAnimations.dispatch();
-            require(events.size() == 4 && events.getLast().get("type").tojstring().equals("end")
-                            && events.getLast().get("generation").todouble() == generation,
+            require(events.size() == 4 && com.google.common.collect.Iterables.getLast(events).get("type").tojstring().equals("end")
+                            && com.google.common.collect.Iterables.getLast(events).get("generation").todouble() == generation,
                     "natural removal preserves the one-shot end notification from the same playback");
             int delivered = events.size();
             player.play("notify", false, 1);
@@ -227,8 +227,8 @@ public final class CosmeticAnimationEventSmokeTest {
             advance.invoke(player, .3f, evaluator);
             fixture.tick();
             owner.cosmeticAnimations.dispatch();
-            require(events.size() == delivered + 1 && events.getLast().get("marker").tojstring().equals("sparkle")
-                            && events.getLast().get("generation").todouble() > generation,
+            require(events.size() == delivered + 1 && com.google.common.collect.Iterables.getLast(events).get("marker").tojstring().equals("sparkle")
+                            && com.google.common.collect.Iterables.getLast(events).get("generation").todouble() > generation,
                     "reusing the native playback object invalidates old tickets and keeps the new generation");
             player.stop("notify");
             delivered = events.size();

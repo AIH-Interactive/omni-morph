@@ -211,7 +211,7 @@ public class YsmRenderer {
         var ancestors = new java.util.ArrayList<YsmGeometry.Bone>();
         for (var parent = findAttachmentBone(bone.parentName); parent != null;
              parent = findAttachmentBone(parent.parentName)) {
-            ancestors.addFirst(parent);
+            ancestors.add(0, parent);
         }
         for (var parent : ancestors) {
             applyBoneTransform(parent, pose == null ? runtime.getPart(parent.name) : pose.readOnlyPart(parent.name), stack);
@@ -533,11 +533,11 @@ public class YsmRenderer {
             }
             for (int vertex = firstVertex; vertex < firstVertex + vertexCount; vertex++) {
                 int offset = vertex * MeshHandle.STRIDE;
-                consumer.addVertex((float) transformed[offset], (float) transformed[offset + 1], (float) transformed[offset + 2])
-                        .setColor(semantics.red(), semantics.green(), semantics.blue(), semantics.alpha())
-                        .setUv((float) transformed[offset + 7], (float) transformed[offset + 8])
-                        .setOverlay(semantics.overlay()).setLight(semantics.light())
-                        .setNormal((float) transformed[offset + 4], (float) transformed[offset + 5], (float) transformed[offset + 6]);
+                consumer.vertex((float) transformed[offset], (float) transformed[offset + 1], (float) transformed[offset + 2])
+                        .color(semantics.red(), semantics.green(), semantics.blue(), semantics.alpha())
+                        .uv((float) transformed[offset + 7], (float) transformed[offset + 8])
+                        .overlayCoords(semantics.overlay()).uv2(semantics.light())
+                        .normal((float) transformed[offset + 4], (float) transformed[offset + 5], (float) transformed[offset + 6]).endVertex();
             }
         };
         if (!GpuSubmission.enqueue(target.source(), batch, fallback)) {
@@ -547,11 +547,11 @@ public class YsmRenderer {
 
     private void vertex(VertexConsumer vertices, PoseStack stack, float x, float y, float z,
                         float u, float v, float nx, float ny, float nz, int light, float alpha) {
-        vertices.addVertex(stack.last(), x, y, z)
-                .setColor(1f, 1f, 1f, alpha)
-                .setUv(u, v)
-                .setOverlay(OverlayTexture.NO_OVERLAY)
-                .setLight(light)
-                .setNormal(stack.last(), nx, ny, nz);
+        vertices.vertex(stack.last().pose(), x, y, z)
+                .color(1f, 1f, 1f, alpha)
+                .uv(u, v)
+                .overlayCoords(OverlayTexture.NO_OVERLAY)
+                .uv2(light)
+                .normal(stack.last().normal(), nx, ny, nz).endVertex();
     }
 }

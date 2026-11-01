@@ -74,10 +74,10 @@ public class TextTask extends RenderTask {
             float x1 = -1 - offset;
             float x2 = cacheWidth - offset;
             VertexConsumer vertexConsumer = buffer.getBuffer(seeThrough ? RenderType.textBackgroundSeeThrough() : RenderType.textBackground());
-            vertexConsumer.addVertex(matrix, x1, -1f, vertexOffset).setColor(bg).setLight(l);
-            vertexConsumer.addVertex(matrix, x1, cacheHeight, vertexOffset).setColor(bg).setLight(l);
-            vertexConsumer.addVertex(matrix, x2, cacheHeight, vertexOffset).setColor(bg).setLight(l);
-            vertexConsumer.addVertex(matrix, x2, -1f, vertexOffset).setColor(bg).setLight(l);
+            vertexConsumer.vertex(matrix, x1, -1f, vertexOffset).color(bg).uv2(l).endVertex();
+            vertexConsumer.vertex(matrix, x1, cacheHeight, vertexOffset).color(bg).uv2(l).endVertex();
+            vertexConsumer.vertex(matrix, x2, cacheHeight, vertexOffset).color(bg).uv2(l).endVertex();
+            vertexConsumer.vertex(matrix, x2, -1f, vertexOffset).color(bg).uv2(l).endVertex();
         }
 
         // text

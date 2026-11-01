@@ -32,7 +32,7 @@ public final class GpuAllocationRegression {
                 vertices[offset + 6] = 1;
             }
         }
-        var material = RenderType.entityTranslucent(ResourceLocation.parse("omni-morph:allocation-test"));
+        var material = RenderType.entityTranslucent(new ResourceLocation("omni-morph:allocation-test"));
         var semantics = new DrawSemantics(material, null, DrawSemantics.Layer.PRIMARY, "world", 0, faces,
                 0, 0, 1, 1, 1, 1, 0, true);
         var batch = new DrawBatch(AccelerationService.INSTANCE.capture(new AccelerationOwner(), "world"),
@@ -59,7 +59,7 @@ public final class GpuAllocationRegression {
         }
         var allocations = (com.sun.management.ThreadMXBean) ManagementFactory.getThreadMXBean();
         allocations.setThreadAllocatedMemoryEnabled(true);
-        long thread = Thread.currentThread().threadId();
+        long thread = Thread.currentThread().getId();
         long before = allocations.getThreadAllocatedBytes(thread);
         for (int frame = 0; frame < 30; frame++) {
             long[] order = backend.faceOrder(batches);

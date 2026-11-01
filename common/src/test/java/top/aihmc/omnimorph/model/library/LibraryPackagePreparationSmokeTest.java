@@ -73,8 +73,7 @@ public final class LibraryPackagePreparationSmokeTest {
                     && prepared.nbt().contains("scripts") && prepared.nbt().contains("resources"),
                     "compiled resources and no invented author");
             require(CloudHttp.sha256(prepared.compressed()).equals(prepared.sha256()), "distribution digest");
-            require(NbtIo.readCompressed(new ByteArrayInputStream(prepared.compressed()),
-                    NbtAccounter.create(256L * 1024 * 1024)).equals(prepared.nbt()), "wire NBT round trip");
+            require(org.figuramc.figura.utils.IOUtils.readCompressedNbt(new ByteArrayInputStream(prepared.compressed()), 256L * 1024 * 1024).equals(prepared.nbt()), "wire NBT round trip");
             byte[] copy = prepared.compressed();
             copy[0] ^= 1;
             require(!CloudHttp.sha256(copy).equals(prepared.sha256())
@@ -174,8 +173,7 @@ public final class LibraryPackagePreparationSmokeTest {
             require(changed.accessoryMetadata().get("cosmetic_anchor").getAsString().equals("head")
                             && prepared.accessoryMetadata().get("cosmetic_anchor").getAsString().equals("hip")
                             && !changed.sha256().equals(prepared.sha256())
-                            && NbtIo.readCompressed(new ByteArrayInputStream(changed.compressed()),
-                            NbtAccounter.create(256L * 1024 * 1024)).equals(changed.nbt()),
+                            && org.figuramc.figura.utils.IOUtils.readCompressedNbt(new ByteArrayInputStream(changed.compressed()), 256L * 1024 * 1024).equals(changed.nbt()),
                     "edited anchor is serialized into a new immutable distribution and digest");
             var changedAuthors = new com.google.gson.JsonArray();
             changedAuthors.add("Changed author");
@@ -230,8 +228,7 @@ public final class LibraryPackagePreparationSmokeTest {
                             && request.get("raw_sha256").getAsString().equals(CloudHttp.sha256(prepared.upload().bytes()))
                             && request.get("accessory_metadata").isJsonNull(),
                     "fixed source provenance and native body hash stay distinct in private preparation");
-            require(NbtIo.readCompressed(new ByteArrayInputStream(prepared.upload().bytes()),
-                            NbtAccounter.create(256L * 1024 * 1024)).equals(prepared.nbt()),
+            require(org.figuramc.figura.utils.IOUtils.readCompressedNbt(new ByteArrayInputStream(prepared.upload().bytes()), 256L * 1024 * 1024).equals(prepared.nbt()),
                     "private preparation returns the exact frozen native distribution");
             var mutable = prepared.nbt();
             mutable.putString("injected", "not shared");

@@ -141,7 +141,7 @@ public class RenderUtils {
 
     @ExpectPlatform
     public static ResourceLocation getArmorResource(Entity entity, ItemStack stack, ArmorItem item,
-                                                    EquipmentSlot slot, boolean inner, ArmorMaterial.Layer layer) {
+                                                    EquipmentSlot slot, boolean inner, String type) {
         throw new AssertionError();
     }
 }

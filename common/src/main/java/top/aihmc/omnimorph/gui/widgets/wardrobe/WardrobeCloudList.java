@@ -260,7 +260,7 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
                 break;
             }
         }
-        int next = Math.clamp(current + (keyCode == 264 ? 1 : -1), 0, values.size() - 1);
+        int next = net.minecraft.util.Mth.clamp(current + (keyCode == 264 ? 1 : -1), 0, values.size() - 1);
         choose(values.get(next));
         int maximum = Math.max(0, values.size() * ROW_STRIDE - Math.max(1, getHeight() - contentTop() - 2));
         scrollBar.setScrollProgressNoAnim(maximum == 0 ? 0 : Math.min(1d, next * (double) ROW_STRIDE / maximum));

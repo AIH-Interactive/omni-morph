@@ -30,7 +30,7 @@ public final class OutfitCompositionSmokeTest {
                 PlayerModel.createMesh(CubeDeformation.NONE, false), 64, 64).bakeRoot(), false);
         var base = new VanillaSkeletonAdapter(model, OutfitLimits.defaults());
         var anchor = new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.BASE_BONE, null,
-                base.binding().definition().reference(null, base.binding().definition().roots().getFirst()),
+                base.binding().definition().reference(null, base.binding().definition().roots().get(0)),
                 null, null, null);
         var goodResource = resource(OutfitConfig.Format.FIGURA);
         var ysmResource = resource(OutfitConfig.Format.YSM_ENCRYPTED);
@@ -115,7 +115,7 @@ public final class OutfitCompositionSmokeTest {
                     "successful and timed-out initializers together consume exactly one outfit init allowance");
             require(instances.get(declarations.get(5).instanceId()).luaRuntime == null,
                     "an unresolved attachment does not initialize author effects");
-            Avatar good = instances.get(declarations.getFirst().instanceId());
+            Avatar good = instances.get(declarations.get(0).instanceId());
             var assertion = good.luaRuntime.load("bridge isolation", "assert(cosmetic_native == nil)");
             require(good.luaRuntime.run(assertion, new Avatar.Instructions(4096)) != null && !good.scriptError,
                     "an author cannot access the controller's native bridge");
@@ -191,7 +191,7 @@ public final class OutfitCompositionSmokeTest {
         var skeleton = new FiguraSkeletonAdapter((top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer) base.renderer,
                 baseResource, null, new SkeletonIndex.Cache(), OutfitLimits.defaults());
         var anchor = new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.BASE_BONE, null,
-                skeleton.binding().definition().reference(null, skeleton.binding().definition().roots().getFirst()), null, null, null);
+                skeleton.binding().definition().reference(null, skeleton.binding().definition().roots().get(0)), null, null, null);
         var resource = resource(OutfitConfig.Format.FIGURA);
         var declarations = List.of(instance(resource, 1, true, anchor, 0), instance(resource, 2, true, anchor, 0),
                 instance(resource, 3, false, anchor, 0), instance(resource, 4, true, OutfitConfig.AnchorRef.authorDefault("missing"), 0));
@@ -223,8 +223,8 @@ public final class OutfitCompositionSmokeTest {
                 avatar.render(0.5f);
             });
             composition.executeAll(base, avatar -> avatar.postWorldRenderEvent(0.5f));
-            require(scopes.size() == 3 && scopes.getFirst() != null
-                            && scopes.stream().allMatch(value -> value == scopes.getFirst()),
+            require(scopes.size() == 3 && scopes.get(0) != null
+                            && scopes.stream().allMatch(value -> value == scopes.get(0)),
                     "global base and each mounted instance use one instruction ledger");
             require(base.luaRuntime.run(base.luaRuntime.load("base global counts", "assert(worlds == 1 and posts == 1)"),
                     new Avatar.Instructions(4096)) != null && !base.scriptError, "base receives one global event pair");

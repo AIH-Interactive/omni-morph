@@ -223,7 +223,7 @@ final class GpuRigidData {
         if (batches.isEmpty() || batches.size() > MAX_BATCHES) {
             return false;
         }
-        DrawBatch first = batches.getFirst();
+        DrawBatch first = batches.get(0);
         long vertices = 0;
         for (DrawBatch batch : batches) {
             DrawSemantics draw = batch.semantics();
@@ -325,7 +325,7 @@ final class GpuRigidData {
             data.put(parts.get(range.parts().get(slot)).duplicate());
         }
         data.position(GpuBatchData.parameterOffset(tier));
-        GpuBatchData.writeParameters(data, batches.getFirst());
+        GpuBatchData.writeParameters(data, batches.get(0));
         // Four byte-sized slots share one integer; four integers share each std140 ivec4.
         int[] packed = packedRemap(range, MAX_BATCHES / 4);
         data.position(remapOffset(tier));
@@ -355,7 +355,7 @@ final class GpuRigidData {
 
     /** Writes the std430 pose block of the whole group (header, then every distinct part) and advances past it. */
     void writeStoragePose(ByteBuffer target) {
-        GpuBatchData.writeParameters(target, batches.getFirst());
+        GpuBatchData.writeParameters(target, batches.get(0));
         for (ByteBuffer part : parts) {
             target.put(part.duplicate());
         }

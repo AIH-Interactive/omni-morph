@@ -249,12 +249,14 @@ public final class LibraryThumbnailService implements AutoCloseable {
             try {
                 for (int y = 0; y < pixels.height(); y++) {
                     for (int x = 0; x < pixels.width(); x++) {
-                        // NativeImage stores ABGR in MC 1.21.1.
-                        nativeImage.setPixelRGBA(x, y, FastColor.ABGR32.fromArgb32(pixels.argb[y * pixels.width() + x]));
+                        // NativeImage stores ABGR in MC 1.20.1.
+                        int argb = pixels.argb[y * pixels.width() + x];
+                        int abgr = (argb & 0xff00ff00) | (argb >>> 16 & 0xff) | (argb & 0xff) << 16;
+                        nativeImage.setPixelRGBA(x, y, abgr);
                     }
                 }
                 uploaded = new DynamicTexture(nativeImage);
-                ResourceLocation identifier = ResourceLocation.fromNamespaceAndPath("omni-morph", "library/" + UUID.randomUUID());
+                ResourceLocation identifier = new ResourceLocation("omni-morph", "library/" + UUID.randomUUID());
                 Minecraft.getInstance().getTextureManager().register(identifier, uploaded);
                 texture = identifier;
                 ready.complete(true);

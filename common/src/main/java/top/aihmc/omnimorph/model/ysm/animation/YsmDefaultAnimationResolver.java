@@ -170,7 +170,7 @@ public final class YsmDefaultAnimationResolver {
                     if (target == null) {
                         var matches = targetBones.stream().filter(candidate -> YsmBoneMapper.normalize(candidate)
                                 .equals(YsmBoneMapper.normalize(name))).toList();
-                        target = matches.size() == 1 ? matches.getFirst() : null;
+                        target = matches.size() == 1 ? matches.get(0) : null;
                     }
                     if (target == null) {
                         // This assignment-only helper is consumed by excluded physics clips, not the main whitelist.

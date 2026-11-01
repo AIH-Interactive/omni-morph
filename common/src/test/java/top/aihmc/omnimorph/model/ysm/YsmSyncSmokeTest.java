@@ -68,7 +68,7 @@ public final class YsmSyncSmokeTest {
         expectInvalid(() -> new YsmSyncMessage.Control(0, YsmSyncMessage.ControlType.OPTION, 1.5));
         expectInvalid(() -> new YsmSyncMessage.Action(0, true, -1, 1, false));
         expectInvalid(() -> new YsmSyncMessage.Playback(0, 0, -1, 0, 1, Float.POSITIVE_INFINITY, 1, 0));
-        expectInvalid(() -> new YsmSyncMessage.State(0, List.of(initial.controls().getFirst(), initial.controls().getFirst()),
+        expectInvalid(() -> new YsmSyncMessage.State(0, List.of(initial.controls().get(0), initial.controls().get(0)),
                 List.of(), List.of(), List.of()));
         expectInvalid(() -> new YsmSyncMessage.Event(1, java.util.Collections.nCopies(17, 1f)));
         expectInvalid(() -> new YsmSyncMessage.Event(0, List.of()));
@@ -215,25 +215,25 @@ public final class YsmSyncSmokeTest {
 
     private static void testPackets(byte[] encoded) throws IOException {
         var packets = YsmSyncPackets.fragment(7, encoded);
-        require(YsmSyncPackets.recognizes(YsmSyncPackets.PING_ID, packets.getFirst()), "reserved ID and magic recognized together");
-        require(!YsmSyncPackets.recognizes(7, packets.getFirst())
+        require(YsmSyncPackets.recognizes(YsmSyncPackets.PING_ID, packets.get(0)), "reserved ID and magic recognized together");
+        require(!YsmSyncPackets.recognizes(7, packets.get(0))
                 && !YsmSyncPackets.recognizes(YsmSyncPackets.PING_ID, encoded), "ordinary Figura Ping payloads are not captured");
         var incoming = new YsmSyncPackets();
-        require(Arrays.equals(encoded, incoming.accept(OWNER, packets.getFirst(), 0)), "single fragment payload exact");
+        require(Arrays.equals(encoded, incoming.accept(OWNER, packets.get(0), 0)), "single fragment payload exact");
         byte[] large = new byte[YsmSyncCodec.MAX_BYTES];
         new java.util.Random(17).nextBytes(large);
         var fragmented = YsmSyncPackets.fragment(8, large);
         for (byte[] packet : fragmented) {
             require(packet.length <= YsmSyncPackets.MAX_PACKET_BYTES, "every payload fits packet budget");
         }
-        require(incoming.accept(OWNER, fragmented.getLast(), 1) == null, "last fragment may arrive first");
-        require(incoming.accept(OWNER, fragmented.getLast(), 2) == null, "exact duplicate does not complete message early");
+        require(incoming.accept(OWNER, com.google.common.collect.Iterables.getLast(fragmented), 1) == null, "last fragment may arrive first");
+        require(incoming.accept(OWNER, com.google.common.collect.Iterables.getLast(fragmented), 2) == null, "exact duplicate does not complete message early");
         for (int i = fragmented.size() - 2; i > 0; i--) {
             require(incoming.accept(OWNER, fragmented.get(i), 3) == null, "reverse assembly waits for first fragment");
         }
-        require(Arrays.equals(large, incoming.accept(OWNER, fragmented.getFirst(), 4)) && incoming.pendingCount() == 0,
+        require(Arrays.equals(large, incoming.accept(OWNER, fragmented.get(0), 4)) && incoming.pendingCount() == 0,
                 "maximum-sized reverse assembly exact and released");
-        incoming.accept(OWNER, fragmented.getFirst(), 5);
+        incoming.accept(OWNER, fragmented.get(0), 5);
         UUID other = new UUID(7, 8);
         for (int i = 1; i < fragmented.size(); i++) {
             require(incoming.accept(other, fragmented.get(i), 6) == null, "different authenticated owner cannot finish assembly");
@@ -241,32 +241,32 @@ public final class YsmSyncSmokeTest {
         require(incoming.pendingCount() == 2, "assemblies keyed by authenticated owner");
         incoming.clear();
         require(incoming.pendingCount() == 0, "disconnect clears partial messages");
-        incoming.accept(OWNER, fragmented.getFirst(), 10);
-        incoming.accept(OWNER, YsmSyncPackets.fragment(9, large).getFirst(), 10);
-        incoming.accept(OWNER, YsmSyncPackets.fragment(10, large).getFirst(), 10);
+        incoming.accept(OWNER, fragmented.get(0), 10);
+        incoming.accept(OWNER, YsmSyncPackets.fragment(9, large).get(0), 10);
+        incoming.accept(OWNER, YsmSyncPackets.fragment(10, large).get(0), 10);
         require(incoming.pendingCount() == 2, "per-owner assembly limit");
         incoming.expire(10 + YsmSyncPackets.EXPIRY_TICKS);
         require(incoming.pendingCount() == 0, "missing fragments expire");
         for (int i = 0; i < 100; i++) {
-            incoming.accept(new UUID(100, i), fragmented.getFirst(), 2000);
+            incoming.accept(new UUID(100, i), fragmented.get(0), 2000);
         }
         require(incoming.pendingCount() == YsmSyncPackets.MAX_IN_FLIGHT, "global memory bound");
         incoming.clear();
-        incoming.accept(OWNER, fragmented.getFirst(), 2001);
-        byte[] conflicting = fragmented.getFirst().clone();
+        incoming.accept(OWNER, fragmented.get(0), 2001);
+        byte[] conflicting = fragmented.get(0).clone();
         conflicting[conflicting.length - 1] ^= 1;
         expectPacketFailure(incoming, conflicting, 2002);
         require(incoming.pendingCount() == 0, "conflicting duplicate drops assembly");
-        byte[] badChecksum = packets.getFirst().clone();
+        byte[] badChecksum = packets.get(0).clone();
         badChecksum[badChecksum.length - 1] ^= 1;
         expectPacketFailure(incoming, badChecksum, 2003);
-        for (int i = 0; i < packets.getFirst().length; i++) {
-            expectPacketFailure(incoming, Arrays.copyOf(packets.getFirst(), i), 2004);
+        for (int i = 0; i < packets.get(0).length; i++) {
+            expectPacketFailure(incoming, Arrays.copyOf(packets.get(0), i), 2004);
         }
-        byte[] invalidLength = fragmented.getFirst().clone();
+        byte[] invalidLength = fragmented.get(0).clone();
         ByteBuffer.wrap(invalidLength).putInt(13, Integer.MAX_VALUE);
         expectPacketFailure(incoming, invalidLength, 2005);
-        byte[] invalidCount = fragmented.getFirst().clone();
+        byte[] invalidCount = fragmented.get(0).clone();
         ByteBuffer.wrap(invalidCount).putShort(19, (short) 65535);
         expectPacketFailure(incoming, invalidCount, 2006);
         expectPacketFailure(incoming, new byte[YsmSyncPackets.MAX_PACKET_BYTES + 1], 2007);

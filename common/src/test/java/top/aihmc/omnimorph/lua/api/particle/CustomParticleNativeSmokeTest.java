@@ -107,7 +107,7 @@ public final class CustomParticleNativeSmokeTest {
                 new LuaValue[]{api, handle, position})).arg1();
         require(engine.particles.size() == 1 && CustomParticleRuntime.liveCount(first.owner) == 1,
                 "public Lua constructor reaches the engine and consumes live capacity");
-        var particle = (CustomParticle) engine.particles.getFirst();
+        var particle = (CustomParticle) engine.particles.get(0);
         reject(() -> result.get("setAnchorTrail").call(result, LuaValue.TRUE));
         require(!result.get("isAnchorTrail").call(result).toboolean(),
                 "ordinary avatars cannot borrow a cosmetic controller's private trail source");
@@ -131,8 +131,8 @@ public final class CustomParticleNativeSmokeTest {
         var state = new ParticleVertexCapture();
         particle.extract(state, new FixtureCamera(), .5f);
         require(state.batches.size() == 1, "native SingleQuadParticle writes its actual vertices");
-        var quad = state.batches.getFirst();
-        var vertex = quad.vertices().getFirst();
+        var quad = state.batches.get(0);
+        var vertex = quad.vertices().get(0);
         near(quad.center().x, 2.5);
         near(quad.center().y, 3);
         near(quad.center().z, 3);
@@ -162,9 +162,9 @@ public final class CustomParticleNativeSmokeTest {
         var secondApi = types.javaToLua(new ParticleAPI(second)).arg1();
         secondApi.get("newTexturedParticle").invoke(LuaValue.varargsOf(new LuaValue[]{secondApi,
                 types.javaToLua(secondTexture).arg1(), position}));
-        require(engine.particles.size() == 2 && engine.particles.getLast() instanceof CustomParticle,
+        require(engine.particles.size() == 2 && com.google.common.collect.Iterables.getLast(engine.particles) instanceof CustomParticle,
                 "textured convenience entry uses the same native implementation");
-        var nativeSecond = (CustomParticle) engine.particles.getLast();
+        var nativeSecond = (CustomParticle) com.google.common.collect.Iterables.getLast(engine.particles);
         nativeSecond.setLifetime(1);
         for (int tick = 0; tick < 3; tick++) {
             nativeSecond.tick();

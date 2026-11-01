@@ -6,7 +6,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.Camera;
-import net.minecraft.client.DeltaTracker;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.OptionInstance;
 import net.minecraft.client.renderer.GameRenderer;
@@ -61,16 +61,16 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
     private boolean hasShaders;
 
     @Inject(method = "render", at = @At("HEAD"))
-    private void figura$beginYsmRenderFrame(DeltaTracker deltaTracker, boolean tick, CallbackInfo ci) {
+    private void figura$beginYsmRenderFrame(float tickDelta, long finishTimeNano, boolean tick, CallbackInfo ci) {
         HardwareAcceleration.beginFrame();
         YsmRenderFrameClock.beginFrame();
         AccelerationService.INSTANCE.beginFrame();
     }
 
     @WrapMethod(method = "render")
-    private void figura$retireCompositionFrames(DeltaTracker deltaTracker, boolean tick, Operation<Void> original) {
+    private void figura$retireCompositionFrames(float tickDelta, long finishTimeNano, boolean tick, Operation<Void> original) {
         try {
-            original.call(deltaTracker, tick);
+            original.call(tickDelta, finishTimeNano, tick);
         } finally {
             // World/hand submissions also need retirement when GUI rendering is skipped or throws.
             try {
@@ -123,7 +123,7 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
         PoseStack stack = new PoseStack();
         stack.last().pose().set(instance);
 
-        float tickDelta = this.mainCamera.getPartialTickTime();
+        float tickDelta = this.minecraft.getFrameTime();
         this.bobHurt(stack, tickDelta);
         if (this.minecraft.options.bobView().get()) {
             this.bobView(stack, tickDelta);
@@ -149,7 +149,7 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
     }
 
     @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;doEntityOutline()V", shift = At.Shift.AFTER))
-    private void render(DeltaTracker deltaTracker, boolean tick, CallbackInfo ci) {
+    private void render(float tickDelta, long finishTimeNano, boolean tick, CallbackInfo ci) {
         Entity entity = this.minecraft.getCameraEntity();
         Avatar avatar = AvatarManager.getAvatar(entity);
         if (!RenderUtils.vanillaModelAndScript(avatar)) {
@@ -215,7 +215,7 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
 
     // bobbing fix courtesy of Iris; https://github.com/IrisShaders/Iris/blob/1.20.1/src/main/java/net/irisshaders/iris/mixin/MixinModelViewBobbing.java
     @Inject(method = "renderLevel", at = @At("HEAD"))
-    private void onRenderLevel(DeltaTracker deltaTracker, CallbackInfo ci) {
+    private void onRenderLevel(float tickDelta, long finishTimeNano, PoseStack poseStack, CallbackInfo ci) {
         hasShaders = ClientAPI.hasShaderPack();
     }
 

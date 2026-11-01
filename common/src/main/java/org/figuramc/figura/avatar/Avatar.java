@@ -18,7 +18,7 @@ import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.sounds.JOrbisAudioStream;
+import com.mojang.blaze3d.audio.OggAudioStream;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -581,7 +581,7 @@ public class Avatar {
             delta_time = 0.05f;
             var mc = Minecraft.getInstance();
             try {
-                delta_time = mc.getTimer().getGameTimeDeltaTicks() / 20.0f;
+                delta_time = mc.getDeltaFrameTime() / 20.0f;
             } catch (Throwable ignored) {
             }
             life_time += delta_time;
@@ -636,7 +636,7 @@ public class Avatar {
                 is_eating = living.isUsingItem() && living.getUseItem().getUseAnimation() == net.minecraft.world.item.UseAnim.EAT ? 1f : 0f;
                 item_in_use_duration = living.isUsingItem() ? (float) living.getTicksUsingItem() / 20.0f : 0f;
                 ItemStack useItem = living.getUseItem();
-                item_max_use_duration = useItem.isEmpty() ? 0f : (float) useItem.getUseDuration(living) / 20.0f;
+                item_max_use_duration = useItem.isEmpty() ? 0f : (float) useItem.getUseDuration() / 20.0f;
                 item_remaining_use_duration = living.isUsingItem() ? (float) living.getUseItemRemainingTicks() / 20.0f : 0f;
                 swing_time = living.swinging ? Math.max(1f, living.swingTime) / 20.0f : 0f;
                 is_swinging = swing_time > 0f ? 1f : 0f;
@@ -2100,7 +2100,7 @@ public class Avatar {
 
     public void loadSound(String name, byte[] data) throws Exception {
         if (SoundAPI.getSoundEngine().figura$isEngineActive()) {
-            try (ByteArrayInputStream inputStream = new ByteArrayInputStream(data); JOrbisAudioStream oggAudioStream = new JOrbisAudioStream(inputStream)) {
+            try (ByteArrayInputStream inputStream = new ByteArrayInputStream(data); OggAudioStream oggAudioStream = new OggAudioStream(inputStream)) {
                 SoundBuffer sound = new SoundBuffer(oggAudioStream.readAll(), oggAudioStream.getFormat());
                 this.customSounds.put(name, sound);
             }

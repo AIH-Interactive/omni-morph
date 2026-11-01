@@ -32,15 +32,15 @@ public final class RibbonMeshSmokeTest {
         }
         var retained = buffer.snapshotPath();
         buffer.sample(3, world, "tip", 3, new Vec3(3, 0, 0), policy);
-        near(buffer.snapshotPath().getFirst().distance(), 1);
-        near(buffer.snapshotPath().getLast().distance(), 3);
-        near(retained.getFirst().distance(), 0);
+        near(buffer.snapshotPath().get(0).distance(), 1);
+        near(com.google.common.collect.Iterables.getLast(buffer.snapshotPath()).distance(), 3);
+        near(retained.get(0).distance(), 0);
         buffer.expire(102);
-        near(buffer.snapshotPath().getFirst().distance(), 3);
+        near(buffer.snapshotPath().get(0).distance(), 3);
         buffer.sample(4, world, "tip", 103, new Vec3(4, 0, 0), policy);
-        near(buffer.snapshotPath().getLast().distance(), 4);
+        near(com.google.common.collect.Iterables.getLast(buffer.snapshotPath()).distance(), 4);
         buffer.sample(5, world, "hip", 104, new Vec3(4.5, 0, 0), policy);
-        near(buffer.snapshotPath().getFirst().distance(), 0);
+        near(buffer.snapshotPath().get(0).distance(), 0);
         require(retained.size() == 3, "distance snapshots survive expiry and target reset");
     }
 
@@ -71,15 +71,15 @@ public final class RibbonMeshSmokeTest {
     private static void clippingAndFade() {
         var path = straight(0, 2, 4);
         var taper = build(path, 4, settings(1.5, 100, 1, 0, true, false, RibbonMesh.UvMode.REPEAT), 1, 4096);
-        near(center(taper.quads().getFirst().tailLeft(), taper.quads().getFirst().tailRight()).x, 2.5);
-        near(taper.quads().getFirst().tailLeft().position().distanceTo(taper.quads().getFirst().tailRight().position()), 0);
-        near(taper.quads().getLast().headLeft().position().distanceTo(taper.quads().getLast().headRight().position()), 2);
+        near(center(taper.quads().get(0).tailLeft(), taper.quads().get(0).tailRight()).x, 2.5);
+        near(taper.quads().get(0).tailLeft().position().distanceTo(taper.quads().get(0).tailRight().position()), 0);
+        near(com.google.common.collect.Iterables.getLast(taper.quads()).headLeft().position().distanceTo(com.google.common.collect.Iterables.getLast(taper.quads()).headRight().position()), 2);
         var fade = build(path, 4, settings(100, 1.5, 1, 0, false, true, RibbonMesh.UvMode.REPEAT), 1, 4096);
-        near(center(fade.quads().getFirst().tailLeft(), fade.quads().getFirst().tailRight()).x, 2.5);
-        near(fade.quads().getFirst().tailLeft().alpha(), 0);
-        near(fade.quads().getLast().headLeft().alpha(), 1);
+        near(center(fade.quads().get(0).tailLeft(), fade.quads().get(0).tailRight()).x, 2.5);
+        near(fade.quads().get(0).tailLeft().alpha(), 0);
+        near(com.google.common.collect.Iterables.getLast(fade.quads()).headLeft().alpha(), 1);
         var partialHead = build(path, 2.5, settings(100, 100, 1, 0, false, false, RibbonMesh.UvMode.REPEAT), 1, 4096);
-        near(center(partialHead.quads().getLast().headLeft(), partialHead.quads().getLast().headRight()).x, 2.5);
+        near(center(com.google.common.collect.Iterables.getLast(partialHead.quads()).headLeft(), com.google.common.collect.Iterables.getLast(partialHead.quads()).headRight()).x, 2.5);
         var expired = build(path, 20, settings(100, 1, 1, 0, false, true, RibbonMesh.UvMode.REPEAT), 1, 4096);
         require(expired.quads().isEmpty(), "expired trajectories emit no geometry");
     }
@@ -88,8 +88,8 @@ public final class RibbonMeshSmokeTest {
         var stretch = build(straight(0, 1, 3), 3,
                 settings(100, 100, 99, 0, false, false, RibbonMesh.UvMode.STRETCH), 1, 4096);
         require(stretch.quads().size() == 2, "stretch ignores repeat density and spans one texture interval");
-        near(stretch.quads().getFirst().tailLeft().u(), 0);
-        near(stretch.quads().getLast().headLeft().u(), 1);
+        near(stretch.quads().get(0).tailLeft().u(), 0);
+        near(com.google.common.collect.Iterables.getLast(stretch.quads()).headLeft().u(), 1);
         var settings = settings(100, 100, 1, -.25, false, false, RibbonMesh.UvMode.REPEAT);
         for (List<TrailBuffer.PathSample> path : List.of(
                 points(Vec3.ZERO, new Vec3(1, 0, 0), Vec3.ZERO),
@@ -139,7 +139,7 @@ public final class RibbonMeshSmokeTest {
         var settings = settings(100, 100, 1, 0, false, false, RibbonMesh.UvMode.REPEAT);
         var turned = RibbonMesh.build(straight(0, 1, 3), 3, new Vec3(0, 0, 10), new Vec3(1, 0, 0), settings,
                 OutfitLimits.defaults(), 1, 4096, 100, Math.PI / 2);
-        var quad = turned.quads().getFirst();
+        var quad = turned.quads().get(0);
         near(quad.tailLeft().position().y, 0);
         near(quad.tailLeft().position().z, -1);
         near(quad.tailRight().position().z, 1);

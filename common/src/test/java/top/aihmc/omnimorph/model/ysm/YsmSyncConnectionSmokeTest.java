@@ -93,7 +93,7 @@ final class YsmSyncConnectionSmokeTest {
         Object staleReceiverEpoch = link.receiverEpoch;
         link.receiverEpoch = new Object();
         link.pump(100, 100, newSource);
-        byte[] packet = link.sent.getFirst();
+        byte[] packet = link.sent.get(0);
         long beforeRejected = link.receiver.rejectedMessages();
         link.receiver.enqueue(staleReceiverEpoch, source.owner().owner, YsmSyncPackets.PING_ID, packet);
         require(link.receiver.queuedPackets() == 0 && link.receiver.rejectedMessages() > beforeRejected,
@@ -189,8 +189,8 @@ final class YsmSyncConnectionSmokeTest {
         java.util.UUID owner = source.owner().owner;
         require(display.equals(top.aihmc.omnimorph.model.ysm.YsmDisplayQuery.remote(owner)),
                 "the observer stores the owner's published display state");
-        require(!sent.isEmpty() && sent.getFirst().state().display() != null
-                        && sent.getFirst().withoutDisplay().state().display() == null,
+        require(!sent.isEmpty() && sent.get(0).state().display() != null
+                        && sent.get(0).withoutDisplay().state().display() == null,
                 "the M7 path can drop display while keeping the rest of the state");
         receiver.tickTyped(null, 401, null, uuid -> null, message -> false);
         require(top.aihmc.omnimorph.model.ysm.YsmDisplayQuery.remote(owner) == null,

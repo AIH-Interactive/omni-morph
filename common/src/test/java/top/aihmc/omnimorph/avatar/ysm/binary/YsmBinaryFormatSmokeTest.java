@@ -57,21 +57,21 @@ public final class YsmBinaryFormatSmokeTest {
         require(model.formatVersion == format, "format remains separate from crypto");
         var geometry = model.mainEntity.mainModel;
         require(geometry != null && geometry.bones.size() == 1, "nonempty main geometry");
-        var bone = geometry.bones.getFirst();
+        var bone = geometry.bones.get(0);
         require(bone.name.equals("root") && Arrays.equals(bone.pivot, new float[]{1, 2, 3}), "bone name and pivot");
-        require(bone.cubes.getFirst().faces.getFirst().positions[2][1] == 3, "direct quad vertex");
+        require(bone.cubes.get(0).faces.get(0).positions[2][1] == 3, "direct quad vertex");
         require(geometry.footerPad3 == 6 && bone.unkPad5 == 5, "unknown geometry fields retained");
         var animation = model.mainEntity.animationFiles.get("main").animations.get("animation.fixture");
         require(animation.length == 2 && animation.loopMode == 1, "duration ticks and loop");
-        var frame = animation.boneAnimations.getFirst().rotation.getFirst();
+        var frame = animation.boneAnimations.get(0).rotation.get(0);
         require(frame.timestamp == 0.5f && frame.hasPreData && frame.preData[0].equals(1f)
                 && frame.postData[2].equals(6f), "pre/post keyframe retained");
         require(Arrays.equals(model.mainEntity.textures.get("body").data, new byte[]{12, 34, 56, (byte) 255}),
                 "synthetic RGBA texture");
         if (format > 9) {
-            var controller = model.mainEntity.animationControllerFiles.getFirst().controllers.get("controller.fixture");
+            var controller = model.mainEntity.animationControllerFiles.get(0).controllers.get("controller.fixture");
             require(controller.initialState.equals("default") && controller.states.size() == 1, "nonempty controller");
-            require(controller.states.getFirst().soundEffects.size() == (format > 26 ? 1 : 0), "controller version boundary");
+            require(controller.states.get(0).soundEffects.size() == (format > 26 ? 1 : 0), "controller version boundary");
         }
         require(model.properties.mergeMultilineExpr == (format >= 32), "format 32 property boundary");
         if (format > 15) {

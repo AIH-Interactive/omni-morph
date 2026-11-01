@@ -32,7 +32,7 @@ public class EntityUtils {
         Entity entity = Minecraft.getInstance().getCameraEntity();
         if (entity == null) return null;
 
-        float tickDelta = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(false);
+        float tickDelta = Minecraft.getInstance().getFrameTime();
         Vec3 entityEye = entity.getEyePosition(tickDelta);
         Vec3 viewVec = entity.getViewVector(tickDelta).scale(distance);
         AABB box = entity.getBoundingBox().expandTowards(viewVec).inflate(1f, 1f, 1f);

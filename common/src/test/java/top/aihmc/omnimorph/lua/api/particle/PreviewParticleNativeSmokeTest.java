@@ -3,7 +3,6 @@ package top.aihmc.omnimorph.lua.api.particle;
 import com.google.gson.Gson;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.Camera;
@@ -287,19 +286,21 @@ final class PreviewParticleNativeSmokeTest {
     }
 
     private static byte[] vertices(PreviewParticleFrame frame, Matrix4f transform, List<RenderType> order) {
-        try (var storage = new ByteBufferBuilder(frame.vertexCount() * DefaultVertexFormat.PARTICLE.getVertexSize())) {
-            var builder = new BufferBuilder(storage, VertexFormat.Mode.QUADS, DefaultVertexFormat.PARTICLE);
-            frame.draw(transform, type -> {
-                order.add(type);
-                return builder;
-            });
-            try (var mesh = builder.build()) {
-                require(mesh != null && mesh.drawState().vertexCount() == frame.vertexCount(),
-                        "panel replay emits the complete native PARTICLE vertex format");
-                byte[] bytes = new byte[mesh.vertexBuffer().remaining()];
-                mesh.vertexBuffer().get(bytes);
-                return bytes;
-            }
+        var builder = new BufferBuilder(frame.vertexCount() * DefaultVertexFormat.PARTICLE.getVertexSize());
+        builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.PARTICLE);
+        frame.draw(transform, type -> {
+            order.add(type);
+            return builder;
+        });
+        var mesh = builder.end();
+        try {
+            require(mesh != null && mesh.drawState().vertexCount() == frame.vertexCount(),
+                    "panel replay emits the complete native PARTICLE vertex format");
+            byte[] bytes = new byte[mesh.vertexBuffer().remaining()];
+            mesh.vertexBuffer().get(bytes);
+            return bytes;
+        } finally {
+            mesh.release();
         }
     }
 

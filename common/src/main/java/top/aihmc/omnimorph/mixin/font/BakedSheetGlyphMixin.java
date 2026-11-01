@@ -63,10 +63,10 @@ public abstract class BakedSheetGlyphMixin implements BakedGlyphAccessor {
         float shift = singleWidth * figura$metadata.getCurrentFrame();
 
         float u = u0 + shift;
-        vertexConsumer.addVertex(matrix, x + m, k, 0).setColor(red, green, blue, alpha).setUv(u, this.v0).setLight(light);
-        vertexConsumer.addVertex(matrix, x + n, l, 0).setColor(red, green, blue, alpha).setUv(u, this.v1).setLight(light);
-        vertexConsumer.addVertex(matrix, x + figura$metadata.width + n, l, 0).setColor(red, green, blue, alpha).setUv(u + singleWidth, this.v1).setLight(light);
-        vertexConsumer.addVertex(matrix, x + figura$metadata.width + m, k, 0).setColor(red, green, blue, alpha).setUv(u + singleWidth, this.v0).setLight(light);
+        vertexConsumer.vertex(matrix, x + m, k, 0).color(red, green, blue, alpha).uv(u, this.v0).uv2(light).endVertex();
+        vertexConsumer.vertex(matrix, x + n, l, 0).color(red, green, blue, alpha).uv(u, this.v1).uv2(light).endVertex();
+        vertexConsumer.vertex(matrix, x + figura$metadata.width + n, l, 0).color(red, green, blue, alpha).uv(u + singleWidth, this.v1).uv2(light).endVertex();
+        vertexConsumer.vertex(matrix, x + figura$metadata.width + m, k, 0).color(red, green, blue, alpha).uv(u + singleWidth, this.v0).uv2(light).endVertex();
         ci.cancel();
     }
 }

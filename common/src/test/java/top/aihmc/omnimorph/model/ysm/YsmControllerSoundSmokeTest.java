@@ -67,7 +67,7 @@ public final class YsmControllerSoundSmokeTest {
         player.controllerRuntime().update(evaluator, 0.1f);
         context[0] = 1f;
         player.controllerRuntime().update(evaluator, 0.1f);
-        require(sounds.size() == count + 1 && sounds.getLast().equals("next.sound"), "false condition rearms sound transition");
+        require(sounds.size() == count + 1 && com.google.common.collect.Iterables.getLast(sounds).equals("next.sound"), "false condition rearms sound transition");
         testEntryExitContext();
         testSoundOwnership();
         System.out.println("M3 controller entry sound requests and held-condition transition gating passed; audible playback is manual.");
@@ -135,7 +135,7 @@ public final class YsmControllerSoundSmokeTest {
         bank.stop("main");
         require(stops.size() == 2, "different model instances do not share ownership");
         other.close();
-        require(stops.getLast().equals("other.main"), "second instance retains its own sound");
+        require(com.google.common.collect.Iterables.getLast(stops).equals("other.main"), "second instance retains its own sound");
     }
 
     private static void require(boolean condition, String message) {

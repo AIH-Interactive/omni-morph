@@ -4,7 +4,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.packs.PackLocationInfo;
 import net.minecraft.server.packs.PathPackResources;
 import net.minecraft.server.packs.repository.PackSource;
 import org.figuramc.figura.FiguraMod;
@@ -32,7 +31,8 @@ public class FiguraRuntimeResources {
             "textures/gui/show_figura.png", "textures/gui/unknown_icon.png", "textures/avatar_wizard/icon.png",
             "textures/gui/toast/default.png", "textures/gui/toast/warning.png", "textures/gui/toast/error.png",
             "font/badges.json", "textures/font/omnimorph.png");
-    public static final PathPackResources PACK = new PathPackResources(new PackLocationInfo(FiguraMod.MOD_NAME + " runtime resource pack", Component.literal("OmniMorph Runtime Resources"), PackSource.BUILT_IN, Optional.empty()), getRootDirectory());
+    public static final PathPackResources PACK = new PathPackResources(
+            FiguraMod.MOD_NAME + " runtime resource pack", getRootDirectory(), true);
 
     public static Path getRootDirectory() {
         return IOUtils.getOrCreateDir(FiguraMod.getCacheDirectory(), "resources");

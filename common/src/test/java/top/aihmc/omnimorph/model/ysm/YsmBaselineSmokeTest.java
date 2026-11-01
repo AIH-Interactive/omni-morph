@@ -69,7 +69,7 @@ public final class YsmBaselineSmokeTest {
             require(candidates.reports().size() == 4 && candidates.invalidCount() == 3,
                     "encrypted and unrecognized candidates are counted");
             for (String name : new String[]{"old.ysm", "new.ysm"}) {
-                require(YsmModelScanner.scanOne(root.resolve(name)).errors().getFirst()
+                require(YsmModelScanner.scanOne(root.resolve(name)).errors().get(0)
                         .startsWith("INVALID_DATA: encrypted scan diagnostic sha256="), "encrypted source diagnostic " + name);
             }
             require(YsmModelScanner.scan(root.resolve("old.ysm")).reports().size() == 1,

@@ -18,7 +18,7 @@ public final class TrailBufferSmokeTest {
         require(buffer.sample(4, world, "tip", 1.1, new Vec3(.2, 0, 0), policy), "distance samples before the interval");
         require(buffer.sample(5, world, "tip", 1.2, new Vec3(.4, 0, 0), policy), "ring overwrites its oldest element");
         var retained = buffer.snapshot();
-        require(retained.size() == 3 && retained.getFirst().timeTicks() == 1,
+        require(retained.size() == 3 && retained.get(0).timeTicks() == 1,
                 "negotiated capacity preserves chronological order");
         require(!buffer.sample(4, world, "tip", .5, new Vec3(999, 0, 0), policy), "late extracted frame cannot sample or teleport newer state");
         buffer.invalidate(4);
@@ -27,7 +27,7 @@ public final class TrailBufferSmokeTest {
         require(buffer.snapshot().isEmpty() && retained.size() == 3, "lifetime expiry does not mutate an extracted snapshot");
         buffer.sample(6, world, "tip", 14, Vec3.ZERO, policy);
         buffer.sample(7, world, "tip", 15, new Vec3(100, 0, 0), policy);
-        require(buffer.snapshot().size() == 1 && buffer.snapshot().getFirst().x() == 100,
+        require(buffer.snapshot().size() == 1 && buffer.snapshot().get(0).x() == 100,
                 "teleport clears the old map-spanning segment");
         buffer.sample(8, world, "hip", 16, new Vec3(100.1, 0, 0), policy);
         require(buffer.snapshot().size() == 1, "target fallback resets the old tip trajectory");
@@ -37,7 +37,7 @@ public final class TrailBufferSmokeTest {
         require(buffer.snapshot().isEmpty(), "world switch clears history without requiring another render sample");
         buffer.sample(10, world, "tip", 20, Vec3.ZERO, policy);
         buffer.sample(11, world, "tip", 19, new Vec3(.2, 0, 0), policy);
-        require(buffer.snapshot().size() == 1 && buffer.snapshot().getFirst().timeTicks() == 19,
+        require(buffer.snapshot().size() == 1 && buffer.snapshot().get(0).timeTicks() == 19,
                 "a newer frame with a rewound world clock starts a fresh trajectory");
         buffer.invalidate(12);
         require(!buffer.sample(12, world, "tip", 20, Vec3.ZERO, policy), "invalidated frame cannot resurrect cleared history");
@@ -60,13 +60,13 @@ public final class TrailBufferSmokeTest {
         for (int step = 0; step <= 64; step++) {
             buffer.sample(15 + step, world, "tip", step, new Vec3(step, 0, 0), slow);
         }
-        require(buffer.snapshot().size() == 2 && buffer.snapshot().getFirst().x() == 0,
+        require(buffer.snapshot().size() == 2 && buffer.snapshot().get(0).x() == 0,
                 "teleport detection uses consecutive observed positions rather than the previous sparse sample");
         json.addProperty("maxTrailSamples", 1);
         var single = new TrailBuffer(new Gson().fromJson(json, OutfitLimits.class));
         single.sample(1, world, "tip", 0, Vec3.ZERO, policy);
         single.sample(2, world, "tip", 1, new Vec3(1, 0, 0), policy);
-        require(single.snapshot().size() == 1 && single.snapshot().getFirst().x() == 1,
+        require(single.snapshot().size() == 1 && single.snapshot().get(0).x() == 1,
                 "small negotiated buffers work without exceeding their allocation");
         System.out.println("PASS native trail ring: negotiated capacity, distance/time, lifetime, late frames, teleport/world/target resets and finite policy");
     }

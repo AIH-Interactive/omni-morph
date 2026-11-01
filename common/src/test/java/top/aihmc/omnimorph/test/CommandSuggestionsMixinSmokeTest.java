@@ -180,7 +180,7 @@ public final class CommandSuggestionsMixinSmokeTest {
 
     private static AnnotationNode injectionPoint(AnnotationNode annotation) {
         Object point = value(annotation, "at");
-        return point instanceof List<?> points ? (AnnotationNode) points.getFirst() : (AnnotationNode) point;
+        return point instanceof List<?> points ? (AnnotationNode) points.get(0) : (AnnotationNode) point;
     }
 
     private static AnnotationNode annotation(List<AnnotationNode> annotations, String descriptor) {

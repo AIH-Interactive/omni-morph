@@ -53,7 +53,7 @@ public final class YsmDataBoundarySmokeTest {
                 returned[0] = 0;
                 require(directory.resources().readBytes("textures/body.png")[0] != 0,
                         "resource buffers are not shared with callers");
-                var avatar = YsmAvatarLoader.toAvatarNbt(directory, directory.manifest().textures().getFirst(),
+                var avatar = YsmAvatarLoader.toAvatarNbt(directory, directory.manifest().textures().get(0),
                         new UUID(0, 1), folder);
                 require(avatar.getCompound("metadata").getString("format").equals("ysm-native"),
                         "formal YSM metadata retained");
@@ -165,8 +165,8 @@ public final class YsmDataBoundarySmokeTest {
         direct.roots.add(bone);
         try (YsmMemoryResourceSource source = new YsmMemoryResourceSource("binary-faces", Map.of());
              YsmModelData data = new YsmModelData(original.identity(), original.manifest(), source, direct, null)) {
-            require(Arrays.equals(vertices, data.mainGeometry().bones.get("mesh").cubes.getFirst()
-                    .quads.getFirst().positions()), "arbitrary faces preserved without cube reconstruction");
+            require(Arrays.equals(vertices, data.mainGeometry().bones.get("mesh").cubes.get(0)
+                    .quads.get(0).positions()), "arbitrary faces preserved without cube reconstruction");
             direct.bones.get("mesh").pivot[0] = 9;
             require(data.mainGeometry().bones.get("mesh").pivot[0] == 0, "input geometry is isolated");
             YsmGeometry copy = data.mainGeometry();

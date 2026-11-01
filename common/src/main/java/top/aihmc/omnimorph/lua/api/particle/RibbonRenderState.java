@@ -64,9 +64,9 @@ final class RibbonRenderState {
         var uv = layer.uv();
         float u = (float) (uv.u0() + (uv.u1() - uv.u0()) * vertex.u());
         float v = (float) (uv.v0() + (uv.v1() - uv.v0()) * vertex.v());
-        consumer.addVertex((float) relative.x, (float) relative.y, (float) relative.z)
-                .setUv(u, v).setColor(layer.red(), layer.green(), layer.blue(), layer.alpha() * vertex.alpha())
-                .setLight(layer.light());
+        consumer.vertex((float) relative.x, (float) relative.y, (float) relative.z)
+                .uv(u, v).color(layer.red(), layer.green(), layer.blue(), layer.alpha() * vertex.alpha())
+                .uv2(layer.light()).endVertex();
     }
 
 }

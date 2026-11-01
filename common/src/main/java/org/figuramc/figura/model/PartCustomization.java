@@ -53,7 +53,7 @@ public class PartCustomization {
     public TextureCustomization primaryTexture, secondaryTexture;
 
     public void applyToStack(PoseStack stack) {
-        stack.mulPose(positionMatrix.toMatrix4f());
+        stack.mulPoseMatrix(positionMatrix.toMatrix4f());
         stack.last().normal().mul(normalMatrix.toMatrix3f());
     }
 

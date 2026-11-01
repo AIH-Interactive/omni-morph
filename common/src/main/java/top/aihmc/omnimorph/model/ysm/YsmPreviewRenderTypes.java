@@ -9,7 +9,7 @@ import net.minecraft.resources.ResourceLocation;
 /** Native GUI materials without directional lighting or lightmap sampling. */
 public final class YsmPreviewRenderTypes extends RenderType {
     public static final ResourceLocation SHADER_ID =
-            ResourceLocation.fromNamespaceAndPath("omni-morph", "ysm_gui_unlit");
+            new ResourceLocation("omni-morph", "ysm_gui_unlit");
     private static ShaderInstance shader;
     private ResourceLocation currentTexture;
     private final RenderType[] materials = new RenderType[4];

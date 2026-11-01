@@ -33,7 +33,7 @@ public final class YsmHandItemType {
         if (compatTag(stack, "pike")) {
             return expected.equals("lance");
         }
-        if (item == Items.MACE || compatTag(stack, "mace")) {
+        if (compatTag(stack, "mace")) {
             return expected.equals("mace");
         }
         String type = nonWeaponType(stack);
@@ -79,6 +79,6 @@ public final class YsmHandItemType {
 
     private static boolean compatTag(ItemStack stack, String name) {
         // This namespace comes from the current reference ItemTagsConstants, not this mod's ID.
-        return stack.is(TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath("sparkle_morpher", name)));
+        return stack.is(TagKey.create(Registries.ITEM, new ResourceLocation("sparkle_morpher", name)));
     }
 }

@@ -155,8 +155,8 @@ public final class YsmDeferredPoseSmokeTest {
         }
 
         @Override
-        public EntityDimensions getDefaultDimensions(Pose pose) {
-            return EntityDimensions.scalable(.6f, 1.8f).withEyeHeight(eyeHeight);
+        public float getStandingEyeHeight(Pose pose, EntityDimensions dimensions) {
+            return eyeHeight;
         }
     }
 

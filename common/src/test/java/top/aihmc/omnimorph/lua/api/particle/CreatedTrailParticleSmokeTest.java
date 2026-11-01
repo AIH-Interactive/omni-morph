@@ -53,7 +53,7 @@ final class CreatedTrailParticleSmokeTest {
                 var initial = owned(submissions, first);
                 require(initial.size() == 1 && owned(submissions, second).size() == 1,
                         "Twelve draws and both world render contexts still emit one particle per four ticks per instance");
-                CustomParticle petal = initial.getFirst();
+                CustomParticle petal = initial.get(0);
                 var particle = new LuaParticle("created petal", petal, first);
                 require(particle.getLifetime() == 24 && !particle.isEmissive() && !particle.isDynamicLight(),
                         "Created default is a finite, environment-lit static petal without a world light");
@@ -70,7 +70,7 @@ final class CreatedTrailParticleSmokeTest {
                 advance(first, second, 4, 1);
                 require(owned(submissions, first).size() == 1 && owned(submissions, second).size() == 2,
                         "Changing one copy's controls does not alter its sibling's emitter");
-                CustomParticle star = owned(submissions, second).getLast();
+                CustomParticle star = com.google.common.collect.Iterables.getLast(owned(submissions, second));
                 require(star.emissive() && !star.dynamicLight() && star.frame() == 0 && !petal.emissive(),
                         "Switching presets changes only new particles and enables full bright without dynamic light");
                 var starState = extract(star);
@@ -246,7 +246,7 @@ final class CreatedTrailParticleSmokeTest {
                            Consumer<VertexConsumer> writer) {
             var capture = new ParticleVertexCapture();
             capture.accept(material, writer);
-            var batch = capture.batches.getFirst();
+            var batch = capture.batches.get(0);
             var center = batch.center();
             layer = material;
             x = (float) center.x;
@@ -257,7 +257,7 @@ final class CreatedTrailParticleSmokeTest {
             v0 = batch.v0();
             v1 = batch.v1();
             size = (float) (batch.vertices().get(0).position().distanceTo(batch.vertices().get(1).position()) * .5);
-            light = batch.vertices().getFirst().light();
+            light = batch.vertices().get(0).light();
         }
     }
 

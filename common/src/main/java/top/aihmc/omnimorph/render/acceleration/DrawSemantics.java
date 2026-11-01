@@ -36,7 +36,7 @@ public record DrawSemantics(RenderType material, ResourceLocation texture, Layer
     }
 
     public boolean sortOnUpload() {
-        return material != null && material.sortOnUpload();
+        return material != null && material.sortOnUpload;
     }
 
     /** Numeric-only callers explicitly lack a draw/material capability. */

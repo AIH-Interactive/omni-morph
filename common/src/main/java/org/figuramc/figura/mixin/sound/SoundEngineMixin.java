@@ -120,7 +120,7 @@ public abstract class SoundEngineMixin implements SoundEngineAccessor {
         // "Can hear sound" check stolen from 381 of SoundEngine
         float g = Math.max(sound.getVolume(), 1.0F) * (float)sound.getSound().getAttenuationDistance();
         Vec3 pos = new Vec3(sound.getX(), sound.getY(), sound.getZ());
-        if (sound.isRelative() || sound.getAttenuation() == Attenuation.NONE || this.listener.getTransform().position().distanceToSqr(pos) < (double)(g * g)){
+        if (sound.isRelative() || sound.getAttenuation() == Attenuation.NONE || this.listener.getListenerPosition().distanceToSqr(pos) < (double)(g * g)){
             // Run sound event
             AvatarManager.executeAll("playSoundEvent", avatar -> {
                 boolean cancel = avatar.playSoundEvent(

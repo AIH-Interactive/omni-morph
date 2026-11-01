@@ -512,20 +512,20 @@ public class AvatarControlsScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double amount, double horizontalAmount) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
         if (pageTabScrollbar != null && mouseX >= controlsX() + 8
                 && mouseX < controlsX() + controlsWidth() - 8
                 && mouseY >= headerTop() && mouseY < contentTop()) {
             pageTabScrollbar.setScrollProgress(pageTabScrollbar.getScrollProgress()
-                    - (amount + horizontalAmount) * 72d / pageTabOverflow);
+                    - amount * 72d / pageTabOverflow);
             return true;
         }
-        if (super.mouseScrolled(mouseX, mouseY, amount, horizontalAmount)) {
+        if (super.mouseScrolled(mouseX, mouseY, amount)) {
             rebuildDirtyContentScroll();
             return true;
         }
         int max = maxScroll();
-        int next = Mth.clamp(scroll + (int) Math.signum(-amount - horizontalAmount) * scrollStep(), 0, max);
+        int next = Mth.clamp(scroll + (int) Math.signum(-amount) * scrollStep(), 0, max);
         if (next == scroll)
             return false;
         scroll = next;
@@ -1495,7 +1495,7 @@ public class AvatarControlsScreen extends Screen {
 
         private double progressFor(double number) {
             double range = control.max() - control.min();
-            return range <= 0d ? 0d : Math.clamp((number - control.min()) / range, 0d, 1d);
+            return range <= 0d ? 0d : net.minecraft.util.Mth.clamp((number - control.min()) / range, 0d, 1d);
         }
 
         private double currentValue() {

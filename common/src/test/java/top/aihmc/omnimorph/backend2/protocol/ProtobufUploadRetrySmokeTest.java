@@ -22,7 +22,7 @@ final class ProtobufUploadRetrySmokeTest {
                     "a transient commit limit recovers without restarting the upload");
             require(server.reservations.get() == 1 && server.rawUploads.get() == 1 && server.commits.size() == 2,
                     "commit retry reuses the uploaded body instead of consuming another upload slot");
-            require(server.commits.getFirst().equals(server.commits.getLast()),
+            require(server.commits.get(0).equals(com.google.common.collect.Iterables.getLast(server.commits)),
                     "commit retry retains the operation ID, length and digest");
         }
         try (var server = new UploadServer(100, Cloud.ErrorCode.LIMIT_EXCEEDED);

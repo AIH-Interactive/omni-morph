@@ -65,12 +65,12 @@ public class SpriteTask extends RenderTask {
 
         // create vertices
         for (Vertex v : vertices) {
-            consumer.addVertex(pose, v.x, v.y, v.z)
-                    .setColor(r, g, b, a)
-                    .setUv(v.u, v.v)
-                    .setOverlay(newOverlay)
-                    .setLight(newLight)
-                    .setNormal(poseStack.last(), v.nx, v.ny, v.nz);
+            consumer.vertex(pose, v.x, v.y, v.z)
+                    .color(r, g, b, a)
+                    .uv(v.u, v.v)
+                    .overlayCoords(newOverlay)
+                    .uv2(newLight)
+                    .normal(poseStack.last().normal(), v.nx, v.ny, v.nz).endVertex();
         }
     }
 
@@ -143,7 +143,7 @@ public class SpriteTask extends RenderTask {
         }
         if (texture instanceof String s) {
             try {
-                this.texture = ResourceLocation.parse(s);
+                this.texture = new ResourceLocation(s);
             } catch (Exception e) {
                 this.texture = MissingTextureAtlasSprite.getLocation();
             }

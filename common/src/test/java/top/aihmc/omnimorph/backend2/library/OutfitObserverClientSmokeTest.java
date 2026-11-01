@@ -77,10 +77,10 @@ public final class OutfitObserverClientSmokeTest {
             require(snapshot.revision() == 7 && !snapshot.legacyFallback() && snapshot.resources().size() == 1,
                     "typed snapshot retains its exact configuration revision and source");
             byte[] bytes = await(client.submit(LibraryClient.Lane.TRANSFER,
-                    exchange -> exchange.observerOutfitBody(snapshot, snapshot.resources().getFirst())).future());
+                    exchange -> exchange.observerOutfitBody(snapshot, snapshot.resources().get(0))).future());
             require(java.util.Arrays.equals(bytes, server.body), "scoped body uses the actual binary route and verifies its hash");
             server.mode = "figura-no-schema";
-            require(await(client.observerOutfit(server.owner).future()).resources().getFirst().schemaSha256().isEmpty(),
+            require(await(client.observerOutfit(server.owner).future()).resources().get(0).schemaSha256().isEmpty(),
                     "Figura assets do not require a YSM schema hash");
             server.mode = "large-valid";
             require(await(client.observerOutfit(server.owner).future()).revision() == 7,
@@ -105,10 +105,10 @@ public final class OutfitObserverClientSmokeTest {
             require(await(client.observerOutfit(server.owner).future()).legacyFallback(), "revision-zero accounts keep an explicit legacy fallback");
             server.mode = "bad-body-hash";
             failure(client.submit(LibraryClient.Lane.TRANSFER,
-                    exchange -> exchange.observerOutfitBody(snapshot, snapshot.resources().getFirst())).future(), "DISTRIBUTION_HASH_MISMATCH");
+                    exchange -> exchange.observerOutfitBody(snapshot, snapshot.resources().get(0))).future(), "DISTRIBUTION_HASH_MISMATCH");
             server.mode = "stale-body";
             failure(client.submit(LibraryClient.Lane.TRANSFER,
-                    exchange -> exchange.observerOutfitBody(snapshot, snapshot.resources().getFirst())).future(), "CONFLICT");
+                    exchange -> exchange.observerOutfitBody(snapshot, snapshot.resources().get(0))).future(), "CONFLICT");
             server.mode = "revoked";
             failure(client.observerOutfit(server.owner).future(), "NOT_FOUND");
             server.mode = "normal";

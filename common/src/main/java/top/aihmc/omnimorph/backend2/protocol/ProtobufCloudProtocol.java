@@ -555,14 +555,14 @@ public final class ProtobufCloudProtocol implements CloudProtocol {
 
     @Override
     public Reply equip(List<UUID> owners, List<String> assets) throws Exception {
-        if (owners.size() != assets.size() || owners.size() > 1 || !owners.isEmpty() && !owners.getFirst().equals(owner)) {
+        if (owners.size() != assets.size() || owners.size() > 1 || !owners.isEmpty() && !owners.get(0).equals(owner)) {
             throw new IOException("Invalid equipment authority");
         }
         profile(owner);
         var request = Cloud.Equip.newBuilder().setOperationId(UUID.randomUUID().toString())
                 .setExpectedRevision(equipment.get(owner).getRevision()).setClear(owners.isEmpty());
         if (!owners.isEmpty()) {
-            String id = assets.getFirst();
+            String id = assets.get(0);
             var resource = uploads.getOrDefault(id, resources.get(owner + "/" + id));
             if (resource == null) {
                 throw new Failure(Cloud.ErrorCode.NOT_FOUND);

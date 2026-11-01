@@ -12,7 +12,7 @@ import net.minecraft.world.entity.projectile.SpectralArrow;
 import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
 import top.aihmc.omnimorph.model.ysm.YsmReferenceQuery;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.alchemy.PotionUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -597,7 +597,7 @@ public class MolangBindings implements ObjectBinding {
             if (value == null || value.isBlank())
                 return null;
             try {
-                return ResourceLocation.parse(value.contains(":") ? value : "minecraft:" + value);
+                return new ResourceLocation(value.contains(":") ? value : "minecraft:" + value);
             } catch (Exception ignored) {
                 return null;
             }
@@ -1037,18 +1037,18 @@ public class MolangBindings implements ObjectBinding {
                 if (published != null) {
                     effects += published;
                 } else if (entity instanceof LivingEntity living) {
-                    var instance = living.getEffect(holder);
+                    var instance = living.getEffect(effect);
                     if (instance != null) {
                         effects += instance.getAmplifier() + 1;
                     }
                 } else if (entity instanceof net.minecraft.world.entity.projectile.Arrow arrow) {
-                    ItemStack pickup = arrow.getPickupItemStackOrigin();
-                    var contents = pickup == null ? null : pickup.get(DataComponents.POTION_CONTENTS);
+                    ItemStack pickup = ((top.aihmc.omnimorph.mixin.AbstractArrowAccessor) arrow).figura$getPickupItem();
+                    var contents = pickup == null ? null : PotionUtils.getMobEffects(pickup);
                     if (contents == null) {
                         continue;
                     }
-                    for (var instance : contents.getAllEffects()) {
-                        if (instance.getEffect().value() == effect) {
+                    for (var instance : contents) {
+                        if (instance.getEffect() == effect) {
                             effects += instance.getAmplifier() + 1;
                             break;
                         }
@@ -1072,11 +1072,11 @@ public class MolangBindings implements ObjectBinding {
             }
             org.figuramc.figura.FiguraMod.LOGGER.warn("Display {}", stack.getItem().getName(stack).getString(99));
             org.figuramc.figura.FiguraMod.LOGGER.warn("Name {}", key);
-            for (var entry : stack.getEnchantments().entrySet()) {
+            for (var entry : EnchantmentHelper.getEnchantments(stack).entrySet()) {
                 org.figuramc.figura.FiguraMod.LOGGER.warn("Enchantment: display {}  name {}",
-                        net.minecraft.world.item.enchantment.Enchantment.getFullname(entry.getKey(), entry.getIntValue())
+                        entry.getKey().getFullname(entry.getValue())
                                 .getString(99),
-                        entry.getKey().unwrapKey().map(key2 -> key2.registry().toString()).orElse("unknown"));
+                        BuiltInRegistries.ENCHANTMENT.getKey(entry.getKey()));
             }
             return null;
         }
@@ -1216,9 +1216,9 @@ public class MolangBindings implements ObjectBinding {
                     boolean firstPerson = context.is_first_person != 0f;
                     var parts = runtime.getAnimationParts(name, firstPerson);
                     if (!parts.isEmpty() && channel == YsmBoneQuery.Channel.PIVOT_ABS) {
-                        runtime.boneQueries().trackPivot(parts.getFirst(), firstPerson);
+                        runtime.boneQueries().trackPivot(parts.get(0), firstPerson);
                     }
-                    return parts.isEmpty() ? null : new YsmBoneQuery(parts.getFirst(), channel, runtime.boneQueries(), firstPerson);
+                    return parts.isEmpty() ? null : new YsmBoneQuery(parts.get(0), channel, runtime.boneQueries(), firstPerson);
                 }
 
                 @Override
@@ -1482,12 +1482,12 @@ public class MolangBindings implements ObjectBinding {
                         return 0;
                     }
                     int level = 0;
-                    var registry = living.level().registryAccess().registryOrThrow(Registries.ENCHANTMENT);
+                    var registry = BuiltInRegistries.ENCHANTMENT;
                     for (int index = 1; index < arguments.size(); index++) {
                         String enchantment = arguments.getAsString(execution, index);
                         ResourceLocation id = enchantment == null ? null : ResourceLocation.tryParse(enchantment);
                         if (id != null) {
-                            var holder = registry.getHolder(id).orElse(null);
+                            var holder = registry.get(id);
                             if (holder != null) {
                                 level += EnchantmentHelper.getItemEnchantmentLevel(holder, stack);
                             }
@@ -1542,16 +1542,16 @@ public class MolangBindings implements ObjectBinding {
             if (entity instanceof LivingEntity living) {
                 effects.addAll(living.getActiveEffects());
             } else if (entity instanceof net.minecraft.world.entity.projectile.Arrow arrow) {
-                ItemStack pickup = arrow.getPickupItemStackOrigin();
-                var contents = pickup == null ? null : pickup.get(net.minecraft.core.component.DataComponents.POTION_CONTENTS);
+                ItemStack pickup = ((top.aihmc.omnimorph.mixin.AbstractArrowAccessor) arrow).figura$getPickupItem();
+                var contents = pickup == null ? null : PotionUtils.getMobEffects(pickup);
                 if (contents != null) {
-                    contents.forEachEffect(effects::add);
+                    effects.addAll(contents);
                 }
             }
             for (var effect : effects) {
                 org.figuramc.figura.FiguraMod.LOGGER.warn("Effect: display {}  name {}  lv={}",
-                        effect.getEffect().value().getDisplayName().getString(99),
-                        BuiltInRegistries.MOB_EFFECT.getKey(effect.getEffect().value()), effect.getAmplifier() + 1);
+                        effect.getEffect().getDisplayName().getString(99),
+                        BuiltInRegistries.MOB_EFFECT.getKey(effect.getEffect()), effect.getAmplifier() + 1);
             }
             return null;
         }
@@ -1572,9 +1572,8 @@ public class MolangBindings implements ObjectBinding {
             if (!(context(ctx).entity instanceof net.minecraft.world.entity.projectile.AbstractArrow arrow)) {
                 return null;
             }
-            // Use the native firing stack when present. Remote display overrides belong to M7.
-            ItemStack weapon = arrow.getWeaponItem();
-            return weapon == null ? "" : itemId(weapon);
+            // 1.20.1 does not retain the firing weapon stack on projectiles.
+            return "";
         }
 
         private static Object itemQuery(ItemStack stack, ExecutionContext<?> ctx, Function.ArgumentCollection args, int compareStart) {

@@ -83,7 +83,7 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
         UIHelper.renderScrollingText(gui, Component.literal(model.displayName()), informationX, y + 8,
                 informationWidth, 0xffeeeeee);
         Component author = model.authors().isEmpty() ? FiguraText.of("gui.library.unknown_author")
-                : Component.literal(model.authors().getFirst()).append(model.authors().size() > 1
+                : Component.literal(model.authors().get(0)).append(model.authors().size() > 1
                 ? FiguraText.of("gui.library.more_authors") : Component.empty());
         UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.card_authors", author),
                 informationX, y + 34, informationWidth, 0xffbac6d8);

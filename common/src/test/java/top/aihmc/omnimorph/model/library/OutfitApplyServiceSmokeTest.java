@@ -673,7 +673,7 @@ public final class OutfitApplyServiceSmokeTest {
                 wearer, instances, new top.aihmc.omnimorph.model.outfit.SkeletonIndex.Cache());
         await(user.publishOutfit(configuration, base, composition, user.ysmLoads.begin(), () -> true), drain);
         var controlsType = top.aihmc.omnimorph.avatar.control.AvatarControlType.TOGGLE;
-        var first = instances.get(declarations.getFirst().instanceId());
+        var first = instances.get(declarations.get(0).instanceId());
         var second = instances.get(declarations.get(1).instanceId());
         var calls = new java.util.IdentityHashMap<Avatar, Integer>();
         var presses = new java.util.IdentityHashMap<Avatar, Integer>();
@@ -825,7 +825,7 @@ public final class OutfitApplyServiceSmokeTest {
             begin.setAccessible(true);
             var draft = await((CompletableFuture<top.aihmc.omnimorph.model.outfit.OutfitDraft>) begin.invoke(screen), drain);
             require(draft.committed().equals(server.committed) && draft.committed().revision() > 0
-                            && draft.committed().instances().getFirst().instanceId().equals(new UUID(0, 41)),
+                            && draft.committed().instances().get(0).instanceId().equals(new UUID(0, 41)),
                     "wardrobe captures the whole server outfit and exact revision instead of an empty revision-zero draft");
             var cached = (Map<OutfitConfig.ResourceRef, net.minecraft.nbt.CompoundTag>)
                     field(type, "draftPreparedResources").get(screen);
@@ -851,7 +851,7 @@ public final class OutfitApplyServiceSmokeTest {
             var refreshed = await((CompletableFuture<top.aihmc.omnimorph.model.outfit.OutfitDraft>)
                     field(type, "draftStart").get(screen), drain);
             require(!refreshed.dirty() && refreshed.committed().equals(server.committed)
-                            && !refreshed.configuration().instances().getFirst().enabled() && user.getMainAvatar() == retained,
+                            && !refreshed.configuration().instances().get(0).enabled() && user.getMainAvatar() == retained,
                     "the retry UI replays one operation and refreshes the editor only after successful activation");
             long published = user.getOutfit().configuration().revision();
             server.revision++;

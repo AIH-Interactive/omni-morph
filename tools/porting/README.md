@@ -3,7 +3,7 @@
 Target: Minecraft 1.20.1, Mojang official mappings, Java 17 (major 61).
 Build JVM: existing JDK 21. Gradle: repository wrapper 9.4.1.
 Plugins: Architectury 3.4.164, Loom 1.14.476, Shadow 9.0.0-beta12.
-MixinExtras common/Forge: 0.3.6. Fabric Loader 0.16.14: common compile annotation support only.
+MixinExtras common/Forge: 0.4.1 (M1 correction; 0.3.6 lacks the existing WrapMethod API). Fabric Loader 0.16.14: common compile annotation support only.
 MCP: de.oceanlabs.mcp:mcp_config:1.20.1-20230612.114412.
 
 Forge API baseline: net.minecraftforge:forge:1.20.1-47.1.3.
@@ -19,7 +19,7 @@ The toolchain-probe is configuration-only evidence, not application compilation 
 Run from repository root with JDK21:
 
     .\gradlew.bat -p tools/porting/toolchain-probe help --console=plain
-    .\gradlew.bat -p tools/porting/toolchain-probe configureLaunch -PloaderCoordinate=net.neoforged:forge:1.20.1-47.1.106 --console=plain
+    .\gradlew.bat -p tools/porting/toolchain-probe configureLaunch '-PloaderCoordinate=net.neoforged:forge:1.20.1-47.1.106' --console=plain
 
 Use the project's mandatory PowerShell Tee-Object and immediate exit-code checks around every build.
 Never run runClient/runServer as part of this probe.

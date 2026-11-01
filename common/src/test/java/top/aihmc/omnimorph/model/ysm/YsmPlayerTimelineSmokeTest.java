@@ -96,7 +96,7 @@ public final class YsmPlayerTimelineSmokeTest {
         context.variables.setPath("switch", 1f);
         player.controllerRuntime().update(evaluator, 0f, false);
         int exitEventCount = trace.size();
-        require(trace.getLast().equals("player.main:exit"),
+        require(com.google.common.collect.Iterables.getLast(trace).equals("player.main:exit"),
                 "state exit runs before the incoming beginning transition: " + trace);
         var incoming = player.getControllerAnimation("player.main", "next");
         equal(0f, incoming.time, "incoming clip starts frozen at time zero");
@@ -111,12 +111,12 @@ public final class YsmPlayerTimelineSmokeTest {
         equal(0f, incoming.time, "incoming clock remains frozen at transition midpoint");
         advance(player, evaluator, 0.1f);
         player.controllerRuntime().update(evaluator, 0.1f, false);
-        require(trace.size() == exitEventCount + 1 && trace.getLast().equals("player.main:next.zero"),
+        require(trace.size() == exitEventCount + 1 && com.google.common.collect.Iterables.getLast(trace).equals("player.main:next.zero"),
                 "transition boundary emits the incoming zero event exactly once: " + trace);
         equal(0f, incoming.time, "exact transition boundary keeps animation time zero");
         advance(player, evaluator, 0.05f);
         player.controllerRuntime().update(evaluator, 0.05f, false);
-        require(trace.size() == exitEventCount + 2 && trace.getLast().equals("player.main:next.mid"),
+        require(trace.size() == exitEventCount + 2 && com.google.common.collect.Iterables.getLast(trace).equals("player.main:next.mid"),
                 "only the incoming clip emits its first running timeline event: " + trace);
         for (float weight : new float[]{0f, 0.2f, 1f}) {
             context.variables.setPath("weight", weight);
@@ -191,7 +191,7 @@ public final class YsmPlayerTimelineSmokeTest {
         sample(player, evaluator, false);
         assertMatrix(matrix(runtime, false), -1f, 0f, "nested child re-entry releases old parent pose");
         require(player.getControllerAnimation("player.main.child.grand", "child") != oldChild
-                && trace.getLast().equals("player.main.child.grand:child.zero"), "nested child re-entry owns a new initial event/instance");
+                && com.google.common.collect.Iterables.getLast(trace).equals("player.main.child.grand:child.zero"), "nested child re-entry owns a new initial event/instance");
     }
 
     private static YsmModelRuntime cpuRuntime() throws ReflectiveOperationException {

@@ -268,7 +268,7 @@ public class FiguraModelPartReader {
     }
 
     private static void readVec3(FiguraVec3 target, ListTag list) {
-        switch (list.getFirst().getId()) {
+        switch (list.get(0).getId()) {
             case Tag.TAG_FLOAT -> target.set((Object) list.getFloat(0), list.getFloat(1), list.getFloat(2));
             case Tag.TAG_INT -> target.set((Object) list.getInt(0), list.getInt(1), list.getInt(2));
             case Tag.TAG_SHORT -> target.set((Object) list.getShort(0), list.getShort(1), list.getShort(2));
@@ -283,7 +283,7 @@ public class FiguraModelPartReader {
     private static void readVec4(FiguraVec4 target, CompoundTag tag, String name) {
         if (tag.contains(name)) {
             ListTag list = (ListTag) tag.get(name);
-            switch (list.getFirst().getId()) {
+            switch (list.get(0).getId()) {
                 case Tag.TAG_FLOAT -> target.set((Object) list.getFloat(0), list.getFloat(1), list.getFloat(2), list.getFloat(3));
                 case Tag.TAG_INT -> target.set((Object) list.getInt(0), list.getInt(1), list.getInt(2), list.getInt(3));
                 case Tag.TAG_SHORT -> target.set((Object) list.getShort(0), list.getShort(1), list.getShort(2), list.getShort(3));

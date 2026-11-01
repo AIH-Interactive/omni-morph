@@ -38,7 +38,7 @@ public final class PoseSnapshot {
     public PoseSnapshot(PoseStack.Pose pose) {
         this.position = null;
         this.normal = null;
-        this.floatPose = pose.copy();
+        this.floatPose = copyPose(pose);
         this.uv = FiguraMat3.of();
         this.skinDeltas = new FiguraMat4[0];
         this.normalPolicy = detectNormalPolicy(this.floatPose);
@@ -50,12 +50,11 @@ public final class PoseSnapshot {
     }
 
     private static int detectNormalPolicy(PoseStack.Pose pose) {
-        // Public transformNormal retains vanilla's private trusted-normal flag. Homogeneity distinguishes
-        // raw transformation (doubling the input doubles length) from normalization (length stays fixed).
+        // 1.20.1's VertexConsumer transforms normals directly by the pose's normal matrix.
         for (int axis = 0; axis < 3; axis++) {
             Vector3f input = new Vector3f(axis == 0 ? 1 : 0, axis == 1 ? 1 : 0, axis == 2 ? 1 : 0);
-            Vector3f first = pose.transformNormal(input, new Vector3f());
-            Vector3f second = pose.transformNormal(input.mul(2), new Vector3f());
+            Vector3f first = pose.normal().transform(input, new Vector3f());
+            Vector3f second = pose.normal().transform(input.mul(2), new Vector3f());
             double firstLength = Math.sqrt((double) first.x * first.x + (double) first.y * first.y + (double) first.z * first.z);
             double secondLength = Math.sqrt((double) second.x * second.x + (double) second.y * second.y + (double) second.z * second.z);
             if (Double.isFinite(firstLength) && Double.isFinite(secondLength) && firstLength > 0) {
@@ -132,7 +131,7 @@ public final class PoseSnapshot {
         for (int vertex = 0; vertex < mesh.vertexCount(); vertex++) {
             floatPose.pose().transformPosition((float) mesh.component(vertex, 0),
                     (float) mesh.component(vertex, 1), (float) mesh.component(vertex, 2), point);
-            floatPose.transformNormal((float) mesh.component(vertex, 4),
+            floatPose.normal().transform((float) mesh.component(vertex, 4),
                     (float) mesh.component(vertex, 5), (float) mesh.component(vertex, 6), direction);
             int offset = vertex * MeshHandle.STRIDE;
             output[offset] = point.x;
@@ -191,8 +190,8 @@ public final class PoseSnapshot {
             destination.putFloat((float) point.x).putFloat((float) point.y)
                     .putFloat((float) point.z).putFloat((float) point.w);
             if (floatPose != null) {
-                // Preserve vanilla's private trusted-normal policy exactly, including its normalization.
-                floatPose.transformNormal((float) mesh.component(vertex, 4),
+                // Use the target VertexConsumer's direct normal-matrix transformation.
+                floatPose.normal().transform((float) mesh.component(vertex, 4),
                         (float) mesh.component(vertex, 5), (float) mesh.component(vertex, 6), direction);
                 destination.putFloat(direction.x).putFloat(direction.y).putFloat(direction.z);
             } else {
@@ -270,7 +269,14 @@ public final class PoseSnapshot {
 
     /** A detached copy retains vanilla's normal normalization policy. */
     public PoseStack.Pose copyFloatPose() {
-        return floatPose == null ? null : floatPose.copy();
+        return floatPose == null ? null : copyPose(floatPose);
+    }
+
+    private static PoseStack.Pose copyPose(PoseStack.Pose source) {
+        PoseStack.Pose copy = new PoseStack().last();
+        copy.pose().set(source.pose());
+        copy.normal().set(source.normal());
+        return copy;
     }
 
     public boolean mirrored() {

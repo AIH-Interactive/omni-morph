@@ -9,5 +9,5 @@ public interface GameEffects {
         return EFFECTS;
     }
 
-    ResourceLocation[] EFFECTS = new ResourceLocation[]{ResourceLocation.parse("shaders/post/blur.json"), ResourceLocation.parse("shaders/post/entity_outline.json"), ResourceLocation.parse("shaders/post/invert.json"), ResourceLocation.parse("shaders/post/blur.json"), ResourceLocation.parse("shaders/post/creeper.json"), ResourceLocation.parse("shaders/post/spider.json")};
+    ResourceLocation[] EFFECTS = new ResourceLocation[]{new ResourceLocation("shaders/post/blur.json"), new ResourceLocation("shaders/post/entity_outline.json"), new ResourceLocation("shaders/post/invert.json"), new ResourceLocation("shaders/post/blur.json"), new ResourceLocation("shaders/post/creeper.json"), new ResourceLocation("shaders/post/spider.json")};
 }

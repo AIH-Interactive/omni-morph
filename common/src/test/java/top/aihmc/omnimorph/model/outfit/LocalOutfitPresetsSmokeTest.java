@@ -33,7 +33,7 @@ public final class LocalOutfitPresetsSmokeTest {
                             && saved.configuration().revision() == 19,
                     "preset revision and outfit revision have independent meanings");
             var reloaded = new LocalOutfitPresets(root).read(id, limits);
-            require(reloaded.equals(saved) && store.list(limits).getFirst().id().equals(id),
+            require(reloaded.equals(saved) && store.list(limits).get(0).id().equals(id),
                     "source refs, UUIDs, stable ordinals, disabled copies, controls and Lua scalar state survive a real file reload");
             String json = Files.readString(root.resolve("outfit-presets").resolve(id + ".json"));
             require(!json.contains(root.toString()) && !json.contains("file:") && !json.contains("scripts"),
@@ -41,9 +41,9 @@ public final class LocalOutfitPresetsSmokeTest {
             var imported = new OutfitDraft(new OutfitConfig(1, 0, null, List.of(), List.of(), Map.of(), false), limits);
             var remap = imported.importPreset(reloaded.configuration());
             require(!remap.get(first.instanceId()).equals(first.instanceId())
-                            && imported.configuration().instances().getFirst().controls().equals(first.controls())
-                            && imported.configuration().instances().getFirst().displayOrdinal() == 2
-                            && imported.configuration().instances().getLast().displayOrdinal() == 7,
+                            && imported.configuration().instances().get(0).controls().equals(first.controls())
+                            && imported.configuration().instances().get(0).displayOrdinal() == 2
+                            && com.google.common.collect.Iterables.getLast(imported.configuration().instances()).displayOrdinal() == 7,
                     "a saved document still uses the existing import path with new execution IDs and preserved controls/suffixes");
             rejected(() -> store.save(id, 0, "stale", configuration, limits), "OUTFIT_PRESET_REVISION_CONFLICT");
             require(store.read(id, limits).equals(saved), "a stale save leaves the old document intact");

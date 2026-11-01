@@ -2,9 +2,6 @@ package org.figuramc.figura.lua.api.world;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Registry;
-import net.minecraft.core.component.DataComponentMap;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.component.TypedDataComponent;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.*;
@@ -61,8 +58,8 @@ public class ItemStackAPI {
     public ItemStackAPI(ItemStack itemStack) {
         this.itemStack = itemStack;
         this.id = BuiltInRegistries.ITEM.getKey(itemStack.getItem()).toString();
-        LuaTable tag = itemStack.getComponents() != DataComponentMap.EMPTY ? (LuaTable) NbtToLua.convert(NbtToLua.convertToNbt(itemStack.getComponents())) : new LuaTable();
-        LuaUtils.addLegacyNbtNames(tag, tag);
+        LuaTable tag = itemStack.hasTag() ? (LuaTable) NbtToLua.convert(itemStack.getTag()) : new LuaTable();
+
         this.tag = new ReadOnlyLuaTable(tag);
     }
 
@@ -128,7 +125,7 @@ public class ItemStackAPI {
     @LuaWhitelist
     @LuaMethodDoc("itemstack.is_food")
     public boolean isFood() {
-        return itemStack.getComponents().has(DataComponents.FOOD);
+        return itemStack.isEdible();
     }
 
     @LuaWhitelist
@@ -182,13 +179,13 @@ public class ItemStackAPI {
     @LuaWhitelist
     @LuaMethodDoc("itemstack.get_repair_cost")
     public int getRepairCost() {
-        return itemStack != null && itemStack != ItemStack.EMPTY && itemStack.getComponents().has(DataComponents.REPAIR_COST) ? itemStack.get(DataComponents.REPAIR_COST).intValue() : 0;
+        return itemStack.getBaseRepairCost();
     }
 
     @LuaWhitelist
     @LuaMethodDoc("itemstack.get_use_duration")
     public int getUseDuration() {
-        return itemStack.getUseDuration(Minecraft.getInstance().player);
+        return itemStack.getUseDuration();
     }
 
     @LuaWhitelist
@@ -218,7 +215,7 @@ public class ItemStackAPI {
     @LuaWhitelist
     @LuaMethodDoc("itemstack.get_equipment_slot")
     public String getEquipmentSlot() {
-        return Minecraft.getInstance().player.getEquipmentSlotForItem(itemStack).name();
+        return LivingEntity.getEquipmentSlotForItem(itemStack).name();
     }
 
     @LuaWhitelist
@@ -245,8 +242,8 @@ public class ItemStackAPI {
         if (!t.is(o.getItem()))
             return false;
 
-        DataComponentMap tag1 = t.getComponents();
-        DataComponentMap tag2 = o.getComponents();
+        net.minecraft.nbt.CompoundTag tag1 = t.getTag();
+        net.minecraft.nbt.CompoundTag tag2 = o.getTag();
         if (tag1 == null && tag2 != null)
             return false;
 

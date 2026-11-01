@@ -209,15 +209,15 @@ public final class BoneTreeWidget extends AbstractList {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double horizontal, double vertical) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double vertical) {
         if (!isMouseOver(mouseX, mouseY)) {
             return false;
         }
         updateScrollbars();
-        if (horizontalBar.isVisible() && (horizontal != 0 || horizontalBar.isMouseOver(mouseX, mouseY))) {
-            return horizontalBar.mouseScrolled(mouseX, mouseY, 0, horizontal != 0 ? horizontal : vertical);
+        if (horizontalBar.isVisible() && horizontalBar.isMouseOver(mouseX, mouseY)) {
+            return horizontalBar.mouseScrolled(mouseX, mouseY, vertical);
         }
-        return super.mouseScrolled(mouseX, mouseY, horizontal, vertical);
+        return super.mouseScrolled(mouseX, mouseY, vertical);
     }
 
     @Override
@@ -238,7 +238,7 @@ public final class BoneTreeWidget extends AbstractList {
         }
         var row = rows.get(index);
         if (keyCode == 264 || keyCode == 265) {
-            index = Math.clamp(index + (keyCode == 264 ? 1 : -1), 0, rows.size() - 1);
+            index = net.minecraft.util.Mth.clamp(index + (keyCode == 264 ? 1 : -1), 0, rows.size() - 1);
             state.select(rows.get(index).node().id());
             notifySelection();
             scrollBar.setScrollProgressNoAnim(maximumScroll() == 0 ? 0

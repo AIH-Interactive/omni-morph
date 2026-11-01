@@ -1,11 +1,6 @@
 package org.figuramc.figura.mixin.gui;
 
-import com.mojang.serialization.DataResult;
-import com.mojang.serialization.Lifecycle;
-import com.mojang.serialization.MapCodec;
 import net.minecraft.network.chat.ClickEvent;
-import net.minecraft.util.ExtraCodecs;
-import net.minecraft.util.StringRepresentable;
 import org.figuramc.figura.utils.TextUtils;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -28,10 +23,8 @@ public class ClickEventActionMixin {
     private static ClickEvent.Action[] $VALUES;
     @Shadow @Final private String name;
 
-    @Shadow @Final @Mutable
-    public static MapCodec<ClickEvent.Action> UNSAFE_CODEC;
-    @Shadow @Final @Mutable
-    public static MapCodec<ClickEvent.Action> CODEC;
+    @Shadow @Final
+    private static Map<String, ClickEvent.Action> LOOKUP;
 
     static {
         figura$addVariant("FIGURA_FUNCTION", "figura_function", false);
@@ -48,8 +41,7 @@ public class ClickEventActionMixin {
         ClickEvent.Action action = figura$invokeInit(internalName, variants.get(variants.size() - 1).ordinal() + 1, name, user);
         variants.add(action);
         $VALUES = variants.toArray(new ClickEvent.Action[0]);
-        UNSAFE_CODEC = StringRepresentable.fromEnum(ClickEvent.Action::values).fieldOf("action");
-        CODEC = UNSAFE_CODEC.validate(ClickEvent.Action::filterForSerialization);
+        LOOKUP.put(name, action);
         return action;
     }
 
@@ -59,9 +51,4 @@ public class ClickEventActionMixin {
             cir.setReturnValue(true);
     }
 
-    @Inject(at = @At("HEAD"), method = "filterForSerialization", cancellable = true)
-    private static void filterForSerialization(ClickEvent.Action action, CallbackInfoReturnable<DataResult<ClickEvent.Action>> cir) {
-        if (TextUtils.allowScriptEvents)
-            cir.setReturnValue(DataResult.success(action, Lifecycle.stable()));
-    }
 }

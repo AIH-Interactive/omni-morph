@@ -133,13 +133,13 @@ public class ClientAPI {
         if (Minecraft.getInstance().player == null)
             return null;
 
-        return Minecraft.getInstance().getSingleplayerServer() == null ? Minecraft.getInstance().player.connection.serverBrand() : "Integrated";
+        return Minecraft.getInstance().getSingleplayerServer() == null ? Minecraft.getInstance().player.getServerBrand() : "Integrated";
     }
 
     @LuaWhitelist
     @LuaMethodDoc("client.get_chunk_statistics")
     public static String getChunkStatistics() {
-        return Minecraft.getInstance().levelRenderer.getSectionStatistics();
+        return Minecraft.getInstance().levelRenderer.getChunkStatistics();
     }
 
     @LuaWhitelist
@@ -217,7 +217,7 @@ public class ClientAPI {
     @LuaWhitelist
     @LuaMethodDoc("client.is_debug_overlay_enabled")
     public static boolean isDebugOverlayEnabled() {
-        return Minecraft.getInstance().getDebugOverlay().showDebugScreen();
+        return Minecraft.getInstance().options.renderDebug;
     }
 
     @LuaWhitelist
@@ -566,7 +566,7 @@ public class ClientAPI {
     @LuaWhitelist
     @LuaMethodDoc("client.get_frame_time")
     public static double getFrameTime() {
-        return Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(false);
+        return Minecraft.getInstance().getFrameTime();
     }
 
     @LuaWhitelist
@@ -606,13 +606,13 @@ public class ClientAPI {
         if (playerTeam != null) {
             int id = playerTeam.getColor().getId();
             if (id >= 0) {
-                objectives.put("sidebar_team_" + playerTeam.getColor().getName(), scoreboard.getDisplayObjective(DisplaySlot.BY_ID.apply(3 + id)));
+                objectives.put("sidebar_team_" + playerTeam.getColor().getName(), scoreboard.getDisplayObjective(3 + id));
             }
         }
 
-        objectives.put("list", scoreboard.getDisplayObjective(DisplaySlot.LIST));
-        objectives.put("sidebar", scoreboard.getDisplayObjective(DisplaySlot.SIDEBAR));
-        objectives.put("below_name", scoreboard.getDisplayObjective(DisplaySlot.BELOW_NAME));
+        objectives.put("list", scoreboard.getDisplayObjective(0));
+        objectives.put("sidebar", scoreboard.getDisplayObjective(1));
+        objectives.put("below_name", scoreboard.getDisplayObjective(2));
 
         for (Map.Entry<String, Objective> entry : objectives.entrySet()) {
             String key = entry.getKey();
@@ -627,8 +627,8 @@ public class ClientAPI {
                 objectiveMap.put("render_type", objective.getRenderType().getSerializedName());
 
                 Map<String, Integer> scoreMap = new HashMap<>();
-                for (PlayerScoreEntry score : scoreboard.listPlayerScores(objective)) {
-                    scoreMap.put(score.owner(), score.value());
+                for (Score score : scoreboard.getPlayerScores(objective)) {
+                    scoreMap.put(score.getOwner(), score.getScore());
                 }
 
                 objectiveMap.put("scores", scoreMap);
@@ -733,7 +733,7 @@ public class ClientAPI {
     public static List<String> getRegistry(@LuaNotNil String registryName) {
         Registry<?> registry;
         try {
-            registry = BuiltInRegistries.REGISTRY.get(ResourceLocation.parse(registryName));
+            registry = BuiltInRegistries.REGISTRY.get(new ResourceLocation(registryName));
         } catch (Error e) {
             throw new LuaError("Registry " + registryName + " does not exist");
         }

@@ -88,7 +88,7 @@ public final class YsmBinaryResourceMapper {
         json("ysm.json", manifestJson);
         String defaultTexture = raw.properties.defaultTexture;
         if (!textures.isEmpty() && textures.stream().noneMatch(texture -> texture.id().equals(raw.properties.defaultTexture))) {
-            defaultTexture = textures.getFirst().id();
+            defaultTexture = textures.get(0).id();
         }
         YsmResourceIndex index = new YsmResourceIndex(main, arm, animations, controllers, functions,
                 files.keySet().stream().filter(path -> path.startsWith("textures/")).toList(), sounds,

@@ -79,11 +79,13 @@ public final class PreviewBoneHighlight {
             if (ancestor == selected) {
                 return 1f;
             }
-            ancestor = switch (ancestor) {
-                case FiguraModelPart figura -> figura.parent;
-                case YsmModelPart ysm -> ysm.getParent();
-                default -> null;
-            };
+            if (ancestor instanceof FiguraModelPart figura) {
+                ancestor = figura.parent;
+            } else if (ancestor instanceof YsmModelPart ysm) {
+                ancestor = ysm.getParent();
+            } else {
+                ancestor = null;
+            }
         }
         return 0.3f;
     }
@@ -168,16 +170,16 @@ public final class PreviewBoneHighlight {
             return;
         }
         var stack = new PoseStack();
-        stack.mulPose(new Matrix4f(entityToDraw));
+        stack.mulPoseMatrix(new Matrix4f(entityToDraw));
         stack.scale(1f / 16, 1f / 16, 1f / 16);
         var pose = stack.last();
         var vertices = source.getBuffer(Lines.TYPE);
         for (var line : segments) {
             var normal = new Vector3f(line.x1() - line.x0(), line.y1() - line.y0(), line.z1() - line.z0()).normalize();
-            vertices.addVertex(pose, line.x0(), line.y0(), line.z0()).setColor(0xff000000 | line.color())
-                    .setNormal(pose, normal.x, normal.y, normal.z);
-            vertices.addVertex(pose, line.x1(), line.y1(), line.z1()).setColor(0xff000000 | line.color())
-                    .setNormal(pose, normal.x, normal.y, normal.z);
+            vertices.vertex(pose.pose(), line.x0(), line.y0(), line.z0()).color(0xff000000 | line.color())
+                    .normal(pose.normal(), normal.x, normal.y, normal.z).endVertex();
+            vertices.vertex(pose.pose(), line.x1(), line.y1(), line.z1()).color(0xff000000 | line.color())
+                    .normal(pose.normal(), normal.x, normal.y, normal.z).endVertex();
         }
     }
 

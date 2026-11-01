@@ -33,7 +33,7 @@ final class GpuFaceOrder {
             throw new IllegalArgumentException("GPU face workspace limit exceeded");
         }
         reserve(size);
-        boolean sorted = batches.getFirst().semantics().sortOnUpload();
+        boolean sorted = batches.get(0).semantics().sortOnUpload();
         if (sorted && !supports(sorting)) {
             throw new IllegalArgumentException("Custom vertex sorter must use the original Java buffer");
         }

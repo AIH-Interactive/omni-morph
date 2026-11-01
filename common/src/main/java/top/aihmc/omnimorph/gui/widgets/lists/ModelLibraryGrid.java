@@ -128,8 +128,8 @@ public final class ModelLibraryGrid extends AbstractList implements AutoCloseabl
     }
 
     @Override
-    public boolean mouseScrolled(double x, double y, double horizontal, double vertical) {
-        return isMouseOver(x, y) && super.mouseScrolled(x, y, horizontal, vertical);
+    public boolean mouseScrolled(double x, double y, double vertical) {
+        return isMouseOver(x, y) && super.mouseScrolled(x, y, vertical);
     }
 
     @Override
@@ -154,7 +154,7 @@ public final class ModelLibraryGrid extends AbstractList implements AutoCloseabl
         if (step == 0) {
             return super.keyPressed(keyCode, scanCode, modifiers);
         }
-        int next = Math.clamp(index + step, 0, models.size() - 1);
+        int next = net.minecraft.util.Mth.clamp(index + step, 0, models.size() - 1);
         selected = models.get(next).modelId();
         select.accept(models.get(next));
         int offset = layout.scrollTo(next);

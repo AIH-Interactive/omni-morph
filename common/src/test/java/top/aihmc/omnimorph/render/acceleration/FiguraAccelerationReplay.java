@@ -53,8 +53,8 @@ public final class FiguraAccelerationReplay {
         var constructor = dataType.getDeclaredConstructor();
         constructor.setAccessible(true);
         Object data = constructor.newInstance();
-        set(data, "renderType", RenderType.entityCutout(ResourceLocation.parse("omni-morph:test")));
-        set(data, "texture", ResourceLocation.parse("omni-morph:test"));
+        set(data, "renderType", RenderType.entityCutout(new ResourceLocation("omni-morph:test")));
+        set(data, "texture", new ResourceLocation("omni-morph:test"));
         set(data, "primary", true);
         set(data, "color", FiguraVec3.of(0.25, 0.5, 0.75));
         PartCustomization customization = new PartCustomization();
@@ -114,31 +114,31 @@ public final class FiguraAccelerationReplay {
         push.invoke(renderer, 1, data, customization, textures, vertices, null, null);
         consume.invoke(buffer, true, destination);
         flush(destination);
-        require(positions.size() == 4 && positions.getFirst()[0] == 4 && positions.getFirst()[2] == 8,
+        require(positions.size() == 4 && positions.get(0)[0] == 4 && positions.get(0)[2] == 8,
                 "actual Figura draw consumes transformed batch positions");
-        require(normals.size() == 4 && normals.getFirst()[1] == 0.5f,
+        require(normals.size() == 4 && normals.get(0)[1] == 0.5f,
                 "actual Figura draw preserves separate normal matrix");
-        require(uvs.size() == 4 && uvs.getFirst()[0] == 0.5f && uvs.getFirst()[1] == 0.25f,
+        require(uvs.size() == 4 && uvs.get(0)[0] == 0.5f && uvs.get(0)[1] == 0.25f,
                 "actual Figura UV channel remains unchanged");
 
         // Lua edits vertices in place; the next submission of the same list must show them immediately.
-        vertices.getFirst().x = 2;
-        vertices.getFirst().u = 0;
+        vertices.get(0).x = 2;
+        vertices.get(0).u = 0;
         positions.clear();
         uvs.clear();
         push.invoke(renderer, 1, data, customization, textures, vertices, null, null);
         consume.invoke(buffer, true, destination);
         flush(destination);
-        require(positions.size() == 4 && positions.getFirst()[0] == 5 && uvs.getFirst()[0] == 0,
+        require(positions.size() == 4 && positions.get(0)[0] == 5 && uvs.get(0)[0] == 0,
                 "in-place vertex position and UV edits take effect on the next draw");
-        vertices.getFirst().x = 1;
-        vertices.getFirst().u = 8;
+        vertices.get(0).x = 1;
+        vertices.get(0).u = 8;
         positions.clear();
         uvs.clear();
         push.invoke(renderer, 1, data, customization, textures, vertices, null, null);
         consume.invoke(buffer, true, destination);
         flush(destination);
-        require(positions.size() == 4 && positions.getFirst()[0] == 4 && uvs.getFirst()[0] == 0.5f,
+        require(positions.size() == 4 && positions.get(0)[0] == 4 && uvs.get(0)[0] == 0.5f,
                 "restoring the original vertex values restores the original output");
 
         positions.clear();
@@ -152,7 +152,7 @@ public final class FiguraAccelerationReplay {
         push.invoke(renderer, 1, data, customization, textures, vertices, part, deltas);
         consume.invoke(buffer, true, destination);
         flush(destination);
-        require(positions.size() == 4 && positions.getFirst()[0] == 4.5f && positions.getFirst()[1] == 9,
+        require(positions.size() == 4 && positions.get(0)[0] == 4.5f && positions.get(0)[1] == 9,
                 "actual Figura draw consumes the complete normalized skinning batch");
         if (sourceFactory == null) {
             var selected = (FiguraModelPart) unsafe.allocateInstance(FiguraModelPart.class);
@@ -171,13 +171,13 @@ public final class FiguraAccelerationReplay {
                     materials.add(type);
                     return sink;
                 });
-                require(colors.size() == 4 && colors.getFirst()[3] == 38 && hasBlending(materials.getFirst()),
+                require(colors.size() == 4 && colors.get(0)[3] == 38 && hasBlending(materials.get(0)),
                         "unselected Figura geometry emits authored alpha times 0.3 with a blending material");
                 colors.clear();
                 top.aihmc.omnimorph.model.library.PreviewBoneHighlight.capture(owner, selected);
                 push.invoke(renderer, 1, data, customization, textures, vertices, child, null);
                 consume.invoke(buffer, true, (MultiBufferSource) type -> sink);
-                require(colors.size() == 4 && colors.getFirst()[3] == 127 && customization.alpha == 0.5f,
+                require(colors.size() == 4 && colors.get(0)[3] == 127 && customization.alpha == 0.5f,
                         "selected descendants retain authored alpha without modifying model customization");
             } finally {
                 top.aihmc.omnimorph.model.library.PreviewBoneHighlight.finishFrame();

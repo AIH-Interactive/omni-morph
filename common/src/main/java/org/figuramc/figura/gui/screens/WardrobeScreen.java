@@ -1739,7 +1739,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         if (parents.stream().noneMatch(choice -> anchor.parent().equals(choice.anchor().bone()))) {
             var type = anchor.parent().instanceId() == null
                     ? OutfitConfig.AnchorType.BASE_BONE : OutfitConfig.AnchorType.ACCESSORY_BONE;
-            parents.addFirst(new top.aihmc.omnimorph.model.library.OutfitHierarchy.AnchorChoice(
+            parents.add(0, new top.aihmc.omnimorph.model.library.OutfitHierarchy.AnchorChoice(
                     text("unavailable").getString(), new OutfitConfig.AnchorRef(type, null, anchor.parent(), null, null, null)));
         }
         fields.add(new Label(text("anchor_parent"), 0, 0, TextUtils.Alignment.LEFT), 2, 40);
@@ -2067,7 +2067,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
                         var manifest = data.manifest();
                         var texture = manifest.textures().stream()
                                 .filter(option -> option.id().equals(manifest.defaultTexture())).findFirst()
-                                .orElse(manifest.textures().isEmpty() ? null : manifest.textures().getFirst());
+                                .orElse(manifest.textures().isEmpty() ? null : manifest.textures().get(0));
                         return YsmAvatarLoader.toAvatarNbt(data, texture, owner, null);
                     }
                 } catch (Exception failure) {

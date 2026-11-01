@@ -79,8 +79,8 @@ public final class OutfitEventsSmokeTest {
             require(failures.get() == 2, "Outfit text channel rejects legacy binary frames");
         }
         var current = new AtomicBoolean(true);
-        try (var http = HttpClient.newHttpClient();
-             var access = new LibraryAccess(CloudEndpoint.parse("https://example.invalid", () -> false, current::get),
+        var http = HttpClient.newHttpClient();
+        try (var access = new LibraryAccess(CloudEndpoint.parse("https://example.invalid", () -> false, current::get),
                      http, request -> current.set(false))) {
             for (int attempt = 0; attempt < 2; attempt++) {
                 current.set(true);
@@ -102,8 +102,8 @@ public final class OutfitEventsSmokeTest {
     }
 
     private static void parsing() throws Exception {
-        try (var http = HttpClient.newHttpClient();
-             var access = new LibraryAccess(CloudEndpoint.parse("https://example.invalid", () -> false), http,
+        var http = HttpClient.newHttpClient();
+        try (var access = new LibraryAccess(CloudEndpoint.parse("https://example.invalid", () -> false), http,
                      request -> {})) {
             var probe = new EventProbe();
             var session = new LibrarySession("fixture-instance", VIEWER, 77, () -> true);
@@ -153,72 +153,71 @@ public final class OutfitEventsSmokeTest {
     }
 
     private static void integration(String origin, String instance, UUID stateInstance) throws Exception {
-        try (var http = HttpClient.newHttpClient()) {
-            for (boolean protobuf : new boolean[] {false, true}) {
-                var endpoint = CloudEndpoint.parse(origin, () -> true);
-                try (CloudProtocol protocol = protobuf
-                        ? new ProtobufCloudProtocol(endpoint, "synthetic-token-2", "outfit-event-test", 77, http)
-                        : new FiguraCloudProtocol(endpoint, "synthetic-token-2", http)) {
-                    var callbacks = new ConcurrentLinkedQueue<Runnable>();
-                    protocol.connect(new ProtocolProbe());
-                    long deadline = System.nanoTime() + 10_000_000_000L;
-                    while (!protocol.connected() && System.nanoTime() < deadline) {
-                        protocol.tick(System.nanoTime() / 50_000_000L);
-                        Thread.sleep(5);
+        var http = HttpClient.newHttpClient();
+        for (boolean protobuf : new boolean[] {false, true}) {
+            var endpoint = CloudEndpoint.parse(origin, () -> true);
+            try (CloudProtocol protocol = protobuf
+                    ? new ProtobufCloudProtocol(endpoint, "synthetic-token-2", "outfit-event-test", 77, http)
+                    : new FiguraCloudProtocol(endpoint, "synthetic-token-2", http)) {
+                var callbacks = new ConcurrentLinkedQueue<Runnable>();
+                protocol.connect(new ProtocolProbe());
+                long deadline = System.nanoTime() + 10_000_000_000L;
+                while (!protocol.connected() && System.nanoTime() < deadline) {
+                    protocol.tick(System.nanoTime() / 50_000_000L);
+                    Thread.sleep(5);
+                }
+                require(protocol.connected(), "Original adapter handshake completes");
+                require(protocol.instance().equals(protobuf ? origin + "/" + instance : "figura:" + origin),
+                        "Actual protocol identity keeps its existing origin namespace");
+                try (var client = new LibraryClient(protocol.libraryAccess(),
+                        new LibrarySession(protocol.instance(), VIEWER, 77, protocol::connected), callbacks::add)) {
+                    var probe = new EventProbe();
+                    OutfitEvents events = client.outfitEvents(probe);
+                    // Internal channel gate: production events remains false until all stage-five requirements pass.
+                    var limits = OutfitLimits.defaults();
+                    var capabilities = new LibraryModels.Capabilities(true, 1, 1_048_576, 64, 1_048_576, 1024, 1024,
+                            List.of("FIGURA"), List.of(), List.of(), false,
+                            new LibraryModels.OutfitCapabilities(1, true, true, false, true,
+                                    limits.maxInstances(), limits.maxVirtualAnchors(), limits.maxDepth(),
+                                    limits.maxResourceNodes(), limits.maxTotalNodes(), limits.maxBoneOverrides(),
+                                    limits.maxJsonBytes(), limits.maxTrails(), limits.maxTrailSamples(), limits));
+                    var pump = new Pump(protocol, events, capabilities, callbacks);
+                    pump.until(() -> events.ready() && new java.util.HashSet<>(probe.owners).size() == 128);
+                    if (stateInstance != null) {
+                        stateRoundtrip(origin, http, client, callbacks, probe, pump, stateInstance);
                     }
-                    require(protocol.connected(), "Original adapter handshake completes");
-                    require(protocol.instance().equals(protobuf ? origin + "/" + instance : "figura:" + origin),
-                            "Actual protocol identity keeps its existing origin namespace");
-                    try (var client = new LibraryClient(protocol.libraryAccess(),
-                            new LibrarySession(protocol.instance(), VIEWER, 77, protocol::connected), callbacks::add)) {
-                        var probe = new EventProbe();
-                        OutfitEvents events = client.outfitEvents(probe);
-                        // Internal channel gate: production events remains false until all stage-five requirements pass.
-                        var limits = OutfitLimits.defaults();
-                        var capabilities = new LibraryModels.Capabilities(true, 1, 1_048_576, 64, 1_048_576, 1024, 1024,
-                                List.of("FIGURA"), List.of(), List.of(), false,
-                                new LibraryModels.OutfitCapabilities(1, true, true, false, true,
-                                        limits.maxInstances(), limits.maxVirtualAnchors(), limits.maxDepth(),
-                                        limits.maxResourceNodes(), limits.maxTotalNodes(), limits.maxBoneOverrides(),
-                                        limits.maxJsonBytes(), limits.maxTrails(), limits.maxTrailSamples(), limits));
-                        var pump = new Pump(protocol, events, capabilities, callbacks);
-                        pump.until(() -> events.ready() && new java.util.HashSet<>(probe.owners).size() == 128);
-                        if (stateInstance != null) {
-                            stateRoundtrip(origin, http, client, callbacks, probe, pump, stateInstance);
-                        }
-                        probe.owners.clear();
-                        var input = HttpRequest.newBuilder(java.net.URI.create(origin + "/api/library/v1/outfits/current"))
-                                .header("Authorization", "Bearer synthetic-token-1")
-                                .header("x-omnimorph-auth-mode", "figura")
-                                .header("x-omnimorph-origin", origin).GET().build();
-                        String configuration = http.send(input, HttpResponse.BodyHandlers.ofString()).body();
-                        var current = JsonParser.parseString(configuration).getAsJsonObject();
-                        var body = new JsonObject();
-                        body.addProperty("operation_id", UUID.randomUUID().toString());
-                        body.addProperty("expected_revision", current.get("revision").getAsLong());
-                        body.add("configuration", current);
-                        var applied = http.send(HttpRequest.newBuilder(input.uri())
-                                .headers("Authorization", "Bearer synthetic-token-1", "x-omnimorph-auth-mode", "figura",
-                                        "x-omnimorph-origin", origin, "Content-Type", "application/json")
-                                .PUT(HttpRequest.BodyPublishers.ofString(body.toString())).build(), HttpResponse.BodyHandlers.ofString());
-                        require(applied.statusCode() == 200, "Real HTTP commit succeeds: " + applied.body());
-                        pump.until(() -> probe.owners.contains(OWNER));
-                        authenticated(protocol);
-                        // Abort the actual event socket, then drive the real timeout/backoff/reconnect path.
-                        var connection = OutfitEvents.class.getDeclaredField("connection");
-                        connection.setAccessible(true);
-                        ((LibraryAccess.OutfitConnection) connection.get(events)).close();
-                        pump.offset += 60_001;
-                        pump.once();
-                        require(!events.ready(), "Silent transport loss retires old baseline");
-                        probe.owners.clear();
-                        pump.offset += 30_001;
-                        pump.until(() -> events.ready() && new java.util.HashSet<>(probe.owners).size() == 128);
-                        require(probe.resets >= 3, "Reconnect requires fresh baseline instead of replaying old events");
-                        client.close();
-                        require(!events.ready() && protocol.connected(), "Library retirement closes event channel only");
-                        authenticated(protocol);
-                    }
+                    probe.owners.clear();
+                    var input = HttpRequest.newBuilder(java.net.URI.create(origin + "/api/library/v1/outfits/current"))
+                            .header("Authorization", "Bearer synthetic-token-1")
+                            .header("x-omnimorph-auth-mode", "figura")
+                            .header("x-omnimorph-origin", origin).GET().build();
+                    String configuration = http.send(input, HttpResponse.BodyHandlers.ofString()).body();
+                    var current = JsonParser.parseString(configuration).getAsJsonObject();
+                    var body = new JsonObject();
+                    body.addProperty("operation_id", UUID.randomUUID().toString());
+                    body.addProperty("expected_revision", current.get("revision").getAsLong());
+                    body.add("configuration", current);
+                    var applied = http.send(HttpRequest.newBuilder(input.uri())
+                            .headers("Authorization", "Bearer synthetic-token-1", "x-omnimorph-auth-mode", "figura",
+                                    "x-omnimorph-origin", origin, "Content-Type", "application/json")
+                            .PUT(HttpRequest.BodyPublishers.ofString(body.toString())).build(), HttpResponse.BodyHandlers.ofString());
+                    require(applied.statusCode() == 200, "Real HTTP commit succeeds: " + applied.body());
+                    pump.until(() -> probe.owners.contains(OWNER));
+                    authenticated(protocol);
+                    // Abort the actual event socket, then drive the real timeout/backoff/reconnect path.
+                    var connection = OutfitEvents.class.getDeclaredField("connection");
+                    connection.setAccessible(true);
+                    ((LibraryAccess.OutfitConnection) connection.get(events)).close();
+                    pump.offset += 60_001;
+                    pump.once();
+                    require(!events.ready(), "Silent transport loss retires old baseline");
+                    probe.owners.clear();
+                    pump.offset += 30_001;
+                    pump.until(() -> events.ready() && new java.util.HashSet<>(probe.owners).size() == 128);
+                    require(probe.resets >= 3, "Reconnect requires fresh baseline instead of replaying old events");
+                    client.close();
+                    require(!events.ready() && protocol.connected(), "Library retirement closes event channel only");
+                    authenticated(protocol);
                 }
             }
         }

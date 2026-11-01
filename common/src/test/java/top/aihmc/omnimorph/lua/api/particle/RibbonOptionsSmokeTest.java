@@ -94,10 +94,10 @@ final class RibbonOptionsSmokeTest {
         for (int index = 0; index <= 2; index++) {
             buffer.sample(index, world, "tip", index, new Vec3(index, 0, 0), options.samplingPolicy());
         }
-        require(buffer.snapshot().getFirst().timeTicks() == 0, "retain the predecessor of the visible TTL boundary");
+        require(buffer.snapshot().get(0).timeTicks() == 0, "retain the predecessor of the visible TTL boundary");
         var mesh = RibbonMesh.build(buffer.snapshotPath(), 2, new Vec3(0, 0, 10), new Vec3(1, 0, 0),
                 options.geometry(), OutfitLimits.defaults(), 1, 4096, 100);
-        require(mesh.quads().getFirst().tailLeft().position().x == .5,
+        require(mesh.quads().get(0).tailLeft().position().x == .5,
                 "visible geometry is interpolated at the exact configured lifetime boundary");
         buffer.advance(world, 4.5);
         require(buffer.snapshot().isEmpty(), "extra interpolation retention still expires bounded history");

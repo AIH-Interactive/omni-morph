@@ -79,7 +79,7 @@ final class OutfitHierarchySmokeTest {
                         && choices.stream().anyMatch(choice -> anchor.id().equals(choice.anchor().anchorId())),
                 "Attachment choices include real base bones, authorized exports and shared virtual anchors");
         require(choices.stream().noneMatch(choice -> secondTip.bone().equals(choice.anchor().bone()))
-                        && tree.anchors(instances.getFirst().instanceId()).stream()
+                        && tree.anchors(instances.get(0).instanceId()).stream()
                         .noneMatch(choice -> firstTip.bone().equals(choice.anchor().bone())),
                 "Unexported and self-owned bones cannot be offered as cross-instance attachment targets");
         var exported = choices.stream().filter(choice -> firstTip.bone().equals(choice.anchor().bone()))
@@ -102,9 +102,9 @@ final class OutfitHierarchySmokeTest {
         int id = tree.targets().entrySet().stream().filter(entry -> entry.getValue().equals(firstTip))
                 .findFirst().orElseThrow().getKey();
         state.select(id);
-        require(state.selectedTarget().equals(firstTip) && state.selectedPart() == entries.getFirst().skeleton().parts().get(1),
+        require(state.selectedTarget().equals(firstTip) && state.selectedPart() == entries.get(0).skeleton().parts().get(1),
                 "Typed selection and actual part identity remain paired");
-        state.select(tree.hierarchy().roots().getFirst());
+        state.select(tree.hierarchy().roots().get(0));
         require(state.selectedTarget().kind() == OutfitHierarchy.Kind.BASE && state.selectedPart() == null,
                 "Group headers never masquerade as a native part to highlight");
         viewState(tree, configuration, base, entries);
@@ -119,7 +119,7 @@ final class OutfitHierarchySmokeTest {
         var state = new BoneTreeState();
         state.replace(tree);
         var baseView = new BoneTreeState.View(OutfitHierarchy.Kind.BASE, null);
-        var instanceView = new BoneTreeState.View(OutfitHierarchy.Kind.INSTANCE, entries.getFirst().declaration().instanceId());
+        var instanceView = new BoneTreeState.View(OutfitHierarchy.Kind.INSTANCE, entries.get(0).declaration().instanceId());
         var virtualView = new BoneTreeState.View(OutfitHierarchy.Kind.VIRTUAL_GROUP, null);
         var readonlyView = new BoneTreeState.View(OutfitHierarchy.Kind.INSTANCE, entries.get(2).declaration().instanceId());
         require(state.viewChoices().stream().map(BoneTreeState.ViewChoice::view).toList()
@@ -128,7 +128,7 @@ final class OutfitHierarchySmokeTest {
                 "View choices include only enabled, author-visible instances with actual skeletons");
         state.view(baseView);
         require(state.rows().size() == 1, "Each view starts collapsed at its own title");
-        int baseRoot = state.rows().getFirst().node().id();
+        int baseRoot = state.rows().get(0).node().id();
         state.toggle(baseRoot);
         var expandedBase = state.rows().stream().map(row -> row.node().id()).toList();
         state.search("Head");
@@ -175,7 +175,7 @@ final class OutfitHierarchySmokeTest {
                         && state.selectedPart() instanceof OutfitConfig.AnchorRef standard
                         && standard.type() == OutfitConfig.AnchorType.STANDARD,
                 "Standard target focus stays a tagged anchor instead of a fake native model part");
-        var virtual = configuration.virtualAnchors().getFirst();
+        var virtual = configuration.virtualAnchors().get(0);
         var virtualRef = new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.VIRTUAL, null, null, virtual.id(), null, null);
         require(state.locate(virtualRef) && virtualRef.equals(state.selectedPart())
                         && state.view().equals(virtualView),
@@ -191,7 +191,7 @@ final class OutfitHierarchySmokeTest {
 
     private static OutfitHierarchy.Target selected(OutfitHierarchy tree, UUID instance) {
         return tree.targets().values().stream().filter(target -> target.kind() == OutfitHierarchy.Kind.INSTANCE_BONE
-                && instance.equals(target.instanceId()) && target.bone().path().getLast().name().equals("tailtip"))
+                && instance.equals(target.instanceId()) && com.google.common.collect.Iterables.getLast(target.bone().path()).name().equals("tailtip"))
                 .findFirst().orElseThrow();
     }
 

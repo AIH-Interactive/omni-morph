@@ -40,7 +40,7 @@ final class OutfitPresetResourcesSmokeTest {
             var base = registry.describe(avatar, () -> false);
             LocalCosmeticInventory.Entry entry;
             try (var inventory = new LocalCosmeticInventory(root)) {
-                entry = inventory.scan(() -> false).getFirst();
+                entry = inventory.scan(() -> false).get(0);
             }
             var draft = new OutfitDraft(empty(base), OutfitLimits.defaults());
             draft.add(entry.reference(), entry.source().metadata().defaultAnchor(), OutfitConfig.Transform.identity());
@@ -74,7 +74,7 @@ final class OutfitPresetResourcesSmokeTest {
             }
             Files.writeString(avatar.resolve("avatar.json"), "{\"name\":\"changed base\"}");
             try (var operation = resolve(empty(base), account, root, null, live)) {
-                require(await(operation.future(), drain).issues().getFirst().code().equals("OUTFIT_BASE_SOURCE_CHANGED"),
+                require(await(operation.future(), drain).issues().get(0).code().equals("OUTFIT_BASE_SOURCE_CHANGED"),
                         "preset base loading never silently follows a modified local source");
             }
             Path ysm = root.resolve("base.ysm");
@@ -135,7 +135,7 @@ final class OutfitPresetResourcesSmokeTest {
             server.revoked.set(true);
             try (var operation = resolve(draft.configuration(), account, root, client, live)) {
                 var denied = await(operation.future(), drain);
-                require(!denied.ready() && denied.issues().getFirst().code().equals("FORBIDDEN")
+                require(!denied.ready() && denied.issues().get(0).code().equals("FORBIDDEN")
                                 && server.files.get() == 1,
                         "cached preview bytes cannot bypass a fresh dependency revocation check");
             }
@@ -143,7 +143,7 @@ final class OutfitPresetResourcesSmokeTest {
             server.revision.set(2);
             try (var operation = resolve(draft.configuration(), account, root, client, live)) {
                 var changed = await(operation.future(), drain);
-                require(!changed.ready() && changed.issues().getFirst().code().equals("RESOURCE_REVISION_UNAVAILABLE")
+                require(!changed.ready() && changed.issues().get(0).code().equals("RESOURCE_REVISION_UNAVAILABLE")
                                 && server.files.get() == 1,
                         "preset references do not drift to the latest server revision");
             }

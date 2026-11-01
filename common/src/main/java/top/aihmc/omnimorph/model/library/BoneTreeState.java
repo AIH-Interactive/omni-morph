@@ -354,7 +354,7 @@ public final class BoneTreeState {
     public void locateBaseRoot() {
         view(new View(OutfitHierarchy.Kind.BASE, null));
         search("");
-        select(rows.isEmpty() ? -1 : rows.getFirst().node().id());
+        select(rows.isEmpty() ? -1 : rows.get(0).node().id());
         scroll = 0;
         modelVersion++;
     }
@@ -376,7 +376,7 @@ public final class BoneTreeState {
     }
 
     public void horizontalScroll(double value) {
-        horizontalScroll = Math.clamp(value, 0, 1);
+        horizontalScroll = net.minecraft.util.Mth.clamp(value, 0, 1);
     }
 
     public String selectedName() {

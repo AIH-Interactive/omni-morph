@@ -3,7 +3,6 @@ package top.aihmc.omnimorph.lua.api.particle;
 import com.google.gson.Gson;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormatElement;
@@ -107,8 +106,8 @@ final class RibbonNativeSmokeTest {
             ByteBuffer data = ByteBuffer.wrap(frozen).order(java.nio.ByteOrder.nativeOrder());
             var format = DefaultVertexFormat.PARTICLE;
             int stride = format.getVertexSize();
-            int uv = format.getOffset(VertexFormatElement.UV0);
-            int light = format.getOffset(VertexFormatElement.UV2);
+            int uv = ParticleVertexCapture.offset(format, DefaultVertexFormat.ELEMENT_UV0);
+            int light = ParticleVertexCapture.offset(format, DefaultVertexFormat.ELEMENT_UV2);
             near(data.getFloat(0), 0);
             near(data.getFloat(4), -.2);
             near(data.getFloat(8), -10);
@@ -243,16 +242,18 @@ final class RibbonNativeSmokeTest {
     }
 
     private static byte[] vertices(PreviewParticleFrame ribbon, int count) {
-        try (var storage = new ByteBufferBuilder(count * DefaultVertexFormat.PARTICLE.getVertexSize())) {
-            var builder = new BufferBuilder(storage, VertexFormat.Mode.QUADS, DefaultVertexFormat.PARTICLE);
-            ribbon.draw(new Matrix4f(), type -> builder);
-            try (var mesh = builder.build()) {
-                require(mesh != null && mesh.drawState().vertexCount() == count, "native quad buffer has expected vertices");
-                ByteBuffer buffer = mesh.vertexBuffer();
-                byte[] bytes = new byte[buffer.remaining()];
-                buffer.get(bytes);
-                return bytes;
-            }
+        var builder = new BufferBuilder(count * DefaultVertexFormat.PARTICLE.getVertexSize());
+        builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.PARTICLE);
+        ribbon.draw(new Matrix4f(), type -> builder);
+        var mesh = builder.end();
+        try {
+            require(mesh != null && mesh.drawState().vertexCount() == count, "native quad buffer has expected vertices");
+            ByteBuffer buffer = mesh.vertexBuffer();
+            byte[] bytes = new byte[buffer.remaining()];
+            buffer.get(bytes);
+            return bytes;
+        } finally {
+            mesh.release();
         }
     }
 

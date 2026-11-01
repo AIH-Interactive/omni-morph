@@ -264,7 +264,7 @@ final class YsmSubEntitySmokeTest {
         var bind = net.minecraft.core.Holder.Reference.class.getDeclaredMethod("bindTags", java.util.Collection.class);
         bind.setAccessible(true);
         var vehicleTag = net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.ENTITY_TYPE,
-                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("figura", "ysm_fixture_vehicles"));
+                new net.minecraft.resources.ResourceLocation("figura", "ysm_fixture_vehicles"));
         var tags = new java.util.ArrayList<>(originalTags);
         tags.add(vehicleTag);
         try {
@@ -390,6 +390,11 @@ final class YsmSubEntitySmokeTest {
         }
 
         @Override
+        public net.minecraft.world.item.ItemStack figura$getPickupItem() {
+            return getPickupItem();
+        }
+
+        @Override
         public int figura$getInGroundTime() {
             return 0;
         }
@@ -466,6 +471,11 @@ final class YsmSubEntitySmokeTest {
         @Override
         public boolean figura$isInGround() {
             return embedded;
+        }
+
+        @Override
+        public net.minecraft.world.item.ItemStack figura$getPickupItem() {
+            return getPickupItem();
         }
 
         @Override

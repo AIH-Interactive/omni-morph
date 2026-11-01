@@ -17,7 +17,7 @@ public final class YsmMolangMathSmokeTest {
         };
         double[] expected = {1, -1, Math.PI / 6, Math.PI / 3, Math.PI / 4, Math.PI * 3 / 4, 45};
         for (int index = 0; index < expressions.length; index++) {
-            var expression = engine.parse(expressions[index]).getFirst();
+            var expression = engine.parse(expressions[index]).get(0);
             equal(expected[index], ((Number) evaluator.eval(expression)).doubleValue(), expressions[index]);
             equal(expected[index], evaluator.evalAsFloat(expression), expressions[index] + " float path");
         }
@@ -27,16 +27,16 @@ public final class YsmMolangMathSmokeTest {
                 "math.die_roll(3,2,2)", "math.die_roll_integer(3,2,3)", "math.die_roll_integer(2.6,3,2)"};
         double[] alignedExpected = {-160, -180, 1, -4, 0, 45, 3, 3, 6, 6, 6};
         for (int index = 0; index < aligned.length; index++) {
-            var expression = engine.parse(aligned[index]).getFirst();
+            var expression = engine.parse(aligned[index]).get(0);
             equal(alignedExpected[index], evaluator.evalAsFloat(expression), aligned[index]);
         }
-        if (!Float.isNaN(evaluator.evalAsFloat(engine.parse("math.asin(2)").getFirst()))
-                || !Float.isNaN(evaluator.evalAsFloat(engine.parse("math.acos(-2)").getFirst()))) {
+        if (!Float.isNaN(evaluator.evalAsFloat(engine.parse("math.asin(2)").get(0)))
+                || !Float.isNaN(evaluator.evalAsFloat(engine.parse("math.acos(-2)").get(0)))) {
             throw new AssertionError("reference inverse trig preserves NaN outside its domain");
         }
         Avatar.MolangContext first = new Avatar.MolangContext(null);
         Avatar.MolangContext second = new Avatar.MolangContext(null);
-        var random = engine.parse("math.random(8,2,123)").getFirst();
+        var random = engine.parse("math.random(8,2,123)").get(0);
         first.random.setSeed(42L);
         second.random.setSeed(42L);
         float firstValue = ExpressionEvaluator.evaluator(first).evalAsFloat(random);

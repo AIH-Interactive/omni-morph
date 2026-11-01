@@ -50,7 +50,7 @@ public record YsmDisplayState(Integer foodLevel, Integer experienceLevel, Boolea
         Map<String, Integer> effects = new LinkedHashMap<>();
         for (MobEffectInstance effect : player.getActiveEffects()) {
             int level = effect.getAmplifier() + 1;
-            var key = BuiltInRegistries.MOB_EFFECT.getKey(effect.getEffect().value());
+            var key = BuiltInRegistries.MOB_EFFECT.getKey(effect.getEffect());
             if (key == null || level < 1 || level > 256 || effects.size() >= MAX_EFFECTS) {
                 effects = null;
                 break;

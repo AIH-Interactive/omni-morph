@@ -91,7 +91,7 @@ public class PopupMenu {
         }
 
         // world to screen space
-        FiguraVec3 worldPos = FiguraVec3.fromVec3(entity.getPosition(minecraft.getTimer().getGameTimeDeltaPartialTick(false)));
+        FiguraVec3 worldPos = FiguraVec3.fromVec3(entity.getPosition(minecraft.getFrameTime()));
         worldPos.add(0f, entity.getBbHeight() + 0.1f, 0f);
 
         FiguraVec4 vec = MathUtils.worldToScreenSpace(worldPos);

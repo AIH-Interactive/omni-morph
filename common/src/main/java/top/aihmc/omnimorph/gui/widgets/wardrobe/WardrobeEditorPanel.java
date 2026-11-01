@@ -77,7 +77,7 @@ public final class WardrobeEditorPanel extends AbstractList {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double horizontal, double vertical) {
-        return isMouseOver(mouseX, mouseY) && super.mouseScrolled(mouseX, mouseY, horizontal, vertical);
+    public boolean mouseScrolled(double mouseX, double mouseY, double vertical) {
+        return isMouseOver(mouseX, mouseY) && super.mouseScrolled(mouseX, mouseY, vertical);
     }
 }

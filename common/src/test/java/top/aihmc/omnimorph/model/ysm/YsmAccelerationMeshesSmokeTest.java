@@ -19,15 +19,15 @@ public final class YsmAccelerationMeshesSmokeTest {
         require(cache.get(cubes) == original, "unchanged geometry reuses the immutable snapshot");
         quad.positions()[0] = 2;
         List<MeshHandle> moved = cache.get(cubes);
-        require(moved != original && moved.getFirst().component(0, 0) == 2
-                && original.getFirst().component(0, 0) == 0, "direct position edits replace only the new snapshot");
+        require(moved != original && moved.get(0).component(0, 0) == 2
+                && original.get(0).component(0, 0) == 0, "direct position edits replace only the new snapshot");
         quad.normal()[1] = -1;
         quad.uvs()[0] = .5f;
         List<MeshHandle> changed = cache.get(cubes);
-        require(changed != moved && changed.getFirst().component(0, 5) == -1
-                && changed.getFirst().component(0, 7) == .5, "normal and UV edits are visible immediately");
+        require(changed != moved && changed.get(0).component(0, 5) == -1
+                && changed.get(0).component(0, 7) == .5, "normal and UV edits are visible immediately");
         faces.add(quad);
-        require(cache.get(cubes).getFirst().faceCount() == 2, "mutable face lists invalidate the snapshot");
+        require(cache.get(cubes).get(0).faceCount() == 2, "mutable face lists invalidate the snapshot");
         faces.clear();
         require(cache.get(cubes).isEmpty(), "removed faces cannot remain in cached rendering");
         faces.add(quad);
@@ -58,7 +58,7 @@ public final class YsmAccelerationMeshesSmokeTest {
         ImageIO.write(blackSoftEdge, "png", blackPng);
         require(geometry.applyTextureAlpha(blackPng.toByteArray()), "a black half-transparent pixel needs the translucent layer");
         geometry.applyTextureAlpha(null);
-        require(cache.get(cubes).getFirst().faceCount() == 1, "faces can become visible and accelerate again");
+        require(cache.get(cubes).get(0).faceCount() == 1, "faces can become visible and accelerate again");
         faces.clear();
         for (int index = 0; index < 16_385; index++) {
             faces.add(quad);

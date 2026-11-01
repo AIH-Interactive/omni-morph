@@ -24,7 +24,7 @@ public final class YsmPreviewLightingSmokeTest {
         net.minecraft.server.Bootstrap.bootStrap();
         RenderSystem.initRenderThread();
         try (var window = NativeGlWindow.open()) {
-            var texture = ResourceLocation.fromNamespaceAndPath("omni-morph", "preview-test");
+            var texture = new ResourceLocation("omni-morph", "preview-test");
             var types = new YsmPreviewRenderTypes();
             for (boolean cull : new boolean[] {false, true}) {
                 for (boolean translucent : new boolean[] {false, true}) {
@@ -42,7 +42,7 @@ public final class YsmPreviewLightingSmokeTest {
     public static void verifyMaterial(RenderType material, boolean cull, boolean translucent) throws Exception {
         var state = field(material, "state");
         require(material.format() == DefaultVertexFormat.NEW_ENTITY, "unlit material retains native entity format");
-        require(material.sortOnUpload() == translucent, "only blended materials sort on upload");
+        require(material.sortOnUpload == translucent, "only blended materials sort on upload");
         require(field(state, "cullState") == shard(cull ? "CULL" : "NO_CULL"), "native face-culling policy");
         require(field(state, "transparencyState") == shard(translucent ? "TRANSLUCENT_TRANSPARENCY" : "NO_TRANSPARENCY"),
                 "native alpha-blending policy");
@@ -51,7 +51,7 @@ public final class YsmPreviewLightingSmokeTest {
         require(field(state, "lightmapState") == shard("NO_LIGHTMAP"), "GUI does not sample lightmap");
         require(field(state, "overlayState") == shard("OVERLAY"), "entity overlays remain available");
         require(field(state, "outputState") == shard("MAIN_TARGET"), "GUI draws to the main target");
-        var vanilla = RenderType.entityCutout(ResourceLocation.withDefaultNamespace("preview-test"));
+        var vanilla = RenderType.entityCutout(new ResourceLocation("preview-test"));
         require(field(state, "shaderState") != field(field(vanilla, "state"), "shaderState"),
                 "GUI uses its dedicated unlit shader state");
     }

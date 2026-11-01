@@ -72,9 +72,9 @@ public final class YsmPayloadSmokeTest {
         Path directory = Files.createTempDirectory("ysm-payload-");
         try {
             Path file = directory.resolve("avatar.nbt");
-            NbtIo.writeCompressed(portable, file);
+            NbtIo.writeCompressed(portable, file.toFile());
             try (var input = Files.newInputStream(file)) {
-                CompoundTag reread = NbtIo.readCompressed(input, NbtAccounter.create(128L * 1024 * 1024));
+                CompoundTag reread = org.figuramc.figura.utils.IOUtils.readCompressedNbt(input, 128L * 1024 * 1024);
                 require(!reread.toString().contains(MARKER), "disk contents checked after decompression");
                 require(reread.equals(portable), "portable disk round trip");
             }

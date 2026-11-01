@@ -143,7 +143,7 @@ public final class OutfitTrailRuntimeSmokeTest {
                 require(points.size() == 1, "actual built-in Lua appends one world sample");
                 require(OutfitTrailBudget.count(wearer.getUUID()) == 1,
                         "successful controller sampling owns exactly one shared slot");
-                position(points.getFirst(), 101, 202.75, 303, 10.5);
+                position(points.get(0), 101, 202.75, 303, 10.5);
                 first.draw(pose, state, .5f, EntityRenderMode.RENDER, ignored -> {});
                 require(composition.trailSamples(instance.instanceId()).size() == 1, "retained replay does not sample twice");
                 world.clock = 11;
@@ -171,7 +171,7 @@ public final class OutfitTrailRuntimeSmokeTest {
                 try (var teleported = composition.retain()) {
                     teleported.draw(pose, state, 0, EntityRenderMode.RENDER, ignored -> {});
                     var jumped = composition.trailSamples(instance.instanceId());
-                    require(jumped.size() == 1 && jumped.getFirst().x() == 10000, "world teleport starts a fresh trajectory");
+                    require(jumped.size() == 1 && jumped.get(0).x() == 10000, "world teleport starts a fresh trajectory");
                 }
                 var replacementWorld = (World) unsafe.allocateInstance(World.class);
                 replacementWorld.clock = 14;

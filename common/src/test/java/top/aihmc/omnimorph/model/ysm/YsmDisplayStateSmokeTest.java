@@ -82,7 +82,7 @@ public final class YsmDisplayStateSmokeTest {
         var evaluator = top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator.evaluator(context);
         java.util.function.Function<String, Float> molang = source -> {
             try {
-                return ((Number) evaluator.eval(engine.parse(source).getFirst())).floatValue();
+                return ((Number) evaluator.eval(engine.parse(source).get(0))).floatValue();
             } catch (Exception exception) {
                 throw new AssertionError(source, exception);
             }

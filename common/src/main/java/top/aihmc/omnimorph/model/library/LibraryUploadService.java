@@ -232,7 +232,7 @@ public final class LibraryUploadService implements AutoCloseable {
                     } else if (!dependencies.ready()) {
                         progress.finish(progressGeneration);
                         var issues = dependencies.resources().issues();
-                        String code = issues.isEmpty() ? "OUTFIT_DEPENDENCY_NOT_DISTRIBUTABLE" : issues.getFirst().code();
+                        String code = issues.isEmpty() ? "OUTFIT_DEPENDENCY_NOT_DISTRIBUTABLE" : issues.get(0).code();
                         completion.completeExceptionally(new LibraryClient.Failure(400, code));
                     } else {
                         outfitDependenciesReady = true;

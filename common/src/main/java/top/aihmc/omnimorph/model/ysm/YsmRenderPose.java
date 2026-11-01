@@ -128,7 +128,7 @@ public final class YsmRenderPose {
     }
 
     void applyModelScale(PoseStack stack) {
-        stack.mulPose(new Matrix4f(modelScale));
+        stack.mulPoseMatrix(new Matrix4f(modelScale));
     }
 
     boolean visibleInHierarchy(String name, YsmGeometry geometry) {

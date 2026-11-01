@@ -56,7 +56,7 @@ public final class YsmAvifSmokeTest {
                 }
                 try (YsmModelData data = YsmModelData.read(path, () -> false)) {
                     models++;
-                    var tag = YsmAvatarLoader.toRuntimeTag(data, data.manifest().textures().getFirst());
+                    var tag = YsmAvatarLoader.toRuntimeTag(data, data.manifest().textures().get(0));
                     guiImages += NbtDefaults.getListOrEmpty(tag, "gui_entries").size();
                     String previewName = tag.getString("preview_animation");
                     if (!previewName.isBlank()) {
@@ -76,7 +76,7 @@ public final class YsmAvifSmokeTest {
                         require(gui.invalidImages() == 0, "every actual selected/named GUI image decodes through the runtime resource container");
                     }
                     if (data.encrypted()) {
-                        var portable = YsmAvatarLoader.toAvatarNbt(data, data.manifest().textures().getFirst(),
+                        var portable = YsmAvatarLoader.toAvatarNbt(data, data.manifest().textures().get(0),
                                 new java.util.UUID(0, 1), path).getCompound("ysm");
                         require(!portable.contains("gui_entries") && !portable.contains("gui_image_names"),
                                 "decoded GUI resources and names never enter the encrypted portable payload");

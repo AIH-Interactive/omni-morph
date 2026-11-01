@@ -135,7 +135,7 @@ public abstract class MinecraftMixin {
     }
 
     @Inject(at = @At("RETURN"), method = "setLevel")
-    private void setLevel(ClientLevel world, ReceivingLevelScreen.Reason reason, CallbackInfo ci) {
+    private void setLevel(ClientLevel world, CallbackInfo ci) {
         NetworkStuff.auth();
         // LambDynamicLights drops its behavior sources on world change; register the particle bridge again.
         if (org.figuramc.figura.utils.PlatformUtils.isModLoaded("lambdynlights")) {

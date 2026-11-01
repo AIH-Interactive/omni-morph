@@ -4,7 +4,7 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.culling.Frustum;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
+import com.mojang.blaze3d.vertex.BufferBuilder;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
@@ -197,13 +197,14 @@ public final class CustomParticleRuntime {
         }
         // Vertices already subtract the camera; shader-pack camera translation must not apply twice.
         var modelView = RenderSystem.getModelViewStack();
-        modelView.pushMatrix();
-        try (var storage = new ByteBufferBuilder(1536)) {
-            modelView.setTranslation(0f, 0f, 0f);
+        modelView.pushPose();
+        try {
+            var storage = new BufferBuilder(1536);
+            modelView.last().pose().setTranslation(0f, 0f, 0f);
             RenderSystem.applyModelViewMatrix();
             frame.draw(new Matrix4f(), MultiBufferSource.immediate(storage), true);
         } finally {
-            modelView.popMatrix();
+            modelView.popPose();
             RenderSystem.applyModelViewMatrix();
         }
     }

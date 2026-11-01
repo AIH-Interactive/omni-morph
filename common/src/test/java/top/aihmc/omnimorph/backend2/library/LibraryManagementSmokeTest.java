@@ -141,7 +141,7 @@ public final class LibraryManagementSmokeTest {
             var listing = await(authorization.list(1).future(), queue);
             require(LibraryAuthorization.available(listing.model()) && listing.grants().total() == 1,
                     "required models show authorization management");
-            require(await(authorization.resolve("Other & Player").future(), queue).items().getFirst().uuid().equals(CANDIDATE),
+            require(await(authorization.resolve("Other & Player").future(), queue).items().get(0).uuid().equals(CANDIDATE),
                     "candidate identity comes from verified server UUID");
             failure(authorization.change(new LibraryAuthorization.Change(OWNER, false, UUID.randomUUID(), 7)).future(), queue,
                     "UPLOADER_GRANT_REQUIRED");
@@ -160,11 +160,11 @@ public final class LibraryManagementSmokeTest {
             require(admin.active(), "verified admin session is active");
             var recycle = new LibraryRecycleService(client, admin::token);
             var outfits = await(recycle.list(1, "", "", "LIBRARY").future(), queue);
-            require(outfits.items().size() == 1 && outfits.items().getFirst().resourceKind().equals("OUTFIT")
-                            && outfits.items().getFirst().modelType() == null,
+            require(outfits.items().size() == 1 && outfits.items().get(0).resourceKind().equals("OUTFIT")
+                            && outfits.items().get(0).modelType() == null,
                     "administrator recycle pages retain independent Outfit purpose and absent native model format");
             var items = await(recycle.list(1, "用户 &", "FIGURA", "WARDROBE").future(), queue);
-            var deleted = items.items().getFirst();
+            var deleted = items.items().get(0);
             require(deleted.id().equals(MODEL) && deleted.canRestore() && deleted.equipmentRevision() == 7,
                     "mixed recycle records retain their immutable source identity and revision");
             UUID recovery = UUID.randomUUID();

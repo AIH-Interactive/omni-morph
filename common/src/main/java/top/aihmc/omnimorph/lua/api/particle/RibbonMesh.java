@@ -83,8 +83,8 @@ public final class RibbonMesh {
         if (nodes.size() < 2) {
             return new Mesh(List.of(), 0, 0);
         }
-        double tail = nodes.getFirst().distance;
-        double head = nodes.getLast().distance;
+        double tail = nodes.get(0).distance;
+        double head = nodes.get(nodes.size() - 1).distance;
         if (head <= tail) {
             return new Mesh(List.of(), 0, 0);
         }
@@ -136,7 +136,7 @@ public final class RibbonMesh {
             }
             double taper = settings.taper ? (node.distance - tail) / (head - tail) : 1;
             Vec3 halfWidth = side.scale(settings.width * .5 * taper);
-            float alpha = settings.fade ? (float) Math.clamp(1 - (now - node.time) / settings.lifetime, 0, 1) : 1;
+            float alpha = settings.fade ? (float) net.minecraft.util.Mth.clamp(1 - (now - node.time) / settings.lifetime, 0, 1) : 1;
             sections.add(new Section(node.position.add(halfWidth), node.position.subtract(halfWidth), alpha, uv[index]));
         }
         var quads = new ArrayList<Quad>((int) quadCount);
@@ -180,10 +180,10 @@ public final class RibbonMesh {
             source.add(node);
             previous = node;
         }
-        if (source.size() < 2 || source.getFirst().time > now) {
+        if (source.size() < 2 || source.get(0).time > now) {
             return List.of();
         }
-        double head = source.getFirst().distance;
+        double head = source.get(0).distance;
         for (int index = 1; index < source.size(); index++) {
             Node a = source.get(index - 1);
             Node b = source.get(index);
@@ -221,7 +221,7 @@ public final class RibbonMesh {
     }
 
     private static void append(List<Node> nodes, Node node) {
-        if (!nodes.isEmpty() && nodes.getLast().position.distanceToSqr(node.position) <= MIN_LENGTH_SQUARED) {
+        if (!nodes.isEmpty() && nodes.get(nodes.size() - 1).position.distanceToSqr(node.position) <= MIN_LENGTH_SQUARED) {
             nodes.set(nodes.size() - 1, node);
         } else {
             nodes.add(node);

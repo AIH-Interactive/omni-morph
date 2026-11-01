@@ -52,7 +52,7 @@ public final class YsmBlendTransition {
             throw new IllegalArgumentException("Invalid transition time");
         }
         if (times.length == 0) {
-            return duration == 0f ? 1f : Math.clamp(elapsedSeconds / duration, 0f, 1f);
+            return duration == 0f ? 1f : net.minecraft.util.Mth.clamp(elapsedSeconds / duration, 0f, 1f);
         }
         if (elapsedSeconds <= times[0]) {
             return incoming[0];

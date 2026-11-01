@@ -5,7 +5,6 @@ import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -325,7 +324,7 @@ public final class YsmFunctionContractSmokeTest {
         unowned.entity = player;
         player.blocking = true;
         MolangEngine engine = MolangEngine.fromCustomBinding(Avatar.createMolangBindings(unowned));
-        require(Boolean.FALSE.equals(ExpressionEvaluator.evaluator(unowned).eval(engine.parse("ysm.in_shield_block_cooldown;").getFirst())),
+        require(Boolean.FALSE.equals(ExpressionEvaluator.evaluator(unowned).eval(engine.parse("ysm.in_shield_block_cooldown;").get(0))),
                 "missing player-model capability uses the reference false fallback");
     }
 
@@ -511,12 +510,9 @@ public final class YsmFunctionContractSmokeTest {
                     "player level reads native experience with raw Integer type");
             player.experienceLevel = 3;
             require(Integer.valueOf(3).equals(owner.evalValue("q.player_level;")), "experience changes immediately");
-            player.fixtureSkin = new net.minecraft.client.resources.PlayerSkin(null, null, null, null,
-                    net.minecraft.client.resources.PlayerSkin.Model.WIDE, false);
+            player.fixtureCape = null;
             require(Boolean.FALSE.equals(owner.evalValue("q.has_cape;")), "missing cape texture is false");
-            player.fixtureSkin = new net.minecraft.client.resources.PlayerSkin(null, null,
-                    net.minecraft.resources.ResourceLocation.parse("fixture:cape"), null,
-                    net.minecraft.client.resources.PlayerSkin.Model.WIDE, false);
+            player.fixtureCape = new net.minecraft.resources.ResourceLocation("fixture:cape");
             player.showCape = true;
             require(Boolean.TRUE.equals(owner.evalValue("q.has_cape;")), "visible native cape with model part enabled");
             player.hidden = true;
@@ -545,8 +541,6 @@ public final class YsmFunctionContractSmokeTest {
             player.sleeping = false;
             hands.prepare(player, true);
             player.mainItem = new ItemStack(Items.APPLE);
-            player.mainItem.set(DataComponents.FOOD, new net.minecraft.world.food.FoodProperties(
-                    4, 2.4f, false, 2f, java.util.Optional.empty(), List.of()));
             hands.mouseEvent(1, 1);
             require(Boolean.TRUE.equals(owner.evalValue("q.is_using_item;")), "local pending use pulse bridges native item handoff");
             require(Boolean.FALSE.equals(observer.evalValue("q.is_using_item;")), "pending use belongs only to the local model owner");
@@ -571,7 +565,7 @@ public final class YsmFunctionContractSmokeTest {
     }
 
     private static final class HandFixturePlayer extends LocalPlayer {
-        private net.minecraft.client.resources.PlayerSkin fixtureSkin;
+        private net.minecraft.resources.ResourceLocation fixtureCape;
         private boolean showCape;
         private boolean hidden;
         private ItemStack mainItem;
@@ -585,8 +579,8 @@ public final class YsmFunctionContractSmokeTest {
         }
 
         @Override
-        public net.minecraft.client.resources.PlayerSkin getSkin() {
-            return fixtureSkin;
+        public net.minecraft.resources.ResourceLocation getCloakTextureLocation() {
+            return fixtureCape;
         }
 
         @Override
@@ -697,7 +691,7 @@ public final class YsmFunctionContractSmokeTest {
         Avatar.MolangContext ownerless = new Avatar.MolangContext(null);
         var engine = MolangEngine.fromCustomBinding(Avatar.createMolangBindings(ownerless));
         Object result = ExpressionEvaluator.evaluator(ownerless).eval(
-                engine.parse("q.control(v.no_control_owner=1);").getFirst());
+                engine.parse("q.control(v.no_control_owner=1);").get(0));
         number(0f, result, "missing control owner returns zero");
         require(ownerless.variables.getPath("no_control_owner") == null, "missing owner rejects before evaluating control ID");
     }
@@ -764,8 +758,8 @@ public final class YsmFunctionContractSmokeTest {
         legacy.ysm_head_pitch = 99f;
         var engine = MolangEngine.fromCustomBinding(Avatar.createMolangBindings(legacy));
         var evaluator = ExpressionEvaluator.evaluator(legacy);
-        number(11f, evaluator.eval(engine.parse("q.head_x_rotation;").getFirst()), "ordinary Figura head x contract is preserved");
-        number(-22f, evaluator.eval(engine.parse("q.head_y_rotation;").getFirst()), "ordinary Figura head y contract is preserved");
+        number(11f, evaluator.eval(engine.parse("q.head_x_rotation;").get(0)), "ordinary Figura head x contract is preserved");
+        number(-22f, evaluator.eval(engine.parse("q.head_y_rotation;").get(0)), "ordinary Figura head y contract is preserved");
     }
 
     private static void testProjectScalarExtensions() throws Exception {
@@ -1026,7 +1020,7 @@ public final class YsmFunctionContractSmokeTest {
         number(7f, first.evalValue("t.saved;"), "recursive failure leaves outer temporary scope intact");
         Avatar.MolangContext unowned = new Avatar.MolangContext(null);
         require(Float.valueOf(0f).equals(ExpressionEvaluator.evaluator(unowned)
-                        .eval(first.engine.parse("ysm.event(v.unowned_event_name=1);").getFirst()))
+                        .eval(first.engine.parse("ysm.event(v.unowned_event_name=1);").get(0)))
                         && unowned.variables.getPath("unowned_event_name") == null,
                 "missing owner rejects a project event before its name expression");
     }
@@ -1420,7 +1414,7 @@ public final class YsmFunctionContractSmokeTest {
             require(top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl.loadedModReads == modReads,
                     "encrypted runtime diagnostic does not enumerate the platform");
             require(ExpressionEvaluator.evaluator(encrypted.context.owner)
-                            .eval(encrypted.engine.parse("q.debug_output('PRIVATE_DIRECT_OWNER');").getFirst()) == null
+                            .eval(encrypted.engine.parse("q.debug_output('PRIVATE_DIRECT_OWNER');").get(0)) == null
                             && messages.isEmpty(), "legacy direct Avatar context also suppresses encrypted debug output");
             CompoundTag payload = new CompoundTag();
             payload.putInt("crypto_version", 3);
@@ -1739,7 +1733,7 @@ public final class YsmFunctionContractSmokeTest {
         }
 
         private Object evalValue(String source) throws Exception {
-            return ExpressionEvaluator.evaluator(context).eval(engine.parse(source).getFirst());
+            return ExpressionEvaluator.evaluator(context).eval(engine.parse(source).get(0));
         }
     }
 

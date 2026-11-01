@@ -6,7 +6,7 @@ import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.resources.PlayerSkin;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.PlayerModelPart;
 import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.render.EntityFrame;
@@ -16,11 +16,12 @@ public record LibraryFiguraPreviewState(Avatar avatar, PlayerPose playerPose, fl
                                        float pitch, float yaw, float offsetX, float offsetY,
                                        int x0, int y0, int x1, int y1, float scale,
                                        ScreenRectangle scissorArea, ScreenRectangle bounds) {
-    public record PlayerPose(EntityFrame frame, PlayerSkin skin, float ageInTicks,
+    public record PlayerPose(EntityFrame frame, ResourceLocation skin, boolean slim, float ageInTicks,
                              boolean showHat, boolean showJacket, boolean showLeftSleeve,
                              boolean showRightSleeve, boolean showLeftPants, boolean showRightPants) {
         static PlayerPose capture(AbstractClientPlayer player, float delta) {
-            return new PlayerPose(new EntityFrame(player, delta), player.getSkin(), player.tickCount + delta,
+            return new PlayerPose(new EntityFrame(player, delta), player.getSkinTextureLocation(),
+                    "slim".equals(player.getModelName()), player.tickCount + delta,
                     player.isModelPartShown(PlayerModelPart.HAT), player.isModelPartShown(PlayerModelPart.JACKET),
                     player.isModelPartShown(PlayerModelPart.LEFT_SLEEVE), player.isModelPartShown(PlayerModelPart.RIGHT_SLEEVE),
                     player.isModelPartShown(PlayerModelPart.LEFT_PANTS_LEG), player.isModelPartShown(PlayerModelPart.RIGHT_PANTS_LEG));

@@ -120,7 +120,7 @@ public record OutfitHierarchy(PreviewHierarchy hierarchy, Map<Integer, Target> t
                 var resolved = StandardAnchors.resolve(snapshot.base().definition(),
                         snapshot.configuration().base() == null, anchor.name());
                 if (resolved.size() == 1) {
-                    bone = resolved.getFirst().bone();
+                    bone = resolved.get(0).bone();
                 }
             }
             for (var target : builder.targets.entrySet()) {

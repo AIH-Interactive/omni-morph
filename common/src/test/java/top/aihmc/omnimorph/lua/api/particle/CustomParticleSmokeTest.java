@@ -132,12 +132,16 @@ public final class CustomParticleSmokeTest {
         var table = new LuaTable();
         for (int index = 0; index < pairs.length; index += 2) {
             Object value = pairs[index + 1];
-            LuaValue lua = switch (value) {
-                case Boolean flag -> LuaValue.valueOf(flag);
-                case Number number -> LuaValue.valueOf(number.doubleValue());
-                case String text -> LuaValue.valueOf(text);
-                default -> throw new AssertionError("Unsupported fixture value");
-            };
+            LuaValue lua;
+            if (value instanceof Boolean flag) {
+                lua = LuaValue.valueOf(flag);
+            } else if (value instanceof Number number) {
+                lua = LuaValue.valueOf(number.doubleValue());
+            } else if (value instanceof String text) {
+                lua = LuaValue.valueOf(text);
+            } else {
+                throw new AssertionError("Unsupported fixture value");
+            }
             table.set((String) pairs[index], lua);
         }
         return table;

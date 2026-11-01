@@ -43,7 +43,7 @@ public final class LibraryHttpIntegrationTest {
             require(await(grants.list(1).future(), callbacks).grants().items().stream().anyMatch(item -> item.uuid().equals(owner)),
                     "uploader's automatic grant is present on the real backend");
             var candidates = await(grants.resolve("Player2").future(), callbacks);
-            require(candidates.items().getFirst().uuid().equals(new UUID(0, 2)), "real UUID resolution");
+            require(candidates.items().get(0).uuid().equals(new UUID(0, 2)), "real UUID resolution");
             await(grants.change(new LibraryAuthorization.Change(new UUID(0, 2), true, UUID.randomUUID(), detail.policyRevision()))
                     .future(), callbacks);
             long imagePolicy = await(client.detail(model).future(), callbacks).policyRevision();

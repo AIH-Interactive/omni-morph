@@ -54,7 +54,7 @@ public final class CloudAdapterSmokeTest {
                 .findFirst().orElseThrow();
         YsmSyncMessage original = YsmSyncCodec.decode(snapshotWire);
         var publisher = new YsmProtobuf.Publisher();
-        var snapshot = publisher.encode(original, 7).getFirst().setMajor(1).build();
+        var snapshot = publisher.encode(original, 7).get(0).setMajor(1).build();
         var decoded = YsmProtobuf.decode(CloudWire.decode(snapshot.toByteArray()));
         require(decoded.state().equals(original.state()) && decoded.events().isEmpty()
                 && decoded.eventWatermark() == 2 && decoded.sequence() == 0 && decoded.baseSequence() == -1,

@@ -83,12 +83,12 @@ public final class DualEngineGpuReplay {
                     if (method.getName().equals("addVertex")) {
                         vertices.add(new float[8]);
                         for (int component = 0; component < 3; component++) {
-                            vertices.getLast()[component] = ((Number) arguments[component]).floatValue();
+                            com.google.common.collect.Iterables.getLast(vertices)[component] = ((Number) arguments[component]).floatValue();
                         }
                     } else if (method.getName().equals("setNormal") || method.getName().equals("setUv")) {
                         int offset = method.getName().equals("setNormal") ? 3 : 6;
                         for (int component = 0; component < arguments.length; component++) {
-                            vertices.getLast()[offset + component] = ((Number) arguments[component]).floatValue();
+                            com.google.common.collect.Iterables.getLast(vertices)[offset + component] = ((Number) arguments[component]).floatValue();
                         }
                     }
                     return method.getReturnType() == void.class ? null : proxy;
@@ -234,7 +234,7 @@ public final class DualEngineGpuReplay {
             }
             float[] uv = multiply(matrices, matrix + 112, new float[]{geometry.getFloat(offset + 24), geometry.getFloat(offset + 28), 1}, 3);
             lastW = position[3];
-            sink.addVertex(position[0], position[1], position[2]).setNormal(normal[0], normal[1], normal[2]).setUv(uv[0], uv[1]);
+            sink.vertex(position[0], position[1], position[2]).normal(normal[0], normal[1], normal[2]).uv(uv[0], uv[1]).endVertex();
             vertices++;
         }
 

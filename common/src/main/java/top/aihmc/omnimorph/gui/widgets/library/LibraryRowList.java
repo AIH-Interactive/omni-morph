@@ -153,8 +153,8 @@ public final class LibraryRowList extends AbstractList {
     }
 
     @Override
-    public boolean mouseScrolled(double x, double y, double horizontal, double vertical) {
-        return isMouseOver(x, y) && super.mouseScrolled(x, y, horizontal, vertical);
+    public boolean mouseScrolled(double x, double y, double vertical) {
+        return isMouseOver(x, y) && super.mouseScrolled(x, y, vertical);
     }
 
     private final class RowButton extends Button {

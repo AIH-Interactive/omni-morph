@@ -162,7 +162,6 @@ final class CloudProtocolLifecycleSmokeTest {
             Configs.DEBUG_MODE.tempValue = previousTempDebug;
             AvatarManager.localUploaded = uploaded;
             scope.close();
-            testClient.close();
         }
     }
 

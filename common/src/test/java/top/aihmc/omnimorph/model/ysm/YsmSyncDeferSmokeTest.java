@@ -79,7 +79,7 @@ public final class YsmSyncDeferSmokeTest {
         }
         int count = fixture.trace.size();
         fixture.functions.flushDeferred(secondOwner, fixture.evaluator);
-        require(fixture.trace.size() == count + 1 && fixture.trace.getLast().equals("defer:inner:4.0"),
+        require(fixture.trace.size() == count + 1 && com.google.common.collect.Iterables.getLast(fixture.trace).equals("defer:inner:4.0"),
                 "one animation owner cannot consume another owner's queue");
         fixture.functions.flushDeferred(owner, fixture.evaluator);
         require(fixture.trace.subList(fixture.trace.size() - 2, fixture.trace.size())
@@ -136,7 +136,7 @@ public final class YsmSyncDeferSmokeTest {
         try (var scope = fixture.functions.beginClientEffects(owner)) {
             fixture.eval("sync(4,5);");
         }
-        require(fixture.trace.getLast().equals("sync:4.0:5.0"), "recursion failure does not damage the next event");
+        require(com.google.common.collect.Iterables.getLast(fixture.trace).equals("sync:4.0:5.0"), "recursion failure does not damage the next event");
     }
 
     private static final class Fixture {

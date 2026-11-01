@@ -20,18 +20,18 @@ public final class LocalCosmeticCatalogSmokeTest {
             require(!initial.isDone() && catalog.entries().isEmpty(), "worker does not publish UI state");
             publish.run();
             var snapshot = initial.get(10, TimeUnit.SECONDS);
-            require(snapshot.size() == 1 && snapshot.getFirst().source().metadata().common().name.equals("星翼"),
+            require(snapshot.size() == 1 && snapshot.get(0).source().metadata().common().name.equals("星翼"),
                     "client delivery publishes actual parsed metadata");
-            var previous = snapshot.getFirst();
+            var previous = snapshot.get(0);
             Files.writeString(manifest, "{\"name\":\"New wings\",\"cosmetic_anchor\":\"wing_anchor\"}");
             var refresh = catalog.refresh();
             publish = delivery(callbacks);
             require(catalog.entries() == snapshot, "old snapshot remains visible during preparation");
             publish.run();
-            var changed = refresh.get(10, TimeUnit.SECONDS).getFirst();
+            var changed = refresh.get(10, TimeUnit.SECONDS).get(0);
             require(changed.localId().equals(previous.localId())
                             && !changed.source().contentHash().equals(previous.source().contentHash())
-                            && snapshot.getFirst().source().metadata().common().name.equals("星翼"),
+                            && snapshot.get(0).source().metadata().common().name.equals("星翼"),
                     "edits preserve identity, change revision and leave prior metadata intact");
 
             Path added = Files.createDirectories(root.resolve("cosmetics/星翼_新"));
@@ -50,7 +50,7 @@ public final class LocalCosmeticCatalogSmokeTest {
             Files.writeString(manifest, "invalid json");
             var invalid = catalog.refresh();
             delivery(callbacks).run();
-            require(invalid.get(10, TimeUnit.SECONDS).getFirst().source() == null,
+            require(invalid.get(10, TimeUnit.SECONDS).get(0).source() == null,
                     "invalid resources remain visible as unavailable entries");
 
             var retiring = catalog.refresh();

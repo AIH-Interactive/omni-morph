@@ -35,16 +35,16 @@ public record ModelLibraryLayout(int width, int height, int count, int columns, 
     }
 
     public int y(int index, int scroll) {
-        return index / columns * (CARD_HEIGHT + GAP) - Math.clamp(scroll, 0, maximumScroll());
+        return index / columns * (CARD_HEIGHT + GAP) - net.minecraft.util.Mth.clamp(scroll, 0, maximumScroll());
     }
 
     public int first(int scroll) {
-        return Math.min(count, Math.clamp(scroll, 0, maximumScroll()) / (CARD_HEIGHT + GAP) * columns);
+        return Math.min(count, net.minecraft.util.Mth.clamp(scroll, 0, maximumScroll()) / (CARD_HEIGHT + GAP) * columns);
     }
 
     public int endWithPrefetch(int scroll) {
         int step = CARD_HEIGHT + GAP;
-        int visibleEndRow = (Math.clamp(scroll, 0, maximumScroll()) + height + step - 1) / step;
+        int visibleEndRow = (net.minecraft.util.Mth.clamp(scroll, 0, maximumScroll()) + height + step - 1) / step;
         return Math.min(count, (visibleEndRow + 1) * columns);
     }
 
@@ -53,7 +53,7 @@ public record ModelLibraryLayout(int width, int height, int count, int columns, 
             return -1;
         }
         int column = (int) x / (cardWidth + GAP);
-        double absoluteY = y + Math.clamp(scroll, 0, maximumScroll());
+        double absoluteY = y + net.minecraft.util.Mth.clamp(scroll, 0, maximumScroll());
         int row = (int) absoluteY / (CARD_HEIGHT + GAP);
         int index = row * columns + column;
         if (column >= columns || x - column * (cardWidth + GAP) >= cardWidth
@@ -64,6 +64,6 @@ public record ModelLibraryLayout(int width, int height, int count, int columns, 
     }
 
     public int scrollTo(int index) {
-        return Math.clamp(index / columns * (CARD_HEIGHT + GAP), 0, maximumScroll());
+        return net.minecraft.util.Mth.clamp(index / columns * (CARD_HEIGHT + GAP), 0, maximumScroll());
     }
 }

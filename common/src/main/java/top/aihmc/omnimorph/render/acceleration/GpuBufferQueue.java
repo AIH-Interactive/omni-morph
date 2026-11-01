@@ -1,8 +1,6 @@
 package top.aihmc.omnimorph.render.acceleration;
 
 import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
-import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -75,17 +73,10 @@ public final class GpuBufferQueue {
         }
         if (!service.drawBatches(entries.stream().map(Entry::batch).toList())) {
             // Re-enter the original material renderer without recursing into BufferSource hooks.
-            try (ByteBufferBuilder memory = new ByteBufferBuilder(256)) {
-                BufferBuilder vertices = new BufferBuilder(memory, material.mode(), material.format());
-                emit(entries, vertices);
-                MeshData mesh = vertices.build();
-                if (mesh != null) {
-                    if (material.sortOnUpload()) {
-                        mesh.sortQuads(memory, RenderSystem.getVertexSorting());
-                    }
-                    material.draw(mesh);
-                }
-            }
+            BufferBuilder vertices = new BufferBuilder(256);
+            vertices.begin(material.mode(), material.format());
+            emit(entries, vertices);
+            material.end(vertices, RenderSystem.getVertexSorting());
         }
     }
 }

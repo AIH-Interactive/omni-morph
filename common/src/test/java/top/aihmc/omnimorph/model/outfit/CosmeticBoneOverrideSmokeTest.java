@@ -60,7 +60,7 @@ public final class CosmeticBoneOverrideSmokeTest {
         var original = instance(UUID.randomUUID(), resource, 1, anchor, OutfitConfig.Transform.identity(), List.of());
         Avatar avatar = load(original, account, UUID.randomUUID(), permissions(account));
         try {
-            var quad = avatar.renderer.root.children.getFirst();
+            var quad = avatar.renderer.root.children.get(0);
             var joint = new FiguraModelPart(avatar, "EditJoint", new PartCustomization(), Map.of(), new ArrayList<>());
             joint.parent = avatar.renderer.root;
             joint.facesByTexture = List.of();
@@ -139,7 +139,7 @@ public final class CosmeticBoneOverrideSmokeTest {
             } else {
                 skeleton = new FiguraSkeletonAdapter((ImmediateFiguraRenderer) parent.renderer, resource,
                         original.instanceId(), indexes, limits).binding().definition();
-                var part = parent.renderer.root.children.getFirst();
+                var part = parent.renderer.root.children.get(0);
                 part.customization.setPos(4, 0, 0);
                 part.customization.setAnimPos(2, 0, 0);
                 parent.initializePreviewPlayer(null);
@@ -204,8 +204,8 @@ public final class CosmeticBoneOverrideSmokeTest {
                     near(positions.get(5), 7 + 25f / 16, 11 + 7f / 16, 13 + 7f / 16);
                     near(positions.get(8), 7 + 19f / 16, 11 + 7f / 16, 13 + 19f / 16);
                     require(normals.size() == positions.size(), "native Figura normals accompany every emitted vertex");
-                    near(normals.get(4), 0, 0, normals.getFirst()[2] * (float) Math.cbrt(24) / 4);
-                    var part = parent.renderer.root.children.getFirst();
+                    near(normals.get(4), 0, 0, normals.get(0)[2] * (float) Math.cbrt(24) / 4);
+                    var part = parent.renderer.root.children.get(0);
                     require(part.customization.getPos().x == 4 && part.customization.getAnimPos().x == 2
                                     && part.customization.getScale().x == 1,
                             "Figura authored and animation channels do not absorb or accumulate the overlay");
@@ -216,7 +216,7 @@ public final class CosmeticBoneOverrideSmokeTest {
                 if (ysm) {
                     parent.getYsmRuntime().getPart("Body").setPos(999d, 0d, 0d);
                 } else {
-                    parent.renderer.root.children.getFirst().customization.setPos(999, 0, 0);
+                    parent.renderer.root.children.get(0).customization.setPos(999, 0, 0);
                 }
                 OutfitNativeRenderer.drawVanilla(frame, model, state, 0x00f000f0, .5f, outer, outer, type -> sink,
                         EntityRenderMode.FIGURA_GUI);
@@ -241,18 +241,18 @@ public final class CosmeticBoneOverrideSmokeTest {
                     } catch (IllegalStateException expected) {
                         require(expected.getMessage().equals("overlay scope failure"), "native scope preserves its exception");
                     }
-                    require(parent.renderer.root.children.getFirst().customization.getPos().x == 999,
+                    require(parent.renderer.root.children.get(0).customization.getPos().x == 999,
                             "failed retained overlay restores newer authored state");
-                    parent.renderer.root.children.getFirst().customization.setPos(4, 0, 0);
+                    parent.renderer.root.children.get(0).customization.setPos(4, 0, 0);
                     var bare = new FiguraRenderPose(parts, service.capture(parent.accelerationOwner(), "bare"));
                     positions.clear();
                     OutfitNativeRenderer.drawInstance(new OutfitComposition.Draw(first.instanceId(), parent,
                             command.matrix(), null, bare), .5f, outer, type -> sink, 0x00f000f0,
                             EntityRenderMode.FIGURA_GUI);
                     require(positions.size() == 4, "a draw without configured offsets uses the original mesh");
-                    near(positions.getFirst(), 7 + 23f / 16, 11 + 2f / 16, 13 + 3f / 16);
+                    near(positions.get(0), 7 + 23f / 16, 11 + 2f / 16, 13 + 3f / 16);
                     retainedPoseSnapshots(parts, service.capture(parent.accelerationOwner(), "p1"),
-                            parent.renderer.root.children.getFirst());
+                            parent.renderer.root.children.get(0));
                 }
                 previewSelection(composition, parent, avatars.get(second.instanceId()), base, model, state, ysm);
             }
@@ -305,8 +305,8 @@ public final class CosmeticBoneOverrideSmokeTest {
     private static void previewSelection(OutfitComposition composition, Avatar first, Avatar second,
                                          VanillaSkeletonAdapter base, PlayerModel model,
                                          YsmEntityFrame state, boolean ysm) {
-        Object selected = ysm ? first.getYsmRuntime().getPart("Body") : first.renderer.root.children.getFirst();
-        Object other = ysm ? second.getYsmRuntime().getPart("Body") : second.renderer.root.children.getFirst();
+        Object selected = ysm ? first.getYsmRuntime().getPart("Body") : first.renderer.root.children.get(0);
+        Object other = ysm ? second.getYsmRuntime().getPart("Body") : second.renderer.root.children.get(0);
         composition.editorSnapshot(null);
         boolean previous = org.figuramc.figura.utils.ui.UIHelper.paperdoll;
         org.figuramc.figura.utils.ui.UIHelper.paperdoll = true;
@@ -445,18 +445,18 @@ public final class CosmeticBoneOverrideSmokeTest {
                 var end = expected.transformPosition(new org.joml.Vector3f(1, 0, 0));
                 require(lines.size() == 4 && points.size() == 8,
                         "virtual preview submits three pivot axes plus its actual parent connection");
-                near(new float[]{lines.getFirst().x0(), lines.getFirst().y0(), lines.getFirst().z0()}, pivot.x, pivot.y, pivot.z);
-                near(new float[]{lines.getFirst().x1(), lines.getFirst().y1(), lines.getFirst().z1()}, end.x, end.y, end.z);
+                near(new float[]{lines.get(0).x0(), lines.get(0).y0(), lines.get(0).z0()}, pivot.x, pivot.y, pivot.z);
+                near(new float[]{lines.get(0).x1(), lines.get(0).y1(), lines.get(0).z1()}, end.x, end.y, end.z);
             }
             points.clear();
             try (var standard = composition.retain()) {
                 standard.capturePreviewSelection(OutfitConfig.AnchorRef.authorDefault("head_anchor"));
                 OutfitNativeRenderer.drawVanilla(standard, model, state, 0x00f000f0, .5f, new Matrix4f(), new Matrix4f(),
                         type -> sink, EntityRenderMode.FIGURA_GUI);
-                var resolved = StandardAnchors.resolve(definition, true, "head_anchor").getFirst();
+                var resolved = StandardAnchors.resolve(definition, true, "head_anchor").get(0);
                 var expected = basePose.matrix(resolved.bone()).orElseThrow().mul(resolved.offset().modelMatrix())
                         .getTranslation(new org.joml.Vector3f());
-                var first = standard.previewHelpers(basePose).getFirst();
+                var first = standard.previewHelpers(basePose).get(0);
                 near(new float[]{first.x0(), first.y0(), first.z0()}, expected.x, expected.y, expected.z);
                 require(points.size() == 8, "standard derived anchors submit their native-parent offset instead of a raw origin");
             }
@@ -503,7 +503,7 @@ public final class CosmeticBoneOverrideSmokeTest {
         avatar.load(declaration.resource().format() == OutfitConfig.Format.FIGURA ? new CompoundTag() : ysmCube());
         if (!avatar.isYsmNative()) {
             addQuad(avatar);
-            avatar.renderer.root.children.getFirst().customization.setPivot(1, 2, 3);
+            avatar.renderer.root.children.get(0).customization.setPivot(1, 2, 3);
         }
         return avatar;
     }

@@ -37,7 +37,7 @@ record ParticleMotion(String mode, Trajectory trajectory, boolean stopOnTargetLo
 
         @Override
         public Vec3 position(Vec3 current, double elapsedTicks) {
-            double t = loop ? (elapsedTicks % duration) / duration : Math.clamp(elapsedTicks / duration, 0, 1);
+            double t = loop ? (elapsedTicks % duration) / duration : net.minecraft.util.Mth.clamp(elapsedTicks / duration, 0, 1);
             // De Casteljau interpolation avoids large polynomial coefficients at long world coordinates.
             Vec3 a = points.get(0).lerp(points.get(1), t);
             Vec3 b = points.get(1).lerp(points.get(2), t);

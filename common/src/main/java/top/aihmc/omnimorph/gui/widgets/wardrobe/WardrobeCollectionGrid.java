@@ -280,7 +280,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
             ModelCardWidget.drawStatusIcons(gui, x, y, size, model);
             UIHelper.renderScrollingText(gui, LibraryLabels.category(model.categoryId()), textX, y + 20, textWidth, 0xffbac6d8);
             Component author = model.authors().isEmpty() ? FiguraText.of("gui.library.unknown_author")
-                    : Component.literal(model.authors().getFirst());
+                    : Component.literal(model.authors().get(0));
             UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.card_authors", author),
                     textX, y + 34, textWidth, 0xffbac6d8);
             UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.card_uploader", model.uploader().name()),
@@ -340,7 +340,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
                 break;
             }
         }
-        int next = Math.clamp(current < 0 ? 0 : current + step, 0, filtered.size() - 1);
+        int next = net.minecraft.util.Mth.clamp(current < 0 ? 0 : current + step, 0, filtered.size() - 1);
         choose(next);
         scrollBar.setScrollProgressNoAnim(layout.maximumScroll() == 0 ? 0
                 : (double) layout.scrollTo(next) / layout.maximumScroll());

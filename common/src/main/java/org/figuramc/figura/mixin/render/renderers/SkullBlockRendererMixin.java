@@ -11,7 +11,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemDisplayContext;
-import net.minecraft.world.item.component.ResolvableProfile;
+import com.mojang.authlib.GameProfile;
 import net.minecraft.world.level.block.SkullBlock;
 import net.minecraft.world.level.block.entity.SkullBlockEntity;
 import org.figuramc.figura.FiguraMod;
@@ -77,7 +77,7 @@ public abstract class SkullBlockRendererMixin implements BlockEntityRenderer<Sku
         FiguraMod.pushProfiler(localBlock != null ? localBlock.getBlockPos().toString() : String.valueOf(i));
 
         FiguraMod.pushProfiler("event");
-        boolean bool = localAvatar.skullRenderEvent(Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true), b, i, e, m);
+        boolean bool = localAvatar.skullRenderEvent(Minecraft.getInstance().getFrameTime(), b, i, e, m);
 
         // render skull :3
         FiguraMod.popPushProfiler("render");
@@ -109,7 +109,8 @@ public abstract class SkullBlockRendererMixin implements BlockEntityRenderer<Sku
     }
 
     @Inject(at = @At("HEAD"), method = "getRenderType")
-    private static void getRenderType(SkullBlock.Type type, ResolvableProfile profile, CallbackInfoReturnable<RenderType> cir) {
-        avatar = (type == SkullBlock.Types.PLAYER && profile != null && profile.gameProfile() != null) ? AvatarManager.getAvatarForPlayer(profile.gameProfile().getId()) : null;
+    private static void getRenderType(SkullBlock.Type type, GameProfile profile, CallbackInfoReturnable<RenderType> cir) {
+        avatar = type == SkullBlock.Types.PLAYER && profile != null
+                ? AvatarManager.getAvatarForPlayer(profile.getId()) : null;
     }
 }

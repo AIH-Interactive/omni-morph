@@ -50,7 +50,7 @@ public class EntityRenderDispatcherMixin implements EntityRenderDispatcherAccess
     @Inject(method = "renderFlame", at = @At("HEAD"), cancellable = true)
     private void renderFlame(PoseStack matrices, MultiBufferSource vertexConsumers, Entity entity, Quaternionf quaternionf, CallbackInfo ci) {
         avatar = null;
-        Avatar a = figura$boundAvatar(entity, Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true));
+        Avatar a = figura$boundAvatar(entity, Minecraft.getInstance().getFrameTime());
         if (RenderUtils.vanillaModelAndScript(a)) {
             if (!a.luaRuntime.renderer.renderFire) {
                 ci.cancel();

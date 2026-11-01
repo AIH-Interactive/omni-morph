@@ -76,7 +76,7 @@ public final class OutfitAutomaticAnchorSmokeTest {
             }
             for (var declaration : List.of(first, second)) {
                 Avatar avatar = avatars.get(declaration.instanceId());
-                var parent = avatar.renderer.root.children.getFirst();
+                var parent = avatar.renderer.root.children.get(0);
                 parent.customization.setPos(4, 0, 0);
                 emptyTip(avatar, parent, 7);
                 if (variant == Case.AMBIGUOUS) {
@@ -103,7 +103,7 @@ public final class OutfitAutomaticAnchorSmokeTest {
                 avatars.get(id).nbt.put("metadata", metadata);
             }
             if (variant == Case.MANUAL_INVALID) {
-                var stale = new OutfitConfig.BoneRef(firstId, tailIndex.nodes().getLast().path(), "1".repeat(64));
+                var stale = new OutfitConfig.BoneRef(firstId, com.google.common.collect.Iterables.getLast(tailIndex.nodes()).path(), "1".repeat(64));
                 trail = instance(trail.instanceId(), trailResource, 1, true,
                         new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.ACCESSORY_BONE, null, stale, null, null, null), 0);
             } else if (variant == Case.CYCLE) {
@@ -154,7 +154,7 @@ public final class OutfitAutomaticAnchorSmokeTest {
                     var helpers = frame.previewHelpers(base.capture(new Matrix4f()));
                     var matrix = commands.get(trailDraw).matrix();
                     require(!helpers.isEmpty(), "captured automatic preview selection produces native target helpers");
-                    near(new float[]{helpers.getFirst().x0(), helpers.getFirst().y0(), helpers.getFirst().z0()},
+                    near(new float[]{helpers.get(0).x0(), helpers.get(0).y0(), helpers.get(0).z0()},
                             matrix.m30(), matrix.m31(), matrix.m32());
                     var point = positions.get(trailDraw * 4);
                     if (expected != null) {
@@ -210,11 +210,11 @@ public final class OutfitAutomaticAnchorSmokeTest {
                 frame.capturePreviewSelection(new top.aihmc.omnimorph.model.library.PreviewBoneHighlight.Mount(instance.instanceId()));
                 var commands = new ArrayList<OutfitComposition.Draw>();
                 frame.draw(pose, null, 0, commands::add);
-                require(commands.size() == 1 && Math.abs(commands.getFirst().matrix().m30() - expected) < .0001f,
+                require(commands.size() == 1 && Math.abs(commands.get(0).matrix().m30() - expected) < .0001f,
                         "Lua fallback chooses the expected base point: " + expected);
                 var target = composition.previewMountTarget(instance.instanceId());
                 var helpers = frame.previewHelpers(pose);
-                require(target != null && helpers.size() >= 3 && Math.abs(helpers.getFirst().x0() - expected) < .0001f,
+                require(target != null && helpers.size() >= 3 && Math.abs(helpers.get(0).x0() - expected) < .0001f,
                         "automatic helper position comes from the same selected base/root target");
                 require((target.bone() == null) == (roots.size() > 1),
                         "multi-root fallback is an explicit entity root, never a fabricated persistent bone path");

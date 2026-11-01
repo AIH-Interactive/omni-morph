@@ -75,8 +75,8 @@ public final class YsmControllerDiagnosticSmokeTest {
                 ]}]}
                 """;
         YsmAnimationControllerParser.parse(array, engine, diagnostics::add);
-        require(diagnostics.size() == 1 && diagnostics.getFirst().controller().equals("array_controller")
-                        && diagnostics.getFirst().state().equals("array_state"),
+        require(diagnostics.size() == 1 && diagnostics.get(0).controller().equals("array_controller")
+                        && diagnostics.get(0).state().equals("array_state"),
                 "array declarations preserve controller/state locations");
         System.out.println("M4 controller diagnostics: formal NBT resource, controller/state/binding location, recovery and encrypted privacy passed.");
     }

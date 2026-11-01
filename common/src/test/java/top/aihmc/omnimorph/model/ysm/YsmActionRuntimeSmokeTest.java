@@ -201,7 +201,7 @@ public final class YsmActionRuntimeSmokeTest {
             leaf.setSlotsShift(2);
             wheel.execute(base.owner, 0, true);
             var oldEntry = wheel.page(base.owner).slots()[2];
-            entries.removeLast();
+            entries.remove(entries.size() - 1);
             wheel.page(base.owner);
             oldEntry.execute(null, true);
             require(!second.runtime.actions().isActive("extra_animation.hold") && !wheel.page(base.owner).getTitle().equals("native animation page"),
@@ -389,15 +389,15 @@ public final class YsmActionRuntimeSmokeTest {
                 require(bar != null && bar.getWidth() > bar.getHeight(), "overflow creates the existing scrollbar in horizontal orientation");
                 require((int) contentTop.invoke(screen) > bar.getY() + bar.getHeight(),
                         "controls begin below the horizontal scrollbar");
-                var last = tabs.getLast();
+                var last = com.google.common.collect.Iterables.getLast(tabs);
                 int left = bar.getX();
                 int right = left + bar.getWidth();
                 require(last.getX() >= left && last.getX() + last.getWidth() <= right,
                         "opening the last page automatically reveals its selected tab");
                 bar.setScrollProgressNoAnim(0);
-                require(tabs.getFirst().getX() == left && !last.isMouseOver(last.getX() + 1, last.getY() + 1),
+                require(tabs.get(0).getX() == left && !last.isMouseOver(last.getX() + 1, last.getY() + 1),
                         "left endpoint reveals the first tab and clips hit testing for hidden tabs");
-                require(screen.mouseScrolled(left + 1, last.getY() + 1, -1, 0)
+                require(screen.mouseScrolled(left + 1, last.getY() + 1, -1)
                                 && bar.getScrollProgress() > 0,
                         "wheel input over tabs scrolls horizontally");
                 bar.setScrollProgressNoAnim(1);

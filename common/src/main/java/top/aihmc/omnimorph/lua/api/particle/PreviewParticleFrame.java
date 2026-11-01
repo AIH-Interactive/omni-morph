@@ -104,8 +104,8 @@ public final class PreviewParticleFrame {
                          List<Vertex> vertices) {
         void write(Matrix4f transform, VertexConsumer consumer) {
             for (Vertex vertex : vertices) {
-                consumer.addVertex(transform, vertex.x(), vertex.y(), vertex.z())
-                        .setUv(vertex.u(), vertex.v()).setColor(vertex.color()).setLight(vertex.light());
+                consumer.vertex(transform, vertex.x(), vertex.y(), vertex.z())
+                        .uv(vertex.u(), vertex.v()).color(vertex.color()).uv2(vertex.light()).endVertex();
             }
         }
     }
@@ -128,17 +128,19 @@ public final class PreviewParticleFrame {
         private void finishVertex() {
             if (started) {
                 vertices.add(new Vertex(x, y, z, u, v, color, light));
+                started = false;
             }
         }
 
         List<Vertex> freeze() {
-            finishVertex();
+            if (started) {
+                throw new IllegalStateException("PARTICLE_VERTEX_NOT_ENDED");
+            }
             return List.copyOf(vertices);
         }
 
         @Override
-        public VertexConsumer addVertex(float x, float y, float z) {
-            finishVertex();
+        public VertexConsumer vertex(double x, double y, double z) {
             this.x = (float) (x + offset.x);
             this.y = (float) (y + offset.y);
             this.z = (float) (z + offset.z);
@@ -147,37 +149,51 @@ public final class PreviewParticleFrame {
         }
 
         @Override
-        public VertexConsumer setColor(int red, int green, int blue, int alpha) {
-            return setColor(alpha << 24 | red << 16 | green << 8 | blue);
+        public VertexConsumer color(int red, int green, int blue, int alpha) {
+            return color(alpha << 24 | red << 16 | green << 8 | blue);
         }
 
         @Override
-        public VertexConsumer setColor(int color) {
+        public VertexConsumer color(int color) {
             this.color = color;
             return this;
         }
 
         @Override
-        public VertexConsumer setUv(float u, float v) {
+        public VertexConsumer uv(float u, float v) {
             this.u = u;
             this.v = v;
             return this;
         }
 
         @Override
-        public VertexConsumer setUv2(int low, int high) {
+        public VertexConsumer uv2(int low, int high) {
             light = low | high << 16;
             return this;
         }
 
         @Override
-        public VertexConsumer setUv1(int u, int v) {
+        public VertexConsumer overlayCoords(int u, int v) {
             throw new UnsupportedOperationException("PARTICLE_FORMAT_HAS_NO_OVERLAY");
         }
 
         @Override
-        public VertexConsumer setNormal(float x, float y, float z) {
+        public VertexConsumer normal(float x, float y, float z) {
             throw new UnsupportedOperationException("PARTICLE_FORMAT_HAS_NO_NORMAL");
+        }
+
+        @Override
+        public void endVertex() {
+            finishVertex();
+        }
+
+        @Override
+        public void defaultColor(int red, int green, int blue, int alpha) {
+            color(red, green, blue, alpha);
+        }
+
+        @Override
+        public void unsetDefaultColor() {
         }
     }
 

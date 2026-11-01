@@ -106,8 +106,8 @@ public final class YsmSoundNativeSmokeTest {
             first.context.controller.setPath("controller", "first");
             second.context.controller.setPath("controller", "first");
             require(Boolean.TRUE.equals(first.eval("ysm.play_sound('slot','tone',4,12,0);")), "real custom-buffer dispatch");
-            LuaSound original = engine.submitted.getLast();
-            RecordingHandle originalHandle = engine.handles.getLast();
+            LuaSound original = com.google.common.collect.Iterables.getLast(engine.submitted);
+            RecordingHandle originalHandle = com.google.common.collect.Iterables.getLast(engine.handles);
             require(original.getVolume() == 12 && original.getPitch() == 0.001f && original.isLooping(),
                     "volume, pitch minimum and loop reach the actual sound object");
             require(original.getPos().x == 1 && original.getPos().y == 2 && original.getPos().z == 3,
@@ -117,14 +117,14 @@ public final class YsmSoundNativeSmokeTest {
             require(Boolean.FALSE.equals(first.eval("ysm.play_sound('slot','tone');")) && engine.submitted.size() == 1,
                     "duplicate ID does not play again");
             require(Boolean.TRUE.equals(second.eval("ysm.play_sound('slot','tone');")), "other Avatar accepts the same ID");
-            LuaSound otherAvatar = engine.submitted.getLast();
+            LuaSound otherAvatar = com.google.common.collect.Iterables.getLast(engine.submitted);
             first.context.controller.setPath("controller", "other");
             require(Boolean.TRUE.equals(first.eval("ysm.play_sound('slot','tone');")), "other controller accepts the same ID");
-            LuaSound otherController = engine.submitted.getLast();
+            LuaSound otherController = com.google.common.collect.Iterables.getLast(engine.submitted);
             first.context.controller.setPath("controller", "first");
             require(Boolean.TRUE.equals(first.eval("ysm.play_sound('slot','tone',1,2000,2000);")), "replace flag restarts owned ID");
             require(original.getHandle() == null && originalHandle.commands > 0, "old native handle receives stop");
-            require(engine.submitted.getLast().getVolume() == 1000 && engine.submitted.getLast().getPitch() == 1000,
+            require(com.google.common.collect.Iterables.getLast(engine.submitted).getVolume() == 1000 && com.google.common.collect.Iterables.getLast(engine.submitted).getPitch() == 1000,
                     "maximum volume and pitch are 1000");
             require(otherAvatar.getHandle() != null && otherController.getHandle() != null, "replacement is isolated");
             require(Boolean.TRUE.equals(first.eval("ysm.stop_sound('slot');"))
@@ -137,10 +137,10 @@ public final class YsmSoundNativeSmokeTest {
             require(Boolean.FALSE.equals(first.eval("ysm.play_sound(1,'tone',8);")), "invalid flags rejected");
             require(Boolean.TRUE.equals(first.eval("ysm.play_sound(0,'tone');"))
                             && Boolean.TRUE.equals(first.eval("ysm.play_sound(0,'tone');")), "zero IDs are anonymous");
-            LuaSound anonymous = engine.submitted.getLast();
+            LuaSound anonymous = com.google.common.collect.Iterables.getLast(engine.submitted);
             require(Boolean.FALSE.equals(first.eval("ysm.stop_sound(0);")), "zero cannot select anonymous playback");
             require(Boolean.TRUE.equals(first.eval("ysm.play_sound('global','tone',6);")), "global loop created");
-            LuaSound global = engine.submitted.getLast();
+            LuaSound global = com.google.common.collect.Iterables.getLast(engine.submitted);
             require(Boolean.FALSE.equals(first.eval("ysm.stop_sound('global');")), "local stop preserves global ID");
             require(Boolean.TRUE.equals(first.eval("ysm.stop_all_sounds();"))
                             && anonymous.getHandle() == null && global.getHandle() != null,
@@ -163,7 +163,7 @@ public final class YsmSoundNativeSmokeTest {
             }
             first.context.controller.setPath("controller", "first");
             require(Boolean.TRUE.equals(first.eval("ysm.play_sound(9,'tone');")), "recovery after stop");
-            LuaSound moving = engine.submitted.getLast();
+            LuaSound moving = com.google.common.collect.Iterables.getLast(engine.submitted);
             set(Entity.class, first.context.entity, "position", new Vec3(4, 5, 6));
             first.runtime.sounds().tick();
             require(moving.getPos().x == 4 && moving.getPos().y == 5 && moving.getPos().z == 6, "native entity following");
@@ -406,9 +406,9 @@ public final class YsmSoundNativeSmokeTest {
         try (var firstEffects = first.runtime.functions().beginClientEffects(null);
              var secondEffects = second.runtime.functions().beginClientEffects(null)) {
             require(Boolean.TRUE.equals(first.eval("ysm.play_sound('voice','model_tone',4);")), "decoded first-model playback");
-            LuaSound firstSound = engine.submitted.getLast();
+            LuaSound firstSound = com.google.common.collect.Iterables.getLast(engine.submitted);
             require(Boolean.TRUE.equals(second.eval("ysm.play_sound('voice','model_tone',4);")), "same-name second-model playback");
-            LuaSound secondSound = engine.submitted.getLast();
+            LuaSound secondSound = com.google.common.collect.Iterables.getLast(engine.submitted);
             Field buffer = LuaSound.class.getDeclaredField("buffer");
             buffer.setAccessible(true);
             require(buffer.get(firstSound) == firstBuffer && buffer.get(secondSound) == secondBuffer,
@@ -458,9 +458,9 @@ public final class YsmSoundNativeSmokeTest {
         try (var firstEffects = a.functions().beginClientEffects(null);
              var secondEffects = b.functions().beginClientEffects(null)) {
             require(Boolean.TRUE.equals(eval(a, "ysm.play_sound('voice','model_tone',4);")), "first physical instance loops its own voice");
-            LuaSound firstSound = engine.submitted.getLast();
+            LuaSound firstSound = com.google.common.collect.Iterables.getLast(engine.submitted);
             require(Boolean.TRUE.equals(eval(b, "ysm.play_sound('voice','model_tone',4);")), "second physical instance loops the same sound name independently");
-            LuaSound secondSound = engine.submitted.getLast();
+            LuaSound secondSound = com.google.common.collect.Iterables.getLast(engine.submitted);
             Field buffer = LuaSound.class.getDeclaredField("buffer");
             buffer.setAccessible(true);
             require(buffer.get(firstSound) == shared && buffer.get(secondSound) == shared,
@@ -493,7 +493,7 @@ public final class YsmSoundNativeSmokeTest {
     private static Object eval(YsmModelRuntime runtime, String source) throws Exception {
         var context = runtime.owner().getMolangContext();
         var engine = MolangEngine.fromCustomBinding(runtime.owner().getAvatarBindings());
-        return ExpressionEvaluator.evaluator(context).eval(engine.parse(source).getFirst());
+        return ExpressionEvaluator.evaluator(context).eval(engine.parse(source).get(0));
     }
 
     private static final class AudioArrow extends net.minecraft.world.entity.projectile.Arrow {
@@ -588,7 +588,7 @@ public final class YsmSoundNativeSmokeTest {
         }
 
         Object eval(String source) throws Exception {
-            return ExpressionEvaluator.evaluator(context).eval(engine.parse(source).getFirst());
+            return ExpressionEvaluator.evaluator(context).eval(engine.parse(source).get(0));
         }
     }
 
@@ -601,7 +601,7 @@ public final class YsmSoundNativeSmokeTest {
 
         @Override
         public net.minecraft.client.User getUser() {
-            return new net.minecraft.client.User("CPU child audio", new UUID(0, 999), "",
+            return new net.minecraft.client.User("CPU child audio", new UUID(0, 999).toString(), "",
                     java.util.Optional.empty(), java.util.Optional.empty(), net.minecraft.client.User.Type.MSA);
         }
 

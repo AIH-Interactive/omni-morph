@@ -32,7 +32,7 @@ public final class BoneTreeSmokeTest {
         require(state.rows().get(2).matched() && state.rows().get(1).expanded(), "matches and expanded ancestors are marked");
         state.select(2);
         require(state.selectedName().equals("眼睛"), "selection reads the correct node");
-        require(state.selectedPart() == head.children.getFirst(), "preview feedback uses part identity rather than a duplicate name");
+        require(state.selectedPart() == head.children.get(0), "preview feedback uses part identity rather than a duplicate name");
         state.horizontalScroll(0.5);
         state.search("hAnD");
         require(state.rows().stream().filter(BoneTreeState.Row::matched).count() == 2, "search ignores case and finds duplicate names");

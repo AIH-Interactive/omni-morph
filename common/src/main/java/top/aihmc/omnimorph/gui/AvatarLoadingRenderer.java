@@ -7,7 +7,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.entity.EntityAttachment;
+
 import net.minecraft.world.entity.player.Player;
 import top.aihmc.omnimorph.render.EntityFrame;
 import top.aihmc.omnimorph.avatar.AvatarLoadProgress;
@@ -49,10 +49,7 @@ public final class AvatarLoadingRenderer {
         if (progress == null) {
             return;
         }
-        Vec3 attachment = player.getAttachments().getNullable(EntityAttachment.NAME_TAG, 0,
-                player.getViewYRot(frame.partialTick()));
-        Vec3 position = attachment == null ? new Vec3(0, player.getBbHeight() + 0.6, 0)
-                : attachment.add(0, 0.95, 0);
+        Vec3 position = new Vec3(0, player.getBbHeight() + 0.6, 0);
         Component text = label(progress,
                 top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.currentFrame());
         Font font = client.font;

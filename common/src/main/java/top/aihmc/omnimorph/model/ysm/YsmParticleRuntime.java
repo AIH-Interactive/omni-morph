@@ -52,7 +52,7 @@ public final class YsmParticleRuntime {
         var level = client.level;
         final ParticleOptions options;
         try {
-            options = ParticleArgument.readParticle(new StringReader(request.id()), level.registryAccess());
+            options = ParticleArgument.readParticle(new StringReader(request.id()), net.minecraft.core.registries.BuiltInRegistries.PARTICLE_TYPE.asLookup());
         } catch (Exception error) {
             if (runtime.encryptedSource()) {
                 throw new IllegalArgumentException("Encrypted YSM operation failed: runtime/particle");

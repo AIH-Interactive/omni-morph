@@ -77,7 +77,7 @@ public final class YsmInputSmokeTest {
         require(!evaluate(engine, context, "ysm.keyboard(v.unowned=65);")
                 && !evaluate(engine, context, "ysm.mouse(v.unowned=1);"), "actual bindings reject an unowned context before game access");
         require(context.variables.getPath("unowned") == null, "actual unowned binding has no argument effects");
-        require(ExpressionEvaluator.evaluator(context).eval(engine.parse("ysm.mouse(0);").getFirst()) instanceof Boolean,
+        require(ExpressionEvaluator.evaluator(context).eval(engine.parse("ysm.mouse(0);").get(0)) instanceof Boolean,
                 "actual input binding preserves the reference Boolean return type");
         state.keyEvent(65, 1);
         state.mouseEvent(1, 1);
@@ -95,7 +95,7 @@ public final class YsmInputSmokeTest {
     }
 
     private static boolean evaluate(MolangEngine engine, Avatar.MolangContext context, String source) throws Exception {
-        return ExpressionEvaluator.evaluator(context).evalAsBoolean(engine.parse(source).getFirst());
+        return ExpressionEvaluator.evaluator(context).evalAsBoolean(engine.parse(source).get(0));
     }
 
     private static void require(boolean condition, String message) {

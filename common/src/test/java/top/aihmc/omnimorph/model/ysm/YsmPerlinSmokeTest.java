@@ -105,7 +105,7 @@ public final class YsmPerlinSmokeTest {
     }
 
     private static float evaluate(Avatar.MolangContext context, String source) throws Exception {
-        return ExpressionEvaluator.evaluator(context).evalAsFloat(ENGINE.parse(source).getFirst());
+        return ExpressionEvaluator.evaluator(context).evalAsFloat(ENGINE.parse(source).get(0));
     }
 
     private static void equal(float expected, float actual, String message) {

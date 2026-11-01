@@ -116,12 +116,12 @@ public final class LibraryTagField extends AbstractContainerElement {
     }
 
     @Override
-    public boolean mouseScrolled(double x, double y, double horizontal, double vertical) {
+    public boolean mouseScrolled(double x, double y, double vertical) {
         if (isMouseOver(x, y) && y < getY() + 20 && maximumScroll() > 0) {
-            chipScroll = Math.clamp(chipScroll - (int) (vertical * 24 + horizontal * 24), 0, maximumScroll());
+            chipScroll = net.minecraft.util.Mth.clamp(chipScroll - (int) (vertical * 24), 0, maximumScroll());
             return true;
         }
-        return super.mouseScrolled(x, y, horizontal, vertical);
+        return super.mouseScrolled(x, y, vertical);
     }
 
     @Override
@@ -130,7 +130,7 @@ public final class LibraryTagField extends AbstractContainerElement {
         input.setY(getY() + 22);
         add.setX(getX() + getWidth() - 20);
         add.setY(getY() + 22);
-        chipScroll = Math.clamp(chipScroll, 0, maximumScroll());
+        chipScroll = net.minecraft.util.Mth.clamp(chipScroll, 0, maximumScroll());
         int x = getX() - chipScroll;
         for (Button chip : chips) {
             chip.setX(x);

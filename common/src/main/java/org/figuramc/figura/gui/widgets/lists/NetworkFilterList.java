@@ -187,7 +187,7 @@ public class NetworkFilterList extends AbstractList {
     }
 
     public static class NetworkFilterEntry extends AbstractContainerElement {
-        private static final ResourceLocation deleteButtonLocation = ResourceLocation.fromNamespaceAndPath(FiguraMod.MOD_ID, "textures/gui/delete.png");
+        private static final ResourceLocation deleteButtonLocation = new ResourceLocation(FiguraMod.MOD_ID, "textures/gui/delete.png");
         private final NetworkingAPI.Filter sourceFilter;
         private final IconButton deleteButton;
         private final TextField filterTextField;

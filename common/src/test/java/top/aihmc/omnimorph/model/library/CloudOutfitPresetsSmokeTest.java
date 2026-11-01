@@ -48,7 +48,7 @@ public final class CloudOutfitPresetsSmokeTest {
                         "a lost response replays the identical operation and CAS input without creating a second preset");
             }
             var items = await(presets.list().future(), callbacks);
-            require(items.size() == 1 && items.getFirst().id().equals(id)
+            require(items.size() == 1 && items.get(0).id().equals(id)
                             && await(presets.read(id).future(), callbacks).configuration().equals(config),
                     "owner-only list/read preserve the independent preset and outfit revisions");
             try (var stale = presets.save(id, 0, "stale", config)) {

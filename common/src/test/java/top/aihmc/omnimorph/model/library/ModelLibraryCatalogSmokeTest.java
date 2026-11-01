@@ -109,28 +109,28 @@ public final class ModelLibraryCatalogSmokeTest {
             invoke(screen, "refresh");
             await(() -> get(screen, "results") != null, drain);
             var page = (LibraryModels.Page) get(screen, "results");
-            require(page.items().getFirst().displayName().equals("new"), "new search owns visible results");
+            require(page.items().get(0).displayName().equals("new"), "new search owns visible results");
             require(query.get().contains("scope=mine") && query.get().contains("sort=name")
                     && query.get().contains("page_size=12") && query.get().contains("%E6%96%B0"),
                     "server query owns filtering, page budget and sort");
             release.countDown();
             drain.run();
-            require(((LibraryModels.Page) get(screen, "results")).items().getFirst().displayName().equals("new"),
+            require(((LibraryModels.Page) get(screen, "results")).items().get(0).displayName().equals("new"),
                     "late old response cannot replace the current search");
-            select(screen, page.items().getFirst());
+            select(screen, page.items().get(0));
             long firstGeneration = (long) get(screen, "generation");
             invoke(screen, "toggleVisibility");
             await(() -> mutations.get() == 1 && (long) get(screen, "generation") > firstGeneration
                     && get(screen, "results") != null, drain);
             require(body.get().get("expected_revision").getAsLong() == 7, "mutation CAS uses policy revision");
-            select(screen, page.items().getFirst());
+            select(screen, page.items().get(0));
             var favorite = ModelLibraryScreen.class.getDeclaredMethod("favorite", LibraryModels.Model.class);
             favorite.setAccessible(true);
             long secondGeneration = (long) get(screen, "generation");
-            favorite.invoke(screen, page.items().getFirst());
+            favorite.invoke(screen, page.items().get(0));
             await(() -> mutations.get() == 2 && (long) get(screen, "generation") > secondGeneration
                     && get(screen, "results") != null, drain);
-            select(screen, page.items().getFirst());
+            select(screen, page.items().get(0));
             // Submit the confirmed-delete path; visible confirmation interaction remains manual.
             set(screen, "deleteArmed", MODEL);
             long thirdGeneration = (long) get(screen, "generation");

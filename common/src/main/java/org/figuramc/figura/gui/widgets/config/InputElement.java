@@ -34,7 +34,7 @@ public class InputElement extends AbstractConfigElement {
                 config.setTempValue(text);
         });
         updateTextFieldText(formatText(config.tempValue));
-        textField.getField().moveCursorToStart(Screen.hasShiftDown());
+        textField.getField().moveCursorToStart();
         textField.setEnabled(FiguraMod.debugModeEnabled() || !config.disabled);
 
         children.add(0, textField);

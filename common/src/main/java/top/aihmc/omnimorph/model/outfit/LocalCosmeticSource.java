@@ -91,7 +91,7 @@ public final class LocalCosmeticSource {
                     var manifest = data.manifest();
                     var selected = manifest.textures().stream()
                             .filter(texture -> texture.id().equals(manifest.defaultTexture()))
-                            .findFirst().orElse(manifest.textures().isEmpty() ? null : manifest.textures().getFirst());
+                            .findFirst().orElse(manifest.textures().isEmpty() ? null : manifest.textures().get(0));
                     nbt = YsmAvatarLoader.toAvatarNbt(data, selected, executionOwner, null);
                 }
                 nbt.getCompound("metadata").merge(wrapper.getCompound("metadata"));
@@ -121,6 +121,6 @@ public final class LocalCosmeticSource {
         if (candidates.size() > 1 || (!candidates.isEmpty() && figura)) {
             throw new IOException("AMBIGUOUS_COSMETIC_PAYLOAD");
         }
-        return candidates.isEmpty() ? null : source.resolve(candidates.getFirst());
+        return candidates.isEmpty() ? null : source.resolve(candidates.get(0));
     }
 }

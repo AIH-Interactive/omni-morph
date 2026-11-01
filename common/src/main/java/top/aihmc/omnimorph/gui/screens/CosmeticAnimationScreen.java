@@ -48,7 +48,7 @@ public final class CosmeticAnimationScreen extends Screen {
     }
 
     private int modelWidth() {
-        return Math.clamp(width / 3, 96, 240);
+        return net.minecraft.util.Mth.clamp(width / 3, 96, 240);
     }
 
     private int centerX() {
@@ -169,8 +169,8 @@ public final class CosmeticAnimationScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double amount, double horizontalAmount) {
-        if (mouseX < modelWidth() && super.mouseScrolled(mouseX, mouseY, amount, horizontalAmount)) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+        if (mouseX < modelWidth() && super.mouseScrolled(mouseX, mouseY, amount)) {
             return true;
         }
         if (active()) {
@@ -179,7 +179,7 @@ public final class CosmeticAnimationScreen extends Screen {
                 release();
                 return true;
             }
-            wheel.scroll(session.outfitBase(), selected(mouseX, mouseY), amount + horizontalAmount);
+            wheel.scroll(session.outfitBase(), selected(mouseX, mouseY), amount);
             save(owner);
         }
         return true;

@@ -134,7 +134,7 @@ public final class GpuOpenGlSmokeTest {
         GL20.glUseProgram(program);
         GL20.glUniform1f(GL20.glGetUniformLocation(program, "ProbeScale"), .5f);
         var material = net.minecraft.client.renderer.RenderType.entityTranslucent(
-                net.minecraft.resources.ResourceLocation.parse("omni-morph:gpu-test"));
+                new net.minecraft.resources.ResourceLocation("omni-morph:gpu-test"));
         var base = GpuDriverProbe.batch(new PoseSnapshot(FiguraMat4.of(), FiguraMat3.of()));
         var far = new DrawBatch(base.lease(), base.mesh(),
                 new PoseSnapshot(FiguraMat4.of().translate(0, 0, .7), FiguraMat3.of()),
@@ -148,7 +148,7 @@ public final class GpuOpenGlSmokeTest {
             require(backend.supports(AccelerationBackend.Operation.GPU_DRAW, near),
                     "default Figura translucent material is supported");
             var cutout = net.minecraft.client.renderer.RenderType.entityCutoutNoCull(
-                    net.minecraft.resources.ResourceLocation.parse("omni-morph:gpu-test"));
+                    new net.minecraft.resources.ResourceLocation("omni-morph:gpu-test"));
             var opaque = new DrawBatch(base.lease(), base.mesh(), base.pose(),
                     new DrawSemantics(cutout, null, DrawSemantics.Layer.PRIMARY, "world", 0, 1,
                             0, 0, 1, 1, 1, 1, 0, true));

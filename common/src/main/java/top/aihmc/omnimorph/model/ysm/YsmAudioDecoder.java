@@ -2,7 +2,7 @@ package top.aihmc.omnimorph.model.ysm;
 
 import io.github.jaredmdobson.concentus.OpusDecoder;
 import io.github.jaredmdobson.concentus.OpusException;
-import net.minecraft.client.sounds.JOrbisAudioStream;
+import com.mojang.blaze3d.audio.OggAudioStream;
 import top.aihmc.omnimorph.avatar.ysm.YsmResourceLimits;
 import org.gagravarr.ogg.OggFile;
 import org.gagravarr.opus.OpusFile;
@@ -72,7 +72,7 @@ public final class YsmAudioDecoder {
     }
 
     private static Decoded vorbis(byte[] data, int maximum) throws IOException {
-        try (var source = new JOrbisAudioStream(new ByteArrayInputStream(data))) {
+        try (var source = new OggAudioStream(new ByteArrayInputStream(data))) {
             AudioFormat format = source.getFormat();
             int channels = format.getChannels();
             if (channels < 1 || channels > 2 || format.getSampleSizeInBits() != 16) {

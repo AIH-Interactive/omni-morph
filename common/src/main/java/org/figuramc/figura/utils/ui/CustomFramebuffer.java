@@ -95,10 +95,10 @@ public class CustomFramebuffer {
         shader.apply();
         Tesselator tessellator = RenderSystem.renderThreadTesselator();
         BufferBuilder bufferBuilder = tessellator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
-        bufferBuilder.addVertex(0f, viewHeight, 0f).setUv(0f, 0f).setColor(0xFF, 0xFF, 0xFF, 0xFF);
-        bufferBuilder.addVertex(viewWidth, viewHeight, 0f).setUv(1f, 0f).setColor(0xFF, 0xFF, 0xFF, 0xFF);
-        bufferBuilder.addVertex(viewWidth, 0f, 0f).setUv(1f, 1f).setColor(0xFF, 0xFF, 0xFF, 0xFF);
-        bufferBuilder.addVertex(0f, 0f, 0f).setUv(0f, 1f).setColor(0xFF, 0xFF, 0xFF, 0xFF);
+        bufferBuilder.vertex(0f, viewHeight, 0f).uv(0f, 0f).color(0xFF, 0xFF, 0xFF, 0xFF).endVertex();
+        bufferBuilder.vertex(viewWidth, viewHeight, 0f).uv(1f, 0f).color(0xFF, 0xFF, 0xFF, 0xFF).endVertex();
+        bufferBuilder.vertex(viewWidth, 0f, 0f).uv(1f, 1f).color(0xFF, 0xFF, 0xFF, 0xFF).endVertex();
+        bufferBuilder.vertex(0f, 0f, 0f).uv(0f, 1f).color(0xFF, 0xFF, 0xFF, 0xFF).endVertex();
         BufferUploader.draw(bufferBuilder.build());
         shader.clear();
         GlStateManager._depthMask(true);

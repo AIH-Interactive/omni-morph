@@ -48,7 +48,7 @@ public final class OutfitFormalPreparationSmokeTest {
             } finally {
                 probe.clean();
             }
-            var bone = definition.reference(null, definition.roots().getFirst());
+            var bone = definition.reference(null, definition.roots().get(0));
             var original = CosmeticMetadata.read(input.getCompound("metadata").getString("cosmetic_json"));
             var metadata = new CosmeticMetadata(original.common(), original.category(), original.cosmeticAnchor(),
                     true, false, true, "formal-test", definition.hash(), List.of("VANILLA", "FIGURA", "YSM"),

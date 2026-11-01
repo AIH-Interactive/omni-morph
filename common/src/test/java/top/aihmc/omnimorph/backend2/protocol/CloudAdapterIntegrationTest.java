@@ -131,8 +131,8 @@ public final class CloudAdapterIntegrationTest {
         URI origin = URI.create(args[1]);
         UUID owner = UUID.fromString(args[3]);
         byte[] expected = Files.readAllBytes(Path.of(args[4]));
-        try (HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
-             CloudProtocol protocol = adapter(false, origin, args[2], 1, http)) {
+        HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+        try (CloudProtocol protocol = adapter(false, origin, args[2], 1, http)) {
             Probe probe = new Probe();
             protocol.connect(probe);
             try (Pump pump = new Pump(protocol)) {

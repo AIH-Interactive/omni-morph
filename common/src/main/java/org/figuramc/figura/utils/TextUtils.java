@@ -3,19 +3,12 @@ package org.figuramc.figura.utils;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
-import com.mojang.serialization.MapCodec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.StringSplitter;
 import net.minecraft.client.gui.Font;
-import net.minecraft.core.RegistryAccess;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.*;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.resources.RegistryOps;
-import net.minecraft.util.ExtraCodecs;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.StringDecomposer;
 import top.aihmc.omnimorph.gui.FiguraFunctionClickEvent;
@@ -83,7 +76,7 @@ public class TextUtils {
         return ret;
     }
 
-    public static final RegistryOps<JsonElement> OPS = RegistryAccess.EMPTY.createSerializationContext(JsonOps.INSTANCE);
+
     public static Component tryParseJson(String text) {
         if (text == null)
             return Component.empty();
@@ -95,11 +88,11 @@ public class TextUtils {
             // check if its valid json text
             JsonElement object = JsonParser.parseString(text);
             
-            // Keep native 1.21.1 events intact and adapt newer model text to the native schema.
+            // Keep native 1.20.1 events intact and adapt newer model text to the native schema.
             convertEventsForNative(object);
             
             // attempt to parse json
-            finalText = ComponentSerialization.CODEC.decode(OPS, object).getOrThrow().getFirst();
+            finalText = Component.Serializer.fromJson(object);
 
             // if failed, throw a dummy exception
             if (finalText == null)

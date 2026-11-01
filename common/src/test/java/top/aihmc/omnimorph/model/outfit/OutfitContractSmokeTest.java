@@ -26,7 +26,7 @@ public final class OutfitContractSmokeTest {
         reject(() -> new OutfitConfig.Transform(new OutfitConfig.Vector(0, 0, 0),
                 new OutfitConfig.Vector(0, 0, 0), new OutfitConfig.Vector(0, 1, 1)));
         reject(() -> new OutfitConfig(1, 0, null,
-                java.util.List.of(config.instances().getFirst(), config.instances().getFirst()),
+                java.util.List.of(config.instances().get(0), config.instances().get(0)),
                 java.util.List.of(), config.displayOrdinals(), false));
 
         CosmeticMetadata metadata = CosmeticMetadata.read("{\"name\":\"星翼\",\"authors\":[\"作者\"],\"cosmetic_anchor\":\"wing_anchor\"}");

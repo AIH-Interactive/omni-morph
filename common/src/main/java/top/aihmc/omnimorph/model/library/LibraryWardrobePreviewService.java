@@ -148,6 +148,6 @@ public final class LibraryWardrobePreviewService {
     }
 
     private static CompoundTag decode(byte[] bytes) throws java.io.IOException {
-        return NbtIo.readCompressed(new ByteArrayInputStream(bytes), NbtAccounter.create(256L * 1024 * 1024));
+        return org.figuramc.figura.utils.IOUtils.readCompressedNbt(new ByteArrayInputStream(bytes), 256L * 1024 * 1024);
     }
 }

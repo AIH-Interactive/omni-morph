@@ -34,7 +34,7 @@ public final class YsmParticleRequestSmokeTest {
         defaults.emit(new Vec3(10d, 20d, 30d), true, 90f, 0f,
                 () -> { throw new AssertionError("single emission must not draw random numbers"); }, null, emissions::add);
         require(emissions.size() == 1, "count=0 emits one particle");
-        vector(emissions.getFirst().position(), 10d, 20d, 30d, "default position");
+        vector(emissions.get(0).position(), 10d, 20d, 30d, "default position");
 
         parse(engine, context, "particle_request.relative('flame',1,2,3,4,5,6,2,-9,0,v.extra=1);");
         YsmParticleRequest single = captured.get();
@@ -43,11 +43,11 @@ public final class YsmParticleRequestSmokeTest {
         emissions.clear();
         single.emit(new Vec3(10d, 20d, 30d), true, 90f, 0f,
                 () -> { throw new AssertionError("single has exact velocity"); }, null, emissions::add);
-        vector(emissions.getFirst().position(), 7d, 22d, 31d, "player single uses body yaw");
-        vector(emissions.getFirst().velocity(), 8d, 10d, 12d, "single delta times speed, unrotated");
+        vector(emissions.get(0).position(), 7d, 22d, 31d, "player single uses body yaw");
+        vector(emissions.get(0).velocity(), 8d, 10d, 12d, "single delta times speed, unrotated");
         emissions.clear();
         single.emit(new Vec3(10d, 20d, 30d), false, 90f, 0f, () -> 0d, null, emissions::add);
-        vector(emissions.getFirst().position(), 11d, 22d, 33d, "nonplayer single uses entity yaw");
+        vector(emissions.get(0).position(), 11d, 22d, 33d, "nonplayer single uses entity yaw");
 
         parse(engine, context, "particle_request.absolute('flame',1,2,3,4,5,6,2,2,40);");
         YsmParticleRequest batch = captured.get();
@@ -57,15 +57,15 @@ public final class YsmParticleRequestSmokeTest {
         batch.emit(new Vec3(10d, 20d, 30d), true, 90f, 0f,
                 () -> sequence[cursor.getAndIncrement()], null, emissions::add);
         require(emissions.size() == 2 && cursor.get() == 12, "batch uses six Gaussian samples per particle");
-        vector(emissions.getFirst().position(), 15d, 32d, 51d, "absolute offset still adds entity position");
-        vector(emissions.getFirst().velocity(), 8d, 10d, 12d, "batch Gaussian velocity");
+        vector(emissions.get(0).position(), 15d, 32d, 51d, "absolute offset still adds entity position");
+        vector(emissions.get(0).velocity(), 8d, 10d, 12d, "batch Gaussian velocity");
         vector(emissions.get(1).position(), 7d, 12d, 15d, "second independent batch sample");
-        require(emissions.getFirst().lifetime() == 40, "captured lifetime retained");
+        require(emissions.get(0).lifetime() == 40, "captured lifetime retained");
         YsmParticleRequest relativeBatch = new YsmParticleRequest("flame", new Vec3(1d, 2d, 3d),
                 Vec3.ZERO, 0d, 1, 20, false);
         emissions.clear();
         relativeBatch.emit(new Vec3(10d, 20d, 30d), true, 90f, 0f, () -> 0d, null, emissions::add);
-        vector(emissions.getFirst().position(), 11d, 22d, 33d, "player batch deliberately uses entity yaw");
+        vector(emissions.get(0).position(), 11d, 22d, 33d, "player batch deliberately uses entity yaw");
 
         require(!parse(engine, context, "particle_request.relative('',v.blank=1);"), "blank ID rejected");
         require(!parse(engine, context, "particle_request.relative(123,v.blank=1);"), "non-string ID rejected");
@@ -90,7 +90,7 @@ public final class YsmParticleRequestSmokeTest {
     }
 
     private static boolean parse(MolangEngine engine, Avatar.MolangContext context, String expression) throws Exception {
-        return ExpressionEvaluator.evaluator(context).evalAsBoolean(engine.parse(expression).getFirst());
+        return ExpressionEvaluator.evaluator(context).evalAsBoolean(engine.parse(expression).get(0));
     }
 
     private static void vector(Vec3 actual, double x, double y, double z, String message) {

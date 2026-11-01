@@ -73,7 +73,7 @@ public final class LibraryUploadSmokeTest {
                     "/api/library/v1/models/" + published.modelId() + "/outfit?revision=1", null, JsonObject.class)).future(), drain);
             var converted = top.aihmc.omnimorph.model.outfit.OutfitCodec.decode(document.getAsJsonObject("configuration").toString());
             require(converted.base().source() == top.aihmc.omnimorph.model.outfit.OutfitConfig.Source.CLOUD
-                            && converted.instances().getFirst().resource().source()
+                            && converted.instances().get(0).resource().source()
                             == top.aihmc.omnimorph.model.outfit.OutfitConfig.Source.CLOUD,
                     "both local dependencies become cloud references in the published outfit");
             await(client.applyOutfit(UUID.randomUUID(), converted).future(), drain);
@@ -514,8 +514,7 @@ public final class LibraryUploadSmokeTest {
                                 "server verifies actual distribution hash");
                         require(bytes.length == transaction.input.get("byte_length").getAsLong(),
                                 "reserve length matches the real HTTP body");
-                        transaction.body = net.minecraft.nbt.NbtIo.readCompressed(new java.io.ByteArrayInputStream(bytes),
-                                net.minecraft.nbt.NbtAccounter.create(256L * 1024 * 1024));
+                        transaction.body = org.figuramc.figura.utils.IOUtils.readCompressedNbt(new java.io.ByteArrayInputStream(bytes), 256L * 1024 * 1024);
                         transaction.bodyBytes = bytes;
                         if (blockBody.getAndSet(false)) {
                             bodyEntered.countDown();

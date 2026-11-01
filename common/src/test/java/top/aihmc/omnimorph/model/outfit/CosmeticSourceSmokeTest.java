@@ -309,7 +309,7 @@ public final class CosmeticSourceSmokeTest {
         root.children.add(new Part("extra"));
         var grown = cache.bind(ref, instance, List.of(root), part -> part.name, part -> part.children, limits);
         require(grown.parts().size() == 4 && cache.parseCount() == 2, "an added part re-captures the graph");
-        root.children.removeLast();
+        root.children.remove(root.children.size() - 1);
         var shrunk = cache.bind(ref, instance, List.of(root), part -> part.name, part -> part.children, limits);
         require(shrunk.parts().size() == 3 && shrunk.parts().contains(replacement), "a removed part re-captures the graph");
 
@@ -334,7 +334,7 @@ public final class CosmeticSourceSmokeTest {
         var second = cache.bind(ref, two, List.of(b), part -> part.name, part -> part.children, limits);
         require(cache.parseCount() == 1 && first.definition() == second.definition(), "same revision parses its structural index once");
         var bone = first.definition().reference(one, 2);
-        require(bone.path().getLast().siblingOrdinal() == 1, "same-name sibling ordinal survives");
+        require(com.google.common.collect.Iterables.getLast(bone.path()).siblingOrdinal() == 1, "same-name sibling ordinal survives");
         require(first.resolve(bone).orElseThrow() == a.children.get(1) && second.resolve(bone).isEmpty(), "runtime handles stay instance-owned");
         require(first.definition().uniqueNamed("wing_anchor").isEmpty(), "ambiguous standard names stay unresolved");
         Part cycle = new Part("Cycle");
@@ -342,7 +342,7 @@ public final class CosmeticSourceSmokeTest {
         var truncated = SkeletonIndex.capture(one, List.of(cycle), part -> part.name, part -> part.children, limits);
         require(truncated.parts().equals(List.of(cycle)) && truncated.definition().nodes().size() == 1
                         && truncated.definition().roots().equals(List.of(0))
-                        && truncated.definition().nodes().getFirst().children().isEmpty(),
+                        && truncated.definition().nodes().get(0).children().isEmpty(),
                 "a repeated native node keeps its first path without retaining a cyclic edge");
         Part deep = new Part("end");
         for (int index = 0; index < 65; index++) {

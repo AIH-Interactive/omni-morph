@@ -138,10 +138,10 @@ public final class OutfitDraftSmokeTest {
         require(ids.size() == 5 && ids.entrySet().stream().noneMatch(entry -> entry.getKey().equals(entry.getValue())),
                 "all instance and virtual IDs are fresh when a preset is copied");
         require(destination.instance(ids.get(child)).anchor().bone().instanceId().equals(ids.get(parent))
-                        && destination.instance(ids.get(child)).boneOverrides().getFirst().bone().instanceId().equals(ids.get(child))
+                        && destination.instance(ids.get(child)).boneOverrides().get(0).bone().instanceId().equals(ids.get(child))
                         && destination.instance(ids.get(third)).anchor().anchorId().equals(ids.get(virtual))
                         && destination.instance(ids.get(automatic)).anchor().preferredInstanceId().equals(ids.get(parent))
-                        && destination.configuration().virtualAnchors().getFirst().parent().instanceId().equals(ids.get(parent)),
+                        && destination.configuration().virtualAnchors().get(0).parent().instanceId().equals(ids.get(parent)),
                 "copy rewrites every supported internal reference, including overrides and automatic preferences");
         require(destination.instance(ids.get(parent)).displayOrdinal() == 3
                         && destination.instance(ids.get(child)).displayOrdinal() == 4

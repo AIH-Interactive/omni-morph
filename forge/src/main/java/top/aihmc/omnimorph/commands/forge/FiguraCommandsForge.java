@@ -11,7 +11,7 @@ import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.commands.FiguraCommands;
 import org.figuramc.figura.utils.FiguraClientCommandSource;
 
-@Mod.EventBusSubscriber(modid = FiguraMod.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
+@Mod.EventBusSubscriber(modid = top.aihmc.omnimorph.forge.FiguraModForge.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public class FiguraCommandsForge {
     @SuppressWarnings({"unchecked", "rawtypes"})
     @SubscribeEvent

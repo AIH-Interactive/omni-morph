@@ -248,7 +248,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
                     }
                 });
         body.row(FiguraText.of("gui.library.authorization"), authorization, 24, labelWidth);
-        descriptionHeight = Math.clamp(descriptionHeight, 40, Math.max(56, height / 2));
+        descriptionHeight = net.minecraft.util.Mth.clamp(descriptionHeight, 40, Math.max(56, height / 2));
         description = body.row(FiguraText.of("gui.library.description"), new LibraryMultilineField(fieldWidth, descriptionHeight,
                 draft.description(), value -> {
             if (!building) {
@@ -902,10 +902,10 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
     @Override
     public void onFilesDrop(List<Path> paths) {
         if (!paths.isEmpty()) {
-            if (ModelFilePickerScreen.accepts(paths.getFirst(), ModelFilePickerScreen.Kind.IMAGE)) {
-                selectImage(paths.getFirst());
+            if (ModelFilePickerScreen.accepts(paths.get(0), ModelFilePickerScreen.Kind.IMAGE)) {
+                selectImage(paths.get(0));
             } else {
-                selectFile(paths.getFirst());
+                selectFile(paths.get(0));
             }
         }
     }

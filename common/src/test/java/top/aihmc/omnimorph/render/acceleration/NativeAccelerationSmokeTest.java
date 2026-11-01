@@ -283,7 +283,7 @@ public final class NativeAccelerationSmokeTest {
                 actualLength += actual[offset + component] * actual[offset + component];
             }
             if (expectedLength > 0 && actualLength > 0) {
-                double angle = Math.toDegrees(Math.acos(Math.clamp(dot / Math.sqrt(expectedLength * actualLength), -1, 1)));
+                double angle = Math.toDegrees(Math.acos(net.minecraft.util.Mth.clamp(dot / Math.sqrt(expectedLength * actualLength), -1, 1)));
                 require(angle <= 0.1, "frozen normal angular tolerance");
             }
         }

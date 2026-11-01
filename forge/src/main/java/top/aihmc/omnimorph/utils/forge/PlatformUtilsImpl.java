@@ -1,26 +1,27 @@
 package top.aihmc.omnimorph.utils.forge;
 
-import net.minecraftforge.common.ForgeMod;
 import net.minecraftforge.fml.ModList;
-import net.minecraftforge.fml.ModLoader;
 import net.minecraftforge.fml.loading.FMLPaths;
-import net.minecraftforge.fml.loading.moddiscovery.ModInfo;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.utils.PlatformUtils;
+import top.aihmc.omnimorph.forge.FiguraModForge;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.nio.file.Path;
 
 public class PlatformUtilsImpl {
+    public static String loaderModId(String modId) {
+        return FiguraMod.MOD_ID.equals(modId) ? FiguraModForge.MOD_ID : modId;
+    }
+
     public static Path getGameDir() {
         return FMLPaths.GAMEDIR.relative();
     }
 
     public static String getFiguraModVersionString() {
-        return ModList.get().getModContainerById(FiguraMod.MOD_ID).get().getModInfo().getVersion().toString();
+        return ModList.get().getModContainerById(FiguraModForge.MOD_ID).get().getModInfo().getVersion().toString();
     }
 
     public static Path getConfigDir() {
@@ -28,11 +29,11 @@ public class PlatformUtilsImpl {
     }
 
     public static boolean isModLoaded(String modId) {
-        return ModList.get().isLoaded(modId);
+        return ModList.get().isLoaded(loaderModId(modId));
     }
 
     public static String getModVersion(String modId) {
-        return ModList.get().getModContainerById(modId).get().getModInfo().getVersion().getQualifier();
+        return ModList.get().getModContainerById(loaderModId(modId)).get().getModInfo().getVersion().getQualifier();
     }
 
     public static java.util.Map<String, String> getLoadedMods() {
@@ -41,11 +42,12 @@ public class PlatformUtilsImpl {
     }
 
     public static PlatformUtils.ModLoader getModLoader() {
+        // ModLoader has no dedicated NeoForge entry; FORGE identifies the Forge-family loader.
         return PlatformUtils.ModLoader.FORGE;
     }
 
     public static InputStream loadFileFromRoot(String path) throws FileNotFoundException {
-        File file = ModList.get().getModFileById(FiguraMod.MOD_ID).getFile().findResource(path).toFile();
-        return new FileInputStream(file);
+        Path file = ModList.get().getModFileById(FiguraModForge.MOD_ID).getFile().findResource(path);
+        return new FileInputStream(file.toFile());
     }
 }

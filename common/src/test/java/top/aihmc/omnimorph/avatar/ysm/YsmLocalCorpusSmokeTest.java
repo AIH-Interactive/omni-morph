@@ -102,7 +102,7 @@ public final class YsmLocalCorpusSmokeTest {
         try (YsmModelData data = YsmModelData.read(path, () -> false)) {
             require(data.encrypted() && !data.mainGeometry().bones.isEmpty(), "encrypted formal geometry");
             require(data.manifest().name().equals(manifest.name()), "wardrobe metadata agrees with formal data");
-            var texture = data.manifest().textures().getFirst();
+            var texture = data.manifest().textures().get(0);
             var nbt = YsmAvatarLoader.toAvatarNbt(data, texture, new UUID(0, 1), path);
             require(nbt.getAllKeys().equals(Set.of("metadata", "ysm")), "encrypted avatar root whitelist");
             var payload = nbt.getCompound("ysm");
@@ -166,7 +166,7 @@ public final class YsmLocalCorpusSmokeTest {
         NbtIo.writeCompressed(portable, output);
         CompoundTag received;
         try (var input = new ByteArrayInputStream(output.toByteArray())) {
-            received = NbtIo.readCompressed(input, NbtAccounter.create(256L * 1024 * 1024));
+            received = org.figuramc.figura.utils.IOUtils.readCompressedNbt(input, 256L * 1024 * 1024);
         }
         require(received.equals(portable), "every supported static resource survives the existing compressed NBT transport");
         require(avatar.equals(original), "portable transport does not mutate caller-owned model content");

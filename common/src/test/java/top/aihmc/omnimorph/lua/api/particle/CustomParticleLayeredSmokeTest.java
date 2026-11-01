@@ -1,7 +1,6 @@
 package top.aihmc.omnimorph.lua.api.particle;
 
 import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
@@ -165,18 +164,18 @@ public final class CustomParticleLayeredSmokeTest {
             var frame = PreviewParticleFrame.extract(new CustomParticle[]{peer, particle}, Vec3.ZERO,
                     new Quaternionf(), 0);
             var order = new ArrayList<RenderType>();
-            try (var storage = new ByteBufferBuilder(1024)) {
-                var builder = new BufferBuilder(storage,
-                        VertexFormat.Mode.QUADS,
-                        DefaultVertexFormat.PARTICLE);
-                frame.draw(new Matrix4f(), type -> {
-                    order.add(type);
-                    return builder;
-                });
-                try (var mesh = builder.build()) {
-                    require(mesh != null && mesh.drawState().vertexCount() == 20,
-                            "five author layers emit five complete native quads");
-                }
+            var builder = new BufferBuilder(1024);
+            builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.PARTICLE);
+            frame.draw(new Matrix4f(), type -> {
+                order.add(type);
+                return builder;
+            });
+            var mesh = builder.end();
+            try {
+                require(mesh != null && mesh.drawState().vertexCount() == 20,
+                        "five author layers emit five complete native quads");
+            } finally {
+                mesh.release();
             }
             var peers = peer.currentLayers();
             require(order.equals(List.of(peers.get(0).renderLayer().renderType(false), first.renderType(false),
@@ -201,8 +200,8 @@ public final class CustomParticleLayeredSmokeTest {
                            Consumer<VertexConsumer> writer) {
             var capture = new ParticleVertexCapture();
             capture.accept(material, writer);
-            var batch = capture.batches.getFirst();
-            var first = batch.vertices().getFirst();
+            var batch = capture.batches.get(0);
+            var first = batch.vertices().get(0);
             quads.add(new Quad(material, batch.u0(), batch.u1(), batch.v0(), batch.v1(), first.color(), first.light()));
         }
     }
@@ -236,13 +235,19 @@ public final class CustomParticleLayeredSmokeTest {
     }
 
     private static LuaValue lua(Object value) {
-        return switch (value) {
-            case LuaValue lua -> lua;
-            case Number number -> LuaValue.valueOf(number.doubleValue());
-            case Boolean flag -> LuaValue.valueOf(flag);
-            case String text -> LuaValue.valueOf(text);
-            default -> new org.luaj.vm2.LuaUserdata(value);
-        };
+        if (value instanceof LuaValue lua) {
+            return lua;
+        }
+        if (value instanceof Number number) {
+            return LuaValue.valueOf(number.doubleValue());
+        }
+        if (value instanceof Boolean flag) {
+            return LuaValue.valueOf(flag);
+        }
+        if (value instanceof String text) {
+            return LuaValue.valueOf(text);
+        }
+        return new org.luaj.vm2.LuaUserdata(value);
     }
 
     private static void reject(Runnable action) {

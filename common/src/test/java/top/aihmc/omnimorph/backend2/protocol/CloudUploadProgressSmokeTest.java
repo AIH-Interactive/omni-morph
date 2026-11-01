@@ -24,7 +24,7 @@ public final class CloudUploadProgressSmokeTest {
         for (int attempt = 0; attempt < 2; attempt++) {
             sent.clear();
             require(Arrays.equals(consume(body), bytes), "body publisher preserves raw bytes on every subscription");
-            require(sent.size() > 2 && sent.getFirst() == 0 && sent.getLast() == bytes.length,
+            require(sent.size() > 2 && sent.get(0) == 0 && com.google.common.collect.Iterables.getLast(sent) == bytes.length,
                     "progress starts at zero, advances in chunks, and ends at the actual byte count");
             long previous = -1;
             for (long count : sent) {

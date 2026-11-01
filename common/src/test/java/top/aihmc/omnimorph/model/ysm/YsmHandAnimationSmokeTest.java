@@ -158,7 +158,7 @@ public final class YsmHandAnimationSmokeTest {
         try {
             bindTags.invoke(holder, java.util.List.of(net.minecraft.tags.TagKey.create(
                     net.minecraft.core.registries.Registries.ITEM,
-                    net.minecraft.resources.ResourceLocation.parse("sparkle_morpher:pike"))));
+                    new net.minecraft.resources.ResourceLocation("sparkle_morpher:pike"))));
             entity.main = new ItemStack(Items.STICK);
             entity.using = true;
             entity.usedHand = InteractionHand.MAIN_HAND;
@@ -354,8 +354,8 @@ public final class YsmHandAnimationSmokeTest {
         }
         @SuppressWarnings("unchecked")
         var diagnostics = (java.util.List<String>) missing.getClass().getMethod("handAnimationDiagnostics").invoke(missing);
-        require(diagnostics.size() == 1 && diagnostics.getFirst().contains("player.use.mainhand")
-                        && diagnostics.getFirst().contains("minecraft:bow"),
+        require(diagnostics.size() == 1 && diagnostics.get(0).contains("player.use.mainhand")
+                        && diagnostics.get(0).contains("minecraft:bow"),
                 "unresolved use is diagnosed once with action and item");
         var separate = player("hold_mainhand:bow");
         update.invoke(separate, entity);
@@ -383,7 +383,7 @@ public final class YsmHandAnimationSmokeTest {
         try {
             bindTags.invoke(holder, java.util.List.of(net.minecraft.tags.TagKey.create(
                     net.minecraft.core.registries.Registries.ITEM,
-                    net.minecraft.resources.ResourceLocation.parse("sparkle_morpher:pike"))));
+                    new net.minecraft.resources.ResourceLocation("sparkle_morpher:pike"))));
             entity.main = new ItemStack(Items.STICK);
             require(YsmHandItemType.matches(entity.main, "lance")
                             && !YsmHandItemType.matches(entity.main, "spear"),

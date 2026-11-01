@@ -63,12 +63,12 @@ public class LocalAvatarLoader {
             String namespace = split[split.length - 2];
             String path = split[split.length - 1];
             // This is a 4 because .nbt has 4 characters
-            ResourceLocation id = ResourceLocation.fromNamespaceAndPath(namespace, path.substring(0, path.length() - 4));
+            ResourceLocation id = new ResourceLocation(namespace, path.substring(0, path.length() - 4));
 
             // nbt
             CompoundTag nbt;
             try {
-                nbt = NbtIo.readCompressed(cem.getValue().open(), NbtAccounter.unlimitedHeap());
+                nbt = NbtIo.readCompressed(cem.getValue().open());
             } catch (Exception e) {
                 FiguraMod.LOGGER.error("Failed to load " + id + " avatar", e);
                 continue;

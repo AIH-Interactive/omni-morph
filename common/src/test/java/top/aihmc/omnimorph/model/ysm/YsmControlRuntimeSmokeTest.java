@@ -164,7 +164,7 @@ public final class YsmControlRuntimeSmokeTest {
         require(Files.isRegularFile(org.figuramc.figura.FiguraMod.getCacheDirectory().resolve("avatar_controls.nbt")),
                 "actual persistent NBT file written");
         try (var input = Files.newInputStream(org.figuramc.figura.FiguraMod.getCacheDirectory().resolve("avatar_controls.nbt"))) {
-            CompoundTag saved = NbtIo.readCompressed(input, NbtAccounter.unlimitedHeap());
+            CompoundTag saved = net.minecraft.nbt.NbtIo.readCompressed(input);
             int modelValues = 0;
             for (var entry : NbtDefaults.getListOrEmpty(saved, "avatars")) {
                 if (!(entry instanceof CompoundTag avatar) || !avatar.getString("avatar").contains(":ysm:")) {

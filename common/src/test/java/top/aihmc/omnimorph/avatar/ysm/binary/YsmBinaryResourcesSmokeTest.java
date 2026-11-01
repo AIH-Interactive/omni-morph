@@ -60,13 +60,13 @@ public final class YsmBinaryResourcesSmokeTest {
         child.pivot = new float[]{0, 16, 0};
         raw.bones.add(child);
         var actual = YsmBinaryGeometryMapper.map(raw, new YsmDecodeBudget());
-        require(actual.roots.size() == 1 && actual.roots.getFirst().children.size() == 1, "hierarchy retained");
+        require(actual.roots.size() == 1 && actual.roots.get(0).children.size() == 1, "hierarchy retained");
         var expectedBone = expected.bones.get("root");
         var actualBone = actual.bones.get("root");
         equal(expectedBone.pivot, actualBone.pivot);
         equal(expectedBone.rotation, actualBone.rotation);
-        var expectedFace = expectedBone.cubes.getFirst().quads.getFirst();
-        var actualFace = actualBone.cubes.getFirst().quads.getFirst();
+        var expectedFace = expectedBone.cubes.get(0).quads.get(0);
+        var actualFace = actualBone.cubes.get(0).quads.get(0);
         equal(expectedFace.positions(), actualFace.positions());
         equal(expectedFace.uvs(), actualFace.uvs());
         equal(expectedFace.normal(), actualFace.normal());
@@ -205,8 +205,8 @@ public final class YsmBinaryResourcesSmokeTest {
                 """, false, null).get(clip.name);
         require(actual != null && actual.length == expected.length && actual.loopMode == expected.loopMode,
                 "JSON/binary duration and loop equivalence");
-        var actualFrame = actual.boneAnimations.get("root").rotation.keyframes.getFirst();
-        var expectedFrame = expected.boneAnimations.get("root").rotation.keyframes.getFirst();
+        var actualFrame = actual.boneAnimations.get("root").rotation.keyframes.get(0);
+        var expectedFrame = expected.boneAnimations.get("root").rotation.keyframes.get(0);
         equal(expectedFrame.value, actualFrame.value);
         equal(expectedFrame.preValue, actualFrame.preValue);
         require(actualFrame.time == expectedFrame.time && actualFrame.interpolation.equals(expectedFrame.interpolation),

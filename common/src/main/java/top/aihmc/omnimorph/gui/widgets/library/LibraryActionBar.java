@@ -29,7 +29,7 @@ public final class LibraryActionBar extends AbstractContainerElement {
 
     /** A divider occupies one toolbar slot and participates in the existing responsive wrapping. */
     public void separator() {
-        if (!actions.isEmpty() && actions.getLast() != null) {
+        if (!actions.isEmpty() && actions.get(actions.size() - 1) != null) {
             actions.add(null);
         }
     }

@@ -4,19 +4,14 @@ import com.google.gson.*;
 import com.mojang.brigadier.StringReader;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.DataResult;
-import com.mojang.serialization.Dynamic;
-import com.mojang.serialization.DynamicOps;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.arguments.SlotArgument;
 import net.minecraft.commands.arguments.blocks.BlockStateArgument;
 import net.minecraft.commands.arguments.item.ItemArgument;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.component.DataComponentMap;
-import net.minecraft.core.component.TypedDataComponent;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.*;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.datafix.fixes.ItemStackComponentizationFix;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -231,33 +226,6 @@ public class LuaUtils {
         else if (item instanceof String string) {
             try {
                 Level level = WorldAPI.getCurrentWorld();
-                // Use the DFU only if necessary to convert item nbt -> components
-                boolean oldLogic = string.contains("{") && string.contains("[") ? string.indexOf("{") < string.indexOf("[") && !string.contains("minecraft:attribute_modifiers"): string.contains("{");
-                if (oldLogic) {
-                    String tagStr = string.substring(string.indexOf("{"));
-                    CompoundTag nbtItem = new TagParser(new StringReader(tagStr)).readStruct();
-                    CompoundTag tag = new CompoundTag();
-                    tag.putString("id", ResourceLocation.read(new StringReader(string)).toString());
-                    tag.putInt("Count", 1);
-                    tag.put("tag", nbtItem);
-                    Dynamic<Tag> ops = new Dynamic<>(NbtOps.INSTANCE, tag);
-                    Optional<ItemStackComponentizationFix.ItemStackData> optionalItemStackData = ItemStackComponentizationFix.ItemStackData.read(ops);
-                    if (optionalItemStackData.isPresent()) {
-                        ItemStackComponentizationFix.ItemStackData data = optionalItemStackData.get();
-                        ItemStackComponentizationFix.fixItemStack(data, data.tag);
-
-                        ItemStack stack = ItemStack.parse(level.registryAccess(), data.write().cast(NbtOps.INSTANCE)).orElse(ItemArgument.item(CommandBuildContext.simple(level.registryAccess(), level.enabledFeatures())).parse(new StringReader(string)).createItemStack(1, false));
-                        LuaTable table = new LuaTable();
-                        for (String key : nbtItem.getAllKeys())
-                            table.set(key, NbtToLua.convert(nbtItem.get(key)));
-                        CompoundTag itemTag = NbtToLua.convertToNbt(stack.getComponents());
-                        for (String key : itemTag.getAllKeys())
-                            table.set(key, NbtToLua.convert(itemTag.get(key)));
-
-                        table = new ReadOnlyLuaTable(table);
-                        return new ItemStackAPI(stack, table);
-                    }
-                }
                 return new ItemStackAPI(ItemArgument.item(CommandBuildContext.simple(level.registryAccess(), level.enabledFeatures())).parse(new StringReader(string)).createItemStack(1, false));
             } catch (Exception e) {
                 throw new LuaError("Could not parse item stack from string: " + string);
@@ -407,7 +375,7 @@ public class LuaUtils {
 
     public static ResourceLocation parsePath(String path) {
         DataResult<ResourceLocation> res = ResourceLocation.read(path);
-        return res.getOrThrow(s -> {
+        return res.getOrThrow(false, s -> {
             throw new LuaError(s);
         });
     }
@@ -422,37 +390,8 @@ public class LuaUtils {
 
     // Converts an item stack into a valid stack string that can be turned back into an item with a command
     public static String getItemStackString(ItemStack stack) {
-        StringBuilder builder = new StringBuilder();
-        DynamicOps<Tag> dynamicOps = WorldAPI.getCurrentWorld().registryAccess().createSerializationContext(NbtOps.INSTANCE);
-        DataComponentMap map = stack.getComponents();
-        Iterator<TypedDataComponent<?>> iterator = map.iterator();
-
-        // the code is literally disgusting, loops through all components
-        while (iterator.hasNext()) {
-            // uses an iterator to avoid extra ,
-
-            TypedDataComponent<?> typedDataComponent = iterator.next();
-            Optional<Tag> optional = typedDataComponent.encodeValue(dynamicOps).result();
-            ResourceLocation resourceLocation = BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(typedDataComponent.type());
-            if (optional.isPresent() && resourceLocation != null){
-                builder.append(resourceLocation).append("=");
-                String op = optional.get().getAsString();
-                // minecraft gets super picky if you give it a resource location so this check has to be added, ew
-                ResourceLocation flag = ResourceLocation.tryParse(op);
-                if (optional.get().getType() == StringTag.TYPE && flag != null) {
-                    builder.append("\"").append(optional.get().getAsString()).append("\"");
-                } else {
-                    builder.append(optional.get().getAsString());
-                }
-                if (iterator.hasNext()) {
-                    builder.append(",");
-                }
-            }
-        }
-        if (builder.isEmpty())
-            return "";
-
-        return "[" + builder + "]";
+        CompoundTag tag = stack.getTag();
+        return tag == null || tag.isEmpty() ? "" : tag.toString();
     }
 
     public static int parseSlot(Object slot, Inventory inventory) {

@@ -59,7 +59,7 @@ public class FiguraMod {
     public static boolean parseMessages = true;
     public static boolean processingKeybind;
     public static final String FIGURA_KEY_CATEGORY = "key.category." + MOD_ID + ".keys";
-    public static ResourceLocation FIGURA_DEBUG_KEY = ResourceLocation.fromNamespaceAndPath(MOD_ID, "figura_debug_info");
+    public static ResourceLocation FIGURA_DEBUG_KEY = new ResourceLocation(MOD_ID, "figura_debug_info");
 
     /* For some reason, the mod menu entrypoint (or something) is able to call this before the Config
     class can initialize, meaning Configs.DEBUG_MODE can be null when this is called.... Weird */

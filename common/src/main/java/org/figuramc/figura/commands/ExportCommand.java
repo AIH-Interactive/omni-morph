@@ -88,7 +88,7 @@ class ExportCommand {
                 throw new Exception();
 
             NbtIo.writeCompressed(YsmSourcePayload.forOutput(avatar.nbt),
-                    FiguraMod.getFiguraDirectory().resolve(filename + ".nbt"));
+                    FiguraMod.getFiguraDirectory().resolve(filename + ".nbt").toFile());
 
             context.getSource().figura$sendFeedback(FiguraText.of("command.export_avatar.success"));
             return 1;

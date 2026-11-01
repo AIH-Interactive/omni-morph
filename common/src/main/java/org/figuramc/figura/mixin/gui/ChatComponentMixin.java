@@ -63,7 +63,7 @@ public class ChatComponentMixin {
         Avatar localPlayer = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
         if (localPlayer != null) {
             TextUtils.allowScriptEvents = true;
-            String json = Component.Serializer.toJson(message, this.minecraft.player.registryAccess());
+            String json = Component.Serializer.toJson(message);
             TextUtils.allowScriptEvents = false;
 
             Pair<String, Integer> event = localPlayer.chatReceivedMessageEvent(message.getString(), json);

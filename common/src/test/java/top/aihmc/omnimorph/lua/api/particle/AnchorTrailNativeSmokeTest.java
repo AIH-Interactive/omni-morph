@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import com.mojang.authlib.GameProfile;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.Camera;
@@ -190,15 +189,17 @@ final class AnchorTrailNativeSmokeTest {
     }
 
     private static byte[] vertices(PreviewParticleFrame ribbon) {
-        try (var storage = new ByteBufferBuilder(4 * DefaultVertexFormat.PARTICLE.getVertexSize())) {
-            var builder = new BufferBuilder(storage, VertexFormat.Mode.QUADS, DefaultVertexFormat.PARTICLE);
-            ribbon.draw(new Matrix4f(), type -> builder);
-            try (var mesh = builder.build()) {
-                require(mesh != null && mesh.drawState().vertexCount() == 4, "one real segment has four native vertices");
-                byte[] bytes = new byte[mesh.vertexBuffer().remaining()];
-                mesh.vertexBuffer().get(bytes);
-                return bytes;
-            }
+        var builder = new BufferBuilder(4 * DefaultVertexFormat.PARTICLE.getVertexSize());
+        builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.PARTICLE);
+        ribbon.draw(new Matrix4f(), type -> builder);
+        var mesh = builder.end();
+        try {
+            require(mesh != null && mesh.drawState().vertexCount() == 4, "one real segment has four native vertices");
+            byte[] bytes = new byte[mesh.vertexBuffer().remaining()];
+            mesh.vertexBuffer().get(bytes);
+            return bytes;
+        } finally {
+            mesh.release();
         }
     }
 

@@ -151,7 +151,7 @@ public final class YsmParticleNativeSmokeTest {
         var evaluator = ExpressionEvaluator.evaluator(context);
         try (var effects = runtime.functions().beginClientEffects("native-particle-fixture")) {
             require(Boolean.TRUE.equals(evaluator.eval(bindings.parse(
-                    "ysm.particle('minecraft:flame',1,2,3,4,5,6,2,0,120);").getFirst())),
+                    "ysm.particle('minecraft:flame',1,2,3,4,5,6,2,0,120);").get(0))),
                     "public Molang binding accepts native particle registry parameters");
             require(client.pending.size() == 1 && engine.created == 0 && owner.particlesRemaining.peek() == 16,
                     "public binding captures a queued request before engine work/quota consumption");
@@ -162,7 +162,7 @@ public final class YsmParticleNativeSmokeTest {
                             && engine.lifetimeAtSpawn == 120 && owner.particlesRemaining.peek() == 15,
                     "public single request preserves entity offset, scaled velocity, lifetime and owner quota");
             require(Boolean.TRUE.equals(evaluator.eval(bindings.parse(
-                    "ysm.abs_particle('minecraft:flame',0,0,0,0,0,0,0,2,37);").getFirst())),
+                    "ysm.abs_particle('minecraft:flame',0,0,0,0,0,0,0,2,37);").get(0))),
                     "public absolute batch binding accepts count/lifetime");
             require(client.pending.size() == 2, "batch queues exactly the requested count");
             client.drain();
@@ -173,36 +173,36 @@ public final class YsmParticleNativeSmokeTest {
                     "absolute batch uses entity position and per-particle native quota/lifetime: spawned="
                             + engine.spawned + " position=" + engine.position + " velocity=" + engine.velocity
                             + " lifetime=" + engine.lifetimeAtSpawn + " quota=" + owner.particlesRemaining.peek());
-            evaluator.eval(bindings.parse("ysm.particle('minecraft:flame');").getFirst());
+            evaluator.eval(bindings.parse("ysm.particle('minecraft:flame');").get(0));
             client.level = null;
             client.drain();
             require(engine.spawned == 3 && owner.particlesRemaining.peek() == 13,
                     "captured request is cancelled after a world change");
             client.level = level;
-            evaluator.eval(bindings.parse("ysm.particle('minecraft:flame');").getFirst());
+            evaluator.eval(bindings.parse("ysm.particle('minecraft:flame');").get(0));
             set(Avatar.class, owner, "ysmRuntime", null);
             client.drain();
             require(engine.spawned == 3, "captured request is cancelled after model replacement");
             set(Avatar.class, owner, "ysmRuntime", runtime);
             owner.renderMode = EntityRenderMode.FIGURA_GUI;
-            require(evaluator.eval(bindings.parse("ysm.particle('minecraft:flame',v.particle_side_effect=1);").getFirst()) == null
+            require(evaluator.eval(bindings.parse("ysm.particle('minecraft:flame',v.particle_side_effect=1);").get(0)) == null
                             && context.variables.getPath("particle_side_effect") == null && client.pending.isEmpty(),
                     "preview suppresses public binding before argument effects or queue submission");
             owner.renderMode = EntityRenderMode.WORLD;
             try {
-                evaluator.eval(bindings.parse("ysm.particle('fixture_missing:private_particle');").getFirst());
+                evaluator.eval(bindings.parse("ysm.particle('fixture_missing:private_particle');").get(0));
                 throw new AssertionError("Unknown native particle ID must fail");
             } catch (IllegalArgumentException failure) {
                 require(failure.getMessage().equals("Encrypted YSM operation failed: runtime/particle")
                                 && failure.getCause() == null,
                         "public registry failure preserves encrypted diagnostic privacy");
             }
-            require(Boolean.TRUE.equals(evaluator.eval(bindings.parse("ysm.particle('minecraft:flame');").getFirst())),
+            require(Boolean.TRUE.equals(evaluator.eval(bindings.parse("ysm.particle('minecraft:flame');").get(0))),
                     "public binding recovers after registry failure");
             client.drain();
             require(engine.spawned == 4 && owner.particlesRemaining.peek() == 12 && engine.lifetimeAtSpawn == 20,
                     "recovery request has reference default lifetime and native quota");
-            evaluator.eval(bindings.parse("ysm.particle('minecraft:flame');").getFirst());
+            evaluator.eval(bindings.parse("ysm.particle('minecraft:flame');").get(0));
             runtime.particles().close();
             client.drain();
             require(engine.spawned == 4 && owner.particlesRemaining.peek() == 12,

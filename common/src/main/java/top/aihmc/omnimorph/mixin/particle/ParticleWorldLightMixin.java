@@ -2,7 +2,7 @@ package top.aihmc.omnimorph.mixin.particle;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.client.Camera;
-import net.minecraft.client.DeltaTracker;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
@@ -26,9 +26,9 @@ public abstract class ParticleWorldLightMixin {
     }
 
     @Inject(method = "renderLevel", at = @At("HEAD"))
-    private void figura$prepareParticleLights(DeltaTracker tracker, boolean renderBlockOutline, Camera camera,
+    private void figura$prepareParticleLights(PoseStack poseStack, float tickDelta, long finishTimeNano, boolean renderBlockOutline, Camera camera,
                                              GameRenderer gameRenderer, LightTexture lightTexture,
-                                             Matrix4f viewMatrix, Matrix4f projectionMatrix, CallbackInfo ci) {
-        ParticleDynamicLights.updateFrame(tracker.getGameTimeDeltaPartialTick(false));
+                                             Matrix4f projectionMatrix, CallbackInfo ci) {
+        ParticleDynamicLights.updateFrame(tickDelta);
     }
 }

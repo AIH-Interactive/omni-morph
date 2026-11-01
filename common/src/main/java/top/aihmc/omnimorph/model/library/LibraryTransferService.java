@@ -340,7 +340,7 @@ public final class LibraryTransferService {
     }
 
     private static Package parse(LibraryModels.Model model, InputStream input, String hash, String purpose) throws IOException {
-        CompoundTag nbt = NbtIo.readCompressed(input, NbtAccounter.create(256L * 1024 * 1024));
+        CompoundTag nbt = org.figuramc.figura.utils.IOUtils.readCompressedNbt(input, 256L * 1024 * 1024);
         boolean ysm = nbt.getCompound("metadata").getString("format").equals("ysm-native");
         boolean encrypted = YsmSourcePayload.isEncrypted(nbt.getCompound("ysm"));
         if (ysm != !model.modelType().equals("FIGURA") || encrypted != model.modelType().equals("YSM_ENCRYPTED")) {

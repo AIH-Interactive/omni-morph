@@ -20,7 +20,7 @@ public final class GpuRigidDataSmokeTest {
         Bootstrap.bootStrap();
         var service = new AccelerationService();
         var owner = new AccelerationOwner();
-        var material = RenderType.entityTranslucent(ResourceLocation.parse("omni-morph:rigid_contract"));
+        var material = RenderType.entityTranslucent(new ResourceLocation("omni-morph:rigid_contract"));
         double[] vertices = new double[4 * MeshHandle.STRIDE];
         for (int vertex = 0; vertex < 4; vertex++) {
             vertices[vertex * MeshHandle.STRIDE + 3] = 1;
@@ -31,7 +31,7 @@ public final class GpuRigidDataSmokeTest {
         long[] order = new long[130];
         for (int index = 0; index < order.length; index++) {
             int pose = index % 65;
-            var semantics = new DrawSemantics(material, ResourceLocation.parse("omni-morph:rigid_contract"),
+            var semantics = new DrawSemantics(material, new ResourceLocation("omni-morph:rigid_contract"),
                     DrawSemantics.Layer.PRIMARY, "world", 0, 1, 0x00f000a0, 0, 1, 1, 1, 1, pose * .001, true);
             batches.add(new DrawBatch(service.capture(owner, "world"), mesh,
                     new PoseSnapshot(FiguraMat4.of().translate(pose, 0, 0), FiguraMat3.of()), semantics));
@@ -67,10 +67,10 @@ public final class GpuRigidDataSmokeTest {
         }
         require(faces == 130 && data.frameBytes() == 130L * 6 * Integer.BYTES + 3L * GpuRigidData.POSE_BYTES,
                 "every sorted face is covered exactly once and frame accounting includes indices");
-        require(!GpuRigidData.supports(Collections.nCopies(4097, batches.getFirst())), "part remap bound is enforced");
+        require(!GpuRigidData.supports(Collections.nCopies(4097, batches.get(0))), "part remap bound is enforced");
         var foreign = new DrawBatch(service.capture(new AccelerationOwner(), "world"), mesh,
-                batches.getFirst().pose(), batches.getFirst().semantics());
-        require(!GpuRigidData.supports(List.of(batches.getFirst(), foreign)), "owners retain separate resource lifetimes");
+                batches.get(0).pose(), batches.get(0).semantics());
+        require(!GpuRigidData.supports(List.of(batches.get(0), foreign)), "owners retain separate resource lifetimes");
         try {
             new GpuRigidData(batches, new long[]{(long) batches.size() << 32});
             throw new AssertionError("Invalid sorted face must reject");
@@ -147,7 +147,7 @@ public final class GpuRigidDataSmokeTest {
         requireSame(storage, 48, uniform, 0, GpuBatchData.PART_BYTES, "storage part follows the header");
 
         var pair = new GpuRigidData(batches.subList(0, 2), new long[]{0, 1L << 32});
-        ByteBuffer groupUniform = pair.pose(pair.ranges().getFirst());
+        ByteBuffer groupUniform = pair.pose(pair.ranges().get(0));
         ByteBuffer groupStorage = ByteBuffer.allocate((int) pair.storagePoseBytes()).order(ByteOrder.nativeOrder());
         pair.writeStoragePose(groupStorage);
         require(groupStorage.position() == 48 + 2 * 160, "a two-part storage block holds exactly its distinct parts");
@@ -205,7 +205,7 @@ public final class GpuRigidDataSmokeTest {
 
     private static void testRangeVariants(List<DrawBatch> batches) {
         var pair = new GpuRigidData(batches.subList(0, 2), new long[]{0, 1L << 32});
-        var range = pair.ranges().getFirst();
+        var range = pair.ranges().get(0);
         require(range.parts().size() == 2 && GpuBatchData.tierFor(range.parts().size()) == 8,
                 "a two-part palette selects the eight-part variant");
         var full = pair.pose(range);
@@ -349,7 +349,7 @@ public final class GpuRigidDataSmokeTest {
     private static DrawBatch modelBatch(AccelerationService service, AccelerationOwner owner,
                                         net.minecraft.client.renderer.RenderType material, MeshHandle mesh,
                                         PoseSnapshot pose, int light, float red) {
-        var semantics = new DrawSemantics(material, ResourceLocation.parse("omni-morph:rigid_contract"),
+        var semantics = new DrawSemantics(material, new ResourceLocation("omni-morph:rigid_contract"),
                 DrawSemantics.Layer.PRIMARY, "world", 0, mesh.faceCount(), light, 0, red, 1, 1, 1, 0, true);
         return new DrawBatch(service.capture(owner, "world"), mesh, pose, semantics);
     }
@@ -417,7 +417,7 @@ public final class GpuRigidDataSmokeTest {
 
     private static void testStaticValidationReuse(AccelerationService service, AccelerationOwner owner,
                                                   net.minecraft.client.renderer.RenderType material) {
-        var semantics = new DrawSemantics(material, ResourceLocation.parse("omni-morph:static_validation"),
+        var semantics = new DrawSemantics(material, new ResourceLocation("omni-morph:static_validation"),
                 DrawSemantics.Layer.PRIMARY, "world", 0, 1, 0x00f000a0, 0, 1, 1, 1, 1, 0, true);
         var mesh = new MeshHandle(quad(1), 4);
         var identity = new PoseSnapshot(FiguraMat4.of(), FiguraMat3.of());

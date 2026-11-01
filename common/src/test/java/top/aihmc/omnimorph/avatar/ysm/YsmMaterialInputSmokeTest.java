@@ -72,7 +72,7 @@ public final class YsmMaterialInputSmokeTest {
              var data = YsmModelData.read(source, YsmSourceIdentity.ContainerKind.DIRECTORY, () -> false)) {
             YsmManifest manifest = data.manifest();
             require(manifest.textures().size() == 2, "PBR channels are not extra selectable skins");
-            YsmTextureOption paired = manifest.textures().getFirst();
+            YsmTextureOption paired = manifest.textures().get(0);
             require(paired.id().equals("paired") && paired.normalPath().equals("textures/normal.png")
                     && paired.specularPath().equals("textures/specular.png"), "declared channel paths retained per skin");
             require(manifest.resourceIndex().texturePaths().containsAll(List.of("textures/base.png", "textures/normal.png", "textures/specular.png")),
@@ -121,7 +121,7 @@ public final class YsmMaterialInputSmokeTest {
             projectile.textures.put("paired", texture);
             raw.projectiles.put(projectile.identifier, projectile);
             try (var mapping = YsmBinaryResourceMapper.map(raw, "binary fixture", new YsmDecodeBudget())) {
-                YsmTextureOption paired = mapping.manifest().textures().getFirst();
+                YsmTextureOption paired = mapping.manifest().textures().get(0);
                 require(paired.normalPath().equals("textures/player/0_sub_0.png")
                         && paired.specularPath().equals("textures/player/0_sub_1.png"), "reference type1 normal/type2 specular routed independently");
                 require(ImageIO.read(new java.io.ByteArrayInputStream(mapping.resources().readBytes(paired.normalPath()))).getRGB(0, 0) == 0xff142850,
@@ -130,7 +130,7 @@ public final class YsmMaterialInputSmokeTest {
                         "specular pixels come from type2");
                 require(mapping.resources().exists("textures/player/0_sub_2.encoded")
                         && mapping.resources().exists("textures/player/0_sub_2.png"), "unknown subtype data remains preserved without pretending it is a supported channel");
-                var reread = YsmManifestReader.read(mapping.resources()).textures().getFirst();
+                var reread = YsmManifestReader.read(mapping.resources()).textures().get(0);
                 require(reread.equals(paired), "mapped manifest preserves the same material identity and channel links");
                 var manifest = com.google.gson.JsonParser.parseString(mapping.resources().readString("ysm.json")).getAsJsonObject();
                 var childMaterial = manifest.getAsJsonObject("files").getAsJsonArray("projectiles")
@@ -159,7 +159,7 @@ public final class YsmMaterialInputSmokeTest {
                         encrypted++;
                     }
                     var entries = NbtDefaults.getListOrEmpty(
-                            YsmAvatarLoader.toRuntimeTag(data, data.manifest().textures().getFirst()), "texture_entries");
+                            YsmAvatarLoader.toRuntimeTag(data, data.manifest().textures().get(0)), "texture_entries");
                     int entryIndex = 0;
                     for (YsmTextureOption texture : data.manifest().textures()) {
                         if (!data.resources().exists(texture.path())) {
@@ -183,7 +183,7 @@ public final class YsmMaterialInputSmokeTest {
                         materials++;
                     }
                     if (data.encrypted()) {
-                        var portable = YsmAvatarLoader.toAvatarNbt(data, data.manifest().textures().getFirst(), new java.util.UUID(0, 1), path)
+                        var portable = YsmAvatarLoader.toAvatarNbt(data, data.manifest().textures().get(0), new java.util.UUID(0, 1), path)
                                 .getCompound("ysm");
                         require(!portable.contains("texture_entries") && !portable.contains("normal_data") && !portable.contains("specular_data"),
                                 "encrypted channel bytes do not enter portable Avatar NBT");

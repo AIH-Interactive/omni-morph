@@ -103,8 +103,8 @@ public abstract class ElytraLayerMixin<T extends LivingEntity, M extends EntityM
 
             VanillaPart part = RenderUtils.pivotToPart(figura$avatar, ParentType.LeftElytraPivot);
 
-            ResourceLocation resourceLocation = livingEntity instanceof AbstractClientPlayer abstractClientPlayer ? abstractClientPlayer.getSkin().elytraTexture() != null ? abstractClientPlayer.getSkin().elytraTexture() : (abstractClientPlayer.getSkin().capeTexture() != null && abstractClientPlayer.isModelPartShown(PlayerModelPart.CAPE) ? abstractClientPlayer.getSkin().capeTexture() : WINGS_LOCATION) : WINGS_LOCATION;
-            VertexConsumer vertexConsumer = ItemRenderer.getArmorFoilBuffer(multiBufferSource, RenderType.armorCutoutNoCull(resourceLocation), itemStack.hasFoil());
+            ResourceLocation resourceLocation = livingEntity instanceof AbstractClientPlayer abstractClientPlayer ? abstractClientPlayer.getElytraTextureLocation() != null ? abstractClientPlayer.getElytraTextureLocation() : (abstractClientPlayer.getCloakTextureLocation() != null && abstractClientPlayer.isModelPartShown(PlayerModelPart.CAPE) ? abstractClientPlayer.getCloakTextureLocation() : WINGS_LOCATION) : WINGS_LOCATION;
+            VertexConsumer vertexConsumer = ItemRenderer.getArmorFoilBuffer(multiBufferSource, RenderType.armorCutoutNoCull(resourceLocation), false, itemStack.hasFoil());
 
             if (part != null && part.checkVisible()) {
                 boolean leftWing = figura$avatar.pivotPartRender(ParentType.LeftElytraPivot, stack -> {
@@ -114,11 +114,11 @@ public abstract class ElytraLayerMixin<T extends LivingEntity, M extends EntityM
                     stack.mulPose(Axis.YP.rotationDegrees(180f));
                     stack.translate(0.0f, 0.0f, 0.125f);
 
-                    ((ElytraModelAccessor)this.elytraModel).getLeftWing().render(stack, vertexConsumer, light, OverlayTexture.NO_OVERLAY, -1);
+                    ((ElytraModelAccessor)this.elytraModel).getLeftWing().render(stack, vertexConsumer, light, OverlayTexture.NO_OVERLAY, 1, 1, 1, 1);
                     stack.popPose();
                 });
                 if (!leftWing) {
-                    ((ElytraModelAccessor)this.elytraModel).getLeftWing().render(poseStack, vertexConsumer, light, OverlayTexture.NO_OVERLAY, -1);
+                    ((ElytraModelAccessor)this.elytraModel).getLeftWing().render(poseStack, vertexConsumer, light, OverlayTexture.NO_OVERLAY, 1, 1, 1, 1);
                 }
             }
             part = RenderUtils.pivotToPart(figura$avatar, ParentType.RightElytraPivot);
@@ -130,11 +130,11 @@ public abstract class ElytraLayerMixin<T extends LivingEntity, M extends EntityM
                     stack.mulPose(Axis.YP.rotationDegrees(180f));
                     stack.translate(0.0f, 0.0f, 0.125f);
 
-                    ((ElytraModelAccessor)this.elytraModel).getRightWing().render(stack, vertexConsumer, light, OverlayTexture.NO_OVERLAY, -1);
+                    ((ElytraModelAccessor)this.elytraModel).getRightWing().render(stack, vertexConsumer, light, OverlayTexture.NO_OVERLAY, 1, 1, 1, 1);
                     stack.popPose();
                 });
                 if (!rightWing) {
-                    ((ElytraModelAccessor)this.elytraModel).getRightWing().render(poseStack, vertexConsumer, light, OverlayTexture.NO_OVERLAY, -1);
+                    ((ElytraModelAccessor)this.elytraModel).getRightWing().render(poseStack, vertexConsumer, light, OverlayTexture.NO_OVERLAY, 1, 1, 1, 1);
                 }
             }
         } else renderedPivot = figura$avatar != null && figura$avatar.luaRuntime != null && figura$avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1 && !figura$avatar.luaRuntime.vanilla_model.ELYTRA.checkVisible();

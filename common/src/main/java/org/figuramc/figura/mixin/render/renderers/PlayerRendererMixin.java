@@ -11,7 +11,7 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.scores.DisplaySlot;
+
 import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.Scoreboard;
 import org.figuramc.figura.FiguraMod;
@@ -72,10 +72,10 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
     }
 
 
-    @Inject(method = "renderNameTag(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/network/chat/Component;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;IF)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/scores/Scoreboard;getDisplayObjective(Lnet/minecraft/world/scores/DisplaySlot;)Lnet/minecraft/world/scores/Objective;"))
+    @Inject(method = "renderNameTag(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/network/chat/Component;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;IF)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/scores/Scoreboard;getDisplayObjective(I)Lnet/minecraft/world/scores/Objective;"))
     private void setHasScore(AbstractClientPlayer player, Component text, PoseStack stack, MultiBufferSource multiBufferSource, int light, float delta, CallbackInfo ci) {
         Scoreboard scoreboard = player.getScoreboard();
-        Objective objective = scoreboard.getDisplayObjective(DisplaySlot.BELOW_NAME);
+        Objective objective = scoreboard.getDisplayObjective(2);
         hasScore = objective != null;
     }
 
@@ -170,7 +170,7 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
     @Inject(method = "renderHand", at = @At("HEAD"), cancellable = true)
     private void figura$renderYsmHand(PoseStack stack, MultiBufferSource buffers, int light,
                                      AbstractClientPlayer player, ModelPart arm, ModelPart sleeve, CallbackInfo ci) {
-        float delta = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true);
+        float delta = Minecraft.getInstance().getFrameTime();
         avatar = AvatarManager.getAvatarForPlayer(player.getUUID());
         figura$armOutfit = null;
         if (OutfitRenderBinding.hasComposition(player)) {
@@ -229,7 +229,7 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
     @Inject(at = @At("RETURN"), method = "renderHand")
     private void postRenderHand(PoseStack stack, MultiBufferSource buffers, int light, AbstractClientPlayer player,
                                 ModelPart arm, ModelPart sleeve, CallbackInfo ci) {
-        float delta = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true);
+        float delta = Minecraft.getInstance().getFrameTime();
         var outfit = figura$armOutfit;
         Avatar armAvatar = avatar;
         var model = getModel();

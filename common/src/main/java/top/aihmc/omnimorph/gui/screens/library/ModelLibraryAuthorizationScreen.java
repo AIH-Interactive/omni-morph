@@ -193,7 +193,7 @@ public final class ModelLibraryAuthorizationScreen extends LibraryFormScreen {
             } else if (value.items().isEmpty()) {
                 message = FiguraText.of("gui.library.player_not_found");
             } else {
-                candidate = value.items().getFirst();
+                candidate = value.items().get(0);
                 message = Component.literal(candidate.name() + "  " + candidate.uuid());
             }
         });

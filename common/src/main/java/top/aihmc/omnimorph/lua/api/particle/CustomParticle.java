@@ -124,7 +124,7 @@ public final class CustomParticle extends SingleQuadParticle {
             if (snapshot == null || snapshot.world() != level) {
                 return null;
             }
-            var head = snapshot.path().getLast().sample();
+            var head = snapshot.path().get(snapshot.path().size() - 1).sample();
             return new Vec3(head.x(), head.y(), head.z());
         }
         return new Vec3(xo + (x - xo) * partialTick, yo + (y - yo) * partialTick, zo + (z - zo) * partialTick);
@@ -634,7 +634,7 @@ public final class CustomParticle extends SingleQuadParticle {
                 }
                 now = snapshot.timeTicks();
                 path = snapshot.path();
-                var head = path.getLast().sample();
+                var head = path.get(path.size() - 1).sample();
                 position = new Vec3(head.x(), head.y(), head.z());
             } else {
                 if (ribbonTrail == null) {
