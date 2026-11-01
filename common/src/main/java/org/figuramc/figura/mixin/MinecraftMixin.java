@@ -29,7 +29,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
+import com.llamalad7.mixinextras.sugar.Local;
 
 @Mixin(Minecraft.class)
 public abstract class MinecraftMixin {
@@ -109,8 +109,8 @@ public abstract class MinecraftMixin {
         }
     }
 
-    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;getInventory()Lnet/minecraft/world/entity/player/Inventory;"), method = "handleKeybinds", locals = LocalCapture.CAPTURE_FAILSOFT)
-    private void handleHotbarSlots(CallbackInfo ci, int i) {
+    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;getInventory()Lnet/minecraft/world/entity/player/Inventory;"), method = "handleKeybinds")
+    private void handleHotbarSlots(CallbackInfo ci, @Local(ordinal = 0) int i) {
         if (PopupMenu.isEnabled())
             PopupMenu.hotbarKeyPressed(i);
         if (ActionWheel.isEnabled())
@@ -126,7 +126,7 @@ public abstract class MinecraftMixin {
             PopupMenu.run();
     }
 
-    @Inject(at = @At("RETURN"), method = "clearClientLevel")
+    @Inject(at = @At("RETURN"), method = "clearLevel(Lnet/minecraft/client/gui/screens/Screen;)V")
     private void clearLevel(Screen screen, CallbackInfo ci) {
         NetworkStuff.disconnect(null);
         AvatarManager.clearAllAvatars();

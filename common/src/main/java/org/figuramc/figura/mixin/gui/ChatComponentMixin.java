@@ -27,7 +27,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 
@@ -44,7 +43,7 @@ public class ChatComponentMixin {
     @Unique private Integer color;
     @Unique private int currColor;
 
-    @Inject(method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/GuiMessageTag;)V", at = @At(value = "HEAD"), locals = LocalCapture.CAPTURE_FAILSOFT, cancellable = true)
+    @Inject(method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/GuiMessageTag;)V", at = @At(value = "HEAD"), cancellable = true)
     private void injectAddMessage(Component message, MessageSignature signature, GuiMessageTag tag, CallbackInfo ci, @Local(argsOnly = true) LocalRef<Component> localMessageRef) {
         Component modifiedMessage = modifyMessage(message);
         if (modifiedMessage == null) {
@@ -156,27 +155,22 @@ public class ChatComponentMixin {
         return message;
     }
 
-    @Inject(at = @At("HEAD"), method = "addMessageToQueue", cancellable = true)
-    private void addMessageQueue(GuiMessage guiMessage, CallbackInfo ci) {
-        if (guiMessage == null || guiMessage.content() == null)
+    @Inject(method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;ILnet/minecraft/client/GuiMessageTag;Z)V",
+            at = @At("HEAD"), cancellable = true)
+    private void figura$guardQueuedMessage(Component message, MessageSignature signature, int time,
+                                           GuiMessageTag tag, boolean refresh, CallbackInfo ci) {
+        if (message == null) {
             ci.cancel();
+        }
     }
 
-    @Inject(at = @At("HEAD"), method = "addMessageToDisplayQueue", cancellable = true)
-    private void addMessageDisplayQueue(GuiMessage guiMessage, CallbackInfo ci) {
-        if (guiMessage == null || guiMessage.content() == null)
-            ci.cancel();
-    }
-
-    @ModifyArg(at = @At(value = "INVOKE", target = "Ljava/util/List;add(ILjava/lang/Object;)V"), method = "addMessageToDisplayQueue")
-    private Object addMessagesDisplayQueue(int index, Object message) {
-        if (color != null) ((GuiMessageAccessor) message).figura$setColor(color);
-        return message;
-    }
-
-    @ModifyArg(at = @At(value = "INVOKE", target = "Ljava/util/List;add(ILjava/lang/Object;)V"), method = "addMessageToQueue")
-    private Object addMessagesQueue(int index, Object message) {
-        if (color != null) ((GuiMessageAccessor) message).figura$setColor(color);
+    // Both the wrapped display lines and the retained message are inserted by the same old overload.
+    @ModifyArg(method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;ILnet/minecraft/client/GuiMessageTag;Z)V",
+            at = @At(value = "INVOKE", target = "Ljava/util/List;add(ILjava/lang/Object;)V"), index = 1)
+    private Object figura$colorQueuedMessage(Object message) {
+        if (color != null) {
+            ((GuiMessageAccessor) message).figura$setColor(color);
+        }
         return message;
     }
 
@@ -191,9 +185,9 @@ public class ChatComponentMixin {
         return color + currColor;
     }
 
-    @ModifyVariable(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/components/ChatComponent;addMessageToDisplayQueue(Lnet/minecraft/client/GuiMessage;)V"), method = "refreshTrimmedMessages")
-    private GuiMessage refreshMessages(GuiMessage message) {
+    @Inject(method = "refreshTrimmedMessage", at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/client/gui/components/ChatComponent;addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;ILnet/minecraft/client/GuiMessageTag;Z)V"))
+    private void figura$refreshMessageColor(CallbackInfo ci, @Local GuiMessage message) {
         color = ((GuiMessageAccessor) (Object) message).figura$getColor();
-        return message;
     }
 }

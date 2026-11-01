@@ -80,13 +80,13 @@ public final class DualEngineGpuReplay {
                     if (method.isDefault()) {
                         return InvocationHandler.invokeDefault(proxy, method, arguments);
                     }
-                    if (method.getName().equals("addVertex")) {
+                    if (method.getName().equals("vertex")) {
                         vertices.add(new float[8]);
                         for (int component = 0; component < 3; component++) {
                             com.google.common.collect.Iterables.getLast(vertices)[component] = ((Number) arguments[component]).floatValue();
                         }
-                    } else if (method.getName().equals("setNormal") || method.getName().equals("setUv")) {
-                        int offset = method.getName().equals("setNormal") ? 3 : 6;
+                    } else if (method.getName().equals("normal") || method.getName().equals("uv")) {
+                        int offset = method.getName().equals("normal") ? 3 : 6;
                         for (int component = 0; component < arguments.length; component++) {
                             com.google.common.collect.Iterables.getLast(vertices)[offset + component] = ((Number) arguments[component]).floatValue();
                         }

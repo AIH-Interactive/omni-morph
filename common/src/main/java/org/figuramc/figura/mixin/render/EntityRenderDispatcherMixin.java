@@ -48,7 +48,7 @@ public class EntityRenderDispatcherMixin implements EntityRenderDispatcherAccess
     }
 
     @Inject(method = "renderFlame", at = @At("HEAD"), cancellable = true)
-    private void renderFlame(PoseStack matrices, MultiBufferSource vertexConsumers, Entity entity, Quaternionf quaternionf, CallbackInfo ci) {
+    private void renderFlame(PoseStack matrices, MultiBufferSource vertexConsumers, Entity entity, CallbackInfo ci) {
         avatar = null;
         Avatar a = figura$boundAvatar(entity, Minecraft.getInstance().getFrameTime());
         if (RenderUtils.vanillaModelAndScript(a)) {
@@ -60,9 +60,10 @@ public class EntityRenderDispatcherMixin implements EntityRenderDispatcherAccess
         }
     }
 
-    @ModifyVariable(method = "renderFlame", at = @At(value = "HEAD"), argsOnly = true)
-    private Quaternionf renderFlameRot(Quaternionf f) {
-        return UIHelper.paperdoll ? Axis.YP.rotationDegrees(UIHelper.fireRot) : f;
+    @WrapOperation(method = "renderFlame", at = @At(value = "INVOKE",
+            target = "Lcom/mojang/blaze3d/vertex/PoseStack;mulPose(Lorg/joml/Quaternionf;)V"))
+    private void renderFlameRot(PoseStack poses, Quaternionf rotation, Operation<Void> original) {
+        original.call(poses, UIHelper.paperdoll ? Axis.YP.rotationDegrees(UIHelper.fireRot) : rotation);
     }
 
     @ModifyVariable(method = "renderFlame", at = @At("STORE"), ordinal = 0)
@@ -152,4 +153,5 @@ public class EntityRenderDispatcherMixin implements EntityRenderDispatcherAccess
                 && parent.ownsSubEntity(entity, "vehicle") && !entity.isRemoved()) {
             instance.renderer().render(copy, buffers, light, YsmPartMask.DEBUG_ALL, pose);
         }
-    }}
+    }
+}

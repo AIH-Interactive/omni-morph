@@ -2,7 +2,7 @@
 
 ## 当前状态（2026-11-01）
 
-M0 已提交推送并核对远端；M1 自动门槛已通过，正在完成提交推送检查点，M2–M4 未开始。当前分支 1.20.1，HEAD 56e71954630126c9afdb49854aafc725d85e2ee0。下文早期检查点保留为历史证据，以最新检查点为准。
+M0、M1 已提交推送并核对远端；M2 自动门槛已通过，正在完成提交推送检查点，M3、M4 未开始。当前分支 1.20.1，M1 提交 fc15e0588a472007506a4a8a50a99606ccb6faf5。下文早期检查点保留为历史证据，以最新检查点为准。
 
 ## M0 工具链与依赖证据
 
@@ -88,3 +88,31 @@ M0检查点：提交56e71954630126c9afdb49854aafc725d85e2ee0已推送，git ls-r
 - M2仍须验证所有Mixin/AW/AT、真实patched字节码、CPU/native/GPU与实际窗口像素；M3仍须完整功能语料回归；M4仍须正式映射、JNI/SPI/许可/split-package、CI及最终产物。主编译不能证明这些已通过。
 - 完整客户端/人工画面验收：SKIPPED（MANUAL，用户要求跳过；未验证）。没有自动启动游戏或改mods/内存。
 - 当前额度周窗口剩余78%，未触发阈值，无Luna委派。M1提交推送并核对远端后，下一阶段为M2。
+
+M1检查点：提交 `fc15e0588a472007506a4a8a50a99606ccb6faf5` 已推送，git ls-remote确认origin/1.20.1同HEAD。M2开始，M3/M4未开始。
+
+
+## M2 初始检查点（实施中）
+
+- MCP AW检查13 entries / 0 errors / 0 warnings。common Mixin源码扫描94项，26项报告问题；Forge扫描4项、1项泛型描述符报告。工具不理解部分嵌套类、擦除泛型及第三方类，不按计数判定实际失效。完整JSON在build/tmp/port-m0/m2-common-mixin-initial.json和m2-forge-mixin-initial.json。
+- GPU钩子回迁到旧endBatch(RenderType)内RenderType.end实际调用；检查retained consumer并合并原生几何，原生结束后flushGPU队列。no-arg endBatch内部getBuffer查询由WrapMethod作用域区分，try/finally恢复，避免GPU-only误回退。尚无实际Mixin应用证据。
+- 护甲Invoker已改旧renderModel/ArmorMaterial签名。CPU正常法线测试按MCP确认1.20.1原生逆体积系数且不逐顶点normalize，固定数值断言保留精度。
+- gpuSubmissionSmokeTest、accelerationContractSmokeTest、Forge编译通过，build/tmp/port-m0/m2-batch-hook-contract.log exit0/19s。此独立夹具不安装Mixin，不能作为注入应用PASS。
+- 新增mixinBytecodeContractSmokeTest，读取选定Forge编译classpath的真实patchedJAR，检查compiled target/member/selector/invocation，不冒称变换/局部变量/refmap/画面证据。首轮失败25项（含enum构造Invoker返回类型检查误报，已修正但尚未重跑），build/tmp/port-m0/m2-bytecode-initial.log。
+- 下一步修正剩余真实签名：FontSet synthetic method、ChatComponent旧队列、Minecraft.clearLevel/getTickTargetMillis、ParticleEngine.render、Camera.move/rotation、GameRenderer confusion/camera call、Elytra/Entity/LivingEntity render调用及PlayerRenderer name tag；用真实字节码回归收敛。之后双加载器、JNI/GL/GPU/low-heap与所有访问规则仍需M2验证。M2未完成、未提交推送。
+
+## M2 最终自动门槛（通过）
+
+- 回迁 BufferSource 单参数 endBatch/RenderType.end，保留 consumer 合并、混合透明排序及 GPU-only 路径；回迁 Camera/GameRenderer、实体/护甲/鞘翅、粒子、字体、旧聊天和预览绑定。旧全量聊天 LVT 捕获改为明确 @Local；热栏与暂停菜单也使用所需的单个局部变量。
+- 新增真实 patched 字节码契约任务：两加载器各检查100个Mixin的目标、成员、描述符、调用点和8个typed @Local绑定；独立聊天测试验证实际调用处的frame/LVT及common列表回调。Forge日志 m2-forge-final-contract.log / m2-final-visible-gl.log，历史NeoForge m2-neoforge-final-contract.log，均exit0。检查不等同于实际Mixin应用，泛型LocalRef/全量frame重建仍无此证据。
+- minecraft-dev最终扫描common94项，74有效/20报告；Forge4项，3有效/1报告。报告项为第三方Gecko类、嵌套类解析、泛型擦除、synthetic method_45799及原有可选renderRaw。实际patched字节码检查覆盖前述MC目标与可用Gecko依赖；Simple Voice Chat外部目标不可用，未宣称覆盖。完整MCP报告 m2-common-mixin-final.json / m2-forge-mixin-final.json。
+- AW13 entries/0errors/0warnings。实际生成AT13条；MCP以Mojmap检查SRG出现6个字段未找到，按锁定mappings-srg.tiny转换名称后0errors/2warnings。两个record构造警告仅涉及ClimateSettings/Glyph，项目只读取/修改既有对象，不实例化这两个record，未无故扩大构造权限。错误路径曾被工具解析为0 entries，已丢弃该结果并以真实13条重新验证。
+- SignRenderer旧双候选remap=false会遗漏SRG转换；现使用目标named synthetic method_45799并正常remap。javap实际正式JAR确认selector=m_276705_，Font.split调用=m_92923_。正式全包加载与依赖审计仍在M4。
+- Java17 JNI头编译Windows原生库、ctest1/1通过；MSVC19.51/C++17/static CRT，依赖仅KERNEL32.dll；日志m2-native-build.log。M2本地native打包入口移到Forge正式JAR；六平台正式打包/CI仍在M4。
+- 实际打包JNI加载capabilities63，Java数值差分、边界、所有可用kernel[0,1,2,-1]、pose packing、Figura/YSM正式renderer均通过，共消费3194832顶点；18个加密模型附件回放通过。日志m2-full-emitter-gate.log exit0/2m56s。
+- 同日志：可见Windows GLFW窗口双引擎正式emitter回放601次实际GL indexed draw通过；598 MiB既有堆限制下3个大模型回放730次GL draw通过。顶点代理由新方法字符串改为旧vertex/normal/uv/color，保留原数值/数量断言。01_taisho_maid目录实际为空，不能作为YSM输入；通用双引擎任务使用现有末影龙娘/芙宁娜模型。该结果不覆盖缺失maid专属语料，不伪造其覆盖。
+- CPU契约、deferred pose、rigid data、65 poses/100 buffer cycles、mixed native排序、owner退休、fallback、缓存预算均通过；m2-cpu-bytecode-smoke.log初次deferred失败，已适配原生ArmorStand尺寸夹具并在m2-full-emitter-gate.log、m2-forge-final-contract.log通过。
+- 最终可见GL像素/法线/UV/rigid与weighted、活动uniform、cache/reload、shader拒绝、原生材质GLSL编译、unlit/alpha discard通过；透明排序热态分配800bytes通过；m2-final-visible-gl.log exit0/30s。此前m2-native-gpu-smoke.log和m2-emitter-replay.log失败均保留，已定位修正后重验。
+- 完整游戏内Mixin变换、相机/bobbing/背包预览画面、shaderpack、跨平台GPU、真实性能A/B：SKIPPED（MANUAL，用户要求跳过；未验证）。GL夹具不代替游戏，CPU/JNI计时不作为GPU性能。
+- diff人工审查、现有风格、git diff --check通过。未修改refs、禁用生产文件、降低断言或增加Fabric产物。额度可靠接口周窗口剩余77%，未触发阈值，无Luna委派。
+- M2提交推送并核对远端后，才开始M3全量可执行common/平台及语料回归；M4尚未开始。

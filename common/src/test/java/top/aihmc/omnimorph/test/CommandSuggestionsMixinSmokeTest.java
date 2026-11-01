@@ -92,7 +92,7 @@ public final class CommandSuggestionsMixinSmokeTest {
                 checked++;
             }
             require(checked == 2, "both suggestion collection and post-assignment hooks checked");
-            System.out.println("PASS actual 1.21.1 invocation/live-local bindings: " + mixin.name);
+            System.out.println("PASS actual 1.20.1 invocation/live-local bindings: " + mixin.name);
         }
         System.out.println("This bytecode regression does not claim full client/Mixin application validation.");
     }

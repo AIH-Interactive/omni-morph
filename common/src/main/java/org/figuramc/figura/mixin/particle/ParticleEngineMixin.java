@@ -1,8 +1,9 @@
 package org.figuramc.figura.mixin.particle;
 
 import net.minecraft.client.Camera;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.LightTexture;
-import org.figuramc.figura.utils.PlatformUtils;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleEngine;
 import net.minecraft.client.particle.SpriteSet;
@@ -91,24 +92,20 @@ public abstract class ParticleEngineMixin implements ParticleEngineAccessor {
         particleMap.keySet().removeIf(particle -> particle instanceof CustomParticle);
     }
 
-    @Inject(method = "render(Lnet/minecraft/client/renderer/LightTexture;Lnet/minecraft/client/Camera;F)V",
+    @Inject(method = "render(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;Lnet/minecraft/client/renderer/LightTexture;Lnet/minecraft/client/Camera;F)V",
             at = @At("HEAD"))
-    private void figura$runParticleFrameCallbacks(LightTexture light,
+    private void figura$runParticleFrameCallbacks(PoseStack poses, MultiBufferSource.BufferSource buffers, LightTexture light,
                                                  Camera camera, float partialTick,
                                                  CallbackInfo ci) {
-        if (!PlatformUtils.isModLoaded("neoforge")) {
-            CustomParticleRuntime.runFrameCallbacks(partialTick);
-        }
+        CustomParticleRuntime.runFrameCallbacks(partialTick);
     }
 
-    @Inject(method = "render(Lnet/minecraft/client/renderer/LightTexture;Lnet/minecraft/client/Camera;F)V",
+    @Inject(method = "render(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;Lnet/minecraft/client/renderer/LightTexture;Lnet/minecraft/client/Camera;F)V",
             at = @At("TAIL"))
-    private void figura$renderCustomParticles(LightTexture light,
+    private void figura$renderCustomParticles(PoseStack poses, MultiBufferSource.BufferSource buffers, LightTexture light,
                                               Camera camera, float partialTick,
                                               CallbackInfo ci) {
-        if (!PlatformUtils.isModLoaded("neoforge")) {
-            CustomParticleRuntime.renderWorld(null, camera, partialTick);
-        }
+        CustomParticleRuntime.renderWorld(null, camera, partialTick);
     }
 
 }

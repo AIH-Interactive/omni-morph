@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
+import com.llamalad7.mixinextras.sugar.Local;
 
 @Mixin(PauseScreen.class)
 public class PauseScreenMixin extends Screen {
@@ -40,10 +40,9 @@ public class PauseScreenMixin extends Screen {
             slice = @Slice(
                     from = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;hasSingleplayerServer()Z"),
                     to = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;isLocalServer()Z")
-            ),
-            locals = LocalCapture.CAPTURE_FAILSOFT
+            )
     )
-    private void saveLanButton(CallbackInfo ci, GridLayout gridLayout, GridLayout.RowHelper rowHelper) {
+    private void saveLanButton(CallbackInfo ci, @Local GridLayout gridLayout) {
         gridLayout.visitChildren(element -> lanButton = element);
     }
 

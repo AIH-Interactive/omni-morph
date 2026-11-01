@@ -231,7 +231,7 @@ tasks.register('nativeSmokeTest', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = 'top.aihmc.omnimorph.render.acceleration.NativeAccelerationSmokeTest'
     jvmArgs '--enable-native-access=ALL-UNNAMED', '-Xcheck:jni'
-    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-fabric-mc-windows-local.jar").path,
+    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-minecraftforge-mc-windows-local.jar").path,
             rootProject.file('build/reports/acceleration/h2-jni-timing.csv').path,
             rootProject.file('refs/avatars/末影龙娘.ysm').path
 }
@@ -243,7 +243,7 @@ tasks.register('nativeTimingTest', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = 'top.aihmc.omnimorph.render.acceleration.NativeAccelerationSmokeTest'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
-    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-fabric-mc-windows-local.jar").path,
+    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-minecraftforge-mc-windows-local.jar").path,
             rootProject.file('build/reports/acceleration/h2-jni-timing-runtime.csv').path, '--timing-only'
 }
 
@@ -283,12 +283,33 @@ tasks.register('gpuAllocationRegression', JavaExec) {
 tasks.register('commandSuggestionsMixinSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Checks suggestion callbacks against real Minecraft invocation sites and live local variables.'
-    dependsOn testClasses, ':fabric:classes', ':neoforge:classes'
+    dependsOn testClasses, ':forge:classes'
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = 'top.aihmc.omnimorph.test.CommandSuggestionsMixinSmokeTest'
-    args rootProject.file('fabric/build/classes/java/main/top/aihmc/omnimorph/mixin/fabric/CommandSuggestionsMixinFabric.class').path,
-            rootProject.file('neoforge/build/classes/java/main/top/aihmc/omnimorph/mixin/neoforge/CommandSuggestionsMixinNeoForge.class').path,
-            layout.buildDirectory.file('classes/java/main/org/figuramc/figura/mixin/gui/SuggestionsListMixin.class').get().asFile.path
+    doFirst {
+        args = [project(':forge').sourceSets.main.output.classesDirs.singleFile.toPath()
+                .resolve('top/aihmc/omnimorph/mixin/forge/CommandSuggestionsMixinForge.class').toString(),
+                layout.buildDirectory.file('classes/java/main/org/figuramc/figura/mixin/gui/SuggestionsListMixin.class')
+                        .get().asFile.path]
+    }
+}
+
+tasks.register('mixinBytecodeContractSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks compiled Mixin selectors and members against the selected patched Forge target.'
+    dependsOn testClasses, ':forge:classes'
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.test.MixinBytecodeContractSmokeTest'
+    doFirst {
+        def targets = project(':forge').configurations.compileClasspath.files.findAll {
+            it.name.startsWith('forge-') && it.name.contains('minecraft-merged') && it.name.endsWith('.jar')
+        }
+        if (targets.size() != 1) {
+            throw new GradleException("Expected one patched Minecraft compile target, found ${targets}")
+        }
+        args = [targets.first().path] + sourceSets.main.output.classesDirs.files.collect { it.path } +
+                project(':forge').sourceSets.main.output.classesDirs.files.collect { it.path }
+    }
 }
 
 tasks.register('neoforgeModuleSmokeTest', JavaExec) {
@@ -347,7 +368,8 @@ tasks.register('dualEngineGpuReplay', JavaExec) {
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = 'top.aihmc.omnimorph.render.acceleration.DualEngineGpuReplay'
-    args rootProject.file('refs/avatars/末影龙娘.ysm').path, rootProject.file('refs/avatars/01_taisho_maid').path
+    args rootProject.file('refs/avatars/末影龙娘.ysm').path,
+            rootProject.file('refs/avatars/芙宁娜Lv.999-白v1.11.ysm').path
 }
 
 tasks.register('dualEngineGpuDriverReplay', JavaExec) {
@@ -357,7 +379,7 @@ tasks.register('dualEngineGpuDriverReplay', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = 'top.aihmc.omnimorph.render.acceleration.DualEngineGpuReplay'
     args '--gl', rootProject.file('refs/avatars/末影龙娘.ysm').path,
-            rootProject.file('refs/avatars/01_taisho_maid').path
+            rootProject.file('refs/avatars/芙宁娜Lv.999-白v1.11.ysm').path
 }
 
 tasks.register('gpuLowHeapModelReplay', JavaExec) {
@@ -399,7 +421,7 @@ tasks.register('nativePlatformSmokeTest', JavaExec) {
     dependsOn compileNativeInterface, ':packageLocalNative'
     classpath = files(rootProject.layout.buildDirectory.dir('native-interface/classes')) +
             fileTree(rootProject.layout.buildDirectory.dir('native-interface/lib')) +
-            files(rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-fabric-mc-windows-local.jar"))
+            files(rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-minecraftforge-mc-windows-local.jar"))
     mainClass = 'top.aihmc.omnimorph.render.acceleration.NativePlatformSmokeTest'
     jvmArgs '--enable-native-access=ALL-UNNAMED', '-Xcheck:jni'
 }
@@ -416,7 +438,7 @@ tasks.register('accelerationPreparationBenchmark', JavaExec) {
     if (providers.gradleProperty('preparationJfr').isPresent()) {
         jvmArgs "-XX:StartFlightRecording=filename=${rootProject.file('build/reports/acceleration/h7-preparation.jfr').path},settings=profile,dumponexit=true"
     }
-    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-fabric-mc-windows-local.jar").path,
+    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-minecraftforge-mc-windows-local.jar").path,
             rootProject.file('refs/avatars').path,
             rootProject.file('build/reports/acceleration/h7-preparation.csv').path
     if (providers.gradleProperty('preparationSample').isPresent()) {
@@ -432,7 +454,7 @@ tasks.register('accelerationPreparationBenchmark', JavaExec) {
         group = 'verification'
         description = "Checks packaged native activation under actual JDK access policy: $policy"
         dependsOn testClasses, ':packageLocalNative'
-        def nativeJar = rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-fabric-mc-windows-local.jar")
+        def nativeJar = rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-minecraftforge-mc-windows-local.jar")
         classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath + files(nativeJar)
         mainClass = 'top.aihmc.omnimorph.render.acceleration.NativeActivationSmokeTest'
         if (policy == 'allow') {

@@ -26,8 +26,7 @@ public abstract class FontSetMixin {
     @Shadow @Final private ResourceLocation name;
     @Unique private int figura$codePoint = -1;
 
-    // Fabric's merged jar retains the intermediary synthetic name; NeoForge keeps the Mojang lambda name.
-    @WrapOperation(method = {"method_57035", "lambda$selectProviders$5"}, remap = false,
+    @WrapOperation(method = {"computeGlyphInfo", "computeBakedGlyph"},
             at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/font/GlyphProvider;getGlyph(I)Lcom/mojang/blaze3d/font/GlyphInfo;", remap = true))
     private GlyphInfo figura$emojiAdvance(GlyphProvider provider, int codePoint, Operation<GlyphInfo> original) {
         GlyphInfo glyph = original.call(provider, codePoint);

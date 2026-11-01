@@ -86,7 +86,7 @@ public final class NativeAccelerationSmokeTest {
             invalid = manifest.deepCopy();
             invalid.getAsJsonArray("libraries").get(0).getAsJsonObject().addProperty("path", "../model.dll");
             expectInvalidManifest(invalid, path);
-            require(zip.getEntry("fabric.mod.json") != null && zip.getEntry("natives/NOTICE.txt") != null,
+            require(zip.getEntry("META-INF/mods.toml") != null && zip.getEntry("natives/NOTICE.txt") != null,
                     "mod manifest and native notice retained");
         }
     }

@@ -615,7 +615,6 @@ public final class YsmSoundNativeSmokeTest {
             return manager;
         }
 
-        @Override
         public float figura$invokeGetTickTargetMillis(float value) {
             return 50f;
         }

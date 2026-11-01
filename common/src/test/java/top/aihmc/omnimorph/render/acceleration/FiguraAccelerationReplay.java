@@ -95,10 +95,10 @@ public final class FiguraAccelerationReplay {
                         return InvocationHandler.invokeDefault(proxy, method, arguments);
                     }
                     List<float[]> target = switch (method.getName()) {
-                        case "addVertex" -> positions;
-                        case "setNormal" -> normals;
-                        case "setUv" -> uvs;
-                        case "setColor" -> colors;
+                        case "vertex" -> positions;
+                        case "normal" -> normals;
+                        case "uv" -> uvs;
+                        case "color" -> colors;
                         default -> null;
                     };
                     if (target != null) {

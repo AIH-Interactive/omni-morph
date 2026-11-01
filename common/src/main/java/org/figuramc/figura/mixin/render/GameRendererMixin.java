@@ -30,7 +30,7 @@ import top.aihmc.omnimorph.render.acceleration.AccelerationService;
 import top.aihmc.omnimorph.render.acceleration.HardwareAcceleration;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-import org.joml.Quaternionfc;
+import org.joml.Matrix3f;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -53,7 +53,7 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
 
     @Shadow public abstract Minecraft getMinecraft();
 
-    @Shadow private int confusionAnimationTick;
+    @Shadow private int tick;
     @Shadow @Final private Camera mainCamera;
     @Unique
     private boolean avatarPostShader = false;
@@ -90,62 +90,48 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
         LibraryPreviewBinding.finishFrame();
     }
 
-    @WrapOperation(method = "renderLevel",
-            at = @At(value = "INVOKE",
-                    target = "Lorg/joml/Matrix4f;rotation(Lorg/joml/Quaternionfc;)Lorg/joml/Matrix4f;"))
-    private Matrix4f onCameraRotation(Matrix4f instance, Quaternionfc quat, Operation<Matrix4f> original) {
-        Avatar avatar = AvatarManager.getAvatar(this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity());
+    @Inject(method = "renderLevel", at = @At(value = "INVOKE",
+            target = "Lcom/mojang/blaze3d/vertex/PoseStack$Pose;normal()Lorg/joml/Matrix3f;"))
+    private void onCameraRotation(float tickDelta, long finishTimeNano, PoseStack view, CallbackInfo ci) {
+        Avatar avatar = AvatarManager.getAvatar(this.minecraft.getCameraEntity() == null
+                ? this.minecraft.player : this.minecraft.getCameraEntity());
         if (!RenderUtils.vanillaModelAndScript(avatar)) {
-            original.call(instance, quat);
-            return instance;
+            return;
         }
 
-        float z = 0f;
-
-        FiguraVec3 rot = avatar.luaRuntime.renderer.cameraRot;
-        if (rot != null) {
-            z = (float) rot.z;
-        }
-
+        // The old renderer has already applied camera pitch/yaw. Prepend the custom camera transform
+        // before it builds the inverse view rotation, including bobbing moved from the projection.
+        Matrix4f cameraRotation = new Matrix4f(view.last().pose());
+        PoseStack effects = new PoseStack();
+        FiguraVec3 rotation = avatar.luaRuntime.renderer.cameraRot;
         FiguraVec3 offset = avatar.luaRuntime.renderer.cameraOffsetRot;
-        if (offset != null) {
-            z += (float) offset.z;
+        float roll = (rotation == null ? 0f : (float) rotation.z)
+                + (offset == null ? 0f : (float) offset.z);
+        effects.mulPose(Axis.ZP.rotationDegrees(roll));
+        FiguraMat4 matrix = avatar.luaRuntime.renderer.cameraMat;
+        if (matrix != null) {
+            effects.last().pose().set(matrix.toMatrix4f());
         }
 
-        instance.rotate(Axis.ZP.rotationDegrees(z));
-
-        FiguraMat4 mat = avatar.luaRuntime.renderer.cameraMat;
-        if (mat != null) {
-            instance.set(mat.toMatrix4f());
+        if (!hasShaders) {
+            bobHurt(effects, tickDelta);
+            if (minecraft.options.bobView().get()) {
+                bobView(effects, tickDelta);
+            }
+            float scale = minecraft.options.screenEffectScale().get().floatValue();
+            float intensity = Mth.lerp(tickDelta, minecraft.player.oSpinningEffectIntensity,
+                    minecraft.player.spinningEffectIntensity) * scale * scale;
+            if (intensity > 0f) {
+                int speed = minecraft.player.hasEffect(MobEffects.CONFUSION) ? 7 : 20;
+                float distortion = 5f / (intensity * intensity + 5f) - intensity * .04f;
+                distortion *= distortion;
+                Vector3f axis = new Vector3f(0, Mth.SQRT_OF_TWO / 2f, Mth.SQRT_OF_TWO / 2f);
+                float angle = (tick + tickDelta) * speed * (float) (Math.PI / 180);
+                effects.last().pose().rotate(angle, axis).scale(1f / distortion, 1, 1).rotate(-angle, axis);
+            }
         }
-
-        // part of the bobbing fix
-        PoseStack stack = new PoseStack();
-        stack.last().pose().set(instance);
-
-        float tickDelta = this.minecraft.getFrameTime();
-        this.bobHurt(stack, tickDelta);
-        if (this.minecraft.options.bobView().get()) {
-            this.bobView(stack, tickDelta);
-        }
-
-        instance.set(stack.last().pose());
-
-        float h = this.minecraft.options.screenEffectScale().get().floatValue();
-        float i = Mth.lerp(tickDelta, this.minecraft.player.oSpinningEffectIntensity, this.minecraft.player.spinningEffectIntensity) * h * h;
-        if (i > 0.0F) {
-            int j = this.minecraft.player.hasEffect(MobEffects.CONFUSION) ? 7 : 20;
-            float k = 5.0F / (i * i + 5.0F) - i * 0.04F;
-            k *= k;
-            Vector3f vector3f = new Vector3f(0.0F, Mth.SQRT_OF_TWO / 2.0F, Mth.SQRT_OF_TWO / 2.0F);
-            float l = ((float)this.confusionAnimationTick + tickDelta) * (float)j * (float) (Math.PI / 180.0);
-            instance.rotate(l, vector3f);
-            instance.scale(1.0F / k, 1.0F, 1.0F);
-            instance.rotate(-l, vector3f);
-        }
-
-        instance.rotate(quat);
-        return instance;
+        view.last().pose().set(effects.last().pose()).mul(cameraRotation);
+        view.last().normal().set(new Matrix3f(view.last().pose()).invert().transpose());
     }
 
     @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;doEntityOutline()V", shift = At.Shift.AFTER))
@@ -217,19 +203,6 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
     @Inject(method = "renderLevel", at = @At("HEAD"))
     private void onRenderLevel(float tickDelta, long finishTimeNano, PoseStack poseStack, CallbackInfo ci) {
         hasShaders = ClientAPI.hasShaderPack();
-    }
-
-    @ModifyArg(method = "renderLevel", index = 0,
-            at = @At(value = "INVOKE",
-                    target = "Lnet/minecraft/client/renderer/GameRenderer;bobHurt(Lcom/mojang/blaze3d/vertex/PoseStack;F)V"))
-    private PoseStack renderLevelBobHurt(PoseStack stack) {
-        Avatar avatar = AvatarManager.getAvatar(this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity());
-        if (!RenderUtils.vanillaModelAndScript(avatar) || hasShaders) {
-            return stack;
-        }
-        stack.pushPose();
-        stack.last().pose().identity();
-        return stack;
     }
 
     @WrapOperation(method = "renderLevel",

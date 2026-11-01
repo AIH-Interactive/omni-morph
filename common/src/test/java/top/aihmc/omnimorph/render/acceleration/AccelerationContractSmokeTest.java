@@ -46,8 +46,11 @@ public final class AccelerationContractSmokeTest {
         stack.scale(2, 3, 4);
         PoseSnapshot floatPose = new PoseSnapshot(stack.last());
         stack.setIdentity();
+        // 1.20.1 retains the inverse-volume-corrected normal, without per-vertex normalization.
+        // For scale(2, 3, 4), its Y coefficient is fastInvCubeRoot(1/24) / 3.
         assertValues(service.transform(lease, token -> new DrawBatch(token, mesh, floatPose)),
-                new double[]{5, 10, 17, 1, 0, 1, 0, 0.25, 0.5}, 1e-6, "vanilla float/normal snapshot");
+                new double[]{5, 10, 17, 1, 0, 0.9615013, 0, 0.25, 0.5}, 1e-6, "vanilla float/normal snapshot");
+        require(floatPose.normalPolicy() == 0, "1.20.1 native normals retain their raw matrix magnitude");
 
         AtomicInteger captures = new AtomicInteger();
         EngineAccelerationAdapter adapter = token -> {

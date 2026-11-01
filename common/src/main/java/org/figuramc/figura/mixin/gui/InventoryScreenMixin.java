@@ -17,22 +17,20 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class InventoryScreenMixin {
 
     @Inject(method = "renderEntityInInventoryFollowsMouse", at = @At("HEAD"), cancellable = true)
-    private static void renderEntityInInventoryFollowsMouse(GuiGraphics guiGraphics, int x, int y, int i, int j, int size, float yOffset, float mouseX, float mouseY, LivingEntity entity, CallbackInfo ci) {
-        if (!Configs.FIGURA_INVENTORY.value || AvatarManager.panic)
+    private static void renderEntityInInventoryFollowsMouse(GuiGraphics guiGraphics, int x, int y, int size,
+                                                           float mouseX, float mouseY, LivingEntity entity,
+                                                           CallbackInfo ci) {
+        if (!Configs.FIGURA_INVENTORY.value || AvatarManager.panic) {
             return;
-        float g = (float)(x + i) / 2.0F;
-        float h = (float)(y + j) / 2.0F;
-        float pitch = g - mouseX;
-        float yaw = h - mouseY;
-        Vector3f modelOffset = new Vector3f(0.0F, -(entity.getBbHeight() / 2.0F + yOffset), 0);
-
-        if (Configs.INVENTORY_SCISSOR.value) {
-            guiGraphics.enableScissor(x, y, i, j);
         }
-        UIHelper.drawEntity(g, h, size, (float) Math.atan(yaw / 40f) * 20f, (float) -Math.atan(pitch / 40f) * 20f, entity, guiGraphics, modelOffset, EntityRenderMode.MINECRAFT_GUI);
-        if (Configs.INVENTORY_SCISSOR.value) {
-            guiGraphics.disableScissor();
-        }
+        float pitch = (float) Math.atan(mouseY / 40f) * 20f;
+        float yaw = (float) -Math.atan(mouseX / 40f) * 20f;
+        int left = Configs.INVENTORY_SCISSOR.value ? x - size : 0;
+        int top = Configs.INVENTORY_SCISSOR.value ? y - size * 2 : 0;
+        int right = Configs.INVENTORY_SCISSOR.value ? x + size : guiGraphics.guiWidth();
+        int bottom = Configs.INVENTORY_SCISSOR.value ? y + size / 10 : guiGraphics.guiHeight();
+        UIHelper.drawEntity(x, y, size, pitch, yaw, entity, guiGraphics, new Vector3f(),
+                EntityRenderMode.MINECRAFT_GUI, left, top, right, bottom);
         ci.cancel();
     }
 }

@@ -55,7 +55,7 @@ public abstract class EntityRendererMixin<T extends Entity> implements EntityRen
     List<Component> figura$textList;
 
     @Inject(at = @At(value = "HEAD"), method = "renderNameTag")
-    private void setupAvatar(T entity, Component text, PoseStack matrices, MultiBufferSource vertexConsumers, int light, float delta, CallbackInfo ci) {
+    private void setupAvatar(T entity, Component text, PoseStack matrices, MultiBufferSource vertexConsumers, int light, CallbackInfo ci) {
         figura$avatar = AvatarManager.getAvatar(entity);
         figura$custom = figura$avatar == null || figura$avatar.luaRuntime == null ? null : figura$avatar.luaRuntime.nameplate.ENTITY;
         figura$hasCustomNameplate = figura$custom != null && figura$avatar.permissions.get(Permissions.NAMEPLATE_EDIT) == 1;
@@ -66,8 +66,8 @@ public abstract class EntityRendererMixin<T extends Entity> implements EntityRen
     }
 
     // Push pivot transformations when the nametag is being pivoted (set to entity height in vanilla)
-    @WrapOperation(at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V"), method = "renderNameTag")
-    private void modifyPivot(PoseStack instance, double x, double y, double z, Operation<Void> original) {
+    @WrapOperation(at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(FFF)V"), method = "renderNameTag")
+    private void modifyPivot(PoseStack instance, float x, float y, float z, Operation<Void> original) {
         FiguraVec3 pivot = FiguraVec3.of(x, y, z);
         if (figura$enabled && figura$avatar != null) {
             // pivot
@@ -75,12 +75,12 @@ public abstract class EntityRendererMixin<T extends Entity> implements EntityRen
             if (figura$hasCustomNameplate && figura$custom.getPivot() != null)
                 pivot = figura$custom.getPivot();
         }
-        original.call(instance, pivot.x, pivot.y, pivot.z);
+        original.call(instance, (float) pivot.x, (float) pivot.y, (float) pivot.z);
     }
 
     // Push position transformations after the nametag has been rotated to face the camera
     @Inject(at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;mulPose(Lorg/joml/Quaternionf;)V", shift = At.Shift.AFTER), method = "renderNameTag")
-    private void modifyPos(T entity, Component text, PoseStack matrices, MultiBufferSource vertexConsumers, int light, float delta, CallbackInfo ci) {
+    private void modifyPos(T entity, Component text, PoseStack matrices, MultiBufferSource vertexConsumers, int light, CallbackInfo ci) {
         if (figura$enabled && figura$avatar != null) {
             // pos
             FiguraMod.popPushProfiler("position");
@@ -107,7 +107,7 @@ public abstract class EntityRendererMixin<T extends Entity> implements EntityRen
 
 
     @Inject(at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack$Pose;pose()Lorg/joml/Matrix4f;"), method = "renderNameTag")
-    private void setShadowMatrix(T entity, Component text, PoseStack matrices, MultiBufferSource vertexConsumers, int light, float delta, CallbackInfo ci, @Share("textMatrix") LocalRef<Matrix4f> textMatrix) {
+    private void setShadowMatrix(T entity, Component text, PoseStack matrices, MultiBufferSource vertexConsumers, int light, CallbackInfo ci, @Share("textMatrix") LocalRef<Matrix4f> textMatrix) {
         textMatrix.set(matrices.last().pose());
         if (figura$enabled && figura$avatar != null && figura$hasCustomNameplate && figura$custom.shadow) {
             matrices.pushPose();

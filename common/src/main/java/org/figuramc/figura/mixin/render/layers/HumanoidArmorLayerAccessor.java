@@ -4,8 +4,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.layers.HumanoidArmorLayer;
-import net.minecraft.core.Holder;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ArmorItem;
@@ -20,11 +18,13 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 public interface HumanoidArmorLayerAccessor<T extends LivingEntity, M extends HumanoidModel<T>, A extends HumanoidModel<T>> {
     @Intrinsic
     @Invoker("renderModel")
-    void renderModel(PoseStack matrices, MultiBufferSource vertexConsumers, int light, A model, int packedColor, @Nullable ResourceLocation overlay);
+    void renderModel(PoseStack matrices, MultiBufferSource vertexConsumers, int light, ArmorItem item, A model,
+                     boolean inner, float red, float green, float blue, @Nullable String overlay);
 
     @Intrinsic
     @Invoker("renderTrim")
-    void renderTrim(Holder<ArmorMaterial> holder, PoseStack matrices, MultiBufferSource vertexConsumers, int light, ArmorTrim permutation, A model, boolean bl);
+    void renderTrim(ArmorMaterial material, PoseStack matrices, MultiBufferSource vertexConsumers, int light,
+                    ArmorTrim permutation, A model, boolean inner);
 
     @Intrinsic
     @Invoker("renderGlint")

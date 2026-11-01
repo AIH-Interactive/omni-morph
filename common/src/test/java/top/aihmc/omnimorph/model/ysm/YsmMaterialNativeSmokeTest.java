@@ -1241,11 +1241,11 @@ public final class YsmMaterialNativeSmokeTest {
         return (com.mojang.blaze3d.vertex.VertexConsumer) java.lang.reflect.Proxy.newProxyInstance(
                 YsmMaterialNativeSmokeTest.class.getClassLoader(),
                 new Class<?>[]{com.mojang.blaze3d.vertex.VertexConsumer.class}, (proxy, method, arguments) -> {
-                    if (method.getName().equals("addVertex") && arguments.length == 3) {
+                    if (method.getName().equals("vertex") && arguments.length == 3) {
                         vertices.add(arguments[0] + "," + arguments[1] + "," + arguments[2]);
-                    } else if (method.getName().equals("addVertex") && arguments.length == 4) {
-                        var pose = (com.mojang.blaze3d.vertex.PoseStack.Pose) arguments[0];
-                        var position = pose.pose().transformPosition(new org.joml.Vector3f(
+                    } else if (method.getName().equals("vertex") && arguments.length == 4) {
+                        var pose = (org.joml.Matrix4f) arguments[0];
+                        var position = pose.transformPosition(new org.joml.Vector3f(
                                 (float) arguments[1], (float) arguments[2], (float) arguments[3]));
                         vertices.add(position.x + "," + position.y + "," + position.z);
                     }
@@ -1298,7 +1298,7 @@ public final class YsmMaterialNativeSmokeTest {
                     if (method.isDefault()) {
                         return java.lang.reflect.InvocationHandler.invokeDefault(proxy, method, args);
                     }
-                    if (method.getName().equals("setColor")) {
+                    if (method.getName().equals("color")) {
                         float alpha = ((Number) args[3]).floatValue();
                         require(alpha == 255 || hasBlending(currentMaterial.get()),
                                 "faded preview geometry uses an alpha-capable material");
@@ -1912,7 +1912,6 @@ public final class YsmMaterialNativeSmokeTest {
             }
         }
 
-        @Override
         public float figura$invokeGetTickTargetMillis(float milliseconds) {
             return milliseconds;
         }

@@ -312,8 +312,8 @@ tasks.register('nativePackagingSmokeTest') {
 
 tasks.register('packageLocalNative') {
     group = 'build'
-    description = 'Copies the Fabric JAR and injects the already built Windows local native library.'
-    dependsOn ':fabric:remapJar'
+    description = 'Copies the Forge JAR and injects the already built Windows local native library.'
+    dependsOn ':forge:remapJar'
     doLast {
         def nativeRoot = rootProject.file('build/native/windows-x64-release')
         def manifestFile = new File(nativeRoot, 'manifest.json')
@@ -332,7 +332,7 @@ tasks.register('packageLocalNative') {
                 platform.path != 'natives/windows-x86_64/omnimorph_accel.dll') {
             throw new GradleException('Windows local native manifest/hash mismatch')
         }
-        def original = project(':fabric').tasks.named('remapJar').get().archiveFile.get().asFile
+        def original = project(':forge').tasks.named('remapJar').get().archiveFile.get().asFile
         def destination = rootProject.file("build/local-native/${original.name.replace('.jar', '-windows-local.jar')}")
         destination.parentFile.mkdirs()
         def temporary = new File(destination.parentFile, destination.name + '.tmp')
