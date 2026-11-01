@@ -30,9 +30,9 @@
 
 ### G2：双加载器产物与交付
 
-- [ ] Fabric / NeoForge 构建，检查资源和 Mixin 注册；必要时执行现有 CI。
-- [ ] 更新计划与 AGENT_HANDOFF.md，记录最终提交/推送及自动证据。
-- [ ] 检查 diff、提交推送并核对远端 HEAD。
+- [x] Fabric / NeoForge 构建，检查资源和 Mixin 注册；现有 CI 24/24 通过。
+- [x] 更新计划与 AGENT_HANDOFF.md，记录最终提交/推送及自动证据。
+- [x] 检查 diff、提交推送并核对远端 HEAD。
 
 ## 验证边界
 
@@ -42,7 +42,7 @@
 
 G0：f16f09d3 已提交并推送。旧移植任务的 GPU 未支持记录属于旧基线，本计划是用户新增授权的 GPU 实施任务。
 
-G1 实施及自动验证已完成，正在执行提交检查点：
+G1 实施及自动验证已完成，提交 c76422a89cbb1367ae47f787cc3c45a1b7275f2d 已推送，并核对 origin/1.21.1 一致：
 
 - 共用 GL 3.2 后端、不可变网格缓存（32 MiB 上限、120 帧闲置回收）、UBO orphaning、原材质着色器包装、状态恢复；无顶点读回绘制。
 - BufferSource 刷新钩子接入两引擎已有 GpuSubmission，混合原版顶点统一回退；过期 owner/frame/resource lease 丢弃；GPU 已提交后的异常不整组重放，下一帧使用 Java。
@@ -52,3 +52,24 @@ G1 实施及自动验证已完成，正在执行提交检查点：
 - 实际 Figura emitter 与两份 YSM 语料的正式 emitter 向生产 GL 后端提交 385 次真实 indexed draw，驱动无 GL 错误；模型顶点/法线/UV 另由 CPU oracle 比对（17384 / 8676 YSM 顶点）。此夹具不是完整游戏端到端验收。
 - minecraft-dev 核对 1.21.1 BufferSource 刷新、MeshData 排序和 ShaderInstance/VertexBuffer uniform 行为；accessor 分析通过。其分析器未解析嵌套 BufferSource 类型，未冒充 Mixin 实际应用验证。
 - 完整客户端/Mixin 实际加载、shaderpack、跨平台 GPU 和性能 A/B：SKIPPED（MANUAL，用户要求跳过；未验证），不阻塞。
+
+G2 本地 Fabric / NeoForge 的 stageNativeBase、nativePackagingSmokeTest 均通过，日志 build/tmp/g2-fabric.log、g2-neoforge.log。两份 base JAR 均含共用 GPU 类及两个 client Mixin 注册；javap 核对注入与实际目标签名匹配，报告 build/reports/acceleration/g2-gpu-mixin-remap.json。Fabric 正式目标保留 getBuffer 名称，私有 endBatch 映射为 method_60893，accessor 映射为 field_1554；不能仅凭名称未改变认定映射失败。
+
+G2 完成。CI：[Minecraft 1.21.1 Compact run 41287462803](https://github.com/AIH-Interactive/omni-morph/actions/runs/41287462803)，构建源 c76422a89cbb1367ae47f787cc3c45a1b7275f2d，completed/success，24/24 job 通过。包含双加载器构建、六平台原生库、两份最终产物的五平台 Java21 真实 JNI / Java25 拒绝检查，以及 Android ELF/导出/CPU 检查；Android 设备 JNI 与游戏不在自动证据中。
+
+两份最终 JAR 已从该次 CI 下载，六平台资源、source/run/ABI、原生库及声明哈希、许可、加载器与嵌套依赖均验证通过。另核对最终 JAR 的新 GPU 类、driver probe、Mixin 注册及正式注入签名；报告 build/reports/acceleration/g2-ci-artifacts.json、g2-gpu-final-classes.json，验证日志 build/tmp/g2-final-artifacts.log。
+
+| 产物（build/distributions/1.21.1-gpu/） | 字节 | SHA256 |
+| --- | ---: | --- |
+| omni-morph-1.0.0-alpha.7+1.21.1-fabric-mc.jar | 17190375 | 8be88e0105f95fc2caf5ad39644085b20150e6cfde920b10d052893396778a6b |
+| omni-morph-1.0.0-alpha.7+1.21.1-neoforge-mc.jar | 16792499 | f8592977971dde9ace2aebcf5de686c73785041680368b46b8c99b0a3ce7b757 |
+
+本计划 G0–G2 实施和规定自动验证全部完成，无剩余实施阶段。默认关闭，启用规则及未验证限制如下。交付提交仅更新记录，不改变 CI 构建源和 JAR。
+
+## 使用与回退
+
+在硬件加速设置中启用总开关，选择“自动”或“GPU”并应用；在下一帧进行驱动自检，状态显示实际 GPU 或 Java 回退原因。默认开关仍关闭。“仅 SIMD”继续使用原生 CPU 数值路径。
+
+YSM 的浮点骨骼部件与 Figura 的刚体/最多 63 个加权 joint 使用同一后端。刚体网格缓存复用；Figura 动态编辑/加权网格沿用引擎现有快照更新语义。GPU 处理位置、法线、UV、加权蒙皮和真实索引绘制；动画状态机、Molang、Lua 与透明面的排序键仍在 CPU。
+
+透明组混入原版顶点、特殊材质、outline、包装缓冲源、活动 shaderpack、超出数值/内存预算等情况使用原 Java 路径。因此“GPU 就绪”不表示每个通道都由 GPU 变换，也不代表已有实机性能提升测量。四个高级实验偏好保存但不生效，界面说明已同步。
