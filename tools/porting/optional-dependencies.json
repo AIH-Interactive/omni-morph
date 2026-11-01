@@ -1,0 +1,65 @@
+[
+  {
+    "project": "geckolib",
+    "version": "4.8.4",
+    "versionId": "aC5KMoNg",
+    "loaders": [
+      "forge"
+    ],
+    "gameVersions": [
+      "1.20.1"
+    ],
+    "url": "https://cdn.modrinth.com/data/8BmcQJ2H/versions/aC5KMoNg/geckolib-forge-1.20.1-4.8.4.jar",
+    "sha512": "443a321a293e3cb92fbbc3c97a38b179a45d1db703cd7bdb123270a9e04e7b7d67d5b06cd8e77a6d4d9139e033e901b9660cccf53ad5f9beaae6d06eae68febf",
+    "forgeRuntime": true
+  },
+  {
+    "project": "immediatelyfast",
+    "version": "1.5.5+1.20.4-forge",
+    "versionId": "rvsLEEZU",
+    "loaders": [
+      "forge"
+    ],
+    "gameVersions": [
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4"
+    ],
+    "url": "https://cdn.modrinth.com/data/5ZwdcRci/versions/rvsLEEZU/ImmediatelyFast-Forge-1.5.5%2B1.20.4.jar",
+    "sha512": "8fab0605880f6b3875dc6d9d7bc8d69612a3e61a0bfc5adeac3240248715042f04885a09bc4d29383ab809cfc536dff84c6150af56ebd8f08128a1c42909c323",
+    "forgeRuntime": true
+  },
+  {
+    "project": "iris",
+    "version": "1.7.6+1.20.1",
+    "versionId": "s5eFLITc",
+    "loaders": [
+      "fabric",
+      "quilt"
+    ],
+    "gameVersions": [
+      "1.20.1"
+    ],
+    "url": "https://cdn.modrinth.com/data/YL57xq9U/versions/s5eFLITc/iris-1.7.6%2Bmc1.20.1.jar",
+    "sha512": "f1337b0441c31269bd3bfcb28647d521326a83e73128c1ac8d065615f8a5a4ca1e8c96a468b356584236ece5b164ec8d8a52b1878064f4e391ecf4f32885e301",
+    "forgeRuntime": false
+  },
+  {
+    "project": "lambdynamiclights",
+    "version": "4.4.0+1.20.1",
+    "versionId": "AQfTnYyJ",
+    "loaders": [
+      "fabric",
+      "quilt"
+    ],
+    "gameVersions": [
+      "1.20",
+      "1.20.1"
+    ],
+    "url": "https://cdn.modrinth.com/data/yBW8D80W/versions/AQfTnYyJ/lambdynamiclights-4.4.0%2B1.20.1.jar",
+    "sha512": "65f297e32ba3a72537b22730dfbe8dac9ce1ba33e62c2ddf85302b8a5131dd1fe92cca151673599c0b6adeb4ec5bd254f2cfdde66c3ca909f08e9319ebfacb56",
+    "forgeRuntime": false
+  }
+]

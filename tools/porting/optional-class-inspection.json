@@ -1,0 +1,33 @@
+[
+  {
+    "File": "geckolib-forge-1.20.1-4.8.4.jar",
+    "MaxBaseClassMajor": 61,
+    "Sha256": "4518779a31b6c2abb92c98b5ad17ef3d60177df68626bfc86c44de2764913c2b",
+    "ApiClasses": [
+      "software/bernie/geckolib/cache/object/GeoBone.class",
+      "software/bernie/geckolib/core/animatable/model/CoreGeoBone.class"
+    ]
+  },
+  {
+    "File": "ImmediatelyFast-Forge-1.5.5+1.20.4.jar",
+    "MaxBaseClassMajor": 61,
+    "Sha256": "82db19cc65b5c11a444498fb4b8cbcb0393c043e794cb5bf368631a0af765035",
+    "ApiClasses": [
+      "net/raphimc/immediatelyfastapi/ImmediatelyFastApi.class"
+    ]
+  },
+  {
+    "File": "iris-1.7.6+mc1.20.1.jar",
+    "MaxBaseClassMajor": 61,
+    "Sha256": "9eb15e563e0c9ae6eff15b7863f8432dd290cf9f724c7373e9b15b14aa829ed5",
+    "ApiClasses": [
+      "net/irisshaders/iris/api/v0/IrisApi.class"
+    ]
+  },
+  {
+    "File": "lambdynamiclights-4.4.0+1.20.1.jar",
+    "MaxBaseClassMajor": 61,
+    "Sha256": "074d6c79e002790b696ebcfdd4ff2a2d57ec55228f93b47e952eeebd5baf5301",
+    "ApiClasses": []
+  }
+]

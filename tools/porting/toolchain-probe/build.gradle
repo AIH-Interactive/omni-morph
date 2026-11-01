@@ -1,0 +1,24 @@
+plugins {
+    id 'java'
+    id 'architectury-plugin' version '3.4.164'
+    id 'com.gradleup.shadow' version '9.0.0-beta12'
+    id 'dev.architectury.loom' version '1.14.476'
+}
+
+repositories {
+    maven { url = 'https://maven.neoforged.net/releases/' }
+}
+
+loom {
+    silentMojangMappingsLicense()
+}
+dependencies {
+    minecraft 'com.mojang:minecraft:1.20.1'
+    mappings loom.officialMojangMappings()
+    forge providers.gradleProperty('loaderCoordinate').getOrElse('net.minecraftforge:forge:1.20.1-47.1.3')
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}

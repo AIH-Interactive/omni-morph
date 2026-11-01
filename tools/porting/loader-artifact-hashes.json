@@ -1,0 +1,34 @@
+[
+  {
+    "file": "forge-1.20.1-47.1.106-installer.jar",
+    "sha256": "c1ea1c3be532c4444004efd7f9cc71e1590d010ff44845b93effba61e3bd1526"
+  },
+  {
+    "file": "forge-1.20.1-47.1.106-sources.jar",
+    "sha256": "937636f7dc8c6e9fdb561c29f1cba9963e06935b91ad87e9f01e61070a540207"
+  },
+  {
+    "file": "forge-1.20.1-47.1.106-universal.jar",
+    "sha256": "af67e430f39dc742713c94975166fac29c1a49f5ba7c31095a77289931399dc1"
+  },
+  {
+    "file": "forge-1.20.1-47.1.106-userdev.jar",
+    "sha256": "8c6abef2f04da4d56eae5f59f48583fec545b1b7d771520b020ead233d125c87"
+  },
+  {
+    "file": "forge-1.20.1-47.1.3-installer.jar",
+    "sha256": "843c3b94fd70a527bc8ed4b73a4bb513d8fb766650167c7afb2f9198dc84d127"
+  },
+  {
+    "file": "forge-1.20.1-47.1.3-sources.jar",
+    "sha256": "f6b596560576b3c3e2e9292ab5016605e0c2959083701714ab6628eb388637eb"
+  },
+  {
+    "file": "forge-1.20.1-47.1.3-universal.jar",
+    "sha256": "cde5c39c990cb9862f592901dbc7b3c0fa66b58d46e0696c68374f21ebd63200"
+  },
+  {
+    "file": "forge-1.20.1-47.1.3-userdev.jar",
+    "sha256": "76f6eb77f0793678091cf0d15195835e045d57178d5729fef5953a1bfcc6637e"
+  }
+]
