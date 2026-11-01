@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.mixin.fabric;
 
-import com.mojang.brigadier.StringReader;
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.gui.components.CommandSuggestions;
 import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.ducks.SuggestionsListAccessor;
@@ -11,7 +11,6 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 import java.util.Collection;
 
@@ -24,8 +23,9 @@ public abstract class CommandSuggestionsMixinFabric {
 
     @Unique private boolean emojiSuggestions;
 
-    @Inject(method = "updateCommandInfo", at = @At(value = "INVOKE", target = "Lnet/minecraft/commands/SharedSuggestionProvider;suggest(Ljava/lang/Iterable;Lcom/mojang/brigadier/suggestion/SuggestionsBuilder;)Ljava/util/concurrent/CompletableFuture;"), locals = LocalCapture.CAPTURE_FAILSOFT)
-    private void addFiguraSuggestions(CallbackInfo ci, String string, StringReader stringReader, boolean bl, boolean bl2, int i, String string2, int j, Collection<String> collection) {
+    @Inject(method = "updateCommandInfo", at = @At(value = "INVOKE", target = "Lnet/minecraft/commands/SharedSuggestionProvider;suggest(Ljava/lang/Iterable;Lcom/mojang/brigadier/suggestion/SuggestionsBuilder;)Ljava/util/concurrent/CompletableFuture;"))
+    private void addFiguraSuggestions(CallbackInfo ci, @Local(ordinal = 1) String string2,
+                                     @Local(ordinal = 1) int j, @Local Collection<String> collection) {
         emojiSuggestions = false;
         if (Configs.EMOJIS.value == 0)
             return;

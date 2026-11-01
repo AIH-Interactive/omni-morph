@@ -264,6 +264,17 @@ tasks.register('gpuOpenGlSmokeTest', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuOpenGlSmokeTest'
 }
 
+tasks.register('commandSuggestionsMixinSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks suggestion callbacks against real Minecraft invocation sites and live local variables.'
+    dependsOn testClasses, ':fabric:classes', ':neoforge:classes'
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.test.CommandSuggestionsMixinSmokeTest'
+    args rootProject.file('fabric/build/classes/java/main/top/aihmc/omnimorph/mixin/fabric/CommandSuggestionsMixinFabric.class').path,
+            rootProject.file('neoforge/build/classes/java/main/top/aihmc/omnimorph/mixin/neoforge/CommandSuggestionsMixinNeoForge.class').path,
+            layout.buildDirectory.file('classes/java/main/org/figuramc/figura/mixin/gui/SuggestionsListMixin.class').get().asFile.path
+}
+
 tasks.register('gpuSubmissionSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Checks 1.21.1 GPU rejection and native Java BufferSource ordering, sorting and cleanup.'
