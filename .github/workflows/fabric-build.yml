@@ -1,4 +1,4 @@
-name: Minecraft 1.21.1 Fabric and NeoForge
+name: Minecraft 1.21.1
 
 on:
   workflow_dispatch:
