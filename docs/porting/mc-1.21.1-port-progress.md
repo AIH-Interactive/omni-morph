@@ -2,14 +2,14 @@
 
 ## 当前验收摘要（2026-11-01，优先于下文历史记录）
 
-- 阶段：用户批准的 M3–M5 合并检查点已提交推送（`ddf2bcf8`）；M6 候选实现完成并通过本地检查，双平台打包/CI矩阵/发布记录已适配；远端六平台CI待运行验证。分支 `1.21.1`，提交/推送最终结果见项目根目录 `AGENT_HANDOFF.md`。
+- 阶段：用户批准的 M3–M5 合并检查点已提交推送（`ddf2bcf8`）；M6 实现与自动交付检查点已通过；实际CI `41283680432` 的24个job全部成功，两份最终候选包已下载核查。真实客户端人工验收未签署。分支 `1.21.1`，提交/推送最终结果见项目根目录 `AGENT_HANDOFF.md`。
 - 已验证：common 全量生产/测试编译、Fabric/NeoForge 生产编译；正式 CPU 动画/控制器/Molang/同步与库/协议任务已有逐项日志，详见文末各接续记录。不能由此推断所有 Q1 入口或实机加载通过。
 - 实际语料：`refs/avatars` 通过 21 个文件硬链接和 4 个目录 junction 访问相邻原生项目 `models`；22 个 YSM（4 明文、18 加密）和 3 个 Figura ZIP，源只读。数量断言按用户要求适应实际资源，逐资源内容/行为断言保留。
 - 已验证：完整模型数据重建、手部/公开姿态/持物几何、材质、语言、AVIF；音频真实语料为 Vorbis 123 份，Opus 仅夹具覆盖。100 次切换/10 批次/全部 25 源，逐批 retained=0，图像/PCM释放通过，报告 `build/reports/ysm/m8-stability.json`。
 - GPU：按已批准 MVP，默认关闭并保留 CPU；不宣称 GPU 绘制、整帧性能或 26 基线性能对比通过。
 - 默认动画/配件来源完整入口已通过：用户批准同步 TAC 后，指定 neo1.21.1 参考十四文件全部一致。未验证：03_astronaut、16_tactics 等缺失模型专属场景。`tlm.is_sitting` 在原基线亦无根绑定，记既有联动跟进，其他加密controller警告未全部定位。
 - 用户已明确客户端验收由人工执行，记为非阻塞 `MANUAL/PENDING`，不再等待 Agent 启动授权。实机证据缺口：真实 GUI/CJK、游戏模型渲染、Mixin 加载和多人；数据边界符号链接逃逸因权限不足仍待验证。静态 AW 15条有效不等价于加载通过。不得把这些项目标为 PASS。
-- 下一步：完成 M3–M5 检查点提交推送并核对远端 HEAD，随后实施独立 M6 双加载器打包/CI/发布记录；保留上述人工与缺资源证据限制，不宣称所有 Q1 入口或最终交付完成。
+- 下一步：用户人工验收两份最终候选包并反馈结果；暂无已知剩余实施任务，不编造新阶段。自动检查点通过不等于实际可玩/最终人工验收完成，保留上述缺口。
 
 
 > 日期：2026-10-31 · 分支：`1.21.1` · 基线标签：`pre-1.21.1-port`（= `c27f761`，本地标签）
@@ -1470,3 +1470,30 @@ API 真值来源：minecraft-dev-mcp（1.21.1 mojmap 源码，以及 AW / mixin 
 - 实际run41283281035已completed/failure：两个Java21基包任务均在common:cloudEndpointSmokeTest失败，下游native/assemble/verify/publish全部skipped，不能声称六平台运行通过。已下载两job日志至build/tmp/m6-ci-fabric-base-failure.log、m6-ci-neoforge-base-failure.log。
 - 明确根因：测试在Linux查找java.home/bin/keytool.exe，远端报No such file。CodeGraph核对后，仅根据真实os.name选择Windows keytool.exe或其他系统keytool，再拼同一JDK bin路径；TLS生成、证书/主机名校验、重定向负例全部保留，无测试跳过。
 - 本地正式Java21 :common:cloudEndpointSmokeTest PASS，5秒退出0，证据build/tmp/m6-keytool-platform-fix.log。Linux分支仍需下一次实际CI证明；本地Windows通过不冒充Linux通过。diff检查通过，准备提交推送该修复并对新HEAD启动一次新run；前run已终止，不是重复启动活跃run。
+
+
+## 2026-11-01 M6 自动交付检查点：实际 CI 与候选包核实通过
+
+- `Minecraft 1.21.1 Compact` run [41283680432](https://github.com/AIH-Interactive/omni-morph/actions/runs/41283680432) completed/success，24个job全部success，无failure/skipped。构建源提交 `8d157687dd95ecf09a5de8190f992bc01cb80883`。
+- 实际通过：两个Java21基包、六平台原生构建、两个原生组装、两loader×六平台最终包验证、两个可下载产物任务。五桌面/服务器平台执行真实Java21 JNI数值对照及Java25访问拒绝；Android执行交叉编译/CPU验证和最终ELF/导出符号/许可证检查，不等同Android设备JNI/游戏。
+- 实际下载公开候选artifact后，再用正式verify-acceleration-artifact.ps1对两包核对完整sourceCommit/run/ABI、六平台库及许可哈希、项目license/credits、loader ID/version/嵌套依赖，全部退出0。证据：build/tmp/m6-downloaded-fabric-verifier.log、m6-downloaded-neoforge-verifier.log；API/job及下载报告build/reports/porting/m6-ci-artifacts.json。Windows两loader真实JNI日志亦保存build/tmp/m6-ci-*-final-windows-jni.log，均有fallback、真实kernel数值对照与native-access-denied PASS。
+
+| 候选包 | 本地路径 | SHA-256 | CI artifact |
+| --- | --- | --- | --- |
+| Fabric | build/distributions/1.21.1/omni-morph-1.0.0-alpha.7+1.21.1-fabric-mc.jar | b8afdb1f226eff78bdcef7759d8c3aa3594e348a9e6205143a9692b61fdd9062 | [13074078030](https://github.com/AIH-Interactive/omni-morph/actions/runs/41283680432/artifacts/13074078030) |
+| NeoForge | build/distributions/1.21.1/omni-morph-1.0.0-alpha.7+1.21.1-neoforge-mc.jar | 88f1158f49f80930861d3993ce533c77347c12211429aad9d22cd2b40b87ebce | [13074706158](https://github.com/AIH-Interactive/omni-morph/actions/runs/41283680432/artifacts/13074706158) |
+
+### 当前验收矩阵（人工项未签署）
+
+| 要求 | 自动证据/状态 | 实机验收/限制 |
+| --- | --- | --- |
+| G1/Q4：Fabric、NeoForge客户端包 | 双remap、metadata/AT/AW、嵌套依赖、实际CI及候选下载核查PASS | 两个干净客户端实际加载/Mixin应用/入口点仍MANUAL/PENDING，不能声称可玩已验证 |
+| M3/Q2：YSM/Figura、骨骼、动画、手部、持物及装扮 | 正式CPU pose/controller/deferred/attachment及原生顶点任务PASS，详见前文日志 | 盔甲/披风/手部/旁观者/光影实际画面MANUAL/PENDING |
+| M4/Q3：衣柜、权限、模型库、预览和输入 | 正式libraryPreviewRuntime等控件/异步/状态及可见GL夹具PASS | 真GUI布局/CJK/真实输入/屏幕逐项操作MANUAL/PENDING；夹具非实机GUI证据 |
+| 核心与云端/同步 | common全量测试编译及可执行smoke、协议向量/实际本地HTTP/TLS/CAS PASS | 真实生产后端及专用服务器多人MANUAL/PENDING；未将所有Q1入口统称通过 |
+| M5 MVP A：GPU默认关闭、CPU回退/独立SIMD | GPU拒绝/Java路径PASS；实际六平台native构建、五平台JNI PASS | 完整GPU方案B不在范围；整帧GPU性能/26基线差分未验证 |
+| M6/Q6：版本、文档、打包、CI | 1.0.0-alpha.7、Alpha7显示、四语CHANGELOG/README、CI双loader及24job PASS | 已生成候选；没有创建GitHub Release、部署mods或宣称正式发布完成 |
+| 数据与资源覆盖 | 实际25源、100次稳定性、十四默认动画对照、Vorbis/合成Opus等证据已记录 | 03_astronaut/16_tactics专属语料、真实Opus、符号链接逃逸权限、既有TLM表达式警告等缺口保留 |
+
+- M6实现/自动交付检查点通过，可收尾记录并提交推送；客户端验收由用户人工执行，按已确认分工非阻塞检查点，但整体实际可玩/最终验收结果尚未证明。当前没有已知待实施的新功能，不编造M7；下一步是人工验收两份候选包并反馈真实结果，必要时在原移植范围内修复。
+- 本记录为CI通过后的证据补录，不改构建代码/产物；候选的sourceCommit保持8d157687，后续纯文档提交不冒充该CI构建源。保持现有分支、版本和授权范围。
