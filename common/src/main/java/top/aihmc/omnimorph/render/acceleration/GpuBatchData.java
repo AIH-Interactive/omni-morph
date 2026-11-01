@@ -158,21 +158,26 @@ final class GpuBatchData {
 
     /** Packs the pose block for a variant of {@code tier} parts; the tier must hold {@link #partsUsed}. */
     static ByteBuffer pose(DrawBatch batch, int tier) {
+        ByteBuffer data = direct(poseBytes(tier));
+        writePose(data, batch, tier);
+        return data.flip();
+    }
+
+    static void writePose(ByteBuffer data, DrawBatch batch, int tier) {
         PoseSnapshot pose = batch.pose();
         if (partsUsed(pose) > tier) {
             throw new IllegalArgumentException("Pose block variant too small for the batch joints");
         }
-        ByteBuffer data = direct(poseBytes(tier));
+        int start = data.position();
         writePart(data, pose);
         // Float-precision joints are never read by the shader; smaller variants simply omit them.
         int joints = Math.min(pose.skinJointCount(), tier - 1);
         for (int joint = 0; joint < joints; joint++) {
-            data.position((joint + 1) * PART_BYTES);
+            data.position(start + (joint + 1) * PART_BYTES);
             write(data, pose.skinDelta(joint));
         }
-        data.position(parameterOffset(tier));
+        data.position(start + parameterOffset(tier));
         writeParameters(data, batch);
-        return data.flip();
     }
 
     static void writePart(ByteBuffer data, PoseSnapshot pose) {

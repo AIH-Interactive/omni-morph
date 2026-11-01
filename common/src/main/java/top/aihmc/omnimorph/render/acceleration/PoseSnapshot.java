@@ -97,18 +97,28 @@ public final class PoseSnapshot {
 
     /** CPU sorting still needs authored face centers; this never queries GPU results. */
     void transformedPosition(MeshHandle mesh, int vertex, double[] output) {
+        transformedPosition(mesh, vertex, output, new PositionScratch());
+    }
+
+    static final class PositionScratch {
+        final Vector3f floatPoint = new Vector3f();
+        final FiguraVec4 point = FiguraVec4.of();
+        final FiguraVec4 temporary = FiguraVec4.of();
+    }
+
+    void transformedPosition(MeshHandle mesh, int vertex, double[] output, PositionScratch scratch) {
         if (floatPose != null) {
             Vector3f value = floatPose.pose().transformPosition((float) mesh.component(vertex, 0),
-                    (float) mesh.component(vertex, 1), (float) mesh.component(vertex, 2), new Vector3f());
+                    (float) mesh.component(vertex, 1), (float) mesh.component(vertex, 2), scratch.floatPoint);
             output[0] = value.x;
             output[1] = value.y;
             output[2] = value.z;
             output[3] = 1;
             return;
         }
-        FiguraVec4 point = FiguraVec4.of(mesh.component(vertex, 0), mesh.component(vertex, 1),
+        FiguraVec4 point = scratch.point.set(mesh.component(vertex, 0), mesh.component(vertex, 1),
                 mesh.component(vertex, 2), mesh.component(vertex, 3));
-        applySkinning(point, FiguraVec4.of(), mesh.influences(vertex));
+        applySkinning(point, scratch.temporary, mesh.influences(vertex));
         point.transform(position);
         output[0] = point.x;
         output[1] = point.y;

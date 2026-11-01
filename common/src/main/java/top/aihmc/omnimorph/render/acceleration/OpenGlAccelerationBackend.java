@@ -9,13 +9,12 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.ShaderInstance;
 import org.lwjgl.opengl.*;
 import org.lwjgl.system.MemoryStack;
-import org.joml.Vector3f;
+import org.lwjgl.system.MemoryUtil;
 
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.List;
@@ -24,20 +23,26 @@ import java.util.List;
 final class OpenGlAccelerationBackend implements AccelerationBackend {
     private static final int POSE_BINDING = 13;
     private static final long MAX_GEOMETRY_BYTES = 32L * 1024 * 1024;
+    private static final long MAX_RETAINED_MESH_BYTES = 16L * 1024 * 1024;
+    private static final int MAX_BATCHES = 256;
     private final Map<MeshKey, Geometry> meshes = new LinkedHashMap<>(16, .75f, true);
     private final Map<Integer, Program> programs = new HashMap<>();
     private final JavaAccelerationBackend javaBackend = new JavaAccelerationBackend();
     private int poseBuffer;
     private long geometryBytes;
+    private long retainedMeshBytes;
+    private final GpuFaceOrder faceOrder = new GpuFaceOrder();
+    private final Geometry[] geometryScratch = new Geometry[MAX_BATCHES];
+    private ByteBuffer poseStaging;
     private long frame;
     private long uploads;
     private long draws;
     private final Thread renderThread = Thread.currentThread();
     private volatile boolean invalidated;
 
-    private record MeshKey(MeshHandle mesh, int joints, boolean floatPose) {}
+    private record MeshKey(MeshHandle mesh, int joints, boolean floatPose, AccelerationOwner owner) {}
 
-    private record Geometry(int vao, int vertices, int indices, int count, long bytes, long frame) {
+    private record Geometry(int vao, int vertices, int indices, int count, long bytes, long retainedBytes, long frame) {
         void delete() {
             GL30.glDeleteVertexArrays(vao);
             GL15.glDeleteBuffers(vertices);
@@ -125,15 +130,25 @@ final class OpenGlAccelerationBackend implements AccelerationBackend {
     boolean drawActive(List<DrawBatch> batches, int original) {
         boolean submitted = false;
         try (GlBindings bindings = new GlBindings()) {
+            if (batches.isEmpty() || batches.size() > MAX_BATCHES
+                    || batches.getFirst().semantics().sortOnUpload()
+                    && !GpuFaceOrder.supports(RenderSystem.getVertexSorting())) {
+                return false;
+            }
             long needed = geometryBytes;
+            long retained = retainedMeshBytes;
+            long facesNeeded = 0;
             for (DrawBatch batch : batches) {
-                MeshKey key = new MeshKey(batch.mesh(), batch.pose().skinJointCount(), batch.pose().usesFloatPrecision());
+                facesNeeded += batch.mesh().faceCount();
+                MeshKey key = meshKey(batch);
                 if (!meshes.containsKey(key)) {
                     needed += (long) batch.mesh().vertexCount() * GpuBatchData.VERTEX_BYTES
                             + (long) batch.mesh().faceCount() * 6 * Integer.BYTES;
+                    retained += retainedBytes(batch);
                 }
             }
-            if (needed > MAX_GEOMETRY_BYTES) {
+            if (needed > MAX_GEOMETRY_BYTES || retained > MAX_RETAINED_MESH_BYTES
+                    || facesNeeded > GpuFaceOrder.MAX_FACES) {
                 AccelerationFrameDiagnostics.fallback("GEOMETRY_BUDGET");
                 return false;
             }
@@ -144,13 +159,15 @@ final class OpenGlAccelerationBackend implements AccelerationBackend {
             }
             GL20.glUseProgram(program.id());
             copyUniforms(original, program.id());
-            Geometry[] geometry = new Geometry[batches.size()];
-            ByteBuffer[] poses = new ByteBuffer[batches.size()];
+            ensurePoseStaging(batches.size() * GpuBatchData.POSE_BYTES);
+            poseStaging.clear();
             for (int index = 0; index < batches.size(); index++) {
-                geometry[index] = geometry(batches.get(index));
-                poses[index] = GpuBatchData.pose(batches.get(index));
+                geometryScratch[index] = geometry(batches.get(index));
+                MemoryUtil.memSet(MemoryUtil.memAddress(poseStaging), 0, GpuBatchData.POSE_BYTES);
+                GpuBatchData.writePose(poseStaging, batches.get(index), GpuBatchData.MAX_PARTS);
             }
             long[] order = faceOrder(batches);
+            int faces = faceOrder.size();
             if (poseBuffer == 0) {
                 poseBuffer = GL15.glGenBuffers();
             }
@@ -158,10 +175,10 @@ final class OpenGlAccelerationBackend implements AccelerationBackend {
             try (MemoryStack stack = MemoryStack.stackPush()) {
                 IntBuffer counts = stack.mallocInt(256);
                 var offsets = stack.mallocPointer(256);
-                for (int first = 0; first < order.length;) {
+                for (int first = 0; first < faces;) {
                     int batchIndex = (int) (order[first] >>> 32);
                     int end = first + 1;
-                    while (end < order.length && end - first < 256
+                    while (end < faces && end - first < 256
                             && (int) (order[end] >>> 32) == batchIndex) {
                         end++;
                     }
@@ -175,13 +192,15 @@ final class OpenGlAccelerationBackend implements AccelerationBackend {
                     offsets.flip();
                     GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, poseBuffer);
                     // Orphaning leaves in-flight draws owning their old storage.
-                    GL15.glBufferData(GL31.GL_UNIFORM_BUFFER, poses[batchIndex], GL15.GL_STREAM_DRAW);
+                    poseStaging.clear().position(batchIndex * GpuBatchData.POSE_BYTES)
+                            .limit((batchIndex + 1) * GpuBatchData.POSE_BYTES);
+                    GL15.glBufferData(GL31.GL_UNIFORM_BUFFER, poseStaging, GL15.GL_STREAM_DRAW);
                     GL30.glBindBufferBase(GL31.GL_UNIFORM_BUFFER, POSE_BINDING, poseBuffer);
-                    GL30.glBindVertexArray(geometry[batchIndex].vao());
+                    GL30.glBindVertexArray(geometryScratch[batchIndex].vao());
                     GL14.glMultiDrawElements(GL11.GL_TRIANGLES, counts, GL11.GL_UNSIGNED_INT, offsets);
                     submitted = true;
                     draws++;
-                    AccelerationFrameDiagnostics.poseUpload(poses[batchIndex].remaining(), 1, false);
+                    AccelerationFrameDiagnostics.poseUpload(GpuBatchData.POSE_BYTES, 1, false);
                     AccelerationFrameDiagnostics.draw(batches.get(batchIndex).semantics().material());
                     first = end;
                 }
@@ -193,62 +212,39 @@ final class OpenGlAccelerationBackend implements AccelerationBackend {
                 throw new SubmittedDrawFailure(failure);
             }
             throw failure;
+        } finally {
+            java.util.Arrays.fill(geometryScratch, null);
         }
     }
 
-    static long[] faceOrder(List<DrawBatch> batches) {
-        int faces = batches.stream().mapToInt(batch -> batch.mesh().faceCount()).sum();
-        long[] authored = new long[faces];
-        Vector3f[] centers = new Vector3f[faces];
-        int index = 0;
-        double[] first = new double[4];
-        double[] third = new double[4];
-        boolean sorted = batches.getFirst().semantics().sortOnUpload();
-        for (int batchIndex = 0; batchIndex < batches.size(); batchIndex++) {
-            DrawBatch batch = batches.get(batchIndex);
-            for (int face = 0; face < batch.mesh().faceCount(); face++) {
-                authored[index] = ((long) batchIndex << 32) | face;
-                if (sorted) {
-                    batch.pose().transformedPosition(batch.mesh(), face * 4, first);
-                    batch.pose().transformedPosition(batch.mesh(), face * 4 + 2, third);
-                    offsetPosition(first, batch.semantics().vertexOffset());
-                    offsetPosition(third, batch.semantics().vertexOffset());
-                    // Match MeshData's float vertex storage and diagonal midpoint, including tie order.
-                    centers[index] = new Vector3f(((float) first[0] + (float) third[0]) * .5f,
-                            ((float) first[1] + (float) third[1]) * .5f,
-                            ((float) first[2] + (float) third[2]) * .5f);
-                }
-                index++;
-            }
-        }
-        if (!sorted) {
-            return authored;
-        }
-        int[] permutation = RenderSystem.getVertexSorting().sort(centers);
-        long[] result = new long[faces];
-        for (int face = 0; face < faces; face++) {
-            result[face] = authored[permutation[face]];
-        }
-        return result;
+    long[] faceOrder(List<DrawBatch> batches) {
+        return faceOrder.prepare(batches, RenderSystem.getVertexSorting());
     }
 
-    private static void offsetPosition(double[] position, double offset) {
-        if (offset == 0) {
-            return;
+    private void ensurePoseStaging(int bytes) {
+        if (poseStaging == null || poseStaging.capacity() < bytes) {
+            MemoryUtil.memFree(poseStaging);
+            poseStaging = MemoryUtil.memAlloc(bytes).order(java.nio.ByteOrder.nativeOrder());
         }
-        double length = Math.sqrt(position[0] * position[0] + position[1] * position[1]
-                + position[2] * position[2] + position[3] * position[3]);
-        for (int component = 0; component < 3; component++) {
-            position[component] += position[component] / length * offset;
-        }
+    }
+
+    private static MeshKey meshKey(DrawBatch batch) {
+        return new MeshKey(batch.mesh(), batch.pose().skinJointCount(), batch.pose().usesFloatPrecision(),
+                batch.lease().owner());
+    }
+
+    private static long retainedBytes(DrawBatch batch) {
+        // Conservative allowance for owned doubles plus per-vertex influence arrays/objects.
+        return 64L + (long) batch.mesh().vertexCount()
+                * (MeshHandle.STRIDE * Double.BYTES + (batch.pose().skinJointCount() > 0 ? 104 : 0));
     }
 
     private Geometry geometry(DrawBatch batch) {
-        MeshKey key = new MeshKey(batch.mesh(), batch.pose().skinJointCount(), batch.pose().usesFloatPrecision());
+        MeshKey key = meshKey(batch);
         Geometry cached = meshes.get(key);
         if (cached != null) {
             Geometry touched = new Geometry(cached.vao(), cached.vertices(), cached.indices(), cached.count(),
-                    cached.bytes(), frame);
+                    cached.bytes(), cached.retainedBytes(), frame);
             meshes.put(key, touched);
             return touched;
         }
@@ -258,7 +254,7 @@ final class OpenGlAccelerationBackend implements AccelerationBackend {
         int vbo = GL15.glGenBuffers();
         int ibo = GL15.glGenBuffers();
         Geometry geometry = new Geometry(vao, vbo, ibo, indices.remaining() / 4,
-                (long) vertices.remaining() + indices.remaining(), frame);
+                (long) vertices.remaining() + indices.remaining(), retainedBytes(batch), frame);
         try {
             GL30.glBindVertexArray(vao);
             GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
@@ -276,6 +272,7 @@ final class OpenGlAccelerationBackend implements AccelerationBackend {
             GL30.glVertexAttribIPointer(4, 4, GL11.GL_INT, GpuBatchData.VERTEX_BYTES, 48L);
             meshes.put(key, geometry);
             geometryBytes += geometry.bytes();
+            retainedMeshBytes += geometry.retainedBytes();
             uploads++;
             trim(false);
             return geometry;
@@ -408,18 +405,22 @@ final class OpenGlAccelerationBackend implements AccelerationBackend {
     }
 
     private void trim(boolean expire) {
-        Iterator<Geometry> iterator = meshes.values().iterator();
+        var iterator = meshes.entrySet().iterator();
         while (iterator.hasNext()) {
-            Geometry geometry = iterator.next();
-            if (geometryBytes <= MAX_GEOMETRY_BYTES && (!expire || frame - geometry.frame() < 120)) {
+            var entry = iterator.next();
+            Geometry geometry = entry.getValue();
+            if (entry.getKey().owner().isCurrent() && geometryBytes <= MAX_GEOMETRY_BYTES
+                    && retainedMeshBytes <= MAX_RETAINED_MESH_BYTES
+                    && (!expire || frame - geometry.frame() < 120)) {
                 continue;
             }
             // Never evict the geometry being prepared in this frame.
-            if (geometry.frame() == frame) {
+            if (entry.getKey().owner().isCurrent() && geometry.frame() == frame) {
                 continue;
             }
             geometry.delete();
             geometryBytes -= geometry.bytes();
+            retainedMeshBytes -= geometry.retainedBytes();
             iterator.remove();
         }
     }
@@ -448,6 +449,10 @@ final class OpenGlAccelerationBackend implements AccelerationBackend {
         meshes.values().forEach(Geometry::delete);
         meshes.clear();
         geometryBytes = 0;
+        retainedMeshBytes = 0;
+        faceOrder.clear();
+        MemoryUtil.memFree(poseStaging);
+        poseStaging = null;
         programs.values().stream().filter(program -> program.id() != 0)
                 .forEach(program -> GL20.glDeleteProgram(program.id()));
         programs.clear();

@@ -264,6 +264,15 @@ tasks.register('gpuOpenGlSmokeTest', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuOpenGlSmokeTest'
 }
 
+tasks.register('gpuAllocationRegression', JavaExec) {
+    group = 'verification'
+    description = 'Checks bounded allocation of warmed large-model production face sorting under a small heap.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuAllocationRegression'
+    maxHeapSize = '256m'
+}
+
 tasks.register('commandSuggestionsMixinSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Checks suggestion callbacks against real Minecraft invocation sites and live local variables.'
@@ -332,6 +341,18 @@ tasks.register('dualEngineGpuDriverReplay', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.render.acceleration.DualEngineGpuReplay'
     args '--gl', rootProject.file('refs/avatars/末影龙娘.ysm').path,
             rootProject.file('refs/avatars/01_taisho_maid').path
+}
+
+tasks.register('gpuLowHeapModelReplay', JavaExec) {
+    group = 'verification'
+    description = 'Replays real large YSM and Figura batches through GL under the reported 598 MiB heap limit.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.render.acceleration.DualEngineGpuReplay'
+    maxHeapSize = '598m'
+    args '--gl', rootProject.file('refs/avatars/末影龙娘.ysm').path,
+            rootProject.file('refs/avatars/芙宁娜Lv.999-白v1.11.ysm').path,
+            rootProject.file('refs/avatars/芙宁娜v3.14中文配音.ysm').path
 }
 
 tasks.register('compileNativeInterface', JavaCompile) {

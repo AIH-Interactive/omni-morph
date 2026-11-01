@@ -76,6 +76,11 @@ public final class GpuOpenGlSmokeTest {
                 backend.beginFrame();
             }
             require(backend.geometryBytes() == 0, "unused GPU geometry expires after bounded frames");
+            var retired = GpuDriverProbe.batch(new PoseSnapshot(FiguraMat4.of(), FiguraMat3.of()));
+            drawAndCheck(backend, retired, program, 64, 64, true);
+            retired.lease().owner().retire();
+            backend.beginFrame();
+            require(backend.geometryBytes() == 0, "retired owner geometry is released at the next frame");
         } finally {
             GL20.glUseProgram(0);
             GL20.glDeleteProgram(program);
@@ -149,7 +154,7 @@ public final class GpuOpenGlSmokeTest {
                             0, 0, 1, 1, 1, 1, 0, true));
             require(backend.supports(AccelerationBackend.Operation.GPU_DRAW, opaque),
                     "YSM cutout material is supported");
-            long[] order = OpenGlAccelerationBackend.faceOrder(List.of(near, far));
+            long[] order = backend.faceOrder(List.of(near, far));
             require(order[0] >>> 32 == 1 && order[1] >>> 32 == 0,
                     "global transparent sort spans differently posed parts");
             GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
