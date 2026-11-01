@@ -5,6 +5,7 @@ import io.airlift.compress.zstd.ZstdInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 
@@ -35,10 +36,12 @@ public final class YsmZstdDecoder {
                 } finally {
                     Arrays.fill(buffer, (byte) 0);
                 }
-            } catch (YsmDecodeException e) {
+            } catch (YsmDecodeException | InterruptedIOException e) {
                 throw e;
             } catch (IOException | RuntimeException e) {
-                throw new YsmDecodeException(YsmDecodeException.Code.DECOMPRESS_FAILED, "zstd/decode", offset);
+                // Decoder messages may contain decrypted data; retain only the exception type.
+                throw new YsmDecodeException(YsmDecodeException.Code.DECOMPRESS_FAILED,
+                        "zstd/decode/" + e.getClass().getSimpleName(), offset);
             }
         } finally {
             Arrays.fill(frame, (byte) 0);

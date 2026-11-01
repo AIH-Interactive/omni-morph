@@ -3,6 +3,7 @@ package top.aihmc.omnimorph.avatar.ysm.crypto;
 import top.aihmc.omnimorph.avatar.ysm.YsmResourceLimits;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -48,6 +49,8 @@ public final class YsmCryptoSmokeTest {
             byte[] frame = fixture(name);
             require(Arrays.equals(expected, YsmZstdDecoder.decompress(frame, 0, frame.length, new YsmDecodeBudget())),
                     "independent full Zstd vector " + name);
+            cancellationDuringDecompression(frame, false);
+            cancellationDuringDecompression(frame, true);
         }
         byte[] legacy = fixture("crypto1.ysm");
         byte[] corrupted = legacy.clone();
@@ -98,6 +101,18 @@ public final class YsmCryptoSmokeTest {
         byte[] truncatedFrame = Arrays.copyOf(frame, 11);
         failure(() -> YsmZstdDecoder.decompress(truncatedFrame, 0, truncatedFrame.length, new YsmDecodeBudget()),
                 YsmDecodeException.Code.TRUNCATED);
+        byte[] malformedCompressed = fixture("v3-compressed-frame.bin");
+        // Keep the valid frame/block headers; corrupt the compressed literal section itself.
+        Arrays.fill(malformedCompressed, 12, 16, (byte) 0xFF);
+        try {
+            YsmZstdDecoder.decompress(malformedCompressed, 0, malformedCompressed.length, new YsmDecodeBudget());
+            throw new AssertionError("Expected malformed compressed data to fail");
+        } catch (YsmDecodeException error) {
+            require(error.code() == YsmDecodeException.Code.DECOMPRESS_FAILED,
+                    "real decoder failures must remain DECOMPRESS_FAILED");
+            require(error.getMessage().contains("stage=zstd/decode/"), "safe decoder type diagnostic");
+            require(error.getCause() == null, "decoder messages must not expose decrypted model data");
+        }
         failure(() -> new YsmDecodeBudget().pixels(Integer.MAX_VALUE, Integer.MAX_VALUE, "fixture/pixels", 0),
                 YsmDecodeException.Code.RESOURCE_LIMIT);
         new YsmDecodeBudget().pixels(4096, 4096, "fixture/pixels", 0);
@@ -105,6 +120,36 @@ public final class YsmCryptoSmokeTest {
             testLocalFiles(Path.of(args[0]));
         }
         System.out.println("YSM crypto 1/2/3 fixed vectors and bounded negative cases passed");
+    }
+
+    private static void cancellationDuringDecompression(byte[] frame, boolean interrupt) throws Exception {
+        boolean[] reachedDecodeLoop = {false};
+        var budget = new YsmDecodeBudget(YsmResourceLimits.DEFAULT, () -> {
+            // Header parsing also checks cancellation. Exercise the later decode loop specifically.
+            boolean parsingHeader = StackWalker.getInstance().walk(frames -> frames.anyMatch(entry ->
+                    entry.getClassName().equals(YsmZstdDecoder.class.getName())
+                            && entry.getMethodName().equals("restoreBlockHeaders")));
+            if (parsingHeader) {
+                return false;
+            }
+            reachedDecodeLoop[0] = true;
+            if (interrupt) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+            return true;
+        }, 10000);
+        try {
+            YsmZstdDecoder.decompress(frame, 0, frame.length, budget);
+            throw new AssertionError("Expected decode cancellation");
+        } catch (InterruptedIOException expected) {
+            require(reachedDecodeLoop[0], "cancellation must occur after header restoration");
+            require(!interrupt || Thread.currentThread().isInterrupted(), "interrupt flag must be preserved");
+        } finally {
+            if (interrupt) {
+                Thread.interrupted();
+            }
+        }
     }
 
     private static void testLocalFiles(Path root) throws Exception {

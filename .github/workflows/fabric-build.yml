@@ -34,7 +34,7 @@ jobs:
           cache: gradle
       - name: Build the unique base JAR and test interface
         run: |
-          & bash ./gradlew stageNativeBase nativePackagingSmokeTest :common:commandSuggestionsMixinSmokeTest :common:ysmMetadataImageRegression :common:gpuAllocationRegression -PnativeLoader=${{ matrix.loader }} --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log
+          & bash ./gradlew stageNativeBase nativePackagingSmokeTest :common:commandSuggestionsMixinSmokeTest :common:ysmCryptoSmokeTest :common:ysmMetadataImageRegression :common:gpuAllocationRegression -PnativeLoader=${{ matrix.loader }} --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log
           $buildExitCode = $LASTEXITCODE
           Get-Content -LiteralPath build.log -Tail 40
           if ($buildExitCode -ne 0) { exit $buildExitCode }
