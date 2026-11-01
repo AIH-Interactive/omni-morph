@@ -170,3 +170,6 @@ https://github.com/AIH-Interactive/omni-morph/actions/runs/41319049342 正在进
 补充正式桥接检查：两个变体全部外层1759 class major≤61，13个@ExpectPlatform方法均调用实际存在的重定位Forge public static owner/descriptor，通过（m4-platform-bridge-contract.log / m4-neoforge-bridge-contract.log）。
 正式Mixin selector直接重映射为SRG注解，不引用外部refmap；没有把缺失refmap文件当通过证据。
 三个正式产物检查支持artifactAuditJar/artifactAuditVersion，以便下载后对原字节重验，不用新本地包替换CI包。
+
+
+首轮CI运行41319049342：两加载器base和Windows/Linux x64/Linux arm64/macOS x64 native成功，macOS arm64在分配runner前被GitHub取消；check-run annotation明确macOS14计划brownout/2026-11-02退役（build/tmp/port-m0/m4-ci-macos-arm-annotations.json）。按官方 https://github.blog/changelog/2026-10-01-github-actions-macos-14-runner-image-retirement/ 将两处arm64 runner换为macos-15；不降低六平台/JNI门槛，重新完整运行。首轮不记成功。
