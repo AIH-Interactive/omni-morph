@@ -2,14 +2,14 @@
 
 ## 当前验收摘要（2026-11-01，优先于下文历史记录）
 
-- 阶段：用户批准的 M3–M5 合并检查点已提交推送（`ddf2bcf8`）；M6 实现与自动交付检查点已通过；实际CI `41283680432` 的24个job全部成功，两份最终候选包已下载核查。真实客户端人工验收未签署。分支 `1.21.1`，提交/推送最终结果见项目根目录 `AGENT_HANDOFF.md`。
+- 阶段：用户批准的 M3–M5 合并检查点已提交推送（`ddf2bcf8`）；M6 实现与自动交付检查点已通过；实际CI `41283680432` 的24个job全部成功，两份最终候选包已下载核查。客户端及其他人工验证按用户要求跳过并注明未验证，不再阻塞任务收尾。分支 `1.21.1`，提交/推送最终结果见项目根目录 `AGENT_HANDOFF.md`。
 - 已验证：common 全量生产/测试编译、Fabric/NeoForge 生产编译；正式 CPU 动画/控制器/Molang/同步与库/协议任务已有逐项日志，详见文末各接续记录。不能由此推断所有 Q1 入口或实机加载通过。
 - 实际语料：`refs/avatars` 通过 21 个文件硬链接和 4 个目录 junction 访问相邻原生项目 `models`；22 个 YSM（4 明文、18 加密）和 3 个 Figura ZIP，源只读。数量断言按用户要求适应实际资源，逐资源内容/行为断言保留。
 - 已验证：完整模型数据重建、手部/公开姿态/持物几何、材质、语言、AVIF；音频真实语料为 Vorbis 123 份，Opus 仅夹具覆盖。100 次切换/10 批次/全部 25 源，逐批 retained=0，图像/PCM释放通过，报告 `build/reports/ysm/m8-stability.json`。
 - GPU：按已批准 MVP，默认关闭并保留 CPU；不宣称 GPU 绘制、整帧性能或 26 基线性能对比通过。
 - 默认动画/配件来源完整入口已通过：用户批准同步 TAC 后，指定 neo1.21.1 参考十四文件全部一致。未验证：03_astronaut、16_tactics 等缺失模型专属场景。`tlm.is_sitting` 在原基线亦无根绑定，记既有联动跟进，其他加密controller警告未全部定位。
-- 用户已明确客户端验收由人工执行，记为非阻塞 `MANUAL/PENDING`，不再等待 Agent 启动授权。实机证据缺口：真实 GUI/CJK、游戏模型渲染、Mixin 加载和多人；数据边界符号链接逃逸因权限不足仍待验证。静态 AW 15条有效不等价于加载通过。不得把这些项目标为 PASS。
-- 下一步：用户人工验收两份最终候选包并反馈结果；暂无已知剩余实施任务，不编造新阶段。自动检查点通过不等于实际可玩/最终人工验收完成，保留上述缺口。
+- 用户最新要求：所有需要人工完成的验收/验证/签署统一记为 `SKIPPED（MANUAL，用户要求跳过；未验证）`，记录原因及证据缺口，不作为阶段、交付或总目标阻塞。包括客户端/Mixin/GUI/CJK/画面声音/多人、实机性能和需人工权限的验证；自动证据不得冒充这些项目 PASS。
+- 收尾状态：实施、自动验证及候选交付已完成，无剩余实施任务，不新增阶段；人工项已按用户要求跳过，原等待人工反馈的请求不再作为继续条件。
 
 
 > 日期：2026-10-31 · 分支：`1.21.1` · 基线标签：`pre-1.21.1-port`（= `c27f761`，本地标签）
@@ -1483,17 +1483,25 @@ API 真值来源：minecraft-dev-mcp（1.21.1 mojmap 源码，以及 AW / mixin 
 | Fabric | build/distributions/1.21.1/omni-morph-1.0.0-alpha.7+1.21.1-fabric-mc.jar | b8afdb1f226eff78bdcef7759d8c3aa3594e348a9e6205143a9692b61fdd9062 | [13074078030](https://github.com/AIH-Interactive/omni-morph/actions/runs/41283680432/artifacts/13074078030) |
 | NeoForge | build/distributions/1.21.1/omni-morph-1.0.0-alpha.7+1.21.1-neoforge-mc.jar | 88f1158f49f80930861d3993ce533c77347c12211429aad9d22cd2b40b87ebce | [13074706158](https://github.com/AIH-Interactive/omni-morph/actions/runs/41283680432/artifacts/13074706158) |
 
-### 当前验收矩阵（人工项未签署）
+### 当前验收矩阵（人工项按用户要求跳过）
 
 | 要求 | 自动证据/状态 | 实机验收/限制 |
 | --- | --- | --- |
-| G1/Q4：Fabric、NeoForge客户端包 | 双remap、metadata/AT/AW、嵌套依赖、实际CI及候选下载核查PASS | 两个干净客户端实际加载/Mixin应用/入口点仍MANUAL/PENDING，不能声称可玩已验证 |
-| M3/Q2：YSM/Figura、骨骼、动画、手部、持物及装扮 | 正式CPU pose/controller/deferred/attachment及原生顶点任务PASS，详见前文日志 | 盔甲/披风/手部/旁观者/光影实际画面MANUAL/PENDING |
-| M4/Q3：衣柜、权限、模型库、预览和输入 | 正式libraryPreviewRuntime等控件/异步/状态及可见GL夹具PASS | 真GUI布局/CJK/真实输入/屏幕逐项操作MANUAL/PENDING；夹具非实机GUI证据 |
-| 核心与云端/同步 | common全量测试编译及可执行smoke、协议向量/实际本地HTTP/TLS/CAS PASS | 真实生产后端及专用服务器多人MANUAL/PENDING；未将所有Q1入口统称通过 |
-| M5 MVP A：GPU默认关闭、CPU回退/独立SIMD | GPU拒绝/Java路径PASS；实际六平台native构建、五平台JNI PASS | 完整GPU方案B不在范围；整帧GPU性能/26基线差分未验证 |
+| G1/Q4：Fabric、NeoForge客户端包 | 双remap、metadata/AT/AW、嵌套依赖、实际CI及候选下载核查PASS | 两个干净客户端实际加载/Mixin应用/入口点仍SKIPPED（MANUAL，用户要求跳过；未验证），不能声称可玩已验证 |
+| M3/Q2：YSM/Figura、骨骼、动画、手部、持物及装扮 | 正式CPU pose/controller/deferred/attachment及原生顶点任务PASS，详见前文日志 | 盔甲/披风/手部/旁观者/光影实际画面SKIPPED（MANUAL，用户要求跳过；未验证） |
+| M4/Q3：衣柜、权限、模型库、预览和输入 | 正式libraryPreviewRuntime等控件/异步/状态及可见GL夹具PASS | 真GUI布局/CJK/真实输入/屏幕逐项操作SKIPPED（MANUAL，用户要求跳过；未验证）；夹具非实机GUI证据 |
+| 核心与云端/同步 | common全量测试编译及可执行smoke、协议向量/实际本地HTTP/TLS/CAS PASS | 真实生产后端及专用服务器多人SKIPPED（MANUAL，用户要求跳过；未验证）；未将所有Q1入口统称通过 |
+| M5 MVP A：GPU默认关闭、CPU回退/独立SIMD | GPU拒绝/Java路径PASS；实际六平台native构建、五平台JNI PASS | 完整GPU方案B不在范围；实机GPU性能/26基线差分验收为SKIPPED（MANUAL，用户要求跳过；未验证） |
 | M6/Q6：版本、文档、打包、CI | 1.0.0-alpha.7、Alpha7显示、四语CHANGELOG/README、CI双loader及24job PASS | 已生成候选；没有创建GitHub Release、部署mods或宣称正式发布完成 |
 | 数据与资源覆盖 | 实际25源、100次稳定性、十四默认动画对照、Vorbis/合成Opus等证据已记录 | 03_astronaut/16_tactics专属语料、真实Opus、符号链接逃逸权限、既有TLM表达式警告等缺口保留 |
 
-- M6实现/自动交付检查点通过，可收尾记录并提交推送；客户端验收由用户人工执行，按已确认分工非阻塞检查点，但整体实际可玩/最终验收结果尚未证明。当前没有已知待实施的新功能，不编造M7；下一步是人工验收两份候选包并反馈真实结果，必要时在原移植范围内修复。
+- M6实施、自动验证与候选交付已完成。客户端及所有需要人工完成的验证/签署按用户要求跳过并注明未验证，既不标PASS，也不再阻塞阶段或总目标。没有剩余实施任务，不编造M7；后续收到具体新问题时另按原范围处理。
 - 本记录为CI通过后的证据补录，不改构建代码/产物；候选的sourceCommit保持8d157687，后续纯文档提交不冒充该CI构建源。保持现有分支、版本和授权范围。
+
+
+## 2026-11-01 用户最终指示：所有人工验证注明跳过，禁止阻塞
+
+- 用户明确“客户端验收跳过并注明，禁止阻塞”，并进一步要求“这种需要人工的一律注明并跳过，禁止作为阻塞条件，写入项目agents”。已将通用规则写入项目根目录 AGENTS.md，适用于人工操作/实机环境/人工签署等 Agent 无法自主完成的验收验证，记录为 `SKIPPED（MANUAL，用户要求跳过；未验证）`。
+- 计划、当前进度摘要和验收矩阵已同步；旧MANUAL/PENDING和等待反馈记录仅作历史，最新规则优先。自动可执行门槛不变，自动失败仍按实际处理；不以跳过人工冒充PASS，也不再次等待人工反馈或据此标blocked。
+- 已重新核对权威CI run41283680432仍completed/success、构建源8d157687；两份交付JAR的SHA256与已核查报告完全相同。此次仅规则/文档收尾，无代码或产物变更，不重复构建/CI。
+- 本轮实施、规定可执行自动验证、双加载器候选交付已完成，无剩余实施工作。人工项全部作为注明原因/缺口的跳过项收尾，解除此前仅因人工反馈造成的总目标阻塞。项目AGENTS.md由既有.gitignore第71行忽略，保留本地规则文件的既有跟踪状态，不擅自将其加入远端。

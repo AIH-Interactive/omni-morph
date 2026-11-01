@@ -8,10 +8,10 @@
 
 - Targets Minecraft 1.21.1 and Java 21 with Fabric and NeoForge builds. Minecraft ports share version `1.0.0-alpha.7`.
 - Adapts entity, first-person, item, GUI, input, font, particle and YSM/Figura preview paths while retaining Lua/Molang, wardrobe, model library and cloud outfits.
-- GPU acceleration is disabled by default and reported as unsupported on 1.21.1. Java/CPU fallback and independent optional native SIMD remain available; real GPU and performance baseline acceptance are pending.
+- GPU acceleration is disabled by default and reported as unsupported on 1.21.1. Java/CPU fallback and independent optional native SIMD remain available; manual GPU and performance baseline acceptance are skipped at the user’s request (unverified).
 - Restores production platform bridges and packages NeoForge runtime libraries, access transformers and licenses. Its loader ID is `omni_morph`; the resource namespace remains `omni-morph` and existing data directories are unchanged.
 - Aligns default animation assets with the specified Sparkle-Morpher `neo1.21.1` reference (`6272e67`). Corpus checks use available local models; missing model-specific scenarios remain unverified.
-- Automated tests and local packaging have evidence. Real client loading, Mixin application, GUI/CJK, in-game visuals/audio and multiplayer remain `MANUAL/PENDING`. Six-platform CI/native results require an actual workflow run; this entry does not announce a completed release.
+- Automated tests and local packaging have evidence. Manual client loading, Mixin application, GUI/CJK, in-game visuals/audio and multiplayer acceptance are `SKIPPED (user request; unverified)` and do not block delivery. Six-platform CI/native results require an actual workflow run; this entry does not announce a completed release.
 
 ## 1.0.0-alpha.6
 
