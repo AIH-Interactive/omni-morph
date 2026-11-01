@@ -5,12 +5,9 @@ import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import net.minecraft.client.renderer.SubmitNodeStorage;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.state.level.ParticlesRenderState;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.world.phys.Vec3;
@@ -29,6 +26,9 @@ import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
 import org.figuramc.figura.permissions.Permissions;
 
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
+import net.minecraft.client.renderer.RenderType;
 import java.util.Arrays;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -100,9 +100,9 @@ final class PreviewParticleNativeSmokeTest {
             a.setRenderMode("Ribbon");
             require(Arrays.equals(frozenPanel, vertices(panelFrame, transform)),
                     "replaying a frozen preview cannot observe later author render-mode changes");
-            var nodes = new SubmitNodeStorage();
-            panelFrame.submit(new PoseStack(), nodes);
-            require(nodes.getSubmitsPerOrder().containsKey(100), "panel particles use the native custom geometry queue");
+            var panelOrder = new ArrayList<RenderType>();
+            vertices(panelFrame, transform, panelOrder);
+            require(panelOrder.size() == 2, "panel particle replay requests both native draw materials");
             require(worldSubmissions.getAsInt() == submitted && ParticleDynamicLights.liveCount(worldOwner.owner) == 0,
                     "extracting and replaying panel geometry cannot publish world particles or lights");
             require(scope.extract(new Vec3(1, 2, 3), new Quaternionf(), 1).vertexCount() == 4,
@@ -123,11 +123,13 @@ final class PreviewParticleNativeSmokeTest {
             b.setLayers(layers);
             var layeredPanel = scope.extract(new Vec3(1, 2, 3), new Quaternionf(), 1);
             require(layeredPanel.vertexCount() == 12, "layered panel quads coexist with the shared Ribbon geometry");
-            var layeredNodes = new SubmitNodeStorage();
-            layeredPanel.submit(new PoseStack(), layeredNodes);
-            require(layeredNodes.getSubmitsPerOrder().containsKey(100)
-                            && layeredNodes.getSubmitsPerOrder().containsKey(101),
-                    "different blend pipelines preserve their author layer order in the native GUI queue");
+            var layeredOrder = new ArrayList<RenderType>();
+            vertices(layeredPanel, transform, layeredOrder);
+            require(layeredOrder.size() == 3
+                            && layeredOrder.get(0).toString().startsWith("RenderType[omnimorph_particle_0:")
+                            && layeredOrder.get(1).toString().startsWith("RenderType[omnimorph_particle_0:")
+                            && layeredOrder.get(2).toString().startsWith("RenderType[omnimorph_particle_1:"),
+                    "native panel draw preserves author layer order across Billboard and Ribbon: " + layeredOrder);
             var view = new Quaternionf().rotationZ((float) Math.PI).rotateX(.3f).rotateY(.8f);
             var reflectedPanel = separate.extract(Vec3.ZERO, view, 1);
             var reflectedTransform = new Matrix4f().translation(7, 8, 9).scale(2, 2, -2).rotate(view);
@@ -159,9 +161,9 @@ final class PreviewParticleNativeSmokeTest {
                     "preview ticks once per logical tick and shares callback count across its owners");
             a.setRenderMode("Ribbon");
             b.setRenderMode("Ribbon");
-            var extracted = new ParticlesRenderState();
-            CustomParticleRuntime.extractRibbons(extracted, null, new FixtureCamera(), 1);
-            require(extracted.particles.isEmpty(), "world particle extraction excludes both preview ribbons");
+            var extracted = CustomParticleRuntime.extractWorld(null, new FixtureCamera(), 1);
+            require(extracted.vertexCount() == 4,
+                    "world extraction keeps the live Billboard while excluding both preview ribbons");
             first.resourceReloadEvent();
             require(!a.isAlive() && b.isAlive() && live.active() && scope.liveCount() == 1,
                     "preview reload clears only its execution, preserving sibling and same-UUID world particle");
@@ -281,9 +283,16 @@ final class PreviewParticleNativeSmokeTest {
     }
 
     private static byte[] vertices(PreviewParticleFrame frame, Matrix4f transform) {
-        try (var storage = ByteBufferBuilder.exactlySized(frame.vertexCount() * DefaultVertexFormat.PARTICLE.getVertexSize())) {
+        return vertices(frame, transform, new ArrayList<>());
+    }
+
+    private static byte[] vertices(PreviewParticleFrame frame, Matrix4f transform, List<RenderType> order) {
+        try (var storage = new ByteBufferBuilder(frame.vertexCount() * DefaultVertexFormat.PARTICLE.getVertexSize())) {
             var builder = new BufferBuilder(storage, VertexFormat.Mode.QUADS, DefaultVertexFormat.PARTICLE);
-            frame.draw(transform, type -> builder);
+            frame.draw(transform, type -> {
+                order.add(type);
+                return builder;
+            });
             try (var mesh = builder.build()) {
                 require(mesh != null && mesh.drawState().vertexCount() == frame.vertexCount(),
                         "panel replay emits the complete native PARTICLE vertex format");
@@ -313,7 +322,7 @@ final class PreviewParticleNativeSmokeTest {
         }
 
         @Override
-        public Vec3 position() {
+        public Vec3 getPosition() {
             return Vec3.ZERO;
         }
     }

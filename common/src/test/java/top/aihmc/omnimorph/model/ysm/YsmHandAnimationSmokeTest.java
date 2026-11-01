@@ -2,8 +2,6 @@ package top.aihmc.omnimorph.model.ysm;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.SharedConstants;
-import net.minecraft.core.component.DataComponentMap;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EntityType;
@@ -12,7 +10,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.KineticWeapon;
 import sun.misc.Unsafe;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationClip;
@@ -26,16 +23,15 @@ import top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.Optional;
 
 /** Exercises native hand selection with explicit entity inputs, without rendering a world. */
 public final class YsmHandAnimationSmokeTest {
     public static void main(String[] args) throws Exception {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
-        Items.BOW.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
-        Items.DIAMOND_SPEAR.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
-        Items.TRIDENT.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
+
+
+
         Method update = YsmAnimationPlayer.class.getDeclaredMethod("updateNativeHandAnimations", LivingEntity.class);
         update.setAccessible(true);
         var unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
@@ -49,7 +45,7 @@ public final class YsmHandAnimationSmokeTest {
             YsmMaterialNativeSmokeTest.replayAcceleration(Path.of(args[0]), runtime -> {
                 try {
                     verifyReferenceBow(runtime, entity, update);
-                    verifyReferenceSpear(runtime, entity, update);
+                    verifyReferenceTrident(runtime, entity, update);
                 } catch (ReflectiveOperationException failure) {
                     throw new RuntimeException(failure);
                 } finally {
@@ -61,7 +57,7 @@ public final class YsmHandAnimationSmokeTest {
         if (args.length > 1) {
             YsmMaterialNativeSmokeTest.replayAcceleration(Path.of(args[1]), runtime -> {
                 try {
-                    verifyLanceChargeSelection(runtime, entity, update);
+                    verifyNoInventedLanceCharge(runtime, entity, update);
                 } catch (ReflectiveOperationException failure) {
                     throw new RuntimeException(failure);
                 } finally {
@@ -100,34 +96,13 @@ public final class YsmHandAnimationSmokeTest {
         entity.mainArm = HumanoidArm.RIGHT;
         entity.usedHand = InteractionHand.MAIN_HAND;
         entity.offhand = ItemStack.EMPTY;
-        entity.main = new ItemStack(Items.DIAMOND_SPEAR);
-        entity.main.set(DataComponents.KINETIC_WEAPON, new KineticWeapon(10, 10,
-                Optional.empty(), Optional.empty(), Optional.empty(), 1f, 1f,
-                Optional.empty(), Optional.empty()));
-        player = player("hold_mainhand:spear", "use_mainhand:spear", "use_mainhand");
+        entity.main = new ItemStack(Items.TRIDENT);
+        entity.using = false;
+        player = player("hold_mainhand:spear", "use_mainhand:spear");
         update.invoke(player, entity);
-        require(!targeted(player, "use_mainhand:spear"), "holding a spear must not borrow its use pose");
-        require(targeted(player, "hold_mainhand:spear"), "legacy spear hold remains available");
-        entity.using = true;
-        for (int useTicks : new int[]{1, 10, 40, 100}) {
-            entity.useTicks = useTicks;
-            update.invoke(player, entity);
-            require(!targeted(player, "use_mainhand:spear"),
-                    "native spear must not select legacy trident use at tick " + useTicks);
-            require(!targeted(player, "use_mainhand"), "specialized spear use precedes the generic action");
-
-            require(targeted(player, "hold_mainhand:spear"), "missing kinetic charge clip retains the authored grip");
-        }
-
-        player = player("lance_charge", "use_mainhand:spear");
-        update.invoke(player, entity);
-        require(targeted(player, "lance_charge"), "dedicated kinetic charge clip takes precedence");
-        require(Float.isFinite(player.getActiveAnimation("lance_charge").sampledTime),
-                "dedicated kinetic charge uses the weapon timeline");
-
-        player = player("use_mainhand:lance");
-        update.invoke(player, entity);
-        require(targeted(player, "use_mainhand:lance"), "declared lance use clip remains supported");
+        require(!targeted(player, "use_mainhand:spear") && targeted(player, "hold_mainhand:spear"),
+                "holding a trident selects its grip without a throwing pose");
+        System.out.println("N/A 1.21.1: vanilla kinetic spear component selection and charge sampling");
 
         entity.using = false;
         player = player("hold_mainhand:spear");
@@ -174,27 +149,33 @@ public final class YsmHandAnimationSmokeTest {
         System.out.println("PASS native hand state: holding, using and release preserve conditional clip ownership");
     }
 
-    private static void verifyLanceChargeSelection(YsmModelRuntime runtime, HandEntity entity, Method update)
+    private static void verifyNoInventedLanceCharge(YsmModelRuntime runtime, HandEntity entity, Method update)
             throws ReflectiveOperationException {
-        entity.main = new ItemStack(Items.DIAMOND_SPEAR);
-        entity.main.set(DataComponents.KINETIC_WEAPON, new KineticWeapon(10, 10,
-                Optional.empty(), Optional.empty(), Optional.empty(), 1f, 1f, Optional.empty(), Optional.empty()));
-        entity.using = true;
-        entity.useTicks = 10;
-        entity.usedHand = InteractionHand.MAIN_HAND;
-        entity.mainArm = HumanoidArm.RIGHT;
-        var player = runtime.animations();
-        update.invoke(player, entity);
-        var uses = player.getActiveAnimations().values().stream()
-                .filter(playing -> playing.poseOrder == YsmControllerSlot.executionOrder("use") && playing.targetWeight > 0f)
-                .toList();
-        require(uses.isEmpty() || uses.stream().allMatch(value -> value.clip.name.contains("lance")),
-                "missing charge either stops use or selects an available lance resource");
-        require(player.getActiveAnimation("hold_mainhand:spear") != null
-                        && !player.getActiveAnimation("hold_mainhand:spear").paused,
-                "without charge resources the reported model retains its authored grip");
-        require(uses.stream().noneMatch(value -> value.clip.name.endsWith(":spear")),
-                "native SPEAR must not select the legacy trident throw when resolving lance charge");
+        var holder = Items.STICK.builtInRegistryHolder();
+        var previous = holder.tags().toList();
+        Method bindTags = holder.getClass().getDeclaredMethod("bindTags", java.util.Collection.class);
+        bindTags.setAccessible(true);
+        try {
+            bindTags.invoke(holder, java.util.List.of(net.minecraft.tags.TagKey.create(
+                    net.minecraft.core.registries.Registries.ITEM,
+                    net.minecraft.resources.ResourceLocation.parse("sparkle_morpher:pike"))));
+            entity.main = new ItemStack(Items.STICK);
+            entity.using = true;
+            entity.usedHand = InteractionHand.MAIN_HAND;
+            entity.mainArm = HumanoidArm.RIGHT;
+            var player = runtime.animations();
+            update.invoke(player, entity);
+            var uses = player.getActiveAnimations().values().stream()
+                    .filter(playing -> playing.poseOrder == YsmControllerSlot.executionOrder("use")
+                            && playing.targetWeight > 0f)
+                    .toList();
+            require(uses.stream().noneMatch(value -> value.clip.name.contains("lance_charge")
+                            || value.clip.name.endsWith(":lance") || value.clip.name.endsWith(":spear")),
+                    "a tagged non-SPEAR item cannot borrow charge or trident use in actual model resources");
+        } finally {
+            bindTags.invoke(holder, previous);
+        }
+        System.out.println("PENDING: actual model positive charge selection needs a registered third-party SPEAR-use item");
     }
 
     private static void verifyEmptyHandFallback(HandEntity entity, Method update) throws ReflectiveOperationException {
@@ -225,8 +206,6 @@ public final class YsmHandAnimationSmokeTest {
 
     static void verifyTacticsSustainedUse(YsmModelRuntime runtime, java.util.List<String> failures)
             throws ReflectiveOperationException {
-        Items.BOW.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
-        Items.TRIDENT.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
         var input = YsmModelRuntime.class.getDeclaredField("previewInput");
         input.setAccessible(true);
         var defaults = YsmModelRuntime.class.getDeclaredMethod("loadDefaultAnimations",
@@ -297,7 +276,7 @@ public final class YsmHandAnimationSmokeTest {
         player.setNativeStateMachineEnabled(true);
     }
 
-    private static void verifyReferenceSpear(YsmModelRuntime runtime, HandEntity entity, Method update)
+    private static void verifyReferenceTrident(YsmModelRuntime runtime, HandEntity entity, Method update)
             throws ReflectiveOperationException {
         // This native replay fixture has no Avatar NBT, so explicitly run the same default
         // preparation used by formal Avatar assembly before checking fallback playback.
@@ -308,40 +287,37 @@ public final class YsmHandAnimationSmokeTest {
         defaults.setAccessible(true);
         defaults.invoke(runtime, input.get(runtime), MolangEngine.fromCustomBinding(runtime.owner().getAvatarBindings()));
         var player = runtime.animations();
-        entity.main = new ItemStack(Items.DIAMOND_SPEAR);
-        entity.main.set(DataComponents.KINETIC_WEAPON, new KineticWeapon(10, 10,
-                Optional.empty(), Optional.empty(), Optional.empty(), 1f, 1f, Optional.empty(), Optional.empty()));
+        entity.main = new ItemStack(Items.TRIDENT);
         entity.useTicks = 2;
         entity.using = false;
         update.invoke(player, entity);
         entity.using = true;
         update.invoke(player, entity);
-        var using = player.getActiveAnimation("use_mainhand:lance");
-        require(using != null && !using.clip.boneAnimations.isEmpty() && Float.isFinite(using.sampledTime),
-                "real model uses lance charge rather than legacy trident use");
+        var using = player.getActiveAnimation("use_mainhand:spear");
+        require(using != null && !using.clip.boneAnimations.isEmpty() && Float.isNaN(using.sampledTime),
+                "real model uses the trident throwing clip without kinetic sampling");
         var evaluator = ExpressionEvaluator.evaluator(runtime.owner().getMolangContext());
         Method advance = YsmAnimationPlayer.class.getDeclaredMethod("advanceAnimationTimeline",
                 float.class, ExpressionEvaluator.class);
         advance.setAccessible(true);
         advance.invoke(player, .5f, evaluator);
-        float expectedTime = Math.clamp(2f / Math.max(1f,
-                entity.main.get(DataComponents.KINETIC_WEAPON).computeDamageUseDuration()), 0f, 1f) * using.clip.length;
-        require(Math.abs(using.time - expectedTime) < .0001f, "real model spear follows reference charge progress");
+        float expectedTime = .5f;
+        require(Math.abs(using.time - expectedTime) < .0001f, "real model trident follows its elapsed animation clock");
         sample(player, evaluator);
         double usedPose = runtime.getPart("RightArm").animRotRaw().x;
         using.weight = 0f;
         sample(player, evaluator);
         require(Math.abs(usedPose - runtime.getPart("RightArm").animRotRaw().x) > .01,
-                "real model spear clip changes the arm pose");
+                "real model trident clip changes the arm pose");
         using.weight = 1f;
         update.invoke(player, entity);
-        require(player.getActiveAnimation("use_mainhand:lance") == using && Math.abs(using.time - expectedTime) < .0001f,
-                "holding spear use retains its instance and authored clock");
+        require(player.getActiveAnimation("use_mainhand:spear") == using && Math.abs(using.time - expectedTime) < .0001f,
+                "holding trident use retains its instance and authored clock");
         entity.using = false;
         update.invoke(player, entity);
-        require(player.getActiveAnimation("use_mainhand:lance").targetWeight == 0f, "real model retires spear use on release");
+        require(player.getActiveAnimation("use_mainhand:spear").targetWeight == 0f, "real model retires trident use on release");
         entity.main = new ItemStack(Items.BOW);
-        System.out.println("PASS real model spear: lance charge selection, reference progress, arm pose, hold and release");
+        System.out.println("PASS real model trident: throwing selection, elapsed clock, arm pose, hold and release");
     }
 
     private static void verifyHandStageOwnership(HandEntity entity, Method update) throws ReflectiveOperationException {
@@ -394,44 +370,44 @@ public final class YsmHandAnimationSmokeTest {
 
     private static void verifySpearClassification(HandEntity entity, Method update) throws ReflectiveOperationException {
         entity.using = true;
-        entity.main = new ItemStack(Items.DIAMOND_SPEAR);
-        entity.main.set(DataComponents.KINETIC_WEAPON, new KineticWeapon(10, 10,
-                Optional.empty(), Optional.empty(), Optional.empty(), 1f, 1f, Optional.empty(), Optional.empty()));
-        var generic = player("use_mainhand");
-        update.invoke(generic, entity);
-        require(!targeted(generic, "use_mainhand"),
-                "missing native spear charge must not loop an unrelated short generic action");
         entity.main = new ItemStack(Items.BOW);
-        entity.main.set(DataComponents.KINETIC_WEAPON, new KineticWeapon(10, 10,
-                Optional.empty(), Optional.empty(), Optional.empty(), 1f, 1f, Optional.empty(), Optional.empty()));
         var arbitrary = player("lance_charge", "use_mainhand$literal", "use_mainhand$minecraft:bow");
         update.invoke(arbitrary, entity);
         require(targeted(arbitrary, "use_mainhand$minecraft:bow") && !targeted(arbitrary, "lance_charge"),
-                "a component alone does not classify arbitrary items as a lance");
-        entity.main = new ItemStack(Items.DIAMOND_SPEAR);
-        entity.main.set(DataComponents.CONSUMABLE, net.minecraft.world.item.component.Consumable.builder()
-                .animation(net.minecraft.world.item.ItemUseAnimation.SPEAR).build());
-        var noKinetic = player("lance_charge");
-        update.invoke(noKinetic, entity);
-        require(targeted(noKinetic, "lance_charge") && Float.isNaN(noKinetic.getActiveAnimation("lance_charge").sampledTime),
-                "native spear classification does not require a kinetic component for selection");
-        Items.STICK.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
+                "an ordinary bow retains exact-ID selection instead of lance charge");
+
         var holder = Items.STICK.builtInRegistryHolder();
         var previous = holder.tags().toList();
         Method bindTags = holder.getClass().getDeclaredMethod("bindTags", java.util.Collection.class);
         bindTags.setAccessible(true);
         try {
             bindTags.invoke(holder, java.util.List.of(net.minecraft.tags.TagKey.create(
-                    net.minecraft.core.registries.Registries.ITEM, net.minecraft.resources.ResourceLocation.parse("sparkle_morpher:pike"))));
+                    net.minecraft.core.registries.Registries.ITEM,
+                    net.minecraft.resources.ResourceLocation.parse("sparkle_morpher:pike"))));
             entity.main = new ItemStack(Items.STICK);
-            entity.main.set(DataComponents.CONSUMABLE, net.minecraft.world.item.component.Consumable.builder()
-                    .animation(net.minecraft.world.item.ItemUseAnimation.SPEAR).build());
-            var pike = player("lance_charge");
+            require(YsmHandItemType.matches(entity.main, "lance")
+                            && !YsmHandItemType.matches(entity.main, "spear"),
+                    "pike tags classify a compatibility lance independently of the trident type");
+            require(entity.main.getUseAnimation() == net.minecraft.world.item.UseAnim.NONE,
+                    "a classification tag does not manufacture an item use animation");
+            var pike = player("lance_charge", "use_mainhand");
             update.invoke(pike, entity);
-            require(targeted(pike, "lance_charge"), "pike tags select lance actions without a kinetic component");
+            require(!targeted(pike, "lance_charge") && targeted(pike, "use_mainhand"),
+                    "a non-SPEAR tagged item retains generic use instead of inventing charge behavior");
+            entity.using = false;
+            var held = player("lance_stand", "hold_mainhand:lance");
+            update.invoke(held, entity);
+            require(targeted(held, "lance_stand") && !targeted(held, "hold_mainhand:lance"),
+                    "compatibility lance standing grip has priority over conditional hold");
+            require(YsmHandItemType.matches(new ItemStack(Items.TRIDENT), "spear")
+                            && !YsmHandItemType.matches(new ItemStack(Items.TRIDENT), "lance"),
+                    "native tridents keep their distinct legacy throwing classification");
         } finally {
             bindTags.invoke(holder, previous);
         }
+        entity.using = true;
+        System.out.println("PASS 1.21.1 hand classification: bow ID, pike tag, native use animation and trident separation");
+        System.out.println("PENDING: positive third-party lance charge with a registered SPEAR-use item");
     }
 
     private static void verifyReferenceBow(YsmModelRuntime runtime, HandEntity entity, Method update)
@@ -749,56 +725,38 @@ public final class YsmHandAnimationSmokeTest {
     }
 
     private static void verifyUseTransforms(HandEntity entity) {
-        ItemStack spear = new ItemStack(Items.DIAMOND_SPEAR);
-        spear.set(DataComponents.KINETIC_WEAPON, new KineticWeapon(10, 10,
-                Optional.of(new KineticWeapon.Condition(30, 0f, 0f)), Optional.empty(),
-                Optional.of(new KineticWeapon.Condition(60, 0f, 0f)), 0.5f, 1f,
-                Optional.empty(), Optional.empty()));
-        // Independent reference golden angles: raising, tired and disengaged phase boundaries/midpoints.
-        int[] ticks = {0, 1, 5, 10, 25, 40, 55, 70, 100};
-        float[] compensation = {60f, 58.32f, 30f, 0f, 0f, 0f, 0f, 0f, 0f};
-        float[] forward = {90f, 90f, 90f, 90f, 135f, 180f, 180f, 180f, 180f};
-        float[] down = {0f, 0f, 0f, 0f, 0f, 0f, 3f, 6f, 6f};
+        ItemStack trident = new ItemStack(Items.TRIDENT);
         for (HumanoidArm mainArm : HumanoidArm.values()) {
             entity.mainArm = mainArm;
             for (InteractionHand hand : InteractionHand.values()) {
                 entity.usedHand = hand;
-                boolean activeLeft = hand == InteractionHand.MAIN_HAND
-                        ? mainArm == HumanoidArm.LEFT : mainArm == HumanoidArm.RIGHT;
                 for (boolean left : new boolean[]{false, true}) {
-                    entity.using = false;
-                    var held = new PoseStack();
-                    YsmHeldItemTransforms.apply(held, entity, spear, left, false);
-                    entity.using = true;
-                    for (int index = 0; index < ticks.length; index++) {
-                        entity.useTicks = ticks[index];
+                    for (boolean directHandBone : new boolean[]{false, true}) {
                         var expected = new PoseStack();
-                        expected.last().pose().set(held.last().pose());
-                        if (left == activeLeft) {
-                            expected.rotateAround(com.mojang.math.Axis.XP.rotationDegrees(compensation[index]), 0f, .125f, .125f);
-                            expected.rotateAround(com.mojang.math.Axis.YP.rotationDegrees((left ? -1f : 1f) * forward[index]),
-                                    0f, .125f, .125f);
-                            expected.rotateAround(com.mojang.math.Axis.XP.rotationDegrees(down[index]), 0f, .125f, .125f);
+                        expected.translate(0, -.0625, -.1);
+                        expected.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-90f));
+                        if (!directHandBone) {
+                            expected.translate(0, 0, -.0125);
                         }
-                        var actual = new PoseStack();
-                        YsmHeldItemTransforms.apply(actual, entity, spear, left, false);
-                        require(actual.last().pose().equals(expected.last().pose(), 0.00001f),
-                                "spear orientation/grip must match reference YSM use at tick " + ticks[index]
-                                        + ", mainArm=" + mainArm + ", hand=" + hand + ", left=" + left);
+                        entity.using = false;
+                        var resting = new PoseStack();
+                        YsmHeldItemTransforms.apply(resting, entity, trident, left, directHandBone);
+                        require(resting.last().pose().equals(expected.last().pose(), .00001f),
+                                "native trident uses the authored locator basis for both arms and hands");
+                        entity.using = true;
+                        for (int tick : new int[]{0, 1, 5, 10, 25, 40, 55, 70, 100}) {
+                            entity.useTicks = tick;
+                            var charging = new PoseStack();
+                            YsmHeldItemTransforms.apply(charging, entity, trident, left, directHandBone);
+                            require(charging.last().pose().equals(resting.last().pose(), .00001f),
+                                    "trident use does not apply an additional kinetic rotation at tick " + tick);
+                        }
                     }
-                    ItemStack trident = new ItemStack(Items.TRIDENT);
-                    entity.using = false;
-                    var restingTrident = new PoseStack();
-                    YsmHeldItemTransforms.apply(restingTrident, entity, trident, left, false);
-                    entity.using = true;
-                    var chargingTrident = new PoseStack();
-                    YsmHeldItemTransforms.apply(chargingTrident, entity, trident, left, false);
-                    require(chargingTrident.last().pose().equals(restingTrident.last().pose(), 0.00001f),
-                            "trident animation must not receive a second kinetic item rotation");
                 }
             }
         }
-        System.out.println("PASS spear/trident transforms: both main arms, both hands, charge phases and inactive hand");
+        System.out.println("PASS native trident transforms: both arms/hands, direct/locator basis and use-time invariance");
+        System.out.println("N/A 1.21.1: vanilla kinetic spear charge-phase item rotations (no KineticWeapon component)");
     }
 
     private static YsmAnimationPlayer player(String... names) {
@@ -840,7 +798,7 @@ public final class YsmHandAnimationSmokeTest {
         }
     }
 
-    private static final class HandEntity extends LivingEntity {
+    private static final class HandEntity extends net.minecraft.world.entity.decoration.ArmorStand {
         private ItemStack main;
         private ItemStack offhand;
         private boolean using;
@@ -910,9 +868,5 @@ public final class YsmHandAnimationSmokeTest {
             return using ? useTicks : 0;
         }
 
-        @Override
-        public float getTicksSinceLastKineticHitFeedback(float partialTick) {
-            return Float.MAX_VALUE;
-        }
     }
 }

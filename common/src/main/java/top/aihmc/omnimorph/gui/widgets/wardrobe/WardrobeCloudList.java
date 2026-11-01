@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.gui.widgets.wardrobe;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import org.figuramc.figura.avatar.local.LocalAvatarFetcher;
@@ -191,7 +191,7 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         var filtered = filteredEntries();
         int area = Math.max(1, getHeight() - contentTop() - 2);
         int maximum = Math.max(0, filtered.size() * ROW_STRIDE - area);
@@ -225,12 +225,12 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
             children.add(row);
         }
         UIHelper.blitSliced(gui, getX(), getY(), getWidth(), getHeight(), UIHelper.OUTLINE_FILL);
-        super.extractRenderState(gui, mouseX, mouseY, delta);
+        super.render(gui, mouseX, mouseY, delta);
         enableScissors(gui);
         try {
             for (var child : children) {
                 if (child instanceof Row row) {
-                    row.extractRenderState(gui, isInsideScissors(mouseX, mouseY) ? mouseX : -1,
+                    row.render(gui, isInsideScissors(mouseX, mouseY) ? mouseX : -1,
                             isInsideScissors(mouseX, mouseY) ? mouseY : -1, delta);
                 }
             }
@@ -245,9 +245,9 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
     }
 
     @Override
-    public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
-        if (event.key() != 264 && event.key() != 265) {
-            return super.keyPressed(event);
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode != 264 && keyCode != 265) {
+            return super.keyPressed(keyCode, scanCode, modifiers);
         }
         var values = filteredEntries();
         if (values.isEmpty()) {
@@ -260,7 +260,7 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
                 break;
             }
         }
-        int next = Math.clamp(current + (event.key() == 264 ? 1 : -1), 0, values.size() - 1);
+        int next = Math.clamp(current + (keyCode == 264 ? 1 : -1), 0, values.size() - 1);
         choose(values.get(next));
         int maximum = Math.max(0, values.size() * ROW_STRIDE - Math.max(1, getHeight() - contentTop() - 2));
         scrollBar.setScrollProgressNoAnim(maximum == 0 ? 0 : Math.min(1d, next * (double) ROW_STRIDE / maximum));
@@ -291,15 +291,15 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
         }
 
         @Override
-        public void extractContents(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
-            super.extractContents(gui, mouseX, mouseY, delta);
+        public void renderWidget(GuiGraphics gui, int mouseX, int mouseY, float delta) {
+            super.renderWidget(gui, mouseX, mouseY, delta);
             if (isSelected(entry)) {
                 UIHelper.fillOutline(gui, getX(), getY(), getWidth(), getHeight(), 0xffffffff);
             }
         }
 
         @Override
-        protected void renderText(GuiGraphicsExtractor gui, float delta) {
+        protected void renderText(GuiGraphics gui, float delta) {
             var handle = entry.cloud() == null ? null : icons.get(entry.cloud().modelId());
             var localIcon = entry.local() == null ? null : entry.local().getIcon();
             var icon = localIcon != null ? localIcon.getLocation() : handle == null ? null : handle.capture();
@@ -314,13 +314,13 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
         }
 
         @Override
-        public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
-            if (!isInsideScissors(event.x(), event.y())) {
+        public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            if (!isInsideScissors(mouseX, mouseY)) {
                 return false;
             }
             boolean removable = entry.cosmetic() != null ? removeCosmetic != null
                     : entry.local() != null ? removeLocal != null : outfitRemoval != null;
-            if (event.button() == 1 && removable && isMouseOver(event.x(), event.y())) {
+            if (button == 1 && removable && isMouseOver(mouseX, mouseY)) {
                 var menu = new ContextMenu(this);
                 if (accessoryActions != null && entry.resourceKind().equals("ACCESSORY")) {
                     accessoryActions.accept(entry, menu);
@@ -336,13 +336,13 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
                     }
                     menu.setVisible(false);
                 });
-                menu.setX((int) event.x());
-                menu.setY((int) event.y());
+                menu.setX((int) mouseX);
+                menu.setY((int) mouseY);
                 menu.setVisible(true);
                 UIHelper.setContext(menu);
                 return true;
             }
-            return super.mouseClicked(event, doubleClick);
+            return super.mouseClicked(mouseX, mouseY, button);
         }
     }
 

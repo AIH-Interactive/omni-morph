@@ -1,31 +1,28 @@
 package org.figuramc.figura.mixin.render;
 
-import com.llamalad7.mixinextras.sugar.Local;
+import com.mojang.blaze3d.vertex.PoseStack;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
-import top.aihmc.omnimorph.ducks.NodeCollectorExtension;
+import org.figuramc.figura.permissions.Permissions;
 import top.aihmc.omnimorph.model.ysm.YsmPartMask;
 import top.aihmc.omnimorph.model.ysm.YsmSubEntityInstances;
-import org.figuramc.figura.permissions.Permissions;
-import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
+import top.aihmc.omnimorph.render.EntityFrame;
+import top.aihmc.omnimorph.model.outfit.OutfitRenderBinding;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
-import net.minecraft.client.renderer.entity.EntityRenderer;
-import net.minecraft.client.renderer.entity.state.EntityRenderState;
-import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.LevelReader;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
-import top.aihmc.omnimorph.ducks.FiguraEntityRenderStateExtension;
+import org.figuramc.figura.ducks.EntityRenderDispatcherAccessor;
 import org.figuramc.figura.utils.RenderUtils;
 import org.figuramc.figura.utils.ui.UIHelper;
 import org.joml.Quaternionf;
@@ -39,14 +36,21 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(EntityRenderDispatcher.class)
-public class EntityRenderDispatcherMixin {
+public class EntityRenderDispatcherMixin implements EntityRenderDispatcherAccessor {
 
     @Shadow public Camera camera;
+    @Shadow private boolean shouldRenderShadow;
     @Unique private Avatar avatar;
 
-    @Inject(method = "submit", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/SubmitNodeCollector;submitFlame(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lorg/joml/Quaternionf;)V"), cancellable = true)
-    private <S extends EntityRenderState> void renderFlame(S entityRenderState, CameraRenderState cameraRenderState, double d, double e, double f, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CallbackInfo ci) {
-        Avatar a = AvatarManager.getAvatar(entityRenderState);
+    @Override
+    public boolean figura$shouldRenderShadow() {
+        return shouldRenderShadow;
+    }
+
+    @Inject(method = "renderFlame", at = @At("HEAD"), cancellable = true)
+    private void renderFlame(PoseStack matrices, MultiBufferSource vertexConsumers, Entity entity, Quaternionf quaternionf, CallbackInfo ci) {
+        avatar = null;
+        Avatar a = figura$boundAvatar(entity, Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true));
         if (RenderUtils.vanillaModelAndScript(a)) {
             if (!a.luaRuntime.renderer.renderFire) {
                 ci.cancel();
@@ -56,35 +60,63 @@ public class EntityRenderDispatcherMixin {
         }
     }
 
-    @ModifyArg(method = "submit", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/SubmitNodeCollector;submitFlame(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lorg/joml/Quaternionf;)V"))
+    @ModifyVariable(method = "renderFlame", at = @At(value = "HEAD"), argsOnly = true)
     private Quaternionf renderFlameRot(Quaternionf f) {
         return UIHelper.paperdoll ? Axis.YP.rotationDegrees(UIHelper.fireRot) : f;
     }
 
-    @ModifyArg(method = "submit", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/SubmitNodeCollector;submitShadow(Lcom/mojang/blaze3d/vertex/PoseStack;FLjava/util/List;)V"))
-    private static float modifyShadowSize(float h, @Local(argsOnly = true) EntityRenderState entity) {
-        Avatar avatar = AvatarManager.getAvatar(entity);
-        if (RenderUtils.vanillaModelAndScript(avatar) && avatar.luaRuntime.renderer.shadowRadius != null)
+    @ModifyVariable(method = "renderFlame", at = @At("STORE"), ordinal = 0)
+    private TextureAtlasSprite firstFireTexture(TextureAtlasSprite sprite) {
+        TextureAtlasSprite s = RenderUtils.firstFireLayer(avatar);
+        return s != null ? s : sprite;
+    }
+
+    @ModifyVariable(method = "renderFlame", at = @At("STORE"), ordinal = 1)
+    private TextureAtlasSprite secondFireTexture(TextureAtlasSprite sprite) {
+        TextureAtlasSprite s = RenderUtils.secondFireLayer(avatar);
+        avatar = null;
+        return s != null ? s : sprite;
+    }
+
+    @ModifyVariable(method = "renderShadow", at = @At("HEAD"), ordinal = 2, argsOnly = true)
+    private static float modifyShadowSize(float h, PoseStack poseStack, MultiBufferSource multiBufferSource, Entity entity, float f, float g, LevelReader levelReader, float originalRadius) {
+        Avatar avatar = figura$boundAvatar(entity, g);
+        if (RenderUtils.vanillaModelAndScript(avatar) && avatar.luaRuntime.renderer.shadowRadius != null) {
             return avatar.luaRuntime.renderer.shadowRadius;
+        }
         return h;
     }
 
-    @WrapOperation(method = "submit", at = @At(value = "INVOKE", target =
-            "Lnet/minecraft/client/renderer/entity/EntityRenderer;submit(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V"))
-    private void figura$submitVehicle(EntityRenderer<?, ?> renderer, EntityRenderState state, PoseStack stack,
-                                      SubmitNodeCollector collector, CameraRenderState cameraState,
-                                      Operation<Void> original) {
-        if (!figura$submitYsmVehicle(state, stack, collector)) {
-            original.call(renderer, state, stack, collector, cameraState);
+    @Inject(method = "render", at = @At("HEAD"), cancellable = true)
+    private <E extends Entity> void render(E entity, double d, double e, double f, float g, float h, PoseStack poseStack, MultiBufferSource multiBufferSource, int i, CallbackInfo ci) {
+        if (this.camera == null) {
+            ci.cancel();
+            return;
+        }
+
+        Entity owner = entity.getFirstPassenger();
+        if (owner == null) {
+            return;
+        }
+
+        Avatar avatar = AvatarManager.getAvatar(owner);
+        if (RenderUtils.vanillaModelAndScript(avatar) && !avatar.luaRuntime.renderer.renderVehicle) {
+            ci.cancel();
         }
     }
-
     @Unique
-    private boolean figura$submitYsmVehicle(EntityRenderState state, PoseStack stack, SubmitNodeCollector collector) {
-        Entity entity = AvatarManager.getEntity(state);
-        if (entity == null) {
-            return false;
-        }
+    private static Avatar figura$boundAvatar(Entity entity, float partialTick) {
+        // EntityRenderer has already closed its frame before dispatcher fire/shadow rendering.
+        // Capture the same preview/outfit binding instead of reading the wearer's original avatar.
+        EntityFrame frame = new EntityFrame(entity, partialTick);
+        OutfitRenderBinding.capture(entity, frame, partialTick, true);
+        return AvatarManager.getAvatar(frame);
+    }
+    @WrapOperation(method = "render", at = @At(value = "INVOKE", target =
+            "Lnet/minecraft/client/renderer/entity/EntityRenderer;render(Lnet/minecraft/world/entity/Entity;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V"))
+    private <T extends Entity> void figura$renderVehicle(EntityRenderer<T> renderer, T entity, float yaw,
+                                                        float partialTick, PoseStack stack, MultiBufferSource buffers,
+                                                        int light, Operation<Void> original) {
         Entity passenger = entity.getFirstPassenger();
         Avatar owner;
         if (passenger != null) {
@@ -94,52 +126,30 @@ public class EntityRenderDispatcherMixin {
             owner = assigned == null ? null : assigned.owner();
         }
         if (owner == null || owner.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 0) {
-            return false;
+            original.call(renderer, entity, yaw, partialTick, stack, buffers, light);
+            return;
         }
         var parent = owner.getYsmRuntime();
         if (parent == null || parent.getSubEntityForEntity("vehicle", entity) == null) {
-            return false;
+            original.call(renderer, entity, yaw, partialTick, stack, buffers, light);
+            return;
         }
-        float partialTick = ((FiguraEntityRenderStateExtension) state).figura$getTickDelta();
         String typeId = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString();
         var instance = parent.prepareSubEntity(entity, "vehicle", typeId, partialTick);
         if (instance == null) {
-            return false;
+            original.call(renderer, entity, yaw, partialTick, stack, buffers, light);
+            return;
         }
-        PoseStack submittedStack = new PoseStack();
-        submittedStack.last().set(stack.last());
-        float yaw = entity instanceof LivingEntity living
+        PoseStack copy = new PoseStack();
+        copy.last().pose().set(stack.last().pose());
+        copy.last().normal().set(stack.last().normal());
+        float bodyYaw = entity instanceof LivingEntity living
                 ? Mth.rotLerp(partialTick, living.yBodyRotO, living.yBodyRot)
                 : Mth.rotLerp(partialTick, entity.yRotO, entity.getYRot());
-        submittedStack.mulPose(Axis.YP.rotationDegrees(180f - yaw));
+        copy.mulPose(Axis.YP.rotationDegrees(180f - bodyYaw));
         var pose = instance.captureRenderPose(false);
-        ((NodeCollectorExtension) collector).submitFiguraModel(owner, state, (avatar, submittedState, buffers) -> {
-            if (!instance.isClosed() && avatar.getYsmRuntime() == parent
-                    && parent.ownsSubEntity(entity, "vehicle") && !entity.isRemoved()) {
-                instance.renderer().render(submittedStack, buffers, submittedState.lightCoords, YsmPartMask.DEBUG_ALL, pose);
-            }
-            return null;
-        });
-        return true;
-    }
-
-    @Inject(method = "submit", at = @At("HEAD"), cancellable = true)
-    private <E extends Entity, S extends EntityRenderState> void render(S entityRenderState, CameraRenderState cameraRenderState, double d, double e, double f, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CallbackInfo ci) {
-        if (this.camera == null)
-            ci.cancel();
-
-        Integer entityId = ((FiguraEntityRenderStateExtension)entityRenderState).figura$getEntityId();
-        if (entityId == null)
-            return;
-        Entity entity = Minecraft.getInstance().level.getEntity(entityId);
-        if (entity == null)
-            return;
-        Entity owner = entity.getFirstPassenger();
-        if (owner == null)
-            return;
-
-        Avatar avatar = AvatarManager.getAvatar(owner);
-        if (RenderUtils.vanillaModelAndScript(avatar) && !avatar.luaRuntime.renderer.renderVehicle)
-            ci.cancel();
-    }
-}
+        if (!instance.isClosed() && owner.getYsmRuntime() == parent
+                && parent.ownsSubEntity(entity, "vehicle") && !entity.isRemoved()) {
+            instance.renderer().render(copy, buffers, light, YsmPartMask.DEBUG_ALL, pose);
+        }
+    }}

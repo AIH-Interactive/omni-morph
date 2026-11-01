@@ -3,10 +3,9 @@ package org.figuramc.figura.gui.widgets;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -50,7 +49,7 @@ public class TextField extends AbstractContainerElement {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         if (!isVisible()) return;
 
         // render background
@@ -65,21 +64,19 @@ public class TextField extends AbstractContainerElement {
             renderHint(gui);
 
         // children
-        super.extractRenderState(gui, mouseX, mouseY, delta);
+        super.render(gui, mouseX, mouseY, delta);
     }
 
-    protected void renderHint(GuiGraphicsExtractor gui) {
+    protected void renderHint(GuiGraphics gui) {
         Font font = Minecraft.getInstance().font;
-        gui.text(
+        gui.drawString(
                 font, hint.hint.copy().append(TextUtils.ELLIPSIS).withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC),
                 getX() + 4, getY() + (int) ((getHeight() - font.lineHeight + 1) / 2f), UIHelper.adjustColor(0xFFFFFF)
         );
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean bl) {
-        double mouseX = mouseButtonEvent.x();
-        double mouseY = mouseButtonEvent.y();
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
         // mouse over check
         if (!isEnabled() || !this.isMouseOver(mouseX, mouseY))
             return false;
@@ -88,11 +85,11 @@ public class TextField extends AbstractContainerElement {
         mouseX = Mth.clamp(mouseX, field.getX(), field.getX() + field.getWidth() - 1);
         mouseY = Mth.clamp(mouseY, field.getY(), field.getY() + field.getHeight() - 1);
 
-        return super.mouseClicked(new MouseButtonEvent(mouseX, mouseY, mouseButtonEvent.buttonInfo()), bl);
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
-    public boolean mouseReleased(MouseButtonEvent mouseButtonEvent) {
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
         return !field.isFocused();
     }
 

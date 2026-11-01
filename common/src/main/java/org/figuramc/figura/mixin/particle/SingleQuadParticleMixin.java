@@ -16,4 +16,29 @@ public abstract class SingleQuadParticleMixin implements SingleQuadParticleAcces
     public void figura$fixQuadSize() {
         this.quadSize = 0.2f;
     }
+
+    @Override
+    public void figura$setParticleAlpha(float alpha) {
+        ((ParticleAccessor) this).setParticleAlpha(alpha);
+    }
+
+    @Override
+    public float figura$getRCol() {
+        return ((ParticleAccessor) this).getRCol();
+    }
+
+    @Override
+    public float figura$getGCol() {
+        return ((ParticleAccessor) this).getGCol();
+    }
+
+    @Override
+    public float figura$getBCol() {
+        return ((ParticleAccessor) this).getBCol();
+    }
+
+    @Override
+    public float figura$getAlpha() {
+        return ((ParticleAccessor) this).getAlpha();
+    }
 }

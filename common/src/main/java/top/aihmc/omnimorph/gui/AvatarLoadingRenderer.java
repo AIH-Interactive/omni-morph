@@ -3,17 +3,18 @@ package top.aihmc.omnimorph.gui;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.SubmitNodeCollector;
-import net.minecraft.client.renderer.entity.state.AvatarRenderState;
-import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
-import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.entity.EntityAttachment;
+import net.minecraft.world.entity.player.Player;
+import top.aihmc.omnimorph.render.EntityFrame;
 import top.aihmc.omnimorph.avatar.AvatarLoadProgress;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.utils.FiguraText;
 
-/** Uses the native name-tag submission so labels follow the player without touching model ownership. */
+/** Draws loading labels with native name-tag geometry without touching model ownership. */
 public final class AvatarLoadingRenderer {
     private static final int SEGMENTS = 12;
 
@@ -36,30 +37,38 @@ public final class AvatarLoadingRenderer {
         return label;
     }
 
-    public static void submit(LivingEntityRenderState state, PoseStack poses,
-                              SubmitNodeCollector collector, CameraRenderState camera) {
-        if (!(state instanceof AvatarRenderState player) || state.isInvisible
-                || state.distanceToCameraSq > 4096 || AvatarManager.panic) {
+    public static void render(EntityFrame frame, PoseStack poses, MultiBufferSource buffers, int light) {
+        if (!(frame.entity() instanceof Player player) || player.isInvisible() || AvatarManager.panic) {
             return;
         }
         var client = Minecraft.getInstance();
-        if (client.level == null) {
+        if (client.level == null || client.getEntityRenderDispatcher().distanceToSqr(player) > 4096) {
             return;
         }
-        var entity = client.level.getEntity(player.id);
-        var progress = entity == null ? null : AvatarManager.getLoadingProgress(entity.getUUID());
+        var progress = AvatarManager.getLoadingProgress(player.getUUID());
         if (progress == null) {
             return;
         }
-        submitProgress(progress, state, poses, collector, camera);
-    }
-
-    private static void submitProgress(AvatarLoadProgress.Snapshot progress, LivingEntityRenderState state,
-                                       PoseStack poses, SubmitNodeCollector collector, CameraRenderState camera) {
-        Vec3 attachment = state.nameTagAttachment == null
-                ? new Vec3(0, state.boundingBoxHeight + 0.6, 0) : state.nameTagAttachment.add(0, 0.45, 0);
-        collector.submitNameTag(poses, attachment, 0, label(progress,
-                        top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.currentFrame()),
-                true, state.lightCoords, state.distanceToCameraSq, camera);
+        Vec3 attachment = player.getAttachments().getNullable(EntityAttachment.NAME_TAG, 0,
+                player.getViewYRot(frame.partialTick()));
+        Vec3 position = attachment == null ? new Vec3(0, player.getBbHeight() + 0.6, 0)
+                : attachment.add(0, 0.95, 0);
+        Component text = label(progress,
+                top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.currentFrame());
+        Font font = client.font;
+        int background = (int) (client.options.getBackgroundOpacity(0.25f) * 255f) << 24;
+        float x = -font.width(text) / 2f;
+        poses.pushPose();
+        try {
+            poses.translate(position.x, position.y, position.z);
+            poses.mulPose(client.getEntityRenderDispatcher().cameraOrientation());
+            poses.scale(0.025f, -0.025f, 0.025f);
+            font.drawInBatch(text, x, 0, 0x20ffffff, false, poses.last().pose(), buffers,
+                    Font.DisplayMode.SEE_THROUGH, background, light);
+            font.drawInBatch(text, x, 0, -1, false, poses.last().pose(), buffers,
+                    Font.DisplayMode.NORMAL, 0, light);
+        } finally {
+            poses.popPose();
+        }
     }
 }

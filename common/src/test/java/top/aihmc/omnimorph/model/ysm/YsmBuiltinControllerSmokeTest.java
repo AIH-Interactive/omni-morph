@@ -1,6 +1,8 @@
 package top.aihmc.omnimorph.model.ysm;
 
-import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import net.minecraft.SharedConstants;
+import net.minecraft.server.Bootstrap;
+import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
 import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationParser;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationPlayer;
@@ -16,6 +18,9 @@ import java.lang.reflect.Method;
 /** Production state machine and native movement selection without rendered-pixel claims. */
 public final class YsmBuiltinControllerSmokeTest {
     public static void main(String[] args) throws Exception {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+        var entity = YsmNativeStateSmokeTest.idleEntity();
         Avatar.MolangContext context = new Avatar.MolangContext(null);
         Variable custom = execution -> ((Avatar.MolangContext) execution.entity()).variables.getPath("custom");
         ObjectBinding query = name -> name.equals("custom") ? custom : null;
@@ -36,12 +41,12 @@ public final class YsmBuiltinControllerSmokeTest {
                 }}}}
                 """, engine));
         Method nativeUpdate = YsmAnimationPlayer.class.getDeclaredMethod("updateNativeStateMachine",
-                LivingEntityRenderState.class, net.minecraft.world.entity.LivingEntity.class);
+                YsmEntityFrame.class, net.minecraft.world.entity.LivingEntity.class);
         nativeUpdate.setAccessible(true);
         var evaluator = ExpressionEvaluator.evaluator(context);
         context.variables.setPath("custom", 0f);
         player.controllerRuntime().update(evaluator, 0f);
-        nativeUpdate.invoke(player, new LivingEntityRenderState(), null);
+        nativeUpdate.invoke(player, new YsmEntityFrame(0, 0, 0, 0, 0), entity);
         var first = player.getActiveAnimation("idle");
         require(first != null, "builtin state selects native movement");
         require(player.getControllerAnimation("controller.animation.player.main", "author") == null,
@@ -49,13 +54,13 @@ public final class YsmBuiltinControllerSmokeTest {
         first.time = .6f;
         context.variables.setPath("custom", 1f);
         player.controllerRuntime().update(evaluator, .1f);
-        nativeUpdate.invoke(player, new LivingEntityRenderState(), null);
+        nativeUpdate.invoke(player, new YsmEntityFrame(0, 0, 0, 0, 0), entity);
         require(player.getActiveAnimation("idle") == null, "custom state clears native movement instead of blending both sources");
         require(player.getControllerAnimation("controller.animation.player.main", "author") != null,
                 "custom state selects the author source");
         context.variables.setPath("custom", 0f);
         player.controllerRuntime().update(evaluator, .1f);
-        nativeUpdate.invoke(player, new LivingEntityRenderState(), null);
+        nativeUpdate.invoke(player, new YsmEntityFrame(0, 0, 0, 0, 0), entity);
         require(player.getActiveAnimation("idle") != first && player.getActiveAnimation("idle").time == 0f,
                 "returning to builtin starts a new native clock");
         System.out.println("PASS builtin/custom source switching: exclusivity, special slot semantics and native clock restart");

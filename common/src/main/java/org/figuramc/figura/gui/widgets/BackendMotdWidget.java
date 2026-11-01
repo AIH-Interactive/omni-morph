@@ -116,6 +116,7 @@ public class BackendMotdWidget extends AbstractScrollWidget {
     }
 
     public boolean shouldRender() {
-        return getScrollBarHeight() > 0 && this.height >= 48;
+        // Native scrollbar height is clamped to at least 32 for every supported widget height.
+        return this.height >= 48;
     }
 }

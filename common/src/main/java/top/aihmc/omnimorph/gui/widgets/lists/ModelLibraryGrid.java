@@ -1,8 +1,6 @@
 package top.aihmc.omnimorph.gui.widgets.lists;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.gui.GuiGraphics;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import top.aihmc.omnimorph.gui.widgets.library.ModelCardWidget;
 import top.aihmc.omnimorph.gui.widgets.library.ModelLibraryLayout;
@@ -101,32 +99,32 @@ public final class ModelLibraryGrid extends AbstractList implements AutoCloseabl
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         arrange();
         enableScissors(gui);
         try {
             for (var card : cards.values()) {
-                card.extractRenderState(gui, isInsideScissors(mouseX, mouseY) ? mouseX : -1,
+                card.render(gui, isInsideScissors(mouseX, mouseY) ? mouseX : -1,
                         isInsideScissors(mouseX, mouseY) ? mouseY : -1, delta);
             }
         } finally {
             gui.disableScissor();
         }
-        scrollBar.extractRenderState(gui, mouseX, mouseY, delta);
+        scrollBar.render(gui, mouseX, mouseY, delta);
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (!isInsideScissors(event.x(), event.y())) {
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (!isInsideScissors(mouseX, mouseY)) {
             return false;
         }
         arrange();
-        if (scrollBar.isVisible() && scrollBar.isMouseOver(event.x(), event.y())) {
-            return super.mouseClicked(event, doubleClick);
+        if (scrollBar.isVisible() && scrollBar.isMouseOver(mouseX, mouseY)) {
+            return super.mouseClicked(mouseX, mouseY, button);
         }
-        int index = layout.hit(event.x() - getX() - 2, event.y() - getY() - 2, scroll());
+        int index = layout.hit(mouseX - getX() - 2, mouseY - getY() - 2, scroll());
         ModelCardWidget card = cards.get(index);
-        return card != null && card.mouseClicked(event, doubleClick);
+        return card != null && card.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
@@ -135,7 +133,7 @@ public final class ModelLibraryGrid extends AbstractList implements AutoCloseabl
     }
 
     @Override
-    public boolean keyPressed(KeyEvent event) {
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (models.isEmpty() || layout == null) {
             return false;
         }
@@ -146,7 +144,7 @@ public final class ModelLibraryGrid extends AbstractList implements AutoCloseabl
                 break;
             }
         }
-        int step = switch (event.key()) {
+        int step = switch (keyCode) {
             case 262 -> 1;
             case 263 -> -1;
             case 264 -> layout.columns();
@@ -154,7 +152,7 @@ public final class ModelLibraryGrid extends AbstractList implements AutoCloseabl
             default -> 0;
         };
         if (step == 0) {
-            return super.keyPressed(event);
+            return super.keyPressed(keyCode, scanCode, modifiers);
         }
         int next = Math.clamp(index + step, 0, models.size() - 1);
         selected = models.get(next).modelId();

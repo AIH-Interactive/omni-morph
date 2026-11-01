@@ -8,7 +8,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import org.figuramc.figura.avatar.Avatar;
-import top.aihmc.omnimorph.ducks.FiguraItemRendererExtension;
 import org.figuramc.figura.lua.LuaNotNil;
 import org.figuramc.figura.lua.LuaWhitelist;
 import org.figuramc.figura.lua.api.world.ItemStackAPI;
@@ -18,7 +17,6 @@ import org.figuramc.figura.lua.docs.LuaMethodOverload;
 import org.figuramc.figura.lua.docs.LuaTypeDoc;
 import org.figuramc.figura.model.FiguraModelPart;
 import org.figuramc.figura.utils.LuaUtils;
-import org.figuramc.figura.utils.RenderUtils;
 import org.luaj.vm2.LuaError;
 
 import java.util.Locale;
@@ -47,10 +45,9 @@ public class ItemTask extends RenderTask {
         int newLight = this.customization.light != null ? this.customization.light : light;
         int newOverlay = this.customization.overlay != null ? this.customization.overlay : overlay;
         int seed = entity != null ? entity.getId() + displayMode.ordinal() : 0;
-        RenderUtils.renderStatic(
-                entity, item, displayMode,
-                poseStack,
-                newLight, newOverlay
+        Minecraft.getInstance().getItemRenderer().renderStatic(
+                entity, item, displayMode, left, poseStack, buffer, WorldAPI.getCurrentWorld(),
+                newLight, newOverlay, seed
         );
     }
 
@@ -86,7 +83,7 @@ public class ItemTask extends RenderTask {
         this.item = LuaUtils.parseItemStack("item", item);
         Minecraft client = Minecraft.getInstance();
         RandomSource random = client.level != null ? client.level.getRandom() : RandomSource.create();
-        cachedComplexity = ((FiguraItemRendererExtension)client.getItemModelResolver()).figura$getModelComplexity(this.item, random);
+        cachedComplexity = client.getItemRenderer().getModel(this.item, null, null, 0).getQuads(null, null, random).size();
         return this;
     }
 

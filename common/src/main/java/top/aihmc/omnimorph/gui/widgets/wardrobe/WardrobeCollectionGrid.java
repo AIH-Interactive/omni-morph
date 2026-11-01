@@ -1,9 +1,6 @@
 package top.aihmc.omnimorph.gui.widgets.wardrobe;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.FiguraMod;
@@ -240,10 +237,10 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         arrange();
         UIHelper.blitSliced(gui, getX(), getY(), getWidth(), getHeight(), UIHelper.OUTLINE_FILL);
-        super.extractRenderState(gui, mouseX, mouseY, delta);
+        super.render(gui, mouseX, mouseY, delta);
         enableScissors(gui);
         try {
             for (int index = layout.first(scroll()); index < layout.endWithPrefetch(scroll()); index++) {
@@ -254,7 +251,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
         }
     }
 
-    private void drawCard(GuiGraphicsExtractor gui, int index, int mouseX, int mouseY) {
+    private void drawCard(GuiGraphics gui, int index, int mouseX, int mouseY) {
         Entry entry = filtered.get(index);
         int x = getX() + 2 + layout.x(index);
         int y = getY() + contentTop() + layout.y(index, scroll());
@@ -271,7 +268,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
             image = images.get(index).capture();
         }
         int size = ModelLibraryLayout.imageSize(width);
-        gui.blit(RenderPipelines.GUI_TEXTURED, image == null ? PLACEHOLDER : image, x + 4, y + 4,
+        gui.blit(image == null ? PLACEHOLDER : image, x + 4, y + 4,
                 0, 0, size, size, size, size);
         ModelResourceBadges.drawType(gui, x + 4, y + 4, entry.format(), 16);
         int textX = x + size + 10;
@@ -305,28 +302,28 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() == 0 && isInsideScissors(event.x(), event.y())) {
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0 && isInsideScissors(mouseX, mouseY)) {
             arrange();
-            int index = layout.hit(event.x() - getX() - 2, event.y() - getY() - contentTop(), scroll());
+            int index = layout.hit(mouseX - getX() - 2, mouseY - getY() - contentTop(), scroll());
             if (index >= 0) {
                 choose(index);
                 return true;
             }
         }
-        return super.mouseClicked(event, doubleClick);
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
-    public boolean keyPressed(KeyEvent event) {
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (getFocused() instanceof SearchBar) {
-            return super.keyPressed(event);
+            return super.keyPressed(keyCode, scanCode, modifiers);
         }
         arrange();
         if (filtered.isEmpty()) {
-            return super.keyPressed(event);
+            return super.keyPressed(keyCode, scanCode, modifiers);
         }
-        int step = switch (event.key()) {
+        int step = switch (keyCode) {
             case 262 -> 1;
             case 263 -> -1;
             case 264 -> layout.columns();
@@ -334,7 +331,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
             default -> 0;
         };
         if (step == 0) {
-            return super.keyPressed(event);
+            return super.keyPressed(keyCode, scanCode, modifiers);
         }
         int current = -1;
         for (int index = 0; index < filtered.size(); index++) {

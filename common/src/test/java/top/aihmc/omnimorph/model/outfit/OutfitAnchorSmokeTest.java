@@ -2,7 +2,7 @@ package top.aihmc.omnimorph.model.outfit;
 
 import net.minecraft.client.model.geom.builders.CubeDeformation;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
-import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.model.PlayerModel;
 import net.minecraft.nbt.CompoundTag;
 import org.joml.Matrix4f;
 import org.figuramc.figura.avatar.Avatar;

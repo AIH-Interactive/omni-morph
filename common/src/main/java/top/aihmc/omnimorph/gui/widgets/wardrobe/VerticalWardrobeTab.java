@@ -1,6 +1,7 @@
 package top.aihmc.omnimorph.gui.widgets.wardrobe;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import com.mojang.math.Axis;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import org.figuramc.figura.gui.widgets.Button;
 import org.figuramc.figura.utils.ui.UIHelper;
@@ -12,17 +13,17 @@ public final class VerticalWardrobeTab extends Button {
     }
 
     @Override
-    protected void renderText(GuiGraphicsExtractor gui, float delta) {
-        gui.pose().pushMatrix();
+    protected void renderText(GuiGraphics gui, float delta) {
+        gui.pose().pushPose();
         try {
-            gui.pose().translate(getX() + getWidth() / 2f, getY() + getHeight() / 2f);
+            gui.pose().translate(getX() + getWidth() / 2f, getY() + getHeight() / 2f, 0);
             // A negative scale reverses glyph winding and can cull the complete label.
             // Reverse the reading direction with a rotation that keeps glyphs front-facing.
-            gui.pose().rotate(-(float) Math.PI / 2f);
+            gui.pose().mulPose(Axis.ZP.rotationDegrees(-90));
             UIHelper.renderCenteredScrollingText(gui, getMessage(), -getHeight() / 2 + 2,
                     -getWidth() / 2, getHeight() - 4, getWidth(), getTextColor());
         } finally {
-            gui.pose().popMatrix();
+            gui.pose().popPose();
         }
     }
 }

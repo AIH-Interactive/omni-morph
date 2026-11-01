@@ -1,13 +1,10 @@
 package org.figuramc.figura.gui.widgets;
 
+import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -52,13 +49,11 @@ public class ScrollBarWidget extends AbstractWidget implements FiguraWidget {
 
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean bl) {
-        if (!this.isActive() || !this.isHoveredOrFocused() || !this.isMouseOver(mouseButtonEvent.x(), mouseButtonEvent.y()))
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (!this.isActive() || !this.isHoveredOrFocused() || !this.isMouseOver(mouseX, mouseY))
             return false;
 
-        if (mouseButtonEvent.button() == 0) {
-            double mouseX = mouseButtonEvent.x();
-            double mouseY = mouseButtonEvent.y();
+        if (button == 0) {
             // jump to pos when not clicking on head
             double scrollPos = Mth.lerp(scrollPrecise, 0d, (vertical ? getHeight() - headHeight : getWidth() - headWidth) + 2d);
 
@@ -74,12 +69,12 @@ public class ScrollBarWidget extends AbstractWidget implements FiguraWidget {
             return true;
         }
 
-        return super.mouseClicked(mouseButtonEvent, bl);
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
-    public boolean mouseReleased(MouseButtonEvent mouseButtonEvent) {
-        if (mouseButtonEvent.button() == 0 && isScrolling) {
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (button == 0 && isScrolling) {
             isScrolling = false;
             return true;
         }
@@ -88,9 +83,7 @@ public class ScrollBarWidget extends AbstractWidget implements FiguraWidget {
     }
 
     @Override
-    public boolean mouseDragged(MouseButtonEvent mouseButtonEvent, double deltaX, double deltaY) {
-        double mouseX = mouseButtonEvent.x();
-        double mouseY = mouseButtonEvent.y();
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
         if (isScrolling) {
             // vertical drag
             if (vertical) {
@@ -117,7 +110,7 @@ public class ScrollBarWidget extends AbstractWidget implements FiguraWidget {
             }
         }
 
-        return super.mouseDragged(mouseButtonEvent, deltaX, deltaY);
+        return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
     }
 
     @Override
@@ -128,16 +121,14 @@ public class ScrollBarWidget extends AbstractWidget implements FiguraWidget {
     }
 
     @Override
-    public boolean keyPressed(KeyEvent keyEvent) {
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (!this.isActive()) return false;
-
-        int keyCode = keyEvent.key();
         if (keyCode > 261 && keyCode < 266) {
             scroll((keyCode % 2 == 0 ? 1 : -1) * (vertical ? getHeight() : getWidth()) * 0.05d * scrollRatio);
             return true;
         }
 
-        return super.keyPressed(keyEvent);
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
@@ -158,7 +149,7 @@ public class ScrollBarWidget extends AbstractWidget implements FiguraWidget {
     }
 
     @Override
-    public void extractWidgetRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void renderWidget(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         if (!isVisible())
             return;
 
@@ -170,26 +161,29 @@ public class ScrollBarWidget extends AbstractWidget implements FiguraWidget {
         if (vertical) {
             renderBar(gui, getX(), getY(), getWidth(), getHeight());
         } else {
-            gui.pose().pushMatrix();
-            gui.pose().translate(getX(), getY() + getHeight());
-            gui.pose().rotate(-(float) Math.PI / 2f);
-            renderBar(gui, 0, 0, getHeight(), getWidth());
-            gui.pose().popMatrix();
+            gui.pose().pushPose();
+            try {
+                gui.pose().translate(getX(), getY() + getHeight(), 0);
+                gui.pose().mulPose(Axis.ZP.rotationDegrees(-90));
+                renderBar(gui, 0, 0, getHeight(), getWidth());
+            } finally {
+                gui.pose().popPose();
+            }
         }
     }
 
-    private void renderBar(GuiGraphicsExtractor gui, int x, int y, int width, int height) {
+    private void renderBar(GuiGraphics gui, int x, int y, int width, int height) {
         int renderedHeadWidth = vertical ? headWidth : headHeight;
         int renderedHeadHeight = vertical ? headHeight : headWidth;
-        gui.blit(RenderPipelines.GUI_TEXTURED, SCROLLBAR_TEXTURE, x, y, 10f,
-                isScrolling ? 20f : 0f, width, 1, 10, 1, 20, 40);
-        gui.blit(RenderPipelines.GUI_TEXTURED, SCROLLBAR_TEXTURE, x, y + 1, 10f,
-                isScrolling ? 21f : 1f, width, height - 2, 10, 18, 20, 40);
-        gui.blit(RenderPipelines.GUI_TEXTURED, SCROLLBAR_TEXTURE, x, y + height - 1, 10f,
-                isScrolling ? 39f : 19f, width, 1, 10, 1, 20, 40);
+        gui.blit(SCROLLBAR_TEXTURE, x, y, width, 1, 10f,
+                isScrolling ? 20f : 0f, 10, 1, 20, 40);
+        gui.blit(SCROLLBAR_TEXTURE, x, y + 1, width, height - 2, 10f,
+                isScrolling ? 21f : 1f, 10, 18, 20, 40);
+        gui.blit(SCROLLBAR_TEXTURE, x, y + height - 1, width, 1, 10f,
+                isScrolling ? 39f : 19f, 10, 1, 20, 40);
 
         int headY = y + (int) Math.round(Mth.lerp(scrollPos, 0, height - renderedHeadHeight));
-        gui.blit(RenderPipelines.GUI_TEXTURED, SCROLLBAR_TEXTURE, x, headY, 0f,
+        gui.blit(SCROLLBAR_TEXTURE, x, headY, 0f,
                 isHoveredOrFocused() || isScrolling ? renderedHeadHeight : 0f,
                 renderedHeadWidth, renderedHeadHeight, 20, 40);
     }

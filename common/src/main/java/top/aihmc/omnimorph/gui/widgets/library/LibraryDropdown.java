@@ -1,8 +1,7 @@
 package top.aihmc.omnimorph.gui.widgets.library;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.input.InputWithModifiers;
 import net.minecraft.network.chat.Component;
 import org.figuramc.figura.gui.widgets.Button;
 import org.figuramc.figura.gui.widgets.ContextMenu;
@@ -46,7 +45,7 @@ public final class LibraryDropdown extends Button {
     }
 
     @Override
-    public void onPress(InputWithModifiers input) {
+    public void onPress() {
         openPage(Math.max(0, selected.getAsInt()) / pageSize);
     }
 
@@ -82,7 +81,7 @@ public final class LibraryDropdown extends Button {
     }
 
     @Override
-    protected void renderText(GuiGraphicsExtractor gui, float delta) {
+    protected void renderText(GuiGraphics gui, float delta) {
         updateMessage();
         UIHelper.renderCenteredScrollingText(gui, getMessage(), getX() + 3, getY(),
                 Math.max(1, getWidth() - 16), getHeight(), getTextColor() | 0xff000000);

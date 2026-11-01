@@ -8,8 +8,6 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.flag.FeatureFlagSet;
 import net.minecraft.world.flag.FeatureFlags;
-import net.minecraft.core.component.DataComponentMap;
-import net.minecraft.world.item.Items;
 import net.minecraft.server.Bootstrap;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
@@ -314,13 +312,9 @@ public final class YsmActionRuntimeSmokeTest {
         client.level = (RegistryLevel) unsafe.allocateInstance(RegistryLevel.class);
         instance.set(null, client);
         try {
-            // The CPU fixture has no data-pack loader; bind only the four icon items used by this wheel.
-            for (var item : List.of(Items.COMPARATOR, Items.BOOK, Items.ARROW, Items.ARMOR_STAND)) {
-                item.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
-            }
             var item = net.minecraft.commands.arguments.item.ItemArgument.item(
                     net.minecraft.commands.CommandBuildContext.simple(client.level.registryAccess(), client.level.enabledFeatures()))
-                    .parse(new com.mojang.brigadier.StringReader("minecraft:comparator")).createItemStack(1);
+                    .parse(new com.mojang.brigadier.StringReader("minecraft:comparator")).createItemStack(1, false);
             new org.figuramc.figura.lua.api.world.ItemStackAPI(item);
             testInstalledLayout();
             testPageTabOverflow();
@@ -414,7 +408,7 @@ public final class YsmActionRuntimeSmokeTest {
                 Field dragging = org.figuramc.figura.gui.widgets.ScrollBarWidget.class.getDeclaredField("isScrolling");
                 dragging.setAccessible(true);
                 dragging.setBoolean(bar, true);
-                require(bar.mouseDragged(new net.minecraft.client.input.MouseButtonEvent(right - 1, bar.getY() + 1, null), 20, 0)
+                require(bar.mouseDragged(right - 1, bar.getY() + 1, 0, 20, 0)
                                 && bar.getScrollProgress() > 0.5,
                         "the existing scrollbar drag path uses the horizontal axis");
                 bar.setScrollProgressNoAnim(2);
@@ -474,7 +468,7 @@ public final class YsmActionRuntimeSmokeTest {
 
     private static final class RegistryLevel extends ClientLevel {
         private RegistryLevel() {
-            super(null, null, null, null, 0, 0, null, false, 0L, 0);
+            super(null, null, null, null, 0, 0, null, null, false, 0L);
         }
 
         @Override

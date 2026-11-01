@@ -1,12 +1,12 @@
 package top.aihmc.omnimorph.mixin.particle;
 
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.chunk.RenderSectionRegion;
+import net.minecraft.client.renderer.chunk.RenderChunkRegion;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(RenderSectionRegion.class)
+@Mixin(RenderChunkRegion.class)
 public interface ParticleLightRegionAccessor {
     @Accessor("level")
-    ClientLevel figura$lightLevel();
+    Level figura$lightLevel();
 }

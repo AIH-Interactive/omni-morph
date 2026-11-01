@@ -1,9 +1,8 @@
 package top.aihmc.omnimorph.gui.widgets.wardrobe;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
-import net.minecraft.client.input.MouseButtonEvent;
 import org.figuramc.figura.gui.widgets.FiguraWidget;
 import org.figuramc.figura.gui.widgets.lists.AbstractList;
 
@@ -57,14 +56,14 @@ public final class WardrobeEditorPanel extends AbstractList {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         arrange();
-        super.extractRenderState(gui, mouseX, mouseY, delta);
+        super.render(gui, mouseX, mouseY, delta);
         enableScissors(gui);
         try {
             for (GuiEventListener widget : content) {
                 if (widget instanceof Renderable renderable) {
-                    renderable.extractRenderState(gui, mouseX, mouseY, delta);
+                    renderable.render(gui, mouseX, mouseY, delta);
                 }
             }
         } finally {
@@ -73,8 +72,8 @@ public final class WardrobeEditorPanel extends AbstractList {
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        return isInsideScissors(event.x(), event.y()) && super.mouseClicked(event, doubleClick);
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        return isInsideScissors(mouseX, mouseY) && super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override

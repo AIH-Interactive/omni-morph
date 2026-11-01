@@ -1,7 +1,9 @@
 package top.aihmc.omnimorph.neoforge;
 
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.neoforged.api.distmarker.Dist;
@@ -11,6 +13,7 @@ import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.event.RegisterShadersEvent;
 import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
@@ -21,6 +24,7 @@ import top.aihmc.omnimorph.config.neoforge.ModConfig;
 import top.aihmc.omnimorph.gui.neoforge.GuiOverlay;
 import top.aihmc.omnimorph.gui.neoforge.GuiUnderlay;
 import top.aihmc.omnimorph.utils.neoforge.FiguraResourceListenerImpl;
+import top.aihmc.omnimorph.model.ysm.YsmPreviewRenderTypes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +43,12 @@ public class FiguraModClientNeoForge extends FiguraMod {
     @SubscribeEvent
     public static void registerResourceListener(RegisterClientReloadListenersEvent event) {
         getResourceListeners().forEach(figuraResourceListener -> event.registerReloadListener((FiguraResourceListenerImpl) figuraResourceListener));
+    }
+
+    @SubscribeEvent
+    public static void registerShaders(RegisterShadersEvent event) throws java.io.IOException {
+        event.registerShader(new ShaderInstance(event.getResourceProvider(), YsmPreviewRenderTypes.SHADER_ID,
+                DefaultVertexFormat.NEW_ENTITY), YsmPreviewRenderTypes::setShader);
     }
 
     @SubscribeEvent

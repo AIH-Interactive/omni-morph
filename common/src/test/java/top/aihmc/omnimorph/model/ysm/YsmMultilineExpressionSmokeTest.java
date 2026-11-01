@@ -68,7 +68,9 @@ public final class YsmMultilineExpressionSmokeTest {
                     bytes("{\"properties\":{\"merge_multiline_expr\":" + enabled + "}}")))) {
                 properties.invoke(null, tag, source);
             }
-            require(tag.getBooleanOr("merge_multiline_expr", !enabled) == enabled, "loader retains the model's merge flag");
+            require(tag.contains("merge_multiline_expr", net.minecraft.nbt.Tag.TAG_BYTE)
+                            && tag.getBoolean("merge_multiline_expr") == enabled,
+                    "loader retains the model's merge flag");
             tag.put("animations", entries(animation));
             tag.put("animation_controllers", entries(controller));
             var readAnimations = YsmModelRuntime.class.getDeclaredMethod("readAnimations", CompoundTag.class, MolangEngine.class);

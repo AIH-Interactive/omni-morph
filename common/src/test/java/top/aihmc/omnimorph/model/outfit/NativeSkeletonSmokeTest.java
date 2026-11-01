@@ -2,7 +2,7 @@ package top.aihmc.omnimorph.model.outfit;
 
 import net.minecraft.client.model.geom.builders.CubeDeformation;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
-import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.model.PlayerModel;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import org.joml.Matrix4f;
@@ -146,9 +146,8 @@ public final class NativeSkeletonSmokeTest {
         var slimAdapter = new VanillaSkeletonAdapter(slim, OutfitLimits.defaults());
         require(adapter.binding().definition().hash().equals(slimAdapter.binding().definition().hash()),
                 "wide/slim share stable vanilla bone references");
-        wide.root().x = 1;
-        wide.root().y = 2;
-        wide.root().z = 3;
+        // In 1.21.1 the entity's model matrix supplies the root transform; PlayerModel has no root part.
+        var modelToEntity = new Matrix4f().translation(1f / 16, 2f / 16, 3f / 16);
         wide.body.x = 2;
         wide.body.y = 3;
         wide.body.z = 5;
@@ -158,14 +157,14 @@ public final class NativeSkeletonSmokeTest {
         wide.body.zScale = 4;
         var body = adapter.binding().definition().reference(null,
                 adapter.binding().definition().uniqueNamed("Body").orElseThrow());
-        SkeletonPose pose = adapter.capture(new Matrix4f());
+        SkeletonPose pose = adapter.capture(modelToEntity);
         matrix(pose.matrix(body).orElseThrow(), new float[]{
                 0, 2, 0, 0, -3, 0, 0, 0, 0, 0, 4, 0, 3, 5, 8, 1
         }, "actual vanilla part pivot, rotation and scale");
         pose.matrix(body).orElseThrow().identity();
         near(pose.matrix(body).orElseThrow().m30(), 3, "caller cannot mutate a retained frame");
         wide.body.x = 9;
-        near(adapter.capture(new Matrix4f()).matrix(body).orElseThrow().m30(), 10,
+        near(adapter.capture(modelToEntity).matrix(body).orElseThrow().m30(), 10,
                 "same adapter reads the next native animation pose");
         near(pose.matrix(body).orElseThrow().m30(), 3, "previous frame remains detached");
         require(pose.matrix(new OutfitConfig.BoneRef(UUID.randomUUID(), body.path(), body.skeletonHash())).isEmpty(),

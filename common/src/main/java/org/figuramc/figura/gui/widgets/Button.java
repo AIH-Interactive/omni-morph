@@ -2,10 +2,8 @@ package org.figuramc.figura.gui.widgets;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.utils.FiguraIdentifier;
@@ -54,7 +52,7 @@ public class Button extends net.minecraft.client.gui.components.Button implement
     }
 
     @Override
-    public void extractContents(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void renderWidget(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         if (!this.isVisible())
             return;
 
@@ -74,8 +72,9 @@ public class Button extends net.minecraft.client.gui.components.Button implement
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean bl) {
-        return this.isHoveredOrFocused() && this.isMouseOver(mouseButtonEvent.x(), mouseButtonEvent.y()) && super.mouseClicked(mouseButtonEvent, bl);
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        return this.isHoveredOrFocused() && this.isMouseOver(mouseX, mouseY)
+                && super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
@@ -86,11 +85,11 @@ public class Button extends net.minecraft.client.gui.components.Button implement
         return over;
     }
 
-    protected void renderDefaultTexture(GuiGraphicsExtractor gui, float delta) {
+    protected void renderDefaultTexture(GuiGraphics gui, float delta) {
         UIHelper.blitSliced(gui, getX(), getY(), getWidth(), getHeight(), getU() * 16f, getV() * 16f, 16, 16, 48, 32, TEXTURE);
     }
 
-    protected void renderTexture(GuiGraphicsExtractor gui, float delta) {
+    protected void renderTexture(GuiGraphics gui, float delta) {
         // uv transforms
         int u = this.u + this.getU() * this.regionSize;
         int v = this.v + this.getV() * this.regionSize;
@@ -99,17 +98,19 @@ public class Button extends net.minecraft.client.gui.components.Button implement
         UIHelper.enableBlend();
 
         int size = this.regionSize;
-        gui.blit(RenderPipelines.GUI_TEXTURED, this.texture, this.getX() + this.getWidth() / 2 - size / 2, this.getY() + this.getHeight() / 2 - size / 2, u, v, size, size, this.textureWidth, this.textureHeight);
+        gui.blit(this.texture, this.getX() + this.getWidth() / 2 - size / 2,
+                this.getY() + this.getHeight() / 2 - size / 2, u, v, size, size,
+                this.textureWidth, this.textureHeight);
     }
 
-    protected void renderText(GuiGraphicsExtractor gui, float delta) {
+    protected void renderText(GuiGraphics gui, float delta) {
         UIHelper.renderCenteredScrollingText(gui, getMessage(), getX() + 1, getY(), getWidth() - 2, getHeight(), getTextColor());
     }
 
-    protected void renderVanillaBackground(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    protected void renderVanillaBackground(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         Component message = getMessage();
         setMessage(Component.empty());
-        super.extractDefaultSprite(gui);
+        super.renderWidget(gui, mouseX, mouseY, delta);
         setMessage(message);
     }
 
@@ -153,7 +154,7 @@ public class Button extends net.minecraft.client.gui.components.Button implement
 
     public void run() {
         playDownSound(Minecraft.getInstance().getSoundManager());
-        onPress(null);
+        onPress();
     }
 
     @Override

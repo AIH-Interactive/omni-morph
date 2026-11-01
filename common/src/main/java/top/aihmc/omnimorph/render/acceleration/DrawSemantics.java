@@ -1,6 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
-import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.RenderStateShard;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Objects;
@@ -30,7 +31,8 @@ public record DrawSemantics(RenderType material, ResourceLocation texture, Layer
     }
 
     public boolean cull() {
-        return material != null && material.pipeline().isCull();
+        return material instanceof RenderType.CompositeRenderType composite
+                && composite.state.cullState == RenderStateShard.CULL;
     }
 
     public boolean sortOnUpload() {

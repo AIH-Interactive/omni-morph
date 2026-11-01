@@ -1,5 +1,6 @@
 package top.aihmc.omnimorph.model.outfit;
 
+import org.figuramc.figura.utils.NbtDefaults;
 import com.google.gson.Gson;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.decoration.ArmorStand;
@@ -28,7 +29,7 @@ public final class OutfitFormalPreparationSmokeTest {
                 new PermissionPack.CategoryPermissionPack(Permissions.Category.DEFAULT), wearer.getUUID().toString());
         for (var input : List.of(figura, plainFixture(encrypted), encrypted)) {
             var format = !input.contains("ysm") ? OutfitConfig.Format.FIGURA
-                    : top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload.isEncrypted(input.getCompoundOrEmpty("ysm"))
+                    : top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload.isEncrypted(input.getCompound("ysm"))
                     ? OutfitConfig.Format.YSM_ENCRYPTED : OutfitConfig.Format.YSM_PLAIN;
             var resource = new OutfitConfig.ResourceRef(OutfitConfig.Source.CLOUD, null, "https://example.invalid",
                     UUID.randomUUID(), 1L, "a".repeat(64), format);
@@ -48,12 +49,12 @@ public final class OutfitFormalPreparationSmokeTest {
                 probe.clean();
             }
             var bone = definition.reference(null, definition.roots().getFirst());
-            var original = CosmeticMetadata.read(input.getCompoundOrEmpty("metadata").getStringOr("cosmetic_json", ""));
+            var original = CosmeticMetadata.read(input.getCompound("metadata").getString("cosmetic_json"));
             var metadata = new CosmeticMetadata(original.common(), original.category(), original.cosmeticAnchor(),
                     true, false, true, "formal-test", definition.hash(), List.of("VANILLA", "FIGURA", "YSM"),
                     "CLIENT_EXTRACTED", List.of(bone), List.of(bone), OutfitConfig.Transform.identity());
             CompoundTag data = input.copy();
-            data.getCompoundOrEmpty("metadata").putString("cosmetic_json", OutfitCodec.encodeAccessoryMetadata(metadata).toString());
+            data.getCompound("metadata").putString("cosmetic_json", OutfitCodec.encodeAccessoryMetadata(metadata).toString());
             var scripts = new CompoundTag();
             scripts.putByteArray("must_wait", "error('instance scripts must wait for activation')".getBytes(StandardCharsets.UTF_8));
             data.put("scripts", scripts);
@@ -108,11 +109,11 @@ public final class OutfitFormalPreparationSmokeTest {
                         declaration.getAsJsonArray("exported_bones").get(0).getAsJsonObject().getAsJsonArray("path").add(extra);
                     }
                     case "base-family" -> declaration.add("supported_bases", new Gson().toJsonTree(List.of("YSM")));
-                    case "missing-metadata" -> changed.getCompoundOrEmpty("metadata").remove("cosmetic_json");
+                    case "missing-metadata" -> changed.getCompound("metadata").remove("cosmetic_json");
                     default -> throw new AssertionError(invalid);
                 }
                 if (!invalid.equals("missing-metadata")) {
-                    changed.getCompoundOrEmpty("metadata").putString("cosmetic_json", declaration.toString());
+                    changed.getCompound("metadata").putString("cosmetic_json", declaration.toString());
                 }
                 reject(() -> OutfitPreparation.prepare(withoutOverrides, OutfitLimits.defaults(), wearer.getUUID(),
                         UUID.randomUUID(), wearer, permissions, new SkeletonIndex.Cache(), (ref, cancelled) -> changed.copy(),
@@ -143,10 +144,6 @@ public final class OutfitFormalPreparationSmokeTest {
             var previousWorld = cachedWorld.get(null);
             try {
                 client.level = (RegistryLevel) unsafe.allocateInstance(RegistryLevel.class);
-                // Item components normally arrive from data packs, absent from this native CPU fixture.
-                for (var item : List.of(net.minecraft.world.item.Items.COMPARATOR, net.minecraft.world.item.Items.ARMOR_STAND)) {
-                    item.builtInRegistryHolder().bindComponents(net.minecraft.core.component.DataComponentMap.EMPTY);
-                }
                 testPublication(configuration, data, wearer, permissions, resource, authorized, drain);
                 UUID originalOwner = wearer.getUUID();
                 try {
@@ -175,7 +172,7 @@ public final class OutfitFormalPreparationSmokeTest {
         ysm.putFloat("height_scale", 1);
         // Match the identity field supplied by the real plaintext YSM loader.
         ysm.putString("content_sha256", top.aihmc.omnimorph.backend2.protocol.CloudHttp.sha256(
-                ysm.getByteArray("main_model").orElseThrow()));
+                NbtDefaults.findByteArray(ysm, "main_model").orElseThrow()));
         for (String key : List.of("animations", "animation_controllers", "functions", "action_schemas")) {
             ysm.put(key, new net.minecraft.nbt.ListTag());
         }
@@ -190,7 +187,7 @@ public final class OutfitFormalPreparationSmokeTest {
         CompoundTag instanceData = data.copy();
         instanceData.remove("scripts");
         CompoundTag baseData = instanceData.copy();
-        baseData.getCompoundOrEmpty("metadata").putString("resource_kind", "AVATAR");
+        baseData.getCompound("metadata").putString("resource_kind", "AVATAR");
         var scripts = new CompoundTag();
         scripts.putByteArray("counter", "ticks = 0; function events.tick() ticks = ticks + 1 end"
                 .getBytes(StandardCharsets.UTF_8));
@@ -299,7 +296,7 @@ public final class OutfitFormalPreparationSmokeTest {
                                          Predicate<OutfitConfig.ResourceRef> authorized) throws Exception {
         Avatar base = Avatar.createLibraryPreview(UUID.randomUUID(), "borrowed-base");
         CompoundTag baseData = data.copy();
-        baseData.getCompoundOrEmpty("metadata").putString("resource_kind", "AVATAR");
+        baseData.getCompound("metadata").putString("resource_kind", "AVATAR");
         baseData.remove("scripts");
         base.load(baseData);
         base.bindOutfitSource(resource);
@@ -313,11 +310,11 @@ public final class OutfitFormalPreparationSmokeTest {
             }
             require(base.loaded && base.nbt != null && base.outfitSource().equals(resource)
                             && base.accelerationOwner().isCurrent(), "composition retirement never destroys its borrowed base");
-            base.nbt.getCompoundOrEmpty("metadata").putString("resource_kind", "ACCESSORY");
+            base.nbt.getCompound("metadata").putString("resource_kind", "ACCESSORY");
             reject(() -> OutfitPreparation.prepare(withBase, OutfitLimits.defaults(), wearer.getUUID(),
                     UUID.randomUUID(), wearer, permissions, new SkeletonIndex.Cache(), (ref, cancelled) -> data.copy(),
                     () -> false, CosmeticInstanceContext.Scope.OWNER, base, authorized, authorized));
-            base.nbt.getCompoundOrEmpty("metadata").putString("resource_kind", "AVATAR");
+            base.nbt.getCompound("metadata").putString("resource_kind", "AVATAR");
             var other = new OutfitConfig.ResourceRef(OutfitConfig.Source.CLOUD, null, resource.origin(),
                     UUID.randomUUID(), 1L, resource.contentHash(), resource.format());
             base.bindOutfitSource(other);
@@ -364,6 +361,11 @@ public final class OutfitFormalPreparationSmokeTest {
         }
 
         @Override
+        public int getPermissionLevel() {
+            return 0;
+        }
+
+        @Override
         public net.minecraft.world.level.Level getLevel() {
             return net.minecraft.client.Minecraft.getInstance().level;
         }
@@ -372,7 +374,7 @@ public final class OutfitFormalPreparationSmokeTest {
     private static final class RegistryLevel extends net.minecraft.client.multiplayer.ClientLevel
             implements org.figuramc.figura.mixin.ClientLevelInvoker {
         private RegistryLevel() {
-            super(null, null, null, null, 0, 0, null, false, 0L, 0);
+            super(null, null, null, null, 0, 0, () -> null, null, false, 0L);
         }
 
         @Override

@@ -2,11 +2,9 @@ package org.figuramc.figura.gui;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.toasts.Toast;
-import net.minecraft.client.gui.components.toasts.ToastManager;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.gui.components.toasts.ToastComponent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
@@ -16,7 +14,6 @@ import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.utils.ColorUtils;
 import org.figuramc.figura.utils.FiguraIdentifier;
 import org.figuramc.figura.utils.ui.UIHelper;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Calendar;
 import java.util.Date;
@@ -42,14 +39,16 @@ public class FiguraToast implements Toast {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, Font font, long startTime) {
+    public Visibility render(GuiGraphics gui, ToastComponent toasts, long startTime) {
+        updateVisibility(startTime);
+        Font font = Minecraft.getInstance().font;
         int titleTime = Math.round(Configs.TOAST_TITLE_TIME.value * 1000);
 
         long timeDiff = startTime - this.startTime;
 
         UIHelper.enableBlend();
         int frame = Configs.REDUCED_MOTION.value ? 0 : (int) ((FiguraMod.ticks / 5f) % type.frames);
-        gui.blit(RenderPipelines.GUI_TEXTURED, type.texture, 0, 0, 0f, frame * height(), width(), height(), width(), height() * type.frames);
+        gui.blit(type.texture, 0, 0, 0f, frame * (float) height(), width(), height(), width(), height() * type.frames);
 
         if (this.message.getString().isBlank()) {
             renderText(this.title, font, gui, 0xFF);
@@ -61,23 +60,18 @@ public class FiguraToast implements Toast {
 
             if (a.size() == 1 && b.size() == 1) {
                 int y = Math.round(height() / 2f - font.lineHeight - 1);
-                gui.text(font, this.title, type.spacing, y, UIHelper.adjustColor(0xFFFFFF));
-                gui.text(font, this.message, type.spacing, y * 2 + 4, UIHelper.adjustColor(0xFFFFFF));
+                gui.drawString(font, this.title, type.spacing, y, UIHelper.adjustColor(0xFFFFFF));
+                gui.drawString(font, this.message, type.spacing, y * 2 + 4, UIHelper.adjustColor(0xFFFFFF));
             } else if (timeDiff < titleTime) {
                 renderText(this.title, font, gui, Math.round(Math.min(Math.max((titleTime - timeDiff) / 300f, 0), 1) * 255));
             } else {
                 renderText(this.message, font, gui, Math.round(Math.min(Math.max((timeDiff - titleTime) / 300f, 0), 1) * 255));
             }
         }
-    }
-
-    @Override
-    public @NotNull Visibility getWantedVisibility() {
         return visibility;
     }
 
-    @Override
-    public void update(ToastManager toastManager, long startTime) {
+    private void updateVisibility(long startTime) {
         int time = Math.round(Configs.TOAST_TIME.value * 1000);
         if (this.update) {
             if (startTime - this.startTime < time)
@@ -92,14 +86,14 @@ public class FiguraToast implements Toast {
         visibility = timeDiff < time ? Visibility.SHOW : Visibility.HIDE;
     }
 
-    public void renderText(Component text, Font font, GuiGraphicsExtractor gui, int alpha) {
+    public void renderText(Component text, Font font, GuiGraphics gui, int alpha) {
         List<FormattedCharSequence> list = font.split(text, width() - type.spacing - 1);
         if (list.size() == 1)
-            gui.text(font, text, type.spacing, Math.round(height() / 2f - font.lineHeight / 2f), UIHelper.adjustColor(0xFFFFFF + (alpha << 24)));
+            gui.drawString(font, text, type.spacing, Math.round(height() / 2f - font.lineHeight / 2f), UIHelper.adjustColor(0xFFFFFF + (alpha << 24)));
         else {
             int y = Math.round(height() / 2f - font.lineHeight - 1);
             for (int i = 0; i < list.size(); i++)
-                gui.text(font, list.get(i), type.spacing, y * (i + 1) + 4 * i, UIHelper.adjustColor(0xFFFFFF + (alpha << 24)));
+                gui.drawString(font, list.get(i), type.spacing, y * (i + 1) + 4 * i, UIHelper.adjustColor(0xFFFFFF + (alpha << 24)));
         }
     }
 
@@ -143,7 +137,7 @@ public class FiguraToast implements Toast {
                 type = ToastType.CHEESE;
         }
 
-        ToastManager toasts = Minecraft.getInstance().getToastManager();
+        ToastComponent toasts = Minecraft.getInstance().getToasts();
         FiguraToast toast = toasts.getToast(FiguraToast.class, type);
 
         FiguraMod.debug("Sent toast: \"{}\", \"{}\" of type: \"{}\"", text.getString(), text2.getString(), type.name());

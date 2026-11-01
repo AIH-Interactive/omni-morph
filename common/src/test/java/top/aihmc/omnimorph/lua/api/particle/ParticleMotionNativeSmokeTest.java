@@ -5,8 +5,6 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
-import net.minecraft.client.particle.SingleQuadParticle;
-import net.minecraft.client.renderer.state.level.QuadParticleRenderState;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.level.Level;
@@ -59,9 +57,11 @@ final class ParticleMotionNativeSmokeTest {
             require(wrapper.get("getRotation").call(wrapper).todouble() == 10
                             && wrapper.get("getAngularVelocity").call(wrapper).tofloat() == 20,
                     "Lua angle properties use degrees and preserve crossing-360 interpolation");
-            var state = new RotationQuads();
+            var state = new ParticleVertexCapture();
             particle.extract(state, new FixtureCamera(), .5f);
-            require(Math.abs(state.qz) < 1e-5 && Math.abs(Math.abs(state.qw) - 1) < 1e-5,
+            var vertices = state.batches.getFirst().vertices();
+            var edge = vertices.get(0).position().subtract(vertices.get(3).position());
+            require(edge.x > 0 && Math.abs(edge.y) < 1e-5 && Math.abs(edge.z) < 1e-5,
                     "native extraction sees 360 degrees halfway through the crossing, not a backwards 180-degree turn");
             particle.tick();
             near(position(particle), new Vec3(2.75, 1.5, -.75));
@@ -191,18 +191,6 @@ final class ParticleMotionNativeSmokeTest {
         field.setFloat(particle, value);
     }
 
-    private static final class RotationQuads extends QuadParticleRenderState {
-        private float qz, qw;
-
-        @Override
-        public void add(SingleQuadParticle.Layer layer, float x, float y, float z, float qx, float qy, float qz, float qw,
-                        float size, float u0, float u1, float v0, float v1, int color, int light) {
-            this.qz = qz;
-            this.qw = qw;
-            super.add(layer, x, y, z, qx, qy, qz, qw, size, u0, u1, v0, v1, color, light);
-        }
-    }
-
     private static final class FixtureCamera extends Camera {
         @Override
         public Quaternionf rotation() {
@@ -210,7 +198,7 @@ final class ParticleMotionNativeSmokeTest {
         }
 
         @Override
-        public Vec3 position() {
+        public Vec3 getPosition() {
             return Vec3.ZERO;
         }
     }
@@ -219,7 +207,7 @@ final class ParticleMotionNativeSmokeTest {
         private Map<Integer, Entity> entities;
 
         private MotionLevel() {
-            super(null, null, null, null, 0, 0, null, false, 0L, 0);
+            super(null, null, null, null, 0, 0, null, null, false, 0L);
         }
 
         @Override

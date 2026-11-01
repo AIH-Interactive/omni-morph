@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
 import net.minecraft.SharedConstants;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.Bootstrap;
 import org.figuramc.figura.math.matrix.FiguraMat3;
@@ -20,7 +20,7 @@ public final class GpuRigidDataSmokeTest {
         Bootstrap.bootStrap();
         var service = new AccelerationService();
         var owner = new AccelerationOwner();
-        var material = RenderTypes.entityTranslucent(ResourceLocation.parse("omni-morph:rigid_contract"));
+        var material = RenderType.entityTranslucent(ResourceLocation.parse("omni-morph:rigid_contract"));
         double[] vertices = new double[4 * MeshHandle.STRIDE];
         for (int vertex = 0; vertex < 4; vertex++) {
             vertices[vertex * MeshHandle.STRIDE + 3] = 1;
@@ -261,7 +261,7 @@ public final class GpuRigidDataSmokeTest {
      * decoded shader math reproduces the Java path for every vertex.
      */
     private static void testModelData(AccelerationService service, AccelerationOwner owner,
-                                      net.minecraft.client.renderer.rendertype.RenderType material) {
+                                      net.minecraft.client.renderer.RenderType material) {
         double[] vertices = new double[8 * MeshHandle.STRIDE];
         List<MeshHandle.Influences> influences = new ArrayList<>();
         for (int vertex = 0; vertex < 8; vertex++) {
@@ -347,7 +347,7 @@ public final class GpuRigidDataSmokeTest {
     }
 
     private static DrawBatch modelBatch(AccelerationService service, AccelerationOwner owner,
-                                        net.minecraft.client.renderer.rendertype.RenderType material, MeshHandle mesh,
+                                        net.minecraft.client.renderer.RenderType material, MeshHandle mesh,
                                         PoseSnapshot pose, int light, float red) {
         var semantics = new DrawSemantics(material, ResourceLocation.parse("omni-morph:rigid_contract"),
                 DrawSemantics.Layer.PRIMARY, "world", 0, mesh.faceCount(), light, 0, red, 1, 1, 1, 0, true);
@@ -416,7 +416,7 @@ public final class GpuRigidDataSmokeTest {
     }
 
     private static void testStaticValidationReuse(AccelerationService service, AccelerationOwner owner,
-                                                  net.minecraft.client.renderer.rendertype.RenderType material) {
+                                                  net.minecraft.client.renderer.RenderType material) {
         var semantics = new DrawSemantics(material, ResourceLocation.parse("omni-morph:static_validation"),
                 DrawSemantics.Layer.PRIMARY, "world", 0, 1, 0x00f000a0, 0, 1, 1, 1, 1, 0, true);
         var mesh = new MeshHandle(quad(1), 4);

@@ -1,16 +1,13 @@
 package top.aihmc.omnimorph.model.library;
 
-import com.mojang.blaze3d.pipeline.DepthStencilState;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.platform.CompareOp;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.VertexFormat;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.rendertype.RenderSetup;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.resources.ResourceLocation;
 import org.joml.Matrix4fc;
+import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.model.FiguraModelPart;
@@ -20,14 +17,13 @@ import top.aihmc.omnimorph.model.ysm.YsmGeometry;
 import top.aihmc.omnimorph.model.ysm.YsmModelPart;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 import top.aihmc.omnimorph.model.outfit.SkeletonPose;
-import org.figuramc.figura.utils.FiguraIdentifier;
 import org.figuramc.figura.utils.ui.UIHelper;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.UUID;
 
 /** One GUI frame's read-only selection. World rendering never consumes these overlays. */
@@ -172,25 +168,21 @@ public final class PreviewBoneHighlight {
             return;
         }
         var stack = new PoseStack();
-        stack.mulPose(entityToDraw);
+        stack.mulPose(new Matrix4f(entityToDraw));
         stack.scale(1f / 16, 1f / 16, 1f / 16);
         var pose = stack.last();
         var vertices = source.getBuffer(Lines.TYPE);
         for (var line : segments) {
             var normal = new Vector3f(line.x1() - line.x0(), line.y1() - line.y0(), line.z1() - line.z0()).normalize();
             vertices.addVertex(pose, line.x0(), line.y0(), line.z0()).setColor(0xff000000 | line.color())
-                    .setNormal(pose, normal.x, normal.y, normal.z).setLineWidth(1f);
+                    .setNormal(pose, normal.x, normal.y, normal.z);
             vertices.addVertex(pose, line.x1(), line.y1(), line.z1()).setColor(0xff000000 | line.color())
-                    .setNormal(pose, normal.x, normal.y, normal.z).setLineWidth(1f);
+                    .setNormal(pose, normal.x, normal.y, normal.z);
         }
     }
 
     public static RenderType translucent(RenderType original, ResourceLocation texture) {
-        if (original.hasBlending() || texture == null) {
-            return original;
-        }
-        return original.pipeline().isCull()
-                ? RenderTypes.entityTranslucentCullItemTarget(texture) : RenderTypes.entityTranslucent(texture);
+        return Lines.translucentMaterial(original, texture);
     }
 
     public static void figura(FiguraModelPart part, PartCustomization transform, MultiBufferSource source) {
@@ -258,22 +250,31 @@ public final class PreviewBoneHighlight {
         }
     }
 
-    private static final class Lines {
-        private static final RenderType TYPE = create();
+    private static final class Lines extends RenderType {
+        private static final RenderType TYPE = create("wardrobe_bone_selection",
+                DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.LINES, 1536,
+                CompositeState.builder()
+                        .setShaderState(RENDERTYPE_LINES_SHADER)
+                        .setLineState(new LineStateShard(OptionalDouble.of(1)))
+                        .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                        .setCullState(NO_CULL)
+                        .setDepthTestState(NO_DEPTH_TEST)
+                        .setWriteMaskState(COLOR_WRITE)
+                        .setOutputState(MAIN_TARGET)
+                        .createCompositeState(false));
 
-        private static RenderType create() {
-            var source = RenderPipelines.LINES;
-            var snippet = new RenderPipeline.Snippet(Optional.of(source.getVertexShader()),
-                    Optional.of(source.getFragmentShader()), Optional.of(source.getShaderDefines()),
-                    Optional.of(source.getSamplers()), Optional.of(source.getUniforms()),
-                    Optional.of(source.getColorTargetState()), Optional.ofNullable(source.getDepthStencilState()),
-                    Optional.of(source.getPolygonMode()), Optional.of(source.isCull()),
-                    Optional.of(source.getVertexFormat()), Optional.of(source.getVertexFormatMode()));
-            var pipeline = RenderPipelines.register(RenderPipeline.builder(snippet)
-                    .withLocation(FiguraIdentifier.of("pipeline/wardrobe_bone_selection"))
-                    .withDepthStencilState(new DepthStencilState(CompareOp.ALWAYS_PASS, false))
-                    .build());
-            return new RenderType("wardrobe_bone_selection", RenderSetup.builder(pipeline).createRenderSetup());
+        private Lines() {
+            super("wardrobe_bone_selection", DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.LINES,
+                    1536, false, false, () -> {}, () -> {});
+        }
+
+        private static RenderType translucentMaterial(RenderType original, ResourceLocation texture) {
+            if (texture == null || !(original instanceof RenderType.CompositeRenderType composite)
+                    || composite.state.transparencyState != NO_TRANSPARENCY) {
+                return original;
+            }
+            return composite.state.cullState == CULL
+                    ? RenderType.entityTranslucentCull(texture) : RenderType.entityTranslucent(texture);
         }
     }
 }

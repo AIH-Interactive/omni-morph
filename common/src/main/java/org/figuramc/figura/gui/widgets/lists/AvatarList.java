@@ -2,7 +2,7 @@ package org.figuramc.figura.gui.widgets.lists;
 
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.util.Mth;
 import net.minecraft.network.chat.Component;
@@ -180,7 +180,7 @@ public class AvatarList extends AbstractList {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         int x = getX();
         int y = getY();
         int width = getWidth();
@@ -212,7 +212,7 @@ public class AvatarList extends AbstractList {
             avatar.setY(y + yOffset);
 
             if (avatar.getY() + avatar.getHeight() > y + scissorsY)
-                avatar.extractRenderState(gui, mouseX, mouseY, delta);
+                avatar.render(gui, mouseX, mouseY, delta);
 
             yOffset += avatar.getHeight() + 2;
             if (yOffset > height)
@@ -223,7 +223,7 @@ public class AvatarList extends AbstractList {
         gui.disableScissor();
 
         // render children
-        super.extractRenderState(gui, mouseX, mouseY, delta);
+        super.render(gui, mouseX, mouseY, delta);
 
         // loading badge
         if (!LocalAvatarFetcher.isLoaded())

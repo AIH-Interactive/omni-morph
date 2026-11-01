@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.gui.widgets.library;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import org.figuramc.figura.gui.widgets.AbstractContainerElement;
 import org.figuramc.figura.gui.widgets.Button;
@@ -28,7 +28,7 @@ public final class LibraryRadioGroup extends AbstractContainerElement {
             changed.accept(option);
         }) {
             @Override
-            protected void renderDefaultTexture(GuiGraphicsExtractor gui, float delta) {
+            protected void renderDefaultTexture(GuiGraphics gui, float delta) {
                 int x = getX() + 2;
                 int y = getY() + 6;
                 int accent = FiguraMod.getAccentColor().getColor().getValue() | 0xff000000;
@@ -42,7 +42,7 @@ public final class LibraryRadioGroup extends AbstractContainerElement {
             }
 
             @Override
-            protected void renderText(GuiGraphicsExtractor gui, float delta) {
+            protected void renderText(GuiGraphics gui, float delta) {
                 UIHelper.renderScrollingText(gui, getMessage(), getX() + 14, getY() + 6,
                         Math.max(1, getWidth() - 16), getTextColor() | 0xff000000);
             }
@@ -58,12 +58,12 @@ public final class LibraryRadioGroup extends AbstractContainerElement {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         for (int index = 0; index < children.size(); index++) {
             Button button = (Button) children.get(index);
             button.setX(getX() + index * getWidth() / 2);
             button.setY(getY());
         }
-        super.extractRenderState(gui, mouseX, mouseY, delta);
+        super.render(gui, mouseX, mouseY, delta);
     }
 }

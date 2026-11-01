@@ -11,12 +11,12 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 
 @Mixin(value = BookViewScreen.class, priority = 1100)
 public class BookViewScreenMixin {
-    @ModifyArg(method = "visitText", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/ActiveTextCollector;accept(IILnet/minecraft/util/FormattedCharSequence;)V"))
+    @ModifyArg(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;drawString(Lnet/minecraft/client/gui/Font;Lnet/minecraft/util/FormattedCharSequence;IIIZ)I"), index = 1)
     public FormattedCharSequence render(FormattedCharSequence formattedCharSequence) {
         return Emojis.applyEmojis(TextUtils.charSequenceToText(formattedCharSequence)).getVisualOrderText();
     }
 
-    @ModifyArg(method = "visitText", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/ActiveTextCollector;accept(Lnet/minecraft/client/gui/TextAlignment;IILnet/minecraft/network/chat/Component;)V"), index = 3)
+    @ModifyArg(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;drawString(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;IIIZ)I"), index = 1)
     public Component render(Component component) {
         return Emojis.applyEmojis(component);
     }

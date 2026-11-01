@@ -2,13 +2,16 @@ package top.aihmc.omnimorph.model.library;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
-import net.minecraft.client.gui.render.pip.PictureInPictureRenderer;
+import net.minecraft.client.gui.GuiGraphics;
+import com.mojang.blaze3d.platform.Lighting;
+import net.minecraft.client.resources.PlayerSkin;
+import net.minecraft.client.player.AbstractClientPlayer;
+import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
 import net.minecraft.client.model.geom.builders.CubeDeformation;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
-import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.world.entity.player.PlayerModelType;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.math.matrix.FiguraMat4;
 import org.figuramc.figura.model.rendering.EntityRenderMode;
@@ -20,42 +23,43 @@ import org.figuramc.figura.permissions.Permissions;
 import org.figuramc.figura.utils.ui.UIHelper;
 
 /** Direct Figura geometry plus a native skinned body, without EntityRenderDispatcher or render layers. */
-public final class LibraryFiguraPreviewRenderer extends PictureInPictureRenderer<LibraryFiguraPreviewState> {
-    private final PlayerModel wide = createModel(false);
-    private final PlayerModel slim = createModel(true);
+public final class LibraryFiguraPreviewRenderer {
+    private static final LibraryFiguraPreviewRenderer INSTANCE = new LibraryFiguraPreviewRenderer();
+    private final PlayerModel<AbstractClientPlayer> wide = createModel(false);
+    private final PlayerModel<AbstractClientPlayer> slim = createModel(true);
 
-    public LibraryFiguraPreviewRenderer(MultiBufferSource.BufferSource source) {
-        super(source);
-    }
+    private LibraryFiguraPreviewRenderer() {}
 
-    static PlayerModel createModel(boolean slim) {
-        return new PlayerModel(LayerDefinition.create(PlayerModel.createMesh(CubeDeformation.NONE, slim),
+    static PlayerModel<AbstractClientPlayer> createModel(boolean slim) {
+        return new PlayerModel<>(LayerDefinition.create(PlayerModel.createMesh(CubeDeformation.NONE, slim),
                 64, 64).bakeRoot(), slim);
     }
 
-    @Override
-    public Class<LibraryFiguraPreviewState> getRenderStateClass() {
-        return LibraryFiguraPreviewState.class;
+    static void render(GuiGraphics gui, LibraryFiguraPreviewState state) {
+        var outfit = LibraryPreviewBinding.composition(state.playerPose().frame());
+        if (outfit != null) {
+            // Flushing prior GUI work may run callbacks that edit the live base model.
+            outfit.prepareFiguraBase(state.avatar());
+        }
+        gui.flush();
+        gui.enableScissor(state.x0(), state.y0(), state.x1(), state.y1());
+        PoseStack stack = gui.pose();
+        stack.pushPose();
+        try {
+            stack.translate((state.x0() + state.x1()) / 2f, (state.y0() + state.y1()) / 2f, 250);
+            stack.scale(state.scale(), state.scale(), -state.scale());
+            UIHelper.useFiguraLighting();
+            var model = state.playerPose().skin().model() == PlayerSkin.Model.SLIM ? INSTANCE.slim : INSTANCE.wide;
+            draw(state, stack, gui.bufferSource(), model);
+            gui.flush();
+        } finally {
+            stack.popPose();
+            gui.disableScissor();
+            Lighting.setupFor3DItems();
+        }
     }
 
-    @Override
-    protected String getTextureLabel() {
-        return "OmniMorph independent Figura preview";
-    }
-
-    @Override
-    protected float getTranslateY(int height, int guiScale) {
-        return height / 2f;
-    }
-
-    @Override
-    protected void renderToTexture(LibraryFiguraPreviewState state, PoseStack stack) {
-        UIHelper.useFiguraLighting();
-        PlayerModel model = state.playerPose().skin.model() == PlayerModelType.SLIM ? slim : wide;
-        draw(state, stack, bufferSource, model);
-    }
-
-    static void draw(LibraryFiguraPreviewState state, PoseStack stack, MultiBufferSource source, PlayerModel model) {
+    static void draw(LibraryFiguraPreviewState state, PoseStack stack, MultiBufferSource source, PlayerModel<?> model) {
         Avatar avatar = state.avatar();
         if (!avatar.loaded || !avatar.accelerationOwner().isCurrent()) {
             return;
@@ -76,12 +80,12 @@ public final class LibraryFiguraPreviewRenderer extends PictureInPictureRenderer
             stack.scale(-1, -1, 1);
             stack.translate(0, -1.501f, 0);
 
-            var outfit = LibraryPreviewBinding.composition(state.playerPose());
+            var outfit = LibraryPreviewBinding.composition(state.playerPose().frame());
             if (outfit != null) {
                 outfit.prepareFiguraBase(avatar);
             }
             Runnable drawSubmittedBase = () -> {
-                model.setupAnim(state.playerPose());
+                state.playerPose().apply(model);
                 avatar.updateMatrices(model, stack);
                 avatar.renderEvent(state.delta(), FiguraMat4.of());
                 var vanilla = avatar.luaRuntime == null ? null : avatar.luaRuntime.vanilla_model.PLAYER;
@@ -99,13 +103,13 @@ public final class LibraryFiguraPreviewRenderer extends PictureInPictureRenderer
                         drawBase.run();
                     } else {
                         var basePose = outfit.captureFiguraBase(avatar, new Matrix4f(entityToDraw).invert(), drawBase);
-                        OutfitNativeRenderer.draw(outfit, basePose, state.playerPose(), state.delta(), entityToDraw,
-                                source, EntityRenderMode.FIGURA_GUI);
+                        OutfitNativeRenderer.draw(outfit, basePose, new YsmEntityFrame(state.playerPose().ageInTicks(), 0, 0, 0, 0),
+                                0x00f000f0, state.delta(), entityToDraw, source, EntityRenderMode.FIGURA_GUI);
                     }
                     if (vanilla != null && avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1) {
                         vanilla.posTransform(model);
                     }
-                    model.renderToBuffer(stack, source.getBuffer(model.renderType(state.playerPose().skin.body().texturePath())),
+                    model.renderToBuffer(stack, source.getBuffer(model.renderType(state.playerPose().skin().texture())),
                             0x00f000f0, OverlayTexture.NO_OVERLAY);
                     avatar.postRenderEvent(state.delta(), FiguraMat4.of());
                 } finally {
@@ -119,11 +123,11 @@ public final class LibraryFiguraPreviewRenderer extends PictureInPictureRenderer
             } else {
                 drawSubmittedBase.run();
             }
-            // PiP's outer matrix reflects Z. Billboard orientation uses only the authored view rotation.
+            // The outer GUI matrix reflects Z. Billboard orientation uses only the authored view rotation.
             var viewRotation = new Quaternionf().rotationZ((float) Math.PI)
                     .rotateX((float) Math.toRadians(state.pitch()))
                     .rotateY((float) Math.toRadians(state.yaw() + 180));
-            LibraryPreviewBinding.particles(state.playerPose(), viewRotation, state.delta()).draw(entityToDraw, source);
+            LibraryPreviewBinding.particles(state.playerPose().frame(), viewRotation, state.delta()).draw(entityToDraw, source);
         } finally {
             stack.popPose();
             avatar.renderMode = previousMode;

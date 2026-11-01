@@ -60,6 +60,7 @@ public final class YsmPlayerTimelineSmokeTest {
                     "timeline":{"0":"mark('next.zero');","0.05":"mark('next.mid');"}}
                 }}
                 """, engine));
+        player.registerArmAnimations(player.getClips());
         player.registerControllers(YsmAnimationControllerParser.parse("""
                 {"animation_controllers":{
                   "player.main":{"initial_state":"active","states":{
@@ -82,7 +83,8 @@ public final class YsmPlayerTimelineSmokeTest {
                 }
                 boolean armPass = pass == 1;
                 sample(player, evaluator, armPass);
-                assertMatrix(matrix(runtime, armPass), -(times[frame] + (armPass ? 1f : 0f)) * 1.2f, 0f,
+                // The later declared controller owns position; its weight scales its own clip.
+                assertMatrix(matrix(runtime, armPass), -(times[frame] + (armPass ? 1f : 0f)) * 0.2f, 0f,
                         "frame " + frame + " pass " + pass);
             }
         }
@@ -93,23 +95,34 @@ public final class YsmPlayerTimelineSmokeTest {
         float retiredTime = retired.time;
         context.variables.setPath("switch", 1f);
         player.controllerRuntime().update(evaluator, 0f, false);
-        require(trace.subList(trace.size() - 2, trace.size()).equals(List.of("player.main:exit", "player.main:next.zero")),
-                "state exit precedes incoming initial timeline event");
+        int exitEventCount = trace.size();
+        require(trace.getLast().equals("player.main:exit"),
+                "state exit runs before the incoming beginning transition: " + trace);
+        var incoming = player.getControllerAnimation("player.main", "next");
+        equal(0f, incoming.time, "incoming clip starts frozen at time zero");
         advance(player, evaluator, 0.1f);
         player.controllerRuntime().update(evaluator, 0.1f, false);
         sample(player, evaluator, false);
-        assertMatrix(matrix(runtime, false), -2.055f, 45f, "body transition retains its own outgoing snapshot");
+        assertMatrix(matrix(runtime, false), -0.03f, 45f, "parallel body position overrides the transitioning main position");
         sample(player, evaluator, true);
-        assertMatrix(matrix(runtime, true), -2.755f, 45f, "arm transition retains its own outgoing snapshot");
+        assertMatrix(matrix(runtime, true), -0.23f, 45f, "parallel arm position preserves the main rotation transition");
         equal(retiredTime, retired.time, "retired clip never advances");
-        require(trace.getLast().equals("player.main:next.mid"), "only incoming clip emits transition timeline event");
+        require(trace.size() == exitEventCount, "incoming clip events wait during the beginning transition");
+        equal(0f, incoming.time, "incoming clock remains frozen at transition midpoint");
         advance(player, evaluator, 0.1f);
         player.controllerRuntime().update(evaluator, 0.1f, false);
+        require(trace.size() == exitEventCount + 1 && trace.getLast().equals("player.main:next.zero"),
+                "transition boundary emits the incoming zero event exactly once: " + trace);
+        equal(0f, incoming.time, "exact transition boundary keeps animation time zero");
+        advance(player, evaluator, 0.05f);
+        player.controllerRuntime().update(evaluator, 0.05f, false);
+        require(trace.size() == exitEventCount + 2 && trace.getLast().equals("player.main:next.mid"),
+                "only the incoming clip emits its first running timeline event: " + trace);
         for (float weight : new float[]{0f, 0.2f, 1f}) {
             context.variables.setPath("weight", weight);
             sample(player, evaluator, false);
             float time = player.getControllerAnimation("player.parallel_1", "loop").time;
-            assertMatrix(matrix(runtime, false), -(4f + time * 0.2f) * weight, 90f * weight,
+            assertMatrix(matrix(runtime, false), -time * 0.2f * weight, 90f * weight,
                     "live weight after completed transition " + weight);
         }
         testSmallLoopTime(player, evaluator);
@@ -131,6 +144,7 @@ public final class YsmPlayerTimelineSmokeTest {
                     "bones":{"root":{"position":[64,0,0],"rotation":[0,0,90]}}}
                 }}
                 """, engine));
+        player.registerArmAnimations(player.getClips());
         player.registerControllers(YsmAnimationControllerParser.parse("""
                 {"animation_controllers":{
                   "player.main":{"initial_state":"ysm-entry-child","states":{
@@ -186,7 +200,11 @@ public final class YsmPlayerTimelineSmokeTest {
                 YsmGeometry.class, YsmGeometry.class, FiguraTexture.class, String.class, boolean.class,
                 String.class, String.class, Map.class, float.class, float.class, boolean.class);
         constructor.setAccessible(true);
-        return constructor.newInstance(null, geometry(), geometry(), null, "fixture", false,
+        var unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+        unsafeField.setAccessible(true);
+        var unsafe = (sun.misc.Unsafe) unsafeField.get(null);
+        var owner = (Avatar) unsafe.allocateInstance(Avatar.class);
+        return constructor.newInstance(owner, geometry(), geometry(), null, "fixture", false,
                 "NEW", "timeline-fixture", Map.of(), 1f, 1f, true);
     }
 

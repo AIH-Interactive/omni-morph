@@ -1,14 +1,10 @@
 package top.aihmc.omnimorph.lua.api.particle;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
-import net.minecraft.client.particle.SingleQuadParticle;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.SubmitNodeCollector;
-import net.minecraft.client.renderer.rendertype.RenderSetup;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.state.level.QuadParticleRenderState;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
@@ -20,7 +16,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
 
-/** Immutable panel geometry. Deferred draws never sample history, execute Lua or reserve budgets again. */
+/** Immutable particle geometry. Replaying world/panel draws never samples history or reserves budgets again. */
 public final class PreviewParticleFrame {
     private static final PreviewParticleFrame EMPTY = new PreviewParticleFrame(List.of());
     private final List<Batch> batches;
@@ -36,30 +32,28 @@ public final class PreviewParticleFrame {
     static PreviewParticleFrame extract(CustomParticle[] particles, Vec3 origin, Quaternionf viewRotation,
                                         float partialTick) {
         var camera = new PreviewCamera(origin, viewRotation);
-        Vec3 offset = camera.position().subtract(origin);
+        Vec3 offset = camera.getPosition().subtract(origin);
+        return extract(particles, camera, null, partialTick, offset);
+    }
+
+    static PreviewParticleFrame extract(CustomParticle[] particles, Camera camera, Frustum frustum,
+                                        float partialTick, Vec3 offset) {
         var batches = new ArrayList<Batch>();
         for (CustomParticle particle : particles) {
             if (!particle.active()) {
                 continue;
             }
             if (particle.ribbon()) {
-                var ribbon = particle.extractRibbon(camera, null, partialTick,
+                var ribbon = particle.extractRibbon(camera, frustum, partialTick,
                         CustomParticleRuntime.availableRibbonVertices(particle));
                 if (ribbon != null) {
                     for (var layer : ribbon.layers()) {
                         capture(batches, particle, layer.material(), offset, consumer -> ribbon.writeLayer(consumer, layer));
                     }
                 }
-            } else {
-                particle.extract(new QuadParticleRenderState() {
-                    @Override
-                    public void add(SingleQuadParticle.Layer layer, float x, float y, float z,
-                                    float qx, float qy, float qz, float qw, float size,
-                                    float u0, float u1, float v0, float v1, int color, int light) {
-                        capture(batches, particle, layer, offset, consumer -> renderRotatedQuad(consumer,
-                                x, y, z, qx, qy, qz, qw, size, u0, u1, v0, v1, color, light));
-                    }
-                }, camera, partialTick);
+            } else if (frustum == null || frustum.isVisible(particle.getBoundingBox())) {
+                particle.extract((material, writer) -> capture(batches, particle, material, offset, writer),
+                        camera, partialTick);
             }
         }
         // Match the world particle pass: author layer indices determine compositing order.
@@ -67,7 +61,7 @@ public final class PreviewParticleFrame {
         return new PreviewParticleFrame(batches);
     }
 
-    private static void capture(List<Batch> batches, CustomParticle particle, SingleQuadParticle.Layer material,
+    private static void capture(List<Batch> batches, CustomParticle particle, CustomParticlePipelines.Material material,
                                 Vec3 offset, Consumer<VertexConsumer> writer) {
         var layers = particle.currentLayers();
         for (int index = 0; index < layers.size(); index++) {
@@ -87,6 +81,10 @@ public final class PreviewParticleFrame {
     }
 
     public void draw(Matrix4f entityToDraw, MultiBufferSource source) {
+        draw(entityToDraw, source, false);
+    }
+
+    void draw(Matrix4f entityToDraw, MultiBufferSource source, boolean world) {
         if (batches.isEmpty()) {
             return;
         }
@@ -94,7 +92,7 @@ public final class PreviewParticleFrame {
             buffers.endBatch();
         }
         for (Batch batch : batches) {
-            RenderType type = batch.renderType();
+            RenderType type = batch.material().renderType(world);
             batch.write(entityToDraw, source.getBuffer(type));
             if (source instanceof MultiBufferSource.BufferSource buffers) {
                 buffers.endBatch(type);
@@ -102,21 +100,8 @@ public final class PreviewParticleFrame {
         }
     }
 
-    public void submit(PoseStack stack, SubmitNodeCollector collector) {
-        for (Batch batch : batches) {
-            collector.order(100 + batch.layerIndex()).submitCustomGeometry(stack, batch.renderType(),
-                    (pose, consumer) -> batch.write(pose.pose(), consumer));
-        }
-    }
-
-    private record Batch(int layerIndex, SingleQuadParticle.Layer material, FiguraTexture texture,
+    private record Batch(int layerIndex, CustomParticlePipelines.Material material, FiguraTexture texture,
                          List<Vertex> vertices) {
-        RenderType renderType() {
-            return new RenderType("omni_morph_preview_particle", RenderSetup.builder(material.pipeline())
-                    .withTexture("Sampler0", material.textureAtlasLocation(), texture::getSampler)
-                    .useLightmap().createRenderSetup());
-        }
-
         void write(Matrix4f transform, VertexConsumer consumer) {
             for (Vertex vertex : vertices) {
                 consumer.addVertex(transform, vertex.x(), vertex.y(), vertex.z())
@@ -194,11 +179,6 @@ public final class PreviewParticleFrame {
         public VertexConsumer setNormal(float x, float y, float z) {
             throw new UnsupportedOperationException("PARTICLE_FORMAT_HAS_NO_NORMAL");
         }
-
-        @Override
-        public VertexConsumer setLineWidth(float width) {
-            throw new UnsupportedOperationException("PARTICLE_FORMAT_HAS_NO_LINE_WIDTH");
-        }
     }
 
     private static final class PreviewCamera extends Camera {
@@ -212,7 +192,7 @@ public final class PreviewParticleFrame {
         }
 
         @Override
-        public Vec3 position() {
+        public Vec3 getPosition() {
             return position;
         }
 

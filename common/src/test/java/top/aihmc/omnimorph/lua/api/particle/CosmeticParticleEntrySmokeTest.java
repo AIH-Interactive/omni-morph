@@ -42,7 +42,7 @@ final class CosmeticParticleEntrySmokeTest {
         Avatar second = owner(wearer, resource, mode, template, data);
         var preview = mode == CosmeticInstanceContext.Scope.DRAFT
                 ? new PreviewParticleScope(Minecraft.getInstance().level, OutfitLimits.defaults()) : null;
-        com.mojang.blaze3d.textures.GpuTexture cachedTexture = null;
+        int cachedTextureId = -1;
         try {
             if (preview != null) {
                 preview.bindAll(List.of(first, second));
@@ -58,7 +58,8 @@ final class CosmeticParticleEntrySmokeTest {
                 require(first.getYsmRuntime().setTexture("BoDy"), "the original case-insensitive skin selection remains available");
                 require(ParticleAPI.resolveTexture(first, "body") == first.getYsmRuntime().texture(),
                         "YSM particles reuse the current native body texture without another decode");
-                cachedTexture = ParticleAPI.resolveTexture(first, "event").getTexture();
+                cachedTextureId = ParticleAPI.resolveTexture(first, "event").getId();
+                require(org.lwjgl.opengl.GL11.glIsTexture(cachedTextureId), "named particle texture is uploaded");
             }
             var firstAnimation = marker(first);
             require(count(preview, wearer) == 0, "a native animation marker does not synchronously emit a particle");
@@ -103,7 +104,7 @@ final class CosmeticParticleEntrySmokeTest {
             drain.run();
         }
         require(CustomParticleRuntime.liveCount(wearer) == 0, "author cleanup returns all world capacity");
-        require(cachedTexture == null || cachedTexture.isClosed(),
+        require(cachedTextureId == -1 || !org.lwjgl.opengl.GL11.glIsTexture(cachedTextureId),
                 "YSM named particle texture retires after its runtime, particles and extracted frame release it");
     }
 

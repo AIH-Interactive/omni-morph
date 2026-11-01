@@ -251,7 +251,7 @@ public final class LibraryEquipmentSmokeTest {
         private byte[] bytes() throws java.io.IOException {
             var tag = LibraryEquipmentSmokeTest.model("source model");
             if (broken) {
-                tag.getCompoundOrEmpty("metadata").putString("format", "ysm-native");
+                tag.getCompound("metadata").putString("format", "ysm-native");
                 tag.put("ysm", new CompoundTag());
             }
             var output = new ByteArrayOutputStream();

@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.gui.widgets.config;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.MutableComponent;
 import org.figuramc.figura.config.ConfigType;
 import org.figuramc.figura.gui.widgets.ParentedButton;
@@ -23,10 +23,10 @@ public final class ReadOnlyElement extends AbstractConfigElement {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         display.setMessage(status.text.get());
         display.setTooltip(status.text.get());
-        super.extractRenderState(gui, mouseX, mouseY, delta);
+        super.render(gui, mouseX, mouseY, delta);
     }
 
     @Override

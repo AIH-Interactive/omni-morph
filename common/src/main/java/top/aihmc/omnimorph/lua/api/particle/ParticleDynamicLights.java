@@ -3,7 +3,7 @@ package top.aihmc.omnimorph.lua.api.particle;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.BlockAndLightGetter;
+import net.minecraft.world.level.BlockAndTintGetter;
 import top.aihmc.omnimorph.mixin.particle.ParticleLightRegionAccessor;
 import top.aihmc.omnimorph.model.outfit.OutfitInstructionBudget;
 
@@ -237,7 +237,7 @@ public final class ParticleDynamicLights {
         }
     }
 
-    public static int apply(BlockAndLightGetter getter, BlockPos position, int original) {
+    public static int apply(BlockAndTintGetter getter, BlockPos position, int original) {
         if (externalProvider) {
             return original;
         }

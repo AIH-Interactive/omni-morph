@@ -1,7 +1,6 @@
 package top.aihmc.omnimorph.gui.widgets;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.utils.FiguraIdentifier;
@@ -16,10 +15,9 @@ public final class ModelResourceBadges {
 
     private ModelResourceBadges() {}
 
-    public static void draw(GuiGraphicsExtractor gui, int x, int y, boolean cloud) {
+    public static void draw(GuiGraphics gui, int x, int y, boolean cloud) {
         gui.fill(x, y, x + 10, y + 10, 0xe0101820);
-        gui.blit(RenderPipelines.GUI_TEXTURED, cloud ? CLOUD : LOCAL, x, y, 24, 0,
-                10, 10, 24, 24, 72, 24);
+        gui.blit(cloud ? CLOUD : LOCAL, x, y, 10, 10, 24, 0, 24, 24, 72, 24);
     }
 
     public static Component tooltip(Component title, boolean cloud, String format) {
@@ -41,11 +39,11 @@ public final class ModelResourceBadges {
         return FiguraText.of("gui.wardrobe.resource_type", FiguraText.of(type));
     }
 
-    public static void drawType(GuiGraphicsExtractor gui, int x, int y, String format) {
+    public static void drawType(GuiGraphics gui, int x, int y, String format) {
         drawType(gui, x, y, format, 10);
     }
 
-    public static void drawType(GuiGraphicsExtractor gui, int x, int y, String format, int size) {
+    public static void drawType(GuiGraphics gui, int x, int y, String format, int size) {
         if (format == null) {
             return;
         }
@@ -55,7 +53,6 @@ public final class ModelResourceBadges {
         }
         int cell = figura ? 20 : 24;
         gui.fill(x, y, x + size, y + size, 0xe0101820);
-        gui.blit(RenderPipelines.GUI_TEXTURED, figura ? FIGURA : YSM, x, y, cell, 0,
-                size, size, cell, cell, cell * 3, cell);
+        gui.blit(figura ? FIGURA : YSM, x, y, size, size, cell, 0, cell, cell, cell * 3, cell);
     }
 }

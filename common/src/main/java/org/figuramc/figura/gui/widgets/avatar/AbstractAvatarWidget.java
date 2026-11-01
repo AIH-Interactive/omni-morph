@@ -3,10 +3,8 @@ package org.figuramc.figura.gui.widgets.avatar;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.FontDescription;
 import net.minecraft.network.chat.Style;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.AvatarManager;
@@ -29,7 +27,7 @@ import java.util.Locale;
 public abstract class AbstractAvatarWidget extends AbstractContainerElement implements Comparable<AbstractAvatarWidget> {
 
     protected static final int SPACING = 6;
-    protected static final Component FAVOURITE = Component.literal("★").withStyle(Style.EMPTY.withFont(new FontDescription.Resource(UIHelper.UI_FONT)));
+    protected static final Component FAVOURITE = Component.literal("★").withStyle(Style.EMPTY.withFont(UIHelper.UI_FONT));
     protected static final Component ADD_FAVOURITE = FiguraText.of("gui.context.favorite.add");
     protected static final Component REMOVE_FAVOURITE = FiguraText.of("gui.context.favorite.remove");
 
@@ -106,11 +104,11 @@ public abstract class AbstractAvatarWidget extends AbstractContainerElement impl
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         if (!isVisible() || !this.button.isVisible())
             return;
 
-        super.extractRenderState(gui, mouseX, mouseY, delta);
+        super.render(gui, mouseX, mouseY, delta);
 
         if (favourite) {
             Font font = Minecraft.getInstance().font;
@@ -118,7 +116,7 @@ public abstract class AbstractAvatarWidget extends AbstractContainerElement impl
             int x = this.getX() + this.getWidth() - width;
             int y = this.getY() + 2;
 
-            gui.text(font, FAVOURITE, x, y, UIHelper.adjustColor(0xFFFFFF), false);
+            gui.drawString(font, FAVOURITE, x, y, UIHelper.adjustColor(0xFFFFFF), false);
 
             if (mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + font.lineHeight)
                 UIHelper.setTooltip(FiguraText.of("gui.favorited").append(" ").append(FAVOURITE));
@@ -126,14 +124,11 @@ public abstract class AbstractAvatarWidget extends AbstractContainerElement impl
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean bl) {
-        double mouseX = mouseButtonEvent.x();
-        double mouseY = mouseButtonEvent.y();
-        int button = mouseButtonEvent.button();
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (!this.isMouseOver(mouseX, mouseY))
             return false;
 
-        if (super.mouseClicked(mouseButtonEvent, bl))
+        if (super.mouseClicked(mouseX, mouseY, button))
             return true;
 
         // context menu on right click

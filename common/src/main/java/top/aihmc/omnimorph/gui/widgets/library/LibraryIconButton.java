@@ -1,7 +1,6 @@
 package top.aihmc.omnimorph.gui.widgets.library;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.gui.widgets.Button;
@@ -32,16 +31,16 @@ public final class LibraryIconButton extends Button {
     }
 
     @Override
-    protected void renderDefaultTexture(GuiGraphicsExtractor gui, float delta) {
+    protected void renderDefaultTexture(GuiGraphics gui, float delta) {
         super.renderDefaultTexture(gui, delta);
         int row = Math.clamp(variant.getAsInt(), 0, variants - 1);
-        gui.blit(RenderPipelines.GUI_TEXTURED, icon, getX() + (getWidth() - 24) / 2,
+        gui.blit(icon, getX() + (getWidth() - 24) / 2,
                 getY() + (getHeight() - 24) / 2, getU() * 24, row * 24,
                 24, 24, 72, variants * 24);
     }
 
     @Override
-    protected void renderText(GuiGraphicsExtractor gui, float delta) {
+    protected void renderText(GuiGraphics gui, float delta) {
         // The label remains available for keyboard narration and hover hints.
     }
 }

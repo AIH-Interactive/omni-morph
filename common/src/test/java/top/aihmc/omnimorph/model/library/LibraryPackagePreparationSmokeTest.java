@@ -1,5 +1,6 @@
 package top.aihmc.omnimorph.model.library;
 
+import org.figuramc.figura.utils.NbtDefaults;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
 import org.figuramc.figura.avatar.AvatarManager;
@@ -67,7 +68,8 @@ public final class LibraryPackagePreparationSmokeTest {
             var prepared = LibraryPackagePreparation.prepare(figura, owner, 1024 * 1024, () -> false);
             require(prepared.metadata().internalName().equals("图包") && prepared.metadata().authors().isEmpty()
                     && !prepared.metadata().requiresAuthorizationDefault(), "Figura source defaults");
-            require(prepared.nbt().getCompoundOrEmpty("metadata").getStringOr("authors", "?").isEmpty()
+            require(org.figuramc.figura.utils.NbtDefaults.getStringOr(
+                            prepared.nbt().getCompound("metadata"), "authors", "?").isEmpty()
                     && prepared.nbt().contains("scripts") && prepared.nbt().contains("resources"),
                     "compiled resources and no invented author");
             require(CloudHttp.sha256(prepared.compressed()).equals(prepared.sha256()), "distribution digest");
@@ -92,7 +94,7 @@ public final class LibraryPackagePreparationSmokeTest {
                                 && nestedPrepared.metadata().authors().equals(java.util.List.of("Original"))
                                 && !nestedPrepared.metadata().requiresAuthorizationDefault(),
                         "nested Figura metadata resolves the model's own avatar.json");
-                var scripts = nestedPrepared.nbt().getCompoundOrEmpty("scripts");
+                var scripts = nestedPrepared.nbt().getCompound("scripts");
                 require(scripts.contains("script") && scripts.size() == 1
                                 && nestedPrepared.nbt().contains("resources"),
                         "nested compilation uses model-relative paths and excludes sibling skins/scripts");
@@ -103,7 +105,7 @@ public final class LibraryPackagePreparationSmokeTest {
                     "wrapped/script.lua", "return 1",
                     "wrapped/LICENSE/\nAnAn-Figura-avatar/LICENSE", "original attribution"));
             var unusual = LibraryPackagePreparation.prepare(unusualNames, owner, 1024 * 1024, () -> false);
-            require(unusual.nbt().getCompoundOrEmpty("resources")
+            require(unusual.nbt().getCompound("resources")
                             .contains("LICENSE/\nAnAn-Figura-avatar/LICENSE"),
                     "ZIP-only path names and explicitly declared attribution resources retain their exact names");
 
@@ -114,14 +116,14 @@ public final class LibraryPackagePreparationSmokeTest {
                             + "\"bones\":[{\"name\":\"root\"}]}]}"));
             var ysm = LibraryPackagePreparation.prepare(plain, owner, 1024 * 1024, () -> false);
             require(ysm.metadata().modelType().equals("YSM_PLAIN") && ysm.metadata().requiresAuthorizationDefault()
-                    && !ysm.nbt().getCompoundOrEmpty("ysm").contains("source_path"), "plain portable input");
+                    && !ysm.nbt().getCompound("ysm").contains("source_path"), "plain portable input");
 
             Path encrypted = Path.of("src/test/resources/ysm/crypto-vectors/crypto1.ysm");
             var cipher = LibraryPackagePreparation.prepare(encrypted, owner, 1024 * 1024, () -> false);
             require(cipher.metadata().modelType().equals("YSM_ENCRYPTED")
                     && cipher.nbt().equals(YsmSourcePayload.forOutput(cipher.nbt()))
                     && java.util.Arrays.equals(Files.readAllBytes(encrypted),
-                    cipher.nbt().getCompoundOrEmpty("ysm").getByteArray("source_ciphertext").orElseThrow()),
+                    NbtDefaults.findByteArray(cipher.nbt().getCompound("ysm"), "source_ciphertext").orElseThrow()),
                     "encrypted distribution retains original ciphertext only");
             testPrivatePreparation(directory, owner, figura, plain, encrypted);
             OutfitSourceCacheSmokeTest.run(directory, prepared);
@@ -199,8 +201,7 @@ public final class LibraryPackagePreparationSmokeTest {
         require(editedEncrypted.metadata().modelType().equals("YSM_ENCRYPTED")
                         && editedEncrypted.resourceKind().equals("ACCESSORY")
                         && editedEncrypted.metadataSource().equals("encrypted_manifest")
-                        && java.util.Arrays.equals(ciphertext, editedEncrypted.nbt().getCompoundOrEmpty("ysm")
-                        .getByteArray("source_ciphertext").orElseThrow())
+                        && java.util.Arrays.equals(ciphertext, NbtDefaults.findByteArray(editedEncrypted.nbt().getCompound("ysm"), "source_ciphertext").orElseThrow())
                         && editedEncrypted.accessoryMetadata().equals(encryptedDeclaration),
                 "encrypted accessory upload retains original ciphertext, native format and edited wrapper declaration");
         Path ambiguous = zip(directory.resolve("ambiguous-accessory.zip"), Map.of(
@@ -250,7 +251,7 @@ public final class LibraryPackagePreparationSmokeTest {
         var formattedReference = index.describe(privateBase, () -> false);
         var formatted = OutfitPrivatePreparation.prepare(UUID.randomUUID(), formattedReference, avatarKind, owner,
                 directory, limits, 1024 * 1024, () -> false);
-        require(formatted.nbt().getCompoundOrEmpty("metadata").getStringOr("name", "").equals("§bOriginal"),
+        require(formatted.nbt().getCompound("metadata").getString("name").equals("§bOriginal"),
                 "private native packaging preserves existing runtime metadata instead of catalog plain text");
         Files.writeString(privateBase.resolve("avatar.json"), "{\"name\":\"Changed\"}");
         reject(() -> OutfitPrivatePreparation.prepare(UUID.randomUUID(), formattedReference, avatarKind, owner,
@@ -269,8 +270,7 @@ public final class LibraryPackagePreparationSmokeTest {
         var prepared = OutfitPrivatePreparation.prepare(UUID.randomUUID(), reference, accessoryKind, owner,
                 directory, limits, 1024 * 1024, () -> false);
         require(prepared.upload().request(limits).get("resource_kind").getAsString().equals("ACCESSORY")
-                        && java.util.Arrays.equals(Files.readAllBytes(encrypted), prepared.nbt().getCompoundOrEmpty("ysm")
-                        .getByteArray("source_ciphertext").orElseThrow())
+                        && java.util.Arrays.equals(Files.readAllBytes(encrypted), NbtDefaults.findByteArray(prepared.nbt().getCompound("ysm"), "source_ciphertext").orElseThrow())
                         && Files.readString(accessory.resolve("cosmetic.json")).equals(authored),
                 "unapplied local accessory resolves from inventory and retains encrypted source and author declaration");
         Files.writeString(accessory.resolve("script.lua"), "return 2");

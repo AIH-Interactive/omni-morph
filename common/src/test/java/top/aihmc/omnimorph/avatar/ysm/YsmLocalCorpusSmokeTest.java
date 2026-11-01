@@ -3,6 +3,7 @@ package top.aihmc.omnimorph.avatar.ysm;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
+import org.figuramc.figura.utils.NbtDefaults;
 import org.figuramc.figura.avatar.local.LocalAvatarFetcher;
 import org.figuramc.figura.avatar.local.LocalAvatarLoader;
 
@@ -40,10 +41,10 @@ public final class YsmLocalCorpusSmokeTest {
                                      YsmSourceIdentity.ContainerKind.DIRECTORY, () -> false)) {
                             var nbt = YsmAvatarLoader.toAvatarNbt(data, null, new UUID(0, 1), path);
                             require(nbt.contains("ysm") && !data.mainGeometry().bones.isEmpty(), "YSM formal data assembly");
-                            verifyAttachedResources(data, nbt.getCompoundOrEmpty("ysm"));
+                            verifyAttachedResources(data, nbt.getCompound("ysm"));
                             var transferred = transfer(nbt);
-                            verifyAttachedResources(data, transferred.getCompoundOrEmpty("ysm"));
-                            require(transferred.getCompoundOrEmpty("ysm").getStringOr("content_sha256", "")
+                            verifyAttachedResources(data, transferred.getCompound("ysm"));
+                            require(transferred.getCompound("ysm").getString("content_sha256")
                                     .equals(data.identity().contentSha256()), "plain model content identity retained through transfer");
                         }
                         ysm++;
@@ -83,13 +84,13 @@ public final class YsmLocalCorpusSmokeTest {
 
     private static void verifyAttachedResources(YsmModelData data, net.minecraft.nbt.CompoundTag runtime,
                                                 String key, java.util.List<String> paths) throws Exception {
-        var entries = runtime.getListOrEmpty(key);
+        var entries = NbtDefaults.getListOrEmpty(runtime, key);
         require(entries.size() == paths.size(), "all indexed attached resources assembled: " + key);
         for (int index = 0; index < entries.size(); index++) {
-            var entry = entries.getCompoundOrEmpty(index);
-            String path = entry.getStringOr("path", "");
+            var entry = entries.getCompound(index);
+            String path = entry.getString("path");
             require(path.equals(paths.get(index)), "attached resource path order retained: " + key);
-            require(Arrays.equals(entry.getByteArray("data").orElseThrow(), data.resources().readBytes(path)),
+            require(Arrays.equals(NbtDefaults.findByteArray(entry, "data").orElseThrow(), data.resources().readBytes(path)),
                     "attached resource bytes retained: " + key);
         }
     }
@@ -103,20 +104,20 @@ public final class YsmLocalCorpusSmokeTest {
             require(data.manifest().name().equals(manifest.name()), "wardrobe metadata agrees with formal data");
             var texture = data.manifest().textures().getFirst();
             var nbt = YsmAvatarLoader.toAvatarNbt(data, texture, new UUID(0, 1), path);
-            require(nbt.keySet().equals(Set.of("metadata", "ysm")), "encrypted avatar root whitelist");
-            var payload = nbt.getCompoundOrEmpty("ysm");
+            require(nbt.getAllKeys().equals(Set.of("metadata", "ysm")), "encrypted avatar root whitelist");
+            var payload = nbt.getCompound("ysm");
             require(!payload.contains("main_model") && !payload.contains("animations")
                     && !payload.contains("texture") && !payload.contains("source_path"), "ciphertext storage boundary");
-            require(Arrays.equals(Files.readAllBytes(path), payload.getByteArray("source_ciphertext").orElseThrow()),
+            require(Arrays.equals(Files.readAllBytes(path), NbtDefaults.findByteArray(payload, "source_ciphertext").orElseThrow()),
                     "original ciphertext retained");
             var runtime = YsmAvatarLoader.toRuntimeTag(data, texture);
             verifyAttachedResources(data, runtime);
             require(!payload.contains("sound_entries") && !payload.contains("language_entries"),
                     "decrypted sound/language bytes remain outside the portable payload");
             require(!runtime.contains("source_ciphertext") && runtime.contains("texture"), "ephemeral runtime resources");
-            require(runtime.getListOrEmpty("animations").size() == data.manifest().animationPaths().size(),
+            require(NbtDefaults.getListOrEmpty(runtime, "animations").size() == data.manifest().animationPaths().size(),
                     "all player animation resources retained");
-            CompoundTag transferred = transfer(nbt).getCompoundOrEmpty("ysm");
+            CompoundTag transferred = transfer(nbt).getCompound("ysm");
             try (YsmModelData restored = YsmSourcePayload.openData(transferred, () -> false)) {
                 require(restored.identity().equals(data.identity()), "portable source identity");
                 require(restored.mainGeometry().bones.size() == data.mainGeometry().bones.size(), "rehydrated geometry");
@@ -146,12 +147,12 @@ public final class YsmLocalCorpusSmokeTest {
             for (Path model : files.filter(file -> file.getFileName().toString().endsWith(".bbmodel")).toList()) {
                 String name = model.getFileName().toString();
                 name = name.substring(0, name.length() - ".bbmodel".length());
-                require(hasModel(nbt.getCompoundOrEmpty("models"), name), "every Figura model retained: " + name);
+                require(hasModel(nbt.getCompound("models"), name), "every Figura model retained: " + name);
             }
         }
-        var textureSources = nbt.getCompoundOrEmpty("textures").getCompoundOrEmpty("src");
-        for (String texture : textureSources.keySet()) {
-            require(textureSources.getByteArray(texture).orElse(new byte[0]).length > 0,
+        var textureSources = nbt.getCompound("textures").getCompound("src");
+        for (String texture : textureSources.getAllKeys()) {
+            require(NbtDefaults.findByteArray(textureSources, texture).orElse(new byte[0]).length > 0,
                     "Figura compiled texture bytes retained, including embedded fallback");
         }
         require(transfer(nbt).equals(nbt), "ordinary Figura keeps the identical existing static payload");
@@ -174,10 +175,10 @@ public final class YsmLocalCorpusSmokeTest {
     }
 
     private static boolean hasModel(net.minecraft.nbt.CompoundTag model, String name) {
-        if (model.getStringOr("name", "").equals(name)) {
+        if (model.getString("name").equals(name)) {
             return true;
         }
-        for (var child : model.getListOrEmpty("chld")) {
+        for (var child : NbtDefaults.getListOrEmpty(model, "chld")) {
             if (child instanceof net.minecraft.nbt.CompoundTag part && hasModel(part, name)) {
                 return true;
             }

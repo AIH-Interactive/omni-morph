@@ -1,11 +1,9 @@
 package top.aihmc.omnimorph.model.library;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.renderer.entity.state.AvatarRenderState;
-import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.PlayerModelPart;
@@ -13,7 +11,6 @@ import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
 import org.figuramc.figura.avatar.AvatarManager;
 import top.aihmc.omnimorph.backend2.library.LibraryClient;
-import top.aihmc.omnimorph.mixin.gui.GuiGraphicsAccessor;
 import top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext;
 import top.aihmc.omnimorph.model.outfit.OutfitComposition;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;
@@ -188,36 +185,20 @@ public final class LibraryPreviewSession implements AutoCloseable {
     }
 
     /** Capture skin and standing pose data without calling an entity renderer. */
-    public boolean submitIndependentFigura(GuiGraphicsExtractor gui,
+    public boolean submitIndependentFigura(GuiGraphics gui,
                                            int drawX, int drawY, float scale, float pitch, float yaw,
                                            float delta, int x0, int y0, int x1, int y1) {
         if (!independentFigura || avatar == null || avatar.isYsmNative() || entity() == null) {
             return false;
         }
         var player = (AbstractClientPlayer) entity;
-        var pose = new AvatarRenderState();
-        pose.ageInTicks = entity.tickCount + delta;
-        pose.skin = player.getSkin();
-        pose.showHat = player.isModelPartShown(PlayerModelPart.HAT);
-        pose.showJacket = player.isModelPartShown(PlayerModelPart.JACKET);
-        pose.showLeftSleeve = player.isModelPartShown(PlayerModelPart.LEFT_SLEEVE);
-        pose.showRightSleeve = player.isModelPartShown(PlayerModelPart.RIGHT_SLEEVE);
-        pose.showLeftPants = player.isModelPartShown(PlayerModelPart.LEFT_PANTS_LEG);
-        pose.showRightPants = player.isModelPartShown(PlayerModelPart.RIGHT_PANTS_LEG);
-        LibraryPreviewBinding.capture(entity, pose, delta);
-        var outfit = LibraryPreviewBinding.composition(pose);
-        if (outfit != null) {
-            outfit.prepareFiguraBase(avatar);
-        }
-        var accessor = (GuiGraphicsAccessor) gui;
-        var scissor = accessor.figura$getScissorStack().peek();
-        var bounds = PictureInPictureRenderState.getBounds(x0, y0, x1, y1, scissor);
+        var pose = LibraryFiguraPreviewState.PlayerPose.capture(player, delta);
+        LibraryPreviewBinding.capture(entity, pose.frame(), delta);
         float offsetX = (drawX - (x0 + x1) / 2f) / scale;
         float offsetY = (drawY - (y0 + y1) / 2f) / scale;
-        accessor.figura$getRenderState().addPicturesInPictureState(new LibraryFiguraPreviewState(
+        LibraryFiguraPreviewRenderer.render(gui, new LibraryFiguraPreviewState(
                 avatar, pose, delta, pitch, yaw, offsetX, offsetY,
-                x0, y0, x1, y1, scale, scissor, bounds));
-        gui.nextStratum();
+                x0, y0, x1, y1, scale, null, null));
         return true;
     }
 

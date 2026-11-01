@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.gui.widgets.library;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import org.figuramc.figura.gui.widgets.SwitchButton;
 import org.figuramc.figura.utils.ui.UIHelper;
@@ -13,7 +13,7 @@ public final class LibraryCheckBox extends SwitchButton {
     }
 
     @Override
-    protected void renderDefaultTexture(GuiGraphicsExtractor gui, float delta) {
+    protected void renderDefaultTexture(GuiGraphics gui, float delta) {
         int color = isActive() ? isHoveredOrFocused() ? 0xff55ffff : 0xffbac6d8 : 0xff666666;
         UIHelper.fillOutline(gui, getX() + 2, getY() + 6, 8, 8, color);
         if (isToggled()) {
@@ -22,7 +22,7 @@ public final class LibraryCheckBox extends SwitchButton {
     }
 
     @Override
-    protected void renderText(GuiGraphicsExtractor gui, float delta) {
+    protected void renderText(GuiGraphics gui, float delta) {
         UIHelper.renderScrollingText(gui, getMessage(), getX() + 15, getY() + 6,
                 Math.max(1, getWidth() - 17), getTextColor() | 0xff000000);
     }

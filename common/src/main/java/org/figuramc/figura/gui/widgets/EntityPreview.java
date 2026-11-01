@@ -4,11 +4,8 @@ import top.aihmc.omnimorph.model.library.PreviewBoneHighlight;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
@@ -27,7 +24,6 @@ import top.aihmc.omnimorph.gui.widgets.library.LibraryRowList;
 import org.figuramc.figura.utils.FiguraIdentifier;
 import org.figuramc.figura.utils.FiguraText;
 import org.figuramc.figura.utils.ui.UIHelper;
-import org.joml.Matrix3x2fStack;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
@@ -150,7 +146,7 @@ public class EntityPreview extends AbstractContainerElement {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         if (!this.isVisible())
             return;
 
@@ -185,7 +181,7 @@ public class EntityPreview extends AbstractContainerElement {
         gui.enableScissor(x + 1, y + 1, x + width - 1, y + height - 1);
 
         // render entity
-        Matrix3x2fStack pose = gui.pose();
+        PoseStack pose = gui.pose();
         if (entity != null) {
             if (libraryPreview != null) {
                 libraryPreview.selectedBone(selectedBone);
@@ -193,7 +189,7 @@ public class EntityPreview extends AbstractContainerElement {
             if (libraryPreview == null && liveEntityPreview) {
                 PreviewBoneHighlight.capture(AvatarManager.getAvatar(entity), selectedBone);
             }
-            pose.pushMatrix();
+            pose.pushPose();
             scaledValue = Mth.lerp((float) (1f - Math.pow(0.5f, delta)), scaledValue, scaledPrecise);
             boolean independent = libraryPreview != null && libraryPreview.submitIndependentFigura(gui,
                     x + modelX, y + modelY, scale + scaledValue, angleX, angleY, delta,
@@ -214,17 +210,18 @@ public class EntityPreview extends AbstractContainerElement {
                     draw.run();
                 }
             }
-            pose.popMatrix();
+            pose.popPose();
         } else if (shownIssues.isEmpty()) {
             // draw
             int s = Math.min(width, height) * 2 / 3;
             UIHelper.enableBlend();
-            gui.blit(RenderPipelines.GUI_TEXTURED, UNKNOWN, x + (width - s) / 2, y + (height - s) / 2, 0f, 64 * ((int) (FiguraMod.ticks / 3f) % 8), s, s,64, 64, 64, 512);
+            gui.blit(UNKNOWN, x + (width - s) / 2, y + (height - s) / 2, s, s,
+                    0f, 64f * ((int) (FiguraMod.ticks / 3f) % 8), 64, 64, 64, 512);
         }
 
         gui.disableScissor();
 
-        super.extractRenderState(gui, mouseX, mouseY, delta);
+        super.render(gui, mouseX, mouseY, delta);
     }
 
     private List<OutfitPresetResources.Issue> operationIssues = List.of();
@@ -277,15 +274,11 @@ public class EntityPreview extends AbstractContainerElement {
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean bl) {
-        double mouseX = mouseButtonEvent.x();
-        double mouseY = mouseButtonEvent.y();
-        int button = mouseButtonEvent.button();
-
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (!this.isVisible() || !this.isMouseOver(mouseX, mouseY))
             return false;
 
-        if (super.mouseClicked(mouseButtonEvent, bl))
+        if (super.mouseClicked(mouseX, mouseY, button))
             return true;
 
         switch (button) {
@@ -341,8 +334,7 @@ public class EntityPreview extends AbstractContainerElement {
     }
 
     @Override
-    public boolean mouseReleased(MouseButtonEvent mouseButtonEvent) {
-        int button = mouseButtonEvent.button();
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
         // left click - stop rotating
         if (button == 0) {
             isRotating = false;
@@ -355,13 +347,11 @@ public class EntityPreview extends AbstractContainerElement {
             return true;
         }
 
-        return super.mouseReleased(mouseButtonEvent);
+        return super.mouseReleased(mouseX, mouseY, button);
     }
 
     @Override
-    public boolean mouseDragged(MouseButtonEvent mouseButtonEvent, double deltaX, double deltaY) {
-        double mouseX = mouseButtonEvent.x();
-        double mouseY = mouseButtonEvent.y();
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
         // left click - rotate
         if (isRotating) {
             // get starter rotation angle then get hot much is moved and divided by a slow factor
@@ -398,7 +388,7 @@ public class EntityPreview extends AbstractContainerElement {
             return true;
         }
 
-        return super.mouseDragged(mouseButtonEvent, deltaX, deltaY);
+        return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
     }
 
     @Override

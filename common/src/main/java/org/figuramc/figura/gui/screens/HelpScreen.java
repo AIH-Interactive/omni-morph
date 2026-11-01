@@ -1,15 +1,13 @@
 package org.figuramc.figura.gui.screens;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.world.entity.animal.feline.CatSoundVariants;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.gui.widgets.Button;
@@ -77,20 +75,19 @@ public class HelpScreen extends AbstractPanelScreen {
         addRenderableWidget(new IconButton(x, y, buttonWidth, 24, u, v, 20, ICONS, 60, 40,
                 FiguraText.of("gui.help." + label), null, button -> UIHelper.openURL(link.url).run()) {
             @Override
-            public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+            public boolean mouseClicked(double mouseX, double mouseY, int button) {
                 if (link == FiguraMod.Links.Github && Configs.EASTER_EGGS.value
-                        && isHoveredOrFocused() && isMouseOver(event.x(), event.y()) && event.button() == 1) {
+                        && isHoveredOrFocused() && isMouseOver(mouseX, mouseY) && button == 1) {
                     int size = getTextureSize();
                     int particleX = (int) (Math.random() * size) + getX() + 2;
                     int particleY = (int) (Math.random() * size) + getY() + 2;
                     addRenderableOnly(new ParticleWidget(particleX, particleY, ParticleTypes.HEART));
                     boolean purr = Math.random() < 0.95;
-                    var sounds = SoundEvents.CAT_SOUNDS.get(CatSoundVariants.SoundSet.CLASSIC).adultSounds();
                     minecraft.getSoundManager().play(SimpleSoundInstance.forUI(
-                            purr ? sounds.purrSound() : sounds.ambientSound(), 1f));
+                            purr ? SoundEvents.CAT_PURR : SoundEvents.CAT_AMBIENT, 1f));
                     return false;
                 }
-                return super.mouseClicked(event, doubleClick);
+                return super.mouseClicked(mouseX, mouseY, button);
             }
         });
     }
@@ -105,7 +102,7 @@ public class HelpScreen extends AbstractPanelScreen {
         }
 
         @Override
-        public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+        public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
             int x = getRawX();
             int y = getRawY();
 
@@ -122,7 +119,7 @@ public class HelpScreen extends AbstractPanelScreen {
             gui.fill(x0, y0, x1, y1, 0xFFFFFFFF);
 
             // text
-            super.extractRenderState(gui, mouseX, mouseY, delta);
+            super.render(gui, mouseX, mouseY, delta);
         }
     }
 }

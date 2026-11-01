@@ -6,7 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.BlockAndLightGetter;
+import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.decoration.ArmorStand;
@@ -103,8 +103,8 @@ final class ParticleLightNativeSmokeTest {
             entity.world = null;
             require(entityHook(entity, sky) == sky, "entity in another/retired world retains its native lighting");
             entity.world = world;
-            var region = (BlockAndLightGetter) Proxy.newProxyInstance(ParticleLightNativeSmokeTest.class.getClassLoader(),
-                    new Class<?>[]{BlockAndLightGetter.class, ParticleLightRegionAccessor.class}, (proxy, method, args) -> {
+            var region = (BlockAndTintGetter) Proxy.newProxyInstance(ParticleLightNativeSmokeTest.class.getClassLoader(),
+                    new Class<?>[]{BlockAndTintGetter.class, ParticleLightRegionAccessor.class}, (proxy, method, args) -> {
                         if (method.getName().equals("figura$lightLevel")) {
                             return world;
                         }
@@ -252,11 +252,11 @@ final class ParticleLightNativeSmokeTest {
         }
     }
 
-    private static int worldHook(BlockAndLightGetter world, BlockPos position, int original) throws Exception {
+    private static int worldHook(BlockAndTintGetter world, BlockPos position, int original) throws Exception {
         var hook = ParticleWorldLightMixin.class.getDeclaredMethod("figura$particleWorldLight", int.class,
-                LevelRenderer.BrightnessGetter.class, BlockAndLightGetter.class, BlockState.class, BlockPos.class);
+                BlockAndTintGetter.class, BlockState.class, BlockPos.class);
         hook.setAccessible(true);
-        return (int) hook.invoke(null, original, null, world, null, position);
+        return (int) hook.invoke(null, original, world, null, position);
     }
 
     private static int entityHook(Entity entity, int original) throws Exception {
@@ -311,7 +311,7 @@ final class ParticleLightNativeSmokeTest {
         private Set<ParticleLightField.Section> dirty;
 
         private RecordingRenderer() {
-            super(null, null, null, null, null, null);
+            super(null, null, null, null);
         }
 
         @Override

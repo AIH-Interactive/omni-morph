@@ -1,13 +1,17 @@
 package top.aihmc.omnimorph.lua.api.particle;
 
-import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.platform.DestFactor;
-import com.mojang.blaze3d.platform.SourceFactor;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.ByteBufferBuilder;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexFormat;
+import net.minecraft.client.renderer.RenderType;
+import org.joml.Matrix4f;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.particle.SingleQuadParticle;
-import net.minecraft.client.renderer.state.level.QuadParticleRenderState;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
 import org.luaj.vm2.LuaError;
@@ -19,9 +23,7 @@ import org.figuramc.figura.math.vector.FiguraVec4;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.figuramc.figura.lua.api.particle.LuaParticle;
 public final class CustomParticleLayeredSmokeTest {
@@ -69,8 +71,8 @@ public final class CustomParticleLayeredSmokeTest {
             near(b.u1, .4375);
             near(b.v0, .75);
             near(b.v1, 1);
-            require(a.light == 0xF000F0 && b.light == 0xF00000,
-                    "layer emissive override uses native no-chunk sky light instead of full-bright block light");
+            require(a.light == 0xF000F0 && b.light == 0,
+                    "layer emissive override uses native no-chunk darkness instead of full-bright block light");
             channel(b.color >>> 24, 51);
             channel(b.color >>> 16 & 255, 102);
             channel(b.color >>> 8 & 255, 153);
@@ -78,30 +80,30 @@ public final class CustomParticleLayeredSmokeTest {
             var repeated = new RecordingQuads();
             particle.extract(repeated, new FixtureCamera(), .5f);
             require(state.quads.equals(repeated.quads), "layer tint does not accumulate or mutate authored particle color");
-            checkPipelinesAndOrder(a.layer, b.layer);
+            checkMaterialsAndOrder(owner, particle, base, a.layer, b.layer);
             testRejectedChanges(particle, first, base, foreign, retired);
             // Retaining the first candidate must be rolled back when the second texture cannot be acquired.
-            var candidateGpu = candidate.getTexture();
+            int candidateGpu = candidate.getId();
             reject(() -> particle.setLayers(array(options("texture", candidate), options("texture", retired))));
             candidate.close();
             drain.run();
-            require(candidateGpu.isClosed() && particle.layerCount() == 2 && particle.active(),
+            require(!org.lwjgl.opengl.GL11.glIsTexture(candidateGpu) && particle.layerCount() == 2 && particle.active(),
                     "failed multi-texture replacement releases temporary leases and preserves the old layers");
-            var baseGpu = base.getTexture();
-            var overlayGpu = overlay.getTexture();
+            int baseGpu = base.getId();
+            int overlayGpu = overlay.getId();
             base.close();
             overlay.close();
             particle.setLayers(array(first));
-            require(!overlayGpu.isClosed(), "removed layer stays alive for an already extracted frame");
+            require(org.lwjgl.opengl.GL11.glIsTexture(overlayGpu), "removed layer stays alive for an already extracted frame");
             CustomParticleRuntime.finishFrame();
-            require(overlayGpu.isClosed() && !baseGpu.isClosed(),
+            require(!org.lwjgl.opengl.GL11.glIsTexture(overlayGpu) && org.lwjgl.opengl.GL11.glIsTexture(baseGpu),
                     "frame retirement releases removed layer while the retained layer remains alive");
             particle.setRenderMode("Billboard");
             particle.setBlendMode("opaque");
             require(particle.renderMode().equals("BILLBOARD") && particle.layerCount() == 1
                             && particle.blendMode().equals("opaque"), "Billboard mode and blend controls remain available");
             particle.remove();
-            require(baseGpu.isClosed() && CustomParticleRuntime.liveCount(owner.owner) == 0,
+            require(!org.lwjgl.opengl.GL11.glIsTexture(baseGpu) && CustomParticleRuntime.liveCount(owner.owner) == 0,
                     "final removal releases all layer textures and the one shared lifetime slot");
         } finally {
             particle.remove();
@@ -112,7 +114,7 @@ public final class CustomParticleLayeredSmokeTest {
             retired.close();
             drain.run();
         }
-        System.out.println("PASS Layered particles: native UV/tint/light extraction, blend/order hook, atomic leases, "
+        System.out.println("PASS Layered particles: native UV/tint/light extraction, material selection/native draw order, atomic leases, "
                 + "layer bounds and frame cleanup; real GPU/game MANUAL/PENDING");
     }
 
@@ -135,60 +137,73 @@ public final class CustomParticleLayeredSmokeTest {
         require(particle.layerCount() == 2 && particle.active(), "rejected declarations do not partially publish");
     }
 
-    private static void checkPipelinesAndOrder(SingleQuadParticle.Layer first, SingleQuadParticle.Layer second)
-            throws Exception {
-        require(first.pipeline().getColorTargetState().blendFunction().orElseThrow().equals(BlendFunction.TRANSLUCENT),
-                "alpha layer uses source alpha compositing");
-        var additive = second.pipeline().getColorTargetState().blendFunction().orElseThrow();
-        require(additive.sourceColor() == SourceFactor.SRC_ALPHA && additive.destColor() == DestFactor.ONE,
-                "additive layer still respects source opacity");
-        require(first.translucent() && second.translucent()
-                        && !first.pipeline().getDepthStencilState().writeDepth()
-                        && !second.pipeline().getDepthStencilState().writeDepth(),
-                "mixed blends share a pass without writing depth over another layer");
-        var opaque = CustomParticlePipelines.pipeline(2, CustomParticlePipelines.Blend.OPAQUE);
-        require(opaque.getColorTargetState().blendFunction().isEmpty(), "opaque blend disables compositing");
-        var third = new SingleQuadParticle.Layer(true, first.textureAtlasLocation(), opaque);
-        var nativeA = SingleQuadParticle.Layer.TRANSLUCENT;
-        var nativeB = SingleQuadParticle.Layer.OPAQUE;
-        Map<SingleQuadParticle.Layer, Integer> batches = new LinkedHashMap<>();
-        batches.put(nativeA, 0);
-        batches.put(third, 1);
-        batches.put(nativeB, 2);
-        batches.put(second, 3);
-        batches.put(first, 4);
-        var hook = new top.aihmc.omnimorph.mixin.particle.QuadParticleRenderStateMixin();
-        var method = hook.getClass().getDeclaredMethod("figura$orderCustomLayers", Map.class,
-                com.llamalad7.mixinextras.injector.wrapoperation.Operation.class);
-        method.setAccessible(true);
-        com.llamalad7.mixinextras.injector.wrapoperation.Operation<Object> original = arguments ->
-                ((Map<?, ?>) arguments[0]).entrySet();
-        var result = (java.util.Set<?>) method.invoke(hook, batches, original);
-        var ordered = new ArrayList<>(result);
-        require(((Map.Entry<?, ?>) ordered.get(0)).getKey() == nativeA
-                        && ((Map.Entry<?, ?>) ordered.get(2)).getKey() == nativeB
-                        && ((Map.Entry<?, ?>) ordered.get(1)).getKey() == first
-                        && ((Map.Entry<?, ?>) ordered.get(3)).getKey() == second
-                        && ((Map.Entry<?, ?>) ordered.get(4)).getKey() == third,
-                "production render hook orders custom slots while leaving vanilla slots in place");
-        var vanilla = new LinkedHashMap<SingleQuadParticle.Layer, Integer>();
-        vanilla.put(nativeA, 0);
-        vanilla.put(nativeB, 1);
-        var entries = vanilla.entrySet();
-        require(CustomParticlePipelines.orderedEntries(entries) == entries, "vanilla-only batches are untouched");
+    private static void checkMaterialsAndOrder(Avatar owner, CustomParticle particle, FiguraTexture texture,
+                                               CustomParticlePipelines.Material first,
+                                               CustomParticlePipelines.Material second) throws Exception {
+        require(first.pipeline().blend() == CustomParticlePipelines.Blend.ALPHA
+                        && second.pipeline().blend() == CustomParticlePipelines.Blend.ADDITIVE,
+                "author blend declarations select their production materials");
+        for (var material : List.of(first, second, new CustomParticlePipelines.Material(texture.getLocation(),
+                CustomParticlePipelines.pipeline(2, CustomParticlePipelines.Blend.OPAQUE)))) {
+            var type = material.renderType(false);
+            var stateField = type.getClass().getDeclaredField("state");
+            stateField.setAccessible(true);
+            Object state = stateField.get(type);
+            var maskField = state.getClass().getDeclaredField("writeMaskState");
+            maskField.setAccessible(true);
+            Object mask = maskField.get(state);
+            var depthField = mask.getClass().getDeclaredField("writeDepth");
+            depthField.setAccessible(true);
+            require(!depthField.getBoolean(mask), "every custom blend uses color-only writes");
+        }
+        // Two particles interleave author indices; draw the actual frozen frame to a native vertex buffer.
+        var peer = new CustomParticle(owner, Minecraft.getInstance().level, texture, Vec3.ZERO, Vec3.ZERO);
+        try {
+            require(peer.activate(), "cross-particle author order fixture activates");
+            peer.setEmissive(true);
+            peer.setLayers(array(options("blend", "opaque"), new LuaTable(), options("blend", "opaque")));
+            var frame = PreviewParticleFrame.extract(new CustomParticle[]{peer, particle}, Vec3.ZERO,
+                    new Quaternionf(), 0);
+            var order = new ArrayList<RenderType>();
+            try (var storage = new ByteBufferBuilder(1024)) {
+                var builder = new BufferBuilder(storage,
+                        VertexFormat.Mode.QUADS,
+                        DefaultVertexFormat.PARTICLE);
+                frame.draw(new Matrix4f(), type -> {
+                    order.add(type);
+                    return builder;
+                });
+                try (var mesh = builder.build()) {
+                    require(mesh != null && mesh.drawState().vertexCount() == 20,
+                            "five author layers emit five complete native quads");
+                }
+            }
+            var peers = peer.currentLayers();
+            require(order.equals(List.of(peers.get(0).renderLayer().renderType(false), first.renderType(false),
+                            peers.get(1).renderLayer().renderType(false), second.renderType(false),
+                            peers.get(2).renderLayer().renderType(false))),
+                    "production frame drawing orders all author indices across particles, including opaque layers");
+        } finally {
+            peer.remove();
+        }
     }
 
-    private record Quad(SingleQuadParticle.Layer layer, float u0, float u1, float v0, float v1, int color, int light) {
+    private record Quad(CustomParticlePipelines.Material layer, float u0, float u1, float v0, float v1,
+                        int color, int light) {
     }
 
-    private static final class RecordingQuads extends QuadParticleRenderState {
+    private static final class RecordingQuads implements BiConsumer<
+            CustomParticlePipelines.Material, Consumer<VertexConsumer>> {
         private final List<Quad> quads = new ArrayList<>();
 
         @Override
-        public void add(SingleQuadParticle.Layer layer, float x, float y, float z, float qx, float qy,
-                        float qz, float qw, float size, float u0, float u1, float v0, float v1, int color, int light) {
-            super.add(layer, x, y, z, qx, qy, qz, qw, size, u0, u1, v0, v1, color, light);
-            quads.add(new Quad(layer, u0, u1, v0, v1, color, light));
+        public void accept(CustomParticlePipelines.Material material,
+                           Consumer<VertexConsumer> writer) {
+            var capture = new ParticleVertexCapture();
+            capture.accept(material, writer);
+            var batch = capture.batches.getFirst();
+            var first = batch.vertices().getFirst();
+            quads.add(new Quad(material, batch.u0(), batch.u1(), batch.v0(), batch.v1(), first.color(), first.light()));
         }
     }
 
@@ -199,7 +214,7 @@ public final class CustomParticleLayeredSmokeTest {
         }
 
         @Override
-        public Vec3 position() {
+        public Vec3 getPosition() {
             return Vec3.ZERO;
         }
     }

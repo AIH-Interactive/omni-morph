@@ -61,7 +61,7 @@ public final class OutfitApplyServiceSmokeTest {
         var user = new UserData(player);
         CompoundTag baseData = accessory.copy();
         baseData.remove("scripts");
-        baseData.getCompoundOrEmpty("metadata").putString("resource_kind", "AVATAR");
+        baseData.getCompound("metadata").putString("resource_kind", "AVATAR");
         try (var server = new Server(player, baseData, accessory, user)) {
             var protocol = (CloudProtocol) Proxy.newProxyInstance(CloudProtocol.class.getClassLoader(),
                     new Class<?>[]{CloudProtocol.class}, (proxy, method, arguments) -> switch (method.getName()) {
@@ -273,6 +273,11 @@ public final class OutfitApplyServiceSmokeTest {
             implements org.figuramc.figura.mixin.EntityAccessor {
         private ObserverWearer() {
             super(net.minecraft.world.entity.EntityType.ARMOR_STAND, null);
+        }
+
+        @Override
+        public int getPermissionLevel() {
+            return 0;
         }
 
         @Override
@@ -530,7 +535,7 @@ public final class OutfitApplyServiceSmokeTest {
         private LivingEntity visible;
 
         private ObserverLevel() {
-            super(null, null, null, null, 0, 0, null, false, 0L, 0);
+            super(null, null, null, null, 0, 0, () -> null, null, false, 0L);
         }
 
         @Override
@@ -705,17 +710,17 @@ public final class OutfitApplyServiceSmokeTest {
                         instances.get(declarations.get(2).instanceId()), "root") == null,
                 "formal controls admit the actual base and enabled copies, rejecting a disabled copy");
         var change = top.aihmc.omnimorph.gui.screens.AvatarControlsScreen.class.getDeclaredMethod("setControlValue",
-                top.aihmc.omnimorph.avatar.control.AvatarControlDefinition.class, Object.class);
+                Avatar.class, top.aihmc.omnimorph.avatar.control.AvatarControlDefinition.class, Object.class);
         change.setAccessible(true);
-        require((boolean) change.invoke(baseScreen, base.controls.get("formal_shared"), true)
-                        && (boolean) change.invoke(firstScreen, first.controls.get("formal_shared"), true),
+        require((boolean) change.invoke(baseScreen, base, base.controls.get("formal_shared"), true)
+                        && (boolean) change.invoke(firstScreen, first, first.controls.get("formal_shared"), true),
                 "actual controls handler accepts base and first-copy changes");
         require(Boolean.TRUE.equals(first.cosmeticContext.control("formal_shared"))
                         && second.cosmeticContext.control("formal_shared") == null
                         && calls.getOrDefault(base, 0) == 1 && calls.getOrDefault(first, 0) == 1
                         && calls.getOrDefault(second, 0) == 0,
                 "same-ID controls persist only in their selected instance context and callback owner");
-        require(!(boolean) change.invoke(firstScreen, second.controls.get("formal_shared"), true),
+        require(!(boolean) change.invoke(firstScreen, first, second.controls.get("formal_shared"), true),
                 "a stale widget cannot submit another copy's definition");
         var press = screenType.getDeclaredMethod("pressControl", top.aihmc.omnimorph.avatar.control.AvatarControlDefinition.class);
         press.setAccessible(true);
@@ -735,7 +740,7 @@ public final class OutfitApplyServiceSmokeTest {
             client.level = previousWorld;
         }
         firstScreen.removed();
-        require(!(boolean) change.invoke(firstScreen, first.controls.get("formal_shared"), false)
+        require(!(boolean) change.invoke(firstScreen, first, first.controls.get("formal_shared"), false)
                         && Boolean.TRUE.equals(first.cosmeticContext.control("formal_shared")),
                 "removed controls screens reject retained widget callbacks");
         var replacement = new OutfitConfig(1, configuration.revision() + 1, base.outfitSource(), List.of(), List.of(), Map.of(), false);
@@ -743,7 +748,7 @@ public final class OutfitApplyServiceSmokeTest {
                 Map.of(), new top.aihmc.omnimorph.model.outfit.SkeletonIndex.Cache());
         await(user.publishOutfit(replacement, base, next, user.ysmLoads.begin(), () -> true), drain);
         require(!(boolean) active.invoke(baseScreen) && !(boolean) active.invoke(secondScreen)
-                        && !(boolean) change.invoke(firstScreen, first.controls.get("formal_shared"), false)
+                        && !(boolean) change.invoke(firstScreen, first, first.controls.get("formal_shared"), false)
                         && top.aihmc.omnimorph.gui.screens.OutfitControlsScreen.create(null, first, "root") == null,
                 "resident replacement invalidates captured base/copy screens and rejects retired owners");
         base.controls.remove("formal_shared");
@@ -752,7 +757,7 @@ public final class OutfitApplyServiceSmokeTest {
     }
 
     private static void testWorldFrames(UserData user, LivingEntity wearer, Runnable drain) throws Exception {
-        var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
+        var state = new top.aihmc.omnimorph.render.EntityFrame(wearer, 0.5f);
         Avatar base = user.getMainAvatar();
         top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.capture(wearer, state, 0.5f);
         require(top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.composition(state) != null
@@ -773,14 +778,14 @@ public final class OutfitApplyServiceSmokeTest {
                 (reference, cancelled) -> { throw new AssertionError("no vanilla dependencies"); }, () -> false,
                 top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext.Scope.OWNER, null, reference -> false, reference -> false);
         await(user.publishOutfit(OutfitConfig.empty(), null, vanilla, user.ysmLoads.begin(), () -> true), drain);
-        var vanillaState = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
+        var vanillaState = new top.aihmc.omnimorph.render.EntityFrame(wearer, 1f);
         top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.capture(wearer, vanillaState);
         require(top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.hasComposition(wearer)
                         && top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.isVanilla(vanillaState)
                         && AvatarManager.getAvatar(vanillaState) == null,
                 "vanilla outfits retain their composition without fetching a placeholder Avatar");
         try (var preview = new LibraryPreviewBinding(wearer, null, false)) {
-            var previewState = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
+            var previewState = new top.aihmc.omnimorph.render.EntityFrame(wearer, 1f);
             preview.withPlayerContext(() -> {
                 require(!top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.hasComposition(wearer),
                         "an isolated vanilla preview suppresses the formal outfit");
@@ -808,6 +813,7 @@ public final class OutfitApplyServiceSmokeTest {
         player.setUUID(server.player);
         minecraft.player = player;
         var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
+        field(net.minecraft.client.gui.screens.Screen.class, "minecraft").set(screen, minecraft);
         var type = screen.getClass();
         field(type, "client").set(screen, client);
         var capabilities = client.capabilities();
@@ -824,8 +830,8 @@ public final class OutfitApplyServiceSmokeTest {
             var cached = (Map<OutfitConfig.ResourceRef, net.minecraft.nbt.CompoundTag>)
                     field(type, "draftPreparedResources").get(screen);
             require(cached.containsKey(server.accessory.reference())
-                            && cached.get(server.accessory.reference()).getCompoundOrEmpty("metadata")
-                            .getStringOr("resource_kind", "").equals("ACCESSORY"),
+                            && cached.get(server.accessory.reference()).getCompound("metadata")
+                            .getString("resource_kind").equals("ACCESSORY"),
                     "editing reuses the resident outfit dependencies without source requests or original device files");
             Avatar retained = user.getMainAvatar();
             draft.setEnabled(new UUID(0, 41), false);
@@ -900,7 +906,12 @@ public final class OutfitApplyServiceSmokeTest {
     private static final class WardrobePlayer extends net.minecraft.client.player.LocalPlayer
             implements org.figuramc.figura.mixin.EntityAccessor {
         private WardrobePlayer() {
-            super(null, null, null, null, null, null, false, null);
+            super(null, null, null, null, null, false, false);
+        }
+
+        @Override
+        public int getPermissionLevel() {
+            return 0;
         }
 
         @Override
@@ -950,7 +961,7 @@ public final class OutfitApplyServiceSmokeTest {
             byte[] bytes = output.toByteArray();
             boolean ysm = data.contains("ysm");
             var format = !ysm ? OutfitConfig.Format.FIGURA
-                    : top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload.isEncrypted(data.getCompoundOrEmpty("ysm"))
+                    : top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload.isEncrypted(data.getCompound("ysm"))
                     ? OutfitConfig.Format.YSM_ENCRYPTED : OutfitConfig.Format.YSM_PLAIN;
             return new Source(new OutfitConfig.ResourceRef(OutfitConfig.Source.LOCAL, UUID.randomUUID(), null, null,
                     null, "a".repeat(64), format), data, bytes, CloudHttp.sha256(bytes));
@@ -1097,7 +1108,7 @@ public final class OutfitApplyServiceSmokeTest {
                         binding.addProperty("raw_sha256", source.hash());
                         binding.addProperty("resource_kind", source == base ? "AVATAR" : "ACCESSORY");
                         binding.add("accessory_metadata", source == base ? JsonNull.INSTANCE : OutfitCodec.encodeAccessoryMetadata(
-                                CosmeticMetadata.read(source.data().getCompoundOrEmpty("metadata").getStringOr("cosmetic_json", ""))));
+                                CosmeticMetadata.read(source.data().getCompound("metadata").getString("cosmetic_json"))));
                         var response = new JsonObject();
                         response.add("resource", binding);
                         json(exchange, 200, response.toString());
@@ -1200,7 +1211,7 @@ public final class OutfitApplyServiceSmokeTest {
                     resource.add("reference", JSON.toJsonTree(source.reference()));
                     resource.addProperty("resource_kind", baseSource ? "AVATAR" : "ACCESSORY");
                     resource.add("accessory_metadata", baseSource ? JsonNull.INSTANCE : OutfitCodec.encodeAccessoryMetadata(
-                            CosmeticMetadata.read(source.data().getCompoundOrEmpty("metadata").getStringOr("cosmetic_json", ""))));
+                            CosmeticMetadata.read(source.data().getCompound("metadata").getString("cosmetic_json"))));
                     resource.addProperty("distribution_format", source.reference().format() == OutfitConfig.Format.FIGURA ? 1 : 2);
                     resource.addProperty("byte_length", source.bytes().length);
                     resource.addProperty("raw_sha256", source.hash());

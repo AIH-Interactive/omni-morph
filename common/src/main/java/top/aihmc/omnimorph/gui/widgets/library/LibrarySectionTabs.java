@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.gui.widgets.library;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import org.figuramc.figura.gui.widgets.AbstractContainerElement;
 import org.figuramc.figura.gui.widgets.Button;
 import org.figuramc.figura.utils.FiguraText;
@@ -29,7 +29,7 @@ public final class LibrarySectionTabs extends AbstractContainerElement {
                         }
                     }) {
                 @Override
-                protected void renderDefaultTexture(GuiGraphicsExtractor gui, float delta) {
+                protected void renderDefaultTexture(GuiGraphics gui, float delta) {
                     super.renderDefaultTexture(gui, delta);
                     if (section == selected) {
                         gui.fill(getX() + 1, getY() + getHeight() - 2,
@@ -54,7 +54,7 @@ public final class LibrarySectionTabs extends AbstractContainerElement {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         int count = administrator ? 5 : 4;
         for (int index = 0; index < children.size(); index++) {
             Button button = button(index);
@@ -63,6 +63,6 @@ public final class LibrarySectionTabs extends AbstractContainerElement {
             button.setY(getY());
             button.setWidth(getWidth() * (index + 1) / count - getWidth() * index / count - 3);
         }
-        super.extractRenderState(gui, mouseX, mouseY, delta);
+        super.render(gui, mouseX, mouseY, delta);
     }
 }

@@ -2561,7 +2561,9 @@ public class YsmAnimationPlayer {
             });
             return;
         }
-        if (state == null || entity == null) return;
+        if (state == null || (entity == null && (runtime == null || !runtime.isPreviewRuntime()))) {
+            return;
+        }
 
         Avatar.MolangContext context = runtime == null || runtime.owner() == null
                 ? null : runtime.owner().getMolangContext();
@@ -2571,8 +2573,9 @@ public class YsmAnimationPlayer {
                 finite(state.walkAnimationSpeed()));
         float verticalSpeed = finite(context == null ? 0f : context.vertical_speed);
 
-        YsmPlayerActionState.Snapshot snapshot = YsmPlayerActionState.snapshot(entity, groundSpeed, verticalSpeed);
-        lastActionState = YsmPlayerActionState.resolve(snapshot);
+        // Detached GUI previews have no world entity but still need their independent default idle.
+        lastActionState = entity == null ? YsmPlayerActionState.State.IDLE
+                : YsmPlayerActionState.resolve(YsmPlayerActionState.snapshot(entity, groundSpeed, verticalSpeed));
         String idealState = nativeStateName(lastActionState);
         lastNativeState = idealState;
         if (runtime != null && shouldInterruptActions(idealState))

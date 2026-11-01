@@ -162,8 +162,8 @@ public final class CloudCosmeticSourceSmokeTest {
         Server(CompoundTag nbt, String manifest) throws Exception {
             this.manifest = manifest;
             kind = manifest == null ? "AVATAR" : "ACCESSORY";
-            boolean ysm = nbt.getCompoundOrEmpty("metadata").getStringOr("format", "").equals("ysm-native");
-            format = !ysm ? "FIGURA" : top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload.isEncrypted(nbt.getCompoundOrEmpty("ysm"))
+            boolean ysm = nbt.getCompound("metadata").getString("format").equals("ysm-native");
+            format = !ysm ? "FIGURA" : top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload.isEncrypted(nbt.getCompound("ysm"))
                     ? "YSM_ENCRYPTED" : "YSM_PLAIN";
             var output = new ByteArrayOutputStream();
             NbtIo.writeCompressed(top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload.forOutput(nbt), output);

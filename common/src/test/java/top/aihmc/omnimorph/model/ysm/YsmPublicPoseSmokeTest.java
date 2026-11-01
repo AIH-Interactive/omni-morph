@@ -2,7 +2,8 @@ package top.aihmc.omnimorph.model.ysm;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import net.minecraft.world.entity.decoration.ArmorStand;
+import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
 import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
 
 import java.lang.reflect.Proxy;
@@ -13,11 +14,11 @@ public final class YsmPublicPoseSmokeTest {
     public static void main(String[] args) throws Exception {
         Path root = Path.of(args[0]);
         YsmMaterialNativeSmokeTest.replayAcceleration(root.resolve("DS鲸鱼娘.ysm"), runtime -> {
-            var state = new LivingEntityRenderState();
+            var entity = groundedEntity();
             for (int tick = 0; tick < 6; tick++) {
-                state.ageInTicks = tick;
+                entity.tickCount = tick;
                 YsmRenderFrameClock.beginFrame();
-                runtime.updateAnimations(state, null, true);
+                runtime.updateAnimations(new YsmEntityFrame(tick, 0, 0, 0, 0), entity, true);
             }
             for (boolean left : new boolean[]{false, true}) {
                 int actual = armVertices(runtime, left);
@@ -43,14 +44,14 @@ public final class YsmPublicPoseSmokeTest {
             System.out.println("PASS real YSM shared arm hierarchy: each hand omits the opposite subtree; GPU pending");
         });
         YsmMaterialNativeSmokeTest.replayAcceleration(root.resolve("少女-哥伦比娅.ysm"), runtime -> {
-            var state = new LivingEntityRenderState();
-            state.yRot = 40f;
+            var entity = groundedEntity();
+            YsmEntityFrame state = null;
             for (float pitch : new float[]{0, -80, 80}) {
-                state.xRot = pitch;
                 for (int tick = 0; tick < 60; tick++) {
-                    state.ageInTicks++;
+                    entity.tickCount++;
+                    state = new YsmEntityFrame(entity.tickCount, 0, 40f, pitch, 0);
                     YsmRenderFrameClock.beginFrame();
-                    runtime.updateAnimations(state, null, false);
+                    runtime.updateAnimations(state, entity, false);
                 }
                 var head = runtime.getPart("Head");
                 if (pitch == -80f && head.animRotRaw().x > -60f) {
@@ -63,7 +64,7 @@ public final class YsmPublicPoseSmokeTest {
                     throw new AssertionError("relative yaw is not added after the authored head pose");
                 }
                 double tracked = head.animRotRaw().x;
-                runtime.updateAnimations(state, null, false);
+                runtime.updateAnimations(state, entity, false);
                 if (Math.abs(head.animRotRaw().x - tracked) > 3) {
                     throw new AssertionError("a repeated body pass accumulates head tracking");
                 }
@@ -79,6 +80,20 @@ public final class YsmPublicPoseSmokeTest {
             }
             System.out.println("PASS real YSM steady head pitch/yaw, repeated pass and authored query isolation; hair/GPU visual checks pending");
         });
+    }
+
+    private static ArmorStand groundedEntity() {
+        return new ArmorStand(null, 0, 0, 0) {
+            @Override
+            public boolean onGround() {
+                return true;
+            }
+
+            @Override
+            public boolean onClimbable() {
+                return false;
+            }
+        };
     }
 
     private static int armVertices(YsmModelRuntime runtime, boolean left) {

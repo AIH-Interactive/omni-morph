@@ -5,6 +5,8 @@ accessWidener v2 named
 
 accessible class net/minecraft/world/level/biome/Biome$ClimateSettings
 accessible class net/minecraft/client/gui/font/providers/BitmapProvider$Glyph
+accessible class net/minecraft/client/gui/components/SubtitleOverlay$Subtitle
+accessible class net/minecraft/client/gui/screens/inventory/BookEditScreen$LineInfo
 
 accessible class net/minecraft/client/StringSplitter$WidthLimitedCharSink
 
@@ -12,8 +14,13 @@ accessible class net/minecraft/util/datafix/fixes/ItemStackComponentizationFix$I
 accessible method net/minecraft/util/datafix/fixes/ItemStackComponentizationFix fixItemStack (Lnet/minecraft/util/datafix/fixes/ItemStackComponentizationFix$ItemStackData;Lcom/mojang/serialization/Dynamic;)V
 accessible field net/minecraft/util/datafix/fixes/ItemStackComponentizationFix$ItemStackData tag Lcom/mojang/serialization/Dynamic;
 
-# Read original material metadata at the acceleration draw boundary.
-accessible field net/minecraft/client/renderer/MultiBufferSource$BufferSource fixedBuffers Ljava/util/SequencedMap;
-
 # YSM mace query: wind-charge impulse grace timer (private on Player in 1.21.1).
 accessible field net/minecraft/world/entity/player/Player currentImpulseContextResetGraceTime I
+
+# Preview fading preserves native transparency and cull state instead of guessing from material names.
+accessible class net/minecraft/client/renderer/RenderType$CompositeRenderType
+accessible class net/minecraft/client/renderer/RenderType$CompositeState
+accessible field net/minecraft/client/renderer/RenderType$CompositeRenderType state Lnet/minecraft/client/renderer/RenderType$CompositeState;
+accessible field net/minecraft/client/renderer/RenderType$CompositeState transparencyState Lnet/minecraft/client/renderer/RenderStateShard$TransparencyStateShard;
+accessible field net/minecraft/client/renderer/RenderType$CompositeState cullState Lnet/minecraft/client/renderer/RenderStateShard$CullStateShard;
+accessible field net/minecraft/client/renderer/RenderStateShard CULL Lnet/minecraft/client/renderer/RenderStateShard$CullStateShard;

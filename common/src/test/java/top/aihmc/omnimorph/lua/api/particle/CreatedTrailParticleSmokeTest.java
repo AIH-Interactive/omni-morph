@@ -1,10 +1,11 @@
 package top.aihmc.omnimorph.lua.api.particle;
 
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.particle.Particle;
-import net.minecraft.client.particle.SingleQuadParticle;
-import net.minecraft.client.renderer.state.level.QuadParticleRenderState;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.figuramc.figura.avatar.Avatar;
@@ -162,7 +163,7 @@ final class CreatedTrailParticleSmokeTest {
                     var field = LuaParticle.class.getDeclaredField("particle");
                     field.setAccessible(true);
                     var particle = (CustomParticle) field.get(self.checkuserdata(LuaParticle.class));
-                    var size = SingleQuadParticle.class.getDeclaredField("quadSize");
+                    var size = net.minecraft.client.particle.SingleQuadParticle.class.getDeclaredField("quadSize");
                     size.setAccessible(true);
                     size.setFloat(particle, .2f);
                     particle.scale(scale);
@@ -227,33 +228,36 @@ final class CreatedTrailParticleSmokeTest {
             }
 
             @Override
-            public net.minecraft.world.phys.Vec3 position() {
+            public net.minecraft.world.phys.Vec3 getPosition() {
                 return net.minecraft.world.phys.Vec3.ZERO;
             }
         }, 1f);
         return state;
     }
 
-    private static final class Quad extends QuadParticleRenderState {
-        private SingleQuadParticle.Layer layer;
+    private static final class Quad implements BiConsumer<
+            CustomParticlePipelines.Material, Consumer<VertexConsumer>> {
+        private CustomParticlePipelines.Material layer;
         private float x, y, z, u0, u1, v0, v1, size;
         private int light;
 
         @Override
-        public void add(SingleQuadParticle.Layer layer, float x, float y, float z,
-                        float qx, float qy, float qz, float qw, float size,
-                        float u0, float u1, float v0, float v1, int color, int light) {
-            super.add(layer, x, y, z, qx, qy, qz, qw, size, u0, u1, v0, v1, color, light);
-            this.layer = layer;
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            this.u0 = u0;
-            this.u1 = u1;
-            this.v0 = v0;
-            this.v1 = v1;
-            this.size = size;
-            this.light = light;
+        public void accept(CustomParticlePipelines.Material material,
+                           Consumer<VertexConsumer> writer) {
+            var capture = new ParticleVertexCapture();
+            capture.accept(material, writer);
+            var batch = capture.batches.getFirst();
+            var center = batch.center();
+            layer = material;
+            x = (float) center.x;
+            y = (float) center.y;
+            z = (float) center.z;
+            u0 = batch.u0();
+            u1 = batch.u1();
+            v0 = batch.v0();
+            v1 = batch.v1();
+            size = (float) (batch.vertices().get(0).position().distanceTo(batch.vertices().get(1).position()) * .5);
+            light = batch.vertices().getFirst().light();
         }
     }
 

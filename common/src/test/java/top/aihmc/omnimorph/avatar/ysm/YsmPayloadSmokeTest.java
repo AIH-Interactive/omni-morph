@@ -3,6 +3,7 @@ package top.aihmc.omnimorph.avatar.ysm;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
+import org.figuramc.figura.utils.NbtDefaults;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -45,27 +46,27 @@ public final class YsmPayloadSmokeTest {
         avatar.put("sounds", nested.copy());
         avatar.put("scripts", nested.copy());
         CompoundTag portable = YsmSourcePayload.forOutput(avatar);
-        require(portable.keySet().equals(Set.of("metadata", "ysm")), "encrypted root whitelist");
-        require(Arrays.equals(ciphertext, portable.getCompoundOrEmpty("ysm").getByteArray("source_ciphertext").orElseThrow()),
+        require(portable.getAllKeys().equals(Set.of("metadata", "ysm")), "encrypted root whitelist");
+        require(Arrays.equals(ciphertext, NbtDefaults.findByteArray(portable.getCompound("ysm"), "source_ciphertext").orElseThrow()),
                 "original ciphertext byte equivalence");
         require(descriptor.contains("main_model") && metadata.contains("source_path"), "output filter preserves caller-owned input");
         require(!portable.toString().contains(MARKER), "portable NBT has no decoded markers");
         CompoundTag accessory = avatar.copy();
         String cosmetic = "{\"name\":\"星翼\",\"category\":\"Wings\",\"cosmetic_anchor\":\"wing_anchor\"}";
-        accessory.getCompoundOrEmpty("metadata").putString("resource_kind", "ACCESSORY");
-        accessory.getCompoundOrEmpty("metadata").putString("cosmetic_json", cosmetic);
+        accessory.getCompound("metadata").putString("resource_kind", "ACCESSORY");
+        accessory.getCompound("metadata").putString("cosmetic_json", cosmetic);
         CompoundTag authored = new CompoundTag();
         authored.putByteArray("wrapper-file", "AUTHORED_COSMETIC_WRAPPER".getBytes(StandardCharsets.UTF_8));
         for (String key : List.of("scripts", "sounds", "resources")) {
             accessory.put(key, authored.copy());
         }
         CompoundTag portableAccessory = YsmSourcePayload.forOutput(accessory);
-        require(portableAccessory.keySet().equals(Set.of("metadata", "ysm", "scripts", "sounds", "resources"))
-                        && portableAccessory.getCompoundOrEmpty("metadata").getStringOr("cosmetic_json", "").equals(cosmetic)
-                        && portableAccessory.getCompoundOrEmpty("metadata").getStringOr("resource_kind", "").equals("ACCESSORY"),
+        require(portableAccessory.getAllKeys().equals(Set.of("metadata", "ysm", "scripts", "sounds", "resources"))
+                        && portableAccessory.getCompound("metadata").getString("cosmetic_json").equals(cosmetic)
+                        && portableAccessory.getCompound("metadata").getString("resource_kind").equals("ACCESSORY"),
                 "portable accessories retain their separate authored declaration and Lua/assets");
-        require(!portableAccessory.toString().contains(MARKER) && portableAccessory.getCompoundOrEmpty("scripts").equals(authored)
-                        && Arrays.equals(ciphertext, portableAccessory.getCompoundOrEmpty("ysm").getByteArray("source_ciphertext").orElseThrow())
+        require(!portableAccessory.toString().contains(MARKER) && portableAccessory.getCompound("scripts").equals(authored)
+                        && Arrays.equals(ciphertext, NbtDefaults.findByteArray(portableAccessory.getCompound("ysm"), "source_ciphertext").orElseThrow())
                         && YsmSourcePayload.forOutput(portableAccessory).equals(portableAccessory),
                 "accessory wrapping preserves exact ciphertext, excludes decoded native data and remains idempotent");
         Path directory = Files.createTempDirectory("ysm-payload-");
@@ -86,7 +87,7 @@ public final class YsmPayloadSmokeTest {
         descriptor.putByteArray("source_ciphertext", ciphertext);
         descriptor.putString("content_sha256", "bad");
         expectFailure(avatar);
-        descriptor.putString("content_sha256", portable.getCompoundOrEmpty("ysm").getStringOr("content_sha256", ""));
+        descriptor.putString("content_sha256", portable.getCompound("ysm").getString("content_sha256"));
         descriptor.putInt("crypto_version", 99);
         expectFailure(avatar);
         CompoundTag ordinary = new CompoundTag();
@@ -99,8 +100,8 @@ public final class YsmPayloadSmokeTest {
         plainYsm.putString("main_model", "ordinary unencrypted JSON");
         plain.put("ysm", plainYsm);
         CompoundTag plainOutput = YsmSourcePayload.forOutput(plain);
-        require(!plainOutput.getCompoundOrEmpty("ysm").contains("source_path"), "plain YSM local path filtered");
-        require(plainOutput.getCompoundOrEmpty("ysm").contains("main_model"), "plain YSM model content preserved");
+        require(!plainOutput.getCompound("ysm").contains("source_path"), "plain YSM local path filtered");
+        require(plainOutput.getCompound("ysm").contains("main_model"), "plain YSM model content preserved");
         System.out.println("YSM ciphertext payload whitelist and compressed disk leak checks passed.");
     }
 

@@ -1,110 +1,109 @@
 package top.aihmc.omnimorph.lua.api.particle;
 
-import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.pipeline.ColorTargetState;
-import com.mojang.blaze3d.pipeline.DepthStencilState;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.platform.DestFactor;
-import com.mojang.blaze3d.platform.SourceFactor;
-import net.minecraft.client.particle.SingleQuadParticle;
-import net.minecraft.client.renderer.RenderPipelines;
-import org.figuramc.figura.utils.FiguraIdentifier;
+import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.VertexFormat;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.resources.ResourceLocation;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.IdentityHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
-/** Fixed pipelines preserve author layer order without changing vanilla particle ordering. */
+/** Bounded author-layer descriptors, independent of Minecraft's particle batching API. */
 public final class CustomParticlePipelines {
     public enum Blend {
         ALPHA, ADDITIVE, OPAQUE
     }
 
-    private static final int HARD_MAX_LAYERS = 8;
-    private static final Map<RenderPipeline, Integer> ORDER = new IdentityHashMap<>();
+    public record Pipeline(int layer, Blend blend) {
+        public Pipeline {
+            if (layer < 0 || layer >= 8 || blend == null) {
+                throw new IllegalArgumentException("CUSTOM_PARTICLE_LAYER_LIMIT");
+            }
+        }
+    }
+
+    /** Materials belong to a layer declaration; no global texture cache outlives its avatar. */
+    public static final class Material {
+        private final ResourceLocation texture;
+        private final Pipeline pipeline;
+        private RenderType worldType;
+        private RenderType previewType;
+
+        public Material(ResourceLocation texture, Pipeline pipeline) {
+            this.texture = texture;
+            this.pipeline = pipeline;
+        }
+
+        public Pipeline pipeline() {
+            return pipeline;
+        }
+
+        public ResourceLocation textureAtlasLocation() {
+            return texture;
+        }
+
+        public RenderType renderType(boolean world) {
+            if (world) {
+                if (worldType == null) {
+                    worldType = ParticleType.create(this, true);
+                }
+                return worldType;
+            }
+            if (previewType == null) {
+                previewType = ParticleType.create(this, false);
+            }
+            return previewType;
+        }
+    }
 
     private CustomParticlePipelines() {
     }
 
-    public static RenderPipeline pipeline(int layer, Blend blend) {
-        if (layer < 0 || layer >= HARD_MAX_LAYERS) {
-            throw new IllegalArgumentException("CUSTOM_PARTICLE_LAYER_LIMIT");
-        }
-        return Pipelines.VALUES[layer][blend.ordinal()];
+    public static Pipeline pipeline(int layer, Blend blend) {
+        return new Pipeline(layer, blend);
     }
 
-    /** Every registered pipeline with its blend, so Iris can map it to the matching particle program. */
-    public static Map<RenderPipeline, Blend> registered() {
-        var pipelines = new java.util.LinkedHashMap<RenderPipeline, Blend>();
-        for (int layer = 0; layer < HARD_MAX_LAYERS; layer++) {
-            for (Blend blend : Blend.values()) {
-                pipelines.put(Pipelines.VALUES[layer][blend.ordinal()], blend);
-            }
-        }
-        return pipelines;
-    }
+    private static final class ParticleType extends RenderType {
+        private static final TransparencyStateShard ADDITIVE = new TransparencyStateShard(
+                "omnimorph_particle_additive", () -> {
+                    RenderSystem.enableBlend();
+                    RenderSystem.blendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA,
+                            GlStateManager.DestFactor.ONE, GlStateManager.SourceFactor.ONE,
+                            GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+                }, () -> {
+                    RenderSystem.disableBlend();
+                    RenderSystem.defaultBlendFunc();
+                });
 
-    /** Only custom entries exchange slots. All vanilla entries keep their existing relative positions. */
-    public static <V> Set<Map.Entry<SingleQuadParticle.Layer, V>> orderedEntries(
-            Set<Map.Entry<SingleQuadParticle.Layer, V>> entries) {
-        if (ORDER.isEmpty()) {
-            return entries;
+        private ParticleType() {
+            super("omnimorph_particle", DefaultVertexFormat.PARTICLE, VertexFormat.Mode.QUADS,
+                    256, false, false, () -> {}, () -> {});
         }
-        var custom = new ArrayList<Map.Entry<SingleQuadParticle.Layer, V>>();
-        for (var entry : entries) {
-            if (ORDER.containsKey(entry.getKey().pipeline())) {
-                custom.add(entry);
-            }
-        }
-        if (custom.size() < 2) {
-            return entries;
-        }
-        custom.sort(Comparator.comparingInt(entry -> ORDER.get(entry.getKey().pipeline())));
-        var sorted = custom.iterator();
-        var result = new LinkedHashSet<Map.Entry<SingleQuadParticle.Layer, V>>(entries.size());
-        for (var entry : entries) {
-            result.add(ORDER.containsKey(entry.getKey().pipeline()) ? sorted.next() : entry);
-        }
-        return result;
-    }
 
-    private static final class Pipelines {
-        private static final RenderPipeline[][] VALUES = create();
-
-        private static RenderPipeline[][] create() {
-            RenderPipeline base = SingleQuadParticle.Layer.TRANSLUCENT.pipeline();
-            var snippet = new RenderPipeline.Snippet(Optional.of(base.getVertexShader()),
-                    Optional.of(base.getFragmentShader()), Optional.of(base.getShaderDefines()),
-                    Optional.of(base.getSamplers()), Optional.of(base.getUniforms()),
-                    Optional.of(base.getColorTargetState()), Optional.of(base.getDepthStencilState()),
-                    Optional.of(base.getPolygonMode()), Optional.of(base.isCull()),
-                    Optional.of(base.getVertexFormat()), Optional.of(base.getVertexFormatMode()));
-            var pipelines = new RenderPipeline[HARD_MAX_LAYERS][Blend.values().length];
-            for (int layer = 0; layer < HARD_MAX_LAYERS; layer++) {
-                for (Blend blend : Blend.values()) {
-                    ColorTargetState color = switch (blend) {
-                        case ALPHA -> new ColorTargetState(BlendFunction.TRANSLUCENT);
-                        case ADDITIVE -> new ColorTargetState(new BlendFunction(SourceFactor.SRC_ALPHA,
-                                DestFactor.ONE, SourceFactor.ONE, DestFactor.ONE_MINUS_SRC_ALPHA));
-                        case OPAQUE -> ColorTargetState.DEFAULT;
-                    };
-                    // All custom layers share the translucent pass, with depth testing but no depth writes.
-                    // Otherwise a later opaque layer would be moved before an earlier alpha layer.
-                    RenderPipeline pipeline = RenderPipelines.register(RenderPipeline.builder(snippet)
-                            .withLocation(FiguraIdentifier.of("pipeline/custom_particle/" + layer + "/"
-                                    + blend.name().toLowerCase(java.util.Locale.ROOT)))
-                            .withColorTargetState(color)
-                            .withDepthStencilState(new DepthStencilState(base.getDepthStencilState().depthTest(), false))
-                            .build());
-                    pipelines[layer][blend.ordinal()] = pipeline;
-                    ORDER.put(pipeline, layer);
-                }
-            }
-            return pipelines;
+        private static RenderType create(Material material, boolean world) {
+            TransparencyStateShard transparency = switch (material.pipeline.blend()) {
+                case ALPHA -> TRANSLUCENT_TRANSPARENCY;
+                case ADDITIVE -> ADDITIVE;
+                case OPAQUE -> NO_TRANSPARENCY;
+            };
+            // Explicit batch order controls compositing, including opaque layers. Never write depth.
+            return create("omnimorph_particle_" + material.pipeline.layer(), DefaultVertexFormat.PARTICLE,
+                    VertexFormat.Mode.QUADS, 256, false, false, CompositeState.builder()
+                            .setShaderState(new ShaderStateShard(GameRenderer::getParticleShader))
+                            .setTextureState(new TextureStateShard(material.texture, false, false) {
+                                @Override
+                                public void setupRenderState() {
+                                    // FiguraTexture owns filtering/clamp; binding must not reset its settings.
+                                    RenderSystem.setShaderTexture(0, material.texture);
+                                }
+                            })
+                            .setTransparencyState(transparency)
+                            .setLightmapState(LIGHTMAP)
+                            .setCullState(NO_CULL)
+                            .setDepthTestState(LEQUAL_DEPTH_TEST)
+                            .setWriteMaskState(COLOR_WRITE)
+                            .setOutputState(world ? PARTICLES_TARGET : MAIN_TARGET)
+                            .createCompositeState(false));
         }
     }
 }

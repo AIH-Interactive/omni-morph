@@ -2,7 +2,7 @@ package top.aihmc.omnimorph.model.outfit;
 
 import net.minecraft.client.model.geom.builders.CubeDeformation;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
-import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.model.PlayerModel;
 import net.minecraft.nbt.CompoundTag;
 import org.joml.Matrix4f;
 import org.figuramc.figura.avatar.Avatar;
@@ -253,6 +253,11 @@ public final class OutfitCompositionSmokeTest {
     /** Supply the entity accessor normally installed by Mixins in the plain JVM fixture. */
     private static final class EventWearer extends net.minecraft.world.entity.decoration.ArmorStand
             implements org.figuramc.figura.mixin.EntityAccessor {
+        @Override
+        public int getPermissionLevel() {
+            return 0;
+        }
+
         private EventWearer() {
             super(net.minecraft.world.entity.EntityType.ARMOR_STAND, null);
         }

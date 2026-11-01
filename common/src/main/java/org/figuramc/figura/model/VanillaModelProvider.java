@@ -2,8 +2,7 @@ package org.figuramc.figura.model;
 
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.HumanoidModel;
-import net.minecraft.client.model.player.PlayerCapeModel;
-import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
 import top.aihmc.omnimorph.ducks.PlayerModelCapeAccessor;
 import org.figuramc.figura.mixin.render.layers.elytra.ElytraModelAccessor;
@@ -19,11 +18,11 @@ public enum VanillaModelProvider {
     RIGHT_LEG(model -> model instanceof HumanoidModel<?> m ? m.rightLeg : null),
     HAT(model -> model instanceof HumanoidModel<?> m ? m.hat : null),
 
-    JACKET(model -> model instanceof PlayerModel m ? m.jacket : null),
-    LEFT_SLEEVE(model -> model instanceof PlayerModel m ? m.leftSleeve : null),
-    RIGHT_SLEEVE(model -> model instanceof PlayerModel m ? m.rightSleeve : null),
-    LEFT_PANTS(model -> model instanceof PlayerModel m ? m.leftPants : null),
-    RIGHT_PANTS(model -> model instanceof PlayerModel m ? m.rightPants : null),
+    JACKET(model -> model instanceof PlayerModel<?> m ? m.jacket : null),
+    LEFT_SLEEVE(model -> model instanceof PlayerModel<?> m ? m.leftSleeve : null),
+    RIGHT_SLEEVE(model -> model instanceof PlayerModel<?> m ? m.rightSleeve : null),
+    LEFT_PANTS(model -> model instanceof PlayerModel<?> m ? m.leftPants : null),
+    RIGHT_PANTS(model -> model instanceof PlayerModel<?> m ? m.rightPants : null),
 
     CAPE(model -> model instanceof PlayerModelCapeAccessor m ? m.figura$getCloak() : null),
     FAKE_CAPE(model -> model instanceof PlayerModelCapeAccessor m ? m.figura$getFakeCloak() : null),

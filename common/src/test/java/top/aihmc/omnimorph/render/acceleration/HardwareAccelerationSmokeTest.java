@@ -20,6 +20,7 @@ public final class HardwareAccelerationSmokeTest {
         Path directory = Files.createTempDirectory("omnimorph-hardware-config-");
         System.setProperty("figura.test.directory", directory.toString());
         configurationTests(directory);
+        unsupportedGpuTests();
         controllerTests();
         runtimeFailureTest();
         localizationTests();
@@ -72,16 +73,32 @@ public final class HardwareAccelerationSmokeTest {
         Configs.HARDWARE_ACCELERATION_MERGE_PASS.setTempValue("true");
         Configs.HARDWARE_ACCELERATION_MODEL_MESH.setTempValue("true");
         ConfigManager.applyConfig();
-        require(AccelerationOptions.mergePasses() && !AccelerationOptions.modelMesh(),
-                "applied toggles reach the renderer; model draws stay off without storage blocks");
+        require(Configs.HARDWARE_ACCELERATION_MERGE_PASS.value
+                        && !AccelerationOptions.mergePasses() && !AccelerationOptions.modelMesh(),
+                "saved GPU preferences cannot enable unsupported 1.21.1 draw paths");
         Configs.HARDWARE_ACCELERATION_SSBO.setTempValue("true");
         ConfigManager.applyConfig();
-        require(AccelerationOptions.storageBlocks() && AccelerationOptions.modelMesh(), "model draws follow storage blocks");
+        require(Configs.HARDWARE_ACCELERATION_SSBO.value && Configs.HARDWARE_ACCELERATION_MODEL_MESH.value
+                        && !AccelerationOptions.storageBlocks() && !AccelerationOptions.modelMesh(),
+                "storage preferences survive while unsupported GPU capabilities remain off");
         Files.writeString(file, "{\"CONFIG_VERSION\":1}");
         ConfigManager.loadConfig();
         require(!AccelerationOptions.storageBlocks() && !AccelerationOptions.mergePasses() && !AccelerationOptions.modelMesh()
                         && !Configs.HARDWARE_ACCELERATION_SSBO.value,
                 "missing fields in old configurations turn every experimental toggle off");
+    }
+
+    private static void unsupportedGpuTests() throws Exception {
+        for (Mode mode : List.of(Mode.AUTO, Mode.GPU)) {
+            try {
+                HardwareAcceleration.probe(mode);
+                throw new AssertionError("Unsupported GPU mode activated: " + mode);
+            } catch (AccelerationController.ProbeFailure failure) {
+                require(failure.reason == FallbackReason.UNSUPPORTED_MINECRAFT_VERSION,
+                        "GPU rejection identifies the Minecraft version: " + mode);
+            }
+        }
+        require(!NativeLibraryLoader.isLoaded(), "GPU rejection must not initialize native SIMD");
     }
 
     private static void controllerTests() throws Exception {

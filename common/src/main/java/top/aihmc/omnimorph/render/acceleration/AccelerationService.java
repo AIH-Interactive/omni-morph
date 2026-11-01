@@ -1,11 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
 import java.util.Objects;
-import java.util.List;
-import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
-import com.mojang.blaze3d.vertex.MeshData;
-import net.minecraft.client.renderer.rendertype.RenderType;
 
 /** Global routing and lifetime boundary. No engine names or platform loading here. */
 public final class AccelerationService {
@@ -58,125 +54,13 @@ public final class AccelerationService {
         }
     }
 
-    /** Called only at the actual material/device draw boundary. Unsupported draws retain the Java path. */
-    public GpuAccelerationBackend.DrawResult tryDraw(DrawBatch batch, GpuDrawContext context) {
-        if (!isCurrent(batch.lease())) {
-            return GpuAccelerationBackend.DrawResult.STALE;
-        }
-        AccelerationBackend backend = preferredBackend;
-        try {
-            return backend.draw(batch, context, () -> isCurrent(batch.lease()));
-        } catch (GpuAccelerationBackend.Failure failure) {
-            backendFailed(backend, failure);
-            return failure.issued ? GpuAccelerationBackend.DrawResult.ISSUED_BEFORE_FAILURE
-                    : GpuAccelerationBackend.DrawResult.UNSUPPORTED;
-        } catch (RuntimeException | LinkageError failure) {
-            backendFailed(backend, failure);
-            // A foreign backend cannot establish whether it submitted a partial draw. Do not duplicate it.
-            return GpuAccelerationBackend.DrawResult.ISSUED_BEFORE_FAILURE;
-        }
-    }
-
     public boolean accelerated() {
         return preferredBackend != javaBackend;
     }
 
+    /** The 1.21.1 MVP always emits through the native Java vertex path. */
     public boolean gpuDrawEnabled() {
-        return preferredBackend instanceof GpuAccelerationBackend;
-    }
-
-    /** The active GPU backend, or null while Java or SIMD draws. */
-    GpuAccelerationBackend activeGpu() {
-        return preferredBackend instanceof GpuAccelerationBackend gpu ? gpu : null;
-    }
-
-    boolean gpuRigidGroupsEnabled() {
-        return preferredBackend instanceof GpuAccelerationBackend gpu && gpu.supportsRigidGroups();
-    }
-
-    GpuSubmission.Scope openGpuDrawScope(RenderType material) {
-        if (!(preferredBackend instanceof GpuAccelerationBackend gpu)) {
-            throw new GpuAccelerationBackend.Failure(FallbackReason.GPU_UNAVAILABLE, false, null);
-        }
-        return gpu.openScope(material);
-    }
-
-    Consumer<MeshData> javaDrawCallback(RenderType material) {
-        if (preferredBackend instanceof GpuAccelerationBackend gpu) {
-            return geometry -> gpu.drawJava(material, geometry);
-        }
-        return material::draw;
-    }
-
-    public GpuAccelerationBackend.Prepared prepareGpuDraw(DrawBatch batch) {
-        if (!isCurrent(batch.lease()) || !(preferredBackend instanceof GpuAccelerationBackend gpu)) {
-            return null;
-        }
-        try {
-            return gpu.prepare(batch, () -> isCurrent(batch.lease()));
-        } catch (RuntimeException | LinkageError failure) {
-            backendFailed(gpu, failure);
-            return null;
-        }
-    }
-
-    List<GpuAccelerationBackend.PreparedRange> prepareGpuGroup(List<DrawBatch> batches, long[] order) {
-        if (!(preferredBackend instanceof GpuAccelerationBackend gpu) || batches.isEmpty()) {
-            return null;
-        }
-        for (DrawBatch batch : batches) {
-            if (!isCurrent(batch.lease())) {
-                return null;
-            }
-        }
-        try {
-            return gpu.prepareGroup(batches, order, () -> isCurrent(batches.getFirst().lease()));
-        } catch (RuntimeException | LinkageError failure) {
-            backendFailed(gpu, failure);
-            return null;
-        }
-    }
-
-    /** A shared-pass session for one material boundary, or null to keep one render pass per draw. */
-    GpuAccelerationBackend.MergedDraws openMergedDraws(GpuDrawContext context) {
-        if (!AccelerationOptions.mergePasses() || !(preferredBackend instanceof GpuAccelerationBackend gpu)) {
-            return null;
-        }
-        return gpu.openMergedDraws(context);
-    }
-
-    public GpuAccelerationBackend.DrawResult drawPrepared(GpuAccelerationBackend.Prepared prepared,
-                                                         GpuDrawContext context, int firstIndex, int indexCount) {
-        return drawPrepared(prepared, context, firstIndex, indexCount, null);
-    }
-
-    /** {@code merged} may be null; otherwise the draw reuses its open pass. Failure handling is identical. */
-    GpuAccelerationBackend.DrawResult drawPrepared(GpuAccelerationBackend.Prepared prepared, GpuDrawContext context,
-                                                  int firstIndex, int indexCount,
-                                                  GpuAccelerationBackend.MergedDraws merged) {
-        if (!isCurrent(prepared.batch.lease())) {
-            return GpuAccelerationBackend.DrawResult.STALE;
-        }
-        if (preferredBackend != prepared.backend) {
-            return GpuAccelerationBackend.DrawResult.UNSUPPORTED;
-        }
-        try {
-            BooleanSupplier current = () -> isCurrent(prepared.batch.lease());
-            return merged == null
-                    ? prepared.backend.drawPrepared(prepared, context, firstIndex, indexCount, current)
-                    : merged.draw(prepared, firstIndex, indexCount, current);
-        } catch (GpuAccelerationBackend.Failure failure) {
-            backendFailed(prepared.backend, failure);
-            return failure.issued ? GpuAccelerationBackend.DrawResult.ISSUED_BEFORE_FAILURE
-                    : GpuAccelerationBackend.DrawResult.UNSUPPORTED;
-        } catch (RuntimeException | LinkageError failure) {
-            backendFailed(prepared.backend, failure);
-            return GpuAccelerationBackend.DrawResult.ISSUED_BEFORE_FAILURE;
-        }
-    }
-
-    void graphicsFailed(Throwable failure) {
-        backendFailed(preferredBackend, failure);
+        return false;
     }
 
     public Lease capture(AccelerationOwner owner, String view) {
@@ -232,9 +116,7 @@ public final class AccelerationService {
         } catch (RuntimeException | LinkageError cleanupFailure) {
             failure.addSuppressed(cleanupFailure);
         }
-        FallbackReason reason = failure instanceof GpuAccelerationBackend.Failure gpuFailure
-                ? gpuFailure.reason : FallbackReason.RUNTIME_FAILURE;
-        AccelerationFrameDiagnostics.fallback(reason.name());
+        AccelerationFrameDiagnostics.fallback(FallbackReason.RUNTIME_FAILURE.name());
         notify.accept(failure);
     }
 }

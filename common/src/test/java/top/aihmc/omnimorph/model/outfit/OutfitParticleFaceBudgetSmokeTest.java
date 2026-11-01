@@ -4,8 +4,7 @@ import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.particle.SingleQuadParticle;
-import net.minecraft.client.renderer.state.level.QuadParticleRenderState;
+import top.aihmc.omnimorph.lua.api.particle.ParticleVertexCapture;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
 import org.luaj.vm2.LuaTable;
@@ -148,9 +147,9 @@ public final class OutfitParticleFaceBudgetSmokeTest {
     }
 
     private static int extract(CustomParticle particle) {
-        var quads = new RecordingQuads();
+        var quads = new ParticleVertexCapture();
         particle.extract(quads, new FixtureCamera(), 0);
-        return quads.count;
+        return quads.quadCount();
     }
 
     private static PermissionPack.PlayerPermissionPack permissions(UUID owner) {
@@ -160,17 +159,6 @@ public final class OutfitParticleFaceBudgetSmokeTest {
         return permissions;
     }
 
-    private static final class RecordingQuads extends QuadParticleRenderState {
-        private int count;
-
-        @Override
-        public void add(SingleQuadParticle.Layer layer, float x, float y, float z, float qx, float qy,
-                        float qz, float qw, float size, float u0, float u1, float v0, float v1, int color, int light) {
-            super.add(layer, x, y, z, qx, qy, qz, qw, size, u0, u1, v0, v1, color, light);
-            count++;
-        }
-    }
-
     private static final class FixtureCamera extends Camera {
         @Override
         public Quaternionf rotation() {
@@ -178,7 +166,7 @@ public final class OutfitParticleFaceBudgetSmokeTest {
         }
 
         @Override
-        public Vec3 position() {
+        public Vec3 getPosition() {
             return Vec3.ZERO;
         }
     }

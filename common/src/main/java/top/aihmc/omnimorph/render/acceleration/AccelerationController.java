@@ -96,8 +96,7 @@ final class AccelerationController {
         if (!enabled || report.state() == State.FALLBACK_JAVA) {
             return;
         }
-        FallbackReason reason = failure instanceof GpuAccelerationBackend.Failure gpu ? gpu.reason
-                : failure instanceof IllegalCallerException || failure instanceof SecurityException
+        FallbackReason reason = failure instanceof IllegalCallerException || failure instanceof SecurityException
                 ? FallbackReason.NATIVE_ACCESS_DENIED : FallbackReason.RUNTIME_FAILURE;
         fallback(reason);
     }

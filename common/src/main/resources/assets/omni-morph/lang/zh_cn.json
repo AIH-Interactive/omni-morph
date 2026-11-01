@@ -154,6 +154,8 @@
   "omni-morph.config.hardware_acceleration.model_mesh": "整模型单次绘制（实验）",
   "omni-morph.config.hardware_acceleration.model_mesh.tooltip": "同一模型的每种材质只画一次，包括蒙皮、染色和三角形面部件。需要同时开启 SSBO 姿态存储，切换后会重新检测 GPU；不支持时自动回退。默认关闭。",
   "omni-morph.config.hardware_acceleration.status": "当前状态",
+  "omni-morph.config.hardware_acceleration.gpu_unsupported_version": "1.21.1 暂不支持 GPU 硬件加速；默认使用 Java 渲染",
+  "omni-morph.config.hardware_acceleration.reason.unsupported_minecraft_version": "1.21.1 暂不支持 GPU 硬件加速",
   "omni-morph.config.hardware_acceleration.status.tooltip": "只读显示实际模式与回退原因；尚未应用的偏好不会改变实际状态。",
   "omni-morph.config.hardware_acceleration.state.disabled": "Java · 已关闭",
   "omni-morph.config.hardware_acceleration.state.probing": "检测中 · Java",

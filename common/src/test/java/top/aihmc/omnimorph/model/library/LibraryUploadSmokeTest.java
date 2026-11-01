@@ -1,5 +1,6 @@
 package top.aihmc.omnimorph.model.library;
 
+import org.figuramc.figura.utils.NbtDefaults;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -114,7 +115,7 @@ public final class LibraryUploadSmokeTest {
             require(snapshot.metadata().get("internal_name").equals("原始模型")
                             && snapshot.metadata().get("authors").equals(java.util.List.of("作者"))
                             && snapshot.metadata().get("description").equals("模型说明")
-                            && prepared.nbt().getCompoundOrEmpty("metadata").getStringOr("name", "").equals("原始模型"),
+                            && prepared.nbt().getCompound("metadata").getString("name").equals("原始模型"),
                     "formatted source metadata and uploaded NBT agree on plain catalog text");
             try (var access = new LibraryAccess(CloudEndpoint.parse(server.origin(), () -> true), HttpClient.newHttpClient(),
                     builder -> builder.header("Authorization", "Bearer synthetic"));
@@ -201,8 +202,7 @@ public final class LibraryUploadSmokeTest {
                 require(identity.contentHash().equals(actual.contentHash())
                         && identity.schemaHash().equals(actual.schemaHash()),
                         "upload inventory matches actual Avatar YSM synchronization identity");
-                require(java.util.Arrays.equals(Files.readAllBytes(encrypted), cipher.nbt()
-                        .getCompoundOrEmpty("ysm").getByteArray("source_ciphertext").orElseThrow()),
+                require(java.util.Arrays.equals(Files.readAllBytes(encrypted), NbtDefaults.findByteArray(cipher.nbt().getCompound("ysm"), "source_ciphertext").orElseThrow()),
                         "inventory preparation preserves original ciphertext");
             } finally {
                 reference.clean();
@@ -327,8 +327,8 @@ public final class LibraryUploadSmokeTest {
                 require(await(operation.retry(), drain).published() && server.published.get() == 1
                                 && server.bodies.get() == bodyCount && server.badReplay.get() == 0,
                         "accessory commit retry preserves the original operation and frozen declaration");
-                var actual = transaction.body.getCompoundOrEmpty("metadata");
-                JsonObject declaration = JsonParser.parseString(actual.getStringOr("cosmetic_json", "")).getAsJsonObject();
+                var actual = transaction.body.getCompound("metadata");
+                JsonObject declaration = JsonParser.parseString(actual.getString("cosmetic_json")).getAsJsonObject();
                 require(top.aihmc.omnimorph.model.outfit.OutfitCodec.encodeAccessoryMetadata(
                                 top.aihmc.omnimorph.model.outfit.CosmeticMetadata.read(declaration.toString()))
                                 .equals(transaction.input.getAsJsonObject("metadata").getAsJsonObject("accessory_metadata"))
@@ -338,8 +338,7 @@ public final class LibraryUploadSmokeTest {
                                 && Files.readString(source.resolve("cosmetic.json")).equals(original),
                         "HTTP body contains the edited declaration matching reserve metadata/hash, without source changes");
                 if (ciphertext != null) {
-                    require(java.util.Arrays.equals(ciphertext, transaction.body.getCompoundOrEmpty("ysm")
-                                    .getByteArray("source_ciphertext").orElseThrow())
+                    require(java.util.Arrays.equals(ciphertext, NbtDefaults.findByteArray(transaction.body.getCompound("ysm"), "source_ciphertext").orElseThrow())
                                     && transaction.input.has("content_sha256") && transaction.input.has("schema_sha256"),
                             "actual encrypted accessory HTTP upload retains ciphertext and native synchronization identity");
                 }

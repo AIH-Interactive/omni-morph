@@ -2,11 +2,9 @@ package top.aihmc.omnimorph.render.acceleration;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import com.mojang.blaze3d.systems.RenderSystem;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.utils.FiguraText;
-import org.figuramc.figura.utils.PlatformUtils;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -21,71 +19,25 @@ public final class HardwareAcceleration {
             HardwareAcceleration::probe, report -> FiguraMod.LOGGER.info(
                     "Hardware acceleration: requested={}, state={}, effective={}, reason={}, nativeCapabilities={}",
                     report.requested(), report.state(), report.effective(), report.reason(), report.nativeCapabilities()));
-    private static MinecraftGpuDeviceAdapter gpuDevice;
-    private static GpuAccelerationBackend pendingGpu;
-    private static volatile boolean resetPendingGpu;
-    private static volatile boolean resetGpuDevice;
-    private static boolean retirementFailureLogged;
     private static NativeSimdBackend nativeWorkspace;
 
     private HardwareAcceleration() {
     }
 
     public static void applySettings() {
-        boolean reprobe = AccelerationOptions.update(
-                Boolean.TRUE.equals(Configs.HARDWARE_ACCELERATION_SSBO.value),
-                Boolean.TRUE.equals(Configs.HARDWARE_ACCELERATION_SIMD_PACK.value),
-                Boolean.TRUE.equals(Configs.HARDWARE_ACCELERATION_MERGE_PASS.value),
-                Boolean.TRUE.equals(Configs.HARDWARE_ACCELERATION_MODEL_MESH.value));
-        if (CONTROLLER.request(Boolean.TRUE.equals(Configs.HARDWARE_ACCELERATION_ENABLED.value),
-                Mode.values()[Configs.HARDWARE_ACCELERATION_MODE.value])) {
-            resetPendingGpu = true;
-        } else if (reprobe) {
-            // Storage blocks and model draws are probed during GPU activation, so an active backend activates again.
-            resetPendingGpu = true;
-            CONTROLLER.retryAfterResourceReload();
-        }
+        // GPU layers have no device binding on the 1.21.1 MVP. Keep saved preferences separate from support.
+        AccelerationOptions.update(false, false, false, false);
+        CONTROLLER.request(Boolean.TRUE.equals(Configs.HARDWARE_ACCELERATION_ENABLED.value),
+                Mode.values()[Configs.HARDWARE_ACCELERATION_MODE.value]);
     }
 
     public static void beginFrame() {
         AccelerationFrameDiagnostics.beginFrame();
-        GpuSubmission.beginFrame();
-        try {
-            GpuRetirement.GLOBAL.poll();
-            retirementFailureLogged = false;
-        } catch (RuntimeException | LinkageError failure) {
-            if (!retirementFailureLogged) {
-                FiguraMod.LOGGER.warn("GPU retirement is pending: {}", failure.getClass().getSimpleName());
-                retirementFailureLogged = true;
-            }
-            CONTROLLER.runtimeFailure(new GpuAccelerationBackend.Failure(FallbackReason.RUNTIME_FAILURE, false, failure));
-        }
-        if (resetPendingGpu) {
-            if (pendingGpu != null) {
-                pendingGpu.close();
-                pendingGpu = null;
-            }
-            resetPendingGpu = false;
-        }
-        if (resetGpuDevice) {
-            gpuDevice = null;
-            resetGpuDevice = false;
-        }
-        if (gpuDevice != null && !gpuDevice.isCurrent()) {
-            if (pendingGpu != null) {
-                pendingGpu.close();
-                pendingGpu = null;
-            }
-            gpuDevice = null;
-            CONTROLLER.retryAfterResourceReload();
-        }
         CONTROLLER.beginFrame();
         flushChat();
     }
 
     public static void retryAfterResourceReload() {
-        resetPendingGpu = true;
-        resetGpuDevice = true;
         CONTROLLER.retryAfterResourceReload();
     }
 
@@ -97,44 +49,19 @@ public final class HardwareAcceleration {
         try {
             CONTROLLER.request(false, CONTROLLER.report().requested());
             CONTROLLER.beginFrame();
-            if (pendingGpu != null) {
-                pendingGpu.close();
-                pendingGpu = null;
-            }
-            if (!GpuRetirement.GLOBAL.awaitRemaining(1_000_000_000L)) {
-                FiguraMod.LOGGER.warn("GPU retirement did not complete before device shutdown: {} bytes pending", GpuRetirement.GLOBAL.bytes());
-            }
         } catch (RuntimeException | LinkageError failure) {
-            FiguraMod.LOGGER.warn("GPU shutdown cleanup could not complete: {}", failure.getClass().getSimpleName());
+            FiguraMod.LOGGER.warn("Acceleration shutdown cleanup could not complete: {}", failure.getClass().getSimpleName());
         }
     }
 
     public static Component statusText() {
         CapabilityReport report = report();
         return switch (report.state()) {
-            case DISABLED -> FiguraText.of("config.hardware_acceleration.state.disabled");
+            case DISABLED -> FiguraText.of("config.hardware_acceleration.gpu_unsupported_version");
             case PROBING -> FiguraText.of("config.hardware_acceleration.state.probing");
-            case READY -> FiguraText.of("config.hardware_acceleration.state.ready", readyDetail(report));
+            case READY -> FiguraText.of("config.hardware_acceleration.state.ready", Component.literal(report.effective().name()));
             case FALLBACK_JAVA -> FiguraText.of("config.hardware_acceleration.state.fallback", reasonText(report.reason()));
         };
-    }
-
-    /** The effective backend, plus the pose storage block state when that opt-in layer was requested. */
-    private static Component readyDetail(CapabilityReport report) {
-        Component effective = Component.literal(report.effective().name());
-        if (report.effective() != Effective.GPU || !GpuStorageSupport.requested()) {
-            return effective;
-        }
-        GpuAccelerationBackend gpu = AccelerationService.INSTANCE.activeGpu();
-        Component storage;
-        if (gpu != null && gpu.storageActive()) {
-            storage = FiguraText.of("config.hardware_acceleration.storage.active");
-        } else {
-            String reason = gpu == null || GpuStorageSupport.unavailableReason() == null
-                    ? "disabled after failures" : GpuStorageSupport.unavailableReason();
-            storage = FiguraText.of("config.hardware_acceleration.storage.unavailable", reason);
-        }
-        return Component.empty().append(effective).append(" · ").append(storage);
     }
 
     public static void flushChat() {
@@ -153,7 +80,7 @@ public final class HardwareAcceleration {
     static AccelerationController.Activation probe(Mode mode)
             throws AccelerationController.ProbeFailure, AccelerationController.ProbePending {
         if (mode != Mode.SIMD) {
-            return probeGpu(mode);
+            throw new AccelerationController.ProbeFailure(FallbackReason.UNSUPPORTED_MINECRAFT_VERSION);
         }
         try {
             NativeLibraryLoader.Loaded loaded = NativeLibraryLoader.load();
@@ -177,46 +104,6 @@ public final class HardwareAcceleration {
             throw new AccelerationController.ProbeFailure(FallbackReason.NATIVE_LINK_FAILURE);
         } catch (IOException | RuntimeException failure) {
             throw new AccelerationController.ProbeFailure(FallbackReason.NATIVE_INITIALIZATION_FAILURE);
-        }
-    }
-
-    private static AccelerationController.Activation probeGpu(Mode mode)
-            throws AccelerationController.ProbeFailure, AccelerationController.ProbePending {
-        if (!RenderSystem.isOnRenderThread() || RenderSystem.tryGetDevice() == null) {
-            throw new AccelerationController.ProbeFailure(FallbackReason.GPU_UNAVAILABLE);
-        }
-        if (PlatformUtils.isModLoaded("iris") || PlatformUtils.isModLoaded("sodium")) {
-            throw new AccelerationController.ProbeFailure(FallbackReason.INCOMPATIBLE_PIPELINE);
-        }
-        if (pendingGpu == null) {
-            if (gpuDevice == null || !gpuDevice.isCurrent()) {
-                gpuDevice = new MinecraftGpuDeviceAdapter(RenderSystem.getDevice(), Minecraft.getInstance().getShaderManager()::getShader);
-            }
-            pendingGpu = new GpuAccelerationBackend(gpuDevice, GpuRetirement.GLOBAL, 64L * 1024 * 1024, 8L * 1024 * 1024);
-        }
-        try {
-            if (!pendingGpu.initializeStep()) {
-                throw new AccelerationController.ProbePending();
-            }
-            GpuAccelerationBackend ready = pendingGpu;
-            int capabilities = 0;
-            if (mode == Mode.AUTO) {
-                try {
-                    AccelerationController.Activation cpu = probe(Mode.SIMD);
-                    ready.useCpuBackend(cpu.backend());
-                    capabilities = cpu.capabilities();
-                } catch (AccelerationController.ProbeFailure unavailable) {
-                    FiguraMod.LOGGER.info("GPU ready; optional SIMD preparation unavailable: {}", unavailable.reason);
-                }
-            }
-            pendingGpu = null;
-            return new AccelerationController.Activation(ready, Effective.GPU, capabilities);
-        } catch (GpuAccelerationBackend.Failure failure) {
-            // The report only carries the reason; keep the underlying exception for diagnosis.
-            FiguraMod.LOGGER.warn("GPU acceleration probe failed: {}", failure.reason, failure.getCause());
-            pendingGpu.close();
-            pendingGpu = null;
-            throw new AccelerationController.ProbeFailure(failure.reason);
         }
     }
 

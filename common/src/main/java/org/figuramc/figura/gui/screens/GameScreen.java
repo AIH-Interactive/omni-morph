@@ -1,17 +1,15 @@
 package org.figuramc.figura.gui.screens;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.gui.widgets.Button;
 import org.figuramc.figura.gui.widgets.Label;
 import org.figuramc.figura.utils.FiguraIdentifier;
 import org.figuramc.figura.utils.FiguraText;
-import org.joml.Matrix3x2fStack;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -78,8 +76,7 @@ public class GameScreen extends AbstractPanelScreen {
     }
 
     @Override
-    public boolean keyPressed(KeyEvent keyEvent) {
-        int keyCode = keyEvent.key();
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         switch (keyCode) {
             case GLFW.GLFW_KEY_R -> grid.init();
             case GLFW.GLFW_KEY_P -> paused = !paused;
@@ -89,7 +86,7 @@ public class GameScreen extends AbstractPanelScreen {
                 stats.setVisible(!stats.isVisible());
             }
             default -> {
-                return super.keyPressed(keyEvent);
+                return super.keyPressed(keyCode, scanCode, modifiers);
             }
         }
 
@@ -149,18 +146,19 @@ public class GameScreen extends AbstractPanelScreen {
         }
 
         @Override
-        public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
-            Matrix3x2fStack pose = gui.pose();
-            pose.pushMatrix();
-            pose.scale(scale, scale);
-
-            for (Cell[] cells : grid) {
-                for (Cell cell : cells) {
-                    cell.extractRenderState(gui);
+        public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
+            PoseStack pose = gui.pose();
+            pose.pushPose();
+            try {
+                pose.scale(scale, scale, 1);
+                for (Cell[] cells : grid) {
+                    for (Cell cell : cells) {
+                        cell.render(gui);
+                    }
                 }
+            } finally {
+                pose.popPose();
             }
-
-            pose.popMatrix();
         }
     }
 
@@ -189,7 +187,7 @@ public class GameScreen extends AbstractPanelScreen {
             this.future = RULES[this.alive][neigh];
         }
 
-        private void extractRenderState(GuiGraphicsExtractor gui) {
+        private void render(GuiGraphics gui) {
             this.alive = this.future;
             if (this.alive == 1)
                 gui.fill(this.x, this.y, this.x + 1, this.y + 1, color);

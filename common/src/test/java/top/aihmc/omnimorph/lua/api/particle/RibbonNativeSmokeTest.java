@@ -9,15 +9,7 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormatElement;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.particle.Particle;
-import net.minecraft.client.particle.SpriteSet;
-import net.minecraft.client.renderer.SubmitNodeStorage;
 import net.minecraft.client.renderer.culling.Frustum;
-import net.minecraft.client.renderer.state.level.CameraRenderState;
-import net.minecraft.client.renderer.state.level.ParticlesRenderState;
-import net.minecraft.client.renderer.state.level.QuadParticleRenderState;
-import net.minecraft.core.particles.ParticleOptions;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.AABB;
 import org.joml.Matrix4f;
@@ -27,7 +19,6 @@ import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.lua.LuaTypeManager;
-import org.figuramc.figura.mixin.particle.ParticleEngineMixin;
 import top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 import top.aihmc.omnimorph.model.outfit.OutfitLimits;
@@ -44,13 +35,13 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.figuramc.figura.lua.api.particle.LuaParticle;
-/** Actual Lua settings, production extraction hook, native node submission and native PARTICLE vertex bytes. */
+/** Actual Lua settings, production world extraction, immediate frame drawing and native PARTICLE vertex bytes. */
 final class RibbonNativeSmokeTest {
     static void run(Avatar first, Avatar second, Runnable drain) throws Exception {
         luaGeometryAndLifetime(first, drain);
         sharedVerticesAndTrailSlots(first, second, drain);
-        System.out.println("PASS native Ribbon: Lua mode/settings, extraction hook, actual particle vertex bytes, "
-                + "native submit nodes, frozen replay, shared vertices/trail slots and cleanup; GPU/game MANUAL/PENDING");
+        System.out.println("PASS native Ribbon: Lua mode/settings, world extraction, actual particle vertex bytes, "
+                + "immediate frame replay, frozen replay, shared vertices/trail slots and cleanup; GPU/game MANUAL/PENDING");
     }
 
     private static void luaGeometryAndLifetime(Avatar owner, Runnable drain) throws Exception {
@@ -86,19 +77,19 @@ final class RibbonNativeSmokeTest {
             returned.set("width", 999);
             near(wrapper.get("getRibbon").call(wrapper).get("width").todouble(), .4);
             YsmRenderFrameClock.beginFrame();
-            require(extract(new FixtureCamera(), 1).particles.isEmpty(), "first history point emits no invented segment");
+            require(extract(new FixtureCamera(), 1).vertexCount() == 0, "first history point emits no invented segment");
             particle.tick();
             YsmRenderFrameClock.beginFrame();
             var frustum = new RecordingFrustum(false);
             int beforeCull = CustomParticleRuntime.availableRibbonVertices(particle);
-            require(extract(new FixtureCamera(), frustum, 1).particles.isEmpty()
+            require(extract(new FixtureCamera(), frustum, 1).vertexCount() == 0
                             && CustomParticleRuntime.availableRibbonVertices(particle) == beforeCull,
                     "culled history consumes no submitted vertex budget");
             require(frustum.bounds.minX <= 9.8 && frustum.bounds.maxX >= 11.2,
                     "culling considers the tail and head with half-width padding, not just the current head");
             owner.permissions.insert(Permissions.COMPLEXITY, 1, org.figuramc.figura.FiguraMod.MOD_ID);
             try {
-                require(extract(new FixtureCamera(), 1).particles.isEmpty()
+                require(extract(new FixtureCamera(), 1).vertexCount() == 0
                                 && "RIBBON_FACE_LIMIT".equals(particle.getRenderError())
                                 && CustomParticleRuntime.availableRibbonVertices(particle) == beforeCull,
                         "incomplete layered face allowance rejects before spending any vertices");
@@ -107,17 +98,11 @@ final class RibbonNativeSmokeTest {
             }
             YsmRenderFrameClock.beginFrame();
             var state = extract(new FixtureCamera(), 1);
-            require(state.particles.size() == 1 && state.particles.getFirst() instanceof RibbonRenderState,
-                    "production extraction hook adds an arbitrary-quad particle group");
-            var ribbon = (RibbonRenderState) state.particles.getFirst();
-            var ordinary = new QuadParticleRenderState();
+            require(state.vertexCount() == 8, "world extraction freezes both Ribbon layer quads");
+            var ribbon = state;
+            var ordinary = new ParticleVertexCapture();
             particle.extract(ordinary, new FixtureCamera(), 1);
-            require(ordinary.isEmpty(), "Ribbon does not also emit a Billboard square");
-            var nodes = new SubmitNodeStorage();
-            state.submit(nodes, new CameraRenderState());
-            require(nodes.getSubmitsPerOrder().get(0).getParticleGroupRenderers().getFirst() == ribbon,
-                    "extracted Ribbon reaches the native particle feature queue");
-            require(ribbon.prepare(null, false) == null, "translucent Ribbon does not allocate in the solid pass");
+            require(ordinary.quadCount() == 0, "Ribbon does not also emit a Billboard square");
             byte[] frozen = vertices(ribbon, 8);
             ByteBuffer data = ByteBuffer.wrap(frozen).order(java.nio.ByteOrder.nativeOrder());
             var format = DefaultVertexFormat.PARTICLE;
@@ -131,7 +116,7 @@ final class RibbonNativeSmokeTest {
             near(data.getFloat(stride + 4), .2);
             near(data.getFloat(uv), .5);
             near(data.getFloat(stride * 2 + uv), 1);
-            require(data.getInt(light) == 0xF000F0 && data.getInt(stride * 4 + light) == 0xF00000,
+            require(data.getInt(light) == 0xF000F0 && data.getInt(stride * 4 + light) == 0,
                     "per-layer full-bright and ordinary native light enter actual vertex bytes");
             wrapper.get("setRibbon").call(wrapper, options("width", .8, "uvOffset", -.25));
             require(Arrays.equals(frozen, vertices(ribbon, 8)), "settings changes do not mutate extracted geometry");
@@ -139,7 +124,7 @@ final class RibbonNativeSmokeTest {
             // Keep one atlas interval so rotation can be inspected without extra UV seam subdivisions.
             wrapper.get("setRibbon").call(wrapper, options("uvOffset", 0));
             YsmRenderFrameClock.beginFrame();
-            var rotated = (RibbonRenderState) extract(new FixtureCamera(), 1).particles.getFirst();
+            var rotated = extract(new FixtureCamera(), 1);
             var rotatedBytes = ByteBuffer.wrap(vertices(rotated, 8)).order(java.nio.ByteOrder.nativeOrder());
             near(rotatedBytes.getFloat(4), 0);
             near(rotatedBytes.getFloat(8), -10.4);
@@ -147,18 +132,18 @@ final class RibbonNativeSmokeTest {
             // Invoke native position update at partialTick=1; no production behavior is changed for this fixture.
             particle.setPos(100, 3, 4);
             YsmRenderFrameClock.beginFrame();
-            require(extract(new FixtureCamera(), 1).particles.isEmpty(), "teleport clears the entire old trajectory");
+            require(extract(new FixtureCamera(), 1).vertexCount() == 0, "teleport clears the entire old trajectory");
             require(wrapper.get("getRenderError").call(wrapper).isnil(), "normal empty history is not a render error");
-            var gpu = texture.getTexture();
-            var overlayGpu = overlay.getTexture();
+            int gpu = texture.getId();
+            int overlayGpu = overlay.getId();
             texture.close();
             overlay.close();
             wrapper.get("remove").call(wrapper);
-            require(!gpu.isClosed() && !overlayGpu.isClosed(), "submitted frame retains both retired layer images");
+            require(org.lwjgl.opengl.GL11.glIsTexture(gpu) && org.lwjgl.opengl.GL11.glIsTexture(overlayGpu), "submitted frame retains both retired layer images");
             require(Arrays.equals(frozen, vertices(ribbon, 8)), "replay after removal does not sample or mutate history");
             CustomParticleRuntime.finishFrame();
             drain.run();
-            require(gpu.isClosed() && overlayGpu.isClosed() && CustomParticleRuntime.liveCount(owner.owner) == 0,
+            require(!org.lwjgl.opengl.GL11.glIsTexture(gpu) && !org.lwjgl.opengl.GL11.glIsTexture(overlayGpu) && CustomParticleRuntime.liveCount(owner.owner) == 0,
                     "frame completion releases textures and execution removal returns capacity");
         } finally {
             particle.remove();
@@ -200,20 +185,20 @@ final class RibbonNativeSmokeTest {
             b.tick();
             YsmRenderFrameClock.beginFrame();
             OutfitTrailBudget.chargeVertices(wearer, YsmRenderFrameClock.currentFrame(), 8, 4);
-            require(extract(new FixtureCamera(), 1).particles.size() == 1
+            require(extract(new FixtureCamera(), 1).vertexCount() == 4
                             && "RIBBON_VERTEX_LIMIT".equals(a.getRenderError()) && b.getRenderError() == null,
                     "external controller submission and native Ribbon use the same frame vertex allowance");
             YsmRenderFrameClock.beginFrame();
             var accepted = extract(new FixtureCamera(), 1);
-            require(accepted.particles.size() == 1 && a.getRenderError() == null
+            require(accepted.vertexCount() == 8 && a.getRenderError() == null
                             && "RIBBON_VERTEX_LIMIT".equals(b.getRenderError()) && b.active(),
                     "first complete two-layer Ribbon spends eight vertices; another execution gets no new quota");
             a.remove();
-            require(extract(new FixtureCamera(), 1).particles.isEmpty()
+            require(extract(new FixtureCamera(), 1).vertexCount() == 0
                             && "RIBBON_VERTEX_LIMIT".equals(b.getRenderError()),
                     "removal cannot refund vertices already submitted in the same frame");
             YsmRenderFrameClock.beginFrame();
-            require(extract(new FixtureCamera(), 1).particles.size() == 1 && b.getRenderError() == null,
+            require(extract(new FixtureCamera(), 1).vertexCount() == 4 && b.getRenderError() == null,
                     "a later frame replenishes the shared vertex allowance");
             b.remove();
             context(first, wearer, limits(1, 8));
@@ -249,25 +234,18 @@ final class RibbonNativeSmokeTest {
         }
     }
 
-    private static ParticlesRenderState extract(Camera camera, float partialTick) throws Exception {
+    private static PreviewParticleFrame extract(Camera camera, float partialTick) {
         return extract(camera, null, partialTick);
     }
 
-    private static ParticlesRenderState extract(Camera camera, Frustum frustum, float partialTick) throws Exception {
-        var state = new ParticlesRenderState();
-        var hook = ParticleEngineMixin.class.getDeclaredMethod("figura$extractRibbons", ParticlesRenderState.class,
-                net.minecraft.client.renderer.culling.Frustum.class, Camera.class, float.class,
-                org.spongepowered.asm.mixin.injection.callback.CallbackInfo.class);
-        hook.setAccessible(true);
-        hook.invoke(new EngineHook(), state, frustum, camera, partialTick,
-                new org.spongepowered.asm.mixin.injection.callback.CallbackInfo("extract", false));
-        return state;
+    private static PreviewParticleFrame extract(Camera camera, Frustum frustum, float partialTick) {
+        return CustomParticleRuntime.extractWorld(frustum, camera, partialTick);
     }
 
-    private static byte[] vertices(RibbonRenderState ribbon, int count) {
-        try (var storage = ByteBufferBuilder.exactlySized(count * DefaultVertexFormat.PARTICLE.getVertexSize())) {
+    private static byte[] vertices(PreviewParticleFrame ribbon, int count) {
+        try (var storage = new ByteBufferBuilder(count * DefaultVertexFormat.PARTICLE.getVertexSize())) {
             var builder = new BufferBuilder(storage, VertexFormat.Mode.QUADS, DefaultVertexFormat.PARTICLE);
-            ribbon.writeVertices(builder);
+            ribbon.draw(new Matrix4f(), type -> builder);
             try (var mesh = builder.build()) {
                 require(mesh != null && mesh.drawState().vertexCount() == count, "native quad buffer has expected vertices");
                 ByteBuffer buffer = mesh.vertexBuffer();
@@ -339,7 +317,7 @@ final class RibbonNativeSmokeTest {
         }
 
         @Override
-        public Vec3 position() {
+        public Vec3 getPosition() {
             return new Vec3(10, 3, 14);
         }
     }
@@ -360,20 +338,4 @@ final class RibbonNativeSmokeTest {
         }
     }
 
-    private static final class EngineHook extends ParticleEngineMixin {
-        @Override
-        protected <T extends ParticleOptions> Particle makeParticle(T options, double x, double y, double z,
-                                                                    double vx, double vy, double vz) {
-            return null;
-        }
-
-        @Override
-        public void add(Particle particle) {
-        }
-
-        @Override
-        public SpriteSet figura$getParticleSprite(ResourceLocation id) {
-            return null;
-        }
-    }
 }

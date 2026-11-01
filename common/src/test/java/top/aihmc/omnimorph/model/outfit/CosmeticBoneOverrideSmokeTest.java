@@ -6,9 +6,10 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.minecraft.client.model.geom.builders.CubeDeformation;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
-import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.model.PlayerModel;
 import net.minecraft.nbt.CompoundTag;
 import org.joml.Matrix4f;
+import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.model.FiguraModelPart;
 import org.figuramc.figura.model.PartCustomization;
@@ -86,11 +87,10 @@ public final class CosmeticBoneOverrideSmokeTest {
             var config = new OutfitConfig(1, 0, null, List.of(declared), List.of(), Map.of(resource.identity(), 1), false);
             try (var composition = new OutfitComposition(config, OutfitLimits.defaults(), null,
                     Map.of(declared.instanceId(), avatar), indexes); var frame = composition.retain()) {
-                var state = new net.minecraft.client.renderer.entity.state.AvatarRenderState();
-                state.lightCoords = 0x00f000f0;
+                var state = new YsmEntityFrame(0, 0, 0, 0, 0);
                 var positions = new ArrayList<float[]>();
                 var sink = vertexSink(positions);
-                OutfitNativeRenderer.drawVanilla(frame, model, state, .5f, new Matrix4f(), new Matrix4f(),
+                OutfitNativeRenderer.drawVanilla(frame, model, state, 0x00f000f0, .5f, new Matrix4f(), new Matrix4f(),
                         type -> sink, EntityRenderMode.FIGURA_GUI);
                 require(positions.size() == 4, "weighted mesh emits its original quad");
                 near(positions.get(0), 3f / 16, 5f / 16, 7f / 16);
@@ -127,7 +127,7 @@ public final class CosmeticBoneOverrideSmokeTest {
         var original = instance(UUID.randomUUID(), resource, 1, anchor, translation(16, 0, 0), List.of());
         var second = instance(UUID.randomUUID(), resource, 2, anchor, translation(32, 0, 0), List.of());
         var avatars = new LinkedHashMap<UUID, Avatar>();
-        try (var textures = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.recordingTextureDevice()) {
+        try (var textures = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.nativeTextureContext()) {
             Avatar parent = load(original, account, outfit, permissions);
             avatars.put(original.instanceId(), parent);
             avatars.put(second.instanceId(), load(second, account, outfit, permissions));
@@ -165,7 +165,7 @@ public final class CosmeticBoneOverrideSmokeTest {
             String metadata = displayMetadata.toString();
             for (var id : List.of(first.instanceId(), second.instanceId())) {
                 var source = avatars.get(id).nbt;
-                var tag = source.getCompoundOrEmpty("metadata");
+                var tag = source.getCompound("metadata");
                 tag.putString("cosmetic_json", metadata);
                 source.put("metadata", tag);
             }
@@ -178,13 +178,12 @@ public final class CosmeticBoneOverrideSmokeTest {
             var config = new OutfitConfig(1, 0, null, List.of(child, second, first), List.of(), watermarks, false);
             try (var composition = new OutfitComposition(config, limits, null, avatars, indexes);
                  var frame = composition.retain()) {
-                var state = new net.minecraft.client.renderer.entity.state.AvatarRenderState();
-                state.lightCoords = 0x00f000f0;
+                var state = new YsmEntityFrame(0, 0, 0, 0, 0);
                 var positions = new ArrayList<float[]>();
                 var normals = new ArrayList<float[]>();
                 var sink = vertexSink(positions, normals);
                 var outer = new Matrix4f().translation(7, 11, 13);
-                OutfitNativeRenderer.drawVanilla(frame, model, state, .5f, outer, outer, type -> sink,
+                OutfitNativeRenderer.drawVanilla(frame, model, state, 0x00f000f0, .5f, outer, outer, type -> sink,
                         EntityRenderMode.FIGURA_GUI);
                 require(service.accelerated() == accelerated, "the requested native preparation branch is active");
                 require(positions.size() == (ysm ? 52 : 12), "both copies and the dependent emit their original native meshes");
@@ -219,7 +218,7 @@ public final class CosmeticBoneOverrideSmokeTest {
                 } else {
                     parent.renderer.root.children.getFirst().customization.setPos(999, 0, 0);
                 }
-                OutfitNativeRenderer.drawVanilla(frame, model, state, .5f, outer, outer, type -> sink,
+                OutfitNativeRenderer.drawVanilla(frame, model, state, 0x00f000f0, .5f, outer, outer, type -> sink,
                         EntityRenderMode.FIGURA_GUI);
                 require(positions.size() == retained.size(), "retained override snapshots survive later live mutations");
                 for (int index = 0; index < positions.size(); index++) {
@@ -248,7 +247,7 @@ public final class CosmeticBoneOverrideSmokeTest {
                     var bare = new FiguraRenderPose(parts, service.capture(parent.accelerationOwner(), "bare"));
                     positions.clear();
                     OutfitNativeRenderer.drawInstance(new OutfitComposition.Draw(first.instanceId(), parent,
-                            command.matrix(), null, bare), .5f, outer, type -> sink, state.lightCoords,
+                            command.matrix(), null, bare), .5f, outer, type -> sink, 0x00f000f0,
                             EntityRenderMode.FIGURA_GUI);
                     require(positions.size() == 4, "a draw without configured offsets uses the original mesh");
                     near(positions.getFirst(), 7 + 23f / 16, 11 + 2f / 16, 13 + 3f / 16);
@@ -305,7 +304,7 @@ public final class CosmeticBoneOverrideSmokeTest {
 
     private static void previewSelection(OutfitComposition composition, Avatar first, Avatar second,
                                          VanillaSkeletonAdapter base, PlayerModel model,
-                                         net.minecraft.client.renderer.entity.state.AvatarRenderState state, boolean ysm) {
+                                         YsmEntityFrame state, boolean ysm) {
         Object selected = ysm ? first.getYsmRuntime().getPart("Body") : first.renderer.root.children.getFirst();
         Object other = ysm ? second.getYsmRuntime().getPart("Body") : second.renderer.root.children.getFirst();
         composition.editorSnapshot(null);
@@ -343,17 +342,17 @@ public final class CosmeticBoneOverrideSmokeTest {
             var positions = new ArrayList<float[]>();
             var normals = new ArrayList<float[]>();
             var sink = vertexSink(positions, normals);
-            OutfitNativeRenderer.drawVanilla(left, model, state, .5f, new Matrix4f(), new Matrix4f(), type -> sink,
+            OutfitNativeRenderer.drawVanilla(left, model, state, 0x00f000f0, .5f, new Matrix4f(), new Matrix4f(), type -> sink,
                     EntityRenderMode.FIGURA_GUI);
             var lines = left.previewHelpers(base.capture(new Matrix4f()));
             require(lines.size() >= 3 && positions.size() > 0,
                     "actual native selected-bone draw captures pivots and submits helper vertices");
             var frozen = List.copyOf(lines);
-            OutfitNativeRenderer.drawVanilla(right, model, state, .5f, new Matrix4f(), new Matrix4f(), type -> sink,
+            OutfitNativeRenderer.drawVanilla(right, model, state, 0x00f000f0, .5f, new Matrix4f(), new Matrix4f(), type -> sink,
                     EntityRenderMode.FIGURA_GUI);
             require(!right.previewHelpers(base.capture(new Matrix4f())).equals(lines),
                     "two same-resource copies retain different mounted helper coordinates");
-            OutfitNativeRenderer.drawVanilla(left, model, state, .5f, new Matrix4f(), new Matrix4f(), type -> sink,
+            OutfitNativeRenderer.drawVanilla(left, model, state, 0x00f000f0, .5f, new Matrix4f(), new Matrix4f(), type -> sink,
                     EntityRenderMode.FIGURA_GUI);
             require(left.previewHelpers(base.capture(new Matrix4f())).equals(frozen),
                     "replaying an older native frame retains its helper coordinates after another frame draws");
@@ -431,15 +430,14 @@ public final class CosmeticBoneOverrideSmokeTest {
         org.figuramc.figura.utils.ui.UIHelper.paperdoll = true;
         try (var composition = new OutfitComposition(configuration, limits, null, Map.of(), new SkeletonIndex.Cache())) {
             composition.editorSnapshot(null);
-            var state = new net.minecraft.client.renderer.entity.state.AvatarRenderState();
-            state.lightCoords = 0x00f000f0;
+            var state = new YsmEntityFrame(0, 0, 0, 0, 0);
             var points = new ArrayList<float[]>();
             var normals = new ArrayList<float[]>();
             var sink = vertexSink(points, normals);
             var basePose = base.capture(new Matrix4f());
             try (var frame = composition.retain()) {
                 frame.capturePreviewSelection(virtualRef);
-                OutfitNativeRenderer.drawVanilla(frame, model, state, .5f, new Matrix4f(), new Matrix4f(),
+                OutfitNativeRenderer.drawVanilla(frame, model, state, 0x00f000f0, .5f, new Matrix4f(), new Matrix4f(),
                         type -> sink, EntityRenderMode.FIGURA_GUI);
                 var lines = frame.previewHelpers(basePose);
                 var expected = basePose.matrix(parent).orElseThrow().mul(offset.modelMatrix());
@@ -453,7 +451,7 @@ public final class CosmeticBoneOverrideSmokeTest {
             points.clear();
             try (var standard = composition.retain()) {
                 standard.capturePreviewSelection(OutfitConfig.AnchorRef.authorDefault("head_anchor"));
-                OutfitNativeRenderer.drawVanilla(standard, model, state, .5f, new Matrix4f(), new Matrix4f(),
+                OutfitNativeRenderer.drawVanilla(standard, model, state, 0x00f000f0, .5f, new Matrix4f(), new Matrix4f(),
                         type -> sink, EntityRenderMode.FIGURA_GUI);
                 var resolved = StandardAnchors.resolve(definition, true, "head_anchor").getFirst();
                 var expected = basePose.matrix(resolved.bone()).orElseThrow().mul(resolved.offset().modelMatrix())
@@ -466,7 +464,7 @@ public final class CosmeticBoneOverrideSmokeTest {
             try (var descriptor = composition.retain()) {
                 descriptor.capturePreviewSelection(new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.BASE_BONE,
                         null, parent, null, null, null));
-                OutfitNativeRenderer.drawVanilla(descriptor, model, state, .5f, new Matrix4f(), new Matrix4f(),
+                OutfitNativeRenderer.drawVanilla(descriptor, model, state, 0x00f000f0, .5f, new Matrix4f(), new Matrix4f(),
                         type -> sink, EntityRenderMode.FIGURA_GUI);
                 require(descriptor.previewHelpers(basePose).size() == 3 && points.size() == 6,
                         "vanilla descriptor selection resolves the native model pivot without inventing an Avatar part");

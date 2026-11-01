@@ -1,13 +1,12 @@
 package org.figuramc.figura.gui.widgets;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.util.Mth;
 import org.figuramc.figura.ducks.ParticleEngineAccessor;
-import top.aihmc.omnimorph.mixin.particle.ParticleResourcesAccessor;
 import org.figuramc.figura.utils.ui.UIHelper;
 
 public class ParticleWidget implements FiguraWidget, FiguraTickable, FiguraRemovable {
@@ -43,7 +42,7 @@ public class ParticleWidget implements FiguraWidget, FiguraTickable, FiguraRemov
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         if (!visible || removed)
             return;
 
@@ -53,8 +52,8 @@ public class ParticleWidget implements FiguraWidget, FiguraTickable, FiguraRemov
     }
 
     private static SpriteSet getParticle(ParticleType<?> particleType) {
-        return ((ParticleResourcesAccessor)((ParticleEngineAccessor) Minecraft.getInstance().particleEngine)
-                .figura$getParticleResources()).figura$getSpriteSets().get(BuiltInRegistries.PARTICLE_TYPE.getKey(particleType));
+        return ((ParticleEngineAccessor) Minecraft.getInstance().particleEngine)
+                .figura$getParticleSprite(BuiltInRegistries.PARTICLE_TYPE.getKey(particleType));
     }
 
     @Override

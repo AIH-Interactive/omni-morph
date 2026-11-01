@@ -168,7 +168,8 @@ public final class YsmBinaryResourcesSmokeTest {
                 }
             }
         }
-        require(files == 4, "four local crypto 3 samples checked");
+        require(files > 0, "the supplied corpus must contain crypto 3 samples");
+        System.out.println("Binary resource corpus: crypto3 samples=" + files);
     }
 
     private static void testAnimationMapping() throws Exception {

@@ -48,14 +48,14 @@ final class OutfitPresetResourcesSmokeTest {
             try (var operation = resolve(draft.configuration(), account, root, null, live)) {
                 var prepared = await(operation.future(), drain);
                 require(prepared.ready() && prepared.issues().isEmpty() && prepared.localAccessories().size() == 1
-                                && prepared.base().getCompoundOrEmpty("metadata").getStringOr("name", "").equals("preset base")
+                                && prepared.base().getCompound("metadata").getString("name").equals("preset base")
                                 && prepared.metadata(entry.reference()).cosmeticAnchor().equals(entry.source().metadata().cosmeticAnchor()),
                         "a reloaded registry resolves the exact local base and one native package for both copies: "
                                 + prepared.issues() + ", metadata=" + prepared.metadata(entry.reference()));
                 var first = prepared.read(entry.reference(), () -> false);
-                first.getCompoundOrEmpty("metadata").putString("name", "mutated caller");
-                require(!prepared.read(entry.reference(), () -> false).getCompoundOrEmpty("metadata")
-                                .getStringOr("name", "").equals("mutated caller"),
+                first.getCompound("metadata").putString("name", "mutated caller");
+                require(!prepared.read(entry.reference(), () -> false).getCompound("metadata")
+                                .getString("name").equals("mutated caller"),
                         "dependency readers never share mutable NBT across prepared runtimes");
             }
             var missingBase = localReference(UUID.randomUUID());
@@ -83,7 +83,7 @@ final class OutfitPresetResourcesSmokeTest {
             try (var operation = resolve(empty(encryptedBase), account, root, null, live)) {
                 var prepared = await(operation.future(), drain);
                 require(prepared.ready() && top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload.isEncrypted(
-                                prepared.base().getCompoundOrEmpty("ysm")),
+                                prepared.base().getCompound("ysm")),
                         "fixed encrypted base preparation preserves the portable ciphertext payload");
             }
             CompoundTag accessoryData = LocalCosmeticSource.prepare(accessory, account,

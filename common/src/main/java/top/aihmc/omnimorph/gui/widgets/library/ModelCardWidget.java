@@ -1,9 +1,7 @@
 package top.aihmc.omnimorph.gui.widgets.library;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.FiguraMod;
@@ -56,7 +54,7 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         int x = getX();
         int y = getY();
         gui.fill(x, y, x + getWidth(), y + getHeight(), selected ? 0xc0335566 : 0xb51a202c);
@@ -70,7 +68,7 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
         int imageSize = ModelLibraryLayout.imageSize(getWidth());
         int informationX = x + imageSize + 10;
         int informationWidth = Math.max(1, getWidth() - imageSize - 16);
-        gui.blit(RenderPipelines.GUI_TEXTURED, texture, x + 4, y + 4, 0, 0,
+        gui.blit(texture, x + 4, y + 4, 0, 0,
                 imageSize, imageSize, imageSize, imageSize);
         ModelResourceBadges.drawType(gui, x + 4, y + 4, model.modelType(), 16);
         drawStatusIcons(gui, x, y, imageSize, model);
@@ -78,10 +76,10 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
                 informationWidth, 0xffbac6d8);
         favorite.setX(x + getWidth() - 24);
         favorite.setY(y + getHeight() - 20);
-        favorite.extractRenderState(gui, mouseX, mouseY, delta);
+        favorite.render(gui, mouseX, mouseY, delta);
         report.setX(x + getWidth() - 48);
         report.setY(y + getHeight() - 20);
-        report.extractRenderState(gui, mouseX, mouseY, delta);
+        report.render(gui, mouseX, mouseY, delta);
         UIHelper.renderScrollingText(gui, Component.literal(model.displayName()), informationX, y + 8,
                 informationWidth, 0xffeeeeee);
         Component author = model.authors().isEmpty() ? FiguraText.of("gui.library.unknown_author")
@@ -114,7 +112,7 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
         }
     }
 
-    public static void drawStatusIcons(GuiGraphicsExtractor gui, int x, int y, int imageSize, LibraryModels.Model model) {
+    public static void drawStatusIcons(GuiGraphics gui, int x, int y, int imageSize, LibraryModels.Model model) {
         int statusX = x + 5;
         int statusY = y + imageSize - 10;
         if (model.requiresAuthorization()) {
@@ -131,28 +129,27 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
         }
     }
 
-    private static void drawStatusIcon(GuiGraphicsExtractor gui, ResourceLocation texture, int x, int y, int variant) {
+    private static void drawStatusIcon(GuiGraphics gui, ResourceLocation texture, int x, int y, int variant) {
         gui.fill(x - 1, y - 1, x + 13, y + 13, 0xd0101820);
-        gui.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 24, variant * 24,
-                12, 12, 24, 24, 72, 48);
+        gui.blit(texture, x, y, 12, 12, 24f, variant * 24f, 24, 24, 72, 48);
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (!isMouseOver(event.x(), event.y())) {
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (!isMouseOver(mouseX, mouseY)) {
             return false;
         }
-        if (event.button() == 1) {
+        if (button == 1) {
             Minecraft.getInstance().keyboardHandler.setClipboard(model.uploader().uuid().toString());
             return true;
         }
-        if (report.isMouseOver(event.x(), event.y())) {
-            return report.mouseClicked(event, doubleClick);
+        if (report.isMouseOver(mouseX, mouseY)) {
+            return report.mouseClicked(mouseX, mouseY, button);
         }
-        if (favorite.isMouseOver(event.x(), event.y()) && favorite.isActive()) {
-            return favorite.mouseClicked(event, doubleClick);
+        if (favorite.isMouseOver(mouseX, mouseY) && favorite.isActive()) {
+            return favorite.mouseClicked(mouseX, mouseY, button);
         }
-        if (event.button() == 0) {
+        if (button == 0) {
             select.accept(model);
             return true;
         }

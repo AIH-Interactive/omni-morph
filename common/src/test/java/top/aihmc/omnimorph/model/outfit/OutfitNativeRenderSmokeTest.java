@@ -3,10 +3,11 @@ package top.aihmc.omnimorph.model.outfit;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.model.geom.builders.CubeDeformation;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
-import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.model.PlayerModel;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import org.joml.Matrix4f;
+import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.model.FiguraModelPart;
 import org.figuramc.figura.model.PartCustomization;
@@ -75,9 +76,8 @@ public final class OutfitNativeRenderSmokeTest {
                             return method.getReturnType() == void.class ? null : proxy;
                         });
                 var entityToDraw = new Matrix4f().translation(7, 11, 13);
-                var state = new net.minecraft.client.renderer.entity.state.AvatarRenderState();
-                state.lightCoords = 0x00f000f0;
-                OutfitNativeRenderer.drawVanilla(frame, model, state, .5f, entityToDraw, entityToDraw,
+                var state = new YsmEntityFrame(0, 0, 0, 0, 0);
+                OutfitNativeRenderer.drawVanilla(frame, model, state, 0x00f000f0, .5f, entityToDraw, entityToDraw,
                         type -> sink, EntityRenderMode.FIGURA_GUI);
                 require(positions.size() == 8, "both native accessory quads emit once");
                 // (1,2,3) -> S(2,3,4) -> Rz90 -> T(3,5,8) = (-3,7,20) model units.
@@ -97,7 +97,7 @@ public final class OutfitNativeRenderSmokeTest {
                             """).call().checkfunction();
                 }
                 try (var nextFrame = composition.retain()) {
-                    OutfitNativeRenderer.drawVanilla(nextFrame, model, state, .5f, entityToDraw, entityToDraw,
+                    OutfitNativeRenderer.drawVanilla(nextFrame, model, state, 0x00f000f0, .5f, entityToDraw, entityToDraw,
                             type -> sink, EntityRenderMode.FIGURA_GUI);
                     require(positions.size() == 8, "newer retained frame draws both native quads");
                     near(positions.getFirst(), 6.8125f, 14.4375f, 14.25f);
@@ -106,7 +106,7 @@ public final class OutfitNativeRenderSmokeTest {
                                 "current-frame native post-render edits remain persistent");
                     }
                     positions.clear();
-                    OutfitNativeRenderer.drawVanilla(frame, model, state, .5f, entityToDraw, entityToDraw,
+                    OutfitNativeRenderer.drawVanilla(frame, model, state, 0x00f000f0, .5f, entityToDraw, entityToDraw,
                             type -> sink, EntityRenderMode.FIGURA_GUI);
                     require(positions.size() == 8, "older retained frame remains drawable after the newer pass");
                     near(positions.getFirst(), 6.8125f, 11.4375f, 14.25f);
@@ -116,7 +116,7 @@ public final class OutfitNativeRenderSmokeTest {
                                 "old pose restores newer authored and animation channels after native drawing");
                     }
                     positions.clear();
-                    OutfitNativeRenderer.drawVanilla(nextFrame, model, state, .5f, entityToDraw, entityToDraw,
+                    OutfitNativeRenderer.drawVanilla(nextFrame, model, state, 0x00f000f0, .5f, entityToDraw, entityToDraw,
                             type -> sink, EntityRenderMode.FIGURA_GUI);
                     near(positions.getFirst(), 6.8125f, 14.4375f, 14.25f);
                     try {
@@ -146,11 +146,11 @@ public final class OutfitNativeRenderSmokeTest {
                 }
                 top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
                 positions.clear();
-                OutfitNativeRenderer.drawVanilla(frame, model, state, .5f, entityToDraw, entityToDraw,
+                OutfitNativeRenderer.drawVanilla(frame, model, state, 0x00f000f0, .5f, entityToDraw, entityToDraw,
                         type -> sink, EntityRenderMode.FIGURA_GUI);
                 require(positions.size() == 4, "two Figura instances share one native face allowance");
                 positions.clear();
-                OutfitNativeRenderer.drawVanilla(frame, model, state, .5f, entityToDraw, entityToDraw,
+                OutfitNativeRenderer.drawVanilla(frame, model, state, 0x00f000f0, .5f, entityToDraw, entityToDraw,
                         type -> sink, EntityRenderMode.FIGURA_GUI);
                 require(positions.isEmpty(), "replaying the same native frame cannot refill face allowance");
             }
@@ -244,10 +244,9 @@ public final class OutfitNativeRenderSmokeTest {
                  var frame = composition.retain()) {
                 var positions = new ArrayList<float[]>();
                 var sink = vertexSink(positions);
-                var state = new net.minecraft.client.renderer.entity.state.AvatarRenderState();
-                state.lightCoords = 0x00f000f0;
+                var state = new YsmEntityFrame(0, 0, 0, 0, 0);
                 var outer = new Matrix4f().translation(7, 11, 13);
-                OutfitNativeRenderer.drawVanilla(frame, model, state, .5f, outer, outer,
+                OutfitNativeRenderer.drawVanilla(frame, model, state, 0x00f000f0, .5f, outer, outer,
                         type -> sink, EntityRenderMode.FIGURA_GUI);
                 int count = authorized && !staleDeclaration ? 12 : 4;
                 require(positions.size() == count, "only authorized, matching exported paths can submit dependants");
@@ -267,7 +266,7 @@ public final class OutfitNativeRenderSmokeTest {
                 require(indexes.parseCount() == 2, "dependency waves reuse native skeleton definitions");
                 positions.clear();
                 part.customization.setPos(999, 0, 0);
-                OutfitNativeRenderer.drawVanilla(frame, model, state, .5f, outer, outer,
+                OutfitNativeRenderer.drawVanilla(frame, model, state, 0x00f000f0, .5f, outer, outer,
                         type -> sink, EntityRenderMode.FIGURA_GUI);
                 require(positions.size() == count, "replaying a retained dependency frame keeps its command list");
                 if (count == 12) {
@@ -313,9 +312,9 @@ public final class OutfitNativeRenderSmokeTest {
         Avatar parentAvatar = Avatar.createCosmetic(context, permissions, "native YSM exported socket");
         var avatars = new LinkedHashMap<UUID, Avatar>();
         avatars.put(parent.instanceId(), parentAvatar);
-        try (var textures = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.recordingTextureDevice()) {
+        try (var textures = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.nativeTextureContext()) {
             var nbt = ysmCube();
-            nbt.getCompoundOrEmpty("ysm").putByteArray("main_model", """
+            nbt.getCompound("ysm").putByteArray("main_model", """
                     {"minecraft:geometry":[{"description":{"identifier":"geometry.exported_socket",
                     "texture_width":16,"texture_height":16},"bones":[
                     {"name":"Root","pivot":[2,3,5],"cubes":[{"origin":[1,2,3],"size":[1,2,3],"uv":[0,0]}]},
@@ -337,7 +336,7 @@ public final class OutfitNativeRenderSmokeTest {
                     .setFieldNamingPolicy(com.google.gson.FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
                     .create().toJsonTree(exported));
             json.add("exported_bones", exports);
-            parentAvatar.nbt.getCompoundOrEmpty("metadata").putString("cosmetic_json", json.toString());
+            parentAvatar.nbt.getCompound("metadata").putString("cosmetic_json", json.toString());
             var childBone = new OutfitConfig.AnchorRef(OutfitConfig.AnchorType.ACCESSORY_BONE, null,
                     new OutfitConfig.BoneRef(parent.instanceId(), exported.path(), exported.skeletonHash()), null, null, null);
             var child = new OutfitConfig.Instance(UUID.randomUUID(), childResource, 1, true, childBone,
@@ -346,20 +345,19 @@ public final class OutfitNativeRenderSmokeTest {
             var config = new OutfitConfig(1, 0, null, List.of(child, parent), List.of(),
                     Map.of(parentResource.identity(), 1, childResource.identity(), 1), false);
             try (var composition = new OutfitComposition(config, limits, null, avatars, indexes)) {
-                var state = new net.minecraft.client.renderer.entity.state.AvatarRenderState();
-                state.lightCoords = 0x00f000f0;
+                var state = new YsmEntityFrame(0, 0, 0, 0, 0);
                 var outer = new Matrix4f().translation(7, 11, 13);
                 var positions = new ArrayList<float[]>();
                 var sink = vertexSink(positions);
                 try (var frame = composition.retain()) {
-                    OutfitNativeRenderer.drawVanilla(frame, model, state, .5f, outer, outer,
+                    OutfitNativeRenderer.drawVanilla(frame, model, state, 0x00f000f0, .5f, outer, outer,
                             type -> sink, EntityRenderMode.FIGURA_GUI);
                     require(positions.size() == 28, "a native YSM cube exports its empty animated child to Figura");
                     // Native mirrored X, parent Rz90/S(2,3,4), native 15/16 model scale, then parent T16.
                     near(positions.get(24), 7 - 17.75f / 16, 11 + .9375f / 16, 13 + 53.4375f / 16);
                     positions.clear();
                     root.setPos(999d, 0d, 0d);
-                    OutfitNativeRenderer.drawVanilla(frame, model, state, .5f, outer, outer,
+                    OutfitNativeRenderer.drawVanilla(frame, model, state, 0x00f000f0, .5f, outer, outer,
                             type -> sink, EntityRenderMode.FIGURA_GUI);
                     require(positions.size() == 28, "retained YSM socket command remains drawable after live changes");
                     near(positions.get(24), 7 - 17.75f / 16, 11 + .9375f / 16, 13 + 53.4375f / 16);
@@ -400,7 +398,7 @@ public final class OutfitNativeRenderSmokeTest {
                 ? new top.aihmc.omnimorph.render.acceleration.JavaAccelerationBackend() : null);
         Avatar base = Avatar.createLibraryPreview(UUID.randomUUID(), "YSM composed budget base");
         var avatars = new LinkedHashMap<UUID, Avatar>();
-        try (var textures = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.recordingTextureDevice()) {
+        try (var textures = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.nativeTextureContext()) {
             require(service.accelerated() == accelerated, "fixture selects the actual mesh preparation branch");
             base.permissions.insert(Permissions.COMPLEXITY, 8, org.figuramc.figura.FiguraMod.MOD_ID);
             base.load(ysmCube());
@@ -436,8 +434,7 @@ public final class OutfitNativeRenderSmokeTest {
             var configuration = new OutfitConfig(1, 0, baseResource, declarations, List.of(), watermarks, false);
             try (var composition = new OutfitComposition(configuration, limits, null, avatars, indexes);
                  var frame = composition.retain()) {
-                var state = new net.minecraft.client.renderer.entity.state.AvatarRenderState();
-                state.lightCoords = 0x00f000f0;
+                var state = new YsmEntityFrame(0, 0, 0, 0, 0);
                 var positions = new ArrayList<float[]>();
                 var sink = vertexSink(positions);
                 var runtime = base.getYsmRuntime().forRenderPass();
@@ -449,9 +446,9 @@ public final class OutfitNativeRenderSmokeTest {
                 var pose = frame.captureYsmBase(runtime, new Matrix4f(), submitted);
                 top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
                 frame.drawYsmBase(base, () -> runtime.renderer().renderWithAttachments(
-                        new com.mojang.blaze3d.vertex.PoseStack(), type -> sink, state.lightCoords, submitted));
+                        new com.mojang.blaze3d.vertex.PoseStack(), type -> sink, 0x00f000f0, submitted));
                 require(positions.size() == 24, "YSM base emits its six native cube faces");
-                OutfitNativeRenderer.draw(frame, pose, state, .5f, new Matrix4f(), type -> sink,
+                OutfitNativeRenderer.draw(frame, pose, state, 0x00f000f0, .5f, new Matrix4f(), type -> sink,
                         EntityRenderMode.FIGURA_GUI);
                 require(positions.size() == 32, "base plus Figura and partial YSM consume exactly eight faces");
                 near(positions.get(24), .05859375f, .1171875f, .17578125f);
@@ -463,7 +460,7 @@ public final class OutfitNativeRenderSmokeTest {
                             "partial YSM face retains source axes, model units and both native model scales");
                 }
                 positions.clear();
-                OutfitNativeRenderer.draw(frame, pose, state, .5f, new Matrix4f(), type -> sink,
+                OutfitNativeRenderer.draw(frame, pose, state, 0x00f000f0, .5f, new Matrix4f(), type -> sink,
                         EntityRenderMode.FIGURA_GUI);
                 require(positions.isEmpty(), "mixed native replay cannot refill the consumed frame");
                 require(indexes.parseCount() == 3, "mixed native drawing retains one index per exact resource");
@@ -536,8 +533,7 @@ public final class OutfitNativeRenderSmokeTest {
                     """).call().checkfunction();
             var positions = new ArrayList<float[]>();
             VertexConsumer sink = vertexSink(positions);
-            var state = new net.minecraft.client.renderer.entity.state.AvatarRenderState();
-            state.lightCoords = 0x00f000f0;
+            var state = new YsmEntityFrame(0, 0, 0, 0, 0);
             try (var composition = new OutfitComposition(config, limits, null,
                     Map.of(instance.instanceId(), accessory), indexes);
                  var oldFrame = composition.retain(); var newFrame = composition.retain()) {
@@ -553,9 +549,9 @@ public final class OutfitNativeRenderSmokeTest {
                         base.run(beforeDraw, base.render);
                         var pose = frame.captureFiguraBase(base, new Matrix4f(), () -> base.render(
                                 null, 0, .5f, 1, new com.mojang.blaze3d.vertex.PoseStack(), type -> sink,
-                                state.lightCoords, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,
+                                0x00f000f0, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,
                                 null, org.figuramc.figura.model.rendering.PartFilterScheme.MODEL, false, false));
-                        OutfitNativeRenderer.draw(frame, pose, state, .5f, new Matrix4f(), type -> sink,
+                        OutfitNativeRenderer.draw(frame, pose, state, 0x00f000f0, .5f, new Matrix4f(), type -> sink,
                                 EntityRenderMode.FIGURA_GUI);
                         base.run(afterDraw, base.render);
                     });
@@ -653,15 +649,14 @@ public final class OutfitNativeRenderSmokeTest {
                             }
                             return method.getReturnType() == void.class ? null : proxy;
                         });
-                var state = new net.minecraft.client.renderer.entity.state.AvatarRenderState();
-                state.lightCoords = 0x00f000f0;
+                var state = new YsmEntityFrame(0, 0, 0, 0, 0);
                 var outer = new Matrix4f().translation(7, 11, 13);
                 try (var left = composition.retain(); var right = composition.retain()) {
-                    OutfitNativeRenderer.drawVanillaArm(left, model, state, .5f, outer, type -> sink, true);
+                    OutfitNativeRenderer.drawVanillaArm(left, model, state, 0x00f000f0, .5f, outer, type -> sink, true);
                     require(positions.size() == 4, "left pass excludes right and body attachments");
                     near(positions.getFirst(), 7.4375f, 11.3125f, 13.0625f);
                     positions.clear();
-                    OutfitNativeRenderer.drawVanillaArm(right, model, state, .5f, outer, type -> sink, false);
+                    OutfitNativeRenderer.drawVanillaArm(right, model, state, 0x00f000f0, .5f, outer, type -> sink, false);
                     require(positions.size() == 4, "right pass retains independent commands and excludes left/body");
                     near(positions.getFirst(), 6.75f, 11.25f, 13.4375f);
                 }

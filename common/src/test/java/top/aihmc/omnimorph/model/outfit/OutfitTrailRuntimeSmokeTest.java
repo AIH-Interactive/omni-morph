@@ -3,13 +3,14 @@ package top.aihmc.omnimorph.model.outfit;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.client.model.geom.builders.CubeDeformation;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
-import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.RemotePlayer;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
+import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
 import sun.misc.Unsafe;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.model.rendering.EntityRenderMode;
@@ -26,7 +27,7 @@ public final class OutfitTrailRuntimeSmokeTest {
         long clock;
 
         private World() {
-            super(null, null, null, null, 0, 0, null, false, 0L, 0);
+            super(null, null, null, null, 0, 0, null, null, false, 0L);
         }
 
         @Override
@@ -40,6 +41,11 @@ public final class OutfitTrailRuntimeSmokeTest {
 
         private Wearer() {
             super(null, new GameProfile(UUID.randomUUID(), "trail-world-clock"));
+        }
+
+        @Override
+        public int getPermissionLevel() {
+            return super.getPermissionLevel();
         }
 
         @Override
@@ -92,7 +98,7 @@ public final class OutfitTrailRuntimeSmokeTest {
                 64, 64).bakeRoot(), false);
         var base = new VanillaSkeletonAdapter(model, OutfitLimits.defaults());
         var pose = base.capture(new Matrix4f());
-        var state = new net.minecraft.client.renderer.entity.state.AvatarRenderState();
+        var state = new YsmEntityFrame(0, 0, 0, 0, 0);
         var disabled = new com.google.gson.Gson().toJsonTree(OutfitLimits.defaults()).getAsJsonObject();
         disabled.addProperty("maxTrails", 0);
         try {
@@ -217,7 +223,7 @@ public final class OutfitTrailRuntimeSmokeTest {
 
     private static void previewTrails(Wearer wearer, OutfitConfig config, CosmeticInstanceContext context,
                                       CompoundTag data, SkeletonPose pose,
-                                      net.minecraft.client.renderer.entity.state.AvatarRenderState state) throws Exception {
+                                      YsmEntityFrame state) throws Exception {
         var client = net.minecraft.client.Minecraft.getInstance();
         var previousWorld = client.level;
         client.level = wearer.world;

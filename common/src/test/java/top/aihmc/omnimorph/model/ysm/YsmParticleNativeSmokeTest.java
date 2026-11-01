@@ -8,7 +8,6 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleEngine;
 import net.minecraft.client.particle.ParticleRenderType;
-import net.minecraft.client.particle.ParticleResources;
 import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.client.particle.WakeParticle;
 import net.minecraft.core.particles.ParticleOptions;
@@ -242,7 +241,13 @@ public final class YsmParticleNativeSmokeTest {
         }
 
         @Override
-        public ParticleRenderType getGroup() {
+        public void render(com.mojang.blaze3d.vertex.VertexConsumer consumer, net.minecraft.client.Camera camera,
+                           float partialTick) {
+            throw new UnsupportedOperationException("CPU fixture does not render");
+        }
+
+        @Override
+        public ParticleRenderType getRenderType() {
             throw new UnsupportedOperationException("CPU fixture does not render");
         }
     }
@@ -268,7 +273,7 @@ public final class YsmParticleNativeSmokeTest {
 
     private static final class FixtureLevel extends ClientLevel {
         private FixtureLevel() {
-            super(null, null, null, null, 0, 0, null, false, 0L, 0);
+            super(null, null, null, null, 0, 0, () -> null, null, false, 0L);
         }
 
         @Override
@@ -322,11 +327,6 @@ public final class YsmParticleNativeSmokeTest {
 
         @Override
         public void figura$removeParticle(Particle particle) {
-            throw new UnsupportedOperationException("Not used by this fixture");
-        }
-
-        @Override
-        public ParticleResources figura$getParticleResources() {
             throw new UnsupportedOperationException("Not used by this fixture");
         }
     }

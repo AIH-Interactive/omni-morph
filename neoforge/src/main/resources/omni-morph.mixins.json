@@ -4,11 +4,10 @@
   "compatibilityLevel": "JAVA_17",
   "minVersion": "0.8",
   "client": [
+    "ParticleEngineMixinNeoForge",
     "ClientCommandSourceMixinNeoForge",
     "CommandSuggestionsMixinNeoForge",
-    "ElytraLayerAccessor",
-    "HumanoidArmorLayerMixinNeoForge",
-    "LevelRendererMixinNeoForge"
+    "HumanoidArmorLayerMixinNeoForge"
   ],
   "mixins": [
   ],

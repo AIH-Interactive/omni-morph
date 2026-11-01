@@ -1,13 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.shaders.UniformType;
-import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.blaze3d.vertex.VertexFormatElement;
-import net.minecraft.resources.ResourceLocation;
 
 import java.util.regex.Pattern;
-import java.util.Optional;
 
 /** Adds model transforms to the active vanilla entity source; lighting/fog/material code remains upstream-owned. */
 final class GpuShaderProgram {
@@ -176,11 +170,6 @@ final class GpuShaderProgram {
     private GpuShaderProgram() {
     }
 
-    static boolean supports(RenderPipeline pipeline) {
-        return pipeline.getVertexShader().equals(ResourceLocation.withDefaultNamespace("core/entity"))
-                && pipeline.getFragmentShader().equals(ResourceLocation.withDefaultNamespace("core/entity"));
-    }
-
     static String wrapEntitySource(String original) {
         return wrapEntitySource(original, GpuBatchData.MAX_PARTS);
     }
@@ -282,60 +271,4 @@ final class GpuShaderProgram {
         return source + body;
     }
 
-    static RenderPipeline pipeline(RenderPipeline original, ResourceLocation location) {
-        return pipeline(original, location, true);
-    }
-
-    /** Storage variants must not declare the pose uniform: Blaze3D skips draws whose declared uniforms are unbound. */
-    static RenderPipeline pipeline(RenderPipeline original, ResourceLocation location, boolean uniformPose) {
-        var builder = RenderPipeline.builder().withLocation(location).withVertexShader(location)
-                .withFragmentShader(original.getFragmentShader()).withCull(original.isCull())
-                .withPolygonMode(original.getPolygonMode()).withColorTargetState(original.getColorTargetState())
-                .withDepthStencilState(Optional.ofNullable(original.getDepthStencilState()))
-                .withVertexFormat(Format.VALUE, VertexFormat.Mode.TRIANGLES);
-        original.getShaderDefines().flags().forEach(builder::withShaderDefine);
-        original.getShaderDefines().values().forEach((name, value) -> {
-            try {
-                builder.withShaderDefine(name, Integer.parseInt(value));
-            } catch (NumberFormatException ignored) {
-                builder.withShaderDefine(name, Float.parseFloat(value));
-            }
-        });
-        original.getSamplers().forEach(builder::withSampler);
-        original.getUniforms().forEach(uniform -> builder.withUniform(uniform.name(), uniform.type()));
-        if (uniformPose) {
-            builder.withUniform(UNIFORM, UniformType.UNIFORM_BUFFER);
-        }
-        return builder.build();
-    }
-
-    static VertexFormat format() {
-        return Format.VALUE;
-    }
-
-    /** Loaded only during enabled GPU probing. Unavailable attribute slots cause a controlled probe failure. */
-    private static final class Format {
-        static final VertexFormat VALUE = create();
-
-        private static VertexFormat create() {
-            synchronized (VertexFormatElement.class) {
-                int[] free = new int[3];
-                int found = 0;
-                for (int id = 0; id < VertexFormatElement.MAX_COUNT && found < free.length; id++) {
-                    if (VertexFormatElement.byId(id) == null) {
-                        free[found++] = id;
-                    }
-                }
-                if (found != free.length) {
-                    throw new IllegalStateException("Insufficient graphics vertex attribute slots");
-                }
-                VertexFormatElement normal = VertexFormatElement.register(free[0], 0, VertexFormatElement.Type.FLOAT, false, 3);
-                VertexFormatElement weights = VertexFormatElement.register(free[1], 0, VertexFormatElement.Type.FLOAT, false, 4);
-                VertexFormatElement joints = VertexFormatElement.register(free[2], 0, VertexFormatElement.Type.INT, false, 4);
-                return VertexFormat.builder().add("OmniPosition", VertexFormatElement.POSITION)
-                        .add("OmniNormal", normal).add("OmniUV", VertexFormatElement.UV0)
-                        .add("OmniWeights", weights).add("OmniJoints", joints).build();
-            }
-        }
-    }
 }

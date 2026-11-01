@@ -3,8 +3,8 @@ package top.aihmc.omnimorph.model.library;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.RemotePlayer;
-import net.minecraft.client.renderer.entity.state.AvatarRenderState;
-import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import top.aihmc.omnimorph.render.EntityFrame;
+import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
@@ -43,6 +43,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Uses the existing native-loader harness; no GUI/rendered-pixel assertions. */
 public final class LibraryPreviewRuntimeSmokeTest {
+    // MC 1.21.1's native default-skin table selects a wide model for this stable UUID.
+    private static final UUID DEFAULT_SKIN_OWNER = new UUID(0, 9);
+
     public static void run(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
         Object users = field(AvatarManager.class, "LOADED_USERS").get(null);
         int userCount = ((Map<?, ?>) users).size();
@@ -169,12 +172,12 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     Permissions.SOUNDS, Permissions.NAMEPLATE_EDIT, Permissions.CANCEL_SOUNDS}) {
                 require(avatar.permissions.get(permission) == 0, "preview does not inherit world/network side-effect permissions");
             }
-            var firstFrame = new LivingEntityRenderState();
-            var secondFrame = new LivingEntityRenderState();
+            var firstFrame = new EntityFrame(entity, 1);
+            var secondFrame = new EntityFrame(entity, 1);
             LibraryPreviewBinding.capture(entity, firstFrame);
             LibraryPreviewBinding.capture(entity, secondFrame);
             LibraryPreviewBinding.capture(entity, secondFrame);
-            var armorFrame = new AvatarRenderState();
+            var armorFrame = new EntityFrame(entity, 1);
             LibraryPreviewBinding.capture(entity, armorFrame);
             var lifetime = avatar.accelerationOwner();
             preview.clear();
@@ -235,7 +238,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
 
             if (encrypted != null) {
                 CompoundTag portable = model("encrypted preview");
-                portable.getCompoundOrEmpty("metadata").putString("format", "ysm-native");
+                portable.getCompound("metadata").putString("format", "ysm-native");
                 try (var source = YsmEncryptedSource.read(encrypted, () -> false)) {
                     portable.put("ysm", YsmSourcePayload.fromEncrypted(source, YsmAvatarKind.NEW, null));
                 }
@@ -383,7 +386,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             Avatar latest = (Avatar) field(LibraryPreviewSession.class, "avatar").get(preview);
             require(latest != copy && !copy.accelerationOwner().isCurrent(),
                     "late or refreshed player data retires the previous independent copy");
-            require(latest.nbt.getCompoundOrEmpty("metadata").getStringOr("name", "")
+            require(latest.nbt.getCompound("metadata").getString("name")
                             .equals("updated offline player"),
                     "permissions fallback uses the refreshed player model");
             copy = latest;
@@ -699,6 +702,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             protected void init() {
             }
         };
+        field(net.minecraft.client.gui.screens.Screen.class, "minecraft").set(screen, Minecraft.getInstance());
         try (var collection = new LibraryCollectionService(client, cache)) {
             var model = await(client.submit(LibraryClient.Lane.CONTROL, exchange -> exchange.json("GET",
                     "/api/library/v1/models/" + modelId, null,
@@ -824,19 +828,15 @@ public final class LibraryPreviewRuntimeSmokeTest {
         minecraft.player = player;
         var permissions = new PermissionPack.PlayerPermissionPack(
                 new PermissionPack.CategoryPermissionPack(Permissions.Category.DEFAULT), player.getUUID().toString());
-        var previousDebug = minecraft.debugEntries;
-        var debug = (net.minecraft.client.gui.components.debug.DebugScreenEntryList) unsafe.allocateInstance(
-                net.minecraft.client.gui.components.debug.DebugScreenEntryList.class);
-        field(debug.getClass(), "allStatuses").set(debug, new java.util.HashMap<>());
-        field(debug.getClass(), "currentlyEnabled").set(debug, new java.util.ArrayList<>());
-        field(Minecraft.class, "debugEntries").set(minecraft, debug);
+        boolean previousDebug = minecraft.getEntityRenderDispatcher().shouldRenderHitBoxes();
+        minecraft.getEntityRenderDispatcher().setRenderHitBoxes(false);
         var previousRenderer = minecraft.gameRenderer;
         var renderer = (net.minecraft.client.renderer.GameRenderer) unsafe.allocateInstance(
                 net.minecraft.client.renderer.GameRenderer.class);
         field(renderer.getClass(), "mainCamera").set(renderer, new net.minecraft.client.Camera());
         field(Minecraft.class, "gameRenderer").set(minecraft, renderer);
         boolean previousPaperdoll = org.figuramc.figura.utils.ui.UIHelper.paperdoll;
-        try (var device = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.recordingTextureDevice();
+        try (var device = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.nativeTextureContext();
              var directories = Files.list(Path.of(directory))) {
             for (Path path : directories.filter(Files::isDirectory).sorted().toList()) {
                 var description = top.aihmc.omnimorph.model.outfit.LocalCosmeticSource.describe(path, () -> false);
@@ -876,8 +876,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     try (var frame = composition.retain()) {
                         var matrix = new org.joml.Matrix4f();
                         top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer.drawVanilla(frame,
-                                LibraryFiguraPreviewRenderer.createModel(false), new AvatarRenderState(),
-                                .5f, matrix, matrix, material -> sink,
+                                LibraryFiguraPreviewRenderer.createModel(false), new YsmEntityFrame(0, 0, 0, 0, 0),
+                                0, .5f, matrix, matrix, material -> sink,
                                 org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI);
                     }
                     System.out.println("Actual accessory " + path.getFileName() + ": vertices=" + vertices.get());
@@ -888,7 +888,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             }
         } finally {
             minecraft.player = previousPlayer;
-            field(Minecraft.class, "debugEntries").set(minecraft, previousDebug);
+            minecraft.getEntityRenderDispatcher().setRenderHitBoxes(previousDebug);
             field(Minecraft.class, "gameRenderer").set(minecraft, previousRenderer);
             org.figuramc.figura.utils.ui.UIHelper.paperdoll = previousPaperdoll;
         }
@@ -912,11 +912,11 @@ public final class LibraryPreviewRuntimeSmokeTest {
         try (var files = Files.list(Path.of(directory))) {
             packages = files.filter(Files::isRegularFile).sorted().toList();
         }
-        try (var device = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.recordingTextureDevice()) {
+        try (var device = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.nativeTextureContext()) {
             for (Path path : packages) {
                 CompoundTag nbt = net.minecraft.nbt.NbtIo.readCompressed(path,
                         net.minecraft.nbt.NbtAccounter.create(256L * 1024 * 1024));
-                if (!nbt.getCompoundOrEmpty("metadata").getStringOr("format", "").equals("ysm-native")) {
+                if (!nbt.getCompound("metadata").getString("format").equals("ysm-native")) {
                     continue;
                 }
                 try (var preview = new LibraryPreviewSession()) {
@@ -969,16 +969,12 @@ public final class LibraryPreviewRuntimeSmokeTest {
         }
         var minecraft = Minecraft.getInstance();
         var previousPlayer = minecraft.player;
-        var previousDebug = minecraft.debugEntries;
+        boolean previousDebug = minecraft.getEntityRenderDispatcher().shouldRenderHitBoxes();
         var previousRenderer = minecraft.gameRenderer;
         var player = (CurrentPreviewPlayer) unsafe.allocateInstance(CurrentPreviewPlayer.class);
         player.setUUID(UUID.randomUUID());
         minecraft.player = player;
-        var debug = (net.minecraft.client.gui.components.debug.DebugScreenEntryList) unsafe.allocateInstance(
-                net.minecraft.client.gui.components.debug.DebugScreenEntryList.class);
-        field(debug.getClass(), "allStatuses").set(debug, new java.util.HashMap<>());
-        field(debug.getClass(), "currentlyEnabled").set(debug, new java.util.ArrayList<>());
-        field(Minecraft.class, "debugEntries").set(minecraft, debug);
+        minecraft.getEntityRenderDispatcher().setRenderHitBoxes(false);
         var renderer = (net.minecraft.client.renderer.GameRenderer) unsafe.allocateInstance(
                 net.minecraft.client.renderer.GameRenderer.class);
         field(renderer.getClass(), "mainCamera").set(renderer, new net.minecraft.client.Camera());
@@ -994,7 +990,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 description.contentHash(), description.format());
         var base = new OutfitConfig.ResourceRef(OutfitConfig.Source.CLOUD, null, "https://source.example",
                 UUID.randomUUID(), 1L, "6".repeat(64), OutfitConfig.Format.FIGURA);
-        try (var device = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.recordingTextureDevice();
+        try (var device = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.nativeTextureContext();
              var preview = new LibraryPreviewSession(null, true)) {
             var detachedEntity = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
             detachedEntity.setUUID((UUID) field(LibraryPreviewSession.class, "owner").get(preview));
@@ -1017,12 +1013,11 @@ public final class LibraryPreviewRuntimeSmokeTest {
                                             player.getUUID(), description.contentHash(), cancelled).nbt()), drain),
                     "actual Figura draft composition prepares with the actual accessory");
             preview.tick();
-            var state = new AvatarRenderState();
-            state.lightCoords = 0x00f000f0;
+            var state = new YsmEntityFrame(0, 0, 0, 0, 0);
             var baseOnly = new java.util.concurrent.atomic.AtomicInteger();
             avatar.render.reset(65536);
             avatar.render(null, 0, .5f, 1, new com.mojang.blaze3d.vertex.PoseStack(), type -> countingSink(baseOnly),
-                    state.lightCoords, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, null,
+                    0x00f000f0, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, null,
                     org.figuramc.figura.model.rendering.PartFilterScheme.MODEL, false, false);
             var composed = new java.util.concurrent.atomic.AtomicInteger();
             try (var frame = preview.outfitComposition().retain()) {
@@ -1031,9 +1026,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 frame.drawFiguraBase(avatar, () -> {
                     var pose = frame.captureFiguraBase(avatar, new org.joml.Matrix4f(), () -> avatar.render(
                             null, 0, .5f, 1, new com.mojang.blaze3d.vertex.PoseStack(), type -> countingSink(composed),
-                            state.lightCoords, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, null,
+                            0x00f000f0, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, null,
                             org.figuramc.figura.model.rendering.PartFilterScheme.MODEL, false, false));
-                    top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer.draw(frame, pose, state, .5f,
+                    top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer.draw(frame, pose, state, 0x00f000f0, .5f,
                             new org.joml.Matrix4f(), type -> countingSink(composed),
                             org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI);
                 });
@@ -1045,7 +1040,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                             + baseOnly.get() + " composed=" + composed.get());
         } finally {
             minecraft.player = previousPlayer;
-            field(Minecraft.class, "debugEntries").set(minecraft, previousDebug);
+            minecraft.getEntityRenderDispatcher().setRenderHitBoxes(previousDebug);
             field(Minecraft.class, "gameRenderer").set(minecraft, previousRenderer);
         }
         System.out.println("PASS actual packaged Figura draft base keeps faces for its actual accessory; GUI/GPU MANUAL/PENDING");
@@ -1065,18 +1060,14 @@ public final class LibraryPreviewRuntimeSmokeTest {
         }
         var minecraft = Minecraft.getInstance();
         var previousPlayer = minecraft.player;
-        var previousDebug = minecraft.debugEntries;
+        boolean previousDebug = minecraft.getEntityRenderDispatcher().shouldRenderHitBoxes();
         var previousRenderer = minecraft.gameRenderer;
         var controlsLoaded = field(top.aihmc.omnimorph.avatar.control.AvatarControlValueStore.class, "loaded");
         boolean previousControlsLoaded = controlsLoaded.getBoolean(null);
         var player = (CurrentPreviewPlayer) unsafe.allocateInstance(CurrentPreviewPlayer.class);
         player.setUUID(UUID.randomUUID());
         minecraft.player = player;
-        var debug = (net.minecraft.client.gui.components.debug.DebugScreenEntryList) unsafe.allocateInstance(
-                net.minecraft.client.gui.components.debug.DebugScreenEntryList.class);
-        field(debug.getClass(), "allStatuses").set(debug, new java.util.HashMap<>());
-        field(debug.getClass(), "currentlyEnabled").set(debug, new java.util.ArrayList<>());
-        field(Minecraft.class, "debugEntries").set(minecraft, debug);
+        minecraft.getEntityRenderDispatcher().setRenderHitBoxes(false);
         var renderer = (net.minecraft.client.renderer.GameRenderer) unsafe.allocateInstance(
                 net.minecraft.client.renderer.GameRenderer.class);
         field(renderer.getClass(), "mainCamera").set(renderer, new net.minecraft.client.Camera());
@@ -1091,7 +1082,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 Path.of(accessoryDirectory), () -> false);
         var accessory = new OutfitConfig.ResourceRef(OutfitConfig.Source.LOCAL, UUID.randomUUID(), null, null, null,
                 accessorySource.contentHash(), accessorySource.format());
-        try (var device = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.recordingTextureDevice();
+        try (var device = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.nativeTextureContext();
              var preview = new LibraryPreviewSession(null, true)) {
             var detachedEntity = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
             detachedEntity.setUUID((UUID) field(LibraryPreviewSession.class, "owner").get(preview));
@@ -1136,8 +1127,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 avatar.tick();
                 ownerBase.tick();
                 ownerBase.tick();
-                var state = new AvatarRenderState();
-                state.lightCoords = 0x00f000f0;
+                var state = new YsmEntityFrame(0, 0, 0, 0, 0);
                 avatar.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.RENDER;
                 int draftBase = ysm ? countYsmVertices(avatar) : countFiguraVertices(avatar, state);
                 int draft = ysm ? countComposedYsmVertices(preview.outfitComposition(), avatar,
@@ -1167,7 +1157,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             }
         } finally {
             minecraft.player = previousPlayer;
-            field(Minecraft.class, "debugEntries").set(minecraft, previousDebug);
+            minecraft.getEntityRenderDispatcher().setRenderHitBoxes(previousDebug);
             field(Minecraft.class, "gameRenderer").set(minecraft, previousRenderer);
             ((Map<?, ?>) field(PermissionManager.class, "PLAYERS").get(null)).remove(player.getUUID());
             controlsLoaded.setBoolean(null, previousControlsLoaded);
@@ -1191,18 +1181,18 @@ public final class LibraryPreviewRuntimeSmokeTest {
         return definition.reference(null, seg13 >= 0 ? seg13 : body >= 0 ? body : 0);
     }
 
-    private static int countFiguraVertices(Avatar avatar, AvatarRenderState state) {
+    private static int countFiguraVertices(Avatar avatar, YsmEntityFrame state) {
         var vertices = new java.util.concurrent.atomic.AtomicInteger();
         avatar.render.reset(65536);
         avatar.render(null, 0, .5f, 1, new com.mojang.blaze3d.vertex.PoseStack(),
-                type -> countingSink(vertices), state.lightCoords,
+                type -> countingSink(vertices), 0x00f000f0,
                 net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, null,
                 org.figuramc.figura.model.rendering.PartFilterScheme.MODEL, false, false);
         return vertices.get();
     }
 
     private static int countComposedFiguraVertices(top.aihmc.omnimorph.model.outfit.OutfitComposition composition,
-                                                   Avatar avatar, AvatarRenderState state,
+                                                   Avatar avatar, YsmEntityFrame state,
                                                    org.figuramc.figura.model.rendering.EntityRenderMode mode) {
         require(composition != null, "the reported composition is active");
         var vertices = new java.util.concurrent.atomic.AtomicInteger();
@@ -1212,12 +1202,12 @@ public final class LibraryPreviewRuntimeSmokeTest {
             frame.drawFiguraBase(avatar, () -> {
                 var pose = frame.captureFiguraBase(avatar, new org.joml.Matrix4f(), () -> avatar.render(
                         null, 0, .5f, 1, new com.mojang.blaze3d.vertex.PoseStack(),
-                        type -> countingSink(vertices), state.lightCoords,
+                        type -> countingSink(vertices), 0x00f000f0,
                         net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, null,
                         org.figuramc.figura.model.rendering.PartFilterScheme.MODEL, false, false));
                 frame.draw(pose, state, .5f, mode,
                         command -> top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer.drawInstance(command, .5f,
-                                new org.joml.Matrix4f(), type -> countingSink(vertices), state.lightCoords, mode));
+                                new org.joml.Matrix4f(), type -> countingSink(vertices), 0x00f000f0, mode));
             });
         }
         return vertices.get();
@@ -1245,11 +1235,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
             top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
             frame.drawYsmBase(runtime.renderBudgetOwner(), () -> runtime.renderer().renderWithAttachments(
                     new com.mojang.blaze3d.vertex.PoseStack(), type -> countingSink(vertices), 0x00f000f0, pose));
-            var state = new AvatarRenderState();
-            state.lightCoords = 0x00f000f0;
+            var state = new YsmEntityFrame(0, 0, 0, 0, 0);
             frame.draw(skeleton, state, .5f, mode,
                     command -> top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer.drawInstance(command, .5f,
-                            new org.joml.Matrix4f(), type -> countingSink(vertices), state.lightCoords, mode));
+                            new org.joml.Matrix4f(), type -> countingSink(vertices), 0x00f000f0, mode));
         }
         return vertices.get();
     }
@@ -1283,7 +1272,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     "vanilla selection uses the actual player and its native skin");
             require(field(LibraryPreviewSession.class, "avatar").get(preview) == null,
                     "vanilla preview owns no empty Avatar placeholder");
-            var state = new AvatarRenderState();
+            var state = new EntityFrame(player, 1);
             preview.withPlayerContext(() -> {
                 require(AvatarManager.getAvatar(player) == null
                                 && AvatarManager.getAvatarForPlayer(player.getUUID()) == null,
@@ -1301,7 +1290,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var config = new OutfitConfig(1, 0, null, java.util.List.of(declaration), java.util.List.of(),
                     Map.of(resource.identity(), 1), false);
             CompoundTag source = model("vanilla accessory");
-            source.getCompoundOrEmpty("metadata").putString("resource_kind", "ACCESSORY");
+            source.getCompound("metadata").putString("resource_kind", "ACCESSORY");
             var wrongBase = new OutfitConfig(1, 0, resource, config.instances(), config.virtualAnchors(),
                     config.displayOrdinals(), false);
             try {
@@ -1315,7 +1304,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(await(preview.prepareComposition(config, OutfitLimits.defaults(), player.getUUID(), UUID.randomUUID(),
                     equipped.permissions, (reference, cancelled) -> source), drain),
                     "vanilla base accepts independently prepared accessory instances");
-            var outfitFrame = new AvatarRenderState();
+            var outfitFrame = new EntityFrame(player, 1);
             preview.withPlayerContext(() -> LibraryPreviewBinding.capture(player, outfitFrame));
             require(LibraryPreviewBinding.composition(outfitFrame) != null,
                     "native vanilla extraction retains its complete accessory generation");
@@ -1351,6 +1340,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         Path selectedPath = org.figuramc.figura.gui.widgets.lists.AvatarList.selectedEntry;
         var screenType = org.figuramc.figura.gui.screens.WardrobeScreen.class;
         var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
+        field(net.minecraft.client.gui.screens.Screen.class, "minecraft").set(screen, Minecraft.getInstance());
         try (var preview = new LibraryPreviewSession()) {
             field(screenType, "preview").set(screen, preview);
             var source = top.aihmc.omnimorph.model.outfit.LocalCosmeticSource.describe(root, () -> false);
@@ -1362,7 +1352,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             add.setAccessible(true);
             add.invoke(screen);
             awaitDraftComposition(screen, preview, drain);
-            var frame = new AvatarRenderState();
+            var frame = new EntityFrame(Minecraft.getInstance().player, 1);
             preview.withPlayerContext(() -> LibraryPreviewBinding.capture(Minecraft.getInstance().player, frame));
             require(LibraryPreviewBinding.composition(frame) != null && preview.outfitBase() != null
                             && preview.outfitBase().nbt.equals(equipped.nbt),
@@ -1432,6 +1422,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             protected void init() {
             }
         };
+        field(net.minecraft.client.gui.screens.Screen.class, "minecraft").set(screen, Minecraft.getInstance());
         var input = field(Minecraft.class, "lastInputType");
         var previousInput = input.get(minecraft);
         input.set(minecraft, net.minecraft.client.InputType.MOUSE);
@@ -1522,7 +1513,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             }
             require(listed && preview.outfitComposition().runtimeInstances().containsKey(instance.instanceId()),
                     "the restored accessory appears in the bone tree and preview without selecting an entry");
-            preview.withPlayerContext(() -> LibraryPreviewBinding.capture(player, new AvatarRenderState()));
+            preview.withPlayerContext(() -> LibraryPreviewBinding.capture(player, new EntityFrame(player, 1)));
             preview.close();
             LibraryPreviewBinding.finishFrame();
             require(base.accelerationOwner().isCurrent() && base.luaRuntime != null,
@@ -1584,6 +1575,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         Files.writeString(root.resolve("script.lua"), "return 1");
         var type = org.figuramc.figura.gui.screens.WardrobeScreen.class;
         var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
+        field(net.minecraft.client.gui.screens.Screen.class, "minecraft").set(screen, Minecraft.getInstance());
         try (var original = new LibraryPreviewBinding(player, equipped);
              var preview = new LibraryPreviewSession()) {
             field(type, "preview").set(screen, preview);
@@ -1641,7 +1633,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             quickMenu.setAccessible(true);
             long preparedGeneration = field(type, "draftPreviewGeneration").getLong(screen);
             var previousFont = minecraft.font;
-            field(Minecraft.class, "font").set(minecraft, new net.minecraft.client.gui.Font(null) {
+            field(Minecraft.class, "font").set(minecraft, new net.minecraft.client.gui.Font(null, false) {
                 @Override
                 public int width(net.minecraft.network.chat.FormattedText text) {
                     return text.getString().length() * 6;
@@ -1743,6 +1735,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         Path otherBase = Files.createTempDirectory(root.getParent(), "other-avatar-");
         Files.writeString(otherBase.resolve("avatar.json"), "{\"name\":\"Other outfit base\"}");
         var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
+        field(net.minecraft.client.gui.screens.Screen.class, "minecraft").set(screen, Minecraft.getInstance());
         var type = screen.getClass();
         try (var preview = new LibraryPreviewSession(null, false, true)) {
             field(type, "preview").set(screen, preview);
@@ -1838,7 +1831,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         try {
             top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.show(editor, preview);
             testHiddenFormalParticleEmitter(unsafe, preview, player, editor);
-            var worldFrame = new AvatarRenderState();
+            var worldFrame = new EntityFrame(player, 1);
             top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.capture(player, worldFrame);
             require(AvatarManager.getAvatar(worldFrame) == preview.outfitState().base()
                             && top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.composition(worldFrame) != null,
@@ -1862,7 +1855,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                         }), drain), "world preview lifetime fixture is prepared");
                 top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.show(editor, owned);
                 top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.detach(editor);
-                var retained = new AvatarRenderState();
+                var retained = new EntityFrame(player, 1);
                 top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.capture(player, retained);
                 top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.clear(editor);
                 require(owned.status().stage() == LibraryPreviewSession.Stage.READY,
@@ -1926,6 +1919,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     field(collection.getClass(), "authoritative").setBoolean(collection, true);
                     var type = org.figuramc.figura.gui.screens.WardrobeScreen.class;
                     var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
+                    field(net.minecraft.client.gui.screens.Screen.class, "minecraft").set(screen, Minecraft.getInstance());
                     field(type, "client").set(screen, client);
                     field(type, "collection").set(screen, collection);
                     field(type, "transfers").set(screen, new LibraryTransferService(client, cache));
@@ -1985,7 +1979,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                         drain.run();
                         Thread.sleep(1);
                     }
-                    var selectedFrame = new AvatarRenderState();
+                    var selectedFrame = new EntityFrame(player, 1);
                     preview.withPlayerContext(() -> LibraryPreviewBinding.capture(player, selectedFrame));
                     require(field(type, "outfitDraft").get(screen) != null && LibraryPreviewBinding.composition(selectedFrame) != null
                                     && field(LibraryPreviewSession.class, "avatar").get(preview) != null
@@ -2082,7 +2076,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var fontField = field(Minecraft.class, "font");
         var previousFont = fontField.get(minecraft);
         // Native routing needs deterministic metrics; this does not validate real fonts or rendered text.
-        var font = new net.minecraft.client.gui.Font(null) {
+        var font = new net.minecraft.client.gui.Font(null, false) {
             private final net.minecraft.client.StringSplitter splitter =
                     new net.minecraft.client.StringSplitter((codepoint, style) -> 6f);
 
@@ -2134,6 +2128,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         Path accessory = Files.createDirectories(data.resolve("cosmetics/preset-ui-" + UUID.randomUUID()));
         var presetFiles = new java.util.HashSet<UUID>();
         var wardrobe = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
+        field(net.minecraft.client.gui.screens.Screen.class, "minecraft").set(wardrobe, Minecraft.getInstance());
         var type = wardrobe.getClass();
         Avatar equipped = new Avatar(owner);
         try (var screens = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.recordingScreens();
@@ -2177,7 +2172,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 name.getField().setValue("中文 本地预设");
                 var save = (org.figuramc.figura.gui.widgets.Button) field(screenType, "saveNew").get(screen);
                 require(save.isActive(), "resolved base and name enable local Save");
-                save.onPress(null);
+                save.onPress();
                 awaitCondition(() -> field(screenType, "previewReady").getBoolean(screen), drain);
                 var saved = (top.aihmc.omnimorph.model.outfit.LocalOutfitPresets.Preset) field(screenType, "selected").get(screen);
                 presetFiles.add(saved.id());
@@ -2187,12 +2182,12 @@ public final class LibraryPreviewRuntimeSmokeTest {
                         "native Save persists the current draft, reloads its private preview and never changes actual equipment");
                 var update = (org.figuramc.figura.gui.widgets.Button) field(screenType, "update").get(screen);
                 name.getField().setValue("更新名称");
-                update.onPress(null);
+                update.onPress();
                 awaitCondition(() -> field(screenType, "previewReady").getBoolean(screen), drain);
                 var updated = (top.aihmc.omnimorph.model.outfit.LocalOutfitPresets.Preset) field(screenType, "selected").get(screen);
                 require(updated.revision() == 2 && updated.name().equals("更新名称"), "native Update uses the selected preset revision");
                 store.save(updated.id(), 2, "External update", updated.configuration(), top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults());
-                update.onPress(null);
+                update.onPress();
                 awaitCondition(() -> !field(screenType, "busy").getBoolean(screen), drain);
                 require(field(screenType, "message").get(screen).toString().contains("OUTFIT_PRESET_REVISION_CONFLICT")
                                 && store.read(updated.id(), top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults()).name().equals("External update"),
@@ -2207,14 +2202,14 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 UUID copiesId = UUID.randomUUID();
                 presetFiles.add(copiesId);
                 store.save(copiesId, 0, "双副本预设", seed.configuration(), top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults());
-                ((org.figuramc.figura.gui.widgets.Button) field(screenType, "refresh").get(screen)).onPress(null);
+                ((org.figuramc.figura.gui.widgets.Button) field(screenType, "refresh").get(screen)).onPress();
                 awaitCondition(() -> !field(screenType, "busy").getBoolean(screen), drain);
                 var selector = (top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown) field(screenType, "selector").get(screen);
-                selector.onPress(null);
+                selector.onPress();
                 var menu = (org.figuramc.figura.gui.widgets.ContextMenu) org.figuramc.figura.utils.ui.UIHelper.getContext();
                 var presetChoice = (org.figuramc.figura.gui.widgets.Button) menu.getEntries().stream()
                         .filter(button -> button.getMessage().getString().equals("双副本预设")).findFirst().orElseThrow();
-                presetChoice.onPress(null);
+                presetChoice.onPress();
                 awaitCondition(() -> field(screenType, "previewReady").getBoolean(screen), drain);
                 var privatePreview = (LibraryPreviewSession) field(screenType, "preview").get(screen);
                 require(privatePreview.outfitHierarchy().targets().values().stream()
@@ -2223,7 +2218,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                         "selecting a preset through the real dropdown prepares both copies without importing or equipping them");
                 var importButton = (org.figuramc.figura.gui.widgets.Button) field(screenType, "importPreset").get(screen);
                 require(importButton.isActive(), "Import becomes available only after complete native preparation");
-                importButton.onPress(null);
+                importButton.onPress();
                 awaitDraftComposition(wardrobe, parentPreview, drain);
                 require(minecraft.screen == wardrobe && draft.configuration().base() == null
                                 && draft.configuration().instances().size() == 2
@@ -2233,8 +2228,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
                                 && AvatarManager.getAvatarForPlayer(owner) == equipped,
                         "Import edits only the retained draft, rewrites instance IDs and preserves each copy's control values");
                 long importedGeneration = draft.generation();
-                save.onPress(null);
-                importButton.onPress(null);
+                save.onPress();
+                importButton.onPress();
                 require(draft.generation() == importedGeneration, "closed preset controls cannot save or import into the parent");
                 var cancel = type.getDeclaredMethod("cancelOutfitDraft");
                 cancel.setAccessible(true);
@@ -2253,7 +2248,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 ((org.figuramc.figura.gui.widgets.TextField) field(screenType, "nameField").get(blocked)).getField().setValue("Unknown source");
                 var blockedSave = (org.figuramc.figura.gui.widgets.Button) field(screenType, "saveNew").get(blocked);
                 require(!blockedSave.isActive(), "an unresolved captured base cannot be saved as a reloadable preset");
-                blockedSave.onPress(null);
+                blockedSave.onPress();
                 var missing = new top.aihmc.omnimorph.model.outfit.OutfitConfig.ResourceRef(
                         top.aihmc.omnimorph.model.outfit.OutfitConfig.Source.LOCAL, UUID.randomUUID(), null, null, null,
                         "f".repeat(64), top.aihmc.omnimorph.model.outfit.OutfitConfig.Format.FIGURA);
@@ -2358,12 +2353,12 @@ public final class LibraryPreviewRuntimeSmokeTest {
             init.invoke(screen);
             awaitCondition(() -> !field(type, "busy").getBoolean(screen), drain);
             var storage = (top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown) field(type, "storage").get(screen);
-            storage.onPress(null);
+            storage.onPress();
             String cloudLabel = org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.preset_personal_cloud").getString();
             var menu = org.figuramc.figura.utils.ui.UIHelper.getContext();
             var cloudChoice = (org.figuramc.figura.gui.widgets.Button) menu.getEntries().stream()
                     .filter(button -> button.getMessage().getString().equals(cloudLabel)).findFirst().orElseThrow();
-            cloudChoice.onPress(null);
+            cloudChoice.onPress();
             awaitCondition(() -> !field(type, "busy").getBoolean(screen), drain);
             require(field(type, "cloud").getBoolean(screen) && ((java.util.List<?>) field(type, "items").get(screen)).isEmpty(),
                     "the native storage selector loads the authenticated owner's separate cloud list");
@@ -2372,7 +2367,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var save = (org.figuramc.figura.gui.widgets.Button) field(type, "saveNew").get(screen);
             long generation = draft.generation();
             server.loseNext.set(true);
-            save.onPress(null);
+            save.onPress();
             awaitCondition(() -> !field(type, "busy").getBoolean(screen), drain);
             require(field(type, "message").get(screen).toString().contains("BUSY"), "uncertain cloud Save remains visibly failed");
             var operation = (CloudOutfitPresets.Save) field(type, "cloudSave").get(screen);
@@ -2380,7 +2375,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             name.getField().setValue("This later edit is not part of the retry");
             var retry = (org.figuramc.figura.gui.widgets.Button) field(type, "retry").get(screen);
             require(retry.isActive(), "an uncertain save has an explicit retry action");
-            retry.onPress(null);
+            retry.onPress();
             awaitCondition(() -> field(type, "previewReady").getBoolean(screen), drain);
             var selected = (top.aihmc.omnimorph.model.outfit.LocalOutfitPresets.Preset) field(type, "selected").get(screen);
             require(selected.name().equals("个人云端预设") && selected.revision() == 1
@@ -2389,7 +2384,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                             && AvatarManager.getAvatarForPlayer(owner) == equipped,
                     "native cloud retry retains the original intent/operation, creates one private document and never writes the local store or equipment");
             name.getField().setValue("云端更新");
-            ((org.figuramc.figura.gui.widgets.Button) field(type, "update").get(screen)).onPress(null);
+            ((org.figuramc.figura.gui.widgets.Button) field(type, "update").get(screen)).onPress();
             awaitCondition(() -> field(type, "previewReady").getBoolean(screen), drain);
             selected = (top.aihmc.omnimorph.model.outfit.LocalOutfitPresets.Preset) field(type, "selected").get(screen);
             require(selected.revision() == 2 && selected.name().equals("云端更新"), "native cloud Update uses the owner's selected document revision");
@@ -2405,7 +2400,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             load.invoke(screen, vanillaId);
             awaitCondition(() -> field(type, "previewReady").getBoolean(screen), drain);
             var importButton = (org.figuramc.figura.gui.widgets.Button) field(type, "importPreset").get(screen);
-            importButton.onPress(null);
+            importButton.onPress();
             awaitDraftComposition(wardrobe, parentPreview, drain);
             require(minecraft.screen == wardrobe && draft.configuration().base() == null && draft.dirty()
                             && AvatarManager.getAvatarForPlayer(owner) == equipped && server.unexpected.get() == 0,
@@ -2428,7 +2423,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             load.invoke(retired, vanillaId);
             awaitCondition(() -> field(type, "previewReady").getBoolean(retired), drain);
             live.set(false);
-            ((org.figuramc.figura.gui.widgets.Button) field(type, "importPreset").get(retired)).onPress(null);
+            ((org.figuramc.figura.gui.widgets.Button) field(type, "importPreset").get(retired)).onPress();
             require(draft.configuration().equals(draft.committed()), "retired cloud sessions cannot import even a previously prepared all-local preset");
             retired.onClose();
             System.out.println("PASS personal cloud preset controls: actual storage selector/authenticated HTTP, lost-response retry with frozen intent, update/private preview/import, separate local files and retired callbacks; real GUI/GPU MANUAL/PENDING");
@@ -2454,6 +2449,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                                             Runnable drain) throws Exception {
         var type = org.figuramc.figura.gui.screens.WardrobeScreen.class;
         var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
+        field(net.minecraft.client.gui.screens.Screen.class, "minecraft").set(screen, Minecraft.getInstance());
         var started = new java.util.concurrent.CountDownLatch(1);
         var release = new java.util.concurrent.CountDownLatch(1);
         try (var preview = new LibraryPreviewSession()) {
@@ -2497,7 +2493,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                                                      UUID first, UUID sibling, Runnable drain) throws Exception {
         Minecraft minecraft = Minecraft.getInstance();
         Object previousFont = field(Minecraft.class, "font").get(minecraft);
-        var font = new net.minecraft.client.gui.Font(null) {
+        var font = new net.minecraft.client.gui.Font(null, false) {
             private final net.minecraft.client.StringSplitter splitter = new net.minecraft.client.StringSplitter((codepoint, style) -> 6f);
 
             @Override
@@ -2581,14 +2577,14 @@ public final class LibraryPreviewRuntimeSmokeTest {
             windowField.set(minecraft, viewport);
             minecraft.screen = screen;
             try {
-                selector.onPress(null);
+                selector.onPress();
                 var menu = org.figuramc.figura.utils.ui.UIHelper.getContext();
                 require(menu != null && menu.getEntries().size() <= 8,
                         "attachment menus are bounded even when the hierarchy exceeds one page");
                 var nextLabel = org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.anchor_next").getString();
                 var next = (org.figuramc.figura.gui.widgets.Button) menu.getEntries().stream()
                         .filter(button -> button.getMessage().getString().equals(nextLabel)).findFirst().orElseThrow();
-                next.onPress(null);
+                next.onPress();
                 var following = org.figuramc.figura.utils.ui.UIHelper.getContext();
                 require(following != menu && following.getEntries().size() <= 8,
                         "next page opens a bounded menu without discarding remaining targets");
@@ -2695,7 +2691,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         field(type, "layout").set(screen, null);
         var before = draft.configuration();
         long generation = field(type, "draftPreviewGeneration").getLong(screen);
-        pick.onPress(null);
+        pick.onPress();
         require(first.equals(field(type, "attachingInstance").get(screen)) && before.equals(draft.configuration())
                         && field(type, "draftPreviewGeneration").getLong(screen) == generation,
                 "actual instance editor button enters tree targeting without changing the outfit or preparing sources");
@@ -2734,7 +2730,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     .filter(button -> button.getMessage().getString().equals(label))
                     .map(org.figuramc.figura.gui.widgets.Button.class::cast).findFirst().orElseThrow();
             var parentBefore = draft.instance(second);
-            bind.onPress(null);
+            bind.onPress();
             require(draft.instance(first).anchor().type() == top.aihmc.omnimorph.model.outfit.OutfitConfig.AnchorType.ACCESSORY_BONE
                             && draft.instance(first).anchor().bone().equals(secondTip.bone())
                             && draft.instance(second).equals(parentBefore) && first.equals(draft.selectedInstance())
@@ -2764,7 +2760,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(draft.configuration().equals(disabled), "a stale menu cannot bind to a newly disabled owner");
             draft.setEnabled(first, true);
             valid = draft.configuration();
-            bind.onPress(null);
+            bind.onPress();
             require(draft.configuration().equals(valid) && second.equals(field(type, "attachingInstance").get(screen)),
                     "an old successful menu cannot mutate a later target-selection session");
             open.invoke(screen, trigger);
@@ -2772,7 +2768,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var cancel = org.figuramc.figura.utils.ui.UIHelper.getContext().getEntries().stream()
                     .filter(button -> button.getMessage().getString().equals(cancelLabel))
                     .map(org.figuramc.figura.gui.widgets.Button.class::cast).findFirst().orElseThrow();
-            cancel.onPress(null);
+            cancel.onPress();
             require(draft.configuration().equals(valid) && field(type, "attachingInstance").get(screen) == null,
                     "canceling tree targeting preserves the outfit configuration");
             var context = type.getDeclaredMethod("openBoneContext", OutfitHierarchy.Target.class, double.class, double.class);
@@ -2782,13 +2778,13 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     .filter(button -> button.getMessage().getString().equals(
                             org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.instance_unmount").getString()))
                     .map(org.figuramc.figura.gui.widgets.Button.class::cast).findFirst().orElseThrow();
-            unmount.onPress(null);
+            unmount.onPress();
             awaitDraftComposition(screen, preview, drain);
             require(draft.configuration().instances().stream().noneMatch(value -> value.instanceId().equals(first))
                             && draft.instance(second).equals(parentBefore),
                     "bone context unmount removes its owning instance and preserves the other copy");
             var afterUnmount = draft.configuration();
-            unmount.onPress(null);
+            unmount.onPress();
             require(draft.configuration().equals(afterUnmount), "a stale unmount menu cannot remove another instance");
         } finally {
             screen.contextMenu = null;
@@ -2821,7 +2817,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var pose = top.aihmc.omnimorph.model.outfit.SkeletonPose.fromNative(skeleton, matrices, new org.joml.Matrix4f(),
                 top.aihmc.omnimorph.model.outfit.SkeletonPose.NativeUnits.MODEL_UNITS);
         try (var frame = composition.retain()) {
-            frame.draw(pose, new net.minecraft.client.renderer.entity.state.AvatarRenderState(), 0, ignored -> {});
+            frame.draw(pose, new YsmEntityFrame(0, 0, 0, 0, 0), 0, ignored -> {});
         }
         var groups = composition.controlGroups();
         @SuppressWarnings("unchecked")
@@ -2909,14 +2905,14 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 throw new IllegalStateException(exception);
             }
         }).findFirst().orElseThrow();
-        secondSwitch.onPress(null);
+        secondSwitch.onPress();
         require(Boolean.FALSE.equals(draft.instance(second).controls().get("visible"))
                         && !draft.instance(first).controls().containsKey("visible")
                         && Boolean.FALSE.equals(secondGroup.avatar().cosmeticContext.controls().get("visible"))
                         && !Boolean.FALSE.equals(firstGroup.avatar().cosmeticContext.controls().get("visible"))
                         && Boolean.TRUE.equals(firstGroup.avatar().controls.getValue("visible")),
                 "the second instance's row edits only its own execution context and draft values");
-        firstSwitch.onPress(null);
+        firstSwitch.onPress();
         require(Boolean.FALSE.equals(draft.instance(first).controls().get("visible"))
                         && Boolean.FALSE.equals(firstGroup.avatar().controls.getValue("visible"))
                         && firstGroup.avatar().cosmeticContext != secondGroup.avatar().cosmeticContext,
@@ -2965,14 +2961,14 @@ public final class LibraryPreviewRuntimeSmokeTest {
         require(controls.definitionRevision() == revision, "removed definitions cannot invalidate their former owner");
         draft.setEnabled(second, false);
         valid = draft.configuration();
-        secondSwitch.onPress(null);
+        secondSwitch.onPress();
         require(draft.configuration().equals(valid), "disabled instance callbacks are rejected immediately");
         draft.setEnabled(second, true);
         var close = wardrobeType.getDeclaredMethod("closeCosmeticControls", boolean.class);
         close.setAccessible(true);
         close.invoke(wardrobe, true);
         valid = draft.configuration();
-        secondSwitch.onPress(null);
+        secondSwitch.onPress();
         require(draft.configuration().equals(valid)
                         && field(wardrobeType, "draftPreviewGeneration").getLong(wardrobe) == generation,
                 "closed settings reject retained callbacks and value edits do not prepare or publish equipment");
@@ -3188,7 +3184,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             String label = org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.cosmetic_animations").getString();
             var open = (org.figuramc.figura.gui.widgets.Button) menu.getEntries().stream()
                     .filter(button -> button.getMessage().getString().equals(label)).findFirst().orElseThrow();
-            open.onPress(null);
+            open.onPress();
             require(minecraft.screen instanceof top.aihmc.omnimorph.gui.screens.CosmeticAnimationScreen
                             && session.outfitComposition() == composition && !menu.isVisible(),
                     "the actual instance-menu action retains the current draft composition and opens its wheel preview");
@@ -3203,21 +3199,21 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(field(model.getClass(), "libraryPreview").get(model) == session,
                     "the preview widget renders the same private complete outfit rather than real equipment");
             java.util.function.IntConsumer press = key -> {
-                require(preview.keyPressed(new net.minecraft.client.input.KeyEvent(key, 0, 0)), "numeric wheel input handled");
-                require(preview.keyReleased(new net.minecraft.client.input.KeyEvent(key, 0, 0)), "matching wheel release handled");
+                    require(preview.keyPressed(key, 0, 0), "numeric wheel input handled");
+                    require(preview.keyReleased(key, 0, 0), "matching wheel release handled");
             };
             press.accept(49);
             press.accept(50);
             press.accept(50);
             int previousClicks = firstGlobals.get("wheel_clicks").toint();
-            preview.keyPressed(new net.minecraft.client.input.KeyEvent(49, 0, 0));
-            preview.keyPressed(new net.minecraft.client.input.KeyEvent(49, 0, 0));
+            preview.keyPressed(49, 0, 0);
+            preview.keyPressed(49, 0, 0);
             require(firstGlobals.get("wheel_clicks").toint() == previousClicks + 1,
                     "a held numeric key does not replay the press action on key repeat");
-            preview.keyReleased(new net.minecraft.client.input.KeyEvent(50, 0, 0));
+            preview.keyReleased(50, 0, 0);
             require(field(preview.getClass(), "heldInput").getInt(preview) == 49,
                     "releasing another key does not release the active input");
-            preview.keyReleased(new net.minecraft.client.input.KeyEvent(49, 0, 0));
+            preview.keyReleased(49, 0, 0);
             require(field(preview.getClass(), "heldInput").getInt(preview) == -1
                             && draft.instance(first.cosmeticContext.instanceId()).controls().get("amplitude")
                                     .equals(first.controls.getValue("amplitude"))
@@ -3226,16 +3222,13 @@ public final class LibraryPreviewRuntimeSmokeTest {
             int centerX = 213 + (640 - 213) / 2;
             double pointerX = centerX + 50;
             double pointerY = 130;
-            var left = new net.minecraft.client.input.MouseButtonEvent(pointerX, pointerY,
-                    new net.minecraft.client.input.MouseButtonInfo(0, 0));
-            preview.mouseClicked(left, false);
+            preview.mouseClicked(pointerX, pointerY, 0);
             require(firstGlobals.get("wheel_clicks").toint() == previousClicks + 2,
                     "native pointer hit testing routes to the original author callback");
-            preview.mouseReleased(new net.minecraft.client.input.MouseButtonEvent(pointerX, pointerY,
-                    new net.minecraft.client.input.MouseButtonInfo(1, 0)));
+            preview.mouseReleased(pointerX, pointerY, 1);
             require(field(preview.getClass(), "heldInput").getInt(preview) == 0,
                     "right-button release does not end a left-button input");
-            preview.mouseReleased(left);
+            preview.mouseReleased(pointerX, pointerY, 0);
             require(field(preview.getClass(), "heldInput").getInt(preview) == -1,
                     "matching native mouse release clears the held action input");
             preview.mouseScrolled(pointerX, pointerY, 2, 0);
@@ -3246,7 +3239,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     "wheel scrolling saves its owner's values without activating or changing the equipped wheel selection");
             int allowedClicks = firstGlobals.get("wheel_clicks").toint();
             draft.setEnabled(first.cosmeticContext.instanceId(), false);
-            preview.keyPressed(new net.minecraft.client.input.KeyEvent(49, 0, 0));
+            preview.keyPressed(49, 0, 0);
             require(firstGlobals.get("wheel_clicks").toint() == allowedClicks,
                     "an instance disabled in the draft cannot execute through a still-retained prepared composition");
             draft.setEnabled(first.cosmeticContext.instanceId(), true);
@@ -3262,12 +3255,12 @@ public final class LibraryPreviewRuntimeSmokeTest {
             build.invoke(controls);
             var toggle = (org.figuramc.figura.gui.widgets.SwitchButton) controls.children().stream()
                     .filter(child -> child.getClass().getSimpleName().equals("ControlSwitch")).findFirst().orElseThrow();
-            toggle.onPress(null);
+            toggle.onPress();
             controls.onClose();
             require(minecraft.screen == preview && session.outfitComposition() == composition,
                     "closing scoped settings returns to the same wheel and complete draft generation");
             var valid = draft.configuration();
-            toggle.onPress(null);
+            toggle.onPress();
             require(draft.configuration().equals(valid), "closed nested settings reject retained controls while the wheel remains open");
             top.aihmc.omnimorph.gui.screens.AvatarControlsScreen.open(session.outfitBase(), "root");
             require(minecraft.screen instanceof top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen,
@@ -3287,7 +3280,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                             && !field(wardrobe.getClass(), "cosmeticAnimationsOpen").getBoolean(wardrobe),
                     "Done returns to the wardrobe with the same private draft and no retained input scope");
             valid = draft.configuration();
-            preview.keyPressed(new net.minecraft.client.input.KeyEvent(49, 0, 0));
+            preview.keyPressed(49, 0, 0);
             require(draft.configuration().equals(valid)
                             && field(wardrobe.getClass(), "draftPreviewGeneration").getLong(wardrobe) == generation,
                     "old preview key callbacks cannot mutate a closed scope or prepare/equip resources");
@@ -3342,7 +3335,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 top.aihmc.omnimorph.model.outfit.SkeletonPose.NativeUnits.MODEL_UNITS);
         try (var frame = composition.retain()) {
             frame.capturePreviewSelection(new PreviewBoneHighlight.Mount(id));
-            frame.draw(pose, new net.minecraft.client.renderer.entity.state.AvatarRenderState(), 0, ignored -> {});
+            frame.draw(pose, new YsmEntityFrame(0, 0, 0, 0, 0), 0, ignored -> {});
             var target = preview.previewMountTarget(id);
             require(target != null && target.bone() != null, "actual trusted controller reports the custom base root fallback");
             var update = type.getDeclaredMethod("updateAutomaticAnchorFocus");
@@ -3399,8 +3392,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
         int boneId = preview.outfitHierarchy().targets().entrySet().stream()
                 .filter(node -> bone.equals(node.getValue().bone())).findFirst().orElseThrow().getKey();
         Object selectedPart = preview.outfitHierarchy().hierarchy().part(boneId);
-        var selectedFrame = new net.minecraft.client.renderer.entity.state.AvatarRenderState();
-        var emptyFrame = new net.minecraft.client.renderer.entity.state.AvatarRenderState();
+        var selectedFrame = new EntityFrame(preview.entity(), 1);
+        var emptyFrame = new EntityFrame(preview.entity(), 1);
         preview.selectedBone(selectedPart);
         preview.withPlayerContext(() -> LibraryPreviewBinding.capture(preview.entity(), selectedFrame));
         preview.selectedBone(null);
@@ -3462,7 +3455,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var reset = panel.children().stream().filter(org.figuramc.figura.gui.widgets.Button.class::isInstance)
                 .map(org.figuramc.figura.gui.widgets.Button.class::cast)
                 .filter(button -> button.getMessage().getString().equals(resetLabel)).findFirst().orElseThrow();
-        reset.onPress(null);
+        reset.onPress();
         require(draft.instance(first).boneOverrides().isEmpty() && draft.instance(second).boneOverrides().isEmpty()
                         && inputs.getFirst().getField().getValue().equals("0.0") && inputs.get(8).getField().getValue().equals("1.0"),
                 "Reset removes the override and restores fields without recreating identity records");
@@ -3470,7 +3463,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         draft.remove(second);
         var removed = draft.configuration();
         inputs.getFirst().getField().setValue("11");
-        reset.onPress(null);
+        reset.onPress();
         require(draft.configuration().equals(removed) && Files.readString(directory.resolve("cosmetic.json")).equals(authored)
                         && Files.readString(directory.resolve("model.bbmodel")).equals(geometry),
                 "removed bones reject old input/reset and author metadata/geometry stay unchanged");
@@ -3524,7 +3517,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var hide = org.figuramc.figura.utils.ui.UIHelper.getContext().getEntries().stream()
                     .filter(button -> button.getMessage().getString().equals(hideLabel))
                     .map(org.figuramc.figura.gui.widgets.Button.class::cast).findFirst().orElseThrow();
-            hide.onPress(null);
+            hide.onPress();
             var binding = field(LibraryPreviewSession.class, "binding").get(preview);
             require(selection.invoke(screen) == null && field(widget.getClass(), "selectedBone").get(widget) == null
                             && field(LibraryPreviewBinding.class, "selectedBone").get(binding) == null
@@ -3536,7 +3529,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var show = org.figuramc.figura.utils.ui.UIHelper.getContext().getEntries().stream()
                     .filter(button -> button.getMessage().getString().equals(showLabel))
                     .map(org.figuramc.figura.gui.widgets.Button.class::cast).findFirst().orElseThrow();
-            show.onPress(null);
+            show.onPress();
             require(selection.invoke(screen) == part && field(widget.getClass(), "selectedBone").get(widget) == part
                             && field(LibraryPreviewBinding.class, "selectedBone").get(binding) == part
                             && configuration.equals(draft.configuration())
@@ -3671,16 +3664,16 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 .map(org.figuramc.figura.gui.widgets.Button.class::cast)
                 .filter(button -> button.getMessage().getString().equals(removeLabel)).findFirst().orElseThrow();
         field(type, "layout").set(screen, null);
-        remove.onPress(null);
+        remove.onPress();
         require(draft.configuration().virtualAnchors().size() == 1
                         && ((net.minecraft.network.chat.Component) field(type, "message").get(screen)).getString().contains("#1")
                         && ((net.minecraft.network.chat.Component) field(type, "message").get(screen)).getString().contains("#2"),
                 "first Delete lists both affected copies and retains the shared anchor");
         draft.setEnabled(first, !originalFirst.enabled());
-        remove.onPress(null);
+        remove.onPress();
         require(draft.configuration().virtualAnchors().size() == 1,
                 "changing the draft invalidates the prior deletion confirmation");
-        remove.onPress(null);
+        remove.onPress();
         require(draft.configuration().virtualAnchors().isEmpty()
                         && draft.instance(first).anchor().type() == top.aihmc.omnimorph.model.outfit.OutfitConfig.AnchorType.UNRESOLVED
                         && draft.instance(sibling).anchor().type() == top.aihmc.omnimorph.model.outfit.OutfitConfig.AnchorType.UNRESOLVED,
@@ -3723,7 +3716,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         private net.minecraft.world.entity.player.Player target;
 
         private OtherPlayerLevel() {
-            super(null, null, null, null, 0, 0, null, false, 0L, 0);
+            super(null, null, null, null, 0, 0, () -> null, null, false, 0L);
         }
 
         @Override
@@ -3755,7 +3748,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(await(preview.selectDraft(source), drain), "current-player Figura preview loads");
             require(preview.entity() == player, "normal Figura previews use the actual current player");
             var active = new java.util.concurrent.atomic.AtomicReference<Avatar>();
-            var frame = new AvatarRenderState();
+            var frame = new EntityFrame(player, 1);
             preview.withPlayerContext(() -> {
                 active.set(AvatarManager.getAvatar(player));
                 LibraryPreviewBinding.capture(player, frame);
@@ -3777,6 +3770,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             LibraryPreviewBinding.finishFrame();
             require(!avatar.accelerationOwner().isCurrent(), "closing player preview retires its own model resources");
             var outfit = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
+            field(net.minecraft.client.gui.screens.Screen.class, "minecraft").set(outfit, Minecraft.getInstance());
             field(outfit.getClass(), "preview").set(outfit, preview);
             var widget = new org.figuramc.figura.gui.widgets.EntityPreview(0, 0, 180, 180, 40, -15, 30, player, outfit);
             field(outfit.getClass(), "previewWidget").set(outfit, widget);
@@ -3829,7 +3823,12 @@ public final class LibraryPreviewRuntimeSmokeTest {
     private static final class CurrentPreviewPlayer extends net.minecraft.client.player.LocalPlayer
             implements org.figuramc.figura.mixin.EntityAccessor {
         private CurrentPreviewPlayer() {
-            super(null, null, null, null, null, null, false, null);
+            super(null, null, null, null, null, false, false);
+        }
+
+        @Override
+        public int getPermissionLevel() {
+            return super.getPermissionLevel();
         }
 
         @Override
@@ -3839,10 +3838,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
     }
 
     private static void assertVanillaBody(Avatar avatar, boolean visible) {
-        var mesh = net.minecraft.client.model.player.PlayerModel.createMesh(
+        var mesh = net.minecraft.client.model.PlayerModel.createMesh(
                 net.minecraft.client.model.geom.builders.CubeDeformation.NONE, false);
         var root = net.minecraft.client.model.geom.builders.LayerDefinition.create(mesh, 64, 64).bakeRoot();
-        var model = new net.minecraft.client.model.player.PlayerModel(root, false);
+        var model = new net.minecraft.client.model.PlayerModel(root, false);
         if (avatar.luaRuntime != null) {
             avatar.luaRuntime.vanilla_model.PLAYER.save(model);
             avatar.luaRuntime.vanilla_model.PLAYER.posTransform(model);
@@ -3860,17 +3859,13 @@ public final class LibraryPreviewRuntimeSmokeTest {
     private static void testIndependentFigura(Unsafe unsafe, Runnable drain) throws Exception {
         Minecraft client = Minecraft.getInstance();
         var oldRenderer = client.gameRenderer;
-        var oldDebug = client.debugEntries;
+        boolean oldDebug = client.getEntityRenderDispatcher().shouldRenderHitBoxes();
         var renderer = (net.minecraft.client.renderer.GameRenderer) unsafe.allocateInstance(
                 net.minecraft.client.renderer.GameRenderer.class);
         field(renderer.getClass(), "mainCamera").set(renderer, new net.minecraft.client.Camera());
-        var debug = (net.minecraft.client.gui.components.debug.DebugScreenEntryList) unsafe.allocateInstance(
-                net.minecraft.client.gui.components.debug.DebugScreenEntryList.class);
-        field(debug.getClass(), "allStatuses").set(debug, new java.util.HashMap<>());
-        field(debug.getClass(), "currentlyEnabled").set(debug, new java.util.ArrayList<>());
         field(Minecraft.class, "gameRenderer").set(client, renderer);
-        field(Minecraft.class, "debugEntries").set(client, debug);
-        try (var session = new LibraryPreviewSession(null, true)) {
+        client.getEntityRenderDispatcher().setRenderHitBoxes(false);
+        try (var session = new LibraryPreviewSession(null, true); var gui = new PreviewGraphics(unsafe)) {
             var player = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
             player.setUUID((UUID) field(LibraryPreviewSession.class, "owner").get(session));
             field(LibraryPreviewSession.class, "entity").set(session, player);
@@ -3889,25 +3884,21 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(!session.submitIndependentFigura(null, 50, 50, 30, -15, 30, 0.5f, 0, 0, 100, 100),
                     "model library sessions default to Figura's original entity preview path");
             session.setIndependentFigura(true);
-            var guiState = new net.minecraft.client.renderer.state.gui.GuiRenderState();
-            var gui = (PreviewGraphics) unsafe.allocateInstance(PreviewGraphics.class);
-            gui.state = guiState;
-            var scissorConstructor = net.minecraft.client.gui.GuiGraphicsExtractor.ScissorStack.class.getDeclaredConstructor();
-            scissorConstructor.setAccessible(true);
-            gui.scissor = scissorConstructor.newInstance();
+            var previousFrames = capturedFrames();
             require(session.submitIndependentFigura(gui, 50, 50, 30, -15, 30, 0.5f, 0, 0, 100, 100),
-                    "wardrobe management explicitly submits an independent model state");
-            var captured = new java.util.ArrayList<net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState>();
-            guiState.forEachPictureInPicture(captured::add);
-            require(captured.size() == 1 && captured.getFirst() instanceof LibraryFiguraPreviewState,
-                    "independent GUI submission bypasses native entity render states");
+                    "wardrobe management explicitly draws an independent preview");
+            var submittedFrames = capturedFrames();
+            submittedFrames.removeAll(previousFrames);
+            require(submittedFrames.size() == 1 && submittedFrames.iterator().next().entity() == player,
+                    "independent drawing captures one native binding without entity dispatch");
+            require(gui.buffers.vertices.get() > 0 && avatar.renderer.root.getTrueRot().y == 5,
+                    "the native immediate entry point emits body vertices and executes one Lua render event");
             session.setIndependentFigura(false);
             require(!session.submitIndependentFigura(null, 50, 50, 30, -15, 30, 0.5f, 0, 0, 100, 100),
                     "leaving wardrobe management restores the original preview path");
-            var pose = new AvatarRenderState();
-            pose.skin = net.minecraft.client.resources.DefaultPlayerSkin.getDefaultSkin();
-            pose.showHat = pose.showJacket = pose.showLeftSleeve = pose.showRightSleeve = true;
-            pose.showLeftPants = pose.showRightPants = true;
+            var pose = new LibraryFiguraPreviewState.PlayerPose(new EntityFrame(player, .5f),
+                    net.minecraft.client.resources.DefaultPlayerSkin.get(DEFAULT_SKIN_OWNER), 0,
+                    true, true, true, true, true, true);
             var state = new LibraryFiguraPreviewState(avatar, pose, 0.5f, -15, 30, 0, 0,
                     0, 0, 100, 100, 30, null, null);
             var vertices = new java.util.ArrayList<String>();
@@ -3944,7 +3935,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             avatar.loadScript("verify first particle tick", "assert(particle_tick_reads == 1)").call();
             require(!avatar.scriptError, "Lua tick reads the world position after GUI drawing");
             require(!vertices.isEmpty(), "direct preview emits native skinned player vertices without a level or dispatcher");
-            require(avatar.renderer.root.getTrueRot().y == 5 && !avatar.scriptError,
+            require(avatar.renderer.root.getTrueRot().y == 10 && !avatar.scriptError,
                     "direct geometry drawing invokes the real Lua render event");
             require(player.equipmentReads == 0 && player.capeReads == 0,
                     "direct preview never enters entity armor/cape layers");
@@ -3965,7 +3956,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             avatar.loadScript("remove particle probe",
                     "events.tick:remove('particle world position regression')").call();
             avatar.renderer.allowMatrixUpdate = false;
-            require(vertices.isEmpty() && avatar.renderer.root.getTrueRot().y == 10,
+            require(vertices.isEmpty() && avatar.renderer.root.getTrueRot().y == 15,
                     "script body visibility remains authoritative while render animation continues");
             require(model.body.visible, "shared native mesh visibility is restored after drawing");
             vertices.clear();
@@ -3993,14 +3984,14 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 org.figuramc.figura.utils.ui.UIHelper.paperdoll = previousPaperdoll;
                 avatar.renderMode = previousMode;
             }
-            testDeferredWorldMatrices(avatar, model);
+            testWorldMatricesAfterPreview(avatar, model);
             top.aihmc.omnimorph.model.outfit.NativeSkeletonSmokeTest.testFigura(avatar);
             top.aihmc.omnimorph.model.outfit.OutfitNativeRenderSmokeTest.run();
             testCompositionPreparation(session, drain, gui);
             System.out.println("PASS independent Figura drawing: real Lua render, native body vertices, script visibility and no entity layers");
         } finally {
             field(Minecraft.class, "gameRenderer").set(client, oldRenderer);
-            field(Minecraft.class, "debugEntries").set(client, oldDebug);
+            client.getEntityRenderDispatcher().setRenderHitBoxes(oldDebug);
         }
     }
 
@@ -4021,7 +4012,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 new org.figuramc.figura.permissions.PermissionPack.CategoryPermissionPack(Permissions.Category.DEFAULT),
                 account.toString());
         var source = model("prepared accessory");
-        source.getCompoundOrEmpty("metadata").putString("resource_kind", "ACCESSORY");
+        source.getCompound("metadata").putString("resource_kind", "ACCESSORY");
         require(await(session.prepareComposition(configuration, OutfitLimits.defaults(), account, outfit, permissions,
                 (reference, cancelled) -> source), drain), "asynchronous draft preparation publishes a complete generation");
         var entity = session.entity();
@@ -4034,36 +4025,25 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 end
                 """).call().checkfunction();
         session.setIndependentFigura(true);
-        gui.state = new net.minecraft.client.renderer.state.gui.GuiRenderState();
+        var previousFrames = capturedFrames();
+        gui.buffers.vertices.set(0);
+        gui.beforeFlush = () -> nativeRoot.customization.setPos(123, 456, 789);
         require(session.submitIndependentFigura(gui, 50, 50, 30, 0, -180, .5f, 0, 0, 100, 100),
-                "actual independent GUI submission captures a composed base pose");
-        var submitted = new java.util.ArrayList<net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState>();
-        gui.state.forEachPictureInPicture(submitted::add);
-        var nativeState = (LibraryFiguraPreviewState) submitted.getFirst();
-        var frame = nativeState.playerPose();
+                "actual independent drawing captures a composed base pose before flushing");
+        var submittedFrames = capturedFrames();
+        submittedFrames.removeAll(previousFrames);
+        require(submittedFrames.size() == 1, "one immediate preview captures one composition frame");
+        var frame = submittedFrames.iterator().next();
         var previous = LibraryPreviewBinding.composition(frame);
-        require(previous != null, "native preview extraction retains the published composition");
-        nativeRoot.customization.setPos(123, 456, 789);
-        var emissions = new java.util.concurrent.atomic.AtomicInteger();
-        var sink = (com.mojang.blaze3d.vertex.VertexConsumer) java.lang.reflect.Proxy.newProxyInstance(
-                LibraryPreviewRuntimeSmokeTest.class.getClassLoader(),
-                new Class<?>[]{com.mojang.blaze3d.vertex.VertexConsumer.class}, (proxy, method, arguments) -> {
-                    if (method.isDefault()) {
-                        return java.lang.reflect.InvocationHandler.invokeDefault(proxy, method, arguments);
-                    }
-                    if (method.getName().equals("addVertex")) {
-                        emissions.incrementAndGet();
-                    }
-                    return method.getReturnType() == void.class ? null : proxy;
-                });
-        LibraryFiguraPreviewRenderer.draw(nativeState, new com.mojang.blaze3d.vertex.PoseStack(), type -> sink,
-                LibraryFiguraPreviewRenderer.createModel(false));
-        require(emissions.get() == 0, "hidden base and unresolved accessory do not emit geometry");
-        require(nativeAvatar.loadScript("observed submitted base", "return observed_base_x").call().checkdouble() == submittedX
-                        && nativeRoot.customization.getPos().x == 123,
-                "actual GUI draw uses submission-time base pose and restores later edits after all callbacks");
+        require(previous != null, "native preview drawing retains the published composition");
+        require(gui.buffers.vertices.get() == 0, "hidden base and unresolved accessory do not emit geometry");
+        double observedX = nativeAvatar.loadScript("observed submitted base", "return observed_base_x").call().checkdouble();
+        double restoredX = nativeRoot.customization.getPos().x;
+        require(observedX == submittedX && restoredX == 123,
+                "actual GUI draw uses the captured base pose and restores an edit made at the flush boundary: "
+                        + "submitted=" + submittedX + ", observed=" + observedX + ", restored=" + restoredX);
         require(field(previous.getClass(), "evaluated").getBoolean(previous),
-                "the existing GUI draw path captures the native base pose and evaluates its retained composition");
+                "the immediate GUI path captures the native base pose and evaluates its retained composition");
         var failed = session.prepareComposition(configuration, OutfitLimits.defaults(), account, outfit, permissions,
                 (reference, cancelled) -> model("wrong purpose"));
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
@@ -4112,34 +4092,80 @@ public final class LibraryPreviewRuntimeSmokeTest {
         System.out.println("PASS asynchronous outfit preview: purpose validation, atomic replacement, newest draft, retained native frames and cleanup");
     }
 
-    private static final class PreviewGraphics extends net.minecraft.client.gui.GuiGraphicsExtractor
-            implements top.aihmc.omnimorph.mixin.gui.GuiGraphicsAccessor {
-        private net.minecraft.client.renderer.state.gui.GuiRenderState state;
-        private ScissorStack scissor;
+    @SuppressWarnings("unchecked")
+    private static java.util.Set<EntityFrame> capturedFrames() throws Exception {
+        var frames = (Map<EntityFrame, ?>) field(LibraryPreviewBinding.class, "FRAMES").get(null);
+        return new java.util.HashSet<>(frames.keySet());
+    }
 
-        private PreviewGraphics(net.minecraft.client.renderer.state.gui.GuiRenderState state) {
-            super(Minecraft.getInstance(), state, 100, 100);
+    /** Native GUI state and scissoring; only the geometry destination and flush callback are recorded. */
+    private static final class PreviewGraphics extends net.minecraft.client.gui.GuiGraphics implements AutoCloseable {
+        private final PreviewBuffers buffers;
+        private final java.lang.reflect.Field windowField;
+        private final Object previousWindow;
+        private Runnable beforeFlush;
+
+        private PreviewGraphics(Unsafe unsafe) throws Exception {
+            super(Minecraft.getInstance(), new PreviewBuffers());
+            buffers = (PreviewBuffers) bufferSource();
+            long handle = org.lwjgl.glfw.GLFW.glfwGetCurrentContext();
+            require(handle != 0L, "native GUI fixture requires the visible texture window");
+            var width = org.lwjgl.BufferUtils.createIntBuffer(1);
+            var height = org.lwjgl.BufferUtils.createIntBuffer(1);
+            org.lwjgl.glfw.GLFW.glfwGetFramebufferSize(handle, width, height);
+            var window = (com.mojang.blaze3d.platform.Window) unsafe.allocateInstance(com.mojang.blaze3d.platform.Window.class);
+            field(window.getClass(), "window").setLong(window, handle);
+            for (String name : java.util.List.of("width", "framebufferWidth", "guiScaledWidth")) {
+                field(window.getClass(), name).setInt(window, width.get(0));
+            }
+            for (String name : java.util.List.of("height", "framebufferHeight", "guiScaledHeight")) {
+                field(window.getClass(), name).setInt(window, height.get(0));
+            }
+            field(window.getClass(), "guiScale").setDouble(window, 1);
+            windowField = field(Minecraft.class, "window");
+            previousWindow = windowField.get(Minecraft.getInstance());
+            windowField.set(Minecraft.getInstance(), window);
         }
 
         @Override
-        public void nextStratum() {
-            state.nextStratum();
+        public void flush() {
+            var action = beforeFlush;
+            beforeFlush = null;
+            if (action != null) {
+                action.run();
+            }
+            buffers.endBatch();
         }
 
         @Override
-        public net.minecraft.client.renderer.state.gui.GuiRenderState figura$getRenderState() {
-            return state;
+        public void close() throws Exception {
+            windowField.set(Minecraft.getInstance(), previousWindow);
+        }
+    }
+
+    private static final class PreviewBuffers extends net.minecraft.client.renderer.MultiBufferSource.BufferSource {
+        private final java.util.concurrent.atomic.AtomicInteger vertices = new java.util.concurrent.atomic.AtomicInteger();
+
+        private PreviewBuffers() {
+            super(null, new java.util.LinkedHashMap<>());
         }
 
         @Override
-        public ScissorStack figura$getScissorStack() {
-            return scissor;
+        public com.mojang.blaze3d.vertex.VertexConsumer getBuffer(net.minecraft.client.renderer.RenderType type) {
+            return countingSink(vertices);
+        }
+
+        @Override
+        public void endBatch() {
+            // Geometry is observed at the real consumer boundary; no GPU batch is built by this fixture.
         }
     }
 
     private static void testPreviewAppearance(Unsafe unsafe) throws Exception {
         var source = (AppearancePlayer) unsafe.allocateInstance(AppearancePlayer.class);
-        source.skin = net.minecraft.client.resources.DefaultPlayerSkin.getDefaultSkin();
+        source.skin = net.minecraft.client.resources.DefaultPlayerSkin.get(DEFAULT_SKIN_OWNER);
+        require(source.skin.model() == net.minecraft.client.resources.PlayerSkin.Model.WIDE,
+                "appearance fixture starts with a native wide skin before switching to slim");
         source.layers = java.util.EnumSet.allOf(net.minecraft.world.entity.player.PlayerModelPart.class);
         var reference = new java.util.concurrent.atomic.AtomicReference<AppearancePlayer>(source);
         var player = (LibraryPreviewPlayer) unsafe.allocateInstance(LibraryPreviewPlayer.class);
@@ -4152,9 +4178,12 @@ public final class LibraryPreviewRuntimeSmokeTest {
         }
         source.layers.remove(net.minecraft.world.entity.player.PlayerModelPart.HAT);
         var previous = source.skin;
-        source.skin = new net.minecraft.world.entity.player.PlayerSkin(previous.body(), previous.cape(), previous.elytra(),
-                net.minecraft.world.entity.player.PlayerModelType.SLIM, previous.secure());
-        require(player.getSkin() == source.skin && !player.isModelPartShown(net.minecraft.world.entity.player.PlayerModelPart.HAT),
+        source.skin = new net.minecraft.client.resources.PlayerSkin(previous.texture(), previous.textureUrl(),
+                previous.capeTexture(), previous.elytraTexture(),
+                net.minecraft.client.resources.PlayerSkin.Model.SLIM, previous.secure());
+        require(player.getSkin() == source.skin
+                        && player.getSkin().model() == net.minecraft.client.resources.PlayerSkin.Model.SLIM
+                        && !player.isModelPartShown(net.minecraft.world.entity.player.PlayerModelPart.HAT),
                 "later skin loading, slim arms and skin-layer preference changes propagate to the preview");
         reference.set(null);
         require(player.getSkin() != null && player.isModelPartShown(net.minecraft.world.entity.player.PlayerModelPart.JACKET),
@@ -4163,7 +4192,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
     }
 
     private static final class AppearancePlayer extends RemotePlayer {
-        private net.minecraft.world.entity.player.PlayerSkin skin;
+        private net.minecraft.client.resources.PlayerSkin skin;
         private java.util.EnumSet<net.minecraft.world.entity.player.PlayerModelPart> layers;
 
         private AppearancePlayer() {
@@ -4171,7 +4200,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         }
 
         @Override
-        public net.minecraft.world.entity.player.PlayerSkin getSkin() {
+        public net.minecraft.client.resources.PlayerSkin getSkin() {
             return skin;
         }
 
@@ -4185,6 +4214,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var player = (ArmorPreviewPlayer) unsafe.allocateInstance(ArmorPreviewPlayer.class);
         player.setUUID(UUID.randomUUID());
         var wardrobe = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
+        field(net.minecraft.client.gui.screens.Screen.class, "minecraft").set(wardrobe, Minecraft.getInstance());
         wardrobe.width = 640;
         wardrobe.height = 360;
         field(wardrobe.getClass(), "layout").set(wardrobe,
@@ -4265,7 +4295,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var fontField = field(Minecraft.class, "font");
         Object previousFont = fontField.get(minecraft);
         // Deterministic text metrics only; this test makes no font/pixel/IME-platform assertions.
-        var font = new net.minecraft.client.gui.Font(null) {
+        var font = new net.minecraft.client.gui.Font(null, false) {
             private final net.minecraft.client.StringSplitter splitter =
                     new net.minecraft.client.StringSplitter((codepoint, style) -> 6f);
 
@@ -4303,30 +4333,29 @@ public final class LibraryPreviewRuntimeSmokeTest {
             // Apply the same child coordinates as extraction without rendering a GUI framebuffer.
             input.setX(reason.getX() + 2);
             input.setY(reason.getY() + 2);
-            var click = new net.minecraft.client.input.MouseButtonEvent(reason.getX() + 8, reason.getY() + 8,
-                    new net.minecraft.client.input.MouseButtonInfo(0, 0));
-            require(screen.mouseClicked(click, false), "report reason receives the actual screen click");
-            require(screen.charTyped(new net.minecraft.client.input.CharacterEvent('举')),
+            double clickX = reason.getX() + 8;
+            double clickY = reason.getY() + 8;
+            require(screen.mouseClicked(clickX, clickY, 0), "report reason receives the actual screen click");
+            require(screen.charTyped('举', 0),
                     "report keyboard routing and enabled state work before mouse release");
-            screen.mouseReleased(click);
-            require(screen.charTyped(new net.minecraft.client.input.CharacterEvent('报')),
+            screen.mouseReleased(clickX, clickY, 0);
+            require(screen.charTyped('报', 0),
                     "report reason accepts a character after a complete click and release");
             require(input.getValue().equals("举报") && field(screen.getClass(), "value").get(screen).equals("举报"),
                     "report input updates both native text and the submitted reason value");
-            require(screen.keyPressed(new net.minecraft.client.input.KeyEvent(257, 0, 0))
-                            && screen.charTyped(new net.minecraft.client.input.CharacterEvent('A'))
-                            && screen.keyPressed(new net.minecraft.client.input.KeyEvent(259, 0, 0)),
+            require(screen.keyPressed(257, 0, 0)
+                            && screen.charTyped('A', 0)
+                            && screen.keyPressed(259, 0, 0),
                     "report reason keeps multiline editing and backspace after release");
             require(input.getValue().equals("举报\n"), "native multiline editing updates the report value");
             reason.setEnabled(false);
-            require(!screen.charTyped(new net.minecraft.client.input.CharacterEvent('禁')),
+            require(!screen.charTyped('禁', 0),
                     "disabled report field does not accept characters");
             reason.setEnabled(true);
-            require(screen.mouseClicked(click, false), "enabled report field can regain focus");
-            screen.mouseReleased(click);
-            screen.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(1, 1,
-                    new net.minecraft.client.input.MouseButtonInfo(0, 0)), false);
-            require(!screen.charTyped(new net.minecraft.client.input.CharacterEvent('外')),
+            require(screen.mouseClicked(clickX, clickY, 0), "enabled report field can regain focus");
+            screen.mouseReleased(clickX, clickY, 0);
+            screen.mouseClicked(1, 1, 0);
+            require(!screen.charTyped('外', 0),
                     "clicking outside still clears report editing focus");
             System.out.println("PASS report input: actual screen click/release, CJK text, newline/backspace, disabled state and outside focus");
             testCollectionCardsAndTreeScrolling();
@@ -4416,6 +4445,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     return renderables;
                 }
             };
+            field(net.minecraft.client.gui.screens.Screen.class, "minecraft").set(screen, Minecraft.getInstance());
             field(screenType, "client").set(screen, client);
             field(screenType, "preview").set(screen, preview);
             field(screenType, "visibility").set(screen,
@@ -4495,6 +4525,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         Path cache = Path.of(System.getProperty("figura.test.directory")).resolve("collection-actions");
         try (var collection = new LibraryCollectionService(client, cache)) {
             var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
+            field(net.minecraft.client.gui.screens.Screen.class, "minecraft").set(screen, Minecraft.getInstance());
             field(screen.getClass(), "client").set(screen, client);
             field(screen.getClass(), "collection").set(screen, collection);
             field(collection.getClass(), "authoritative").setBoolean(collection, true);
@@ -4548,7 +4579,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                         "authorized personal actions belong to the preview action bar: " + name);
             }
             var remove = (org.figuramc.figura.gui.widgets.Button) field(screen.getClass(), "removeCollectionButton").get(screen);
-            remove.onPress(null);
+            remove.onPress();
             require(id.equals(field(screen.getClass(), "deleteCollectionArmed").get(screen))
                             && field(screen.getClass(), "collectionMutation").get(screen) == null,
                     "own-upload delete first confirms the exact model without issuing a mutation");
@@ -4585,9 +4616,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var a = new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(null, first);
             var b = new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(null, second);
             grid.entries(java.util.List.of(a, b), null);
-            var click = new net.minecraft.client.input.MouseButtonEvent(8, 62, new net.minecraft.client.input.MouseButtonInfo(0, 0));
-            require(grid.mouseClicked(click, false) && chosen.get() == a, "collection pointer hit testing selects the first card");
-            require(grid.keyPressed(new net.minecraft.client.input.KeyEvent(262, 0, 0)) && chosen.get() == b,
+            double clickX = 8;
+            double clickY = 62;
+            require(grid.mouseClicked(clickX, clickY, 0) && chosen.get() == a, "collection pointer hit testing selects the first card");
+            require(grid.keyPressed(262, 0, 0) && chosen.get() == b,
                     "collection arrow navigation uses the same two-column card layout");
             var search = (org.figuramc.figura.gui.widgets.SearchBar) grid.children().stream()
                     .filter(org.figuramc.figura.gui.widgets.SearchBar.class::isInstance).findFirst().orElseThrow();
@@ -4597,15 +4629,15 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     .filter(child -> child instanceof org.figuramc.figura.gui.widgets.Button button
                             && button.getMessage().getString().equals("+")).findFirst().orElseThrow();
             require(!format.isVisible() && grid.scissorsY == 30, "filters start collapsed with card space reclaimed");
-            toggle.onPress(null);
+            toggle.onPress();
             require(format.isVisible() && grid.scissorsY == 54, "plus expands the native type dropdown below search");
             view.format = 2;
-            toggle.onPress(null);
+            toggle.onPress();
             require(!format.isVisible() && view.format == 2 && grid.scissorsY == 30,
                     "collapsing filters preserves the selected format and restores card hit geometry");
             view.format = 0;
             search.getField().setValue("no such model");
-            require(!grid.mouseClicked(click, false) && chosen.get() == b, "filtered empty space cannot select a hidden card");
+            require(!grid.mouseClicked(clickX, clickY, 0) && chosen.get() == b, "filtered empty space cannot select a hidden card");
         }
         var child = new org.figuramc.figura.model.FiguraModelPart(null, "deep-".repeat(40),
                 new org.figuramc.figura.model.PartCustomization(), Map.of(), new java.util.ArrayList<>());
@@ -4666,6 +4698,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(candidates.set(accessory, true).get(5, TimeUnit.SECONDS), "accessory candidate uses the existing local membership store");
             require(await(catalog.refresh(), deliver).size() == 1, "actual accessory inventory is available for card and row filtering");
             var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
+            field(net.minecraft.client.gui.screens.Screen.class, "minecraft").set(screen, Minecraft.getInstance());
             var type = screen.getClass();
             field(type, "client").set(screen, client);
             field(type, "collection").set(screen, collection);
@@ -4777,7 +4810,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     int collapsed = panel.scissorsY;
                     require(dropdowns.size() == 3 && dropdowns.stream().noneMatch(org.figuramc.figura.gui.widgets.Button::isVisible),
                             "source, mode and format are all owned by the collapsed plus panel");
-                    toggle.onPress(null);
+                    toggle.onPress();
                     require(open.get() && dropdowns.stream().allMatch(org.figuramc.figura.gui.widgets.Button::isVisible)
                                     && panel.scissorsY == collapsed + 24,
                             "plus reveals all selectors together and reserves one filter row");
@@ -4792,7 +4825,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     ((java.util.function.IntConsumer) field(sourceControl.getClass(), "changed").get(sourceControl)).accept(1);
                     require(source.get() == 1 && mode.get() == 0, "source selection does not change resource mode");
                     ((java.util.function.IntConsumer) field(modeControl.getClass(), "changed").get(modeControl)).accept(1);
-                    toggle.onPress(null);
+                    toggle.onPress();
                     require(!open.get() && source.get() == 1 && mode.get() == 1 && panel.scissorsY == collapsed
                                     && dropdowns.stream().noneMatch(org.figuramc.figura.gui.widgets.Button::isVisible),
                             "collapse retains both selections while reclaiming list space");
@@ -4800,6 +4833,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             }
         }
         var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
+        field(net.minecraft.client.gui.screens.Screen.class, "minecraft").set(screen, Minecraft.getInstance());
         screen.width = 640;
         screen.height = 360;
         field(screen.getClass(), "layout").set(screen,
@@ -4815,7 +4849,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var toggle = (org.figuramc.figura.gui.widgets.Button) placeholder.children().stream()
                 .filter(child -> child instanceof org.figuramc.figura.gui.widgets.Button button
                         && button.getMessage().getString().equals("+")).findFirst().orElseThrow();
-        toggle.onPress(null);
+        toggle.onPress();
         require(field(screen.getClass(), "resourceFiltersExpanded").getBoolean(screen)
                         && placeholder.children().stream().filter(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::isInstance)
                         .map(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::cast)
@@ -4827,6 +4861,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
 
     private static void testWardrobeActionMenus() throws Exception {
         var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
+        field(net.minecraft.client.gui.screens.Screen.class, "minecraft").set(screen, Minecraft.getInstance());
         screen.width = 640;
         screen.height = 360;
         field(screen.getClass(), "layout").set(screen,
@@ -4909,7 +4944,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 .filter(org.figuramc.figura.gui.widgets.Button.class::isInstance).findFirst().orElseThrow();
         var search = (org.figuramc.figura.gui.widgets.SearchBar) tree.children().stream()
                 .filter(org.figuramc.figura.gui.widgets.SearchBar.class::isInstance).findFirst().orElseThrow();
-        refresh.onPress(null);
+        refresh.onPress();
         require(refreshed.get() == 1 && search.getX() + search.getWidth() < refresh.getX()
                         && refresh.getX() + refresh.getWidth() <= tree.getX() + tree.getWidth(),
                 "tree refresh is clickable alongside search without overlapping its input");
@@ -4928,9 +4963,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
         try {
             var clearingMenu = new org.figuramc.figura.gui.widgets.ContextMenu() {
                 @Override
-                public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+                public boolean mouseClicked(double mouseX, double mouseY, int button) {
                     // Replay the action without the native audio engine; the screen dispatch remains real.
-                    ((org.figuramc.figura.gui.widgets.Button) getEntries().getFirst()).onPress(null);
+                    ((org.figuramc.figura.gui.widgets.Button) getEntries().getFirst()).onPress();
                     return true;
                 }
             };
@@ -4940,8 +4975,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             clearingMenu.setY(20);
             clearingMenu.setVisible(true);
             screen.contextMenu = clearingMenu;
-            require(screen.contextMenuClick(new net.minecraft.client.input.MouseButtonEvent(24, 24,
-                            new net.minecraft.client.input.MouseButtonInfo(0, 0)), false),
+            require(screen.contextMenuClick(24, 24, 0),
                     "menu callback may clear the screen menu during a consumed click");
             require(screen.contextMenu == null && !clearingMenu.isVisible(),
                     "the clicked menu closes after its callback rebuilds the screen");
@@ -4959,16 +4993,15 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var localRow = new org.figuramc.figura.gui.widgets.avatar.AvatarWidget(0, 160, avatar, local);
             localRow.setX(4);
             localRow.setY(30);
-            var rightClick = new net.minecraft.client.input.MouseButtonEvent(8, 36,
-                    new net.minecraft.client.input.MouseButtonInfo(1, 0));
-            require(localRow.getHeight() == 28 && localRow.mouseClicked(rightClick, false),
+
+            require(localRow.getHeight() == 28 && localRow.mouseClicked(8, 36, 1),
                     "taller local outfit rows retain their existing right-click context menu");
             var menu = org.figuramc.figura.utils.ui.UIHelper.getContext();
             var removeLabel = org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.remove_outfit").getString();
             var remove = (org.figuramc.figura.gui.widgets.Button) menu.children().stream()
                     .filter(child -> child instanceof org.figuramc.figura.gui.widgets.Button button
                             && button.getMessage().getString().equals(removeLabel)).findFirst().orElseThrow();
-            remove.onPress(null);
+            remove.onPress();
             require(removed.get() == avatar && selected.get() == 0 && !menu.isVisible(),
                     "removal targets the right-clicked local avatar without selecting or equipping it");
             removed.set(null);
@@ -4984,12 +5017,12 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 var row = (org.figuramc.figura.gui.widgets.Button) constructor.newInstance(cloud, 4, 30, 160,
                         new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(null, entry),
                         (org.figuramc.figura.gui.widgets.Button.OnPress) ignored -> selected.incrementAndGet());
-                require(row.getHeight() == 28 && row.mouseClicked(rightClick, false), "cloud rows share the taller context-menu interaction");
+                require(row.getHeight() == 28 && row.mouseClicked(8, 36, 1), "cloud rows share the taller context-menu interaction");
                 menu = org.figuramc.figura.utils.ui.UIHelper.getContext();
                 remove = (org.figuramc.figura.gui.widgets.Button) menu.children().stream()
                         .filter(child -> child instanceof org.figuramc.figura.gui.widgets.Button button
                                 && button.getMessage().getString().equals(removeLabel)).findFirst().orElseThrow();
-                remove.onPress(null);
+                remove.onPress();
                 require(removed.get() == entry && selected.get() == 0 && !menu.isVisible(),
                         "cloud removal captures the clicked member without invoking selection/equipment");
                 removed.set(null);
@@ -4997,17 +5030,17 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 var mixedLocalRow = (org.figuramc.figura.gui.widgets.Button) constructor.newInstance(cloud, 4, 30, 160,
                         new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(avatar, null),
                         (org.figuramc.figura.gui.widgets.Button.OnPress) ignored -> selected.incrementAndGet());
-                require(mixedLocalRow.mouseClicked(rightClick, false), "All-source local rows expose outfit removal");
+                require(mixedLocalRow.mouseClicked(8, 36, 1), "All-source local rows expose outfit removal");
                 menu = org.figuramc.figura.utils.ui.UIHelper.getContext();
                 remove = (org.figuramc.figura.gui.widgets.Button) menu.children().stream()
                         .filter(child -> child instanceof org.figuramc.figura.gui.widgets.Button button
                                 && button.getMessage().getString().equals(removeLabel)).findFirst().orElseThrow();
-                remove.onPress(null);
+                remove.onPress();
                 require(removed.get() == avatar && selected.get() == 0 && !menu.isVisible(),
                         "All-source local removal uses the local resource callback without selecting it");
                 cloud.entries(java.util.List.of(entry), null);
-                require(cloud.keyPressed(new net.minecraft.client.input.KeyEvent(264, 0, 0))
-                                && cloud.keyPressed(new net.minecraft.client.input.KeyEvent(264, 0, 0)) && selected.get() == 2,
+                require(cloud.keyPressed(264, 0, 0)
+                                && cloud.keyPressed(264, 0, 0) && selected.get() == 2,
                         "mixed outfit keyboard navigation selects both local and cloud resources");
             }
         } finally {
@@ -5111,6 +5144,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 net.minecraft.network.chat.Component.empty(), null, ignored -> {});
         var cancel = new org.figuramc.figura.gui.widgets.Button(0, 0, 100, 20,
                 net.minecraft.network.chat.Component.empty(), null, ignored -> {});
+        // This focused callback fixture injects its buttons instead of running Screen.init(Minecraft, ...).
+        field(net.minecraft.client.gui.screens.Screen.class, "minecraft").set(screen, minecraft);
         field(screenType, "build").set(screen, build);
         field(screenType, "cancel").set(screen, cancel);
         var start = screenType.getDeclaredMethod("startBuild");
@@ -5142,6 +5177,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 1024 * 1024, 64, 1024 * 1024, 1024, 1024, java.util.List.of("zip", "ysm"),
                 java.util.List.of("FIGURA"), java.util.List.of("general"), false, extension);
         var screen = new top.aihmc.omnimorph.gui.screens.library.ModelUploadScreen(null, client, capabilities, () -> {});
+        field(net.minecraft.client.gui.screens.Screen.class, "minecraft").set(screen, Minecraft.getInstance());
         var type = screen.getClass();
         field(type, "sessionRequest").set(screen, client.submit(LibraryClient.Lane.CONTROL, exchange -> null));
         var session = (LibraryPreviewSession) field(type, "preview").get(screen);
@@ -5212,6 +5248,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 java.util.List.of("FIGURA", "YSM_PLAIN", "YSM_ENCRYPTED"),
                 java.util.List.of("full_model", "decorative_parts"), false);
         var screen = new top.aihmc.omnimorph.gui.screens.library.ModelUploadScreen(null, client, capabilities, () -> {});
+        field(net.minecraft.client.gui.screens.Screen.class, "minecraft").set(screen, Minecraft.getInstance());
         var type = screen.getClass();
         field(type, "sessionRequest").set(screen, client.submit(LibraryClient.Lane.CONTROL, exchange -> null));
         var session = (LibraryPreviewSession) field(type, "preview").get(screen);
@@ -5372,17 +5409,26 @@ public final class LibraryPreviewRuntimeSmokeTest {
         }
 
         @Override
+        public int getPermissionLevel() {
+            return super.getPermissionLevel();
+        }
+
+        @Override
         public net.minecraft.world.level.Level getLevel() {
             return Minecraft.getInstance().level;
         }
 
         @Override
-        public net.minecraft.world.entity.player.PlayerSkin getSkin() {
-            return net.minecraft.client.resources.DefaultPlayerSkin.getDefaultSkin();
+        public net.minecraft.client.resources.PlayerSkin getSkin() {
+            return net.minecraft.client.resources.DefaultPlayerSkin.get(DEFAULT_SKIN_OWNER);
         }
 
         @Override
         public boolean isModelPartShown(net.minecraft.world.entity.player.PlayerModelPart part) {
+            if (part == net.minecraft.world.entity.player.PlayerModelPart.CAPE) {
+                capeReads++;
+                throw new CapeStateReached();
+            }
             return true;
         }
 
@@ -5392,11 +5438,6 @@ public final class LibraryPreviewRuntimeSmokeTest {
             return ItemStack.EMPTY;
         }
 
-        @Override
-        public net.minecraft.client.entity.ClientAvatarState avatarState() {
-            capeReads++;
-            throw new CapeStateReached();
-        }
     }
 
     public static final class CapeStateReached extends RuntimeException {
@@ -5511,73 +5552,37 @@ public final class LibraryPreviewRuntimeSmokeTest {
         @Override
         public void figura$removeParticle(net.minecraft.client.particle.Particle particle) {}
 
-        @Override
-        public net.minecraft.client.particle.ParticleResources figura$getParticleResources() {
-            throw new UnsupportedOperationException();
-        }
     }
 
-    private static void testDeferredWorldMatrices(Avatar avatar,
-                                                  net.minecraft.client.model.player.PlayerModel model) {
+    private static void testWorldMatricesAfterPreview(Avatar avatar,
+                                                      net.minecraft.client.model.PlayerModel model) {
         var previousMode = avatar.renderMode;
         boolean previousPaperdoll = org.figuramc.figura.utils.ui.UIHelper.paperdoll;
+        boolean previousUpdate = avatar.renderer.allowMatrixUpdate;
         try {
             for (int frame = 0; frame < 2; frame++) {
-                var queue = new DeferredFiguraQueue();
                 double worldX = 140 + frame * 12;
                 avatar.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.RENDER;
                 org.figuramc.figura.utils.ui.UIHelper.paperdoll = false;
-                queue.submitFiguraModel(avatar, new AvatarRenderState(), (owner, state, buffers) -> {
-                    var stack = new com.mojang.blaze3d.vertex.PoseStack();
-                    stack.translate(worldX, 64, -48);
-                    owner.updateMatrices(model, stack);
-                    require(Math.abs(owner.renderer.root.partToWorldMatrix().apply(0d, 0d, 0d).x - worldX) < .001,
-                            "deferred world drawing must update particle coordinates after wardrobe submission/close");
-                    owner.postRenderEvent(.5f, org.figuramc.figura.math.matrix.FiguraMat4.of());
-                    return null;
-                });
+                avatar.renderer.allowMatrixUpdate = true;
+                var stack = new com.mojang.blaze3d.vertex.PoseStack();
+                stack.translate(worldX, 64, -48);
+                avatar.updateMatrices(model, stack);
+                require(Math.abs(avatar.renderer.root.partToWorldMatrix().apply(0d, 0d, 0d).x - worldX) < .001,
+                        "immediate world drawing updates particle coordinates after wardrobe drawing/close");
+                avatar.postRenderEvent(.5f, org.figuramc.figura.math.matrix.FiguraMat4.of());
                 if (frame == 0) {
                     avatar.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
                     org.figuramc.figura.utils.ui.UIHelper.paperdoll = true;
-                    queue.submitFiguraModel(avatar, new AvatarRenderState(), (owner, state, buffers) -> {
-                        owner.updateMatrices(model, new com.mojang.blaze3d.vertex.PoseStack());
-                        require(Math.abs(owner.renderer.root.partToWorldMatrix().apply(0d, 0d, 0d).x - worldX) < .001,
-                                "deferred wardrobe drawing must preserve the preceding world particle position");
-                        return null;
-                    });
-                } else {
-                    avatar.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.OTHER;
+                    avatar.updateMatrices(model, new com.mojang.blaze3d.vertex.PoseStack());
+                    require(Math.abs(avatar.renderer.root.partToWorldMatrix().apply(0d, 0d, 0d).x - worldX) < .001,
+                            "immediate wardrobe drawing preserves the preceding world particle position");
                 }
-                org.figuramc.figura.utils.ui.UIHelper.paperdoll = false;
-                new top.aihmc.omnimorph.model.rendering.nodeRenderer.FiguraFeatureRenderer().render(queue, null);
             }
         } finally {
             avatar.renderMode = previousMode;
             org.figuramc.figura.utils.ui.UIHelper.paperdoll = previousPaperdoll;
-        }
-    }
-
-    private static final class DeferredFiguraQueue extends net.minecraft.client.renderer.SubmitNodeCollection
-            implements top.aihmc.omnimorph.ducks.NodeCollectorExtension {
-        private final java.util.List<top.aihmc.omnimorph.model.rendering.nodeRenderer.FiguraSubmission> submissions =
-                new java.util.ArrayList<>();
-
-        private DeferredFiguraQueue() {
-            super(null);
-        }
-
-        @Override
-        public <S extends net.minecraft.client.renderer.entity.state.EntityRenderState> void submitFiguraModel(
-                Avatar avatar, S state,
-                org.apache.commons.lang3.function.TriFunction<Avatar, S,
-                        net.minecraft.client.renderer.MultiBufferSource, Void> renderer) {
-            submissions.add(new top.aihmc.omnimorph.model.rendering.nodeRenderer.FiguraSubmission(
-                    avatar, state, (owner, captured, buffers) -> renderer.apply(owner, state, buffers)));
-        }
-
-        @Override
-        public java.util.List<top.aihmc.omnimorph.model.rendering.nodeRenderer.FiguraSubmission> getFiguraSubmissions() {
-            return submissions;
+            avatar.renderer.allowMatrixUpdate = previousUpdate;
         }
     }
 

@@ -5,13 +5,10 @@ import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.resources.ResourceLocation;
 import top.aihmc.omnimorph.avatar.ysm.YsmAvatarDetector;
 import org.figuramc.figura.avatar.Avatar;
-import org.figuramc.figura.math.matrix.FiguraMat3;
-import org.figuramc.figura.math.matrix.FiguraMat4;
 import org.figuramc.figura.model.rendering.EntityRenderMode;
 import org.figuramc.figura.model.rendering.PartFilterScheme;
 import top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest;
@@ -19,7 +16,6 @@ import top.aihmc.omnimorph.model.ysm.YsmModelRuntime;
 import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
 
 import java.net.URLClassLoader;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -39,6 +35,7 @@ public final class AccelerationPreparationBenchmark {
         try (var resources = new URLClassLoader(new java.net.URL[]{Path.of(args[0]).toUri().toURL()}, null)) {
             NativeLibraryLoader.load(resources, Files.createTempDirectory("omnimorph-preparation-").toRealPath());
         }
+        System.out.println("GPU_PREPARATION unsupported on Minecraft 1.21.1 MVP; measuring JAVA/SIMD CPU preparation only.");
         CSV.add("scope,sample,round,mode,frame,cpu_ns,vertices,gpu_draws_cumulative,geometry_uploads_cumulative");
         Path corpus = Path.of(args[1]);
         List<Path> models;
@@ -137,58 +134,28 @@ public final class AccelerationPreparationBenchmark {
             }
             for (int round = 0; round < (QUICK ? 1 : 3); round++) {
                 // Rotate order to expose warmup/order sensitivity rather than selecting a favorable run.
-                String[] order = QUICK ? new String[]{"GPU_PREPARATION"} : new String[]{"JAVA", "SIMD", "GPU_PREPARATION"};
+                String[] order = {"JAVA", "SIMD"};
                 for (int step = 0; step < order.length; step++) {
                     String mode = order[(round + step) % order.length];
-                    var device = new CountingDevice();
-                    device.complete = true;
-                    var retirement = new GpuRetirement();
-                    var gpu = new GpuAccelerationBackend(device, retirement, 64L << 20, 8L << 20);
-                    if (mode.equals("GPU_PREPARATION")) {
-                        while (!gpu.initializeStep()) {
-                            // Same bounded production activation sequence, using a command recorder.
-                        }
-                        SERVICE.useBackend(gpu);
-                        var owner = new AccelerationOwner();
-                        for (RenderType material : recipes.keySet()) {
-                            gpu.supports(AccelerationBackend.Operation.GPU_DRAW, warmup(owner, material));
-                        }
-                        for (int index = 0; index <= recipes.size(); index++) {
-                            SERVICE.beginFrame();
-                        }
-                        owner.retire();
-                    } else {
-                        SERVICE.useBackend(mode.equals("SIMD") ? new NativeSimdBackend() : null);
-                    }
+                    SERVICE.useBackend(mode.equals("SIMD") ? new NativeSimdBackend() : null);
                     try {
-                        MultiBufferSource source = mode.equals("GPU_PREPARATION") ? nativeSource : javaSource;
                         for (int warmup = 0; warmup < (QUICK ? 1 : 30); warmup++) {
-                            frame(render, source, nativeSource);
+                            frame(render, javaSource, nativeSource);
                         }
                         long[] times = new long[QUICK ? 2 : 90];
                         for (int index = 0; index < times.length; index++) {
                             long before = System.nanoTime();
-                            frame(render, source, nativeSource);
+                            frame(render, javaSource, nativeSource);
                             times[index] = System.nanoTime() - before;
                             CSV.add("cpu_preparation_only," + sample + ',' + round + ',' + mode + ',' + index
-                                    + ',' + times[index] + ',' + expectedVertices + ',' + device.drawCalls + ',' + device.uploads);
+                                    + ',' + times[index] + ',' + expectedVertices + ",0,0");
                         }
                         Arrays.sort(times);
                         System.out.println("CPU preparation only sample=" + sample + " round=" + round + " mode=" + mode
                                 + " vertices=" + expectedVertices + " p50/p95/p99 us=" + percentile(times, .50)
-                                + '/' + percentile(times, .95) + '/' + percentile(times, .99)
-                                + " geometryUploads=" + device.uploads + " poses=" + device.poses
-                                + " poseBytes=" + device.poseBytes + " gpuDraws=" + device.drawCalls);
-                        if (mode.equals("GPU_PREPARATION") && device.drawCalls == 0) {
-                            throw new AssertionError("GPU preparation benchmark must actually route GPU draw commands");
-                        }
+                                + '/' + percentile(times, .95) + '/' + percentile(times, .99));
                     } finally {
                         SERVICE.useBackend(null);
-                        gpu.close();
-                        retirement.poll();
-                        if (device.liveBytes != 0) {
-                            throw new AssertionError("Repeated benchmark modes must release every GPU resource record");
-                        }
                     }
                 }
             }
@@ -198,7 +165,6 @@ public final class AccelerationPreparationBenchmark {
     private static void frame(Consumer<MultiBufferSource> render, MultiBufferSource source,
                               MultiBufferSource.BufferSource nativeSource) {
         YsmRenderFrameClock.beginFrame();
-        GpuSubmission.beginFrame();
         SERVICE.beginFrame();
         render.accept(source);
         nativeSource.endBatch();
@@ -208,23 +174,12 @@ public final class AccelerationPreparationBenchmark {
         return sorted[(int) Math.ceil(sorted.length * fraction) - 1] / 1000;
     }
 
-    private static DrawBatch warmup(AccelerationOwner owner, RenderType material) {
-        double[] vertices = new double[36];
-        for (int vertex = 0; vertex < 4; vertex++) {
-            vertices[vertex * 9 + 3] = 1;
-            vertices[vertex * 9 + 5] = 1;
-        }
-        var semantics = new DrawSemantics(material, ResourceLocation.parse("omni-morph:preparation"), DrawSemantics.Layer.PRIMARY,
-                "world", 0, 1, 0, 0, 1, 1, 1, 1, 0, true);
-        return new DrawBatch(SERVICE.capture(owner, "world"), new MeshHandle(vertices, 4),
-                new PoseSnapshot(FiguraMat4.of(), FiguraMat3.of()), semantics);
-    }
-
     private static final class DiscardingMaterial extends RenderType {
         long vertices;
 
         DiscardingMaterial(RenderType original) {
-            super("omnimorph_cpu_preparation_measurement", original.state);
+            super("omnimorph_cpu_preparation_measurement", original.format(), original.mode(), original.bufferSize(),
+                    false, original.sortOnUpload(), () -> {}, () -> {});
         }
 
         @Override
@@ -234,33 +189,4 @@ public final class AccelerationPreparationBenchmark {
         }
     }
 
-    private static final class CountingDevice extends GpuAccelerationSmokeTest.RigidDevice {
-        long poses;
-        long poseBytes;
-
-        @Override
-        public Pose uploadPose(ByteBuffer data) {
-            poses++;
-            poseBytes += data.remaining();
-            return super.uploadPose(data);
-        }
-
-        @Override
-        public void draw(Material material, Mesh mesh, Pose pose, GpuDrawContext context,
-                         int firstIndex, int indexCount, Runnable issuingDraw) {
-            issuingDraw.run();
-            drawCalls++;
-        }
-
-        @Override
-        public void drawWithIndices(Material material, Mesh mesh, Pose pose, Indices indices, GpuDrawContext context,
-                                    int firstIndex, int indexCount, Runnable issuingDraw) {
-            draw(material, mesh, pose, context, firstIndex, indexCount, issuingDraw);
-        }
-
-        @Override
-        public void drawJava(RenderType material, MeshData geometry) {
-            geometry.close();
-        }
-    }
 }

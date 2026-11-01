@@ -63,7 +63,7 @@ final class AvatarBroadcastSmokeTest {
                                     && NetworkStuff.getUploadProgress().total() == bytes.length,
                                     "transport progress reaches the wardrobe snapshot with exact bytes");
                             var nbt = NbtIo.readCompressed(new ByteArrayInputStream((byte[]) args[1]), NbtAccounter.unlimitedHeap());
-                            uploads.add(nbt.getCompoundOrEmpty("metadata").getStringOr("name", ""));
+                            uploads.add(nbt.getCompound("metadata").getString("name"));
                             if (switchDuringUpload.getAndSet(false)) {
                                 NetworkStuff.localSelectionChanged();
                                 require(NetworkStuff.getUploadProgress() == null, "selection change clears upload progress immediately");
@@ -129,7 +129,7 @@ final class AvatarBroadcastSmokeTest {
             scope.drain();
             require(NetworkStuff.getUploadProgress() == null && !AvatarManager.localUploaded,
                     "failed upload clears the bar and never reports the model as uploaded");
-            var toasts = net.minecraft.client.Minecraft.getInstance().getToastManager();
+            var toasts = net.minecraft.client.Minecraft.getInstance().getToasts();
             toasts.clear();
             uploadStatus.set(429);
             NetworkStuff.uploadAvatar(avatar);

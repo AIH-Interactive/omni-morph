@@ -39,7 +39,7 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import top.aihmc.omnimorph.gui.AvatarLoadingRenderer;
-import top.aihmc.omnimorph.mixin.render.renderers.LivingEntityRendererAccessor;
+import org.figuramc.figura.ducks.LivingEntityRendererAccessor;
 import top.aihmc.omnimorph.model.outfit.OutfitNativeRenderer;
 import top.aihmc.omnimorph.model.outfit.OutfitRenderBinding;
 import top.aihmc.omnimorph.model.ysm.YsmModelRuntime;
@@ -160,6 +160,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extend
         }
 
         Matrix4f entityToDraw = new Matrix4f(lastPose);
+        EntityRenderMode renderMode = OutfitRenderBinding.renderMode(currentFrame);
         Runnable drawFrame = () -> {
             FiguraMod.pushProfiler(FiguraMod.MOD_ID);
             FiguraMod.pushProfiler(avatar);
@@ -179,7 +180,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extend
             } else {
                 var basePose = outfit.captureFiguraBase(avatar, new Matrix4f(entityToDraw).invert(), drawBase);
                 OutfitNativeRenderer.draw(outfit, basePose, YsmEntityFrame.capture(entity, delta), light, delta,
-                        entityToDraw, bufferSource, EntityRenderMode.RENDER);
+                        entityToDraw, bufferSource, renderMode);
             }
 
             FiguraMod.popPushProfiler("postRenderEvent");
@@ -249,7 +250,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extend
             return;
         }
         OutfitNativeRenderer.drawVanilla(outfit, playerModel, YsmEntityFrame.capture(entity, delta), light, delta,
-                new Matrix4f(lastPose), poseStack.last().pose(), bufferSource, EntityRenderMode.RENDER);
+                new Matrix4f(lastPose), poseStack.last().pose(), bufferSource, OutfitRenderBinding.renderMode(currentFrame));
     }
 
     @Unique
@@ -285,7 +286,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extend
                 outfit.drawYsmBase(runtime.renderBudgetOwner(), () -> runtime.renderer().renderWithAttachments(
                         ysmStack, bufferSource, light, renderedPose));
                 OutfitNativeRenderer.draw(outfit, outfitPose, YsmEntityFrame.capture(entity, delta), light, delta,
-                        entityToDraw, bufferSource, EntityRenderMode.RENDER);
+                        entityToDraw, bufferSource, OutfitRenderBinding.renderMode(currentFrame));
             }
         }
         if (!itemsFirst) {

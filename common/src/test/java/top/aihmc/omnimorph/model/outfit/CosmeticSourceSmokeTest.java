@@ -31,12 +31,14 @@ public final class CosmeticSourceSmokeTest {
         try {
             // Independent of the source fixtures below, so it still runs if a later step fails.
             testBindingReuse();
-            testSources(data, workspace, drain);
+            var prepared = testSources(data, workspace, drain);
             top.aihmc.omnimorph.wizards.CosmeticCreationSmokeTest.run(data);
             top.aihmc.omnimorph.model.library.LocalCosmeticCatalogSmokeTest.run(data);
             testIndexes();
             testCache(data.resolve("cache"));
-            System.out.println("PASS cosmetic sources: native wrappers, stable IDs/index cache, .oms, isolated Lua/Molang/controls and timeout");
+            System.out.println("PASS cosmetic source preparation: native wrappers, stable IDs/index cache, .oms, isolated Lua/Molang/controls and timeout");
+            top.aihmc.omnimorph.model.ysm.YsmDefaultAnimationSmokeTest.run(workspace, prepared);
+            System.out.println("PASS cosmetic sources including default animation reference parity");
         } finally {
             try (var files = Files.walk(data)) {
                 for (Path file : files.sorted(java.util.Comparator.reverseOrder()).toList()) {
@@ -46,7 +48,7 @@ public final class CosmeticSourceSmokeTest {
         }
     }
 
-    private static void testSources(Path data, Path workspace, Runnable drain) throws Exception {
+    private static net.minecraft.nbt.CompoundTag testSources(Path data, Path workspace, Runnable drain) throws Exception {
         Path root = Files.createDirectories(data.resolve("cosmetics"));
         Path figura = Files.createDirectories(root.resolve("星翼"));
         Files.writeString(figura.resolve("cosmetic.json"),
@@ -64,6 +66,7 @@ public final class CosmeticSourceSmokeTest {
         byte[] encrypted = Files.readAllBytes(workspace.resolve("common/src/test/resources/ysm/crypto-vectors/crypto1.ysm"));
         Files.write(wrapper.resolve("original.ysm"), encrypted);
         UUID local;
+        net.minecraft.nbt.CompoundTag wrappedSource;
         var loadState = LocalAvatarLoader.getLoadState();
         try (var inventory = new LocalCosmeticInventory(data)) {
             List<LocalCosmeticInventory.Entry> entries = inventory.scan(() -> false);
@@ -72,22 +75,22 @@ public final class CosmeticSourceSmokeTest {
             local = entry.localId();
             var prepared = LocalCosmeticSource.prepare(figura, UUID.randomUUID(), entry.source().contentHash(), () -> false);
             require(prepared.nbt().contains("scripts"), "shared native Lua compiler");
-            var metadata = prepared.nbt().getCompoundOrEmpty("metadata");
-            require(metadata.getStringOr("name", "").equals("星翼")
-                    && metadata.getStringOr("resource_kind", "").equals("ACCESSORY"), "purpose chooses cosmetic metadata");
-            require(metadata.getStringOr("cosmetic_json", "").contains("wing_anchor"), "default anchor travels with runtime data");
+            var metadata = prepared.nbt().getCompound("metadata");
+            require(metadata.getString("name").equals("星翼")
+                    && metadata.getString("resource_kind").equals("ACCESSORY"), "purpose chooses cosmetic metadata");
+            require(metadata.getString("cosmetic_json").contains("wing_anchor"), "default anchor travels with runtime data");
             require(LocalAvatarLoader.getLoadState().equals(loadState), "detached preparation does not change wardrobe loading state");
             var cipher = entries.stream().filter(value -> value.path().equals(wrapper)).findFirst().orElseThrow();
             var wrapped = LocalCosmeticSource.prepare(wrapper, UUID.randomUUID(), cipher.source().contentHash(), () -> false);
+            wrappedSource = wrapped.nbt();
             OutfitFormalPreparationSmokeTest.run(prepared.nbt(), wrapped.nbt(), drain);
             require(wrapped.description().format() == OutfitConfig.Format.YSM_ENCRYPTED
-                    && wrapped.nbt().getCompoundOrEmpty("metadata").getStringOr("format", "").equals("ysm-native"),
+                    && wrapped.nbt().getCompound("metadata").getString("format").equals("ysm-native"),
                     "encrypted wrapper keeps the original native YSM path");
             require(java.util.Arrays.equals(encrypted, Files.readAllBytes(wrapper.resolve("original.ysm"))), "encrypted source bytes unchanged");
             testInstances(wrapped.nbt(), cipher.reference());
             NativeSkeletonSmokeTest.run(wrapped.nbt());
             OutfitCompositionSmokeTest.run(wrapped.nbt());
-            top.aihmc.omnimorph.model.ysm.YsmDefaultAnimationSmokeTest.run(workspace, wrapped.nbt());
             var zipped = entries.stream().filter(value -> value.path().equals(zip)).findFirst().orElseThrow();
             require(LocalCosmeticSource.prepare(zip, UUID.randomUUID(), zipped.source().contentHash(), () -> false)
                     .description().metadata().common().name.equals("Zipped"), "ZIP compiles in its validated filesystem");
@@ -100,6 +103,7 @@ public final class CosmeticSourceSmokeTest {
             require(local.equals(reloaded.localId()), "local identity survives edits and restart");
             require(!reloaded.reference().toString().contains(data.toString()), "persistent reference does not expose an absolute path");
         }
+        return wrappedSource;
     }
 
     private static void testInstances(net.minecraft.nbt.CompoundTag prepared, OutfitConfig.ResourceRef resource) {
@@ -335,7 +339,11 @@ public final class CosmeticSourceSmokeTest {
         require(first.definition().uniqueNamed("wing_anchor").isEmpty(), "ambiguous standard names stay unresolved");
         Part cycle = new Part("Cycle");
         cycle.children.add(cycle);
-        reject(() -> SkeletonIndex.capture(one, List.of(cycle), part -> part.name, part -> part.children, limits));
+        var truncated = SkeletonIndex.capture(one, List.of(cycle), part -> part.name, part -> part.children, limits);
+        require(truncated.parts().equals(List.of(cycle)) && truncated.definition().nodes().size() == 1
+                        && truncated.definition().roots().equals(List.of(0))
+                        && truncated.definition().nodes().getFirst().children().isEmpty(),
+                "a repeated native node keeps its first path without retaining a cyclic edge");
         Part deep = new Part("end");
         for (int index = 0; index < 65; index++) {
             deep = new Part("node", deep);

@@ -3,7 +3,7 @@ package top.aihmc.omnimorph.render.acceleration;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.Bootstrap;
 import sun.misc.Unsafe;
@@ -53,7 +53,7 @@ public final class FiguraAccelerationReplay {
         var constructor = dataType.getDeclaredConstructor();
         constructor.setAccessible(true);
         Object data = constructor.newInstance();
-        set(data, "renderType", RenderTypes.entityCutout(ResourceLocation.parse("omni-morph:test")));
+        set(data, "renderType", RenderType.entityCutout(ResourceLocation.parse("omni-morph:test")));
         set(data, "texture", ResourceLocation.parse("omni-morph:test"));
         set(data, "primary", true);
         set(data, "color", FiguraVec3.of(0.25, 0.5, 0.75));
@@ -159,7 +159,7 @@ public final class FiguraAccelerationReplay {
             var child = (FiguraModelPart) unsafe.allocateInstance(FiguraModelPart.class);
             child.parent = selected;
             boolean paperdoll = org.figuramc.figura.utils.ui.UIHelper.paperdoll;
-            var materials = new ArrayList<net.minecraft.client.renderer.rendertype.RenderType>();
+            var materials = new ArrayList<net.minecraft.client.renderer.RenderType>();
             try {
                 org.figuramc.figura.utils.ui.UIHelper.paperdoll = true;
                 top.aihmc.omnimorph.model.library.PreviewBoneHighlight.capture(owner, selected);
@@ -171,7 +171,7 @@ public final class FiguraAccelerationReplay {
                     materials.add(type);
                     return sink;
                 });
-                require(colors.size() == 4 && colors.getFirst()[3] == 38 && materials.getFirst().hasBlending(),
+                require(colors.size() == 4 && colors.getFirst()[3] == 38 && hasBlending(materials.getFirst()),
                         "unselected Figura geometry emits authored alpha times 0.3 with a blending material");
                 colors.clear();
                 top.aihmc.omnimorph.model.library.PreviewBoneHighlight.capture(owner, selected);
@@ -191,6 +191,17 @@ public final class FiguraAccelerationReplay {
         flush(destination);
         require(positions.isEmpty(), "retired Avatar cannot emit a deferred Figura draw");
         System.out.println("Figura production emitter batch positions/normals/UV and retired deferred draw PASS.");
+    }
+
+    private static boolean hasBlending(RenderType material) throws Exception {
+        Field stateField = material.getClass().getDeclaredField("state");
+        stateField.setAccessible(true);
+        Object state = stateField.get(material);
+        Field transparency = state.getClass().getDeclaredField("transparencyState");
+        transparency.setAccessible(true);
+        Field disabled = net.minecraft.client.renderer.RenderStateShard.class.getDeclaredField("NO_TRANSPARENCY");
+        disabled.setAccessible(true);
+        return transparency.get(state) != disabled.get(null);
     }
 
     private static void flush(MultiBufferSource destination) {

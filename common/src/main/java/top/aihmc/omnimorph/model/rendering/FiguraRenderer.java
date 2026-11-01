@@ -91,7 +91,7 @@ public abstract class FiguraRenderer {
 
         // src files
         for (String key : src.getAllKeys()) {
-            byte[] bytes = src.getByteArray(key).get();
+            byte[] bytes = src.getByteArray(key);
             if (bytes.length > 0) {
                 textures.put(key, new FiguraTexture(avatar, key, bytes));
             } else {

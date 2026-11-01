@@ -3,7 +3,7 @@ package org.figuramc.figura.gui.widgets.avatar;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.avatar.AvatarManager;
@@ -33,8 +33,8 @@ public class AvatarWidget extends AbstractAvatarWidget {
             parent.selectAvatar(avatar);
         }) {
             @Override
-            public void extractContents(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
-                super.extractContents(gui, mouseX, mouseY, delta);
+            public void renderWidget(GuiGraphics gui, int mouseX, int mouseY, float delta) {
+                super.renderWidget(gui, mouseX, mouseY, delta);
 
                 // selected border
                 if (parent.isSelected(avatar))
@@ -42,7 +42,7 @@ public class AvatarWidget extends AbstractAvatarWidget {
             }
 
             @Override
-            protected void renderText(GuiGraphicsExtractor gui, float delta) {
+            protected void renderText(GuiGraphics gui, float delta) {
                 // variables
                 Font font = Minecraft.getInstance().font;
 
@@ -62,11 +62,11 @@ public class AvatarWidget extends AbstractAvatarWidget {
 
                 // name
                 Component parsedName = TextUtils.trimToWidthEllipsis(font, getMessage(), width, TextUtils.ELLIPSIS.copy().withStyle(getMessage().getStyle()));
-                gui.text(font, parsedName, x + 22, y, UIHelper.adjustColor(-1));
+                gui.drawString(font, parsedName, x + 22, y, UIHelper.adjustColor(-1));
 
                 // description
                 Component parsedDescription = TextUtils.trimToWidthEllipsis(font, description, width, TextUtils.ELLIPSIS.copy().withStyle(description.getStyle()));
-                gui.text(font, parsedDescription, x + 22, y + font.lineHeight + 1, UIHelper.adjustColor(ChatFormatting.GRAY.getColor()));
+                gui.drawString(font, parsedDescription, x + 22, y + font.lineHeight + 1, UIHelper.adjustColor(ChatFormatting.GRAY.getColor()));
 
                 // tooltip
                 if (parent.showsSourceBadge() || parsedName != getMessage() || parsedDescription != description) {
@@ -106,8 +106,8 @@ public class AvatarWidget extends AbstractAvatarWidget {
     }
 
     @Override
-    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() == 1 && isMouseOver(event.x(), event.y())
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 1 && isMouseOver(mouseX, mouseY)
                 && parent.canRemoveFromOutfit() && !outfitMenuAdded) {
             context.addDivisor();
             context.addAction(FiguraText.of("gui.wardrobe.remove_outfit"), null, ignored -> {
@@ -116,6 +116,6 @@ public class AvatarWidget extends AbstractAvatarWidget {
             });
             outfitMenuAdded = true;
         }
-        return super.mouseClicked(event, doubleClick);
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 }

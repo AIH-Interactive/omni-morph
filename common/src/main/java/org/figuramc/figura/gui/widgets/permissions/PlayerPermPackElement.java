@@ -1,12 +1,11 @@
 package org.figuramc.figura.gui.widgets.permissions;
 
-import com.mojang.blaze3d.opengl.GlStateManager;
+import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
@@ -32,7 +31,6 @@ import org.figuramc.figura.utils.FiguraText;
 import org.figuramc.figura.utils.RenderUtils;
 import org.figuramc.figura.utils.TextUtils;
 import org.figuramc.figura.utils.ui.UIHelper;
-import org.joml.Matrix3x2fStack;
 
 import java.util.ArrayList;
 import java.util.UUID;
@@ -100,32 +98,32 @@ public class PlayerPermPackElement extends AbstractPermPackElement {
         context.addTab(FiguraText.of("gui.context.set_permissions"), null, permissionsContext);
     }
 
-    public void renderDragged(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void renderDragged(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         int oX = getX();
         int oY = getY();
         setX(mouseX - (anchorX - oX));
         setY(mouseY - (anchorY - oY) + (initialY - oY));
-        super.extractRenderState(gui, mouseX, mouseY, delta);
+        super.render(gui, mouseX, mouseY, delta);
         setX(oX);
         setY(oY);
     }
 
     @Override
-    public void extractContents(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void renderWidget(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         if (dragged) {
             UIHelper.fillRounded(gui, getX() - 1, getY() - 1, getWidth() + 2, getHeight() + 2, 0x40FFFFFF);
         } else {
-            Matrix3x2fStack pose = gui.pose();
+            PoseStack pose = gui.pose();
             int width = getWidth();
             int height = getHeight();
 
-            pose.pushMatrix();
+            pose.pushPose();
 
             float tx = getX() + width / 2f;
             float ty = getY() + height / 2f;
 
-            pose.translate(tx, ty);
-            pose.scale(scale, scale);
+            pose.translate(tx, ty, 0);
+            pose.scale(scale, scale, 1);
 
             animate(delta, (UIHelper.getContext() == this.context && this.context.isVisible()) || this.isMouseOver(mouseX, mouseY) || this.isFocused());
 
@@ -164,11 +162,11 @@ public class PlayerPermPackElement extends AbstractPermPackElement {
                 if (this.skin != null) {
                     // head
                     UIHelper.enableBlend();
-                    gui.blit(RenderPipelines.GUI_TEXTURED, this.skin, x + 4, y + 4, 8f, 8f,32, 32, 8, 8, 64, 64);
+                    gui.blit(this.skin, x + 4, y + 4, 32, 32, 8f, 8f, 8, 8, 64, 64);
 
                     // hat
                     GlStateManager._enableBlend();
-                    gui.blit(RenderPipelines.GUI_TEXTURED, this.skin, x + 4, y + 4, 40f, 8f,32, 32, 8, 8, 64, 64);
+                    gui.blit(this.skin, x + 4, y + 4, 32, 32, 40f, 8f, 8, 8, 64, 64);
                     GlStateManager._disableBlend();
                 } else {
                     UIHelper.blit(gui, x + 4, y + 4, 32, 32, UNKNOWN);
@@ -196,37 +194,35 @@ public class PlayerPermPackElement extends AbstractPermPackElement {
             nameLabel.setX(x + 40);
             nameLabel.setY(y + 4);
             // nameLabel.setOutlineColor(ColorUtils.rgbToInt(ColorUtils.rainbow(2, 1, 0.5)) + ((int) (0.5f * 0xFF) << 24));
-            nameLabel.extractRenderState(gui, mouseX, mouseY, delta);
+            nameLabel.render(gui, mouseX, mouseY, delta);
 
             // status
             if (avatar != null && avatar.nbt != null) {
                 status.tick(); // yes I know
                 status.setX(x + 40);
                 status.setY(y + 6 + font.lineHeight);
-                status.extractRenderState(gui, mouseX, mouseY, delta);
+                status.render(gui, mouseX, mouseY, delta);
             }
 
             // category
             int textY = y + height - font.lineHeight - 4;
-            gui.text(font, pack.getCategoryName().append(pack.hasChanges() ? "*" : ""), x + 40, textY, UIHelper.adjustColor(0xFFFFFF));
+            gui.drawString(font, pack.getCategoryName().append(pack.hasChanges() ? "*" : ""), x + 40, textY, UIHelper.adjustColor(0xFFFFFF));
 
             // disconnected
             if (disconnected)
-                gui.text(font, DC_TEXT, x + width - font.width(DC_TEXT) - 4, textY, UIHelper.adjustColor(0xFFFFFF));
+                gui.drawString(font, DC_TEXT, x + width - font.width(DC_TEXT) - 4, textY, UIHelper.adjustColor(0xFFFFFF));
 
-            pose.popMatrix();
+            pose.popPose();
         }
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean bl) {
-        double mouseX = mouseButtonEvent.x();
-        double mouseY = mouseButtonEvent.y();
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (!this.isMouseOver(mouseX, mouseY))
             return false;
 
         // context menu on right click
-        if (mouseButtonEvent.button() == 1) {
+        if (button == 1) {
             context.setX((int) mouseX);
             context.setY((int) mouseY);
             context.setVisible(true);
@@ -238,7 +234,7 @@ public class PlayerPermPackElement extends AbstractPermPackElement {
             context.setVisible(false);
         }
 
-        return super.mouseClicked(mouseButtonEvent, bl);
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override

@@ -214,7 +214,7 @@ public final class OutfitSourceCacheSmokeTest {
             var recovered = operation.retry().get(5, TimeUnit.SECONDS);
             require(recovered.ready() && server.uploadReservations.get() == 2 && server.uploadBodies.get() == 2,
                     "first private upload retries its frozen operation after local source edits");
-            require(recovered.resources().base().getCompoundOrEmpty("metadata").getStringOr("name", "")
+            require(recovered.resources().base().getCompound("metadata").getString("name")
                             .equals("Frozen source"), "the acknowledged fixed native bytes are used instead of the edited local source");
             var again = operation.retry().get(5, TimeUnit.SECONDS);
             require(again.ready() && server.uploadReservations.get() == 2,

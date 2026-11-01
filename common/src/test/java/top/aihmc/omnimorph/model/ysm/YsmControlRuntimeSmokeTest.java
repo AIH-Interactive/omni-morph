@@ -8,6 +8,7 @@ import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.server.Bootstrap;
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.utils.NbtDefaults;
 import top.aihmc.omnimorph.avatar.control.AvatarControlDefinition;
 import top.aihmc.omnimorph.avatar.control.AvatarControlRuntime;
 import top.aihmc.omnimorph.avatar.control.AvatarControlType;
@@ -165,15 +166,15 @@ public final class YsmControlRuntimeSmokeTest {
         try (var input = Files.newInputStream(org.figuramc.figura.FiguraMod.getCacheDirectory().resolve("avatar_controls.nbt"))) {
             CompoundTag saved = NbtIo.readCompressed(input, NbtAccounter.unlimitedHeap());
             int modelValues = 0;
-            for (var entry : saved.getListOrEmpty("avatars")) {
-                if (!(entry instanceof CompoundTag avatar) || !avatar.getStringOr("avatar", "").contains(":ysm:")) {
+            for (var entry : NbtDefaults.getListOrEmpty(saved, "avatars")) {
+                if (!(entry instanceof CompoundTag avatar) || !avatar.getString("avatar").contains(":ysm:")) {
                     continue;
                 }
-                for (var value : avatar.getListOrEmpty("controls")) {
+                for (var value : NbtDefaults.getListOrEmpty(avatar, "controls")) {
                     CompoundTag control = (CompoundTag) value;
-                    require(control.getStringOr("id", "").matches("control:[0-9a-f]{64}"),
+                    require(control.getString("id").matches("control:[0-9a-f]{64}"),
                             "model control identity hides source binding expressions");
-                    require(!control.getStringOr("type", "").equals("string"),
+                    require(!control.getString("type").equals("string"),
                             "model radio selection is numeric rather than the original label");
                     modelValues++;
                 }

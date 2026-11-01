@@ -3,10 +3,8 @@ package org.figuramc.figura.gui.widgets.lists;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.events.GuiEventListener;
-import net.minecraft.client.input.InputWithModifiers;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.Mth;
@@ -18,7 +16,6 @@ import org.figuramc.figura.utils.FiguraText;
 import org.figuramc.figura.utils.ui.UIHelper;
 import org.figuramc.figura.wizards.AvatarWizard;
 import org.figuramc.figura.wizards.WizardEntry;
-import org.joml.Matrix3x2fStack;
 
 import java.util.*;
 
@@ -34,7 +31,7 @@ public class AvatarWizardList extends AbstractList {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         int x = getX();
         int y = getY();
         int width = getWidth();
@@ -87,26 +84,26 @@ public class AvatarWizardList extends AbstractList {
                 continue;
 
             // category
-            gui.centeredText(font, entry.getKey(), x + width / 2, y + yOffset + 4, UIHelper.adjustColor(0xFFFFFF));
+            gui.drawCenteredString(font, entry.getKey(), x + width / 2, y + yOffset + 4, UIHelper.adjustColor(0xFFFFFF));
             yOffset = newY;
         }
 
         // children
-        super.extractRenderState(gui, mouseX, mouseY, delta);
+        super.render(gui, mouseX, mouseY, delta);
 
         // reset scissor
         gui.disableScissor();
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean bl) {
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
         // fix mojang focusing for text fields
         for (GuiEventListener widget : children()) {
             if (widget instanceof TextField field)
-                field.getField().setFocused(field.isEnabled() && field.isMouseOver(mouseButtonEvent.x(), mouseButtonEvent.y()));
+                field.getField().setFocused(field.isEnabled() && field.isMouseOver(mouseX, mouseY));
         }
 
-        return super.mouseClicked(mouseButtonEvent, bl);
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     private void generate() {
@@ -155,15 +152,15 @@ public class AvatarWizardList extends AbstractList {
         }
 
         @Override
-        public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+        public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
             if (!isVisible()) return;
-            super.extractRenderState(gui, mouseX, mouseY, delta);
+            super.render(gui, mouseX, mouseY, delta);
 
             Font font = Minecraft.getInstance().font;
             MutableComponent name = this.name.copy();
             if (!this.getField().getValue().isBlank())
                 name.setStyle(FiguraMod.getAccentColor());
-            gui.text(font, name, getX() - getWidth() - 8, (int) (getY() + (getHeight() - font.lineHeight) / 2f), UIHelper.adjustColor(0xFFFFFF));
+            gui.drawString(font, name, getX() - getWidth() - 8, (int) (getY() + (getHeight() - font.lineHeight) / 2f), UIHelper.adjustColor(0xFFFFFF));
         }
 
         @Override
@@ -185,29 +182,32 @@ public class AvatarWizardList extends AbstractList {
         }
 
         @Override
-        public void onPress(InputWithModifiers inputWithModifiers) {
-            super.onPress(inputWithModifiers);
+        public void onPress() {
+            super.onPress();
             parent.wizard.changeEntry(entry, this.isToggled());
         }
 
         @Override
-        protected void renderDefaultTexture(GuiGraphicsExtractor gui, float delta) {
+        protected void renderDefaultTexture(GuiGraphics gui, float delta) {
             // button
-            Matrix3x2fStack pose = gui.pose();
-            pose.pushMatrix();
-            pose.translate(getWidth() - 30, 0);
-            super.renderDefaultTexture(gui, delta);
-            pose.popMatrix();
+            PoseStack pose = gui.pose();
+            pose.pushPose();
+            try {
+                pose.translate(getWidth() - 30, 0, 0);
+                super.renderDefaultTexture(gui, delta);
+            } finally {
+                pose.popPose();
+            }
         }
 
         @Override
-        protected void renderText(GuiGraphicsExtractor gui, float delta) {
+        protected void renderText(GuiGraphics gui, float delta) {
             // name
             Font font = Minecraft.getInstance().font;
             MutableComponent name = getMessage().copy();
             if (this.isToggled())
                 name.withStyle(FiguraMod.getAccentColor());
-            gui.text(font, name, getX() - getWidth() - 8, (int) (getY() + (getHeight() - font.lineHeight) / 2f), UIHelper.adjustColor(0xFFFFFF));
+            gui.drawString(font, name, getX() - getWidth() - 8, (int) (getY() + (getHeight() - font.lineHeight) / 2f), UIHelper.adjustColor(0xFFFFFF));
         }
 
         @Override

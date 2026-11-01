@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.model.ysm;
 
-import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import top.aihmc.omnimorph.avatar.control.AvatarControlDefinition;
@@ -123,11 +123,10 @@ final class YsmSyncModelSmokeTest {
         var remotePose = remote.captureRenderPose(false).part("root").animPosRaw();
         require(Math.abs(ownerPose.x - remotePose.x) < 0.0001 && Math.abs(ownerPose.y - remotePose.y) < 0.0001
                 && Math.abs(ownerPose.z - remotePose.z) < 0.0001, "actual sampled owner and observer bone poses match");
-        var state = new LivingEntityRenderState();
-        state.ageInTicks = 20;
+        var state = new YsmEntityFrame(20, 0, 0, 0, 0);
         YsmRenderFrameClock.beginFrame();
         remote.updateAnimations(state, null);
-        state.ageInTicks = 22;
+        state = new YsmEntityFrame(22, 0, 0, 0, 0);
         YsmRenderFrameClock.beginFrame();
         remote.updateAnimations(state, null);
         require(remote.animations().controllerRuntime().currentState("Player.Main").equals("b")
@@ -238,7 +237,7 @@ final class YsmSyncModelSmokeTest {
         remotePlayer.registerAnimations(clips);
         var inventory = ownerPlayer.syncClips();
         var updateNative = YsmAnimationPlayer.class.getDeclaredMethod("updateNativeStateMachine",
-                LivingEntityRenderState.class, net.minecraft.world.entity.LivingEntity.class);
+                YsmEntityFrame.class, net.minecraft.world.entity.LivingEntity.class);
         var advance = YsmAnimationPlayer.class.getDeclaredMethod("advanceAnimationTimeline", float.class,
                 ExpressionEvaluator.class);
         var sample = YsmAnimationPlayer.class.getDeclaredMethod("sampleAnimations", ExpressionEvaluator.class,
@@ -248,15 +247,17 @@ final class YsmSyncModelSmokeTest {
         sample.setAccessible(true);
         var ownerEvaluator = ExpressionEvaluator.evaluator(source.owner().getMolangContext());
         var observerEvaluator = ExpressionEvaluator.evaluator(observer.owner().getMolangContext());
-        var state = new LivingEntityRenderState();
+        var state = new YsmEntityFrame(0, 0, 0, 0, 0);
+        var entity = YsmNativeStateSmokeTest.idleEntity();
+        source.owner().getMolangContext().ground_speed = 0;
         source.owner().getMolangContext().ground_speed = 0f;
         // Settle the owner's initial fade-in before comparing stationary observer poses.
         for (int frame = 0; frame < 6; frame++) {
-            updateNative.invoke(ownerPlayer, state, null);
+            updateNative.invoke(ownerPlayer, state, entity);
             advance.invoke(ownerPlayer, 0.05f, ownerEvaluator);
         }
         for (int frame = 0; frame < 40; frame++) {
-            updateNative.invoke(ownerPlayer, state, null);
+            updateNative.invoke(ownerPlayer, state, entity);
             advance.invoke(ownerPlayer, 0.05f, ownerEvaluator);
             if (frame % 4 == 0) {
                 remotePlayer.applyRemotePlaybacks(ownerPlayer.captureRemotePlaybacks(inventory, List.of()),
@@ -270,9 +271,9 @@ final class YsmSyncModelSmokeTest {
             require(Math.abs(observer.captureRenderPose(false).part("root").animRotRaw().x - 12.5) < 0.0001,
                     "the actual stationary observer bone never drops its authored idle rotation");
         }
-        state.walkAnimationSpeed = 1f;
+        state = new YsmEntityFrame(0, 1, 0, 0, 0);
         for (int frame = 0; frame < 6; frame++) {
-            updateNative.invoke(ownerPlayer, state, null);
+            updateNative.invoke(ownerPlayer, state, entity);
             advance.invoke(ownerPlayer, 0.05f, ownerEvaluator);
         }
         remotePlayer.applyRemotePlaybacks(ownerPlayer.captureRemotePlaybacks(inventory, List.of()), inventory, List.of());

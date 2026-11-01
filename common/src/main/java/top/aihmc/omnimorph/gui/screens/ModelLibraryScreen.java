@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.gui.screens;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.figuramc.figura.FiguraMod;
@@ -541,7 +541,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         next.setActive(canPage && results.hasNext());
     }
 
-    private void renderStatus(GuiGraphicsExtractor gui) {
+    private void renderStatus(GuiGraphics gui) {
         if (!state.equals("ready")) {
             UIHelper.renderCenteredScrollingText(gui, FiguraText.of("gui.library.state." + state),
                     8, 110, leftWidth - 8, 24, 0xffeeeeee);

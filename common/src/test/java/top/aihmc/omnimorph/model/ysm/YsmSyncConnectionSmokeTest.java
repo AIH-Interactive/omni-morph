@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.model.ysm;
 
-import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
 import org.figuramc.figura.backend2.websocket.C2SMessageHandler;
 import top.aihmc.omnimorph.backend2.protocol.YsmProtobuf;
 import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
@@ -208,11 +208,10 @@ final class YsmSyncConnectionSmokeTest {
         sender.tickTyped(epoch, 300, source, uuid -> null, transfer);
         receiver.tickTyped(epoch, 300, null, uuid -> observer, message -> false);
 
-        var state = new LivingEntityRenderState();
-        state.ageInTicks = 300;
+        var state = new YsmEntityFrame(300, 0, 0, 0, 0);
         YsmRenderFrameClock.beginFrame();
         observer.updateAnimations(state, null);
-        state.ageInTicks = 301;
+        state = new YsmEntityFrame(301, 0, 0, 0, 0);
         YsmRenderFrameClock.beginFrame();
         observer.updateAnimations(state, null);
         float time = observer.animations().getActiveAnimation("gui").time;

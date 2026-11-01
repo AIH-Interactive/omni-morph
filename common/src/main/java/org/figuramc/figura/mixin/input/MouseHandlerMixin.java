@@ -31,12 +31,12 @@ public class MouseHandlerMixin {
         if (window != this.minecraft.getWindow().getWindow())
             return;
 
-        if (mouseButtonInfo.button() == 0 && action == 0) {
+        if (button == 0 && action == 0) {
             ActionWheel.releaseYsmPress();
         }
 
         YsmInputState.device().updateReadiness(this.minecraft);
-        YsmInputState.device().mouseEvent(mouseButtonInfo.button(), action);
+        YsmInputState.device().mouseEvent(button, action);
 
         Avatar avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
         if (avatar == null || avatar.luaRuntime == null)

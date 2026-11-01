@@ -4,11 +4,8 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.InputWithModifiers;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -33,7 +30,7 @@ import top.aihmc.omnimorph.model.ysm.action.YsmActionDefinition;
 import top.aihmc.omnimorph.model.ysm.action.YsmActionWheelLayoutStore;
 import org.figuramc.figura.utils.LuaUtils;
 import org.figuramc.figura.utils.ui.UIHelper;
-import org.joml.Matrix3x2fStack;
+import com.mojang.blaze3d.vertex.PoseStack;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -456,52 +453,52 @@ public class AvatarControlsScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(KeyEvent keyEvent) {
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (focusedWheelKeybindAction != null) {
-            bindFocusedWheelKeybind(keyEvent.key() == 256 ? InputConstants.UNKNOWN : InputConstants.getKey(keyEvent));
+            bindFocusedWheelKeybind(keyCode == 256 ? InputConstants.UNKNOWN : InputConstants.getKey(keyCode, scanCode));
             return true;
         }
         if (focusedKeybind != null) {
-            if (keyEvent.key() == 256) {
+            if (keyCode == 256) {
                 focusedKeybind = null;
                 focusedKeybindOwner = null;
                 rebuild();
                 return true;
             }
-            setControlValue(focusedKeybindOwner, focusedKeybind, "key." + keyEvent.key());
+            setControlValue(focusedKeybindOwner, focusedKeybind, "key." + keyCode);
             focusedKeybind = null;
             focusedKeybindOwner = null;
             rebuild();
             return true;
         }
-        return super.keyPressed(keyEvent);
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (openDropdown != null && openDropdown.isVisible()) {
-            if (openDropdown.mouseClicked(event, doubleClick))
+            if (openDropdown.mouseClicked(mouseX, mouseY, button))
                 return true;
             openDropdown.setVisible(false);
             openDropdown = null;
         }
-        if (focusedKeybind != null && event.button() != 0) {
-            setControlValue(focusedKeybindOwner, focusedKeybind, "mouse." + event.button());
+        if (focusedKeybind != null && button != 0) {
+            setControlValue(focusedKeybindOwner, focusedKeybind, "mouse." + button);
             focusedKeybind = null;
             focusedKeybindOwner = null;
             rebuild();
             return true;
         }
-        if (focusedWheelKeybindAction != null && event.button() != 0) {
-            bindFocusedWheelKeybind(InputConstants.Type.MOUSE.getOrCreate(event.button()));
+        if (focusedWheelKeybindAction != null && button != 0) {
+            bindFocusedWheelKeybind(InputConstants.Type.MOUSE.getOrCreate(button));
             return true;
         }
-        return super.mouseClicked(event, doubleClick);
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
-    public boolean mouseReleased(MouseButtonEvent event) {
-        boolean handled = super.mouseReleased(event);
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        boolean handled = super.mouseReleased(mouseX, mouseY, button);
         rebuildDirtyContentScroll();
         return handled;
     }
@@ -537,10 +534,10 @@ public class AvatarControlsScreen extends Screen {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         renderFiguraBackground(gui, delta);
         renderPanel(gui);
-        super.extractRenderState(gui, mouseX, mouseY, delta);
+        super.render(gui, mouseX, mouseY, delta);
         syncSliders();
         if (preview != null && minecraft != null)
             preview.setEntity(minecraft.player);
@@ -574,7 +571,7 @@ public class AvatarControlsScreen extends Screen {
                 String description = control.getDescription();
                 if (description != null && !description.isBlank() && mouseX >= controlsX
                         && mouseX < controlsX + controlsWidth && mouseY >= y && mouseY < y + rowHeight(row)) {
-                    gui.setTooltipForNextFrame(minecraft.font, Component.literal(description), mouseX, mouseY);
+                    setTooltipForNextRenderPass(Component.literal(description));
                 }
                 if (control.type() == AvatarControlType.COLOR)
                     renderColorPreview(gui, controlsX + controlsWidth - 214, y + 5, valueText(control));
@@ -584,20 +581,27 @@ public class AvatarControlsScreen extends Screen {
         renderDropdown(gui, mouseX, mouseY, delta);
     }
 
-    private void renderDropdown(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    private void renderDropdown(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         if (openDropdown == null || !openDropdown.isVisible())
             return;
-        gui.nextStratum();
-        openDropdown.extractRenderState(gui, mouseX, mouseY, delta);
+        gui.flush();
+        gui.pose().pushPose();
+        try {
+            gui.pose().translate(0, 0, 500);
+            openDropdown.render(gui, mouseX, mouseY, delta);
+            gui.flush();
+        } finally {
+            gui.pose().popPose();
+        }
     }
 
-    private void renderSectionHeader(GuiGraphicsExtractor gui, Component header, int x, int y) {
+    private void renderSectionHeader(GuiGraphics gui, Component header, int x, int y) {
         UIHelper.renderOutlineText(gui, minecraft.font, header, x, y + 6, 0xFFFFD27F, 0);
         int lineX = x + minecraft.font.width(header) + 8;
         gui.fill(lineX, y + 10, x + controlsWidth() - 20, y + 11, 0x66FFFFFF);
     }
 
-    private void renderControlLabel(GuiGraphicsExtractor gui, AvatarControlDefinition control, int x, int y) {
+    private void renderControlLabel(GuiGraphics gui, AvatarControlDefinition control, int x, int y) {
         if (control.type() == AvatarControlType.SEPARATOR) {
             gui.fill(x, y + 12, x + controlsWidth() - 20, y + 13, 0x66FFFFFF);
             return;
@@ -605,16 +609,16 @@ public class AvatarControlsScreen extends Screen {
         int titleColor = control.type() == AvatarControlType.LABEL ? 0xFFD0D0D0 : 0xFFFFFFFF;
         UIHelper.renderOutlineText(gui, minecraft.font, Component.literal(control.getTitle()), x, y + 7, titleColor, 0);
         Component meta = FiguraText.of("gui.controls.type." + control.getType());
-        gui.text(minecraft.font, meta, x + Math.min(190, controlsWidth() / 2), y + 7, 0xFF888888);
+        gui.drawString(minecraft.font, meta, x + Math.min(190, controlsWidth() / 2), y + 7, 0xFF888888);
     }
 
-    private void renderColorPreview(GuiGraphicsExtractor gui, int x, int y, String value) {
+    private void renderColorPreview(GuiGraphics gui, int x, int y, String value) {
         int color = parseColor(value, 0xFF000000);
         UIHelper.blitSliced(gui, x, y, 20, 20, UIHelper.OUTLINE);
         gui.fill(x + 2, y + 2, x + 18, y + 18, color);
     }
 
-    private void renderPanel(GuiGraphicsExtractor gui) {
+    private void renderPanel(GuiGraphics gui) {
         int x = panelX();
         int y = panelY();
         int w = panelWidth();
@@ -739,9 +743,9 @@ public class AvatarControlsScreen extends Screen {
                 }
 
                 @Override
-                public void extractContents(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+                public void renderWidget(GuiGraphics gui, int mouseX, int mouseY, float delta) {
                     gui.enableScissor(left, top, right, top + 20);
-                    super.extractContents(gui, mouseX, mouseY, delta);
+                    super.renderWidget(gui, mouseX, mouseY, delta);
                     gui.disableScissor();
                 }
             };
@@ -947,7 +951,7 @@ public class AvatarControlsScreen extends Screen {
         }
     }
 
-    private void renderWheelEditor(GuiGraphicsExtractor gui, int controlsX, int controlsWidth) {
+    private void renderWheelEditor(GuiGraphics gui, int controlsX, int controlsWidth) {
         YsmModelRuntime runtime = avatar.getYsmRuntime();
         if (runtime == null) {
             UIHelper.renderOutlineText(gui, minecraft.font, FiguraText.of("gui.controls.no_model"), controlsX + 10, contentTop() + 8, 0xAAAAAA, 0);
@@ -1170,10 +1174,10 @@ public class AvatarControlsScreen extends Screen {
         return toggle ? "YSM Toggle Action " + action.getId() : "YSM Action " + action.getId();
     }
 
-    private void renderActionItem(GuiGraphicsExtractor gui, YsmActionDefinition action, int x, int y) {
+    private void renderActionItem(GuiGraphics gui, YsmActionDefinition action, int x, int y) {
         ItemStack stack = itemForAction(action);
         if (!stack.isEmpty())
-            gui.item(stack, x, y);
+            gui.renderItem(stack, x, y);
     }
 
     private ItemStack itemForAction(YsmActionDefinition action) {
@@ -1428,13 +1432,13 @@ public class AvatarControlsScreen extends Screen {
         }
     }
 
-    private void renderFiguraBackground(GuiGraphicsExtractor gui, float delta) {
+    private void renderFiguraBackground(GuiGraphics gui, float delta) {
         float speed = Configs.BACKGROUND_SCROLL_SPEED.tempValue * 0.125f;
         for (ResourceLocation background : AbstractPanelScreen.BACKGROUNDS) {
             UIHelper.renderAnimatedBackground(gui, background, 0, 0, this.width, this.height, 64, 64, speed, delta);
             speed /= 0.5f;
         }
-        gui.nextStratum();
+        gui.flush();
     }
 
     private class ControlSlider extends SliderWidget {
@@ -1450,18 +1454,21 @@ public class AvatarControlsScreen extends Screen {
         }
 
         @Override
-        public void extractWidgetRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
-            Matrix3x2fStack pose = gui.pose();
+        public void renderWidget(GuiGraphics gui, int mouseX, int mouseY, float delta) {
+            PoseStack pose = gui.pose();
             Font font = Minecraft.getInstance().font;
 
-            pose.pushMatrix();
-            pose.translate(0f, font.lineHeight);
-            super.extractWidgetRenderState(gui, mouseX, mouseY, delta);
-            pose.popMatrix();
+            pose.pushPose();
+            try {
+                pose.translate(0, font.lineHeight, 0);
+                super.renderWidget(gui, mouseX, mouseY, delta);
+            } finally {
+                pose.popPose();
+            }
 
             Component value = Component.literal(numberText(currentValue()));
             int valueX = getX() + getWidth() - font.width(value) - 1;
-            gui.text(font, value.copy().setStyle(FiguraMod.getAccentColor()), valueX, getY(), UIHelper.adjustColor(0xFFFFFF));
+            gui.drawString(font, value.copy().setStyle(FiguraMod.getAccentColor()), valueX, getY(), UIHelper.adjustColor(0xFFFFFF));
         }
 
         private void syncValue() {
@@ -1512,13 +1519,13 @@ public class AvatarControlsScreen extends Screen {
         }
 
         @Override
-        public void onPress(InputWithModifiers inputWithModifiers) {
+        public void onPress() {
             boolean next = !isToggled();
             if (!setControlValue(owner, control, next)) {
                 return;
             }
             setMessage(next ? SwitchButton.ON : SwitchButton.OFF);
-            super.onPress(inputWithModifiers);
+            super.onPress();
         }
     }
 
@@ -1574,14 +1581,14 @@ public class AvatarControlsScreen extends Screen {
         }
 
         @Override
-        protected void renderText(GuiGraphicsExtractor gui, float delta) {
+        protected void renderText(GuiGraphics gui, float delta) {
             Font font = Minecraft.getInstance().font;
             Component arrow = context.isVisible() ? UIHelper.DOWN_ARROW : UIHelper.UP_ARROW;
             int arrowWidth = font.width(arrow);
             Component message = Component.literal(valueText(control));
             int color = UIHelper.adjustColor(getTextColor());
             UIHelper.renderCenteredScrollingText(gui, message, getX() + 1, getY(), getWidth() - arrowWidth - 6, getHeight(), color);
-            gui.text(font, arrow, getX() + getWidth() - arrowWidth - 3, (int) (getY() + getHeight() / 2f - font.lineHeight / 2f), color);
+            gui.drawString(font, arrow, getX() + getWidth() - arrowWidth - 3, (int) (getY() + getHeight() / 2f - font.lineHeight / 2f), color);
         }
 
         @Override

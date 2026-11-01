@@ -3,7 +3,7 @@ package org.figuramc.figura.avatar;
 import org.figuramc.figura.utils.NbtDefaults;
 
 import com.mojang.blaze3d.audio.SoundBuffer;
-import com.mojang.blaze3d.opengl.GlStateManager;
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -11,7 +11,7 @@ import com.mojang.datafixers.util.Pair;
 import com.mojang.math.Axis;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
@@ -41,7 +41,6 @@ import top.aihmc.omnimorph.avatar.control.AvatarControlRuntime;
 import top.aihmc.omnimorph.avatar.ysm.YsmModelData;
 import org.figuramc.figura.config.Configs;
 import top.aihmc.omnimorph.render.acceleration.AccelerationOwner;
-import top.aihmc.omnimorph.gui.FiguraPortraitRenderState;
 import org.figuramc.figura.lua.FiguraLuaPrinter;
 import org.figuramc.figura.lua.FiguraLuaRuntime;
 import org.figuramc.figura.lua.api.TextureAPI;
@@ -59,19 +58,16 @@ import org.figuramc.figura.lua.api.world.WorldAPI;
 import org.figuramc.figura.math.matrix.FiguraMat3;
 import org.figuramc.figura.math.matrix.FiguraMat4;
 import org.figuramc.figura.math.vector.FiguraVec3;
-import top.aihmc.omnimorph.mixin.gui.GuiGraphicsAccessor;
 import org.figuramc.figura.model.FiguraModelPart;
 import top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext;
 import top.aihmc.omnimorph.model.outfit.OutfitConfig;
 import org.figuramc.figura.model.ParentType;
 import org.figuramc.figura.model.PartCustomization;
-import net.minecraft.world.attribute.EnvironmentAttributes;
 import top.aihmc.omnimorph.molang.MolangEngine;
 import top.aihmc.omnimorph.molang.parser.ast.Expression;
 import top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator;
 import top.aihmc.omnimorph.molang.runtime.MolangExecutionBudget;
 import top.aihmc.omnimorph.model.ysm.YsmFilterRuntime;
-import top.aihmc.omnimorph.mixin.ClientAvatarStateAccessor;
 import top.aihmc.omnimorph.molang.runtime.binding.QueryVariables;
 import top.aihmc.omnimorph.molang.runtime.binding.MolangBindings;
 import top.aihmc.omnimorph.molang.storage.VariableStorage;
@@ -91,8 +87,8 @@ import org.figuramc.figura.utils.RefilledNumber;
 import org.figuramc.figura.utils.Version;
 import org.figuramc.figura.utils.ui.UIHelper;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Matrix3x2fStack;
 import org.joml.Quaternionf;
+import org.joml.Vector3f;
 import org.joml.Vector2f;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaValue;
@@ -664,9 +660,9 @@ public class Avatar {
                 is_sneaking = player.isShiftKeyDown() ? 1f : 0f;
                 player_level = player.experienceLevel;
 
-                // Walk distance from ClientAvatarState (via AbstractClientPlayer)
+                // In 1.21.1 the native distance remains on Entity rather than ClientAvatarState.
                 if (player instanceof net.minecraft.client.player.AbstractClientPlayer acp) {
-                    walk_distance = ((ClientAvatarStateAccessor) acp.avatarState()).figura$walkDist();
+                    walk_distance = acp.walkDist;
                 }
 
                 // Jump detection via local player input
@@ -692,7 +688,7 @@ public class Avatar {
             if (mc.level != null) {
                 long dayTime = mc.level.getDayTime();
                 captureWorldTime(dayTime);
-                moon_phase = mc.level.environmentAttributes().getDimensionValue(EnvironmentAttributes.MOON_PHASE).index();
+                moon_phase = mc.level.getMoonPhase();
                 // Cardinal facing (0=South, 1=West, 2=North, 3=East)
                 cardinal_facing_2d = entity.getDirection().get2DDataValue();
             }
@@ -1268,7 +1264,8 @@ public class Avatar {
             return false;
         PoseStack copy = new PoseStack();
         copy.pushPose();
-        copy.last().set(stack.last());
+        copy.last().pose().set(stack.last().pose());
+        copy.last().normal().set(stack.last().normal());
 
         boolean rendered = false;
         for (int i = 1; i <= result.narg(); i++) {
@@ -1525,28 +1522,23 @@ public class Avatar {
         FiguraMod.pushProfiler("hudRender");
 
         stack.pushPose();
-        stack.last().pose().scale(16, 16, -16);
-        stack.last().normal().scale(1, 1, -1);
-
-        Minecraft.getInstance().gameRenderer.getLighting().setupFor(Lighting.Entry.ITEMS_FLAT);
-        GlStateManager._disableDepthTest();
-
-        renderer.entity = entity;
-
-        renderer.setupRenderer(
-                PartFilterScheme.HUD, bufferSource, stack,
-                tickDelta, LightTexture.FULL_BRIGHT, 1f, OverlayTexture.NO_OVERLAY,
-                false, false
-        );
-
-        if (renderer.renderSpecialParts() > 0)
-            ((MultiBufferSource.BufferSource) renderer.bufferSource).endBatch();
-
-        GlStateManager._enableDepthTest();
-        Minecraft.getInstance().gameRenderer.getLighting().setupFor(Lighting.Entry.ITEMS_3D);
-        stack.popPose();
-
-        FiguraMod.popProfiler(2);
+        try {
+            stack.last().pose().scale(16, 16, -16);
+            stack.last().normal().scale(1, 1, -1);
+            Lighting.setupForFlatItems();
+            GlStateManager._disableDepthTest();
+            renderer.entity = entity;
+            renderer.setupRenderer(PartFilterScheme.HUD, bufferSource, stack,
+                    tickDelta, LightTexture.FULL_BRIGHT, 1f, OverlayTexture.NO_OVERLAY, false, false);
+            if (renderer.renderSpecialParts() > 0) {
+                ((MultiBufferSource.BufferSource) renderer.bufferSource).endBatch();
+            }
+        } finally {
+            GlStateManager._enableDepthTest();
+            Lighting.setupFor3DItems();
+            stack.popPose();
+            FiguraMod.popProfiler(2);
+        }
     }
 
     public boolean skullRender(PoseStack stack, MultiBufferSource bufferSource, int light, Direction direction, float yaw) {
@@ -1600,74 +1592,56 @@ public class Avatar {
         return comp > 0 && luaRuntime != null && !luaRuntime.vanilla_model.HEAD.checkVisible();
     }
 
-    public boolean submitPortraitDraw(GuiGraphicsExtractor gui, ResourceLocation fallback, int x, int y, int size, float modelScale, boolean upsideDown) {
-        if (!Configs.AVATAR_PORTRAIT.value || renderer == null || !loaded)
+    public boolean submitPortraitDraw(GuiGraphics gui, ResourceLocation fallback, int x, int y, int size,
+                                      float modelScale, boolean upsideDown) {
+        if (!Configs.AVATAR_PORTRAIT.value || renderer == null || !loaded) {
             return false;
-
-        // matrices
-        Matrix3x2fStack pose = gui.pose();
-        pose.pushMatrix();
-        pose.translate(x, y);
-        //pose.scale(modelScale, modelScale * (upsideDown ? 1 : -1));
-        pose.rotate(180f * (float) (Math.PI / 180.0));
-
-        // scissors
-        Vector2f pos = pose.transformPosition(new Vector2f());
-
-        int x1 = (int) pos.x;
-        int y1 = (int) pos.y;
-        int x2 = (int) pos.x + size;
-        int y2 = (int) pos.y + size;
-
-        gui.pose().pushMatrix();
-        gui.pose().identity();
-        gui.enableScissor(x1, y1, x2, y2);
-        gui.pose().popMatrix();
-
-
-        // setup render
-        pose.translate((float)(4d / 16d), (float) (upsideDown ? 0 : (8d / 16d)));
-
-
-        FiguraPortraitRenderState state = new FiguraPortraitRenderState(this, fallback, modelScale, upsideDown, x1, y1, x2, y2, size, ((GuiGraphicsAccessor)gui).figura$getScissorStack().peek());
-        gui.fill(x1, y1, x2, y2, -1);
-        ((GuiGraphicsAccessor)gui).figura$getRenderState().addPicturesInPictureState(state);
-        gui.pose().popMatrix();
-
-        gui.disableScissor();
-
-        // return
-        return true;
+        }
+        gui.flush();
+        PoseStack pose = gui.pose();
+        pose.pushPose();
+        pose.translate(x, y, 250);
+        Vector3f origin = pose.last().pose().transformPosition(new Vector3f());
+        gui.enableScissor((int) origin.x, (int) origin.y, (int) origin.x + size, (int) origin.y + size);
+        try {
+            pose.scale(modelScale, modelScale * (upsideDown ? 1 : -1), modelScale);
+            pose.mulPose(Axis.XP.rotationDegrees(180));
+            pose.translate(4d / 16d, upsideDown ? 0 : 8d / 16d, 0);
+            Lighting.setupForFlatItems();
+            boolean rendered = renderHeadForPortrait(gui.bufferSource(), pose, LightTexture.FULL_BRIGHT,
+                    modelScale, upsideDown);
+            gui.flush();
+            // The permission row draws its skin/unknown fallback when no custom portrait was produced.
+            return rendered;
+        } finally {
+            pose.popPose();
+            gui.disableScissor();
+            Lighting.setupFor3DItems();
+        }
     }
 
-    public boolean renderHeadForPortrait(MultiBufferSource.BufferSource buffer, PoseStack stack, int light, float modelScale, boolean upsideDown) {
+    public boolean renderHeadForPortrait(MultiBufferSource.BufferSource buffer, PoseStack stack, int light,
+                                         float modelScale, boolean upsideDown) {
+        boolean previousPivotParts = renderer.allowPivotParts;
+        boolean previousPaperdoll = UIHelper.paperdoll;
+        float previousDollScale = UIHelper.dollScale;
         stack.pushPose();
-        stack.scale(2, 2, 2); // i have no clue why it's exactly 2x smaller than it should be
-        //stack.scale(modelScale, modelScale * (upsideDown ? 1 : -1), modelScale);
-        renderer.allowPivotParts = false;
-
-        UIHelper.paperdoll = true;
-        UIHelper.dollScale = 16f;
-
-        renderer.setupRenderer(
-                PartFilterScheme.PORTRAIT, buffer, stack,
-                1f, light, 1f, OverlayTexture.NO_OVERLAY,
-                false, false
-        );
-
-        // render
-        int comp = renderer.renderSpecialParts();
-        boolean ret = comp > 0 || headRender(stack, buffer, light, false);
-
-        // after render
-        stack.popPose();
-        buffer.endBatch();
-        UIHelper.paperdoll = false;
-
-        renderer.allowPivotParts = true;
-
-        // return
-        return ret;
+        try {
+            renderer.allowPivotParts = false;
+            UIHelper.paperdoll = true;
+            UIHelper.dollScale = 16f;
+            renderer.setupRenderer(PartFilterScheme.PORTRAIT, buffer, stack,
+                    1f, light, 1f, OverlayTexture.NO_OVERLAY, false, false);
+            int complexity = renderer.renderSpecialParts();
+            boolean rendered = complexity > 0 || headRender(stack, buffer, light, false);
+            buffer.endBatch();
+            return rendered;
+        } finally {
+            stack.popPose();
+            UIHelper.paperdoll = previousPaperdoll;
+            UIHelper.dollScale = previousDollScale;
+            renderer.allowPivotParts = previousPivotParts;
+        }
     }
 
     public boolean renderArrow(PoseStack stack, MultiBufferSource bufferSource, float delta, int light) {

@@ -6,7 +6,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.minecraft.client.model.geom.builders.CubeDeformation;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
-import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.model.PlayerModel;
 import net.minecraft.nbt.CompoundTag;
 import org.joml.Matrix4f;
 import org.figuramc.figura.avatar.Avatar;
@@ -120,12 +120,11 @@ public final class OutfitAutomaticAnchorSmokeTest {
                  var frame = composition.retain()) {
                 composition.editorSnapshot(null);
                 frame.capturePreviewSelection(new top.aihmc.omnimorph.model.library.PreviewBoneHighlight.Mount(trail.instanceId()));
-                var state = new net.minecraft.client.renderer.entity.state.AvatarRenderState();
-                state.lightCoords = 0x00f000f0;
+                var state = new top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame(0, 0, 0, 0, 0);
                 var outer = new Matrix4f().translation(7, 11, 13);
                 var positions = new ArrayList<float[]>();
                 var sink = vertexSink(positions);
-                OutfitNativeRenderer.drawVanilla(frame, model, state, .5f, outer, outer, type -> sink,
+                OutfitNativeRenderer.drawVanilla(frame, model, state, 0x00f000f0, .5f, outer, outer, type -> sink,
                         EntityRenderMode.FIGURA_GUI);
                 var commands = new ArrayList<OutfitComposition.Draw>();
                 frame.draw(base.capture(new Matrix4f()), state, .5f, commands::add);
@@ -168,7 +167,7 @@ public final class OutfitAutomaticAnchorSmokeTest {
                         try (var next = composition.retain()) {
                             next.capturePreviewSelection(new top.aihmc.omnimorph.model.library.PreviewBoneHighlight.Mount(trailId));
                             positions.clear();
-                            OutfitNativeRenderer.drawVanilla(next, model, state, .5f, outer, outer, type -> sink,
+                            OutfitNativeRenderer.drawVanilla(next, model, state, 0x00f000f0, .5f, outer, outer, type -> sink,
                                     EntityRenderMode.FIGURA_GUI);
                             require(!composition.automaticTailSelections().containsKey(trailId),
                                     "failed selected tail uses the base fallback rather than jumping to another tail");
@@ -176,7 +175,7 @@ public final class OutfitAutomaticAnchorSmokeTest {
                             require(fallback != null && fallback.bone().instanceId() == null
                                             && !next.previewHelpers(base.capture(new Matrix4f())).equals(helpers),
                                     "failure switches GUI helper coordinates to the controller's actual base fallback");
-                            OutfitNativeRenderer.drawVanilla(frame, model, state, .5f, outer, outer, type -> sink,
+                            OutfitNativeRenderer.drawVanilla(frame, model, state, 0x00f000f0, .5f, outer, outer, type -> sink,
                                     EntityRenderMode.FIGURA_GUI);
                             require(composition.previewMountTarget(trailId).equals(fallback)
                                             && frame.previewHelpers(base.capture(new Matrix4f())).equals(helpers),

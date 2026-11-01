@@ -5,7 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.ItemInHandRenderer;
-import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
@@ -22,6 +22,7 @@ import org.figuramc.figura.lua.api.vanilla_model.VanillaModelPart;
 import org.figuramc.figura.math.matrix.FiguraMat4;
 import org.figuramc.figura.model.rendering.EntityRenderMode;
 import top.aihmc.omnimorph.model.ysm.YsmModelRuntime;
+import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -35,12 +36,12 @@ public abstract class ItemInHandRendererMixin {
     @Shadow private ItemStack mainHandItem;
 
     @Shadow
-    protected abstract void renderPlayerArm(PoseStack matrices, SubmitNodeCollector submitNodeCollector, int light, float equipProgress, float swingProgress, HumanoidArm arm);
+    protected abstract void renderPlayerArm(PoseStack matrices, MultiBufferSource bufferSource, int light, float equipProgress, float swingProgress, HumanoidArm arm);
 
     @Unique Avatar avatar;
 
     @Inject(method = "renderHandsWithItems", at = @At("HEAD"))
-    private void onRenderHandsWithItems(float tickDelta, PoseStack matrices, SubmitNodeCollector submitNodeCollector, LocalPlayer player, int light, CallbackInfo ci) {
+    private void onRenderHandsWithItems(float tickDelta, PoseStack matrices, MultiBufferSource.BufferSource bufferSource, LocalPlayer player, int light, CallbackInfo ci) {
         avatar = AvatarManager.getAvatarForPlayer(player.getUUID());
         if (avatar == null)
             return;
@@ -54,7 +55,7 @@ public abstract class ItemInHandRendererMixin {
     }
 
     @Inject(method = "renderHandsWithItems", at = @At(value = "RETURN"))
-    private void afterRenderHandsWithItems(float tickDelta, PoseStack matrices, SubmitNodeCollector submitNodeCollector, LocalPlayer player, int light, CallbackInfo ci) {
+    private void afterRenderHandsWithItems(float tickDelta, PoseStack matrices, MultiBufferSource.BufferSource bufferSource, LocalPlayer player, int light, CallbackInfo ci) {
         if (avatar != null) {
             FiguraMod.pushProfiler(FiguraMod.MOD_ID);
             FiguraMod.pushProfiler(avatar);
@@ -69,29 +70,24 @@ public abstract class ItemInHandRendererMixin {
     }
 
     @Inject(method = "renderArmWithItem", at = @At("HEAD"), cancellable = true)
-    private void renderArmWithItem(AbstractClientPlayer player, float tickDelta, float pitch, InteractionHand hand, float swingProgress, ItemStack item, float equipProgress, PoseStack matrices, SubmitNodeCollector submitNodeCollector, int light, CallbackInfo ci) {
-        if (player.isScoping())
+    private void renderArmWithItem(AbstractClientPlayer player, float tickDelta, float pitch, InteractionHand hand, float swingProgress, ItemStack item, float equipProgress, PoseStack matrices, MultiBufferSource bufferSource, int light, CallbackInfo ci) {
+        if (player.isScoping()) {
             return;
+        }
 
-        // YSM first-person: replace vanilla arm geometry while preserving vanilla item animations.
-        // submitFiguraModel doesn't work here because FiguraFeatureRenderer only
-        // processes submissions during entity (third-person) rendering, not first-person.
+        // Update animation inputs before PlayerRenderer draws the replacement YSM arm.
+        // Vanilla keeps control of item animation and the order of the two hands.
         if (avatar != null && avatar.isYsmNative()) {
-            YsmModelRuntime ysm = avatar.getYsmRuntime();
-            if (ysm != null) {
-                var renderer = Minecraft.getInstance().getEntityRenderDispatcher().getRenderer(player);
-                var state = renderer.createRenderState(player, tickDelta);
-                if (state instanceof net.minecraft.client.renderer.entity.state.LivingEntityRenderState livingState) {
-                    ysm.updateAnimations(livingState, player, true);
-                }
-                // Keep vanilla first-person arm call order. PlayerRendererMixin
-                // replaces AvatarRenderer.renderHand with YSM geometry.
+            YsmModelRuntime runtime = avatar.getYsmRuntime();
+            if (runtime != null) {
+                runtime.updateAnimations(YsmEntityFrame.capture(player, tickDelta), player, true);
                 return;
             }
         }
 
-        if (avatar == null || avatar.luaRuntime == null)
+        if (avatar == null || avatar.luaRuntime == null) {
             return;
+        }
 
         boolean main = hand == InteractionHand.MAIN_HAND;
         HumanoidArm arm = main ? player.getMainArm() : player.getMainArm().getOpposite();
@@ -108,7 +104,7 @@ public abstract class ItemInHandRendererMixin {
         // render arm
         if (!willRenderArm && !player.isInvisible() && armVisible != null && armVisible) {
             matrices.pushPose();
-            this.renderPlayerArm(matrices, submitNodeCollector, light, equipProgress, swingProgress, arm);
+            this.renderPlayerArm(matrices, bufferSource, light, equipProgress, swingProgress, arm);
             matrices.popPose();
         }
 
@@ -119,8 +115,8 @@ public abstract class ItemInHandRendererMixin {
         }
     }
 
-    @Inject(method = "renderItem", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/item/ItemStackRenderState;submit(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;III)V"))
-    private void renderItem(LivingEntity entity, ItemStack stack, ItemDisplayContext itemDisplayContext, PoseStack matrices, SubmitNodeCollector submitNodeCollector, int light, CallbackInfo ci) {
+    @Inject(method = "renderItem", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/entity/ItemRenderer;renderStatic(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemDisplayContext;ZLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/world/level/Level;III)V"))
+    private void renderItem(LivingEntity entity, ItemStack stack, ItemDisplayContext itemDisplayContext, boolean leftHanded, PoseStack matrices, MultiBufferSource bufferSource, int light, CallbackInfo ci) {
         if (stack.getItem() instanceof BlockItem bl && bl.getBlock() instanceof AbstractSkullBlock) {
             SkullBlockRendererAccessor.setEntity(entity);
             SkullBlockRendererAccessor.setRenderMode(switch (itemDisplayContext) {
@@ -128,7 +124,7 @@ public abstract class ItemInHandRendererMixin {
                 case FIRST_PERSON_RIGHT_HAND -> SkullBlockRendererAccessor.SkullRenderMode.FIRST_PERSON_RIGHT_HAND;
                 case THIRD_PERSON_LEFT_HAND -> SkullBlockRendererAccessor.SkullRenderMode.THIRD_PERSON_LEFT_HAND;
                 case THIRD_PERSON_RIGHT_HAND -> SkullBlockRendererAccessor.SkullRenderMode.THIRD_PERSON_RIGHT_HAND;
-                default -> itemDisplayContext.leftHand() ? SkullBlockRendererAccessor.SkullRenderMode.THIRD_PERSON_LEFT_HAND
+                default -> leftHanded ? SkullBlockRendererAccessor.SkullRenderMode.THIRD_PERSON_LEFT_HAND
                         : SkullBlockRendererAccessor.SkullRenderMode.THIRD_PERSON_RIGHT_HAND;
             });
         }

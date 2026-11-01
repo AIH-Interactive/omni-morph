@@ -3,7 +3,6 @@ package top.aihmc.omnimorph.gui.widgets.library;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
-import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
@@ -28,11 +27,11 @@ public final class LibraryPasswordField extends TextField {
             }
 
             @Override
-            public boolean keyPressed(KeyEvent event) {
-                if ((event.modifiers() & (2 | 8)) != 0 && (event.key() == 67 || event.key() == 88)) {
+            public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+                if ((modifiers & (2 | 8)) != 0 && (keyCode == 67 || keyCode == 88)) {
                     return true;
                 }
-                return super.keyPressed(event);
+                return super.keyPressed(keyCode, scanCode, modifiers);
             }
 
             @Override
@@ -40,7 +39,7 @@ public final class LibraryPasswordField extends TextField {
                 // Deliberately omit password contents, selection, length and hints.
             }
         };
-        field.addFormatter((text, offset) -> FormattedCharSequence.forward("*".repeat(text.length()), Style.EMPTY));
+        field.setFormatter((text, offset) -> FormattedCharSequence.forward("*".repeat(text.length()), Style.EMPTY));
         return field;
     }
 

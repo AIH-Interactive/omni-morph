@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.gui.screens;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.control.AvatarControlDefinition;
@@ -135,9 +135,9 @@ public final class CosmeticControlsScreen extends AvatarControlsScreen {
                 }
 
                 @Override
-                public void extractContents(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+                public void renderWidget(GuiGraphics gui, int mouseX, int mouseY, float delta) {
                     gui.enableScissor(left, TAB_ROW_Y, right, TAB_ROW_Y + 20);
-                    super.extractContents(gui, mouseX, mouseY, delta);
+                    super.renderWidget(gui, mouseX, mouseY, delta);
                     gui.disableScissor();
                 }
             };

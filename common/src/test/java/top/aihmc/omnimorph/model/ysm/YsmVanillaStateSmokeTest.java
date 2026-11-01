@@ -16,10 +16,8 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.server.Bootstrap;
-import net.minecraft.util.Unit;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.ElytraAnimationState;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.EquipmentSlotGroup;
 import net.minecraft.world.entity.LivingEntity;
@@ -103,10 +101,6 @@ public final class YsmVanillaStateSmokeTest {
         FixtureEntity entity = (FixtureEntity) ((Unsafe) unsafeField.get(null)).allocateInstance(FixtureEntity.class);
         entity.chest = ItemStack.EMPTY;
         entity.id = new UUID(0, 0);
-        ElytraAnimationState state = new ElytraAnimationState(entity);
-        Field stateField = LivingEntity.class.getDeclaredField("elytraAnimationState");
-        stateField.setAccessible(true);
-        stateField.set(entity, state);
         context.entity = entity;
         entity.pose = Pose.STANDING;
         require(eval(engine, context, "ctrl.bcombat_attack_animation;") == null,
@@ -116,31 +110,7 @@ public final class YsmVanillaStateSmokeTest {
                 "other optional Fabric defaults accept LivingEntity and preserve string/boolean types");
         require(eval(engine, context, "ysm.in_shield_block_cooldown;") == null,
                 "a LivingEntity that is not a Player cannot expose the shield player capability");
-        // 26.1 item components normally arrive from loaded data packs; this CPU fixture binds explicit inputs.
-        Items.ELYTRA.builtInRegistryHolder().bindComponents(
-                DataComponentMap.builder().set(DataComponents.GLIDER, Unit.INSTANCE).build());
-        Items.DIAMOND_CHESTPLATE.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
-        require(Boolean.FALSE.equals(eval(engine, context, "ysm.has_elytra;")), "empty chest has no glider");
-        entity.chest = new ItemStack(Items.ELYTRA);
-        require(Boolean.TRUE.equals(eval(engine, context, "ysm.has_elytra;")), "elytra fixture carries native GLIDER component");
-        entity.chest.setCount(0);
-        require(Boolean.FALSE.equals(eval(engine, context, "ysm.has_elytra;")), "zero-count glider stack is not equipped");
-        entity.chest = new ItemStack(Items.DIAMOND_CHESTPLATE);
-        require(Boolean.FALSE.equals(eval(engine, context, "ysm.has_elytra;")), "ordinary armor has no glider");
-        entity.chest.set(DataComponents.GLIDER, Unit.INSTANCE);
-        require(Boolean.TRUE.equals(eval(engine, context, "ysm.has_elytra;")), "glider is detected by component rather than item ID");
-
-        rotations(state, "X", 10f, 30f);
-        rotations(state, "Y", -40f, 20f);
-        rotations(state, "Z", -15f, -45f);
-        context.setYsmRenderTime(8.25f, 8);
-        number(15d, eval(engine, context, "ysm.elytra_rot_x;"), "native X interpolation in degrees");
-        number(-25d, eval(engine, context, "ysm.elytra_rot_y;"), "native Y interpolation in degrees");
-        number(-22.5d, eval(engine, context, "ysm.elytra_rot_z;"), "native Z interpolation in degrees");
-        context.setYsmRenderTime(9f, 8);
-        number(30d, eval(engine, context, "ysm.elytra_rot_x;"), "native current rotation endpoint");
-        context.setYsmRenderTime(Float.NaN, 8);
-        number(10d, eval(engine, context, "ysm.elytra_rot_x;"), "missing render time uses previous rotation endpoint");
+        testElytraQueries(engine, context, entity);
         for (float tick : new float[]{85f, 85.25f, 89.75f, 90f}) {
             context.setYsmRenderTime(tick, (int) tick);
             boolean expected = tick > 85f && tick < 90f;
@@ -182,7 +152,7 @@ public final class YsmVanillaStateSmokeTest {
         context.reset();
         require(context.ysm_render_ticks == 0f && context.ysm_partial_tick == 0f && context.entity == null,
                 "context reset releases entity and render timing");
-        System.out.println("M4 vanilla state bindings: native glider components, native elytra interpolation/degrees, blink boundaries/types and context isolation passed.");
+        System.out.println("M4 vanilla state bindings: native elytra equipment, native model wing angles/degrees, blink boundaries/types and context isolation passed.");
     }
 
     private static void testWeaponQueries(MolangEngine engine, Avatar.MolangContext context,
@@ -202,10 +172,7 @@ public final class YsmVanillaStateSmokeTest {
         movement.setAccessible(true);
         movement.set(entity, new Vec3(0.35, -0.1, 0));
         require(Integer.valueOf(0).equals(eval(engine, context, "ysm.weapon_type;")), "empty hand has no weapon kind");
-        Items.TRIDENT.builtInRegistryHolder().bindComponents(net.minecraft.core.component.DataComponentMap.EMPTY);
         ItemStack trident = new ItemStack(Items.TRIDENT);
-        trident.set(DataComponents.CONSUMABLE, net.minecraft.world.item.component.Consumable.builder()
-                .animation(net.minecraft.world.item.ItemUseAnimation.TRIDENT).build());
         entity.equipment.put(EquipmentSlot.MAINHAND, trident);
         entity.sleeping = false;
         entity.using = true;
@@ -223,36 +190,46 @@ public final class YsmVanillaStateSmokeTest {
         }
         require(Math.abs(((Number) eval(engine, context, "ysm.trident_attack_ticks;")).floatValue() - 3.5f) < .0001f,
                 "weapon attack ticks retain partial tick");
-        var kinetic = new net.minecraft.world.item.component.KineticWeapon(0, 0,
-                java.util.Optional.empty(), java.util.Optional.empty(), java.util.Optional.empty(),
-                1f, 1f, java.util.Optional.empty(), java.util.Optional.empty());
-        Items.WOODEN_SPEAR.builtInRegistryHolder().bindComponents(
-                DataComponentMap.builder().set(DataComponents.KINETIC_WEAPON, kinetic).build());
-        entity.equipment.put(EquipmentSlot.MAINHAND, new ItemStack(Items.WOODEN_SPEAR));
-        require(Integer.valueOf(4).equals(eval(engine, context, "ysm.weapon_type;")), "native spear has distinct kind 4");
-        for (String name : List.of("weapon_is_spear", "lance_holding", "lance_using", "lance_charging", "lance_lunging")) {
-            require(Boolean.TRUE.equals(eval(engine, context, "ysm." + name + ";")), "spear uses lance state: " + name);
+        // 1.21.1 has no native spear item. Exercise the supported compatibility-tag lance route.
+        var lanceHolder = Items.STONE.builtInRegistryHolder();
+        var previousTags = lanceHolder.tags().toList();
+        var bindTags = lanceHolder.getClass().getDeclaredMethod("bindTags", java.util.Collection.class);
+        bindTags.setAccessible(true);
+        try {
+            var pike = net.minecraft.tags.TagKey.create(Registries.ITEM,
+                    ResourceLocation.parse("sparkle_morpher:pike"));
+            bindTags.invoke(lanceHolder, List.of(pike));
+            entity.equipment.put(EquipmentSlot.MAINHAND, new ItemStack(Items.STONE));
+            require(Integer.valueOf(2).equals(eval(engine, context, "ysm.weapon_type;")), "tagged lance has kind 2");
+            for (String name : List.of("weapon_is_lance", "lance_holding", "lance_lunging")) {
+                require(Boolean.TRUE.equals(eval(engine, context, "ysm." + name + ";")), "tagged lance: " + name);
+            }
+            for (String name : List.of("weapon_is_spear", "weapon_using", "lance_using", "lance_charging")) {
+                require(Boolean.FALSE.equals(eval(engine, context, "ysm." + name + ";")),
+                        "a compatibility tag does not invent a native spear item or use animation: " + name);
+            }
+            require(Boolean.FALSE.equals(eval(engine, context, "ysm.lance_jabbing;")), "lunge wins over jab at .35");
+            movement.set(entity, new Vec3(.349, 0, 0));
+            require(Boolean.TRUE.equals(eval(engine, context, "ysm.lance_jabbing;")), "below lunge threshold is jab");
+            entity.usedHand = net.minecraft.world.InteractionHand.OFF_HAND;
+            entity.swingingArm = net.minecraft.world.InteractionHand.OFF_HAND;
+            require(Boolean.FALSE.equals(eval(engine, context, "ysm.weapon_using;"))
+                            && Boolean.FALSE.equals(eval(engine, context, "ysm.weapon_attacking;")),
+                    "offhand actions do not activate main weapon");
+        } finally {
+            bindTags.invoke(lanceHolder, previousTags);
         }
-        require(Boolean.FALSE.equals(eval(engine, context, "ysm.weapon_is_lance;")), "spear is not tagged lance kind");
-        require(Boolean.FALSE.equals(eval(engine, context, "ysm.lance_jabbing;")), "lunge wins over jab at .35");
-        movement.set(entity, new Vec3(.349, 0, 0));
-        require(Boolean.TRUE.equals(eval(engine, context, "ysm.lance_jabbing;")), "below lunge threshold is jab");
-        entity.usedHand = net.minecraft.world.InteractionHand.OFF_HAND;
-        entity.swingingArm = net.minecraft.world.InteractionHand.OFF_HAND;
-        require(Boolean.FALSE.equals(eval(engine, context, "ysm.weapon_using;"))
-                        && Boolean.FALSE.equals(eval(engine, context, "ysm.weapon_attacking;")), "offhand actions do not activate main weapon");
         entity.usedHand = net.minecraft.world.InteractionHand.MAIN_HAND;
         entity.swingingArm = net.minecraft.world.InteractionHand.MAIN_HAND;
         movement.set(entity, new Vec3(.35, -.1, 0));
-        Items.MACE.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
         entity.equipment.put(EquipmentSlot.MAINHAND, new ItemStack(Items.MACE));
         entity.grounded = false;
-        entity.fallDistance = 1.5;
+        entity.fallDistance = 1.5f;
         for (String name : List.of("weapon_is_mace", "mace_falling", "mace_can_smash", "mace_smashing", "mace_attacking")) {
             require(Boolean.TRUE.equals(eval(engine, context, "ysm." + name + ";")), "mace smash boundary: " + name);
         }
         require(Float.valueOf(.5f).equals(eval(engine, context, "ysm.mace_smash_progress;")), "mace smash progress");
-        entity.fallDistance = 1.49;
+        entity.fallDistance = 1.49f;
         require(Boolean.FALSE.equals(eval(engine, context, "ysm.mace_can_smash;")), "below smash threshold");
         entity.equipment.clear();
         entity.using = entity.swinging = entity.spinAttack = false;
@@ -285,7 +262,6 @@ public final class YsmVanillaStateSmokeTest {
         }
         context.entity = entity;
         entity.equipment = new java.util.EnumMap<>(EquipmentSlot.class);
-        Items.CROSSBOW.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
         entity.equipment.put(EquipmentSlot.MAINHAND, new ItemStack(Items.CROSSBOW));
         entity.equipment.put(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
         entity.spinAttack = true;
@@ -336,22 +312,20 @@ public final class YsmVanillaStateSmokeTest {
         Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
         unsafeField.setAccessible(true);
         Unsafe unsafe = (Unsafe) unsafeField.get(null);
-        var arrow = (net.minecraft.world.entity.projectile.arrow.Arrow)
-                unsafe.allocateInstance(net.minecraft.world.entity.projectile.arrow.Arrow.class);
-        Field weapon = net.minecraft.world.entity.projectile.arrow.AbstractArrow.class.getDeclaredField("firedFromWeapon");
+        var arrow = (net.minecraft.world.entity.projectile.Arrow)
+                unsafe.allocateInstance(net.minecraft.world.entity.projectile.Arrow.class);
+        Field weapon = net.minecraft.world.entity.projectile.AbstractArrow.class.getDeclaredField("firedFromWeapon");
         weapon.setAccessible(true);
         try {
             context.entity = arrow;
             require("".equals(eval(engine, context, "ysm.shoot_item_id;")), "unassigned native firing stack returns empty String");
             weapon.set(arrow, ItemStack.EMPTY);
             require("".equals(eval(engine, context, "ysm.shoot_item_id;")), "empty native firing stack returns empty String");
-            Items.BOW.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
-            Items.CROSSBOW.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
             weapon.set(arrow, new ItemStack(Items.BOW));
             require("minecraft:bow".equals(eval(engine, context, "ysm.shoot_item_id;")), "native arrow retains its firing bow ID");
             weapon.set(arrow, new ItemStack(Items.CROSSBOW));
             require("minecraft:crossbow".equals(eval(engine, context, "ysm.shoot_item_id;")), "native firing stack changes are read directly");
-            var spectral = (Entity) unsafe.allocateInstance(net.minecraft.world.entity.projectile.arrow.SpectralArrow.class);
+            var spectral = (Entity) unsafe.allocateInstance(net.minecraft.world.entity.projectile.SpectralArrow.class);
             weapon.set(spectral, new ItemStack(Items.BOW));
             Avatar.MolangContext other = new Avatar.MolangContext(null);
             other.entity = spectral;
@@ -715,7 +689,6 @@ public final class YsmVanillaStateSmokeTest {
                 Items.BOW, List.of("bow"), Items.FISHING_ROD, List.of("fishing_rod"),
                 Items.SPLASH_POTION, List.of("throwable_potion"), Items.LINGERING_POTION, List.of("throwable_potion"));
         for (var entry : nativeTypes.entrySet()) {
-            entry.getKey().builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
             entity.equipment.put(EquipmentSlot.MAINHAND, new ItemStack(entry.getKey()));
             for (String type : entry.getValue()) {
                 require(Integer.valueOf(1).equals(eval(engine, context, "ctrl.hold('mainhand',':" + type + "');")),
@@ -773,15 +746,18 @@ public final class YsmVanillaStateSmokeTest {
         } finally {
             bindTags.invoke(holder, previous);
         }
-        var weapon = new net.minecraft.world.item.component.KineticWeapon(0, 0,
-                java.util.Optional.empty(), java.util.Optional.empty(), java.util.Optional.empty(),
-                1f, 1f, java.util.Optional.empty(), java.util.Optional.empty());
-        Items.WOODEN_SPEAR.builtInRegistryHolder().bindComponents(
-                DataComponentMap.builder().set(DataComponents.KINETIC_WEAPON, weapon).build());
-        entity.equipment.put(EquipmentSlot.MAINHAND, new ItemStack(Items.WOODEN_SPEAR));
-        require(Integer.valueOf(1).equals(eval(engine, context, "ctrl.hold('mainhand',':lance');"))
-                        && Integer.valueOf(0).equals(eval(engine, context, "ctrl.hold('mainhand',':spear');")),
-                "native minecraft spear with SPEAR use animation uses reference lance class");
+        // Tagged compatibility lances use the same classification route as weapon state queries.
+        try {
+            var pike = net.minecraft.tags.TagKey.create(Registries.ITEM,
+                    ResourceLocation.parse("sparkle_morpher:pike"));
+            bindTags.invoke(holder, List.of(pike));
+            entity.equipment.put(EquipmentSlot.MAINHAND, new ItemStack(Items.STONE));
+            require(Integer.valueOf(1).equals(eval(engine, context, "ctrl.hold('mainhand',':lance');"))
+                            && Integer.valueOf(0).equals(eval(engine, context, "ctrl.hold('mainhand',':spear');")),
+                    "compatibility pike is a lance rather than a native spear");
+        } finally {
+            bindTags.invoke(holder, previous);
+        }
         entity.equipment.clear();
         require(Integer.valueOf(0).equals(eval(engine, context, "ctrl.hold('mainhand',':none');")), "empty stack has no type classification");
     }
@@ -832,9 +808,7 @@ public final class YsmVanillaStateSmokeTest {
     }
 
     private static void testEquipmentQueries(MolangEngine engine, Avatar.MolangContext context, FixtureEntity entity) throws Exception {
-        // These 26.1 item components normally arrive from data packs; this CPU fixture binds its explicit items.
-        Items.STONE.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
-        Items.DIRT.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
+        // Use the native 1.21.1 item components without mutating global registry defaults.
         Map<String, EquipmentSlot> slots = Map.of(
                 "has_mainhand", EquipmentSlot.MAINHAND, "has_offhand", EquipmentSlot.OFFHAND,
                 "has_helmet", EquipmentSlot.HEAD, "has_chest_plate", EquipmentSlot.CHEST,
@@ -961,11 +935,103 @@ public final class YsmVanillaStateSmokeTest {
         return ExpressionEvaluator.evaluator(context).eval(engine.parse(source).getFirst());
     }
 
-    private static void rotations(ElytraAnimationState state, String axis, float oldDegrees, float degrees) throws Exception {
-        for (String suffix : new String[]{"Old", ""}) {
-            Field field = ElytraAnimationState.class.getDeclaredField("rot" + axis + suffix);
-            field.setAccessible(true);
-            field.setFloat(state, (float) Math.toRadians(suffix.isEmpty() ? degrees : oldDegrees));
+    private static void testElytraQueries(MolangEngine engine, Avatar.MolangContext context,
+                                         FixtureEntity entity) throws Exception {
+        context.entity = entity;
+        entity.chest = ItemStack.EMPTY;
+        require(Boolean.FALSE.equals(eval(engine, context, "ysm.has_elytra;")), "empty chest has no elytra");
+        entity.chest = new ItemStack(Items.ELYTRA);
+        require(Boolean.TRUE.equals(eval(engine, context, "ysm.has_elytra;")), "native elytra item is equipped");
+        entity.chest.setCount(0);
+        require(Boolean.FALSE.equals(eval(engine, context, "ysm.has_elytra;")), "zero-count elytra is not equipped");
+        entity.chest = new ItemStack(Items.DIAMOND_CHESTPLATE);
+        require(Boolean.FALSE.equals(eval(engine, context, "ysm.has_elytra;")), "ordinary chest armor is not elytra");
+
+        // Compare with the actual 1.21.1 model rather than a copy of its angle formula.
+        var model = new net.minecraft.client.model.ElytraModel<LivingEntity>(
+                net.minecraft.client.model.ElytraModel.createLayer().bakeRoot());
+        Field wingField = net.minecraft.client.model.ElytraModel.class.getDeclaredField("leftWing");
+        wingField.setAccessible(true);
+        var wing = (net.minecraft.client.model.geom.ModelPart) wingField.get(model);
+        Field movement = Entity.class.getDeclaredField("deltaMovement");
+        movement.setAccessible(true);
+        Object previousMovement = movement.get(entity);
+        Pose previousPose = entity.pose;
+        boolean previousFlying = entity.elytraFlying;
+        float previousTicks = context.ysm_render_ticks;
+        float previousPartial = context.ysm_partial_tick;
+        try {
+            for (Pose pose : List.of(Pose.STANDING, Pose.CROUCHING)) {
+                entity.pose = pose;
+                for (boolean flying : new boolean[]{false, true}) {
+                    entity.elytraFlying = flying;
+                    for (Vec3 velocity : List.of(Vec3.ZERO, new Vec3(1, 0, 0),
+                            new Vec3(0, -1, 0), new Vec3(1, -1, 0))) {
+                        movement.set(entity, velocity);
+                        model.setupAnim(entity, 0, 0, 0, 0, 0);
+                        assertElytraAngles(engine, context, wing, "native living pose " + pose + "/" + flying + "/" + velocity);
+                    }
+                }
+            }
+            Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+            unsafeField.setAccessible(true);
+            var player = (FixtureElytraPlayer) ((Unsafe) unsafeField.get(null)).allocateInstance(FixtureElytraPlayer.class);
+            player.elytraRotX = (float) Math.toRadians(30);
+            player.elytraRotY = (float) Math.toRadians(-40);
+            player.elytraRotZ = (float) Math.toRadians(-45);
+            player.velocity = new Vec3(1, -1, 0);
+            context.entity = player;
+            for (boolean flying : new boolean[]{false, true}) {
+                player.flying = flying;
+                player.crouching = !flying;
+                for (int frame = 0; frame < 2; frame++) {
+                    model.setupAnim(player, 0, 0, 0, 0, 0);
+                    for (float ticks : new float[]{8.25f, 9f, Float.NaN}) {
+                        context.setYsmRenderTime(ticks, 8);
+                        assertElytraAngles(engine, context, wing, "native player smoothed frame " + frame);
+                    }
+                }
+            }
+        } finally {
+            movement.set(entity, previousMovement);
+            entity.pose = previousPose;
+            entity.elytraFlying = previousFlying;
+            entity.chest = ItemStack.EMPTY;
+            context.entity = entity;
+            context.ysm_render_ticks = previousTicks;
+            context.ysm_partial_tick = previousPartial;
+        }
+    }
+
+    private static void assertElytraAngles(MolangEngine engine, Avatar.MolangContext context,
+                                          net.minecraft.client.model.geom.ModelPart wing, String message) throws Exception {
+        number(Math.toDegrees(wing.xRot), eval(engine, context, "ysm.elytra_rot_x;"), message + " X degrees");
+        number(Math.toDegrees(wing.yRot), eval(engine, context, "ysm.elytra_rot_y;"), message + " Y degrees");
+        number(Math.toDegrees(wing.zRot), eval(engine, context, "ysm.elytra_rot_z;"), message + " Z degrees");
+    }
+
+    private static final class FixtureElytraPlayer extends net.minecraft.client.player.RemotePlayer {
+        private boolean flying;
+        private boolean crouching;
+        private Vec3 velocity;
+
+        private FixtureElytraPlayer() {
+            super(null, new com.mojang.authlib.GameProfile(new UUID(0, 1), "elytra-fixture"));
+        }
+
+        @Override
+        public boolean isFallFlying() {
+            return flying;
+        }
+
+        @Override
+        public boolean isCrouching() {
+            return crouching;
+        }
+
+        @Override
+        public Vec3 getDeltaMovement() {
+            return velocity;
         }
     }
 
@@ -1088,8 +1154,8 @@ public final class YsmVanillaStateSmokeTest {
         Unsafe unsafe = (Unsafe) unsafeField.get(null);
         Field passengers = Entity.class.getDeclaredField("passengers");
         Field data = Entity.class.getDeclaredField("entityData");
-        Field positions = net.minecraft.world.entity.vehicle.boat.AbstractBoat.class.getDeclaredField("paddlePositions");
-        var defineData = net.minecraft.world.entity.vehicle.boat.AbstractBoat.class.getDeclaredMethod("defineSynchedData",
+        Field positions = net.minecraft.world.entity.vehicle.Boat.class.getDeclaredField("paddlePositions");
+        var defineData = net.minecraft.world.entity.vehicle.Boat.class.getDeclaredMethod("defineSynchedData",
                 net.minecraft.network.syncher.SynchedEntityData.Builder.class);
         passengers.setAccessible(true);
         data.setAccessible(true);
@@ -1105,61 +1171,63 @@ public final class YsmVanillaStateSmokeTest {
             movementNumber(1f, eval(engine, context, "ysm.boat_paddle_scale;"), "reference nonboat paddle scale is one");
             entity.vehicle = entity;
             require(Boolean.FALSE.equals(eval(engine, context, "ysm.boat_right_paddle;")), "unrelated vehicle is not a boat");
-            for (Class<? extends net.minecraft.world.entity.vehicle.boat.AbstractBoat> type : List.of(
-                    net.minecraft.world.entity.vehicle.boat.Boat.class, net.minecraft.world.entity.vehicle.boat.ChestBoat.class,
-                    net.minecraft.world.entity.vehicle.boat.Raft.class, net.minecraft.world.entity.vehicle.boat.ChestRaft.class)) {
-                // Native boat/data/paddle methods run with explicit CPU passenger and interpolation inputs.
-                var boat = (net.minecraft.world.entity.vehicle.boat.AbstractBoat) unsafe.allocateInstance(type);
-                var builder = new net.minecraft.network.syncher.SynchedEntityData.Builder(boat);
-                // Entity's constructor normally defines these before the subclass hook.
-                var define = net.minecraft.network.syncher.SynchedEntityData.Builder.class.getMethod("define",
-                        net.minecraft.network.syncher.EntityDataAccessor.class, Object.class);
-                Map<String, Object> baseData = Map.of(
-                        "DATA_SHARED_FLAGS_ID", (byte) 0, "DATA_AIR_SUPPLY_ID", 300,
-                        "DATA_CUSTOM_NAME_VISIBLE", false, "DATA_CUSTOM_NAME", java.util.Optional.empty(),
-                        "DATA_SILENT", false, "DATA_NO_GRAVITY", false,
-                        "DATA_POSE", Pose.STANDING, "DATA_TICKS_FROZEN", 0);
-                for (var entry : baseData.entrySet()) {
-                    Field accessor = Entity.class.getDeclaredField(entry.getKey());
-                    accessor.setAccessible(true);
-                    define.invoke(builder, accessor.get(null), entry.getValue());
+            for (Class<? extends net.minecraft.world.entity.vehicle.Boat> type : List.of(
+                    net.minecraft.world.entity.vehicle.Boat.class, net.minecraft.world.entity.vehicle.ChestBoat.class)) {
+                for (var variant : List.of(net.minecraft.world.entity.vehicle.Boat.Type.OAK,
+                        net.minecraft.world.entity.vehicle.Boat.Type.BAMBOO)) {
+                    // Native boat/data/paddle methods run with explicit CPU passenger and interpolation inputs.
+                    var boat = (net.minecraft.world.entity.vehicle.Boat) unsafe.allocateInstance(type);
+                    var builder = new net.minecraft.network.syncher.SynchedEntityData.Builder(boat);
+                    // Entity's constructor normally defines these before the subclass hook.
+                    var define = net.minecraft.network.syncher.SynchedEntityData.Builder.class.getMethod("define",
+                            net.minecraft.network.syncher.EntityDataAccessor.class, Object.class);
+                    Map<String, Object> baseData = Map.of(
+                            "DATA_SHARED_FLAGS_ID", (byte) 0, "DATA_AIR_SUPPLY_ID", 300,
+                            "DATA_CUSTOM_NAME_VISIBLE", false, "DATA_CUSTOM_NAME", java.util.Optional.empty(),
+                            "DATA_SILENT", false, "DATA_NO_GRAVITY", false,
+                            "DATA_POSE", Pose.STANDING, "DATA_TICKS_FROZEN", 0);
+                    for (var entry : baseData.entrySet()) {
+                        Field accessor = Entity.class.getDeclaredField(entry.getKey());
+                        accessor.setAccessible(true);
+                        define.invoke(builder, accessor.get(null), entry.getValue());
+                    }
+                    defineData.invoke(boat, builder);
+                    data.set(boat, builder.build());
+                    boat.setVariant(variant);
+                    passengers.set(boat, com.google.common.collect.ImmutableList.of(entity));
+                    positions.set(boat, new float[]{2f, 4f});
+                    boat.setPaddleState(true, false);
+                    entity.vehicle = boat;
+                    context.entity = entity;
+                    context.ysm_partial_tick = 0.25f;
+                    require(Boolean.TRUE.equals(eval(engine, context, "ysm.boat_left_paddle;"))
+                                    && Boolean.FALSE.equals(eval(engine, context, "ysm.boat_right_paddle;")),
+                            "native paddle indices and raw Boolean states: " + type.getSimpleName());
+                    movementNumber(-1.7054757f, eval(engine, context, "ysm.boat_left_rowing_time;"),
+                            "reference negative rowing time uses captured partial tick");
+                    movementNumber(0f, eval(engine, context, "ysm.boat_right_rowing_time;"), "inactive paddle has zero rowing time");
+                    context.ysm_partial_tick = 1f;
+                    movementNumber(-2f, eval(engine, context, "ysm.boat_left_rowing_time;"), "partial one reaches current native paddle position");
+                    boat.setPaddleState(false, true);
+                    require(Boolean.FALSE.equals(eval(engine, context, "ysm.boat_left_paddle;"))
+                                    && Boolean.TRUE.equals(eval(engine, context, "ysm.boat_right_paddle;")),
+                            "native paddle changes are immediately visible");
+                    movementNumber(-4f, eval(engine, context, "ysm.boat_right_rowing_time;"), "right paddle uses its independent position");
+                    boolean raft = variant == net.minecraft.world.entity.vehicle.Boat.Type.BAMBOO;
+                    boolean chest = boat instanceof net.minecraft.world.entity.vehicle.ChestBoat;
+                    movementNumber(raft ? -6f : 0f, eval(engine, context, "ysm.boat_body_offset_y;"), "raft body offset: " + type.getSimpleName());
+                    movementNumber(chest ? -2.4f : 0f, eval(engine, context, "ysm.boat_body_offset_z;"), "chest body offset: " + type.getSimpleName());
+                    movementNumber(1f, eval(engine, context, "ysm.boat_paddle_scale;"), "reference scale remains one for each boat type");
+                    context.entity = boat;
+                    require(Boolean.TRUE.equals(eval(engine, context, "ysm.boat_right_paddle;")), "boat itself is a valid query subject");
+                    movementNumber(-4f, eval(engine, context, "ysm.boat_right_rowing_time;"), "boat-self rowing query uses native state");
+                    Avatar.MolangContext other = new Avatar.MolangContext(null);
+                    other.entity = entity;
+                    other.ysm_partial_tick = 0f;
+                    movementNumber(-3.6073008f, eval(engine, other, "ysm.boat_right_rowing_time;"), "another context retains its own partial tick");
+                    passengers.set(boat, com.google.common.collect.ImmutableList.of());
+                    require(Boolean.FALSE.equals(eval(engine, context, "ysm.boat_right_paddle;")), "native paddle state requires a controlling passenger");
                 }
-                defineData.invoke(boat, builder);
-                data.set(boat, builder.build());
-                passengers.set(boat, com.google.common.collect.ImmutableList.of(entity));
-                positions.set(boat, new float[]{2f, 4f});
-                boat.setPaddleState(true, false);
-                entity.vehicle = boat;
-                context.entity = entity;
-                context.ysm_partial_tick = 0.25f;
-                require(Boolean.TRUE.equals(eval(engine, context, "ysm.boat_left_paddle;"))
-                                && Boolean.FALSE.equals(eval(engine, context, "ysm.boat_right_paddle;")),
-                        "native paddle indices and raw Boolean states: " + type.getSimpleName());
-                movementNumber(-1.7054757f, eval(engine, context, "ysm.boat_left_rowing_time;"),
-                        "reference negative rowing time uses captured partial tick");
-                movementNumber(0f, eval(engine, context, "ysm.boat_right_rowing_time;"), "inactive paddle has zero rowing time");
-                context.ysm_partial_tick = 1f;
-                movementNumber(-2f, eval(engine, context, "ysm.boat_left_rowing_time;"), "partial one reaches current native paddle position");
-                boat.setPaddleState(false, true);
-                require(Boolean.FALSE.equals(eval(engine, context, "ysm.boat_left_paddle;"))
-                                && Boolean.TRUE.equals(eval(engine, context, "ysm.boat_right_paddle;")),
-                        "native paddle changes are immediately visible");
-                movementNumber(-4f, eval(engine, context, "ysm.boat_right_rowing_time;"), "right paddle uses its independent position");
-                boolean raft = boat instanceof net.minecraft.world.entity.vehicle.boat.Raft
-                        || boat instanceof net.minecraft.world.entity.vehicle.boat.ChestRaft;
-                boolean chest = boat instanceof net.minecraft.world.entity.vehicle.boat.AbstractChestBoat;
-                movementNumber(raft ? -6f : 0f, eval(engine, context, "ysm.boat_body_offset_y;"), "raft body offset: " + type.getSimpleName());
-                movementNumber(chest ? -2.4f : 0f, eval(engine, context, "ysm.boat_body_offset_z;"), "chest body offset: " + type.getSimpleName());
-                movementNumber(1f, eval(engine, context, "ysm.boat_paddle_scale;"), "reference scale remains one for each boat type");
-                context.entity = boat;
-                require(Boolean.TRUE.equals(eval(engine, context, "ysm.boat_right_paddle;")), "boat itself is a valid query subject");
-                movementNumber(-4f, eval(engine, context, "ysm.boat_right_rowing_time;"), "boat-self rowing query uses native state");
-                Avatar.MolangContext other = new Avatar.MolangContext(null);
-                other.entity = entity;
-                other.ysm_partial_tick = 0f;
-                movementNumber(-3.6073008f, eval(engine, other, "ysm.boat_right_rowing_time;"), "another context retains its own partial tick");
-                passengers.set(boat, com.google.common.collect.ImmutableList.of());
-                require(Boolean.FALSE.equals(eval(engine, context, "ysm.boat_right_paddle;")), "native paddle state requires a controlling passenger");
             }
         } finally {
             entity.vehicle = previousVehicle;
@@ -1401,19 +1469,18 @@ public final class YsmVanillaStateSmokeTest {
                             && messages.stream().filter(message -> message.startsWith("Tag ")).count() == 2,
                     "biome diagnostics expose reference registry strings and current native tags: " + messages);
             messages.clear();
-            var speed = new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.SPEED, 200, 2);
+            var speed = new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SPEED, 200, 2);
             activeEffects.set(entity, new java.util.HashMap<>(Map.of(speed.getEffect(), speed)));
             require(eval(engine, context, "ysm.dump_effects;") == null && messages.size() == 1
                             && messages.getFirst().contains("name minecraft:speed  lv=3"),
                     "living diagnostics read native effects with display name, ID and one-based level: " + messages);
             messages.clear();
-            var arrow = (net.minecraft.world.entity.projectile.arrow.Arrow)
-                    unsafe.allocateInstance(net.minecraft.world.entity.projectile.arrow.Arrow.class);
-            Items.TIPPED_ARROW.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
+            var arrow = (net.minecraft.world.entity.projectile.Arrow)
+                    unsafe.allocateInstance(net.minecraft.world.entity.projectile.Arrow.class);
             ItemStack pickup = new ItemStack(Items.TIPPED_ARROW);
             pickup.set(DataComponents.POTION_CONTENTS, net.minecraft.world.item.alchemy.PotionContents.EMPTY.withEffectAdded(
                     new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.POISON, 100, 1)));
-            Field pickupField = net.minecraft.world.entity.projectile.arrow.AbstractArrow.class.getDeclaredField("pickupItemStack");
+            Field pickupField = net.minecraft.world.entity.projectile.AbstractArrow.class.getDeclaredField("pickupItemStack");
             pickupField.setAccessible(true);
             pickupField.set(arrow, pickup);
             context.entity = arrow;
@@ -1520,7 +1587,6 @@ public final class YsmVanillaStateSmokeTest {
         context.entity = entity;
         entity.chest = ItemStack.EMPTY;
         entity.equipment = new java.util.EnumMap<>(EquipmentSlot.class);
-        Items.STONE.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
         ItemStack damaged = new ItemStack(Items.STONE);
         damaged.set(DataComponents.MAX_DAMAGE, 100);
         damaged.set(DataComponents.DAMAGE, 25);
@@ -1624,12 +1690,12 @@ public final class YsmVanillaStateSmokeTest {
         for (String name : names) {
             require(eval(engine, context, name + ";") == null, "non-living Entity cannot answer hand query: " + name);
         }
-        var consumable = net.minecraft.world.item.component.Consumable.builder().consumeSeconds(2f)
-                .animation(net.minecraft.world.item.ItemUseAnimation.EAT).build();
-        Items.APPLE.builtInRegistryHolder().bindComponents(
-                DataComponentMap.builder().set(DataComponents.CONSUMABLE, consumable).build());
+        ItemStack apple = new ItemStack(Items.APPLE);
+        // Native 1.21.1 food owns consumption duration; preserve this fixture's 40-tick contract.
+        apple.set(DataComponents.FOOD, new net.minecraft.world.food.FoodProperties(
+                4, 2.4f, false, 2f, java.util.Optional.empty(), List.of()));
         entity.equipment = new java.util.EnumMap<>(EquipmentSlot.class);
-        entity.equipment.put(EquipmentSlot.MAINHAND, new ItemStack(Items.APPLE));
+        entity.equipment.put(EquipmentSlot.MAINHAND, apple);
         entity.equipment.put(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
         entity.usedHand = net.minecraft.world.InteractionHand.MAIN_HAND;
         entity.using = true;
@@ -1645,7 +1711,7 @@ public final class YsmVanillaStateSmokeTest {
         context.ysm_partial_tick = 0.25f;
         context.is_using_item = context.is_swinging = context.swing_time = context.attack_time = -99f;
         require(Boolean.TRUE.equals(eval(engine, context, "q.is_using_item;")), "using query returns raw Boolean");
-        require(Boolean.TRUE.equals(eval(engine, context, "q.is_eating;")), "eating query reads native consumable animation");
+        require(Boolean.TRUE.equals(eval(engine, context, "q.is_eating;")), "eating query reads native food use animation");
         require(Boolean.TRUE.equals(eval(engine, context, "q.is_swinging;"))
                         && Boolean.TRUE.equals(eval(engine, context, "ysm.swinging;")), "swing names return raw Boolean");
         number(0.2125d, eval(engine, context, "q.swing_time;"), "query swing time is raw Double seconds");
@@ -1654,7 +1720,7 @@ public final class YsmVanillaStateSmokeTest {
         movementNumber(0.6f, eval(engine, context, "ysm.attack_time;"), "YSM attack progress shares the native value");
         require(Integer.valueOf(3).equals(eval(engine, context, "ysm.hurt_time;")), "YSM hurt time retains raw Integer");
         number(0.35d, eval(engine, context, "q.item_in_use_duration;"), "native use ticks convert to Double seconds");
-        number(2d, eval(engine, context, "q.item_max_use_duration;"), "native stack consumable defines total duration");
+        number(2d, eval(engine, context, "q.item_max_use_duration;"), "native stack food defines total duration");
         number(1.65d, eval(engine, context, "q.item_remaining_use_duration;"), "native remaining ticks convert to seconds");
         YsmHandQuery.capture(context);
         movementNumber(1f, context.is_using_item, "render capture publishes use state to controller consumers");
@@ -2388,7 +2454,7 @@ public final class YsmVanillaStateSmokeTest {
         private RegistryAccess registries;
 
         private FixtureLevel() {
-            super(null, null, null, null, 0, 0, null, false, 0L, 0);
+            super(null, null, null, null, 0, 0, () -> null, null, false, 0L);
         }
 
         @Override

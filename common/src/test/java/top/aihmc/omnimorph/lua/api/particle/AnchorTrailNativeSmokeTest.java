@@ -11,13 +11,10 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.geom.builders.CubeDeformation;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
-import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.RemotePlayer;
-import net.minecraft.client.renderer.SubmitNodeStorage;
-import net.minecraft.client.renderer.entity.state.AvatarRenderState;
-import net.minecraft.client.renderer.state.level.CameraRenderState;
-import net.minecraft.client.renderer.state.level.ParticlesRenderState;
+import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
@@ -99,7 +96,7 @@ final class AnchorTrailNativeSmokeTest {
                 wrapper.get("setEmissive").call(wrapper, LuaValue.TRUE);
                 require(wrapper.get("isAnchorTrail").call(wrapper).toboolean() && particle.activate(),
                         "actual Lua settings opt into this instance's controller history");
-                require(OutfitTrailBudget.count(wearer.getUUID()) == 0 && extract().particles.isEmpty(),
+                require(OutfitTrailBudget.count(wearer.getUUID()) == 0 && extract().vertexCount() == 0,
                         "an attached particle does not create a second history or invent anchor samples");
                 particle.setLifetime(100);
                 particle.setDynamicLight(true);
@@ -108,15 +105,15 @@ final class AnchorTrailNativeSmokeTest {
                         "waiting attached light keeps its quota without illuminating the unrelated particle position");
                 draw(composition, pose);
                 require(composition.trailSamples(instance.instanceId()).size() == 1
-                                && OutfitTrailBudget.count(wearer.getUUID()) == 1 && extract().particles.isEmpty(),
+                                && OutfitTrailBudget.count(wearer.getUUID()) == 1 && extract().vertexCount() == 0,
                         "controller owns one slot and first history point draws no segment");
                 world.clock = 11;
                 wearer.position(new Vec3(11, 20, 30));
                 draw(composition, pose);
                 var extracted = extract();
-                require(extracted.particles.size() == 1 && extracted.particles.getFirst() instanceof RibbonRenderState,
-                        "actual controller/Lua world samples reach the native Ribbon particle group");
-                var ribbon = (RibbonRenderState) extracted.particles.getFirst();
+                require(extracted.vertexCount() == 4,
+                        "actual controller/Lua world samples reach the immediate Ribbon frame");
+                var ribbon = extracted;
                 byte[] frozen = vertices(ribbon);
                 var buffer = java.nio.ByteBuffer.wrap(frozen).order(ByteOrder.nativeOrder());
                 int stride = DefaultVertexFormat.PARTICLE.getVertexSize();
@@ -124,10 +121,6 @@ final class AnchorTrailNativeSmokeTest {
                     float x = buffer.getFloat(index * stride);
                     require(x >= 9.9 && x <= 11.1, "native vertex follows the world anchor, not particle position: " + x);
                 }
-                var nodes = new SubmitNodeStorage();
-                extracted.submit(nodes, new CameraRenderState());
-                require(nodes.getSubmitsPerOrder().get(0).getParticleGroupRenderers().getFirst() == ribbon,
-                        "controller Ribbon reaches the same native submit queue as ordinary Ribbon");
                 ParticleDynamicLights.updateFrame(1);
                 require(ParticleDynamicLights.apply(world, 11, 20.75, 30, 0) > 0,
                         "attached dynamic light follows the controller head");
@@ -137,17 +130,17 @@ final class AnchorTrailNativeSmokeTest {
                 require(particle.anchorTrail(), "failed transition to an independent history preserves the source");
                 independent.setAnchorTrail(true);
                 independent.setEmissive(true);
-                require(independent.activate() && extract().particles.size() == 2
+                require(independent.activate() && extract().vertexCount() == 8
                                 && OutfitTrailBudget.count(wearer.getUUID()) == 1,
                         "two bounded particle renderers may share one controller trajectory without resampling it");
                 independent.remove();
                 require(particle.active() && OutfitTrailBudget.count(wearer.getUUID()) == 1,
                         "removing an attached renderer cannot release the controller's trajectory slot");
                 try (var invalid = composition.retain()) {
-                    invalid.draw(pose.restrict(index -> false), new AvatarRenderState(), 0,
+                    invalid.draw(pose.restrict(index -> false), new YsmEntityFrame(0, 0, 0, 0, 0), 0,
                             EntityRenderMode.RENDER, ignored -> {});
                 }
-                require(extract().particles.isEmpty() && OutfitTrailBudget.count(wearer.getUUID()) == 0,
+                require(extract().vertexCount() == 0 && OutfitTrailBudget.count(wearer.getUUID()) == 0,
                         "target loss removes controller drawing without recreating private history");
                 ParticleDynamicLights.updateFrame(1);
                 require(ParticleDynamicLights.apply(world, 11, 20.75, 30, 0) == 0 && particle.dynamicLight(),
@@ -158,11 +151,11 @@ final class AnchorTrailNativeSmokeTest {
                 world.clock = 13;
                 wearer.position(new Vec3(13, 20, 30));
                 draw(composition, pose);
-                require(extract().particles.size() == 1, "healthy controller history restores rendering without replacing particle");
+                require(extract().vertexCount() == 4, "healthy controller history restores rendering without replacing particle");
                 world.clock = 14;
                 wearer.position(new Vec3(1000, 20, 30));
                 draw(composition, pose);
-                require(extract().particles.isEmpty(), "teleport reset cannot produce a cross-map Ribbon");
+                require(extract().vertexCount() == 0, "teleport reset cannot produce a cross-map Ribbon");
                 texture.close();
                 composition.close();
                 require(!particle.active() && CustomParticleRuntime.liveCount(wearer.getUUID()) == 0
@@ -187,21 +180,19 @@ final class AnchorTrailNativeSmokeTest {
 
     private static void draw(OutfitComposition composition, SkeletonPose pose) {
         try (var frame = composition.retain()) {
-            frame.draw(pose, new AvatarRenderState(), 0, EntityRenderMode.RENDER, ignored -> {});
+            frame.draw(pose, new YsmEntityFrame(0, 0, 0, 0, 0), 0, EntityRenderMode.RENDER, ignored -> {});
         }
     }
 
-    private static ParticlesRenderState extract() {
+    private static PreviewParticleFrame extract() {
         YsmRenderFrameClock.beginFrame();
-        var state = new ParticlesRenderState();
-        CustomParticleRuntime.extractRibbons(state, null, new FixtureCamera(), 0);
-        return state;
+        return CustomParticleRuntime.extractWorld(null, new FixtureCamera(), 0);
     }
 
-    private static byte[] vertices(RibbonRenderState ribbon) {
-        try (var storage = ByteBufferBuilder.exactlySized(4 * DefaultVertexFormat.PARTICLE.getVertexSize())) {
+    private static byte[] vertices(PreviewParticleFrame ribbon) {
+        try (var storage = new ByteBufferBuilder(4 * DefaultVertexFormat.PARTICLE.getVertexSize())) {
             var builder = new BufferBuilder(storage, VertexFormat.Mode.QUADS, DefaultVertexFormat.PARTICLE);
-            ribbon.writeVertices(builder);
+            ribbon.draw(new Matrix4f(), type -> builder);
             try (var mesh = builder.build()) {
                 require(mesh != null && mesh.drawState().vertexCount() == 4, "one real segment has four native vertices");
                 byte[] bytes = new byte[mesh.vertexBuffer().remaining()];
@@ -233,7 +224,7 @@ final class AnchorTrailNativeSmokeTest {
         }
 
         @Override
-        public Vec3 position() {
+        public Vec3 getPosition() {
             return Vec3.ZERO;
         }
     }
@@ -242,7 +233,7 @@ final class AnchorTrailNativeSmokeTest {
         private long clock;
 
         private World() {
-            super(null, null, null, null, 0, 0, null, false, 0L, 0);
+            super(null, null, null, null, 0, 0, null, null, false, 0L);
         }
 
         @Override
@@ -253,6 +244,11 @@ final class AnchorTrailNativeSmokeTest {
 
     private static final class Wearer extends RemotePlayer implements org.figuramc.figura.mixin.EntityAccessor {
         private World world;
+
+        @Override
+        public int getPermissionLevel() {
+            return 0;
+        }
 
         private Wearer() {
             super(null, new GameProfile(UUID.randomUUID(), "anchor-trail"));

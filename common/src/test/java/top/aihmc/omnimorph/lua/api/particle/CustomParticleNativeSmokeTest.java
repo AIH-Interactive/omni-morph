@@ -6,10 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleEngine;
-import net.minecraft.client.particle.ParticleResources;
-import net.minecraft.client.particle.SingleQuadParticle;
 import net.minecraft.client.particle.SpriteSet;
-import net.minecraft.client.renderer.state.level.QuadParticleRenderState;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.Vec3;
@@ -68,7 +65,7 @@ public final class CustomParticleNativeSmokeTest {
             top.aihmc.omnimorph.model.outfit.OutfitParticleCallbackSmokeTest.run(unsafe);
             testLuaAndExtraction(first, second, texture, secondTexture, engine);
             testSharedLimits(first, second, texture, secondTexture);
-            testLifecycleHooks(first, second, secondTexture, engine);
+            testLifecycleHooks(first, second, secondTexture);
         } finally {
             CustomParticleRuntime.clearOwner(first.owner);
             CustomParticleRuntime.clearOwner(second.owner);
@@ -131,25 +128,34 @@ public final class CustomParticleNativeSmokeTest {
                 "new settings are reachable through production Lua type conversion");
         particle.setParticleSpeed(1, 0, -2);
         particle.tick();
-        var state = new RecordingQuads();
+        var state = new ParticleVertexCapture();
         particle.extract(state, new FixtureCamera(), .5f);
-        require(state.count == 1 && !state.isEmpty(), "native SingleQuadParticle writes its actual quad state");
-        near(state.x, 2.5);
-        near(state.y, 3);
-        near(state.z, 3);
-        near(state.u0, .5);
-        near(state.u1, 1);
-        near(state.v0, 0);
-        near(state.v1, 1);
-        require(state.light == 0xF000F0 && state.layer.textureAtlasLocation().equals(texture.getLocation()),
+        require(state.batches.size() == 1, "native SingleQuadParticle writes its actual vertices");
+        var quad = state.batches.getFirst();
+        var vertex = quad.vertices().getFirst();
+        near(quad.center().x, 2.5);
+        near(quad.center().y, 3);
+        near(quad.center().z, 3);
+        near(quad.u0(), .5);
+        near(quad.u1(), 1);
+        near(quad.v0(), 0);
+        near(quad.v1(), 1);
+        require(vertex.light() == 0xF000F0 && quad.material().textureAtlasLocation().equals(texture.getLocation()),
                 "quad uses author texture identifier and independent full-bright light coordinates");
-        var gpu = texture.getTexture();
+        int textureId = texture.getId();
+        var imageField = FiguraTexture.class.getDeclaredField("nativeImageTexture");
+        imageField.setAccessible(true);
+        var nativeImage = (NativeImage) imageField.get(texture);
         texture.close();
         result.get("remove").call(result);
-        require(!gpu.isClosed() && CustomParticleRuntime.liveCount(first.owner) == 0,
+        require(org.lwjgl.opengl.GL11.glIsTexture(textureId)
+                        && !top.aihmc.omnimorph.test.NativeImageState.isClosed(nativeImage)
+                        && CustomParticleRuntime.liveCount(first.owner) == 0,
                 "expired particle returns capacity while the extracted frame retains the retired texture");
         CustomParticleRuntime.finishFrame();
-        require(gpu.isClosed(), "frame retirement releases the final native texture binding");
+        require(!org.lwjgl.opengl.GL11.glIsTexture(textureId)
+                        && top.aihmc.omnimorph.test.NativeImageState.isClosed(nativeImage),
+                "frame retirement releases the final native texture and image");
         reject(() -> api.get("newCustomParticle").invoke(LuaValue.varargsOf(new LuaValue[]{api,
                 types.javaToLua(secondTexture).arg1(), position})));
         require(CustomParticleRuntime.liveCount(second.owner) == 0, "foreign texture rejection allocates no particle");
@@ -294,9 +300,9 @@ public final class CustomParticleNativeSmokeTest {
                 }
                 particle.setLayers(layers);
                 particle.setEmissive(true);
-                var nativeState = new RecordingQuads();
+                var nativeState = new ParticleVertexCapture();
                 particle.extract(nativeState, new FixtureCamera(), 0);
-                require(nativeState.count == maximum, "negotiated layer limit reaches actual native extraction");
+                require(nativeState.batches.size() == maximum, "negotiated layer limit reaches actual native extraction");
                 layers.set(maximum + 1, new LuaTable());
                 reject(() -> particle.setLayers(layers));
                 require(particle.layerCount() == maximum && particle.active(),
@@ -308,36 +314,12 @@ public final class CustomParticleNativeSmokeTest {
         }
     }
 
-    private static void testLifecycleHooks(Avatar first, Avatar second, FiguraTexture texture,
-                                             RecordingEngine engine) throws Exception {
+    private static void testLifecycleHooks(Avatar first, Avatar second, FiguraTexture texture) throws Exception {
         var firstTexture = new FiguraTexture(first, "eviction", new NativeImage(1, 1, true));
         var a = new CustomParticle(first, Minecraft.getInstance().level, firstTexture, Vec3.ZERO, Vec3.ZERO);
         var b = new CustomParticle(second, Minecraft.getInstance().level, texture, Vec3.ZERO, Vec3.ZERO);
         try {
             require(a.activate() && b.activate(), "two wearer fixture particles activate");
-            engine.particles.add(a);
-            var queue = com.google.common.collect.EvictingQueue.<Particle>create(1);
-            queue.add(a);
-            var hook = new top.aihmc.omnimorph.mixin.particle.ParticleGroupMixin();
-            var queueField = hook.getClass().getDeclaredField("particles");
-            queueField.setAccessible(true);
-            queueField.set(hook, queue);
-            var engineField = hook.getClass().getDeclaredField("engine");
-            engineField.setAccessible(true);
-            engineField.set(hook, engine);
-            var evict = hook.getClass().getDeclaredMethod("figura$releaseEvictedCustomParticle",
-                    Particle.class, org.spongepowered.asm.mixin.injection.callback.CallbackInfo.class);
-            evict.setAccessible(true);
-            evict.invoke(hook, b, new org.spongepowered.asm.mixin.injection.callback.CallbackInfo("add", false));
-            queue.add(b);
-            require(!a.isAlive() && b.isAlive() && !engine.particles.contains(a)
-                            && CustomParticleRuntime.liveCount(first.owner) == 0,
-                    "production eviction hook releases the displaced custom particle and owner tracking");
-            second.resourceReloadEvent();
-            require(!b.isAlive() && CustomParticleRuntime.liveCount(second.owner) == 0,
-                    "author resource reload clears only its execution's custom particles");
-            var c = new CustomParticle(second, Minecraft.getInstance().level, texture, Vec3.ZERO, Vec3.ZERO);
-            require(c.activate(), "capacity is usable after reload");
             var engineHook = new org.figuramc.figura.mixin.particle.ParticleEngineMixin() {
                 @Override
                 protected <T extends ParticleOptions> Particle makeParticle(T options, double x, double y,
@@ -354,6 +336,29 @@ public final class CustomParticleNativeSmokeTest {
                     return null;
                 }
             };
+            engineHook.figura$spawnParticle(a, first.owner);
+            engineHook.figura$spawnParticle(b, second.owner);
+            var queue = com.google.common.collect.EvictingQueue.<Particle>create(1);
+            queue.add(a);
+            var evict = org.figuramc.figura.mixin.particle.ParticleEngineMixin.class.getDeclaredMethod(
+                    "figura$releaseEvictedParticle", java.util.Queue.class, Object.class,
+                    com.llamalad7.mixinextras.injector.wrapoperation.Operation.class);
+            evict.setAccessible(true);
+            com.llamalad7.mixinextras.injector.wrapoperation.Operation<Boolean> add = arguments ->
+                    ((java.util.Queue<Particle>) arguments[0]).add((Particle) arguments[1]);
+            require((boolean) evict.invoke(engineHook, queue, b, add) && queue.peek() == b,
+                    "production engine wrapper performs the native queue insertion");
+            var mapField = org.figuramc.figura.mixin.particle.ParticleEngineMixin.class.getDeclaredField("particleMap");
+            mapField.setAccessible(true);
+            var tracked = (Map<?, ?>) mapField.get(engineHook);
+            require(!a.isAlive() && b.isAlive() && !tracked.containsKey(a) && tracked.containsKey(b)
+                            && CustomParticleRuntime.liveCount(first.owner) == 0,
+                    "production eviction hook releases the displaced particle and owner tracking");
+            second.resourceReloadEvent();
+            require(!b.isAlive() && CustomParticleRuntime.liveCount(second.owner) == 0,
+                    "author resource reload clears only its execution's custom particles");
+            var c = new CustomParticle(second, Minecraft.getInstance().level, texture, Vec3.ZERO, Vec3.ZERO);
+            require(c.activate(), "capacity is usable after reload");
             engineHook.figura$spawnParticle(c, second.owner);
             var clear = org.figuramc.figura.mixin.particle.ParticleEngineMixin.class.getDeclaredMethod(
                     "figura$clearCustomParticles", org.spongepowered.asm.mixin.injection.callback.CallbackInfo.class);
@@ -370,7 +375,7 @@ public final class CustomParticleNativeSmokeTest {
 
     private static final class FixtureLevel extends ClientLevel implements org.figuramc.figura.mixin.ClientLevelInvoker {
         private FixtureLevel() {
-            super(null, null, null, null, 0, 0, null, false, 0L, 0);
+            super(null, null, null, null, 0, 0, null, null, false, 0L);
         }
 
         @Override
@@ -400,32 +405,8 @@ public final class CustomParticleNativeSmokeTest {
         }
 
         @Override
-        public Vec3 position() {
+        public Vec3 getPosition() {
             return Vec3.ZERO;
-        }
-    }
-
-    private static final class RecordingQuads extends QuadParticleRenderState {
-        private int count;
-        private float x, y, z, u0, u1, v0, v1;
-        private int light;
-        private SingleQuadParticle.Layer layer;
-
-        @Override
-        public void add(SingleQuadParticle.Layer layer, float x, float y, float z,
-                        float qx, float qy, float qz, float qw, float size,
-                        float u0, float u1, float v0, float v1, int color, int light) {
-            super.add(layer, x, y, z, qx, qy, qz, qw, size, u0, u1, v0, v1, color, light);
-            count++;
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            this.u0 = u0;
-            this.u1 = u1;
-            this.v0 = v0;
-            this.v1 = v1;
-            this.light = light;
-            this.layer = layer;
         }
     }
 
@@ -465,11 +446,6 @@ public final class CustomParticleNativeSmokeTest {
         @Override
         public void figura$removeParticle(Particle particle) {
             particles.remove(particle);
-        }
-
-        @Override
-        public ParticleResources figura$getParticleResources() {
-            throw new UnsupportedOperationException();
         }
     }
 

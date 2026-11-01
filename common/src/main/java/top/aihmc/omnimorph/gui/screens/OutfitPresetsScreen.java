@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.gui.screens;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import top.aihmc.omnimorph.avatar.AvatarLoadExecutor;
@@ -530,9 +530,9 @@ public final class OutfitPresetsScreen extends AbstractPanelScreen {
     }
 
     @Override
-    public void renderOverlays(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
-        gui.text(font, getTitle(), 12, 12, 0xffffffff);
-        gui.text(font, text("preset_name"), modelWidth() + 12, 57, 0xffd3e7e1);
+    public void renderOverlays(GuiGraphics gui, int mouseX, int mouseY, float delta) {
+        gui.drawString(font, getTitle(), 12, 12, 0xffffffff);
+        gui.drawString(font, text("preset_name"), modelWidth() + 12, 57, 0xffd3e7e1);
         Component status = !message.getString().isEmpty() ? message : text(wardrobe.presetBaseCanPersist()
                 ? "preset_help" : "preset_base_unresolved");
         UIHelper.renderScrollingText(gui, status, 12, height - 42, Math.max(1, width - 24), 0xffd3e7e1);

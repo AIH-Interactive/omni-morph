@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.gui.widgets.library;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.figuramc.figura.FiguraMod;
@@ -92,11 +92,11 @@ public final class LibraryManagementPreview extends AbstractContainerElement imp
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         UIHelper.renderScrollingText(gui, title, getX(), getY() + 4, getWidth(), 0xffeeeeee);
         Component state = FiguraText.of("gui.library.preview." + session.status().stage().name().toLowerCase(Locale.ROOT));
         UIHelper.renderScrollingText(gui, state, getX(), getY() + getHeight() - 10, getWidth(), 0xffbac6d8);
-        super.extractRenderState(gui, mouseX, mouseY, delta);
+        super.render(gui, mouseX, mouseY, delta);
     }
 
     @Override

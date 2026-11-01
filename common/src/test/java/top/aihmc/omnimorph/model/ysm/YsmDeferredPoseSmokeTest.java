@@ -1,7 +1,12 @@
 package top.aihmc.omnimorph.model.ysm;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.core.Direction;
+import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.decoration.ArmorStand;
 import org.joml.Matrix4f;
+import sun.misc.Unsafe;
 import top.aihmc.omnimorph.render.acceleration.AccelerationOwner;
 import top.aihmc.omnimorph.render.acceleration.AccelerationService;
 
@@ -14,6 +19,9 @@ public final class YsmDeferredPoseSmokeTest {
     }
 
     public static void main(String[] args) throws ReflectiveOperationException {
+        net.minecraft.SharedConstants.tryDetectVersion();
+        net.minecraft.server.Bootstrap.bootStrap();
+
         YsmModelPart body = new YsmModelPart("Root", null, new float[3], new float[3]);
         body.addAnimPos(16, 0, 0);
         body.addAnimRot(0, 0, 90);
@@ -71,9 +79,12 @@ public final class YsmDeferredPoseSmokeTest {
         }
     }
 
-    private static void testSleepingRoot() {
-        var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
-        state.pose = net.minecraft.world.entity.Pose.SLEEPING;
+    private static void testSleepingRoot() throws ReflectiveOperationException {
+        var unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+        unsafeField.setAccessible(true);
+        var unsafe = (Unsafe) unsafeField.get(null);
+        var state = (SleepingEntity) unsafe.allocateInstance(SleepingEntity.class);
+        state.pose = Pose.SLEEPING;
         state.eyeHeight = 1.62f;
         for (var direction : net.minecraft.core.Direction.Plane.HORIZONTAL) {
             state.bedOrientation = direction;
@@ -102,7 +113,7 @@ public final class YsmDeferredPoseSmokeTest {
             var expectedPosition = new org.joml.Vector3f(4 - direction.getStepX() * 0.71f,
                     2, -3 - direction.getStepZ() * 0.71f);
             require(scaled.last().pose().getTranslation(new org.joml.Vector3f()).distance(expectedPosition) < 0.0001f,
-                    "bed offset uses the extracted standing eye height and preserves the parent position");
+                    "bed offset uses the entity's standing eye height and preserves the parent position");
             state.eyeHeight = 1.62f;
         }
         state.bedOrientation = null;
@@ -110,12 +121,43 @@ public final class YsmDeferredPoseSmokeTest {
         YsmRenderer.applyEntityRotation(unanchored, state, 37f);
         require(unanchored.last().pose().getTranslation(new org.joml.Vector3f()).length() == 0,
                 "sleep without a bed orientation does not invent an anchor offset");
-        state.bedOrientation = net.minecraft.core.Direction.SOUTH;
-        state.pose = net.minecraft.world.entity.Pose.STANDING;
+        state.bedOrientation = Direction.SOUTH;
+        state.pose = Pose.STANDING;
         var standing = new PoseStack();
         YsmRenderer.applyEntityRotation(standing, state, 37f);
         require(standing.last().pose().equals(new Matrix4f().rotateY((float) Math.toRadians(143)), 0.0001f),
                 "standing keeps its original root transform");
+    }
+
+    /** Real native entity methods supply the pose/dimensions consumed by the production root transform. */
+    private static final class SleepingEntity extends ArmorStand {
+        private Pose pose;
+        private Direction bedOrientation;
+        private float eyeHeight;
+
+        private SleepingEntity() {
+            super(null, 0, 0, 0);
+        }
+
+        @Override
+        public Pose getPose() {
+            return pose;
+        }
+
+        @Override
+        public Direction getBedOrientation() {
+            return bedOrientation;
+        }
+
+        @Override
+        public float getScale() {
+            return 1f;
+        }
+
+        @Override
+        public EntityDimensions getDefaultDimensions(Pose pose) {
+            return EntityDimensions.scalable(.6f, 1.8f).withEyeHeight(eyeHeight);
+        }
     }
 
     private static void testReadOnlyPartReuse() {

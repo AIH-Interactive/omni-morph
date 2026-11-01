@@ -2,16 +2,13 @@ package org.figuramc.figura.gui.widgets;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.ActiveTextCollector;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.TextAlignment;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
@@ -19,7 +16,6 @@ import net.minecraft.util.Mth;
 import org.figuramc.figura.utils.MathUtils;
 import org.figuramc.figura.utils.TextUtils;
 import org.figuramc.figura.utils.ui.UIHelper;
-import org.joml.Matrix3x2fStack;
 
 import java.util.List;
 
@@ -76,7 +72,7 @@ public class Label implements FiguraWidget, GuiEventListener, NarratableEntry {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         hovered = null;
 
         if (!isVisible())
@@ -86,7 +82,7 @@ public class Label implements FiguraWidget, GuiEventListener, NarratableEntry {
         renderText(gui, mouseX, mouseY, delta);
     }
 
-    private void renderBackground(GuiGraphicsExtractor gui) {
+    private void renderBackground(GuiGraphics gui) {
         if (backgroundColor == null)
             return;
 
@@ -96,11 +92,11 @@ public class Label implements FiguraWidget, GuiEventListener, NarratableEntry {
         gui.fill(x, y, x + width, y + height, backgroundColor);
     }
 
-    private void renderText(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
-        Matrix3x2fStack pose = gui.pose();
-        pose.pushMatrix();
-        pose.translate(this.x, getY());
-        pose.scale(scale, scale);
+    private void renderText(GuiGraphics gui, int mouseX, int mouseY, float delta) {
+        PoseStack pose = gui.pose();
+        pose.pushPose();
+        pose.translate(this.x, getY(), 0);
+        pose.scale(scale, scale, scale);
 
         // alpha
         if (alpha != null) {
@@ -137,23 +133,23 @@ public class Label implements FiguraWidget, GuiEventListener, NarratableEntry {
             if (outlineColor != null) {
                 UIHelper.renderOutlineText(gui, font, text, x, y, 0xFFFFFF, outlineColor);
             } else {
-                gui.text(font, text, x, y, UIHelper.adjustColor(0xFFFFFF + (alphaPrecise << 24)));
+                gui.drawString(font, text, x, y, UIHelper.adjustColor(0xFFFFFF + (alphaPrecise << 24)));
             }
 
             y += height;
         }
 
-        pose.popMatrix();
+        pose.popPose();
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean bl) {
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (hovered != null && Minecraft.getInstance().screen != null && hovered.getClickEvent() != null) {
-            Screen.defaultHandleGameClickEvent(hovered.getClickEvent(), Minecraft.getInstance(), Minecraft.getInstance().screen);
+            Minecraft.getInstance().screen.handleComponentClicked(hovered);
             return true;
         }
 
-        return GuiEventListener.super.mouseClicked(mouseButtonEvent, bl);
+        return GuiEventListener.super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override

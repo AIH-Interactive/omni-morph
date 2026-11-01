@@ -3,7 +3,11 @@ package top.aihmc.omnimorph.lua.api.particle;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.culling.Frustum;
-import net.minecraft.client.renderer.state.level.ParticlesRenderState;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.ByteBufferBuilder;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix4f;
 import org.luaj.vm2.LuaError;
 import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext;
@@ -12,6 +16,7 @@ import top.aihmc.omnimorph.model.outfit.OutfitTrailBudget;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
 
+import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.HashMap;
@@ -185,23 +190,51 @@ public final class CustomParticleRuntime {
                 particle.limits().maxRibbonVertices(), vertices);
     }
 
-    public static void extractRibbons(ParticlesRenderState state, Frustum frustum, Camera camera, float partialTick) {
-        // Activation order makes competition for the shared frame quota deterministic.
+    public static void renderWorld(Frustum frustum, Camera camera, float partialTick) {
+        var frame = extractWorld(frustum, camera, partialTick);
+        if (frame.vertexCount() == 0) {
+            return;
+        }
+        // Vertices already subtract the camera; shader-pack camera translation must not apply twice.
+        var modelView = RenderSystem.getModelViewStack();
+        modelView.pushMatrix();
+        try (var storage = new ByteBufferBuilder(1536)) {
+            modelView.setTranslation(0f, 0f, 0f);
+            RenderSystem.applyModelViewMatrix();
+            frame.draw(new Matrix4f(), MultiBufferSource.immediate(storage), true);
+        } finally {
+            modelView.popMatrix();
+            RenderSystem.applyModelViewMatrix();
+        }
+    }
+
+    /** Freeze geometry and charge budgets once before submitting the world draw. */
+    static PreviewParticleFrame extractWorld(Frustum frustum, Camera camera, float partialTick) {
+        if (org.figuramc.figura.utils.PlatformUtils.isModLoaded("iris")
+                && top.aihmc.omnimorph.compat.IrisCompat.isShadowPass()) {
+            return PreviewParticleFrame.empty();
+        }
+        var billboards = new ArrayList<CustomParticle>();
+        var ribbons = new ArrayList<CustomParticle>();
+        // Preserve activation order within each kind and reserve billboard faces before ribbon faces.
         for (CustomParticle particle : LIVE.keySet().toArray(CustomParticle[]::new)) {
-            if (!particle.ribbon() || particle.preview() != null) {
+            if (particle.preview() != null) {
                 continue;
             }
             UUID wearer = LIVE.get(particle);
             if (particle.world() != Minecraft.getInstance().level
-                    || OutfitTrailBudget.count(wearer) > particle.limits().maxTrails()) {
+                    || particle.ribbon() && OutfitTrailBudget.count(wearer) > particle.limits().maxTrails()) {
                 particle.remove();
                 continue;
             }
-            var ribbon = particle.extractRibbon(camera, frustum, partialTick, availableRibbonVertices(particle));
-            if (ribbon != null) {
-                state.add(ribbon);
-            }
+            (particle.ribbon() ? ribbons : billboards).add(particle);
         }
+        billboards.addAll(ribbons);
+        if (billboards.isEmpty()) {
+            return PreviewParticleFrame.empty();
+        }
+        return PreviewParticleFrame.extract(billboards.toArray(CustomParticle[]::new), camera,
+                frustum, partialTick, Vec3.ZERO);
     }
 
     static void retainFrame(FiguraTexture texture, FiguraTexture.Lease particleLease) {

@@ -1,12 +1,8 @@
 package top.aihmc.omnimorph.gui.widgets.library;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.MultiLineEditBox;
-import net.minecraft.client.input.CharacterEvent;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.input.PreeditEvent;
 import net.minecraft.network.chat.Component;
 import org.figuramc.figura.gui.widgets.AbstractContainerElement;
 import org.figuramc.figura.utils.FiguraText;
@@ -15,7 +11,7 @@ import org.figuramc.figura.utils.ui.UIHelper;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
-/** Figura-skinned multiline input; Minecraft supplies only text editing and IME behavior. */
+/** Figura-skinned multiline input backed by Minecraft's native text editing. */
 public final class LibraryMultilineField extends AbstractContainerElement {
     private final MultiLineEditBox input;
     private boolean enabled = true;
@@ -28,9 +24,18 @@ public final class LibraryMultilineField extends AbstractContainerElement {
 
     public LibraryMultilineField(int width, int height, String value, Consumer<String> changed) {
         super(0, 0, width, height);
-        input = MultiLineEditBox.builder().setShowBackground(false).setShowDecorations(false)
-                .setTextColor(0xffeeeeee).setCursorColor(0xffffffff)
-                .build(Minecraft.getInstance().font, width - 4, height - 4, Component.empty());
+        input = new MultiLineEditBox(Minecraft.getInstance().font, 0, 0, width - 4, height - 4,
+                Component.empty(), Component.empty()) {
+            @Override
+            protected void renderBackground(GuiGraphics gui) {
+                // The outer Figura control draws the field skin.
+            }
+
+            @Override
+            protected void renderDecorations(GuiGraphics gui) {
+                // The outer control owns decorations and the resize handle.
+            }
+        };
         input.setCharacterLimit(4096);
         input.setValue(value);
         input.setValueListener(changed);
@@ -74,20 +79,20 @@ public final class LibraryMultilineField extends AbstractContainerElement {
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (enabled && event.button() == 0 && overResizeHandle(event.x(), event.y())) {
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (enabled && button == 0 && overResizeHandle(mouseX, mouseY)) {
             resizing = true;
-            resizeStartY = event.y();
+            resizeStartY = mouseY;
             resizeStartHeight = getHeight();
             return true;
         }
-        return enabled && isMouseOver(event.x(), event.y()) && super.mouseClicked(event, doubleClick);
+        return enabled && isMouseOver(mouseX, mouseY) && super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
-    public boolean mouseDragged(MouseButtonEvent event, double deltaX, double deltaY) {
-        if (resizing && enabled && event.button() == 0) {
-            int height = Math.clamp(resizeStartHeight + (int) Math.round(event.y() - resizeStartY),
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+        if (resizing && enabled && button == 0) {
+            int height = Math.clamp(resizeStartHeight + (int) Math.round(mouseY - resizeStartY),
                     minimumHeight, maximumHeight);
             if (height != getHeight()) {
                 setHeight(height);
@@ -95,15 +100,15 @@ public final class LibraryMultilineField extends AbstractContainerElement {
             }
             return true;
         }
-        return enabled && super.mouseDragged(event, deltaX, deltaY);
+        return enabled && super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
     }
 
     @Override
-    public boolean mouseReleased(MouseButtonEvent event) {
-        if (resizing && event.button() == 0) {
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (resizing && button == 0) {
             resizing = false;
         } else if (getFocused() != null) {
-            getFocused().mouseReleased(event);
+            getFocused().mouseReleased(mouseX, mouseY, button);
         }
         setDragging(false);
         // Figura containers clear focus when a child consumes release. Text editing
@@ -112,26 +117,21 @@ public final class LibraryMultilineField extends AbstractContainerElement {
     }
 
     @Override
-    public boolean keyPressed(KeyEvent event) {
-        return enabled && super.keyPressed(event);
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        return enabled && super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
-    public boolean charTyped(CharacterEvent event) {
-        return enabled && super.charTyped(event);
+    public boolean charTyped(char character, int modifiers) {
+        return enabled && super.charTyped(character, modifiers);
     }
 
     @Override
-    public boolean preeditUpdated(PreeditEvent event) {
-        return enabled && super.preeditUpdated(event);
-    }
-
-    @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         UIHelper.blitSliced(gui, getX(), getY(), getWidth(), getHeight(), UIHelper.OUTLINE_FILL);
         input.setX(getX() + 2);
         input.setY(getY() + 2);
-        super.extractRenderState(gui, mouseX, mouseY, delta);
+        super.render(gui, mouseX, mouseY, delta);
         if (heightChanged != null) {
             if (enabled && overResizeHandle(mouseX, mouseY)) {
                 UIHelper.setTooltip(FiguraText.of("gui.library.resize_description"));

@@ -12,5 +12,6 @@ public interface ParticleEngineAccessor {
     <T extends ParticleOptions> Particle figura$makeParticle(T parameters, double x, double y, double z, double velocityX, double velocityY, double velocityZ);
     void figura$spawnParticle(Particle particle, UUID owner);
     void figura$clearParticles(UUID owner);
+    void figura$removeParticle(Particle particle);
     SpriteSet figura$getParticleSprite(ResourceLocation particleID);
 }

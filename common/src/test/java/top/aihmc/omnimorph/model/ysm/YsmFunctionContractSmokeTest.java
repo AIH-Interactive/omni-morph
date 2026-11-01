@@ -1,11 +1,10 @@
 package top.aihmc.omnimorph.model.ysm;
 
 import net.minecraft.client.Minecraft;
+import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.Consumable;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.nbt.CompoundTag;
@@ -512,13 +511,12 @@ public final class YsmFunctionContractSmokeTest {
                     "player level reads native experience with raw Integer type");
             player.experienceLevel = 3;
             require(Integer.valueOf(3).equals(owner.evalValue("q.player_level;")), "experience changes immediately");
-            player.fixtureSkin = new net.minecraft.world.entity.player.PlayerSkin(null, null, null,
-                    net.minecraft.world.entity.player.PlayerModelType.WIDE, false);
+            player.fixtureSkin = new net.minecraft.client.resources.PlayerSkin(null, null, null, null,
+                    net.minecraft.client.resources.PlayerSkin.Model.WIDE, false);
             require(Boolean.FALSE.equals(owner.evalValue("q.has_cape;")), "missing cape texture is false");
-            player.fixtureSkin = new net.minecraft.world.entity.player.PlayerSkin(null,
-                    new net.minecraft.core.ClientAsset.ResourceTexture(
-                            net.minecraft.resources.ResourceLocation.parse("fixture:cape")), null,
-                    net.minecraft.world.entity.player.PlayerModelType.WIDE, false);
+            player.fixtureSkin = new net.minecraft.client.resources.PlayerSkin(null, null,
+                    net.minecraft.resources.ResourceLocation.parse("fixture:cape"), null,
+                    net.minecraft.client.resources.PlayerSkin.Model.WIDE, false);
             player.showCape = true;
             require(Boolean.TRUE.equals(owner.evalValue("q.has_cape;")), "visible native cape with model part enabled");
             player.hidden = true;
@@ -546,12 +544,9 @@ public final class YsmFunctionContractSmokeTest {
             require(Boolean.FALSE.equals(owner.evalValue("q.is_swinging;")), "focus loss clears local pulse and native sleep remains false");
             player.sleeping = false;
             hands.prepare(player, true);
-            var consumable = Consumable.builder().consumeSeconds(2f)
-                    .animation(net.minecraft.world.item.ItemUseAnimation.EAT).build();
-            Items.APPLE.builtInRegistryHolder().bindComponents(
-                    DataComponentMap.builder()
-                            .set(DataComponents.CONSUMABLE, consumable).build());
             player.mainItem = new ItemStack(Items.APPLE);
+            player.mainItem.set(DataComponents.FOOD, new net.minecraft.world.food.FoodProperties(
+                    4, 2.4f, false, 2f, java.util.Optional.empty(), List.of()));
             hands.mouseEvent(1, 1);
             require(Boolean.TRUE.equals(owner.evalValue("q.is_using_item;")), "local pending use pulse bridges native item handoff");
             require(Boolean.FALSE.equals(observer.evalValue("q.is_using_item;")), "pending use belongs only to the local model owner");
@@ -576,7 +571,7 @@ public final class YsmFunctionContractSmokeTest {
     }
 
     private static final class HandFixturePlayer extends LocalPlayer {
-        private net.minecraft.world.entity.player.PlayerSkin fixtureSkin;
+        private net.minecraft.client.resources.PlayerSkin fixtureSkin;
         private boolean showCape;
         private boolean hidden;
         private ItemStack mainItem;
@@ -590,7 +585,7 @@ public final class YsmFunctionContractSmokeTest {
         }
 
         @Override
-        public net.minecraft.world.entity.player.PlayerSkin getSkin() {
+        public net.minecraft.client.resources.PlayerSkin getSkin() {
             return fixtureSkin;
         }
 
@@ -605,7 +600,7 @@ public final class YsmFunctionContractSmokeTest {
         }
 
         private HandFixturePlayer() {
-            super(null, null, null, null, null, null, false, null);
+            super(null, null, null, null, null, false, false);
         }
 
         @Override
@@ -740,13 +735,11 @@ public final class YsmFunctionContractSmokeTest {
     private static void testHeadQueryContracts() throws Exception {
         Fixture fixture = new Fixture();
         Fixture second = new Fixture();
-        var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
+        var state = new YsmEntityFrame(0, 0, 30, 20, 0);
         var capture = fixture.runtime.animations().getClass().getDeclaredMethod("updateYsmHeadRotation",
-                net.minecraft.client.renderer.entity.state.LivingEntityRenderState.class,
+                YsmEntityFrame.class,
                 net.minecraft.world.entity.LivingEntity.class);
         capture.setAccessible(true);
-        state.yRot = 30f;
-        state.xRot = 20f;
         capture.invoke(fixture.runtime.animations(), state, null);
         fixture.context.head_x_rot = 999f;
         fixture.context.head_y_rot = 999f;
@@ -756,8 +749,7 @@ public final class YsmFunctionContractSmokeTest {
                     "formal head query reads production captured YSM axes: " + entry.getKey());
             number(0f, second.evalValue(entry.getKey() + ";"), "head capture stays in its Avatar: " + entry.getKey());
         }
-        state.yRot = 120f;
-        state.xRot = -10f;
+        state = new YsmEntityFrame(0, 0, 120, -10, 0);
         capture.invoke(fixture.runtime.animations(), state, null);
         number(-85f, fixture.evalValue("q.head_x_rotation;"), "head yaw uses production clamp");
         number(10f, fixture.evalValue("q.head_y_rotation;"), "head pitch captures changed frame input");
@@ -952,13 +944,22 @@ public final class YsmFunctionContractSmokeTest {
                 "hint leaves current playback intact until the next animation request");
         first.evalValue("ctrl.set_animation('animation.reload_hint');");
         var replacement = player.getControllerFunctionAnimation("first");
-        require(replacement != original && replacement.time == 0f && replacement.weight == 0f,
+        require(replacement != original && replacement.time == 0f && replacement.weight == 1f,
                 "next request restarts playback with the configured beginning transition");
         require(original.targetWeight == 0f && player.getActiveAnimations().containsValue(original),
                 "outgoing pose fades separately from the new same-name slot");
         require(player.getControllerFunctionAnimation("other") == other
                         && second.runtime.animations().getControllerFunctionAnimation("first") == secondOriginal,
                 "reload does not affect another controller or Avatar");
+        var advance = player.getClass().getDeclaredMethod("advanceAnimationTimeline", float.class, ExpressionEvaluator.class);
+        advance.setAccessible(true);
+        var evaluator = ExpressionEvaluator.evaluator(first.context);
+        advance.invoke(player, 0.125f, evaluator);
+        number(0f, replacement.time, "reloaded slot begins a fresh quarter-second clock delay");
+        advance.invoke(player, 0.125f, evaluator);
+        number(0f, replacement.time, "reloaded beginning transition ends at its exact boundary");
+        advance.invoke(player, 0.125f, evaluator);
+        number(0.125f, replacement.time, "reloaded animation advances after its beginning transition");
         first.evalValue("ctrl.set_animation('animation.reload_hint');");
         require(player.getControllerFunctionAnimation("first") == replacement, "reload hint is consumed exactly once");
         first.evalValue("ctrl.indicate_reload();");
@@ -1068,16 +1069,23 @@ public final class YsmFunctionContractSmokeTest {
         advance.invoke(player, 0.01f, evaluator);
         completionFlags(first, "mixed", true, false);
         completionFlags(first, "other", false, false);
+        var completed = player.getControllerAnimation("mixed", shortClip.name);
+        float completedTime = completed.time;
         player.controllerRuntime().update(evaluator, 0f);
-        require(player.getControllerAnimation("mixed", shortClip.name) == null, "completed once clip retires through the real controller update");
+        require(player.getControllerAnimation("mixed", shortClip.name) == completed
+                        && completed.hasCompletedCycle() && completed.weight == 0f && completed.targetWeight == 0f,
+                "completed declared ONCE slot keeps its clock and stops contributing through controller refresh");
         completionFlags(first, "mixed", true, false);
         first.context.variables.setPath("short_enabled", 0f);
         player.controllerRuntime().update(evaluator, 0f);
         completionFlags(first, "mixed", false, false);
         first.context.variables.setPath("short_enabled", 1f);
         player.controllerRuntime().update(evaluator, 0f);
-        require(player.getControllerAnimation("mixed", shortClip.name) != null, "reactivated reference has a fresh playback instance");
-        completionFlags(first, "mixed", false, false);
+        require(player.getControllerAnimation("mixed", shortClip.name) == completed
+                        && completed.time == completedTime && completed.controllerConditionActive
+                        && completed.hasCompletedCycle() && completed.targetWeight == 0f,
+                "reenabling a declared reference preserves its completed playback instead of restarting it");
+        completionFlags(first, "mixed", true, false);
         advance.invoke(player, 1.1f, evaluator);
         completionFlags(first, "mixed", true, true);
         completionFlags(first, "other", true, true);
@@ -1146,7 +1154,15 @@ public final class YsmFunctionContractSmokeTest {
         var firstPlaying = player.getControllerFunctionAnimation("first");
         require(firstPlaying.loopMode == YsmAnimationClip.LoopMode.LOOP,
                 "omitted loop mode preserves the animation default");
-        number(4f, firstPlaying.fadeSpeed, "quarter-second transition uses seconds");
+        var advance = player.getClass().getDeclaredMethod("advanceAnimationTimeline", float.class, ExpressionEvaluator.class);
+        advance.setAccessible(true);
+        var evaluator = ExpressionEvaluator.evaluator(first.context);
+        advance.invoke(player, 0.125f, evaluator);
+        number(0f, firstPlaying.time, "quarter-second beginning transition freezes the first half");
+        advance.invoke(player, 0.125f, evaluator);
+        number(0f, firstPlaying.time, "quarter-second boundary starts at animation time zero");
+        advance.invoke(player, 0.125f, evaluator);
+        number(0.125f, firstPlaying.time, "animation clock advances after the transition ends");
         first.evalValue("ctrl.set_animation('animation.contract',10.9);");
         require(firstPlaying.loopMode == YsmAnimationClip.LoopMode.LOOP, "loop selector truncates instead of rounding");
         first.evalValue("ctrl.set_animation('animation.contract',11.9);");
@@ -1163,7 +1179,12 @@ public final class YsmFunctionContractSmokeTest {
         first.evalValue("ctrl.set_beginning_transition_length(2);");
         first.evalValue("ctrl.set_animation('animation.contract');");
         var secondPlaying = player.getControllerFunctionAnimation("second");
-        number(0.5f, secondPlaying.fadeSpeed, "second controller owns its two-second transition");
+        advance.invoke(player, 1f, evaluator);
+        number(0f, secondPlaying.time, "second controller owns its two-second beginning transition");
+        advance.invoke(player, 1f, evaluator);
+        number(0f, secondPlaying.time, "two-second boundary retains animation time zero");
+        advance.invoke(player, 0.125f, evaluator);
+        number(0.125f, secondPlaying.time, "second controller starts its clock after two seconds");
         number(0.25f, player.controllerFunctionTransitionLength("first"), "controller transition isolation");
         number(0f, second.runtime.animations().controllerFunctionTransitionLength("first"), "Avatar transition isolation");
         first.context.controller.setPath("controller", "first");
@@ -1322,21 +1343,24 @@ public final class YsmFunctionContractSmokeTest {
         owner.renderMode = EntityRenderMode.RENDER;
         fixture.context.filters.update(YsmFilterRuntime.Domain.BODY, 100f, 1L, null);
         number(10f, fixture.evalValue("ysm.first_order('view',10);"), "body creates independent filter");
+        number(10f, fixture.evalValue("ysm.first_order('view',20);"), "body input waits for its next frame");
         fixture.context.is_first_person = 1f;
         fixture.context.filters.update(YsmFilterRuntime.Domain.FIRST_PERSON, 100f, 1L, null);
         number(40f, fixture.evalValue("ysm.first_order('view',40);"), "arm creates independent filter");
+        number(40f, fixture.evalValue("ysm.first_order('view',80);"), "arm input waits for its next frame");
         owner.renderMode = EntityRenderMode.FIGURA_GUI;
         fixture.context.filters.update(YsmFilterRuntime.Domain.PREVIEW, 100f, 1L, null);
         number(90f, fixture.evalValue("ysm.first_order('view',90);"), "preview takes priority over stale arm flag");
+        number(90f, fixture.evalValue("ysm.first_order('view',180);"), "preview input waits for its next frame");
         fixture.context.filters.update(YsmFilterRuntime.Domain.PREVIEW, 101f, 2L, null);
-        number(4.5f, fixture.evalValue("ysm.first_order('view',90);"), "preview advances its own state");
+        number(94.5f, fixture.evalValue("ysm.first_order('view',180);"), "preview advances its own state");
         owner.renderMode = EntityRenderMode.RENDER;
         fixture.context.is_first_person = 0f;
         fixture.context.filters.update(YsmFilterRuntime.Domain.BODY, 101f, 2L, null);
-        number(0.5f, fixture.evalValue("ysm.first_order('view',10);"), "world return retains body state");
+        number(10.5f, fixture.evalValue("ysm.first_order('view',20);"), "world return retains body state");
         fixture.context.is_first_person = 1f;
         fixture.context.filters.update(YsmFilterRuntime.Domain.FIRST_PERSON, 101f, 2L, null);
-        number(2f, fixture.evalValue("ysm.first_order('view',40);"), "world return retains arm state");
+        number(42f, fixture.evalValue("ysm.first_order('view',80);"), "world return retains arm state");
     }
 
     private static void testDebugOutputContracts() throws Exception {
@@ -1459,6 +1483,7 @@ public final class YsmFunctionContractSmokeTest {
         Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
         unsafeField.setAccessible(true);
         FixturePlayer player = (FixturePlayer) ((Unsafe) unsafeField.get(null)).allocateInstance(FixturePlayer.class);
+        player.setUUID(java.util.UUID.randomUUID());
         player.abilities = new Abilities();
         fixture.context.entity = player;
         require(Boolean.FALSE.equals(fixture.evalValue("ctrl.fly;")), "flight requires native flying ability");
@@ -1483,6 +1508,7 @@ public final class YsmFunctionContractSmokeTest {
         Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
         unsafeField.setAccessible(true);
         RemotePlayer player = (RemotePlayer) ((Unsafe) unsafeField.get(null)).allocateInstance(RemotePlayer.class);
+        player.setUUID(java.util.UUID.randomUUID());
         var food = new net.minecraft.world.food.FoodData();
         Field foodData = net.minecraft.world.entity.player.Player.class.getDeclaredField("foodData");
         foodData.setAccessible(true);
@@ -1507,6 +1533,7 @@ public final class YsmFunctionContractSmokeTest {
                 unsafe.allocateInstance(net.minecraft.world.entity.decoration.ArmorStand.class);
         require(fixture.evalValue("q.is_jumping;") == null, "non-player LivingEntity cannot answer player jumping");
         FixturePlayer player = (FixturePlayer) unsafe.allocateInstance(FixturePlayer.class);
+        player.setUUID(java.util.UUID.randomUUID());
         player.abilities = new Abilities();
         fixture.context.entity = player;
         player.airborne = true;

@@ -47,6 +47,13 @@ public final class EntityFrame {
         PREPARED.set(frame);
     }
 
+    /** Clears an unconsumed GUI frame when dispatch is cancelled or fails before rendering. */
+    public static void clearPrepared(EntityFrame frame) {
+        if (PREPARED.get() == frame) {
+            PREPARED.remove();
+        }
+    }
+
     /** Opens the frame for an entity render call; pair every call with {@link #end}. */
     public static EntityFrame begin(Entity entity, float partialTick) {
         EntityFrame prepared = PREPARED.get();

@@ -7,11 +7,13 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.projectile.arrow.Arrow;
+import net.minecraft.world.entity.projectile.Arrow;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
+import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
+import top.aihmc.omnimorph.test.NativeImageState;
 import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
@@ -36,7 +38,7 @@ final class YsmSubEntitySmokeTest {
         parent.functions().load(templates);
         parent.animations().registerFunctionEventControllers(parent.functions().controllerEventNames());
         YsmRenderFrameClock.beginFrame();
-        parent.updateAnimations(new net.minecraft.client.renderer.entity.state.LivingEntityRenderState(), null);
+        parent.updateAnimations(new YsmEntityFrame(0, 0, 0, 0, 0), null);
         equal(1f, number(parent, "player_events"), "main-player controller callback executes on the main runtime");
         require(parent.owner().getMolangContext().variables.getPath("projectile_events") == null
                         && parent.owner().getMolangContext().variables.getPath("vehicle_events") == null,
@@ -126,7 +128,8 @@ final class YsmSubEntitySmokeTest {
         subject.setAccessible(true);
         require(a.owner().getMolangContext().entity == null && subject.get(a.animations()) == null,
                 "retained retired runtime drops both query and player references to its physical entity");
-        require(!image(definition.texture()).isClosed() && !image(normal).isClosed() && !image(specular).isClosed(),
+        require(!NativeImageState.isClosed(image(definition.texture()))
+                        && !NativeImageState.isClosed(image(normal)) && !NativeImageState.isClosed(image(specular)),
                 "retiring an instance leaves the shared definition base and PBR channel images alive");
         field(Entity.class, replacement, "removalReason", Entity.RemovalReason.DISCARDED);
         manager.tick(firstWorld);
@@ -138,8 +141,8 @@ final class YsmSubEntitySmokeTest {
         survivor.controller = controller;
         YsmModelRuntime last = manager.acquire(survivor, "projectile", "minecraft:arrow");
         parent.close();
-        require(last.isClosed() && manager.size() == 0 && image(definition.texture()).isClosed()
-                        && image(normal).isClosed() && image(specular).isClosed(),
+        require(last.isClosed() && manager.size() == 0 && NativeImageState.isClosed(image(definition.texture()))
+                        && NativeImageState.isClosed(image(normal)) && NativeImageState.isClosed(image(specular)),
                 "model unload closes instances before releasing shared definition images");
         require(manager.acquire(survivor, "projectile", "minecraft:arrow") == null,
                 "retained instance managers cannot revive an unloaded model");
@@ -241,21 +244,22 @@ final class YsmSubEntitySmokeTest {
                   "has_ride":{"loop":true,"bones":{"root":{"position":[0,0,3]}}},
                   "not_ride":{"loop":true,"bones":{"root":{"position":[0,0,4]}}}}}
                 """));
-        tag.putByteArray("controller", bytes(new String(tag.getByteArray("controller").orElseThrow(),
+        tag.putByteArray("controller", bytes(new String(org.figuramc.figura.utils.NbtDefaults
+                .findByteArray(tag, "controller").orElseThrow(),
                 StandardCharsets.UTF_8).replace("projectile.main", "vehicle.main")));
         YsmSubEntity definition = YsmSubEntity.fromNbt(parent.owner(), tag, texture);
         var add = YsmModelRuntime.class.getDeclaredMethod("addSubEntity", YsmSubEntity.class);
         add.setAccessible(true);
         add.invoke(parent, definition);
         TestBoat boat = (TestBoat) unsafe.allocateInstance(TestBoat.class);
-        field(Entity.class, boat, "type", EntityType.OAK_BOAT);
+        field(Entity.class, boat, "type", EntityType.BOAT);
         field(Entity.class, boat, "level", world);
         field(Entity.class, boat, "position", Vec3.ZERO);
         field(Entity.class, boat, "deltaMovement", Vec3.ZERO);
         field(Entity.class, boat, "passengers", com.google.common.collect.ImmutableList.of(passenger));
         boat.setId(81);
         boat.setUUID(new java.util.UUID(0, 81));
-        var holder = EntityType.OAK_BOAT.builtInRegistryHolder();
+        var holder = EntityType.BOAT.builtInRegistryHolder();
         var originalTags = holder.tags().toList();
         var bind = net.minecraft.core.Holder.Reference.class.getDeclaredMethod("bindTags", java.util.Collection.class);
         bind.setAccessible(true);
@@ -272,7 +276,7 @@ final class YsmSubEntitySmokeTest {
             require(parent.getSubEntityForEntity("projectile", boat) == null,
                     "a vehicle tag cannot cross into projectile resources");
             YsmRenderFrameClock.beginFrame();
-            YsmModelRuntime instance = parent.prepareSubEntity(boat, "vehicle", "minecraft:oak_boat", 0f);
+            YsmModelRuntime instance = parent.prepareSubEntity(boat, "vehicle", "minecraft:boat", 0f);
             require(instance != null && instance.owner().getMolangContext().entity == boat,
                     "vehicle preparation binds the physical Boat to its independent context");
             TestBoat collision = (TestBoat) unsafe.allocateInstance(TestBoat.class);
@@ -295,25 +299,25 @@ final class YsmSubEntitySmokeTest {
             field(Entity.class, boat, "deltaMovement", new Vec3(0.1, 0, 0));
             boat.tickCount += 2;
             YsmRenderFrameClock.beginFrame();
-            parent.prepareSubEntity(boat, "vehicle", "minecraft:oak_boat", 0f);
+            parent.prepareSubEntity(boat, "vehicle", "minecraft:boat", 0f);
             equal(2f, (float) instance.getPart("root").animPosRaw().y, "vehicle movement above reference threshold selects forward");
             bind.invoke(holder, originalTags);
-            require(parent.subEntityInstances().acquire(boat, "vehicle", "minecraft:oak_boat") == null
+            require(parent.subEntityInstances().acquire(boat, "vehicle", "minecraft:boat") == null
                             && instance.isClosed(), "tag removal retires a now-unmatched resource instance");
             bind.invoke(holder, tags);
-            YsmModelRuntime replaced = parent.prepareSubEntity(boat, "vehicle", "minecraft:oak_boat", 0f);
+            YsmModelRuntime replaced = parent.prepareSubEntity(boat, "vehicle", "minecraft:boat", 0f);
             field(Entity.class, boat, "passengers", com.google.common.collect.ImmutableList.of());
             parent.subEntityInstances().tick(world);
             require(!replaced.isClosed() && parent.subEntityInstances().size() == 1,
                     "unoccupied vehicle retains its locally observed model assignment");
             boat.tickCount += 2;
             YsmRenderFrameClock.beginFrame();
-            require(parent.prepareSubEntity(boat, "vehicle", "minecraft:oak_boat", 0f) == replaced,
+            require(parent.prepareSubEntity(boat, "vehicle", "minecraft:boat", 0f) == replaced,
                     "unoccupied vehicle resolves its prior model owner");
             equal(0f, replaced.owner().getMolangContext().has_rider, "unoccupied query reads the empty native passenger list");
             equal(4f, (float) replaced.getPart("root").animPosRaw().z, "unoccupied model consumes the reference not_ride animation");
             field(Entity.class, boat, "passengers", com.google.common.collect.ImmutableList.of(passenger));
-            YsmModelRuntime changed = parent.prepareSubEntity(boat, "vehicle", "minecraft:oak_boat", 0f);
+            YsmModelRuntime changed = parent.prepareSubEntity(boat, "vehicle", "minecraft:boat", 0f);
             TestArrow otherOwner = arrow(unsafe, world, 82, 0);
             otherOwner.setUUID(new java.util.UUID(0, 1234));
             field(Entity.class, boat, "passengers", com.google.common.collect.ImmutableList.of(otherOwner));
@@ -366,7 +370,7 @@ final class YsmSubEntitySmokeTest {
         }
     }
 
-    private static final class TestTrident extends net.minecraft.world.entity.projectile.arrow.ThrownTrident
+    private static final class TestTrident extends net.minecraft.world.entity.projectile.ThrownTrident
             implements top.aihmc.omnimorph.mixin.AbstractArrowAccessor {
         private Entity controller;
         private boolean embedded;
@@ -411,9 +415,9 @@ final class YsmSubEntitySmokeTest {
         }
     }
 
-    private static final class TestBoat extends net.minecraft.world.entity.vehicle.boat.Boat {
+    private static final class TestBoat extends net.minecraft.world.entity.vehicle.Boat {
         private TestBoat() {
-            super(EntityType.OAK_BOAT, null, () -> net.minecraft.world.item.Items.OAK_BOAT);
+            super(EntityType.BOAT, null);
         }
 
         @Override

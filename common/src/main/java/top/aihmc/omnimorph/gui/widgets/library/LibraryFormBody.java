@@ -1,8 +1,7 @@
 package top.aihmc.omnimorph.gui.widgets.library;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.events.GuiEventListener;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.figuramc.figura.gui.widgets.FiguraWidget;
 import org.figuramc.figura.gui.widgets.lists.AbstractList;
@@ -44,7 +43,7 @@ public final class LibraryFormBody extends AbstractList {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         var visibleRows = rows.stream().filter(row -> row.widget().isVisible()).toList();
         int spacing = labeled ? 40 : 24;
         int maximum = Math.max(0, visibleRows.stream().mapToInt(row -> row.height(labeled)).sum() - getHeight() + 4);
@@ -85,19 +84,19 @@ public final class LibraryFormBody extends AbstractList {
                     UIHelper.renderScrollingText(gui, row.label(), getX() + 4, y + (inline ? 6 : 0),
                             inline ? row.labelWidth() - 4 : getWidth() - 22, 0xffbac6d8);
                 }
-                row.widget().extractRenderState(gui, isInsideScissors(mouseX, mouseY) ? mouseX : -1,
+                row.widget().render(gui, isInsideScissors(mouseX, mouseY) ? mouseX : -1,
                         isInsideScissors(mouseX, mouseY) ? mouseY : -1, delta);
                 top += row.height(labeled);
             }
         } finally {
             gui.disableScissor();
         }
-        scrollBar.extractRenderState(gui, mouseX, mouseY, delta);
+        scrollBar.render(gui, mouseX, mouseY, delta);
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        return isInsideScissors(event.x(), event.y()) && super.mouseClicked(event, doubleClick);
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        return isInsideScissors(mouseX, mouseY) && super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override

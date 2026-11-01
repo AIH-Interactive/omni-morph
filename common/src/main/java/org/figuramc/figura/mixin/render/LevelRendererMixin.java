@@ -72,47 +72,48 @@ public abstract class LevelRendererMixin {
 
     @Inject(method = "renderLevel", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;checkPoseStack(Lcom/mojang/blaze3d/vertex/PoseStack;)V", ordinal = 0))
     private void renderLevelFirstPerson(DeltaTracker deltaTracker, boolean bl, Camera camera, GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f matrix4f, Matrix4f matrix4f2, CallbackInfo ci, @Local PoseStack stack) {
-        if (camera.isDetached())
+        if (camera.isDetached()) {
             return;
+        }
 
         float tickDelta = deltaTracker.getGameTimeDeltaPartialTick(false);
         Entity e = camera.getEntity();
         Avatar avatar = AvatarManager.getAvatar(e);
 
-        if (avatar == null)
+        if (avatar == null || avatar.isYsmNative()) {
             return;
+        }
 
         // first person world parts
         MultiBufferSource.BufferSource bufferSource = this.renderBuffers.bufferSource();
         avatar.firstPersonWorldRender(e, bufferSource, stack, camera, tickDelta);
 
         // first person matrices
-        if (!(e instanceof LivingEntity livingEntity) || !Configs.FIRST_PERSON_MATRICES.value)
+        if (!(e instanceof LivingEntity livingEntity) || !Configs.FIRST_PERSON_MATRICES.value) {
             return;
+        }
 
+        boolean previousFirstPerson = Avatar.firstPerson;
+        int size = ((PoseStackAccessor) stack).getPoseStack().size();
         Avatar.firstPerson = true;
-
-        int size = ((PoseStackAccessor)stack).getPoseStack().size();
         stack.pushPose();
-
-        EntityRenderer<? super LivingEntity> entityRenderer = this.entityRenderDispatcher.getRenderer(livingEntity);
-        Vec3 offset = entityRenderer.getRenderOffset(livingEntity, tickDelta);
-        Vec3 cam = camera.getPosition();
-
-        stack.translate(
-                Mth.lerp(tickDelta, livingEntity.xOld, livingEntity.getX()) - cam.x() + offset.x(),
-                Mth.lerp(tickDelta, livingEntity.yOld, livingEntity.getY()) - cam.y() + offset.y(),
-                Mth.lerp(tickDelta, livingEntity.zOld, livingEntity.getZ()) - cam.z() + offset.z()
-        );
-
-        float yaw = Mth.lerp(tickDelta, livingEntity.yRotO, livingEntity.getYRot());
-        entityRenderer.render(livingEntity, yaw, tickDelta, stack, bufferSource, LightTexture.FULL_BRIGHT);
-
-        do {
-            stack.popPose();
-        } while(((PoseStackAccessor)stack).getPoseStack().size() > size);
-
-        Avatar.firstPerson = false;
+        try {
+            EntityRenderer<? super LivingEntity> entityRenderer = this.entityRenderDispatcher.getRenderer(livingEntity);
+            Vec3 offset = entityRenderer.getRenderOffset(livingEntity, tickDelta);
+            Vec3 cam = camera.getPosition();
+            stack.translate(
+                    Mth.lerp(tickDelta, livingEntity.xOld, livingEntity.getX()) - cam.x() + offset.x(),
+                    Mth.lerp(tickDelta, livingEntity.yOld, livingEntity.getY()) - cam.y() + offset.y(),
+                    Mth.lerp(tickDelta, livingEntity.zOld, livingEntity.getZ()) - cam.z() + offset.z()
+            );
+            float yaw = Mth.lerp(tickDelta, livingEntity.yRotO, livingEntity.getYRot());
+            entityRenderer.render(livingEntity, yaw, tickDelta, stack, bufferSource, LightTexture.FULL_BRIGHT);
+        } finally {
+            while (((PoseStackAccessor) stack).getPoseStack().size() > size) {
+                stack.popPose();
+            }
+            Avatar.firstPerson = previousFirstPerson;
+        }
     }
 
     @Inject(method = "renderLevel", at = @At("HEAD"))

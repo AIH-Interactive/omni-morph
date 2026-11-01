@@ -2,12 +2,10 @@ package org.figuramc.figura.gui.screens;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.config.Configs;
@@ -20,7 +18,6 @@ import org.figuramc.figura.lua.api.ClientAPI;
 import org.figuramc.figura.mixin.gui.ScreenAccessor;
 import org.figuramc.figura.utils.FiguraIdentifier;
 import org.figuramc.figura.utils.ui.UIHelper;
-import org.joml.Matrix3x2fStack;
 
 import java.util.List;
 
@@ -102,7 +99,7 @@ public abstract class AbstractPanelScreen extends Screen {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         // setup figura framebuffer
         // UIHelper.useFiguraGuiFramebuffer();
 
@@ -110,7 +107,7 @@ public abstract class AbstractPanelScreen extends Screen {
         this.renderBackground(gui, delta);
 
         // render contents
-        super.extractRenderState(gui, mouseX, mouseY, delta);
+        super.render(gui, mouseX, mouseY, delta);
 
         // render overlays
         this.renderOverlays(gui, mouseX, mouseY, delta);
@@ -119,30 +116,34 @@ public abstract class AbstractPanelScreen extends Screen {
         // UIHelper.useVanillaFramebuffer();
     }
 
-    public void renderBackground(GuiGraphicsExtractor gui, float delta) {
+    public void renderBackground(GuiGraphics gui, float delta) {
         // render
         float speed = Configs.BACKGROUND_SCROLL_SPEED.tempValue * 0.125f;
         for (ResourceLocation background : BACKGROUNDS) {
             UIHelper.renderAnimatedBackground(gui, background, 0, 0, this.width, this.height, 64, 64, speed, delta);
             speed /= 0.5;
         }
-        gui.nextStratum();
+        gui.flush();
     }
 
-    public void renderOverlays(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void renderOverlays(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         // fps
         if (Configs.GUI_FPS.value)
-            gui.text(Minecraft.getInstance().font, ClientAPI.getFPS() + " fps", 1, 1, UIHelper.adjustColor(0xFFFFFF));
+            gui.drawString(Minecraft.getInstance().font, ClientAPI.getFPS() + " fps", 1, 1, UIHelper.adjustColor(0xFFFFFF));
 
         // render context
         if (contextMenu != null && contextMenu.isVisible()) {
             // translate the stack here because of nested contexts
-            Matrix3x2fStack pose = gui.pose();
-            pose.pushMatrix();
-//            pose.translate(0f, 0f, 500f);
-            gui.nextStratum();
-            contextMenu.extractRenderState(gui, mouseX, mouseY, delta);
-            pose.popMatrix();
+            gui.flush();
+            PoseStack pose = gui.pose();
+            pose.pushPose();
+            try {
+                pose.translate(0, 0, 500);
+                contextMenu.render(gui, mouseX, mouseY, delta);
+                gui.flush();
+            } finally {
+                pose.popPose();
+            }
         }
 
         // render tooltip
@@ -158,16 +159,16 @@ public abstract class AbstractPanelScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean bl) {
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
         // context menu first
-        if (this.contextMenuClick(mouseButtonEvent, bl))
+        if (this.contextMenuClick(mouseX, mouseY, button))
             return true;
 
         GuiEventListener widget = null;
 
         // update children focused
         for (GuiEventListener children : List.copyOf(this.children())) {
-            boolean clicked = children.mouseClicked(mouseButtonEvent, bl);
+            boolean clicked = children.mouseClicked(mouseX, mouseY, button);
             children.setFocused(clicked);
             if (clicked) widget = children;
         }
@@ -177,23 +178,23 @@ public abstract class AbstractPanelScreen extends Screen {
             setFocused(widget);
 
         if (widget != null) {
-            if (mouseButtonEvent.button() == 0) this.setDragging(true);
+            if (button == 0) this.setDragging(true);
             return true;
         }
 
         return false;
     }
 
-    public boolean contextMenuClick(MouseButtonEvent mouseButtonEvent, boolean bl) {
+    public boolean contextMenuClick(double mouseX, double mouseY, int button) {
         ContextMenu clickedMenu = contextMenu;
         // attempt to run context first
         if (clickedMenu != null && clickedMenu.isVisible()) {
             // attempt to click on the context menu
-            boolean clicked = clickedMenu.mouseClicked(mouseButtonEvent, false);
+            boolean clicked = clickedMenu.mouseClicked(mouseX, mouseY, button);
 
             // then try to click on the category container and suppress it
             // let the category handle the context menu visibility
-            if (!clicked && clickedMenu.parent != null && clickedMenu.parent.mouseClicked(mouseButtonEvent, bl))
+            if (!clicked && clickedMenu.parent != null && clickedMenu.parent.mouseClicked(mouseX, mouseY, button))
                 return true;
 
             // otherwise, remove visibility and suppress the click only if we clicked on the context
@@ -206,15 +207,15 @@ public abstract class AbstractPanelScreen extends Screen {
     }
 
     @Override
-    public boolean mouseDragged(MouseButtonEvent mouseButtonEvent, double d, double e) {
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double d, double e) {
         // yeet mouse 0 and isDragging check
-        return this.getFocused() != null && this.getFocused().mouseDragged(mouseButtonEvent, d, e);
+        return this.getFocused() != null && this.getFocused().mouseDragged(mouseX, mouseY, button, d, e);
     }
 
     @Override
-    public boolean mouseReleased(MouseButtonEvent mouseButtonEvent) {
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
         // better check for mouse released when outside element boundaries
-        boolean bool = this.getFocused() != null && this.getFocused().mouseReleased(mouseButtonEvent);
+        boolean bool = this.getFocused() != null && this.getFocused().mouseReleased(mouseX, mouseY, button);
 
         // remove focused when clicking
         if (bool) setFocused(null);
@@ -239,28 +240,28 @@ public abstract class AbstractPanelScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(KeyEvent keyEvent) {
-        egg += (char) keyEvent.key();
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        egg += (char) keyCode;
         egg = egg.substring(1);
         if (EGG.equals(egg)) {
             Minecraft.getInstance().setScreen(new GameScreen(this));
             return true;
         }
 
-        if (children().contains(panels) && panels.cycleTab(keyEvent.key()))
+        if (children().contains(panels) && panels.cycleTab(keyCode))
             return true;
 
-        if (keyEvent.key() == 256 && contextMenu != null && contextMenu.isVisible()) {
+        if (keyCode == 256 && contextMenu != null && contextMenu.isVisible()) {
             contextMenu.setVisible(false);
             return true;
         }
 
-        return super.keyPressed(keyEvent);
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     // No blur in our screens!
     @Override
-    protected void extractBlurredBackground(GuiGraphicsExtractor GuiGraphicsExtractor) {
+    protected void renderBlurredBackground(float delta) {
 
     }
 }

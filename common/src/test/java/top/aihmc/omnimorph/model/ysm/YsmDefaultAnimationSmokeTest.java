@@ -3,6 +3,8 @@ package top.aihmc.omnimorph.model.ysm;
 import com.google.gson.JsonParser;
 import net.minecraft.nbt.CompoundTag;
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.utils.NbtDefaults;
+import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
 import top.aihmc.omnimorph.molang.MolangEngine;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationClip;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationParser;
@@ -24,12 +26,11 @@ import java.util.UUID;
 public final class YsmDefaultAnimationSmokeTest {
     public static void run(Path workspace) throws Exception {
         CompoundTag accessory = fullAvatarSource("{}");
-        accessory.getCompoundOrEmpty("metadata").putString("resource_kind", "ACCESSORY");
+        accessory.getCompound("metadata").putString("resource_kind", "ACCESSORY");
         run(workspace, accessory);
     }
 
     public static void run(Path workspace, CompoundTag prepared) throws Exception {
-        testReferenceResources(workspace);
         Avatar owner = Avatar.createLibraryPreview(UUID.randomUUID(), "default-animation-test");
         try {
             owner.load(prepared.copy());
@@ -120,7 +121,9 @@ public final class YsmDefaultAnimationSmokeTest {
             testBuiltinFallback();
             testBeginningTransitionPose();
             testAuthoredDomains();
-            System.out.println("PASS default animation resolution: bundled hashes/whitelist, author/disabled priority, native parsing, domains, timeline dependencies, aliases and cache identity");
+            System.out.println("PASS default animation runtime: bundled hashes/whitelist, author/disabled priority, native parsing, domains, timeline dependencies, aliases and cache identity");
+            testReferenceResources(workspace);
+            System.out.println("PASS default animation reference resource parity");
         } finally {
             owner.clean();
             YsmDefaultAnimationResolver.clear();
@@ -129,7 +132,7 @@ public final class YsmDefaultAnimationSmokeTest {
 
     private static void testReferenceResources(Path workspace) throws Exception {
         Path bundled = workspace.resolve("common/src/main/resources/assets/omni-morph/default_animation");
-        Path reference = workspace.resolve("refs/Sparkle-Morpher/common/src/main/resources/assets/"
+        Path reference = workspace.resolve("refs/Sparkle-Morpher-neo1.21.1/src/main/resources/assets/"
                 + "sparkle_morpher/builtin/default/animations");
         try (var files = Files.list(reference)) {
             var animations = files.filter(path -> path.getFileName().toString().endsWith(".animation.json")).toList();
@@ -143,7 +146,7 @@ public final class YsmDefaultAnimationSmokeTest {
 
     private static void testReferenceSamples(Path workspace, MolangEngine engine, Map<String, YsmAnimationClip> main,
                                              Map<String, YsmAnimationClip> hands) throws Exception {
-        Path reference = workspace.resolve("refs/Sparkle-Morpher/common/src/main/resources/assets/"
+        Path reference = workspace.resolve("refs/Sparkle-Morpher-neo1.21.1/src/main/resources/assets/"
                 + "sparkle_morpher/builtin/default/animations");
         for (var domain : Map.of("main", main, "arm", hands).entrySet()) {
             // This checks resource selection/mapping through our parser, not Sparkle's runtime semantics.
@@ -193,16 +196,16 @@ public final class YsmDefaultAnimationSmokeTest {
                     "default templates never enter the authored v1 inventory or generated action wheel");
             var legacy = new top.aihmc.omnimorph.model.ysm.sync.YsmSyncModel(runtime);
             String schema = legacy.schemaHash();
-            var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
+            var state = new AnimationInput();
             state.ageInTicks = 10;
             top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
-            runtime.updateAnimations(state, null);
+            state.update(runtime);
             require(player.getActiveAnimations().get("idle").clip.name.equals("idle"),
                     "an explicitly empty author idle remains authoritative in the actual native state machine");
             state.walkAnimationSpeed = .8f;
             state.ageInTicks = 12;
             top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
-            runtime.updateAnimations(state, null);
+            state.update(runtime);
             var walk = player.getActiveAnimations().get("walk");
             require(walk != null && walk.clip.name.endsWith("/main/walk") && walk.targetWeight == 1,
                     "missing walk plays the selected bundled template through the native player");
@@ -215,7 +218,7 @@ public final class YsmDefaultAnimationSmokeTest {
             player.setNativeAnimationEnabled("walk", false);
             state.ageInTicks = 14;
             top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
-            runtime.updateAnimations(state, null);
+            state.update(runtime);
             var disabledWalk = player.getActiveAnimations().get("walk");
             require(disabledWalk == null || disabledWalk.targetWeight == 0,
                     "explicit disabling fades out an active default movement action");
@@ -223,7 +226,7 @@ public final class YsmDefaultAnimationSmokeTest {
                     "the native state-machine control accepts an explicit disable");
             state.ageInTicks = 16;
             top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
-            runtime.updateAnimations(state, null);
+            state.update(runtime);
             require(player.getActiveAnimations().values().stream().filter(animation -> animation.isNative)
                             .allMatch(animation -> animation.targetWeight == 0),
                     "default resolution never reopens a disabled native state machine");
@@ -235,11 +238,11 @@ public final class YsmDefaultAnimationSmokeTest {
             require(damaged.getYsmRuntime().defaultAnimationDiagnostics()
                             .contains("DEFAULT_FALLBACK_SKIPPED_DAMAGED_AUTHOR_ANIMATION"),
                     "a damaged author action is diagnosed rather than silently classified as missing");
-            var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
+            var state = new AnimationInput();
             state.walkAnimationSpeed = .8f;
             state.ageInTicks = 18;
             top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
-            damaged.getYsmRuntime().updateAnimations(state, null);
+            state.update(damaged.getYsmRuntime());
             require(!damaged.getYsmRuntime().animations().getActiveAnimations().containsKey("walk"),
                     "damaged walk declaration remains excluded from template substitution");
         } finally {
@@ -252,14 +255,14 @@ public final class YsmDefaultAnimationSmokeTest {
         CompoundTag source = fullAvatarSource("""
                 {"shared":{"loop":true,"bones":{"LeftArm":{"rotation":[10,0,0]}}}}
                 """);
-        CompoundTag tag = source.getCompoundOrEmpty("ysm");
-        tag.putByteArray("arm_model", tag.getByteArray("main_model").orElseThrow());
+        CompoundTag tag = source.getCompound("ysm");
+        tag.putByteArray("arm_model", NbtDefaults.findByteArray(tag, "main_model").orElseThrow());
         var arm = new CompoundTag();
         arm.putByteArray("data", """
                 {"ysm_animation_type":11,"animations":{"shared":{"loop":true,
                   "bones":{"LeftArm":{"rotation":[90,0,0]},"RightArm":{"rotation":[90,0,0]}}}}}
                 """.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        tag.getListOrEmpty("animations").add(arm);
+        NbtDefaults.getListOrEmpty(tag, "animations").add(arm);
         Avatar avatar = Avatar.createLibraryPreview(UUID.randomUUID(), "authored domain fixture");
         try {
             avatar.load(source);
@@ -292,7 +295,7 @@ public final class YsmDefaultAnimationSmokeTest {
                 {"animation_controllers":{"player.post_swing":{"states":{"default":{}}}}}
                 """.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         controllers.add(controller);
-        source.getCompoundOrEmpty("ysm").put("animation_controllers", controllers);
+        source.getCompound("ysm").put("animation_controllers", controllers);
         Avatar avatar = Avatar.createLibraryPreview(UUID.randomUUID(), "post swing fallback fixture");
         try {
             avatar.load(source);
@@ -326,19 +329,19 @@ public final class YsmDefaultAnimationSmokeTest {
                 }}}}
                 """.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         controllers.add(controller);
-        source.getCompoundOrEmpty("ysm").put("animation_controllers", controllers);
+        source.getCompound("ysm").put("animation_controllers", controllers);
         Avatar avatar = Avatar.createLibraryPreview(UUID.randomUUID(), "builtin fallback fixture");
         try {
             avatar.load(source);
             avatar.initializePreviewPlayer(null);
             var runtime = avatar.getYsmRuntime();
-            var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
+            var state = new AnimationInput();
             state.walkAnimationSpeed = .8f;
             for (int frame = 0; frame < 3; frame++) {
                 avatar.getMolangContext().variables.setPath("custom", frame == 1 ? 1f : 0f);
                 state.ageInTicks = frame * 2;
                 top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
-                runtime.updateAnimations(state, null);
+                state.update(runtime);
                 require((runtime.animations().getActiveAnimation("walk") != null) == (frame != 1),
                         "same-frame builtin/custom switching controls missing-walk fallback: " + frame);
             }
@@ -363,7 +366,7 @@ public final class YsmDefaultAnimationSmokeTest {
                 }}}}
                 """.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         controllers.add(controller);
-        source.getCompoundOrEmpty("ysm").put("animation_controllers", controllers);
+        source.getCompound("ysm").put("animation_controllers", controllers);
         Avatar avatar = Avatar.createLibraryPreview(UUID.randomUUID(), "beginning transition pose fixture");
         try {
             avatar.load(source);
@@ -372,12 +375,12 @@ public final class YsmDefaultAnimationSmokeTest {
             var context = avatar.getMolangContext();
             context.variables.setPath("zero", 0f);
             context.variables.setPath("mid", 0f);
-            var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
+            var state = new AnimationInput();
             for (int frame = 0; frame <= 6; frame++) {
                 context.variables.setPath("custom", frame == 0 ? 0f : 1f);
                 state.ageInTicks = frame * 2.5f;
                 top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
-                runtime.updateAnimations(state, null);
+                state.update(runtime);
                 if (frame == 0) {
                     continue;
                 }
@@ -397,6 +400,29 @@ public final class YsmDefaultAnimationSmokeTest {
             }
         } finally {
             avatar.clean();
+        }
+    }
+
+    /** Explicit frame values and a native grounded entity drive the production state machine. */
+    private static final class AnimationInput {
+        private float ageInTicks;
+        private float walkAnimationSpeed;
+        private final net.minecraft.world.entity.decoration.ArmorStand entity =
+                new net.minecraft.world.entity.decoration.ArmorStand(null, 0, 0, 0) {
+                    @Override
+                    public boolean onGround() {
+                        return true;
+                    }
+
+                    @Override
+                    public boolean onClimbable() {
+                        return false;
+                    }
+                };
+
+        private void update(YsmModelRuntime runtime) {
+            entity.tickCount = (int) ageInTicks;
+            runtime.updateAnimations(new YsmEntityFrame(ageInTicks, walkAnimationSpeed, 0, 0, 0), entity);
         }
     }
 

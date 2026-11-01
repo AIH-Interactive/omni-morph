@@ -3,7 +3,8 @@ package top.aihmc.omnimorph.lua.api.particle;
 import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.SingleQuadParticle;
-import net.minecraft.client.renderer.state.level.QuadParticleRenderState;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.particle.ParticleRenderType;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -22,6 +23,8 @@ import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /** Native custom particles sharing Minecraft's particle pass, texture binding and lifecycle. */
 public final class CustomParticle extends SingleQuadParticle {
@@ -59,7 +62,7 @@ public final class CustomParticle extends SingleQuadParticle {
     private ParticleLightSettings lightSettings = ParticleLightSettings.defaults();
 
     public CustomParticle(Avatar owner, ClientLevel level, FiguraTexture texture, Vec3 position, Vec3 velocity) {
-        super(level, position.x, position.y, position.z, null);
+        super(level, position.x, position.y, position.z);
         if (texture == null || !texture.belongsTo(owner)) {
             throw new LuaError("Custom particle texture must belong to this avatar instance");
         }
@@ -558,8 +561,9 @@ public final class CustomParticle extends SingleQuadParticle {
         }
     }
 
-    @Override
-    public void extract(QuadParticleRenderState state, Camera camera, float partialTick) {
+    /** The output must consume each writer synchronously while its layer tint/UV/light is bound. */
+    public void extract(BiConsumer<CustomParticlePipelines.Material, Consumer<VertexConsumer>> output,
+                        Camera camera, float partialTick) {
         if (!active() || ribbon()) {
             return;
         }
@@ -596,7 +600,7 @@ public final class CustomParticle extends SingleQuadParticle {
                 alpha = opacity * layer.tint().alpha();
                 layer.texture().uploadIfDirty();
                 CustomParticleRuntime.retainFrame(layer.texture(), textureLeases.get(layer.texture()));
-                super.extract(state, camera, partialTick);
+                output.accept(layer.renderLayer(), consumer -> super.render(consumer, camera, partialTick));
             }
         } finally {
             drawingLayer = null;
@@ -670,7 +674,7 @@ public final class CustomParticle extends SingleQuadParticle {
                     drawingLayer = layer;
                     materials.add(new RibbonRenderState.Layer(layer.renderLayer(), layer.uvAt(age + partialTick, sheet),
                             rCol * layer.tint().red(), gCol * layer.tint().green(), bCol * layer.tint().blue(),
-                            alpha * layer.tint().alpha(), getLightCoords(partialTick)));
+                            alpha * layer.tint().alpha(), getLightColor(partialTick)));
                 }
             } finally {
                 drawingLayer = null;
@@ -718,7 +722,7 @@ public final class CustomParticle extends SingleQuadParticle {
     }
 
     @Override
-    protected int getLightCoords(float partialTick) {
+    protected int getLightColor(float partialTick) {
         if (preview != null) {
             // GUI light is local to the panel. Never query a live-world light source for preview geometry.
             return 0xF000F0;
@@ -729,15 +733,16 @@ public final class CustomParticle extends SingleQuadParticle {
         }
         if (ribbon() && anchorTrail) {
             Vec3 position = lightPosition(partialTick);
-            return position == null ? 0 : net.minecraft.client.renderer.LevelRenderer.getLightCoords(level,
+            return position == null ? 0 : net.minecraft.client.renderer.LevelRenderer.getLightColor(level,
                     net.minecraft.core.BlockPos.containing(position));
         }
-        return super.getLightCoords(partialTick);
+        return super.getLightColor(partialTick);
     }
 
     @Override
-    protected Layer getLayer() {
-        return drawingLayer == null ? baseLayer.renderLayer() : drawingLayer.renderLayer();
+    public ParticleRenderType getRenderType() {
+        // Native ticking owns lifetime; our ordered material pass owns all custom geometry.
+        return ParticleRenderType.NO_RENDER;
     }
 
     @Override

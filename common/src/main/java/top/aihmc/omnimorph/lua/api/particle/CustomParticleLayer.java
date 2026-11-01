@@ -1,6 +1,5 @@
 package top.aihmc.omnimorph.lua.api.particle;
 
-import net.minecraft.client.particle.SingleQuadParticle;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
@@ -14,7 +13,7 @@ import java.util.Set;
 import org.figuramc.figura.lua.api.particle.ParticleAPI;
 /** One copied, bounded author layer declaration; a null sheet inherits particle-wide playback. */
 record CustomParticleLayer(FiguraTexture texture, ParticleSpriteSheet sheet, ParticleSpriteSheet.Uv crop,
-                           Tint tint, Boolean emissive, SingleQuadParticle.Layer renderLayer) {
+                           Tint tint, Boolean emissive, CustomParticlePipelines.Material renderLayer) {
     private static final Set<String> KEYS = Set.of("texture", "spriteSheet", "uv", "color",
             "alpha", "blend", "emissive");
     private static final ParticleSpriteSheet.Uv FULL_UV = new ParticleSpriteSheet.Uv(0, 1, 0, 1);
@@ -24,7 +23,7 @@ record CustomParticleLayer(FiguraTexture texture, ParticleSpriteSheet sheet, Par
 
     static CustomParticleLayer base(FiguraTexture texture, CustomParticlePipelines.Blend blend) {
         return new CustomParticleLayer(texture, null, FULL_UV, new Tint(1, 1, 1, 1), null,
-                new SingleQuadParticle.Layer(true, texture.getLocation(), CustomParticlePipelines.pipeline(0, blend)));
+                new CustomParticlePipelines.Material(texture.getLocation(), CustomParticlePipelines.pipeline(0, blend)));
     }
 
     static CustomParticleLayer read(Avatar owner, FiguraTexture fallback, LuaTable value,
@@ -59,7 +58,7 @@ record CustomParticleLayer(FiguraTexture texture, ParticleSpriteSheet sheet, Par
         require(blendValue.isnil() || blendValue.type() == LuaValue.TSTRING, "blend must be a string");
         CustomParticlePipelines.Blend blend = blend(blendValue.optjstring("alpha"));
         return new CustomParticleLayer(texture, sheet, crop, tint, emissive,
-                new SingleQuadParticle.Layer(true, texture.getLocation(), CustomParticlePipelines.pipeline(index, blend)));
+                new CustomParticlePipelines.Material(texture.getLocation(), CustomParticlePipelines.pipeline(index, blend)));
     }
 
     static CustomParticlePipelines.Blend blend(String value) {

@@ -338,7 +338,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 }));
             }
         } else {
-            addRenderableOnly((gui, x, y, delta) -> gui.text(font,
+            addRenderableOnly((gui, x, y, delta) -> gui.drawString(font,
                     tab == Tab.OUTFIT ? text("outfit") : text("collection"), 32, 32, 0xffffffff));
             if (tab == Tab.OUTFIT) {
                 int half = layout.treeWidth() / 2;
@@ -658,7 +658,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
             }
             UIHelper.renderScrollingText(gui, footer, x + 4, actionsY - 12, w - 8, 0xffd3e7e1);
             if (AvatarManager.panic) {
-                gui.text(font, FiguraText.of("gui.panic", Configs.PANIC_BUTTON.keyBind.getTranslatedKeyMessage()),
+                gui.drawString(font, FiguraText.of("gui.panic", Configs.PANIC_BUTTON.keyBind.getTranslatedKeyMessage()),
                         x + 4, layout.top() + 4, 0xffffff55);
             }
         });
@@ -673,7 +673,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 actions.action(icon(0, 0, "new_avatar", "create_resource",
                         this::openCreateMenu));
                 actions.action(icon(0, 0, "folder", "local", button ->
-                        net.minecraft.util.Util.getPlatform().openUri(LocalAvatarFetcher.getLocalAvatarDirectory().toUri())));
+                        net.minecraft.Util.getPlatform().openUri(LocalAvatarFetcher.getLocalAvatarDirectory().toUri())));
                 exportZipButton = actions.action(icon(0, 0, "export", "export_zip",
                         button -> exportSelectedLocal()));
                 exportZipButton.setTooltip(text("export_zip.tooltip"));
@@ -1169,7 +1169,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }
         addRenderableWidget(new BoneTreeWidget(x, treeTop, w, Math.max(40, height - 140 - (treeTop - layout.top())), bones,
                 this::refreshBones, this::selectTreeTarget)).setContextAction(
-                        (target, event) -> openBoneContext(target, event.x(), event.y()));
+                        this::openBoneContext);
         if (outfitDraft != null && draftPreviewActive) {
             addRenderableWidget(new Button(x, height - 60, w, 20,
                     text(attachingInstance == null ? "anchor_actions" : "anchor_target_actions"), null,

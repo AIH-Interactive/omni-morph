@@ -1,7 +1,6 @@
 package top.aihmc.omnimorph.gui.widgets.library;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.gui.widgets.AbstractContainerElement;
@@ -29,7 +28,7 @@ public final class LibraryUploadSource extends AbstractContainerElement {
         source = new Button(0, 0, sourceWidth, 84, FiguraText.of("gui.library.choose_model"),
                 FiguraText.of("gui.library.upload_drop_hint", LibraryLabels.fileSize(maximumBytes)), ignored -> chooseSource.run()) {
             @Override
-            protected void renderText(GuiGraphicsExtractor gui, float delta) {
+            protected void renderText(GuiGraphics gui, float delta) {
                 UIHelper.renderCenteredScrollingText(gui, Component.literal("+"), getX(), getY() + 10,
                         getWidth(), 18, getTextColor() | 0xff000000);
                 UIHelper.renderCenteredScrollingText(gui, getMessage(), getX() + 4, getY() + 34,
@@ -65,7 +64,7 @@ public final class LibraryUploadSource extends AbstractContainerElement {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         source.setX(getX());
         source.setY(getY());
         int imageX = getX() + source.getWidth() + 6;
@@ -80,8 +79,8 @@ public final class LibraryUploadSource extends AbstractContainerElement {
         }
         UIHelper.blitSliced(gui, imageX, getY(), imageWidth, 64, UIHelper.OUTLINE_FILL);
         int size = Math.min(imageWidth - 4, 60);
-        gui.blit(RenderPipelines.GUI_TEXTURED, texture, imageX + (imageWidth - size) / 2,
+        gui.blit(texture, imageX + (imageWidth - size) / 2,
                 getY() + (64 - size) / 2, 0, 0, size, size, size, size);
-        super.extractRenderState(gui, mouseX, mouseY, delta);
+        super.render(gui, mouseX, mouseY, delta);
     }
 }

@@ -109,10 +109,17 @@ public class FiguraTexture extends SimpleTexture {
             return;
         }
         dirty = true;
+        // TextureManager.register() invokes load() synchronously; uploading here must not register again.
         if (RenderSystem.isOnRenderThreadOrInit()) {
-            uploadIfDirty(clamp, uploadBlur);
+            ensureUploaded();
         } else {
-            RenderSystem.recordRenderCall(() -> uploadIfDirty(clamp, uploadBlur));
+            RenderSystem.recordRenderCall(() -> {
+                synchronized (FiguraTexture.this) {
+                    if (!isClosed) {
+                        ensureUploaded();
+                    }
+                }
+            });
         }
     }
 
@@ -196,8 +203,8 @@ public class FiguraTexture extends SimpleTexture {
             return;
         }
         removalQueued = true;
-        // execute() runs immediately on the render thread; schedule() also permits manager iteration.
-        Minecraft.getInstance().schedule(() -> {
+        // tell() always queues, including while TextureManager is iterating on the render thread.
+        Minecraft.getInstance().tell(() -> {
             ((TextureManagerAccessor) Minecraft.getInstance().getTextureManager()).getByPath()
                     .remove(getLocation(), this);
             removalQueued = false;

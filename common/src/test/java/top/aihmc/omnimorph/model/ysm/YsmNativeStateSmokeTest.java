@@ -1,10 +1,10 @@
 package top.aihmc.omnimorph.model.ysm;
 
 import net.minecraft.SharedConstants;
-import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
 import org.figuramc.figura.avatar.Avatar;
@@ -63,6 +63,18 @@ public final class YsmNativeStateSmokeTest {
 
     private static Unsafe unsafe;
 
+    /** Shared resolver fixture; the builtin-controller test must supply a live entity, never null. */
+    static LivingEntity idleEntity() throws ReflectiveOperationException {
+        Field field = Unsafe.class.getDeclaredField("theUnsafe");
+        field.setAccessible(true);
+        var allocator = (Unsafe) field.get(null);
+        var entity = (NativeEntity) allocator.allocateInstance(NativeEntity.class);
+        entity.pose = Pose.STANDING;
+        entity.grounded = true;
+        entity.alive = true;
+        return entity;
+    }
+
     public static void main(String[] arguments) throws Exception {
         Path directory = Files.createTempDirectory("figura-native-state-").toAbsolutePath().normalize();
         System.setProperty("figura.test.directory", directory.toString());
@@ -77,9 +89,9 @@ public final class YsmNativeStateSmokeTest {
         player.registerAnimations(YsmAnimationParser.parse(CLIPS,
                 MolangEngine.fromCustomBinding(name -> null)));
         Method update = YsmAnimationPlayer.class.getDeclaredMethod("updateNativeStateMachine",
-                LivingEntityRenderState.class, LivingEntity.class);
+                YsmEntityFrame.class, LivingEntity.class);
         update.setAccessible(true);
-        LivingEntityRenderState renderState = new LivingEntityRenderState();
+        YsmEntityFrame renderState = new YsmEntityFrame(0, 0, 0, 0, 0);
         NativeEntity entity = allocate(NativeEntity.class);
         NativeEntity vehicle = allocate(NativeEntity.class);
         vehicle.alive = true;
@@ -90,7 +102,7 @@ public final class YsmNativeStateSmokeTest {
     }
 
     private static void verifyReferenceTable(YsmAnimationPlayer player, Method update,
-                                             LivingEntityRenderState renderState, NativeEntity entity,
+                                             YsmEntityFrame renderState, NativeEntity entity,
                                              Avatar.MolangContext context) throws ReflectiveOperationException {
         expect(player, update, renderState, entity, context, "idle", () -> {
         });
@@ -142,7 +154,7 @@ public final class YsmNativeStateSmokeTest {
     }
 
     private static void verifyReferencePriorities(YsmAnimationPlayer player, Method update,
-                                                  LivingEntityRenderState renderState, NativeEntity entity,
+                                                  YsmEntityFrame renderState, NativeEntity entity,
                                                   Avatar.MolangContext context, NativeEntity vehicle)
             throws ReflectiveOperationException {
         expect(player, update, renderState, entity, context, "sit", () -> entity.vehicle = vehicle);
@@ -163,13 +175,14 @@ public final class YsmNativeStateSmokeTest {
         });
     }
 
-    private static void expect(YsmAnimationPlayer player, Method update, LivingEntityRenderState renderState,
+    private static void expect(YsmAnimationPlayer player, Method update, YsmEntityFrame renderState,
                                NativeEntity entity, Avatar.MolangContext context, String expected,
                                Runnable setup) throws ReflectiveOperationException {
         baseline(entity, context);
         setup.run();
         // updateFrame feeds the render state's limb amount into the movement context; mirror it.
-        renderState.walkAnimationSpeed = Math.max(0f, context.ground_speed);
+        renderState = new YsmEntityFrame(renderState.ageInTicks(), Math.max(0f, context.ground_speed),
+                renderState.netHeadYaw(), renderState.headPitch(), renderState.attackAnim());
         update.invoke(player, renderState, entity);
         String actual = activeNative(player);
         require(expected.equals(actual), "native action must be " + expected + " but was " + actual);
@@ -223,7 +236,7 @@ public final class YsmNativeStateSmokeTest {
     }
 
     /** Minimal player entity exposing exactly the resolver's inputs. */
-    private static final class NativeEntity extends LivingEntity {
+    private static final class NativeEntity extends ArmorStand {
         private Pose pose = Pose.STANDING;
         private boolean dead;
         private boolean spinAttack;
@@ -237,7 +250,7 @@ public final class YsmNativeStateSmokeTest {
         private boolean alive;
 
         private NativeEntity() {
-            super(EntityType.ARMOR_STAND, null);
+            super(null, 0, 0, 0);
         }
 
         @Override

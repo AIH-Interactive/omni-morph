@@ -1,26 +1,19 @@
 package top.aihmc.omnimorph.gui.widgets;
 
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.components.debug.DebugScreenDisplayer;
-import net.minecraft.client.gui.components.debug.DebugScreenEntry;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.chunk.LevelChunk;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.backend2.NetworkStuff;
 import org.figuramc.figura.config.Configs;
-import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public class DebugEntryFigura implements DebugScreenEntry {
-    @Override
-    public void display(DebugScreenDisplayer debugScreenDisplayer, @Nullable Level level, @Nullable LevelChunk levelChunk, @Nullable LevelChunk levelChunk2) {
-        if (AvatarManager.panic || !Configs.RENDER_STATS.value) return;
-        List<String> lines = new ArrayList<>();
-        int i = 0;
+public class DebugEntryFigura {
+    public static void appendLines(List<String> lines) {
+        if (AvatarManager.panic || !Configs.RENDER_STATS.value) {
+            return;
+        }
 
         lines.add(ChatFormatting.AQUA + "[" + FiguraMod.MOD_NAME + "]" + ChatFormatting.RESET);
         lines.add("Version: " + FiguraMod.VERSION);
@@ -43,14 +36,5 @@ public class DebugEntryFigura implements DebugScreenEntry {
         lines.add(String.format("Pings per second: ↑%d, ↓%d", NetworkStuff.pingsSent, NetworkStuff.pingsReceived));
 
         lines.add("");
-
-        for (String line : lines) {
-            debugScreenDisplayer.addLine(line);
-        }
-    }
-
-    @Override
-    public boolean isAllowed(boolean bl) {
-        return true;
     }
 }

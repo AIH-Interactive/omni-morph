@@ -1,15 +1,8 @@
 package top.aihmc.omnimorph.render.acceleration;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
-import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.resources.ResourceLocation;
-import org.figuramc.figura.math.matrix.FiguraMat3;
-import org.figuramc.figura.math.matrix.FiguraMat4;
 import top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest;
 
 import java.lang.reflect.InvocationHandler;
@@ -17,79 +10,40 @@ import java.lang.reflect.Proxy;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 
-/** CPU decoder of the GPU wire layout, through both production emitters. This does not validate GPU execution. */
+/** CPU wire-layout decoder through both production emitters; GPU execution is unsupported on 1.21.1 MVP. */
 public final class DualEngineGpuReplay {
     public static void main(String[] args) throws Exception {
         RenderSystem.initRenderThread();
         var service = AccelerationService.INSTANCE;
-        var device = new DecodingDevice();
-        var retirement = new GpuRetirement();
-        var gpu = new GpuAccelerationBackend(device, retirement, 64L << 20, 8L << 20);
-        while (!gpu.initializeStep()) {
-            // Match the bounded activation sequence, without creating a graphics context.
-        }
-        service.useBackend(gpu);
-        try (ByteBufferBuilder memory = new ByteBufferBuilder(4096)) {
-            FiguraAccelerationReplay.replay(sink -> {
-                device.sink = sink;
-                return MultiBufferSource.immediate(memory);
-            });
-            require(device.vertices == 16, "Figura rigid, edited, restored and weighted draws actually reach the GPU boundary");
+        var decoder = new DecodingBackend();
+        service.useBackend(decoder);
+        try {
+            FiguraAccelerationReplay.replay(sink -> material -> sink);
+            require(decoder.vertices == 16,
+                    "Figura rigid, edited, restored and weighted draws reach the CPU layout decoder");
             for (String argument : args) {
                 YsmMaterialNativeSmokeTest.replayAcceleration(Path.of(argument), runtime -> {
+                    service.useBackend(null);
                     var expected = new ArrayList<float[]>();
-                    var materials = new LinkedHashSet<RenderType>();
-                    VertexConsumer recorder = recorder(expected);
-                    runtime.renderer().renderWithAttachments(new PoseStack(), material -> {
-                        materials.add(material);
-                        return recorder;
-                    }, 0x00f000a0, runtime.captureRenderPose(false));
-                    var warmOwner = new AccelerationOwner();
-                    for (RenderType material : materials) {
-                        gpu.supports(AccelerationBackend.Operation.GPU_DRAW, warmup(service, warmOwner, material));
-                    }
-                    for (int frame = 0; frame <= materials.size(); frame++) {
-                        service.beginFrame();
-                        GpuSubmission.beginFrame();
-                    }
-                    warmOwner.retire();
+                    runtime.renderer().renderWithAttachments(new PoseStack(), material -> recorder(expected),
+                            0x00f000a0, runtime.captureRenderPose(false));
+                    service.useBackend(decoder);
                     var actual = new ArrayList<float[]>();
-                    device.sink = recorder(actual);
-                    long before = device.vertices;
-                    long beforeGroups = device.groupedDraws;
-                    var source = MultiBufferSource.immediate(memory);
-                    runtime.renderer().renderWithAttachments(new PoseStack(), source, 0x00f000a0,
-                            runtime.captureRenderPose(false));
-                    source.endBatch();
-                    require(device.vertices > before, "YSM model must actually use GPU submission");
-                    require(device.groupedDraws > beforeGroups, "real YSM replay must decode the grouped palette path");
+                    long before = decoder.vertices;
+                    runtime.renderer().renderWithAttachments(new PoseStack(), material -> recorder(actual),
+                            0x00f000a0, runtime.captureRenderPose(false));
+                    require(decoder.vertices > before, "YSM model reaches the CPU layout decoder");
                     compare(expected, actual);
-                    System.out.println("YSM production GPU-layout replay vertices=" + actual.size()
-                            + " groupedDraws=" + (device.groupedDraws - beforeGroups) + " PASS");
+                    require(!service.gpuDrawEnabled(), "numerical replay never enables unsupported GPU drawing");
+                    System.out.println("YSM production CPU layout replay vertices=" + actual.size() + " PASS");
                 });
             }
         } finally {
             service.useBackend(null);
-            device.complete = true;
-            retirement.poll();
-            require(device.liveBytes == 0, "both renderer owners release GPU resources exactly once");
         }
-        System.out.println("PASS dual-engine GPU wire-layout numerical replay; real GPU pixels MANUAL/PENDING");
-    }
-
-    private static DrawBatch warmup(AccelerationService service, AccelerationOwner owner, RenderType material) {
-        double[] vertices = new double[36];
-        for (int vertex = 0; vertex < 4; vertex++) {
-            vertices[vertex * 9 + 3] = 1;
-            vertices[vertex * 9 + 5] = 1;
-        }
-        var draw = new DrawSemantics(material, ResourceLocation.parse("omni-morph:replay"), DrawSemantics.Layer.PRIMARY,
-                "world", 0, 1, 0, 0, 1, 1, 1, 1, 0, true);
-        return new DrawBatch(service.capture(owner, "world"), new MeshHandle(vertices, 4),
-                new PoseSnapshot(FiguraMat4.of(), FiguraMat3.of()), draw);
+        System.out.println("PASS dual-engine CPU wire-layout numerical replay; GPU drawing/fences unsupported on 1.21.1 MVP");
     }
 
     private static VertexConsumer recorder(List<float[]> vertices) {
@@ -158,39 +112,48 @@ public final class DualEngineGpuReplay {
         return true;
     }
 
-    private static final class DecodingDevice extends GpuAccelerationSmokeTest.RigidDevice {
-        VertexConsumer sink;
-        long vertices;
-        long groupedDraws;
+    private static final class DecodingBackend implements AccelerationBackend {
+        private VertexConsumer sink;
+        private long vertices;
+        private float lastW;
 
         @Override
-        public void draw(Material material, Mesh mesh, Pose pose, GpuDrawContext context,
-                         int firstIndex, int indexCount, Runnable issuingDraw) {
-            issuingDraw.run();
-            ByteBuffer geometry = ((GpuAccelerationSmokeTest.FakeResource) mesh).data;
-            ByteBuffer matrices = ((GpuAccelerationSmokeTest.FakeResource) pose).data;
-            for (int vertex = firstIndex / 6 * 4; vertex < (firstIndex + indexCount) / 6 * 4; vertex++) {
-                emit(geometry, matrices, vertex, 0, false);
-            }
+        public boolean supports(Operation operation, DrawBatch batch) {
+            return operation == Operation.VERTEX_TRANSFORM && GpuBatchData.supports(batch);
         }
 
         @Override
-        public void drawWithIndices(Material material, Mesh mesh, Pose pose, Indices indices, GpuDrawContext context,
-                                    int firstIndex, int indexCount, Runnable issuingDraw) {
-            issuingDraw.run();
-            groupedDraws++;
-            ByteBuffer geometry = ((GpuAccelerationSmokeTest.FakeResource) mesh).data;
-            ByteBuffer matrices = ((GpuAccelerationSmokeTest.FakeResource) pose).data;
-            ByteBuffer order = ((GpuAccelerationSmokeTest.FakeResource) indices).data;
-            for (int face = firstIndex / 6; face < (firstIndex + indexCount) / 6; face++) {
-                int first = order.getInt(face * 6 * Integer.BYTES);
-                int batch = geometry.getInt(first * GpuBatchData.VERTEX_BYTES + 48);
-                int packed = matrices.getInt(GpuRigidData.REMAP_OFFSET + batch / 4 * Integer.BYTES);
-                int matrix = (packed >>> ((batch % 4) * 8) & 0xff) * GpuBatchData.PART_BYTES;
-                for (int corner = 0; corner < 4; corner++) {
-                    emit(geometry, matrices, first + corner, matrix, true);
+        public double[] transform(DrawBatch batch) {
+            ByteBuffer geometry = GpuBatchData.vertices(batch.mesh(), batch.pose().skinJointCount(),
+                    batch.pose().usesFloatPrecision());
+            ByteBuffer matrices = GpuBatchData.pose(batch);
+            var decoded = new ArrayList<float[]>();
+            double[] result = new double[batch.mesh().vertexCount() * MeshHandle.STRIDE];
+            sink = recorder(decoded);
+            try {
+                for (int vertex = 0; vertex < batch.mesh().vertexCount(); vertex++) {
+                    emit(geometry, matrices, vertex, 0, false);
+                    result[vertex * MeshHandle.STRIDE + 3] = lastW;
                 }
+            } finally {
+                sink = null;
             }
+            double[] expected = new JavaAccelerationBackend().transform(batch);
+            for (int vertex = 0; vertex < decoded.size(); vertex++) {
+                int offset = vertex * MeshHandle.STRIDE;
+                float[] value = decoded.get(vertex);
+                for (int component = 0; component < 3; component++) {
+                    result[offset + component] = value[component];
+                    result[offset + 4 + component] = value[3 + component];
+                }
+                result[offset + 7] = value[6];
+                result[offset + 8] = value[7];
+            }
+            for (int component = 0; component < result.length; component++) {
+                require(Math.abs(result[component] - expected[component]) <= 1e-4 + 1e-5 * Math.abs(expected[component]),
+                        "CPU layout decoder differs from Java at component " + component);
+            }
+            return result;
         }
 
         private void emit(ByteBuffer geometry, ByteBuffer matrices, int vertex, int matrix, boolean grouped) {
@@ -237,14 +200,9 @@ public final class DualEngineGpuReplay {
                 }
             }
             float[] uv = multiply(matrices, matrix + 112, new float[]{geometry.getFloat(offset + 24), geometry.getFloat(offset + 28), 1}, 3);
+            lastW = position[3];
             sink.addVertex(position[0], position[1], position[2]).setNormal(normal[0], normal[1], normal[2]).setUv(uv[0], uv[1]);
             vertices++;
-        }
-
-        @Override
-        public void drawJava(RenderType material, MeshData geometry) {
-            geometry.close();
-            throw new AssertionError("GPU-layout replay unexpectedly used Java material fallback");
         }
 
         private static float[] multiply(ByteBuffer data, int offset, float[] vector, int size) {

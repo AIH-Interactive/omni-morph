@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.gui.widgets.library;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import org.figuramc.figura.gui.widgets.AbstractContainerElement;
 import org.figuramc.figura.gui.widgets.Button;
 
@@ -58,7 +58,7 @@ public final class LibraryActionBar extends AbstractContainerElement {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         List<Button> visible = visibleActions();
         int columns = Math.max(1, (getWidth() + 4) / 28);
         for (int index = 0; index < visible.size(); index++) {
@@ -80,6 +80,6 @@ public final class LibraryActionBar extends AbstractContainerElement {
             option.setY(getY() + ((visible.size() + columns - 1) / columns) * 28);
             option.setWidth(getWidth());
         }
-        super.extractRenderState(gui, mouseX, mouseY, delta);
+        super.render(gui, mouseX, mouseY, delta);
     }
 }

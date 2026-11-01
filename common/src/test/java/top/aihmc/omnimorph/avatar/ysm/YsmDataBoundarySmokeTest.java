@@ -1,5 +1,5 @@
 package top.aihmc.omnimorph.avatar.ysm;
-
+import org.figuramc.figura.utils.NbtDefaults;
 import org.figuramc.figura.avatar.local.LocalAvatarFetcher;
 import org.figuramc.figura.avatar.local.LocalAvatarLoader;
 import top.aihmc.omnimorph.model.ysm.YsmGeometry;
@@ -55,22 +55,22 @@ public final class YsmDataBoundarySmokeTest {
                         "resource buffers are not shared with callers");
                 var avatar = YsmAvatarLoader.toAvatarNbt(directory, directory.manifest().textures().getFirst(),
                         new UUID(0, 1), folder);
-                require(avatar.getCompoundOrEmpty("metadata").getStringOr("format", "").equals("ysm-native"),
+                require(avatar.getCompound("metadata").getString("format").equals("ysm-native"),
                         "formal YSM metadata retained");
-                require(avatar.getCompoundOrEmpty("ysm").getStringOr("source_path", "")
+                require(avatar.getCompound("ysm").getString("source_path")
                         .equals(folder.toAbsolutePath().normalize().toString()), "local source path compatibility");
-                require(avatar.getCompoundOrEmpty("ysm").getStringOr("content_sha256", "")
+                require(avatar.getCompound("ysm").getString("content_sha256")
                         .equals(directory.identity().contentSha256()), "content identity reaches formal payload");
                 require(directory.resources().readString("lang/zh_cn.json").contains("测试"),
                         "language and other raw resources retained");
                 var runtimeTag = YsmAvatarLoader.toRuntimeTag(directory, null);
-                var sound = runtimeTag.getListOrEmpty("sound_entries").getCompoundOrEmpty(0);
-                require(sound.getStringOr("path", "").equals("sounds/example.ogg")
-                                && Arrays.equals(sound.getByteArray("data").orElseThrow(), files.get("sounds/example.ogg")),
+                var sound = NbtDefaults.getListOrEmpty(runtimeTag, "sound_entries").getCompound(0);
+                require(sound.getString("path").equals("sounds/example.ogg")
+                                && Arrays.equals(NbtDefaults.findByteArray(sound, "data").orElseThrow(), files.get("sounds/example.ogg")),
                         "runtime sound assembly preserves binary bytes and path");
-                var language = runtimeTag.getListOrEmpty("language_entries").getCompoundOrEmpty(0);
-                require(language.getStringOr("path", "").equals("lang/zh_cn.json")
-                                && Arrays.equals(language.getByteArray("data").orElseThrow(), files.get("lang/zh_cn.json")),
+                var language = NbtDefaults.getListOrEmpty(runtimeTag, "language_entries").getCompound(0);
+                require(language.getString("path").equals("lang/zh_cn.json")
+                                && Arrays.equals(NbtDefaults.findByteArray(language, "data").orElseThrow(), files.get("lang/zh_cn.json")),
                         "runtime language assembly preserves original UTF-8 bytes");
                 testDirectFaces(directory);
             }

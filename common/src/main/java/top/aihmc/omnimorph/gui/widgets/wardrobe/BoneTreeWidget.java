@@ -2,9 +2,7 @@ package top.aihmc.omnimorph.gui.widgets.wardrobe;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import org.figuramc.figura.gui.widgets.Button;
 import org.figuramc.figura.gui.widgets.ScrollBarWidget;
@@ -26,10 +24,15 @@ public final class BoneTreeWidget extends AbstractList {
     private int horizontalMaximum;
     private long modelVersion;
     private final java.util.function.Consumer<top.aihmc.omnimorph.model.library.OutfitHierarchy.Target> selectionChanged;
-    private java.util.function.BiConsumer<top.aihmc.omnimorph.model.library.OutfitHierarchy.Target, MouseButtonEvent> contextAction;
+    private ContextAction contextAction;
 
-    public void setContextAction(java.util.function.BiConsumer<top.aihmc.omnimorph.model.library.OutfitHierarchy.Target, MouseButtonEvent> action) {
+    public void setContextAction(ContextAction action) {
         contextAction = action;
+    }
+
+    @FunctionalInterface
+    public interface ContextAction {
+        void accept(top.aihmc.omnimorph.model.library.OutfitHierarchy.Target target, double mouseX, double mouseY);
     }
 
     public BoneTreeWidget(int x, int y, int width, int height, BoneTreeState state) {
@@ -130,14 +133,14 @@ public final class BoneTreeWidget extends AbstractList {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         updateScrollbars();
         int maximum = maximumScroll();
         scrollBar.setVisible(maximum > 0);
         scrollBar.setScrollRatio(ROW_HEIGHT, Math.max(1, maximum));
         state.scroll(scrollBar.getScrollProgress());
         UIHelper.blitSliced(gui, getX(), getY(), getWidth(), getHeight(), UIHelper.OUTLINE_FILL);
-        super.extractRenderState(gui, mouseX, mouseY, delta);
+        super.render(gui, mouseX, mouseY, delta);
         enableScissors(gui);
         try {
             var font = Minecraft.getInstance().font;
@@ -156,18 +159,18 @@ public final class BoneTreeWidget extends AbstractList {
                 if (row.expandable()) {
                     arrow = row.expanded() ? "v" : ">";
                 }
-                gui.text(font, arrow, x, y + 4, 0xffdddddd);
+                gui.drawString(font, arrow, x, y + 4, 0xffdddddd);
                 Component name = name(row);
                 if (row.matched()) {
                     name = name.copy().withStyle(ChatFormatting.YELLOW);
                 }
-                gui.text(font, name, x + 12, y + 4, 0xffffffff);
+                gui.drawString(font, name, x + 12, y + 4, 0xffffffff);
                 if (isInsideScissors(mouseX, mouseY) && mouseY >= y && mouseY < y + ROW_HEIGHT) {
                     UIHelper.setTooltip(name);
                 }
             }
             if (state.rows().isEmpty()) {
-                gui.text(font, FiguraText.of(state.query().isEmpty() ? "gui.wardrobe.no_bones" : "gui.wardrobe.no_bone_matches"),
+                gui.drawString(font, FiguraText.of(state.query().isEmpty() ? "gui.wardrobe.no_bones" : "gui.wardrobe.no_bone_matches"),
                         getX() + 6, getY() + 34, 0xffaaaaaa);
             }
         } finally {
@@ -176,15 +179,15 @@ public final class BoneTreeWidget extends AbstractList {
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
         updateScrollbars();
-        if (super.mouseClicked(event, doubleClick)) {
+        if (super.mouseClicked(mouseX, mouseY, button)) {
             return true;
         }
-        if (!isInsideScissors(event.x(), event.y()) || event.button() != 0 && event.button() != 1) {
+        if (!isInsideScissors(mouseX, mouseY) || button != 0 && button != 1) {
             return false;
         }
-        int index = ((int) event.y() - getY() - 28 + offset()) / ROW_HEIGHT;
+        int index = ((int) mouseY - getY() - 28 + offset()) / ROW_HEIGHT;
         if (index < 0 || index >= state.rows().size()) {
             return false;
         }
@@ -192,14 +195,14 @@ public final class BoneTreeWidget extends AbstractList {
         var row = state.rows().get(index);
         state.select(row.node().id());
         notifySelection();
-        if (event.button() == 1) {
+        if (button == 1) {
             if (contextAction != null) {
-                contextAction.accept(state.selectedTarget(), event);
+                contextAction.accept(state.selectedTarget(), mouseX, mouseY);
             }
             return true;
         }
         int arrowX = getX() + 4 + indent(row) - horizontalOffset();
-        if (row.expandable() && event.x() >= arrowX && event.x() < arrowX + 14) {
+        if (row.expandable() && mouseX >= arrowX && mouseX < arrowX + 14) {
             state.toggle(row.node().id());
         }
         return true;
@@ -218,13 +221,13 @@ public final class BoneTreeWidget extends AbstractList {
     }
 
     @Override
-    public boolean keyPressed(KeyEvent event) {
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (search.getField().isFocused()) {
-            return super.keyPressed(event);
+            return super.keyPressed(keyCode, scanCode, modifiers);
         }
         var rows = state.rows();
         if (rows.isEmpty()) {
-            return super.keyPressed(event);
+            return super.keyPressed(keyCode, scanCode, modifiers);
         }
         int index = 0;
         for (int position = 0; position < rows.size(); position++) {
@@ -234,19 +237,19 @@ public final class BoneTreeWidget extends AbstractList {
             }
         }
         var row = rows.get(index);
-        if (event.key() == 264 || event.key() == 265) {
-            index = Math.clamp(index + (event.key() == 264 ? 1 : -1), 0, rows.size() - 1);
+        if (keyCode == 264 || keyCode == 265) {
+            index = Math.clamp(index + (keyCode == 264 ? 1 : -1), 0, rows.size() - 1);
             state.select(rows.get(index).node().id());
             notifySelection();
             scrollBar.setScrollProgressNoAnim(maximumScroll() == 0 ? 0
                     : Math.min(1d, index * (double) ROW_HEIGHT / maximumScroll()));
             return true;
         }
-        if (event.key() == 257 || (event.key() == 262 && !row.expanded()) || (event.key() == 263 && row.expanded())) {
+        if (keyCode == 257 || (keyCode == 262 && !row.expanded()) || (keyCode == 263 && row.expanded())) {
             state.toggle(row.node().id());
             return true;
         }
-        return super.keyPressed(event);
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     private void notifySelection() {

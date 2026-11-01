@@ -262,7 +262,7 @@ tasks.register('gpuAccelerationSmokeTest', JavaExec) {
 
 tasks.register('gpuSubmissionSmokeTest', JavaExec) {
     group = 'verification'
-    description = 'Exercises real BufferSource/RenderType flushes with recorded GPU draws and original face sorting.'
+    description = 'Checks 1.21.1 GPU rejection and native Java BufferSource ordering, sorting and cleanup.'
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuSubmissionSmokeTest'
@@ -274,6 +274,22 @@ tasks.register('gpuRigidDataSmokeTest', JavaExec) {
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuRigidDataSmokeTest'
+}
+
+tasks.register('figuraTextureRegistrationSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks native texture registration, reload and leased cleanup in a visible GL window.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.test.FiguraTextureRegistrationSmokeTest'
+}
+
+tasks.register('ysmPreviewLightingSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks native unlit preview material state and real-window shader pixel output.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmPreviewLightingSmokeTest'
 }
 
 tasks.register('ysmAccelerationMeshesSmokeTest', JavaExec) {

@@ -1,19 +1,13 @@
 package top.aihmc.omnimorph.model.ysm;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.renderer.SubmitNodeCollector;
-import net.minecraft.client.renderer.entity.state.AvatarRenderState;
-import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
-import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.world.phys.Vec3;
 import top.aihmc.omnimorph.avatar.AvatarLoadProgress;
 import top.aihmc.omnimorph.backend2.protocol.CloudHttp;
 import top.aihmc.omnimorph.gui.AvatarLoadingRenderer;
 
 import java.io.ByteArrayInputStream;
-import java.lang.reflect.Proxy;
 import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 final class AvatarLoadProgressSmokeTest {
@@ -50,26 +44,160 @@ final class AvatarLoadProgressSmokeTest {
             require(expected.getMessage().equals("Response exceeds byte budget"), "byte limit retained");
         }
 
-        var state = new AvatarRenderState();
-        state.nameTagAttachment = new Vec3(0, 2, 0);
-        state.distanceToCameraSq = 16;
-        var submit = AvatarLoadingRenderer.class.getDeclaredMethod("submitProgress", AvatarLoadProgress.Snapshot.class,
-                LivingEntityRenderState.class, PoseStack.class, SubmitNodeCollector.class, CameraRenderState.class);
-        submit.setAccessible(true);
-        AtomicInteger submissions = new AtomicInteger();
-        var collector = (SubmitNodeCollector) Proxy.newProxyInstance(SubmitNodeCollector.class.getClassLoader(),
-                new Class<?>[]{SubmitNodeCollector.class}, (proxy, method, args) -> {
-                    require(method.getName().equals("submitNameTag"), "loading uses native name-tag submission");
-                    require(((Vec3) args[1]).y == 2.45, "loading bar is placed above the player's name tag");
-                    require(((net.minecraft.network.chat.Component) args[3]).getString().contains("50%"), "submitted text carries real progress");
-                    require(Boolean.TRUE.equals(args[4]), "loading label uses discrete native depth behavior");
-                    submissions.incrementAndGet();
-                    return null;
-                });
-        submit.invoke(null, new AvatarLoadProgress.Snapshot(1, AvatarLoadProgress.Stage.DOWNLOADING, 50, 100),
-                state, new PoseStack(), collector, new CameraRenderState());
-        require(submissions.get() == 1, "exactly one loading overlay is submitted");
-        System.out.println("Player loading progress: real byte counts, indeterminate stages, stale cancellation, cleanup and native head-label submission PASS; visual GUI pending");
+        verifyNativeLabel();
+        System.out.println("Player loading progress: real byte counts, stale cancellation and immediate native label passes PASS; visual GUI pending");
+    }
+
+    private static void verifyNativeLabel() throws Exception {
+        var unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+        unsafeField.setAccessible(true);
+        var unsafe = (sun.misc.Unsafe) unsafeField.get(null);
+        var client = net.minecraft.client.Minecraft.getInstance();
+        var oldFont = client.font;
+        var fontField = net.minecraft.client.Minecraft.class.getDeclaredField("font");
+        fontField.setAccessible(true);
+        var oldOptions = client.options;
+        var oldLevel = client.level;
+        var optionsField = net.minecraft.client.Minecraft.class.getDeclaredField("options");
+        optionsField.setAccessible(true);
+        var font = new RecordingFont();
+        var dispatcher = client.getEntityRenderDispatcher();
+        var cameraField = net.minecraft.client.renderer.entity.EntityRenderDispatcher.class.getDeclaredField("camera");
+        cameraField.setAccessible(true);
+        var oldCamera = cameraField.get(dispatcher);
+        var oldOrientation = dispatcher.cameraOrientation();
+        var usersField = org.figuramc.figura.avatar.AvatarManager.class.getDeclaredField("LOADED_USERS");
+        usersField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        var users = (java.util.Map<java.util.UUID, org.figuramc.figura.avatar.UserData>) usersField.get(null);
+        var id = new java.util.UUID(0, 456789);
+        var user = new org.figuramc.figura.avatar.UserData(id);
+        var previousUser = users.get(id);
+        boolean oldPanic = org.figuramc.figura.avatar.AvatarManager.panic;
+        var player = (LabelPlayer) unsafe.allocateInstance(LabelPlayer.class);
+        player.id = id;
+        var dimensionsField = net.minecraft.world.entity.Entity.class.getDeclaredField("dimensions");
+        dimensionsField.setAccessible(true);
+        dimensionsField.set(player, net.minecraft.world.entity.EntityDimensions.fixed(1, 2)
+                .withAttachments(net.minecraft.world.entity.EntityAttachments.builder()
+                        .attach(net.minecraft.world.entity.EntityAttachment.NAME_TAG, new Vec3(0, 1.5, 0))));
+        var positionField = net.minecraft.world.entity.Entity.class.getDeclaredField("position");
+        positionField.setAccessible(true);
+        positionField.set(player, new Vec3(0, 0, 4));
+        long request = user.loading.begin(AvatarLoadProgress.Stage.DOWNLOADING);
+        user.loading.downloaded(request, 50, 100);
+        var poses = new PoseStack();
+        var initialPose = new org.joml.Matrix4f(poses.last().pose());
+        net.minecraft.client.renderer.MultiBufferSource buffers = type -> {
+            throw new AssertionError("Recording font must intercept the native text boundary");
+        };
+        try {
+            users.put(id, user);
+            fontField.set(client, font);
+            optionsField.set(client, unsafe.allocateInstance(LabelOptions.class));
+            client.level = (net.minecraft.client.multiplayer.ClientLevel) unsafe.allocateInstance(
+                    net.minecraft.client.multiplayer.ClientLevel.class);
+            cameraField.set(dispatcher, new net.minecraft.client.Camera());
+            dispatcher.overrideCameraOrientation(new org.joml.Quaternionf());
+            org.figuramc.figura.avatar.AvatarManager.panic = false;
+            var frame = new top.aihmc.omnimorph.render.EntityFrame(player, 0.25f);
+            AvatarLoadingRenderer.render(frame, poses, buffers, 12345);
+            require(font.modes.equals(java.util.List.of(net.minecraft.client.gui.Font.DisplayMode.SEE_THROUGH,
+                            net.minecraft.client.gui.Font.DisplayMode.NORMAL)),
+                    "one loading label uses the native see-through and normal text passes exactly once");
+            require(poses.last().pose().equals(initialPose), "loading label restores its caller's pose");
+            player.hidden = true;
+            AvatarLoadingRenderer.render(frame, poses, buffers, 12345);
+            player.hidden = false;
+            org.figuramc.figura.avatar.AvatarManager.panic = true;
+            AvatarLoadingRenderer.render(frame, poses, buffers, 12345);
+            org.figuramc.figura.avatar.AvatarManager.panic = false;
+            positionField.set(player, new Vec3(0, 0, 65));
+            AvatarLoadingRenderer.render(frame, poses, buffers, 12345);
+            positionField.set(player, new Vec3(0, 0, 4));
+            user.loading.finish(request);
+            AvatarLoadingRenderer.render(frame, poses, buffers, 12345);
+            require(font.modes.size() == 2, "hidden, panic, distant and completed labels do not draw");
+        } finally {
+            fontField.set(client, oldFont);
+            optionsField.set(client, oldOptions);
+            client.level = oldLevel;
+            cameraField.set(dispatcher, oldCamera);
+            dispatcher.overrideCameraOrientation(oldOrientation);
+            org.figuramc.figura.avatar.AvatarManager.panic = oldPanic;
+            if (previousUser == null) {
+                users.remove(id);
+            } else {
+                users.put(id, previousUser);
+            }
+        }
+    }
+
+    private static final class LabelOptions extends net.minecraft.client.Options {
+        private LabelOptions() {
+            super(null, null);
+        }
+
+        @Override
+        public float getBackgroundOpacity(float defaultValue) {
+            return 0.25f;
+        }
+    }
+
+    private static final class LabelPlayer extends net.minecraft.client.player.RemotePlayer {
+        private java.util.UUID id;
+        private boolean hidden;
+
+        private LabelPlayer() {
+            super(null, new com.mojang.authlib.GameProfile(new java.util.UUID(0, 1), "label-fixture"));
+        }
+
+        @Override
+        public java.util.UUID getUUID() {
+            return id;
+        }
+
+        @Override
+        public boolean isInvisible() {
+            return hidden;
+        }
+
+        @Override
+        public float getViewYRot(float partialTick) {
+            return 0f;
+        }
+
+    }
+
+    private static final class RecordingFont extends net.minecraft.client.gui.Font {
+        private final java.util.List<DisplayMode> modes = new java.util.ArrayList<>();
+
+        private RecordingFont() {
+            super(location -> null, false);
+        }
+
+        @Override
+        public int width(net.minecraft.network.chat.FormattedText text) {
+            return 80;
+        }
+
+        @Override
+        public int drawInBatch(net.minecraft.network.chat.Component text, float x, float y, int color,
+                               boolean shadow, org.joml.Matrix4f pose,
+                               net.minecraft.client.renderer.MultiBufferSource buffers, DisplayMode mode,
+                               int background, int light) {
+            require(text.getString().contains("50%"), "native label carries the actual progress");
+            require(x == -40f && y == 0f && !shadow, "label centers the native font width");
+            require(Math.abs(pose.m31() - 2.45f) < 0.00001f,
+                    "loading bar is placed above the native name-tag attachment");
+            require(pose.m00() == 0.025f && pose.m11() == -0.025f && pose.m22() == 0.025f,
+                    "label uses the native name-tag scale");
+            require(light == 12345, "label preserves supplied world light");
+            require(color == (modes.isEmpty() ? 0x20ffffff : -1), "native two-pass text colors");
+            require(background == (modes.isEmpty() ? 0x3f000000 : 0), "only see-through pass has background");
+            modes.add(mode);
+            return 80;
+        }
     }
 
     private static void require(boolean condition, String message) {

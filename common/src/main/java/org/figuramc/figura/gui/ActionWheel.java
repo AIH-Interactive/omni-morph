@@ -1,15 +1,12 @@
 package org.figuramc.figura.gui;
 
 import com.mojang.blaze3d.platform.Window;
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
@@ -25,13 +22,10 @@ import org.figuramc.figura.lua.api.action_wheel.Action;
 import org.figuramc.figura.lua.api.action_wheel.Page;
 import top.aihmc.omnimorph.model.ysm.action.YsmActionRuntime;
 import org.figuramc.figura.math.vector.FiguraVec3;
-import org.figuramc.figura.math.vector.FiguraVec4;
-import org.figuramc.figura.utils.ColorUtils;
 import org.figuramc.figura.utils.FiguraIdentifier;
 import org.figuramc.figura.utils.FiguraText;
 import org.figuramc.figura.utils.TextUtils;
 import org.figuramc.figura.utils.ui.UIHelper;
-import org.joml.Matrix3x2fStack;
 
 import java.util.List;
 import java.util.function.Function;
@@ -95,7 +89,7 @@ public class ActionWheel {
         }
     }
 
-    public static void renderPreview(GuiGraphicsExtractor gui, Page page, int centerX, int centerY,
+    public static void renderPreview(GuiGraphics gui, Page page, int centerX, int centerY,
                                      double pointerX, double pointerY) {
         if (page == null) {
             return;
@@ -113,14 +107,14 @@ public class ActionWheel {
             mouseY = pointerY;
             calculateSelected();
             var pose = gui.pose();
-            pose.pushMatrix();
+            pose.pushPose();
             try {
-                pose.translate(x, y);
-                pose.scale(scale, scale);
+                pose.translate(x, y, 0);
+                pose.scale(scale, scale, 1);
                 renderTextures(gui, page);
                 renderItemsAndIcons(gui, page);
             } finally {
-                pose.popMatrix();
+                pose.popPose();
             }
             renderTexts(gui, page);
         } finally {
@@ -137,7 +131,7 @@ public class ActionWheel {
                 count / 2, (count + 1) / 2);
     }
 
-    public static void render(GuiGraphicsExtractor gui) {
+    public static void render(GuiGraphics gui) {
         if (!isEnabled()) return;
 
         minecraft = Minecraft.getInstance();
@@ -146,12 +140,12 @@ public class ActionWheel {
         y = (int) (window.getGuiScaledHeight() / 2d);
 
         // rendering
-        Matrix3x2fStack pose = gui.pose();
-        pose.pushMatrix();
-        pose.translate(x, y);
+        PoseStack pose = gui.pose();
+        pose.pushPose();
+        pose.translate(x, y, 0);
 
         scale = Configs.ACTION_WHEEL_SCALE.value;
-        pose.scale(scale, scale);
+        pose.scale(scale, scale, 1);
 
         var outfit = currentOutfit();
         Avatar avatar = outfit == null ? AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID()) : outfit.base();
@@ -179,14 +173,11 @@ public class ActionWheel {
         FiguraMod.popPushProfiler("wheel");
         renderTextures(gui, currentPage);
 
-        // reset colours, no longer needed, color is handled through vertex now
-        //RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-
         // render items
         FiguraMod.popPushProfiler("items");
         renderItemsAndIcons(gui, currentPage);
 
-        pose.popMatrix();
+        pose.popPose();
 
         // render title
         FiguraMod.popPushProfiler("texts");
@@ -207,13 +198,13 @@ public class ActionWheel {
         return Math.toRadians(angle);
     }
 
-    private static void renderEmpty(GuiGraphicsExtractor gui, boolean avatar) {
+    private static void renderEmpty(GuiGraphics gui, boolean avatar) {
         // render empty wheel
         TextureData data = OverlayTexture.values()[0].data[0];
         data.render(gui, null, false);
         data.render(gui, null, true);
 
-        gui.pose().popMatrix(); // previous stack
+        gui.pose().popPose(); // previous stack
 
         // warning text
         Component component = FiguraText.of("gui.error." + (avatar ? "no_avatar" : "no_wheel_page")).withStyle(ChatFormatting.YELLOW);
@@ -247,7 +238,7 @@ public class ActionWheel {
             return (int) Math.floor((leftSlots / 180d) * (angle - 180)) + rightSlots;
     }
 
-    private static void renderTextures(GuiGraphicsExtractor gui, Page page) {
+    private static void renderTextures(GuiGraphics gui, Page page) {
         for (int i = 0; i < slots; i++) {
             Action action = page.slots()[i];
             boolean left = i >= rightSlots;
@@ -272,20 +263,21 @@ public class ActionWheel {
             // render icon
             UIHelper.enableBlend();
 
-            // Color is now implemented through vertex colors rather than the color modulator
-            int tintColor = color != null ? ColorUtils.rgbaToIntARGB(FiguraVec4.of(color.x, color.y, color.z, 1.0f)) : -1;
-            gui.blit(RenderPipelines.GUI_TEXTURED, ICONS,
-                    (int) Math.round(x), (int) Math.round(y),
-                    action.scroll != null ? 24f : action.toggle != null ? action.isToggled() ? 16f : 8f : 0f, color == null ? 0f : 8f,
-                    8, 8,
-                    8, 8,
-                    32, 16,
-                    tintColor
-            );
+            gui.flush();
+            gui.setColor(color == null ? 1f : (float) color.x,
+                    color == null ? 1f : (float) color.y,
+                    color == null ? 1f : (float) color.z, 1f);
+            try {
+                gui.blit(ICONS, (int) Math.round(x), (int) Math.round(y),
+                        action.scroll != null ? 24f : action.toggle != null ? action.isToggled() ? 16f : 8f : 0f,
+                        color == null ? 0f : 8f, 8, 8, 32, 16);
+            } finally {
+                gui.setColor(1f, 1f, 1f, 1f);
+            }
         }
     }
 
-    private static void renderItemsAndIcons(GuiGraphicsExtractor gui, Page page) {
+    private static void renderItemsAndIcons(GuiGraphics gui, Page page) {
         for (int i = 0; i < slots; i++) {
             Action action = page.slots()[i];
             if (action == null)
@@ -302,11 +294,11 @@ public class ActionWheel {
             Action.TextureData texture = action.getTexture(isSelected);
             if (texture != null) {
                 UIHelper.enableBlend();
-                gui.blit(RenderPipelines.GUI_TEXTURED, texture.texture.getLocation(),
+                gui.blit(texture.texture.getLocation(),
                         (int) Math.round(xOff - texture.width * texture.scale / 2d),
                         (int) Math.round(yOff - texture.height * texture.scale / 2d),
-                        (float) texture.u, (float) texture.v,
                         (int) Math.round(texture.width * texture.scale), (int) Math.round(texture.height * texture.scale),
+                        (float) texture.u, (float) texture.v,
                         texture.width, texture.height,
                         texture.texture.getWidth(), texture.texture.getHeight());
             }
@@ -317,17 +309,17 @@ public class ActionWheel {
                 continue;
 
             // render
-            gui.item(item, (int) Math.round(xOff - 8), (int) Math.round(yOff - 8));
+            gui.renderItem(item, (int) Math.round(xOff - 8), (int) Math.round(yOff - 8));
             if (Configs.ACTION_WHEEL_DECORATIONS.value)
-                gui.itemDecorations(minecraft.font, item, (int) Math.round(xOff - 8), (int) Math.round(yOff - 8));
+                gui.renderItemDecorations(minecraft.font, item, (int) Math.round(xOff - 8), (int) Math.round(yOff - 8));
         }
     }
 
-    private static void renderTexts(GuiGraphicsExtractor gui, Page page) {
+    private static void renderTexts(GuiGraphics gui, Page page) {
         Font font = minecraft.font;
         int titlePosition = Configs.ACTION_WHEEL_TITLE.value;
         int indicatorPosition = Configs.ACTION_WHEEL_SLOTS_INDICATOR.value;
-        Matrix3x2fStack pose = gui.pose();
+        PoseStack pose = gui.pose();
 
         Action selectedTitleAction = selected == -1 ? null : page.slots()[selected];
         String selectedTitle = selectedTitleAction == null ? null : selectedTitleAction.getTitle();
@@ -335,8 +327,8 @@ public class ActionWheel {
         // page indicator
         int groupCount = page.getGroupCount();
         if (groupCount > 1 && (selectedTitle == null || indicatorPosition != titlePosition - 2)) {
-            pose.pushMatrix();
-            //pose.translate(0d, 0d, 999d); there is no z component anymore
+            pose.pushPose();
+            pose.translate(0, 0, 999);
             int index = page.getSlotsShift();
             int greatest = page.getGreatestSlot() + 1;
 
@@ -363,16 +355,16 @@ public class ActionWheel {
             }
 
             // draw
-            gui.text(font, indicator, x - (int) ((font.width(indicator) - extraWidth) / 2f), (int) Position.index(indicatorPosition).apply(font.lineHeight), UIHelper.adjustColor(0xFFFFFF));
-            pose.popMatrix();
+            gui.drawString(font, indicator, x - (int) ((font.width(indicator) - extraWidth) / 2f), (int) Position.index(indicatorPosition).apply(font.lineHeight), UIHelper.adjustColor(0xFFFFFF));
+            pose.popPose();
         }
 
         // all titles
         if (titlePosition >= 5) {
             boolean internal = titlePosition == 5;
             double distance = (internal ? DISTANCE : 66) * scale;
-            pose.pushMatrix();
-            //pose.translate(0f, 0f, 999f);
+            pose.pushPose();
+            pose.translate(0, 0, 999);
             for (int i = 0; i < slots; i++) {
                 Action action = page.slots()[i];
                 if (action == null)
@@ -404,9 +396,9 @@ public class ActionWheel {
                     textX -= textWidth;
                 }
 
-                gui.text(font, text, textX, textY, UIHelper.adjustColor(0xFFFFFF));
+                gui.drawString(font, text, textX, textY, UIHelper.adjustColor(0xFFFFFF));
             }
-            pose.popMatrix();
+            pose.popPose();
             return;
         }
 
@@ -423,16 +415,16 @@ public class ActionWheel {
         if (titlePosition < 2) { // tooltip
             UIHelper.renderTooltip(gui, text, (int) mouseX, (int) mouseY, titlePosition == 0);
         } else { // anchored
-            pose.pushMatrix();
-          //  pose.translate(0f, 0f);
+            pose.pushPose();
+            pose.translate(0, 0, 999);
 
             int y = (int) Position.index(titlePosition - 2).apply(height);
             for (int i = 0; i < list.size(); i++) {
                 Component component = list.get(i);
-                gui.text(font, component, x - (int) (font.width(component) / 2f), y + font.lineHeight * i, UIHelper.adjustColor(0xFFFFFF));
+                gui.drawString(font, component, x - (int) (font.width(component) / 2f), y + font.lineHeight * i, UIHelper.adjustColor(0xFFFFFF));
             }
 
-            pose.popMatrix();
+            pose.popPose();
         }
     }
 
@@ -585,17 +577,22 @@ public class ActionWheel {
             this(u, v, 0);
         }
 
-        public void render(GuiGraphicsExtractor gui, FiguraVec3 color, boolean left) {
-            Matrix3x2fStack pose = gui.pose();
-            pose.pushMatrix();
-            pose.rotate((rotation + (left ? 180 : 0)) * (float) (Math.PI / 180.0));
+        public void render(GuiGraphics gui, FiguraVec3 color, boolean left) {
+            PoseStack pose = gui.pose();
+            pose.pushPose();
+            pose.mulPose(Axis.ZP.rotationDegrees(rotation + (left ? 180 : 0)));
 
             UIHelper.enableBlend();
-            // we now use vertex colors
-            int tintColor = color != null ? ColorUtils.rgbaToIntARGB(FiguraVec4.of(color.x, color.y, color.z, 1.0f)) : -1;
-            gui.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, 0, y,  u, color == null ? v : v + 128, 64, h,64, rh, 256, 256, tintColor);
-
-            pose.popMatrix();
+            gui.flush();
+            gui.setColor(color == null ? 1f : (float) color.x,
+                    color == null ? 1f : (float) color.y,
+                    color == null ? 1f : (float) color.z, 1f);
+            try {
+                gui.blit(TEXTURE, 0, y, 64, h, u, color == null ? v : v + 128, 64, rh, 256, 256);
+            } finally {
+                gui.setColor(1f, 1f, 1f, 1f);
+                pose.popPose();
+            }
         }
     }
 

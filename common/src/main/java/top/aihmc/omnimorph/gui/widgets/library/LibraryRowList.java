@@ -1,8 +1,6 @@
 package top.aihmc.omnimorph.gui.widgets.library;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.gui.widgets.Button;
@@ -121,14 +119,14 @@ public final class LibraryRowList extends AbstractList {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         arrange();
         int headerHeight = headings.isEmpty() ? 0 : TABLE_HEADER_HEIGHT;
         gui.enableScissor(getX() + 1, getY() + headerHeight + 1,
                 getX() + getWidth() - 1, getY() + getHeight() - 1);
         try {
             for (int i = 1; i < children.size(); i++) {
-                ((Button) children.get(i)).extractRenderState(gui,
+                ((Button) children.get(i)).render(gui,
                         isInsideScissors(mouseX, mouseY) ? mouseX : -1,
                         isInsideScissors(mouseX, mouseY) ? mouseY : -1, delta);
             }
@@ -144,14 +142,14 @@ public final class LibraryRowList extends AbstractList {
                         getY() + 7, Math.max(1, right - left - 6), 0xffbac6d8);
             }
         }
-        scrollBar.extractRenderState(gui, mouseX, mouseY, delta);
+        scrollBar.render(gui, mouseX, mouseY, delta);
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
         arrange();
-        return event.y() >= getY() + (headings.isEmpty() ? 0 : 20)
-                && isInsideScissors(event.x(), event.y()) && super.mouseClicked(event, doubleClick);
+        return mouseY >= getY() + (headings.isEmpty() ? 0 : 20)
+                && isInsideScissors(mouseX, mouseY) && super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
@@ -175,7 +173,7 @@ public final class LibraryRowList extends AbstractList {
             actions = row.actions().stream().<Button>map(item -> {
                 var button = new Button(0, 0, 20, 20, item.text(), item.tooltip(), ignored -> item.invoke().run()) {
                     @Override
-                    protected void renderText(GuiGraphicsExtractor gui, float delta) {
+                    protected void renderText(GuiGraphics gui, float delta) {
                         if (item.icon() == null) {
                             super.renderText(gui, delta);
                         } else {
@@ -190,7 +188,7 @@ public final class LibraryRowList extends AbstractList {
         }
 
         @Override
-        protected void renderDefaultTexture(GuiGraphicsExtractor gui, float delta) {
+        protected void renderDefaultTexture(GuiGraphics gui, float delta) {
             if (headings.isEmpty() && !cards) {
                 super.renderDefaultTexture(gui, delta);
                 return;
@@ -201,12 +199,12 @@ public final class LibraryRowList extends AbstractList {
         }
 
         @Override
-        protected void renderText(GuiGraphicsExtractor gui, float delta) {
+        protected void renderText(GuiGraphics gui, float delta) {
             if (cards) {
                 int size = Math.max(1, Math.min(getHeight() - 8, getWidth() / 3));
                 ResourceLocation texture = row.thumbnail() == null ? null : row.thumbnail().get();
                 if (texture != null) {
-                    gui.blit(RenderPipelines.GUI_TEXTURED, texture, getX() + 4, getY() + 4,
+                    gui.blit(texture, getX() + 4, getY() + 4,
                             0, 0, size, size, size, size);
                 }
                 int textX = getX() + size + 10;
@@ -227,7 +225,7 @@ public final class LibraryRowList extends AbstractList {
                     ResourceLocation texture = row.thumbnail().get();
                     if (texture != null) {
                         int size = Math.max(1, Math.min(18, right - left - 4));
-                        gui.blit(RenderPipelines.GUI_TEXTURED, texture, getX() + left + 2,
+                        gui.blit(texture, getX() + left + 2,
                                 getY() + 2, 0, 0, size, size, size, size);
                     }
                 } else {
@@ -254,33 +252,33 @@ public final class LibraryRowList extends AbstractList {
         }
 
         @Override
-        public void extractContents(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
-            super.extractContents(gui, mouseX, mouseY, delta);
+        public void renderWidget(GuiGraphics gui, int mouseX, int mouseY, float delta) {
+            super.renderWidget(gui, mouseX, mouseY, delta);
             arrangeActions();
-            actions.forEach(button -> button.extractRenderState(gui, mouseX, mouseY, delta));
+            actions.forEach(button -> button.render(gui, mouseX, mouseY, delta));
         }
 
         @Override
-        public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        public boolean mouseClicked(double mouseX, double mouseY, int button) {
             arrangeActions();
             if (isActive()) {
                 for (int action = 0; action < actions.size(); action++) {
-                    Button button = actions.get(action);
-                    if (button.isMouseOver(event.x(), event.y())) {
-                        if (button.isActive() && event.button() == 0) {
+                    Button actionButton = actions.get(action);
+                    if (actionButton.isMouseOver(mouseX, mouseY)) {
+                        if (actionButton.isActive() && button == 0) {
                             selected = index;
                             row.action().run();
-                            button.run();
+                            actionButton.run();
                         }
                         return true;
                     }
                 }
             }
-            return super.mouseClicked(event, doubleClick);
+            return super.mouseClicked(mouseX, mouseY, button);
         }
     }
 
-    static void drawIcon(GuiGraphicsExtractor gui, Icon icon, int x, int y, int color, int frame) {
+    static void drawIcon(GuiGraphics gui, Icon icon, int x, int y, int color, int frame) {
         switch (icon) {
             case GRANT, UNBLOCK, DELETE, RESTORE, EDIT -> {
                 String name = switch (icon) {
@@ -290,8 +288,8 @@ public final class LibraryRowList extends AbstractList {
                     case EDIT -> "library_edit";
                     default -> "library_delete";
                 };
-                gui.blit(RenderPipelines.GUI_TEXTURED, FiguraIdentifier.of("textures/gui/" + name + ".png"),
-                        x - 3, y - 3, frame * 24, 0, 16, 16, 24, 24, 72, 24);
+                gui.blit(FiguraIdentifier.of("textures/gui/" + name + ".png"),
+                        x - 3, y - 3, 16, 16, frame * 24f, 0f, 24, 24, 72, 24);
             }
             case BLOCK -> {
                 UIHelper.fillOutline(gui, x + 1, y + 1, 8, 8, color);

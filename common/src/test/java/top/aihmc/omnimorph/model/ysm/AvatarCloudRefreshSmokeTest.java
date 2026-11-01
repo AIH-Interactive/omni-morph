@@ -147,7 +147,7 @@ final class AvatarCloudRefreshSmokeTest {
             runRequests(process, work, scope);
             require(profiles.get() == 4, "a source-equip event cannot start a competing reload during formal publication");
             var formalTag = nbt.copy();
-            formalTag.getCompoundOrEmpty("metadata").putString("name", "prepared source model");
+            formalTag.getCompound("metadata").putString("name", "prepared source model");
             Avatar prepared = prepare(player, formalTag, drain);
             lastPath.set(null, java.nio.file.Path.of("previous-local-choice"));
             var publication = NetworkStuff.publishLibraryEquipment(formal, prepared);

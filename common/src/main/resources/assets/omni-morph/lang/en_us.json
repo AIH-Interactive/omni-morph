@@ -2047,6 +2047,8 @@
   "omni-morph.config.hardware_acceleration.model_mesh": "Single draw per model (experimental)",
   "omni-morph.config.hardware_acceleration.model_mesh.tooltip": "Draws each material of a model once, including skinned, tinted and triangle parts. Requires SSBO pose storage; changing it re-probes the GPU, and unsupported devices fall back. Off by default.",
   "omni-morph.config.hardware_acceleration.status": "Current status",
+  "omni-morph.config.hardware_acceleration.gpu_unsupported_version": "GPU acceleration is not supported on 1.21.1; Java rendering is the default",
+  "omni-morph.config.hardware_acceleration.reason.unsupported_minecraft_version": "GPU acceleration is not supported on 1.21.1",
   "omni-morph.config.hardware_acceleration.status.tooltip": "Read-only actual mode and fallback reason. Changing an unapplied preference does not change this status.",
   "omni-morph.config.hardware_acceleration.state.disabled": "Java · disabled",
   "omni-morph.config.hardware_acceleration.state.probing": "Probing · Java",

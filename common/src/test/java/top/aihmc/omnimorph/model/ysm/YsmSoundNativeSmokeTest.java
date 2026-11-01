@@ -26,6 +26,7 @@ import top.aihmc.omnimorph.molang.runtime.Function;
 import org.figuramc.figura.permissions.PermissionPack;
 import org.figuramc.figura.permissions.Permissions;
 import org.figuramc.figura.utils.RefilledNumber;
+import top.aihmc.omnimorph.test.NativeSoundBufferState;
 import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
@@ -243,6 +244,11 @@ public final class YsmSoundNativeSmokeTest {
 
     private static final class VolumeEngine extends org.figuramc.figura.mixin.sound.SoundEngineMixin {
         @Override
+        protected float getVolume(SoundSource source) {
+            return 1f;
+        }
+
+        @Override
         public void addEventListener(net.minecraft.client.sounds.SoundEventListener listener) {
         }
 
@@ -309,12 +315,11 @@ public final class YsmSoundNativeSmokeTest {
                 List<LuaSound> bgm = List.copyOf(engine.submitted.subList(engine.submitted.size() - 3, engine.submitted.size()));
                 require(bgm.stream().allMatch(sound -> sound.getHandle() != null), "timeline and sound_effects BGM really start");
                 if (interruption.equals("movement")) {
-                    var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
-                    state.walkAnimationSpeed = 0.5f;
+                    var state = new top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame(0, 0.5f, 0, 0, 0);
                     var update = player.getClass().getDeclaredMethod("updateNativeStateMachine",
                             state.getClass(), net.minecraft.world.entity.LivingEntity.class);
                     update.setAccessible(true);
-                    update.invoke(player, state, null);
+                    update.invoke(player, state, fixture.context.entity);
                     require(!fixture.runtime.actions().isActive("dance"), "movement cancels the action");
                 } else if (interruption.equals("remote")) {
                     set(player.getClass(), player, "observerControlled", true);
@@ -367,13 +372,14 @@ public final class YsmSoundNativeSmokeTest {
              var data = top.aihmc.omnimorph.avatar.ysm.YsmModelData.read(source,
                      top.aihmc.omnimorph.avatar.ysm.YsmSourceIdentity.ContainerKind.MEMORY, () -> false)) {
             var tag = top.aihmc.omnimorph.avatar.ysm.YsmAvatarLoader.toRuntimeTag(data, null);
-            first.runtime.audio().load(tag.getListOrEmpty("sound_entries"));
-            second.runtime.audio().load(tag.getListOrEmpty("sound_entries"));
+            first.runtime.audio().load(org.figuramc.figura.utils.NbtDefaults.getListOrEmpty(tag, "sound_entries"));
+            second.runtime.audio().load(org.figuramc.figura.utils.NbtDefaults.getListOrEmpty(tag, "sound_entries"));
         }
         var firstBuffer = first.runtime.audio().get("model_tone");
         var secondBuffer = second.runtime.audio().get("model_tone");
         require(firstBuffer != null && secondBuffer != null && firstBuffer != secondBuffer
-                        && firstBuffer.size() == 5360, "models own independent decoded native buffers");
+                        && NativeSoundBufferState.pcmBytes(firstBuffer) == 5360,
+                "models own independent decoded native buffers");
         testSubEntityAudio(engine, first, firstBuffer);
         var api = new org.figuramc.figura.lua.api.sound.SoundAPI(first.owner);
         require(api.isPresent("model_tone") && api.getCustomSounds().contains("model_tone")
@@ -490,7 +496,7 @@ public final class YsmSoundNativeSmokeTest {
         return ExpressionEvaluator.evaluator(context).eval(engine.parse(source).getFirst());
     }
 
-    private static final class AudioArrow extends net.minecraft.world.entity.projectile.arrow.Arrow {
+    private static final class AudioArrow extends net.minecraft.world.entity.projectile.Arrow {
         private Entity sourceOwner;
 
         private AudioArrow() {
@@ -500,6 +506,53 @@ public final class YsmSoundNativeSmokeTest {
         @Override
         public Entity getOwner() {
             return sourceOwner;
+        }
+    }
+
+    /** Explicit grounded entity state for native movement interruption without a loaded world. */
+    private static final class AudioEntity extends ArmorStand {
+        private AudioEntity() {
+            super(net.minecraft.world.entity.EntityType.ARMOR_STAND, null);
+        }
+
+        @Override
+        public net.minecraft.world.entity.Pose getPose() {
+            return net.minecraft.world.entity.Pose.STANDING;
+        }
+
+        @Override
+        public boolean onGround() {
+            return true;
+        }
+
+        @Override
+        public boolean isDeadOrDying() {
+            return false;
+        }
+
+        @Override
+        public boolean isAutoSpinAttack() {
+            return false;
+        }
+
+        @Override
+        public boolean isSwimming() {
+            return false;
+        }
+
+        @Override
+        public boolean onClimbable() {
+            return false;
+        }
+
+        @Override
+        public boolean isInWater() {
+            return false;
+        }
+
+        @Override
+        public boolean isSprinting() {
+            return false;
         }
     }
 
@@ -521,7 +574,7 @@ public final class YsmSoundNativeSmokeTest {
             set(Avatar.class, owner, "soundsRemaining", new RefilledNumber(100, 100));
             set(Avatar.class, owner, "controls", new AvatarControlRuntime());
             context = new Avatar.MolangContext(owner);
-            context.entity = allocate(ArmorStand.class);
+            context.entity = allocate(AudioEntity.class);
             set(Entity.class, context.entity, "position", new Vec3(1, 2, 3));
             set(Avatar.class, owner, "molangContext", context);
             var constructor = YsmModelRuntime.class.getDeclaredConstructor(Avatar.class,
@@ -549,7 +602,12 @@ public final class YsmSoundNativeSmokeTest {
         @Override
         public net.minecraft.client.User getUser() {
             return new net.minecraft.client.User("CPU child audio", new UUID(0, 999), "",
-                    java.util.Optional.empty(), java.util.Optional.empty());
+                    java.util.Optional.empty(), java.util.Optional.empty(), net.minecraft.client.User.Type.MSA);
+        }
+
+        @Override
+        public net.minecraft.util.profiling.ProfilerFiller getProfiler() {
+            return net.minecraft.util.profiling.InactiveProfiler.INSTANCE;
         }
 
         @Override

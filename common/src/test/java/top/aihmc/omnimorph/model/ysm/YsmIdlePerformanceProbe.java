@@ -3,7 +3,7 @@ package top.aihmc.omnimorph.model.ysm;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import jdk.jfr.Recording;
-import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
 import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
 
 import java.nio.file.Files;
@@ -55,10 +55,9 @@ public final class YsmIdlePerformanceProbe {
         long[] allocated = new long[3];
         var threads = (com.sun.management.ThreadMXBean) java.lang.management.ManagementFactory.getThreadMXBean();
         long thread = Thread.currentThread().threadId();
-        var state = new LivingEntityRenderState();
         var vertices = new DiscardingVertices();
         for (int frame = 0; frame < warmup + frames; frame++) {
-            state.ageInTicks = frame / 3f;
+            var state = new YsmEntityFrame(frame / 3f, 0, 0, 0, 0);
             YsmRenderFrameClock.beginFrame();
             long startBytes = threads.getThreadAllocatedBytes(thread);
             long start = System.nanoTime();
@@ -132,9 +131,5 @@ public final class YsmIdlePerformanceProbe {
             return this;
         }
 
-        @Override
-        public VertexConsumer setLineWidth(float width) {
-            return this;
-        }
     }
 }

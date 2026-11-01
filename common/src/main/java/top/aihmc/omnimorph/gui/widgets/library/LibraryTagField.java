@@ -1,11 +1,7 @@
 package top.aihmc.omnimorph.gui.widgets.library;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.CharacterEvent;
-import net.minecraft.client.input.PreeditEvent;
-import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import org.figuramc.figura.gui.widgets.AbstractContainerElement;
 import org.figuramc.figura.gui.widgets.Button;
@@ -90,24 +86,24 @@ public final class LibraryTagField extends AbstractContainerElement {
     }
 
     @Override
-    public boolean keyPressed(KeyEvent event) {
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (!enabled) {
             return false;
         }
-        if (input.isFocused() && (event.key() == 257 || event.key() == 335)) {
+        if (input.isFocused() && (keyCode == 257 || keyCode == 335)) {
             commit();
             return true;
         }
-        return super.keyPressed(event);
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (!enabled || !isMouseOver(event.x(), event.y())) {
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (!enabled || !isMouseOver(mouseX, mouseY)) {
             return false;
         }
-        boolean handled = super.mouseClicked(event, doubleClick);
-        if (handled && (event.y() < getY() + 20 || add.isMouseOver(event.x(), event.y()))) {
+        boolean handled = super.mouseClicked(mouseX, mouseY, button);
+        if (handled && (mouseY < getY() + 20 || add.isMouseOver(mouseX, mouseY))) {
             setFocused(input);
             input.setFocused(true);
         }
@@ -115,13 +111,8 @@ public final class LibraryTagField extends AbstractContainerElement {
     }
 
     @Override
-    public boolean charTyped(CharacterEvent event) {
-        return enabled && super.charTyped(event);
-    }
-
-    @Override
-    public boolean preeditUpdated(PreeditEvent event) {
-        return enabled && super.preeditUpdated(event);
+    public boolean charTyped(char character, int modifiers) {
+        return enabled && super.charTyped(character, modifiers);
     }
 
     @Override
@@ -134,7 +125,7 @@ public final class LibraryTagField extends AbstractContainerElement {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         input.setX(getX());
         input.setY(getY() + 22);
         add.setX(getX() + getWidth() - 20);
@@ -148,7 +139,7 @@ public final class LibraryTagField extends AbstractContainerElement {
         }
         gui.enableScissor(getX(), getY(), getX() + getWidth(), getY() + getHeight());
         try {
-            super.extractRenderState(gui, mouseX, mouseY, delta);
+            super.render(gui, mouseX, mouseY, delta);
         } finally {
             gui.disableScissor();
         }

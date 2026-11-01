@@ -1,9 +1,7 @@
 package top.aihmc.omnimorph.gui.screens;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.config.Configs;
@@ -74,15 +72,15 @@ public final class CosmeticAnimationScreen extends Screen {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor gui, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float delta) {
         float speed = Configs.BACKGROUND_SCROLL_SPEED.tempValue * .125f;
         for (var background : AbstractPanelScreen.BACKGROUNDS) {
             UIHelper.renderAnimatedBackground(gui, background, 0, 0, width, height, 64, 64, speed, delta);
             speed *= 2;
         }
-        gui.nextStratum();
-        super.extractRenderState(gui, mouseX, mouseY, delta);
-        gui.text(font, getTitle(), 12, 12, 0xffffffff);
+        gui.flush();
+        super.render(gui, mouseX, mouseY, delta);
+        gui.drawString(font, getTitle(), 12, 12, 0xffffffff);
         if (active()) {
             ActionWheel.renderPreview(gui, wheel.page(session.outfitBase()), centerX(), centerY(), mouseX, mouseY);
         }
@@ -131,43 +129,43 @@ public final class CosmeticAnimationScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (super.mouseClicked(event, doubleClick)) {
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (super.mouseClicked(mouseX, mouseY, button)) {
             return true;
         }
-        if (event.button() == 0 || event.button() == 1) {
-            execute(selected(event.x(), event.y()), event.button() == 0, event.button());
+        if (button == 0 || button == 1) {
+            execute(selected(mouseX, mouseY), button == 0, button);
             return true;
         }
         return false;
     }
 
     @Override
-    public boolean mouseReleased(MouseButtonEvent event) {
-        if (heldInput == event.button()) {
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (heldInput == button) {
             release();
         }
-        return super.mouseReleased(event);
+        return super.mouseReleased(mouseX, mouseY, button);
     }
 
     @Override
-    public boolean keyPressed(KeyEvent event) {
-        if (event.key() >= 49 && event.key() <= 56) {
-            if (heldInput != event.key()) {
-                execute(event.key() - 49, true, event.key());
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode >= 49 && keyCode <= 56) {
+            if (heldInput != keyCode) {
+                execute(keyCode - 49, true, keyCode);
             }
             return true;
         }
-        return super.keyPressed(event);
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
-    public boolean keyReleased(KeyEvent event) {
-        if (heldInput == event.key()) {
+    public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
+        if (heldInput == keyCode) {
             release();
             return true;
         }
-        return super.keyReleased(event);
+        return super.keyReleased(keyCode, scanCode, modifiers);
     }
 
     @Override

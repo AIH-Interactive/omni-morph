@@ -3,7 +3,6 @@ package top.aihmc.omnimorph.model.ysm;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleEngine;
-import net.minecraft.client.particle.ParticleResources;
 import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.nbt.CompoundTag;
@@ -73,7 +72,7 @@ final class AvatarAsyncLoadSmokeTest {
                     "retired connection cannot replace or clear the resident model");
             require(latestSource.equals(retained.outfitSource()), "retired selection cannot change resident provenance");
             var malformed = model("invalid");
-            malformed.getCompoundOrEmpty("metadata").putString("format", "ysm-native");
+            malformed.getCompound("metadata").putString("format", "ysm-native");
             malformed.put("ysm", new CompoundTag());
             var failed = user.loadAvatar(malformed);
             await(failed, drain);
@@ -89,7 +88,7 @@ final class AvatarAsyncLoadSmokeTest {
             require(retained.outfitSource() == null, "even reloading the same NBT needs fresh explicit provenance");
             if (encrypted != null) {
                 var portable = model("encrypted cache replay");
-                portable.getCompoundOrEmpty("metadata").putString("format", "ysm-native");
+                portable.getCompound("metadata").putString("format", "ysm-native");
                 try (var source = top.aihmc.omnimorph.avatar.ysm.YsmEncryptedSource.read(encrypted, () -> false)) {
                     portable.put("ysm", top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload.fromEncrypted(
                             source, top.aihmc.omnimorph.avatar.ysm.YsmAvatarKind.NEW, null));
@@ -178,11 +177,6 @@ final class AvatarAsyncLoadSmokeTest {
 
         @Override
         public void figura$removeParticle(Particle particle) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public ParticleResources figura$getParticleResources() {
             throw new UnsupportedOperationException();
         }
     }

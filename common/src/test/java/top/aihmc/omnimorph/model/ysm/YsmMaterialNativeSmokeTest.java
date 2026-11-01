@@ -19,6 +19,10 @@ import top.aihmc.omnimorph.avatar.ysm.YsmTextureSelectionStore;
 import org.figuramc.figura.mixin.render.TextureManagerAccessor;
 import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
+import org.figuramc.figura.utils.NbtDefaults;
+import top.aihmc.omnimorph.test.NativeImageState;
+import top.aihmc.omnimorph.test.NativeGlWindow;
+import top.aihmc.omnimorph.model.ysm.animation.YsmEntityFrame;
 import sun.misc.Unsafe;
 
 import javax.imageio.ImageIO;
@@ -36,7 +40,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-/** Native image allocation/lifecycle only: no GPU device, GL context, framebuffer or window is created. */
+/** Native resource fixtures; texture contexts use visible GL windows without claiming GUI appearance. */
 public final class YsmMaterialNativeSmokeTest {
     public static void main(String[] args) throws Exception {
         run(args, null);
@@ -52,13 +56,9 @@ public final class YsmMaterialNativeSmokeTest {
         run(new String[]{"--figura-acceleration", path.toString()}, null, replay);
     }
 
-    /** Texture allocation recorder for native vertex tests; supplies no real GPU or visual evidence. */
-    public static AutoCloseable recordingTextureDevice() throws ReflectiveOperationException {
-        Field device = RenderSystem.class.getDeclaredField("DEVICE");
-        device.setAccessible(true);
-        Object previous = device.get(null);
-        device.set(null, new PublicationDevice());
-        return () -> device.set(null, previous);
+    /** Native uploads require a real context on 1.21.1; nested scopes borrow the current context. */
+    public static NativeGlWindow nativeTextureContext() {
+        return NativeGlWindow.open();
     }
 
     /** Existing native sound fixture, needed when bounded callback errors perform ordinary Avatar cleanup. */
@@ -87,8 +87,13 @@ public final class YsmMaterialNativeSmokeTest {
         Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
         unsafeField.setAccessible(true);
         Unsafe unsafe = (Unsafe) unsafeField.get(null);
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
         RecordingClient client = (RecordingClient) unsafe.allocateInstance(RecordingClient.class);
         client.queue = new ConcurrentLinkedQueue<>();
+        client.dispatcher = (net.minecraft.client.renderer.entity.EntityRenderDispatcher)
+                unsafe.allocateInstance(net.minecraft.client.renderer.entity.EntityRenderDispatcher.class);
+        client.dispatcher.setRenderHitBoxes(false);
         var options = (net.minecraft.client.Options) unsafe.allocateInstance(net.minecraft.client.Options.class);
         Field cameraType = net.minecraft.client.Options.class.getDeclaredField("cameraType");
         cameraType.setAccessible(true);
@@ -99,7 +104,7 @@ public final class YsmMaterialNativeSmokeTest {
         var toasts = (RecordingToasts) unsafe.allocateInstance(RecordingToasts.class);
         toasts.entries = new ArrayList<>();
         client.toasts = toasts;
-        client.manager = (RecordingTextures) unsafe.allocateInstance(RecordingTextures.class);
+        client.manager = new RecordingTextures();
         client.manager.textures = new HashMap<>();
         Field byPath = TextureManager.class.getDeclaredField("byPath");
         byPath.setAccessible(true);
@@ -107,9 +112,17 @@ public final class YsmMaterialNativeSmokeTest {
         Field tickableTextures = TextureManager.class.getDeclaredField("tickableTextures");
         tickableTextures.setAccessible(true);
         tickableTextures.set(client.manager, new java.util.HashSet<>());
+        var textureWindow = NativeGlWindow.open();
         try {
-            SharedConstants.tryDetectVersion();
-            Bootstrap.bootStrap();
+            // Borrow the visible test window for vanilla modifier-key queries; this wrapper does not own it.
+            var window = (com.mojang.blaze3d.platform.Window) unsafe.allocateInstance(
+                    com.mojang.blaze3d.platform.Window.class);
+            Field nativeWindow = com.mojang.blaze3d.platform.Window.class.getDeclaredField("window");
+            nativeWindow.setAccessible(true);
+            nativeWindow.setLong(window, org.lwjgl.glfw.GLFW.glfwGetCurrentContext());
+            Field clientWindow = Minecraft.class.getDeclaredField("window");
+            clientWindow.setAccessible(true);
+            clientWindow.set(client, window);
             if (previousThread == null) {
                 RenderSystem.initRenderThread();
             } else {
@@ -162,11 +175,7 @@ public final class YsmMaterialNativeSmokeTest {
             }
             if (args.length == 2 && args[0].equals("--acceleration")) {
                 client.sounds = YsmStabilitySmokeTest.soundManager(unsafe);
-                Field device = RenderSystem.class.getDeclaredField("DEVICE");
-                device.setAccessible(true);
-                Object previousDevice = device.get(null);
                 try {
-                    device.set(null, new PublicationDevice());
                     Avatar avatar = owner(unsafe, 918);
                     try (var data = YsmModelData.read(Path.of(args[1]), () -> false);
                          var runtime = YsmModelRuntime.fromData(avatar, data,
@@ -176,31 +185,13 @@ public final class YsmMaterialNativeSmokeTest {
                     }
                 } finally {
                     client.drain();
-                    device.set(null, previousDevice);
                 }
                 return;
             }
             if (args.length == 2 && args[0].equals("--figura-acceleration")) {
                 client.sounds = YsmStabilitySmokeTest.soundManager(unsafe, true);
-                Field device = RenderSystem.class.getDeclaredField("DEVICE");
-                device.setAccessible(true);
-                Object previousDevice = device.get(null);
-                Field debugEntries = Minecraft.class.getDeclaredField("debugEntries");
-                debugEntries.setAccessible(true);
-                Object previousDebug = debugEntries.get(client);
                 Avatar avatar = null;
                 try {
-                    // Figura reads the hitbox debug toggle each frame; an empty list keeps pivots disabled.
-                    var debug = (net.minecraft.client.gui.components.debug.DebugScreenEntryList) unsafe.allocateInstance(
-                            net.minecraft.client.gui.components.debug.DebugScreenEntryList.class);
-                    Field statuses = debug.getClass().getDeclaredField("allStatuses");
-                    statuses.setAccessible(true);
-                    statuses.set(debug, new HashMap<>());
-                    Field enabled = debug.getClass().getDeclaredField("currentlyEnabled");
-                    enabled.setAccessible(true);
-                    enabled.set(debug, new ArrayList<>());
-                    debugEntries.set(client, debug);
-                    device.set(null, new PublicationDevice());
                     var nbt = org.figuramc.figura.avatar.local.LocalAvatarLoader.compileFiguraAvatar(
                             Path.of(args[1]), new java.util.UUID(0, 2));
                     avatar = Avatar.createLibraryPreview(java.util.UUID.randomUUID(), "figura preparation sample");
@@ -216,8 +207,6 @@ public final class YsmMaterialNativeSmokeTest {
                         avatar.clean();
                     }
                     client.drain();
-                    device.set(null, previousDevice);
-                    debugEntries.set(client, previousDebug);
                 }
                 return;
             }
@@ -228,11 +217,7 @@ public final class YsmMaterialNativeSmokeTest {
             }
             if (args.length == 2 && args[0].equals("--held-items")) {
                 client.sounds = YsmStabilitySmokeTest.soundManager(unsafe);
-                Field device = RenderSystem.class.getDeclaredField("DEVICE");
-                device.setAccessible(true);
-                Object previousDevice = device.get(null);
                 try {
-                    device.set(null, new PublicationDevice());
                     testAttachmentGeometry(unsafe, client);
                     Path root = Path.of(args[1]);
                     int checked = 0;
@@ -250,7 +235,6 @@ public final class YsmMaterialNativeSmokeTest {
                     System.out.println("World attachment corpus: models=" + checked + " encrypted=" + encrypted + " PASS");
                 } finally {
                     client.drain();
-                    device.set(null, previousDevice);
                 }
                 return;
             }
@@ -269,20 +253,10 @@ public final class YsmMaterialNativeSmokeTest {
             testControllerChannelOwnership(unsafe, client);
             testRunningControllerPhase(unsafe, client);
             testWalkingUsesAvailableLocomotion(unsafe, client);
-            Field device = RenderSystem.class.getDeclaredField("DEVICE");
-            device.setAccessible(true);
-            Object previousDevice = device.get(null);
-            Field samplersField = com.mojang.blaze3d.systems.SamplerCache.class.getDeclaredField("samplers");
-            samplersField.setAccessible(true);
-            var samplers = (com.mojang.blaze3d.textures.GpuSampler[]) samplersField.get(RenderSystem.getSamplerCache());
-            var previousSamplers = samplers.clone();
-            var publicationDevice = new PublicationDevice();
             try {
-                device.set(null, publicationDevice);
-                RenderSystem.getSamplerCache().initialize();
                 testTexturePublication(unsafe, client);
                 testLateTextureBindings(unsafe, client);
-                testTextureUploadLifetime(unsafe, client, publicationDevice);
+                testTextureUploadLifetime(unsafe, client);
                 top.aihmc.omnimorph.lua.api.particle.CustomParticleNativeSmokeTest.run(
                         unsafe, owner(unsafe, 690), owner(unsafe, 691), client::drain);
                 testYsmComplexity(unsafe, client);
@@ -291,9 +265,6 @@ public final class YsmMaterialNativeSmokeTest {
                 testStandingPreviewVertices(unsafe, client);
             } finally {
                 client.drain();
-                RenderSystem.getSamplerCache().close();
-                System.arraycopy(previousSamplers, 0, samplers, 0, samplers.length);
-                device.set(null, previousDevice);
             }
             testScaleAndDefaultTexture(unsafe, client);
             testPreviewDefaultPose(unsafe, client);
@@ -314,8 +285,12 @@ public final class YsmMaterialNativeSmokeTest {
             require(client.queue.isEmpty(), "all scheduled native cleanup completed");
             System.out.println("M5 native material objects: formal assembly, paired selection, model isolation, channel recreation and deferred NativeImage release PASS; GPU/shader/GUI pending.");
         } finally {
-            client.drain();
-            clearSelections();
+            try {
+                client.drain();
+                clearSelections();
+            } finally {
+                textureWindow.close();
+            }
             instance.set(null, previousClient);
             renderThread.set(null, previousThread);
             if (previousDirectory == null) {
@@ -435,8 +410,87 @@ public final class YsmMaterialNativeSmokeTest {
         }
     }
 
-    public static final class RunningRenderState extends net.minecraft.client.renderer.entity.state.LivingEntityRenderState {
-        public boolean isSprinting = true;
+    /** Explicit entity input for 1.21.1, where sprinting is not stored in a render-state object. */
+    private static final class RunningEntity extends net.minecraft.world.entity.decoration.ArmorStand {
+        private boolean sprinting;
+
+        private RunningEntity() {
+            super(net.minecraft.world.entity.EntityType.ARMOR_STAND, null);
+        }
+
+        @Override
+        public boolean isSprinting() {
+            return sprinting;
+        }
+
+        @Override
+        public net.minecraft.world.entity.Pose getPose() {
+            return net.minecraft.world.entity.Pose.STANDING;
+        }
+
+        @Override
+        public boolean onGround() {
+            return true;
+        }
+
+        @Override
+        public boolean isAlive() {
+            return true;
+        }
+
+        @Override
+        public boolean isDeadOrDying() {
+            return false;
+        }
+
+        @Override
+        public boolean isAutoSpinAttack() {
+            return false;
+        }
+
+        @Override
+        public boolean isSwimming() {
+            return false;
+        }
+
+        @Override
+        public boolean onClimbable() {
+            return false;
+        }
+
+        @Override
+        public boolean isInWater() {
+            return false;
+        }
+
+        @Override
+        public boolean isUsingItem() {
+            return false;
+        }
+
+        @Override
+        public boolean isSleeping() {
+            return false;
+        }
+
+        @Override
+        public net.minecraft.world.item.ItemStack getItemBySlot(net.minecraft.world.entity.EquipmentSlot slot) {
+            return net.minecraft.world.item.ItemStack.EMPTY;
+        }
+    }
+
+    private static RunningEntity movementEntity(Unsafe unsafe) throws ReflectiveOperationException {
+        var entity = (RunningEntity) unsafe.allocateInstance(RunningEntity.class);
+        Field movement = net.minecraft.world.entity.Entity.class.getDeclaredField("deltaMovement");
+        movement.setAccessible(true);
+        movement.set(entity, net.minecraft.world.phys.Vec3.ZERO);
+        Field position = net.minecraft.world.entity.Entity.class.getDeclaredField("position");
+        position.setAccessible(true);
+        position.set(entity, net.minecraft.world.phys.Vec3.ZERO);
+        Field walk = net.minecraft.world.entity.LivingEntity.class.getDeclaredField("walkAnimation");
+        walk.setAccessible(true);
+        walk.set(entity, new net.minecraft.world.entity.WalkAnimationState());
+        return entity;
     }
 
     private static void testRunningControllerPhase(Unsafe unsafe, RecordingClient client) throws Exception {
@@ -466,16 +520,17 @@ public final class YsmMaterialNativeSmokeTest {
             Avatar avatar = owner(unsafe, 71);
             try (var runtime = YsmModelRuntime.fromNbt(avatar, input)) {
                 install(avatar, "ysmRuntime", runtime);
-                var state = new RunningRenderState();
+                var entity = movementEntity(unsafe);
                 String[] expectedClips = {"walk", "run", "idle"};
                 double[] expectedAngles = {15d, 45d, 5d};
                 for (int mode = 0; mode < expectedClips.length; mode++) {
-                    state.isSprinting = mode == 1;
-                    state.walkAnimationSpeed = mode == 2 ? 0f : 1f;
+                    entity.sprinting = mode == 1;
+                    float speed = mode == 2 ? 0f : 1f;
                     for (int tick = 0; tick <= 20; tick++) {
-                        state.ageInTicks = mode * 21 + tick;
+                        entity.tickCount = mode * 21 + tick;
+                        var state = new YsmEntityFrame(entity.tickCount, speed, 0, 0, 0);
                         top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
-                        runtime.updateAnimations(state, null);
+                        runtime.updateAnimations(state, entity);
                     }
                     require(runtime.animations().getActiveAnimation(expectedClips[mode]) != null,
                             "movement input selects " + expectedClips[mode]);
@@ -504,12 +559,12 @@ public final class YsmMaterialNativeSmokeTest {
             Avatar avatar = owner(unsafe, 73);
             try (var runtime = YsmModelRuntime.fromNbt(avatar, input)) {
                 install(avatar, "ysmRuntime", runtime);
-                var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
-                state.walkAnimationSpeed = 1f;
+                var entity = movementEntity(unsafe);
                 for (int tick = 0; tick <= 25; tick++) {
-                    state.ageInTicks = tick;
+                    entity.tickCount = tick;
+                    var state = new YsmEntityFrame(tick, 1f, 0, 0, 0);
                     top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
-                    runtime.updateAnimations(state, null);
+                    runtime.updateAnimations(state, entity);
                 }
                 require(runtime.animations().getActiveAnimation("run") != null,
                         "walking must use the available run clip when the model has no walk clip");
@@ -531,11 +586,11 @@ public final class YsmMaterialNativeSmokeTest {
         var missing = new java.util.TreeSet<String>();
         var pattern = java.util.regex.Pattern.compile("\\b(q|query|math|ysm|ctrl)\\.([a-zA-Z_][a-zA-Z_0-9]*)");
         for (String kind : List.of("animations", "animation_controllers", "functions")) {
-            for (var value : tag.getListOrEmpty(kind)) {
+            for (var value : NbtDefaults.getListOrEmpty(tag, kind)) {
                 if (!(value instanceof net.minecraft.nbt.CompoundTag entry)) {
                     continue;
                 }
-                String source = new String(entry.getByteArray("data").orElse(new byte[0]), StandardCharsets.UTF_8);
+                String source = new String(entry.getByteArray("data"), StandardCharsets.UTF_8);
                 if ("animations".equals(kind)) {
                     var animations = com.google.gson.JsonParser.parseString(source).getAsJsonObject().getAsJsonObject("animations");
                     for (var animation : animations.entrySet()) {
@@ -611,19 +666,19 @@ public final class YsmMaterialNativeSmokeTest {
                         + " clips=" + runtime.animations().getClips().values().stream().distinct().count());
                 reportGeometryBounds(runtime, "bind");
                 for (float time : new float[] {0f, 1f, 20f, 60f, 200f}) {
-                    var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
-                    state.ageInTicks = time;
+                    var state = new YsmEntityFrame(time, 0, 0, 0, 0);
                     top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
                     runtime.updateAnimations(state, null);
                     assertControllerChannelOwnership(runtime);
                     reportGeometryBounds(runtime, "frame=" + time + " active=" + runtime.animations().getActiveAnimations().size());
                 }
-                var running = new RunningRenderState();
-                running.walkAnimationSpeed = 1f;
+                var entity = movementEntity(unsafe);
+                entity.sprinting = true;
                 for (int tick = 201; tick <= 240; tick++) {
-                    running.ageInTicks = tick;
+                    entity.tickCount = tick;
+                    var running = new YsmEntityFrame(tick, 1f, 0, 0, 0);
                     top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
-                    runtime.updateAnimations(running, null);
+                    runtime.updateAnimations(running, entity);
                 }
                 require(runtime.animations().getActiveAnimation("run") != null, "reported model selects run while sprinting");
                 assertControllerChannelOwnership(runtime);
@@ -766,319 +821,23 @@ public final class YsmMaterialNativeSmokeTest {
     }
 
     private static void testTexturePublication(Unsafe unsafe, RecordingClient client) throws Exception {
-        var texture = new PublicationTexture(owner(unsafe, 56));
         client.manager.inspectRegistration = true;
         try {
-            texture.uploadIfDirty(false, false);
-            require(texture.loads == 1 && texture.getTextureView() != null,
-                    "texture registration consumers receive an initialized view");
-            texture.uploadIfDirty(false, false);
-            require(texture.loads == 1, "clean registered textures do not upload again");
-            texture.getTextureView().close();
-            texture.uploadIfDirty(false, false);
-            require(texture.loads == 2 && !texture.getTextureView().isClosed(),
-                    "a retired view is recreated before the registered texture is reused");
-            texture.close();
-            texture.uploadIfDirty(false, false);
-            client.drain();
-            require(!client.manager.textures.containsKey(texture.getLocation()),
-                    "late render requests cannot republish a closed texture without a view");
-
-            var retry = new PublicationTexture(owner(unsafe, 57));
-            try {
-                retry.failUpload = true;
-                try {
-                    retry.uploadIfDirty(false, false);
-                    throw new AssertionError("fixture upload should fail");
-                } catch (IllegalStateException expected) {
-                    require(!client.manager.textures.containsKey(retry.getLocation()),
-                            "failed initialization never publishes a broken texture");
-                }
-                retry.failUpload = false;
-                retry.uploadIfDirty(false, false);
-                require(retry.loads == 2 && retry.getTextureView() != null,
-                        "a failed upload is retried instead of being incorrectly marked clean");
-            } finally {
-                retry.close();
-            }
+            top.aihmc.omnimorph.test.FiguraTextureRegistrationSmokeTest.testPublication(
+                    owner(unsafe, 56), client.manager, client::drain);
         } finally {
             client.manager.inspectRegistration = false;
-            texture.close();
-            client.drain();
         }
     }
 
     private static void testLateTextureBindings(Unsafe unsafe, RecordingClient client) throws Exception {
-        var fallback = new PublicationTexture(owner(unsafe, 64));
-        var texture = new PublicationTexture(owner(unsafe, 65));
-        var missing = net.minecraft.client.renderer.texture.MissingTextureAtlasSprite.getLocation();
-        try {
-            fallback.uploadIfDirty(false, false);
-            client.manager.textures.put(missing, fallback);
-            texture.uploadIfDirty(false, false);
-            var setup = net.minecraft.client.renderer.rendertype.RenderSetup.builder(
-                            net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED)
-                    .withTexture("Sampler0", texture.getLocation()).createRenderSetup();
-            texture.getTextureView().close();
-            texture.clearView();
-            require(!setup.getTextures().get("Sampler0").textureView().isClosed(),
-                    "the vanilla delayed read repairs a missing live view without an upload call at the consumer");
-            int liveLoads = texture.loads;
-            var pending = texture.loadContents(null);
-            texture.apply(pending);
-            require(pending.image().isClosed(), "resource reload copies are released after apply");
-            texture.close();
-            require(setup.getTextures().get("Sampler0").textureView() == fallback.getTextureView(),
-                    "a batch can resolve a retired binding before queued removal runs");
-            // The vanilla registration entry point can finish after the model has been retired.
-            client.manager.registerAndLoad(texture.getLocation(), texture);
-            require(setup.getTextures().get("Sampler0").textureView() == fallback.getTextureView(),
-                    "late registration of a retired texture resolves to the initialized missing texture");
-            require(texture.getTexture() == fallback.getTexture() && texture.getSampler() == fallback.getSampler(),
-                    "all retired GPU accessors use the same live fallback binding");
-            require(texture.loads == liveLoads, "retired textures never upload their released source again");
-            client.drain();
-            require(!client.manager.textures.containsKey(texture.getLocation()), "late publication is removed on the queue");
-
-            for (int iteration = 0; iteration < 64; iteration++) {
-                var old = new PublicationTexture(owner(unsafe, 66));
-                var replacement = new PublicationTexture(owner(unsafe, 67));
-                try {
-                    old.uploadIfDirty(false, false);
-                    replacement.uploadIfDirty(false, false);
-                    client.manager.register(old.getLocation(), replacement);
-                    client.drain();
-                    require(client.manager.getTexture(old.getLocation()) == replacement,
-                            "old cleanup cannot remove a replacement registered under the same location");
-                } finally {
-                    old.close();
-                    replacement.close();
-                    client.manager.textures.remove(old.getLocation(), replacement);
-                    client.drain();
-                }
-            }
-            client.manager.close();
-            client.drain();
-            require(client.manager.textures.isEmpty(), "manager shutdown does not mutate a map during its iteration");
-        } finally {
-            texture.close();
-            client.manager.textures.remove(texture.getLocation());
-            client.manager.textures.remove(missing, fallback);
-            fallback.close();
-            client.drain();
-        }
+        top.aihmc.omnimorph.test.FiguraTextureRegistrationSmokeTest.testLateBindings(
+                owner(unsafe, 64), client.manager, client::drain);
     }
 
-    private static void testTextureUploadLifetime(Unsafe unsafe, RecordingClient client, PublicationDevice device) throws Exception {
-        var texture = new PublicationTexture(owner(unsafe, 68));
-        try {
-            for (boolean failView : new boolean[] {true, false}) {
-                device.failView = failView;
-                device.failWrite = !failView;
-                int start = device.created.size();
-                try {
-                    texture.uploadIfDirty(false, false);
-                    throw new AssertionError("fixture GPU operation must fail");
-                } catch (IllegalStateException expected) {
-                    require(device.created.size() == start + 1 && device.created.getLast().isClosed(),
-                            "failed allocation/upload releases the unpublished GPU texture");
-                    require(!client.manager.textures.containsKey(texture.getLocation()),
-                            "failed allocation/upload does not publish a partial binding");
-                }
-            }
-            device.failView = false;
-            device.failWrite = false;
-            texture.uploadIfDirty(true, true);
-            var binding = texture.getTextureView();
-            var gpuTexture = texture.getTexture();
-            var sampler = texture.getSampler();
-            require(sampler != null && sampler.getAddressModeU() == com.mojang.blaze3d.textures.AddressMode.CLAMP_TO_EDGE
-                            && sampler.getMinFilter() == com.mojang.blaze3d.textures.FilterMode.LINEAR,
-                    "the fixture uses the selected clamp/blur sampler");
-            int allocated = device.created.size();
-            for (int iteration = 0; iteration < 64; iteration++) {
-                texture.update();
-                require(texture.getTextureView() == binding && texture.getTexture() == gpuTexture,
-                        "dirty pixel updates preserve the existing GPU binding for queued consumers");
-                require(texture.getSampler() == sampler, "late reads preserve the selected clamp/blur sampler");
-            }
-            require(device.created.size() == allocated, "dirty updates do not allocate or leak replacement GPU textures");
-            var particleLease = texture.retain();
-            var secondParticleLease = particleLease.retain();
-            texture.close();
-            require(!gpuTexture.isClosed() && !binding.isClosed()
-                            && texture.getTextureView() == binding,
-                    "retiring author texture keeps existing custom particles' binding alive");
-            try {
-                texture.retain();
-                throw new AssertionError("new particles must not acquire a retired author texture");
-            } catch (IllegalStateException expected) {
-                require(expected.getMessage().equals("TEXTURE_RETIRED"), "explicit retired texture rejection");
-            }
-            var extractedFrameLease = secondParticleLease.retain();
-            particleLease.close();
-            particleLease.close();
-            secondParticleLease.close();
-            require(!gpuTexture.isClosed() && !binding.isClosed(),
-                    "in-flight extracted frame outlives both particle leases and repeated release");
-            extractedFrameLease.close();
-            require(gpuTexture.isClosed() && binding.isClosed(),
-                    "final extracted frame release closes retired texture and GPU view");
-        } finally {
-            device.failView = false;
-            device.failWrite = false;
-            texture.close();
-            client.drain();
-        }
-        require(device.created.stream().allMatch(PublicationGpuTexture::isClosed),
-                "all GPU texture allocations from the lifetime checks are released");
-        require(device.views.stream().allMatch(PublicationView::isClosed),
-                "all GPU views from the lifetime checks are released");
-    }
-
-    /** Replaces GPU allocation only; publication and the vanilla view lookup remain real. */
-    private static final class PublicationTexture extends org.figuramc.figura.model.rendering.texture.FiguraTexture {
-        private int loads;
-        private boolean failUpload;
-
-        private PublicationTexture(Avatar owner) {
-            super(owner, "publication", new NativeImage(1, 1, true));
-        }
-
-        @Override
-        protected void doLoad(NativeImage image) {
-            loads++;
-            if (failUpload) {
-                throw new IllegalStateException("fixture GPU upload failure");
-            }
-            super.doLoad(image);
-        }
-
-        private void clearView() {
-            textureView = null;
-        }
-    }
-
-    private static final class PublicationView extends com.mojang.blaze3d.textures.GpuTextureView {
-        private boolean closed;
-
-        private PublicationView(com.mojang.blaze3d.textures.GpuTexture texture) {
-            super(texture, 0, 1);
-        }
-
-        @Override
-        public void close() {
-            closed = true;
-        }
-
-        @Override
-        public boolean isClosed() {
-            return closed;
-        }
-    }
-
-    /** Records GPU ownership and failure ordering; no graphics backend or window is created. */
-    private static final class PublicationDevice extends com.mojang.blaze3d.systems.GpuDevice {
-        private final List<PublicationGpuTexture> created = new ArrayList<>();
-        private final List<PublicationView> views = new ArrayList<>();
-        private boolean failView;
-        private boolean failWrite;
-
-        private PublicationDevice() {
-            super(null);
-        }
-
-        @Override
-        public com.mojang.blaze3d.textures.GpuSampler createSampler(
-                com.mojang.blaze3d.textures.AddressMode u, com.mojang.blaze3d.textures.AddressMode v,
-                com.mojang.blaze3d.textures.FilterMode min, com.mojang.blaze3d.textures.FilterMode mag,
-                int anisotropy, java.util.OptionalDouble maxLod) {
-            return new com.mojang.blaze3d.textures.GpuSampler() {
-                @Override
-                public com.mojang.blaze3d.textures.AddressMode getAddressModeU() {
-                    return u;
-                }
-
-                @Override
-                public com.mojang.blaze3d.textures.AddressMode getAddressModeV() {
-                    return v;
-                }
-
-                @Override
-                public com.mojang.blaze3d.textures.FilterMode getMinFilter() {
-                    return min;
-                }
-
-                @Override
-                public com.mojang.blaze3d.textures.FilterMode getMagFilter() {
-                    return mag;
-                }
-
-                @Override
-                public int getMaxAnisotropy() {
-                    return anisotropy;
-                }
-
-                @Override
-                public java.util.OptionalDouble getMaxLod() {
-                    return maxLod;
-                }
-
-                @Override
-                public void close() {
-                }
-            };
-        }
-
-        @Override
-        public com.mojang.blaze3d.textures.GpuTexture createTexture(java.util.function.Supplier<String> label, int usage,
-                com.mojang.blaze3d.textures.TextureFormat format, int width, int height, int layers, int levels) {
-            var texture = new PublicationGpuTexture(usage, label.get(), format, width, height, layers, levels);
-            created.add(texture);
-            return texture;
-        }
-
-        @Override
-        public com.mojang.blaze3d.textures.GpuTextureView createTextureView(com.mojang.blaze3d.textures.GpuTexture texture) {
-            if (failView) {
-                throw new IllegalStateException("fixture view creation failure");
-            }
-            var view = new PublicationView(texture);
-            views.add(view);
-            return view;
-        }
-
-        @Override
-        public com.mojang.blaze3d.systems.CommandEncoder createCommandEncoder() {
-            return new com.mojang.blaze3d.systems.CommandEncoder(null, null) {
-                @Override
-                public void writeToTexture(com.mojang.blaze3d.textures.GpuTexture texture, NativeImage image) {
-                    require(!texture.isClosed() && !image.isClosed(), "uploads require live source and destination");
-                    if (failWrite) {
-                        throw new IllegalStateException("fixture pixel upload failure");
-                    }
-                }
-            };
-        }
-    }
-
-    private static final class PublicationGpuTexture extends com.mojang.blaze3d.textures.GpuTexture {
-        private boolean closed;
-
-        private PublicationGpuTexture(int usage, String label, com.mojang.blaze3d.textures.TextureFormat format,
-                                      int width, int height, int layers, int levels) {
-            super(usage, label, format, width, height, layers, levels);
-        }
-
-        @Override
-        public void close() {
-            closed = true;
-        }
-
-        @Override
-        public boolean isClosed() {
-            return closed;
-        }
+    private static void testTextureUploadLifetime(Unsafe unsafe, RecordingClient client) throws Exception {
+        top.aihmc.omnimorph.test.FiguraTextureRegistrationSmokeTest.testLifetime(
+                owner(unsafe, 68), client.manager, client::drain);
     }
 
     private static void testScaleAndDefaultTexture(Unsafe unsafe, RecordingClient client) throws Exception {
@@ -1146,9 +905,8 @@ public final class YsmMaterialNativeSmokeTest {
                             && world.variables.getPath("only_preview") == null,
                     "nested values and cyclic storage views cannot write into world variables");
             require(preview.geometry() != runtime.geometry(), "alpha/geometry state is independent");
-            var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
             for (float age : new float[] {20f, 22f, 40f}) {
-                state.ageInTicks = age;
+                var state = new YsmEntityFrame(age, 0, 0, 0, 0);
                 top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
                 preview.updateAnimations(state, null);
                 var pose = preview.captureRenderPose(false);
@@ -1179,12 +937,13 @@ public final class YsmMaterialNativeSmokeTest {
                     "preview alpha updates never hide the world's geometry");
             var borrowed = runtime.texture();
             require(preview.setTexture("c"), "preview may select a private material through its existing model API");
-            require(!image(borrowed).isClosed() && runtime.textureId().equals("a"),
+            require(!NativeImageState.isClosed(image(borrowed)) && runtime.textureId().equals("a"),
                     "preview texture selection does not close or switch the world material");
             var owned = preview.texture();
             runtime.owner().controls.get("ysm.width_scale").setValue(0.9d);
             var recreated = runtime.forRenderPass();
-            require(recreated != preview && preview.isClosed() && image(owned).isClosed(), "changed model controls recreate and close the old preview");
+            require(recreated != preview && preview.isClosed() && NativeImageState.isClosed(image(owned)),
+                    "changed model controls recreate and close the old preview");
             require(Math.abs(recreated.widthScale() - 0.9f) < 0.0001, "preview imports current control values without persisting them");
             require(recreated.texture() == runtime.texture(), "new preview borrows the current selected material");
             require(runtime.setTexture("clear"), "world material may change while preview remains open");
@@ -1227,7 +986,7 @@ public final class YsmMaterialNativeSmokeTest {
                     var alternativePreview = alternative.forRenderPass();
                     require(alternativePreview != alternative && alternativePreview.isPreviewRuntime(),
                             "omitted or invalid preview declarations still select the detached default pose");
-                    alternativePreview.updateAnimations(state, null);
+                    alternativePreview.updateAnimations(new YsmEntityFrame(40f, 0, 0, 0, 0), null);
                     require(alternativePreview.animations().isActive("idle")
                                     && !alternativePreview.animations().isActive("gui")
                                     && alternativePreview.captureRenderPose(false).part("root").animPosRaw().x == 0d,
@@ -1235,7 +994,7 @@ public final class YsmMaterialNativeSmokeTest {
                 }
             }
             runtime.close();
-            require(image(borrowed).isClosed() && runtime.forRenderPass() == runtime,
+            require(NativeImageState.isClosed(image(borrowed)) && runtime.forRenderPass() == runtime,
                     "model unload closes its preview and cannot recreate a retained preview evaluator");
         } finally {
             runtime.close();
@@ -1252,43 +1011,28 @@ public final class YsmMaterialNativeSmokeTest {
         try {
             require(runtime.isGuiNoLighting(), "formal loader retains gui_no_lighting");
             runtime.owner().renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
-            var opaque = (net.minecraft.client.renderer.rendertype.RenderType) renderType.invoke(renderer);
-            var source = net.minecraft.client.renderer.RenderPipelines.ENTITY_TRANSLUCENT_EMISSIVE;
-            require(opaque.pipeline().getVertexShader().equals(source.getVertexShader())
-                            && opaque.pipeline().getFragmentShader().equals(source.getFragmentShader())
-                            && opaque.pipeline().getShaderDefines().values().equals(source.getShaderDefines().values())
-                            && opaque.pipeline().getUniforms().equals(source.getUniforms()),
-                    "unlit GUI material uses the native emissive shaders, numeric defines and uniforms");
-            var unlitDefines = opaque.pipeline().getShaderDefines();
-            require(unlitDefines.flags().contains("EMISSIVE") && unlitDefines.flags().contains("NO_CARDINAL_LIGHTING")
-                            && !unlitDefines.flags().contains("PER_FACE_LIGHTING"),
-                    "GUI disables both lightmap and directional shading in the actual native shader branches");
-            require(opaque.pipeline().getDepthStencilState().equals(net.minecraft.client.renderer.RenderPipelines.ENTITY_CUTOUT.getDepthStencilState()),
-                    "unlit opaque material retains ordinary depth writes rather than overlay depth policy");
-            require(opaque.pipeline().isCull() && !opaque.hasBlending(), "unlit GUI preserves opaque material and all_cutout");
+            var opaque = (net.minecraft.client.renderer.RenderType) renderType.invoke(renderer);
+            YsmPreviewLightingSmokeTest.verifyMaterial(opaque, true, false);
             Field translucent = YsmModelRuntime.class.getDeclaredField("textureTranslucent");
             translucent.setAccessible(true);
             translucent.setBoolean(runtime, true);
-            var blended = (net.minecraft.client.renderer.rendertype.RenderType) renderType.invoke(renderer);
-            require(blended.pipeline().getDepthStencilState().equals(net.minecraft.client.renderer.RenderPipelines.ENTITY_TRANSLUCENT.getDepthStencilState()),
-                    "unlit translucent material retains the ordinary translucent depth policy");
-            require(blended.pipeline().isCull() && blended.hasBlending() && blended.sortOnUpload(),
-                    "unlit translucent GUI retains blending, sorting and face culling");
+            var blended = (net.minecraft.client.renderer.RenderType) renderType.invoke(renderer);
+            YsmPreviewLightingSmokeTest.verifyMaterial(blended, true, true);
             var guiPose = runtime.captureRenderPose(false);
             var submittedType = YsmRenderer.class.getDeclaredMethod("renderType", YsmRenderPose.class);
             submittedType.setAccessible(true);
             runtime.owner().renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.WORLD;
-            var deferredGui = (net.minecraft.client.renderer.rendertype.RenderType) submittedType.invoke(renderer, guiPose);
-            require(deferredGui.pipeline().getShaderDefines().equals(unlitDefines),
+            var deferredGui = (net.minecraft.client.renderer.RenderType) submittedType.invoke(renderer, guiPose);
+            require(deferredGui == blended,
                     "deferred GUI drawing retains submission-time unlit material after the avatar mode is restored");
             var worldPose = runtime.captureRenderPose(false);
             runtime.owner().renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
-            var deferredWorld = (net.minecraft.client.renderer.rendertype.RenderType) submittedType.invoke(renderer, worldPose);
-            require(deferredWorld.pipeline() == net.minecraft.client.renderer.RenderPipelines.ENTITY_TRANSLUCENT_CULL,
+            var deferredWorld = (net.minecraft.client.renderer.RenderType) submittedType.invoke(renderer, worldPose);
+            require(deferredWorld == net.minecraft.client.renderer.RenderType.entityTranslucentCull(runtime.texture().getLocation()),
                     "later GUI extraction cannot change a submitted world material");
             runtime.owner().renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.WORLD;
-            var world = (net.minecraft.client.renderer.rendertype.RenderType) renderType.invoke(renderer);
-            require(world.pipeline() == net.minecraft.client.renderer.RenderPipelines.ENTITY_TRANSLUCENT_CULL,
+            var world = (net.minecraft.client.renderer.RenderType) renderType.invoke(renderer);
+            require(world == net.minecraft.client.renderer.RenderType.entityTranslucentCull(runtime.texture().getLocation()),
                     "gui_no_lighting never changes the world material pipeline");
         } finally {
             runtime.close();
@@ -1308,29 +1052,30 @@ public final class YsmMaterialNativeSmokeTest {
             require(front == gui.get("front") && front == gui.get("textures/gui_front.png"),
                     "GUI aliases reuse one model-owned native texture");
             require(front != second.runtime.guiResources().foreground(), "same GUI names in two models remain isolated");
-            var entries = first.runtimeTag.getListOrEmpty("gui_entries");
+            var entries = NbtDefaults.getListOrEmpty(first.runtimeTag, "gui_entries");
             require(entries.size() == 2, "name table and direct selection deduplicate their resource paths");
             for (var value : entries) {
                 var entry = (net.minecraft.nbt.CompoundTag) value;
-                byte[] expected = entry.getStringOr("path", "").endsWith("gui_front.png")
+                byte[] expected = entry.getString("path").endsWith("gui_front.png")
                         ? png(0x80334455) : png(0xff667788);
-                require(java.util.Arrays.equals(expected, entry.getByteArray("data").orElseThrow()),
+                require(java.util.Arrays.equals(expected, NbtDefaults.findByteArray(entry, "data").orElseThrow()),
                         "GUI decoding owns a copy and does not erase caller runtime NBT");
             }
             var invalid = first.runtimeTag.copy();
             var broken = new net.minecraft.nbt.CompoundTag();
             broken.putString("path", "broken-private-name.png");
             broken.putByteArray("data", new byte[]{1, 2, 3});
-            invalid.getListOrEmpty("gui_entries").add(broken);
+            NbtDefaults.getListOrEmpty(invalid, "gui_entries").add(broken);
             gui.load(invalid);
-            require(image(front).isClosed() && image(back).isClosed(), "resource reload closes old GUI native images");
+            require(NativeImageState.isClosed(image(front)) && NativeImageState.isClosed(image(back)),
+                    "resource reload closes old GUI native images");
             require(gui.invalidImages() == 1 && gui.get("broken-private-name.png") == null,
                     "an invalid optional GUI image is counted without breaking valid resources");
             FiguraTexture replacement = gui.foreground();
             require(replacement != front, "reload creates a fresh GUI image owner");
             pixel(replacement, 0x80334455, "valid GUI image survives another optional resource failure");
             first.runtime.close();
-            require(image(replacement).isClosed() && gui.foreground() == null && gui.get("front") == null,
+            require(NativeImageState.isClosed(image(replacement)) && gui.foreground() == null && gui.get("front") == null,
                     "model close releases GUI native images and prevents retained getters from reviving them");
             pixel(second.runtime.guiResources().foreground(), 0x80334455, "closing one model preserves another model's GUI image");
         } finally {
@@ -1381,15 +1126,24 @@ public final class YsmMaterialNativeSmokeTest {
     }
 
     private static void assertNativeOrder(YsmRenderer renderer, boolean layersFirst) {
-        var storage = new net.minecraft.client.renderer.SubmitNodeStorage();
-        var body = storage.order(renderer.bodySubmitOrder());
-        var nativeItems = storage.order(0);
-        var buckets = new ArrayList<>(storage.getSubmitsPerOrder().values());
-        require(buckets.equals(layersFirst ? List.of(nativeItems, body) : List.of(body, nativeItems)),
-                "native sorted feature buckets place regular items and special model parts on the requested side of the body");
-        require(body == storage.order(renderer.bodySubmitOrder()) && body != nativeItems,
-                "body uses the stable native bucket independently of collection time");
-        storage.clear();
+        // 1.21.1 uses immediate rendering; renderWithAttachments is checked above for actual call order.
+        require(renderer.bodySubmitOrder() == (layersFirst ? 1 : -1),
+                "body order metadata agrees with the selected immediate rendering policy");
+    }
+
+    private static Object renderStateField(net.minecraft.client.renderer.RenderType material, String name) throws Exception {
+        Field stateField = material.getClass().getDeclaredField("state");
+        stateField.setAccessible(true);
+        Object state = stateField.get(material);
+        Field value = state.getClass().getDeclaredField(name);
+        value.setAccessible(true);
+        return value.get(state);
+    }
+
+    private static boolean hasBlending(net.minecraft.client.renderer.RenderType material) throws Exception {
+        Field disabled = net.minecraft.client.renderer.RenderStateShard.class.getDeclaredField("NO_TRANSPARENCY");
+        disabled.setAccessible(true);
+        return renderStateField(material, "transparencyState") != disabled.get(null);
     }
 
     private static boolean testCorpusHeldItems(Unsafe unsafe, RecordingClient client, Path path, int index) throws Exception {
@@ -1537,7 +1291,7 @@ public final class YsmMaterialNativeSmokeTest {
                 }
                 top.aihmc.omnimorph.render.acceleration.FiguraAccelerationReplay.replay(null);
                 var alphas = new ArrayList<Float>();
-                var currentMaterial = new java.util.concurrent.atomic.AtomicReference<net.minecraft.client.renderer.rendertype.RenderType>();
+                var currentMaterial = new java.util.concurrent.atomic.AtomicReference<net.minecraft.client.renderer.RenderType>();
                 var consumer = (com.mojang.blaze3d.vertex.VertexConsumer) java.lang.reflect.Proxy.newProxyInstance(
                         YsmMaterialNativeSmokeTest.class.getClassLoader(),
                         new Class<?>[]{com.mojang.blaze3d.vertex.VertexConsumer.class}, (proxy, method, args) -> {
@@ -1546,7 +1300,7 @@ public final class YsmMaterialNativeSmokeTest {
                     }
                     if (method.getName().equals("setColor")) {
                         float alpha = ((Number) args[3]).floatValue();
-                        require(alpha == 255 || currentMaterial.get().hasBlending(),
+                        require(alpha == 255 || hasBlending(currentMaterial.get()),
                                 "faded preview geometry uses an alpha-capable material");
                         alphas.add(alpha);
                     }
@@ -1635,14 +1389,14 @@ public final class YsmMaterialNativeSmokeTest {
         try {
             sourceOwner.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
             var preview = source.forRenderPass();
-            var state = new net.minecraft.client.renderer.entity.state.LivingEntityRenderState();
+            var state = new YsmEntityFrame(0, 0, 0, 0, 0);
             top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
             preview.updateAnimations(state, null);
             var first = geometryVertices(preview, YsmPartMask.PLAYER_BODY);
             require(first.size() == 24 && !preview.getPart("effect").visibleRaw(),
                     "preview must retain controller/base visibility and omit the hidden effect geometry");
             require(!preview.animations().getControllers().isEmpty(), "preview keeps the model's controller definitions");
-            state.ageInTicks = 24;
+            state = new YsmEntityFrame(24, 0, 0, 0, 0);
             top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
             preview.updateAnimations(state, null);
             var second = geometryVertices(preview, YsmPartMask.PLAYER_BODY);
@@ -1774,7 +1528,8 @@ public final class YsmMaterialNativeSmokeTest {
     private static void testSubEntityInstances(Unsafe unsafe, RecordingClient client) throws Exception {
         Fixture fixture = new Fixture(unsafe, 36);
         try {
-            YsmSubEntitySmokeTest.run(unsafe, fixture.runtime, fixture.runtimeTag.getByteArray("texture").orElseThrow());
+            YsmSubEntitySmokeTest.run(unsafe, fixture.runtime,
+                    NbtDefaults.findByteArray(fixture.runtimeTag, "texture").orElseThrow());
         } finally {
             fixture.runtime.close();
             client.drain();
@@ -1820,15 +1575,17 @@ public final class YsmMaterialNativeSmokeTest {
             var renderType = YsmRenderer.class.getDeclaredMethod("renderType");
             renderType.setAccessible(true);
             var renderer = new YsmRenderer(runtime);
-            var opaque = (net.minecraft.client.renderer.rendertype.RenderType) renderType.invoke(renderer);
-            require(opaque.pipeline().isCull() && !opaque.hasBlending(), "opaque all_cutout uses native culled cutout");
+            var opaque = (net.minecraft.client.renderer.RenderType) renderType.invoke(renderer);
+            require(opaque == net.minecraft.client.renderer.RenderType.entityCutout(runtime.texture().getLocation())
+                            && !hasBlending(opaque), "opaque all_cutout uses native culled cutout");
             Field translucent = YsmModelRuntime.class.getDeclaredField("textureTranslucent");
             translucent.setAccessible(true);
             translucent.setBoolean(runtime, true);
-            var blended = (net.minecraft.client.renderer.rendertype.RenderType) renderType.invoke(renderer);
-            var nativeBlended = net.minecraft.client.renderer.rendertype.RenderTypes.entityTranslucent(runtime.texture().getLocation());
-            require(blended.pipeline().isCull() && blended.hasBlending(), "all_cutout preserves translucent alpha blending");
-            require(blended.outputTarget() == nativeBlended.outputTarget() && blended.sortOnUpload(),
+            var blended = (net.minecraft.client.renderer.RenderType) renderType.invoke(renderer);
+            var nativeBlended = net.minecraft.client.renderer.RenderType.entityTranslucent(runtime.texture().getLocation());
+            require(blended == net.minecraft.client.renderer.RenderType.entityTranslucentCull(runtime.texture().getLocation())
+                            && hasBlending(blended), "all_cutout preserves translucent alpha blending");
+            require(renderStateField(blended, "outputState") == renderStateField(nativeBlended, "outputState") && blended.sortOnUpload(),
                     "culled translucent models retain the world output target and transparency sorting");
             require(renderType.invoke(renderer) == blended, "repeated render passes reuse the model-owned render type");
             require(runtime.setTexture("c"), "skin switch succeeds under all_cutout");
@@ -1837,11 +1594,11 @@ public final class YsmMaterialNativeSmokeTest {
             Field allCutout = YsmModelRuntime.class.getDeclaredField("allCutout");
             allCutout.setAccessible(true);
             allCutout.setBoolean(runtime, false);
-            require(renderType.invoke(renderer) == net.minecraft.client.renderer.rendertype.RenderTypes.entityTranslucent(runtime.texture().getLocation()),
+            require(renderType.invoke(renderer) == net.minecraft.client.renderer.RenderType.entityTranslucent(runtime.texture().getLocation()),
                     "disabled all_cutout retains the existing native translucent path");
             translucent.setBoolean(runtime, false);
-            require(renderType.invoke(renderer) == net.minecraft.client.renderer.rendertype.RenderTypes.entityCutout(runtime.texture().getLocation()),
-                    "disabled all_cutout retains the existing native opaque path");
+            require(renderType.invoke(renderer) == net.minecraft.client.renderer.RenderType.entityCutoutNoCull(runtime.texture().getLocation()),
+                    "disabled all_cutout retains the native non-culled opaque path");
         } finally {
             runtime.close();
             client.drain();
@@ -1868,14 +1625,14 @@ public final class YsmMaterialNativeSmokeTest {
             pixel(secondMaterial.normalTexture(), 0xff8080ff, "second model channel is independently decoded");
 
             normal.close();
-            require(image(normal).isClosed(), "Iris-style channel release closes its native image");
+            require(NativeImageState.isClosed(image(normal)), "Iris-style channel release closes its native image");
             FiguraTexture recreated = firstMaterial.normalTexture();
             require(recreated != normal, "cleared PBR holder gets a fresh channel object");
             firstImages.add(image(recreated));
             pixel(recreated, 0xff8080ff, "recreated channel retains original decoded pixels");
             require(first.runtime.setTexture("c"), "runtime switches skin through its public selector");
             for (NativeImage image : firstImages) {
-                require(image.isClosed() && image.getPointer() == 0, "switch releases every old native image");
+                require(NativeImageState.isClosed(image), "switch releases every old native image");
             }
             YsmMaterialTexture next = (YsmMaterialTexture) first.runtime.texture();
             firstImages.add(image(next));
@@ -1888,14 +1645,15 @@ public final class YsmMaterialNativeSmokeTest {
             YsmMaterialTexture plain = (YsmMaterialTexture) first.runtime.texture();
             firstImages.add(image(plain));
             require(plain.normalTexture() == null && plain.specularTexture() == null, "plain skin never inherits the previous skin channels");
-            require(!image(secondMaterial.normalTexture()).isClosed(), "first model switching does not release second model resources");
+            require(!NativeImageState.isClosed(image(secondMaterial.normalTexture())),
+                    "first model switching does not release second model resources");
         } finally {
             first.runtime.close();
             second.runtime.close();
             client.drain();
         }
         for (NativeImage image : firstImages) {
-            require(image.isClosed() && image.getPointer() == 0, "model close releases all observed native images");
+            require(NativeImageState.isClosed(image), "model close releases all observed native images");
         }
     }
 
@@ -1911,12 +1669,15 @@ public final class YsmMaterialNativeSmokeTest {
         Thread close = new Thread(material::close, "material-owner-close");
         close.start();
         close.join();
-        require(!baseImage.isClosed() && !normalImage.isClosed(), "background unload queues native release onto its designated thread");
+        require(!NativeImageState.isClosed(baseImage) && !NativeImageState.isClosed(normalImage),
+                "background unload queues native release onto its designated thread");
         require(material.normalTexture() == null && material.specularTexture() == null, "closed model cannot recreate channels while cleanup is queued");
         client.drain();
-        require(baseImage.isClosed() && normalImage.isClosed(), "queued native cleanup closes base and channel");
+        require(NativeImageState.isClosed(baseImage) && NativeImageState.isClosed(normalImage),
+                "queued native cleanup closes base and channel");
         material.close();
-        require(baseImage.getPointer() == 0 && normalImage.getPointer() == 0, "repeated cleanup remains safe");
+        require(NativeImageState.isClosed(baseImage) && NativeImageState.isClosed(normalImage),
+                "repeated cleanup remains safe");
     }
 
     private static void testSelectionRestore(Unsafe unsafe, RecordingClient client, Path directory) throws Exception {
@@ -2047,7 +1808,10 @@ public final class YsmMaterialNativeSmokeTest {
 
     private static void pixel(FiguraTexture texture, int expected, String message) throws Exception {
         NativeImage image = image(texture);
-        require(!image.isClosed() && image.getWidth() == 1 && image.getHeight() == 1 && image.getPixel(0, 0) == expected, message);
+        require(!NativeImageState.isClosed(image) && image.getWidth() == 1 && image.getHeight() == 1, message);
+        int abgr = image.getPixelRGBA(0, 0);
+        int argb = (abgr & 0xff00ff00) | ((abgr & 0xff) << 16) | ((abgr >>> 16) & 0xff);
+        require(argb == expected, message);
     }
 
     private static byte[] png(int color) throws Exception {
@@ -2071,11 +1835,11 @@ public final class YsmMaterialNativeSmokeTest {
         }
     }
 
-    private static final class RecordingToasts extends net.minecraft.client.gui.components.toasts.ToastManager {
+    private static final class RecordingToasts extends net.minecraft.client.gui.components.toasts.ToastComponent {
         private List<net.minecraft.client.gui.components.toasts.Toast> entries;
 
         private RecordingToasts() {
-            super(null, null);
+            super(null);
         }
 
         @Override
@@ -2096,15 +1860,25 @@ public final class YsmMaterialNativeSmokeTest {
     }
 
     /** CPU screen dispatch only. Native window creation, mixins and rendering still require the real client. */
-    public static AutoCloseable recordingScreens() {
+    public static AutoCloseable recordingScreens() throws ReflectiveOperationException {
         var client = (RecordingClient) Minecraft.getInstance();
         var previous = client.screenDispatcher;
         var previousScreen = client.screen;
+        Field screenClient = net.minecraft.client.gui.screens.Screen.class.getDeclaredField("minecraft");
+        screenClient.setAccessible(true);
         client.screenDispatcher = next -> {
             if (client.screen != null) {
                 client.screen.removed();
             }
             client.screen = next;
+            if (next != null) {
+                try {
+                    // Tests build widgets separately, but native screen callbacks still require their client.
+                    screenClient.set(next, client);
+                } catch (IllegalAccessException failure) {
+                    throw new AssertionError("Cannot bind the recorded screen to its client", failure);
+                }
+            }
         };
         return () -> {
             client.screenDispatcher = previous;
@@ -2113,9 +1887,15 @@ public final class YsmMaterialNativeSmokeTest {
     }
 
     private static final class RecordingClient extends Minecraft implements top.aihmc.omnimorph.mixin.MinecraftAccesor {
+        @Override
+        public net.minecraft.util.profiling.ProfilerFiller getProfiler() {
+            return net.minecraft.util.profiling.InactiveProfiler.INSTANCE;
+        }
+
         private RecordingTextures manager;
+        private net.minecraft.client.renderer.entity.EntityRenderDispatcher dispatcher;
         private net.minecraft.client.sounds.SoundManager sounds;
-        private net.minecraft.client.gui.components.toasts.ToastManager toasts;
+        private net.minecraft.client.gui.components.toasts.ToastComponent toasts;
         private ConcurrentLinkedQueue<Runnable> queue;
         private java.util.function.Consumer<net.minecraft.client.gui.screens.Screen> screenDispatcher;
 
@@ -2143,11 +1923,6 @@ public final class YsmMaterialNativeSmokeTest {
         }
 
         @Override
-        public void onTextInputFocusChange(net.minecraft.client.gui.components.events.GuiEventListener input, boolean focused) {
-            // Native editing is exercised; OS text-input activation belongs to manual game validation.
-        }
-
-        @Override
         public net.minecraft.world.entity.Entity getCameraEntity() {
             return null;
         }
@@ -2155,7 +1930,7 @@ public final class YsmMaterialNativeSmokeTest {
         @Override
         public net.minecraft.client.User getUser() {
             return new net.minecraft.client.User("CPU preview fixture", UUID.fromString("10000000-0000-4000-8000-000000000999"), "",
-                    java.util.Optional.empty(), java.util.Optional.empty());
+                    java.util.Optional.empty(), java.util.Optional.empty(), net.minecraft.client.User.Type.MSA);
         }
 
         @Override
@@ -2164,12 +1939,17 @@ public final class YsmMaterialNativeSmokeTest {
         }
 
         @Override
+        public net.minecraft.client.renderer.entity.EntityRenderDispatcher getEntityRenderDispatcher() {
+            return dispatcher;
+        }
+
+        @Override
         public net.minecraft.client.sounds.SoundManager getSoundManager() {
             return sounds;
         }
 
         @Override
-        public net.minecraft.client.gui.components.toasts.ToastManager getToastManager() {
+        public net.minecraft.client.gui.components.toasts.ToastComponent getToasts() {
             return toasts;
         }
 
@@ -2183,7 +1963,7 @@ public final class YsmMaterialNativeSmokeTest {
         }
 
         @Override
-        public void schedule(Runnable task) {
+        public void tell(Runnable task) {
             queue.add(task);
         }
 
@@ -2207,9 +1987,8 @@ public final class YsmMaterialNativeSmokeTest {
         public void register(ResourceLocation location, AbstractTexture texture) {
             super.register(location, texture);
             if (inspectRegistration) {
-                net.minecraft.client.renderer.rendertype.RenderSetup.builder(
-                                net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED)
-                        .withTexture("Sampler0", location).createRenderSetup().getTextures();
+                require(org.lwjgl.opengl.GL11.glIsTexture(texture.getId()),
+                        "registration consumers receive an initialized native texture");
             }
         }
 
