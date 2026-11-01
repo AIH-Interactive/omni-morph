@@ -284,6 +284,16 @@ tasks.register('commandSuggestionsMixinSmokeTest', JavaExec) {
             layout.buildDirectory.file('classes/java/main/org/figuramc/figura/mixin/gui/SuggestionsListMixin.class').get().asFile.path
 }
 
+tasks.register('neoforgeModuleSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks NeoForge package ownership with the JVM module resolver and packaged AVIF JNI decoding.'
+    dependsOn testClasses, ':neoforge:remapJar'
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.test.NeoForgeModuleSmokeTest'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    args project(':neoforge').tasks.named('remapJar').flatMap { it.archiveFile }.get().asFile.path
+}
+
 tasks.register('gpuSubmissionSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Checks 1.21.1 GPU rejection and native Java BufferSource ordering, sorting and cleanup.'

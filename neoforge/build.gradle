@@ -14,6 +14,7 @@ loom {
 configurations {
     common
     shadowCommon // Don't use shadow from the shadow plugin since it *excludes* files.
+    embeddedAvif
     compileClasspath.extendsFrom common
     runtimeClasspath.extendsFrom common
     developmentNeoForge.extendsFrom common
@@ -30,7 +31,11 @@ dependencies {
     include(forgeRuntimeLibrary("io.airlift:aircompressor:0.27"))
     include(forgeRuntimeLibrary("io.github.jaredmdobson:concentus:1.0.2"))
     include(forgeRuntimeLibrary("org.gagravarr:vorbis-java-core:0.8"))
-    include(forgeRuntimeLibrary("com.github.ustc-zzzz:avif-imageio-native-reader:master-6af2f277a8-1@jar"))
+    // The lifecycle adapter calls package-private JNI types. Keep that package in one JPMS module.
+    forgeRuntimeLibrary("com.github.ustc-zzzz:avif-imageio-native-reader:master-6af2f277a8-1@jar")
+    embeddedAvif("com.github.ustc-zzzz:avif-imageio-native-reader:master-6af2f277a8-1@jar") {
+        transitive = false
+    }
     // Jar-in-jar packaging must list the image readers' transitive runtime libraries explicitly.
     ["imageio-webp", "imageio-core", "imageio-metadata"].each { module ->
         include(forgeRuntimeLibrary("com.twelvemonkeys.imageio:${module}:3.15.0"))
@@ -73,7 +78,8 @@ shadowJar {
         relocate "top.aihmc.omnimorph.${bridgePackage}.neoforge", "org.figuramc.figura.${bridgePackage}.neoforge"
     }
 
-    configurations = [project.configurations.shadowCommon]
+    configurations = [project.configurations.shadowCommon, project.configurations.embeddedAvif]
+    mergeServiceFiles()
     archiveClassifier.set "dev-shadow"
 }
 
