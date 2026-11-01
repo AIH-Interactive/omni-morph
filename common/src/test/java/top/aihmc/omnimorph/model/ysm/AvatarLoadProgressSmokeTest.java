@@ -165,6 +165,11 @@ final class AvatarLoadProgressSmokeTest {
             return 0f;
         }
 
+        @Override
+        public float getNameTagOffsetY() {
+            return 2f;
+        }
+
     }
 
     private static final class RecordingFont extends net.minecraft.client.gui.Font {

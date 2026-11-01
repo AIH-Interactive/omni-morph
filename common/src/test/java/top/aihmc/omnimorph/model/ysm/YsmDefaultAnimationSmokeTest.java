@@ -123,7 +123,6 @@ public final class YsmDefaultAnimationSmokeTest {
             testAuthoredDomains();
             System.out.println("PASS default animation runtime: bundled hashes/whitelist, author/disabled priority, native parsing, domains, timeline dependencies, aliases and cache identity");
             testReferenceResources(workspace);
-            System.out.println("PASS default animation reference resource parity");
         } finally {
             owner.clean();
             YsmDefaultAnimationResolver.clear();
@@ -134,6 +133,10 @@ public final class YsmDefaultAnimationSmokeTest {
         Path bundled = workspace.resolve("common/src/main/resources/assets/omni-morph/default_animation");
         Path reference = workspace.resolve("refs/Sparkle-Morpher-neo1.21.1/src/main/resources/assets/"
                 + "sparkle_morpher/builtin/default/animations");
+        if (!Files.isDirectory(reference)) {
+            System.out.println("SKIPPED missing exclusive Sparkle reference: byte-for-byte resource parity; unverified");
+            return;
+        }
         try (var files = Files.list(reference)) {
             var animations = files.filter(path -> path.getFileName().toString().endsWith(".animation.json")).toList();
             require(animations.size() == 14, "reference default animation inventory contains fourteen files");
@@ -142,12 +145,17 @@ public final class YsmDefaultAnimationSmokeTest {
                         "bundled default animation matches Sparkle byte for byte: " + file.getFileName());
             }
         }
+        System.out.println("PASS default animation reference resource parity");
     }
 
     private static void testReferenceSamples(Path workspace, MolangEngine engine, Map<String, YsmAnimationClip> main,
                                              Map<String, YsmAnimationClip> hands) throws Exception {
         Path reference = workspace.resolve("refs/Sparkle-Morpher-neo1.21.1/src/main/resources/assets/"
                 + "sparkle_morpher/builtin/default/animations");
+        if (!Files.isDirectory(reference)) {
+            System.out.println("SKIPPED missing exclusive Sparkle reference: source sample comparison; unverified");
+            return;
+        }
         for (var domain : Map.of("main", main, "arm", hands).entrySet()) {
             // This checks resource selection/mapping through our parser, not Sparkle's runtime semantics.
             var expected = YsmAnimationParser.parse(

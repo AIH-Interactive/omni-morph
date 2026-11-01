@@ -38,7 +38,7 @@ public final class CosmeticSourceSmokeTest {
             testCache(data.resolve("cache"));
             System.out.println("PASS cosmetic source preparation: native wrappers, stable IDs/index cache, .oms, isolated Lua/Molang/controls and timeout");
             top.aihmc.omnimorph.model.ysm.YsmDefaultAnimationSmokeTest.run(workspace, prepared);
-            System.out.println("PASS cosmetic sources including default animation reference parity");
+            System.out.println("PASS cosmetic sources and available default animation checks; reference coverage reported separately");
         } finally {
             try (var files = Files.walk(data)) {
                 for (Path file : files.sorted(java.util.Comparator.reverseOrder()).toList()) {

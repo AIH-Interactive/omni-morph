@@ -23,11 +23,12 @@ public final class YsmBindingReferenceAudit {
             "ctrl.tac_is_fire", "ctrl.tac_is_melee", "ctrl.tac_is_reload",
             "ctrl.ladder_up", "ctrl.ladder_down", "ctrl.ladder_stillness",
             "ctrl.slashblade_animation", "ctrl.has_sophisticated_backpack",
+            "ctrl.create_hanging_skyhook",
             "ysm.first_order", "ysm.second_order", "ysm.particle", "ysm.abs_particle", "ysm.bone_param",
             "ysm.has_any_curios", "ysm.has_any_curios_with_any_tag", "ysm.has_any_curios_with_all_tags");
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 1) {
+        if (args.length < 1 || args.length > 3) {
             throw new IllegalArgumentException("Provide the avatar corpus directory");
         }
         Path root = Path.of(args[0]);
@@ -96,13 +97,24 @@ public final class YsmBindingReferenceAudit {
                 auditedModels++;
             }
         }
-        require(summary.reports().size() == 40 && summary.validCount() == 38 && summary.invalidCount() == 2,
-                "reviewed M2 corpus candidate/valid/known-negative counts changed; audit coverage must be reviewed");
-        require(encryptedCandidates == 5 && encryptedValidated == 5,
-                "all five encrypted candidates must be decoded and validated for this reference audit");
+        boolean availableOnly = java.util.Arrays.asList(args).contains("--available-only");
+        if (availableOnly) {
+            System.out.println("SKIPPED historical 40-model inventory parity; auditing the available corpus separately");
+            require(args.length == 3, "available corpus audit requires an explicitly reviewed baseline");
+            YsmModelScanner.validateGate(root, summary, Path.of(args[2]));
+            require(summary.validCount() > 0, "available corpus contains validated models");
+            System.out.println("PASS exact available-corpus diagnostic baseline; known invalid models="
+                    + summary.invalidCount() + ", not counted as valid");
+        } else {
+            require(summary.reports().size() == 40 && summary.validCount() == 38 && summary.invalidCount() == 2,
+                    "reviewed M2 corpus candidate/valid/known-negative counts changed; audit coverage must be reviewed");
+            require(encryptedCandidates == 5 && encryptedValidated == 5,
+                    "all five encrypted candidates must be decoded and validated for this reference audit");
+        }
         require(unresolvedBoneParamModels == 0,
                 "corpus now depends on unresolved bone_param; obtain a contract before replacing its placeholder");
-        require(auditedModels == 38, "all valid decoded models must participate in the sync migration audit");
+        require(auditedModels == summary.validCount(),
+                "all valid decoded models must participate in the sync migration audit");
         System.out.printf(Locale.ROOT,
                 "M4 binding reference audit: candidates=%d valid=%d knownNegative=%d encryptedValidated=%d boneParamUsers=%d syncModelsAudited=%d syncResources=%d numericSyncCalls=%d unresolvedSyncAccesses=%d%n",
                 summary.reports().size(), summary.validCount(), summary.invalidCount(),
@@ -114,8 +126,12 @@ public final class YsmBindingReferenceAudit {
                 "new unreviewed binding dependencies require a private contract audit before inventory acceptance");
         require(unresolvedSyncAccesses == 0,
                 "corpus has non-literal, string-key or value ysm.sync access; review migration semantics");
-        require(syncResources == 1 && numericSyncCalls == 2,
-                "reviewed sync call inventory changed; inspect the new dependencies before accepting migration");
+        if (availableOnly) {
+            System.out.println("SKIPPED historical sync call inventory parity; current counts reported above");
+        } else {
+            require(syncResources == 1 && numericSyncCalls == 2,
+                    "reviewed sync call inventory changed; inspect the new dependencies before accepting migration");
+        }
     }
 
     private static void require(boolean condition, String message) {

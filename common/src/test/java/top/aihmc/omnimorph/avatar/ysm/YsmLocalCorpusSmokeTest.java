@@ -64,9 +64,16 @@ public final class YsmLocalCorpusSmokeTest {
                     encrypted++;
                 }
             }
-            require(figura > 0 && ysm > 0 && encrypted > 0, "all user-requested corpus categories are present");
             System.out.printf("Local corpus: Figura compiled=%d YSM data assembled=%d encrypted assembled/rehydrated=%d%n",
                     figura, ysm, encrypted);
+            boolean complete = figura > 0 && ysm > 0 && encrypted > 0;
+            if (!complete && Arrays.asList(args).contains("--available-only")) {
+                System.out.println("SKIPPED missing local corpus categories: Figura=" + (figura == 0)
+                        + ", plain YSM=" + (ysm == 0) + ", encrypted YSM=" + (encrypted == 0)
+                        + "; available files verified, missing categories unverified");
+            } else {
+                require(complete, "all user-requested corpus categories are present");
+            }
         } finally {
             try (var files = Files.walk(environment)) {
                 for (Path path : files.sorted(Comparator.reverseOrder()).toList()) {

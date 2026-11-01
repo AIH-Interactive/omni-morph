@@ -1,0 +1,85 @@
+{
+  "total": 18,
+  "issues": {
+    "DS鲸鱼娘.ysm": {
+      "errors": [
+        "INVALID_DATA: encrypted scan diagnostic sha256=006eea80d3f5bc26ec55f503c56731f6948c115597317100aeab5b5bdedd56ac",
+        "INVALID_DATA: encrypted scan diagnostic sha256=59d8b9d65cbc35fffca6da52da6fea27ec703cf207baf1aa26e6da1c64a43644",
+        "INVALID_DATA: encrypted scan diagnostic sha256=9587ed8881fd9a67c220df3cac372cbf878e3b1b907fa6464d2fbac80d456cc0"
+      ],
+      "unsupported": []
+    },
+    "拉菲2兔女郎.ysm": {
+      "errors": [
+        "INVALID_DATA: encrypted scan diagnostic sha256=d7b9deba78c3219d519cc99438699b030b0de14f6a86d302b9255f5189f78909",
+        "INVALID_DATA: encrypted scan diagnostic sha256=d7b9deba78c3219d519cc99438699b030b0de14f6a86d302b9255f5189f78909",
+        "INVALID_DATA: encrypted scan diagnostic sha256=d7b9deba78c3219d519cc99438699b030b0de14f6a86d302b9255f5189f78909",
+        "INVALID_DATA: encrypted scan diagnostic sha256=d7b9deba78c3219d519cc99438699b030b0de14f6a86d302b9255f5189f78909",
+        "INVALID_DATA: encrypted scan diagnostic sha256=d7b9deba78c3219d519cc99438699b030b0de14f6a86d302b9255f5189f78909",
+        "INVALID_DATA: encrypted scan diagnostic sha256=d7b9deba78c3219d519cc99438699b030b0de14f6a86d302b9255f5189f78909",
+        "INVALID_DATA: encrypted scan diagnostic sha256=d7b9deba78c3219d519cc99438699b030b0de14f6a86d302b9255f5189f78909"
+      ],
+      "unsupported": [
+        "ctrl.carryon_is_princess",
+        "ctrl.parcool_state",
+        "ctrl.slashblade_animation",
+        "ctrl.tac_hold_gun"
+      ]
+    },
+    "星屑海螺.ysm": {
+      "errors": [
+        "INVALID_DATA: encrypted scan diagnostic sha256=034284a496e59a043d3e29953a00a34fb6faff609227f9511a5c1c921f8ed52c",
+        "INVALID_DATA: encrypted scan diagnostic sha256=1bc5a2ce42244680a47284866c60de1370a5cebfd4791bfd19ea7be221beaa18",
+        "INVALID_DATA: encrypted scan diagnostic sha256=255f6f028f0d373b4df0808015740d0b59fd93976fe8fdaa2688446fa75b9f4e",
+        "INVALID_DATA: encrypted scan diagnostic sha256=2790c1e4ad8cc6329db8a34f53c6364b4a46508ffc1b05301a197b0aefa8d040",
+        "INVALID_DATA: encrypted scan diagnostic sha256=4ea499b34f546fe8dd69d14565bb64f103f206f7da2e98dec2b75674f0fb9d53",
+        "INVALID_DATA: encrypted scan diagnostic sha256=604bbd91893bff9aea5025b643b533c8cffe8e7f8cb632eab55b95e5417d7918",
+        "INVALID_DATA: encrypted scan diagnostic sha256=66cd7163932ec1ba9fcd151cecd2e54cfa1819e4a87f1f42cf801a84f15dc4ac",
+        "INVALID_DATA: encrypted scan diagnostic sha256=b33407f48973df5169ed69cac99e38bc8ffb68040f7c86a9d9dc6ac6e7ac84d2",
+        "INVALID_DATA: encrypted scan diagnostic sha256=ec91d7d7961ff8e42bd23c0c0926917238e545d1ba757100632db311ac8b1fd1",
+        "INVALID_DATA: encrypted scan diagnostic sha256=ecfe1c54ad814bc5e5c1e7a96cf886b548d893da7e184638aab84ad501391094"
+      ],
+      "unsupported": [
+        "ctrl.carryon_is_princess",
+        "ctrl.create_hanging_skyhook",
+        "ctrl.im_delta",
+        "ctrl.im_pitch",
+        "ctrl.parcool_state",
+        "ctrl.slashblade_animation",
+        "ctrl.tac_hold_gun",
+        "ysm.has_any_curios"
+      ]
+    },
+    "末影龙娘.ysm": {
+      "errors": [
+        "INVALID_DATA: encrypted scan diagnostic sha256=dfb5581f6238293a57da8f73722b6990d6d06a7205282cd264a9a9a42162abbb"
+      ],
+      "unsupported": []
+    },
+    "绯英.ysm": {
+      "errors": [
+        "INVALID_DATA: encrypted scan diagnostic sha256=0d095d5e98ffd7ce7d30eaeff73810e29fbc4a0a615a675855434b279d1d8759",
+        "INVALID_DATA: encrypted scan diagnostic sha256=10641d52493bcb99082c9fe94a688756949f25c99553a1440b68d03bcda62a05",
+        "INVALID_DATA: encrypted scan diagnostic sha256=a537718705e0edc90033e2c9e5aa0e2c63fdb20266542af9dbd068c1a55d087d",
+        "INVALID_DATA: encrypted scan diagnostic sha256=eae5fe7613bc4ee059b4977993d60c748ca3bf0e7a3e5549235f54c76bf2546f"
+      ],
+      "unsupported": [
+        "ctrl.im_delta",
+        "ctrl.im_pitch",
+        "ctrl.im_time"
+      ]
+    },
+    "芙宁娜v3.14中文配音.ysm": {
+      "errors": [],
+      "unsupported": [
+        "ctrl.parcool_state",
+        "ctrl.tac_gun_type",
+        "ctrl.tac_hold_gun",
+        "ctrl.tac_is_aim",
+        "ctrl.tac_is_fire",
+        "ctrl.tac_is_melee",
+        "ctrl.tac_is_reload"
+      ]
+    }
+  }
+}

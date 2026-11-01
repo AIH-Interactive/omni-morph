@@ -52,11 +52,11 @@ public final class YsmLanguageSmokeTest {
             testDictionaries(client);
             testSharedConsumers(client);
             testYsmSchema(client, unsafe);
-            if (args.length != 1) {
+            if (args.length < 1 || args.length > 2) {
                 throw new IllegalArgumentException("Provide the model corpus directory");
             }
             testListDiscovery(temporary, Path.of(args[0]));
-            testCorpus(Path.of(args[0]), client);
+            testCorpus(Path.of(args[0]), client, java.util.Arrays.asList(args).contains("--available-only"));
             System.out.println("M5 model language: shared Figura/YSM text consumers, live locale, fallback, raw values and isolation PASS; GUI pending.");
         } finally {
             instance.set(null, previousClient);
@@ -228,7 +228,7 @@ public final class YsmLanguageSmokeTest {
         System.out.println("Deferred wardrobe discovery and recursive Figura/plain/encrypted filters PASS; activation validation retained.");
     }
 
-    private static void testCorpus(Path root, LanguageClient client) throws Exception {
+    private static void testCorpus(Path root, LanguageClient client, boolean availableOnly) throws Exception {
         int models = 0;
         int encrypted = 0;
         int dictionaries = 0;
@@ -297,8 +297,16 @@ public final class YsmLanguageSmokeTest {
             }
         }
         // Every detected input is audited above; repository-local corpus counts are not fixed.
-        require(models > encrypted && encrypted > 0 && dictionaries > 0 && keys > 0 && plainCard && encryptedCard,
-                "complete dynamically enumerated plain/encrypted YSM language audit");
+        require(dictionaries > 0 && keys > 0, "corpus contains actual decoded language keys");
+        require(encrypted == 0 || encryptedCard, "available encrypted corpus exercises the wardrobe card");
+        require(models == encrypted || plainCard, "available plain corpus exercises the wardrobe card");
+        if (availableOnly && (models == encrypted || encrypted == 0)) {
+            System.out.println("SKIPPED missing language corpus category: models=" + models + " encrypted="
+                    + encrypted + "; available keys verified, missing category unverified");
+        } else {
+            require(models > encrypted && encrypted > 0 && plainCard && encryptedCard,
+                    "complete dynamically enumerated plain/encrypted YSM language audit");
+        }
         System.out.println("M5 language corpus: models=" + models + " encrypted=" + encrypted
                 + " dictionaries=" + dictionaries + " primitiveKeys=" + keys);
     }

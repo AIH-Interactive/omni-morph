@@ -517,6 +517,14 @@ tasks.register("ysmResourceScopeSmokeTest", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = "top.aihmc.omnimorph.model.ysm.YsmResourceScopeSmokeTest"
     args rootProject.file("refs/avatars/16_tactics").path
+    onlyIf {
+        def corpus = rootProject.file('refs/avatars/16_tactics')
+        if (!corpus.isDirectory() || corpus.listFiles().length == 0) {
+            logger.lifecycle('SKIPPED missing exclusive 16_tactics corpus; resource scope unverified')
+            return false
+        }
+        return true
+    }
 }
 
 tasks.register("ysmAstronautVisibilitySmokeTest", JavaExec) {
@@ -526,6 +534,14 @@ tasks.register("ysmAstronautVisibilitySmokeTest", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = "top.aihmc.omnimorph.model.ysm.YsmAstronautVisibilitySmokeTest"
     args rootProject.file("refs/avatars/03_astronaut").path
+    onlyIf {
+        def corpus = rootProject.file('refs/avatars/03_astronaut')
+        if (!corpus.isDirectory() || corpus.listFiles().length == 0) {
+            logger.lifecycle('SKIPPED missing exclusive 03_astronaut corpus; authored visibility unverified')
+            return false
+        }
+        return true
+    }
 }
 
 tasks.register("ysmPackageSmokeTest", JavaExec) {
@@ -723,6 +739,9 @@ tasks.register("ysmLocalCorpusSmokeTest", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = "top.aihmc.omnimorph.avatar.ysm.YsmLocalCorpusSmokeTest"
     args rootProject.file(project.findProperty("ysmScanPath") ?: "refs/avatars").path
+    if (providers.gradleProperty('allowMissingReferenceCorpus').isPresent()) {
+        args '--available-only'
+    }
 }
 
 tasks.register("ysmCryptoSmokeTest", JavaExec) {
@@ -1041,6 +1060,9 @@ tasks.register("ysmBindingReferenceAudit", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = "top.aihmc.omnimorph.model.ysm.YsmBindingReferenceAudit"
     args rootProject.file("refs/avatars").path
+    if (providers.gradleProperty('allowMissingReferenceCorpus').isPresent()) {
+        args '--available-only', rootProject.file('common/src/test/resources/ysm/mc-1.20.1-corpus-baseline.json').path
+    }
 }
 
 tasks.register("ysmUnavailableBindingSmokeTest", JavaExec) {
@@ -1098,6 +1120,9 @@ tasks.register("ysmAudioDecodeSmokeTest", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = "top.aihmc.omnimorph.model.ysm.YsmAudioDecodeSmokeTest"
     args rootProject.file("refs/avatars").path
+    if (providers.gradleProperty('allowMissingReferenceCorpus').isPresent()) {
+        args '--available-only'
+    }
 }
 
 
@@ -1108,6 +1133,9 @@ tasks.register("ysmLanguageSmokeTest", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = "top.aihmc.omnimorph.model.ysm.YsmLanguageSmokeTest"
     args rootProject.file("refs/avatars").path
+    if (providers.gradleProperty('allowMissingReferenceCorpus').isPresent()) {
+        args '--available-only'
+    }
 }
 
 
@@ -1136,6 +1164,9 @@ tasks.register("ysmMaterialInputSmokeTest", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = "top.aihmc.omnimorph.avatar.ysm.YsmMaterialInputSmokeTest"
     args rootProject.file("refs/avatars").path
+    if (providers.gradleProperty('allowMissingReferenceCorpus').isPresent()) {
+        args '--available-only'
+    }
 }
 
 

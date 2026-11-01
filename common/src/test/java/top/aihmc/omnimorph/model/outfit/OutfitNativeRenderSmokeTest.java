@@ -69,7 +69,7 @@ public final class OutfitNativeRenderSmokeTest {
                             if (method.isDefault()) {
                                 return InvocationHandler.invokeDefault(proxy, method, arguments);
                             }
-                            if (method.getName().equals("addVertex")) {
+                            if (method.getName().equals("vertex")) {
                                 positions.add(new float[]{((Number) arguments[0]).floatValue(),
                                         ((Number) arguments[1]).floatValue(), ((Number) arguments[2]).floatValue()});
                             }
@@ -593,11 +593,11 @@ public final class OutfitNativeRenderSmokeTest {
                     if (method.isDefault()) {
                         return InvocationHandler.invokeDefault(proxy, method, arguments);
                     }
-                    if (method.getName().equals("addVertex")) {
+                    if (method.getName().equals("vertex")) {
                         positions.add(new float[]{((Number) arguments[0]).floatValue(),
                                 ((Number) arguments[1]).floatValue(), ((Number) arguments[2]).floatValue()});
                     }
-                    if (normals != null && method.getName().equals("setNormal")) {
+                    if (normals != null && method.getName().equals("normal")) {
                         normals.add(new float[]{((Number) arguments[0]).floatValue(),
                                 ((Number) arguments[1]).floatValue(), ((Number) arguments[2]).floatValue()});
                     }
@@ -643,7 +643,7 @@ public final class OutfitNativeRenderSmokeTest {
                             if (method.isDefault()) {
                                 return InvocationHandler.invokeDefault(proxy, method, arguments);
                             }
-                            if (method.getName().equals("addVertex")) {
+                            if (method.getName().equals("vertex")) {
                                 positions.add(new float[]{((Number) arguments[0]).floatValue(),
                                         ((Number) arguments[1]).floatValue(), ((Number) arguments[2]).floatValue()});
                             }

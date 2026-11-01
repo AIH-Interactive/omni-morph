@@ -60,7 +60,8 @@ final class ParticleMotionNativeSmokeTest {
             var state = new ParticleVertexCapture();
             particle.extract(state, new FixtureCamera(), .5f);
             var vertices = state.batches.get(0).vertices();
-            var edge = vertices.get(0).position().subtract(vertices.get(3).position());
+            // 1.20.1 writes bottom-left first and bottom-right last; this edge points right at zero roll.
+            var edge = vertices.get(3).position().subtract(vertices.get(0).position());
             require(edge.x > 0 && Math.abs(edge.y) < 1e-5 && Math.abs(edge.z) < 1e-5,
                     "native extraction sees 360 degrees halfway through the crossing, not a backwards 180-degree turn");
             particle.tick();

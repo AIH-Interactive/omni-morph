@@ -100,7 +100,7 @@ public final class YsmPublicPoseSmokeTest {
         int[] vertices = {0};
         var consumer = (VertexConsumer) Proxy.newProxyInstance(VertexConsumer.class.getClassLoader(),
                 new Class<?>[]{VertexConsumer.class}, (proxy, method, values) -> {
-                    if (method.getName().equals("addVertex")) {
+                    if (method.getName().equals("vertex")) {
                         vertices[0]++;
                     }
                     return method.getReturnType() == void.class ? null : proxy;

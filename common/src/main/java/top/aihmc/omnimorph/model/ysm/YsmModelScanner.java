@@ -899,7 +899,7 @@ public final class YsmModelScanner {
             "has_chest_plate", "has_leggings", "has_boots", "armor_value", "hurt_time",
             "swinging", "swing_time", "attack_time", "entity_type", "is_player",
             "elytra_rot_x", "elytra_rot_y", "elytra_rot_z", "has_elytra", "is_close_eyes",
-            "texture_name", "mod_version",
+            "texture_name", "mod_version", "effect_level", "is_fishing", "is_maid",
             "first_person_mod_hide",
             "relative_block_name", "relative_block_name_any",
             "equipped_enchantment_level",

@@ -36,7 +36,7 @@ public final class YsmAudioDecodeSmokeTest {
                 expectFailure(() -> YsmAudioDecoder.decode(Arrays.copyOf(encoded, 24), 32768), "truncated Ogg header");
             }
             expectFailure(() -> YsmAudioDecoder.decode(new byte[]{1, 2, 3}, 32768), "invalid audio input");
-            if (arguments.length != 1) {
+            if (arguments.length < 1 || arguments.length > 2) {
                 throw new IllegalArgumentException("Provide the model corpus directory");
             }
             var counts = new EnumMap<YsmAudioDecoder.Codec, Integer>(YsmAudioDecoder.Codec.class);
@@ -64,8 +64,14 @@ public final class YsmAudioDecodeSmokeTest {
                     }
                 }
             }
-            require(encrypted > 0 && models > encrypted,
-                    "audio corpus must cover plain and encrypted YSM: models=" + models + " encrypted=" + encrypted);
+            boolean complete = encrypted > 0 && models > encrypted;
+            if (!complete && Arrays.asList(arguments).contains("--available-only")) {
+                System.out.println("SKIPPED missing audio corpus category: models=" + models + " encrypted="
+                        + encrypted + "; available audio verified, missing category unverified");
+            } else {
+                require(complete, "audio corpus must cover plain and encrypted YSM: models="
+                        + models + " encrypted=" + encrypted);
+            }
             require(!counts.isEmpty() && totalPcm > 0, "the supplied corpus must contain decoded audio");
             for (var codec : YsmAudioDecoder.Codec.values()) {
                 if (!counts.containsKey(codec)) {

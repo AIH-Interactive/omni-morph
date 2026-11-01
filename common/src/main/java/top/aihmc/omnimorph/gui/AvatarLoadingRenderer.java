@@ -49,7 +49,8 @@ public final class AvatarLoadingRenderer {
         if (progress == null) {
             return;
         }
-        Vec3 position = new Vec3(0, player.getBbHeight() + 0.6, 0);
+        // Keep the existing 0.45-block gap above the native label, including entity-specific offsets.
+        Vec3 position = new Vec3(0, player.getNameTagOffsetY() + 0.45, 0);
         Component text = label(progress,
                 top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.currentFrame());
         Font font = client.font;

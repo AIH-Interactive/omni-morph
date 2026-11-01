@@ -5427,6 +5427,11 @@ public final class LibraryPreviewRuntimeSmokeTest {
         }
 
         @Override
+        public String getModelName() {
+            return net.minecraft.client.resources.DefaultPlayerSkin.getSkinModelName(DEFAULT_SKIN_OWNER);
+        }
+
+        @Override
         public boolean isModelPartShown(net.minecraft.world.entity.player.PlayerModelPart part) {
             if (part == net.minecraft.world.entity.player.PlayerModelPart.CAPE) {
                 capeReads++;

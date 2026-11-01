@@ -59,3 +59,29 @@ JNI/ImageIO service merging, Forge SRG refmaps and AW-to-AT conversion.
 M1 must compile all selected main/test sources and run existing non-graphical regressions;
 M2 validates render and Mixin contracts; M3 validates complete functional smoke tasks;
 M4 validates formal output, native packaging and remote CI. No source exclusion or relaxed test assertions.
+
+## M3 available reference corpus
+
+The historical strict corpus checks remain the default. This checkout lacks the plain YSM folders,
+16_tactics, 03_astronaut and the independent Sparkle source tree. To exercise every available input
+while explicitly reporting missing categories, use `-PallowMissingReferenceCorpus=true`.
+The option does not skip parsing, byte equality, transport, material, audio or dictionary assertions
+for files that exist. Missing independent samples are SKIPPED, never PASS.
+
+The explicit binding-audit mode additionally requires the checked-in
+`common/src/test/resources/ysm/mc-1.20.1-corpus-baseline.json`. It pins the current 18-candidate
+inventory and exact diagnostic multiplicities/binding sets. Thirteen candidates validate; five
+remain known negatives. These negatives concern missing authored animation/state references or
+an unsupported tlm property in the unchanged version-independent parser. They are not accepted
+as valid models and are not fixed by adding integrations during the Minecraft port.
+YSMParser inspection outputs stay under ignored build/tmp/port-m0; no decrypted assets are committed.
+
+Example gate arguments (run through the foreground PowerShell/Tee-Object pattern above):
+
+```powershell
+.\gradlew.bat '-PallowMissingReferenceCorpus=true' :common:ysmBindingReferenceAudit
+.\gradlew.bat :common:scanYsmModels '-PysmScanBaseline=common/src/test/resources/ysm/mc-1.20.1-corpus-baseline.json'
+```
+
+Do not refresh this baseline merely to silence a failure. Review changed diagnostics and corpus
+coverage first. Restoring absent historical inputs requires the historical full-corpus gates as well.

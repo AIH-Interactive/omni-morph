@@ -2,7 +2,7 @@
 
 ## 当前状态（2026-11-01）
 
-M0、M1 已提交推送并核对远端；M2 自动门槛已通过，正在完成提交推送检查点，M3、M4 未开始。当前分支 1.20.1，M1 提交 fc15e0588a472007506a4a8a50a99606ccb6faf5。下文早期检查点保留为历史证据，以最新检查点为准。
+M0、M1 已提交推送并核对远端；M2 已提交推送并核对远端，M3 自动门槛已完成，正在提交推送检查点，M4 未开始。当前分支 1.20.1，M1 提交 fc15e0588a472007506a4a8a50a99606ccb6faf5。下文早期检查点保留为历史证据，以最新检查点为准。
 
 ## M0 工具链与依赖证据
 
@@ -116,3 +116,35 @@ M1检查点：提交 `fc15e0588a472007506a4a8a50a99606ccb6faf5` 已推送，git 
 - 完整游戏内Mixin变换、相机/bobbing/背包预览画面、shaderpack、跨平台GPU、真实性能A/B：SKIPPED（MANUAL，用户要求跳过；未验证）。GL夹具不代替游戏，CPU/JNI计时不作为GPU性能。
 - diff人工审查、现有风格、git diff --check通过。未修改refs、禁用生产文件、降低断言或增加Fabric产物。额度可靠接口周窗口剩余77%，未触发阈值，无Luna委派。
 - M2提交推送并核对远端后，才开始M3全量可执行common/平台及语料回归；M4尚未开始。
+
+M2检查点：66b9b1aabab77bc338eb5b6b14a623dad78f38ab已推送，git ls-remote确认origin/1.20.1同HEAD。M3开始：common:check、forge:check及104个未在M2验证的领域smoke前台执行；准确任务名单build/tmp/port-m0/m3-smoke-task-list.txt，初次日志m3-all-smoke-initial.log。M4未开始。
+
+## M3 首轮进行中的证据（尚未完成）
+
+- common:check与forge:check已通过；104项领域smoke还在执行，不将部分通过记为阶段完成。
+- 已定位自动失败：默认动画与cosmetic源因缺失Sparkle独立参考文件；资源范围16_tactics、可见性03_astronaut语料缺失；本地扫描3个Figura ZIP与18个加密YSM均通过但无明文YSM目录，末尾类别覆盖断言失败；独立Figura预览测试夹具未覆盖旧getModelName触发无连接NPE；public pose代理仍匹配addVertex导致零计数。
+- 已修改但待复验：默认动画只跳过缺失独立参考比较，其余所有运行时/golden断言继续执行；两个独占目录任务缺失/空目录明确SKIPPED（不输出PASS）；本地语料新增显式--available-only选项，由-PallowMissingReferenceCorpus启用，默认完整类别断言保留，所有存在模型的资源/传输/私有边界断言不变；ArmorPreviewPlayer使用目标DefaultPlayerSkin独立model name；public pose改旧vertex匹配，数量/左右手隔离断言不变。
+- 初轮outfitPrivateUpload的两次异步AssertionError属于原有changedBytes负例，源码明确通过服务器拒绝不同字节来验证客户端不接受替换，任务后续断言通过；不据此声称生产上传损坏。Expected creation failure与空YSM主模型日志同属显式负例。
+- 自动GUI逻辑使用recording dispatch/controlled objects，无窗口/字体证据；其旧输出中的MANUAL/PENDING统一解释为SKIPPED（MANUAL，用户要求跳过；未验证），不将逻辑测试冒充画面。
+
+## M3 回归收敛（检查点待最终平台检查）
+
+- 首轮m3-all-smoke-initial.log exit1/14m37s，104项smoke全部启动，93项通过、11项失败；没有忽略失败直接收尾。m3-retest-gate.log进一步复验，剩余预览/原生材质/历史绑定审计3项；m3-native-final-retest.log预览和材质已通过，仅审计历史清单问题未通过。
+- 生产最小修正：加载进度条改用目标getNameTagOffsetY()+0.45，保留既有相对原生名称标签间距及实体自定义偏移，原2.45断言保留。MCP对照1.20.1原生getNameTagOffsetY和1.21.1 attachment+0.5，测试夹具提供独立native偏移；没有放宽距离/比例/两次文字绘制断言。
+- 测试适配：独立预览旧getModelName、YSM/装扮consumer旧vertex/normal、原生粒子四边形v3-v0方向。位置/数量/法线/左右手/360度而非180度/资源生命周期断言均保留；目前均有复验通过证据。
+- 100次切换、10批次、当前21来源稳定性通过：最终heap92793024、directPool97204、retained0、PCM累计释放638423216；native图像关闭，无retained runtimes。未调整次数/批次/2g既有测试堆预算。首轮日志同时含异步CPU准备、最新代际、广播上传中切换/离线重放、云端刷新、18模型附件、手部/弓/三叉戟等通过证据。
+- 音频现有18加密包108个VORBIS声音实际解码159605804 PCM bytes；语料未覆盖OPUS，但独立原有Opus单/双声道、pre-skip/end trim、截断/膨胀负例通过。语言7字典623原始键通过；材质21组/0法线/1specular现有语料通过；plain/binary固定材质夹具覆盖配对与字节保留。现有AVIF native：18模型4图像65536pixels、GUI图像7、declared previews15通过；metadata异步PNG/只读ImageIO缓存回归通过。
+- 缺失独占语料：Sparkle独立14文件/样本、16_tactics、03_astronaut、01_taisho_maid，以及当前参考根目录明文YSM类别，均明确未验证，不由其他模型伪装覆盖。原严格历史类别断言仍默认保留；-PallowMissingReferenceCorpus显式运行所有可用文件并报告缺失类别，独占目录任务仅缺失/空时SKIPPED。所有存在文件的解析/数值/传输/材质/音频/语言断言继续执行。
+- 额外严格扫描发现当前18加密包13valid/5invalid，不能把解密/绘制成功当控制器全有效。使用已安装YSMParser离线解包5包，build/tmp/port-m0/ysm-scan-output只读分析，不修改refs/不提交解包资源。实际核对：DS鲸鱼娘未支持tlm属性；拉菲缺1个动画引用（7次诊断）；星屑海螺缺8个动画引用；末影龙娘缺1动画引用；绯英缺3动画与1状态引用。几何/动画/控制器解析器相对M0未改；此为既有作者资源/能力边界，记录后续，不扩大到新联动或解析器改造。解包大JSON达到原资源预算的诊断不作为原加密包同等失败证据。
+- 已审查当前精确负例基线common/src/test/resources/ysm/mc-1.20.1-corpus-baseline.json，固定18数量、错误hash/重复次数和binding集合；5invalid继续显示FAIL/knownNegative，不计valid。绑定审计可用模式强制读取该基线，仍拒绝任意新诊断/未审查binding/非literal sync/bone_param；默认历史40/38/2与5加密样本断言未替换。13个有效包全部参与sync审计，当前syncResources/numericCalls/unresolved均0，历史sync样本覆盖未验证。
+- 扫描器静态清单漏列已有实现的effect_level/is_fishing/is_maid，补3项以消除实际误报；没有新增Molang/Lua状态。ctrl.create_hanging_skyhook列为明确已审查但未支持的后续联动，未实现API/默认伪状态。其他第三方缺失能力仍按既有optionalUnavailable报告。
+- 最终语料门槛m3-reviewed-corpus-final.log exit0/53s：绑定审计、按精确负例基线的scan、原synthetic baseline smoke通过。最初未经基线的严格scan和历史audit失败日志保留，未伪造其PASS。
+- 完整游戏/实机/CJK字体画面、整合包、多人与第三方SPEAR-use正例：SKIPPED（MANUAL，用户要求跳过；未验证）。逻辑GUI记录不等于真实窗口。旧输出MANUAL/PENDING和1.21.1/M4等历史测试标签不改变本轮目标1.20.1和证据边界。
+
+## M3 最终检查点（自动门槛通过）
+
+- 104项领域smoke最终102项通过、2项因缺失专属目录明确SKIPPED；独立Sparkle比较与本地明文类别为子项未覆盖。另metadata PNG异步/只读缓存回归通过，binding audit与当前负例scan gate通过。保留首轮及每次失败日志，不将初轮exit1改写成PASS。
+- 最终common/Forge47.1.3 check和聊天回归exit0，m3-forge-final-check.log，37s；历史NeoForge47.1.106独立check和聊天回归exit0，m3-neoforge-final-check.log，33s。Java17测试源/主源编译通过；平台NO-SOURCE不作功能证明。
+- 当前已知负例5包、第三方缺失能力、缺失专属语料和所有人工跳过项按上节保留；没有声称所有模型控制器有效或完整游戏已验证。相同既有缺陷不在移植阶段扩成新功能开发。
+- 新/改代码人工审查、格式与diff --check通过；没有可用Java formatter配置。原.codex/config.toml未跟踪保留，refs不改，不提交YSMParser产物。
+- 可靠额度周窗口usedPercent24/剩余76%，未触发阈值。M3提交推送并核对远端之后，才开始M4正式映射/nativeLoader/模块/原生打包/CI与交付。
