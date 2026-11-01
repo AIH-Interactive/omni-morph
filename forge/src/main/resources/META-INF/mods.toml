@@ -6,6 +6,7 @@ displayURL = "https://github.com/AIH-Interactive/omni-morph"
 
 [[mods]]
 modId = "omni_morph"
+namespace = "omni-morph"
 version = "${version}"
 displayName = "OmniMorph"
 logoFile="assets/omni-morph/icon.png"

@@ -4,6 +4,12 @@
 
 [プロジェクト紹介](../README.ja.md)
 
+## 1.0.0-alpha.7 — Minecraft 1.20.1 対応
+
+- Java 17、Forge 47.1.3、歴史的 NeoForge 47.1.106 を対象とし、`1.0.0-alpha.7` を維持。正式 SRG JAR を個別に構築し、Fabric は出力しません。
+- 両描画エンジン、透過バッチ、GUI、チャット、NBT、ブリッジを移植。GPU/Java フォールバック、AVIF JNI、Zstd キャンセル、metadata PNG 修正を維持。
+- 6 プラットフォームのネイティブ CI、5 プラットフォームの Java 17 JNI、独立 Java 25 拒否検証を維持。実行結果と不足コーパスは `porting/mc-1.20.1-port-progress.md` を参照。ゲーム全体/Mixin 適用、CJK、マルチプレイ、手動性能検証はユーザー指定で SKIPPED（MANUAL、未検証）。
+
 ## 1.0.0-alpha.7 — Minecraft 1.21.1 対応
 
 - Minecraft 1.21.1 / Java 21 向けに Fabric・NeoForge ビルドを提供します。Minecraft のバージョン移植では `1.0.0-alpha.7` を共通で使用します。

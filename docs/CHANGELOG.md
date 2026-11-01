@@ -4,6 +4,12 @@
 
 [项目介绍](../README.md)
 
+## 1.0.0-alpha.7 — Minecraft 1.20.1 适配
+
+- 目标 Java 17、Forge 47.1.3 与历史 NeoForge 47.1.106；保持版本 `1.0.0-alpha.7`，分别构建 Forge 系正式 SRG JAR，无 Fabric 产物。
+- 回迁双引擎顶点/透明批次、GUI、聊天、NBT 和平台桥接；保留 GPU/Java 回退、AVIF JNI、Zstd 取消与 metadata PNG 修复。
+- 保留六平台原生 CI、五平台 Java 17 JNI 与独立 Java 25 拒绝检查；加载器非游戏扫描、模块和生产 Mixin 契约独立验证。实际执行状态及语料缺口见 `porting/mc-1.20.1-port-progress.md`；完整游戏/Mixin 应用、CJK/多人/性能人工验收为 SKIPPED（MANUAL，用户要求跳过；未验证）。
+
 ## 1.0.0-alpha.7 — Minecraft 1.21.1 适配
 
 - 面向 Minecraft 1.21.1、Java 21，提供 Fabric 与 NeoForge 构建；版本适配统一使用 `1.0.0-alpha.7`。

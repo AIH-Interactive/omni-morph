@@ -21,18 +21,20 @@ It supports both Lua and Molang: Lua handles scripting and interaction, while Mo
 
 ## Requirements
 
+This branch targets Minecraft 1.20.1 with Forge-family variants. Run the game on Java 17; use JDK 21 for Gradle with an installed JDK 17 toolchain. Select historical NeoForge with `-PnativeLoader=neoforge`, sharing `forge/`. Download complete six-platform native JARs from successful CI; ordinary local JARs omit those libraries. Full-client/Mixin application, CJK, multiplayer and manual performance checks are SKIPPED (MANUAL, requested by the user; unverified). See the [support matrix and evidence limits](tools/porting/README.md).
+
 | Component | Version |
 | --- | --- |
-| Minecraft Java | 26.1.2 |
-| Mod loader | Fabric |
-| Java | 25 |
+| Minecraft Java | 1.20.1 |
+| Mod loader | Forge 47.1.3 / NeoForge 47.1.106 |
+| Java | 17 |
 | Mod version | 1.0.0-alpha.7 |
 
 Build dependency versions are listed in [gradle.properties](gradle.properties). This is a client mod; multiplayer resource distribution and state synchronization require a compatible backend.
 
 ## Installation and usage
 
-1. Install Fabric for Minecraft 26.1.2 and launch the game with Java 25.
+1. Install Forge 47.1.3 / NeoForge 47.1.106 for Minecraft 1.20.1 and launch the game with Java 17.
 2. Download the final mod JAR from a successful workflow run and place it in the game instance's `mods` folder.
 3. Launch the game, open the OmniMorph wardrobe, and place your models in the model folder before selecting them.
 4. Use model-specific settings and the action wheel to interact with models. Use the model library to upload, manage, or download cloud models.
@@ -62,10 +64,10 @@ The companion [sculptor-for-omni-morph](https://github.com/AIH-Interactive/sculp
 
 ## Building from source
 
-Install JDK 25, set `JAVA_HOME` and `PATH`, and run this command from the repository root:
+Install JDK 21 + JDK 17, set `JAVA_HOME` and `PATH`, and run this command from the repository root:
 
 ```powershell
-& .\gradlew.bat :fabric:build --console=plain 2>&1 | Tee-Object -FilePath 'build.log'
+& .\gradlew.bat :forge:build --console=plain 2>&1 | Tee-Object -FilePath 'build.log'
 $buildExitCode = $LASTEXITCODE
 if ($buildExitCode -ne 0) {
     Get-Content -LiteralPath 'build.log' -Tail 40
@@ -73,9 +75,9 @@ if ($buildExitCode -ne 0) {
 }
 ```
 
-The final artifact is in `fabric/build/libs/`, named `omni-morph-...-fabric-mc.jar`.
+The final artifact is in `forge/build/libs/`, named `omni-morph-...-minecraftforge-mc.jar`.
 
-A standard Fabric build does not require a C++ toolchain. See [native/README.md](native/README.md) for local SIMD library builds and [protocol/README.md](protocol/README.md) for the protocol specification.
+A standard Forge 47.1.3 / NeoForge 47.1.106 build does not require a C++ toolchain. See [native/README.md](native/README.md) for local SIMD library builds and [protocol/README.md](protocol/README.md) for the protocol specification.
 
 ## Credits
 

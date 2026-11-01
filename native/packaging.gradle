@@ -9,32 +9,36 @@ def sha256 = { File file ->
     HexFormat.of().formatHex(MessageDigest.getInstance('SHA-256').digest(file.bytes))
 }
 
-def nativeLoader = providers.gradleProperty('nativeLoader').getOrElse('fabric')
-if (!(nativeLoader in ['fabric', 'neoforge'])) {
-    throw new GradleException('nativeLoader must be fabric or neoforge')
+def coordinateOverride = providers.gradleProperty('loaderCoordinate').orNull
+def defaultLoader = coordinateOverride?.startsWith('net.neoforged:') ? 'neoforge' : 'forge'
+def nativeLoader = providers.gradleProperty('nativeLoader').getOrElse(defaultLoader)
+if (!(nativeLoader in ['forge', 'neoforge'])) {
+    throw new GradleException('nativeLoader must be forge or neoforge for Minecraft 1.20.1')
 }
+def loaderCoordinates = [forge: "net.minecraftforge:forge:${rootProject.forge_version}",
+                         neoforge: 'net.neoforged:forge:1.20.1-47.1.106']
+def selectedCoordinate = coordinateOverride ?: loaderCoordinates[nativeLoader]
+def expectedGroup = nativeLoader == 'forge' ? 'net.minecraftforge:forge:' : 'net.neoforged:forge:'
+if (!selectedCoordinate.startsWith(expectedGroup)) {
+    throw new GradleException('nativeLoader and loaderCoordinate select different loader families')
+}
+rootProject.ext.selectedLoaderCoordinate = selectedCoordinate
+rootProject.ext.loaderArtifactClassifier = nativeLoader == 'forge' ? 'minecraftforge-mc' : 'neoforge-mc'
 def nativeBaseDirectory = rootProject.file("build/native-base/$nativeLoader")
 
 def readModIdentity = { ZipFile jar, String loader ->
-    if (loader == 'fabric') {
-        def descriptor = jar.getEntry('fabric.mod.json')
-        if (descriptor == null) {
-            throw new GradleException('Fabric base JAR is missing its mod descriptor')
-        }
-        return new JsonSlurper().parse(jar.getInputStream(descriptor))
-    }
-    if (loader != 'neoforge') {
+    if (!(loader in ['forge', 'neoforge'])) {
         throw new GradleException('Unknown base JAR loader')
     }
     // Read only the expanded identity block emitted from this project's own TOML template.
-    def descriptor = jar.getEntry('META-INF/neoforge.mods.toml')
+    def descriptor = jar.getEntry('META-INF/mods.toml')
     if (descriptor == null) {
-        throw new GradleException('NeoForge base JAR is missing its mod descriptor')
+        throw new GradleException('Forge-family base JAR is missing its mod descriptor')
     }
     String toml = jar.getInputStream(descriptor).getText('UTF-8')
     def identity = toml =~ /(?ms)^\[\[mods\]\]\s*\r?\nmodId\s*=\s*"([^"]+)".*?^version\s*=\s*"([^"]+)"/
     if (!identity.find()) {
-        throw new GradleException('NeoForge base JAR has no expanded mod identity')
+        throw new GradleException('Forge-family base JAR has no expanded mod identity')
     }
     def nested = new JsonSlurper().parse(jar.getInputStream(jar.getEntry('META-INF/jarjar/metadata.json')))
     [id: identity.group(1), version: identity.group(2), jars: nested.jars.collect { [file: it.path] }]
@@ -77,7 +81,8 @@ def writeNativeJar = { File base, File destination, Map<String, byte[]> addition
 def assembleNative = { File baseDirectory, File artifacts, File destination, String commit, String runId, String attempt ->
     def metadata = new JsonSlurper().parse(new File(baseDirectory, 'base-manifest.json'))
     File base = new File(baseDirectory, metadata.jar as String)
-    if (metadata.sourceCommit != commit || metadata.runId != runId || metadata.runAttempt != attempt
+    if (metadata.loader != nativeLoader || metadata.loaderCoordinate != selectedCoordinate
+            || metadata.sourceCommit != commit || metadata.runId != runId || metadata.runAttempt != attempt
             || metadata.sha256 != sha256(base) || metadata.abi != 2) {
         throw new GradleException('Base JAR commit/run/hash/ABI mismatch')
     }
@@ -137,11 +142,11 @@ def assembleNative = { File baseDirectory, File artifacts, File destination, Str
         throw new GradleException("Missing native platforms: ${required.keySet() - seenPlatforms}")
     }
     new ZipFile(base).withCloseable { jar ->
-        String loader = metadata.loader ?: 'fabric'
+        String loader = metadata.loader
         def identity = readModIdentity(jar, loader)
         String prefix = "${rootProject.mod_version}+${rootProject.minecraft_version}-"
         String revision = identity.version.startsWith(prefix) ? identity.version.substring(prefix.length()) : ''
-        if (identity.id != (loader == 'fabric' ? 'omni-morph' : 'omni_morph')
+        if (identity.id != 'omni_morph'
                 || identity.version != metadata.version || !(revision ==~ /[0-9a-f]{7,40}/)
                 || !commit.startsWith(revision)) {
             throw new GradleException('Base JAR identity/version/commit mismatch')
@@ -174,11 +179,11 @@ def assembleNative = { File baseDirectory, File artifacts, File destination, Str
 
 tasks.register('stageNativeBase') {
     group = 'build'
-    dependsOn ":${nativeLoader}:remapJar", ':common:check', ':common:compileNativeInterface'
+    dependsOn ':forge:remapJar', ':common:check', ':common:compileNativeInterface'
     doLast {
         File directory = nativeBaseDirectory
         directory.mkdirs()
-        File original = project(":$nativeLoader").tasks.named('remapJar').get().archiveFile.get().asFile
+        File original = project(':forge').tasks.named('remapJar').get().archiveFile.get().asFile
         copy {
             from original
             into directory
@@ -189,7 +194,8 @@ tasks.register('stageNativeBase') {
             identity = readModIdentity(jar, nativeLoader)
         }
         new File(directory, 'base-manifest.json').text = JsonOutput.prettyPrint(JsonOutput.toJson([
-                abi: 2, loader: nativeLoader, jar: original.name, version: identity.version, sourceCommit: commit,
+                abi: 2, loader: nativeLoader, loaderCoordinate: selectedCoordinate,
+                jar: original.name, version: identity.version, sourceCommit: commit,
                 runId: System.getenv('GITHUB_RUN_ID') ?: '0', runAttempt: System.getenv('GITHUB_RUN_ATTEMPT') ?: '0',
                 sha256: sha256(original)]))
     }
@@ -258,7 +264,7 @@ tasks.register('nativePackagingSmokeTest') {
         String savedBase = baseManifest.text
         try {
             def wrongLoader = new JsonSlurper().parseText(savedBase)
-            wrongLoader.loader = nativeLoader == 'fabric' ? 'neoforge' : 'fabric'
+            wrongLoader.loader = nativeLoader == 'forge' ? 'neoforge' : 'forge'
             baseManifest.text = JsonOutput.toJson(wrongLoader)
             reject { run(metadata.sourceCommit) }
         } finally {

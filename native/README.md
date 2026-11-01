@@ -41,27 +41,27 @@ Only `avx2.cpp` receives `/arch:AVX2`. AVX2 requires SSE2, AVX, AVX2, OSXSAVE an
 FMA is reported independently and these kernels do not use it. `/fp:strict` forbids silent contraction.
 The MSVC runtime is linked statically; the script records actual `dumpbin /DEPENDENTS` results.
 
-Close Minecraft first, select JDK 25, then run from the repository root:
+Close Minecraft first, select JDK 17 for JNI compilation (JDK 21 for Gradle), then run from the repository root:
 
 ```powershell
 & ./tools/build-native-windows.ps1 2>&1 | Tee-Object -FilePath build.log
 $buildExitCode = $LASTEXITCODE
 Get-Content -LiteralPath build.log -Tail 40
 if ($buildExitCode -ne 0) { exit $buildExitCode }
-& ./gradlew.bat :fabric:build packageLocalNative nativeSmokeTest --console=plain 2>&1 | Tee-Object -FilePath build.log -Append
+& ./gradlew.bat :forge:build packageLocalNative nativeSmokeTest --console=plain 2>&1 | Tee-Object -FilePath build.log -Append
 $buildExitCode = $LASTEXITCODE
 Get-Content -LiteralPath build.log -Tail 40
 if ($buildExitCode -ne 0) { exit $buildExitCode }
 ```
 
 The native script imports an explicit MSVC x64 developer environment and executes configure/build/CTest
-in the foreground with separate step logs. Set `JAVA_HOME` with `usejdk 25`; if auto-discovery fails,
+in the foreground with separate step logs. Set `JAVA_HOME` with `usejdk 17`; if auto-discovery fails,
 pass `-VisualStudioPath` with the installed Visual Studio root.
 
-`packageLocalNative` copies the existing Fabric JAR using the ZIP API, preserving its entries and
+`packageLocalNative` copies the selected Forge-family JAR using the ZIP API, preserving its entries and
 nested dependencies. It rejects duplicate/native entries and hash mismatches, then adds only Windows
 plus metadata/NOTICE under `natives/`. Output is `build/local-native/*-windows-local.jar` and never
-overwrites the ordinary client symlink target. Plain `:fabric:build` requires no C++ toolchain.
+overwrites the ordinary client symlink target. Plain `:forge:build` requires no C++ toolchain.
 
 The loader chooses the JVM process architecture, validates controlled resource paths and metadata,
 extracts atomically into version/ABI/hash cache directories, verifies SHA-256 again, and loads an

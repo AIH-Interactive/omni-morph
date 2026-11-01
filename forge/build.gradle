@@ -56,7 +56,7 @@ dependencies {
         include(forgeRuntimeLibrary("com.twelvemonkeys.common:${module}:3.15.0"))
     }
 
-    forge providers.gradleProperty("loaderCoordinate").getOrElse("net.minecraftforge:forge:${rootProject.forge_version}")
+    forge rootProject.selectedLoaderCoordinate
 
     if (rootProject.run_with_geckolib == "true") {
         modRuntimeOnly("software.bernie.geckolib:geckolib-forge-$geckolib_version")
@@ -95,7 +95,7 @@ shadowJar {
 remapJar {
     input.set shadowJar.archiveFile
     dependsOn shadowJar
-    archiveClassifier.set "minecraftforge-mc"
+    archiveClassifier.set rootProject.loaderArtifactClassifier
 }
 
 jar {

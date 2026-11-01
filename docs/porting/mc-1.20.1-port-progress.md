@@ -148,3 +148,18 @@ M2检查点：66b9b1aabab77bc338eb5b6b14a623dad78f38ab已推送，git ls-remote�
 - 当前已知负例5包、第三方缺失能力、缺失专属语料和所有人工跳过项按上节保留；没有声称所有模型控制器有效或完整游戏已验证。相同既有缺陷不在移植阶段扩成新功能开发。
 - 新/改代码人工审查、格式与diff --check通过；没有可用Java formatter配置。原.codex/config.toml未跟踪保留，refs不改，不提交YSMParser产物。
 - 可靠额度周窗口usedPercent24/剩余76%，未触发阈值。M3提交推送并核对远端之后，才开始M4正式映射/nativeLoader/模块/原生打包/CI与交付。
+
+
+## M4 实施中：正式产物与 CI 准备检查点
+
+M3 检查点 a875e701f29463acfbf9167601b8d2a56406e17f 已推送，远端核对一致。
+M4 尚未完成，以下不是远端 CI 成功声明。
+
+- nativeLoader 改为 Forge/历史 NeoForge，锁定坐标自动选择，共用 forge 项目；本地正式 JAR 分别命名，CI 最终文件分别 forge-mc/neoforge-mc，避免覆盖。TOML namespace 明确 omni-morph，FML mod ID omni_morph。
+- stageNativeBase/nativePackagingSmokeTest/loaderArtifactSmokeTest/loaderModuleSmokeTest/productionMixinContractSmokeTest 两变体均 exit0。日志 build/tmp/port-m0/m4-forge-final-gates.log（55s）、m4-neoforge-final-gates.log（39s）。两个真实 FML 实现各解析元数据、扫描唯一 @Mod，发现 14 直接+1传递依赖；16个模拟模块描述符由实际包归属生成，独立加载正式 JAR 实际 AVIF JNI 解码通过；实际 patched SRG 上100个Mixin、8 typed @Local通过。
+- 初轮 FML VersionInfo 缺失已由测试提供锁定不可变 bootstrap context；argsOnly 校验从目标方法描述符恢复参数类型，无需LVT；嵌套依赖预期改为递归读取实际声明（MixinExtras含下一层），不降低生产要求。旧失败日志保留。
+- 本机 Java17 nativePlatformSmokeTest/nativeActivationSmokeTest 与实际 Java25 nativeAccessDeniedSmokeTest exit0/23s，日志 m4-local-jni-policies.log；AVX2、数值/错误ABI/hash/平台拒绝和Java回退均通过。
+- CI 保留六平台原生、五平台 Java17 JNI、独立 Java25拒绝、Android ELF/CPU门槛，排除Fabric，两个Forge系身份各验证。README/四语变更记录更新，不递增alpha.7。
+- 下一步：actionlint/脚本语法/diff检查，提交推送CI准备代码，触发当前分支远端实际CI；全部成功后下载最终JAR，重验来源/内容/SHA256，再完成M4记录与交付。
+- 完整客户端/Mixin实际应用、人工CJK/多人/整合包/性能A/B及Android设备JNI：SKIPPED（MANUAL，用户要求跳过；未验证）。上述非游戏扫描不冒充完整加载器启动。
+- 最近可靠额度查询：10080分钟主要池 usedPercent24，剩余76%，未触发交接；不推断订阅。

@@ -24,7 +24,7 @@ import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
 /** Replays JPMS package-supplier checks from actual packaged classes without starting Minecraft. */
-public final class NeoForgeModuleSmokeTest {
+public final class LoaderModuleSmokeTest {
     public static void main(String[] args) throws Exception {
         Path jar = Path.of(args[0]);
         Map<String, Set<String>> packages = new LinkedHashMap<>();
@@ -83,7 +83,7 @@ public final class NeoForgeModuleSmokeTest {
     }
 
     private static void verifyAvif(Path jar) throws Exception {
-        Path temporary = Files.createTempDirectory("neoforge-avif-probe-").toAbsolutePath().normalize();
+        Path temporary = Files.createTempDirectory("loader-avif-probe-").toAbsolutePath().normalize();
         List<Path> files = new ArrayList<>();
         try {
             List<java.net.URL> urls = new ArrayList<>();
@@ -118,7 +118,7 @@ public final class NeoForgeModuleSmokeTest {
                 Object allowance = budget.getConstructor(limits, BooleanSupplier.class, long.class)
                         .newInstance(limits.getField("DEFAULT").get(null), (BooleanSupplier) () -> false, 10_000L);
                 byte[] encoded;
-                try (var input = NeoForgeModuleSmokeTest.class.getResourceAsStream("/ysm/image-vectors/rgba-quadrants.avif")) {
+                try (var input = LoaderModuleSmokeTest.class.getResourceAsStream("/ysm/image-vectors/rgba-quadrants.avif")) {
                     encoded = input.readAllBytes();
                 }
                 Class<?> decoder = loader.loadClass("com.github.ustc_zzzz.imageio.avif.FiguraAvifDecoder");

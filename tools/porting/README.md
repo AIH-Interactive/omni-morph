@@ -85,3 +85,25 @@ Example gate arguments (run through the foreground PowerShell/Tee-Object pattern
 
 Do not refresh this baseline merely to silence a failure. Review changed diagnostics and corpus
 coverage first. Restoring absent historical inputs requires the historical full-corpus gates as well.
+
+
+## M4 support matrix and formal artifacts
+
+| Target | Coordinate | Artifact suffix | Game JVM |
+| --- | --- | --- | --- |
+| Forge | net.minecraftforge:forge:1.20.1-47.1.3 | forge-mc.jar (CI), minecraftforge-mc.jar (local base) | Java 17 |
+| Historical NeoForge | net.neoforged:forge:1.20.1-47.1.106 (FML 47.2.2) | neoforge-mc.jar | Java 17 |
+
+Both variants use the physical `forge/` project and META-INF/mods.toml, mod ID `omni_morph`,
+resource namespace `omni-morph`. Select NeoForge with `-PnativeLoader=neoforge`.
+Gradle uses JDK 21; Java compilation/runtime probes use a JDK 17 toolchain. Java 25 is only the
+independent native-access-denial gate. Install both 17 and 21, plus 25 when running that gate.
+The six-platform final JAR is assembled from the same CI commit/run, never from dev-shadow JARs.
+
+The actual selected FML parser/class scanner/Jar-in-Jar locator checks 14 direct and one transitive
+dependency. Its immutable VersionInfo bootstrap context is supplied by the test; no Minecraft
+launch service or mod initialization is claimed. The module package-resolution probe uses synthetic
+module descriptors derived from actual JAR package ownership; isolated AVIF JNI decoding is real.
+Production Mixin contracts are checked against actual patched SRG bytecode, not a vanilla stand-in.
+Full game/Mixin application, CJK, multiplayer, integrations, Android device JNI and performance A/B:
+SKIPPED (MANUAL, user-requested; unverified). Actual CI status/hashes are recorded in the progress file.

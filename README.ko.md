@@ -21,18 +21,20 @@ Lua와 Molang 런타임을 함께 지원합니다. Lua는 스크립트와 상호
 
 ## 실행 환경
 
+이 브랜치는 Minecraft 1.20.1 Forge 계열을 대상으로 합니다. 게임은 Java 17, Gradle은 JDK 21과 별도로 설치한 JDK 17 툴체인을 사용합니다. 구형 NeoForge는 `-PnativeLoader=neoforge`로 선택하며 `forge/` 구현을 공유합니다. 6개 플랫폼 네이티브 라이브러리를 포함한 JAR은 성공한 CI에서 받으세요. 전체 클라이언트, Mixin 적용, CJK, 멀티플레이 및 수동 성능 검증은 사용자 요청으로 SKIPPED (MANUAL, 미검증)입니다. [지원 표와 검증 범위](tools/porting/README.md)를 참고하세요.
+
 | 항목 | 버전 |
 | --- | --- |
-| Minecraft Java | 26.1.2 |
-| 모드 로더 | Fabric |
-| Java | 25 |
+| Minecraft Java | 1.20.1 |
+| 모드 로더 | Forge 47.1.3 / NeoForge 47.1.106 |
+| Java | 17 |
 | 모드 버전 | 1.0.0-alpha.7 |
 
 빌드 의존성 버전은 [gradle.properties](gradle.properties)를 참고하세요. 클라이언트용 모드이며, 멀티플레이 리소스 배포와 상태 동기화에는 호환 백엔드가 필요합니다.
 
 ## 설치 및 사용
 
-1. Minecraft 26.1.2용 Fabric을 설치하고 Java 25로 게임을 실행합니다.
+1. Minecraft 1.20.1용 Forge 47.1.3 / NeoForge 47.1.106을 설치하고 Java 17로 게임을 실행합니다.
 2. 성공한 워크플로 실행에서 최종 모드 JAR을 다운로드하여 해당 게임 인스턴스의 `mods` 폴더에 넣습니다.
 3. 게임을 실행하고 OmniMorph 옷장을 엽니다. 모델 폴더에 모델을 넣은 뒤 선택하여 불러옵니다.
 4. 모델 전용 설정과 액션 휠로 모델을 조작합니다. 모델 라이브러리에서 클라우드 모델을 업로드하거나 관리하고 다운로드할 수 있습니다.
@@ -62,10 +64,10 @@ YSM 모델의 표현식과 애니메이션 컨트롤러는 Molang 런타임에�
 
 ## 소스에서 빌드
 
-JDK 25를 준비하고 `JAVA_HOME`, `PATH`를 설정한 뒤 저장소 루트에서 실행합니다.
+JDK 21 + JDK 17를 준비하고 `JAVA_HOME`, `PATH`를 설정한 뒤 저장소 루트에서 실행합니다.
 
 ```powershell
-& .\gradlew.bat :fabric:build --console=plain 2>&1 | Tee-Object -FilePath 'build.log'
+& .\gradlew.bat :forge:build --console=plain 2>&1 | Tee-Object -FilePath 'build.log'
 $buildExitCode = $LASTEXITCODE
 if ($buildExitCode -ne 0) {
     Get-Content -LiteralPath 'build.log' -Tail 40
@@ -73,9 +75,9 @@ if ($buildExitCode -ne 0) {
 }
 ```
 
-최종 결과물은 `fabric/build/libs/`에 생성되며 파일 이름은 `omni-morph-...-fabric-mc.jar`입니다.
+최종 결과물은 `forge/build/libs/`에 생성되며 파일 이름은 `omni-morph-...-minecraftforge-mc.jar`입니다.
 
-일반 Fabric 빌드에는 C++ 툴체인이 필요하지 않습니다. 로컬 SIMD 라이브러리 빌드는 [native/README.md](native/README.md), 프로토콜 사양은 [protocol/README.md](protocol/README.md)를 참고하세요.
+일반 Forge 47.1.3 / NeoForge 47.1.106 빌드에는 C++ 툴체인이 필요하지 않습니다. 로컬 SIMD 라이브러리 빌드는 [native/README.md](native/README.md), 프로토콜 사양은 [protocol/README.md](protocol/README.md)를 참고하세요.
 
 ## 감사의 말
 

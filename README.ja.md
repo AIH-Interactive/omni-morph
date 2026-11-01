@@ -21,18 +21,20 @@ Lua と Molang の両ランタイムに対応しています。Lua はスクリ�
 
 ## 動作環境
 
+このブランチは Minecraft 1.20.1 の Forge 系を対象とします。ゲームは Java 17、Gradle は JDK 21 と別途インストールした JDK 17 ツールチェーンを使用します。歴史的 NeoForge は `-PnativeLoader=neoforge` で選択し、`forge/` を共用します。6 プラットフォームのネイティブライブラリを含む JAR は成功した CI から取得してください。クライアント全体、Mixin 適用、CJK、マルチプレイ、手動性能検証はユーザー指定により SKIPPED（MANUAL、未検証）です。[対応表と検証範囲](tools/porting/README.md)。
+
 | 項目 | バージョン |
 | --- | --- |
-| Minecraft Java | 26.1.2 |
-| Mod ローダー | Fabric |
-| Java | 25 |
+| Minecraft Java | 1.20.1 |
+| Mod ローダー | Forge 47.1.3 / NeoForge 47.1.106 |
+| Java | 17 |
 | Mod バージョン | 1.0.0-alpha.7 |
 
 ビルド依存関係のバージョンは [gradle.properties](gradle.properties) を参照してください。本 Mod はクライアント用です。マルチプレイでのリソース配信と状態同期には、対応バックエンドが必要です。
 
 ## インストールと使い方
 
-1. Minecraft 26.1.2 用の Fabric をインストールし、Java 25 でゲームを起動します。
+1. Minecraft 1.20.1 用の Forge 47.1.3 / NeoForge 47.1.106 をインストールし、Java 17 でゲームを起動します。
 2. 成功したワークフロー実行から最終成果物の Mod JAR をダウンロードし、対象のゲームインスタンスの `mods` フォルダーに配置します。
 3. ゲームを起動して OmniMorph のワードローブを開き、モデルフォルダーにモデルを置いて選択します。
 4. モデル専用設定とアクションホイールでモデルを操作します。モデルライブラリでは、クラウドモデルのアップロード、管理、ダウンロードができます。
@@ -62,10 +64,10 @@ YSM モデルの式とアニメーションコントローラーは Molang ラ�
 
 ## ソースからのビルド
 
-JDK 25 を用意し、`JAVA_HOME` と `PATH` を設定して、リポジトリのルートで実行します。
+JDK 21 + JDK 17 を用意し、`JAVA_HOME` と `PATH` を設定して、リポジトリのルートで実行します。
 
 ```powershell
-& .\gradlew.bat :fabric:build --console=plain 2>&1 | Tee-Object -FilePath 'build.log'
+& .\gradlew.bat :forge:build --console=plain 2>&1 | Tee-Object -FilePath 'build.log'
 $buildExitCode = $LASTEXITCODE
 if ($buildExitCode -ne 0) {
     Get-Content -LiteralPath 'build.log' -Tail 40
@@ -73,9 +75,9 @@ if ($buildExitCode -ne 0) {
 }
 ```
 
-最終成果物は `fabric/build/libs/` に生成され、ファイル名は `omni-morph-...-fabric-mc.jar` です。
+最終成果物は `forge/build/libs/` に生成され、ファイル名は `omni-morph-...-minecraftforge-mc.jar` です。
 
-通常の Fabric ビルドに C++ ツールチェーンは不要です。ローカル SIMD ライブラリのビルド方法は [native/README.md](native/README.md)、プロトコル仕様は [protocol/README.md](protocol/README.md) を参照してください。
+通常の Forge 47.1.3 / NeoForge 47.1.106 ビルドに C++ ツールチェーンは不要です。ローカル SIMD ライブラリのビルド方法は [native/README.md](native/README.md)、プロトコル仕様は [protocol/README.md](protocol/README.md) を参照してください。
 
 ## 謝辞
 

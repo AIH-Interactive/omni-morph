@@ -2,7 +2,7 @@ param(
     [Parameter(Mandatory)][string] $JarPath,
     [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{40}$')][string] $ExpectedCommit,
     [Parameter(Mandatory)][ValidatePattern('^[0-9]+$')][string] $ExpectedRun,
-    [ValidateSet('fabric', 'neoforge')][string] $Loader = 'fabric'
+    [ValidateSet('forge', 'neoforge')][string] $Loader = 'forge'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -137,25 +137,24 @@ try {
     if (-not $seenPaths.SetEquals([string[]] $nativePaths)) {
         throw 'Unlisted native library in final JAR.'
     }
-    if ($Loader -eq 'fabric') {
-        $mod = Read-ArtifactText $archive 'fabric.mod.json' | ConvertFrom-Json
-        $expectedId = 'omni-morph'
-    } else {
-        $toml = Read-ArtifactText $archive 'META-INF/neoforge.mods.toml'
-        $identity = [regex]::Match($toml, '(?ms)^\[\[mods\]\]\s*\r?\nmodId\s*=\s*"([^"]+)".*?^version\s*=\s*"([^"]+)"')
-        if (-not $identity.Success -or $toml -cnotmatch '(?m)^namespace\s*=\s*"omni-morph"\s*$') {
-            throw 'Missing NeoForge mod identity/resource namespace.'
-        }
-        $nested = Read-ArtifactText $archive 'META-INF/jarjar/metadata.json' | ConvertFrom-Json
-        $mod = [pscustomobject]@{
-            id = $identity.Groups[1].Value
-            version = $identity.Groups[2].Value
-            jars = @($nested.jars | ForEach-Object { [pscustomobject]@{ file = $_.path } })
-        }
-        $expectedId = 'omni_morph'
-        if (-not $names.Contains('META-INF/accesstransformer.cfg')) {
-            throw 'Missing NeoForge access transformer.'
-        }
+    if ($names.Contains('fabric.mod.json') -or $names.Contains('META-INF/neoforge.mods.toml')) {
+        throw 'Unexpected Fabric or modern NeoForge descriptor in the 1.20.1 artifact.'
+    }
+    $toml = Read-ArtifactText $archive 'META-INF/mods.toml'
+    $identity = [regex]::Match($toml, '(?ms)^\[\[mods\]\]\s*\r?\nmodId\s*=\s*"([^"]+)".*?^version\s*=\s*"([^"]+)"')
+    if (-not $identity.Success -or $toml -cnotmatch '(?m)^namespace\s*=\s*"omni-morph"\s*$' -or
+            -not $names.Contains('assets/omni-morph/icon.png')) {
+        throw 'Missing Forge-family mod identity/resource namespace.'
+    }
+    $nested = Read-ArtifactText $archive 'META-INF/jarjar/metadata.json' | ConvertFrom-Json
+    $mod = [pscustomobject]@{
+        id = $identity.Groups[1].Value
+        version = $identity.Groups[2].Value
+        jars = @($nested.jars | ForEach-Object { [pscustomobject]@{ file = $_.path } })
+    }
+    $expectedId = 'omni_morph'
+    if (-not $names.Contains('META-INF/accesstransformer.cfg')) {
+        throw 'Missing Forge-family access transformer.'
     }
     $versionPrefix = "$(Read-BuildProperty 'mod_version')+$(Read-BuildProperty 'minecraft_version')-"
     $revision = if ($mod.version.StartsWith($versionPrefix, [StringComparison]::Ordinal)) {
@@ -171,7 +170,7 @@ try {
         }
     }
     Write-Output 'PASS final artifact metadata: six platforms, source/run/ABI, native and Android notice hashes, project license/credits, mod version and nested entries'
-    Write-Output 'Actual JNI and Android ELF execution checks are separate CI gates; real GPU/device/game remain MANUAL/PENDING.'
+    Write-Output 'Actual JNI and Android ELF checks are separate CI gates; full game/device checks SKIPPED (MANUAL, unverified).'
 } finally {
     $archive.Dispose()
 }

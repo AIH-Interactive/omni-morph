@@ -35,16 +35,20 @@ public final class MixinBytecodeContractSmokeTest {
         try (var minecraft = new JarFile(args[0])) {
             var audit = new MixinBytecodeContractSmokeTest(minecraft);
             for (int index = 1; index < args.length; index++) {
-                try (var files = Files.walk(Path.of(args[index]))) {
+                Path source = Path.of(args[index]);
+                if (Files.isRegularFile(source)) {
+                    try (var archive = new JarFile(source.toFile())) {
+                        for (var entry : archive.stream().filter(item -> item.getName().endsWith(".class")).toList()) {
+                            try (var input = archive.getInputStream(entry)) {
+                                audit.checkDeclaration(read(input.readAllBytes()));
+                            }
+                        }
+                    }
+                    continue;
+                }
+                try (var files = Files.walk(source)) {
                     for (Path file : files.filter(path -> path.toString().endsWith(".class")).toList()) {
-                        ClassNode mixin = read(Files.readAllBytes(file));
-                        AnnotationNode declaration = annotation(mixin.invisibleAnnotations, MIXIN);
-                        if (declaration == null) {
-                            declaration = annotation(mixin.visibleAnnotations, MIXIN);
-                        }
-                        if (declaration != null) {
-                            audit.check(mixin, declaration);
-                        }
+                        audit.checkDeclaration(read(Files.readAllBytes(file)));
                     }
                 }
             }
@@ -56,6 +60,16 @@ public final class MixinBytecodeContractSmokeTest {
             System.out.println("PASS " + audit.checkedLocals + " typed @Local bindings at invocation sites");
             System.out.println("Not covered: Mixin transformation, frame reconstruction, generic local references, "
                     + "refmaps and rendered behavior");
+        }
+    }
+
+    private void checkDeclaration(ClassNode mixin) throws IOException {
+        AnnotationNode declaration = annotation(mixin.invisibleAnnotations, MIXIN);
+        if (declaration == null) {
+            declaration = annotation(mixin.visibleAnnotations, MIXIN);
+        }
+        if (declaration != null) {
+            check(mixin, declaration);
         }
     }
 
@@ -197,23 +211,29 @@ public final class MixinBytecodeContractSmokeTest {
                 System.out.println("Not covered: generic local reference " + context);
                 continue;
             }
-            final boolean argsOnly = Boolean.TRUE.equals(value(local, "argsOnly"));
-            int argumentSlots = (target.access & org.objectweb.asm.Opcodes.ACC_STATIC) == 0 ? 1 : 0;
-            for (Type argument : Type.getArgumentTypes(target.desc)) {
-                argumentSlots += argument.getSize();
+            List<Integer> candidates;
+            if (Boolean.TRUE.equals(value(local, "argsOnly"))) {
+                // Mixin reconstructs argument types from the descriptor even when production LVT is absent.
+                candidates = new ArrayList<>();
+                int argumentSlot = (target.access & org.objectweb.asm.Opcodes.ACC_STATIC) == 0 ? 1 : 0;
+                for (Type argument : Type.getArgumentTypes(target.desc)) {
+                    if (argument.getDescriptor().equals(descriptor)) {
+                        candidates.add(argumentSlot);
+                    }
+                    argumentSlot += argument.getSize();
+                }
+            } else {
+                candidates = target.localVariables.stream()
+                        .filter(variable -> variable.desc.equals(descriptor)
+                                && target.instructions.indexOf(variable.start) <= position
+                                && target.instructions.indexOf(variable.end) > position)
+                        .map(variable -> variable.index).sorted().toList();
             }
-            final int argumentLimit = argumentSlots;
-            var candidates = target.localVariables.stream()
-                    .filter(variable -> variable.desc.equals(descriptor)
-                            && (!argsOnly || variable.index < argumentLimit)
-                            && target.instructions.indexOf(variable.start) <= position
-                            && target.instructions.indexOf(variable.end) > position)
-                    .sorted(java.util.Comparator.comparingInt(variable -> variable.index)).toList();
             Integer ordinal = (Integer) value(local, "ordinal");
             Integer slot = (Integer) value(local, "index");
             boolean valid;
             if (slot != null && slot >= 0) {
-                valid = candidates.stream().anyMatch(variable -> variable.index == slot);
+                valid = candidates.contains(slot);
             } else if (ordinal != null && ordinal >= 0) {
                 valid = ordinal < candidates.size();
             } else {
@@ -222,7 +242,7 @@ public final class MixinBytecodeContractSmokeTest {
             checkedLocals++;
             if (!valid) {
                 failures.add(context + " local " + descriptor + " ordinal=" + ordinal + " index=" + slot
-                        + " candidates=" + candidates.stream().map(variable -> variable.index).toList());
+                        + " candidates=" + candidates);
             }
         }
     }

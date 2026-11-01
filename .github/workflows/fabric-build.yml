@@ -1,4 +1,4 @@
-name: Minecraft 1.20.1 Compact
+name: Minecraft 1.20.1 Forge family
 
 on:
   workflow_dispatch:
@@ -16,11 +16,11 @@ defaults:
 
 jobs:
   build-mod:
-    name: Java 21 ${{ matrix.loader }} base and JNI interface
+    name: ${{ matrix.loader }} base, Java 17 tests and JNI interface
     strategy:
       fail-fast: false
       matrix:
-        loader: [fabric, neoforge]
+        loader: [forge, neoforge]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -30,18 +30,22 @@ jobs:
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
+          java-version: '17'
+          set-default: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
           java-version: '21'
           cache: gradle
       - name: Build the unique base JAR and test interface
         run: |
-          & bash ./gradlew stageNativeBase nativePackagingSmokeTest :common:commandSuggestionsMixinSmokeTest :common:ysmCryptoSmokeTest :common:ysmMetadataImageRegression :common:gpuAllocationRegression -PnativeLoader=${{ matrix.loader }} --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log
+          & bash ./gradlew stageNativeBase nativePackagingSmokeTest :common:commandSuggestionsMixinSmokeTest :common:mixinBytecodeContractSmokeTest :common:ysmCryptoSmokeTest :common:ysmMetadataImageRegression :common:gpuAllocationRegression -PnativeLoader=${{ matrix.loader }} "-Porg.gradle.java.installations.paths=$env:JAVA_HOME_17_X64" --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log
           $buildExitCode = $LASTEXITCODE
           Get-Content -LiteralPath build.log -Tail 40
           if ($buildExitCode -ne 0) { exit $buildExitCode }
-      - name: Verify NeoForge module packages and packaged AVIF decoding
-        if: matrix.loader == 'neoforge'
+      - name: Verify selected loader metadata, modules and packaged AVIF decoding
         run: |
-          & bash ./gradlew :common:neoforgeModuleSmokeTest --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log -Append
+          & bash ./gradlew :common:loaderModuleSmokeTest :common:loaderArtifactSmokeTest :common:productionMixinContractSmokeTest -PnativeLoader=${{ matrix.loader }} "-Porg.gradle.java.installations.paths=$env:JAVA_HOME_17_X64" --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log -Append
           $buildExitCode = $LASTEXITCODE
           Get-Content -LiteralPath build.log -Tail 40
           if ($buildExitCode -ne 0) { exit $buildExitCode }
@@ -52,7 +56,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - uses: actions/upload-artifact@v7
-        if: matrix.loader == 'fabric'
+        if: matrix.loader == 'forge'
         with:
           name: internal-native-interface
           path: build/native-interface/
@@ -97,7 +101,7 @@ jobs:
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '17'
       - uses: actions/download-artifact@v8
         with:
           name: internal-native-interface
@@ -148,7 +152,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        loader: [fabric, neoforge]
+        loader: [forge, neoforge]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -182,7 +186,7 @@ jobs:
             }
           }
           $finalJar = 'build/final/{0}-{1}+{2}-${{ matrix.loader }}-mc.jar' -f $properties.archives_base_name, $properties.mod_version, $properties.minecraft_version
-          & bash ./gradlew assembleNativeJar '-PnativeBaseDir=build/native-base' '-PnativeArtifactsDir=build/native-inputs' "-PnativeOutput=$finalJar" "-PnativeCommit=$env:GITHUB_SHA" "-PnativeRun=$env:GITHUB_RUN_ID" "-PnativeAttempt=$env:GITHUB_RUN_ATTEMPT" --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log
+          & bash ./gradlew assembleNativeJar -PnativeLoader=${{ matrix.loader }} '-PnativeBaseDir=build/native-base' '-PnativeArtifactsDir=build/native-inputs' "-PnativeOutput=$finalJar" "-PnativeCommit=$env:GITHUB_SHA" "-PnativeRun=$env:GITHUB_RUN_ID" "-PnativeAttempt=$env:GITHUB_RUN_ATTEMPT" --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log
           $buildExitCode = $LASTEXITCODE
           Get-Content -LiteralPath build.log -Tail 40
           if ($buildExitCode -ne 0) { exit $buildExitCode }
@@ -210,7 +214,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        loader: [fabric, neoforge]
+        loader: [forge, neoforge]
         platform: [windows-x86_64, linux-x86_64, linux-aarch64, android-aarch64, macos-x86_64, macos-aarch64]
         include:
           - platform: windows-x86_64
@@ -235,7 +239,7 @@ jobs:
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '17'
       - uses: actions/download-artifact@v8
         with:
           name: internal-native-interface
@@ -244,7 +248,7 @@ jobs:
         with:
           name: internal-final-native-jar-${{ matrix.loader }}
           path: build/final
-      - name: Load this platform from the identical final JAR on Java 21 and check fallback
+      - name: Load this platform from the identical final JAR on Java 17 and check fallback
         if: matrix.platform != 'android-aarch64'
         run: |
           $jar = (Get-ChildItem -LiteralPath build/final -Filter '*-${{ matrix.loader }}-mc.jar').FullName
@@ -259,13 +263,13 @@ jobs:
             if ($buildExitCode -ne 0) { exit $buildExitCode }
           }
           Get-FileHash -Algorithm SHA256 -LiteralPath $jar | Format-List | Out-String | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
-      # JEP 472 denial is a Java 25 gate; Java 21 does not implement that launcher option.
+      # JEP 472 denial is a separate Java 25 gate; Java 17 has no corresponding launcher option.
       - uses: actions/setup-java@v6
         if: matrix.platform != 'android-aarch64'
         with:
           distribution: temurin
           java-version: '25'
-      - name: Verify Java 25 native access denial against the same Java 21 artifact
+      - name: Verify Java 25 native access denial against the same Java 17 artifact
         if: matrix.platform != 'android-aarch64'
         run: |
           $jar = (Get-ChildItem -LiteralPath build/final -Filter '*-${{ matrix.loader }}-mc.jar').FullName
@@ -286,7 +290,7 @@ jobs:
           $buildExitCode = $LASTEXITCODE
           Get-Content -LiteralPath build.log -Tail 40
           if ($buildExitCode -ne 0) { exit $buildExitCode }
-          'Android arm64-v8a build/ELF/JNI exports validated; device JNI/game MANUAL/PENDING.' | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
+          'Android arm64-v8a build/ELF/JNI exports validated; device JNI/game SKIPPED (MANUAL, unverified).' | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
           Get-FileHash -Algorithm SHA256 -LiteralPath $jar | Format-List | Out-String | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v7
         if: always()
@@ -301,7 +305,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        loader: [fabric, neoforge]
+        loader: [forge, neoforge]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/download-artifact@v8
@@ -312,7 +316,7 @@ jobs:
         id: artifact
         uses: actions/upload-artifact@v7
         with:
-          name: OmniMorph-${{ matrix.loader }}-1.21.1
+          name: OmniMorph-${{ matrix.loader }}-1.20.1
           path: build/final/*-${{ matrix.loader }}-mc.jar
           archive: false
           if-no-files-found: error
@@ -321,5 +325,5 @@ jobs:
         env:
           ARTIFACT_URL: ${{ steps.artifact.outputs.artifact-url }}
         run: |
-          "### Minecraft 1.21.1 / ${{ matrix.loader }} — six native builds, five Java 21 JNI checks and Java 25 denial checks; Android device JNI/game MANUAL/PENDING" | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
+          "### Minecraft 1.20.1 / ${{ matrix.loader }} — six native builds, five Java 17 JNI checks and separate Java 25 denial checks; Android device JNI/game SKIPPED (MANUAL, unverified)" | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
           "[Download OmniMorph JAR]($env:ARTIFACT_URL)" | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY

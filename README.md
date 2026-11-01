@@ -21,20 +21,22 @@ OmniMorph 是基于 [Figura](https://github.com/FiguraMC/Figura) 的 Minecraft J
 
 ## 运行环境
 
+本分支仅构建 Minecraft 1.20.1 的 Forge 系变体。游戏使用 Java 17；Gradle 使用 JDK 21，另安装 JDK 17 工具链。历史 NeoForge 使用 `-PnativeLoader=neoforge`，复用 `forge/` 实现。完整六平台原生产物从成功 CI 下载；本地普通 JAR 不包含六平台库。完整客户端、Mixin 实际应用、CJK/多人及性能人工项目为 `SKIPPED（MANUAL，用户要求跳过；未验证）`。支持矩阵与证据边界见 [移植工具说明](tools/porting/README.md)。
+
 | 项目 | 版本 |
 | --- | --- |
-| Minecraft Java | 26.1.2 |
-| 模组加载器 | Fabric |
-| Java | 25 |
+| Minecraft Java | 1.20.1 |
+| 模组加载器 | Forge 47.1.3 / NeoForge 47.1.106 |
+| Java | 17 |
 | 模组版本 | 1.0.0-alpha.7 |
 
 构建依赖版本见 [gradle.properties](gradle.properties)。这是客户端模组；多人资源分发与状态同步需要兼容的后端服务。
 
-Alpha.5 让 YSM 动画行为与参考实现对齐，并新增远端玩家状态同步与 `ysm_display` / `ysm_model` 状态机 Lua API；Alpha.4.1 增加了多实例装饰、挂点/拖尾、CustomParticle/Ribbon、独立动态光源及整套装扮原子应用与授权同步。真实 Minecraft 双客户端、GUI/GPU、光照及性能验收仍为 `MANUAL/PENDING`。
+Alpha.5 让 YSM 动画行为与参考实现对齐，并新增远端玩家状态同步与 `ysm_display` / `ysm_model` 状态机 Lua API；Alpha.4.1 增加了多实例装饰、挂点/拖尾、CustomParticle/Ribbon、独立动态光源及整套装扮原子应用与授权同步。真实 Minecraft 双客户端、GUI/GPU、光照及性能验收仍为 `SKIPPED（MANUAL，用户要求跳过；未验证）`。
 
 ## 安装与使用
 
-1. 为 Minecraft 26.1.2 安装 Fabric，并使用 Java 25 启动游戏。
+1. 为 Minecraft 1.20.1 安装 Forge 47.1.3 / NeoForge 47.1.106，并使用 Java 17 启动游戏。
 2. 从构建流水线的成功运行中下载最终模组 JAR，放入对应游戏实例的 `mods` 文件夹。
 3. 启动游戏，打开 OmniMorph 衣柜，将模型放入模型文件夹后选择加载。
 4. 使用模型专用设置与动作轮盘操作模型；通过模型库页面上传、管理或下载云端模型。
@@ -64,10 +66,10 @@ YSM 模型的表达式和动画控制器由 Molang 运行时处理。模型提�
 
 ## 从源码构建
 
-准备 JDK 25，设置 `JAVA_HOME` 和 `PATH`，在仓库根目录运行：
+准备 JDK 21 + JDK 17，设置 `JAVA_HOME` 和 `PATH`，在仓库根目录运行：
 
 ```powershell
-& .\gradlew.bat :fabric:build --console=plain 2>&1 | Tee-Object -FilePath 'build.log'
+& .\gradlew.bat :forge:build --console=plain 2>&1 | Tee-Object -FilePath 'build.log'
 $buildExitCode = $LASTEXITCODE
 if ($buildExitCode -ne 0) {
     Get-Content -LiteralPath 'build.log' -Tail 40
@@ -75,9 +77,9 @@ if ($buildExitCode -ne 0) {
 }
 ```
 
-成品位于 `fabric/build/libs/`，文件名为 `omni-morph-...-fabric-mc.jar`。
+成品位于 `forge/build/libs/`，文件名为 `omni-morph-...-minecraftforge-mc.jar`。
 
-普通 Fabric 构建不需要 C++ 工具链。本地 SIMD 库的构建方法见 [native/README.md](native/README.md)；协议规范见 [protocol/README.md](protocol/README.md)。
+普通 Forge 47.1.3 / NeoForge 47.1.106 构建不需要 C++ 工具链。本地 SIMD 库的构建方法见 [native/README.md](native/README.md)；协议规范见 [protocol/README.md](protocol/README.md)。
 
 ## 致谢
 

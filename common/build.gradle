@@ -231,7 +231,7 @@ tasks.register('nativeSmokeTest', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = 'top.aihmc.omnimorph.render.acceleration.NativeAccelerationSmokeTest'
     jvmArgs '--enable-native-access=ALL-UNNAMED', '-Xcheck:jni'
-    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-minecraftforge-mc-windows-local.jar").path,
+    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-${rootProject.loaderArtifactClassifier}-windows-local.jar").path,
             rootProject.file('build/reports/acceleration/h2-jni-timing.csv').path,
             rootProject.file('refs/avatars/末影龙娘.ysm').path
 }
@@ -243,7 +243,7 @@ tasks.register('nativeTimingTest', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = 'top.aihmc.omnimorph.render.acceleration.NativeAccelerationSmokeTest'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
-    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-minecraftforge-mc-windows-local.jar").path,
+    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-${rootProject.loaderArtifactClassifier}-windows-local.jar").path,
             rootProject.file('build/reports/acceleration/h2-jni-timing-runtime.csv').path, '--timing-only'
 }
 
@@ -312,14 +312,44 @@ tasks.register('mixinBytecodeContractSmokeTest', JavaExec) {
     }
 }
 
-tasks.register('neoforgeModuleSmokeTest', JavaExec) {
+tasks.register('loaderModuleSmokeTest', JavaExec) {
     group = 'verification'
-    description = 'Checks NeoForge package ownership with the JVM module resolver and packaged AVIF JNI decoding.'
-    dependsOn testClasses, ':neoforge:remapJar'
+    description = 'Checks selected Forge-family package ownership and isolated final-JAR AVIF JNI decoding.'
+    dependsOn testClasses, ':forge:remapJar'
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'top.aihmc.omnimorph.test.NeoForgeModuleSmokeTest'
+    mainClass = 'top.aihmc.omnimorph.test.LoaderModuleSmokeTest'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
-    args project(':neoforge').tasks.named('remapJar').flatMap { it.archiveFile }.get().asFile.path
+    args project(':forge').tasks.named('remapJar').flatMap { it.archiveFile }.get().asFile.path
+}
+
+tasks.register('productionMixinContractSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks the formal SRG mod JAR against the selected actual patched SRG Minecraft JAR.'
+    dependsOn testClasses, ':forge:remapJar'
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.test.MixinBytecodeContractSmokeTest'
+    doFirst {
+        def loaderVersion = rootProject.selectedLoaderCoordinate.tokenize(':').last()
+        def target = new File(gradle.gradleUserHomeDir,
+                "caches/fabric-loom/${rootProject.minecraft_version}/forge/${loaderVersion}/minecraft-merged-srg-at-patched.jar")
+        if (!target.isFile()) {
+            throw new GradleException("Pinned Loom patched SRG target is missing: $target")
+        }
+        args = [target.path, project(':forge').tasks.named('remapJar').get().archiveFile.get().asFile.path]
+    }
+}
+
+tasks.register('loaderArtifactSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Runs the selected real FML ModFile parser, class scanner and Jar-in-Jar dependency discovery.'
+    dependsOn testClasses, ':forge:remapJar'
+    classpath = sourceSets.test.runtimeClasspath + project(':forge').configurations.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.test.LoaderArtifactSmokeTest'
+    jvmArgs '--add-exports=java.base/sun.security.util=ALL-UNNAMED',
+            '--add-opens=java.base/java.util.jar=ALL-UNNAMED',
+            '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED'
+    args project(':forge').tasks.named('remapJar').flatMap { it.archiveFile }.get().asFile.path,
+            rootProject.selectedLoaderCoordinate, project.jarVersion
 }
 
 tasks.register('gpuSubmissionSmokeTest', JavaExec) {
@@ -421,7 +451,7 @@ tasks.register('nativePlatformSmokeTest', JavaExec) {
     dependsOn compileNativeInterface, ':packageLocalNative'
     classpath = files(rootProject.layout.buildDirectory.dir('native-interface/classes')) +
             fileTree(rootProject.layout.buildDirectory.dir('native-interface/lib')) +
-            files(rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-minecraftforge-mc-windows-local.jar"))
+            files(rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-${rootProject.loaderArtifactClassifier}-windows-local.jar"))
     mainClass = 'top.aihmc.omnimorph.render.acceleration.NativePlatformSmokeTest'
     jvmArgs '--enable-native-access=ALL-UNNAMED', '-Xcheck:jni'
 }
@@ -438,7 +468,7 @@ tasks.register('accelerationPreparationBenchmark', JavaExec) {
     if (providers.gradleProperty('preparationJfr').isPresent()) {
         jvmArgs "-XX:StartFlightRecording=filename=${rootProject.file('build/reports/acceleration/h7-preparation.jfr').path},settings=profile,dumponexit=true"
     }
-    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-minecraftforge-mc-windows-local.jar").path,
+    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-${rootProject.loaderArtifactClassifier}-windows-local.jar").path,
             rootProject.file('refs/avatars').path,
             rootProject.file('build/reports/acceleration/h7-preparation.csv').path
     if (providers.gradleProperty('preparationSample').isPresent()) {
@@ -454,12 +484,15 @@ tasks.register('accelerationPreparationBenchmark', JavaExec) {
         group = 'verification'
         description = "Checks packaged native activation under actual JDK access policy: $policy"
         dependsOn testClasses, ':packageLocalNative'
-        def nativeJar = rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-minecraftforge-mc-windows-local.jar")
+        def nativeJar = rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-${rootProject.loaderArtifactClassifier}-windows-local.jar")
         classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath + files(nativeJar)
         mainClass = 'top.aihmc.omnimorph.render.acceleration.NativeActivationSmokeTest'
         if (policy == 'allow') {
             jvmArgs '--enable-native-access=ALL-UNNAMED', '-Xcheck:jni'
         } else {
+            javaLauncher = javaToolchains.launcherFor {
+                languageVersion = JavaLanguageVersion.of(25)
+            }
             jvmArgs '--illegal-native-access=deny'
         }
         args nativeJar.path, policy

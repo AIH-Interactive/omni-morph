@@ -8,7 +8,7 @@ in build output, not in either source repository.
 
 ## Toolchain and transport
 
-- Java: JDK 25, protobuf Gradle plugin 0.9.5, protoc/protobuf-java 4.31.1.
+- Java: JDK 17 (Gradle runs on JDK 21), protobuf Gradle plugin 0.9.5, protoc/protobuf-java 4.31.1.
 - Rust: prost/prost-build 0.14.3, protoc-bin-vendored 3.2.0; Cargo.lock freezes
   transitive versions. Both generators consume `omnimorph/cloud/v1/cloud.proto`.
 - Control HTTP: GET `/api/protobuf/v1/capabilities`, POST `/api/protobuf/v1/rpc`;
