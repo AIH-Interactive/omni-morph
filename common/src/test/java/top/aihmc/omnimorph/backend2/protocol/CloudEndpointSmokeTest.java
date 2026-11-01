@@ -204,7 +204,9 @@ public final class CloudEndpointSmokeTest {
         downgrade.start();
         try {
             Path store = directory.resolve("localhost.p12");
-            Process keytool = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "keytool.exe").toString(),
+            String keytoolName = System.getProperty("os.name").startsWith("Windows") ? "keytool.exe" : "keytool";
+            Path keytoolPath = Path.of(System.getProperty("java.home"), "bin", keytoolName);
+            Process keytool = new ProcessBuilder(keytoolPath.toString(),
                     "-genkeypair", "-alias", "localhost", "-keyalg", "RSA", "-keysize", "2048", "-validity", "2",
                     "-dname", "CN=localhost", "-ext", "SAN=dns:localhost", "-storetype", "PKCS12", "-keystore",
                     store.toString(), "-storepass", new String(password), "-noprompt").inheritIO().start();

@@ -1462,3 +1462,11 @@ API 真值来源：minecraft-dev-mcp（1.21.1 mojmap 源码，以及 AW / mixin 
 - workflow由官方actionlint v1.7.12检查退出0（m6-workflow-actionlint.log）；九个run块经替换矩阵表达式后的PowerShell AST解析无错误。actionlint仅置ignored build/tmp，quiet工具日志已预清空避免残留旧输出误作证据。四语CHANGELOG新增1.0.0-alpha.7，明确人工/缺语料/性能限制；DISPLAY_VERSION从旧Alpha5改Alpha7，规范版本保持不递增。
 - 本地可执行门槛通过，准备在当前1.21.1提交推送M6候选并启动实际远端CI；远端结果仍PENDING，不标M6/最终发布完成。只读GitHub API已确认workflow 387386689 active且非交互凭据可用；无凭据值输出或落盘。额度used18%/10080min，无交接触发。
 - 下一步：候选提交推送并核对远端HEAD，dispatch指定1.21.1提交的fabric-build.yml，记录run ID/URL并检查实际job结果/最终产物；失败按具体日志修复，不重复启动同一活跃run。人工客户端/Mixin/GUI/CJK/多人仍非阻塞MANUAL/PENDING，不自动启动游戏/覆盖mods；GPU默认关闭保留CPU，Qt offscreen禁止，模型链接只读。
+
+
+## 2026-11-01 M6 首轮 CI 失败定位及 TLS 工具路径修复
+
+- 用户最终指定workflow显示名为 Minecraft 1.21.1 Compact，单行命名提交4debaa5bb5205b01d68a2c691137fa8d117722af已推送；先前命名1a9a72be亦保留历史，不改变功能/构建范围。
+- 实际run41283281035已completed/failure：两个Java21基包任务均在common:cloudEndpointSmokeTest失败，下游native/assemble/verify/publish全部skipped，不能声称六平台运行通过。已下载两job日志至build/tmp/m6-ci-fabric-base-failure.log、m6-ci-neoforge-base-failure.log。
+- 明确根因：测试在Linux查找java.home/bin/keytool.exe，远端报No such file。CodeGraph核对后，仅根据真实os.name选择Windows keytool.exe或其他系统keytool，再拼同一JDK bin路径；TLS生成、证书/主机名校验、重定向负例全部保留，无测试跳过。
+- 本地正式Java21 :common:cloudEndpointSmokeTest PASS，5秒退出0，证据build/tmp/m6-keytool-platform-fix.log。Linux分支仍需下一次实际CI证明；本地Windows通过不冒充Linux通过。diff检查通过，准备提交推送该修复并对新HEAD启动一次新run；前run已终止，不是重复启动活跃run。
