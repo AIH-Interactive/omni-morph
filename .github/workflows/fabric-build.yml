@@ -1,4 +1,4 @@
-name: Fabric 26.1.2
+name: OmniMorph
 
 on:
   workflow_dispatch:
