@@ -8,6 +8,7 @@ import top.aihmc.omnimorph.avatar.ysm.crypto.YsmDecodeException;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.MemoryCacheImageInputStream;
+import javax.imageio.stream.MemoryCacheImageOutputStream;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.DataBufferInt;
@@ -28,24 +29,27 @@ public final class YsmTextureDecoder {
                                YsmDecodeBudget budget) throws IOException {
         budget.length(data.length, budget.limits().singleResourceBytes(), "image/input", 0);
         BufferedImage image = null;
+        String stage = "image/read";
         try {
             image = format == -1 ? rgba(data, width, height, budget) : encoded(data, width, height, budget);
-            BoundedOutput output = new BoundedOutput(budget);
-            try {
-                if (!ImageIO.write(image, "PNG", output)) {
+            stage = "image/png-write";
+            // The OutputStream overload uses ImageIO's global disk-cache policy. Model conversion is
+            // entirely in memory and must also work when the launcher's temp directory is unavailable.
+            try (BoundedOutput output = new BoundedOutput(budget);
+                 MemoryCacheImageOutputStream png = new MemoryCacheImageOutputStream(output)) {
+                if (!ImageIO.write(image, "PNG", png)) {
                     throw invalid("image/png-encoder");
                 }
+                png.flush();
                 return output.bytes();
-            } finally {
-                output.close();
             }
         } catch (YsmDecodeException e) {
             throw e;
         } catch (java.io.InterruptedIOException e) {
             throw e;
         } catch (IOException | RuntimeException e) {
-            // Third-party diagnostics may contain input data; retain only our stage.
-            throw invalid("image/decode");
+            // Retain code location/type, never third-party messages, image bytes or decrypted metadata.
+            throw invalid(stage + "/" + e.getClass().getSimpleName());
         } finally {
             if (image != null) {
                 clear(image);

@@ -1114,6 +1114,18 @@ tasks.register("ysmAvifSmokeTest", JavaExec) {
     args rootProject.file("refs/avatars").path
 }
 
+tasks.register('ysmMetadataImageRegression', JavaExec) {
+    group = 'verification'
+    description = 'Loads real encrypted metadata images on an asynchronous preview loader thread.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.avatar.ysm.YsmMetadataImageRegression'
+    def corpus = rootProject.file('refs/avatars/DS鲸鱼娘.ysm')
+    if (corpus.isFile()) {
+        args corpus.path
+    }
+}
+
 tasks.register("ysmSyncSmokeTest", JavaExec) {
     group = "verification"
     description = "Checks bounded YSM state codec and deterministic observer replay without a live backend."
