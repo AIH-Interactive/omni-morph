@@ -26,6 +26,18 @@ dependencies {
     include(forgeRuntimeLibrary("com.github.FiguraMC.luaj:luaj-core:$luaj-figura"))
     include(forgeRuntimeLibrary("com.github.FiguraMC.luaj:luaj-jse:$luaj-figura"))
     include(forgeRuntimeLibrary("com.neovisionaries:nv-websocket-client:$nv_websocket"))
+    include(forgeRuntimeLibrary("com.google.protobuf:protobuf-java:4.31.1"))
+    include(forgeRuntimeLibrary("io.airlift:aircompressor:0.27"))
+    include(forgeRuntimeLibrary("io.github.jaredmdobson:concentus:1.0.2"))
+    include(forgeRuntimeLibrary("org.gagravarr:vorbis-java-core:0.8"))
+    include(forgeRuntimeLibrary("com.github.ustc-zzzz:avif-imageio-native-reader:master-6af2f277a8-1@jar"))
+    // Jar-in-jar packaging must list the image readers' transitive runtime libraries explicitly.
+    ["imageio-webp", "imageio-core", "imageio-metadata"].each { module ->
+        include(forgeRuntimeLibrary("com.twelvemonkeys.imageio:${module}:3.15.0"))
+    }
+    ["common-lang", "common-io", "common-image"].each { module ->
+        include(forgeRuntimeLibrary("com.twelvemonkeys.common:${module}:3.15.0"))
+    }
 
     neoForge "net.neoforged:neoforge:${rootProject.neoforge_version}"
 
@@ -56,6 +68,11 @@ shadowJar {
     exclude "fabric.mod.json"
     exclude "architectury.common.json"
 
+    // ExpectPlatform derives implementation owners from the retained common namespace.
+    ['utils', 'config', 'entries'].each { bridgePackage ->
+        relocate "top.aihmc.omnimorph.${bridgePackage}.neoforge", "org.figuramc.figura.${bridgePackage}.neoforge"
+    }
+
     configurations = [project.configurations.shadowCommon]
     archiveClassifier.set "dev-shadow"
 }
@@ -69,6 +86,17 @@ remapJar {
 
 jar {
     archiveClassifier.set "dev"
+}
+
+tasks.withType(Jar).configureEach {
+    from(rootProject.file('LICENSE.md')) {
+        into 'licenses'
+        rename { 'OmniMorph-PolyForm-Noncommercial-1.0.0.txt' }
+    }
+    from(rootProject.file('CREDITS')) {
+        into 'credits'
+        rename { 'OmniMorph.txt' }
+    }
 }
 
 sourcesJar {

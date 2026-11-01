@@ -13,6 +13,11 @@ public class PlatformUtils {
 
     @ExpectPlatform
     public static Path getGameDir() {
+        return getGameDirFallback();
+    }
+
+    // Keep exception handlers outside entrypoints whose instructions Architectury replaces.
+    private static Path getGameDirFallback() {
         try {
             return (Path) Class.forName("top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl")
                 .getMethod("getGameDir").invoke(null);
@@ -22,7 +27,11 @@ public class PlatformUtils {
     }
 
     @ExpectPlatform
-    public static String getFiguraModVersionString(){
+    public static String getFiguraModVersionString() {
+        return getFiguraModVersionStringFallback();
+    }
+
+    private static String getFiguraModVersionStringFallback() {
         try {
             return (String) Class.forName("top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl")
                 .getMethod("getFiguraModVersionString").invoke(null);
@@ -33,6 +42,10 @@ public class PlatformUtils {
 
     @ExpectPlatform
     public static Path getConfigDir() {
+        return getConfigDirFallback();
+    }
+
+    private static Path getConfigDirFallback() {
         try {
             return (Path) Class.forName("top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl")
                 .getMethod("getConfigDir").invoke(null);
@@ -43,6 +56,10 @@ public class PlatformUtils {
 
     @ExpectPlatform
     public static boolean isModLoaded(String modId) {
+        return isModLoadedFallback(modId);
+    }
+
+    private static boolean isModLoadedFallback(String modId) {
         try {
             return (boolean) Class.forName("top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl")
                 .getMethod("isModLoaded", String.class).invoke(null, modId);
@@ -53,6 +70,10 @@ public class PlatformUtils {
 
     @ExpectPlatform
     public static String getModVersion(String modId) {
+        return getModVersionFallback(modId);
+    }
+
+    private static String getModVersionFallback(String modId) {
         try {
             return (String) Class.forName("top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl")
                 .getMethod("getModVersion", String.class).invoke(null, modId);
@@ -62,8 +83,12 @@ public class PlatformUtils {
     }
 
     @ExpectPlatform
-    @SuppressWarnings("unchecked")
     public static Map<String, String> getLoadedMods() {
+        return getLoadedModsFallback();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, String> getLoadedModsFallback() {
         try {
             return (Map<String, String>) Class.forName("top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl")
                     .getMethod("getLoadedMods").invoke(null);
@@ -97,7 +122,11 @@ public class PlatformUtils {
     }
 
     @ExpectPlatform
-    public static ModLoader getModLoader(){
+    public static ModLoader getModLoader() {
+        return getModLoaderFallback();
+    }
+
+    private static ModLoader getModLoaderFallback() {
         try {
             return (ModLoader) Class.forName("top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl")
                 .getMethod("getModLoader").invoke(null);
@@ -108,6 +137,10 @@ public class PlatformUtils {
 
     @ExpectPlatform
     public static InputStream loadFileFromRoot(String file) throws FileNotFoundException {
+        return loadFileFromRootFallback(file);
+    }
+
+    private static InputStream loadFileFromRootFallback(String file) throws FileNotFoundException {
         try {
             return (InputStream) Class.forName("top.aihmc.omnimorph.utils.fabric.PlatformUtilsImpl")
                 .getMethod("loadFileFromRoot", String.class).invoke(null, file);

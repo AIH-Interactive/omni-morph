@@ -2,7 +2,7 @@
 
 ## 当前验收摘要（2026-11-01，优先于下文历史记录）
 
-- 阶段：用户批准的 M3–M5 合并实施与自动验收已完成，进入检查点提交推送；M6 未开始。分支 `1.21.1`，提交/推送最终结果见项目根目录 `AGENT_HANDOFF.md`。
+- 阶段：用户批准的 M3–M5 合并检查点已提交推送（`ddf2bcf8`）；M6 候选实现完成并通过本地检查，双平台打包/CI矩阵/发布记录已适配；远端六平台CI待运行验证。分支 `1.21.1`，提交/推送最终结果见项目根目录 `AGENT_HANDOFF.md`。
 - 已验证：common 全量生产/测试编译、Fabric/NeoForge 生产编译；正式 CPU 动画/控制器/Molang/同步与库/协议任务已有逐项日志，详见文末各接续记录。不能由此推断所有 Q1 入口或实机加载通过。
 - 实际语料：`refs/avatars` 通过 21 个文件硬链接和 4 个目录 junction 访问相邻原生项目 `models`；22 个 YSM（4 明文、18 加密）和 3 个 Figura ZIP，源只读。数量断言按用户要求适应实际资源，逐资源内容/行为断言保留。
 - 已验证：完整模型数据重建、手部/公开姿态/持物几何、材质、语言、AVIF；音频真实语料为 Vorbis 123 份，Opus 仅夹具覆盖。100 次切换/10 批次/全部 25 源，逐批 retained=0，图像/PCM释放通过，报告 `build/reports/ysm/m8-stability.json`。
@@ -1437,3 +1437,28 @@ API 真值来源：minecraft-dev-mcp（1.21.1 mojmap 源码，以及 AW / mixin 
 - 已验证 PASS：随后 :common:check :fabric:check :neoforge:check --continue --console=plain，46秒退出0，日志 build/tmp/m3-m5-final-check.log。common 全量测试编译与 check 依赖包括完整 libraryPreviewRuntimeSmokeTest；两平台 test 仍 NO-SOURCE，不能声称真实客户端或双平台JUnit通过。前轮独立M3 CPU骨骼/延迟/时间线与M5 GPU拒绝/Java路径已有正式PASS日志，见历史记录。
 - 合并实施与规定可执行自动门槛完成，进行提交前 diff/status 审查；本检查点保留真实客户端/Mixin apply/GUI/CJK/多人为人工 MANUAL/PENDING（用户已指定非阻塞），专属缺失模型/符号链接权限与实际GPU性能覆盖限制仍明确保留。M6不在本次实现检查点中，不声称最终发布完成。
 - 提交范围限定 common、fabric、neoforge 和两份 porting 记录；.codex/、.mcp.json、.omc/ 本地工具配置保留不提交，refs/build/交接手册均为ignored。git diff --check已通过；额度可靠接口主要池 used18%/10080min，未触发预警/交接阈值，不推断Plus/Pro。
+
+
+## 2026-11-01 M6 接续：双平台正式转换、依赖与 NeoForge 标识
+
+- 已在M3–M5提交推送核对成功后开始M6；当前分支1.21.1/HEAD ddf2bcf8b1f769f26df659bf2bc25adeb4044505。M6尚未完成、未提交/推送，所有修改保留；本地.codex/.mcp.json/.omc不动。
+- 首次正式双平台remap：Fabric通过但common未转换；NeoForge失败缺AW（build/tmp/m6-first-dual-package.log）。查明common/build.gradle显式禁用transformProduction*生成空JAR，Fabric临时namedElements绕开转换；恢复转换并让Fabric使用transformProductionFabric。
+- 随后转换器稳定FAIL：ASM handlerRangeBlock=null（m6-transformed-dual-package.log、m6-transform-stacktrace.log）。本地Architectury5.2.91 javap确认TransformExpectPlatform清空instructions但未清理旧tryCatchBlocks，原common五个桥接类的带反射try/catch入口触发该缺陷。仅将原反射body提取private *Fallback方法，入口保留@ExpectPlatform/委托，保持raw common测试行为与异常语义。正式双平台transform PASS（m6-transform-method-fix.log），未升级/修补第三方工具。
+- common保留org.figuramc.figura命名空间，平台实现为top.aihmc.omnimorph；转换器按前者生成调用。Fabric/NeoForge shadowJar定向relocate三组utils/config/entries平台实现包到org桥接目标，未全仓命名迁移。正式双remap PASS（m6-bridge-dual-package.log）。实际javap确认最终两包PlatformUtils八个入口invokestatic指向各自fabric/neoforge Impl；每包六种桥接owner存在。
+- 检查真实JAR发现NeoForge原仅内嵌Lua/WebSocket3库；补齐common已有Protobuf/aircompressor/Concentus/Vorbis/AVIF/WebP及TwelveMonkeys传递库。:neoforge:remapJar PASS（m6-neoforge-runtime-libraries.log）。Zip核查Fabric20、Neo14个nested JAR，声明指向存在文件、Neo jarjar条数匹配；own classes major<=65，Neo META-INF/accesstransformer.cfg存在。minecraft-dev AW校验15条有效、0错误/警告。
+- 已验证PASS：上述桥接/依赖修改后 :common:check :fabric:check :neoforge:check :fabric:remapJar :neoforge:remapJar --continue --console=plain，1m11s退出0（m6-bridge-check-and-packaging.log）。仍两平台JUnit NO-SOURCE，完整preview等check依赖实际执行，不是游戏加载证明。
+- 本地NeoForge FML4.0.41 loader-sources ModInfo.java明确VALID_MODID=^[a-z][a-z0-9_]{1,63}$，会拒绝原omni-morph。将仅NeoForge加载器ID改omni_morph，namespace保持omni-morph；入口常量/两个subscriber、ModList自身查询和metadata alias一致，资源/存储/common协议品牌不改；toml modproperties/dependencies同步，mandatory换实际type=required。:neoforge:remapJar重编译/打包PASS（m6-neoforge-loader-id.log），最终TOML静态解析确认ID正则/namespace/三mixins/required依赖/资源路径；真实FML加载仍MANUAL/PENDING。最后ID修改在完整check之后，完整check证据不能冒称包括此变更；Neo编译/打包证据有效。
+- 修改文件：common/build.gradle；common org桥接ConfigKeyBind/EntryPointManager/FiguraModMetadata/FiguraResourceListener/PlatformUtils；fabric/build.gradle；neoforge/build.gradle、FiguraModForge、FiguraModClientNeoForge、FiguraCommandsNeoForge、PlatformUtilsImpl、FiguraModMetadataImpl和META-INF/neoforge.mods.toml；另进度/交接记录。git diff --check通过。
+- 下一步M6最小工作：适配现有.github/workflows/fabric-build.yml为Java21双加载器矩阵，保留既有六平台native组装验证；native/packaging.gradle当前硬编码Fabric且七位commit假设与当前八位git short可能不一致，必须按实际产物核对；四语CHANGELOG新增1.0.0-alpha.7移植/已知限制，版本不递增。随后最终check/双打包/产物审计、更新计划、审查diff并提交推送核对远端。此轮未动CI/native组装/CHANGELOG，不把M6标完成。
+- 当前remap警告包含可选renderRaw、跨平台lambda别名及Gecko变量名，先前有静态字节码核实，仍不能称实际Mixin apply通过。客户端人工验收非阻塞MANUAL/PENDING，不自动启动游戏/覆盖mods；GPU默认关闭/CPU保留，Qt offscreen禁止，模型链接只读。
+
+
+## 2026-11-01 M6 候选：双加载器 CI、原生组装与发布记录
+
+- 完成现有 fabric-build.yml 的双加载器改造：base/assemble/publish 两loader矩阵；native仍六平台一次构建共享；final验证为两loader×六平台，避免artifact重名和基包误混入native输入。构建、头文件和实际JNI执行使用Java21；保留原Java25 JEP472拒绝访问检查为独立步骤，未用Java21不支持的参数冒充负例。
+- native/packaging.gradle 支持 -PnativeLoader=fabric|neoforge（默认Fabric）、分loader输出目录、对应mod descriptor/jarjar核查；base-manifest记录loader。校验实际7–40位十六进制提交前缀且须匹配完整sourceCommit，修复原固定7位错误；原六平台/ABI/source/run/哈希/许可证/原ZIP内容不变门槛保留，新增错误loader拒绝用例。
+- stageNativeBase依赖所选remapJar、common:check及compileNativeInterface，CI不调用绑定可视GL窗口的两平台check；完整三模块check/preview已在本机真实GL窗口夹具执行，不能因此宣称人工客户端验收通过。NeoForge JAR补齐项目LICENSE/CREDITS，final verifier增加Neo TOML/AT/jarjar和匹配提交前缀核查。
+- 已验证PASS：nativePackagingSmokeTest两loader正式入口；最后Neo组合 :fabric:check :neoforge:check + nativePackagingSmokeTest（含common:check）退出0，日志m6-final-neoforge-check-packaging.log；最后Fabric入口含重编译/remap/错误loader断言退出0，m6-final-fabric-packaging.log。两个最终verifier对合成原生包也PASS：m6-final-neoforge-artifact-verifier.log、m6-final-fabric-artifact-verifier.log。合成包不可作JNI/真实性能证据，不发布。
+- workflow由官方actionlint v1.7.12检查退出0（m6-workflow-actionlint.log）；九个run块经替换矩阵表达式后的PowerShell AST解析无错误。actionlint仅置ignored build/tmp，quiet工具日志已预清空避免残留旧输出误作证据。四语CHANGELOG新增1.0.0-alpha.7，明确人工/缺语料/性能限制；DISPLAY_VERSION从旧Alpha5改Alpha7，规范版本保持不递增。
+- 本地可执行门槛通过，准备在当前1.21.1提交推送M6候选并启动实际远端CI；远端结果仍PENDING，不标M6/最终发布完成。只读GitHub API已确认workflow 387386689 active且非交互凭据可用；无凭据值输出或落盘。额度used18%/10080min，无交接触发。
+- 下一步：候选提交推送并核对远端HEAD，dispatch指定1.21.1提交的fabric-build.yml，记录run ID/URL并检查实际job结果/最终产物；失败按具体日志修复，不重复启动同一活跃run。人工客户端/Mixin/GUI/CJK/多人仍非阻塞MANUAL/PENDING，不自动启动游戏/覆盖mods；GPU默认关闭保留CPU，Qt offscreen禁止，模型链接只读。

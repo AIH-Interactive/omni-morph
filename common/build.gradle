@@ -191,10 +191,6 @@ void setupRepositories(RepositoryHandler repositories) {
     }
 }
 
-tasks.matching { it.name.startsWith("transformProduction") }.configureEach {
-    enabled = false
-}
-
 tasks.withType(Test).configureEach {
     failOnNoDiscoveredTests = false
 }

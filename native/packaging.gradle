@@ -9,6 +9,37 @@ def sha256 = { File file ->
     HexFormat.of().formatHex(MessageDigest.getInstance('SHA-256').digest(file.bytes))
 }
 
+def nativeLoader = providers.gradleProperty('nativeLoader').getOrElse('fabric')
+if (!(nativeLoader in ['fabric', 'neoforge'])) {
+    throw new GradleException('nativeLoader must be fabric or neoforge')
+}
+def nativeBaseDirectory = rootProject.file("build/native-base/$nativeLoader")
+
+def readModIdentity = { ZipFile jar, String loader ->
+    if (loader == 'fabric') {
+        def descriptor = jar.getEntry('fabric.mod.json')
+        if (descriptor == null) {
+            throw new GradleException('Fabric base JAR is missing its mod descriptor')
+        }
+        return new JsonSlurper().parse(jar.getInputStream(descriptor))
+    }
+    if (loader != 'neoforge') {
+        throw new GradleException('Unknown base JAR loader')
+    }
+    // Read only the expanded identity block emitted from this project's own TOML template.
+    def descriptor = jar.getEntry('META-INF/neoforge.mods.toml')
+    if (descriptor == null) {
+        throw new GradleException('NeoForge base JAR is missing its mod descriptor')
+    }
+    String toml = jar.getInputStream(descriptor).getText('UTF-8')
+    def identity = toml =~ /(?ms)^\[\[mods\]\]\s*\r?\nmodId\s*=\s*"([^"]+)".*?^version\s*=\s*"([^"]+)"/
+    if (!identity.find()) {
+        throw new GradleException('NeoForge base JAR has no expanded mod identity')
+    }
+    def nested = new JsonSlurper().parse(jar.getInputStream(jar.getEntry('META-INF/jarjar/metadata.json')))
+    [id: identity.group(1), version: identity.group(2), jars: nested.jars.collect { [file: it.path] }]
+}
+
 def writeNativeJar = { File base, File destination, Map<String, byte[]> additions ->
     destination.parentFile.mkdirs()
     def temporary = new File(destination.parentFile, destination.name + '.tmp')
@@ -106,10 +137,13 @@ def assembleNative = { File baseDirectory, File artifacts, File destination, Str
         throw new GradleException("Missing native platforms: ${required.keySet() - seenPlatforms}")
     }
     new ZipFile(base).withCloseable { jar ->
-        def identity = new JsonSlurper().parse(jar.getInputStream(jar.getEntry('fabric.mod.json')))
-        if (identity.id != 'omni-morph' || identity.version != metadata.version
-                || !identity.version.startsWith("${rootProject.mod_version}+${rootProject.minecraft_version}-")
-                || !identity.version.endsWith(commit.take(7))) {
+        String loader = metadata.loader ?: 'fabric'
+        def identity = readModIdentity(jar, loader)
+        String prefix = "${rootProject.mod_version}+${rootProject.minecraft_version}-"
+        String revision = identity.version.startsWith(prefix) ? identity.version.substring(prefix.length()) : ''
+        if (identity.id != (loader == 'fabric' ? 'omni-morph' : 'omni_morph')
+                || identity.version != metadata.version || !(revision ==~ /[0-9a-f]{7,40}/)
+                || !commit.startsWith(revision)) {
             throw new GradleException('Base JAR identity/version/commit mismatch')
         }
         identity.jars.each { nested ->
@@ -140,11 +174,11 @@ def assembleNative = { File baseDirectory, File artifacts, File destination, Str
 
 tasks.register('stageNativeBase') {
     group = 'build'
-    dependsOn ':fabric:build', ':common:compileNativeInterface'
+    dependsOn ":${nativeLoader}:remapJar", ':common:check', ':common:compileNativeInterface'
     doLast {
-        File directory = rootProject.file('build/native-base')
+        File directory = nativeBaseDirectory
         directory.mkdirs()
-        File original = project(':fabric').tasks.named('remapJar').get().archiveFile.get().asFile
+        File original = project(":$nativeLoader").tasks.named('remapJar').get().archiveFile.get().asFile
         copy {
             from original
             into directory
@@ -152,10 +186,10 @@ tasks.register('stageNativeBase') {
         String commit = ['git', 'rev-parse', 'HEAD'].execute(null, rootProject.projectDir).text.trim()
         def identity
         new ZipFile(original).withCloseable { jar ->
-            identity = new JsonSlurper().parse(jar.getInputStream(jar.getEntry('fabric.mod.json')))
+            identity = readModIdentity(jar, nativeLoader)
         }
         new File(directory, 'base-manifest.json').text = JsonOutput.prettyPrint(JsonOutput.toJson([
-                abi: 2, jar: original.name, version: identity.version, sourceCommit: commit,
+                abi: 2, loader: nativeLoader, jar: original.name, version: identity.version, sourceCommit: commit,
                 runId: System.getenv('GITHUB_RUN_ID') ?: '0', runAttempt: System.getenv('GITHUB_RUN_ATTEMPT') ?: '0',
                 sha256: sha256(original)]))
     }
@@ -178,9 +212,9 @@ tasks.register('nativePackagingSmokeTest') {
     description = 'Checks assembly rejection and exact base-entry preservation with explicitly synthetic platform bytes.'
     dependsOn 'stageNativeBase'
     doLast {
-        File root = rootProject.file('build/native-packaging-test')
+        File root = rootProject.file("build/native-packaging-test/$nativeLoader")
         File artifacts = new File(root, 'artifacts')
-        def metadata = new JsonSlurper().parse(rootProject.file('build/native-base/base-manifest.json'))
+        def metadata = new JsonSlurper().parse(new File(nativeBaseDirectory, 'base-manifest.json'))
         def platforms = ['windows-x86_64': 'omnimorph_accel.dll', 'linux-x86_64': 'libomnimorph_accel.so',
                          'linux-aarch64': 'libomnimorph_accel.so', 'android-aarch64': 'libomnimorph_accel.so',
                          'macos-x86_64': 'libomnimorph_accel.dylib', 'macos-aarch64': 'libomnimorph_accel.dylib']
@@ -205,7 +239,7 @@ tasks.register('nativePackagingSmokeTest') {
             new File(directory, 'natives/manifest.json').text = JsonOutput.toJson([abi: 2, buildKind: 'ci', libraries: [entry]])
         }
         def run = { String commit, File input = artifacts ->
-            assembleNative(rootProject.file('build/native-base'), input, new File(root, 'synthetic.jar'),
+            assembleNative(nativeBaseDirectory, input, new File(root, 'synthetic.jar'),
                     commit, metadata.runId, metadata.runAttempt)
         }
         run(metadata.sourceCommit)
@@ -219,6 +253,16 @@ tasks.register('nativePackagingSmokeTest') {
             if (!rejected) {
                 throw new GradleException('Invalid platform set unexpectedly published')
             }
+        }
+        File baseManifest = new File(nativeBaseDirectory, 'base-manifest.json')
+        String savedBase = baseManifest.text
+        try {
+            def wrongLoader = new JsonSlurper().parseText(savedBase)
+            wrongLoader.loader = nativeLoader == 'fabric' ? 'neoforge' : 'fabric'
+            baseManifest.text = JsonOutput.toJson(wrongLoader)
+            reject { run(metadata.sourceCommit) }
+        } finally {
+            baseManifest.text = savedBase
         }
         File androidManifest = new File(artifacts, 'android-aarch64/natives/manifest.json')
         String savedAndroid = androidManifest.text

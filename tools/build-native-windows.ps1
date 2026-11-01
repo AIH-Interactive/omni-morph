@@ -39,7 +39,7 @@ foreach ($line in $developerEnvironment) {
     }
 }
 if (-not $env:JAVA_HOME -or -not (Test-Path -LiteralPath "$env:JAVA_HOME/include/jni.h")) {
-    throw 'Set JAVA_HOME to JDK 25 with JNI headers (usejdk 25).'
+    throw 'Set JAVA_HOME to JDK 21 with JNI headers (usejdk 21).'
 }
 $nativeRoot = Join-Path $projectRoot 'build/native/windows-x64-release'
 New-Item -ItemType Directory -Force -Path $nativeRoot | Out-Null

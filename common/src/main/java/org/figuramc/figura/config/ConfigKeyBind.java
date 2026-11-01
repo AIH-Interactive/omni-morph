@@ -37,6 +37,10 @@ public class ConfigKeyBind extends KeyMapping {
 
     @ExpectPlatform
     public static void addKeyBind(ConfigKeyBind keyBind) {
+        addKeyBindFallback(keyBind);
+    }
+
+    private static void addKeyBindFallback(ConfigKeyBind keyBind) {
         try {
             Class.forName("top.aihmc.omnimorph.config.fabric.ConfigKeyBindImpl")
                 .getMethod("addKeyBind", ConfigKeyBind.class).invoke(null, keyBind);

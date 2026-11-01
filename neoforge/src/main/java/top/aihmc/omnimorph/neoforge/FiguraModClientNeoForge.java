@@ -29,7 +29,7 @@ import top.aihmc.omnimorph.model.ysm.YsmPreviewRenderTypes;
 import java.util.ArrayList;
 import java.util.List;
 
-@EventBusSubscriber(modid = FiguraMod.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+@EventBusSubscriber(modid = FiguraModForge.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public class FiguraModClientNeoForge extends FiguraMod {
     // keybinds stored here
     public static List<KeyMapping> KEYBINDS = new ArrayList<>();

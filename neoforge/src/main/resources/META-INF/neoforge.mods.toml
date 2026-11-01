@@ -5,7 +5,8 @@ license = "PolyForm-Noncommercial-1.0.0"
 displayURL = "https://github.com/AIH-Interactive/omni-morph"
 
 [[mods]]
-modId = "omni-morph"
+modId = "omni_morph"
+namespace = "omni-morph"
 version = "${version}"
 displayName = "OmniMorph"
 logoFile="icon.png"
@@ -15,19 +16,19 @@ description = '''
 Unified Figura Avatar and YSM models with linked Lua and Molang runtimes
 '''
 
-[modproperties.omni-morph]
+[modproperties.omni_morph]
 assets_version="${assets_version}"
 
-[[dependencies.omni-morph]]
+[[dependencies.omni_morph]]
 modId = "neoforge"
-mandatory = true
+type = "required"
 versionRange = "[21.1.185,21.2)"
 ordering = "NONE"
 side = "CLIENT"
 
-[[dependencies.omni-morph]]
+[[dependencies.omni_morph]]
 modId = "minecraft"
-mandatory = true
+type = "required"
 versionRange = "[${minecraft_version}]"
 ordering = "NONE"
 side = "CLIENT"

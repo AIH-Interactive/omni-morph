@@ -20,6 +20,10 @@ public abstract class FiguraModMetadata {
     }
     @ExpectPlatform
     public static FiguraModMetadata getMetadataForMod(String modID) {
+        return getMetadataForModFallback(modID);
+    }
+
+    private static FiguraModMetadata getMetadataForModFallback(String modID) {
         try {
             return (FiguraModMetadata) Class.forName("top.aihmc.omnimorph.utils.fabric.FiguraModMetadataImpl")
                 .getMethod("getMetadataForMod", String.class).invoke(null, modID);

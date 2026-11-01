@@ -1,7 +1,8 @@
 param(
     [Parameter(Mandatory)][string] $JarPath,
     [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{40}$')][string] $ExpectedCommit,
-    [Parameter(Mandatory)][ValidatePattern('^[0-9]+$')][string] $ExpectedRun
+    [Parameter(Mandatory)][ValidatePattern('^[0-9]+$')][string] $ExpectedRun,
+    [ValidateSet('fabric', 'neoforge')][string] $Loader = 'fabric'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -136,9 +137,32 @@ try {
     if (-not $seenPaths.SetEquals([string[]] $nativePaths)) {
         throw 'Unlisted native library in final JAR.'
     }
-    $mod = Read-ArtifactText $archive 'fabric.mod.json' | ConvertFrom-Json
-    $expectedVersion = "$(Read-BuildProperty 'mod_version')+$(Read-BuildProperty 'minecraft_version')-$($ExpectedCommit.Substring(0, 7))"
-    if ($mod.id -cne 'omni-morph' -or $mod.version -cne $expectedVersion) {
+    if ($Loader -eq 'fabric') {
+        $mod = Read-ArtifactText $archive 'fabric.mod.json' | ConvertFrom-Json
+        $expectedId = 'omni-morph'
+    } else {
+        $toml = Read-ArtifactText $archive 'META-INF/neoforge.mods.toml'
+        $identity = [regex]::Match($toml, '(?ms)^\[\[mods\]\]\s*\r?\nmodId\s*=\s*"([^"]+)".*?^version\s*=\s*"([^"]+)"')
+        if (-not $identity.Success -or $toml -cnotmatch '(?m)^namespace\s*=\s*"omni-morph"\s*$') {
+            throw 'Missing NeoForge mod identity/resource namespace.'
+        }
+        $nested = Read-ArtifactText $archive 'META-INF/jarjar/metadata.json' | ConvertFrom-Json
+        $mod = [pscustomobject]@{
+            id = $identity.Groups[1].Value
+            version = $identity.Groups[2].Value
+            jars = @($nested.jars | ForEach-Object { [pscustomobject]@{ file = $_.path } })
+        }
+        $expectedId = 'omni_morph'
+        if (-not $names.Contains('META-INF/accesstransformer.cfg')) {
+            throw 'Missing NeoForge access transformer.'
+        }
+    }
+    $versionPrefix = "$(Read-BuildProperty 'mod_version')+$(Read-BuildProperty 'minecraft_version')-"
+    $revision = if ($mod.version.StartsWith($versionPrefix, [StringComparison]::Ordinal)) {
+        $mod.version.Substring($versionPrefix.Length)
+    } else { '' }
+    if ($mod.id -cne $expectedId -or $revision -cnotmatch '^[0-9a-f]{7,40}$' -or
+            -not $ExpectedCommit.StartsWith($revision, [StringComparison]::Ordinal)) {
         throw 'Final mod ID/version/source commit mismatch.'
     }
     foreach ($dependency in $mod.jars) {

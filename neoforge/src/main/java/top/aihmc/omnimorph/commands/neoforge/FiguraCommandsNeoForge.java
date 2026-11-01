@@ -6,11 +6,11 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
-import org.figuramc.figura.FiguraMod;
+import top.aihmc.omnimorph.neoforge.FiguraModForge;
 import org.figuramc.figura.commands.FiguraCommands;
 import org.figuramc.figura.utils.FiguraClientCommandSource;
 
-@EventBusSubscriber(modid = FiguraMod.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
+@EventBusSubscriber(modid = FiguraModForge.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
 public class FiguraCommandsNeoForge {
     @SuppressWarnings({"unchecked", "rawtypes"})
     @SubscribeEvent

@@ -30,8 +30,13 @@ public class EntryPointManager {
     }
 
     @ExpectPlatform
-    @SuppressWarnings("unchecked")
     private static <T> Set<T> load(String name, Class<T> clazz) {
+        return loadFallback(name, clazz);
+    }
+
+    // Architectury replaces the entrypoint body, so its exception handlers must live here.
+    @SuppressWarnings("unchecked")
+    private static <T> Set<T> loadFallback(String name, Class<T> clazz) {
         try {
             return (Set<T>) Class.forName("top.aihmc.omnimorph.entries.fabric.EntryPointManagerImpl")
                 .getMethod("load", String.class, Class.class).invoke(null, name, clazz);

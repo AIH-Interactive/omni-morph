@@ -4,6 +4,15 @@
 
 [项目介绍](../README.md)
 
+## 1.0.0-alpha.7 — Minecraft 1.21.1 适配
+
+- 面向 Minecraft 1.21.1、Java 21，提供 Fabric 与 NeoForge 构建；版本适配统一使用 `1.0.0-alpha.7`。
+- 适配实体/第一人称/物品和 GUI 渲染、输入、字体、粒子及 YSM/Figura 预览。保留 Lua/Molang、衣柜、模型库与云端装扮路径。
+- 1.21.1 默认关闭 GPU 加速并显示不支持状态，保留 Java/CPU 回退及独立可选原生 SIMD。未完成实机 GPU 或性能基线验收。
+- 恢复双平台生产桥接转换，补齐 NeoForge 运行时库、AT 和许可证；NeoForge 加载器 ID 使用 `omni_morph`，资源命名空间保持 `omni-morph`，现有数据目录不变。
+- 默认动画资源对齐指定 Sparkle-Morpher `neo1.21.1` 参考（`6272e67`）；语料检查按本机实际模型执行，缺失专属模型场景仍未验证。
+- 已有自动测试和本地打包证据；真实客户端加载、Mixin 应用、GUI/CJK、游戏画面/声音和多人验收仍为 `MANUAL/PENDING`。CI 六平台产物/原生验证结果需以实际工作流为准，不代表正式发布已完成。
+
 ## 1.0.0-alpha.6
 
 - 开发阶段：优先推进 YSM 与 Figura 共用渲染性能优化。各阶段尚待验证，不代表性能验收或正式发布完成。

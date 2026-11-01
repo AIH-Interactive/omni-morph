@@ -78,8 +78,7 @@ dependencies {
 
 
     common(project(path: ":common", configuration: "namedElements")) { transitive false }
-    // TODO(M6): switch to transformProductionFabric for the release jar
-    shadowCommon(project(path: ":common", configuration: "namedElements")) { transitive false }
+    shadowCommon(project(path: ":common", configuration: "transformProductionFabric")) { transitive false }
 }
 
 sourceSets.main.java {
@@ -103,6 +102,11 @@ processResources {
 
 shadowJar {
     exclude "architectury.common.json"
+
+    // ExpectPlatform derives implementation owners from the retained common namespace.
+    ['utils', 'config', 'entries'].each { bridgePackage ->
+        relocate "top.aihmc.omnimorph.${bridgePackage}.fabric", "org.figuramc.figura.${bridgePackage}.fabric"
+    }
 
     configurations = [project.configurations.shadowCommon]
     archiveClassifier.set "dev-shadow"
