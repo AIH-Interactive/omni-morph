@@ -94,8 +94,8 @@ public final class HardwareAccelerationSmokeTest {
                 HardwareAcceleration.probe(mode);
                 throw new AssertionError("Unsupported GPU mode activated: " + mode);
             } catch (AccelerationController.ProbeFailure failure) {
-                require(failure.reason == FallbackReason.UNSUPPORTED_MINECRAFT_VERSION,
-                        "GPU rejection identifies the Minecraft version: " + mode);
+                require(failure.reason == FallbackReason.GPU_UNAVAILABLE,
+                        "headless GPU rejection identifies the missing GL context: " + mode);
             }
         }
         require(!NativeLibraryLoader.isLoaded(), "GPU rejection must not initialize native SIMD");

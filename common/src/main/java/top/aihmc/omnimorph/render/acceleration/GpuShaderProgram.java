@@ -256,12 +256,15 @@ final class GpuShaderProgram {
         String[][] inputs = {{"vec3", "Position"}, {"vec3", "Normal"}, {"vec2", "UV0"},
                 {"vec4", "Color"}, {"ivec2", "UV1"}, {"ivec2", "UV2"}};
         for (String[] input : inputs) {
-            Pattern declaration = Pattern.compile("\\bin\\s+" + input[0] + "\\s+" + input[1] + "\\s*;");
+            // 1.21.1 entity_translucent_cull declares the unused overlay input as vec2.
+            String type = input[1].equals("UV1") && Pattern.compile("\\bin\\s+vec2\\s+UV1\\s*;")
+                    .matcher(source).find() ? "vec2" : input[0];
+            Pattern declaration = Pattern.compile("\\bin\\s+" + type + "\\s+" + input[1] + "\\s*;");
             var match = declaration.matcher(source);
             if (match.results().count() != 1) {
                 throw new IllegalArgumentException("Entity vertex input contract changed: " + input[1]);
             }
-            source = declaration.matcher(source).replaceFirst(input[0] + " " + input[1] + ";");
+            source = declaration.matcher(source).replaceFirst(type + " " + input[1] + ";");
         }
         var main = MAIN.matcher(source);
         if (main.results().count() != 1) {

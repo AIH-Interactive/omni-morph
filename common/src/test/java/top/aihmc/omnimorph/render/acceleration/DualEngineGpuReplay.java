@@ -12,18 +12,34 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-/** CPU wire-layout decoder through both production emitters; GPU execution is unsupported on 1.21.1 MVP. */
+/** CPU wire-layout decoder through both production emitters; this test makes no GPU execution claim. */
 public final class DualEngineGpuReplay {
     public static void main(String[] args) throws Exception {
         RenderSystem.initRenderThread();
         var service = AccelerationService.INSTANCE;
         var decoder = new DecodingBackend();
+        boolean driver = java.util.Arrays.asList(args).contains("--gl");
+        top.aihmc.omnimorph.test.NativeGlWindow window = null;
+        OpenGlAccelerationBackend gpu = null;
+        int program = 0;
+        if (driver) {
+            window = top.aihmc.omnimorph.test.NativeGlWindow.open();
+            gpu = new OpenGlAccelerationBackend();
+            program = GpuDriverProbe.program(GpuDriverProbe.VERTEX, GpuDriverProbe.FRAGMENT);
+            org.lwjgl.opengl.GL20.glUseProgram(program);
+            org.lwjgl.opengl.GL20.glUniform1f(org.lwjgl.opengl.GL20.glGetUniformLocation(program, "ProbeScale"), .05f);
+            decoder.gpu = gpu;
+            decoder.program = program;
+        }
         service.useBackend(decoder);
         try {
             FiguraAccelerationReplay.replay(sink -> material -> sink);
             require(decoder.vertices == 16,
                     "Figura rigid, edited, restored and weighted draws reach the CPU layout decoder");
             for (String argument : args) {
+                if (argument.equals("--gl")) {
+                    continue;
+                }
                 YsmMaterialNativeSmokeTest.replayAcceleration(Path.of(argument), runtime -> {
                     service.useBackend(null);
                     var expected = new ArrayList<float[]>();
@@ -36,14 +52,26 @@ public final class DualEngineGpuReplay {
                             0x00f000a0, runtime.captureRenderPose(false));
                     require(decoder.vertices > before, "YSM model reaches the CPU layout decoder");
                     compare(expected, actual);
-                    require(!service.gpuDrawEnabled(), "numerical replay never enables unsupported GPU drawing");
+                    require(!service.gpuDrawEnabled(), "CPU decoder replay never enables GPU drawing");
                     System.out.println("YSM production CPU layout replay vertices=" + actual.size() + " PASS");
                 });
             }
         } finally {
             service.useBackend(null);
+            if (gpu != null) {
+                require(gpu.draws() > 4, "both production emitters submit real GPU indexed draws");
+                require(org.lwjgl.opengl.GL11.glGetError() == org.lwjgl.opengl.GL11.GL_NO_ERROR,
+                        "production model driver replay has no GL errors");
+                System.out.println("PASS actual GL draws from both production emitters=" + gpu.draws());
+                gpu.close();
+                org.lwjgl.opengl.GL20.glUseProgram(0);
+                org.lwjgl.opengl.GL20.glDeleteProgram(program);
+            }
+            if (window != null) {
+                window.close();
+            }
         }
-        System.out.println("PASS dual-engine CPU wire-layout numerical replay; GPU drawing/fences unsupported on 1.21.1 MVP");
+        System.out.println("PASS dual-engine CPU wire-layout numerical replay; actual GPU execution is a separate test");
     }
 
     private static VertexConsumer recorder(List<float[]> vertices) {
@@ -113,6 +141,8 @@ public final class DualEngineGpuReplay {
     }
 
     private static final class DecodingBackend implements AccelerationBackend {
+        private OpenGlAccelerationBackend gpu;
+        private int program;
         private VertexConsumer sink;
         private long vertices;
         private float lastW;
@@ -124,6 +154,9 @@ public final class DualEngineGpuReplay {
 
         @Override
         public double[] transform(DrawBatch batch) {
+            if (gpu != null) {
+                require(gpu.drawActive(batch, program), "production engine batch accepted by real GL backend");
+            }
             ByteBuffer geometry = GpuBatchData.vertices(batch.mesh(), batch.pose().skinJointCount(),
                     batch.pose().usesFloatPrecision());
             ByteBuffer matrices = GpuBatchData.pose(batch);

@@ -11,6 +11,11 @@ public interface AccelerationBackend extends AutoCloseable {
     /** Returns owned xyzw/normal/UV results in MeshHandle layout, without drawing or modifying input. */
     double[] transform(DrawBatch batch);
 
+    /** Atomic preparation: rejection occurs before any batch in the material group is drawn. */
+    default boolean drawBatches(java.util.List<DrawBatch> batches) {
+        return false;
+    }
+
     default void beginFrame() {
     }
 

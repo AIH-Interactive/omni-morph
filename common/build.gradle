@@ -256,6 +256,14 @@ tasks.register('gpuAccelerationSmokeTest', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuAccelerationSmokeTest'
 }
 
+tasks.register('gpuOpenGlSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Exercises the shared production GPU backend in a visible desktop GL window.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuOpenGlSmokeTest'
+}
+
 tasks.register('gpuSubmissionSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Checks 1.21.1 GPU rejection and native Java BufferSource ordering, sorting and cleanup.'
@@ -303,6 +311,16 @@ tasks.register('dualEngineGpuReplay', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = 'top.aihmc.omnimorph.render.acceleration.DualEngineGpuReplay'
     args rootProject.file('refs/avatars/末影龙娘.ysm').path, rootProject.file('refs/avatars/01_taisho_maid').path
+}
+
+tasks.register('dualEngineGpuDriverReplay', JavaExec) {
+    group = 'verification'
+    description = 'Feeds actual YSM/Figura production batches to real GL indexed draws and the CPU layout oracle.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.render.acceleration.DualEngineGpuReplay'
+    args '--gl', rootProject.file('refs/avatars/末影龙娘.ysm').path,
+            rootProject.file('refs/avatars/01_taisho_maid').path
 }
 
 tasks.register('compileNativeInterface', JavaCompile) {

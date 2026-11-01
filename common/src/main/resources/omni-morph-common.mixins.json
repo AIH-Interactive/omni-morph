@@ -5,6 +5,8 @@
   "compatibilityLevel": "JAVA_17",
   "mixins": [],
   "client": [
+    "render.GpuBufferSourceMixin",
+    "render.GpuBufferBuilderAccessor",
     "AbstractArrowAccessor",
     "FishingHookAccessor",
     "FoodDataMixin",

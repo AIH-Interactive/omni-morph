@@ -58,9 +58,27 @@ public final class AccelerationService {
         return preferredBackend != javaBackend;
     }
 
-    /** The 1.21.1 MVP always emits through the native Java vertex path. */
     public boolean gpuDrawEnabled() {
-        return false;
+        return preferredBackend instanceof OpenGlAccelerationBackend;
+    }
+
+    boolean canDraw(DrawBatch batch) {
+        return isCurrent(batch.lease())
+                && preferredBackend.supports(AccelerationBackend.Operation.GPU_DRAW, batch);
+    }
+
+    boolean drawBatches(java.util.List<DrawBatch> batches) {
+        AccelerationBackend backend = preferredBackend;
+        if (batches.stream().anyMatch(batch -> !canDraw(batch))) {
+            return false;
+        }
+        try {
+            return backend.drawBatches(batches);
+        } catch (RuntimeException | LinkageError failure) {
+            backendFailed(backend, failure);
+            // Once GL has consumed any part of a group, retrying the whole group would duplicate faces.
+            return failure instanceof OpenGlAccelerationBackend.SubmittedDrawFailure;
+        }
     }
 
     public Lease capture(AccelerationOwner owner, String view) {

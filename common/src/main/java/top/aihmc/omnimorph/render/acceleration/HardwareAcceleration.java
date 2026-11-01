@@ -25,7 +25,7 @@ public final class HardwareAcceleration {
     }
 
     public static void applySettings() {
-        // GPU layers have no device binding on the 1.21.1 MVP. Keep saved preferences separate from support.
+        // This backend uses ordinary pose UBOs; advanced storage/merging preferences remain unsupported.
         AccelerationOptions.update(false, false, false, false);
         CONTROLLER.request(Boolean.TRUE.equals(Configs.HARDWARE_ACCELERATION_ENABLED.value),
                 Mode.values()[Configs.HARDWARE_ACCELERATION_MODE.value]);
@@ -57,7 +57,7 @@ public final class HardwareAcceleration {
     public static Component statusText() {
         CapabilityReport report = report();
         return switch (report.state()) {
-            case DISABLED -> FiguraText.of("config.hardware_acceleration.gpu_unsupported_version");
+            case DISABLED -> FiguraText.of("config.hardware_acceleration.state.disabled");
             case PROBING -> FiguraText.of("config.hardware_acceleration.state.probing");
             case READY -> FiguraText.of("config.hardware_acceleration.state.ready", Component.literal(report.effective().name()));
             case FALLBACK_JAVA -> FiguraText.of("config.hardware_acceleration.state.fallback", reasonText(report.reason()));
@@ -80,7 +80,20 @@ public final class HardwareAcceleration {
     static AccelerationController.Activation probe(Mode mode)
             throws AccelerationController.ProbeFailure, AccelerationController.ProbePending {
         if (mode != Mode.SIMD) {
-            throw new AccelerationController.ProbeFailure(FallbackReason.UNSUPPORTED_MINECRAFT_VERSION);
+            if (!OpenGlAccelerationBackend.available()) {
+                throw new AccelerationController.ProbeFailure(FallbackReason.GPU_UNAVAILABLE);
+            }
+            // Shaderpack renderers own additional programs/targets beyond vanilla's draw contract.
+            if (org.figuramc.figura.lua.api.ClientAPI.hasShaderPack()) {
+                throw new AccelerationController.ProbeFailure(FallbackReason.INCOMPATIBLE_PIPELINE);
+            }
+            try {
+                GpuDriverProbe.verify();
+            } catch (RuntimeException | LinkageError failure) {
+                FiguraMod.LOGGER.warn("GPU driver self-test failed; retaining Java rendering", failure);
+                throw new AccelerationController.ProbeFailure(FallbackReason.SHADER_FAILURE);
+            }
+            return new AccelerationController.Activation(new OpenGlAccelerationBackend(), Effective.GPU, 0);
         }
         try {
             NativeLibraryLoader.Loaded loaded = NativeLibraryLoader.load();

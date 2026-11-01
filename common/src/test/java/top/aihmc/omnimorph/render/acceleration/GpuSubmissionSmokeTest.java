@@ -43,11 +43,94 @@ public final class GpuSubmissionSmokeTest {
             }
         }
         staleOwnership();
+        queuedBoundary();
         for (int cycle = 0; cycle < 100; cycle++) {
             opaqueBoundary();
         }
         diagnosticRecording();
-        System.out.println("PASS 1.21.1 MVP GPU rejection, native Java BufferSource flush/sorting, 65 posed faces, stale leases, 100 buffer cycles and zero GPU diagnostics; GPU drawing unsupported");
+        System.out.println("PASS unsupported-source fallback, GPU queue acceptance/flush, mixed native sorting, stale leases, 65 poses and 100 buffer cycles; standalone fixture does not install Mixins");
+    }
+
+    private static void queuedBoundary() {
+        var service = AccelerationService.INSTANCE;
+        var owner = new AccelerationOwner();
+        var material = new RecordingType(true);
+        int[] gpuDraws = {0};
+        service.useBackend(new AccelerationBackend() {
+            public boolean supports(Operation operation, DrawBatch batch) {
+                return operation == Operation.GPU_DRAW;
+            }
+            public double[] transform(DrawBatch batch) {
+                return new JavaAccelerationBackend().transform(batch);
+            }
+            public boolean drawBatches(List<DrawBatch> batches) {
+                gpuDraws[0] += batches.size();
+                return true;
+            }
+        });
+        try (var memory = new ByteBufferBuilder(256)) {
+            var queue = new GpuBufferQueue();
+            // Supply the accessor normally installed by Mixin in the plain JVM fixture.
+            class Builder extends com.mojang.blaze3d.vertex.BufferBuilder
+                    implements top.aihmc.omnimorph.mixin.render.GpuBufferBuilderAccessor {
+                private int count;
+                Builder() {
+                    super(memory, material.mode(), material.format());
+                }
+                public com.mojang.blaze3d.vertex.VertexConsumer addVertex(float x, float y, float z) {
+                    count++;
+                    return super.addVertex(x, y, z);
+                }
+                public int omniMorph$vertexCount() {
+                    return count;
+                }
+            }
+            var builder = new Builder();
+            class Source implements MultiBufferSource, GpuBufferQueue.Owner {
+                public GpuBufferQueue omniMorph$gpuQueue() {
+                    return queue;
+                }
+                public com.mojang.blaze3d.vertex.VertexConsumer getBuffer(RenderType type) {
+                    queue.emitNative(this, type);
+                    return builder;
+                }
+            }
+            var source = new Source();
+            DrawBatch first = batch(service, owner, material, 1);
+            DrawBatch second = batch(service, owner, material, 3);
+            int[] fallbacks = {0};
+            GpuSubmission.JavaEmitter fallback = (vertices, start, count) -> {
+                fallbacks[0]++;
+                for (int index = 0; index < count; index++) {
+                    vertices.addVertex(0, 0, fallbacks[0] == 1 ? 1 : 3).setColor(-1)
+                            .setUv(0, 0).setOverlay(0).setLight(0).setNormal(0, 1, 0);
+                }
+            };
+            require(GpuSubmission.enqueue(source, first, fallback)
+                    && GpuSubmission.enqueue(source, second, fallback), "both engine batches queue without early draw");
+            require(gpuDraws[0] == 0 && fallbacks[0] == 0, "preparation never flushes a material");
+            queue.flush(material);
+            require(gpuDraws[0] == 2 && fallbacks[0] == 0, "one boundary submits both batches exactly once");
+            require(GpuSubmission.enqueue(source, first, fallback)
+                    && GpuSubmission.enqueue(source, second, fallback), "next GPU-only group accepted");
+            source.getBuffer(material); // Native caller: replay before any later native vertices.
+            require(fallbacks[0] == 2, "mixed native material falls back as one sort group");
+            var mesh = builder.buildOrThrow();
+            mesh.sortQuads(memory, VertexSorting.DISTANCE_TO_ORIGIN);
+            material.draw(mesh);
+            queue.flush(material);
+            require(material.depths.equals(List.of(3f, 1f)) && gpuDraws[0] == 2,
+                    "mixed fallback keeps global native quad order without duplicate GPU draws");
+            material.requireReleased();
+            var stale = batch(service, owner, material, 5);
+            queue.add(stale, fallback);
+            owner.retire();
+            queue.flush(material);
+            require(gpuDraws[0] == 2 && fallbacks[0] == 2,
+                    "retired queued owner is discarded without GPU draw or Java replay");
+        } finally {
+            service.useBackend(null);
+        }
     }
 
     private static void opaqueBoundary() {
