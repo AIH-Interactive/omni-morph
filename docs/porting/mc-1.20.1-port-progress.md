@@ -163,3 +163,10 @@ M4 尚未完成，以下不是远端 CI 成功声明。
 - 下一步：actionlint/脚本语法/diff检查，提交推送CI准备代码，触发当前分支远端实际CI；全部成功后下载最终JAR，重验来源/内容/SHA256，再完成M4记录与交付。
 - 完整客户端/Mixin实际应用、人工CJK/多人/整合包/性能A/B及Android设备JNI：SKIPPED（MANUAL，用户要求跳过；未验证）。上述非游戏扫描不冒充完整加载器启动。
 - 最近可靠额度查询：10080分钟主要池 usedPercent24，剩余76%，未触发交接；不推断订阅。
+
+
+M4 CI 准备提交 70561f1044038b17629257c1bade9dbf8f5a7a48 已推送且远端一致；实际运行
+https://github.com/AIH-Interactive/omni-morph/actions/runs/41319049342 正在进行，尚不能记全CI通过。
+补充正式桥接检查：两个变体全部外层1759 class major≤61，13个@ExpectPlatform方法均调用实际存在的重定位Forge public static owner/descriptor，通过（m4-platform-bridge-contract.log / m4-neoforge-bridge-contract.log）。
+正式Mixin selector直接重映射为SRG注解，不引用外部refmap；没有把缺失refmap文件当通过证据。
+三个正式产物检查支持artifactAuditJar/artifactAuditVersion，以便下载后对原字节重验，不用新本地包替换CI包。

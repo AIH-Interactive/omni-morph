@@ -107,3 +107,12 @@ module descriptors derived from actual JAR package ownership; isolated AVIF JNI 
 Production Mixin contracts are checked against actual patched SRG bytecode, not a vanilla stand-in.
 Full game/Mixin application, CJK, multiplayer, integrations, Android device JNI and performance A/B:
 SKIPPED (MANUAL, user-requested; unverified). Actual CI status/hashes are recorded in the progress file.
+
+For downloaded final artifacts, run `loaderModuleSmokeTest`, `loaderArtifactSmokeTest` and
+`productionMixinContractSmokeTest` with `-PartifactAuditJar=<absolute-final-jar>` and
+`-PartifactAuditVersion=<exact-expanded-TOML-version>`, plus the selected `-PnativeLoader`.
+This audits the downloaded bytes without substituting a freshly built local JAR.
+The module gate also checks every outer class is Java 17 and all 13 transformed platform bridge
+calls resolve to public static methods with the actual relocated Forge owner and descriptor.
+Mixin selectors are directly remapped into production SRG annotations; these JARs have no external
+refmap reference or refmap file. The production bytecode gate verifies those actual selectors.

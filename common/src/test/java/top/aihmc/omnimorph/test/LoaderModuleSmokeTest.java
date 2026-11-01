@@ -1,5 +1,11 @@
 package top.aihmc.omnimorph.test;
 
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MethodNode;
+
 import javax.imageio.spi.ImageReaderSpi;
 import java.io.IOException;
 import java.lang.module.Configuration;
@@ -27,6 +33,7 @@ import java.util.zip.ZipInputStream;
 public final class LoaderModuleSmokeTest {
     public static void main(String[] args) throws Exception {
         Path jar = Path.of(args[0]);
+        verifyPlatformBridges(jar);
         Map<String, Set<String>> packages = new LinkedHashMap<>();
         packages.put("omni_morph", new HashSet<>());
         try (ZipFile archive = new ZipFile(jar.toFile())) {
@@ -66,6 +73,60 @@ public final class LoaderModuleSmokeTest {
                 ModuleFinder.of(), Set.of("minecraft"));
         System.out.println("PASS actual JAR package ownership through Java module resolver: modules=" + modules.size());
         verifyAvif(jar);
+    }
+
+    private static void verifyPlatformBridges(Path jar) throws Exception {
+        Map<String, ClassNode> classes = new LinkedHashMap<>();
+        try (var archive = new ZipFile(jar.toFile())) {
+            var entries = archive.entries();
+            while (entries.hasMoreElements()) {
+                var entry = entries.nextElement();
+                if (!entry.getName().endsWith(".class") || entry.getName().startsWith("META-INF/")) {
+                    continue;
+                }
+                var node = new ClassNode();
+                try (var input = archive.getInputStream(entry)) {
+                    new ClassReader(input).accept(node, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+                }
+                if ((node.version & 0xffff) > Opcodes.V17) {
+                    throw new AssertionError("Outer JAR class exceeds Java 17: " + node.name);
+                }
+                classes.put(node.name, node);
+            }
+        }
+        int bridges = 0;
+        String annotation = "Ldev/architectury/injectables/annotations/ExpectPlatform;";
+        for (ClassNode type : classes.values()) {
+            for (MethodNode method : type.methods) {
+                if (method.invisibleAnnotations == null || method.invisibleAnnotations.stream()
+                        .noneMatch(value -> value.desc.equals(annotation))) {
+                    continue;
+                }
+                boolean resolved = false;
+                for (var instruction : method.instructions) {
+                    if (!(instruction instanceof MethodInsnNode call) || !call.owner.contains("/forge/")) {
+                        continue;
+                    }
+                    ClassNode implementation = classes.get(call.owner);
+                    boolean exists = implementation != null && implementation.methods.stream().anyMatch(target ->
+                            target.name.equals(call.name) && target.desc.equals(call.desc)
+                                    && (target.access & (Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC))
+                                    == (Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC));
+                    if (call.getOpcode() != Opcodes.INVOKESTATIC || !exists) {
+                        throw new AssertionError("Unresolved transformed bridge: " + call.owner + "." + call.name + call.desc);
+                    }
+                    resolved = true;
+                }
+                if (!resolved) {
+                    throw new AssertionError("Untransformed platform bridge: " + type.name + "." + method.name);
+                }
+                bridges++;
+            }
+        }
+        if (bridges == 0) {
+            throw new AssertionError("No platform bridges checked");
+        }
+        System.out.println("PASS Java 17 outer classes and " + bridges + " transformed @ExpectPlatform owners/descriptors");
     }
 
     private static ModuleReference reference(ModuleDescriptor descriptor) {

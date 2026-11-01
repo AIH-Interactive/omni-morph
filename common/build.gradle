@@ -319,7 +319,8 @@ tasks.register('loaderModuleSmokeTest', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = 'top.aihmc.omnimorph.test.LoaderModuleSmokeTest'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
-    args project(':forge').tasks.named('remapJar').flatMap { it.archiveFile }.get().asFile.path
+    args providers.gradleProperty('artifactAuditJar').getOrElse(
+            project(':forge').tasks.named('remapJar').flatMap { it.archiveFile }.get().asFile.path)
 }
 
 tasks.register('productionMixinContractSmokeTest', JavaExec) {
@@ -335,7 +336,8 @@ tasks.register('productionMixinContractSmokeTest', JavaExec) {
         if (!target.isFile()) {
             throw new GradleException("Pinned Loom patched SRG target is missing: $target")
         }
-        args = [target.path, project(':forge').tasks.named('remapJar').get().archiveFile.get().asFile.path]
+        args = [target.path, providers.gradleProperty('artifactAuditJar').getOrElse(
+                project(':forge').tasks.named('remapJar').get().archiveFile.get().asFile.path)]
     }
 }
 
@@ -348,8 +350,9 @@ tasks.register('loaderArtifactSmokeTest', JavaExec) {
     jvmArgs '--add-exports=java.base/sun.security.util=ALL-UNNAMED',
             '--add-opens=java.base/java.util.jar=ALL-UNNAMED',
             '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED'
-    args project(':forge').tasks.named('remapJar').flatMap { it.archiveFile }.get().asFile.path,
-            rootProject.selectedLoaderCoordinate, project.jarVersion
+    args providers.gradleProperty('artifactAuditJar').getOrElse(
+            project(':forge').tasks.named('remapJar').flatMap { it.archiveFile }.get().asFile.path),
+            rootProject.selectedLoaderCoordinate, providers.gradleProperty('artifactAuditVersion').getOrElse(project.jarVersion)
 }
 
 tasks.register('gpuSubmissionSmokeTest', JavaExec) {
