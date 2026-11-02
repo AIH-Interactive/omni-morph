@@ -116,3 +116,9 @@ The module gate also checks every outer class is Java 17 and all 13 transformed 
 calls resolve to public static methods with the actual relocated Forge owner and descriptor.
 Mixin selectors are directly remapped into production SRG annotations; these JARs have no external
 refmap reference or refmap file. The production bytecode gate verifies those actual selectors.
+
+
+Verified final CI: https://github.com/AIH-Interactive/omni-morph/actions/runs/41428132926 (24/24 successful),
+artifact source 535b2fc9bcfed778d05aa26f50a3f789e00ae5b2. Downloaded final JARs were independently
+rechecked with all three artifact tasks. Delivery files, SHA256SUMS.txt, verification.json and
+runtime/support limits are in build/distributions/1.20.1; exact hashes are in the port progress file.

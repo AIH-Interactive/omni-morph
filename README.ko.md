@@ -8,6 +8,8 @@ Lua와 Molang 런타임을 함께 지원합니다. Lua는 스크립트와 상호
 
 [빌드 다운로드](https://github.com/AIH-Interactive/omni-morph/actions/workflows/fabric-build.yml) · [변경 기록](docs/CHANGELOG.ko.md) · [문제 제보](https://github.com/AIH-Interactive/omni-morph/issues) · [연동 백엔드](https://github.com/AIH-Interactive/sculptor-for-omni-morph)
 
+[검증된 1.20.1 CI](https://github.com/AIH-Interactive/omni-morph/actions/runs/41428132926)
+
 ## 기능
 
 - **통합 모델 로딩**: Figura 모델 폴더와 ZIP, 지원되는 형식의 YSM 폴더, ZIP 및 암호화된 `.ysm` 파일.

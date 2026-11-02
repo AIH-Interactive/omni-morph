@@ -8,6 +8,8 @@ Lua と Molang の両ランタイムに対応しています。Lua はスクリ�
 
 [ビルドのダウンロード](https://github.com/AIH-Interactive/omni-morph/actions/workflows/fabric-build.yml) · [更新履歴](docs/CHANGELOG.ja.md) · [不具合の報告](https://github.com/AIH-Interactive/omni-morph/issues) · [対応バックエンド](https://github.com/AIH-Interactive/sculptor-for-omni-morph)
 
+[検証済み 1.20.1 CI](https://github.com/AIH-Interactive/omni-morph/actions/runs/41428132926)
+
 ## 機能
 
 - **モデル読み込みの統合**：Figura のモデルフォルダーと ZIP、および対応形式の YSM フォルダー、ZIP、暗号化された `.ysm` ファイル。

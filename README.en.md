@@ -8,6 +8,8 @@ It supports both Lua and Molang: Lua handles scripting and interaction, while Mo
 
 [Download builds](https://github.com/AIH-Interactive/omni-morph/actions/workflows/fabric-build.yml) · [Changelog](docs/CHANGELOG.en.md) · [Report an issue](https://github.com/AIH-Interactive/omni-morph/issues) · [Companion backend](https://github.com/AIH-Interactive/sculptor-for-omni-morph)
 
+[Verified 1.20.1 CI](https://github.com/AIH-Interactive/omni-morph/actions/runs/41428132926)
+
 ## Features
 
 - **Unified model loading**: Figura model folders and ZIP archives, plus supported YSM folders, ZIP archives, and encrypted `.ysm` files.

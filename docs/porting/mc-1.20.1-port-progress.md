@@ -1,5 +1,14 @@
 # Minecraft 1.20.1 移植实施进度
 
+## 最终状态（2026-11-02）
+
+M0–M4 实施与规定可执行自动门槛均已完成。成功CI：
+https://github.com/AIH-Interactive/omni-morph/actions/runs/41428132926 （24/24成功，源码535b2fc）。
+最终下载JAR及SHA256、verification.json、交付说明位于build/distributions/1.20.1/。
+完整游戏/人工项目按用户规则SKIPPED（MANUAL，用户要求跳过；未验证），不记PASS。
+下文按时间保存历史失败、修正与阶段记录，旧“未完成”是历史状态。最终M4交付文档检查点提交推送后，无剩余实施。
+
+
 ## 当前状态（2026-11-01）
 
 M0、M1 已提交推送并核对远端；M2 已提交推送并核对远端，M3 自动门槛已完成，正在提交推送检查点，M4 未开始。当前分支 1.20.1，M1 提交 fc15e0588a472007506a4a8a50a99606ccb6faf5。下文早期检查点保留为历史证据，以最新检查点为准。
@@ -182,3 +191,37 @@ https://github.com/AIH-Interactive/omni-morph/actions/runs/41319049342 正在进
 最近主要额度池used25%、剩余75%，未触发Luna阈值。当前继续执行，不再处于用户暂停状态。
 
 许可证修正后：两变体stageNativeBase/nativePackagingSmokeTest与三项正式JAR加载器/模块/SRG检查再次通过，m4-license-forge.log exit0/72s、m4-license-neoforge.log exit0/31s。直接ZIP内容与项目LICENSE/CREDITS逐文本核对两变体通过，m4-base-documents.log exit0。git diff --check通过。
+
+
+## M4 最终自动门槛及交付（通过）
+
+- 成功CI41428132926：源码535b2fc9bcfed778d05aa26f50a3f789e00ae5b2，24任务全部success。两加载器base、六平台native、两组完整JAR组装、12项最终平台验证和两个最终上传全部成功；未跳过自动失败。
+- 已读取六平台native实际日志：各ctest通过；Windows/Linux/macOS x64实际SSE2/AVX2，Linux/macOS arm64实际NEON JNI数值通过。Android以qemu-aarch64运行CPU ctest、ELF/Bionic/export/16KiB检查通过，不冒充Android设备JNI。m4-ci-{platform}.log。
+- 已逐一审阅12个最终JAR job日志：每加载器五平台Java17 fallback/数值JNI和真实Java25拒绝通过，另两个Android ELF通过。m4-final-platform-audit.json/log保存逐项结果；旧脚本MANUAL/PENDING输出统一按现行SKIPPED理解。
+- 最终公开artifact实际name为各JAR文件名（upload-artifact archive:false会用文件名），不是workflow的展示name。下载helper初次按展示name未匹配，修正为API实际name后完成下载；没有替换CI产物。两个公开artifact及两base的GitHub SHA256 digest均匹配。
+- 下载后独立核对：base manifest加载器坐标/commit/run/hash；所有原ZIP条目逐字节保留，新增仅natives/；六库hash、实际source commit的git-blob/CRLF checkout源码树hash均匹配。m4-download-content-verification.log exit0。
+- 两下载JAR再次运行tools/verify-acceleration-artifact.ps1：六平台/commit/run/ABI/hash/Android许可/项目LICENSE+CREDITS/TOML/嵌套依赖通过，m4-downloaded-{forge,neoforge}-metadata.log exit0。
+- 两下载JAR以artifactAuditJar和精确artifactAuditVersion传给loaderModuleSmokeTest、loaderArtifactSmokeTest、productionMixinContractSmokeTest。Forge exit0/19s、历史NeoForge exit0/15s，m4-downloaded-{forge,neoforge}-runtime.log。各检查外层1759类Java17、13实际重定位桥接owner/descriptor、模块包归属/实际AVIF JNI、真实选定FML @Mod和15依赖、生产patched SRG100Mixin/8Local。未替换为新本地JAR。
+- actionlint1.7.12、修改PS脚本语法、代码阅读/格式与diff --check均通过。README/四语变更记录/工具支持表更新。native README明确JNI编译JDK17后切JDK21运行Gradle；此收尾仅文档，不重写CI产物。
+
+| 最终文件（build/distributions/1.20.1/） | 字节 | SHA256 |
+| --- | --- | --- |
+| omni-morph-1.0.0-alpha.7+1.20.1-forge-mc.jar | 17024665 | 3b9dec2d7fe110af998f671e7f5712914ab53729bddd0170d91ca23e5f7e23bd |
+| omni-morph-1.0.0-alpha.7+1.20.1-neoforge-mc.jar | 17024673 | 322065bfdac567430abc1e427ad417575eaddeddd8222b0b31e7e865aa0ba421 |
+
+锁定Forge47.1.3、历史NeoForge47.1.106（FML47.2.2）、MC1.20.1、Java17，模组规范版本不递增alpha.7；TOML扩展版本1.0.0-alpha.7+1.20.1-535b2fc。产物源码提交535b2fc，最终收尾提交仅记录交付/文档。SHA256SUMS.txt、verification.json、README.md同目录。
+
+### 最终需求与证据审计
+
+| 计划阶段 | 自动证据 | 状态与限制 |
+| --- | --- | --- |
+| M0 锁定/解析/launch配置/API差距 | forge/neoforge-full-launch-config.log；tools/porting锁表、工件hash/API清单 | PASS；不是启动游戏 |
+| M1 Java17/平台/NBT/非图形回归 | m1-*-final-gate.log、22领域smoke；当前CI双base | PASS；平台NO-SOURCE不算功能证明 |
+| M2 双引擎/GPU/Mixin/AW/AT | m2-*-final-contract、full-emitter-gate、final-visible-gl日志；MCP报告 | PASS覆盖范围内；完整游戏/Mixin应用人工跳过 |
+| M3 全功能/实际语料/平台check | 104任务逐日志审计102成功/2缺语料SKIPPED，metadataPNG/binding/负例scan、双check | PASS可执行门槛；缺失类别和5已知负例明确保留 |
+| M4 正式映射/桥接/SPI/六平台/CI/下载 | 24/24成功CI、12final日志、下载hash与三项正式JAR重验 | PASS；两个不同hash文件各自验证 |
+| 文档、最终交付、交接、Git检查点 | README/多语变更/支持表、本节、build/distributions、AGENT_HANDOFF、最后提交/push核对 | 文档和交接已更新，最终提交号/推送核对见AGENT_HANDOFF |
+
+重新检查14份阶段成功日志及M0–M3提交祖先关系，m0-m3-completion-audit.json/log；M3全部104任务逐项最新结果m3-task-completion-audit.json/log。原失败没有改写为PASS，人工跳过没有冒充自动成功。
+
+完整游戏/Mixin实际应用、真实相机/GUI/CJK字体、多人/整合包、第三方SPEAR-use正例、跨平台GPU/性能A/B与Android设备JNI均 SKIPPED（MANUAL，用户要求跳过；未验证）：需要人工/完整客户端/目标设备，现有静态/组件/GL夹具不能证明这些行为。缺专属语料同样未验证。没有剩余实施阶段，不为等待人工新增任务。

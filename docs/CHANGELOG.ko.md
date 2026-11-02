@@ -6,6 +6,7 @@
 
 ## 1.0.0-alpha.7 — Minecraft 1.20.1 포팅
 
+- [실제 CI](https://github.com/AIH-Interactive/omni-morph/actions/runs/41428132926)의 24개 작업이 모두 성공했습니다. 6개 플랫폼과 두 로더의 정식 JAR을 다운로드한 후 출처·내용·해시 및 비게임 로더 검증을 재실행했습니다.
 - Java 17, Forge 47.1.3, 구형 NeoForge 47.1.106을 대상으로 `1.0.0-alpha.7`을 유지합니다. 정식 SRG JAR을 각각 빌드하며 Fabric 산출물은 없습니다.
 - 두 렌더 엔진, 투명 배치, GUI, 채팅, NBT, 플랫폼 브리지를 포팅하고 GPU/Java 폴백, AVIF JNI, Zstd 취소, metadata PNG 수정을 유지합니다.
 - 6개 플랫폼 네이티브 CI, 5개 플랫폼 Java 17 JNI 및 독립 Java 25 거부 검증을 유지합니다. 실제 결과와 누락 코퍼스는 `porting/mc-1.20.1-port-progress.md`를 참고하세요. 전체 게임/Mixin 적용, CJK, 멀티플레이 및 수동 성능 검증은 사용자 요청으로 SKIPPED (MANUAL, 미검증)입니다.

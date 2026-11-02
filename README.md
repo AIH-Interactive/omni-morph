@@ -8,6 +8,8 @@ OmniMorph 是基于 [Figura](https://github.com/FiguraMC/Figura) 的 Minecraft J
 
 [下载构建](https://github.com/AIH-Interactive/omni-morph/actions/workflows/fabric-build.yml) · [更新日志](docs/CHANGELOG.md) · [问题反馈](https://github.com/AIH-Interactive/omni-morph/issues) · [配套后端](https://github.com/AIH-Interactive/sculptor-for-omni-morph)
 
+[已验证的 1.20.1 CI](https://github.com/AIH-Interactive/omni-morph/actions/runs/41428132926)
+
 ## 功能
 
 - **统一模型加载**：支持 Figura 模型目录与 ZIP，以及受支持格式的 YSM 目录、ZIP 和加密 `.ysm` 文件。

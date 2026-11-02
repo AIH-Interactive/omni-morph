@@ -44,10 +44,12 @@ The MSVC runtime is linked statically; the script records actual `dumpbin /DEPEN
 Close Minecraft first, select JDK 17 for JNI compilation (JDK 21 for Gradle), then run from the repository root:
 
 ```powershell
+usejdk 17
 & ./tools/build-native-windows.ps1 2>&1 | Tee-Object -FilePath build.log
 $buildExitCode = $LASTEXITCODE
 Get-Content -LiteralPath build.log -Tail 40
 if ($buildExitCode -ne 0) { exit $buildExitCode }
+usejdk 21
 & ./gradlew.bat :forge:build packageLocalNative nativeSmokeTest --console=plain 2>&1 | Tee-Object -FilePath build.log -Append
 $buildExitCode = $LASTEXITCODE
 Get-Content -LiteralPath build.log -Tail 40

@@ -6,6 +6,7 @@
 
 ## 1.0.0-alpha.7 — Minecraft 1.20.1 port
 
+- [Actual CI](https://github.com/AIH-Interactive/omni-morph/actions/runs/41428132926) passed all 24 jobs for six-platform packaging and both loaders; downloaded JAR provenance/content/hashes and non-game loader checks were independently reverified.
 - Targets Java 17, Forge 47.1.3 and historical NeoForge 47.1.106, retaining `1.0.0-alpha.7`. Separate production SRG Forge-family JARs; no Fabric output.
 - Ports both render engines, transparent batches, GUI, chat, NBT and platform bridges while preserving GPU/Java fallback, AVIF JNI, Zstd cancellation and metadata PNG fixes.
 - Retains six-platform native CI, five-platform Java 17 JNI and independent Java 25 denial checks. Non-game loader discovery, modules and production Mixin contracts are checked independently. See `porting/mc-1.20.1-port-progress.md` for actual results and missing corpus. Full game/Mixin application, CJK, multiplayer and manual performance checks are SKIPPED (MANUAL, user-requested; unverified).
