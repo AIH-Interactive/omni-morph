@@ -1,6 +1,7 @@
 plugins {
 	id "architectury-plugin" version "3.4-SNAPSHOT"
 	id "dev.architectury.loom" version "1.14-SNAPSHOT" apply false
+	id "dev.architectury.loom-no-remap" version "1.14-SNAPSHOT" apply false
 }
 
 apply from: 'native/packaging.gradle'
@@ -10,11 +11,13 @@ architectury {
 }
 
 subprojects {
-	apply plugin: "dev.architectury.loom"
+	apply plugin: project.name == 'neoforge' ? "dev.architectury.loom-no-remap" : "dev.architectury.loom"
 
 	loom {
 		silentMojangMappingsLicense()
-		noIntermediateMappings()
+		if (project.name != 'neoforge') {
+			noIntermediateMappings()
+		}
 	}
 
 	repositories {
