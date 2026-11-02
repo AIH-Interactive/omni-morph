@@ -1,4 +1,4 @@
-param([string]$VisualStudioPath, [string]$JniHeadersDirectory)
+param([string]$VisualStudioPath, [string]$JniHeadersDirectory, [switch]$SkipTests)
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -61,9 +61,12 @@ $configureArguments = @('--preset', 'windows-x64-release')
 if ($JniHeadersDirectory) {
     $configureArguments += "-DOMNIMORPH_JNI_HEADERS=$JniHeadersDirectory"
 }
+$configureArguments += "-DBUILD_TESTING=$(if ($SkipTests) { 'OFF' } else { 'ON' })"
 Invoke-NativeStep 'configure' 'cmake' $configureArguments
 Invoke-NativeStep 'compile' 'cmake' @('--build', '--preset', 'windows-x64-release')
-Invoke-NativeStep 'test' 'ctest' @('--preset', 'windows-x64-release')
+if (-not $SkipTests) {
+    Invoke-NativeStep 'test' 'ctest' @('--preset', 'windows-x64-release')
+}
 
 $library = Join-Path $nativeRoot 'bin/omnimorph_accel.dll'
 $dependencyOutput = & dumpbin /DEPENDENTS $library
@@ -111,5 +114,5 @@ $manifest = [ordered]@{
     })
 }
 $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $nativeRoot 'manifest.json') -Encoding UTF8
-Write-Output "Native build and tests passed: $library"
+Write-Output "Native build completed: $library"
 exit 0

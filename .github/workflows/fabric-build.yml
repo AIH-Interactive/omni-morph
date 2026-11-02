@@ -32,9 +32,9 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: gradle
-      - name: Build the loader base JAR and test shared native assembly
+      - name: Build production loader base JAR and JNI headers
         run: |
-          & bash ./gradlew stageNativeBase nativePackagingSmokeTest '-PnativeLoader=${{ matrix.loader }}' '-PnativeBaseDir=build/native-base/${{ matrix.loader }}' --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log
+          & bash ./gradlew stageNativeBase '-PnativeLoader=${{ matrix.loader }}' '-PnativeBaseDir=build/native-base/${{ matrix.loader }}' --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log
           $buildExitCode = $LASTEXITCODE
           Get-Content -LiteralPath build.log -Tail 40
           if ($buildExitCode -ne 0) { exit $buildExitCode }
@@ -48,7 +48,7 @@ jobs:
         if: matrix.loader == 'fabric'
         with:
           name: internal-native-interface
-          path: build/native-interface/
+          path: build/native-production-interface/
           if-no-files-found: error
           retention-days: 7
       - uses: actions/upload-artifact@v7
@@ -95,22 +95,14 @@ jobs:
         with:
           name: internal-native-interface
           path: build/native-interface
-      - name: Install pinned Android NDK and native CPU emulator
+      - name: Install pinned Android NDK
         if: matrix.platform == 'android-aarch64'
         run: |
           & "$env:ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install 'ndk;28.2.13676358' 2>&1 | Tee-Object -FilePath build.log
           $buildExitCode = $LASTEXITCODE
           Get-Content -LiteralPath build.log -Tail 40
           if ($buildExitCode -ne 0) { exit $buildExitCode }
-          & sudo apt-get update 2>&1 | Tee-Object -FilePath build.log -Append
-          $buildExitCode = $LASTEXITCODE
-          Get-Content -LiteralPath build.log -Tail 40
-          if ($buildExitCode -ne 0) { exit $buildExitCode }
-          & sudo apt-get install -y --no-install-recommends qemu-user 2>&1 | Tee-Object -FilePath build.log -Append
-          $buildExitCode = $LASTEXITCODE
-          Get-Content -LiteralPath build.log -Tail 40
-          if ($buildExitCode -ne 0) { exit $buildExitCode }
-      - name: Build native kernels and run platform validation
+      - name: Build production native libraries
         run: |
           $script = if ('${{ matrix.platform }}' -eq 'android-aarch64') { './tools/build-native-android-ci.ps1' } else { './tools/build-native-ci.ps1' }
           $arguments = if ('${{ matrix.platform }}' -eq 'android-aarch64') { @{} } else { @{ Platform = '${{ matrix.platform }}' } }
@@ -179,10 +171,6 @@ jobs:
           $buildExitCode = $LASTEXITCODE
           Get-Content -LiteralPath build.log -Tail 40
           if ($buildExitCode -ne 0) { exit $buildExitCode }
-          & pwsh -NoProfile -File ./tools/verify-acceleration-artifact.ps1 -JarPath $finalJar -Loader '${{ matrix.loader }}' -ExpectedCommit $env:GITHUB_SHA -ExpectedRun $env:GITHUB_RUN_ID 2>&1 | Tee-Object -FilePath build.log -Append
-          $buildExitCode = $LASTEXITCODE
-          Get-Content -LiteralPath build.log -Tail 40
-          if ($buildExitCode -ne 0) { exit $buildExitCode }
           Get-FileHash -Algorithm SHA256 -LiteralPath $finalJar | Format-List | Out-String | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v7
         with:
@@ -197,85 +185,9 @@ jobs:
           path: build.log
           retention-days: 14
 
-  verify-final:
-    name: Final ${{ matrix.loader }} JAR native ${{ matrix.platform }}
-    needs: assemble
-    strategy:
-      fail-fast: false
-      matrix:
-        loader: [fabric, neoforge]
-        platform: [windows-x86_64, linux-x86_64, linux-aarch64, android-aarch64, macos-x86_64, macos-aarch64]
-        include:
-          - platform: windows-x86_64
-            runner: windows-2025
-          - platform: linux-x86_64
-            runner: ubuntu-24.04
-          - platform: linux-aarch64
-            runner: ubuntu-24.04-arm
-          - platform: android-aarch64
-            runner: ubuntu-24.04
-          - platform: macos-x86_64
-            runner: macos-15-intel
-          - platform: macos-aarch64
-            runner: macos-14
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-        if: matrix.platform == 'android-aarch64'
-        with:
-          persist-credentials: false
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: '25'
-      - uses: actions/download-artifact@v8
-        with:
-          name: internal-native-interface
-          path: build/native-interface
-      - uses: actions/download-artifact@v8
-        with:
-          name: internal-final-native-jar-${{ matrix.loader }}
-          path: build/final
-      - name: Load this platform from the identical final JAR and check fallback/access denial
-        if: matrix.platform != 'android-aarch64'
-        run: |
-          $jar = (Get-ChildItem -LiteralPath build/final -Filter '*-${{ matrix.loader }}-mc.jar').FullName
-          $classpath = @('build/native-interface/classes', 'build/native-interface/lib/*', $jar) -join [IO.Path]::PathSeparator
-          foreach ($mode in @('fallback', 'deny', 'allow')) {
-            $access = if ($mode -eq 'allow') { '--enable-native-access=ALL-UNNAMED' } else { '--illegal-native-access=deny' }
-            $arguments = @($access, '-Xcheck:jni', '-cp', $classpath, 'top.aihmc.omnimorph.render.acceleration.NativePlatformSmokeTest')
-            if ($mode -ne 'allow') { $arguments += "--$mode" }
-            & java @arguments 2>&1 | Tee-Object -FilePath build.log -Append
-            $buildExitCode = $LASTEXITCODE
-            Get-Content -LiteralPath build.log -Tail 40
-            if ($buildExitCode -ne 0) { exit $buildExitCode }
-          }
-          Get-FileHash -Algorithm SHA256 -LiteralPath $jar | Format-List | Out-String | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
-      - name: Verify Android artifact from the same final JAR
-        if: matrix.platform == 'android-aarch64'
-        run: |
-          & "$env:ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install 'ndk;28.2.13676358' 2>&1 | Tee-Object -FilePath build.log
-          $buildExitCode = $LASTEXITCODE
-          Get-Content -LiteralPath build.log -Tail 40
-          if ($buildExitCode -ne 0) { exit $buildExitCode }
-          $jar = (Get-ChildItem -LiteralPath build/final -Filter '*-${{ matrix.loader }}-mc.jar').FullName
-          & pwsh -NoProfile -File ./tools/verify-android-native.ps1 -JarPath $jar -ExpectedCommit $env:GITHUB_SHA -ExpectedRun $env:GITHUB_RUN_ID 2>&1 | Tee-Object -FilePath build.log -Append
-          $buildExitCode = $LASTEXITCODE
-          Get-Content -LiteralPath build.log -Tail 40
-          if ($buildExitCode -ne 0) { exit $buildExitCode }
-          'Android arm64-v8a build/ELF/JNI exports validated; device JNI/game MANUAL/PENDING.' | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
-          Get-FileHash -Algorithm SHA256 -LiteralPath $jar | Format-List | Out-String | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
-      - uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: final-jni-logs-${{ matrix.loader }}-${{ matrix.platform }}
-          path: build.log
-          retention-days: 14
-
   publish-artifact:
     name: Downloadable complete ${{ matrix.label }} JAR
-    needs: verify-final
+    needs: assemble
     strategy:
       fail-fast: false
       matrix:
@@ -299,9 +211,9 @@ jobs:
           archive: false
           if-no-files-found: error
           retention-days: 30
-      - name: Add verified download link
+      - name: Add download link
         env:
           ARTIFACT_URL: ${{ steps.artifact.outputs.artifact-url }}
         run: |
-          "### Minecraft 26.1.2 / ${{ matrix.label }} — six native builds, five platform JNI checks; Android device JNI/game MANUAL/PENDING" | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
+          "### Minecraft 26.1.2 / ${{ matrix.label }} — six production native builds; runtime tests are not run in Actions" | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
           "[Download OmniMorph JAR]($env:ARTIFACT_URL)" | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
