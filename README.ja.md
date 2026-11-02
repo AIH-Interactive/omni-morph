@@ -81,7 +81,7 @@ if ($buildExitCode -ne 0) {
 
 JDK 25 を使用し、上の PowerShell コマンドの `:fabric:build` を `:neoforge:build -Prelease --no-daemon` に置き換えてください。Minecraft 26.1.2 / NeoForge 26.1.2.126 用の成果物は `neoforge/build/libs/omni-morph-1.0.0-alpha.7+26.1.2-neoforge-mc.jar` です。ローダーに合う JAR を一つだけ導入してください。`build` は `verifyNeoForgeJar` による内容検証を含みます。
 
-専用の [NeoForge ワークフロー](https://github.com/AIH-Interactive/omni-morph/actions/workflows/neoforge-build.yml) を手動実行できます。ローダー ID は `omni_morph`、リソース名前空間と保存先は既存の名前を維持します。C++ は不要で、任意の OmniMorph SIMD/JNI 配布物は含まず Java にフォールバックします。実クライアント、GUI/GPU、任意 Mod の互換性検証は、進行を妨げない `MANUAL/PENDING` です。
+手動実行できる [統合ワークフロー](https://github.com/AIH-Interactive/omni-morph/actions/workflows/fabric-build.yml) は六つの native ビルドを共有し、Fabric/NeoForge の完成 JAR をそれぞれ組み立て、ローダー × プラットフォームの matrix で検証します。ローダー ID は `omni_morph`、リソース名前空間と保存先は既存の名前を維持します。ローカルコマンドは C++ 不要の Java 基本 JAR を生成し、CI 配布物には Windows x86_64、Linux x86_64/aarch64、Android aarch64、macOS x86_64/aarch64 の native ライブラリが含まれます。既存の加速設定と Java フォールバックを使います。実クライアント、GUI/GPU、Android 実機、任意 Mod の検証は非ブロッキングの `MANUAL/PENDING` です。
 
 ## 謝辞
 

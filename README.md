@@ -94,9 +94,9 @@ if ($buildExitCode -ne 0) {
 
 正式产物为 `neoforge/build/libs/omni-morph-1.0.0-alpha.7+26.1.2-neoforge-mc.jar`。`build` 包含 `verifyNeoForgeJar`：检查元数据、Mixin 类、运行依赖和平台桥接。`:neoforge:remapJar` 保留为打包入口名称，26.1.2 无需名称重映射；`-Prelease` 省略元数据中的 Git 提交后缀。仅安装与实例加载器匹配的一个 JAR。
 
-[NeoForge 构建流水线](https://github.com/AIH-Interactive/omni-morph/actions/workflows/neoforge-build.yml) 支持手动运行，上传正式包及日志，并回归构建 Fabric。现有 Fabric/native 流水线保持独立。NeoForge 加载器 ID 为 `omni_morph`；资源命名空间、模型目录和配置文件沿用现有名称。
+[统一构建流水线](https://github.com/AIH-Interactive/omni-morph/actions/workflows/fabric-build.yml) 支持手动运行。Fabric/NeoForge 共用六个平台的 native 构建，各自组装、校验并上传完整 JAR；最终 JNI 检查使用加载器 × 平台 matrix。NeoForge 加载器 ID 为 `omni_morph`；资源命名空间、模型目录和配置文件沿用现有名称。
 
-NeoForge 基础包不需要 C++ 工具链，也不包含可选 OmniMorph SIMD/JNI 发布包；使用现有 Java 回退。真实客户端、GUI/GPU 和完整可选模组兼容矩阵仍为 `MANUAL/PENDING`，不阻塞编译交付。
+上面的本地命令生成不需要 C++ 工具链的 Java 基础包。统一流水线提供包含 Windows x86_64、Linux x86_64/aarch64、Android aarch64、macOS x86_64/aarch64 native 库的正式包，沿用现有硬件加速开关和 Java 回退。真实客户端、GUI/GPU、Android 设备和完整可选模组兼容矩阵仍为 `MANUAL/PENDING`，不阻塞编译交付。
 
 ## 致谢
 

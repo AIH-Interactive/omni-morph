@@ -16,7 +16,11 @@ defaults:
 
 jobs:
   build-mod:
-    name: Linux Fabric base and JNI interface
+    name: Linux ${{ matrix.loader }} base and JNI interface
+    strategy:
+      fail-fast: false
+      matrix:
+        loader: [fabric, neoforge]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -28,19 +32,20 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: gradle
-      - name: Build the unique base JAR and test interface
+      - name: Build the loader base JAR and test shared native assembly
         run: |
-          & bash ./gradlew stageNativeBase nativePackagingSmokeTest --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log
+          & bash ./gradlew stageNativeBase nativePackagingSmokeTest '-PnativeLoader=${{ matrix.loader }}' '-PnativeBaseDir=build/native-base/${{ matrix.loader }}' --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log
           $buildExitCode = $LASTEXITCODE
           Get-Content -LiteralPath build.log -Tail 40
           if ($buildExitCode -ne 0) { exit $buildExitCode }
       - uses: actions/upload-artifact@v7
         with:
-          name: internal-native-base
-          path: build/native-base/
+          name: internal-base-${{ matrix.loader }}
+          path: build/native-base/${{ matrix.loader }}/
           if-no-files-found: error
           retention-days: 7
       - uses: actions/upload-artifact@v7
+        if: matrix.loader == 'fabric'
         with:
           name: internal-native-interface
           path: build/native-interface/
@@ -49,7 +54,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: build-mod-failure-logs
+          name: build-mod-failure-logs-${{ matrix.loader }}
           path: build.log
           retention-days: 14
 
@@ -131,8 +136,12 @@ jobs:
           retention-days: 14
 
   assemble:
-    name: Assemble the complete native JAR
+    name: Assemble the complete ${{ matrix.loader }} native JAR
     needs: [build-mod, build-native]
+    strategy:
+      fail-fast: false
+      matrix:
+        loader: [fabric, neoforge]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -146,7 +155,7 @@ jobs:
           cache: gradle
       - uses: actions/download-artifact@v8
         with:
-          name: internal-native-base
+          name: internal-base-${{ matrix.loader }}
           path: build/native-base
       - uses: actions/download-artifact@v8
         with:
@@ -165,35 +174,37 @@ jobs:
               throw "Missing $key in gradle.properties"
             }
           }
-          $finalJar = 'build/final/{0}-{1}+{2}-fabric-mc.jar' -f $properties.archives_base_name, $properties.mod_version, $properties.minecraft_version
-          & bash ./gradlew assembleNativeJar '-PnativeBaseDir=build/native-base' '-PnativeArtifactsDir=build/native-inputs' "-PnativeOutput=$finalJar" "-PnativeCommit=$env:GITHUB_SHA" "-PnativeRun=$env:GITHUB_RUN_ID" "-PnativeAttempt=$env:GITHUB_RUN_ATTEMPT" --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log
+          $finalJar = 'build/final/{0}-{1}+{2}-${{ matrix.loader }}-mc.jar' -f $properties.archives_base_name, $properties.mod_version, $properties.minecraft_version
+          & bash ./gradlew assembleNativeJar '-PnativeLoader=${{ matrix.loader }}' '-PnativeBaseDir=build/native-base' '-PnativeArtifactsDir=build/native-inputs' "-PnativeOutput=$finalJar" "-PnativeCommit=$env:GITHUB_SHA" "-PnativeRun=$env:GITHUB_RUN_ID" "-PnativeAttempt=$env:GITHUB_RUN_ATTEMPT" --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log
           $buildExitCode = $LASTEXITCODE
           Get-Content -LiteralPath build.log -Tail 40
           if ($buildExitCode -ne 0) { exit $buildExitCode }
-          & pwsh -NoProfile -File ./tools/verify-acceleration-artifact.ps1 -JarPath $finalJar -ExpectedCommit $env:GITHUB_SHA -ExpectedRun $env:GITHUB_RUN_ID 2>&1 | Tee-Object -FilePath build.log -Append
+          & pwsh -NoProfile -File ./tools/verify-acceleration-artifact.ps1 -JarPath $finalJar -Loader '${{ matrix.loader }}' -ExpectedCommit $env:GITHUB_SHA -ExpectedRun $env:GITHUB_RUN_ID 2>&1 | Tee-Object -FilePath build.log -Append
           $buildExitCode = $LASTEXITCODE
           Get-Content -LiteralPath build.log -Tail 40
           if ($buildExitCode -ne 0) { exit $buildExitCode }
           Get-FileHash -Algorithm SHA256 -LiteralPath $finalJar | Format-List | Out-String | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v7
         with:
-          name: internal-final-native-jar
-          path: build/final/*-fabric-mc.jar
+          name: internal-final-native-jar-${{ matrix.loader }}
+          path: build/final/*-${{ matrix.loader }}-mc.jar
           if-no-files-found: error
           retention-days: 7
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: assemble-failure-logs
+          name: assemble-failure-logs-${{ matrix.loader }}
           path: build.log
           retention-days: 14
 
   verify-final:
-    name: Final JAR native ${{ matrix.platform }}
+    name: Final ${{ matrix.loader }} JAR native ${{ matrix.platform }}
     needs: assemble
     strategy:
       fail-fast: false
       matrix:
+        loader: [fabric, neoforge]
+        platform: [windows-x86_64, linux-x86_64, linux-aarch64, android-aarch64, macos-x86_64, macos-aarch64]
         include:
           - platform: windows-x86_64
             runner: windows-2025
@@ -224,12 +235,12 @@ jobs:
           path: build/native-interface
       - uses: actions/download-artifact@v8
         with:
-          name: internal-final-native-jar
+          name: internal-final-native-jar-${{ matrix.loader }}
           path: build/final
       - name: Load this platform from the identical final JAR and check fallback/access denial
         if: matrix.platform != 'android-aarch64'
         run: |
-          $jar = (Get-ChildItem -LiteralPath build/final -Filter '*-fabric-mc.jar').FullName
+          $jar = (Get-ChildItem -LiteralPath build/final -Filter '*-${{ matrix.loader }}-mc.jar').FullName
           $classpath = @('build/native-interface/classes', 'build/native-interface/lib/*', $jar) -join [IO.Path]::PathSeparator
           foreach ($mode in @('fallback', 'deny', 'allow')) {
             $access = if ($mode -eq 'allow') { '--enable-native-access=ALL-UNNAMED' } else { '--illegal-native-access=deny' }
@@ -248,7 +259,7 @@ jobs:
           $buildExitCode = $LASTEXITCODE
           Get-Content -LiteralPath build.log -Tail 40
           if ($buildExitCode -ne 0) { exit $buildExitCode }
-          $jar = (Get-ChildItem -LiteralPath build/final -Filter '*-fabric-mc.jar').FullName
+          $jar = (Get-ChildItem -LiteralPath build/final -Filter '*-${{ matrix.loader }}-mc.jar').FullName
           & pwsh -NoProfile -File ./tools/verify-android-native.ps1 -JarPath $jar -ExpectedCommit $env:GITHUB_SHA -ExpectedRun $env:GITHUB_RUN_ID 2>&1 | Tee-Object -FilePath build.log -Append
           $buildExitCode = $LASTEXITCODE
           Get-Content -LiteralPath build.log -Tail 40
@@ -258,25 +269,33 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: final-jni-logs-${{ matrix.platform }}
+          name: final-jni-logs-${{ matrix.loader }}-${{ matrix.platform }}
           path: build.log
           retention-days: 14
 
   publish-artifact:
-    name: Downloadable complete Fabric JAR
+    name: Downloadable complete ${{ matrix.label }} JAR
     needs: verify-final
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - loader: fabric
+            label: Fabric
+          - loader: neoforge
+            label: NeoForge
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/download-artifact@v8
         with:
-          name: internal-final-native-jar
+          name: internal-final-native-jar-${{ matrix.loader }}
           path: build/final
-      - name: Upload downloadable Fabric JAR
+      - name: Upload downloadable ${{ matrix.label }} JAR
         id: artifact
         uses: actions/upload-artifact@v7
         with:
-          name: OmniMorph-Fabric-26.1.2
-          path: build/final/*-fabric-mc.jar
+          name: OmniMorph-${{ matrix.label }}-26.1.2
+          path: build/final/*-${{ matrix.loader }}-mc.jar
           archive: false
           if-no-files-found: error
           retention-days: 30
@@ -284,5 +303,5 @@ jobs:
         env:
           ARTIFACT_URL: ${{ steps.artifact.outputs.artifact-url }}
         run: |
-          "### Minecraft 26.1.2 / Fabric — six native builds, five platform JNI checks; Android device JNI/game MANUAL/PENDING" | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
+          "### Minecraft 26.1.2 / ${{ matrix.label }} — six native builds, five platform JNI checks; Android device JNI/game MANUAL/PENDING" | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
           "[Download OmniMorph JAR]($env:ARTIFACT_URL)" | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY

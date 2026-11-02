@@ -1,7 +1,8 @@
 param(
     [Parameter(Mandatory)][string] $JarPath,
     [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{40}$')][string] $ExpectedCommit,
-    [Parameter(Mandatory)][ValidatePattern('^[0-9]+$')][string] $ExpectedRun
+    [Parameter(Mandatory)][ValidatePattern('^[0-9]+$')][string] $ExpectedRun,
+    [ValidateSet('fabric', 'neoforge')][string] $Loader = 'fabric'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -136,17 +137,36 @@ try {
     if (-not $seenPaths.SetEquals([string[]] $nativePaths)) {
         throw 'Unlisted native library in final JAR.'
     }
-    $mod = Read-ArtifactText $archive 'fabric.mod.json' | ConvertFrom-Json
     $expectedVersion = "$(Read-BuildProperty 'mod_version')+$(Read-BuildProperty 'minecraft_version')-$($ExpectedCommit.Substring(0, 7))"
-    if ($mod.id -cne 'omni-morph' -or $mod.version -cne $expectedVersion) {
+    if ($Loader -eq 'fabric') {
+        $mod = Read-ArtifactText $archive 'fabric.mod.json' | ConvertFrom-Json
+        $modId = $mod.id
+        $modVersion = $mod.version
+        $expectedId = 'omni-morph'
+        $dependencyPaths = @($mod.jars | ForEach-Object { $_.file })
+    } else {
+        $metadata = Read-ArtifactText $archive 'META-INF/neoforge.mods.toml'
+        $modSection = [regex]::Match($metadata, '(?ms)^\[\[mods\]\]\s*(.*?)(?=^\[|\z)')
+        $idMatch = [regex]::Match($modSection.Groups[1].Value, '(?m)^modId\s*=\s*"([^"]+)"\s*$')
+        $versionMatch = [regex]::Match($modSection.Groups[1].Value, '(?m)^version\s*=\s*"([^"]+)"\s*$')
+        if (-not $modSection.Success -or -not $idMatch.Success -or -not $versionMatch.Success) {
+            throw 'NeoForge mod identity is missing.'
+        }
+        $modId = $idMatch.Groups[1].Value
+        $modVersion = $versionMatch.Groups[1].Value
+        $expectedId = 'omni_morph'
+        $nestedMetadata = Read-ArtifactText $archive 'META-INF/jarjar/metadata.json' | ConvertFrom-Json
+        $dependencyPaths = @($nestedMetadata.jars | ForEach-Object { $_.path })
+    }
+    if ($modId -cne $expectedId -or $modVersion -cne $expectedVersion) {
         throw 'Final mod ID/version/source commit mismatch.'
     }
-    foreach ($dependency in $mod.jars) {
-        if (-not $names.Contains($dependency.file)) {
-            throw "Missing declared nested dependency: $($dependency.file)"
+    foreach ($dependencyPath in $dependencyPaths) {
+        if (-not $names.Contains($dependencyPath)) {
+            throw "Missing declared nested dependency: $dependencyPath"
         }
     }
-    Write-Output 'PASS final artifact metadata: six platforms, source/run/ABI, native and Android notice hashes, project license/credits, mod version and nested entries'
+    Write-Output "PASS $Loader final artifact metadata: six platforms, source/run/ABI, native and Android notice hashes, project license/credits, mod version and nested entries"
     Write-Output 'Actual JNI and Android ELF execution checks are separate CI gates; real GPU/device/game remain MANUAL/PENDING.'
 } finally {
     $archive.Dispose()
