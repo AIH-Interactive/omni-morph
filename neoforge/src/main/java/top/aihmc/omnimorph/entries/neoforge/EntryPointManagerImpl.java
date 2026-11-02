@@ -1,4 +1,4 @@
-package org.figuramc.figura.entries.neoforge;
+package top.aihmc.omnimorph.entries.neoforge;
 
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforgespi.language.ModFileScanData;

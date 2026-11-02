@@ -1,4 +1,4 @@
-package org.figuramc.figura.config.neoforge;
+package top.aihmc.omnimorph.config.neoforge;
 
 import org.figuramc.figura.config.ConfigKeyBind;
 import top.aihmc.omnimorph.neoforge.FiguraModClientNeoForge;

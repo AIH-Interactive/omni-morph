@@ -1,4 +1,4 @@
-package org.figuramc.figura.utils.neoforge;
+package top.aihmc.omnimorph.utils.neoforge;
 
 
 import net.neoforged.fml.ModList;

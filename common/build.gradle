@@ -196,6 +196,7 @@ tasks.matching { it.name.startsWith("transformProduction") }.configureEach {
 }
 
 tasks.named('transformProductionNeoForge') {
+    inputs.property('platformImplementationNamespace', 'top.aihmc.omnimorph')
     // Architectury replaces @ExpectPlatform bodies but leaves their old exception/local tables.
     // Those labels no longer exist, so ASM cannot compute frames until the stale metadata is removed.
     transformers.add({ className, classNode ->
@@ -208,6 +209,16 @@ tasks.named('transformProductionNeoForge') {
                 method.localVariables?.clear()
                 method.visibleLocalVariableAnnotations?.clear()
                 method.invisibleLocalVariableAnnotations?.clear()
+                // Shared Figura API classes retain their upstream package; platform implementations
+                // consistently live under OmniMorph's namespace on every loader.
+                method.instructions.each { instruction ->
+                    if (instruction instanceof dev.architectury.transformer.shadowed.impl.org.objectweb.asm.tree.MethodInsnNode
+                            && instruction.owner.startsWith('org/figuramc/figura/')
+                            && instruction.owner.contains('/neoforge/')) {
+                        instruction.owner = instruction.owner.replaceFirst(
+                                'org/figuramc/figura/', 'top/aihmc/omnimorph/')
+                    }
+                }
             }
         }
         return classNode
