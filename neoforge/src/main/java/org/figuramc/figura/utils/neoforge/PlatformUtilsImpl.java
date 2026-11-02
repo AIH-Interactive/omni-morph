@@ -4,6 +4,7 @@ import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLPaths;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.utils.PlatformUtils;
+import top.aihmc.omnimorph.neoforge.FiguraModForge;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -16,7 +17,7 @@ public class PlatformUtilsImpl {
     }
 
     public static String getFiguraModVersionString() {
-        return ModList.get().getModContainerById(FiguraMod.MOD_ID).get().getModInfo().getVersion().toString();
+        return ModList.get().getModContainerById(FiguraModForge.MOD_ID).get().getModInfo().getVersion().toString();
     }
 
     public static Path getConfigDir() {
@@ -24,11 +25,11 @@ public class PlatformUtilsImpl {
     }
 
     public static boolean isModLoaded(String modId) {
-        return ModList.get().isLoaded(modId);
+        return ModList.get().isLoaded(loaderModId(modId));
     }
 
     public static String getModVersion(String modId) {
-        return ModList.get().getModContainerById(modId).get().getModInfo().getVersion().toString();
+        return ModList.get().getModContainerById(loaderModId(modId)).get().getModInfo().getVersion().toString();
     }
 
     public static java.util.Map<String, String> getLoadedMods() {
@@ -43,11 +44,15 @@ public class PlatformUtilsImpl {
 
     public static InputStream loadFileFromRoot(String path) throws FileNotFoundException {
         try {
-            return ModList.get().getModFileById(FiguraMod.MOD_ID).getFile().getContents().openFile(path);
+            return ModList.get().getModFileById(FiguraModForge.MOD_ID).getFile().getContents().openFile(path);
         } catch (IOException error) {
             FileNotFoundException failure = new FileNotFoundException(path);
             failure.initCause(error);
             throw failure;
         }
+    }
+
+    static String loaderModId(String modId) {
+        return FiguraMod.MOD_ID.equals(modId) ? FiguraModForge.MOD_ID : modId;
     }
 }

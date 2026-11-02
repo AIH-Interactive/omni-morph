@@ -1,6 +1,7 @@
 {
   "pack": {
-    "description": "Figura Resources",
-    "pack_format": 15
+    "description": "OmniMorph Resources",
+    "min_format": 84,
+    "max_format": 84
   }
 }

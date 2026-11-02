@@ -2,6 +2,22 @@ plugins {
     id "com.gradleup.shadow" version "9.0.0-beta12"
 }
 
+def commonAccessWidener = project(':common').file('src/main/resources/omni-morph.accesswidener')
+def generatedAccessTransformer = layout.buildDirectory.file('generated/access/META-INF/accesstransformer.cfg')
+
+tasks.register('generateAccessTransformer') {
+    inputs.file(commonAccessWidener)
+    outputs.file(generatedAccessTransformer)
+    doLast {
+        def output = generatedAccessTransformer.get().asFile
+        output.parentFile.mkdirs()
+        commonAccessWidener.withReader('UTF-8') { reader ->
+            def transforms = dev.architectury.loom.accesstransformer.Aw2At.toAccessTransformSet(reader)
+            dev.architectury.at.io.AccessTransformFormats.FML.write(output.toPath(), transforms)
+        }
+    }
+}
+
 architectury {
     platformSetupLoomIde()
     neoForge()
@@ -9,10 +25,11 @@ architectury {
 
 loom {
     // No-remap Loom expects the official namespace even though the class names are identical.
-    def commonWidener = project(":common").loom.accessWidenerPath.get().asFile
     def officialWidener = layout.buildDirectory.file('generated/omni-morph.accesswidener').get().asFile
     officialWidener.parentFile.mkdirs()
-    officialWidener.setText(commonWidener.getText('UTF-8').replaceFirst('accessWidener v2 named', 'accessWidener v2 official'), 'UTF-8')
+    def officialContents = commonAccessWidener.getText('UTF-8')
+            .replaceFirst('accessWidener v2 named', 'accessWidener v2 official')
+    officialWidener.setText(officialContents, 'UTF-8')
     accessWidenerPath = officialWidener
     enableTransitiveAccessWideners = false
 }
@@ -27,15 +44,27 @@ configurations {
 
 dependencies {
     // Libraries
-    include(forgeRuntimeLibrary("com.github.FiguraMC.luaj:luaj-core:$luaj-figura"))
-    include(forgeRuntimeLibrary("com.github.FiguraMC.luaj:luaj-jse:$luaj-figura"))
-    include(forgeRuntimeLibrary("com.neovisionaries:nv-websocket-client:$nv_websocket"))
+    include(implementation("com.google.protobuf:protobuf-java:4.31.1"))
+    include(implementation("com.github.FiguraMC.luaj:luaj-core:$luaj-figura"))
+    include(implementation("com.github.FiguraMC.luaj:luaj-jse:$luaj-figura"))
+    include(implementation("com.neovisionaries:nv-websocket-client:$nv_websocket"))
+    include(implementation("io.airlift:aircompressor-v3:3.10"))
+    include(implementation("io.github.jaredmdobson:concentus:1.0.2"))
+    include(implementation("org.gagravarr:vorbis-java-core:0.8"))
+    include(implementation("com.github.ustc-zzzz:avif-imageio-native-reader:master-6af2f277a8-1@jar"))
+    // Loom include does not automatically nest transitive dependencies.
+    ['imageio-webp', 'imageio-core', 'imageio-metadata'].each { module ->
+        include(implementation("com.twelvemonkeys.imageio:${module}:3.15.0"))
+    }
+    ['common-lang', 'common-io', 'common-image'].each { module ->
+        include(implementation("com.twelvemonkeys.common:${module}:3.15.0"))
+    }
+    // NeoForge supplies MixinExtras itself; do not bundle the Fabric implementation.
 
     neoForge "net.neoforged:neoforge:${rootProject.neoforge_version}"
 
     if (rootProject.run_with_geckolib == "true") {
-        modRuntimeOnly("software.bernie.geckolib:geckolib-neoforge-$geckolib_version")
-        forgeRuntimeLibrary(group: 'com.eliotlash.mclib', name: 'mclib', version: "${mclib_version}")
+        modRuntimeOnly("com.geckolib:geckolib-neoforge-$geckolib_version")
     }
 
     common(project(path: ":common", configuration: "namedElements")) { transitive false }
@@ -49,25 +78,56 @@ processResources {
     properties.put("java_version", rootProject.java_version)
     properties.put("minecraft_version", rootProject.minecraft_version)
     properties.put("assets_version", rootProject.assets_version)
+    properties.put("neoforge_version", rootProject.neoforge_version)
 
     properties.forEach((k, v) -> inputs.property(k, v.toString()))
     filesMatching("META-INF/neoforge.mods.toml") {
         expand properties
     }
+    dependsOn tasks.named('generateAccessTransformer')
+    from(layout.buildDirectory.dir('generated/access'))
 }
 
 shadowJar {
     exclude "fabric.mod.json"
     exclude "architectury.common.json"
+    exclude "omni-morph.accesswidener"
+
+    // No-remap Loom nests include dependencies in jar, not shadowJar.
+    dependsOn tasks.named('jar')
+    from({ zipTree(tasks.named('jar').get().archiveFile.get().asFile) }) {
+        include 'META-INF/jars/**', 'META-INF/jarjar/**'
+    }
 
     configurations = [project.configurations.shadowCommon]
     archiveClassifier.set "dev-shadow"
 }
 
 tasks.register('remapJar', Jar) {
+    description = 'Assembles the NeoForge distribution; Minecraft 26.1.2 needs no name remapping.'
     dependsOn shadowJar
     from { zipTree(shadowJar.archiveFile.get().asFile) }
     archiveClassifier.set "neoforge-mc"
+    manifest.attributes('FMLModType': 'MOD')
+}
+
+tasks.named('assemble') {
+    dependsOn tasks.named('remapJar')
+}
+
+tasks.withType(Jar).matching { it.name != 'remapJar' }.configureEach {
+    from(rootProject.file('LICENSE.md')) {
+        into 'licenses'
+        rename { 'OmniMorph-PolyForm-Noncommercial-1.0.0.txt' }
+    }
+    from(rootProject.file('CREDITS')) {
+        into 'credits'
+        rename { 'OmniMorph.txt' }
+    }
+}
+
+tasks.named('test', Test) {
+    failOnNoDiscoveredTests = false
 }
 
 jar {
@@ -116,3 +176,5 @@ void setupRepositories(RepositoryHandler repositories) {
         }
     }
 }
+
+apply from: 'verification.gradle'
