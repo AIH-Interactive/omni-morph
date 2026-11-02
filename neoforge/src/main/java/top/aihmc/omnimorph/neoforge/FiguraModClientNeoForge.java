@@ -19,7 +19,7 @@ import org.figuramc.figura.config.ConfigManager;
 import top.aihmc.omnimorph.config.neoforge.ModConfig;
 import top.aihmc.omnimorph.gui.neoforge.GuiOverlay;
 import top.aihmc.omnimorph.gui.neoforge.GuiUnderlay;
-import org.figuramc.figura.utils.neoforge.FiguraResourceListenerImpl;
+import top.aihmc.omnimorph.utils.neoforge.FiguraResourceListenerImpl;
 
 import java.util.ArrayList;
 import java.util.List;

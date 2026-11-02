@@ -41,6 +41,9 @@ tasks.register('verifyNeoForgeJar') {
             if (entries.any { it == 'fabric.mod.json' || it.startsWith('net/fabricmc/') }) {
                 throw new GradleException('Fabric runtime content leaked into the NeoForge distribution')
             }
+            if (entries.any { it ==~ /org\/figuramc\/figura\/[^\/]+\/neoforge\/.*/ }) {
+                throw new GradleException('NeoForge platform implementations must use top.aihmc.omnimorph')
+            }
             String metadata = readText('META-INF/neoforge.mods.toml')
             if (metadata.contains('${') || !metadata.contains('modId = "omni_morph"') ||
                     !metadata.contains('namespace = "omni-morph"') ||
@@ -93,6 +96,9 @@ tasks.register('verifyNeoForgeJar') {
                 node.methods.each { method ->
                     method.instructions.each { instruction ->
                         if (methodInstructionType.isInstance(instruction) && instruction.owner.contains('/neoforge/')) {
+                            if (!instruction.owner.startsWith('top/aihmc/omnimorph/')) {
+                                throw new GradleException("Incorrect platform namespace: ${instruction.owner}")
+                            }
                             def implementation = readClass("${instruction.owner}.class")
                             if (!implementation.methods.any {
                                 it.name == instruction.name && it.desc == instruction.desc
