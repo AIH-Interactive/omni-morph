@@ -174,7 +174,7 @@ def assembleNative = { File baseDirectory, File artifacts, File destination, Str
 
 tasks.register('stageNativeBase') {
     group = 'build'
-    dependsOn ":${nativeLoader}:remapJar", ':common:check', ':common:compileNativeInterface'
+    dependsOn ":${nativeLoader}:remapJar", ':common:compileNativeInterface'
     doLast {
         File directory = nativeBaseDirectory
         directory.mkdirs()

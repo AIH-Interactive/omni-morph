@@ -171,7 +171,7 @@ try {
         }
     }
     Write-Output 'PASS final artifact metadata: six platforms, source/run/ABI, native and Android notice hashes, project license/credits, mod version and nested entries'
-    Write-Output 'Actual JNI and Android ELF execution checks are separate CI gates; real GPU/device/game remain MANUAL/PENDING.'
+    Write-Output 'Packaging inspection only; GitHub Actions does not compile or execute tests. Runtime/device/game validation is separate.'
 } finally {
     $archive.Dispose()
 }

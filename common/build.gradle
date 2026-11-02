@@ -370,8 +370,7 @@ tasks.register('compileNativeInterface', JavaCompile) {
     source files(
             'src/main/java/top/aihmc/omnimorph/render/acceleration/NativeBindings.java',
             'src/main/java/top/aihmc/omnimorph/render/acceleration/NativeLibraryLoader.java',
-            'src/main/java/top/aihmc/omnimorph/render/acceleration/FallbackReason.java',
-            'src/test/java/top/aihmc/omnimorph/render/acceleration/NativePlatformSmokeTest.java')
+            'src/main/java/top/aihmc/omnimorph/render/acceleration/FallbackReason.java')
     classpath = files({ configurations.compileClasspath.findAll { it.name.startsWith('gson-') } })
     destinationDirectory = rootProject.layout.buildDirectory.dir('native-interface/classes')
     options.headerOutputDirectory = rootProject.layout.buildDirectory.dir('native-interface/headers')
@@ -387,10 +386,21 @@ tasks.register('compileNativeInterface', JavaCompile) {
     }
 }
 
+// Local-only probe compilation is separate from the production JNI header artifact.
+tasks.register('compileNativePlatformSmoke', JavaCompile) {
+    group = 'verification'
+    dependsOn compileNativeInterface
+    source files('src/test/java/top/aihmc/omnimorph/render/acceleration/NativePlatformSmokeTest.java')
+    classpath = files(rootProject.layout.buildDirectory.dir('native-interface/classes')) +
+            files({ configurations.compileClasspath.findAll { it.name.startsWith('gson-') } })
+    destinationDirectory = layout.buildDirectory.dir('native-platform-smoke/classes')
+}
+
 tasks.register('nativePlatformSmokeTest', JavaExec) {
     group = 'verification'
-    dependsOn compileNativeInterface, ':packageLocalNative'
-    classpath = files(rootProject.layout.buildDirectory.dir('native-interface/classes')) +
+    dependsOn compileNativePlatformSmoke, ':packageLocalNative'
+    classpath = files(layout.buildDirectory.dir('native-platform-smoke/classes')) +
+            files(rootProject.layout.buildDirectory.dir('native-interface/classes')) +
             fileTree(rootProject.layout.buildDirectory.dir('native-interface/lib')) +
             files(rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-fabric-mc-windows-local.jar"))
     mainClass = 'top.aihmc.omnimorph.render.acceleration.NativePlatformSmokeTest'

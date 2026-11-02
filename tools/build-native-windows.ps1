@@ -1,4 +1,4 @@
-param([string]$VisualStudioPath, [string]$JniHeadersDirectory)
+param([string]$VisualStudioPath, [string]$JniHeadersDirectory, [switch]$ProductionOnly)
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -57,13 +57,18 @@ function Invoke-NativeStep {
     }
 }
 
-$configureArguments = @('--preset', 'windows-x64-release')
+$testing = if ($ProductionOnly) { 'OFF' } else { 'ON' }
+$configureArguments = @('--preset', 'windows-x64-release', "-DBUILD_TESTING=$testing")
 if ($JniHeadersDirectory) {
     $configureArguments += "-DOMNIMORPH_JNI_HEADERS=$JniHeadersDirectory"
 }
 Invoke-NativeStep 'configure' 'cmake' $configureArguments
-Invoke-NativeStep 'compile' 'cmake' @('--build', '--preset', 'windows-x64-release')
-Invoke-NativeStep 'test' 'ctest' @('--preset', 'windows-x64-release')
+if ($ProductionOnly) {
+    Invoke-NativeStep 'compile' 'cmake' @('--build', '--preset', 'windows-x64-release', '--target', 'omnimorph_accel')
+} else {
+    Invoke-NativeStep 'compile' 'cmake' @('--build', '--preset', 'windows-x64-release')
+    Invoke-NativeStep 'test' 'ctest' @('--preset', 'windows-x64-release')
+}
 
 $library = Join-Path $nativeRoot 'bin/omnimorph_accel.dll'
 $dependencyOutput = & dumpbin /DEPENDENTS $library
@@ -111,5 +116,5 @@ $manifest = [ordered]@{
     })
 }
 $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $nativeRoot 'manifest.json') -Encoding UTF8
-Write-Output "Native build and tests passed: $library"
+Write-Output "Native build complete: $library; BUILD_TESTING=$testing"
 exit 0

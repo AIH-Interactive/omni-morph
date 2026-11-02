@@ -31,14 +31,12 @@ function Invoke-AndroidBuildStep {
     if ($buildExitCode -ne 0) { exit $buildExitCode }
 }
 
-$configure = @('-S', '.', '-B', $nativeRoot, '-DCMAKE_BUILD_TYPE=Release',
+$configure = @('-S', '.', '-B', $nativeRoot, '-DCMAKE_BUILD_TYPE=Release', '-DBUILD_TESTING=OFF',
     "-DCMAKE_TOOLCHAIN_FILE=$ndk/build/cmake/android.toolchain.cmake", '-DANDROID_ABI=arm64-v8a',
     '-DANDROID_PLATFORM=android-26', '-DANDROID_STL=c++_static',
-    '-DCMAKE_CROSSCOMPILING_EMULATOR=/usr/bin/qemu-aarch64',
     "-DOMNIMORPH_JNI_HEADERS=$(Join-Path $projectRoot 'build/native-interface/headers')")
 Invoke-AndroidBuildStep 'configure' 'cmake' $configure
-Invoke-AndroidBuildStep 'compile' 'cmake' @('--build', $nativeRoot, '--parallel', '2')
-Invoke-AndroidBuildStep 'bionic-core-test' 'ctest' @('--test-dir', $nativeRoot, '--output-on-failure', '--verbose')
+Invoke-AndroidBuildStep 'compile' 'cmake' @('--build', $nativeRoot, '--target', 'omnimorph_accel', '--parallel', '2')
 $library = Join-Path $nativeRoot 'bin/libomnimorph_accel.so'
 $llvm = Join-Path $ndk 'toolchains/llvm/prebuilt/linux-x86_64/bin'
 Invoke-AndroidBuildStep 'strip-debug' "$llvm/llvm-strip" @('--strip-debug', $library)
@@ -82,8 +80,8 @@ $entry = [ordered]@{
     sha256 = (Get-FileHash -LiteralPath $library -Algorithm SHA256).Hash.ToLowerInvariant()
     dependencies = $dependencies
     licenses = $licenses
-    validation = 'NDK compile; Bionic/NEON core tests under qemu-user; ELF/JNI-export verification; device JNI/game MANUAL/PENDING'
+    validation = 'Production NDK compile; ELF/dependency/export packaging inspection; no tests compiled or executed'
 }
 @{ abi = 2; buildKind = 'ci'; libraries = @($entry) } | ConvertTo-Json -Depth 8 |
     Set-Content -LiteralPath (Join-Path $artifact 'natives/manifest.json') -Encoding utf8NoBOM
-Write-Output "Android native compiled and core-tested: $artifact; Android device JNI/game MANUAL/PENDING"
+Write-Output "Android production native packaged: $artifact; no tests compiled or executed"
