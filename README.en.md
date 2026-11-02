@@ -24,7 +24,7 @@ It supports both Lua and Molang: Lua handles scripting and interaction, while Mo
 | Component | Version |
 | --- | --- |
 | Minecraft Java | 26.1.2 |
-| Mod loader | Fabric |
+| Mod loader | Fabric / NeoForge 26.1.2.126 |
 | Java | 25 |
 | Mod version | 1.0.0-alpha.7 |
 
@@ -32,7 +32,7 @@ Build dependency versions are listed in [gradle.properties](gradle.properties). 
 
 ## Installation and usage
 
-1. Install Fabric for Minecraft 26.1.2 and launch the game with Java 25.
+1. Install Fabric or NeoForge 26.1.2.126 for Minecraft 26.1.2 and launch the game with Java 25.
 2. Download the final mod JAR from a successful workflow run and place it in the game instance's `mods` folder.
 3. Launch the game, open the OmniMorph wardrobe, and place your models in the model folder before selecting them.
 4. Use model-specific settings and the action wheel to interact with models. Use the model library to upload, manage, or download cloud models.
@@ -76,6 +76,12 @@ if ($buildExitCode -ne 0) {
 The final artifact is in `fabric/build/libs/`, named `omni-morph-...-fabric-mc.jar`.
 
 A standard Fabric build does not require a C++ toolchain. See [native/README.md](native/README.md) for local SIMD library builds and [protocol/README.md](protocol/README.md) for the protocol specification.
+
+### NeoForge
+
+With JDK 25, replace `:fabric:build` in the PowerShell command above with `:neoforge:build -Prelease --no-daemon`. The final JAR is `neoforge/build/libs/omni-morph-1.0.0-alpha.7+26.1.2-neoforge-mc.jar`, targeting Minecraft 26.1.2 and NeoForge 26.1.2.126. Install only the JAR matching your loader. `build` includes `verifyNeoForgeJar`; `remapJar` is a packaging alias because 26.1.2 is unobfuscated.
+
+The separate [NeoForge workflow](https://github.com/AIH-Interactive/omni-morph/actions/workflows/neoforge-build.yml) supports manual builds, uploads the JAR/logs, and checks Fabric packaging. The loader ID is `omni_morph`; resource namespaces and data paths retain their existing names. This base build needs no C++ toolchain and excludes the optional OmniMorph SIMD/JNI distribution, using the existing Java fallback. Actual client, GUI/GPU and optional-mod compatibility checks remain non-blocking `MANUAL/PENDING`.
 
 ## Credits
 

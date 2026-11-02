@@ -24,7 +24,7 @@ OmniMorph 是基于 [Figura](https://github.com/FiguraMC/Figura) 的 Minecraft J
 | 项目 | 版本 |
 | --- | --- |
 | Minecraft Java | 26.1.2 |
-| 模组加载器 | Fabric |
+| 模组加载器 | Fabric / NeoForge 26.1.2.126 |
 | Java | 25 |
 | 模组版本 | 1.0.0-alpha.7 |
 
@@ -34,7 +34,7 @@ Alpha.5 让 YSM 动画行为与参考实现对齐，并新增远端玩家状态�
 
 ## 安装与使用
 
-1. 为 Minecraft 26.1.2 安装 Fabric，并使用 Java 25 启动游戏。
+1. 为 Minecraft 26.1.2 安装 Fabric 或 NeoForge 26.1.2.126，并使用 Java 25 启动游戏。
 2. 从构建流水线的成功运行中下载最终模组 JAR，放入对应游戏实例的 `mods` 文件夹。
 3. 启动游戏，打开 OmniMorph 衣柜，将模型放入模型文件夹后选择加载。
 4. 使用模型专用设置与动作轮盘操作模型；通过模型库页面上传、管理或下载云端模型。
@@ -78,6 +78,25 @@ if ($buildExitCode -ne 0) {
 成品位于 `fabric/build/libs/`，文件名为 `omni-morph-...-fabric-mc.jar`。
 
 普通 Fabric 构建不需要 C++ 工具链。本地 SIMD 库的构建方法见 [native/README.md](native/README.md)；协议规范见 [protocol/README.md](protocol/README.md)。
+
+### NeoForge
+
+使用相同的 JDK 25 环境构建并检查 NeoForge 基础包：
+
+```powershell
+& .\gradlew.bat :neoforge:build -Prelease --no-daemon --console=plain 2>&1 | Tee-Object -FilePath 'build.log'
+$buildExitCode = $LASTEXITCODE
+Get-Content -LiteralPath 'build.log' -Tail 60
+if ($buildExitCode -ne 0) {
+    exit $buildExitCode
+}
+```
+
+正式产物为 `neoforge/build/libs/omni-morph-1.0.0-alpha.7+26.1.2-neoforge-mc.jar`。`build` 包含 `verifyNeoForgeJar`：检查元数据、Mixin 类、运行依赖和平台桥接。`:neoforge:remapJar` 保留为打包入口名称，26.1.2 无需名称重映射；`-Prelease` 省略元数据中的 Git 提交后缀。仅安装与实例加载器匹配的一个 JAR。
+
+[NeoForge 构建流水线](https://github.com/AIH-Interactive/omni-morph/actions/workflows/neoforge-build.yml) 支持手动运行，上传正式包及日志，并回归构建 Fabric。现有 Fabric/native 流水线保持独立。NeoForge 加载器 ID 为 `omni_morph`；资源命名空间、模型目录和配置文件沿用现有名称。
+
+NeoForge 基础包不需要 C++ 工具链，也不包含可选 OmniMorph SIMD/JNI 发布包；使用现有 Java 回退。真实客户端、GUI/GPU 和完整可选模组兼容矩阵仍为 `MANUAL/PENDING`，不阻塞编译交付。
 
 ## 致谢
 

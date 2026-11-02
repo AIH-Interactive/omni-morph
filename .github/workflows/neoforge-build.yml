@@ -1,0 +1,56 @@
+name: OmniMorph NeoForge
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: neoforge-build-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  build-mod:
+    name: NeoForge base JAR and Fabric regression
+    runs-on: windows-2025
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+      - name: Build and verify both loader artifacts
+        run: |
+          & .\gradlew.bat :neoforge:build :fabric:remapJar -Prelease --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log
+          $buildExitCode = $LASTEXITCODE
+          Get-Content -LiteralPath build.log -Tail 60
+          if ($buildExitCode -ne 0) { exit $buildExitCode }
+      - uses: actions/upload-artifact@v7
+        with:
+          name: omni-morph-neoforge
+          path: neoforge/build/libs/*-neoforge-mc.jar
+          if-no-files-found: error
+          retention-days: 14
+      - name: Record validation scope
+        run: |
+          @'
+          NeoForge compilation, dependency packaging and platform bridge checks passed.
+          Real Minecraft client validation: MANUAL/PENDING (non-blocking).
+          This artifact does not include the optional OmniMorph SIMD/JNI distribution.
+          '@ | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: neoforge-build-logs
+          path: build.log
+          if-no-files-found: warn
+          retention-days: 14
