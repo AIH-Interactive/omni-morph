@@ -24,7 +24,7 @@ import org.figuramc.figura.utils.neoforge.FiguraResourceListenerImpl;
 import java.util.ArrayList;
 import java.util.List;
 
-@EventBusSubscriber(modid = FiguraMod.MOD_ID, value = Dist.CLIENT)
+@EventBusSubscriber(modid = FiguraModForge.MOD_ID, value = Dist.CLIENT)
 public class FiguraModClientNeoForge extends FiguraMod {
     // keybinds stored here
     public static List<KeyMapping> KEYBINDS = new ArrayList<>();

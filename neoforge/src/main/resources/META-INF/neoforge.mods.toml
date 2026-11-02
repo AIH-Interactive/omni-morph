@@ -1,11 +1,12 @@
 modLoader = "javafml"
-loaderVersion = "[1,)"
+loaderVersion = "[11,)"
 issueTrackerURL = "https://github.com/AIH-Interactive/omni-morph/issues"
 license = "PolyForm-Noncommercial-1.0.0"
 displayURL = "https://github.com/AIH-Interactive/omni-morph"
 
 [[mods]]
-modId = "omni-morph"
+modId = "omni_morph"
+namespace = "omni-morph"
 version = "${version}"
 displayName = "OmniMorph"
 logoFile="icon.png"
@@ -15,24 +16,32 @@ description = '''
 Unified Figura Avatar and YSM models with linked Lua and Molang runtimes
 '''
 
-[modproperties.omni-morph]
+[modproperties.omni_morph]
 assets_version="${assets_version}"
 
-[[dependencies.omni-morph]]
+[[dependencies.omni_morph]]
 modId = "neoforge"
-mandatory = true
-versionRange = "[21.3,)"
+type = "required"
+versionRange = "[${neoforge_version},26.1.3)"
 ordering = "NONE"
 side = "CLIENT"
 
-[[dependencies.omni-morph]]
+[[dependencies.omni_morph]]
 modId = "minecraft"
-mandatory = true
-versionRange = "[${minecraft_version},)"
+type = "required"
+versionRange = "[${minecraft_version}]"
 ordering = "NONE"
 side = "CLIENT"
 
+[[mixins]]
+config = "figura-common.mixins.json"
 [[mixins]]
 config = "omni-morph-common.mixins.json"
 [[mixins]]
 config = "omni-morph.mixins.json"
+
+[[accessTransformers]]
+file = "META-INF/accesstransformer.cfg"
+
+[features.omni_morph]
+javaVersion = "[${java_version},)"

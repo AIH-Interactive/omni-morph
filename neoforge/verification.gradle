@@ -1,0 +1,117 @@
+import groovy.json.JsonSlurper
+import java.util.zip.ZipFile
+import java.util.zip.ZipInputStream
+
+tasks.register('verifyNeoForgeJar') {
+    group = 'verification'
+    description = 'Checks the actual distribution metadata, mixins, dependencies and platform bridges; no GUI claim.'
+    dependsOn tasks.named('remapJar')
+    inputs.file(tasks.named('remapJar').flatMap { it.archiveFile })
+
+    doLast {
+        File artifact = tasks.named('remapJar').get().archiveFile.get().asFile
+        // Applied scripts have an isolated compile classpath; reuse Loom's existing ASM at runtime.
+        def asmLoader = project.plugins.getPlugin('dev.architectury.loom').class.classLoader
+        def classReaderType = asmLoader.loadClass('org.objectweb.asm.ClassReader')
+        def classNodeType = asmLoader.loadClass('org.objectweb.asm.tree.ClassNode')
+        def methodInstructionType = asmLoader.loadClass('org.objectweb.asm.tree.MethodInsnNode')
+        new ZipFile(artifact).withCloseable { jar ->
+            def requireEntry = { String path ->
+                def entry = jar.getEntry(path)
+                if (entry == null) {
+                    throw new GradleException("Missing distribution entry: ${path}")
+                }
+                return entry
+            }
+            def readText = { String path ->
+                jar.getInputStream(requireEntry(path)).withCloseable { it.getText('UTF-8') }
+            }
+            def readClass = { String path ->
+                def node = classNodeType.newInstance()
+                jar.getInputStream(requireEntry(path)).withCloseable {
+                    classReaderType.newInstance(it).accept(node, 0)
+                }
+                return node
+            }
+
+            def entries = jar.entries().toList().findAll { !it.directory }.collect { it.name }
+            if (entries.toSet().size() != entries.size()) {
+                throw new GradleException('Duplicate distribution entries')
+            }
+            if (entries.any { it == 'fabric.mod.json' || it.startsWith('net/fabricmc/') }) {
+                throw new GradleException('Fabric runtime content leaked into the NeoForge distribution')
+            }
+            String metadata = readText('META-INF/neoforge.mods.toml')
+            if (metadata.contains('${') || !metadata.contains('modId = "omni_morph"') ||
+                    !metadata.contains('namespace = "omni-morph"') ||
+                    !metadata.contains("version = \"${project.jarVersion}\"")) {
+                throw new GradleException('Incorrect or unexpanded NeoForge identity/version')
+            }
+            requireEntry('META-INF/accesstransformer.cfg')
+            requireEntry('icon.png')
+            requireEntry('licenses/OmniMorph-PolyForm-Noncommercial-1.0.0.txt')
+            requireEntry('credits/OmniMorph.txt')
+            requireEntry('assets/omni-morph/wizard/ysm-template-manifest.json')
+            requireEntry('top/aihmc/omnimorph/backend2/protocol/generated/Cloud.class')
+            requireEntry('top/aihmc/omnimorph/neoforge/FiguraModForge.class')
+
+            int mixinCount = 0
+            ['figura-common.mixins.json', 'omni-morph-common.mixins.json', 'omni-morph.mixins.json'].each { path ->
+                if (!metadata.contains("config = \"${path}\"")) {
+                    throw new GradleException("Mixin config is not registered: ${path}")
+                }
+                def config = new JsonSlurper().parseText(readText(path))
+                ((config.mixins ?: []) + (config.client ?: [])).each { name ->
+                    requireEntry("${config.package.replace('.', '/')}/${name.replace('.', '/')}.class")
+                    mixinCount++
+                }
+            }
+
+            def nestedMetadata = new JsonSlurper().parseText(readText('META-INF/jarjar/metadata.json'))
+            def packagedModules = nestedMetadata.jars.collect { it.identifier.artifact }.toSet()
+            def requiredModules = ['protobuf-java', 'luaj-core', 'luaj-jse', 'nv-websocket-client',
+                                   'aircompressor-v3', 'concentus', 'vorbis-java-core',
+                                   'avif-imageio-native-reader', 'imageio-webp', 'imageio-core',
+                                   'imageio-metadata', 'common-lang', 'common-io', 'common-image']
+            if (!packagedModules.containsAll(requiredModules)) {
+                throw new GradleException("Missing runtime libraries: ${requiredModules - packagedModules}")
+            }
+            nestedMetadata.jars.each { library ->
+                new ZipInputStream(jar.getInputStream(requireEntry(library.path))).withCloseable { nested ->
+                    for (def entry = nested.nextEntry; entry != null; entry = nested.nextEntry) {
+                        if (entry.name.startsWith('net/fabricmc/')) {
+                            throw new GradleException("Fabric runtime class inside ${library.path}: ${entry.name}")
+                        }
+                    }
+                }
+            }
+
+            int bridgeCount = 0
+            ['utils/PlatformUtils', 'utils/FiguraModMetadata', 'utils/FiguraResourceListener',
+             'utils/RenderUtils', 'config/ConfigKeyBind', 'entries/EntryPointManager'].each { name ->
+                def node = readClass("org/figuramc/figura/${name}.class")
+                node.methods.each { method ->
+                    method.instructions.each { instruction ->
+                        if (methodInstructionType.isInstance(instruction) && instruction.owner.contains('/neoforge/')) {
+                            def implementation = readClass("${instruction.owner}.class")
+                            if (!implementation.methods.any {
+                                it.name == instruction.name && it.desc == instruction.desc
+                            }) {
+                                throw new GradleException("Unresolved platform bridge: ${instruction.owner}.${instruction.name}")
+                            }
+                            bridgeCount++
+                        }
+                    }
+                }
+            }
+            if (bridgeCount != 13) {
+                throw new GradleException("Expected 13 NeoForge platform bridges, found ${bridgeCount}")
+            }
+            logger.lifecycle("PASS NeoForge distribution: ${mixinCount} mixins, ${packagedModules.size()} libraries, ${bridgeCount} resolved platform bridges; client MANUAL/PENDING")
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('verifyNeoForgeJar')
+}

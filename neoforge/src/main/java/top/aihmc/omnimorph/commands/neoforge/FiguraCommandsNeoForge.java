@@ -9,8 +9,9 @@ import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.commands.FiguraCommands;
 import org.figuramc.figura.utils.FiguraClientCommandSource;
+import top.aihmc.omnimorph.neoforge.FiguraModForge;
 
-@EventBusSubscriber(modid = FiguraMod.MOD_ID, value = Dist.CLIENT)
+@EventBusSubscriber(modid = FiguraModForge.MOD_ID, value = Dist.CLIENT)
 public class FiguraCommandsNeoForge {
     @SuppressWarnings({"unchecked", "rawtypes"})
     @SubscribeEvent

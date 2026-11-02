@@ -10,7 +10,7 @@ public class FiguraModMetadataImpl extends FiguraModMetadata {
     private final IModInfo modInfo;
     protected FiguraModMetadataImpl(String modID) {
         super(modID);
-        this.modInfo = ModList.get().getModContainerById(modID).get().getModInfo();
+        this.modInfo = ModList.get().getModContainerById(PlatformUtilsImpl.loaderModId(modID)).get().getModInfo();
     }
 
     public static FiguraModMetadata getMetadataForMod(String modID) {
