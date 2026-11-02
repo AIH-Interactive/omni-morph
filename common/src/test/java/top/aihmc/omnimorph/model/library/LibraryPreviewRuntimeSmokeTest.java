@@ -1843,6 +1843,35 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(AvatarManager.getAvatar(worldFrame) == preview.outfitState().base()
                             && top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.composition(worldFrame) != null,
                     "local draft replaces only the current player's extracted render frame");
+            OutfitHandRenderingSmokeTest.run(unsafe, preview);
+            String handModel = System.getenv("OMNIMORPH_TEST_HAND_AVATAR");
+            if (handModel != null && !handModel.isBlank()) {
+                try (var provided = new LibraryPreviewSession()) {
+                    CompoundTag nbt;
+                    OutfitConfig.ResourceRef reference;
+                    try (var archive = java.nio.file.FileSystems.newFileSystem(Path.of(handModel), Map.of());
+                         var entries = Files.walk(archive.getPath("/"))) {
+                        var modelRoot = entries.filter(path -> path.getFileName() != null
+                                        && path.getFileName().toString().equals("avatar.json"))
+                                .findFirst().orElseThrow().getParent();
+                        var sources = new top.aihmc.omnimorph.avatar.local.LocalAvatarSource(
+                                Path.of(System.getProperty("figura.test.directory")));
+                        reference = sources.describe(modelRoot, () -> false);
+                        nbt = sources.prepare(reference, player.getUUID(), () -> false);
+                    }
+                    require(await(provided.selectDraft(nbt), drain), "provided hand model loads as a Figura preview");
+                    var configuration = new OutfitConfig(1, 0, reference, java.util.List.of(), java.util.List.of(),
+                            Map.of(), false);
+                    require(await(provided.prepareComposition(configuration, OutfitLimits.defaults(), player.getUUID(),
+                            UUID.randomUUID(), provided.outfitBase().permissions, (resource, cancelled) -> {
+                                throw new AssertionError("base-only hand fixture has no accessory resources");
+                            }), drain), "provided hand model composition prepares");
+                    top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.show(editor, provided);
+                    OutfitHandRenderingSmokeTest.run(unsafe, provided);
+                } finally {
+                    top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.show(editor, preview);
+                }
+            }
             var other = (CurrentPreviewPlayer) unsafe.allocateInstance(CurrentPreviewPlayer.class);
             other.setUUID(UUID.randomUUID());
             require(top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.state(other) == null

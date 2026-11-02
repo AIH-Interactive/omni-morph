@@ -57,9 +57,6 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
     }
 
     @Unique
-    private Avatar avatar;
-
-    @Unique
     boolean isNameRendering, hasScore;
 
     @Unique
@@ -204,9 +201,9 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
             OutfitRenderBinding.capture(player, outfitState, 1, true);
             outfit = OutfitRenderBinding.composition(outfitState);
             // The composition's budget belongs to its own base, which is the local draft preview while editing.
-            Avatar compositionBase = OutfitRenderBinding.avatar(outfitState);
-            if (compositionBase != null) {
-                localAvatar = compositionBase;
+            if (outfit != null) {
+                // A null captured base explicitly selects vanilla, even with a resident YSM avatar.
+                localAvatar = AvatarManager.getAvatar(outfitState);
             }
         }
         if (localAvatar == null || !localAvatar.isYsmNative())
@@ -260,22 +257,21 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
 
     @Inject(at = @At(value = "INVOKE", shift = At.Shift.BEFORE, target = "Lnet/minecraft/client/renderer/SubmitNodeCollector;submitModelPart(Lnet/minecraft/client/model/geom/ModelPart;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/rendertype/RenderType;IILnet/minecraft/client/renderer/texture/TextureAtlasSprite;)V"), method = "renderHand")
     private void onRenderHand(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int i, Identifier resourceLocation, ModelPart modelPart, boolean bl, CallbackInfo ci) {
-        avatar = AvatarManager.getAvatarForPlayer(Minecraft.getInstance().player.getUUID());
-
-
         PlayerModel model = this.getModel();
         Map<ModelPart, PartPose> modelState = RenderUtils.captureModelState(model);
 
-        Avatar localAvatar = avatar;
         var player = Minecraft.getInstance().player;
         float delta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
-        AvatarRenderState outfitState = localAvatar == null && player != null && OutfitRenderBinding.hasComposition(player)
+        AvatarRenderState outfitState = player != null && OutfitRenderBinding.hasComposition(player)
                 ? this.createRenderState(player, delta) : null;
         if (outfitState != null) {
             outfitState.lightCoords = i;
             OutfitRenderBinding.capture(player, outfitState, 1, true);
         }
         var outfit = outfitState == null ? null : OutfitRenderBinding.composition(outfitState);
+        // Select the hand renderer from the same snapshot as its composition, including local drafts.
+        Avatar localAvatar = outfit == null ? AvatarManager.getAvatarForPlayer(player.getUUID())
+                : AvatarManager.getAvatar(outfitState);
         Matrix4f armToDraw = new Matrix4f(poseStack.last().pose());
         BiFunction<MultiBufferSource, PoseStack, Boolean> lambda = (bufferSource, stack) -> {
             if (outfit != null && localAvatar == null) {
@@ -307,9 +303,6 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
 
     @Inject(at = @At("RETURN"), method = "renderHand")
     private void postRenderHand(PoseStack stack, SubmitNodeCollector submitNodeCollector, int light, Identifier resourceLocation, ModelPart arm, boolean bl, CallbackInfo ci) {
-        if (avatar == null)
-            return;
-
         NodeCollectorExtension nodeCollectorExt = (NodeCollectorExtension) submitNodeCollector;
 
         float delta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
@@ -331,14 +324,15 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
         }
 
         var submittedArmOutfit = outfitState == null ? null : OutfitRenderBinding.composition(outfitState);
-        Avatar armAvatar = avatar;
-        Avatar armCompositionBase = outfitState == null ? null : OutfitRenderBinding.avatar(outfitState);
+        Avatar armAvatar = submittedArmOutfit == null ? AvatarManager.getAvatarForPlayer(player.getUUID())
+                : AvatarManager.getAvatar(outfitState);
+        if (armAvatar == null || armAvatar.isYsmNative()) {
+            return;
+        }
         // The first-person arm path only knows how to capture a Figura base skeleton. A YSM base has its own
         // hand renderer; prepareFiguraBase would reject it and crash the frame.
-        boolean figuraArmBase = submittedArmOutfit != null && armCompositionBase != null
-                && !armCompositionBase.isYsmNative() && armCompositionBase.renderer != null;
+        boolean figuraArmBase = submittedArmOutfit != null && armAvatar.renderer != null;
         if (figuraArmBase) {
-            armAvatar = armCompositionBase;
             submittedArmOutfit.prepareFiguraBase(armAvatar);
         }
         var preparedArmOutfit = figuraArmBase ? submittedArmOutfit : null;
@@ -382,8 +376,6 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
             }
             return null;
         });
-
-        avatar = null;
     }
 
     @Inject(method = "setupRotations(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;FF)V", at = @At("HEAD"), cancellable = true)
