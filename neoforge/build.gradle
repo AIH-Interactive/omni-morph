@@ -1,5 +1,5 @@
 plugins {
-    id "com.github.johnrengelman.shadow" version "8.1.1"
+    id "com.gradleup.shadow" version "9.0.0-beta12"
 }
 
 architectury {
@@ -8,7 +8,13 @@ architectury {
 }
 
 loom {
-    accessWidenerPath = project(":common").loom.accessWidenerPath
+    // No-remap Loom expects the official namespace even though the class names are identical.
+    def commonWidener = project(":common").loom.accessWidenerPath.get().asFile
+    def officialWidener = layout.buildDirectory.file('generated/omni-morph.accesswidener').get().asFile
+    officialWidener.parentFile.mkdirs()
+    officialWidener.setText(commonWidener.getText('UTF-8').replaceFirst('accessWidener v2 named', 'accessWidener v2 official'), 'UTF-8')
+    accessWidenerPath = officialWidener
+    enableTransitiveAccessWideners = false
 }
 
 configurations {
@@ -20,11 +26,6 @@ configurations {
 }
 
 dependencies {
-    mappings loom.layered {
-        mappings("org.quiltmc:quilt-mappings:$minecraft_version+build.$mappings:intermediary-v2")
-        officialMojangMappings()
-    }
-
     // Libraries
     include(forgeRuntimeLibrary("com.github.FiguraMC.luaj:luaj-core:$luaj-figura"))
     include(forgeRuntimeLibrary("com.github.FiguraMC.luaj:luaj-jse:$luaj-figura"))
@@ -63,10 +64,9 @@ shadowJar {
     archiveClassifier.set "dev-shadow"
 }
 
-remapJar {
-    atAccessWideners.add(loom.accessWidenerPath.get().asFile.name)
-    input.set shadowJar.archiveFile
+tasks.register('remapJar', Jar) {
     dependsOn shadowJar
+    from { zipTree(shadowJar.archiveFile.get().asFile) }
     archiveClassifier.set "neoforge-mc"
 }
 
@@ -89,7 +89,7 @@ components.java {
 publishing {
     publications {
         maven(MavenPublication) {
-            artifactId = "${project.archivesBaseName}-${project.name}"
+            artifactId = "${base.archivesName.get()}-${project.name}"
             version = project.version
             artifact(remapJar) {
                 builtBy remapJar
