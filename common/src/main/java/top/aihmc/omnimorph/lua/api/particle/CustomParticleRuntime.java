@@ -4,7 +4,7 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.culling.Frustum;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
@@ -190,23 +190,30 @@ public final class CustomParticleRuntime {
                 particle.limits().maxRibbonVertices(), vertices);
     }
 
-    public static void renderWorld(Frustum frustum, Camera camera, float partialTick) {
+    public static void renderWorld(PoseStack poses, Frustum frustum, Camera camera, float partialTick,
+                                   MultiBufferSource.BufferSource buffers) {
         var frame = extractWorld(frustum, camera, partialTick);
         if (frame.vertexCount() == 0) {
             return;
         }
-        // Vertices already subtract the camera; shader-pack camera translation must not apply twice.
+        // Flush preceding native geometry before installing the particle view scope.
+        // Minecraft owns and reuses these builders; do not allocate an unmanaged builder per frame.
+        buffers.endBatch();
         var modelView = RenderSystem.getModelViewStack();
         modelView.pushPose();
         try {
-            var storage = new BufferBuilder(1536);
-            modelView.last().pose().setTranslation(0f, 0f, 0f);
+            applyWorldView(modelView, poses);
             RenderSystem.applyModelViewMatrix();
-            frame.draw(new Matrix4f(), MultiBufferSource.immediate(storage), true);
+            frame.draw(new Matrix4f(), buffers, true);
         } finally {
             modelView.popPose();
             RenderSystem.applyModelViewMatrix();
         }
+    }
+
+    static void applyWorldView(PoseStack modelView, PoseStack poses) {
+        // The vanilla particle pass has already popped this view matrix before our TAIL hook.
+        modelView.mulPoseMatrix(poses.last().pose());
     }
 
     /** Freeze geometry and charge budgets once before submitting the world draw. */

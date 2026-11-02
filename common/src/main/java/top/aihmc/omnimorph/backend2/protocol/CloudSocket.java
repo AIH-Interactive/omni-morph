@@ -140,7 +140,7 @@ public final class CloudSocket implements WebSocket.Listener, AutoCloseable {
                 }
             }
             if (complete != null) {
-                receive.accept(complete);
+                deliver(complete);
             }
         } catch (Exception exception) {
             fail("Invalid socket message");
@@ -176,7 +176,7 @@ public final class CloudSocket implements WebSocket.Listener, AutoCloseable {
                 }
             }
             if (complete != null) {
-                receive.accept(complete);
+                deliver(complete);
             }
         } catch (Exception exception) {
             fail("Invalid socket message");
@@ -204,7 +204,23 @@ public final class CloudSocket implements WebSocket.Listener, AutoCloseable {
             closed = true;
         }
         close();
-        failure.accept(reason);
+        withModClassLoader(() -> failure.accept(reason));
+    }
+
+    private void deliver(byte[] message) {
+        withModClassLoader(() -> receive.accept(message));
+    }
+
+    // JDK HTTP callbacks can arrive with AppClassLoader, which cannot resolve mod/JarJar parents.
+    private static void withModClassLoader(Runnable action) {
+        Thread worker = Thread.currentThread();
+        ClassLoader previous = worker.getContextClassLoader();
+        worker.setContextClassLoader(CloudSocket.class.getClassLoader());
+        try {
+            action.run();
+        } finally {
+            worker.setContextClassLoader(previous);
+        }
     }
 
     @Override

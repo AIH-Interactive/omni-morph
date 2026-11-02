@@ -50,6 +50,7 @@ public final class CustomParticleNativeSmokeTest {
             engineField.set(client, engine);
             initialize(first);
             initialize(second);
+            ParticleWorldBufferMemorySmokeTest.run(first, texture);
             CustomParticleLayeredSmokeTest.run(first, secondTexture, drain);
             RibbonNativeSmokeTest.run(first, second, drain);
             ParticleMotionNativeSmokeTest.run(unsafe, first, drain);

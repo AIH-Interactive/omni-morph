@@ -59,6 +59,6 @@ public abstract class GpuBufferSourceMixin implements GpuBufferQueue.Owner {
             omniMorph$queue.emitNative(vertices, material);
         }
         original.call(material, vertices, sorting);
-        omniMorph$queue.flush(material);
+        omniMorph$queue.flush(material, vertices);
     }
 }

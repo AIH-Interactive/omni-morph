@@ -61,7 +61,7 @@ public final class GpuBufferQueue {
         }
     }
 
-    public void flush(RenderType material) {
+    public void flush(RenderType material, BufferBuilder vertices) {
         List<Entry> entries = pending.remove(material);
         if (entries == null) {
             return;
@@ -73,10 +73,17 @@ public final class GpuBufferQueue {
         }
         if (!service.drawBatches(entries.stream().map(Entry::batch).toList())) {
             // Re-enter the original material renderer without recursing into BufferSource hooks.
-            BufferBuilder vertices = new BufferBuilder(256);
+            // BufferSource still owns this builder; the preceding native batch has ended.
             vertices.begin(material.mode(), material.format());
-            emit(entries, vertices);
-            material.end(vertices, RenderSystem.getVertexSorting());
+            try {
+                emit(entries, vertices);
+                material.end(vertices, RenderSystem.getVertexSorting());
+            } finally {
+                if (vertices.building()) {
+                    // An emitter failure must not leave the borrowed builder inside begin/end.
+                    vertices.end().release();
+                }
+            }
         }
     }
 }

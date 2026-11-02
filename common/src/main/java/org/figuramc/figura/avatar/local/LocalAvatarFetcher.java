@@ -64,7 +64,19 @@ public class LocalAvatarFetcher {
             return CompletableFuture.completedFuture(null);
 
         requireReload = false;
-        return CompletableFuture.runAsync(LocalAvatarFetcher::loadAvatars);
+        return CompletableFuture.runAsync(() -> withAvatarClassLoader(LocalAvatarFetcher::loadAvatars));
+    }
+
+    static void withAvatarClassLoader(Runnable action) {
+        Thread worker = Thread.currentThread();
+        ClassLoader previous = worker.getContextClassLoader();
+        // Forge EventBus resolves parents through TCCL; common-pool workers otherwise use AppClassLoader.
+        worker.setContextClassLoader(LocalAvatarFetcher.class.getClassLoader());
+        try {
+            action.run();
+        } finally {
+            worker.setContextClassLoader(previous);
+        }
     }
 
     public static void tick() {

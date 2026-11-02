@@ -768,9 +768,14 @@ public class NetworkStuff {
             return;
         }
         Runnable bounded = () -> {
+            Thread worker = Thread.currentThread();
+            ClassLoader previous = worker.getContextClassLoader();
             try {
+                // Request builders load mod/JarJar classes before reaching the socket callbacks.
+                worker.setContextClassLoader(NetworkStuff.class.getClassLoader());
                 action.run();
             } finally {
+                worker.setContextClassLoader(previous);
                 pendingTasks.decrementAndGet();
             }
         };

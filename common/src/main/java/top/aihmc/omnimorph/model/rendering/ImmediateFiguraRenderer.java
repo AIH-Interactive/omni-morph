@@ -204,7 +204,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         customizationStack.push(customization);
 
         // world matrices
-        CAMERA_POS_TO_WORLD_MATRIX.set(FiguraRenderer.worldToCameraPosMatrix().invert());
+        updateCameraToWorldMatrix();
 
         // calculate each part matrices
         calculatePartMatrices(root);
@@ -264,7 +264,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
 
         // world matrices
         if (allowMatrixUpdate) {
-            CAMERA_POS_TO_WORLD_MATRIX.set(FiguraRenderer.worldToCameraPosMatrix().invert());
+            updateCameraToWorldMatrix();
         }
 
         // The native traversal clips faces before either ordinary or accelerated submission.
@@ -723,9 +723,20 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         queue.add(new Pair<>(currentPosMat, currentNormalMat)); // These are COPIES, so ok to add
     }
 
+    private void updateCameraToWorldMatrix() {
+        FiguraMat4 worldToCamera = FiguraRenderer.worldToCameraPosMatrix();
+        if (!avatar.usesPreviewParticles() && !UIHelper.paperdoll
+                && avatar.renderMode != EntityRenderMode.FIGURA_GUI) {
+            // In 1.20.1 the entity PoseStack still includes the view rotation.
+            // GUI previews use their own virtual camera and retain their existing position-space contract.
+            worldToCamera.multiply(FiguraRenderer.worldToViewMatrix());
+        }
+        CAMERA_POS_TO_WORLD_MATRIX.set(worldToCamera.invert());
+    }
+
     protected FiguraMat4 partToWorldMatrices(PartCustomization cust) {
         FiguraMat4 customizePeek = customizationStack.peek().positionMatrix.copy();
-        // Translate by the inverse matrix of the camera position, as of 1.20.5 it is no longer dependent on camera rot.
+        // Undo the world view before exposing positions to Lua and model lighting.
         customizePeek.multiply(CAMERA_POS_TO_WORLD_MATRIX);
         FiguraVec3 piv = cust.getPivot();
 

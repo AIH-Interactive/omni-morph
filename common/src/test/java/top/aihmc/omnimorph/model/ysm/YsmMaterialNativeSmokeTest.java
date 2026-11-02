@@ -130,6 +130,10 @@ public final class YsmMaterialNativeSmokeTest {
             }
             instance.set(null, client);
             org.figuramc.figura.permissions.PermissionManager.init();
+            if (args.length == 1 && args[0].equals("--network-context")) {
+                org.figuramc.figura.backend2.NetworkAsyncContextSmokeTest.run();
+                return;
+            }
             if ((args.length == 2 && args[0].equals("--library-preview"))
                     || (args.length == 2 && args[0].equals("--default-animations"))
                     || (args.length == 2 && args[0].equals("--cosmetic-sources"))

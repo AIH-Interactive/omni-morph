@@ -24,7 +24,6 @@ import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import org.figuramc.figura.model.rendering.texture.FiguraTextureSet;
 import org.joml.Matrix3f;
 import org.joml.Matrix4d;
-import org.joml.Quaternionf;
 
 import net.minecraft.client.renderer.texture.OverlayTexture;
 
@@ -192,24 +191,13 @@ public abstract class FiguraRenderer {
         return 180 - yaw;
     }
 
-    /**
-     * Gets a matrix to transform from world space to view space, based on the
-     * player's camera position and orientation.
-     * This is legacy and should not be used to go from world to view as of 1.20.5 it does not depend on the rotation anymore
-     * @return That matrix.
-     */
+    /** Camera-relative world axes to the 1.20.1 GameRenderer view axes (without camera translation). */
     public static FiguraMat4 worldToViewMatrix() {
-        Minecraft client = Minecraft.getInstance();
-        Camera camera = client.gameRenderer.getMainCamera();
-        Quaternionf rot = new Quaternionf(camera.rotation());
-        rot.x *= -1;
-        rot.z *= -1;
-        Matrix3f cameraMat3f = new Matrix3f().rotate(rot);
-        FiguraMat4 result = FiguraMat4.of();
-        FiguraMat3 cameraMat = FiguraMat3.of().set(cameraMat3f);
-        result.multiply(cameraMat.augmented());
-        result.scale(-1, 1, -1);
-        return result;
+        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+        // Match GameRenderer.renderLevel: Rx(pitch) * Ry(yaw + 180).
+        return FiguraMat4.of().set(new Matrix4d()
+                .rotationX(Math.toRadians(camera.getXRot()))
+                .rotateY(Math.toRadians(camera.getYRot() + 180f)));
     }
 
     /**

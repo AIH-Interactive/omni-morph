@@ -45,7 +45,7 @@ jobs:
           if ($buildExitCode -ne 0) { exit $buildExitCode }
       - name: Verify selected loader metadata, modules and packaged AVIF decoding
         run: |
-          & bash ./gradlew :common:loaderModuleSmokeTest :common:loaderArtifactSmokeTest :common:productionMixinContractSmokeTest -PnativeLoader=${{ matrix.loader }} "-Porg.gradle.java.installations.paths=$env:JAVA_HOME_17_X64" --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log -Append
+          & bash ./gradlew :common:loaderModuleSmokeTest :common:loaderArtifactSmokeTest :common:productionMixinContractSmokeTest :common:renderTypeFactoryAccessSmokeTest :common:particleWorldEntrySmokeTest :common:particleWorldViewSmokeTest :common:nativeBufferMemorySmokeTest :common:cloudSocketContextSmokeTest :common:localAvatarFetcherContextSmokeTest -PnativeLoader=${{ matrix.loader }} "-Porg.gradle.java.installations.paths=$env:JAVA_HOME_17_X64" --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log -Append
           $buildExitCode = $LASTEXITCODE
           Get-Content -LiteralPath build.log -Tail 40
           if ($buildExitCode -ne 0) { exit $buildExitCode }

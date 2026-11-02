@@ -57,10 +57,8 @@ public final class OutfitFirstPersonScripts {
         if (composition == null || base == null || base.renderer == null) {
             return;
         }
-        Vec3 camera = minecraft.gameRenderer.getMainCamera().getPosition();
         Vec3 feet = player.getPosition(delta);
-        Matrix4f entityToDraw = new Matrix4f().translate(
-                (float) (feet.x - camera.x), (float) (feet.y - camera.y), (float) (feet.z - camera.z));
+        Matrix4f entityToDraw = cameraRelativeBody(feet, minecraft.gameRenderer.getMainCamera());
         float bodyYaw = Mth.rotLerp(delta, player.yBodyRotO, player.yBodyRot);
         MultiBufferSource discard = type -> (VertexConsumer) Proxy.newProxyInstance(
                 OutfitFirstPersonScripts.class.getClassLoader(),
@@ -81,6 +79,14 @@ public final class OutfitFirstPersonScripts {
             base.renderer.allowMatrixUpdate = previousMatrixUpdate;
             base.renderMode = previousMode;
         }
+    }
+
+    static Matrix4f cameraRelativeBody(Vec3 feet, net.minecraft.client.Camera camera) {
+        Vec3 position = camera.getPosition();
+        // Match the real 1.20.1 entity pass even though this script-only draw discards geometry.
+        return top.aihmc.omnimorph.model.rendering.FiguraRenderer.worldToViewMatrix().toMatrix4f()
+                .translate((float) (feet.x - position.x), (float) (feet.y - position.y),
+                        (float) (feet.z - position.z));
     }
 
     private static void drawYsm(OutfitComposition.Frame composition, Avatar base, YsmEntityFrame state, int light,

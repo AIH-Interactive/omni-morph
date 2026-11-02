@@ -833,7 +833,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var previousRenderer = minecraft.gameRenderer;
         var renderer = (net.minecraft.client.renderer.GameRenderer) unsafe.allocateInstance(
                 net.minecraft.client.renderer.GameRenderer.class);
-        field(renderer.getClass(), "mainCamera").set(renderer, new net.minecraft.client.Camera());
+        var identityCamera = new WorldCoordinateCamera();
+        identityCamera.identityView();
+        field(renderer.getClass(), "mainCamera").set(renderer, identityCamera);
         field(Minecraft.class, "gameRenderer").set(minecraft, renderer);
         boolean previousPaperdoll = org.figuramc.figura.utils.ui.UIHelper.paperdoll;
         try (var device = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.nativeTextureContext();
@@ -976,7 +978,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
         minecraft.getEntityRenderDispatcher().setRenderHitBoxes(false);
         var renderer = (net.minecraft.client.renderer.GameRenderer) unsafe.allocateInstance(
                 net.minecraft.client.renderer.GameRenderer.class);
-        field(renderer.getClass(), "mainCamera").set(renderer, new net.minecraft.client.Camera());
+        var identityCamera = new WorldCoordinateCamera();
+        identityCamera.identityView();
+        field(renderer.getClass(), "mainCamera").set(renderer, identityCamera);
         field(Minecraft.class, "gameRenderer").set(minecraft, renderer);
         // The local wearer's own pack is MAX; the detached preview default would stop at 2048 faces.
         var wearer = new PermissionPack.PlayerPermissionPack(
@@ -1068,7 +1072,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
         minecraft.getEntityRenderDispatcher().setRenderHitBoxes(false);
         var renderer = (net.minecraft.client.renderer.GameRenderer) unsafe.allocateInstance(
                 net.minecraft.client.renderer.GameRenderer.class);
-        field(renderer.getClass(), "mainCamera").set(renderer, new net.minecraft.client.Camera());
+        var identityCamera = new WorldCoordinateCamera();
+        identityCamera.identityView();
+        field(renderer.getClass(), "mainCamera").set(renderer, identityCamera);
         field(Minecraft.class, "gameRenderer").set(minecraft, renderer);
         var wearer = new PermissionPack.PlayerPermissionPack(
                 new PermissionPack.CategoryPermissionPack(Permissions.Category.MAX), player.getUUID().toString());
@@ -3860,7 +3866,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
         boolean oldDebug = client.getEntityRenderDispatcher().shouldRenderHitBoxes();
         var renderer = (net.minecraft.client.renderer.GameRenderer) unsafe.allocateInstance(
                 net.minecraft.client.renderer.GameRenderer.class);
-        field(renderer.getClass(), "mainCamera").set(renderer, new net.minecraft.client.Camera());
+        var identityCamera = new WorldCoordinateCamera();
+        identityCamera.identityView();
+        field(renderer.getClass(), "mainCamera").set(renderer, identityCamera);
         field(Minecraft.class, "gameRenderer").set(client, renderer);
         client.getEntityRenderDispatcher().setRenderHitBoxes(false);
         try (var session = new LibraryPreviewSession(null, true); var gui = new PreviewGraphics(unsafe)) {
@@ -5562,32 +5570,78 @@ public final class LibraryPreviewRuntimeSmokeTest {
 
     }
 
+    private static final class WorldCoordinateCamera extends net.minecraft.client.Camera {
+        void identityView() {
+            setRotation(180, 0);
+            setPosition(0, 0, 0);
+        }
+
+        void configure(float yaw, float pitch) {
+            setRotation(yaw, pitch);
+            setPosition(120, 70, -30);
+        }
+    }
+
     private static void testWorldMatricesAfterPreview(Avatar avatar,
-                                                      net.minecraft.client.model.PlayerModel model) {
+                                                      net.minecraft.client.model.PlayerModel model) throws Exception {
         var previousMode = avatar.renderMode;
         boolean previousPaperdoll = org.figuramc.figura.utils.ui.UIHelper.paperdoll;
         boolean previousUpdate = avatar.renderer.allowMatrixUpdate;
+        var gameRenderer = Minecraft.getInstance().gameRenderer;
+        var cameraField = field(gameRenderer.getClass(), "mainCamera");
+        Object previousCamera = cameraField.get(gameRenderer);
+        var camera = new WorldCoordinateCamera();
+        cameraField.set(gameRenderer, camera);
+        var bodyMatrix = top.aihmc.omnimorph.model.outfit.OutfitFirstPersonScripts.class.getDeclaredMethod(
+                "cameraRelativeBody", net.minecraft.world.phys.Vec3.class, net.minecraft.client.Camera.class);
+        bodyMatrix.setAccessible(true);
         try {
-            for (int frame = 0; frame < 2; frame++) {
-                double worldX = 140 + frame * 12;
-                avatar.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.RENDER;
-                org.figuramc.figura.utils.ui.UIHelper.paperdoll = false;
-                avatar.renderer.allowMatrixUpdate = true;
-                var stack = new com.mojang.blaze3d.vertex.PoseStack();
-                stack.translate(worldX, 64, -48);
-                avatar.updateMatrices(model, stack);
-                require(Math.abs(avatar.renderer.root.partToWorldMatrix().apply(0d, 0d, 0d).x - worldX) < .001,
-                        "immediate world drawing updates particle coordinates after wardrobe drawing/close");
-                avatar.postRenderEvent(.5f, org.figuramc.figura.math.matrix.FiguraMat4.of());
-                if (frame == 0) {
-                    avatar.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
-                    org.figuramc.figura.utils.ui.UIHelper.paperdoll = true;
-                    avatar.updateMatrices(model, new com.mojang.blaze3d.vertex.PoseStack());
-                    require(Math.abs(avatar.renderer.root.partToWorldMatrix().apply(0d, 0d, 0d).x - worldX) < .001,
-                            "immediate wardrobe drawing preserves the preceding world particle position");
+            // This fixture is normally a GUI owner; temporarily use its supported live-world route.
+            var enabledField = field(Avatar.class, "worldParticlesEnabled");
+            boolean previousEnabled = enabledField.getBoolean(avatar);
+            enabledField.setBoolean(avatar, true);
+            try {
+                for (float yaw : new float[] {0, 45, 90, 180, 270}) {
+                    for (float pitch : new float[] {-60, 0, 45}) {
+                        camera.configure(yaw, pitch);
+                        avatar.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.RENDER;
+                        org.figuramc.figura.utils.ui.UIHelper.paperdoll = false;
+                        avatar.renderer.allowMatrixUpdate = true;
+                        var stack = new com.mojang.blaze3d.vertex.PoseStack();
+                        // Exact 1.20.1 GameRenderer -> LevelRenderer entity-stack convention.
+                        stack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(pitch));
+                        stack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(yaw + 180));
+                        stack.translate(20, -6, -18);
+                        avatar.updateMatrices(model, stack);
+                        var position = (org.figuramc.figura.math.vector.FiguraVec3) avatar.loadScript("trail world coordinate", "return models:partToWorldMatrix():apply()")
+                                .call().checkuserdata(org.figuramc.figura.math.vector.FiguraVec3.class);
+                        // Root model offset contributes 1.5 blocks in the incoming entity basis.
+                        require(Math.abs(position.x - 140) < .001 && Math.abs(position.y - 65.5) < .001
+                                        && Math.abs(position.z + 48) < .001,
+                                "Lua trail world position must not follow camera yaw/pitch: " + yaw + "/" + pitch
+                                        + " -> " + position);
+                        var firstPerson = new com.mojang.blaze3d.vertex.PoseStack();
+                        firstPerson.mulPoseMatrix((org.joml.Matrix4f) bodyMatrix.invoke(null,
+                                new net.minecraft.world.phys.Vec3(140, 64, -48), camera));
+                        avatar.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIRST_PERSON_WORLD;
+                        avatar.updateMatrices(model, firstPerson);
+                        var firstPersonPosition = avatar.renderer.root.partToWorldMatrix().apply(0d, 0d, 0d);
+                        require(firstPersonPosition.copy().subtract(position).length() < .001,
+                                "script-only first-person body agrees with third-person world coordinates");
+                        avatar.postRenderEvent(.5f, org.figuramc.figura.math.matrix.FiguraMat4.of());
+                        avatar.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
+                        org.figuramc.figura.utils.ui.UIHelper.paperdoll = true;
+                        avatar.updateMatrices(model, new com.mojang.blaze3d.vertex.PoseStack());
+                        require(avatar.renderer.root.partToWorldMatrix().apply(0d, 0d, 0d).copy().subtract(position).length() < .001,
+                                "wardrobe draw preserves the preceding world particle position");
+                    }
                 }
+            } finally {
+                enabledField.setBoolean(avatar, previousEnabled);
             }
+            System.out.println("PASS Lua trail world coordinates at 15 real camera angles and nonzero camera position");
         } finally {
+            cameraField.set(gameRenderer, previousCamera);
             avatar.renderMode = previousMode;
             org.figuramc.figura.utils.ui.UIHelper.paperdoll = previousPaperdoll;
             avatar.renderer.allowMatrixUpdate = previousUpdate;

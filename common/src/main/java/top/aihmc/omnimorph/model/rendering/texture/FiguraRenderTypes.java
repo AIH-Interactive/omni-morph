@@ -73,11 +73,14 @@ public enum FiguraRenderTypes {
             super(name, vertexFormat, drawMode, expectedBufferSize, hasCrumbling, translucent, startAction, endAction);
         }
 
+        // Forge's five-argument overload is package-private; preserve its false/false defaults explicitly.
         public static final RenderType SOLID = create(
                 "figura_solid",
                 DefaultVertexFormat.POSITION_COLOR_NORMAL,
                 VertexFormat.Mode.QUADS,
                 256,
+                false,
+                false,
                 RenderType.CompositeState.builder()
                         .setShaderState(RENDERTYPE_LINES_SHADER)
                         .setLineState(new LineStateShard(OptionalDouble.empty()))

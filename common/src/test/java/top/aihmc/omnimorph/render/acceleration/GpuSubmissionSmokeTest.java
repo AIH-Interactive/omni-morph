@@ -30,6 +30,10 @@ public final class GpuSubmissionSmokeTest {
         Bootstrap.bootStrap();
         RenderSystem.initRenderThread();
         RenderSystem.setProjectionMatrix(new Matrix4f(), VertexSorting.DISTANCE_TO_ORIGIN);
+        if (args.length == 1 && args[0].equals("--native-memory")) {
+            sustainedFallback();
+            return;
+        }
         opaqueBoundary();
         for (boolean merged : new boolean[] {false, true}) {
             AccelerationOptions.setMergePasses(merged);
@@ -48,6 +52,70 @@ public final class GpuSubmissionSmokeTest {
         }
         diagnosticRecording();
         System.out.println("PASS unsupported-source fallback, GPU queue acceptance/flush, mixed native sorting, stale leases, 65 poses and 100 buffer cycles; standalone fixture does not install Mixins");
+    }
+
+    private static void sustainedFallback() throws Exception {
+        var service = AccelerationService.INSTANCE;
+        var owner = new AccelerationOwner();
+        var material = new RecordingType(false);
+        service.useBackend(new AccelerationBackend() {
+            public boolean supports(Operation operation, DrawBatch batch) {
+                return operation == Operation.GPU_DRAW;
+            }
+            public double[] transform(DrawBatch batch) {
+                return new JavaAccelerationBackend().transform(batch);
+            }
+            public boolean drawBatches(List<DrawBatch> batches) {
+                return false;
+            }
+        });
+        try (var memory = new top.aihmc.omnimorph.test.NativeAllocationProbe()) {
+            var builder = new BufferBuilder(256);
+            var queue = new GpuBufferQueue();
+            double[] depths = new double[64];
+            var batch = batch(service, owner, material, depths);
+            GpuSubmission.JavaEmitter emitter = (vertices, start, count) -> {
+                for (int index = 0; index < count; index++) {
+                    vertices.vertex(0, 0, 0).color(-1).uv(0, 0).overlayCoords(0)
+                            .uv2(0).normal(0, 1, 0).endVertex();
+                }
+            };
+            queue.add(batch, emitter);
+            queue.flush(material, builder);
+            long warmBytes = memory.liveBytes();
+            long warmAllocations = memory.allocations();
+            int cycles = Integer.getInteger("omnimorph.memoryCycles", 32);
+            for (int index = 0; index < cycles; index++) {
+                queue.add(batch, emitter);
+                queue.flush(material, builder);
+            }
+            require(memory.allocations() == warmAllocations && memory.liveBytes() == warmBytes,
+                    "GPU fallback allocates native memory after warmup: " + warmBytes + " -> "
+                            + memory.liveBytes() + " bytes, allocations=" + warmAllocations + " -> " + memory.allocations());
+            require(material.draws == cycles + 1 && material.depths.size() == 64 * (cycles + 1),
+                    "every fallback still emits every quad exactly once");
+            material.requireReleased();
+            RuntimeException expected = new IllegalStateException("expected fallback emitter failure");
+            queue.add(batch, (vertices, start, count) -> {
+                vertices.vertex(0, 0, 0).color(-1).uv(0, 0).overlayCoords(0)
+                        .uv2(0).normal(0, 1, 0).endVertex();
+                throw expected;
+            });
+            try {
+                queue.flush(material, builder);
+                throw new AssertionError("emitter failure swallowed");
+            } catch (RuntimeException actual) {
+                require(actual == expected && !builder.building(), "borrowed builder recovers after emitter failure");
+            }
+            queue.add(batch, emitter);
+            queue.flush(material, builder);
+            require(material.draws == cycles + 2, "next fallback renders after failure");
+            require(memory.allocations() == warmAllocations && memory.liveBytes() == warmBytes,
+                    "failed/recovered fallback does not allocate native memory");
+            System.out.println("PASS " + cycles + " real fallback flushes: no native allocations/growth after warmup; bytes=" + warmBytes);
+        } finally {
+            service.useBackend(null);
+        }
     }
 
     private static void queuedBoundary() {
@@ -109,21 +177,21 @@ public final class GpuSubmissionSmokeTest {
             require(GpuSubmission.enqueue(source, first, fallback)
                     && GpuSubmission.enqueue(source, second, fallback), "both engine batches queue without early draw");
             require(gpuDraws[0] == 0 && fallbacks[0] == 0, "preparation never flushes a material");
-            queue.flush(material);
+            queue.flush(material, builder);
             require(gpuDraws[0] == 2 && fallbacks[0] == 0, "one boundary submits both batches exactly once");
             require(GpuSubmission.enqueue(source, first, fallback)
                     && GpuSubmission.enqueue(source, second, fallback), "next GPU-only group accepted");
             source.getBuffer(material); // Native caller: replay before any later native vertices.
             require(fallbacks[0] == 2, "mixed native material falls back as one sort group");
             material.end(builder, VertexSorting.DISTANCE_TO_ORIGIN);
-            queue.flush(material);
+            queue.flush(material, builder);
             require(material.depths.equals(List.of(3f, 1f)) && gpuDraws[0] == 2,
                     "mixed fallback keeps global native quad order without duplicate GPU draws");
             material.requireReleased();
             var stale = batch(service, owner, material, 5);
             queue.add(stale, fallback);
             owner.retire();
-            queue.flush(material);
+            queue.flush(material, builder);
             require(gpuDraws[0] == 2 && fallbacks[0] == 2,
                     "retired queued owner is discarded without GPU draw or Java replay");
         } finally {

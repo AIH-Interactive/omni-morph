@@ -255,6 +255,7 @@ public final class PreviewBoneHighlight {
     private static final class Lines extends RenderType {
         private static final RenderType TYPE = create("wardrobe_bone_selection",
                 DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.LINES, 1536,
+                false, false,
                 CompositeState.builder()
                         .setShaderState(RENDERTYPE_LINES_SHADER)
                         .setLineState(new LineStateShard(OptionalDouble.of(1)))

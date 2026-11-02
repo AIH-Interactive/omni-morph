@@ -225,3 +225,80 @@ https://github.com/AIH-Interactive/omni-morph/actions/runs/41319049342 正在进
 重新检查14份阶段成功日志及M0–M3提交祖先关系，m0-m3-completion-audit.json/log；M3全部104任务逐项最新结果m3-task-completion-audit.json/log。原失败没有改写为PASS，人工跳过没有冒充自动成功。
 
 完整游戏/Mixin实际应用、真实相机/GUI/CJK字体、多人/整合包、第三方SPEAR-use正例、跨平台GPU/性能A/B与Android设备JNI均 SKIPPED（MANUAL，用户要求跳过；未验证）：需要人工/完整客户端/目标设备，现有静态/组件/GL夹具不能证明这些行为。缺专属语料同样未验证。没有剩余实施阶段，不为等待人工新增任务。
+
+
+## 后续 Bug 修复：RenderType SOLID 访问错误（2026-11-02，等待人工验收）
+
+用户报告Forge47.4.20启动时FiguraRenderTypes$FiguraRenderType访问五参数RenderType.m_173209_发生IllegalAccessError。Forge47.1.3、47.4.20及历史NeoForge47.1.106的实际patched SRG均为包可见五参数/public七参数；common named编译目标将五参数暴露为public，原AT无此方法。旧CI仅Mixin/桥接/模块检查未覆盖普通生产调用权限。
+
+最小修正：SOLID显式调用七参数create(...,false,false,state)，与三份目标中五参数包装方法的原委托语义一致，不扩大AT。新增renderTypeFactoryAccessSmokeTest读取正式JAR实际SOLID初始化调用和patched SRG方法权限；旧代码准确失败（forge-regression-red.log exit1，non-public m_173209_），修复后通过。已将此任务加入既有CI双加载器检查命令，但尚未触发CI。
+
+本地common主/测试编译、Forge平台编译/资源、正式remap、工厂权限回归、生产100Mixin/8Local、13桥接/模块包归属与实际AVIF JNI均通过：forge-fix-green.log exit0/35s（47.1.3）、neoforge-fix-green.log exit0/15s（47.1.106）、forge-47.4.20-fix-green.log exit0/45s。日志在build/tmp/access-diagnosis。actionlint通过；diff --check通过。没有执行完整客户端，自动检查不冒充人工验收。
+
+本地Windows验收包位于build/distributions/1.20.1-render-type-fix/{forge-47.4.20,forge-47.1.3,neoforge-47.1.106}/，常规文件名*-forge-mc.jar或*-neoforge-mc.jar；包含Windows x86_64 native，原windows-local副本与常规文件名副本字节一致，hash见同目录SHA256SUMS.txt。原CI交付目录build/distributions/1.20.1保持不变。当前本地包是HEAD2ba5172加未提交修复，不是已提交或CI发布产物。
+
+用户已要求本次Bug人工验收通过后才能提交推送并触发Actions：当前人工验收PENDING，不按一般人工SKIPPED规则跳过。没有提交、推送或触发Actions。项目级AGENTS.md已加入Bug流程及直接返回含Windows native的JAR链接规则；该文件沿用现有忽略状态。当前额度主要池剩余75%。
+
+
+## 后续 Bug 第二轮：骨骼高亮、custom 世界入口、异步列表（2026-11-02，人工验收待反馈）
+
+上一轮验收未通过：用户报告custom粒子不显示、异步模型列表AvatarPath类加载日志，补充骨骼树选中预览IllegalAccessError。只读分析确认三条不同路径，未将其扩大解释为整个装饰系统失效。用户随后授权实施。
+
+- PreviewBoneHighlight.Lines残留五参数create，三个patched目标均包可见；改七参数false,false，等价原包装委托。扩大既有权限回归到正式JAR全部8处相关factory调用，不再只测SOLID。
+- common粒子Mixin原仅注入五参数m_107336_兼容包装；实际LevelRenderer直接调用Forge六参数render(...,Frustum)。改注入真实六参数扩展入口，remap=false（Forge新增方法），传递实际frustum；避免钩子不可达，保持公共粒子生命周期和通道。
+- LocalAvatarFetcher.reloadAvatars异步扫描在模组TCCL作用域运行，finally恢复工作线程原TCCL；不修改EventBus、不吞异常、不改列表重载语义。新回归在common pool设置无关loader，验证实际scope的正常/异常恢复及原异常传播。完整EventBus/ModLauncher初始化仍需实机。
+- minecraft-dev MCP查阅原版1.20.1显示五参数调用；Forge47.1.3/47.4.20及历史Neo47.1.106实际patched字节码显示六参数入口。新particleWorldEntrySmokeTest以真实LevelRenderer调用而非vanilla方法存在性作契约。
+
+修复前两项回归均准确失败：particle-bone-regressions-red.log exit1，分别指出骨骼Lines的m_173209_非public、实际六参数世界调用与旧五参数selector不一致。修复后三个目标主/测试编译、平台编译/资源/remap、8factory访问、world入口、TCCL、生产100Mixin/8Local、13桥接/模块/AVIF检查通过：particle-bone-forge-green.log（35s）、particle-bone-neoforge-green.log（14s）、particle-bone-forge-47.4.20-green.log（20s），均exit0，位于build/tmp/access-diagnosis。
+
+Neo与Forge47.4.20额外customParticleSmokeTest/boneTreeSmokeTest通过；Forge47.4.20的ysmMaterialNativeSmokeTest综合检查通过，包含Layered/Ribbon/运动/动态光/anchor trail/隔离预览/装饰/资源生命周期。其empty YSM等日志为原有显式负例，任务exit0；不作为实机/GPU画面PASS。actionlint及diff --check通过。CI脚本已配置两项新task，但未触发。
+
+新包位于build/distributions/1.20.1-particle-bone-fix/{forge-47.4.20,forge-47.1.3,neoforge-47.1.106}/，常规文件名*-forge-mc.jar或*-neoforge-mc.jar，均含Windows x86_64 native。复制后检查所有正式class无m_173209_残留、粒子Frustum签名、fetcher context scope及实际native资源hash；SHA256SUMS/verification.json/README同根目录。此前CI原件与上一轮验收包保留，未自动改mods或启动游戏。
+
+人工验收PENDING，重点为骨骼选择/预览不崩溃、原世界场景custom/Ribbon和帧回调可见、刷新本地列表不再出现同一AvatarPath上下文错误。尚未提交、推送或触发Actions，须用户明确通过后再执行。最新主要额度剩余75%，未触发交接阈值。
+
+
+### 2026-11-02：WebSocket 父类日志与 custom 粒子角度问题（本地修复）
+
+- 用户在上一轮包继续反馈 `HttpClient-2-Worker-0` 的 Protobuf `GeneratedMessage$Builder` 父类日志，以及 custom 粒子只在特定角度可见；不能把上一轮自动检查通过当作实机验收通过。
+- WebSocket 接收/失败回调现以 `CloudSocket` 的模组类加载器作为临时 TCCL，在 finally 恢复原线程上下文。保持原回调线程、消息顺序、异常处理和协议不变；不是缺失 protobuf JAR，三个新包均核对嵌套父类存在。日志本身不证明消息解析失败。
+- 粒子六参数入口现把原始 PoseStack 传到 world draw。TAIL 已在原版 pop 后，现重新组合入口视图矩阵，保留既有 camera-relative 平移处理和栈恢复；没有关闭深度测试或改变材质剔除。Billboard/Ribbon 共用此 world 路径；GUI preview 未改。
+- 新增 `cloudSocketContextSmokeTest`（实际二进制 ACK、分片、文本、正常/异常/Error 与失败回调上下文恢复）和 `particleWorldViewSmokeTest`（15 组角度、billboard 角点逆旋转、输入矩阵及全局栈恢复）；增强正式 remap JAR 的 `particleWorldEntrySmokeTest` 检查 view 参数及生产组合调用。旧 particle-bone JAR 被准确判 FAIL：`World draw drops the incoming view PoseStack`，日志 `particle-view-network-old-artifact-red.log`；这是预期红例。
+- 三个目标本地编译/正式 remap/回归/packageLocalNative PASS：Forge 47.1.3（10s）、历史 NeoForge 47.1.106（19s）、实际环境 Forge 47.4.20（14s）。共同检查 8 factory、真实 patched world 入口、100 Mixin/8 Local、13 bridge、模块及 AVIF；NeoForge 额外 native material 粒子/Ribbon/preview/装饰综合检查 PASS。Forge 基线既有 cloudEndpoint 回归 PASS。日志 `build/tmp/access-diagnosis/particle-view-network-{forge,neoforge,forge-47.4.20}-green.log`。综合负例 empty YSM 日志不属于本次失败。
+- 已查 minecraft-dev 1.20.1 ParticleEngine render 参考，其 `mulPoseMatrix`/pop 顺序与本次根因一致；Forge/历史 NeoForge 的六参数入口以实际 patched target 为准。
+- 新任务接入既有 workflow；actionlint exit 0，未触发 Actions。交付 `build/distributions/1.20.1-particle-view-network-fix/` 下三个标准文件名 JAR，均含 Windows x86_64 native，附 SHA256SUMS、verification.json、README；旧包不覆盖，不写 mods，不启动游戏。
+- 本轮实施及本地检查完成。完整客户端/实际 FML 转换、实时后端连接、转动相机后的游戏画面和 shader-pack 仍未验证；按已明确的 Bug 验收流程等待用户实际反馈，未提交/推送/触发 Actions。HEAD 仍 2ba5172，版本未变。
+
+
+### 2026-11-02：trail 严重偏移 / 主动订阅类加载第四轮修复（本地完成）
+
+- 用户确认未开光影，实际资源为外部 cosmetics/trail。只读检查其脚本通过 `root:partToWorldMatrix():apply()` 发射，未修改用户资源。前轮人工验收失败，不能沿用前轮自动 PASS 作为实机通过。
+- 已用新增真实回归复现：正式 NetworkStuff.async 队列缺少模组 TCCL；同一个 Lua root 世界位置在 yaw0/pitch-60 变为 `{100,83.33845,-17.10288}`，正确位置应 `{140,65.5,-48}`。命令 `:common:networkAsyncContextSmokeTest :common:libraryPreviewRuntimeSmokeTest --continue`，日志 `build/tmp/access-diagnosis/world-coordinates-network-red.log`，两任务按目标原因 FAIL。
+- NetworkStuff 的 bounded runnable 在执行请求操作前切模组 TCCL，finally 恢复并归还队列容量。保持顺序、线程、协议、预算和异常语义；覆盖主动订阅及同一队列的认证/其他请求，而非再给单个 Builder 打补丁。
+- Figura 世界矩阵转换现撤销 1.20.1 的完整 `Rx(pitch)*Ry(yaw+180)` 视图旋转，再加相机位置；GUI 虚拟相机路径保留。同步对齐 first-person script-only body 的输入矩阵，避免第三/第一人称约定混用。粒子绘制保留 vanilla 全局 ModelView 平移，不再无条件清零。
+- 回归增强：Lua 读取正式 root 矩阵，非零相机位置和15组角度下世界位置固定；script-only 第一人称与第三人称一致；衣柜 GUI 不覆盖世界位置。网络测试运行正式有界队列，异类 TCCL、Subscribe 构造、正常/失败/失败后恢复、原线程恢复及容量归还均 PASS。测试 fixture 的 identity camera 对齐1.20.1 yaw180，而不是把 identity PoseStack 当作 yaw0，未削弱位置断言。
+- 最终同一代码本地构建/正式 remap/回归/packageLocalNative：Forge47.1.3 44s、Forge47.4.20 45s、NeoForge47.1.106 31s，均 exit0。三个目标共同运行新增队列、socket、15角度 view、patched particle entry、8 factory、local listing、100 Mixin/8 Local、Java17/13 bridge/模块/AVIF、libraryPreviewRuntime；Forge基线额外 ysmMaterialNative 全套几何/生命周期。日志 `world-coordinates-network-{forge,forge-47.4.20,neoforge}-green.log`。actionlint exit0，diff --check PASS。
+- 交付 `build/distributions/1.20.1-world-coordinates-fix/` 的 forge-47.4.20、forge-47.1.3、neoforge-47.1.106 标准文件名 JAR。三包共同修复类字节一致，Windows x86_64 DLL hash一致，嵌套 Protobuf 父类存在；含 SHA256SUMS/verification.json/README。旧包保留，没有覆盖 mods 或启动游戏。规范版本未变，HEAD仍2ba5172，修复未提交。
+- 本轮实施和本地自动检查完成。真实截图场景、实机第一/第三人称切换、光影/完整 ModLauncher EventBus、实际后端连接仍未验证；按 Bug 专用流程等待用户明确验收，不提交/推送/触发 Actions。新 native 队列/完整 Lua 坐标检查目前作为本地任务执行，未为此新增 CI 图形环境。
+- 跟进风险：LocalAvatarLoader 的其他异步入口尚未证明发生同类转换错误，不在本轮扩展修改，不宣称整个装饰系统均已验证。
+
+
+### 2026-11-02：native BufferBuilder 内存泄漏修复（第五轮，本地完成）
+
+- 用户确认 custom 粒子正在显示，系统“已提交”和 Java 进程内存持续上涨。只读核对实际 1.20.1-Forge 的 hs_err_pid34100/32568：进程提交20985M/30498M，Java堆约1GiB，系统可用提交16M/13M，native malloc 1MiB失败。归因到具体分配量仍有实机证据缺口，不能声称所有堆外增长均已排除。
+- 已修复两处循环分配：CustomParticleRuntime 不再每帧 new BufferBuilder(1536)，从六参数渲染入口借用其已有 BufferSource；在安装粒子view前刷新原有 native几何，保留位置/材质/排序。GpuBufferQueue.flush 接收该 BufferSource 已持有且刚结束批次的 BufferBuilder，不再回退时 new BufferBuilder(256)；发射异常时结束building状态并释放RenderedBuffer，保持可继续使用。
+- 正式 Mixin 调用均更新，未引入生产反射、Unsafe、内存设置调整或新依赖。Minecraft 继续拥有缓冲，按正常高水位复用；不能错误 memFree 原版仍持有的内存。
+- 新增测试专用 NativeAllocationProbe：隔离 JVM 中临时记录真实 MemoryTracker allocator 的 malloc/realloc/free，退出恢复并释放fixture分配，不进入mod JAR。旧GPU代码运行32次实际回退后由2100224增长至69258240 bytes，allocations3→67，准确 FAIL；日志 `native-buffer-memory-red.log`。最早测试double[]编译问题已解决，不计作该红例。
+- 固定后1024次GPU实际回退，预热后2098688 bytes、无新增分配/扩容；发射抛错后恢复和下一批继续绘制 PASS。原有GPU/native混合排序/所有权回归 PASS。
+- 新增 ParticleWorldBufferMemorySmokeTest，通过正式 renderWorld→真实粒子提取→原生BufferBuilder写入/批次释放，预热后1024次无分配增长，2097200 bytes固定，4100顶点保留。最终shader绘制由顶点检查替代，不能称作完整游戏/GPU画面验证。fixture初始缓冲6bytes不足首顶点的错误已修正为48bytes，仍实际触发2MiB扩容并检查平台稳定。
+- 最终同一代码三目标编译/remap/回归/packageLocalNative全通过：Forge47.1.3 30s、Neo47.1.106 38s、Forge47.4.20 39s。每个目标都运行nativeBufferMemory / gpuSubmission / ysmMaterialNative（含particle1024帧及Layered/Ribbon/preview生命周期）/ particleWorldEntry / renderTypeFactoryAccess / productionMixinContract / loaderModule。日志 `build/tmp/access-diagnosis/native-buffer-memory-{forge,neoforge,forge-47.4.20}-green.log`。
+- nativeBufferMemorySmokeTest已接入既有workflow双loader命令；actionlint exit0。没有触发Actions。artifact verification和diff --check PASS，生产两条路径不再创建临时BufferBuilder。
+- 当前交付 `build/distributions/1.20.1-native-buffer-fix/` 三个标准文件名JAR（含Windows x86_64 native），验证四处共用修复类和DLL字节一致；附SHA256SUMS/verification.json/README。旧包保留，未写mods/用户资源，未启动/关闭游戏。版本不变，修复仍未提交。
+- 本轮实施/本地检查已完成。用户完整场景的提交内存长时间走势、真实GPU/ModLauncher渲染、黑屏是否消失仍待明确人工验收；Bug流程不允许自动PASS或默认SKIPPED。验收前不commit/push/Actions。当前可靠额度剩余74%，未触发Luna交接。
+
+
+### 2026-11-02：用户明确要求提交推送，不运行 Actions
+
+- 用户最新指令授权提交并推送现有修复，替代本次检查点原先等待人工验收的提交限制；不据此虚构实机验收 PASS。沿用已完成的三个加载器本地验证，不重复构建。
+- 提交范围为上述 RenderType/骨骼、粒子入口/坐标、异步 TCCL 和 native BufferBuilder 泄漏修复及对应回归/进度记录。只读检查发现的 ItemInHandRenderer 草稿选路遗漏未实施，作为后续项，不纳入本次完成声明。
+- 当前分支 1.20.1；保留未跟踪 .codex 本地配置；版本未改变。既有 workflow 仅 workflow_dispatch，不手动触发任何 Actions。

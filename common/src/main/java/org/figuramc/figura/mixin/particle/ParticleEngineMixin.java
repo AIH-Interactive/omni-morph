@@ -4,6 +4,7 @@ import net.minecraft.client.Camera;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleEngine;
 import net.minecraft.client.particle.SpriteSet;
@@ -92,20 +93,21 @@ public abstract class ParticleEngineMixin implements ParticleEngineAccessor {
         particleMap.keySet().removeIf(particle -> particle instanceof CustomParticle);
     }
 
-    @Inject(method = "render(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;Lnet/minecraft/client/renderer/LightTexture;Lnet/minecraft/client/Camera;F)V",
-            at = @At("HEAD"))
+    // LevelRenderer calls Forge's six-argument overload directly; the vanilla wrapper is bypassed.
+    @Inject(method = "render(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;Lnet/minecraft/client/renderer/LightTexture;Lnet/minecraft/client/Camera;FLnet/minecraft/client/renderer/culling/Frustum;)V",
+            at = @At("HEAD"), remap = false)
     private void figura$runParticleFrameCallbacks(PoseStack poses, MultiBufferSource.BufferSource buffers, LightTexture light,
-                                                 Camera camera, float partialTick,
+                                                 Camera camera, float partialTick, Frustum frustum,
                                                  CallbackInfo ci) {
         CustomParticleRuntime.runFrameCallbacks(partialTick);
     }
 
-    @Inject(method = "render(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;Lnet/minecraft/client/renderer/LightTexture;Lnet/minecraft/client/Camera;F)V",
-            at = @At("TAIL"))
+    @Inject(method = "render(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;Lnet/minecraft/client/renderer/LightTexture;Lnet/minecraft/client/Camera;FLnet/minecraft/client/renderer/culling/Frustum;)V",
+            at = @At("TAIL"), remap = false)
     private void figura$renderCustomParticles(PoseStack poses, MultiBufferSource.BufferSource buffers, LightTexture light,
-                                              Camera camera, float partialTick,
+                                              Camera camera, float partialTick, Frustum frustum,
                                               CallbackInfo ci) {
-        CustomParticleRuntime.renderWorld(null, camera, partialTick);
+        CustomParticleRuntime.renderWorld(poses, frustum, camera, partialTick, buffers);
     }
 
 }
