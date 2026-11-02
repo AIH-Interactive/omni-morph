@@ -2489,7 +2489,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
             field(type, "preview").set(screen, preview);
             var choose = type.getDeclaredMethod("selectCosmetic", entry.getClass());
             choose.setAccessible(true);
-            choose.invoke(screen, entry);
+            // Selection itself starts draft preparation. Hold the worker before selecting so
+            // even a fast machine cannot finish the draft before this stale-request scenario.
             var blocker = top.aihmc.omnimorph.avatar.AvatarLoadExecutor.submit(() -> {
                 started.countDown();
                 try {
@@ -2502,6 +2503,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
             });
             try {
                 require(started.await(5, TimeUnit.SECONDS), "bounded model worker reaches the test gate");
+                choose.invoke(screen, entry);
+                var starting = (CompletableFuture<?>) field(type, "draftStart").get(screen);
+                require(starting != null && !starting.isDone(),
+                        "draft capture must still be pending before testing a stale add request");
                 var add = type.getDeclaredMethod("addSelectedInstance");
                 add.setAccessible(true);
                 add.invoke(screen);
@@ -2516,8 +2521,11 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var pending = (CompletableFuture<top.aihmc.omnimorph.model.outfit.OutfitDraft>) field(type, "draftStart").get(screen);
             var draft = await(pending, drain);
             awaitDraftComposition(screen, preview, drain);
-            require(draft.configuration().instances().isEmpty() && preview.outfitBase() != null,
-                    "late preparation cannot add an old resource; candidate changes retain the current base");
+            require(draft.configuration().instances().isEmpty(),
+                    "late preparation cannot add an old resource: " + draft.configuration());
+            require(preview.outfitBase() != null,
+                    "candidate changes retain the current base: " + preview.status()
+                            + "; draft=" + draft.configuration());
         }
     }
 
