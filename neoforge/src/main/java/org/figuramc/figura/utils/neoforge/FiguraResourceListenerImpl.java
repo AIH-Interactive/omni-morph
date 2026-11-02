@@ -1,4 +1,4 @@
-package top.aihmc.omnimorph.utils.neoforge;
+package org.figuramc.figura.utils.neoforge;
 
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
