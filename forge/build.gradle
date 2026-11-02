@@ -78,6 +78,14 @@ processResources {
     filesMatching("META-INF/mods.toml") {
         expand properties
     }
+    from(rootProject.file('LICENSE.md')) {
+        into 'licenses'
+        rename { 'OmniMorph-PolyForm-Noncommercial-1.0.0.txt' }
+    }
+    from(rootProject.file('CREDITS')) {
+        into 'credits'
+        rename { 'OmniMorph.txt' }
+    }
 }
 
 shadowJar {

@@ -173,3 +173,12 @@ https://github.com/AIH-Interactive/omni-morph/actions/runs/41319049342 正在进
 
 
 首轮CI运行41319049342：两加载器base和Windows/Linux x64/Linux arm64/macOS x64 native成功，macOS arm64在分配runner前被GitHub取消；check-run annotation明确macOS14计划brownout/2026-11-02退役（build/tmp/port-m0/m4-ci-macos-arm-annotations.json）。按官方 https://github.blog/changelog/2026-10-01-github-actions-macos-14-runner-image-retirement/ 将两处arm64 runner换为macos-15；不降低六平台/JNI门槛，重新完整运行。首轮不记成功。
+
+
+## 2026-11-02 恢复 M4：许可证打包失败
+
+用户恢复 goal 后检查工作区：HEAD67994a8，除原.codex外干净。CI41319635189已终止，六平台原生任务全成功，两加载器base成功；两项assemble最终核验均失败，缺 licenses/OmniMorph-PolyForm-Noncommercial-1.0.0.txt，后续final JNI/publish未运行，不能记整轮成功。日志 m4-ci-{forge,neo}-assembly-failure.log。
+最小修正：forge/processResources将项目LICENSE.md与CREDITS分别打包到现有核验器要求的licenses/OmniMorph-PolyForm-Noncommercial-1.0.0.txt、credits/OmniMorph.txt；保留第三方许可证与现有全部拒绝门槛。正在双变体重验，再提交推送、重新运行完整CI。
+最近主要额度池used25%、剩余75%，未触发Luna阈值。当前继续执行，不再处于用户暂停状态。
+
+许可证修正后：两变体stageNativeBase/nativePackagingSmokeTest与三项正式JAR加载器/模块/SRG检查再次通过，m4-license-forge.log exit0/72s、m4-license-neoforge.log exit0/31s。直接ZIP内容与项目LICENSE/CREDITS逐文本核对两变体通过，m4-base-documents.log exit0。git diff --check通过。
