@@ -170,7 +170,7 @@ try {
         }
     }
     Write-Output 'PASS final artifact metadata: six platforms, source/run/ABI, native and Android notice hashes, project license/credits, mod version and nested entries'
-    Write-Output 'Actual JNI and Android ELF checks are separate CI gates; full game/device checks SKIPPED (MANUAL, unverified).'
+    Write-Output 'Production artifact integrity checked; runtime JNI and full game/device behavior unverified.'
 } finally {
     $archive.Dispose()
 }

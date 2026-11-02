@@ -43,7 +43,7 @@ function Invoke-BuildStep {
 if ($Platform.StartsWith('windows-')) {
     if (-not $IsWindows) { throw 'Windows native requires a Windows runner.' }
     Invoke-BuildStep 'windows' 'pwsh' @('-NoProfile', '-File', './tools/build-native-windows.ps1',
-        '-JniHeadersDirectory', (Join-Path $projectRoot 'build/native-interface/headers'))
+        '-JniHeadersDirectory', (Join-Path $projectRoot 'build/native-interface/headers'), '-ProductionOnly')
     $localRoot = Join-Path $projectRoot 'build/native/windows-x64-release'
     $localManifest = Get-Content -LiteralPath "$localRoot/manifest.json" -Raw | ConvertFrom-Json
     $entry = $localManifest.libraries[0]
@@ -54,14 +54,13 @@ if ($Platform.StartsWith('windows-')) {
     if (($Platform.StartsWith('macos-') -and -not $IsMacOS) -or ($Platform.StartsWith('linux-') -and -not $IsLinux)) {
         throw "Wrong operating system runner for $Platform"
     }
-    $configure = @('-S', '.', '-B', $nativeRoot, '-DCMAKE_BUILD_TYPE=Release',
+    $configure = @('-S', '.', '-B', $nativeRoot, '-DCMAKE_BUILD_TYPE=Release', '-DBUILD_TESTING=OFF',
         "-DOMNIMORPH_JNI_HEADERS=$(Join-Path $projectRoot 'build/native-interface/headers')")
     if ($IsMacOS) {
         $configure += '-DCMAKE_OSX_DEPLOYMENT_TARGET=13.0'
     }
     Invoke-BuildStep 'configure' 'cmake' $configure
     Invoke-BuildStep 'compile' 'cmake' @('--build', $nativeRoot, '--config', 'Release', '--parallel', '2')
-    Invoke-BuildStep 'test' 'ctest' @('--test-dir', $nativeRoot, '--output-on-failure')
     $libraryName = if ($IsMacOS) { 'libomnimorph_accel.dylib' } else { 'libomnimorph_accel.so' }
     $library = Join-Path $nativeRoot "bin/$libraryName"
     $dependencyLog = Join-Path $nativeRoot 'dependencies.txt'
@@ -146,9 +145,5 @@ Copy-Item -LiteralPath $library -Destination $resourceDirectory
 Copy-Item -LiteralPath native/NOTICE.txt -Destination (Join-Path $artifact 'natives/NOTICE.txt')
 @{ abi = 2; buildKind = 'ci'; libraries = @($entry) } | ConvertTo-Json -Depth 8 |
     Set-Content -LiteralPath (Join-Path $artifact 'natives/manifest.json') -Encoding utf8NoBOM
-Invoke-BuildStep 'package-smoke' 'jar' @('--create', '--file', (Join-Path $artifact 'platform-smoke.jar'), '-C', $artifact, 'natives')
-$classpath = @('build/native-interface/classes', 'build/native-interface/lib/*', (Join-Path $artifact 'platform-smoke.jar')) -join [IO.Path]::PathSeparator
-Invoke-BuildStep 'jni-smoke' 'java' @('--enable-native-access=ALL-UNNAMED', '-Xcheck:jni', '-cp', $classpath,
-    'top.aihmc.omnimorph.render.acceleration.NativePlatformSmokeTest')
 Copy-Item -LiteralPath $dependencyLog -Destination $artifact -ErrorAction SilentlyContinue
 Write-Output "Verified native platform artifact: $artifact"

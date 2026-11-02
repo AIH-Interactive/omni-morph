@@ -503,6 +503,27 @@ tasks.register('gpuLowHeapModelReplay', JavaExec) {
             rootProject.file('refs/avatars/芙宁娜v3.14中文配音.ysm').path
 }
 
+tasks.register('compileProductionNativeInterface', JavaCompile) {
+    group = 'build'
+    source files(
+            'src/main/java/top/aihmc/omnimorph/render/acceleration/NativeBindings.java',
+            'src/main/java/top/aihmc/omnimorph/render/acceleration/NativeLibraryLoader.java',
+            'src/main/java/top/aihmc/omnimorph/render/acceleration/FallbackReason.java')
+    classpath = files({ configurations.compileClasspath.findAll { it.name.startsWith('gson-') } })
+    destinationDirectory = rootProject.layout.buildDirectory.dir('native-interface/production-classes')
+    options.headerOutputDirectory = rootProject.layout.buildDirectory.dir('native-interface/headers')
+    doLast {
+        copy {
+            from classpath
+            into rootProject.layout.buildDirectory.dir('native-interface/lib')
+        }
+        copy {
+            from rootProject.file('native/include/acceleration.hpp')
+            into rootProject.layout.buildDirectory.dir('native-interface/spec')
+        }
+    }
+}
+
 tasks.register('compileNativeInterface', JavaCompile) {
     group = 'build'
     source files(

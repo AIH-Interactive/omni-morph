@@ -302,3 +302,11 @@ Neo与Forge47.4.20额外customParticleSmokeTest/boneTreeSmokeTest通过；Forge4
 - 用户最新指令授权提交并推送现有修复，替代本次检查点原先等待人工验收的提交限制；不据此虚构实机验收 PASS。沿用已完成的三个加载器本地验证，不重复构建。
 - 提交范围为上述 RenderType/骨骼、粒子入口/坐标、异步 TCCL 和 native BufferBuilder 泄漏修复及对应回归/进度记录。只读检查发现的 ItemInHandRenderer 草稿选路遗漏未实施，作为后续项，不纳入本次完成声明。
 - 当前分支 1.20.1；保留未跟踪 .codex 本地配置；版本未改变。既有 workflow 仅 workflow_dispatch，不手动触发任何 Actions。
+
+## 2026-11-02：Actions 仅生产构建
+
+按用户跨版本同步授权，Actions 仅编译生产代码、构建 native、打包及发布。移除全部显式 smoke/regression 命令、stageNativeBase 的 common:check 间接依赖、CTest、平台 JNI/fallback/Java25 deny 探针及合成打包测试调用。CI JNI 头生成改为 compileProductionNativeInterface，仅编译三个生产源；原本地测试任务保留。所有 CI CMake 分支显式 BUILD_TESTING=OFF，accel_tests 仅在开关启用时定义；Windows 本地脚本默认仍保留测试。删除 Android qemu 安装及模拟器配置。保留六平台、生产依赖、ABI/ELF/哈希/许可证及原始 ZIP 条目完整性检查、日志与退出码处理，最终发布依赖 assemble。根目录 AGENTS.md（既有忽略文件）已追加规则。
+
+本地验证：stageNativeBase Forge PASS（20s），历史 NeoForge PASS（11s）；Gradle stageNativeBase/assembleNativeJar dry-run 仅含生产任务，无测试编译/执行入口。Windows ProductionOnly native 编译 PASS，CMakeCache 为 BUILD_TESTING:BOOL=OFF，生成 build.ninja 无 accel_tests 目标；生产 JNI 独立输出目录仅有 NativeBindings/NativeLibraryLoader/FallbackReason 类。PowerShell 脚本语法、actionlint 和 git diff --check PASS。日志 build/tmp/ci-production-{task-graph,forge,neoforge,windows-native,actionlint}.log。
+
+没有执行 Actions，没有声称远端测试通过。Linux/macOS/Android 编译未在本机执行；六平台最终组装需要正式 workflow 产物，本次未模拟或伪造。此次仅改构建配置，无生产运行时代码修改；先前实机验收缺口保持。授权提交推送当前 1.20.1 分支，不手动触发 Actions。
