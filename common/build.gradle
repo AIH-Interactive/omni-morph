@@ -192,7 +192,26 @@ void setupRepositories(RepositoryHandler repositories) {
 }
 
 tasks.matching { it.name.startsWith("transformProduction") }.configureEach {
-    enabled = false
+    enabled = name == 'transformProductionNeoForge'
+}
+
+tasks.named('transformProductionNeoForge') {
+    // Architectury replaces @ExpectPlatform bodies but leaves their old exception/local tables.
+    // Those labels no longer exist, so ASM cannot compute frames until the stale metadata is removed.
+    transformers.add({ className, classNode ->
+        classNode.methods.each { method ->
+            boolean platformMethod = method.invisibleAnnotations?.any {
+                it.desc.endsWith('/ExpectPlatform;') || it.desc.endsWith('/ExpectPlatform\$Transformed;')
+            }
+            if (platformMethod) {
+                method.tryCatchBlocks.clear()
+                method.localVariables?.clear()
+                method.visibleLocalVariableAnnotations?.clear()
+                method.invisibleLocalVariableAnnotations?.clear()
+            }
+        }
+        return classNode
+    } as dev.architectury.transformer.transformers.base.ClassEditTransformer)
 }
 
 tasks.withType(Test).configureEach {

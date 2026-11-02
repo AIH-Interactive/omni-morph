@@ -19,12 +19,12 @@ import org.figuramc.figura.config.ConfigManager;
 import top.aihmc.omnimorph.config.neoforge.ModConfig;
 import top.aihmc.omnimorph.gui.neoforge.GuiOverlay;
 import top.aihmc.omnimorph.gui.neoforge.GuiUnderlay;
-import top.aihmc.omnimorph.utils.neoforge.FiguraResourceListenerImpl;
+import org.figuramc.figura.utils.neoforge.FiguraResourceListenerImpl;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@EventBusSubscriber(modid = FiguraMod.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+@EventBusSubscriber(modid = FiguraMod.MOD_ID, value = Dist.CLIENT)
 public class FiguraModClientNeoForge extends FiguraMod {
     // keybinds stored here
     public static List<KeyMapping> KEYBINDS = new ArrayList<>();

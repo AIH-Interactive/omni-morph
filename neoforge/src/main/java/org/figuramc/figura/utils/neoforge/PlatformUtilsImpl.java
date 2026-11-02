@@ -1,9 +1,13 @@
-package top.aihmc.omnimorph.utils.neoforge;
+package org.figuramc.figura.utils.neoforge;
 
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLPaths;
 import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.utils.PlatformUtils;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 
 public class PlatformUtilsImpl {
@@ -24,11 +28,26 @@ public class PlatformUtilsImpl {
     }
 
     public static String getModVersion(String modId) {
-        return ModList.get().getModContainerById(modId).get().getModInfo().getVersion().getQualifier();
+        return ModList.get().getModContainerById(modId).get().getModInfo().getVersion().toString();
     }
 
     public static java.util.Map<String, String> getLoadedMods() {
         return ModList.get().getMods().stream()
                 .collect(java.util.stream.Collectors.toUnmodifiableMap(mod -> mod.getModId(), mod -> mod.getDisplayName()));
+    }
+
+    public static PlatformUtils.ModLoader getModLoader() {
+        // The shared API uses FORGE for the Forge-family platform behavior.
+        return PlatformUtils.ModLoader.FORGE;
+    }
+
+    public static InputStream loadFileFromRoot(String path) throws FileNotFoundException {
+        try {
+            return ModList.get().getModFileById(FiguraMod.MOD_ID).getFile().getContents().openFile(path);
+        } catch (IOException error) {
+            FileNotFoundException failure = new FileNotFoundException(path);
+            failure.initCause(error);
+            throw failure;
+        }
     }
 }
