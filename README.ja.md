@@ -24,7 +24,7 @@ Lua と Molang の両ランタイムに対応しています。Lua はスクリ�
 | 項目 | バージョン |
 | --- | --- |
 | Minecraft Java | 26.1.2 |
-| Mod ローダー | Fabric |
+| Mod ローダー | Fabric / NeoForge 26.1.2.126 |
 | Java | 25 |
 | Mod バージョン | 1.0.0-alpha.7 |
 
@@ -32,7 +32,7 @@ Lua と Molang の両ランタイムに対応しています。Lua はスクリ�
 
 ## インストールと使い方
 
-1. Minecraft 26.1.2 用の Fabric をインストールし、Java 25 でゲームを起動します。
+1. Minecraft 26.1.2 用の Fabric または NeoForge 26.1.2.126 をインストールし、Java 25 でゲームを起動します。
 2. 成功したワークフロー実行から最終成果物の Mod JAR をダウンロードし、対象のゲームインスタンスの `mods` フォルダーに配置します。
 3. ゲームを起動して OmniMorph のワードローブを開き、モデルフォルダーにモデルを置いて選択します。
 4. モデル専用設定とアクションホイールでモデルを操作します。モデルライブラリでは、クラウドモデルのアップロード、管理、ダウンロードができます。
@@ -76,6 +76,12 @@ if ($buildExitCode -ne 0) {
 最終成果物は `fabric/build/libs/` に生成され、ファイル名は `omni-morph-...-fabric-mc.jar` です。
 
 通常の Fabric ビルドに C++ ツールチェーンは不要です。ローカル SIMD ライブラリのビルド方法は [native/README.md](native/README.md)、プロトコル仕様は [protocol/README.md](protocol/README.md) を参照してください。
+
+### NeoForge
+
+JDK 25 を使用し、上の PowerShell コマンドの `:fabric:build` を `:neoforge:build -Prelease --no-daemon` に置き換えてください。Minecraft 26.1.2 / NeoForge 26.1.2.126 用の成果物は `neoforge/build/libs/omni-morph-1.0.0-alpha.7+26.1.2-neoforge-mc.jar` です。ローダーに合う JAR を一つだけ導入してください。`build` は `verifyNeoForgeJar` による内容検証を含みます。
+
+手動実行できる [統合ワークフロー](https://github.com/AIH-Interactive/omni-morph/actions/workflows/fabric-build.yml) は六つの native ビルドを共有し、Fabric/NeoForge の完成 JAR をそれぞれ組み立て、ローダー × プラットフォームの matrix で検証します。ローダー ID は `omni_morph`、リソース名前空間と保存先は既存の名前を維持します。ローカルコマンドは C++ 不要の Java 基本 JAR を生成し、CI 配布物には Windows x86_64、Linux x86_64/aarch64、Android aarch64、macOS x86_64/aarch64 の native ライブラリが含まれます。既存の加速設定と Java フォールバックを使います。実クライアント、GUI/GPU、Android 実機、任意 Mod の検証は非ブロッキングの `MANUAL/PENDING` です。
 
 ## 謝辞
 

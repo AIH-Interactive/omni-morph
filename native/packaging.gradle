@@ -5,6 +5,38 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
 
+def nativeLoader = providers.gradleProperty('nativeLoader').orElse('fabric').get()
+if (!(nativeLoader in ['fabric', 'neoforge'])) {
+    throw new GradleException("Unsupported native loader: ${nativeLoader}")
+}
+def nativeBaseDirectory = providers.gradleProperty('nativeBaseDir').orElse('build/native-base')
+
+def readBaseIdentity = { File file ->
+    new ZipFile(file).withCloseable { jar ->
+        if (nativeLoader == 'fabric') {
+            def identity = new JsonSlurper().parse(jar.getInputStream(jar.getEntry('fabric.mod.json')))
+            return [id: identity.id, version: identity.version, dependencies: identity.jars.collect { it.file }]
+        }
+        def metadataEntry = jar.getEntry('META-INF/neoforge.mods.toml')
+        if (metadataEntry == null) {
+            throw new GradleException('NeoForge base has no mod metadata')
+        }
+        String metadata = jar.getInputStream(metadataEntry).withCloseable { it.getText('UTF-8') }
+        def modSection = metadata =~ /(?ms)^\[\[mods\]\]\s*(.*?)(?=^\[|\z)/
+        if (!modSection.find()) {
+            throw new GradleException('NeoForge base has no mod identity')
+        }
+        String section = modSection.group(1)
+        def id = section =~ /(?m)^modId\s*=\s*"([^"]+)"\s*$/
+        def version = section =~ /(?m)^version\s*=\s*"([^"]+)"\s*$/
+        if (!id.find() || !version.find()) {
+            throw new GradleException('NeoForge base has no expanded ID/version')
+        }
+        def nested = new JsonSlurper().parse(jar.getInputStream(jar.getEntry('META-INF/jarjar/metadata.json')))
+        return [id: id.group(1), version: version.group(1), dependencies: nested.jars.collect { it.path }]
+    }
+}
+
 def sha256 = { File file ->
     HexFormat.of().formatHex(MessageDigest.getInstance('SHA-256').digest(file.bytes))
 }
@@ -47,7 +79,7 @@ def assembleNative = { File baseDirectory, File artifacts, File destination, Str
     def metadata = new JsonSlurper().parse(new File(baseDirectory, 'base-manifest.json'))
     File base = new File(baseDirectory, metadata.jar as String)
     if (metadata.sourceCommit != commit || metadata.runId != runId || metadata.runAttempt != attempt
-            || metadata.sha256 != sha256(base) || metadata.abi != 2) {
+            || metadata.sha256 != sha256(base) || metadata.abi != 2 || metadata.loader != nativeLoader) {
         throw new GradleException('Base JAR commit/run/hash/ABI mismatch')
     }
     def required = ['windows-x86_64': 'omnimorph_accel.dll', 'linux-x86_64': 'libomnimorph_accel.so',
@@ -105,16 +137,17 @@ def assembleNative = { File baseDirectory, File artifacts, File destination, Str
     if (seenPlatforms != required.keySet()) {
         throw new GradleException("Missing native platforms: ${required.keySet() - seenPlatforms}")
     }
+    def identity = readBaseIdentity(base)
+    String expectedModId = nativeLoader == 'fabric' ? 'omni-morph' : 'omni_morph'
     new ZipFile(base).withCloseable { jar ->
-        def identity = new JsonSlurper().parse(jar.getInputStream(jar.getEntry('fabric.mod.json')))
-        if (identity.id != 'omni-morph' || identity.version != metadata.version
+        if (identity.id != expectedModId || identity.version != metadata.version
                 || !identity.version.startsWith("${rootProject.mod_version}+${rootProject.minecraft_version}-")
                 || !identity.version.endsWith(commit.take(7))) {
             throw new GradleException('Base JAR identity/version/commit mismatch')
         }
-        identity.jars.each { nested ->
-            if (jar.getEntry(nested.file) == null) {
-                throw new GradleException("Missing embedded dependency: ${nested.file}")
+        identity.dependencies.each { path ->
+            if (jar.getEntry(path) == null) {
+                throw new GradleException("Missing embedded dependency: ${path}")
             }
         }
     }
@@ -140,22 +173,19 @@ def assembleNative = { File baseDirectory, File artifacts, File destination, Str
 
 tasks.register('stageNativeBase') {
     group = 'build'
-    dependsOn ':fabric:build', ':common:compileNativeInterface'
+    dependsOn ":${nativeLoader}:build", ':common:compileNativeInterface'
     doLast {
-        File directory = rootProject.file('build/native-base')
+        File directory = rootProject.file(nativeBaseDirectory.get())
         directory.mkdirs()
-        File original = project(':fabric').tasks.named('remapJar').get().archiveFile.get().asFile
+        File original = project(":${nativeLoader}").tasks.named('remapJar').get().archiveFile.get().asFile
         copy {
             from original
             into directory
         }
         String commit = ['git', 'rev-parse', 'HEAD'].execute(null, rootProject.projectDir).text.trim()
-        def identity
-        new ZipFile(original).withCloseable { jar ->
-            identity = new JsonSlurper().parse(jar.getInputStream(jar.getEntry('fabric.mod.json')))
-        }
+        def identity = readBaseIdentity(original)
         new File(directory, 'base-manifest.json').text = JsonOutput.prettyPrint(JsonOutput.toJson([
-                abi: 2, jar: original.name, version: identity.version, sourceCommit: commit,
+                abi: 2, loader: nativeLoader, jar: original.name, version: identity.version, sourceCommit: commit,
                 runId: System.getenv('GITHUB_RUN_ID') ?: '0', runAttempt: System.getenv('GITHUB_RUN_ATTEMPT') ?: '0',
                 sha256: sha256(original)]))
     }
@@ -178,9 +208,9 @@ tasks.register('nativePackagingSmokeTest') {
     description = 'Checks assembly rejection and exact base-entry preservation with explicitly synthetic platform bytes.'
     dependsOn 'stageNativeBase'
     doLast {
-        File root = rootProject.file('build/native-packaging-test')
+        File root = rootProject.file("build/native-packaging-test/${nativeLoader}")
         File artifacts = new File(root, 'artifacts')
-        def metadata = new JsonSlurper().parse(rootProject.file('build/native-base/base-manifest.json'))
+        def metadata = new JsonSlurper().parse(rootProject.file("${nativeBaseDirectory.get()}/base-manifest.json"))
         def platforms = ['windows-x86_64': 'omnimorph_accel.dll', 'linux-x86_64': 'libomnimorph_accel.so',
                          'linux-aarch64': 'libomnimorph_accel.so', 'android-aarch64': 'libomnimorph_accel.so',
                          'macos-x86_64': 'libomnimorph_accel.dylib', 'macos-aarch64': 'libomnimorph_accel.dylib']
@@ -205,7 +235,7 @@ tasks.register('nativePackagingSmokeTest') {
             new File(directory, 'natives/manifest.json').text = JsonOutput.toJson([abi: 2, buildKind: 'ci', libraries: [entry]])
         }
         def run = { String commit, File input = artifacts ->
-            assembleNative(rootProject.file('build/native-base'), input, new File(root, 'synthetic.jar'),
+            assembleNative(rootProject.file(nativeBaseDirectory.get()), input, new File(root, 'synthetic.jar'),
                     commit, metadata.runId, metadata.runAttempt)
         }
         run(metadata.sourceCommit)
@@ -219,6 +249,16 @@ tasks.register('nativePackagingSmokeTest') {
             if (!rejected) {
                 throw new GradleException('Invalid platform set unexpectedly published')
             }
+        }
+        File baseManifest = new File(rootProject.file(nativeBaseDirectory.get()), 'base-manifest.json')
+        String savedBaseManifest = baseManifest.text
+        try {
+            def wrongLoader = new JsonSlurper().parseText(savedBaseManifest)
+            wrongLoader.loader = nativeLoader == 'fabric' ? 'neoforge' : 'fabric'
+            baseManifest.text = JsonOutput.toJson(wrongLoader)
+            reject { run(metadata.sourceCommit) }
+        } finally {
+            baseManifest.text = savedBaseManifest
         }
         File androidManifest = new File(artifacts, 'android-aarch64/natives/manifest.json')
         String savedAndroid = androidManifest.text
@@ -262,7 +302,7 @@ tasks.register('nativePackagingSmokeTest') {
         File library = new File(artifacts, 'macos-aarch64/natives/macos-aarch64/libomnimorph_accel.dylib')
         library.append('corruption')
         reject { run(metadata.sourceCommit) }
-        logger.lifecycle('PASS synthetic native assembly: complete platform set, commit/hash rejection, exact original ZIP entry preservation')
+        logger.lifecycle("PASS synthetic ${nativeLoader} native assembly: complete platform set, commit/hash rejection, exact original ZIP entry preservation")
     }
 }
 
