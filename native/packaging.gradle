@@ -173,7 +173,7 @@ def assembleNative = { File baseDirectory, File artifacts, File destination, Str
 
 tasks.register('stageNativeBase') {
     group = 'build'
-    dependsOn ":${nativeLoader}:build", ':common:compileNativeInterface'
+    dependsOn ":${nativeLoader}:assemble", ':common:compileNativeProductionInterface'
     doLast {
         File directory = rootProject.file(nativeBaseDirectory.get())
         directory.mkdirs()

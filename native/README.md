@@ -2,16 +2,16 @@
 
 The existing `fabric-build.yml` workflow builds both Fabric and NeoForge distributions.
 Its loader matrix stages and assembles each base independently, while the six C++ platform
-builds are shared. Final JNI/fallback/access-denial checks run for each loader and platform;
-Android device JNI/game validation remains `MANUAL/PENDING`. Download artifacts are
-`OmniMorph-Fabric-26.1.2` and `OmniMorph-NeoForge-26.1.2`.
+builds are shared. Actions only compile production code, package and publish; no test code
+is compiled or executed. CMake uses `BUILD_TESTING=OFF`, and JNI headers come from the
+production-only `compileNativeProductionInterface` task. Local tests remain available.
+Download artifacts are `OmniMorph-Fabric-26.1.2` and `OmniMorph-NeoForge-26.1.2`.
 
-`stageNativeBase` and `nativePackagingSmokeTest` select the base with
-`-PnativeLoader=fabric` (default) or `-PnativeLoader=neoforge`. Use a separate
-`-PnativeBaseDir=build/native-base/<loader>` when staging both locally. Assembly receives
-the same loader property and checks the staged loader identity as well as commit/run/hash/ABI.
-The packaging smoke test uses explicitly synthetic bytes to exercise assembly rejection and
-preservation; actual native execution is validated by the existing platform jobs.
+`stageNativeBase` selects the base with `-PnativeLoader=fabric` (default) or
+`-PnativeLoader=neoforge`. Use a separate `-PnativeBaseDir=build/native-base/<loader>`
+when staging both locally. Production assembly checks loader identity, commit/run/hash/ABI,
+licenses and base-entry preservation. Runtime/client/device validation is `MANUAL/PENDING`.
+The local `nativePackagingSmokeTest` uses synthetic bytes and is never invoked by Actions.
 
 H2 implements Windows x86_64 numerical transforms. The Java path remains the default;
 this directory does not implement GPU drawing. Sources are independently written;

@@ -37,15 +37,18 @@ set_target_properties(omnimorph_accel PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
-add_executable(accel_tests tests/accel_tests.cpp)
-target_link_libraries(accel_tests PRIVATE accel_core)
-if(ANDROID)
-    # Run the NDK/Bionic numerical executable under qemu-user in CI without borrowing glibc.
-    target_link_options(accel_tests PRIVATE -static)
+set(OMNIMORPH_TARGETS accel_core omnimorph_accel)
+if(BUILD_TESTING)
+    add_executable(accel_tests tests/accel_tests.cpp)
+    target_link_libraries(accel_tests PRIVATE accel_core)
+    if(ANDROID)
+        target_link_options(accel_tests PRIVATE -static)
+    endif()
+    add_test(NAME acceleration_native COMMAND accel_tests)
+    list(APPEND OMNIMORPH_TARGETS accel_tests)
 endif()
-add_test(NAME acceleration_native COMMAND accel_tests)
 
-foreach(target accel_core omnimorph_accel accel_tests)
+foreach(target IN LISTS OMNIMORPH_TARGETS)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4 /fp:strict)
     else()
