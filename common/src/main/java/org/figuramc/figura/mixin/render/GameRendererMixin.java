@@ -38,6 +38,7 @@ import top.aihmc.omnimorph.render.acceleration.AccelerationService;
 import top.aihmc.omnimorph.render.acceleration.HardwareAcceleration;
 import org.figuramc.figura.utils.EntityUtils;
 import org.figuramc.figura.utils.RenderUtils;
+import org.figuramc.figura.utils.PlatformUtils;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -197,6 +198,10 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/client/gui/render/GuiRenderer;<init>(Lnet/minecraft/client/renderer/state/gui/GuiRenderState;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/feature/FeatureRenderDispatcher;Ljava/util/List;)V"))
     private List<PictureInPictureRenderer<?>> addPortraitRenderer(List<PictureInPictureRenderer<?>> list, @Local MultiBufferSource.BufferSource source) {
+        // NeoForge supplies registration records here and registers our factories on its event bus.
+        if (PlatformUtils.getModLoader() != PlatformUtils.ModLoader.FABRIC) {
+            return list;
+        }
         List<PictureInPictureRenderer<?>> newList = new ArrayList<>(list);
         newList.add(new FiguraPortraitRenderer(source));
         newList.add(new FiguraGuiRenderer(source));

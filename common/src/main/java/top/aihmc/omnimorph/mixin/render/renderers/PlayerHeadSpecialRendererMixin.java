@@ -22,6 +22,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class PlayerHeadSpecialRendererMixin {
     @ModifyReturnValue(method = "extractArgument(Lnet/minecraft/world/item/ItemStack;)Lnet/minecraft/client/renderer/PlayerSkinRenderCache$RenderInfo;", at = @At("TAIL"))
     public PlayerSkinRenderCache.RenderInfo setAvatar(PlayerSkinRenderCache.RenderInfo original, @Local(argsOnly = true) ItemStack itemStack) {
+        if (original == null) {
+            return null;
+        }
         ResolvableProfile profile = itemStack.get(DataComponents.PROFILE);
         Avatar avatar = profile != null ? AvatarManager.getAvatarForPlayer(profile.partialProfile().id()) : null;
         ((PlayerHeadRenderInfoExtension)(Object)original).figura$setAvatar(avatar);
