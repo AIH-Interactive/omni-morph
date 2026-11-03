@@ -44,6 +44,16 @@ public final class YsmTextureDecoder {
         } catch (java.io.InterruptedIOException e) {
             throw e;
         } catch (IOException | RuntimeException e) {
+            // ImageIO wraps exceptions from our bounded output in IIOException.
+            // Keep cancellation and our sanitized resource diagnostics intact.
+            for (Throwable cause = e.getCause(); cause != null; cause = cause.getCause()) {
+                if (cause instanceof YsmDecodeException decoded) {
+                    throw decoded;
+                }
+                if (cause instanceof java.io.InterruptedIOException interrupted) {
+                    throw interrupted;
+                }
+            }
             // Third-party diagnostics may contain input data; retain only our stage.
             throw invalid("image/decode");
         } finally {
