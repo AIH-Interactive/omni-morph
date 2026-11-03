@@ -601,7 +601,7 @@ public class HostAPI {
     public boolean isJumping() {
         LocalPlayer player = this.minecraft.player;
         if (isHost() && player != null)
-            return ((LivingEntityAccessor) player).isJumping();
+            return ((LivingEntityAccessor) player).figura$isJumping();
         return false;
     }
 
