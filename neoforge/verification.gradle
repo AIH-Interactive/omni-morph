@@ -74,11 +74,25 @@ tasks.register('verifyNeoForgeJar') {
             def packagedModules = nestedMetadata.jars.collect { it.identifier.artifact }.toSet()
             def requiredModules = ['protobuf-java', 'luaj-core', 'luaj-jse', 'nv-websocket-client',
                                    'aircompressor-v3', 'concentus', 'vorbis-java-core',
-                                   'avif-imageio-native-reader', 'imageio-webp', 'imageio-core',
+                                   'imageio-webp', 'imageio-core',
                                    'imageio-metadata', 'common-lang', 'common-io', 'common-image']
             if (!packagedModules.containsAll(requiredModules)) {
                 throw new GradleException("Missing runtime libraries: ${requiredModules - packagedModules}")
             }
+            if (packagedModules.contains('avif-imageio-native-reader')) {
+                throw new GradleException('AVIF must share the mod module with its package-private JNI adapter')
+            }
+            ['FiguraAvifDecoder', 'AVIFImageReaderSpi', 'Native', 'Native$Decoded', 'Native$Image'].each { name ->
+                requireEntry("com/github/ustc_zzzz/imageio/avif/${name}.class")
+            }
+            if (!readText('META-INF/services/javax.imageio.spi.ImageReaderSpi')
+                    .readLines().contains('com.github.ustc_zzzz.imageio.avif.AVIFImageReaderSpi')) {
+                throw new GradleException('AVIF ImageIO provider is not registered')
+            }
+            requireEntry('META-INF/native/amd64/avif-imageio-jni.dll')
+            requireEntry('META-INF/LICENSE')
+            requireEntry('META-INF/LICENSE.libavif')
+            requireEntry('META-INF/LICENSE.libdav1d')
             nestedMetadata.jars.each { library ->
                 new ZipInputStream(jar.getInputStream(requireEntry(library.path))).withCloseable { nested ->
                     for (def entry = nested.nextEntry; entry != null; entry = nested.nextEntry) {
