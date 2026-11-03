@@ -37,6 +37,7 @@ loom {
 configurations {
     common
     shadowCommon // Don't use shadow from the shadow plugin since it *excludes* files.
+    avifRuntime
     compileClasspath.extendsFrom common
     runtimeClasspath.extendsFrom common
     developmentNeoForge.extendsFrom common
@@ -51,7 +52,11 @@ dependencies {
     include(implementation("io.airlift:aircompressor-v3:3.10"))
     include(implementation("io.github.jaredmdobson:concentus:1.0.2"))
     include(implementation("org.gagravarr:vorbis-java-core:0.8"))
-    include(implementation("com.github.ustc-zzzz:avif-imageio-native-reader:master-6af2f277a8-1@jar"))
+    // The package-private JNI adapter and upstream classes must share one NeoForge module.
+    implementation("com.github.ustc-zzzz:avif-imageio-native-reader:master-6af2f277a8-1@jar")
+    avifRuntime("com.github.ustc-zzzz:avif-imageio-native-reader:master-6af2f277a8-1@jar") {
+        transitive = false
+    }
     // Loom include does not automatically nest transitive dependencies.
     ['imageio-webp', 'imageio-core', 'imageio-metadata'].each { module ->
         include(implementation("com.twelvemonkeys.imageio:${module}:3.15.0"))
@@ -99,7 +104,8 @@ shadowJar {
         include 'META-INF/jars/**', 'META-INF/jarjar/**'
     }
 
-    configurations = [project.configurations.shadowCommon]
+    configurations = [project.configurations.shadowCommon, project.configurations.avifRuntime]
+    mergeServiceFiles()
     archiveClassifier.set "dev-shadow"
 }
 
