@@ -1,0 +1,136 @@
+[
+  {
+    "project": "iris",
+    "source": "https://api.modrinth.com/v2/project/iris/version?game_versions=%5B%2226.2%22%5D",
+    "version": "1.11.4+26.2-fabric",
+    "id": "gxZWWnKH",
+    "loaders": [
+      "fabric"
+    ],
+    "game_versions": [
+      "26.2"
+    ],
+    "files": [
+      {
+        "id": "zcQ9Sdyx",
+        "hashes": {
+          "sha512": "dee955580976aebc92373f5c2d88398ad1019b043c6254a41fe7ab8a6ca3a5ff29d58df2b22ec43a31198beb769e814658eef06fbf980066a2e2c216eeafd32a",
+          "sha1": "bd0b24731a94b8fe164531e6345718d30ab08ed2"
+        },
+        "url": "https://cdn.modrinth.com/data/YL57xq9U/versions/gxZWWnKH/iris-fabric-1.11.4%2Bmc26.2.jar",
+        "filename": "iris-fabric-1.11.4+mc26.2.jar",
+        "primary": true,
+        "size": 2821616,
+        "file_type": null
+      }
+    ]
+  },
+  {
+    "project": "modmenu",
+    "source": "https://api.modrinth.com/v2/project/modmenu/version?game_versions=%5B%2226.2%22%5D",
+    "version": "20.0.3",
+    "id": "iRo7AZXf",
+    "loaders": [
+      "fabric",
+      "quilt"
+    ],
+    "game_versions": [
+      "26.2"
+    ],
+    "files": [
+      {
+        "id": "3bVQn0O9",
+        "hashes": {
+          "sha1": "9fc381627b471c18d67156e846228f51ff2ea5b4",
+          "sha512": "c8224aa7a460d0c56ccb9978a112e4ad0d3eb17e2796e0c468a2392d220749f4f602838a11b3666145462c26078a879ab8a2fc177aa440f58e189c92a0088d6e"
+        },
+        "url": "https://cdn.modrinth.com/data/mOgUt4GM/versions/iRo7AZXf/modmenu-20.0.3.jar",
+        "filename": "modmenu-20.0.3.jar",
+        "primary": true,
+        "size": 616919,
+        "file_type": null
+      }
+    ]
+  },
+  {
+    "project": "immediatelyfast",
+    "source": "https://api.modrinth.com/v2/project/immediatelyfast/version?game_versions=%5B%2226.2%22%5D",
+    "version": "1.16.5+26.2-fabric",
+    "id": "pMWERcSu",
+    "loaders": [
+      "fabric",
+      "quilt"
+    ],
+    "game_versions": [
+      "26.2"
+    ],
+    "files": [
+      {
+        "id": "utJQMwf8",
+        "hashes": {
+          "sha1": "0286260261591fe77ba0d332d5d5a2d2e868c2c6",
+          "sha512": "5836b089072c0fd796613d42c3bd01c7e401b6ad53de80328bb9d74d585de9be0ff0cfc4d6ffa1ed41008750573b0525eff8c064162a2f724ad16817a8fdaf22"
+        },
+        "url": "https://cdn.modrinth.com/data/5ZwdcRci/versions/pMWERcSu/ImmediatelyFast-Fabric-1.16.5%2B26.2.jar",
+        "filename": "ImmediatelyFast-Fabric-1.16.5+26.2.jar",
+        "primary": true,
+        "size": 100500,
+        "file_type": null
+      }
+    ]
+  },
+  {
+    "project": "lambdynamiclights",
+    "source": "https://api.modrinth.com/v2/project/lambdynamiclights/version?game_versions=%5B%2226.2%22%5D",
+    "version": "4.12.4+26.2",
+    "id": "XVsaQXSm",
+    "loaders": [
+      "fabric",
+      "neoforge",
+      "quilt"
+    ],
+    "game_versions": [
+      "26.2"
+    ],
+    "files": [
+      {
+        "id": "h76DuNB0",
+        "hashes": {
+          "sha1": "c842011792dbaf95bb6243df1ad7f39c576f944d",
+          "sha512": "1e7c2abf18f4364cc8802c3ce21f9cbadd62074c1cf9829c025fe0d8dd04b6c7b47ca8fe6783b2399939fda0e40001d43dd82b6bced43546e9c26622ef3708c2"
+        },
+        "url": "https://cdn.modrinth.com/data/yBW8D80W/versions/XVsaQXSm/lambdynamiclights-4.12.4%2B26.2.jar",
+        "filename": "lambdynamiclights-4.12.4+26.2.jar",
+        "primary": true,
+        "size": 1344429,
+        "file_type": null
+      }
+    ]
+  },
+  {
+    "project": "geckolib",
+    "source": "https://api.modrinth.com/v2/project/geckolib/version?game_versions=%5B%2226.2%22%5D",
+    "version": "5.5.5",
+    "id": "7gaQHok7",
+    "loaders": [
+      "fabric"
+    ],
+    "game_versions": [
+      "26.2"
+    ],
+    "files": [
+      {
+        "id": "n46jPNJy",
+        "hashes": {
+          "sha1": "66bd0b658dadc9345d9b885641b4322e3686094c",
+          "sha512": "098f28bbe551551f99e85584b36c37e466dfc46084737ed3644fc8588dae676653f5c5b16393cccff2cb90c5f3779260e0aec5a0e8c5813df3456166c0bce9ec"
+        },
+        "url": "https://cdn.modrinth.com/data/8BmcQJ2H/versions/7gaQHok7/geckolib-fabric-26.2-5.5.5.jar",
+        "filename": "geckolib-fabric-26.2-5.5.5.jar",
+        "primary": true,
+        "size": 1185836,
+        "file_type": null
+      }
+    ]
+  }
+]

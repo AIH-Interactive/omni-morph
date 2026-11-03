@@ -1,7 +1,7 @@
 plugins {
 	id "architectury-plugin" version "3.5.168"
-	id "dev.architectury.loom" version "1.14-SNAPSHOT" apply false
-	id "dev.architectury.loom-no-remap" version "1.14-SNAPSHOT" apply false
+	id "dev.architectury.loom" version "1.14.476" apply false
+	id "dev.architectury.loom-no-remap" version "1.14.476" apply false
 }
 
 apply from: 'native/packaging.gradle'

@@ -1,0 +1,66 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Configure project :common
+Previous process has disowned the lock due to abrupt termination.
+Found existing cache lock file (ACQUIRED_PREVIOUS_OWNER_DISOWNED), rebuilding loom cache. This may have been caused by a failed or canceled build.
+:remapped 50 mods (official -> named) in 3s
+:remapping sources (Mercury, official -> named)
+Status ERROR: org.cadixdev.mercury.shadow.org.eclipse.jdt.core code=4 Could not retrieve interfaces org.cadixdev.mercury.shadow.org.eclipse.jdt.internal.compiler.problem.AbortCompilation: Pb(347) The type org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin cannot be resolved. It is indirectly referenced from required type net.fabricmc.fabric.impl.client.indigo.IndigoMixinConfigPlugin
+
+> Configure project :fabric
+:remapped 1 mods (official -> named) in 1s
+
+> Configure project :neoforge
+:executing 3 MCP steps
+:step 1/3 - downloadClient
+:downloadClient done in 499500ns
+:step 2/3 - downloadServer
+:downloadServer done in 0ns
+:step 3/3 - preProcessJar with net.neoforged.installertools:installertools:4.0.16:fatjar
+:preProcessJar done in 2s
+:patching jars
+:patched jars in 9s
+:access transforming minecraft
+:access transformed minecraft in 8s
+:merging userdev into minecraft
+:found 1 forge source jars
+:extracted 0 forge source classes
+
+> Task :help
+
+Welcome to Gradle 9.4.1.
+
+To run a build, run gradlew <task> ...
+
+To see a list of available tasks, run gradlew tasks
+
+To see more detail about a task, run gradlew help --task <task>
+
+To see a list of command-line options, run gradlew --help
+
+For more detail on using Gradle, see https://docs.gradle.org/9.4.1/userguide/command_line_interface.html
+
+For troubleshooting, visit https://help.gradle.org
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.2/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 2m 57s
+1 actionable task: 1 executed

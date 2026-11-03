@@ -1,0 +1,22 @@
+gradle.projectsEvaluated {
+    rootProject.tasks.register('verify26_2Dependencies') {
+        group = 'verification'
+        description = 'Resolves production dependencies for the Minecraft 26.2 migration without compiling tests.'
+        doLast {
+            if (rootProject.minecraft_version != '26.2') {
+                throw new GradleException('Expected Minecraft 26.2, found ' + rootProject.minecraft_version)
+            }
+            [':common', ':fabric', ':neoforge'].each { path ->
+                def target = rootProject.project(path)
+                ['compileClasspath', 'runtimeClasspath'].each { name ->
+                    def configuration = target.configurations.getByName(name)
+                    def artifacts = configuration.resolvedConfiguration.resolvedArtifacts
+                    logger.lifecycle("${path}:${name}: resolved ${artifacts.size()} artifacts")
+                    artifacts.sort { it.moduleVersion.id.toString() }.each { artifact ->
+                        logger.lifecycle("  ${artifact.moduleVersion.id} -> ${artifact.file.name}")
+                    }
+                }
+            }
+        }
+    }
+}
