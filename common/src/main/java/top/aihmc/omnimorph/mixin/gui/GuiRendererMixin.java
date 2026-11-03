@@ -25,7 +25,9 @@ import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Group;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.List;
 
@@ -53,12 +55,36 @@ public class GuiRendererMixin {
         figura$paperDollRenderer = new FiguraGuiEntityRenderer(bufferSource, Minecraft.getInstance().getEntityRenderDispatcher());
     }
 
-    @Inject(method = "preparePictureInPictureState", at = @At("HEAD"), cancellable = true)
-    private <T extends PictureInPictureRenderState> void renderPaperDoll(T pictureInPictureRenderState, int i, CallbackInfo ci) {
-        if (pictureInPictureRenderState instanceof GuiEntityRenderStateExtension extension && (extension.getRenderMode() != null && extension.getRenderMode() == EntityRenderMode.PAPERDOLL)) {
-            figura$paperDollRenderer.prepare((GuiEntityRenderState) pictureInPictureRenderState, this.renderState, i);
+    @Group(name = "figura$paperDoll", min = 1, max = 1)
+    @Inject(method = "preparePictureInPictureState(Lnet/minecraft/client/renderer/state/gui/pip/PictureInPictureRenderState;I)V",
+            at = @At("HEAD"), cancellable = true, require = 0)
+    private void renderPaperDoll(
+            PictureInPictureRenderState state, int guiScale, CallbackInfo ci) {
+        if (figura$preparePaperDoll(state, guiScale)) {
             ci.cancel();
         }
+    }
+
+    // NeoForge adds a pool-selection flag and returns whether the state was prepared.
+    @Group(name = "figura$paperDoll", min = 1, max = 1)
+    @Inject(method = "preparePictureInPictureState(Lnet/minecraft/client/renderer/state/gui/pip/PictureInPictureRenderState;IZ)Z",
+            at = @At("HEAD"), cancellable = true, require = 0)
+    private void figura$renderPaperDollNeoForge(
+            PictureInPictureRenderState state, int guiScale, boolean firstPass,
+            CallbackInfoReturnable<Boolean> cir) {
+        if (figura$preparePaperDoll(state, guiScale)) {
+            cir.setReturnValue(true);
+        }
+    }
+
+    @Unique
+    private boolean figura$preparePaperDoll(PictureInPictureRenderState state, int guiScale) {
+        if (state instanceof GuiEntityRenderStateExtension extension
+                && extension.getRenderMode() == EntityRenderMode.PAPERDOLL) {
+            figura$paperDollRenderer.prepare((GuiEntityRenderState) state, this.renderState, guiScale);
+            return true;
+        }
+        return false;
     }
 
 
