@@ -1,4 +1,4 @@
-name: OmniMorph
+name: Minecraft 26.2 Compat
 
 on:
   workflow_dispatch:
