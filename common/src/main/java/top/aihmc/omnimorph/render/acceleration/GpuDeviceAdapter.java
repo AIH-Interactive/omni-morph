@@ -60,7 +60,7 @@ interface GpuDeviceAdapter {
         return null;
     }
 
-    /** One frame arena of pose storage blocks; draws bind ranges of it. */
+    /** One frame arena; native draws bind the whole data buffer and a per-draw offset record. */
     interface Storage extends Resource {
     }
 
@@ -73,6 +73,7 @@ interface GpuDeviceAdapter {
         final GpuPoseArena.Slice remap;
         /** R4-3 model draws only: one record per batch. */
         final GpuPoseArena.Slice records;
+        final GpuPoseArena.Slice offsets;
         Storage storage;
 
         StoragePose(GpuPoseArena.Slice pose, GpuPoseArena.Slice remap) {
@@ -80,14 +81,21 @@ interface GpuDeviceAdapter {
         }
 
         StoragePose(GpuPoseArena.Slice pose, GpuPoseArena.Slice remap, GpuPoseArena.Slice records) {
+            this(pose, remap, records, null);
+        }
+
+        StoragePose(GpuPoseArena.Slice pose, GpuPoseArena.Slice remap, GpuPoseArena.Slice records,
+                    GpuPoseArena.Slice offsets) {
             this.pose = pose;
             this.remap = remap;
             this.records = records;
+            this.offsets = offsets;
         }
 
         @Override
         public long bytes() {
-            return pose.bytes() + (remap == null ? 0 : remap.bytes()) + (records == null ? 0 : records.bytes());
+            return pose.bytes() + (remap == null ? 0 : remap.bytes()) + (records == null ? 0 : records.bytes())
+                    + (offsets == null ? 0 : offsets.bytes());
         }
 
         @Override

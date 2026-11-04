@@ -656,6 +656,30 @@ tasks.register('atlasReadbackSmokeTest', JavaExec) {
     args '--atlas-readback'
 }
 
+tasks.register('gpuStorageBackendSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks native backend storage capability without an OpenGL context or GPU/window.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuStorageBackendSmokeTest'
+}
+
+tasks.register('gpuShaderCompilationSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Compiles actual entity shader variants with the native Vulkan frontend without a device/window.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuShaderCompilationSmokeTest'
+}
+
+tasks.register('nativeStorageBindingSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks the production native storage adapter with recorded buffers and render-pass commands.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.render.acceleration.NativeStorageBindingSmokeTest'
+}
+
 tasks.register('libraryEquipmentSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Replays actual formal use, HTTP CAS/retry, Avatar publication and source cache provenance.'

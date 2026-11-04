@@ -188,7 +188,6 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
     private static final int STORAGE_VARIANT = 0;
     private static final int MODEL_VARIANT = -1;
     private static final int MAX_STORAGE_FAILURES = 3;
-    private static final long ARENA_LIMIT_BYTES = 16L * 1024 * 1024;
     private GpuPoseArena arena;
     private boolean simdPackDisabled;
     private boolean storageDisabled;
@@ -722,7 +721,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
     /** Stages a pose (and optional remap) block in the frame arena; null keeps the uniform pose path. */
     private GpuDeviceAdapter.StoragePose appendStorage(int poseBytes, Consumer<ByteBuffer> poseWriter,
                                                        int remapBytes, Consumer<ByteBuffer> remapWriter) {
-        if (frameUploadBytes + poseBytes + remapBytes > frameUploadBudget) {
+        if (frameUploadBytes + poseBytes + remapBytes + GpuStorageSupport.OFFSETS_BYTES > frameUploadBudget) {
             storageFallbacks++;
             AccelerationFrameDiagnostics.ssboFallback("UPLOAD_BUDGET");
             return null;
@@ -738,8 +737,16 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
             AccelerationFrameDiagnostics.ssboFallback("ARENA_FULL");
             return null;
         }
-        frameUploadBytes += poseBytes + remapBytes;
-        return new GpuDeviceAdapter.StoragePose(pose, remap);
+        GpuPoseArena.Slice finalRemap = remap;
+        GpuPoseArena.Slice offsets = arena.append(GpuStorageSupport.OFFSETS_BYTES,
+                target -> GpuStorageSupport.writeOffsets(target, pose, finalRemap, null));
+        if (offsets == null) {
+            storageFallbacks++;
+            AccelerationFrameDiagnostics.ssboFallback("ARENA_FULL");
+            return null;
+        }
+        frameUploadBytes += poseBytes + remapBytes + GpuStorageSupport.OFFSETS_BYTES;
+        return new GpuDeviceAdapter.StoragePose(pose, remap, null, offsets);
     }
 
     /**
@@ -817,7 +824,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
     private GpuDeviceAdapter.StoragePose appendModelStorage(GpuModelData data) {
         int poseBytes = Math.toIntExact(data.storagePoseBytes());
         int recordBytes = Math.toIntExact(data.recordBytes());
-        if (frameUploadBytes + poseBytes + recordBytes > frameUploadBudget) {
+        if (frameUploadBytes + poseBytes + recordBytes + GpuStorageSupport.OFFSETS_BYTES > frameUploadBudget) {
             storageFallbacks++;
             return null;
         }
@@ -828,14 +835,20 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
             storageFallbacks++;
             return null;
         }
-        frameUploadBytes += poseBytes + recordBytes;
-        return new GpuDeviceAdapter.StoragePose(pose, null, records);
+        GpuPoseArena.Slice offsets = arena.append(GpuStorageSupport.OFFSETS_BYTES,
+                target -> GpuStorageSupport.writeOffsets(target, pose, null, records));
+        if (offsets == null) {
+            storageFallbacks++;
+            return null;
+        }
+        frameUploadBytes += poseBytes + recordBytes + GpuStorageSupport.OFFSETS_BYTES;
+        return new GpuDeviceAdapter.StoragePose(pose, null, records, offsets);
     }
 
     private void ensureArena() {
         if (arena == null) {
             GpuStorageSupport.Limits limits = device.storageLimits();
-            arena = new GpuPoseArena(device, retirement, limits.offsetAlignment(), ARENA_LIMIT_BYTES);
+            arena = new GpuPoseArena(device, retirement, limits.offsetAlignment(), limits.maxBlockBytes());
         }
     }
 

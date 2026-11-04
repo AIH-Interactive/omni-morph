@@ -1,24 +1,20 @@
 package top.aihmc.omnimorph.render.acceleration;
 
 import com.mojang.blaze3d.buffers.GpuBuffer;
-import com.mojang.blaze3d.opengl.GlBuffer;
-import org.lwjgl.opengl.GL;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL30;
-import org.lwjgl.opengl.GL32;
-import org.lwjgl.opengl.GL43;
-import org.lwjgl.opengl.GLCapabilities;
-import top.aihmc.omnimorph.mixin.render.GlBufferAccessor;
+import com.mojang.blaze3d.systems.RenderPass;
+import com.mojang.blaze3d.systems.RenderSystem;
 
-import java.util.Locale;
+import java.nio.ByteBuffer;
 
 /**
- * The only raw GL in GPU acceleration: storage block capability queries and binding points, which Blaze3D
- * does not expose. Everything else (programs, vertex arrays, textures, blending) stays with Blaze3D.
- * Render thread only.
+ * Native texel-buffer channel for the existing pose arena. All buffers and bindings belong to Blaze3D.
+ * The activation pixel diagnostic validates the channel before these limits enable storage draws.
  */
 final class GpuStorageSupport {
-    /** {@code models}: a third vertex-stage block and binding {@link GpuShaderProgram#BATCH_BINDING} for R4-3. */
+    static final int OFFSETS_BYTES = 16;
+    static final long MAX_ARENA_BYTES = 16L * 1024 * 1024;
+
+    /** {@code models}: the same data channel also carries the per-batch model records. */
     record Limits(int offsetAlignment, long maxBlockBytes, boolean models) {
     }
 
@@ -36,51 +32,31 @@ final class GpuStorageSupport {
         return unavailableReason;
     }
 
-    /** Returns null with a recorded reason when this device cannot read pose storage blocks in the vertex stage. */
+    /** Native allocation/alignment limits; actual shader and pixel checks still gate activation. */
     static Limits probe() {
-        String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
-        if (os.contains("mac") || os.contains("darwin")) {
-            return unavailable("macOS OpenGL lacks shader storage blocks");
+        var limits = RenderSystem.getDevice().getDeviceInfo().limits();
+        int nativeAlignment = limits.minUniformOffsetAlignment();
+        long maxBlock = Math.min(MAX_ARENA_BYTES, limits.maxMemoryAllocationSize()) & -16L;
+        if (nativeAlignment <= 0 || Integer.bitCount(nativeAlignment) != 1 || maxBlock < GpuPoseArena.MIN_CAPACITY) {
+            return unavailable("native storage limits alignment=" + nativeAlignment + " maxAllocation="
+                    + limits.maxMemoryAllocationSize());
         }
-        GLCapabilities caps;
-        try {
-            caps = GL.getCapabilities();
-        } catch (IllegalStateException noContext) {
-            return unavailable("no current OpenGL context");
-        }
-        if (!(caps.OpenGL43 || caps.GL_ARB_shader_storage_buffer_object)) {
-            return unavailable("shader storage blocks unsupported");
-        }
-        if (!(caps.OpenGL42 || caps.GL_ARB_shading_language_420pack)) {
-            return unavailable("explicit block binding unsupported");
-        }
-        if (GL11.glGetInteger(GL43.GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS) < 2) {
-            return unavailable("vertex stage storage blocks below 2");
-        }
-        if (GL11.glGetInteger(GL43.GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS) <= GpuShaderProgram.REMAP_BINDING) {
-            return unavailable("storage binding points below " + (GpuShaderProgram.REMAP_BINDING + 1));
-        }
-        int alignment = GL11.glGetInteger(GL43.GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT);
-        long maxBlock = GL32.glGetInteger64(GL43.GL_MAX_SHADER_STORAGE_BLOCK_SIZE);
-        if (alignment <= 0 || Integer.bitCount(alignment) != 1 || maxBlock < GpuRigidData.POSE_BYTES) {
-            return unavailable("storage limits alignment=" + alignment + " maxBlock=" + maxBlock);
-        }
-        boolean models = GL11.glGetInteger(GL43.GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS) >= 3
-                && GL11.glGetInteger(GL43.GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS) > GpuShaderProgram.BATCH_BINDING;
         unavailableReason = null;
-        return new Limits(alignment, maxBlock, models);
+        return new Limits(Math.max(16, nativeAlignment), maxBlock, true);
     }
 
-    static void bind(int binding, GpuBuffer buffer, long offset, long size) {
-        if (!(buffer instanceof GlBuffer)) {
-            throw new IllegalStateException("Pose storage requires OpenGL buffers, got " + buffer.getClass().getName());
-        }
-        int handle = ((GlBufferAccessor) (Object) buffer).omnimorph$handle();
-        GL30.glBindBufferRange(GL43.GL_SHADER_STORAGE_BUFFER, binding, handle, offset, size);
+    static void writeOffsets(ByteBuffer target, GpuPoseArena.Slice pose,
+                             GpuPoseArena.Slice remap, GpuPoseArena.Slice records) {
+        target.putInt(pose.offset() / 16);
+        target.putInt(remap == null ? 0 : remap.offset() / 16);
+        target.putInt(records == null ? 0 : records.offset() / 16);
+        target.putInt(0);
     }
 
-    static void unbind(int binding) {
-        GL30.glBindBufferBase(GL43.GL_SHADER_STORAGE_BUFFER, binding, 0);
+    static void bind(RenderPass pass, GpuBuffer arena, GpuPoseArena.Slice offsets) {
+        // GL's texel binding ignores slice offsets, while Vulkan uses them. Bind the same whole arena on both.
+        pass.setUniform(GpuShaderProgram.STORAGE_DATA, arena);
+        pass.setUniform(GpuShaderProgram.STORAGE_OFFSETS, arena.slice(offsets.offset(), OFFSETS_BYTES));
     }
 
     private static Limits unavailable(String reason) {

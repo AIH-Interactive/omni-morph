@@ -99,9 +99,8 @@ public final class GpuRigidDataSmokeTest {
 
     private static void testStorageLayout(List<DrawBatch> batches) {
         String enabled = GpuShaderProgram.enableStorage(PROBE_SOURCE);
-        require(enabled.startsWith("#version 330\n#extension GL_ARB_shader_storage_buffer_object : require\n"
-                        + "#extension GL_ARB_shading_language_420pack : require\n"),
-                "storage extensions follow the original version directive before any declaration");
+        require(enabled.equals(PROBE_SOURCE),
+                "native texel storage must preserve the original GLSL version without GL-only extensions");
         String modern = PROBE_SOURCE.replace("#version 330", "#version 430 core");
         require(GpuShaderProgram.enableStorage(modern).equals(modern), "GLSL 4.30 sources need no extensions");
         try {
@@ -112,22 +111,20 @@ public final class GpuRigidDataSmokeTest {
         }
 
         String entity = GpuShaderProgram.wrapStorageEntitySource(PROBE_SOURCE);
-        require(entity.contains("layout(std430, binding = 6) readonly buffer OmniMorphPoseBlock {")
-                        && entity.contains("OmniPart OmniParts[];") && !entity.contains("uniform OmniMorphPose")
-                        && !entity.contains("OmniMorphRemapBlock"),
-                "the entity storage variant declares only the unsized pose block");
+        require(entity.contains("uniform usamplerBuffer OmniMorphData;")
+                        && entity.contains("uniform OmniMorphOffsets") && entity.contains("omniPart(0).position")
+                        && !entity.contains("std430") && !entity.contains("readonly buffer"),
+                "entity storage reads the native texel data channel with explicit arena offsets");
         String rigid = GpuShaderProgram.wrapStorageRigidEntitySource(PROBE_SOURCE);
-        require(rigid.contains("layout(std430, binding = 7) readonly buffer OmniMorphRemapBlock {")
-                        && rigid.contains("int part = int(OmniRemap[globalPart]);")
+        require(rigid.contains("int part = omniRemap(globalPart);")
                         && !rigid.contains("packedRemap") && !rigid.contains("ivec4 OmniRemap[256]"),
                 "the rigid storage variant reads each batch's global part index");
         String model = GpuShaderProgram.wrapStorageModelEntitySource(PROBE_SOURCE);
         String modelMain = model.substring(model.indexOf("void main()", model.indexOf("omnimorph_original_main")));
-        require(model.contains("layout(std430, binding = 8) readonly buffer OmniMorphBatchBlock {")
-                        && model.contains("OmniBatch OmniBatches[];")
+        require(model.contains("OmniBatch omniBatchInfo(int batch)")
                         && modelMain.contains("int omniBatch = OmniJoints.x >> 16;")
-                        && modelMain.contains("OmniParts[omniJoints[influence]].position")
-                        && modelMain.contains("OmniParts[omniBatch].position")
+                        && modelMain.contains("omniPart(omniJoints[influence]).position")
+                        && modelMain.contains("omniPart(omniBatch).position")
                         && modelMain.contains("Color = omniInfo.tint;")
                         && modelMain.contains("UV2 = omniInfo.overlayLight.zw;")
                         && !modelMain.contains("OmniParts[0]") && !modelMain.contains("OmniOptions")
@@ -153,7 +150,7 @@ public final class GpuRigidDataSmokeTest {
         require(groupStorage.position() == 48 + 2 * 160, "a two-part storage block holds exactly its distinct parts");
         requireSame(groupStorage, 0, groupUniform, GpuBatchData.PARAMETER_OFFSET, 48, "rigid header holds the parameters");
         requireSame(groupStorage, 48, groupUniform, 0, 2 * GpuBatchData.PART_BYTES, "rigid parts follow the header");
-        System.out.println("PASS pose storage blocks: extension placement, std430 declarations, packed header and parts");
+        System.out.println("PASS native texel storage declarations, explicit offsets, packed header and parts");
         testStorageSingleRange(batches);
     }
 

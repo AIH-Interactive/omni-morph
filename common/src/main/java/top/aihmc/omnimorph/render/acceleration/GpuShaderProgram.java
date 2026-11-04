@@ -16,13 +16,8 @@ final class GpuShaderProgram {
     static final String UNIFORM = "OmniMorphPose";
     private static final Pattern MAIN = Pattern.compile("\\bvoid\\s+main\\s*\\(\\s*\\)");
     private static final Pattern VERSION = Pattern.compile("^[ \\t]*#version[ \\t]+(\\d+)[^\\n]*\\n", Pattern.MULTILINE);
-    /** Storage binding points stay above the low indices other renderers commonly use. */
-    static final int STORAGE_BINDING = 6;
-    static final int REMAP_BINDING = 7;
-    private static final String STORAGE_EXTENSIONS = """
-            #extension GL_ARB_shader_storage_buffer_object : require
-            #extension GL_ARB_shading_language_420pack : require
-            """;
+    static final String STORAGE_DATA = "OmniMorphData";
+    static final String STORAGE_OFFSETS = "OmniMorphOffsets";
     private static final String UNIFORM_BLOCK = """
             layout(std140) uniform OmniMorphPose {
                 OmniPart OmniParts[OMNI_PARTS];
@@ -32,36 +27,48 @@ final class GpuShaderProgram {
             };
             """;
     private static final String STORAGE_BLOCK = """
-            layout(std430, binding = %d) readonly buffer OmniMorphPoseBlock {
-                vec4 OmniTint;
-                ivec4 OmniOverlayLight;
-                vec4 OmniOptions;
-                OmniPart OmniParts[];
+            uniform usamplerBuffer OmniMorphData;
+            layout(std140) uniform OmniMorphOffsets {
+                ivec4 OmniBase;
             };
-            """.formatted(STORAGE_BINDING);
+            vec4 omniFloats(int texel) {
+                return uintBitsToFloat(texelFetch(OmniMorphData, texel));
+            }
+            OmniPart omniPart(int part) {
+                int base = OmniBase.x + 3 + part * 10;
+                return OmniPart(mat4(omniFloats(base), omniFloats(base + 1),
+                    omniFloats(base + 2), omniFloats(base + 3)),
+                    omniFloats(base + 4), omniFloats(base + 5), omniFloats(base + 6),
+                    omniFloats(base + 7), omniFloats(base + 8), omniFloats(base + 9));
+            }
+            #define OmniTint omniFloats(OmniBase.x)
+            #define OmniOverlayLight ivec4(texelFetch(OmniMorphData, OmniBase.x + 1))
+            #define OmniOptions omniFloats(OmniBase.x + 2)
+            """;
     private static final String STORAGE_REMAP_BLOCK = """
-            layout(std430, binding = %d) readonly buffer OmniMorphRemapBlock {
-                uint OmniRemap[];
-            };
-            """.formatted(REMAP_BINDING);
-    static final int BATCH_BINDING = 8;
+            int omniRemap(int batch) {
+                return int(texelFetch(OmniMorphData, OmniBase.y + batch / 4)[batch % 4]);
+            }
+            """;
     private static final String MODEL_BATCH_BLOCK = """
             struct OmniBatch {
                 vec4 tint;
                 ivec4 overlayLight;
                 vec4 options;
             };
-            layout(std430, binding = %d) readonly buffer OmniMorphBatchBlock {
-                OmniBatch OmniBatches[];
-            };
-            """.formatted(BATCH_BINDING);
+            OmniBatch omniBatchInfo(int batch) {
+                int base = OmniBase.z + batch * 3;
+                return OmniBatch(omniFloats(base), ivec4(texelFetch(OmniMorphData, base + 1)),
+                    omniFloats(base + 2));
+            }
+            """;
     // Each vertex names its batch in the high 16 bits of OmniJoints.x; the batch index is also its root part.
     private static final String[][] MODEL_REPLACEMENTS = {
             {"""
                 vec3 point = OmniPosition;
             """, """
                 int omniBatch = OmniJoints.x >> 16;
-                OmniBatch omniInfo = OmniBatches[omniBatch];
+                OmniBatch omniInfo = omniBatchInfo(omniBatch);
                 ivec4 omniJoints = ivec4(OmniJoints.x & 0xFFFF, OmniJoints.y, OmniJoints.z, OmniJoints.w);
                 vec3 point = OmniPosition;
             """},
@@ -77,7 +84,7 @@ final class GpuShaderProgram {
             """;
     // Storage groups have no 64-part palette: each batch maps straight to its global part index.
     private static final String STORAGE_REMAP_READ = """
-                int part = int(OmniRemap[globalPart]);
+                int part = omniRemap(globalPart);
             """;
     private static final String DECLARATIONS = """
             in vec3 OmniPosition;
@@ -202,9 +209,9 @@ final class GpuShaderProgram {
         return wrapEntitySource(original, declarations, RIGID_MAIN_BODY);
     }
 
-    /** Pose storage block variant: header first, then an unsized part array read through raw GL bindings. */
+    /** Native texel data keeps the existing header/part bytes and reads them through explicit arena offsets. */
     static String wrapStorageEntitySource(String original) {
-        return wrapEntitySource(enableStorage(original), storageDeclarations(false), MAIN_BODY);
+        return wrapEntitySource(enableStorage(original), storageDeclarations(false), storageBody(MAIN_BODY));
     }
 
     static String wrapStorageRigidEntitySource(String original) {
@@ -212,7 +219,7 @@ final class GpuShaderProgram {
         if (body.equals(RIGID_MAIN_BODY)) {
             throw new IllegalStateException("Rigid remap read changed; storage variant must be updated");
         }
-        return wrapEntitySource(enableStorage(original), storageDeclarations(true), body);
+        return wrapEntitySource(enableStorage(original), storageDeclarations(true), storageBody(body));
     }
 
     /**
@@ -228,7 +235,19 @@ final class GpuShaderProgram {
             }
             body = replaced;
         }
-        return wrapEntitySource(enableStorage(original), storageDeclarations(false) + MODEL_BATCH_BLOCK, body);
+        return wrapEntitySource(enableStorage(original), storageDeclarations(false) + MODEL_BATCH_BLOCK, storageBody(body));
+    }
+
+    private static String storageBody(String body) {
+        String result = body.replace("OmniParts[OmniJoints[influence]]", "omniPart(OmniJoints[influence])")
+                .replace("OmniParts[omniJoints[influence]]", "omniPart(omniJoints[influence])")
+                .replace("OmniParts[0]", "omniPart(0)")
+                .replace("OmniParts[part]", "omniPart(part)")
+                .replace("OmniParts[omniBatch]", "omniPart(omniBatch)");
+        if (result.contains("OmniParts[")) {
+            throw new IllegalStateException("Unconverted pose array access in native texel shader");
+        }
+        return result;
     }
 
     private static String storageDeclarations(boolean grouped) {
@@ -239,19 +258,13 @@ final class GpuShaderProgram {
         return grouped ? declarations + STORAGE_REMAP_BLOCK : declarations;
     }
 
-    /**
-     * Storage blocks need GLSL 4.30 or the SSBO and binding-layout extensions. The vanilla source keeps
-     * its version; the extension directives go directly after it, before any declaration.
-     */
+    /** Texel buffers are part of the native shader contract; no backend-specific extension is injected. */
     static String enableStorage(String source) {
         var version = VERSION.matcher(source);
         if (!version.find()) {
             throw new IllegalArgumentException("Entity vertex shader has no #version directive");
         }
-        if (Integer.parseInt(version.group(1)) >= 430) {
-            return source;
-        }
-        return source.substring(0, version.end()) + STORAGE_EXTENSIONS + source.substring(version.end());
+        return source;
     }
 
     private static String declarations(int parts) {
@@ -308,8 +321,16 @@ final class GpuShaderProgram {
         if (uniformPose) {
             builder.withBindGroupLayout(BindGroupLayout.builder()
                     .withUniform(UNIFORM, UniformType.UNIFORM_BUFFER).build());
+        } else {
+            builder.withBindGroupLayout(storageLayout());
         }
         return builder.build();
+    }
+
+    static BindGroupLayout storageLayout() {
+        return BindGroupLayout.builder()
+                .withUniform(STORAGE_DATA, UniformType.TEXEL_BUFFER, GpuFormat.RGBA32_UINT)
+                .withUniform(STORAGE_OFFSETS, UniformType.UNIFORM_BUFFER).build();
     }
 
     static VertexFormat format() {

@@ -135,7 +135,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
     public Storage createStorage(long capacity) {
         assertThread();
         return new BufferStorage(device.createBuffer(() -> "OmniMorph pose storage arena",
-                GpuBuffer.USAGE_UNIFORM | GpuBuffer.USAGE_COPY_DST, capacity), capacity);
+                GpuBuffer.USAGE_UNIFORM | GpuBuffer.USAGE_UNIFORM_TEXEL_BUFFER | GpuBuffer.USAGE_COPY_DST, capacity), capacity);
     }
 
     @Override
@@ -348,29 +348,12 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
             }
             pass.setVertexBuffer(0, geometry.vertices().slice());
             pass.setIndexBuffer(indices == null ? geometry.indices() : ((BufferIndices) indices).buffer(), IndexType.INT);
+            if (storagePose != null) {
+                GpuBuffer arena = ((BufferStorage) storagePose.storage).buffer();
+                GpuStorageSupport.bind(pass, arena, storagePose.offsets);
+            }
             issuingDraw.run();
-            if (storagePose == null) {
-                pass.drawIndexed(indexCount, 1, firstIndex, 0, 0);
-                return;
-            }
-            // drawIndexed executes synchronously in the GL backend, so these bindings cover exactly this draw.
-            GpuBuffer arena = ((BufferStorage) storagePose.storage).buffer();
-            GpuStorageSupport.bind(GpuShaderProgram.STORAGE_BINDING, arena, storagePose.pose.offset(), storagePose.pose.bytes());
-            if (storagePose.remap != null) {
-                GpuStorageSupport.bind(GpuShaderProgram.REMAP_BINDING, arena, storagePose.remap.offset(), storagePose.remap.bytes());
-            }
-            if (storagePose.records != null) {
-                GpuStorageSupport.bind(GpuShaderProgram.BATCH_BINDING, arena, storagePose.records.offset(), storagePose.records.bytes());
-            }
-            try {
-                pass.drawIndexed(indexCount, 1, firstIndex, 0, 0);
-            } finally {
-                GpuStorageSupport.unbind(GpuShaderProgram.STORAGE_BINDING);
-                GpuStorageSupport.unbind(GpuShaderProgram.REMAP_BINDING);
-                if (storagePose.records != null) {
-                    GpuStorageSupport.unbind(GpuShaderProgram.BATCH_BINDING);
-                }
-            }
+            pass.drawIndexed(indexCount, 1, firstIndex, 0, 0);
         }
 
         @Override
@@ -397,12 +380,12 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         try {
             GpuStorageSupport.Limits limits = GpuStorageSupport.probe();
             if (limits != null) {
-                storageSelfTest(StorageProbe.ENTITY);
-                storageSelfTest(StorageProbe.RIGID);
+                storageSelfTest(StorageProbe.ENTITY, limits);
+                storageSelfTest(StorageProbe.RIGID, limits);
                 boolean models = limits.models();
                 if (models) {
                     try {
-                        storageSelfTest(StorageProbe.MODEL);
+                        storageSelfTest(StorageProbe.MODEL, limits);
                     } catch (RuntimeException failure) {
                         // Model draws are a further optional layer; plain storage blocks stay active.
                         models = false;
@@ -424,13 +407,14 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
 
     private enum StorageProbe { ENTITY, RIGID, MODEL }
 
-    private void storageSelfTest(StorageProbe probe) {
+    private void storageSelfTest(StorageProbe probe, GpuStorageSupport.Limits limits) {
         assertThread();
         Identifier location = Identifier.fromNamespaceAndPath("omni-morph",
                 "acceleration/activation_probe_storage_" + probe.name().toLowerCase(java.util.Locale.ROOT));
         RenderPipeline pipeline = RenderPipeline.builder().withLocation(location).withVertexShader(location).withFragmentShader(location)
                 .withColorTargetState(ColorTargetState.DEFAULT).withDepthStencilState(Optional.empty()).withCull(false)
-                .withVertexBinding(0, GpuShaderProgram.format()).withPrimitiveTopology(PrimitiveTopology.TRIANGLES).build();
+                .withVertexBinding(0, GpuShaderProgram.format()).withPrimitiveTopology(PrimitiveTopology.TRIANGLES)
+                .withBindGroupLayout(GpuShaderProgram.storageLayout()).build();
         String vertex = switch (probe) {
             case ENTITY -> GpuShaderProgram.wrapStorageEntitySource(PROBE_VERTEX);
             case RIGID -> GpuShaderProgram.wrapStorageRigidEntitySource(PROBE_VERTEX);
@@ -445,7 +429,6 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         ByteBuffer vertexData;
         ByteBuffer poseData;
         ByteBuffer remapData = null;
-        int secondBinding = GpuShaderProgram.REMAP_BINDING;
         if (probe == StorageProbe.RIGID) {
             GpuRigidData group = new GpuRigidData(List.of(batch), new long[]{0});
             vertexData = group.vertices();
@@ -462,19 +445,35 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
             remapData = ByteBuffer.allocateDirect((int) model.recordBytes()).order(ByteOrder.nativeOrder());
             model.writeRecords(remapData);
             remapData.flip();
-            secondBinding = GpuShaderProgram.BATCH_BINDING;
         } else {
             vertexData = GpuBatchData.vertices(mesh, 0, false);
             poseData = ByteBuffer.allocateDirect(GpuBatchData.storagePoseBytes(1)).order(ByteOrder.nativeOrder());
             GpuBatchData.writeStoragePose(poseData, batch);
         }
         poseData.flip();
-        long poseBytes = poseData.remaining();
-        long remapBytes = remapData == null ? 0 : remapData.remaining();
-        GpuBuffer remap = remapData == null ? null
-                : device.createBuffer(() -> "OmniMorph storage remap probe", GpuBuffer.USAGE_UNIFORM, remapData);
+        int alignment = limits.offsetAlignment();
+        int capacity = Math.toIntExact(limits.maxBlockBytes());
+        int poseBytes = poseData.remaining();
+        int secondaryBytes = remapData == null ? 0 : remapData.remaining();
+        // Read near the end of the largest arena: a tiny successful buffer would not validate its capacity.
+        int poseOffset = (capacity - poseBytes - secondaryBytes - 2 * alignment) & -alignment;
+        var poseSlice = new GpuPoseArena.Slice(poseOffset, poseBytes);
+        int secondaryOffset = (poseOffset + poseBytes + alignment - 1) & -alignment;
+        var secondarySlice = remapData == null ? null : new GpuPoseArena.Slice(secondaryOffset, secondaryBytes);
+        var offsets = new GpuPoseArena.Slice(0, GpuStorageSupport.OFFSETS_BYTES);
+        ByteBuffer arenaData = ByteBuffer.allocateDirect(capacity).order(ByteOrder.nativeOrder());
+        arenaData.position(poseOffset).put(poseData);
+        if (remapData != null) {
+            arenaData.position(secondaryOffset).put(remapData);
+        }
+        arenaData.position(0);
+        GpuStorageSupport.writeOffsets(arenaData, poseSlice,
+                probe == StorageProbe.RIGID ? secondarySlice : null,
+                probe == StorageProbe.MODEL ? secondarySlice : null);
+        arenaData.clear();
         try (BufferMesh geometry = (BufferMesh) uploadGeometry(vertexData, GpuBatchData.indices(mesh));
-             GpuBuffer pose = device.createBuffer(() -> "OmniMorph storage pose probe", GpuBuffer.USAGE_UNIFORM, poseData);
+             GpuBuffer arena = device.createBuffer(() -> "OmniMorph texel arena probe",
+                     GpuBuffer.USAGE_UNIFORM | GpuBuffer.USAGE_UNIFORM_TEXEL_BUFFER, arenaData);
              var target = device.createTexture("OmniMorph storage diagnostic", GpuTexture.USAGE_RENDER_ATTACHMENT | GpuTexture.USAGE_COPY_SRC,
                      GpuFormat.RGBA8_UNORM, 8, 8, 1, 1);
              var view = device.createTextureView(target);
@@ -484,18 +483,8 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
                 pass.setPipeline(pipeline);
                 pass.setVertexBuffer(0, geometry.vertices().slice());
                 pass.setIndexBuffer(geometry.indices(), IndexType.INT);
-                GpuStorageSupport.bind(GpuShaderProgram.STORAGE_BINDING, pose, 0, poseBytes);
-                if (remap != null) {
-                    GpuStorageSupport.bind(secondBinding, remap, 0, remapBytes);
-                }
-                try {
-                    pass.drawIndexed(6, 1, 0, 0, 0);
-                } finally {
-                    GpuStorageSupport.unbind(GpuShaderProgram.STORAGE_BINDING);
-                    if (remap != null) {
-                        GpuStorageSupport.unbind(secondBinding);
-                    }
-                }
+                GpuStorageSupport.bind(pass, arena, offsets);
+                pass.drawIndexed(6, 1, 0, 0, 0);
             }
             encoder.copyTextureToBuffer(target, readback, 0, () -> {}, 0);
             try (GpuFence completed = encoder.createFence()) {
@@ -509,10 +498,6 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
                 if (!green(pixels, 6, 4) || green(pixels, 2, 4)) {
                     throw new IllegalStateException("Acceleration storage self-test pixel mismatch");
                 }
-            }
-        } finally {
-            if (remap != null) {
-                remap.close();
             }
         }
     }

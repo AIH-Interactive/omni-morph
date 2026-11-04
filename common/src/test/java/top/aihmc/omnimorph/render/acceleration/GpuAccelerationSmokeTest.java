@@ -378,11 +378,15 @@ public final class GpuAccelerationSmokeTest {
         require(service.tryDraw(batch(service, owner, quad(1), 9, material()), CONTEXT)
                 == GpuAccelerationBackend.DrawResult.DRAWN, "second storage draw in the same frame");
         var second = (GpuDeviceAdapter.StoragePose) device.lastDrawnPose;
-        require(second.storage == arena && second.pose.offset() == 256 && device.storageCreates == 1
-                        && device.storageWrites.size() == 2 && device.storageWrites.get(1)[0] == 208
-                        && arena.data.getFloat(256 + GpuBatchData.STORAGE_HEADER_BYTES + 12 * 4) == 9
+        require(second.storage == arena && second.pose.offset() == 512 && device.storageCreates == 1
+                        && device.storageWrites.size() == 2 && device.storageWrites.get(1)[0] == 272
+                        && arena.data.getFloat(512 + GpuBatchData.STORAGE_HEADER_BYTES + 12 * 4) == 9
+                        && arena.data.getFloat(GpuBatchData.STORAGE_HEADER_BYTES + 12 * 4) == 7
+                        && first.offsets.offset() == 256 && second.offsets.offset() == 768
+                        && arena.data.getInt(first.offsets.offset()) == 0
+                        && arena.data.getInt(second.offsets.offset()) == 32
                         && gpu.storageDraws() == 2,
-                "later draws share the frame arena and write only their own bytes");
+                "later draws share the arena with aligned offset records and never overwrite an earlier pose");
         AccelerationFrameDiagnostics.beginFrame();
         recording.stop();
         recording.dump(recordingPath);
@@ -392,7 +396,7 @@ public final class GpuAccelerationSmokeTest {
         AccelerationFrameDiagnostics.beginFrame();
         require(events.size() == 1 && events.getFirst().getLong("ssboDraws") == 2
                         && events.getFirst().getLong("arenaUploads") == 2
-                        && events.getFirst().getLong("arenaBytes") == 208 + 256
+                        && events.getFirst().getLong("arenaBytes") == 272 + 512
                         && events.getFirst().getLong("ssboFallbacks") == 0,
                 "the frame event counts storage draws and the incremental arena bytes");
 
