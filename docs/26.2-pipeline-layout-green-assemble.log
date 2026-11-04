@@ -1,0 +1,128 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+
+> Task :common:compileJava
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\local\LocalAvatarLoader.java:423: 警告: ExtendedWatchEventModifier是内部专用 API, 可能会在未来发行版中删除
+            WatchKey key = IS_WINDOWS ? path.register(watcher, events, com.sun.nio.file.ExtendedWatchEventModifier.FILE_TREE) : path.register(watcher, events);
+                                                                                       ^
+注: 某些输入文件使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+注: 某些输入文件使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+1 个警告
+
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+> Task :common:compileTestJava
+> Task :common:processTestResources UP-TO-DATE
+> Task :common:testClasses
+
+> Task :common:pipelineBindingLayoutSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.joml.MemUtil$MemUtilUnsafe (file:/C:/Users/eryth/.gradle/caches/modules-2/files-2.1/org.joml/joml/1.10.8/fc0a71dad90a2cf41d82a76156a0e700af8e4f8d/joml-1.10.8.jar)
+WARNING: Please consider reporting this to the maintainers of class org.joml.MemUtil$MemUtilUnsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[20:42:32] [main/INFO]: [STDOUT]: PASS native bind-group compatibility: 30 registered production pipelines and uniform/storage acceleration variants; no GPU/window
+
+> Task :common:gpuShaderCompilationSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.joml.MemUtil$MemUtilUnsafe (file:/C:/Users/eryth/.gradle/caches/modules-2/files-2.1/org.joml/joml/1.10.8/fc0a71dad90a2cf41d82a76156a0e700af8e4f8d/joml-1.10.8.jar)
+WARNING: Please consider reporting this to the maintainers of class org.joml.MemUtil$MemUtilUnsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.lwjgl.system.Library$$Lambda/0x000000008fb44000 in an unnamed module (file:/C:/Users/eryth/.gradle/caches/modules-2/files-2.1/org.lwjgl/lwjgl/3.4.1/129e06a04f93992cb2a45172435b21fc4b60dd7d/lwjgl-3.4.1-unsafe.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[20:42:39] [main/INFO]: [STDOUT]: PASS actual Minecraft entity shader imports/defines and five production variants through native Vulkan GLSL/SPIR-V compiler; no GPU execution
+
+> Task :common:gpuAccelerationSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.joml.MemUtil$MemUtilUnsafe (file:/C:/Users/eryth/.gradle/caches/modules-2/files-2.1/org.joml/joml/1.10.8/fc0a71dad90a2cf41d82a76156a0e700af8e4f8d/joml-1.10.8.jar)
+WARNING: Please consider reporting this to the maintainers of class org.joml.MemUtil$MemUtilUnsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[20:42:45] [main/INFO]: [STDOUT]: PASS pose storage arena: alignment, limit fallback, incremental flushes, fence reuse, growth and release
+[20:42:45] [main/INFO]: [STDOUT]: PASS GPU probe waits for game shader sources instead of failing
+[20:42:45] [main/WARN]: GPU pose storage blocks disabled after 3 failures; uniform pose blocks remain
+java.lang.IllegalStateException: injected storage write failure
+	at top.aihmc.omnimorph.render.acceleration.GpuAccelerationSmokeTest$FakeDevice.writeStorage(GpuAccelerationSmokeTest.java:880)
+	at top.aihmc.omnimorph.render.acceleration.GpuPoseArena.flush(GpuPoseArena.java:93)
+	at top.aihmc.omnimorph.render.acceleration.GpuAccelerationBackend.drawPrepared(GpuAccelerationBackend.java:551)
+	at top.aihmc.omnimorph.render.acceleration.GpuAccelerationBackend.drawPrepared(GpuAccelerationBackend.java:523)
+	at top.aihmc.omnimorph.render.acceleration.GpuAccelerationBackend.draw(GpuAccelerationBackend.java:306)
+	at top.aihmc.omnimorph.render.acceleration.AccelerationService.tryDraw(AccelerationService.java:68)
+	at top.aihmc.omnimorph.render.acceleration.GpuAccelerationSmokeTest.storageRouting(GpuAccelerationSmokeTest.java:406)
+	at top.aihmc.omnimorph.render.acceleration.GpuAccelerationSmokeTest.main(GpuAccelerationSmokeTest.java:40)
+[20:42:45] [main/INFO]: [STDOUT]: PASS pose storage routing: lazy variant, arena draws, incremental writes, local failures and fallback
+[20:42:45] [main/INFO]: [STDOUT]: PASS R4-1 backend: interleaved 65-part group prepares one storage range and one draw
+[20:42:45] [main/INFO]: [STDOUT]: PASS R4-2 storage: shared pass reuse and closing before pending arena writes
+[20:42:45] [main/INFO]: [STDOUT]: PASS R4-3 routing: skinned-capable model draw for lit/tinted quad and triangle batches, gated by options
+[20:42:45] [main/INFO]: [STDOUT]: PASS authored rigid group index reuse, sorted per-frame indices and retirement
+[20:42:45] [main/INFO]: [STDOUT]: PASS H4 CPU contracts: raw cached geometry, frame poses, material/shader recipe, bounds, generations, fences and partial-draw fallback; real GPU pixels MANUAL/PENDING
+
+> Task :common:jar
+> Task :fabric:compileJava UP-TO-DATE
+> Task :fabric:processResources
+> Task :fabric:classes
+> Task :fabric:jar
+> Task :fabric:processIncludeJars UP-TO-DATE
+> Task :fabric:shadowJar
+> Task :common:sourcesJar
+> Task :fabric:sourcesJar
+> Task :neoforge:compileJava UP-TO-DATE
+> Task :neoforge:generateAccessTransformer UP-TO-DATE
+> Task :neoforge:processResources
+> Task :neoforge:classes
+> Task :neoforge:processIncludeJars UP-TO-DATE
+Cannot remap preparePictureInPictureState because it does not exists in any of the targets [net/minecraft/client/gui/render/GuiRenderer]
+Cannot remap scaleWidth because it does not exists in any of the targets [] or their parents.
+Cannot remap scaleHeight because it does not exists in any of the targets [] or their parents.
+
+> Task :common:transformProductionNeoForge
+[Architectury Transformer] Read classpath in 2.425 s
+
+> Task :fabric:remapJar
+
+> Task :common:transformProductionNeoForge
+[Architectury Transformer] Transformed jar with 6 transformer(s) in 7.431 s
+
+> Task :neoforge:sourcesJar
+> Task :neoforge:jar
+> Task :neoforge:shadowJar
+> Task :neoforge:remapJar
+> Task :neoforge:assemble
+> Task :fabric:remapSourcesJar
+> Task :fabric:assemble
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.2/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 1m 31s
+31 actionable tasks: 19 executed, 12 up-to-date

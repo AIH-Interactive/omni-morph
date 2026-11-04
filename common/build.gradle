@@ -673,6 +673,14 @@ tasks.register('gpuStorageBackendSmokeTest', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuStorageBackendSmokeTest'
 }
 
+tasks.register('pipelineBindingLayoutSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks real registered and accelerated pipeline layouts with the native bind-group validator; no GPU/window.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.render.acceleration.PipelineBindingLayoutSmokeTest'
+}
+
 tasks.register('gpuShaderCompilationSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Compiles actual entity shader variants with the native Vulkan frontend without a device/window.'

@@ -152,7 +152,8 @@ public enum FiguraRenderTypes {
     }
 
     public static class FiguraRenderPipelines extends RenderPipelines {
-        protected static RenderPipeline.Snippet FIGURA_SOLID_SNIPPET = RenderPipeline.builder(MATRICES_FOG_SNIPPET, GLOBALS_SNIPPET)
+        // MATRICES_FOG_SNIPPET already includes Globals; bind names must be unique across layouts.
+        protected static RenderPipeline.Snippet FIGURA_SOLID_SNIPPET = RenderPipeline.builder(MATRICES_FOG_SNIPPET)
                 .withVertexShader("core/rendertype_lines")
                 .withFragmentShader("core/rendertype_lines")
                 .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
