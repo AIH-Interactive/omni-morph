@@ -47,14 +47,14 @@ Renderpearl接口/异步compile与finishCompile；原版ShaderSource/include及e
 
 ## 本地交付物
 
-目录：build/local-native/。版本1.0.0-alpha.7+26.3-45dc385d（SOLID修复提交）。
+目录：build/local-native/。版本1.0.0-alpha.7+26.3-f975d147（activation_probe修复提交，包含SOLID修复）。
 - omni-morph-1.0.0-alpha.7+26.3-fabric-mc-windows-local.jar
-  SHA256：bb0153f1343a4d5028670046a0ea2f0ffd5a66d297593af4e1c47279f6dbaec1
+  SHA256：7a968f8ebdb943b820e7bd6f00a4c617d0eb00d4a9e8d4203184e34a86541a05
 - omni-morph-1.0.0-alpha.7+26.3-neoforge-mc-windows-local.jar
-  SHA256：674d0abc46cbdc1db10d7f6c0eb9dc7a7ae229e287d6e9158c345190a2ef1ee7
+  SHA256：8b5c71d851d2f10ac9504de15712d95f2f872b7d61c52901e23f9aa8cc92dfcc
 - SHA256SUMS.txt、26.3-package-manifest.json（含内嵌依赖、native构建/源树/哈希信息）。
 
-最新native manifest记录sourceCommit=45dc385dd6a9c299eee56a8b668fadf58253de40、sourceDirty=false；实际数值源码/ABI未改，复用同一DLL，仅更新构建清单。本地两包只包含Windows x86_64 native；其余五平台真实编译未执行，保留现有CI矩阵。
+最新native manifest记录sourceCommit=f975d147be5de26e9752b531841078aba64a8776、sourceDirty=false；实际数值源码/ABI未改，复用同一DLL，仅更新构建清单。本地两包只包含Windows x86_64 native；其余五平台真实编译未执行，保留现有CI矩阵。
 
 ## 未验证与后续事项
 
@@ -93,5 +93,9 @@ NativeGpuFenceSmokeTest现于实际adapter传入的compilePipeline边界，使�
 - docs/activation-probe-test-compile.log：首次新增测试漏声明受检异常的编译失败，已修；不作为行为RED。
 - docs/activation-probe-GREEN.log：nativeGpuFence（含五探针两配置编译）/nativeStorageBinding/gpuShaderCompilation（280完整管线）与Fabric/NeoForge assemble全部通过，退出0。
 
-当前准备提交推送该修复；随后从修复提交重新打包并刷新交付物/哈希。上方45dc385d成品尚不含此修复，待新包覆盖。未启动游戏，真实GPU启用/像素仍MANUAL/PENDING。YSM controller-parse警告未在本次修复范围内，不宣称解决。
+修复已提交推送f975d147be5de26e9752b531841078aba64a8776并核对远端。已从该提交完成双loader Windows重新打包并刷新上方交付物/哈希；旧45dc385d包由新包替代。未启动游戏，真实GPU启用/像素仍MANUAL/PENDING。YSM controller-parse警告未在本次修复范围内，不宣称解决。
 可靠额度最近used5%/remaining95%，未触发Luna；当前无运行中构建或子智能体。
+
+最新交付验证：docs/activation-fabric-package.log、activation-neoforge-package.log均assemble/实际JNI通过；activation-package-integrity.log验证完整性及新哈希通过；activation-packaged-probe.log验证两个成品的生产class都包含layout(location=0)片元输出。activation-native-preparation.log复用原DLL并刷新清单，没有修改native源码、ABI或重跑CTest。
+
+当前修复的实施、离线验证及交付包全部完成，无剩余实施/自动验证事项；最终记录随本次提交交付。真实GPU/驱动/像素仍MANUAL/PENDING，未启动游戏；截图的YSM controller-parse警告不属于此修复。当前无运行中构建或子智能体，额度剩余95%。
