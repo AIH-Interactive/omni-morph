@@ -69,3 +69,13 @@ Fabric/NeoForge × OpenGL/Vulkan真实客户端均MANUAL/PENDING；未启动游�
 先读AGENTS.md、本手册和计划，再核对Git与成品。CodeGraph优先定位，minecraft-dev-mcp核对实际26.3 API。不切分支/worktree，不动.codex/，不扩大范围或机会重构。
 
 新PowerShell加载现有profile/usejdk25/java -version；所有构建/测试/打包前台2>&1 | Tee-Object -FilePath build.log，立即捕获LASTEXITCODE、读日志并保存副本，不并发Gradle共享产物。不得未经许可启动游戏或要求用户实机操作；Qt offscreen禁止。Actions生产专用，CMake BUILD_TESTING=OFF，不编译/执行测试。阶段独立提交推送核对。可靠额度≤10%预警、≤2%安全交接，只有阈值触发才委派gpt-6-luna整理手册。
+
+## 2026-11-04 SOLID 实机编译故障修复（最新任务）
+
+用户实机日志推翻了旧交付的完整性判断：FIGURA_SOLID 使用 lines vertex shader，却没有LineWidth。旧220组编译只覆盖entity加速变体；原30管线布局测试未编译shader，遗漏此错误。
+
+新增原版PipelineBuilder全注册管线编译回归，docs/solid-pipeline-RED.log 复现完全相同LineWidth异常。修复仅SOLID顶点shader与格式：自有core/solid.vsh按面变换并输出原版fog/color fragment接口，保留QUADS/混合/深度/cull/层偏移；原模型与Sprite路径都已写Position/Color，无需线宽。未改其它线条语义。
+
+docs/solid-pipeline-GREEN.log：两前端各30注册管线+110加速变体，共280完整编译通过。docs/solid-pipeline-regressions-assemble.log：pipelineBindingLayout/deferredMaterial/nativePipFailure及Fabric/NeoForge assemble全通过。未启动游戏，真实像素MANUAL/PENDING。
+
+当前准备提交推送修复；随后从修复提交重新打包并覆盖旧本地成品/哈希。旧成品和旧哈希不应再作为最终交付。tools/verify-26.3-packages.py已新增solid.vsh打包资源核验，待新包生成后运行并提交该交付检查。

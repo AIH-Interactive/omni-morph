@@ -16,6 +16,8 @@ import net.minecraft.SharedConstants;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.Bootstrap;
+import top.aihmc.omnimorph.lua.api.particle.CustomParticlePipelines;
+import top.aihmc.omnimorph.model.rendering.texture.FiguraRenderTypes;
 
 import java.io.IOException;
 import java.lang.reflect.Proxy;
@@ -31,6 +33,11 @@ public final class GpuShaderCompilationSmokeTest {
     public static void main(String[] args) throws Exception {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
+        // Include lazy production registrations, rather than only acceleration variants.
+        FiguraRenderTypes.FiguraRenderPipelines.FIGURA_SOLID.getLocation();
+        CustomParticlePipelines.registered();
+        Class.forName("top.aihmc.omnimorph.model.ysm.YsmPreviewRenderTypes");
+        Class.forName("top.aihmc.omnimorph.model.library.PreviewBoneHighlight$Lines");
         var activeDevice = RenderSystem.class.getDeclaredField("DEVICE");
         activeDevice.setAccessible(true);
         Object previousDevice = activeDevice.get(null);
@@ -105,6 +112,18 @@ public final class GpuShaderCompilationSmokeTest {
                     throw new UnsupportedOperationException(method.toString());
                 });
         try (var builder = new PipelineBuilder(backend)) {
+            int registered = 0;
+            for (RenderPipeline pipeline : java.util.stream.Stream.concat(
+                    RenderPipelines.requiredPipelines().stream(), RenderPipelines.optionalPipelines().stream()).toList()) {
+                if (pipeline.getLocation().getNamespace().equals("omni-morph")) {
+                    validatePipeline(builder, pipeline, sources, accepted);
+                    registered++;
+                }
+            }
+            require(registered == 30, "all 30 registered custom production pipelines are compiled");
+            System.out.println("PASS registered custom pipelines: " + registered + " "
+                    + (zeroToOne ? "Vulkan" : "OpenGL") + " full frontend configurations");
+            accepted.set(0);
             for (Variant variant : variants) {
                 var location = Identifier.fromNamespaceAndPath("omni-morph", "test/" + variant.name());
                 var shaderSource = new ShaderSource() {

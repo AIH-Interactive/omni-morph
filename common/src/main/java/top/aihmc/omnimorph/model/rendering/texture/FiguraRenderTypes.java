@@ -164,12 +164,13 @@ public enum FiguraRenderTypes {
     public static class FiguraRenderPipelines extends RenderPipelines {
         // MATRICES_FOG_SNIPPET already includes Globals; bind names must be unique across layouts.
         protected static RenderPipeline.Snippet FIGURA_SOLID_SNIPPET = RenderPipeline.builder(MATRICES_FOG_SNIPPET)
-                .withVertexShader("core/rendertype_lines")
+                // SOLID emits faces, not the endpoint/width stream required by the line vertex shader.
+                .withVertexShader(new FiguraIdentifier("core/solid"))
                 .withFragmentShader("core/rendertype_lines")
                 .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
                 .withDepthStencilState(DepthStencilState.DEFAULT)
                 .withCull(false)
-                .withVertexBinding(0, DefaultVertexFormat.POSITION_COLOR_NORMAL)
+                .withVertexBinding(0, DefaultVertexFormat.POSITION_COLOR)
                 .withPrimitiveTopology(PrimitiveTopology.QUADS)
                 .buildSnippet();
 
