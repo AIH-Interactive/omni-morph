@@ -1,0 +1,28 @@
+// Local acceptance boundary: production dependency resolution and loader metadata.
+gradle.projectsEvaluated {
+    def root = gradle.rootProject
+    root.tasks.register('verify263Dependencies') {
+        group = 'verification'
+        doLast {
+            if (JavaVersion.current() != JavaVersion.VERSION_25) {
+                throw new GradleException('Minecraft 26.3 requires the configured JDK 25.')
+            }
+            if (root.minecraft_version != '26.3') {
+                throw new GradleException('Expected Minecraft 26.3, found ' + root.minecraft_version)
+            }
+            ['fabric', 'neoforge'].each { loader ->
+                def project = root.project(':' + loader)
+                ['compileClasspath', 'runtimeClasspath'].each { name ->
+                    def files = project.configurations.getByName(name).resolve()
+                    logger.lifecycle("Resolved ${project.path}:${name}: ${files.size()} artifacts")
+                }
+            }
+            def metadata = root.file('neoforge/src/main/resources/META-INF/neoforge.mods.toml').text
+            def expanded = metadata.replace('${neoforge_version}', root.neoforge_version)
+            if (!expanded.contains('versionRange = "[' + root.neoforge_version + ',26.4)"')) {
+                throw new GradleException('NeoForge metadata must accept the selected 26.3 loader.')
+            }
+            logger.lifecycle('Minecraft 26.3 production dependency and metadata acceptance PASS')
+        }
+    }
+}
