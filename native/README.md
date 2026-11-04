@@ -5,7 +5,7 @@ Its loader matrix stages and assembles each base independently, while the six C+
 builds are shared. Actions only compile production code, package and publish; no test code
 is compiled or executed. CMake uses `BUILD_TESTING=OFF`, and JNI headers come from the
 production-only `compileNativeProductionInterface` task. Local tests remain available.
-Download artifacts are `OmniMorph-Fabric-26.2` and `OmniMorph-NeoForge-26.2`.
+Download artifacts are `OmniMorph-Fabric-26.3` and `OmniMorph-NeoForge-26.3`.
 
 `stageNativeBase` selects the base with `-PnativeLoader=fabric` (default) or
 `-PnativeLoader=neoforge`. Use a separate `-PnativeBaseDir=build/native-base/<loader>`

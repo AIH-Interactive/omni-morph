@@ -8,7 +8,7 @@
 - 分支 26.3，跟踪 origin/26.3；禁止切分支/worktree。
 - S1 已完成并推送：b5ba406c。
 - S2 已完成并推送 b83f1ec0912786c3cfc19963ea9ec4685f1f04f4，远端 SHA 已核对。
-- S3 自动验收完成，当前准备独立提交/推送；S4 尚未开始，须确认 S3 推送成功才实施。
+- S3 已完成并推送 cfc0a985ccc05d1db7b44b0f840938acc8cc1bc3，远端 SHA 已核对。S4 自动验收完成，当前准备独立阶段提交推送。
 - 工作区包含 S2 必要源码、测试、审计工具和本手册修改；保留原有未跟踪 .codex/，不提交它。
 - 计划、绝大多数 docs 日志依现有 .gitignore 本地保存；本手册已经受 Git 跟踪。
 
@@ -66,3 +66,26 @@ Architectury plugin 升至 3.5.170，以修复 transformer 读取 LWJGL Java27 m
 - 复用 native ABI、C++ 算法、pose/remap/model 编码、arena与分批策略、整arena绑定/16字节offset、fence→submit→await与普通poll。原版GlFence、PipelineBuilder、OitPipelineSet源码已经minecraft-dev-mcp核对。
 - 本阶段没有发现新的生产差异，未修改生产代码，不制造失败；相关新破坏点的真实RED在S2 shader及upload日志，S3扩大验证矩阵均GREEN。S2生产包不受仅测试变更影响，不重复构建；S4将从S3提交重新打包。
 - 下一步完成S3 diff/status/提交推送核对，然后S4 Windows x86_64双loader native包及完整性/许可证/哈希清单、最终计划/手册。
+## S4 最终自动验收（覆盖先前“下一步”条目）
+
+- 已完成实施，无下一开发阶段。剩余自主操作仅本阶段 status/diff、提交推送和最终状态记录。
+- docs/S4-windows-native-final.log：现有 MSVC14.51/JDK25 构建 Windows x86_64 ABI2，CTest 1/1通过；DLL依赖仅 KERNEL32.dll。native数值算法/ABI未改。
+- docs/S4-fabric-package.log 中实际 Fabric JNI通过，synthetic packaging 真实RED：8位Git短SHA被固定7位校验拒收。native/packaging.gradle 最小修复后 docs/S4-fabric-packaging-GREEN.log 通过，继续拒收错误commit/hash/platform/许可证。
+- docs/S4-neoforge-package.log：NeoForge assemble、实际JAR提取/hash/ABI/JNI Java differential（scalar/auto/SSE2/AVX2）、synthetic packaging全通过。
+- docs/S4-fabric-final.log：最终native清单重新注入Fabric通过。两包实际DLL相同；只交付Windows native，未声称其他平台实际编译/运行。
+- tools/verify-26.3-packages.py 已执行通过，日志 docs/S4-package-integrity-pass2.log；验证base所有条目字节保真、ZIP及嵌套JAR CRC、配置Mixin类、AW/AT、展开版本/依赖范围、嵌套依赖、项目license/credits/native NOTICE、ABI2/平台/DLL哈希、无test-only类。首次工具按FQN把与测试stub同名的正式loader实现误判，已按生产source set排除同名实现；没有删除生产类或削弱test-only检查。
+- docs/S4-ci-production-task-graph.log：stageNativeBase、双loader assemble、assembleNativeJar dry-run无测试编译/执行任务。工作流→packaging.gradle→生产JNI→native CI脚本→CMake链静态复核，CI Windows传SkipTests、其余BUILD_TESTING=OFF；未触发Actions。下载artifact与summary标签改26.3。
+- packageLocalNative及nativePackagingSmokeTest本地执行，后者六平台使用明确synthetic字节，仅证明打包规则；六平台真实编译仍由已有CI矩阵处理，不记本机PASS。
+
+成品目录：build/local-native/
+- omni-morph-1.0.0-alpha.7+26.3-fabric-mc-windows-local.jar
+  SHA256 2d804eb6d91fa5527f71293046ec5555a7fa71cb00c7856b5a3156d27c554267
+- omni-morph-1.0.0-alpha.7+26.3-neoforge-mc-windows-local.jar
+  SHA256 9692a23bc08a9a1894befb14d8f131f293b5fcc9689f0ce05f4350b3a4dcbda6
+- SHA256SUMS.txt、26.3-package-manifest.json：最终清单。
+
+成品版本为1.0.0-alpha.7+26.3-cfc0a985；基于S3已推送的完整生产Java提交构建。S4仅打包校验、工作流标签、文档及离线验证工具。native manifest如实记录sourceDirty=true（构建时native README/packaging.gradle有本阶段修改），实际DLL数值源码/ABI未改，源树digest已刷新。
+
+最终真实客户端：Fabric/NeoForge × OpenGL/Vulkan 全部 MANUAL/PENDING；未启动游戏、未做真实GPU像素/驱动/输入法预编辑验收，不存在据此阻塞。已知基线YsmFunctionContract和缺样本YsmLanguage记录保留，不扩展修复。
+
+最终可靠额度检查：used4%/remaining96%，10080分钟窗口，reset1794405624；未触发Luna。当前无子智能体或构建进程运行。

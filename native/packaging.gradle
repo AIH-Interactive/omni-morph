@@ -138,11 +138,12 @@ def assembleNative = { File baseDirectory, File artifacts, File destination, Str
         throw new GradleException("Missing native platforms: ${required.keySet() - seenPlatforms}")
     }
     def identity = readBaseIdentity(base)
+    String versionCommit = identity.version.substring(identity.version.lastIndexOf('-') + 1)
     String expectedModId = nativeLoader == 'fabric' ? 'omni-morph' : 'omni_morph'
     new ZipFile(base).withCloseable { jar ->
         if (identity.id != expectedModId || identity.version != metadata.version
                 || !identity.version.startsWith("${rootProject.mod_version}+${rootProject.minecraft_version}-")
-                || !identity.version.endsWith(commit.take(7))) {
+                || !(versionCommit ==~ /[0-9a-f]{7,40}/) || !commit.startsWith(versionCommit)) {
             throw new GradleException('Base JAR identity/version/commit mismatch')
         }
         identity.dependencies.each { path ->
