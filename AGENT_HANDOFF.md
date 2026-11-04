@@ -4,7 +4,7 @@
 
 ## 当前任务与状态
 
-用户要求一并修复已确认的26.2 ParticleGroup Mixin错误。修复和相关自动验证已完成，下一最小操作为提交推送本检查点，再生成并验证新版Fabric/NeoForge本地Windows native包。
+用户要求一并修复已确认的26.2 ParticleGroup Mixin错误。修复、RED/GREEN回归、双加载器完整性/实际JNI验证与新版Windows native本地ZIP均已完成。无剩余实施或打包任务。
 
 - 根因：add(Particle)返回boolean，但注入使用CallbackInfo；旧EvictingQueue淘汰逻辑也不再适用于26.2原版的ArrayDeque/拒收行为。
 - 已修复：CallbackInfoReturnable<Boolean> + RETURN后仅清理被拒收的CustomParticle；释放名额、纹理和owner tracking，不淘汰已接收粒子。
@@ -13,9 +13,9 @@
 
 ## Git与文件
 
-仅当前26.2 -> origin/26.2；禁止新建/切换分支或worktree。开始修复时HEAD为0c22038f，已在远端。原S0～S4提交均已推送。
+仅当前26.2 -> origin/26.2；禁止新建/切换分支或worktree。修复提交5f0d923d6418c3fded3b3811769467200b503fb1已推送并核对远端。原S0～S4及人工SKIPPED记录已推送。此后的交付收尾仅修改文档与日志，不修改已验证运行代码；最终HEAD以git log为准。
 
-本次改动：common/build.gradle、ParticleGroupMixin.java、CustomParticleNativeSmokeTest.java、OfflineMixinAgent.java、新测试配置omnimorph-offline-particle.mixins.json、tools/VerifyMixinTargets.java，以及本报告/日志/手册。准备作为一个已验证修复检查点提交推送。实际状态以git status/log为准。
+5f0d923d包含common/build.gradle、ParticleGroupMixin.java、CustomParticleNativeSmokeTest.java、OfflineMixinAgent.java、新测试配置omnimorph-offline-particle.mixins.json、tools/VerifyMixinTargets.java及修复报告/RED-GREEN日志。本手册与最终交付说明随收尾记录提交推送，交付前核对origin/26.2。实际状态以git status/log为准。
 
 原有未跟踪.codex/必须保留，不添加或清理。无活动构建。
 
@@ -27,14 +27,17 @@
 - 日志均为docs/26.2-particle-*.log，详见修复报告；既有Unsafe/Gradle/可选平台remap警告不作真实GPU证据。
 - 未启动游戏。人工四组合客户端、实际驱动/GPU像素、中文UI、缩放/重载/退出：SKIPPED（用户决定，未执行），不得作为blocked条件或冒称PASS。
 
-## 本地包与下一步
+## 最终本地交付与剩余事项
 
-原包build/test-packages/OMP-26.2-Windows-Native-52e0a33.zip包含此次已知错误，保留供历史追溯，不作为新修复交付。当前build/local-native的旧JAR也尚未刷新。
+ZIP：D:/UserData/Desktop/Project/OMP/OMP_26.2/build/test-packages/OMP-26.2-Windows-Native-5f0d923d.zip
 
-1. 检查diff与格式，提交并推送修复，核对远端。
-2. 使用现有JDK25/MSVC与生产JNI headers构建Windows DLL，生成与修复提交对应的manifest。
-3. 分别packageLocalNative并执行现有verifyLocalNativeLoader/nativePlatformSmokeTest。
-4. 生成新命名的双JAR测试ZIP，记录路径/hash，更新交付说明、本手册和修复报告，提交推送记录后交付路径。没有新增开发阶段。
+ZIP SHA-256：726cad382ecaca3ff44bbc757d24a18c8eaf05d0bc7d9c88be7d69a7ed60d19c。
+
+双JAR：build/local-native/omni-morph-1.0.0-alpha.7+26.2-{fabric,neoforge}-mc-windows-local.jar，精确SHA见docs/26.2-WINDOWS-TEST-PACKAGES.md。已刷新，均包含修复后的Mixin和实际Windows x86_64 DLL，ABI2，native manifest sourceCommit=5f0d923d，sourceDirty=false。旧52e0a33 ZIP含此次已知错误，仅保留历史追溯。
+
+补充验证：生产JNI headers GREEN；Windows原生构建链/CTest GREEN（源码未变无需重编译），仅KERNEL32.dll依赖；两包完整性及实际提取/ABI/JNI differential均GREEN（Fabric25秒、NeoForge17秒）；ZIP双JAR hash、修复Mixin字节码/native提交身份、README人工SKIPPED最终核对PASS。native首次相对headers路径调用失败，换绝对路径后通过，无源码改动，失败与成功日志分别保存。
+
+本次没有剩余开发、自动验证或打包任务；不新增阶段。人工部分按用户决定SKIPPED，不要求启动游戏或另行验收。
 
 ## 约束与额度
 
