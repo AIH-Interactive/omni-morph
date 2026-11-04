@@ -900,7 +900,7 @@ public final class OutfitApplyServiceSmokeTest {
     private static final class WardrobePlayer extends net.minecraft.client.player.LocalPlayer
             implements org.figuramc.figura.mixin.EntityAccessor {
         private WardrobePlayer() {
-            super(null, null, null, null, null, null, false, null);
+            super(null, null, null, null, null, null, false, null, null);
         }
 
         @Override

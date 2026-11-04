@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
-import com.mojang.blaze3d.pipeline.BindGroupLayout;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.BindGroupLayout;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
@@ -34,7 +34,8 @@ public final class PipelineBindingLayoutSmokeTest {
 
         int registered = 0;
         Set<String> locations = new HashSet<>();
-        for (RenderPipeline pipeline : RenderPipelines.getStaticPipelines()) {
+        for (RenderPipeline pipeline : java.util.stream.Stream.concat(
+                RenderPipelines.requiredPipelines().stream(), RenderPipelines.optionalPipelines().stream()).toList()) {
             if (pipeline.getLocation().getNamespace().equals("omni-morph")) {
                 verify(pipeline);
                 locations.add(pipeline.getLocation().getPath());

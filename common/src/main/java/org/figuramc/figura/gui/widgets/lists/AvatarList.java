@@ -111,7 +111,7 @@ public class AvatarList extends AbstractList {
                 new FiguraIdentifier("textures/gui/folder.png"),
                 60, 20,
                 FiguraText.of("gui.wardrobe.folder.tooltip"),
-                button -> Util.getPlatform().openUri(LocalAvatarFetcher.getLocalAvatarDirectory().toUri()))
+                button -> com.mojang.blaze3d.Blaze3D.openUri(LocalAvatarFetcher.getLocalAvatarDirectory().toUri()))
         );
 
         children.add(formatButton = new LibraryDropdown(x + 4, y + 52, Math.min(128, width - 8),

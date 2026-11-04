@@ -68,6 +68,9 @@ public final class HardwareAcceleration {
             resetPendingGpu = false;
         }
         if (resetGpuDevice) {
+            if (gpuDevice != null) {
+                gpuDevice.closePrograms();
+            }
             gpuDevice = null;
             resetGpuDevice = false;
         }
@@ -76,6 +79,7 @@ public final class HardwareAcceleration {
                 pendingGpu.close();
                 pendingGpu = null;
             }
+            gpuDevice.closePrograms();
             gpuDevice = null;
             CONTROLLER.retryAfterResourceReload();
         }
@@ -103,6 +107,10 @@ public final class HardwareAcceleration {
             }
             if (!GpuRetirement.GLOBAL.awaitRemaining(1_000_000_000L)) {
                 FiguraMod.LOGGER.warn("GPU retirement did not complete before device shutdown: {} bytes pending", GpuRetirement.GLOBAL.bytes());
+            }
+            if (gpuDevice != null) {
+                gpuDevice.closePrograms();
+                gpuDevice = null;
             }
         } catch (RuntimeException | LinkageError failure) {
             FiguraMod.LOGGER.warn("GPU shutdown cleanup could not complete: {}", failure.getClass().getSimpleName());
@@ -190,7 +198,11 @@ public final class HardwareAcceleration {
         }
         if (pendingGpu == null) {
             if (gpuDevice == null || !gpuDevice.isCurrent()) {
-                gpuDevice = new MinecraftGpuDeviceAdapter(RenderSystem.getDevice(), Minecraft.getInstance().getShaderManager()::getShader);
+                if (RenderSystem.currentPipelineCache == null) {
+                    throw new AccelerationController.ProbePending();
+                }
+                gpuDevice = new MinecraftGpuDeviceAdapter(RenderSystem.getDevice(),
+                        RenderSystem.currentPipelineCache.shaderSource);
             }
             pendingGpu = new GpuAccelerationBackend(gpuDevice, GpuRetirement.GLOBAL, 64L * 1024 * 1024, 8L * 1024 * 1024);
         }

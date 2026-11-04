@@ -1,16 +1,19 @@
 package top.aihmc.omnimorph.render.acceleration;
 
+import java.util.IdentityHashMap;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.commands.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.PrimitiveTopology;
-import com.mojang.blaze3d.IndexType;
-import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.mojang.renderpearl.api.pipeline.PrimitiveTopology;
+import com.mojang.renderpearl.api.pipeline.IndexType;
+import com.mojang.renderpearl.api.buffers.GpuBuffer;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.CompactVectorArray;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.renderpearl.api.vertex.VertexFormat;
 import com.mojang.blaze3d.vertex.VertexSorting;
 import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
 import top.aihmc.omnimorph.ducks.DeferredMaterialDrawExtension;
@@ -63,6 +66,8 @@ public final class GpuSubmission {
     private final Function<RenderType, Consumer<MeshData>> javaDraw;
     private final Map<FiguraVertexSource.NativePreparation, Map<RenderType, Boundary>> sources = new WeakHashMap<>();
     private static PreparedRenderType executingMaterial;
+    private static RenderPass executingPass;
+    private static RenderPipeline executingPipeline;
     private long frame;
 
     GpuSubmission(AccelerationService service, Function<RenderType, Scope> context, BiConsumer<RenderType, MeshData> javaDraw) {
@@ -159,145 +164,190 @@ public final class GpuSubmission {
         @Override
         public PreparedRenderType prepare() {
             PreparedRenderType prepared = original.prepare();
-            ((DeferredMaterialDrawExtension) (Object) prepared).figura$setDeferredDraw(() -> {
+            var execution = new Execution(queued.stream()
+                    .filter(value -> service.isCurrent(value.batch().lease())).toList());
+            queued.clear();
+            ((DeferredMaterialDrawExtension) (Object) prepared).figura$setDeferredDraw((pass, pipeline) -> {
                 PreparedRenderType previousMaterial = executingMaterial;
+                var previousPass = executingPass;
+                var previousPipeline = executingPipeline;
                 executingMaterial = prepared;
+                executingPass = pass;
+                executingPipeline = pipeline;
                 try {
-                    draw();
+                    execution.draw();
                 } finally {
                     executingMaterial = previousMaterial;
+                    executingPass = previousPass;
+                    executingPipeline = previousPipeline;
                 }
             });
             return prepared;
         }
 
-        private void draw() {
-            List<Queued> batches = queued.stream().filter(value -> service.isCurrent(value.batch().lease())).toList();
-            queued.clear();
-            if (batches.isEmpty()) {
-                return;
-            }
-            if (!original.sortOnUpload()) {
-                if (service.gpuRigidGroupsEnabled() && batches.size() > 1) {
-                    // Opaque groups keep authored order; per-face objects are only built for a Java fallback.
-                    long[] order = authoredOrder(batches);
-                    int remaining = drawGroup(batches, order);
-                    if (remaining >= 0) {
-                        if (remaining < order.length) {
-                            drawJava(original, batches, faces(batches, false), remaining);
+        private final class Execution {
+            private final List<Queued> batches;
+            private final Map<DrawBatch, GpuAccelerationBackend.Prepared> ready = new IdentityHashMap<>();
+            private final Map<List<Queued>, List<GpuAccelerationBackend.PreparedRange>> groups = new HashMap<>();
+
+            Execution(List<Queued> batches) {
+                this.batches = batches;
+                if (!prepareGroup(batches)) {
+                    List<Face> order = faces(batches, original.sortOnUpload());
+                    for (Face face : order) {
+                        DrawBatch batch = batches.get(face.batch()).batch();
+                        if (!ready.containsKey(batch)) {
+                            var prepared = service.prepareGpuDraw(batch);
+                            ready.put(batch, prepared);
+                            if (prepared == null && original.sortOnUpload()) {
+                                break;
+                            }
                         }
+                    }
+                }
+                service.flushGpuUploads();
+            }
+
+            private boolean prepareGroup(List<Queued> batches) {
+                if (batches.size() < 2 || !service.gpuRigidGroupsEnabled()) {
+                    return false;
+                }
+                long[] order = original.sortOnUpload() ? packed(faces(batches, true)) : authoredOrder(batches);
+                var prepared = service.prepareGpuGroup(batches.stream().map(Queued::batch).toList(), order);
+                if (prepared == null) {
+                    return false;
+                }
+                groups.put(batches, prepared);
+                return true;
+            }
+
+            private void draw() {
+                if (batches.isEmpty()) {
+                    return;
+                }
+                if (!original.sortOnUpload()) {
+                    if (service.gpuRigidGroupsEnabled() && batches.size() > 1) {
+                        // Opaque groups keep authored order; per-face objects are only built for a Java fallback.
+                        long[] order = authoredOrder(batches);
+                        int remaining = drawGroup(batches, order);
+                        if (remaining >= 0) {
+                            if (remaining < order.length) {
+                                drawJava(original, batches, faces(batches, false), remaining);
+                            }
+                            return;
+                        }
+                    }
+                    for (Queued batch : batches) {
+                        drawBatches(List.of(batch));
+                    }
+                } else {
+                    // A shared translucent material must retain its global face order, including local fallback.
+                    drawBatches(batches);
+                }
+            }
+
+            private void drawBatches(List<Queued> batches) {
+                var prepared = new GpuAccelerationBackend.Prepared[batches.size()];
+                List<Face> order = faces(batches, original.sortOnUpload());
+                int groupedRemaining = batches.size() < 2 || !service.gpuRigidGroupsEnabled()
+                        ? -1 : drawGroup(batches, packed(order));
+                if (groupedRemaining >= 0) {
+                    if (groupedRemaining < order.size()) {
+                        drawJava(original, batches, order, groupedRemaining);
+                    }
+                    return;
+                }
+                int remaining = 0;
+                try (Scope scope = context.apply(original);
+                     var merged = service.openMergedDraws(scope.context)) {
+                    if (merged != null) {
+                        // A shared pass forbids buffer writes, so every pose is prepared before it opens.
+                        prepareInOrder(batches, order, prepared);
+                    }
+                    while (remaining < order.size()) {
+                        Face first = order.get(remaining);
+                        // Allocate in submission order. A later budget rejection must not discard earlier GPU work.
+                        if (prepared[first.batch()] == null) {
+                            if (merged != null) {
+                                break;
+                            }
+                            prepared[first.batch()] = ready.get(batches.get(first.batch()).batch());
+                            if (prepared[first.batch()] == null) {
+                                break;
+                            }
+                        }
+                        int count = 1;
+                        while (remaining + count < order.size()) {
+                            Face next = order.get(remaining + count);
+                            if (next.batch() != first.batch() || next.face() != first.face() + count) {
+                                break;
+                            }
+                            count++;
+                        }
+                        var result = service.drawPrepared(prepared[first.batch()], scope.context, first.face() * 6, count * 6,
+                                merged);
+                        if (result == GpuAccelerationBackend.DrawResult.UNSUPPORTED) {
+                            break;
+                        }
+                        remaining += count;
+                        if (result == GpuAccelerationBackend.DrawResult.ISSUED_BEFORE_FAILURE) {
+                            break;
+                        }
+                    }
+                } catch (RuntimeException | LinkageError failure) {
+                    service.graphicsFailed(failure);
+                }
+                if (remaining < order.size()) {
+                    drawJava(original, batches, order, remaining);
+                }
+            }
+
+            /**
+             * Prepares batches in the order their faces first appear and stops at the first rejection, exactly where
+             * the per-draw path would stop allocating; later faces then fall back to Java as before.
+             */
+            private void prepareInOrder(List<Queued> batches, List<Face> order, GpuAccelerationBackend.Prepared[] prepared) {
+                for (Face face : order) {
+                    if (prepared[face.batch()] != null) {
+                        continue;
+                    }
+                    prepared[face.batch()] = ready.get(batches.get(face.batch()).batch());
+                    if (prepared[face.batch()] == null) {
                         return;
                     }
                 }
-                for (Queued batch : batches) {
-                    drawBatches(List.of(batch));
-                }
-            } else {
-                // A shared translucent material must retain its global face order, including local fallback.
-                drawBatches(batches);
             }
-        }
 
-        private void drawBatches(List<Queued> batches) {
-            var prepared = new GpuAccelerationBackend.Prepared[batches.size()];
-            List<Face> order = faces(batches, original.sortOnUpload());
-            int groupedRemaining = batches.size() < 2 || !service.gpuRigidGroupsEnabled()
-                    ? -1 : drawGroup(batches, packed(order));
-            if (groupedRemaining >= 0) {
-                if (groupedRemaining < order.size()) {
-                    drawJava(original, batches, order, groupedRemaining);
+            /** Returns -1 when the ordinary per-batch path should handle this material. */
+            private int drawGroup(List<Queued> batches, long[] sorted) {
+                if (batches.size() < 2 || !service.gpuRigidGroupsEnabled()) {
+                    return -1;
                 }
-                return;
-            }
-            int remaining = 0;
-            try (Scope scope = context.apply(original);
-                 var merged = service.openMergedDraws(scope.context)) {
-                if (merged != null) {
-                    // A shared pass forbids buffer writes, so every pose is prepared before it opens.
-                    prepareInOrder(batches, order, prepared);
+                var prepared = groups.get(batches);
+                if (prepared == null) {
+                    return -1;
                 }
-                while (remaining < order.size()) {
-                    Face first = order.get(remaining);
-                    // Allocate in submission order. A later budget rejection must not discard earlier GPU work.
-                    if (prepared[first.batch()] == null) {
-                        if (merged != null) {
+                int remaining = 0;
+                try (Scope scope = context.apply(original);
+                     var merged = service.openMergedDraws(scope.context)) {
+                    // Group ranges are all prepared above, so they can share one pass.
+                    for (GpuAccelerationBackend.PreparedRange range : prepared) {
+                        var result = service.drawPrepared(range.prepared(), scope.context, range.firstIndex(),
+                                range.indexCount(), merged);
+                        if (result == GpuAccelerationBackend.DrawResult.UNSUPPORTED) {
                             break;
                         }
-                        prepared[first.batch()] = service.prepareGpuDraw(batches.get(first.batch()).batch());
-                        if (prepared[first.batch()] == null) {
+                        remaining += range.faceCount();
+                        if (result == GpuAccelerationBackend.DrawResult.ISSUED_BEFORE_FAILURE) {
                             break;
                         }
                     }
-                    int count = 1;
-                    while (remaining + count < order.size()) {
-                        Face next = order.get(remaining + count);
-                        if (next.batch() != first.batch() || next.face() != first.face() + count) {
-                            break;
-                        }
-                        count++;
-                    }
-                    var result = service.drawPrepared(prepared[first.batch()], scope.context, first.face() * 6, count * 6,
-                            merged);
-                    if (result == GpuAccelerationBackend.DrawResult.UNSUPPORTED) {
-                        break;
-                    }
-                    remaining += count;
-                    if (result == GpuAccelerationBackend.DrawResult.ISSUED_BEFORE_FAILURE) {
-                        break;
-                    }
+                } catch (RuntimeException | LinkageError failure) {
+                    service.graphicsFailed(failure);
                 }
-            } catch (RuntimeException | LinkageError failure) {
-                service.graphicsFailed(failure);
+                return remaining;
             }
-            if (remaining < order.size()) {
-                drawJava(original, batches, order, remaining);
-            }
-        }
 
-        /**
-         * Prepares batches in the order their faces first appear and stops at the first rejection, exactly where
-         * the per-draw path would stop allocating; later faces then fall back to Java as before.
-         */
-        private void prepareInOrder(List<Queued> batches, List<Face> order, GpuAccelerationBackend.Prepared[] prepared) {
-            for (Face face : order) {
-                if (prepared[face.batch()] != null) {
-                    continue;
-                }
-                prepared[face.batch()] = service.prepareGpuDraw(batches.get(face.batch()).batch());
-                if (prepared[face.batch()] == null) {
-                    return;
-                }
-            }
-        }
-
-        /** Returns -1 when the ordinary per-batch path should handle this material. */
-        private int drawGroup(List<Queued> batches, long[] sorted) {
-            if (batches.size() < 2 || !service.gpuRigidGroupsEnabled()) {
-                return -1;
-            }
-            var prepared = service.prepareGpuGroup(batches.stream().map(Queued::batch).toList(), sorted);
-            if (prepared == null) {
-                return -1;
-            }
-            int remaining = 0;
-            try (Scope scope = context.apply(original);
-                 var merged = service.openMergedDraws(scope.context)) {
-                // Group ranges are all prepared above, so they can share one pass.
-                for (GpuAccelerationBackend.PreparedRange range : prepared) {
-                    var result = service.drawPrepared(range.prepared(), scope.context, range.firstIndex(),
-                            range.indexCount(), merged);
-                    if (result == GpuAccelerationBackend.DrawResult.UNSUPPORTED) {
-                        break;
-                    }
-                    remaining += range.faceCount();
-                    if (result == GpuAccelerationBackend.DrawResult.ISSUED_BEFORE_FAILURE) {
-                        break;
-                    }
-                }
-            } catch (RuntimeException | LinkageError failure) {
-                service.graphicsFailed(failure);
-            }
-            return remaining;
         }
     }
 
@@ -433,13 +483,8 @@ public final class GpuSubmission {
     static Scope openMinecraftScope(RenderType material) {
         RenderSystem.assertOnRenderThread();
         PreparedRenderType prepared = executingMaterial == null ? material.prepare() : executingMaterial;
-        var target = prepared.outputTarget().getRenderTarget();
-        var color = RenderSystem.outputColorTextureOverride != null
-                ? RenderSystem.outputColorTextureOverride : target.getColorTextureView();
-        var depth = target.useDepth ? (RenderSystem.outputDepthTextureOverride != null
-                ? RenderSystem.outputDepthTextureOverride : target.getDepthTextureView()) : null;
         var scissor = prepared.scissorState();
-        GpuDrawContext context = new GpuDrawContext(color, depth, prepared.textures(), prepared.dynamicTransforms(),
+        GpuDrawContext context = new GpuDrawContext(executingPass, executingPipeline, prepared.textures(), prepared.dynamicTransforms(),
                 scissor.enabled(), scissor.x(), scissor.y(), scissor.width(), scissor.height());
         return new Scope(context, () -> {});
     }
@@ -464,7 +509,11 @@ public final class GpuSubmission {
                 indexType = sequential.type();
             }
             // The six-argument native draw is the ordinary pipeline path, bypassing only our placeholder hook.
-            prepared.drawFromBuffer(vertices, indices, indexType, 0, 0, state.indexCount());
+            var replay = new PreparedRenderType(prepared.name(), executingPipeline, null,
+                    prepared.dynamicTransforms(), prepared.scissorState(), prepared.textures());
+            replay.drawFromBuffer(new net.minecraft.client.renderer.StagedVertexBuffer.ExecuteInfo(
+                    vertices, indices, indexType, 0, 0, state.indexCount(), state.primitiveTopology()),
+                    java.util.Objects.requireNonNull(executingPass));
         } finally {
             if (uploadedIndices != null) {
                 uploadedIndices.close();

@@ -1,5 +1,6 @@
 package top.aihmc.omnimorph.gui.widgets.library;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.KeyEvent;
@@ -94,7 +95,7 @@ public final class LibraryTagField extends AbstractContainerElement {
         if (!enabled) {
             return false;
         }
-        if (input.isFocused() && (event.key() == 257 || event.key() == 335)) {
+        if (input.isFocused() && (event.key() == InputConstants.KEY_RETURN || event.key() == InputConstants.KEY_NUMPADENTER)) {
             commit();
             return true;
         }

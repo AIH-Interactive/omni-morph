@@ -1,14 +1,14 @@
 package top.aihmc.omnimorph.model.rendering.texture;
 
-import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.pipeline.ColorTargetState;
-import com.mojang.blaze3d.pipeline.DepthStencilState;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.systems.GpuDevice;
+import com.mojang.renderpearl.api.pipeline.BlendFunction;
+import com.mojang.renderpearl.api.pipeline.ColorTargetState;
+import com.mojang.renderpearl.api.pipeline.DepthStencilState;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.device.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.FilterMode;
+import com.mojang.renderpearl.api.textures.FilterMode;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.PrimitiveTopology;
+import com.mojang.renderpearl.api.pipeline.PrimitiveTopology;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderPipelines;
 
@@ -33,7 +33,7 @@ public enum FiguraRenderTypes {
     CUTOUT_EMISSIVE_SOLID(resourceLocation -> FiguraRenderType.CUTOUT_EMISSIVE_SOLID.apply(resourceLocation, true)),
 
     TRANSLUCENT(RenderTypes::entityTranslucent),
-    TRANSLUCENT_CULL(RenderTypes::entityTranslucentCullItemTarget),
+    TRANSLUCENT_CULL(RenderTypes::entityTranslucentCull),
 
     EMISSIVE(RenderTypes::eyes),
     EMISSIVE_SOLID(resourceLocation -> RenderTypes.beaconBeam(resourceLocation, false)),
@@ -43,8 +43,8 @@ public enum FiguraRenderTypes {
     END_GATEWAY(t -> RenderTypes.endGateway(), false),
     TEXTURED_PORTAL(FiguraRenderType.TEXTURED_PORTAL),
 
-    GLINT(t -> RenderTypes.entityGlint(), false, false),
-    GLINT2(t -> RenderTypes.glint(), false, false),
+    GLINT(t -> FiguraRenderType.ENTITY_GLINT, false, false),
+    GLINT2(t -> FiguraRenderType.ITEM_GLINT, false, false),
     TEXTURED_GLINT(FiguraRenderType.TEXTURED_GLINT, true, false),
 
     LINES(t -> RenderTypes.lines(), false),
@@ -82,6 +82,17 @@ public enum FiguraRenderTypes {
     }
 
     private abstract static class FiguraRenderType extends RenderType {
+        private static final RenderType ENTITY_GLINT = glint("figura_entity_glint",
+                TextureTransform.ENTITY_GLINT_TEXTURING);
+        private static final RenderType ITEM_GLINT = glint("figura_item_glint", TextureTransform.GLINT_TEXTURING);
+
+        private static RenderType glint(String name, TextureTransform transform) {
+            return new RenderType(name, RenderSetup.builder(RenderPipelines.GLINT)
+                    .withTexture("Sampler0", net.minecraft.client.renderer.feature.ItemFeatureRenderer.ENCHANTED_GLINT_ITEM)
+                    .setTextureTransform(transform)
+                    .createRenderSetup());
+        }
+
         public FiguraRenderType(String name, RenderSetup setup) {
             super(name, setup);
         }
@@ -90,7 +101,6 @@ public enum FiguraRenderTypes {
                 "figura_solid",
                 RenderSetup.builder(FiguraRenderPipelines.FIGURA_SOLID)
                         .setLayeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING)
-                        .setOutputTarget(OutputTarget.ITEM_ENTITY_TARGET)
                         .setOutline(RenderSetup.OutlineProperty.NONE)
                         .createRenderSetup()
         );

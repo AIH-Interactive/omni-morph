@@ -1,7 +1,7 @@
 package org.figuramc.figura.mixin.render;
 
 import com.llamalad7.mixinextras.sugar.Local;
-import com.mojang.blaze3d.buffers.GpuBufferSlice;
+import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.resource.GraphicsResourceAllocator;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.DeltaTracker;
@@ -85,13 +85,13 @@ public abstract class LevelRendererMixin {
     }
 
     @Inject(method = "render", at = @At("HEAD"))
-    private void onRenderLevel(GraphicsResourceAllocator graphicsResourceAllocator, DeltaTracker deltaTracker, boolean bl, CameraRenderState cameraRenderState, Matrix4fc matrix4fc, GpuBufferSlice gpuBufferSlice, Vector4f vector4f, boolean bl2, CallbackInfo ci) {
-        AvatarManager.executeAll("worldRender", avatar -> avatar.render(deltaTracker.getGameTimeDeltaPartialTick(false)));
+    private void onRenderLevel(GraphicsResourceAllocator graphicsResourceAllocator, boolean renderOutline, CameraRenderState cameraRenderState, GpuBufferSlice gpuBufferSlice, Vector4f fogColor, boolean renderSky, boolean consistentDepth, CallbackInfo ci) {
+        AvatarManager.executeAll("worldRender", avatar -> avatar.render(Minecraft.getInstance().gameRenderer.gameRenderState().levelRenderState.worldPartialTicks));
     }
 
     @Inject(method = "render", at = @At("RETURN"))
-    private void afterRenderLevel(GraphicsResourceAllocator graphicsResourceAllocator, DeltaTracker deltaTracker, boolean bl, CameraRenderState cameraRenderState, Matrix4fc matrix4fc, GpuBufferSlice gpuBufferSlice, Vector4f vector4f, boolean bl2, CallbackInfo ci) {
-        AvatarManager.executeAll("postWorldRender", avatar -> avatar.postWorldRenderEvent(deltaTracker.getGameTimeDeltaPartialTick(false)));
+    private void afterRenderLevel(GraphicsResourceAllocator graphicsResourceAllocator, boolean renderOutline, CameraRenderState cameraRenderState, GpuBufferSlice gpuBufferSlice, Vector4f fogColor, boolean renderSky, boolean consistentDepth, CallbackInfo ci) {
+        AvatarManager.executeAll("postWorldRender", avatar -> avatar.postWorldRenderEvent(Minecraft.getInstance().gameRenderer.gameRenderState().levelRenderState.worldPartialTicks));
     }
 
     @ModifyArg(method = "submitHitOutline", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/SubmitNodeCollector;submitShapeOutline(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/phys/shapes/VoxelShape;Lnet/minecraft/client/renderer/rendertype/RenderType;IFZ)V"), index = 3)

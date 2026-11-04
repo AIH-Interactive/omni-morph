@@ -196,8 +196,8 @@ public abstract class HumanoidArmorLayerMixinFabric<S extends HumanoidRenderStat
     @Unique
     private void figura$prepareArmorRender(PoseStack stack) {
         stack.scale(16, 16, 16);
-        stack.mulPose(Axis.XP.rotationDegrees(180f));
-        stack.mulPose(Axis.YP.rotationDegrees(180f));
+        stack.rotate(Axis.XP.rotationDegrees(180f));
+        stack.rotate(Axis.YP.rotationDegrees(180f));
     }
 
     @Unique
@@ -301,20 +301,20 @@ public abstract class HumanoidArmorLayerMixinFabric<S extends HumanoidRenderStat
 
             if (k != 0) {
                 Identifier normalArmorResource = ((EquipmentLayerRendererAccessor)this.equipmentRenderer).layerTextureLookup().apply(new EquipmentLayerRenderer.LayerTextureKey(layerType, layer));
-                nodeCollector.order(order++).submitModelPart(modelPart, poseStack, RenderTypes.armorCutoutNoCull(normalArmorResource), light, OverlayTexture.NO_OVERLAY, null, k, null);
+                nodeCollector.order(order++).submitModelPart(modelPart, poseStack, RenderTypes.armorCutoutNoCull(normalArmorResource), light, OverlayTexture.NO_OVERLAY, null, k, 0);
                 if (hasGlint)
-                    nodeCollector.order(order++).submitModelPart(modelPart, poseStack, RenderTypes.armorEntityGlint(), light, OverlayTexture.NO_OVERLAY, null, k, null);
+                    nodeCollector.order(order++).submitModelPart(modelPart, poseStack, RenderTypes.trimmedArmorGlint(), light, OverlayTexture.NO_OVERLAY, null, k, 0);
                 hasGlint = false;
             }
         }
 
         ArmorTrim trim = itemStack.get(DataComponents.TRIM);
         if (trim != null) {
-            TextureAtlasSprite textureAtlasSprite = ((EquipmentLayerRendererAccessor)equipmentRenderer).trimSpriteLookup()
-                    .apply(new EquipmentLayerRenderer.TrimSpriteKey(trim, layerType, location.get()));
+            var textureAtlasSprite = ((EquipmentLayerRendererAccessor)equipmentRenderer).trimTextureLookup()
+                    .apply(new EquipmentLayerRenderer.TrimTextureKey(trim, layerType, ((EquipmentLayerRendererAccessor) equipmentRenderer).figura$getAssetsManager().get(location.get())));
 
-            RenderType renderType = Sheets.armorTrimsSheet(trim.pattern().value().decal());
-            nodeCollector.order(order).submitModelPart(modelPart, poseStack, renderType, light, OverlayTexture.NO_OVERLAY, textureAtlasSprite, -1, null);
+            RenderType renderType = RenderTypes.armorTrim(textureAtlasSprite.textureLocation(), trim.pattern().value().decal());
+            nodeCollector.order(order).submitModelPart(modelPart, poseStack, renderType, light, OverlayTexture.NO_OVERLAY, textureAtlasSprite, -1, 0);
         }
     }
 

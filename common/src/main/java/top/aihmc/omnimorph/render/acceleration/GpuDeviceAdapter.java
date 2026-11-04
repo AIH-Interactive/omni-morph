@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
-import com.mojang.blaze3d.buffers.GpuFence;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.commands.GpuFence;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import com.mojang.blaze3d.vertex.MeshData;
 import net.minecraft.client.renderer.rendertype.RenderType;
 

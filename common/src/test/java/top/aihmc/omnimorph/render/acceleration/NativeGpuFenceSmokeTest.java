@@ -1,26 +1,21 @@
 package top.aihmc.omnimorph.render.acceleration;
 
-import com.mojang.blaze3d.GpuFormat;
-import com.mojang.blaze3d.IndexType;
-import com.mojang.blaze3d.buffers.GpuBuffer;
-import com.mojang.blaze3d.buffers.GpuBufferSlice;
-import com.mojang.blaze3d.buffers.GpuFence;
-import com.mojang.blaze3d.opengl.GlFence;
-import com.mojang.blaze3d.pipeline.CompiledRenderPipeline;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.shaders.ShaderSource;
-import com.mojang.blaze3d.systems.CommandEncoder;
-import com.mojang.blaze3d.systems.DeviceInfo;
-import com.mojang.blaze3d.systems.DeviceLimits;
-import com.mojang.blaze3d.systems.GpuDevice;
-import com.mojang.blaze3d.systems.GpuDeviceBackend;
-import com.mojang.blaze3d.systems.RenderPass;
+import com.mojang.renderpearl.api.buffers.GpuBuffer;
+import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
+import com.mojang.renderpearl.api.commands.GpuFence;
+import com.mojang.renderpearl.backend.opengl.GlFence;
+import com.mojang.renderpearl.api.pipeline.CompiledRenderPipeline;
+import com.mojang.renderpearl.api.pipeline.ShaderSource;
+import com.mojang.renderpearl.api.commands.CommandEncoder;
+import com.mojang.renderpearl.api.device.DeviceInfo;
+import com.mojang.renderpearl.api.device.DeviceLimits;
+import com.mojang.renderpearl.api.device.GpuDevice;
+import com.mojang.renderpearl.api.commands.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.GpuTexture;
-import com.mojang.blaze3d.textures.GpuTextureView;
+import com.mojang.renderpearl.api.textures.GpuTexture;
+import com.mojang.renderpearl.api.textures.GpuTextureView;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
-import org.joml.Vector4fc;
 import sun.misc.Unsafe;
 
 import java.lang.reflect.Constructor;
@@ -30,10 +25,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.OptionalDouble;
 import java.util.Set;
-import java.util.function.Supplier;
 
 /** Production adapter + real GlFence/awaitSubmit checks; GPU commands and pixels are recorded fixtures. */
 public final class NativeGpuFenceSmokeTest {
@@ -47,9 +39,9 @@ public final class NativeGpuFenceSmokeTest {
         Object previousDevice = activeDevice.get(null);
         boolean previousStorage = AccelerationOptions.storageBlocks();
         try {
-            activeDevice.set(null, device);
+            activeDevice.set(null, device.api);
             AccelerationOptions.setStorageBlocks(true);
-            var adapter = new MinecraftGpuDeviceAdapter(device, (id, type) -> null);
+            var adapter = new MinecraftGpuDeviceAdapter(device.api, emptySources());
             adapter.selfTest();
             require(adapter.storageLimits() != null, "all three optional storage diagnostics completed");
             require(device.submits == 5 && device.mapped == 5,
@@ -69,8 +61,8 @@ public final class NativeGpuFenceSmokeTest {
     private static void retirement() throws ReflectiveOperationException {
         var firstDevice = new RecordingDevice();
         var secondDevice = new RecordingDevice();
-        var first = new MinecraftGpuDeviceAdapter(firstDevice, (id, type) -> null);
-        var second = new MinecraftGpuDeviceAdapter(secondDevice, (id, type) -> null);
+        var first = new MinecraftGpuDeviceAdapter(firstDevice.api, emptySources());
+        var second = new MinecraftGpuDeviceAdapter(secondDevice.api, emptySources());
         var retired = new GpuRetirement();
         var a = new RetirementResource();
         var b = new RetirementResource();
@@ -108,7 +100,7 @@ public final class NativeGpuFenceSmokeTest {
             Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
             unsafeField.setAccessible(true);
             var unsafe = (Unsafe) unsafeField.get(null);
-            Class<?> encoderType = Class.forName("com.mojang.blaze3d.opengl.GlCommandEncoder");
+            Class<?> encoderType = Class.forName("com.mojang.renderpearl.backend.opengl.GlCommandEncoder");
             encoder = unsafe.allocateInstance(encoderType);
             index = encoderType.getDeclaredField("currentSubmitIndex");
             index.setAccessible(true);
@@ -138,140 +130,192 @@ public final class NativeGpuFenceSmokeTest {
         }
     }
 
-    private static final class RecordingDevice extends GpuDevice {
+    static final class RecordingDevice {
         private final NativeSubmitState submission = new NativeSubmitState();
-        private final List<RecordingBuffer> buffers = new ArrayList<>();
+        final List<RecordingBuffer> buffers = new ArrayList<>();
         private final List<GpuTexture> textures = new ArrayList<>();
         private final List<GpuTextureView> views = new ArrayList<>();
         private final List<Runnable> copies = new ArrayList<>();
+        final GpuDevice api;
+        boolean failBind;
+        boolean failDraw;
+        RecordedPass lastPass;
         private int submits;
         private int mapped;
         private boolean passActive;
 
-        private RecordingDevice() throws ReflectiveOperationException {
-            super(metadataBackend(), () -> {});
+        RecordingDevice() throws ReflectiveOperationException {
+            api = proxy(GpuDevice.class, (instance, method, args) -> switch (method.getName()) {
+                case "getDeviceInfo" -> new DeviceInfo("recording", "fixture", "recording", false,
+                        "recording", 0, new DeviceLimits(16, 256, 16384, 64L * 1024 * 1024, 1, 8, 1),
+                        null, Set.of(), null, null);
+                case "compilePipeline" -> java.util.concurrent.CompletableFuture.completedFuture(
+                        (CompiledRenderPipeline.Pending) () -> proxy(CompiledRenderPipeline.class,
+                                (program, operation, values) -> switch (operation.getName()) {
+                                    case "isClosed" -> false;
+                                    case "close" -> null;
+                                    default -> throw new UnsupportedOperationException(operation.toString());
+                                }));
+                case "createBuffer" -> createBuffer((int) args[1], args[2]);
+                case "createTexture" -> createTexture(args);
+                case "createTextureView" -> createView((GpuTexture) args[0]);
+                case "createCommandEncoder" -> encoder();
+                default -> throw new UnsupportedOperationException(method.toString());
+            });
         }
 
-        @Override
-        public CompiledRenderPipeline precompilePipeline(RenderPipeline pipeline, ShaderSource source) {
-            return () -> true;
-        }
-
-        @Override
-        public GpuBuffer createBuffer(Supplier<String> label, int usage, long size) {
+        private GpuBuffer createBuffer(int usage, Object contents) {
+            long size = contents instanceof ByteBuffer data ? data.remaining() : (long) contents;
             var buffer = new RecordingBuffer(usage, size, this);
+            if (contents instanceof ByteBuffer data) {
+                buffer.bytes.put(data.duplicate()).clear();
+            }
             buffers.add(buffer);
             return buffer;
         }
 
-        @Override
-        public GpuBuffer createBuffer(Supplier<String> label, int usage, ByteBuffer data) {
-            var buffer = (RecordingBuffer) createBuffer(label, usage, data.remaining());
-            buffer.bytes.put(data.duplicate()).clear();
-            return buffer;
-        }
-
-        @Override
-        public GpuTexture createTexture(String label, int usage, GpuFormat format,
-                                        int width, int height, int layers, int levels) {
-            return createTexture(() -> label, usage, format, width, height, layers, levels);
-        }
-
-        @Override
-        public GpuTexture createTexture(Supplier<String> label, int usage, GpuFormat format,
-                                        int width, int height, int layers, int levels) {
-            var texture = new GpuTexture(usage, label.get(), format, width, height, layers, levels) {
-                private boolean closed;
-                @Override public void close() { closed = true; }
-                @Override public boolean isClosed() { return closed; }
-            };
+        private GpuTexture createTexture(Object[] args) {
+            var closed = new java.util.concurrent.atomic.AtomicBoolean();
+            GpuTexture texture = proxy(GpuTexture.class, (instance, method, values) -> switch (method.getName()) {
+                case "usage" -> args[1];
+                case "getFormat" -> args[2];
+                case "getWidth" -> (int) args[3] >> (int) values[0];
+                case "getHeight" -> (int) args[4] >> (int) values[0];
+                case "getDepthOrLayers" -> args[5];
+                case "getMipLevels" -> args[6];
+                case "isClosed" -> closed.get();
+                case "close" -> {
+                    closed.set(true);
+                    yield null;
+                }
+                default -> throw new UnsupportedOperationException(method.toString());
+            });
             textures.add(texture);
             return texture;
         }
 
-        @Override
-        public GpuTextureView createTextureView(GpuTexture texture) {
-            var view = new GpuTextureView(texture, 0, 1) {
-                private boolean closed;
-                @Override public void close() { closed = true; }
-                @Override public boolean isClosed() { return closed; }
-            };
+        private GpuTextureView createView(GpuTexture texture) {
+            var closed = new java.util.concurrent.atomic.AtomicBoolean();
+            GpuTextureView view = proxy(GpuTextureView.class, (instance, method, args) -> switch (method.getName()) {
+                case "texture" -> texture;
+                case "baseMipLevel" -> 0;
+                case "mipLevels" -> 1;
+                case "getWidth" -> texture.getWidth((int) args[0]);
+                case "getHeight" -> texture.getHeight((int) args[0]);
+                case "isClosed" -> closed.get();
+                case "close" -> {
+                    closed.set(true);
+                    yield null;
+                }
+                default -> throw new UnsupportedOperationException(method.toString());
+            });
             views.add(view);
             return view;
         }
 
-        @Override
-        public CommandEncoder createCommandEncoder() {
-            return new CommandEncoder(null, null, null) {
-                @Override
-                public RenderPass createRenderPass(Supplier<String> label, GpuTextureView color,
-                                                   Optional<Vector4fc> clear, GpuTextureView depth,
-                                                   OptionalDouble clearDepth) {
-                    require(!passActive, "diagnostics do not overlap render passes");
-                    passActive = true;
-                    return new RecordingPass(RecordingDevice.this);
+        private CommandEncoder encoder() {
+            return proxy(CommandEncoder.class, (instance, method, args) -> switch (method.getName()) {
+                case "createRenderPass" -> {
+                    yield openPass().api;
                 }
-
-                @Override
-                public void copyTextureToBuffer(GpuTexture source, GpuBuffer destination,
-                                                long offset, Runnable completion, int mipLevel) {
+                case "copyTextureToBuffer" -> {
                     require(!passActive, "readback follows the closed diagnostic pass");
-                    var buffer = (RecordingBuffer) destination;
+                    var buffer = (RecordingBuffer) args[1];
+                    var completion = (Runnable) args[3];
                     copies.add(() -> {
                         // Fixed readback fixture, not rendered GPU evidence: right green, left black.
                         buffer.bytes.put((4 * 8 + 6) * 4 + 1, (byte) 255);
                         buffer.submitted = true;
                         completion.run();
                     });
+                    yield null;
                 }
-
-                @Override
-                public GpuFence createFence() {
-                    return submission.fence();
+                case "writeToBuffer" -> {
+                    require(!passActive, "uploads must occur outside an active render pass");
+                    var destination = (GpuBufferSlice) args[0];
+                    var buffer = (RecordingBuffer) destination.buffer();
+                    buffer.bytes.duplicate().position(Math.toIntExact(destination.offset()))
+                            .put(((ByteBuffer) args[1]).duplicate());
+                    yield null;
                 }
-
-                @Override
-                public void submit() {
+                case "createFence" -> submission.fence();
+                case "submit" -> {
                     require(!passActive, "submit cannot occur in a render pass");
                     submission.submit();
                     submits++;
-                    List<Runnable> submitted = List.copyOf(copies);
+                    var submitted = List.copyOf(copies);
                     copies.clear();
                     submitted.forEach(Runnable::run);
+                    yield null;
                 }
-            };
+                default -> throw new UnsupportedOperationException(method.toString());
+            });
+        }
+
+        RecordedPass openPass() {
+            require(!passActive, "diagnostics do not overlap render passes");
+            passActive = true;
+            lastPass = new RecordedPass(this);
+            return lastPass;
         }
     }
 
-    private static final class RecordingPass extends RenderPass {
-        private final RecordingDevice device;
+    static final class RecordedPass {
+        final java.util.Map<String, GpuBufferSlice> uniforms = new java.util.HashMap<>();
+        final RenderPass api;
+        boolean closed;
+        int firstIndex;
+        int indexCount;
 
-        private RecordingPass(RecordingDevice device) {
-            super(null, metadataBackend(), List.of(), () -> {}, null);
-            this.device = device;
+        private RecordedPass(RecordingDevice device) {
+            api = proxy(RenderPass.class, (instance, method, args) -> {
+                require(!closed, "GPU commands require an active diagnostic pass");
+                switch (method.getName()) {
+                    case "setPipeline", "setVertexBuffer", "setIndexBuffer" -> { }
+                    case "setUniform" -> {
+                        String name = (String) args[0];
+                        if (device.failBind && name.equals("OmniMorphData")) {
+                            throw new IllegalStateException("native binding failure");
+                        }
+                        if (args[1] instanceof GpuBuffer buffer) {
+                            uniforms.put(name, buffer.slice());
+                        } else if (args[1] instanceof GpuBufferSlice slice) {
+                            uniforms.put(name, slice);
+                        }
+                    }
+                    case "drawIndexed" -> {
+                        firstIndex = (int) args[2];
+                        indexCount = (int) args[0];
+                        if (device.failDraw) {
+                            throw new IllegalStateException("native draw failure");
+                        }
+                    }
+                    case "close" -> {
+                        closed = true;
+                        device.passActive = false;
+                    }
+                    default -> throw new UnsupportedOperationException(method.toString());
+                }
+                return null;
+            });
         }
-
-        @Override public void setPipeline(RenderPipeline pipeline) { }
-        @Override public void setUniform(String name, GpuBuffer buffer) { }
-        @Override public void setUniform(String name, GpuBufferSlice buffer) { }
-        @Override public void setVertexBuffer(int slot, GpuBufferSlice buffer) { }
-        @Override public void setIndexBuffer(GpuBuffer buffer, IndexType type) { }
-        @Override public void drawIndexed(int count, int instances, int first, int offset, int firstInstance) { }
-        @Override public void close() { device.passActive = false; }
     }
 
-    private static final class RecordingBuffer extends GpuBuffer {
-        private final ByteBuffer bytes;
+    static final class RecordingBuffer implements GpuBuffer {
+        private final int usage;
+        final ByteBuffer bytes;
         private final RecordingDevice device;
         private boolean closed;
         private boolean submitted;
 
         private RecordingBuffer(int usage, long size, RecordingDevice device) {
-            super(usage, size);
+            this.usage = usage;
             bytes = ByteBuffer.allocate(Math.toIntExact(size)).order(ByteOrder.nativeOrder());
             this.device = device;
         }
 
+        @Override public int usage() { return usage; }
+        @Override public long size() { return bytes.capacity(); }
         @Override public void close() { closed = true; }
         @Override public boolean isClosed() { return closed; }
 
@@ -284,16 +328,21 @@ public final class NativeGpuFenceSmokeTest {
         }
     }
 
-    private static GpuDeviceBackend metadataBackend() {
-        DeviceInfo info = new DeviceInfo("recording", "fixture", "recording", false, "recording", 0,
-                new DeviceLimits(16, 256, 16384, 64L * 1024 * 1024, 1, 8), null, Set.of(), null, null);
-        return (GpuDeviceBackend) Proxy.newProxyInstance(GpuDeviceBackend.class.getClassLoader(),
-                new Class<?>[]{GpuDeviceBackend.class}, (proxy, method, args) -> {
-                    if (method.getName().equals("getDeviceInfo")) {
-                        return info;
-                    }
-                    throw new UnsupportedOperationException(method.getName());
-                });
+    private static ShaderSource emptySources() {
+        return new ShaderSource() {
+            @Override
+            public String getShader(net.minecraft.resources.Identifier id,
+                                    com.mojang.renderpearl.api.pipeline.ShaderType type) {
+                return null;
+            }
+
+            @Override public CachedIncludeSource getInclude(net.minecraft.resources.Identifier id) { return null; }
+            @Override public void close() { }
+        };
+    }
+
+    private static <T> T proxy(Class<T> type, java.lang.reflect.InvocationHandler handler) {
+        return type.cast(Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[]{type}, handler));
     }
 
     private static void require(boolean condition, String message) {

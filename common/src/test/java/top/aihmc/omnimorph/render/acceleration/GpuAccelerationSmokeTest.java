@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
-import com.mojang.blaze3d.buffers.GpuFence;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.commands.GpuFence;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -76,11 +76,11 @@ public final class GpuAccelerationSmokeTest {
         RenderPipeline accelerated = GpuShaderProgram.pipeline(original, Identifier.parse("omni-morph:gpu_contract"));
         require(accelerated.getVertexFormatBinding(0).getVertexSize() == GpuBatchData.VERTEX_BYTES, "actual VertexFormat stride");
         require(accelerated.isCull() == original.isCull()
-                && accelerated.getColorTargetState().equals(original.getColorTargetState())
+                && accelerated.getColorTargetStates().equals(original.getColorTargetStates())
                 && accelerated.getDepthStencilState().equals(original.getDepthStencilState())
                 && accelerated.getShaderDefines().equals(original.getShaderDefines())
-                && accelerated.getFragmentShader().equals(original.getFragmentShader()), "material state/defines/fragment preserved");
-        require(accelerated.getBindGroupLayouts().stream().flatMap(layout -> layout.getUniforms().stream())
+                && accelerated.getShaders().get(com.mojang.renderpearl.api.pipeline.ShaderType.FRAGMENT).equals(original.getShaders().get(com.mojang.renderpearl.api.pipeline.ShaderType.FRAGMENT)), "material state/defines/fragment preserved");
+        require(accelerated.getBindGroupLayouts().stream().flatMap(layout -> layout.uniforms().stream())
                 .anyMatch(value -> value.name().equals(GpuShaderProgram.UNIFORM)), "actual matrix uniform declared");
     }
 

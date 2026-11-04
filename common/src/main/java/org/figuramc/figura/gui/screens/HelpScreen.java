@@ -1,5 +1,6 @@
 package org.figuramc.figura.gui.screens;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -79,7 +80,7 @@ public class HelpScreen extends AbstractPanelScreen {
             @Override
             public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
                 if (link == FiguraMod.Links.Github && Configs.EASTER_EGGS.value
-                        && isHoveredOrFocused() && isMouseOver(event.x(), event.y()) && event.button() == 1) {
+                        && isHoveredOrFocused() && isMouseOver(event.x(), event.y()) && event.button() == InputConstants.MOUSE_BUTTON_RIGHT) {
                     int size = getTextureSize();
                     int particleX = (int) (Math.random() * size) + getX() + 2;
                     int particleY = (int) (Math.random() * size) + getY() + 2;

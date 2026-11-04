@@ -1,19 +1,21 @@
 package top.aihmc.omnimorph.render.acceleration;
 
-import com.mojang.blaze3d.buffers.GpuBuffer;
-import com.mojang.blaze3d.buffers.GpuFence;
-import com.mojang.blaze3d.pipeline.ColorTargetState;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.shaders.ShaderType;
-import com.mojang.blaze3d.systems.GpuDevice;
+import com.mojang.renderpearl.api.pipeline.CompiledRenderPipeline;
+import com.mojang.renderpearl.api.pipeline.ShaderSource;
+import com.mojang.renderpearl.api.buffers.GpuBuffer;
+import com.mojang.renderpearl.api.commands.GpuFence;
+import com.mojang.renderpearl.api.pipeline.ColorTargetState;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.ShaderType;
+import com.mojang.renderpearl.api.device.GpuDevice;
 import net.minecraft.client.renderer.RenderPipelines;
-import com.mojang.blaze3d.systems.RenderPass;
+import com.mojang.renderpearl.api.commands.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.GpuTexture;
-import com.mojang.blaze3d.GpuFormat;
-import com.mojang.blaze3d.IndexType;
-import com.mojang.blaze3d.PrimitiveTopology;
-import com.mojang.blaze3d.pipeline.BindGroupLayout;
+import com.mojang.renderpearl.api.textures.GpuTexture;
+import com.mojang.renderpearl.api.GpuFormat;
+import com.mojang.renderpearl.api.pipeline.IndexType;
+import com.mojang.renderpearl.api.pipeline.PrimitiveTopology;
+import com.mojang.renderpearl.api.pipeline.BindGroupLayout;
 import net.minecraft.resources.Identifier;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import org.figuramc.figura.math.matrix.FiguraMat3;
@@ -33,7 +35,13 @@ import java.util.List;
 /** All production uploads/draws use Blaze3D. The only readback is the bounded activation diagnostic. */
 final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
     private final GpuDevice device;
-    private final BiFunction<Identifier, ShaderType, String> sources;
+    private final ShaderSource sources;
+    private final Map<RenderPipeline, CompiledRenderPipeline> programs = new IdentityHashMap<>();
+    private final Map<RenderPipeline, BiFunction<Identifier, ShaderType, String>> programSources = new IdentityHashMap<>();
+    private final Map<StageKey, RenderPipeline> stagePipelines = new HashMap<>();
+
+    private record StageKey(RenderPipeline accelerated, RenderPipeline stage) {
+    }
     private final Map<RenderPipeline, Material> compiled = new IdentityHashMap<>();
     private final Map<RenderPipeline, Material> compiledGroups = new IdentityHashMap<>();
     // Smaller pose block variants: at most three per full-layout pipeline, under their own budget.
@@ -70,11 +78,63 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         }
     }
 
-    MinecraftGpuDeviceAdapter(GpuDevice device, BiFunction<Identifier, ShaderType, String> sources) {
+    MinecraftGpuDeviceAdapter(GpuDevice device, ShaderSource sources) {
         this.device = Objects.requireNonNull(device);
         this.sources = Objects.requireNonNull(sources);
     }
 
+    private CompiledRenderPipeline compilePipeline(
+            RenderPipeline pipeline, BiFunction<Identifier, ShaderType, String> shader) {
+        var cached = programs.get(pipeline);
+        if (cached != null) {
+            return cached;
+        }
+        var source = new ShaderSource() {
+            @Override
+            public String getShader(Identifier id, ShaderType type) {
+                return shader.apply(id, type);
+            }
+
+            @Override
+            public CachedIncludeSource getInclude(Identifier id) {
+                return sources.getInclude(id);
+            }
+
+            @Override
+            public void close() {
+                // The game's reload cache owns the shared include sources.
+            }
+        };
+        // Match vanilla PipelineCache: only CPU compilation runs on the background executor.
+        // finishCompile runs here on the render thread, so no render-thread future is awaited.
+        var program = device.compilePipeline(pipeline, source, net.minecraft.util.Util.backgroundExecutor())
+                .join().finishCompile();
+        if (program != null) {
+            programs.put(pipeline, program);
+            programSources.put(pipeline, shader);
+        }
+        return program;
+    }
+
+    void closePrograms() {
+        assertThread();
+        programs.values().forEach(CompiledRenderPipeline::close);
+        programs.clear();
+        programSources.clear();
+        stagePipelines.clear();
+    }
+
+    private CompiledRenderPipeline program(Material material,
+            RenderPipeline stage) {
+        if (stage == material.original()) {
+            return Objects.requireNonNull(programs.get(material.accelerated()));
+        }
+        var key = new StageKey(material.accelerated(), Objects.requireNonNull(stage));
+        RenderPipeline pipeline = stagePipelines.computeIfAbsent(key,
+                ignored -> GpuShaderProgram.stage(material.accelerated(), stage));
+        return Objects.requireNonNull(compilePipeline(pipeline, programSources.get(material.accelerated())),
+                "Acceleration stage shader compilation failed");
+    }
     @Override
     public void assertThread() {
         RenderSystem.assertOnRenderThread();
@@ -92,7 +152,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
 
     @Override
     public boolean shaderSourcesReady() {
-        return sources.apply(RenderPipelines.ENTITY_CUTOUT.getVertexShader(), ShaderType.VERTEX) != null;
+        return sources.getShader(RenderPipelines.ENTITY_CUTOUT.getShaders().get(ShaderType.VERTEX), ShaderType.VERTEX) != null;
     }
 
     @Override
@@ -169,13 +229,13 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         }
         Identifier location = Identifier.fromNamespaceAndPath("omni-morph", "acceleration/" + original.getLocation().getNamespace()
                 + "/" + original.getLocation().getPath() + (grouped ? "/rigid_group" : "") + "/storage");
-        String originalSource = sources.apply(original.getVertexShader(), ShaderType.VERTEX);
+        String originalSource = sources.getShader(original.getShaders().get(ShaderType.VERTEX), ShaderType.VERTEX);
         String source = grouped
                 ? GpuShaderProgram.wrapStorageRigidEntitySource(originalSource)
                 : GpuShaderProgram.wrapStorageEntitySource(originalSource);
         RenderPipeline accelerated = GpuShaderProgram.pipeline(original, location, false);
-        if (!device.precompilePipeline(accelerated, (id, type) -> id.equals(location) && type == ShaderType.VERTEX
-                ? source : sources.apply(id, type)).isValid()) {
+        if (compilePipeline(accelerated, (id, type) -> id.equals(location) && type == ShaderType.VERTEX
+                ? source : sources.getShader(id, type)) == null) {
             throw new IllegalStateException("Acceleration storage entity shader validation failed");
         }
         Material material = new Material(original, accelerated);
@@ -198,10 +258,10 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         }
         Identifier location = Identifier.fromNamespaceAndPath("omni-morph", "acceleration/" + original.getLocation().getNamespace()
                 + "/" + original.getLocation().getPath() + "/model");
-        String source = GpuShaderProgram.wrapStorageModelEntitySource(sources.apply(original.getVertexShader(), ShaderType.VERTEX));
+        String source = GpuShaderProgram.wrapStorageModelEntitySource(sources.getShader(original.getShaders().get(ShaderType.VERTEX), ShaderType.VERTEX));
         RenderPipeline accelerated = GpuShaderProgram.pipeline(original, location, false);
-        if (!device.precompilePipeline(accelerated, (id, type) -> id.equals(location) && type == ShaderType.VERTEX
-                ? source : sources.apply(id, type)).isValid()) {
+        if (compilePipeline(accelerated, (id, type) -> id.equals(location) && type == ShaderType.VERTEX
+                ? source : sources.getShader(id, type)) == null) {
             throw new IllegalStateException("Acceleration model entity shader validation failed");
         }
         Material material = new Material(original, accelerated);
@@ -228,13 +288,13 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         String variant = parts == GpuBatchData.MAX_PARTS ? "" : "/parts_" + parts;
         Identifier location = Identifier.fromNamespaceAndPath("omni-morph", "acceleration/" + original.getLocation().getNamespace()
                 + "/" + original.getLocation().getPath() + (grouped ? "/rigid_group" : "") + variant);
-        String originalSource = sources.apply(original.getVertexShader(), ShaderType.VERTEX);
+        String originalSource = sources.getShader(original.getShaders().get(ShaderType.VERTEX), ShaderType.VERTEX);
         String source = grouped
                 ? GpuShaderProgram.wrapRigidEntitySource(originalSource, parts)
                 : GpuShaderProgram.wrapEntitySource(originalSource, parts);
         RenderPipeline accelerated = GpuShaderProgram.pipeline(original, location);
-        if (!device.precompilePipeline(accelerated, (id, type) -> id.equals(location) && type == ShaderType.VERTEX
-                ? source : sources.apply(id, type)).isValid()) {
+        if (compilePipeline(accelerated, (id, type) -> id.equals(location) && type == ShaderType.VERTEX
+                ? source : sources.getShader(id, type)) == null) {
             throw new IllegalStateException("Acceleration entity shader validation failed");
         }
         return new Material(original, accelerated);
@@ -315,20 +375,18 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
 
         BufferDrawPass(Material material, GpuDrawContext context) {
             this.material = material;
-            pass = device.createCommandEncoder().createRenderPass(() -> "OmniMorph accelerated entity",
-                    Objects.requireNonNull(context.color()), Optional.empty(), context.depth(), OptionalDouble.empty());
+            pass = Objects.requireNonNull(context.pass());
             try {
-                pass.setPipeline(material.accelerated());
+                pass.setPipeline(program(material, context.pipeline()));
                 if (context.scissorEnabled()) {
                     pass.enableScissor(context.scissorX(), context.scissorY(), context.scissorWidth(), context.scissorHeight());
                 }
                 RenderSystem.bindDefaultUniforms(pass);
                 pass.setUniform("DynamicTransforms", Objects.requireNonNull(context.dynamicTransform()));
                 for (var binding : context.textures()) {
-                    pass.bindTexture(binding.name(), binding.textureView(), binding.sampler());
+                    pass.setUniform(binding.name(), binding.textureView(), binding.sampler());
                 }
             } catch (RuntimeException | Error failure) {
-                pass.close();
                 throw failure;
             }
         }
@@ -358,7 +416,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
 
         @Override
         public void close() {
-            pass.close();
+            // Minecraft owns the enclosing feature pass and its attachments.
         }
     }
 
@@ -426,7 +484,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
             case RIGID -> GpuShaderProgram.wrapStorageRigidEntitySource(PROBE_VERTEX);
             case MODEL -> GpuShaderProgram.wrapStorageModelEntitySource(PROBE_VERTEX);
         };
-        if (!device.precompilePipeline(pipeline, (id, type) -> type == ShaderType.VERTEX ? vertex : PROBE_FRAGMENT).isValid()) {
+        if (compilePipeline(pipeline, (id, type) -> type == ShaderType.VERTEX ? vertex : PROBE_FRAGMENT) == null) {
             throw new IllegalStateException("Acceleration storage diagnostic shader rejected");
         }
         MeshHandle mesh = probeMesh();
@@ -486,7 +544,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
              var readback = device.createBuffer(() -> "OmniMorph storage pixels", GpuBuffer.USAGE_COPY_DST | GpuBuffer.USAGE_MAP_READ, 8 * 8 * 4)) {
             var encoder = device.createCommandEncoder();
             try (var pass = encoder.createRenderPass(() -> "OmniMorph storage self-test", view, Optional.of(new org.joml.Vector4f(0, 0, 0, 1)))) {
-                pass.setPipeline(pipeline);
+                pass.setPipeline(Objects.requireNonNull(programs.get(pipeline)));
                 pass.setVertexBuffer(0, geometry.vertices().slice());
                 pass.setIndexBuffer(geometry.indices(), IndexType.INT);
                 GpuStorageSupport.bind(pass, arena, offsets);
@@ -516,7 +574,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         RenderPipeline pipeline = grouped ? diagnosticGroupPipeline : diagnosticPipeline;
         if (pipeline == null) {
             pipeline = RenderPipeline.builder().withLocation(location).withVertexShader(location).withFragmentShader(location)
-                .withBindGroupLayout(BindGroupLayout.builder().withUniform(GpuShaderProgram.UNIFORM, com.mojang.blaze3d.shaders.UniformType.UNIFORM_BUFFER).build())
+                .withBindGroupLayout(BindGroupLayout.builder().withUniform(GpuShaderProgram.UNIFORM, com.mojang.renderpearl.api.pipeline.UniformType.UNIFORM_BUFFER).build())
                 .withColorTargetState(ColorTargetState.DEFAULT).withDepthStencilState(Optional.empty()).withCull(false)
                 .withVertexBinding(0, GpuShaderProgram.format()).withPrimitiveTopology(PrimitiveTopology.TRIANGLES).build();
             if (grouped) {
@@ -526,7 +584,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
             }
         }
         String vertex = grouped ? GpuShaderProgram.wrapRigidEntitySource(PROBE_VERTEX) : GpuShaderProgram.wrapEntitySource(PROBE_VERTEX);
-        if (!device.precompilePipeline(pipeline, (id, type) -> type == ShaderType.VERTEX ? vertex : PROBE_FRAGMENT).isValid()) {
+        if (compilePipeline(pipeline, (id, type) -> type == ShaderType.VERTEX ? vertex : PROBE_FRAGMENT) == null) {
             throw new IllegalStateException("Acceleration diagnostic shader rejected");
         }
         MeshHandle mesh = probeMesh();
@@ -543,7 +601,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
              var readback = device.createBuffer(() -> "OmniMorph activation pixels", GpuBuffer.USAGE_COPY_DST | GpuBuffer.USAGE_MAP_READ, 8 * 8 * 4)) {
             var encoder = device.createCommandEncoder();
             try (var pass = encoder.createRenderPass(() -> "OmniMorph activation self-test", view, Optional.of(new org.joml.Vector4f(0, 0, 0, 1)))) {
-                pass.setPipeline(pipeline);
+                pass.setPipeline(Objects.requireNonNull(programs.get(pipeline)));
                 pass.setUniform(GpuShaderProgram.UNIFORM, pose.buffer());
                 pass.setVertexBuffer(0, geometry.vertices().slice());
                 pass.setIndexBuffer(geometry.indices(), IndexType.INT);

@@ -5,6 +5,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.InteractionHand;
 import org.figuramc.figura.lua.LuaWhitelist;
 import org.figuramc.figura.lua.api.world.ItemStackAPI;
 import org.figuramc.figura.lua.docs.LuaMethodDoc;
@@ -144,28 +145,31 @@ public class LivingEntityAPI<T extends LivingEntity> extends EntityAPI<T> {
     @LuaMethodDoc("living_entity.get_swing_time")
     public int getSwingTime() {
       checkEntity();
-      return entity.swingTime;
+      return entity.isSwinging() ? entity.swingState.ticks : 0;
     }
 
     @LuaWhitelist
     @LuaMethodDoc("living_entity.is_swinging_arm")
     public boolean isSwingingArm() {
       checkEntity();
-      return entity.swinging;
+      return entity.isSwinging();
     }
 
     @LuaWhitelist
     @LuaMethodDoc("living_entity.get_swing_arm")
     public String getSwingArm() {
       checkEntity();
-      return entity.swinging ? entity.swingingArm.name() : null;
+      return entity.isSwinging() ? (entity.getCurrentSwing() == null ? InteractionHand.MAIN_HAND : entity.getCurrentSwing().hand()).name() : null;
     }
 
     @LuaWhitelist
     @LuaMethodDoc("living_entity.get_swing_duration")
     public int getSwingDuration() {
       checkEntity();
-      return ((LivingEntityAccessor) entity).getSwingDuration();
+      var swing = entity.getCurrentSwing();
+      var animation = swing == null
+              ? net.minecraft.world.item.component.SwingAnimation.DEFAULT : swing.animation();
+      return ((LivingEntityAccessor) entity).getSwingDuration(animation);
     }
 
     @LuaWhitelist

@@ -74,11 +74,11 @@ public class TextTask extends RenderTask {
             int offset = alignment.apply(cacheWidth);
             float x1 = -1 - offset;
             float x2 = cacheWidth - offset;
-            VertexConsumer vertexConsumer = buffer.getBuffer(seeThrough ? RenderTypes.textBackgroundSeeThrough() : RenderTypes.textBackground());
-            vertexConsumer.addVertex(matrix, x1, -1f, vertexOffset).setColor(bg).setLight(l);
-            vertexConsumer.addVertex(matrix, x1, cacheHeight, vertexOffset).setColor(bg).setLight(l);
-            vertexConsumer.addVertex(matrix, x2, cacheHeight, vertexOffset).setColor(bg).setLight(l);
-            vertexConsumer.addVertex(matrix, x2, -1f, vertexOffset).setColor(bg).setLight(l);
+            TextRenderable preparedBackground = font.prepareBackground(x1, -1f, x2, cacheHeight, bg);
+            Matrix4f backgroundMatrix = new Matrix4f(matrix).translate(0f, 0f, vertexOffset);
+            Font.DisplayMode backgroundMode = seeThrough ? Font.DisplayMode.SEE_THROUGH : Font.DisplayMode.NORMAL;
+            preparedBackground.render(backgroundMatrix, buffer.getBuffer(preparedBackground.renderType(backgroundMode)),
+                    l, false);
         }
 
         // text

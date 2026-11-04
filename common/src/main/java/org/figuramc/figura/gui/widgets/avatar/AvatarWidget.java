@@ -1,5 +1,6 @@
 package org.figuramc.figura.gui.widgets.avatar;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.client.Minecraft;
@@ -108,7 +109,7 @@ public class AvatarWidget extends AbstractAvatarWidget {
 
     @Override
     public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() == 1 && isMouseOver(event.x(), event.y())
+        if (event.button() == InputConstants.MOUSE_BUTTON_RIGHT && isMouseOver(event.x(), event.y())
                 && parent.canRemoveFromOutfit() && !outfitMenuAdded) {
             context.addDivisor();
             context.addAction(FiguraText.of("gui.wardrobe.remove_outfit"), null, ignored -> {

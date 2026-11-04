@@ -1,11 +1,11 @@
 package top.aihmc.omnimorph.gui;
 
 import com.mojang.blaze3d.ProjectionType;
-import com.mojang.blaze3d.GpuFormat;
+import com.mojang.renderpearl.api.GpuFormat;
 import com.mojang.blaze3d.platform.Lighting;
-import com.mojang.blaze3d.systems.GpuDevice;
+import com.mojang.renderpearl.api.device.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.*;
+import com.mojang.renderpearl.api.textures.*;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.render.TextureSetup;
@@ -69,14 +69,18 @@ public class FiguraPortraitRenderer extends PictureInPictureRenderer<FiguraPortr
             try (var scope = new PipRenderStateScope()) {
                 prepareTexturesAndProjectionForAvatar(pictureInPictureRenderState.avatar(), j, k);
                 TextureEntry textureEntry = avatarToTexture.get(pictureInPictureRenderState.avatar());
-                RenderSystem.outputColorTextureOverride = textureEntry.textureView;
-                RenderSystem.outputDepthTextureOverride = textureEntry.depthTextureView;
                 PoseStack poseStack = new PoseStack();
                 poseStack.translate(j / 2.0F, this.getTranslateY(k, i), 0.0F);
                 float f = i * pictureInPictureRenderState.scale();
                 poseStack.scale(f, f, -f);
                 this.renderToTexture(pictureInPictureRenderState, poseStack, submissions);
-                dispatcher.renderAllFeatures(submissions);
+                try (var frame = dispatcher.prepareFrame(submissions);
+                     var pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
+                             () -> "Figura portrait", textureEntry.textureView, java.util.Optional.empty(),
+                             textureEntry.depthTextureView, OptionalDouble.empty())) {
+                    RenderSystem.bindDefaultUniforms(pass);
+                    FeatureRenderDispatcher.renderAllFeatures(pass, frame);
+                }
             } finally {
                 submissions.getSubmitsPerOrder().clear();
             }

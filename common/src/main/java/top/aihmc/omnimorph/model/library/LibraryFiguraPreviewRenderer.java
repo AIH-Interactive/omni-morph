@@ -68,12 +68,12 @@ public final class LibraryFiguraPreviewRenderer extends PictureInPictureRenderer
         stack.pushPose();
         try {
             stack.translate(state.offsetX(), state.offsetY(), 0);
-            stack.mulPose(Axis.ZP.rotationDegrees(180));
-            stack.mulPose(Axis.XP.rotationDegrees(state.pitch()));
-            stack.mulPose(Axis.YP.rotationDegrees(state.yaw() + 180));
+            stack.rotate(Axis.ZP.rotationDegrees(180));
+            stack.rotate(Axis.XP.rotationDegrees(state.pitch()));
+            stack.rotate(Axis.YP.rotationDegrees(state.yaw() + 180));
             Matrix4f entityToDraw = new Matrix4f(stack.last().pose());
             stack.translate(0, -1, 0);
-            stack.mulPose(Axis.YP.rotationDegrees(180));
+            stack.rotate(Axis.YP.rotationDegrees(180));
             stack.scale(-1, -1, 1);
             stack.translate(0, -1.501f, 0);
 

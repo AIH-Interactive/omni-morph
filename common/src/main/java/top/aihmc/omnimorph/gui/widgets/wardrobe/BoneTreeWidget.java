@@ -1,5 +1,6 @@
 package top.aihmc.omnimorph.gui.widgets.wardrobe;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -181,7 +182,7 @@ public final class BoneTreeWidget extends AbstractList {
         if (super.mouseClicked(event, doubleClick)) {
             return true;
         }
-        if (!isInsideScissors(event.x(), event.y()) || event.button() != 0 && event.button() != 1) {
+        if (!isInsideScissors(event.x(), event.y()) || event.button() != InputConstants.MOUSE_BUTTON_LEFT && event.button() != InputConstants.MOUSE_BUTTON_RIGHT) {
             return false;
         }
         int index = ((int) event.y() - getY() - 28 + offset()) / ROW_HEIGHT;
@@ -192,7 +193,7 @@ public final class BoneTreeWidget extends AbstractList {
         var row = state.rows().get(index);
         state.select(row.node().id());
         notifySelection();
-        if (event.button() == 1) {
+        if (event.button() == InputConstants.MOUSE_BUTTON_RIGHT) {
             if (contextAction != null) {
                 contextAction.accept(state.selectedTarget(), event);
             }
@@ -234,15 +235,15 @@ public final class BoneTreeWidget extends AbstractList {
             }
         }
         var row = rows.get(index);
-        if (event.key() == 264 || event.key() == 265) {
-            index = Math.clamp(index + (event.key() == 264 ? 1 : -1), 0, rows.size() - 1);
+        if (event.key() == InputConstants.KEY_DOWN || event.key() == InputConstants.KEY_UP) {
+            index = Math.clamp(index + (event.key() == InputConstants.KEY_DOWN ? 1 : -1), 0, rows.size() - 1);
             state.select(rows.get(index).node().id());
             notifySelection();
             scrollBar.setScrollProgressNoAnim(maximumScroll() == 0 ? 0
                     : Math.min(1d, index * (double) ROW_HEIGHT / maximumScroll()));
             return true;
         }
-        if (event.key() == 257 || (event.key() == 262 && !row.expanded()) || (event.key() == 263 && row.expanded())) {
+        if (event.key() == InputConstants.KEY_RETURN || (event.key() == InputConstants.KEY_RIGHT && !row.expanded()) || (event.key() == InputConstants.KEY_LEFT && row.expanded())) {
             state.toggle(row.node().id());
             return true;
         }

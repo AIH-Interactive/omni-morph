@@ -1,15 +1,15 @@
 package org.figuramc.figura.utils.ui;
 
-import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.mojang.renderpearl.api.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.Std140Builder;
 import com.mojang.blaze3d.font.GlyphInfo;
-import com.mojang.blaze3d.opengl.GlStateManager;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.renderpearl.backend.opengl.GlStateManager;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import com.mojang.blaze3d.platform.Lighting;
-import com.mojang.blaze3d.systems.GpuDevice;
+import com.mojang.renderpearl.api.device.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.GpuTexture;
-import com.mojang.blaze3d.textures.GpuTextureView;
+import com.mojang.renderpearl.api.textures.GpuTexture;
+import com.mojang.renderpearl.api.textures.GpuTextureView;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
@@ -615,7 +615,7 @@ public final class UIHelper {
     public static Runnable openURL(String url) {
         Minecraft minecraft = Minecraft.getInstance();
         return () -> minecraft.gui.setScreen(new FiguraConfirmScreen.FiguraConfirmLinkScreen((bl) -> {
-            if (bl) Util.getPlatform().openUri(url);
+            if (bl) com.mojang.blaze3d.Blaze3D.openUri(java.net.URI.create(url));
         }, url, minecraft.gui.screen()));
     }
 

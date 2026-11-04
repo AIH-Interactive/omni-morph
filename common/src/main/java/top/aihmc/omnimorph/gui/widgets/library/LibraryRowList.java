@@ -1,5 +1,6 @@
 package top.aihmc.omnimorph.gui.widgets.library;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -267,7 +268,7 @@ public final class LibraryRowList extends AbstractList {
                 for (int action = 0; action < actions.size(); action++) {
                     Button button = actions.get(action);
                     if (button.isMouseOver(event.x(), event.y())) {
-                        if (button.isActive() && event.button() == 0) {
+                        if (button.isActive() && event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
                             selected = index;
                             row.action().run();
                             button.run();

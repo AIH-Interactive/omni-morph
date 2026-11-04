@@ -42,7 +42,7 @@ final class CosmeticParticleEntrySmokeTest {
         Avatar second = owner(wearer, resource, mode, template, data);
         var preview = mode == CosmeticInstanceContext.Scope.DRAFT
                 ? new PreviewParticleScope(Minecraft.getInstance().level, OutfitLimits.defaults()) : null;
-        com.mojang.blaze3d.textures.GpuTexture cachedTexture = null;
+        com.mojang.renderpearl.api.textures.GpuTexture cachedTexture = null;
         try {
             if (preview != null) {
                 preview.bindAll(List.of(first, second));

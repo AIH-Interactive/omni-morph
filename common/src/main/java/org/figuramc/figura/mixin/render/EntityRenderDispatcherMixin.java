@@ -111,7 +111,7 @@ public class EntityRenderDispatcherMixin {
         float yaw = entity instanceof LivingEntity living
                 ? Mth.rotLerp(partialTick, living.yBodyRotO, living.yBodyRot)
                 : Mth.rotLerp(partialTick, entity.yRotO, entity.getYRot());
-        submittedStack.mulPose(Axis.YP.rotationDegrees(180f - yaw));
+        submittedStack.rotate(Axis.YP.rotationDegrees(180f - yaw));
         var pose = instance.captureRenderPose(false);
         ((NodeCollectorExtension) collector).submitFiguraModel(owner, state, (avatar, submittedState, buffers) -> {
             if (!instance.isClosed() && avatar.getYsmRuntime() == parent

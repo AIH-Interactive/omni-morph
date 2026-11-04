@@ -54,17 +54,11 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
     @Shadow @Final
     private Minecraft minecraft;
 
-    @Shadow private boolean effectActive;
 
-    @Shadow public abstract void checkEntityPostEffect(Entity entity);
 
     @Shadow @Final private Camera mainCamera;
-    @Shadow @Nullable
-    private Identifier postEffectId;
 
     @Shadow @Final private CrossFrameResourcePool resourcePool;
-    @Shadow private float spinningEffectTime;
-    @Shadow private float spinningEffectSpeed;
     @Shadow @Final private GuiRenderer guiRenderer;
     @Shadow @Final private GameRenderState gameRenderState;
 
@@ -72,21 +66,19 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
     @Shadow abstract void bobView(CameraRenderState cameraRenderState, PoseStack poseStack);
 
     @Unique
-    private boolean avatarPostShader = false;
-    @Unique
     private boolean hasShaders;
 
     @Inject(method = "render", at = @At("HEAD"))
-    private void figura$beginYsmRenderFrame(DeltaTracker deltaTracker, boolean tick, CallbackInfo ci) {
+    private void figura$beginYsmRenderFrame(CallbackInfo ci) {
         HardwareAcceleration.beginFrame();
         YsmRenderFrameClock.beginFrame();
         AccelerationService.INSTANCE.beginFrame();
     }
 
     @WrapMethod(method = "render")
-    private void figura$retireCompositionFrames(DeltaTracker deltaTracker, boolean tick, Operation<Void> original) {
+    private void figura$retireCompositionFrames(Operation<Void> original) {
         try {
-            original.call(deltaTracker, tick);
+            original.call();
         } finally {
             // World/hand submissions also need retirement when GUI rendering is skipped or throws.
             try {
@@ -102,7 +94,7 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
     }
 
     @Inject(method = "renderLevel", at = @At("HEAD"))
-    private void onRenderLevel(DeltaTracker deltaTracker, CallbackInfo ci) {
+    private void onRenderLevel(CallbackInfo ci) {
         hasShaders = ClientAPI.hasShaderPack();
 
         CameraRenderState cameraRenderState = this.gameRenderState.levelRenderState.cameraRenderState;
@@ -134,47 +126,30 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
         instance.mul(original);
     }
 
-    @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;doEntityOutline()V", shift = At.Shift.AFTER))
-    private void render(DeltaTracker deltaTracker, boolean tick, CallbackInfo ci) {
-        Entity entity = this.minecraft.getCameraEntity();
-        Avatar avatar = AvatarManager.getAvatar(entity);
-        if (!RenderUtils.vanillaModelAndScript(avatar)) {
-            if (avatarPostShader) {
-                avatarPostShader = false;
-                this.checkEntityPostEffect(entity);
-            }
+    @Inject(method = "extract", at = @At("TAIL"))
+    private void figura$extractPostShader(DeltaTracker deltaTracker, boolean advanceGameTime, CallbackInfo ci) {
+        if (!gameRenderState.shouldRenderLevel) {
             return;
         }
-
+        Avatar avatar = AvatarManager.getAvatar(minecraft.getCameraEntity());
+        if (!RenderUtils.vanillaModelAndScript(avatar)) {
+            return;
+        }
         Identifier resource = avatar.luaRuntime.renderer.postShader;
         if (resource == null) {
-            if (avatarPostShader) {
-                avatarPostShader = false;
-                this.checkEntityPostEffect(entity);
-            }
             return;
         }
-
-        try {
-            avatarPostShader = true;
-            this.effectActive = true;
-            if (this.postEffectId == null || !this.postEffectId.equals(resource)) {
-                PostChain postchain = this.minecraft.getShaderManager().getPostChain(resource, LevelTargetBundle.MAIN_TARGETS);
-                if (postchain != null)
-                    postchain.process(this.minecraft.gameRenderer.mainRenderTarget(), this.resourcePool);
-            }
-        } catch (Exception ignored) {
-            this.effectActive = false;
+        if (!minecraft.getShaderManager().isPostEffectValid(resource, LevelTargetBundle.MAIN_TARGETS)) {
             avatar.luaRuntime.renderer.postShader = null;
+            return;
+        }
+        // Vanilla now owns post-chain preparation, execution and reload cleanup.
+        Identifier spectatorEffect = minecraft.gameRenderer.spectatedEntityPostEffect();
+        gameRenderState.requestedPostEffects.remove(spectatorEffect);
+        if (!gameRenderState.requestedPostEffects.contains(resource)) {
+            gameRenderState.requestedPostEffects.add(resource);
         }
     }
-
-    @Inject(method = "checkEntityPostEffect", at = @At("HEAD"), cancellable = true)
-    private void checkEntityPostEffect(Entity entity, CallbackInfo ci) {
-        if (avatarPostShader)
-            ci.cancel();
-    }
-
     @Override @Intrinsic
     public double figura$getFov(Camera camera, float tickDelta, boolean changingFov) {
         return camera.getFov();

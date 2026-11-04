@@ -2,11 +2,11 @@ package top.aihmc.omnimorph.render.acceleration;
 
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.MeshData;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.renderpearl.api.vertex.VertexFormat;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.SharedConstants;
 import top.aihmc.omnimorph.testing.NativeFeatureVertices;
-import com.mojang.blaze3d.IndexType;
+import com.mojang.renderpearl.api.pipeline.IndexType;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.resources.Identifier;
@@ -23,7 +23,7 @@ import jdk.jfr.consumer.RecordingFile;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 
 /** Executes real native prepared-material execution boundaries with command-recording device operations. */
 public final class GpuSubmissionSmokeTest {
@@ -34,6 +34,11 @@ public final class GpuSubmissionSmokeTest {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
         RenderSystem.initRenderThread();
+        if (args.length == 1 && args[0].equals("upload-failure")) {
+            prepareUploadFailureBoundary();
+            return;
+        }
+        prepareUploadFailureBoundary();
         opaqueBoundary();
         // R4-2: the same orderings and failure semantics must hold with and without the shared pass.
         for (boolean mergePass : new boolean[]{false, true}) {
@@ -112,6 +117,36 @@ public final class GpuSubmissionSmokeTest {
             Files.deleteIfExists(recordingPath);
             AccelerationFrameDiagnostics.beginFrame();
         }
+    }
+
+    private static void prepareUploadFailureBoundary() {
+        AccelerationOptions.setStorageBlocks(true);
+        try (Fixture fixture = new Fixture(); ByteBufferBuilder memory = new ByteBufferBuilder(256)) {
+            fixture.device.storage = new GpuStorageSupport.Limits(16, 1_000_000, false);
+            RenderType material = NativeFeatureVertices.material(RenderTypes.entityCutout(TEXTURE));
+            // Queue the storage variant, then compile it in the ordinary frame preparation step.
+            fixture.gpu.prepare(batch(fixture.service, fixture.owner, material, 1), () -> true);
+            fixture.service.beginFrame();
+            require(fixture.device.storageCompiles > 0, "upload failure exercises the compiled storage path");
+            int[] failures = {0};
+            fixture.service.useBackend(fixture.gpu, failure -> failures[0]++);
+            fixture.device.failStorageWrite = true;
+            NativeFeatureVertices source = new NativeFeatureVertices(memory);
+            fixture.offer(source, batch(fixture.service, fixture.owner, material, 1, 2));
+            fixture.offer(source, batch(fixture.service, fixture.owner, material, 3));
+            source.execute();
+            require(fixture.device.storageCreates == 1 && fixture.device.storageWrites.isEmpty(),
+                    "the prepared boundary attempted its first arena upload and it failed");
+            require(fixture.javaFaces.equals(List.of(1f, 2f, 3f)),
+                    "failed preparation replays every unsubmitted face through Java in authored order");
+            require(fixture.device.drawCalls == 0 && fixture.device.attempts == 0,
+                    "failed preparation never issues GPU geometry");
+            require(!fixture.service.gpuDrawEnabled() && failures[0] == 1,
+                    "upload failure disables the failed backend and reports it once");
+        } finally {
+            AccelerationOptions.setStorageBlocks(false);
+        }
+        System.out.println("PASS prepare upload failure: ordered complete Java replay, zero GPU issue and backend failure handling");
     }
 
     private static void opaqueBoundary() {

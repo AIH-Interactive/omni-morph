@@ -1,5 +1,6 @@
 package org.figuramc.figura.gui.widgets;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -122,11 +123,11 @@ public class PanelSelectorWidget extends AbstractContainerElement {
 
     private int getNextPanel(int keyCode) {
         // numbers
-        if (keyCode >= 49 && keyCode <= 57)
-            return keyCode - 49;
+        if (keyCode >= InputConstants.KEY_1 && keyCode <= InputConstants.KEY_9)
+            return keyCode - InputConstants.KEY_1;
 
         // tab
-        if (keyCode == 258) {
+        if (keyCode == InputConstants.KEY_TAB) {
             // get current button
             int index = buttons.indexOf(selected);
 

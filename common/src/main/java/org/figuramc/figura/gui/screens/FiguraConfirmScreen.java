@@ -1,5 +1,6 @@
 package org.figuramc.figura.gui.screens;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -60,7 +61,7 @@ public class FiguraConfirmScreen extends AbstractPanelScreen {
     @Override
     public boolean keyPressed(KeyEvent keyEvent) {
         int keyCode = keyEvent.key();
-        if (keyCode == 256) {
+        if (keyCode == InputConstants.KEY_ESCAPE) {
             run(false);
             return true;
         } else {

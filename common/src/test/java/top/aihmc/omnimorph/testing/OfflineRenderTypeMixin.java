@@ -7,7 +7,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 
 import java.util.List;
 
@@ -18,6 +18,6 @@ public abstract class OfflineRenderTypeMixin {
 
     @Inject(method = "prepare", at = @At("HEAD"), cancellable = true)
     private void recordPlatformState(CallbackInfoReturnable<PreparedRenderType> callback) {
-        callback.setReturnValue(new PreparedRenderType(pipeline(), null, null, null, List.of()));
+        callback.setReturnValue(new PreparedRenderType("offline", pipeline(), null, null, null, List.of()));
     }
 }

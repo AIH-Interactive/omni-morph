@@ -644,7 +644,7 @@ public class Avatar {
                 ItemStack useItem = living.getUseItem();
                 item_max_use_duration = useItem.isEmpty() ? 0f : (float) useItem.getUseDuration(living) / 20.0f;
                 item_remaining_use_duration = living.isUsingItem() ? (float) living.getUseItemRemainingTicks() / 20.0f : 0f;
-                swing_time = living.swinging ? Math.max(1f, living.swingTime) / 20.0f : 0f;
+                swing_time = living.isSwinging() ? Math.max(1f, living.swingState.ticks) / 20.0f : 0f;
                 is_swinging = swing_time > 0f ? 1f : 0f;
                 attack_time = Math.min(1f, swing_time * 20.0f / 6.0f);
                 is_playing_dead = living.isDeadOrDying() ? 1f : 0f;
@@ -1542,9 +1542,9 @@ public class Avatar {
 
         stack.pushPose();
         if (!config) {
-            stack.mulPose(Axis.ZP.rotation(arm.zRot));
-            stack.mulPose(Axis.YP.rotation(arm.yRot));
-            stack.mulPose(Axis.XP.rotation(arm.xRot));
+            stack.rotate(Axis.ZP.rotation(arm.zRot));
+            stack.rotate(Axis.YP.rotation(arm.yRot));
+            stack.rotate(Axis.XP.rotation(arm.xRot));
         }
         render(player, 0f, tickDelta, 1f, stack, bufferSource, light, OverlayTexture.NO_OVERLAY, playerModel, filter, false, false);
         stack.popPose();
@@ -1703,7 +1703,7 @@ public class Avatar {
         Quaternionf quaternionf = Axis.XP.rotationDegrees(135f);
         Quaternionf quaternionf2 = Axis.YP.rotationDegrees(-90f);
         quaternionf.mul(quaternionf2);
-        stack.mulPose(quaternionf);
+        stack.rotate(quaternionf);
 
         renderer.setupRenderer(
                 PartFilterScheme.ARROW, bufferSource, stack,
@@ -1725,7 +1725,7 @@ public class Avatar {
         Quaternionf quaternionf = Axis.ZP.rotationDegrees(90f);
         Quaternionf quaternionf2 = Axis.YP.rotationDegrees(90f);
         quaternionf.mul(quaternionf2);
-        stack.mulPose(quaternionf);
+        stack.rotate(quaternionf);
 
         renderer.setupRenderer(
                 PartFilterScheme.TRIDENT, bufferSource, stack,
@@ -1748,7 +1748,7 @@ public class Avatar {
             return false;
 
         stack.pushPose();
-        stack.mulPose(Axis.ZP.rotationDegrees(180f));
+        stack.rotate(Axis.ZP.rotationDegrees(180f));
 
         renderer.setupRenderer(
                 PartFilterScheme.ITEM, bufferSource, stack,

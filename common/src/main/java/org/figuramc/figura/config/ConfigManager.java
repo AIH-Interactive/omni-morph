@@ -1,7 +1,7 @@
 package org.figuramc.figura.config;
 
 import com.google.gson.*;
-import com.mojang.blaze3d.platform.InputConstants;
+import org.figuramc.figura.utils.LegacyInput;
 import org.figuramc.figura.FiguraMod;
 import top.aihmc.omnimorph.render.acceleration.HardwareAcceleration;
 import org.figuramc.figura.utils.PlatformUtils;
@@ -64,7 +64,7 @@ public final class ConfigManager {
                         }
                         String obj = object.getAsString();
                         if (config instanceof ConfigType.KeybindConfig keybind) {
-                            keybind.keyBind.setKey(InputConstants.getKey(obj));
+                            keybind.keyBind.setKey(LegacyInput.parseKey(obj));
                         } else if (config instanceof ConfigType.InputConfig<?> input) {
                             if (input.inputType.validator.test(obj))
                                 config.setValue(obj);

@@ -33,7 +33,7 @@ public final class YsmHeldItemTransforms {
 
     private static void applyItemBasis(PoseStack stack, ItemStack itemStack, boolean directHandBone) {
         stack.translate(0d, -0.0625d, -0.1d);
-        stack.mulPose(Axis.XP.rotationDegrees(-90f));
+        stack.rotate(Axis.XP.rotationDegrees(-90f));
 
         if (itemStack == null || itemStack.isEmpty())
             return;

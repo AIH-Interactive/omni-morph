@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.model.ysm;
 
-import com.mojang.blaze3d.pipeline.ColorTargetState;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.ColorTargetState;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.ShaderDefines;
 import net.minecraft.client.renderer.rendertype.RenderSetup;
@@ -36,7 +36,6 @@ final class YsmPreviewRenderTypes {
             }
             var setup = RenderSetup.builder(pipeline)
                     .withTexture("Sampler0", texture)
-                    .setOutputTarget(RenderTypes.entityTranslucent(texture).outputTarget())
                     .useOverlay()
                     .setOutline(RenderSetup.OutlineProperty.AFFECTS_OUTLINE);
             if (translucent) {
@@ -61,23 +60,22 @@ final class YsmPreviewRenderTypes {
         RenderPipeline material = translucent ? RenderPipelines.ENTITY_TRANSLUCENT : RenderPipelines.ENTITY_CUTOUT;
         // Public snippets reuse the native shaders and uniforms without private-field access or copied assets.
         var snippet = new RenderPipeline.Snippet(
-                Optional.of(source.getVertexShader()),
-                Optional.of(source.getFragmentShader()),
+                source.getShaders(),
                 Optional.of(defines),
                 Optional.of(source.getBindGroupLayouts()),
-                source.getColorTargetStates(),
-                source.getColorTargetStates().length,
+                source.getColorTargetStates().toArray(com.mojang.renderpearl.api.pipeline.ColorTargetState[]::new),
+                source.getColorTargetStates().size(),
                 Optional.ofNullable(source.getDepthStencilState()),
                 Optional.of(source.getPolygonMode()),
                 Optional.of(source.isCull()),
-                source.getVertexFormatBindings(),
-                Optional.of(source.getPrimitiveTopology()));
+                source.getVertexFormatBindings().toArray(com.mojang.renderpearl.api.vertex.VertexFormat[]::new),
+                Optional.of(source.getPrimitiveTopology()), source.pushConstantSize());
         String suffix = (translucent ? "translucent" : "cutout") + (cull ? "_cull" : "");
         return RenderPipelines.register(RenderPipeline.builder(snippet)
                 .withLocation(new FiguraIdentifier("pipeline/ysm_gui_unlit_" + suffix))
                 .withCull(cull)
                 .withDepthStencilState(material.getDepthStencilState())
-                .withColorTargetState(translucent ? source.getColorTargetState() : ColorTargetState.DEFAULT)
+                .withColorTargetState(translucent ? source.getColorTargetStates().getFirst() : ColorTargetState.DEFAULT)
                 .build());
     }
 }

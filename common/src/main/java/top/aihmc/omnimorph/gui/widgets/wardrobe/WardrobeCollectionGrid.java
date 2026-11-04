@@ -1,5 +1,6 @@
 package top.aihmc.omnimorph.gui.widgets.wardrobe;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -306,7 +307,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() == 0 && isInsideScissors(event.x(), event.y())) {
+        if (event.button() == InputConstants.MOUSE_BUTTON_LEFT && isInsideScissors(event.x(), event.y())) {
             arrange();
             int index = layout.hit(event.x() - getX() - 2, event.y() - getY() - contentTop(), scroll());
             if (index >= 0) {
@@ -327,10 +328,10 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
             return super.keyPressed(event);
         }
         int step = switch (event.key()) {
-            case 262 -> 1;
-            case 263 -> -1;
-            case 264 -> layout.columns();
-            case 265 -> -layout.columns();
+            case InputConstants.KEY_RIGHT -> 1;
+            case InputConstants.KEY_LEFT -> -1;
+            case InputConstants.KEY_DOWN -> layout.columns();
+            case InputConstants.KEY_UP -> -layout.columns();
             default -> 0;
         };
         if (step == 0) {

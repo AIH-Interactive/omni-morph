@@ -1,6 +1,7 @@
 package top.aihmc.omnimorph.gui.widgets.library;
 
 import net.minecraft.client.Minecraft;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.MultiLineEditBox;
 import net.minecraft.client.input.CharacterEvent;
@@ -75,7 +76,7 @@ public final class LibraryMultilineField extends AbstractContainerElement {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (enabled && event.button() == 0 && overResizeHandle(event.x(), event.y())) {
+        if (enabled && event.button() == InputConstants.MOUSE_BUTTON_LEFT && overResizeHandle(event.x(), event.y())) {
             resizing = true;
             resizeStartY = event.y();
             resizeStartHeight = getHeight();
@@ -86,7 +87,7 @@ public final class LibraryMultilineField extends AbstractContainerElement {
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double deltaX, double deltaY) {
-        if (resizing && enabled && event.button() == 0) {
+        if (resizing && enabled && event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
             int height = Math.clamp(resizeStartHeight + (int) Math.round(event.y() - resizeStartY),
                     minimumHeight, maximumHeight);
             if (height != getHeight()) {
@@ -100,7 +101,7 @@ public final class LibraryMultilineField extends AbstractContainerElement {
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
-        if (resizing && event.button() == 0) {
+        if (resizing && event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
             resizing = false;
         } else if (getFocused() != null) {
             getFocused().mouseReleased(event);

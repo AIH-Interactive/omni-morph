@@ -103,6 +103,9 @@ public final class YsmVanillaStateSmokeTest {
         unsafeField.setAccessible(true);
         // Typed CPU entity shell; inventory/sleep/UUID are explicit fixture inputs, not a loaded world.
         FixtureEntity entity = (FixtureEntity) ((Unsafe) unsafeField.get(null)).allocateInstance(FixtureEntity.class);
+        Field swingState = LivingEntity.class.getDeclaredField("swingState");
+        swingState.setAccessible(true);
+        swingState.set(entity, new LivingEntity.SwingState());
         entity.chest = ItemStack.EMPTY;
         entity.id = new UUID(0, 0);
         ElytraAnimationState state = new ElytraAnimationState(entity);
@@ -215,7 +218,7 @@ public final class YsmVanillaStateSmokeTest {
         entity.fixtureUseTicks = 7;
         entity.swinging = true;
         entity.swingingArm = net.minecraft.world.InteractionHand.MAIN_HAND;
-        entity.swingTime = 3;
+        entity.swingState.ticks = 3;
         entity.spinAttack = true;
         context.ysm_partial_tick = 0.5f;
         require(Integer.valueOf(1).equals(eval(engine, context, "ysm.weapon_type;")), "trident weapon kind");
@@ -1128,7 +1131,10 @@ public final class YsmVanillaStateSmokeTest {
                 }
                 defineData.invoke(boat, builder);
                 data.set(boat, builder.build());
-                passengers.set(boat, com.google.common.collect.ImmutableList.of(entity));
+                // 26.3 boats require a player as the controlling passenger for active paddles.
+                var controller = (net.minecraft.client.player.LocalPlayer) unsafe.allocateInstance(
+                        net.minecraft.client.player.LocalPlayer.class);
+                passengers.set(boat, com.google.common.collect.ImmutableList.of(controller));
                 positions.set(boat, new float[]{2f, 4f});
                 boat.setPaddleState(true, false);
                 entity.vehicle = boat;
@@ -1640,7 +1646,7 @@ public final class YsmVanillaStateSmokeTest {
         entity.fixtureRemainingTicks = 33;
         entity.swinging = true;
         entity.swingingArm = net.minecraft.world.InteractionHand.MAIN_HAND;
-        entity.swingTime = 4;
+        entity.swingState.ticks = 4;
         entity.attackProgress = 0.6f;
         entity.hurtTime = 3;
         context.entity = entity;
@@ -2195,6 +2201,19 @@ public final class YsmVanillaStateSmokeTest {
         private boolean using;
         private net.minecraft.world.InteractionHand usedHand;
         private float attackProgress;
+        private boolean swinging;
+        private net.minecraft.world.InteractionHand swingingArm;
+
+        @Override
+        public boolean isSwinging() {
+            return swinging;
+        }
+
+        @Override
+        public LivingEntity.SwingDescription getCurrentSwing() {
+            return swinging ? new LivingEntity.SwingDescription(swingingArm,
+                    net.minecraft.world.item.component.SwingAnimation.DEFAULT, 6) : null;
+        }
 
         private FixtureEntity() {
             super(EntityTypes.ARMOR_STAND, null);
@@ -2339,7 +2358,7 @@ public final class YsmVanillaStateSmokeTest {
         }
 
         @Override
-        public float getAttackAnim(float partialTick) {
+        public float getSwingAnimation(float partialTick) {
             return attackProgress;
         }
     }

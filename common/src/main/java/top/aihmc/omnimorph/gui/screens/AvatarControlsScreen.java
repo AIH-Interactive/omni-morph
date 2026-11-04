@@ -1,6 +1,7 @@
 package top.aihmc.omnimorph.gui.screens;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import org.figuramc.figura.utils.LegacyInput;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -458,17 +459,17 @@ public class AvatarControlsScreen extends Screen {
     @Override
     public boolean keyPressed(KeyEvent keyEvent) {
         if (focusedWheelKeybindAction != null) {
-            bindFocusedWheelKeybind(keyEvent.key() == 256 ? InputConstants.UNKNOWN : InputConstants.getKey(keyEvent));
+            bindFocusedWheelKeybind(keyEvent.key() == InputConstants.KEY_ESCAPE ? InputConstants.UNKNOWN : InputConstants.getKey(keyEvent));
             return true;
         }
         if (focusedKeybind != null) {
-            if (keyEvent.key() == 256) {
+            if (keyEvent.key() == InputConstants.KEY_ESCAPE) {
                 focusedKeybind = null;
                 focusedKeybindOwner = null;
                 rebuild();
                 return true;
             }
-            setControlValue(focusedKeybindOwner, focusedKeybind, "key." + keyEvent.key());
+            setControlValue(focusedKeybindOwner, focusedKeybind, "key." + LegacyInput.key(keyEvent.key()));
             focusedKeybind = null;
             focusedKeybindOwner = null;
             rebuild();
@@ -485,14 +486,14 @@ public class AvatarControlsScreen extends Screen {
             openDropdown.setVisible(false);
             openDropdown = null;
         }
-        if (focusedKeybind != null && event.button() != 0) {
-            setControlValue(focusedKeybindOwner, focusedKeybind, "mouse." + event.button());
+        if (focusedKeybind != null && event.button() != InputConstants.MOUSE_BUTTON_LEFT) {
+            setControlValue(focusedKeybindOwner, focusedKeybind, "mouse." + LegacyInput.mouse(event.button()));
             focusedKeybind = null;
             focusedKeybindOwner = null;
             rebuild();
             return true;
         }
-        if (focusedWheelKeybindAction != null && event.button() != 0) {
+        if (focusedWheelKeybindAction != null && event.button() != InputConstants.MOUSE_BUTTON_LEFT) {
             bindFocusedWheelKeybind(InputConstants.Type.MOUSE.getOrCreate(event.button()));
             return true;
         }

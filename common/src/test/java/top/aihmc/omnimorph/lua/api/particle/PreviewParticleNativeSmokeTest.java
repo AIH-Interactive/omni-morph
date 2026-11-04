@@ -6,7 +6,7 @@ import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.renderpearl.api.vertex.VertexFormat;
 import net.minecraft.client.renderer.SubmitNodeStorage;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
@@ -282,7 +282,7 @@ final class PreviewParticleNativeSmokeTest {
 
     private static byte[] vertices(PreviewParticleFrame frame, Matrix4f transform) {
         try (var storage = ByteBufferBuilder.exactlySized(frame.vertexCount() * DefaultVertexFormat.PARTICLE.getVertexSize())) {
-            var builder = new BufferBuilder(storage, com.mojang.blaze3d.PrimitiveTopology.QUADS, DefaultVertexFormat.PARTICLE);
+            var builder = new BufferBuilder(storage, com.mojang.renderpearl.api.pipeline.PrimitiveTopology.QUADS, DefaultVertexFormat.PARTICLE);
             frame.draw(transform, type -> builder);
             try (var mesh = builder.build()) {
                 require(mesh != null && mesh.drawState().vertexCount() == frame.vertexCount(),

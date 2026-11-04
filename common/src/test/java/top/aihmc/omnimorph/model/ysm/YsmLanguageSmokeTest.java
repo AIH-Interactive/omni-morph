@@ -47,7 +47,7 @@ public final class YsmLanguageSmokeTest {
             SharedConstants.tryDetectVersion();
             Bootstrap.bootStrap();
             LanguageClient client = (LanguageClient) unsafe.allocateInstance(LanguageClient.class);
-            client.languages = new LanguageManager("en_us", ignored -> {});
+            client.languages = new LanguageManager(client, "en_us", ignored -> {});
             instance.set(null, client);
             testDictionaries(client);
             testSharedConsumers(client);

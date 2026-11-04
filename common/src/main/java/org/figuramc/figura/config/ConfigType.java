@@ -4,7 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import com.mojang.blaze3d.platform.InputConstants;
+import org.figuramc.figura.utils.LegacyInput;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import org.figuramc.figura.FiguraMod;
@@ -326,7 +326,7 @@ public abstract class ConfigType<T> {
 
         public KeybindConfig(String name, Category category, String defaultValue) {
             super(name, category, defaultValue);
-            this.keyBind = new ConfigKeyBind(this.name.getString(), InputConstants.getKey(defaultValue), this);
+            this.keyBind = new ConfigKeyBind(this.name.getString(), LegacyInput.parseKey(defaultValue), this);
         }
 
         @Override

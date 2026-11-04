@@ -2062,11 +2062,11 @@ public class YsmModelRuntime implements AutoCloseable {
 
     private void rotate(PoseStack stack, float x, float y, float z) {
         if (z != 0f)
-            stack.mulPose(Axis.ZP.rotationDegrees(z));
+            stack.rotate(Axis.ZP.rotationDegrees(z));
         if (y != 0f)
-            stack.mulPose(Axis.YP.rotationDegrees(y));
+            stack.rotate(Axis.YP.rotationDegrees(y));
         if (x != 0f)
-            stack.mulPose(Axis.XP.rotationDegrees(x));
+            stack.rotate(Axis.XP.rotationDegrees(x));
     }
 
     private static byte[] onePixelPng() {

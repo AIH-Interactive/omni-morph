@@ -10,8 +10,8 @@ public interface LivingEntityAccessor {
     @Accessor("jumping")
     boolean figura$isJumping();
 
-    @Invoker("getCurrentSwingDuration")
-    int getSwingDuration();
+    @Invoker("getModifiedSwingDuration")
+    int getSwingDuration(net.minecraft.world.item.component.SwingAnimation animation);
 
     @Invoker("updateWalkAnimation")
     void invokeUpdateWalkAnimation(float distance);

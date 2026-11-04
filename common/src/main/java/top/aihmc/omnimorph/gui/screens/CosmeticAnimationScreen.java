@@ -1,5 +1,6 @@
 package top.aihmc.omnimorph.gui.screens;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -135,8 +136,8 @@ public final class CosmeticAnimationScreen extends Screen {
         if (super.mouseClicked(event, doubleClick)) {
             return true;
         }
-        if (event.button() == 0 || event.button() == 1) {
-            execute(selected(event.x(), event.y()), event.button() == 0, event.button());
+        if (event.button() == InputConstants.MOUSE_BUTTON_LEFT || event.button() == InputConstants.MOUSE_BUTTON_RIGHT) {
+            execute(selected(event.x(), event.y()), event.button() == InputConstants.MOUSE_BUTTON_LEFT, event.button());
             return true;
         }
         return false;
@@ -152,9 +153,9 @@ public final class CosmeticAnimationScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        if (event.key() >= 49 && event.key() <= 56) {
+        if (event.key() >= InputConstants.KEY_1 && event.key() <= InputConstants.KEY_8) {
             if (heldInput != event.key()) {
-                execute(event.key() - 49, true, event.key());
+                execute(event.key() - InputConstants.KEY_1, true, event.key());
             }
             return true;
         }

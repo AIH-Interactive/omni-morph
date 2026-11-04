@@ -1,6 +1,8 @@
 package top.aihmc.omnimorph.gui.widgets.library;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
+import org.lwjgl.sdl.SDLKeycode;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.input.KeyEvent;
@@ -29,7 +31,8 @@ public final class LibraryPasswordField extends TextField {
 
             @Override
             public boolean keyPressed(KeyEvent event) {
-                if ((event.modifiers() & (2 | 8)) != 0 && (event.key() == 67 || event.key() == 88)) {
+                if ((event.modifiers() & (SDLKeycode.SDL_KMOD_CTRL | SDLKeycode.SDL_KMOD_GUI)) != 0
+                        && (event.key() == InputConstants.KEY_C || event.key() == InputConstants.KEY_X)) {
                     return true;
                 }
                 return super.keyPressed(event);

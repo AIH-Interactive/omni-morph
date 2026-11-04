@@ -704,6 +704,7 @@ tasks.register('nativeStorageBindingSmokeTest', JavaExec) {
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = 'top.aihmc.omnimorph.render.acceleration.NativeStorageBindingSmokeTest'
+    systemProperty 'figura.test.directory', layout.buildDirectory.dir('gpu-storage-fixture').get().asFile.absolutePath
 }
 
 tasks.register('libraryEquipmentSmokeTest', JavaExec) {

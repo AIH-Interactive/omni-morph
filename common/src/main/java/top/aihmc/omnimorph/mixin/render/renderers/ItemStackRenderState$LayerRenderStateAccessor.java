@@ -14,7 +14,7 @@ public interface ItemStackRenderState$LayerRenderStateAccessor {
 
     @Intrinsic
     @Accessor("quads")
-    List<BakedQuad> figura$getQuads();
+    net.minecraft.client.resources.model.geometry.ItemQuads figura$getQuads();
 
     @Intrinsic
     @Accessor("itemTransform")

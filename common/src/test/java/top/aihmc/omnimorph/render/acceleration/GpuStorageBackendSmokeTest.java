@@ -1,8 +1,8 @@
 package top.aihmc.omnimorph.render.acceleration;
 
-import com.mojang.blaze3d.systems.DeviceInfo;
-import com.mojang.blaze3d.systems.DeviceLimits;
-import com.mojang.blaze3d.systems.GpuDevice;
+import com.mojang.renderpearl.api.device.DeviceInfo;
+import com.mojang.renderpearl.api.device.DeviceLimits;
+import com.mojang.renderpearl.api.device.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
 
 import java.util.Set;
@@ -15,14 +15,17 @@ public final class GpuStorageBackendSmokeTest {
         Object previousDevice = deviceField.get(null);
         try {
             for (String backend : new String[]{"Vulkan", "OpenGL"}) {
-                DeviceLimits nativeLimits = new DeviceLimits(16, 256, 16384, 64L * 1024 * 1024, 1, 8);
-                GpuDevice device = new GpuDevice(null, () -> {}) {
-                    @Override
-                    public DeviceInfo getDeviceInfo() {
-                        return new DeviceInfo("storage fixture", "fixture", "recording", backend.equals("Vulkan"),
-                                backend, 0, nativeLimits, null, Set.of(), null, null);
-                    }
-                };
+                DeviceLimits nativeLimits = new DeviceLimits(16, 256, 16384, 64L * 1024 * 1024, 1, 8, 1);
+                DeviceInfo info = new DeviceInfo("storage fixture", "fixture", "recording", backend.equals("Vulkan"),
+                        backend, 0, nativeLimits, null, Set.of(), null, null);
+                GpuDevice device = (GpuDevice) java.lang.reflect.Proxy.newProxyInstance(
+                        GpuDevice.class.getClassLoader(), new Class<?>[]{GpuDevice.class},
+                        (instance, method, arguments) -> {
+                            if (method.getName().equals("getDeviceInfo")) {
+                                return info;
+                            }
+                            throw new UnsupportedOperationException(method.toString());
+                        });
                 deviceField.set(null, device);
                 GpuStorageSupport.Limits limits = GpuStorageSupport.probe();
                 require(limits != null, backend + " storage capability must use the native device without a GL context: "

@@ -1,5 +1,5 @@
 plugins {
-	id "architectury-plugin" version "3.5.168"
+	id "architectury-plugin" version "3.5.170"
 	id "dev.architectury.loom" version "1.14.476" apply false
 	id "dev.architectury.loom-no-remap" version "1.14.476" apply false
 }

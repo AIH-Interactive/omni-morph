@@ -1,6 +1,7 @@
 package org.figuramc.figura.lua.api.keybind;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import org.figuramc.figura.utils.LegacyInput;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import org.figuramc.figura.avatar.Avatar;
@@ -82,7 +83,7 @@ public class FiguraKeybind {
 
     public static InputConstants.Key parseStringKey(String key) {
         try {
-            return InputConstants.getKey(key);
+            return LegacyInput.parseKey(key);
         } catch (Exception passed) {
             throw new LuaError("Invalid key: " + key);
         }
@@ -105,8 +106,10 @@ public class FiguraKeybind {
     public static void updateAll(List<FiguraKeybind> bindings) {
         for (FiguraKeybind keybind : bindings) {
             int value = keybind.key.getValue();
-            if (keybind.enabled && keybind.key.getType() == InputConstants.Type.KEYSYM && value != InputConstants.UNKNOWN.getValue())
-                keybind.setDown(InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), value), -1);
+            if (keybind.enabled && keybind.key.getType() == InputConstants.Type.KEYBOARD
+                    && value != InputConstants.UNKNOWN.getValue()) {
+                keybind.setDown(InputConstants.isKeyDown(value), -1);
+            }
         }
     }
 
@@ -187,7 +190,7 @@ public class FiguraKeybind {
     @LuaWhitelist
     @LuaMethodDoc("keybind.get_key")
     public String getKey() {
-        return this.key.getName();
+        return LegacyInput.name(this.key);
     }
 
     @LuaWhitelist
@@ -205,7 +208,7 @@ public class FiguraKeybind {
     @LuaWhitelist
     @LuaMethodDoc("keybind.get_id")
     public int getID() {
-        return this.key.getValue();
+        return LegacyInput.id(this.key);
     }
 
     @LuaWhitelist

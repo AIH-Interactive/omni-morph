@@ -108,6 +108,17 @@ public final class AccelerationService {
         return geometry -> GpuSubmission.drawMinecraftJava(material, geometry);
     }
 
+    void flushGpuUploads() {
+        if (preferredBackend instanceof GpuAccelerationBackend gpu) {
+            try {
+                gpu.flushPendingUploads();
+            } catch (RuntimeException | LinkageError failure) {
+                // Preparation has not issued geometry; preserve leases for the Java replay.
+                backendFailed(gpu, failure);
+            }
+        }
+    }
+
     public GpuAccelerationBackend.Prepared prepareGpuDraw(DrawBatch batch) {
         if (!isCurrent(batch.lease()) || !(preferredBackend instanceof GpuAccelerationBackend gpu)) {
             return null;

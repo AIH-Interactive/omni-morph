@@ -63,11 +63,11 @@ public class YsmRenderer {
                 case EAST -> 180f;
                 default -> bodyYaw;
             };
-            stack.mulPose(Axis.YP.rotationDegrees(angle));
-            stack.mulPose(Axis.ZP.rotationDegrees(90f));
-            stack.mulPose(Axis.YP.rotationDegrees(270f));
+            stack.rotate(Axis.YP.rotationDegrees(angle));
+            stack.rotate(Axis.ZP.rotationDegrees(90f));
+            stack.rotate(Axis.YP.rotationDegrees(270f));
         } else {
-            stack.mulPose(Axis.YP.rotationDegrees(180f - bodyYaw));
+            stack.rotate(Axis.YP.rotationDegrees(180f - bodyYaw));
         }
     }
 
@@ -320,7 +320,6 @@ public class YsmRenderer {
             culledTranslucentType = new RenderType("ysm_entity_translucent_cull",
                     RenderSetup.builder(RenderPipelines.ENTITY_TRANSLUCENT_CULL)
                             .withTexture("Sampler0", texture)
-                            .setOutputTarget(base.outputTarget())
                             .useLightmap()
                             .useOverlay()
                             .affectsCrumbling()
@@ -467,11 +466,11 @@ public class YsmRenderer {
 
     private void rotateBone(PoseStack stack, float x, float y, float z) {
         if (z != 0f)
-            stack.mulPose(Axis.ZP.rotationDegrees(z));
+            stack.rotate(Axis.ZP.rotationDegrees(z));
         if (y != 0f)
-            stack.mulPose(Axis.YP.rotationDegrees(y));
+            stack.rotate(Axis.YP.rotationDegrees(y));
         if (x != 0f)
-            stack.mulPose(Axis.XP.rotationDegrees(x));
+            stack.rotate(Axis.XP.rotationDegrees(x));
     }
 
     private void renderCube(YsmGeometry.Cube cube, PoseStack stack, DrawTarget vertices, int light) {

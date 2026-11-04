@@ -15,6 +15,7 @@ import net.minecraft.world.entity.Pose;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.KineticWeapon;
+import net.minecraft.world.item.component.SwingAnimation;
 import sun.misc.Unsafe;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationClip;
@@ -40,9 +41,7 @@ public final class YsmHandAnimationSmokeTest {
         Items.TRIDENT.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
         Method update = YsmAnimationPlayer.class.getDeclaredMethod("updateNativeHandAnimations", LivingEntity.class);
         update.setAccessible(true);
-        var unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
-        unsafeField.setAccessible(true);
-        var entity = (HandEntity) ((Unsafe) unsafeField.get(null)).allocateInstance(HandEntity.class);
+        var entity = newHandEntity();
         entity.usedHand = InteractionHand.MAIN_HAND;
         entity.mainArm = HumanoidArm.RIGHT;
         entity.main = new ItemStack(Items.BOW);
@@ -348,7 +347,7 @@ public final class YsmHandAnimationSmokeTest {
 
     private static void verifyHandStageOwnership(HandEntity entity, Method update) throws ReflectiveOperationException {
         entity.using = true;
-        entity.swinging = false;
+        entity.finishSwing();
         entity.mainArm = HumanoidArm.RIGHT;
         entity.usedHand = InteractionHand.MAIN_HAND;
         entity.main = new ItemStack(Items.BOW);
@@ -461,12 +460,11 @@ public final class YsmHandAnimationSmokeTest {
                 "reference bow clip must change the rendered arm pose");
         drawing.weight = 1f;
 
-        entity.swinging = true;
-        entity.swingingArm = InteractionHand.MAIN_HAND;
+        entity.swingState.startIfAble(InteractionHand.MAIN_HAND, SwingAnimation.DEFAULT, 6);
         update.invoke(animations, entity);
         require(targeted(animations, "use_mainhand:bow"),
                 "simultaneous swing must not replace the active bow draw");
-        entity.swinging = false;
+        entity.finishSwing();
         update.invoke(animations, entity);
         require(animations.getActiveAnimation("use_mainhand:bow") == drawing && drawing.time == 0.5f,
                 "holding use must preserve the current drawing clock");
@@ -501,11 +499,10 @@ public final class YsmHandAnimationSmokeTest {
                 String name = left ? "use_offhand:bow" : "use_mainhand:bow";
                 var animations = player("use_mainhand:bow", "use_offhand:bow", "swing:bow", "swing_offhand:bow");
                 entity.using = true;
-                entity.swinging = true;
-                entity.swingingArm = hand;
+                entity.swingState.startIfAble(hand, SwingAnimation.DEFAULT, 6);
                 update.invoke(animations, entity);
                 require(targeted(animations, name), "first bow draw must survive a swing: " + mainArm + "/" + hand);
-                entity.swinging = false;
+                entity.finishSwing();
                 entity.using = false;
                 update.invoke(animations, entity);
                 entity.using = true;
@@ -531,7 +528,7 @@ public final class YsmHandAnimationSmokeTest {
         entity.main = new ItemStack(Items.BOW);
         entity.offhand = ItemStack.EMPTY;
         entity.using = false;
-        entity.swinging = false;
+        entity.finishSwing();
         var animations = player("use_mainhand:bow", "hold_mainhand$minecraft:bow", "hold_offhand:empty");
         update.invoke(animations, entity);
         var mainHold = animations.getActiveAnimation("hold_mainhand$minecraft:bow");
@@ -559,11 +556,10 @@ public final class YsmHandAnimationSmokeTest {
                         && targeted(animations, "hold_mainhand$minecraft:bow"),
                 "releasing use resumes the same hold clip and clock");
 
-        entity.swinging = true;
-        entity.swingingArm = InteractionHand.OFF_HAND;
+        entity.swingState.startIfAble(InteractionHand.OFF_HAND, SwingAnimation.DEFAULT, 6);
         update.invoke(animations, entity);
         require(offHold.paused && !mainHold.paused, "an off-hand swing pauses only the off-hand hold");
-        entity.swinging = false;
+        entity.finishSwing();
         update.invoke(animations, entity);
         require(!offHold.paused && animations.getActiveAnimation("hold_offhand:empty") == offHold,
                 "the off-hand hold resumes after its swing");
@@ -580,7 +576,7 @@ public final class YsmHandAnimationSmokeTest {
         entity.usedHand = InteractionHand.MAIN_HAND;
         entity.main = new ItemStack(Items.BOW);
         entity.offhand = ItemStack.EMPTY;
-        entity.swinging = false;
+        entity.finishSwing();
         String hold = "hold_mainhand$minecraft:bow";
         String use = "use_mainhand:bow";
         for (int version : new int[]{18, 19, 65535}) {
@@ -615,7 +611,7 @@ public final class YsmHandAnimationSmokeTest {
         entity.main = new ItemStack(Items.BOW);
         entity.offhand = ItemStack.EMPTY;
         entity.using = false;
-        entity.swinging = false;
+        entity.finishSwing();
         hands.prepare(entity, true);
 
         var animations = localPlayer("hold_mainhand:bow", "use_mainhand:bow", "swing:bow");
@@ -727,7 +723,12 @@ public final class YsmHandAnimationSmokeTest {
     private static HandEntity newHandEntity() throws ReflectiveOperationException {
         var unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
         unsafeField.setAccessible(true);
-        return (HandEntity) ((Unsafe) unsafeField.get(null)).allocateInstance(HandEntity.class);
+        var entity = (HandEntity) ((Unsafe) unsafeField.get(null)).allocateInstance(HandEntity.class);
+        // Unsafe skips the entity constructor, including its final native swing state.
+        var swingStateField = LivingEntity.class.getDeclaredField("swingState");
+        swingStateField.setAccessible(true);
+        swingStateField.set(entity, new LivingEntity.SwingState());
+        return entity;
     }
 
     private static void sample(YsmAnimationPlayer player, ExpressionEvaluator<?> evaluator)
@@ -852,6 +853,13 @@ public final class YsmHandAnimationSmokeTest {
 
         private HandEntity() {
             super(EntityTypes.ARMOR_STAND, null);
+        }
+
+        private void finishSwing() {
+            while (isSwinging()) {
+                swingState.tick();
+            }
+            swingState.tick();
         }
 
         @Override

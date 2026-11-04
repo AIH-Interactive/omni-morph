@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.render.acceleration;
 
-import com.mojang.blaze3d.buffers.GpuFence;
+import com.mojang.renderpearl.api.commands.GpuFence;
 
 import java.util.ArrayList;
 import java.util.Collections;

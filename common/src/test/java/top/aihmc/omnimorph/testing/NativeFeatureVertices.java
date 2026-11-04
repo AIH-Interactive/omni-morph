@@ -75,7 +75,8 @@ public final class NativeFeatureVertices {
             try {
                 PreparedRenderType prepared = draw.material().prepare();
                 prepared.drawFromBuffer(new StagedVertexBuffer.ExecuteInfo(
-                        null, null, null, 0, 0, geometry.drawState().indexCount()));
+                        null, null, null, 0, 0, geometry.drawState().indexCount(),
+                        draw.material().primitiveTopology()), null);
             } finally {
                 if (previous == null) {
                     JAVA_DRAW.remove();
@@ -105,7 +106,7 @@ public final class NativeFeatureVertices {
 
         @Override
         public PreparedRenderType prepare() {
-            return new PreparedRenderType(pipeline(), null, null, null, List.of());
+            return new PreparedRenderType("offline", pipeline(), null, null, null, List.of());
         }
     }
 }

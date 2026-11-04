@@ -68,7 +68,7 @@ public class ItemStackRenderStateMixin implements FiguraItemStackRenderStateExte
     public List<BakedQuad> figura$getQuads() {
         for (ItemStackRenderState.LayerRenderState layerRenderState : layers) {
             if (((ItemStackRenderState$LayerRenderStateAccessor)layerRenderState).figura$getQuads() != null)
-                return ((ItemStackRenderState$LayerRenderStateAccessor)layerRenderState).figura$getQuads();
+                return ((ItemStackRenderState$LayerRenderStateAccessor)layerRenderState).figura$getQuads().all();
         }
         return List.of();
     }

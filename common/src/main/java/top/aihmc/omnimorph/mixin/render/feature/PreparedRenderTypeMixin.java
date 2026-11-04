@@ -11,25 +11,30 @@ import top.aihmc.omnimorph.ducks.DeferredMaterialDrawExtension;
 
 @Mixin(PreparedRenderType.class)
 public abstract class PreparedRenderTypeMixin implements DeferredMaterialDrawExtension {
-    @Unique private Runnable figura$deferredDraw;
+    @Unique private java.util.function.BiConsumer<com.mojang.renderpearl.api.commands.RenderPass,
+            com.mojang.renderpearl.api.pipeline.RenderPipeline> figura$deferredDraw;
+    @Unique private final java.util.Set<com.mojang.renderpearl.api.pipeline.RenderPipeline> figura$executedStages =
+            java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
     @Unique private boolean figura$hasDeferredDraw;
 
     @Override
-    public void figura$setDeferredDraw(Runnable draw) {
+    public void figura$setDeferredDraw(java.util.function.BiConsumer<com.mojang.renderpearl.api.commands.RenderPass,
+            com.mojang.renderpearl.api.pipeline.RenderPipeline> draw) {
         figura$deferredDraw = draw;
         figura$hasDeferredDraw = true;
+        figura$executedStages.clear();
     }
 
-    @Inject(method = "drawFromBuffer(Lnet/minecraft/client/renderer/StagedVertexBuffer$ExecuteInfo;)V",
+    @Inject(method = "draw",
             at = @At("HEAD"), cancellable = true)
-    private void figura$drawDeferred(StagedVertexBuffer.ExecuteInfo info, CallbackInfo ci) {
+    private void figura$drawDeferred(StagedVertexBuffer.ExecuteInfo info,
+            com.mojang.renderpearl.api.commands.RenderPass pass,
+            com.mojang.renderpearl.api.pipeline.RenderPipeline pipeline, CallbackInfo ci) {
         if (figura$hasDeferredDraw) {
-            Runnable draw = figura$deferredDraw;
-            figura$deferredDraw = null;
-            // A repeated native execution must neither replay geometry nor expose the placeholder.
+            // OIT legitimately executes one prepared material once per distinct stage pipeline.
             ci.cancel();
-            if (draw != null) {
-                draw.run();
+            if (figura$deferredDraw != null && figura$executedStages.add(pipeline)) {
+                figura$deferredDraw.accept(pass, pipeline);
             }
         }
     }

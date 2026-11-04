@@ -1997,20 +1997,20 @@ public class YsmAnimationPlayer {
         boolean mainLeft = mainArm == HumanoidArm.LEFT;
         boolean usingItem = entity.isUsingItem();
         InteractionHand usedHand = usingItem ? entity.getUsedItemHand() : null;
-        InteractionHand swingingHand = entity.swinging ? entity.swingingArm : InteractionHand.MAIN_HAND;
-        float attackProgress = Math.max(readFloat(state, "attackAnim", 0f), entity.getAttackAnim(0f));
+        InteractionHand swingingHand = entity.isSwinging() ? (entity.getCurrentSwing() == null ? InteractionHand.MAIN_HAND : entity.getCurrentSwing().hand()) : InteractionHand.MAIN_HAND;
+        float attackProgress = Math.max(readFloat(state, "attackAnim", 0f), entity.getSwingAnimation(0f));
         float swingAmount = attackProgress > 0f ? (float) Math.sin(Math.sqrt(attackProgress) * Math.PI) : 0f;
 
         // Native YSM locators already encode their own authored hand pose.
         // Only use the vanilla-like fallback when that side has no locator.
         if (!hasNativeHandAnimation("right") && !hasHandLocator(false)
-                && usesBuiltinArmPose(false, mainLeft, usingItem, usedHand, entity.swinging, swingingHand)) {
+                && usesBuiltinArmPose(false, mainLeft, usingItem, usedHand, entity.isSwinging(), swingingHand)) {
             applyNativeArmPose(false, itemForArm(entity, false, mainLeft),
                     usingItem && isHandForArm(usedHand, false, mainLeft),
                     isHandForArm(swingingHand, false, mainLeft), swingAmount, firstPerson);
         }
         if (!hasNativeHandAnimation("left") && !hasHandLocator(true)
-                && usesBuiltinArmPose(true, mainLeft, usingItem, usedHand, entity.swinging, swingingHand)) {
+                && usesBuiltinArmPose(true, mainLeft, usingItem, usedHand, entity.isSwinging(), swingingHand)) {
             applyNativeArmPose(true, itemForArm(entity, true, mainLeft),
                     usingItem && isHandForArm(usedHand, true, mainLeft),
                     isHandForArm(swingingHand, true, mainLeft), swingAmount, firstPerson);
@@ -2112,7 +2112,7 @@ public class YsmAnimationPlayer {
         boolean pulseSwinging = localOwner && hands.swingPulseActive(entity, true);
         InteractionHand pulseHand = pulseSwinging ? hands.swingingHand(entity, true) : null;
         for (InteractionHand hand : InteractionHand.values()) {
-            boolean swingOwnHand = (entity.swinging && entity.swingingArm == hand) || pulseHand == hand;
+            boolean swingOwnHand = (entity.isSwinging() && (entity.getCurrentSwing() == null ? InteractionHand.MAIN_HAND : entity.getCurrentSwing().hand()) == hand) || pulseHand == hand;
             boolean ownHandActs = swingOwnHand
                     || (usingItem && usedHand == hand && !keepHoldWhileUsing);
             syncHoldingAnimation(entity, hand, handSlotIsLeft(hand, mainArm), ownHandActs);
@@ -2218,7 +2218,7 @@ public class YsmAnimationPlayer {
         String name = nativeHandAnimations.get(slot);
         PlayingAnimation animation = name == null ? null : activeAnimations.get(name);
         if (animation != null && animation.clip.length > 0f)
-            animation.sampledTime = Math.clamp(entity.getAttackAnim(0f), 0f, 1f) * animation.clip.length;
+            animation.sampledTime = Math.clamp(entity.getSwingAnimation(0f), 0f, 1f) * animation.clip.length;
     }
 
     private static boolean isLanceWeapon(ItemStack item) {

@@ -179,13 +179,13 @@ public class RenderUtils {
         assert (selection.size() >= 3);
 
 
-        AvatarRenderer<AbstractClientPlayer> avatarRenderer = Minecraft.getInstance().getEntityRenderDispatcher().getPlayerRenderer(Minecraft.getInstance().player);
+        AvatarRenderer<?> avatarRenderer = (AvatarRenderer<?>) Minecraft.getInstance().getEntityRenderDispatcher().getRenderer(Minecraft.getInstance().player);
 
         if (selection.get(1)) {
             PlayerModel playerModel = avatarRenderer.getModel();
             ((FiguraSubmitCallBackExtension) playerModel).figura$addPreRenderingCallback(preRender);
             ((FiguraSubmitCallBackExtension) playerModel).figura$addPostRenderingCallback(postRender);
-            submitNodeStorage.submitModel(playerModel, null, dummyPoseStack, RenderTypes.LINES, 0, 0, 0, null);
+            submitNodeStorage.submitModel(playerModel, null, dummyPoseStack, RenderTypes.LINES, 0, 0, 0);
         }
 
         if (selection.get(2)) {

@@ -1,10 +1,10 @@
 package top.aihmc.omnimorph.lua.api.particle;
 
-import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.pipeline.ColorTargetState;
-import com.mojang.blaze3d.pipeline.DepthStencilState;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.platform.BlendFactor;
+import com.mojang.renderpearl.api.pipeline.BlendFunction;
+import com.mojang.renderpearl.api.pipeline.ColorTargetState;
+import com.mojang.renderpearl.api.pipeline.DepthStencilState;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.BlendFactor;
 import net.minecraft.client.particle.SingleQuadParticle;
 import net.minecraft.client.renderer.RenderPipelines;
 import org.figuramc.figura.utils.FiguraIdentifier;
@@ -76,12 +76,11 @@ public final class CustomParticlePipelines {
 
         private static RenderPipeline[][] create() {
             RenderPipeline base = SingleQuadParticle.Layer.TRANSLUCENT.pipeline();
-            var snippet = new RenderPipeline.Snippet(Optional.of(base.getVertexShader()),
-                    Optional.of(base.getFragmentShader()), Optional.of(base.getShaderDefines()),
-                    Optional.of(base.getBindGroupLayouts()), base.getColorTargetStates(),
-                    base.getColorTargetStates().length, Optional.of(base.getDepthStencilState()),
+            var snippet = new RenderPipeline.Snippet(base.getShaders(), Optional.of(base.getShaderDefines()),
+                    Optional.of(base.getBindGroupLayouts()), base.getColorTargetStates().toArray(com.mojang.renderpearl.api.pipeline.ColorTargetState[]::new),
+                    base.getColorTargetStates().size(), Optional.of(base.getDepthStencilState()),
                     Optional.of(base.getPolygonMode()), Optional.of(base.isCull()),
-                    base.getVertexFormatBindings(), Optional.of(base.getPrimitiveTopology()));
+                    base.getVertexFormatBindings().toArray(com.mojang.renderpearl.api.vertex.VertexFormat[]::new), Optional.of(base.getPrimitiveTopology()), base.pushConstantSize());
             var pipelines = new RenderPipeline[HARD_MAX_LAYERS][Blend.values().length];
             for (int layer = 0; layer < HARD_MAX_LAYERS; layer++) {
                 for (Blend blend : Blend.values()) {

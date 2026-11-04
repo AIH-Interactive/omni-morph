@@ -605,7 +605,7 @@ public final class YsmFunctionContractSmokeTest {
         }
 
         private HandFixturePlayer() {
-            super(null, null, null, null, null, null, false, null);
+            super(null, null, null, null, null, null, false, null, null);
         }
 
         @Override
@@ -633,7 +633,7 @@ public final class YsmFunctionContractSmokeTest {
         }
 
         @Override
-        public float getAttackAnim(float partialTick) {
+        public float getSwingAnimation(float partialTick) {
             return 0f;
         }
     }

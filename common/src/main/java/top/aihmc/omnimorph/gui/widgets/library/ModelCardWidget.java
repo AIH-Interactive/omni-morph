@@ -1,5 +1,6 @@
 package top.aihmc.omnimorph.gui.widgets.library;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -142,7 +143,7 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
         if (!isMouseOver(event.x(), event.y())) {
             return false;
         }
-        if (event.button() == 1) {
+        if (event.button() == InputConstants.MOUSE_BUTTON_RIGHT) {
             Minecraft.getInstance().keyboardHandler.setClipboard(model.uploader().uuid().toString());
             return true;
         }
@@ -152,7 +153,7 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
         if (favorite.isMouseOver(event.x(), event.y()) && favorite.isActive()) {
             return favorite.mouseClicked(event, doubleClick);
         }
-        if (event.button() == 0) {
+        if (event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
             select.accept(model);
             return true;
         }

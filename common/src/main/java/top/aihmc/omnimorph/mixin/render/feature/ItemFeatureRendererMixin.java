@@ -11,16 +11,10 @@ import org.spongepowered.asm.mixin.Unique;
 import top.aihmc.omnimorph.ducks.FiguraSubmitCallBackExtension;
 import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
 
-import java.util.Collections;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Set;
 
 @Mixin(ItemFeatureRenderer.class)
 public abstract class ItemFeatureRendererMixin extends RenderTypeFeatureRenderer<ItemFeatureRenderer.Submit> {
-    @Unique
-    private final Set<ItemFeatureRenderer.Submit> figura$cancelled = Collections.newSetFromMap(new IdentityHashMap<>());
-
     @Unique private FiguraVertexSource figura$vertices;
 
     @WrapMethod(method = "buildGroup")
@@ -31,21 +25,13 @@ public abstract class ItemFeatureRendererMixin extends RenderTypeFeatureRenderer
         try {
             original.call(context, submits);
         } finally {
-            figura$cancelled.clear();
             figura$vertices = previousVertices;
         }
     }
 
     @WrapMethod(method = "prepareSubmit")
-    private void figura$prepareWithCallbacks(ItemFeatureRenderer.Submit submit, boolean foil,
+    private void figura$prepareWithCallbacks(ItemFeatureRenderer.Submit submit,
                                              Operation<Void> original) {
-        if (foil) {
-            if (!figura$cancelled.remove(submit)) {
-                original.call(submit, true);
-            }
-            return;
-        }
-
         var callbacks = (FiguraSubmitCallBackExtension) (Object) submit;
         PoseStack poseStack = new PoseStack();
         poseStack.last().set(submit.pose());
@@ -58,10 +44,7 @@ public abstract class ItemFeatureRendererMixin extends RenderTypeFeatureRenderer
         callbacks.figura$getPreRenderingCallbacks().clear();
 
         if (render) {
-            original.call(submit, false);
-        } else {
-            // Native preparation visits the same submission again for its foil geometry.
-            figura$cancelled.add(submit);
+            original.call(submit);
         }
         for (var callback : callbacks.figura$getPostRenderingCallbacks()) {
             callback.run();

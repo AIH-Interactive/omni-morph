@@ -1,11 +1,11 @@
 package top.aihmc.omnimorph.gui;
 
 import com.mojang.blaze3d.ProjectionType;
-import com.mojang.blaze3d.GpuFormat;
+import com.mojang.renderpearl.api.GpuFormat;
 import com.mojang.blaze3d.platform.Lighting;
-import com.mojang.blaze3d.systems.GpuDevice;
+import com.mojang.renderpearl.api.device.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.*;
+import com.mojang.renderpearl.api.textures.*;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.gui.render.TextureSetup;
 import net.minecraft.client.gui.render.GuiRenderer;
@@ -102,10 +102,14 @@ public class FiguraGuiRenderer extends PictureInPictureRenderer<FiguraGuiRenderS
         try (var scope = new PipRenderStateScope()) {
             projection.setupOrtho(-1000.0F, 1000.0F, guiWidth, guiHeight, true);
             RenderSystem.setProjectionMatrix(projectionMatrixBuffer.getBuffer(projection), ProjectionType.ORTHOGRAPHIC);
-            RenderSystem.outputColorTextureOverride = textureView;
-            RenderSystem.outputDepthTextureOverride = depthTextureView;
             renderToTexture(state, new PoseStack(), submissions);
-            dispatcher.renderAllFeatures(submissions);
+            try (var frame = dispatcher.prepareFrame(submissions);
+                 var pass = gpuDevice.createCommandEncoder().createRenderPass(
+                         () -> "Figura GUI", textureView, java.util.Optional.empty(),
+                         depthTextureView, OptionalDouble.empty())) {
+                RenderSystem.bindDefaultUniforms(pass);
+                FeatureRenderDispatcher.renderAllFeatures(pass, frame);
+            }
         } finally {
             submissions.getSubmitsPerOrder().clear();
         }

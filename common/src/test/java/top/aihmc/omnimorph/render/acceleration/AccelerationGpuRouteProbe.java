@@ -1,26 +1,29 @@
 package top.aihmc.omnimorph.render.acceleration;
 
-import com.mojang.blaze3d.buffers.GpuBuffer;
-import com.mojang.blaze3d.GpuFormat;
-import com.mojang.blaze3d.IndexType;
-import com.mojang.blaze3d.PrimitiveTopology;
-import com.mojang.blaze3d.pipeline.BindGroupLayout;
-import com.mojang.blaze3d.opengl.GlBackend;
-import com.mojang.blaze3d.pipeline.ColorTargetState;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.shaders.GpuDebugOptions;
-import com.mojang.blaze3d.shaders.ShaderType;
-import com.mojang.blaze3d.shaders.UniformType;
-import com.mojang.blaze3d.systems.GpuDevice;
-import com.mojang.blaze3d.systems.GpuSurface;
+import com.mojang.renderpearl.api.buffers.GpuBuffer;
+import com.mojang.renderpearl.api.GpuFormat;
+import com.mojang.renderpearl.api.pipeline.IndexType;
+import com.mojang.renderpearl.api.pipeline.PrimitiveTopology;
+import com.mojang.renderpearl.api.pipeline.BindGroupLayout;
+import com.mojang.renderpearl.backend.opengl.GlBackend;
+import com.mojang.renderpearl.api.pipeline.ColorTargetState;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.device.GpuDebugOptions;
+import com.mojang.renderpearl.api.pipeline.ShaderType;
+import com.mojang.renderpearl.api.pipeline.UniformType;
+import com.mojang.renderpearl.api.device.GpuDevice;
+import com.mojang.renderpearl.api.device.GpuSurface;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.GpuTexture;
+import com.mojang.renderpearl.api.textures.GpuTexture;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.renderpearl.api.vertex.VertexFormat;
 import net.minecraft.resources.Identifier;
 import org.joml.Matrix4f;
-import org.lwjgl.glfw.GLFW;
-import org.lwjgl.glfw.GLFWErrorCallback;
+import org.lwjgl.sdl.SDLInit;
+import org.lwjgl.sdl.SDLVideo;
+import org.lwjgl.sdl.SDLEvents;
+import com.mojang.renderpearl.api.pipeline.ShaderSource;
+
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.ByteBuffer;
@@ -34,7 +37,7 @@ public final class AccelerationGpuRouteProbe {
     private static final int SIZE = 384;
     private static final String VERTEX_SHADER = """
             #version 330 core
-            in vec3 Position;
+            layout(location = 0) in vec3 Position;
             layout(std140) uniform Pose { mat4 Transform; };
             void main() {
                 gl_Position = Transform * vec4(Position, 1.0);
@@ -42,7 +45,7 @@ public final class AccelerationGpuRouteProbe {
             """;
     private static final String FRAGMENT_SHADER = """
             #version 330 core
-            out vec4 fragColor;
+            layout(location = 0) out vec4 fragColor;
             void main() {
                 fragColor = vec4(0.125, 0.875, 0.25, 1.0);
             }
@@ -54,22 +57,20 @@ public final class AccelerationGpuRouteProbe {
     public static void main(String[] args) throws Exception {
         Path report = Path.of(args[0]);
         RenderSystem.initRenderThread();
-        try (GLFWErrorCallback errors = GLFWErrorCallback.createPrint(System.err).set()) {
-            if (!GLFW.glfwInit()) {
-                throw new IllegalStateException("GLFW initialization failed; real-window validation is pending");
-            }
-            GlBackend backend = new GlBackend();
-            backend.setWindowHints();
-            long window = GLFW.glfwCreateWindow(SIZE, SIZE, "OmniMorph H0 GPU route probe", 0, 0);
+        if (!SDLInit.SDL_Init(SDLInit.SDL_INIT_VIDEO)) {
+            throw new IllegalStateException("SDL video initialization failed");
+        }
+        GlBackend backend = new GlBackend();
+        try {
+            backend.loadLibrary();
+            long window = backend.createWindow("OmniMorph H0 GPU route probe", SIZE, SIZE, 0);
             if (window == 0) {
                 throw new IllegalStateException("Could not create a real desktop window");
             }
             try {
-                GLFW.glfwShowWindow(window);
-                GpuDevice device = backend.createDevice(window,
-                        (id, type) -> type == ShaderType.VERTEX ? VERTEX_SHADER : FRAGMENT_SHADER,
-                        new GpuDebugOptions(1, true, true, true), () -> {});
-                try (var surface = device.createSurface(window)) {
+                SDLVideo.SDL_ShowWindow(window);
+                GpuDevice device = backend.createDevice(new GpuDebugOptions(1, true, true, true));
+                try (var surface = device.createSurface(window, () -> false)) {
                     surface.configure(new GpuSurface.Configuration(SIZE, SIZE,
                             GpuSurface.PresentMode.getSupportedVsyncMode(surface.supportedPresentModes(), true)));
                     RenderSystem.initRenderer(device);
@@ -78,10 +79,11 @@ public final class AccelerationGpuRouteProbe {
                     device.close();
                 }
             } finally {
-                GLFW.glfwDestroyWindow(window);
-                GLFW.glfwTerminate();
-                GLFW.glfwSetErrorCallback(null);
+                SDLVideo.SDL_DestroyWindow(window);
             }
+        } finally {
+            backend.unloadLibrary();
+            SDLInit.SDL_Quit();
         }
     }
 
@@ -97,13 +99,24 @@ public final class AccelerationGpuRouteProbe {
                 .withVertexBinding(0, DefaultVertexFormat.POSITION)
                 .withPrimitiveTopology(PrimitiveTopology.TRIANGLES)
                 .build();
-        if (!device.precompilePipeline(pipeline).isValid()) {
+        ShaderSource sources = new ShaderSource() {
+            @Override
+            public String getShader(Identifier id, ShaderType type) {
+                return type == ShaderType.VERTEX ? VERTEX_SHADER : FRAGMENT_SHADER;
+            }
+
+            @Override public CachedIncludeSource getInclude(Identifier id) { return null; }
+            @Override public void close() { }
+        };
+        var program = device.compilePipeline(pipeline, sources, net.minecraft.util.Util.backgroundExecutor())
+                .join().finishCompile();
+        if (program == null) {
             throw new AssertionError("Minecraft rejected H0 matrix pipeline");
         }
         ByteBuffer vertices = MemoryUtil.memAlloc(9 * Float.BYTES);
         ByteBuffer indices = MemoryUtil.memAlloc(3 * Integer.BYTES);
         ByteBuffer pose = MemoryUtil.memAlloc(16 * Float.BYTES);
-        try {
+        try (program; sources) {
             vertices.asFloatBuffer().put(new float[]{-0.5f, -0.5f, 0, 0.5f, -0.5f, 0, 0, 0.5f, 0});
             indices.asIntBuffer().put(new int[]{0, 1, 2});
             new Matrix4f().translation(0.25f, 0, 0).get(pose);
@@ -117,12 +130,12 @@ public final class AccelerationGpuRouteProbe {
                 // Keep the actual window visible long enough for stable rendering and inspection.
                 long deadline = System.nanoTime() + 5_000_000_000L;
                 int draws = 0;
-                while (System.nanoTime() < deadline && !GLFW.glfwWindowShouldClose(window)) {
+                while (System.nanoTime() < deadline) {
                     surface.acquireNextTexture();
                     var encoder = device.createCommandEncoder();
                     try (var pass = encoder.createRenderPass(() -> "H0 transformed triangle", view,
                             Optional.of(new Vector4f(16 / 255f, 16 / 255f, 32 / 255f, 1)))) {
-                        pass.setPipeline(pipeline);
+                        pass.setPipeline(program);
                         pass.setUniform("Pose", poseBuffer);
                         pass.setVertexBuffer(0, vertexBuffer.slice());
                         pass.setIndexBuffer(indexBuffer, IndexType.INT);
@@ -131,7 +144,7 @@ public final class AccelerationGpuRouteProbe {
                     surface.blitFromTexture(encoder, view);
                     encoder.submit();
                     surface.present();
-                    GLFW.glfwPollEvents();
+                    SDLEvents.SDL_PumpEvents();
                     draws++;
                 }
                 if (draws == 0) {

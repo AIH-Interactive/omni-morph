@@ -1,5 +1,6 @@
 package org.figuramc.figura.gui.widgets.avatar;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -59,10 +60,10 @@ public abstract class AbstractAvatarWidget extends AbstractContainerElement impl
         });
         context.addAction(FiguraText.of("gui.context.open_folder"), null, button -> {
             try {
-                Util.getPlatform().openUri(avatar.getFSPath().toUri());
+                com.mojang.blaze3d.Blaze3D.openUri(avatar.getFSPath().toUri());
             } catch (Exception e) {
                 FiguraMod.debug("failed to open avatar folder: ", e.getMessage());
-                Util.getPlatform().openUri(LocalAvatarFetcher.getLocalAvatarDirectory().toUri());
+                com.mojang.blaze3d.Blaze3D.openUri(LocalAvatarFetcher.getLocalAvatarDirectory().toUri());
             }
         });
         context.addAction(FiguraText.of("gui.context.copy_path"), null, button -> {
@@ -137,7 +138,7 @@ public abstract class AbstractAvatarWidget extends AbstractContainerElement impl
             return true;
 
         // context menu on right click
-        if (button == 1) {
+        if (button == InputConstants.MOUSE_BUTTON_RIGHT) {
             addYsmTextureMenu();
             context.setX((int) mouseX);
             context.setY((int) mouseY);

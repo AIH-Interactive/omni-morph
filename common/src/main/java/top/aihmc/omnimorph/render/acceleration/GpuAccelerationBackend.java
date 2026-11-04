@@ -1,6 +1,6 @@
 package top.aihmc.omnimorph.render.acceleration;
 
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import com.mojang.blaze3d.vertex.MeshData;
@@ -511,6 +511,13 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         @Override
         public void close() {
             closePass();
+        }
+    }
+
+    void flushPendingUploads() {
+        device.assertThread();
+        if (arena != null && arena.hasPending()) {
+            arena.flush();
         }
     }
 

@@ -673,7 +673,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 actions.action(icon(0, 0, "new_avatar", "create_resource",
                         this::openCreateMenu));
                 actions.action(icon(0, 0, "folder", "local", button ->
-                        net.minecraft.util.Util.getPlatform().openUri(LocalAvatarFetcher.getLocalAvatarDirectory().toUri())));
+                        com.mojang.blaze3d.Blaze3D.openUri(LocalAvatarFetcher.getLocalAvatarDirectory().toUri())));
                 exportZipButton = actions.action(icon(0, 0, "export", "export_zip",
                         button -> exportSelectedLocal()));
                 exportZipButton.setTooltip(text("export_zip.tooltip"));

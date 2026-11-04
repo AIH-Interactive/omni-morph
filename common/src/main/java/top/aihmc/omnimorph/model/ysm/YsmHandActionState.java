@@ -114,10 +114,10 @@ public final class YsmHandActionState {
         if (entity == player && hand == InteractionHand.MAIN_HAND && offhandShield(player)) {
             return pulse;
         }
-        if (entity.swinging && entity.swingingArm == hand) {
+        if (entity.isSwinging() && (entity.getCurrentSwing() == null ? InteractionHand.MAIN_HAND : entity.getCurrentSwing().hand()) == hand) {
             return true;
         }
-        if (entity != player && hand == InteractionHand.MAIN_HAND && entity.getAttackAnim(0f) > 0f) {
+        if (entity != player && hand == InteractionHand.MAIN_HAND && entity.getSwingAnimation(0f) > 0f) {
             return true;
         }
         return pulse;
@@ -141,7 +141,7 @@ public final class YsmHandActionState {
 
     /** The hand an in-progress swing belongs to, preferring a pending local pulse. */
     public InteractionHand swingingHand(LivingEntity entity, boolean localOwner) {
-        return localPulse(entity, localOwner) ? swingHand : entity.swingingArm;
+        return localPulse(entity, localOwner) ? swingHand : (entity.getCurrentSwing() == null ? InteractionHand.MAIN_HAND : entity.getCurrentSwing().hand());
     }
 
     public boolean anySwinging(LivingEntity entity, boolean localOwner) {
@@ -156,7 +156,7 @@ public final class YsmHandActionState {
         if (entity.isSleeping() || (entity == player && offhandShield(entity))) {
             return 0f;
         }
-        return entity.swinging ? Math.max(0f, entity.swingTime + partialTick) : 0f;
+        return entity.isSwinging() ? Math.max(0f, entity.swingState.ticks + partialTick) : 0f;
     }
 
     public float attackProgress(LivingEntity entity, float partialTick, boolean localOwner) {
@@ -166,7 +166,7 @@ public final class YsmHandActionState {
         if (entity.isSleeping() || (entity == player && offhandShield(entity))) {
             return 0f;
         }
-        float progress = entity.getAttackAnim(partialTick);
+        float progress = entity.getSwingAnimation(partialTick);
         return progress > 0f ? progress : 0f;
     }
 

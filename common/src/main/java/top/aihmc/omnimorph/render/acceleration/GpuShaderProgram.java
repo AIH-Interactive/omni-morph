@@ -1,11 +1,11 @@
 package top.aihmc.omnimorph.render.acceleration;
 
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.pipeline.BindGroupLayout;
-import com.mojang.blaze3d.GpuFormat;
-import com.mojang.blaze3d.PrimitiveTopology;
-import com.mojang.blaze3d.shaders.UniformType;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.BindGroupLayout;
+import com.mojang.renderpearl.api.GpuFormat;
+import com.mojang.renderpearl.api.pipeline.PrimitiveTopology;
+import com.mojang.renderpearl.api.pipeline.UniformType;
+import com.mojang.renderpearl.api.vertex.VertexFormat;
 import net.minecraft.resources.Identifier;
 
 import java.util.regex.Pattern;
@@ -87,11 +87,11 @@ final class GpuShaderProgram {
                 int part = omniRemap(globalPart);
             """;
     private static final String DECLARATIONS = """
-            in vec3 OmniPosition;
-            in vec3 OmniNormal;
-            in vec2 OmniUV;
-            in vec4 OmniWeights;
-            in ivec4 OmniJoints;
+            layout(location = 0) in vec3 OmniPosition;
+            layout(location = 1) in vec3 OmniNormal;
+            layout(location = 2) in vec2 OmniUV;
+            layout(location = 3) in vec4 OmniWeights;
+            layout(location = 4) in ivec4 OmniJoints;
             struct OmniPart {
                 mat4 position;
                 vec4 normal0;
@@ -186,8 +186,8 @@ final class GpuShaderProgram {
     }
 
     static boolean supports(RenderPipeline pipeline) {
-        return pipeline.getVertexShader().equals(Identifier.withDefaultNamespace("core/entity"))
-                && pipeline.getFragmentShader().equals(Identifier.withDefaultNamespace("core/entity"));
+        return pipeline.getShaders().get(com.mojang.renderpearl.api.pipeline.ShaderType.VERTEX).equals(Identifier.withDefaultNamespace("core/entity"))
+                && pipeline.getShaders().get(com.mojang.renderpearl.api.pipeline.ShaderType.FRAGMENT).equals(Identifier.withDefaultNamespace("core/entity"));
     }
 
     static String wrapEntitySource(String original) {
@@ -282,7 +282,9 @@ final class GpuShaderProgram {
         String[][] inputs = {{"vec3", "Position"}, {"vec3", "Normal"}, {"vec2", "UV0"},
                 {"vec4", "Color"}, {"ivec2", "UV1"}, {"ivec2", "UV2"}};
         for (String[] input : inputs) {
-            Pattern declaration = Pattern.compile("\\bin\\s+" + input[0] + "\\s+" + input[1] + "\\s*;");
+            // Replaced attributes become globals; their original input locations must go too.
+            Pattern declaration = Pattern.compile("(?:layout\\s*\\(\\s*location\\s*=\\s*\\d+\\s*\\)\\s*)?"
+                    + "\\bin\\s+" + input[0] + "\\s+" + input[1] + "\\s*;");
             var match = declaration.matcher(source);
             if (match.results().count() != 1) {
                 throw new IllegalArgumentException("Entity vertex input contract changed: " + input[1]);
@@ -304,11 +306,14 @@ final class GpuShaderProgram {
     /** Storage variants must not declare the pose uniform: Blaze3D skips draws whose declared uniforms are unbound. */
     static RenderPipeline pipeline(RenderPipeline original, Identifier location, boolean uniformPose) {
         var builder = RenderPipeline.builder().withLocation(location).withVertexShader(location)
-                .withFragmentShader(original.getFragmentShader()).withCull(original.isCull())
-                .withPolygonMode(original.getPolygonMode()).withColorTargetState(original.getColorTargetState())
+                .withFragmentShader(original.getShaders().get(com.mojang.renderpearl.api.pipeline.ShaderType.FRAGMENT)).withCull(original.isCull())
+                .withPolygonMode(original.getPolygonMode())
                 .withDepthStencilState(Optional.ofNullable(original.getDepthStencilState()))
                 .withVertexBinding(0, Format.VALUE)
                 .withPrimitiveTopology(PrimitiveTopology.TRIANGLES);
+        for (int target = 0; target < original.getColorTargetStates().size(); target++) {
+            builder.withColorTargetState(target, original.getColorTargetStates().get(target));
+        }
         original.getShaderDefines().flags().forEach(builder::withShaderDefine);
         original.getShaderDefines().values().forEach((name, value) -> {
             try {
@@ -325,6 +330,24 @@ final class GpuShaderProgram {
             builder.withBindGroupLayout(storageLayout());
         }
         return builder.build();
+    }
+
+    /** Keep the native OIT stage's outputs/defines and add the accelerated vertex stream and pose bindings. */
+    static RenderPipeline stage(RenderPipeline accelerated, RenderPipeline stage) {
+        var layouts = new java.util.LinkedHashSet<>(stage.getBindGroupLayouts());
+        layouts.addAll(accelerated.getBindGroupLayouts());
+        var snippet = new RenderPipeline.Snippet(stage.getShaders(), Optional.of(stage.getShaderDefines()),
+                Optional.of(java.util.List.copyOf(layouts)),
+                stage.getColorTargetStates().toArray(com.mojang.renderpearl.api.pipeline.ColorTargetState[]::new),
+                stage.getColorTargetStates().size(), Optional.ofNullable(stage.getDepthStencilState()),
+                Optional.of(stage.getPolygonMode()), Optional.of(stage.isCull()),
+                accelerated.getVertexFormatBindings().toArray(VertexFormat[]::new),
+                Optional.of(accelerated.getPrimitiveTopology()), stage.pushConstantSize());
+        String suffix = "/stage/" + stage.getLocation().getNamespace() + "/" + stage.getLocation().getPath();
+        return RenderPipeline.builder(snippet)
+                .withLocation(accelerated.getLocation().withSuffix(suffix))
+                .withVertexShader(accelerated.getShaders().get(com.mojang.renderpearl.api.pipeline.ShaderType.VERTEX))
+                .build();
     }
 
     static BindGroupLayout storageLayout() {

@@ -1,5 +1,6 @@
 package top.aihmc.omnimorph.gui.widgets.lists;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -147,10 +148,10 @@ public final class ModelLibraryGrid extends AbstractList implements AutoCloseabl
             }
         }
         int step = switch (event.key()) {
-            case 262 -> 1;
-            case 263 -> -1;
-            case 264 -> layout.columns();
-            case 265 -> -layout.columns();
+            case InputConstants.KEY_RIGHT -> 1;
+            case InputConstants.KEY_LEFT -> -1;
+            case InputConstants.KEY_DOWN -> layout.columns();
+            case InputConstants.KEY_UP -> -layout.columns();
             default -> 0;
         };
         if (step == 0) {

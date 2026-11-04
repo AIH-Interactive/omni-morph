@@ -1,5 +1,6 @@
 package top.aihmc.omnimorph.gui.widgets.wardrobe;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
@@ -246,7 +247,7 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
 
     @Override
     public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
-        if (event.key() != 264 && event.key() != 265) {
+        if (event.key() != InputConstants.KEY_DOWN && event.key() != InputConstants.KEY_UP) {
             return super.keyPressed(event);
         }
         var values = filteredEntries();
@@ -260,7 +261,7 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
                 break;
             }
         }
-        int next = Math.clamp(current + (event.key() == 264 ? 1 : -1), 0, values.size() - 1);
+        int next = Math.clamp(current + (event.key() == InputConstants.KEY_DOWN ? 1 : -1), 0, values.size() - 1);
         choose(values.get(next));
         int maximum = Math.max(0, values.size() * ROW_STRIDE - Math.max(1, getHeight() - contentTop() - 2));
         scrollBar.setScrollProgressNoAnim(maximum == 0 ? 0 : Math.min(1d, next * (double) ROW_STRIDE / maximum));
@@ -320,7 +321,7 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
             }
             boolean removable = entry.cosmetic() != null ? removeCosmetic != null
                     : entry.local() != null ? removeLocal != null : outfitRemoval != null;
-            if (event.button() == 1 && removable && isMouseOver(event.x(), event.y())) {
+            if (event.button() == InputConstants.MOUSE_BUTTON_RIGHT && removable && isMouseOver(event.x(), event.y())) {
                 var menu = new ContextMenu(this);
                 if (accessoryActions != null && entry.resourceKind().equals("ACCESSORY")) {
                     accessoryActions.accept(entry, menu);

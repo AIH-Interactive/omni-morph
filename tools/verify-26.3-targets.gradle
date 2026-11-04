@@ -1,0 +1,30 @@
+// Local-only inputs for the existing bytecode target and access-rule verifiers.
+gradle.projectsEvaluated {
+    def root = gradle.rootProject
+    root.tasks.register('write263AuditInputs') {
+        doLast {
+            def output = root.file('build/263-audit')
+            output.mkdirs()
+            ['common', 'fabric', 'neoforge'].each { name ->
+                def project = root.project(':' + name)
+                def files = project.configurations.compileClasspath.files
+                def classpath = root.files(project.sourceSets.main.output, files,
+                        root.project(':common').configurations.compileClasspath)
+                new File(output, "${name}-classpath.txt").text = classpath.asPath
+                def minecraft = files.find { file ->
+                    if (!file.name.endsWith('.jar')) {
+                        return false
+                    }
+                    try (def jar = new java.util.zip.ZipFile(file)) {
+                        return jar.getEntry('net/minecraft/client/Minecraft.class') != null
+                    }
+                }
+                if (minecraft == null) {
+                    throw new GradleException("No resolved Minecraft client JAR for ${project.path}")
+                }
+                new File(output, "${name}-minecraft.txt").text = minecraft.absolutePath
+                logger.lifecycle("Exported ${project.path} audit inputs: ${minecraft.name}")
+            }
+        }
+    }
+}

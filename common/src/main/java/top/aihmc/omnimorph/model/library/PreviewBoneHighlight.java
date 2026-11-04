@@ -1,8 +1,8 @@
 package top.aihmc.omnimorph.model.library;
 
-import com.mojang.blaze3d.pipeline.DepthStencilState;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.platform.CompareOp;
+import com.mojang.renderpearl.api.pipeline.DepthStencilState;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.CompareOp;
 import com.mojang.blaze3d.vertex.PoseStack;
 import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -190,7 +190,7 @@ public final class PreviewBoneHighlight {
             return original;
         }
         return original.pipeline().isCull()
-                ? RenderTypes.entityTranslucentCullItemTarget(texture) : RenderTypes.entityTranslucent(texture);
+                ? RenderTypes.entityTranslucentCull(texture) : RenderTypes.entityTranslucent(texture);
     }
 
     public static void figura(FiguraModelPart part, PartCustomization transform, FiguraVertexSource source) {
@@ -263,12 +263,11 @@ public final class PreviewBoneHighlight {
 
         private static RenderType create() {
             var source = RenderPipelines.LINES;
-            var snippet = new RenderPipeline.Snippet(Optional.of(source.getVertexShader()),
-                    Optional.of(source.getFragmentShader()), Optional.of(source.getShaderDefines()),
-                    Optional.of(source.getBindGroupLayouts()), source.getColorTargetStates(),
-                    source.getColorTargetStates().length, Optional.ofNullable(source.getDepthStencilState()),
+            var snippet = new RenderPipeline.Snippet(source.getShaders(), Optional.of(source.getShaderDefines()),
+                    Optional.of(source.getBindGroupLayouts()), source.getColorTargetStates().toArray(com.mojang.renderpearl.api.pipeline.ColorTargetState[]::new),
+                    source.getColorTargetStates().size(), Optional.ofNullable(source.getDepthStencilState()),
                     Optional.of(source.getPolygonMode()), Optional.of(source.isCull()),
-                    source.getVertexFormatBindings(), Optional.of(source.getPrimitiveTopology()));
+                    source.getVertexFormatBindings().toArray(com.mojang.renderpearl.api.vertex.VertexFormat[]::new), Optional.of(source.getPrimitiveTopology()), source.pushConstantSize());
             var pipeline = RenderPipelines.register(RenderPipeline.builder(snippet)
                     .withLocation(new FiguraIdentifier("pipeline/wardrobe_bone_selection"))
                     .withDepthStencilState(new DepthStencilState(CompareOp.ALWAYS_PASS, false))

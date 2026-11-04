@@ -39,7 +39,7 @@ public final class VerifyMixinTargets {
             }
         }
         System.out.println("Checked mixins=" + audit.checked + ", failures=" + audit.failures);
-        System.out.println("Scope: static targets, shadows, selectors, callback types/arguments and INVOKE sites; "
+        System.out.println("Scope: static targets, shadows, selectors, Inject/WrapMethod/INVOKE WrapOperation signatures and INVOKE sites; "
                 + "not transformation, locals or runtime behavior.");
         if (audit.checked == 0 || audit.failures != 0) {
             throw new IllegalStateException("Mixin target audit failed");
@@ -217,6 +217,20 @@ public final class VerifyMixinTargets {
                         }
                         continue;
                     }
+                    if (named(annotation, "WrapMethod")) {
+                        var type = handler.methodTypeSymbol();
+                        var arguments = type.parameterList().stream()
+                                .filter(parameter -> !parameter.descriptorString().equals(
+                                        "Lcom/llamalad7/mixinextras/injector/wrapoperation/Operation;"))
+                                .toList();
+                        if (arguments.size() != type.parameterCount() - 1
+                                || selected.stream().noneMatch(method ->
+                                        method.methodTypeSymbol().parameterList().equals(arguments)
+                                        && method.methodTypeSymbol().returnType().equals(type.returnType()))) {
+                            fail(name, handler.methodName().stringValue()
+                                    + " WrapMethod arguments/return differ from target " + type);
+                        }
+                    }
                     if (named(annotation, "Inject")) {
                         var parameters = handler.methodTypeSymbol().parameterList();
                         int callbackIndex = -1;
@@ -266,6 +280,31 @@ public final class VerifyMixinTargets {
                                                 + invoke.name().stringValue() + invoke.type().stringValue();
                                         if (actual.equals(invocation)) {
                                             count++;
+                                            if (named(annotation, "WrapOperation")) {
+                                                var invoked = java.lang.constant.MethodTypeDesc.ofDescriptor(
+                                                        invoke.type().stringValue());
+                                                var expected = new ArrayList<>(invoked.parameterList());
+                                                if (invoke.opcode() != java.lang.classfile.Opcode.INVOKESTATIC) {
+                                                    expected.addFirst(java.lang.constant.ClassDesc.ofDescriptor(
+                                                            "L" + invoke.owner().asInternalName() + ";"));
+                                                }
+                                                var callback = handler.methodTypeSymbol();
+                                                int operationIndex = -1;
+                                                for (int index = 0; index < callback.parameterCount(); index++) {
+                                                    if (callback.parameterType(index).descriptorString().equals(
+                                                            "Lcom/llamalad7/mixinextras/injector/wrapoperation/Operation;")) {
+                                                        operationIndex = index;
+                                                        break;
+                                                    }
+                                                }
+                                                if (operationIndex != expected.size()
+                                                        || !callback.parameterList().subList(0,
+                                                                Math.max(0, operationIndex)).equals(expected)
+                                                        || !callback.returnType().equals(invoked.returnType())) {
+                                                    fail(name, handler.methodName().stringValue()
+                                                            + " WrapOperation signature differs from " + actual);
+                                                }
+                                            }
                                         }
                                     } else if (injectionPoint.equals("FIELD") && instruction instanceof FieldInstruction field) {
                                         String actual = "L" + field.owner().asInternalName() + ";"

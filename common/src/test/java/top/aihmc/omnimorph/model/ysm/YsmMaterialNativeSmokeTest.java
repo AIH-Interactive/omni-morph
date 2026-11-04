@@ -294,7 +294,7 @@ public final class YsmMaterialNativeSmokeTest {
             Object previousDevice = device.get(null);
             Field samplersField = com.mojang.blaze3d.systems.SamplerCache.class.getDeclaredField("samplers");
             samplersField.setAccessible(true);
-            var samplers = (com.mojang.blaze3d.textures.GpuSampler[]) samplersField.get(RenderSystem.getSamplerCache());
+            var samplers = (com.mojang.renderpearl.api.textures.GpuSampler[]) samplersField.get(RenderSystem.getSamplerCache());
             var previousSamplers = samplers.clone();
             var publicationDevice = new PublicationDevice();
             try {
@@ -791,41 +791,37 @@ public final class YsmMaterialNativeSmokeTest {
         Object previousDevice = deviceField.get(null);
         PublicationDevice device = new PublicationDevice() {
             @Override
-            public com.mojang.blaze3d.systems.DeviceInfo getDeviceInfo() {
-                return new com.mojang.blaze3d.systems.DeviceInfo(
+            public com.mojang.renderpearl.api.device.DeviceInfo getDeviceInfo() {
+                return new com.mojang.renderpearl.api.device.DeviceInfo(
                         "CPU PIP fixture", "fixture", "none", false, "recording", 0,
                         null, null, java.util.Set.of(), null, null);
             }
 
             @Override
-            public com.mojang.blaze3d.systems.CommandEncoder createCommandEncoder() {
-                return new com.mojang.blaze3d.systems.CommandEncoder(null, null, null) {
-                    @Override
-                    public void clearColorAndDepthTextures(com.mojang.blaze3d.textures.GpuTexture color,
-                            org.joml.Vector4fc clearColor, com.mojang.blaze3d.textures.GpuTexture depth,
-                            double clearDepth) {
-                        require(!color.isClosed() && !depth.isClosed(), "PIP clears live owned targets");
-                    }
-
-                    @Override
-                    public void writeToBuffer(com.mojang.blaze3d.buffers.GpuBufferSlice destination,
-                                              java.nio.ByteBuffer bytes) {
-                        try (var mapped = destination.map(false, true)) {
-                            mapped.data().put(bytes.duplicate());
+            public com.mojang.renderpearl.api.commands.CommandEncoder createCommandEncoder() {
+                return commandRecorder((proxy, method, args) -> {
+                    switch (method.getName()) {
+                        case "clearColorAndDepthTextures" -> {
+                            var color = (com.mojang.renderpearl.api.textures.GpuTexture) args[0];
+                            var depth = (com.mojang.renderpearl.api.textures.GpuTexture) args[2];
+                            require(!color.isClosed() && !depth.isClosed(), "PIP clears live owned targets");
                         }
+                        case "writeToBuffer" -> {
+                            var destination = (com.mojang.renderpearl.api.buffers.GpuBufferSlice) args[0];
+                            try (var mapped = destination.map(false, true)) {
+                                mapped.data().put(((java.nio.ByteBuffer) args[1]).duplicate());
+                            }
+                        }
+                        default -> throw new UnsupportedOperationException(method.toString());
                     }
-                };
+                    return null;
+                });
             }
         };
-        var outerTexture = new PublicationGpuTexture(3, "outer target", com.mojang.blaze3d.GpuFormat.RGBA8_UNORM,
-                2, 2, 1, 1);
-        var outerView = new PublicationView(outerTexture);
-        var outerProjection = new com.mojang.blaze3d.buffers.GpuBufferSlice(null, 0, 64);
-        var outerLights = new com.mojang.blaze3d.buffers.GpuBufferSlice(null, 0, 32);
+        var outerProjection = new com.mojang.renderpearl.api.buffers.GpuBufferSlice(null, 0, 64);
+        var outerLights = new com.mojang.renderpearl.api.buffers.GpuBufferSlice(null, 0, 32);
         net.minecraft.client.renderer.SubmitNodeStorage[] submitted = {null};
         deviceField.set(null, device);
-        RenderSystem.outputColorTextureOverride = outerView;
-        RenderSystem.outputDepthTextureOverride = outerView;
         RenderSystem.setProjectionMatrix(outerProjection, com.mojang.blaze3d.ProjectionType.PERSPECTIVE);
         RenderSystem.setShaderLights(outerLights);
         RenderSystem.getModelViewStack().translation(3, 4, 5);
@@ -852,9 +848,6 @@ public final class YsmMaterialNativeSmokeTest {
                 require(expected.getMessage().equals("injected native PIP preparation failure"),
                         "the tested failure comes from native PIP's actual renderToTexture call");
             }
-            require(RenderSystem.outputColorTextureOverride == outerView
-                            && RenderSystem.outputDepthTextureOverride == outerView,
-                    "failed native OMP PIP must restore the caller's targets");
             require(RenderSystem.getProjectionMatrixBuffer() == outerProjection
                             && RenderSystem.getProjectionType() == com.mojang.blaze3d.ProjectionType.PERSPECTIVE
                             && RenderSystem.getShaderLights() == outerLights,
@@ -869,19 +862,15 @@ public final class YsmMaterialNativeSmokeTest {
             }
         } finally {
             RenderSystem.getModelViewStack().clear();
-            RenderSystem.outputColorTextureOverride = null;
-            RenderSystem.outputDepthTextureOverride = null;
             RenderSystem.setProjectionMatrix(null, com.mojang.blaze3d.ProjectionType.PERSPECTIVE);
             RenderSystem.setShaderLights(null);
-            outerView.close();
-            outerTexture.close();
             deviceField.set(null, previousDevice);
         }
         require(device.created.stream().allMatch(PublicationGpuTexture::isClosed)
                         && device.views.stream().allMatch(PublicationView::isClosed)
                         && device.buffers.stream().allMatch(ReadbackBuffer::isClosed),
                 "closing failed native PIP releases its actual owned texture/view/projection records");
-        System.out.println("PASS actual native OMP PIP failure: targets, projection, lights, matrix depth, submissions and close; no GPU pixels");
+        System.out.println("PASS actual native OMP PIP failure: owned attachments, projection, lights, matrix depth, submissions and close; no GPU pixels");
     }
 
     private static void testScreenshotReadback(Unsafe unsafe, RecordingClient client) throws Exception {
@@ -909,10 +898,10 @@ public final class YsmMaterialNativeSmokeTest {
         Object previousRenderer = gameRendererField.get(client);
         var gameRenderer = (net.minecraft.client.renderer.GameRenderer)
                 unsafe.allocateInstance(net.minecraft.client.renderer.GameRenderer.class);
-        var source = new PublicationGpuTexture(3, "screenshot source", com.mojang.blaze3d.GpuFormat.RGBA8_UNORM,
+        var source = new PublicationGpuTexture(3, "screenshot source", com.mojang.renderpearl.api.GpuFormat.RGBA8_UNORM,
                 2, 2, 1, 1);
         var target = new com.mojang.blaze3d.pipeline.RenderTarget(
-                "screenshot fixture", false, com.mojang.blaze3d.GpuFormat.RGBA8_UNORM) {
+                "screenshot fixture", com.mojang.renderpearl.api.GpuFormat.RGBA8_UNORM, null) {
             {
                 width = height = 2;
                 colorTexture = source;
@@ -973,7 +962,7 @@ public final class YsmMaterialNativeSmokeTest {
         Object previousDevice = deviceField.get(null);
         var device = new PublicationDevice();
         device.capturePixels = true;
-        var source = new PublicationGpuTexture(9, "atlas source", com.mojang.blaze3d.GpuFormat.RGBA8_UNORM,
+        var source = new PublicationGpuTexture(9, "atlas source", com.mojang.renderpearl.api.GpuFormat.RGBA8_UNORM,
                 2, 2, 1, 1);
         var atlas = (RecordingAtlas) unsafe.allocateInstance(RecordingAtlas.class);
         atlas.setSource(source);
@@ -1039,7 +1028,7 @@ public final class YsmMaterialNativeSmokeTest {
             super(null);
         }
 
-        private void setSource(com.mojang.blaze3d.textures.GpuTexture source) {
+        private void setSource(com.mojang.renderpearl.api.textures.GpuTexture source) {
             texture = source;
         }
 
@@ -1186,8 +1175,8 @@ public final class YsmMaterialNativeSmokeTest {
             var binding = texture.getTextureView();
             var gpuTexture = texture.getTexture();
             var sampler = texture.getSampler();
-            require(sampler != null && sampler.getAddressModeU() == com.mojang.blaze3d.textures.AddressMode.CLAMP_TO_EDGE
-                            && sampler.getMinFilter() == com.mojang.blaze3d.textures.FilterMode.LINEAR,
+            require(sampler != null && sampler.getAddressModeU() == com.mojang.renderpearl.api.textures.AddressMode.CLAMP_TO_EDGE
+                            && sampler.getMinFilter() == com.mojang.renderpearl.api.textures.FilterMode.LINEAR,
                     "the fixture uses the selected clamp/blur sampler");
             int allocated = device.created.size();
             for (int iteration = 0; iteration < 64; iteration++) {
@@ -1253,12 +1242,20 @@ public final class YsmMaterialNativeSmokeTest {
         }
     }
 
-    private static final class PublicationView extends com.mojang.blaze3d.textures.GpuTextureView {
+    private static final class PublicationView implements com.mojang.renderpearl.api.textures.GpuTextureView {
         private boolean closed;
 
-        private PublicationView(com.mojang.blaze3d.textures.GpuTexture texture) {
-            super(texture, 0, 1);
+        private final com.mojang.renderpearl.api.textures.GpuTexture texture;
+
+        private PublicationView(com.mojang.renderpearl.api.textures.GpuTexture texture) {
+            this.texture = texture;
         }
+
+        @Override public com.mojang.renderpearl.api.textures.GpuTexture texture() { return texture; }
+        @Override public int baseMipLevel() { return 0; }
+        @Override public int mipLevels() { return 1; }
+        @Override public int getWidth(int mipLevel) { return texture.getWidth(mipLevel); }
+        @Override public int getHeight(int mipLevel) { return texture.getHeight(mipLevel); }
 
         @Override
         public void close() {
@@ -1272,7 +1269,7 @@ public final class YsmMaterialNativeSmokeTest {
     }
 
     /** Records GPU ownership and failure ordering; no graphics backend or window is created. */
-    private static class PublicationDevice extends com.mojang.blaze3d.systems.GpuDevice {
+    private static class PublicationDevice implements com.mojang.renderpearl.api.device.GpuDevice {
         private final List<PublicationGpuTexture> created = new ArrayList<>();
         private final List<PublicationView> views = new ArrayList<>();
         private boolean failView;
@@ -1282,33 +1279,85 @@ public final class YsmMaterialNativeSmokeTest {
         private final java.util.Queue<Runnable> readbacks = new java.util.ArrayDeque<>();
         private final List<ReadbackBuffer> buffers = new ArrayList<>();
 
-        private PublicationDevice() {
-            super(null, () -> {});
+        @Override
+        public com.mojang.renderpearl.api.device.GpuSurface createSurface(long window,
+                java.util.function.BooleanSupplier iconified) {
+            throw new UnsupportedOperationException("No surface in this fixture");
         }
 
         @Override
-        public com.mojang.blaze3d.textures.GpuSampler createSampler(
-                com.mojang.blaze3d.textures.AddressMode u, com.mojang.blaze3d.textures.AddressMode v,
-                com.mojang.blaze3d.textures.FilterMode min, com.mojang.blaze3d.textures.FilterMode mag,
+        public com.mojang.renderpearl.api.textures.GpuTexture createTexture(String label, int usage,
+                com.mojang.renderpearl.api.GpuFormat format, int width, int height, int layers, int levels) {
+            return createTexture(() -> label, usage, format, width, height, layers, levels);
+        }
+
+        @Override
+        public com.mojang.renderpearl.api.textures.GpuTextureView createTextureView(
+                com.mojang.renderpearl.api.textures.GpuTexture texture, int baseMipLevel, int mipLevels) {
+            require(baseMipLevel == 0 && mipLevels == 1, "fixture textures have one mip level");
+            return createTextureView(texture);
+        }
+
+        @Override
+        public com.mojang.renderpearl.api.buffers.GpuBuffer createBuffer(java.util.function.Supplier<String> label,
+                int usage, java.nio.ByteBuffer bytes) {
+            var buffer = (ReadbackBuffer) createBuffer(label, usage, (long) bytes.remaining());
+            buffer.bytes.put(bytes.duplicate()).clear();
+            return buffer;
+        }
+
+        @Override public List<String> getLastDebugMessages() { return List.of(); }
+        @Override public boolean isDebuggingEnabled() { return false; }
+        @Override public void close() { }
+
+        @Override
+        public java.util.concurrent.CompletableFuture<com.mojang.renderpearl.api.pipeline.CompiledRenderPipeline.Pending>
+                compilePipeline(com.mojang.renderpearl.api.pipeline.RenderPipeline pipeline,
+                                com.mojang.renderpearl.api.pipeline.ShaderSource source,
+                                java.util.concurrent.Executor executor) {
+            throw new UnsupportedOperationException("No shader compilation in this fixture");
+        }
+
+        @Override
+        public com.mojang.renderpearl.api.commands.GpuQueryPool createTimestampQueryPool(int size) {
+            throw new UnsupportedOperationException("No timestamp query in this fixture");
+        }
+
+        @Override
+        public com.mojang.renderpearl.api.device.DeviceInfo getDeviceInfo() {
+            return new com.mojang.renderpearl.api.device.DeviceInfo("publication fixture", "fixture", "none",
+                    false, "recording", 0, new com.mojang.renderpearl.api.device.DeviceLimits(
+                            1, 256, 16384, 64L * 1024 * 1024, 1, 8, 1),
+                    null, java.util.Set.of(), null, null);
+        }
+
+        @Override
+        public com.mojang.renderpearl.api.textures.GpuSampler createSampler(
+                com.mojang.renderpearl.api.textures.AddressMode u, com.mojang.renderpearl.api.textures.AddressMode v,
+                com.mojang.renderpearl.api.textures.FilterMode min, com.mojang.renderpearl.api.textures.FilterMode mag,
                 int anisotropy, java.util.OptionalDouble maxLod) {
-            return new com.mojang.blaze3d.textures.GpuSampler() {
+            return new com.mojang.renderpearl.api.textures.GpuSampler() {
+                private boolean closed;
+
+                @Override public boolean isClosed() { return closed; }
+
                 @Override
-                public com.mojang.blaze3d.textures.AddressMode getAddressModeU() {
+                public com.mojang.renderpearl.api.textures.AddressMode getAddressModeU() {
                     return u;
                 }
 
                 @Override
-                public com.mojang.blaze3d.textures.AddressMode getAddressModeV() {
+                public com.mojang.renderpearl.api.textures.AddressMode getAddressModeV() {
                     return v;
                 }
 
                 @Override
-                public com.mojang.blaze3d.textures.FilterMode getMinFilter() {
+                public com.mojang.renderpearl.api.textures.FilterMode getMinFilter() {
                     return min;
                 }
 
                 @Override
-                public com.mojang.blaze3d.textures.FilterMode getMagFilter() {
+                public com.mojang.renderpearl.api.textures.FilterMode getMagFilter() {
                     return mag;
                 }
 
@@ -1324,20 +1373,21 @@ public final class YsmMaterialNativeSmokeTest {
 
                 @Override
                 public void close() {
+                    closed = true;
                 }
             };
         }
 
         @Override
-        public com.mojang.blaze3d.textures.GpuTexture createTexture(java.util.function.Supplier<String> label, int usage,
-                com.mojang.blaze3d.GpuFormat format, int width, int height, int layers, int levels) {
+        public com.mojang.renderpearl.api.textures.GpuTexture createTexture(java.util.function.Supplier<String> label, int usage,
+                com.mojang.renderpearl.api.GpuFormat format, int width, int height, int layers, int levels) {
             var texture = new PublicationGpuTexture(usage, label.get(), format, width, height, layers, levels);
             created.add(texture);
             return texture;
         }
 
         @Override
-        public com.mojang.blaze3d.textures.GpuTextureView createTextureView(com.mojang.blaze3d.textures.GpuTexture texture) {
+        public com.mojang.renderpearl.api.textures.GpuTextureView createTextureView(com.mojang.renderpearl.api.textures.GpuTexture texture) {
             if (failView) {
                 throw new IllegalStateException("fixture view creation failure");
             }
@@ -1347,36 +1397,35 @@ public final class YsmMaterialNativeSmokeTest {
         }
 
         @Override
-        public com.mojang.blaze3d.systems.CommandEncoder createCommandEncoder() {
-            return new com.mojang.blaze3d.systems.CommandEncoder(null, null, null) {
-                @Override
-                public void writeToTexture(com.mojang.blaze3d.textures.GpuTexture texture, NativeImage image) {
-                    require(!texture.isClosed() && !image.isClosed(), "uploads require live source and destination");
-                    if (failWrite) {
-                        throw new IllegalStateException("fixture pixel upload failure");
-                    }
-                    if (capturePixels) {
-                        int[] pixels = new int[image.getWidth() * image.getHeight()];
-                        for (int y = 0; y < image.getHeight(); y++) {
-                            for (int x = 0; x < image.getWidth(); x++) {
-                                pixels[y * image.getWidth() + x] = image.getPixel(x, y);
-                            }
+        public com.mojang.renderpearl.api.commands.CommandEncoder createCommandEncoder() {
+            return commandRecorder((proxy, method, args) -> {
+                switch (method.getName()) {
+                    case "writeToTexture" -> {
+                        var texture = (com.mojang.renderpearl.api.textures.GpuTexture) args[0];
+                        var image = (NativeImage) args[1];
+                        require(!texture.isClosed() && !image.isClosed(), "uploads require live source and destination");
+                        if (failWrite) {
+                            throw new IllegalStateException("fixture pixel upload failure");
                         }
-                        uploadedPixels.add(pixels);
+                        if (capturePixels) {
+                            int[] pixels = new int[image.getWidth() * image.getHeight()];
+                            for (int y = 0; y < image.getHeight(); y++) {
+                                for (int x = 0; x < image.getWidth(); x++) {
+                                    pixels[y * image.getWidth() + x] = image.getPixel(x, y);
+                                }
+                            }
+                            uploadedPixels.add(pixels);
+                        }
                     }
+                    case "copyTextureToBuffer" -> readbacks.add((Runnable) args[3]);
+                    default -> throw new UnsupportedOperationException(method.toString());
                 }
-
-                @Override
-                public void copyTextureToBuffer(com.mojang.blaze3d.textures.GpuTexture source,
-                                                com.mojang.blaze3d.buffers.GpuBuffer destination,
-                                                long offset, Runnable completion, int mipLevel) {
-                    readbacks.add(completion);
-                }
-            };
+                return null;
+            });
         }
 
         @Override
-        public com.mojang.blaze3d.buffers.GpuBuffer createBuffer(
+        public com.mojang.renderpearl.api.buffers.GpuBuffer createBuffer(
                 java.util.function.Supplier<String> label, int usage, long size) {
             var buffer = new ReadbackBuffer(usage, size);
             buffers.add(buffer);
@@ -1384,15 +1433,29 @@ public final class YsmMaterialNativeSmokeTest {
         }
     }
 
-    private static final class ReadbackBuffer extends com.mojang.blaze3d.buffers.GpuBuffer {
+    private static com.mojang.renderpearl.api.commands.CommandEncoder commandRecorder(
+            java.lang.reflect.InvocationHandler handler) {
+        return (com.mojang.renderpearl.api.commands.CommandEncoder) java.lang.reflect.Proxy.newProxyInstance(
+                com.mojang.renderpearl.api.commands.CommandEncoder.class.getClassLoader(),
+                new Class<?>[]{com.mojang.renderpearl.api.commands.CommandEncoder.class}, handler);
+    }
+
+    private static final class ReadbackBuffer implements com.mojang.renderpearl.api.buffers.GpuBuffer {
         private boolean closed;
         private final java.nio.ByteBuffer bytes;
 
+        private final int usage;
+
         private ReadbackBuffer(int usage, long size) {
-            super(usage, size);
+            this.usage = usage;
             bytes = java.nio.ByteBuffer.allocate(Math.toIntExact(size)).order(java.nio.ByteOrder.nativeOrder());
-            bytes.asIntBuffer().put(new int[]{0x00112233, 0x00445566, 0x00778899, 0x00aabbcc});
+            if (size >= 16) {
+                bytes.asIntBuffer().put(new int[]{0x00112233, 0x00445566, 0x00778899, 0x00aabbcc});
+            }
         }
+
+        @Override public int usage() { return usage; }
+        @Override public long size() { return bytes.capacity(); }
 
         @Override
         public boolean isClosed() {
@@ -1405,20 +1468,42 @@ public final class YsmMaterialNativeSmokeTest {
         }
 
         @Override
-        public com.mojang.blaze3d.buffers.GpuBufferSlice.MappedView map(
+        public com.mojang.renderpearl.api.buffers.GpuBufferSlice.MappedView map(
                 long offset, long length, boolean read, boolean write) {
-            return new com.mojang.blaze3d.buffers.GpuBufferSlice.MappedView(slice(offset, length),
+            return new com.mojang.renderpearl.api.buffers.GpuBufferSlice.MappedView(slice(offset, length),
                     bytes.slice(Math.toIntExact(offset), Math.toIntExact(length)).order(bytes.order()), () -> {});
         }
     }
 
-    private static final class PublicationGpuTexture extends com.mojang.blaze3d.textures.GpuTexture {
+    private static final class PublicationGpuTexture implements com.mojang.renderpearl.api.textures.GpuTexture {
         private boolean closed;
 
-        private PublicationGpuTexture(int usage, String label, com.mojang.blaze3d.GpuFormat format,
+        private final int usage;
+        private final String label;
+        private final com.mojang.renderpearl.api.GpuFormat format;
+        private final int width;
+        private final int height;
+        private final int layers;
+        private final int levels;
+
+        private PublicationGpuTexture(int usage, String label, com.mojang.renderpearl.api.GpuFormat format,
                                       int width, int height, int layers, int levels) {
-            super(usage, label, format, width, height, layers, levels);
+            this.usage = usage;
+            this.label = label;
+            this.format = format;
+            this.width = width;
+            this.height = height;
+            this.layers = layers;
+            this.levels = levels;
         }
+
+        @Override public int usage() { return usage; }
+        @Override public String getLabel() { return label; }
+        @Override public com.mojang.renderpearl.api.GpuFormat getFormat() { return format; }
+        @Override public int getWidth(int mipLevel) { return Math.max(1, width >> mipLevel); }
+        @Override public int getHeight(int mipLevel) { return Math.max(1, height >> mipLevel); }
+        @Override public int getDepthOrLayers() { return layers; }
+        @Override public int getMipLevels() { return levels; }
 
         @Override
         public void close() {
@@ -1604,11 +1689,18 @@ public final class YsmMaterialNativeSmokeTest {
             runtime.owner().renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
             var opaque = (net.minecraft.client.renderer.rendertype.RenderType) renderType.invoke(renderer);
             var source = net.minecraft.client.renderer.RenderPipelines.ENTITY_TRANSLUCENT_EMISSIVE;
-            require(opaque.pipeline().getVertexShader().equals(source.getVertexShader())
-                            && opaque.pipeline().getFragmentShader().equals(source.getFragmentShader())
+            // 26.3 Builder stores layouts in ObjectOpenHashSet; rebuilding may reorder groups.
+            com.mojang.renderpearl.api.pipeline.BindGroupLayout.ensureCompatible(opaque.pipeline().getBindGroupLayouts());
+            require(opaque.pipeline().getShaders().equals(source.getShaders())
                             && opaque.pipeline().getShaderDefines().values().equals(source.getShaderDefines().values())
-                            && opaque.pipeline().getBindGroupLayouts().equals(source.getBindGroupLayouts()),
-                    "unlit GUI material uses the native emissive shaders, numeric defines and uniforms");
+                            && java.util.Set.copyOf(opaque.pipeline().getBindGroupLayouts())
+                                    .equals(java.util.Set.copyOf(source.getBindGroupLayouts())),
+                    "unlit GUI material uses native emissive shaders/defines/uniforms: shaders="
+                            + opaque.pipeline().getShaders() + " expected=" + source.getShaders()
+                            + ", values=" + opaque.pipeline().getShaderDefines().values()
+                            + " expected=" + source.getShaderDefines().values()
+                            + ", layouts=" + opaque.pipeline().getBindGroupLayouts()
+                            + " expected=" + source.getBindGroupLayouts());
             var unlitDefines = opaque.pipeline().getShaderDefines();
             require(unlitDefines.flags().contains("EMISSIVE") && unlitDefines.flags().contains("NO_CARDINAL_LIGHTING")
                             && !unlitDefines.flags().contains("PER_FACE_LIGHTING"),
@@ -1904,7 +1996,7 @@ public final class YsmMaterialNativeSmokeTest {
                 });
                 com.mojang.blaze3d.vertex.VertexConsumer ignored = vertexRecorder(new ArrayList<>());
                 top.aihmc.omnimorph.model.rendering.FiguraVertexSource source = material -> {
-                    if (material.primitiveTopology() == com.mojang.blaze3d.PrimitiveTopology.LINES) {
+                    if (material.primitiveTopology() == com.mojang.renderpearl.api.pipeline.PrimitiveTopology.LINES) {
                         return ignored;
                     }
                     currentMaterial.set(material);
@@ -2178,8 +2270,9 @@ public final class YsmMaterialNativeSmokeTest {
             var blended = (net.minecraft.client.renderer.rendertype.RenderType) renderType.invoke(renderer);
             var nativeBlended = net.minecraft.client.renderer.rendertype.RenderTypes.entityTranslucent(runtime.texture().getLocation());
             require(blended.pipeline().isCull() && blended.hasBlending(), "all_cutout preserves translucent alpha blending");
-            require(blended.outputTarget() == nativeBlended.outputTarget() && blended.sortOnUpload(),
-                    "culled translucent models retain the world output target and transparency sorting");
+            require(blended.forceSolidModelPhase() == nativeBlended.forceSolidModelPhase()
+                            && blended.sortOnUpload() == nativeBlended.sortOnUpload(),
+                    "culled translucent models retain the native model phase and transparency sorting");
             require(renderType.invoke(renderer) == blended, "repeated render passes reuse the model-owned render type");
             require(runtime.setTexture("c"), "skin switch succeeds under all_cutout");
             translucent.setBoolean(runtime, true);

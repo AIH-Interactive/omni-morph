@@ -1,6 +1,7 @@
 package top.aihmc.omnimorph.model.library;
 
 import com.mojang.authlib.GameProfile;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.RemotePlayer;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
@@ -3243,18 +3244,18 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 require(preview.keyPressed(new net.minecraft.client.input.KeyEvent(key, 0, 0)), "numeric wheel input handled");
                 require(preview.keyReleased(new net.minecraft.client.input.KeyEvent(key, 0, 0)), "matching wheel release handled");
             };
-            press.accept(49);
-            press.accept(50);
-            press.accept(50);
+            press.accept(InputConstants.KEY_1);
+            press.accept(InputConstants.KEY_2);
+            press.accept(InputConstants.KEY_2);
             int previousClicks = firstGlobals.get("wheel_clicks").toint();
-            preview.keyPressed(new net.minecraft.client.input.KeyEvent(49, 0, 0));
-            preview.keyPressed(new net.minecraft.client.input.KeyEvent(49, 0, 0));
+            preview.keyPressed(new net.minecraft.client.input.KeyEvent(InputConstants.KEY_1, 0, 0));
+            preview.keyPressed(new net.minecraft.client.input.KeyEvent(InputConstants.KEY_1, 0, 0));
             require(firstGlobals.get("wheel_clicks").toint() == previousClicks + 1,
                     "a held numeric key does not replay the press action on key repeat");
-            preview.keyReleased(new net.minecraft.client.input.KeyEvent(50, 0, 0));
-            require(field(preview.getClass(), "heldInput").getInt(preview) == 49,
+            preview.keyReleased(new net.minecraft.client.input.KeyEvent(InputConstants.KEY_2, 0, 0));
+            require(field(preview.getClass(), "heldInput").getInt(preview) == InputConstants.KEY_1,
                     "releasing another key does not release the active input");
-            preview.keyReleased(new net.minecraft.client.input.KeyEvent(49, 0, 0));
+            preview.keyReleased(new net.minecraft.client.input.KeyEvent(InputConstants.KEY_1, 0, 0));
             require(field(preview.getClass(), "heldInput").getInt(preview) == -1
                             && draft.instance(first.cosmeticContext.instanceId()).controls().get("amplitude")
                                     .equals(first.controls.getValue("amplitude"))
@@ -3264,13 +3265,13 @@ public final class LibraryPreviewRuntimeSmokeTest {
             double pointerX = centerX + 50;
             double pointerY = 130;
             var left = new net.minecraft.client.input.MouseButtonEvent(pointerX, pointerY,
-                    new net.minecraft.client.input.MouseButtonInfo(0, 0));
+                    new net.minecraft.client.input.MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0));
             preview.mouseClicked(left, false);
             require(firstGlobals.get("wheel_clicks").toint() == previousClicks + 2,
                     "native pointer hit testing routes to the original author callback");
             preview.mouseReleased(new net.minecraft.client.input.MouseButtonEvent(pointerX, pointerY,
-                    new net.minecraft.client.input.MouseButtonInfo(1, 0)));
-            require(field(preview.getClass(), "heldInput").getInt(preview) == 0,
+                    new net.minecraft.client.input.MouseButtonInfo(InputConstants.MOUSE_BUTTON_RIGHT, 0)));
+            require(field(preview.getClass(), "heldInput").getInt(preview) == InputConstants.MOUSE_BUTTON_LEFT,
                     "right-button release does not end a left-button input");
             preview.mouseReleased(left);
             require(field(preview.getClass(), "heldInput").getInt(preview) == -1,
@@ -3283,7 +3284,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     "wheel scrolling saves its owner's values without activating or changing the equipped wheel selection");
             int allowedClicks = firstGlobals.get("wheel_clicks").toint();
             draft.setEnabled(first.cosmeticContext.instanceId(), false);
-            preview.keyPressed(new net.minecraft.client.input.KeyEvent(49, 0, 0));
+            preview.keyPressed(new net.minecraft.client.input.KeyEvent(InputConstants.KEY_1, 0, 0));
             require(firstGlobals.get("wheel_clicks").toint() == allowedClicks,
                     "an instance disabled in the draft cannot execute through a still-retained prepared composition");
             draft.setEnabled(first.cosmeticContext.instanceId(), true);
@@ -3324,7 +3325,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                             && !field(wardrobe.getClass(), "cosmeticAnimationsOpen").getBoolean(wardrobe),
                     "Done returns to the wardrobe with the same private draft and no retained input scope");
             valid = draft.configuration();
-            preview.keyPressed(new net.minecraft.client.input.KeyEvent(49, 0, 0));
+            preview.keyPressed(new net.minecraft.client.input.KeyEvent(InputConstants.KEY_1, 0, 0));
             require(draft.configuration().equals(valid)
                             && field(wardrobe.getClass(), "draftPreviewGeneration").getLong(wardrobe) == generation,
                     "old preview key callbacks cannot mutate a closed scope or prepare/equip resources");
@@ -3866,7 +3867,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
     private static final class CurrentPreviewPlayer extends net.minecraft.client.player.LocalPlayer
             implements org.figuramc.figura.mixin.EntityAccessor {
         private CurrentPreviewPlayer() {
-            super(null, null, null, null, null, null, false, null);
+            super(null, null, null, null, null, null, false, null, null);
         }
 
         @Override
@@ -4343,7 +4344,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
             input.setX(reason.getX() + 2);
             input.setY(reason.getY() + 2);
             var click = new net.minecraft.client.input.MouseButtonEvent(reason.getX() + 8, reason.getY() + 8,
-                    new net.minecraft.client.input.MouseButtonInfo(0, 0));
+                    new net.minecraft.client.input.MouseButtonInfo(
+                            com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT, 0));
             require(screen.mouseClicked(click, false), "report reason receives the actual screen click");
             require(screen.charTyped(new net.minecraft.client.input.CharacterEvent('举')),
                     "report keyboard routing and enabled state work before mouse release");
@@ -4352,9 +4354,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     "report reason accepts a character after a complete click and release");
             require(input.getValue().equals("举报") && field(screen.getClass(), "value").get(screen).equals("举报"),
                     "report input updates both native text and the submitted reason value");
-            require(screen.keyPressed(new net.minecraft.client.input.KeyEvent(257, 0, 0))
+            require(screen.keyPressed(new net.minecraft.client.input.KeyEvent(com.mojang.blaze3d.platform.InputConstants.KEY_RETURN, org.lwjgl.sdl.SDLKeycode.SDLK_RETURN, 0))
                             && screen.charTyped(new net.minecraft.client.input.CharacterEvent('A'))
-                            && screen.keyPressed(new net.minecraft.client.input.KeyEvent(259, 0, 0)),
+                            && screen.keyPressed(new net.minecraft.client.input.KeyEvent(com.mojang.blaze3d.platform.InputConstants.KEY_BACKSPACE, org.lwjgl.sdl.SDLKeycode.SDLK_BACKSPACE, 0)),
                     "report reason keeps multiline editing and backspace after release");
             require(input.getValue().equals("举报\n"), "native multiline editing updates the report value");
             reason.setEnabled(false);
@@ -4364,7 +4366,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(screen.mouseClicked(click, false), "enabled report field can regain focus");
             screen.mouseReleased(click);
             screen.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(1, 1,
-                    new net.minecraft.client.input.MouseButtonInfo(0, 0)), false);
+                    new net.minecraft.client.input.MouseButtonInfo(
+                            com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT, 0)), false);
             require(!screen.charTyped(new net.minecraft.client.input.CharacterEvent('外')),
                     "clicking outside still clears report editing focus");
             System.out.println("PASS report input: actual screen click/release, CJK text, newline/backspace, disabled state and outside focus");
@@ -4624,9 +4627,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var a = new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(null, first);
             var b = new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(null, second);
             grid.entries(java.util.List.of(a, b), null);
-            var click = new net.minecraft.client.input.MouseButtonEvent(8, 62, new net.minecraft.client.input.MouseButtonInfo(0, 0));
+            var click = new net.minecraft.client.input.MouseButtonEvent(8, 62,
+                    new net.minecraft.client.input.MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0));
             require(grid.mouseClicked(click, false) && chosen.get() == a, "collection pointer hit testing selects the first card");
-            require(grid.keyPressed(new net.minecraft.client.input.KeyEvent(262, 0, 0)) && chosen.get() == b,
+            require(grid.keyPressed(new net.minecraft.client.input.KeyEvent(InputConstants.KEY_RIGHT, 0, 0)) && chosen.get() == b,
                     "collection arrow navigation uses the same two-column card layout");
             var search = (org.figuramc.figura.gui.widgets.SearchBar) grid.children().stream()
                     .filter(org.figuramc.figura.gui.widgets.SearchBar.class::isInstance).findFirst().orElseThrow();
@@ -4980,7 +4984,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             clearingMenu.setVisible(true);
             screen.contextMenu = clearingMenu;
             require(screen.contextMenuClick(new net.minecraft.client.input.MouseButtonEvent(24, 24,
-                            new net.minecraft.client.input.MouseButtonInfo(0, 0)), false),
+                            new net.minecraft.client.input.MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0)), false),
                     "menu callback may clear the screen menu during a consumed click");
             require(screen.contextMenu == null && !clearingMenu.isVisible(),
                     "the clicked menu closes after its callback rebuilds the screen");
@@ -4999,7 +5003,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             localRow.setX(4);
             localRow.setY(30);
             var rightClick = new net.minecraft.client.input.MouseButtonEvent(8, 36,
-                    new net.minecraft.client.input.MouseButtonInfo(1, 0));
+                    new net.minecraft.client.input.MouseButtonInfo(InputConstants.MOUSE_BUTTON_RIGHT, 0));
             require(localRow.getHeight() == 28 && localRow.mouseClicked(rightClick, false),
                     "taller local outfit rows retain their existing right-click context menu");
             var menu = org.figuramc.figura.utils.ui.UIHelper.getContext();
@@ -5045,8 +5049,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 require(removed.get() == avatar && selected.get() == 0 && !menu.isVisible(),
                         "All-source local removal uses the local resource callback without selecting it");
                 cloud.entries(java.util.List.of(entry), null);
-                require(cloud.keyPressed(new net.minecraft.client.input.KeyEvent(264, 0, 0))
-                                && cloud.keyPressed(new net.minecraft.client.input.KeyEvent(264, 0, 0)) && selected.get() == 2,
+                require(cloud.keyPressed(new net.minecraft.client.input.KeyEvent(InputConstants.KEY_DOWN, 0, 0))
+                                && cloud.keyPressed(new net.minecraft.client.input.KeyEvent(InputConstants.KEY_DOWN, 0, 0)) && selected.get() == 2,
                         "mixed outfit keyboard navigation selects both local and cloud resources");
             }
         } finally {

@@ -46,8 +46,7 @@ public abstract class SubmitNodeCollectionMixin implements NodeCollectorExtensio
             target = "Lnet/minecraft/client/renderer/rendertype/RenderTypes;waterMask()Lnet/minecraft/client/renderer/rendertype/RenderType;"))
     private <S> void figura$onSubmitModel(Model<? super S> model, S state, PoseStack poseStack,
                                          RenderType renderType, int light, int overlay, int color,
-                                         @Nullable TextureAtlasSprite sprite, int outlineColor,
-                                         @Nullable ModelFeatureRenderer.CrumblingOverlay crumbling,
+                                         @Nullable net.minecraft.client.renderer.texture.UvMapping sprite, int outlineColor,
                                          CallbackInfo ci, @Local ModelFeatureRenderer.Submit<S> submit) {
         var destination = (FiguraSubmitCallBackExtension) (Object) submit;
         // OrderedSubmitNodeCollector now wraps submitted ModelParts in Model.Simple.

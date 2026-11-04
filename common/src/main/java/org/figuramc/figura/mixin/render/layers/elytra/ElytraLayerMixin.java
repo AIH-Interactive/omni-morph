@@ -155,8 +155,8 @@ public abstract class ElytraLayerMixin<T extends LivingEntity, S extends Humanoi
                 boolean leftWing = figura$Avatar.pivotPartRender(ParentType.LeftElytraPivot, stack -> {
                         stack.pushPose();
                         stack.scale(16, 16, 16);
-                        stack.mulPose(Axis.XP.rotationDegrees(180f));
-                        stack.mulPose(Axis.YP.rotationDegrees(180f));
+                        stack.rotate(Axis.XP.rotationDegrees(180f));
+                        stack.rotate(Axis.YP.rotationDegrees(180f));
                         stack.translate(0.0f, 0.0f, 0.125f);
                         figura$submitElytraPart(elytraModel, state, ((ElytraModelAccessor)elytraModel).getLeftWing(), stack, nodeCollector, light, state.outlineColor, itemStack, playerTexture);
                         stack.popPose();
@@ -172,8 +172,8 @@ public abstract class ElytraLayerMixin<T extends LivingEntity, S extends Humanoi
                 boolean rightWing = figura$Avatar.pivotPartRender(ParentType.RightElytraPivot, stack -> {
                     stack.pushPose();
                     stack.scale(16, 16, 16);
-                    stack.mulPose(Axis.XP.rotationDegrees(180f));
-                    stack.mulPose(Axis.YP.rotationDegrees(180f));
+                    stack.rotate(Axis.XP.rotationDegrees(180f));
+                    stack.rotate(Axis.YP.rotationDegrees(180f));
                     stack.translate(0.0f, 0.0f, 0.125f);
                     figura$submitElytraPart(elytraModel, state, ((ElytraModelAccessor)elytraModel).getRightWing(), stack, nodeCollector, light, state.outlineColor, itemStack, playerTexture);
                     stack.popPose();
@@ -214,13 +214,13 @@ public abstract class ElytraLayerMixin<T extends LivingEntity, S extends Humanoi
                     elytraModel.setupAnim(state);
                     return true;
                 });
-                nodeCollector.order(order++).submitModelPart(modelPart, poseStack, RenderTypes.armorCutoutNoCull(normalArmorResource), light, OverlayTexture.NO_OVERLAY, null, -1, null);
+                nodeCollector.order(order++).submitModelPart(modelPart, poseStack, RenderTypes.armorCutoutNoCull(normalArmorResource), light, OverlayTexture.NO_OVERLAY, null, -1, outlineColor);
                 if (hasGlint) {
                     ((FiguraSubmitCallBackExtension)(Object)modelPart).figura$addPreRenderingCallback((multiBufferSource, stack) -> {
                         elytraModel.setupAnim(state);
                         return true;
                     });
-                    nodeCollector.order(order++).submitModelPart(modelPart, poseStack, RenderTypes.armorEntityGlint(), light, OverlayTexture.NO_OVERLAY, null, -1 , null);
+                    nodeCollector.order(order++).submitModelPart(modelPart, poseStack, RenderTypes.trimmedArmorGlint(), light, OverlayTexture.NO_OVERLAY, null, -1, 0);
                 }
                 hasGlint = false;
             }
@@ -228,14 +228,14 @@ public abstract class ElytraLayerMixin<T extends LivingEntity, S extends Humanoi
 
         ArmorTrim trim = itemStack.get(DataComponents.TRIM);
         if (trim != null) {
-            TextureAtlasSprite textureAtlasSprite = ((EquipmentLayerRendererAccessor)equipmentRenderer).trimSpriteLookup()
-                    .apply(new EquipmentLayerRenderer.TrimSpriteKey(trim, layerType, location.get()));
-            RenderType renderType = Sheets.armorTrimsSheet(trim.pattern().value().decal());
+            var textureAtlasSprite = ((EquipmentLayerRendererAccessor)equipmentRenderer).trimTextureLookup()
+                    .apply(new EquipmentLayerRenderer.TrimTextureKey(trim, layerType, ((EquipmentLayerRendererAccessor) equipmentRenderer).figura$getAssetsManager().get(location.get())));
+            RenderType renderType = RenderTypes.armorTrim(textureAtlasSprite.textureLocation(), trim.pattern().value().decal());
             ((FiguraSubmitCallBackExtension)(Object)modelPart).figura$addPreRenderingCallback((multiBufferSource, stack) -> {
                 elytraModel.setupAnim(state);
                 return true;
             });
-            nodeCollector.order(order).submitModelPart(modelPart, poseStack, renderType, light, OverlayTexture.NO_OVERLAY, textureAtlasSprite, -1, null);
+            nodeCollector.order(order).submitModelPart(modelPart, poseStack, renderType, light, OverlayTexture.NO_OVERLAY, textureAtlasSprite, -1, outlineColor);
         }
     }
 }

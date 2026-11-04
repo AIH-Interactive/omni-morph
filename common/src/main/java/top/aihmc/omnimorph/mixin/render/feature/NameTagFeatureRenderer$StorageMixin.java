@@ -7,11 +7,8 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.SubmitNodeCollection;
-import net.minecraft.client.renderer.feature.NameTagFeatureRenderer;
 import net.minecraft.client.renderer.feature.TextFeatureRenderer;
-import net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase;
 import net.minecraft.client.renderer.feature.phase.TranslucentFeatureRenderPhase;
-import net.minecraft.client.renderer.feature.submit.SubmitNode;
 import net.minecraft.client.renderer.feature.submit.TranslucentSubmit;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.network.chat.Component;
@@ -38,7 +35,6 @@ import java.util.List;
 /** Keeps existing nameplate customization on the native collection and text phases. */
 @Mixin(SubmitNodeCollection.class)
 public abstract class NameTagFeatureRenderer$StorageMixin {
-    @Shadow @Final public SimpleFeatureRenderPhase texts;
 
     @Unique private EntityNameplateCustomization figura$custom;
     @Unique private List<Component> figura$textList;
@@ -83,7 +79,7 @@ public abstract class NameTagFeatureRenderer$StorageMixin {
     }
 
     @Inject(method = "submitNameTag", at = @At(value = "INVOKE",
-            target = "Lcom/mojang/blaze3d/vertex/PoseStack;mulPose(Lorg/joml/Quaternionfc;)V", shift = At.Shift.AFTER))
+            target = "Lcom/mojang/blaze3d/vertex/PoseStack;rotate(Lorg/joml/Quaternionfc;)V", shift = At.Shift.AFTER))
     private void figura$modifyPosition(PoseStack stack, Vec3 attachment, int offset, Component name,
                                        boolean seeThrough, int light, CameraRenderState camera, CallbackInfo ci) {
         if (figura$custom != null) {
@@ -108,55 +104,44 @@ public abstract class NameTagFeatureRenderer$StorageMixin {
 
     @WrapOperation(method = "submitNameTag", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/renderer/feature/phase/TranslucentFeatureRenderPhase;submit(Lnet/minecraft/client/renderer/feature/submit/TranslucentSubmit;)V"))
-    private void figura$drawWithColor(TranslucentFeatureRenderPhase phase, TranslucentSubmit node,
-                                      Operation<Void> original) {
+    private void figura$drawSeeThrough(TranslucentFeatureRenderPhase phase, TranslucentSubmit node,
+                                       Operation<Void> original) {
         if (figura$custom == null) {
             original.call(phase, node);
             return;
         }
-        var submit = (NameTagFeatureRenderer.Submit) node;
-        int light = figura$custom.light == null ? submit.lightCoords() : figura$custom.light;
-        int background = figura$custom.background == null ? submit.backgroundColor() : figura$custom.background;
-        for (var line : figura$layout(submit)) {
-            original.call(phase, new NameTagFeatureRenderer.Submit(line.pose(), line.x(), line.y(), line.text(),
-                    light, line.color(), background, line.displayMode()));
+        for (var line : figura$layout((TextFeatureRenderer.Submit) node)) {
+            original.call(phase, line);
         }
     }
 
     @WrapOperation(method = "submitNameTag", at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;submit(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V",
-            ordinal = 0))
-    private void figura$drawWithOutline(SimpleFeatureRenderPhase phase, SubmitNode node, Operation<Void> original) {
+            target = "Lnet/minecraft/client/renderer/SubmitNodeCollection;submitNameTagPart(Lnet/minecraft/client/renderer/feature/TextFeatureRenderer$Submit;)V"))
+    private void figura$drawNameTag(SubmitNodeCollection collection, TextFeatureRenderer.Submit node,
+                                    Operation<Void> original) {
         if (figura$custom == null) {
-            original.call(phase, node);
+            original.call(collection, node);
             return;
         }
-        var submit = (NameTagFeatureRenderer.Submit) node;
-        var lines = figura$layout(submit);
-        if (figura$custom.outline) {
-            int outlineColor = figura$custom.outlineColor == null ? 0x202020 : figura$custom.outlineColor;
-            for (var line : lines) {
-                texts.submit(new TextFeatureRenderer.Submit(new Matrix4f(line.pose()), line.x(), line.y(),
-                        line.text().getVisualOrderText(), false, Font.DisplayMode.NORMAL,
-                        line.lightCoords(), line.color(), 0, outlineColor));
-            }
-            original.call(phase, new NameTagFeatureRenderer.Submit(submit.pose(), submit.x(), submit.y(),
-                    Component.empty(), submit.lightCoords(), submit.color(), submit.backgroundColor(), submit.displayMode()));
-        } else {
-            for (var line : lines) {
-                original.call(phase, line);
-            }
+        for (var line : figura$layout(node)) {
+            original.call(collection, line);
         }
     }
 
     @Unique
-    private List<NameTagFeatureRenderer.Submit> figura$layout(NameTagFeatureRenderer.Submit submit) {
+    private List<TextFeatureRenderer.Submit> figura$layout(TextFeatureRenderer.Submit submit) {
+        var content = (TextFeatureRenderer.Content.Text) submit.content();
+        int light = figura$custom.light == null ? submit.lightCoords() : figura$custom.light;
+        int background = figura$custom.background == null ? content.backgroundColor() : figura$custom.background;
+        int outline = figura$custom.outline && submit.displayMode() != Font.DisplayMode.SEE_THROUGH
+                ? (figura$custom.outlineColor == null ? 0x202020 : figura$custom.outlineColor) : 0;
         if (!figura$isRenderingName) {
-            return List.of(submit);
+            return List.of(new TextFeatureRenderer.Submit(submit.pose(), submit.displayMode(), light,
+                    new TextFeatureRenderer.Content.Text(content.x(), content.y(), content.string(),
+                            content.dropShadow(), content.color(), background, outline)));
         }
         Font font = Minecraft.getInstance().font;
-        var result = new ArrayList<NameTagFeatureRenderer.Submit>();
-        boolean deadmau = submit.text().getString().equals("deadmau5");
+        var result = new ArrayList<TextFeatureRenderer.Submit>();
         for (int index = 0; index < figura$textList.size(); index++) {
             Component text = figura$textList.get(index);
             if (text.getString().isEmpty()) {
@@ -164,9 +149,10 @@ public abstract class NameTagFeatureRenderer$StorageMixin {
             }
             int line = index - figura$textList.size() + 1;
             float x = -font.width(text) / 2f;
-            float y = (deadmau ? -10f : 0f) + (font.lineHeight + 1) * line;
-            result.add(new NameTagFeatureRenderer.Submit(submit.pose(), x, y, text, submit.lightCoords(),
-                    submit.color(), submit.backgroundColor(), submit.displayMode()));
+            float y = content.y() + (font.lineHeight + 1) * line;
+            result.add(new TextFeatureRenderer.Submit(submit.pose(), submit.displayMode(), light,
+                    new TextFeatureRenderer.Content.Text(x, y, text.getVisualOrderText(),
+                            content.dropShadow(), content.color(), background, outline)));
         }
         return result;
     }

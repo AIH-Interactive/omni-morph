@@ -101,7 +101,7 @@ public final class OutfitFirstPersonScripts {
         runtime.updateAnimations(state, player);
         PoseStack stack = new PoseStack();
         stack.last().pose().set(entityToDraw);
-        stack.mulPose(Axis.YP.rotationDegrees(180.0f - bodyYaw));
+        stack.rotate(Axis.YP.rotationDegrees(180.0f - bodyYaw));
         YsmRenderer.applyEntityRotation(stack, state, bodyYaw);
         Matrix4f nativeToEntity = new Matrix4f(entityToDraw).invert().mul(stack.last().pose());
         var skeleton = composition.captureYsmBase(runtime, nativeToEntity, runtime.captureRenderPose(false));
@@ -115,7 +115,7 @@ public final class OutfitFirstPersonScripts {
                                    FiguraVertexSource discard) {
         PoseStack stack = new PoseStack();
         stack.last().pose().set(entityToDraw);
-        stack.mulPose(Axis.YP.rotationDegrees(180.0f - bodyYaw));
+        stack.rotate(Axis.YP.rotationDegrees(180.0f - bodyYaw));
         stack.scale(-1.0f, -1.0f, 1.0f);
         var pose = composition.captureFiguraBase(base, new Matrix4f(entityToDraw).invert(),
                 () -> base.render(player, 0, delta, 1.0f, stack, discard, state.lightCoords,

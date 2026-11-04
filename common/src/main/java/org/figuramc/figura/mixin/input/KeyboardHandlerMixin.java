@@ -1,6 +1,7 @@
 package org.figuramc.figura.mixin.input;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import org.figuramc.figura.utils.LegacyInput;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.KeyboardHandler;
 import net.minecraft.client.Minecraft;
@@ -29,8 +30,12 @@ public class KeyboardHandlerMixin {
         if (window != this.minecraft.getWindow().handle())
             return;
 
+        int key = LegacyInput.key(event.key());
+        int legacyAction = LegacyInput.action(action);
+        int modifiers = LegacyInput.modifiers(event.modifiers());
+
         YsmInputState.device().updateReadiness(this.minecraft);
-        YsmInputState.device().keyEvent(event.key(), action);
+        YsmInputState.device().keyEvent(key, legacyAction);
 
         if (action == 1 && Configs.PANIC_BUTTON.keyBind.matches(event)) {
             AvatarManager.togglePanic();
@@ -41,12 +46,14 @@ public class KeyboardHandlerMixin {
         if (avatar == null || avatar.luaRuntime == null)
             return;
 
-        if (avatar.keyPressEvent(event.key(), action, event.modifiers()) && (this.minecraft.mouseHandler.isMouseGrabbed() || this.minecraft.gui.screen() == null)) {
+        if (avatar.keyPressEvent(key, legacyAction, modifiers)
+                && (this.minecraft.mouseHandler.isMouseGrabbed() || this.minecraft.gui.screen() == null)) {
             ci.cancel();
             return;
         }
 
-        if (avatar.luaRuntime != null && FiguraKeybind.set(avatar.luaRuntime.keybinds.keyBindings, InputConstants.getKey(event), action != 0, event.modifiers())) {
+        if (avatar.luaRuntime != null && FiguraKeybind.set(avatar.luaRuntime.keybinds.keyBindings,
+                InputConstants.getKey(event), action != 0, modifiers)) {
             KeyMapping.setAll();
             ci.cancel();
         }

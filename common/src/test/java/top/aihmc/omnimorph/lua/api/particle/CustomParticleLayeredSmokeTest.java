@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.lua.api.particle;
 
-import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.platform.BlendFactor;
+import com.mojang.renderpearl.api.pipeline.BlendFunction;
+import com.mojang.renderpearl.api.pipeline.BlendFactor;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
@@ -136,9 +136,9 @@ public final class CustomParticleLayeredSmokeTest {
 
     private static void checkPipelinesAndOrder(SingleQuadParticle.Layer first, SingleQuadParticle.Layer second)
             throws Exception {
-        require(first.pipeline().getColorTargetState().blendFunction().orElseThrow().equals(BlendFunction.TRANSLUCENT),
+        require(first.pipeline().getColorTargetStates().getFirst().blendFunction().orElseThrow().equals(BlendFunction.TRANSLUCENT),
                 "alpha layer uses source alpha compositing");
-        var additive = second.pipeline().getColorTargetState().blendFunction().orElseThrow();
+        var additive = second.pipeline().getColorTargetStates().getFirst().blendFunction().orElseThrow();
         require(additive.color().sourceFactor() == BlendFactor.SRC_ALPHA
                         && additive.color().destFactor() == BlendFactor.ONE,
                 "additive layer still respects source opacity");
@@ -147,7 +147,7 @@ public final class CustomParticleLayeredSmokeTest {
                         && !second.pipeline().getDepthStencilState().writeDepth(),
                 "mixed blends share a pass without writing depth over another layer");
         var opaque = CustomParticlePipelines.pipeline(2, CustomParticlePipelines.Blend.OPAQUE);
-        require(opaque.getColorTargetState().blendFunction().isEmpty(), "opaque blend disables compositing");
+        require(opaque.getColorTargetStates().getFirst().blendFunction().isEmpty(), "opaque blend disables compositing");
         var third = new SingleQuadParticle.Layer(true, first.textureAtlasLocation(), opaque);
         var nativeA = SingleQuadParticle.Layer.TRANSLUCENT;
         var nativeB = SingleQuadParticle.Layer.OPAQUE;

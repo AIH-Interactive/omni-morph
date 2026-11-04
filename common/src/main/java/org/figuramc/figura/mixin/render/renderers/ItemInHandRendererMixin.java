@@ -3,8 +3,9 @@ package org.figuramc.figura.mixin.render.renderers;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.ItemInHandRenderer;
+import net.minecraft.client.renderer.state.level.PlayerRenderState;
+import net.minecraft.client.renderer.state.level.FirstPersonHandsAndItemsRenderState;
+import net.minecraft.client.renderer.FirstPersonHandsAndItemsRenderer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.HumanoidArm;
@@ -29,19 +30,17 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(ItemInHandRenderer.class)
+@Mixin(FirstPersonHandsAndItemsRenderer.class)
 public abstract class ItemInHandRendererMixin {
 
-    @Shadow private ItemStack mainHandItem;
-
     @Shadow
-    protected abstract void renderPlayerArm(PoseStack matrices, SubmitNodeCollector submitNodeCollector, int light, float equipProgress, float swingProgress, HumanoidArm arm);
+    protected abstract void renderPlayerArm(PoseStack matrices, SubmitNodeCollector submitNodeCollector, int light, float equipProgress, float swingProgress, HumanoidArm arm, PlayerRenderState playerState);
 
     @Unique Avatar avatar;
 
     @Inject(method = "submitHandsWithItems", at = @At("HEAD"))
-    private void onRenderHandsWithItems(float tickDelta, PoseStack matrices, SubmitNodeCollector submitNodeCollector, LocalPlayer player, int light, CallbackInfo ci) {
-        avatar = AvatarManager.getAvatarForPlayer(player.getUUID());
+    private void onRenderHandsWithItems(float tickDelta, PoseStack matrices, SubmitNodeCollector submitNodeCollector, PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState, CallbackInfo ci) {
+        avatar = AvatarManager.getAvatarForPlayer(Minecraft.getInstance().player.getUUID());
         if (avatar == null)
             return;
 
@@ -54,7 +53,7 @@ public abstract class ItemInHandRendererMixin {
     }
 
     @Inject(method = "submitHandsWithItems", at = @At(value = "RETURN"))
-    private void afterRenderHandsWithItems(float tickDelta, PoseStack matrices, SubmitNodeCollector submitNodeCollector, LocalPlayer player, int light, CallbackInfo ci) {
+    private void afterRenderHandsWithItems(float tickDelta, PoseStack matrices, SubmitNodeCollector submitNodeCollector, PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState, CallbackInfo ci) {
         if (avatar != null) {
             FiguraMod.pushProfiler(FiguraMod.MOD_ID);
             FiguraMod.pushProfiler(avatar);
@@ -65,12 +64,13 @@ public abstract class ItemInHandRendererMixin {
         }
         // The body render is skipped in first person; replay the outfit composition with a full-body pose so
         // body-mounted accessory scripts (particles, trails) keep running. Geometry is discarded.
-        top.aihmc.omnimorph.model.outfit.OutfitFirstPersonScripts.render(Minecraft.getInstance(), player, tickDelta);
+        top.aihmc.omnimorph.model.outfit.OutfitFirstPersonScripts.render(Minecraft.getInstance(), Minecraft.getInstance().player, tickDelta);
     }
 
     @Inject(method = "submitArmWithItem", at = @At("HEAD"), cancellable = true)
-    private void renderArmWithItem(AbstractClientPlayer player, float tickDelta, float pitch, InteractionHand hand, float swingProgress, ItemStack item, float equipProgress, PoseStack matrices, SubmitNodeCollector submitNodeCollector, int light, CallbackInfo ci) {
-        if (player.isScoping())
+    private void renderArmWithItem(PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState, float tickDelta, float pitch, InteractionHand hand, float swingProgress, ItemStack item, float equipProgress, PoseStack matrices, SubmitNodeCollector submitNodeCollector, int light, CallbackInfo ci) {
+        var player = Minecraft.getInstance().player;
+        if (handState.isScoping)
             return;
 
         // YSM first-person: replace vanilla arm geometry while preserving vanilla item animations.
@@ -98,7 +98,7 @@ public abstract class ItemInHandRendererMixin {
         Boolean armVisible = arm == HumanoidArm.LEFT ? avatar.luaRuntime.renderer.renderLeftArm : avatar.luaRuntime.renderer.renderRightArm;
 
         boolean willRenderItem = !item.isEmpty();
-        boolean willRenderArm = (!willRenderItem && main) || item.is(Items.FILLED_MAP) || (!willRenderItem && this.mainHandItem.is(Items.FILLED_MAP));
+        boolean willRenderArm = (!willRenderItem && main) || item.is(Items.FILLED_MAP) || (!willRenderItem && handState.mainHandItem.is(Items.FILLED_MAP));
 
         // hide arm
         if (willRenderArm && !willRenderItem && armVisible != null && !armVisible) {
@@ -108,7 +108,7 @@ public abstract class ItemInHandRendererMixin {
         // render arm
         if (!willRenderArm && !player.isInvisible() && armVisible != null && armVisible) {
             matrices.pushPose();
-            this.renderPlayerArm(matrices, submitNodeCollector, light, equipProgress, swingProgress, arm);
+            this.renderPlayerArm(matrices, submitNodeCollector, light, equipProgress, swingProgress, arm, playerState);
             matrices.popPose();
         }
 
@@ -119,8 +119,16 @@ public abstract class ItemInHandRendererMixin {
         }
     }
 
-    @Inject(method = "renderItem", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/item/ItemStackRenderState;submit(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;III)V"))
-    private void renderItem(LivingEntity entity, ItemStack stack, ItemDisplayContext itemDisplayContext, PoseStack matrices, SubmitNodeCollector submitNodeCollector, int light, CallbackInfo ci) {
+    @Inject(method = "submitArmWithItem", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/item/ItemStackRenderState;submit(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;III)V"))
+    private void renderItem(PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState,
+            float tickDelta, float pitch, InteractionHand hand, float swingProgress, ItemStack stack,
+            float equipProgress, PoseStack matrices, SubmitNodeCollector submitNodeCollector, int light,
+            CallbackInfo ci) {
+        var entity = Minecraft.getInstance().player;
+        HumanoidArm arm = hand == InteractionHand.MAIN_HAND
+                ? entity.getMainArm() : entity.getMainArm().getOpposite();
+        ItemDisplayContext itemDisplayContext = arm == HumanoidArm.LEFT
+                ? ItemDisplayContext.FIRST_PERSON_LEFT_HAND : ItemDisplayContext.FIRST_PERSON_RIGHT_HAND;
         if (stack.getItem() instanceof BlockItem bl && bl.getBlock() instanceof AbstractSkullBlock) {
             SkullBlockRendererAccessor.setEntity(entity);
             SkullBlockRendererAccessor.setRenderMode(switch (itemDisplayContext) {

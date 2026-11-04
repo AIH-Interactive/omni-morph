@@ -1,6 +1,7 @@
 package top.aihmc.omnimorph.model.rendering.nodeRenderer;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.renderpearl.api.commands.RenderPass;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.renderer.RenderBuffers;
 import net.minecraft.client.renderer.SubmitNodeStorage;
@@ -12,6 +13,7 @@ import net.minecraft.client.renderer.feature.FeatureRendererType;
 import net.minecraft.client.renderer.feature.ItemFeatureRenderer;
 import net.minecraft.client.renderer.feature.submit.SubmitNode;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
+import net.minecraft.client.renderer.oit.OitStage;
 import net.minecraft.world.item.ItemDisplayContext;
 
 import java.util.ArrayList;
@@ -58,7 +60,8 @@ public final class NativeFeaturePreparationSmokeTest {
             }
             for (var groups : frame.groupsByFeature.values()) {
                 for (var group : groups) {
-                    group.execute(context, renderers, frame.allSubmits);
+                    // Empty item geometry never touches the pass; this checks native group indices.
+                    group.execute(context, null, null, renderers, frame.allSubmits);
                 }
             }
             require(items.executed.stream().sorted().toList().equals(List.of(11, 22, 33)),
@@ -99,7 +102,8 @@ public final class NativeFeaturePreparationSmokeTest {
         }
 
         @Override
-        public void executeGroup(FeatureFrameContext context, int groupIndex, List<Emitter> submits, boolean strictlyOrdered) {
+        public void executeGroup(FeatureFrameContext context, OitStage stage, RenderPass renderPass,
+                                 int groupIndex, List<Emitter> submits, boolean strictlyOrdered) {
         }
     }
 
@@ -116,8 +120,9 @@ public final class NativeFeaturePreparationSmokeTest {
         }
 
         @Override
-        public void executeGroup(FeatureFrameContext context, int groupIndex, List<Submit> submits, boolean strictlyOrdered) {
-            super.executeGroup(context, groupIndex, submits, strictlyOrdered);
+        public void executeGroup(FeatureFrameContext context, OitStage stage, RenderPass renderPass,
+                                 int groupIndex, List<Submit> submits, boolean strictlyOrdered) {
+            super.executeGroup(context, stage, renderPass, groupIndex, submits, strictlyOrdered);
             for (Submit submit : submits) {
                 executed.add(submit.lightCoords());
             }
